@@ -11,8 +11,6 @@ import { CONTRIBUTION_INTERVALS } from '../../src/constants/contributionInterval
 import * as freqUtils from 'utilities/parseFrequency';
 import calculateStripeFee from 'utilities/calculateStripeFee';
 import { DEFAULT_BACK_BUTTON_TEXT } from 'components/common/Button/BackButton/BackButton';
-import { CANCEL_PAYMENT_FAILURE_MESSAGE } from 'components/donationPage/DonationPage';
-import { STRIPE_ERROR_MESSAGE } from 'components/paymentProviders/stripe/StripePaymentForm';
 
 const pageSlug = 'page-slug';
 const expectedPageSlug = `${pageSlug}/`;
@@ -37,7 +35,6 @@ describe('Donation page displays dynamic page elements', () => {
   beforeEach(() => cy.visitDonationPage());
 
   it('should render expected rich text content', () => {
-    cy.getByTestId('d-rich-text').should('exist');
     cy.contains('Your support keeps us going!');
   });
 
@@ -256,6 +253,34 @@ describe('Donation page amount and frequency query parameters', () => {
     cy.getByTestId(`amount-other-selected`).within(() => {
       cy.get('input').should('have.value', targetAmount);
     });
+  });
+
+  specify('selects the default amount if user changes frequency after filling other amount', () => {
+    const targetFreq = 'monthly';
+    const targetAmount = 99;
+    // visit url + querystring
+    cy.visit(getTestingDonationPageUrl(expectedPageSlug, `?amount=${targetAmount}&frequency=${targetFreq}`));
+    cy.wait('@getPageDetail');
+    cy.url().should('include', EXPECTED_RP_SLUG);
+    cy.url().should('include', expectedPageSlug);
+    cy.url().should('include', targetFreq);
+    cy.url().should('include', targetAmount);
+
+    // assert that the right things are checked
+    cy.getByTestId('frequency-month-selected').should('exist');
+    cy.getByTestId(`amount-other-selected`).within(() => {
+      cy.get('input').should('have.value', targetAmount);
+    });
+
+    // Change frequency
+    cy.get('[data-testid*="frequency-one_time"]').click();
+
+    // assert that components are updated
+    cy.getByTestId(`amount-other-selected`).should('not.exist');
+    cy.getByTestId('frequency-month-selected').should('not.exist');
+    cy.getByTestId(`amount-other`).should('exist');
+    cy.getByTestId(`frequency-one_time-selected`).should('exist');
+    cy.getByTestId(`amount-120-selected`).should('exist');
   });
 
   specify('&amount but no &frequency defaults to that amount with the frequency=once', () => {
@@ -762,7 +787,7 @@ describe('User flow: canceling contribution', () => {
     cy.wait('@create-subscription-payment');
     cy.findByRole('button', { name: DEFAULT_BACK_BUTTON_TEXT }).click();
     cy.wait('@cancel-payment');
-    cy.contains(CANCEL_PAYMENT_FAILURE_MESSAGE);
+    cy.contains("Something went wrong, but don't worry, you haven't been charged. Try refreshing.");
   });
 });
 
@@ -908,7 +933,7 @@ describe('StripePaymentForm unhappy paths', () => {
         })
       }).click();
       cy.findByRole('alert').within(() => {
-        cy.contains(STRIPE_ERROR_MESSAGE).should('be.visible');
+        cy.contains('Something went wrong processing your payment').should('be.visible');
       });
     }
   );
@@ -926,7 +951,7 @@ describe('StripePaymentForm unhappy paths', () => {
       })
     }).click();
     cy.findByRole('alert').within(() => {
-      cy.contains(STRIPE_ERROR_MESSAGE).should('be.visible');
+      cy.contains('Something went wrong processing your payment').should('be.visible');
     });
   });
 });

@@ -298,8 +298,6 @@ class ContributionsViewSet(viewsets.ReadOnlyModelViewSet, FilterQuerySetByUserMi
         as contributors will be able to access only Contributor Portal via magic link.
         """
         try:
-            name = f"{request.user.first_name} {request.user.last_name}"
-
             queryset = self.filter_queryset_for_user(self.request.user, self.model.objects.having_org_viewable_status())
             contributions = super().filter_queryset(queryset)
             contributions_in_csv = export_contributions_to_csv(contributions)
@@ -310,7 +308,6 @@ class ContributionsViewSet(viewsets.ReadOnlyModelViewSet, FilterQuerySetByUserMi
                 text_template="nrh-contribution-csv-email-body.txt",
                 html_template="nrh-contribution-csv-email-body.html",
                 template_data={
-                    "username": name,
                     "logo_url": os.path.join(settings.SITE_URL, "static", "nre_logo_black_yellow.png"),
                 },
                 attachment=contributions_in_csv,

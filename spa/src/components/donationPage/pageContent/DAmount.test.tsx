@@ -1,7 +1,7 @@
 import { axe } from 'jest-axe';
 import { cleanup, fireEvent, render, screen } from 'test-utils';
-import { DonationPageContext } from '../DonationPage';
-import DAmount from './DAmount';
+import { UsePageProps, DonationPageContext } from '../DonationPage';
+import DAmount, { DAmountProps } from './DAmount';
 import { CONTRIBUTION_INTERVALS } from 'constants/contributionIntervals';
 import { getFrequencyAdjective, getFrequencyRate } from 'utilities/parseFrequency';
 import userEvent from '@testing-library/user-event';
@@ -12,10 +12,19 @@ jest.mock('./PayFeesControl');
 const defaultPage = {
   currency: { symbol: 'mock-currency-symbol' },
   elements: [],
-  revenue_program: { name: 'mock-rp-name ' }
+  revenue_program: { name: 'mock-rp-name' },
+  payment_provider: {
+    stripe_account_id: 'mock-stripe-account-id'
+  }
 };
 
 const defaultOptions = { [CONTRIBUTION_INTERVALS.ONE_TIME]: [1, 2, 3] };
+
+const element = {
+  content: { options: defaultOptions },
+  uuid: 'mock-uuid',
+  type: 'DAmount'
+};
 
 const propsWithOtherAmount = {
   element: {
@@ -25,18 +34,25 @@ const propsWithOtherAmount = {
   }
 };
 
-function tree(props, pageContext) {
+function tree(props?: Partial<DAmountProps>, pageContext?: Partial<UsePageProps>) {
   return render(
-    <DonationPageContext.Provider value={{ amount: '', errors: {}, page: defaultPage, ...pageContext }}>
+    <DonationPageContext.Provider
+      value={{
+        amount: 1,
+        frequency: CONTRIBUTION_INTERVALS.ONE_TIME,
+        errors: {},
+        page: defaultPage,
+        overrideAmount: false,
+        feeAmount: 0.5,
+        setAmount: () => {},
+        setUserAgreesToPayFees: () => {},
+        stripeClientSecret: 'mock-stripe-client-secret',
+        userAgreesToPayFees: false,
+        ...pageContext
+      }}
+    >
       <ul>
-        <DAmount
-          element={{
-            content: { options: defaultOptions },
-            uuid: 'mock-uuid',
-            type: 'DAmount'
-          }}
-          {...props}
-        />
+        <DAmount element={element} {...props} />
       </ul>
     </DonationPageContext.Provider>
   );
@@ -47,13 +63,11 @@ describe('DAmount', () => {
   // state through testids only, and have accessibility problems in general.
 
   it('displays a heading based on the frequency selected', () => {
-    for (const interval in CONTRIBUTION_INTERVALS) {
-      const frequency = CONTRIBUTION_INTERVALS[interval];
-
+    Object.values(CONTRIBUTION_INTERVALS).forEach((frequency) => {
       tree(undefined, { frequency });
       expect(screen.getByText(`${getFrequencyAdjective(frequency)} amount`)).toBeVisible();
       cleanup();
-    }
+    });
   });
 
   it('displays a prompt', () => {
@@ -108,7 +122,12 @@ describe('DAmount', () => {
 
   it('displays a div for every option for the contribution frequency set in the page', () => {
     tree(
-      { options: { ...defaultOptions, [CONTRIBUTION_INTERVALS.MONTHLY]: [4, 5, 6] } },
+      {
+        element: {
+          ...element,
+          content: { options: { ...defaultOptions, [CONTRIBUTION_INTERVALS.MONTHLY]: [4, 5, 6] } }
+        }
+      },
       { frequency: CONTRIBUTION_INTERVALS.ONE_TIME }
     );
 
@@ -136,14 +155,14 @@ describe('DAmount', () => {
   });
 
   it("selects a div if it matches the page's contribution amount", () => {
-    tree({ options: defaultOptions }, { amount: 2, frequency: CONTRIBUTION_INTERVALS.ONE_TIME });
+    tree(undefined, { amount: 2, frequency: CONTRIBUTION_INTERVALS.ONE_TIME });
     expect(screen.getByText('mock-currency-symbol1')).toHaveAttribute('data-testid', 'amount-1');
     expect(screen.getByText('mock-currency-symbol2')).toHaveAttribute('data-testid', 'amount-2-selected');
     expect(screen.getByText('mock-currency-symbol3')).toHaveAttribute('data-testid', 'amount-3');
   });
 
   it("selects no divs if none match the page's contribution amount", () => {
-    tree({ options: defaultOptions }, { amount: 0, frequency: CONTRIBUTION_INTERVALS.ONE_TIME });
+    tree(undefined, { amount: 0, frequency: CONTRIBUTION_INTERVALS.ONE_TIME });
     expect(screen.getByText('mock-currency-symbol1')).toHaveAttribute('data-testid', 'amount-1');
     expect(screen.getByText('mock-currency-symbol2')).toHaveAttribute('data-testid', 'amount-2');
     expect(screen.getByText('mock-currency-symbol3')).toHaveAttribute('data-testid', 'amount-3');
@@ -152,13 +171,48 @@ describe('DAmount', () => {
   it('sets the amount when a payment option div is clicked', () => {
     const setAmount = jest.fn();
 
-    tree({ options: defaultOptions }, { setAmount, amount: 1, frequency: CONTRIBUTION_INTERVALS.ONE_TIME });
+    tree(undefined, { setAmount, amount: 1, frequency: CONTRIBUTION_INTERVALS.ONE_TIME });
     expect(setAmount).not.toBeCalled();
     userEvent.click(screen.getByText('mock-currency-symbol2'));
     expect(setAmount.mock.calls).toEqual([[2]]);
     setAmount.mockClear();
     userEvent.click(screen.getByText('mock-currency-symbol3'));
     expect(setAmount.mock.calls).toEqual([[3]]);
+  });
+
+  describe('When options contains an array of strings', () => {
+    it('selects correct amount', () => {
+      tree(
+        {
+          element: {
+            ...element,
+            content: { options: { ...defaultOptions, [CONTRIBUTION_INTERVALS.MONTHLY]: ['11', '22', '33'] } }
+          }
+        },
+        { amount: 22, frequency: CONTRIBUTION_INTERVALS.MONTHLY }
+      );
+
+      expect(screen.getByTestId('amount-22-selected')).toBeInTheDocument();
+    });
+
+    it('sets the amount when a payment option div is clicked', () => {
+      const setAmount = jest.fn();
+      tree(
+        {
+          element: {
+            ...element,
+            content: { options: { ...defaultOptions, [CONTRIBUTION_INTERVALS.MONTHLY]: ['11', '22', '33'] } }
+          }
+        },
+        { setAmount, amount: 22, frequency: CONTRIBUTION_INTERVALS.MONTHLY }
+      );
+      expect(setAmount).not.toBeCalled();
+      userEvent.click(screen.getByText('mock-currency-symbol11'));
+      expect(setAmount.mock.calls).toEqual([[11]]);
+      setAmount.mockClear();
+      userEvent.click(screen.getByText('mock-currency-symbol33'));
+      expect(setAmount.mock.calls).toEqual([[33]]);
+    });
   });
 
   it('does not show a field where the user can enter an amount', () => {
@@ -175,7 +229,8 @@ describe('DAmount', () => {
   describe('when the element has the allowOther option set', () => {
     it('displays a field where the user can enter another amount', () => {
       tree(propsWithOtherAmount);
-      expect(screen.getByRole('textbox')).toBeInTheDocument();
+      // The role "spinbutton" relates to <input type="number" />
+      expect(screen.getByRole('spinbutton')).toBeInTheDocument();
     });
 
     it("selects the field if the amount set in the page doesn't match any payment options", () => {
@@ -190,20 +245,18 @@ describe('DAmount', () => {
 
     it('shows the page currency symbol next to the text field', () => {
       tree(propsWithOtherAmount);
-      expect(within(screen.getByTestId('amount-other-selected')).getByText('mock-currency-symbol')).toBeVisible();
+      expect(within(screen.getByTestId('amount-other')).getByText('mock-currency-symbol')).toBeVisible();
     });
 
     it('shows the correct label for the frequency in the page', () => {
-      for (const interval in CONTRIBUTION_INTERVALS) {
-        const frequency = CONTRIBUTION_INTERVALS[interval];
-
+      Object.values(CONTRIBUTION_INTERVALS).forEach((frequency) => {
         tree(propsWithOtherAmount, { frequency });
 
         // One-time contributions show no label, just the currency symbol.
 
-        if (interval === 'ONE_TIME') {
+        if (frequency === CONTRIBUTION_INTERVALS.ONE_TIME) {
           // eslint-disable-next-line jest/no-conditional-expect
-          expect(screen.getByTestId('amount-other-selected')).toHaveTextContent('mock-currency-symbol');
+          expect(screen.getByTestId('amount-other')).toHaveTextContent('mock-currency-symbol');
         } else {
           // eslint-disable-next-line jest/no-conditional-expect
           expect(
@@ -212,7 +265,7 @@ describe('DAmount', () => {
         }
 
         cleanup();
-      }
+      });
     });
 
     it('sets the amount when a user enters a numeric value into the field', () => {
@@ -224,9 +277,9 @@ describe('DAmount', () => {
       // Fire a change instead of typing because we're not simulating `amount`
       // changing in context.
 
-      fireEvent.change(screen.getByRole('textbox'), { target: { value: '123' } });
+      fireEvent.change(screen.getByRole('spinbutton'), { target: { value: '123' } });
       expect(setAmount.mock.calls).toEqual([[123]]);
-      expect(screen.getByRole('textbox')).toHaveValue('123');
+      expect(screen.getByRole('spinbutton')).toHaveValue(123);
     });
 
     it("doesn't select an amount option if the user enters a number corresponding to that option", () => {
@@ -242,8 +295,8 @@ describe('DAmount', () => {
       };
 
       tree(propsWithOtherAmount, pageContext);
-      fireEvent.change(screen.getByRole('textbox'), { target: { value: '1' } });
-      expect(screen.getByRole('textbox')).toHaveValue('1');
+      fireEvent.change(screen.getByRole('spinbutton'), { target: { value: '1' } });
+      expect(screen.getByRole('spinbutton')).toHaveValue(1);
       expect(screen.queryByTestId('amount-1-selected')).not.toBeInTheDocument();
     });
 
@@ -251,20 +304,20 @@ describe('DAmount', () => {
       const setAmount = jest.fn();
 
       tree(propsWithOtherAmount, { page: defaultPage, setAmount });
-      userEvent.type(screen.getByRole('textbox'), '123');
+      userEvent.type(screen.getByRole('spinbutton'), '123');
       setAmount.mockClear();
-      userEvent.clear(screen.getByRole('textbox'));
-      expect(setAmount).lastCalledWith('');
+      userEvent.clear(screen.getByRole('spinbutton'));
+      expect(setAmount).lastCalledWith(undefined);
     });
 
     it("preserves the field's value if the user clicks away from it and then re-focuses it", () => {
       const setAmount = jest.fn();
 
       tree(propsWithOtherAmount, { page: defaultPage, setAmount });
-      userEvent.type(screen.getByRole('textbox'), '123');
+      userEvent.type(screen.getByRole('spinbutton'), '123');
       userEvent.click(document.body);
-      userEvent.click(screen.getByRole('textbox'));
-      expect(screen.getByRole('textbox')).toHaveValue('123');
+      userEvent.click(screen.getByRole('spinbutton'));
+      expect(screen.getByRole('spinbutton')).toHaveValue(123);
     });
 
     it('sets the amount to an empty string if the user selects a button, then focuses the field', () => {
@@ -278,17 +331,17 @@ describe('DAmount', () => {
       });
       userEvent.click(screen.getByText('mock-currency-symbol1'));
       setAmount.mockClear();
-      userEvent.click(screen.getByRole('textbox'));
-      expect(screen.getByRole('textbox')).toHaveValue('');
-      expect(setAmount).toBeCalledWith('');
+      userEvent.click(screen.getByRole('spinbutton'));
+      expect(screen.getByRole('spinbutton')).toHaveValue(null);
+      expect(setAmount).toBeCalledWith(undefined);
     });
 
     it('sets the amount to an empty string if the user enters non-numeric text', () => {
       const setAmount = jest.fn();
 
       tree(propsWithOtherAmount, { setAmount, page: { ...defaultPage } });
-      userEvent.type(screen.getByRole('textbox'), 'abc');
-      expect(setAmount).toHaveBeenLastCalledWith('');
+      userEvent.type(screen.getByRole('spinbutton'), 'abc');
+      expect(setAmount).toHaveBeenLastCalledWith(undefined);
     });
 
     it('is accessible', async () => {
@@ -307,25 +360,40 @@ describe('DAmount', () => {
   describe('When the page has overrideAmount set to true', () => {
     it('forces the the other amount field to be present, even if the element is not configured to use it', () => {
       tree(
-        { content: { allowOther: false }, options: { ...defaultOptions, [CONTRIBUTION_INTERVALS.MONTHLY]: [4, 5, 6] } },
+        {
+          element: {
+            ...element,
+            content: { allowOther: false, options: { ...defaultOptions, [CONTRIBUTION_INTERVALS.MONTHLY]: [4, 5, 6] } }
+          }
+        },
         { frequency: CONTRIBUTION_INTERVALS.ONE_TIME, overrideAmount: true }
       );
-      expect(screen.getByRole('textbox')).toBeVisible();
+      expect(screen.getByRole('spinbutton')).toBeVisible();
     });
 
     it('prepopulates the other amount field with the page amount', () => {
       tree(
-        { options: { ...defaultOptions, [CONTRIBUTION_INTERVALS.MONTHLY]: [4, 5, 6] } },
+        {
+          element: {
+            ...element,
+            content: { options: { ...defaultOptions, [CONTRIBUTION_INTERVALS.MONTHLY]: [4, 5, 6] } }
+          }
+        },
         { amount: 99, frequency: CONTRIBUTION_INTERVALS.ONE_TIME, overrideAmount: true }
       );
-      expect(screen.getByRole('textbox')).toHaveValue('99');
+      expect(screen.getByRole('spinbutton')).toHaveValue(99);
     });
 
     it('allows editing the amount in the text box', () => {
       const setAmount = jest.fn();
 
       tree(
-        { options: { ...defaultOptions, [CONTRIBUTION_INTERVALS.MONTHLY]: [4, 5, 6] } },
+        {
+          element: {
+            ...element,
+            content: { options: { ...defaultOptions, [CONTRIBUTION_INTERVALS.MONTHLY]: [4, 5, 6] } }
+          }
+        },
         { setAmount, amount: 99, frequency: CONTRIBUTION_INTERVALS.ONE_TIME, overrideAmount: true }
       );
       expect(setAmount).not.toHaveBeenCalled();
@@ -333,16 +401,21 @@ describe('DAmount', () => {
       // Fire a change instead of typing because we're not simulating `amount`
       // changing in context.
 
-      fireEvent.change(screen.getByRole('textbox'), { target: { value: '123' } });
+      fireEvent.change(screen.getByRole('spinbutton'), { target: { value: '123' } });
       expect(setAmount.mock.calls).toEqual([[123]]);
-      expect(screen.getByRole('textbox')).toHaveValue('123');
+      expect(screen.getByRole('spinbutton')).toHaveValue(123);
     });
 
     it('allows choosing a preset amount', () => {
       const setAmount = jest.fn();
 
       tree(
-        { options: { ...defaultOptions, [CONTRIBUTION_INTERVALS.MONTHLY]: [4, 5, 6] } },
+        {
+          element: {
+            ...element,
+            content: { options: { ...defaultOptions, [CONTRIBUTION_INTERVALS.MONTHLY]: [4, 5, 6] } }
+          }
+        },
         { setAmount, amount: 99, frequency: CONTRIBUTION_INTERVALS.ONE_TIME, overrideAmount: true }
       );
       expect(setAmount).not.toHaveBeenCalled();

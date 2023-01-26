@@ -20,6 +20,14 @@ export interface DonationPage {
   revenue_program: {
     name: string;
   };
+  elements: {
+    type: string;
+    content?: {
+      offerPayFees?: boolean;
+      options?: Record<string, string[] | number[]>;
+      [x: string]: any;
+    };
+  }[];
 }
 
 /**
@@ -30,6 +38,15 @@ export interface UsePageProps {
    * How much payment processing fees will be for this contribution.
    */
   feeAmount: number;
+  /**
+   * How much is the contribution.
+   */
+  amount?: number;
+  setAmount: (amount?: number) => void;
+  /**
+   * Flag that causes only the custom amount to show (initially).
+   */
+  overrideAmount: boolean;
   /**
    * How often the user wants to contribute.
    */
@@ -44,6 +61,13 @@ export interface UsePageProps {
    * Has the user agreed to pay payment processing fees?
    */
   userAgreesToPayFees: boolean;
+  /**
+   * Error object
+   */
+  errors: {
+    amount?: string | string[];
+    [x: string]: string | string[];
+  };
 }
 
 export declare const DonationPageContext: Context<UsePageProps>;

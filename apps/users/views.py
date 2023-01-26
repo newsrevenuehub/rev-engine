@@ -1,5 +1,6 @@
 import binascii
 import logging
+import os
 from base64 import urlsafe_b64decode, urlsafe_b64encode
 
 import django
@@ -226,7 +227,10 @@ class UserViewset(
             EMAIL_VERIFICATION_EMAIL_SUBJECT,
             "nrh-org-account-creation-verification-email.txt",
             "nrh-org-account-creation-verification-email.html",
-            {"verification_url": django.utils.safestring.mark_safe(url)},
+            {
+                "verification_url": django.utils.safestring.mark_safe(url),
+                "logo_url": os.path.join(settings.SITE_URL, "static", "nre_logo_black_yellow.png"),
+            },
         )
 
     def validate_password(self, email, password):
@@ -407,6 +411,7 @@ def password_reset_token_created(sender, instance, reset_password_token, *args, 
     context = {
         "email": email,
         "reset_password_url": mark_safe(spa_reset_url),
+        "logo_url": os.path.join(settings.SITE_URL, "static", "nre_logo_black_yellow.png"),
     }
     logger.info(
         "Sending password reset email to %s (with ID: %s) with the following reset url: %s",

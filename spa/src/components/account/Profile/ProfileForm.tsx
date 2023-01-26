@@ -7,11 +7,13 @@ import {
   FieldLabelOptional,
   FillRow,
   Form,
-  TaxStatusContainer,
-  TaxStatusInfoTooltip,
+  TooltipContainer,
+  InfoTooltip,
   StyledTextField
 } from './ProfileForm.styled';
 import { Message, MessageSpacer } from 'components/account/Account.styled';
+
+export const FISCALLY_SPONSORED = 'fiscally-sponsored';
 
 export const defaultValues = {
   companyName: '',
@@ -21,7 +23,8 @@ export const defaultValues = {
   firstName: '',
   jobTitle: '',
   lastName: '',
-  taxId: ''
+  taxId: '',
+  fiscalSponsorName: ''
 };
 
 export type ProfileFormFields = typeof defaultValues;
@@ -40,7 +43,14 @@ function ProfileForm({ disabled: disabledProp, onProfileSubmit, error }: Profile
   const lastName = watch('lastName');
   const companyName = watch('companyName');
   const companyTaxStatus = watch('companyTaxStatus');
-  const disabled = disabledProp || !firstName || !lastName || !companyName || companyTaxStatus === '.';
+  const fiscalSponsorName = watch('fiscalSponsorName');
+  const disabled =
+    disabledProp ||
+    !firstName ||
+    !lastName ||
+    !companyName ||
+    companyTaxStatus === '.' ||
+    (companyTaxStatus === FISCALLY_SPONSORED && !fiscalSponsorName);
 
   const onSubmit = (formData: ProfileFormFields) => {
     onProfileSubmit(formData);
@@ -86,7 +96,7 @@ function ProfileForm({ disabled: disabledProp, onProfileSubmit, error }: Profile
             render={({ field }) => <TextField fullWidth id="profile-company-name" label="Organization" {...field} />}
           />
         </FillRow>
-        <TaxStatusContainer>
+        <TooltipContainer>
           <Controller
             name="companyTaxStatus"
             control={control}
@@ -96,38 +106,63 @@ function ProfileForm({ disabled: disabledProp, onProfileSubmit, error }: Profile
                 <MenuItem disabled value="." style={{ display: 'none' }}>
                   Select your status
                 </MenuItem>
-                <MenuItem value="nonprofit">Non-profit</MenuItem>
+                <MenuItem value="nonprofit">Nonprofit</MenuItem>
                 <MenuItem value="for-profit">For-profit</MenuItem>
+                <MenuItem value={FISCALLY_SPONSORED}>Fiscally sponsored</MenuItem>
               </TextField>
             )}
           />
-          <TaxStatusInfoTooltip
+          <InfoTooltip
             buttonLabel="Help for Company Tax Status"
             title="Your tax status determines the contribution fees charged through Stripe."
           />
-        </TaxStatusContainer>
-        <Controller
-          name="taxId"
-          control={control}
-          rules={{ pattern: { value: /[0-9]{2}-[0-9]{7}/, message: 'EIN must have 9 digits' } }}
-          render={({ field }) => (
-            <MaskedInput mask="99-9999999" {...field}>
-              {(inputProps: any) => (
-                <StyledTextField
-                  id="profile-tax-id"
-                  data-testid="profile-tax-id"
-                  placeholder="XX-XXXXXXX"
-                  label={
-                    <>
-                      EIN <FieldLabelOptional>Optional</FieldLabelOptional>
-                    </>
-                  }
-                  {...inputProps}
-                />
+        </TooltipContainer>
+        <TooltipContainer>
+          <Controller
+            name="taxId"
+            control={control}
+            rules={{ pattern: { value: /[0-9]{2}-[0-9]{7}/, message: 'EIN must have 9 digits' } }}
+            render={({ field }) => (
+              <MaskedInput mask="99-9999999" {...field}>
+                {(inputProps: any) => (
+                  <StyledTextField
+                    fullWidth
+                    id="profile-tax-id"
+                    data-testid="profile-tax-id"
+                    placeholder="XX-XXXXXXX"
+                    label={
+                      <>
+                        EIN <FieldLabelOptional>Optional</FieldLabelOptional>
+                      </>
+                    }
+                    {...inputProps}
+                  />
+                )}
+              </MaskedInput>
+            )}
+          />
+          <InfoTooltip
+            buttonLabel="Help for EIN"
+            title="If your organization is fiscally sponsored, enter the fiscal sponsor’s EIN."
+          />
+        </TooltipContainer>
+        {companyTaxStatus === FISCALLY_SPONSORED && (
+          <FillRow>
+            <Controller
+              name="fiscalSponsorName"
+              control={control}
+              rules={{
+                maxLength: {
+                  value: 63,
+                  message: 'Fiscal Sponsor Name must have a maximum of 63 characters.'
+                }
+              }}
+              render={({ field }) => (
+                <TextField fullWidth id="profile-fiscal-sponsor-name" label="Fiscal Sponsor Name" {...field} />
               )}
-            </MaskedInput>
-          )}
-        />
+            />
+          </FillRow>
+        )}
         <FillRow>
           <Button disabled={disabled} fullWidth size="extraLarge" type="submit">
             Finalize Account

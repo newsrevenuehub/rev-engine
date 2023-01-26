@@ -1,5 +1,5 @@
 import logging
-from datetime import datetime
+from datetime import datetime, timedelta
 
 from django.conf import settings
 from django.db.models import TextChoices
@@ -66,7 +66,7 @@ class ContributionSerializer(serializers.ModelSerializer):
         This is just to improve front-end visibility of the "deadline" for examining flagged contributions.
         """
         if obj.flagged_date:
-            return obj.flagged_date + settings.FLAGGED_PAYMENT_AUTO_ACCEPT_DELTA
+            return obj.flagged_date + timedelta(settings.FLAGGED_PAYMENT_AUTO_ACCEPT_DELTA)
 
     def get_formatted_payment_provider_used(self, obj):
         if not obj.payment_provider_used:
@@ -285,9 +285,12 @@ class BaseCreatePaymentSerializer(serializers.Serializer):
     )
     sf_campaign_id = serializers.CharField(max_length=255, required=False, allow_blank=True, write_only=True)
     captcha_token = serializers.CharField(max_length=2550, allow_blank=True, write_only=True)
-    provider_client_secret_id = serializers.CharField(read_only=True)
     email_hash = serializers.CharField(read_only=True)
     donor_selected_amount = serializers.FloatField(write_only=True)
+    client_secret = serializers.CharField(max_length=255, read_only=True, required=False)
+    # This provides a way for the SPA to signal to the server that a contribution has been canceled,
+    # without relying on easy-to-guess, integer ID value.
+    uuid = serializers.CharField(read_only=True)
 
     def validate_tribute_type(self, value):
         """Ensure there are no unexpected values for tribute_type"""
@@ -400,27 +403,33 @@ class BaseCreatePaymentSerializer(serializers.Serializer):
         except BadActorAPIError:
             return None
 
+    def should_reject(self, bad_actor_score):
+        """Determine if bad actor score should lead to contribution being rejected"""
+        return bad_actor_score == settings.BAD_ACTOR_REJECT_SCORE
+
     def should_flag(self, bad_actor_score):
         """Determine if bad actor score should lead to contribution being flagged"""
-        return bad_actor_score >= settings.BAD_ACTOR_FAILURE_THRESHOLD
+        return bad_actor_score == settings.BAD_ACTOR_FLAG_SCORE
 
-    def create_stripe_customer(self, contributor, validated_data):
-        """Create a Stripe customer using validated data"""
-        return contributor.create_stripe_customer(
-            validated_data["page"].revenue_program.stripe_account_id,
-            customer_name=f"{validated_data.get('first_name', '')} {validated_data.get('last_name', '')}".strip(),
-            phone=validated_data["phone"],
-            street=validated_data["mailing_street"],
-            city=validated_data["mailing_city"],
-            state=validated_data["mailing_state"],
-            postal_code=validated_data["mailing_postal_code"],
-            country=validated_data["mailing_country"],
-            metadata={
-                "source": settings.METADATA_SOURCE,
-                "schema_version": settings.METADATA_SCHEMA_VERSION,
-                "contributor_id": contributor.id,
-            },
-        )
+    def get_stripe_payment_metadata(self, contributor_id, validated_data):
+        """Generate dict of metadata to be sent to Stripe when creating a PaymentIntent or Subscription"""
+        return {
+            "source": settings.METADATA_SOURCE,
+            "schema_version": settings.METADATA_SCHEMA_VERSION,
+            "contributor_id": contributor_id,
+            "agreed_to_pay_fees": validated_data["agreed_to_pay_fees"],
+            "donor_selected_amount": validated_data["donor_selected_amount"],
+            "reason_for_giving": validated_data["reason_for_giving"],
+            "honoree": validated_data.get("honoree"),
+            "in_memory_of": validated_data.get("in_memory_of"),
+            "comp_subscription": validated_data.get("comp_subscription"),
+            "swag_opt_out": validated_data.get("swag_opt_out"),
+            "swag_choice": validated_data.get("swag_choice"),
+            "referer": self.context["request"].META.get("HTTP_REFERER"),
+            "revenue_program_id": validated_data["page"].revenue_program.id,
+            "revenue_program_slug": validated_data["page"].revenue_program.slug,
+            "sf_campaign_id": validated_data.get("sf_campaign_id"),
+        }
 
     def create_contribution(self, contributor, validated_data, bad_actor_response=None):
         """Create an NRE contribution using validated data"""
@@ -439,7 +448,9 @@ class BaseCreatePaymentSerializer(serializers.Serializer):
         if bad_actor_response:
             contribution_data["bad_actor_score"] = bad_actor_response["overall_judgment"]
             contribution_data["bad_actor_response"] = bad_actor_response
-            if self.should_flag(contribution_data["bad_actor_score"]):
+            if self.should_reject(contribution_data["bad_actor_score"]):
+                contribution_data["status"] = ContributionStatus.REJECTED
+            elif self.should_flag(contribution_data["bad_actor_score"]):
                 contribution_data["status"] = ContributionStatus.FLAGGED
                 contribution_data["flagged_date"] = timezone.now()
         return Contribution.objects.create(**contribution_data)
@@ -468,12 +479,12 @@ class CreateOneTimePaymentSerializer(BaseCreatePaymentSerializer):
         contributor, _ = Contributor.objects.get_or_create(email=validated_data["email"])
         bad_actor_response = self.get_bad_actor_score(validated_data)
         contribution = self.create_contribution(contributor, validated_data, bad_actor_response)
-        if contribution.status == ContributionStatus.FLAGGED:
-            # In the case of a flagged contribution, we don't create a Stripe customer or
+        if contribution.status == ContributionStatus.REJECTED:
+            # In the case of a rejected contribution, we don't create a Stripe customer or
             # Stripe payment intent, so we raise exception, and leave to SPA to handle accordingly
             raise PermissionDenied("Cannot authorize contribution")
         try:
-            customer = self.create_stripe_customer(contributor, validated_data)
+            contribution.create_stripe_customer(**validated_data)
         except StripeError:
             logger.exception(
                 "CreateOneTimePaymentSerializer.create encountered a Stripe error while attempting to create a Stripe customer for contributor with id %s",
@@ -481,18 +492,17 @@ class CreateOneTimePaymentSerializer(BaseCreatePaymentSerializer):
             )
             raise GenericPaymentError()
         try:
-            payment_intent = contribution.create_stripe_one_time_payment_intent(
-                stripe_customer_id=customer["id"],
-                metadata=contribution.contribution_metadata,
-            )
+            payment_intent = contribution.create_stripe_one_time_payment_intent()
         except StripeError:
             logger.exception(
                 "CreateOneTimePaymentSerializer.create encountered a Stripe error while attempting to create a payment intent for contribution with id %s",
                 contribution.id,
             )
             raise GenericPaymentError()
+
         return {
-            "provider_client_secret_id": payment_intent["client_secret"],
+            "uuid": str(contribution.uuid),
+            "client_secret": payment_intent["client_secret"],
             "email_hash": get_sha256_hash(contributor.email),
         }
 
@@ -523,12 +533,12 @@ class CreateRecurringPaymentSerializer(BaseCreatePaymentSerializer):
         contributor, _ = Contributor.objects.get_or_create(email=validated_data["email"])
         bad_actor_response = self.get_bad_actor_score(validated_data)
         contribution = self.create_contribution(contributor, validated_data, bad_actor_response)
-        if contribution.status == ContributionStatus.FLAGGED:
-            # In the case of a flagged contribution, we don't create a Stripe customer or
+        if contribution.status == ContributionStatus.REJECTED:
+            # In the case of a rejected contribution, we don't create a Stripe customer or
             # Stripe payment intent, so we raise exception, and leave to SPA to handle accordingly
             raise PermissionDenied("Cannot authorize contribution")
         try:
-            customer = self.create_stripe_customer(contributor, validated_data)
+            contribution.create_stripe_customer(**validated_data)
         except StripeError:
             logger.exception(
                 "RecurringPaymentSerializer.create encountered a Stripe error while attempting to create a stripe customer for contributor with id %s",
@@ -536,18 +546,24 @@ class CreateRecurringPaymentSerializer(BaseCreatePaymentSerializer):
             )
             raise GenericPaymentError()
         try:
-            subscription = contribution.create_stripe_subscription(
-                stripe_customer_id=customer["id"],
-                metadata=contribution.contribution_metadata,
-            )
+            if contribution.status == ContributionStatus.FLAGGED:
+                client_secret = contribution.create_stripe_setup_intent(
+                    metadata=contribution.contribution_metadata,
+                )["client_secret"]
+            else:
+                client_secret = contribution.create_stripe_subscription(metadata=contribution.contribution_metadata,)[
+                    "latest_invoice"
+                ]["payment_intent"]["client_secret"]
+
         except StripeError:
             logger.exception(
-                "RecurringPaymentSerializer.create encountered a Stripe error while attempting to create a subscription for contribution with id %s",
+                "RecurringPaymentSerializer.create encountered a Stripe error while attempting to create client_secret for contribution with id %s",
                 contribution.id,
             )
             raise GenericPaymentError()
         return {
-            "provider_client_secret_id": subscription["latest_invoice"]["payment_intent"]["client_secret"],
+            "uuid": str(contribution.uuid),
+            "client_secret": client_secret,
             "email_hash": get_sha256_hash(contributor.email),
         }
 

@@ -12,7 +12,7 @@ router.register(r"payments", views.PaymentViewset, basename="payment")
 router.register(r"subscriptions", views.SubscriptionsViewSet, basename="subscription")
 
 urlpatterns = [
-    path("payments/<str:provider_client_secret_id>/success/", views.payment_success, name="payment-success"),
+    path("payments/<str:uuid>/success/", views.payment_success, name="payment-success"),
     path("stripe/oauth/", views.stripe_oauth, name="stripe-oauth"),
     re_path(
         settings.WEBHOOK_URL,

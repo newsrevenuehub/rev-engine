@@ -28,6 +28,7 @@ function StripePaymentForm() {
     emailHash,
     stripeBillingDetails,
     stripeClientSecret,
+    contributionUuid,
     cancelPayment
   } = usePage();
   const { pathname } = useLocation();
@@ -65,11 +66,14 @@ function StripePaymentForm() {
       pageSlug: pageSlug,
       rpSlug: rpSlug,
       pathName: pathname,
-      stripeClientSecret: stripeClientSecret
+      contributionUuid
     });
-
     try {
-      const { error } = await stripe.confirmPayment({
+      // The stripe client secret will start with `seti_` if the contribution is recurring and was flagged on initial creation.
+      // In that case, instead of creating a Stripe Subscription, we create a Stripe SetupIntent, which allows us to
+      // create a subscription in the future using the payment method the user supplies in checkout. Otherwise, the client
+      // secret will start with `pi_` which is an abbreviation for PaymentIntent.
+      const { error } = await stripe[stripeClientSecret.startsWith('seti_') ? 'confirmSetup' : 'confirmPayment']({
         elements,
         confirmParams: { return_url, payment_method_data: { billing_details: stripeBillingDetails } }
       });

@@ -1,0 +1,230 @@
+{
+    "id": "evt_fakefakefake",
+    "object": "event",
+    "account": "acct_fakefakefakefake",
+    "api_version": "2020-08-27",
+    "created": 1673034346,
+    "data": {
+      "object": {
+        "id": "pi_fakefakefakfake123",
+        "object": "payment_intent",
+        "amount": 36500,
+        "amount_capturable": 0,
+        "amount_details": {
+          "tip": {
+          }
+        },
+        "amount_received": 0,
+        "application": "ca_fakefakefakefakeabc",
+        "application_fee_amount": null,
+        "automatic_payment_methods": null,
+        "canceled_at": null,
+        "cancellation_reason": null,
+        "capture_method": "automatic",
+        "charges": {
+          "object": "list",
+          "data": [
+            {
+              "id": "ch_fakefakefakefakexyz",
+              "object": "charge",
+              "amount": 36500,
+              "amount_captured": 0,
+              "amount_refunded": 0,
+              "application": "ca_fakefakefakefakeabc",
+              "application_fee": null,
+              "application_fee_amount": null,
+              "balance_transaction": null,
+              "billing_details": {
+                "address": {
+                  "city": "Eau Claire",
+                  "country": "AR",
+                  "line1": "234",
+                  "line2": "",
+                  "postal_code": "54701",
+                  "state": "WI"
+                },
+                "email": "foo@fundjournalism.org",
+                "name": "foo",
+                "phone": "234"
+              },
+              "calculated_statement_descriptor": "WWW.FOO.ORG",
+              "captured": false,
+              "created": 1673034346,
+              "currency": "usd",
+              "customer": "cus_fakefakefakeABC",
+              "description": "Subscription creation",
+              "destination": null,
+              "dispute": null,
+              "disputed": false,
+              "failure_balance_transaction": null,
+              "failure_code": "card_declined",
+              "failure_message": "Your card was declined.",
+              "fraud_details": {
+              },
+              "invoice": "in_fakefakefakefake678",
+              "livemode": false,
+              "metadata": {
+              },
+              "on_behalf_of": null,
+              "order": null,
+              "outcome": {
+                "network_status": "declined_by_network",
+                "reason": "generic_decline",
+                "risk_level": "normal",
+                "risk_score": 44,
+                "seller_message": "The bank did not return any further details with this decline.",
+                "type": "issuer_declined"
+              },
+              "paid": false,
+              "payment_intent": "pi_fakefakefakfake123",
+              "payment_method": "pm_fakefakefake234555",
+              "payment_method_details": {
+                "card": {
+                  "brand": "visa",
+                  "checks": {
+                    "address_line1_check": "pass",
+                    "address_postal_code_check": "pass",
+                    "cvc_check": "pass"
+                  },
+                  "country": "US",
+                  "exp_month": 12,
+                  "exp_year": 2023,
+                  "fingerprint": "jiWTkvoYfuvFMg51",
+                  "funding": "credit",
+                  "installments": null,
+                  "last4": "0002",
+                  "mandate": null,
+                  "network": "visa",
+                  "three_d_secure": null,
+                  "wallet": null
+                },
+                "type": "card"
+              },
+              "receipt_email": null,
+              "receipt_number": null,
+              "receipt_url": null,
+              "refunded": false,
+              "refunds": {
+                "object": "list",
+                "data": [
+                ],
+                "has_more": false,
+                "total_count": 0,
+                "url": "/v1/charges/ch_fakefakefakefakexyz/refunds"
+              },
+              "review": null,
+              "shipping": null,
+              "source": null,
+              "source_transfer": null,
+              "statement_descriptor": null,
+              "statement_descriptor_suffix": null,
+              "status": "failed",
+              "transfer_data": null,
+              "transfer_group": null
+            }
+          ],
+          "has_more": false,
+          "total_count": 1,
+          "url": "/v1/charges?payment_intent=pi_fakefakefakfake123"
+        },
+        "client_secret": "pi_fakefakefakfake123_secret_39s",
+        "confirmation_method": "automatic",
+        "created": 1673034338,
+        "currency": "usd",
+        "customer": "cus_fakefakefakeABC",
+        "description": "Subscription creation",
+        "invoice": "in_fakefakefakefake678",
+        "last_payment_error": {
+          "charge": "ch_fakefakefakefakexyz",
+          "code": "card_declined",
+          "decline_code": "generic_decline",
+          "doc_url": "https://stripe.com/docs/error-codes/card-declined",
+          "message": "Your card was declined.",
+          "payment_method": {
+            "id": "pm_fakefakefake234555",
+            "object": "payment_method",
+            "billing_details": {
+              "address": {
+                "city": "Eau Claire",
+                "country": "AR",
+                "line1": "234",
+                "line2": "",
+                "postal_code": "54701",
+                "state": "WI"
+              },
+              "email": "foo@fundjournalism.org",
+              "name": "Foo",
+              "phone": "234"
+            },
+            "card": {
+              "brand": "visa",
+              "checks": {
+                "address_line1_check": "pass",
+                "address_postal_code_check": "pass",
+                "cvc_check": "pass"
+              },
+              "country": "US",
+              "exp_month": 12,
+              "exp_year": 2023,
+              "fingerprint": "jiWTkvoYfuvFMg51",
+              "funding": "credit",
+              "generated_from": null,
+              "last4": "0002",
+              "networks": {
+                "available": [
+                  "visa"
+                ],
+                "preferred": null
+              },
+              "three_d_secure_usage": {
+                "supported": true
+              },
+              "wallet": null
+            },
+            "created": 1673034346,
+            "customer": null,
+            "livemode": false,
+            "metadata": {
+            },
+            "type": "card"
+          },
+          "type": "card_error"
+        },
+        "livemode": false,
+        "metadata": {
+        },
+        "next_action": null,
+        "on_behalf_of": null,
+        "payment_method": null,
+        "payment_method_options": {
+          "card": {
+            "installments": null,
+            "mandate_options": null,
+            "network": null,
+            "request_three_d_secure": "automatic"
+          }
+        },
+        "payment_method_types": [
+          "card"
+        ],
+        "processing": null,
+        "receipt_email": null,
+        "review": null,
+        "setup_future_usage": "off_session",
+        "shipping": null,
+        "source": null,
+        "statement_descriptor": null,
+        "statement_descriptor_suffix": null,
+        "status": "requires_payment_method",
+        "transfer_data": null,
+        "transfer_group": null
+      }
+    },
+    "livemode": false,
+    "pending_webhooks": 15,
+    "request": {
+      "id": "req_fakefakefake",
+      "idempotency_key": "9cf72c9e-998b-40fa-8ef4-5c4af6623cc2"
+    },
+    "type": "payment_intent.payment_failed"
+  }

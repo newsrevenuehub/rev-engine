@@ -2,6 +2,7 @@ import datetime
 import json
 import random
 import string
+import uuid
 from copy import deepcopy
 
 from django.conf import settings
@@ -39,14 +40,17 @@ class ContributorFactory(DjangoModelFactory):
 
 
 def _get_flagged_date(bad_actor_score, created_at):
-    if bad_actor_score >= settings.BAD_ACTOR_FAILURE_THRESHOLD:
+    if bad_actor_score == settings.BAD_ACTOR_FLAG_SCORE:
         return created_at + datetime.timedelta(hours=1)
     return None
 
 
 def _get_status(bad_actor_score):
-    if bad_actor_score >= settings.BAD_ACTOR_FAILURE_THRESHOLD:
+    if bad_actor_score == settings.BAD_ACTOR_REJECT_SCORE:
+        return models.ContributionStatus.REJECTED
+    if bad_actor_score == settings.BAD_ACTOR_FLAG_SCORE:
         return models.ContributionStatus.FLAGGED
+
     return random.choice(
         [
             models.ContributionStatus.PROCESSING,
@@ -57,7 +61,7 @@ def _get_status(bad_actor_score):
 
 
 def _get_last_payment_date(created_date, bad_actor_score):
-    if bad_actor_score >= settings.BAD_ACTOR_FAILURE_THRESHOLD:
+    if bad_actor_score >= settings.BAD_ACTOR_FLAG_SCORE:
         return None
     return created_date + datetime.timedelta(hours=1)
 
@@ -89,7 +93,7 @@ class ContributionFactory(DjangoModelFactory):
     status = factory.LazyAttribute(lambda o: _get_status(o.bad_actor_score))
     donation_page = factory.SubFactory(DonationPageFactory)
     contributor = factory.SubFactory(ContributorFactory)
-    provider_client_secret_id = factory.LazyFunction(lambda: f"pi_{_random_stripe_str()}_secret_{_random_stripe_str()}")
+    uuid = factory.LazyFunction(lambda: str(uuid.uuid4()))
     payment_provider_used = "Stripe"
     provider_customer_id = None
     provider_payment_method_id = factory.LazyFunction(lambda: f"pm_{_random_stripe_str()}")

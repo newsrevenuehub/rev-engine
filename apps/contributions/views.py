@@ -30,7 +30,9 @@ from apps.contributions.filters import ContributionFilter
 from apps.contributions.models import (
     Contribution,
     ContributionInterval,
+    ContributionIntervalError,
     ContributionStatus,
+    ContributionStatusError,
     Contributor,
 )
 from apps.contributions.payment_managers import PaymentProviderError
@@ -123,9 +125,9 @@ def process_stripe_webhook_view(request):
         processor = StripeWebhookProcessor(event)
         processor.process()
     except ValueError:
-        logger.exception()
+        logger.exception("Something went wrong processing webhook")
     except Contribution.DoesNotExist:
-        logger.exception("Could not find contribution matching provider_payment_id")
+        logger.exception("Could not find contribution")
 
     return Response(status=status.HTTP_200_OK)
 
@@ -133,7 +135,7 @@ def process_stripe_webhook_view(request):
 @method_decorator(csrf_protect, name="dispatch")
 class PaymentViewset(mixins.CreateModelMixin, mixins.DestroyModelMixin, viewsets.GenericViewSet):
     permission_classes = []
-    lookup_field = "provider_client_secret_id"
+    lookup_field = "uuid"
     queryset = Contribution.objects.all()
 
     def get_serializer_class(self):
@@ -153,44 +155,45 @@ class PaymentViewset(mixins.CreateModelMixin, mixins.DestroyModelMixin, viewsets
 
     def destroy(self, request, *args, **kwargs):
         contribution = self.get_object()
-        if contribution.status != ContributionStatus.PROCESSING:
+        if contribution.status not in (ContributionStatus.PROCESSING, ContributionStatus.FLAGGED):
             logger.warning(
                 (
-                    "`PaymentViewset.destroy` was called on a contribution with status other than %s. "
+                    "`PaymentViewset.destroy` was called on a contribution with status other than %s or %s. "
                     "contribution.id: %s, contribution.status: %s,  contributor.id: %s, donation_page.id: %s"
                 ),
                 ContributionStatus.PROCESSING.label,
+                ContributionStatus.FLAGGED.label,
                 contribution.id,
                 contribution.get_status_display(),
                 contribution.contributor.id,
                 contribution.donation_page.id,
             )
             return Response(status=status.HTTP_409_CONFLICT)
-        contribution.status = ContributionStatus.CANCELED
-        contribution.save()
         try:
-            if contribution.interval == ContributionInterval.ONE_TIME:
-                stripe.PaymentIntent.cancel(
-                    contribution.provider_payment_id,
-                    stripe_account=contribution.donation_page.revenue_program.stripe_account_id,
-                )
-            if contribution.interval in (ContributionInterval.MONTHLY.value, ContributionInterval.YEARLY.value):
-                stripe.Subscription.delete(
-                    contribution.provider_subscription_id,
-                    stripe_account=contribution.donation_page.revenue_program.stripe_account_id,
-                )
-        except StripeError:
+            contribution.cancel()
+        except ContributionIntervalError:
             logger.exception(
-                "Something went wrong with Stripe while attempting to cancel payment with client secret %s",
-                contribution.provider_client_secret_id,
+                "`PaymentViewset.destroy` called for contribution with unexpected interval %s", contribution.interval
             )
             return Response({"detail": "Something went wrong"}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+        except ContributionStatusError:
+            logger.exception(
+                "`PaymentViewset.destroy` called for contribution with unexpected status %s", contribution.status
+            )
+            return Response({"detail": "Something went wrong"}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+        except StripeError:
+            logger.exception(
+                "Something went wrong with Stripe while attempting to cancel payment with UUID %s",
+                str(contribution.uuid),
+            )
+            return Response({"detail": "Something went wrong"}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+
         return Response(status=status.HTTP_204_NO_CONTENT)
 
 
 @api_view(["PATCH"])
 @permission_classes([])
-def payment_success(request, provider_client_secret_id=None):
+def payment_success(request, uuid=None):
     """This view is used by the SPA after a Stripe payment has been submitted to Stripe from front end.
 
     We provide the url for this view to `return_url` parameter we call Stripe to confirm payment on front end,
@@ -198,7 +201,7 @@ def payment_success(request, provider_client_secret_id=None):
     accordingly.
     """
     try:
-        contribution = Contribution.objects.get(provider_client_secret_id=provider_client_secret_id)
+        contribution = Contribution.objects.get(uuid=uuid)
     except Contribution.DoesNotExist:
         return Response(status=status.HTTP_404_NOT_FOUND)
     contribution.handle_thank_you_email()
@@ -252,9 +255,7 @@ class ContributionsViewSet(viewsets.ReadOnlyModelViewSet, FilterQuerySetByUserMi
             ]
 
         # this is supplied by FilterQuerySetByUserMixin
-        return self.filter_queryset_for_user(
-            self.request.user, self.model.objects.filter(provider_payment_method_details__isnull=False)
-        )
+        return self.filter_queryset_for_user(self.request.user, self.model.objects.having_org_viewable_status())
 
     def filter_queryset(self, queryset):
         # filter backend doesnot apply for contributor
@@ -297,9 +298,7 @@ class ContributionsViewSet(viewsets.ReadOnlyModelViewSet, FilterQuerySetByUserMi
         as contributors will be able to access only Contributor Portal via magic link.
         """
         try:
-            queryset = self.filter_queryset_for_user(
-                self.request.user, self.model.objects.filter(provider_payment_method_details__isnull=False)
-            )
+            queryset = self.filter_queryset_for_user(self.request.user, self.model.objects.having_org_viewable_status())
             contributions = super().filter_queryset(queryset)
             contributions_in_csv = export_contributions_to_csv(contributions)
 

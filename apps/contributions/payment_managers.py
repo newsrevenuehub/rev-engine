@@ -111,11 +111,14 @@ class StripePaymentManager(PaymentManager):
                     stripe_account=revenue_program.payment_provider.stripe_account_id,
                     cancellation_reason="fraudulent",
                 )
+                # we rely on Stripe webhook for payment_intent.canceled that updates status on contribution
             else:
                 stripe.PaymentIntent.capture(
                     self.contribution.provider_payment_id,
                     stripe_account=revenue_program.payment_provider.stripe_account_id,
                 )
+                self.contribution.status = ContributionStatus.PAID
+                self.contribution.save()
 
         except stripe.error.InvalidRequestError as invalid_request_error:
             self.contribution.status = previous_status
@@ -127,41 +130,51 @@ class StripePaymentManager(PaymentManager):
 
     def complete_recurring_payment(self, reject=False):
         if reject:
-            """
-            If flagged, creation of the Stripe Subscription is deferred until it is "accepted".
-            So to "reject", just don't create it. Set status of Contribution to "rejected"
-            """
+            try:
+                setup_intent = stripe.SetupIntent.retrieve(
+                    self.contribution.provider_setup_intent_id,
+                    stripe_account=self.contribution.donation_page.revenue_program.stripe_account_id,
+                )
+                stripe.PaymentMethod.retrieve(
+                    setup_intent["payment_method"],
+                    stripe_account=self.contribution.donation_page.revenue_program.stripe_account_id,
+                ).detach()
+
+            except stripe.error.StripeError:
+                logger.exception(
+                    (
+                        "`StripePaymentManager.complete_recurring_payment` encountered an error trying to cancel a "
+                        "setup intent with ID %s for contribution with ID %s"
+                    ),
+                    self.contribution.provider_setup_intent_id,
+                    self.contribution.id,
+                )
+                raise PaymentProviderError(
+                    "Something went wrong trying to delete Stripe setup intent with id: %s",
+                    self.contribution.provider_setup_intent_id,
+                )
             self.contribution.status = ContributionStatus.REJECTED
             self.contribution.save()
             return
 
-        revenue_program = self.contribution.revenue_program
         previous_status = self.contribution.status
         self.contribution.status = ContributionStatus.PROCESSING
         self.contribution.save()
         try:
-            price_data = {
-                "unit_amount": self.contribution.amount,
-                "currency": self.contribution.currency,
-                "product": revenue_program.payment_provider.stripe_product_id,
-                "recurring": {
-                    "interval": self.contribution.interval,
-                },
-            }
-            subscription = stripe.Subscription.create(
-                customer=self.contribution.provider_customer_id,
-                default_payment_method=self.contribution.provider_payment_method_id,
-                items=[{"price_data": price_data}],
-                stripe_account=revenue_program.payment_provider.stripe_account_id,
-                metadata=self.contribution.contribution_metadata,
+            setup_intent = stripe.SetupIntent.retrieve(
+                self.contribution.provider_setup_intent_id,
+                stripe_account=self.contribution.donation_page.revenue_program.stripe_account_id,
             )
+            self.contribution.create_stripe_subscription(
+                off_session=True,
+                error_if_incomplete=True,
+                default_payment_method=setup_intent["payment_method"],
+                metadata=setup_intent["metadata"],
+            )
+            self.contribution.status = ContributionStatus.PAID
+            self.contribution.save()
         except stripe.error.StripeError as stripe_error:
             self._handle_stripe_error(stripe_error, previous_status=previous_status)
-
-        self.contribution.payment_provider_data = subscription
-        self.contribution.provider_subscription_id = subscription.id
-        self.contribution.save()
-        return subscription
 
     def _handle_stripe_error(self, stripe_error, previous_status=None):
         if previous_status:

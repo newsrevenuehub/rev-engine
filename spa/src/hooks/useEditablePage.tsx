@@ -121,10 +121,16 @@ export function EditablePageContextProvider(props: InferProps<typeof EditablePag
         return Promise.resolve();
       }
 
-      const result = updatePage({ ...pageChanges, ...changes }, screenshotBaseName, elementToScreenshot);
+      // Don't reset changes until after updating has successfully completed.
+      // Otherwise, users will see the old page briefly while the update is in
+      // progress.
 
-      setPageChanges({});
-      return result;
+      const finish = async () => {
+        await updatePage({ ...pageChanges, ...changes }, screenshotBaseName, elementToScreenshot);
+        setPageChanges({});
+      };
+
+      return finish();
     },
     [updatePage, pageChanges]
   );

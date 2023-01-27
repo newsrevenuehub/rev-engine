@@ -1,5 +1,5 @@
 import userEvent from '@testing-library/user-event';
-import { cleanup, render, screen } from 'test-utils';
+import { act, cleanup, render, screen, waitFor } from 'test-utils';
 import { useContributionPage } from './useContributionPage';
 import { EditablePageContextProvider, useEditablePageContext } from './useEditablePage';
 
@@ -32,7 +32,16 @@ function TestConsumer() {
       <div data-testid="updated-page-preview">{JSON.stringify(updatedPagePreview)}</div>
       <button onClick={deletePage}>deletePage</button>
       {savePageChanges && (
-        <button onClick={() => savePageChanges(undefined, 'test-screenshot-name', testElement)}>savePageChanges</button>
+        <button
+          onClick={async () => {
+            // This try/catch is so that we can test error conditions gracefully.
+            try {
+              await savePageChanges(undefined, 'test-screenshot-name', testElement);
+            } catch (error) {}
+          }}
+        >
+          savePageChanges
+        </button>
       )}
       {savePageChanges && (
         <button
@@ -174,12 +183,15 @@ describe('EditablePageContextProvider', () => {
       useContributionPageMock.mockReturnValue({ page, updatePage });
     });
 
-    it('updates the page in the backend', () => {
+    it('updates the page in the backend', async () => {
       tree();
       userEvent.click(screen.getByText('setPageChanges'));
       expect(updatePage).not.toBeCalled();
       userEvent.click(screen.getByText('savePageChanges'));
       expect(updatePage.mock.calls).toEqual([[testChange, 'test-screenshot-name', testElement]]);
+
+      // Let the pending update complete.
+      await act(() => Promise.resolve());
     });
 
     it('does nothing if the pageChanges prop and changes argument is empty', () => {
@@ -188,29 +200,94 @@ describe('EditablePageContextProvider', () => {
       expect(updatePage).not.toBeCalled();
     });
 
-    it('merges the changes argument with the pageChanges prop', () => {
+    it('merges the changes argument with the pageChanges prop', async () => {
       tree();
       userEvent.click(screen.getByText('setPageChanges'));
       userEvent.click(screen.getByText('savePageChanges with override'));
       expect(updatePage.mock.calls).toEqual([
         [{ ...testChange, graphic: 'test-graphic-override', name: 'test-name' }, 'test-screenshot-name', testElement]
       ]);
+
+      // Let the pending update complete.
+      await act(() => Promise.resolve());
     });
 
-    it('resets the pageChanges prop', () => {
-      tree();
-      userEvent.click(screen.getByText('setPageChanges'));
-      expect(screen.getByTestId('page-changes').textContent).not.toBe('{}');
-      userEvent.click(screen.getByText('savePageChanges'));
-      expect(screen.getByTestId('page-changes')).toHaveTextContent('{}');
+    describe('While updating the page in the backend is pending', () => {
+      it('preserves the pageChanges prop', async () => {
+        const updatePage = jest.fn().mockImplementation(() => new Promise(() => {}));
+
+        useContributionPageMock.mockReturnValue({ updatePage });
+        tree();
+        userEvent.click(screen.getByText('setPageChanges'));
+
+        const change = screen.getByTestId('page-changes').textContent;
+
+        userEvent.click(screen.getByText('savePageChanges'));
+        await waitFor(() => expect(updatePage).toBeCalled());
+        expect(screen.getByTestId('page-changes').textContent).toBe(change);
+      });
+
+      it('preserves the updatedPagePreview prop', async () => {
+        const updatePage = jest.fn().mockImplementation(() => new Promise(() => {}));
+
+        useContributionPageMock.mockReturnValue({ updatePage });
+        tree();
+        userEvent.click(screen.getByText('setPageChanges'));
+
+        const change = screen.getByTestId('updated-page-preview').textContent;
+
+        userEvent.click(screen.getByText('savePageChanges'));
+        await waitFor(() => expect(updatePage).toBeCalled());
+        expect(screen.getByTestId('updated-page-preview')).toHaveTextContent(change!);
+      });
     });
 
-    it('resets the updatedPagePreview prop', () => {
-      tree();
-      userEvent.click(screen.getByText('setPageChanges'));
-      expect(screen.getByTestId('updated-page-preview').textContent).not.toBe('{}');
-      userEvent.click(screen.getByText('savePageChanges'));
-      expect(screen.getByTestId('updated-page-preview')).toHaveTextContent('{}');
+    describe('If updating the page in the backend succeeds', () => {
+      it('resets the pageChanges prop', async () => {
+        tree();
+        userEvent.click(screen.getByText('setPageChanges'));
+        expect(screen.getByTestId('page-changes').textContent).not.toBe('{}');
+        userEvent.click(screen.getByText('savePageChanges'));
+        await waitFor(() => expect(screen.getByTestId('page-changes')).toHaveTextContent('{}'));
+      });
+
+      it('resets the updatedPagePreview prop', async () => {
+        tree();
+        userEvent.click(screen.getByText('setPageChanges'));
+        expect(screen.getByTestId('updated-page-preview').textContent).not.toBe('{}');
+        userEvent.click(screen.getByText('savePageChanges'));
+        await waitFor(() => expect(screen.getByTestId('updated-page-preview')).toHaveTextContent('{}'));
+      });
+    });
+
+    describe('If updating the page in the backend fails', () => {
+      it('preserves the pageChanges prop', async () => {
+        const updatePage = jest.fn().mockRejectedValue(new Error());
+
+        useContributionPageMock.mockReturnValue({ updatePage });
+        tree();
+        userEvent.click(screen.getByText('setPageChanges'));
+
+        const change = screen.getByTestId('page-changes').textContent;
+
+        userEvent.click(screen.getByText('savePageChanges'));
+        await waitFor(() => expect(updatePage).toBeCalled());
+        expect(screen.getByTestId('page-changes').textContent).toBe(change);
+      });
+
+      it('preserves the updatedPagePreview prop', async () => {
+        const updatePage = jest.fn().mockRejectedValue(new Error());
+
+        useContributionPageMock.mockReturnValue({ updatePage });
+        tree();
+        userEvent.click(screen.getByText('setPageChanges'));
+
+        const change = screen.getByTestId('updated-page-preview').textContent;
+
+        userEvent.click(screen.getByText('savePageChanges'));
+        await waitFor(() => expect(updatePage).toBeCalled());
+        expect(screen.getByTestId('updated-page-preview')).toHaveTextContent(change!);
+      });
     });
   });
 

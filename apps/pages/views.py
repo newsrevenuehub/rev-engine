@@ -234,6 +234,9 @@ class StyleViewSet(RevisionMixin, viewsets.ModelViewSet):
     filter_backends = [django_filters.rest_framework.DjangoFilterBackend]
     filterset_class = StyleFilter
 
+    # prohibit put
+    http_method_names = ["get", "post", "patch", "delete"]
+
     def get_queryset(self):
         if self.request.user.is_superuser:
             return self.model.objects.all()

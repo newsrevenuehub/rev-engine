@@ -2,6 +2,7 @@ import logging
 
 from django.conf import settings
 from django.contrib.auth import get_user_model
+from django.db import models
 from django.shortcuts import get_object_or_404
 
 import stripe
@@ -45,12 +46,13 @@ class OrganizationViewSet(mixins.ListModelMixin, mixins.RetrieveModelMixin, view
     serializer_class = serializers.OrganizationSerializer
     pagination_class = None
 
-    def get_queryset(self):
+    def get_queryset(self) -> models.QuerySet:
         if self.request.user.is_superuser:
             return Organization.objects.all()
         elif ra := self.request.user.get_role_assignment():
             return Organization.objects.filtered_by_role_assignment(ra)
-        else:
+        # given permission clases, this may be unreachable, but logically gaurantees this returns a queryset
+        else:  # pragma: no cov
             return Organization.objects.none()
 
     def patch(self, request, pk):
@@ -84,21 +86,6 @@ class RevenueProgramViewSet(viewsets.ModelViewSet):
             return self.model.objects.all()
         # role assignment is guaranteed to be here and have an expected role type via permission_classes above
         return self.model.objects.filtered_by_role_assignment(self.request.user.get_role_assignment())
-
-    def patch(self, request, pk):
-        revenue_program = get_object_or_404(RevenueProgram, pk=pk)
-        if not request.user.is_superuser and not self.model.objects.filtered_by_role_assignment(
-            request.user.roleassignment
-        ):
-            return Response(status=status.HTTP_404_NOT_FOUND)
-        serializer = serializers.RevenueProgramPatchSerializer(revenue_program, data=request.data, partial=True)
-        serializer.is_valid()
-        if serializer.errors:
-            logger.warning("Request %s is invalid; errors: %s", request.data, serializer.errors)
-            raise ValidationError(serializer.errors)
-        serializer.save()
-        revenue_program.refresh_from_db()
-        return Response(serializers.RevenueProgramSerializer(revenue_program).data)
 
 
 def get_stripe_account_link_return_url(request):

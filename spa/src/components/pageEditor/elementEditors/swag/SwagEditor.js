@@ -10,7 +10,7 @@ import validateInputPositiveFloat from 'utilities/validateInputPositiveFloat';
 
 // Context
 import { useEditablePageContext } from 'hooks/useEditablePage';
-import { useEditInterfaceContext } from 'components/pageEditor/editInterface/EditInterface';
+import { useEditInterfaceContext } from 'components/pageEditor/editInterface/EditInterfaceContextProvider';
 
 // Children/Elements
 import { Label } from 'elements/inputs/BaseField.styled';

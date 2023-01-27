@@ -8,7 +8,7 @@ import { v4 as uuidv4 } from 'uuid';
 import Modal from 'elements/modal/Modal';
 
 // Context
-import { useEditInterfaceContext } from 'components/pageEditor/editInterface/EditInterface';
+import { useEditInterfaceContext } from 'components/pageEditor/editInterface/EditInterfaceContextProvider';
 import { useEditablePageContext } from 'hooks/useEditablePage';
 
 // Elements

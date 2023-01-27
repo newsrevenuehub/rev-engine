@@ -41,7 +41,7 @@ import CircleButton from 'elements/buttons/CircleButton';
 import SegregatedStyles from 'components/donationPage/SegregatedStyles';
 import DonationPage from 'components/donationPage/DonationPage';
 import GlobalLoading from 'elements/GlobalLoading';
-import EditInterface from 'components/pageEditor/editInterface/EditInterface';
+import InnerEditInterface from 'components/pageEditor/editInterface/EditInterface';
 import PageTitle from 'elements/PageTitle';
 import { Tooltip } from 'components/base';
 import ElementErrors from './ElementErrors';
@@ -237,7 +237,7 @@ function PageEditor() {
           {(isLoading || stylesLoading) && <GlobalLoading />}
           {page && showEditInterface && (
             <AnimatePresence>
-              <EditInterface />
+              <InnerEditInterface />
             </AnimatePresence>
           )}
           {!isLoading && !stylesLoading && updatedPagePreview && (

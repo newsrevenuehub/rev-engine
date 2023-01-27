@@ -5,7 +5,7 @@ import * as S from './AmountEditor.styled';
 import validateInputPositiveFloat from 'utilities/validateInputPositiveFloat';
 
 // Context
-import { useEditInterfaceContext } from 'components/pageEditor/editInterface/EditInterface';
+import { useEditInterfaceContext } from 'components/pageEditor/editInterface/EditInterfaceContextProvider';
 import { useEditablePageContext } from 'hooks/useEditablePage';
 
 // Elememts

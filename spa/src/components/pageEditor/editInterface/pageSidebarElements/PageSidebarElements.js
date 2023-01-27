@@ -1,7 +1,7 @@
 import { ElementContainer, Root } from './PageSidebarElements.styled';
 
 // Context
-import { useEditInterfaceContext } from 'components/pageEditor/editInterface/EditInterface';
+import { useEditInterfaceContext } from 'components/pageEditor/editInterface/EditInterfaceContextProvider';
 
 // Children
 import DraggableList from 'elements/draggable/DraggableList';

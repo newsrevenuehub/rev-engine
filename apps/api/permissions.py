@@ -105,7 +105,8 @@ class HasRoleAssignment(permissions.BasePermission):
     """
 
     def has_permission(self, request, view):
-        return getattr(request.user, "get_role_assignment", False) and bool(request.user.get_role_assignment())
+        ra = getattr(request.user, "get_role_assignment", lambda: None)()
+        return bool(ra) and ra.role_type in [Roles.HUB_ADMIN, Roles.ORG_ADMIN, Roles.RP_ADMIN]
 
 
 def is_a_contributor(user):

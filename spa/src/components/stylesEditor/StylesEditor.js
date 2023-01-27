@@ -284,7 +284,7 @@ function StylesEditor({ styles, setStyles, handleKeepChanges, handleDiscardChang
               min={1}
               max={12}
             />
-            <ButtonBorderPreview borderRadius={getBaseFromRadii(styles.radii)} />
+            <ButtonBorderPreview borderRadius={getBaseFromRadii(styles.radii) * 2} />
           </S.FieldRow>
         </StylesFieldset>
       </S.StylesForm>

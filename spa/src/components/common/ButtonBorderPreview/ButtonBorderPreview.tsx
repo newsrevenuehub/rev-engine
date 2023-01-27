@@ -11,7 +11,7 @@ const ButtonBorderPreview = ({ className, borderRadius = 0 }: ButtonBorderPrevie
   return (
     <Flex className={className!}>
       {dotPositions.map((position) => (
-        <Dot $position={position} />
+        <Dot key={position} $position={position} />
       ))}
       <ArrowLeft src={Arrow} alt="arrow" />
       <ArrowDown src={Arrow} alt="arrow" />

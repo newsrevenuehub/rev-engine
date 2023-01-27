@@ -32,7 +32,11 @@ class StyleFactory(DjangoModelFactory):
         org = None
 
     name = factory.Sequence(lambda n: "Test Style %d" % n)
-    styles = {"colors": {"primary": "testing-pink"}}
+    styles = {
+        "radii": ["3px", "6px", "12px"],
+        "font": {"body": "'Roboto', sans-serif", "heading": "'Roboto', sans-serif"},
+        "fontSizes": ["12px", "16px", "24px", "32px", "48px", "84px", "96px"],
+    }
     revenue_program = factory.SubFactory(RevenueProgramFactory)
 
 

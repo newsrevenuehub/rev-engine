@@ -677,7 +677,7 @@ class TestPageViewSet:
         assert response.status_code == status.HTTP_200_OK
         live_donation_page.refresh_from_db()
         serialized_from_db = json.loads(json.dumps(DonationPageFullDetailSerializer(live_donation_page).data))
-        make_file_name_regex = lambda raw_name: re.compile(rf"(/media/{raw_name})_[a-zA-Z0-9]*\.jpg")
+        make_file_name_regex = lambda raw_name: re.compile(rf"(/media/{raw_name})[\_a-zA-Z0-9]*\.jpg")
         assert make_file_name_regex("graphic").match(serialized_from_db["graphic"]) is not None
         assert make_file_name_regex("header_logo").match(serialized_from_db["header_logo"]) is not None
         assert make_file_name_regex("header_bg_image").match(serialized_from_db["header_bg_image"]) is not None

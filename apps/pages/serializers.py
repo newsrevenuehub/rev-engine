@@ -48,6 +48,7 @@ class StyleListSerializer(StyleInlineSerializer):
         queryset=RevenueProgram.objects.all(),
         presentation_serializer=RevenueProgramInlineSerializer,
         read_source=None,
+        required=False,
     )
     used_live = serializers.SerializerMethodField()
 
@@ -75,19 +76,27 @@ class StyleListSerializer(StyleInlineSerializer):
         Data comes in as a dict with name and styles flattened. We need
         to stick styles in its own value and pull out name.
         """
-        name = data.pop("name", None)
-        revenue_program = data.pop("revenue_program", None)
-        data = {
-            "name": name,
-            "revenue_program": revenue_program,
-            "styles": data,
-        }
-        return super().to_internal_value(data)
+        name = data.pop("name", self.instance.name if self.instance else None)
+        revenue_program = data.pop("revenue_program", self.instance.revenue_program.pk if self.instance else None)
+        synthesized = {"name": name, "revenue_program": revenue_program}
+        # remaining keys after name/revenue_program are treated as style properties, and if we see any, we
+        # update all of styles attribute.
+        synthesized["styles"] = data if data else self.instance.styles if self.instance else None
+        return super().to_internal_value(synthesized)
+
+    def validate_revenue_program(self, value):
+        """Ensure that there is a revenue program provided if this is a create request (which will be case if no instance)
+
+        The revenue_program field needs to be optional vis-a-vis patch requests, but required for post. Alternatively, we could
+        create separate serializers for two methods, but there's required overlap around validation, so using single serializer
+        with this custom validation for revenue_program field.
+        """
+        if value is None and not self.instance:
+            raise serializers.ValidationError(["This field is required."])
+        return value
 
     def validate_style_limit(self, data):
         """Ensure that adding a style would not push parent org over its style limit"""
-        if self.context["request"].method != "POST":
-            return
         if Style.objects.filter(
             revenue_program__organization=(org := data["revenue_program"].organization)
         ).count() + 1 > (sl := org.plan.style_limit):
@@ -96,7 +105,8 @@ class StyleListSerializer(StyleInlineSerializer):
             )
 
     def validate(self, data):
-        self.validate_style_limit(data)
+        if self.context["request"].method == "POST":
+            self.validate_style_limit(data)
         return data
 
 

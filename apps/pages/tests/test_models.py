@@ -6,20 +6,59 @@ from django.db.models.deletion import ProtectedError
 from django.test import TestCase
 from django.utils import timezone
 
+import pytest
+import pytest_cases
+
 from apps.common.tests.test_utils import get_test_image_file_jpeg
 from apps.config.tests.factories import DenyListWordFactory
 from apps.config.validators import GENERIC_SLUG_DENIED_MSG, SLUG_DENIED_CODE
 from apps.contributions.tests.factories import ContributionFactory
-from apps.organizations.tests.factories import OrganizationFactory
+from apps.organizations.tests.factories import OrganizationFactory, RevenueProgramFactory
 from apps.pages import defaults
-from apps.pages.models import DefaultPageLogo, DonationPage, _get_screenshot_upload_path
+from apps.pages.models import DefaultPageLogo, DonationPage, Style, _get_screenshot_upload_path
 from apps.pages.tests.factories import DonationPageFactory, FontFactory, StyleFactory
+from apps.users.models import Roles
 
 
 def test__get_screenshot_upload_path():
     instance = mock.Mock(name="landing", organization=mock.Mock(name="justiceleague"))
     filename = mock.Mock()
     assert isinstance(_get_screenshot_upload_path(instance, filename), str)
+
+
+@pytest.mark.django_db
+@pytest_cases.parametrize(
+    "user",
+    (
+        pytest_cases.fixture_ref("hub_admin_user"),
+        pytest_cases.fixture_ref("org_user_free_plan"),
+        pytest_cases.fixture_ref("rp_user"),
+    ),
+)
+def test_page_filtered_by_role_assignment(user, revenue_program):
+    # this will be viewable by all three users
+    one = DonationPageFactory(revenue_program=revenue_program)
+    # this will be viewable by hub admin and org user, but not rp
+    two = DonationPageFactory(revenue_program=RevenueProgramFactory(organization=revenue_program.organization))
+    # this will be vieweable by only hub admin
+    three = DonationPageFactory(revenue_program=RevenueProgramFactory())
+    match user.roleassignment.role_type:
+        case Roles.HUB_ADMIN:
+            expected = [one.id, two.id, three.id]
+        case Roles.ORG_ADMIN:
+            user.roleassignment.organization = one.revenue_program.organization
+            user.roleassignment.save()
+            expected = [one.id, two.id]
+        case Roles.RP_ADMIN:
+            user.roleassignment.organization = one.revenue_program.organization
+            user.roleassignment.revenue_programs.set([one.revenue_program])
+            user.roleassignment.save()
+            expected = [
+                one.id,
+            ]
+    query = DonationPage.objects.filtered_by_role_assignment(user.roleassignment)
+    assert query.count() == len(expected)
+    assert set(query.values_list("id", flat=True)) == set(expected)
 
 
 class DonationPageTest(TestCase):
@@ -103,18 +142,45 @@ class DonationPageTest(TestCase):
         self.assertEqual(error_msg, protected_error.exception.args[0])
 
 
-class StyleTest(TestCase):
-    def setUp(self):
-        self.instance = StyleFactory()
+@pytest.mark.django_db
+@pytest_cases.parametrize(
+    "user",
+    (
+        pytest_cases.fixture_ref("hub_admin_user"),
+        pytest_cases.fixture_ref("org_user_free_plan"),
+        pytest_cases.fixture_ref("rp_user"),
+    ),
+)
+def test_style_filtered_by_role_assignment(user, revenue_program):
+    # this will be viewable by all three users
+    one = StyleFactory(revenue_program=revenue_program)
+    # this will be viewable by hub admin and org user, but not rp
+    two = StyleFactory(revenue_program=RevenueProgramFactory(organization=revenue_program.organization))
+    # this will be vieweable by only hub admin
+    three = StyleFactory(revenue_program=RevenueProgramFactory())
+    match user.roleassignment.role_type:
+        case Roles.HUB_ADMIN:
+            expected = [one.id, two.id, three.id]
+        case Roles.ORG_ADMIN:
+            user.roleassignment.organization = one.revenue_program.organization
+            user.roleassignment.save()
+            expected = [one.id, two.id]
+        case Roles.RP_ADMIN:
+            user.roleassignment.organization = one.revenue_program.organization
+            user.roleassignment.revenue_programs.set([one.revenue_program])
+            user.roleassignment.save()
+            expected = [
+                one.id,
+            ]
+    query = Style.objects.filtered_by_role_assignment(user.roleassignment)
+    assert query.count() == len(expected)
+    assert set(query.values_list("id", flat=True)) == set(expected)
 
-    def test_to_string(self):
-        self.assertEqual(self.instance.name, str(self.instance))
 
-    # def test_user_has_ownership_via_role(self):
-    #     # TODO: test actual conditions
-    #     ra = mock.MagicMock()
-    #     permision = self.instance.user_has_ownership_via_role(ra)
-    #     assert isinstance(permision, bool)
+@pytest.mark.django_db
+class TestStyle:
+    def test_to_string(self, style):
+        assert style.name == str(style)
 
 
 class FontTest(TestCase):

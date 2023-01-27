@@ -372,7 +372,7 @@ function fillOutAddressSection() {
   cy.get('[data-testid*="mailing_postal_code"]').type('100738');
   cy.findByRole('button', { name: 'Open' }).click();
   cy.findByRole('option', { name: 'United States' }).click();
-  cy.findByLabelText('Country', { exact: false }).invoke('val').as('countryValue');
+  cy.findByLabelText('Country').invoke('val').as('countryValue');
 }
 
 function fillOutDonorInfoSection() {
@@ -744,7 +744,7 @@ describe('User flow: canceling contribution', () => {
     cy.findByLabelText('State', { exact: false }).should('have.value', 'NY');
     cy.findByLabelText('Zip/Postal code', { exact: false }).should('have.value', '100738');
     cy.get('@countryValue').then((country) => {
-      cy.findByLabelText('Country', { exact: false })
+      cy.findByLabelText('Country')
         .invoke('val')
         .then((val) => {
           expect(val).to.equal(country);
@@ -774,7 +774,7 @@ describe('User flow: canceling contribution', () => {
     fillOutDonorInfoSection();
     fillOutAddressSection();
 
-    cy.findByLabelText('Country', { exact: false }).invoke('val').as('countryValue');
+    cy.findByLabelText('Country').invoke('val').as('countryValue');
     fillOutReasonForGiving();
     const frequencyLabel = 'Monthly';
     // we assert checked before submission so can check after that has same val

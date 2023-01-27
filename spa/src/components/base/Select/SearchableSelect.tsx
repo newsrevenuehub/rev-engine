@@ -86,6 +86,12 @@ const StyledAutocomplete = styled(MuiAutocomplete)`
 export function SearchableSelect<OptionType>(props: SearchableSelectProps<OptionType>) {
   const { error, helperText, label, name, required, ...other } = props;
 
+  // Autocomplete is disabled in the TextField component because in practice,
+  // what seems to happen is that browser autofill will enter a value in the
+  // text field, but the component will show completions only instead of
+  // selecting the relevant option. See CountrySelect for an approach on
+  // handling autofill.
+
   return (
     <StyledAutocomplete
       classes={{ endAdornment: 'NreAutocompleteEndAdornment' }}
@@ -96,7 +102,7 @@ export function SearchableSelect<OptionType>(props: SearchableSelectProps<Option
           {...params}
           error={error}
           helperText={helperText}
-          inputProps={{ ...params.inputProps, className: 'NreAutocompleteInput' }}
+          inputProps={{ ...params.inputProps, className: 'NreAutocompleteInput', autoComplete: 'none' }}
           InputLabelProps={{
             ...params.InputLabelProps,
             classes: { asterisk: 'NreAutocompleteInputLabelAsterisk', root: 'NreAutocompleteInputLabelRoot' }

@@ -46,6 +46,30 @@ describe('CountrySelect', () => {
     expect(screen.getByRole('textbox')).toHaveValue('');
   });
 
+  describe('When the browser autofills the hidden input', () => {
+    it('calls onChange if the value matches an option', () => {
+      const onChange = jest.fn();
+
+      tree({ onChange });
+      expect(onChange).not.toBeCalled();
+      userEvent.type(screen.getByTestId('autofill-proxy'), 'BBB');
+      expect(onChange.mock.calls).toEqual([[expect.anything(), { fipsCode: 'aa', label: 'BBB' }, 'select-option']]);
+    });
+
+    it("doesn't call onChange if the value doesn't match an option", () => {
+      const onChange = jest.fn();
+
+      tree({ onChange });
+      userEvent.type(screen.getByTestId('autofill-proxy'), 'bad');
+      expect(onChange).not.toBeCalled();
+    });
+
+    it('does nothing if onChange is not defined', () => {
+      tree();
+      expect(() => userEvent.type(screen.getByTestId('autofill-proxy'), 'BBB')).not.toThrow();
+    });
+  });
+
   it('is accessible', async () => {
     const { container } = tree();
 

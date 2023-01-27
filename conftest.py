@@ -56,7 +56,7 @@ from rest_framework.test import APIClient
 
 from apps.contributions.tests.factories import ContributorFactory
 from apps.organizations.tests.factories import OrganizationFactory, RevenueProgramFactory
-from apps.pages.tests.factories import DonationPageFactory
+from apps.pages.tests.factories import DonationPageFactory, StyleFactory
 from apps.users.models import Roles, User
 from apps.users.tests.factories import RoleAssignmentFactory, UserFactory
 
@@ -201,3 +201,9 @@ def live_donation_page():
         published=True,
         revenue_program=RevenueProgramFactory(onboarded=True, organization=OrganizationFactory(free_plan=True)),
     )
+
+
+@pytest.mark.django_db
+@pytest.fixture
+def style():
+    return StyleFactory()

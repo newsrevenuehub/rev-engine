@@ -23,9 +23,15 @@ from apps.pages.models import (
     Font,
     PageManager,
     Style,
+    StyleManager,
 )
-from apps.pages.serializers import DonationPageFullDetailSerializer, DonationPageListSerializer
+from apps.pages.serializers import (
+    DonationPageFullDetailSerializer,
+    DonationPageListSerializer,
+    StyleListSerializer,
+)
 from apps.pages.tests.factories import DonationPageFactory, FontFactory, StyleFactory
+from apps.users.models import Roles
 
 
 fake = Faker()
@@ -230,29 +236,27 @@ def live_donation_page_with_styles(live_donation_page):
 @pytest.mark.django_db
 class TestPageViewSet:
     @pytest_cases.parametrize(
-        "user,give_rp_ownership_fn",
+        "user",
         (
-            (pytest_cases.fixture_ref("hub_admin_user"), lambda user, rp_pk: None),
-            (
-                pytest_cases.fixture_ref("org_user_free_plan"),
-                lambda user, rp_pk: RevenueProgram.objects.filter(pk=rp_pk).update(
-                    organization=user.roleassignment.organization
-                ),
-            ),
-            (pytest_cases.fixture_ref("superuser"), lambda user, rp_pk: None),
-            (pytest_cases.fixture_ref("rp_user"), lambda user, rp_pk: user.roleassignment.revenue_programs.add(rp_pk)),
+            pytest_cases.fixture_ref("hub_admin_user"),
+            pytest_cases.fixture_ref("org_user_free_plan"),
+            pytest_cases.fixture_ref("superuser"),
+            pytest_cases.fixture_ref("rp_user"),
         ),
     )
-    def test_create_page_when_expected_user_and_valid_data(
-        self, user, give_rp_ownership_fn, page_creation_data_valid, api_client
-    ):
+    def test_create_page_when_expected_user_and_valid_data(self, user, page_creation_data_valid, api_client):
         """Show that permitted users providing valid data can create a page
 
         Note that in the parametrization setup above, we provide a lambda function that gets called with user fixture and a revenue program pk. This is used
         to guarantee the user has access to the referenced revenue program.
         """
+        if not (user.is_superuser or user.roleassignment.role_type == Roles.HUB_ADMIN):
+            rp = RevenueProgram.objects.get(pk=page_creation_data_valid["revenue_program"])
+            rp.organization = user.roleassignment.organization
+            rp.save()
+            user.roleassignment.revenue_programs.add(rp)
+
         before_count = DonationPage.objects.count()
-        give_rp_ownership_fn(user, page_creation_data_valid["revenue_program"])
         api_client.force_authenticate(user)
         response = api_client.post(reverse("donationpage-list"), data=page_creation_data_valid, format="json")
         assert response.status_code == status.HTTP_201_CREATED
@@ -400,7 +404,7 @@ class TestPageViewSet:
         (
             pytest_cases.fixture_ref("org_user_free_plan"),
             pytest_cases.fixture_ref("rp_user"),
-            # pytest_cases.fixture_ref("superuser"),
+            pytest_cases.fixture_ref("superuser"),
         ),
     )
     def test_create_when_already_at_page_limit(self, user, api_client, page_creation_data_valid, live_donation_page):
@@ -444,8 +448,10 @@ class TestPageViewSet:
             for id in query.values_list("id", flat=True):
                 response = api_client.get(reverse("donationpage-detail", args=(id,)))
                 assert response.status_code == status.HTTP_200_OK
-                self.assert_retrieved_page_detail_looks_right(
-                    response.json(), DonationPage.objects.get(pk=response.json()["id"])
+                assert response.json() == json.loads(
+                    json.dumps(
+                        DonationPageFullDetailSerializer(DonationPage.objects.get(pk=response.json()["id"])).data
+                    )
                 )
         else:
             DonationPageFactory(
@@ -460,6 +466,12 @@ class TestPageViewSet:
             for id in query.values_list("id", flat=True):
                 response = api_client.get(reverse("donationpage-detail", args=(id,)))
                 assert response.status_code == status.HTTP_200_OK
+                assert response.json() == json.loads(
+                    json.dumps(
+                        DonationPageFullDetailSerializer(DonationPage.objects.get(pk=response.json()["id"])).data
+                    )
+                )
+
                 self.assert_retrieved_page_detail_looks_right(
                     response.json(), DonationPage.objects.get(pk=response.json()["id"])
                 )
@@ -477,6 +489,7 @@ class TestPageViewSet:
         (
             (pytest_cases.fixture_ref("user_no_role_assignment"), status.HTTP_403_FORBIDDEN),
             (pytest_cases.fixture_ref("contributor_user"), status.HTTP_403_FORBIDDEN),
+            (pytest_cases.fixture_ref("user_with_unexpected_role"), status.HTTP_403_FORBIDDEN),
             (None, status.HTTP_401_UNAUTHORIZED),
         ),
     )
@@ -560,6 +573,7 @@ class TestPageViewSet:
         (
             (pytest_cases.fixture_ref("user_no_role_assignment"), status.HTTP_403_FORBIDDEN),
             (pytest_cases.fixture_ref("contributor_user"), status.HTTP_403_FORBIDDEN),
+            (pytest_cases.fixture_ref("user_with_unexpected_role"), status.HTTP_403_FORBIDDEN),
             (None, status.HTTP_401_UNAUTHORIZED),
         ),
     )
@@ -589,6 +603,7 @@ class TestPageViewSet:
             (pytest_cases.fixture_ref("superuser"), status.HTTP_405_METHOD_NOT_ALLOWED),
             (pytest_cases.fixture_ref("hub_admin_user"), status.HTTP_405_METHOD_NOT_ALLOWED),
             (pytest_cases.fixture_ref("user_no_role_assignment"), status.HTTP_403_FORBIDDEN),
+            (pytest_cases.fixture_ref("user_with_unexpected_role"), status.HTTP_403_FORBIDDEN),
             (pytest_cases.fixture_ref("contributor_user"), status.HTTP_403_FORBIDDEN),
             (None, status.HTTP_401_UNAUTHORIZED),
         ),
@@ -680,10 +695,6 @@ class TestPageViewSet:
     ):
         """Show behavior when extra fields are provided in otherwise valid data
 
-
-        ADDD A NICE BIG NOTE ABOUT WHY THIS IS THE WAY IT IS WITH BEING ABLE TO SEND EXTRA KEYS
-
-
         In this case, the request can succeed, but the problematic fields are disregarded.
         """
         api_client.force_authenticate(user)
@@ -761,6 +772,7 @@ class TestPageViewSet:
         (
             (pytest_cases.fixture_ref("user_no_role_assignment"), status.HTTP_403_FORBIDDEN),
             (pytest_cases.fixture_ref("contributor_user"), status.HTTP_403_FORBIDDEN),
+            (pytest_cases.fixture_ref("user_with_unexpected_role"), status.HTTP_403_FORBIDDEN),
             (None, status.HTTP_401_UNAUTHORIZED),
         ),
     )
@@ -855,6 +867,7 @@ class TestPageViewSet:
         (
             (pytest_cases.fixture_ref("user_no_role_assignment"), status.HTTP_403_FORBIDDEN),
             (pytest_cases.fixture_ref("contributor_user"), status.HTTP_403_FORBIDDEN),
+            (pytest_cases.fixture_ref("user_with_unexpected_role"), status.HTTP_403_FORBIDDEN),
             (None, status.HTTP_401_UNAUTHORIZED),
         ),
     )
@@ -1028,6 +1041,26 @@ class TestPageViewSet:
                     == status.HTTP_200_OK
                 )
 
+    @pytest_cases.parametrize(
+        "user,expected_status",
+        (
+            (pytest_cases.fixture_ref("user_no_role_assignment"), status.HTTP_403_FORBIDDEN),
+            (pytest_cases.fixture_ref("contributor_user"), status.HTTP_403_FORBIDDEN),
+            (pytest_cases.fixture_ref("user_with_unexpected_role"), status.HTTP_403_FORBIDDEN),
+            (None, status.HTTP_401_UNAUTHORIZED),
+        ),
+    )
+    def test_draft_detail_page_when_unauthorized_user(self, user, expected_status, api_client, live_donation_page):
+        if user:
+            api_client.force_authenticate(user)
+        assert (
+            api_client.get(
+                reverse("donationpage-draft-detail"),
+                {"revenue_program": live_donation_page.revenue_program, "page": live_donation_page.slug},
+            ).status_code
+            == expected_status
+        )
+
     def test_draft_detail_page_revenue_program_not_found(self, superuser, api_client):
         unfound_slug = "unexpected"
         assert not RevenueProgram.objects.filter(slug=unfound_slug).exists()
@@ -1071,313 +1104,708 @@ class TestPageViewSet:
         }
 
 
+@pytest.fixture
+def create_style_valid_data(live_donation_page):
+    return {
+        "name": fake.word(),
+        "revenue_program": live_donation_page.revenue_program.id,
+        "radii": [],
+        "font": {},
+        "fontSizes": [],
+        # see `StyleListSerializer.to_internal_value` to understand how this works. This resource
+        # puts arbitrary key/value pairs for styles JSON blob on style instance.
+        "foo": "bar",
+    }
+
+
+@pytest.fixture
+def create_style_missing_radii(create_style_valid_data):
+    data = {**create_style_valid_data}
+    del data["radii"]
+    return data
+
+
+@pytest.fixture
+def create_style_missing_font(create_style_valid_data):
+    data = {**create_style_valid_data}
+    del data["font"]
+    return data
+
+
+@pytest.fixture
+def create_style_missing_font_sizes(create_style_valid_data):
+    data = {**create_style_valid_data}
+    del data["fontSizes"]
+    return data
+
+
+@pytest.fixture
+def create_style_missing_name(create_style_valid_data):
+    data = {**create_style_valid_data}
+    del data["name"]
+    return data
+
+
+@pytest.fixture
+def create_style_missing_revenue_program(create_style_valid_data):
+    data = {**create_style_valid_data}
+    del data["revenue_program"]
+    return data
+
+
+@pytest.fixture
+def create_style_revenue_program_null(create_style_valid_data):
+    return create_style_valid_data | {"revenue_program": None}
+
+
+@pytest.fixture
+def create_style_revenue_program_blank(create_style_valid_data):
+    return create_style_valid_data | {"revenue_program": ""}
+
+
+@pytest.fixture
+def patch_style_valid_data_rp_only(revenue_program):
+    return {"revenue_program": revenue_program.id}
+
+
+@pytest.fixture
+def patch_style_valid_data_name_only():
+    return {"name": "updated-style-name"}
+
+
+@pytest.fixture
+def patch_style_valid_styles_data_only():
+    return {
+        "radii": [],
+        "font": {},
+        "fontSizes": [],
+    }
+
+
+@pytest.fixture
+def patch_style_valid_styles_data_with_arbitrary_keys(patch_style_valid_styles_data_only):
+    return patch_style_valid_styles_data_only | {"foo": "bar"}
+
+
+@pytest.fixture
+def patch_style_valid_data_all_keys(
+    patch_style_valid_data_rp_only, patch_style_valid_data_name_only, patch_style_valid_styles_data_with_arbitrary_keys
+):
+    return (
+        patch_style_valid_data_rp_only
+        | patch_style_valid_data_name_only
+        | patch_style_valid_styles_data_with_arbitrary_keys
+    )
+
+
+@pytest.fixture
+def patch_style_invalid_data_bad_radii_is_text(patch_style_valid_styles_data_only):
+    return patch_style_valid_styles_data_only | {"radii": "foo"}
+
+
+@pytest.fixture
+def patch_style_invalid_data_bad_radii_is_null(patch_style_valid_styles_data_only):
+    return patch_style_valid_styles_data_only | {"radii": None}
+
+
+@pytest.fixture
+def patch_style_invalid_data_bad_radii_is_number(patch_style_valid_styles_data_only):
+    return patch_style_valid_styles_data_only | {"radii": 123}
+
+
+@pytest.fixture
+def patch_style_invalid_data_bad_radii_is_unexpected_dict(patch_style_valid_styles_data_only):
+    return patch_style_valid_styles_data_only | {"radii": {"foo": "bar"}}
+
+
+@pytest.fixture
+def patch_style_invalid_data_bad_font_is_text(patch_style_valid_styles_data_only):
+    return patch_style_valid_styles_data_only | {"font": "foo"}
+
+
+@pytest.fixture
+def patch_style_invalid_data_bad_font_is_null(patch_style_valid_styles_data_only):
+    return patch_style_valid_styles_data_only | {"font": None}
+
+
+@pytest.fixture
+def patch_style_invalid_data_bad_font_is_number(patch_style_valid_styles_data_only):
+    return patch_style_valid_styles_data_only | {"font": 123}
+
+
+@pytest.fixture
+def patch_style_invalid_data_bad_font_is_list(patch_style_valid_styles_data_only):
+    return patch_style_valid_styles_data_only | {"font": []}
+
+
+@pytest.fixture
+def patch_style_invalid_data_bad_font_sizes_is_text(patch_style_valid_styles_data_only):
+    return patch_style_valid_styles_data_only | {"fontSizes": "big"}
+
+
+@pytest.fixture
+def patch_style_invalid_data_bad_font_sizes_is_null(patch_style_valid_styles_data_only):
+    return patch_style_valid_styles_data_only | {"fontSizes": None}
+
+
+@pytest.fixture
+def patch_style_invalid_data_bad_font_sizes_is_number(patch_style_valid_styles_data_only):
+    return patch_style_valid_styles_data_only | {"fontSizes": 123}
+
+
+@pytest.fixture
+def patch_style_invalid_data_bad_font_sizes_is_dict(patch_style_valid_styles_data_only):
+    return patch_style_valid_styles_data_only | {"fontSizes": {}}
+
+
+@pytest.mark.django_db
 class TestStyleViewSet:
-    pass
+    @pytest_cases.parametrize(
+        "user",
+        (
+            pytest_cases.fixture_ref("superuser"),
+            pytest_cases.fixture_ref("org_user_free_plan"),
+            pytest_cases.fixture_ref("hub_admin_user"),
+            pytest_cases.fixture_ref("rp_user"),
+        ),
+    )
+    def test_create_style_when_expected_user_with_valid_data(self, user, api_client, create_style_valid_data):
+        """Show that expected users can create a style when provid valid data"""
+        before_count = Style.objects.count()
+        if not user.is_superuser:
+            user.roleassignment.revenue_programs.add(
+                rp := RevenueProgram.objects.get(pk=create_style_valid_data["revenue_program"])
+            )
+            user.roleassignment.save()
+            rp.organization = user.roleassignment.organization
+            rp.save()
+        api_client.force_authenticate(user)
+        response = api_client.post(reverse("style-list"), data=create_style_valid_data, format="json")
+        assert response.status_code == status.HTTP_201_CREATED
+        assert Style.objects.count() == before_count + 1
+        style = Style.objects.get(pk=response.json()["id"])
+        assert (
+            style.revenue_program_id
+            == response.json()["revenue_program"]["id"]
+            == create_style_valid_data["revenue_program"]
+        )
+        assert style.name == create_style_valid_data["name"] == response.json()["name"]
+        passed_style_data = {k: v for k, v in create_style_valid_data.items() if k not in ("name", "revenue_program")}
+        assert passed_style_data
+        for k, v in passed_style_data.items():
+            assert style.styles[k] == v
 
+    @pytest_cases.parametrize(
+        "user",
+        (
+            pytest_cases.fixture_ref("org_user_free_plan"),
+            pytest_cases.fixture_ref("rp_user"),
+        ),
+    )
+    def test_create_style_when_expected_user_but_not_own_rp(self, user, create_style_valid_data, api_client):
+        """Show behavior when expected user tries to create a style pointing to an unowned RP"""
+        api_client.force_authenticate(user)
+        assert (
+            not RevenueProgram.objects.get(pk=create_style_valid_data["revenue_program"])
+            in user.roleassignment.revenue_programs.all()
+        )
+        response = api_client.post(reverse("style-list"), data=create_style_valid_data, format="json")
+        assert response.status_code == status.HTTP_400_BAD_REQUEST
+        assert response.json() == {"revenue_program": ["Not found"]}
 
-# class StylesViewsetTest(RevEngineApiAbstractTestCase):
-#     @classmethod
-#     def setUpClass(cls):
-#         super().setUpClass()
-#         cwd = os.path.dirname(os.path.abspath(__file__))
-#         with open(os.path.join(cwd, "fixtures/create-style-payload.json")) as fl:
-#             cls.styles_create_data_fixture = json.load(fl)
+    @pytest_cases.parametrize(
+        "user,expected_status",
+        (
+            (pytest_cases.fixture_ref("user_no_role_assignment"), status.HTTP_403_FORBIDDEN),
+            (pytest_cases.fixture_ref("contributor_user"), status.HTTP_403_FORBIDDEN),
+            (pytest_cases.fixture_ref("user_with_unexpected_role"), status.HTTP_403_FORBIDDEN),
+            (None, status.HTTP_401_UNAUTHORIZED),
+        ),
+    )
+    def test_create_style_when_unauthorized_user(self, user, create_style_valid_data, expected_status, api_client):
+        """Show behavior when an unauthorized user tries to create a style"""
+        if user:
+            api_client.force_authenticate(user)
+        response = api_client.post(reverse("style-list"), data=create_style_valid_data, format="json")
+        assert response.status_code == expected_status
 
-#     @property
-#     def create_style_payload(self):
-#         return {
-#             **self.styles_create_data_fixture,
-#             "revenue_program": self.org1_rp1.pk,
-#         }
+    @pytest_cases.parametrize(
+        "data,expected_response",
+        (
+            (
+                pytest_cases.fixture_ref("create_style_missing_radii"),
+                {"styles": ['Style objects must contain a "radii" key of type "<class \'list\'>"']},
+            ),
+            (
+                pytest_cases.fixture_ref("create_style_missing_font"),
+                {"styles": ['Style objects must contain a "font" key of type "<class \'dict\'>"']},
+            ),
+            (
+                pytest_cases.fixture_ref("create_style_missing_font_sizes"),
+                {"styles": ['Style objects must contain a "fontSizes" key of type "<class \'list\'>"']},
+            ),
+            (pytest_cases.fixture_ref("create_style_missing_name"), {"name": ["This field may not be null."]}),
+            (
+                pytest_cases.fixture_ref("create_style_missing_revenue_program"),
+                {"revenue_program": ["This field may not be null."]},
+            ),
+            (
+                pytest_cases.fixture_ref("create_style_revenue_program_null"),
+                {"revenue_program": ["This field may not be null."]},
+            ),
+            (
+                pytest_cases.fixture_ref("create_style_revenue_program_blank"),
+                {"revenue_program": ["This field may not be null."]},
+            ),
+        ),
+    )
+    @pytest_cases.parametrize(
+        "user",
+        (
+            pytest_cases.fixture_ref("superuser"),
+            pytest_cases.fixture_ref("org_user_free_plan"),
+            pytest_cases.fixture_ref("hub_admin_user"),
+            pytest_cases.fixture_ref("rp_user"),
+        ),
+    )
+    def test_create_when_invalid_data(self, data, expected_response, user, api_client):
+        """Show behavior when an expected user tries to create a style, with various sorts of invalid data"""
+        api_client.force_authenticate(user)
+        if not user.is_superuser and data.get("revenue_program"):
+            user.roleassignment.revenue_programs.add(rp := RevenueProgram.objects.get(pk=data["revenue_program"]))
+            user.roleassignment.save()
+            rp.organization = user.roleassignment.organization
+            rp.save()
+        response = api_client.post(reverse("style-list"), data=data, format="json")
+        assert response.status_code == status.HTTP_400_BAD_REQUEST
+        assert response.json() == expected_response
 
-#     @property
-#     def create_style_payload_different_org(self):
-#         return {
-#             **self.styles_create_data_fixture,
-#             "revenue_program": self.org2_rp.pk,
-#         }
+    @pytest_cases.parametrize(
+        "user",
+        (
+            pytest_cases.fixture_ref("superuser"),
+            pytest_cases.fixture_ref("org_user_free_plan"),
+            pytest_cases.fixture_ref("hub_admin_user"),
+            pytest_cases.fixture_ref("rp_user"),
+        ),
+    )
+    def test_retrieve_when_expected_user(self, user, api_client, style, mocker):
+        """Show that expected users can retrieve styles they own and cannot those they don't"""
+        api_client.force_authenticate(user)
+        # ensure some styles non-superusers can't retrieve
+        StyleFactory.create_batch(size=3)
+        spy = mocker.spy(StyleManager, "filtered_by_role_assignment")
+        if user.is_superuser or user.roleassignment.role_type == Roles.HUB_ADMIN:
+            query = Style.objects.all()
+            assert query.count()
+            for x in query.all():
+                response = api_client.get(reverse("style-detail", args=(x.id,)))
+                assert response.status_code == status.HTTP_200_OK
+                assert response.json() == json.loads(json.dumps(StyleListSerializer(x).data))
+            assert spy.call_count == 0 if user.is_superuser else 1
+        else:
+            style.revenue_program = user.roleassignment.revenue_programs.first()
+            style.save()
+            query = Style.objects.filtered_by_role_assignment(user.roleassignment)
+            unpermitted = Style.objects.exclude(id__in=query.values_list("id", flat=True))
 
-#     @property
-#     def create_style_payload_different_rp(self):
-#         return {
-#             **self.styles_create_data_fixture,
-#             "revenue_program": self.org1_rp2.pk,
-#         }
+            assert query.count()
+            assert unpermitted.count()
 
-#     ########
-#     # Create
+            # the extra one is for call to `filtered_by_role_assignment` just above here
+            expect_spy_call_count = query.count() + unpermitted.count() + 1
+            for x in query.all():
+                response = api_client.get(reverse("style-detail", args=(x.id,)))
+                assert response.status_code == status.HTTP_200_OK
+                assert response.json() == json.loads(json.dumps(StyleListSerializer(x).data))
+            for x in unpermitted.all():
+                response = api_client.get(reverse("style-detail", args=(x.id,)))
+                assert response.status_code == status.HTTP_404_NOT_FOUND
+            assert spy.call_count == expect_spy_call_count
 
-#     def assert_created_style_is_correct(self, create_payload, created_instance):
-#         self.assertEqual(create_payload["name"], created_instance.name)
-#         self.assertEqual(create_payload["revenue_program"], created_instance.revenue_program.pk)
-#         skip_keys = ["name", "revenue_program"]
-#         for key, val in [(key, val) for key, val in create_payload.items() if key not in skip_keys]:
-#             self.assertEqual(val, created_instance.styles[key])
+    @pytest_cases.parametrize(
+        "user,expected_status",
+        (
+            (pytest_cases.fixture_ref("user_no_role_assignment"), status.HTTP_403_FORBIDDEN),
+            (pytest_cases.fixture_ref("contributor_user"), status.HTTP_403_FORBIDDEN),
+            (None, status.HTTP_401_UNAUTHORIZED),
+        ),
+    )
+    def test_retrieve_when_unauthorized_user(self, user, expected_status, style, api_client):
+        """Show retrieve behavior when unauthorized user attempts"""
+        if user:
+            api_client.force_authenticate(user)
+        response = api_client.get(reverse("style-detail", args=(style.id,)))
+        assert response.status_code == expected_status
 
-#     def test_superuser_can_create_a_style(self):
-#         before_count = Style.objects.count()
-#         payload = self.create_style_payload
-#         response = self.assert_superuser_can_post(reverse("style-list"), payload)
-#         new_style = Style.objects.get(pk=response.data["id"])
-#         self.assert_created_style_is_correct(payload, new_style)
-#         self.assertEqual(Style.objects.count(), before_count + 1)
+    @pytest_cases.parametrize(
+        "user",
+        (
+            pytest_cases.fixture_ref("superuser"),
+            pytest_cases.fixture_ref("org_user_free_plan"),
+            pytest_cases.fixture_ref("hub_admin_user"),
+            pytest_cases.fixture_ref("rp_user"),
+        ),
+    )
+    def test_list_when_expected_user(self, user, api_client, style, mocker):
+        """Test that expected users see styles they should and not see those they shouldn't when listing"""
+        api_client.force_authenticate(user)
+        # ensure some styles non-superusers can't retrieve
+        StyleFactory.create_batch(size=3)
+        spy = mocker.spy(StyleManager, "filtered_by_role_assignment")
+        if user.is_superuser or user.roleassignment.role_type == Roles.HUB_ADMIN:
+            query = Style.objects.all()
+            assert query.count()
+            response = api_client.get(reverse("style-list"))
+            assert response.status_code == status.HTTP_200_OK
+            assert len(response.json()) == query.count()
+            for x in response.json():
+                assert x == json.loads(json.dumps(StyleListSerializer(Style.objects.get(pk=x["id"])).data))
+            assert spy.call_count == 0 if user.is_superuser else 1
+        else:
+            style.revenue_program = user.roleassignment.revenue_programs.first()
+            style.save()
+            query = Style.objects.filtered_by_role_assignment(user.roleassignment)
+            unpermitted = Style.objects.exclude(id__in=query.values_list("id", flat=True))
+            assert query.count()
+            assert unpermitted.count()
+            response = api_client.get(reverse("style-list"))
+            assert response.status_code == status.HTTP_200_OK
+            assert len(response.json()) == query.count()
+            for x in response.json():
+                assert x["revenue_program"]["id"] in user.roleassignment.revenue_programs.values_list("id", flat=True)
+                assert x == json.loads(json.dumps(StyleListSerializer(Style.objects.get(pk=x["id"])).data))
+            # once for call above to create `query`, and once when called in view layer
+            assert spy.call_count == 2
 
-#     def test_hub_admin_can_create_a_style(self):
-#         before_count = Style.objects.count()
-#         payload = self.create_style_payload
-#         response = self.assert_hub_admin_can_post(reverse("style-list"), payload)
-#         new_style = Style.objects.get(pk=response.data["id"])
-#         self.assert_created_style_is_correct(payload, new_style)
-#         self.assertEqual(Style.objects.count(), before_count + 1)
+    @pytest_cases.parametrize(
+        "user,expected_status",
+        (
+            (pytest_cases.fixture_ref("user_no_role_assignment"), status.HTTP_403_FORBIDDEN),
+            (pytest_cases.fixture_ref("contributor_user"), status.HTTP_403_FORBIDDEN),
+            (None, status.HTTP_401_UNAUTHORIZED),
+        ),
+    )
+    def test_list_when_unauthorized_user(self, user, expected_status, api_client):
+        """Show list behavior when an unauthorized user tries to access"""
+        StyleFactory.create_batch(size=2)
+        if user:
+            api_client.force_authenticate(user)
+        response = api_client.get(reverse("style-list"))
+        assert response.status_code == expected_status
 
-#     def test_org_admin_can_create_a_style_for_their_org(self):
-#         before_count = Style.objects.count()
-#         payload = self.create_style_payload
-#         response = self.assert_org_admin_can_post(reverse("style-list"), payload)
-#         new_style = Style.objects.get(pk=response.data["id"])
-#         self.assert_created_style_is_correct(payload, new_style)
-#         self.assertEqual(Style.objects.count(), before_count + 1)
+    @pytest_cases.parametrize(
+        "user,expected_status",
+        (
+            (pytest_cases.fixture_ref("superuser"), status.HTTP_405_METHOD_NOT_ALLOWED),
+            (pytest_cases.fixture_ref("org_user_free_plan"), status.HTTP_405_METHOD_NOT_ALLOWED),
+            (pytest_cases.fixture_ref("hub_admin_user"), status.HTTP_405_METHOD_NOT_ALLOWED),
+            (pytest_cases.fixture_ref("rp_user"), status.HTTP_405_METHOD_NOT_ALLOWED),
+            (pytest_cases.fixture_ref("user_no_role_assignment"), status.HTTP_403_FORBIDDEN),
+            (pytest_cases.fixture_ref("contributor_user"), status.HTTP_403_FORBIDDEN),
+            (None, status.HTTP_401_UNAUTHORIZED),
+        ),
+    )
+    def test_cannot_put(self, user, expected_status, api_client, style):
+        """Show how nobody puts styles"""
+        if user:
+            api_client.force_authenticate(user)
+        response = api_client.put(reverse("style-detail", args=(style.id,)), data={}, format="json")
+        assert response.status_code == expected_status
 
-#     def test_org_admin_cannot_create_a_style_for_another_org(self):
-#         before_count = Style.objects.count()
-#         self.assert_org_admin_cannot_post(
-#             reverse("style-list"),
-#             self.create_style_payload_different_org,
-#             expected_status_code=status.HTTP_400_BAD_REQUEST,
-#         )
-#         self.assertEqual(Style.objects.count(), before_count)
+    @pytest_cases.parametrize(
+        "user",
+        (
+            pytest_cases.fixture_ref("superuser"),
+            pytest_cases.fixture_ref("org_user_free_plan"),
+            pytest_cases.fixture_ref("hub_admin_user"),
+            pytest_cases.fixture_ref("rp_user"),
+        ),
+    )
+    @pytest_cases.parametrize(
+        "data",
+        (
+            # These are all of the relevant cases *except* for patching revenue program,
+            # which we need to handle differently because org and rp user need to be
+            # given permissions for rp.
+            pytest_cases.fixture_ref("patch_style_valid_styles_data_with_arbitrary_keys"),
+            pytest_cases.fixture_ref("patch_style_valid_data_name_only"),
+            pytest_cases.fixture_ref("patch_style_valid_styles_data_only"),
+        ),
+    )
+    def test_update_style_when_expected_user_with_valid_data(self, user, data, api_client, style, mocker):
+        """Show that expected users can update a style when providing valid data"""
+        spy = mocker.spy(StyleManager, "filtered_by_role_assignment")
+        if not user.is_superuser and not user.roleassignment.role_type == Roles.HUB_ADMIN:
+            style.revenue_program = user.roleassignment.revenue_programs.first()
+            style.save()
+        last_modified = style.modified
+        api_client.force_authenticate(user)
+        response = api_client.patch(reverse("style-detail", args=(style.pk,)), data=data, format="json")
+        assert response.status_code == status.HTTP_200_OK
+        style.refresh_from_db()
+        assert style.modified > last_modified
+        for k, v in {k: v for k, v in data.items() if k not in ("name", "revenue_program")}.items():
+            assert style.styles[k] == v
+        assert spy.call_count == 0 if user.is_superuser else 1
 
-#     def test_rp_user_can_create_a_style(self):
-#         before_count = Style.objects.count()
-#         payload = self.create_style_payload
-#         response = self.assert_rp_user_can_post(reverse("style-list"), payload)
-#         new_style = Style.objects.get(pk=response.data["id"])
-#         self.assert_created_style_is_correct(payload, new_style)
-#         self.assertEqual(Style.objects.count(), before_count + 1)
+    @pytest_cases.parametrize(
+        "user",
+        (
+            pytest_cases.fixture_ref("superuser"),
+            pytest_cases.fixture_ref("org_user_free_plan"),
+            pytest_cases.fixture_ref("hub_admin_user"),
+            pytest_cases.fixture_ref("rp_user"),
+        ),
+    )
+    @pytest_cases.parametrize(
+        "data",
+        (
+            pytest_cases.fixture_ref("patch_style_valid_data_all_keys"),
+            pytest_cases.fixture_ref("patch_style_valid_data_rp_only"),
+        ),
+    )
+    def test_update_style_when_expected_user_updating_owned_rp(self, user, data, api_client, style, mocker):
+        """Show that expected users can update a style when providing valid data"""
+        spy = mocker.spy(StyleManager, "filtered_by_role_assignment")
+        to_update_rp = RevenueProgram.objects.get(id=data["revenue_program"])
+        if not user.is_superuser and not user.roleassignment.role_type == Roles.HUB_ADMIN:
+            style.revenue_program = user.roleassignment.revenue_programs.first()
+            style.save()
+            to_update_rp.organization = user.roleassignment.organization
+            to_update_rp.save()
+            user.roleassignment.revenue_programs.add(to_update_rp)
+        last_modified = style.modified
+        api_client.force_authenticate(user)
+        response = api_client.patch(reverse("style-detail", args=(style.pk,)), data=data, format="json")
+        assert response.status_code == status.HTTP_200_OK
+        style.refresh_from_db()
+        assert style.modified > last_modified
+        assert style.revenue_program.id == data["revenue_program"] == response.json()["revenue_program"]["id"]
+        for k, v in {k: v for k, v in data.items() if k not in ("name", "revenue_program")}.items():
+            assert style.styles[k] == v
+        assert spy.call_count == 0 if user.is_superuser else 1
 
-#     def test_rp_user_cannot_create_a_style_for_an_unowned_rp(self):
-#         before_count = Style.objects.count()
-#         self.assert_rp_user_cannot_post(
-#             reverse("style-list"),
-#             self.create_style_payload_different_rp,
-#             expected_status_code=status.HTTP_400_BAD_REQUEST,
-#         )
-#         self.assertEqual(Style.objects.count(), before_count)
+    @pytest_cases.parametrize(
+        "user",
+        (
+            pytest_cases.fixture_ref("org_user_free_plan"),
+            pytest_cases.fixture_ref("rp_user"),
+        ),
+    )
+    def test_update_style_when_expected_user_but_not_own_rp(
+        self, user, api_client, style, revenue_program, patch_style_valid_data_all_keys
+    ):
+        api_client.force_authenticate(user)
+        style.revenue_program = user.roleassignment.revenue_programs.first()
+        style.save()
+        assert style.revenue_program != revenue_program
+        assert revenue_program not in user.roleassignment.revenue_programs.all()
+        data = patch_style_valid_data_all_keys | {"revenue_program": revenue_program.id}
+        response = api_client.patch(reverse("style-detail", args=(style.id,)), data=data, format="json")
+        assert response.status_code == status.HTTP_400_BAD_REQUEST
+        assert response.json() == {"revenue_program": ["Not found"]}
 
-#     #################
-#     # Read - Retrieve
+    @pytest_cases.parametrize(
+        "user",
+        (
+            pytest_cases.fixture_ref("org_user_free_plan"),
+            pytest_cases.fixture_ref("rp_user"),
+            pytest_cases.fixture_ref("superuser"),
+            pytest_cases.fixture_ref("hub_admin_user"),
+        ),
+    )
+    def test_update_style_when_expected_rp_not_exist(
+        self, user, api_client, style, revenue_program, patch_style_valid_data_all_keys
+    ):
+        rp_id = revenue_program.id
+        assert style.revenue_program.id != rp_id
+        revenue_program.delete()
+        if not (user.is_superuser or user.roleassignment.role_type == Roles.HUB_ADMIN):
+            style.revenue_program = user.roleassignment.revenue_programs.first()
+            style.save()
+        api_client.force_authenticate(user)
+        data = patch_style_valid_data_all_keys | {"revenue_program": rp_id}
+        response = api_client.patch(reverse("style-detail", args=(style.id,)), data=data, format="json")
+        assert response.status_code == status.HTTP_400_BAD_REQUEST
+        assert response.json() == {"revenue_program": [f'Invalid pk "{rp_id}" - object does not exist.']}
 
-#     def test_superuser_can_retrieve_a_style(self):
-#         url = reverse("style-detail", args=(Style.objects.first().pk,))
-#         self.assert_superuser_can_get(url)
+    @pytest_cases.parametrize(
+        "user",
+        (
+            pytest_cases.fixture_ref("org_user_free_plan"),
+            pytest_cases.fixture_ref("rp_user"),
+        ),
+    )
+    def test_update_style_when_expected_user_but_not_own_style(
+        self, user, style, patch_style_valid_data_all_keys, api_client, mocker
+    ):
+        spy = mocker.spy(StyleManager, "filtered_by_role_assignment")
+        assert style.revenue_program not in user.roleassignment.revenue_programs.all()
+        api_client.force_authenticate(user)
+        response = api_client.patch(
+            reverse("style-detail", args=(style.id,)), data=patch_style_valid_data_all_keys, format="json"
+        )
+        assert response.status_code == status.HTTP_404_NOT_FOUND
+        assert spy.call_count == 1
 
-#     def test_hub_user_can_retrieve_a_style(self):
-#         url = reverse("style-detail", args=(Style.objects.first().pk,))
-#         self.assert_hub_admin_can_get(url)
+    @pytest_cases.parametrize(
+        "user,expected_status",
+        (
+            (pytest_cases.fixture_ref("user_no_role_assignment"), status.HTTP_403_FORBIDDEN),
+            (pytest_cases.fixture_ref("contributor_user"), status.HTTP_403_FORBIDDEN),
+            (None, status.HTTP_401_UNAUTHORIZED),
+        ),
+    )
+    def test_update_style_when_unexpected_user(
+        self, user, expected_status, patch_style_valid_data_all_keys, style, api_client
+    ):
+        if user:
+            api_client.force_authenticate(user)
+        response = api_client.patch(
+            reverse("style-detail", args=(style.pk,)), data=patch_style_valid_data_all_keys, format="json"
+        )
+        assert response.status_code == expected_status
 
-#     def test_org_admin_can_retrieve_a_style_they_own(self):
-#         self.assertIsNotNone(style := Style.objects.filter(revenue_program=self.org1_rp1).first())
-#         url = reverse("style-detail", args=(style.pk,))
-#         self.assert_org_admin_can_get(url)
+    @pytest_cases.parametrize(
+        "user",
+        (
+            pytest_cases.fixture_ref("org_user_free_plan"),
+            # pytest_cases.fixture_ref("rp_user"),
+            # pytest_cases.fixture_ref("superuser"),
+            # pytest_cases.fixture_ref("hub_admin_user"),
+        ),
+    )
+    @pytest_cases.parametrize(
+        "data,expected_response",
+        (
+            (
+                pytest_cases.fixture_ref("patch_style_invalid_data_bad_radii_is_text"),
+                {"styles": ['Style objects must contain a "radii" key of type "<class \'list\'>"']},
+            ),
+            (
+                pytest_cases.fixture_ref("patch_style_invalid_data_bad_radii_is_null"),
+                {"styles": ['Style objects must contain a "radii" key of type "<class \'list\'>"']},
+            ),
+            (
+                pytest_cases.fixture_ref("patch_style_invalid_data_bad_radii_is_number"),
+                {"styles": ['Style objects must contain a "radii" key of type "<class \'list\'>"']},
+            ),
+            (
+                pytest_cases.fixture_ref("patch_style_invalid_data_bad_radii_is_unexpected_dict"),
+                {"styles": ['Style objects must contain a "radii" key of type "<class \'list\'>"']},
+            ),
+            (
+                pytest_cases.fixture_ref("patch_style_invalid_data_bad_font_is_text"),
+                {"styles": ['Style objects must contain a "font" key of type "<class \'dict\'>"']},
+            ),
+            (
+                pytest_cases.fixture_ref("patch_style_invalid_data_bad_font_is_null"),
+                {"styles": ['Style objects must contain a "font" key of type "<class \'dict\'>"']},
+            ),
+            (
+                pytest_cases.fixture_ref("patch_style_invalid_data_bad_font_is_number"),
+                {"styles": ['Style objects must contain a "font" key of type "<class \'dict\'>"']},
+            ),
+            (
+                pytest_cases.fixture_ref("patch_style_invalid_data_bad_font_is_list"),
+                {"styles": ['Style objects must contain a "font" key of type "<class \'dict\'>"']},
+            ),
+            (
+                pytest_cases.fixture_ref("patch_style_invalid_data_bad_font_sizes_is_text"),
+                {"styles": ['Style objects must contain a "fontSizes" key of type "<class \'list\'>"']},
+            ),
+            (
+                pytest_cases.fixture_ref("patch_style_invalid_data_bad_font_sizes_is_null"),
+                {"styles": ['Style objects must contain a "fontSizes" key of type "<class \'list\'>"']},
+            ),
+            (
+                pytest_cases.fixture_ref("patch_style_invalid_data_bad_font_sizes_is_number"),
+                {"styles": ['Style objects must contain a "fontSizes" key of type "<class \'list\'>"']},
+            ),
+            (
+                pytest_cases.fixture_ref("patch_style_invalid_data_bad_font_sizes_is_dict"),
+                {"styles": ['Style objects must contain a "fontSizes" key of type "<class \'list\'>"']},
+            ),
+        ),
+    )
+    def test_update_when_invalid_data(self, user, data, expected_response, style, api_client):
+        api_client.force_authenticate(user)
+        if not (user.is_superuser or user.roleassignment.role_type == Roles.HUB_ADMIN):
+            style.revenue_program = user.roleassignment.revenue_programs.first()
+            style.save()
+        response = api_client.patch(reverse("style-detail", args=(style.id,)), data=data, format="json")
+        assert response.status_code == status.HTTP_400_BAD_REQUEST
+        assert response.json() == expected_response
 
-#     def test_org_admin_cannot_retrieve_a_style_they_do_not_own(self):
-#         self.assertIsNotNone(style := Style.objects.exclude(revenue_program__organization=self.org1).first())
-#         url = reverse("style-detail", args=(style.pk,))
-#         self.assert_org_admin_cannot_get(url)
+    @pytest_cases.parametrize(
+        "user",
+        (
+            pytest_cases.fixture_ref("superuser"),
+            pytest_cases.fixture_ref("org_user_free_plan"),
+            pytest_cases.fixture_ref("hub_admin_user"),
+            pytest_cases.fixture_ref("rp_user"),
+        ),
+    )
+    def test_delete_when_expected_user_and_own_style(self, user, style, api_client, mocker):
+        spy = mocker.spy(StyleManager, "filtered_by_role_assignment")
+        api_client.force_authenticate(user)
+        style_id = style.id
+        if not (user.is_superuser or user.roleassignment.role_type == Roles.HUB_ADMIN):
+            style.revenue_program = user.roleassignment.revenue_programs.first()
+            style.save()
+        response = api_client.delete(reverse("style-detail", args=(style.id,)))
+        assert response.status_code == status.HTTP_204_NO_CONTENT
+        assert not Style.objects.filter(pk=style_id).exists()
+        assert spy.call_count == 0 if user.is_superuser else 1
 
-#     def test_rp_user_can_retrieve_a_style_they_own(self):
-#         self.assertIsNotNone(style := Style.objects.filter(revenue_program=self.org1_rp1).first())
-#         url = reverse("style-detail", args=(style.pk,))
-#         self.assert_rp_user_can_get(url)
+    @pytest_cases.parametrize(
+        "user",
+        (
+            pytest_cases.fixture_ref("org_user_free_plan"),
+            pytest_cases.fixture_ref("rp_user"),
+        ),
+    )
+    def test_delete_when_expected_user_and_not_own_style(self, user, api_client, style, mocker):
+        spy = mocker.spy(StyleManager, "filtered_by_role_assignment")
+        api_client.force_authenticate(user)
+        assert style.revenue_program not in user.roleassignment.revenue_programs.all()
+        response = api_client.delete(reverse("style-detail", args=(style.id,)))
+        assert response.status_code == status.HTTP_404_NOT_FOUND
+        assert spy.call_count == 1
 
-#     def test_rp_user_cannot_retrieve_a_style_they_do_not_own(self):
-#         self.assertIsNotNone(
-#             style := (
-#                 Style.objects.filter(revenue_program__organization=self.org1)
-#                 .exclude(revenue_program=self.org1_rp1)
-#                 .first()
-#             )
-#         )
-#         url = reverse("style-detail", args=(style.pk,))
-#         self.assert_rp_user_cannot_get(url)
+    @pytest_cases.parametrize(
+        "user",
+        (
+            pytest_cases.fixture_ref("superuser"),
+            pytest_cases.fixture_ref("org_user_free_plan"),
+            pytest_cases.fixture_ref("hub_admin_user"),
+            pytest_cases.fixture_ref("rp_user"),
+        ),
+    )
+    def test_delete_when_expected_user_and_not_found(self, user, style, api_client):
+        api_client.force_authenticate(user)
+        style_pk = style.id
+        style.delete()
+        assert api_client.delete(reverse("style-detail", args=(style_pk,))).status_code == status.HTTP_404_NOT_FOUND
 
-#     #############
-#     # Read - List
+    @pytest_cases.parametrize(
+        "user,expected_status",
+        (
+            (pytest_cases.fixture_ref("user_no_role_assignment"), status.HTTP_403_FORBIDDEN),
+            (pytest_cases.fixture_ref("contributor_user"), status.HTTP_403_FORBIDDEN),
+            (None, status.HTTP_401_UNAUTHORIZED),
+        ),
+    )
+    def test_delete_when_unexpected_user(self, user, expected_status, style, api_client):
+        if user:
+            api_client.force_authenticate(user)
+        assert api_client.delete(reverse("style-detail", args=(style.pk,))).status_code == expected_status
 
-#     def test_superuser_can_list_styles(self):
-#         url = reverse("style-list")
-#         self.assertGreater(expected_count := Style.objects.count(), 1)
-#         self.assert_superuser_can_list(url, expected_count, results_are_flat=True)
-
-#     def test_hub_admin_can_list_styles(self):
-#         url = reverse("style-list")
-#         self.assertGreater(expected_count := Style.objects.count(), 1)
-#         self.assert_hub_admin_can_list(url, expected_count, results_are_flat=True)
-
-#     def test_org_admin_can_list_styles(self):
-#         url = reverse("style-list")
-#         self.assertGreater(expected_count := Style.objects.filter(revenue_program__organization=self.org1).count(), 1)
-#         self.assert_org_admin_can_list(
-#             url,
-#             expected_count,
-#             assert_item=lambda x: x["revenue_program"] in self.org1.revenueprogram_set.values_list("id", flat=True),
-#             results_are_flat=True,
-#         )
-
-#     def test_rp_user_can_list_styles(self):
-#         url = reverse("style-list")
-#         self.assertGreater(
-#             expected_count := (
-#                 Style.objects.filter(revenue_program__in=self.rp_user.roleassignment.revenue_programs.all()).count()
-#             ),
-#             0,
-#         )
-#         self.assert_rp_user_can_list(
-#             url,
-#             expected_count,
-#             assert_item=lambda x: x["revenue_program"] in self.org1.revenueprogram_set.values_list("id", flat=True),
-#             results_are_flat=True,
-#         )
-
-#     ########
-#     # Update
-
-#     def test_superuser_can_update_a_style(self):
-#         self.assertIsNotNone(style := Style.objects.first())
-#         before_last_modified = style.modified
-#         pk = style.pk
-#         url = reverse("style-detail", args=(pk,))
-#         new_color = "new-color"
-#         data = self.create_style_payload
-#         data["colors"]["primary"] = new_color
-#         self.assertNotEqual(style.styles["colors"]["primary"], new_color)
-#         self.assert_superuser_can_patch(url, data)
-#         style.refresh_from_db()
-#         self.assertGreater(style.modified, before_last_modified)
-#         self.assertEqual(style.styles["colors"]["primary"], new_color)
-
-#     def test_hub_user_can_update_a_style(self):
-#         self.assertIsNotNone(style := Style.objects.first())
-#         before_last_modified = style.modified
-#         pk = style.pk
-#         url = reverse("style-detail", args=(pk,))
-#         new_color = "new-color"
-#         data = self.create_style_payload
-#         data["colors"]["primary"] = new_color
-#         self.assertNotEqual(style.styles["colors"]["primary"], new_color)
-#         self.assert_hub_admin_can_patch(url, data)
-#         style.refresh_from_db()
-#         self.assertGreater(style.modified, before_last_modified)
-#         self.assertEqual(style.styles["colors"]["primary"], new_color)
-
-#     def test_org_admin_can_update_a_style_they_own(self):
-#         self.assertIsNotNone(style := Style.objects.filter(revenue_program__organization=self.org1).first())
-#         before_last_modified = style.modified
-#         pk = style.pk
-#         url = reverse("style-detail", args=(pk,))
-#         new_color = "new-color"
-#         data = self.create_style_payload
-#         data["colors"]["primary"] = new_color
-#         self.assertNotEqual(style.styles["colors"]["primary"], new_color)
-#         self.assert_org_admin_can_patch(url, data)
-#         style.refresh_from_db()
-#         self.assertGreater(style.modified, before_last_modified)
-#         self.assertEqual(style.styles["colors"]["primary"], new_color)
-
-#     def test_org_admin_cannot_update_a_style_they_do_not_own(self):
-#         self.assertIsNotNone(style := Style.objects.exclude(revenue_program__organization=self.org1).first())
-#         before_last_modified = style.modified
-#         pk = style.pk
-#         url = reverse("style-detail", args=(pk,))
-#         new_color = "new-color"
-#         data = self.create_style_payload
-#         data["colors"]["primary"] = new_color
-#         self.assert_org_admin_cannot_patch(url, data)
-#         style.refresh_from_db()
-#         self.assertEqual(style.modified, before_last_modified)
-
-#     def test_rp_user_can_update_a_style_they_own(self):
-#         self.assertIsNotNone(
-#             style := Style.objects.filter(
-#                 revenue_program__in=self.rp_user.roleassignment.revenue_programs.all()
-#             ).first()
-#         )
-#         url = reverse("style-detail", args=(style.pk,))
-#         before_last_modified = style.modified
-#         pk = style.pk
-#         url = reverse("style-detail", args=(pk,))
-#         new_color = "new-color"
-#         data = self.create_style_payload
-#         data["colors"]["primary"] = new_color
-#         self.assertNotEqual(style.styles["colors"]["primary"], new_color)
-#         self.assert_rp_user_can_patch(url, data)
-#         style.refresh_from_db()
-#         self.assertGreater(style.modified, before_last_modified)
-#         self.assertEqual(style.styles["colors"]["primary"], new_color)
-
-#     def test_rp_user_cannot_update_a_style_they_do_not_own(self):
-#         self.assertIsNotNone(
-#             style := (
-#                 Style.objects.filter(revenue_program__organization=self.org1)
-#                 .exclude(revenue_program=self.org1_rp1)
-#                 .first()
-#             )
-#         )
-#         before_last_modified = style.modified
-#         pk = style.pk
-#         url = reverse("style-detail", args=(pk,))
-#         new_color = "new-color"
-#         data = self.create_style_payload
-#         data["colors"]["primary"] = new_color
-#         self.assert_rp_user_cannot_patch(url, data, expected_status_code=status.HTTP_404_NOT_FOUND)
-#         style.refresh_from_db()
-#         self.assertEqual(style.modified, before_last_modified)
-#         url = reverse("style-detail", args=(style.pk,))
-
-#     ########
-#     # Delete
-
-#     def test_superuser_can_delete_a_style(self):
-#         self.assertIsNotNone(style := Style.objects.first())
-#         before_count = Style.objects.count()
-#         pk = style.pk
-#         url = reverse("style-detail", args=(pk,))
-#         self.assert_superuser_can_delete(url)
-#         self.assertEqual(Style.objects.count(), before_count - 1)
-#         self.assertFalse(Style.objects.filter(pk=pk).exists())
-
-#     def test_org_admin_cannot_delete_a_style_they_do_not_own(self):
-#         self.assertIsNotNone(style := Style.objects.exclude(revenue_program__organization=self.org1).first())
-#         before_count = Style.objects.count()
-#         pk = style.pk
-#         url = reverse("style-detail", args=(pk,))
-#         self.assert_org_admin_cannot_delete(url, expected_status_code=status.HTTP_403_FORBIDDEN)
-#         self.assertEqual(Style.objects.count(), before_count)
-#         self.assertTrue(Style.objects.filter(pk=pk).exists())
-
-#     def test_rp_user_cannot_delete_a_style_they_do_not_own(self):
-#         self.assertIsNotNone(
-#             style := (
-#                 Style.objects.filter(revenue_program__organization=self.org1)
-#                 .exclude(revenue_program=self.org1_rp1)
-#                 .first()
-#             )
-#         )
-#         before_count = Style.objects.count()
-#         pk = style.pk
-#         url = reverse("style-detail", args=(pk,))
-#         self.assert_rp_user_cannot_delete(url, expected_status_code=status.HTTP_403_FORBIDDEN)
-#         self.assertEqual(Style.objects.count(), before_count)
-#         self.assertTrue(Style.objects.filter(pk=pk).exists())
-
-#     ######
-#     # Misc
-
-#     def test_unexpected_role_type(self):
-#         novel = create_test_user(role_assignment_data={"role_type": "holy-moley"})
-#         self.assert_user_cannot_get(
-#             reverse("style-list"), novel, expected_status_code=status.HTTP_500_INTERNAL_SERVER_ERROR
-#         )
+    def test_unexpected_role_type_cant_list(self, user_with_unexpected_role, api_client):
+        api_client.force_authenticate(user_with_unexpected_role)
+        response = api_client.get(reverse("style-list"))
+        assert response.status_code == status.HTTP_403_FORBIDDEN
 
 
 @pytest.fixture

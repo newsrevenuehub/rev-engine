@@ -22,6 +22,7 @@ from apps.users.tests.factories import create_test_user
 def test_user_post_save_handler(publisher, gcloud_configured, created, user_topic, monkeypatch):
     user_topic = "topic"
     monkeypatch.setattr("django.conf.settings.NEW_USER_TOPIC", user_topic)
+    monkeypatch.setattr("django.conf.settings.ENABLE_PUBSUB", "True")
     instance = MagicMock()
     publisher.get_instance.return_value = instance
     user = create_test_user()

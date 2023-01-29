@@ -1,3 +1,4 @@
+from django.conf import settings
 from django.db import models
 from django.utils import timezone
 
@@ -12,6 +13,9 @@ from apps.pages import defaults
 from apps.pages.validators import style_validator
 from apps.users.choices import Roles
 from apps.users.models import RoleAssignmentResourceModelMixin, UnexpectedRoleType
+
+
+HTTPS_SCHEME = "https://"
 
 
 def _get_screenshot_upload_path(instance, filename):
@@ -167,6 +171,10 @@ class DonationPage(AbstractPage):
     @property
     def is_live(self):
         return bool(self.published_date and self.published_date <= timezone.now())
+
+    @property
+    def page_url(self) -> str:
+        return f"{HTTPS_SCHEME}{self.revenue_program.slug}.{settings.SITE_URL.partition(HTTPS_SCHEME)[2]}/{self.slug}"
 
     def set_default_logo(self):
         """

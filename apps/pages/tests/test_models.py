@@ -12,7 +12,7 @@ from apps.common.tests.test_utils import get_test_image_file_jpeg
 from apps.config.tests.factories import DenyListWordFactory
 from apps.config.validators import GENERIC_SLUG_DENIED_MSG, SLUG_DENIED_CODE
 from apps.contributions.tests.factories import ContributionFactory
-from apps.organizations.tests.factories import OrganizationFactory
+from apps.organizations.tests.factories import OrganizationFactory, RevenueProgramFactory
 from apps.pages import defaults
 from apps.pages.models import (
     DefaultPageLogo,
@@ -141,6 +141,11 @@ class DonationPageTest(TestCase):
             "foreign keys: 'Contribution.donation_page'."
         )
         self.assertEqual(error_msg, protected_error.exception.args[0])
+
+    def test_page_url(self):
+        revenue_program = RevenueProgramFactory()
+        page = DonationPageFactory(revenue_program=revenue_program)
+        assert page.page_url == f"https://{revenue_program.slug}.example.com/{page.slug}"
 
 
 class StyleTest(TestCase):

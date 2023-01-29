@@ -18,6 +18,8 @@ class RevEngineBaseAdmin(ModelAdmin):
     }
 
 
+# there is an issue with django-reversion-compare package, hence manually adding the admin interface by setting ADD_REVERSION_ADMIN to False
+# find issue details here https://github.com/jedie/django-reversion-compare/issues/185
 @register_admin(Revision)
 class RevisionAdmin(ModelAdmin):
     list_display = ("id", "date_created", "user", "comment")

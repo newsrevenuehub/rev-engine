@@ -71,7 +71,7 @@ sorl-thumbnail-serializer-field = "^0.2.1"
 stripe = "^4"
 uwsgi = "^2"
 whitenoise = "^6.2.0"
-google-cloud-pubsub = "^2.13"
+google-cloud-pubsub = "^2.14"
 pygments = "^2.13.0"
 
 [tool.poetry.dev-dependencies]

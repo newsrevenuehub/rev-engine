@@ -18,7 +18,7 @@ def donation_page_pre_save(sender, instance, update_fields, **kwargs) -> None:
     if all([instance.pk, instance.published_date, google_cloud_pub_sub_is_configured(), settings.PAGE_PUBLISHED_TOPIC]):
         existing_page = DonationPage.objects.get(pk=instance.pk)
         if not existing_page.published_date:
-            logger.info("Existing donation page published for the first time: %s", instance)
+            logger.debug("Existing donation page published for the first time: %s", instance)
             message_data = {
                 "page_id": instance.pk,
                 "url": instance.page_url,

@@ -34,7 +34,7 @@ def upsert(entity_type: Literal["connection", "destination"], data: dict, auto_u
     if response.status_code != status.HTTP_200_OK:
         logger.exception("Unexpected response from Hookdeck API: %s", response.content)
         raise HookDeckIntegrationError("Something went wrong. It's been logged.")
-    if (resp_data := response.json())["archived_at"] is not None and auto_unarchive:
+    if (resp_data := response.json()).get("archived_at", None) is not None and auto_unarchive:
         logger.info("Unarchiving Hookdeck %s with id %s", entity_type, resp_data["id"])
         data = unarchive(entity_type, resp_data["id"])
     else:

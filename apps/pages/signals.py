@@ -1,4 +1,3 @@
-import datetime
 import json
 import logging
 
@@ -23,7 +22,7 @@ def donation_page_pre_save(sender, instance, update_fields, **kwargs) -> None:
             message_data = {
                 "page_id": instance.pk,
                 "url": instance.page_url,
-                "publication_date": datetime.date.today(),
+                "publication_date": str(instance.published_date),
                 "revenue_program_id": instance.revenue_program.pk,
                 "revenue_program_name": instance.revenue_program.name,
                 "revenue_program_slug": instance.revenue_program.slug,

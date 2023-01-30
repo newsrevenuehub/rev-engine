@@ -25,7 +25,13 @@ HEADERS = {"Authorization": f"Bearer {settings.HOOKDECK_API_KEY}"}
 
 
 def upsert(entity_type: Literal["connection", "destination"], data: dict, auto_unarchive: bool = True) -> dict:
-    """Upsert given entity type to Hookdeck"""
+    """Upsert given entity type to Hookdeck
+
+    When True, the `auto_unarchive` param will cause a found-but-previously-archived entity in
+    to be unarchived and have its state set to state in `data`. This is helpful for our primary use
+    case for Hookdeck: review apps. In that context, we should expect to sometimes need to restore a previous
+    entity named after a ticket/review app.
+    """
     response = requests.put(
         {"connection": CONNECTIONS_URL, "destination": DESTINATIONS_URL}[entity_type],
         data=data,
@@ -46,7 +52,13 @@ def upsert_destination(name: str, url: str, auto_unarchive: bool = True) -> dict
     """Upsert a destination to Hookdeck.
 
     A *destination* is a named URL to which Hookdeck should forward on received webhooks.
+
+    When True, the `auto_unarchive` param will cause a found-but-previously-archived entity in
+    to be unarchived and have its state set to state in `data`. This is helpful for our primary use
+    case for Hookdeck: review apps. In that context, we should expect to sometimes need to restore a previous
+    entity named after a ticket/review app.
     """
+
     return upsert(
         "destination",
         {
@@ -61,6 +73,11 @@ def upsert_connection(name: str, source_id: str, destination_id: str, auto_unarc
 
     A *connection* maps a Hookdeck source to a Hookdeck destination. A given source can be configured
     to have many destinations via a connection.
+
+    When True, the `auto_unarchive` param will cause a found-but-previously-archived entity in
+    to be unarchived and have its state set to state in `data`. This is helpful for our primary use
+    case for Hookdeck: review apps. In that context, we should expect to sometimes need to restore a previous
+    entity named after a ticket/review app.
     """
 
     return upsert(

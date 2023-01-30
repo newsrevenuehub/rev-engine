@@ -240,7 +240,7 @@ def tear_down(
             archive("connection", x["id"])
     dests = search_destinations(name=ticket_prefix)["models"]
     if not dests:
-        logger.info("No destinations found for ticket with prefix %s found", ticket_prefix)
+        logger.info("No destinations found for ticket with prefix %s", ticket_prefix)
     else:
         for x in dests:
             logger.info("Archiving destination #%s, %s", x["id"], x["name"])

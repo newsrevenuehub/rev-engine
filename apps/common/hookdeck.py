@@ -84,7 +84,7 @@ def retrieve(entity_type: Literal["connection", "destination", "source"], id: st
     return response.json()
 
 
-def search(entity_type: Literal["connection", "destination", "source"], params) -> dict:
+def search(entity_type: Literal["connection", "destination", "source"], params: dict) -> dict:
     """Search for Hookdeck entities matching search criteria in `params`"""
     response = requests.get(
         {"connection": CONNECTIONS_URL, "destination": DESTINATIONS_URL, "source": SOURCES_URL}[entity_type],

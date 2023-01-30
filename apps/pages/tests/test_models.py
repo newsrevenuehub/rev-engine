@@ -17,7 +17,7 @@ from apps.organizations.tests.factories import OrganizationFactory, RevenueProgr
 from apps.pages import defaults
 from apps.pages.models import DefaultPageLogo, DonationPage, Style, _get_screenshot_upload_path
 from apps.pages.tests.factories import DonationPageFactory, FontFactory, StyleFactory
-from apps.users.models import Roles
+from apps.users.choices import Roles
 
 
 def test__get_screenshot_upload_path():

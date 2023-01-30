@@ -125,7 +125,7 @@ def style():
 @pytest.fixture
 def patch_page_valid_data():
     return {
-        "name": fake.company(),  # random
+        "name": fake.company(),
         "elements": json.dumps([{"type": x} for x in FreePlan.page_elements]),
         "sidebar_elements": json.dumps([{"type": x} for x in FreePlan.sidebar_elements]),
     }

@@ -71,20 +71,17 @@ def upsert_connection(name: str, source_id: str, destination_id: str, auto_unarc
 
 def retrieve(entity_type: Literal["connection", "destination", "source"], id: str) -> dict:
     """Retrieve an entity from Hookdeck"""
-    try:
-        response = requests.get(
-            f"""{
-                {"connection": CONNECTIONS_URL, "destination": DESTINATIONS_URL, "source": SOURCES_URL
-                }[entity_type]
-            }/{id}""",
-            headers=HEADERS,
-        )
-        if response.status_code != status.HTTP_200_OK:
-            raise
-        return response.json()
-    except:  # noqa: E722
+    response = requests.get(
+        f"""{
+            {"connection": CONNECTIONS_URL, "destination": DESTINATIONS_URL, "source": SOURCES_URL
+            }[entity_type]
+        }/{id}""",
+        headers=HEADERS,
+    )
+    if response.status_code != status.HTTP_200_OK:
         logger.exception("Unexpected response from Hookdeck API")
         raise HookDeckIntegrationError("Something went wrong retrieving destination. It's been logged.")
+    return response.json()
 
 
 def search(entity_type: Literal["connection", "destination", "source"], params) -> dict:
@@ -97,7 +94,9 @@ def search(entity_type: Literal["connection", "destination", "source"], params) 
         params=dict(params),
     )
     if response.status_code != status.HTTP_200_OK:
-        logger.exception("Unexpected response from Hookdeck API retrieving %s", entity_type)
+        logger.exception(
+            "Unexpected response from Hookdeck API retrieving %s: status %s", entity_type, response.status_code
+        )
         raise HookDeckIntegrationError(f"Something went wrong retrieving {entity_type}. It's been logged.")
     else:
         return response.json()

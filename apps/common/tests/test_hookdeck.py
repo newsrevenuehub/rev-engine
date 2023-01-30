@@ -16,6 +16,7 @@ from apps.common.hookdeck import (
     HookDeckIntegrationError,
     archive,
     bootstrap,
+    logger,
     retrieve,
     search_connections,
     search_destinations,
@@ -420,3 +421,22 @@ def test_teardown(monkeypatch):
     assert mock_archive.call_count == len(mock_search_destinations.return_value["models"]) + len(
         mock_search_connections.return_value["models"]
     )
+
+
+def test_teardown_when_destinations_and_connections_not_found(monkeypatch, mocker):
+    spy = mocker.spy(logger, "info")
+    mock_search_destinations = Mock(return_value={"models": []})
+    mock_search_connections = Mock(return_value={"models": []})
+    mock_archive = Mock()
+    monkeypatch.setattr("apps.common.hookdeck.search_destinations", mock_search_destinations)
+    monkeypatch.setattr("apps.common.hookdeck.search_connections", mock_search_connections)
+    monkeypatch.setattr("apps.common.hookdeck.archive", mock_archive)
+    ticket_name = "my-unique-ticket-name"
+    tear_down(ticket_name)
+    mock_search_destinations.assert_called_once_with(name=ticket_name)
+    mock_search_connections.assert_called_once_with(name=ticket_name)
+    assert mock_archive.call_count == len(mock_search_destinations.return_value["models"]) + len(
+        mock_search_connections.return_value["models"]
+    )
+    assert spy.call_args_list[0][0] == ("No connections found for ticket with prefix %s", ticket_name)
+    assert spy.call_args_list[1][0] == ("No destinations found for ticket with prefix %s", ticket_name)

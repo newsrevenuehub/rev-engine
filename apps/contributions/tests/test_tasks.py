@@ -17,6 +17,9 @@ from apps.contributions.tasks import (
 from apps.contributions.tests.factories import ContributionFactory
 
 
+# This is to squash a side effect in contribution.save
+# TODO: DEV-3026
+@patch("apps.contributions.models.Contribution.fetch_stripe_payment_method", return_value=None)
 class AutoAcceptFlaggedContributionsTaskTest(TestCase):
     def setUp(self):
         self.expired_contrib_count = 2
@@ -24,7 +27,9 @@ class AutoAcceptFlaggedContributionsTaskTest(TestCase):
 
     def _create_contributions(self, flagged=True):
         status = ContributionStatus.FLAGGED if flagged else ContributionStatus.PAID
-        expiring_flagged_data = timezone.now() - settings.FLAGGED_PAYMENT_AUTO_ACCEPT_DELTA - timedelta(days=1)
+        expiring_flagged_data = (
+            timezone.now() - timedelta(settings.FLAGGED_PAYMENT_AUTO_ACCEPT_DELTA) - timedelta(days=1)
+        )
         non_expiring_flagged_date = timezone.now() - timedelta(days=1)
         ContributionFactory.create_batch(self.expired_contrib_count, status=status, flagged_date=expiring_flagged_data)
         ContributionFactory.create_batch(
@@ -32,7 +37,7 @@ class AutoAcceptFlaggedContributionsTaskTest(TestCase):
         )
 
     @patch("apps.contributions.payment_managers.StripePaymentManager.complete_payment")
-    def test_successful_captures(self, mock_complete_payment):
+    def test_successful_captures(self, mock_complete_payment, mock_fetch_stripe_payment_method):
         self._create_contributions()
         succeeded, failed = auto_accept_flagged_contributions()
         self.assertEqual(mock_complete_payment.call_count, self.expired_contrib_count)
@@ -42,7 +47,7 @@ class AutoAcceptFlaggedContributionsTaskTest(TestCase):
     @patch(
         "apps.contributions.payment_managers.StripePaymentManager.complete_payment", side_effect=PaymentProviderError
     )
-    def test_unsuccessful_captures(self, mock_complete_payment):
+    def test_unsuccessful_captures(self, mock_complete_payment, mock_fetch_stripe_payment_method):
         self._create_contributions()
         succeeded, failed = auto_accept_flagged_contributions()
         self.assertEqual(mock_complete_payment.call_count, self.expired_contrib_count)
@@ -50,7 +55,7 @@ class AutoAcceptFlaggedContributionsTaskTest(TestCase):
         self.assertEqual(succeeded, 0)
 
     @patch("apps.contributions.payment_managers.StripePaymentManager.complete_payment")
-    def test_only_acts_on_flagged(self, mock_complete_payment):
+    def test_only_acts_on_flagged(self, mock_complete_payment, mock_fetch_stripe_payment_method):
         self._create_contributions(flagged=False)
         mock_complete_payment.assert_not_called()
 

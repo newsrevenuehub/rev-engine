@@ -33,6 +33,7 @@ export const REVENUE_PROGRAMS = 'revenue-programs/';
 
 // Contributions
 export const CONTRIBUTIONS = 'contributions/';
+export const EMAIL_CONTRIBUTIONS = 'email-contributions/';
 export const PROCESS_FLAGGED = 'process-flagged/';
 export const SUBSCRIPTIONS = 'subscriptions/';
 

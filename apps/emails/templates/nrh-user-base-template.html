@@ -1,0 +1,231 @@
+<!DOCTYPE HTML
+  PUBLIC "-//W3C//DTD XHTML 1.0 Transitional //EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml" xmlns:v="urn:schemas-microsoft-com:vml"
+  xmlns:o="urn:schemas-microsoft-com:office:office">
+
+<head>
+  <meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="x-apple-disable-message-reformatting">
+  <title></title>
+
+  <style type="text/css">
+    body {
+      margin: 0;
+      padding: 0;
+    }
+
+    table,
+    tr,
+    td {
+      vertical-align: top;
+      border-collapse: collapse;
+    }
+
+    p {
+      margin: 0;
+    }
+
+    .u-row-container {
+      max-width: 600px;
+      padding-left: 0px;
+      padding-right: 0px;
+      margin: auto;
+      background-color: #F1F1F1;
+    }
+
+    .inner-center {
+      margin-left: 75px;
+      margin-right: 75px;
+    }
+
+    .header-logo {
+      height: 65px;
+      margin: 20px 20px 45px;
+    }
+
+    .content-container {
+      max-width: 450px;
+      margin: auto;
+      box-sizing: border-box;
+      border: 1px solid #C4C4C4;
+      background-color: #ffffff;
+      border-radius: 10px;
+      padding: 28px 38px;
+      margin-bottom: 45px;
+    }
+
+    .content-header {
+      font-family: Roboto, sans-serif;
+      font-size: 30px;
+      font-weight: 700;
+      color: #25192B;
+      margin-bottom: 25px;
+    }
+
+    .content-subheader {
+      font-family: Roboto, sans-serif;
+      font-size: 18px;
+      font-weight: 300;
+      color: #282828;
+      margin-top: -10px;
+      margin-bottom: 20px;
+    }
+
+    .content-body {
+      font-family: Roboto, sans-serif;
+      font-size: 16px;
+      font-weight: 400;
+      color: #282828;
+    }
+
+    .spacing-top {
+      margin-top: 25px;
+    }
+
+    .disclaimer {
+      font-family: Roboto, sans-serif;
+      font-size: 16px;
+      font-weight: 400;
+      color: #707070;
+    }
+
+    .links {
+      font-family: Roboto, sans-serif;
+      text-align: center;
+      color: #C4C4C4;
+      font-weight: 600;
+      font-size: 18px;
+      margin-top: 115px;
+      margin-bottom: 6px;
+    }
+
+    .link {
+      font-family: Roboto, sans-serif;
+      text-decoration: none;
+      color: #0052CC;
+      font-weight: 500;
+      font-size: 14px;
+      margin: 0 10px;
+      cursor: pointer;
+    }
+
+    .button-wrapper {
+      margin-top: 48px;
+      margin-bottom: 20px;
+    }
+
+    .button {
+      font-family: Roboto, sans-serif;
+      color: #FFFFFF !important;
+      background-color: #523A5E;
+      text-transform: uppercase;
+      text-decoration: none;
+      border-radius: 6px;
+      margin-top: 48px;
+      padding: 16px 80px;
+      font-weight: 600;
+      font-size: 14px;
+      line-height: 16px;
+    }
+
+    @media (max-width: 570px) {
+      .inner-center {
+        margin-left: 24px;
+        margin-right: 24px;
+      }
+
+      .content-container {
+        margin-bottom: 60px;
+        padding: 16px;
+      }
+
+      .button {
+        padding: 16px;
+      }
+    }
+  </style>
+
+  {% block custom_style %}
+  {% endblock custom_style %}
+
+  <!--[if !mso]><!-->
+  <link href="https://fonts.googleapis.com/css?family=Roboto:300,400,500,600,700&display=swap" rel="stylesheet"
+    type="text/css">
+  <!--<![endif]-->
+
+</head>
+
+<body class="clean-body"
+  style="margin: 0;padding: 0;-webkit-text-size-adjust: 100%;background-color: #e0e5eb;color: #000000">
+  <table
+    style="border-collapse: collapse;table-layout: fixed;border-spacing: 0;mso-table-lspace: 0pt;mso-table-rspace: 0pt;vertical-align: top;min-width: 320px;Margin: 0 auto;background-color: #e0e5eb;width:100%"
+    cellpadding="0" cellspacing="0">
+    <tbody>
+      <tr style="vertical-align: top">
+        <td style="word-break: break-word;border-collapse: collapse !important;vertical-align: top">
+          <div class="u-row-container">
+            <table width="100%" cellpadding="0" cellspacing="0" border="0">
+              <img class="header-logo" src="{{ logo_url }}" alt="NRE logo" />
+            </table>
+          </div>
+          <div class="u-row-container">
+            <table role="presentation" cellpadding="0" cellspacing="0" width="100%" border="0">
+              <tbody>
+                <tr>
+                  <td>
+                    <div>
+                      <div class="content-container">
+                        {% block content %}
+                        {% endblock content %}
+                      </div>
+                    </div>
+                  </td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+          <div class="u-row-container">
+            <table width="100%" cellpadding="0" cellspacing="0" border="0">
+              <tr>
+                <td style="padding-right: 0px;padding-left: 0px;" align="left">
+                  <p class="disclaimer inner-center">
+                    If you received this in error, please ignore this email.
+                  </p>
+                </td>
+              </tr>
+              <tr>
+                <td style="padding-right: 0px;padding-left: 0px;" align="left">
+                  <p class="links inner-center">
+                    <a class="link" href="https://fundjournalism.org/terms-of-service/" target="_blank" rel="noopener noreferrer">
+                      Terms & Conditions
+                    </a>|<a class="link" href="https://fundjournalism.org/" target="_blank" rel="noopener noreferrer">
+                      Fundjournalism.org
+                    </a>
+                  </p>
+                </td>
+              </tr>
+            </table>
+          </div>
+          <div class="u-row-container">
+            <table role="presentation" cellpadding="0" cellspacing="0" width="100%" border="0">
+              <tbody>
+                <tr>
+                  <td style="overflow-wrap:break-word;word-break:break-word;padding:10px 10px 15px;" align="left">
+                    <div style="color: #7e8c8d; line-height: 140%; text-align: center; word-wrap: break-word;">
+                      <p style="font-size: 14px; line-height: 140%; font-family: Roboto, sans-serif;">
+                        © {% now "Y" %} News Revenue Hub
+                      </p>
+                    </div>
+                  </td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+        </td>
+      </tr>
+    </tbody>
+  </table>
+</body>
+
+</html>

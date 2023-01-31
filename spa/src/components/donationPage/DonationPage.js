@@ -30,6 +30,7 @@ import { AUTHORIZE_STRIPE_PAYMENT_ROUTE } from 'ajax/endpoints';
 import { serializeData } from 'components/paymentProviders/stripe/stripeFns';
 import calculateStripeFee from 'utilities/calculateStripeFee';
 import { CONTRIBUTION_INTERVALS } from 'constants/contributionIntervals';
+import { GENERIC_ERROR } from 'constants/textConstants';
 
 function authorizePayment(paymentData, csrftoken) {
   // we manually set the X-CSRFTOKEN value in header here. This is an unauthed endpoint
@@ -80,6 +81,7 @@ function DonationPage({ page, live = false }) {
   const [contributorEmail, setContributorEmail] = useState();
   const [mailingCountry, setMailingCountry] = useState();
   const [stripeBillingDetails, setStripeBillingDetails] = useState();
+  const [contributionUuid, setContributionUuid] = useState();
 
   const [cookies] = useCookies(['csrftoken']);
 
@@ -206,10 +208,11 @@ function DonationPage({ page, live = false }) {
       }
     });
     createPayment(data, {
-      onSuccess: ({ provider_client_secret_id, email_hash }) => {
-        setStripeClientSecret(provider_client_secret_id);
+      onSuccess: ({ client_secret, email_hash, uuid }) => {
+        setStripeClientSecret(client_secret);
         setEmailHash(email_hash);
         setDisplayStripePaymentForm(true);
+        setContributionUuid(uuid);
       },
       onError: ({ name, message, response }) => {
         // this would happen on client side if request couldn't be made. See above.
@@ -227,6 +230,11 @@ function DonationPage({ page, live = false }) {
       }
     });
   };
+
+  function handleStripePaymentWrapperError() {
+    setDisplayStripePaymentForm(false);
+    alert.error(GENERIC_ERROR);
+  }
 
   return (
     <DonationPageContext.Provider
@@ -251,8 +259,9 @@ function DonationPage({ page, live = false }) {
         stripeClientSecret,
         mailingCountry,
         setMailingCountry,
+        contributionUuid,
         cancelPayment: () => {
-          deletePayment(stripeClientSecret);
+          deletePayment(contributionUuid);
           setDisplayStripePaymentForm(false);
         }
       }}
@@ -296,7 +305,7 @@ function DonationPage({ page, live = false }) {
 
                 {displayStripePaymentForm && (
                   <Modal isOpen={displayStripePaymentForm}>
-                    <StripePaymentWrapper />
+                    <StripePaymentWrapper onError={handleStripePaymentWrapperError} />
                   </Modal>
                 )}
               </S.DonationContent>

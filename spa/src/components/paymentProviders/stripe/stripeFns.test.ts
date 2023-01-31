@@ -21,7 +21,7 @@ const fromPageSlugParams = {
   pageSlug: 'my-page',
   rpSlug: 'my-rp',
   pathName: '/my-page',
-  stripeClientSecret: 'shhhhh'
+  contributionUuid: 'secret-secret'
 };
 
 const fromDefaultPageParams = {
@@ -34,7 +34,7 @@ const fromDefaultPageParams = {
   pageSlug: 'my-page',
   rpSlug: 'my-rp',
   pathName: '/',
-  stripeClientSecret: 'shhhhh'
+  contributionUuid: 'secret-secret'
 };
 
 describe('getTotalAmount', () => {
@@ -149,7 +149,7 @@ describe('getPaymentSuccessUrl', () => {
     expect(search.get('pageSlug')).toEqual(args.pageSlug);
     expect(search.get('rpSlug')).toEqual(args.rpSlug);
     expect(search.get('fromPath')).toEqual(args.pathName === '/' ? '' : args.pathName);
-    expect(search.get('payment_intent_client_secret')).toEqual(args.stripeClientSecret);
+    expect(search.get('contributionUuid')).toBe(args.contributionUuid);
   });
   // this test is here syntax in original implementation was flawed and caused `amount: 1` to
   // raise the missing args error.

@@ -68,6 +68,15 @@ export const FieldRow = styled.div`
 
   @media (${(props) => props.theme.breakpoints.tabletLandscapeDown}) {
     flex-direction: column;
+    & > :not(:last-child) {
+      margin-right: unset;
+    }
+
+    ${(props) =>
+      props.$gap &&
+      `
+      gap: 16px;
+    `}
   }
 `;
 
@@ -149,7 +158,6 @@ export const SliderBox = styled.div`
   display: flex;
   align-items: center;
   padding: 0 2rem;
-  border-radius: ${(props) => props.radius}px;
 `;
 
 export const Slider = styled(MaterialSlider)`
@@ -211,5 +219,17 @@ export const Buttons = styled.div`
 
   & button:not(:last-child) {
     margin-right: 2rem;
+  }
+`;
+
+export const ColorsWrapper = styled.div`
+  display: flex;
+  gap: 42px;
+  align-items: center;
+  justify-content: space-between;
+
+  @media (${(props) => props.theme.breakpoints.tabletLandscapeDown}) {
+    align-items: flex-start;
+    flex-direction: column;
   }
 `;

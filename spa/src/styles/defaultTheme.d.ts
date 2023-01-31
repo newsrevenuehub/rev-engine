@@ -20,6 +20,7 @@ declare module 'styled-components' {
       topbarBackground: '#523A5E';
       navSelectedBackground: '#eaf37a';
       navSectionLabelColor: '#ddcbe7';
+      navOrgIcon: '#AC256C';
       black: '#080708';
       account: {
         purple: ['#523a5e', '#25192b', '#19111e'];
@@ -44,6 +45,7 @@ declare module 'styled-components' {
       muiGrey: {
         50: '#F9F9F9';
         100: '#F1F1F1';
+        200: '#e3e3e3';
         300: '#D9D9D9';
         400: '#c4c4c4';
         500: '#969696';
@@ -110,6 +112,8 @@ declare module 'styled-components' {
       lg: '6px';
       xl: '10px';
       '2xl': '12px';
+      14: '14px';
+      19: '19px';
     };
     radii: ['3px', '6px', '12px'];
     shadows: ['0 1px 2px 0 rgb(0 0 0 / 15%)', '0 10px 25px 0 rgb(0 0 0 / 6%)', '0 12px 25px 0 rgb(0 0 0 / 10%)'];

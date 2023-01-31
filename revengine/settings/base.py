@@ -93,7 +93,6 @@ INSTALLED_APPS = [
     "apps.pages",
     "apps.emails",
     "apps.contributions",
-    "apps.slack",
     "apps.element_media",
     "apps.public",
     "apps.config",
@@ -283,6 +282,7 @@ SENTRY_ENABLE_FRONTEND = os.getenv("SENTRY_ENABLE_FRONTEND", "false").lower() ==
 SENTRY_DSN_FRONTEND = os.getenv("SENTRY_DSN_FRONTEND")
 SENTRY_ENABLE_BACKEND = os.getenv("SENTRY_ENABLE_BACKEND", "false").lower() == "true"
 SENTRY_DSN_BACKEND = os.getenv("SENTRY_DSN_BACKEND")
+SENTRY_ENABLE_PII = os.getenv("SENTRY_ENABLE_PII", "true").lower() == "true"
 
 
 ### REST_FRAMEWORK Settings
@@ -344,6 +344,7 @@ CSP_STYLE_SRC = (
 CSP_IMG_SRC = (
     "*",
     "'self'",
+    "blob:",
     "data:",
 )
 CSP_FONT_SRC = (
@@ -375,6 +376,7 @@ CSP_OBJECT_SRC = ("'none'",)
 SIMPLE_JWT = {
     "ACCESS_TOKEN_LIFETIME": timedelta(hours=float(os.getenv("ACCESS_TOKEN_LIFETIME_HOURS", 12))),
     "REFRESH_TOKEN_LIFETIME": timedelta(days=2),
+    "UPDATE_LAST_LOGIN": os.getenv("UPDATE_LAST_LOGIN", True),
 }
 
 SECURE_SSL_REDIRECT = os.getenv("SECURE_SSL_REDIRECT", "true").lower() == "true"
@@ -408,6 +410,8 @@ STRIPE_WEBHOOK_EVENTS = [
     "payment_intent.succeeded",
     "customer.subscription.updated",
     "customer.subscription.deleted",
+    "payment_method.attached",
+    "invoice.upcoming",
 ]
 
 ### django-healthcheck Settings
@@ -446,7 +450,7 @@ METADATA_SCHEMA_VERSION = os.getenv("METADATA_SCHEMA_VERSION", "1.1")
 # This is the interval at which flagged payments will be automatically captured.
 # NOTE: Stripe automatically REJECTS flagged payments every 7 days. Make sure
 # this delta is less than 6.5 days to be safe.
-FLAGGED_PAYMENT_AUTO_ACCEPT_DELTA = timedelta(days=3)
+FLAGGED_PAYMENT_AUTO_ACCEPT_DELTA = 3
 
 ## Contributor page / auth Settings.
 # Magic Link URL
@@ -505,8 +509,11 @@ DJANGO_REST_MULTITOKENAUTH_RESET_TOKEN_EXPIRY_TIME = 24
 BAD_ACTOR_API_URL = os.getenv("BAD_ACTOR_API_URL", "https://bad-actor-test.fundjournalism.org/v1/bad_actor/")
 # NOTE: We've been given keys with some characters that might need escaping as environment variables, eg "$"
 BAD_ACTOR_API_KEY = os.getenv("BAD_ACTOR_API_KEY", "testing_123")
-BAD_ACTOR_FAILURE_THRESHOLD = 5
-BAD_ACTOR_FAILURE_THRESHOLD_FOR_ORG_USERS = 5
+BAD_ACTOR_BAD_SCORE = 4
+BAD_ACTOR_SUPERBAD_SCORE = 5
+BAD_ACTOR_FLAG_SCORE = BAD_ACTOR_BAD_SCORE
+BAD_ACTOR_REJECT_SCORE = BAD_ACTOR_SUPERBAD_SCORE
+BAD_ACTOR_REJECT_SCORE_FOR_ORG_USERS = BAD_ACTOR_SUPERBAD_SCORE
 
 
 ### Front End Environment Variables

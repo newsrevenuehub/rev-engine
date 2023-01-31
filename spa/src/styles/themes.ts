@@ -17,6 +17,7 @@ export const revEngineTheme: DefaultTheme = {
     topbarBackground: '#523A5E',
     navSelectedBackground: '#eaf37a',
     navSectionLabelColor: '#ddcbe7',
+    navOrgIcon: '#AC256C',
 
     black: '#080708',
 
@@ -49,6 +50,7 @@ export const revEngineTheme: DefaultTheme = {
     muiGrey: {
       50: '#F9F9F9',
       100: '#F1F1F1',
+      200: '#e3e3e3',
       300: '#D9D9D9',
       400: '#c4c4c4',
       500: '#969696',
@@ -124,7 +126,9 @@ export const revEngineTheme: DefaultTheme = {
     md: '4px',
     lg: '6px',
     xl: '10px',
-    '2xl': '12px'
+    '2xl': '12px',
+    14: '14px',
+    19: '19px'
   },
 
   radii: ['3px', '6px', '12px'],

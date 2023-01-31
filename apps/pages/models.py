@@ -21,7 +21,7 @@ def _get_screenshot_upload_path(instance, filename):
     return f"{instance.organization.name}/page_screenshots/{instance.name}_latest.png"
 
 
-class PageManager(models.Manager):
+class PagesAppManager(models.Manager):
     def filtered_by_role_assignment(self, role_assignment: RoleAssignment) -> models.QuerySet:
         match role_assignment.role_type:
             case Roles.HUB_ADMIN:
@@ -71,7 +71,7 @@ class DonationPage(IndexedTimeStampedModel):
     published_date = models.DateTimeField(null=True, blank=True)
     page_screenshot = SorlImageField(null=True, blank=True, upload_to=_get_screenshot_upload_path)
 
-    objects = PageManager()
+    objects = PagesAppManager()
 
     class Meta:
         unique_together = (
@@ -114,19 +114,6 @@ class DonationPage(IndexedTimeStampedModel):
         super().save(*args, **kwargs)
 
 
-class StyleManager(models.Manager):
-    def filtered_by_role_assignment(self, role_assignment: RoleAssignment) -> models.QuerySet:
-        match role_assignment.role_type:
-            case Roles.HUB_ADMIN:
-                return self.all()
-            case Roles.ORG_ADMIN:
-                return self.filter(revenue_program__organization=role_assignment.organization)
-            case Roles.RP_ADMIN:
-                return self.filter(revenue_program__in=role_assignment.revenue_programs.all())
-            case _:
-                return self.none()
-
-
 class Style(IndexedTimeStampedModel):
     """
     Ties a set of styles to a page. Discoverable by name, belonging to a RevenueProgram.
@@ -136,7 +123,7 @@ class Style(IndexedTimeStampedModel):
     revenue_program = models.ForeignKey("organizations.RevenueProgram", on_delete=models.CASCADE)
     styles = models.JSONField(validators=[style_validator])
 
-    objects = StyleManager()
+    objects = PagesAppManager()
 
     class Meta:
         unique_together = (

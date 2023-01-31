@@ -49,7 +49,10 @@ class ValidateFkReferenceOwnership:
             )
             raise serializers.ValidationError(f"{self.__class__} initialized with function with unexpected signature")
         if not getattr(self.model.objects, "filtered_by_role_assignment", None):
-            # logger.warning(f"")
+            logger.warning(
+                "`ValidateFKReferenceOwnership` initialized with a model (%s) that does not implement `filtered_by_role_assignment`, which is required.",
+                self.model.__name__,
+            )
             raise serializers.ValidationError(
                 f"{self.__class__} initialized with model that is not properly configured"
             )

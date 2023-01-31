@@ -1,4 +1,5 @@
 import time
+from datetime import timedelta
 
 from django.conf import settings
 from django.utils import timezone
@@ -43,15 +44,11 @@ def ping_healthchecks(check_name, healthcheck_url):
 @shared_task
 def auto_accept_flagged_contributions():
     logger.info('Starting task, "auto_accept_flagged_contributions"')
-    contributions = Contribution.objects.filter(status=ContributionStatus.FLAGGED)
-    logger.info("Found %s flagged contributions", len(contributions))
-
     successful_captures = 0
     failed_captures = 0
-
     now = timezone.now()
     eligible_flagged_contributions = Contribution.objects.filter(
-        status=ContributionStatus.FLAGGED, flagged_date__lte=now - settings.FLAGGED_PAYMENT_AUTO_ACCEPT_DELTA
+        status=ContributionStatus.FLAGGED, flagged_date__lte=now - timedelta(settings.FLAGGED_PAYMENT_AUTO_ACCEPT_DELTA)
     )
     logger.info("Found %s flagged contributions past auto-accept date", len(eligible_flagged_contributions))
 

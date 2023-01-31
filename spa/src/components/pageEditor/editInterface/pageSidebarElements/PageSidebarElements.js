@@ -1,8 +1,9 @@
+import { ElementContainer, Root } from './PageSidebarElements.styled';
+
 // Context
 import { useEditInterfaceContext } from 'components/pageEditor/editInterface/EditInterface';
 
 // Children
-import ScrollBox from 'elements/ScrollBox';
 import DraggableList from 'elements/draggable/DraggableList';
 import EditTabHeader from '../EditTabHeader';
 
@@ -10,23 +11,23 @@ function PageSidebarElements({ openAddElementModal, goToProperties, handleRemove
   const { sidebarElements, setSidebarElements } = useEditInterfaceContext();
 
   return (
-    <div data-testid="page-sidebar">
+    <Root data-testid="page-sidebar">
       <EditTabHeader
         addButtonLabel="Add Block"
         onAdd={openAddElementModal}
         prompt="Add, edit, and rearrange sidebar sections."
       />
       {sidebarElements && sidebarElements?.length > 0 && (
-        <ScrollBox>
+        <ElementContainer>
           <DraggableList
             elements={sidebarElements}
             setElements={setSidebarElements}
             handleItemEdit={(element) => goToProperties(element, 'sidebar')}
             handleItemDelete={(element) => handleRemoveElement(element, 'sidebar')}
           />
-        </ScrollBox>
+        </ElementContainer>
       )}
-    </div>
+    </Root>
   );
 }
 

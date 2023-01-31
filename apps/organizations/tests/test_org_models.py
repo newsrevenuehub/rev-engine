@@ -67,7 +67,7 @@ class TestOrganizationModel(TestCase):
         self.assertFalse(RoleAssignment.objects.filter(id=ra_id).exists())
 
 
-class RevenueProgramTest:
+class TestRevenueProgram:
     def setUp(self):
         self.stripe_account_id = "my_stripe_account_id"
         self.organization = factories.OrganizationFactory()

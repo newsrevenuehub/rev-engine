@@ -1,12 +1,5 @@
 FROM google/cloud-sdk:414.0.0-alpine
 
-RUN apk --no-cache update && \
-    apk --no-cache add openjdk8-jre && \
-    rm -rf /var/cache/apk/*
-
-RUN gcloud components install --quiet beta pubsub-emulator && \
-    gcloud components update
-
 EXPOSE 8085
 
 VOLUME /data

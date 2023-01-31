@@ -51,8 +51,8 @@ class OrganizationViewSet(mixins.ListModelMixin, mixins.RetrieveModelMixin, view
             return Organization.objects.all()
         elif ra := self.request.user.get_role_assignment():
             return Organization.objects.filtered_by_role_assignment(ra)
-        # given permission clases, this may be unreachable, but logically gaurantees this returns a queryset
-        else:  # pragma: no cov
+        # given permission clases, this may be unreachable, but logically guarantees this returns a queryset
+        else:  # pragma: no cover
             return Organization.objects.none()
 
     def patch(self, request, pk):
@@ -81,7 +81,7 @@ class RevenueProgramViewSet(viewsets.ModelViewSet):
     pagination_class = None
     http_method_names = ["get", "patch"]
 
-    def get_queryset(self):
+    def get_queryset(self) -> models.QuerySet:
         if self.request.user.is_superuser:
             return self.model.objects.all()
         # role assignment is guaranteed to be here and have an expected role type via permission_classes above

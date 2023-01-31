@@ -251,9 +251,9 @@ class DonationPageFullDetailSerializer(serializers.ModelSerializer):
         rp = self.instance.revenue_program if self.instance else data["revenue_program"]
         if any(x.get("type", None) is None for x in data.get("elements", [])):
             raise serializers.ValidationError({"page_elements": "Something is wrong with the provided page elements"})
-        if prohibited := [
+        if prohibited := set(
             x["type"] for x in data.get("elements", []) if x["type"] not in rp.organization.plan.page_elements
-        ]:
+        ).difference(set(rp.organization.plan.page_elements)):
             raise serializers.ValidationError(
                 {"page_elements": f"You're not allowed to use the following elements: {', '.join(prohibited)}"}
             )

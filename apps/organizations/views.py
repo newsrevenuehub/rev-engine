@@ -22,6 +22,7 @@ from apps.api.permissions import (
     IsPatchRequest,
     IsRpAdmin,
 )
+from apps.common.views import FilterForSuperUserOrRoleAssignmentUserMixin
 from apps.organizations import serializers
 from apps.organizations.models import Organization, RevenueProgram
 from apps.public.permissions import IsActiveSuperUser
@@ -32,7 +33,12 @@ user_model = get_user_model()
 logger = logging.getLogger(f"{settings.DEFAULT_LOGGER}.{__name__}")
 
 
-class OrganizationViewSet(mixins.ListModelMixin, mixins.RetrieveModelMixin, viewsets.GenericViewSet):
+class OrganizationViewSet(
+    mixins.ListModelMixin,
+    mixins.RetrieveModelMixin,
+    viewsets.GenericViewSet,
+    FilterForSuperUserOrRoleAssignmentUserMixin,
+):
     """Organizations exposed through API
 
     Only superusers and users with roles can access. Queryset is filtered by user.
@@ -47,13 +53,7 @@ class OrganizationViewSet(mixins.ListModelMixin, mixins.RetrieveModelMixin, view
     pagination_class = None
 
     def get_queryset(self) -> models.QuerySet:
-        if self.request.user.is_superuser:
-            return Organization.objects.all()
-        elif ra := self.request.user.get_role_assignment():
-            return Organization.objects.filtered_by_role_assignment(ra)
-        # given permission clases, this may be unreachable, but logically guarantees this returns a queryset
-        else:  # pragma: no cover
-            return Organization.objects.none()
+        return self.filter_queryset_for_superuser_or_ra()
 
     def patch(self, request, pk):
         organization = get_object_or_404(Organization, pk=pk)
@@ -69,7 +69,7 @@ class OrganizationViewSet(mixins.ListModelMixin, mixins.RetrieveModelMixin, view
         return Response(serializers.OrganizationSerializer(organization).data)
 
 
-class RevenueProgramViewSet(viewsets.ModelViewSet):
+class RevenueProgramViewSet(FilterForSuperUserOrRoleAssignmentUserMixin, viewsets.ModelViewSet):
     model = RevenueProgram
     permission_classes = [
         IsAuthenticated,
@@ -82,10 +82,7 @@ class RevenueProgramViewSet(viewsets.ModelViewSet):
     http_method_names = ["get", "patch"]
 
     def get_queryset(self) -> models.QuerySet:
-        if self.request.user.is_superuser:
-            return self.model.objects.all()
-        # role assignment is guaranteed to be here and have an expected role type via permission_classes above
-        return self.model.objects.filtered_by_role_assignment(self.request.user.get_role_assignment())
+        return self.filter_queryset_for_superuser_or_ra()
 
 
 def get_stripe_account_link_return_url(request):

@@ -13,6 +13,7 @@ from rest_framework.response import Response
 from reversion.views import RevisionMixin
 
 from apps.api.permissions import HasRoleAssignment
+from apps.common.views import FilterForSuperUserOrRoleAssignmentUserMixin
 from apps.element_media.models import MediaImage
 from apps.organizations.models import RevenueProgram
 from apps.pages import serializers
@@ -107,7 +108,7 @@ class PageFullDetailHelper:
             raise PageDetailError("RevenueProgram does not have a fully verified payment provider")
 
 
-class PageViewSet(RevisionMixin, viewsets.ModelViewSet):
+class PageViewSet(FilterForSuperUserOrRoleAssignmentUserMixin, RevisionMixin, viewsets.ModelViewSet):
     """Contribution pages exposed through API
 
     Only superusers and users with role assignments are meant to have access. Results of lists are filtered
@@ -133,10 +134,7 @@ class PageViewSet(RevisionMixin, viewsets.ModelViewSet):
     http_method_names = ["get", "patch", "delete", "post"]
 
     def get_queryset(self):
-        if self.request.user.is_superuser:
-            return self.model.objects.all()
-        else:
-            return self.model.objects.filtered_by_role_assignment(self.request.user.roleassignment)
+        return self.filter_queryset_for_superuser_or_ra()
 
     def get_serializer_class(self):
         if self.action in ("partial_update", "create", "retrieve"):
@@ -219,7 +217,7 @@ class PageViewSet(RevisionMixin, viewsets.ModelViewSet):
         return Response(status=status.HTTP_204_NO_CONTENT)
 
 
-class StyleViewSet(RevisionMixin, viewsets.ModelViewSet):
+class StyleViewSet(FilterForSuperUserOrRoleAssignmentUserMixin, RevisionMixin, viewsets.ModelViewSet):
     """Contribution Page Template styles exposed through API
 
     Only superusers and users with role assignments are meant to have access. Results of lists are filtered
@@ -238,10 +236,7 @@ class StyleViewSet(RevisionMixin, viewsets.ModelViewSet):
     http_method_names = ["get", "post", "patch", "delete"]
 
     def get_queryset(self):
-        if self.request.user.is_superuser:
-            return self.model.objects.all()
-        else:
-            return self.model.objects.filtered_by_role_assignment(self.request.user.roleassignment)
+        return self.filter_queryset_for_superuser_or_ra()
 
 
 class FontViewSet(viewsets.ReadOnlyModelViewSet):

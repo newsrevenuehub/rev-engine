@@ -97,8 +97,13 @@ class StyleListSerializer(StyleInlineSerializer):
             raise serializers.ValidationError(["This field is required."])
         return value
 
-    def validate_style_limit(self, data):
-        """Ensure that adding a style would not push parent org over its style limit"""
+    def _validate_style_limit(self, data):
+        """Ensure that adding a style would not push parent org over its style limit
+
+        NB: The `_` prefix on this method name is here to make clear that this method is not
+        automatically called as part of validating some `style_limit` field, via DRF's conventions
+        around `validate_foo` when a serializer has `.foo` attribute.
+        """
         if Style.objects.filter(
             revenue_program__organization=(org := data["revenue_program"].organization)
         ).count() + 1 > (sl := org.plan.style_limit):
@@ -108,7 +113,7 @@ class StyleListSerializer(StyleInlineSerializer):
 
     def validate(self, data):
         if self.context["request"].method == "POST":
-            self.validate_style_limit(data)
+            self._validate_style_limit(data)
         return data
 
 

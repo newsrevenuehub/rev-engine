@@ -84,9 +84,9 @@ function Styles({ setShowEditStylesModal, setStyleToEdit }) {
         />
         {/* TODO: [DEV-2559] Make styles be pre-selected and disabled */}
         {!!styles.length &&
-          stylesFiltered.map((style) => (
+          stylesFiltered.map((style, index) => (
             <EditButton
-              key={style.id}
+              key={`${style.id}${styles.name}${index}`}
               name={style.name}
               style={style}
               type={BUTTON_TYPE.STYLE}

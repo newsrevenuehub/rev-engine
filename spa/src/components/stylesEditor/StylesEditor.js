@@ -24,6 +24,7 @@ import { useConfirmationModalContext } from 'elements/modal/GlobalConfirmationMo
 // Children
 import CircleButton from 'elements/buttons/CircleButton';
 import Select from 'elements/inputs/Select';
+import ButtonBorderPreview from 'components/common/ButtonBorderPreview';
 import ColorPickerPreview from 'components/common/ColorPickerPreview';
 
 const UNIQUE_NAME_ERROR = 'The fields name, organization must make a unique set.';
@@ -289,7 +290,7 @@ function StylesEditor({ styles, setStyles, handleKeepChanges, handleDiscardChang
           </S.FieldRow>
         </StylesFieldset>
         <StylesFieldset label="Other">
-          <S.FieldRow>
+          <S.FieldRow $gap>
             <SliderPicker
               label="Border radii"
               value={getBaseFromRadii(styles.radii)}
@@ -297,6 +298,7 @@ function StylesEditor({ styles, setStyles, handleKeepChanges, handleDiscardChang
               min={1}
               max={12}
             />
+            <ButtonBorderPreview borderRadius={getBaseFromRadii(styles.radii) * 2} />
           </S.FieldRow>
         </StylesFieldset>
       </S.StylesForm>
@@ -378,7 +380,7 @@ function SliderPicker({ label, value, onChange, ...props }) {
   return (
     <S.SliderWrapper>
       {label && <Label>{label}</Label>}
-      <S.SliderBox radius={value}>
+      <S.SliderBox>
         <S.Slider value={value} onChange={onChange} {...props} />
       </S.SliderBox>
     </S.SliderWrapper>

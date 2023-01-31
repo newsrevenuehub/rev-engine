@@ -1,6 +1,10 @@
 import { FormEvent } from 'react';
 
-export const FISCALLY_SPONSORED = 'fiscally-sponsored';
+export const TAX_STATUS = {
+  NONPROFIT: 'nonprofit',
+  FOR_PROFIT: 'for-profit',
+  FISCALLY_SPONSORED: 'fiscally-sponsored'
+};
 
 const mockFormData = {
   firstName: 'mock-first-name',
@@ -29,7 +33,7 @@ const ProfileForm = ({ disabled, onProfileSubmit, error }: ProfileFormType) => {
   }
 
   function handleSubmitFiscalSponsor() {
-    onProfileSubmit({ ...mockFormData, companyTaxStatus: 'fiscally-sponsored' });
+    onProfileSubmit({ ...mockFormData, companyTaxStatus: TAX_STATUS.FISCALLY_SPONSORED });
   }
 
   return (

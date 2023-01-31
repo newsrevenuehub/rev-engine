@@ -13,7 +13,11 @@ import {
 } from './ProfileForm.styled';
 import { Message, MessageSpacer } from 'components/account/Account.styled';
 
-export const FISCALLY_SPONSORED = 'fiscally-sponsored';
+export const TAX_STATUS = {
+  NONPROFIT: 'nonprofit',
+  FOR_PROFIT: 'for-profit',
+  FISCALLY_SPONSORED: 'fiscally-sponsored'
+};
 
 export const defaultValues = {
   companyName: '',
@@ -50,7 +54,7 @@ function ProfileForm({ disabled: disabledProp, onProfileSubmit, error }: Profile
     !lastName ||
     !companyName ||
     companyTaxStatus === '.' ||
-    (companyTaxStatus === FISCALLY_SPONSORED && !fiscalSponsorName);
+    (companyTaxStatus === TAX_STATUS.FISCALLY_SPONSORED && !fiscalSponsorName);
 
   const onSubmit = (formData: ProfileFormFields) => {
     onProfileSubmit(formData);
@@ -106,9 +110,9 @@ function ProfileForm({ disabled: disabledProp, onProfileSubmit, error }: Profile
                 <MenuItem disabled value="." style={{ display: 'none' }}>
                   Select your status
                 </MenuItem>
-                <MenuItem value="nonprofit">Nonprofit</MenuItem>
-                <MenuItem value="for-profit">For-profit</MenuItem>
-                <MenuItem value={FISCALLY_SPONSORED}>Fiscally sponsored</MenuItem>
+                <MenuItem value={TAX_STATUS.NONPROFIT}>Nonprofit</MenuItem>
+                <MenuItem value={TAX_STATUS.FOR_PROFIT}>For-profit</MenuItem>
+                <MenuItem value={TAX_STATUS.FISCALLY_SPONSORED}>Fiscally sponsored</MenuItem>
               </TextField>
             )}
           />
@@ -146,7 +150,7 @@ function ProfileForm({ disabled: disabledProp, onProfileSubmit, error }: Profile
             title="If your organization is fiscally sponsored, enter the fiscal sponsor’s EIN."
           />
         </TooltipContainer>
-        {companyTaxStatus === FISCALLY_SPONSORED && (
+        {companyTaxStatus === TAX_STATUS.FISCALLY_SPONSORED && (
           <FillRow>
             <Controller
               name="fiscalSponsorName"

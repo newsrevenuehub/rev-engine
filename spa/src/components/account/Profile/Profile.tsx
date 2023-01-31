@@ -15,7 +15,7 @@ import useModal from 'hooks/useModal';
 // Analytics
 import { useConfigureAnalytics } from 'components/analytics';
 
-import ProfileForm, { ProfileFormFields, FISCALLY_SPONSORED } from './ProfileForm';
+import ProfileForm, { ProfileFormFields, TAX_STATUS } from './ProfileForm';
 import { OffscreenText, StepperDots } from 'components/base';
 
 function Profile() {
@@ -39,13 +39,15 @@ function Profile() {
         last_name: formData.lastName,
         organization_name: formData.companyName,
         organization_tax_status:
-          formData.companyTaxStatus === FISCALLY_SPONSORED ? 'nonprofit' : formData.companyTaxStatus,
+          formData.companyTaxStatus === TAX_STATUS.FISCALLY_SPONSORED
+            ? TAX_STATUS.NONPROFIT
+            : formData.companyTaxStatus,
         // Don't send job_title or organization_tax_id at all if the user omitted it.
         job_title: formData.jobTitle.trim() !== '' ? formData.jobTitle : undefined,
         organization_tax_id: formData.taxId.replace('-', '').replace('_', '') || undefined,
         // Only send sponsor name if tax status = FISCALLY_SPONSORED
         fiscal_sponsor_name:
-          formData.companyTaxStatus === FISCALLY_SPONSORED && formData.fiscalSponsorName.trim() !== ''
+          formData.companyTaxStatus === TAX_STATUS.FISCALLY_SPONSORED && formData.fiscalSponsorName.trim() !== ''
             ? formData.fiscalSponsorName
             : undefined
       });

@@ -1,5 +1,6 @@
 import datetime
 import json
+import os
 import re
 import time
 from unittest.mock import patch
@@ -467,9 +468,7 @@ class TestUserViewSet(APITestCase):
 
     @patch(
         "apps.users.views.make_bad_actor_request",
-        return_value=MockResponseObject(
-            json_data={"overall_judgment": settings.BAD_ACTOR_FAILURE_THRESHOLD_FOR_ORG_USERS}
-        ),
+        return_value=MockResponseObject(json_data={"overall_judgment": settings.BAD_ACTOR_REJECT_SCORE_FOR_ORG_USERS}),
     )
     def test_create_when_bad_actor_threshold_met(self, mock_bad_actor_request):
         response = self.client.post(self.url, data=self.create_data)
@@ -811,7 +810,9 @@ class TestUserViewSet(APITestCase):
         email = mail.outbox[0]
         assert user.email in email.to
         assert not any(x in email.body for x in "{}")
-        assert not any(x in email.alternatives[0][0] for x in "{}")
+        # Email includes logo url
+        logo_url = BeautifulSoup(email.alternatives[0][0], "html.parser").img.attrs["src"]
+        assert logo_url == os.path.join(settings.SITE_URL, "static", "nre_logo_black_yellow.png")
         # Email includes valid link, Bug DEV-2340.
         verification_link = BeautifulSoup(email.alternatives[0][0], "html.parser").a.attrs["href"]
         parsed = urlparse(verification_link)

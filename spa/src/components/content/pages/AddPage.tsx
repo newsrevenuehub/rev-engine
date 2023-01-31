@@ -25,19 +25,22 @@ function AddPage({ pagesByRevenueProgram, disabled }: AddPageType) {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string>();
 
-  const getTemporaryPageName = useCallback((pages: typeof pagesByRevenueProgram[number]['pages']) => {
-    const pagesSize = (pages?.length ?? 0) + 1;
-    const slugs = pages ? pages.map(({ slug }) => slug) : [];
-    let number = pagesSize;
-    let tempName = `Page ${number}`;
-    let tempSlug = slugify(tempName);
-    while (slugs.includes(tempSlug)) {
-      number += 1;
-      tempName = `Page ${number}`;
-      tempSlug = slugify(tempName);
-    }
-    return { tempName, tempSlug };
-  }, []);
+  const getTemporaryPageName = useCallback(
+    (pages: typeof pagesByRevenueProgram[number]['pages'], revenueProgramName: string) => {
+      const pagesSize = (pages?.length ?? 0) + 1;
+      const slugs = pages ? pages.map(({ slug }) => slug) : [];
+      let number = pagesSize;
+      let tempName = `${revenueProgramName} Page ${number}`;
+      let tempSlug = slugify(tempName);
+      while (slugs.includes(tempSlug)) {
+        number += 1;
+        tempName = `${revenueProgramName} Page ${number}`;
+        tempSlug = slugify(tempName);
+      }
+      return { tempName, tempSlug };
+    },
+    []
+  );
 
   const handleSaveFailure = useCallback(
     (e) => {
@@ -56,10 +59,14 @@ function AddPage({ pagesByRevenueProgram, disabled }: AddPageType) {
   );
 
   const handleSave = useCallback(
-    (pagesBySelectedRp: typeof pagesByRevenueProgram[number]['pages'], revenueProgramId: string) => {
+    (
+      pagesBySelectedRp: typeof pagesByRevenueProgram[number]['pages'],
+      revenueProgramId: string,
+      revenueProgramName: string
+    ) => {
       setLoading(true);
 
-      const { tempName, tempSlug } = getTemporaryPageName(pagesBySelectedRp);
+      const { tempName, tempSlug } = getTemporaryPageName(pagesBySelectedRp, revenueProgramName);
       const formData = {
         name: tempName,
         slug: tempSlug,
@@ -89,7 +96,7 @@ function AddPage({ pagesByRevenueProgram, disabled }: AddPageType) {
 
   const checkCreatePage = useCallback(() => {
     if (user?.revenue_programs?.length === 1) {
-      handleSave(pagesByRevenueProgram[0]?.pages, user!.revenue_programs[0].id);
+      handleSave(pagesByRevenueProgram[0]?.pages, user!.revenue_programs[0].id, user!.revenue_programs[0].name);
     } else {
       handleOpen();
     }
@@ -99,7 +106,7 @@ function AddPage({ pagesByRevenueProgram, disabled }: AddPageType) {
     (revenueProgramId: string) => {
       const rp = user?.revenue_programs.find((rp) => Number(rp.id) === Number(revenueProgramId));
       const pages = pagesByRevenueProgram?.find(({ name }) => name === rp?.name)?.pages ?? [];
-      handleSave(pages, revenueProgramId);
+      handleSave(pages, revenueProgramId, rp?.name!);
     },
     [handleSave, pagesByRevenueProgram, user?.revenue_programs]
   );

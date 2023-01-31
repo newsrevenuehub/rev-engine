@@ -22,7 +22,6 @@ def _has_ensured_user_ownership_by_default(user, role_assignment):
     )
 
 
-# todo: make this more "Django-esque"
 class ValidateFkReferenceOwnership:
     """Used to validate that a requesting user owns the requested resource
 

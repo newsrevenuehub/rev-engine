@@ -76,6 +76,8 @@ class StyleListSerializer(StyleInlineSerializer):
         Data comes in as a dict with name and styles flattened. We need
         to stick styles in its own value and pull out name.
         """
+        # ensure we don't mutate passed dict
+        data = {**data}
         name = data.pop("name", self.instance.name if self.instance else None)
         revenue_program = data.pop("revenue_program", self.instance.revenue_program.pk if self.instance else None)
         synthesized = {"name": name, "revenue_program": revenue_program}

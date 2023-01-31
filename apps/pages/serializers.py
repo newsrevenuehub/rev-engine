@@ -262,7 +262,7 @@ class DonationPageFullDetailSerializer(serializers.ModelSerializer):
         """Ensure that requested sidebar elements are permitted by the organization's plan"""
         rp = self.instance.revenue_program if self.instance else data["revenue_program"]
         if prohibited := set(
-            [elem["type"] for elem in data.get("sidebar_elements", []) if elem.get("type", None)]
+            elem["type"] for elem in data.get("sidebar_elements", []) if elem.get("type", None)
         ).difference(set(rp.organization.plan.sidebar_elements)):
             raise serializers.ValidationError(
                 {"sidebar_elements": f"You're not allowed to use the following elements: {', '.join(prohibited)}"}

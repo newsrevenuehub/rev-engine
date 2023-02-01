@@ -27,15 +27,23 @@ import { Page } from 'hooks/useUser.types';
 import AddPage from './AddPage';
 
 export const pagesbyRP = (pgsRaw: Page[], qry?: string) => {
+  const removeSpacingAndPunctuationRegex = /[.,\/#!$%\^&\*;:{}=\-_`~()\s]/g;
+  const lowerCaseQry = qry?.toLowerCase().replace(removeSpacingAndPunctuationRegex, '');
   const pagesByRevProgram: { name: string; pages: Page[] }[] = [];
-  const pgs = qry
+  const pgs = lowerCaseQry
     ? pgsRaw?.filter((page) => {
         return (
           page?.revenue_program &&
-          (page.slug.toLowerCase().indexOf(qry) !== -1 ||
-            page.name.toLowerCase().indexOf(qry) !== -1 ||
-            page.revenue_program.slug.toLowerCase().indexOf(qry) !== -1 ||
-            page.revenue_program.name.toLowerCase().indexOf(qry) !== -1)
+          (page.slug.toLowerCase().replace(removeSpacingAndPunctuationRegex, '').indexOf(lowerCaseQry) !== -1 ||
+            page.name.toLowerCase().replace(removeSpacingAndPunctuationRegex, '').indexOf(lowerCaseQry) !== -1 ||
+            page.revenue_program.slug
+              .toLowerCase()
+              .replace(removeSpacingAndPunctuationRegex, '')
+              .indexOf(lowerCaseQry) !== -1 ||
+            page.revenue_program.name
+              .toLowerCase()
+              .replace(removeSpacingAndPunctuationRegex, '')
+              .indexOf(lowerCaseQry) !== -1)
         );
       })
     : pgsRaw;

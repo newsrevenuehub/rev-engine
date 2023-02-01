@@ -18,14 +18,22 @@ import useUser from 'hooks/useUser';
 import { USER_ROLE_HUB_ADMIN_TYPE, USER_SUPERUSER_TYPE } from 'constants/authConstants';
 
 export const filterStyles = (stylesRaw, qry) => {
-  return qry
+  const removeSpacingAndPunctuationRegex = /[.,\/#!$%\^&\*;:{}=\-_`~()\s]/g;
+  const lowerCaseQry = qry?.toLowerCase().replace(removeSpacingAndPunctuationRegex, '');
+  return lowerCaseQry
     ? orderBy(
         stylesRaw.filter((style) => {
           return (
-            style.name.toLowerCase().indexOf(qry) !== -1 ||
+            style.name.toLowerCase().replace(removeSpacingAndPunctuationRegex, '').indexOf(lowerCaseQry) !== -1 ||
             (style.revenue_program &&
-              (style.revenue_program.slug.toLowerCase().indexOf(qry) !== -1 ||
-                style.revenue_program.name.toLowerCase().indexOf(qry) !== -1))
+              (style.revenue_program.slug
+                .toLowerCase()
+                .replace(removeSpacingAndPunctuationRegex, '')
+                .indexOf(lowerCaseQry) !== -1 ||
+                style.revenue_program.name
+                  .toLowerCase()
+                  .replace(removeSpacingAndPunctuationRegex, '')
+                  .indexOf(lowerCaseQry) !== -1))
           );
         }),
         'name'
@@ -42,7 +50,7 @@ async function fetchStyles() {
 function Styles({ setShowEditStylesModal, setStyleToEdit }) {
   const { user, isLoading: userLoading } = useUser();
   const alert = useAlert();
-  const [styleSearchQuery, setStyleSearchQuery] = useState([]);
+  const [styleSearchQuery, setStyleSearchQuery] = useState('');
 
   const { data: styles, isLoading: stylesLoading } = useQuery(['styles'], fetchStyles, {
     initialData: [],

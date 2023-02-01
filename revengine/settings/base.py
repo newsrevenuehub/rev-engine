@@ -388,7 +388,7 @@ THUMBNAIL_PRESERVE_FORMAT = True
 
 ### Django-reversion Settings
 # Add reversion models to admin interface.
-ADD_REVERSION_ADMIN = True
+ADD_REVERSION_ADMIN = False
 
 
 ### Stripe Settings

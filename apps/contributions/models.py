@@ -197,7 +197,7 @@ class ContributionManager(models.Manager):
         ]
 
     def filtered_by_role_assignment(self, role_assignment: RoleAssignment) -> models.QuerySet:
-        """"""
+        """Return results based on user's role type"""
         match role_assignment.role_type:
             case Roles.HUB_ADMIN:
                 return self.having_org_viewable_status()

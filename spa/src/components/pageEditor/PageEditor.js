@@ -67,6 +67,7 @@ function PageEditor() {
   const getUserConfirmation = useConfirmationModalContext();
   const [selectedButton, setSelectedButton] = useState(PREVIEW);
   const [showEditInterface, setShowEditInterface] = useState(false);
+  const [isSaving, setIsSaving] = useState(false);
   const [stylesLoading, setStylesLoading] = useState(false);
   const [elementErrors, setElementErrors] = useState([]);
   const {
@@ -181,6 +182,8 @@ function PageEditor() {
 
   const handleSave = () => {
     async function finishSave() {
+      setIsSaving(true);
+
       try {
         if (CAPTURE_PAGE_SCREENSHOT) {
           await savePageChanges({}, updatedPagePreview.name, document.getElementById('root'));
@@ -191,7 +194,10 @@ function PageEditor() {
         setElementErrors({});
         setPageChanges({});
         handlePreview();
+        setIsSaving(false);
       } catch (error) {
+        setIsSaving(false);
+
         // We might have received element validation errors. If so, force the
         // edit interface open.
 
@@ -234,13 +240,13 @@ function PageEditor() {
         }}
       >
         <S.PageEditor data-testid="page-editor">
-          {(isLoading || stylesLoading) && <GlobalLoading />}
+          {(isLoading || isSaving || stylesLoading) && <GlobalLoading />}
           {page && showEditInterface && (
             <AnimatePresence>
               <InnerEditInterface />
             </AnimatePresence>
           )}
-          {!isLoading && !stylesLoading && updatedPagePreview && (
+          {!isLoading && !isSaving && !stylesLoading && updatedPagePreview && (
             <SegregatedStyles page={updatedPagePreview}>
               {/* set stringified page as key to guarantee that ALL page changes will re-render the page in edit mode */}
               <DonationPage key={JSON.stringify(updatedPagePreview ?? '')} live={false} page={updatedPagePreview} />

@@ -6,10 +6,7 @@ export const Dashboard = styled.div`
   flex: 1;
   display: flex;
   flex-direction: row;
-
-  /* 48px is the height of <DashboardTopbar>. */
-  margin-top: 48px;
-  height: calc(100vh - 48px);
+  height: 100vh;
   width: 100vw;
   overflow: hidden;
 `;
@@ -23,7 +20,8 @@ export const DashboardMain = styled.div`
 `;
 
 export const DashboardContent = styled.main`
-  padding: 3rem 3rem 0 3rem;
+  /* 48px is the height of the topbar. */
+  padding: calc(3rem + 48px) 3rem 0 3rem;
   flex: 1;
   display: flex;
   flex-direction: column;

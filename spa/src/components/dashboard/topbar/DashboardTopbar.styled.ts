@@ -6,9 +6,16 @@ export const Root = styled.div`
   background: ${(props) => props.theme.colors.topbarBackground};
   box-shadow: ${(props) => props.theme.shadows[0]};
   display: flex;
+  left: 260px;
   flex-direction: row;
   position: fixed;
   z-index: ${(props) => props.theme.zIndex.header};
+
+  /* Left position is responsive to leave room for DashboardSidebar. */
+
+  @media (${(props) => props.theme.breakpoints.tabletLandscapeDown}) {
+    left: 66px;
+  }
 `;
 
 export const TopMenu = styled.div`

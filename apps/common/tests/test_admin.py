@@ -1,3 +1,5 @@
+from django.urls import reverse
+
 import pytest
 
 from ..admin import prettify_json_field
@@ -10,3 +12,15 @@ def test_prettify_json_field(input):
     assert len(output)
     # minimal way to show some formatting happened and not just string conversion
     assert str(input) != output
+
+
+def test_revision_no_error_on_search(admin_client):
+    revision_url = reverse("admin:reversion_revision_changelist")
+    response = admin_client.get(revision_url, {"q": "test search"})
+    assert response.status_code == 200
+
+
+def test_version_no_error_on_search(admin_client):
+    revision_url = reverse("admin:reversion_version_changelist")
+    response = admin_client.get(revision_url, {"q": "test search"})
+    assert response.status_code == 200

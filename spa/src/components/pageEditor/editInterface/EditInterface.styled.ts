@@ -14,8 +14,7 @@ export const Root = styled(motion.aside)`
   z-index: 1000;
   display: flex;
   flex-direction: column;
-  overflow-y: scroll;
-  padding-top: 60px;
+  padding-top: 50px;
   z-index: ${(props) => props.theme.zIndex.sidebar};
 
   font-family: ${(props) => props.theme.systemFont};
@@ -40,5 +39,5 @@ export const Root = styled(motion.aside)`
 `;
 
 export const TabPanel = styled(BaseTabPanel)`
-  height: 100%;
+  overflow-y: auto;
 `;

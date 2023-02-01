@@ -9,7 +9,7 @@ from apps.users.models import RoleAssignment, User
 
 @admin.register(User)
 class CustomUserAdmin(UserAdmin):
-    list_display = ("email", "is_superuser", "is_staff", "role_assignment")
+    list_display = ("email", "is_superuser", "is_staff", "role_assignment", "last_login")
     list_filter = ("is_active", "is_staff", "groups")
     search_fields = ("email",)
     ordering = ("email",)
@@ -26,6 +26,7 @@ class CustomUserAdmin(UserAdmin):
             None,
             {
                 "fields": (
+                    "last_login",
                     "email",
                     "password",
                     "first_name",
@@ -61,7 +62,7 @@ class CustomUserAdmin(UserAdmin):
         ),
     )
 
-    readonly_fields = ("roleassignment",)
+    readonly_fields = ("roleassignment", "last_login")
 
 
 @admin.register(RoleAssignment)

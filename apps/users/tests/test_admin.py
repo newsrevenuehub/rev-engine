@@ -30,6 +30,15 @@ class TestUsersAdmin(TestCase):
             "user",
         ] == t.get_readonly_fields(None, obj=self.user)
 
+    def test_columns_in_user_list(self):
+        response = self.client.get("/nrhadmin/users/user/")
+        soup = BeautifulSoup(response.content)
+        assert soup.find("th", {"class": "column-email"}) is not None
+        assert soup.find("th", {"class": "column-is_superuser"}) is not None
+        assert soup.find("th", {"class": "column-is_staff"}) is not None
+        assert soup.find("th", {"class": "column-role_assignment"}) is not None
+        assert soup.find("th", {"class": "column-last_login"}) is not None
+
     def test_user_fields_in_admin(self):
         user_id = user_model.objects.all()[0].id
         response = self.client.get(f"/nrhadmin/users/user/{user_id}/change/")
@@ -41,6 +50,8 @@ class TestUsersAdmin(TestCase):
         assert soup.find("input", {"name": "email_verified"}) is not None
         assert soup.find("input", {"name": "accepted_terms_of_service_0"}) is not None
         assert soup.find("input", {"name": "accepted_terms_of_service_1"}) is not None
+        assert soup.find("div", {"class": "field-last_login"}) is not None
+        assert len(soup.select(".field-last_login .readonly")) > 0
 
     def test_user_fields_in_add(self):
         response = self.client.get("/nrhadmin/users/user/add/")

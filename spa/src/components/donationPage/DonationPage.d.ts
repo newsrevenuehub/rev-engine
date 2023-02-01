@@ -24,6 +24,7 @@ export interface DonationPage {
     type: string;
     content?: {
       offerPayFees?: boolean;
+      options?: Record<string, string[] | number[]>;
       [x: string]: any;
     };
   }[];
@@ -33,6 +34,11 @@ export interface DonationPage {
  * Info available in the contribution page context. **THIS TYPE IS INCOMPLETE.**
  */
 export interface UsePageProps {
+  /**
+   * Errors with what a user has entered in a contribution form. These are keyed
+   * by the field name.
+   */
+  errors: Record<string, string>;
   /**
    * How much payment processing fees will be for this contribution.
    */
@@ -50,6 +56,11 @@ export interface UsePageProps {
    * How often the user wants to contribute.
    */
   frequency: ContributionInterval;
+  /**
+   * The mailing country that the user has chosen in a contribution form.
+   */
+  mailingCountry: string | undefined;
+  setMailingCountry: (value: string) => void;
   /**
    * Information about the contribution page itself.
    */

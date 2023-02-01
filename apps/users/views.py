@@ -1,5 +1,6 @@
 import binascii
 import logging
+import os
 from base64 import urlsafe_b64decode, urlsafe_b64encode
 
 import django
@@ -226,7 +227,10 @@ class UserViewset(
             EMAIL_VERIFICATION_EMAIL_SUBJECT,
             "nrh-org-account-creation-verification-email.txt",
             "nrh-org-account-creation-verification-email.html",
-            {"verification_url": django.utils.safestring.mark_safe(url)},
+            {
+                "verification_url": django.utils.safestring.mark_safe(url),
+                "logo_url": os.path.join(settings.SITE_URL, "static", "nre_logo_black_yellow.png"),
+            },
         )
 
     def validate_password(self, email, password):
@@ -268,7 +272,7 @@ class UserViewset(
         except BadActorAPIError:
             logger.warning("Something went wrong with BadActorAPI", exc_info=True)
             return
-        if response.json()["overall_judgment"] >= settings.BAD_ACTOR_FAILURE_THRESHOLD_FOR_ORG_USERS:
+        if response.json()["overall_judgment"] >= settings.BAD_ACTOR_REJECT_SCORE_FOR_ORG_USERS:
             logger.warning("Someone determined to be a bad actor tried to create a user: [%s]", data)
             raise ValidationError(BAD_ACTOR_CLIENT_FACING_VALIDATION_MESSAGE)
 
@@ -305,7 +309,7 @@ class UserViewset(
         organization_tax_id = customize_account_serializer.validated_data["organization_tax_id"]
         organization_tax_status = customize_account_serializer.validated_data["organization_tax_status"]
         user = request.user
-        logger.debug("Received request to customize account for user %s; request: %s", user, request.data)
+        logger.debug("Received request to customize account for user %s; request: %s", user.id, request.data)
         user.first_name = first_name
         user.last_name = last_name
         user.job_title = customize_account_serializer.validated_data["job_title"]
@@ -329,7 +333,7 @@ class UserViewset(
         RoleAssignment.objects.create(user=user, role_type=Roles.ORG_ADMIN, organization=organization)
         logger.info(
             "Customize account for user %s successful; organization %s and revenue program %s created.",
-            user,
+            user.id,
             organization.pk,
             revenue_program.pk,
         )
@@ -407,6 +411,7 @@ def password_reset_token_created(sender, instance, reset_password_token, *args, 
     context = {
         "email": email,
         "reset_password_url": mark_safe(spa_reset_url),
+        "logo_url": os.path.join(settings.SITE_URL, "static", "nre_logo_black_yellow.png"),
     }
     logger.info(
         "Sending password reset email to %s (with ID: %s) with the following reset url: %s",

@@ -38,7 +38,7 @@ DElement.propTypes = DElementPropTypes;
 export const DynamicElementPropTypes = {
   uuid: PropTypes.string.isRequired,
   type: PropTypes.string.isRequired,
-  content: PropTypes.any
+  content: PropTypes.any.isRequired
 };
 
 export default DElement;

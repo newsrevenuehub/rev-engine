@@ -4,7 +4,9 @@ import DAmount from './DAmount';
 const DAmountDemo = ({ element, pageContext }) => {
   return (
     <DonationPageContext.Provider value={pageContext}>
-      <DAmount element={element} />
+      <ul style={{ listStyle: 'none', margin: 0, padding: 0 }}>
+        <DAmount element={element} />
+      </ul>
     </DonationPageContext.Provider>
   );
 };

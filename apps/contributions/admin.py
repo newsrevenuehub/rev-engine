@@ -97,7 +97,7 @@ class ContributionAdmin(RevEngineBaseAdmin, CompareVersionAdmin):
     )
 
     search_fields = (
-        "revenue_program",
+        "donation_page__revenue_program__name",
         "contributor__email",
         "donation_page__name",
         "modified",

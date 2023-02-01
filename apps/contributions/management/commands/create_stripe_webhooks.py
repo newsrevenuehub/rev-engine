@@ -10,13 +10,10 @@ class Command(BaseCommand):
     def add_arguments(self, parser):
         parser.add_argument("live", nargs="?", type=bool, default=False)
         parser.add_argument("url", nargs="?", type=str)
-        parser.add_argument("--listen-all", action="store_true")
 
     def handle(self, *args, **options):
         webhook_url = options["url"] if options.get("url") else settings.SITE_URL + reverse("stripe-webhooks")
         api_key = get_hub_stripe_api_key(options["live"])
         kwargs = {"webhook_url": webhook_url, "api_key": api_key}
-        if options["listen_all"]:
-            kwargs["enabled_events"] = ["*"]
         secret = create_stripe_webhook(**kwargs)
         self.stdout.write(self.style.WARNING("wh_sec = %s" % secret))

@@ -20,7 +20,7 @@ from apps.pages.defaults import (
     SWAG,
 )
 from apps.users.choices import Roles
-from apps.users.models import RoleAssignment, RoleAssignmentResourceModelMixin
+from apps.users.models import RoleAssignment
 
 
 logger = logging.getLogger(f"{settings.DEFAULT_LOGGER}.{__name__}")
@@ -98,7 +98,7 @@ class OrganizationManager(models.Manager):
                 return self.none()
 
 
-class Organization(IndexedTimeStampedModel, RoleAssignmentResourceModelMixin):
+class Organization(IndexedTimeStampedModel):
     name = models.CharField(max_length=255, unique=True)
     plan_name = models.CharField(choices=Plans.choices, max_length=10, default=Plans.FREE)
     salesforce_id = models.CharField(max_length=255, blank=True, verbose_name="Salesforce ID")

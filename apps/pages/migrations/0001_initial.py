@@ -91,7 +91,7 @@ class Migration(migrations.Migration):
                 "ordering": ["-created", "name"],
                 "unique_together": {("name", "revenue_program")},
             },
-            bases=(models.Model, apps.users.models.RoleAssignmentResourceModelMixin),
+            bases=(models.Model,),
         ),
         migrations.CreateModel(
             name="Template",
@@ -147,7 +147,7 @@ class Migration(migrations.Migration):
             options={
                 "unique_together": {("name", "revenue_program")},
             },
-            bases=(models.Model, apps.users.models.RoleAssignmentResourceModelMixin),
+            bases=(models.Model,),
         ),
         migrations.CreateModel(
             name="DonationPage",
@@ -222,6 +222,6 @@ class Migration(migrations.Migration):
             options={
                 "unique_together": {("slug", "revenue_program")},
             },
-            bases=(models.Model, apps.users.models.RoleAssignmentResourceModelMixin),
+            bases=(models.Model,),
         ),
     ]

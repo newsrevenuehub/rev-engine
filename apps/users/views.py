@@ -25,15 +25,12 @@ from django.views.decorators.http import require_GET
 from django_rest_passwordreset.signals import reset_password_token_created
 from rest_framework import mixins, status
 from rest_framework.decorators import action
-from rest_framework.exceptions import APIException
-from rest_framework.generics import GenericAPIView
 from rest_framework.permissions import AllowAny, IsAuthenticated
 from rest_framework.response import Response
 from rest_framework.serializers import ValidationError
 from rest_framework.viewsets import GenericViewSet
 from reversion.views import RevisionMixin
 
-from apps.api.permissions import is_a_contributor
 from apps.common.utils import get_original_ip_from_request
 from apps.contributions.bad_actor import BadActorAPIError, make_bad_actor_request
 from apps.contributions.utils import get_sha256_hash
@@ -48,7 +45,7 @@ from apps.users.constants import (
     PASSWORD_UNEXPECTED_VALIDATION_MESSAGE_SUBSTITUTE,
     PASSWORD_VALIDATION_EXPECTED_MESSAGES,
 )
-from apps.users.models import RoleAssignment, UnexpectedRoleType, User
+from apps.users.models import RoleAssignment, User
 from apps.users.permissions import (
     UserHasAcceptedTermsOfService,
     UserIsAllowedToUpdate,
@@ -349,29 +346,6 @@ class UserViewset(
         else:
             self.send_verification_email(request.user)
             return Response({"detail": "Success"})
-
-
-class FilterQuerySetByUserMixin(GenericAPIView):
-    """Mixin for filtering querysets by the user's role (and if they're contributor or superuser...
-
-    ...in which case they will not have a role). This mixin assumes that the model for the view
-    using the mixin has implemented `filter_queryset_by_role_assignment` and `filter_queryset_for_contributor`.
-    """
-
-    @classmethod
-    def filter_queryset_for_user(cls, user, queryset):
-        try:
-            if is_a_contributor(user):
-                return queryset.model.filter_queryset_for_contributor(user, queryset)
-            if user.is_anonymous:
-                return queryset.none()
-            if user.is_superuser:
-                return queryset.all()
-            elif role_assignment := getattr(user, "roleassignment"):
-                return queryset.model.filter_queryset_by_role_assignment(role_assignment, queryset)
-        except UnexpectedRoleType as exc:
-            logger.exception("Encountered unexpected role type")
-            raise APIException(detail=str(exc))
 
 
 @receiver(reset_password_token_created)

@@ -71,6 +71,13 @@ describe('Contribution page edit', () => {
     cy.getByTestId('delete-page-button');
   });
 
+  it('should disable the save button before any edits are made', () => {
+    // The disabled button isn't a button at all--just a <div>.
+
+    cy.get('button[data-testid="save-page-button"]').should('not.exist');
+    cy.get('div[data-testid="save-page-button"]').should('exist');
+  });
+
   it('should default to the edit interface once a page has loaded', () => {
     cy.getByTestId('edit-interface');
   });

@@ -272,7 +272,7 @@ function PageEditor() {
                 data-testid="edit-page-button"
                 tooltipText="Edit"
               />
-              {pageChanges ? (
+              {Object.keys(pageChanges).length > 0 ? (
                 <CircleButton
                   onClick={handleSave}
                   icon={faSave}

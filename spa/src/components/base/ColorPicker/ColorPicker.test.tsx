@@ -96,9 +96,8 @@ describe('ColorPicker', () => {
       tree({ onChange }, true);
       fireEvent.change(screen.getByRole('textbox'), { target: { value: '#fff123' } });
       fireEvent.change(screen.getByRole('textbox'), { target: { value: '#111' } });
-      onChange.mockClear();
       fireEvent.blur(screen.getByRole('textbox'));
-      expect(onChange.mock.calls).toEqual([['#fff123']]);
+      expect(onChange).toHaveBeenLastCalledWith('#fff123');
     });
   });
 

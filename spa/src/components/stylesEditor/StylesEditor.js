@@ -2,8 +2,6 @@ import { useState, useEffect } from 'react';
 import { Label } from 'elements/inputs/BaseField.styled';
 import * as S from './StylesEditor.styled';
 
-// TODO: Pull color section into separate TSX component, test that
-
 // AJAX
 import useRequest from 'hooks/useRequest';
 import { LIST_STYLES, LIST_FONTS } from 'ajax/endpoints';

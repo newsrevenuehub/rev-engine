@@ -22,6 +22,7 @@ from apps.contributions.models import (
 )
 from apps.contributions.tests.factories import ContributionFactory, ContributorFactory
 from apps.emails.tasks import send_templated_email
+from apps.organizations.models import FiscalStatusChoices
 from apps.organizations.tests.factories import (
     OrganizationFactory,
     PaymentProviderFactory,
@@ -463,19 +464,19 @@ def test_contribution_send_recurring_contribution_email_reminder(interval, expec
 
 @pytest.mark.django_db()
 @pytest.mark.parametrize(
-    "is_non_profit,tax_id",
+    "fiscal_status,tax_id",
     (
-        (True, None),
-        (True, "123456789"),
-        (False, None),
+        (FiscalStatusChoices.NONPROFIT, None),
+        (FiscalStatusChoices.NONPROFIT, "123456789"),
+        (FiscalStatusChoices.FOR_PROFIT, None),
     ),
 )
 def test_contribution_send_recurring_contribution_email_reminder_email_text(
-    is_non_profit, tax_id, monkeypatch, settings
+    fiscal_status, tax_id, monkeypatch, settings
 ):
     with patch("apps.contributions.models.Contribution.fetch_stripe_payment_method", return_value=None):
         contribution = ContributionFactory(interval=ContributionInterval.YEARLY)
-    contribution.donation_page.revenue_program.non_profit = is_non_profit
+    contribution.donation_page.revenue_program.fiscal_status = fiscal_status
     contribution.donation_page.revenue_program.tax_id = tax_id
     contribution.donation_page.revenue_program.save()
     next_charge_date = datetime.datetime.now()
@@ -501,7 +502,7 @@ def test_contribution_send_recurring_contribution_email_reminder_email_text(
         f"Email: {contribution.contributor.email}",
         f"Amount Contributed: ${contribution.formatted_amount}/{contribution.interval}",
     ]
-    if is_non_profit:
+    if fiscal_status == FiscalStatusChoices.NONPROFIT:
         email_expectations.extend(
             [
                 "This receipt may be used for tax purposes.",

@@ -14,8 +14,9 @@ from apps.common.models import SocialMeta
 from apps.config.tests.factories import DenyListWordFactory
 from apps.config.validators import GENERIC_SLUG_DENIED_MSG, SLUG_DENIED_CODE
 from apps.contributions.tests.factories import ContributionFactory
-from apps.organizations.models import RevenueProgram
+from apps.organizations.models import FiscalStatusChoices, RevenueProgram
 from apps.organizations.tests import factories
+from apps.organizations.tests.factories import OrganizationFactory, RevenueProgramFactory
 from apps.pages.models import DonationPage
 from apps.pages.tests.factories import DonationPageFactory
 from apps.users.models import RoleAssignment
@@ -67,7 +68,7 @@ class TestOrganizationModel(TestCase):
         self.assertFalse(RoleAssignment.objects.filter(id=ra_id).exists())
 
 
-class TestRevenueProgram:
+class RevenueProgramTest(TestCase):
     def setUp(self):
         self.stripe_account_id = "my_stripe_account_id"
         self.organization = factories.OrganizationFactory()
@@ -170,21 +171,38 @@ class TestRevenueProgram:
     def test_admin_benefitlevel_options(self):
         assert isinstance(self.instance.admin_benefitlevel_options, list)
 
-    @pytest.mark.django_db
-    @pytest.mark.parametrize("fiscal_sponsor_name, expected", (("", False), (None, False), ("NRH", True)))
-    def test_fiscal_sponsor_name_sets_non_profit(self, fiscal_sponsor_name, expected):
-        fake = Faker()
-        rp_name = fake.words(nb=1)
-        rp = RevenueProgram(
-            name=rp_name,
-            slug=rp_name,
-            organization=self.organization,
-            payment_provider=self.payment_provider,
-            fiscal_sponsor_name=fiscal_sponsor_name,
-            non_profit=False,
-        )
-        rp.clean()
-        assert rp.non_profit == expected
+
+@pytest.mark.parametrize(
+    "fiscal_status,fiscal_sponsor_name,non_profit_value",
+    [
+        (FiscalStatusChoices.FOR_PROFIT, None, False),
+        (FiscalStatusChoices.NONPROFIT, None, True),
+        (FiscalStatusChoices.FISCALLY_SPONSORED, "NRH", True),
+    ],
+)
+@pytest.mark.django_db
+def test_fiscal_status_on_revenue_program(fiscal_status, fiscal_sponsor_name, non_profit_value):
+    rp = RevenueProgramFactory(org=OrganizationFactory())
+    rp.fiscal_status = fiscal_status
+    rp.fiscal_sponsor_name = fiscal_sponsor_name
+    assert rp.non_profit == non_profit_value
+
+
+@pytest.mark.parametrize(
+    "fiscal_status,fiscal_sponsor_name",
+    [
+        (FiscalStatusChoices.FOR_PROFIT, "NRH"),
+        (FiscalStatusChoices.NONPROFIT, "NRH"),
+        (FiscalStatusChoices.FISCALLY_SPONSORED, None),
+    ],
+)
+@pytest.mark.django_db
+def test_fiscal_sponsor_name_clean(fiscal_status, fiscal_sponsor_name):
+    rp = RevenueProgramFactory(org=OrganizationFactory())
+    rp.fiscal_status = fiscal_status
+    rp.fiscal_sponsor_name = fiscal_sponsor_name
+    with pytest.raises(ValidationError):
+        rp.clean_fiscal_sponsor_name()
 
 
 class BenefitLevelTest(TestCase):

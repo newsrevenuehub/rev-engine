@@ -137,10 +137,9 @@ def test_show_expected_fields_on_rp_pages(admin_client):
         assert soup.find("input", {"name": "contact_email"}) is not None
         assert soup.select_one(".field-organization") is not None
         assert soup.select_one(".field-default_donation_page") is not None
-        assert soup.select_one(".field-non_profit") is not None
-        assert soup.select_one(".field-tax_id") is not None
         assert soup.select_one(".field-country") is not None
         assert soup.find("input", {"name": "fiscal_sponsor_name"}) is not None
+        assert soup.select_one(".field-fiscal_status") is not None
         assert soup.find("input", {"name": "stripe_statement_descriptor_suffix"}) is not None
         assert soup.find("input", {"name": "domain_apple_verified_date_0"}) is not None
         assert soup.find("input", {"name": "domain_apple_verified_date_1"}) is not None

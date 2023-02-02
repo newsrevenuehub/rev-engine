@@ -170,7 +170,7 @@ class CachedStripeContributionResult(TypedDict):
     payment_type: str
 
 
-class ContributionManager(models.Manager):
+class ContributionQuerySet(models.QuerySet):
     def having_org_viewable_status(self) -> models.QuerySet:
         """Exclude contributions with statuses that should not be seen by org users from the queryset"""
         return self.exclude(status__in=[ContributionStatus.FLAGGED, ContributionStatus.REJECTED])
@@ -213,6 +213,10 @@ class ContributionManager(models.Manager):
                 return self.none()
 
 
+class ContributionManager(models.Manager):
+    pass
+
+
 class Contribution(IndexedTimeStampedModel):
     amount = models.IntegerField(help_text="Stored in cents")
     currency = models.CharField(max_length=3, default="usd")
@@ -245,7 +249,7 @@ class Contribution(IndexedTimeStampedModel):
     # integer ID value.
     uuid = models.UUIDField(default=uuid.uuid4, primary_key=False, editable=False)
 
-    objects = ContributionManager()
+    objects = ContributionManager.from_queryset(ContributionQuerySet)()
 
     class Meta:
         get_latest_by = "modified"

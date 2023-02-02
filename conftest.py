@@ -51,10 +51,13 @@ def test_patch_when_expected_user(
 ):
 ```
 """
+
+from unittest.mock import patch
+
 import pytest
 from rest_framework.test import APIClient
 
-from apps.contributions.tests.factories import ContributorFactory
+from apps.contributions.tests.factories import ContributionFactory, ContributorFactory
 from apps.organizations.tests.factories import OrganizationFactory, RevenueProgramFactory
 from apps.pages.tests.factories import DonationPageFactory, StyleFactory
 from apps.users.models import Roles, User
@@ -207,3 +210,24 @@ def live_donation_page():
 @pytest.fixture
 def style():
     return StyleFactory()
+
+
+@pytest.mark.django_db
+@pytest.fixture
+def one_time_contribution(live_donation_page):
+    with patch("apps.contributions.models.Contribution.fetch_stripe_payment_method", return_value=None):
+        return ContributionFactory(donation_page=live_donation_page, one_time=True)
+
+
+@pytest.mark.django_db
+@pytest.fixture
+def monthly_contribution(live_donation_page):
+    with patch("apps.contributions.models.Contribution.fetch_stripe_payment_method", return_value=None):
+        return ContributionFactory(donation_page=live_donation_page, monthly_subscription=True)
+
+
+@pytest.mark.django_db
+@pytest.fixture
+def annual_contribution(live_donation_page):
+    with patch("apps.contributions.models.Contribution.fetch_stripe_payment_method", return_value=None):
+        return ContributionFactory(donation_page=live_donation_page, annual_subscription=True)

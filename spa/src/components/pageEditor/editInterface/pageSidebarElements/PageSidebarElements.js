@@ -10,6 +10,11 @@ import EditTabHeader from '../EditTabHeader';
 function PageSidebarElements({ openAddElementModal, goToProperties, handleRemoveElement }) {
   const { sidebarElements, setSidebarElements } = useEditInterfaceContext();
 
+  // layoutScroll prop on ElementContainer is needed so that framer-motion
+  // correctly calculates block positions during reordering. Otherwise, you'll
+  // see weird overlaps if you drag while the container is scrolled to a
+  // non-zero position.
+
   return (
     <Root data-testid="page-sidebar">
       <EditTabHeader
@@ -18,7 +23,7 @@ function PageSidebarElements({ openAddElementModal, goToProperties, handleRemove
         prompt="Add, edit, and rearrange sidebar sections."
       />
       {sidebarElements && sidebarElements?.length > 0 && (
-        <ElementContainer>
+        <ElementContainer layoutScroll>
           <DraggableList
             elements={sidebarElements}
             setElements={setSidebarElements}

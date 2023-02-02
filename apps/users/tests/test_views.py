@@ -768,11 +768,17 @@ class TestUserViewSet(APITestCase):
         fiscal_sponsor_name = "News Revenue Hub"
         response = self.client.patch(
             reverse("user-customize-account", args=(user.pk,)),
-            data={**self.customize_account_request, "fiscal_sponsor_name": fiscal_sponsor_name},
+            data={
+                **self.customize_account_request,
+                "fiscal_sponsor_name": fiscal_sponsor_name,
+                "fiscal_status": FiscalStatusChoices.FISCALLY_SPONSORED,
+            },
         )
         assert response.status_code == status.HTTP_204_NO_CONTENT
         revenue_program = RevenueProgram.objects.get(name=self.customize_account_request["organization_name"])
         assert fiscal_sponsor_name == revenue_program.fiscal_sponsor_name
+        assert revenue_program.fiscal_status == FiscalStatusChoices.FISCALLY_SPONSORED
+        assert revenue_program.non_profit
 
     def test_can_customize_account_sets_fiscal_status(self):
         user = self.__create_authenticated_user()
@@ -784,6 +790,38 @@ class TestUserViewSet(APITestCase):
         revenue_program = RevenueProgram.objects.last()
         assert revenue_program.fiscal_status == FiscalStatusChoices.FOR_PROFIT
         assert not revenue_program.non_profit
+
+    def test_fiscal_status_validations(self):
+        user = self.__create_authenticated_user()
+        assert (
+            self.client.patch(
+                reverse("user-customize-account", args=(user.pk,)),
+                data={**self.customize_account_request, "fiscal_status": FiscalStatusChoices.FISCALLY_SPONSORED},
+            ).status_code
+            == status.HTTP_400_BAD_REQUEST
+        )
+        assert (
+            self.client.patch(
+                reverse("user-customize-account", args=(user.pk,)),
+                data={
+                    **self.customize_account_request,
+                    "fiscal_status": FiscalStatusChoices.FOR_PROFIT,
+                    "fiscal_sponsor_name": "will not work",
+                },
+            ).status_code
+            == status.HTTP_400_BAD_REQUEST
+        )
+        assert (
+            self.client.patch(
+                reverse("user-customize-account", args=(user.pk,)),
+                data={
+                    **self.customize_account_request,
+                    "fiscal_status": FiscalStatusChoices.NONPROFIT,
+                    "fiscal_sponsor_name": "will not work",
+                },
+            ).status_code
+            == status.HTTP_400_BAD_REQUEST
+        )
 
     def __create_authenticated_user(self, email_verified=True, accepted_terms_of_service=timezone.now()) -> User:
         user = get_user_model().objects.create(

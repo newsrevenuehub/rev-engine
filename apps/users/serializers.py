@@ -164,6 +164,16 @@ class CustomizeAccountSerializer(UserSerializer):
         write_only=True, required=False, validators=[tax_id_validator], default=None
     )
 
+    def validate_fiscal_status(self, value):
+        fiscal_sponsor_name = self.initial_data.get("fiscal_sponsor_name")
+        if value == FiscalStatusChoices.FISCALLY_SPONSORED and not fiscal_sponsor_name:
+            raise serializers.ValidationError("Please enter the fiscal sponsor name.")
+        elif fiscal_sponsor_name and value != FiscalStatusChoices.FISCALLY_SPONSORED:
+            raise serializers.ValidationError(
+                "Only fiscally sponsored Revenue Programs can have a fiscal sponsor name."
+            )
+        return value
+
     class Meta:
         model = get_user_model()
         fields = [

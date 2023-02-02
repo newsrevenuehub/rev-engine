@@ -7,6 +7,7 @@ const EditSaveControlsPropTypes = {
   cancelDisabled: PropTypes.bool,
   onCancel: PropTypes.func.isRequired,
   onUpdate: PropTypes.func.isRequired,
+  updateDisabled: PropTypes.bool,
   variant: PropTypes.oneOf(['cancel', 'undo']).isRequired
 };
 
@@ -16,7 +17,13 @@ export interface EditSaveControlsProps extends InferProps<typeof EditSaveControl
   variant: 'cancel' | 'undo';
 }
 
-export function EditSaveControls({ cancelDisabled, onCancel, onUpdate, variant }: EditSaveControlsProps) {
+export function EditSaveControls({
+  cancelDisabled,
+  onCancel,
+  onUpdate,
+  updateDisabled,
+  variant
+}: EditSaveControlsProps) {
   const commonSecondaryProps = { disabled: !!cancelDisabled, onClick: onCancel };
   const secondaryButtons: Record<EditSaveControlsProps['variant'], ReactNode> = {
     cancel: (
@@ -34,7 +41,7 @@ export function EditSaveControls({ cancelDisabled, onCancel, onUpdate, variant }
   return (
     <Root>
       {secondaryButtons[variant]}
-      <Button color="primaryDark" onClick={onUpdate}>
+      <Button disabled={!!updateDisabled} color="primaryDark" onClick={onUpdate}>
         Update
       </Button>
     </Root>

@@ -10,6 +10,9 @@ import ImageUpload from 'components/base/ImageUpload/ImageUpload';
 import Input from 'elements/inputs/Input';
 import EditSaveControls from '../EditSaveControls';
 import EditTabHeader from '../EditTabHeader';
+import { isValidUrl } from 'utilities/isValidUrl';
+
+const INVALID_URL_MESSAGE = 'Please enter a valid URL.';
 
 /**
  * PageSetup
@@ -91,6 +94,12 @@ function PageSetup() {
     showLogoInput = true;
   }
 
+  // If any URL field is not valid, disable the update button.
+
+  const updateDisabled = [header_link, post_thank_you_redirect, thank_you_redirect].some(
+    (value) => !isValidUrl(value, true)
+  );
+
   // If nothing has been changed from the page object, then the user can't use
   // the Undo button. The image properties will only have values if the user has
   // chosen a new image.
@@ -137,7 +146,8 @@ function PageSetup() {
         {showLogoInput && (
           <InputWrapper border>
             <Input
-              type="text"
+              errors={!isValidUrl(header_link, true) && INVALID_URL_MESSAGE}
+              type="url"
               label="Logo link"
               value={header_link}
               helpText="Where does clicking your logo take your users?"
@@ -171,22 +181,26 @@ function PageSetup() {
         {page.plan.custom_thank_you_page_enabled && (
           <InputWrapper>
             <Input
+              errors={errors.thank_you_redirect ?? (!isValidUrl(thank_you_redirect, true) && INVALID_URL_MESSAGE)}
+              type="url"
               label="Thank You page link"
               helpText='If you have a "Thank You" page of your own, add a link here'
               value={thank_you_redirect}
               onChange={(e) => setThankYouRedirect(e.target.value)}
-              errors={errors.thank_you_redirect}
               testid="thank-you-redirect-link-input"
             />
           </InputWrapper>
         )}
         <InputWrapper border>
           <Input
+            errors={
+              errors.post_thank_you_redirect ?? (!isValidUrl(post_thank_you_redirect, true) && INVALID_URL_MESSAGE)
+            }
+            type="url"
             label="Post Thank You redirect"
             helpText="If using our default Thank You page, where should we redirect your contributors afterward?"
             value={post_thank_you_redirect}
             onChange={(e) => setPostThankYouRedirect(e.target.value)}
-            errors={errors.post_thank_you_redirect}
           />
         </InputWrapper>
       </Controls>
@@ -194,6 +208,7 @@ function PageSetup() {
         cancelDisabled={cancelDisabled}
         onCancel={handleDiscardChanges}
         onUpdate={handleKeepChanges}
+        updateDisabled={updateDisabled}
         variant="undo"
       />
     </Root>

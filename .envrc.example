@@ -10,3 +10,5 @@ export PGUSER=postgres
 export PGDATABASE=revengine
 export REDIS_URL=redis://localhost:6379
 export STRIPE_ACCOUNT_LINK_RETURN_BASE_URL=http://localhost:3000
+export HOOKDECK_API_KEY=
+export HOOKDECK_STRIPE_WEBHOOK_SOURCE=

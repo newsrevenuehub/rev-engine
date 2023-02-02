@@ -1,0 +1,13 @@
+{
+  "id": "des_RYyvhVusgJCb",
+  "team_id": "tm_something",
+  "url": "https://foo.bar.com",
+  "archived_at": null,
+  "updated_at": "2022-12-12T18:08:02.201Z",
+  "created_at": "2022-12-11T20:04:08.454Z",
+  "rate_limit": null,
+  "rate_limit_period": "second",
+  "cli_path": null,
+  "path_forwarding_disabled": false,
+  "name": "my-destination"
+}

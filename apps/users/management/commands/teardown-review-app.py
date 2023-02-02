@@ -1,13 +1,8 @@
 from django.conf import settings
 from django.core.management.base import BaseCommand
-from django.urls import reverse
 
-from apps.common.utils import (
-    delete_cloudflare_cnames,
-    delete_stripe_webhook,
-    extract_ticket_id_from_branch_name,
-)
-from apps.contributions.utils import get_hub_stripe_api_key
+from apps.common.hookdeck import tear_down as tear_down_hookdeck
+from apps.common.utils import delete_cloudflare_cnames, extract_ticket_id_from_branch_name
 
 
 class Command(BaseCommand):  # pragma: no cover low ROI for test of command line tool with all cloudfare mocked out.
@@ -23,8 +18,4 @@ class Command(BaseCommand):  # pragma: no cover low ROI for test of command line
             ticket_id = options["ticket"].lower()
 
         delete_cloudflare_cnames(ticket_id)
-
-        site_url = f"https://{ticket_id}.{settings.CF_ZONE_NAME}"
-        webhook_url = f"{site_url}{reverse('stripe-webhooks')}".lower()
-        api_key = get_hub_stripe_api_key()
-        delete_stripe_webhook(webhook_url=webhook_url, api_key=api_key)
+        tear_down_hookdeck(ticket_id)

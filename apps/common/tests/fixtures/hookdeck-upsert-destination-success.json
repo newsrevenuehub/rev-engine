@@ -1,0 +1,13 @@
+{
+  "id": "des_Nm49lhZV6wVrN1XFFPfkv7Zk",
+  "team_id": "tm_nlcetVe8k1lMAY0KR0OxNuHr",
+  "url": "https://example.com/webhook",
+  "archived_at": null,
+  "updated_at": "2021-08-02T14:12:56.933Z",
+  "created_at": "2021-08-02T14:12:56.589Z",
+  "rate_limit": 5,
+  "rate_limit_period": "second",
+  "cli_path": null,
+  "path_forwarding_disabled": false,
+  "name": "my-destination"
+}

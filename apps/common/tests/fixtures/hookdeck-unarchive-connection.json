@@ -1,0 +1,56 @@
+{
+  "id": "web_V8PoKjQDQBri",
+  "team_id": "tm_something",
+  "archived_at": null,
+  "updated_at": "2022-12-12T18:10:11.774Z",
+  "created_at": "2022-12-09T20:01:00.975Z",
+  "paused_at": null,
+  "name": "my-connection",
+  "rules": [],
+  "destination": {
+    "id": "des_0RqYEjkUBEAK",
+    "team_id": "tm_something",
+    "url": "https://mock.hookdeck.com",
+    "archived_at": null,
+    "updated_at": "2022-12-09T20:01:00.950Z",
+    "created_at": "2022-12-09T20:01:00.960Z",
+    "rate_limit": null,
+    "rate_limit_period": "second",
+    "cli_path": "/",
+    "path_forwarding_disabled": false,
+    "name": "my-test-connection"
+  },
+  "source": {
+    "id": "src_4aWhinVChsGo",
+    "team_id": "tm_something",
+    "archived_at": null,
+    "updated_at": "2022-12-09T19:39:37.641Z",
+    "created_at": "2022-12-09T19:09:09.765Z",
+    "integration_id": null,
+    "name": "stripe-webhooks-for-review-apps",
+    "integration": null,
+    "url": "https://events.hookdeck.com/e/src_something"
+  },
+  "ruleset": {
+    "id": "rls_1guc7kLGJJFk",
+    "team_id": "tm_something",
+    "is_team_default": true,
+    "archived_at": null,
+    "updated_at": "2022-12-09T19:09:40.751Z",
+    "created_at": "2022-12-08T15:35:51.152Z",
+    "name": "default-ruleset",
+    "rules": [
+      {
+        "type": "retry",
+        "count": 5,
+        "interval": 3600000,
+        "strategy": "linear"
+      },
+      { "type": "alert", "strategy": "last_attempt" }
+    ]
+  },
+  "resolved_rules": [
+    { "type": "retry", "count": 5, "interval": 3600000, "strategy": "linear" },
+    { "type": "alert", "strategy": "last_attempt" }
+  ]
+}

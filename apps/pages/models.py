@@ -21,7 +21,7 @@ def _get_screenshot_upload_path(instance, filename):
     return f"{instance.organization.name}/page_screenshots/{instance.name}_latest.png"
 
 
-class PagesAppManager(models.Manager):
+class PagesAppQuerySet(models.QuerySet):
     def filtered_by_role_assignment(self, role_assignment: RoleAssignment) -> models.QuerySet:
         match role_assignment.role_type:
             case Roles.HUB_ADMIN:
@@ -32,6 +32,10 @@ class PagesAppManager(models.Manager):
                 return self.filter(revenue_program__in=role_assignment.revenue_programs.all())
             case _:
                 return self.none()
+
+
+class PagesAppManager(models.Manager):
+    pass
 
 
 class DonationPage(IndexedTimeStampedModel):
@@ -71,7 +75,7 @@ class DonationPage(IndexedTimeStampedModel):
     published_date = models.DateTimeField(null=True, blank=True)
     page_screenshot = SorlImageField(null=True, blank=True, upload_to=_get_screenshot_upload_path)
 
-    objects = PagesAppManager()
+    objects = PagesAppManager.from_queryset(PagesAppQuerySet)()
 
     class Meta:
         unique_together = (
@@ -123,7 +127,7 @@ class Style(IndexedTimeStampedModel):
     revenue_program = models.ForeignKey("organizations.RevenueProgram", on_delete=models.CASCADE)
     styles = models.JSONField(validators=[style_validator])
 
-    objects = PagesAppManager()
+    objects = PagesAppManager.from_queryset(PagesAppQuerySet)()
 
     class Meta:
         unique_together = (

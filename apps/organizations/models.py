@@ -87,7 +87,7 @@ class Plans(models.TextChoices):
         return {cls.FREE.value: FreePlan, cls.PLUS.value: PlusPlan}.get(name, None)
 
 
-class OrganizationManager(models.Manager):
+class OrganizationQuerySet(models.QuerySet):
     def filtered_by_role_assignment(self, role_assignment: RoleAssignment) -> models.QuerySet:
         match role_assignment.role_type:
             case Roles.HUB_ADMIN:
@@ -96,6 +96,10 @@ class OrganizationManager(models.Manager):
                 return self.filter(id=role_assignment.organization.id)
             case _:
                 return self.none()
+
+
+class OrganizationManager(models.Manager):
+    pass
 
 
 class Organization(IndexedTimeStampedModel):
@@ -137,7 +141,7 @@ class Organization(IndexedTimeStampedModel):
         help_text="If false, receipt email assumed to be sent via Salesforce. Other emails, e.g. magic_link, are always sent via NRE regardless of this setting",
     )
 
-    objects = OrganizationManager()
+    objects = OrganizationManager.from_queryset(OrganizationQuerySet)()
 
     def __str__(self):
         return self.name
@@ -234,7 +238,7 @@ class CountryChoices(models.TextChoices):
     CANADA = "CA", "Canada"
 
 
-class RevenueProgramManager(models.Manager):
+class RevenueProgramQuerySet(models.QuerySet):
     def filtered_by_role_assignment(self, role_assignment: RoleAssignment) -> models.QuerySet:
         match role_assignment.role_type:
             case Roles.HUB_ADMIN:
@@ -245,6 +249,10 @@ class RevenueProgramManager(models.Manager):
                 return self.filter(id__in=role_assignment.revenue_programs.values_list("id", flat=True))
             case _:
                 return self.none()
+
+
+class RevenueProgramManager(models.Manager):
+    pass
 
 
 class RevenueProgram(IndexedTimeStampedModel):
@@ -306,7 +314,7 @@ class RevenueProgram(IndexedTimeStampedModel):
         help_text="2-letter country code of RP's company. This gets included in data sent to stripe when creating a payment",
     )
 
-    objects = RevenueProgramManager()
+    objects = RevenueProgramManager.from_queryset(RevenueProgramQuerySet)
 
     def __str__(self):
         return self.name

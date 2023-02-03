@@ -1,0 +1,67 @@
+{
+  "id": "web_3tVBgTFuuzmEnsWa9eBywz6j",
+  "team_id": "tm_nlcetVe8k1lMAY0KR0OxNuHr",
+  "archived_at": null,
+  "updated_at": "2021-08-02T14:12:56.575Z",
+  "created_at": "2021-08-02T14:12:56.611Z",
+  "paused_at": null,
+  "name": "my-connection",
+  "rules": [],
+  "destination": {
+    "id": "des_Nm49lhZV6wVrN1XFFPfkv7Zk",
+    "team_id": "tm_nlcetVe8k1lMAY0KR0OxNuHr",
+    "url": "https://example.com/webhook",
+    "archived_at": null,
+    "updated_at": "2021-08-02T14:12:56.591Z",
+    "created_at": "2021-08-02T14:12:56.589Z",
+    "rate_limit": null,
+    "rate_limit_period": "second",
+    "cli_path": null,
+    "path_forwarding_disabled": false,
+    "name": "my-api"
+  },
+  "source": {
+    "id": "src_9YmY0SHklrv6zBQz78cKGwSW",
+    "team_id": "tm_nlcetVe8k1lMAY0KR0OxNuHr",
+    "archived_at": null,
+    "updated_at": "2021-08-02T14:12:56.586Z",
+    "created_at": "2021-08-01T21:29:41.788Z",
+    "name": "shopify",
+    "url": "https://events.hookdeck.com/e/src_9YmY0SHklrv6zBQz78cKGwSW"
+  },
+  "ruleset": {
+    "id": "rls_gaqoPgyT17a8x1mBMpKnku8A",
+    "team_id": "tm_nlcetVe8k1lMAY0KR0OxNuHr",
+    "is_team_default": true,
+    "archived_at": null,
+    "updated_at": "2021-08-02T13:52:16.888Z",
+    "created_at": "2021-08-01T21:29:36.367Z",
+    "name": "default-ruleset",
+    "rules": [
+      {
+        "type": "retry",
+        "count": 5,
+        "interval": 10800000,
+        "strategy": "linear"
+      },
+      {
+        "type": "alert",
+        "interval": 86400000,
+        "strategy": "last_attempt"
+      }
+    ]
+  },
+  "resolved_rules": [
+    {
+      "type": "retry",
+      "count": 5,
+      "interval": 10800000,
+      "strategy": "linear"
+    },
+    {
+      "type": "alert",
+      "interval": 86400000,
+      "strategy": "last_attempt"
+    }
+  ]
+}

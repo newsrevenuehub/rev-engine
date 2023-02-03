@@ -12,13 +12,11 @@ import useUser from 'hooks/useUser';
 import { Content, Wrapper } from './Integration.styled';
 
 const Integration = () => {
-  const { user } = useUser();
+  const { user, isLoading } = useUser();
+  const userHasSingleOrg = user?.organizations?.length === 1;
 
-  const userHasSingleOrg = user?.organizations?.length === 1 ? user?.organizations?.[0] : undefined;
-  if (user) {
-    if (!userHasSingleOrg) {
-      return <Redirect to={CONTENT_SLUG} />;
-    }
+  if (!isLoading && !userHasSingleOrg) {
+    return <Redirect to={CONTENT_SLUG} />;
   }
 
   return (

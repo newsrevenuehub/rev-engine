@@ -35,7 +35,7 @@ const AvatarMenu = ({ user, className }: AvatarMenuProps) => {
   const id = open ? 'avatar-menu-popover' : undefined;
 
   const isHubAdmin = user?.role_type?.includes(USER_ROLE_HUB_ADMIN_TYPE);
-  const userHasSingleOrg = user?.organizations?.length === 1 ? user?.organizations?.[0] : undefined;
+  const userHasSingleOrg = user?.organizations?.length === 1;
 
   const avatarInitials = useMemo(
     () =>

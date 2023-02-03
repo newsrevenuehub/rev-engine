@@ -25,7 +25,10 @@ describe('Settings Integration Page', () => {
 
   beforeEach(() => {
     useUserMock.mockReturnValue({
-      user: undefined
+      user: {
+        organizations: [{ id: 'mock-org' }]
+      },
+      isLoading: false
     });
     useConnectStripeAccountMock.mockReturnValue({
       requiresVerification: true,
@@ -64,11 +67,12 @@ describe('Settings Integration Page', () => {
     expect(sendUserToStripe).not.toBeCalled();
   });
 
-  it('should redirect if user has multiple orgs', async () => {
+  it('should redirect if user has multiple orgs and isLoading = false', async () => {
     useUserMock.mockReturnValue({
       user: {
         organizations: [{ id: 'mock-org' }, { id: 'mock-org-2' }]
-      }
+      },
+      isLoading: false
     });
 
     tree();
@@ -80,6 +84,20 @@ describe('Settings Integration Page', () => {
       user: {
         organizations: [{ id: 'mock-org' }]
       }
+    });
+
+    tree();
+    expect(screen.getByText('Settings')).toBeInTheDocument();
+    expect(screen.getByText('Integrations')).toBeInTheDocument();
+    expect(screen.queryByText('mock-redirect-to-/pages/')).not.toBeInTheDocument();
+  });
+
+  it("shouldn't redirect if isLoading = true", async () => {
+    useUserMock.mockReturnValue({
+      user: {
+        organizations: [{ id: 'mock-org' }, { id: 'mock-org' }]
+      },
+      isLoading: true
     });
 
     tree();

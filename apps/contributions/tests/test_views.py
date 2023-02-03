@@ -1,5 +1,4 @@
 import json
-from csv import DictReader
 from unittest import mock
 
 from django.conf import settings
@@ -36,7 +35,10 @@ from apps.contributions.serializers import (
     ContributionSerializer,
     PaymentProviderContributionSerializer,
 )
-from apps.contributions.tasks import task_pull_serialized_stripe_contributions_to_cache
+from apps.contributions.tasks import (
+    email_contribution_csv_export_to_user,
+    task_pull_serialized_stripe_contributions_to_cache,
+)
 from apps.contributions.tests.factories import (
     ContributionFactory,
     ContributorFactory,
@@ -46,7 +48,6 @@ from apps.contributions.tests.test_serializers import (
     mock_get_bad_actor,
     mock_stripe_call_with_error,
 )
-from apps.emails.tasks import send_templated_email_with_attachment
 from apps.organizations.tests.factories import (
     OrganizationFactory,
     PaymentProviderFactory,
@@ -517,8 +518,9 @@ class TestContributionsViewSetExportCSV:
             pytest_cases.fixture_ref("rp_user"),
         ),
     )
-    def test_when_expected_user(self, user, api_client, mocker, revenue_program):
+    def test_when_expected_user(self, user, api_client, mocker, revenue_program, settings):
         """Show expected users get back expected results in CSV"""
+        settings.CELERY_ALWAYS_EAGER = True
         api_client.force_authenticate(user)
         if user.is_staff or user.roleassignment.role_type == Roles.HUB_ADMIN:
             with mock.patch("apps.contributions.models.Contribution.fetch_stripe_payment_method", return_value=None):
@@ -560,19 +562,14 @@ class TestContributionsViewSetExportCSV:
         assert expected.count()
         assert (not_expected.count() == 0) if user.is_staff else (not_expected.count() > 0)
         filter_spy = mocker.spy(Contribution.objects, "filtered_by_role_assignment")
-        email_task_spy = mocker.spy(send_templated_email_with_attachment, "delay")
+        email_export_spy = mocker.spy(email_contribution_csv_export_to_user, "delay")
         response = api_client.post(reverse("contribution-email-contributions"))
         assert response.status_code == status.HTTP_200_OK
-        assert filter_spy.call_count == 0 if user.is_staff else 1
-        assert email_task_spy.call_count == 1
-        assert email_task_spy.call_args_list[0][1]["to"] == user.email
-        contributions_from_email_view = [
-            row for row in DictReader(email_task_spy.call_args_list[0][1]["attachment"].splitlines())
-        ]
-        assert len(contributions_from_email_view) == expected.count()
-        assert set(int(x["Contribution ID"]) for x in contributions_from_email_view) == set(
-            x for x in expected.values_list("id", flat=True)
-        )
+        email_export_spy.assert_called_once()
+        assert set(email_export_spy.call_args[0][0]) == set(expected.values_list("id", flat=True))
+        assert email_export_spy.call_args[0][1] == user.email
+        if (ra := user.get_role_assignment()) is not None:
+            filter_spy.assert_called_once_with(ra)
 
     @pytest_cases.parametrize(
         "user,expected_status",

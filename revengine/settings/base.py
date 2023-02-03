@@ -388,7 +388,7 @@ THUMBNAIL_PRESERVE_FORMAT = True
 
 ### Django-reversion Settings
 # Add reversion models to admin interface.
-ADD_REVERSION_ADMIN = True
+ADD_REVERSION_ADMIN = False
 
 
 ### Stripe Settings
@@ -413,6 +413,9 @@ STRIPE_WEBHOOK_EVENTS = [
     "payment_method.attached",
     "invoice.upcoming",
 ]
+
+HOOKDECK_API_KEY = os.getenv("HOOKDECK_API_KEY", "")
+HOOKDECK_STRIPE_WEBHOOK_SOURCE = os.getenv("HOOKDECK_STRIPE_WEBHOOK_SOURCE", "")
 
 ### django-healthcheck Settings
 # This URL will get pinged when in the `auto_accept_flagged_contributions``

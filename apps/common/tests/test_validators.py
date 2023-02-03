@@ -31,7 +31,6 @@ class TestValidateFkReferenceOwnership:
 
     def test_model_not_implement_filtered_by_role_assignment(self, monkeypatch):
         monkeypatch.setattr(Contribution.objects, "filtered_by_role_assignment", None)
-        # assert getattr(Contribution.objects, "filtered_by_role_assignment", None) is None
         with pytest.raises(serializers.ValidationError):
             ValidateFkReferenceOwnership("", Contribution)
 

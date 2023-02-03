@@ -80,14 +80,11 @@ class AbstractTestCase(APITestCase):
         cls.contributor_user = Contributor.objects.first()
 
     @classmethod
-    def _set_up_donation_pages_and_templates(cls):
+    def _set_up_donation_pages(cls):
         for i in range(cls.donation_pages_per_rp_count):
-            for page in [
-                DonationPageFactory(revenue_program=cls.org1_rp1),
-                DonationPageFactory(revenue_program=cls.org1_rp2),
-                DonationPageFactory(revenue_program=cls.org2_rp),
-            ]:
-                page.make_template_from_page()
+            DonationPageFactory(revenue_program=cls.org1_rp1),
+            DonationPageFactory(revenue_program=cls.org1_rp2),
+            DonationPageFactory(revenue_program=cls.org2_rp),
 
     @classmethod
     def _set_up_styles(cls):
@@ -133,7 +130,7 @@ class AbstractTestCase(APITestCase):
         cls.superuser = user_model.objects.create_superuser(email="test@test.com", password="testing")
         cls.generic_user = create_test_user()
         # this must be called before _set_up_contributions
-        cls._set_up_donation_pages_and_templates()
+        cls._set_up_donation_pages()
         cls._set_up_contributions()
         cls._set_up_styles()
         cls._set_up_default_feature_flags()

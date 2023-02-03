@@ -26,13 +26,13 @@ boolean_types = [1, 0, "t", "f"]
 
 
 def test_revenue_program_default_donation_page_options_limited(admin_client):
-    my_revenue_program = RevenueProgramFactory()
-    some_other_rp = RevenueProgramFactory()
+    my_revenue_program = RevenueProgramFactory(onboarded=True)
+    some_other_rp = RevenueProgramFactory(onboarded=True)
     dp1 = DonationPageFactory(revenue_program=my_revenue_program)
     dp2 = DonationPageFactory(revenue_program=my_revenue_program)
     dp3 = DonationPageFactory(revenue_program=some_other_rp)
-
     response = admin_client.get(reverse("admin:organizations_revenueprogram_change", args=[my_revenue_program.pk]))
+    assert response.status_code == 200
     soup = bs4(response.content)
 
     select = soup.find("select", {"name": "default_donation_page"})
@@ -124,3 +124,14 @@ def test_show_expected_fields_on_organization_pages(admin_client):
     assert soup.find("input", {"name": "show_connected_to_slack"}) is not None
     assert soup.find("input", {"name": "show_connected_to_salesforce"}) is not None
     assert soup.find("input", {"name": "show_connected_to_mailchimp"}) is not None
+
+
+def test_revenue_program_tax_id_available_in_admin_page(admin_client):
+    response = admin_client.get(reverse("admin:organizations_revenueprogram_add"))
+    soup = bs4(response.content)
+    assert soup.find("input", {"name": "tax_id"}) is not None
+
+    my_revenue_program = RevenueProgramFactory()
+    response = admin_client.get(reverse("admin:organizations_revenueprogram_change", args=[my_revenue_program.pk]))
+    soup = bs4(response.content)
+    assert soup.find("input", {"name": "tax_id"}) is not None

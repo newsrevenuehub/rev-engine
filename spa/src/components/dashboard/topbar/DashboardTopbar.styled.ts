@@ -1,13 +1,15 @@
 import styled from 'styled-components';
 
 export const Root = styled.div`
-  width: 100%;
+  width: calc(100% - 260px);
   height: 48px;
   background: ${(props) => props.theme.colors.topbarBackground};
   box-shadow: ${(props) => props.theme.shadows[0]};
   display: flex;
+  justify-content: flex-end;
   left: 260px;
   flex-direction: row;
+  padding-right: 40px;
   position: fixed;
   z-index: ${(props) => props.theme.zIndex.header};
 
@@ -15,15 +17,6 @@ export const Root = styled.div`
 
   @media (${(props) => props.theme.breakpoints.tabletLandscapeDown}) {
     left: 66px;
+    width: calc(100% - 66px);
   }
-`;
-
-export const TopMenu = styled.div`
-  flex: 1;
-  padding: 0px 20px 0px 25px;
-  margin-right: 20px;
-  display: flex;
-  gap: 16px;
-  align-items: center;
-  justify-content: end;
 `;

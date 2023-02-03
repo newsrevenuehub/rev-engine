@@ -2,7 +2,7 @@ import PropTypes, { InferProps } from 'prop-types';
 import AvatarMenu from 'components/common/AvatarMenu';
 import { UserPropTypes } from 'constants/propTypes';
 import { User } from 'hooks/useUser.types';
-import { Root, TopMenu } from './DashboardTopbar.styled';
+import { Root } from './DashboardTopbar.styled';
 
 export interface DashboardTopbarProps extends InferProps<typeof DashboardTopbarPropTypes> {
   user: User;
@@ -11,9 +11,7 @@ export interface DashboardTopbarProps extends InferProps<typeof DashboardTopbarP
 function DashboardTopbar({ user }: DashboardTopbarProps) {
   return (
     <Root>
-      <TopMenu>
-        <AvatarMenu user={user} />
-      </TopMenu>
+      <AvatarMenu user={user} />
     </Root>
   );
 }

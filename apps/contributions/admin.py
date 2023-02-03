@@ -3,6 +3,7 @@ from django.contrib import admin, messages
 from django.utils.html import format_html
 
 from reversion.admin import VersionAdmin
+from reversion_compare.admin import CompareVersionAdmin
 
 from apps.common.admin import RevEngineBaseAdmin, prettify_json_field
 from apps.contributions.models import Contribution, ContributionStatus, Contributor
@@ -29,21 +30,8 @@ class ContributorAdmin(RevEngineBaseAdmin, VersionAdmin):
     )
 
 
-class BadActorScoreFilter(admin.SimpleListFilter):
-    title = "bad_actor_score"
-    parameter_name = "bad_actor_score"
-
-    def lookups(self, request, model_admin):
-        return Contribution.BAD_ACTOR_SCORES
-
-    def queryset(self, request, queryset):
-        if self.value():
-            return queryset.filter(bad_actor_score=self.value())
-        return queryset
-
-
 @admin.register(Contribution)
-class ContributionAdmin(RevEngineBaseAdmin, VersionAdmin):
+class ContributionAdmin(RevEngineBaseAdmin, CompareVersionAdmin):
     fieldsets = (
         (
             "Payment",
@@ -67,6 +55,7 @@ class ContributionAdmin(RevEngineBaseAdmin, VersionAdmin):
                     "payment_provider_used",
                     "provider_payment_link",
                     "provider_subscription_link",
+                    "provider_setup_intent_id",
                     "provider_customer_link",
                     "payment_provider_data_pretty",
                     "provider_payment_method_id",
@@ -87,7 +76,7 @@ class ContributionAdmin(RevEngineBaseAdmin, VersionAdmin):
         "donation_page",
         "interval",
         "status",
-        "expanded_bad_actor_score",
+        "bad_actor_score",
         "created",
         "modified",
     )
@@ -97,7 +86,7 @@ class ContributionAdmin(RevEngineBaseAdmin, VersionAdmin):
         "interval",
         "donation_page__name",
         "status",
-        BadActorScoreFilter,
+        "bad_actor_score",
         "modified",
         "created",
     )
@@ -108,7 +97,7 @@ class ContributionAdmin(RevEngineBaseAdmin, VersionAdmin):
     )
 
     search_fields = (
-        "revenue_program",
+        "donation_page__revenue_program__name",
         "contributor__email",
         "donation_page__name",
         "modified",
@@ -133,6 +122,7 @@ class ContributionAdmin(RevEngineBaseAdmin, VersionAdmin):
         "provider_payment_method_id",
         "payment_provider_data_pretty",
         "flagged_date",
+        "provider_setup_intent_id",
         "provider_payment_method_details_pretty",
     )
 

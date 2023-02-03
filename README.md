@@ -363,9 +363,7 @@ heroku pg:backups:download --app rev-engine-test b001
 
 #### Restore backup
 
-NOTE: The Make commands below assume that you can run `$psql` and get a prompt for your local database.
-
-
+NOTE: The Make commands below assume that you can run `psql` and get a prompt for your local database.
 
 ```sh
 # assuming that you already have a local backup up and running. if not, skip the first two commands

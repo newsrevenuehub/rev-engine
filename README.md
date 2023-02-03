@@ -366,8 +366,8 @@ heroku pg:backups:download --app rev-engine-test b001
 NOTE: The Make commands below assume that you can run `psql` and get a prompt for your local database.
 
 ```sh
-# assuming that you already have a local backup up and running. if not, skip the first two commands
-make reset-db
+# assuming that you already have a local backup up
+make drop-db
 # the previous commands stop and remove the docker image and volume for the local db, so need to run again
 docker compose up -d
 # if your backup file is called something else, substitute that name

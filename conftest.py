@@ -56,7 +56,9 @@ from unittest.mock import patch
 
 import pytest
 from rest_framework.test import APIClient
+from waffle import get_waffle_flag_model
 
+from apps.common.tests.test_resources import DEFAULT_FLAGS_CONFIG_MAPPING
 from apps.contributions.tests.factories import ContributionFactory, ContributorFactory
 from apps.organizations.tests.factories import OrganizationFactory, RevenueProgramFactory
 from apps.pages.tests.factories import DonationPageFactory, StyleFactory
@@ -76,7 +78,15 @@ def dont_use_ssl(settings):
 
 
 @pytest.fixture
-def hub_admin_user() -> User:
+def default_feature_flags():
+    """ """
+    Flag = get_waffle_flag_model()
+    for x in DEFAULT_FLAGS_CONFIG_MAPPING.values():
+        Flag.objects.get_or_create(name=x["name"], defaults={k: v for k, v in x.items() if k != "name"})
+
+
+@pytest.fixture
+def hub_admin_user(default_feature_flags) -> User:
     """A user instance for a hub administrator
 
     The following items will be created (insofar as this note is not stale vis-a-vis implementation in RoleAssignmentFactory):
@@ -92,7 +102,7 @@ def hub_admin_user() -> User:
 
 
 @pytest.fixture
-def org_user_free_plan() -> User:
+def org_user_free_plan(default_feature_flags) -> User:
     """A user instance for a self-onboarded free plan organization user
 
     The following items will be created (insofar as this note is not stale vis-a-vis implementation in RoleAssignmentFactory):
@@ -115,7 +125,7 @@ def org_user_free_plan() -> User:
 
 
 @pytest.fixture
-def org_user_multiple_rps(org_user_free_plan) -> User:
+def org_user_multiple_rps(org_user_free_plan, default_feature_flags) -> User:
     """A user instance for an org admin administering multiple RPs
 
     The following items will be created (insofar as this note is not stale vis-a-vis implementation in RoleAssignmentFactory):
@@ -138,8 +148,10 @@ def org_user_multiple_rps(org_user_free_plan) -> User:
 
 
 @pytest.fixture
-def superuser(admin_user) -> User:
+def superuser(admin_user, default_feature_flags) -> User:
     """A user instance for superuser"""
+    admin_user.is_superuser = True
+    admin_user.save()
     return RoleAssignmentFactory(
         user=admin_user,
         organization=None,
@@ -147,7 +159,7 @@ def superuser(admin_user) -> User:
 
 
 @pytest.fixture
-def rp_user(org_user_multiple_rps) -> User:
+def rp_user(org_user_multiple_rps, default_feature_flags) -> User:
     """A user instance for a revenue program admin administering a subset of an organization's revenue programs
 
     The following items will be created (insofar as this note is not stale vis-a-vis implementation in RoleAssignmentFactory):
@@ -171,17 +183,22 @@ def rp_user(org_user_multiple_rps) -> User:
 
 
 @pytest.fixture
-def user_no_role_assignment() -> User:
+def user_no_role_assignment(default_feature_flags) -> User:
     return UserFactory()
 
 
 @pytest.fixture
-def user_with_unexpected_role(org_user_free_plan) -> User:
+def admin_user(default_feature_flags) -> User:
+    return UserFactory(is_staff=True)
+
+
+@pytest.fixture
+def user_with_unexpected_role(org_user_free_plan, default_feature_flags) -> User:
     return RoleAssignmentFactory(role_type="Surprise!").user
 
 
 @pytest.fixture
-def contributor_user() -> ContributorFactory:
+def contributor_user(default_feature_flags) -> ContributorFactory:
     return ContributorFactory()
 
 

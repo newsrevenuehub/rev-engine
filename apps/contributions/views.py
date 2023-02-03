@@ -245,10 +245,10 @@ class ContributionsViewSet(viewsets.ReadOnlyModelViewSet):
             return self.filter_queryset_for_contributor(user)
         elif user.is_anonymous:
             return self.model.objects.none()
-        elif ra:
-            return self.model.objects.filtered_by_role_assignment(ra)
         elif user.is_superuser:
             return self.model.objects.all()
+        elif ra:
+            return self.model.objects.filtered_by_role_assignment(ra)
         else:
             logger.warning("Encountered unexpected user")
             raise ApiConfigurationError
@@ -257,6 +257,7 @@ class ContributionsViewSet(viewsets.ReadOnlyModelViewSet):
         return self.filter_queryset_for_user(self.request.user)
 
     def filter_queryset_for_contributor(self, contributor) -> List[CachedStripeContributionResult]:
+        """ """
         if (rp_slug := self.request.GET.get("rp", None)) is None:
             logger.warning("")
             raise ParseError("rp not supplied")
@@ -308,7 +309,9 @@ class ContributionsViewSet(viewsets.ReadOnlyModelViewSet):
         as contributors will be able to access only Contributor Portal via magic link.
         """
         try:
-            contributions_in_csv = export_contributions_to_csv(self.get_queryset())
+            contributions_in_csv = export_contributions_to_csv(
+                self.model.objects.all() if request.user.is_staff else self.get_queryset()
+            )
 
             send_templated_email_with_attachment.delay(
                 to=request.user.email,
@@ -355,11 +358,11 @@ class SubscriptionsViewSet(viewsets.ViewSet):
             task_pull_serialized_stripe_contributions_to_cache(
                 self.request.user.email, revenue_program.stripe_account_id
             )
-
         subscriptions = cache_provider.load()
         return [x for x in subscriptions if x.get("revenue_program_slug") == revenue_program_slug]
 
     def retrieve(self, request, pk):
+        #  TODO: [DEV-3227] Here...
         subscriptions = self._fetch_subscriptions(request)
         for subscription in subscriptions:
             if (

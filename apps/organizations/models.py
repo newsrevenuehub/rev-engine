@@ -314,7 +314,7 @@ class RevenueProgram(IndexedTimeStampedModel):
         help_text="2-letter country code of RP's company. This gets included in data sent to stripe when creating a payment",
     )
 
-    objects = RevenueProgramManager.from_queryset(RevenueProgramQuerySet)
+    objects = RevenueProgramManager.from_queryset(RevenueProgramQuerySet)()
 
     def __str__(self):
         return self.name

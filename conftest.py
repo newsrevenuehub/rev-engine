@@ -1,56 +1,56 @@
-"""conftest.py
+# """conftest.py
 
-This file contains a set of globally available fixtures for pytest tests. Each named fixture in this module is
-globally available as a function parameter in any pytest test function/method, with no requirement for explicit import.
+# This file contains a set of globally available fixtures for pytest tests. Each named fixture in this module is
+# globally available as a function parameter in any pytest test function/method, with no requirement for explicit import.
 
-These fixtures are meant to provide a set of predictable test configurations that directly map to our business logic.
+# These fixtures are meant to provide a set of predictable test configurations that directly map to our business logic.
 
-Many (though not all) of the fixtures in this module wrap Python test factories (created using FactoryBoy). By pairing test
-fixtures and factories, we are able to start passing these fixtures as parameters to `parametrize` decorator calls. What's more,
-we can use multiple calls to the `parametrize` decorator to create tests that are run for each item in the Cartesian product
-of the two parametrizations.
+# Many (though not all) of the fixtures in this module wrap Python test factories (created using FactoryBoy). By pairing test
+# fixtures and factories, we are able to start passing these fixtures as parameters to `parametrize` decorator calls. What's more,
+# we can use multiple calls to the `parametrize` decorator to create tests that are run for each item in the Cartesian product
+# of the two parametrizations.
 
-Concretely, this allows us to parametrize, say, a set of known users vs a set of endpoints.
+# Concretely, this allows us to parametrize, say, a set of known users vs a set of endpoints.
 
-Here's an example:
+# Here's an example:
 
-```
-@pytest_cases.parametrize(
-    "user",
-    (
-        pytest_cases.fixture_ref("org_user_free_plan"),
-        pytest_cases.fixture_ref("superuser"),
-    ),
-)
-@pytest_cases.parametrize(
-    "data,expect_status_code,error_response,has_fake_fields",
-    (
-        (pytest_cases.fixture_ref("rp_valid_patch_data"), status.HTTP_200_OK, None, False),
-        (
-            pytest_cases.fixture_ref("rp_invalid_patch_data_tax_id_too_short"),
-            status.HTTP_400_BAD_REQUEST,
-            {"tax_id": ["Ensure this field has at least 9 characters."]},
-            False,
-        ),
-        (
-            pytest_cases.fixture_ref("rp_invalid_patch_data_tax_id_too_long"),
-            status.HTTP_400_BAD_REQUEST,
-            {"tax_id": ["Ensure this field has no more than 9 characters."]},
-            False,
-        ),
-        (
-            pytest_cases.fixture_ref("rp_invalid_patch_data_unexpected_fields"),
-            status.HTTP_200_OK,
-            {},
-            True,
-        ),
-    ),
-)
-def test_patch_when_expected_user(
-    self, user, data, expect_status_code, error_response, has_fake_fields, api_client, revenue_program, mocker
-):
-```
-"""
+# ```
+# @pytest_cases.parametrize(
+#     "user",
+#     (
+#         pytest_cases.fixture_ref("org_user_free_plan"),
+#         pytest_cases.fixture_ref("superuser"),
+#     ),
+# )
+# @pytest_cases.parametrize(
+#     "data,expect_status_code,error_response,has_fake_fields",
+#     (
+#         (pytest_cases.fixture_ref("rp_valid_patch_data"), status.HTTP_200_OK, None, False),
+#         (
+#             pytest_cases.fixture_ref("rp_invalid_patch_data_tax_id_too_short"),
+#             status.HTTP_400_BAD_REQUEST,
+#             {"tax_id": ["Ensure this field has at least 9 characters."]},
+#             False,
+#         ),
+#         (
+#             pytest_cases.fixture_ref("rp_invalid_patch_data_tax_id_too_long"),
+#             status.HTTP_400_BAD_REQUEST,
+#             {"tax_id": ["Ensure this field has no more than 9 characters."]},
+#             False,
+#         ),
+#         (
+#             pytest_cases.fixture_ref("rp_invalid_patch_data_unexpected_fields"),
+#             status.HTTP_200_OK,
+#             {},
+#             True,
+#         ),
+#     ),
+# )
+# def test_patch_when_expected_user(
+#     self, user, data, expect_status_code, error_response, has_fake_fields, api_client, revenue_program, mocker
+# ):
+# ```
+# """
 
 from unittest.mock import patch
 
@@ -150,12 +150,13 @@ def org_user_multiple_rps(org_user_free_plan, default_feature_flags) -> User:
 @pytest.fixture
 def superuser(admin_user, default_feature_flags) -> User:
     """A user instance for superuser"""
-    admin_user.is_superuser = True
-    admin_user.save()
-    return RoleAssignmentFactory(
+    ra = RoleAssignmentFactory(
         user=admin_user,
         organization=None,
-    ).user
+    )
+    ra.user.is_superuser = True
+    ra.user.save()
+    return ra.user
 
 
 @pytest.fixture
@@ -185,11 +186,6 @@ def rp_user(org_user_multiple_rps, default_feature_flags) -> User:
 @pytest.fixture
 def user_no_role_assignment(default_feature_flags) -> User:
     return UserFactory()
-
-
-@pytest.fixture
-def admin_user(default_feature_flags) -> User:
-    return UserFactory(is_staff=True)
 
 
 @pytest.fixture

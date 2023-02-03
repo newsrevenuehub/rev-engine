@@ -15,9 +15,9 @@ from apps.organizations.models import (
     TAX_ID_MAX_LENGTH,
     TAX_ID_MIN_LENGTH,
     Organization,
-    OrganizationManager,
+    OrganizationQuerySet,
     RevenueProgram,
-    RevenueProgramManager,
+    RevenueProgramQuerySet,
 )
 from apps.organizations.tests.factories import OrganizationFactory, RevenueProgramFactory
 from apps.organizations.views import RevenueProgramViewSet, get_stripe_account_link_return_url
@@ -73,7 +73,7 @@ class TestOrganizationViewSet:
                 assert response.status_code == status.HTTP_200_OK
         else:
             query = Organization.objects.filtered_by_role_assignment(user.roleassignment)
-            spy = mocker.spy(OrganizationManager, "filtered_by_role_assignment")
+            spy = mocker.spy(OrganizationQuerySet, "filtered_by_role_assignment")
             unpermitted = Organization.objects.exclude(id__in=query.values_list("id", flat=True))
             assert query.count()
             if user.roleassignment.role_type == Roles.HUB_ADMIN:
@@ -139,7 +139,7 @@ class TestOrganizationViewSet:
 
         else:
             query = Organization.objects.filtered_by_role_assignment(user.roleassignment)
-            spy = mocker.spy(OrganizationManager, "filtered_by_role_assignment")
+            spy = mocker.spy(OrganizationQuerySet, "filtered_by_role_assignment")
             unpermitted = Organization.objects.exclude(id__in=query.values_list("id", flat=True))
             assert query.count()
             if user.roleassignment.role_type == Roles.HUB_ADMIN:
@@ -232,7 +232,7 @@ class TestOrganizationViewSet:
                 for key in data:
                     assert response.json()[key] == getattr(organization, key)
         else:
-            spy = mocker.spy(OrganizationManager, "filtered_by_role_assignment")
+            spy = mocker.spy(OrganizationQuerySet, "filtered_by_role_assignment")
             assert organization.id != user.roleassignment.organization
             unpermitted_response = api_client.patch(reverse("organization-detail", args=(organization.id,)), data=data)
             assert unpermitted_response.status_code == status.HTTP_404_NOT_FOUND
@@ -322,7 +322,7 @@ class TestRevenueProgramViewSet:
                 assert response.status_code == status.HTTP_200_OK
         else:
             query = RevenueProgram.objects.filtered_by_role_assignment(user.roleassignment)
-            spy = mocker.spy(RevenueProgramManager, "filtered_by_role_assignment")
+            spy = mocker.spy(RevenueProgramQuerySet, "filtered_by_role_assignment")
             unpermitted = RevenueProgram.objects.exclude(id__in=query.values_list("id", flat=True))
             assert query.count()
             assert unpermitted.count()
@@ -393,7 +393,7 @@ class TestRevenueProgramViewSet:
 
         else:
             query = RevenueProgram.objects.filtered_by_role_assignment(user.roleassignment)
-            spy = mocker.spy(RevenueProgramManager, "filtered_by_role_assignment")
+            spy = mocker.spy(RevenueProgramQuerySet, "filtered_by_role_assignment")
             unpermitted = RevenueProgram.objects.exclude(id__in=query.values_list("id", flat=True))
             assert query.count()
             assert unpermitted.count()
@@ -518,7 +518,7 @@ class TestRevenueProgramViewSet:
                 for key in data:
                     assert response.json()[key] == getattr(revenue_program, key)
         else:
-            spy = mocker.spy(RevenueProgramManager, "filtered_by_role_assignment")
+            spy = mocker.spy(RevenueProgramQuerySet, "filtered_by_role_assignment")
             assert revenue_program.id not in user.roleassignment.revenue_programs.all().values_list("id", flat=True)
             unpermitted_response = api_client.patch(reverse("revenue-program-detail", args=(revenue_program.id,)))
             assert unpermitted_response.status_code == status.HTTP_404_NOT_FOUND

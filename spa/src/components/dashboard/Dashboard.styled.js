@@ -20,8 +20,12 @@ export const DashboardMain = styled.div`
 `;
 
 export const DashboardContent = styled.main`
-  /* 48px is the height of the topbar. */
-  padding: calc(3rem + 48px) 3rem 0 3rem;
+  /*
+  48px is the height of the topbar. This needs to be margin so that
+  absolutely positioned children get the correct placement.
+  */
+  margin-top: 48px;
+  padding: 3rem 3rem 0 3rem;
   flex: 1;
   display: flex;
   flex-direction: column;

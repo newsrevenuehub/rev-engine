@@ -100,12 +100,12 @@ export function EditInterfaceContextProvider({ children }: EditInterfaceContextP
   const [elementRequiredFields, setElementRequiredFields] = useState<string[]>([]);
   const setElements = useCallback(
     (elements: ContributionPageElement[] | undefined) => {
-      setPageChanges({ elements });
+      setPageChanges((existing) => ({ ...existing, elements }));
     },
     [setPageChanges]
   );
   const setSidebarElements = (sidebar_elements: ContributionPageElement[]) => {
-    setPageChanges({ sidebar_elements });
+    setPageChanges((existing) => ({ ...existing, sidebar_elements }));
   };
   const handleRemoveElement = (element: ContributionPageElement, location: 'layout' | 'sidebar') => {
     if (dynamicElements[element.type]?.required) {
@@ -113,11 +113,15 @@ export function EditInterfaceContextProvider({ children }: EditInterfaceContextP
     }
 
     if (location === 'layout') {
-      setPageChanges({ elements: updatedPagePreview?.elements?.filter(({ uuid }) => uuid !== element.uuid) });
+      setPageChanges((existing) => ({
+        ...existing,
+        elements: updatedPagePreview?.elements?.filter(({ uuid }) => uuid !== element.uuid)
+      }));
     } else if (location === 'sidebar') {
-      setPageChanges({
+      setPageChanges((existing) => ({
+        ...existing,
         sidebar_elements: updatedPagePreview?.sidebar_elements?.filter(({ uuid }) => uuid !== element.uuid)
-      });
+      }));
     }
   };
 

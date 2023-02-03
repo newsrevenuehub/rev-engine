@@ -74,13 +74,17 @@ describe('EditInterfaceContextProvider', () => {
     expect(screen.getByTestId('elements')).toHaveTextContent(JSON.stringify(elements));
   });
 
-  it('adds a page change to elements when setElements is called', () => {
+  it('adds a page change to elements when setElements is called, preserving unrelated changes', () => {
     const setPageChanges = jest.fn();
 
     tree({ setPageChanges });
     expect(setPageChanges).not.toBeCalled();
     fireEvent.click(screen.getByText('setElements'));
-    expect(setPageChanges.mock.calls).toEqual([[{ elements: [{ changedElements: true }] }]]);
+    expect(setPageChanges).toBeCalledTimes(1);
+    expect(setPageChanges.mock.calls[0][0]({ existing: true })).toEqual({
+      existing: true,
+      elements: [{ changedElements: true }]
+    });
   });
 
   it("has an sidebarElements property that reflects the editable page's preview, not the page", () => {
@@ -90,13 +94,17 @@ describe('EditInterfaceContextProvider', () => {
     expect(screen.getByTestId('sidebarElements')).toHaveTextContent(JSON.stringify(sidebar_elements));
   });
 
-  it('adds a page change to sidebar_elements when setSidebarElements is called', () => {
+  it('adds a page change to sidebar_elements when setSidebarElements is called, preserving unrelated changes', () => {
     const setPageChanges = jest.fn();
 
     tree({ setPageChanges });
     expect(setPageChanges).not.toBeCalled();
     fireEvent.click(screen.getByText('setSidebarElements'));
-    expect(setPageChanges.mock.calls).toEqual([[{ sidebar_elements: [{ changedSidebarElements: true }] }]]);
+    expect(setPageChanges).toBeCalledTimes(1);
+    expect(setPageChanges.mock.calls[0][0]({ existing: true })).toEqual({
+      existing: true,
+      sidebar_elements: [{ changedSidebarElements: true }]
+    });
   });
 
   it('has a selected element state that starts undefined', () => {
@@ -133,7 +141,7 @@ describe('EditInterfaceContextProvider', () => {
   });
 
   describe('handleRemoveElement', () => {
-    it("removes elements from the main page content if passed a 'layout' location", () => {
+    it("removes elements from the main page content if passed a 'layout' location, preserving unrelated changes", () => {
       const setPageChanges = jest.fn();
 
       tree({
@@ -144,10 +152,14 @@ describe('EditInterfaceContextProvider', () => {
         setPageChanges
       });
       fireEvent.click(screen.getByText('handleRemoveElement layout'));
-      expect(setPageChanges.mock.calls).toEqual([[{ elements: [{ uuid: 'unrelated1' }, { uuid: 'unrelated2' }] }]]);
+      expect(setPageChanges).toBeCalledTimes(1);
+      expect(setPageChanges.mock.calls[0][0]({ existing: true })).toEqual({
+        existing: true,
+        elements: [{ uuid: 'unrelated1' }, { uuid: 'unrelated2' }]
+      });
     });
 
-    it("removes elements from the sidebar if passaged a 'sidebar' location", () => {
+    it("removes elements from the sidebar if passaged a 'sidebar' location, preserving unrelated changes", () => {
       const setPageChanges = jest.fn();
 
       tree({
@@ -158,9 +170,11 @@ describe('EditInterfaceContextProvider', () => {
         setPageChanges
       });
       fireEvent.click(screen.getByText('handleRemoveElement sidebar'));
-      expect(setPageChanges.mock.calls).toEqual([
-        [{ sidebar_elements: [{ uuid: 'unrelated1' }, { uuid: 'unrelated2' }] }]
-      ]);
+      expect(setPageChanges).toBeCalledTimes(1);
+      expect(setPageChanges.mock.calls[0][0]({ existing: true })).toEqual({
+        existing: true,
+        sidebar_elements: [{ uuid: 'unrelated1' }, { uuid: 'unrelated2' }]
+      });
     });
 
     it('does nothing if an element is required', () => {
@@ -191,7 +205,11 @@ describe('EditInterfaceContextProvider', () => {
         setPageChanges
       });
       fireEvent.click(screen.getByText('handleRemoveElement layout'));
-      expect(setPageChanges.mock.calls).toEqual([[{ elements: [{ uuid: 'unrelated' }] }]]);
+      expect(setPageChanges).toBeCalledTimes(1);
+      expect(setPageChanges.mock.calls[0][0]({ existing: true })).toEqual({
+        existing: true,
+        elements: [{ uuid: 'unrelated' }]
+      });
     });
   });
 

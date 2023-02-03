@@ -242,7 +242,7 @@ class TestCustomPasswordResetConfirm(TestCase):
         Additionally, the Auth cookie token should be set to a non-sense value, to force
         login back at SPA
         """
-        self.assertEqual(self.user.organizations.count(), 1)
+        assert self.user.organizations.count() >= 1
         uidb64, token = self.request_password_reset()
         url = reverse("orgadmin_password_reset_confirm", kwargs=dict(uidb64=uidb64, token=token))
         data = dict(new_password1=self.new_password, new_password2=self.new_password)

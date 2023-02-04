@@ -68,6 +68,15 @@ export const FieldRow = styled.div`
 
   @media (${(props) => props.theme.breakpoints.tabletLandscapeDown}) {
     flex-direction: column;
+    & > :not(:last-child) {
+      margin-right: unset;
+    }
+
+    ${(props) =>
+      props.$gap &&
+      `
+      gap: 16px;
+    `}
   }
 `;
 
@@ -149,7 +158,6 @@ export const SliderBox = styled.div`
   display: flex;
   align-items: center;
   padding: 0 2rem;
-  border-radius: ${(props) => props.radius}px;
 `;
 
 export const Slider = styled(MaterialSlider)`

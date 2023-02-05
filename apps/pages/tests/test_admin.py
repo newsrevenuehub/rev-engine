@@ -204,3 +204,15 @@ class TemplateAdminTest(AbstractTestCase):
         # ...then try to do it again
         response = self.client.post(change_url, {"_page-from-template": True})
         self.assertEqual(response.status_code, 302)
+
+
+@pytest.mark.django_db
+def test_can_modify_donation_page_when_sidebar_elements_is_empty():
+    user_model = get_user_model()
+    user = user_model.objects.create_superuser(email="superuser@test.com", password="testing")
+    page_empty_sidebar_elements = DonationPageFactory(sidebar_elements=[])
+    url = reverse("admin:pages_donationpage_change", kwargs={"object_id": page_empty_sidebar_elements.id})
+    c = Client()
+    c.force_login(user)
+    response = c.patch(url, data={"Name": "New name"})
+    assert response.status_code == 200

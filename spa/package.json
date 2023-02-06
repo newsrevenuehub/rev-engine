@@ -93,7 +93,7 @@
     ],
     "coverageThreshold": {
       "global": {
-        "lines": 38
+        "lines": 50
       }
     },
     "transformIgnorePatterns": [

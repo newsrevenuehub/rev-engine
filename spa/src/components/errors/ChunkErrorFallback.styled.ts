@@ -9,13 +9,13 @@ export const ErrorHeading = styled(motion.div)`
   height: 40%;
   h2 {
     margin: 0;
-    font-size: ${(props) => props?.theme?.fontSizes?.[2]};
-    color: ${(props) => props?.theme?.colors?.black};
+    font-size: ${(props) => props.theme.fontSizes[2]};
+    color: ${(props) => props.theme.colors.black};
   }
   h4 {
     margin: 0;
-    font-size: ${(props) => props?.theme?.fontSizes?.[1]};
-    color: ${(props) => props?.theme?.colors?.black};
+    font-size: ${(props) => props.theme.fontSizes[1]};
+    color: ${(props) => props.theme.colors.black};
   }
 `;
 
@@ -32,6 +32,6 @@ export const ErrorWrapper = styled(motion.div)`
 
 export const Logout = styled(motion.div)`
   padding: 2rem;
-  color: ${(props) => props?.theme?.colors?.primary};
+  color: ${(props) => props.theme.colors.primary};
   cursor: pointer;
 `;

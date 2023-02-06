@@ -1,9 +1,9 @@
-import { render, screen } from '@testing-library/react';
+import { render, screen } from 'test-utils';
+import userEvent from '@testing-library/user-event';
 import { ReactNode } from 'react';
 
 import ChunkErrorBoundary from './ChunkErrorBoundary';
 import logout from 'components/authentication/logout';
-import userEvent from '@testing-library/user-event';
 
 jest.mock('components/authentication/logout');
 

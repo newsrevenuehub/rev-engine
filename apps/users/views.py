@@ -272,7 +272,7 @@ class UserViewset(
         except BadActorAPIError:
             logger.warning("Something went wrong with BadActorAPI", exc_info=True)
             return
-        if response.json()["overall_judgment"] >= settings.BAD_ACTOR_FAILURE_THRESHOLD_FOR_ORG_USERS:
+        if response.json()["overall_judgment"] >= settings.BAD_ACTOR_REJECT_SCORE_FOR_ORG_USERS:
             logger.warning("Someone determined to be a bad actor tried to create a user: [%s]", data)
             raise ValidationError(BAD_ACTOR_CLIENT_FACING_VALIDATION_MESSAGE)
 
@@ -307,9 +307,10 @@ class UserViewset(
         last_name = customize_account_serializer.validated_data["last_name"]
         organization_name = customize_account_serializer.validated_data["organization_name"]
         organization_tax_id = customize_account_serializer.validated_data["organization_tax_id"]
-        organization_tax_status = customize_account_serializer.validated_data["organization_tax_status"]
+        fiscal_sponsor_name = customize_account_serializer.validated_data["fiscal_sponsor_name"]
+        fiscal_status = customize_account_serializer.validated_data["fiscal_status"]
         user = request.user
-        logger.debug("Received request to customize account for user %s; request: %s", user, request.data)
+        logger.debug("Received request to customize account for user %s; request: %s", user.id, request.data)
         user.first_name = first_name
         user.last_name = last_name
         user.job_title = customize_account_serializer.validated_data["job_title"]
@@ -326,14 +327,15 @@ class UserViewset(
             name=organization_name,
             organization=organization,
             slug=slugify(organization_name),
-            non_profit=True if organization_tax_status == "nonprofit" else False,
+            fiscal_status=fiscal_status,
             tax_id=organization_tax_id,
             payment_provider=payment_provider,
+            fiscal_sponsor_name=fiscal_sponsor_name,
         )
         RoleAssignment.objects.create(user=user, role_type=Roles.ORG_ADMIN, organization=organization)
         logger.info(
             "Customize account for user %s successful; organization %s and revenue program %s created.",
-            user,
+            user.id,
             organization.pk,
             revenue_program.pk,
         )

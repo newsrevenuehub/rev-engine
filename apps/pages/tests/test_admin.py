@@ -5,6 +5,7 @@ from django.contrib.admin.sites import AdminSite
 from django.contrib.auth import get_user_model
 from django.contrib.messages import get_messages
 from django.db.utils import IntegrityError
+from django.forms.models import model_to_dict
 from django.test import Client, RequestFactory, TestCase
 from django.urls import reverse
 
@@ -207,7 +208,17 @@ class TemplateAdminTest(AbstractTestCase):
 
 
 @pytest.mark.django_db
-def test_can_modify_donation_page_when_sidebar_elements_is_empty(admin_user, api_client):
+def test_can_modify_donation_page_when_sidebar_elements_is_empty(admin_client):
+    new_name = "New name"
     page_empty_sidebar_elements = DonationPageFactory(sidebar_elements=[])
-    api_client.force_authenticate(admin_user)
-    assert api_client.patch(reverse("admin:pages_donationpage_change", kwargs={"object_id": page_empty_sidebar_elements.id}), data={"Name": "New name"}).status_code == 200
+    data = model_to_dict(page_empty_sidebar_elements)
+    data["name"] = new_name
+    data["_save"] = "save"
+    assert (
+        admin_client.post(
+            reverse("admin:pages_donationpage_change", args=[page_empty_sidebar_elements.pk]), data=data
+        ).status_code
+        == 200
+    )
+    page_empty_sidebar_elements.refresh_from_db()
+    assert page_empty_sidebar_elements.name == new_name

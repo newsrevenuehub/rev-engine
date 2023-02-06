@@ -1,0 +1,13 @@
+{
+  "id": "des_RYyvhVusgJCb",
+  "team_id": "tm_hel0rvlsNxHz",
+  "url": "https://www.somewhere.com",
+  "archived_at": "2022-12-11T20:12:26.519Z",
+  "updated_at": "2022-12-11T20:17:26.452Z",
+  "created_at": "2022-12-11T20:04:08.454Z",
+  "rate_limit": null,
+  "rate_limit_period": "second",
+  "cli_path": null,
+  "path_forwarding_disabled": false,
+  "name": "my-connection"
+}

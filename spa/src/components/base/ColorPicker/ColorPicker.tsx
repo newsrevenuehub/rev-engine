@@ -27,7 +27,7 @@ const SwatchRoot = styled.div`
 const Swatch = styled.div`
   && {
     align-items: center;
-    border: 1px solid #${({ theme }) => theme.colors.muiGrey[100]};
+    box-shadow: inset 0 0 0 0.5px ${({ theme }) => theme.colors.muiGrey[100]};
     border-radius: ${({ theme }) => theme.muiBorderRadius.lg};
     display: flex;
     height: 100%;
@@ -56,6 +56,7 @@ const Swatch = styled.div`
 
 const SwatchInput = styled.input`
   appearance: none;
+  background: none;
   border: none;
   cursor: pointer;
   height: 100%;

@@ -1,0 +1,31 @@
+import { ComponentMeta, ComponentStory } from '@storybook/react';
+import AmountInterval from './AmountInterval';
+
+export default {
+  component: AmountInterval,
+  title: 'ElementEditors/AmountInterval',
+  argTypes: {
+    interval: { control: 'select', options: ['one_time', 'month', 'year'] }
+  }
+} as ComponentMeta<typeof AmountInterval>;
+
+const Template: ComponentStory<typeof AmountInterval> = (props) => <AmountInterval {...props} />;
+
+export const WithDefault = Template.bind({});
+WithDefault.args = {
+  defaultOption: 123.45,
+  interval: 'one_time',
+  options: [123.45, 5678.9, 12345689]
+};
+
+export const NoDefault = Template.bind({});
+NoDefault.args = {
+  interval: 'one_time',
+  options: [123.45, 5678.9, 12345689]
+};
+
+export const OneOption = Template.bind({});
+OneOption.args = {
+  interval: 'one_time',
+  options: [123.45]
+};

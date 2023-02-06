@@ -1,6 +1,5 @@
 // Util
 import { getEndpoint } from '../support/util';
-import { getFrequencyAdjective } from 'utilities/parseFrequency';
 
 // Fixtures
 import livePage from '../fixtures/pages/live-page-1.json';
@@ -233,52 +232,43 @@ describe('Contribution page edit', () => {
 
     it('should show existing frequencies and amounts', () => {
       for (const frequency in options) {
-        if (frequency === 'other') continue;
-        cy.contains(getFrequencyAdjective(frequency))
-          .siblings('ul')
-          .within(() =>
-            options[frequency].forEach((amount) => {
-              cy.contains(amount);
-            })
-          );
+        if (frequency === 'other') {
+          continue;
+        }
+
+        cy.getByTestId(`amount-interval-${frequency}`).within(() =>
+          options[frequency].forEach((amount) => {
+            cy.contains(amount);
+          })
+        );
       }
     });
 
-    it('should remove an amount when clicking x', () => {
+    it('should remove an amount when the remove button is clicked', () => {
       const amountToRemove = 120;
-      cy.contains('One time')
-        .siblings('ul')
-        .within(() => {
-          cy.contains(amountToRemove).find("[data-testid='x-button']").click();
-          cy.contains(amountToRemove).should('not.exist');
-        });
+
+      cy.getByTestId('amount-interval-one_time').within(() => {
+        cy.findByRole('button', { name: `Remove ${amountToRemove}` }).click();
+        cy.contains(amountToRemove).should('not.exist');
+      });
     });
 
     it('should add an amount', () => {
       const amountToAdd = 5;
-      cy.contains('One time')
-        .siblings('div')
-        .within(() => {
-          cy.getByTestId('amount-input').type(amountToAdd);
-          cy.getByTestId('add-button').click();
-        });
-      cy.contains('One time')
-        .siblings('ul')
-        .within(() => {
-          cy.contains(amountToAdd);
-        });
+
+      cy.getByTestId('amount-interval-one_time').within(() => {
+        cy.findByLabelText('Other amount').type(amountToAdd);
+        cy.findByLabelText('Add').click();
+        cy.contains(amountToAdd);
+      });
     });
 
     it('should prevent user from removing last amount in list', () => {
-      cy.contains('One time')
-        .siblings('ul')
-        .children()
-        .each(() => {
-          cy.getByTestId('x-button').first().click();
-        });
-
-      cy.contains('One time').siblings('ul').children();
-      cy.findByRole('button', { name: 'Cancel' }).click();
+      cy.getByTestId('amount-interval-one_time').within(() => {
+        cy.findAllByRole('button', { name: /Remove/ }).each((el) => cy.wrap(el).click({ force: true }));
+        // This is the last amount in the fixture.
+        cy.contains('365');
+      });
     });
   });
 

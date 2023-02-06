@@ -38,10 +38,7 @@ function Profile() {
         first_name: formData.firstName,
         last_name: formData.lastName,
         organization_name: formData.companyName,
-        organization_tax_status:
-          formData.companyTaxStatus === TAX_STATUS.FISCALLY_SPONSORED
-            ? TAX_STATUS.NONPROFIT
-            : formData.companyTaxStatus,
+        fiscal_status: formData.companyTaxStatus,
         // Don't send job_title or organization_tax_id at all if the user omitted it.
         job_title: formData.jobTitle.trim() !== '' ? formData.jobTitle : undefined,
         organization_tax_id: formData.taxId.replace('-', '').replace('_', '') || undefined,

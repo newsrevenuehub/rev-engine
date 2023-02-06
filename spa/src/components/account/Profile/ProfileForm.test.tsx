@@ -192,7 +192,7 @@ describe('ProfileForm', () => {
             lastName: 'mock-last-name',
             jobTitle: 'mock-job-title',
             companyName: 'mock-company-name',
-            companyTaxStatus: 'fiscally-sponsored',
+            companyTaxStatus: 'fiscally sponsored',
             taxId: '98-7654321',
             fiscalSponsorName: 'mock-fiscal-sponsor-name'
           }

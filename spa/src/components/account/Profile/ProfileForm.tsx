@@ -16,7 +16,7 @@ import { Message, MessageSpacer } from 'components/account/Account.styled';
 export const TAX_STATUS = {
   NONPROFIT: 'nonprofit',
   FOR_PROFIT: 'for-profit',
-  FISCALLY_SPONSORED: 'fiscally-sponsored'
+  FISCALLY_SPONSORED: 'fiscally sponsored'
 };
 
 export const defaultValues = {

@@ -20,6 +20,7 @@ import { LIST_PAGES } from 'ajax/endpoints';
 import EditButton from 'components/common/Button/EditButton';
 import Hero from 'components/common/Hero';
 import GenericErrorBoundary from 'components/errors/GenericErrorBoundary';
+import { isStringInStringCaseInsensitive } from 'utilities/isStringInString';
 import GlobalLoading from 'elements/GlobalLoading';
 import useUser from 'hooks/useUser';
 import { Page } from 'hooks/useUser.types';
@@ -27,23 +28,15 @@ import { Page } from 'hooks/useUser.types';
 import AddPage from './AddPage';
 
 export const pagesbyRP = (pgsRaw: Page[], qry?: string) => {
-  const removeSpacingAndPunctuationRegex = /[.,\/#!$%\^&\*;:{}=\-_`~()\s]/g;
-  const lowerCaseQry = qry?.toLowerCase().replace(removeSpacingAndPunctuationRegex, '');
   const pagesByRevProgram: { name: string; pages: Page[] }[] = [];
-  const pgs = lowerCaseQry
+  const pgs = qry
     ? pgsRaw?.filter((page) => {
         return (
           page?.revenue_program &&
-          (page.slug.toLowerCase().replace(removeSpacingAndPunctuationRegex, '').indexOf(lowerCaseQry) !== -1 ||
-            page.name.toLowerCase().replace(removeSpacingAndPunctuationRegex, '').indexOf(lowerCaseQry) !== -1 ||
-            page.revenue_program.slug
-              .toLowerCase()
-              .replace(removeSpacingAndPunctuationRegex, '')
-              .indexOf(lowerCaseQry) !== -1 ||
-            page.revenue_program.name
-              .toLowerCase()
-              .replace(removeSpacingAndPunctuationRegex, '')
-              .indexOf(lowerCaseQry) !== -1)
+          (isStringInStringCaseInsensitive(page.slug, qry) ||
+            isStringInStringCaseInsensitive(page.name, qry) ||
+            isStringInStringCaseInsensitive(page.revenue_program.slug, qry) ||
+            isStringInStringCaseInsensitive(page.revenue_program.name, qry))
         );
       })
     : pgsRaw;

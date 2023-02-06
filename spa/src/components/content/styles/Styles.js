@@ -16,24 +16,17 @@ import { LIST_STYLES } from 'ajax/endpoints';
 import GlobalLoading from 'elements/GlobalLoading';
 import useUser from 'hooks/useUser';
 import { USER_ROLE_HUB_ADMIN_TYPE, USER_SUPERUSER_TYPE } from 'constants/authConstants';
+import { isStringInStringCaseInsensitive } from 'utilities/isStringInString';
 
 export const filterStyles = (stylesRaw, qry) => {
-  const removeSpacingAndPunctuationRegex = /[.,\/#!$%\^&\*;:{}=\-_`~()\s]/g;
-  const lowerCaseQry = qry?.toLowerCase().replace(removeSpacingAndPunctuationRegex, '');
-  return lowerCaseQry
+  return qry
     ? orderBy(
         stylesRaw.filter((style) => {
           return (
-            style.name.toLowerCase().replace(removeSpacingAndPunctuationRegex, '').indexOf(lowerCaseQry) !== -1 ||
+            isStringInStringCaseInsensitive(style.name, qry) ||
             (style.revenue_program &&
-              (style.revenue_program.slug
-                .toLowerCase()
-                .replace(removeSpacingAndPunctuationRegex, '')
-                .indexOf(lowerCaseQry) !== -1 ||
-                style.revenue_program.name
-                  .toLowerCase()
-                  .replace(removeSpacingAndPunctuationRegex, '')
-                  .indexOf(lowerCaseQry) !== -1))
+              (isStringInStringCaseInsensitive(style.revenue_program.slug, qry) ||
+                isStringInStringCaseInsensitive(style.revenue_program.name, qry)))
           );
         }),
         'name'

@@ -1,7 +1,6 @@
 from unittest.mock import Mock, patch
 from urllib.parse import urljoin
 
-from django.conf import settings
 from django.core.management import call_command
 from django.test import TestCase, override_settings
 
@@ -13,10 +12,13 @@ from apps.organizations.tests.factories import RevenueProgramFactory
 
 @pytest.mark.django_db
 def test_bootstrap_review_app_bootstraps_hookdeck(monkeypatch):
-    heroku_branch_name = "DEV-9999--foo-barrr"
+    ticket_id = "DEV-9999"
+    heroku_branch_name = f"{ticket_id}-foo-barrr"
     heroku_app_name = "rev-engine-dev-9999-some-uid"
+    cf_zone_name = "some-domain.org"
     monkeypatch.setenv("HEROKU_BRANCH", heroku_branch_name)
     monkeypatch.setenv("HEROKU_APP_NAME", heroku_app_name)
+    monkeypatch.setenv("CF_ZONE_NAME", cf_zone_name)
 
     for x in range(3):
         RevenueProgramFactory()
@@ -37,7 +39,9 @@ def test_bootstrap_review_app_bootstraps_hookdeck(monkeypatch):
     mock_bootstrap_hookdeck = Mock()
     monkeypatch.setattr("apps.common.hookdeck.bootstrap", mock_bootstrap_hookdeck)
     call_command("bootstrap-review-app")
-    mock_bootstrap_hookdeck.assert_called_once_with("dev-9999", urljoin(settings.SITE_URL, reverse("stripe-webhooks")))
+
+    expected_url = urljoin(f"https://{ticket_id.lower()}.{cf_zone_name}", reverse("stripe-webhooks"))
+    mock_bootstrap_hookdeck.assert_called_once_with(ticket_id.lower(), expected_url)
 
 
 # NB, for some reason couldn't get this test to work as a pytest test not using `TestCase`.

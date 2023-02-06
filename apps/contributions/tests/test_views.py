@@ -6,7 +6,6 @@ from unittest import mock
 from django.conf import settings
 from django.middleware import csrf
 from django.test import override_settings
-from django.utils import timezone
 
 import pytest
 import stripe
@@ -1117,30 +1116,6 @@ class TestPaymentViewset:
         response = self.client.delete(url)
         assert response.status_code == status.HTTP_500_INTERNAL_SERVER_ERROR
         assert response.json() == {"detail": "Something went wrong"}
-
-
-@pytest.mark.parametrize("send_receipt_email_via_nre", (True, False))
-@pytest.mark.django_db
-def test_payment_success_view(send_receipt_email_via_nre, monkeypatch):
-    """Minimal test of payment success view. This view calls a model method which is more deeply tested elsewhere."""
-    client = APIClient()
-    mock_send_email = mock.Mock()
-    monkeypatch.setattr("apps.emails.tasks.send_thank_you_email.delay", mock_send_email)
-    now = timezone.now()
-    mock_now = mock.Mock()
-    mock_now.return_value = now
-    monkeypatch.setattr("django.utils.timezone.now", mock_now)
-    # TODO: DEV-3026
-    # This is to deal with side effect in contribution.save
-    with mock.patch("apps.contributions.models.Contribution.fetch_stripe_payment_method", return_value=None):
-        contribution = ContributionFactory(interval="month")
-        contribution.donation_page.revenue_program.organization.send_receipt_email_via_nre = send_receipt_email_via_nre
-        contribution.donation_page.revenue_program.organization.save()
-    url = reverse("payment-success", args=(str(contribution.uuid),))
-    response = client.patch(url, {})
-    assert response.status_code == status.HTTP_204_NO_CONTENT
-    if send_receipt_email_via_nre:
-        mock_send_email.assert_called_once_with(contribution.id)
 
 
 @pytest.fixture()

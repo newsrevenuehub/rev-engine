@@ -56,6 +56,7 @@ def send_thank_you_email(contribution_id: int) -> None:
     # vs circular import
     from apps.contributions.models import Contribution, Contributor
 
+    logger.info("`send_thank_you_email` sending thank you email for contribution with ID %s", contribution_id)
     try:
         contribution = Contribution.objects.get(
             id=contribution_id,

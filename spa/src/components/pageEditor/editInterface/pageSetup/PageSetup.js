@@ -10,7 +10,7 @@ import ImageUpload from 'components/base/ImageUpload/ImageUpload';
 import Input from 'elements/inputs/Input';
 import EditSaveControls from '../EditSaveControls';
 import EditTabHeader from '../EditTabHeader';
-import { isValidUrl } from 'utilities/isValidUrl';
+import { isValidWebUrl } from 'utilities/isValidWebUrl';
 
 const INVALID_URL_MESSAGE = 'Please enter a valid URL.';
 
@@ -97,7 +97,7 @@ function PageSetup() {
   // If any URL field is not valid, disable the update button.
 
   const updateDisabled = [header_link, post_thank_you_redirect, thank_you_redirect].some(
-    (value) => !isValidUrl(value, true)
+    (value) => !isValidWebUrl(value, true)
   );
 
   // If nothing has been changed from the page object, then the user can't use
@@ -146,7 +146,7 @@ function PageSetup() {
         {showLogoInput && (
           <InputWrapper border>
             <Input
-              errors={!isValidUrl(header_link, true) && INVALID_URL_MESSAGE}
+              errors={!isValidWebUrl(header_link, true) && INVALID_URL_MESSAGE}
               type="url"
               label="Logo link"
               value={header_link}
@@ -181,7 +181,7 @@ function PageSetup() {
         {page.plan.custom_thank_you_page_enabled && (
           <InputWrapper>
             <Input
-              errors={errors.thank_you_redirect ?? (!isValidUrl(thank_you_redirect, true) && INVALID_URL_MESSAGE)}
+              errors={errors.thank_you_redirect ?? (!isValidWebUrl(thank_you_redirect, true) && INVALID_URL_MESSAGE)}
               type="url"
               label="Thank You page link"
               helpText='If you have a "Thank You" page of your own, add a link here'
@@ -194,7 +194,7 @@ function PageSetup() {
         <InputWrapper border>
           <Input
             errors={
-              errors.post_thank_you_redirect ?? (!isValidUrl(post_thank_you_redirect, true) && INVALID_URL_MESSAGE)
+              errors.post_thank_you_redirect ?? (!isValidWebUrl(post_thank_you_redirect, true) && INVALID_URL_MESSAGE)
             }
             type="url"
             label="Post Thank You redirect"

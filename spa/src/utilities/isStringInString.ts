@@ -1,8 +1,4 @@
-export function isStringInStringCaseInsensitive(
-  base: string,
-  search: string,
-  regex = /[.,\/#!$%\^&\*;:@{}[\]=\-_`~()\s]/g
-) {
-  console.log({ regex });
+export function isStringInStringCaseInsensitive(base: string, search: string) {
+  const regex = /[.,\/#!$%\^&\*;:@{}[\]=\-_`~()\s]/g;
   return base.toLowerCase().replace(regex, '').includes(search.toLowerCase().replace(regex, ''));
 }

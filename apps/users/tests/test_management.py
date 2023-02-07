@@ -13,9 +13,6 @@ MOCK_TICKET_ID = "DEV-9999"
 MOCK_HEROKU_APP_NAME = f"rev-engine-{MOCK_TICKET_ID.lower()}-some-uid"
 MOCK_CF_ZONE_NAME = "some-domain.org"
 
-# NB, for some reason couldn't get this test to work as a pytest test not using `TestCase`.
-# Specifically, `settings.HEROKU_BRANCH` had `None` value even when using `monkeypatch.setenv`.
-
 
 class MockHerokuApp:
     domains = lambda *args, **kwargs: []
@@ -66,11 +63,14 @@ class TestBootstrapReviewApp(TestCase):
             )
 
 
-# NB, for some reason couldn't get this test to work as a pytest test not using `TestCase`.
-# Specifically, `settings.HEROKU_BRANCH` had `None` value even when using `monkeypatch.setenv`.
 @override_settings(HEROKU_BRANCH="DEV-9999--foo-barrr")
 @override_settings(HEROKU_APP_NAME="rev-engine-dev-9999-some-uid")
 class TestTearDownReviewAppCommand(TestCase):
+    # NB, in general we're trying to avoid `TestCase` and only do pytest-based tests.
+    # However, in this case, I had trouble getting settings vars to have expected
+    # value using `monkeypatch.setenv`. This seems related to the following answer from
+    # SO where the author explains intricacies of execution order of `setenv`:
+    # https://stackoverflow.com/a/73579245
     @patch("apps.common.hookdeck.tear_down")
     @patch("apps.common.utils.delete_cloudflare_cnames")
     def test_tears_down_hookdeck(self, mock_cloudflare, mock_teardown_hookdeck):

@@ -191,23 +191,6 @@ class PaymentViewset(mixins.CreateModelMixin, mixins.DestroyModelMixin, viewsets
         return Response(status=status.HTTP_204_NO_CONTENT)
 
 
-@api_view(["PATCH"])
-@permission_classes([])
-def payment_success(request, uuid=None):
-    """This view is used by the SPA after a Stripe payment has been submitted to Stripe from front end.
-
-    We provide the url for this view to `return_url` parameter we call Stripe to confirm payment on front end,
-    and use this view to trigger a thank you email to the contributor if the org has configured the contribution page
-    accordingly.
-    """
-    try:
-        contribution = Contribution.objects.get(uuid=uuid)
-    except Contribution.DoesNotExist:
-        return Response(status=status.HTTP_404_NOT_FOUND)
-    contribution.handle_thank_you_email()
-    return Response(status=status.HTTP_204_NO_CONTENT)
-
-
 class ContributionsViewSet(viewsets.ReadOnlyModelViewSet, FilterQuerySetByUserMixin):
     """Contributions API resource
 

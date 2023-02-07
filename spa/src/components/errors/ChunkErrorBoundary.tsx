@@ -1,4 +1,4 @@
-import React from 'react';
+import { PropsWithChildren } from 'react';
 import * as Sentry from '@sentry/react';
 
 import * as S from '../../elements/buttons/Button.styled';
@@ -35,8 +35,8 @@ const ChunkErrorFallback = () => {
   );
 };
 
-const ChunkErrorBoundary = (props) => {
-  return <Sentry.ErrorBoundary fallback={ChunkErrorFallback}>{props.children}</Sentry.ErrorBoundary>;
+const ChunkErrorBoundary = ({ children }: PropsWithChildren<{}>) => {
+  return <Sentry.ErrorBoundary fallback={ChunkErrorFallback}>{children}</Sentry.ErrorBoundary>;
 };
 
 export default ChunkErrorBoundary;

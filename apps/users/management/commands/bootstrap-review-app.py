@@ -1,6 +1,6 @@
-import os
 from urllib.parse import urljoin
 
+from django.conf import settings
 from django.core.management.base import BaseCommand
 
 import heroku3
@@ -15,15 +15,13 @@ class Command(BaseCommand):  # pragma: no cover low ROI for test of command line
     help = "Bootstrap Heroku review app"
 
     def handle(self, *args, **options):
-        branch_name = os.getenv("HEROKU_BRANCH")
-        zone_name = os.getenv("CF_ZONE_NAME")
-        heroku_app_name = os.getenv("HEROKU_APP_NAME")
-        heroku_api_key = os.getenv("HEROKU_API_KEY")
+        branch_name = settings.HEROKU_BRANCH
+        zone_name = settings.CF_ZONE_NAME
+        heroku_app_name = settings.HEROKU_APP_NAME
+        heroku_api_key = settings.HEROKU_API_KEY
         ticket_id = extract_ticket_id_from_branch_name(branch_name).lower()
-
         heroku_conn = heroku3.from_key(heroku_api_key)
         heroku_app = heroku_conn.apps()[heroku_app_name]
-
         revenue_programs = RevenueProgram.objects.all()
         heroku_domains = [x.hostname for x in heroku_app.domains()]
         for revenue_program in revenue_programs:
@@ -38,7 +36,6 @@ class Command(BaseCommand):  # pragma: no cover low ROI for test of command line
             if fqdn not in heroku_domains:
                 self.stdout.write(self.style.SUCCESS(f"Creating Heroku domain entry entry for {fqdn}"))
                 heroku_app.add_domain(fqdn, None)
-
         slugs = [x.slug for x in revenue_programs]
         # create a CNAME record for the ticket_id too
         slugs.append(ticket_id)

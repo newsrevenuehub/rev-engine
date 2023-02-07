@@ -60,11 +60,6 @@ export const ListItemIcon = styled(MuiListItemIcon)`
   }
 `;
 
-export const LogoutIconWrapper = styled.img`
-  width: 20px;
-  height: 20px;
-`;
-
 export const Avatar = styled(MuiAvatar)`
   && {
     height: 31px;

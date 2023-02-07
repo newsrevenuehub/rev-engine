@@ -1,27 +1,28 @@
-import { MouseEvent, useMemo, useState } from 'react';
 import PropTypes, { InferProps } from 'prop-types';
-import MoreVertIcon from '@material-ui/icons/MoreVert';
-import ContactSupportOutlinedIcon from '@material-ui/icons/ContactSupportOutlined';
-import SyncIcon from '@material-ui/icons/Sync';
+import { MouseEvent, useMemo, useState } from 'react';
 import { useHistory } from 'react-router-dom';
 
-import LogoutIcon from 'assets/icons/logout.svg';
+import { ReactComponent as LogoutIcon } from '@material-design-icons/svg/filled/logout.svg';
+import { ReactComponent as MoreVertIcon } from '@material-design-icons/svg/filled/more_vert.svg';
+import { ReactComponent as SyncIcon } from '@material-design-icons/svg/filled/sync.svg';
+import { ReactComponent as ContactSupportOutlinedIcon } from '@material-design-icons/svg/outlined/contact_support.svg';
+import { ReactComponent as Lan } from '@material-design-icons/svg/outlined/lan.svg';
+
 import onLogout from 'components/authentication/logout';
-import { FAQ_URL } from 'constants/helperUrls';
 import { USER_ROLE_HUB_ADMIN_TYPE } from 'constants/authConstants';
+import { FAQ_URL } from 'constants/helperUrls';
 import { SETTINGS } from 'routes';
 
 import {
-  Container,
-  ModalHeader,
-  Popover,
   Avatar,
+  Container,
+  Divider,
+  ListItemIcon,
   ListWrapper,
   MenuItem,
-  ListItemIcon,
-  Typography,
-  LogoutIconWrapper,
-  Divider
+  ModalHeader,
+  Popover,
+  Typography
 } from './AvatarMenu.styled';
 
 export type AvatarMenuProps = InferProps<typeof AvatarMenuPropTypes>;
@@ -57,8 +58,8 @@ const AvatarMenu = ({ user, className }: AvatarMenuProps) => {
     window.open(FAQ_URL, '_blank', 'noopener, noreferrer');
   };
 
-  const handleIntegrations = () => {
-    history.push(SETTINGS.INTEGRATIONS);
+  const goTo = (url: string) => {
+    history.push(url);
   };
 
   return (
@@ -85,7 +86,13 @@ const AvatarMenu = ({ user, className }: AvatarMenuProps) => {
         <ListWrapper role="menu">
           {userHasSingleOrg && !isHubAdmin && (
             <>
-              <MenuItem onClick={handleIntegrations} aria-label="Integrations">
+              <MenuItem onClick={() => goTo(SETTINGS.ORGANIZATION)} aria-label="Organization">
+                <ListItemIcon>
+                  <Lan />
+                </ListItemIcon>
+                <Typography variant="inherit">Organization</Typography>
+              </MenuItem>
+              <MenuItem onClick={() => goTo(SETTINGS.INTEGRATIONS)} aria-label="Integrations">
                 <ListItemIcon>
                   <SyncIcon fontSize="small" />
                 </ListItemIcon>
@@ -102,7 +109,7 @@ const AvatarMenu = ({ user, className }: AvatarMenuProps) => {
           </MenuItem>
           <MenuItem onClick={onLogout} aria-label="Sign out">
             <ListItemIcon>
-              <LogoutIconWrapper src={LogoutIcon} alt="Sign out" />
+              <LogoutIcon />
             </ListItemIcon>
             <Typography variant="inherit">Sign out</Typography>
           </MenuItem>

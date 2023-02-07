@@ -4,6 +4,8 @@ import userEvent from '@testing-library/user-event';
 
 import { FAQ_URL } from 'constants/helperUrls';
 import onLogout from 'components/authentication/logout';
+import { USER_ROLE_HUB_ADMIN_TYPE } from 'constants/authConstants';
+
 import AvatarMenu, { AvatarMenuProps } from './AvatarMenu';
 
 jest.mock('components/authentication/logout');
@@ -66,6 +68,42 @@ describe('AvatarMenu', () => {
     userEvent.click(screen.getByRole('button', { name: settingsMenu }));
     expect(screen.getByRole('menuitem', { name: 'FAQ' })).toBeEnabled();
     expect(screen.getByRole('menuitem', { name: 'Sign out' })).toBeEnabled();
+  });
+
+  it('should show settings section if user is NOT Hub admin & only has 1 org', () => {
+    const user = {
+      email: 'email@mock.com',
+      organizations: [{ id: 'mock-org' }],
+      role_type: ['mock-role']
+    };
+    tree({ user });
+
+    userEvent.click(screen.getByRole('button', { name: settingsMenu }));
+    expect(screen.getByRole('menuitem', { name: 'Integrations' })).toBeEnabled();
+  });
+
+  it('should NOT show settings section if user has more than 1 org', () => {
+    const user = {
+      email: 'email@mock.com',
+      organizations: [{ id: 'mock-org' }, { id: 'mock-org-2' }],
+      role_type: ['mock-role']
+    };
+    tree({ user });
+
+    userEvent.click(screen.getByRole('button', { name: settingsMenu }));
+    expect(screen.queryByRole('menuitem', { name: 'Integrations' })).not.toBeInTheDocument();
+  });
+
+  it('should NOT show settings section if user is Hub admin', () => {
+    const user = {
+      email: 'email@mock.com',
+      organizations: [{ id: 'mock-org' }],
+      role_type: [USER_ROLE_HUB_ADMIN_TYPE, 'mock-role']
+    };
+    tree({ user });
+
+    userEvent.click(screen.getByRole('button', { name: settingsMenu }));
+    expect(screen.queryByRole('menuitem', { name: 'Integrations' })).not.toBeInTheDocument();
   });
 
   it('should have correct FAQ link', () => {

@@ -5,7 +5,6 @@ from django.contrib.admin.sites import AdminSite
 from django.contrib.auth import get_user_model
 from django.contrib.messages import get_messages
 from django.db.utils import IntegrityError
-from django.forms.models import model_to_dict
 from django.test import Client, RequestFactory, TestCase
 from django.urls import reverse
 
@@ -211,14 +210,33 @@ class TemplateAdminTest(AbstractTestCase):
 def test_can_modify_donation_page_when_sidebar_elements_is_empty(admin_client):
     new_name = "New name"
     page_empty_sidebar_elements = DonationPageFactory(sidebar_elements=[])
-    data = model_to_dict(page_empty_sidebar_elements)
+    data = dict.fromkeys(
+        [
+            "csrfmiddlewaretoken",
+            "published_date_0",
+            "published_date_1",
+            "slug",
+            "name",
+            "thank_you_redirect",
+            "post_thank_you_redirect",
+            "header_bg_image",
+            "header_logo",
+            "header_link",
+            "heading",
+            "graphic",
+            "styles",
+            "elements",
+            "initial-elements",
+            "sidebar_elements",
+            "initial-sidebar_elements",
+            "_save",
+        ],
+        "",
+    )
+    data["revenue_program"] = page_empty_sidebar_elements.revenue_program.id
+    data["sidebar_elements"] = "[]"
     data["name"] = new_name
     data["_save"] = "save"
-    assert (
-        admin_client.post(
-            reverse("admin:pages_donationpage_change", args=[page_empty_sidebar_elements.pk]), data=data
-        ).status_code
-        == 200
-    )
+    admin_client.post(reverse("admin:pages_donationpage_change", args=[page_empty_sidebar_elements.pk]), data=data)
     page_empty_sidebar_elements.refresh_from_db()
     assert page_empty_sidebar_elements.name == new_name

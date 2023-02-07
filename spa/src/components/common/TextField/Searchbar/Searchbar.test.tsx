@@ -1,12 +1,17 @@
+import { axe } from 'jest-axe';
 import { render, screen, fireEvent } from 'test-utils';
 
-import Searchbar from './Searchbar';
+import Searchbar, { SearchbarProps } from './Searchbar';
 
-const placeholderText = 'Pages';
+const placeholderText = 'mock-search';
 
 describe('Searchbar', () => {
+  function tree(props?: Partial<SearchbarProps>) {
+    return render(<Searchbar placeholder={placeholderText} {...props} />);
+  }
+
   it('should render searchbar default state', () => {
-    render(<Searchbar placeholder={placeholderText} />);
+    tree();
 
     const searchText = screen.getByRole('textbox', { name: `Search for ${placeholderText}` });
     expect(searchText).toBeInTheDocument();
@@ -18,7 +23,7 @@ describe('Searchbar', () => {
   it('should update searchbar value', () => {
     const onChange = jest.fn();
     const searchText = 'filter';
-    render(<Searchbar placeholder={placeholderText} onChange={onChange} />);
+    tree({ onChange });
 
     const searchbar = screen.getByRole('textbox', { name: `Search for ${placeholderText}` });
     expect(searchbar).toBeInTheDocument();
@@ -27,5 +32,10 @@ describe('Searchbar', () => {
     fireEvent.change(searchbar, { target: { value: searchText } });
     expect(searchbar).toHaveValue(searchText);
     expect(onChange).toHaveBeenCalledTimes(1);
+  });
+
+  it('should be accessible', async () => {
+    const { container } = tree();
+    expect(await axe(container)).toHaveNoViolations();
   });
 });

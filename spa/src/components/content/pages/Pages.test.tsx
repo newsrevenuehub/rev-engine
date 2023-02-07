@@ -29,36 +29,67 @@ jest.mock('hooks/useRequest');
 
 const useUser = useUserImport as jest.Mock;
 
-describe('Given pages list', () => {
-  let result;
-  beforeEach(async () => {
+describe('pagesbyRP', () => {
+  describe('Given pages list', () => {
     const inp = [
-      { id: 1, name: 'mock-name-1', slug: 'mock-slug-1', revenue_program: { id: '1', name: 'rp1' } },
-      { id: 2, name: 'mock-name-2', slug: 'mock-slug-2', revenue_program: { id: '2', name: 'rp2' } },
-      { id: 3, name: 'mock-name-3', slug: 'mock-slug-3', revenue_program: { id: '2', name: 'rp2' } }
+      {
+        id: 1,
+        name: 'mock-name-1',
+        slug: 'mock-slug-1',
+        revenue_program: { id: '1', name: 'rp1', slug: 'mock-slug-1' }
+      },
+      {
+        id: 2,
+        name: 'mock-name-2',
+        slug: 'mock-slug-2',
+        revenue_program: { id: '2', name: 'rp2', slug: 'mock-slug-2' }
+      },
+      {
+        id: 3,
+        name: 'mock-name-3',
+        slug: 'mock-slug-3',
+        revenue_program: { id: '2', name: 'rp2', slug: 'mock-slug-2' }
+      }
     ] as Page[];
-    result = pagesbyRP(inp);
+
+    it('should group pages by RevenueProgram in pagesByRevProgram', () => {
+      const result = pagesbyRP(inp);
+      expect(result.length).toEqual(2);
+    });
+
+    it('should filter pages agnostic of capitalization, spacing and punctuation', () => {
+      const filteredResult = pagesbyRP(inp, 'MOCK   _name -.()/1');
+      expect(filteredResult).toEqual([
+        {
+          name: 'rp1',
+          pages: [
+            {
+              id: 1,
+              name: 'mock-name-1',
+              slug: 'mock-slug-1',
+              revenue_program: { id: '1', name: 'rp1', slug: 'mock-slug-1' }
+            }
+          ]
+        }
+      ]);
+    });
   });
 
-  it('should group pages by RevenueProgram in pagesByRevProgram', () => {
-    expect(result.length).toEqual(2);
-  });
-});
+  describe('Given pages list having a page with a null rp', () => {
+    let result;
 
-describe('Given pages list having a page with a null rp', () => {
-  let result;
+    beforeEach(async () => {
+      const inp = [
+        { id: 1, revenue_program: { id: '1', name: 'rp1' } },
+        { id: 2, revenue_program: { id: '2', name: 'rp2' } },
+        { id: 3, revenue_program: null }
+      ] as Page[];
+      result = pagesbyRP(inp);
+    });
 
-  beforeEach(async () => {
-    const inp = [
-      { id: 1, revenue_program: { id: '1', name: 'rp1' } },
-      { id: 2, revenue_program: { id: '2', name: 'rp2' } },
-      { id: 3, revenue_program: null }
-    ] as Page[];
-    result = pagesbyRP(inp);
-  });
-
-  it('should not throw an error and exclude the page with null rp from pagesByRevProgram', () => {
-    expect(result.length).toEqual(2);
+    it('should not throw an error and exclude the page with null rp from pagesByRevProgram', () => {
+      expect(result.length).toEqual(2);
+    });
   });
 });
 

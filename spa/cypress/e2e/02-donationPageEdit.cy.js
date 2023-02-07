@@ -734,9 +734,8 @@ describe('Edit interface: Styles', () => {
       cy.intercept(
         { method: 'POST', pathname: getEndpoint(LIST_STYLES) },
         { body: { name: 'mock-name-error' }, statusCode: 400 }
-      ).as('createStyle');
+      );
       cy.getByTestId('save-styles-button').click();
-      cy.wait('@createStyle');
       cy.contains('mock-name-error');
     });
 

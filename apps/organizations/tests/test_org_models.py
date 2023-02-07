@@ -14,7 +14,7 @@ from apps.common.models import SocialMeta
 from apps.config.tests.factories import DenyListWordFactory
 from apps.config.validators import GENERIC_SLUG_DENIED_MSG, SLUG_DENIED_CODE
 from apps.contributions.tests.factories import ContributionFactory
-from apps.organizations.models import FiscalStatusChoices, RevenueProgram
+from apps.organizations.models import RP_SLUG_MAX_LENGTH, FiscalStatusChoices, RevenueProgram
 from apps.organizations.tests import factories
 from apps.organizations.tests.factories import OrganizationFactory, RevenueProgramFactory
 from apps.pages.models import DonationPage
@@ -94,11 +94,11 @@ class RevenueProgramTest(TestCase):
         self.instance.refresh_from_db()
         assert slugify("A new Name") not in self.instance.slug
 
-    def test_slug_larger_than_100(self):
+    def test_slug_larger_than_max_length(self):
         fake = Faker()
         Faker.seed(0)
         long_slug_rp = factories.RevenueProgramFactory(name=f"{' '.join(fake.words(nb=30))}")
-        assert len(long_slug_rp.slug) < 100
+        assert len(long_slug_rp.slug) < RP_SLUG_MAX_LENGTH
 
     # This is to squash a side effect in contribution.save
     # TODO: DEV-3026

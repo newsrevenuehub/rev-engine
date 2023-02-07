@@ -14,11 +14,20 @@ logger = logging.getLogger(f"{settings.DEFAULT_LOGGER}.{__name__}")
 
 
 @receiver(pre_save, sender=DonationPage)
-def donation_page_pre_save(sender, instance, update_fields, **kwargs) -> None:
+def donation_page_pre_save_handler(sender, instance, update_fields, **kwargs) -> None:
+    """
+    We only publish events for a page under the following conditions:
+    1. page already existed in the database
+    2. page has a published date
+    3. google cloud pub sub is configured correctly
+    4. there is an environment variable for PAGE_PUBLISHED_TOPIC
+    """
     if all([instance.pk, instance.published_date, google_cloud_pub_sub_is_configured(), settings.PAGE_PUBLISHED_TOPIC]):
         existing_page = DonationPage.objects.get(pk=instance.pk)
         if not existing_page.published_date:
-            logger.debug("Existing donation page published for the first time: %s", instance)
+            logger.debug(
+                "donation_page_pre_save_handler: Existing donation page published for the first time: %s", instance
+            )
             message_data = {
                 "page_id": instance.pk,
                 "url": instance.page_url,

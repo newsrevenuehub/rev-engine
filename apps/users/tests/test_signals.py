@@ -8,7 +8,7 @@ from apps.users.tests.factories import create_test_user
 
 
 @pytest.mark.parametrize(
-    "gcloud_configured, created, user_topic",
+    "gcloud_configured,created,user_topic",
     [
         (False, False, "topic"),
         (False, False, "topic"),

@@ -15,9 +15,6 @@ from apps.users.choices import Roles
 from apps.users.models import RoleAssignmentResourceModelMixin, UnexpectedRoleType
 
 
-HTTPS_SCHEME = "https://"
-
-
 def _get_screenshot_upload_path(instance, filename):
     return f"{instance.organization.name}/page_screenshots/{instance.name}_latest.png"
 
@@ -174,7 +171,8 @@ class DonationPage(AbstractPage):
 
     @property
     def page_url(self) -> str:
-        return f"{HTTPS_SCHEME}{self.revenue_program.slug}.{settings.SITE_URL.partition(HTTPS_SCHEME)[2]}/{self.slug}"
+        http_scheme = "https://"
+        return f"{http_scheme}{self.revenue_program.slug}.{settings.SITE_URL.partition(http_scheme)[2]}/{self.slug}"
 
     def set_default_logo(self):
         """

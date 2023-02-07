@@ -265,7 +265,7 @@ def test_ip_in_cf_connecting_header():
 
 
 @pytest.mark.parametrize(
-    "enable_pubsub, gcloud_project, expected",
+    "enable_pubsub,gcloud_project,expected",
     ((True, "project", True), (False, "project", False), (True, None, False), (False, None, False), (True, "", False)),
 )
 def test_google_cloud_pub_sub_is_configured(enable_pubsub, gcloud_project, expected, monkeypatch):

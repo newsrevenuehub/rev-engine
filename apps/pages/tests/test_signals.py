@@ -6,7 +6,7 @@ import pytest
 
 from apps.google_cloud.pubsub import Message
 from apps.organizations.tests.factories import RevenueProgramFactory
-from apps.pages.signals import donation_page_pre_save
+from apps.pages.signals import donation_page_pre_save_handler
 from apps.pages.tests.factories import DonationPageFactory
 
 
@@ -26,7 +26,7 @@ PAGE_TOPIC = "page-topic"
 )
 @patch("apps.pages.signals.Publisher")
 @pytest.mark.django_db
-def test_page_pre_save_handler(
+def test_page_pre_save_handler_handler(
     publisher, is_new_page, gcloud_configured, published_date, existing_published_date, topic, monkeypatch
 ):
     monkeypatch.setattr("apps.pages.signals.settings.PAGE_PUBLISHED_TOPIC", topic)
@@ -38,7 +38,7 @@ def test_page_pre_save_handler(
     ) as donation_objects_get:
         donation_objects_get.return_value = DonationPageFactory(published_date=existing_published_date)
         gcloud_configured_util.return_value = gcloud_configured
-        donation_page_pre_save(MagicMock(), instance=page_instance, update_fields=None)
+        donation_page_pre_save_handler(MagicMock(), instance=page_instance, update_fields=None)
         if any([is_new_page, not gcloud_configured, not published_date, not topic]):
             assert not publisher_instance.publish.called
         elif existing_published_date:

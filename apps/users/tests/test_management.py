@@ -14,15 +14,10 @@ MOCK_HEROKU_APP_NAME = f"rev-engine-{MOCK_TICKET_ID.lower()}-some-uid"
 MOCK_CF_ZONE_NAME = "some-domain.org"
 
 
-class MockHerokuApp:
+class _MockHerokuApp:
     domains = lambda *args, **kwargs: []
     add_domain = lambda *args, **kwargs: Mock()
     config = lambda *args, **kwargs: Mock()
-
-
-class MockConn:
-    def apps(self):
-        return {MOCK_HEROKU_APP_NAME: MockHerokuApp()}
 
 
 class TestBootstrapReviewApp(TestCase):
@@ -35,18 +30,9 @@ class TestBootstrapReviewApp(TestCase):
     # https://stackoverflow.com/a/73579245
     """
 
-    MOCK_TICKET_ID = "DEV-9999"
-    MOCK_HEROKU_APP_NAME = f"rev-engine-{MOCK_TICKET_ID.lower()}-some-uid"
-    MOCK_CF_ZONE_NAME = "some-domain.org"
-
-    class MockHerokuApp:
-        domains = lambda *args, **kwargs: []
-        add_domain = lambda *args, **kwargs: Mock()
-        config = lambda *args, **kwargs: Mock()
-
     class MockConn:
         def apps(self):
-            return {MOCK_HEROKU_APP_NAME: MockHerokuApp()}
+            return {MOCK_HEROKU_APP_NAME: _MockHerokuApp()}
 
     @patch("heroku3.from_key", return_value=MockConn())
     @patch("apps.common.utils.upsert_cloudflare_cnames", return_value=Mock())

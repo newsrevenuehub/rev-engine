@@ -236,7 +236,6 @@ def test_can_modify_donation_page_when_sidebar_elements_is_empty(admin_client):
     data["revenue_program"] = page_empty_sidebar_elements.revenue_program.id
     data["sidebar_elements"] = "[]"
     data["name"] = new_name
-    data["_save"] = "save"
     admin_client.post(reverse("admin:pages_donationpage_change", args=[page_empty_sidebar_elements.pk]), data=data)
     page_empty_sidebar_elements.refresh_from_db()
     assert page_empty_sidebar_elements.name == new_name

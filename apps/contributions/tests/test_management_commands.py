@@ -5,6 +5,7 @@ from django.core.management import call_command
 from django.test import TestCase, override_settings
 from django.urls import reverse
 
+import pytest
 import stripe
 
 
@@ -63,3 +64,14 @@ class CreateStripeWebhooksTest(TestCase):
         stripe.WebhookEndpoint.create.assert_called_with(
             url=url, enabled_events=test_events, connect=True, api_key=test_key, api_version=test_stripe_api_version
         )
+
+
+@pytest.mark.parameterize("from_date,to_date")
+def test_export_payment_provider_contribution_data(from_date, to_date, monkeypatch, payment_provider):
+    monkeypatch.setattr("")
+    call_command(
+        "export_payment_provider_contribution_data",
+        from_date=from_date,
+        to_date=to_date,
+        payment_provider_id=payment_provider.id,
+    )

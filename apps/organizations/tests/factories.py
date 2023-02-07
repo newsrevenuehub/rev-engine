@@ -34,7 +34,15 @@ class PaymentProviderFactory(DjangoModelFactory):
         django_get_or_create = ("stripe_account_id",)
 
     stripe_account_id = factory.Sequence(lambda n: fake.uuid4())
+    stripe_product_id = factory.Sequence(lambda n: fake.uuid4())
     stripe_verified = True
+
+    class Params:
+        verified_with_stripe = factory.Trait()
+        unverified_with_stripe = factory.Trait(
+            stripe_verified=False,
+            stripe_product_id=None,
+        )
 
 
 class RevenueProgramFactory(DjangoModelFactory):

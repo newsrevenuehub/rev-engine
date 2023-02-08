@@ -148,6 +148,7 @@ class ContributionAdmin(RevEngineBaseAdmin, CompareVersionAdmin):
                 f"Cannot {action} a non-flagged Contribution.",
                 messages.ERROR,
             )
+            return
 
         succeeded = 0
         failed = []

@@ -434,6 +434,7 @@ HUB_GTM_ID = os.getenv("HUB_GTM_ID")
 
 ### Heroku Settings
 HEROKU_APP_NAME = os.getenv("HEROKU_APP_NAME")
+HEROKU_API_KEY = os.getenv("HEROKU_API_KEY")
 HEROKU_BRANCH = os.getenv("HEROKU_BRANCH")
 CF_ZONE_NAME = os.getenv("CF_ZONE_NAME")
 

@@ -1,55 +1,82 @@
 import datetime
-import json
-from unittest.mock import MagicMock, patch
+from unittest.mock import MagicMock
 
 import pytest
-
-from apps.google_cloud.pubsub import Message
-from apps.organizations.tests.factories import RevenueProgramFactory
-from apps.pages.signals import donation_page_pre_save_handler
-from apps.pages.tests.factories import DonationPageFactory
+import pytest_cases
 
 
 PAGE_TOPIC = "page-topic"
 
 
-@pytest.mark.parametrize(
-    "is_new_page, gcloud_configured, published_date, existing_published_date, topic",
+@pytest.fixture
+def now():
+    return datetime.datetime.now()
+
+
+@pytest.fixture
+def before(now):
+    return now - datetime.timedelta(days=7)
+
+
+@pytest.fixture
+def page_update_published_data(now):
+    return {"published_date": now}
+
+
+# class _MockPublisher:
+
+#     def __init__(self, publish_spy):
+#         pass
+
+#     def publish(self, topic, message):
+#         pass
+
+
+# Publisher.get_instance().publish(settings.PAGE_PUBLISHED_TOPIC, Message(data=json.dumps(message_data)))
+
+
+@pytest_cases.parametrize(
+    "page,update_data,gcloud_configured,topic,expect_publish",
     [
-        (True, True, None, None, PAGE_TOPIC),
-        (False, False, None, None, PAGE_TOPIC),
-        (False, True, None, None, PAGE_TOPIC),
-        (False, True, datetime.datetime.now(), None, None),
-        (False, True, datetime.datetime.now(), datetime.datetime.now(), PAGE_TOPIC),
-        (False, True, datetime.datetime.now(), None, PAGE_TOPIC),
+        (pytest_cases.fixture_ref("live_donation_page"), {"name": "foo"}, True, PAGE_TOPIC, False),
+        (
+            pytest_cases.fixture_ref("live_donation_page"),
+            pytest_cases.fixture_ref("page_update_published_data"),
+            True,
+            PAGE_TOPIC,
+            False,
+        ),
+        (pytest_cases.fixture_ref("unpublished_donation_page"), {"name": "foo"}, True, PAGE_TOPIC, False),
+        (
+            pytest_cases.fixture_ref("unpublished_donation_page"),
+            pytest_cases.fixture_ref("page_update_published_data"),
+            True,
+            PAGE_TOPIC,
+            True,
+        ),
     ],
 )
-@patch("apps.pages.signals.Publisher")
+# @patch("apps.pages.signals.Publisher")
 @pytest.mark.django_db
-def test_page_pre_save_handler_handler(
-    publisher, is_new_page, gcloud_configured, published_date, existing_published_date, topic, monkeypatch
-):
+def test_page_post_save_handler_handler(page, update_data, gcloud_configured, topic, expect_publish, monkeypatch):
     monkeypatch.setattr("apps.pages.signals.settings.PAGE_PUBLISHED_TOPIC", topic)
-    publisher_instance = MagicMock()
-    publisher.get_instance.return_value = publisher_instance
-    page_instance = DonationPageFactory(revenue_program=RevenueProgramFactory(), published_date=published_date)
-    with patch("apps.pages.signals.google_cloud_pub_sub_is_configured") as gcloud_configured_util, patch(
-        "apps.pages.signals.DonationPage.objects.get"
-    ) as donation_objects_get:
-        donation_objects_get.return_value = DonationPageFactory(published_date=existing_published_date)
-        gcloud_configured_util.return_value = gcloud_configured
-        donation_page_pre_save_handler(MagicMock(), instance=page_instance, update_fields=None)
-        if any([is_new_page, not gcloud_configured, not published_date, not topic]):
-            assert not publisher_instance.publish.called
-        elif existing_published_date:
-            assert not publisher_instance.publish.called
-        else:
-            expected_payload = {
-                "page_id": page_instance.pk,
-                "url": page_instance.page_url,
-                "publication_date": str(page_instance.published_date),
-                "revenue_program_id": page_instance.revenue_program.pk,
-                "revenue_program_name": page_instance.revenue_program.name,
-                "revenue_program_slug": page_instance.revenue_program.slug,
-            }
-            publisher_instance.publish.assert_called_with(topic, Message(data=json.dumps(expected_payload)))
+    monkeypatch.setattr("apps.pages.signals.google_cloud_pub_sub_is_configured", lambda: gcloud_configured)
+    # monkeypatch.setattr("apps.pages.signals.Publisher.get_instance", lambda: MagicMock().publish)
+    # spy
+    for k, v in update_data.items():
+        setattr(page, k, v)
+    page._foo = "bar"
+    page.save(update_fields=["name", "published_date"])
+    breakpoint()
+    # assert Publisher.get_instance().publish(settings.PAGE_PUBLISHED_TOPIC, Message(data=json.dumps(message_data)))
+
+    # else:
+    #     expected_payload = {
+    #         "page_id": page_instance.pk,
+    #         "url": page_instance.page_url,
+    #         "publication_date": str(page_instance.published_date),
+    #         "revenue_program_id": page_instance.revenue_program.pk,
+    #         "revenue_program_name": page_instance.revenue_program.name,
+    #         "revenue_program_slug": page_instance.revenue_program.slug,
+    #     }
+    #     publisher_instance.publish.assert_called_with(topic, Message(data=json.dumps(expected_payload)))

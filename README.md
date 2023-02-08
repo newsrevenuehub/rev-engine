@@ -363,11 +363,15 @@ heroku pg:backups:download --app rev-engine-test b001
 
 #### Restore backup
 
-NOTE: The `pg_restore` command assumes that you can run `$psql` and get a prompt for your local database.
+NOTE: The Make commands below assume that you can run `psql` and get a prompt for your local database.
 
 ```sh
-heroku pg:backups:download --app rev-engine-test b001
-pg_restore --verbose --clean --no-acl --no-owner -d revengine latest.dump
+# assuming that you already have a local backup up
+make drop-db
+# the previous commands stop and remove the docker image and volume for the local db, so need to run again
+docker compose up -d
+# if your backup file is called something else, substitute that name
+BACKUP_FILE=latest.dump make restore-db-backup
 ```
 
 ## Logging

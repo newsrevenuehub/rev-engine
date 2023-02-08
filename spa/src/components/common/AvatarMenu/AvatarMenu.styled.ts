@@ -1,5 +1,6 @@
 import {
   Avatar as MuiAvatar,
+  Divider as MuiDivider,
   Popover as MuiPopover,
   MenuItem as MuiMenuItem,
   Typography as MuiTypography,
@@ -90,6 +91,12 @@ export const Typography = styled(MuiTypography)`
     color: ${(props) => props.theme.colors.sidebarBackground};
     font-size: ${(props) => props.theme.fontSizesUpdated.sm};
     font-weight: 400;
+  }
+`;
+
+export const Divider = styled(MuiDivider)`
+  && {
+    margin: 10px -15px;
   }
 `;
 

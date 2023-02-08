@@ -377,7 +377,7 @@ describe('Contribution page edit', () => {
       cy.wait('@getPageDetail');
       cy.getByTestId('edit-page-button').click();
       cy.getByTestId('edit-setup-tab').click({ force: true });
-      cy.getByTestId('thank-you-redirect-link-input').type('not a valid url');
+      cy.getByTestId('thank-you-redirect-link-input').type('https://valid-url-but-intercept-will-dislikeit.org');
       cy.get('#edit-setup-tab-panel').within(() => cy.findByRole('button', { name: 'Update' }).click({ force: true }));
 
       // Before we save, let's close the tab so we can more meaningfully assert its presence later.

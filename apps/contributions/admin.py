@@ -1,3 +1,5 @@
+import logging
+
 from django.conf import settings
 from django.contrib import admin, messages
 from django.utils.html import format_html
@@ -8,6 +10,9 @@ from reversion_compare.admin import CompareVersionAdmin
 from apps.common.admin import RevEngineBaseAdmin, prettify_json_field
 from apps.contributions.models import Contribution, ContributionStatus, Contributor
 from apps.contributions.payment_managers import PaymentProviderError
+
+
+logger = logging.getLogger(f"{settings.DEFAULT_LOGGER}.{__name__}")
 
 
 @admin.register(Contributor)
@@ -143,6 +148,10 @@ class ContributionAdmin(RevEngineBaseAdmin, CompareVersionAdmin):
         # Bail if any of the selected Contributions are not "FLAGGED"
         action = "reject" if reject else "accept"
         if queryset.exclude(status=ContributionStatus.FLAGGED).exists():
+            logger.error(
+                "ContributionAdmin._process_flagged_payment - Unable to process flagged payments when flagged "
+                "contribution is selected"
+            )
             self.message_user(
                 request,
                 f"Cannot {action} a non-flagged Contribution.",
@@ -160,6 +169,7 @@ class ContributionAdmin(RevEngineBaseAdmin, CompareVersionAdmin):
                 failed.append(contribution)
 
         if succeeded:
+            logger.info("ContributionAdmin._process_flagged_payment - processing successfully complete")
             self.message_user(
                 request,
                 f"Successfully {action}ed {succeeded} payments. Payment state may not immediately reflect change of payment status.",
@@ -167,9 +177,11 @@ class ContributionAdmin(RevEngineBaseAdmin, CompareVersionAdmin):
             )
 
         if failed:
+            error_message = ", ".join([str(cont) for cont in failed])
+            logger.error("ContributionAdmin._process_flagged_payment - %s", error_message)
             self.message_user(
                 request,
-                f"Could not complete action for contributions: {', '.join([str(cont) for cont in failed])}",
+                f"Could not complete action for contributions: {error_message}",
                 messages.ERROR,
             )
 

@@ -68,27 +68,19 @@ export interface EditInterfaceContextProviderProps {
   children: ReactNode;
 }
 
+const throwByDefault = () => {
+  throw new Error('EditInterfaceContext must be used inside an EditInterfaceContextProvider');
+};
+
 export const EditInterfaceContext = createContext<UseEditInterfaceContextResult>({
-  setElements: () => {
-    throw new Error('EditInterfaceContext must be used inside an EditInterfaceContextProvider');
-  },
+  setElements: throwByDefault,
   sidebarElements: [],
-  setSidebarElements() {
-    throw new Error('EditInterfaceContext must be used inside an EditInterfaceContextProvider');
-  },
-  setElementContent() {
-    throw new Error('EditInterfaceContext must be used inside an EditInterfaceContextProvider');
-  },
+  setSidebarElements: throwByDefault,
+  setElementContent: throwByDefault,
   elementRequiredFields: [],
-  setElementRequiredFields() {
-    throw new Error('EditInterfaceContext must be used inside an EditInterfaceContextProvider');
-  },
-  handleRemoveElement() {
-    throw new Error('EditInterfaceContext must be used inside an EditInterfaceContextProvider');
-  },
-  setSelectedElement() {
-    throw new Error('EditInterfaceContext must be used inside an EditInterfaceContextProvider');
-  }
+  setElementRequiredFields: throwByDefault,
+  handleRemoveElement: throwByDefault,
+  setSelectedElement: throwByDefault
 });
 
 export const useEditInterfaceContext = () => useContext(EditInterfaceContext);

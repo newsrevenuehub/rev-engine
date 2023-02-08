@@ -1,4 +1,5 @@
 import { axe } from 'jest-axe';
+import userEvent from '@testing-library/user-event';
 import { render, screen } from 'test-utils';
 
 import useUser from 'hooks/useUser';
@@ -56,9 +57,31 @@ describe('Settings Organization Page', () => {
       )
     ).toBeInTheDocument();
     expect(screen.getByText('Tax Status')).toBeInTheDocument();
-    expect(screen.getByRole('button', { name: 'Tax Status Non-profit' })).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: 'Tax Status Nonprofit' })).toBeInTheDocument();
     expect(screen.getByText('EIN')).toBeInTheDocument();
     expect(screen.getByRole('textbox', { name: 'EIN Optional' })).toHaveValue('12-3456789');
+  });
+
+  it('should render warning message if Tax Status is different from server response', () => {
+    tree();
+
+    userEvent.click(screen.getByRole('button', { name: 'Tax Status Nonprofit' }));
+    userEvent.click(screen.getByRole('option', { name: 'For-profit' }));
+    expect(
+      screen.getByText(
+        'Changing your tax status will affect the fees shown on your contribution pages. Failure to match Stripe tax settings may result in a loss of funds.'
+      )
+    ).toBeInTheDocument();
+  });
+
+  it('should not render warning message by default', () => {
+    tree();
+
+    expect(
+      screen.queryByText(
+        'Changing your tax status will affect the fees shown on your contribution pages. Failure to match Stripe tax settings may result in a loss of funds.'
+      )
+    ).not.toBeInTheDocument();
   });
 
   it('should be accessible', async () => {

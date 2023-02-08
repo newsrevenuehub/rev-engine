@@ -162,6 +162,8 @@
     "code": "CAD",
     "symbol": "🍁"
   },
+  "header_link": "",
+  "thank_you_redirect": "",
   "stripe_account_id": "testing_stripe_account_id",
   "revenue_program_country": "US",
   "allow_offer_nyt_comp": null,

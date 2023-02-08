@@ -8,6 +8,26 @@ function tree(props?: Partial<EditSaveControlsProps>) {
 }
 
 describe('EditSaveControls', () => {
+  it('enables the cancel button if cancelDisabled is falsy', () => {
+    tree();
+    expect(screen.getByRole('button', { name: 'Cancel' })).toBeEnabled();
+  });
+
+  it('disables the cancel button if cancelDisabled is true', () => {
+    tree({ cancelDisabled: true });
+    expect(screen.getByRole('button', { name: 'Cancel' })).toBeDisabled();
+  });
+
+  it('enables the update button if updateDisabled is falsy', () => {
+    tree();
+    expect(screen.getByRole('button', { name: 'Update' })).toBeEnabled();
+  });
+
+  it('disables the update button if updateDisabled is true', () => {
+    tree({ updateDisabled: true });
+    expect(screen.getByRole('button', { name: 'Update' })).toBeDisabled();
+  });
+
   describe('Cancel variant', () => {
     it('shows a Cancel button', () => {
       tree({ variant: 'cancel' });

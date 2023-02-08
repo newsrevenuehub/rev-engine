@@ -13,7 +13,7 @@ describe('isValidWebUrl', () => {
     expect(isValidWebUrl('http://fundjournalism.org/#top?foo=true')).toBe(true));
   it('returns false for a mailto:// URL', () => expect(isValidWebUrl('mailto:nobody@fundjournalism.org')).toBe(false));
   it('returns true for a URL with an escaped space', () =>
-    expect(isValidWebUrl('https://fund%20journalism.org')).toBe(false));
+    expect(isValidWebUrl('https://fundjournalism.org/%20somewhere')).toBe(true));
   it('returns true for an empty string if allowEmpty is true', () => expect(isValidWebUrl('', true)).toBe(true));
   it('returns false for an empty string if allowEmpty is false', () => expect(isValidWebUrl('')).toBe(false));
   it('returns false for a protocol-less URL', () => expect(isValidWebUrl('fundjournalism.org')).toBe(false));

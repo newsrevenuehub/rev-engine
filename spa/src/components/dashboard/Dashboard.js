@@ -26,6 +26,7 @@ import DashboardTopbar from 'components/dashboard/topbar/DashboardTopbar';
 import Donations from 'components/donations/Donations';
 import PageEditor from 'components/pageEditor/PageEditor';
 import Integration from 'components/settings/Integration';
+import Organization from 'components/settings/Organization';
 import SystemNotification from 'components/common/SystemNotification/SystemNotification';
 
 import ConnectStripeElements from 'components/dashboard/connectStripe/ConnectStripeElements';
@@ -109,6 +110,9 @@ function Dashboard() {
               ) : null}
               <SentryRoute path={SETTINGS.INTEGRATIONS}>
                 <Integration />
+              </SentryRoute>
+              <SentryRoute path={SETTINGS.ORGANIZATION}>
+                <Organization />
               </SentryRoute>
               <SentryRoute path={PROFILE}>
                 <Profile />

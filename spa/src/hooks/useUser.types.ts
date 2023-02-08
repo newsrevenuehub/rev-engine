@@ -29,6 +29,9 @@ export interface Organization {
   show_connected_to_mailchimp: boolean;
   show_connected_to_salesforce: boolean;
   show_connected_to_slack: boolean;
+  // TODO: update when BE ready
+  fiscal_status: string;
+  tax_id: string;
 }
 
 export interface User {

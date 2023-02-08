@@ -42,7 +42,7 @@ const mockUser: User = {
   ],
   revenue_programs: [mockRp],
   role_type: ['org_admin', 'Org Admin']
-};
+} as any;
 
 const mockApiResponse: StripeAccountLinkStatusResponse = {
   url: 'mock-url',

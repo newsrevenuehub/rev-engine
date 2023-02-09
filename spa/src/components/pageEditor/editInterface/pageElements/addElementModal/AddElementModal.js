@@ -8,7 +8,8 @@ import { v4 as uuidv4 } from 'uuid';
 import Modal from 'elements/modal/Modal';
 
 // Context
-import { useEditInterfaceContext } from 'components/pageEditor/editInterface/EditInterface';
+import { useEditInterfaceContext } from 'components/pageEditor/editInterface/EditInterfaceContextProvider';
+import { useEditablePageContext } from 'hooks/useEditablePage';
 
 // Elements
 import * as dynamicLayoutElements from 'components/donationPage/pageContent/dynamicElements';
@@ -16,7 +17,8 @@ import * as dynamicSidebarElements from 'components/donationPage/pageContent/dyn
 import PageItem from 'components/pageEditor/editInterface/pageElements/PageItem';
 
 function AddElementModal({ addElementModalOpen, setAddElementModalOpen, destination = 'layout' }) {
-  const { elements, setElements, sidebarElements, setSidebarElements, page } = useEditInterfaceContext();
+  const { page } = useEditablePageContext();
+  const { elements, setElements, sidebarElements, setSidebarElements } = useEditInterfaceContext();
   const [permittedPageElements, setPermittedPageElements] = useState([]);
   const [permittedSidebarElements, setPermittedSidebarElements] = useState([]);
 

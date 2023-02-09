@@ -32,6 +32,7 @@ export interface Organization {
   // TODO: update when BE ready
   fiscal_status: string;
   tax_id: string;
+  fiscal_sponsor_name?: string;
 }
 
 export interface User {

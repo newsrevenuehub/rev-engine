@@ -1,4 +1,4 @@
-import InfoTooltip from 'components/account/Profile/InfoTooltip';
+import BaseInfoTooltip from 'components/account/Profile/InfoTooltip';
 import { TextField } from 'components/base';
 import styled from 'styled-components';
 
@@ -8,17 +8,17 @@ export const Wrapper = styled.div`
   gap: 40px;
 `;
 
-export const Content = styled.div`
+export const ContentForm = styled.form`
   display: flex;
   flex-direction: column;
   gap: 25px;
 `;
 
-export const TaxStatusContainer = styled.div`
+export const TooltipContainer = styled.div`
   position: relative;
 `;
 
-export const TaxStatusInfoTooltip = styled(InfoTooltip)`
+export const InfoTooltip = styled(BaseInfoTooltip)`
   position: absolute;
   top: 6px;
   right: -10px;
@@ -44,6 +44,13 @@ export const InputWrapper = styled.div`
   display: grid;
   gap: 17px;
   grid-template-columns: 1fr 1fr;
+`;
+
+export const ActionWrapper = styled.div`
+  display: flex;
+  gap: 12px;
+  align-items: center;
+  justify-content: center;
 `;
 
 export const WarningMessage = styled.div`

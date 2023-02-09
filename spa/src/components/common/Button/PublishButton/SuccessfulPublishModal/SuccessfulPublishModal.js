@@ -6,7 +6,7 @@ import LaunchIcon from '@material-ui/icons/Launch';
 import CheckCircleOutlineIcon from '@material-ui/icons/CheckCircleOutline';
 
 import { DONATIONS_SLUG } from 'routes';
-import { PagePropTypes } from 'constants/proptypes';
+import { PagePropTypes } from 'constants/propTypes';
 import CopyInputButton from 'components/common/Button/CopyInputButton';
 import { pageLink, portalLink } from 'utilities/getPageLinks';
 

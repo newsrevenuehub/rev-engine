@@ -1,41 +1,183 @@
-import { render, screen } from 'test-utils';
-import { EditInterfaceContext } from '../EditInterface';
+import { fireEvent, render, screen } from 'test-utils';
 import PageSetup from './PageSetup';
+import { useEditablePageBatch } from 'hooks/useEditablePageBatch';
+import { axe } from 'jest-axe';
 import { PageEditorContext } from 'components/pageEditor/PageEditor';
+import userEvent from '@testing-library/user-event';
 
-// This component uses URL.revokeObjectURL() which jsdom doesn't seem to
-// support.
-jest.mock('elements/inputs/ImageWithPreview', () => () => null);
+jest.mock('components/base/ImageUpload/ImageUpload');
+jest.mock('hooks/useEditablePageBatch');
 
-function tree(page) {
+const page = {
+  // URL fields need to be actual URLs to pass validation and enable the Update
+  // button.
+  header_link: 'https://mock-header-link.org',
+  header_logo_thumbnail: 'mock-header-logo-thumbnail',
+  heading: 'mock-heading',
+  plan: { custom_thank_you_page_enabled: true, label: 'free' },
+  post_thank_you_redirect: 'https://mock-post-thank-you-redirect.org',
+  label: 'Free',
+  thank_you_redirect: 'https://mock-thank-you-redirect.org'
+};
+
+function tree() {
   return render(
-    <EditInterfaceContext.Provider value={{ setPageContent: jest.fn() }}>
-      <PageEditorContext.Provider
-        value={{
-          errors: [],
-          page: {
-            header_link: 'mock-header-link',
-            heading: 'mock-heading',
-            plan: { label: 'free' },
-            post_thank_you_redirect: 'mock-post-thank-you-redirect',
-            label: 'Free',
-            thank_you_redirect: 'mock-thank-you-redirect',
-            ...page
-          }
-        }}
-      >
-        <PageSetup />
-      </PageEditorContext.Provider>
-    </EditInterfaceContext.Provider>
+    <PageEditorContext.Provider value={{ errors: {} }}>
+      <PageSetup />
+    </PageEditorContext.Provider>
   );
 }
 
-it('should disable thank you page URL input and have tooltip if not enabled by plan', () => {
-  tree({ plan: { custom_thank_you_page_enabled: false, label: 'free' } });
-  expect(screen.queryByLabelText('Thank You page link')).not.toBeInTheDocument();
-});
+describe('PageSetup', () => {
+  const useEditablePageBatchMock = useEditablePageBatch; // as jest.Mock;
 
-it('should not disable thank you page URL when feature enabled by plan', () => {
-  tree({ plan: { custom_thank_you_page_enabled: true, label: 'free' } });
-  expect(screen.getByLabelText('Thank You page link')).toBeInTheDocument();
+  function mockBatch(props) {
+    useEditablePageBatchMock.mockReturnValue({
+      addBatchChange: jest.fn(),
+      batchHasChanges: true,
+      batchPreview: page,
+      commitBatch: jest.fn(),
+      resetBatch: jest.fn(),
+      ...props
+    });
+  }
+
+  beforeEach(() => mockBatch({}));
+
+  it('displays nothing if the batch preview is undefined', () => {
+    mockBatch({ batchPreview: undefined });
+    tree();
+    expect(document.body.textContent).toBe('');
+  });
+
+  it('displays header text', () => {
+    tree();
+    expect(screen.getByText('Configure page settings here. These settings are page specific.')).toBeVisible();
+  });
+
+  describe.each([
+    ['Main header background', 'header_bg_image'],
+    ['Main header logo', 'header_logo'],
+    ['Graphic', 'graphic']
+  ])('%s', (label, fieldName) => {
+    it('displays the image and thumbnail URL as set in the batch preview', () => {
+      mockBatch({
+        batchPreview: {
+          ...page,
+          [fieldName]: `test-${fieldName}`,
+          [`${fieldName}_thumbnail`]: `test-${fieldName}-image-thumbnail`
+        }
+      });
+      tree();
+
+      const input = screen.getByText(label);
+
+      expect(input).toBeVisible();
+      expect(input.dataset.value).toBe(`test-${fieldName}`);
+      expect(input.dataset.thumbnailUrl).toBe(`test-${fieldName}-image-thumbnail`);
+    });
+
+    it('updates the edit batch when the user makes a change', () => {
+      const addBatchChange = jest.fn();
+
+      mockBatch({ addBatchChange });
+      tree();
+      expect(addBatchChange).not.toBeCalled();
+      userEvent.click(screen.getByText(label));
+      expect(addBatchChange.mock.calls).toEqual([
+        [
+          {
+            [fieldName]: expect.any(File),
+            [`${fieldName}_thumbnail`]: 'mock-thumbnail-url'
+          }
+        ]
+      ]);
+    });
+  });
+
+  describe.each([
+    ['Logo link', 'header_link'],
+    ['Form panel heading', 'heading'],
+    ['Thank You page link', 'thank_you_redirect'],
+    ['Post Thank You redirect', 'post_thank_you_redirect']
+  ])('%s', (label, fieldName) => {
+    it('displays the field value as set in the batch preview', () => {
+      mockBatch({
+        batchPreview: {
+          ...page,
+          [fieldName]: `test-${fieldName}`
+        }
+      });
+      tree();
+
+      const input = screen.getByLabelText(label);
+
+      expect(input).toBeVisible();
+      expect(input).toHaveValue(`test-${fieldName}`);
+    });
+
+    it('updates the edit batch when the user makes a change', () => {
+      const addBatchChange = jest.fn();
+
+      mockBatch({ addBatchChange });
+      tree();
+      expect(addBatchChange).not.toBeCalled();
+
+      // This is a change event, not userEvent.type(), because we aren't using the real
+      // useEditablePageBatch which would cause data to update.
+
+      fireEvent.change(screen.getByLabelText(label), { target: { value: `test-${fieldName}` } });
+      expect(addBatchChange.mock.calls).toEqual([[{ [fieldName]: `test-${fieldName}` }]]);
+    });
+  });
+
+  it.only('commits the edit batch when the Update button is clicked', () => {
+    const commitBatch = jest.fn();
+
+    mockBatch({ commitBatch });
+    tree();
+    expect(commitBatch).not.toBeCalled();
+    expect(screen.getByRole('button', { name: 'Update' })).toBeEnabled();
+    fireEvent.click(screen.getByRole('button', { name: 'Update' }));
+    expect(commitBatch).toBeCalledTimes(1);
+  });
+
+  it('resets the edit batch when the Undo button is clicked', () => {
+    const resetBatch = jest.fn();
+
+    mockBatch({ resetBatch });
+    tree();
+    expect(resetBatch).not.toBeCalled();
+    fireEvent.click(screen.getByRole('button', { name: 'Undo' }));
+    expect(resetBatch).toBeCalledTimes(1);
+  });
+
+  it('enables the Undo button if there are changes to commit', () => {
+    mockBatch({ batchHasChanges: true });
+    tree();
+    expect(screen.getByRole('button', { name: 'Undo' })).toBeEnabled();
+  });
+
+  it('disables the Undo button if there are no changes to commit', () => {
+    mockBatch({ batchHasChanges: false });
+    tree();
+    expect(screen.getByRole('button', { name: 'Undo' })).toBeDisabled();
+  });
+
+  it('hides the thank you page URL field if disabled by plan', () => {
+    mockBatch({ batchPreview: { ...page, plan: { custom_thank_you_page_enabled: false, label: 'free' } } });
+    tree();
+    expect(screen.queryByLabelText('Thank You page link')).not.toBeInTheDocument();
+  });
+
+  it('shows the thank you page URL field if enabled by plan', () => {
+    tree({ batchPreview: { ...page, plan: { custom_thank_you_page_enabled: true, label: 'free' } } });
+    expect(screen.getByLabelText('Thank You page link')).toBeInTheDocument();
+  });
+
+  it('is accessible', async () => {
+    const { container } = tree();
+
+    expect(await axe(container)).toHaveNoViolations();
+  });
 });

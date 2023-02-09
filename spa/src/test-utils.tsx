@@ -60,6 +60,12 @@ export function TestQueryClientProvider({ children }: { children: ReactChild }) 
   );
 }
 
+// Converts form data to objects for easier assertions.
+
+export function formDataToObject(data: FormData): Record<string, any> {
+  return Array.from(data.entries()).reduce((result, [key, value]) => ({ ...result, [key]: value }), {});
+}
+
 export const render = (ui: React.ReactElement, options?: Omit<rtl.RenderOptions, 'wrapper'>) => {
   return rtl.render(ui, {
     wrapper: (props) => <TestProviders {...props} {...options} />

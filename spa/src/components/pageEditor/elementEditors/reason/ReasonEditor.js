@@ -7,7 +7,7 @@ import { AnimatePresence } from 'framer-motion';
 import { REASON_OPTION_MAX_LENGTH } from 'components/donationPage/pageContent/DReason';
 
 // Context
-import { useEditInterfaceContext } from 'components/pageEditor/editInterface/EditInterface';
+import { useEditInterfaceContext } from 'components/pageEditor/editInterface/EditInterfaceContextProvider';
 
 // Children
 import FormErrors from 'elements/inputs/FormErrors';

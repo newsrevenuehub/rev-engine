@@ -99,8 +99,8 @@ describe('useContributorContributionList', () => {
   });
 
   describe('While fetching contributions', () => {
-    // These wait for Promise.resolve() to allow component updates to happen
-    // after the fetch completes.
+    // These wait for the next update to allow component updates to happen after
+    // the fetch completes.
 
     it('returns a loading status', async () => {
       const { result, waitForNextUpdate } = renderHook(() => useContributorContributionList(), {

@@ -16,8 +16,8 @@ export const Default: ComponentStory<typeof AddPageModal> = (args) => <AddPageMo
 Default.args = {
   open: true,
   revenuePrograms: [
-    { id: '1', name: 'RP 1' },
-    { id: '3', name: 'RP 3' },
-    { id: '2', name: 'RP 2' }
+    { id: 1, name: 'RP 1' },
+    { id: 3, name: 'RP 3' },
+    { id: 2, name: 'RP 2' }
   ]
 };

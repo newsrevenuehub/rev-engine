@@ -221,15 +221,3 @@ export const Buttons = styled.div`
     margin-right: 2rem;
   }
 `;
-
-export const ColorsWrapper = styled.div`
-  display: flex;
-  gap: 42px;
-  align-items: center;
-  justify-content: space-between;
-
-  @media (${(props) => props.theme.breakpoints.tabletLandscapeDown}) {
-    align-items: flex-start;
-    flex-direction: column;
-  }
-`;

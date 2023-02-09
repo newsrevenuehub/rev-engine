@@ -1,6 +1,6 @@
 import * as S from './ImageEditor.styled';
 // Context
-import { useEditInterfaceContext } from 'components/pageEditor/editInterface/EditInterface';
+import { useEditInterfaceContext } from 'components/pageEditor/editInterface/EditInterfaceContextProvider';
 // Children
 import ImageWithPreview from 'elements/inputs/ImageWithPreview';
 

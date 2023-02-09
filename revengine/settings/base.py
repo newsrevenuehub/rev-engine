@@ -388,7 +388,7 @@ THUMBNAIL_PRESERVE_FORMAT = True
 
 ### Django-reversion Settings
 # Add reversion models to admin interface.
-ADD_REVERSION_ADMIN = True
+ADD_REVERSION_ADMIN = False
 
 
 ### Stripe Settings
@@ -414,6 +414,9 @@ STRIPE_WEBHOOK_EVENTS = [
     "invoice.upcoming",
 ]
 
+HOOKDECK_API_KEY = os.getenv("HOOKDECK_API_KEY", "")
+HOOKDECK_STRIPE_WEBHOOK_SOURCE = os.getenv("HOOKDECK_STRIPE_WEBHOOK_SOURCE", "")
+
 ### django-healthcheck Settings
 # This URL will get pinged when in the `auto_accept_flagged_contributions``
 # task. Which ensures the task completes on a schedule.
@@ -431,6 +434,7 @@ HUB_GTM_ID = os.getenv("HUB_GTM_ID")
 
 ### Heroku Settings
 HEROKU_APP_NAME = os.getenv("HEROKU_APP_NAME")
+HEROKU_API_KEY = os.getenv("HEROKU_API_KEY")
 HEROKU_BRANCH = os.getenv("HEROKU_BRANCH")
 CF_ZONE_NAME = os.getenv("CF_ZONE_NAME")
 

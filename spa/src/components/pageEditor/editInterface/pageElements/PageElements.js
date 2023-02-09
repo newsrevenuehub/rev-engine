@@ -1,7 +1,7 @@
 import { ElementContainer, Root } from './PageElements.styled';
 
 // Context
-import { useEditInterfaceContext } from 'components/pageEditor/editInterface/EditInterface';
+import { useEditInterfaceContext } from 'components/pageEditor/editInterface/EditInterfaceContextProvider';
 
 // Children
 import DraggableList from 'elements/draggable/DraggableList';
@@ -18,6 +18,11 @@ import EditTabHeader from '../EditTabHeader';
 function PageElements({ openAddElementModal, goToProperties, handleRemoveElement }) {
   const { elements, setElements } = useEditInterfaceContext();
 
+  // layoutScroll prop on ElementContainer is needed so that framer-motion
+  // correctly calculates block positions during reordering. Otherwise, you'll
+  // see weird overlaps if you drag while the container is scrolled to a
+  // non-zero position.
+
   return (
     <Root>
       <EditTabHeader
@@ -26,7 +31,7 @@ function PageElements({ openAddElementModal, goToProperties, handleRemoveElement
         prompt="Add, edit, and rearrange page sections."
       />
       {elements && elements?.length > 0 && (
-        <ElementContainer>
+        <ElementContainer layoutScroll>
           <DraggableList
             elements={elements}
             setElements={setElements}

@@ -1,4 +1,7 @@
-import PublishButton from './PublishButton';
+import { ComponentMeta, ComponentStory } from '@storybook/react';
+import PublishButton, { PublishButtonProps } from './PublishButton';
+
+// need to wrap with query client provider
 
 export default {
   title: 'Common/Button/PublishButton',
@@ -8,15 +11,15 @@ export default {
       type: 'string'
     }
   }
-};
+} as ComponentMeta<typeof PublishButton>;
 
-const render = (args) => (
+const Template: ComponentStory<typeof PublishButton> = (props: Partial<PublishButtonProps>) => (
   <div style={{ backgroundColor: '#523A5E', padding: 10, display: 'flex', justifyContent: 'end' }}>
-    <PublishButton {...args} />
+    <PublishButton {...props} />
   </div>
 );
 
-export const Default = (args) => render(args);
+export const Default = Template.bind({});
 
 Default.args = {
   setPage: () => {},
@@ -30,9 +33,9 @@ Default.args = {
       stripe_verified: true
     }
   }
-};
+} as any;
 
-export const Disabled = (args) => render(args);
+export const Disabled = Template.bind({});
 
 Disabled.args = {
   setPage: () => {},
@@ -44,9 +47,9 @@ Disabled.args = {
     },
     payment_provider: {}
   }
-};
+} as any;
 
-export const Published = (args) => render(args);
+export const Published = Template.bind({});
 
 Published.args = {
   setPage: () => {},
@@ -62,9 +65,9 @@ Published.args = {
     },
     published_date: '2021-11-18T21:51:53Z'
   }
-};
+} as any;
 
-export const PreviouslyPublished = (args) => render(args);
+export const PreviouslyPublished = Template.bind({});
 
 PreviouslyPublished.args = {
   setPage: () => {},
@@ -80,4 +83,4 @@ PreviouslyPublished.args = {
     },
     published_date: '2051-11-18T21:51:53Z'
   }
-};
+} as any;

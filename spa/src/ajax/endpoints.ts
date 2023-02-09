@@ -4,7 +4,7 @@ export const USER = 'users/';
 export const STRIPE_OAUTH = 'stripe/oauth/';
 export const STRIPE_PAYMENT = 'stripe/payment/';
 
-export const getStripeAccountLinkStatusPath = (rpId: string) => {
+export const getStripeAccountLinkStatusPath = (rpId: number) => {
   return `handle-stripe-account-link/${rpId}/`;
 };
 

@@ -94,3 +94,18 @@ deploy-to-prod:
 	git push heroku-rev-engine-prod main:main
 
 deploy-all: deploy-to-dev deploy-to-test deploy-to-staging deploy-to-demo deploy-to-prod
+
+
+drop-db:
+	docker stop rev-engine-db-1 && docker rm rev-engine-db-1
+	docker volume rm rev-engine_dev_revengine_data
+
+restore-db-backup:
+	# see https://stackoverflow.com/questions/73440350/pg-restore-error-could-not-execute-query-error-extension-pg-stat-statements
+	psql $(DATABASE_URL) -c "CREATE SCHEMA IF NOT EXISTS heroku_ext AUTHORIZATION $(PGUSER)"
+	psql $(DATABASE_URL) -c "CREATE extension IF NOT EXISTS citext WITH schema heroku_ext"
+	psql $(DATABASE_URL) -c "GRANT ALL ON SCHEMA heroku_ext TO public"
+	psql $(DATABASE_URL) -c "GRANT USAGE ON SCHEMA heroku_ext TO public"
+	psql $(DATABASE_URL) -c "SET search_path TO heroku_ext,public"
+	psql $(DATABASE_URL) -c "GRANT ALL PRIVILEGES ON ALL SEQUENCES IN SCHEMA heroku_ext TO $(PGUSER)"
+	pg_restore --verbose --clean --no-acl --no-owner -d $(PGDATABASE) $(BACKUP_FILE)

@@ -20,6 +20,7 @@ import { LIST_PAGES } from 'ajax/endpoints';
 import EditButton from 'components/common/Button/EditButton';
 import Hero from 'components/common/Hero';
 import GenericErrorBoundary from 'components/errors/GenericErrorBoundary';
+import { isStringInStringCaseInsensitive } from 'utilities/isStringInString';
 import GlobalLoading from 'elements/GlobalLoading';
 import useUser from 'hooks/useUser';
 import { Page } from 'hooks/useUser.types';
@@ -32,10 +33,10 @@ export const pagesbyRP = (pgsRaw: Page[], qry?: string) => {
     ? pgsRaw?.filter((page) => {
         return (
           page?.revenue_program &&
-          (page.slug.toLowerCase().indexOf(qry) !== -1 ||
-            page.name.toLowerCase().indexOf(qry) !== -1 ||
-            page.revenue_program.slug.toLowerCase().indexOf(qry) !== -1 ||
-            page.revenue_program.name.toLowerCase().indexOf(qry) !== -1)
+          (isStringInStringCaseInsensitive(page.slug, qry) ||
+            isStringInStringCaseInsensitive(page.name, qry) ||
+            isStringInStringCaseInsensitive(page.revenue_program.slug, qry) ||
+            isStringInStringCaseInsensitive(page.revenue_program.name, qry))
         );
       })
     : pgsRaw;

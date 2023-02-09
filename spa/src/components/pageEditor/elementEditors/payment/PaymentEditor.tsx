@@ -1,4 +1,4 @@
-import { useEditInterfaceContext } from 'components/pageEditor/editInterface/EditInterface';
+import { useEditInterfaceContext } from 'components/pageEditor/editInterface/EditInterfaceContextProvider';
 import { useCallback, useEffect } from 'react';
 import {
   IntroText,
@@ -10,6 +10,21 @@ import {
   ToggleWrapper
 } from './PaymentEditor.styled';
 
+interface DPaymentElement {
+  /**
+   * Allow contributors to pay fees?
+   */
+  offerPayFees: boolean;
+  /**
+   * Default the pay fees checkbox to checked?
+   */
+  payFeesDefault: boolean;
+  /**
+   * Types of Stripe payment offered.
+   */
+  stripe: string[];
+}
+
 /**
  * Name of an element property the user can change on a DPayment.
  */
@@ -17,21 +32,22 @@ type PaymentPropertyName = 'offerPayFees' | 'payFeesDefault';
 
 function PaymentEditor() {
   const { elementContent, setElementContent } = useEditInterfaceContext();
+  const typedElementContent = elementContent as DPaymentElement;
 
   const updateElement = useCallback(
     (propertyName: PaymentPropertyName, value: boolean) => {
-      setElementContent({ ...elementContent, [propertyName]: value });
+      setElementContent({ ...typedElementContent, [propertyName]: value });
     },
-    [elementContent, setElementContent]
+    [setElementContent, typedElementContent]
   );
 
   // If we disable fees, then collecting by fees by default should also be disabled.
 
   useEffect(() => {
-    if (!elementContent?.offerPayFees && elementContent?.payFeesDefault) {
+    if (!typedElementContent?.offerPayFees && typedElementContent?.payFeesDefault) {
       updateElement('payFeesDefault', false);
     }
-  }, [elementContent?.offerPayFees, elementContent.payFeesDefault, updateElement]);
+  }, [typedElementContent?.offerPayFees, typedElementContent?.payFeesDefault, updateElement]);
 
   // TODO: the Toggle component below does not label its input properly.
 
@@ -45,7 +61,7 @@ function PaymentEditor() {
         <ToggleWrapper>
           <Toggle
             label="Offer option to pay payment provider fees"
-            checked={elementContent?.offerPayFees}
+            checked={typedElementContent?.offerPayFees}
             onChange={(_: never, { checked }: { checked: boolean }) => updateElement('offerPayFees', checked)}
             toggle
             type="checkbox"
@@ -55,9 +71,9 @@ function PaymentEditor() {
           <Radio
             id="pay-fees-by-default"
             data-testid="pay-fees-by-default"
-            disabled={!elementContent?.offerPayFees}
+            disabled={!typedElementContent?.offerPayFees}
             color="primary"
-            checked={elementContent?.payFeesDefault}
+            checked={typedElementContent?.payFeesDefault}
             onChange={(event, checked) => updateElement('payFeesDefault', checked)}
           />
           <RadioLabel htmlFor="pay-fees-by-default">selected by default</RadioLabel>

@@ -1,9 +1,7 @@
-import { useState } from 'react';
 import { Controls, Root } from './PageStyles.styled';
 
 // Context
 import { usePageEditorContext } from 'components/pageEditor/PageEditor';
-import { useEditInterfaceContext } from 'components/pageEditor/editInterface/EditInterface';
 
 // Children
 import useModal from 'hooks/useModal';
@@ -11,31 +9,26 @@ import StylesChooser from 'components/pageEditor/editInterface/pageStyles/Styles
 import AddStylesModal from 'components/pageEditor/editInterface/pageStyles/AddStylesModal';
 import EditSaveControls from '../EditSaveControls';
 import EditTabHeader from '../EditTabHeader';
+import { useEditablePageBatch } from 'hooks/useEditablePageBatch';
+import { Style } from 'hooks/useStyleList';
 
 function PageStyles() {
-  const { page, availableStyles, setAvailableStyles } = usePageEditorContext();
-  const { setPageContent } = useEditInterfaceContext();
+  const { addBatchChange, batchHasChanges, batchPreview, commitBatch, resetBatch } = useEditablePageBatch();
+  const { availableStyles, setAvailableStyles } = usePageEditorContext();
   const {
     open: addStylesModalOpen,
     handleClose: handleAddStylesModalClose,
     handleOpen: handleAddStylesModalOpen
   } = useModal(false);
 
-  // Styles state
-  const [styles, setStyles] = useState(page.styles);
-
-  const handleKeepChanges = () => {
-    setPageContent({ styles });
-  };
-
-  const handleDiscardChanges = () => {
-    setStyles(page.styles);
-  };
-
-  const handleAddNewStyles = (newStyles) => {
+  const handleAddNewStyles = (newStyles: Style) => {
     setAvailableStyles([newStyles, ...availableStyles]);
-    setStyles(newStyles);
+    addBatchChange({ styles: newStyles });
   };
+
+  if (!batchPreview) {
+    return null;
+  }
 
   return (
     <Root>
@@ -45,14 +38,13 @@ function PageStyles() {
         prompt="Add or create a new style to customize your page."
       />
       <Controls>
-        <StylesChooser styles={availableStyles} selected={styles} setSelected={setStyles} />
+        <StylesChooser
+          styles={availableStyles}
+          selected={batchPreview.styles}
+          setSelected={(styles: Style) => addBatchChange({ styles })}
+        />
       </Controls>
-      <EditSaveControls
-        cancelDisabled={styles === page.styles}
-        onCancel={handleDiscardChanges}
-        onUpdate={handleKeepChanges}
-        variant="undo"
-      />
+      <EditSaveControls cancelDisabled={!batchHasChanges} onCancel={resetBatch} onUpdate={commitBatch} variant="undo" />
       <AddStylesModal
         isOpen={addStylesModalOpen}
         closeModal={handleAddStylesModalClose}

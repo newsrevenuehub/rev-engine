@@ -176,10 +176,9 @@ def donation_with_published_date():
     ],
 )
 @pytest.mark.django_db
-def test_donation_page_first_publication(page, value_from_db, expected):
-    with mock.patch("apps.pages.models.DonationPage.objects.get") as donation_page_get:
-        donation_page_get.return_value = value_from_db
-        assert page.first_publication() == expected
+def test_donation_page_first_publication(page, value_from_db, expected, monkeypatch):
+    monkeypatch.setattr("apps.pages.models.DonationPage.objects.get", lambda *args, **kwargs: value_from_db)
+    assert page.first_publication() == expected
 
 
 @pytest.mark.django_db

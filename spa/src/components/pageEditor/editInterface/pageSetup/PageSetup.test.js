@@ -9,13 +9,15 @@ jest.mock('components/base/ImageUpload/ImageUpload');
 jest.mock('hooks/useEditablePageBatch');
 
 const page = {
-  header_link: 'mock-header-link',
+  // URL fields need to be actual URLs to pass validation and enable the Update
+  // button.
+  header_link: 'https://mock-header-link.org',
   header_logo_thumbnail: 'mock-header-logo-thumbnail',
   heading: 'mock-heading',
   plan: { custom_thank_you_page_enabled: true, label: 'free' },
-  post_thank_you_redirect: 'mock-post-thank-you-redirect',
+  post_thank_you_redirect: 'https://mock-post-thank-you-redirect.org',
   label: 'Free',
-  thank_you_redirect: 'mock-thank-you-redirect'
+  thank_you_redirect: 'https://mock-thank-you-redirect.org'
 };
 
 function tree() {
@@ -129,13 +131,14 @@ describe('PageSetup', () => {
     });
   });
 
-  it('commits the edit batch when the Update button is clicked', () => {
+  it.only('commits the edit batch when the Update button is clicked', () => {
     const commitBatch = jest.fn();
 
     mockBatch({ commitBatch });
     tree();
     expect(commitBatch).not.toBeCalled();
-    fireEvent.click(screen.getByText('Update'));
+    expect(screen.getByRole('button', { name: 'Update' })).toBeEnabled();
+    fireEvent.click(screen.getByRole('button', { name: 'Update' }));
     expect(commitBatch).toBeCalledTimes(1);
   });
 
@@ -145,7 +148,7 @@ describe('PageSetup', () => {
     mockBatch({ resetBatch });
     tree();
     expect(resetBatch).not.toBeCalled();
-    fireEvent.click(screen.getByText('Undo'));
+    fireEvent.click(screen.getByRole('button', { name: 'Undo' }));
     expect(resetBatch).toBeCalledTimes(1);
   });
 

@@ -85,7 +85,7 @@ function PageSetup() {
         {showLogoInput && (
           <InputWrapper border>
             <Input
-              errors={!isValidWebUrl(batchPreview.header_link, true) && INVALID_URL_MESSAGE}
+              errors={!isValidWebUrl(batchPreview.header_link, true) && [INVALID_URL_MESSAGE]}
               type="url"
               label="Logo link"
               value={batchPreview.header_link}
@@ -122,7 +122,7 @@ function PageSetup() {
             <Input
               errors={
                 errors.thank_you_redirect ??
-                (!isValidWebUrl(batchPreview.thank_you_redirect, true) && INVALID_URL_MESSAGE)
+                (!isValidWebUrl(batchPreview.thank_you_redirect, true) && [INVALID_URL_MESSAGE])
               }
               type="url"
               label="Thank You page link"
@@ -137,7 +137,7 @@ function PageSetup() {
           <Input
             errors={
               errors.post_thank_you_redirect ??
-              (!isValidWebUrl(batchPreview.post_thank_you_redirect, true) && INVALID_URL_MESSAGE)
+              (!isValidWebUrl(batchPreview.post_thank_you_redirect, true) && [INVALID_URL_MESSAGE])
             }
             type="url"
             label="Post Thank You redirect"

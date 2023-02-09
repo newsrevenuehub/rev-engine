@@ -8,11 +8,13 @@ import { Controller, useForm } from 'react-hook-form';
 import { ErrorMessage, Typography, Title } from './AddPageModal.styled';
 
 export interface AddPageModalProps extends InferProps<typeof AddPageModalPropTypes> {
-  onAddPage: (revenueProgram: string) => void;
+  onAddPage: (revenueProgram: number) => void;
   onClose: () => void;
 }
 
 const formDefaultValues = {
+  // Even though revenue program IDs are numbers, this needs to be a string
+  // because it will be a field value.
   revenueProgram: ''
 };
 
@@ -26,7 +28,7 @@ const AddPageModal = ({ open, onClose, loading, revenuePrograms, onAddPage, oute
   });
 
   const onSubmit = (form: typeof formDefaultValues) => {
-    onAddPage(form.revenueProgram);
+    onAddPage(parseInt(form.revenueProgram));
   };
 
   const errorMessage = outerError || errors?.revenueProgram?.message;
@@ -99,7 +101,7 @@ const AddPageModalPropTypes = {
   onAddPage: PropTypes.func.isRequired,
   revenuePrograms: PropTypes.arrayOf(
     PropTypes.shape({
-      id: PropTypes.string.isRequired,
+      id: PropTypes.number.isRequired,
       name: PropTypes.string.isRequired
     }).isRequired
   ).isRequired

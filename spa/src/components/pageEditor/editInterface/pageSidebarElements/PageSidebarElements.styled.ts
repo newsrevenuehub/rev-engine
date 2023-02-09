@@ -1,3 +1,4 @@
+import { motion } from 'framer-motion';
 import styled from 'styled-components';
 
 export const Root = styled.div`
@@ -8,6 +9,6 @@ export const Root = styled.div`
   overflow: hidden;
 `;
 
-export const ElementContainer = styled.div`
+export const ElementContainer = styled(motion.div)`
   overflow-y: auto;
 `;

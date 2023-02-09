@@ -5,9 +5,9 @@ import userEvent from '@testing-library/user-event';
 import AddPageModal, { AddPageModalProps } from './AddPageModal';
 
 const revenuePrograms = [
-  { id: '1', name: 'rp-mock-1' },
-  { id: '2', name: 'rp-mock-2' },
-  { id: '3', name: 'rp-mock-3' }
+  { id: 1, name: 'rp-mock-1' },
+  { id: 2, name: 'rp-mock-2' },
+  { id: 3, name: 'rp-mock-3' }
 ];
 
 const onClose = jest.fn();

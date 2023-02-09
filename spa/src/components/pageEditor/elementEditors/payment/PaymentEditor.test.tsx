@@ -1,5 +1,5 @@
 import userEvent from '@testing-library/user-event';
-import { EditInterfaceContext } from 'components/pageEditor/editInterface/EditInterface';
+import { EditInterfaceContext } from 'components/pageEditor/editInterface/EditInterfaceContextProvider';
 import { axe } from 'jest-axe';
 import { render, screen } from 'test-utils';
 import PaymentEditor from './PaymentEditor';
@@ -11,7 +11,7 @@ interface MockEditInterfaceContext {
 
 function tree(context?: Partial<MockEditInterfaceContext>) {
   return render(
-    <EditInterfaceContext.Provider value={{ setElementContent: jest.fn(), elementContent: {}, ...context }}>
+    <EditInterfaceContext.Provider value={{ setElementContent: jest.fn(), elementContent: {}, ...context } as any}>
       <PaymentEditor />
     </EditInterfaceContext.Provider>
   );

@@ -8,7 +8,7 @@ export const Flex = styled.div`
   font-family: ${(props) => props.theme.systemFont};
 `;
 
-export const Button = styled(MuiButton)`
+export const Button = styled(MuiButton)<{ $active?: boolean; $published?: boolean }>`
   && {
     height: 36px;
     font-weight: 600;
@@ -25,7 +25,7 @@ export const Button = styled(MuiButton)`
     }
 
     ${(props) =>
-      props.published &&
+      props.$published &&
       `
        background-color: transparent;
        color: white;
@@ -36,7 +36,7 @@ export const Button = styled(MuiButton)`
        }
 
        ${
-         props.active &&
+         props.$active &&
          `
         background-color: white;
         color: ${props.theme.colors.topbarBackground};
@@ -99,7 +99,7 @@ export const IconButton = styled(MuiIconButton)`
     top: 8px;
     right: 8px;
   }
-`;
+` as typeof MuiIconButton;
 
 export const LiveText = styled.p`
   display: flex;

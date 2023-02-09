@@ -20,7 +20,7 @@ import {
   CancelButton
 } from './PublishModal.styled';
 import getDomain from 'utilities/getDomain';
-import { PagePropTypes } from 'constants/proptypes';
+import { PagePropTypes } from 'constants/propTypes';
 import slugify from 'utilities/slugify';
 
 const PublishModal = ({ open, onClose, onPublish, page, loading }) => {

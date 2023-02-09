@@ -1,25 +1,53 @@
 import styled from 'styled-components';
 import { NavLink } from 'react-router-dom';
+import logo from 'assets/images/nre-logo-blue.svg';
+import mobileLogo from 'assets/images/nre-logo-blue-mobile.svg';
 import SvgIcon from 'assets/icons/SvgIcon';
 import { motion } from 'framer-motion';
 
-export const DashboardSidebar = styled.aside`
-  width: 260px;
-  height: 100%;
-  padding: 2rem 0.5rem;
-  background: ${(props) => props.theme.colors.sidebarBackground};
-  box-shadow: ${(props) => props.theme.shadows[0]};
+export const Root = styled.aside`
   display: flex;
   flex-direction: column;
-  justify-content: space-between;
+  width: 260px;
+  height: 100%;
+  background: ${(props) => props.theme.colors.sidebarBackground};
+  box-shadow: ${(props) => props.theme.shadows[0]};
   overflow-y: auto;
 
   @media (${(props) => props.theme.breakpoints.tabletLandscapeDown}) {
     width: 66px;
     height: 100%;
-    padding: 2rem 0px 2rem;
+    padding: 0;
     background: ${(props) => props.theme.colors.sidebarBackground};
     box-shadow: ${(props) => props.theme.shadows[0]};
+  }
+`;
+
+export const Content = styled.div`
+  display: flex;
+  flex-grow: 1;
+  flex-direction: column;
+  justify-content: space-between;
+  padding: 2rem 0.5rem;
+
+  @media (${(props) => props.theme.breakpoints.tabletLandscapeDown}) {
+    padding: 2rem 0;
+  }
+`;
+
+export const Logo = styled.span`
+  background-image: url(${logo});
+  background-position: 25px center;
+  background-repeat: no-repeat;
+  background-size: auto 30px;
+  display: block;
+  height: 48px;
+  width: 100%;
+
+  @media (${(props) => props.theme.breakpoints.tabletLandscapeDown}) {
+    background-image: url(${mobileLogo});
+    background-position: center;
+    background-size: contain;
   }
 `;
 

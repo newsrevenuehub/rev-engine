@@ -7,7 +7,7 @@ import { USER_ROLE_ORG_ADMIN_TYPE, USER_ROLE_HUB_ADMIN_TYPE, USER_SUPERUSER_TYPE
 
 import { LIST_PAGES } from 'ajax/endpoints';
 import Axios from 'ajax/axios';
-import { Page } from 'hooks/useUser.types';
+import { ContributionPage } from 'hooks/useContributionPage';
 
 const orgAdminUser = {
   role_type: [USER_ROLE_ORG_ADMIN_TYPE],
@@ -50,15 +50,15 @@ describe('pagesbyRP', () => {
         slug: 'mock-slug-3',
         revenue_program: { id: '2', name: 'rp2', slug: 'mock-slug-2' }
       }
-    ] as Page[];
+    ];
 
     it('should group pages by RevenueProgram in pagesByRevProgram', () => {
-      const result = pagesbyRP(inp);
+      const result = pagesbyRP(inp as any);
       expect(result.length).toEqual(2);
     });
 
     it('should filter pages agnostic of capitalization, spacing and punctuation', () => {
-      const filteredResult = pagesbyRP(inp, 'MOCK   _name -.()/1');
+      const filteredResult = pagesbyRP(inp as any, 'MOCK   _name -.()/1');
       expect(filteredResult).toEqual([
         {
           name: 'rp1',
@@ -83,8 +83,8 @@ describe('pagesbyRP', () => {
         { id: 1, revenue_program: { id: '1', name: 'rp1' } },
         { id: 2, revenue_program: { id: '2', name: 'rp2' } },
         { id: 3, revenue_program: null }
-      ] as Page[];
-      result = pagesbyRP(inp);
+      ];
+      result = pagesbyRP(inp as any);
     });
 
     it('should not throw an error and exclude the page with null rp from pagesByRevProgram', () => {

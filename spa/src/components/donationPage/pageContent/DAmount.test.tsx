@@ -16,7 +16,7 @@ const defaultPage = {
   payment_provider: {
     stripe_account_id: 'mock-stripe-account-id'
   }
-};
+} as any;
 
 const defaultOptions = { [CONTRIBUTION_INTERVALS.ONE_TIME]: [1, 2, 3] };
 

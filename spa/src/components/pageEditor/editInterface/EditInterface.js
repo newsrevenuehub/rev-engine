@@ -1,7 +1,8 @@
-import { useState, useContext, createContext, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { Root, TabPanel } from './EditInterface.styled';
 
 import { usePageEditorContext } from 'components/pageEditor/PageEditor';
+import { EditInterfaceContextProvider, useEditInterfaceContext } from './EditInterfaceContextProvider';
 
 // Util
 import isEmpty from 'lodash.isempty';
@@ -15,20 +16,12 @@ import PageElements from 'components/pageEditor/editInterface/pageElements/PageE
 import PageSetup, { PAGE_SETUP_FIELDS } from 'components/pageEditor/editInterface/pageSetup/PageSetup';
 import PageSidebarElements from 'components/pageEditor/editInterface/pageSidebarElements/PageSidebarElements';
 import PageStyles from 'components/pageEditor/editInterface/pageStyles/PageStyles';
-import { usePageContext } from 'components/dashboard/PageContext';
-
-import * as dynamicPageElements from 'components/donationPage/pageContent/dynamicElements';
-import * as dynamicSidebarElements from 'components/donationPage/pageContent/dynamicSidebarElements';
-
-const dynamicElements = { ...dynamicPageElements, ...dynamicSidebarElements };
 
 const editInterfaceAnimation = {
   initial: { opacity: 0, x: 200 },
   animate: { opacity: 1, x: 0 },
   exit: { opacity: 0, x: 200 }
 };
-
-export const EditInterfaceContext = createContext();
 
 /**
  * EditInterface
@@ -39,19 +32,14 @@ export const EditInterfaceContext = createContext();
  *
  * EditInterface is direct child of PageEditor
  */
-function EditInterface() {
-  const { page, setPage, errors, showEditInterface, setSelectedButton } = usePageEditorContext();
-  const { updatedPage, setUpdatedPage } = usePageContext();
+function InnerEditInterface() {
+  const { handleRemoveElement, selectedElement, setElementContent, setElementRequiredFields, setSelectedElement } =
+    useEditInterfaceContext();
+  const { errors, showEditInterface, setSelectedButton } = usePageEditorContext();
   const [tab, setTab] = useState(0);
   const [elementDestination, setElementDestination] = useState();
   const [addElementModalOpen, setAddElementModalOpen] = useState(false);
-  const [selectedElement, setSelectedElement] = useState();
   const [selectedElementType, setSelectedElementType] = useState();
-
-  // Since you can only edit one element at a time, it's safe (and much easier)
-  // to only store one set of "unconfirmed" changes at a time.
-  const [elementContent, setElementContent] = useState();
-  const [elementRequiredFields, setElementRequiredFields] = useState([]);
 
   /**
    * This method exists to acknowledge potential additional complexity. Lucky for this developer,
@@ -75,37 +63,6 @@ function EditInterface() {
     }
   }, [errors, setTabFromErrors, setSelectedButton, showEditInterface]);
 
-  /**
-   * setPageContent performs updates necessary to affect a change made in
-   * the edit interface.
-   */
-  const setPageContent = (content = {}) => {
-    setPage({ ...page, ...content });
-    setUpdatedPage({ ...updatedPage, ...content });
-  };
-
-  const setElements = (elements) => {
-    setPageContent({ elements });
-  };
-
-  const setSidebarElements = (sidebar_elements) => {
-    setPageContent({ sidebar_elements });
-  };
-
-  const handleRemoveElement = (element, elementsType) => {
-    if (!dynamicElements[element.type]?.required) {
-    }
-    if (elementsType === 'layout') {
-      const elementsWithout = page?.elements?.filter((el) => el.uuid !== element.uuid);
-      setPageContent({ elements: elementsWithout });
-    }
-
-    if (elementsType === 'sidebar') {
-      const elementsWithout = page?.sidebar_elements?.filter((el) => el.uuid !== element.uuid);
-      setPageContent({ sidebar_elements: elementsWithout });
-    }
-  };
-
   const goToProperties = (element, elementsType) => {
     setSelectedElementType(elementsType);
     setSelectedElement(element);
@@ -114,80 +71,62 @@ function EditInterface() {
   };
 
   return (
-    <EditInterfaceContext.Provider
-      value={{
-        page,
-        updatedPage,
-        elements: page.elements,
-        setElements,
-        selectedElement,
-        sidebarElements: page.sidebar_elements,
-        setSidebarElements,
-        setSelectedElement,
-        elementContent,
-        setElementContent,
-        elementRequiredFields,
-        setElementRequiredFields,
-        setPageContent,
-        handleRemoveElement
-      }}
-    >
-      <>
-        <Root {...editInterfaceAnimation} data-testid="edit-interface">
-          {selectedElement ? (
-            <ElementProperties selectedElementType={selectedElementType} />
-          ) : (
-            <>
-              <EditInterfaceTabs tab={tab} onChangeTab={setTab} />
-              <TabPanel
-                active={tab === 0}
-                id="edit-layout-tab-panel"
-                tabId="edit-layout-tab"
-                unmountChildrenWhenInactive
-              >
-                <PageElements
-                  openAddElementModal={() => {
-                    setElementDestination('layout');
-                    setAddElementModalOpen(true);
-                  }}
-                  goToProperties={goToProperties}
-                  handleRemoveElement={handleRemoveElement}
-                />
-              </TabPanel>
-              <TabPanel
-                active={tab === 1}
-                id="edit-sidebar-tab-panel"
-                tabId="edit-sidebar-tab"
-                unmountChildrenWhenInactive
-              >
-                <PageSidebarElements
-                  goToProperties={goToProperties}
-                  handleRemoveElement={handleRemoveElement}
-                  openAddElementModal={() => {
-                    setElementDestination('sidebar');
-                    setAddElementModalOpen(true);
-                  }}
-                />
-              </TabPanel>
-              <TabPanel active={tab === 2} id="edit-setup-tab-panel" tabId="edit-setup-tab">
-                <PageSetup />
-              </TabPanel>
-              <TabPanel active={tab === 3} id="edit-styles-tab-panel" tabId="edit-styles-tab">
-                <PageStyles />
-              </TabPanel>
-            </>
-          )}
-        </Root>
-        <AddElementModal
-          addElementModalOpen={addElementModalOpen}
-          setAddElementModalOpen={setAddElementModalOpen}
-          destination={elementDestination}
-        />
-      </>
-    </EditInterfaceContext.Provider>
+    <>
+      <Root {...editInterfaceAnimation} data-testid="edit-interface">
+        {selectedElement ? (
+          <ElementProperties selectedElementType={selectedElementType} />
+        ) : (
+          <>
+            <EditInterfaceTabs tab={tab} onChangeTab={setTab} />
+            <TabPanel active={tab === 0} id="edit-layout-tab-panel" tabId="edit-layout-tab" unmountChildrenWhenInactive>
+              <PageElements
+                openAddElementModal={() => {
+                  setElementDestination('layout');
+                  setAddElementModalOpen(true);
+                }}
+                goToProperties={goToProperties}
+                handleRemoveElement={handleRemoveElement}
+              />
+            </TabPanel>
+            <TabPanel
+              active={tab === 1}
+              id="edit-sidebar-tab-panel"
+              tabId="edit-sidebar-tab"
+              unmountChildrenWhenInactive
+            >
+              <PageSidebarElements
+                goToProperties={goToProperties}
+                handleRemoveElement={handleRemoveElement}
+                openAddElementModal={() => {
+                  setElementDestination('sidebar');
+                  setAddElementModalOpen(true);
+                }}
+              />
+            </TabPanel>
+            <TabPanel active={tab === 2} id="edit-setup-tab-panel" tabId="edit-setup-tab">
+              <PageSetup />
+            </TabPanel>
+            <TabPanel active={tab === 3} id="edit-styles-tab-panel" tabId="edit-styles-tab">
+              <PageStyles />
+            </TabPanel>
+          </>
+        )}
+      </Root>
+      <AddElementModal
+        addElementModalOpen={addElementModalOpen}
+        setAddElementModalOpen={setAddElementModalOpen}
+        destination={elementDestination}
+      />
+    </>
   );
 }
 
-export const useEditInterfaceContext = () => useContext(EditInterfaceContext);
+function EditInterface() {
+  return (
+    <EditInterfaceContextProvider>
+      <InnerEditInterface />
+    </EditInterfaceContextProvider>
+  );
+}
 
 export default EditInterface;

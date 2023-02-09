@@ -52,7 +52,7 @@ export interface StripeAccountLinkStatusResponse {
   url: string;
 }
 
-async function fetchAccountLinkStatus(rpId: string) {
+async function fetchAccountLinkStatus(rpId: number) {
   // this endpoint can have a number of small side effects, including creating a stripe account link
   // and causing a stripe account ID to be added to the RP's payment provider. Because of this, it uses
   // POST as opposed to GET

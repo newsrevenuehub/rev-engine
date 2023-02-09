@@ -1,3 +1,4 @@
+import { EditablePageContext, EditablePageContextResult } from 'hooks/useEditablePage';
 import { axe } from 'jest-axe';
 import { render, screen, fireEvent, waitFor } from 'test-utils';
 import { pageLink, portalLink } from 'utilities/getPageLinks';
@@ -17,23 +18,46 @@ const mockClipboard = {
   writeText: jest.fn()
 };
 
-global.navigator.clipboard = mockClipboard;
+(global.navigator as any).clipboard = mockClipboard;
 
 describe('GrabLink', () => {
-  it('should not render grab link if page is not published', () => {
-    render(<GrabLink page={{ ...page, published_date: null }} />);
+  function tree(context?: Partial<EditablePageContextResult>) {
+    return render(
+      <EditablePageContext.Provider
+        value={{
+          deletePage: jest.fn(),
+          isError: false,
+          isLoading: false,
+          page: page as any,
+          pageChanges: {},
+          setPageChanges: jest.fn(),
+          ...context
+        }}
+      >
+        <GrabLink />
+      </EditablePageContext.Provider>
+    );
+  }
+
+  it('renders nothing while the page is loading', () => {
+    tree({ isError: false, isLoading: true, page: undefined });
+    expect(document.body.textContent).toBe('');
+  });
+
+  it("doesn't render a grab link button if the page is not published", () => {
+    tree({ page: { ...page, published_date: null } as any });
     const button = screen.queryByRole('button', { name: /grab link/i });
     expect(button).not.toBeInTheDocument();
   });
 
-  it('should render grab link button if page is published', () => {
-    render(<GrabLink page={page} />);
+  it('renders a grab link button if the page is published', () => {
+    tree({ page: page as any });
     const button = screen.getByRole('button', { name: /grab link/i });
     expect(button).toBeEnabled();
   });
 
   it('should open popup and have all information', () => {
-    render(<GrabLink page={page} />);
+    tree();
 
     const button = screen.getByRole('button', { name: /grab link/i });
     expect(button).toBeEnabled();
@@ -53,8 +77,8 @@ describe('GrabLink', () => {
   });
 
   it('should open popup and copy link', async () => {
-    mockClipboard.writeText.mockResolvedValue();
-    render(<GrabLink page={page} />);
+    mockClipboard.writeText.mockResolvedValue(undefined);
+    tree();
 
     const button = screen.getByRole('button', { name: /grab link/i });
     expect(button).toBeEnabled();
@@ -69,7 +93,7 @@ describe('GrabLink', () => {
   });
 
   it('should be accessible', async () => {
-    const { container } = render(<GrabLink page={page} />);
+    const { container } = tree();
     expect(await axe(container)).toHaveNoViolations();
   });
 });

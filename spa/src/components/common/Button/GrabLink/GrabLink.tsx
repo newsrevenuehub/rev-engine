@@ -1,22 +1,27 @@
-import { useState } from 'react';
-import PropTypes from 'prop-types';
-
-import { pageHasBeenPublished } from 'utilities/editPageGetSuccessMessage';
+import { MouseEvent, useMemo, useState } from 'react';
+import PropTypes, { InferProps } from 'prop-types';
 import LinkIcon from '@material-ui/icons/Link';
-
 import CopyInputButton from 'components/common/Button/CopyInputButton';
+import { useEditablePageContext } from 'hooks/useEditablePage';
 import { pageLink, portalLink } from 'utilities/getPageLinks';
+import { pageIsPublished } from 'utilities/editPageGetSuccessMessage';
 import { Flex, Button, Popover, Text } from './GrabLink.styled';
-import { PagePropTypes } from 'constants/proptypes';
 
-const GrabLink = ({ page, className }) => {
+const GrabLinkPropTypes = {
+  className: PropTypes.string
+};
+
+export type GrabLinkProps = InferProps<typeof GrabLinkPropTypes>;
+
+const GrabLink = ({ className }: GrabLinkProps) => {
+  const { page } = useEditablePageContext();
   const [copied, setCopied] = useState('');
-  const [anchorEl, setAnchorEl] = useState(null);
+  const [anchorEl, setAnchorEl] = useState<HTMLElement | null>(null);
   const open = Boolean(anchorEl);
   const id = open ? 'grab link popover' : undefined;
-  const isPublished = pageHasBeenPublished(page);
+  const isPublished = useMemo(() => page && pageIsPublished(page), [page]);
 
-  const handleClick = (event) => {
+  const handleClick = (event: MouseEvent<HTMLButtonElement>) => {
     setAnchorEl(event.currentTarget);
   };
 
@@ -24,10 +29,12 @@ const GrabLink = ({ page, className }) => {
     setAnchorEl(null);
   };
 
-  if (!isPublished) return null;
+  if (!isPublished) {
+    return null;
+  }
 
   return (
-    <Flex className={className}>
+    <Flex className={className!}>
       <Button startIcon={<LinkIcon />} onClick={handleClick} aria-label="Grab link" aria-describedby={id}>
         Grab link
       </Button>
@@ -37,7 +44,7 @@ const GrabLink = ({ page, className }) => {
         anchorEl={anchorEl}
         onClose={() => {
           handleClose();
-          setCopied(null);
+          setCopied('');
         }}
         anchorOrigin={{
           vertical: 'bottom',
@@ -67,14 +74,5 @@ const GrabLink = ({ page, className }) => {
   );
 };
 
-GrabLink.propTypes = {
-  className: PropTypes.string,
-  page: PropTypes.shape(PagePropTypes)
-};
-
-GrabLink.defaultProps = {
-  className: '',
-  page: undefined
-};
-
+GrabLink.propTypes = GrabLinkPropTypes;
 export default GrabLink;

@@ -5,7 +5,8 @@ import * as S from './AmountEditor.styled';
 import validateInputPositiveFloat from 'utilities/validateInputPositiveFloat';
 
 // Context
-import { useEditInterfaceContext } from 'components/pageEditor/editInterface/EditInterface';
+import { useEditInterfaceContext } from 'components/pageEditor/editInterface/EditInterfaceContextProvider';
+import { useEditablePageContext } from 'hooks/useEditablePage';
 
 // Elememts
 import FormErrors from 'elements/inputs/FormErrors';
@@ -13,20 +14,23 @@ import PlusButton from 'elements/buttons/PlusButton';
 import XButton from 'elements/buttons/XButton';
 
 function AmountEditor() {
+  const { updatedPagePreview } = useEditablePageContext();
   const { elementContent = { options: {} }, setElementContent, page, updatedPage } = useEditInterfaceContext();
   const [frequencies, setFrequencies] = useState([]);
   const [newAmounts, setNewAmounts] = useState({});
   const [errors, setErrors] = useState({});
 
   useEffect(() => {
-    const updatedFreqs = updatedPage?.elements?.find((el) => el.type === 'DFrequency');
+    const updatedFreqs = updatedPagePreview.elements?.find((el) => el.type === 'DFrequency');
+
     if (updatedFreqs) {
       setFrequencies(updatedFreqs?.content);
     } else {
-      const pageFreqs = page?.elements?.find((el) => el.type === 'DFrequency');
+      const pageFreqs = updatedPagePreview.elements?.find((el) => el.type === 'DFrequency');
+
       setFrequencies(pageFreqs?.content);
     }
-  }, [page, updatedPage]);
+  }, [updatedPage, updatedPagePreview.elements]);
 
   const handleNewAmountsChange = (frequency, value) => {
     if (value === '' || validateInputPositiveFloat(value)) {

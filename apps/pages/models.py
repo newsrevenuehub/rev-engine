@@ -1,3 +1,5 @@
+import logging
+
 from django.conf import settings
 from django.db import models
 from django.utils import timezone
@@ -9,10 +11,13 @@ from apps.api.error_messages import UNIQUE_PAGE_SLUG
 from apps.common.models import IndexedTimeStampedModel
 from apps.common.utils import cleanup_keys, normalize_slug
 from apps.config.validators import validate_slug_against_denylist
-from apps.pages import defaults
+from apps.pages import defaults, signals
 from apps.pages.validators import style_validator
 from apps.users.choices import Roles
 from apps.users.models import RoleAssignmentResourceModelMixin, UnexpectedRoleType
+
+
+logger = logging.getLogger(f"{settings.DEFAULT_LOGGER}.{__name__}")
 
 
 def _get_screenshot_upload_path(instance, filename):
@@ -189,8 +194,12 @@ class DonationPage(AbstractPage):
         super().clean_fields(**kwargs)
 
     def save(self, *args, **kwargs):
+        should_send_first_publication_signal = self.first_publication()
         self.set_default_logo()
         super().save(*args, **kwargs)
+        if should_send_first_publication_signal:
+            logger.info("DonationPage.save - sending signal page_published for page %s", self.id)
+            signals.page_published.send(sender=self.__class__, instance=self)
 
     def make_template_from_page(self, template_data={}, from_admin=False):
         """Create Template() instance from self.
@@ -214,6 +223,15 @@ class DonationPage(AbstractPage):
         template = cleanup_keys(template_data, unwanted_keys)
         merged_template = {**page, **template}
         return Template.objects.create(**merged_template)
+
+    def first_publication(self) -> bool:
+        if not self.published_date:
+            return False
+        if not self.id:
+            return True
+        else:
+            existing_page = DonationPage.objects.get(pk=self.pk)
+            return True if not existing_page.published_date else False
 
 
 class Style(IndexedTimeStampedModel, RoleAssignmentResourceModelMixin):

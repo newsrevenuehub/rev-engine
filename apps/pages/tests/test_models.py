@@ -7,6 +7,7 @@ from django.test import TestCase
 from django.utils import timezone
 
 import pytest
+import pytest_cases
 
 from apps.common.tests.test_utils import get_test_image_file_jpeg
 from apps.config.tests.factories import DenyListWordFactory
@@ -146,6 +147,49 @@ class DonationPageTest(TestCase):
         revenue_program = RevenueProgramFactory()
         page = DonationPageFactory(revenue_program=revenue_program)
         assert page.page_url == f"https://{revenue_program.slug}.example.com/{page.slug}"
+
+
+@pytest.fixture
+def donation_page_no_published_date():
+    return DonationPageFactory(published_date=None)
+
+
+@pytest.fixture
+def donation_with_published_date():
+    return DonationPageFactory(published_date=datetime.datetime.now())
+
+
+@pytest_cases.parametrize(
+    "page,value_from_db,expected",
+    [
+        (pytest_cases.fixture_ref("donation_page_no_published_date"), None, False),
+        (
+            pytest_cases.fixture_ref("donation_with_published_date"),
+            pytest_cases.fixture_ref("donation_page_no_published_date"),
+            True,
+        ),
+        (
+            pytest_cases.fixture_ref("donation_with_published_date"),
+            pytest_cases.fixture_ref("donation_with_published_date"),
+            False,
+        ),
+    ],
+)
+@pytest.mark.django_db
+def test_donation_page_first_publication(page, value_from_db, expected):
+    with mock.patch("apps.pages.models.DonationPage.objects.get") as donation_page_get:
+        donation_page_get.return_value = value_from_db
+        assert page.first_publication() == expected
+
+
+@pytest.mark.django_db
+@pytest.mark.parametrize("first_publication_value,signal_sent", [(True, True), (False, False)])
+@mock.patch("apps.pages.models.DonationPage.first_publication")
+def test_send_signal_on_save(first_publication_method, first_publication_value, signal_sent):
+    first_publication_method.return_value = first_publication_value
+    page = DonationPageFactory()
+    page.save()
+    assert signal_sent == first_publication_value
 
 
 class StyleTest(TestCase):

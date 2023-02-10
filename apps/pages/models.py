@@ -23,7 +23,8 @@ def _get_screenshot_upload_path(instance, filename):
 
 class PagesAppQuerySet(models.QuerySet):
     def filtered_by_role_assignment(self, role_assignment: RoleAssignment) -> models.QuerySet:
-        match role_assignment.role_type:
+        rt = role_assignment.role_type
+        match rt:
             case Roles.HUB_ADMIN:
                 return self.all()
             case Roles.ORG_ADMIN:
@@ -49,7 +50,9 @@ class DonationPage(IndexedTimeStampedModel):
     header_bg_image = SorlImageField(null=True, blank=True)
     header_logo = SorlImageField(null=True, blank=True, default=None)
     header_link = models.URLField(blank=True)
-    sidebar_elements = models.JSONField(default=list)
+
+    sidebar_elements = models.JSONField(default=list, blank=True)
+
     styles = models.ForeignKey("pages.Style", null=True, blank=True, on_delete=models.SET_NULL)
     thank_you_redirect = models.URLField(
         blank=True, help_text="If not using default Thank You page, add link to orgs Thank You page here"

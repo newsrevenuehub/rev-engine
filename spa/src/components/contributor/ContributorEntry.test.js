@@ -1,7 +1,8 @@
-import { render, screen } from 'test-utils';
 import userEvent from '@testing-library/user-event';
+import MockAdapter from 'axios-mock-adapter';
+import { render, screen } from 'test-utils';
 import ContributorEntry from './ContributorEntry';
-import { revengineApi, server, rest } from 'test-server';
+import Axios from 'ajax/axios';
 import { GET_MAGIC_LINK } from 'ajax/endpoints';
 
 const page = {
@@ -9,6 +10,12 @@ const page = {
 };
 
 describe('ContributorEntry', () => {
+  const axiosMock = new MockAdapter(Axios);
+
+  afterEach(() => axiosMock.reset());
+
+  afterAll(() => axiosMock.restore());
+
   it('should have expected default appearance and initial state', () => {
     render(<ContributorEntry />);
     const title = screen.getByRole('heading', { name: 'Welcome to the RevEngine contributor portal' });
@@ -33,7 +40,7 @@ describe('ContributorEntry', () => {
   });
 
   it('should show success message when response is 200', async () => {
-    server.resetHandlers(rest.post(revengineApi(GET_MAGIC_LINK), (req, res, ctx) => res(ctx.status(200))));
+    axiosMock.onPost(GET_MAGIC_LINK).reply(200);
     render(<ContributorEntry />);
     const input = screen.getByRole('textbox');
     const email = 'test@gmail.com';
@@ -48,7 +55,7 @@ describe('ContributorEntry', () => {
   });
 
   it('should show "too many attempts" email error if failed response data has status code 429', async () => {
-    server.resetHandlers(rest.post(revengineApi(GET_MAGIC_LINK), (req, res, ctx) => res(ctx.status(429))));
+    axiosMock.onPost(GET_MAGIC_LINK).reply(429);
     render(<ContributorEntry />);
     const magicLinkButton = screen.getByRole('button', { name: 'Send Magic Link' });
     userEvent.click(magicLinkButton);
@@ -59,17 +66,8 @@ describe('ContributorEntry', () => {
 
   it('should show email error if failed response data object contains email key', async () => {
     const emailErrorMessage = 'Enter a valid email address';
-    server.resetHandlers(
-      rest.post(revengineApi(GET_MAGIC_LINK), (req, res, ctx) =>
-        res(
-          // Status code doesn't matter as long as it's an error status
-          ctx.status(500),
-          ctx.json({
-            email: [emailErrorMessage]
-          })
-        )
-      )
-    );
+
+    axiosMock.onPost(GET_MAGIC_LINK).reply(500, { email: [emailErrorMessage] });
     render(<ContributorEntry />);
     const magicLinkButton = screen.getByRole('button', { name: 'Send Magic Link' });
     userEvent.click(magicLinkButton);
@@ -79,10 +77,7 @@ describe('ContributorEntry', () => {
   });
 
   it('should open alert if generic error (with no email in error response)', async () => {
-    server.resetHandlers(
-      // Status code doesn't matter as long as it's an error status
-      rest.post(revengineApi(GET_MAGIC_LINK), (req, res, ctx) => res(ctx.status(500)))
-    );
+    axiosMock.onPost(GET_MAGIC_LINK).reply(500);
     render(<ContributorEntry />);
     const magicLinkButton = screen.getByRole('button', { name: 'Send Magic Link' });
     userEvent.click(magicLinkButton);

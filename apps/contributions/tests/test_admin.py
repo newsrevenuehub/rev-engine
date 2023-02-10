@@ -5,6 +5,7 @@ import django
 from django.contrib.admin.sites import AdminSite
 from django.contrib.auth import get_user_model
 from django.contrib.messages.api import MessageFailure
+from django.contrib.messages.storage.fallback import FallbackStorage
 from django.test import RequestFactory, TestCase
 from django.urls import reverse
 
@@ -103,6 +104,18 @@ class ContributionAdminTest(TestCase):
         queryset = Contribution.objects.filter(pk=contribution.pk)
         with pytest.raises(MessageFailure):
             self.contribution_admin.accept_flagged_contribution(request, queryset)
+
+    @mock.patch("apps.contributions.models.Contribution.process_flagged_payment")
+    def test_accept_or_reject_after_paid_fails(self, process_flagged_payment, _):
+        request = self._make_listview_request()
+        contribution = ContributionFactory(bad_actor_score=5, status=ContributionStatus.PAID)
+        queryset = Contribution.objects.filter(pk=contribution.pk)
+        setattr(request, "session", "session")
+        messages = FallbackStorage(request)
+        setattr(request, "_messages", messages)
+        self.contribution_admin.accept_flagged_contribution(request, queryset)
+        self.contribution_admin.reject_flagged_contribution(request, queryset)
+        assert not process_flagged_payment.called
 
     def test_provider_payment_link(self, mock_fetch_stripe_payment_method):
         contribution = ContributionFactory(provider_payment_id="pi_1234")

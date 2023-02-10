@@ -103,8 +103,8 @@ export function AmountInterval({
         <OtherAmountField
           error={!!newAmountInvalidMessage}
           helperText={newAmountInvalidMessage}
-          id={`amount-interval-${interval}-other-amount`}
-          label="Other amount"
+          id={`amount-interval-${interval}-add-amount`}
+          label="Add amount"
           InputProps={{
             // Have to copy props from our base component to get styling to look correct.
             classes: { root: 'NreTextFieldInputRoot', underline: 'NreTextFieldInputUnderline' },
@@ -115,7 +115,7 @@ export function AmountInterval({
             )
           }}
           onChange={handleNewAmountChange}
-          placeholder="Other amount"
+          placeholder="Add amount"
           type="number"
           value={newAmount}
         />

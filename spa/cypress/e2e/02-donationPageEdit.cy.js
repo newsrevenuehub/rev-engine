@@ -257,7 +257,7 @@ describe('Contribution page edit', () => {
       const amountToAdd = 5;
 
       cy.getByTestId('amount-interval-one_time').within(() => {
-        cy.findByLabelText('Other amount').type(amountToAdd);
+        cy.findByLabelText('Add amount').type(amountToAdd);
         cy.findByLabelText('Add').click();
         cy.contains(amountToAdd);
       });

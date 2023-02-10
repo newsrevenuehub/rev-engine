@@ -18,4 +18,5 @@ export const AllowOtherFormControlLabel = styled(FormControlLabel)`
 export const Tip = styled.p`
   color: ${({ theme }) => theme.colors.muiGrey[600]};
   font-weight: 500;
+  margin-bottom: 45px;
 `;

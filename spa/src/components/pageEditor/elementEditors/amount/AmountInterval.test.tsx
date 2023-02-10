@@ -66,7 +66,7 @@ describe('AmountInterval', () => {
     expect(onSetDefaultAmount.mock.calls).toEqual([[1]]);
   });
 
-  describe('The other amount field', () => {
+  describe('The add amount field', () => {
     it.each([
       ['a number with more than two decimal places', '1.234'],
       ['a negative number', '-1'],
@@ -75,7 +75,7 @@ describe('AmountInterval', () => {
       const onAddAmount = jest.fn();
 
       tree({ onAddAmount });
-      userEvent.type(screen.getByLabelText('Other amount'), value);
+      userEvent.type(screen.getByLabelText('Add amount'), value);
       userEvent.click(screen.getByRole('button', { name: 'Add' }));
       expect(onAddAmount).not.toBeCalled();
       expect(screen.getByText('Please enter a positive number with at most two decimal places.')).toBeInTheDocument();
@@ -92,7 +92,7 @@ describe('AmountInterval', () => {
       const onAddAmount = jest.fn();
 
       tree({ onAddAmount });
-      userEvent.type(screen.getByLabelText('Other amount'), value);
+      userEvent.type(screen.getByLabelText('Add amount'), value);
       userEvent.click(screen.getByRole('button', { name: 'Add' }));
       expect(onAddAmount).not.toBeCalled();
       fireEvent.submit(screen.getByTestId('other-amount-form'));
@@ -103,7 +103,7 @@ describe('AmountInterval', () => {
       const onAddAmount = jest.fn();
 
       tree({ onAddAmount });
-      userEvent.type(screen.getByLabelText('Other amount'), options[2].toString());
+      userEvent.type(screen.getByLabelText('Add amount'), options[2].toString());
       userEvent.click(screen.getByRole('button', { name: 'Add' }));
       expect(onAddAmount).not.toBeCalled();
       expect(screen.getByText('This amount has already been added.')).toBeInTheDocument();
@@ -115,7 +115,7 @@ describe('AmountInterval', () => {
       const onAddAmount = jest.fn();
 
       tree({ onAddAmount });
-      userEvent.type(screen.getByLabelText('Other amount'), '999.12');
+      userEvent.type(screen.getByLabelText('Add amount'), '999.12');
       userEvent.click(screen.getByRole('button', { name: 'Add' }));
       expect(onAddAmount.mock.calls).toEqual([[999.12]]);
     });
@@ -124,7 +124,7 @@ describe('AmountInterval', () => {
       const onAddAmount = jest.fn();
 
       tree({ onAddAmount });
-      userEvent.type(screen.getByLabelText('Other amount'), '999.12');
+      userEvent.type(screen.getByLabelText('Add amount'), '999.12');
       // eslint-disable-next-line testing-library/no-node-access
       fireEvent.submit(document.querySelector('form')!);
       expect(onAddAmount.mock.calls).toEqual([[999.12]]);
@@ -132,9 +132,9 @@ describe('AmountInterval', () => {
 
     it('clears the field after adding an amount', () => {
       tree();
-      userEvent.type(screen.getByLabelText('Other amount'), '999.12');
+      userEvent.type(screen.getByLabelText('Add amount'), '999.12');
       userEvent.click(screen.getByRole('button', { name: 'Add' }));
-      expect(screen.getByLabelText('Other amount')).toHaveValue(null);
+      expect(screen.getByLabelText('Add amount')).toHaveValue(null);
     });
   });
 

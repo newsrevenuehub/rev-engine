@@ -89,12 +89,7 @@ export function ElementEditor({ elementUuid, location, onClose }: ElementEditorP
             />
           </ContentDetail>
         </Content>
-        <EditSaveControls
-          onCancel={handleCancel}
-          onUpdate={handleUpdate}
-          cancelDisabled={!batchHasChanges}
-          variant="cancel"
-        />
+        <EditSaveControls onCancel={handleCancel} onUpdate={handleUpdate} variant="cancel" />
       </Root>
     );
   }

@@ -81,9 +81,9 @@ describe('ElementEditor', () => {
   });
 
   describe('The cancel button', () => {
-    it('is disabled when there are no pending changes', () => {
+    it('is enabled even when there are no pending changes', () => {
       tree();
-      expect(screen.getByRole('button', { name: 'Cancel' })).toBeDisabled();
+      expect(screen.getByRole('button', { name: 'Cancel' })).toBeEnabled();
     });
 
     it('is enabled when there are pending changes', () => {

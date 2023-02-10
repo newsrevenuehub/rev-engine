@@ -9,6 +9,7 @@ const options = [100, 200, 300];
 function tree(props?: Partial<AmountIntervalProps>) {
   return render(
     <AmountInterval
+      defaultOption={options[1]}
       interval="one_time"
       onAddAmount={jest.fn()}
       options={options}
@@ -56,6 +57,13 @@ describe('AmountInterval', () => {
     expect(onSetDefaultAmount).not.toBeCalled();
     userEvent.click(screen.getByRole('button', { name: `Make ${options[1]} default` }));
     expect(onSetDefaultAmount.mock.calls).toEqual([[options[1]]]);
+  });
+
+  it("calls onSetDefaultAmount with the first option if the default option doesn't exist", () => {
+    const onSetDefaultAmount = jest.fn();
+
+    tree({ onSetDefaultAmount, defaultOption: 0, options: [1, 2, 3] });
+    expect(onSetDefaultAmount.mock.calls).toEqual([[1]]);
   });
 
   describe('The other amount field', () => {

@@ -1,6 +1,6 @@
 import { Add } from '@material-ui/icons';
 import PropTypes, { InferProps } from 'prop-types';
-import { ChangeEvent, FormEvent, useMemo, useState } from 'react';
+import { ChangeEvent, FormEvent, useEffect, useMemo, useState } from 'react';
 import { ContributionInterval } from 'constants/contributionIntervals';
 import { Header, Items, OtherAmountButton, OtherAmountContainer, OtherAmountField } from './AmountInterval.styled';
 import AmountItem from './AmountItem';
@@ -55,6 +55,15 @@ export function AmountInterval({
       return 'This amount has already been added.';
     }
   }, [newAmount, options]);
+
+  // If the default option doesn't actually exist (i.e. it was removed by the
+  // user), set it to the first option in the list as a fallback.
+
+  useEffect(() => {
+    if (!options.some((option) => option === defaultOption)) {
+      onSetDefaultAmount(options[0]);
+    }
+  }, [defaultOption, onSetDefaultAmount, options]);
 
   function handleNewAmountChange(event: ChangeEvent<HTMLInputElement>) {
     setNewAmount(event.target.value);

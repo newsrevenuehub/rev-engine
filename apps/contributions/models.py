@@ -6,6 +6,7 @@ from urllib.parse import quote_plus
 
 from django.conf import settings
 from django.db import models
+from django.utils.functional import cached_property
 from django.utils.safestring import SafeString, mark_safe
 
 import stripe
@@ -586,7 +587,17 @@ class Contribution(IndexedTimeStampedModel):
             "sf_campaign_id": validated_data.get("sf_campaign_id"),
         }
 
-    @property
+    @cached_property
+    def stripe_setup_intent(self) -> stripe.SetupIntent | None:
+        if not (
+            (si_id := self.provider_setup_intent_id)
+            and (acct_id := self.donation_page.revenue_program.payment_provider.stripe_account_id)
+        ):
+            return None
+        else:
+            return stripe.SetupIntent.retrieve(si_id, stripe_account=acct_id)
+
+    @cached_property
     def stripe_payment_intent(self) -> stripe.PaymentIntent | None:
         if not (
             (pi_id := self.provider_payment_id)
@@ -596,7 +607,7 @@ class Contribution(IndexedTimeStampedModel):
         else:
             return stripe.PaymentIntent.retrieve(pi_id, stripe_account=acct_id)
 
-    @property
+    @cached_property
     def stripe_subscription(self) -> stripe.Subscription | None:
         if not all(
             [
@@ -699,4 +710,101 @@ class Contribution(IndexedTimeStampedModel):
             "Synced `provider_payment_method_details` for %s one-time and %s recurring contributions",
             one_times_updated,
             recurring_updated,
+        )
+
+    @staticmethod
+    def _stripe_metadata_is_valid_for_contribution_metadata_backfill(metadata):
+        logger.debug(
+            "`Contribution._stripe_metadata_is_valid_for_contribution_metadata_backfill` called with the following metadata: %s",
+            metadata,
+        )
+        required_keys = (
+            "agreed_to_pay_fees",
+            "donor_selected_amount",
+            "reason_for_giving",
+            "honoree",
+            "in_memory_of",
+            "comp_subscription",
+            "swag_opt_out",
+            "swag_choice",
+            "referer",
+            "revenue_program_id",
+            "revenue_program_slug",
+            "sf_campaign_id",
+        )
+        missing = set(required_keys).difference(set(metadata.keys()))
+        if missing:
+            logger.info(
+                "`Contribution._stripe_metadata_is_valid_for_contribution_metadata_backfill` was sent metadata with the following missing keys: %s",
+                ", ".join(missing),
+            )
+            return False
+        else:
+            return True
+
+    @classmethod
+    def fix_missing_contribution_metadata(cls, dry_run: bool = False) -> None:
+        """Attempt to backfill missing `contribution_metadata` with data pulled from Stripe."""
+        updated_count = 0
+        eligible = Contribution.objects.exclude(provider_payment_method_id="").filter(
+            contribution_metadata__isnull=True
+        )
+        logger.info(
+            "`Contribution.fix_missing_contribution_metadata` found %s eligible contributions missing `contribution_metadata`.",
+            eligible.count(),
+        )
+        for contribution in eligible:
+            logger.info(
+                "`Contribution.fix_missing_contribution_metadata` attempting to retrieve  %s",
+                contribution.id,
+            )
+            # one-time contributions whether flagged or non-flagged should have an associated payment intent with the data we need
+            # recurring contributions that were never flagged will have a subscription that has the data we need, while
+            # recurring contributions that were flagged will have a setup_intent with the data.
+            stripe_entity = None
+            if contribution.interval == ContributionInterval.ONE_TIME:
+                stripe_entity = contribution.stripe_setup_intent
+            elif contribution.interval != ContributionInterval.ONE_TIME and contribution.stripe_setup_intent:
+                stripe_entity = contribution.stripe_setup_intent
+            else:
+                stripe_entity = contribution.stripe_subscription
+            if not stripe_entity:
+                logger.info(
+                    (
+                        "`Contribution.fix_missing_contribution_metadata` could not find any data on "
+                        "Stripe to backfill contribution with ID  %s",
+                    ),
+                    contribution.id,
+                )
+                continue
+            if cls._stripe_metadata_is_valid_for_contribution_metadata_backfill(stripe_entity.metadata):
+                logger.info(
+                    (
+                        "`Contribution.fix_missing_contribution_metadata` found valid backfill data for "
+                        "contribution_metadata for contribution with ID %s"
+                    ),
+                    contribution.id,
+                )
+                contribution.metadata = Contribution.stripe_metadata(
+                    contribution.contributor, stripe_entity.metadata, stripe_entity.metadata.referer
+                )
+                if not dry_run:
+                    contribution.save()
+                    logger.info(
+                        "`Contribution.fix_missing_contribution_metadata` updated contribution_metadata on contribution with ID %s",
+                        contribution.id,
+                    )
+                updated_count += 1
+            else:
+                logger.info(
+                    (
+                        "`Contribution.fix_missing_contribution_metadata` could not find any valid backfill data for "
+                        "contribution_metadata for contribution with ID %s"
+                    ),
+                    contribution.id,
+                )
+        logger.info(
+            "`Contribution.fix_missing_contribution_metadata` %s %s contributions",
+            "would update" if dry_run else "updated",
+            updated_count,
         )

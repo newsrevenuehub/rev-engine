@@ -194,7 +194,7 @@ class DonationPage(AbstractPage):
         super().clean_fields(**kwargs)
 
     def save(self, *args, **kwargs):
-        should_send_first_publication_signal = self.first_publication()
+        should_send_first_publication_signal = self.should_send_first_publication_signal()
         self.set_default_logo()
         super().save(*args, **kwargs)
         if should_send_first_publication_signal:
@@ -224,7 +224,7 @@ class DonationPage(AbstractPage):
         merged_template = {**page, **template}
         return Template.objects.create(**merged_template)
 
-    def first_publication(self) -> bool:
+    def should_send_first_publication_signal(self) -> bool:
         if not self.published_date:
             return False
         if not self.id:

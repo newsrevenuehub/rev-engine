@@ -22,7 +22,7 @@ def donation_page_page_published_handler(sender, instance, **kwargs) -> None:
     2. there is an environment variable for PAGE_PUBLISHED_TOPIC
     """
     if google_cloud_pub_sub_is_configured() and settings.PAGE_PUBLISHED_TOPIC:
-        logger.debug(
+        logger.info(
             "donation_page_page_published_handler: Existing donation page published for the first time: %s", instance
         )
         message_data = {
@@ -34,3 +34,9 @@ def donation_page_page_published_handler(sender, instance, **kwargs) -> None:
             "revenue_program_slug": instance.revenue_program.slug,
         }
         Publisher.get_instance().publish(settings.PAGE_PUBLISHED_TOPIC, Message(data=json.dumps(message_data)))
+    logger.warning(
+        "donation_page_page_published_handler: Unable to publish for page %s. google_cloud_pub_sub_is_configured: %s, settings.PAGE_PUBLISHED_TOPIC: %s",
+        instance.id,
+        google_cloud_pub_sub_is_configured(),
+        settings.PAGE_PUBLISHED_TOPIC,
+    )

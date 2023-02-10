@@ -4,9 +4,8 @@ from django.db import migrations
 
 
 class Migration(migrations.Migration):
-
     dependencies = [
-        ("pages", "0005_DEV-1867_sidebar_elements_default_value"),
+        ("pages", "0006_DEV-2948_allow_empty_sidebar_elements"),
     ]
 
     operations = [

@@ -50,7 +50,7 @@ describe('Single Org User Only Route', () => {
     expect(screen.queryByTestId('mock-global-loading')).not.toBeInTheDocument();
   });
 
-  it("shouldn't redirect if isLoading = true", async () => {
+  it('should render global loading if isLoading = true', async () => {
     useUserMock.mockReturnValue({
       user: {
         organizations: [{ id: 'mock-org' }, { id: 'mock-org' }]

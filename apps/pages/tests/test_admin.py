@@ -204,3 +204,39 @@ class TemplateAdminTest(AbstractTestCase):
         # ...then try to do it again
         response = self.client.post(change_url, {"_page-from-template": True})
         self.assertEqual(response.status_code, 302)
+
+
+@pytest.mark.django_db
+def test_can_modify_donation_page_when_sidebar_elements_is_empty(admin_client):
+    page_empty_sidebar_elements = DonationPageFactory(sidebar_elements=[])
+    admin_client.post(
+        reverse("admin:pages_donationpage_change", args=[page_empty_sidebar_elements.pk]),
+        data=dict.fromkeys(
+            [
+                "csrfmiddlewaretoken",
+                "published_date_0",
+                "published_date_1",
+                "slug",
+                "thank_you_redirect",
+                "post_thank_you_redirect",
+                "header_bg_image",
+                "header_logo",
+                "header_link",
+                "heading",
+                "graphic",
+                "styles",
+                "elements",
+                "initial-elements",
+                "initial-sidebar_elements",
+                "_save",
+            ],
+            "",
+        )
+        | {
+            "revenue_program": page_empty_sidebar_elements.revenue_program.id,
+            "sidebar_elements": "[]",
+            "name": (new_name := "New name"),
+        },
+    )
+    page_empty_sidebar_elements.refresh_from_db()
+    assert page_empty_sidebar_elements.name == new_name

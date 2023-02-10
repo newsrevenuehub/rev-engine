@@ -273,9 +273,8 @@ class TestOrganizationViewSet:
         else:
             assert response.status_code == status.HTTP_403_FORBIDDEN
 
-    def test_patch_different_org(self, org_user_free_plan, api_client):
+    def test_patch_different_org(self, org_user_free_plan, api_client, organization):
         """Show that user cannot patch another org they are not part of"""
-        organization = OrganizationFactory()
         api_client.force_authenticate(org_user_free_plan)
         response = api_client.patch(reverse("organization-detail", args=(organization.id,)), data={})
         assert response.status_code == status.HTTP_404_NOT_FOUND

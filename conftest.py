@@ -77,6 +77,13 @@ def dont_use_ssl(settings):
     settings.SECURE_SSL_REDIRECT = False
 
 
+@pytest.fixture(autouse=True)
+def suppress_contribution_stripe_fetch_payment_method_on_save(monkeypatch):
+    monkeypatch.setattr(
+        "apps.contributions.models.Contribution.fetch_stripe_payment_method", lambda *args, **kwargs: None
+    )
+
+
 @pytest.fixture
 def default_feature_flags():
     """ """

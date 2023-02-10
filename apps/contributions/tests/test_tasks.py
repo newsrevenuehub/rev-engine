@@ -101,10 +101,6 @@ class TestEmailContributionCsvExportToUser:
         expected rows show up based on value for contribution id, but we don't test any other attributes at row
         level in this test.
         """
-        # TODO: DEV-3026
-        monkeypatch.setattr(
-            "apps.contributions.models.Contribution.fetch_stripe_payment_method", lambda *args, **kwargs: None
-        )
         contributions = ContributionFactory.create_batch(size=10)
         monkeypatch.setattr(
             "apps.contributions.tasks.send_templated_email_with_attachment", lambda *args, **kwargs: None
@@ -134,10 +130,6 @@ class TestEmailContributionCsvExportToUser:
 
         Additionally, it will log a warning.
         """
-        # TODO: DEV-3026
-        monkeypatch.setattr(
-            "apps.contributions.models.Contribution.fetch_stripe_payment_method", lambda *args, **kwargs: None
-        )
         contributions = ContributionFactory.create_batch(size=10)
         ids = [x.id for x in contributions]
         deleted = contributions.pop(0)

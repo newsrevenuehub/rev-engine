@@ -1,7 +1,6 @@
 import hashlib
 import io
 from csv import DictReader
-from unittest.mock import Mock
 
 from django.test import TestCase, override_settings
 
@@ -43,10 +42,7 @@ def test_hash_is_salted():
 
 
 @pytest.mark.django_db
-def test_export_contributions_to_csv(monkeypatch):
-    # TODO: DEV-3026 -- remove monkeypatch here
-    mock_fetch = Mock(return_value=None)
-    monkeypatch.setattr(Contribution, "fetch_stripe_payment_method", mock_fetch)
+def test_export_contributions_to_csv():
     contributions = []
     for _ in range(5):
         contributions.extend(

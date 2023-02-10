@@ -64,8 +64,7 @@ class ContributorTest(TestCase):
 
 @pytest.fixture
 def contribution():
-    with patch("apps.contributions.models.Contribution.fetch_stripe_payment_method", return_value=None):
-        return ContributionFactory(one_time=True)
+    return ContributionFactory(one_time=True)
 
 
 @pytest.mark.django_db()
@@ -416,8 +415,7 @@ class TestContributionModel:
         ),
     )
     def test_cancel_when_one_time(self, status, monkeypatch):
-        with patch("apps.contributions.models.Contribution.fetch_stripe_payment_method", return_value=None):
-            contribution = ContributionFactory(one_time=True, status=status)
+        contribution = ContributionFactory(one_time=True, status=status)
         mock_cancel = Mock()
         monkeypatch.setattr("stripe.PaymentIntent.cancel", mock_cancel)
         contribution.cancel()
@@ -452,14 +450,13 @@ class TestContributionModel:
         ),
     )
     def test_cancel_when_recurring(self, status, contribution_type, has_payment_method_id, monkeypatch):
-        with patch("apps.contributions.models.Contribution.fetch_stripe_payment_method", return_value=None):
-            contribution = ContributionFactory(
-                **{
-                    contribution_type: True,
-                    "status": status,
-                    "provider_payment_method_id": "some-id" if has_payment_method_id else None,
-                }
-            )
+        contribution = ContributionFactory(
+            **{
+                contribution_type: True,
+                "status": status,
+                "provider_payment_method_id": "some-id" if has_payment_method_id else None,
+            }
+        )
 
         mock_delete_sub = Mock()
         monkeypatch.setattr("stripe.Subscription.delete", mock_delete_sub)
@@ -473,8 +470,7 @@ class TestContributionModel:
         mock_retrieve_pm = Mock(return_value=MockPaymentMethod())
         monkeypatch.setattr("stripe.PaymentMethod.retrieve", mock_retrieve_pm)
 
-        with patch("apps.contributions.models.Contribution.fetch_stripe_payment_method", return_value=None):
-            contribution.cancel()
+        contribution.cancel()
         contribution.refresh_from_db()
         assert contribution.status == ContributionStatus.CANCELED
 
@@ -493,10 +489,9 @@ class TestContributionModel:
             mock_pm_detach.assert_not_called()
 
     def test_cancel_when_unpermitted_interval(self, monkeypatch):
-        with patch("apps.contributions.models.Contribution.fetch_stripe_payment_method", return_value=None):
-            contribution = ContributionFactory(
-                annual_subscription=True, status=ContributionStatus.PROCESSING, interval="foobar"
-            )
+        contribution = ContributionFactory(
+            annual_subscription=True, status=ContributionStatus.PROCESSING, interval="foobar"
+        )
         last_modified = contribution.modified
         mock_stripe_method = Mock()
         monkeypatch.setattr("stripe.PaymentIntent.cancel", mock_stripe_method)
@@ -544,8 +539,7 @@ class TestContributionModel:
         ),
     )
     def test_cancel_when_unpermitted_status(self, status, monkeypatch):
-        with patch("apps.contributions.models.Contribution.fetch_stripe_payment_method", return_value=None):
-            contribution = ContributionFactory(annual_subscription=True, status=status)
+        contribution = ContributionFactory(annual_subscription=True, status=status)
         last_modified = contribution.modified
         mock_stripe_method = Mock()
         monkeypatch.setattr("stripe.PaymentIntent.cancel", mock_stripe_method)
@@ -584,10 +578,7 @@ class TestContributionModel:
         ),
     )
     def test_send_recurring_contribution_email_reminder(self, interval, expect_success, monkeypatch, settings):
-        # This is to squash a side effect in contribution.save
-        # TODO: DEV-3026
-        with patch("apps.contributions.models.Contribution.fetch_stripe_payment_method", return_value=None):
-            contribution = ContributionFactory(interval=interval)
+        contribution = ContributionFactory(interval=interval)
         next_charge_date = datetime.datetime.now()
         mock_log_warning = Mock()
         mock_send_templated_email = Mock(wraps=send_templated_email.delay)
@@ -643,8 +634,7 @@ class TestContributionModel:
         ),
     )
     def test_send_recurring_contribution_email_reminder_email_text(self, is_non_profit, tax_id, monkeypatch, settings):
-        with patch("apps.contributions.models.Contribution.fetch_stripe_payment_method", return_value=None):
-            contribution = ContributionFactory(interval=ContributionInterval.YEARLY)
+        contribution = ContributionFactory(interval=ContributionInterval.YEARLY)
         contribution.donation_page.revenue_program.non_profit = is_non_profit
         contribution.donation_page.revenue_program.tax_id = tax_id
         contribution.donation_page.revenue_program.save()
@@ -697,6 +687,7 @@ class TestContributionModel:
     @pytest_cases.parametrize(
         "user",
         (
+            # uncomment this!!!!
             # pytest_cases.fixture_ref("hub_admin_user"),
             pytest_cases.fixture_ref("org_user_free_plan"),
             # pytest_cases.fixture_ref("rp_user"),
@@ -718,18 +709,17 @@ class TestContributionModel:
         # that were created.
         Contribution.objects.exclude(id=_contribution.id).delete()
         assert Contribution.objects.count() == 1
-        with patch("apps.contributions.models.Contribution.fetch_stripe_payment_method", return_value=None):
-            org1 = (rp1 := _contribution.donation_page.revenue_program).organization
-            rp2 = RevenueProgramFactory(name="rev-program-2", organization=org1)
-            contribution2 = ContributionFactory(
-                status=ContributionStatus.PAID, donation_page=DonationPageFactory(revenue_program=rp2)
-            )
-            contribution3 = ContributionFactory(
-                status=ContributionStatus.PAID,
-                donation_page=DonationPageFactory(
-                    revenue_program=RevenueProgramFactory(organization=OrganizationFactory(name="new org"))
-                ),
-            )
+        org1 = (rp1 := _contribution.donation_page.revenue_program).organization
+        rp2 = RevenueProgramFactory(name="rev-program-2", organization=org1)
+        contribution2 = ContributionFactory(
+            status=ContributionStatus.PAID, donation_page=DonationPageFactory(revenue_program=rp2)
+        )
+        contribution3 = ContributionFactory(
+            status=ContributionStatus.PAID,
+            donation_page=DonationPageFactory(
+                revenue_program=RevenueProgramFactory(organization=OrganizationFactory(name="new org"))
+            ),
+        )
         assert _contribution.donation_page.revenue_program != contribution2.donation_page.revenue_program
         assert (
             _contribution.donation_page.revenue_program.organization

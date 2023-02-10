@@ -70,11 +70,16 @@ class CreateStripeWebhooksTest(TestCase):
 def test_sync_missing_contribution_data_from_stripe(dry_run, monkeypatch):
     mock_fix_processing = Mock()
     mock_fix_pm_details = Mock()
+    mock_fix_missing_contribution_metadata = Mock()
     monkeypatch.setattr(
         "apps.contributions.models.Contribution.fix_contributions_stuck_in_processing", mock_fix_processing
     )
     monkeypatch.setattr(
         "apps.contributions.models.Contribution.fix_missing_payment_method_detail_details_data", mock_fix_pm_details
+    )
+    monkeypatch.setattr(
+        "apps.contributions.models.Contribution.fix_missing_contribution_metadata",
+        mock_fix_missing_contribution_metadata,
     )
     args = ["sync_missing_contribution_data_from_stripe"]
     if dry_run:
@@ -82,3 +87,4 @@ def test_sync_missing_contribution_data_from_stripe(dry_run, monkeypatch):
     call_command(*args)
     mock_fix_processing.assert_called_once_with(dry_run=dry_run)
     mock_fix_pm_details.assert_called_once_with(dry_run=dry_run)
+    mock_fix_missing_contribution_metadata.assert_called_once_with(dry_run=dry_run)

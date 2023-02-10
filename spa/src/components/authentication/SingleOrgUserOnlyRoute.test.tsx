@@ -3,22 +3,23 @@ import { render, screen } from 'test-utils';
 
 import useUser from 'hooks/useUser';
 
-import SettingsProtectedRoute, { SettingsProtectedRouteProps } from './SettingsProtectedRoute';
+import SingleOrgUserOnlyRoute from './SingleOrgUserOnlyRoute';
 
+jest.mock('elements/GlobalLoading');
 jest.mock('hooks/useUser');
 jest.mock('react-router-dom', () => ({
   ...jest.requireActual('react-router-dom'),
   Redirect: ({ to }: { to: string }) => <div>mock-redirect-to-{to}</div>
 }));
 
-describe('Settings Protected Route', () => {
+describe('Single Org User Only Route', () => {
   const useUserMock = useUser as jest.Mock;
 
-  function tree(props?: Partial<SettingsProtectedRouteProps>) {
+  function tree() {
     return render(
-      <SettingsProtectedRoute {...props}>
+      <SingleOrgUserOnlyRoute>
         <div>mock-render-protected-settings-route</div>
-      </SettingsProtectedRoute>
+      </SingleOrgUserOnlyRoute>
     );
   }
 
@@ -33,6 +34,7 @@ describe('Settings Protected Route', () => {
 
     expect(screen.queryByText('mock-render-protected-settings-route')).not.toBeInTheDocument();
     expect(screen.getByText('mock-redirect-to-/pages/')).toBeInTheDocument();
+    expect(screen.queryByTestId('mock-global-loading')).not.toBeInTheDocument();
   });
 
   it("shouldn't redirect if user has only 1 org", async () => {
@@ -45,6 +47,7 @@ describe('Settings Protected Route', () => {
     tree();
     expect(screen.getByText('mock-render-protected-settings-route')).toBeInTheDocument();
     expect(screen.queryByText('mock-redirect-to-/pages/')).not.toBeInTheDocument();
+    expect(screen.queryByTestId('mock-global-loading')).not.toBeInTheDocument();
   });
 
   it("shouldn't redirect if isLoading = true", async () => {
@@ -56,7 +59,8 @@ describe('Settings Protected Route', () => {
     });
 
     tree();
-    expect(screen.getByText('mock-render-protected-settings-route')).toBeInTheDocument();
+    expect(screen.getByTestId('mock-global-loading')).toBeInTheDocument();
+    expect(screen.queryByText('mock-render-protected-settings-route')).not.toBeInTheDocument();
     expect(screen.queryByText('mock-redirect-to-/pages/')).not.toBeInTheDocument();
   });
 

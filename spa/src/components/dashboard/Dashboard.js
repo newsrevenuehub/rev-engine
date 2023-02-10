@@ -27,7 +27,7 @@ import Donations from 'components/donations/Donations';
 import PageEditor from 'components/pageEditor/PageEditor';
 import Integration from 'components/settings/Integration';
 import Organization from 'components/settings/Organization';
-import SettingsProtectedRoute from 'components/settings/SettingsProtectedRoute';
+import SingleOrgUserOnlyRoute from 'components/authentication/SingleOrgUserOnlyRoute';
 import SystemNotification from 'components/common/SystemNotification/SystemNotification';
 
 import ConnectStripeElements from 'components/dashboard/connectStripe/ConnectStripeElements';
@@ -109,12 +109,16 @@ function Dashboard() {
                   <PageEditor />
                 </SentryRoute>
               ) : null}
-              <SettingsProtectedRoute path={SETTINGS.INTEGRATIONS}>
-                <Integration />
-              </SettingsProtectedRoute>
-              <SettingsProtectedRoute path={SETTINGS.ORGANIZATION}>
-                <Organization />
-              </SettingsProtectedRoute>
+              <SentryRoute path={SETTINGS.INTEGRATIONS}>
+                <SingleOrgUserOnlyRoute>
+                  <Integration />
+                </SingleOrgUserOnlyRoute>
+              </SentryRoute>
+              <SentryRoute path={SETTINGS.ORGANIZATION}>
+                <SingleOrgUserOnlyRoute>
+                  <Organization />
+                </SingleOrgUserOnlyRoute>
+              </SentryRoute>
               <SentryRoute path={PROFILE}>
                 <Profile />
               </SentryRoute>

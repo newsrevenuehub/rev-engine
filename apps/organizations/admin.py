@@ -178,7 +178,7 @@ class BenefitLevelAdmin(RevEngineBaseAdmin, VersionAdmin):
 
 
 @admin.register(RevenueProgram)
-class RevenueProgramAdmin(RevEngineBaseAdmin, VersionAdmin, AdminImageMixin):
+class RevenueProgramAdmin(RevEngineBaseAdmin, CompareVersionAdmin, AdminImageMixin):
     fieldsets = (
         (
             "RevenueProgram",

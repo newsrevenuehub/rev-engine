@@ -12,7 +12,7 @@ import useUser from 'hooks/useUser';
 import NewButton from 'components/common/Button/NewButton';
 import useModal from 'hooks/useModal';
 import AddPageModal from 'components/common/Modal/AddPageModal';
-import { Page } from 'hooks/useUser.types';
+import { ContributionPage } from 'hooks/useContributionPage';
 
 type AddPageType = InferProps<typeof AddPagePropTypes>;
 
@@ -61,7 +61,7 @@ function AddPage({ pagesByRevenueProgram, disabled }: AddPageType) {
   const handleSave = useCallback(
     (
       pagesBySelectedRp: typeof pagesByRevenueProgram[number]['pages'],
-      revenueProgramId: string,
+      revenueProgramId: number,
       revenueProgramName: string
     ) => {
       setLoading(true);
@@ -80,7 +80,7 @@ function AddPage({ pagesByRevenueProgram, disabled }: AddPageType) {
           data: formData
         },
         {
-          onSuccess: ({ data }: { data: Page }) => {
+          onSuccess: ({ data }: { data: ContributionPage }) => {
             setLoading(false);
             history.push({
               pathname: join([EDITOR_ROUTE, data.revenue_program.slug, data.slug, '/']),
@@ -103,7 +103,7 @@ function AddPage({ pagesByRevenueProgram, disabled }: AddPageType) {
   }, [handleOpen, handleSave, pagesByRevenueProgram, user]);
 
   const handleModalSave = useCallback(
-    (revenueProgramId: string) => {
+    (revenueProgramId: number) => {
       const rp = user?.revenue_programs.find((rp) => Number(rp.id) === Number(revenueProgramId));
       const pages = pagesByRevenueProgram?.find(({ name }) => name === rp?.name)?.pages ?? [];
       handleSave(pages, revenueProgramId, rp?.name!);

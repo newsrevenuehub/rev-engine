@@ -40,6 +40,7 @@ from apps.pages.tests.factories import (
     TemplateFactory,
 )
 from apps.pages.views import PageViewSet, StyleViewSet, TemplateViewSet
+from apps.users.models import RoleAssignment, User
 
 
 def test_expected_models_are_registered_with_django_reversion():
@@ -64,6 +65,8 @@ def test_expected_models_are_registered_with_django_reversion():
         SocialMeta,
         Style,
         Template,
+        User,
+        RoleAssignment,
     ]
     assert set(expected_registered_models) == set(reversion.get_registered_models())
 

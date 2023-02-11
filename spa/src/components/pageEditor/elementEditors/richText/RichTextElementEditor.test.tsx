@@ -1,6 +1,6 @@
 import { axe } from 'jest-axe';
 import { render, screen } from 'test-utils';
-import { EditInterfaceContext } from 'components/pageEditor/editInterface/EditInterface';
+import { EditInterfaceContext } from 'components/pageEditor/editInterface/EditInterfaceContextProvider';
 import RichTextElementEditor from './RichTextElementEditor';
 import userEvent from '@testing-library/user-event';
 
@@ -8,8 +8,6 @@ jest.mock('components/base/RichTextEditor/RichTextEditor');
 jest.mock('utilities/draftJs');
 
 describe('RichTextElementEditor', () => {
-  // We don't have a type definition for this yet (and it's a big context).
-
   function tree(context?: any) {
     return render(
       <EditInterfaceContext.Provider value={{ elementContent: 'mock-content', ...context }}>

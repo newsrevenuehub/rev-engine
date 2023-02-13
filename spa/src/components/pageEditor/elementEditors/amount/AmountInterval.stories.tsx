@@ -18,6 +18,13 @@ WithDefault.args = {
   options: [123.45, 5678.9, 12345689]
 };
 
+export const UsingStrings = Template.bind({});
+UsingStrings.args = {
+  defaultOption: '123.45' as any,
+  interval: 'one_time',
+  options: ['123.45', '5678.9', '12345689'] as any
+};
+
 export const NoDefault = Template.bind({});
 NoDefault.args = {
   interval: 'one_time',

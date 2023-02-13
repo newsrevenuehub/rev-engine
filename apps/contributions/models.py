@@ -339,12 +339,6 @@ class Contribution(IndexedTimeStampedModel):
         ),
     )
 
-    @property
-    def expanded_bad_actor_score(self):
-        if not self.bad_actor_score:
-            return None
-        return self.BAD_ACTOR_SCORES[self.bad_actor_score][1]
-
     def get_payment_manager_instance(self):
         """
         Selects the correct payment manager for this Contribution, then instantiates it.
@@ -630,8 +624,7 @@ class Contribution(IndexedTimeStampedModel):
         """
         one_times_updated = 0
         for contribution in Contribution.objects.one_time().filter(
-            # if we don't have a subscription id or payment intent id, there's nothing to do
-            models.Q(provider_subscription_id__isnull=False) | models.Q(provider_payment_id__isnull=False),
+            provider_payment_id__isnull=False,
             status=ContributionStatus.PROCESSING,
         ):
             if (pi := contribution.stripe_payment_intent) and pi.status == "succeeded":
@@ -643,8 +636,7 @@ class Contribution(IndexedTimeStampedModel):
                     contribution.save()
         recurring_updated = 0
         for contribution in Contribution.objects.recurring().filter(
-            # if we don't have a subscription id or payment intent id, there's nothing to do
-            models.Q(provider_subscription_id__isnull=False) | models.Q(provider_payment_id__isnull=False),
+            provider_subscription_id__isnull=False,
             status=ContributionStatus.PROCESSING,
         ):
             if (sub := contribution.stripe_subscription) and sub.status == "active":
@@ -662,7 +654,7 @@ class Contribution(IndexedTimeStampedModel):
         )
 
     @staticmethod
-    def fix_missing_payment_method_detail_details_data(dry_run: bool = False) -> None:
+    def fix_missing_payment_method_details_data(dry_run: bool = False) -> None:
         """Retrieve provider_payment_method_details from Stripe if it's None and it appears that this should not be the case.
 
         For the eligible subset of contributions, we retrieve the payment data from Stripe and set `provider_payment_method_details`
@@ -763,7 +755,7 @@ class Contribution(IndexedTimeStampedModel):
             # recurring contributions that were flagged will have a setup_intent with the data.
             stripe_entity = None
             if contribution.interval == ContributionInterval.ONE_TIME:
-                stripe_entity = contribution.stripe_setup_intent
+                stripe_entity = contribution.stripe_payment_intent
             elif contribution.interval != ContributionInterval.ONE_TIME and contribution.stripe_setup_intent:
                 stripe_entity = contribution.stripe_setup_intent
             else:

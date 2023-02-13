@@ -80,36 +80,6 @@ class MockOAuthResponse(StripeObject):
 expected_oauth_scope = "my_test_scope"
 
 
-@pytest.fixture
-def flagged_contribution():
-    return ContributionFactory(one_time=True, flagged=True)
-
-
-@pytest.fixture
-def rejected_contribution():
-    return ContributionFactory(monthly_subscription=True, rejected=True)
-
-
-@pytest.fixture
-def canceled_contribution():
-    return ContributionFactory(monthly_subscription=True, canceled=True)
-
-
-@pytest.fixture
-def refunded_contribution():
-    return ContributionFactory(one_time=True, refunded=True)
-
-
-@pytest.fixture
-def successful_contribution():
-    return ContributionFactory(one_time=True)
-
-
-@pytest.fixture
-def processing_contribution():
-    return ContributionFactory(processing=True)
-
-
 @override_settings(STRIPE_OAUTH_SCOPE=expected_oauth_scope)
 class StripeOAuthTest(AbstractTestCase):
     @classmethod
@@ -1025,12 +995,6 @@ class ProcessFlaggedContributionTest(APITestCase):
         response = self._make_request(contribution_pk=self.contribution.pk, request_args={"reject": False})
         self.assertEqual(response.status_code, 200)
         mock_process_flagged.assert_called_with(reject="False")
-
-
-@pytest.mark.django_db()
-@pytest.fixture
-def donation_page():
-    return DonationPageFactory()
 
 
 @pytest.fixture

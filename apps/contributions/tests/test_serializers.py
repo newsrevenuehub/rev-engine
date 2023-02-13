@@ -155,12 +155,6 @@ class AbstractPaymentSerializerTest(TestCase):
 
 @pytest.mark.django_db()
 @pytest.fixture
-def donation_page():
-    return DonationPageFactory()
-
-
-@pytest.mark.django_db()
-@pytest.fixture
 def donation_page_with_conditionally_required_phone_element():
     page = DonationPageFactory()
     conditionally_required_elements = [

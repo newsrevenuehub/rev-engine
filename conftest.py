@@ -86,7 +86,6 @@ def suppress_contribution_stripe_fetch_payment_method_on_save(monkeypatch):
 
 @pytest.fixture
 def default_feature_flags():
-    """ """
     Flag = get_waffle_flag_model()
     for x in DEFAULT_FLAGS_CONFIG_MAPPING.values():
         Flag.objects.get_or_create(name=x["name"], defaults={k: v for k, v in x.items() if k != "name"})
@@ -242,12 +241,46 @@ def one_time_contribution(live_donation_page):
 @pytest.mark.django_db
 @pytest.fixture
 def monthly_contribution(live_donation_page):
-    with patch("apps.contributions.models.Contribution.fetch_stripe_payment_method", return_value=None):
-        return ContributionFactory(donation_page=live_donation_page, monthly_subscription=True)
+    return ContributionFactory(donation_page=live_donation_page, monthly_subscription=True)
 
 
 @pytest.mark.django_db
 @pytest.fixture
 def annual_contribution(live_donation_page):
-    with patch("apps.contributions.models.Contribution.fetch_stripe_payment_method", return_value=None):
-        return ContributionFactory(donation_page=live_donation_page, annual_subscription=True)
+    return ContributionFactory(donation_page=live_donation_page, annual_subscription=True)
+
+
+@pytest.fixture
+def flagged_contribution():
+    return ContributionFactory(one_time=True, flagged=True)
+
+
+@pytest.fixture
+def rejected_contribution():
+    return ContributionFactory(monthly_subscription=True, rejected=True)
+
+
+@pytest.fixture
+def canceled_contribution():
+    return ContributionFactory(monthly_subscription=True, canceled=True)
+
+
+@pytest.fixture
+def refunded_contribution():
+    return ContributionFactory(one_time=True, refunded=True)
+
+
+@pytest.fixture
+def successful_contribution():
+    return ContributionFactory(one_time=True)
+
+
+@pytest.fixture
+def processing_contribution():
+    return ContributionFactory(processing=True)
+
+
+@pytest.mark.django_db()
+@pytest.fixture
+def donation_page():
+    return DonationPageFactory()

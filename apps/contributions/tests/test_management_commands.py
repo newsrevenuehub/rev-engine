@@ -75,7 +75,7 @@ def test_sync_missing_contribution_data_from_stripe(dry_run, monkeypatch):
         "apps.contributions.models.Contribution.fix_contributions_stuck_in_processing", mock_fix_processing
     )
     monkeypatch.setattr(
-        "apps.contributions.models.Contribution.fix_missing_payment_method_detail_details_data", mock_fix_pm_details
+        "apps.contributions.models.Contribution.fix_missing_payment_method_details_data", mock_fix_pm_details
     )
     monkeypatch.setattr(
         "apps.contributions.models.Contribution.fix_missing_contribution_metadata",

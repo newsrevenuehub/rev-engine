@@ -1,6 +1,6 @@
 import { ButtonBase } from '@material-ui/core';
 import { Close } from '@material-ui/icons';
-import styled, { css } from 'styled-components';
+import styled from 'styled-components';
 
 export const Root = styled.div<{ $isDefault: boolean }>`
   align-items: center;
@@ -13,15 +13,13 @@ export const Root = styled.div<{ $isDefault: boolean }>`
   min-width: 100px;
   padding: 10px;
 
-  ${(props) => {
-    if (props.$isDefault) {
-      return css`
-        background: ${({ theme }) => theme.colors.muiLightBlue[800]};
+  ${(props) =>
+    props.$isDefault &&
+    `
+        background: ${props.theme.colors.muiLightBlue[800]};
         box-shadow: none;
-        color: ${({ theme }) => theme.colors.white};
-      `;
-    }
-  }}
+        color: ${props.theme.colors.white};
+      `}
 `;
 
 export const NumberButton = styled(ButtonBase)`

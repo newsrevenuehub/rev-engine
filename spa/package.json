@@ -35,7 +35,6 @@
     "lodash.merge": "^4.6.2",
     "lodash.orderby": "^4.6.0",
     "md5": "^2.3.0",
-    "msw": "^0.28.2",
     "notistack": "^1.0.10",
     "prop-types": "^15.7.2",
     "query-string": "^7.0.1",
@@ -93,7 +92,7 @@
     ],
     "coverageThreshold": {
       "global": {
-        "lines": 38
+        "lines": 50
       }
     },
     "transformIgnorePatterns": [

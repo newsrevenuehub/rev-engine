@@ -54,6 +54,12 @@ class OrganizationInlineSerializer(serializers.ModelSerializer):
         return asdict(obj.plan)
 
 
+class OrganizationPatchSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = Organization
+        fields = ["name"]
+
+
 class RevenueProgramListInlineSerializer(serializers.ModelSerializer):
     """
     I am needed for Page creation. In particular, if "slug" is not provided,

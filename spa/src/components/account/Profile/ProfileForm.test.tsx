@@ -24,7 +24,7 @@ async function fillInAllFields() {
   await fireEvent.change(screen.getByLabelText('EIN Optional'), { target: { value: '987654321' } });
 
   userEvent.click(screen.getByRole('button', { name: /Company Tax Status Select your status/i }));
-  userEvent.click(screen.getByRole('option', { name: 'Non-profit' }));
+  userEvent.click(screen.getByRole('option', { name: 'Nonprofit' }));
 }
 
 describe('ProfileForm', () => {
@@ -72,16 +72,17 @@ describe('ProfileForm', () => {
     expect(taxId).toHaveValue('');
   });
 
-  it('displays a company tax status selector with non-profit and for-profit values, but no preset value', () => {
+  it('displays a company tax status selector with nonprofit, for-profit and fiscally sponsored values, but no preset value', () => {
     tree();
 
     const taxStatus = screen.getByRole('button', { name: /Company Tax Status Select your status/i });
 
     expect(taxStatus).toBeEnabled();
     userEvent.click(taxStatus);
-    expect(screen.getAllByRole('option')).toHaveLength(2);
-    expect(screen.getByRole('option', { name: 'Non-profit' })).toBeInTheDocument();
+    expect(screen.getAllByRole('option')).toHaveLength(3);
+    expect(screen.getByRole('option', { name: 'Nonprofit' })).toBeInTheDocument();
     expect(screen.getByRole('option', { name: 'For-profit' })).toBeInTheDocument();
+    expect(screen.getByRole('option', { name: 'Fiscally sponsored' })).toBeInTheDocument();
   });
 
   it('requires that the user enter a value for all fields except job title & tax id', async () => {
@@ -101,7 +102,7 @@ describe('ProfileForm', () => {
     }
 
     userEvent.click(screen.getByRole('button', { name: /Company Tax Status Select your status/i }));
-    userEvent.click(screen.getByRole('option', { name: 'Non-profit' }));
+    userEvent.click(screen.getByRole('option', { name: 'Nonprofit' }));
     expect(submitButton()).not.toBeDisabled();
   });
 
@@ -121,7 +122,8 @@ describe('ProfileForm', () => {
           jobTitle: 'mock-job-title',
           companyName: 'mock-company-name',
           companyTaxStatus: 'nonprofit',
-          taxId: '98-7654321'
+          taxId: '98-7654321',
+          fiscalSponsorName: ''
         }
       ]
     ]);
@@ -131,6 +133,72 @@ describe('ProfileForm', () => {
     tree({ disabled: true, onProfileSubmit });
     await fillInAllFields();
     expect(screen.getByRole('button', { name: 'Finalize Account' })).toBeDisabled();
+  });
+
+  describe('Fiscally Sponsored', () => {
+    it('hides fiscal sponsor name by default', async () => {
+      tree();
+      expect(screen.queryByLabelText('Fiscal Sponsor Name')).not.toBeInTheDocument();
+    });
+
+    it('show fiscal sponsor name when tax status = fiscally sponsored', async () => {
+      tree();
+      userEvent.click(screen.getByRole('button', { name: /Company Tax Status Select your status/i }));
+      userEvent.click(screen.getByRole('option', { name: 'Fiscally sponsored' }));
+      expect(screen.getByLabelText('Fiscal Sponsor Name')).toBeInTheDocument();
+    });
+
+    it('requires that the user enter a value for all fields except job title & tax id', async () => {
+      const submitButton = () => screen.getByRole('button', { name: 'Finalize Account' });
+      const fieldEntries = [
+        ['First Name', 'mock-first-name'],
+        ['Last Name', 'mock-last-name'],
+        ['Organization', 'mock-company-name']
+      ];
+
+      tree();
+      expect(submitButton()).toBeDisabled();
+
+      for (const [name, value] of fieldEntries) {
+        userEvent.type(screen.getByLabelText(name), value);
+        expect(submitButton()).toBeDisabled();
+      }
+
+      userEvent.click(screen.getByRole('button', { name: /Company Tax Status Select your status/i }));
+      userEvent.click(screen.getByRole('option', { name: 'Fiscally sponsored' }));
+      expect(submitButton()).toBeDisabled();
+
+      userEvent.type(screen.getByLabelText('Fiscal Sponsor Name'), 'mock-fiscal-sponsor-name');
+      expect(submitButton()).not.toBeDisabled();
+    });
+
+    it('calls the onProfileSubmit prop with form data when submitted', async () => {
+      const onProfileSubmit = jest.fn();
+
+      tree({ onProfileSubmit });
+      expect(onProfileSubmit).not.toHaveBeenCalled();
+      await fillInAllFields();
+
+      userEvent.click(screen.getByRole('button', { name: /Company Tax Status nonprofit/i }));
+      userEvent.click(screen.getByRole('option', { name: 'Fiscally sponsored' }));
+      userEvent.type(screen.getByLabelText('Fiscal Sponsor Name'), 'mock-fiscal-sponsor-name');
+
+      userEvent.click(screen.getByRole('button', { name: 'Finalize Account' }));
+      await waitFor(() => expect(onProfileSubmit).toBeCalledTimes(1));
+      expect(onProfileSubmit.mock.calls).toEqual([
+        [
+          {
+            firstName: 'mock-first-name',
+            lastName: 'mock-last-name',
+            jobTitle: 'mock-job-title',
+            companyName: 'mock-company-name',
+            companyTaxStatus: 'fiscally sponsored',
+            taxId: '98-7654321',
+            fiscalSponsorName: 'mock-fiscal-sponsor-name'
+          }
+        ]
+      ]);
+    });
   });
 
   it('is accessible', async () => {

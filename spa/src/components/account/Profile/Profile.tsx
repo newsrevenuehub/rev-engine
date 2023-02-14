@@ -1,7 +1,6 @@
 import { useReducer } from 'react';
 import { useHistory } from 'react-router-dom';
 import * as S from './Profile.styled';
-import * as A from 'components/account/Account.styled';
 
 // AJAX
 import axios from 'ajax/axios';
@@ -16,7 +15,7 @@ import useModal from 'hooks/useModal';
 // Analytics
 import { useConfigureAnalytics } from 'components/analytics';
 
-import ProfileForm, { ProfileFormFields } from './ProfileForm';
+import ProfileForm, { ProfileFormFields, TAX_STATUS } from './ProfileForm';
 import { OffscreenText, StepperDots } from 'components/base';
 
 function Profile() {
@@ -39,10 +38,15 @@ function Profile() {
         first_name: formData.firstName,
         last_name: formData.lastName,
         organization_name: formData.companyName,
-        organization_tax_status: formData.companyTaxStatus,
+        fiscal_status: formData.companyTaxStatus,
         // Don't send job_title or organization_tax_id at all if the user omitted it.
         job_title: formData.jobTitle.trim() !== '' ? formData.jobTitle : undefined,
-        organization_tax_id: formData.taxId.replace('-', '').replace('_', '') || undefined
+        organization_tax_id: formData.taxId.replace('-', '').replace('_', '') || undefined,
+        // Only send sponsor name if tax status = FISCALLY_SPONSORED
+        fiscal_sponsor_name:
+          formData.companyTaxStatus === TAX_STATUS.FISCALLY_SPONSORED && formData.fiscalSponsorName.trim() !== ''
+            ? formData.fiscalSponsorName
+            : undefined
       });
 
       if (status === 204) {

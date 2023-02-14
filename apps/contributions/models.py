@@ -368,7 +368,6 @@ class Contribution(IndexedTimeStampedModel):
             getattr(previous, "provider_payment_method_id", None),
             self.provider_payment_method_id,
         )
-        # TODO: [DEV-3026]
         if (
             (previous and previous.provider_payment_method_id != self.provider_payment_method_id)
             or not previous
@@ -712,17 +711,13 @@ class Contribution(IndexedTimeStampedModel):
         )
         required_keys = (
             "agreed_to_pay_fees",
+            "contributor_id",
             "donor_selected_amount",
-            "reason_for_giving",
-            "honoree",
-            "in_memory_of",
-            "comp_subscription",
-            "swag_opt_out",
-            "swag_choice",
             "referer",
             "revenue_program_id",
             "revenue_program_slug",
-            "sf_campaign_id",
+            "schema_version",
+            "source",
         )
         missing = set(required_keys).difference(set(metadata.keys()))
         if missing:
@@ -769,6 +764,7 @@ class Contribution(IndexedTimeStampedModel):
                     contribution.id,
                 )
                 continue
+
             if cls._stripe_metadata_is_valid_for_contribution_metadata_backfill(stripe_entity.metadata):
                 logger.info(
                     (
@@ -777,9 +773,7 @@ class Contribution(IndexedTimeStampedModel):
                     ),
                     contribution.id,
                 )
-                contribution.metadata = Contribution.stripe_metadata(
-                    contribution.contributor, stripe_entity.metadata, stripe_entity.metadata.referer
-                )
+                contribution.contribution_metadata = stripe_entity.metadata
                 if not dry_run:
                     contribution.save()
                     logger.info(

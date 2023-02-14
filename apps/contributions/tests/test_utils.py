@@ -66,7 +66,7 @@ def test_export_contributions_to_csv():
             and row[CONTRIBUTION_EXPORT_CSV_HEADERS[3]] == contribution.formatted_donor_selected_amount
         )
         assert row[CONTRIBUTION_EXPORT_CSV_HEADERS[4]] == str(
-            (contribution.contribution_metadata or {}).get("agreed_to_pay_fees")
+            (contribution.contribution_metadata or {}).get("agreed_to_pay_fees", "")
         )
         assert contribution.interval and row[CONTRIBUTION_EXPORT_CSV_HEADERS[5]] == contribution.interval
         assert contribution.created and row[CONTRIBUTION_EXPORT_CSV_HEADERS[6]] == str(contribution.created)
@@ -74,8 +74,4 @@ def test_export_contributions_to_csv():
         assert contribution.billing_address and row[CONTRIBUTION_EXPORT_CSV_HEADERS[8]] == contribution.billing_address
         assert contribution.billing_email and row[CONTRIBUTION_EXPORT_CSV_HEADERS[9]] == contribution.contributor.email
         assert contribution.billing_phone and row[CONTRIBUTION_EXPORT_CSV_HEADERS[10]] == contribution.billing_phone
-        assert (
-            row[CONTRIBUTION_EXPORT_CSV_HEADERS[11]]
-            == (referer := (contribution.contribution_metadata or {}).get("referer", ""))
-            and referer
-        )
+        assert row[CONTRIBUTION_EXPORT_CSV_HEADERS[11]] == (contribution.contribution_metadata or {}).get("referer", "")

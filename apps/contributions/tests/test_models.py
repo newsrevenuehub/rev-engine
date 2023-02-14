@@ -138,29 +138,6 @@ def contribution_with_provider_payment_method_id(one_time_contribution):
     return one_time_contribution
 
 
-@pytest.fixture
-def invalid_stripe_backfill_data():
-    return {"arbitrary": "keys"}
-
-
-@pytest.fixture
-def valid_stripe_backfill_data():
-    return {
-        "agreed_to_pay_fees": True,
-        "donor_selected_amount": "",
-        "reason_for_giving": "",
-        "honoree": "",
-        "in_memory_of": "",
-        "comp_subscription": False,
-        "swag_opt_out": True,
-        "swag_choice": "",
-        "referer": "",
-        "revenue_program_id": "",
-        "revenue_program_slug": "",
-        "sf_campaign_id": "",
-    }
-
-
 @pytest.mark.django_db
 class TestContributionModel:
     @pytest_cases.parametrize(
@@ -1143,55 +1120,83 @@ class TestContributionModel:
         )
 
     @pytest_cases.parametrize(
-        "make_contribution_fn,metadata,expect_update",
+        "make_contribution_fn,stripe_data,expect_update",
         (
             (
-                lambda: ContributionFactory(one_time=True, contribution_metadata=None),
-                pytest_cases.fixture_ref("invalid_stripe_backfill_data"),
-                False,
-            ),
-            (
-                lambda: ContributionFactory(monthly_subscription=True, contribution_metadata=None),
-                pytest_cases.fixture_ref("invalid_stripe_backfill_data"),
-                False,
-            ),
-            (
-                lambda: ContributionFactory(one_time=True, contribution_metadata=None),
-                pytest_cases.fixture_ref("valid_stripe_backfill_data"),
+                lambda: ContributionFactory(one_time=True, contribution_metadata=None, provider_payment_id="something"),
+                pytest_cases.fixture_ref("stripe_payment_intent_retrieve_response"),
                 True,
             ),
             (
-                lambda: ContributionFactory(monthly_subscription=True, contribution_metadata=None),
-                pytest_cases.fixture_ref("valid_stripe_backfill_data"),
+                lambda: ContributionFactory(
+                    one_time=True, contribution_metadata=None, provider_setup_intent_id="something"
+                ),
+                pytest_cases.fixture_ref("stripe_setup_intent_retrieve_response"),
                 True,
+            ),
+            (
+                lambda: ContributionFactory(one_time=True, provider_subscription_id="something"),
+                pytest_cases.fixture_ref("stripe_subscription_retrieve_response"),
+                True,
+            ),
+            (
+                lambda: ContributionFactory(
+                    one_time=True, contribution_metadata={"some": "thing"}, provider_payment_id="something"
+                ),
+                {},
+                False,
+            ),
+            (
+                lambda: ContributionFactory(
+                    one_time=True, contribution_metadata={"some": "thing"}, provider_setup_intent_id="something"
+                ),
+                {},
+                False,
+            ),
+            (
+                lambda: ContributionFactory(
+                    one_time=True, contribution_metadata={"some": "thing"}, provider_subscription_id="something"
+                ),
+                {},
+                False,
             ),
         ),
     )
     @pytest.mark.parametrize("dry_run", (True, False))
     def test_fix_missing_contribution_metadata(
-        self, make_contribution_fn, metadata, expect_update, dry_run, monkeypatch
+        self, make_contribution_fn, stripe_data, expect_update, dry_run, monkeypatch
     ):
+        """Basic happy path test showing behavior of Contribution.fix_missing_contribution_metadata
+
+        We show that if a contribution doesn't have contribution metadata and a Stripe entity is found with valid metadata,
+        we update our contribution metadata field.
+
+        If, however, a contribution already has metadata, it won't be touched.
+
+        Additionally, we show the `dry_run` functionality.
+        """
         contribution = make_contribution_fn()
         old_metadata = contribution.contribution_metadata
         target = (
-            "stripe_payment_intent"
+            "stripe.PaymentIntent.retrieve"
             if contribution.interval == ContributionInterval.ONE_TIME
-            else "stripe_setup_intent"
+            else "stripe.SetupIntent.retrieve"
             if contribution.stripe_setup_intent
-            else "stripe_subscription"
+            else "stripe.Subscription.retrieve"
         )
-        monkeypatch.setattr(f"apps.contributions.models.Contribution.{target}", lambda: metadata)
-        Contribution.fix_contributions_stuck_in_processing(dry_run)
+        # It's a bit tricky to get our JSON fixture which loads to dict to play nicely
+        # with AttrDict in a way that works in our code. Utlimately, we're trying to emulate
+        # the behavior of Stripe Python SDK paymentintent/setupintent/subscription here.
+        # We need to the whole stripe object to have dot-notation, but the metadata field must
+        # be savable as a JSON dict.
+        metadata = stripe_data.get("metadata")
+        stripe_object = AttrDict(stripe_data)
+        stripe_object.metadata = metadata
+        monkeypatch.setattr(target, lambda *args, **kwargs: stripe_object)
+
+        Contribution.fix_missing_contribution_metadata(dry_run)
         contribution.refresh_from_db()
-        # if Contribution._stripe_metadata_is_valid_for_contribution_metadata_backfill(metadata) and not dry_run:
-        #     breakpoint()
-        assert contribution.contribution_metadata == (
-            metadata
-            if Contribution._stripe_metadata_is_valid_for_contribution_metadata_backfill(metadata)
-            and not dry_run
-            and expect_update
-            else old_metadata
-        )
+        assert contribution.contribution_metadata == (metadata if not dry_run and expect_update else old_metadata)
 
 
 @pytest.mark.django_db

@@ -99,18 +99,23 @@ class ContributionFactory(DjangoModelFactory):
     provider_payment_method_details = factory.LazyFunction(lambda: PAYMENT_METHOD_DETAILS_DATA)
 
     @factory.post_generation
-    def contribution_metadata(obj, create, extracted, **kwargs):
+    def contribution_metadata(obj, create, extracted="default", **kwargs):
         rp = obj.donation_page.revenue_program
-        obj.contribution_metadata = {
-            "source": settings.METADATA_SOURCE,
-            "schema_version": settings.METADATA_SCHEMA_VERSION,
-            "contributor_id": obj.contributor.id,
-            "agreed_to_pay_fees": True,
-            "donor_selected_amount": obj.amount / 100,
-            "revenue_program_id": rp.id or "",
-            "revenue_program_slug": rp.slug or "",
-            "referer": settings.SITE_URL,
-        } | kwargs
+        obj.contribution_metadata = (
+            extracted
+            if extracted != "default"
+            else {
+                "source": settings.METADATA_SOURCE,
+                "schema_version": settings.METADATA_SCHEMA_VERSION,
+                "contributor_id": obj.contributor.id,
+                "agreed_to_pay_fees": True,
+                "donor_selected_amount": obj.amount / 100,
+                "revenue_program_id": rp.id or "",
+                "revenue_program_slug": rp.slug or "",
+                "referer": settings.SITE_URL,
+            }
+            | kwargs
+        )
         obj.save()
 
     class Params:

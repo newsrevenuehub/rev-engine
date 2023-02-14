@@ -14,7 +14,7 @@ export const AddSlashToRoutes = ({ children }: AddSlashToRoutesProps) => {
   }
 
   // Only redirect if pathname doesn't start with `//`
-  // This will prevent a Redirect with data that will crash the app 
+  // This will prevent a Redirect with data that will crash the app
   if (location.pathname && !/\/$/.test(location.pathname) && !/^\/\//.test(location.pathname)) {
     return <Redirect to={{ ...location, pathname: location.pathname + '/' }} />;
   }

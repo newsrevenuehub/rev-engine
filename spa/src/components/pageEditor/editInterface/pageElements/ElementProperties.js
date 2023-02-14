@@ -9,7 +9,7 @@ import getElementEditor, { getElementValidator } from 'components/pageEditor/ele
 import { faTrash } from '@fortawesome/free-solid-svg-icons';
 
 // Context
-import { useEditInterfaceContext } from 'components/pageEditor/editInterface/EditInterface';
+import { useEditInterfaceContext } from 'components/pageEditor/editInterface/EditInterfaceContextProvider';
 
 // Children
 import { NoComponentError } from 'components/donationPage/pageGetters';

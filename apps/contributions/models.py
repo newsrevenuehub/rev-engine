@@ -349,8 +349,10 @@ class Contribution(IndexedTimeStampedModel):
         return manager_class(contribution=self)
 
     def process_flagged_payment(self, reject=False):
+        logger.info("Contribution.process_flagged_payment - processing flagged payment for contribution %s", self.pk)
         payment_manager = self.get_payment_manager_instance()
         payment_manager.complete_payment(reject=reject)
+        logger.info("Contribution.process_flagged_payment - processing for contribution %s complete", self.pk)
 
     def fetch_stripe_payment_method(self):
         if not self.provider_payment_method_id:

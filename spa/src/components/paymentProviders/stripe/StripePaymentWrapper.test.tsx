@@ -29,18 +29,15 @@ function tree(props?: Partial<StripePaymentWrapperProps>, context?: Partial<Dona
             },
             revenue_program: {
               name: 'mock-rp-name'
-            }
+            },
+            elements: []
           },
-          revenue_program: {
-            name: 'mock-rp-name'
-          },
-          elements: [],
           setAmount: () => {},
           overrideAmount: false,
           errors: {},
+          setUserAgreesToPayFees: jest.fn(),
           stripeClientSecret: 'mock-stripe-client-secret',
           userAgreesToPayFees: false,
-          setUserAgreesToPayFees: jest.fn(),
           ...context
         } as any
       }

@@ -35,7 +35,7 @@ class AbstractPage(IndexedTimeStampedModel, RoleAssignmentResourceModelMixin):
     header_logo = SorlImageField(null=True, blank=True, default=None)
     header_link = models.URLField(blank=True)
 
-    sidebar_elements = models.JSONField(default=list)
+    sidebar_elements = models.JSONField(default=list, blank=True)
 
     styles = models.ForeignKey("pages.Style", null=True, blank=True, on_delete=models.SET_NULL)
 

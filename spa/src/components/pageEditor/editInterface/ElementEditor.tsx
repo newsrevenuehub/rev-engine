@@ -7,14 +7,22 @@ import { Content, ContentDetail, Header, Root } from './ElementEditor.styled';
 import EditSaveControls from './EditSaveControls';
 import ElementProperties from './pageElements/ElementProperties';
 
-// Only components that don't need EditInterfaceContext should be here.
-
+/**
+ * Maps the `type` property of an element to which component to use as editor.
+ * Only components that don't need EditInterfaceContext should be here. If an
+ * element doesn't have a value set here, this component will fall back to using
+ * <ElementProperties>.
+ */
 const editorComponents = {
   DAmount: AmountEditor
 };
 
-// Header text for each type of element.
-
+/**
+ * Maps the `type` property of an element to the user-visible header at the top
+ * of the editor. Only components that don't need EditInterfaceContext should be
+ * here. If an element doesn't have a value set here, this component will fall
+ * back to using <ElementProperties>.
+ */
 const editorHeaders = {
   DAmount: 'Contribution Amount'
 };
@@ -25,8 +33,14 @@ export interface ElementEditorProps {
   onClose: () => void;
 }
 
+/**
+ * This type must be a union of all `content` properties for the elements that
+ * can be edited by this component.
+ */
+type ElementContent = AmountElement['content'];
+
 export function ElementEditor({ elementUuid, location, onClose }: ElementEditorProps) {
-  const { addBatchChange, batchHasChanges, batchPreview, commitBatch, resetBatch } = useEditablePageBatch();
+  const { addBatchChange, batchPreview, commitBatch, resetBatch } = useEditablePageBatch();
   const elementListKey = useMemo(() => (location === 'layout' ? 'elements' : 'sidebar_elements'), [location]);
   const element = useMemo(() => {
     if (!elementListKey || !batchPreview?.[elementListKey]) {
@@ -47,7 +61,7 @@ export function ElementEditor({ elementUuid, location, onClose }: ElementEditorP
   const heading = editorHeaders[element.type as keyof typeof editorHeaders];
   const Editor = editorComponents[element.type as keyof typeof editorComponents];
 
-  function handleChangeElementContent(content: AmountElement['content']) {
+  function handleChangeElementContent(content: ElementContent) {
     if (!element || !batchPreview) {
       // Should never happen.
       throw new Error('element or batchPreview are not defined');
@@ -83,7 +97,17 @@ export function ElementEditor({ elementUuid, location, onClose }: ElementEditorP
           <Header>{heading}</Header>
           <ContentDetail>
             <Editor
-              elementContent={element.content as any}
+              // This cast to `any` is because TypeScript has difficulty knowing
+              // what the prop types of Editor will be since it's dynamic. The
+              // editor component prop definitions provide typechecking at that
+              // level. It is important that `editorComponents` have correct
+              // values.
+              //
+              // The null coalescing is to ensure that the editor at least sees
+              // an object in content, even if it has no properties. Some
+              // elements, like DDonorAddress, may not have a `content` property
+              // in older pages.
+              elementContent={element.content ?? ({} as any)}
               onChangeElementContent={handleChangeElementContent}
               contributionIntervals={contributionIntervals}
             />

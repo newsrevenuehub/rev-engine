@@ -35,7 +35,7 @@ class AbstractPage(IndexedTimeStampedModel, RoleAssignmentResourceModelMixin):
     header_logo = SorlImageField(null=True, blank=True, default=None)
     header_link = models.URLField(blank=True)
 
-    sidebar_elements = models.JSONField(default=list)
+    sidebar_elements = models.JSONField(default=list, blank=True)
 
     styles = models.ForeignKey("pages.Style", null=True, blank=True, on_delete=models.SET_NULL)
 
@@ -194,9 +194,8 @@ class DonationPage(AbstractPage):
         super().clean_fields(**kwargs)
 
     def save(self, *args, **kwargs):
-        """should_send_first_publication_signal has to be called prior to saving the record
-        to allow us to compare in flight record with record in database
-        """
+        # should_send_first_publication_signal has to be called prior to saving the record
+        # to allow us to compare in flight record with record in database
         should_send_first_publication_signal = self.should_send_first_publication_signal()
         self.set_default_logo()
         super().save(*args, **kwargs)

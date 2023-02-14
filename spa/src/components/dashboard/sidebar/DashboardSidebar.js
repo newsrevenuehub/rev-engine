@@ -1,5 +1,4 @@
-import React from 'react';
-import * as S from './DashboardSidebar.styled';
+import { Content, Logo, NavList, Root } from './DashboardSidebar.styled';
 import ContentSectionNav from './navs/ContentSectionNav';
 import ContributionSectionNav from './navs/ContributionSectionNav';
 
@@ -20,14 +19,17 @@ function DashboardSidebar() {
   const currentOrg = user?.organizations?.length === 1 && user?.organizations?.[0];
 
   return (
-    <S.DashboardSidebar>
-      <S.NavList role="list" data-testid="nav-list" aria-labelledby="sidebar-label-id">
-        {currentOrg?.name && <OrganizationMenu title={currentOrg.name} />}
-        {hasContentSectionAccess ? <ContentSectionNav /> : null}
-        {hasContributionsSectionAccess ? <ContributionSectionNav /> : null}
-      </S.NavList>
-      <DashboardSidebarFooter />
-    </S.DashboardSidebar>
+    <Root>
+      <Logo aria-label="News Revenue Engine" role="img" />
+      <Content>
+        <NavList role="list" data-testid="nav-list" aria-labelledby="sidebar-label-id">
+          {currentOrg?.name && <OrganizationMenu title={currentOrg.name} />}
+          {hasContentSectionAccess ? <ContentSectionNav /> : null}
+          {hasContributionsSectionAccess ? <ContributionSectionNav /> : null}
+        </NavList>
+        <DashboardSidebarFooter />
+      </Content>
+    </Root>
   );
 }
 

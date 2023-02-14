@@ -10,6 +10,7 @@ jest.mock('../elementEditors');
 const page = {
   elements: [
     { content: 'layout-element-content', type: 'DAmount', uuid: 'layout-damount-uuid' },
+    { content: 'layout-element-content', type: 'DReason', uuid: 'layout-dreason-uuid' },
     {
       content: [{ displayName: 'One time', isDefault: true, value: 'one_time' }],
       type: 'DFrequency',
@@ -60,6 +61,15 @@ describe('ElementEditor', () => {
     tree();
 
     const editor = screen.getByTestId('mock-amount-editor');
+
+    expect(editor).toBeInTheDocument();
+    expect(editor.dataset.content).toBe(JSON.stringify(page.elements[0].content));
+  });
+
+  it('displays a reason editor if the element to edit is a DReason', () => {
+    tree({ elementUuid: 'layout-dreason-uuid' });
+
+    const editor = screen.getByTestId('mock-reason-editor');
 
     expect(editor).toBeInTheDocument();
     expect(editor.dataset.content).toBe(JSON.stringify(page.elements[0].content));
@@ -120,12 +130,17 @@ describe('ElementEditor', () => {
 
       tree({}, { setPageChanges });
       userEvent.click(screen.getByText('onChangeElementContent'));
+      userEvent.click(screen.getByText('onChangeElementRequiredFields'));
       expect(setPageChanges).not.toBeCalled();
       userEvent.click(screen.getByRole('button', { name: 'Update' }));
       expect(setPageChanges).toBeCalledTimes(1);
       expect(setPageChanges.mock.lastCall[0](page)).toEqual({
         ...page,
-        elements: [{ ...page.elements[0], content: { mockChange: true } }, page.elements[1]]
+        elements: [
+          { ...page.elements[0], content: { mockChange: true }, requiredFields: ['mockChange'] },
+          page.elements[1],
+          page.elements[2]
+        ]
       });
     });
 
@@ -134,12 +149,16 @@ describe('ElementEditor', () => {
 
       tree({ location: 'sidebar', elementUuid: 'sidebar-damount-uuid' }, { setPageChanges });
       userEvent.click(screen.getByText('onChangeElementContent'));
+      userEvent.click(screen.getByText('onChangeElementRequiredFields'));
       expect(setPageChanges).not.toBeCalled();
       userEvent.click(screen.getByRole('button', { name: 'Update' }));
       expect(setPageChanges).toBeCalledTimes(1);
       expect(setPageChanges.mock.lastCall[0](page)).toEqual({
         ...page,
-        sidebar_elements: [{ ...page.sidebar_elements[0], content: { mockChange: true } }, page.sidebar_elements[1]]
+        sidebar_elements: [
+          { ...page.sidebar_elements[0], content: { mockChange: true }, requiredFields: ['mockChange'] },
+          page.sidebar_elements[1]
+        ]
       });
     });
 
@@ -154,7 +173,7 @@ describe('ElementEditor', () => {
     });
   });
 
-  it("displays ElementProperties with the correct type if the element to edit isn't a DAmount", () => {
+  it("displays ElementProperties with the correct type if the element to edit isn't a DAmount or DReason", () => {
     tree({ elementUuid: 'layout-dfrequency-uuid', location: 'layout' });
 
     const properties = screen.getByTestId('mock-element-properties');

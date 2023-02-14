@@ -874,19 +874,19 @@ describe('ReasonEditor', () => {
   });
 
   it('should show the three "ask-" checkboxes', () => {
-    cy.getByTestId('ask-reason').should('exist');
-    cy.getByTestId('ask-honoree').should('exist');
-    cy.getByTestId('ask-in-memory-of').should('exist');
+    cy.findByRole('checkbox', { name: 'Ask contributor why they are making a contribution' }).should('exist');
+    cy.findByRole('checkbox', { name: 'Ask contributor if their contribution is in honor of somebody' }).should(
+      'exist'
+    );
+    cy.findByRole('checkbox', { name: 'Ask contributor if their contribution is in memory of somebody' }).should(
+      'exist'
+    );
   });
 
-  it('should only show reason for giving options if ask-reason is checked', () => {
-    cy.getByTestId('ask-reason')
-      .get('input')
-      .then(($input) => {
-        expect($input).to.be.checked;
-      });
-    cy.getByTestId('create-reasons').should('exist');
-    cy.getByTestId('ask-reason').click();
-    cy.getByTestId('create-reasons').should('not.exist');
+  it('should only show reason for giving options if asking for a reason is checked', () => {
+    cy.findByRole('checkbox', { name: 'Ask contributor why they are making a contribution' }).should('be.checked');
+    cy.findByText('Add a Reason for Giving').should('exist');
+    cy.findByRole('checkbox', { name: 'Ask contributor why they are making a contribution' }).click();
+    cy.findByText('Add a Reason for Giving').should('not.exist');
   });
 });

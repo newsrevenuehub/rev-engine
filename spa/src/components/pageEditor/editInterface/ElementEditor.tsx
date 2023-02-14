@@ -1,8 +1,8 @@
-import { AmountElement } from 'hooks/useContributionPage';
+import { AmountElement, ReasonElement } from 'hooks/useContributionPage';
 import { useEditablePageBatch } from 'hooks/useEditablePageBatch';
 import { useMemo } from 'react';
 import { getPageContributionIntervals } from 'utilities/getPageContributionIntervals';
-import { AmountEditor } from '../elementEditors';
+import { AmountEditor, ReasonEditor } from '../elementEditors';
 import { Content, ContentDetail, Header, Root } from './ElementEditor.styled';
 import EditSaveControls from './EditSaveControls';
 import ElementProperties from './pageElements/ElementProperties';
@@ -14,7 +14,8 @@ import ElementProperties from './pageElements/ElementProperties';
  * <ElementProperties>.
  */
 const editorComponents = {
-  DAmount: AmountEditor
+  DAmount: AmountEditor,
+  DReason: ReasonEditor
 };
 
 /**
@@ -24,7 +25,8 @@ const editorComponents = {
  * back to using <ElementProperties>.
  */
 const editorHeaders = {
-  DAmount: 'Contribution Amount'
+  DAmount: 'Contribution Amount',
+  DReason: 'Reason for Giving'
 };
 
 export interface ElementEditorProps {
@@ -37,7 +39,7 @@ export interface ElementEditorProps {
  * This type must be a union of all `content` properties for the elements that
  * can be edited by this component.
  */
-type ElementContent = AmountElement['content'];
+type ElementContent = AmountElement['content'] | ReasonElement['content'];
 
 export function ElementEditor({ elementUuid, location, onClose }: ElementEditorProps) {
   const { addBatchChange, batchPreview, commitBatch, resetBatch } = useEditablePageBatch();
@@ -80,6 +82,25 @@ export function ElementEditor({ elementUuid, location, onClose }: ElementEditorP
     });
   }
 
+  function handleChangeElementRequiredFields(requiredFields: string[]) {
+    if (!element || !batchPreview) {
+      // Should never happen.
+      throw new Error('element or batchPreview are not defined');
+    }
+
+    addBatchChange({
+      [elementListKey]: [
+        ...batchPreview[elementListKey]!.map((existing) => {
+          if (existing.uuid === element.uuid) {
+            return { ...existing, requiredFields };
+          }
+
+          return existing;
+        })
+      ]
+    });
+  }
+
   function handleCancel() {
     resetBatch();
     onClose();
@@ -108,6 +129,8 @@ export function ElementEditor({ elementUuid, location, onClose }: ElementEditorP
               // elements, like DDonorAddress, may not have a `content` property
               // in older pages.
               elementContent={element.content ?? ({} as any)}
+              elementRequiredFields={element.requiredFields ?? []}
+              onChangeElementRequiredFields={handleChangeElementRequiredFields}
               onChangeElementContent={handleChangeElementContent}
               contributionIntervals={contributionIntervals}
             />

@@ -91,7 +91,7 @@ describe('Dashboard', () => {
           last_name: 'Last Name',
           job_title: 'Job Title',
           organization_name: 'Organization',
-          organization_tax_status: 'nonprofit',
+          fiscal_status: 'nonprofit',
           organization_tax_id: '987654321'
         });
       });

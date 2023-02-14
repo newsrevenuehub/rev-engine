@@ -102,7 +102,33 @@ describe('AmountEditor', () => {
       [
         {
           ...elementContent,
-          options: { ...elementContent.options, one_time: [...elementContent.options.one_time!, 1.23] }
+          options: { ...elementContent.options, one_time: [1, 1.23, 2, 3] }
+        }
+      ]
+    ]);
+  });
+
+  it('keeps amounts sorted in ascending order when adding an amount', () => {
+    const onChangeElementContent = jest.fn();
+
+    tree({
+      elementContent: {
+        ...elementContent,
+        options: {
+          ...elementContent.options,
+          one_time: [0.1, 0.25, 2, 3]
+        }
+      },
+      onChangeElementContent,
+      contributionIntervals: [{ interval: 'one_time', displayName: 'One time' }]
+    });
+    expect(onChangeElementContent).not.toBeCalled();
+    userEvent.click(screen.getByText('onAddAmount'));
+    expect(onChangeElementContent.mock.calls).toEqual([
+      [
+        {
+          ...elementContent,
+          options: { ...elementContent.options, one_time: [0.1, 0.25, 1.23, 2, 3] }
         }
       ]
     ]);

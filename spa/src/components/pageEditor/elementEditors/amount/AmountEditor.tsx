@@ -20,11 +20,15 @@ export interface AmountEditorProps extends InferProps<typeof AmountEditorPropTyp
 
 export function AmountEditor({ contributionIntervals, elementContent, onChangeElementContent }: AmountEditorProps) {
   function handleAddAmount(interval: ContributionInterval, value: number) {
+    // Keep the list of amounts sorted numerically.
+
+    const newInterval = [...(elementContent.options[interval] ?? []), value].sort((a, b) => a - b);
+
     onChangeElementContent({
       ...elementContent,
       options: {
         ...elementContent.options,
-        [interval]: [...(elementContent.options[interval] ?? []), value]
+        [interval]: newInterval
       }
     });
   }

@@ -10,7 +10,7 @@ from rest_framework.exceptions import ErrorDetail
 from rest_framework.test import APIRequestFactory, APITestCase
 
 from apps.api.tests import RevEngineApiAbstractTestCase
-from apps.organizations.models import BenefitLevelBenefit, FreePlan, Plans
+from apps.organizations.models import BenefitLevelBenefit, FiscalStatusChoices, FreePlan, Plans
 from apps.organizations.serializers import PaymentProviderSerializer
 from apps.organizations.tests.factories import (
     BenefitFactory,
@@ -348,7 +348,7 @@ class DonationPageFullDetailSerializerTest(RevEngineApiAbstractTestCase):
 
     def test_get_revenue_program_is_nonprofit(self):
         # Set it true, expect it in page serializer
-        self.page.revenue_program.non_profit = True
+        self.page.revenue_program.fiscal_status = FiscalStatusChoices.NONPROFIT
         self.page.revenue_program.save()
         self.page.revenue_program.refresh_from_db()
         serializer = self.serializer(self.page)
@@ -356,7 +356,7 @@ class DonationPageFullDetailSerializerTest(RevEngineApiAbstractTestCase):
         self.assertEqual(data["revenue_program_is_nonprofit"], True)
 
         # Set it false, expect it in page serializer
-        self.page.revenue_program.non_profit = False
+        self.page.revenue_program.fiscal_status = FiscalStatusChoices.FOR_PROFIT
         self.page.revenue_program.save()
         self.page.revenue_program.refresh_from_db()
         serializer = self.serializer(self.page)

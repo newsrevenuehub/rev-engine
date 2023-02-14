@@ -52,6 +52,7 @@
 # ```
 # """
 
+import json
 from unittest.mock import patch
 
 import pytest
@@ -284,3 +285,36 @@ def processing_contribution():
 @pytest.fixture
 def donation_page():
     return DonationPageFactory()
+
+
+@pytest.fixture
+def stripe_payment_intent_retrieve_response():
+    """This is a *dict* version of the data that a retrieved Stripe PaymentIntent object will have
+
+    The Stripe Python SDK puts that data into a custom object type that can behave both like a dict and
+    like a class instance (in terms of dot-based attribute access).
+    """
+    with open("apps/contributions/tests/fixtures/stripe-payment-intent-retrieve.json") as fl:
+        return json.load(fl)
+
+
+@pytest.fixture
+def stripe_setup_intent_retrieve_response():
+    """This is a *dict* version of the data that a retrieved Stripe SetupIntent object will have
+
+    The Stripe Python SDK puts that data into a custom object type that can behave both like a dict and
+    like a class instance (in terms of dot-based attribute access).
+    """
+    with open("apps/contributions/tests/fixtures/stripe-setup-intent-retrieve.json") as fl:
+        return json.load(fl)
+
+
+@pytest.fixture
+def stripe_subscription_retrieve_response():
+    """This is a *dict* version of the data that a retrieved Stripe Subscription object will have
+
+    The Stripe Python SDK puts that data into a custom object type that can behave both like a dict and
+    like a class instance (in terms of dot-based attribute access).
+    """
+    with open("apps/contributions/tests/fixtures/stripe-subscription-retrieve.json") as fl:
+        return json.load(fl)

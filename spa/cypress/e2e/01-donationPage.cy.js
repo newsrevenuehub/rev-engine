@@ -481,8 +481,7 @@ describe('User flow: happy path', () => {
             contributorEmail: 'foo@bar.com',
             pageSlug: livePageOne.slug,
             rpSlug: livePageOne.revenue_program.slug,
-            pathName: `/${livePageOne.slug}/`,
-            contributionUuid: fakeContributionUuid
+            pathName: `/${livePageOne.slug}/`
           })
         );
       });
@@ -622,8 +621,7 @@ describe('User flow: happy path', () => {
             contributorEmail: 'foo@bar.com',
             pageSlug: livePageOne.slug,
             rpSlug: livePageOne.revenue_program.slug,
-            pathName: `/${livePageOne.slug}/`,
-            contributionUuid: fakeContributionUuid
+            pathName: `/${livePageOne.slug}/`
           })
         );
       });
@@ -688,8 +686,7 @@ describe('User flow: happy path', () => {
           contributorEmail: 'foo@bar.com',
           pageSlug: livePageOne.slug,
           rpSlug: livePageOne.revenue_program.slug,
-          pathName: '',
-          contributionUuid: fakeContributionUuid
+          pathName: ''
         })
       );
     });
@@ -981,13 +978,6 @@ const successPageQueryParams = {
 describe('Payment success page', () => {
   beforeEach(() => {
     cy.intercept(
-      {
-        method: 'patch',
-        url: `http://revenueprogram.revengine-testabc123.com:3000/api/v1/payments/${fakeContributionUuid}/success/`
-      },
-      { statusCode: 204 }
-    ).as('signal-success');
-    cy.intercept(
       { method: 'GET', pathname: getEndpoint(LIVE_PAGE_DETAIL) },
       { fixture: 'pages/live-page-1', statusCode: 200 }
     ).as('getPageDetail');
@@ -999,7 +989,6 @@ describe('Payment success page', () => {
 
   specify('Using default thank you page', () => {
     cy.visit(paymentSuccessRoute, { qs: successPageQueryParams });
-    cy.wait('@signal-success');
     cy.wait('@fbTrackContribution');
     cy.wait('@fbTrackPurchase').then((intercept) => {
       const params = new URLSearchParams(intercept.request.url);
@@ -1013,7 +1002,6 @@ describe('Payment success page', () => {
   specify('Using off-site thank you page', () => {
     const externalThankYouPage = 'https://www.google.com';
     cy.visit(paymentSuccessRoute, { qs: { ...successPageQueryParams, next: externalThankYouPage } });
-    cy.wait('@signal-success');
     cy.wait('@fbTrackContribution');
     cy.wait('@fbTrackPurchase').then((intercept) => {
       const params = new URLSearchParams(intercept.request.url);
@@ -1036,7 +1024,6 @@ describe('Payment success page', () => {
     // unit test the function for creating the next URL that gets sent to Stripe, proving that if coming from
     // default donation page path (which will just be `/`), it sets `fromPath` to empty.
     cy.visit(paymentSuccessRoute, { qs: { ...successPageQueryParams, fromPath: '' } });
-    cy.wait('@signal-success');
     // get forwarded to right destination
     cy.url().should('equal', `http://revenueprogram.revengine-testabc123.com:3000/thank-you/`);
   });

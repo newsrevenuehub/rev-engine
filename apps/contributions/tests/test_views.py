@@ -374,10 +374,15 @@ class TestContributionsViewSet:
             successful_contribution,
             canceled_contribution,
             refunded_contribution,
-            processing_contribution,
         ]
         if user.is_superuser:
-            seen.extend([flagged_contribution, rejected_contribution])
+            seen.extend(
+                [
+                    flagged_contribution,
+                    rejected_contribution,
+                    processing_contribution,
+                ]
+            )
         if not (user.is_superuser or user.roleassignment.role_type == Roles.HUB_ADMIN):
             # ensure all contributions are owned by user so we're narrowly viewing behavior around status inclusion/exclusion
             DonationPage.objects.update(revenue_program=user.roleassignment.revenue_programs.first())
@@ -390,9 +395,13 @@ class TestContributionsViewSet:
     @pytest_cases.parametrize(
         "user", (pytest_cases.fixture_ref("superuser"), pytest_cases.fixture_ref("hub_admin_user"))
     )
-    def test_filters_out_flagged_and_rejected_contributions(
+    @pytest.mark.parametrize(
+        "contribution_status", (ContributionStatus.FLAGGED, ContributionStatus.REJECTED, ContributionStatus.PROCESSING)
+    )
+    def test_filter_contributions_based_on_status(
         self,
         user,
+        contribution_status,
         flagged_contribution,
         rejected_contribution,
         canceled_contribution,
@@ -403,16 +412,27 @@ class TestContributionsViewSet:
     ):
         """Superusers and hub admins can filter out flagged and rejected contributions"""
         api_client.force_authenticate(user)
-        qp = "&".join(
-            [f"status__not={i}" for i in [ContributionStatus.FLAGGED.value, ContributionStatus.REJECTED.value]]
-        )
-        expected = [refunded_contribution, canceled_contribution, successful_contribution, processing_contribution]
-        unexpected = [flagged_contribution, rejected_contribution]
-        assert Contribution.objects.count() == len(expected) + len(unexpected)
-        response = api_client.get(f"{reverse('contribution-list')}?{qp}")
-        assert response.status_code == status.HTTP_200_OK
-        assert len(response.json()["results"]) == len(expected)
-        assert set([x["id"] for x in response.json()["results"]]) == set([x.id for x in expected])
+        qp = f"status__not={contribution_status.value}"
+        can_see = [
+            canceled_contribution,
+            refunded_contribution,
+            successful_contribution,
+        ]
+        if user.is_superuser:
+            can_see.extend(
+                [
+                    flagged_contribution,
+                    rejected_contribution,
+                    processing_contribution,
+                ]
+            )
+        if contribution_status in [x.status for x in can_see]:
+            expected = [x for x in can_see if x.status != contribution_status]
+            assert Contribution.objects.count() == len(expected) + 1
+            response = api_client.get(f"{reverse('contribution-list')}?{qp}")
+            assert response.status_code == status.HTTP_200_OK
+            assert len(response.json()["results"]) == len(expected)
+            assert set([x["id"] for x in response.json()["results"]]) == set([x.id for x in expected])
 
 
 @pytest.mark.django_db

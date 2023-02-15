@@ -1241,7 +1241,7 @@ class TestContributionQuerySetMethods:
     def test_filter_queryset_for_contributor_when_cache_not_empty(
         self, contributor_user, revenue_program, mocker, monkeypatch
     ):
-        "Show behavior of this method when results in cache" ""
+        """Show behavior of this method when results in cache"""
         results = [
             {"id": 1, "revenue_program": revenue_program.slug, "payment_type": "something"},
             {"id": 2, "revenue_program": revenue_program.slug, "payment_type": None},
@@ -1265,7 +1265,11 @@ class TestContributionQuerySetMethods:
         successful_contribution,
         processing_contribution,
     ):
-        """ """
+        """Show that this method excludes the expected statuses and includes the right ones"""
         assert set(Contribution.objects.having_org_viewable_status().values_list("id", flat=True)) == set(
-            (canceled_contribution.id, refunded_contribution.id, successful_contribution.id, processing_contribution.id)
+            (
+                canceled_contribution.id,
+                refunded_contribution.id,
+                successful_contribution.id,
+            )
         )

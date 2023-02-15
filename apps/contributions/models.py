@@ -180,7 +180,13 @@ class ContributionQuerySet(models.QuerySet):
 
     def having_org_viewable_status(self) -> models.QuerySet:
         """Exclude contributions with statuses that should not be seen by org users from the queryset"""
-        return self.exclude(status__in=[ContributionStatus.FLAGGED, ContributionStatus.REJECTED])
+        return self.exclude(
+            status__in=[
+                ContributionStatus.FLAGGED,
+                ContributionStatus.REJECTED,
+                ContributionStatus.PROCESSING,
+            ]
+        )
 
     def filter_queryset_for_contributor(
         self, contributor: Contributor, revenue_program: RevenueProgram

@@ -198,19 +198,31 @@ def contributor_user(default_feature_flags) -> ContributorFactory:
     return ContributorFactory()
 
 
-@pytest.mark.django_db
 @pytest.fixture
 def organization():
     return OrganizationFactory()
 
 
-@pytest.mark.django_db
 @pytest.fixture
 def revenue_program(organization):
     return RevenueProgramFactory(organization=organization)
 
 
-@pytest.mark.django_db
+@pytest.fixture
+def fiscally_sponsored_revenue_program():
+    return RevenueProgramFactory(onboarded=True, fiscally_sponsored=True)
+
+
+@pytest.fixture
+def nonprofit_revenue_program():
+    return RevenueProgramFactory(onboarded=True, non_profit=True)
+
+
+@pytest.fixture
+def for_profit_revenue_program():
+    return RevenueProgramFactory(onboarded=True, for_profit=True)
+
+
 @pytest.fixture
 def live_donation_page():
     return DonationPageFactory(
@@ -219,27 +231,23 @@ def live_donation_page():
     )
 
 
-@pytest.mark.django_db
 @pytest.fixture
 def style():
     return StyleFactory()
 
 
-@pytest.mark.django_db
 @pytest.fixture
 def one_time_contribution(live_donation_page):
     with patch("apps.contributions.models.Contribution.fetch_stripe_payment_method", return_value=None):
         return ContributionFactory(donation_page=live_donation_page, one_time=True)
 
 
-@pytest.mark.django_db
 @pytest.fixture
 def monthly_contribution(live_donation_page):
     with patch("apps.contributions.models.Contribution.fetch_stripe_payment_method", return_value=None):
         return ContributionFactory(donation_page=live_donation_page, monthly_subscription=True)
 
 
-@pytest.mark.django_db
 @pytest.fixture
 def annual_contribution(live_donation_page):
     with patch("apps.contributions.models.Contribution.fetch_stripe_payment_method", return_value=None):

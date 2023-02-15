@@ -284,8 +284,6 @@ class RevenueProgram(IndexedTimeStampedModel):
         on_delete=models.SET_NULL,
         help_text="Choose an optional default contribution page once you've saved your initial revenue program",
     )
-    # TODO: [DEV-2403] non_profit should probably be moved to the payment provider?
-    non_profit = models.BooleanField(default=True, verbose_name="Non-profit?")
     tax_id = models.CharField(
         blank=True, null=True, max_length=TAX_ID_MAX_LENGTH, validators=[MinLengthValidator(TAX_ID_MIN_LENGTH)]
     )

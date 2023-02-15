@@ -54,6 +54,9 @@ class RevenueProgramFactory(DjangoModelFactory):
 
     class Params:
         onboarded = factory.Trait(payment_provider=factory.SubFactory(PaymentProviderFactory, stripe_verified=True))
+        fiscally_sponsored = factory.Trait(fiscal_status=models.FiscalStatusChoices.FISCALLY_SPONSORED)
+        non_profit = factory.Trait(fiscal_status=models.FiscalStatusChoices.NONPROFIT)
+        for_profit = factory.Trait(fiscal_status=models.FiscalStatusChoices.FOR_PROFIT)
 
 
 class BenefitFactory(DjangoModelFactory):

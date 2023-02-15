@@ -834,19 +834,23 @@ class TestContributionModel:
                 contribution.id,
             )
 
-    @pytest.mark.parametrize(
-        "is_non_profit,tax_id",
+    @pytest_cases.parametrize(
+        "revenue_program",
         (
-            (True, None),
-            (True, "123456789"),
-            (False, None),
+            pytest_cases.fixture_ref("fiscally_sponsored_revenue_program"),
+            pytest_cases.fixture_ref("nonprofit_revenue_program"),
+            pytest_cases.fixture_ref("for_profit_revenue_program"),
         ),
     )
-    def test_send_recurring_contribution_email_reminder_email_text(self, is_non_profit, tax_id, monkeypatch, settings):
+    @pytest.mark.parametrize("tax_id", (None, "123456789"))
+    def test_send_recurring_contribution_email_reminder_email_text(
+        self, revenue_program, tax_id, monkeypatch, settings
+    ):
         contribution = ContributionFactory(interval=ContributionInterval.YEARLY)
-        contribution.donation_page.revenue_program.non_profit = is_non_profit
-        contribution.donation_page.revenue_program.tax_id = tax_id
-        contribution.donation_page.revenue_program.save()
+        revenue_program.tax_id = tax_id
+        revenue_program.save()
+        contribution.donation_page.revenue_program = revenue_program
+        contribution.donation_page.save()
         next_charge_date = datetime.datetime.now()
         mock_send_templated_email = Mock(wraps=send_templated_email.delay)
         token = "token"
@@ -872,7 +876,7 @@ class TestContributionModel:
             f"Email: {contribution.contributor.email}",
             f"Amount Contributed: ${contribution.formatted_amount}/{contribution.interval}",
         ]
-        if is_non_profit:
+        if revenue_program.non_profit:
             email_expectations.extend(
                 [
                     "This receipt may be used for tax purposes.",

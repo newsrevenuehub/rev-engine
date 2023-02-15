@@ -14,7 +14,7 @@ from apps.contributions.models import Contribution, ContributionInterval
 from apps.contributions.tests.factories import ContributionFactory
 from apps.emails.helpers import convert_to_timezone_formatted
 from apps.emails.tasks import send_templated_email_with_attachment, send_thank_you_email
-from apps.organizations.models import PaymentProvider
+from apps.organizations.models import FiscalStatusChoices, PaymentProvider
 from apps.organizations.tests.factories import RevenueProgramFactory
 from apps.pages.tests.factories import DonationPageFactory
 
@@ -141,15 +141,15 @@ class TestSendThankYouEmail:
         send_thank_you_email(contribution.id)
 
     @pytest.mark.parametrize(
-        "is_non_profit,has_tax_id",
+        "fiscal_status,has_tax_id",
         (
-            (True, True),
-            (True, False),
-            (False, True),
-            (False, False),
+            (FiscalStatusChoices.NONPROFIT, True),
+            (FiscalStatusChoices.NONPROFIT, False),
+            (FiscalStatusChoices.FOR_PROFIT, True),
+            (FiscalStatusChoices.FOR_PROFIT, False),
         ),
     )
-    def test_template_conditionality_around_non_profit_and_tax_status(self, is_non_profit, has_tax_id, monkeypatch):
+    def test_template_conditionality_around_non_profit_and_tax_status(self, fiscal_status, has_tax_id, monkeypatch):
         customer = AttrDict({"name": "Foo Bar"})
         mock_customer_retrieve = Mock()
         mock_customer_retrieve.return_value = customer
@@ -159,7 +159,7 @@ class TestSendThankYouEmail:
             contribution = ContributionFactory(one_time=True)
             rp = contribution.donation_page.revenue_program
             rp.tax_id = "123456789" if has_tax_id else None
-            rp.non_profit = is_non_profit
+            rp.fiscal_status = fiscal_status
             rp.save()
             send_thank_you_email(contribution.id)
 
@@ -168,11 +168,11 @@ class TestSendThankYouEmail:
         non_profit_has_tax_id_expectation = f"with a Federal Tax ID #{rp.tax_id}."
         non_profit_no_tax_id_expectation = f"{rp.name} is a 501(c)(3) nonprofit organization."
 
-        if is_non_profit and has_tax_id:
+        if fiscal_status == FiscalStatusChoices.NONPROFIT and has_tax_id:
             expect_present = (non_profit_expectation, non_profit_has_tax_id_expectation)
             expect_missing = (for_profit_expectation, non_profit_no_tax_id_expectation)
 
-        elif is_non_profit and not has_tax_id:
+        elif fiscal_status == FiscalStatusChoices.NONPROFIT and not has_tax_id:
             expect_present = (non_profit_expectation, non_profit_no_tax_id_expectation)
             expect_missing = (for_profit_expectation, non_profit_has_tax_id_expectation)
 

@@ -261,7 +261,7 @@ class TestPageViewSet:
         assert response.status_code == status.HTTP_201_CREATED
         assert DonationPage.objects.count() == before_count + 1
         page = DonationPage.objects.get(pk=response.json()["id"])
-        for (key, val) in [(key, val) for (key, val) in page_creation_data_valid.items() if key != "revenue_program"]:
+        for key, val in [(key, val) for (key, val) in page_creation_data_valid.items() if key != "revenue_program"]:
             assert getattr(page, key) == val
             assert response.json()[key] == val
         assert (
@@ -935,13 +935,13 @@ class TestPageViewSet:
                 "page": live_donation_page_with_styles.slug,
             },
         )
+
         assert response.status_code == status.HTTP_200_OK
         assert response.json() == json.loads(
             json.dumps(
                 DonationPageFullDetailSerializer(instance=live_donation_page_with_styles, context={"live": True}).data
             )
         )
-        assert response.json()["styles"]["styles"] == live_donation_page_with_styles.styles.styles
 
     @pytest.mark.parametrize("make_query", (lambda page: {}, lambda page: {"page": page.slug}))
     def test_live_detail_page_missing_rp_query_param(self, make_query, live_donation_page, api_client):

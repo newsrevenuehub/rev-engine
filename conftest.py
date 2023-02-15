@@ -217,6 +217,21 @@ def revenue_program(organization):
     return RevenueProgramFactory(organization=organization)
 
 
+@pytest.fixture
+def fiscally_sponsored_revenue_program():
+    return RevenueProgramFactory(onboarded=True, fiscally_sponsored=True)
+
+
+@pytest.fixture
+def nonprofit_revenue_program():
+    return RevenueProgramFactory(onboarded=True, non_profit=True)
+
+
+@pytest.fixture
+def for_profit_revenue_program():
+    return RevenueProgramFactory(onboarded=True, for_profit=True)
+
+
 @pytest.mark.django_db
 @pytest.fixture
 def live_donation_page():

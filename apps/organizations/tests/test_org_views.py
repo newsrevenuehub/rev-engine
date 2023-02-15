@@ -585,6 +585,12 @@ class TestRevenueProgramViewSet:
         else:
             assert response.status_code == status.HTTP_403_FORBIDDEN
 
+    def test_patch_different_org(self, org_user_free_plan, api_client, revenue_program):
+        """Show that org admins cannot patch another org's rp"""
+        api_client.force_authenticate(org_user_free_plan)
+        response = api_client.patch(reverse("revenue-program-detail", args=(revenue_program.id,)), data={})
+        assert response.status_code == status.HTTP_404_NOT_FOUND
+
 
 class FakeStripeProduct:
     def __init__(self, id):

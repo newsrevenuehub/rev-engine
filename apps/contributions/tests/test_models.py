@@ -25,6 +25,7 @@ from apps.contributions.models import (
 )
 from apps.contributions.tests.factories import ContributionFactory, ContributorFactory
 from apps.emails.tasks import send_templated_email
+from apps.organizations.models import FiscalStatusChoices
 from apps.organizations.tests.factories import (
     OrganizationFactory,
     PaymentProviderFactory,
@@ -763,6 +764,52 @@ class TestContributionModel:
             case _:
                 expected = Contribution.objects.none()
                 assert expected.count() == 0
+
         result = Contribution.objects.filtered_by_role_assignment(user.roleassignment)
         assert result.count() == expected.count()
         assert set(result) == set(expected)
+
+
+@pytest.mark.django_db()
+@pytest.mark.parametrize(
+    "fiscal_status,tax_id",
+    (
+        (FiscalStatusChoices.NONPROFIT, None),
+        (FiscalStatusChoices.NONPROFIT, "123456789"),
+        (FiscalStatusChoices.FOR_PROFIT, None),
+    ),
+)
+def test_contribution_send_recurring_contribution_email_reminder_email_text(
+    fiscal_status, tax_id, monkeypatch, settings
+):
+    with patch("apps.contributions.models.Contribution.fetch_stripe_payment_method", return_value=None):
+        contribution = ContributionFactory(interval=ContributionInterval.YEARLY)
+    contribution.donation_page.revenue_program.fiscal_status = fiscal_status
+    contribution.donation_page.revenue_program.tax_id = tax_id
+    contribution.donation_page.revenue_program.save()
+    next_charge_date = datetime.datetime.now()
+    mock_send_templated_email = Mock(wraps=send_templated_email.delay)
+    token = "token"
+
+    class MockForContributorReturn:
+        def __init__(self, *args, **kwargs):
+            self.short_lived_access_token = token
+
+    monkeypatch.setattr(send_templated_email, "delay", mock_send_templated_email)
+    monkeypatch.setattr(ContributorRefreshToken, "for_contributor", lambda *args, **kwargs: MockForContributorReturn())
+    settings.EMAIL_BACKEND = "django.core.mail.backends.locmem.EmailBackend"
+    settings.CELERY_ALWAYS_EAGER = True
+    contribution.send_recurring_contribution_email_reminder(next_charge_date)
+    assert len(mail.outbox) == 1
+    email_expectations = [
+        f"Scheduled: {next_charge_date.strftime('%m/%d/%Y')}",
+        f"Email: {contribution.contributor.email}",
+        f"Amount Contributed: ${contribution.formatted_amount}/{contribution.interval}",
+    ]
+    if fiscal_status == FiscalStatusChoices.NONPROFIT:
+        email_expectations.extend(
+            [
+                "This receipt may be used for tax purposes.",
+                f"{contribution.donation_page.revenue_program.name} is a 501(c)(3) nonprofit organization",
+            ]
+        )

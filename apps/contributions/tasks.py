@@ -8,6 +8,7 @@ import requests
 from celery import shared_task
 from celery.utils.log import get_task_logger
 from requests.exceptions import RequestException
+from sentry_sdk import configure_scope
 from stripe.error import RateLimitError
 
 from apps.contributions.models import Contribution, ContributionStatus
@@ -76,41 +77,44 @@ def task_pull_serialized_stripe_contributions_to_cache(self, email_id, stripe_ac
         email_id,
         stripe_account_id,
     )
-
-    provider = StripeContributionsProvider(email_id, stripe_account_id)
-    # trigger async tasks to pull payment intents for a given set of customer queries, if there are two queries
-    # the task will get triggered two times which are asynchronous
-    for customer_query in provider.generate_chunked_customers_query():
-        logger.info("Pulling payment intents for %s", customer_query)
-        task_pull_payment_intents.delay(email_id, customer_query, stripe_account_id)
+    with configure_scope() as scope:
+        scope.user = {"email": email_id}
+        provider = StripeContributionsProvider(email_id, stripe_account_id)
+        # trigger async tasks to pull payment intents for a given set of customer queries, if there are two queries
+        # the task will get triggered two times which are asynchronous
+        for customer_query in provider.generate_chunked_customers_query():
+            logger.info("Pulling payment intents for %s", customer_query)
+            task_pull_payment_intents.delay(email_id, customer_query, stripe_account_id)
 
 
 @shared_task(bind=True, autoretry_for=(RateLimitError,), retry_backoff=True, retry_kwargs={"max_retries": 3})
 def task_pull_payment_intents(self, email_id, customers_query, stripe_account_id):
     """Pull all payment_intents from stripe for a given set of customers."""
-    provider = StripeContributionsProvider(email_id, stripe_account_id)
-    pi_cache_provider = ContributionsCacheProvider(
-        email_id,
-        stripe_account_id,
-        serializer=PaymentProviderContributionSerializer,
-        converter=StripePaymentIntent,
-    )
-    sub_cache_provider = SubscriptionsCacheProvider(
-        email_id,
-        stripe_account_id,
-        serializer=SubscriptionsSerializer,
-    )
-    pi_response = provider.fetch_payment_intents(query=customers_query)
-    # from celery.contrib import rdb; rdb.set_trace()
-    # grab subscriptions
-    logger.debug("pi_response: %s", pi_response)
-    pi_cache_provider.upsert(pi_response)
-    subscriptions = [x.invoice.subscription for x in pi_response if x.invoice]
-    sub_cache_provider.upsert(subscriptions)
-
-    # iterate through all pages of stripe payment intents
-    while pi_response.has_more:
-        pi_response = provider.fetch_payment_intents(query=customers_query, page=pi_response.next_page)
+    with configure_scope() as scope:
+        scope.user = {"email": email_id}
+        provider = StripeContributionsProvider(email_id, stripe_account_id)
+        pi_cache_provider = ContributionsCacheProvider(
+            email_id,
+            stripe_account_id,
+            serializer=PaymentProviderContributionSerializer,
+            converter=StripePaymentIntent,
+        )
+        sub_cache_provider = SubscriptionsCacheProvider(
+            email_id,
+            stripe_account_id,
+            serializer=SubscriptionsSerializer,
+        )
+        pi_response = provider.fetch_payment_intents(query=customers_query)
+        # from celery.contrib import rdb; rdb.set_trace()
+        # grab subscriptions
+        logger.debug("pi_response: %s", pi_response)
         pi_cache_provider.upsert(pi_response)
         subscriptions = [x.invoice.subscription for x in pi_response if x.invoice]
         sub_cache_provider.upsert(subscriptions)
+
+        # iterate through all pages of stripe payment intents
+        while pi_response.has_more:
+            pi_response = provider.fetch_payment_intents(query=customers_query, page=pi_response.next_page)
+            pi_cache_provider.upsert(pi_response)
+            subscriptions = [x.invoice.subscription for x in pi_response if x.invoice]
+            sub_cache_provider.upsert(subscriptions)

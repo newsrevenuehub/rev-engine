@@ -222,7 +222,7 @@ class RevenueProgramTest(TestCase):
 )
 @pytest.mark.django_db
 def test_fiscal_status_on_revenue_program(fiscal_status, fiscal_sponsor_name, non_profit_value):
-    rp = RevenueProgramFactory(org=OrganizationFactory())
+    rp = RevenueProgramFactory(organization=OrganizationFactory())
     rp.fiscal_status = fiscal_status
     rp.fiscal_sponsor_name = fiscal_sponsor_name
     assert rp.non_profit == non_profit_value
@@ -238,7 +238,7 @@ def test_fiscal_status_on_revenue_program(fiscal_status, fiscal_sponsor_name, no
 )
 @pytest.mark.django_db
 def test_fiscal_sponsor_name_clean(fiscal_status, fiscal_sponsor_name):
-    rp = RevenueProgramFactory(org=OrganizationFactory())
+    rp = RevenueProgramFactory(organization=OrganizationFactory())
     rp.fiscal_status = fiscal_status
     rp.fiscal_sponsor_name = fiscal_sponsor_name
     with pytest.raises(ValidationError):

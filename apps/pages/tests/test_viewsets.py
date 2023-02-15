@@ -510,7 +510,7 @@ class PageViewSetTest(RevEngineApiAbstractTestCase):
 
     def test_live_detail_page_with_styles(self):
         custom_style = {"foo": "bar"}
-        style = StyleFactory(org=self.org1, revenue_program=self.org1_rp1, styles=custom_style)
+        style = StyleFactory(organization=self.org1, revenue_program=self.org1_rp1, styles=custom_style)
         page = self.livepage_factory(style=style)
         url = f'{reverse("donationpage-live-detail")}?revenue_program={page.revenue_program.slug}&page={page.slug}'
         response = self.assert_unauthed_can_get(url)
@@ -585,7 +585,7 @@ class PageViewSetTest(RevEngineApiAbstractTestCase):
         custom_style = {
             "foo": "bar",
         }
-        style = StyleFactory(org=self.org1, revenue_program=self.org1_rp1, styles=custom_style)
+        style = StyleFactory(revenue_program=self.org1_rp1, styles=custom_style)
         page.styles = style
         page.published_date = timezone.now() - datetime.timedelta(days=1)
         page.save()

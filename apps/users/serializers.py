@@ -8,7 +8,7 @@ from rest_framework import serializers
 from rest_framework.validators import UniqueValidator
 from waffle import get_waffle_flag_model
 
-from apps.organizations.models import Organization, RevenueProgram
+from apps.organizations.models import FiscalStatusChoices, Organization, RevenueProgram
 from apps.organizations.serializers import (
     OrganizationInlineSerializer,
     RevenueProgramInlineSerializer,
@@ -151,21 +151,37 @@ class CustomizeAccountSerializer(UserSerializer):
     """Special custom serializer to validate data received from customize_account method"""
 
     first_name = serializers.CharField(write_only=True, required=True)
+    fiscal_sponsor_name = serializers.CharField(write_only=True, required=False, default=None)
+    fiscal_status = serializers.ChoiceField(
+        choices=FiscalStatusChoices.choices,
+        write_only=True,
+        required=True,
+    )
     last_name = serializers.CharField(write_only=True, required=True)
     job_title = serializers.CharField(write_only=True, required=False, default=None)
     organization_name = serializers.CharField(write_only=True, required=True)
     organization_tax_id = serializers.CharField(
         write_only=True, required=False, validators=[tax_id_validator], default=None
     )
-    organization_tax_status = serializers.ChoiceField(choices=["for-profit", "nonprofit"], required=True)
+
+    def validate_fiscal_status(self, value):
+        fiscal_sponsor_name = self.initial_data.get("fiscal_sponsor_name")
+        if value == FiscalStatusChoices.FISCALLY_SPONSORED and not fiscal_sponsor_name:
+            raise serializers.ValidationError("Please enter the fiscal sponsor name.")
+        elif fiscal_sponsor_name and value != FiscalStatusChoices.FISCALLY_SPONSORED:
+            raise serializers.ValidationError(
+                "Only fiscally sponsored Revenue Programs can have a fiscal sponsor name."
+            )
+        return value
 
     class Meta:
         model = get_user_model()
         fields = [
             "first_name",
+            "fiscal_sponsor_name",
+            "fiscal_status",
             "last_name",
             "job_title",
             "organization_name",
-            "organization_tax_status",
             "organization_tax_id",
         ]

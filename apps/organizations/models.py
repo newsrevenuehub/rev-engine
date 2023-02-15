@@ -35,6 +35,7 @@ UNLIMITED_CEILING = 200
 # RFC-1035 limits domain labels to 63 characters, and RP slugs are used for subdomains,
 # so we limit to 63 chars
 RP_SLUG_MAX_LENGTH = 63
+FISCAL_SPONSOR_NAME_MAX_LENGTH = 100
 
 CURRENCY_CHOICES = [(k, k) for k in settings.CURRENCIES.keys()]
 
@@ -256,6 +257,17 @@ class RevenueProgramManager(models.Manager):
                 return self.none()
 
 
+class FiscalStatusChoices(models.TextChoices):
+    """
+
+    These are used in RevenueProgram to indicate the fiscal status of a record.
+    """
+
+    FOR_PROFIT = "for-profit"
+    NONPROFIT = "nonprofit"
+    FISCALLY_SPONSORED = "fiscally sponsored"
+
+
 class RevenueProgram(IndexedTimeStampedModel):
     name = models.CharField(max_length=255)
     slug = models.SlugField(
@@ -274,13 +286,11 @@ class RevenueProgram(IndexedTimeStampedModel):
         on_delete=models.SET_NULL,
         help_text="Choose an optional default contribution page once you've saved your initial revenue program",
     )
-    # TODO: [DEV-2403] non_profit should probably be moved to the payment provider?
-    non_profit = models.BooleanField(default=True, verbose_name="Non-profit?")
-    tax_id = models.CharField(
-        blank=True, null=True, max_length=TAX_ID_MAX_LENGTH, validators=[MinLengthValidator(TAX_ID_MIN_LENGTH)]
-    )
+    tax_id = models.CharField(blank=True, null=True, max_length=TAX_ID_MAX_LENGTH, validators=[MinLengthValidator(9)])
     payment_provider = models.ForeignKey("organizations.PaymentProvider", null=True, on_delete=models.SET_NULL)
     domain_apple_verified_date = models.DateTimeField(blank=True, null=True)
+    fiscal_sponsor_name = models.CharField(max_length=FISCAL_SPONSOR_NAME_MAX_LENGTH, null=True, blank=True)
+    fiscal_status = models.TextField(choices=FiscalStatusChoices.choices, default=FiscalStatusChoices.NONPROFIT)
 
     # Analytics
     google_analytics_v3_domain = models.CharField(max_length=300, null=True, blank=True)
@@ -345,6 +355,10 @@ class RevenueProgram(IndexedTimeStampedModel):
             return None
         return self.payment_provider.stripe_account_id
 
+    @property
+    def non_profit(self):
+        return self.fiscal_status in (FiscalStatusChoices.FISCALLY_SPONSORED, FiscalStatusChoices.NONPROFIT)
+
     def clean_fields(self, **kwargs):
         if not self.id:
             self.slug = normalize_slug(self.name, self.slug, max_length=RP_SLUG_MAX_LENGTH)
@@ -359,6 +373,15 @@ class RevenueProgram(IndexedTimeStampedModel):
         # Ensure no @ symbol on twitter_handle-- we'll add those later
         if self.twitter_handle and self.twitter_handle[0] == "@":
             self.twitter_handle = self.twitter_handle.replace("@", "")
+
+        self.clean_fiscal_sponsor_name()
+
+    def clean_fiscal_sponsor_name(self):
+        """Ensure a fiscally sponsored record has the fiscal sponsor name"""
+        if self.fiscal_status == FiscalStatusChoices.FISCALLY_SPONSORED and not self.fiscal_sponsor_name:
+            raise ValidationError("Please enter the fiscal sponsor name.")
+        elif self.fiscal_sponsor_name and self.fiscal_status != FiscalStatusChoices.FISCALLY_SPONSORED:
+            raise ValidationError("Only fiscally sponsored Revenue Programs can have a fiscal sponsor name.")
 
     def stripe_create_apple_pay_domain(self):
         """

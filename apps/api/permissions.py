@@ -45,6 +45,46 @@ class IsHubAdmin(permissions.BasePermission):
         )
 
 
+class IsOrgAdmin(permissions.BasePermission):
+    """Org Admin permission
+
+    If the user making the request is an org admin, grant permission.
+    """
+
+    def has_permission(self, request, view):
+        return all(
+            [
+                role_assignment := getattr(request.user, "roleassignment", False),
+                role_assignment.role_type == Roles.ORG_ADMIN,
+            ]
+        )
+
+
+class IsRpAdmin(permissions.BasePermission):
+    """RP Admin permission
+
+    If the user making the request is a RP admin, grant permission.
+    """
+
+    def has_permission(self, request, view):
+        return all(
+            [
+                role_assignment := getattr(request.user, "roleassignment", False),
+                role_assignment.role_type == Roles.RP_ADMIN,
+            ]
+        )
+
+
+class IsGetRequest(permissions.BasePermission):
+    def has_permission(self, request, view):
+        return request.method == "GET"
+
+
+class IsPatchRequest(permissions.BasePermission):
+    def has_permission(self, request, view):
+        return request.method == "PATCH"
+
+
 class ContributorOwnsContribution(permissions.BasePermission):
     """Handle object-level permissions for contributors vis-a-vis contributions"""
 
@@ -65,44 +105,8 @@ class HasRoleAssignment(permissions.BasePermission):
     """
 
     def has_permission(self, request, view):
-        return getattr(request.user, "get_role_assignment", False) and bool(request.user.get_role_assignment())
-
-
-class _BaseAssumedViewAndModelMixin(permissions.BasePermission):
-    """Ensure view and model use mixins as expected by HasDeletePrivilegesViaRole"""
-
-    def __init__(self, view, *args, **kwargs):
-        if not self._assumed_mixins_configured(view):
-            raise ApiConfigurationError()
-        return super().__init__(*args, **kwargs)
-
-    def __call__(self):
-        # https://stackoverflow.com/a/67154035
-        return self
-
-    def _assumed_mixins_configured(self, view):
-        # vs circular imports
-        from apps.users.models import RoleAssignmentResourceModelMixin
-        from apps.users.views import FilterQuerySetByUserMixin
-
-        return all(
-            [isinstance(view, FilterQuerySetByUserMixin), issubclass(view.model, RoleAssignmentResourceModelMixin)]
-        )
-
-
-class HasDeletePrivilegesViaRole(_BaseAssumedViewAndModelMixin):
-    """Call a view's model's `user_has_delete_permission_by_virtue_of_role` method to determine permissions"""
-
-    def has_permission(self, request, view):
-        pk = view.kwargs.get("pk")
-        try:
-            instance = view.model.objects.get(pk=pk)
-            return pk is not None and view.model.user_has_delete_permission_by_virtue_of_role(request.user, instance)
-        except view.model.DoesNotExist:
-            logger.warning(
-                "`HasDeletePrivilegesViaRole.has_permission` cannot find the requested instance with pk %s", pk
-            )
-            return False
+        ra = getattr(request.user, "get_role_assignment", lambda: None)()
+        return bool(ra) and ra.role_type in [Roles.HUB_ADMIN, Roles.ORG_ADMIN, Roles.RP_ADMIN]
 
 
 def is_a_contributor(user):

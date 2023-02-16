@@ -1,9 +1,11 @@
 import csv
 import logging
 import os
+from typing import List
 
 from django.conf import settings
 from django.contrib.auth import get_user_model
+from django.db.models import QuerySet
 from django.shortcuts import get_object_or_404
 from django.utils.decorators import method_decorator
 from django.views.decorators.csrf import csrf_protect
@@ -12,12 +14,14 @@ import stripe
 from django_filters.rest_framework import DjangoFilterBackend
 from rest_framework import mixins, status, viewsets
 from rest_framework.decorators import action, api_view, authentication_classes, permission_classes
+from rest_framework.exceptions import ParseError
 from rest_framework.permissions import IsAdminUser, IsAuthenticated
 from rest_framework.response import Response
 from rest_framework.serializers import ValidationError
 from reversion.views import create_revision
 from stripe.error import StripeError
 
+from apps.api.exceptions import ApiConfigurationError
 from apps.api.permissions import (
     HasFlaggedAccessToContributionsApiResource,
     HasRoleAssignment,
@@ -28,6 +32,7 @@ from apps.api.permissions import (
 from apps.contributions import serializers
 from apps.contributions.filters import ContributionFilter
 from apps.contributions.models import (
+    CachedStripeContributionResult,
     Contribution,
     ContributionInterval,
     ContributionIntervalError,
@@ -36,17 +41,13 @@ from apps.contributions.models import (
     Contributor,
 )
 from apps.contributions.payment_managers import PaymentProviderError
-from apps.contributions.stripe_contributions_provider import (
-    ContributionsCacheProvider,
-    SubscriptionsCacheProvider,
-)
+from apps.contributions.stripe_contributions_provider import SubscriptionsCacheProvider
 from apps.contributions.tasks import task_pull_serialized_stripe_contributions_to_cache
 from apps.contributions.utils import export_contributions_to_csv
 from apps.contributions.webhooks import StripeWebhookProcessor
 from apps.emails.tasks import send_templated_email_with_attachment
 from apps.organizations.models import PaymentProvider, RevenueProgram
 from apps.public.permissions import IsActiveSuperUser
-from apps.users.views import FilterQuerySetByUserMixin
 
 
 logger = logging.getLogger(f"{settings.DEFAULT_LOGGER}.{__name__}")
@@ -208,7 +209,7 @@ def payment_success(request, uuid=None):
     return Response(status=status.HTTP_204_NO_CONTENT)
 
 
-class ContributionsViewSet(viewsets.ReadOnlyModelViewSet, FilterQuerySetByUserMixin):
+class ContributionsViewSet(viewsets.ReadOnlyModelViewSet):
     """Contributions API resource
 
     NB: There are bespoke actions on this viewset that override the default permission classes set here.
@@ -231,34 +232,44 @@ class ContributionsViewSet(viewsets.ReadOnlyModelViewSet, FilterQuerySetByUserMi
     filterset_class = ContributionFilter
     filter_backends = [DjangoFilterBackend]
 
+    def filter_queryset_for_user(
+        self, user: UserModel | Contributor
+    ) -> QuerySet | List[CachedStripeContributionResult]:
+        """Return the right results to the right user
+
+        Contributors get cached serialized contribution data (if it's already cached when this runs, otherwise,
+        query to Stripe will happen in background, and this will return an empty list).
+        """
+        ra = getattr(user, "get_role_assignment", lambda: None)()
+        if isinstance(user, Contributor):
+            return self.filter_queryset_for_contributor(user)
+        elif user.is_anonymous:
+            return self.model.objects.none()
+        elif user.is_superuser:
+            return self.model.objects.all()
+        elif ra:
+            return self.model.objects.filtered_by_role_assignment(ra)
+        else:
+            logger.warning("Encountered unexpected user")
+            raise ApiConfigurationError
+
     def get_queryset(self):
-        # load contributions from cache if the user is a contributor
-        if isinstance(self.request.user, Contributor):
-            rp_slug = self.request.query_params.get("rp")
-            if not rp_slug:
-                return Response(
-                    {"detail": "Missing Revenue Program in query params"}, status=status.HTTP_400_BAD_REQUEST
-                )
-            revenue_program = get_object_or_404(RevenueProgram, slug=rp_slug)
-            cache_provider = ContributionsCacheProvider(self.request.user.email, revenue_program.stripe_account_id)
+        return self.filter_queryset_for_user(self.request.user)
 
-            contributions = cache_provider.load()
-            # trigger celery task to pull contributions and load to cache if the cache is empty
-            if not contributions:
-                task_pull_serialized_stripe_contributions_to_cache.delay(
-                    self.request.user.email, revenue_program.stripe_account_id
-                )
-            return [
-                x
-                for x in contributions
-                if x.get("revenue_program") == self.request.query_params["rp"] and x.get("payment_type") is not None
-            ]
-
-        # this is supplied by FilterQuerySetByUserMixin
-        return self.filter_queryset_for_user(self.request.user, self.model.objects.having_org_viewable_status())
+    def filter_queryset_for_contributor(self, contributor) -> List[CachedStripeContributionResult]:
+        """ """
+        if (rp_slug := self.request.GET.get("rp", None)) is None:
+            logger.warning("")
+            raise ParseError("rp not supplied")
+        rp = get_object_or_404(RevenueProgram, slug=rp_slug)
+        return self.model.objects.filter_queryset_for_contributor(contributor, rp)
 
     def filter_queryset(self, queryset):
-        # filter backend doesnot apply for contributor
+        """Remove filter backend if user is a contributor
+
+        We need to do this because for contributor users we return a list of dicts representing
+        contributions, and not a normal Django queryset.
+        """
         if isinstance(self.request.user, Contributor):
             return queryset
         return super().filter_queryset(queryset)
@@ -298,9 +309,9 @@ class ContributionsViewSet(viewsets.ReadOnlyModelViewSet, FilterQuerySetByUserMi
         as contributors will be able to access only Contributor Portal via magic link.
         """
         try:
-            queryset = self.filter_queryset_for_user(self.request.user, self.model.objects.having_org_viewable_status())
-            contributions = super().filter_queryset(queryset)
-            contributions_in_csv = export_contributions_to_csv(contributions)
+            contributions_in_csv = export_contributions_to_csv(
+                self.model.objects.all() if request.user.is_staff else self.get_queryset()
+            )
 
             send_templated_email_with_attachment.delay(
                 to=request.user.email,
@@ -347,11 +358,11 @@ class SubscriptionsViewSet(viewsets.ViewSet):
             task_pull_serialized_stripe_contributions_to_cache(
                 self.request.user.email, revenue_program.stripe_account_id
             )
-
         subscriptions = cache_provider.load()
         return [x for x in subscriptions if x.get("revenue_program_slug") == revenue_program_slug]
 
     def retrieve(self, request, pk):
+        #  TODO: [DEV-3227] Here...
         subscriptions = self._fetch_subscriptions(request)
         for subscription in subscriptions:
             if (

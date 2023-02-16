@@ -56,9 +56,7 @@ class OrganizationViewSet(
         return self.filter_queryset_for_superuser_or_ra()
 
     def patch(self, request, pk):
-        organization = get_object_or_404(Organization, pk=pk)
-        if not request.user.is_superuser and organization not in self.get_queryset():
-            return Response(status=status.HTTP_404_NOT_FOUND)
+        organization = get_object_or_404(self.get_queryset(), pk=pk)
         patch_serializer = serializers.OrganizationPatchSerializer(organization, data=request.data, partial=True)
         patch_serializer.is_valid()
         if patch_serializer.errors:

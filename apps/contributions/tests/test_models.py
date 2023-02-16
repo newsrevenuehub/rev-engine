@@ -586,6 +586,15 @@ class TestContributionModel:
         assert contribution.modified == last_modified
         mock_stripe_method.assert_not_called()
 
+    @pytest.mark.django_db
+    @pytest.mark.parametrize("trait", ("one_time", "annual_subscription", "monthly_subscription"))
+    def test_contribution_billing_details(self, trait):
+        contribution = ContributionFactory(**{trait: True})
+        assert (
+            contribution.billing_details
+            and contribution.billing_details == contribution.provider_payment_method_details["billing_details"]
+        )
+
     @pytest.mark.parametrize(
         "status",
         (
@@ -965,6 +974,7 @@ class TestContributionModel:
             case _:
                 expected = Contribution.objects.none()
                 assert expected.count() == 0
+
         result = Contribution.objects.filtered_by_role_assignment(user.roleassignment)
         assert result.count() == expected.count()
         assert set(result) == set(expected)

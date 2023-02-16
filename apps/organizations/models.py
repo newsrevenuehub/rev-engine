@@ -284,7 +284,9 @@ class RevenueProgram(IndexedTimeStampedModel):
         on_delete=models.SET_NULL,
         help_text="Choose an optional default contribution page once you've saved your initial revenue program",
     )
-    tax_id = models.CharField(blank=True, null=True, max_length=TAX_ID_MAX_LENGTH, validators=[MinLengthValidator(9)])
+    tax_id = models.CharField(
+        blank=True, null=True, max_length=TAX_ID_MAX_LENGTH, validators=[MinLengthValidator(TAX_ID_MIN_LENGTH)]
+    )
     payment_provider = models.ForeignKey("organizations.PaymentProvider", null=True, on_delete=models.SET_NULL)
     domain_apple_verified_date = models.DateTimeField(blank=True, null=True)
     fiscal_sponsor_name = models.CharField(max_length=FISCAL_SPONSOR_NAME_MAX_LENGTH, null=True, blank=True)

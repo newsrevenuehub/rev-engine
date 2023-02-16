@@ -252,6 +252,33 @@ class TestOrganizationViewSet:
             # once for each of the calls to the patch endpoint
             assert spy.call_count == 2
 
+    @pytest_cases.parametrize(
+        "user",
+        (
+            pytest_cases.fixture_ref("hub_admin_user"),
+            pytest_cases.fixture_ref("user_no_role_assignment"),
+            pytest_cases.fixture_ref("contributor_user"),
+            pytest_cases.fixture_ref("rp_user"),
+            None,
+        ),
+    )
+    def test_patch_when_unexpected_user(self, user, api_client, organization):
+        """Show that unexpected users cannot patch an Org"""
+        api_client.force_authenticate(user)
+        response = api_client.patch(reverse("organization-detail", args=(organization.id,)), data={})
+        # if unauthed, get 401
+        if not user:
+            assert response.status_code == status.HTTP_401_UNAUTHORIZED
+        # if unexpected role assignment role type
+        else:
+            assert response.status_code == status.HTTP_403_FORBIDDEN
+
+    def test_patch_different_org(self, org_user_free_plan, api_client, organization):
+        """Show that only org admins can access this patch endpoint"""
+        api_client.force_authenticate(org_user_free_plan)
+        response = api_client.patch(reverse("organization-detail", args=(organization.id,)), data={})
+        assert response.status_code == status.HTTP_404_NOT_FOUND
+
 
 @pytest.fixture
 def tax_id_valid():
@@ -557,6 +584,12 @@ class TestRevenueProgramViewSet:
         # if unexpected role assignment role type
         else:
             assert response.status_code == status.HTTP_403_FORBIDDEN
+
+    def test_patch_different_org(self, org_user_free_plan, api_client, revenue_program):
+        """Show that org admins cannot patch another org's rp"""
+        api_client.force_authenticate(org_user_free_plan)
+        response = api_client.patch(reverse("revenue-program-detail", args=(revenue_program.id,)), data={})
+        assert response.status_code == status.HTTP_404_NOT_FOUND
 
 
 class FakeStripeProduct:

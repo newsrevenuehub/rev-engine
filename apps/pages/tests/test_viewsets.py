@@ -935,7 +935,6 @@ class TestPageViewSet:
                 "page": live_donation_page_with_styles.slug,
             },
         )
-
         assert response.status_code == status.HTTP_200_OK
         assert response.json() == json.loads(
             json.dumps(

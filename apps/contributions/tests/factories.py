@@ -100,6 +100,16 @@ class ContributionFactory(DjangoModelFactory):
 
     @factory.post_generation
     def contribution_metadata(obj, create, extracted="default", **kwargs):
+        """Generate realistic looking contribution_metadata
+
+        Note that we have set a default value for `extracted` here. This is because we need to be able
+        to on a case by case basis override the value for`contribution_metadata` with an empty dict or None
+        in specific tests. That means we can't test for "falsiness". By setting `extracted`'s default value to
+        "default" here, we allow calling context to pass along any arbitrary value to be sent. See more detail
+        on post-generation and the extracted parameter here:
+
+        https://factoryboy.readthedocs.io/en/stable/reference.html#factory.post_generation
+        """
         rp = obj.donation_page.revenue_program
         obj.contribution_metadata = (
             extracted

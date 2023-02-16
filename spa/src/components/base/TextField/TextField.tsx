@@ -49,6 +49,10 @@ const StyledMuiTextField = styled(MuiTextField)`
 
     .NreTextFieldInputRoot {
       margin-top: 6px;
+
+      & ::placeholder {
+        font-style: normal;
+      }
     }
 
     .Mui-error .NreTextFieldInput {

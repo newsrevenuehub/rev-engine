@@ -1,3 +1,5 @@
+// This is a .tsx file so it can be mocked in Jest with a .tsx file.
+
 export { default as RichTextEditor } from './richText/RichTextElementEditor';
 export { default as FrequencyEditor } from './frequency/FrequencyEditor';
 export { default as AmountEditor } from './amount/AmountEditor';

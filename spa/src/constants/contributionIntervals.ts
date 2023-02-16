@@ -7,3 +7,5 @@ export const CONTRIBUTION_INTERVALS: Record<ContributionIntervalKey, Contributio
   MONTHLY: 'month',
   ANNUAL: 'year'
 };
+
+export const CONTRIBUTION_INTERVAL_SORT_ORDER: ContributionInterval[] = ['one_time', 'month', 'year'];

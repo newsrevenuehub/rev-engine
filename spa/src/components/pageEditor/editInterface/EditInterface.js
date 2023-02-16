@@ -9,13 +9,13 @@ import isEmpty from 'lodash.isempty';
 
 // Children
 import EditInterfaceTabs, { EDIT_INTERFACE_TAB_NAMES } from 'components/pageEditor/editInterface/EditInterfaceTabs';
-import ElementProperties from 'components/pageEditor/editInterface/pageElements/ElementProperties';
 import AddElementModal from 'components/pageEditor/editInterface/pageElements/addElementModal/AddElementModal';
 
 import PageElements from 'components/pageEditor/editInterface/pageElements/PageElements';
 import PageSetup, { PAGE_SETUP_FIELDS } from 'components/pageEditor/editInterface/pageSetup/PageSetup';
 import PageSidebarElements from 'components/pageEditor/editInterface/pageSidebarElements/PageSidebarElements';
 import PageStyles from 'components/pageEditor/editInterface/pageStyles/PageStyles';
+import { ElementEditor } from './ElementEditor';
 
 const editInterfaceAnimation = {
   initial: { opacity: 0, x: 200 },
@@ -74,7 +74,11 @@ function InnerEditInterface() {
     <>
       <Root {...editInterfaceAnimation} data-testid="edit-interface">
         {selectedElement ? (
-          <ElementProperties selectedElementType={selectedElementType} />
+          <ElementEditor
+            elementUuid={selectedElement.uuid}
+            location={selectedElementType}
+            onClose={() => setSelectedElement()}
+          />
         ) : (
           <>
             <EditInterfaceTabs tab={tab} onChangeTab={setTab} />

@@ -1,6 +1,7 @@
 import datetime
 import logging
 import uuid
+from typing import List, TypedDict
 from urllib.parse import quote_plus
 
 from django.conf import settings
@@ -13,8 +14,9 @@ from addict import Dict as AttrDict
 from apps.api.tokens import ContributorRefreshToken
 from apps.common.models import IndexedTimeStampedModel
 from apps.emails.tasks import send_thank_you_email
+from apps.organizations.models import RevenueProgram
 from apps.users.choices import Roles
-from apps.users.models import RoleAssignmentResourceModelMixin, UnexpectedRoleType
+from apps.users.models import RoleAssignment
 
 
 logger = logging.getLogger(f"{settings.DEFAULT_LOGGER}.{__name__}")
@@ -163,13 +165,59 @@ class BadActorScores(models.IntegerChoices):
     SUPERBAD = 5, "5 - Very Bad"
 
 
-class ContributionManager(models.Manager):
-    def having_org_viewable_status(self):
+class CachedStripeContributionResult(TypedDict):
+    revenue_program: str
+    payment_type: str
+
+
+class ContributionQuerySet(models.QuerySet):
+    def having_org_viewable_status(self) -> models.QuerySet:
         """Exclude contributions with statuses that should not be seen by org users from the queryset"""
         return self.exclude(status__in=[ContributionStatus.FLAGGED, ContributionStatus.REJECTED])
 
+    def filter_queryset_for_contributor(
+        self, contributor: Contributor, revenue_program: RevenueProgram
+    ) -> List[CachedStripeContributionResult]:
+        # vs circular import
+        from apps.contributions.stripe_contributions_provider import ContributionsCacheProvider
+        from apps.contributions.tasks import task_pull_serialized_stripe_contributions_to_cache
 
-class Contribution(IndexedTimeStampedModel, RoleAssignmentResourceModelMixin):
+        cache_provider = ContributionsCacheProvider(contributor.email, revenue_program.stripe_account_id)
+        contributions = cache_provider.load()
+        # trigger celery task to pull contributions and load to cache if the cache is empty
+        if not contributions:
+            # log
+            task_pull_serialized_stripe_contributions_to_cache.delay(
+                contributor.email, revenue_program.stripe_account_id
+            )
+        return [
+            x
+            for x in contributions
+            if x.get("revenue_program") == revenue_program.slug and x.get("payment_type") is not None
+        ]
+
+    def filtered_by_role_assignment(self, role_assignment: RoleAssignment) -> models.QuerySet:
+        """Return results based on user's role type"""
+        match role_assignment.role_type:
+            case Roles.HUB_ADMIN:
+                return self.having_org_viewable_status()
+            case Roles.ORG_ADMIN:
+                return self.having_org_viewable_status().filter(
+                    donation_page__revenue_program__organization=role_assignment.organization
+                )
+            case Roles.RP_ADMIN:
+                return self.having_org_viewable_status().filter(
+                    donation_page__revenue_program__in=role_assignment.revenue_programs.all()
+                )
+            case _:
+                return self.none()
+
+
+class ContributionManager(models.Manager):
+    pass
+
+
+class Contribution(IndexedTimeStampedModel):
     amount = models.IntegerField(help_text="Stored in cents")
     currency = models.CharField(max_length=3, default="usd")
     reason = models.CharField(max_length=255, blank=True)
@@ -201,7 +249,7 @@ class Contribution(IndexedTimeStampedModel, RoleAssignmentResourceModelMixin):
     # integer ID value.
     uuid = models.UUIDField(default=uuid.uuid4, primary_key=False, editable=False)
 
-    objects = ContributionManager()
+    objects = ContributionManager.from_queryset(ContributionQuerySet)()
 
     class Meta:
         get_latest_by = "modified"
@@ -335,21 +383,6 @@ class Contribution(IndexedTimeStampedModel, RoleAssignmentResourceModelMixin):
             if pm:
                 self.provider_payment_method_details = pm
         super().save(*args, **kwargs)
-
-    @classmethod
-    def filter_queryset_for_contributor(cls, contributor, queryset):
-        return queryset.filter(contributor=contributor).all()
-
-    @classmethod
-    def filter_queryset_by_role_assignment(cls, role_assignment, queryset):
-        if role_assignment.role_type == Roles.HUB_ADMIN:
-            return queryset.all()
-        elif role_assignment.role_type == Roles.ORG_ADMIN:
-            return queryset.filter(donation_page__revenue_program__organization=role_assignment.organization)
-        elif role_assignment.role_type == Roles.RP_ADMIN:
-            return queryset.filter(donation_page__revenue_program__in=role_assignment.revenue_programs.all())
-        else:
-            raise UnexpectedRoleType(f"`{role_assignment.role_type}` is not a valid role type")
 
     def create_stripe_customer(
         self,

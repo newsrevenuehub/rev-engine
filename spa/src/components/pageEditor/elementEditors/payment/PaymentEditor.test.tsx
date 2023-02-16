@@ -1,29 +1,13 @@
 import userEvent from '@testing-library/user-event';
-import { EditInterfaceContext } from 'components/pageEditor/editInterface/EditInterfaceContextProvider';
 import { axe } from 'jest-axe';
 import { render, screen } from 'test-utils';
-import PaymentEditor from './PaymentEditor';
+import PaymentEditor, { PaymentEditorProps } from './PaymentEditor';
 
-interface MockEditInterfaceContext {
-  elementContent: Record<string, any>;
-  setElementContent: (props: Record<string, any>) => void;
-}
-
-function tree(context?: Partial<MockEditInterfaceContext>) {
-  return render(
-    <EditInterfaceContext.Provider value={{ setElementContent: jest.fn(), elementContent: {}, ...context } as any}>
-      <PaymentEditor />
-    </EditInterfaceContext.Provider>
-  );
+function tree(props?: Partial<PaymentEditorProps>) {
+  return render(<PaymentEditor elementContent={{ stripe: [] }} onChangeElementContent={jest.fn()} {...props} />);
 }
 
 describe('PaymentEditor', () => {
-  function getOfferToPayFeesCheckbox() {
-    // This control is not labelled properly.
-
-    return screen.getAllByRole('checkbox')[0];
-  }
-
   it('displays explanatory text', () => {
     tree();
     expect(
@@ -36,89 +20,106 @@ describe('PaymentEditor', () => {
 
   it('shows a checkbox to control whether to give users the option of paying fees', () => {
     tree();
-    expect(getOfferToPayFeesCheckbox()).toBeVisible();
+    // The underlying component doesn't render as visible, so we have to use a weaker assertion.
+    expect(screen.getByRole('checkbox', { name: 'Offer option to pay payment provider fees' })).toBeInTheDocument();
   });
 
   it('shows a checkbox to control whether to make users pay fees by default', () => {
     tree();
     // The underlying component doesn't render as visible, so we have to use a weaker assertion.
-    expect(screen.getByRole('checkbox', { name: 'selected by default' })).toBeInTheDocument();
+    expect(screen.getByRole('checkbox', { name: 'Selected by default' })).toBeInTheDocument();
   });
 
   describe('When the element has offerPayFees set to true', () => {
     it('checks the relevant checkbox', () => {
-      tree({ elementContent: { offerPayFees: true } });
-      expect(getOfferToPayFeesCheckbox()).toBeChecked();
+      tree({ elementContent: { offerPayFees: true, stripe: [] } });
+      expect(screen.getByRole('checkbox', { name: 'Offer option to pay payment provider fees' })).toBeChecked();
     });
 
     it("sets the element's offerPayFees property to false when the relevant checkbox is unchecked", () => {
-      const setElementContent = jest.fn();
+      const onChangeElementContent = jest.fn();
 
-      tree({ setElementContent, elementContent: { offerPayFees: true, unrelated: 'preserved' } });
-      expect(setElementContent).not.toBeCalled();
-      userEvent.click(getOfferToPayFeesCheckbox());
-      expect(setElementContent.mock.calls).toEqual([[{ offerPayFees: false, unrelated: 'preserved' }]]);
+      tree({
+        onChangeElementContent,
+        elementContent: { offerPayFees: true, payFeesDefault: true, stripe: ['existing'] }
+      });
+      expect(onChangeElementContent).not.toBeCalled();
+      userEvent.click(screen.getByRole('checkbox', { name: 'Offer option to pay payment provider fees' }));
+      expect(onChangeElementContent.mock.calls).toEqual([
+        [{ offerPayFees: false, payFeesDefault: true, stripe: ['existing'] }]
+      ]);
     });
   });
 
   describe('When the element has offerPayFees set to false', () => {
     it('unchecks the relevant checkbox', () => {
-      tree({ elementContent: { offerPayFees: false } });
-      expect(getOfferToPayFeesCheckbox()).not.toBeChecked();
+      tree({ elementContent: { offerPayFees: false, stripe: [] } });
+      expect(screen.getByRole('checkbox', { name: 'Offer option to pay payment provider fees' })).not.toBeChecked();
     });
 
     it('disables the checkbox related to defaulting to pay fees', () => {
-      tree({ elementContent: { offerPayFees: false } });
-      expect(screen.getByRole('checkbox', { name: 'selected by default' })).toBeDisabled();
+      tree({ elementContent: { offerPayFees: false, stripe: [] } });
+      expect(screen.getByRole('checkbox', { name: 'Selected by default' })).toBeDisabled();
     });
 
     it("sets the element's offerPayFees property to true when the relevant checkbox is checked", () => {
-      const setElementContent = jest.fn();
+      const onChangeElementContent = jest.fn();
 
-      tree({ setElementContent, elementContent: { offerPayFees: false, unrelated: 'preserved' } });
-      expect(setElementContent).not.toBeCalled();
-      userEvent.click(getOfferToPayFeesCheckbox());
-      expect(setElementContent.mock.calls).toEqual([[{ offerPayFees: true, unrelated: 'preserved' }]]);
+      tree({
+        onChangeElementContent,
+        elementContent: { offerPayFees: false, payFeesDefault: false, stripe: ['existing'] }
+      });
+      expect(onChangeElementContent).not.toBeCalled();
+      userEvent.click(screen.getByRole('checkbox', { name: 'Offer option to pay payment provider fees' }));
+      expect(onChangeElementContent.mock.calls).toEqual([
+        [{ offerPayFees: true, payFeesDefault: false, stripe: ['existing'] }]
+      ]);
     });
   });
 
   describe('When the element has payFeesDefault set to true', () => {
     it('checks the relevant checkbox', () => {
-      tree({ elementContent: { payFeesDefault: true } });
-      expect(screen.getByRole('checkbox', { name: 'selected by default' })).toBeChecked();
+      tree({ elementContent: { payFeesDefault: true, stripe: [] } });
+      expect(screen.getByRole('checkbox', { name: 'Selected by default' })).toBeChecked();
     });
 
     it('enables the checkbox related to defaulting to pay fees', () => {
-      tree({ elementContent: { offerPayFees: true } });
-      expect(screen.getByRole('checkbox', { name: 'selected by default' })).not.toBeDisabled();
+      tree({ elementContent: { offerPayFees: true, stripe: [] } });
+      expect(screen.getByRole('checkbox', { name: 'Selected by default' })).toBeEnabled();
     });
 
     it("sets the element's payFeesDefault property to false when the relevant checkbox is unchecked", () => {
-      const setElementContent = jest.fn();
+      const onChangeElementContent = jest.fn();
 
-      tree({ setElementContent, elementContent: { offerPayFees: true, payFeesDefault: true, unrelated: 'preserved' } });
-      expect(setElementContent).not.toBeCalled();
-      userEvent.click(screen.getByRole('checkbox', { name: 'selected by default' }));
-      expect(setElementContent.mock.calls).toEqual([
-        [{ offerPayFees: true, payFeesDefault: false, unrelated: 'preserved' }]
+      tree({
+        onChangeElementContent,
+        elementContent: { offerPayFees: true, payFeesDefault: true, stripe: ['existing'] }
+      });
+      expect(onChangeElementContent).not.toBeCalled();
+      userEvent.click(screen.getByRole('checkbox', { name: 'Selected by default' }));
+      expect(onChangeElementContent.mock.calls).toEqual([
+        [{ offerPayFees: true, payFeesDefault: false, stripe: ['existing'] }]
       ]);
     });
   });
 
   describe('When the element has payFeesDefault set to false', () => {
     it('unchecks the relevant checkbox', () => {
-      tree({ elementContent: { payFeesDefault: false } });
-      expect(screen.getByRole('checkbox', { name: 'selected by default' })).not.toBeChecked();
+      tree({ elementContent: { payFeesDefault: false, stripe: [] } });
+      expect(screen.getByRole('checkbox', { name: 'Selected by default' })).not.toBeChecked();
     });
 
     it("sets the element's payFeesDefault property to true when the relevant checkbox is checked", () => {
-      const setElementContent = jest.fn();
+      const onChangeElementContent = jest.fn();
 
-      tree({ setElementContent, elementContent: { offerPayFees: true, payFeesDefault: true, unrelated: 'preserved' } });
-      expect(setElementContent).not.toBeCalled();
-      userEvent.click(screen.getByRole('checkbox', { name: 'selected by default' }));
-      expect(setElementContent.mock.calls).toEqual([
-        [{ offerPayFees: true, payFeesDefault: false, unrelated: 'preserved' }]
+      tree({
+        onChangeElementContent,
+        elementContent: { offerPayFees: true, payFeesDefault: true, stripe: ['existing'] }
+      });
+      expect(onChangeElementContent).not.toBeCalled();
+      userEvent.click(screen.getByRole('checkbox', { name: 'Selected by default' }));
+      expect(onChangeElementContent.mock.calls).toEqual([
+        [{ offerPayFees: true, payFeesDefault: false, stripe: ['existing'] }]
       ]);
     });
   });
@@ -126,9 +127,6 @@ describe('PaymentEditor', () => {
   it('is accessible', async () => {
     const { container } = tree();
 
-    // `label` fails because of problems with the underlying components not
-    // labelling themselves correctly.
-
-    expect(await axe(container, { rules: { label: { enabled: false } } })).toHaveNoViolations();
+    expect(await axe(container)).toHaveNoViolations();
   });
 });

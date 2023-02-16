@@ -20,7 +20,7 @@ from apps.pages.defaults import (
     SWAG,
 )
 from apps.users.choices import Roles
-from apps.users.models import RoleAssignmentResourceModelMixin, UnexpectedRoleType
+from apps.users.models import RoleAssignment
 
 
 logger = logging.getLogger(f"{settings.DEFAULT_LOGGER}.{__name__}")
@@ -38,6 +38,8 @@ RP_SLUG_MAX_LENGTH = 63
 FISCAL_SPONSOR_NAME_MAX_LENGTH = 100
 
 CURRENCY_CHOICES = [(k, k) for k in settings.CURRENCIES.keys()]
+
+TAX_ID_MAX_LENGTH = TAX_ID_MIN_LENGTH = 9
 
 
 @dataclass(frozen=True)
@@ -77,7 +79,6 @@ PlusPlan = Plan(
 
 
 class Plans(models.TextChoices):
-
     FREE = FreePlan.name, FreePlan.label
     PLUS = PlusPlan.name, PlusPlan.label
 
@@ -86,7 +87,22 @@ class Plans(models.TextChoices):
         return {cls.FREE.value: FreePlan, cls.PLUS.value: PlusPlan}.get(name, None)
 
 
-class Organization(IndexedTimeStampedModel, RoleAssignmentResourceModelMixin):
+class OrganizationQuerySet(models.QuerySet):
+    def filtered_by_role_assignment(self, role_assignment: RoleAssignment) -> models.QuerySet:
+        match role_assignment.role_type:
+            case Roles.HUB_ADMIN:
+                return self.all()
+            case Roles.ORG_ADMIN | Roles.RP_ADMIN:
+                return self.filter(id=role_assignment.organization.id)
+            case _:
+                return self.none()
+
+
+class OrganizationManager(models.Manager):
+    pass
+
+
+class Organization(IndexedTimeStampedModel):
     name = models.CharField(max_length=255, unique=True)
     plan_name = models.CharField(choices=Plans.choices, max_length=10, default=Plans.FREE)
     salesforce_id = models.CharField(max_length=255, blank=True, verbose_name="Salesforce ID")
@@ -125,6 +141,8 @@ class Organization(IndexedTimeStampedModel, RoleAssignmentResourceModelMixin):
         help_text="If false, receipt email assumed to be sent via Salesforce. Other emails, e.g. magic_link, are always sent via NRE regardless of this setting",
     )
 
+    objects = OrganizationManager.from_queryset(OrganizationQuerySet)()
+
     def __str__(self):
         return self.name
 
@@ -142,15 +160,6 @@ class Organization(IndexedTimeStampedModel, RoleAssignmentResourceModelMixin):
 
     def user_is_owner(self, user):
         return user in [through.user for through in self.user_set.through.objects.filter(is_owner=True)]
-
-    @classmethod
-    def filter_queryset_by_role_assignment(cls, role_assignment, queryset):
-        if role_assignment.role_type == Roles.HUB_ADMIN:
-            return queryset.all()
-        elif role_assignment.role_type in (Roles.ORG_ADMIN, Roles.RP_ADMIN):
-            return queryset.filter(pk=role_assignment.organization.pk)
-        else:
-            raise UnexpectedRoleType(f"{role_assignment.role_type} is not a valid value")
 
 
 class Benefit(IndexedTimeStampedModel):
@@ -240,6 +249,23 @@ class FiscalStatusChoices(models.TextChoices):
     FISCALLY_SPONSORED = "fiscally sponsored"
 
 
+class RevenueProgramQuerySet(models.QuerySet):
+    def filtered_by_role_assignment(self, role_assignment: RoleAssignment) -> models.QuerySet:
+        match role_assignment.role_type:
+            case Roles.HUB_ADMIN:
+                return self.all()
+            case Roles.ORG_ADMIN:
+                return self.filter(organization=role_assignment.organization)
+            case Roles.RP_ADMIN:
+                return self.filter(id__in=role_assignment.revenue_programs.values_list("id", flat=True))
+            case _:
+                return self.none()
+
+
+class RevenueProgramManager(models.Manager):
+    pass
+
+
 class RevenueProgram(IndexedTimeStampedModel):
     name = models.CharField(max_length=255)
     slug = models.SlugField(
@@ -258,7 +284,9 @@ class RevenueProgram(IndexedTimeStampedModel):
         on_delete=models.SET_NULL,
         help_text="Choose an optional default contribution page once you've saved your initial revenue program",
     )
-    tax_id = models.CharField(blank=True, null=True, max_length=9, validators=[MinLengthValidator(9)])
+    tax_id = models.CharField(
+        blank=True, null=True, max_length=TAX_ID_MAX_LENGTH, validators=[MinLengthValidator(TAX_ID_MIN_LENGTH)]
+    )
     payment_provider = models.ForeignKey("organizations.PaymentProvider", null=True, on_delete=models.SET_NULL)
     domain_apple_verified_date = models.DateTimeField(blank=True, null=True)
     fiscal_sponsor_name = models.CharField(max_length=FISCAL_SPONSOR_NAME_MAX_LENGTH, null=True, blank=True)
@@ -296,6 +324,8 @@ class RevenueProgram(IndexedTimeStampedModel):
         verbose_name="Country",
         help_text="2-letter country code of RP's company. This gets included in data sent to stripe when creating a payment",
     )
+
+    objects = RevenueProgramManager.from_queryset(RevenueProgramQuerySet)()
 
     def __str__(self):
         return self.name
@@ -376,25 +406,6 @@ class RevenueProgram(IndexedTimeStampedModel):
                     "Failed to register ApplePayDomain for RevenueProgram %s because of StripeError",
                     self.name,
                 )
-
-    def user_has_ownership_via_role(self, role_assignment):
-        """Determine if a user owns an instance based on role_assignment"""
-        return any(
-            [
-                all(
-                    [
-                        role_assignment.role_type == Roles.ORG_ADMIN.value,
-                        role_assignment.organization == self.organization,
-                    ]
-                ),
-                all(
-                    [
-                        role_assignment.role_type == Roles.RP_ADMIN.value,
-                        self in role_assignment.revenue_programs.all(),
-                    ]
-                ),
-            ]
-        )
 
 
 class PaymentProvider(IndexedTimeStampedModel):

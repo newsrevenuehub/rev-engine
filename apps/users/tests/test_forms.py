@@ -15,7 +15,7 @@ class RoleAssignmentAdminFormTest(TestCase):
         self.organization = OrganizationFactory()
 
         for _ in range(3):
-            RevenueProgramFactory(org=self.organization)
+            RevenueProgramFactory(organization=self.organization)
 
         self.rp_qs = RevenueProgram.objects.all()
         self.form = None

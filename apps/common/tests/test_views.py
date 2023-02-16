@@ -1,8 +1,13 @@
+from unittest.mock import Mock
+
 from django.contrib.auth import get_user_model
 from django.test import TestCase, override_settings
 from django.urls import reverse
 
+import pytest_cases
+
 from apps.common.models import SocialMeta
+from apps.common.views import FilterForSuperUserOrRoleAssignmentUserMixin
 from apps.organizations.tests.factories import OrganizationFactory, RevenueProgramFactory
 from apps.pages.tests.factories import StyleFactory
 from revengine.views import SAFE_ADMIN_SELECT_ACCESSOR_METHODS, SAFE_ADMIN_SELECT_PARENTS
@@ -98,3 +103,34 @@ class AdminSelectOptionsTest(TestCase):
 
         self.assertEqual(option1[0], style1.name)
         self.assertEqual(option2[0], style2.name)
+
+
+class TestFilterForSuperUserOrRoleAssignmentUserMixin:
+    @pytest_cases.parametrize(
+        "user",
+        (
+            (pytest_cases.fixture_ref("superuser")),
+            (pytest_cases.fixture_ref("org_user_free_plan")),
+            (pytest_cases.fixture_ref("user_no_role_assignment")),
+        ),
+    )
+    def test_filter_queryset_for_superuser_or_ra(self, user):
+        class MyClass(FilterForSuperUserOrRoleAssignmentUserMixin):
+            def __init__(self, user):
+                self.request = Mock()
+                self.request.user = user
+                self.model = Mock()
+
+        view = MyClass(user)
+        view.filter_queryset_for_superuser_or_ra()
+        if user.is_superuser:
+            view.model.objects.all.assert_called_once()
+            view.model.objects.none.assert_not_called()
+            view.model.objects.filtered_by_role_assignment.assert_not_called()
+        elif ra := user.get_role_assignment():
+            assert view.model.objects.filtered_by_role_asssignment.called_once(ra)
+            view.model.objects.all.assert_not_called()
+            view.model.objects.none.assert_not_called()
+        else:
+            view.model.objects.filtered_by_role_assignment.assert_not_called()
+            view.model.objects.none.assert_called_once()

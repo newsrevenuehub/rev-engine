@@ -9,6 +9,7 @@ from django.utils import timezone
 from django.utils.safestring import mark_safe
 
 import pytest
+import pytest_cases
 from bs4 import BeautifulSoup
 
 from apps.api.views import construct_rp_domain
@@ -31,6 +32,7 @@ from apps.organizations.tests.factories import (
     RevenueProgramFactory,
 )
 from apps.pages.tests.factories import DonationPageFactory
+from apps.users.choices import Roles
 
 
 class ContributorTest(TestCase):
@@ -406,249 +408,370 @@ class ContributionTest(TestCase):
 
 
 @pytest.mark.django_db
-@pytest.mark.parametrize(
-    "status",
-    (
-        ContributionStatus.PROCESSING,
-        ContributionStatus.FLAGGED,
-    ),
-)
-def test_contribution_cancel_when_one_time(status, monkeypatch):
-    with patch("apps.contributions.models.Contribution.fetch_stripe_payment_method", return_value=None):
-        contribution = ContributionFactory(one_time=True, status=status)
-    mock_cancel = Mock()
-    monkeypatch.setattr("stripe.PaymentIntent.cancel", mock_cancel)
-    contribution.cancel()
-    contribution.refresh_from_db()
-    assert contribution.status == ContributionStatus.CANCELED
-    mock_cancel.assert_called_once_with(
-        contribution.provider_payment_id,
-        stripe_account=contribution.donation_page.revenue_program.stripe_account_id,
+class TestContributionModel:
+    @pytest.mark.parametrize(
+        "status",
+        (
+            ContributionStatus.PROCESSING,
+            ContributionStatus.FLAGGED,
+        ),
     )
-
-
-@pytest.mark.django_db
-@pytest.mark.parametrize("trait", ("one_time", "annual_subscription", "monthly_subscription"))
-def test_contribution_billing_details(trait):
-    # TODO: DEV-3026 -- remove provider_payment_method_id = None
-    contribution = ContributionFactory(**{trait: True, "provider_payment_method_id": None})
-    assert (
-        contribution.billing_details
-        and contribution.billing_details
-        == contribution.payment_provider_data["data"]["object"]["charges"]["data"][0]["billing_details"]
-    )
-
-
-@pytest.mark.django_db
-@pytest.mark.parametrize(
-    "status,contribution_type,has_payment_method_id",
-    (
-        (ContributionStatus.PROCESSING, "monthly_subscription", True),
-        (ContributionStatus.PROCESSING, "annual_subscription", True),
-        (ContributionStatus.FLAGGED, "monthly_subscription", True),
-        (ContributionStatus.FLAGGED, "annual_subscription", True),
-        (ContributionStatus.PROCESSING, "monthly_subscription", False),
-        (ContributionStatus.PROCESSING, "annual_subscription", False),
-        (ContributionStatus.FLAGGED, "monthly_subscription", False),
-        (ContributionStatus.FLAGGED, "annual_subscription", False),
-    ),
-)
-def test_contribution_cancel_when_recurring(status, contribution_type, has_payment_method_id, monkeypatch):
-    with patch("apps.contributions.models.Contribution.fetch_stripe_payment_method", return_value=None):
-        contribution = ContributionFactory(
-            **{
-                contribution_type: True,
-                "status": status,
-                "provider_payment_method_id": "some-id" if has_payment_method_id else None,
-            }
-        )
-
-    mock_delete_sub = Mock()
-    monkeypatch.setattr("stripe.Subscription.delete", mock_delete_sub)
-
-    mock_pm_detach = Mock()
-
-    class MockPaymentMethod:
-        def __init__(self, *args, **kwargs):
-            self.detach = mock_pm_detach
-
-    mock_retrieve_pm = Mock(return_value=MockPaymentMethod())
-    monkeypatch.setattr("stripe.PaymentMethod.retrieve", mock_retrieve_pm)
-
-    with patch("apps.contributions.models.Contribution.fetch_stripe_payment_method", return_value=None):
+    def test_cancel_when_one_time(self, status, monkeypatch):
+        with patch("apps.contributions.models.Contribution.fetch_stripe_payment_method", return_value=None):
+            contribution = ContributionFactory(one_time=True, status=status)
+        mock_cancel = Mock()
+        monkeypatch.setattr("stripe.PaymentIntent.cancel", mock_cancel)
         contribution.cancel()
-    contribution.refresh_from_db()
-    assert contribution.status == ContributionStatus.CANCELED
-
-    if status == ContributionStatus.PROCESSING:
-        mock_delete_sub.assert_called_once_with(
-            contribution.provider_subscription_id,
+        contribution.refresh_from_db()
+        assert contribution.status == ContributionStatus.CANCELED
+        mock_cancel.assert_called_once_with(
+            contribution.provider_payment_id,
             stripe_account=contribution.donation_page.revenue_program.stripe_account_id,
         )
-    elif has_payment_method_id:
-        mock_retrieve_pm.assert_called_once_with(
-            contribution.provider_payment_method_id,
-            stripe_account=contribution.donation_page.revenue_program.stripe_account_id,
+
+    @pytest.mark.parametrize("trait", ("one_time", "annual_subscription", "monthly_subscription"))
+    def test_billing_details(self, trait):
+        # TODO: DEV-3026 -- remove provider_payment_method_id = None
+        contribution = ContributionFactory(**{trait: True, "provider_payment_method_id": None})
+        assert (
+            contribution.billing_details
+            and contribution.billing_details
+            == contribution.payment_provider_data["data"]["object"]["charges"]["data"][0]["billing_details"]
         )
-        mock_pm_detach.assert_called_once()
-    else:
-        mock_pm_detach.assert_not_called()
 
-
-@pytest.mark.django_db()
-def test_contribution_cancel_when_unpermitted_interval(monkeypatch):
-    with patch("apps.contributions.models.Contribution.fetch_stripe_payment_method", return_value=None):
-        contribution = ContributionFactory(
-            annual_subscription=True, status=ContributionStatus.PROCESSING, interval="foobar"
-        )
-    last_modified = contribution.modified
-    mock_stripe_method = Mock()
-    monkeypatch.setattr("stripe.PaymentIntent.cancel", mock_stripe_method)
-    monkeypatch.setattr("stripe.Subscription.delete", mock_stripe_method)
-    monkeypatch.setattr("stripe.PaymentMethod.retrieve", mock_stripe_method)
-    monkeypatch.setattr("stripe.PaymentMethod.detach", mock_stripe_method)
-    with pytest.raises(ContributionIntervalError):
-        contribution.cancel()
-    assert contribution.modified == last_modified
-    mock_stripe_method.assert_not_called()
-
-
-@pytest.mark.django_db()
-@pytest.mark.parametrize("trait", ("one_time", "annual_subscription", "monthly_subscription"))
-def test_contribution_billing_name(trait):
-    # TODO: DEV-3026  -- remove provider_payment_method_id = None
-    contribution = ContributionFactory(**{trait: True, "provider_payment_method_id": None})
-    assert contribution.billing_name and contribution.billing_name == contribution.billing_details.name
-
-
-@pytest.mark.django_db
-@pytest.mark.parametrize("trait", ("one_time", "annual_subscription", "monthly_subscription"))
-def test_contribution_billing_email(trait):
-    # TODO: DEV-3026  -- remove provider_payment_method_id = None
-    contribution = ContributionFactory(**{trait: True, "provider_payment_method_id": None})
-    assert contribution.billing_email and contribution.billing_email == contribution.billing_details.email
-
-
-@pytest.mark.django_db
-@pytest.mark.parametrize("trait", ("one_time", "annual_subscription", "monthly_subscription"))
-def test_contribution_billing_phone(trait):
-    # TODO: DEV-3026  -- remove provider_payment_method_id = None
-    contribution = ContributionFactory(**{trait: True, "provider_payment_method_id": None})
-    assert contribution.billing_phone and contribution.billing_phone == contribution.billing_details.phone
-
-
-@pytest.mark.django_db
-@pytest.mark.parametrize("trait", ("one_time", "annual_subscription", "monthly_subscription"))
-def test_contribution_billing_address(trait):
-    # TODO: DEV-3026  -- remove provider_payment_method_id = None
-    contribution = ContributionFactory(**{trait: True, "provider_payment_method_id": None})
-    assert contribution.billing_address
-
-
-@pytest.mark.django_db
-@pytest.mark.parametrize(
-    "status",
-    (
-        ContributionStatus.CANCELED,
-        ContributionStatus.FAILED,
-        ContributionStatus.PAID,
-        ContributionStatus.REFUNDED,
-        ContributionStatus.REJECTED,
-        "unexpected",
-    ),
-)
-def test_contribution_cancel_when_unpermitted_status(status, monkeypatch):
-    with patch("apps.contributions.models.Contribution.fetch_stripe_payment_method", return_value=None):
-        contribution = ContributionFactory(annual_subscription=True, status=status)
-    last_modified = contribution.modified
-    mock_stripe_method = Mock()
-    monkeypatch.setattr("stripe.PaymentIntent.cancel", mock_stripe_method)
-    monkeypatch.setattr("stripe.Subscription.delete", mock_stripe_method)
-    monkeypatch.setattr("stripe.PaymentMethod.retrieve", mock_stripe_method)
-    monkeypatch.setattr("stripe.PaymentMethod.detach", mock_stripe_method)
-
-    with pytest.raises(ContributionStatusError):
-        contribution.cancel()
-    assert contribution.modified == last_modified
-    mock_stripe_method.assert_not_called()
-
-
-@pytest.mark.django_db
-@pytest.mark.parametrize(
-    "trait",
-    (
-        "one_time",
-        "annual_subscription",
-        "monthly_subscription",
-    ),
-)
-def test_contribution_formatted_donor_selected_amount(trait):
-    # TODO: DEV-3026  -- remove provider_payment_method_id = None
-    kwargs = {trait: True, "provider_payment_method_id": None}
-    contribution = ContributionFactory(**kwargs)
-    assert (
-        contribution.formatted_donor_selected_amount
-        and contribution.formatted_donor_selected_amount == f"{contribution.amount} {contribution.currency.upper()}"
+    @pytest.mark.parametrize(
+        "status,contribution_type,has_payment_method_id",
+        (
+            (ContributionStatus.PROCESSING, "monthly_subscription", True),
+            (ContributionStatus.PROCESSING, "annual_subscription", True),
+            (ContributionStatus.FLAGGED, "monthly_subscription", True),
+            (ContributionStatus.FLAGGED, "annual_subscription", True),
+            (ContributionStatus.PROCESSING, "monthly_subscription", False),
+            (ContributionStatus.PROCESSING, "annual_subscription", False),
+            (ContributionStatus.FLAGGED, "monthly_subscription", False),
+            (ContributionStatus.FLAGGED, "annual_subscription", False),
+        ),
     )
+    def test_cancel_when_recurring(self, status, contribution_type, has_payment_method_id, monkeypatch):
+        with patch("apps.contributions.models.Contribution.fetch_stripe_payment_method", return_value=None):
+            contribution = ContributionFactory(
+                **{
+                    contribution_type: True,
+                    "status": status,
+                    "provider_payment_method_id": "some-id" if has_payment_method_id else None,
+                }
+            )
 
+        mock_delete_sub = Mock()
+        monkeypatch.setattr("stripe.Subscription.delete", mock_delete_sub)
 
-@pytest.mark.django_db()
-@pytest.mark.parametrize(
-    "interval,expect_success",
-    (
-        (ContributionInterval.ONE_TIME, False),
-        (ContributionInterval.MONTHLY, True),
-        (ContributionInterval.YEARLY, True),
-    ),
-)
-def test_contribution_send_recurring_contribution_email_reminder(interval, expect_success, monkeypatch, settings):
-    # This is to squash a side effect in contribution.save
-    # TODO: DEV-3026
-    with patch("apps.contributions.models.Contribution.fetch_stripe_payment_method", return_value=None):
-        contribution = ContributionFactory(interval=interval)
-    next_charge_date = datetime.datetime.now()
-    mock_log_warning = Mock()
-    mock_send_templated_email = Mock(wraps=send_templated_email.delay)
-    token = "token"
+        mock_pm_detach = Mock()
 
-    class MockForContributorReturn:
-        def __init__(self, *args, **kwargs):
-            self.short_lived_access_token = token
+        class MockPaymentMethod:
+            def __init__(self, *args, **kwargs):
+                self.detach = mock_pm_detach
 
-    monkeypatch.setattr(logger, "warning", mock_log_warning)
-    monkeypatch.setattr(send_templated_email, "delay", mock_send_templated_email)
-    monkeypatch.setattr(ContributorRefreshToken, "for_contributor", lambda *args, **kwargs: MockForContributorReturn())
-    settings.EMAIL_BACKEND = "django.core.mail.backends.locmem.EmailBackend"
-    settings.CELERY_ALWAYS_EAGER = True
-    contribution.send_recurring_contribution_email_reminder(next_charge_date)
-    if expect_success:
+        mock_retrieve_pm = Mock(return_value=MockPaymentMethod())
+        monkeypatch.setattr("stripe.PaymentMethod.retrieve", mock_retrieve_pm)
+
+        with patch("apps.contributions.models.Contribution.fetch_stripe_payment_method", return_value=None):
+            contribution.cancel()
+        contribution.refresh_from_db()
+        assert contribution.status == ContributionStatus.CANCELED
+
+        if status == ContributionStatus.PROCESSING:
+            mock_delete_sub.assert_called_once_with(
+                contribution.provider_subscription_id,
+                stripe_account=contribution.donation_page.revenue_program.stripe_account_id,
+            )
+        elif has_payment_method_id:
+            mock_retrieve_pm.assert_called_once_with(
+                contribution.provider_payment_method_id,
+                stripe_account=contribution.donation_page.revenue_program.stripe_account_id,
+            )
+            mock_pm_detach.assert_called_once()
+        else:
+            mock_pm_detach.assert_not_called()
+
+    def test_cancel_when_unpermitted_interval(self, monkeypatch):
+        with patch("apps.contributions.models.Contribution.fetch_stripe_payment_method", return_value=None):
+            contribution = ContributionFactory(
+                annual_subscription=True, status=ContributionStatus.PROCESSING, interval="foobar"
+            )
+        last_modified = contribution.modified
+        mock_stripe_method = Mock()
+        monkeypatch.setattr("stripe.PaymentIntent.cancel", mock_stripe_method)
+        monkeypatch.setattr("stripe.Subscription.delete", mock_stripe_method)
+        monkeypatch.setattr("stripe.PaymentMethod.retrieve", mock_stripe_method)
+        monkeypatch.setattr("stripe.PaymentMethod.detach", mock_stripe_method)
+        with pytest.raises(ContributionIntervalError):
+            contribution.cancel()
+        assert contribution.modified == last_modified
+        mock_stripe_method.assert_not_called()
+
+    @pytest.mark.parametrize("trait", ("one_time", "annual_subscription", "monthly_subscription"))
+    def test_billing_name(self, trait):
+        # TODO: DEV-3026  -- remove provider_payment_method_id = None
+        contribution = ContributionFactory(**{trait: True, "provider_payment_method_id": None})
+        assert contribution.billing_name and contribution.billing_name == contribution.billing_details.name
+
+    @pytest.mark.parametrize("trait", ("one_time", "annual_subscription", "monthly_subscription"))
+    def test_billing_email(self, trait):
+        # TODO: DEV-3026  -- remove provider_payment_method_id = None
+        contribution = ContributionFactory(**{trait: True, "provider_payment_method_id": None})
+        assert contribution.billing_email and contribution.billing_email == contribution.billing_details.email
+
+    @pytest.mark.parametrize("trait", ("one_time", "annual_subscription", "monthly_subscription"))
+    def test_billing_phone(self, trait):
+        # TODO: DEV-3026  -- remove provider_payment_method_id = None
+        contribution = ContributionFactory(**{trait: True, "provider_payment_method_id": None})
+        assert contribution.billing_phone and contribution.billing_phone == contribution.billing_details.phone
+
+    @pytest.mark.parametrize("trait", ("one_time", "annual_subscription", "monthly_subscription"))
+    def test_billing_address(self, trait):
+        # TODO: DEV-3026  -- remove provider_payment_method_id = None
+        contribution = ContributionFactory(**{trait: True, "provider_payment_method_id": None})
+        assert contribution.billing_address
+
+    @pytest.mark.parametrize(
+        "status",
+        (
+            ContributionStatus.CANCELED,
+            ContributionStatus.FAILED,
+            ContributionStatus.PAID,
+            ContributionStatus.REFUNDED,
+            ContributionStatus.REJECTED,
+            "unexpected",
+        ),
+    )
+    def test_cancel_when_unpermitted_status(self, status, monkeypatch):
+        with patch("apps.contributions.models.Contribution.fetch_stripe_payment_method", return_value=None):
+            contribution = ContributionFactory(annual_subscription=True, status=status)
+        last_modified = contribution.modified
+        mock_stripe_method = Mock()
+        monkeypatch.setattr("stripe.PaymentIntent.cancel", mock_stripe_method)
+        monkeypatch.setattr("stripe.Subscription.delete", mock_stripe_method)
+        monkeypatch.setattr("stripe.PaymentMethod.retrieve", mock_stripe_method)
+        monkeypatch.setattr("stripe.PaymentMethod.detach", mock_stripe_method)
+
+        with pytest.raises(ContributionStatusError):
+            contribution.cancel()
+        assert contribution.modified == last_modified
+        mock_stripe_method.assert_not_called()
+
+    @pytest.mark.parametrize(
+        "trait",
+        (
+            "one_time",
+            "annual_subscription",
+            "monthly_subscription",
+        ),
+    )
+    def test_formatted_donor_selected_amount(self, trait):
+        # TODO: DEV-3026  -- remove provider_payment_method_id = None
+        kwargs = {trait: True, "provider_payment_method_id": None}
+        contribution = ContributionFactory(**kwargs)
+        assert (
+            contribution.formatted_donor_selected_amount
+            and contribution.formatted_donor_selected_amount == f"{contribution.amount} {contribution.currency.upper()}"
+        )
+
+    @pytest.mark.parametrize(
+        "interval,expect_success",
+        (
+            (ContributionInterval.ONE_TIME, False),
+            (ContributionInterval.MONTHLY, True),
+            (ContributionInterval.YEARLY, True),
+        ),
+    )
+    def test_send_recurring_contribution_email_reminder(self, interval, expect_success, monkeypatch, settings):
+        # This is to squash a side effect in contribution.save
+        # TODO: DEV-3026
+        with patch("apps.contributions.models.Contribution.fetch_stripe_payment_method", return_value=None):
+            contribution = ContributionFactory(interval=interval)
+        next_charge_date = datetime.datetime.now()
+        mock_log_warning = Mock()
+        mock_send_templated_email = Mock(wraps=send_templated_email.delay)
+        token = "token"
+
+        class MockForContributorReturn:
+            def __init__(self, *args, **kwargs):
+                self.short_lived_access_token = token
+
+        monkeypatch.setattr(logger, "warning", mock_log_warning)
+        monkeypatch.setattr(send_templated_email, "delay", mock_send_templated_email)
+        monkeypatch.setattr(
+            ContributorRefreshToken, "for_contributor", lambda *args, **kwargs: MockForContributorReturn()
+        )
+        settings.EMAIL_BACKEND = "django.core.mail.backends.locmem.EmailBackend"
+        settings.CELERY_ALWAYS_EAGER = True
+        contribution.send_recurring_contribution_email_reminder(next_charge_date)
+        if expect_success:
+            magic_link = mark_safe(
+                f"https://{construct_rp_domain(contribution.donation_page.revenue_program.slug)}/{settings.CONTRIBUTOR_VERIFY_URL}"
+                f"?token={token}&email={quote_plus(contribution.contributor.email)}"
+            )
+            mock_log_warning.assert_not_called()
+            mock_send_templated_email.assert_called_once_with(
+                contribution.contributor.email,
+                f"Reminder: {contribution.donation_page.revenue_program.name} scheduled contribution",
+                "recurring-contribution-email-reminder.txt",
+                "recurring-contribution-email-reminder.html",
+                {
+                    "rp_name": contribution.donation_page.revenue_program.name,
+                    "contribution_date": next_charge_date.strftime("%m/%d/%Y"),
+                    "contribution_amount": contribution.formatted_amount,
+                    "contribution_interval_display_value": contribution.interval,
+                    "non_profit": contribution.donation_page.revenue_program.non_profit,
+                    "contributor_email": contribution.contributor.email,
+                    "tax_id": contribution.donation_page.revenue_program.tax_id,
+                    "magic_link": magic_link,
+                },
+            )
+            assert len(mail.outbox) == 1
+        else:
+            mock_log_warning.assert_called_once_with(
+                "`Contribution.send_recurring_contribution_email_reminder` was called on an instance (ID: %s) whose interval is one-time",
+                contribution.id,
+            )
+
+    @pytest_cases.parametrize(
+        "revenue_program",
+        (
+            pytest_cases.fixture_ref("fiscally_sponsored_revenue_program"),
+            pytest_cases.fixture_ref("nonprofit_revenue_program"),
+            pytest_cases.fixture_ref("for_profit_revenue_program"),
+        ),
+    )
+    @pytest.mark.parametrize("tax_id", (None, "123456789"))
+    def test_send_recurring_contribution_email_reminder_email_text(
+        self, revenue_program, tax_id, monkeypatch, settings
+    ):
+        with patch("apps.contributions.models.Contribution.fetch_stripe_payment_method", return_value=None):
+            contribution = ContributionFactory(interval=ContributionInterval.YEARLY)
+        revenue_program.tax_id = tax_id
+        revenue_program.save()
+        contribution.donation_page.revenue_program = revenue_program
+        contribution.donation_page.save()
+        next_charge_date = datetime.datetime.now()
+        mock_send_templated_email = Mock(wraps=send_templated_email.delay)
+        token = "token"
+
+        class MockForContributorReturn:
+            def __init__(self, *args, **kwargs):
+                self.short_lived_access_token = token
+
+        monkeypatch.setattr(send_templated_email, "delay", mock_send_templated_email)
+        monkeypatch.setattr(
+            ContributorRefreshToken, "for_contributor", lambda *args, **kwargs: MockForContributorReturn()
+        )
+        settings.EMAIL_BACKEND = "django.core.mail.backends.locmem.EmailBackend"
+        settings.CELERY_ALWAYS_EAGER = True
+        contribution.send_recurring_contribution_email_reminder(next_charge_date)
         magic_link = mark_safe(
             f"https://{construct_rp_domain(contribution.donation_page.revenue_program.slug)}/{settings.CONTRIBUTOR_VERIFY_URL}"
             f"?token={token}&email={quote_plus(contribution.contributor.email)}"
         )
-        mock_log_warning.assert_not_called()
-        mock_send_templated_email.assert_called_once_with(
-            contribution.contributor.email,
-            f"Reminder: {contribution.donation_page.revenue_program.name} scheduled contribution",
-            "recurring-contribution-email-reminder.txt",
-            "recurring-contribution-email-reminder.html",
-            {
-                "rp_name": contribution.donation_page.revenue_program.name,
-                "contribution_date": next_charge_date.strftime("%m/%d/%Y"),
-                "contribution_amount": contribution.formatted_amount,
-                "contribution_interval_display_value": contribution.interval,
-                "non_profit": contribution.donation_page.revenue_program.non_profit,
-                "contributor_email": contribution.contributor.email,
-                "tax_id": contribution.donation_page.revenue_program.tax_id,
-                "magic_link": magic_link,
-            },
-        )
         assert len(mail.outbox) == 1
-    else:
-        mock_log_warning.assert_called_once_with(
-            "`Contribution.send_recurring_contribution_email_reminder` was called on an instance (ID: %s) whose interval is one-time",
-            contribution.id,
+        email_expectations = [
+            f"Scheduled: {next_charge_date.strftime('%m/%d/%Y')}",
+            f"Email: {contribution.contributor.email}",
+            f"Amount Contributed: ${contribution.formatted_amount}/{contribution.interval}",
+        ]
+        if revenue_program.non_profit:
+            email_expectations.extend(
+                [
+                    "This receipt may be used for tax purposes.",
+                    f"{contribution.donation_page.revenue_program.name} is a 501(c)(3) nonprofit organization",
+                ]
+            )
+            if tax_id:
+                email_expectations.append(f"with a Federal Tax ID #{tax_id}")
+        else:
+            email_expectations.append(
+                f"Contributions to {contribution.donation_page.revenue_program.name} are not deductible as charitable donations."
+            )
+        for x in email_expectations:
+            assert x in mail.outbox[0].body
+            soup = BeautifulSoup(mail.outbox[0].alternatives[0][0], "html.parser")
+            as_string = " ".join([x.replace("\xa0", " ").strip() for x in soup.get_text().splitlines() if x])
+            assert x in as_string
+        assert "Manage contributions here" in soup.find("a", href=magic_link).text
+        assert magic_link in mail.outbox[0].body
+
+    @pytest_cases.parametrize(
+        "user",
+        (
+            # pytest_cases.fixture_ref("hub_admin_user"),
+            pytest_cases.fixture_ref("org_user_free_plan"),
+            # pytest_cases.fixture_ref("rp_user"),
+            # pytest_cases.fixture_ref("user_with_unexpected_role"),
+        ),
+    )
+    @pytest_cases.parametrize(
+        "_contribution",
+        (
+            pytest_cases.fixture_ref("one_time_contribution"),
+            pytest_cases.fixture_ref("monthly_contribution"),
+            pytest_cases.fixture_ref("annual_contribution"),
+        ),
+    )
+    def test_filtered_by_role_assignment(self, user, _contribution):
+        # Unclear if this stems from pytest_cases or pytest more generally, but on each run through of this test
+        # all three test fixtures for contribution are in db. So in order to zero out and only have the parametrized
+        # contribution being passed in as _contribution within a test run, at beginning we delete the other contributions
+        # that were created.
+        Contribution.objects.exclude(id=_contribution.id).delete()
+        assert Contribution.objects.count() == 1
+        with patch("apps.contributions.models.Contribution.fetch_stripe_payment_method", return_value=None):
+            org1 = (rp1 := _contribution.donation_page.revenue_program).organization
+            rp2 = RevenueProgramFactory(name="rev-program-2", organization=org1)
+            contribution2 = ContributionFactory(
+                status=ContributionStatus.PAID, donation_page=DonationPageFactory(revenue_program=rp2)
+            )
+            contribution3 = ContributionFactory(
+                status=ContributionStatus.PAID,
+                donation_page=DonationPageFactory(
+                    revenue_program=RevenueProgramFactory(organization=OrganizationFactory(name="new org"))
+                ),
+            )
+        assert _contribution.donation_page.revenue_program != contribution2.donation_page.revenue_program
+        assert (
+            _contribution.donation_page.revenue_program.organization
+            == contribution2.donation_page.revenue_program.organization
         )
+        assert (
+            contribution3.donation_page.revenue_program.organization
+            != _contribution.donation_page.revenue_program.organization
+        )
+
+        match user.roleassignment.role_type:
+            case Roles.HUB_ADMIN:
+                expected = Contribution.objects.having_org_viewable_status()
+                assert expected.count() == 3
+            case Roles.ORG_ADMIN:
+                user.roleassignment.organization = (org := _contribution.donation_page.revenue_program.organization)
+                user.roleassignment.revenue_programs.set(org.revenueprogram_set.all())
+                user.roleassignment.save()
+                expected = Contribution.objects.filter(donation_page__revenue_program__organization=org1).exclude(
+                    status__in=(ContributionStatus.REJECTED, ContributionStatus.FLAGGED)
+                )
+                assert expected.count() == 2
+            case Roles.RP_ADMIN:
+                user.roleassignment.organization = (org := _contribution.donation_page.revenue_program.organization)
+                user.roleassignment.revenue_programs.set((rp1,))
+                user.roleassignment.save()
+                expected = Contribution.objects.filter(donation_page__revenue_program=rp1).exclude(
+                    status__in=(ContributionStatus.REJECTED, ContributionStatus.FLAGGED)
+                )
+                assert expected.count() == 1
+            case _:
+                expected = Contribution.objects.none()
+                assert expected.count() == 0
+
+        result = Contribution.objects.filtered_by_role_assignment(user.roleassignment)
+        assert result.count() == expected.count()
+        assert set(result) == set(expected)
 
 
 @pytest.mark.django_db()
@@ -681,10 +804,6 @@ def test_contribution_send_recurring_contribution_email_reminder_email_text(
     settings.EMAIL_BACKEND = "django.core.mail.backends.locmem.EmailBackend"
     settings.CELERY_ALWAYS_EAGER = True
     contribution.send_recurring_contribution_email_reminder(next_charge_date)
-    magic_link = mark_safe(
-        f"https://{construct_rp_domain(contribution.donation_page.revenue_program.slug)}/{settings.CONTRIBUTOR_VERIFY_URL}"
-        f"?token={token}&email={quote_plus(contribution.contributor.email)}"
-    )
     assert len(mail.outbox) == 1
     email_expectations = [
         f"Scheduled: {next_charge_date.strftime('%m/%d/%Y')}",
@@ -698,16 +817,3 @@ def test_contribution_send_recurring_contribution_email_reminder_email_text(
                 f"{contribution.donation_page.revenue_program.name} is a 501(c)(3) nonprofit organization",
             ]
         )
-        if tax_id:
-            email_expectations.append(f"with a Federal Tax ID #{tax_id}")
-    else:
-        email_expectations.append(
-            f"Contributions to {contribution.donation_page.revenue_program.name} are not deductible as charitable donations."
-        )
-    for x in email_expectations:
-        assert x in mail.outbox[0].body
-        soup = BeautifulSoup(mail.outbox[0].alternatives[0][0], "html.parser")
-        as_string = " ".join([x.replace("\xa0", " ").strip() for x in soup.get_text().splitlines() if x])
-        assert x in as_string
-    assert "Manage contributions here" in soup.find("a", href=magic_link).text
-    assert magic_link in mail.outbox[0].body

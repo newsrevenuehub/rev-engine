@@ -54,6 +54,12 @@ class OrganizationInlineSerializer(serializers.ModelSerializer):
         return asdict(obj.plan)
 
 
+class OrganizationPatchSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = Organization
+        fields = ["name"]
+
+
 class RevenueProgramListInlineSerializer(serializers.ModelSerializer):
     """
     I am needed for Page creation. In particular, if "slug" is not provided,
@@ -95,11 +101,13 @@ class RevenueProgramSerializer(serializers.ModelSerializer):
 
     class Meta:
         model = RevenueProgram
-        fields = [
-            "id",
-            "name",
-            "slug",
-        ]
+        fields = ["id", "name", "slug", "tax_id"]
+
+
+class RevenueProgramPatchSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = RevenueProgram
+        fields = ["tax_id"]
 
 
 class BenefitDetailSerializer(serializers.ModelSerializer):

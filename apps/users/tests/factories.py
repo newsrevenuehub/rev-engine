@@ -2,8 +2,10 @@ import factory
 from factory.django import DjangoModelFactory
 from faker import Faker
 
+from apps.organizations.models import FreePlan
 from apps.organizations.tests.factories import OrganizationFactory
 from apps.users import models
+from apps.users.choices import Roles
 
 
 fake = Faker()
@@ -39,6 +41,26 @@ class RoleAssignmentFactory(DjangoModelFactory):
         django_get_or_create = ("user",)
 
     user = factory.SubFactory("apps.users.tests.factories.UserFactory")
+    organization = factory.SubFactory("apps.organizations.tests.factories.OrganizationFactory")
+
+    @factory.post_generation
+    def revenue_programs(self, create, extracted, **kwargs):
+        if not create:
+            return
+        if extracted:
+            self.revenue_programs.set(extracted)
+
+    @factory.post_generation
+    def set_orguser(self, create, extracted, **kwargs):
+        """If RA has organization and this is creation, we create an OrganizationUser instance"""
+        if create and self.organization:
+            OrganizationUserFactory.create(user=self.user, organization=self.organization)
+
+    class Params:
+        org_admin_free_plan = factory.Trait(
+            role_type=Roles.ORG_ADMIN.value,
+            organization__plan_name=FreePlan.name,
+        )
 
 
 class UserFactory(DjangoModelFactory):

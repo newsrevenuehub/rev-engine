@@ -1,14 +1,14 @@
 import json
 from csv import DictReader
-from csv import Error as CSVError
 from unittest import mock
 
 from django.conf import settings
-from django.middleware import csrf
+from django.core.serializers.json import DjangoJSONEncoder
 from django.test import override_settings
 from django.utils import timezone
 
 import pytest
+import pytest_cases
 import stripe
 from addict import Dict as AttrDict
 from rest_framework import status
@@ -20,21 +20,23 @@ from stripe.oauth_error import InvalidGrantError as StripeInvalidGrantError
 from stripe.stripe_object import StripeObject
 from waffle import get_waffle_flag_model
 
-from apps.api.tests import RevEngineApiAbstractTestCase
-from apps.api.tokens import ContributorRefreshToken
 from apps.common.constants import CONTRIBUTIONS_API_ENDPOINT_ACCESS_FLAG_NAME
 from apps.common.tests.test_resources import AbstractTestCase
+from apps.contributions import tasks
+from apps.contributions import views as contributions_views
 from apps.contributions.models import (
     Contribution,
     ContributionInterval,
+    ContributionQuerySet,
     ContributionStatus,
     Contributor,
 )
 from apps.contributions.payment_managers import PaymentProviderError
 from apps.contributions.serializers import (
+    ContributionSerializer,
     PaymentProviderContributionSerializer,
-    SubscriptionsSerializer,
 )
+from apps.contributions.tasks import task_pull_serialized_stripe_contributions_to_cache
 from apps.contributions.tests.factories import (
     ContributionFactory,
     ContributorFactory,
@@ -44,7 +46,7 @@ from apps.contributions.tests.test_serializers import (
     mock_get_bad_actor,
     mock_stripe_call_with_error,
 )
-from apps.organizations.models import RevenueProgram
+from apps.emails.tasks import send_templated_email_with_attachment
 from apps.organizations.tests.factories import (
     OrganizationFactory,
     PaymentProviderFactory,
@@ -75,6 +77,42 @@ class MockOAuthResponse(StripeObject):
 
 
 expected_oauth_scope = "my_test_scope"
+
+
+@pytest.fixture
+def flagged_contribution():
+    with mock.patch("apps.contributions.models.Contribution.fetch_stripe_payment_method", return_value=None):
+        return ContributionFactory(one_time=True, flagged=True)
+
+
+@pytest.fixture
+def rejected_contribution():
+    with mock.patch("apps.contributions.models.Contribution.fetch_stripe_payment_method", return_value=None):
+        return ContributionFactory(monthly_subscription=True, rejected=True)
+
+
+@pytest.fixture
+def canceled_contribution():
+    with mock.patch("apps.contributions.models.Contribution.fetch_stripe_payment_method", return_value=None):
+        return ContributionFactory(monthly_subscription=True, canceled=True)
+
+
+@pytest.fixture
+def refunded_contribution():
+    with mock.patch("apps.contributions.models.Contribution.fetch_stripe_payment_method", return_value=None):
+        return ContributionFactory(one_time=True, refunded=True)
+
+
+@pytest.fixture
+def successful_contribution():
+    with mock.patch("apps.contributions.models.Contribution.fetch_stripe_payment_method", return_value=None):
+        return ContributionFactory(one_time=True)
+
+
+@pytest.fixture
+def processing_contribution():
+    with mock.patch("apps.contributions.models.Contribution.fetch_stripe_payment_method", return_value=None):
+        return ContributionFactory(processing=True)
 
 
 @override_settings(STRIPE_OAUTH_SCOPE=expected_oauth_scope)
@@ -173,352 +211,465 @@ class StripeOAuthTest(AbstractTestCase):
         assert Version.objects.get_for_object(self.org1_rp1.payment_provider).count() == 1
 
 
-class TestContributionsViewSet(RevEngineApiAbstractTestCase):
-    @mock.patch("apps.contributions.models.Contribution.fetch_stripe_payment_method", return_value=None)
-    def setUp(self, mock_fetch_stripe):
-        super().setUp()
-        self.list_url = reverse("contribution-list")
-
-        self.contribution_for_org = ContributionFactory(
-            one_time=True,
-            donation_page__revenue_program=self.org1.revenueprogram_set.first(),
+@pytest.mark.django_db
+class TestContributionsViewSet:
+    @pytest_cases.parametrize(
+        "user,expected_status",
+        (
+            (pytest_cases.fixture_ref("superuser"), status.HTTP_405_METHOD_NOT_ALLOWED),
+            (pytest_cases.fixture_ref("hub_admin_user"), status.HTTP_405_METHOD_NOT_ALLOWED),
+            (pytest_cases.fixture_ref("org_user_free_plan"), status.HTTP_405_METHOD_NOT_ALLOWED),
+            (pytest_cases.fixture_ref("rp_user"), status.HTTP_405_METHOD_NOT_ALLOWED),
+            (pytest_cases.fixture_ref("contributor_user"), status.HTTP_405_METHOD_NOT_ALLOWED),
+            (pytest_cases.fixture_ref("user_no_role_assignment"), status.HTTP_403_FORBIDDEN),
+            (None, status.HTTP_401_UNAUTHORIZED),
+        ),
+    )
+    @pytest.mark.parametrize(
+        "method,generate_url_fn,data",
+        (
+            ("post", lambda contribution: reverse("contribution-list"), {}),
+            ("put", lambda contribution: reverse("contribution-detail", args=(contribution.id,)), {}),
+            ("patch", lambda contribution: reverse("contribution-detail", args=(contribution.id,)), {}),
+            ("delete", lambda contribution: reverse("contribution-detail", args=(contribution.id,)), None),
+        ),
+    )
+    def test_unpermitted_methods(
+        self, user, expected_status, method, generate_url_fn, data, api_client, one_time_contribution, monkeypatch
+    ):
+        """Show that users cannot make requests to endpoint using unpermitted methods"""
+        if user:
+            api_client.force_authenticate(user)
+        kwargs = {}
+        if data:
+            kwargs["data"] = {}
+        assert (
+            getattr(api_client, method)(generate_url_fn(one_time_contribution), **kwargs).status_code == expected_status
         )
 
-    def contribution_detail_url(self, pk=None):
-        pk = pk if pk is not None else self.contribution_for_org.pk
-        return reverse("contribution-detail", args=(pk,))
+    @pytest_cases.parametrize(
+        "user",
+        (
+            pytest_cases.fixture_ref("org_user_free_plan"),
+            pytest_cases.fixture_ref("rp_user"),
+            pytest_cases.fixture_ref("hub_admin_user"),
+            pytest_cases.fixture_ref("superuser"),
+        ),
+    )
+    def test_retrieve_when_expected_non_contributor_user(self, user, api_client, mocker):
+        """Show that expected users can retrieve only permitted organizations
 
-    ##########
-    # Retrieve
-    def test_superuser_can_get_contribution(self):
-        self.assert_superuser_can_get(self.contribution_detail_url())
+        Contributor users are not handled in this test because setup is too different
+        """
+        spy = mocker.spy(ContributionQuerySet, "filtered_by_role_assignment")
+        api_client.force_authenticate(user)
+        new_rp = RevenueProgramFactory(organization=OrganizationFactory(name="new-org"), name="new rp")
+        if user.is_superuser or user.roleassignment.role_type == Roles.HUB_ADMIN:
+            with mock.patch("apps.contributions.models.Contribution.fetch_stripe_payment_method", return_value=None):
+                ContributionFactory(**{"one_time": True, "donation_page__revenue_program": new_rp})
+                ContributionFactory(**{"annual_subscription": True, "donation_page__revenue_program": new_rp})
+                ContributionFactory(**{"monthly_subscription": True, "donation_page__revenue_program": new_rp})
+            query = Contribution.objects.all()
+            unpermitted = Contribution.objects.none()
+        else:
+            with mock.patch("apps.contributions.models.Contribution.fetch_stripe_payment_method", return_value=None):
+                # this ensures that we'll have both owned and unowned contributions for org and rp admins
+                for kwargs in [
+                    {"donation_page__revenue_program": new_rp},
+                    {"donation_page__revenue_program": user.roleassignment.revenue_programs.first()},
+                ]:
+                    ContributionFactory(**({"one_time": True} | kwargs))
+                    ContributionFactory(**({"annual_subscription": True} | kwargs))
+                    ContributionFactory(**({"monthly_subscription": True} | kwargs))
+            query = Contribution.objects.filtered_by_role_assignment(user.roleassignment)
+            unpermitted = Contribution.objects.exclude(id__in=query.values_list("id", flat=True))
 
-    def test_hub_admin_can_get_contribution(self):
-        self.assert_hub_admin_can_get(self.contribution_detail_url())
-
-    def test_org_admin_can_get_contribution_owned_by_org(self):
-        self.assert_org_admin_can_get(self.contribution_detail_url())
-
-    def test_org_admin_cannot_get_contribution_owned_by_other_org(self):
-        not_orgs_contribution = Contribution.objects.exclude(
-            donation_page__revenue_program__organization=self.org1
-        ).first()
-        self.assertIsNotNone(not_orgs_contribution)
-        self.assert_org_admin_cannot_get(self.contribution_detail_url(not_orgs_contribution.pk))
-
-    def test_rp_user_can_get_contribution_from_their_rp(self):
-        contrib_in_users_rp_pk = (
-            Contribution.objects.filter(
-                donation_page__revenue_program=self.rp_user.roleassignment.revenue_programs.first()
-            )
-            .first()
-            .pk
-        )
-        self.assert_rp_user_can_get(self.contribution_detail_url(contrib_in_users_rp_pk))
-
-    def test_rp_user_cannot_get_contribution_from_another_rp_in_org(self):
-        contrib_not_in_users_rp_pk = (
-            Contribution.objects.exclude(
-                donation_page__revenue_program__in=self.rp_user.roleassignment.revenue_programs.all()
-            )
-            .first()
-            .pk
-        )
-        self.assert_rp_user_cannot_get(self.contribution_detail_url(contrib_not_in_users_rp_pk))
-
-    def test_rp_user_cannot_get_contribution_from_another_org(self):
-        contrib_not_in_users_org_pk = (
-            Contribution.objects.exclude(
-                donation_page__revenue_program__in=self.rp_user.roleassignment.revenue_programs.all()
-            )
-            .first()
-            .pk
-        )
-        self.assert_rp_user_cannot_get(self.contribution_detail_url(contrib_not_in_users_org_pk))
-
-    ######
-    # List
-    def test_super_user_can_list_all_contributions(self):
-        self.assert_superuser_can_list(self.list_url, Contribution.objects.count())
-
-    def test_hub_admin_can_list_all_contributions(self):
-        self.assert_hub_admin_can_list(self.list_url, Contribution.objects.count())
-
-    def test_org_admin_can_list_orgs_contributions(self):
-        """Should get back only contributions belonging to my org"""
-        donation_pages_of_org = DonationPage.objects.filter(revenue_program__organization=self.org1)
-        donation_pages = set(i.id for i in donation_pages_of_org)
-        self.assertGreater(
-            Contribution.objects.exclude(donation_page__in=donation_pages_of_org).count(),
-            0,
-        )
-        ensure_owned_by_org = lambda contribution: contribution["donation_page_id"] in donation_pages
-
-        self.assert_org_admin_can_list(
-            self.list_url,
-            Contribution.objects.filter(donation_page__in=donation_pages_of_org).count(),
-            assert_item=ensure_owned_by_org,
-        )
-
-    def test_rp_user_can_list_their_rps_contributions(self):
-        def _ensure_all_contribs_belong_to_users_rps(results):
-            page_ids = list(set([contrib["donation_page_id"] for contrib in results]))
-            referenced_rps = RevenueProgram.objects.filter(donationpage__in=page_ids).values_list("pk", flat=True)
-            self.assertTrue(
-                set(referenced_rps).issubset(
-                    set(self.rp_user.roleassignment.revenue_programs.values_list("pk", flat=True))
+        assert query.count() > 0
+        if user.is_superuser or user.roleassignment.role_type == Roles.HUB_ADMIN:
+            assert unpermitted.count() == 0
+        else:
+            assert unpermitted.count() > 0
+        for id in query.values_list("id", flat=True):
+            response = api_client.get(reverse("contribution-detail", args=(id,)))
+            assert response.status_code == status.HTTP_200_OK
+            assert response.json() == json.loads(
+                json.dumps(
+                    ContributionSerializer(Contribution.objects.get(id=response.json()["id"])).data,
+                    cls=DjangoJSONEncoder,
                 )
             )
+        for id in unpermitted.values_list("id", flat=True):
+            response = api_client.get(reverse("contribution-detail", args=(id,)))
+            assert response.status_code == status.HTTP_404_NOT_FOUND
+        assert spy.call_count == 0 if user.is_superuser else Contribution.objects.count()
 
-        expected_count = Contribution.objects.filter(
-            donation_page__revenue_program_id__in=self.rp_user.roleassignment.revenue_programs.all()
-        ).count()
-        self.assert_rp_user_can_list(self.list_url, expected_count, assert_all=_ensure_all_contribs_belong_to_users_rps)
+    @pytest_cases.parametrize(
+        "user",
+        (
+            pytest_cases.fixture_ref("user_no_role_assignment"),
+            None,
+        ),
+    )
+    @pytest_cases.parametrize(
+        "_contribution",
+        (
+            pytest_cases.fixture_ref("one_time_contribution"),
+            pytest_cases.fixture_ref("annual_contribution"),
+            pytest_cases.fixture_ref("monthly_contribution"),
+        ),
+    )
+    def test_retrieve_when_unauthorized_user(self, user, api_client, _contribution):
+        """Show behavior when an unauthorized user trise to retrieve a contribution"""
+        if user:
+            api_client.force_authenticate(user)
+        response = api_client.get(reverse("contribution-detail", args=(_contribution.id,)))
+        assert response.status_code == status.HTTP_403_FORBIDDEN if user else status.HTTP_401_UNAUTHORIZED
 
-    def test_contributions_are_read_only_for_expected_users(self):
-        detail_url = reverse("contribution-detail", args=(Contribution.objects.first().pk,))
-        expected_users = (
-            self.superuser,
-            self.hub_user,
-            self.org_user,
-            self.rp_user,
+    @pytest_cases.parametrize(
+        "user",
+        (
+            # pytest_cases.fixture_ref("org_user_free_plan"),
+            # pytest_cases.fixture_ref("rp_user"),
+            # pytest_cases.fixture_ref("hub_admin_user"),
+            pytest_cases.fixture_ref("superuser"),
+        ),
+    )
+    def test_list_when_expected_non_contributor_user(self, user, api_client, mocker, revenue_program):
+        """Show that expected users can list only permitted contributions
+
+        NB: We test for contributor user elsewhere, as that requires quite different setup than other
+        expected users
+        """
+        api_client.force_authenticate(user)
+        # superuser and hub admin can retrieve all:
+        if user.is_superuser or user.roleassignment.role_type == Roles.HUB_ADMIN:
+            with mock.patch("apps.contributions.models.Contribution.fetch_stripe_payment_method", return_value=None):
+                ContributionFactory.create_batch(size=2)
+            query = (
+                Contribution.objects.all() if user.is_superuser else Contribution.objects.having_org_viewable_status()
+            )
+            unpermitted = Contribution.objects.none()
+            assert query.count()
+        # org and rp admins should see owned and not unowned contributions
+        else:
+            assert revenue_program not in user.roleassignment.revenue_programs.all()
+            assert user.roleassignment.revenue_programs.first() is not None
+            with mock.patch("apps.contributions.models.Contribution.fetch_stripe_payment_method", return_value=None):
+                ContributionFactory(
+                    one_time=True,
+                    donation_page=DonationPageFactory(revenue_program=user.roleassignment.revenue_programs.first()),
+                )
+                ContributionFactory(one_time=True, donation_page=DonationPageFactory(revenue_program=revenue_program))
+            user.roleassignment.refresh_from_db()
+            query = Contribution.objects.filtered_by_role_assignment(user.roleassignment)
+            unpermitted = Contribution.objects.exclude(id__in=query.values_list("id", flat=True))
+            assert unpermitted.count()
+            assert query.count()
+        spy = mocker.spy(ContributionQuerySet, "filtered_by_role_assignment")
+        response = api_client.get(reverse("contribution-list"))
+        assert response.status_code == status.HTTP_200_OK
+        assert len(response.json()["results"]) == query.count()
+        assert set([x["id"] for x in response.json()["results"]]) == set(list(query.values_list("id", flat=True)))
+        assert not any(
+            x in unpermitted.values_list("id", flat=True) for x in [y["id"] for y in response.json()["results"]]
         )
-        for user in expected_users:
-            self.assert_user_cannot_delete_because_not_implemented(detail_url, user)
-            self.assert_user_cannot_post_because_not_implemented(self.list_url, user)
-            self.assert_user_cannot_patch_because_not_implemented(detail_url, user)
-            self.assert_user_cannot_put_because_not_implemented(detail_url, user)
+        assert spy.call_count == 0 if user.is_superuser else 1
 
-    def test_unexpected_role_type(self):
-        novel = create_test_user(role_assignment_data={"role_type": "never-before-seen"})
-        self.assert_user_cannot_get(
-            reverse("contribution-list"), novel, expected_status_code=status.HTTP_500_INTERNAL_SERVER_ERROR
+    @pytest_cases.parametrize(
+        "user,expected_status",
+        (
+            (pytest_cases.fixture_ref("user_no_role_assignment"), status.HTTP_403_FORBIDDEN),
+            (None, status.HTTP_401_UNAUTHORIZED),
+        ),
+    )
+    def test_list_when_unauthorized_user(self, user, expected_status, api_client):
+        """Show behavior when unauthorized user tries to list contributions"""
+        if user:
+            api_client.force_authenticate(user)
+        assert api_client.get(reverse("contribution-list")).status_code == expected_status
+
+    @pytest_cases.parametrize(
+        "user",
+        (
+            pytest_cases.fixture_ref("superuser"),
+            pytest_cases.fixture_ref("hub_admin_user"),
+            pytest_cases.fixture_ref("org_user_free_plan"),
+            pytest_cases.fixture_ref("rp_user"),
+        ),
+    )
+    def test_excludes_statuses_correctly_for_expected_non_contributor_users(
+        self,
+        user,
+        flagged_contribution,
+        rejected_contribution,
+        canceled_contribution,
+        refunded_contribution,
+        successful_contribution,
+        processing_contribution,
+        api_client,
+    ):
+
+        """Only superusers and hub admins should see contributions that have status of flagged or rejected"""
+        seen = [
+            successful_contribution,
+            canceled_contribution,
+            refunded_contribution,
+            processing_contribution,
+        ]
+        if user.is_superuser:
+            seen.extend([flagged_contribution, rejected_contribution])
+        if not (user.is_superuser or user.roleassignment.role_type == Roles.HUB_ADMIN):
+            # ensure all contributions are owned by user so we're narrowly viewing behavior around status inclusion/exclusion
+            # with mock.patch("apps.contributions.models.Contribution.fetch_stripe_payment_method", return_value=None):
+            DonationPage.objects.update(revenue_program=user.roleassignment.revenue_programs.first())
+        api_client.force_authenticate(user)
+        response = api_client.get(reverse("contribution-list"))
+        assert response.status_code == status.HTTP_200_OK
+        assert len(response.json()["results"]) == len(seen)
+        assert set([x["id"] for x in response.json()["results"]]) == set([x.id for x in seen])
+
+    @pytest_cases.parametrize(
+        "user", (pytest_cases.fixture_ref("superuser"), pytest_cases.fixture_ref("hub_admin_user"))
+    )
+    def test_filters_out_flagged_and_rejected_contributions(
+        self,
+        user,
+        flagged_contribution,
+        rejected_contribution,
+        canceled_contribution,
+        refunded_contribution,
+        successful_contribution,
+        processing_contribution,
+        api_client,
+    ):
+        """Superusers and hub admins can filter out flagged and rejected contributions"""
+        api_client.force_authenticate(user)
+        qp = "&".join(
+            [f"status__not={i}" for i in [ContributionStatus.FLAGGED.value, ContributionStatus.REJECTED.value]]
         )
+        expected = [refunded_contribution, canceled_contribution, successful_contribution, processing_contribution]
+        unexpected = [flagged_contribution, rejected_contribution]
+        assert Contribution.objects.count() == len(expected) + len(unexpected)
+        response = api_client.get(f"{reverse('contribution-list')}?{qp}")
+        assert response.status_code == status.HTTP_200_OK
+        assert len(response.json()["results"]) == len(expected)
+        assert set([x["id"] for x in response.json()["results"]]) == set([x.id for x in expected])
 
-    def test_list_contributions_with_status_negation(self):
-        filter_statuses = {"paid", "flagged"}
-        qp = "&".join([f"status__not={i}" for i in filter_statuses])
-        response = self.assert_user_can_get(self.list_url + f"?{qp}", self.superuser)
-        self.assertTrue(all([i["status"] not in filter_statuses for i in response.json()["results"]]))
 
-    def test_filters_out_flagged_and_rejected_contributions(self):
-        Contribution.objects.all().delete()
-        with mock.patch("apps.contributions.models.Contribution.fetch_stripe_payment_method", return_value=None):
-            good_contribution = ContributionFactory(one_time=True)
-            ContributionFactory(one_time=True, status=ContributionStatus.FLAGGED)
-            ContributionFactory(one_time=True, status=ContributionStatus.REJECTED)
-        response = self.assert_user_can_get(self.list_url, self.hub_user)
+@pytest.mark.django_db
+class TestContributionViewSetForContributorUser:
+    """Test the ContributionsViewSet's behavior when a contributor user is interacting with relevant endpoints"""
+
+    def test_list_when_contributions_in_cache(
+        self,
+        contributor_user,
+        monkeypatch,
+        mocker,
+        api_client,
+        revenue_program,
+    ):
+        """When there are contributions in cache, those should be returned by the request"""
+        contributions = [
+            (seen := StripePaymentIntentFactory(revenue_program=revenue_program.slug)),
+            StripePaymentIntentFactory(payment_type=None, revenue_program=revenue_program.slug),
+        ]
+        stripe_contributions = [PaymentProviderContributionSerializer(instance=i).data for i in contributions]
+        monkeypatch.setattr(
+            "apps.contributions.stripe_contributions_provider.ContributionsCacheProvider.load",
+            lambda *args, **kwargs: stripe_contributions,
+        )
+        spy = mocker.spy(task_pull_serialized_stripe_contributions_to_cache, "delay")
+        api_client.force_authenticate(contributor_user)
+        response = api_client.get(reverse("contribution-list"), {"rp": revenue_program.slug})
+        assert response.status_code == status.HTTP_200_OK
+        assert spy.call_count == 0
         assert response.json()["count"] == 1
-        assert response.json()["results"][0]["id"] == good_contribution.id
+        assert response.json()["results"][0]["id"] == seen.id
 
-
-class TestContributorContributionsViewSet(AbstractTestCase):
-    def setUp(self):
-        super().setUp()
-        self.set_up_domain_model()
-
-        self.contribution_1 = StripePaymentIntentFactory(revenue_program=self.org1_rp1.slug)
-        self.contribution_2 = StripePaymentIntentFactory(revenue_program=self.org1_rp2.slug)
-        self.contribution_3 = StripePaymentIntentFactory(revenue_program=self.org1_rp1.slug)
-        self.contribution_4 = StripePaymentIntentFactory(revenue_program=self.org1_rp2.slug, payment_type=None)
-
-        self.all_contributions = [self.contribution_1, self.contribution_2, self.contribution_3, self.contribution_4]
-
-        self.stripe_contributions = [
-            PaymentProviderContributionSerializer(instance=i).data for i in self.all_contributions
-        ]
-
-    def list_contributions(self):
-        self.client.force_authenticate(user=self.contributor_user)
-        return self.client.get(
-            reverse("contribution-list"),
+    def test_list_when_contributions_not_in_cache(
+        self, contributor_user, monkeypatch, mocker, api_client, revenue_program
+    ):
+        """When there are not contributions in the cache, background task to retrieve and cache should be called"""
+        monkeypatch.setattr(
+            "apps.contributions.stripe_contributions_provider.ContributionsCacheProvider.load",
+            lambda *args, **kwargs: [],
         )
-
-    @mock.patch("apps.contributions.stripe_contributions_provider.ContributionsCacheProvider.load")
-    @mock.patch("apps.contributions.tasks.task_pull_serialized_stripe_contributions_to_cache.delay")
-    def test_contributor_can_list_their_contributions(self, celery_task_mock, cache_load_mock):
-        cache_load_mock.return_value = self.stripe_contributions
-        refresh_token = ContributorRefreshToken.for_contributor(self.contributor_user.uuid)
-        self.client.cookies["Authorization"] = refresh_token.long_lived_access_token
-        self.client.cookies["csrftoken"] = csrf._get_new_csrf_token()
-        response = self.client.get(reverse("contribution-list"), {"rp": self.org1_rp1.slug})
-        self.assertEqual(celery_task_mock.call_count, 0)
-        self.assertEqual(response.json().get("count"), 2)
-
-    @mock.patch("apps.contributions.stripe_contributions_provider.ContributionsCacheProvider.load")
-    @mock.patch("apps.contributions.tasks.task_pull_serialized_stripe_contributions_to_cache.delay")
-    def test_contributor_call_celery_task_if_no_contribution_in_cache(self, celery_task_mock, cache_load_mock):
-        cache_load_mock.return_value = []
-        refresh_token = ContributorRefreshToken.for_contributor(self.contributor_user.uuid)
-        self.client.cookies["Authorization"] = refresh_token.long_lived_access_token
-        self.client.cookies["csrftoken"] = csrf._get_new_csrf_token()
-        response = self.client.get(reverse("contribution-list"), {"rp": self.org1_rp1.slug})
-        celery_task_mock.assert_called_once()
-        self.assertEqual(response.json().get("count"), 0)
-
-    @mock.patch("apps.contributions.stripe_contributions_provider.ContributionsCacheProvider.load")
-    @mock.patch("apps.contributions.tasks.task_pull_serialized_stripe_contributions_to_cache.delay")
-    def test_contributor_call_excludes_payments_requiring_source(self, celery_task_mock, cache_load_mock):
-        cache_load_mock.return_value = self.stripe_contributions
-        refresh_token = ContributorRefreshToken.for_contributor(self.contributor_user.uuid)
-        self.client.cookies["Authorization"] = refresh_token.long_lived_access_token
-        self.client.cookies["csrftoken"] = csrf._get_new_csrf_token()
-        response = self.client.get(reverse("contribution-list"), {"rp": self.org1_rp2.slug})
-        contribution_ids = [contribution["id"] for contribution in response.json()["results"]]
-        assert self.contribution_4.id not in contribution_ids
+        spy = mocker.spy(task_pull_serialized_stripe_contributions_to_cache, "delay")
+        api_client.force_authenticate(contributor_user)
+        response = api_client.get(reverse("contribution-list"), {"rp": revenue_program.slug})
+        assert response.status_code == status.HTTP_200_OK
+        assert spy.call_count == 1
+        assert response.json()["count"] == 0
+        assert response.json()["results"] == []
 
 
-class TestContributionsViewSetExportCSV(AbstractTestCase):
-    def setUp(self):
-        super().setUp()
-        self.set_up_domain_model()
+@pytest.mark.django_db
+class TestContributionsViewSetExportCSV:
+    """Test contribution viewset functionality around triggering emailed csv exports"""
 
-    def email_contributions(self, user):
-        self.client.force_authenticate(user=user)
-        return self.client.post(reverse("contribution-email-contributions"))
+    @pytest_cases.parametrize(
+        "user",
+        (
+            pytest_cases.fixture_ref("admin_user"),
+            pytest_cases.fixture_ref("hub_admin_user"),
+            pytest_cases.fixture_ref("org_user_free_plan"),
+            pytest_cases.fixture_ref("org_user_multiple_rps"),
+            pytest_cases.fixture_ref("rp_user"),
+        ),
+    )
+    def test_when_expected_user(self, user, api_client, mocker, revenue_program):
+        """Show expected users get back expected results in CSV"""
+        api_client.force_authenticate(user)
+        if user.is_staff or user.roleassignment.role_type == Roles.HUB_ADMIN:
+            with mock.patch("apps.contributions.models.Contribution.fetch_stripe_payment_method", return_value=None):
+                ContributionFactory(one_time=True)
+                ContributionFactory(one_time=True, flagged=True)
+                ContributionFactory(one_time=True, rejected=True)
+                ContributionFactory(one_time=True, canceled=True)
+                ContributionFactory(one_time=True, refunded=True)
+                ContributionFactory(one_time=True, processing=True)
 
-    def test_user_without_role(self):
-        self.generic_user.roleassignment = None
-        response = self.email_contributions(self.generic_user)
-        assert response.status_code == 403
+        else:
+            with mock.patch("apps.contributions.models.Contribution.fetch_stripe_payment_method", return_value=None):
+                assert revenue_program not in user.roleassignment.revenue_programs.all()
+                unowned_page = DonationPageFactory(revenue_program=revenue_program)
+                owned_page = DonationPageFactory(revenue_program=user.roleassignment.revenue_programs.first())
+                ContributionFactory(one_time=True, donation_page=owned_page)
+                ContributionFactory(one_time=True, flagged=True, donation_page=owned_page)
+                ContributionFactory(one_time=True, rejected=True, donation_page=owned_page)
+                ContributionFactory(one_time=True, canceled=True, donation_page=owned_page)
+                ContributionFactory(one_time=True, refunded=True, donation_page=owned_page)
+                ContributionFactory(one_time=True, processing=True, donation_page=owned_page)
+                ContributionFactory(one_time=True)
+                ContributionFactory(one_time=True, flagged=True, donation_page=unowned_page)
+                ContributionFactory(one_time=True, rejected=True, donation_page=unowned_page)
+                ContributionFactory(one_time=True, canceled=True, donation_page=unowned_page)
+                ContributionFactory(one_time=True, refunded=True, donation_page=unowned_page)
+                ContributionFactory(one_time=True, processing=True, donation_page=unowned_page)
 
-    @mock.patch("apps.contributions.views.send_templated_email_with_attachment.delay")
-    def test_user_with_role(self, email_mock):
-        response = self.email_contributions(self.org_user)
-        assert response.status_code == 200
-
-        response = self.email_contributions(self.org_user)
-        assert response.status_code == 200
-
-        response = self.email_contributions(self.hub_user)
-        assert response.status_code == 200
-
-        response = self.email_contributions(self.contributor_user)
-        assert response.status_code == 403
-
-    @mock.patch("apps.contributions.views.send_templated_email_with_attachment.delay")
-    def test_data_in_csv_matching_with_contributions_list(self, email_mock):
-        self.client.force_authenticate(user=self.org_user)
-        contributions_from_list_view = self.client.get(reverse("contribution-list")).json()["results"]
-
-        self.email_contributions(self.org_user).json()
-
+        expected = (
+            Contribution.objects.all()
+            if user.is_staff
+            else Contribution.objects.filtered_by_role_assignment(user.roleassignment)
+        )
+        not_expected = (
+            Contribution.objects.none()
+            if user.is_staff
+            else Contribution.objects.exclude(id__in=[expected.values_list("id", flat=True)])
+        )
+        assert expected.count()
+        assert (not_expected.count() == 0) if user.is_staff else (not_expected.count() > 0)
+        filter_spy = mocker.spy(Contribution.objects, "filtered_by_role_assignment")
+        email_task_spy = mocker.spy(send_templated_email_with_attachment, "delay")
+        response = api_client.post(reverse("contribution-email-contributions"))
+        assert response.status_code == status.HTTP_200_OK
+        assert filter_spy.call_count == 0 if user.is_staff else 1
+        assert email_task_spy.call_count == 1
+        assert email_task_spy.call_args_list[0][1]["to"] == user.email
         contributions_from_email_view = [
-            row for row in DictReader(email_mock.call_args_list[0].kwargs["attachment"].splitlines())
+            row for row in DictReader(email_task_spy.call_args_list[0][1]["attachment"].splitlines())
         ]
-
-        assert len(contributions_from_email_view) == len(contributions_from_list_view)
+        assert len(contributions_from_email_view) == expected.count()
         assert set(int(x["Contribution ID"]) for x in contributions_from_email_view) == set(
-            x["id"] for x in contributions_from_list_view
+            x for x in expected.values_list("id", flat=True)
         )
 
-    @mock.patch("apps.contributions.views.send_templated_email_with_attachment.delay", side_effect=Exception)
-    @mock.patch("apps.contributions.views.export_contributions_to_csv")
-    def test_when_error(self, csv_maker, email_task):
-        response = self.email_contributions(self.org_user)
-        response.status_code = 500
+    @pytest_cases.parametrize(
+        "user,expected_status",
+        (
+            (pytest_cases.fixture_ref("contributor_user"), status.HTTP_403_FORBIDDEN),
+            (pytest_cases.fixture_ref("superuser"), status.HTTP_405_METHOD_NOT_ALLOWED),
+            (None, status.HTTP_401_UNAUTHORIZED),
+        ),
+    )
+    def test_when_unauthorized_user(self, user, expected_status, api_client):
+        """Show behavior when unauthorized users attempt to access"""
+        if user:
+            api_client.force_authenticate(user)
+        assert api_client.get(reverse("contribution-email-contributions")).status_code == expected_status
 
-        csv_error_text = "Something went wrong generating CSV export"
-        csv_maker.side_effect = CSVError(csv_error_text)
-        response = self.email_contributions(self.org_user)
-        response.status_code = 500
-        assert response.json()["detail"] == csv_error_text
 
+@pytest.mark.django_db
+class TestSubscriptionViewSet:
+    def test_contributor_list_when_subscriptions_in_cache(
+        self, api_client, contributor_user, revenue_program, monkeypatch, mocker
+    ):
+        monkeypatch.setattr(
+            "apps.contributions.stripe_contributions_provider.SubscriptionsCacheProvider.load",
+            lambda *args, **kwargs: [
+                {"revenue_program_slug": revenue_program.slug, "id": 1},
+                {"revenue_program_slug": revenue_program.slug, "id": 2},
+                {"revenue_program_slug": RevenueProgramFactory().slug, "id": 3},
+            ],
+        )
+        spy = mocker.spy(tasks, "task_pull_serialized_stripe_contributions_to_cache")
+        api_client.force_authenticate(contributor_user)
+        response = api_client.get(reverse("subscription-list"), {"revenue_program_slug": revenue_program.slug})
+        assert response.status_code == status.HTTP_200_OK
+        assert spy.call_count == 0
+        # one for each the mocked items where `revenue_program_slug`'s value is `revenue_program.slug`
+        assert len(response.json()) == 2
+        assert set([x["id"] for x in response.json()]) == set([1, 2])
 
-class TestSubscriptionViewSet(AbstractTestCase):
-    def setUp(self):
-        super().setUp()
-        self.org = OrganizationFactory()
-        self.stripe_account_id = "testing-stripe-account-id"
-        self.payment_provider = PaymentProviderFactory(stripe_account_id=self.stripe_account_id)
-        self.set_up_domain_model()
-        self.rp_foo = RevenueProgramFactory(organization=self.org, payment_provider=self.payment_provider, slug="foo")
-        self.rp_bar = RevenueProgramFactory(organization=self.org, payment_provider=self.payment_provider, slug="bar")
-        self.subscription = {
-            "id": "sub_1234",
-            "status": "incomplete",
-            "card_brand": "Visa",
-            "last4": "4242",
-            "plan": {
-                "interval": "month",
-                "interval_count": 1,
-                "amount": 1234,
-            },
-            "metadata": {
-                "revenue_program_slug": "foo",
-            },
-            "amount": "100",
-            "customer": "cus_1234",
-            "current_period_end": 1654892502,
-            "current_period_start": 1686428502,
-            "created": 1654892502,
-            "default_payment_method": {
-                "id": "pm_1234",
-                "type": "card",
-                "card": {"brand": "discover", "last4": "7834", "exp_month": "12", "exp_year": "2022"},
-            },
-        }
-        self.sub_1 = AttrDict(self.subscription)
-        self.sub_2 = AttrDict(self.subscription)
-        self.sub_2.metadata.revenue_program_slug = "bar"
-        self.all_subscriptions = [self.sub_1, self.sub_2]
-
-        self.stripe_subscriptions = [SubscriptionsSerializer(instance=i).data for i in self.all_subscriptions]
-
-    @mock.patch("apps.contributions.stripe_contributions_provider.SubscriptionsCacheProvider.load")
-    @mock.patch("apps.contributions.views.task_pull_serialized_stripe_contributions_to_cache")
-    def test_contributor_can_list_their_subscriptions(self, cache_refresh_mock, cache_load_mock):
-        cache_load_mock.return_value = self.stripe_subscriptions
-        refresh_token = ContributorRefreshToken.for_contributor(self.contributor_user.uuid)
-        self.client.cookies["Authorization"] = refresh_token.long_lived_access_token
-        self.client.cookies["csrftoken"] = csrf._get_new_csrf_token()
-        response = self.client.get(reverse("subscription-list"), {"revenue_program_slug": "foo"})
-        assert cache_refresh_mock.call_count == 0
-        assert len(response.json()) == 1
-
-    @mock.patch("apps.contributions.stripe_contributions_provider.SubscriptionsCacheProvider.load")
-    @mock.patch("apps.contributions.views.task_pull_serialized_stripe_contributions_to_cache")
-    def test_contributor_list_subscriptions_not_in_cache(self, cache_refresh_mock, cache_load_mock):
-        cache_load_mock.return_value = []
-        refresh_token = ContributorRefreshToken.for_contributor(self.contributor_user.uuid)
-        self.client.cookies["Authorization"] = refresh_token.long_lived_access_token
-        self.client.cookies["csrftoken"] = csrf._get_new_csrf_token()
-        response = self.client.get(reverse("subscription-list"), data={"revenue_program_slug": "foo"}, format="json")
-        cache_refresh_mock.assert_called_once()
+    def test_contributor_list_when_subscription_not_in_cache(
+        self, monkeypatch, mocker, api_client, contributor_user, revenue_program
+    ):
+        monkeypatch.setattr(
+            "apps.contributions.stripe_contributions_provider.SubscriptionsCacheProvider.load",
+            lambda *args, **kwargs: [],
+        )
+        monkeypatch.setattr(
+            "apps.contributions.views.task_pull_serialized_stripe_contributions_to_cache", lambda *args, **kwargs: None
+        )
+        spy = mocker.spy(contributions_views, "task_pull_serialized_stripe_contributions_to_cache")
+        api_client.force_authenticate(contributor_user)
+        response = api_client.get(reverse("subscription-list"), {"revenue_program_slug": revenue_program.slug})
+        assert response.status_code == status.HTTP_200_OK
+        assert spy.call_count == 1
         assert len(response.json()) == 0
 
-    @mock.patch("apps.contributions.stripe_contributions_provider.SubscriptionsCacheProvider.load")
-    @mock.patch("apps.contributions.views.task_pull_serialized_stripe_contributions_to_cache")
-    def test_retrieve_subscription_not_there(self, cache_refresh_mock, cache_load_mock):
-        cache_load_mock.return_value = []
-        refresh_token = ContributorRefreshToken.for_contributor(self.contributor_user.uuid)
-        self.client.cookies["Authorization"] = refresh_token.long_lived_access_token
-        self.client.cookies["csrftoken"] = csrf._get_new_csrf_token()
-        response = self.client.get(
-            reverse("subscription-detail", kwargs={"pk": "sub_1234"}),
-            data={"revenue_program_slug": "foo"},
-            format="json",
-        )
-        assert cache_refresh_mock.call_count == 1
-        assert response.status_code == status.HTTP_404_NOT_FOUND
+    def test_retrieve_when_subscription_not_in_cache(
+        self, monkeypatch, mocker, api_client, contributor_user, revenue_program
+    ):
+        """Show behavior when attempt to retrieve a subscription that's not in cache
 
-    @mock.patch("apps.contributions.stripe_contributions_provider.SubscriptionsCacheProvider.load")
-    @mock.patch("apps.contributions.views.task_pull_serialized_stripe_contributions_to_cache")
-    def test_retrieve_subscription_present(self, cache_refresh_mock, cache_load_mock):
-        cache_load_mock.return_value = self.stripe_subscriptions
-        refresh_token = ContributorRefreshToken.for_contributor(self.contributor_user.uuid)
-        self.client.cookies["Authorization"] = refresh_token.long_lived_access_token
-        self.client.cookies["csrftoken"] = csrf._get_new_csrf_token()
-        response = self.client.get(
-            reverse("subscription-detail", kwargs={"pk": "sub_1234"}),
-            data={"revenue_program_slug": "foo"},
-            format="json",
+        TODO: [DEV-3227] Here...
+        """
+        monkeypatch.setattr(
+            "apps.contributions.stripe_contributions_provider.SubscriptionsCacheProvider.load",
+            lambda *args, **kwargs: [],
         )
-        assert cache_refresh_mock.call_count == 0
-        assert cache_load_mock.call_count == 2
+        monkeypatch.setattr(
+            "apps.contributions.views.task_pull_serialized_stripe_contributions_to_cache",
+            lambda *args, **kwargs: None,
+        )
+        spy = mocker.spy(contributions_views, "task_pull_serialized_stripe_contributions_to_cache")
+        api_client.force_authenticate(contributor_user)
+        response = api_client.get(
+            reverse("subscription-detail", args=(1,)), {"revenue_program_slug": revenue_program.slug}
+        )
+        assert response.status_code == status.HTTP_404_NOT_FOUND
+        assert spy.call_count == 1
+
+    def test_retrieve_when_subscription_in_cache(
+        self, api_client, contributor_user, revenue_program, monkeypatch, mocker
+    ):
+        """ """
+        monkeypatch.setattr(
+            "apps.contributions.stripe_contributions_provider.SubscriptionsCacheProvider.load",
+            lambda *args, **kwargs: [
+                {"revenue_program_slug": revenue_program.slug, "id": str(revenue_program.id)},
+            ],
+        )
+        spy = mocker.spy(tasks, "task_pull_serialized_stripe_contributions_to_cache")
+        api_client.force_authenticate(contributor_user)
+        response = api_client.get(
+            reverse("subscription-detail", args=(revenue_program.id,)),
+            {"revenue_program_slug": revenue_program.slug},
+        )
         assert response.status_code == status.HTTP_200_OK
-        assert response.json()["id"] == "sub_1234"
-        assert response.json()["revenue_program_slug"] == "foo"
+        assert spy.call_count == 0
+        assert response.json()["id"] == str(revenue_program.id)
 
 
 @pytest.mark.parametrize(

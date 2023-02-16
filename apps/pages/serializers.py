@@ -18,7 +18,7 @@ from apps.organizations.serializers import (
     RevenueProgramInlineSerializer,
     RevenueProgramListInlineSerializer,
 )
-from apps.pages.models import DonationPage, Font, Style, Template
+from apps.pages.models import PAGE_NAME_MAX_LENGTH, DonationPage, Font, Style
 
 
 logger = logging.getLogger(f"{settings.DEFAULT_LOGGER}.{__name__}")
@@ -48,6 +48,7 @@ class StyleListSerializer(StyleInlineSerializer):
         queryset=RevenueProgram.objects.all(),
         presentation_serializer=RevenueProgramInlineSerializer,
         read_source=None,
+        required=False,
     )
     used_live = serializers.SerializerMethodField()
 
@@ -63,7 +64,7 @@ class StyleListSerializer(StyleInlineSerializer):
             "used_live",
         )
         validators = [
-            ValidateFkReferenceOwnership(fk_attribute="revenue_program"),
+            ValidateFkReferenceOwnership(fk_attribute="revenue_program", model=Style),
             UniqueTogetherValidator(queryset=Style.objects.all(), fields=["revenue_program", "name"]),
         ]
 
@@ -75,19 +76,34 @@ class StyleListSerializer(StyleInlineSerializer):
         Data comes in as a dict with name and styles flattened. We need
         to stick styles in its own value and pull out name.
         """
-        name = data.pop("name", None)
-        revenue_program = data.pop("revenue_program", None)
-        data = {
-            "name": name,
-            "revenue_program": revenue_program,
-            "styles": data,
-        }
-        return super().to_internal_value(data)
+        # ensure we don't mutate passed dict
+        data = {**data}
+        name = data.pop("name", self.instance.name if self.instance else None)
+        revenue_program = data.pop("revenue_program", self.instance.revenue_program.pk if self.instance else None)
+        synthesized = {"name": name, "revenue_program": revenue_program}
+        # remaining keys after name/revenue_program are treated as style properties, and if we see any, we
+        # update all of styles attribute.
+        synthesized["styles"] = data if data else self.instance.styles if self.instance else None
+        return super().to_internal_value(synthesized)
 
-    def validate_style_limit(self, data):
-        """Ensure that adding a style would not push parent org over its style limit"""
-        if self.context["request"].method != "POST":
-            return
+    def validate_revenue_program(self, value):
+        """Ensure that there is a revenue program provided if this is a create request (which will be case if no instance)
+
+        The revenue_program field needs to be optional vis-a-vis patch requests, but required for post. Alternatively, we could
+        create separate serializers for two methods, but there's required overlap around validation, so using single serializer
+        with this custom validation for revenue_program field.
+        """
+        if value is None and not self.instance:
+            raise serializers.ValidationError(["This field is required."])
+        return value
+
+    def _validate_style_limit(self, data):
+        """Ensure that adding a style would not push parent org over its style limit
+
+        NB: The `_` prefix on this method name is here to make clear that this method is not
+        automatically called as part of validating some `style_limit` field, via DRF's conventions
+        around `validate_foo` when a serializer has `.foo` attribute.
+        """
         if Style.objects.filter(
             revenue_program__organization=(org := data["revenue_program"].organization)
         ).count() + 1 > (sl := org.plan.style_limit):
@@ -96,12 +112,14 @@ class StyleListSerializer(StyleInlineSerializer):
             )
 
     def validate(self, data):
-        self.validate_style_limit(data)
+        if self.context["request"].method == "POST":
+            self._validate_style_limit(data)
         return data
 
 
 class DonationPageFullDetailSerializer(serializers.ModelSerializer):
-    name = serializers.CharField(max_length=255, required=False)  # Optional to allow autogeneration.
+    # these settings enable auto-generation for name
+    name = serializers.CharField(max_length=PAGE_NAME_MAX_LENGTH, allow_blank=True, allow_null=True, required=False)
     styles = PresentablePrimaryKeyRelatedField(
         queryset=Style.objects.all(),
         presentation_serializer=StyleInlineSerializer,
@@ -117,7 +135,6 @@ class DonationPageFullDetailSerializer(serializers.ModelSerializer):
         required=True,
     )
     payment_provider = PaymentProviderSerializer(source="revenue_program.payment_provider", read_only=True)
-    template_pk = serializers.IntegerField(allow_null=True, required=False)
 
     graphic = serializers.ImageField(allow_empty_file=True, allow_null=True, required=False)
     header_bg_image = serializers.ImageField(allow_empty_file=True, allow_null=True, required=False)
@@ -144,8 +161,8 @@ class DonationPageFullDetailSerializer(serializers.ModelSerializer):
         model = DonationPage
         fields = "__all__"
         validators = [
-            ValidateFkReferenceOwnership(fk_attribute="styles"),
-            ValidateFkReferenceOwnership(fk_attribute="revenue_program"),
+            ValidateFkReferenceOwnership(fk_attribute="styles", model=DonationPage),
+            ValidateFkReferenceOwnership(fk_attribute="revenue_program", model=DonationPage),
             UniqueTogetherValidator(queryset=DonationPage.objects.all(), fields=["revenue_program", "slug"]),
         ]
 
@@ -153,26 +170,16 @@ class DonationPageFullDetailSerializer(serializers.ModelSerializer):
         return asdict(obj.revenue_program.organization.plan)
 
     def create(self, validated_data):
-        """If given template pk, return template.make_page_from_template().
-
-        Else return super.create().
-
-        Missing page name will be set to template.name or RevenueProgram.name+<serial int>.
-
-        Throws ValidationError if template matching pk not found.
-        """
-        if "template_pk" in validated_data:
-            try:
-                template = Template.objects.get(pk=validated_data.pop("template_pk"))
-                return template.make_page_from_template(validated_data)
-            except Template.DoesNotExist:
-                raise serializers.ValidationError({"template": ["This template no longer exists"]})
+        """Create a name on the fly for page if one not provided in validated data"""
         if not validated_data.get("name"):
             rp = validated_data.get("revenue_program")
-            for i in itertools.count(start=1):  # pragma: no branch (loop will never "complete" by design)
-                validated_data["name"] = f"{rp.name}{i}"
-                if not DonationPage.objects.filter(name=validated_data["name"]).exists():
-                    break
+            if not DonationPage.objects.filter(name=rp.name).exists():
+                validated_data["name"] = rp.name
+            else:
+                for i in itertools.count(start=1):  # pragma: no branch (loop will never "complete" by design)
+                    validated_data["name"] = f"{rp.name}{i}"
+                    if not DonationPage.objects.filter(name=validated_data["name"]).exists():
+                        break
         return super().create(validated_data)
 
     def update(self, instance, validated_data):
@@ -242,9 +249,11 @@ class DonationPageFullDetailSerializer(serializers.ModelSerializer):
     def validate_page_element_permissions(self, data):
         """Ensure that requested page elements are permitted by the organization's plan"""
         rp = self.instance.revenue_program if self.instance else data["revenue_program"]
-        if prohibited := {x["type"] for x in data.get("elements", [])}.difference(
-            set(rp.organization.plan.page_elements)
-        ):
+        if any(x.get("type", None) is None for x in data.get("elements", [])):
+            raise serializers.ValidationError({"page_elements": "Something is wrong with the provided page elements"})
+        if prohibited := set(
+            x["type"] for x in data.get("elements", []) if x["type"] not in rp.organization.plan.page_elements
+        ).difference(set(rp.organization.plan.page_elements)):
             raise serializers.ValidationError(
                 {"page_elements": f"You're not allowed to use the following elements: {', '.join(prohibited)}"}
             )
@@ -252,9 +261,9 @@ class DonationPageFullDetailSerializer(serializers.ModelSerializer):
     def validate_sidebar_element_permissions(self, data):
         """Ensure that requested sidebar elements are permitted by the organization's plan"""
         rp = self.instance.revenue_program if self.instance else data["revenue_program"]
-        if prohibited := set([elem["type"] for elem in data.get("sidebar_elements", [])]).difference(
-            set(rp.organization.plan.sidebar_elements)
-        ):
+        if prohibited := set(
+            elem["type"] for elem in data.get("sidebar_elements", []) if elem.get("type", None)
+        ).difference(set(rp.organization.plan.sidebar_elements)):
             raise serializers.ValidationError(
                 {"sidebar_elements": f"You're not allowed to use the following elements: {', '.join(prohibited)}"}
             )
@@ -271,7 +280,8 @@ class DonationPageFullDetailSerializer(serializers.ModelSerializer):
         return [
             elem
             for elem in instance.elements
-            if elem["type"] in instance.revenue_program.organization.plan.page_elements
+            if (elem_type := elem.get("type", None))
+            and elem_type in instance.revenue_program.organization.plan.page_elements
         ]
 
     def filter_sidebar_elements_by_plan_permitted(self, instance):
@@ -279,7 +289,8 @@ class DonationPageFullDetailSerializer(serializers.ModelSerializer):
         return [
             elem
             for elem in instance.sidebar_elements
-            if elem["type"] in instance.revenue_program.organization.plan.sidebar_elements
+            if (elem_type := elem.get("type"))
+            and elem_type in instance.revenue_program.organization.plan.sidebar_elements
         ]
 
     def to_representation(self, instance):
@@ -304,69 +315,6 @@ class DonationPageListSerializer(serializers.ModelSerializer):
             "published_date",
             "is_live",
         ]
-
-
-class TemplateDetailSerializer(serializers.ModelSerializer):
-    revenue_program = PresentablePrimaryKeyRelatedField(
-        queryset=RevenueProgram.objects.all(),
-        presentation_serializer=RevenueProgramInlineSerializer,
-        read_source=None,
-        default=None,
-        allow_null=True,
-        required=False,
-    )
-    page = PresentablePrimaryKeyRelatedField(
-        queryset=DonationPage.objects.all(),
-        presentation_serializer=DonationPageFullDetailSerializer,
-        read_source=None,
-        required=False,
-        allow_null=True,
-    )
-
-    class Meta:
-        model = Template
-        fields = [
-            "id",
-            "page",
-            "name",
-            "heading",
-            "revenue_program",
-            "graphic",
-            "header_bg_image",
-            "header_logo",
-            "header_link",
-            "styles",
-            "elements",
-            "sidebar_elements",
-            "thank_you_redirect",
-            "post_thank_you_redirect",
-        ]
-        validators = [
-            ValidateFkReferenceOwnership(fk_attribute="page"),
-            UniqueTogetherValidator(
-                queryset=Template.objects.all(),
-                fields=["name", "revenue_program"],
-                message="Template name already in use",
-            ),
-        ]
-
-    def create(self, validated_data):
-        page = validated_data.pop("page", None)
-        if page:
-            return page.make_template_from_page(validated_data)
-        return super().create(validated_data)
-
-    def validate_page(self, page):
-        """Note on why"""
-        if page and self.initial_data.get("revenue_program") is None:
-            self.initial_data["revenue_program"] = page.revenue_program.pk
-        return page
-
-
-class TemplateListSerializer(serializers.ModelSerializer):
-    class Meta:
-        model = Template
-        fields = ["id", "name", "revenue_program"]
 
 
 class FontSerializer(serializers.ModelSerializer):

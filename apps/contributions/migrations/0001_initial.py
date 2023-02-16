@@ -101,6 +101,6 @@ class Migration(migrations.Migration):
                 "ordering": ["-created"],
                 "get_latest_by": "modified",
             },
-            bases=(models.Model, apps.users.models.RoleAssignmentResourceModelMixin),
+            bases=(models.Model,),
         ),
     ]

@@ -13,13 +13,13 @@ from rest_framework.response import Response
 from reversion.views import RevisionMixin
 
 from apps.api.permissions import HasRoleAssignment
+from apps.common.views import FilterForSuperUserOrRoleAssignmentUserMixin
 from apps.element_media.models import MediaImage
 from apps.organizations.models import RevenueProgram
 from apps.pages import serializers
 from apps.pages.filters import StyleFilter
-from apps.pages.models import DonationPage, Font, Style, Template
+from apps.pages.models import DonationPage, Font, Style
 from apps.public.permissions import IsActiveSuperUser
-from apps.users.views import FilterQuerySetByUserMixin, PerUserDeletePermissionsMixin
 
 
 logger = logging.getLogger(f"{settings.DEFAULT_LOGGER}.{__name__}")
@@ -108,7 +108,7 @@ class PageFullDetailHelper:
             raise PageDetailError("RevenueProgram does not have a fully verified payment provider")
 
 
-class PageViewSet(RevisionMixin, viewsets.ModelViewSet, FilterQuerySetByUserMixin, PerUserDeletePermissionsMixin):
+class PageViewSet(FilterForSuperUserOrRoleAssignmentUserMixin, RevisionMixin, viewsets.ModelViewSet):
     """Contribution pages exposed through API
 
     Only superusers and users with role assignments are meant to have access. Results of lists are filtered
@@ -130,9 +130,11 @@ class PageViewSet(RevisionMixin, viewsets.ModelViewSet, FilterQuerySetByUserMixi
     # pages are ever accessed via api and not restricted by org.
     pagination_class = None
 
+    # we don't allow put
+    http_method_names = ["get", "patch", "delete", "post"]
+
     def get_queryset(self):
-        # supplied by FilterQuerySetByUserMixin
-        return self.filter_queryset_for_user(self.request.user, self.model.objects.all())
+        return self.filter_queryset_for_superuser_or_ra()
 
     def get_serializer_class(self):
         if self.action in ("partial_update", "create", "retrieve"):
@@ -207,47 +209,15 @@ class PageViewSet(RevisionMixin, viewsets.ModelViewSet, FilterQuerySetByUserMixi
 
     def destroy(self, request, pk):
         try:
-            page = self.model.objects.get(pk=pk)
+            page = self.get_queryset().get(pk=pk)
         except DonationPage.DoesNotExist:
             logger.error('Request for non-existent page with ID "%s"', pk)
             return Response({"detail": "Could not find page with that ID"}, status=status.HTTP_404_NOT_FOUND)
-        self.check_object_permissions(request, page)
         page.delete()
         return Response(status=status.HTTP_204_NO_CONTENT)
 
 
-class TemplateViewSet(RevisionMixin, viewsets.ModelViewSet, FilterQuerySetByUserMixin):
-    """Contribution Page templates as exposed through API
-
-    Only superusers and users with role assignments are meant to have access. Results of lists are filtered
-    on per user basis.
-    """
-
-    model = Template
-    queryset = Template.objects.all()
-    pagination_class = None
-
-    permission_classes = [
-        IsAuthenticated,
-        IsActiveSuperUser | HasRoleAssignment,
-    ]
-
-    def get_queryset(self):
-        return self.filter_queryset_for_user(self.request.user, self.model.objects.all())
-
-    def get_serializer_class(self):
-        return (
-            serializers.TemplateDetailSerializer
-            if self.action
-            in (
-                "retrieve",
-                "create",
-            )
-            else serializers.TemplateListSerializer
-        )
-
-
-class StyleViewSet(RevisionMixin, viewsets.ModelViewSet, FilterQuerySetByUserMixin, PerUserDeletePermissionsMixin):
+class StyleViewSet(FilterForSuperUserOrRoleAssignmentUserMixin, RevisionMixin, viewsets.ModelViewSet):
     """Contribution Page Template styles exposed through API
 
     Only superusers and users with role assignments are meant to have access. Results of lists are filtered
@@ -262,8 +232,11 @@ class StyleViewSet(RevisionMixin, viewsets.ModelViewSet, FilterQuerySetByUserMix
     filter_backends = [django_filters.rest_framework.DjangoFilterBackend]
     filterset_class = StyleFilter
 
+    # prohibit put
+    http_method_names = ["get", "post", "patch", "delete"]
+
     def get_queryset(self):
-        return self.filter_queryset_for_user(self.request.user, self.model.objects.all())
+        return self.filter_queryset_for_superuser_or_ra()
 
 
 class FontViewSet(viewsets.ReadOnlyModelViewSet):

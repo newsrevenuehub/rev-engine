@@ -146,7 +146,6 @@ export interface GetPaymentSuccessUrlArgs {
   pageSlug: string;
   pathName: string;
   rpSlug: string;
-  contributionUuid: string;
   thankYouRedirectUrl: string;
 }
 
@@ -159,8 +158,7 @@ export function getPaymentSuccessUrl({
   contributorEmail,
   pageSlug,
   rpSlug,
-  pathName,
-  contributionUuid
+  pathName
 }: GetPaymentSuccessUrlArgs) {
   const missingParams = Object.fromEntries(
     Object.entries({
@@ -171,8 +169,7 @@ export function getPaymentSuccessUrl({
       contributorEmail,
       pageSlug,
       rpSlug,
-      pathName,
-      contributionUuid
+      pathName
     }).filter(([, v]) => [undefined, null].includes(v as any))
   );
   if (Object.entries(missingParams).length) {
@@ -208,8 +205,6 @@ export function getPaymentSuccessUrl({
   // from specific page name. On other hand, if a revenue program has a default donation page
   // set up, that page can appear at rev-program-slug.revengine.com/ (with no page), in which
   // case, the thank-you page URL can be rev-program-slug.revengine.com/thank-you.
-
-  // contributionUuid
   paymentSuccessUrl.search = new URLSearchParams({
     amount,
     pageSlug,
@@ -218,7 +213,6 @@ export function getPaymentSuccessUrl({
     frequency: frequencyDisplayValue,
     fromPath: pathName === '/' ? '' : pathName,
     next: thankYouRedirectUrl,
-    contributionUuid,
     uid: emailHash
   }).toString();
 

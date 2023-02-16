@@ -525,6 +525,7 @@ class Contribution(IndexedTimeStampedModel):
 
     def handle_thank_you_email(self):
         """Send a thank you email to contribution's contributor if org is configured to have NRE send thank you email"""
+        logger.info("`Contribution.handle_thank_you_email` called on contribution with ID %s", self.id)
         if self.revenue_program.organization.send_receipt_email_via_nre:
             send_thank_you_email.delay(self.id)
 

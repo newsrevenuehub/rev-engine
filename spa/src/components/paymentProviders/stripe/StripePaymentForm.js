@@ -28,7 +28,6 @@ function StripePaymentForm() {
     emailHash,
     stripeBillingDetails,
     stripeClientSecret,
-    contributionUuid,
     cancelPayment
   } = usePage();
   const { pathname } = useLocation();
@@ -65,8 +64,7 @@ function StripePaymentForm() {
       contributorEmail: contributorEmail,
       pageSlug: pageSlug,
       rpSlug: rpSlug,
-      pathName: pathname,
-      contributionUuid
+      pathName: pathname
     });
     try {
       // The stripe client secret will start with `seti_` if the contribution is recurring and was flagged on initial creation.

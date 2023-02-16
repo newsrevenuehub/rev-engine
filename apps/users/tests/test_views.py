@@ -1,4 +1,5 @@
 import datetime
+import json
 import os
 import re
 import time
@@ -14,6 +15,7 @@ from django.urls import reverse
 from django.utils import timezone
 
 import pytest
+import pytest_cases
 from bs4 import BeautifulSoup
 from django_rest_passwordreset.models import ResetPasswordToken
 from faker import Faker
@@ -22,6 +24,7 @@ from rest_framework.test import APITestCase
 
 from apps.organizations.models import FiscalStatusChoices, Organization, RevenueProgram
 from apps.organizations.tests.factories import OrganizationFactory
+from apps.users import serializers
 from apps.users.choices import Roles
 from apps.users.constants import (
     BAD_ACTOR_CLIENT_FACING_VALIDATION_MESSAGE,
@@ -384,13 +387,6 @@ class TestUserViewSet(APITestCase):
     def test_unauthenticated_user_cannot_list(self):
         response = self.client.get(self.url)
         self.assertEqual(response.status_code, 401)
-
-    def test_list_returns_authenticated_user(self):
-        user = get_user_model().objects.create(email="testing@test.com", password="testing")
-        self.client.force_authenticate(user=user)
-        response = self.client.get(self.url)
-        self.assertEqual(response.status_code, 200)
-        self.assert_serialized_data(response, user)
 
     @patch.object(UserViewset, "validate_password")
     @patch.object(UserViewset, "validate_bad_actor")
@@ -879,3 +875,25 @@ class TestUserViewSet(APITestCase):
         user = create_test_user(is_active=True, email_verified=False, email="")
         UserViewset().send_verification_email(user)
         assert 0 == len(mail.outbox)
+
+
+@pytest.mark.django_db
+@pytest_cases.parametrize(
+    "user,serializer",
+    (
+        (pytest_cases.fixture_ref("hub_admin_user"), serializers.UserSerializer),
+        (pytest_cases.fixture_ref("org_user_free_plan"), serializers.UserSerializer),
+        (pytest_cases.fixture_ref("superuser"), serializers.UserSerializer),
+        (pytest_cases.fixture_ref("user_no_role_assignment"), serializers.UserSerializer),
+        (pytest_cases.fixture_ref("user_with_unexpected_role"), serializers.UserSerializer),
+        (pytest_cases.fixture_ref("rp_user"), serializers.UserSerializer),
+        (pytest_cases.fixture_ref("org_user_multiple_rps"), serializers.UserSerializer),
+    ),
+)
+def test_retrieve_user_endpoint(user, serializer, api_client):
+    api_client.force_authenticate(user)
+    response = api_client.get(reverse("user-list"))
+    user = serializer.Meta.model.objects.get(pk=response.json()["id"])
+    assert response.status_code == status.HTTP_200_OK
+    serialized = serializer(user)
+    assert response.json() == json.loads(json.dumps(serialized.data))

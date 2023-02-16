@@ -1,3 +1,4 @@
+import { ContributionInterval } from 'constants/contributionIntervals';
 import { Style } from '../useStyleList';
 
 // Types here come from looking at Django models, in particular whether a field
@@ -94,6 +95,40 @@ export interface ContributionPageElement {
    * Internal ID of the element.
    */
   uuid: string;
+}
+
+export interface AmountElement extends ContributionPageElement {
+  content: {
+    /**
+     * Allow the user to enter in a freeform value?
+     */
+    allowOther?: boolean;
+    /**
+     * Default selected amount. It must have an entry in the options property.
+     */
+    defaults: Partial<Record<ContributionInterval, number>>;
+    /**
+     * Amounts the user can choose from.
+     */
+    options: Partial<Record<ContributionInterval, number[]>>;
+  };
+}
+
+export interface FrequencyElement extends ContributionPageElement {
+  content: {
+    /**
+     * Display name for the frequency.
+     */
+    displayName: string;
+    /**
+     * Is this the default frequency for the contribution page?
+     */
+    isDefault: boolean;
+    /**
+     * Internal ID of the frequency.
+     */
+    value: ContributionInterval;
+  }[];
 }
 
 /**

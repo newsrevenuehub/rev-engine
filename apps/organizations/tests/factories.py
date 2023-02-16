@@ -27,6 +27,10 @@ class OrganizationFactory(DjangoModelFactory):
     name = factory.Sequence(lambda n: f"{fake.company()}-{str(n)}")
     slug = factory.lazy_attribute(lambda o: normalize_slug(name=o.name))
 
+    class Params:
+        free_plan = factory.Trait(plan_name=models.FreePlan.name)
+        plus_plan = factory.Trait(plan_name=models.PlusPlan.name)
+
 
 class PaymentProviderFactory(DjangoModelFactory):
     class Meta:
@@ -47,6 +51,12 @@ class RevenueProgramFactory(DjangoModelFactory):
     contact_email = fake.email()
     payment_provider = factory.SubFactory(PaymentProviderFactory)
     organization = factory.SubFactory(OrganizationFactory)
+
+    class Params:
+        onboarded = factory.Trait(payment_provider=factory.SubFactory(PaymentProviderFactory, stripe_verified=True))
+        fiscally_sponsored = factory.Trait(fiscal_status=models.FiscalStatusChoices.FISCALLY_SPONSORED)
+        non_profit = factory.Trait(fiscal_status=models.FiscalStatusChoices.NONPROFIT)
+        for_profit = factory.Trait(fiscal_status=models.FiscalStatusChoices.FOR_PROFIT)
 
 
 class BenefitFactory(DjangoModelFactory):

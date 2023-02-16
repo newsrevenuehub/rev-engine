@@ -2,23 +2,30 @@ import logging
 
 from django.conf import settings
 from django.contrib.auth import get_user_model
+from django.db import models
 from django.shortcuts import get_object_or_404
 
 import stripe
-from rest_framework import status, viewsets
+from rest_framework import mixins, status, viewsets
 from rest_framework.decorators import api_view, permission_classes
-from rest_framework.exceptions import PermissionDenied
+from rest_framework.exceptions import PermissionDenied, ValidationError
 from rest_framework.permissions import IsAuthenticated
 from rest_framework.response import Response
 from rest_framework.reverse import reverse
 from reversion.views import create_revision
 from stripe.error import StripeError
 
-from apps.api.permissions import HasRoleAssignment
+from apps.api.permissions import (
+    HasRoleAssignment,
+    IsGetRequest,
+    IsOrgAdmin,
+    IsPatchRequest,
+    IsRpAdmin,
+)
+from apps.common.views import FilterForSuperUserOrRoleAssignmentUserMixin
 from apps.organizations import serializers
 from apps.organizations.models import Organization, RevenueProgram
 from apps.public.permissions import IsActiveSuperUser
-from apps.users.views import FilterQuerySetByUserMixin
 
 
 user_model = get_user_model()
@@ -26,30 +33,54 @@ user_model = get_user_model()
 logger = logging.getLogger(f"{settings.DEFAULT_LOGGER}.{__name__}")
 
 
-class OrganizationViewSet(viewsets.ReadOnlyModelViewSet, FilterQuerySetByUserMixin):
+class OrganizationViewSet(
+    mixins.ListModelMixin,
+    mixins.RetrieveModelMixin,
+    viewsets.GenericViewSet,
+    FilterForSuperUserOrRoleAssignmentUserMixin,
+):
     """Organizations exposed through API
 
     Only superusers and users with roles can access. Queryset is filtered by user.
     """
 
     model = Organization
-    queryset = Organization.objects.all()
-    permission_classes = [IsAuthenticated, IsActiveSuperUser | HasRoleAssignment]
+    permission_classes = [
+        IsAuthenticated,
+        IsActiveSuperUser | (HasRoleAssignment & IsOrgAdmin & IsPatchRequest) | (HasRoleAssignment & IsGetRequest),
+    ]
     serializer_class = serializers.OrganizationSerializer
     pagination_class = None
 
-    def get_queryset(self):
-        # this is supplied by FilterQuerySetByUserMixin
-        return self.filter_queryset_for_user(self.request.user, self.model.objects.all())
+    def get_queryset(self) -> models.QuerySet:
+        return self.filter_queryset_for_superuser_or_ra()
+
+    def patch(self, request, pk):
+        organization = get_object_or_404(self.get_queryset(), pk=pk)
+        patch_serializer = serializers.OrganizationPatchSerializer(organization, data=request.data, partial=True)
+        patch_serializer.is_valid()
+        if patch_serializer.errors:
+            logger.warning("Request %s is invalid; errors: %s", request.data, patch_serializer.errors)
+            raise ValidationError(patch_serializer.errors)
+        patch_serializer.save()
+        organization.refresh_from_db()
+        return Response(serializers.OrganizationSerializer(organization).data)
 
 
-class RevenueProgramViewSet(viewsets.ReadOnlyModelViewSet):
+class RevenueProgramViewSet(FilterForSuperUserOrRoleAssignmentUserMixin, viewsets.ModelViewSet):
     model = RevenueProgram
-    queryset = RevenueProgram.objects.all()
-    # only superusers can access
-    permission_classes = [IsAuthenticated, IsActiveSuperUser]
+    permission_classes = [
+        IsAuthenticated,
+        IsActiveSuperUser
+        | (HasRoleAssignment & IsOrgAdmin & (IsPatchRequest | IsGetRequest))
+        | (HasRoleAssignment & IsRpAdmin & IsGetRequest),
+    ]
     serializer_class = serializers.RevenueProgramSerializer
     pagination_class = None
+    http_method_names = ["get", "patch"]
+
+    def get_queryset(self) -> models.QuerySet:
+        return self.filter_queryset_for_superuser_or_ra()
 
 
 def get_stripe_account_link_return_url(request):

@@ -5,11 +5,10 @@ source =
 omit =
     */tests/*
     */migrations/*
-    */settings*
+    */settings/*.py
     */template*/*.py
     */wsgi.py
     */apps.py
-    */management/*.py
 branch = True
 
 [report]

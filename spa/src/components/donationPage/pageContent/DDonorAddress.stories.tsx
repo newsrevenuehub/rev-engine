@@ -22,7 +22,7 @@ function ComponentDemo(errors: Record<string, string> = {}) {
           } as any
         }
       >
-        <DDonorAddress />
+        <DDonorAddress element={{ content: {}, requiredFields: [], type: 'DDonorAddress', uuid: 'mock-uuid' }} />
       </DonationPageContext.Provider>
     </ul>
   );

@@ -117,6 +117,10 @@ def is_a_contributor(user):
 
 
 class BaseFlaggedResourceAccess(permissions.BasePermission):
+    def __init__(self, *args, **kwargs) -> None:
+        super().__init__(*args, **kwargs)
+        self.flag = None
+
     def has_permission(self, request, view):
         """Has permission if flag is active for user
 
@@ -127,6 +131,9 @@ class BaseFlaggedResourceAccess(permissions.BasePermission):
         """
         return self.flag.is_active_for_user(request.user) or self.flag.everyone
 
+    def __str__(self):
+        return f"{self.__class__.__name__} via {self.flag.name if self.flag else '<not configured>'}"
+
 
 class HasFlaggedAccessToMailChimp(BaseFlaggedResourceAccess):
     def __init__(self, *args, **kwargs):
@@ -135,9 +142,6 @@ class HasFlaggedAccessToMailChimp(BaseFlaggedResourceAccess):
         self.flag = Flag.objects.filter(name=MAILCHIMP_INTEGRATION_ACCESS_FLAG_NAME).first()
         if not self.flag:
             raise ApiConfigurationError()
-
-    def __str__(self):
-        return f"`HasFlaggedAccessToMailChimp` via {self.flag.name}"
 
 
 class HasFlaggedAccessToContributionsApiResource(BaseFlaggedResourceAccess):
@@ -152,6 +156,3 @@ class HasFlaggedAccessToContributionsApiResource(BaseFlaggedResourceAccess):
         self.flag = Flag.objects.filter(name=CONTRIBUTIONS_API_ENDPOINT_ACCESS_FLAG_NAME).first()
         if not self.flag:
             raise ApiConfigurationError()
-
-    def __str__(self):
-        return f"`HasFlaggedAccessToContributionsApiResource` via {self.flag.name}"

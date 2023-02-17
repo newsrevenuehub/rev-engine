@@ -1,11 +1,14 @@
 import pytest
 import pytest_cases
 from rest_framework.test import APIRequestFactory
+from waffle import get_waffle_flag_model
 
+from apps.api.exceptions import ApiConfigurationError
 from apps.api.permissions import (
     HasFlaggedAccessToContributionsApiResource,
     HasFlaggedAccessToMailChimp,
 )
+from apps.common.constants import MAILCHIMP_INTEGRATION_ACCESS_FLAG_NAME
 from apps.common.tests.test_resources import AbstractTestCase
 
 
@@ -33,3 +36,15 @@ class TestHasFlaggedAccessToMailChimp:
         request = factory.get("/")
         request.user = user
         assert HasFlaggedAccessToMailChimp().has_permission(request, None) is True
+
+    def test_when_flag_not_found(self):
+        Flag = get_waffle_flag_model()
+        assert not Flag.objects.filter(name=MAILCHIMP_INTEGRATION_ACCESS_FLAG_NAME).exists()
+        with pytest.raises(ApiConfigurationError):
+            HasFlaggedAccessToMailChimp()
+
+    def test__str__(self, default_feature_flags):
+        assert (
+            str(HasFlaggedAccessToMailChimp())
+            == f"`HasFlaggedAccessToMailChimp` via {MAILCHIMP_INTEGRATION_ACCESS_FLAG_NAME}"
+        )

@@ -127,8 +127,8 @@ def task_pull_payment_intents(self, email_id, customers_query, stripe_account_id
 def email_contribution_csv_export_to_user(self, contribution_ids: List[int], to_email: str) -> None:
     """Email a CSV containing data about a set of contributions
 
-    Note that this task is intentionally "dumb". It implicitly assumes that it is safe to data about contribution ids
-    to person at `to_email`. Permissions related restrictions therefore need to be handled in the calling context.
+    Note that this task is intentionally "dumb". It implicitly assumes that it is safe to send data about contribution ids
+    to person at `to_email`. Permissions-related restrictions therefore need to be handled in the calling context.
     """
     contributions = Contribution.objects.filter(id__in=contribution_ids)
     if diff := set(contribution_ids).difference(set(list(contributions.values_list("id", flat=True)))):

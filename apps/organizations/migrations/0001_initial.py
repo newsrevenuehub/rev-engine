@@ -147,7 +147,7 @@ class Migration(migrations.Migration):
             options={
                 "abstract": False,
             },
-            bases=(models.Model, apps.users.models.RoleAssignmentResourceModelMixin),
+            bases=(models.Model,),
         ),
         migrations.CreateModel(
             name="PaymentProvider",
@@ -206,7 +206,7 @@ class Migration(migrations.Migration):
             options={
                 "abstract": False,
             },
-            bases=(models.Model, apps.users.models.RoleAssignmentResourceModelMixin),
+            bases=(models.Model,),
         ),
         migrations.CreateModel(
             name="RevenueProgram",

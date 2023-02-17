@@ -14,16 +14,9 @@ from apps.common.tests.test_utils import get_test_image_file_jpeg
 from apps.config.tests.factories import DenyListWordFactory
 from apps.config.validators import GENERIC_SLUG_DENIED_MSG, SLUG_DENIED_CODE
 from apps.contributions.tests.factories import ContributionFactory
-from apps.google_cloud.pubsub import Message
 from apps.organizations.tests.factories import OrganizationFactory, RevenueProgramFactory
 from apps.pages import defaults
-from apps.pages.models import (
-    DefaultPageLogo,
-    DonationPage,
-    Style,
-    Template,
-    _get_screenshot_upload_path,
-)
+from apps.pages.models import DefaultPageLogo, DonationPage, Style, _get_screenshot_upload_path
 from apps.pages.tests.factories import DonationPageFactory, FontFactory, StyleFactory
 from apps.users.choices import Roles
 
@@ -34,35 +27,39 @@ def test__get_screenshot_upload_path():
     assert isinstance(_get_screenshot_upload_path(instance, filename), str)
 
 
-@pytest.mark.parametrize(
-    "expected, role, rp",
-    [
-        (True, Roles.HUB_ADMIN, None),  # Always HubAdmin
-        (True, Roles.ORG_ADMIN, mock.Mock(organization="yes_org")),  # Organization Admin onlyif org matches
-        (False, Roles.ORG_ADMIN, mock.Mock(organization="no_org")),  # Organization Admin onlyif org matches
-        (False, Roles.ORG_ADMIN, None),  # Organization Admin onlyif org matches
-        (True, Roles.RP_ADMIN, "yes_rp"),  # Revenue Program Admin onlyif admin for that RP
-        (False, Roles.RP_ADMIN, "no_rp"),  # Revenue Program Admin onlyif admin for that RP
-        (False, Roles.RP_ADMIN, None),  # Revenue Program Admin onlyif admin for that RP
-        (False, None, None),  # Never roleless yahoos.
-        (False, None, mock.Mock(organization="yesorg")),  # Never roleless yahoos.
-    ],
+@pytest.mark.django_db
+@pytest_cases.parametrize(
+    "user",
+    (
+        pytest_cases.fixture_ref("hub_admin_user"),
+        pytest_cases.fixture_ref("org_user_free_plan"),
+        pytest_cases.fixture_ref("rp_user"),
+    ),
 )
-def test_user_has_delete_permission_by_virtue_of_role(expected, role, rp):
-    user = mock.Mock()
-    user.roleassignment = mock.Mock(
-        role_type=role,
-        organization="yes_org",
-        revenue_programs=mock.Mock(
-            all=lambda: [
-                "yes_rp",
+def test_page_filtered_by_role_assignment(user, revenue_program):
+    # this will be viewable by all three users
+    one = DonationPageFactory(revenue_program=revenue_program)
+    # this will be viewable by hub admin and org user, but not rp
+    two = DonationPageFactory(revenue_program=RevenueProgramFactory(organization=revenue_program.organization))
+    # this will be vieweable by only hub admin
+    three = DonationPageFactory(revenue_program=RevenueProgramFactory())
+    match user.roleassignment.role_type:
+        case Roles.HUB_ADMIN:
+            expected = [one.id, two.id, three.id]
+        case Roles.ORG_ADMIN:
+            user.roleassignment.organization = one.revenue_program.organization
+            user.roleassignment.save()
+            expected = [one.id, two.id]
+        case Roles.RP_ADMIN:
+            user.roleassignment.organization = one.revenue_program.organization
+            user.roleassignment.revenue_programs.set([one.revenue_program])
+            user.roleassignment.save()
+            expected = [
+                one.id,
             ]
-        ),
-    )
-    instance = mock.Mock(revenue_program=rp)
-    assert expected == DonationPage.user_has_delete_permission_by_virtue_of_role(user, instance)
-    assert expected == Template.user_has_delete_permission_by_virtue_of_role(user, instance)
-    assert expected == Style.user_has_delete_permission_by_virtue_of_role(user, instance)
+    query = DonationPage.objects.filtered_by_role_assignment(user.roleassignment)
+    assert query.count() == len(expected)
+    assert set(query.values_list("id", flat=True)) == set(expected)
 
 
 class DonationPageTest(TestCase):
@@ -218,18 +215,45 @@ def test_first_published_pub_sub_behavior_when_pubsub_configured(get_page_fn, ex
         publisher_spy.publish.assert_not_called()
 
 
-class StyleTest(TestCase):
-    def setUp(self):
-        self.instance = StyleFactory()
+@pytest.mark.django_db
+@pytest_cases.parametrize(
+    "user",
+    (
+        pytest_cases.fixture_ref("hub_admin_user"),
+        pytest_cases.fixture_ref("org_user_free_plan"),
+        pytest_cases.fixture_ref("rp_user"),
+    ),
+)
+def test_style_filtered_by_role_assignment(user, revenue_program):
+    # this will be viewable by all three users
+    one = StyleFactory(revenue_program=revenue_program)
+    # this will be viewable by hub admin and org user, but not rp
+    two = StyleFactory(revenue_program=RevenueProgramFactory(organization=revenue_program.organization))
+    # this will be vieweable by only hub admin
+    three = StyleFactory(revenue_program=RevenueProgramFactory())
+    match user.roleassignment.role_type:
+        case Roles.HUB_ADMIN:
+            expected = [one.id, two.id, three.id]
+        case Roles.ORG_ADMIN:
+            user.roleassignment.organization = one.revenue_program.organization
+            user.roleassignment.save()
+            expected = [one.id, two.id]
+        case Roles.RP_ADMIN:
+            user.roleassignment.organization = one.revenue_program.organization
+            user.roleassignment.revenue_programs.set([one.revenue_program])
+            user.roleassignment.save()
+            expected = [
+                one.id,
+            ]
+    query = Style.objects.filtered_by_role_assignment(user.roleassignment)
+    assert query.count() == len(expected)
+    assert set(query.values_list("id", flat=True)) == set(expected)
 
-    def test_to_string(self):
-        self.assertEqual(self.instance.name, str(self.instance))
 
-    def test_user_has_ownership_via_role(self):
-        # TODO: test actual conditions
-        ra = mock.MagicMock()
-        permision = self.instance.user_has_ownership_via_role(ra)
-        assert isinstance(permision, bool)
+@pytest.mark.django_db
+class TestStyle:
+    def test_to_string(self, style):
+        assert style.name == str(style)
 
 
 class FontTest(TestCase):

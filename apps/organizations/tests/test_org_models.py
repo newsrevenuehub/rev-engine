@@ -1,28 +1,40 @@
 from datetime import timedelta
 from unittest.mock import patch
 
+from django.contrib.auth import get_user_model
 from django.core.exceptions import ValidationError
 from django.db.models.deletion import ProtectedError
 from django.test import TestCase, override_settings
 from django.utils import timezone
 from django.utils.text import slugify
 
+import pytest
+import pytest_cases
 from faker import Faker
 
 from apps.common.models import SocialMeta
 from apps.config.tests.factories import DenyListWordFactory
 from apps.config.validators import GENERIC_SLUG_DENIED_MSG, SLUG_DENIED_CODE
 from apps.contributions.tests.factories import ContributionFactory
-from apps.organizations.models import RevenueProgram
+from apps.organizations.models import (
+    RP_SLUG_MAX_LENGTH,
+    FiscalStatusChoices,
+    Organization,
+    RevenueProgram,
+)
 from apps.organizations.tests import factories
+from apps.organizations.tests.factories import OrganizationFactory, RevenueProgramFactory
 from apps.pages.models import DonationPage
 from apps.pages.tests.factories import DonationPageFactory
-from apps.users.models import RoleAssignment
+from apps.users.models import RoleAssignment, Roles
 from apps.users.tests.factories import RoleAssignmentFactory
 
 
 TEST_STRIPE_LIVE_KEY = "my_test_live_key"
 TEST_DOMAIN_APEX = "testapexdomain.com"
+
+
+user_model = get_user_model()
 
 
 class TestOrganizationModel(TestCase):
@@ -66,6 +78,36 @@ class TestOrganizationModel(TestCase):
         self.assertFalse(RoleAssignment.objects.filter(id=ra_id).exists())
 
 
+@pytest.mark.django_db
+@pytest_cases.parametrize(
+    "user",
+    (
+        pytest_cases.fixture_ref("hub_admin_user"),
+        pytest_cases.fixture_ref("org_user_free_plan"),
+        pytest_cases.fixture_ref("rp_user"),
+    ),
+)
+def test_organization_filtered_by_role_assignment(user):
+    # ensure there will be unowned organizations
+    factories.OrganizationFactory.create_batch(size=2)
+    owned_orgs = (
+        Organization.objects.all()
+        if user.roleassignment.role_type == Roles.HUB_ADMIN
+        else [
+            user.roleassignment.organization,
+        ]
+    )
+    query = Organization.objects.filtered_by_role_assignment(user.roleassignment)
+    assert query.count() == len(owned_orgs)
+    assert set(query.values_list("id", flat=True)) == set([x.id for x in owned_orgs])
+
+
+@pytest.mark.django_db
+def test_organization_filtered_by_role_assignment_when_unexpected_role(user_with_unexpected_role):
+    factories.OrganizationFactory.create_batch(3)
+    assert Organization.objects.filtered_by_role_assignment(user_with_unexpected_role.roleassignment).count() == 0
+
+
 class RevenueProgramTest(TestCase):
     def setUp(self):
         self.stripe_account_id = "my_stripe_account_id"
@@ -90,13 +132,13 @@ class RevenueProgramTest(TestCase):
         self.instance.name = "A new Name"
         self.instance.save()
         self.instance.refresh_from_db()
-        self.assertNotIn(slugify("A new Name"), self.instance.slug)
+        assert slugify("A new Name") not in self.instance.slug
 
-    def test_slug_larger_than_100(self):
+    def test_slug_larger_than_max_length(self):
         fake = Faker()
         Faker.seed(0)
         long_slug_rp = factories.RevenueProgramFactory(name=f"{' '.join(fake.words(nb=30))}")
-        self.assertLessEqual(len(long_slug_rp.slug), 100)
+        assert len(long_slug_rp.slug) < RP_SLUG_MAX_LENGTH
 
     # This is to squash a side effect in contribution.save
     # TODO: DEV-3026
@@ -104,39 +146,39 @@ class RevenueProgramTest(TestCase):
     def test_cannot_delete_when_downstream_contributions(self, mock_fetch_stripe_payment_method):
         page = DonationPageFactory(revenue_program=self.instance)
         ContributionFactory(donation_page=page)
-        with self.assertRaises(ProtectedError) as protected_error:
+        with pytest.raises(ProtectedError) as protected_error:
             self.instance.delete()
         error_msg = (
             "Cannot delete some instances of model 'RevenueProgram' because they are referenced "
             "through protected foreign keys: 'DonationPage.revenue_program'."
         )
-        self.assertEqual(error_msg, protected_error.exception.args[0])
+        assert error_msg, protected_error.value.args[0]
 
     def test_can_delete_when_no_downstream_contributions_and_cascades(self):
         page_id = DonationPageFactory(revenue_program=self.instance).id
         self.instance.delete()
-        self.assertFalse(DonationPage.objects.filter(id=page_id).exists())
+        assert not DonationPage.objects.filter(id=page_id).exists()
 
     def test_delete_organization_deletes_revenue_program(self):
-        self.assertIsNotNone(self.organization)
-        self.assertIsNotNone(self.instance)
-        self.assertEqual(self.instance.organization, self.organization)
+        assert self.organization is not None
+        assert self.instance is not None
+        assert self.instance.organization == self.organization
         rp_pk = self.instance.id
         self.organization.delete()
-        self.assertFalse(RevenueProgram.objects.filter(pk=rp_pk).exists())
+        assert not RevenueProgram.objects.filter(pk=rp_pk).exists()
 
     def test_deleting_cascades_to_socialmeta(self):
         sm_id = SocialMeta.objects.create(
             title="title", description="description", url="https://example.com", revenue_program=self.instance
         ).id
         self.instance.delete()
-        self.assertFalse(SocialMeta.objects.filter(id=sm_id).exists())
+        assert not SocialMeta.objects.filter(id=sm_id).exists()
 
     def test_format_twitter_handle(self):
         target_handle = "testing"
         self.instance.twitter_handle = "@" + target_handle
         self.instance.clean()
-        self.assertEqual(self.instance.twitter_handle, target_handle)
+        assert self.instance.twitter_handle == target_handle
 
     @override_settings(STRIPE_LIVE_MODE=False)
     @patch("stripe.ApplePayDomain.create")
@@ -157,17 +199,78 @@ class RevenueProgramTest(TestCase):
         denied_word = DenyListWordFactory()
         rp = RevenueProgram(name="My rp", organization=self.organization, payment_provider=self.payment_provider)
         rp.slug = denied_word.word
-        with self.assertRaises(ValidationError) as validation_error:
+        with pytest.raises(ValidationError) as validation_error:
             rp.clean_fields()
-        self.assertIn("slug", validation_error.exception.error_dict)
-        self.assertEqual(SLUG_DENIED_CODE, validation_error.exception.error_dict["slug"][0].code)
-        self.assertEqual(GENERIC_SLUG_DENIED_MSG, validation_error.exception.error_dict["slug"][0].message)
+        assert "slug" in validation_error.value.error_dict
+        assert SLUG_DENIED_CODE == validation_error.value.error_dict["slug"][0].code
+        assert GENERIC_SLUG_DENIED_MSG == validation_error.value.error_dict["slug"][0].message
 
     def test_admin_benefit_options(self):
-        self.assertTrue(isinstance(self.instance.admin_benefit_options, list))
+        assert isinstance(self.instance.admin_benefit_options, list)
 
     def test_admin_benefitlevel_options(self):
-        self.assertTrue(isinstance(self.instance.admin_benefitlevel_options, list))
+        assert isinstance(self.instance.admin_benefitlevel_options, list)
+
+
+@pytest.mark.parametrize(
+    "fiscal_status,fiscal_sponsor_name,non_profit_value",
+    [
+        (FiscalStatusChoices.FOR_PROFIT, None, False),
+        (FiscalStatusChoices.NONPROFIT, None, True),
+        (FiscalStatusChoices.FISCALLY_SPONSORED, "NRH", True),
+    ],
+)
+@pytest.mark.django_db
+def test_fiscal_status_on_revenue_program(fiscal_status, fiscal_sponsor_name, non_profit_value):
+    rp = RevenueProgramFactory(organization=OrganizationFactory())
+    rp.fiscal_status = fiscal_status
+    rp.fiscal_sponsor_name = fiscal_sponsor_name
+    assert rp.non_profit == non_profit_value
+
+
+@pytest.mark.parametrize(
+    "fiscal_status,fiscal_sponsor_name",
+    [
+        (FiscalStatusChoices.FOR_PROFIT, "NRH"),
+        (FiscalStatusChoices.NONPROFIT, "NRH"),
+        (FiscalStatusChoices.FISCALLY_SPONSORED, None),
+    ],
+)
+@pytest.mark.django_db
+def test_fiscal_sponsor_name_clean(fiscal_status, fiscal_sponsor_name):
+    rp = RevenueProgramFactory(organization=OrganizationFactory())
+    rp.fiscal_status = fiscal_status
+    rp.fiscal_sponsor_name = fiscal_sponsor_name
+    with pytest.raises(ValidationError):
+        rp.clean_fiscal_sponsor_name()
+
+
+@pytest.mark.django_db
+@pytest_cases.parametrize(
+    "user",
+    (
+        pytest_cases.fixture_ref("hub_admin_user"),
+        pytest_cases.fixture_ref("org_user_free_plan"),
+        pytest_cases.fixture_ref("rp_user"),
+    ),
+)
+def test_revenueprogram_filtered_by_role_assignment(user):
+    # ensure unowned RevenuePrograms in case of org and RP user
+    factories.RevenueProgramFactory.create_batch(size=2)
+    owned_rps = (
+        RevenueProgram.objects.all()
+        if user.roleassignment.role_type == Roles.HUB_ADMIN
+        else RevenueProgram.objects.filter(id__in=user.roleassignment.revenue_programs.values_list("id", flat=True))
+    )
+    query = RevenueProgram.objects.filtered_by_role_assignment(user.roleassignment)
+    assert query.count() == len(owned_rps)
+    assert set(query.values_list("id", flat=True)) == set([x.id for x in owned_rps])
+
+
+@pytest.mark.django_db
+def test_revenueprogram_filtered_by_role_assignment_when_unexpected_role(user_with_unexpected_role):
+    factories.RevenueProgramFactory.create_batch(3)
+    assert RevenueProgram.objects.filtered_by_role_assignment(user_with_unexpected_role.roleassignment).count() == 0
 
 
 class BenefitLevelTest(TestCase):

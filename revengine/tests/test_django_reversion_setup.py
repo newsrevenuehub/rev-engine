@@ -31,15 +31,10 @@ from apps.organizations.tests.factories import (
     OrganizationFactory,
     RevenueProgramFactory,
 )
-from apps.pages.admin import DonationPageAdmin, FontAdmin, StyleAdmin, TemplateAdmin
-from apps.pages.models import DonationPage, Font, Style, Template
-from apps.pages.tests.factories import (
-    DonationPageFactory,
-    FontFactory,
-    StyleFactory,
-    TemplateFactory,
-)
-from apps.pages.views import PageViewSet, StyleViewSet, TemplateViewSet
+from apps.pages.admin import DonationPageAdmin, FontAdmin, StyleAdmin
+from apps.pages.models import DonationPage, Font, Style
+from apps.pages.tests.factories import DonationPageFactory, FontFactory, StyleFactory
+from apps.pages.views import PageViewSet, StyleViewSet
 
 
 def test_expected_models_are_registered_with_django_reversion():
@@ -63,7 +58,6 @@ def test_expected_models_are_registered_with_django_reversion():
         RevenueProgram,
         SocialMeta,
         Style,
-        Template,
     ]
     assert set(expected_registered_models) == set(reversion.get_registered_models())
 
@@ -74,7 +68,7 @@ def test_expected_views_are_registered_with_django_reversion():
     NB: by using the `RevisionMixin`, any changes to a model happening through the
     registered view layer will be recorded.
     """
-    expected_views = [PageViewSet, StyleViewSet, TemplateViewSet]
+    expected_views = [PageViewSet, StyleViewSet]
     assert all(issubclass(view, reversion.views.RevisionMixin) for view in expected_views)
 
 
@@ -97,7 +91,6 @@ def test_expected_model_admins_are_registered_with_django_reversion():
             OrganizationAdmin,
             RevenueProgramAdmin,
             StyleAdmin,
-            TemplateAdmin,
         ]
     )
 
@@ -115,7 +108,6 @@ def test_expected_model_admins_are_registered_with_django_reversion():
         (OrganizationFactory, "name", "new name"),
         (RevenueProgramFactory, "name", "new name"),
         (StyleFactory, "name", "new name"),
-        (TemplateFactory, "name", "new name"),
     ),
 )
 @pytest.mark.django_db

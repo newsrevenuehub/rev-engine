@@ -1,6 +1,6 @@
 import { AmountElement, ReasonElement } from 'hooks/useContributionPage';
 import { useEditablePageBatch } from 'hooks/useEditablePageBatch';
-import { useMemo } from 'react';
+import { useMemo, useState } from 'react';
 import { getPageContributionIntervals } from 'utilities/getPageContributionIntervals';
 import { AmountEditor, ReasonEditor } from '../elementEditors';
 import { Content, ContentDetail, Header, Root } from './ElementEditor.styled';
@@ -43,6 +43,7 @@ type ElementContent = AmountElement['content'] | ReasonElement['content'];
 
 export function ElementEditor({ elementUuid, location, onClose }: ElementEditorProps) {
   const { addBatchChange, batchPreview, commitBatch, resetBatch } = useEditablePageBatch();
+  const [updateDisabled, setUpdateDisabled] = useState(false);
   const elementListKey = useMemo(() => (location === 'layout' ? 'elements' : 'sidebar_elements'), [location]);
   const element = useMemo(() => {
     if (!elementListKey || !batchPreview?.[elementListKey]) {
@@ -128,15 +129,21 @@ export function ElementEditor({ elementUuid, location, onClose }: ElementEditorP
               // an object in content, even if it has no properties. Some
               // elements, like DDonorAddress, may not have a `content` property
               // in older pages.
+              contributionIntervals={contributionIntervals}
               elementContent={element.content ?? ({} as any)}
               elementRequiredFields={element.requiredFields ?? []}
               onChangeElementRequiredFields={handleChangeElementRequiredFields}
               onChangeElementContent={handleChangeElementContent}
-              contributionIntervals={contributionIntervals}
+              setUpdateDisabled={setUpdateDisabled}
             />
           </ContentDetail>
         </Content>
-        <EditSaveControls onCancel={handleCancel} onUpdate={handleUpdate} variant="cancel" />
+        <EditSaveControls
+          onCancel={handleCancel}
+          onUpdate={handleUpdate}
+          updateDisabled={updateDisabled}
+          variant="cancel"
+        />
       </Root>
     );
   }

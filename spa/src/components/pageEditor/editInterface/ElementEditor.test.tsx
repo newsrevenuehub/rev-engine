@@ -125,6 +125,19 @@ describe('ElementEditor', () => {
   });
 
   describe('the Update button', () => {
+    it('is disabled if an editor calls setUpdateDisabled(true)', () => {
+      tree();
+      userEvent.click(screen.getByText('setUpdateDisabled true'));
+      expect(screen.getByRole('button', { name: 'Update' })).toBeDisabled();
+    });
+
+    it('is enabled if an editor calls setUpdateDisabled(false)', () => {
+      tree();
+      userEvent.click(screen.getByText('setUpdateDisabled true'));
+      userEvent.click(screen.getByText('setUpdateDisabled false'));
+      expect(screen.getByRole('button', { name: 'Update' })).toBeEnabled();
+    });
+
     it('sets changes in the editable page context when clicked', () => {
       const setPageChanges = jest.fn();
 

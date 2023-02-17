@@ -1,8 +1,8 @@
-import { ChangeEvent } from 'react';
+import { ChangeEvent, useEffect } from 'react';
 import { Checkbox, EditableList, FormControlLabel } from 'components/base';
 import { ReasonElement } from 'hooks/useContributionPage';
 import { ElementDetailEditorProps } from 'components/pageEditor/editInterface/ElementEditor.types';
-import { ReasonPrompt, RequiredContainer, Root } from './ReasonEditor.styled';
+import { Error, ReasonPrompt, RequiredContainer, Root } from './ReasonEditor.styled';
 
 /**
  * The DReason component that displays the element on an actual page expects
@@ -18,8 +18,13 @@ export function ReasonEditor({
   elementContent,
   elementRequiredFields,
   onChangeElementContent,
-  onChangeElementRequiredFields
+  onChangeElementRequiredFields,
+  setUpdateDisabled
 }: ReasonEditorProps) {
+  const updateDisabled = !elementContent.askReason && !elementContent.askHonoree && !elementContent.askInMemoryOf;
+
+  useEffect(() => setUpdateDisabled(updateDisabled), [updateDisabled, setUpdateDisabled]);
+
   function handleChangeCheckbox(fieldName: keyof ReasonElement['content'], event: ChangeEvent<HTMLInputElement>) {
     onChangeElementContent({ ...defaultContent, ...elementContent, [fieldName]: event.target.checked });
   }
@@ -30,9 +35,9 @@ export function ReasonEditor({
 
   function handleChangeRequiredCheckbox(event: ChangeEvent<HTMLInputElement>) {
     if (event.target.checked) {
-      onChangeElementRequiredFields(['reason_for_giving']);
+      onChangeElementRequiredFields([...elementRequiredFields, 'reason_for_giving']);
     } else {
-      onChangeElementRequiredFields([]);
+      onChangeElementRequiredFields(elementRequiredFields.filter((value) => value !== 'reason_for_giving'));
     }
   }
 
@@ -49,8 +54,8 @@ export function ReasonEditor({
           <FormControlLabel
             control={
               <Checkbox
+                checked={elementRequiredFields.includes('reason_for_giving')}
                 onChange={handleChangeRequiredCheckbox}
-                value={elementRequiredFields.includes('reason_for_giving')}
               />
             }
             label="Should filling this out be required?"
@@ -82,6 +87,7 @@ export function ReasonEditor({
         }
         label="Ask contributor if their contribution is in memory of somebody"
       />
+      {updateDisabled && <Error>You must choose at least one option.</Error>}
     </Root>
   );
 }

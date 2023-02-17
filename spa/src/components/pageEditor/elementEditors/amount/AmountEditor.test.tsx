@@ -37,6 +37,7 @@ function tree(props?: Partial<AmountEditorProps>) {
       elementRequiredFields={[]}
       onChangeElementContent={jest.fn()}
       onChangeElementRequiredFields={jest.fn()}
+      setUpdateDisabled={jest.fn()}
       {...props}
     />
   );

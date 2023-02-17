@@ -1,5 +1,9 @@
 import styled from 'styled-components';
 
+export const Error = styled.p`
+  color: ${({ theme }) => theme.colors.error.primary};
+`;
+
 export const RequiredContainer = styled.div`
   margin-left: 32px;
 `;

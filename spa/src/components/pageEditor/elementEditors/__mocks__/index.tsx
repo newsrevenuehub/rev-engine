@@ -5,6 +5,8 @@ export const AmountEditor = (props: AmountEditorProps) => (
   <div data-testid="mock-amount-editor" data-content={JSON.stringify(props.elementContent)}>
     <button onClick={() => props.onChangeElementContent({ mockChange: true } as any)}>onChangeElementContent</button>
     <button onClick={() => props.onChangeElementRequiredFields(['mockChange'])}>onChangeElementRequiredFields</button>
+    <button onClick={() => props.setUpdateDisabled(true)}>setUpdateDisabled true</button>
+    <button onClick={() => props.setUpdateDisabled(false)}>setUpdateDisabled false</button>
   </div>
 );
 

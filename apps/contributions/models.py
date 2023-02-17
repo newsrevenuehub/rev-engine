@@ -756,7 +756,6 @@ class Contribution(IndexedTimeStampedModel):
             # one-time contributions whether flagged or non-flagged should have an associated payment intent with the data we need
             # recurring contributions that were never flagged will have a subscription that has the data we need, while
             # recurring contributions that were flagged will have a setup_intent with the data.
-            stripe_entity = None
             if contribution.interval == ContributionInterval.ONE_TIME:
                 stripe_entity = contribution.stripe_payment_intent
             elif contribution.interval != ContributionInterval.ONE_TIME and contribution.stripe_setup_intent:

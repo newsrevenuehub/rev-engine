@@ -131,7 +131,7 @@ def email_contribution_csv_export_to_user(self, contribution_ids: List[int], to_
     to person at `to_email`. Permissions-related restrictions therefore need to be handled in the calling context.
     """
     contributions = Contribution.objects.filter(id__in=contribution_ids)
-    if diff := set(contribution_ids).difference(set(list(contributions.values_list("id", flat=True)))):
+    if diff := set(contribution_ids).difference(set(contributions.values_list("id", flat=True))):
         logger.warning(
             (
                 "`email_contribution_csv_export_to_user` was unable to locate %s of %s requested contributions. The following "

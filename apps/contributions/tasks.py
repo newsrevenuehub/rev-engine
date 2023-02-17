@@ -139,7 +139,7 @@ def email_contribution_csv_export_to_user(self, contribution_ids: List[int], to_
             ),
             len(diff),
             len(contribution_ids),
-            ", ".join([str(x) for x in diff]),
+            ", ".join(str(x) for x in diff),
         )
     send_templated_email_with_attachment(
         to=to_email,

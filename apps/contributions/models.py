@@ -763,7 +763,7 @@ class Contribution(IndexedTimeStampedModel):
             else:
                 stripe_entity = contribution.stripe_subscription
             if not stripe_entity:
-                logger.info(
+                logger.warning(
                     (
                         "`Contribution.fix_missing_contribution_metadata` could not find any data on "
                         "Stripe to backfill contribution with ID  %s",
@@ -789,7 +789,7 @@ class Contribution(IndexedTimeStampedModel):
                     )
                 updated_count += 1
             else:
-                logger.info(
+                logger.warning(
                     (
                         "`Contribution.fix_missing_contribution_metadata` could not find any valid backfill data for "
                         "contribution_metadata for contribution with ID %s"

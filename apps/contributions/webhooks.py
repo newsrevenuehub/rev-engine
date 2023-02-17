@@ -113,6 +113,7 @@ class StripeWebhookProcessor:
                 "modified",
             ]
         )
+        contribution.handle_thank_you_email()
         logger.info("Contribution %s succeeded.", contribution)
 
     def _cancellation_was_rejection(self):

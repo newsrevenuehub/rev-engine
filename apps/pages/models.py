@@ -136,28 +136,6 @@ class DonationPage(IndexedTimeStampedModel):
             logger.info("DonationPage.save - sending signal page_published for page %s", self.id)
             signals.page_published.send(sender=self.__class__, instance=self)
 
-
-
-        Clean up template_data and page data here, so that we only copy the fields we want.
-        """
-        unwanted_keys = [
-            "_state",
-            "id",
-            "created",
-            "modified",
-            "slug",
-            "page_screenshot",
-            "deleted",
-            "published_date",
-        ]
-        if not from_admin:
-            unwanted_keys.append("revenue_program_id")
-
-        page = cleanup_keys(self.__dict__, unwanted_keys)
-        template = cleanup_keys(template_data, unwanted_keys)
-        merged_template = {**page, **template}
-        return Template.objects.create(**merged_template)
-
     def should_send_first_publication_signal(self) -> bool:
         if not self.published_date:
             return False

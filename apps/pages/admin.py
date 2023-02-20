@@ -5,8 +5,6 @@ from django.conf import settings
 from django.contrib import admin, messages
 from django.core.exceptions import ValidationError
 from django.db.utils import IntegrityError
-from django.http import HttpResponseRedirect
-from django.urls import reverse
 
 from reversion.admin import VersionAdmin
 from reversion_compare.admin import CompareVersionAdmin
@@ -30,53 +28,6 @@ class DonationPageAdminAbstract(RevEngineBaseAdmin, AdminImageMixin):
         ("Styles", {"fields": ("styles",)}),
         ("Content", {"fields": ("elements", "sidebar_elements")}),
     )
-
-
-@admin.register(models.Template)
-class TemplateAdmin(VersionAdmin, DonationPageAdminAbstract):
-    list_display = (
-        "name",
-        "heading",
-    )
-    list_filter = (
-        "name",
-        "heading",
-        "revenue_program",
-    )
-    ordering = (
-        "name",
-        "revenue_program__name",
-    )
-    search_fields = (
-        "name",
-        "heading",
-        "revenue_program__name",
-    )
-
-    change_form_template = "pages/templates_changeform.html"
-
-    def has_add_permission(self, request, obj=None):
-        return False
-
-    def get_readonly_fields(self, request, obj=None):
-        return [x for x in obj.field_names()]
-
-    def response_change(self, request, obj):
-        if "_page-from-template" in request.POST:
-            try:
-                new_page = obj.make_page_from_template()
-            except IntegrityError as integrity_error:
-                if "violates unique constraint" in str(integrity_error):
-                    self.message_user(
-                        request,
-                        f'Contribution Page name "{obj.name}" already used in organization. Did you forget to update the name of a previous page created from this template?',
-                        messages.ERROR,
-                    )
-                    return HttpResponseRedirect(reverse("admin:pages_template_change", kwargs={"object_id": obj.id}))
-                else:
-                    raise
-            return HttpResponseRedirect(reverse("admin:pages_donationpage_change", kwargs={"object_id": new_page.id}))
-        return super().response_change(request, obj)
 
 
 class DonationPageAdminForm(forms.ModelForm):

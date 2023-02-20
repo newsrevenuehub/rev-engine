@@ -1,22 +1,12 @@
 // Util
 import { getEndpoint } from '../support/util';
-import { getFrequencyAdjective } from 'utilities/parseFrequency';
 
 // Fixtures
 import livePage from '../fixtures/pages/live-page-1.json';
 import unpublishedPage from '../fixtures/pages/unpublished-page-1.json';
 
 // Constants
-import {
-  DELETE_PAGE,
-  DRAFT_PAGE_DETAIL,
-  PATCH_PAGE,
-  LIST_FONTS,
-  LIST_PAGES,
-  LIST_STYLES,
-  TEMPLATES,
-  USER
-} from 'ajax/endpoints';
+import { DELETE_PAGE, PATCH_PAGE, LIST_FONTS, LIST_PAGES, LIST_STYLES, TEMPLATES, USER } from 'ajax/endpoints';
 import { DELETE_LIVE_PAGE_CONFIRM_TEXT } from 'constants/textConstants';
 import { CONTENT_SLUG } from 'routes';
 import { CLEARBIT_SCRIPT_SRC } from 'hooks/useClearbit';
@@ -55,16 +45,15 @@ const orgAdminStripeVerifiedLoginSuccess = {
   }
 };
 
-const testEditPageUrl = 'edit/my/page/';
+const testEditPageUrl = 'edit/pages/123';
 
 describe('Contribution page edit', () => {
   beforeEach(() => {
     cy.forceLogin(orgAdminUser);
     cy.intercept({ method: 'GET', pathname: getEndpoint(USER) }, { body: stripeVerifiedOrgAdmin });
     cy.intercept({ method: 'GET', pathname: getEndpoint(LIST_STYLES) }, {});
-
     cy.intercept(
-      { method: 'GET', pathname: `${getEndpoint(DRAFT_PAGE_DETAIL)}**` },
+      { method: 'GET', pathname: `${getEndpoint(LIST_PAGES)}**` },
       { fixture: 'pages/live-page-1', statusCode: 200 }
     ).as('getPage');
 
@@ -79,6 +68,13 @@ describe('Contribution page edit', () => {
     cy.getByTestId('edit-page-button');
     cy.getByTestId('save-page-button');
     cy.getByTestId('delete-page-button');
+  });
+
+  it('should disable the save button before any edits are made', () => {
+    // The disabled button isn't a button at all--just a <div>.
+
+    cy.get('button[data-testid="save-page-button"]').should('not.exist');
+    cy.get('div[data-testid="save-page-button"]').should('exist');
   });
 
   it('should default to the edit interface once a page has loaded', () => {
@@ -115,7 +111,7 @@ describe('Contribution page edit', () => {
       cy.intercept({ method: 'GET', pathname: getEndpoint(USER) }, { body: orgAdminWithContentFlag });
       cy.intercept({ method: 'GET', pathname: getEndpoint(LIST_STYLES) }, {});
       cy.intercept(
-        { method: 'GET', pathname: `${getEndpoint(DRAFT_PAGE_DETAIL)}**` },
+        { method: 'GET', pathname: `${getEndpoint(LIST_PAGES)}**` },
         { body: { ...livePage, currency: null }, statusCode: 200 }
       ).as('getPage');
 
@@ -146,6 +142,39 @@ describe('Contribution page edit', () => {
     it('should render layout and setup tabs', () => {
       cy.getByTestId('edit-layout-tab');
       cy.getByTestId('edit-setup-tab');
+    });
+
+    it('should add elements to the editor tab', () => {
+      let existingElementsLength = 0;
+
+      cy.findByRole('tabpanel', { name: 'Layout' }).then((layoutPanel) => {
+        cy.wrap(layoutPanel)
+          .find('ul li')
+          .then(({ length }) => (existingElementsLength = length))
+          .then(() => cy.findByRole('tabpanel', { name: 'Layout' }).findByRole('button', { name: 'Add Block' }).click())
+          .then(() => cy.getByTestId('add-page-modal').within(() => cy.getByTestId('page-item-DRichText').click()))
+          .then(() =>
+            cy.findByRole('tabpanel', { name: 'Layout' }).within(() => {
+              cy.get('ul li').should('have.length', existingElementsLength + 1);
+            })
+          );
+      });
+    });
+
+    it('should add elements to the page preview', () => {
+      let existingElementsLength = 0;
+
+      cy.getByTestId('donation-page')
+        .find('main ul > li')
+        .then(({ length }) => (existingElementsLength = length))
+        .then(() => cy.findByRole('tabpanel', { name: 'Layout' }).findByRole('button', { name: 'Add Block' }).click())
+        .then(() => cy.getByTestId('add-page-modal').within(() => cy.getByTestId('page-item-DRichText').click()))
+        .then(() =>
+          cy
+            .getByTestId('donation-page')
+            .find('main ul > li')
+            .should('have.length', existingElementsLength + 1)
+        );
     });
 
     it('should render element detail when edit item is clicked', () => {
@@ -203,52 +232,43 @@ describe('Contribution page edit', () => {
 
     it('should show existing frequencies and amounts', () => {
       for (const frequency in options) {
-        if (frequency === 'other') continue;
-        cy.contains(getFrequencyAdjective(frequency))
-          .siblings('ul')
-          .within(() =>
-            options[frequency].forEach((amount) => {
-              cy.contains(amount);
-            })
-          );
+        if (frequency === 'other') {
+          continue;
+        }
+
+        cy.getByTestId(`amount-interval-${frequency}`).within(() =>
+          options[frequency].forEach((amount) => {
+            cy.contains(amount);
+          })
+        );
       }
     });
 
-    it('should remove an amount when clicking x', () => {
+    it('should remove an amount when the remove button is clicked', () => {
       const amountToRemove = 120;
-      cy.contains('One time')
-        .siblings('ul')
-        .within(() => {
-          cy.contains(amountToRemove).find("[data-testid='x-button']").click();
-          cy.contains(amountToRemove).should('not.exist');
-        });
+
+      cy.getByTestId('amount-interval-one_time').within(() => {
+        cy.findByRole('button', { name: `Remove ${amountToRemove}` }).click();
+        cy.contains(amountToRemove).should('not.exist');
+      });
     });
 
     it('should add an amount', () => {
       const amountToAdd = 5;
-      cy.contains('One time')
-        .siblings('div')
-        .within(() => {
-          cy.getByTestId('amount-input').type(amountToAdd);
-          cy.getByTestId('add-button').click();
-        });
-      cy.contains('One time')
-        .siblings('ul')
-        .within(() => {
-          cy.contains(amountToAdd);
-        });
+
+      cy.getByTestId('amount-interval-one_time').within(() => {
+        cy.findByLabelText('Add amount').type(amountToAdd);
+        cy.findByLabelText('Add').click();
+        cy.contains(amountToAdd);
+      });
     });
 
     it('should prevent user from removing last amount in list', () => {
-      cy.contains('One time')
-        .siblings('ul')
-        .children()
-        .each(() => {
-          cy.getByTestId('x-button').first().click();
-        });
-
-      cy.contains('One time').siblings('ul').children();
-      cy.findByRole('button', { name: 'Cancel' }).click();
+      cy.getByTestId('amount-interval-one_time').within(() => {
+        cy.findAllByRole('button', { name: /Remove/ }).each((el) => cy.wrap(el).click({ force: true }));
+        // This is the last amount in the fixture.
+        cy.contains('365');
+      });
     });
   });
 
@@ -318,10 +338,9 @@ describe('Contribution page edit', () => {
 
       cy.forceLogin(orgAdminUser);
       cy.intercept({ method: 'GET', pathname: getEndpoint(USER) }, { body: orgAdminWithContentFlag });
-      cy.intercept(
-        { method: 'GET', pathname: `${getEndpoint(DRAFT_PAGE_DETAIL)}**` },
-        { body: page, statusCode: 200 }
-      ).as('getPage');
+      cy.intercept({ method: 'GET', pathname: `${getEndpoint(LIST_PAGES)}**` }, { body: page, statusCode: 200 }).as(
+        'getPage'
+      );
       cy.intercept(`**/${LIST_STYLES}**`, {});
 
       cy.visit(testEditPageUrl);
@@ -341,7 +360,7 @@ describe('Contribution page edit', () => {
 
       // Remove element from elements list and set as fixture
       page.elements = page.elements.filter((el) => el.type !== missingElementType);
-      cy.intercept({ method: 'GET', pathname: getEndpoint(DRAFT_PAGE_DETAIL) }, { body: page, statusCode: 200 }).as(
+      cy.intercept({ method: 'GET', pathname: `${getEndpoint(LIST_PAGES)}**` }, { body: page, statusCode: 200 }).as(
         'getPageDetail'
       );
       cy.intercept(`**/${LIST_STYLES}**`, {});
@@ -362,13 +381,12 @@ describe('Contribution page edit', () => {
       cy.getByTestId('save-page-button').click();
 
       // Expect alert
-      cy.getByTestId('missing-elements-alert').should('exist');
-      cy.getByTestId('missing-elements-alert').contains('Payment');
+      cy.findByRole('alert').should('exist').contains('Payment');
     });
 
     it('should open appropriate tab for error and scroll to first error', () => {
       const fixture = { ...unpublishedPage, plan: { ...unpublishedPage.plan, custom_thank_you_page_enabled: true } };
-      cy.intercept({ method: 'GET', pathname: getEndpoint(DRAFT_PAGE_DETAIL) }, { body: fixture }).as('getPageDetail');
+      cy.intercept({ method: 'GET', pathname: `${getEndpoint(LIST_PAGES)}**` }, { body: fixture }).as('getPageDetail');
       cy.forceLogin(orgAdminUser);
       cy.intercept(`**/${LIST_STYLES}**`, {});
 
@@ -377,7 +395,7 @@ describe('Contribution page edit', () => {
       cy.wait('@getPageDetail');
       cy.getByTestId('edit-page-button').click();
       cy.getByTestId('edit-setup-tab').click({ force: true });
-      cy.getByTestId('thank-you-redirect-link-input').type('not a valid url');
+      cy.getByTestId('thank-you-redirect-link-input').type('https://valid-url-but-intercept-will-dislikeit.org');
       cy.get('#edit-setup-tab-panel').within(() => cy.findByRole('button', { name: 'Update' }).click({ force: true }));
 
       // Before we save, let's close the tab so we can more meaningfully assert its presence later.
@@ -407,7 +425,7 @@ describe('Contribution page edit', () => {
       cy.intercept({ method: 'GET', pathname: getEndpoint(LIST_STYLES) }, {});
 
       cy.intercept(
-        { method: 'GET', pathname: getEndpoint(DRAFT_PAGE_DETAIL) },
+        { method: 'GET', pathname: `${getEndpoint(LIST_PAGES)}**` },
         { fixture: 'pages/live-page-1', statusCode: 200 }
       ).as('getPageDetail');
       cy.visit(testEditPageUrl);
@@ -430,31 +448,50 @@ describe('Contribution page edit', () => {
       cy.getByTestId('edit-sidebar-tab').click({ force: true });
     });
 
-    it('Can add an element', () => {
-      cy.intercept({ method: 'GET', pathname: getEndpoint(LIST_STYLES) }, {});
+    it('should add elements to the editor tab', () => {
+      let existingElementsLength = 0;
 
-      cy.findByRole('tab', { name: 'Sidebar' }).click({ force: true });
-      cy.findByRole('tabpanel', { name: 'Sidebar' }).findByRole('button', { name: 'Add Block' }).click();
-      cy.getByTestId('add-page-modal').within(() => {
-        cy.getByTestId('page-item-DRichText').click();
-      });
-      cy.getByTestId('preview-page-button').click();
-      cy.get('[data-testid=donation-page__sidebar] > ul > li').should('have.length', 3);
+      cy.getByTestId('edit-sidebar-tab')
+        .click({ force: true })
+        .then(() =>
+          cy.findByRole('tabpanel', { name: 'Sidebar' }).then((sidebarPanel) => {
+            cy.wrap(sidebarPanel)
+              .find('ul li')
+              .then(({ length }) => (existingElementsLength = length))
+              .then(() =>
+                cy.findByRole('tabpanel', { name: 'Sidebar' }).findByRole('button', { name: 'Add Block' }).click()
+              )
+              .then(() => cy.getByTestId('add-page-modal').within(() => cy.getByTestId('page-item-DRichText').click()))
+              .then(() =>
+                cy.findByRole('tabpanel', { name: 'Sidebar' }).within(() => {
+                  cy.get('ul li').should('have.length', existingElementsLength + 1);
+                })
+              );
+          })
+        );
     });
 
-    it('can be added to the page', () => {
-      cy.intercept({ method: 'GET', pathname: getEndpoint(LIST_STYLES) }, {});
+    it('should add elements to the page preview', () => {
+      let existingElementsLength = 0;
 
-      cy.getByTestId('edit-page-button').click({ force: true });
-      cy.findByRole('tab', { name: 'Sidebar' }).click({ force: true });
-      cy.editElement('DRichText');
-      cy.get('[class=DraftEditor-editorContainer]').type('New Rich Text');
-      cy.findByRole('button', { name: 'Update' }).click();
-      cy.getByTestId('preview-page-button').click();
-      cy.get('[data-testid=donation-page__sidebar] > ul > li')
-        .should('have.length', 2)
-        .first()
-        .should('contain.text', 'New Rich Text');
+      cy.getByTestId('edit-sidebar-tab')
+        .click({ force: true })
+        .then(() =>
+          cy
+            .getByTestId('donation-page__sidebar')
+            .find('ul > li')
+            .then(({ length }) => (existingElementsLength = length))
+            .then(() =>
+              cy.findByRole('tabpanel', { name: 'Sidebar' }).findByRole('button', { name: 'Add Block' }).click()
+            )
+            .then(() => cy.getByTestId('add-page-modal').within(() => cy.getByTestId('page-item-DRichText').click()))
+            .then(() =>
+              cy
+                .getByTestId('donation-page__sidebar')
+                .find('ul > li')
+                .should('have.length', existingElementsLength + 1)
+            )
+        );
     });
   });
 });
@@ -474,7 +511,7 @@ describe('Edit interface: Setup', () => {
     cy.forceLogin(orgAdminStripeVerifiedLoginSuccess);
     cy.intercept({ method: 'GET', pathname: getEndpoint(USER) }, { body: orgAdminStripeVerifiedLoginSuccess.user });
     cy.intercept(
-      { method: 'GET', pathname: getEndpoint(DRAFT_PAGE_DETAIL) },
+      { method: 'GET', pathname: `${getEndpoint(LIST_PAGES)}**` },
       { body: pageDetailBody, statusCode: 200 }
     ).as('getPageDetail');
     cy.intercept({ method: 'GET', pathname: getEndpoint(LIST_STYLES) }, {});
@@ -586,7 +623,7 @@ describe('Edit interface: Setup', () => {
     cy.intercept({ method: 'GET', pathname: getEndpoint(USER) }, { body: orgAdminWithContentFlag });
     cy.intercept({ method: 'GET', pathname: getEndpoint(LIST_STYLES) }, {});
     cy.intercept(
-      { method: 'GET', pathname: `${getEndpoint(DRAFT_PAGE_DETAIL)}**` },
+      { method: 'GET', pathname: `${getEndpoint(LIST_PAGES)}**` },
       {
         body: {
           ...livePage,
@@ -641,7 +678,7 @@ describe('Edit interface: Setup', () => {
     cy.intercept({ method: 'GET', pathname: getEndpoint(USER) }, { body: orgAdminWithContentFlag });
     cy.intercept({ method: 'GET', pathname: getEndpoint(LIST_STYLES) }, {});
     cy.intercept(
-      { method: 'GET', pathname: `${getEndpoint(DRAFT_PAGE_DETAIL)}**` },
+      { method: 'GET', pathname: `${getEndpoint(LIST_PAGES)}**` },
       {
         body: {
           ...livePage,
@@ -693,7 +730,7 @@ describe('Edit interface: Styles', () => {
     cy.forceLogin(orgAdminStripeVerifiedLoginSuccess);
     cy.intercept({ method: 'GET', pathname: getEndpoint(USER) }, { body: orgAdminStripeVerifiedLoginSuccess.user });
     cy.intercept(
-      { method: 'GET', pathname: getEndpoint(DRAFT_PAGE_DETAIL) },
+      { method: 'GET', pathname: `${getEndpoint(LIST_PAGES)}**` },
       { body: pageDetailBody, statusCode: 200 }
     ).as('getPageDetail');
     cy.intercept({ method: 'GET', pathname: getEndpoint(LIST_STYLES) }, [{ name: 'mock-style' }]);
@@ -734,9 +771,8 @@ describe('Edit interface: Styles', () => {
       cy.intercept(
         { method: 'POST', pathname: getEndpoint(LIST_STYLES) },
         { body: { name: 'mock-name-error' }, statusCode: 400 }
-      ).as('createStyle');
+      );
       cy.getByTestId('save-styles-button').click();
-      cy.wait('@createStyle');
       cy.contains('mock-name-error');
     });
 
@@ -761,7 +797,7 @@ describe('Contribution page delete', () => {
 
   it('should delete an unpublished page when delete button is pushed', () => {
     cy.intercept(
-      { method: 'GET', pathname: getEndpoint(DRAFT_PAGE_DETAIL) },
+      { method: 'GET', pathname: `${getEndpoint(LIST_PAGES)}**` },
       { fixture: 'pages/unpublished-page-1', statusCode: 200 }
     ).as('getPage');
     cy.intercept({ method: 'GET', pathname: getEndpoint(LIST_STYLES) }, {});
@@ -778,7 +814,7 @@ describe('Contribution page delete', () => {
 
   it('should show a confirmation modal and delete a published page when delete button is pushed', () => {
     cy.intercept(
-      { method: 'GET', pathname: getEndpoint(DRAFT_PAGE_DETAIL) },
+      { method: 'GET', pathname: `${getEndpoint(LIST_PAGES)}**` },
       { fixture: 'pages/live-page-1', statusCode: 200 }
     ).as('getPage');
     cy.intercept(`**/${LIST_STYLES}**`, {});
@@ -801,7 +837,7 @@ describe('Page load side effects', () => {
     cy.forceLogin(orgAdminUser);
     cy.intercept({ method: 'GET', pathname: getEndpoint(USER) }, { body: orgAdminWithContentFlag });
     cy.intercept(
-      { method: 'GET', pathname: getEndpoint(DRAFT_PAGE_DETAIL) },
+      { method: 'GET', pathname: `${getEndpoint(LIST_PAGES)}**` },
       { fixture: 'pages/live-page-1', statusCode: 200 }
     ).as('getPageDetail');
     cy.intercept(`**/${LIST_STYLES}**`, {});
@@ -821,7 +857,7 @@ describe('ReasonEditor', () => {
     cy.forceLogin(orgAdminUser);
     cy.intercept({ method: 'GET', pathname: getEndpoint(USER) }, { body: orgAdminWithContentFlag });
     cy.intercept(
-      { method: 'GET', pathname: getEndpoint(DRAFT_PAGE_DETAIL) },
+      { method: 'GET', pathname: `${getEndpoint(LIST_PAGES)}**` },
       { fixture: 'pages/live-page-1', statusCode: 200 }
     ).as('getPageDetail');
     cy.intercept(`**/${LIST_STYLES}**`, {});

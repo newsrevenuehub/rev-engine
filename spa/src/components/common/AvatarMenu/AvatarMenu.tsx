@@ -2,10 +2,14 @@ import { MouseEvent, useMemo, useState } from 'react';
 import PropTypes, { InferProps } from 'prop-types';
 import MoreVertIcon from '@material-ui/icons/MoreVert';
 import ContactSupportOutlinedIcon from '@material-ui/icons/ContactSupportOutlined';
+import SyncIcon from '@material-ui/icons/Sync';
+import { useHistory } from 'react-router-dom';
 
 import LogoutIcon from 'assets/icons/logout.svg';
 import onLogout from 'components/authentication/logout';
 import { FAQ_URL } from 'constants/helperUrls';
+import { USER_ROLE_HUB_ADMIN_TYPE } from 'constants/authConstants';
+import { SETTINGS } from 'routes';
 
 import {
   Container,
@@ -16,7 +20,8 @@ import {
   MenuItem,
   ListItemIcon,
   Typography,
-  LogoutIconWrapper
+  LogoutIconWrapper,
+  Divider
 } from './AvatarMenu.styled';
 
 export type AvatarMenuProps = InferProps<typeof AvatarMenuPropTypes>;
@@ -24,9 +29,13 @@ export type AvatarMenuProps = InferProps<typeof AvatarMenuPropTypes>;
 export const capitalizeInitial = (text?: string) => (text ? text[0].toUpperCase() : '');
 
 const AvatarMenu = ({ user, className }: AvatarMenuProps) => {
+  const history = useHistory();
   const [anchorEl, setAnchorEl] = useState<null | HTMLElement>(null);
   const open = Boolean(anchorEl);
   const id = open ? 'avatar-menu-popover' : undefined;
+
+  const isHubAdmin = user?.role_type?.includes(USER_ROLE_HUB_ADMIN_TYPE);
+  const userHasSingleOrg = user?.organizations?.length === 1;
 
   const avatarInitials = useMemo(
     () =>
@@ -46,6 +55,10 @@ const AvatarMenu = ({ user, className }: AvatarMenuProps) => {
 
   const handleFAQ = () => {
     window.open(FAQ_URL, '_blank', 'noopener, noreferrer');
+  };
+
+  const handleIntegrations = () => {
+    history.push(SETTINGS.INTEGRATIONS);
   };
 
   return (
@@ -70,6 +83,17 @@ const AvatarMenu = ({ user, className }: AvatarMenuProps) => {
       >
         <ModalHeader>Settings</ModalHeader>
         <ListWrapper role="menu">
+          {userHasSingleOrg && !isHubAdmin && (
+            <>
+              <MenuItem onClick={handleIntegrations} aria-label="Integrations">
+                <ListItemIcon>
+                  <SyncIcon fontSize="small" />
+                </ListItemIcon>
+                <Typography variant="inherit">Integrations</Typography>
+              </MenuItem>
+              <Divider />
+            </>
+          )}
           <MenuItem onClick={handleFAQ} aria-label="FAQ">
             <ListItemIcon>
               <ContactSupportOutlinedIcon fontSize="small" />
@@ -92,7 +116,9 @@ const AvatarMenuPropTypes = {
   user: PropTypes.shape({
     firstName: PropTypes.string,
     lastName: PropTypes.string,
-    email: PropTypes.string.isRequired
+    email: PropTypes.string.isRequired,
+    organizations: PropTypes.arrayOf(PropTypes.object),
+    role_type: PropTypes.arrayOf(PropTypes.string)
   }),
   className: PropTypes.string
 };

@@ -1,7 +1,7 @@
 import * as S from './FrequencyEditor.styled';
 import { useTheme } from 'styled-components';
 // Context
-import { useEditInterfaceContext } from 'components/pageEditor/editInterface/EditInterface';
+import { useEditInterfaceContext } from 'components/pageEditor/editInterface/EditInterfaceContextProvider';
 
 import { CONTRIBUTION_INTERVALS } from 'constants/contributionIntervals';
 

@@ -1,6 +1,6 @@
 import styled from 'styled-components';
 import { TextField } from 'components/base';
-import InfoTooltip from './InfoTooltip';
+import BaseInfoTooltip from './InfoTooltip';
 
 export const StyledTextField = styled(TextField)`
   && {
@@ -27,11 +27,11 @@ export const FillRow = styled.div`
   grid-column: 1 / span 2;
 `;
 
-export const TaxStatusContainer = styled.div`
+export const TooltipContainer = styled.div`
   position: relative;
 `;
 
-export const TaxStatusInfoTooltip = styled(InfoTooltip)`
+export const InfoTooltip = styled(BaseInfoTooltip)`
   position: absolute;
   top: 0;
   right: -10px;

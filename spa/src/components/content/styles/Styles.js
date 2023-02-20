@@ -16,16 +16,17 @@ import { LIST_STYLES } from 'ajax/endpoints';
 import GlobalLoading from 'elements/GlobalLoading';
 import useUser from 'hooks/useUser';
 import { USER_ROLE_HUB_ADMIN_TYPE, USER_SUPERUSER_TYPE } from 'constants/authConstants';
+import { isStringInStringCaseInsensitive } from 'utilities/isStringInString';
 
 export const filterStyles = (stylesRaw, qry) => {
   return qry
     ? orderBy(
         stylesRaw.filter((style) => {
           return (
-            style.name.toLowerCase().indexOf(qry) !== -1 ||
+            isStringInStringCaseInsensitive(style.name, qry) ||
             (style.revenue_program &&
-              (style.revenue_program.slug.toLowerCase().indexOf(qry) !== -1 ||
-                style.revenue_program.name.toLowerCase().indexOf(qry) !== -1))
+              (isStringInStringCaseInsensitive(style.revenue_program.slug, qry) ||
+                isStringInStringCaseInsensitive(style.revenue_program.name, qry)))
           );
         }),
         'name'
@@ -42,7 +43,7 @@ async function fetchStyles() {
 function Styles({ setShowEditStylesModal, setStyleToEdit }) {
   const { user, isLoading: userLoading } = useUser();
   const alert = useAlert();
-  const [styleSearchQuery, setStyleSearchQuery] = useState([]);
+  const [styleSearchQuery, setStyleSearchQuery] = useState('');
 
   const { data: styles, isLoading: stylesLoading } = useQuery(['styles'], fetchStyles, {
     initialData: [],
@@ -84,9 +85,9 @@ function Styles({ setShowEditStylesModal, setStyleToEdit }) {
         />
         {/* TODO: [DEV-2559] Make styles be pre-selected and disabled */}
         {!!styles.length &&
-          stylesFiltered.map((style) => (
+          stylesFiltered.map((style, index) => (
             <EditButton
-              key={style.id}
+              key={`${style.id}${styles.name}${index}`}
               name={style.name}
               style={style}
               type={BUTTON_TYPE.STYLE}

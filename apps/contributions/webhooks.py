@@ -101,7 +101,7 @@ class StripeWebhookProcessor:
         else:
             self.handle_payment_intent_succeded_for_subscription(contribution)
 
-    def handle_payment_intent_succeded_for_subscription(self, contribution: Contribution) -> None:
+    def handle_payment_intent_succeeded_for_subscription(self, contribution: Contribution) -> None:
         contribution.last_payment_date = datetime.datetime.fromtimestamp(
             self.obj_data["created"], tz=datetime.timezone.utc
         )

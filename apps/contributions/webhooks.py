@@ -96,6 +96,58 @@ class StripeWebhookProcessor:
 
     def handle_payment_intent_succeeded(self):
         contribution = self.get_contribution_from_event()
+        if contribution.interval == ContributionInterval.ONE_TIME:
+            self.handle_payment_intent_succeeded_for_one_time(contribution)
+        else:
+            self.handle_payment_intent_succeded_for_subscription(contribution)
+
+    def handle_payment_intent_succeded_for_subscription(self, contribution: Contribution) -> None:
+        contribution.last_payment_date = datetime.datetime.fromtimestamp(
+            self.obj_data["created"], tz=datetime.timezone.utc
+        )
+        update_fields = ["modified", "last_payment_date"]
+        # if its status is paid, we can deduce that this is not the first charge for the subscription
+        if contribution.status == ContributionStatus.PAID:
+            logger.info(
+                (
+                    "`StripeWebhookProcessor.handle_payment_intent_succeded_for_subscription` "
+                    "was called for contribution (ID: %s) that has already had a successful payment."
+                ),
+                contribution.id,
+            )
+            contribution.last_payment_date = datetime.datetime.fromtimestamp(
+                self.obj_data["created"], tz=datetime.timezone.utc
+            )
+            contribution.save(update_fields=update_fields)
+            return
+        else:
+            logger.info(
+                (
+                    "`StripeWebhookProcessor.handle_payment_intent_succeded_for_subscription` "
+                    "was called for contribution (ID: %s) whose status is not paid but is %s."
+                ),
+                contribution.id,
+                contribution.status,
+            )
+            contribution.payment_provider_data = self.event
+            contribution.provider_payment_id = self.obj_data["id"]
+            contribution.provider_payment_method_id = self.obj_data.get("payment_method")
+            contribution.last_payment_date = datetime.datetime.fromtimestamp(
+                self.obj_data["created"], tz=datetime.timezone.utc
+            )
+            contribution.status = ContributionStatus.PAID
+            update_fields.extend(
+                [
+                    "status",
+                    "provider_payment_id",
+                    "provider_payment_method_id",
+                    "payment_provider_data",
+                ]
+            )
+            contribution.handle_thank_you_email()
+            contribution.save(update_fields=update_fields)
+
+    def handle_payment_intent_succeeded_for_one_time(self, contribution: Contribution) -> None:
         contribution.payment_provider_data = self.event
         contribution.provider_payment_id = self.obj_data["id"]
         contribution.provider_payment_method_id = self.obj_data.get("payment_method")

@@ -131,6 +131,27 @@ export interface FrequencyElement extends ContributionPageElement {
   }[];
 }
 
+export interface ReasonElement extends ContributionPageElement {
+  content: {
+    /**
+     * Ask if this contribution is in honor of someone?
+     */
+    askHonoree?: boolean;
+    /**
+     * Ask if this contribution is in memory of someone?
+     */
+    askInMemoryOf?: boolean;
+    /**
+     * Ask contributors for a reason to give?
+     */
+    askReason?: boolean;
+    /**
+     * Presupplied reasons to give.
+     */
+    reasons: string[];
+  };
+}
+
 /**
  * A configured payment provider for a revenue program.
  */

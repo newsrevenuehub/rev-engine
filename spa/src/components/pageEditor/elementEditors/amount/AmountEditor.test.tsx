@@ -1,7 +1,6 @@
 import userEvent from '@testing-library/user-event';
 import { AmountElement } from 'hooks/useContributionPage';
 import { axe } from 'jest-axe';
-import { element } from 'prop-types';
 import { render, screen } from 'test-utils';
 import { ContributionIntervalList } from 'utilities/getPageContributionIntervals';
 import AmountEditor, { AmountEditorProps } from './AmountEditor';
@@ -35,7 +34,10 @@ function tree(props?: Partial<AmountEditorProps>) {
     <AmountEditor
       contributionIntervals={contributionIntervals}
       elementContent={elementContent}
+      elementRequiredFields={[]}
       onChangeElementContent={jest.fn()}
+      onChangeElementRequiredFields={jest.fn()}
+      setUpdateDisabled={jest.fn()}
       {...props}
     />
   );

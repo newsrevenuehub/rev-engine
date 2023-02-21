@@ -1,22 +1,12 @@
-import PropTypes, { InferProps } from 'prop-types';
 import { ChangeEvent } from 'react';
 import { Checkbox } from 'components/base';
 import { ContributionInterval } from 'constants/contributionIntervals';
 import { AmountElement } from 'hooks/useContributionPage';
-import { ContributionIntervalList } from 'utilities/getPageContributionIntervals';
 import { AllowOtherFormControlLabel, Intervals, Tip } from './AmountEditor.styled';
 import AmountInterval from './AmountInterval';
+import { ElementDetailEditorProps } from 'components/pageEditor/editInterface/ElementEditor.types';
 
-const AmountEditorPropTypes = {
-  contributionIntervals: PropTypes.array.isRequired,
-  elementContent: PropTypes.object.isRequired
-};
-
-export interface AmountEditorProps extends InferProps<typeof AmountEditorPropTypes> {
-  contributionIntervals: ContributionIntervalList;
-  elementContent: AmountElement['content'];
-  onChangeElementContent: (value: AmountElement['content']) => void;
-}
+export type AmountEditorProps = ElementDetailEditorProps<AmountElement['content']>;
 
 export function AmountEditor({ contributionIntervals, elementContent, onChangeElementContent }: AmountEditorProps) {
   function handleAddAmount(interval: ContributionInterval, value: number) {
@@ -83,5 +73,4 @@ export function AmountEditor({ contributionIntervals, elementContent, onChangeEl
   );
 }
 
-AmountEditor.propTypes = AmountEditorPropTypes;
 export default AmountEditor;

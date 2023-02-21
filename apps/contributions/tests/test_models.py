@@ -626,6 +626,8 @@ class TestContributionModel:
                     "contributor_email": contribution.contributor.email,
                     "tax_id": contribution.donation_page.revenue_program.tax_id,
                     "magic_link": magic_link,
+                    "fiscal_status": contribution.donation_page.revenue_program.fiscal_status,
+                    "fiscal_sponsor_name": contribution.donation_page.revenue_program.fiscal_sponsor_name,
                 },
             )
             assert len(mail.outbox) == 1

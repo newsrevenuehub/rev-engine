@@ -66,41 +66,42 @@ describe('FrequencyEditor', () => {
     });
   });
 
-  describe.each([['one_time', 'One time', { value: CONTRIBUTION_INTERVALS.ONE_TIME, displayName: 'One time' }]])(
-    'The %s default radio button',
-    (frequencyValue, name, frequencyContent) => {
-      it('is selected if it is the default in element content', () => {
-        tree({ elementContent: [{ ...frequencyContent, isDefault: true }] });
-        expect(screen.getByRole('radio', { name: 'One time' })).toBeChecked();
+  describe.each([
+    ['one_time', 'One time', { value: CONTRIBUTION_INTERVALS.ONE_TIME, displayName: 'One time' }],
+    ['month', 'Monthly', { value: CONTRIBUTION_INTERVALS.MONTHLY, displayName: 'Monthly' }],
+    ['year', 'Yearly', { value: CONTRIBUTION_INTERVALS.ANNUAL, displayName: 'Yearly' }]
+  ])('The %s default radio button', (frequencyValue, name, frequencyContent) => {
+    it('is selected if it is the default in element content', () => {
+      tree({ elementContent: [{ ...frequencyContent, isDefault: true }] });
+      expect(screen.getByRole('radio', { name })).toBeChecked();
+    });
+
+    it("isn't selected if it isn't the default in element content", () => {
+      tree({
+        elementContent: [{ ...frequencyContent, isDefault: false }]
       });
+      expect(screen.getByRole('radio', { name })).not.toBeChecked();
+    });
 
-      it("isn't selected if it isn't the default in element content", () => {
-        tree({
-          elementContent: [{ ...frequencyContent, isDefault: false }]
-        });
-        expect(screen.getByRole('radio', { name })).not.toBeChecked();
+    it("changes element content so it's the default when selected by the user", () => {
+      const onChangeElementContent = jest.fn();
+
+      tree({
+        onChangeElementContent,
+        elementContent: [unrelatedContent, { ...frequencyContent, isDefault: false }]
       });
-
-      it("changes element content so it's the default when selected by the user", () => {
-        const onChangeElementContent = jest.fn();
-
-        tree({
-          onChangeElementContent,
-          elementContent: [unrelatedContent, { ...frequencyContent, isDefault: false }]
-        });
-        expect(onChangeElementContent).not.toBeCalled();
-        userEvent.click(screen.getByRole('radio', { name }));
-        expect(onChangeElementContent.mock.calls).toEqual([
+      expect(onChangeElementContent).not.toBeCalled();
+      userEvent.click(screen.getByRole('radio', { name }));
+      expect(onChangeElementContent.mock.calls).toEqual([
+        [
           [
-            [
-              { ...unrelatedContent, isDefault: false },
-              { ...frequencyContent, isDefault: true }
-            ]
+            { ...unrelatedContent, isDefault: false },
+            { ...frequencyContent, isDefault: true }
           ]
-        ]);
-      });
-    }
-  );
+        ]
+      ]);
+    });
+  });
 
   it('disables updates if no frequencies are enabled', () => {
     const setUpdateDisabled = jest.fn();

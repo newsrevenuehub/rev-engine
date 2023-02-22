@@ -182,7 +182,7 @@ describe('Contribution page edit', () => {
       cy.getByTestId('element-properties').should('exist');
     });
 
-    describe.only('Frequency editor', () => {
+    describe('Frequency editor', () => {
       beforeEach(() => cy.editElement('DFrequency'));
 
       it('should render the frequency editor when edit item is clicked', () => {

@@ -79,6 +79,10 @@ class RevenueProgramListInlineSerializer(serializers.ModelSerializer):
             "google_analytics_v3_id",
             "google_analytics_v4_id",
             "facebook_pixel_id",
+            "tax_id",
+            "non_profit",
+            "fiscal_status",
+            "fiscal_sponsor_name",
         ]
 
 
@@ -89,7 +93,17 @@ class RevenueProgramInlineSerializer(serializers.ModelSerializer):
 
     class Meta:
         model = RevenueProgram
-        fields = ["id", "name", "slug", "organization", "payment_provider_stripe_verified"]
+        fields = [
+            "id",
+            "name",
+            "slug",
+            "organization",
+            "payment_provider_stripe_verified",
+            "tax_id",
+            "non_profit",
+            "fiscal_status",
+            "fiscal_sponsor_name",
+        ]
 
 
 class RevenueProgramSerializer(serializers.ModelSerializer):
@@ -101,13 +115,13 @@ class RevenueProgramSerializer(serializers.ModelSerializer):
 
     class Meta:
         model = RevenueProgram
-        fields = ["id", "name", "slug", "tax_id"]
+        fields = ["id", "name", "slug", "tax_id", "fiscal_status", "fiscal_sponsor_name"]
 
 
 class RevenueProgramPatchSerializer(serializers.ModelSerializer):
     class Meta:
         model = RevenueProgram
-        fields = ["tax_id"]
+        fields = ["tax_id", "fiscal_status", "fiscal_sponsor_name"]
 
 
 class BenefitDetailSerializer(serializers.ModelSerializer):

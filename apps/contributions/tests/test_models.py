@@ -681,14 +681,26 @@ class TestContributionModel:
             f"Amount Contributed: ${contribution.formatted_amount}/{contribution.interval}",
         ]
         if revenue_program.non_profit:
-            email_expectations.extend(
-                [
-                    "This receipt may be used for tax purposes.",
-                    f"{contribution.donation_page.revenue_program.name} is a 501(c)(3) nonprofit organization",
-                ]
-            )
-            if tax_id:
-                email_expectations.append(f"with a Federal Tax ID #{tax_id}")
+            if revenue_program.fiscal_status == FiscalStatusChoices.FISCALLY_SPONSORED:
+                email_expectations.extend(
+                    [
+                        "This receipt may be used for tax purposes.",
+                        f"All contributions or gifts to {contribution.donation_page.revenue_program.name} are tax deductible through our fiscal sponsor {contribution.donation_page.revenue_program.fiscal_sponsor_name}.",
+                    ]
+                )
+                if tax_id:
+                    email_expectations.append(
+                        f"{contribution.donation_page.revenue_program.fiscal_sponsor_name}'s tax ID is {tax_id}"
+                    )
+            else:
+                email_expectations.extend(
+                    [
+                        "This receipt may be used for tax purposes.",
+                        f"{contribution.donation_page.revenue_program.name} is a 501(c)(3) nonprofit organization",
+                    ]
+                )
+                if tax_id:
+                    email_expectations.append(f"with a Federal Tax ID #{tax_id}")
         else:
             email_expectations.append(
                 f"Contributions to {contribution.donation_page.revenue_program.name} are not deductible as charitable donations."

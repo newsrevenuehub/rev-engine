@@ -38,7 +38,6 @@ function PaymentEditor({ elementContent, onChangeElementContent }: PaymentEditor
         }
         disabled={!elementContent.offerPayFees}
         label="Selected by default"
-        $smallLabel
       />
     </div>
   );

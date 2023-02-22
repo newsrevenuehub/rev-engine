@@ -99,7 +99,7 @@ class StripeWebhookProcessor:
         if contribution.interval == ContributionInterval.ONE_TIME:
             self.handle_payment_intent_succeeded_for_one_time(contribution)
         else:
-            self.handle_payment_intent_succeded_for_subscription(contribution)
+            self.handle_payment_intent_succeeded_for_subscription(contribution)
 
     def handle_payment_intent_succeeded_for_subscription(self, contribution: Contribution) -> None:
         contribution.last_payment_date = datetime.datetime.fromtimestamp(

@@ -238,6 +238,22 @@ export interface RevenueProgram {
    * URL for the revenue program's web site.
    */
   website_url: string;
+  /**
+   * Organization ID from which the Revenue Program belongs.
+   */
+  organization: number;
+  /**
+   * Fiscal status that is "nonprofit", "for-profit" or "fiscally sponsored".
+   */
+  fiscal_status: string;
+  /**
+   * Fiscal sponsor name. Will only have a non-null value if fiscal_status === "fiscally sponsored"
+   */
+  fiscal_sponsor_name: string;
+  /**
+   * EIN tax ID.
+   */
+  tax_id: string;
 }
 
 /**

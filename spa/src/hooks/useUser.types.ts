@@ -3,15 +3,13 @@ import { UserRole } from 'constants/authConstants';
 import { EnginePlan, RevenueProgram } from './useContributionPage';
 
 export interface Organization {
+  id: number;
   name: string;
   slug: string;
   plan: EnginePlan;
   show_connected_to_mailchimp: boolean;
   show_connected_to_salesforce: boolean;
   show_connected_to_slack: boolean;
-  // TODO: update when BE ready
-  fiscal_status: string;
-  tax_id: string;
 }
 
 export interface User {

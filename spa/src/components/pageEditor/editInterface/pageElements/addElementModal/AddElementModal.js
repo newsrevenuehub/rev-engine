@@ -22,7 +22,10 @@ import PageItem from 'components/pageEditor/editInterface/pageElements/PageItem'
 const defaultContent = {
   // Default reason blocks to ask for a reason at least, and have an empty list
   // of pre-supplied reasons.
-  DReason: { askReason: true, reasons: [] }
+  DReason: { askReason: true, reasons: [] },
+  // Default swag blocks set a threshold of $240/year, and have an empty list of
+  // swag options.
+  DSwag: { swagThreshold: 240, swags: [] }
 };
 
 function AddElementModal({ addElementModalOpen, setAddElementModalOpen, destination = 'layout' }) {

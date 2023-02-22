@@ -4,12 +4,19 @@ import {
   DonorInfoElement,
   FrequencyElement,
   PaymentElement,
-  ReasonElement
+  ReasonElement,
+  SwagElement
 } from 'hooks/useContributionPage';
 import { useEditablePageBatch } from 'hooks/useEditablePageBatch';
 import { useMemo, useState } from 'react';
-import { getPageContributionIntervals } from 'utilities/getPageContributionIntervals';
-import { AmountEditor, DonorAddressEditor, FrequencyEditor, PaymentEditor, ReasonEditor } from '../elementEditors';
+import {
+  AmountEditor,
+  DonorAddressEditor,
+  FrequencyEditor,
+  PaymentEditor,
+  ReasonEditor,
+  SwagEditor
+} from '../elementEditors';
 import { Content, ContentDetail, Header, Root } from './ElementEditor.styled';
 import EditSaveControls from './EditSaveControls';
 import ElementProperties from './pageElements/ElementProperties';
@@ -27,7 +34,8 @@ const editorComponents = {
   DDonorInfo: ContributorInfoEditor,
   DFrequency: FrequencyEditor,
   DPayment: PaymentEditor,
-  DReason: ReasonEditor
+  DReason: ReasonEditor,
+  DSwag: SwagEditor
 };
 
 /**
@@ -42,7 +50,8 @@ const editorHeaders = {
   DDonorInfo: 'Contributor Info',
   DFrequency: 'Contribution Frequency',
   DPayment: 'Agree to Pay Fees',
-  DReason: 'Reason for Giving'
+  DReason: 'Reason for Giving',
+  DSwag: 'Contributor Benefits'
 };
 
 export interface ElementEditorProps {
@@ -61,7 +70,8 @@ type ElementContent =
   | DonorInfoElement['content']
   | FrequencyElement['content']
   | PaymentElement['content']
-  | ReasonElement['content'];
+  | ReasonElement['content']
+  | SwagElement['content'];
 
 export function ElementEditor({ elementUuid, location, onClose }: ElementEditorProps) {
   const { addBatchChange, batchPreview, commitBatch, resetBatch } = useEditablePageBatch();
@@ -74,10 +84,6 @@ export function ElementEditor({ elementUuid, location, onClose }: ElementEditorP
 
     return batchPreview[elementListKey]!.find((element) => element.uuid === elementUuid);
   }, [batchPreview, elementListKey, elementUuid]);
-  const contributionIntervals = useMemo(
-    () => (batchPreview ? getPageContributionIntervals(batchPreview) : []),
-    [batchPreview]
-  );
 
   if (!element || !batchPreview) {
     return null;
@@ -141,6 +147,7 @@ export function ElementEditor({ elementUuid, location, onClose }: ElementEditorP
           <Header>{heading}</Header>
           <ContentDetail>
             <Editor
+              pagePreview={batchPreview}
               // This cast to `any` is because TypeScript has difficulty knowing
               // what the prop types of Editor will be since it's dynamic. The
               // editor component prop definitions provide typechecking at that
@@ -151,7 +158,6 @@ export function ElementEditor({ elementUuid, location, onClose }: ElementEditorP
               // an object in content, even if it has no properties. Some
               // elements, like DDonorAddress, may not have a `content` property
               // in older pages.
-              contributionIntervals={contributionIntervals}
               elementContent={element.content ?? ({} as any)}
               elementRequiredFields={element.requiredFields ?? []}
               onChangeElementRequiredFields={handleChangeElementRequiredFields}

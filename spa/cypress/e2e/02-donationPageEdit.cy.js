@@ -311,22 +311,12 @@ describe('Contribution page edit', () => {
     });
 
     it('should show existing swags', () => {
-      const swagName = pageSwagElement.content.swags[0].swagName;
-      cy.getByTestId('swag-editor').getByTestId('existing-swag').contains(swagName);
-    });
-
-    // Update me when we increase this limit!
-    it('should only show add-option if there is fewer than 1 existing swag', () => {
-      const swagName = pageSwagElement.content.swags[0].swagName;
-      cy.getByTestId('swag-name-input').should('not.exist');
-      cy.getByTestId(`remove-existing-swag-${swagName}`).click();
-      cy.getByTestId('swag-editor').getByTestId('existing-swag').should('not.exist');
-      cy.getByTestId('swag-name-input').should('exist');
+      cy.findByLabelText('Item Option').should('have.value', pageSwagElement.content.swags[0].swagName);
     });
 
     it('should not show option to enable NYT sub if RP has not enabled it', () => {
       expect(livePage.allow_offer_nyt_comp).to.be.null;
-      cy.getByTestId('offer-nyt-comp').should('not.exist');
+      cy.findByLabelText('Offer contributors a complimentary NYT subscription').should('not.exist');
     });
 
     it('should show option to enable NYT sub if RP has enabled it', () => {
@@ -346,7 +336,7 @@ describe('Contribution page edit', () => {
 
       cy.getByTestId('edit-page-button').click();
       cy.editElement('DSwag');
-      cy.getByTestId('offer-nyt-comp').should('exist');
+      cy.findByLabelText('Offer contributors a complimentary NYT subscription').should('exist');
     });
   });
 

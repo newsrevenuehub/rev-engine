@@ -2,10 +2,11 @@ import userEvent from '@testing-library/user-event';
 import { AmountElement } from 'hooks/useContributionPage';
 import { axe } from 'jest-axe';
 import { render, screen } from 'test-utils';
-import { ContributionIntervalList } from 'utilities/getPageContributionIntervals';
+import { ContributionIntervalList, getPageContributionIntervals } from 'utilities/getPageContributionIntervals';
 import AmountEditor, { AmountEditorProps } from './AmountEditor';
 
 jest.mock('./AmountInterval');
+jest.mock('utilities/getPageContributionIntervals');
 
 const contributionIntervals: ContributionIntervalList = [
   {
@@ -32,7 +33,7 @@ const elementContent: AmountElement['content'] = {
 function tree(props?: Partial<AmountEditorProps>) {
   return render(
     <AmountEditor
-      contributionIntervals={contributionIntervals}
+      pagePreview={{} as any}
       elementContent={elementContent}
       elementRequiredFields={[]}
       onChangeElementContent={jest.fn()}
@@ -44,6 +45,12 @@ function tree(props?: Partial<AmountEditorProps>) {
 }
 
 describe('AmountEditor', () => {
+  const getPageContributionIntervalsMock = getPageContributionIntervals as jest.Mock;
+
+  beforeEach(() => {
+    getPageContributionIntervalsMock.mockReturnValue(contributionIntervals);
+  });
+
   it('displays an explanation', () => {
     tree();
     expect(
@@ -94,10 +101,8 @@ describe('AmountEditor', () => {
   it('calls onChangeElementContent when a new amount is added in a child <AmountInterval>', () => {
     const onChangeElementContent = jest.fn();
 
-    tree({
-      onChangeElementContent,
-      contributionIntervals: [{ interval: 'one_time', displayName: 'One time' }]
-    });
+    getPageContributionIntervalsMock.mockReturnValue([{ interval: 'one_time', displayName: 'One time' }]);
+    tree({ onChangeElementContent });
     expect(onChangeElementContent).not.toBeCalled();
     userEvent.click(screen.getByText('onAddAmount'));
     expect(onChangeElementContent.mock.calls).toEqual([
@@ -113,6 +118,7 @@ describe('AmountEditor', () => {
   it('keeps amounts sorted in ascending order when adding an amount', () => {
     const onChangeElementContent = jest.fn();
 
+    getPageContributionIntervalsMock.mockReturnValue([{ interval: 'one_time', displayName: 'One time' }]);
     tree({
       elementContent: {
         ...elementContent,
@@ -121,8 +127,7 @@ describe('AmountEditor', () => {
           one_time: [0.1, 0.25, 2, 3]
         }
       },
-      onChangeElementContent,
-      contributionIntervals: [{ interval: 'one_time', displayName: 'One time' }]
+      onChangeElementContent
     });
     expect(onChangeElementContent).not.toBeCalled();
     userEvent.click(screen.getByText('onAddAmount'));
@@ -139,10 +144,8 @@ describe('AmountEditor', () => {
   it('calls onChangeElementContent when an amount is removed from a child <AmountInterval>', () => {
     const onChangeElementContent = jest.fn();
 
-    tree({
-      onChangeElementContent,
-      contributionIntervals: [{ interval: 'one_time', displayName: 'One time' }]
-    });
+    getPageContributionIntervalsMock.mockReturnValue([{ interval: 'one_time', displayName: 'One time' }]);
+    tree({ onChangeElementContent });
     expect(onChangeElementContent).not.toBeCalled();
     userEvent.click(screen.getByText('onRemoveAmount'));
     expect(onChangeElementContent.mock.calls).toEqual([
@@ -158,10 +161,8 @@ describe('AmountEditor', () => {
   it('calls onChangeElement when an amount is set as default', () => {
     const onChangeElementContent = jest.fn();
 
-    tree({
-      onChangeElementContent,
-      contributionIntervals: [{ interval: 'one_time', displayName: 'One time' }]
-    });
+    getPageContributionIntervalsMock.mockReturnValue([{ interval: 'one_time', displayName: 'One time' }]);
+    tree({ onChangeElementContent });
     expect(onChangeElementContent).not.toBeCalled();
     userEvent.click(screen.getByText('onSetDefaultAmount'));
     expect(onChangeElementContent.mock.calls).toEqual([

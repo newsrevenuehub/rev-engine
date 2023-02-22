@@ -6,11 +6,11 @@ import ContributorInfoEditor, { ContributorInfoEditorProps } from './Contributor
 function tree(props?: Partial<ContributorInfoEditorProps>) {
   return render(
     <ContributorInfoEditor
-      contributionIntervals={[]}
       elementContent={{}}
       elementRequiredFields={[]}
       onChangeElementContent={jest.fn()}
       onChangeElementRequiredFields={jest.fn()}
+      pagePreview={{} as any}
       setUpdateDisabled={jest.fn()}
       {...props}
     />

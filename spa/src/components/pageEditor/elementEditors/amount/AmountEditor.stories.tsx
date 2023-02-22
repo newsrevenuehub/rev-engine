@@ -10,11 +10,6 @@ const Template: ComponentStory<typeof AmountEditor> = (props) => <AmountEditor {
 
 export const Default = Template.bind({});
 Default.args = {
-  contributionIntervals: [
-    { displayName: 'One Time', interval: 'one_time' },
-    { displayName: 'Monthly', interval: 'month' },
-    { displayName: 'Yearly', interval: 'year' }
-  ],
   elementContent: {
     defaults: {
       one_time: 123.45,
@@ -26,5 +21,17 @@ Default.args = {
       month: [1, 2, 3],
       year: [100, 200, 300]
     }
-  }
+  },
+  pagePreview: {
+    elements: [
+      {
+        type: 'DFrequency',
+        content: [
+          { displayName: 'One Time', value: 'one_time' },
+          { displayName: 'Monthly', value: 'month' },
+          { displayName: 'Yearly', value: 'year' }
+        ]
+      }
+    ]
+  } as any
 };

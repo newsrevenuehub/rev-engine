@@ -8,7 +8,7 @@ const elementContent = { reasons: [] };
 function tree(props?: Partial<ReasonEditorProps>) {
   return render(
     <ReasonEditor
-      contributionIntervals={[]}
+      pagePreview={{} as any}
       elementContent={{ reasons: [] }}
       elementRequiredFields={[]}
       onChangeElementContent={jest.fn()}

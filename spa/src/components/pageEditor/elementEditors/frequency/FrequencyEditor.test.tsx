@@ -19,9 +19,9 @@ function tree(props?: Partial<FrequencyEditorProps>) {
     <FrequencyEditor
       elementContent={elementContent}
       elementRequiredFields={[]}
-      contributionIntervals={[]}
       onChangeElementContent={jest.fn()}
       onChangeElementRequiredFields={jest.fn()}
+      pagePreview={{} as any}
       setUpdateDisabled={jest.fn()}
       {...props}
     />

@@ -1,14 +1,20 @@
-import { ChangeEvent } from 'react';
+import { ChangeEvent, useMemo } from 'react';
 import { Checkbox } from 'components/base';
+import { ElementDetailEditorProps } from 'components/pageEditor/editInterface/ElementEditor.types';
+import getPageContributionIntervals from 'utilities/getPageContributionIntervals';
 import { ContributionInterval } from 'constants/contributionIntervals';
 import { AmountElement } from 'hooks/useContributionPage';
 import { AllowOtherFormControlLabel, Intervals, Tip } from './AmountEditor.styled';
 import AmountInterval from './AmountInterval';
-import { ElementDetailEditorProps } from 'components/pageEditor/editInterface/ElementEditor.types';
 
 export type AmountEditorProps = ElementDetailEditorProps<AmountElement['content']>;
 
-export function AmountEditor({ contributionIntervals, elementContent, onChangeElementContent }: AmountEditorProps) {
+export function AmountEditor({ pagePreview: batchPreview, elementContent, onChangeElementContent }: AmountEditorProps) {
+  const contributionIntervals = useMemo(
+    () => (batchPreview ? getPageContributionIntervals(batchPreview) : []),
+    [batchPreview]
+  );
+
   function handleAddAmount(interval: ContributionInterval, value: number) {
     // Keep the list of amounts sorted numerically.
 

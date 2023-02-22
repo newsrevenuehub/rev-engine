@@ -191,6 +191,42 @@ export interface ReasonElement extends ContributionPageElement {
   };
 }
 
+export interface SwagElement extends ContributionPageElement {
+  content: {
+    /**
+     * Offer contributors a complimentary New York Times subscription? Whether
+     * this option is shown to page editors is set by the `allow_offer_nyt_comp`
+     * property on their page.
+     */
+    offerNytComp?: boolean;
+    /**
+     * Default contributors to opting out of receiving swag.
+     */
+    optOutDefault?: boolean;
+    /**
+     * A list of possible options a contributor can choose from. While <DSwag>
+     * on contribution pages can potentially display multiple categories, we
+     * only allow editing one right now. These are all gated behind a
+     * contribution of `swagThreshold` or more. There is no way currently to set
+     * a threshold for different swag groups.
+     */
+    swags?: {
+      /**
+       * Name for the group of swag options (e.g. 'T-shirt').
+       */
+      swagName: string;
+      /**
+       * Choices for this group (e.g. 'S', 'M', 'L').
+       */
+      swagOptions: string[];
+    }[];
+    /**
+     * Threshold in dollars before a contributor is eligible to receive swag.
+     */
+    swagThreshold?: number;
+  };
+}
+
 /**
  * A configured payment provider for a revenue program.
  */

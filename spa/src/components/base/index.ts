@@ -2,6 +2,7 @@ export * from './Button/Button';
 export * from './Checkbox/Checkbox';
 export * from './ColorPicker/ColorPicker';
 export * from './EditableList/EditableList';
+export * from './Fieldset/Fieldset';
 export * from './FormControlLabel/FormControlLabel';
 export * from './Modal';
 export * from './OffscreenText/OffscreenText';

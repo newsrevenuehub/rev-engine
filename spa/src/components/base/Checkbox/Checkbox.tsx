@@ -12,6 +12,10 @@ export const Checkbox = styled(MuiCheckbox)`
 
     &.Mui-checked {
       color: #157cb2;
+
+      &.Mui-disabled {
+        color: ${({ theme }) => theme.colors.muiGrey[300]};
+      }
     }
 
     svg {

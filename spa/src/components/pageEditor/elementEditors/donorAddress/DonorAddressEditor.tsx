@@ -3,7 +3,7 @@ import { Checkbox } from 'components/base';
 import { DonorAddressElement, DonorAddressElementAdditionalStateFieldLabel } from 'hooks/useContributionPage';
 import PropTypes, { InferProps } from 'prop-types';
 import { ChangeEvent } from 'react';
-import { Checkboxes, Header, Tip } from './DonorAddressEditor.styles';
+import { Checkboxes, Header, Tip } from './DonorAddressEditor.styled';
 
 const DonorAddressEditorPropTypes = {
   elementContent: PropTypes.object.isRequired,

@@ -220,10 +220,6 @@ describe('Contribution page edit', () => {
 
     beforeEach(() => {
       cy.intercept(`**/${LIST_STYLES}**`, {});
-      cy.editElement('DFrequency');
-      cy.getByTestId('frequency-editor').find('li').first().click();
-      cy.getByTestId('frequency-editor').find('li').click({ multiple: true });
-      cy.findByRole('button', { name: 'Update' }).click();
       cy.editElement('DAmount');
     });
 

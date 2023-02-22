@@ -16,7 +16,7 @@ const SettingsSection = ({ title, subtitle, className, hideBottomDivider, childr
 
 const SettingsSectionPropTypes = {
   title: PropTypes.string.isRequired,
-  subtitle: PropTypes.string,
+  subtitle: PropTypes.node,
   className: PropTypes.string,
   hideBottomDivider: PropTypes.bool,
   children: PropTypes.node

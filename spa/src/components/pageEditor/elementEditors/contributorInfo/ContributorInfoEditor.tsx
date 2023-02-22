@@ -43,7 +43,6 @@ export function ContributorInfoEditor({
         control={<Checkbox checked={elementRequiredFields.includes('phone')} onChange={handleRequirePhoneChange} />}
         disabled={!elementContent.askPhone}
         label="Required to complete contribution"
-        $smallLabel
       />
     </div>
   );

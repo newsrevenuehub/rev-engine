@@ -8,6 +8,7 @@ import stripe
 from anymail.exceptions import AnymailAPIError
 from celery import shared_task
 from celery.utils.log import get_task_logger
+from sentry_sdk import configure_scope
 from stripe.error import StripeError
 
 from apps.emails.helpers import convert_to_timezone_formatted
@@ -33,15 +34,17 @@ def send_templated_email(
         text_template,
         html_template,
     )
-    send_mail(
-        subject,
-        render_to_string(text_template, template_data),
-        from_email,
-        [
-            to,
-        ],
-        html_message=render_to_string(html_template, template_data),
-    )
+    with configure_scope() as scope:
+        scope.user = {"email": to}
+        send_mail(
+            subject,
+            render_to_string(text_template, template_data),
+            from_email,
+            [
+                to,
+            ],
+            html_message=render_to_string(html_template, template_data),
+        )
 
 
 @shared_task(
@@ -56,6 +59,7 @@ def send_thank_you_email(contribution_id: int) -> None:
     # vs circular import
     from apps.contributions.models import Contribution, Contributor
 
+    logger.info("`send_thank_you_email` sending thank you email for contribution with ID %s", contribution_id)
     try:
         contribution = Contribution.objects.get(
             id=contribution_id,
@@ -115,22 +119,27 @@ def send_templated_email_with_attachment(
     filename,
     from_email=settings.EMAIL_DEFAULT_TRANSACTIONAL_SENDER,
 ):
-    if not isinstance(to, (tuple, list)):
-        to = (to,)
+    with configure_scope() as scope:
+        scope.user = {"email": to}
 
-    mail = EmailMultiAlternatives(
-        subject=subject, body=render_to_string(text_template, template_data), from_email=from_email, to=to
-    )
-    mail.attach(filename=filename, content=attachment.encode("utf-8", errors="backslashreplace"), mimetype=content_type)
-    mail.attach_alternative(render_to_string(html_template, template_data), "text/html")
+        if not isinstance(to, (tuple, list)):
+            to = (to,)
 
-    logger.info("Sending email to recipient `%s` with subject `%s`", to, subject)
-    logger.debug(
-        "`send_templated_email_with_attachment`\ntemplate_data: %s\n\ntext_template: %s\n\nfilename: %s\n\attachment: %s",
-        template_data,
-        text_template,
-        filename,
-        attachment,
-    )
+        mail = EmailMultiAlternatives(
+            subject=subject, body=render_to_string(text_template, template_data), from_email=from_email, to=to
+        )
+        mail.attach(
+            filename=filename, content=attachment.encode("utf-8", errors="backslashreplace"), mimetype=content_type
+        )
+        mail.attach_alternative(render_to_string(html_template, template_data), "text/html")
 
-    mail.send()
+        logger.info("Sending email to recipient `%s` with subject `%s`", to, subject)
+        logger.debug(
+            "`send_templated_email_with_attachment`\ntemplate_data: %s\n\ntext_template: %s\n\nfilename: %s\n\attachment: %s",
+            template_data,
+            text_template,
+            filename,
+            attachment,
+        )
+
+        mail.send()

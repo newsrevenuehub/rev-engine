@@ -95,40 +95,16 @@ class StripeWebhookProcessor:
         logger.info("Contribution %s failed.", contribution)
 
     def handle_payment_intent_succeeded(self):
+        """Handle the `payment_intent.succeeded` webhook event.
+
+        Here we retrieve the contribution, and if it's one time, we update the contribution based on webhook data
+        and call the `handle_thank_you_email` method.
+
+        If it's a recurring contribution, we do nothing, as we listen for the `customer.subscription.succeeded` for handling
+        business logic around new recurring contributions.
+        """
         contribution = self.get_contribution_from_event()
         if contribution.interval == ContributionInterval.ONE_TIME:
-            self.handle_payment_intent_succeeded_for_one_time(contribution)
-        else:
-            self.handle_payment_intent_succeeded_for_subscription(contribution)
-
-    def handle_payment_intent_succeeded_for_subscription(self, contribution: Contribution) -> None:
-        contribution.last_payment_date = datetime.datetime.fromtimestamp(
-            self.obj_data["created"], tz=datetime.timezone.utc
-        )
-        update_fields = ["modified", "last_payment_date"]
-        # if its status is paid, we can deduce that this is not the first charge for the subscription
-        if contribution.status == ContributionStatus.PAID:
-            logger.info(
-                (
-                    "`StripeWebhookProcessor.handle_payment_intent_succeded_for_subscription` "
-                    "was called for contribution (ID: %s) that has already had a successful payment."
-                ),
-                contribution.id,
-            )
-            contribution.last_payment_date = datetime.datetime.fromtimestamp(
-                self.obj_data["created"], tz=datetime.timezone.utc
-            )
-            contribution.save(update_fields=update_fields)
-            return
-        else:
-            logger.info(
-                (
-                    "`StripeWebhookProcessor.handle_payment_intent_succeded_for_subscription` "
-                    "was called for contribution (ID: %s) whose status is not paid but is %s."
-                ),
-                contribution.id,
-                contribution.status,
-            )
             contribution.payment_provider_data = self.event
             contribution.provider_payment_id = self.obj_data["id"]
             contribution.provider_payment_method_id = self.obj_data.get("payment_method")
@@ -136,18 +112,30 @@ class StripeWebhookProcessor:
                 self.obj_data["created"], tz=datetime.timezone.utc
             )
             contribution.status = ContributionStatus.PAID
-            update_fields.extend(
-                [
+            contribution.save(
+                update_fields=[
                     "status",
+                    "last_payment_date",
                     "provider_payment_id",
                     "provider_payment_method_id",
                     "payment_provider_data",
+                    "modified",
                 ]
             )
             contribution.handle_thank_you_email()
-            contribution.save(update_fields=update_fields)
+            logger.info("Contribution %s succeeded.", contribution)
 
-    def handle_payment_intent_succeeded_for_one_time(self, contribution: Contribution) -> None:
+    def handle_customer_subscription_succeeded(self) -> None:
+        """"""
+        contribution = self.get_contribution_from_event()
+        logger.info(
+            (
+                "`StripeWebhookProcessor.handle_payment_intent_succeded_for_subscription` "
+                "was called for contribution (ID: %s) whose status is not paid but is %s."
+            ),
+            contribution.id,
+            contribution.status,
+        )
         contribution.payment_provider_data = self.event
         contribution.provider_payment_id = self.obj_data["id"]
         contribution.provider_payment_method_id = self.obj_data.get("payment_method")
@@ -155,18 +143,17 @@ class StripeWebhookProcessor:
             self.obj_data["created"], tz=datetime.timezone.utc
         )
         contribution.status = ContributionStatus.PAID
+        contribution.handle_thank_you_email()
         contribution.save(
             update_fields=[
-                "status",
+                "modified",
                 "last_payment_date",
+                "status",
                 "provider_payment_id",
                 "provider_payment_method_id",
                 "payment_provider_data",
-                "modified",
             ]
         )
-        contribution.handle_thank_you_email()
-        logger.info("Contribution %s succeeded.", contribution)
 
     def _cancellation_was_rejection(self):
         return self.obj_data.get("cancellation_reason") == "fraudulent"

@@ -410,6 +410,7 @@ STRIPE_WEBHOOK_EVENTS = [
     "payment_intent.succeeded",
     "customer.subscription.updated",
     "customer.subscription.deleted",
+    "customer.subscription.succeeded",
     "payment_method.attached",
     "invoice.upcoming",
 ]

@@ -1,5 +1,5 @@
 import json
-from datetime import datetime, timedelta
+from datetime import datetime
 from unittest.mock import Mock, patch
 
 from django.urls import reverse
@@ -42,6 +42,12 @@ def payment_intent_payment_failed():
 @pytest.fixture
 def payment_method_attached():
     with open("apps/contributions/tests/fixtures/payment-method-attached-webhook.json") as fl:
+        return json.load(fl)
+
+
+@pytest.fixture
+def customer_subscription_succeeded():
+    with open("apps/contributions/tests/fixtures/customer-subscription-succeeded.json") as fl:
         return json.load(fl)
 
 
@@ -102,9 +108,10 @@ class TestPaymentIntentSucceeded:
         assert contribution.last_payment_date is not None
         assert contribution.status == ContributionStatus.PAID
 
-    def test_when_contribution_found_and_recurring_and_status_is_not_paid(
+    def test_when_contribution_found_and_recurring(
         self, payment_intent_succeeded_recurring, monthly_contribution, monkeypatch, client, mocker
     ):
+        """"""
         monkeypatch.setattr(
             "apps.contributions.webhooks.StripeWebhookProcessor.get_contribution_from_event",
             lambda *args, **kwargs: monthly_contribution,
@@ -112,67 +119,12 @@ class TestPaymentIntentSucceeded:
         monkeypatch.setattr(WebhookSignature, "verify_header", lambda *args, **kwargs: True)
 
         header = {"HTTP_STRIPE_SIGNATURE": "testing", "content_type": "application/json"}
-        with patch("apps.contributions.models.Contribution.fetch_stripe_payment_method", return_value=None):
-            monthly_contribution.status = ContributionStatus.PROCESSING
-            monthly_contribution.last_payment_date = None
-            monthly_contribution.is_active_subscription = False
-            monthly_contribution.payment_provider_data = None
-            monthly_contribution.provider_payment_id = payment_intent_succeeded_recurring["data"]["object"]["id"]
-            monthly_contribution.save()
-
-            save_spy = mocker.spy(Contribution, "save")
-            send_receipt_email_spy = mocker.spy(Contribution, "handle_thank_you_email")
-            response = client.post(reverse("stripe-webhooks"), data=payment_intent_succeeded_recurring, **header)
-
-        # the next two assertions are to ensure we're only allowing webhook to update a subset of fields
-        # on the instance, in order to avoid race conditions
-        save_spy.assert_called_once()
-        assert save_spy.call_args[0][0] == monthly_contribution
-        assert set(save_spy.call_args[1]["update_fields"]) == set(
-            [
-                "status",
-                "last_payment_date",
-                "provider_payment_id",
-                "provider_payment_method_id",
-                "payment_provider_data",
-                "modified",
-            ]
-        )
-        send_receipt_email_spy.assert_called_once_with(monthly_contribution)
+        save_spy = mocker.spy(Contribution, "save")
+        send_receipt_email_spy = mocker.spy(Contribution, "handle_thank_you_email")
+        response = client.post(reverse("stripe-webhooks"), data=payment_intent_succeeded_recurring, **header)
         assert response.status_code == status.HTTP_200_OK
-        monthly_contribution.refresh_from_db()
-        assert monthly_contribution.payment_provider_data == payment_intent_succeeded_recurring
-        assert monthly_contribution.provider_payment_id == payment_intent_succeeded_recurring["data"]["object"]["id"]
-        assert monthly_contribution.last_payment_date is not None
-        assert monthly_contribution.status == ContributionStatus.PAID
-
-    def test_when_contribution_found_and_recurring_and_status_is_paid(
-        self, payment_intent_succeeded_recurring, monthly_contribution, monkeypatch, client, mocker
-    ):
-        payment_intent_succeeded_recurring["data"]["object"]["created"] = timezone.now().timestamp()
-        monkeypatch.setattr(
-            "apps.contributions.webhooks.StripeWebhookProcessor.get_contribution_from_event",
-            lambda *args, **kwargs: monthly_contribution,
-        )
-        monkeypatch.setattr(WebhookSignature, "verify_header", lambda *args, **kwargs: True)
-        header = {"HTTP_STRIPE_SIGNATURE": "testing", "content_type": "application/json"}
-        assert monthly_contribution.status == ContributionStatus.PAID
-        with patch("apps.contributions.models.Contribution.fetch_stripe_payment_method", return_value=None):
-            last_payment_date = timezone.now() - timedelta(days=30)
-            monthly_contribution.last_payment_date = last_payment_date
-            monthly_contribution.save()
-            save_spy = mocker.spy(Contribution, "save")
-            send_receipt_email_spy = mocker.spy(Contribution, "handle_thank_you_email")
-            response = client.post(reverse("stripe-webhooks"), data=payment_intent_succeeded_recurring, **header)
-        # the next two assertions are to ensure we're only allowing webhook to update a subset of fields
-        # on the instance, in order to avoid race conditions
-        save_spy.assert_called_once()
-        assert save_spy.call_args[0][0] == monthly_contribution
-        assert set(save_spy.call_args[1]["update_fields"]) == set(["last_payment_date", "modified"])
+        save_spy.assert_not_called()
         send_receipt_email_spy.assert_not_called()
-        assert response.status_code == status.HTTP_200_OK
-        monthly_contribution.refresh_from_db()
-        assert monthly_contribution.last_payment_date > last_payment_date
 
     @pytest_cases.parametrize(
         "webhook_data",
@@ -268,6 +220,61 @@ class TestPaymentIntentPaymentFailed:
         response = client.post(reverse("stripe-webhooks"), data=payment_intent_payment_failed, **header)
         assert response.status_code == status.HTTP_200_OK
         mock_log_exception.assert_called_once_with("Could not find contribution")
+
+
+@pytest.mark.django_db
+class TestCustomerSubscriptionSuceeded:
+    def test_when_contribution_found_and_recurring(
+        self, customer_subscription_succeeded, monthly_contribution, monkeypatch, client, mocker
+    ):
+        """"""
+        monkeypatch.setattr(
+            "apps.contributions.webhooks.StripeWebhookProcessor.get_contribution_from_event",
+            lambda *args, **kwargs: monthly_contribution,
+        )
+        monkeypatch.setattr(WebhookSignature, "verify_header", lambda *args, **kwargs: True)
+
+        header = {"HTTP_STRIPE_SIGNATURE": "testing", "content_type": "application/json"}
+        save_spy = mocker.spy(Contribution, "save")
+        send_receipt_email_spy = mocker.spy(Contribution, "handle_thank_you_email")
+        response = client.post(reverse("stripe-webhooks"), data=customer_subscription_succeeded, **header)
+        assert response.status_code == status.HTTP_200_OK
+        save_spy.assert_not_called()
+        send_receipt_email_spy.assert_not_called()
+
+        save_spy.assert_called_once()
+        assert save_spy.call_args[0][0] == monthly_contribution
+        assert set(save_spy.call_args[1]["update_fields"]) == set(
+            [
+                "status",
+                "last_payment_date",
+                "provider_payment_id",
+                "provider_payment_method_id",
+                "payment_provider_data",
+                "modified",
+            ]
+        )
+        send_receipt_email_spy.assert_called_once_with(monthly_contribution)
+        assert response.status_code == status.HTTP_200_OK
+        monthly_contribution.refresh_from_db()
+        assert monthly_contribution.payment_provider_data == customer_subscription_succeeded
+        assert monthly_contribution.provider_payment_id == customer_subscription_succeeded["data"]["object"]["id"]
+        assert monthly_contribution.last_payment_date is not None
+        assert monthly_contribution.status == ContributionStatus.PAID
+
+    def test_when_contribution_found_and_one_time(self, payment_intent_succeeded_one_time, monkeypatch, client, mocker):
+        pass
+
+    def test_when_contribution_not_found(self, customer_subscription_succeeded, monkeypatch, mocker, client):
+        monkeypatch.setattr(WebhookSignature, "verify_header", lambda *args, **kwargs: True)
+        spy = mocker.spy(views_logger, "exception")
+        header = {"HTTP_STRIPE_SIGNATURE": "testing", "content_type": "application/json"}
+        assert not Contribution.objects.filter(
+            provider_payment_id=customer_subscription_succeeded["data"]["object"]["id"]
+        ).exists()
+        response = client.post(reverse("stripe-webhooks"), data=customer_subscription_succeeded, **header)
+        assert response.status_code == status.HTTP_200_OK
+        spy.assert_called_once_with("Could not find contribution")
 
 
 @pytest.mark.django_db

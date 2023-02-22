@@ -157,6 +157,10 @@ class ContributionFactory(DjangoModelFactory):
         flagged = factory.Trait(
             status=models.ContributionStatus.FLAGGED,
             flagged_date=factory.LazyAttribute(lambda o: _get_flagged_date(o.bad_actor_score, o.created)),
+            provider_setup_intent_id=factory.LazyAttribute(
+                lambda o: None if o.interval == models.ContributionInterval.ONE_TIME else f"seti_{_random_stripe_str()}"
+            ),
+            provider_subscription_id=None,
         )
         rejected = factory.Trait(status=models.ContributionStatus.REJECTED)
         canceled = factory.Trait(status=models.ContributionStatus.CANCELED)

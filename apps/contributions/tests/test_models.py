@@ -1143,42 +1143,66 @@ class TestContributionModel:
             ),
             (
                 lambda: ContributionFactory(
-                    one_time=True, contribution_metadata=None, provider_setup_intent_id="something"
-                ),
-                pytest_cases.fixture_ref("stripe_setup_intent_retrieve_response"),
-                True,
-            ),
-            (
-                lambda: ContributionFactory(one_time=True, provider_subscription_id="something"),
-                pytest_cases.fixture_ref("stripe_subscription_retrieve_response"),
-                True,
-            ),
-            (
-                lambda: ContributionFactory(
                     one_time=True, contribution_metadata={"some": "thing"}, provider_payment_id="something"
                 ),
-                {},
+                pytest_cases.fixture_ref("stripe_payment_intent_retrieve_response"),
+                False,
+            ),
+            (
+                lambda: ContributionFactory(one_time=True, contribution_metadata=None, provider_payment_id="something"),
+                {"metadata": {}},
                 False,
             ),
             (
                 lambda: ContributionFactory(
-                    one_time=True, contribution_metadata={"some": "thing"}, provider_setup_intent_id="something"
+                    monthly_subscription=True, contribution_metadata=None, provider_payment_id="something"
                 ),
-                {},
+                pytest_cases.fixture_ref("stripe_payment_intent_retrieve_response"),
+                True,
+            ),
+            (
+                lambda: ContributionFactory(
+                    monthly_subscription=True, contribution_metadata={"some": "thing"}, provider_payment_id="something"
+                ),
+                pytest_cases.fixture_ref("stripe_payment_intent_retrieve_response"),
                 False,
             ),
             (
                 lambda: ContributionFactory(
-                    one_time=True, contribution_metadata={"some": "thing"}, provider_subscription_id="something"
+                    monthly_subscription=True, contribution_metadata=None, provider_payment_id="something"
                 ),
-                {},
+                {"metadata": {}},
+                False,
+            ),
+            (
+                lambda: ContributionFactory(
+                    monthly_subscription=True, flagged=True, contribution_metadata=None, provider_payment_id="something"
+                ),
+                pytest_cases.fixture_ref("stripe_payment_intent_retrieve_response"),
+                True,
+            ),
+            (
+                lambda: ContributionFactory(
+                    monthly_subscription=True,
+                    flagged=True,
+                    contribution_metadata={"some": "thing"},
+                    provider_payment_id="something",
+                ),
+                pytest_cases.fixture_ref("stripe_payment_intent_retrieve_response"),
+                False,
+            ),
+            (
+                lambda: ContributionFactory(
+                    monthly_subscription=True, flagged=True, contribution_metadata=None, provider_payment_id="something"
+                ),
+                {"metadata": {}},
                 False,
             ),
         ),
     )
     @pytest.mark.parametrize("dry_run", (True, False))
     def test_fix_missing_contribution_metadata(
-        self, make_contribution_fn, stripe_data, expect_update, dry_run, monkeypatch
+        self, make_contribution_fn, stripe_data, expect_update, dry_run, monkeypatch, mocker
     ):
         """Basic happy path test showing behavior of Contribution.fix_missing_contribution_metadata
 
@@ -1189,13 +1213,15 @@ class TestContributionModel:
 
         Additionally, we show the `dry_run` functionality.
         """
+
+        spy = mocker.spy(logger, "warning")
         contribution = make_contribution_fn()
         old_metadata = contribution.contribution_metadata
         target = (
             "stripe.PaymentIntent.retrieve"
             if contribution.interval == ContributionInterval.ONE_TIME
             else "stripe.SetupIntent.retrieve"
-            if contribution.stripe_setup_intent
+            if contribution.provider_setup_intent_id
             else "stripe.Subscription.retrieve"
         )
         # It's a bit tricky to get our JSON fixture which loads to dict to play nicely
@@ -1211,6 +1237,27 @@ class TestContributionModel:
         Contribution.fix_missing_contribution_metadata(dry_run)
         contribution.refresh_from_db()
         assert contribution.contribution_metadata == (metadata if not dry_run and expect_update else old_metadata)
+        if not Contribution._stripe_metadata_is_valid_for_contribution_metadata_backfill(metadata):
+            spy.assert_called_once_with(
+                "`Contribution.fix_missing_contribution_metadata` could not find any valid backfill data for contribution_metadata for contribution with ID %s",
+                contribution.id,
+            )
+
+    def test_fix_missing_contribution_metadata_when_no_stripe_entity_found(
+        self, monthly_contribution, monkeypatch, mocker
+    ):
+        monkeypatch.setattr("apps.contributions.models.Contribution.stripe_subscription", None)
+        monthly_contribution.contribution_metadata = None
+        spy = mocker.spy(logger, "warning")
+        Contribution.fix_missing_contribution_metadata()
+        monthly_contribution.refresh_from_db()
+        assert monthly_contribution.contribution_metadata is None
+        spy.assert_called_once_with(
+            (
+                "`Contribution.fix_missing_contribution_metadata` could not find any data on Stripe to backfill contribution with ID  %s",
+            ),
+            monthly_contribution.id,
+        )
 
 
 @pytest.mark.django_db

@@ -40,6 +40,12 @@ export type OrganizationFormFields = {
   fiscalSponsorName: string;
 };
 
+type RevenueProgramPatch = {
+  tax_id: string;
+  fiscal_status: string;
+  fiscal_sponsor_name: string;
+};
+
 const Organization = () => {
   const alert = useAlert();
   const queryClient = useQueryClient();
@@ -99,13 +105,14 @@ const Organization = () => {
   );
 
   const updateRevenueProgramMutation = useMutation(
-    ({ tax_id, fiscal_status }: { tax_id: string; fiscal_status: string }) => {
+    ({ tax_id, fiscal_status, fiscal_sponsor_name }: RevenueProgramPatch) => {
       if (!revenueProgramFromCurrentOrg?.length) {
         throw new Error('Revenue Program is not yet defined');
       }
       return axios.patch(`${PATCH_REVENUE_PROGRAM}${revenueProgramFromCurrentOrg[0].id}/`, {
         tax_id: tax_id.replace('-', ''),
-        fiscal_status
+        fiscal_status,
+        fiscal_sponsor_name
       });
     },
     {
@@ -122,7 +129,8 @@ const Organization = () => {
         if (isDifferent.companyTaxStatus || isDifferent.taxId || isDifferent.fiscalSponsorName) {
           await updateRevenueProgramMutation.mutateAsync({
             tax_id: form.taxId,
-            fiscal_status: form.companyTaxStatus
+            fiscal_status: form.companyTaxStatus,
+            fiscal_sponsor_name: form.fiscalSponsorName
           });
         }
       } catch (error) {

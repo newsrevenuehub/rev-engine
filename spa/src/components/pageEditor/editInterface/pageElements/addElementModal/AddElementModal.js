@@ -8,15 +8,26 @@ import { v4 as uuidv4 } from 'uuid';
 import Modal from 'elements/modal/Modal';
 
 // Context
-import { useEditInterfaceContext } from 'components/pageEditor/editInterface/EditInterface';
+import { useEditInterfaceContext } from 'components/pageEditor/editInterface/EditInterfaceContextProvider';
+import { useEditablePageContext } from 'hooks/useEditablePage';
 
 // Elements
 import * as dynamicLayoutElements from 'components/donationPage/pageContent/dynamicElements';
 import * as dynamicSidebarElements from 'components/donationPage/pageContent/dynamicSidebarElements';
 import PageItem from 'components/pageEditor/editInterface/pageElements/PageItem';
 
+// Additional default values to put into a newly-created element. TODO in
+// DEV-3197: refactor this logic into a hook/utility function.
+
+const defaultContent = {
+  // Default reason blocks to ask for a reason at least, and have an empty list
+  // of pre-supplied reasons.
+  DReason: { askReason: true, reasons: [] }
+};
+
 function AddElementModal({ addElementModalOpen, setAddElementModalOpen, destination = 'layout' }) {
-  const { elements, setElements, sidebarElements, setSidebarElements, page } = useEditInterfaceContext();
+  const { page } = useEditablePageContext();
+  const { elements, setElements, sidebarElements, setSidebarElements } = useEditInterfaceContext();
   const [permittedPageElements, setPermittedPageElements] = useState([]);
   const [permittedSidebarElements, setPermittedSidebarElements] = useState([]);
 
@@ -33,6 +44,7 @@ function AddElementModal({ addElementModalOpen, setAddElementModalOpen, destinat
     const { type } = element;
     return {
       uuid: uuidv4(),
+      content: defaultContent[type] ? { ...defaultContent[type] } : undefined,
       type
     };
   };

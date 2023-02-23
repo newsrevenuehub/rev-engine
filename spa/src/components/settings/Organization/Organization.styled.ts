@@ -1,4 +1,4 @@
-import InfoTooltip from 'components/account/Profile/InfoTooltip';
+import BaseInfoTooltip from 'components/account/Profile/InfoTooltip';
 import { TextField } from 'components/base';
 import styled from 'styled-components';
 
@@ -8,17 +8,17 @@ export const Wrapper = styled.div`
   gap: 40px;
 `;
 
-export const Content = styled.div`
+export const ContentForm = styled.form`
   display: flex;
   flex-direction: column;
   gap: 25px;
 `;
 
-export const TaxStatusContainer = styled.div`
+export const TooltipContainer = styled.div`
   position: relative;
 `;
 
-export const TaxStatusInfoTooltip = styled(InfoTooltip)`
+export const InfoTooltip = styled(BaseInfoTooltip)`
   position: absolute;
   top: 6px;
   right: -10px;
@@ -62,4 +62,23 @@ export const WarningMessage = styled.div`
     height: 15px;
     fill: ${(props) => props.theme.colors.error.primary};
   }
+`;
+
+export const ActionWrapper = styled.div`
+  display: flex;
+  gap: 12px;
+  align-items: center;
+  justify-content: center;
+`;
+
+export const Disclaimer = styled.span`
+  margin-top: 20px;
+  font-style: italic;
+  color: ${(props) => props.theme.colors.muiGrey[600]};
+  font-size: ${(props) => props.theme.fontSizesUpdated.md};
+`;
+
+export const Link = styled.a`
+  color: ${(props) => props.theme.colors.account.blueLink};
+  font-weight: 500;
 `;

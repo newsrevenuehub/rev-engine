@@ -89,7 +89,6 @@ class ContributionFactory(DjangoModelFactory):
     bad_actor_score = factory.LazyFunction(lambda: random.choice([0, 1, 2, 3, 4]))
 
     last_payment_date = factory.LazyAttribute(lambda o: _get_last_payment_date(o.created, o.bad_actor_score))
-    flagged_date = factory.LazyAttribute(lambda o: _get_flagged_date(o.bad_actor_score, o.created))
     status = factory.LazyAttribute(lambda o: _get_status(o.bad_actor_score))
     donation_page = factory.SubFactory(DonationPageFactory)
     contributor = factory.SubFactory(ContributorFactory)
@@ -140,9 +139,14 @@ class ContributionFactory(DjangoModelFactory):
             payment_provider_data=factory.LazyFunction(lambda: deepcopy(RECURRING_MONTHLY_PAYMENT_PROVIDER_DATA)),
             provider_customer_id=f"cus_{_random_stripe_str()}",
         )
-        flagged = factory.Trait(status=models.ContributionStatus.FLAGGED)
+        flagged = factory.Trait(
+            status=models.ContributionStatus.FLAGGED,
+            flagged_date=factory.LazyAttribute(lambda o: _get_flagged_date(o.bad_actor_score, o.created)),
+        )
         rejected = factory.Trait(status=models.ContributionStatus.REJECTED)
         canceled = factory.Trait(status=models.ContributionStatus.CANCELED)
+        refunded = factory.Trait(status=models.ContributionStatus.REFUNDED)
+        processing = factory.Trait(status=models.ContributionStatus.PROCESSING)
 
 
 class StripeCustomerFactory:

@@ -68,7 +68,17 @@ class UserSerializerTest(APITestCase):
             "revenue_programs",
             "role_type",
         }
-        expect_rp_fields = {"id", "name", "slug", "organization", "payment_provider_stripe_verified"}
+        expect_rp_fields = {
+            "id",
+            "name",
+            "slug",
+            "organization",
+            "payment_provider_stripe_verified",
+            "non_profit",
+            "fiscal_status",
+            "tax_id",
+            "fiscal_sponsor_name",
+        }
         data = self._get_serialized_data_for_user(self.org_admin_user)
         assert expected_fields == set(data.keys())
         assert len(data["revenue_programs"]) >= 1
@@ -94,7 +104,7 @@ class UserSerializerTest(APITestCase):
     def test_get_permitted_organizations(self):
         super_user_data = self._get_serialized_data_for_user(self.superuser_user)
         su_org_ids = self._ids_from_data(super_user_data["organizations"])
-        self.assertEqual(su_org_ids, list(Organization.objects.values_list("pk", flat=True)))
+        assert set(su_org_ids) == set(list(Organization.objects.values_list("pk", flat=True)))
 
         hub_admin_data = self._get_serialized_data_for_user(self.hub_admin_user)
         ha_org_ids = self._ids_from_data(hub_admin_data["organizations"])

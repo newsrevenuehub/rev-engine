@@ -4,7 +4,7 @@ export const USER = 'users/';
 export const STRIPE_OAUTH = 'stripe/oauth/';
 export const STRIPE_PAYMENT = 'stripe/payment/';
 
-export const getStripeAccountLinkStatusPath = (rpId: string) => {
+export const getStripeAccountLinkStatusPath = (rpId: number) => {
   return `handle-stripe-account-link/${rpId}/`;
 };
 
@@ -48,3 +48,9 @@ export const FORGOT_PASSWORD_ENDPOINT = 'users/password_reset/';
 export const RESET_PASSWORD_ENDPOINT = 'users/password_reset/confirm/';
 export const VERIFY_EMAIL_REQUEST_ENDPOINT = 'users/request_account_verification/';
 export const CUSTOMIZE_ACCOUNT_ENDPOINT = 'customize_account/';
+
+// Organization
+export const PATCH_ORGANIZATION = 'organizations/';
+
+// Revenue Programs
+export const PATCH_REVENUE_PROGRAM = 'revenue-programs/';

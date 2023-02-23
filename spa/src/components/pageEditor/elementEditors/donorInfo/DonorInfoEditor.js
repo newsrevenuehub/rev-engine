@@ -3,7 +3,7 @@ import * as S from './DonorInfoEditor.styled';
 import { AnimatePresence } from 'framer-motion';
 
 // Context
-import { useEditInterfaceContext } from 'components/pageEditor/editInterface/EditInterface';
+import { useEditInterfaceContext } from 'components/pageEditor/editInterface/EditInterfaceContextProvider';
 
 function DonorInfoEditor() {
   const {

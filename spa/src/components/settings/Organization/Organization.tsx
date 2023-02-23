@@ -1,39 +1,75 @@
-import { useMemo } from 'react';
 import { ReactComponent as InfoIcon } from '@material-design-icons/svg/outlined/info.svg';
+import { useMemo } from 'react';
 import { Controller, useForm } from 'react-hook-form';
 import MaskedInput from 'react-input-mask';
 
+import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { MenuItem, TextField } from 'components/base';
 import HeaderSection from 'components/common/HeaderSection';
 import SettingsSection from 'components/common/SettingsSection';
 import SubheaderSection from 'components/common/SubheaderSection';
+import { useCallback } from 'react';
+import { useAlert } from 'react-alert';
+
+import axios from 'ajax/axios';
+import { PATCH_ORGANIZATION, PATCH_REVENUE_PROGRAM } from 'ajax/endpoints';
+import { Button } from 'components/base';
+import { TAX_STATUS } from 'constants/fiscalStatus';
+import { HELP_URL } from 'constants/helperUrls';
+import { GENERIC_ERROR } from 'constants/textConstants';
 import GlobalLoading from 'elements/GlobalLoading';
 import useUser from 'hooks/useUser';
+import { getUserRole } from 'utilities/userRoleType';
 
 import {
-  Content,
+  ActionWrapper,
+  ContentForm,
+  Disclaimer,
   FieldLabelOptional,
+  InfoTooltip,
   InputWrapper,
+  Link,
   StyledTextField,
-  TaxStatusContainer,
-  TaxStatusInfoTooltip,
+  TooltipContainer,
   WarningMessage,
   Wrapper
 } from './Organization.styled';
 
-const Organization = () => {
-  const { user, isLoading } = useUser();
-  const currentOrganization = user?.organizations?.length === 1 ? user?.organizations?.[0] : undefined;
+export type OrganizationFormFields = {
+  companyName: string;
+  companyTaxStatus: string;
+  taxId: string;
+};
 
-  const { control, watch } = useForm({
+const Organization = () => {
+  const alert = useAlert();
+  const queryClient = useQueryClient();
+  const { user, isLoading } = useUser();
+  const currentOrganization = useMemo(
+    () => (user?.organizations?.length === 1 ? user?.organizations?.[0] : undefined),
+    [user?.organizations]
+  );
+  const revenueProgramFromCurrentOrg = useMemo(
+    () => user?.revenue_programs?.filter((rp) => rp.organization === currentOrganization?.id),
+    [currentOrganization?.id, user?.revenue_programs]
+  );
+  const hasMultipleRPs = revenueProgramFromCurrentOrg && revenueProgramFromCurrentOrg?.length > 1;
+
+  const { isOrgAdmin } = getUserRole(user);
+
+  const {
+    control,
+    watch,
+    reset,
+    handleSubmit
+    // formState: { errors }
+  } = useForm<OrganizationFormFields>({
     defaultValues: {
-      // TODO: update values when BE returns the correct data
       companyName: currentOrganization?.name ?? '',
-      companyTaxStatus: currentOrganization?.fiscal_status ?? '',
-      taxId: currentOrganization?.tax_id ?? ''
+      companyTaxStatus: revenueProgramFromCurrentOrg?.[0]?.fiscal_status ?? '',
+      taxId: revenueProgramFromCurrentOrg?.[0]?.tax_id ?? ''
     }
   });
-
   const companyName = watch('companyName');
   const companyTaxStatus = watch('companyTaxStatus');
   const taxId = watch('taxId');
@@ -41,16 +77,64 @@ const Organization = () => {
   const isDifferent = useMemo(
     () => ({
       companyName: companyName !== currentOrganization?.name,
-      companyTaxStatus: companyTaxStatus !== currentOrganization?.fiscal_status,
-      taxId: taxId.replace(/-/g, '') !== currentOrganization?.tax_id
+      companyTaxStatus: companyTaxStatus !== revenueProgramFromCurrentOrg?.[0]?.fiscal_status,
+      taxId: taxId.replace(/-/g, '') !== revenueProgramFromCurrentOrg?.[0]?.tax_id
     }),
+    [companyName, companyTaxStatus, currentOrganization, revenueProgramFromCurrentOrg, taxId]
+  );
+
+  const updateOrganizationNameMutation = useMutation(
+    (name: string) => {
+      if (!currentOrganization) {
+        throw new Error('Organization is not yet defined');
+      }
+
+      return axios.patch(`${PATCH_ORGANIZATION}${currentOrganization.id}/`, { name });
+    },
+    {
+      onSuccess: () => queryClient.invalidateQueries({ queryKey: ['user'] })
+    }
+  );
+
+  const updateRevenueProgramMutation = useMutation(
+    ({ tax_id, fiscal_status }: { tax_id: string; fiscal_status: string }) => {
+      if (!revenueProgramFromCurrentOrg?.length) {
+        throw new Error('Revenue Program is not yet defined');
+      }
+      return axios.patch(`${PATCH_REVENUE_PROGRAM}${revenueProgramFromCurrentOrg[0].id}/`, {
+        tax_id: tax_id.replace('-', ''),
+        fiscal_status
+      });
+    },
+    {
+      onSuccess: () => queryClient.invalidateQueries({ queryKey: ['user'] })
+    }
+  );
+
+  const submit = useCallback(
+    async (form: OrganizationFormFields) => {
+      try {
+        if (isDifferent.companyName) {
+          await updateOrganizationNameMutation.mutateAsync(form.companyName);
+        }
+        if (isDifferent.companyTaxStatus || isDifferent.taxId) {
+          await updateRevenueProgramMutation.mutateAsync({
+            tax_id: form.taxId,
+            fiscal_status: form.companyTaxStatus
+          });
+        }
+      } catch (error) {
+        console.error(error);
+        alert.error(GENERIC_ERROR);
+      }
+    },
     [
-      companyName,
-      companyTaxStatus,
-      currentOrganization?.fiscal_status,
-      currentOrganization?.name,
-      currentOrganization?.tax_id,
-      taxId
+      alert,
+      isDifferent.companyName,
+      isDifferent.companyTaxStatus,
+      isDifferent.taxId,
+      updateOrganizationNameMutation,
+      updateRevenueProgramMutation
     ]
   );
 
@@ -60,7 +144,7 @@ const Organization = () => {
     <Wrapper>
       <HeaderSection title="Settings" />
       <SubheaderSection title="Organization" />
-      <Content>
+      <ContentForm onSubmit={handleSubmit(submit)}>
         <SettingsSection title="Details" subtitle="Update your Organization details and settings here." />
         <SettingsSection
           title="Organization Name"
@@ -70,54 +154,76 @@ const Organization = () => {
             name="companyName"
             control={control}
             render={({ field }) => (
-              <TextField fullWidth id="settings-company-name" label="Display Name" disabled {...field} />
+              <TextField fullWidth id="settings-company-name" label="Display Name" disabled={!isOrgAdmin} {...field} />
             )}
           />
         </SettingsSection>
         <SettingsSection
           title="Organization Tax Status"
-          subtitle="The status is used to calculate fees associated with contributions. For non-profits, tax ID (EIN) will be included on contributor receipts."
+          subtitle={
+            hasMultipleRPs ? (
+              <>
+                Your Organization's tax status and EIN are managed by our Staff. For help, please contact{' '}
+                <Link href={HELP_URL} target="_blank" rel="noreferrer">
+                  Support
+                </Link>
+                .{' '}
+                <Disclaimer>
+                  The status is used to calculate fees associated with contributions. For nonprofits, tax ID (EIN) will
+                  be included on contributor receipts.
+                </Disclaimer>
+              </>
+            ) : (
+              'The status is used to calculate fees associated with contributions. For nonprofits, tax ID (EIN) will be included on contributor receipts.'
+            )
+          }
         >
-          <InputWrapper>
-            <TaxStatusContainer>
-              <Controller
-                name="companyTaxStatus"
-                control={control}
-                render={({ field }) => (
-                  <TextField fullWidth id="settings-company-tax-status" label="Tax Status" {...field} select>
-                    <MenuItem value="nonprofit">Nonprofit</MenuItem>
-                    <MenuItem value="for-profit">For-profit</MenuItem>
-                  </TextField>
-                )}
-              />
-              <TaxStatusInfoTooltip
-                buttonLabel="Help for Company Tax Status"
-                title="Your tax status determines the contribution fees charged through Stripe."
-              />
-            </TaxStatusContainer>
-            <Controller
-              name="taxId"
-              control={control}
-              rules={{ pattern: { value: /[0-9]{2}-[0-9]{7}/, message: 'EIN must have 9 digits' } }}
-              render={({ field }) => (
-                <MaskedInput mask="99-9999999" {...field}>
-                  {(inputProps: any) => (
-                    <StyledTextField
-                      id="settings-tax-id"
-                      data-testid="profile-tax-id"
-                      placeholder="XX-XXXXXXX"
-                      label={
-                        <>
-                          EIN <FieldLabelOptional>Optional</FieldLabelOptional>
-                        </>
-                      }
-                      {...inputProps}
-                    />
+          {!hasMultipleRPs && (
+            <InputWrapper>
+              <TooltipContainer>
+                <Controller
+                  name="companyTaxStatus"
+                  control={control}
+                  render={({ field }) => (
+                    <TextField fullWidth id="settings-company-tax-status" label="Tax Status" {...field} select>
+                      <MenuItem value={TAX_STATUS.NONPROFIT}>Nonprofit</MenuItem>
+                      <MenuItem value={TAX_STATUS.FOR_PROFIT}>For-profit</MenuItem>
+                    </TextField>
                   )}
-                </MaskedInput>
-              )}
-            />
-          </InputWrapper>
+                />
+                <InfoTooltip
+                  buttonLabel="Help for Company Tax Status"
+                  title="Your tax status determines the contribution fees charged through Stripe."
+                />
+              </TooltipContainer>
+              <TooltipContainer>
+                <Controller
+                  name="taxId"
+                  control={control}
+                  rules={{ pattern: { value: /[0-9]{2}-[0-9]{7}|[0-9]{9}/, message: 'EIN must have 9 digits' } }}
+                  render={({ field }) => (
+                    <MaskedInput mask="99-9999999" {...field} disabled={!isOrgAdmin}>
+                      {(inputProps: any) => (
+                        <StyledTextField
+                          fullWidth
+                          disabled={!isOrgAdmin}
+                          id="settings-tax-id"
+                          data-testid="profile-tax-id"
+                          placeholder="XX-XXXXXXX"
+                          label={
+                            <>
+                              EIN <FieldLabelOptional>Optional</FieldLabelOptional>
+                            </>
+                          }
+                          {...inputProps}
+                        />
+                      )}
+                    </MaskedInput>
+                  )}
+                />
+              </TooltipContainer>
+            </InputWrapper>
+          )}
         </SettingsSection>
         {isDifferent.companyTaxStatus && (
           <WarningMessage>
@@ -128,7 +234,22 @@ const Organization = () => {
             </p>
           </WarningMessage>
         )}
-      </Content>
+        {Object.values(isDifferent).includes(true) && (
+          <ActionWrapper>
+            <Button
+              color="secondary"
+              onClick={() => {
+                reset(undefined, { keepDefaultValues: true });
+              }}
+            >
+              Undo
+            </Button>
+            <Button color="secondary" type="submit">
+              Save
+            </Button>
+          </ActionWrapper>
+        )}
+      </ContentForm>
     </Wrapper>
   );
 };

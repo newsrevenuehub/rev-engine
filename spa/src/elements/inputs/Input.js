@@ -28,7 +28,8 @@ Input.types = {
   EMAIL: 'email',
   PASSWORD: 'password',
   NUMBER: 'number',
-  TEL: 'tel'
+  TEL: 'tel',
+  URL: 'url'
 };
 
 Input.propTypes = {

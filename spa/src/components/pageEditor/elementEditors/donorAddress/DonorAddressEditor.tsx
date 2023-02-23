@@ -1,5 +1,4 @@
-import { FormControlLabel } from '@material-ui/core';
-import { Checkbox } from 'components/base';
+import { Checkbox, FormControlLabel } from 'components/base';
 import { DonorAddressElement, DonorAddressElementAdditionalStateFieldLabel } from 'hooks/useContributionPage';
 import PropTypes, { InferProps } from 'prop-types';
 import { ChangeEvent } from 'react';

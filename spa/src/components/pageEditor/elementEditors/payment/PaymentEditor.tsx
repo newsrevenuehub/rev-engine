@@ -1,7 +1,8 @@
-import PropTypes, { InferProps } from 'prop-types';
+import PropTypes, { element, InferProps } from 'prop-types';
 import { Checkbox, Switch } from 'components/base';
 import { AlignedFormControlLabel, StrongTip, Tip } from './PaymentEditor.styled';
 import { PaymentElement } from 'hooks/useContributionPage';
+import { useEffect } from 'react';
 
 const PaymentEditorPropTypes = {
   elementContent: PropTypes.object.isRequired,
@@ -14,6 +15,14 @@ export interface PaymentEditorProps extends InferProps<typeof PaymentEditorPropT
 }
 
 function PaymentEditor({ elementContent, onChangeElementContent }: PaymentEditorProps) {
+  // If the element doesn't allow paying fees, disable selection by default too.
+
+  useEffect(() => {
+    if (!elementContent.offerPayFees && elementContent.payFeesDefault) {
+      onChangeElementContent({ ...elementContent, payFeesDefault: false });
+    }
+  }, [elementContent, onChangeElementContent]);
+
   return (
     <div data-testid="payment-editor">
       <Tip>

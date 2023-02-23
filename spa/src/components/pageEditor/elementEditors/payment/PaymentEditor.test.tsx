@@ -75,6 +75,18 @@ describe('PaymentEditor', () => {
         [{ offerPayFees: true, payFeesDefault: false, stripe: ['existing'] }]
       ]);
     });
+
+    it('sets payFeesDefault to false if it was true', () => {
+      const onChangeElementContent = jest.fn();
+
+      tree({
+        onChangeElementContent,
+        elementContent: { offerPayFees: false, payFeesDefault: true, stripe: ['existing'] }
+      });
+      expect(onChangeElementContent.mock.calls).toEqual([
+        [{ offerPayFees: false, payFeesDefault: false, stripe: ['existing'] }]
+      ]);
+    });
   });
 
   describe('When the element has payFeesDefault set to true', () => {

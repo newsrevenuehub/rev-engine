@@ -249,7 +249,7 @@ export interface RevenueProgram {
   /**
    * Fiscal sponsor name. Will only have a non-null value if fiscal_status === "fiscally sponsored"
    */
-  fiscal_sponsor_name: string;
+  fiscal_sponsor_name?: string | null;
   /**
    * EIN tax ID.
    */

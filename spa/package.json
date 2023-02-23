@@ -36,13 +36,11 @@
     "lodash.merge": "^4.6.2",
     "lodash.orderby": "^4.6.0",
     "md5": "^2.3.0",
-    "msw": "^0.28.2",
     "notistack": "^1.0.10",
     "prop-types": "^15.7.2",
     "query-string": "^7.0.1",
     "react": "^17.0.2",
     "react-alert": "^7.0.3",
-    "react-color": "^2.19.3",
     "react-cookie": "^4.1.1",
     "react-datepicker": "^4.1.1",
     "react-dom": "^17.0.2",
@@ -65,6 +63,7 @@
     "url-join": "^5.0.0",
     "use-debounce": "^8.0.4",
     "uuid": "^8.3.2",
+    "wcag-contrast": "^3.0.0",
     "web-vitals": "^1.1.1"
   },
   "scripts": {
@@ -94,7 +93,7 @@
     ],
     "coverageThreshold": {
       "global": {
-        "lines": 38
+        "lines": 50
       }
     },
     "transformIgnorePatterns": [
@@ -181,6 +180,7 @@
     "@types/react-input-mask": "^3.0.1",
     "@types/react-router-dom": "^5.3.3",
     "@types/styled-components": "^5.1.26",
+    "@types/wcag-contrast": "^3.0.0",
     "axios-mock-adapter": "^1.21.2",
     "babel-plugin-named-exports-order": "^0.0.2",
     "chromatic": "^6.10.2",

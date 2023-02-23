@@ -3,149 +3,593 @@ from unittest import mock
 from django.contrib.auth import get_user_model
 
 import pytest
+import pytest_cases
+from faker import Faker
 from rest_framework import status
 from rest_framework.reverse import reverse
-from rest_framework.test import APIClient, APIRequestFactory
+from rest_framework.test import APIRequestFactory
 from reversion.models import Version
 from stripe.error import StripeError
 
-from apps.api.tests import RevEngineApiAbstractTestCase
-from apps.organizations.models import Organization, RevenueProgram, Roles
+from apps.organizations.models import (
+    TAX_ID_MAX_LENGTH,
+    TAX_ID_MIN_LENGTH,
+    Organization,
+    OrganizationQuerySet,
+    RevenueProgram,
+    RevenueProgramQuerySet,
+)
 from apps.organizations.tests.factories import OrganizationFactory, RevenueProgramFactory
-from apps.organizations.views import get_stripe_account_link_return_url
-from apps.users.tests.factories import RoleAssignmentFactory, UserFactory, create_test_user
+from apps.organizations.views import RevenueProgramViewSet, get_stripe_account_link_return_url
+from apps.users.choices import Roles
 
 
 user_model = get_user_model()
 
+fake = Faker()
 
-class OrganizationViewSetTest(RevEngineApiAbstractTestCase):
-    model_factory = OrganizationFactory
-    model = Organization
 
-    def setUp(self):
-        super().setUp()
-        self.is_authed_user = create_test_user()
-        self.post_data = {}
-        self.expected_user_types = (
-            self.superuser,
-            self.hub_user,
-            self.org_user,
-            self.rp_user,
+@pytest.fixture
+def org_valid_patch_data():
+    return {"name": fake.pystr(min_chars=1, max_chars=Organization.name.field.max_length - 1)}
+
+
+@pytest.fixture
+def org_invalid_patch_data_name_too_long():
+    return {
+        "name": fake.pystr(
+            min_chars=Organization.name.field.max_length + 1, max_chars=Organization.name.field.max_length + 100
         )
-        self.detail_url = reverse("organization-detail", args=(self.org1.pk,))
-        self.list_url = reverse("organization-list")
-
-    def assert_user_can_retrieve_an_org(self, user):
-        response = self.assert_user_can_get(self.detail_url, user)
-        self.assertEqual(response.json()["id"], self.org1.pk)
-
-    def assert_user_cannot_udpate_an_org(self, user):
-        last_modified = self.org1.modified
-        self.assert_user_cannot_patch_because_not_implemented(self.detail_url, user)
-        self.org1.refresh_from_db()
-        self.assertEqual(last_modified, self.org1.modified)
-
-    def assert_user_cannot_create_an_org(self, user):
-        before_count = Organization.objects.count()
-        self.assert_user_cannot_post_because_not_implemented(self.list_url, user)
-        self.assertEqual(before_count, Organization.objects.count())
-
-    def assert_user_cannot_delete_an_org(self, user):
-        self.assertGreaterEqual(before_count := Organization.objects.count(), 1)
-        self.assert_user_cannot_delete_because_not_implemented(self.detail_url, user)
-        self.assertEqual(before_count, Organization.objects.count())
-
-    def test_unauthed_cannot_access(self):
-        self.assert_unauthed_cannot_get(self.detail_url)
-        self.assert_unauthed_cannot_get(self.list_url)
-        self.assert_unauthed_cannot_delete(self.detail_url)
-        self.assert_unauthed_cannot_patch(self.detail_url)
-        self.assert_unauthed_cannot_put(self.detail_url)
-
-    def test_expected_user_types_can_only_read(self):
-        for user in self.expected_user_types:
-            self.assert_user_can_retrieve_an_org(user)
-            self.assert_user_cannot_create_an_org(user)
-            self.assert_user_cannot_udpate_an_org(user)
-            self.assert_user_cannot_delete_an_org(user)
-        for user, count in [
-            (self.superuser, Organization.objects.count()),
-            (self.hub_user, Organization.objects.count()),
-            (self.org_user, 1),
-            (self.rp_user, 1),
-        ]:
-            self.assert_user_can_list(self.list_url, user, count, results_are_flat=True)
-
-    def test_unexpected_role_type(self):
-        novel = create_test_user(role_assignment_data={"role_type": "this-is-new"})
-        self.assert_user_cannot_get(
-            reverse("organization-list"),
-            novel,
-            expected_status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-        )
+    }
 
 
-class RevenueProgramViewSetTest(RevEngineApiAbstractTestCase):
-    def setUp(self):
-        super().setUp()
-        self.list_url = reverse("revenue-program-list")
-        self.detail_url = reverse("revenue-program-detail", args=(RevenueProgram.objects.first().pk,))
+@pytest.mark.django_db
+class TestOrganizationViewSet:
+    @pytest_cases.parametrize(
+        "user",
+        (
+            pytest_cases.fixture_ref("org_user_free_plan"),
+            pytest_cases.fixture_ref("rp_user"),
+            pytest_cases.fixture_ref("hub_admin_user"),
+            pytest_cases.fixture_ref("superuser"),
+        ),
+    )
+    def test_retrieve_when_expected_user(self, user, api_client, mocker):
+        """Show that expected users can retrieve only permitted organizations
 
-    def test_superuser_can_retrieve_an_rp(self):
-        return self.assert_superuser_can_get(self.detail_url)
+        NB: This test treats Organization.objects.filtered_by_role_assignment as a blackbox. That function is well-tested
+        elsewhere.
+        """
+        # ensure there will be organizations that org admin and rp admin won't be able to access, but that superuser and hub admin
+        # should be able to access
+        OrganizationFactory.create_batch(size=2)
+        api_client.force_authenticate(user)
+        # superuser can retrieve all
+        if user.is_superuser:
+            query = Organization.objects.all()
+            assert query.count()
+            for id in query.values_list("id", flat=True):
+                response = api_client.get(reverse("organization-detail", args=(id,)))
+                assert response.status_code == status.HTTP_200_OK
+        else:
+            query = Organization.objects.filtered_by_role_assignment(user.roleassignment)
+            spy = mocker.spy(OrganizationQuerySet, "filtered_by_role_assignment")
+            unpermitted = Organization.objects.exclude(id__in=query.values_list("id", flat=True))
+            assert query.count()
+            if user.roleassignment.role_type == Roles.HUB_ADMIN:
+                assert unpermitted.count() == 0
+            else:
+                assert unpermitted.count() >= 1
+            for id in query.values_list("id", flat=True):
+                response = api_client.get(reverse("organization-detail", args=(id,)))
+                assert response.status_code == status.HTTP_200_OK
+            for id in unpermitted.values_list("id", flat=True):
+                response = api_client.get(reverse("organization-detail", args=(id,)))
+                assert response.status_code == status.HTTP_404_NOT_FOUND
+            # this test is valid insofar as the spyed on method `filtered_by_role_assignment` is called, and has been
+            # tested elsewhere and proven to be valid. Here, we just need to show that it gets called for each time we tried to retrieve
+            # an Organization.
+            assert spy.call_count == Organization.objects.count()
 
-    def test_superuser_can_list_rps(self):
-        expected_count = RevenueProgram.objects.count()
-        return self.assert_superuser_can_list(self.list_url, expected_count, results_are_flat=True)
+    @pytest_cases.parametrize(
+        "user",
+        (
+            pytest_cases.fixture_ref("rp_user"),
+            pytest_cases.fixture_ref("hub_admin_user"),
+            pytest_cases.fixture_ref("user_no_role_assignment"),
+            pytest_cases.fixture_ref("contributor_user"),
+            None,
+        ),
+    )
+    def test_retrieve_when_unmpermitted_user(self, user, api_client, organization):
+        """Show that unmpermitted users cannot retrieve an organization."""
+        if user:
+            api_client.force_authenticate(user)
+        response = api_client.get(reverse("organization-list", args=(organization.id,)))
+        assert response.status_code == status.HTTP_404_NOT_FOUND
 
-    def test_other_cannot_access_resource(self):
-        non_superusers = [self.hub_user, self.org_user, self.rp_user, self.contributor_user]
-        for user in non_superusers:
-            self.assert_user_cannot_get(self.detail_url, user)
-            self.assert_user_cannot_get(self.list_url, user)
-            self.assert_user_cannot_post(self.list_url, user)
-            self.assert_user_cannot_patch(self.detail_url, user)
-            self.assert_user_cannot_delete(self.detail_url, user)
+    @pytest_cases.parametrize(
+        "user",
+        (
+            pytest_cases.fixture_ref("org_user_free_plan"),
+            pytest_cases.fixture_ref("rp_user"),
+            pytest_cases.fixture_ref("hub_admin_user"),
+            pytest_cases.fixture_ref("superuser"),
+        ),
+    )
+    def test_list_when_expected_user(self, user, api_client, mocker):
+        """Show that expected users can list only permitted organizations
 
-    def test_unauthed_cannot_access(self):
-        self.assert_unauthed_cannot_get(self.detail_url)
-        self.assert_unauthed_cannot_get(self.list_url)
-        self.assert_unauthed_cannot_delete(self.detail_url)
-        self.assert_unauthed_cannot_patch(self.detail_url)
-        self.assert_unauthed_cannot_put(self.detail_url)
+        NB: This test treats Organization.objects.filtered_by_role_assignment as a blackbox. That function is well-tested
+        elsewhere.
+        """
+        # ensure there will be organizations that org admin and rp admin won't be able to access, but that superuser and hub admin
+        # should be able to access
+        OrganizationFactory.create_batch(size=2)
+        api_client.force_authenticate(user)
 
+        # superuser can retrieve all
+        if user.is_superuser:
+            query = Organization.objects.all()
+            assert query.count()
+            response = api_client.get(reverse("organization-list"))
+            assert response.status_code == status.HTTP_200_OK
+            assert len(orgs := response.json()) == query.count()
+            assert set([x["id"] for x in orgs]) == set(list(query.values_list("id", flat=True)))
+
+        else:
+            query = Organization.objects.filtered_by_role_assignment(user.roleassignment)
+            spy = mocker.spy(OrganizationQuerySet, "filtered_by_role_assignment")
+            unpermitted = Organization.objects.exclude(id__in=query.values_list("id", flat=True))
+            assert query.count()
+            if user.roleassignment.role_type == Roles.HUB_ADMIN:
+                assert unpermitted.count() == 0
+            else:
+                assert unpermitted.count() >= 1
+            response = api_client.get(reverse("organization-list"))
+            assert len(orgs := response.json()) == query.count()
+            assert set([x["id"] for x in orgs]) == set(list(query.values_list("id", flat=True)))
+
+            # this test is valid insofar as the spyed on method `filtered_by_role_assignment` is called, and has been
+            # tested elsewhere and proven to be valid. Here, we just need to show that it gets called.
+            assert spy.call_count == 1
+
+    @pytest_cases.parametrize(
+        "user,expected_status",
+        (
+            (pytest_cases.fixture_ref("user_no_role_assignment"), status.HTTP_403_FORBIDDEN),
+            (pytest_cases.fixture_ref("contributor_user"), status.HTTP_403_FORBIDDEN),
+            (None, status.HTTP_401_UNAUTHORIZED),
+        ),
+    )
+    def test_list_when_unexpected_user(self, user, expected_status, api_client):
+        """Show that unexpected users can't list organizations"""
+        api_client.force_authenticate(user)
+        response = api_client.get(reverse("organization-list"))
+        assert response.status_code == expected_status
+
+    @pytest.mark.parametrize("method,data", (("post", {}), ("put", {}), ("delete", None)))
+    @pytest_cases.parametrize(
+        "user,expected_status",
+        (
+            (pytest_cases.fixture_ref("org_user_free_plan"), status.HTTP_403_FORBIDDEN),
+            (pytest_cases.fixture_ref("superuser"), status.HTTP_405_METHOD_NOT_ALLOWED),
+            (pytest_cases.fixture_ref("rp_user"), status.HTTP_403_FORBIDDEN),
+            (pytest_cases.fixture_ref("hub_admin_user"), status.HTTP_403_FORBIDDEN),
+            (pytest_cases.fixture_ref("user_no_role_assignment"), status.HTTP_403_FORBIDDEN),
+            (pytest_cases.fixture_ref("contributor_user"), status.HTTP_403_FORBIDDEN),
+            (None, status.HTTP_401_UNAUTHORIZED),
+        ),
+    )
+    def test_unpermitted_methods(self, method, data, user, expected_status, organization, api_client):
+        if user:
+            api_client.force_authenticate(user)
+        kwargs = {} if data is None else {"data": data}
+        response = getattr(api_client, method)(reverse("organization-detail", args=(organization.id,)), **kwargs)
+        assert response.status_code == expected_status
+
+    @pytest_cases.parametrize(
+        "user",
+        (
+            pytest_cases.fixture_ref("superuser"),
+            pytest_cases.fixture_ref("org_user_free_plan"),
+        ),
+    )
+    @pytest_cases.parametrize(
+        "data,expect_status_code,error_response,has_fake_fields",
+        (
+            (pytest_cases.fixture_ref("org_valid_patch_data"), status.HTTP_200_OK, None, False),
+            (
+                pytest_cases.fixture_ref("org_invalid_patch_data_name_too_long"),
+                status.HTTP_400_BAD_REQUEST,
+                {"name": ["Ensure this field has no more than 255 characters."]},
+                False,
+            ),
+            (
+                pytest_cases.fixture_ref("invalid_patch_data_unexpected_fields"),
+                status.HTTP_200_OK,
+                {},
+                True,
+            ),
+        ),
+    )
+    def test_patch_when_expected_user(
+        self, user, data, expect_status_code, error_response, has_fake_fields, organization, mocker, api_client
+    ):
+        """Show that expected users can patch what they should be able to, and cannot what they shouldn't.
+
+        Specifically, superusers should be able to patch any org (but only permitted fields), while org users should only be able
+        to patch permitted fields on an org they own, and not unowned orgs
+        """
+        api_client.force_authenticate(user)
+        if user.is_superuser:
+            response = api_client.patch(reverse("organization-detail", args=(organization.id,)), data=data)
+            assert response.status_code == expect_status_code
+            if error_response:
+                assert response.json() == error_response
+            elif not has_fake_fields:
+                organization.refresh_from_db()
+                for key in data:
+                    assert response.json()[key] == getattr(organization, key)
+        else:
+            spy = mocker.spy(OrganizationQuerySet, "filtered_by_role_assignment")
+            assert organization.id != user.roleassignment.organization
+            unpermitted_response = api_client.patch(reverse("organization-detail", args=(organization.id,)), data=data)
+            assert unpermitted_response.status_code == status.HTTP_404_NOT_FOUND
+            last_modified = user.roleassignment.organization.modified
+            permitted_response = api_client.patch(
+                reverse("organization-detail", args=((permitted_org := user.roleassignment.organization).id,)),
+                data=data,
+            )
+            assert permitted_response.status_code == expect_status_code
+            permitted_org.refresh_from_db()
+            if error_response:
+                assert permitted_response.json() == error_response
+                assert permitted_org.modified == last_modified
+            elif not has_fake_fields:
+                for key in data:
+                    assert permitted_response.json()[key] == getattr(permitted_org, key)
+            # once for each of the calls to the patch endpoint
+            assert spy.call_count == 2
+
+    @pytest_cases.parametrize(
+        "user",
+        (
+            pytest_cases.fixture_ref("hub_admin_user"),
+            pytest_cases.fixture_ref("user_no_role_assignment"),
+            pytest_cases.fixture_ref("contributor_user"),
+            pytest_cases.fixture_ref("rp_user"),
+            None,
+        ),
+    )
+    def test_patch_when_unexpected_user(self, user, api_client, organization):
+        """Show that unexpected users cannot patch an Org"""
+        api_client.force_authenticate(user)
+        response = api_client.patch(reverse("organization-detail", args=(organization.id,)), data={})
+        # if unauthed, get 401
+        if not user:
+            assert response.status_code == status.HTTP_401_UNAUTHORIZED
+        # if unexpected role assignment role type
+        else:
+            assert response.status_code == status.HTTP_403_FORBIDDEN
+
+    def test_patch_different_org(self, org_user_free_plan, api_client, organization):
+        """Show that only org admins can access this patch endpoint"""
+        api_client.force_authenticate(org_user_free_plan)
+        response = api_client.patch(reverse("organization-detail", args=(organization.id,)), data={})
+        assert response.status_code == status.HTTP_404_NOT_FOUND
+
+
+@pytest.fixture
+def tax_id_valid():
+    return fake.pystr(min_chars=TAX_ID_MIN_LENGTH, max_chars=TAX_ID_MAX_LENGTH)
+
+
+@pytest.fixture
+def tax_id_invalid_too_short():
+    return fake.pystr(max_chars=TAX_ID_MIN_LENGTH - 1)
+
+
+@pytest.fixture
+def tax_id_invalid_too_long():
+    return fake.pystr(min_chars=TAX_ID_MAX_LENGTH + 1)
+
+
+@pytest.fixture
+def rp_valid_patch_data(tax_id_valid):
+    return {"tax_id": tax_id_valid}
+
+
+@pytest.fixture
+def rp_invalid_patch_data_tax_id_too_short(tax_id_invalid_too_short):
+    return {"tax_id": tax_id_invalid_too_short}
+
+
+@pytest.fixture
+def rp_invalid_patch_data_tax_id_too_long(tax_id_invalid_too_long):
+    return {"tax_id": tax_id_invalid_too_long}
+
+
+@pytest.fixture
+def invalid_patch_data_unexpected_fields():
+    return {"foo": "bar"}
+
+
+@pytest.mark.django_db
+class TestRevenueProgramViewSet:
     def test_pagination_disabled(self):
-        response = self.assert_superuser_can_get(self.list_url)
-        self.assertNotIn("count", response.json())
-        self.assertNotIn("results", response.json())
+        assert RevenueProgramViewSet.pagination_class is None
 
+    @pytest_cases.parametrize(
+        "user",
+        (
+            pytest_cases.fixture_ref("org_user_free_plan"),
+            pytest_cases.fixture_ref("rp_user"),
+            pytest_cases.fixture_ref("superuser"),
+        ),
+    )
+    def test_retrieve_rp_when_expected_user(self, user, api_client, mocker):
+        """Show that typical users can retrieve what they should be able to, and can't retrieve what they shouldn't
 
-@pytest.mark.django_db
-@pytest.fixture
-def org():
-    return OrganizationFactory()
+        NB: This test treats RevenueProgram.objects.filtered_by_role_assignment as a blackbox. That function is well-tested
+        elsewhere.
+        """
+        # ensure there will be RPs that org admin and rp admin won't be able to access, but that superuser should be able to
+        # access
+        new_org = OrganizationFactory()
+        RevenueProgramFactory.create_batch(size=2, organization=new_org)
+        api_client.force_authenticate(user)
 
+        # superuser can retrieve all
+        if user.is_superuser:
+            query = RevenueProgram.objects.all()
+            assert query.count()
+            for rp_id in query.values_list("id", flat=True):
+                response = api_client.get(reverse("revenue-program-detail", args=(rp_id,)))
+                assert response.status_code == status.HTTP_200_OK
+        else:
+            query = RevenueProgram.objects.filtered_by_role_assignment(user.roleassignment)
+            spy = mocker.spy(RevenueProgramQuerySet, "filtered_by_role_assignment")
+            unpermitted = RevenueProgram.objects.exclude(id__in=query.values_list("id", flat=True))
+            assert query.count()
+            assert unpermitted.count()
+            for rp_id in query.values_list("id", flat=True):
+                response = api_client.get(reverse("revenue-program-detail", args=(rp_id,)))
+                assert response.status_code == status.HTTP_200_OK
+            for rp_id in unpermitted.values_list("id", flat=True):
+                response = api_client.get(reverse("revenue-program-detail", args=(rp_id,)))
+                assert response.status_code == status.HTTP_404_NOT_FOUND
+            # this test is valid insofar as the spyed on method `filtered_by_role_assignment` is called, and has been
+            # tested elsewhere and proven to be valid. Here, we just need to show that it gets called for each time we tried to retrieve
+            # an RP.
+            assert spy.call_count == RevenueProgram.objects.count()
 
-@pytest.mark.django_db
-@pytest.fixture
-def rp(org):
-    return RevenueProgramFactory(organization=org)
+    @pytest_cases.parametrize(
+        "user",
+        (
+            pytest_cases.fixture_ref("hub_admin_user"),
+            pytest_cases.fixture_ref("user_no_role_assignment"),
+            pytest_cases.fixture_ref("contributor_user"),
+            None,
+        ),
+    )
+    def test_retrieve_rp_when_unexpected_user(self, user, api_client, revenue_program):
+        """Show that typical users can retrieve what they should be able to, and can't retrieve what they shouldn't
 
+        NB: This test treats RevenueProgram.objects.filtered_by_role_assignment as a blackbox. That function is well-tested
+        elsewhere.
+        """
+        api_client.force_authenticate(user)
+        response = api_client.get(reverse("revenue-program-detail", args=(revenue_program.id,)))
+        # if unauthed, get 401
+        if not user:
+            assert response.status_code == status.HTTP_401_UNAUTHORIZED
+        # if unexpected role assignment role type
+        else:
+            assert response.status_code == status.HTTP_403_FORBIDDEN
 
-@pytest.mark.django_db
-@pytest.fixture
-def user():
-    return UserFactory()
+    @pytest_cases.parametrize(
+        "user",
+        (
+            pytest_cases.fixture_ref("org_user_free_plan"),
+            pytest_cases.fixture_ref("rp_user"),
+            pytest_cases.fixture_ref("superuser"),
+        ),
+    )
+    def test_list_when_expected_user(self, user, api_client, mocker):
+        """Show that typical users can retrieve what they should be able to, and can't retrieve what they shouldn't
 
+        NB: This test treats RevenueProgram.objects.filtered_by_role_assignment as a blackbox. That function is well-tested
+        elsewhere.
+        """
+        # ensure there will be RPs that org admin and rp admin won't be able to access, but that superuser should be able to
+        # access
+        new_org = OrganizationFactory()
+        RevenueProgramFactory.create_batch(size=2, organization=new_org)
 
-@pytest.fixture
-@pytest.mark.django_db
-def rp_role_assignment(user, rp):
-    ra = RoleAssignmentFactory(user=user, role_type=Roles.RP_ADMIN, organization=rp.organization)
-    ra.revenue_programs.add(rp)
-    ra.save()
-    return ra
+        api_client.force_authenticate(user)
+
+        # superuser can retrieve all
+        if user.is_superuser:
+            query = RevenueProgram.objects.all()
+            assert query.count()
+            response = api_client.get(reverse("revenue-program-list"))
+            assert response.status_code == status.HTTP_200_OK
+            assert len(rps := response.json()) == query.count()
+            assert set([x["id"] for x in rps]) == set(list(query.values_list("id", flat=True)))
+
+        else:
+            query = RevenueProgram.objects.filtered_by_role_assignment(user.roleassignment)
+            spy = mocker.spy(RevenueProgramQuerySet, "filtered_by_role_assignment")
+            unpermitted = RevenueProgram.objects.exclude(id__in=query.values_list("id", flat=True))
+            assert query.count()
+            assert unpermitted.count()
+            response = api_client.get(reverse("revenue-program-list"))
+            assert len(rps := response.json()) == query.count()
+            assert set([x["id"] for x in rps]) == set(list(query.values_list("id", flat=True)))
+
+            # this test is valid insofar as the spyed on method `filtered_by_role_assignment` is called, and has been
+            # tested elsewhere and proven to be valid. Here, we just need to show that it gets called.
+            assert spy.call_count == 1
+
+    @pytest_cases.parametrize(
+        "user",
+        (
+            pytest_cases.fixture_ref("hub_admin_user"),
+            pytest_cases.fixture_ref("user_no_role_assignment"),
+            pytest_cases.fixture_ref("contributor_user"),
+            None,
+        ),
+    )
+    def test_list_when_unexpected_user(self, user, api_client):
+        """Show that unexpected users cannot retrieve any revenue programs."""
+        RevenueProgramFactory.create_batch(size=2)
+        api_client.force_authenticate(user)
+        response = api_client.get(reverse("revenue-program-list"))
+        # if unauthed, get 401
+        if not user:
+            assert response.status_code == status.HTTP_401_UNAUTHORIZED
+        # if unexpected role assignment role type
+        else:
+            assert response.status_code == status.HTTP_403_FORBIDDEN
+
+    @pytest_cases.parametrize(
+        "user",
+        (
+            pytest_cases.fixture_ref("org_user_free_plan"),
+            pytest_cases.fixture_ref("rp_user"),
+            pytest_cases.fixture_ref("superuser"),
+            pytest_cases.fixture_ref("hub_admin_user"),
+            pytest_cases.fixture_ref("user_no_role_assignment"),
+            pytest_cases.fixture_ref("contributor_user"),
+            None,
+        ),
+    )
+    def test_delete(self, user, api_client):
+        """Show that nobody can delete"""
+        rp = RevenueProgramFactory()
+        api_client.force_authenticate(user)
+        response = api_client.delete(reverse("revenue-program-detail", args=(rp.id,)))
+        assert (
+            response.status_code == status.HTTP_405_METHOD_NOT_ALLOWED
+            if getattr(user, "is_superuser", None)
+            else status.HTTP_403_FORBIDDEN
+        )
+
+    @pytest_cases.parametrize(
+        "user",
+        (
+            pytest_cases.fixture_ref("org_user_free_plan"),
+            pytest_cases.fixture_ref("rp_user"),
+            pytest_cases.fixture_ref("superuser"),
+            pytest_cases.fixture_ref("hub_admin_user"),
+            pytest_cases.fixture_ref("user_no_role_assignment"),
+            pytest_cases.fixture_ref("contributor_user"),
+            None,
+        ),
+    )
+    def test_put(self, user, api_client):
+        """Show that nobody can put"""
+        rp = RevenueProgramFactory()
+        api_client.force_authenticate(user)
+        response = api_client.put(reverse("revenue-program-detail", args=(rp.id,)), data={})
+        assert (
+            response.status_code == status.HTTP_405_METHOD_NOT_ALLOWED
+            if getattr(user, "is_superuser", None)
+            else status.HTTP_403_FORBIDDEN
+        )
+
+    @pytest_cases.parametrize(
+        "user",
+        (
+            pytest_cases.fixture_ref("org_user_free_plan"),
+            pytest_cases.fixture_ref("superuser"),
+        ),
+    )
+    @pytest_cases.parametrize(
+        "data,expect_status_code,error_response,has_fake_fields",
+        (
+            (pytest_cases.fixture_ref("rp_valid_patch_data"), status.HTTP_200_OK, None, False),
+            (
+                pytest_cases.fixture_ref("rp_invalid_patch_data_tax_id_too_short"),
+                status.HTTP_400_BAD_REQUEST,
+                {"tax_id": ["Ensure this field has at least 9 characters."]},
+                False,
+            ),
+            (
+                pytest_cases.fixture_ref("rp_invalid_patch_data_tax_id_too_long"),
+                status.HTTP_400_BAD_REQUEST,
+                {"tax_id": ["Ensure this field has no more than 9 characters."]},
+                False,
+            ),
+            (
+                pytest_cases.fixture_ref("invalid_patch_data_unexpected_fields"),
+                status.HTTP_200_OK,
+                {},
+                True,
+            ),
+        ),
+    )
+    def test_patch_when_expected_user(
+        self, user, data, expect_status_code, error_response, has_fake_fields, api_client, revenue_program, mocker
+    ):
+        """Show that expected users are able to patch (only) permitted RPs, with valid data"""
+        api_client.force_authenticate(user)
+        if user.is_superuser:
+            response = api_client.patch(reverse("revenue-program-detail", args=(revenue_program.id,)), data=data)
+            assert response.status_code == expect_status_code
+            if error_response:
+                assert response.json() == error_response
+            elif not has_fake_fields:
+                revenue_program.refresh_from_db()
+                for key in data:
+                    assert response.json()[key] == getattr(revenue_program, key)
+        else:
+            spy = mocker.spy(RevenueProgramQuerySet, "filtered_by_role_assignment")
+            assert revenue_program.id not in user.roleassignment.revenue_programs.all().values_list("id", flat=True)
+            unpermitted_response = api_client.patch(reverse("revenue-program-detail", args=(revenue_program.id,)))
+            assert unpermitted_response.status_code == status.HTTP_404_NOT_FOUND
+            assert unpermitted_response.json() == {"detail": "Not found."}
+            permitted_rp = user.roleassignment.revenue_programs.first()
+            last_modified = permitted_rp.modified
+            permitted_response = api_client.patch(reverse("revenue-program-detail", args=(permitted_rp.id,)), data=data)
+            assert permitted_response.status_code == expect_status_code
+            permitted_rp.refresh_from_db()
+            if error_response:
+                assert permitted_response.json() == error_response
+                assert permitted_rp.modified == last_modified
+            elif not has_fake_fields:
+                for key in data:
+                    assert permitted_response.json()[key] == getattr(permitted_rp, key)
+            # once for each of the calls to the patch endpoint
+            assert spy.call_count == 2
+
+    @pytest_cases.parametrize(
+        "user",
+        (
+            pytest_cases.fixture_ref("hub_admin_user"),
+            pytest_cases.fixture_ref("user_no_role_assignment"),
+            pytest_cases.fixture_ref("contributor_user"),
+            pytest_cases.fixture_ref("rp_user"),
+            None,
+        ),
+    )
+    def test_patch_when_unexpected_user(self, user, api_client, revenue_program):
+        """Show that unexpected users cannot patch an RP"""
+        api_client.force_authenticate(user)
+        response = api_client.patch(reverse("revenue-program-detail", args=(revenue_program.id,)), data={})
+        # if unauthed, get 401
+        if not user:
+            assert response.status_code == status.HTTP_401_UNAUTHORIZED
+        # if unexpected role assignment role type
+        else:
+            assert response.status_code == status.HTTP_403_FORBIDDEN
+
+    def test_patch_different_org(self, org_user_free_plan, api_client, revenue_program):
+        """Show that org admins cannot patch another org's rp"""
+        api_client.force_authenticate(org_user_free_plan)
+        response = api_client.patch(reverse("revenue-program-detail", args=(revenue_program.id,)), data={})
+        assert response.status_code == status.HTTP_404_NOT_FOUND
 
 
 class FakeStripeProduct:
@@ -155,19 +599,18 @@ class FakeStripeProduct:
 
 @pytest.mark.django_db
 class TestHandleStripeAccountLink:
-    def test_happy_path_when_stripe_already_verified_on_payment_provider(self, rp_role_assignment):
-        rp = rp_role_assignment.revenue_programs.first()
+    def test_happy_path_when_stripe_already_verified_on_payment_provider(self, org_user_free_plan, api_client):
+        rp = (ra := org_user_free_plan.roleassignment).revenue_programs.first()
         rp.payment_provider.stripe_verified = True
         rp.payment_provider.stripe_product_id = "something"
         rp.payment_provider.save()
         url = reverse("handle-stripe-account-link", args=(rp.pk,))
-        client = APIClient()
-        client.force_authenticate(user=rp_role_assignment.user)
-        response = client.post(url)
+        api_client.force_authenticate(user=ra.user)
+        response = api_client.post(url)
         assert response.status_code == status.HTTP_200_OK
         assert response.json() == {"requiresVerification": False}
 
-    def test_happy_path_when_stripe_account_not_yet_created(self, monkeypatch, rp_role_assignment):
+    def test_happy_path_when_stripe_account_not_yet_created(self, monkeypatch, org_user_free_plan, api_client):
         stripe_account_id = "fakeId"
         mock_stripe_account_create = mock.MagicMock(
             return_value={
@@ -184,16 +627,15 @@ class TestHandleStripeAccountLink:
         stripe_url = "https://www.stripe.com"
         mock_stripe_account_link_create = mock.MagicMock(return_value={"url": stripe_url})
         monkeypatch.setattr("stripe.AccountLink.create", mock_stripe_account_link_create)
-        rp = rp_role_assignment.revenue_programs.first()
+        rp = (ra := org_user_free_plan.roleassignment).revenue_programs.first()
         rp.payment_provider.stripe_verified = False
         rp.payment_provider.stripe_account_id = None
         rp.payment_provider.stripe_product_id = None
         rp.payment_provider.save()
         pp_count = Version.objects.get_for_object(rp.payment_provider).count()
         url = reverse("handle-stripe-account-link", args=(rp.pk,))
-        client = APIClient()
-        client.force_authenticate(user=rp_role_assignment.user)
-        response = client.post(url)
+        api_client.force_authenticate(user=ra.user)
+        response = api_client.post(url)
         assert response.status_code == status.HTTP_200_OK
         assert response.json() == {
             "requiresVerification": True,
@@ -206,7 +648,9 @@ class TestHandleStripeAccountLink:
         assert rp.payment_provider.stripe_product_id == product_id
         assert Version.objects.get_for_object(rp.payment_provider).count() == pp_count + 1
 
-    def test_happy_path_when_stripe_account_already_created_and_past_due_reqs(self, monkeypatch, rp_role_assignment):
+    def test_happy_path_when_stripe_account_already_created_and_past_due_reqs(
+        self, monkeypatch, org_user_free_plan, api_client
+    ):
         stripe_account_id = "fakeId"
         stripe_url = "https://www.stripe.com"
         mock_stripe_account_retrieve = mock.MagicMock(
@@ -220,15 +664,14 @@ class TestHandleStripeAccountLink:
         monkeypatch.setattr("stripe.Account.retrieve", mock_stripe_account_retrieve)
         mock_stripe_account_link_create = mock.MagicMock(return_value={"url": stripe_url})
         monkeypatch.setattr("stripe.AccountLink.create", mock_stripe_account_link_create)
-        rp = rp_role_assignment.revenue_programs.first()
+        rp = (ra := org_user_free_plan.roleassignment).revenue_programs.first()
         rp.payment_provider.stripe_verified = False
         rp.payment_provider.stripe_account_id = stripe_account_id
         rp.payment_provider.stripe_product_id = "something"
         rp.payment_provider.save()
         url = reverse("handle-stripe-account-link", args=(rp.pk,))
-        client = APIClient()
-        client.force_authenticate(user=rp_role_assignment.user)
-        response = client.post(url)
+        api_client.force_authenticate(user=ra.user)
+        response = api_client.post(url)
         assert response.status_code == status.HTTP_200_OK
         assert response.json() == {
             "requiresVerification": True,
@@ -238,7 +681,7 @@ class TestHandleStripeAccountLink:
         }
 
     def test_happy_path_when_stripe_account_already_created_and_pending_verification(
-        self, monkeypatch, rp_role_assignment
+        self, monkeypatch, org_user_free_plan, api_client
     ):
         stripe_account_id = "fakeId"
         stripe_url = "https://www.stripe.com"
@@ -253,15 +696,14 @@ class TestHandleStripeAccountLink:
         monkeypatch.setattr("stripe.Account.retrieve", mock_stripe_account_retrieve)
         mock_stripe_account_link_create = mock.MagicMock(return_value={"url": stripe_url})
         monkeypatch.setattr("stripe.AccountLink.create", mock_stripe_account_link_create)
-        rp = rp_role_assignment.revenue_programs.first()
+        rp = (ra := org_user_free_plan.roleassignment).revenue_programs.first()
         rp.payment_provider.stripe_verified = False
         rp.payment_provider.stripe_account_id = stripe_account_id
         rp.payment_provider.stripe_product_id = "something"
         rp.payment_provider.save()
         url = reverse("handle-stripe-account-link", args=(rp.pk,))
-        client = APIClient()
-        client.force_authenticate(user=rp_role_assignment.user)
-        response = client.post(url)
+        api_client.force_authenticate(user=ra.user)
+        response = api_client.post(url)
         assert response.status_code == status.HTTP_200_OK
         assert response.json() == {
             "requiresVerification": True,
@@ -269,7 +711,9 @@ class TestHandleStripeAccountLink:
             "stripeConnectStarted": True,
         }
 
-    def test_happy_path_when_stripe_account_newly_has_charges_enabled(self, rp_role_assignment, monkeypatch):
+    def test_happy_path_when_stripe_account_newly_has_charges_enabled(
+        self, org_user_free_plan, monkeypatch, api_client
+    ):
         stripe_account_id = "fakeId"
         mock_stripe_account_retrieve = mock.MagicMock(
             return_value={
@@ -279,91 +723,82 @@ class TestHandleStripeAccountLink:
             }
         )
         monkeypatch.setattr("stripe.Account.retrieve", mock_stripe_account_retrieve)
-        rp = rp_role_assignment.revenue_programs.first()
+        rp = (ra := org_user_free_plan.roleassignment).revenue_programs.first()
         rp.payment_provider.stripe_verified = False
         rp.payment_provider.stripe_account_id = stripe_account_id
         rp.payment_provider.stripe_product_id = "something"
         rp.payment_provider.save()
         pp_version_count = Version.objects.get_for_object(rp.payment_provider).count()
         url = reverse("handle-stripe-account-link", args=(rp.pk,))
-        client = APIClient()
-        client.force_authenticate(user=rp_role_assignment.user)
-        response = client.post(url)
+        api_client.force_authenticate(user=ra.user)
+        response = api_client.post(url)
         assert response.status_code == status.HTTP_200_OK
         assert response.json() == {"requiresVerification": False}
         rp.payment_provider.refresh_from_db()
         assert rp.payment_provider.stripe_verified is True
         assert Version.objects.get_for_object(rp.payment_provider).count() == pp_version_count + 1
 
-    def test_when_unauthenticated(self, rp):
-        url = reverse("handle-stripe-account-link", args=(rp.pk,))
-        client = APIClient()
-        response = client.post(url)
-        assert response.status_code == status.HTTP_401_UNAUTHORIZED
+    def test_when_unauthenticated(self, revenue_program, api_client):
+        url = reverse("handle-stripe-account-link", args=(revenue_program.pk,))
+        assert api_client.post(url).status_code == status.HTTP_401_UNAUTHORIZED
 
-    def test_when_no_role_assignment(self, rp, user):
-        url = reverse("handle-stripe-account-link", args=(rp.pk,))
-        client = APIClient()
-        client.force_authenticate(user=user)
-        response = client.post(url)
+    def test_when_no_role_assignment(self, revenue_program, user_no_role_assignment, api_client):
+        url = reverse("handle-stripe-account-link", args=(revenue_program.pk,))
+        api_client.force_authenticate(user=user_no_role_assignment)
+        response = api_client.post(url)
         assert response.status_code == status.HTTP_403_FORBIDDEN
 
-    def test_when_rp_not_found(self, rp_role_assignment):
-        rp = rp_role_assignment.revenue_programs.first()
+    def test_when_rp_not_found(self, org_user_free_plan, api_client):
+        rp = (ra := org_user_free_plan.roleassignment).revenue_programs.first()
         url = reverse("handle-stripe-account-link", args=(rp.pk,))
         rp.delete()
-        client = APIClient()
-        client.force_authenticate(user=rp_role_assignment.user)
-        response = client.post(url)
+        api_client.force_authenticate(user=ra.user)
+        response = api_client.post(url)
         assert response.status_code == status.HTTP_404_NOT_FOUND
 
-    def test_when_dont_have_access_to_rp(self, rp_role_assignment):
-        unowned_rp = RevenueProgramFactory()
-        assert unowned_rp not in rp_role_assignment.revenue_programs.all()
-        url = reverse("handle-stripe-account-link", args=(unowned_rp.pk,))
-        client = APIClient()
-        client.force_authenticate(user=rp_role_assignment.user)
-        response = client.post(url)
+    def test_when_dont_have_access_to_rp(self, org_user_free_plan, api_client, revenue_program):
+        assert revenue_program not in (ra := org_user_free_plan.roleassignment).revenue_programs.all()
+        url = reverse("handle-stripe-account-link", args=(revenue_program.pk,))
+        api_client.force_authenticate(user=ra.user)
+        response = api_client.post(url)
         assert response.status_code == status.HTTP_403_FORBIDDEN
 
-    def test_when_no_payment_provider(self, rp_role_assignment):
-        (rp := rp_role_assignment.revenue_programs.first()).payment_provider.delete()
+    def test_when_no_payment_provider(self, org_user_free_plan, api_client):
+        rp = (ra := org_user_free_plan.roleassignment).revenue_programs.first()
+        rp.payment_provider.delete()
         url = reverse("handle-stripe-account-link", args=(rp.pk,))
-        client = APIClient()
-        client.force_authenticate(user=rp_role_assignment.user)
-        response = client.post(url)
+        api_client.force_authenticate(user=ra.user)
+        response = api_client.post(url)
         assert response.status_code == status.HTTP_500_INTERNAL_SERVER_ERROR
 
-    def test_when_stripe_error_on_account_creation(self, rp_role_assignment, monkeypatch):
+    def test_when_stripe_error_on_account_creation(self, org_user_free_plan, api_client, monkeypatch):
         mock_fn = mock.MagicMock()
         mock_fn.side_effect = StripeError("Stripe blew up")
         monkeypatch.setattr("stripe.Account.create", mock_fn)
-        rp = rp_role_assignment.revenue_programs.first()
+        rp = (ra := org_user_free_plan.roleassignment).revenue_programs.first()
         rp.payment_provider.stripe_account_id = None
         rp.payment_provider.stripe_verified = False
         rp.payment_provider.stripe_product_id = None
         rp.payment_provider.save()
         url = reverse("handle-stripe-account-link", args=(rp.pk,))
-        client = APIClient()
-        client.force_authenticate(user=rp_role_assignment.user)
-        response = client.post(url)
+        api_client.force_authenticate(user=ra.user)
+        response = api_client.post(url)
         assert response.status_code == status.HTTP_500_INTERNAL_SERVER_ERROR
 
-    def test_when_stripe_error_on_account_retrieval(self, rp_role_assignment, monkeypatch):
+    def test_when_stripe_error_on_account_retrieval(self, org_user_free_plan, api_client, monkeypatch):
         mock_fn = mock.MagicMock()
         mock_fn.side_effect = StripeError("Stripe blew up")
         monkeypatch.setattr("stripe.Account.retrieve", mock_fn)
-        rp = rp_role_assignment.revenue_programs.first()
+        rp = (ra := org_user_free_plan.roleassignment).revenue_programs.first()
         rp.payment_provider.stripe_account_id = "someId"
         rp.payment_provider.stripe_verified = False
         rp.payment_provider.save()
         url = reverse("handle-stripe-account-link", args=(rp.pk,))
-        client = APIClient()
-        client.force_authenticate(user=rp_role_assignment.user)
-        response = client.post(url)
+        api_client.force_authenticate(user=ra.user)
+        response = api_client.post(url)
         assert response.status_code == status.HTTP_500_INTERNAL_SERVER_ERROR
 
-    def test_when_stripe_error_on_stripe_product_creation(self, rp_role_assignment, monkeypatch):
+    def test_when_stripe_error_on_stripe_product_creation(self, org_user_free_plan, api_client, monkeypatch):
         mock_account_create = mock.MagicMock(
             return_value={
                 "id": "account-id",
@@ -376,18 +811,17 @@ class TestHandleStripeAccountLink:
         mock_fn = mock.MagicMock()
         mock_fn.side_effect = StripeError("Stripe blew up")
         monkeypatch.setattr("stripe.Product.create", mock_fn)
-        rp = rp_role_assignment.revenue_programs.first()
+        rp = (ra := org_user_free_plan.roleassignment).revenue_programs.first()
         rp.payment_provider.stripe_account_id = None
         rp.payment_provider.stripe_verified = False
         rp.payment_provider.stripe_product_id = None
         rp.payment_provider.save()
         url = reverse("handle-stripe-account-link", args=(rp.pk,))
-        client = APIClient()
-        client.force_authenticate(user=rp_role_assignment.user)
-        response = client.post(url)
+        api_client.force_authenticate(user=ra.user)
+        response = api_client.post(url)
         assert response.status_code == status.HTTP_500_INTERNAL_SERVER_ERROR
 
-    def test_when_stripe_error_on_account_link_creation(self, rp_role_assignment, monkeypatch):
+    def test_when_stripe_error_on_account_link_creation(self, org_user_free_plan, api_client, monkeypatch):
         stripe_account_id = "fakefakefake"
         mock_stripe_account_retrieve = mock.MagicMock(
             return_value={
@@ -401,15 +835,14 @@ class TestHandleStripeAccountLink:
         mock_account_create_link = mock.MagicMock()
         mock_account_create_link.side_effect = StripeError("Stripe blew up")
         monkeypatch.setattr("stripe.AccountLink.create", mock_account_create_link)
-        rp = rp_role_assignment.revenue_programs.first()
+        rp = (ra := org_user_free_plan.roleassignment).revenue_programs.first()
         rp.payment_provider.stripe_account_id = stripe_account_id
         rp.payment_provider.stripe_verified = False
         rp.payment_provider.stripe_product_id = "something"
         rp.payment_provider.save()
         url = reverse("handle-stripe-account-link", args=(rp.pk,))
-        client = APIClient()
-        client.force_authenticate(user=rp_role_assignment.user)
-        response = client.post(url)
+        api_client.force_authenticate(user=ra.user)
+        response = api_client.post(url)
         assert response.status_code == status.HTTP_500_INTERNAL_SERVER_ERROR
 
 
@@ -425,5 +858,4 @@ def test_get_stripe_account_link_return_url_when_env_var_set(settings_stripe_acc
 
 def test_get_stripe_account_link_return_url_when_env_var_not_set():
     factory = APIRequestFactory()
-
     assert get_stripe_account_link_return_url(factory.get("")) == f"http://testserver{reverse('index')}"

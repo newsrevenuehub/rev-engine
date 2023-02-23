@@ -1,14 +1,14 @@
 import { EditorState } from 'draft-js';
 import { useState } from 'react';
 import { RichTextEditor } from 'components/base';
-import { useEditInterfaceContext } from 'components/pageEditor/editInterface/EditInterface';
+import { useEditInterfaceContext } from 'components/pageEditor/editInterface/EditInterfaceContextProvider';
 import { editorStateToHtml, htmlToEditorState } from 'utilities/draftJs';
 import { Root } from './RichTextElementEditor.styled';
 
 export function RichTextElementEditor() {
   const { elementContent, setElementContent } = useEditInterfaceContext();
   const [editorState, setEditorState] = useState(() =>
-    elementContent ? htmlToEditorState(elementContent) : EditorState.createEmpty()
+    elementContent ? htmlToEditorState(elementContent as string) : EditorState.createEmpty()
   );
 
   function handleEditorStateChange(editorState: EditorState) {

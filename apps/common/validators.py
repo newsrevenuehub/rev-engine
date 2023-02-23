@@ -30,10 +30,11 @@ class ValidateFkReferenceOwnership:
 
     requires_context = True
 
-    def __init__(self, fk_attribute, has_default_access_fn=_has_ensured_user_ownership_by_default):
+    def __init__(self, fk_attribute, model, has_default_access_fn=_has_ensured_user_ownership_by_default):
         """
         Notes on expectations around determine_ownership and has_default_access_fn
         """
+        self.model = model
         self.fk_attribute = fk_attribute
         self.has_default_access = has_default_access_fn
         # Validate passed function has at least the parameters that default fn has.
@@ -47,6 +48,14 @@ class ValidateFkReferenceOwnership:
                 has_default_access_fn.__code__.co_varnames,
             )
             raise serializers.ValidationError(f"{self.__class__} initialized with function with unexpected signature")
+        if not getattr(self.model.objects, "filtered_by_role_assignment", None):
+            logger.warning(
+                "`ValidateFKReferenceOwnership` initialized with a model (%s) that does not implement `filtered_by_role_assignment`, which is required.",
+                self.model.__name__,
+            )
+            raise serializers.ValidationError(
+                f"{self.__class__} initialized with model that is not properly configured"
+            )
 
     def __call__(self, value, serializer):
         """ """
@@ -65,7 +74,8 @@ class ValidateFkReferenceOwnership:
             raise serializers.ValidationError(MISSING_USER_IN_CONTEXT_MESSAGE.format(serializer.model.__name__))
 
         instance = value.get(self.fk_attribute, None)
-        if instance and not instance.user_has_ownership_via_role(ra):
+        # validate has method
+        if instance and instance not in type(instance).objects.filtered_by_role_assignment(ra):
             logger.warning(
                 "User with role assignment [%s] attempted to access unowned resource: [%s]: [%s]",
                 ra,

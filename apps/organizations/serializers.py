@@ -54,6 +54,12 @@ class OrganizationInlineSerializer(serializers.ModelSerializer):
         return asdict(obj.plan)
 
 
+class OrganizationPatchSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = Organization
+        fields = ["name"]
+
+
 class RevenueProgramListInlineSerializer(serializers.ModelSerializer):
     """
     I am needed for Page creation. In particular, if "slug" is not provided,
@@ -73,6 +79,10 @@ class RevenueProgramListInlineSerializer(serializers.ModelSerializer):
             "google_analytics_v3_id",
             "google_analytics_v4_id",
             "facebook_pixel_id",
+            "tax_id",
+            "non_profit",
+            "fiscal_status",
+            "fiscal_sponsor_name",
         ]
 
 
@@ -83,7 +93,17 @@ class RevenueProgramInlineSerializer(serializers.ModelSerializer):
 
     class Meta:
         model = RevenueProgram
-        fields = ["id", "name", "slug", "organization", "payment_provider_stripe_verified"]
+        fields = [
+            "id",
+            "name",
+            "slug",
+            "organization",
+            "payment_provider_stripe_verified",
+            "tax_id",
+            "non_profit",
+            "fiscal_status",
+            "fiscal_sponsor_name",
+        ]
 
 
 class RevenueProgramSerializer(serializers.ModelSerializer):
@@ -95,11 +115,13 @@ class RevenueProgramSerializer(serializers.ModelSerializer):
 
     class Meta:
         model = RevenueProgram
-        fields = [
-            "id",
-            "name",
-            "slug",
-        ]
+        fields = ["id", "name", "slug", "tax_id", "fiscal_status", "fiscal_sponsor_name"]
+
+
+class RevenueProgramPatchSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = RevenueProgram
+        fields = ["tax_id", "fiscal_status", "fiscal_sponsor_name"]
 
 
 class BenefitDetailSerializer(serializers.ModelSerializer):

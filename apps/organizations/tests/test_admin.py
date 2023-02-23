@@ -26,13 +26,13 @@ boolean_types = [1, 0, "t", "f"]
 
 
 def test_revenue_program_default_donation_page_options_limited(admin_client):
-    my_revenue_program = RevenueProgramFactory()
-    some_other_rp = RevenueProgramFactory()
+    my_revenue_program = RevenueProgramFactory(onboarded=True)
+    some_other_rp = RevenueProgramFactory(onboarded=True)
     dp1 = DonationPageFactory(revenue_program=my_revenue_program)
     dp2 = DonationPageFactory(revenue_program=my_revenue_program)
     dp3 = DonationPageFactory(revenue_program=some_other_rp)
-
     response = admin_client.get(reverse("admin:organizations_revenueprogram_change", args=[my_revenue_program.pk]))
+    assert response.status_code == 200
     soup = bs4(response.content)
 
     select = soup.find("select", {"name": "default_donation_page"})
@@ -68,7 +68,6 @@ def test_benefitlevel_change_where_revenue_program_is_readonly(admin_client):
 
 @override_settings(MESSAGE_STORAGE="django.contrib.messages.storage.cookie.CookieStorage")
 def test_paymentprovider_change_blocks_deletion_when_pages_with_publish_date():
-
     provider = PaymentProviderFactory()
     model_admin = PaymentProviderAdmin(model=PaymentProvider, admin_site=AdminSite())
 
@@ -124,3 +123,41 @@ def test_show_expected_fields_on_organization_pages(admin_client):
     assert soup.find("input", {"name": "show_connected_to_slack"}) is not None
     assert soup.find("input", {"name": "show_connected_to_salesforce"}) is not None
     assert soup.find("input", {"name": "show_connected_to_mailchimp"}) is not None
+
+
+def test_revenue_program_tax_id_available_in_admin_page(admin_client):
+    response = admin_client.get(reverse("admin:organizations_revenueprogram_add"))
+    soup = bs4(response.content)
+    assert soup.find("input", {"name": "tax_id"}) is not None
+
+    my_revenue_program = RevenueProgramFactory()
+    response = admin_client.get(reverse("admin:organizations_revenueprogram_change", args=[my_revenue_program.pk]))
+    soup = bs4(response.content)
+    assert soup.find("input", {"name": "tax_id"}) is not None
+
+
+def test_show_expected_fields_on_rp_pages(admin_client):
+    for response in [
+        admin_client.get(reverse("admin:organizations_revenueprogram_add")),
+        admin_client.get(f"/nrhadmin/organizations/revenueprogram/{RevenueProgramFactory().id}/change/"),
+    ]:
+        soup = BeautifulSoup(response.content)
+        assert soup.select_one(".field-name") is not None
+        assert soup.select_one(".field-slug") is not None
+        assert soup.find("input", {"name": "contact_email"}) is not None
+        assert soup.select_one(".field-organization") is not None
+        assert soup.select_one(".field-default_donation_page") is not None
+        assert soup.select_one(".field-country") is not None
+        assert soup.find("input", {"name": "fiscal_sponsor_name"}) is not None
+        assert soup.select_one(".field-fiscal_status") is not None
+        assert soup.find("input", {"name": "stripe_statement_descriptor_suffix"}) is not None
+        assert soup.find("input", {"name": "domain_apple_verified_date_0"}) is not None
+        assert soup.find("input", {"name": "domain_apple_verified_date_1"}) is not None
+        assert soup.select_one(".field-payment_provider") is not None
+        assert soup.find("input", {"name": "google_analytics_v3_domain"}) is not None
+        assert soup.find("input", {"name": "google_analytics_v3_id"}) is not None
+        assert soup.find("input", {"name": "google_analytics_v4_id"}) is not None
+        assert soup.find("input", {"name": "facebook_pixel_id"}) is not None
+        assert soup.find("input", {"name": "twitter_handle"})
+        assert soup.find("input", {"name": "website_url"})
+        assert soup.find("input", {"name": "allow_offer_nyt_comp"})

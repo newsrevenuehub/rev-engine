@@ -1,24 +1,34 @@
-import { useCallback, useMemo } from 'react';
 import { ReactComponent as InfoIcon } from '@material-design-icons/svg/outlined/info.svg';
+import { useCallback, useMemo } from 'react';
 import { Controller, useForm } from 'react-hook-form';
 import MaskedInput from 'react-input-mask';
 
+import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { Button, MenuItem, TextField } from 'components/base';
 import HeaderSection from 'components/common/HeaderSection';
 import SettingsSection from 'components/common/SettingsSection';
 import SubheaderSection from 'components/common/SubheaderSection';
-import GlobalLoading from 'elements/GlobalLoading';
+import { useAlert } from 'react-alert';
+
+import axios from 'ajax/axios';
+import { PATCH_ORGANIZATION, PATCH_REVENUE_PROGRAM } from 'ajax/endpoints';
 import { TAX_STATUS } from 'constants/fiscalStatus';
+import { HELP_URL } from 'constants/helperUrls';
+import { GENERIC_ERROR } from 'constants/textConstants';
+import GlobalLoading from 'elements/GlobalLoading';
 import useUser from 'hooks/useUser';
+import { getUserRole } from 'utilities/userRoleType';
 
 import {
   ActionWrapper,
   ContentForm,
+  Disclaimer,
   FieldLabelOptional,
+  InfoTooltip,
   InputWrapper,
+  Link,
   StyledTextField,
   TooltipContainer,
-  InfoTooltip,
   WarningMessage,
   Wrapper
 } from './Organization.styled';
@@ -31,8 +41,20 @@ export type OrganizationFormFields = {
 };
 
 const Organization = () => {
+  const alert = useAlert();
+  const queryClient = useQueryClient();
   const { user, isLoading } = useUser();
-  const currentOrganization = user?.organizations?.length === 1 ? user?.organizations?.[0] : undefined;
+  const currentOrganization = useMemo(
+    () => (user?.organizations?.length === 1 ? user?.organizations?.[0] : undefined),
+    [user?.organizations]
+  );
+  const revenueProgramFromCurrentOrg = useMemo(
+    () => user?.revenue_programs?.filter((rp) => rp.organization === currentOrganization?.id),
+    [currentOrganization?.id, user?.revenue_programs]
+  );
+  const hasMultipleRPs = revenueProgramFromCurrentOrg && revenueProgramFromCurrentOrg?.length > 1;
+
+  const { isOrgAdmin } = getUserRole(user);
 
   const {
     control,
@@ -42,14 +64,12 @@ const Organization = () => {
     formState: { errors }
   } = useForm<OrganizationFormFields>({
     defaultValues: {
-      // TODO: update values when BE returns the correct data
       companyName: currentOrganization?.name ?? '',
-      companyTaxStatus: currentOrganization?.fiscal_status ?? '',
-      taxId: currentOrganization?.tax_id ?? '',
-      fiscalSponsorName: currentOrganization?.fiscal_sponsor_name ?? ''
+      companyTaxStatus: revenueProgramFromCurrentOrg?.[0]?.fiscal_status ?? '',
+      taxId: revenueProgramFromCurrentOrg?.[0]?.tax_id ?? '',
+      fiscalSponsorName: revenueProgramFromCurrentOrg?.[0]?.fiscal_sponsor_name ?? ''
     }
   });
-
   const companyName = watch('companyName');
   const companyTaxStatus = watch('companyTaxStatus');
   const taxId = watch('taxId');
@@ -58,26 +78,68 @@ const Organization = () => {
   const isDifferent = useMemo(
     () => ({
       companyName: companyName !== currentOrganization?.name,
-      companyTaxStatus: companyTaxStatus !== currentOrganization?.fiscal_status,
-      taxId: taxId.replace(/-/g, '') !== currentOrganization?.tax_id,
-      fiscalSponsorName: fiscalSponsorName !== currentOrganization?.fiscal_sponsor_name
+      companyTaxStatus: companyTaxStatus !== revenueProgramFromCurrentOrg?.[0]?.fiscal_status,
+      taxId: taxId.replace(/-/g, '') !== revenueProgramFromCurrentOrg?.[0]?.tax_id,
+      fiscalSponsorName: fiscalSponsorName !== revenueProgramFromCurrentOrg?.[0]?.fiscal_sponsor_name
     }),
-    [
-      companyName,
-      companyTaxStatus,
-      currentOrganization?.fiscal_sponsor_name,
-      currentOrganization?.fiscal_status,
-      currentOrganization?.name,
-      currentOrganization?.tax_id,
-      fiscalSponsorName,
-      taxId
-    ]
+    [companyName, companyTaxStatus, currentOrganization?.name, fiscalSponsorName, revenueProgramFromCurrentOrg, taxId]
   );
 
-  const submit = useCallback((form: OrganizationFormFields) => {
-    // TODO: implement save when BE ready
-    console.log({ form });
-  }, []);
+  const updateOrganizationNameMutation = useMutation(
+    (name: string) => {
+      if (!currentOrganization) {
+        throw new Error('Organization is not yet defined');
+      }
+
+      return axios.patch(`${PATCH_ORGANIZATION}${currentOrganization.id}/`, { name });
+    },
+    {
+      onSuccess: () => queryClient.invalidateQueries({ queryKey: ['user'] })
+    }
+  );
+
+  const updateRevenueProgramMutation = useMutation(
+    ({ tax_id, fiscal_status }: { tax_id: string; fiscal_status: string }) => {
+      if (!revenueProgramFromCurrentOrg?.length) {
+        throw new Error('Revenue Program is not yet defined');
+      }
+      return axios.patch(`${PATCH_REVENUE_PROGRAM}${revenueProgramFromCurrentOrg[0].id}/`, {
+        tax_id: tax_id.replace('-', ''),
+        fiscal_status
+      });
+    },
+    {
+      onSuccess: () => queryClient.invalidateQueries({ queryKey: ['user'] })
+    }
+  );
+
+  const submit = useCallback(
+    async (form: OrganizationFormFields) => {
+      try {
+        if (isDifferent.companyName) {
+          await updateOrganizationNameMutation.mutateAsync(form.companyName);
+        }
+        if (isDifferent.companyTaxStatus || isDifferent.taxId || isDifferent.fiscalSponsorName) {
+          await updateRevenueProgramMutation.mutateAsync({
+            tax_id: form.taxId,
+            fiscal_status: form.companyTaxStatus
+          });
+        }
+      } catch (error) {
+        console.error(error);
+        alert.error(GENERIC_ERROR);
+      }
+    },
+    [
+      alert,
+      isDifferent.companyName,
+      isDifferent.companyTaxStatus,
+      isDifferent.fiscalSponsorName,
+      isDifferent.taxId,
+      updateOrganizationNameMutation,
+      updateRevenueProgramMutation
+    ]
+  );
 
   if (isLoading) return <GlobalLoading />;
 
@@ -95,86 +157,105 @@ const Organization = () => {
             name="companyName"
             control={control}
             render={({ field }) => (
-              <TextField fullWidth id="settings-company-name" label="Display Name" disabled {...field} />
+              <TextField fullWidth id="settings-company-name" label="Display Name" disabled={!isOrgAdmin} {...field} />
             )}
           />
         </SettingsSection>
         <SettingsSection
           title="Organization Tax Status"
-          subtitle="The status is used to calculate fees associated with contributions. For nonprofits, tax ID (EIN) will be included on contributor receipts."
+          subtitle={
+            hasMultipleRPs ? (
+              <>
+                Your Organization's tax status and EIN are managed by our Staff. For help, please contact{' '}
+                <Link href={HELP_URL} target="_blank" rel="noreferrer">
+                  Support
+                </Link>
+                .{' '}
+                <Disclaimer>
+                  The status is used to calculate fees associated with contributions. For nonprofits, tax ID (EIN) will
+                  be included on contributor receipts.
+                </Disclaimer>
+              </>
+            ) : (
+              'The status is used to calculate fees associated with contributions. For nonprofits, tax ID (EIN) will be included on contributor receipts.'
+            )
+          }
         >
-          <InputWrapper>
-            <TooltipContainer>
-              <Controller
-                name="companyTaxStatus"
-                control={control}
-                render={({ field }) => (
-                  <TextField fullWidth id="settings-company-tax-status" label="Tax Status" {...field} select>
-                    <MenuItem value={TAX_STATUS.NONPROFIT}>Nonprofit</MenuItem>
-                    <MenuItem value={TAX_STATUS.FOR_PROFIT}>For-profit</MenuItem>
-                    <MenuItem value={TAX_STATUS.FISCALLY_SPONSORED}>Fiscally Sponsored</MenuItem>
-                  </TextField>
-                )}
-              />
-              <InfoTooltip
-                buttonLabel="Help for Company Tax Status"
-                title="Your tax status determines the contribution fees charged through Stripe."
-              />
-            </TooltipContainer>
-            <TooltipContainer>
-              <Controller
-                name="taxId"
-                control={control}
-                rules={{ pattern: { value: /[0-9]{2}-[0-9]{7}/, message: 'EIN must have 9 digits' } }}
-                render={({ field }) => (
-                  <MaskedInput mask="99-9999999" {...field}>
-                    {(inputProps: any) => (
-                      <StyledTextField
-                        fullWidth
-                        id="settings-tax-id"
-                        data-testid="profile-tax-id"
-                        placeholder="XX-XXXXXXX"
-                        label={
-                          <>
-                            EIN <FieldLabelOptional>Optional</FieldLabelOptional>
-                          </>
-                        }
-                        {...inputProps}
-                      />
-                    )}
-                  </MaskedInput>
-                )}
-              />
-              <InfoTooltip
-                buttonLabel="Help for EIN"
-                title="If your organization is fiscally sponsored, enter the fiscal sponsor’s EIN."
-              />
-            </TooltipContainer>
-            {companyTaxStatus === TAX_STATUS.FISCALLY_SPONSORED && (
-              <Controller
-                name="fiscalSponsorName"
-                control={control}
-                rules={{
-                  required: 'Fiscal Sponsor Name is required.',
-                  maxLength: {
-                    value: 63,
-                    message: 'Must be no more than 63 characters'
-                  }
-                }}
-                render={({ field }) => (
-                  <TextField
-                    fullWidth
-                    id="profile-fiscal-sponsor-name"
-                    label="Fiscal Sponsor Name"
-                    style={{ gridColumnStart: 'span 2' }}
-                    error={!!errors.fiscalSponsorName}
-                    helperText={errors?.fiscalSponsorName?.message}
-                    {...field}
-                  />
-                )}
-              />
-            )}
-          </InputWrapper>
+          {!hasMultipleRPs && (
+            <InputWrapper>
+              <TooltipContainer>
+                <Controller
+                  name="companyTaxStatus"
+                  control={control}
+                  render={({ field }) => (
+                    <TextField fullWidth id="settings-company-tax-status" label="Tax Status" {...field} select>
+                      <MenuItem value={TAX_STATUS.NONPROFIT}>Nonprofit</MenuItem>
+                      <MenuItem value={TAX_STATUS.FOR_PROFIT}>For-profit</MenuItem>
+                      <MenuItem value={TAX_STATUS.FISCALLY_SPONSORED}>Fiscally Sponsored</MenuItem>
+                    </TextField>
+                  )}
+                />
+                <InfoTooltip
+                  buttonLabel="Help for Company Tax Status"
+                  title="Your tax status determines the contribution fees charged through Stripe."
+                />
+              </TooltipContainer>
+              <TooltipContainer>
+                <Controller
+                  name="taxId"
+                  control={control}
+                  rules={{ pattern: { value: /[0-9]{2}-[0-9]{7}|[0-9]{9}/, message: 'EIN must have 9 digits' } }}
+                  render={({ field }) => (
+                    <MaskedInput mask="99-9999999" {...field} disabled={!isOrgAdmin}>
+                      {(inputProps: any) => (
+                        <StyledTextField
+                          fullWidth
+                          disabled={!isOrgAdmin}
+                          id="settings-tax-id"
+                          data-testid="profile-tax-id"
+                          placeholder="XX-XXXXXXX"
+                          label={
+                            <>
+                              EIN <FieldLabelOptional>Optional</FieldLabelOptional>
+                            </>
+                          }
+                          {...inputProps}
+                        />
+                      )}
+                    </MaskedInput>
+                  )}
+                />
+                <InfoTooltip
+                  buttonLabel="Help for EIN"
+                  title="If your organization is fiscally sponsored, enter the fiscal sponsor’s EIN."
+                />
+              </TooltipContainer>
+              {companyTaxStatus === TAX_STATUS.FISCALLY_SPONSORED && (
+                <Controller
+                  name="fiscalSponsorName"
+                  control={control}
+                  rules={{
+                    required: 'Fiscal Sponsor Name is required.',
+                    maxLength: {
+                      value: 63,
+                      message: 'Must be no more than 63 characters'
+                    }
+                  }}
+                  render={({ field }) => (
+                    <TextField
+                      fullWidth
+                      id="profile-fiscal-sponsor-name"
+                      label="Fiscal Sponsor Name"
+                      style={{ gridColumnStart: 'span 2' }}
+                      error={!!errors.fiscalSponsorName}
+                      helperText={errors?.fiscalSponsorName?.message}
+                      {...field}
+                    />
+                  )}
+                />
+              )}
+            </InputWrapper>
+          )}
         </SettingsSection>
         {isDifferent.companyTaxStatus && (
           <WarningMessage>

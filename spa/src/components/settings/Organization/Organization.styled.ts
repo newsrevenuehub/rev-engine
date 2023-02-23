@@ -46,13 +46,6 @@ export const InputWrapper = styled.div`
   grid-template-columns: 1fr 1fr;
 `;
 
-export const ActionWrapper = styled.div`
-  display: flex;
-  gap: 12px;
-  align-items: center;
-  justify-content: center;
-`;
-
 export const WarningMessage = styled.div`
   display: grid;
   grid-template-columns: 15px 1fr;
@@ -69,4 +62,23 @@ export const WarningMessage = styled.div`
     height: 15px;
     fill: ${(props) => props.theme.colors.error.primary};
   }
+`;
+
+export const ActionWrapper = styled.div`
+  display: flex;
+  gap: 12px;
+  align-items: center;
+  justify-content: center;
+`;
+
+export const Disclaimer = styled.span`
+  margin-top: 20px;
+  font-style: italic;
+  color: ${(props) => props.theme.colors.muiGrey[600]};
+  font-size: ${(props) => props.theme.fontSizesUpdated.md};
+`;
+
+export const Link = styled.a`
+  color: ${(props) => props.theme.colors.account.blueLink};
+  font-weight: 500;
 `;

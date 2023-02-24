@@ -114,6 +114,15 @@ export interface AmountElement extends ContributionPageElement {
   };
 }
 
+export interface DonorInfoElement extends ContributionPageElement {
+  content: {
+    /**
+     * Ask the user for a phone number?
+     */
+    askPhone?: boolean;
+  };
+}
+
 export interface FrequencyElement extends ContributionPageElement {
   content: {
     /**

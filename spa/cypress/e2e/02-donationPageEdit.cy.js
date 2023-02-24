@@ -270,9 +270,9 @@ describe('Contribution page edit', () => {
   });
 
   describe('Contributor info editor', () => {
-    it('should render the DonorInfoEditor', () => {
+    it('should render the contributor info editor', () => {
       cy.editElement('DDonorInfo');
-      cy.getByTestId('donor-info-editor').should('exist');
+      cy.getByTestId('contributor-info-editor').should('exist');
     });
   });
 

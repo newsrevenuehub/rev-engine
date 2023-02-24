@@ -131,6 +131,24 @@ export interface FrequencyElement extends ContributionPageElement {
   }[];
 }
 
+export interface PaymentElement extends ContributionPageElement {
+  content: {
+    /**
+     * Ask the user if they'd like to pay transaction fees?
+     */
+    offerPayFees?: boolean;
+    /**
+     * Default the user to paying transaction fees.
+     */
+    payFeesDefault?: boolean;
+    /**
+     * This field is not used anymore, but it was the payment methods accepted
+     * through Stripe checkout.
+     */
+    stripe: string[];
+  };
+}
+
 export interface ReasonElement extends ContributionPageElement {
   content: {
     /**

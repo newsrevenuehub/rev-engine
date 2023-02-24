@@ -1,6 +1,9 @@
 import logging
 from dataclasses import dataclass, field
+from urllib.parse import urljoin
 
+
+from addict import Dict as AttrDict
 from django.conf import settings
 from django.core.exceptions import ValidationError
 from django.core.validators import MinLengthValidator
@@ -249,6 +252,17 @@ class FiscalStatusChoices(models.TextChoices):
     FISCALLY_SPONSORED = "fiscally sponsored"
 
 
+@dataclass
+class DefaultStyle:
+    """"""
+
+    logo_url: str = None
+    header_color: str = None
+    header_font: str = None
+    body_font: str = None
+    button_color: str = None
+
+
 class RevenueProgramQuerySet(models.QuerySet):
     def filtered_by_role_assignment(self, role_assignment: RoleAssignment) -> models.QuerySet:
         match role_assignment.role_type:
@@ -358,6 +372,20 @@ class RevenueProgram(IndexedTimeStampedModel):
     @property
     def non_profit(self):
         return self.fiscal_status in (FiscalStatusChoices.FISCALLY_SPONSORED, FiscalStatusChoices.NONPROFIT)
+
+    @property
+    def default_style(self) -> DefaultStyle:
+        """"""
+        if not (page := self.default_donation_page):
+            return DefaultStyle()
+        _style = AttrDict(page.styles.styles if page.styles else {})
+        return DefaultStyle(
+            logo_url=urljoin(settings.SITE_URL, page.header_logo.url) if page.header_logo else None,
+            header_color=_style.colors.cstm_mainHeader or None,
+            header_font=_style.font.heading or None,
+            body_font=_style.font.body or None,
+            button_color=_style.colors.cstm_CTAs or None,
+        )
 
     def clean_fields(self, **kwargs):
         if not self.id:

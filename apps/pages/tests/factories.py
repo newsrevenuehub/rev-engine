@@ -26,7 +26,7 @@ class DonationPageFactory(DjangoModelFactory):
 class StyleFactory(DjangoModelFactory):
     class Meta:
         model = models.Style
-        django_get_or_create = ("name", "revenue_program")
+        # django_get_or_create = ("name", "revenue_program")
 
     class Params:
         org = None

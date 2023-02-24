@@ -66,6 +66,7 @@ const Organization = () => {
     control,
     watch,
     reset,
+    resetField,
     handleSubmit,
     formState: { errors }
   } = useForm<OrganizationFormFields>({
@@ -86,7 +87,9 @@ const Organization = () => {
       companyName: companyName !== currentOrganization?.name,
       companyTaxStatus: companyTaxStatus !== revenueProgramFromCurrentOrg?.[0]?.fiscal_status,
       taxId: taxId.replace(/-/g, '') !== revenueProgramFromCurrentOrg?.[0]?.tax_id,
-      fiscalSponsorName: fiscalSponsorName !== revenueProgramFromCurrentOrg?.[0]?.fiscal_sponsor_name
+      fiscalSponsorName:
+        companyTaxStatus === TAX_STATUS.FISCALLY_SPONSORED &&
+        fiscalSponsorName !== revenueProgramFromCurrentOrg?.[0]?.fiscal_sponsor_name
     }),
     [companyName, companyTaxStatus, currentOrganization?.name, fiscalSponsorName, revenueProgramFromCurrentOrg, taxId]
   );
@@ -112,7 +115,7 @@ const Organization = () => {
       return axios.patch(`${PATCH_REVENUE_PROGRAM}${revenueProgramFromCurrentOrg[0].id}/`, {
         tax_id: tax_id.replace('-', ''),
         fiscal_status,
-        fiscal_sponsor_name
+        fiscal_sponsor_name: fiscal_status === TAX_STATUS.FISCALLY_SPONSORED ? fiscal_sponsor_name : ''
       });
     },
     {
@@ -132,6 +135,9 @@ const Organization = () => {
             fiscal_status: form.companyTaxStatus,
             fiscal_sponsor_name: form.fiscalSponsorName
           });
+          if (companyTaxStatus !== TAX_STATUS.FISCALLY_SPONSORED) {
+            resetField('fiscalSponsorName', { defaultValue: '' });
+          }
         }
       } catch (error) {
         console.error(error);

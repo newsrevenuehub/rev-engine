@@ -192,17 +192,18 @@ describe('Contribution page edit', () => {
 
       it('should validate frequency', () => {
         // Uncheck all the frequencies
-        cy.getByTestId('frequency-toggle').click({ multiple: true });
-        cy.findByRole('button', { name: 'Update' }).click();
-        cy.getByTestId('alert').contains('You must have at least');
+        cy.findByRole('checkbox', { name: 'One time payments enabled' }).click();
+        cy.findByRole('checkbox', { name: 'Monthly payments enabled' }).click();
+        cy.findByRole('checkbox', { name: 'Yearly payments enabled' }).click();
+
+        cy.findByText('You must have at least 1 frequency enabled.');
+        cy.findByRole('button', { name: 'Update' }).should('be.disabled');
       });
 
       it('should accept valid input and changes should show on page', () => {
-        cy.intercept(`**/${LIST_STYLES}**`, {});
-
         // Make a change and save it.
-        cy.getByTestId('frequency-toggle').click({ multiple: true });
-        cy.getByTestId('frequency-toggle').contains('One time').click();
+        cy.findByRole('checkbox', { name: 'Monthly payments enabled' }).click();
+        cy.findByRole('checkbox', { name: 'Yearly payments enabled' }).click();
         cy.findByRole('button', { name: 'Update' }).click();
 
         // Contribution page should only show item checked, and nothing else.
@@ -219,10 +220,6 @@ describe('Contribution page edit', () => {
 
     beforeEach(() => {
       cy.intercept(`**/${LIST_STYLES}**`, {});
-      cy.editElement('DFrequency');
-      cy.getByTestId('frequency-editor').find('li').first().click();
-      cy.getByTestId('frequency-editor').find('li').click({ multiple: true });
-      cy.findByRole('button', { name: 'Update' }).click();
       cy.editElement('DAmount');
     });
 

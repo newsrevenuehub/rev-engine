@@ -1,4 +1,5 @@
 import { ContributionInterval } from 'constants/contributionIntervals';
+import { FiscalStatus } from 'constants/fiscalStatus';
 import { Style } from '../useStyleList';
 
 // Types here come from looking at Django models, in particular whether a field
@@ -245,7 +246,7 @@ export interface RevenueProgram {
   /**
    * Fiscal status that is "nonprofit", "for-profit" or "fiscally sponsored".
    */
-  fiscal_status: string;
+  fiscal_status: FiscalStatus;
   /**
    * Fiscal sponsor name. Will only have a non-null value if fiscal_status === "fiscally sponsored"
    */
@@ -253,7 +254,7 @@ export interface RevenueProgram {
   /**
    * EIN tax ID.
    */
-  tax_id: string;
+  tax_id?: string | null;
 }
 
 /**

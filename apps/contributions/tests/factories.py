@@ -98,35 +98,20 @@ class ContributionFactory(DjangoModelFactory):
     provider_payment_method_id = factory.LazyFunction(lambda: f"pm_{_random_stripe_str()}")
     provider_payment_method_details = factory.LazyFunction(lambda: PAYMENT_METHOD_DETAILS_DATA)
 
-    @factory.post_generation
-    def contribution_metadata(obj, create, extracted="default", **kwargs):
-        """Generate realistic looking contribution_metadata
-
-        Note that we have set a default value for `extracted` here. This is because we need to be able
-        to on a case by case basis override the value for`contribution_metadata` with an empty dict or None
-        in specific tests. That means we can't test for "falsiness". By setting `extracted`'s default value to
-        "default" here, we allow calling context to pass along any arbitrary value to be sent. See more detail
-        on post-generation and the extracted parameter here:
-
-        https://factoryboy.readthedocs.io/en/stable/reference.html#factory.post_generation
-        """
-        rp = obj.donation_page.revenue_program
-        obj.contribution_metadata = (
-            extracted
-            if extracted != "default"
-            else {
-                "source": settings.METADATA_SOURCE,
-                "schema_version": settings.METADATA_SCHEMA_VERSION,
-                "contributor_id": obj.contributor.id,
-                "agreed_to_pay_fees": True,
-                "donor_selected_amount": obj.amount / 100,
-                "revenue_program_id": rp.id or "",
-                "revenue_program_slug": rp.slug or "",
-                "referer": settings.SITE_URL,
-            }
-            | kwargs
-        )
-        obj.save()
+    @factory.lazy_attribute
+    def contribution_metadata(self) -> dict:
+        """Generate realistic looking contribution_metadata"""
+        rp = self.donation_page.revenue_program
+        return {
+            "source": settings.METADATA_SOURCE,
+            "schema_version": settings.METADATA_SCHEMA_VERSION,
+            "contributor_id": self.contributor.id,
+            "agreed_to_pay_fees": True,
+            "donor_selected_amount": self.amount / 100,
+            "revenue_program_id": rp.id or "",
+            "revenue_program_slug": rp.slug or "",
+            "referer": settings.SITE_URL,
+        }
 
     class Params:
         # this is roughly how a successful one-time contribution would look

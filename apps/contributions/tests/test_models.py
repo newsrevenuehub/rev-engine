@@ -778,14 +778,25 @@ class TestContributionModel:
             "monthly_subscription",
         ),
     )
-    def test_formatted_donor_selected_amount(self, trait):
+    def test_formatted_donor_selected_amount_happy_path(self, trait):
         kwargs = {trait: True}
         contribution = ContributionFactory(**kwargs)
         assert (
             contribution.formatted_donor_selected_amount
             and contribution.formatted_donor_selected_amount
-            == f"{'{:.2f}'.format(contribution.amount / 100)} {contribution.currency.upper()}"
+            == f"{'{:.2f}'.format(int(contribution.contribution_metadata['donor_selected_amount']))} {contribution.currency.upper()}"
         )
+
+    @pytest.mark.parametrize(
+        "metadata",
+        ({"donor_selected_amount": "cats"}, dict(), None),
+    )
+    def test_formatted_donor_selected_amount_when_bad_contribution_metadata(self, metadata, mocker):
+        logger_spy = mocker.spy(logger, "warning")
+        contribution = ContributionFactory(contribution_metadata=metadata)
+        contribution.save()
+        assert contribution.formatted_donor_selected_amount == ""
+        logger_spy.assert_called_once()
 
     @pytest.mark.parametrize(
         "interval,expect_success",
@@ -1248,6 +1259,7 @@ class TestContributionModel:
     ):
         monkeypatch.setattr("apps.contributions.models.Contribution.stripe_subscription", None)
         monthly_contribution.contribution_metadata = None
+        monthly_contribution.save()
         spy = mocker.spy(logger, "warning")
         Contribution.fix_missing_contribution_metadata()
         monthly_contribution.refresh_from_db()

@@ -316,7 +316,27 @@ class Contribution(IndexedTimeStampedModel):
 
     @property
     def formatted_donor_selected_amount(self) -> str:
-        return f"{'{:.2f}'.format(self.amount / 100)} {self.currency.upper()}"
+        if not (amt := (self.contribution_metadata or {}).get("donor_selected_amount", None)):
+            logger.warning(
+                (
+                    "`Contribution.formatted_donor_selected_amount` called on contribution with ID %s that "
+                    "does not have a value set for `contribution_metadata['donor_selected_amount']`"
+                ),
+                self.id,
+            )
+            return ""
+        try:
+            return f"{'{:.2f}'.format(int(amt))} {self.currency.upper()}"
+        except ValueError:
+            logger.warning(
+                (
+                    "`Contribution.formatted_donor_selected_amount` called on contribution with ID %s whose "
+                    "value set for `contribution_metadata['donor_selected_amount']` is %s which cannot be cast to an integer."
+                ),
+                self.id,
+                amt,
+            )
+            return ""
 
     BAD_ACTOR_SCORES = (
         (

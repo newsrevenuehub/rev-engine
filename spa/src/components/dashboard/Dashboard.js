@@ -27,6 +27,7 @@ import DashboardTopbar from 'components/dashboard/topbar/DashboardTopbar';
 import Donations from 'components/donations/Donations';
 import Integration from 'components/settings/Integration';
 import Organization from 'components/settings/Organization';
+import SingleOrgUserOnlyRoute from 'components/authentication/SingleOrgUserOnlyRoute';
 import PageEditorRoute from 'components/pageEditor/PageEditorRoute';
 import SystemNotification from 'components/common/SystemNotification/SystemNotification';
 
@@ -114,10 +115,14 @@ function Dashboard() {
                 </SentryRoute>
               ) : null}
               <SentryRoute path={SETTINGS.INTEGRATIONS}>
-                <Integration />
+                <SingleOrgUserOnlyRoute>
+                  <Integration />
+                </SingleOrgUserOnlyRoute>
               </SentryRoute>
               <SentryRoute path={SETTINGS.ORGANIZATION}>
-                <Organization />
+                <SingleOrgUserOnlyRoute>
+                  <Organization />
+                </SingleOrgUserOnlyRoute>
               </SentryRoute>
               <SentryRoute path={PROFILE}>
                 <Profile />

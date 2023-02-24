@@ -13,7 +13,7 @@ export const Content = styled.div`
 `;
 
 export const ContentDetail = styled.div`
-  padding: 18px;
+  padding: 18px 0;
 `;
 
 export const Header = styled.h5`

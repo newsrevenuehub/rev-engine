@@ -293,8 +293,8 @@ describe('Contribution page edit', () => {
 
     it('should disable the checkbox to default paying fees if paying fees is turned off', () => {
       cy.editElement('DPayment');
-      cy.getByTestId('payment-editor').get('.checkbox').first().click();
-      cy.getByTestId('pay-fees-by-default').get('input[type="checkbox"]').should('be.disabled');
+      cy.findByRole('checkbox', { name: 'Offer option to pay payment provider fees' }).click();
+      cy.findByRole('checkbox', { name: 'Selected by default' }).should('be.disabled');
     });
   });
 

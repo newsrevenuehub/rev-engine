@@ -1,6 +1,7 @@
 from urllib.parse import urljoin
 
 from django.conf import settings
+from django.db.models.deletion import ProtectedError
 from django.test import override_settings
 from django.utils import timezone
 
@@ -15,13 +16,15 @@ from apps.organizations.models import (
     Benefit,
     BenefitLevel,
     BenefitLevelBenefit,
+    DefaultStyle,
     Organization,
     PaymentProvider,
     RevenueProgram,
-    DefaultStyle,
 )
-from apps.pages.tests.factories import StyleFactory, DonationPageFactory
-from apps.users.models import User
+from apps.organizations.tests.factories import OrganizationFactory
+from apps.pages.models import DonationPage
+from apps.pages.tests.factories import DonationPageFactory, StyleFactory
+from apps.users.models import RoleAssignment, Roles, User
 
 from .factories import RevenueProgramFactory
 
@@ -44,6 +47,59 @@ class TestOrganization:
         user = User.objects.create()
         t = Organization.objects.create()
         assert not t.user_is_owner(user)
+
+    def test_admin_revenue_program_options(self, revenue_program):
+        assert revenue_program.organization.admin_revenueprogram_options == [(revenue_program.name, revenue_program.pk)]
+
+    def test_org_cannot_be_deleted_when_contributions_downstream(self, live_donation_page, one_time_contribution):
+        """An org should not be deleteable when downstream contributions exist"""
+        one_time_contribution.donation_page = live_donation_page
+        one_time_contribution.save()
+        with pytest.raises(ProtectedError) as protected_error:
+            live_donation_page.revenue_program.organization.delete()
+            assert protected_error.exception.args[0] == (
+                "Cannot delete some instances of model 'Organization' because they are referenced through protected "
+                "foreign keys: 'RevenueProgram.organization'."
+            )
+        assert Organization.objects.filter(pk=live_donation_page.revenue_program.organization.pk).exists()
+
+    def test_org_deletion_cascades_when_no_contributions_downstream(self, org_user_free_plan, live_donation_page):
+        """An org and its cascading relationships should be deleted when no downstream contributions"""
+        live_donation_page.revenue_program = org_user_free_plan.roleassignment.revenue_programs.first()
+        live_donation_page.save()
+        page_id = live_donation_page.id
+        rp_ids = org_user_free_plan.roleassignment.revenue_programs.values_list("id", flat=True)
+        ra_id = org_user_free_plan.roleassignment.id
+        org_user_free_plan.roleassignment.organization.delete()
+        assert not RevenueProgram.objects.filter(pk__in=rp_ids).exists()
+        assert not DonationPage.objects.filter(pk=page_id).exists()
+        assert not RoleAssignment.objects.filter(pk=ra_id).exists()
+
+    @pytest_cases.parametrize(
+        "user",
+        (
+            pytest_cases.fixture_ref("hub_admin_user"),
+            pytest_cases.fixture_ref("org_user_free_plan"),
+            pytest_cases.fixture_ref("rp_user"),
+        ),
+    )
+    def test_organization_filtered_by_role_assignment(self, user):
+        # ensure there will be unowned organizations
+        OrganizationFactory.create_batch(size=2)
+        owned_orgs = (
+            Organization.objects.all()
+            if user.roleassignment.role_type == Roles.HUB_ADMIN
+            else [
+                user.roleassignment.organization,
+            ]
+        )
+        query = Organization.objects.filtered_by_role_assignment(user.roleassignment)
+        assert query.count() == len(owned_orgs)
+        assert set(query.values_list("id", flat=True)) == set([x.id for x in owned_orgs])
+
+    def test_organization_filtered_by_role_assignment_when_unexpected_role(self, user_with_unexpected_role):
+        OrganizationFactory.create_batch(3)
+        assert Organization.objects.filtered_by_role_assignment(user_with_unexpected_role.roleassignment).count() == 0
 
 
 class TestBenefit:
@@ -85,22 +141,21 @@ def revenue_program_with_default_donation_page_all_default_style_values():
         },
         "font": {"heading": "something", "body": "else"},
     }
-    rp = RevenueProgramFactory(
-        onboarded=True,
-    )
+    rp = RevenueProgramFactory(onboarded=True)
+
     page = DonationPageFactory(revenue_program=rp, styles=style, header_logo=get_test_image_file_jpeg())
     assert page.header_logo is not None
     rp.default_donation_page = page
-    rp.save()
     return rp
 
 
-@pytest.fixture()
+@pytest_cases.fixture()
 def revenue_program_with_default_donation_page_but_no_default_style_values():
-    style = StyleFactory()
+    rp = RevenueProgramFactory(onboarded=True)
+    style = StyleFactory(name="foo", revenue_program=rp)
     style.styles.pop("colors", None)
     style.styles.pop("font", None)
-    rp = RevenueProgramFactory(onboarded=True)
+    style.save()
     page = DonationPageFactory(revenue_program=rp, styles=style, header_logo=None)
     rp.default_donation_page = page
     rp.save()
@@ -205,6 +260,93 @@ class TestRevenueProgram:
             assert rp.default_style.body_font == page_styles["font"]["body"]
             assert rp.default_style.button_color == page_styles["colors"]["cstm_CTAs"]
 
+    def test_slug_created(self):
+        assert RevenueProgramFactory().slug
+
+    def test_slug_immutable(self, revenue_program):
+        slug = revenue_program.slug
+        revenue_program.name = "new name"
+        revenue_program.save()
+        revenue_program.refresh_from_db()
+        assert revenue_program.slug == slug
+
+    # def test_slug_larger_than_max_length(self):
+    #     fake = Faker()
+    #     Faker.seed(0)
+    #     long_slug_rp = factories.RevenueProgramFactory(name=f"{' '.join(fake.words(nb=30))}")
+    #     assert len(long_slug_rp.slug) < RP_SLUG_MAX_LENGTH
+
+    # # This is to squash a side effect in contribution.save
+    # # TODO: DEV-3026
+    # @patch("apps.contributions.models.Contribution.fetch_stripe_payment_method", return_value=None)
+    # def test_cannot_delete_when_downstream_contributions(self, mock_fetch_stripe_payment_method):
+    #     page = DonationPageFactory(revenue_program=self.instance)
+    #     ContributionFactory(donation_page=page)
+    #     with pytest.raises(ProtectedError) as protected_error:
+    #         self.instance.delete()
+    #     error_msg = (
+    #         "Cannot delete some instances of model 'RevenueProgram' because they are referenced "
+    #         "through protected foreign keys: 'DonationPage.revenue_program'."
+    #     )
+    #     assert error_msg, protected_error.value.args[0]
+
+    # def test_can_delete_when_no_downstream_contributions_and_cascades(self):
+    #     page_id = DonationPageFactory(revenue_program=self.instance).id
+    #     self.instance.delete()
+    #     assert not DonationPage.objects.filter(id=page_id).exists()
+
+    # def test_delete_organization_deletes_revenue_program(self):
+    #     assert self.organization is not None
+    #     assert self.instance is not None
+    #     assert self.instance.organization == self.organization
+    #     rp_pk = self.instance.id
+    #     self.organization.delete()
+    #     assert not RevenueProgram.objects.filter(pk=rp_pk).exists()
+
+    # def test_deleting_cascades_to_socialmeta(self):
+    #     sm_id = SocialMeta.objects.create(
+    #         title="title", description="description", url="https://example.com", revenue_program=self.instance
+    #     ).id
+    #     self.instance.delete()
+    #     assert not SocialMeta.objects.filter(id=sm_id).exists()
+
+    # def test_format_twitter_handle(self):
+    #     target_handle = "testing"
+    #     self.instance.twitter_handle = "@" + target_handle
+    #     self.instance.clean()
+    #     assert self.instance.twitter_handle == target_handle
+
+    # @override_settings(STRIPE_LIVE_MODE=False)
+    # @patch("stripe.ApplePayDomain.create")
+    # def test_apple_pay_domain_verification_not_called_when_created_and_not_live(self, apple_pay_domain_create):
+    #     factories.RevenueProgramFactory()
+    #     apple_pay_domain_create.assert_not_called()
+
+    # @override_settings(STRIPE_LIVE_MODE=True)
+    # @override_settings(STRIPE_LIVE_SECRET_KEY=TEST_STRIPE_LIVE_KEY)
+    # @override_settings(DOMAIN_APEX=TEST_DOMAIN_APEX)
+    # @patch("stripe.ApplePayDomain.create")
+    # def test_apple_pay_domain_verification_not_called_when_updated_and_live(self, apple_pay_domain_create):
+    #     self.instance.slug = "my-new-slug"
+    #     self.instance.save()
+    #     apple_pay_domain_create.assert_not_called()
+
+    # def test_slug_validated_against_denylist(self):
+    #     denied_word = DenyListWordFactory()
+    #     rp = RevenueProgram(name="My rp", organization=self.organization, payment_provider=self.payment_provider)
+    #     rp.slug = denied_word.word
+    #     with pytest.raises(ValidationError) as validation_error:
+    #         rp.clean_fields()
+    #     assert "slug" in validation_error.value.error_dict
+    #     assert SLUG_DENIED_CODE == validation_error.value.error_dict["slug"][0].code
+    #     assert GENERIC_SLUG_DENIED_MSG == validation_error.value.error_dict["slug"][0].message
+
+    # def test_admin_benefit_options(self):
+    #     assert isinstance(self.instance.admin_benefit_options, list)
+
+    # def test_admin_benefitlevel_options(self):
+    #     assert isinstance(self.instance.admin_benefitlevel_options, list)
+
 
 class TestPaymentProvider:
     def test_basics(self):
@@ -262,181 +404,6 @@ class TestPaymentProvider:
 
 
 # user_model = get_user_model()
-
-
-# class TestOrganizationModel(TestCase):
-#     def setUp(self):
-#         self.organization = factories.OrganizationFactory()
-#         self.rp = factories.RevenueProgramFactory(organization=self.organization)
-#         self.dp = DonationPageFactory(revenue_program=self.rp)
-#         # TODO: DEV-3026
-#         with patch("apps.contributions.models.Contribution.fetch_stripe_payment_method", return_value=None):
-#             self.contribution = ContributionFactory(donation_page=self.dp)
-#         self.role_assignment = RoleAssignmentFactory(organization=self.organization)
-
-#     def test_admin_revenueprogram_options(self):
-#         self.organization.refresh_from_db()
-#         self.assertEqual(self.organization.admin_revenueprogram_options, [(self.rp.name, self.rp.pk)])
-
-#     def test_org_cannot_be_deleted_when_contributions_downstream(self):
-#         """An org should not be deleteable when downstream contributions exist"""
-#         with self.assertRaises(ProtectedError) as protected_error:
-#             self.organization.delete()
-#         error_msg = (
-#             "Cannot delete some instances of model 'Organization' because they are referenced through protected "
-#             "foreign keys: 'RevenueProgram.organization'."
-#         )
-#         self.assertEqual(error_msg, protected_error.exception.args[0])
-#         # prove related not deleted
-#         self.rp.refresh_from_db()
-#         self.dp.refresh_from_db()
-#         self.contribution.refresh_from_db()
-#         self.role_assignment.refresh_from_db()
-
-#     def test_org_deletion_cascades_when_no_contributions_downstream(self):
-#         """An org and its cascading relationships should be deleted when no downstream contributions"""
-#         rp_id = self.rp.id
-#         dp_id = self.dp.id
-#         ra_id = self.role_assignment.id
-#         self.contribution.delete()
-#         self.organization.delete()
-#         self.assertFalse(RevenueProgram.objects.filter(id=rp_id).exists())
-#         self.assertFalse(DonationPage.objects.filter(id=dp_id).exists())
-#         self.assertFalse(RoleAssignment.objects.filter(id=ra_id).exists())
-
-
-# @pytest.mark.django_db
-# @pytest_cases.parametrize(
-#     "user",
-#     (
-#         pytest_cases.fixture_ref("hub_admin_user"),
-#         pytest_cases.fixture_ref("org_user_free_plan"),
-#         pytest_cases.fixture_ref("rp_user"),
-#     ),
-# )
-# def test_organization_filtered_by_role_assignment(user):
-#     # ensure there will be unowned organizations
-#     factories.OrganizationFactory.create_batch(size=2)
-#     owned_orgs = (
-#         Organization.objects.all()
-#         if user.roleassignment.role_type == Roles.HUB_ADMIN
-#         else [
-#             user.roleassignment.organization,
-#         ]
-#     )
-#     query = Organization.objects.filtered_by_role_assignment(user.roleassignment)
-#     assert query.count() == len(owned_orgs)
-#     assert set(query.values_list("id", flat=True)) == set([x.id for x in owned_orgs])
-
-
-# @pytest.mark.django_db
-# def test_organization_filtered_by_role_assignment_when_unexpected_role(user_with_unexpected_role):
-#     factories.OrganizationFactory.create_batch(3)
-#     assert Organization.objects.filtered_by_role_assignment(user_with_unexpected_role.roleassignment).count() == 0
-
-
-# class RevenueProgramTest(TestCase):
-#     def setUp(self):
-#         self.stripe_account_id = "my_stripe_account_id"
-#         self.organization = factories.OrganizationFactory()
-#         self.payment_provider = factories.PaymentProviderFactory(stripe_account_id=self.stripe_account_id)
-#         self.instance = factories.RevenueProgramFactory(
-#             organization=self.organization, payment_provider=self.payment_provider
-#         )
-
-#     def _create_revenue_program(self):
-#         return RevenueProgram.objects.create(
-#             name="Testing", slug="testing", organization=self.organization, payment_provider=self.payment_provider
-#         )
-
-#     def test_slug_created(self):
-#         assert self.instance.slug
-
-#     def test_has_an_org(self):
-#         assert self.instance.organization
-
-#     def test_slug_immutable(self):
-#         self.instance.name = "A new Name"
-#         self.instance.save()
-#         self.instance.refresh_from_db()
-#         assert slugify("A new Name") not in self.instance.slug
-
-#     def test_slug_larger_than_max_length(self):
-#         fake = Faker()
-#         Faker.seed(0)
-#         long_slug_rp = factories.RevenueProgramFactory(name=f"{' '.join(fake.words(nb=30))}")
-#         assert len(long_slug_rp.slug) < RP_SLUG_MAX_LENGTH
-
-#     # This is to squash a side effect in contribution.save
-#     # TODO: DEV-3026
-#     @patch("apps.contributions.models.Contribution.fetch_stripe_payment_method", return_value=None)
-#     def test_cannot_delete_when_downstream_contributions(self, mock_fetch_stripe_payment_method):
-#         page = DonationPageFactory(revenue_program=self.instance)
-#         ContributionFactory(donation_page=page)
-#         with pytest.raises(ProtectedError) as protected_error:
-#             self.instance.delete()
-#         error_msg = (
-#             "Cannot delete some instances of model 'RevenueProgram' because they are referenced "
-#             "through protected foreign keys: 'DonationPage.revenue_program'."
-#         )
-#         assert error_msg, protected_error.value.args[0]
-
-#     def test_can_delete_when_no_downstream_contributions_and_cascades(self):
-#         page_id = DonationPageFactory(revenue_program=self.instance).id
-#         self.instance.delete()
-#         assert not DonationPage.objects.filter(id=page_id).exists()
-
-#     def test_delete_organization_deletes_revenue_program(self):
-#         assert self.organization is not None
-#         assert self.instance is not None
-#         assert self.instance.organization == self.organization
-#         rp_pk = self.instance.id
-#         self.organization.delete()
-#         assert not RevenueProgram.objects.filter(pk=rp_pk).exists()
-
-#     def test_deleting_cascades_to_socialmeta(self):
-#         sm_id = SocialMeta.objects.create(
-#             title="title", description="description", url="https://example.com", revenue_program=self.instance
-#         ).id
-#         self.instance.delete()
-#         assert not SocialMeta.objects.filter(id=sm_id).exists()
-
-#     def test_format_twitter_handle(self):
-#         target_handle = "testing"
-#         self.instance.twitter_handle = "@" + target_handle
-#         self.instance.clean()
-#         assert self.instance.twitter_handle == target_handle
-
-#     @override_settings(STRIPE_LIVE_MODE=False)
-#     @patch("stripe.ApplePayDomain.create")
-#     def test_apple_pay_domain_verification_not_called_when_created_and_not_live(self, apple_pay_domain_create):
-#         factories.RevenueProgramFactory()
-#         apple_pay_domain_create.assert_not_called()
-
-#     @override_settings(STRIPE_LIVE_MODE=True)
-#     @override_settings(STRIPE_LIVE_SECRET_KEY=TEST_STRIPE_LIVE_KEY)
-#     @override_settings(DOMAIN_APEX=TEST_DOMAIN_APEX)
-#     @patch("stripe.ApplePayDomain.create")
-#     def test_apple_pay_domain_verification_not_called_when_updated_and_live(self, apple_pay_domain_create):
-#         self.instance.slug = "my-new-slug"
-#         self.instance.save()
-#         apple_pay_domain_create.assert_not_called()
-
-#     def test_slug_validated_against_denylist(self):
-#         denied_word = DenyListWordFactory()
-#         rp = RevenueProgram(name="My rp", organization=self.organization, payment_provider=self.payment_provider)
-#         rp.slug = denied_word.word
-#         with pytest.raises(ValidationError) as validation_error:
-#             rp.clean_fields()
-#         assert "slug" in validation_error.value.error_dict
-#         assert SLUG_DENIED_CODE == validation_error.value.error_dict["slug"][0].code
-#         assert GENERIC_SLUG_DENIED_MSG == validation_error.value.error_dict["slug"][0].message
-
-#     def test_admin_benefit_options(self):
-#         assert isinstance(self.instance.admin_benefit_options, list)
-
-#     def test_admin_benefitlevel_options(self):
-#         assert isinstance(self.instance.admin_benefitlevel_options, list)
 
 
 # @pytest.mark.parametrize(

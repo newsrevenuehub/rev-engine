@@ -5,7 +5,7 @@ import {
   USER_SUPERUSER_TYPE
 } from 'constants/authConstants';
 import { User } from 'hooks/useUser.types';
-import { getUserRole } from './userRoleType';
+import { getUserRole } from './getUserRole';
 
 const userWithRoles: any = {
   role_type: [USER_ROLE_HUB_ADMIN_TYPE, USER_ROLE_ORG_ADMIN_TYPE, USER_ROLE_RP_ADMIN_TYPE, USER_SUPERUSER_TYPE]

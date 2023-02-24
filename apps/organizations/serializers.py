@@ -100,7 +100,6 @@ class RevenueProgramInlineSerializer(serializers.ModelSerializer):
             "organization",
             "payment_provider_stripe_verified",
             "tax_id",
-            "non_profit",
             "fiscal_status",
             "fiscal_sponsor_name",
         ]

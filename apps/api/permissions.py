@@ -132,10 +132,10 @@ class BaseFlaggedResourceAccess(permissions.BasePermission):
         return self.flag.is_active_for_user(request.user) or self.flag.everyone
 
     def __str__(self):
-        return f"{self.__class__.__name__} via {self.flag.name if self.flag else '<not configured>'}"
+        return f"`{self.__class__.__name__}` via {self.flag.name if self.flag else '<not configured>'}"
 
 
-class HasFlaggedAccessToMailChimp(BaseFlaggedResourceAccess):
+class HasFlaggedAccessToMailchimp(BaseFlaggedResourceAccess):
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
         Flag = get_waffle_flag_model()

@@ -6,7 +6,7 @@ from waffle import get_waffle_flag_model
 from apps.api.exceptions import ApiConfigurationError
 from apps.api.permissions import (
     HasFlaggedAccessToContributionsApiResource,
-    HasFlaggedAccessToMailChimp,
+    HasFlaggedAccessToMailchimp,
 )
 from apps.common.constants import MAILCHIMP_INTEGRATION_ACCESS_FLAG_NAME
 from apps.common.tests.test_resources import AbstractTestCase
@@ -21,7 +21,7 @@ class TestHasFlaggedAccessToContributionsApiResource(AbstractTestCase):
 
 
 @pytest.mark.django_db
-class TestHasFlaggedAccessToMailChimp:
+class TestHasFlaggedAccessToMailchimp:
     @pytest_cases.parametrize(
         "user",
         (
@@ -35,16 +35,16 @@ class TestHasFlaggedAccessToMailChimp:
         factory = APIRequestFactory()
         request = factory.get("/")
         request.user = user
-        assert HasFlaggedAccessToMailChimp().has_permission(request, None) is True
+        assert HasFlaggedAccessToMailchimp().has_permission(request, None) is True
 
     def test_when_flag_not_found(self):
         Flag = get_waffle_flag_model()
         assert not Flag.objects.filter(name=MAILCHIMP_INTEGRATION_ACCESS_FLAG_NAME).exists()
         with pytest.raises(ApiConfigurationError):
-            HasFlaggedAccessToMailChimp()
+            HasFlaggedAccessToMailchimp()
 
     def test__str__(self, default_feature_flags):
         assert (
-            str(HasFlaggedAccessToMailChimp())
-            == f"`HasFlaggedAccessToMailChimp` via {MAILCHIMP_INTEGRATION_ACCESS_FLAG_NAME}"
+            str(HasFlaggedAccessToMailchimp())
+            == f"`HasFlaggedAccessToMailchimp` via {MAILCHIMP_INTEGRATION_ACCESS_FLAG_NAME}"
         )

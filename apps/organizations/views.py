@@ -16,7 +16,7 @@ from reversion.views import create_revision
 from stripe.error import StripeError
 
 from apps.api.permissions import (
-    HasFlaggedAccessToMailChimp,
+    HasFlaggedAccessToMailchimp,
     HasRoleAssignment,
     IsGetRequest,
     IsOrgAdmin,
@@ -220,7 +220,7 @@ def handle_stripe_account_link(request, rp_pk):
 
 
 @api_view(["GET"])
-@permission_classes([IsAuthenticated, HasFlaggedAccessToMailChimp])
+@permission_classes([IsAuthenticated, HasFlaggedAccessToMailchimp])
 def mailchimp_integration_stub(request):
     """This is an initial view used to ship feature-flag gated access to mailchimp related functionality.
 

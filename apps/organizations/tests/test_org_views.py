@@ -878,7 +878,7 @@ def mailchimp_feature_flag_no_group_level_access(mailchimp_feature_flag):
     return mailchimp_feature_flag
 
 
-class TestMailChimpIntegrationViewStub:
+class TestMailchimpIntegrationViewStub:
     """These tests are narrowly meant to demonstrate business logic around the "mailchimp-integration-access" flag.
 
     For now, we just test around a stub API endpoint to prove the flag is configured as required.

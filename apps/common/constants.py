@@ -68,7 +68,7 @@ STATE_CHOICES = [
 # HasFlaggedAccessToContributionsApiResource references a flag with this name in order
 # to determine access permission.
 CONTRIBUTIONS_API_ENDPOINT_ACCESS_FLAG_NAME = "contributions-api-endpoint-access"
-# HasFlaggedAccessToMailChimp references a flag with this name in order to determine
+# HasFlaggedAccessToMailchimp references a flag with this name in order to determine
 # access permission for mailchimp related resources. This same flag is meant to also
 # be available to and consumed by the front end which can use it to componentry.
 MAILCHIMP_INTEGRATION_ACCESS_FLAG_NAME = "mailchimp-integration-access"

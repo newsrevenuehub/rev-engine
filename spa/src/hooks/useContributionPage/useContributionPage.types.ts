@@ -123,7 +123,7 @@ export interface FrequencyElement extends ContributionPageElement {
     /**
      * Is this the default frequency for the contribution page?
      */
-    isDefault: boolean;
+    isDefault?: boolean;
     /**
      * Internal ID of the frequency.
      */

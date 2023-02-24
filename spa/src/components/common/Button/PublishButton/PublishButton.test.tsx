@@ -132,7 +132,10 @@ describe('PublishButton', () => {
       true
     )}`;
 
-    expect(screen.getByText(liveSince)).toBeVisible();
+    expect(screen.getByTestId('publish-date')).toBeVisible();
+
+    // Very unclear why, but using .toHaveTextContent() fails... but only in CI.
+    expect(screen.getByTestId('publish-date').textContent).toBe(liveSince);
 
     const goToPageButton = screen.getByRole('link', { name: /page link/i });
 

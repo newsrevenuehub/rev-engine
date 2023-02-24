@@ -152,7 +152,7 @@ function PublishButton({ className }: PublishButtonProps) {
               <LaunchIcon />
             </IconButton>
           </Tooltip>
-          <Text>
+          <Text data-testid="publish-date">
             {/* TODO: add author of change */}
             {formatDatetimeForDisplay(page?.published_date)} at {formatDatetimeForDisplay(page?.published_date, true)}
           </Text>

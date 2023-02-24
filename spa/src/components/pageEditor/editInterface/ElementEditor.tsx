@@ -1,8 +1,8 @@
-import { AmountElement, ReasonElement } from 'hooks/useContributionPage';
+import { AmountElement, FrequencyElement, ReasonElement } from 'hooks/useContributionPage';
 import { useEditablePageBatch } from 'hooks/useEditablePageBatch';
 import { useMemo, useState } from 'react';
 import { getPageContributionIntervals } from 'utilities/getPageContributionIntervals';
-import { AmountEditor, ReasonEditor } from '../elementEditors';
+import { AmountEditor, FrequencyEditor, ReasonEditor } from '../elementEditors';
 import { Content, ContentDetail, Header, Root } from './ElementEditor.styled';
 import EditSaveControls from './EditSaveControls';
 import ElementProperties from './pageElements/ElementProperties';
@@ -15,6 +15,7 @@ import ElementProperties from './pageElements/ElementProperties';
  */
 const editorComponents = {
   DAmount: AmountEditor,
+  DFrequency: FrequencyEditor,
   DReason: ReasonEditor
 };
 
@@ -26,6 +27,7 @@ const editorComponents = {
  */
 const editorHeaders = {
   DAmount: 'Contribution Amount',
+  DFrequency: 'Contribution Frequency',
   DReason: 'Reason for Giving'
 };
 
@@ -39,7 +41,7 @@ export interface ElementEditorProps {
  * This type must be a union of all `content` properties for the elements that
  * can be edited by this component.
  */
-type ElementContent = AmountElement['content'] | ReasonElement['content'];
+type ElementContent = AmountElement['content'] | FrequencyElement['content'] | ReasonElement['content'];
 
 export function ElementEditor({ elementUuid, location, onClose }: ElementEditorProps) {
   const { addBatchChange, batchPreview, commitBatch, resetBatch } = useEditablePageBatch();

@@ -1,3 +1,7 @@
+from datetime import timedelta
+
+from django.utils import timezone
+
 import factory
 from factory.django import DjangoModelFactory
 
@@ -15,15 +19,8 @@ class DonationPageFactory(DjangoModelFactory):
     slug = factory.Sequence(lambda n: "test-page-%d" % n)
     revenue_program = factory.SubFactory(RevenueProgramFactory)
 
-
-class TemplateFactory(DjangoModelFactory):
-    class Meta:
-        model = models.Template
-        django_get_or_create = ("name", "revenue_program")
-
-    name = factory.Sequence(lambda n: "Test Template %d" % n)
-    heading = factory.Sequence(lambda n: "Test Template %d" % n)
-    revenue_program = factory.SubFactory(RevenueProgramFactory)
+    class Params:
+        published = factory.Trait(published_date=factory.LazyFunction(lambda: timezone.now() - timedelta(days=7)))
 
 
 class StyleFactory(DjangoModelFactory):
@@ -35,7 +32,11 @@ class StyleFactory(DjangoModelFactory):
         org = None
 
     name = factory.Sequence(lambda n: "Test Style %d" % n)
-    styles = {"colors": {"primary": "testing-pink"}}
+    styles = {
+        "radii": ["3px", "6px", "12px"],
+        "font": {"body": "'Roboto', sans-serif", "heading": "'Roboto', sans-serif"},
+        "fontSizes": ["12px", "16px", "24px", "32px", "48px", "84px", "96px"],
+    }
     revenue_program = factory.SubFactory(RevenueProgramFactory)
 
 

@@ -1,3 +1,4 @@
+import { ContributionInterval } from 'constants/contributionIntervals';
 import { Style } from '../useStyleList';
 
 // Types here come from looking at Django models, in particular whether a field
@@ -94,6 +95,88 @@ export interface ContributionPageElement {
    * Internal ID of the element.
    */
   uuid: string;
+}
+
+export interface AmountElement extends ContributionPageElement {
+  content: {
+    /**
+     * Allow the user to enter in a freeform value?
+     */
+    allowOther?: boolean;
+    /**
+     * Default selected amount. It must have an entry in the options property.
+     */
+    defaults: Partial<Record<ContributionInterval, number>>;
+    /**
+     * Amounts the user can choose from.
+     */
+    options: Partial<Record<ContributionInterval, number[]>>;
+  };
+}
+
+export interface DonorInfoElement extends ContributionPageElement {
+  content: {
+    /**
+     * Ask the user for a phone number?
+     */
+    askPhone?: boolean;
+  };
+}
+
+export interface FrequencyElement extends ContributionPageElement {
+  content: {
+    /**
+     * Display name for the frequency.
+     */
+    displayName: string;
+    /**
+     * Is this the default frequency for the contribution page?
+     */
+    isDefault?: boolean;
+    /**
+     * Internal ID of the frequency.
+     */
+    value: ContributionInterval;
+  }[];
+}
+
+export interface PaymentElement extends ContributionPageElement {
+  content: {
+    /**
+     * Ask the user if they'd like to pay transaction fees?
+     */
+    offerPayFees?: boolean;
+    /**
+     * Default the user to paying transaction fees.
+     */
+    payFeesDefault?: boolean;
+    /**
+     * This field is not used anymore, but it was the payment methods accepted
+     * through Stripe checkout.
+     */
+    stripe: string[];
+  };
+}
+
+export interface ReasonElement extends ContributionPageElement {
+  content: {
+    /**
+     * Ask if this contribution is in honor of someone?
+     */
+    askHonoree?: boolean;
+    /**
+     * Ask if this contribution is in memory of someone?
+     */
+    askInMemoryOf?: boolean;
+    /**
+     * Ask contributors for a reason to give?
+     */
+    askReason?: boolean;
+    /**
+     * Presupplied reasons to give.
+     */
+    reasons: string[];
+  };
 }
 
 /**

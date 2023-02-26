@@ -25,21 +25,17 @@ from django.views.decorators.http import require_GET
 from django_rest_passwordreset.signals import reset_password_token_created
 from rest_framework import mixins, status
 from rest_framework.decorators import action
-from rest_framework.exceptions import APIException
-from rest_framework.generics import GenericAPIView
 from rest_framework.permissions import AllowAny, IsAuthenticated
 from rest_framework.response import Response
 from rest_framework.serializers import ValidationError
 from rest_framework.viewsets import GenericViewSet
 from reversion.views import RevisionMixin
 
-from apps.api.permissions import HasDeletePrivilegesViaRole, HasRoleAssignment, is_a_contributor
 from apps.common.utils import get_original_ip_from_request
 from apps.contributions.bad_actor import BadActorAPIError, make_bad_actor_request
 from apps.contributions.utils import get_sha256_hash
 from apps.emails.tasks import send_templated_email
 from apps.organizations.models import Organization, PaymentProvider, RevenueProgram
-from apps.public.permissions import IsActiveSuperUser
 from apps.users.choices import Roles
 from apps.users.constants import (
     BAD_ACTOR_CLIENT_FACING_VALIDATION_MESSAGE,
@@ -49,7 +45,7 @@ from apps.users.constants import (
     PASSWORD_UNEXPECTED_VALIDATION_MESSAGE_SUBSTITUTE,
     PASSWORD_VALIDATION_EXPECTED_MESSAGES,
 )
-from apps.users.models import RoleAssignment, UnexpectedRoleType, User
+from apps.users.models import RoleAssignment, User
 from apps.users.permissions import (
     UserHasAcceptedTermsOfService,
     UserIsAllowedToUpdate,
@@ -307,7 +303,8 @@ class UserViewset(
         last_name = customize_account_serializer.validated_data["last_name"]
         organization_name = customize_account_serializer.validated_data["organization_name"]
         organization_tax_id = customize_account_serializer.validated_data["organization_tax_id"]
-        organization_tax_status = customize_account_serializer.validated_data["organization_tax_status"]
+        fiscal_sponsor_name = customize_account_serializer.validated_data["fiscal_sponsor_name"]
+        fiscal_status = customize_account_serializer.validated_data["fiscal_status"]
         user = request.user
         logger.debug("Received request to customize account for user %s; request: %s", user.id, request.data)
         user.first_name = first_name
@@ -326,9 +323,10 @@ class UserViewset(
             name=organization_name,
             organization=organization,
             slug=slugify(organization_name),
-            non_profit=True if organization_tax_status == "nonprofit" else False,
+            fiscal_status=fiscal_status,
             tax_id=organization_tax_id,
             payment_provider=payment_provider,
+            fiscal_sponsor_name=fiscal_sponsor_name,
         )
         RoleAssignment.objects.create(user=user, role_type=Roles.ORG_ADMIN, organization=organization)
         logger.info(
@@ -350,44 +348,6 @@ class UserViewset(
         else:
             self.send_verification_email(request.user)
             return Response({"detail": "Success"})
-
-
-class FilterQuerySetByUserMixin(GenericAPIView):
-    """Mixin for filtering querysets by the user's role (and if they're contributor or superuser...
-
-    ...in which case they will not have a role). This mixin assumes that the model for the view
-    using the mixin has implemented `filter_queryset_by_role_assignment` and `filter_queryset_for_contributor`.
-    """
-
-    @classmethod
-    def filter_queryset_for_user(cls, user, queryset):
-        try:
-            if is_a_contributor(user):
-                return queryset.model.filter_queryset_for_contributor(user, queryset)
-            if user.is_anonymous:
-                return queryset.none()
-            if user.is_superuser:
-                return queryset.all()
-            elif role_assignment := getattr(user, "roleassignment"):
-                return queryset.model.filter_queryset_by_role_assignment(role_assignment, queryset)
-        except UnexpectedRoleType as exc:
-            logger.exception("Encountered unexpected role type")
-            raise APIException(detail=str(exc))
-
-
-class PerUserDeletePermissionsMixin(GenericAPIView):
-    """Limit who can delete a resource, by overriding default `.get_permissions`.
-
-    ... allow super users to delete
-    ... allow users with roles if `HasCreatePrivilegesForSlugs` is true.
-
-    """
-
-    def get_permissions(self):
-        if self.action == "destroy":
-            composed_perm = IsActiveSuperUser | (IsAuthenticated & HasRoleAssignment & HasDeletePrivilegesViaRole(self))
-            return [composed_perm()]
-        return super().get_permissions()
 
 
 @receiver(reset_password_token_created)

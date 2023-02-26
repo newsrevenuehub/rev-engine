@@ -189,9 +189,10 @@ class RevenueProgramAdmin(RevEngineBaseAdmin, CompareVersionAdmin, AdminImageMix
                     "contact_email",
                     "organization",
                     "default_donation_page",
-                    "non_profit",
                     "tax_id",
                     "country",
+                    "fiscal_status",
+                    "fiscal_sponsor_name",
                 )
             },
         ),

@@ -1,11 +1,18 @@
-import { AmountElement } from 'hooks/useContributionPage';
+import {
+  AmountElement,
+  DonorInfoElement,
+  FrequencyElement,
+  PaymentElement,
+  ReasonElement
+} from 'hooks/useContributionPage';
 import { useEditablePageBatch } from 'hooks/useEditablePageBatch';
-import { useMemo } from 'react';
+import { useMemo, useState } from 'react';
 import { getPageContributionIntervals } from 'utilities/getPageContributionIntervals';
-import { AmountEditor } from '../elementEditors';
+import { AmountEditor, FrequencyEditor, PaymentEditor, ReasonEditor } from '../elementEditors';
 import { Content, ContentDetail, Header, Root } from './ElementEditor.styled';
 import EditSaveControls from './EditSaveControls';
 import ElementProperties from './pageElements/ElementProperties';
+import ContributorInfoEditor from '../elementEditors/contributorInfo/ContributorInfoEditor';
 
 /**
  * Maps the `type` property of an element to which component to use as editor.
@@ -14,7 +21,11 @@ import ElementProperties from './pageElements/ElementProperties';
  * <ElementProperties>.
  */
 const editorComponents = {
-  DAmount: AmountEditor
+  DAmount: AmountEditor,
+  DDonorInfo: ContributorInfoEditor,
+  DFrequency: FrequencyEditor,
+  DPayment: PaymentEditor,
+  DReason: ReasonEditor
 };
 
 /**
@@ -24,7 +35,11 @@ const editorComponents = {
  * back to using <ElementProperties>.
  */
 const editorHeaders = {
-  DAmount: 'Contribution Amount'
+  DAmount: 'Contribution Amount',
+  DDonorInfo: 'Contributor Info',
+  DFrequency: 'Contribution Frequency',
+  DPayment: 'Agree to Pay Fees',
+  DReason: 'Reason for Giving'
 };
 
 export interface ElementEditorProps {
@@ -37,10 +52,16 @@ export interface ElementEditorProps {
  * This type must be a union of all `content` properties for the elements that
  * can be edited by this component.
  */
-type ElementContent = AmountElement['content'];
+type ElementContent =
+  | AmountElement['content']
+  | DonorInfoElement['content']
+  | FrequencyElement['content']
+  | PaymentElement['content']
+  | ReasonElement['content'];
 
 export function ElementEditor({ elementUuid, location, onClose }: ElementEditorProps) {
   const { addBatchChange, batchPreview, commitBatch, resetBatch } = useEditablePageBatch();
+  const [updateDisabled, setUpdateDisabled] = useState(false);
   const elementListKey = useMemo(() => (location === 'layout' ? 'elements' : 'sidebar_elements'), [location]);
   const element = useMemo(() => {
     if (!elementListKey || !batchPreview?.[elementListKey]) {
@@ -80,6 +101,25 @@ export function ElementEditor({ elementUuid, location, onClose }: ElementEditorP
     });
   }
 
+  function handleChangeElementRequiredFields(requiredFields: string[]) {
+    if (!element || !batchPreview) {
+      // Should never happen.
+      throw new Error('element or batchPreview are not defined');
+    }
+
+    addBatchChange({
+      [elementListKey]: [
+        ...batchPreview[elementListKey]!.map((existing) => {
+          if (existing.uuid === element.uuid) {
+            return { ...existing, requiredFields };
+          }
+
+          return existing;
+        })
+      ]
+    });
+  }
+
   function handleCancel() {
     resetBatch();
     onClose();
@@ -107,13 +147,21 @@ export function ElementEditor({ elementUuid, location, onClose }: ElementEditorP
               // an object in content, even if it has no properties. Some
               // elements, like DDonorAddress, may not have a `content` property
               // in older pages.
-              elementContent={element.content ?? ({} as any)}
-              onChangeElementContent={handleChangeElementContent}
               contributionIntervals={contributionIntervals}
+              elementContent={element.content ?? ({} as any)}
+              elementRequiredFields={element.requiredFields ?? []}
+              onChangeElementRequiredFields={handleChangeElementRequiredFields}
+              onChangeElementContent={handleChangeElementContent}
+              setUpdateDisabled={setUpdateDisabled}
             />
           </ContentDetail>
         </Content>
-        <EditSaveControls onCancel={handleCancel} onUpdate={handleUpdate} variant="cancel" />
+        <EditSaveControls
+          onCancel={handleCancel}
+          onUpdate={handleUpdate}
+          updateDisabled={updateDisabled}
+          variant="cancel"
+        />
       </Root>
     );
   }

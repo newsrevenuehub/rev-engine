@@ -174,7 +174,14 @@ const Organization = () => {
                   name="companyTaxStatus"
                   control={control}
                   render={({ field }) => (
-                    <TextField fullWidth id="settings-company-tax-status" label="Tax Status" {...field} select>
+                    <TextField
+                      {...field}
+                      fullWidth
+                      id="settings-company-tax-status"
+                      label="Tax Status"
+                      disabled={!isOrgAdmin}
+                      select
+                    >
                       <MenuItem value={TAX_STATUS.NONPROFIT}>Nonprofit</MenuItem>
                       <MenuItem value={TAX_STATUS.FOR_PROFIT}>For-profit</MenuItem>
                     </TextField>

@@ -21,7 +21,7 @@ export const Flex = styled.div<{ $hideBottomDivider: boolean }>`
   }
 `;
 
-export const Title = styled.p`
+export const H3 = styled.h3`
   font-size: ${(props) => props.theme.fontSizesUpdated[20]};
   color: ${(props) => props.theme.colors.muiGrey[900]};
   font-weight: 500;

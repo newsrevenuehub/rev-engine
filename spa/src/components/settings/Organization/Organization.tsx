@@ -19,7 +19,7 @@ import { HELP_URL } from 'constants/helperUrls';
 import { GENERIC_ERROR } from 'constants/textConstants';
 import GlobalLoading from 'elements/GlobalLoading';
 import useUser from 'hooks/useUser';
-import { getUserRole } from 'utilities/userRoleType';
+import { getUserRole } from 'utilities/getUserRole';
 
 import {
   ActionWrapper,
@@ -57,13 +57,7 @@ const Organization = () => {
 
   const { isOrgAdmin } = getUserRole(user);
 
-  const {
-    control,
-    watch,
-    reset,
-    handleSubmit
-    // formState: { errors }
-  } = useForm<OrganizationFormFields>({
+  const { control, watch, reset, handleSubmit } = useForm<OrganizationFormFields>({
     defaultValues: {
       companyName: currentOrganization?.name ?? '',
       companyTaxStatus: revenueProgramFromCurrentOrg?.[0]?.fiscal_status ?? '',
@@ -76,9 +70,9 @@ const Organization = () => {
 
   const isDifferent = useMemo(
     () => ({
-      companyName: companyName !== currentOrganization?.name,
-      companyTaxStatus: companyTaxStatus !== revenueProgramFromCurrentOrg?.[0]?.fiscal_status,
-      taxId: taxId.replace(/-/g, '') !== revenueProgramFromCurrentOrg?.[0]?.tax_id
+      companyName: companyName !== (currentOrganization?.name ?? ''),
+      companyTaxStatus: companyTaxStatus !== (revenueProgramFromCurrentOrg?.[0]?.fiscal_status ?? ''),
+      taxId: taxId.replace(/-/g, '') !== (revenueProgramFromCurrentOrg?.[0]?.tax_id ?? '')
     }),
     [companyName, companyTaxStatus, currentOrganization, revenueProgramFromCurrentOrg, taxId]
   );
@@ -164,7 +158,7 @@ const Organization = () => {
             hasMultipleRPs ? (
               <>
                 Your Organization's tax status and EIN are managed by our Staff. For help, please contact{' '}
-                <Link href={HELP_URL} target="_blank" rel="noreferrer">
+                <Link href={HELP_URL} target="_blank">
                   Support
                 </Link>
                 .{' '}
@@ -185,7 +179,14 @@ const Organization = () => {
                   name="companyTaxStatus"
                   control={control}
                   render={({ field }) => (
-                    <TextField fullWidth id="settings-company-tax-status" label="Tax Status" {...field} select>
+                    <TextField
+                      {...field}
+                      fullWidth
+                      id="settings-company-tax-status"
+                      label="Tax Status"
+                      disabled={!isOrgAdmin}
+                      select
+                    >
                       <MenuItem value={TAX_STATUS.NONPROFIT}>Nonprofit</MenuItem>
                       <MenuItem value={TAX_STATUS.FOR_PROFIT}>For-profit</MenuItem>
                     </TextField>

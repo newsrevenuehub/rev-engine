@@ -2,13 +2,15 @@
 /// <reference types="google.maps" />
 
 import Grid from '@material-ui/core/Grid';
-import { ChangeEvent, useState } from 'react';
+import PropTypes, { InferProps } from 'prop-types';
+import { ChangeEvent, useMemo, useState } from 'react';
 import { usePlacesWidget } from 'react-google-autocomplete';
 import { HUB_GOOGLE_MAPS_API_KEY } from 'appSettings';
 import { CountryOption } from 'components/base';
 import { usePage } from 'components/donationPage/DonationPage';
 import DElement from 'components/donationPage/pageContent/DElement';
 import { CountrySelect, TextField } from './DDonorAddress.styled';
+import { DonorAddressElement } from 'hooks/useContributionPage';
 
 const mapAddrFieldToComponentTypes = {
   address: ['street_number', 'street_address', 'route'],
@@ -35,12 +37,33 @@ function mapAddressComponentsToAddressFields(addressComponents: google.maps.Geoc
   return { address, zip, city, state, country };
 }
 
-function DDonorAddress() {
+const DDonorAddressPropTypes = {
+  element: PropTypes.object.isRequired
+};
+
+export interface DDonorAddressProps extends InferProps<typeof DDonorAddressPropTypes> {
+  element: DonorAddressElement;
+}
+
+function DDonorAddress({ element }: DDonorAddressProps) {
   const { errors, mailingCountry, setMailingCountry } = usePage();
   const [address, setAddress] = useState('');
   const [city, setCity] = useState('');
   const [state, setState] = useState('');
   const [zip, setZip] = useState('');
+  const stateLabel = useMemo(() => {
+    let result = 'State';
+
+    if (element.content?.additionalStateFieldLabels?.includes('province')) {
+      result += '/Province';
+    }
+
+    if (element.content?.additionalStateFieldLabels?.includes('region')) {
+      result += '/Region';
+    }
+
+    return result;
+  }, [element.content?.additionalStateFieldLabels]);
 
   const { ref: addressInputRef } = usePlacesWidget<HTMLInputElement>({
     apiKey: HUB_GOOGLE_MAPS_API_KEY,
@@ -130,7 +153,7 @@ function DDonorAddress() {
             fullWidth
             id="mailing_state"
             name="mailing_state"
-            label="State"
+            label={stateLabel}
             value={state}
             onChange={(e) => setState(e.target.value)}
             helperText={errors.mailing_state}
@@ -168,6 +191,8 @@ function DDonorAddress() {
     </DElement>
   );
 }
+
+DDonorAddress.propTypes = DDonorAddressPropTypes;
 
 DDonorAddress.type = 'DDonorAddress';
 DDonorAddress.displayName = 'Contributor Address';

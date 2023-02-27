@@ -7,7 +7,7 @@ import { usePlacesWidget } from 'react-google-autocomplete';
 import { act, render, screen } from 'test-utils';
 import { HUB_GOOGLE_MAPS_API_KEY } from 'appSettings';
 import { DonationPageContext, UsePageProps } from '../DonationPage';
-import DDonorAddress from './DDonorAddress';
+import DDonorAddress, { DDonorAddressProps } from './DDonorAddress';
 
 jest.mock('country-code-lookup', () => ({
   countries: [
@@ -60,7 +60,7 @@ const mockAddressComponents: google.maps.GeocoderAddressComponent[] = [
   }
 ];
 
-function tree(pageContext?: Partial<UsePageProps>) {
+function tree(pageContext?: Partial<UsePageProps>, props?: Partial<DDonorAddressProps>) {
   return render(
     <DonationPageContext.Provider
       value={
@@ -73,7 +73,10 @@ function tree(pageContext?: Partial<UsePageProps>) {
       }
     >
       <ul>
-        <DDonorAddress />
+        <DDonorAddress
+          element={{ content: {}, requiredFields: [], type: 'DDonorAddress', uuid: 'mock-uuid' }}
+          {...props}
+        />
       </ul>
     </DonationPageContext.Provider>
   );
@@ -121,6 +124,26 @@ describe('DDonorAddress', () => {
       // We don't have test IDs for helper text right now.
       // eslint-disable-next-line testing-library/no-node-access
       expect(document.getElementById(`${internalName}-helper-text`)).toHaveTextContent('test-error');
+    });
+  });
+
+  describe('The State field label', () => {
+    it('is State by default', () => {
+      tree();
+      expect(screen.getByRole('textbox', { name: 'State' })).toBeVisible();
+    });
+
+    it.each([
+      ['State/Province', ['province']],
+      ['State/Region', ['region']],
+      ['State/Province/Region', ['region', 'province']]
+    ])('is %s if configured', (name, additionalStateFieldLabels) => {
+      tree({}, { element: { content: { additionalStateFieldLabels } } } as any);
+
+      const field = screen.getByRole('textbox', { name });
+
+      expect(field).toBeVisible();
+      expect(field).toHaveAttribute('name', 'mailing_state');
     });
   });
 

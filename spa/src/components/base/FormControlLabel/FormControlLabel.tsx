@@ -17,6 +17,10 @@ const StyledMuiFormControlLabel = styled(MuiFormControlLabel)`
       color: #282828;
       font: 16px Roboto, sans-serif;
       line-height: 24px;
+
+      &.Mui-disabled {
+        color: ${({ theme }) => theme.colors.muiGrey[600]};
+      }
     }
   }
 `;

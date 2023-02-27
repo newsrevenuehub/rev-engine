@@ -1,5 +1,6 @@
 import {
   AmountElement,
+  DonorAddressElement,
   DonorInfoElement,
   FrequencyElement,
   PaymentElement,
@@ -8,7 +9,7 @@ import {
 import { useEditablePageBatch } from 'hooks/useEditablePageBatch';
 import { useMemo, useState } from 'react';
 import { getPageContributionIntervals } from 'utilities/getPageContributionIntervals';
-import { AmountEditor, FrequencyEditor, PaymentEditor, ReasonEditor } from '../elementEditors';
+import { AmountEditor, DonorAddressEditor, FrequencyEditor, PaymentEditor, ReasonEditor } from '../elementEditors';
 import { Content, ContentDetail, Header, Root } from './ElementEditor.styled';
 import EditSaveControls from './EditSaveControls';
 import ElementProperties from './pageElements/ElementProperties';
@@ -22,6 +23,7 @@ import ContributorInfoEditor from '../elementEditors/contributorInfo/Contributor
  */
 const editorComponents = {
   DAmount: AmountEditor,
+  DDonorAddress: DonorAddressEditor,
   DDonorInfo: ContributorInfoEditor,
   DFrequency: FrequencyEditor,
   DPayment: PaymentEditor,
@@ -36,6 +38,7 @@ const editorComponents = {
  */
 const editorHeaders = {
   DAmount: 'Contribution Amount',
+  DDonorAddress: 'Contributor Address',
   DDonorInfo: 'Contributor Info',
   DFrequency: 'Contribution Frequency',
   DPayment: 'Agree to Pay Fees',
@@ -54,6 +57,7 @@ export interface ElementEditorProps {
  */
 type ElementContent =
   | AmountElement['content']
+  | DonorAddressElement['content']
   | DonorInfoElement['content']
   | FrequencyElement['content']
   | PaymentElement['content']

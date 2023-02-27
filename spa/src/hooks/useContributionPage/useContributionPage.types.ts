@@ -114,6 +114,18 @@ export interface AmountElement extends ContributionPageElement {
   };
 }
 
+export type DonorAddressElementAdditionalStateFieldLabel = 'province' | 'region';
+
+export interface DonorAddressElement extends ContributionPageElement {
+  content: {
+    /**
+     * Additional labels to show on the State field. These are *not* displayed
+     * as-is, and order is not significant.
+     */
+    additionalStateFieldLabels?: DonorAddressElementAdditionalStateFieldLabel[];
+  };
+}
+
 export interface DonorInfoElement extends ContributionPageElement {
   content: {
     /**

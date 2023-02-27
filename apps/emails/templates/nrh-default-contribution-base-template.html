@@ -167,7 +167,7 @@
                     This receipt may be used for tax purposes.
                     {% if fiscal_status == "fiscally sponsored" %}
                     All contributions or gifts to {{ rp_name }} are tax deductible through our fiscal sponsor {{ fiscal_sponsor_name }}.
-                    {% if tax_id %} {{ fiscal_sponsor_name }}'s tax ID is {{ tax_id }}{% endif %}.
+                    {% if tax_id %} {{ fiscal_sponsor_name }}'s tax ID is {{ tax_id }}.{% endif %}
                     {% else %}
                     {{ rp_name }} is a 501(c)(3) nonprofit organization{% if tax_id %} with a Federal Tax ID #{{ tax_id }}{% endif %}.
                     {% endif %}

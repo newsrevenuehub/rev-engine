@@ -114,6 +114,27 @@ export interface AmountElement extends ContributionPageElement {
   };
 }
 
+export type DonorAddressElementAdditionalStateFieldLabel = 'province' | 'region';
+
+export interface DonorAddressElement extends ContributionPageElement {
+  content: {
+    /**
+     * Additional labels to show on the State field. These are *not* displayed
+     * as-is, and order is not significant.
+     */
+    additionalStateFieldLabels?: DonorAddressElementAdditionalStateFieldLabel[];
+  };
+}
+
+export interface DonorInfoElement extends ContributionPageElement {
+  content: {
+    /**
+     * Ask the user for a phone number?
+     */
+    askPhone?: boolean;
+  };
+}
+
 export interface FrequencyElement extends ContributionPageElement {
   content: {
     /**
@@ -123,12 +144,30 @@ export interface FrequencyElement extends ContributionPageElement {
     /**
      * Is this the default frequency for the contribution page?
      */
-    isDefault: boolean;
+    isDefault?: boolean;
     /**
      * Internal ID of the frequency.
      */
     value: ContributionInterval;
   }[];
+}
+
+export interface PaymentElement extends ContributionPageElement {
+  content: {
+    /**
+     * Ask the user if they'd like to pay transaction fees?
+     */
+    offerPayFees?: boolean;
+    /**
+     * Default the user to paying transaction fees.
+     */
+    payFeesDefault?: boolean;
+    /**
+     * This field is not used anymore, but it was the payment methods accepted
+     * through Stripe checkout.
+     */
+    stripe: string[];
+  };
 }
 
 export interface ReasonElement extends ContributionPageElement {

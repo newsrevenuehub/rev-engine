@@ -1,11 +1,19 @@
-import { AmountElement, ReasonElement } from 'hooks/useContributionPage';
+import {
+  AmountElement,
+  DonorAddressElement,
+  DonorInfoElement,
+  FrequencyElement,
+  PaymentElement,
+  ReasonElement
+} from 'hooks/useContributionPage';
 import { useEditablePageBatch } from 'hooks/useEditablePageBatch';
 import { useMemo, useState } from 'react';
 import { getPageContributionIntervals } from 'utilities/getPageContributionIntervals';
-import { AmountEditor, ReasonEditor } from '../elementEditors';
+import { AmountEditor, DonorAddressEditor, FrequencyEditor, PaymentEditor, ReasonEditor } from '../elementEditors';
 import { Content, ContentDetail, Header, Root } from './ElementEditor.styled';
 import EditSaveControls from './EditSaveControls';
 import ElementProperties from './pageElements/ElementProperties';
+import ContributorInfoEditor from '../elementEditors/contributorInfo/ContributorInfoEditor';
 
 /**
  * Maps the `type` property of an element to which component to use as editor.
@@ -15,6 +23,10 @@ import ElementProperties from './pageElements/ElementProperties';
  */
 const editorComponents = {
   DAmount: AmountEditor,
+  DDonorAddress: DonorAddressEditor,
+  DDonorInfo: ContributorInfoEditor,
+  DFrequency: FrequencyEditor,
+  DPayment: PaymentEditor,
   DReason: ReasonEditor
 };
 
@@ -26,6 +38,10 @@ const editorComponents = {
  */
 const editorHeaders = {
   DAmount: 'Contribution Amount',
+  DDonorAddress: 'Contributor Address',
+  DDonorInfo: 'Contributor Info',
+  DFrequency: 'Contribution Frequency',
+  DPayment: 'Agree to Pay Fees',
   DReason: 'Reason for Giving'
 };
 
@@ -39,7 +55,13 @@ export interface ElementEditorProps {
  * This type must be a union of all `content` properties for the elements that
  * can be edited by this component.
  */
-type ElementContent = AmountElement['content'] | ReasonElement['content'];
+type ElementContent =
+  | AmountElement['content']
+  | DonorAddressElement['content']
+  | DonorInfoElement['content']
+  | FrequencyElement['content']
+  | PaymentElement['content']
+  | ReasonElement['content'];
 
 export function ElementEditor({ elementUuid, location, onClose }: ElementEditorProps) {
   const { addBatchChange, batchPreview, commitBatch, resetBatch } = useEditablePageBatch();

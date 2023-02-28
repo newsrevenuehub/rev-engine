@@ -58,7 +58,7 @@ export const ActionWrapper = styled.div`
 `;
 
 export const Message = styled.div`
-  background: ${(props) => `${props.theme.colors.muiTeal[600]}1a`};
+  background: #008e7c1a;
   border-radius: ${(props) => props.theme.muiBorderRadius.lg};
   font-weight: 400;
   font-size: ${(props) => props.theme.fontSizesUpdated.md};

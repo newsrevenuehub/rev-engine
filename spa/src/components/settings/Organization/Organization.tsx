@@ -68,11 +68,7 @@ const Organization = () => {
   const taxId = watch('taxId');
 
   useEffect(() => {
-    // "showSuccess" should not be in the useEffect dependencies, otherwise it will always set to false
-    if (showSuccess) {
-      setShowSuccess(false);
-    }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
+    setShowSuccess(false);
   }, [companyName, companyTaxStatus, taxId, setShowSuccess]);
 
   const isDifferent = useMemo(

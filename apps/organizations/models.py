@@ -253,7 +253,10 @@ class FiscalStatusChoices(models.TextChoices):
 
 @dataclass
 class DefaultStyle:
-    """"""
+    """Used to model the default style characteristics for a given revenue program,
+
+    though in theory, this need not be tied to a revenue program.
+    """
 
     logo_url: str = None
     header_color: str = None
@@ -374,7 +377,6 @@ class RevenueProgram(IndexedTimeStampedModel):
 
     @property
     def default_style(self) -> DefaultStyle:
-        """"""
         if not (page := self.default_donation_page):
             return DefaultStyle()
         _style = AttrDict(page.styles.styles if page.styles else {})

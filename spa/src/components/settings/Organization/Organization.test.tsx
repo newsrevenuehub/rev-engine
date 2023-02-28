@@ -85,6 +85,28 @@ describe('Settings Organization Page', () => {
     expect(screen.getByRole('textbox', { name: 'EIN Optional' })).toHaveValue('12-3456789');
   });
 
+  it('should render warning message if Tax Status is different from server response', () => {
+    tree();
+
+    userEvent.click(screen.getByRole('button', { name: 'Tax Status Nonprofit' }));
+    userEvent.click(screen.getByRole('option', { name: 'For-profit' }));
+    expect(
+      screen.getByText(
+        'Changing your tax status will affect the fees shown on your contribution pages. Failure to match Stripe tax settings may result in a loss of funds.'
+      )
+    ).toBeInTheDocument();
+  });
+
+  it('should not render warning message by default', () => {
+    tree();
+
+    expect(
+      screen.queryByText(
+        'Changing your tax status will affect the fees shown on your contribution pages. Failure to match Stripe tax settings may result in a loss of funds.'
+      )
+    ).not.toBeInTheDocument();
+  });
+
   it('should render Organization Tax Status disclaimer if organization has multiple revenue programs', () => {
     useUserMock.mockReturnValue({
       user: {

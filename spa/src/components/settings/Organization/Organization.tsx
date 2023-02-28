@@ -1,17 +1,20 @@
-import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { ReactComponent as CheckIcon } from '@material-design-icons/svg/outlined/check.svg';
+import { ReactComponent as InfoIcon } from '@material-design-icons/svg/outlined/info.svg';
 import { Undo } from '@material-ui/icons';
+import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import { useAlert } from 'react-alert';
 import { Controller, useForm } from 'react-hook-form';
 import MaskedInput from 'react-input-mask';
 
-import axios from 'ajax/axios';
-import { PATCH_ORGANIZATION, PATCH_REVENUE_PROGRAM } from 'ajax/endpoints';
-import { Button, MenuItem, TextField } from 'components/base';
+import { MenuItem, TextField } from 'components/base';
 import HeaderSection from 'components/common/HeaderSection';
 import SettingsSection from 'components/common/SettingsSection';
 import SubheaderSection from 'components/common/SubheaderSection';
+
+import axios from 'ajax/axios';
+import { PATCH_ORGANIZATION, PATCH_REVENUE_PROGRAM } from 'ajax/endpoints';
+import { Button } from 'components/base';
 import { TAX_STATUS } from 'constants/fiscalStatus';
 import { HELP_URL } from 'constants/helperUrls';
 import { GENERIC_ERROR, ORGANIZATION_SUCCESS_TEXT } from 'constants/textConstants';
@@ -27,10 +30,11 @@ import {
   InfoTooltip,
   InputWrapper,
   Link,
+  SuccessMessage,
   StyledTextField,
   TooltipContainer,
-  Wrapper,
-  Message
+  WarningMessage,
+  Wrapper
 } from './Organization.styled';
 
 export type OrganizationFormFields = {
@@ -230,6 +234,15 @@ const Organization = () => {
             </InputWrapper>
           )}
         </SettingsSection>
+        {isDifferent.companyTaxStatus && (
+          <WarningMessage>
+            <InfoIcon />
+            <p>
+              Changing your tax status will affect the fees shown on your contribution pages. Failure to match Stripe
+              tax settings may result in a loss of funds.
+            </p>
+          </WarningMessage>
+        )}
         <ActionWrapper>
           <Button
             color="text"
@@ -250,10 +263,10 @@ const Organization = () => {
           </Button>
         </ActionWrapper>
         {showSuccess && (
-          <Message>
+          <SuccessMessage>
             <CheckIcon />
             <p>{ORGANIZATION_SUCCESS_TEXT}</p>
-          </Message>
+          </SuccessMessage>
         )}
       </ContentForm>
     </Wrapper>

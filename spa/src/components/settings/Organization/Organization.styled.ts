@@ -46,6 +46,24 @@ export const InputWrapper = styled.div`
   grid-template-columns: 1fr 1fr;
 `;
 
+export const WarningMessage = styled.div`
+  display: grid;
+  grid-template-columns: 15px 1fr;
+  padding: 9px;
+  align-items: center;
+  justify-content: center;
+  gap: 16px;
+  background-color: ${(props) => `${props.theme.colors.error.primary}1A`};
+  border-radius: ${(props) => props.theme.muiBorderRadius.lg};
+  max-width: 700px;
+
+  svg {
+    width: 15px;
+    height: 15px;
+    fill: ${(props) => props.theme.colors.error.primary};
+  }
+`;
+
 export const ActionWrapper = styled.div`
   display: flex;
   gap: 12px;
@@ -57,7 +75,7 @@ export const ActionWrapper = styled.div`
   }
 `;
 
-export const Message = styled.div`
+export const SuccessMessage = styled.div`
   background: #008e7c1a;
   border-radius: ${(props) => props.theme.muiBorderRadius.lg};
   font-weight: 400;

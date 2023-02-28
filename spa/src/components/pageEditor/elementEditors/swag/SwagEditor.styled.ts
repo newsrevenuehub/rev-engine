@@ -7,6 +7,12 @@ export const Root = styled.div`
   gap: 45px;
 `;
 
+export const Checkboxes = styled.div`
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+`;
+
 export const CheckboxFieldLabel = styled(FormControlLabel)`
   && {
     display: block;

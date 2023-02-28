@@ -4,6 +4,7 @@ import { SwagElement } from 'hooks/useContributionPage';
 import { ChangeEvent, useEffect, useState } from 'react';
 import validateInputPositiveFloat from 'utilities/validateInputPositiveFloat';
 import {
+  Checkboxes,
   CheckboxFieldLabel,
   Error,
   Root,
@@ -127,7 +128,7 @@ export function SwagEditor({
         />
         {swagGroup.swagOptions.length === 0 && <Error>You must add at least one option.</Error>}
       </Fieldset>
-      <div>
+      <Checkboxes>
         <CheckboxFieldLabel
           control={
             <Checkbox
@@ -152,7 +153,7 @@ export function SwagEditor({
             label="Offer contributors a complimentary NYT subscription"
           />
         )}
-      </div>
+      </Checkboxes>
     </Root>
   );
 }

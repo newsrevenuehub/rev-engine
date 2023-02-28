@@ -1,6 +1,8 @@
+from datetime import timedelta
 from urllib.parse import urljoin
 
 from django.conf import settings
+from django.core.exceptions import ValidationError
 from django.db.models.deletion import ProtectedError
 from django.test import override_settings
 from django.utils import timezone
@@ -11,22 +13,31 @@ from stripe import ApplePayDomain
 from stripe.error import StripeError
 
 import apps
+from apps.common.models import SocialMeta
 from apps.common.tests.test_utils import get_test_image_file_jpeg
+from apps.config.tests.factories import DenyListWordFactory
+from apps.config.validators import GENERIC_SLUG_DENIED_MSG, SLUG_DENIED_CODE
+from apps.contributions.models import Contribution
+from apps.contributions.tests.factories import ContributionFactory
 from apps.organizations.models import (
+    RP_SLUG_MAX_LENGTH,
     Benefit,
     BenefitLevel,
     BenefitLevelBenefit,
     DefaultStyle,
+    FiscalStatusChoices,
     Organization,
     PaymentProvider,
     RevenueProgram,
 )
-from apps.organizations.tests.factories import OrganizationFactory
+from apps.organizations.tests.factories import (
+    BenefitLevelFactory,
+    OrganizationFactory,
+    RevenueProgramFactory,
+)
 from apps.pages.models import DonationPage
 from apps.pages.tests.factories import DonationPageFactory, StyleFactory
 from apps.users.models import RoleAssignment, Roles, User
-
-from .factories import RevenueProgramFactory
 
 
 @pytest.mark.django_db
@@ -270,82 +281,132 @@ class TestRevenueProgram:
         revenue_program.refresh_from_db()
         assert revenue_program.slug == slug
 
-    # def test_slug_larger_than_max_length(self):
-    #     fake = Faker()
-    #     Faker.seed(0)
-    #     long_slug_rp = factories.RevenueProgramFactory(name=f"{' '.join(fake.words(nb=30))}")
-    #     assert len(long_slug_rp.slug) < RP_SLUG_MAX_LENGTH
+    def test_slug_larger_than_max_length(self):
+        assert len(RevenueProgramFactory(name="x" * (RP_SLUG_MAX_LENGTH + 1)).slug) < RP_SLUG_MAX_LENGTH
 
-    # # This is to squash a side effect in contribution.save
-    # # TODO: DEV-3026
-    # @patch("apps.contributions.models.Contribution.fetch_stripe_payment_method", return_value=None)
-    # def test_cannot_delete_when_downstream_contributions(self, mock_fetch_stripe_payment_method):
-    #     page = DonationPageFactory(revenue_program=self.instance)
-    #     ContributionFactory(donation_page=page)
-    #     with pytest.raises(ProtectedError) as protected_error:
-    #         self.instance.delete()
-    #     error_msg = (
-    #         "Cannot delete some instances of model 'RevenueProgram' because they are referenced "
-    #         "through protected foreign keys: 'DonationPage.revenue_program'."
-    #     )
-    #     assert error_msg, protected_error.value.args[0]
+    def test_cannot_delete_when_downstream_contributions(self, live_donation_page, monkeypatch):
+        # TODO: DEV-3026
+        monkeypatch.setattr(
+            "apps.contributions.models.Contribution.fetch_stripe_payment_method", lambda *args, **kwargs: None
+        )
+        ContributionFactory(donation_page=live_donation_page)
+        with pytest.raises(ProtectedError) as protected_error:
+            live_donation_page.revenue_program.delete()
+            assert protected_error.value.args[0] == (
+                "Cannot delete some instances of model 'RevenueProgram' because they are referenced "
+                "through protected foreign keys: 'DonationPage.revenue_program'."
+            )
 
-    # def test_can_delete_when_no_downstream_contributions_and_cascades(self):
-    #     page_id = DonationPageFactory(revenue_program=self.instance).id
-    #     self.instance.delete()
-    #     assert not DonationPage.objects.filter(id=page_id).exists()
+    def test_can_delete_when_no_downstream_contributions_and_cascades(self, live_donation_page):
+        assert not Contribution.objects.filter(
+            donation_page__revenue_program=live_donation_page.revenue_program
+        ).exists()
+        page_id = live_donation_page.id
+        live_donation_page.revenue_program.delete()
+        assert not DonationPage.objects.filter(id=page_id).exists()
 
-    # def test_delete_organization_deletes_revenue_program(self):
-    #     assert self.organization is not None
-    #     assert self.instance is not None
-    #     assert self.instance.organization == self.organization
-    #     rp_pk = self.instance.id
-    #     self.organization.delete()
-    #     assert not RevenueProgram.objects.filter(pk=rp_pk).exists()
+    def test_delete_organization_deletes_revenue_program(self, live_donation_page):
+        assert live_donation_page.revenue_program
+        assert live_donation_page.revenue_program.organization
+        rp_id = live_donation_page.revenue_program.id
+        live_donation_page.revenue_program.organization.delete()
+        assert not RevenueProgram.objects.filter(pk=rp_id).exists()
 
-    # def test_deleting_cascades_to_socialmeta(self):
-    #     sm_id = SocialMeta.objects.create(
-    #         title="title", description="description", url="https://example.com", revenue_program=self.instance
-    #     ).id
-    #     self.instance.delete()
-    #     assert not SocialMeta.objects.filter(id=sm_id).exists()
+    def test_deleting_cascades_to_socialmeta(self, revenue_program):
+        sm_id = SocialMeta.objects.create(
+            title="title", description="description", url="https://example.com", revenue_program=revenue_program
+        ).id
+        revenue_program.delete()
+        assert not SocialMeta.objects.filter(id=sm_id).exists()
 
-    # def test_format_twitter_handle(self):
-    #     target_handle = "testing"
-    #     self.instance.twitter_handle = "@" + target_handle
-    #     self.instance.clean()
-    #     assert self.instance.twitter_handle == target_handle
+    def test_format_twitter_handle(self, revenue_program):
+        target_handle = "testing"
+        revenue_program.twitter_handle = f"@{target_handle}"
+        revenue_program.clean()
+        assert revenue_program.twitter_handle == target_handle
 
-    # @override_settings(STRIPE_LIVE_MODE=False)
-    # @patch("stripe.ApplePayDomain.create")
-    # def test_apple_pay_domain_verification_not_called_when_created_and_not_live(self, apple_pay_domain_create):
-    #     factories.RevenueProgramFactory()
-    #     apple_pay_domain_create.assert_not_called()
+    def test_apple_pay_domain_verification_not_called_when_created_and_not_live(self, mocker, settings):
+        settings.STRIPE_LIVE_MODE = False
+        spy = mocker.spy(ApplePayDomain, "create")
+        RevenueProgramFactory()
+        spy.assert_not_called()
 
-    # @override_settings(STRIPE_LIVE_MODE=True)
-    # @override_settings(STRIPE_LIVE_SECRET_KEY=TEST_STRIPE_LIVE_KEY)
-    # @override_settings(DOMAIN_APEX=TEST_DOMAIN_APEX)
-    # @patch("stripe.ApplePayDomain.create")
-    # def test_apple_pay_domain_verification_not_called_when_updated_and_live(self, apple_pay_domain_create):
-    #     self.instance.slug = "my-new-slug"
-    #     self.instance.save()
-    #     apple_pay_domain_create.assert_not_called()
+    def test_apple_pay_domain_verification_not_called_when_updated_and_live(self, revenue_program, settings, mocker):
+        settings.STRIPE_LIVE_MODE = True
+        settings.STRIPE_LIVE_SECRET_KEY = "my_test_live_key"
+        settings.DOMAIN_APEX = "testapexdomain.com"
+        spy = mocker.spy(ApplePayDomain, "create")
+        revenue_program.slug = "my-new-slug"
+        revenue_program.save()
+        spy.assert_not_called()
 
-    # def test_slug_validated_against_denylist(self):
-    #     denied_word = DenyListWordFactory()
-    #     rp = RevenueProgram(name="My rp", organization=self.organization, payment_provider=self.payment_provider)
-    #     rp.slug = denied_word.word
-    #     with pytest.raises(ValidationError) as validation_error:
-    #         rp.clean_fields()
-    #     assert "slug" in validation_error.value.error_dict
-    #     assert SLUG_DENIED_CODE == validation_error.value.error_dict["slug"][0].code
-    #     assert GENERIC_SLUG_DENIED_MSG == validation_error.value.error_dict["slug"][0].message
+    def test_slug_validated_against_denylist(self, revenue_program):
+        denied_word = DenyListWordFactory()
+        revenue_program.slug = denied_word.word
+        with pytest.raises(ValidationError) as validation_error:
+            revenue_program.clean_fields()
+            assert "slug" in validation_error.value.error_dict
+            assert validation_error.value.error_dict["slug"][0].code == SLUG_DENIED_CODE
+            assert validation_error.value.error_dict["slug"][0].message == GENERIC_SLUG_DENIED_MSG
 
-    # def test_admin_benefit_options(self):
-    #     assert isinstance(self.instance.admin_benefit_options, list)
+    def test_admin_benefit_options(self, revenue_program):
+        assert isinstance(revenue_program.admin_benefit_options, list)
 
-    # def test_admin_benefitlevel_options(self):
-    #     assert isinstance(self.instance.admin_benefitlevel_options, list)
+    def test_admin_benefitlevel_options(self, revenue_program):
+        assert isinstance(revenue_program.admin_benefitlevel_options, list)
+
+    @pytest.mark.parametrize(
+        "fiscal_status,fiscal_sponsor_name,non_profit_value",
+        [
+            (FiscalStatusChoices.FOR_PROFIT, None, False),
+            (FiscalStatusChoices.NONPROFIT, None, True),
+            (FiscalStatusChoices.FISCALLY_SPONSORED, "NRH", True),
+        ],
+    )
+    def test_fiscal_status_on_revenue_program(self, fiscal_status, fiscal_sponsor_name, non_profit_value):
+        rp = RevenueProgramFactory(organization=OrganizationFactory())
+        rp.fiscal_status = fiscal_status
+        rp.fiscal_sponsor_name = fiscal_sponsor_name
+        assert rp.non_profit == non_profit_value
+
+    @pytest.mark.parametrize(
+        "fiscal_status,fiscal_sponsor_name",
+        [
+            (FiscalStatusChoices.FOR_PROFIT, "NRH"),
+            (FiscalStatusChoices.NONPROFIT, "NRH"),
+            (FiscalStatusChoices.FISCALLY_SPONSORED, None),
+        ],
+    )
+    def test_fiscal_sponsor_name_clean(self, fiscal_status, fiscal_sponsor_name):
+        rp = RevenueProgramFactory(organization=OrganizationFactory())
+        rp.fiscal_status = fiscal_status
+        rp.fiscal_sponsor_name = fiscal_sponsor_name
+        with pytest.raises(ValidationError):
+            rp.clean_fiscal_sponsor_name()
+
+    @pytest_cases.parametrize(
+        "user",
+        (
+            pytest_cases.fixture_ref("hub_admin_user"),
+            pytest_cases.fixture_ref("org_user_free_plan"),
+            pytest_cases.fixture_ref("rp_user"),
+        ),
+    )
+    def test_filtered_by_role_assignment(self, user):
+        # ensure unowned RevenuePrograms in case of org and RP user
+        RevenueProgramFactory.create_batch(size=2)
+        owned_rps = (
+            RevenueProgram.objects.all()
+            if user.roleassignment.role_type == Roles.HUB_ADMIN
+            else RevenueProgram.objects.filter(id__in=user.roleassignment.revenue_programs.values_list("id", flat=True))
+        )
+        query = RevenueProgram.objects.filtered_by_role_assignment(user.roleassignment)
+        assert query.count() == len(owned_rps)
+        assert set(query.values_list("id", flat=True)) == set([x.id for x in owned_rps])
+
+    def test_filtered_by_role_assignment_when_unexpected_role(self, user_with_unexpected_role):
+        RevenueProgramFactory.create_batch(3)
+        assert RevenueProgram.objects.filtered_by_role_assignment(user_with_unexpected_role.roleassignment).count() == 0
 
 
 class TestPaymentProvider:
@@ -367,150 +428,41 @@ class TestPaymentProvider:
         assert {"code": "", "symbol": ""} == t.get_currency_dict()
 
 
-# from datetime import timedelta
-# from unittest.mock import patch
-
-# from django.contrib.auth import get_user_model
-# from django.core.exceptions import ValidationError
-# from django.db.models.deletion import ProtectedError
-# from django.test import TestCase, override_settings
-# from django.utils import timezone
-# from django.utils.text import slugify
-
-# import pytest
-# import pytest_cases
-# from faker import Faker
-
-# from apps.common.models import SocialMeta
-# from apps.config.tests.factories import DenyListWordFactory
-# from apps.config.validators import GENERIC_SLUG_DENIED_MSG, SLUG_DENIED_CODE
-# from apps.contributions.tests.factories import ContributionFactory
-# from apps.organizations.models import (
-#     RP_SLUG_MAX_LENGTH,
-#     FiscalStatusChoices,
-#     Organization,
-#     RevenueProgram,
-# )
-# from apps.organizations.tests import factories
-# from apps.organizations.tests.factories import OrganizationFactory, RevenueProgramFactory
-# from apps.pages.models import DonationPage
-# from apps.pages.tests.factories import DonationPageFactory
-# from apps.users.models import RoleAssignment, Roles
-# from apps.users.tests.factories import RoleAssignmentFactory
+@pytest.fixture
+def benefit_level():
+    return BenefitLevelFactory(lower_limit=50, upper_limit=100)
 
 
-# TEST_STRIPE_LIVE_KEY = "my_test_live_key"
-# TEST_DOMAIN_APEX = "testapexdomain.com"
+@pytest.mark.django_db
+class BenefitLevelTest:
+    def test_donation_range_when_normal(self, benefit_level):
+        assert benefit_level.donation_range == f"${benefit_level.lower_limit}-{benefit_level.upper_limit}"
+
+    def test_donation_range_when_no_upper(self, benefit_level):
+        benefit_level.upper_limit = None
+        benefit_level.save()
+        assert benefit_level.donation_range == f"${benefit_level.lower_limit}+"
+
+    def test_upper_lower_limit_validation(self, benefit_level):
+        benefit_level.upper_limit = benefit_level.lower_limit - 1
+        with pytest.raises(ValidationError) as v_error:
+            benefit_level.clean()
+            assert v_error.exception.message == "Upper limit must be greater than lower limit"
 
 
-# user_model = get_user_model()
-
-
-# @pytest.mark.parametrize(
-#     "fiscal_status,fiscal_sponsor_name,non_profit_value",
-#     [
-#         (FiscalStatusChoices.FOR_PROFIT, None, False),
-#         (FiscalStatusChoices.NONPROFIT, None, True),
-#         (FiscalStatusChoices.FISCALLY_SPONSORED, "NRH", True),
-#     ],
-# )
-# @pytest.mark.django_db
-# def test_fiscal_status_on_revenue_program(fiscal_status, fiscal_sponsor_name, non_profit_value):
-#     rp = RevenueProgramFactory(organization=OrganizationFactory())
-#     rp.fiscal_status = fiscal_status
-#     rp.fiscal_sponsor_name = fiscal_sponsor_name
-#     assert rp.non_profit == non_profit_value
-
-
-# @pytest.mark.parametrize(
-#     "fiscal_status,fiscal_sponsor_name",
-#     [
-#         (FiscalStatusChoices.FOR_PROFIT, "NRH"),
-#         (FiscalStatusChoices.NONPROFIT, "NRH"),
-#         (FiscalStatusChoices.FISCALLY_SPONSORED, None),
-#     ],
-# )
-# @pytest.mark.django_db
-# def test_fiscal_sponsor_name_clean(fiscal_status, fiscal_sponsor_name):
-#     rp = RevenueProgramFactory(organization=OrganizationFactory())
-#     rp.fiscal_status = fiscal_status
-#     rp.fiscal_sponsor_name = fiscal_sponsor_name
-#     with pytest.raises(ValidationError):
-#         rp.clean_fiscal_sponsor_name()
-
-
-# @pytest.mark.django_db
-# @pytest_cases.parametrize(
-#     "user",
-#     (
-#         pytest_cases.fixture_ref("hub_admin_user"),
-#         pytest_cases.fixture_ref("org_user_free_plan"),
-#         pytest_cases.fixture_ref("rp_user"),
-#     ),
-# )
-# def test_revenueprogram_filtered_by_role_assignment(user):
-#     # ensure unowned RevenuePrograms in case of org and RP user
-#     factories.RevenueProgramFactory.create_batch(size=2)
-#     owned_rps = (
-#         RevenueProgram.objects.all()
-#         if user.roleassignment.role_type == Roles.HUB_ADMIN
-#         else RevenueProgram.objects.filter(id__in=user.roleassignment.revenue_programs.values_list("id", flat=True))
-#     )
-#     query = RevenueProgram.objects.filtered_by_role_assignment(user.roleassignment)
-#     assert query.count() == len(owned_rps)
-#     assert set(query.values_list("id", flat=True)) == set([x.id for x in owned_rps])
-
-
-# @pytest.mark.django_db
-# def test_revenueprogram_filtered_by_role_assignment_when_unexpected_role(user_with_unexpected_role):
-#     factories.RevenueProgramFactory.create_batch(3)
-#     assert RevenueProgram.objects.filtered_by_role_assignment(user_with_unexpected_role.roleassignment).count() == 0
-
-
-# class BenefitLevelTest(TestCase):
-#     def setUp(self):
-#         self.lower_limit = 50
-#         self.upper_limit = 100
-#         self.benefit_level = factories.BenefitLevelFactory(
-#             upper_limit=self.upper_limit,
-#             lower_limit=self.lower_limit,
-#         )
-
-#     def test_donation_range_when_normal(self):
-#         self.assertEqual(
-#             self.benefit_level.donation_range, f"${self.benefit_level.lower_limit}-{self.benefit_level.upper_limit}"
-#         )
-
-#     def test_donation_range_when_no_upper(self):
-#         self.benefit_level.upper_limit = None
-#         self.benefit_level.save()
-#         self.assertEqual(self.benefit_level.donation_range, f"${self.benefit_level.lower_limit}+")
-
-#     def test_upper_lower_limit_validation(self):
-#         self.benefit_level.upper_limit = self.benefit_level.lower_limit - 1
-#         with self.assertRaises(ValidationError) as v_error:
-#             self.benefit_level.clean()
-
-#         self.assertEqual(v_error.exception.message, "Upper limit must be greater than lower limit")
-
-
-# class TestPaymentProviderModel(TestCase):
-#     def setUp(self):
-#         now = timezone.now()
-#         self.payment_provider = factories.PaymentProviderFactory()
-#         self.revenue_program = factories.RevenueProgramFactory(payment_provider=self.payment_provider)
-#         self.live_page = DonationPageFactory(
-#             revenue_program=self.revenue_program, published_date=now - timedelta(days=14)
-#         )
-#         self.future_live_page = DonationPageFactory(
-#             revenue_program=self.revenue_program, published_date=now + timedelta(days=14)
-#         )
-
-#     def test_get_dependent_pages_with_publication_date(self):
-#         # add an additional page so test is not trivial
-#         DonationPageFactory(revenue_program=self.revenue_program, published_date=None)
-#         """Show gets list of contribution pages with pub date that indirectly reference the provider"""
-#         self.assertEqual(
-#             set(list(self.payment_provider.get_dependent_pages_with_publication_date().values_list("id", flat=True))),
-#             {self.live_page.pk, self.future_live_page.pk},
-#         )
+@pytest.mark.django_db
+class TestPaymentProviderModel:
+    def test_get_dependent_pages_with_publication_date(self, live_donation_page):
+        future_published_page = DonationPageFactory(
+            revenue_program=live_donation_page.revenue_program, published_date=timezone.now() + timedelta(days=1)
+        )
+        # create an unpublished page so test not trivial
+        DonationPageFactory(revenue_program=live_donation_page.revenue_program, published_date=None)
+        # Show gets list of contribution pages with pub date that indirectly reference the provider
+        assert set(
+            list(
+                live_donation_page.revenue_program.payment_provider.get_dependent_pages_with_publication_date().values_list(
+                    "id", flat=True
+                )
+            )
+        ) == {live_donation_page.pk, future_published_page.pk}

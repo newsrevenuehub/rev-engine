@@ -1,5 +1,6 @@
 import logging
 import os
+from dataclasses import asdict
 from datetime import datetime
 from urllib.parse import quote_plus, urlparse
 
@@ -194,6 +195,7 @@ class RequestContributorTokenEmailView(APIView):
                 # in async task queue), using `{ static 'NewsRevenueHub...' }` won't work here. Need
                 # to fully spell out the value that will be sent to template.
                 "logo_url": os.path.join(settings.SITE_URL, "static", "nre-logo-white.png"),
+                "default_style": asdict(revenue_program.default_style),
             },
         )
         # Email is async task. We won't know if it succeeds or not so optimistically send OK.

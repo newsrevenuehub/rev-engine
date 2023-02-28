@@ -1,4 +1,5 @@
 import os
+from dataclasses import asdict
 from unittest import TestCase
 from unittest.mock import Mock, call, patch
 
@@ -57,6 +58,7 @@ class TestSendThankYouEmail:
             "tax_id": contribution.revenue_program.tax_id,
             "magic_link": magic_link,
             "logo_url": os.path.join(settings.SITE_URL, "static", "nre-logo-yellow.png"),
+            "default_style": asdict(contribution.donation_page.revenue_program.default_style),
         }
 
     def test_when_contribution_not_exist(self):

@@ -1,6 +1,7 @@
 import datetime
 import logging
 import uuid
+from dataclasses import asdict
 from typing import List, TypedDict
 from urllib.parse import quote_plus
 
@@ -560,6 +561,7 @@ class Contribution(IndexedTimeStampedModel):
                     f"https://{construct_rp_domain(self.donation_page.revenue_program.slug)}/{settings.CONTRIBUTOR_VERIFY_URL}"
                     f"?token={token}&email={quote_plus(self.contributor.email)}"
                 ),
+                "default_style": asdict(self.donation_page.revenue_program.default_style),
             },
         )
 

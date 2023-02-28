@@ -2,8 +2,6 @@ import logging
 from dataclasses import dataclass, field
 from urllib.parse import urljoin
 
-
-from addict import Dict as AttrDict
 from django.conf import settings
 from django.core.exceptions import ValidationError
 from django.core.validators import MinLengthValidator
@@ -11,6 +9,7 @@ from django.db import models
 from django.utils import timezone
 
 import stripe
+from addict import Dict as AttrDict
 
 from apps.common.models import IndexedTimeStampedModel
 from apps.common.utils import normalize_slug

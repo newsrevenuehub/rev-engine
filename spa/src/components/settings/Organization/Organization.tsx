@@ -15,10 +15,11 @@ import { useAlert } from 'react-alert';
 
 import axios from 'ajax/axios';
 import { PATCH_ORGANIZATION, PATCH_REVENUE_PROGRAM } from 'ajax/endpoints';
-import { TAX_STATUS } from 'constants/fiscalStatus';
+import { FiscalStatus, TAX_STATUS } from 'constants/fiscalStatus';
 import { HELP_URL } from 'constants/helperUrls';
 import { GENERIC_ERROR, ORGANIZATION_SUCCESS_TEXT } from 'constants/textConstants';
 import GlobalLoading from 'elements/GlobalLoading';
+import { RevenueProgram } from 'hooks/useContributionPage';
 import useUser from 'hooks/useUser';
 import { getUserRole } from 'utilities/getUserRole';
 
@@ -39,16 +40,12 @@ import {
 
 export type OrganizationFormFields = {
   companyName: string;
-  companyTaxStatus: string;
+  companyTaxStatus: FiscalStatus;
   taxId: string;
   fiscalSponsorName: string;
 };
 
-type RevenueProgramPatch = {
-  tax_id: string;
-  fiscal_status: string;
-  fiscal_sponsor_name: string;
-};
+type RevenueProgramPatch = Pick<RevenueProgram, 'tax_id' | 'fiscal_status' | 'fiscal_sponsor_name'>;
 
 const Organization = () => {
   const alert = useAlert();
@@ -77,7 +74,7 @@ const Organization = () => {
   } = useForm<OrganizationFormFields>({
     defaultValues: {
       companyName: currentOrganization?.name ?? '',
-      companyTaxStatus: revenueProgramFromCurrentOrg?.[0]?.fiscal_status ?? '',
+      companyTaxStatus: revenueProgramFromCurrentOrg?.[0]?.fiscal_status,
       taxId: revenueProgramFromCurrentOrg?.[0]?.tax_id ?? '',
       fiscalSponsorName: revenueProgramFromCurrentOrg?.[0]?.fiscal_sponsor_name ?? ''
     }
@@ -89,12 +86,12 @@ const Organization = () => {
 
   useEffect(() => {
     setShowSuccess(false);
-  }, [companyName, companyTaxStatus, taxId, setShowSuccess]);
+  }, [companyName, companyTaxStatus, taxId, fiscalSponsorName, setShowSuccess]);
 
   const isDifferent = useMemo(
     () => ({
       companyName: companyName !== (currentOrganization?.name ?? ''),
-      companyTaxStatus: companyTaxStatus !== (revenueProgramFromCurrentOrg?.[0]?.fiscal_status ?? ''),
+      companyTaxStatus: companyTaxStatus !== revenueProgramFromCurrentOrg?.[0]?.fiscal_status,
       taxId: taxId.replace(/-/g, '') !== (revenueProgramFromCurrentOrg?.[0]?.tax_id ?? ''),
       fiscalSponsorName:
         companyTaxStatus === TAX_STATUS.FISCALLY_SPONSORED &&
@@ -122,7 +119,7 @@ const Organization = () => {
         throw new Error('Revenue Program is not yet defined');
       }
       return axios.patch(`${PATCH_REVENUE_PROGRAM}${revenueProgramFromCurrentOrg[0].id}/`, {
-        tax_id: tax_id.replace('-', ''),
+        tax_id: tax_id?.replace('-', ''),
         fiscal_status,
         fiscal_sponsor_name: fiscal_status === TAX_STATUS.FISCALLY_SPONSORED ? fiscal_sponsor_name : ''
       });
@@ -306,8 +303,9 @@ const Organization = () => {
             onClick={() => {
               reset({
                 companyName: currentOrganization?.name ?? '',
-                companyTaxStatus: revenueProgramFromCurrentOrg?.[0]?.fiscal_status ?? '',
-                taxId: revenueProgramFromCurrentOrg?.[0]?.tax_id ?? ''
+                companyTaxStatus: revenueProgramFromCurrentOrg?.[0]?.fiscal_status,
+                taxId: revenueProgramFromCurrentOrg?.[0]?.tax_id ?? '',
+                fiscalSponsorName: revenueProgramFromCurrentOrg?.[0]?.fiscal_sponsor_name ?? ''
               });
             }}
           >

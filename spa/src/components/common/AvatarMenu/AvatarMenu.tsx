@@ -109,7 +109,7 @@ const AvatarMenu = ({ user, className }: AvatarMenuProps) => {
           </MenuItem>
           <MenuItem onClick={onLogout} aria-label="Sign out">
             <ListItemIcon>
-              <LogoutIcon />
+              <LogoutIcon aria-hidden />
             </ListItemIcon>
             <Typography variant="inherit">Sign out</Typography>
           </MenuItem>

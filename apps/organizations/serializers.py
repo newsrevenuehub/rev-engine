@@ -80,7 +80,6 @@ class RevenueProgramListInlineSerializer(serializers.ModelSerializer):
             "google_analytics_v4_id",
             "facebook_pixel_id",
             "tax_id",
-            "non_profit",
             "fiscal_status",
             "fiscal_sponsor_name",
         ]

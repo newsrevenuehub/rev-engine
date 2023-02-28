@@ -1,4 +1,5 @@
 import userEvent from '@testing-library/user-event';
+import { TAX_STATUS } from 'constants/fiscalStatus';
 import { axe } from 'jest-axe';
 import { render, screen, waitFor, fireEvent } from 'test-utils';
 import ProfileForm, { ProfileFormProps } from './ProfileForm';
@@ -192,7 +193,7 @@ describe('ProfileForm', () => {
             lastName: 'mock-last-name',
             jobTitle: 'mock-job-title',
             companyName: 'mock-company-name',
-            companyTaxStatus: 'fiscally sponsored',
+            companyTaxStatus: TAX_STATUS.FISCALLY_SPONSORED,
             taxId: '98-7654321',
             fiscalSponsorName: 'mock-fiscal-sponsor-name'
           }

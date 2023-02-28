@@ -74,7 +74,6 @@ class UserSerializerTest(APITestCase):
             "slug",
             "organization",
             "payment_provider_stripe_verified",
-            "non_profit",
             "fiscal_status",
             "tax_id",
             "fiscal_sponsor_name",

@@ -1,13 +1,19 @@
 import PropTypes, { InferProps } from 'prop-types';
 
-import { Title, Subtitle, Flex, Left, Right } from './SettingsSection.styled';
+import { H3, Subtitle, Flex, Left, Right } from './SettingsSection.styled';
 
 export type SettingsSectionProps = InferProps<typeof SettingsSectionPropTypes>;
 
-const SettingsSection = ({ title, subtitle, className, hideBottomDivider, children }: SettingsSectionProps) => (
+const SettingsSection = ({
+  title,
+  subtitle,
+  children,
+  className = '',
+  hideBottomDivider = false
+}: SettingsSectionProps) => (
   <Flex className={className!} $hideBottomDivider={hideBottomDivider!}>
     <Left>
-      <Title>{title}</Title>
+      <H3>{title}</H3>
       {subtitle && <Subtitle data-testid="settings-subtitle">{subtitle}</Subtitle>}
     </Left>
     {children && <Right>{children}</Right>}
@@ -23,10 +29,5 @@ const SettingsSectionPropTypes = {
 };
 
 SettingsSection.propTypes = SettingsSectionPropTypes;
-
-SettingsSection.defaultProps = {
-  hideBottomDivider: false,
-  className: ''
-};
 
 export default SettingsSection;

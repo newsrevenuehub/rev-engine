@@ -1,23 +1,26 @@
+import { ReactComponent as CheckIcon } from '@material-design-icons/svg/outlined/check.svg';
 import { ReactComponent as InfoIcon } from '@material-design-icons/svg/outlined/info.svg';
 import { useCallback, useMemo } from 'react';
 import { Controller, useForm } from 'react-hook-form';
 import MaskedInput from 'react-input-mask';
 
+import { Undo } from '@material-ui/icons';
 import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { Button, MenuItem, TextField } from 'components/base';
 import HeaderSection from 'components/common/HeaderSection';
 import SettingsSection from 'components/common/SettingsSection';
 import SubheaderSection from 'components/common/SubheaderSection';
+import { useEffect, useState } from 'react';
 import { useAlert } from 'react-alert';
 
 import axios from 'ajax/axios';
 import { PATCH_ORGANIZATION, PATCH_REVENUE_PROGRAM } from 'ajax/endpoints';
 import { TAX_STATUS } from 'constants/fiscalStatus';
 import { HELP_URL } from 'constants/helperUrls';
-import { GENERIC_ERROR } from 'constants/textConstants';
+import { GENERIC_ERROR, ORGANIZATION_SUCCESS_TEXT } from 'constants/textConstants';
 import GlobalLoading from 'elements/GlobalLoading';
 import useUser from 'hooks/useUser';
-import { getUserRole } from 'utilities/userRoleType';
+import { getUserRole } from 'utilities/getUserRole';
 
 import {
   ActionWrapper,
@@ -28,6 +31,7 @@ import {
   InputWrapper,
   Link,
   StyledTextField,
+  SuccessMessage,
   TooltipContainer,
   WarningMessage,
   Wrapper
@@ -50,6 +54,7 @@ const Organization = () => {
   const alert = useAlert();
   const queryClient = useQueryClient();
   const { user, isLoading } = useUser();
+  const [showSuccess, setShowSuccess] = useState(false);
   const currentOrganization = useMemo(
     () => (user?.organizations?.length === 1 ? user?.organizations?.[0] : undefined),
     [user?.organizations]
@@ -82,14 +87,18 @@ const Organization = () => {
   const taxId = watch('taxId');
   const fiscalSponsorName = watch('fiscalSponsorName');
 
+  useEffect(() => {
+    setShowSuccess(false);
+  }, [companyName, companyTaxStatus, taxId, setShowSuccess]);
+
   const isDifferent = useMemo(
     () => ({
-      companyName: companyName !== currentOrganization?.name,
-      companyTaxStatus: companyTaxStatus !== revenueProgramFromCurrentOrg?.[0]?.fiscal_status,
-      taxId: taxId.replace(/-/g, '') !== revenueProgramFromCurrentOrg?.[0]?.tax_id,
+      companyName: companyName !== (currentOrganization?.name ?? ''),
+      companyTaxStatus: companyTaxStatus !== (revenueProgramFromCurrentOrg?.[0]?.fiscal_status ?? ''),
+      taxId: taxId.replace(/-/g, '') !== (revenueProgramFromCurrentOrg?.[0]?.tax_id ?? ''),
       fiscalSponsorName:
         companyTaxStatus === TAX_STATUS.FISCALLY_SPONSORED &&
-        fiscalSponsorName !== revenueProgramFromCurrentOrg?.[0]?.fiscal_sponsor_name
+        fiscalSponsorName !== (revenueProgramFromCurrentOrg?.[0]?.fiscal_sponsor_name ?? '')
     }),
     [companyName, companyTaxStatus, currentOrganization?.name, fiscalSponsorName, revenueProgramFromCurrentOrg, taxId]
   );
@@ -135,10 +144,11 @@ const Organization = () => {
             fiscal_status: form.companyTaxStatus,
             fiscal_sponsor_name: form.fiscalSponsorName
           });
-          if (companyTaxStatus !== TAX_STATUS.FISCALLY_SPONSORED) {
+          if (form.companyTaxStatus !== TAX_STATUS.FISCALLY_SPONSORED) {
             resetField('fiscalSponsorName', { defaultValue: '' });
           }
         }
+        setShowSuccess(true);
       } catch (error) {
         console.error(error);
         alert.error(GENERIC_ERROR);
@@ -146,10 +156,11 @@ const Organization = () => {
     },
     [
       alert,
+      resetField,
+      isDifferent.taxId,
       isDifferent.companyName,
       isDifferent.companyTaxStatus,
       isDifferent.fiscalSponsorName,
-      isDifferent.taxId,
       updateOrganizationNameMutation,
       updateRevenueProgramMutation
     ]
@@ -181,7 +192,7 @@ const Organization = () => {
             hasMultipleRPs ? (
               <>
                 Your Organization's tax status and EIN are managed by our Staff. For help, please contact{' '}
-                <Link href={HELP_URL} target="_blank" rel="noreferrer">
+                <Link href={HELP_URL} target="_blank">
                   Support
                 </Link>
                 .{' '}
@@ -202,7 +213,14 @@ const Organization = () => {
                   name="companyTaxStatus"
                   control={control}
                   render={({ field }) => (
-                    <TextField fullWidth id="settings-company-tax-status" label="Tax Status" {...field} select>
+                    <TextField
+                      {...field}
+                      fullWidth
+                      id="settings-company-tax-status"
+                      label="Tax Status"
+                      disabled={!isOrgAdmin}
+                      select
+                    >
                       <MenuItem value={TAX_STATUS.NONPROFIT}>Nonprofit</MenuItem>
                       <MenuItem value={TAX_STATUS.FOR_PROFIT}>For-profit</MenuItem>
                       <MenuItem value={TAX_STATUS.FISCALLY_SPONSORED}>Fiscally Sponsored</MenuItem>
@@ -280,20 +298,30 @@ const Organization = () => {
             </p>
           </WarningMessage>
         )}
-        {Object.values(isDifferent).includes(true) && (
-          <ActionWrapper>
-            <Button
-              color="secondary"
-              onClick={() => {
-                reset(undefined, { keepDefaultValues: true });
-              }}
-            >
-              Undo
-            </Button>
-            <Button color="secondary" type="submit">
-              Save
-            </Button>
-          </ActionWrapper>
+        <ActionWrapper>
+          <Button
+            color="text"
+            startIcon={<Undo />}
+            disabled={!Object.values(isDifferent).includes(true)}
+            onClick={() => {
+              reset({
+                companyName: currentOrganization?.name ?? '',
+                companyTaxStatus: revenueProgramFromCurrentOrg?.[0]?.fiscal_status ?? '',
+                taxId: revenueProgramFromCurrentOrg?.[0]?.tax_id ?? ''
+              });
+            }}
+          >
+            Undo
+          </Button>
+          <Button disabled={!Object.values(isDifferent).includes(true)} color="primaryDark" type="submit">
+            Save
+          </Button>
+        </ActionWrapper>
+        {showSuccess && (
+          <SuccessMessage>
+            <CheckIcon />
+            <p>{ORGANIZATION_SUCCESS_TEXT}</p>
+          </SuccessMessage>
         )}
       </ContentForm>
     </Wrapper>

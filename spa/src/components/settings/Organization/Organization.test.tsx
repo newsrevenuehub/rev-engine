@@ -5,10 +5,12 @@ import { USER_ROLE_ORG_ADMIN_TYPE } from 'constants/authConstants';
 import MockAdapter from 'axios-mock-adapter';
 import axios from 'ajax/axios';
 
+import { GENERIC_ERROR, ORGANIZATION_SUCCESS_TEXT } from 'constants/textConstants';
 import useUser from 'hooks/useUser';
 
 import Organization from './Organization';
 
+jest.mock('elements/GlobalLoading');
 jest.mock('hooks/useUser');
 
 describe('Settings Organization Page', () => {
@@ -43,6 +45,13 @@ describe('Settings Organization Page', () => {
   });
   afterEach(() => axiosMock.reset());
   afterAll(() => axiosMock.restore());
+
+  it('should render loading if isLoading === true', () => {
+    useUserMock.mockReturnValue({ isLoading: true });
+    tree();
+
+    expect(screen.getByTestId('mock-global-loading')).toBeInTheDocument();
+  });
 
   it('should render page texts', () => {
     tree();
@@ -268,11 +277,11 @@ describe('Settings Organization Page', () => {
     expect(screen.queryByRole('textbox', { name: 'EIN Optional' })).not.toBeInTheDocument();
   });
 
-  it('should not render undo/save buttons by default', () => {
+  it('should render undo/save buttons by default', () => {
     tree();
 
-    expect(screen.queryByRole('button', { name: /undo/i })).not.toBeInTheDocument();
-    expect(screen.queryByRole('button', { name: /save/i })).not.toBeInTheDocument();
+    expect(screen.getByRole('button', { name: /undo/i })).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: /save/i })).toBeInTheDocument();
   });
 
   describe('should render undo/save buttons when:', () => {
@@ -307,6 +316,49 @@ describe('Settings Organization Page', () => {
     });
   });
 
+  it('should undo changes when undo is clicked', async () => {
+    tree();
+
+    expect(screen.getByRole('textbox', { name: 'Display Name' })).toHaveValue('mock-org-1');
+    await fireEvent.change(screen.getByRole('textbox', { name: 'Display Name' }), {
+      target: { value: 'Mock-new-name' }
+    });
+
+    expect(screen.getByRole('textbox', { name: 'Display Name' })).toHaveValue('Mock-new-name');
+    expect(screen.getByRole('button', { name: /undo/i })).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: /save/i })).toBeInTheDocument();
+
+    screen.getByRole('button', { name: /undo/i }).click();
+
+    expect(screen.getByRole('textbox', { name: 'Display Name' })).toHaveValue('mock-org-1');
+  });
+
+  it('should disable undo/save buttons if user fields are undefined or null', () => {
+    useUserMock.mockReturnValue({
+      user: {
+        role_type: [USER_ROLE_ORG_ADMIN_TYPE],
+        organizations: [
+          {
+            id: 1,
+            name: null
+          }
+        ],
+        revenue_programs: [
+          {
+            id: 1,
+            fiscal_status: 'nonprofit',
+            tax_id: undefined,
+            organization: 1
+          }
+        ]
+      }
+    });
+    tree();
+
+    expect(screen.getByRole('button', { name: /undo/i })).toBeDisabled();
+    expect(screen.getByRole('button', { name: /save/i })).toBeDisabled();
+  });
+
   describe('onSubmit: Saving changes', () => {
     it('should call organization patch if organization name has changed', async () => {
       axiosMock.onPatch(`organizations/1/`).reply(200);
@@ -324,6 +376,41 @@ describe('Settings Organization Page', () => {
       });
       expect(axiosMock.history.patch[0].url).toBe(`organizations/1/`);
       expect(axiosMock.history.patch[0].data).toBe('{"name":"Mock-new-name"}');
+    });
+
+    it('should show success message when patch returns 200', async () => {
+      axiosMock.onPatch(`organizations/1/`).reply(200);
+      tree();
+
+      expect(screen.queryByText(ORGANIZATION_SUCCESS_TEXT)).not.toBeInTheDocument();
+      await fireEvent.change(screen.getByRole('textbox', { name: 'Display Name' }), {
+        target: { value: 'Mock-new-name' }
+      });
+
+      userEvent.click(screen.getByRole('button', { name: /save/i }));
+
+      await waitFor(() => {
+        expect(screen.getByText(ORGANIZATION_SUCCESS_TEXT)).toBeVisible();
+      });
+    });
+
+    it('should hide success message when patch returns 200 and user makes any change', async () => {
+      axiosMock.onPatch(`organizations/1/`).reply(200);
+
+      tree();
+      expect(screen.queryByText(ORGANIZATION_SUCCESS_TEXT)).not.toBeInTheDocument();
+      await fireEvent.change(screen.getByRole('textbox', { name: 'Display Name' }), {
+        target: { value: 'Mock-new-name' }
+      });
+
+      userEvent.click(screen.getByRole('button', { name: /save/i }));
+
+      await waitFor(() => {
+        expect(screen.getByText(ORGANIZATION_SUCCESS_TEXT)).toBeVisible();
+      });
+
+      await fireEvent.change(screen.getByLabelText('EIN Optional'), { target: { value: '111111111' } });
+      expect(screen.queryByText(ORGANIZATION_SUCCESS_TEXT)).not.toBeInTheDocument();
     });
 
     it('should call revenue program patch if any other field has changed', async () => {
@@ -397,6 +484,25 @@ describe('Settings Organization Page', () => {
       expect(axiosMock.history.patch[0].data).toBe(
         '{"tax_id":"123456789","fiscal_status":"fiscally sponsored","fiscal_sponsor_name":"mock-sponsor-name"}'
       );
+    });
+
+    it('should show generic error if patch fails', async () => {
+      axiosMock.onPatch().networkError();
+
+      tree();
+      expect(axiosMock.history.patch.length).toBe(0);
+      expect(screen.queryByText(GENERIC_ERROR)).not.toBeInTheDocument();
+
+      userEvent.click(screen.getByRole('button', { name: 'Tax Status Nonprofit' }));
+      userEvent.click(screen.getByRole('option', { name: 'For-profit' }));
+
+      userEvent.click(screen.getByRole('button', { name: /save/i }));
+
+      await waitFor(() => {
+        expect(axiosMock.history.patch.length).toBe(1);
+      });
+      expect(axiosMock.history.patch[0].url).toBe(`revenue-programs/1/`);
+      expect(screen.getByText(GENERIC_ERROR)).toBeVisible();
     });
   });
 

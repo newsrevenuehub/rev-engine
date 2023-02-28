@@ -461,6 +461,7 @@ describe('User flow: happy path', () => {
       cy.findByRole('button', {
         name: getPaymentElementButtonText({
           amount: payFees ? 123.01 : 120.0,
+          currencyCode: livePageOne.currency.code,
           currencySymbol: livePageOne.currency.symbol,
           frequency: CONTRIBUTION_INTERVALS.ONE_TIME
         })
@@ -521,6 +522,7 @@ describe('User flow: happy path', () => {
       cy.findByRole('button', {
         name: getPaymentElementButtonText({
           amount: 10.53,
+          currencyCode: livePageOne.currency.code,
           currencySymbol: livePageOne.currency.symbol,
           frequency: CONTRIBUTION_INTERVALS.MONTHLY
         })
@@ -601,6 +603,7 @@ describe('User flow: happy path', () => {
       cy.findByRole('button', {
         name: getPaymentElementButtonText({
           amount: payFees ? 10.53 : 10.0,
+          currencyCode: livePageOne.currency.code,
           currencySymbol: livePageOne.currency.symbol,
           frequency: CONTRIBUTION_INTERVALS.MONTHLY
         })
@@ -666,6 +669,7 @@ describe('User flow: happy path', () => {
     cy.findByRole('button', {
       name: getPaymentElementButtonText({
         amount: 10.53,
+        currencyCode: livePageOne.currency.code,
         currencySymbol: livePageOne.currency.symbol,
         frequency: CONTRIBUTION_INTERVALS.MONTHLY
       })
@@ -913,6 +917,7 @@ describe('StripePaymentForm unhappy paths', () => {
       cy.findByRole('button', {
         name: getPaymentElementButtonText({
           amount: 123.01,
+          currencyCode: livePageOne.currency.code,
           currencySymbol: livePageOne.currency.symbol,
           frequency: CONTRIBUTION_INTERVALS.ONE_TIME
         })
@@ -933,6 +938,7 @@ describe('StripePaymentForm unhappy paths', () => {
       cy.findByRole('button', {
         name: getPaymentElementButtonText({
           amount: 123.01,
+          currencyCode: livePageOne.currency.code,
           currencySymbol: livePageOne.currency.symbol,
           frequency: CONTRIBUTION_INTERVALS.ONE_TIME
         })
@@ -951,6 +957,7 @@ describe('StripePaymentForm unhappy paths', () => {
     cy.findByRole('button', {
       name: getPaymentElementButtonText({
         amount: 123.01,
+        currencyCode: livePageOne.currency.code,
         currencySymbol: livePageOne.currency.symbol,
         frequency: CONTRIBUTION_INTERVALS.ONE_TIME
       })

@@ -97,6 +97,7 @@ def send_thank_you_email(contribution_id: int) -> None:
             "tax_id": contribution.revenue_program.tax_id,
             "magic_link": Contributor.create_magic_link(contribution),
             "logo_url": os.path.join(settings.SITE_URL, "static", "nre-logo-yellow.png"),
+            "page_currency": contribution.page.currency or {"code": "USD", "symbol": "$"},
         },
     )
 

@@ -142,12 +142,12 @@
                         {% if contribution_interval == "one_time" %}
                         <p class="contribution-details">
                           <span class="contribution-details-strong">Amount Contributed:</span>
-                          ${{ contribution_amount }}
+                          {{ page_currency.symbol }}{{ contribution_amount }} {{ page_currency.code }}
                         </p>
                         {% else %}
                         <p class="contribution-details">
                           <span class="contribution-details-strong">Amount Contributed:</span>
-                          ${{ contribution_amount}}/{{contribution_interval_display_value}}
+                          {{ page_currency.symbol }}{{ contribution_amount }} {{ page_currency.code }}/{{ contribution_interval_display_value }}
                         </p>
                         {% endif %}
                       </div>

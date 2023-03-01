@@ -81,6 +81,7 @@ DEFAULT_FILE_STORAGE = os.getenv("DEFAULT_FILE_STORAGE", "django.core.files.stor
 
 # Google Pub Sub
 ENABLE_PUBSUB = os.getenv("ENABLE_PUBSUB", "false").lower() == "true"
+PAGE_PUBLISHED_TOPIC = os.getenv("PAGE_PUBLISHED_TOPIC", None)
 NEW_USER_TOPIC = os.getenv("NEW_USER_TOPIC", None)
 GOOGLE_CLOUD_PROJECT = os.getenv("GOOGLE_CLOUD_PROJECT", "revenue-engine")
 
@@ -94,6 +95,7 @@ INSTALLED_APPS = [
     "apps.emails",
     "apps.contributions",
     "apps.element_media",
+    "apps.google_cloud",
     "apps.public",
     "apps.config",
     "django.contrib.admin",

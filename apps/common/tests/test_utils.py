@@ -13,6 +13,7 @@ from django.http import HttpRequest
 from django.test import RequestFactory, TestCase, override_settings
 
 import PIL.Image
+import pytest
 from faker import Faker
 
 from apps.common.utils import (
@@ -263,29 +264,11 @@ def test_ip_in_cf_connecting_header():
     assert get_original_ip_from_request(request) == "baz"  # REMOTE_ADDR is used
 
 
-def test_google_cloud_pub_sub_is_configured_when_true(monkeypatch):
-    monkeypatch.setattr("django.conf.settings.ENABLE_PUBSUB", True)
-    monkeypatch.setattr("django.conf.settings.NEW_USER_TOPIC", "topic")
-    monkeypatch.setattr("django.conf.settings.GOOGLE_CLOUD_PROJECT", "project")
-    assert google_cloud_pub_sub_is_configured()
-
-
-def test_google_cloud_pub_sub_is_configured_pub_sub_disable(monkeypatch):
-    monkeypatch.setattr("django.conf.settings.ENABLE_PUBSUB", False)
-    monkeypatch.setattr("django.conf.settings.NEW_USER_TOPIC", "topic")
-    monkeypatch.setattr("django.conf.settings.GOOGLE_CLOUD_PROJECT", "project")
-    assert not google_cloud_pub_sub_is_configured()
-
-
-def test_google_cloud_pub_sub_is_configured_new_user_topic_missing(monkeypatch):
-    monkeypatch.setattr("django.conf.settings.ENABLE_PUBSUB", True)
-    monkeypatch.setattr("django.conf.settings.NEW_USER_TOPIC", "")
-    monkeypatch.setattr("django.conf.settings.GOOGLE_CLOUD_PROJECT", "project")
-    assert not google_cloud_pub_sub_is_configured()
-
-
-def test_google_cloud_pub_sub_is_configured_project_missing(monkeypatch):
-    monkeypatch.setattr("django.conf.settings.ENABLE_PUBSUB", True)
-    monkeypatch.setattr("django.conf.settings.NEW_USER_TOPIC", "topic")
-    monkeypatch.setattr("django.conf.settings.GOOGLE_CLOUD_PROJECT", "")
-    assert not google_cloud_pub_sub_is_configured()
+@pytest.mark.parametrize(
+    "enable_pubsub,gcloud_project,expected",
+    ((True, "project", True), (False, "project", False), (True, None, False), (False, None, False), (True, "", False)),
+)
+def test_google_cloud_pub_sub_is_configured(enable_pubsub, gcloud_project, expected, monkeypatch):
+    monkeypatch.setattr("django.conf.settings.ENABLE_PUBSUB", enable_pubsub)
+    monkeypatch.setattr("django.conf.settings.GOOGLE_CLOUD_PROJECT", gcloud_project)
+    assert google_cloud_pub_sub_is_configured() == expected

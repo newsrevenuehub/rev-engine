@@ -73,6 +73,7 @@
     "chromatic": "chromatic --exit-zero-on-changes",
     "cypress:open": "cypress open --e2e",
     "cypress:run": "cypress run --e2e",
+    "lint": "eslint src",
     "test": "react-scripts test",
     "test:coverage": "CI=true npm test -- --env=jsdom --coverage",
     "test:ci": "CI=true npm test -- --env=jsdom",
@@ -104,40 +105,6 @@
       "\\.(css|less)$": "<rootDir>/__mocks__/styleMock.js",
       "\\.svg$": "<rootDir>/__mocks__/svgrMock.js"
     }
-  },
-  "eslintConfig": {
-    "extends": [
-      "react-app",
-      "react-app/jest",
-      "prettier",
-      "plugin:chai-friendly/recommended"
-    ],
-    "env": {
-      "cypress/globals": true
-    },
-    "plugins": [
-      "cypress",
-      "chai-friendly"
-    ],
-    "overrides": [
-      {
-        "files": [
-          "*.spec.js"
-        ],
-        "rules": {
-          "jest/valid-expect": 0,
-          "jest/valid-expect-in-promise": 0
-        }
-      },
-      {
-        "files": [
-          "**/*.stories.*"
-        ],
-        "rules": {
-          "import/no-anonymous-default-export": "off"
-        }
-      }
-    ]
   },
   "browserslist": [
     ">0.2%",
@@ -179,15 +146,16 @@
     "@types/react-router-dom": "^5.3.3",
     "@types/styled-components": "^5.1.26",
     "@types/wcag-contrast": "^3.0.0",
+    "@typescript-eslint/eslint-plugin": "^5.54.0",
+    "@typescript-eslint/parser": "^5.54.0",
     "axios-mock-adapter": "^1.21.2",
     "babel-plugin-named-exports-order": "^0.0.2",
     "chromatic": "^6.10.2",
     "cypress": "^10.9.0",
     "cypress-localstorage-commands": "^1.7.0",
     "eslint": "^7.25.0",
-    "eslint-config-prettier": "^8.3.0",
-    "eslint-plugin-chai-friendly": "^0.7.1",
-    "eslint-plugin-cypress": "^2.11.3",
+    "eslint-config-prettier": "^8.6.0",
+    "eslint-plugin-cypress": "^2.12.1",
     "history": "^5.3.0",
     "http-proxy-middleware": "^2.0.6",
     "jest-axe": "^6.0.0",

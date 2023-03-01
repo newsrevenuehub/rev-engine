@@ -277,7 +277,7 @@ describe('Contribution page edit', () => {
   });
 
   describe('Contributor address editor', () => {
-    it('should render the DonorAmountEditor', () => {
+    it('should render the DonorAddressEditor', () => {
       cy.editElement('DDonorAddress');
       cy.getByTestId('donor-address-editor').should('exist');
     });

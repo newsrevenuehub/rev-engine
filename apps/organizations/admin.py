@@ -92,7 +92,7 @@ class BenefitLevelBenefit(NoRelatedInlineAddEditAdminMixin, ReadOnlyOrgLimitedTa
 
 
 @admin.register(Organization)
-class OrganizationAdmin(RevEngineBaseAdmin, VersionAdmin):
+class OrganizationAdmin(RevEngineBaseAdmin, CompareVersionAdmin):
     organization_fieldset = (
         (
             "Organization",
@@ -178,7 +178,7 @@ class BenefitLevelAdmin(RevEngineBaseAdmin, VersionAdmin):
 
 
 @admin.register(RevenueProgram)
-class RevenueProgramAdmin(RevEngineBaseAdmin, VersionAdmin, AdminImageMixin):
+class RevenueProgramAdmin(RevEngineBaseAdmin, CompareVersionAdmin, AdminImageMixin):
     fieldsets = (
         (
             "RevenueProgram",

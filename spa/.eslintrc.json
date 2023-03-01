@@ -2,7 +2,7 @@
   "env": {
     "cypress/globals": true
   },
-  "extends": ["react-app", "react-app/jest", "plugin:cypress/recommended"],
+  "extends": ["react-app", "react-app/jest", "plugin:chai-friendly/recommended", "plugin:cypress/recommended"],
   "overrides": [
     {
       "files": ["**/*.{ts,tsx}"],
@@ -29,7 +29,8 @@
   "parser": "@typescript-eslint/parser",
   "plugins": ["@typescript-eslint", "cypress"],
   "rules": {
-    "jest/no-focused-tests": "error"
+    "jest/no-focused-tests": "error",
+    "cypress/no-async-tests": 1
   },
   "root": true
 }

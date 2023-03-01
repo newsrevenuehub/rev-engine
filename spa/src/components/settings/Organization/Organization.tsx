@@ -45,7 +45,9 @@ export type OrganizationFormFields = {
   fiscalSponsorName: string;
 };
 
-type RevenueProgramPatch = Pick<RevenueProgram, 'tax_id' | 'fiscal_status' | 'fiscal_sponsor_name'>;
+interface RevenueProgramPatch extends Pick<RevenueProgram, 'tax_id' | 'fiscal_status' | 'fiscal_sponsor_name'> {
+  tax_id: string;
+}
 
 const Organization = () => {
   const alert = useAlert();
@@ -119,7 +121,7 @@ const Organization = () => {
         throw new Error('Revenue Program is not yet defined');
       }
       return axios.patch(`${PATCH_REVENUE_PROGRAM}${revenueProgramFromCurrentOrg[0].id}/`, {
-        tax_id: tax_id?.replace('-', ''),
+        tax_id: tax_id.replace('-', ''),
         fiscal_status,
         fiscal_sponsor_name: fiscal_status === TAX_STATUS.FISCALLY_SPONSORED ? fiscal_sponsor_name : ''
       });

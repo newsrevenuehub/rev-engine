@@ -63,7 +63,12 @@ describe('SwagEditor', () => {
     expect(setUpdateDisabled.mock.calls).toEqual([[true]]);
   });
 
-  it.todo('blocks updates if there are no swag options set');
+  it('blocks updates if there are no swag options set', () => {
+    const setUpdateDisabled = jest.fn();
+
+    tree({ setUpdateDisabled, elementContent: { ...elementContent, swags: [{ swagOptions: [] }] as any } });
+    expect(setUpdateDisabled.mock.calls).toEqual([[true]]);
+  });
 
   it('disables updates if the swag name is an empty string', () => {
     const setUpdateDisabled = jest.fn();

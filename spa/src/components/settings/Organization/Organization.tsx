@@ -178,8 +178,19 @@ const Organization = () => {
           <Controller
             name="companyName"
             control={control}
+            rules={{
+              required: 'Display Name is required.'
+            }}
             render={({ field }) => (
-              <TextField fullWidth id="settings-company-name" label="Display Name" disabled={!isOrgAdmin} {...field} />
+              <TextField
+                {...field}
+                fullWidth
+                id="settings-company-name"
+                label="Display Name"
+                disabled={!isOrgAdmin}
+                error={!!errors.companyName}
+                helperText={errors?.companyName?.message}
+              />
             )}
           />
         </SettingsSection>

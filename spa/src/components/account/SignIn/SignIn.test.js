@@ -1,8 +1,6 @@
-import { render, screen, fireEvent } from 'test-utils';
+import { render, screen } from 'test-utils';
 import SignIn from '.';
 import { SIGN_UP, FORGOT_PASSWORD } from 'routes';
-
-import Input from 'elements/inputs/Input';
 
 describe('SignIn Component Tests', () => {
   it('should show the right revengine logo', () => {

@@ -1,4 +1,4 @@
-import React, { useEffect } from 'react';
+import { useEffect } from 'react';
 import { mount } from '@cypress/react';
 import { AnalyticsContextWrapper, useAnalyticsContext } from './AnalyticsContext';
 import { useConfigureAnalytics } from '.';
@@ -29,7 +29,8 @@ const App = () => {
 };
 
 describe('trackConversion', () => {
-  it('sends a donation and purchase event to Facebook Pixel when org has FB pixel id', () => {
+  // eslint-disable-next-line cypress/no-async-tests
+  it('sends a donation and purchase event to Facebook Pixel when org has FB pixel id', async () => {
     cy.intercept({
       hostname: FB_TRACK_URL.hostname,
       pathname: FB_TRACK_URL.pathname,
@@ -47,6 +48,6 @@ describe('trackConversion', () => {
       }
     }).as('fbTrackPurchase');
     mount(<App />);
-    cy.wait(['@fbTrackPurchase', '@fbTrackDonation']);
+    await cy.wait(['@fbTrackPurchase', '@fbTrackDonation']);
   });
 });

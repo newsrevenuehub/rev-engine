@@ -112,7 +112,6 @@
     "not op_mini all"
   ],
   "devDependencies": {
-    "@cypress/react": "^6.2.0",
     "@cypress/webpack-preprocessor": "^5.12.2",
     "@react-theming/storybook-addon": "^1.1.7",
     "@storybook/addon-actions": "^6.5.10",

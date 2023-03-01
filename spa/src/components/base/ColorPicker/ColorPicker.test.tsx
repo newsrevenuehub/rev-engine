@@ -1,5 +1,5 @@
 import { axe } from 'jest-axe';
-import { ChangeEvent, useState } from 'react';
+import { useState } from 'react';
 import { fireEvent, render, screen } from 'test-utils';
 import { ColorPicker, ColorPickerProps } from './ColorPicker';
 

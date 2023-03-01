@@ -1,6 +1,5 @@
 import PropTypes, { InferProps } from 'prop-types';
-
-const { Helmet } = require('react-helmet');
+import { Helmet } from 'react-helmet';
 
 export type PageTitleProps = InferProps<typeof PageTitlePropTypes>;
 

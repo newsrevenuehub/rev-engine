@@ -11,7 +11,8 @@ const Template: ComponentStory<typeof SwagEditor> = (props) => <SwagEditor {...p
 export const Default = Template.bind({});
 Default.args = {
   elementContent: {},
-  pagePreview: {} as any
+  pagePreview: {} as any,
+  setUpdateDisabled: () => {}
 };
 
 export const WithNYT = Template.bind({});
@@ -19,5 +20,6 @@ WithNYT.args = {
   elementContent: {},
   pagePreview: {
     allow_offer_nyt_comp: true
-  } as any
+  } as any,
+  setUpdateDisabled: () => {}
 };

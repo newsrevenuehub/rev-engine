@@ -19,12 +19,3 @@ export const AlignedFormControlLabel = styled(FormControlLabel)`
     }
   }
 `;
-
-export const Tip = styled.p`
-  color: ${({ theme }) => theme.colors.muiGrey[600]};
-  margin-bottom: 45px;
-`;
-
-export const StrongTip = styled.strong`
-  font-weight: 500;
-`;

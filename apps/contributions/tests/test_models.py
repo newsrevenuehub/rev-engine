@@ -626,6 +626,8 @@ class TestContributionModel:
                     "contributor_email": contribution.contributor.email,
                     "tax_id": contribution.donation_page.revenue_program.tax_id,
                     "magic_link": magic_link,
+                    "fiscal_status": contribution.donation_page.revenue_program.fiscal_status,
+                    "fiscal_sponsor_name": contribution.donation_page.revenue_program.fiscal_sponsor_name,
                 },
             )
             assert len(mail.outbox) == 1
@@ -678,15 +680,25 @@ class TestContributionModel:
             f"Email: {contribution.contributor.email}",
             f"Amount Contributed: ${contribution.formatted_amount}/{contribution.interval}",
         ]
-        if revenue_program.non_profit:
+
+        if revenue_program.fiscal_status == FiscalStatusChoices.FISCALLY_SPONSORED:
+            email_expectations.extend(
+                [
+                    "This receipt may be used for tax purposes.",
+                    f"All contributions or gifts to {contribution.donation_page.revenue_program.name} are tax deductible through our fiscal sponsor {contribution.donation_page.revenue_program.fiscal_sponsor_name}.",
+                    f"{contribution.donation_page.revenue_program.fiscal_sponsor_name}'s tax ID is {tax_id}"
+                    if tax_id
+                    else "",
+                ]
+            )
+        elif revenue_program.fiscal_status == FiscalStatusChoices.NONPROFIT:
             email_expectations.extend(
                 [
                     "This receipt may be used for tax purposes.",
                     f"{contribution.donation_page.revenue_program.name} is a 501(c)(3) nonprofit organization",
+                    f"with a Federal Tax ID #{tax_id}" if tax_id else "",
                 ]
             )
-            if tax_id:
-                email_expectations.append(f"with a Federal Tax ID #{tax_id}")
         else:
             email_expectations.append(
                 f"Contributions to {contribution.donation_page.revenue_program.name} are not deductible as charitable donations."

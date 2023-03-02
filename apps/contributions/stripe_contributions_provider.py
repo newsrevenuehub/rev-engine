@@ -1,7 +1,6 @@
 import datetime
 import json
 import logging
-from functools import cached_property
 
 from django.conf import settings
 from django.core.cache import caches
@@ -178,10 +177,8 @@ class StripeContributionsProvider:
         self.email_id = email_id
         self.stripe_account_id = stripe_account_id
 
-    @cached_property
     def customers(self):
         """
-        Cached Property.
         Gets all the customers associated with an email for a given stripe account
 
         Returns:
@@ -260,7 +257,7 @@ class ContributionsCacheProvider:
         if not data:
             return []
         data = [AttrDict(**x) for x in json.loads(data).values()]
-        logger.debug("Data to be returned %s", data)
+        logger.info("Data to be returned %s", data)
         logger.info("Retrieved %s contributions from cache with key %s", len(data), self.key)
         return data
 

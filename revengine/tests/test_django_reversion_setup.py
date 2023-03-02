@@ -35,6 +35,7 @@ from apps.pages.admin import DonationPageAdmin, FontAdmin, StyleAdmin
 from apps.pages.models import DonationPage, Font, Style
 from apps.pages.tests.factories import DonationPageFactory, FontFactory, StyleFactory
 from apps.pages.views import PageViewSet, StyleViewSet
+from apps.users.models import RoleAssignment, User
 
 
 def test_expected_models_are_registered_with_django_reversion():
@@ -58,6 +59,8 @@ def test_expected_models_are_registered_with_django_reversion():
         RevenueProgram,
         SocialMeta,
         Style,
+        User,
+        RoleAssignment,
     ]
     assert set(expected_registered_models) == set(reversion.get_registered_models())
 

@@ -59,6 +59,8 @@ class TestSendThankYouEmail:
             "magic_link": magic_link,
             "logo_url": os.path.join(settings.SITE_URL, "static", "nre-logo-yellow.png"),
             "default_style": asdict(contribution.donation_page.revenue_program.default_style),
+            "fiscal_status": contribution.revenue_program.fiscal_status,
+            "fiscal_sponsor_name": contribution.revenue_program.fiscal_sponsor_name,
         }
 
     def test_when_contribution_not_exist(self):
@@ -147,11 +149,15 @@ class TestSendThankYouEmail:
         (
             (FiscalStatusChoices.NONPROFIT, True),
             (FiscalStatusChoices.NONPROFIT, False),
+            (FiscalStatusChoices.FISCALLY_SPONSORED, True),
+            (FiscalStatusChoices.FISCALLY_SPONSORED, False),
             (FiscalStatusChoices.FOR_PROFIT, True),
             (FiscalStatusChoices.FOR_PROFIT, False),
         ),
     )
-    def test_template_conditionality_around_non_profit_and_tax_status(self, fiscal_status, has_tax_id, monkeypatch):
+    def test_template_conditionality_around_non_profit_and_fiscal_sponsor_and_tax_status(
+        self, fiscal_status, has_tax_id, monkeypatch
+    ):
         customer = AttrDict({"name": "Foo Bar"})
         mock_customer_retrieve = Mock()
         mock_customer_retrieve.return_value = customer
@@ -162,6 +168,9 @@ class TestSendThankYouEmail:
             rp = contribution.donation_page.revenue_program
             rp.tax_id = "123456789" if has_tax_id else None
             rp.fiscal_status = fiscal_status
+            rp.fiscal_sponsor_name = (
+                "Mock-fiscal-sponsor-name" if fiscal_status == FiscalStatusChoices.FISCALLY_SPONSORED else None
+            )
             rp.save()
             send_thank_you_email(contribution.id)
 
@@ -169,14 +178,43 @@ class TestSendThankYouEmail:
         for_profit_expectation = f"Contributions to {rp.name} are not deductible as charitable donations."
         non_profit_has_tax_id_expectation = f"with a Federal Tax ID #{rp.tax_id}."
         non_profit_no_tax_id_expectation = f"{rp.name} is a 501(c)(3) nonprofit organization."
+        fiscal_sponsor_text = f"All contributions or gifts to {rp.name} are tax deductible through our fiscal sponsor {rp.fiscal_sponsor_name}."
+        fiscal_sponsor_has_tax_id_expectation = f"{rp.fiscal_sponsor_name}'s tax ID is {rp.tax_id}"
 
         if fiscal_status == FiscalStatusChoices.NONPROFIT and has_tax_id:
             expect_present = (non_profit_expectation, non_profit_has_tax_id_expectation)
-            expect_missing = (for_profit_expectation, non_profit_no_tax_id_expectation)
+            expect_missing = (
+                for_profit_expectation,
+                non_profit_no_tax_id_expectation,
+                fiscal_sponsor_text,
+                fiscal_sponsor_has_tax_id_expectation,
+            )
 
         elif fiscal_status == FiscalStatusChoices.NONPROFIT and not has_tax_id:
             expect_present = (non_profit_expectation, non_profit_no_tax_id_expectation)
-            expect_missing = (for_profit_expectation, non_profit_has_tax_id_expectation)
+            expect_missing = (
+                for_profit_expectation,
+                non_profit_has_tax_id_expectation,
+                fiscal_sponsor_text,
+                fiscal_sponsor_has_tax_id_expectation,
+            )
+
+        elif fiscal_status == FiscalStatusChoices.FISCALLY_SPONSORED and has_tax_id:
+            expect_present = (non_profit_expectation, fiscal_sponsor_text, fiscal_sponsor_has_tax_id_expectation)
+            expect_missing = (
+                for_profit_expectation,
+                non_profit_has_tax_id_expectation,
+                non_profit_no_tax_id_expectation,
+            )
+
+        elif fiscal_status == FiscalStatusChoices.FISCALLY_SPONSORED and not has_tax_id:
+            expect_present = (non_profit_expectation, fiscal_sponsor_text)
+            expect_missing = (
+                for_profit_expectation,
+                non_profit_has_tax_id_expectation,
+                non_profit_no_tax_id_expectation,
+                fiscal_sponsor_has_tax_id_expectation,
+            )
 
         else:
             expect_present = (for_profit_expectation,)
@@ -184,6 +222,8 @@ class TestSendThankYouEmail:
                 non_profit_expectation,
                 non_profit_has_tax_id_expectation,
                 non_profit_no_tax_id_expectation,
+                fiscal_sponsor_text,
+                fiscal_sponsor_has_tax_id_expectation,
             )
 
         assert len(mail.outbox) == 1

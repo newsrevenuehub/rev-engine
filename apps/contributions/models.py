@@ -557,6 +557,8 @@ class Contribution(IndexedTimeStampedModel):
                 "non_profit": self.donation_page.revenue_program.non_profit,
                 "contributor_email": self.contributor.email,
                 "tax_id": self.donation_page.revenue_program.tax_id,
+                "fiscal_status": self.donation_page.revenue_program.fiscal_status,
+                "fiscal_sponsor_name": self.donation_page.revenue_program.fiscal_sponsor_name,
                 "magic_link": mark_safe(
                     f"https://{construct_rp_domain(self.donation_page.revenue_program.slug)}/{settings.CONTRIBUTOR_VERIFY_URL}"
                     f"?token={token}&email={quote_plus(self.contributor.email)}"

@@ -1,6 +1,7 @@
 export * from './Button/Button';
 export * from './Checkbox/Checkbox';
 export * from './ColorPicker/ColorPicker';
+export * from './EditableList/EditableList';
 export * from './FormControlLabel/FormControlLabel';
 export * from './Modal';
 export * from './OffscreenText/OffscreenText';
@@ -9,6 +10,8 @@ export * from './Stepper';
 export * from './TextField/TextField';
 export * from './MenuItem/MenuItem';
 export * from './Pagination/Pagination';
+export * from './Radio/Radio';
+export * from './RadioGroup/RadioGroup';
 export * from './RichTextEditor';
 export * from './Table';
 export * from './Tabs';

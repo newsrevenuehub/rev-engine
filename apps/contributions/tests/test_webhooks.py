@@ -59,6 +59,7 @@ def invoice_upcoming():
 class TestPaymentIntentSucceeded:
     def test_when_contribution_found(self, payment_intent_succeeded, monkeypatch, client, mocker):
         monkeypatch.setattr(WebhookSignature, "verify_header", lambda *args, **kwargs: True)
+
         header = {"HTTP_STRIPE_SIGNATURE": "testing", "content_type": "application/json"}
         contribution = ContributionFactory(
             one_time=True,
@@ -67,13 +68,15 @@ class TestPaymentIntentSucceeded:
             payment_provider_data=None,
             provider_payment_id=payment_intent_succeeded["data"]["object"]["id"],
         )
-        spy = mocker.spy(Contribution, "save")
+        save_spy = mocker.spy(Contribution, "save")
+        send_receipt_email_spy = mocker.spy(Contribution, "handle_thank_you_email")
         response = client.post(reverse("stripe-webhooks"), data=payment_intent_succeeded, **header)
 
         # the next two assertions are to ensure we're only allowing webhook to update a subset of fields
         # on the instance, in order to avoid race conditions
-        assert spy.call_args[0][0] == contribution
-        assert spy.call_args[1] == {
+        save_spy.assert_called_once()
+        assert save_spy.call_args[0][0] == contribution
+        assert save_spy.call_args[1] == {
             "update_fields": [
                 "status",
                 "last_payment_date",
@@ -83,6 +86,7 @@ class TestPaymentIntentSucceeded:
                 "modified",
             ]
         }
+        send_receipt_email_spy.assert_called_once_with(contribution)
         assert response.status_code == status.HTTP_200_OK
         contribution.refresh_from_db()
         assert contribution.payment_provider_data == payment_intent_succeeded

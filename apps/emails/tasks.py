@@ -59,6 +59,7 @@ def send_thank_you_email(contribution_id: int) -> None:
     # vs circular import
     from apps.contributions.models import Contribution, Contributor
 
+    logger.info("`send_thank_you_email` sending thank you email for contribution with ID %s", contribution_id)
     try:
         contribution = Contribution.objects.get(
             id=contribution_id,
@@ -93,6 +94,8 @@ def send_thank_you_email(contribution_id: int) -> None:
             "rp_name": contribution.revenue_program.name,
             "contributor_name": customer.name,
             "non_profit": contribution.revenue_program.non_profit,
+            "fiscal_status": contribution.revenue_program.fiscal_status,
+            "fiscal_sponsor_name": contribution.revenue_program.fiscal_sponsor_name,
             "tax_id": contribution.revenue_program.tax_id,
             "magic_link": Contributor.create_magic_link(contribution),
             "logo_url": os.path.join(settings.SITE_URL, "static", "nre-logo-yellow.png"),

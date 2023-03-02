@@ -41,7 +41,11 @@ run-dev:
 run-gcloud-pub-sub:
 	@echo 'Running local development with Google Cloud Pub Sub Emulator'
 	docker-compose -f docker-compose.yml -f docker-compose-dev.yml up -d --remove-orphans google-cloud-pub-sub db
-	sleep 5 && curl -s -X PUT 'http://localhost:8085/v1/projects/revenue-engine/topics/new-nre-customer-test' # sleep for 5 seconds to allow google cloud to boot up
+	# increased to 10 seconds on m1 macbook as there were some intermittent timeouts
+	sleep 10 \
+ 		 && curl -s -X PUT 'http://localhost:8085/v1/projects/revenue-engine/topics/new-nre-customer-test' && \
+	 sleep 10 \
+ 		 && curl -s -X PUT 'http://localhost:8085/v1/projects/revenue-engine/topics/contribution-page-published'
 	cd spa; export PORT=3000; npm run start:subdomains &
 	ENABLE_PUBSUB=true python manage.py runserver
 

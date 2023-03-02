@@ -1,4 +1,5 @@
 import datetime
+import json
 from unittest import mock
 
 from django.core.exceptions import ValidationError
@@ -13,6 +14,7 @@ from apps.common.tests.test_utils import get_test_image_file_jpeg
 from apps.config.tests.factories import DenyListWordFactory
 from apps.config.validators import GENERIC_SLUG_DENIED_MSG, SLUG_DENIED_CODE
 from apps.contributions.tests.factories import ContributionFactory
+from apps.google_cloud.pubsub import Message
 from apps.organizations.tests.factories import OrganizationFactory, RevenueProgramFactory
 from apps.pages import defaults
 from apps.pages.models import DefaultPageLogo, DonationPage, Style, _get_screenshot_upload_path
@@ -140,6 +142,78 @@ class DonationPageTest(TestCase):
             "foreign keys: 'Contribution.donation_page'."
         )
         self.assertEqual(error_msg, protected_error.exception.args[0])
+
+    def test_page_url(self):
+        revenue_program = RevenueProgramFactory()
+        page = DonationPageFactory(revenue_program=revenue_program)
+        assert page.page_url == f"https://{revenue_program.slug}.example.com/{page.slug}"
+
+
+@pytest.fixture
+def donation_page_no_published_date():
+    return DonationPageFactory(published_date=None)
+
+
+@pytest.fixture
+def donation_with_published_date():
+    return DonationPageFactory(published_date=datetime.datetime.now())
+
+
+@pytest_cases.parametrize(
+    "page,value_from_db,expected",
+    [
+        (pytest_cases.fixture_ref("donation_page_no_published_date"), None, False),
+        (
+            pytest_cases.fixture_ref("donation_with_published_date"),
+            pytest_cases.fixture_ref("donation_page_no_published_date"),
+            True,
+        ),
+        (
+            pytest_cases.fixture_ref("donation_with_published_date"),
+            pytest_cases.fixture_ref("donation_with_published_date"),
+            False,
+        ),
+    ],
+)
+@pytest.mark.django_db
+def test_donation_page_first_publication(page, value_from_db, expected, monkeypatch):
+    monkeypatch.setattr("apps.pages.models.DonationPage.objects.get", lambda *args, **kwargs: value_from_db)
+    assert page.should_send_first_publication_signal() == expected
+
+
+@pytest.mark.django_db
+@pytest.mark.parametrize(
+    "get_page_fn,expect_published",
+    (
+        (lambda: DonationPageFactory(published_date=timezone.now()), True),
+        (lambda: DonationPageFactory(published_date=None), False),
+    ),
+)
+def test_first_published_pub_sub_behavior_when_pubsub_configured(get_page_fn, expect_published, monkeypatch):
+    publisher_spy = mock.Mock()
+    topic_name = "some-topic"
+    monkeypatch.setattr("apps.pages.signals.Publisher.get_instance", lambda: publisher_spy)
+    monkeypatch.setattr("apps.pages.signals.google_cloud_pub_sub_is_configured", lambda: True)
+    monkeypatch.setattr("apps.pages.signals.settings.PAGE_PUBLISHED_TOPIC", topic_name)
+    page = get_page_fn()
+    if expect_published:
+        publisher_spy.publish.assert_called_once_with(
+            topic_name,
+            Message(
+                json.dumps(
+                    {
+                        "page_id": page.pk,
+                        "url": page.page_url,
+                        "publication_date": str(page.published_date),
+                        "revenue_program_id": page.revenue_program.pk,
+                        "revenue_program_name": page.revenue_program.name,
+                        "revenue_program_slug": page.revenue_program.slug,
+                    }
+                )
+            ),
+        )
+    else:
+        publisher_spy.publish.assert_not_called()
 
 
 @pytest.mark.django_db

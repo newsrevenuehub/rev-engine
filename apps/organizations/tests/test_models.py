@@ -1,5 +1,4 @@
 from datetime import timedelta
-from urllib.parse import urljoin
 
 from django.conf import settings
 from django.core.exceptions import ValidationError
@@ -265,7 +264,7 @@ class TestRevenueProgram:
                 assert getattr(rp.default_style, k) is None
         else:
             page_styles = rp.default_donation_page.styles.styles
-            assert rp.default_style.logo_url == urljoin(settings.SITE_URL, rp.default_donation_page.header_logo.url)
+            assert rp.default_style.logo_url == rp.default_donation_page.header_logo.url
             assert rp.default_style.header_color == page_styles["colors"]["cstm_mainHeader"]
             assert rp.default_style.header_font == page_styles["font"]["heading"]
             assert rp.default_style.body_font == page_styles["font"]["body"]

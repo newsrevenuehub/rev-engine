@@ -1,6 +1,5 @@
 import logging
 from dataclasses import dataclass, field
-from urllib.parse import urljoin
 
 from django.conf import settings
 from django.core.exceptions import ValidationError
@@ -381,7 +380,7 @@ class RevenueProgram(IndexedTimeStampedModel):
             return DefaultStyle()
         _style = AttrDict(page.styles.styles if page.styles else {})
         return DefaultStyle(
-            logo_url=urljoin(settings.SITE_URL, page.header_logo.url) if page.header_logo else None,
+            logo_url=page.header_logo.url if page.header_logo else None,
             header_color=_style.colors.cstm_mainHeader or None,
             header_font=_style.font.heading or None,
             body_font=_style.font.body or None,

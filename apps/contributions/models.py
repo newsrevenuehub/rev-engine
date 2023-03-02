@@ -326,7 +326,7 @@ class Contribution(IndexedTimeStampedModel):
             )
             return ""
         try:
-            return f"{'{:.2f}'.format(int(amt))} {self.currency.upper()}"
+            return f"{'{:.2f}'.format(float(amt))} {self.currency.upper()}"
         except ValueError:
             logger.warning(
                 (

@@ -841,7 +841,7 @@ class TestContributionModel:
         assert (
             contribution.formatted_donor_selected_amount
             and contribution.formatted_donor_selected_amount
-            == f"{'{:.2f}'.format(int(contribution.contribution_metadata['donor_selected_amount']))} {contribution.currency.upper()}"
+            == f"{'{:.2f}'.format(float(contribution.contribution_metadata['donor_selected_amount']))} {contribution.currency.upper()}"
         )
 
     @pytest.mark.parametrize(

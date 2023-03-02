@@ -616,7 +616,19 @@ class Contribution(IndexedTimeStampedModel):
         ):
             return None
         else:
-            return stripe.SetupIntent.retrieve(si_id, stripe_account=acct_id)
+            try:
+                return stripe.SetupIntent.retrieve(si_id, stripe_account=acct_id)
+            except stripe.error.StripeError:
+                logger.exception(
+                    (
+                        "`Contribution.stripe_setup_intent` encountered a Stripe error trying to retrieve stripe setup intent "
+                        "with ID %s and stripe account ID %s for contribution with ID %s"
+                    ),
+                    si_id,
+                    acct_id,
+                    self.id,
+                )
+                return None
 
     @cached_property
     def stripe_payment_intent(self) -> stripe.PaymentIntent | None:
@@ -626,7 +638,19 @@ class Contribution(IndexedTimeStampedModel):
         ):
             return None
         else:
-            return stripe.PaymentIntent.retrieve(pi_id, stripe_account=acct_id)
+            try:
+                return stripe.PaymentIntent.retrieve(pi_id, stripe_account=acct_id)
+            except stripe.error.StripeError:
+                logger.exception(
+                    (
+                        "`Contribution.stripe_payment_intent` encountered a Stripe error trying to retrieve stripe payment intent "
+                        "with ID %s and stripe account ID %s for contribution with ID %s"
+                    ),
+                    pi_id,
+                    acct_id,
+                    self.id,
+                )
+                return None
 
     @cached_property
     def stripe_subscription(self) -> stripe.Subscription | None:
@@ -638,7 +662,19 @@ class Contribution(IndexedTimeStampedModel):
         ):
             return None
         else:
-            return stripe.Subscription.retrieve(sub_id, stripe_account=acct_id)
+            try:
+                return stripe.Subscription.retrieve(sub_id, stripe_account=acct_id)
+            except stripe.error.StripeError:
+                logger.exception(
+                    (
+                        "`Contribution.stripe_subscription` encountered a Stripe error trying to retrieve stripe subscription "
+                        "with ID %s and stripe account ID %s for contribution with ID %s"
+                    ),
+                    sub_id,
+                    acct_id,
+                    self.id,
+                )
+                return None
 
     @staticmethod
     def fix_contributions_stuck_in_processing(dry_run: bool = False) -> None:

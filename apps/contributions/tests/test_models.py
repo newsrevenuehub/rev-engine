@@ -654,6 +654,25 @@ class TestContributionModel:
             spy.assert_not_called()
         assert si == (return_val if expect_retrieve else None)
 
+    def test_stripe_setup_intent_property_when_stripe_error(self, monkeypatch, mocker):
+        contribution = ContributionFactory(monthly_subscription=True, flagged=True)
+
+        def mock_retrieve(*args, **kwargs):
+            raise stripe.error.StripeError()
+
+        monkeypatch.setattr("stripe.SetupIntent.retrieve", mock_retrieve)
+        spy = mocker.spy(logger, "exception")
+        assert contribution.stripe_setup_intent is None
+        spy.assert_called_once_with(
+            (
+                "`Contribution.stripe_setup_intent` encountered a Stripe error trying to retrieve stripe setup intent "
+                "with ID %s and stripe account ID %s for contribution with ID %s"
+            ),
+            contribution.provider_setup_intent_id,
+            contribution.donation_page.revenue_program.payment_provider.stripe_account_id,
+            contribution.id,
+        )
+
     @pytest_cases.parametrize(
         "contribution",
         (
@@ -688,6 +707,25 @@ class TestContributionModel:
             spy.assert_not_called()
         assert pi == (return_val if expect_retrieve else None)
 
+    def test_stripe_payment_intent_property_when_stripe_error(self, monkeypatch, mocker):
+        contribution = ContributionFactory(one_time=True)
+
+        def mock_retrieve(*args, **kwargs):
+            raise stripe.error.StripeError()
+
+        monkeypatch.setattr("stripe.PaymentIntent.retrieve", mock_retrieve)
+        spy = mocker.spy(logger, "exception")
+        assert contribution.stripe_payment_intent is None
+        spy.assert_called_once_with(
+            (
+                "`Contribution.stripe_payment_intent` encountered a Stripe error trying to retrieve stripe payment intent "
+                "with ID %s and stripe account ID %s for contribution with ID %s"
+            ),
+            contribution.provider_payment_id,
+            contribution.donation_page.revenue_program.payment_provider.stripe_account_id,
+            contribution.id,
+        )
+
     @pytest_cases.parametrize(
         "contribution",
         (
@@ -721,6 +759,25 @@ class TestContributionModel:
         else:
             spy.assert_not_called()
         assert sub == (return_val if expect_retrieve else None)
+
+    def test_stripe_subscription_property_when_stripe_error(self, monkeypatch, mocker):
+        contribution = ContributionFactory(monthly_subscription=True)
+
+        def mock_retrieve(*args, **kwargs):
+            raise stripe.error.StripeError()
+
+        monkeypatch.setattr("stripe.Subscription.retrieve", mock_retrieve)
+        spy = mocker.spy(logger, "exception")
+        assert contribution.stripe_subscription is None
+        spy.assert_called_once_with(
+            (
+                "`Contribution.stripe_subscription` encountered a Stripe error trying to retrieve stripe subscription "
+                "with ID %s and stripe account ID %s for contribution with ID %s"
+            ),
+            contribution.provider_subscription_id,
+            contribution.donation_page.revenue_program.payment_provider.stripe_account_id,
+            contribution.id,
+        )
 
     @pytest.mark.parametrize("trait", ("one_time", "annual_subscription", "monthly_subscription"))
     def test_billing_details(self, trait):

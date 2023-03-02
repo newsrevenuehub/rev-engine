@@ -1,24 +1,25 @@
 import { ReactComponent as CheckIcon } from '@material-design-icons/svg/outlined/check.svg';
 import { ReactComponent as InfoIcon } from '@material-design-icons/svg/outlined/info.svg';
-import { Undo } from '@material-ui/icons';
-import { useMutation, useQueryClient } from '@tanstack/react-query';
-import { useCallback, useEffect, useMemo, useState } from 'react';
-import { useAlert } from 'react-alert';
+import { useCallback, useMemo } from 'react';
 import { Controller, useForm } from 'react-hook-form';
 import MaskedInput from 'react-input-mask';
 
-import { MenuItem, TextField } from 'components/base';
+import { Undo } from '@material-ui/icons';
+import { useMutation, useQueryClient } from '@tanstack/react-query';
+import { Button, MenuItem, TextField } from 'components/base';
 import HeaderSection from 'components/common/HeaderSection';
 import SettingsSection from 'components/common/SettingsSection';
 import SubheaderSection from 'components/common/SubheaderSection';
+import { useEffect, useState } from 'react';
+import { useAlert } from 'react-alert';
 
 import axios from 'ajax/axios';
 import { PATCH_ORGANIZATION, PATCH_REVENUE_PROGRAM } from 'ajax/endpoints';
-import { Button } from 'components/base';
-import { TAX_STATUS } from 'constants/fiscalStatus';
+import { FiscalStatus, TAX_STATUS } from 'constants/fiscalStatus';
 import { HELP_URL } from 'constants/helperUrls';
 import { GENERIC_ERROR, ORGANIZATION_SUCCESS_TEXT } from 'constants/textConstants';
 import GlobalLoading from 'elements/GlobalLoading';
+import { RevenueProgram } from 'hooks/useContributionPage';
 import useUser from 'hooks/useUser';
 import { getUserRole } from 'utilities/getUserRole';
 
@@ -30,8 +31,8 @@ import {
   InfoTooltip,
   InputWrapper,
   Link,
-  SuccessMessage,
   StyledTextField,
+  SuccessMessage,
   TooltipContainer,
   WarningMessage,
   Wrapper
@@ -39,9 +40,14 @@ import {
 
 export type OrganizationFormFields = {
   companyName: string;
-  companyTaxStatus: string;
+  companyTaxStatus: FiscalStatus;
   taxId: string;
+  fiscalSponsorName: string;
 };
+
+interface RevenueProgramPatch extends Pick<RevenueProgram, 'tax_id' | 'fiscal_status' | 'fiscal_sponsor_name'> {
+  tax_id: string;
+}
 
 const Organization = () => {
   const alert = useAlert();
@@ -60,28 +66,40 @@ const Organization = () => {
 
   const { isOrgAdmin } = getUserRole(user);
 
-  const { control, watch, reset, handleSubmit } = useForm<OrganizationFormFields>({
+  const {
+    control,
+    watch,
+    reset,
+    resetField,
+    handleSubmit,
+    formState: { errors }
+  } = useForm<OrganizationFormFields>({
     defaultValues: {
       companyName: currentOrganization?.name ?? '',
-      companyTaxStatus: revenueProgramFromCurrentOrg?.[0]?.fiscal_status ?? '',
-      taxId: revenueProgramFromCurrentOrg?.[0]?.tax_id ?? ''
+      companyTaxStatus: revenueProgramFromCurrentOrg?.[0]?.fiscal_status,
+      taxId: revenueProgramFromCurrentOrg?.[0]?.tax_id ?? '',
+      fiscalSponsorName: revenueProgramFromCurrentOrg?.[0]?.fiscal_sponsor_name ?? ''
     }
   });
   const companyName = watch('companyName');
   const companyTaxStatus = watch('companyTaxStatus');
   const taxId = watch('taxId');
+  const fiscalSponsorName = watch('fiscalSponsorName');
 
   useEffect(() => {
     setShowSuccess(false);
-  }, [companyName, companyTaxStatus, taxId, setShowSuccess]);
+  }, [companyName, companyTaxStatus, taxId, fiscalSponsorName, setShowSuccess]);
 
   const isDifferent = useMemo(
     () => ({
       companyName: companyName !== (currentOrganization?.name ?? ''),
-      companyTaxStatus: companyTaxStatus !== (revenueProgramFromCurrentOrg?.[0]?.fiscal_status ?? ''),
-      taxId: taxId.replace(/-/g, '') !== (revenueProgramFromCurrentOrg?.[0]?.tax_id ?? '')
+      companyTaxStatus: companyTaxStatus !== revenueProgramFromCurrentOrg?.[0]?.fiscal_status,
+      taxId: taxId.replace(/-/g, '') !== (revenueProgramFromCurrentOrg?.[0]?.tax_id ?? ''),
+      fiscalSponsorName:
+        companyTaxStatus === TAX_STATUS.FISCALLY_SPONSORED &&
+        fiscalSponsorName !== (revenueProgramFromCurrentOrg?.[0]?.fiscal_sponsor_name ?? '')
     }),
-    [companyName, companyTaxStatus, currentOrganization, revenueProgramFromCurrentOrg, taxId]
+    [companyName, companyTaxStatus, currentOrganization?.name, fiscalSponsorName, revenueProgramFromCurrentOrg, taxId]
   );
 
   const updateOrganizationNameMutation = useMutation(
@@ -98,13 +116,14 @@ const Organization = () => {
   );
 
   const updateRevenueProgramMutation = useMutation(
-    ({ tax_id, fiscal_status }: { tax_id: string; fiscal_status: string }) => {
+    ({ tax_id, fiscal_status, fiscal_sponsor_name }: RevenueProgramPatch) => {
       if (!revenueProgramFromCurrentOrg?.length) {
         throw new Error('Revenue Program is not yet defined');
       }
       return axios.patch(`${PATCH_REVENUE_PROGRAM}${revenueProgramFromCurrentOrg[0].id}/`, {
         tax_id: tax_id.replace('-', ''),
-        fiscal_status
+        fiscal_status,
+        fiscal_sponsor_name: fiscal_status === TAX_STATUS.FISCALLY_SPONSORED ? fiscal_sponsor_name : ''
       });
     },
     {
@@ -118,11 +137,15 @@ const Organization = () => {
         if (isDifferent.companyName) {
           await updateOrganizationNameMutation.mutateAsync(form.companyName);
         }
-        if (isDifferent.companyTaxStatus || isDifferent.taxId) {
+        if (isDifferent.companyTaxStatus || isDifferent.taxId || isDifferent.fiscalSponsorName) {
           await updateRevenueProgramMutation.mutateAsync({
             tax_id: form.taxId,
-            fiscal_status: form.companyTaxStatus
+            fiscal_status: form.companyTaxStatus,
+            fiscal_sponsor_name: form.fiscalSponsorName
           });
+          if (form.companyTaxStatus !== TAX_STATUS.FISCALLY_SPONSORED) {
+            resetField('fiscalSponsorName', { defaultValue: '' });
+          }
         }
         setShowSuccess(true);
       } catch (error) {
@@ -132,9 +155,11 @@ const Organization = () => {
     },
     [
       alert,
+      resetField,
+      isDifferent.taxId,
       isDifferent.companyName,
       isDifferent.companyTaxStatus,
-      isDifferent.taxId,
+      isDifferent.fiscalSponsorName,
       updateOrganizationNameMutation,
       updateRevenueProgramMutation
     ]
@@ -155,8 +180,19 @@ const Organization = () => {
           <Controller
             name="companyName"
             control={control}
+            rules={{
+              required: 'Display Name is required.'
+            }}
             render={({ field }) => (
-              <TextField fullWidth id="settings-company-name" label="Display Name" disabled={!isOrgAdmin} {...field} />
+              <TextField
+                {...field}
+                fullWidth
+                id="settings-company-name"
+                label="Display Name"
+                disabled={!isOrgAdmin}
+                error={!!errors.companyName}
+                helperText={errors?.companyName?.message}
+              />
             )}
           />
         </SettingsSection>
@@ -197,6 +233,7 @@ const Organization = () => {
                     >
                       <MenuItem value={TAX_STATUS.NONPROFIT}>Nonprofit</MenuItem>
                       <MenuItem value={TAX_STATUS.FOR_PROFIT}>For-profit</MenuItem>
+                      <MenuItem value={TAX_STATUS.FISCALLY_SPONSORED}>Fiscally Sponsored</MenuItem>
                     </TextField>
                   )}
                 />
@@ -230,7 +267,35 @@ const Organization = () => {
                     </MaskedInput>
                   )}
                 />
+                <InfoTooltip
+                  buttonLabel="Help for EIN"
+                  title="If your organization is fiscally sponsored, enter the fiscal sponsor’s EIN."
+                />
               </TooltipContainer>
+              {companyTaxStatus === TAX_STATUS.FISCALLY_SPONSORED && (
+                <Controller
+                  name="fiscalSponsorName"
+                  control={control}
+                  rules={{
+                    required: 'Fiscal Sponsor Name is required.',
+                    maxLength: {
+                      value: 63,
+                      message: 'Must be no more than 63 characters'
+                    }
+                  }}
+                  render={({ field }) => (
+                    <TextField
+                      fullWidth
+                      id="profile-fiscal-sponsor-name"
+                      label="Fiscal Sponsor Name"
+                      style={{ gridColumnStart: 'span 2' }}
+                      error={!!errors.fiscalSponsorName}
+                      helperText={errors?.fiscalSponsorName?.message}
+                      {...field}
+                    />
+                  )}
+                />
+              )}
             </InputWrapper>
           )}
         </SettingsSection>
@@ -251,8 +316,9 @@ const Organization = () => {
             onClick={() => {
               reset({
                 companyName: currentOrganization?.name ?? '',
-                companyTaxStatus: revenueProgramFromCurrentOrg?.[0]?.fiscal_status ?? '',
-                taxId: revenueProgramFromCurrentOrg?.[0]?.tax_id ?? ''
+                companyTaxStatus: revenueProgramFromCurrentOrg?.[0]?.fiscal_status,
+                taxId: revenueProgramFromCurrentOrg?.[0]?.tax_id ?? '',
+                fiscalSponsorName: revenueProgramFromCurrentOrg?.[0]?.fiscal_sponsor_name ?? ''
               });
             }}
           >

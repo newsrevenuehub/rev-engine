@@ -36,6 +36,7 @@ describe('Settings Organization Page', () => {
             id: 1,
             fiscal_status: 'nonprofit',
             tax_id: '123456789',
+            fiscal_sponsor_name: '',
             organization: 1
           }
         ]
@@ -85,6 +86,35 @@ describe('Settings Organization Page', () => {
     expect(screen.getByRole('textbox', { name: 'EIN Optional' })).toHaveValue('12-3456789');
   });
 
+  it("should disable 'Display Name' & 'Tax ID' fields if user does't have 'org_admin' role", () => {
+    useUserMock.mockReturnValue({
+      user: {
+        role_type: [],
+        organizations: [
+          {
+            id: 1,
+            name: 'mock-org-1'
+          }
+        ],
+        revenue_programs: [
+          {
+            id: 1,
+            organization: 1,
+            fiscal_status: 'fiscally sponsored',
+            tax_id: '123456789',
+            fiscal_sponsor_name: ''
+          }
+        ]
+      }
+    });
+    tree();
+
+    expect(screen.getByRole('textbox', { name: 'Display Name' })).toBeDisabled();
+    expect(screen.getByRole('textbox', { name: 'EIN Optional' })).toBeDisabled();
+    expect(screen.getByRole('button', { name: 'Tax Status Fiscally Sponsored' })).toBeEnabled();
+    expect(screen.getByRole('textbox', { name: /fiscal sponsor name/i })).toBeEnabled();
+  });
+
   it('should render warning message if Tax Status is different from server response', () => {
     tree();
 
@@ -107,6 +137,106 @@ describe('Settings Organization Page', () => {
     ).not.toBeInTheDocument();
   });
 
+  describe('Fiscal Sponsor Name input', () => {
+    it('should not render input if tax status != fiscally sponsored', () => {
+      tree();
+
+      expect(screen.queryByRole('textbox', { name: /fiscal sponsor name/i })).not.toBeInTheDocument();
+    });
+
+    it('should render input if tax status == fiscally sponsored', () => {
+      useUserMock.mockReturnValue({
+        user: {
+          role_type: [USER_ROLE_ORG_ADMIN_TYPE],
+          organizations: [
+            {
+              id: 1,
+              name: 'mock-org-1'
+            }
+          ],
+          revenue_programs: [
+            {
+              id: 1,
+              organization: 1,
+              fiscal_status: 'fiscally sponsored',
+              tax_id: '123456789',
+              fiscal_sponsor_name: ''
+            }
+          ]
+        }
+      });
+      tree();
+
+      expect(screen.getByRole('textbox', { name: /fiscal sponsor name/i })).toBeInTheDocument();
+    });
+
+    it('should render input if tax status is changed to fiscally sponsored', () => {
+      tree();
+
+      userEvent.click(screen.getByRole('button', { name: 'Tax Status Nonprofit' }));
+      userEvent.click(screen.getByRole('option', { name: 'Fiscally Sponsored' }));
+
+      expect(screen.getByRole('textbox', { name: /fiscal sponsor name/i })).toBeInTheDocument();
+    });
+
+    it('should not render input if tax status is changed from fiscally sponsored to another option', () => {
+      useUserMock.mockReturnValue({
+        user: {
+          role_type: [USER_ROLE_ORG_ADMIN_TYPE],
+          organizations: [
+            {
+              id: 1,
+              name: 'mock-org-1'
+            }
+          ],
+          revenue_programs: [
+            {
+              id: 1,
+              organization: 1,
+              fiscal_status: 'fiscally sponsored',
+              tax_id: '123456789',
+              fiscal_sponsor_name: ''
+            }
+          ]
+        }
+      });
+      tree();
+
+      userEvent.click(screen.getByRole('button', { name: 'Tax Status Fiscally Sponsored' }));
+      userEvent.click(screen.getByRole('option', { name: 'Nonprofit' }));
+
+      expect(screen.queryByRole('textbox', { name: /fiscal sponsor name/i })).not.toBeInTheDocument();
+    });
+
+    it('should show error message when submitting with empty name', async () => {
+      tree();
+
+      userEvent.click(screen.getByRole('button', { name: 'Tax Status Nonprofit' }));
+      userEvent.click(screen.getByRole('option', { name: 'Fiscally Sponsored' }));
+      expect(screen.queryByText(/Fiscal Sponsor Name is required./i)).not.toBeInTheDocument();
+      userEvent.click(screen.getByRole('button', { name: /save/i }));
+
+      await waitFor(() => {
+        expect(screen.getByText(/Fiscal Sponsor Name is required./i)).toBeInTheDocument();
+      });
+    });
+
+    it('should show max char error message when name length > 63 chars', async () => {
+      tree();
+
+      userEvent.click(screen.getByRole('button', { name: 'Tax Status Nonprofit' }));
+      userEvent.click(screen.getByRole('option', { name: 'Fiscally Sponsored' }));
+      expect(screen.queryByText(/Must be no more than 63 characters/i)).not.toBeInTheDocument();
+      await fireEvent.change(screen.getByLabelText('Fiscal Sponsor Name'), {
+        target: { value: 'mock-huge-name_mock-huge-name_mock-huge-name_mock-huge-name_mock-huge-name_mock-huge-name' }
+      });
+      userEvent.click(screen.getByRole('button', { name: /save/i }));
+
+      await waitFor(() => {
+        expect(screen.getByText(/Must be no more than 63 characters/i)).toBeInTheDocument();
+      });
+    });
+  });
   it('should render Organization Tax Status disclaimer if organization has multiple revenue programs', () => {
     useUserMock.mockReturnValue({
       user: {
@@ -300,7 +430,60 @@ describe('Settings Organization Page', () => {
         expect(axiosMock.history.patch.length).toBe(1);
       });
       expect(axiosMock.history.patch[0].url).toBe(`revenue-programs/1/`);
-      expect(axiosMock.history.patch[0].data).toBe('{"tax_id":"111111111","fiscal_status":"for-profit"}');
+      expect(axiosMock.history.patch[0].data).toBe(
+        '{"tax_id":"111111111","fiscal_status":"for-profit","fiscal_sponsor_name":""}'
+      );
+    });
+
+    it('should not send fiscal_sponsor_name if tax status !== fiscally sponsored', async () => {
+      axiosMock.onPatch(`revenue-programs/1/`).reply(200);
+
+      tree();
+      expect(axiosMock.history.patch.length).toBe(0);
+
+      userEvent.click(screen.getByRole('button', { name: 'Tax Status Nonprofit' }));
+      userEvent.click(screen.getByRole('option', { name: 'Fiscally Sponsored' }));
+
+      await fireEvent.change(screen.getByLabelText('Fiscal Sponsor Name'), {
+        target: { value: 'mock-sponsor-name' }
+      });
+
+      userEvent.click(screen.getByRole('button', { name: 'Tax Status Fiscally Sponsored' }));
+      userEvent.click(screen.getByRole('option', { name: 'For-profit' }));
+
+      userEvent.click(screen.getByRole('button', { name: /save/i }));
+
+      await waitFor(() => {
+        expect(axiosMock.history.patch.length).toBe(1);
+      });
+      expect(axiosMock.history.patch[0].url).toBe(`revenue-programs/1/`);
+      expect(axiosMock.history.patch[0].data).toBe(
+        '{"tax_id":"123456789","fiscal_status":"for-profit","fiscal_sponsor_name":""}'
+      );
+    });
+
+    it('should send fiscal_sponsor_name if tax status === fiscally sponsored', async () => {
+      axiosMock.onPatch(`revenue-programs/1/`).reply(200);
+
+      tree();
+      expect(axiosMock.history.patch.length).toBe(0);
+
+      userEvent.click(screen.getByRole('button', { name: 'Tax Status Nonprofit' }));
+      userEvent.click(screen.getByRole('option', { name: 'Fiscally Sponsored' }));
+
+      await fireEvent.change(screen.getByLabelText('Fiscal Sponsor Name'), {
+        target: { value: 'mock-sponsor-name' }
+      });
+
+      userEvent.click(screen.getByRole('button', { name: /save/i }));
+
+      await waitFor(() => {
+        expect(axiosMock.history.patch.length).toBe(1);
+      });
+      expect(axiosMock.history.patch[0].url).toBe(`revenue-programs/1/`);
+      expect(axiosMock.history.patch[0].data).toBe(
+        '{"tax_id":"123456789","fiscal_status":"fiscally sponsored","fiscal_sponsor_name":"mock-sponsor-name"}'
+      );
     });
 
     it('should show generic error if patch fails', async () => {

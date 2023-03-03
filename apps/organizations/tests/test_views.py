@@ -21,6 +21,9 @@ from apps.organizations.models import (
     RevenueProgram,
     RevenueProgramQuerySet,
 )
+from apps.organizations.tasks import (
+    exchange_mailchimp_oauth_token_for_server_prefix_and_access_token,
+)
 from apps.organizations.tests.factories import OrganizationFactory, RevenueProgramFactory
 from apps.organizations.views import RevenueProgramViewSet, get_stripe_account_link_return_url
 from apps.users.choices import Roles
@@ -1004,3 +1007,87 @@ class TestMailchimpIntegrationViewStub:
         mailchimp_feature_flag_no_group_level_access.save()
         api_client.force_authenticate(user)
         assert api_client.get(reverse("mail_chimp_integration_stub")).status_code == status.HTTP_200_OK
+
+
+@pytest.mark.django_db
+class TestHandleMailchimpOauthSuccessView:
+    def test_happy_path(self, mocker, monkeypatch, org_user_free_plan, api_client):
+        api_client.force_authenticate(org_user_free_plan)
+        task_spy = mocker.spy(exchange_mailchimp_oauth_token_for_server_prefix_and_access_token, "delay")
+        monkeypatch.setattr(
+            "apps.organizations.tasks.exchange_mailchimp_oauth_token_for_server_prefix_and_access_token",
+            lambda *args, **kwargs: None,
+        )
+        data = {
+            "revenue_program": (rp_id := org_user_free_plan.roleassignment.revenue_programs.first().id),
+            "mailchimp_oauth_code": (oauth_code := "something"),
+        }
+        response = api_client.post(reverse("handle-mailchimp-oauth-success"), data=data)
+        assert response.status_code == status.HTTP_202_ACCEPTED
+        task_spy.assert_called_once_with(rp_id, oauth_code)
+
+    def test_when_not_authenticated(self, api_client, default_feature_flags):
+        response = api_client.post(reverse("handle-mailchimp-oauth-success"), data={})
+        assert response.status_code == status.HTTP_401_UNAUTHORIZED
+
+    def test_when_no_roleassignment(self, user_no_role_assignment, api_client):
+        response = api_client.post(reverse("handle-mailchimp-oauth-success"), data={})
+        assert response.status_code == status.HTTP_401_UNAUTHORIZED
+
+    @pytest_cases.parametrize(
+        "user",
+        (
+            pytest_cases.fixture_ref("hub_admin_user"),
+            pytest_cases.fixture_ref("superuser"),
+            pytest_cases.fixture_ref("rp_user"),
+            pytest_cases.fixture_ref("user_with_unexpected_role"),
+        ),
+    )
+    def test_when_roleassignment_role_is_not_org_admin(self, user, default_feature_flags, api_client):
+        api_client.force_authenticate(user)
+        response = api_client.post(reverse("handle-mailchimp-oauth-success"), data={})
+        assert response.status_code == status.HTTP_403_FORBIDDEN
+        assert response.json() == {"detail": "You do not have permission to perform this action."}
+
+    def test_when_dont_own_revenue_program(self, org_user_free_plan, revenue_program, api_client):
+        assert revenue_program not in org_user_free_plan.roleassignment.revenue_programs.all()
+        api_client.force_authenticate(org_user_free_plan)
+        response = api_client.post(
+            reverse("handle-mailchimp-oauth-success"),
+            data={"revenue_program": revenue_program.id, "mailchimp_oauth_code": "something"},
+        )
+        assert response.status_code == status.HTTP_404_NOT_FOUND
+        assert response.json() == {"detail": "Requested revenue program not found"}
+
+    def test_when_rp_not_found(self, org_user_free_plan, api_client):
+        rp = org_user_free_plan.roleassignment.revenue_programs.first()
+        rp_id = rp.id
+        rp.delete()
+        api_client.force_authenticate(org_user_free_plan)
+        response = api_client.post(
+            reverse("handle-mailchimp-oauth-success"),
+            data={"revenue_program": rp_id, "mailchimp_oauth_code": "something"},
+        )
+        assert response.status_code == status.HTTP_404_NOT_FOUND
+        assert response.json() == {"detail": "Requested revenue program not found"}
+
+    @pytest.mark.parametrize(
+        "data,expected_response",
+        (
+            ({"mailchimp_oauth_code": "something"}, {"revenue_program": ["This field is required."]}),
+            ({"revenue_program": 1}, {"mailchimp_oauth_code": ["This field is required."]}),
+        ),
+    )
+    def test_when_missing_request_data(self, data, expected_response, org_user_free_plan, api_client):
+        api_client.force_authenticate(org_user_free_plan)
+        response = api_client.post(reverse("handle-mailchimp-oauth-success"), data=data)
+        assert response.status_code == status.HTTP_400_BAD_REQUEST
+        assert response.json() == expected_response
+
+    def test_when_user_not_have_feature_flag(
+        self, org_user_free_plan, mailchimp_feature_flag_no_group_level_access, api_client
+    ):
+        api_client.force_authenticate(org_user_free_plan)
+        response = api_client.post(reverse("handle-mailchimp-oauth-success"), data={})
+        assert response.status_code == status.HTTP_403_FORBIDDEN
+        assert response.json() == {"detail": "You do not have permission to perform this action."}

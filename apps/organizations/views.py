@@ -28,7 +28,7 @@ from apps.organizations import serializers
 from apps.organizations.models import Organization, RevenueProgram
 from apps.organizations.serializers import MailchimpOauthSuccessSerializer
 from apps.organizations.tasks import (
-    exchange_mailchimp_oauth_token_for_server_prefix_and_access_token,
+    exchange_mailchimp_oauth_code_for_server_prefix_and_access_token,
 )
 from apps.public.permissions import IsActiveSuperUser
 
@@ -243,7 +243,7 @@ def handle_mailchimp_oauth_success(request):
             request.user.email,
         )
         return Response({"detail": "Requested revenue program not found"}, status=status.HTTP_404_NOT_FOUND)
-    exchange_mailchimp_oauth_token_for_server_prefix_and_access_token.delay(
+    exchange_mailchimp_oauth_code_for_server_prefix_and_access_token.delay(
         rp_id, serializer.validated_data["mailchimp_oauth_code"]
     )
     return Response(status=status.HTTP_202_ACCEPTED)

@@ -6,12 +6,7 @@ from apps.organizations.tests.factories import RevenueProgramFactory
 
 @pytest.mark.django_db
 def test_revenueprogramserializer():
-    fields = (
-        "id",
-        "name",
-        "slug",
-        "tax_id",
-    )
+    fields = ("id", "name", "slug", "tax_id", "mailchimp_integration_connected")
     rp = RevenueProgramFactory()
     serialized = RevenueProgramSerializer(rp).data
     for field in fields:

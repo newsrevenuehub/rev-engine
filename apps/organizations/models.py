@@ -335,6 +335,20 @@ class RevenueProgram(IndexedTimeStampedModel):
         return self.name
 
     @property
+    def mailchimp_integration_connected(self):
+        """Determine mailchimp connection state for the revenue program
+
+        This property will return True if the parent org has been manually set to be connected,
+        or if an org user has gone through OAuth flow resulting in expected values being set.
+        """
+        return any(
+            [
+                self.mailchimp_access_token and self.mailchimp_server_prefix,
+                self.organization.show_connected_to_mailchimp,
+            ]
+        )
+
+    @property
     def payment_provider_stripe_verified(self):
         return self.payment_provider.stripe_verified if self.payment_provider else False
 

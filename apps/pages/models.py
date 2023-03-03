@@ -1,3 +1,6 @@
+import logging
+
+from django.conf import settings
 from django.db import models
 from django.utils import timezone
 
@@ -8,13 +11,16 @@ from apps.api.error_messages import UNIQUE_PAGE_SLUG
 from apps.common.models import IndexedTimeStampedModel
 from apps.common.utils import normalize_slug
 from apps.config.validators import validate_slug_against_denylist
-from apps.pages import defaults
+from apps.pages import defaults, signals
 from apps.pages.validators import style_validator
 from apps.users.choices import Roles
 from apps.users.models import RoleAssignment
 
 
 PAGE_NAME_MAX_LENGTH = PAGE_HEADING_MAX_LENGTH = 255
+
+
+logger = logging.getLogger(f"{settings.DEFAULT_LOGGER}.{__name__}")
 
 
 def _get_screenshot_upload_path(instance, filename):
@@ -101,6 +107,11 @@ class DonationPage(IndexedTimeStampedModel):
     def is_live(self):
         return bool(self.published_date and self.published_date <= timezone.now())
 
+    @property
+    def page_url(self) -> str:
+        http_scheme = "https://"
+        return f"{http_scheme}{self.revenue_program.slug}.{settings.SITE_URL.partition(http_scheme)[2]}/{self.slug}"
+
     def set_default_logo(self):
         """
         If this is the first time this model is being created (not self.pk),
@@ -116,8 +127,23 @@ class DonationPage(IndexedTimeStampedModel):
         super().clean_fields(**kwargs)
 
     def save(self, *args, **kwargs):
+        # should_send_first_publication_signal has to be called prior to saving the record
+        # to allow us to compare in flight record with record in database
+        should_send_first_publication_signal = self.should_send_first_publication_signal()
         self.set_default_logo()
         super().save(*args, **kwargs)
+        if should_send_first_publication_signal:
+            logger.info("DonationPage.save - sending signal page_published for page %s", self.id)
+            signals.page_published.send(sender=self.__class__, instance=self)
+
+    def should_send_first_publication_signal(self) -> bool:
+        if not self.published_date:
+            return False
+        elif not self.id:
+            return True
+        else:
+            existing_page = DonationPage.objects.get(pk=self.pk)
+            return True if not existing_page.published_date else False
 
 
 class Style(IndexedTimeStampedModel):

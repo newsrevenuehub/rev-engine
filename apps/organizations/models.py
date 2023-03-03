@@ -324,6 +324,10 @@ class RevenueProgram(IndexedTimeStampedModel):
         verbose_name="Country",
         help_text="2-letter country code of RP's company. This gets included in data sent to stripe when creating a payment",
     )
+    # The next two values are used to make requests to Mailchimp on behalf of our users.  The first one (mailchimp_server_prefix) is
+    # intended to be securely stored elsewhere in a future PR.
+    mailchimp_server_prefix = models.CharField(max_length=100, null=True, blank=True)
+    mailchimp_access_token = models.TextField(null=True, blank=True)
 
     objects = RevenueProgramManager.from_queryset(RevenueProgramQuerySet)()
 

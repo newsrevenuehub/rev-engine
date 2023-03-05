@@ -1,7 +1,6 @@
 import datetime
 import json
 import logging
-from functools import cached_property
 
 from django.conf import settings
 from django.core.cache import caches
@@ -178,7 +177,6 @@ class StripeContributionsProvider:
         self.email_id = email_id
         self.stripe_account_id = stripe_account_id
 
-    @cached_property
     def customers(self):
         """
         Cached Property.

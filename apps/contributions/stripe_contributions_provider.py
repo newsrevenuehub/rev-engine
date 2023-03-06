@@ -136,7 +136,7 @@ class StripePaymentIntent:
         if not self.payment_intent.invoice:
             return datetime.datetime.fromtimestamp(int(self.payment_intent.created), tz=datetime.timezone.utc)
         return datetime.datetime.fromtimestamp(
-            int(self.payment_intent.invoice.status_transitions.paid_at), tz=datetime.timezone.utc
+            int(self.payment_intent.invoice.status_transitions.posted_at), tz=datetime.timezone.utc
         )
 
     @property

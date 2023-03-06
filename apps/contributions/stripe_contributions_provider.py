@@ -135,9 +135,11 @@ class StripePaymentIntent:
     def last_payment_date(self):
         if not self.payment_intent.invoice:
             return datetime.datetime.fromtimestamp(int(self.payment_intent.created), tz=datetime.timezone.utc)
-        return datetime.datetime.fromtimestamp(
-            int(self.payment_intent.invoice.status_transitions.paid_at), tz=datetime.timezone.utc
-        )
+        elif self.payment_intent.invoice.status_transitions.paid_at:
+            return datetime.datetime.fromtimestamp(
+                int(self.payment_intent.invoice.status_transitions.paid_at), tz=datetime.timezone.utc
+            )
+        return None
 
     @property
     def status(self):

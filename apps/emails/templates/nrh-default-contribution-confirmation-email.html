@@ -31,7 +31,15 @@
 {% block header %}
 <tr>
   <td style="padding-right: 0px;padding-left: 0px;" align="left">
-    <img class="logo inner-center" src="{{ logo_url }}" alt="NRE logo" >
+    <img class="logo inner-center"
+      {% if apply_custom_style and default_style.logo_url %}
+      src="{{ default_style.logo_url }}"
+      alt="{{ rp_name }} logo"
+      {% else %}
+      src="{{ logo_url }}"
+      alt="NRE logo"
+      {% endif %}
+      >
   </td>
 </tr>
 <tr>

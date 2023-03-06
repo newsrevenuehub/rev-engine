@@ -78,6 +78,7 @@ def send_thank_you_email(contribution_id: int) -> None:
         logger.exception("Something went wrong retrieving Stripe customer for contribution with id %s", contribution_id)
         raise exc
 
+    default_style_dict = asdict(contribution.donation_page.revenue_program.default_style)
     send_templated_email(
         contribution.contributor.email,
         "Thank you for your contribution!",
@@ -100,7 +101,11 @@ def send_thank_you_email(contribution_id: int) -> None:
             "tax_id": contribution.revenue_program.tax_id,
             "magic_link": Contributor.create_magic_link(contribution),
             "logo_url": os.path.join(settings.SITE_URL, "static", "nre-logo-yellow.png"),
-            "default_style": asdict(contribution.donation_page.revenue_program.default_style),
+            "default_style": default_style_dict,
+            "apply_custom_style": contribution.revenue_program.organization.plan.name
+            in ["CORE", "PLUS"]  # Org is in a premium plan
+            and any(default_style_dict.values())  # Has any non-null value in default_styles
+            and contribution.revenue_program.organization.send_receipt_email_via_nre,  # Has feature flag enabled
         },
     )
 

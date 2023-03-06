@@ -183,6 +183,7 @@ class RequestContributorTokenEmailView(APIView):
         logger.info(
             "Sending magic link email to [%s] | magic link: [%s]", serializer.validated_data["email"], magic_link
         )
+        default_style_dict = asdict(revenue_program.default_style)
         send_templated_email.delay(
             serializer.validated_data["email"],
             "Manage your contributions",
@@ -195,7 +196,11 @@ class RequestContributorTokenEmailView(APIView):
                 # in async task queue), using `{ static 'NewsRevenueHub...' }` won't work here. Need
                 # to fully spell out the value that will be sent to template.
                 "logo_url": os.path.join(settings.SITE_URL, "static", "nre-logo-white.png"),
-                "default_style": asdict(revenue_program.default_style),
+                "default_style": default_style_dict,
+                "apply_custom_style": revenue_program.organization.plan.name
+                in ["CORE", "PLUS"]  # Org is in a premium plan
+                and any(default_style_dict.values())  # Has any non-null value in default_styles
+                and revenue_program.organization.send_receipt_email_via_nre,  # Has feature flag enabled
             },
         )
         # Email is async task. We won't know if it succeeds or not so optimistically send OK.

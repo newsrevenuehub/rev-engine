@@ -8,6 +8,7 @@ from django.core import mail
 from django.template.loader import render_to_string
 
 import pytest
+import pytest_cases
 from addict import Dict as AttrDict
 from stripe.error import StripeError
 
@@ -15,9 +16,9 @@ from apps.contributions.models import Contribution, ContributionInterval
 from apps.contributions.tests.factories import ContributionFactory
 from apps.emails.helpers import convert_to_timezone_formatted
 from apps.emails.tasks import send_templated_email_with_attachment, send_thank_you_email
-from apps.organizations.models import FiscalStatusChoices, PaymentProvider
+from apps.organizations.models import FiscalStatusChoices, FreePlan, PaymentProvider
 from apps.organizations.tests.factories import RevenueProgramFactory
-from apps.pages.tests.factories import DonationPageFactory
+from apps.pages.tests.factories import DonationPageFactory, StyleFactory
 
 
 @pytest.mark.django_db
@@ -61,7 +62,64 @@ class TestSendThankYouEmail:
             "default_style": asdict(contribution.donation_page.revenue_program.default_style),
             "fiscal_status": contribution.revenue_program.fiscal_status,
             "fiscal_sponsor_name": contribution.revenue_program.fiscal_sponsor_name,
+            "apply_custom_style": contribution.revenue_program.organization.plan.name in ["CORE", "PLUS"]
+            and any(asdict(contribution.donation_page.revenue_program.default_style).values())
+            and contribution.revenue_program.organization.send_receipt_email_via_nre,
         }
+
+    @pytest_cases.parametrize(
+        "revenue_program",
+        (
+            pytest_cases.fixture_ref("free_plan_revenue_program"),
+            # TODO: uncomment when CORE plan implemented
+            # pytest_cases.fixture_ref("core_plan_revenue_program"),
+            pytest_cases.fixture_ref("plus_plan_revenue_program"),
+        ),
+    )
+    @pytest.mark.parametrize(
+        "default_style",
+        (False, True),
+    )
+    def test_contribution_confirmation_email_custom_styles(self, revenue_program, default_style, monkeypatch):
+        customer = AttrDict({"name": "Foo Bar"})
+        mock_customer_retrieve = Mock()
+        mock_customer_retrieve.return_value = customer
+        monkeypatch.setattr("stripe.Customer.retrieve", mock_customer_retrieve)
+        # TODO: DEV-3026 clean up here
+        with patch("apps.contributions.models.Contribution.fetch_stripe_payment_method", return_value=None):
+            contribution = ContributionFactory(provider_customer_id="something", interval=ContributionInterval.ONE_TIME)
+            if default_style:
+                style = StyleFactory()
+                style.styles = style.styles | {
+                    "colors": {
+                        "cstm_mainHeader": "#mock-header-background",
+                        "cstm_CTAs": "#mock-button-color",
+                    },
+                    "font": {"heading": "mock-header-font", "body": "mock-body-font"},
+                }
+                page = DonationPageFactory(revenue_program=revenue_program, styles=style, header_logo="mock-logo")
+                revenue_program.default_donation_page = page
+                revenue_program.save()
+            contribution.donation_page.revenue_program = revenue_program
+            contribution.donation_page.save()
+            send_thank_you_email(contribution.id)
+
+        custom_logo = 'src="/media/mock-logo"'
+        custom_header_background = "background: #mock-header-background !important"
+        custom_button_background = "background: #mock-button-color !important"
+
+        if revenue_program.organization.plan.name == FreePlan.name or not default_style:
+            expect_present = ()
+            expect_missing = (custom_logo, custom_button_background, custom_header_background)
+
+        else:
+            expect_present = (custom_logo,)
+            expect_missing = (custom_button_background, custom_header_background)
+
+        for x in expect_present:
+            assert x in mail.outbox[0].alternatives[0][0]
+        for x in expect_missing:
+            assert x not in mail.outbox[0].alternatives[0][0]
 
     def test_when_contribution_not_exist(self):
         contribution_id = "999"

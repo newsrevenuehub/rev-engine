@@ -48,6 +48,9 @@
         width: 600px;
         height: 80px;
         background: #523A5E;
+        {% if apply_custom_style and default_style.header_color %}
+        background: {{ default_style.header_color }} !important;
+        {% endif %}
       }
 
       .header-logo {
@@ -116,6 +119,9 @@
         text-transform: uppercase;
         padding: 15px 50px;
         width: 270px;
+        {% if apply_custom_style and default_style.button_color %}
+        background: {{ default_style.button_color }} !important;
+        {% endif %}
       }
 
       .info {
@@ -169,7 +175,15 @@
       <table align="center" class="wrapper" border="0" cellspacing="0" cellpadding="0">
         <tr>
           <td class="header-background" align="center" valign="top">
-            <img class="header-logo" src="{{ logo_url }}" alt="NRE logo" />
+              <img class="header-logo"
+              {% if apply_custom_style and default_style.logo_url %}
+              src="{{ default_style.logo_url }}"
+              alt="{{ rp_name }}"
+              {% else %}
+              src="{{ logo_url }}"
+              alt="NRE logo"
+              {% endif %}
+              />
           </td>
         </tr>
         <tr>

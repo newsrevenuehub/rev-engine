@@ -181,7 +181,6 @@ class StripeContributionsProvider:
 
     def customers(self):
         """
-        Cached Property.
         Gets all the customers associated with an email for a given stripe account
 
         Returns:

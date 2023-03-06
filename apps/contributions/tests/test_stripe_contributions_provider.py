@@ -288,6 +288,7 @@ class TestStripeContributionsProvider(AbstractTestStripeContributions):
         expected_customers_query = self.expected_customer_ids
         self.assertListEqual(actual_customers_query, expected_customers_query)
 
+    # temporarily test if we there is an issue with cached_property
     # @patch("apps.contributions.stripe_contributions_provider.stripe.Customer.search")
     # def test_customers(self, stripe_customer_search_mock):
     #     stripe_customer_search_mock.return_value.auto_paging_iter.return_value = iter(self.customers)

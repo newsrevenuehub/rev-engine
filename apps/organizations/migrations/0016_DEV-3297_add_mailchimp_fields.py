@@ -18,6 +18,6 @@ class Migration(migrations.Migration):
         migrations.AddField(
             model_name="revenueprogram",
             name="mailchimp_server_prefix",
-            field=models.CharField(blank=True, max_length=100, null=True),
+            field=models.Text(blank=True, null=True),
         ),
     ]

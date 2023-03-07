@@ -8,7 +8,10 @@ from django.contrib.auth import get_user_model
 from rest_framework.test import APITestCase
 from waffle import get_waffle_flag_model
 
-from apps.common.constants import CONTRIBUTIONS_API_ENDPOINT_ACCESS_FLAG_NAME
+from apps.common.constants import (
+    CONTRIBUTIONS_API_ENDPOINT_ACCESS_FLAG_NAME,
+    MAILCHIMP_INTEGRATION_ACCESS_FLAG_NAME,
+)
 from apps.contributions.models import Contributor
 from apps.contributions.tests.factories import ContributionFactory, ContributorFactory
 from apps.organizations.models import Organization, Plans, RevenueProgram
@@ -34,7 +37,13 @@ DEFAULT_FLAGS_CONFIG_MAPPING = {
         "superusers": True,
         "everyone": True,  # this is so adding flag won't block users by default in existing tests.
         # Tests focused on feature flagging can alter the flag's properties as required
-    }
+    },
+    MAILCHIMP_INTEGRATION_ACCESS_FLAG_NAME: {
+        "name": MAILCHIMP_INTEGRATION_ACCESS_FLAG_NAME,
+        "superusers": True,
+        "everyone": True,  # this is so adding flag won't block users by default in existing tests.
+        # Tests focused on feature flagging can alter the flag's properties as required
+    },
 }
 
 

@@ -1,7 +1,6 @@
 import datetime
 import json
 import logging
-from functools import cached_property
 
 from django.conf import settings
 from django.core.cache import caches
@@ -136,9 +135,11 @@ class StripePaymentIntent:
     def last_payment_date(self):
         if not self.payment_intent.invoice:
             return datetime.datetime.fromtimestamp(int(self.payment_intent.created), tz=datetime.timezone.utc)
-        return datetime.datetime.fromtimestamp(
-            int(self.payment_intent.invoice.status_transitions.paid_at), tz=datetime.timezone.utc
-        )
+        elif self.payment_intent.invoice.status_transitions.paid_at:
+            return datetime.datetime.fromtimestamp(
+                int(self.payment_intent.invoice.status_transitions.paid_at), tz=datetime.timezone.utc
+            )
+        return None
 
     @property
     def status(self):
@@ -178,10 +179,9 @@ class StripeContributionsProvider:
         self.email_id = email_id
         self.stripe_account_id = stripe_account_id
 
-    @cached_property
+    @property
     def customers(self):
         """
-        Cached Property.
         Gets all the customers associated with an email for a given stripe account
 
         Returns:

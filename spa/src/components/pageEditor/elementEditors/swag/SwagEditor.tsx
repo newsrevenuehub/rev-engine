@@ -38,7 +38,7 @@ export function SwagEditor({
   const swagGroup = elementContent.swags?.[0] ?? { swagName: '', swagOptions: [] };
   const updateDisabled =
     !elementContent.swagThreshold ||
-    !validateInputPositiveFloat(elementContent.swagThreshold.toString()) ||
+    !validateInputPositiveFloat(editedThreshold) ||
     !swagGroup.swagName ||
     swagGroup.swagName.trim() === '' ||
     swagGroup.swagOptions.length === 0;

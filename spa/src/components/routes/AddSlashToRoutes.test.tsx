@@ -3,7 +3,7 @@ import AddSlashToRoutes from './AddSlashToRoutes';
 // the normal BrowserRouter.
 import { cleanup, render, screen } from '@testing-library/react';
 import { Router, Route, useLocation } from 'react-router-dom';
-import { createMemoryHistory } from 'history';
+import { createMemoryHistory, InitialEntry } from 'history';
 
 const LocationTest = () => {
   const location = useLocation();
@@ -17,7 +17,7 @@ const LocationTest = () => {
   );
 };
 
-function tree(initialEntries) {
+function tree(initialEntries?: InitialEntry[]) {
   const history = createMemoryHistory({ initialEntries });
 
   return {
@@ -39,6 +39,18 @@ function tree(initialEntries) {
 describe('AddSlashToRoutes', () => {
   it('redirects a path without a trailing slash to one with one', () => {
     const { history } = tree(['/route1']);
+
+    expect(history.location.pathname).toBe('/route1/');
+  });
+
+  it("doesn't redirects if pathname starts with 2 trailing slashes", () => {
+    const { history } = tree(['//route1']);
+
+    expect(history.location.pathname).toBe('//route1');
+  });
+
+  it("doesn't redirects if pathname ends with one trailing slash", () => {
+    const { history } = tree(['/route1/']);
 
     expect(history.location.pathname).toBe('/route1/');
   });
@@ -85,7 +97,7 @@ describe('AddSlashToRoutes', () => {
 
     const errorSpy = jest.spyOn(console, 'error').mockImplementation(() => {});
 
-    expect(() => render(<AddSlashToRoutes />)).toThrow();
+    expect(() => render(<AddSlashToRoutes children={<div>mock-child</div>} />)).toThrow();
     errorSpy.mockRestore();
   });
 });

@@ -15,8 +15,9 @@ import useModal from 'hooks/useModal';
 // Analytics
 import { useConfigureAnalytics } from 'components/analytics';
 
-import ProfileForm, { ProfileFormFields, TAX_STATUS } from './ProfileForm';
+import ProfileForm, { ProfileFormFields } from './ProfileForm';
 import { OffscreenText, StepperDots } from 'components/base';
+import { TAX_STATUS } from 'constants/fiscalStatus';
 
 function Profile() {
   const { open } = useModal(true);

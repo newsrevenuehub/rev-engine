@@ -55,7 +55,8 @@ function DashboardRouter() {
           ROUTES.EDITOR_ROUTE,
           ROUTES.VERIFY_EMAIL_SUCCESS,
           ROUTES.PROFILE,
-          ROUTES.SETTINGS.INTEGRATIONS
+          ROUTES.SETTINGS.INTEGRATIONS,
+          ROUTES.SETTINGS.ORGANIZATION
         ]}
         render={() => <TrackPageView component={Main} />}
       />

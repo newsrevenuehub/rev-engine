@@ -639,7 +639,7 @@ class SubscriptionsSerializer(serializers.Serializer):
     stripe_account_id = serializers.CharField(max_length=255, required=False, allow_blank=True)
 
     def _card(self, instance):
-        return instance.default_payment_method.card
+        return instance.default_payment_method.card if instance.default_payment_method else None
 
     def get_id(self, instance):
         return instance.id

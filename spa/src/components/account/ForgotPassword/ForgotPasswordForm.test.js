@@ -1,8 +1,6 @@
 import { render, screen, fireEvent, waitFor } from 'test-utils';
 import ForgotPasswordForm from './ForgotPasswordForm';
 
-import Input from 'elements/inputs/Input';
-
 const mockSubmit = jest.fn((email, password) => {
   return Promise.resolve({ email, password });
 });

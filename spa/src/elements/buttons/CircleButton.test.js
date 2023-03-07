@@ -1,4 +1,4 @@
-import { render, screen, fireEvent, act } from 'test-utils';
+import { render, screen, fireEvent } from 'test-utils';
 
 import CircleButton from './CircleButton';
 import { faEdit } from '@fortawesome/free-solid-svg-icons';

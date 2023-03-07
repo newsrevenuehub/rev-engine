@@ -1,4 +1,4 @@
-import React, { createContext, useState, useContext, useRef } from 'react';
+import { createContext, useState, useContext, useRef } from 'react';
 import * as S from './MainLayout.styled';
 
 // Hooks

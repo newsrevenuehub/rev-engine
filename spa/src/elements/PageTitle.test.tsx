@@ -26,7 +26,7 @@ describe('Page Title component', () => {
 
   test('should not render "RevEngine" if hideRevEngine = true', async () => {
     tree({ hideRevEngine: true, title: 'mock-title' });
-    let helmet = Helmet.peek();
+    const helmet = Helmet.peek();
     expect(helmet.title).toBe('mock-title');
   });
 

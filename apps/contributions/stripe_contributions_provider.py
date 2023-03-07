@@ -153,7 +153,7 @@ class StripePaymentIntent:
 
     @property
     def credit_card_expiration_date(self):
-        return f"{self.card.exp_month}/{self.card.exp_year}" if self.card.exp_month else None
+        return f"{self.card.exp_month}/{self.card.exp_year}" if self.card and self.card.exp_month else None
 
     @property
     def payment_type(self):

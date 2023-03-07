@@ -12,6 +12,7 @@ import mailchimp_marketing as MailchimpMarketing
 import stripe
 from mailchimp_marketing.api_client import ApiClientError
 
+from apps.common.google_cloud_secrets import GoogleCloudSecretManagerException, get_secret_version
 from apps.common.models import IndexedTimeStampedModel
 from apps.common.utils import normalize_slug
 from apps.config.validators import validate_slug_against_denylist
@@ -335,8 +336,6 @@ class RevenueProgram(IndexedTimeStampedModel):
     )
     # The next two values are used to make requests to Mailchimp on behalf of our users.
     mailchimp_server_prefix = models.TextField(null=True, blank=True)
-    # TODO: DEV-3302 this is a temporary field, to be removed in https://news-revenue-hub.atlassian.net/browse/DEV-3302
-    mailchimp_access_token = models.TextField(null=True, blank=True)
 
     objects = RevenueProgramManager.from_queryset(RevenueProgramQuerySet)()
 
@@ -371,6 +370,31 @@ class RevenueProgram(IndexedTimeStampedModel):
     @property
     def non_profit(self):
         return self.fiscal_status in (FiscalStatusChoices.FISCALLY_SPONSORED, FiscalStatusChoices.NONPROFIT)
+
+    @property
+    def mailchimp_access_token_secret_name(self) -> str:
+        """"""
+        return f"MAILCHIMP_ACCESS_TOKEN_FOR_RP_{self.id}_[{settings.ENVIRONMENT}]"
+
+    @cached_property
+    def mailchimp_access_token(self) -> str | None:
+        """ """
+        if not settings.ENABLE_GOOGLE_CLOUD_SECRET_MANAGER:
+            return None
+        try:
+            return get_secret_version(self.mailchimp_access_token_secret_name).payload.data.decode("utf-8")
+        except GoogleCloudSecretManagerException:
+            logger.debug(
+                "`RevenueProgram.mailchimp_access_token` failed to fetch access token from Google Cloud Secrets for RP with ID %s",
+                self.id,
+            )
+            return None
+        except Exception:
+            logger.exception(
+                "`RevenueProgram.mailchimp_access_token` failed to fetch access token from Google Cloud Secrets for RP with ID %s",
+                self.id,
+            )
+            return None
 
     @cached_property
     def mailchimp_email_lists(self) -> list[MailchimpEmailList]:

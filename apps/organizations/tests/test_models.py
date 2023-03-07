@@ -115,7 +115,6 @@ class TestRevenueProgram:
             stripe_account=rp.payment_provider.stripe_account_id,
         )
 
-    @pytest.mark.django_db
     @override_settings(STRIPE_LIVE_MODE=True)
     def test_stripe_create_apple_pay_domain_when_already_verified_date_exists(self, mocker):
         mock_stripe_create = mocker.patch.object(ApplePayDomain, "create")
@@ -143,6 +142,18 @@ class TestRevenueProgram:
         rp.stripe_create_apple_pay_domain()
         mock_stripe_create.assert_called_once()
         mock_logger.exception.assert_called_once()
+
+    def test_mailchimp_access_token_property_happy_path(self, revenue_program, monkeypatch):
+        pass
+
+    def test_mailchimp_access_token_property_when_secret_manager_not_enabled(self):
+        pass
+
+    def test_mailchimp_access_token_property_when_google_secret_manager_exception(self):
+        pass
+
+    def test_mailchimp_access_token_property_when_unexpected_exception(self):
+        pass
 
     def test_mailchimp_email_lists_property_happy_path(self, revenue_program, monkeypatch):
         revenue_program.mailchimp_server_prefix = "us1"

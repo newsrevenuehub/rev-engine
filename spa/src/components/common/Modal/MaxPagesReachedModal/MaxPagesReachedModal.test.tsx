@@ -3,11 +3,11 @@ import { fireEvent, render, screen } from 'test-utils';
 import MaxPagesReachedModal, { MaxPagesReachedModalProps } from './MaxPagesReachedModal';
 
 function tree(props?: Partial<MaxPagesReachedModalProps>) {
-  return render(<MaxPagesReachedModal currentPlan="free" onClose={jest.fn()} {...props} />);
+  return render(<MaxPagesReachedModal currentPlan="FREE" onClose={jest.fn()} {...props} />);
 }
 
 describe('MaxPagesReachedModal', () => {
-  it('displays nothing is the open prop is false', () => {
+  it('displays nothing if the open prop is false', () => {
     tree({ open: false });
     expect(document.body).toHaveTextContent('');
   });
@@ -18,17 +18,15 @@ describe('MaxPagesReachedModal', () => {
   });
 
   it('shows a message stating that the user has run out of pages for their plan', () => {
-    tree({ currentPlan: 'test-plan-name', open: true });
+    tree({ currentPlan: 'FREE', open: true });
     expect(screen.getByTestId('plan-limit')).toHaveTextContent(
-      "You've reached the maximum number of pages for the test-plan-name tier."
+      "You've reached the maximum number of pages for the Free tier."
     );
   });
 
   it('shows a message recommending the recommendedPlan prop', () => {
-    tree({ recommendedPlan: 'test-plan-name', open: true });
-    expect(screen.getByTestId('recommendation')).toHaveTextContent(
-      'Want to create more pages? Check out test-plan-name.'
-    );
+    tree({ recommendedPlan: 'PLUS', open: true });
+    expect(screen.getByTestId('recommendation')).toHaveTextContent('Want to create more pages? Check out Plus.');
   });
 
   it('shows a link to upgrade', () => {

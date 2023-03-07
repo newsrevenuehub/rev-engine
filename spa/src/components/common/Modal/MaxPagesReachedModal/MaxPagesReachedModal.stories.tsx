@@ -9,4 +9,4 @@ export default {
 const Template: ComponentStory<typeof MaxPagesReachedModal> = (props) => <MaxPagesReachedModal {...props} />;
 
 export const Default = Template.bind({});
-Default.args = { open: true };
+Default.args = { currentPlan: 'FREE', open: true };

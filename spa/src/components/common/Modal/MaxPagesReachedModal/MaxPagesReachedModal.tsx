@@ -1,5 +1,5 @@
-import { InfoOutlined } from '@material-ui/icons';
-import { Button, Modal, ModalFooter, ModalHeader } from 'components/base';
+import { Button, Modal, ModalFooter } from 'components/base';
+import { EnginePlan } from 'hooks/useContributionPage';
 import PropTypes, { InferProps } from 'prop-types';
 import {
   BenefitsList,
@@ -7,10 +7,19 @@ import {
   CardHeader,
   CardHeaderHighlight,
   ModalContent,
+  ModalHeader,
+  ModalHeaderIcon,
   PlanLimit,
   PricingLink,
+  Recommendation,
   RedEmphasis
 } from './MaxPagesReachedModal.styled';
+
+const planNames: Record<EnginePlan['name'], string> = {
+  CORE: 'Core',
+  FREE: 'Free',
+  PLUS: 'Plus'
+};
 
 const MaxPagesReachedModalPropTypes = {
   currentPlan: PropTypes.string.isRequired,
@@ -20,29 +29,31 @@ const MaxPagesReachedModalPropTypes = {
 };
 
 export interface MaxPagesReachedModalProps extends InferProps<typeof MaxPagesReachedModalPropTypes> {
+  currentPlan: EnginePlan['name'];
   onClose: () => void;
+  recommendedPlan?: EnginePlan['name'];
 }
 
 export function MaxPagesReachedModal({
   currentPlan,
   onClose,
   open,
-  recommendedPlan = 'Core'
+  recommendedPlan = 'CORE'
 }: MaxPagesReachedModalProps) {
   const LooseButton = Button as any;
 
   return (
     <Modal open={!!open}>
-      <ModalHeader icon={<InfoOutlined />} onClose={onClose}>
+      <ModalHeader icon={<ModalHeaderIcon />} onClose={onClose}>
         <strong>Max Pages Reached</strong>
       </ModalHeader>
       <ModalContent>
         <PlanLimit data-testid="plan-limit">
-          You've reached the <RedEmphasis>maximum</RedEmphasis> number of pages for the {currentPlan} tier.
+          You've reached the <RedEmphasis>maximum</RedEmphasis> number of pages for the {planNames[currentPlan]} tier.
         </PlanLimit>
-        <p data-testid="recommendation">
-          <strong>Want to create more pages?</strong> Check out {recommendedPlan}.
-        </p>
+        <Recommendation data-testid="recommendation">
+          <strong>Want to create more pages?</strong> Check out {planNames[recommendedPlan]}.
+        </Recommendation>
         <Card>
           <CardHeader>
             <CardHeaderHighlight>Core Tier</CardHeaderHighlight>

@@ -645,7 +645,7 @@ class SubscriptionsSerializer(serializers.Serializer):
         return instance.id
 
     def get_card_brand(self, instance):
-        return self._card(instance).brand
+        return self._card(instance).brand if self._card(instance) else None
 
     def get_next_payment_date(self, instance):
         return datetime.fromtimestamp(int(instance.current_period_end), tz=timezone.utc)
@@ -662,7 +662,7 @@ class SubscriptionsSerializer(serializers.Serializer):
     def get_credit_card_expiration_date(self, instance):
         return (
             f"{self._card(instance).exp_month}/{self._card(instance).exp_year}"
-            if self._card(instance).exp_month
+            if self._card(instance) and self._card(instance).exp_month
             else None
         )
 

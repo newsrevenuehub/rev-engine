@@ -16,6 +16,7 @@ from reversion.views import create_revision
 from stripe.error import StripeError
 
 from apps.api.permissions import (
+    HasFlaggedAccessToMailchimp,
     HasRoleAssignment,
     IsGetRequest,
     IsOrgAdmin,
@@ -25,6 +26,10 @@ from apps.api.permissions import (
 from apps.common.views import FilterForSuperUserOrRoleAssignmentUserMixin
 from apps.organizations import serializers
 from apps.organizations.models import Organization, RevenueProgram
+from apps.organizations.serializers import MailchimpOauthSuccessSerializer
+from apps.organizations.tasks import (
+    exchange_mailchimp_oauth_code_for_server_prefix_and_access_token,
+)
 from apps.public.permissions import IsActiveSuperUser
 
 
@@ -216,3 +221,29 @@ def handle_stripe_account_link(request, rp_pk):
                 status=status.HTTP_500_INTERNAL_SERVER_ERROR,
             )
     return Response(data)
+
+
+@api_view(["POST"])
+@permission_classes([IsAuthenticated, HasFlaggedAccessToMailchimp, IsOrgAdmin])
+def handle_mailchimp_oauth_success(request):
+    """"""
+    serializer = MailchimpOauthSuccessSerializer(data=request.data)
+    serializer.is_valid(raise_exception=True)
+    if (
+        rp_id := serializer.validated_data["revenue_program"]
+    ) not in RevenueProgram.objects.filtered_by_role_assignment(request.user.roleassignment).values_list(
+        "id", flat=True
+    ):
+        logger.warning(
+            (
+                "`handle_mailchimp_oauth_success` called with request data referencing a non-existent or unowned revenue program "
+                "with ID %s by user with email %s"
+            ),
+            rp_id,
+            request.user.email,
+        )
+        return Response({"detail": "Requested revenue program not found"}, status=status.HTTP_404_NOT_FOUND)
+    exchange_mailchimp_oauth_code_for_server_prefix_and_access_token.delay(
+        rp_id, serializer.validated_data["mailchimp_oauth_code"]
+    )
+    return Response(status=status.HTTP_202_ACCEPTED)

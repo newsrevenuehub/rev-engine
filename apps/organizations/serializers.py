@@ -79,9 +79,6 @@ class RevenueProgramListInlineSerializer(serializers.ModelSerializer):
             "google_analytics_v3_id",
             "google_analytics_v4_id",
             "facebook_pixel_id",
-            "tax_id",
-            "fiscal_status",
-            "fiscal_sponsor_name",
         ]
 
 
@@ -92,16 +89,7 @@ class RevenueProgramInlineSerializer(serializers.ModelSerializer):
 
     class Meta:
         model = RevenueProgram
-        fields = [
-            "id",
-            "name",
-            "slug",
-            "organization",
-            "payment_provider_stripe_verified",
-            "tax_id",
-            "fiscal_status",
-            "fiscal_sponsor_name",
-        ]
+        fields = ["id", "name", "slug", "organization", "payment_provider_stripe_verified"]
 
 
 class RevenueProgramSerializer(serializers.ModelSerializer):
@@ -110,16 +98,17 @@ class RevenueProgramSerializer(serializers.ModelSerializer):
     """
 
     slug = serializers.SlugField(required=False)
+    mailchimp_integration_connected = serializers.ReadOnlyField()
 
     class Meta:
         model = RevenueProgram
-        fields = ["id", "name", "slug", "tax_id", "fiscal_status", "fiscal_sponsor_name"]
+        fields = ["id", "name", "slug", "tax_id", "mailchimp_integration_connected"]
 
 
 class RevenueProgramPatchSerializer(serializers.ModelSerializer):
     class Meta:
         model = RevenueProgram
-        fields = ["tax_id", "fiscal_status", "fiscal_sponsor_name"]
+        fields = ["tax_id"]
 
 
 class BenefitDetailSerializer(serializers.ModelSerializer):
@@ -147,3 +136,8 @@ class PaymentProviderSerializer(serializers.ModelSerializer):
     class Meta:
         model = PaymentProvider
         fields = "__all__"
+
+
+class MailchimpOauthSuccessSerializer(serializers.Serializer):
+    mailchimp_oauth_code = serializers.CharField()
+    revenue_program = serializers.IntegerField()

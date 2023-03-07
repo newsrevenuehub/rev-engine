@@ -548,3 +548,7 @@ SPA_ENV_VARS = {
 # webpack) instead of getting sent to localhost:8000, which is what would happen by default in local
 # dev environment.
 STRIPE_ACCOUNT_LINK_RETURN_BASE_URL = os.getenv("STRIPE_ACCOUNT_LINK_RETURN_BASE_URL", None)
+
+# These `MAILCHIMP_` values are used by code that makes requests to mailchimp on behalf of org users
+MAILCHIMP_CLIENT_ID = os.getenv("MAILCHIMP_CLIENT_ID", None)
+MAILCHIMP_CLIENT_SECRET = os.getenv("MAILCHIMP_CLIENT_SECRET", None)

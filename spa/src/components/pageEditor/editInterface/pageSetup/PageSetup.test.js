@@ -131,7 +131,7 @@ describe('PageSetup', () => {
     });
   });
 
-  it.only('commits the edit batch when the Update button is clicked', () => {
+  it('commits the edit batch when the Update button is clicked', () => {
     const commitBatch = jest.fn();
 
     mockBatch({ commitBatch });

@@ -1,4 +1,3 @@
-import React from 'react';
 import * as S from './DBenefits.styled';
 import PropTypes from 'prop-types';
 

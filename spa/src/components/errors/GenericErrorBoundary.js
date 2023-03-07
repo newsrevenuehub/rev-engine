@@ -1,4 +1,3 @@
-import React from 'react';
 import { ErrorBoundary } from '@sentry/react';
 
 import GenericErrorFallback from 'components/errors/GenericErrorFallback';

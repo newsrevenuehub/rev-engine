@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useEffect } from 'react';
 import * as S from './LivePage404.styled';
 
 // Analytics

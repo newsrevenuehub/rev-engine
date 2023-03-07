@@ -57,7 +57,7 @@ export async function pageUpdateToFormData(
       }
     }
 
-    let value = pageUpdates[key];
+    const value = pageUpdates[key];
 
     // Convert dates to timestamps.
 

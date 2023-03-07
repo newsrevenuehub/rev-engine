@@ -164,7 +164,7 @@ function DAmount({ element, ...props }: DAmountProps) {
           <FeesContainer>
             <PayFeesControl
               agreedToPayFees={userAgreesToPayFees}
-              currencySymbol={page.currency?.symbol!}
+              currencySymbol={page.currency!.symbol!}
               feeAmount={feeAmount}
               frequency={frequency}
               onChange={(event) =>

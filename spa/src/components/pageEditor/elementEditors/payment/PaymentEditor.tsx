@@ -1,4 +1,4 @@
-import PropTypes, { element, InferProps } from 'prop-types';
+import PropTypes, { InferProps } from 'prop-types';
 import { Checkbox, Switch } from 'components/base';
 import { AlignedFormControlLabel, StrongTip, Tip } from './PaymentEditor.styled';
 import { PaymentElement } from 'hooks/useContributionPage';

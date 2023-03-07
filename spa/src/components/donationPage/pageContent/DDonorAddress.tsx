@@ -109,7 +109,7 @@ function DDonorAddress({ element }: DDonorAddressProps) {
   // The change event on <CountrySelect> sends an object value, but the
   // underlying input will always show the label.
 
-  function handleChangeCountry(event: ChangeEvent<{}>, value: CountryOption) {
+  function handleChangeCountry(event: ChangeEvent<Record<never, never>>, value: CountryOption) {
     setMailingCountry(value.fipsCode);
   }
 

@@ -175,7 +175,7 @@ describe('Add Page modal', () => {
 });
 
 describe('Pages view', () => {
-  it.only('has prototypical first-time self-service user flow', () => {
+  it('has prototypical first-time self-service user flow', () => {
     cy.intercept(
       { method: 'GET', pathname: getEndpoint(REVENUE_PROGRAMS) },
       { fixture: 'org/revenue-programs-1', statusCode: 200 }

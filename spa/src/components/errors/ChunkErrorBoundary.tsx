@@ -35,7 +35,7 @@ const ChunkErrorFallback = () => {
   );
 };
 
-const ChunkErrorBoundary = ({ children }: PropsWithChildren<{}>) => {
+const ChunkErrorBoundary = ({ children }: PropsWithChildren<Record<never, never>>) => {
   return <Sentry.ErrorBoundary fallback={ChunkErrorFallback}>{children}</Sentry.ErrorBoundary>;
 };
 

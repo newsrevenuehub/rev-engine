@@ -22,7 +22,7 @@ function canonicalUrl() {
 }
 
 function urlPath(url) {
-  const regex = /(http[s]?:\/\/)?([^\/\s]+\/)(.*)/g;
+  const regex = /(http[s]?:\/\/)?([^/\s]+\/)(.*)/g;
   const matches = regex.exec(url);
   const pathMatch = matches && matches[3] ? matches[3].split('?')[0].replace(hashRegex, '') : '';
   return '/' + pathMatch;

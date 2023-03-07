@@ -32,6 +32,7 @@ function DAmount({ element, ...props }: DAmountProps) {
   } = usePage();
 
   const prevFrequency = usePreviousState(frequency);
+  const currencyCode = page?.currency?.code;
   const currencySymbol = page?.currency?.symbol;
   // Corresponds to the value the user has typed into the 'other value' field.
   // It may not contain a valid number.
@@ -136,7 +137,7 @@ function DAmount({ element, ...props }: DAmountProps) {
                 onClick={() => handleSelectAmountOption(parseFloat(`${amountOption}`))}
                 data-testid={`amount-${amountOption}${selected ? '-selected' : ''}`}
               >
-                {`${currencySymbol}${amountOption}`}{' '}
+                {`${currencySymbol}${amountOption} ${currencyCode}`}{' '}
                 <FreqSubtext selected={selected}>{getFrequencyRate(frequency)}</FreqSubtext>
               </SelectableButton>
             </li>
@@ -164,7 +165,8 @@ function DAmount({ element, ...props }: DAmountProps) {
           <FeesContainer>
             <PayFeesControl
               agreedToPayFees={userAgreesToPayFees}
-              currencySymbol={page.currency!.symbol!}
+              currencyCode={page.currency!.code}
+              currencySymbol={page.currency!.symbol}
               feeAmount={feeAmount}
               frequency={frequency}
               onChange={(event) =>

@@ -266,7 +266,8 @@ class Contribution(IndexedTimeStampedModel):
 
     @property
     def formatted_amount(self):
-        return f"{'{:.2f}'.format(self.amount / 100)} {self.currency.upper()}"
+        currency = self.get_currency_dict()
+        return f"{currency['symbol']}{'{:.2f}'.format(self.amount / 100)} {currency['code']}"
 
     @property
     def revenue_program(self):
@@ -338,6 +339,22 @@ class Contribution(IndexedTimeStampedModel):
         if not self.bad_actor_score:
             return None
         return self.BAD_ACTOR_SCORES[self.bad_actor_score][1]
+
+    def get_currency_dict(self):
+        """
+        Returns code (i.e. USD) and symbol (i.e. $) for this contribution.
+        """
+        try:
+            return {"code": self.currency.upper(), "symbol": settings.CURRENCIES[self.currency.upper()]}
+        except KeyError:
+            logger.error(
+                'Currency settings for stripe account/product "%s"/"%s" misconfigured. Tried to access "%s", but valid options are: %s',
+                self.stripe_account_id,
+                self.stripe_product_id,
+                self.currency,
+                settings.CURRENCIES,
+            )
+            return {"code": "", "symbol": ""}
 
     def get_payment_manager_instance(self):
         """

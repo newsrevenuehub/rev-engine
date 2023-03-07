@@ -155,7 +155,7 @@ class ContributionTest(TestCase):
         self.assertEqual(customer, mock_create_customer.return_value)
 
     def test_formatted_amount(self, mock_fetch_stripe_payment_method, *args):
-        target_format = "10.00 USD"
+        target_format = "$10.00 USD"
         self.assertEqual(self.contribution.formatted_amount, target_format)
 
     def test_str(self, *args):
@@ -678,7 +678,7 @@ class TestContributionModel:
         email_expectations = [
             f"Scheduled: {next_charge_date.strftime('%m/%d/%Y')}",
             f"Email: {contribution.contributor.email}",
-            f"Amount Contributed: ${contribution.formatted_amount}/{contribution.interval}",
+            f"Amount Contributed: {contribution.formatted_amount}/{contribution.interval}",
         ]
 
         if revenue_program.fiscal_status == FiscalStatusChoices.FISCALLY_SPONSORED:

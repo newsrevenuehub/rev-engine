@@ -106,7 +106,7 @@ describe('DonationPageRouter', () => {
 
     // Testing a second layer.
 
-    let { history: thanksHistory } = tree('/donate/thank-you');
+    const { history: thanksHistory } = tree('/donate/thank-you');
 
     expect(thanksHistory.location.pathname).toBe('/donate/thank-you/');
     cleanup();

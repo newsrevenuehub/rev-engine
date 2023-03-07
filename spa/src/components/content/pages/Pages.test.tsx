@@ -7,7 +7,6 @@ import { USER_ROLE_ORG_ADMIN_TYPE, USER_ROLE_HUB_ADMIN_TYPE, USER_SUPERUSER_TYPE
 
 import { LIST_PAGES } from 'ajax/endpoints';
 import Axios from 'ajax/axios';
-import { ContributionPage } from 'hooks/useContributionPage';
 
 const orgAdminUser = {
   role_type: [USER_ROLE_ORG_ADMIN_TYPE],

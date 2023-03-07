@@ -29,7 +29,7 @@ export const CONNECT_TO_STRIPE_BUTTON_CTA = 'Connect now';
 const ConnectStripeModal = () => {
   const { open, handleClose } = useModal(true);
   const { isLoading, sendUserToStripe } = useConnectStripeAccount();
-  const [_, setCookie] = useCookies(CONNECT_STRIPE_COOKIE_NAME);
+  const [, setCookie] = useCookies(CONNECT_STRIPE_COOKIE_NAME);
 
   const handleClickConnectLater = useCallback(() => {
     handleClose();
@@ -67,7 +67,7 @@ const ConnectStripeModal = () => {
 };
 
 const ConnectStripeElements = () => {
-  const [cookies, _] = useCookies(CONNECT_STRIPE_COOKIE_NAME);
+  const [cookies] = useCookies(CONNECT_STRIPE_COOKIE_NAME);
 
   if (cookies[CONNECT_STRIPE_COOKIE_NAME]) {
     return <ConnectStripeToast />;

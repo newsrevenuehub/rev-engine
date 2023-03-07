@@ -10,7 +10,9 @@ from rest_framework.reverse import reverse
 from rest_framework.test import APIRequestFactory
 from reversion.models import Version
 from stripe.error import StripeError
+from waffle import get_waffle_flag_model
 
+from apps.common.constants import MAILCHIMP_INTEGRATION_ACCESS_FLAG_NAME
 from apps.organizations.models import (
     TAX_ID_MAX_LENGTH,
     TAX_ID_MIN_LENGTH,
@@ -859,3 +861,146 @@ def test_get_stripe_account_link_return_url_when_env_var_set(settings_stripe_acc
 def test_get_stripe_account_link_return_url_when_env_var_not_set():
     factory = APIRequestFactory()
     assert get_stripe_account_link_return_url(factory.get("")) == f"http://testserver{reverse('index')}"
+
+
+@pytest.fixture
+def mailchimp_feature_flag(default_feature_flags):
+    Flag = get_waffle_flag_model()
+    return Flag.objects.get(name=MAILCHIMP_INTEGRATION_ACCESS_FLAG_NAME)
+
+
+@pytest.fixture
+def mailchimp_feature_flag_no_group_level_access(mailchimp_feature_flag):
+    mailchimp_feature_flag.everyone = None
+    mailchimp_feature_flag.staff = False
+    mailchimp_feature_flag.superuser = False
+    mailchimp_feature_flag.save()
+    return mailchimp_feature_flag
+
+
+class TestMailchimpIntegrationViewStub:
+    """These tests are narrowly meant to demonstrate business logic around the "mailchimp-integration-access" flag.
+
+    For now, we just test around a stub API endpoint to prove the flag is configured as required.
+    """
+
+    @pytest_cases.parametrize(
+        "user,mailchimp_flag_kwargs,expect_access",
+        (
+            (
+                pytest_cases.fixture_ref("superuser"),
+                {
+                    "superuser": True,
+                    "everyone": None,
+                    "staff": False,
+                },
+                True,
+            ),
+            (
+                pytest_cases.fixture_ref("superuser"),
+                {
+                    "superuser": False,
+                    "everyone": None,
+                    "staff": False,
+                },
+                False,
+            ),
+            (
+                pytest_cases.fixture_ref("superuser"),
+                {
+                    "superuser": False,
+                    "everyone": True,
+                    "staff": False,
+                },
+                True,
+            ),
+            (
+                pytest_cases.fixture_ref("superuser"),
+                {
+                    "superuser": False,
+                    "everyone": True,
+                    "staff": False,
+                },
+                True,
+            ),
+            (
+                pytest_cases.fixture_ref("superuser"),
+                {
+                    "superuser": False,
+                    "everyone": False,
+                    "staff": True,
+                },
+                True,
+            ),
+            (
+                pytest_cases.fixture_ref("admin_user"),
+                {
+                    "superuser": False,
+                    "everyone": False,
+                    "staff": True,
+                },
+                True,
+            ),
+            (
+                pytest_cases.fixture_ref("admin_user"),
+                {
+                    "superuser": False,
+                    "everyone": False,
+                    "staff": False,
+                },
+                False,
+            ),
+            (
+                pytest_cases.fixture_ref("admin_user"),
+                {
+                    "superuser": False,
+                    "everyone": True,
+                    "staff": False,
+                },
+                True,
+            ),
+            (
+                pytest_cases.fixture_ref("org_user_free_plan"),
+                {
+                    "superuser": True,
+                    "everyone": False,
+                    "staff": True,
+                },
+                False,
+            ),
+            (
+                pytest_cases.fixture_ref("org_user_free_plan"),
+                {
+                    "superuser": True,
+                    "everyone": True,
+                    "staff": True,
+                },
+                True,
+            ),
+        ),
+    )
+    def test_feature_flag_works(self, user, mailchimp_flag_kwargs, expect_access, mailchimp_feature_flag, api_client):
+        """Show that flag can be used to control access based on superuser, everyone, and staff attributes."""
+        for k, v in mailchimp_flag_kwargs.items():
+            setattr(mailchimp_feature_flag, k, v)
+        mailchimp_feature_flag.save()
+        api_client.force_authenticate(user)
+        response = api_client.get(reverse("mail_chimp_integration_stub"))
+        assert response.status_code == status.HTTP_200_OK if expect_access else status.HTTP_403_FORBIDDEN
+
+    @pytest_cases.parametrize(
+        "user",
+        (
+            pytest_cases.fixture_ref("superuser"),
+            pytest_cases.fixture_ref("admin_user"),
+            pytest_cases.fixture_ref("org_user_free_plan"),
+        ),
+    )
+    def test_feature_flag_works_with_individual_assignment(
+        self, user, mailchimp_feature_flag_no_group_level_access, api_client
+    ):
+        """Show that flag can be used to grant individual users resource access"""
+        mailchimp_feature_flag_no_group_level_access.users.add(user)
+        mailchimp_feature_flag_no_group_level_access.save()
+        api_client.force_authenticate(user)
+        assert api_client.get(reverse("mail_chimp_integration_stub")).status_code == status.HTTP_200_OK

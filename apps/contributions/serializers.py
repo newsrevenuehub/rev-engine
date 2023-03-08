@@ -657,7 +657,11 @@ class SubscriptionsSerializer(serializers.Serializer):
         return datetime.fromtimestamp(int(instance.created), tz=timezone.utc)
 
     def get_last4(self, instance):
-        return instance.default_payment_method.card.last4
+        return (
+            instance.default_payment_method.card.last4
+            if instance.default_payment_method and instance.default_payment_method.card
+            else None
+        )
 
     def get_credit_card_expiration_date(self, instance):
         return (
@@ -695,4 +699,4 @@ class SubscriptionsSerializer(serializers.Serializer):
         return instance.get("customer")
 
     def get_payment_type(self, instance):
-        return instance.default_payment_method.type
+        return instance.default_payment_method.type if instance.default_payment_method else None

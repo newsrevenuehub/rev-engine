@@ -1,3 +1,4 @@
+import { HELP_URL } from 'constants/helperUrls';
 import { axe } from 'jest-axe';
 import { fireEvent, render, screen } from 'test-utils';
 import MaxPagesReachedModal, { MaxPagesReachedModalProps } from './MaxPagesReachedModal';
@@ -34,7 +35,7 @@ describe('MaxPagesReachedModal', () => {
 
     const link = screen.getByRole('link', { name: 'Upgrade' });
 
-    expect(link).toHaveAttribute('href', 'https://fundjournalism.org/news-revenue-engine-help/');
+    expect(link).toHaveAttribute('href', HELP_URL);
     expect(link).toHaveAttribute('target', '_blank');
   });
 

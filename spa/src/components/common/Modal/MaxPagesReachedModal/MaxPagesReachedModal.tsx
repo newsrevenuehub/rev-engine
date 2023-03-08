@@ -1,4 +1,5 @@
 import { Button, Modal, ModalFooter } from 'components/base';
+import { HELP_URL, PRICING_URL } from 'constants/helperUrls';
 import { EnginePlan } from 'hooks/useContributionPage';
 import PropTypes, { InferProps } from 'prop-types';
 import {
@@ -64,7 +65,7 @@ export function MaxPagesReachedModal({
             <li>Branded contributor portal</li>
             <li>2 live checkout pages</li>
             <li>
-              <PricingLink href="https://fundjournalism.org/pricing/" target="_blank">
+              <PricingLink href={PRICING_URL} target="_blank">
                 And more!
               </PricingLink>
             </li>
@@ -75,12 +76,7 @@ export function MaxPagesReachedModal({
         <LooseButton color="secondary" onClick={onClose}>
           Maybe Later
         </LooseButton>
-        <LooseButton
-          color="primaryDark"
-          component="a"
-          href="https://fundjournalism.org/news-revenue-engine-help/"
-          target="_blank"
-        >
+        <LooseButton color="primaryDark" component="a" href={HELP_URL} target="_blank">
           Upgrade
         </LooseButton>
       </ModalFooter>

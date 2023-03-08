@@ -110,7 +110,6 @@ class RevenueProgramSerializer(serializers.ModelSerializer):
     """
 
     slug = serializers.SlugField(required=False)
-    mailchimp_email_lists = serializers.JSONField(required=False, read_only=True)
 
     class Meta:
         model = RevenueProgram

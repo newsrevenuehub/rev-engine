@@ -4,7 +4,7 @@ from django.conf import settings
 from django.db.models.signals import post_delete
 from django.dispatch import receiver
 
-from apps.common.google_cloud_secrets import GoogleCloudSecretManagerException, delete_secret
+from apps.google_cloud.secrets_manager import GoogleCloudSecretManagerException, delete_secret
 from apps.organizations.models import RevenueProgram
 
 

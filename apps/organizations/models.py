@@ -366,12 +366,16 @@ class RevenueProgram(IndexedTimeStampedModel):
 
     @property
     def mailchimp_access_token_secret_name(self) -> str:
-        """"""
+        """This value will be used as the name of the secret in Google Cloud Secrets Manager"""
         return f"MAILCHIMP_ACCESS_TOKEN_FOR_RP_{self.id}_[{settings.ENVIRONMENT}]"
 
     @cached_property
     def mailchimp_access_token(self) -> str | None:
-        """ """
+        """The value for the RP's Mailchimp access token stored in Google Cloud Secrets Manager, if any.
+
+        Note that this property will return `None` if there are errors retrieving the secret or if the RP
+        is not configured to use Mailchimp.
+        """
         if not settings.ENABLE_GOOGLE_CLOUD_SECRET_MANAGER:
             return None
         try:

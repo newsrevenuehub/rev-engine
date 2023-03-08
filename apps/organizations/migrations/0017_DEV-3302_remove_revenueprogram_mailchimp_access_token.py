@@ -6,12 +6,12 @@ from django.db import migrations
 class Migration(migrations.Migration):
 
     dependencies = [
-        ('organizations', '0016_DEV-3297_add_mailchimp_fields'),
+        ("organizations", "0016_DEV-3297_add_mailchimp_fields"),
     ]
 
     operations = [
         migrations.RemoveField(
-            model_name='revenueprogram',
-            name='mailchimp_access_token',
+            model_name="revenueprogram",
+            name="mailchimp_access_token",
         ),
     ]

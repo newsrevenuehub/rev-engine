@@ -1,3 +1,5 @@
+from unittest.mock import Mock
+
 from django.conf import settings
 from django.test import override_settings
 from django.utils import timezone
@@ -7,6 +9,7 @@ from stripe import ApplePayDomain
 from stripe.error import StripeError
 
 import apps
+from apps.google_cloud.secrets_manager import GoogleCloudSecretManagerException
 from apps.organizations.models import (
     Benefit,
     BenefitLevel,
@@ -139,17 +142,49 @@ class TestRevenueProgram:
         mock_stripe_create.assert_called_once()
         mock_logger.exception.assert_called_once()
 
-    def test_mailchimp_access_token_property_happy_path(self, revenue_program, monkeypatch):
-        pass
+    def test_mailchimp_access_token_property_happy_path(self, revenue_program, monkeypatch, settings):
+        mock_secret = Mock(payload=Mock(data=(val := b"something")))
+        monkeypatch.setattr("apps.organizations.models.get_secret_version", lambda *args, **kwargs: mock_secret)
+        settings.ENABLE_GOOGLE_CLOUD_SECRET_MANAGER = True
+        assert revenue_program.mailchimp_access_token == val.decode("utf-8")
 
-    def test_mailchimp_access_token_property_when_secret_manager_not_enabled(self):
-        pass
+    def test_mailchimp_access_token_property_when_secret_manager_not_enabled(self, settings, revenue_program):
+        settings.ENABLE_GOOGLE_CLOUD_SECRET_MANAGER = False
+        assert revenue_program.mailchimp_access_token is None
 
-    def test_mailchimp_access_token_property_when_google_secret_manager_exception(self):
-        pass
+    def test_mailchimp_access_token_property_when_google_secret_manager_exception(
+        self, mocker, monkeypatch, revenue_program, settings
+    ):
+        settings.ENABLE_GOOGLE_CLOUD_SECRET_MANAGER = True
+        logger_spy = mocker.spy(apps.organizations.models.logger, "debug")
 
-    def test_mailchimp_access_token_property_when_unexpected_exception(self):
-        pass
+        def raise_exception():
+            raise GoogleCloudSecretManagerException("ruh roh!")
+
+        monkeypatch.setattr("apps.organizations.models.get_secret_version", lambda *args, **kwargs: raise_exception())
+
+        assert revenue_program.mailchimp_access_token is None
+
+        logger_spy.assert_called_once_with(
+            "`RevenueProgram.mailchimp_access_token` failed to fetch access token from Google Cloud Secrets for RP with ID %s",
+            revenue_program.id,
+        )
+
+    def test_mailchimp_access_token_property_when_unexpected_exception(
+        self, revenue_program, mocker, monkeypatch, settings
+    ):
+        settings.ENABLE_GOOGLE_CLOUD_SECRET_MANAGER = True
+        logger_spy = mocker.spy(apps.organizations.models.logger, "exception")
+
+        def raise_exception():
+            raise Exception("ruh roh!")
+
+        monkeypatch.setattr("apps.organizations.models.get_secret_version", lambda *args, **kwargs: raise_exception())
+        assert revenue_program.mailchimp_access_token is None
+        logger_spy.assert_called_once_with(
+            "`RevenueProgram.mailchimp_access_token` failed to fetch access token from Google Cloud Secrets for RP with ID %s",
+            revenue_program.id,
+        )
 
 
 class TestPaymentProvider:

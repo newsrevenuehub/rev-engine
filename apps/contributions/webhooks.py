@@ -185,7 +185,7 @@ class StripeWebhookProcessor:
                 reversion.set_comment(
                     f"StripeWebhookProcessor.process_payment_method webhook handler processed contribution with ID {contribution.id}"
                 )
-            contribution.save(update_fields=["provider_payment_method_id", "modified"])
+                contribution.save(update_fields=["provider_payment_method_id", "modified"])
 
     def process_invoice(self):
         """When Stripe sends a webhook about an upcoming subscription charge, we send an email reminder

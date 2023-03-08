@@ -26,7 +26,7 @@ export interface UseStyleListResult {
   isLoading: UseQueryResult['isLoading'];
   isError: UseQueryResult['isError'];
   styles: Style[];
-  refetch: Function;
+  refetch: () => void;
 }
 
 function useStyleList(): UseStyleListResult {

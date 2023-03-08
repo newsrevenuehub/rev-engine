@@ -7,6 +7,9 @@ export const GENERIC_ERROR_WITH_SUPPORT_INFO =
 export const NO_VALUE = '---';
 export const GOOGLE_FONT_MODS = 'ital,wght@0,100;0,300;0,400;0,700;1,400';
 
+// Settings
+export const ORGANIZATION_SUCCESS_TEXT = 'Successfully saved details!';
+
 // Account
 export const FORGOT_PASSWORD_SUCCESS_TEXT = 'Success. If your email is registered, an email will be sent to it.';
 export const RESET_PASSWORD_SUCCESS_TEXT = 'Your password has been successfully reset.';

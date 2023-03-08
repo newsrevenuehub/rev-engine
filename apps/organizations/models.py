@@ -264,12 +264,6 @@ class RevenueProgramQuerySet(models.QuerySet):
                 return self.none()
 
 
-@dataclass
-class MailchimpEmailList:
-    id: str
-    name: str
-
-
 class RevenueProgramManager(models.Manager):
     pass
 

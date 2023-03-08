@@ -699,7 +699,7 @@ class Contribution(IndexedTimeStampedModel):
                 if not dry_run:
                     logger.info("Setting status on contribution with ID %s to PAID", contribution.id)
                     contribution.status = ContributionStatus.PAID
-                    if not contribution.provider_payment_method_id and pi.payment_method:
+                    if pi.payment_method and not contribution.provider_payment_method_id:
                         logger.info(
                             "Setting payment method on contribution with ID %s to %s",
                             contribution.id,

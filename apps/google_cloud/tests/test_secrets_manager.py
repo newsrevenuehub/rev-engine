@@ -3,7 +3,7 @@ from dataclasses import dataclass
 import pytest
 from google.api_core.exceptions import AlreadyExists, NotFound, PermissionDenied
 
-from apps.common.google_cloud_secrets import (
+from apps.google_cloud.secrets_manager import (
     GoogleCloudSecretManagerException,
     create_secret,
     create_secret_version,
@@ -17,7 +17,7 @@ class TestGetSecretVersion:
     kwargs = {"secret_id": "my_big_secret", "version_id": "latest", "project_id": "test-project"}
 
     def test_happy_path(self, mocker):
-        mock_client = mocker.patch("apps.common.google_cloud_secrets.secretmanager.SecretManagerServiceClient")
+        mock_client = mocker.patch("apps.google_cloud.secrets_manager.secretmanager.SecretManagerServiceClient")
         value = "test"
         mock_client.return_value.access_secret_version.return_value.payload.data = value.encode("utf-8")
         assert get_secret_version(**self.kwargs).payload.data == value.encode("utf-8")
@@ -29,7 +29,7 @@ class TestGetSecretVersion:
 
     def test_when_not_found(self, mocker):
         logger_spy = mocker.spy(logger, "warning")
-        mock_client = mocker.patch("apps.common.google_cloud_secrets.secretmanager.SecretManagerServiceClient")
+        mock_client = mocker.patch("apps.google_cloud.secrets_manager.secretmanager.SecretManagerServiceClient")
         mock_client.return_value.access_secret_version.side_effect = NotFound("Not found")
         with pytest.raises(GoogleCloudSecretManagerException):
             get_secret_version(**self.kwargs)
@@ -41,7 +41,7 @@ class TestGetSecretVersion:
 
     def test_when_permission_denied(self, mocker):
         logger_spy = mocker.spy(logger, "warning")
-        mock_client = mocker.patch("apps.common.google_cloud_secrets.secretmanager.SecretManagerServiceClient")
+        mock_client = mocker.patch("apps.google_cloud.secrets_manager.secretmanager.SecretManagerServiceClient")
         mock_client.return_value.access_secret_version.side_effect = PermissionDenied("Permission denied")
         with pytest.raises(GoogleCloudSecretManagerException):
             get_secret_version(**self.kwargs)
@@ -60,7 +60,7 @@ class TestCreateSecret:
             name: str = "some-name"
             foo: str = "bar"
 
-        mock_client = mocker.patch("apps.common.google_cloud_secrets.secretmanager.SecretManagerServiceClient")
+        mock_client = mocker.patch("apps.google_cloud.secrets_manager.secretmanager.SecretManagerServiceClient")
         mock_client.return_value.create_secret.return_value = (return_value := MockReturnValue())
         mock_client.return_value.secret_path.return_value = (
             f"projects/{self.kwargs['project_id']}/secrets/{self.kwargs['secret_id']}"
@@ -75,7 +75,7 @@ class TestCreateSecret:
 
     def test_when_permission_denied(self, mocker):
         logger_spy = mocker.spy(logger, "warning")
-        mock_client = mocker.patch("apps.common.google_cloud_secrets.secretmanager.SecretManagerServiceClient")
+        mock_client = mocker.patch("apps.google_cloud.secrets_manager.secretmanager.SecretManagerServiceClient")
         mock_client.return_value.create_secret.side_effect = PermissionDenied("Permission denied")
         with pytest.raises(GoogleCloudSecretManagerException):
             create_secret(**self.kwargs)
@@ -87,7 +87,7 @@ class TestCreateSecret:
 
     def test_when_already_exists(self, mocker):
         logger_spy = mocker.spy(logger, "warning")
-        mock_client = mocker.patch("apps.common.google_cloud_secrets.secretmanager.SecretManagerServiceClient")
+        mock_client = mocker.patch("apps.google_cloud.secrets_manager.secretmanager.SecretManagerServiceClient")
         mock_client.return_value.create_secret.side_effect = AlreadyExists("Already exists")
         with pytest.raises(GoogleCloudSecretManagerException):
             create_secret(**self.kwargs)
@@ -107,7 +107,7 @@ class TestCreateSecretVersion:
             name: str = "some-name"
             foo: str = "bar"
 
-        mock_client = mocker.patch("apps.common.google_cloud_secrets.secretmanager.SecretManagerServiceClient")
+        mock_client = mocker.patch("apps.google_cloud.secrets_manager.secretmanager.SecretManagerServiceClient")
         mock_client.return_value.add_secret_version.return_value = (return_value := MockReturnValue())
         mock_client.return_value.secret_path.return_value = (
             f"projects/{self.kwargs['project_id']}/secrets/{self.kwargs['secret_id']}"
@@ -122,7 +122,7 @@ class TestCreateSecretVersion:
 
     def test_when_permission_denied(self, mocker):
         logger_spy = mocker.spy(logger, "warning")
-        mock_client = mocker.patch("apps.common.google_cloud_secrets.secretmanager.SecretManagerServiceClient")
+        mock_client = mocker.patch("apps.google_cloud.secrets_manager.secretmanager.SecretManagerServiceClient")
         mock_client.return_value.add_secret_version.side_effect = PermissionDenied("Permission denied")
         with pytest.raises(GoogleCloudSecretManagerException):
             create_secret_version(**self.kwargs)
@@ -134,7 +134,7 @@ class TestCreateSecretVersion:
 
     def test_when_not_found(self, mocker):
         logger_spy = mocker.spy(logger, "warning")
-        mock_client = mocker.patch("apps.common.google_cloud_secrets.secretmanager.SecretManagerServiceClient")
+        mock_client = mocker.patch("apps.google_cloud.secrets_manager.secretmanager.SecretManagerServiceClient")
         mock_client.return_value.add_secret_version.side_effect = NotFound("Not found")
         with pytest.raises(GoogleCloudSecretManagerException):
             create_secret_version(**self.kwargs)
@@ -149,7 +149,7 @@ class TestDeleteSecret:
     kwargs = {"secret_id": "my_big_secret", "project_id": "test-project"}
 
     def test_happy_path(self, mocker):
-        mock_client = mocker.patch("apps.common.google_cloud_secrets.secretmanager.SecretManagerServiceClient")
+        mock_client = mocker.patch("apps.google_cloud.secrets_manager.secretmanager.SecretManagerServiceClient")
         mock_client.return_value.secret_path.return_value = "some-path"
         mock_client.return_value.delete_secret.return_value = None
         delete_secret(**self.kwargs)
@@ -159,7 +159,7 @@ class TestDeleteSecret:
 
     def test_when_permission_denied(self, mocker):
         logger_spy = mocker.spy(logger, "warning")
-        mock_client = mocker.patch("apps.common.google_cloud_secrets.secretmanager.SecretManagerServiceClient")
+        mock_client = mocker.patch("apps.google_cloud.secrets_manager.secretmanager.SecretManagerServiceClient")
         mock_client.return_value.secret_path.return_value = "something"
         mock_client.return_value.delete_secret.side_effect = PermissionDenied("Permission denied")
         with pytest.raises(GoogleCloudSecretManagerException):
@@ -175,7 +175,7 @@ class TestDeleteSecret:
 
     def test_when_not_found(self, mocker):
         logger_spy = mocker.spy(logger, "warning")
-        mock_client = mocker.patch("apps.common.google_cloud_secrets.secretmanager.SecretManagerServiceClient")
+        mock_client = mocker.patch("apps.google_cloud.secrets_manager.secretmanager.SecretManagerServiceClient")
         mock_client.return_value.secret_path.return_value = (secret_path := "something")
         mock_client.return_value.delete_secret.side_effect = NotFound("Not found")
         with pytest.raises(GoogleCloudSecretManagerException):

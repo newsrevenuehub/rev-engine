@@ -699,7 +699,14 @@ class Contribution(IndexedTimeStampedModel):
                 if not dry_run:
                     logger.info("Setting status on contribution with ID %s to PAID", contribution.id)
                     contribution.status = ContributionStatus.PAID
-                    contribution.save()
+                    if not contribution.provider_payment_method_id and pi.payment_method:
+                        logger.info(
+                            "Setting payment method on contribution with ID %s to %s",
+                            contribution.id,
+                            pi.payment_method,
+                        )
+                        contribution.provider_payment_method_id = pi.payment_method
+                    contribution.save(update_fields=["status", "provider_payment_method_id"])
         recurring_updated = 0
         for contribution in Contribution.objects.recurring().filter(
             provider_subscription_id__isnull=False,

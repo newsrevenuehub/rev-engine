@@ -9,6 +9,7 @@ from django.db import models
 from django.utils.functional import cached_property
 from django.utils.safestring import SafeString, mark_safe
 
+import reversion
 import stripe
 from addict import Dict as AttrDict
 
@@ -697,16 +698,21 @@ class Contribution(IndexedTimeStampedModel):
                 logger.info("Contribution with ID %s has a stale status of PROCESSING", contribution.id)
                 one_times_updated += 1
                 if not dry_run:
-                    logger.info("Setting status on contribution with ID %s to PAID", contribution.id)
-                    contribution.status = ContributionStatus.PAID
-                    if pi.payment_method and not contribution.provider_payment_method_id:
-                        logger.info(
-                            "Setting payment method on contribution with ID %s to %s",
-                            contribution.id,
-                            pi.payment_method,
+                    with reversion.create_revision():
+                        logger.info("Setting status on contribution with ID %s to PAID", contribution.id)
+                        contribution.status = ContributionStatus.PAID
+                        if pi.payment_method and not contribution.provider_payment_method_id:
+                            logger.info(
+                                "Setting payment method on contribution with ID %s to %s",
+                                contribution.id,
+                                pi.payment_method,
+                            )
+                            contribution.provider_payment_method_id = pi.payment_method
+                        contribution.save(update_fields=["status", "provider_payment_method_id", "modified"])
+                        reversion.set_comment(
+                            f"`Contribution.fix_contributions_stuck_in_processing` updated contribution with ID {contribution.id}"
                         )
-                        contribution.provider_payment_method_id = pi.payment_method
-                    contribution.save(update_fields=["status", "provider_payment_method_id"])
+
         recurring_updated = 0
         for contribution in Contribution.objects.recurring().filter(
             provider_subscription_id__isnull=False,
@@ -716,9 +722,13 @@ class Contribution(IndexedTimeStampedModel):
                 logger.info("Contribution with ID %s has a stale status of PROCESSING", contribution.id)
                 recurring_updated += 1
                 if not dry_run:
-                    logger.info("Setting status on contribution with ID %s to PAID", contribution.id)
-                    contribution.status = ContributionStatus.PAID
-                    contribution.save()
+                    with reversion.create_revision():
+                        logger.info("Setting status on contribution with ID %s to PAID", contribution.id)
+                        contribution.status = ContributionStatus.PAID
+                        contribution.save(update_fields=["status", "modified"])
+                        reversion.set_comment(
+                            f"`Contribution.fix_contributions_stuck_in_processing` updated contribution with ID {contribution.id}"
+                        )
         logger.info(
             "%sUpdated status to `paid` on %s one-time and %s recurring contributions",
             "[DRY-RUN] " if dry_run else "",
@@ -755,22 +765,30 @@ class Contribution(IndexedTimeStampedModel):
                 contribution.id,
             )
             if not dry_run:
-                logger.info("Retrieving `provider_payment_method_details` for contribution with ID %s", contribution.id)
-                contribution.provider_payment_method_details = contribution.fetch_stripe_payment_method()
-                contribution.save()
-                one_times_updated += 1
+                with reversion.create_revision():
+                    logger.info(
+                        "Retrieving `provider_payment_method_details` for contribution with ID %s", contribution.id
+                    )
+                    contribution.provider_payment_method_details = contribution.fetch_stripe_payment_method()
+                    contribution.save(update_fields=["provider_payment_method_details", "modified"])
+                    one_times_updated += 1
+                    reversion.set_comment(
+                        "`Contribution.fix_missing_payment_method_details_data` synced `provider_payment_method_details` from Stripe"
+                    )
         recurring_updated = 0
         for contribution in Contribution.objects.recurring().exclude(provider_payment_method_id="").filter(**kwargs):
             logger.info(
-                "Contribution with ID %s has missing `provider_payment_method_details` data that can be synced from Stripe",
+                (
+                    "`Contribution.fix_missing_payment_method_details_data` Contribution with ID %s has missing "
+                    "`provider_payment_method_details` data that can be synced from Stripe"
+                ),
                 contribution.id,
             )
             if not dry_run:
                 logger.info("Setting status on contribution with ID %s to PAID", contribution.id)
                 contribution.provider_payment_method_details = contribution.fetch_stripe_payment_method()
-                contribution.save()
+                contribution.save(update_fields=["provider_payment_method_details", "modified"])
                 recurring_updated += 1
-        logger.info(one_times_updated)
         logger.info(
             "Synced `provider_payment_method_details` for %s one-time and %s recurring contributions",
             one_times_updated,
@@ -848,11 +866,12 @@ class Contribution(IndexedTimeStampedModel):
                 )
                 contribution.contribution_metadata = stripe_entity.metadata
                 if not dry_run:
-                    contribution.save()
-                    logger.info(
-                        "`Contribution.fix_missing_contribution_metadata` updated contribution_metadata on contribution with ID %s",
-                        contribution.id,
-                    )
+                    with reversion.create_revision():
+                        contribution.save(update_fields=["contribution_metadata", "modified"])
+                        logger.info(
+                            "`Contribution.fix_missing_contribution_metadata` updated contribution_metadata on contribution with ID %s",
+                            contribution.id,
+                        )
                 updated_count += 1
             else:
                 logger.warning(

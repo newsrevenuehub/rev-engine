@@ -55,22 +55,24 @@ export function MaxPagesReachedModal({
         <Recommendation data-testid="recommendation">
           <strong>Want to create more pages?</strong> Check out {planNames[recommendedPlan]}.
         </Recommendation>
-        <Card>
-          <CardHeader>
-            <CardHeaderHighlight>Core Tier</CardHeaderHighlight>
-          </CardHeader>
-          <BenefitsList>
-            <li>Mailchimp integration</li>
-            <li>Branded receipts</li>
-            <li>Branded contributor portal</li>
-            <li>2 live checkout pages</li>
-            <li>
-              <PricingLink href={PRICING_URL} target="_blank">
-                And more!
-              </PricingLink>
-            </li>
-          </BenefitsList>
-        </Card>
+        {recommendedPlan === 'CORE' && (
+          <Card>
+            <CardHeader>
+              <CardHeaderHighlight>Core Tier</CardHeaderHighlight>
+            </CardHeader>
+            <BenefitsList>
+              <li>Mailchimp integration</li>
+              <li>Branded receipts</li>
+              <li>Branded contributor portal</li>
+              <li>2 live checkout pages</li>
+              <li>
+                <PricingLink href={PRICING_URL} target="_blank">
+                  And more!
+                </PricingLink>
+              </li>
+            </BenefitsList>
+          </Card>
+        )}
       </ModalContent>
       <ModalFooter>
         <Button color="secondary" onClick={onClose}>

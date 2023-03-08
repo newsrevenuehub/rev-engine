@@ -73,9 +73,9 @@ export function MaxPagesReachedModal({
         </Card>
       </ModalContent>
       <ModalFooter>
-        <LooseButton color="secondary" onClick={onClose}>
+        <Button color="secondary" onClick={onClose}>
           Maybe Later
-        </LooseButton>
+        </Button>
         <LooseButton color="primaryDark" component="a" href={HELP_URL} target="_blank">
           Upgrade
         </LooseButton>

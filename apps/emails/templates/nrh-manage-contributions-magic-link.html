@@ -81,6 +81,16 @@
         color: #25192B;
         margin-top: 28px;
         margin-bottom: 25px;
+        {% if apply_custom_style and default_style.header_font %}
+        font-family: {% autoescape off %}{{ default_style.header_font }}{% endautoescape %} !important;
+        {% endif %}
+      }
+
+      .body-font {
+        font-family: 'Roboto', sans-serif;
+        {% if apply_custom_style and default_style.body_font %}
+        font-family: {% autoescape off %}{{ default_style.body_font }}{% endautoescape %} !important;
+        {% endif %}
       }
 
       .text {
@@ -198,10 +208,10 @@
               </tr>
               <tr>
                 <td>
-                  <p class="text inner-spacing">
+                  <p class="text inner-spacing body-font">
                     We received a request to manage contributions associated with <span class="email">{{ email }}</span>.
                   </p>
-                  <p class="text inner-spacing bottom-text">
+                  <p class="text inner-spacing bottom-text body-font">
                     Click the button below to review and manage your contributions.
                   </p>
                 </td>
@@ -229,7 +239,7 @@
               <tr>
                 <td align="center" valign="top">
                   <p class="copyright">
-                    © News Revenue Hub {% now "Y" %}
+                    ©{% now "Y" %} {{ rp_name }}
                   </p>
                 </td>
               </tr>

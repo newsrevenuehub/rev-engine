@@ -196,6 +196,7 @@ class RequestContributorTokenEmailView(APIView):
                 # in async task queue), using `{ static 'NewsRevenueHub...' }` won't work here. Need
                 # to fully spell out the value that will be sent to template.
                 "logo_url": os.path.join(settings.SITE_URL, "static", "nre-logo-white.png"),
+                "rp_name": revenue_program.name,
                 "default_style": default_style_dict,
                 "apply_custom_style": revenue_program.organization.plan.name
                 in ["CORE", "PLUS"]  # Org is in a premium plan

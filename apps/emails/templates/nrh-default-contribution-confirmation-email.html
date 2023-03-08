@@ -13,6 +13,9 @@
       font-size: 30px;
       margin-top: 37px;
       margin-bottom: 25px;
+      {% if apply_custom_style and default_style.header_font %}
+      font-family: {% autoescape off %}{{ default_style.header_font }}{% endautoescape %} !important;
+      {% endif %}
     }
 
     .user-info {
@@ -49,10 +52,10 @@
 </tr>
 <tr>
   <td style="padding-right: 0px;padding-left: 0px;" align="left">
-    <p class="user-info inner-center">
+    <p class="user-info inner-center body-font">
       Dear {{ contributor_name }},
     </p>
-    <p class="user-info user-info-second-line inner-center">
+    <p class="user-info user-info-second-line inner-center body-font">
       Thank you for supporting {{ rp_name }}.
     </p>
   </td>

@@ -21,6 +21,9 @@
     font-family: Roboto, sans-serif;
     color: #282828;
     font-size: 30px;
+    {% if apply_custom_style and default_style.header_font %}
+    font-family: {% autoescape off %}{{ default_style.header_font }}{% endautoescape %} !important;
+    {% endif %}
   }
 
   .template-margin-bot {

@@ -3,7 +3,14 @@ import { motion } from 'framer-motion';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
 
 export const PageEditor = styled.div`
-  margin-left: 90px;
+  /*
+  Adjust to fill space that was padded out by the <Dashboard> container. 96px is
+  the width of the buttons on the left side.
+  */
+  margin-bottom: -2rem;
+  margin-left: calc(96px - 3rem);
+  margin-top: -3rem;
+  width: calc(100% - 8px);
 `;
 
 export const PageEditorBackButton = styled.div`
@@ -19,34 +26,16 @@ export const DisabledSaveIcon = styled(FontAwesomeIcon)`
   color: ${(props) => props.theme.colors.grey[0]};
 `;
 
-export const ButtonOverlayOuter = styled.div`
-  position: fixed;
-  left: 0;
-  top: 48px;
-  width: 90px;
-  background-color: #fff;
-  height: 100%;
-
-  @media (${(props) => props.theme.breakpoints.tabletLandscapeDown}) {
-    padding-top: 0;
-    margin-top: 0px;
-    height: 100%;
-    width: 90px;
-    box-shadow: ${(props) => props.theme.shadows[0]};
-  }
-`;
-
 export const ButtonOverlay = styled.div`
-  position: fixed;
-  left: 0;
-  top: 100px;
-
+  align-items: center;
   display: flex;
   flex-direction: column;
-  justify-content: space-between;
-  padding: 1rem 0;
-  padding-left: 1.1rem;
   gap: 30px;
+  left: 0;
+  padding: 30px 0;
+  position: fixed;
+  top: 48px; /* Height of the top bar */
+  width: 96px;
 `;
 
 export const EditorButton = styled(motion.button)`

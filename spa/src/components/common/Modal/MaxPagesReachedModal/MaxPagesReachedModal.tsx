@@ -1,4 +1,4 @@
-import { Button, Modal, ModalFooter } from 'components/base';
+import { Button, LinkButton, Modal, ModalFooter } from 'components/base';
 import { HELP_URL, PRICING_URL } from 'constants/helperUrls';
 import { EnginePlan } from 'hooks/useContributionPage';
 import PropTypes, { InferProps } from 'prop-types';
@@ -41,8 +41,6 @@ export function MaxPagesReachedModal({
   open,
   recommendedPlan = 'CORE'
 }: MaxPagesReachedModalProps) {
-  const LooseButton = Button as any;
-
   return (
     <Modal open={!!open}>
       <ModalHeader icon={<ModalHeaderIcon />} onClose={onClose}>
@@ -78,9 +76,9 @@ export function MaxPagesReachedModal({
         <Button color="secondary" onClick={onClose}>
           Maybe Later
         </Button>
-        <LooseButton color="primaryDark" component="a" href={HELP_URL} target="_blank">
+        <LinkButton color="primaryDark" href={HELP_URL} target="_blank">
           Upgrade
-        </LooseButton>
+        </LinkButton>
       </ModalFooter>
     </Modal>
   );

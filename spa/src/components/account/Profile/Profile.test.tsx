@@ -7,6 +7,7 @@ import { CUSTOMIZE_ACCOUNT_ENDPOINT } from 'ajax/endpoints';
 import { render, screen, waitFor } from 'test-utils';
 import useUserImport from 'hooks/useUser';
 import Profile from './Profile';
+import { TAX_STATUS } from 'constants/fiscalStatus';
 
 jest.mock('react-router-dom', () => ({
   ...jest.requireActual('react-router-dom'),
@@ -126,7 +127,7 @@ describe('Profile', () => {
               first_name: 'mock-first-name',
               last_name: 'mock-last-name',
               organization_name: 'mock-company-name',
-              fiscal_status: 'fiscally sponsored',
+              fiscal_status: TAX_STATUS.FISCALLY_SPONSORED,
               job_title: 'mock-job-title',
               organization_tax_id: '987654321',
               fiscal_sponsor_name: 'mock-sponsor-name'

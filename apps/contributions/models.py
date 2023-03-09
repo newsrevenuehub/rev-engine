@@ -6,7 +6,6 @@ from urllib.parse import quote_plus
 
 from django.conf import settings
 from django.db import models
-from django.utils.functional import cached_property
 from django.utils.safestring import SafeString, mark_safe
 
 import reversion
@@ -612,7 +611,7 @@ class Contribution(IndexedTimeStampedModel):
             "sf_campaign_id": validated_data.get("sf_campaign_id"),
         }
 
-    @cached_property
+    @property
     def stripe_setup_intent(self) -> stripe.SetupIntent | None:
         if not (
             (si_id := self.provider_setup_intent_id)
@@ -634,7 +633,7 @@ class Contribution(IndexedTimeStampedModel):
                 )
                 return None
 
-    @cached_property
+    @property
     def stripe_payment_intent(self) -> stripe.PaymentIntent | None:
         if not (
             (pi_id := self.provider_payment_id)
@@ -656,7 +655,7 @@ class Contribution(IndexedTimeStampedModel):
                 )
                 return None
 
-    @cached_property
+    @property
     def stripe_subscription(self) -> stripe.Subscription | None:
         if not all(
             [

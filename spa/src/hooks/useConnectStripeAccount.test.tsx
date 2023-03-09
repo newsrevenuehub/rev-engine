@@ -44,7 +44,7 @@ const mockUser: User = {
   ],
   revenue_programs: [mockRp as RevenueProgram],
   role_type: ['org_admin', 'Org Admin']
-};
+} as any;
 
 const mockApiResponse: StripeAccountLinkStatusResponse = {
   url: 'mock-url',
@@ -57,7 +57,7 @@ describe('useConnectStripeAccount hook', () => {
   const wrapper = ({ children }: { children: ReactChild }) => (
     <QueryClientProvider client={new QueryClient()}>{children}</QueryClientProvider>
   );
-  let oldLocation = global.window.location;
+  const oldLocation = global.window.location;
 
   beforeEach(() => {
     axiosMock.onPost(getStripeAccountLinkStatusPath(mockRp.id)).reply(200, mockApiResponse);

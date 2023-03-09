@@ -1,5 +1,4 @@
 import { render, screen } from 'test-utils';
-import ReactTestUtils from 'react-dom/test-utils';
 import ForgotPassword from '.';
 import { SIGN_IN } from 'routes';
 

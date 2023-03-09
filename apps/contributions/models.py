@@ -742,7 +742,7 @@ class Contribution(IndexedTimeStampedModel):
                                 contribution.id,
                                 contribution.provider_payment_method_id,
                             )
-                        contribution.save(update_fields=["status", "modified"])
+                        contribution.save(update_fields=update_fields)
                         reversion.set_comment(comment)
         logger.info(
             "%sUpdated status to `paid` on %s one-time and %s recurring contributions",

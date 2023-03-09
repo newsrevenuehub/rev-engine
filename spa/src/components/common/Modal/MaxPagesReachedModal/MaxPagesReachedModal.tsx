@@ -23,7 +23,7 @@ const planNames: Record<EnginePlan['name'], string> = {
 };
 
 const MaxPagesReachedModalPropTypes = {
-  currentPlan: PropTypes.string.isRequired,
+  currentPlan: PropTypes.oneOf(Object.keys(planNames)).isRequired,
   onClose: PropTypes.func.isRequired,
   open: PropTypes.bool,
   recommendedPlan: PropTypes.string

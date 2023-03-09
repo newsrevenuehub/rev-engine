@@ -698,12 +698,15 @@ class Contribution(IndexedTimeStampedModel):
                 one_times_updated += 1
                 if not dry_run:
                     with reversion.create_revision():
-                        logger.info("Setting status on contribution with ID %s to PAID", contribution.id)
+                        logger.info(
+                            "`Contribution.fix_contributions_stuck_in_processing` Setting status on contribution with ID %s to PAID",
+                            contribution.id,
+                        )
                         contribution.status = ContributionStatus.PAID
                         comment = f"`Contribution.fix_contributions_stuck_in_processing` updated contribution with ID {contribution.id}."
                         if pi.payment_method and not contribution.provider_payment_method_id:
                             logger.info(
-                                "Setting payment method on contribution with ID %s to %s",
+                                "`Contribution.fix_contributions_stuck_in_processing` Setting payment method on contribution with ID %s to %s",
                                 contribution.id,
                                 pi.payment_method,
                             )
@@ -724,12 +727,23 @@ class Contribution(IndexedTimeStampedModel):
                 recurring_updated += 1
                 if not dry_run:
                     with reversion.create_revision():
+                        update_fields = ["status", "modified"]
                         logger.info("Setting status on contribution with ID %s to PAID", contribution.id)
                         contribution.status = ContributionStatus.PAID
+                        comment = f"`Contribution.fix_contributions_stuck_in_processing` updated contribution with ID {contribution.id}"
+                        if sub.default_payment_method and not contribution.provider_payment_method_id:
+                            update_fields.append("provider_payment_method_id")
+                            contribution.provider_payment_method_id = sub.default_payment_method
+                            comment += (
+                                f" 'provider_payment_method_id' was set to {contribution.provider_payment_method_id}"
+                            )
+                            logger.info(
+                                "`Contribution.fix_contributions_stuck_in_processing` Setting payment method on contribution with ID %s to %s",
+                                contribution.id,
+                                contribution.provider_payment_method_id,
+                            )
                         contribution.save(update_fields=["status", "modified"])
-                        reversion.set_comment(
-                            f"`Contribution.fix_contributions_stuck_in_processing` updated contribution with ID {contribution.id}"
-                        )
+                        reversion.set_comment(comment)
         logger.info(
             "%sUpdated status to `paid` on %s one-time and %s recurring contributions",
             "[DRY-RUN] " if dry_run else "",

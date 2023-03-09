@@ -6,8 +6,8 @@
     width: 600px;
     height: 80px;
     background: #ffffff;
-    {% if apply_custom_style and default_style.header_color %}
-    background: {{ default_style.header_color }} !important;
+    {% if header_color %}
+    background: {{ header_color }} !important;
     {% endif %}
   }
 
@@ -21,9 +21,6 @@
     font-family: Roboto, sans-serif;
     color: #282828;
     font-size: 30px;
-    {% if apply_custom_style and default_style.header_font %}
-    font-family: {% autoescape off %}{{ default_style.header_font }}{% endautoescape %} !important;
-    {% endif %}
   }
 
   .template-margin-bot {
@@ -39,9 +36,9 @@
 
 {% block header %}
 <tr>
-  {% if apply_custom_style and default_style.logo_url %}
+  {% if logo_url %}
     <td class="header-background" align="center" valign="top">
-      <img class="header-logo" src="{{ default_style.logo_url }}" alt="{{ rp_name }} logo" >
+      <img class="header-logo" src="{{ logo_url }}" alt="{{ rp_name }} logo" >
     </td>
     <td style="padding-right: 0px;padding-left: 0px;" align="left">
       <h1 class="template-header inner-center template-margin-bot">Scheduled Contribution</h1>

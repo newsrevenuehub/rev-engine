@@ -1,7 +1,6 @@
 import datetime
 import logging
 import uuid
-from dataclasses import asdict
 from typing import List, TypedDict
 from urllib.parse import quote_plus
 
@@ -542,7 +541,13 @@ class Contribution(IndexedTimeStampedModel):
             )
             return
         token = str(ContributorRefreshToken.for_contributor(self.contributor.uuid).short_lived_access_token)
-        default_style_dict = asdict(self.donation_page.revenue_program.default_style)
+
+        default_style = self.donation_page.revenue_program.default_style
+        apply_custom_style = (
+            self.donation_page.revenue_program.organization.plan.name in ["CORE", "PLUS"]  # Has feature flag enabled
+            and self.donation_page.revenue_program.organization.send_receipt_email_via_nre  # Org is in a premium plan
+        )
+
         send_templated_email.delay(
             self.contributor.email,
             f"Reminder: {self.donation_page.revenue_program.name} scheduled contribution",
@@ -564,11 +569,13 @@ class Contribution(IndexedTimeStampedModel):
                     f"https://{construct_rp_domain(self.donation_page.revenue_program.slug)}/{settings.CONTRIBUTOR_VERIFY_URL}"
                     f"?token={token}&email={quote_plus(self.contributor.email)}"
                 ),
-                "default_style": default_style_dict,
-                "apply_custom_style": self.donation_page.revenue_program.organization.plan.name
-                in ["CORE", "PLUS"]  # Org is in a premium plan
-                and any(default_style_dict.values())  # Has any non-null value in default_styles
-                and self.donation_page.revenue_program.organization.send_receipt_email_via_nre,  # Has feature flag enabled
+                "header_color": default_style.header_color
+                if apply_custom_style and default_style.header_color
+                else None,
+                "button_color": default_style.button_color
+                if apply_custom_style and default_style.button_color
+                else None,
+                "logo_url": default_style.logo_url if apply_custom_style and default_style.logo_url else None,
             },
         )
 

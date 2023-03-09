@@ -13,9 +13,6 @@
       font-size: 30px;
       margin-top: 37px;
       margin-bottom: 25px;
-      {% if apply_custom_style and default_style.header_font %}
-      font-family: {% autoescape off %}{{ default_style.header_font }}{% endautoescape %} !important;
-      {% endif %}
     }
 
     .user-info {
@@ -34,15 +31,7 @@
 {% block header %}
 <tr>
   <td style="padding-right: 0px;padding-left: 0px;" align="left">
-    <img class="logo inner-center"
-      {% if apply_custom_style and default_style.logo_url %}
-      src="{{ default_style.logo_url }}"
-      alt="{{ rp_name }} logo"
-      {% else %}
-      src="{{ logo_url }}"
-      alt="NRE logo"
-      {% endif %}
-      >
+    <img class="logo inner-center" src="{{ logo_url }}" alt="NRE logo" />
   </td>
 </tr>
 <tr>
@@ -52,10 +41,10 @@
 </tr>
 <tr>
   <td style="padding-right: 0px;padding-left: 0px;" align="left">
-    <p class="user-info inner-center body-font">
+    <p class="user-info inner-center">
       Dear {{ contributor_name }},
     </p>
-    <p class="user-info user-info-second-line inner-center body-font">
+    <p class="user-info user-info-second-line inner-center">
       Thank you for supporting {{ rp_name }}.
     </p>
   </td>

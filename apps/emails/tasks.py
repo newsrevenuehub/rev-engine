@@ -1,5 +1,4 @@
 import os
-from dataclasses import asdict
 
 from django.conf import settings
 from django.core.mail import EmailMultiAlternatives, send_mail
@@ -78,7 +77,12 @@ def send_thank_you_email(contribution_id: int) -> None:
         logger.exception("Something went wrong retrieving Stripe customer for contribution with id %s", contribution_id)
         raise exc
 
-    default_style_dict = asdict(contribution.donation_page.revenue_program.default_style)
+    default_style = contribution.donation_page.revenue_program.default_style
+    apply_custom_style = (
+        contribution.revenue_program.organization.plan.name in ["CORE", "PLUS"]  # Has feature flag enabled
+        and contribution.revenue_program.organization.send_receipt_email_via_nre  # Org is in a premium plan
+    )
+
     send_templated_email(
         contribution.contributor.email,
         "Thank you for your contribution!",
@@ -100,12 +104,11 @@ def send_thank_you_email(contribution_id: int) -> None:
             "fiscal_sponsor_name": contribution.revenue_program.fiscal_sponsor_name,
             "tax_id": contribution.revenue_program.tax_id,
             "magic_link": Contributor.create_magic_link(contribution),
-            "logo_url": os.path.join(settings.SITE_URL, "static", "nre-logo-yellow.png"),
-            "default_style": default_style_dict,
-            "apply_custom_style": contribution.revenue_program.organization.plan.name
-            in ["CORE", "PLUS"]  # Org is in a premium plan
-            and any(default_style_dict.values())  # Has any non-null value in default_styles
-            and contribution.revenue_program.organization.send_receipt_email_via_nre,  # Has feature flag enabled
+            "logo_url": default_style.logo_url
+            if apply_custom_style and default_style.logo_url
+            else os.path.join(settings.SITE_URL, "static", "nre-logo-yellow.png"),
+            "header_color": default_style.header_color if apply_custom_style and default_style.header_color else None,
+            "button_color": default_style.button_color if apply_custom_style and default_style.button_color else None,
         },
     )
 

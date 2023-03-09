@@ -48,8 +48,8 @@
         width: 600px;
         height: 80px;
         background: #523A5E;
-        {% if apply_custom_style and default_style.header_color %}
-        background: {{ default_style.header_color }} !important;
+        {% if header_color %}
+        background: {{ header_color }} !important;
         {% endif %}
       }
 
@@ -81,16 +81,6 @@
         color: #25192B;
         margin-top: 28px;
         margin-bottom: 25px;
-        {% if apply_custom_style and default_style.header_font %}
-        font-family: {% autoescape off %}{{ default_style.header_font }}{% endautoescape %} !important;
-        {% endif %}
-      }
-
-      .body-font {
-        font-family: 'Roboto', sans-serif;
-        {% if apply_custom_style and default_style.body_font %}
-        font-family: {% autoescape off %}{{ default_style.body_font }}{% endautoescape %} !important;
-        {% endif %}
       }
 
       .text {
@@ -129,8 +119,8 @@
         text-transform: uppercase;
         padding: 15px 50px;
         width: 270px;
-        {% if apply_custom_style and default_style.button_color %}
-        background: {{ default_style.button_color }} !important;
+        {% if button_color %}
+        background: {{ button_color }} !important;
         {% endif %}
       }
 
@@ -185,15 +175,7 @@
       <table align="center" class="wrapper" border="0" cellspacing="0" cellpadding="0">
         <tr>
           <td class="header-background" align="center" valign="top">
-              <img class="header-logo"
-              {% if apply_custom_style and default_style.logo_url %}
-              src="{{ default_style.logo_url }}"
-              alt="{{ rp_name }}"
-              {% else %}
-              src="{{ logo_url }}"
-              alt="NRE logo"
-              {% endif %}
-              />
+              <img class="header-logo" src="{{ logo_url }}" alt="NRE logo" />
           </td>
         </tr>
         <tr>
@@ -208,10 +190,10 @@
               </tr>
               <tr>
                 <td>
-                  <p class="text inner-spacing body-font">
+                  <p class="text inner-spacing">
                     We received a request to manage contributions associated with <span class="email">{{ email }}</span>.
                   </p>
-                  <p class="text inner-spacing bottom-text body-font">
+                  <p class="text inner-spacing bottom-text">
                     Click the button below to review and manage your contributions.
                   </p>
                 </td>

@@ -701,6 +701,7 @@ class Contribution(IndexedTimeStampedModel):
                     with reversion.create_revision():
                         logger.info("Setting status on contribution with ID %s to PAID", contribution.id)
                         contribution.status = ContributionStatus.PAID
+                        comment = f"`Contribution.fix_contributions_stuck_in_processing` updated contribution with ID {contribution.id}."
                         if pi.payment_method and not contribution.provider_payment_method_id:
                             logger.info(
                                 "Setting payment method on contribution with ID %s to %s",
@@ -708,10 +709,11 @@ class Contribution(IndexedTimeStampedModel):
                                 pi.payment_method,
                             )
                             contribution.provider_payment_method_id = pi.payment_method
+                            comment += (
+                                f" 'provider_payment_method_id' was set to {contribution.provider_payment_method_id}."
+                            )
                         contribution.save(update_fields=["status", "provider_payment_method_id", "modified"])
-                        reversion.set_comment(
-                            f"`Contribution.fix_contributions_stuck_in_processing` updated contribution with ID {contribution.id}"
-                        )
+                        reversion.set_comment(comment)
 
         recurring_updated = 0
         for contribution in Contribution.objects.recurring().filter(

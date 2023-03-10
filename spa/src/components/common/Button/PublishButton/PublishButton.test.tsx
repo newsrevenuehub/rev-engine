@@ -1,19 +1,19 @@
 import userEvent from '@testing-library/user-event';
 import { axe } from 'jest-axe';
-import { useAlert } from 'react-alert';
 import { act, render, screen, waitFor } from 'test-utils';
 import { GENERIC_ERROR } from 'constants/textConstants';
-import { EditablePageContext, EditablePageContextResult } from 'hooks/useEditablePage';
-import formatDatetimeForDisplay from 'utilities/formatDatetimeForDisplay';
-import { pageLink } from 'utilities/getPageLinks';
+import useContributionPageList from 'hooks/useContributionPageList';
+import { useEditablePageContext } from 'hooks/useEditablePage';
+import useUser from 'hooks/useUser';
 import PublishButton from './PublishButton';
+import { PLAN_LABELS } from 'constants/orgPlanConstants';
 
-jest.mock('react-alert', () => ({
-  ...jest.requireActual('react-alert'),
-  useAlert: jest.fn()
-}));
+jest.mock('hooks/useContributionPageList');
+jest.mock('hooks/useEditablePage');
+jest.mock('hooks/useUser');
+jest.mock('components/common/Modal/MaxPagesPublishedModal/MaxPagesPublishedModal');
+jest.mock('./PublishedPopover/PublishedPopover');
 jest.mock('./PublishModal/PublishModal');
-jest.mock('./UnpublishModal/UnpublishModal');
 
 const unpublishedPage = {
   name: 'Contribution page',
@@ -36,191 +36,222 @@ const publishedPage = {
   published_date: '2021-11-18T21:51:53Z'
 };
 
-describe('PublishButton', () => {
-  const useAlertMock = useAlert as jest.Mock;
+const user = {
+  organizations: [{ plan: { name: PLAN_LABELS.FREE } }]
+};
 
-  function tree(context?: Partial<EditablePageContextResult>) {
-    return render(
-      <EditablePageContext.Provider
-        value={{
-          deletePage: jest.fn(),
-          isError: false,
-          isLoading: false,
-          page: unpublishedPage as any,
-          pageChanges: {},
-          savePageChanges: jest.fn(),
-          setPageChanges: jest.fn(),
-          ...context
-        }}
-      >
-        <PublishButton />
-      </EditablePageContext.Provider>
-    );
+describe('PublishButton', () => {
+  const useEditablePageContextMock = useEditablePageContext as jest.Mock;
+  const useContributionPageListMock = useContributionPageList as jest.Mock;
+  const useUserMock = useUser as jest.Mock;
+
+  function tree() {
+    return render(<PublishButton />);
   }
 
+  beforeEach(() => {
+    useEditablePageContextMock.mockReturnValue({ isLoading: false, page: unpublishedPage });
+    useContributionPageListMock.mockReturnValue({ userCanPublishPage: () => true });
+    useUserMock.mockReturnValue({ user });
+  });
+
   it('renders nothing if the page is not set', () => {
-    tree({ page: undefined });
+    useEditablePageContextMock.mockReturnValue({ isLoading: true, page: undefined });
+    tree();
     expect(document.body.textContent).toBe('');
   });
 
-  it('should render publish button', () => {
+  it('renders nothing if the user is not set', () => {
+    useUserMock.mockReturnValue({ user: undefined });
     tree();
-    expect(screen.getByRole('button', { name: /Publish/i })).toBeEnabled();
+    expect(document.body.textContent).toBe('');
   });
 
-  it('should open publish modal when clicked', async () => {
-    tree();
-    const button = screen.getByRole('button', { name: /Publish/i });
-    expect(button).toBeEnabled();
-    userEvent.click(button);
-    await waitFor(() => expect(screen.getByTestId('mock-publish-modal')).toBeVisible());
-  });
+  describe("When user and page are set, but a payment provider hasn't been verified", () => {
+    beforeEach(() => useEditablePageContextMock.mockReturnValue({ page: disabledPage }));
 
-  describe('When the publish modal signals it wants to publish the page', () => {
-    it('save changes to the page', async () => {
-      const savePageChanges = jest.fn();
-
-      tree({ savePageChanges });
-      userEvent.click(screen.getByRole('button', { name: /Publish/i }));
-      expect(savePageChanges).not.toBeCalled();
-      userEvent.click(screen.getByText('onPublish'));
-      expect(savePageChanges.mock.calls).toEqual([[{ published_date: expect.any(String), slug: 'mock-slug' }]]);
-      // Allow pending re-renders to complete.
-      await act(() => Promise.resolve());
-    });
-
-    it('shows the published modal if the update succeeds', async () => {
+    it('shows a disabled button', () => {
       tree();
-      userEvent.click(screen.getByRole('button', { name: /Publish/i }));
-      userEvent.click(screen.getByText('onPublish'));
-      expect(await screen.findByText('Successfully Published Page')).toBeVisible();
-      expect(screen.queryAllByRole('alert').length).toBe(0);
+      expect(screen.getByRole('button', { name: `Publish page ${disabledPage.name}` })).toBeDisabled();
     });
 
-    it("displays an error message if the update doesn't succeed", async () => {
-      const savePageChanges = jest.fn();
-      const error = jest.fn();
+    it('shows a tooltip when the user points at the button', async () => {
+      tree();
+      userEvent.hover(screen.getByTestId('publish-button-wrapper'));
+      await waitFor(() => {
+        expect(screen.getByText(/Connect to Stripe to publish page/i)).toBeInTheDocument();
+      });
+    });
 
-      useAlertMock.mockReturnValue({ error });
-      savePageChanges.mockRejectedValue(new Error());
-      tree({ savePageChanges });
-      userEvent.click(screen.getByRole('button', { name: /Publish/i }));
-      userEvent.click(screen.getByText('onPublish'));
-      await waitFor(() => expect(error).toBeCalled());
-      expect(error.mock.calls).toEqual([[GENERIC_ERROR]]);
+    it('is accessible', async () => {
+      const { container } = tree();
+
+      expect(await axe(container)).toHaveNoViolations();
     });
   });
 
-  it('should be disabled if no payment provider (stripe)', () => {
-    tree({ page: disabledPage as any });
-    expect(screen.getByRole('button', { name: /Publish/i })).toBeDisabled();
-  });
+  describe('When user and page are set and a payment provider has been verified', () => {
+    describe('When the page has already been published', () => {
+      beforeEach(() => useEditablePageContextMock.mockReturnValue({ page: publishedPage }));
 
-  it('should show tooltip if button disabled and hovered', async () => {
-    tree({ page: disabledPage as any });
-    userEvent.hover(screen.getByTestId('publish-button-wrapper'));
-    await waitFor(() => {
-      expect(screen.getByText(/Connect to Stripe to publish page/i)).toBeInTheDocument();
-    });
-  });
-
-  it('should show enabled published button if published_date', () => {
-    tree({ page: publishedPage as any });
-    expect(screen.getByRole('button', { name: /Published/i })).toBeEnabled();
-  });
-
-  describe('The published popover', () => {
-    it('appears when the user clicks the Published button', async () => {
-      tree({ page: publishedPage as any });
-
-      const button = screen.getByRole('button', { name: /Published/i });
-
-      expect(button).toBeEnabled();
-      userEvent.click(button);
-      await waitFor(() => expect(screen.getByText(/live/i)).toBeVisible());
-
-      const liveSince = `${formatDatetimeForDisplay(publishedPage.published_date)} at ${formatDatetimeForDisplay(
-        publishedPage.published_date,
-        true
-      )}`;
-
-      expect(screen.getByTestId('publish-date')).toBeVisible();
-
-      // Very unclear why, but using .toHaveTextContent() fails... but only in CI.
-      expect(screen.getByTestId('publish-date').textContent).toBe(liveSince);
-
-      const goToPageButton = screen.getByRole('link', { name: /page link/i });
-
-      expect(goToPageButton).toBeEnabled();
-      expect(goToPageButton).toHaveAttribute('href', `//${pageLink(publishedPage)}`);
-      expect(screen.getByRole('button', { name: 'Unpublish' })).toBeVisible();
-    });
-
-    it('shows the unpublish modal when the unpublish button is clicked', () => {
-      tree({ page: publishedPage as any });
-      userEvent.click(screen.getByRole('button', { name: /Published/i }));
-      expect(screen.queryByTestId('mock-unpublish-modal')).not.toBeInTheDocument();
-      userEvent.click(screen.getByRole('button', { name: 'Unpublish' }));
-      expect(screen.getByTestId('mock-unpublish-modal')).toBeInTheDocument();
-    });
-
-    it('closes the unpublish modal when the user closes it', () => {
-      tree({ page: publishedPage as any });
-      userEvent.click(screen.getByRole('button', { name: /Published/i }));
-      userEvent.click(screen.getByRole('button', { name: 'Unpublish' }));
-      expect(screen.getByTestId('mock-unpublish-modal')).toBeInTheDocument();
-      userEvent.click(screen.getByRole('button', { name: 'onClose' }));
-      expect(screen.queryByTestId('mock-unpublish-modal')).not.toBeInTheDocument();
-    });
-
-    describe('When the user chooses to unpublish the page', () => {
-      it("sets the page's published date to undefined", async () => {
-        const savePageChanges = jest.fn();
-
-        tree({ savePageChanges, page: publishedPage as any });
-        userEvent.click(screen.getByRole('button', { name: /Published/i }));
-        userEvent.click(screen.getByRole('button', { name: 'Unpublish' }));
-        expect(savePageChanges).not.toBeCalled();
-        userEvent.click(screen.getByRole('button', { name: 'onUnpublish' }));
-        expect(savePageChanges.mock.calls).toEqual([[{ published_date: undefined }]]);
-
-        // Let the pending action complete.
-        await waitFor(() => expect(screen.queryByTestId('mock-unpublish-modal')).not.toBeInTheDocument());
+      it('shows an enabled button with label "Published"', () => {
+        tree();
+        expect(screen.getByRole('button', { name: `Published page ${publishedPage.name}` })).toBeEnabled();
       });
 
-      it('shows an error message and closes the unpublish modal if saving changes fails', async () => {
-        const errorSpy = jest.spyOn(console, 'error').mockImplementation(() => {});
-        const error = jest.fn();
-        const savePageChanges = jest.fn().mockRejectedValue(new Error());
-
-        useAlertMock.mockReturnValue({ error });
-        tree({ savePageChanges, page: publishedPage as any });
-        userEvent.click(screen.getByRole('button', { name: /Published/i }));
-        userEvent.click(screen.getByRole('button', { name: 'Unpublish' }));
-        userEvent.click(screen.getByRole('button', { name: 'onUnpublish' }));
-        await waitFor(() => expect(error).toBeCalled());
-        expect(error.mock.calls).toEqual([[GENERIC_ERROR]]);
-        expect(screen.queryByTestId('mock-unpublish-modal')).not.toBeInTheDocument();
-        errorSpy.mockRestore();
+      it("doesn't show a tooltip when the user points at the button", async () => {
+        tree();
+        userEvent.hover(screen.getByTestId('publish-button-wrapper'));
+        await act(() => Promise.resolve());
+        expect(screen.queryByText(/Connect to Stripe to publish page/i)).not.toBeInTheDocument();
       });
 
-      it('closes the unpublish modal when saving changes succeeds', async () => {
-        tree({ page: publishedPage as any });
-        userEvent.click(screen.getByRole('button', { name: /Published/i }));
-        userEvent.click(screen.getByRole('button', { name: 'Unpublish' }));
-        expect(screen.getByTestId('mock-unpublish-modal')).toBeInTheDocument();
-        userEvent.click(screen.getByRole('button', { name: 'onUnpublish' }));
-        await waitFor(() => expect(screen.queryByTestId('mock-unpublish-modal')).not.toBeInTheDocument());
+      it('opens a popover with details when clicked', () => {
+        tree();
+        expect(screen.queryByTestId('mock-published-popover')).not.toBeInTheDocument();
+        userEvent.click(screen.getByRole('button', { name: `Published page ${publishedPage.name}` }));
+        expect(screen.getByTestId('mock-published-popover')).toBeInTheDocument();
       });
 
-      // We don't need to test the alert on success; useEditablePage takes care
-      // of that for us.
+      it('closes the popover when the user closes it', () => {
+        tree();
+        userEvent.click(screen.getByRole('button', { name: `Published page ${publishedPage.name}` }));
+        expect(screen.getByTestId('mock-published-popover')).toBeInTheDocument();
+        userEvent.click(screen.getByText('PublishedPopover onClose'));
+        expect(screen.queryByTestId('mock-published-popover')).not.toBeInTheDocument();
+      });
+
+      it('is accessible', async () => {
+        const { container } = tree();
+
+        expect(await axe(container)).toHaveNoViolations();
+      });
     });
-  });
 
-  it('should be accessible', async () => {
-    const { container } = tree({ page: publishedPage as any });
+    describe('When the page has not been published yet', () => {
+      beforeEach(() => useEditablePageContextMock.mockReturnValue({ isLoading: false, page: unpublishedPage }));
 
-    expect(await axe(container)).toHaveNoViolations();
+      describe('And the user can publish a new page', () => {
+        beforeEach(() => {
+          useContributionPageListMock.mockReturnValue({ userCanPublishPage: () => true });
+        });
+
+        it('shows an enabled button with label "Publish"', () => {
+          tree();
+          expect(screen.getByRole('button', { name: `Publish page ${unpublishedPage.name}` })).toBeEnabled();
+        });
+
+        it("doesn't show a tooltip when the user points at the button", async () => {
+          tree();
+          userEvent.hover(screen.getByTestId('publish-button-wrapper'));
+          await act(() => Promise.resolve());
+          expect(screen.queryByText(/Connect to Stripe to publish page/i)).not.toBeInTheDocument();
+        });
+
+        it('opens the publish modal when clicked', () => {
+          tree();
+          expect(screen.queryByTestId('mock-publish-modal')).not.toBeInTheDocument();
+          userEvent.click(screen.getByRole('button', { name: `Publish page ${publishedPage.name}` }));
+          expect(screen.getByTestId('mock-publish-modal')).toBeInTheDocument();
+        });
+
+        it('closes the publish modal if the user closes it', () => {
+          tree();
+          userEvent.click(screen.getByRole('button', { name: `Publish page ${publishedPage.name}` }));
+          expect(screen.getByTestId('mock-publish-modal')).toBeInTheDocument();
+          userEvent.click(screen.getByText('PublishModal onClose'));
+          expect(screen.queryByTestId('mock-publish-modal')).not.toBeInTheDocument();
+        });
+
+        it('changes the published_date of the page when the modal requests the page be published', async () => {
+          const savePageChanges = jest.fn();
+
+          useEditablePageContextMock.mockReturnValue({ savePageChanges, isLoading: false, page: unpublishedPage });
+          tree();
+          userEvent.click(screen.getByRole('button', { name: `Publish page ${publishedPage.name}` }));
+          userEvent.click(screen.getByText('onPublish'));
+          expect(savePageChanges.mock.calls).toEqual([[{ published_date: expect.any(String), slug: 'mock-slug' }]]);
+          // Allow pending re-renders to complete.
+          await act(() => Promise.resolve());
+        });
+
+        it('shows an alert if publishing fails', async () => {
+          const savePageChanges = jest.fn();
+
+          savePageChanges.mockRejectedValue(new Error());
+          useEditablePageContextMock.mockReturnValue({ savePageChanges, isLoading: false, page: unpublishedPage });
+          tree();
+          userEvent.click(screen.getByRole('button', { name: `Publish page ${publishedPage.name}` }));
+          userEvent.click(screen.getByText('onPublish'));
+          expect(await screen.findByRole('alert')).toHaveTextContent(GENERIC_ERROR);
+        });
+
+        it('is accessible', async () => {
+          const { container } = tree();
+
+          expect(await axe(container)).toHaveNoViolations();
+        });
+
+        describe('When publishing succeeds', () => {
+          it('shows the publish success modal', async () => {
+            const savePageChanges = jest.fn();
+
+            useEditablePageContextMock.mockReturnValue({ savePageChanges, isLoading: false, page: unpublishedPage });
+            tree();
+            userEvent.click(screen.getByRole('button', { name: `Publish page ${publishedPage.name}` }));
+            userEvent.click(screen.getByText('onPublish'));
+            expect(await screen.findByText('Successfully Published Page')).toBeVisible();
+          });
+
+          it('closes the publish modal', async () => {
+            const savePageChanges = jest.fn();
+
+            useEditablePageContextMock.mockReturnValue({ savePageChanges, isLoading: false, page: unpublishedPage });
+            tree();
+            userEvent.click(screen.getByRole('button', { name: `Publish page ${publishedPage.name}` }));
+            userEvent.click(screen.getByText('onPublish'));
+            await act(() => Promise.resolve());
+            expect(screen.queryByTestId('mock-publish-modal')).not.toBeInTheDocument();
+          });
+        });
+      });
+
+      describe("But the user can't publish new pages", () => {
+        beforeEach(() => useContributionPageListMock.mockReturnValue({ userCanPublishPage: () => false }));
+
+        it('shows an enabled button with label "Publish"', () => {
+          tree();
+          expect(screen.getByRole('button', { name: `Publish page ${unpublishedPage.name}` })).toBeEnabled();
+        });
+
+        it("doesn't show a tooltip when the user points at the button", async () => {
+          tree();
+          userEvent.hover(screen.getByTestId('publish-button-wrapper'));
+          await act(() => Promise.resolve());
+          expect(screen.queryByText(/Connect to Stripe to publish page/i)).not.toBeInTheDocument();
+        });
+
+        it('shows the max published pages modal when clicked', () => {
+          tree();
+          expect(screen.queryByTestId('mock-max-pages-published-modal')).not.toBeInTheDocument();
+          userEvent.click(screen.getByRole('button', { name: `Publish page ${unpublishedPage.name}` }));
+          expect(screen.getByTestId('mock-max-pages-published-modal')).toBeInTheDocument();
+        });
+
+        it('closes the max published pages modal when the user clicks it', () => {
+          tree();
+          userEvent.click(screen.getByRole('button', { name: `Publish page ${unpublishedPage.name}` }));
+          expect(screen.getByTestId('mock-max-pages-published-modal')).toBeInTheDocument();
+          userEvent.click(screen.getByText('MaxPagesPublishedModal onClose'));
+          expect(screen.queryByTestId('mock-max-pages-published-modal')).not.toBeInTheDocument();
+        });
+
+        it('is accessible', async () => {
+          const { container } = tree();
+
+          expect(await axe(container)).toHaveNoViolations();
+        });
+      });
+    });
   });
 });

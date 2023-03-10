@@ -56,6 +56,10 @@ export interface UseContributionPageListResult {
    * page limit of their organization. If pages are being fetched, this returns `false`.
    */
   userCanCreatePage: (user: User) => boolean;
+  /**
+   * Returns whether a user can publish a new page. If pages are being fetched, this returns `false`.
+   */
+  userCanPublishPage: (user: User) => boolean;
 }
 
 async function fetchPages() {
@@ -142,8 +146,30 @@ function useContributionPageList(): UseContributionPageListResult {
     },
     [pages]
   );
+  const userCanPublishPage = useCallback(
+    (user: User) => {
+      // Hub admins and superusers can always create pages.
 
-  return { createPage, error, isError, isLoading, newPageProperties, pages, userCanCreatePage };
+      if ([USER_ROLE_HUB_ADMIN_TYPE, USER_SUPERUSER_TYPE].includes(user.role_type[0])) {
+        return true;
+      }
+
+      // If we don't know how many pages exist, assume no.
+
+      if (!pages) {
+        return false;
+      }
+
+      // Look at the user's first organization's plan limit and compare with
+      // pages that are currently published. We don't consider dates here; e.g.
+      // if a page has a publish date a year away, it still counts as published.
+
+      return pages.filter((page) => !!page.published_date).length < user.organizations[0].plan.page_publication_limit;
+    },
+    [pages]
+  );
+
+  return { createPage, error, isError, isLoading, newPageProperties, pages, userCanCreatePage, userCanPublishPage };
 }
 
 export default useContributionPageList;

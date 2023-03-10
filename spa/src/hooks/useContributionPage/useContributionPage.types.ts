@@ -43,6 +43,10 @@ export interface EnginePlan {
    */
   page_limit: number;
   /**
+   * How many published pages can a reveunue program have?
+   */
+  page_publication_limit: number;
+  /**
    * What element types are allowed in a page's sidebar?
    */
   sidebar_elements: PageElementType[];

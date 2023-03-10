@@ -1,6 +1,3 @@
-import os
-from dataclasses import asdict
-
 from django.conf import settings
 from django.core.mail import EmailMultiAlternatives, send_mail
 from django.template.loader import render_to_string
@@ -99,8 +96,9 @@ def send_thank_you_email(contribution_id: int) -> None:
             "fiscal_sponsor_name": contribution.revenue_program.fiscal_sponsor_name,
             "tax_id": contribution.revenue_program.tax_id,
             "magic_link": Contributor.create_magic_link(contribution),
-            "logo_url": os.path.join(settings.SITE_URL, "static", "nre-logo-yellow.png"),
-            "default_style": asdict(contribution.donation_page.revenue_program.default_style),
+            "logo_url": (style := contribution.donation_page.revenue_program.transactional_email_style).logo_url,
+            "header_color": style.header_color,
+            "button_color": style.button_color,
         },
     )
 

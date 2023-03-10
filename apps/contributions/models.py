@@ -1,7 +1,6 @@
 import datetime
 import logging
 import uuid
-from dataclasses import asdict
 from typing import List, TypedDict
 from urllib.parse import quote_plus
 
@@ -542,6 +541,7 @@ class Contribution(IndexedTimeStampedModel):
             )
             return
         token = str(ContributorRefreshToken.for_contributor(self.contributor.uuid).short_lived_access_token)
+
         send_templated_email.delay(
             self.contributor.email,
             f"Reminder: {self.donation_page.revenue_program.name} scheduled contribution",
@@ -563,7 +563,9 @@ class Contribution(IndexedTimeStampedModel):
                     f"https://{construct_rp_domain(self.donation_page.revenue_program.slug)}/{settings.CONTRIBUTOR_VERIFY_URL}"
                     f"?token={token}&email={quote_plus(self.contributor.email)}"
                 ),
-                "default_style": asdict(self.donation_page.revenue_program.default_style),
+                "header_color": (style := self.donation_page.revenue_program.transactional_email_style).header_color,
+                "button_color": style.button_color,
+                "logo_url": style.logo_url,
             },
         )
 

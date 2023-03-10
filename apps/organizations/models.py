@@ -1,4 +1,5 @@
 import logging
+import os
 from dataclasses import dataclass, field
 
 from django.conf import settings
@@ -250,8 +251,8 @@ class FiscalStatusChoices(models.TextChoices):
     FISCALLY_SPONSORED = "fiscally sponsored"
 
 
-@dataclass
-class DefaultStyle:
+@dataclass(frozen=True)
+class TransactionalEmailStyle:
     """Used to model the default style characteristics for a given revenue program,
 
     though in theory, this need not be tied to a revenue program.
@@ -262,6 +263,15 @@ class DefaultStyle:
     header_font: str = None
     body_font: str = None
     button_color: str = None
+
+
+HubDefaultEmailStyle = TransactionalEmailStyle(
+    logo_url=os.path.join(settings.SITE_URL, "static", "nre-logo-white.png"),
+    header_color=None,
+    header_font=None,
+    body_font=None,
+    button_color=None,
+)
 
 
 class RevenueProgramQuerySet(models.QuerySet):
@@ -375,17 +385,32 @@ class RevenueProgram(IndexedTimeStampedModel):
         return self.fiscal_status in (FiscalStatusChoices.FISCALLY_SPONSORED, FiscalStatusChoices.NONPROFIT)
 
     @property
-    def default_style(self) -> DefaultStyle:
-        if not (page := self.default_donation_page):
-            return DefaultStyle()
-        _style = AttrDict(page.styles.styles if page.styles else {})
-        return DefaultStyle(
-            logo_url=page.header_logo.url if page.header_logo else None,
-            header_color=_style.colors.cstm_mainHeader or None,
-            header_font=_style.font.heading or None,
-            body_font=_style.font.body or None,
-            button_color=_style.colors.cstm_CTAs or None,
-        )
+    def transactional_email_style(self) -> TransactionalEmailStyle:
+        """Guarantees that a TransactionalEmailStyle is returned.
+
+        This value gets used in transactional emails. It's meant to provide a reliable interface for transactional
+        email templates such that they don't need any knowledge about RP plans or broader context. Instead, email
+        templates can assume that the values provided by this property are always present.
+
+        If the RP's org is on free plan, or if there's no default donation page, return the HubDefaultEmailStyle.
+        Otherwise, derive a TransactionalEmailStyle instance based on the default donation page's chracteristics.
+        """
+        if any(
+            [
+                self.organization.plan.name == "FREE",
+                not (page := self.default_donation_page),
+            ]
+        ):
+            return HubDefaultEmailStyle
+        else:
+            _style = AttrDict(page.styles.styles if page.styles else {})
+            return TransactionalEmailStyle(
+                logo_url=page.header_logo.url if page.header_logo else None,
+                header_color=_style.colors.cstm_mainHeader or None,
+                header_font=_style.font.heading or None,
+                body_font=_style.font.body or None,
+                button_color=_style.colors.cstm_CTAs or None,
+            )
 
     def clean_fields(self, **kwargs):
         if not self.id:

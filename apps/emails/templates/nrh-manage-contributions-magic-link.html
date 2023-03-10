@@ -144,7 +144,7 @@
 
     @media only screen and (max-width:600px) {
       .wrapper {
-        <<<<<<< HEAD width: 600px
+        width: 600px
       }
 
       .header-background {
@@ -173,8 +173,7 @@
         height: 46px;
         margin-top: 17px;
         margin-bottom: 17px;
-        =======width: 100%;
-        >>>>>>>DEV-3254-backend-support-for-styled-emails
+        width: 100%;
       }
 
       .content {
@@ -199,8 +198,8 @@
         text-decoration: none;
         text-transform: uppercase;
         width: 270px;
-        {% if styles['button_color'] %}
-        background: {{ styles['button_color'] }} !important;
+        {% if style.button_color %}
+        background: {{ style.button_color }} !important;
         {% endif %}
         padding: 15px 20px;
       }
@@ -220,7 +219,7 @@
         <table align="center" class="wrapper" border="0" cellspacing="0" cellpadding="0">
           <tr>
             <td class="header-background" align="center" valign="top">
-              <img class="header-logo" src="{{ style['logo_url'] }}" alt="logo" />
+              <img class="header-logo" src="{{ style.logo_url }}" alt="logo" />
             </td>
           </tr>
           <tr>

@@ -182,7 +182,6 @@ class RequestContributorTokenEmailView(APIView):
         logger.info(
             "Sending magic link email to [%s] | magic link: [%s]", serializer.validated_data["email"], magic_link
         )
-
         send_templated_email.delay(
             serializer.validated_data["email"],
             "Manage your contributions",

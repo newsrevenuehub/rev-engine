@@ -1,5 +1,6 @@
 import os
 from dataclasses import asdict
+from typing import Literal
 from unittest import TestCase
 from unittest.mock import Mock, call, patch
 
@@ -24,7 +25,9 @@ from apps.pages.tests.factories import DonationPageFactory, StyleFactory
 @pytest.mark.django_db
 class TestSendThankYouEmail:
     @pytest.mark.parametrize("interval", (ContributionInterval.ONE_TIME, ContributionInterval.MONTHLY))
-    def test_happy_path(self, monkeypatch, interval):
+    def test_happy_path(
+        self, monkeypatch, interval: Literal[ContributionInterval.ONE_TIME, ContributionInterval.MONTHLY]
+    ):
         # TODO: DEV-3026 clean up here
         with patch("apps.contributions.models.Contribution.fetch_stripe_payment_method", return_value=None):
             contribution = ContributionFactory(provider_customer_id="something", interval=interval)
@@ -63,6 +66,8 @@ class TestSendThankYouEmail:
             "style": asdict(contribution.donation_page.revenue_program.transactional_email_style),
         }
 
+    # This test should get parameterized by revenue program only. The test only needs to test
+    # that the correct styles are applied to the email. We just need to know that it uses `revenue_program.transactional_email_style`.
     @pytest_cases.parametrize(
         "revenue_program",
         (
@@ -76,7 +81,9 @@ class TestSendThankYouEmail:
         "default_style",
         (False, True),
     )
-    def test_contribution_confirmation_email_custom_styles(self, revenue_program, default_style, monkeypatch):
+    def test_contribution_confirmation_email_style(
+        self, revenue_program: RevenueProgramFactory, default_style: bool, monkeypatch
+    ):
         customer = AttrDict({"name": "Foo Bar"})
         mock_customer_retrieve = Mock()
         mock_customer_retrieve.return_value = customer
@@ -210,7 +217,12 @@ class TestSendThankYouEmail:
         ),
     )
     def test_template_conditionality_around_non_profit_and_fiscal_sponsor_and_tax_status(
-        self, fiscal_status, has_tax_id, monkeypatch
+        self,
+        fiscal_status: Literal[
+            FiscalStatusChoices.NONPROFIT, FiscalStatusChoices.FISCALLY_SPONSORED, FiscalStatusChoices.FOR_PROFIT
+        ],
+        has_tax_id: bool,
+        monkeypatch,
     ):
         customer = AttrDict({"name": "Foo Bar"})
         mock_customer_retrieve = Mock()

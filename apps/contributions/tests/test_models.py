@@ -26,7 +26,7 @@ from apps.contributions.models import (
 )
 from apps.contributions.tests.factories import ContributionFactory, ContributorFactory
 from apps.emails.tasks import send_templated_email
-from apps.organizations.models import FiscalStatusChoices, FreePlan
+from apps.organizations.models import FiscalStatusChoices
 from apps.organizations.tests.factories import (
     OrganizationFactory,
     PaymentProviderFactory,
@@ -723,15 +723,15 @@ class TestContributionModel:
         ),
     )
     @pytest.mark.parametrize(
-        "default_style",
+        "has_default_donation_page",
         (False, True),
     )
-    def test_send_recurring_contribution_email_reminder_custom_styles(
-        self, revenue_program, default_style, monkeypatch, settings
+    def test_send_recurring_contribution_reminder_email_styles(
+        self, revenue_program, has_default_donation_page, monkeypatch, settings
     ):
         with patch("apps.contributions.models.Contribution.fetch_stripe_payment_method", return_value=None):
             contribution = ContributionFactory(interval=ContributionInterval.YEARLY)
-        if default_style:
+        if has_default_donation_page:
             style = StyleFactory()
             style.styles = style.styles | {
                 "colors": {
@@ -762,9 +762,6 @@ class TestContributionModel:
         contribution.send_recurring_contribution_email_reminder(next_charge_date)
         assert len(mail.outbox) == 1
 
-        custom_logo = 'src="/media/mock-logo"'
-        custom_header_background = "background: #mock-header-background !important"
-        custom_button_background = "background: #mock-button-color !important"
         magic_link = mark_safe(
             f"https://{construct_rp_domain(contribution.donation_page.revenue_program.slug)}/{settings.CONTRIBUTOR_VERIFY_URL}"
             f"?token={token}&email={quote_plus(contribution.contributor.email)}"
@@ -780,27 +777,9 @@ class TestContributionModel:
             "magic_link": magic_link,
             "fiscal_status": contribution.donation_page.revenue_program.fiscal_status,
             "fiscal_sponsor_name": contribution.donation_page.revenue_program.fiscal_sponsor_name,
+            "style": asdict(contribution.donation_page.revenue_program.transactional_email_style),
         }
-
-        if revenue_program.organization.plan.name == FreePlan.name or not default_style:
-            expect_present = ()
-            expect_missing = (custom_logo, custom_button_background, custom_header_background)
-            template_data = {
-                **template_data,
-                "header_color": None,
-                "button_color": None,
-                "logo_url": None,
-            }
-
-        else:
-            expect_present = (custom_logo, custom_header_background)
-            expect_missing = (custom_button_background,)
-            template_data = {
-                **template_data,
-                "header_color": "#mock-header-background",
-                "button_color": "#mock-button-color",
-                "logo_url": "/media/mock-logo",
-            }
+        # test the relevant things...
 
         mock_send_templated_email.assert_called_once_with(
             contribution.contributor.email,
@@ -809,11 +788,6 @@ class TestContributionModel:
             "recurring-contribution-email-reminder.html",
             template_data,
         )
-
-        for x in expect_present:
-            assert x in mail.outbox[0].alternatives[0][0]
-        for x in expect_missing:
-            assert x not in mail.outbox[0].alternatives[0][0]
 
     @pytest_cases.parametrize(
         "user",

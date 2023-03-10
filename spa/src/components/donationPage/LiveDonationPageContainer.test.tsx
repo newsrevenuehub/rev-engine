@@ -74,7 +74,7 @@ describe('LiveDonationPageContainer', () => {
           onSuccess({ data: mockData })
     );
     tree();
-    let helmet = Helmet.peek();
+    const helmet = Helmet.peek();
     expect(helmet.title).toBe(`Join | ${mockData.revenue_program.name}`);
     await waitFor(() => expect(document.title).toBe(`Join | ${mockData.revenue_program.name}`));
   });

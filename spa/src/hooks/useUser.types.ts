@@ -3,6 +3,7 @@ import { UserRole } from 'constants/authConstants';
 import { EnginePlan, RevenueProgram } from './useContributionPage';
 
 export interface Organization {
+  id: number;
   name: string;
   slug: string;
   plan: EnginePlan;

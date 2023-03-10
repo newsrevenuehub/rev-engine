@@ -1,5 +1,5 @@
 import logging
-import os
+from dataclasses import asdict
 from datetime import datetime
 from urllib.parse import quote_plus, urlparse
 
@@ -183,12 +183,6 @@ class RequestContributorTokenEmailView(APIView):
             "Sending magic link email to [%s] | magic link: [%s]", serializer.validated_data["email"], magic_link
         )
 
-        default_style = revenue_program.default_style
-        apply_custom_style = (
-            revenue_program.organization.plan.name in ["CORE", "PLUS"]  # Has feature flag enabled
-            and revenue_program.organization.send_receipt_email_via_nre  # Org is in a premium plan
-        )
-
         send_templated_email.delay(
             serializer.validated_data["email"],
             "Manage your contributions",
@@ -197,18 +191,7 @@ class RequestContributorTokenEmailView(APIView):
             {
                 "magic_link": mark_safe(magic_link),
                 "email": serializer.validated_data["email"],
-                # Because this is an email template and not being hydrated in request context (i.e., happens
-                # in async task queue), using `{ static 'NewsRevenueHub...' }` won't work here. Need
-                # to fully spell out the value that will be sent to template.
-                "logo_url": default_style.logo_url
-                if apply_custom_style and default_style.logo_url
-                else os.path.join(settings.SITE_URL, "static", "nre-logo-white.png"),
-                "header_color": default_style.header_color
-                if apply_custom_style and default_style.header_color
-                else None,
-                "button_color": default_style.button_color
-                if apply_custom_style and default_style.button_color
-                else None,
+                "style": asdict(revenue_program.transactional_email_style),
                 "rp_name": revenue_program.name,
             },
         )

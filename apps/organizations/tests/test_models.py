@@ -23,11 +23,12 @@ from apps.organizations.models import (
     Benefit,
     BenefitLevel,
     BenefitLevelBenefit,
-    DefaultStyle,
     FiscalStatusChoices,
+    HubDefaultEmailStyle,
     Organization,
     PaymentProvider,
     RevenueProgram,
+    TransactionalEmailStyle,
 )
 from apps.organizations.tests.factories import (
     BenefitLevelFactory,
@@ -136,11 +137,13 @@ class TestBenefitLevelBenefit:
 
 @pytest.fixture()
 def revenue_program_with_no_default_donation_page():
-    return RevenueProgramFactory(onboarded=True, default_donation_page=None)
+    return RevenueProgramFactory(
+        onboarded=True, default_donation_page=None, organization=OrganizationFactory(plus_plan=True)
+    )
 
 
 @pytest.fixture()
-def revenue_program_with_default_donation_page_all_default_style_values():
+def revenue_program_with_default_donation_page_all_transactional_email_style_values():
     # need to guarantee we get a unique name property because otherwise a pre-existing style could be retrieved
     # and we want net new
     style = StyleFactory()
@@ -151,8 +154,7 @@ def revenue_program_with_default_donation_page_all_default_style_values():
         },
         "font": {"heading": "something", "body": "else"},
     }
-    rp = RevenueProgramFactory(onboarded=True)
-
+    rp = RevenueProgramFactory(onboarded=True, organization=OrganizationFactory(plus_plan=True))
     page = DonationPageFactory(revenue_program=rp, styles=style, header_logo=get_test_image_file_jpeg())
     assert page.header_logo is not None
     rp.default_donation_page = page
@@ -160,8 +162,8 @@ def revenue_program_with_default_donation_page_all_default_style_values():
 
 
 @pytest_cases.fixture()
-def revenue_program_with_default_donation_page_but_no_default_style_values():
-    rp = RevenueProgramFactory(onboarded=True)
+def revenue_program_with_default_donation_page_but_no_transactional_email_style_values():
+    rp = RevenueProgramFactory(onboarded=True, organization=OrganizationFactory(plus_plan=True))
     style = StyleFactory(name="foo", revenue_program=rp)
     style.styles.pop("colors", None)
     style.styles.pop("font", None)
@@ -250,25 +252,41 @@ class TestRevenueProgram:
         mock_logger.exception.assert_called_once()
 
     @pytest_cases.parametrize(
-        "rp,expect_none_values",
+        "rp,make_expected_value_fn",
         (
-            (pytest_cases.fixture_ref("revenue_program_with_no_default_donation_page"), True),
-            (pytest_cases.fixture_ref("revenue_program_with_default_donation_page_all_default_style_values"), False),
-            (pytest_cases.fixture_ref("revenue_program_with_default_donation_page_but_no_default_style_values"), True),
+            (
+                pytest_cases.fixture_ref("revenue_program_with_no_default_donation_page"),
+                lambda rp: HubDefaultEmailStyle,
+            ),
+            (
+                pytest_cases.fixture_ref(
+                    "revenue_program_with_default_donation_page_all_transactional_email_style_values"
+                ),
+                lambda rp: TransactionalEmailStyle(
+                    logo_url=rp.default_donation_page.header_logo.url,
+                    header_color=rp.default_donation_page.styles.styles["colors"]["cstm_mainHeader"],
+                    header_font=rp.default_donation_page.styles.styles["font"]["heading"],
+                    body_font=rp.default_donation_page.styles.styles["font"]["body"],
+                    button_color=rp.default_donation_page.styles.styles["colors"]["cstm_CTAs"],
+                ),
+            ),
+            (
+                pytest_cases.fixture_ref(
+                    "revenue_program_with_default_donation_page_but_no_transactional_email_style_values"
+                ),
+                lambda rp: TransactionalEmailStyle(
+                    logo_url=None,
+                    header_color=None,
+                    header_font=None,
+                    body_font=None,
+                    button_color=None,
+                ),
+            ),
         ),
     )
-    def test_default_style_property(self, rp, expect_none_values):
-        """ """
-        if expect_none_values:
-            for k in DefaultStyle.__dataclass_fields__.keys():
-                assert getattr(rp.default_style, k) is None
-        else:
-            page_styles = rp.default_donation_page.styles.styles
-            assert rp.default_style.logo_url == rp.default_donation_page.header_logo.url
-            assert rp.default_style.header_color == page_styles["colors"]["cstm_mainHeader"]
-            assert rp.default_style.header_font == page_styles["font"]["heading"]
-            assert rp.default_style.body_font == page_styles["font"]["body"]
-            assert rp.default_style.button_color == page_styles["colors"]["cstm_CTAs"]
+    def test_transactional_email_style_property(self, rp, make_expected_value_fn):
+        expected_value = make_expected_value_fn(rp)
+        assert rp.transactional_email_style == expected_value
 
     def test_slug_created(self):
         assert RevenueProgramFactory().slug

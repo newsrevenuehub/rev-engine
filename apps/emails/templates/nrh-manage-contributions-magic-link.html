@@ -1,230 +1,240 @@
 {% load static %}
-<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
-<html xmlns="http://www.w3.org/1999/xhtml"
-      xmlns:v="urn:schemas-microsoft-com:vml"
-      xmlns:o="urn:schemas-microsoft-com:office:office">
+<!DOCTYPE html
+  PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml" xmlns:v="urn:schemas-microsoft-com:vml"
+  xmlns:o="urn:schemas-microsoft-com:office:office">
+
 <head>
-    <!--[if gte mso 9]><xml>
+  <!--[if gte mso 9]><xml>
     <o:OfficeDocumentSettings>
         <o:AllowPNG/>
         <o:PixelsPerInch>96</o:PixelsPerInch>
     </o:OfficeDocumentSettings>
 </xml><![endif]-->
-    <title>Manage your contributions</title>
-    <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
-    <meta http-equiv="X-UA-Compatible" content="IE=edge" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0 " />
-    <meta name="format-detection" content="telephone=no"/>
-    <!--[if !mso]><!-->
-    <link href="https://fonts.googleapis.com/css?family=Roboto:400,500,600,700&display=swap" rel="stylesheet" type="text/css">
-    <!--<![endif]-->
-    <style type="text/css">
-      body {
-        margin: 0;
-        padding: 0;
-        -webkit-text-size-adjust: 100% !important;
-        -ms-text-size-adjust: 100% !important;
-        -webkit-font-smoothing: antialiased !important;
-      }
-      img {
-        border: 0 !important;
-        outline: none !important;
-      }
-      table {
-        border-collapse: collapse;
-        mso-table-lspace: 0px;
-        mso-table-rspace: 0px;
-      }
-      td, a, span {
-        border-collapse: collapse;
-        mso-line-height-rule: exactly;
-      }
+  <title>Manage your contributions</title>
+  <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+  <meta http-equiv="X-UA-Compatible" content="IE=edge" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0 " />
+  <meta name="format-detection" content="telephone=no" />
+  <!--[if !mso]><!-->
+  <link href="https://fonts.googleapis.com/css?family=Roboto:400,500,600,700&display=swap" rel="stylesheet"
+    type="text/css">
+  <!--<![endif]-->
+  <style type="text/css">
+    body {
+      margin: 0;
+      padding: 0;
+      -webkit-text-size-adjust: 100% !important;
+      -ms-text-size-adjust: 100% !important;
+      -webkit-font-smoothing: antialiased !important;
+    }
 
+    img {
+      border: 0 !important;
+      outline: none !important;
+    }
+
+    table {
+      border-collapse: collapse;
+      mso-table-lspace: 0px;
+      mso-table-rspace: 0px;
+    }
+
+    td,
+    a,
+    span {
+      border-collapse: collapse;
+      mso-line-height-rule: exactly;
+    }
+
+    .wrapper {
+      width: 600px
+    }
+
+    .header-background {
+      width: 600px;
+      height: 80px;
+      background: #523A5E;
+    }
+
+    .header-logo {
+      height: 46px;
+      margin-top: 17px;
+      margin-bottom: 17px;
+    }
+
+    .content {
+      margin-top: 50px;
+      width: 452px;
+      background: #FFFFFF;
+      border: 1px solid #EBEBEB;
+      border-collapse: separate;
+      border-radius: 10px;
+    }
+
+    .inner-spacing {
+      margin-left: 38px;
+      margin-right: 38px;
+    }
+
+    .title {
+      font-family: 'Roboto', sans-serif;
+      font-weight: 700;
+      font-size: 30px;
+      line-height: 41px;
+      color: #25192B;
+      margin-top: 28px;
+      margin-bottom: 25px;
+    }
+
+    .text {
+      font-size: 16px;
+      margin-top: 0px;
+      margin-bottom: 0px;
+      font-family: 'Roboto';
+      font-weight: 400;
+      color: #282828;
+    }
+
+    .bottom-text {
+      margin-top: 20px;
+    }
+
+    .email {
+      color: #0052CC;
+      font-weight: 500;
+    }
+
+    .button-wrapper {
+      height: 50px;
+      padding-top: 40px;
+      padding-bottom: 50px;
+    }
+
+    .button {
+      background: #F2FF59;
+      color: #25192B !important;
+      border-radius: 6px;
+      font-family: 'Roboto';
+      font-weight: 600;
+      font-size: 14px;
+      line-height: 16px;
+      text-decoration: none;
+      text-transform: uppercase;
+      padding: 15px 50px;
+      width: 270px;
+    }
+
+    .info {
+      font-family: 'Roboto';
+      font-weight: 400;
+      font-size: 16px;
+      color: #707070;
+      margin: 50px 75px 95px;
+    }
+
+    .copyright {
+      color: #707070;
+      font-family: 'Roboto';
+      font-weight: 500;
+      font-size: 14px;
+      line-height: 16px;
+      margin-bottom: 38px;
+    }
+
+    @media only screen and (max-width:600px) {
       .wrapper {
-        width: 600px
-      }
-
-      .header-background {
-        width: 600px;
-        height: 80px;
-        background: #523A5E;
-      }
-
-      .header-logo {
-        height: 46px;
-        margin-top: 17px;
-        margin-bottom: 17px;
+        width: 100%;
       }
 
       .content {
-        margin-top: 50px;
-        width: 452px;
-        background: #FFFFFF;
-        border: 1px solid #EBEBEB;
-        border-collapse: separate;
-        border-radius: 10px;
+        margin-left: 16px;
+        margin-right: 16px;
+        width: unset;
       }
 
       .inner-spacing {
-        margin-left: 38px;
-        margin-right: 38px;
-      }
-
-      .title {
-        font-family: 'Roboto', sans-serif;
-        font-weight: 700;
-        font-size: 30px;
-        line-height: 41px;
-        color: #25192B;
-        margin-top: 28px;
-        margin-bottom: 25px;
-      }
-
-      .text {
-        font-size: 16px;
-        margin-top: 0px;
-        margin-bottom: 0px;
-        font-family: 'Roboto';
-        font-weight: 400;
-        color: #282828;
-      }
-
-      .bottom-text {
-        margin-top: 20px;
-      }
-
-      .email {
-        color: #0052CC;
-        font-weight: 500;
-      }
-
-      .button-wrapper {
-        height: 50px;
-        padding-top: 40px;
-        padding-bottom: 50px;
+        margin-left: 16px;
+        margin-right: 16px;
       }
 
       .button {
-        background: #F2FF59;
-        color: #25192B !important;
-        border-radius: 6px;
-        font-family: 'Roboto';
-        font-weight: 600;
-        font-size: 14px;
-        line-height: 16px;
-        text-decoration: none;
-        text-transform: uppercase;
-        padding: 15px 50px;
-        width: 270px;
+        padding: 15px 20px;
       }
 
       .info {
-        font-family: 'Roboto';
-        font-weight: 400;
-        font-size: 16px;
-        color: #707070;
-        margin: 50px 75px 95px;
+        margin: 50px 16px 95px;
       }
-
-      .copyright {
-        color: #707070;
-        font-family: 'Roboto';
-        font-weight: 500;
-        font-size: 14px;
-        line-height: 16px;
-        margin-bottom: 38px;
-      }
-
-      @media only screen and (max-width:600px) {
-        .wrapper {
-          width: 100%;
-        }
-
-        .content {
-          margin-left: 16px;
-          margin-right: 16px;
-          width: unset;
-        }
-
-        .inner-spacing {
-          margin-left: 16px;
-          margin-right: 16px;
-        }
-
-        .button {
-          padding: 15px 20px;
-        }
-
-        .info {
-          margin: 50px 16px 95px;
-        }
-      }
-    </style>
+    }
+  </style>
 
 </head>
+
 <body>
-<table width="100%" border="0" cellspacing="0" cellpadding="0" align="center">
-  <tr>
-    <td align="center" valign="top">
-      <table align="center" class="wrapper" border="0" cellspacing="0" cellpadding="0">
-        <tr>
-          <td class="header-background" align="center" valign="top">
-            <img class="header-logo" src="{{ logo_url }}" alt="NRE logo" />
-          </td>
-        </tr>
-        <tr>
-          <td style="background-color: #f1f1f1" align="center" valign="top">
-            <table class="content" cellspacing="0" cellpadding="0" align="center">
-              <tr>
-                <td>
-                  <h1 class="title inner-spacing">
-                    Your Contributions
-                  </h1>
-                </td>
-              </tr>
-              <tr>
-                <td>
-                  <p class="text inner-spacing">
-                    We received a request to manage contributions associated with <span class="email">{{ email }}</span>.
-                  </p>
-                  <p class="text inner-spacing bottom-text">
-                    Click the button below to review and manage your contributions.
-                  </p>
-                </td>
-              </tr>
-              <tr>
-                <td class="button-wrapper">
-                  <a data-testid="magic-link" href="{{ magic_link }}" target="_blank" class="button inner-spacing">
-                    manage contributions
-                  </a>
-                </td>
-              </tr>
-            </table>
-          </td>
-        </tr>
-        <tr>
-          <td style="background-color: #f1f1f1" align="center" valign="top">
-            <table cellspacing="0" cellpadding="0" align="center">
-              <tr>
-                <td valign="top">
-                  <p class="info">
-                    If you received this in error, please ignore this email and do not click the button.
-                  </p>
-                </td>
-              </tr>
-              <tr>
-                <td align="center" valign="top">
-                  <p class="copyright">
-                    © News Revenue Hub {% now "Y" %}
-                  </p>
-                </td>
-              </tr>
-            </table>
-          </td>
-        </tr>
-      </table>
-    </td>
-  </tr>
-</table>
+  <table width="100%" border="0" cellspacing="0" cellpadding="0" align="center">
+    <tr>
+      <td align="center" valign="top">
+        <table align="center" class="wrapper" border="0" cellspacing="0" cellpadding="0">
+          <tr>
+            <td class="header-background" align="center" valign="top">
+              <img class="header-logo" src="{{ style['logo_url'] }}" alt="logo" />
+            </td>
+          </tr>
+          <tr>
+            <td style="background-color: #f1f1f1" align="center" valign="top">
+              <table class="content" cellspacing="0" cellpadding="0" align="center">
+                <tr>
+                  <td>
+                    <h1 class="title inner-spacing">
+                      Your Contributions
+                    </h1>
+                  </td>
+                </tr>
+                <tr>
+                  <td>
+                    <p class="text inner-spacing">
+                      We received a request to manage contributions associated with <span class="email">{{ email
+                        }}</span>.
+                    </p>
+                    <p class="text inner-spacing bottom-text">
+                      Click the button below to review and manage your contributions.
+                    </p>
+                  </td>
+                </tr>
+                <tr>
+                  <td class="button-wrapper">
+                    <a data-testid="magic-link" href="{{ magic_link }}" target="_blank" class="button inner-spacing">
+                      manage contributions
+                    </a>
+                  </td>
+                </tr>
+              </table>
+            </td>
+          </tr>
+          <tr>
+            <td style="background-color: #f1f1f1" align="center" valign="top">
+              <table cellspacing="0" cellpadding="0" align="center">
+                <tr>
+                  <td valign="top">
+                    <p class="info">
+                      If you received this in error, please ignore this email and do not click the button.
+                    </p>
+                  </td>
+                </tr>
+                <tr>
+                  <td align="center" valign="top">
+                    <p class="copyright">
+                      © News Revenue Hub {% now "Y" %}
+                    </p>
+                  </td>
+                </tr>
+              </table>
+            </td>
+          </tr>
+        </table>
+      </td>
+    </tr>
+  </table>
 </body>
+
 </html>

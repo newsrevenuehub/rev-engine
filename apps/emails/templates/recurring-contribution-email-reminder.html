@@ -6,8 +6,8 @@
     width: 600px;
     height: 80px;
     background: #ffffff;
-    {% if header_color %}
-    background: {{ header_color }} !important;
+    {% if style.header_color %}
+    background: {{ style.header_color }} !important;
     {% endif %}
   }
 
@@ -38,7 +38,7 @@
 <tr>
   {% if logo_url %}
     <td class="header-background" align="center" valign="top">
-      <img class="header-logo" src="{{ logo_url }}" alt="{{ rp_name }} logo" >
+      <img class="header-logo" src="{{ style.logo_url }}" alt="logo" >
     </td>
     <td style="padding-right: 0px;padding-left: 0px;" align="left">
       <h1 class="template-header inner-center template-margin-bot">Scheduled Contribution</h1>

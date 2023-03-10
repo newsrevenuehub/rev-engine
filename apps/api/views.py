@@ -1,4 +1,5 @@
 import logging
+from dataclasses import asdict
 from datetime import datetime
 from urllib.parse import quote_plus, urlparse
 
@@ -189,12 +190,7 @@ class RequestContributorTokenEmailView(APIView):
             {
                 "magic_link": mark_safe(magic_link),
                 "email": serializer.validated_data["email"],
-                # Because this is an email template and not being hydrated in request context (i.e., happens
-                # in async task queue), using `{ static 'NewsRevenueHub...' }` won't work here. Need
-                # to fully spell out the value that will be sent to template.
-                "logo_url": (style := revenue_program.transactional_email_style).logo_url,
-                "header_color": style.header_color,
-                "button_color": style.button_color,
+                "style": asdict(revenue_program.transactional_email_style),
                 "rp_name": revenue_program.name,
             },
         )

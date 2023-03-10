@@ -51,7 +51,14 @@ export function MaxPagesReachedModal({
           You've reached the <RedEmphasis>maximum</RedEmphasis> number of pages for the {planNames[currentPlan]} tier.
         </PlanLimit>
         <Recommendation data-testid="recommendation">
-          <strong>Want to create more pages?</strong> Check out {planNames[recommendedPlan]}.
+          <strong>Want to create more pages?</strong> Check out{' '}
+          {recommendedPlan !== 'PLUS' && planNames[recommendedPlan]}
+          {recommendedPlan === 'PLUS' && (
+            <PricingLink href={PRICING_URL} target="_blank">
+              {planNames[recommendedPlan]}
+            </PricingLink>
+          )}
+          .
         </Recommendation>
         {recommendedPlan === 'CORE' && (
           <Card>

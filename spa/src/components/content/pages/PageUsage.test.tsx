@@ -87,6 +87,16 @@ describe('PageUsage', () => {
     expect(document.body).toHaveTextContent('1 of 10 pages');
   });
 
+  it('shows a page and limit if the user is on the Core plan', () => {
+    useUserMock.mockReturnValue({
+      isError: false,
+      isLoading: false,
+      user: { organizations: [{ plan: { name: 'Core', page_limit: 1 } }], role_type: [USER_ROLE_ORG_ADMIN_TYPE] }
+    });
+    tree();
+    expect(document.body).toHaveTextContent('1 of 1 page');
+  });
+
   it('is accessible', async () => {
     const { container } = tree();
 

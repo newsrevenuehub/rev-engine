@@ -348,10 +348,9 @@ class Contribution(IndexedTimeStampedModel):
             return {"code": self.currency.upper(), "symbol": settings.CURRENCIES[self.currency.upper()]}
         except KeyError:
             logger.error(
-                'Currency settings for stripe account/product "%s"/"%s" misconfigured. Tried to access "%s", but valid options are: %s',
+                'Currency settings for stripe account "%s" misconfigured. Tried to access "%s", but valid options are: %s',
                 self.stripe_account_id,
-                self.stripe_product_id,
-                self.currency,
+                self.currency.upper(),
                 settings.CURRENCIES,
             )
             return {"code": "", "symbol": ""}

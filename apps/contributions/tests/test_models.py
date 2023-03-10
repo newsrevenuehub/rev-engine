@@ -576,6 +576,15 @@ class TestContributionModel:
             and contribution.formatted_donor_selected_amount == f"{contribution.amount} {contribution.currency.upper()}"
         )
 
+    @pytest.mark.parametrize("name, symbol", settings.CURRENCIES.items())
+    def test_get_currency_dict(self, name, symbol):
+        contribution = ContributionFactory(currency=name, provider_payment_method_id=None)
+        assert {"code": name, "symbol": symbol} == contribution.get_currency_dict()
+
+    def test_get_currency_dict_bad_value(self):
+        contribution = ContributionFactory(currency="???", provider_payment_method_id=None)
+        assert {"code": "", "symbol": ""} == contribution.get_currency_dict()
+
     @pytest.mark.parametrize(
         "interval,expect_success",
         (

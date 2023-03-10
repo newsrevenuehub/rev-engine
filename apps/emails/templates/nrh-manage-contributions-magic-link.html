@@ -150,23 +150,9 @@
       .header-background {
         width: 600px;
         height: 80px;
-        background: #523A5E;
-
-          {
-          % if header_color %
-        }
-
-        background: {
-            {
-            header_color
-          }
-        }
-
-        !important;
-
-          {
-          % endif %
-        }
+        {% if style.header_color %}
+        background: {{ style.header_color }} !important;
+        {% endif %}
       }
 
       .header-logo {

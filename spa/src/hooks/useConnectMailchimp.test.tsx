@@ -75,7 +75,7 @@ describe('useConnectMailchimp hook', () => {
 
     delete (global as any).window.location;
     global.window = Object.create(window);
-    (global as any).window.location = {};
+    (global as any).window.location = { origin: oldLocation.origin };
   });
 
   afterEach(() => {

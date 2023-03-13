@@ -17,6 +17,7 @@ from apps.emails.tasks import send_thank_you_email
 from apps.organizations.models import RevenueProgram
 from apps.users.choices import Roles
 from apps.users.models import RoleAssignment
+from revengine.settings.base import CurrencyDict
 
 
 logger = logging.getLogger(f"{settings.DEFAULT_LOGGER}.{__name__}")
@@ -265,7 +266,7 @@ class Contribution(IndexedTimeStampedModel):
         return f"{self.formatted_amount}, {self.created.strftime('%Y-%m-%d %H:%M:%S')}"
 
     @property
-    def formatted_amount(self):
+    def formatted_amount(self) -> str:
         currency = self.get_currency_dict()
         return f"{currency['symbol']}{'{:.2f}'.format(self.amount / 100)} {currency['code']}"
 
@@ -340,7 +341,7 @@ class Contribution(IndexedTimeStampedModel):
             return None
         return self.BAD_ACTOR_SCORES[self.bad_actor_score][1]
 
-    def get_currency_dict(self):
+    def get_currency_dict(self) -> CurrencyDict:
         """
         Returns code (i.e. USD) and symbol (i.e. $) for this contribution.
         """

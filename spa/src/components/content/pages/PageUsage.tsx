@@ -26,6 +26,10 @@ function formatPageCount(count: number) {
 export function PageUsage({ className }: PageUsageProps) {
   const { isLoading: pagesAreLoading, pages } = useContributionPageList();
   const { isLoading: userIsLoading, user } = useUser();
+
+  // We are only interested in the user's first organization as only Hub admins
+  // have more than one org, and we have special handling for them.
+
   const plan = user?.organizations[0]?.plan;
 
   if (pagesAreLoading || userIsLoading || !plan || !pages) {

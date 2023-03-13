@@ -135,7 +135,8 @@ function useContributionPageList(): UseContributionPageListResult {
         return false;
       }
 
-      // Look at the user's first organization's plan limit.
+      // Look at the user's first organization's plan limit. Only Hub admins
+      // have more than one organization.
 
       return pages.length < user.organizations[0].plan.page_limit;
     },

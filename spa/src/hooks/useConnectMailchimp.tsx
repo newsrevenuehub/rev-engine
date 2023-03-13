@@ -87,14 +87,22 @@ export default function useConnectMailchimp(): UseConnectMailchimpResult {
   }
 
   // If the organization has mailchimp connected or if org plan is Free, return that status.
-  if (user?.organizations?.[0].show_connected_to_mailchimp || user?.organizations?.[0].plan.name === 'FREE') {
+  if (
+    user?.organizations?.[0].show_connected_to_mailchimp ||
+    user?.revenue_programs?.[0]?.mailchimp_integration_connected ||
+    !['CORE', 'PLUS'].includes(user?.organizations?.[0]?.plan?.name)
+  ) {
+    console.log({
+      org: user?.organizations?.[0].show_connected_to_mailchimp,
+      rp: user?.revenue_programs?.[0]?.mailchimp_integration_connected
+    });
     return {
       isError: false,
       isLoading: false,
       connectedToMailchimp:
-        user?.organizations?.[0].show_connected_to_mailchimp ||
-        user?.revenue_programs?.[0]?.mailchimp_integration_connected,
-      organizationPlan: user?.organizations?.[0].plan.name
+        !!user?.organizations?.[0].show_connected_to_mailchimp ||
+        !!user?.revenue_programs?.[0]?.mailchimp_integration_connected,
+      organizationPlan: user?.organizations?.[0]?.plan?.name
     };
   }
 

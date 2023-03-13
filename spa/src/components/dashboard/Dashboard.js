@@ -14,7 +14,8 @@ import {
   EDITOR_ROUTE_PAGE,
   EDITOR_ROUTE_PAGE_REDIRECT,
   PROFILE,
-  SETTINGS
+  SETTINGS,
+  MAILCHIMP_OAUTH_SUCCESS_ROUTE
 } from 'routes';
 
 // Children
@@ -44,6 +45,7 @@ import flagIsActiveForUser from 'utilities/flagIsActiveForUser';
 import hasContributionsDashboardAccessToUser from 'utilities/hasContributionsDashboardAccessToUser';
 import { useEffect } from 'react';
 import { PageEditorRedirect } from 'components/pageEditor/PageEditorRedirect';
+import MailchimpOAuthSuccess from './MailchimpOAuthSuccess';
 
 function Dashboard() {
   const { enqueueSnackbar } = useSnackbar();
@@ -88,6 +90,10 @@ function Dashboard() {
           <S.DashboardContent>
             <Switch>
               <Redirect exact from={DASHBOARD_SLUG} to={dashboardSlugRedirect} />
+
+              <SentryRoute path={MAILCHIMP_OAUTH_SUCCESS_ROUTE}>
+                <MailchimpOAuthSuccess />
+              </SentryRoute>
 
               {hasContributionsSectionAccess ? (
                 <SentryRoute path={DONATIONS_SLUG}>

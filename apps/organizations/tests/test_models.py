@@ -3,6 +3,7 @@ from django.test import override_settings
 from django.utils import timezone
 
 import pytest
+import pytest_cases
 from stripe import ApplePayDomain
 from stripe.error import StripeError
 
@@ -62,6 +63,30 @@ class TestBenefitLevelBenefit:
         str(t)
 
 
+@pytest.fixture
+def revenue_program_with_manual_org_mailchimp_connection():
+    rp = RevenueProgramFactory()
+    rp.organization.show_connected_to_mailchimp = True
+    rp.organization.save()
+    return rp
+
+
+@pytest.fixture
+def revenue_program_with_mailchimp_connection_via_oauth_flow():
+    return RevenueProgramFactory(mailchimp_connected_via_oauth=True)
+
+
+@pytest.fixture
+def revenue_program_with_incomplete_connection_only_has_prefix():
+    return RevenueProgramFactory(mailchimp_connected_via_oauth=True, mailchimp_access_token=None)
+
+
+@pytest.fixture
+def revenue_program_with_incomplete_connection_only_has_token():
+    return RevenueProgramFactory(mailchimp_connected_via_oauth=True, mailchimp_server_prefix=None)
+
+
+@pytest.mark.django_db
 class TestRevenueProgram:
     def test_basics(self):
         t = RevenueProgram()
@@ -71,7 +96,6 @@ class TestRevenueProgram:
         t = RevenueProgram()
         assert None is t.stripe_account_id
 
-    @pytest.mark.django_db
     def test_clean_fields(self):
         t = RevenueProgramFactory(name="B o %")
         t.clean_fields()
@@ -98,7 +122,6 @@ class TestRevenueProgram:
             t.default_donation_page = apps.pages.models.DonationPage(revenue_program=RevenueProgram())
             t.clean()
 
-    @pytest.mark.django_db
     @override_settings(STRIPE_LIVE_MODE=True)
     def test_stripe_create_apple_pay_domain_happy_path(self, mocker):
         mock_stripe_create = mocker.patch.object(ApplePayDomain, "create")
@@ -112,7 +135,6 @@ class TestRevenueProgram:
             stripe_account=rp.payment_provider.stripe_account_id,
         )
 
-    @pytest.mark.django_db
     @override_settings(STRIPE_LIVE_MODE=True)
     def test_stripe_create_apple_pay_domain_when_already_verified_date_exists(self, mocker):
         mock_stripe_create = mocker.patch.object(ApplePayDomain, "create")
@@ -123,7 +145,6 @@ class TestRevenueProgram:
         assert rp.domain_apple_verified_date == verified_date
         assert not mock_stripe_create.called
 
-    @pytest.mark.django_db
     @override_settings(STRIPE_LIVE_MODE=False)
     def test_stripe_create_apple_pay_domain_when_not_in_live_mode(self, mocker):
         mock_stripe_create = mocker.patch.object(ApplePayDomain, "create")
@@ -133,7 +154,6 @@ class TestRevenueProgram:
         assert rp.domain_apple_verified_date is None
         assert not mock_stripe_create.called
 
-    @pytest.mark.django_db
     @override_settings(STRIPE_LIVE_MODE=True)
     def test_apple_pay_domain_verification_when_stripe_error(self, mocker):
         mock_stripe_create = mocker.patch.object(ApplePayDomain, "create", side_effect=StripeError)
@@ -142,6 +162,18 @@ class TestRevenueProgram:
         rp.stripe_create_apple_pay_domain()
         mock_stripe_create.assert_called_once()
         mock_logger.exception.assert_called_once()
+
+    @pytest_cases.parametrize(
+        "revenue_program,expect_connected",
+        (
+            (pytest_cases.fixture_ref("revenue_program_with_mailchimp_connection_via_oauth_flow"), True),
+            (pytest_cases.fixture_ref("revenue_program_with_manual_org_mailchimp_connection"), False),
+            (pytest_cases.fixture_ref("revenue_program_with_incomplete_connection_only_has_prefix"), False),
+            (pytest_cases.fixture_ref("revenue_program_with_incomplete_connection_only_has_token"), False),
+        ),
+    )
+    def test_mailchimp_integration_connected_property(self, revenue_program, expect_connected):
+        assert revenue_program.mailchimp_integration_connected is expect_connected
 
 
 class TestPaymentProvider:

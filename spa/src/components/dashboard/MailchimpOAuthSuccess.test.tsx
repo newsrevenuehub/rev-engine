@@ -5,7 +5,7 @@ import { render, screen } from '@testing-library/react';
 import { createMemoryHistory, InitialEntry } from 'history';
 import useUserImport from 'hooks/useUser';
 import { Route, Router } from 'react-router-dom';
-import { CONTENT_SLUG, MAILCHIMP_OAUTH_SUCCESS_ROUTE } from 'routes';
+import { MAILCHIMP_OAUTH_SUCCESS_ROUTE, SETTINGS } from 'routes';
 import MailchimpOAuthSuccess from './MailchimpOAuthSuccess';
 
 jest.mock('elements/GlobalLoading');
@@ -82,7 +82,7 @@ describe('MailchimpOAuthSuccess', () => {
     const { history } = tree([`${MAILCHIMP_OAUTH_SUCCESS_ROUTE}?code=mock-mailchimp-code`]);
 
     expect(mutate).toBeCalledTimes(1);
-    expect(history.location.pathname).toBe(CONTENT_SLUG);
+    expect(history.location.pathname).toBe(SETTINGS.INTEGRATIONS);
   });
 
   it('renders GlobalLoading', () => {

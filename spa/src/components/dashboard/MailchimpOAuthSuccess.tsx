@@ -7,7 +7,7 @@ import axios from 'ajax/axios';
 import { MAILCHIMP_OAUTH_SUCCESS } from 'ajax/endpoints';
 import GlobalLoading from 'elements/GlobalLoading';
 import useUser from 'hooks/useUser';
-import { CONTENT_SLUG } from 'routes';
+import { SETTINGS } from 'routes';
 import { useAlert } from 'react-alert';
 import { GENERIC_ERROR } from 'constants/textConstants';
 
@@ -47,7 +47,7 @@ export default function MailchimpOAuthSuccess() {
 
   useEffect(() => {
     if (!userLoading && !isMailchimpOAuthLoading && !userError && !mailchimpOAuthError && hasUpdatedCode) {
-      history.push(CONTENT_SLUG);
+      history.push(SETTINGS.INTEGRATIONS);
     }
   }, [hasUpdatedCode, history, isMailchimpOAuthLoading, mailchimpOAuthError, userError, userLoading]);
 

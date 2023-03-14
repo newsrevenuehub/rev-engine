@@ -324,11 +324,20 @@ class RevenueProgram(IndexedTimeStampedModel):
         verbose_name="Country",
         help_text="2-letter country code of RP's company. This gets included in data sent to stripe when creating a payment",
     )
+    # The next two values are used to make requests to Mailchimp on behalf of our users.
+    mailchimp_server_prefix = models.TextField(null=True, blank=True)
+    # TODO: DEV-3302 this is a temporary field, to be removed in https://news-revenue-hub.atlassian.net/browse/DEV-3302
+    mailchimp_access_token = models.TextField(null=True, blank=True)
 
     objects = RevenueProgramManager.from_queryset(RevenueProgramQuerySet)()
 
     def __str__(self):
         return self.name
+
+    @property
+    def mailchimp_integration_connected(self):
+        """Determine mailchimp connection state for the revenue program"""
+        return all([self.mailchimp_access_token, self.mailchimp_server_prefix])
 
     @property
     def payment_provider_stripe_verified(self):

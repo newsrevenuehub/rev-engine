@@ -6,7 +6,6 @@ from django.contrib import admin, messages
 from django.core.exceptions import ValidationError
 from django.db.utils import IntegrityError
 
-from reversion.admin import VersionAdmin
 from reversion_compare.admin import CompareVersionAdmin
 from solo.admin import SingletonModelAdmin
 from sorl.thumbnail.admin import AdminImageMixin
@@ -150,7 +149,7 @@ class DonationPageAdmin(CompareVersionAdmin, DonationPageAdminAbstract):
 
 
 @admin.register(models.Style)
-class StyleAdmin(VersionAdmin):
+class StyleAdmin(CompareVersionAdmin):
     list_display = (
         "name",
         "revenue_program",
@@ -170,7 +169,7 @@ class StyleAdmin(VersionAdmin):
 
 
 @admin.register(models.Font)
-class FontAdmin(VersionAdmin):
+class FontAdmin(CompareVersionAdmin):
     list_display = (
         "name",
         "source",

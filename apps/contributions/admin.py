@@ -4,7 +4,6 @@ from django.conf import settings
 from django.contrib import admin, messages
 from django.utils.html import format_html
 
-from reversion.admin import VersionAdmin
 from reversion_compare.admin import CompareVersionAdmin
 
 from apps.common.admin import RevEngineBaseAdmin, prettify_json_field
@@ -16,7 +15,7 @@ logger = logging.getLogger(f"{settings.DEFAULT_LOGGER}.{__name__}")
 
 
 @admin.register(Contributor)
-class ContributorAdmin(RevEngineBaseAdmin, VersionAdmin):
+class ContributorAdmin(RevEngineBaseAdmin, CompareVersionAdmin):
     list_display = (
         "email",
         "contributions_count",

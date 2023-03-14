@@ -1,13 +1,13 @@
 from django.contrib import admin
 
-from reversion.admin import VersionAdmin
+from reversion_compare.admin import CompareVersionAdmin
 
 from apps.common.admin import RevEngineBaseAdmin
 from apps.config.models import DenyListWord
 
 
 @admin.register(DenyListWord)
-class DenyListWordAdmin(RevEngineBaseAdmin, VersionAdmin):
+class DenyListWordAdmin(RevEngineBaseAdmin, CompareVersionAdmin):
     list_display = ("word",)
 
     ordering = ("word",)

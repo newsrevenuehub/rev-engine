@@ -263,6 +263,7 @@ class TransactionalEmailStyle:
     header_font: str = None
     body_font: str = None
     button_color: str = None
+    custom_style: bool = False
 
 
 HubDefaultEmailStyle = TransactionalEmailStyle(

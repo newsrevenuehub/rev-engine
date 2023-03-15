@@ -268,6 +268,7 @@ class TestRevenueProgram:
                     header_font=rp.default_donation_page.styles.styles["font"]["heading"],
                     body_font=rp.default_donation_page.styles.styles["font"]["body"],
                     button_color=rp.default_donation_page.styles.styles["colors"]["cstm_CTAs"],
+                    custom_style=True,
                 ),
             ),
             (
@@ -280,6 +281,7 @@ class TestRevenueProgram:
                     header_font=None,
                     body_font=None,
                     button_color=None,
+                    custom_style=False,
                 ),
             ),
         ),

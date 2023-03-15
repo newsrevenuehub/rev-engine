@@ -271,6 +271,7 @@ HubDefaultEmailStyle = TransactionalEmailStyle(
     header_font=None,
     body_font=None,
     button_color=None,
+    custom_style=False,
 )
 
 
@@ -393,7 +394,7 @@ class RevenueProgram(IndexedTimeStampedModel):
         templates can assume that the values provided by this property are always present.
 
         If the RP's org is on free plan, or if there's no default donation page, return the HubDefaultEmailStyle.
-        Otherwise, derive a TransactionalEmailStyle instance based on the default donation page's chracteristics.
+        Otherwise, derive a TransactionalEmailStyle instance based on the default donation page's characteristics.
         """
         if any(
             [
@@ -410,6 +411,7 @@ class RevenueProgram(IndexedTimeStampedModel):
                 header_font=_style.font.heading or None,
                 body_font=_style.font.body or None,
                 button_color=_style.colors.cstm_CTAs or None,
+                custom_style=True,
             )
 
     def clean_fields(self, **kwargs):

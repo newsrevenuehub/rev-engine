@@ -281,7 +281,7 @@ class TestRevenueProgram:
                     header_font=None,
                     body_font=None,
                     button_color=None,
-                    custom_style=False,
+                    custom_style=True,
                 ),
             ),
         ),

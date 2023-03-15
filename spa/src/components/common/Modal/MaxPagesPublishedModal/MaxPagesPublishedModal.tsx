@@ -30,9 +30,9 @@ export function MaxPagesPublishedModal({ currentPlan, onClose, open }: MaxPagesP
               your current checkout page to make this page live.
             </p>
             <p>
-              <strong>Want multiple published pages?</strong>{' '}
+              <strong>Want multiple published pages?</strong> Learn more about{' '}
               <Link href={PRICING_URL} target="_blank">
-                Learn more about Core and Plus
+                Core and Plus
               </Link>
               .
             </p>
@@ -44,9 +44,9 @@ export function MaxPagesPublishedModal({ currentPlan, onClose, open }: MaxPagesP
               You've published the <RedEmphasis>maximum</RedEmphasis> number of live pages for the Core tier. Unpublish
               a published checkout page to make this page live.
             </p>
-            <strong>Want more published pages?</strong>{' '}
+            <strong>Want more published pages?</strong> Learn more about{' '}
             <Link href={PRICING_URL} target="_blank">
-              Learn more about Plus
+              Plus
             </Link>
             .
           </p>

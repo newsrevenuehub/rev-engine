@@ -91,7 +91,7 @@ describe('PageUsage', () => {
     useUserMock.mockReturnValue({
       isError: false,
       isLoading: false,
-      user: { organizations: [{ plan: { name: 'Core', page_limit: 1 } }], role_type: [USER_ROLE_ORG_ADMIN_TYPE] }
+      user: { organizations: [{ plan: { name: 'CORE', page_limit: 1 } }], role_type: [USER_ROLE_ORG_ADMIN_TYPE] }
     });
     tree();
     expect(document.body).toHaveTextContent('1 of 1 page');

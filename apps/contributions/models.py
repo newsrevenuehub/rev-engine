@@ -419,6 +419,7 @@ class Contribution(IndexedTimeStampedModel):
         mailing_state=None,
         mailing_postal_code=None,
         mailing_country=None,
+        save=False,
         **kwargs,
     ):
         """Create a Stripe customer using contributor email"""
@@ -439,10 +440,11 @@ class Contribution(IndexedTimeStampedModel):
             stripe_account=self.donation_page.revenue_program.payment_provider.stripe_account_id,
         )
         self.provider_customer_id = customer["id"]
-        self.save(update_fields={"provider_customer_id", "modified"})
+        if save:
+            self.save(update_fields={"provider_customer_id", "modified"})
         return customer
 
-    def create_stripe_one_time_payment_intent(self):
+    def create_stripe_one_time_payment_intent(self, save=True):
         """Create a Stripe PaymentIntent and attach its id and client_secret to the contribution
 
         See https://stripe.com/docs/api/payment_intents/create for more info
@@ -461,7 +463,8 @@ class Contribution(IndexedTimeStampedModel):
         # we don't want to save `` because it can be used to authorize payment attempt
         # so want to keep surface area small as possible
         self.payment_provider_data = dict(intent) | {"client_secret": None}
-        self.save(update_fields={"provider_payment_id", "payment_provider_data", "modified"})
+        if save:
+            self.save(update_fields={"provider_payment_id", "payment_provider_data", "modified"})
         return intent
 
     def create_stripe_setup_intent(self, metadata):
@@ -547,7 +550,9 @@ class Contribution(IndexedTimeStampedModel):
             ).detach()
 
         self.status = ContributionStatus.CANCELED
-        self.save(update_fields={"status", "modified"})
+        with reversion.create_revision():
+            self.save(update_fields={"status", "modified"})
+            reversion.set_comment(f"`Contribution.cancel` saved changes to contribution with ID {self.id}")
 
     def handle_thank_you_email(self):
         """Send a thank you email to contribution's contributor if org is configured to have NRE send thank you email"""

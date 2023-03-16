@@ -77,14 +77,15 @@ class TestPaymentIntentSucceeded:
         save_spy.assert_called_once()
         assert save_spy.call_args[0][0] == contribution
         assert save_spy.call_args[1] == {
-            "update_fields": [
+            "update_fields": {
                 "status",
                 "last_payment_date",
                 "provider_payment_id",
                 "provider_payment_method_id",
+                "provider_payment_method_details",
                 "payment_provider_data",
                 "modified",
-            ]
+            }
         }
         send_receipt_email_spy.assert_called_once_with(contribution)
         assert response.status_code == status.HTTP_200_OK
@@ -125,7 +126,7 @@ class TestPaymentIntentCanceled:
         # the next two assertions are to ensure we're only allowing webhook to update a subset of fields
         # on the instance, in order to avoid race conditions
         assert spy.call_args[0][0] == contribution
-        assert spy.call_args[1] == {"update_fields": ["status", "payment_provider_data", "modified"]}
+        assert spy.call_args[1] == {"update_fields": {"status", "payment_provider_data", "modified"}}
         assert response.status_code == status.HTTP_200_OK
         contribution.refresh_from_db()
         assert contribution.payment_provider_data == payment_intent_canceled
@@ -164,7 +165,7 @@ class TestPaymentIntentPaymentFailed:
         # the next two assertions are to ensure we're only allowing webhook to update a subset of fields
         # on the instance, in order to avoid race conditions
         assert spy.call_args[0][0] == contribution
-        assert spy.call_args[1] == {"update_fields": ["status", "payment_provider_data", "modified"]}
+        assert spy.call_args[1] == {"update_fields": {"status", "payment_provider_data", "modified"}}
 
         assert response.status_code == status.HTTP_200_OK
         contribution.refresh_from_db()
@@ -204,13 +205,13 @@ class TestCustomerSubscriptionUpdated:
         # the next two assertions are to ensure we're only allowing webhook to update a subset of fields
         # on the instance, in order to avoid race conditions
         assert spy.call_args[0][0] == contribution
-        expected_update_fields = [
+        expected_update_fields = {
             "modified",
             "payment_provider_data",
             "provider_subscription_id",
-        ]
+        }
         if payment_method_has_changed:
-            expected_update_fields.append("provider_payment_method_id")
+            expected_update_fields.add("provider_payment_method_id")
         assert spy.call_args[1] == {"update_fields": expected_update_fields}
 
         assert response.status_code == status.HTTP_200_OK
@@ -250,7 +251,7 @@ class TestCustomerSubscriptionDeleted:
         # the next two assertions are to ensure we're only allowing webhook to update a subset of fields
         # on the instance, in order to avoid race conditions
         assert spy.call_args[0][0] == contribution
-        assert spy.call_args[1] == {"update_fields": ["status", "payment_provider_data", "modified"]}
+        assert spy.call_args[1] == {"update_fields": {"status", "payment_provider_data", "modified"}}
 
         assert response.status_code == status.HTTP_200_OK
         contribution.refresh_from_db()
@@ -303,7 +304,7 @@ def test_payment_method_attached(client, monkeypatch, payment_method_attached, m
     # the next two assertions are to ensure we're only allowing webhook to update a subset of fields
     # on the instance, in order to avoid race conditions
     assert spy.call_args[0][0] == contribution
-    assert spy.call_args[1] == {"update_fields": ["provider_payment_method_id", "modified"]}
+    assert spy.call_args[1] == {"update_fields": {"provider_payment_method_id", "modified"}}
     assert response.status_code == status.HTTP_200_OK
     contribution.refresh_from_db()
     assert contribution.provider_payment_method_id == payment_method_attached["data"]["object"]["id"]

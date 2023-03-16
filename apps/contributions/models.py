@@ -439,7 +439,7 @@ class Contribution(IndexedTimeStampedModel):
             stripe_account=self.donation_page.revenue_program.payment_provider.stripe_account_id,
         )
         self.provider_customer_id = customer["id"]
-        self.save()
+        self.save(update_fields={"provider_customer_id", "modified"})
         return customer
 
     def create_stripe_one_time_payment_intent(self):
@@ -461,7 +461,7 @@ class Contribution(IndexedTimeStampedModel):
         # we don't want to save `` because it can be used to authorize payment attempt
         # so want to keep surface area small as possible
         self.payment_provider_data = dict(intent) | {"client_secret": None}
-        self.save()
+        self.save(update_fields={"provider_payment_id", "payment_provider_data", "modified"})
         return intent
 
     def create_stripe_setup_intent(self, metadata):
@@ -471,15 +471,11 @@ class Contribution(IndexedTimeStampedModel):
             metadata=metadata,
         )
         self.provider_setup_intent_id = setup_intent["id"]
-        self.save()
+        self.save(update_fields={"provider_setup_intent_id", "modified"})
         return setup_intent
 
     def create_stripe_subscription(
-        self,
-        metadata=None,
-        default_payment_method=None,
-        off_session=False,
-        error_if_incomplete=False,
+        self, metadata=None, default_payment_method=None, off_session=False, error_if_incomplete=False, save=True
     ):
         """Create a Stripe Subscription and attach its data to the contribution
 
@@ -510,8 +506,13 @@ class Contribution(IndexedTimeStampedModel):
         )
         self.payment_provider_data = subscription
         self.provider_subscription_id = subscription["id"]
+        # this can potentially overwrite a pre-existing non-null value in context, as gets used in webhooks processing
+        # where order is not guaranteed
         self.provider_payment_id = subscription["latest_invoice"]["payment_intent"]["id"]
-        self.save()
+        if save:
+            self.save(
+                update_fields={"payment_provider_data", "provider_subscription_id", "provider_payment_id", "modified"}
+            )
         return subscription
 
     def cancel(self):
@@ -546,7 +547,7 @@ class Contribution(IndexedTimeStampedModel):
             ).detach()
 
         self.status = ContributionStatus.CANCELED
-        self.save()
+        self.save(update_fields={"status", "modified"})
 
     def handle_thank_you_email(self):
         """Send a thank you email to contribution's contributor if org is configured to have NRE send thank you email"""
@@ -693,6 +694,7 @@ class Contribution(IndexedTimeStampedModel):
             provider_payment_id__isnull=False,
             status=ContributionStatus.PROCESSING,
         ):
+            update_fields = set()
             if (pi := contribution.stripe_payment_intent) and pi.status == "succeeded":
                 logger.info("Contribution with ID %s has a stale status of PROCESSING", contribution.id)
                 one_times_updated += 1
@@ -703,6 +705,7 @@ class Contribution(IndexedTimeStampedModel):
                             contribution.id,
                         )
                         contribution.status = ContributionStatus.PAID
+                        update_fields.add("status")
                         comment = f"`Contribution.fix_contributions_stuck_in_processing` updated contribution with ID {contribution.id}."
                         if pi.payment_method and not contribution.provider_payment_method_id:
                             logger.info(
@@ -711,10 +714,11 @@ class Contribution(IndexedTimeStampedModel):
                                 pi.payment_method,
                             )
                             contribution.provider_payment_method_id = pi.payment_method
-                            comment += (
-                                f" 'provider_payment_method_id' was set to {contribution.provider_payment_method_id}."
-                            )
-                        contribution.save(update_fields=["status", "provider_payment_method_id", "modified"])
+                            contribution.provider_payment_method_details = contribution.fetch_payment_method()
+                            update_fields.add("provider_payment_method_id")
+                            update_fields.add("provider_payment_method_details")
+                            comment += f" 'provider_payment_method_id' was set to {contribution.provider_payment_method_id} and provider_payment_method_details was set."
+                        contribution.save(update_fields=update_fields.union({"modified"}))
                         reversion.set_comment(comment)
 
         recurring_updated = 0
@@ -722,18 +726,21 @@ class Contribution(IndexedTimeStampedModel):
             provider_subscription_id__isnull=False,
             status=ContributionStatus.PROCESSING,
         ):
+            update_fields = set()
             if (sub := contribution.stripe_subscription) and sub.status == "active":
                 logger.info("Contribution with ID %s has a stale status of PROCESSING", contribution.id)
                 recurring_updated += 1
                 if not dry_run:
                     with reversion.create_revision():
-                        update_fields = ["status", "modified"]
+                        update_fields.add("status")
                         logger.info("Setting status on contribution with ID %s to PAID", contribution.id)
                         contribution.status = ContributionStatus.PAID
                         comment = f"`Contribution.fix_contributions_stuck_in_processing` updated contribution with ID {contribution.id}"
                         if sub.default_payment_method and not contribution.provider_payment_method_id:
-                            update_fields.append("provider_payment_method_id")
                             contribution.provider_payment_method_id = sub.default_payment_method
+                            update_fields.add("provider_payment_method_id")
+                            contribution.provider_payment_method_details = contribution.fetch_payment_method()
+                            update_fields.add("provider_payment_method_details")
                             comment += (
                                 f" 'provider_payment_method_id' was set to {contribution.provider_payment_method_id}"
                             )
@@ -742,7 +749,7 @@ class Contribution(IndexedTimeStampedModel):
                                 contribution.id,
                                 contribution.provider_payment_method_id,
                             )
-                        contribution.save(update_fields=update_fields)
+                        contribution.save(update_fields=list(update_fields.union({"modified"})))
                         reversion.set_comment(comment)
         logger.info(
             "%sUpdated status to `paid` on %s one-time and %s recurring contributions",
@@ -772,7 +779,6 @@ class Contribution(IndexedTimeStampedModel):
             "provider_payment_method_id__isnull": False,
             "provider_payment_method_details__isnull": True,
         }
-
         one_times_updated = 0
         for contribution in Contribution.objects.one_time().exclude(provider_payment_method_id="").filter(**kwargs):
             logger.info(
@@ -785,7 +791,7 @@ class Contribution(IndexedTimeStampedModel):
                         "Retrieving `provider_payment_method_details` for contribution with ID %s", contribution.id
                     )
                     contribution.provider_payment_method_details = contribution.fetch_stripe_payment_method()
-                    contribution.save(update_fields=["provider_payment_method_details", "modified"])
+                    contribution.save(update_fields={"provider_payment_method_details", "modified"})
                     one_times_updated += 1
                     reversion.set_comment(
                         "`Contribution.fix_missing_payment_method_details_data` synced `provider_payment_method_details` from Stripe"
@@ -802,7 +808,7 @@ class Contribution(IndexedTimeStampedModel):
             if not dry_run:
                 logger.info("Setting status on contribution with ID %s to PAID", contribution.id)
                 contribution.provider_payment_method_details = contribution.fetch_stripe_payment_method()
-                contribution.save(update_fields=["provider_payment_method_details", "modified"])
+                contribution.save(update_fields={"provider_payment_method_details", "modified"})
                 recurring_updated += 1
         logger.info(
             "Synced `provider_payment_method_details` for %s one-time and %s recurring contributions",
@@ -882,7 +888,7 @@ class Contribution(IndexedTimeStampedModel):
                 contribution.contribution_metadata = stripe_entity.metadata
                 if not dry_run:
                     with reversion.create_revision():
-                        contribution.save(update_fields=["contribution_metadata", "modified"])
+                        contribution.save(update_fields={"contribution_metadata", "modified"})
                         logger.info(
                             "`Contribution.fix_missing_contribution_metadata` updated contribution_metadata on contribution with ID %s",
                             contribution.id,

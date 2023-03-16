@@ -86,7 +86,7 @@ class StripeWebhookProcessor:
             contribution.payment_provider_data = self.event
             logger.info("Contribution %s canceled.", contribution)
         with reversion.create_revision():
-            contribution.save(update_fields=["status", "payment_provider_data", "modified"])
+            contribution.save(update_fields={"status", "payment_provider_data", "modified"})
             logger.info("Contribution %s canceled.", contribution)
             reversion.set_comment(
                 f"`StripeWebhookProcessor.handle_payment_intent_canceled` webhook handler ran for contribution with ID {contribution.id}"
@@ -97,7 +97,7 @@ class StripeWebhookProcessor:
         contribution.status = ContributionStatus.FAILED
         contribution.payment_provider_data = self.event
         with reversion.create_revision():
-            contribution.save(update_fields=["status", "payment_provider_data", "modified"])
+            contribution.save(update_fields={"status", "payment_provider_data", "modified"})
             logger.info("Contribution %s failed.", contribution)
             reversion.set_comment(
                 f"StripeWebhookProcessor.handle_payment_intent_failed webhook handler updated payment provider data for contribution with ID {contribution.id}."
@@ -108,20 +108,22 @@ class StripeWebhookProcessor:
         contribution.payment_provider_data = self.event
         contribution.provider_payment_id = self.obj_data["id"]
         contribution.provider_payment_method_id = self.obj_data.get("payment_method")
+        contribution.provider_payment_method_details = contribution.fetch_stripe_payment_method()
         contribution.last_payment_date = datetime.datetime.fromtimestamp(
             self.obj_data["created"], tz=datetime.timezone.utc
         )
         contribution.status = ContributionStatus.PAID
         with reversion.create_revision():
             contribution.save(
-                update_fields=[
+                update_fields={
                     "status",
                     "last_payment_date",
                     "provider_payment_id",
                     "provider_payment_method_id",
+                    "provider_payment_method_details",
                     "payment_provider_data",
                     "modified",
-                ]
+                }
             )
             reversion.set_comment(
                 f"StripeWebhookProcessor.handle_payment_intent_succeeded webhook handler updated contribution with ID {contribution.id}"
@@ -151,10 +153,10 @@ class StripeWebhookProcessor:
         contribution = self.get_contribution_from_event()
         contribution.payment_provider_data = self.event
         contribution.provider_subscription_id = self.obj_data["id"]
-        update_fields = ["modified", "payment_provider_data", "provider_subscription_id"]
+        update_fields = {"modified", "payment_provider_data", "provider_subscription_id"}
         if "default_payment_method" in self.event.data["previous_attributes"]:
             contribution.provider_payment_method_id = self.obj_data["default_payment_method"]
-            update_fields.append("provider_payment_method_id")
+            update_fields.add("provider_payment_method_id")
         with reversion.create_revision():
             contribution.save(update_fields=update_fields)
             reversion.set_comment(
@@ -171,7 +173,7 @@ class StripeWebhookProcessor:
         contribution.payment_provider_data = self.event
         contribution.status = ContributionStatus.CANCELED
         with reversion.create_revision():
-            contribution.save(update_fields=["status", "payment_provider_data", "modified"])
+            contribution.save(update_fields={"status", "payment_provider_data", "modified"})
             reversion.set_comment(
                 f"`StripeWebhookProcessor.handle_subscription_canceled` webhook handler updated contribution with ID {contribution.id}"
             )
@@ -185,7 +187,7 @@ class StripeWebhookProcessor:
                 reversion.set_comment(
                     f"StripeWebhookProcessor.process_payment_method webhook handler processed contribution with ID {contribution.id}"
                 )
-                contribution.save(update_fields=["provider_payment_method_id", "modified"])
+                contribution.save(update_fields={"provider_payment_method_id", "modified"})
 
     def process_invoice(self):
         """When Stripe sends a webhook about an upcoming subscription charge, we send an email reminder

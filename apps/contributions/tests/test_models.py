@@ -373,22 +373,30 @@ class TestContributionModel:
         "contribution",
         (pytest_cases.fixture_ref("monthly_contribution"), pytest_cases.fixture_ref("annual_contribution")),
     )
-    def test_create_stripe_subscription(self, contribution, monkeypatch, mocker):
+    @pytest.mark.parametrize("save", (True, False))
+    def test_create_stripe_subscription(self, contribution, save, monkeypatch, mocker):
         """Show Contribution.create_stripe_subscription calls Stripe with right params...
 
         ...that it returns the created subscription, and that it saves the right subscription data
         back to the contribution
         """
+        initial_subscription_id = contribution.provider_subscription_id
+        initial_provider_payment_id = contribution.provider_payment_id
+        initial_payment_provider_data = contribution.payment_provider_data
+
+        contribution.provider_subscription_id = None
+
         return_value = {
             "id": "fake_id",
             "latest_invoice": {"payment_intent": {"client_secret": "fake_client_secret", "id": "pi_fakefakefake"}},
             "customer": "fake_stripe_customer_id",
         }
         monkeypatch.setattr("stripe.Subscription.create", lambda *args, **kwargs: return_value)
-        spy = mocker.spy(stripe.Subscription, "create")
+        stripe_spy = mocker.spy(stripe.Subscription, "create")
+        save_spy = mocker.spy(Contribution, "save")
         metadata = {"foo": "bar"}
-        subscription = contribution.create_stripe_subscription(metadata)
-        spy.assert_called_once_with(
+        subscription = contribution.create_stripe_subscription(metadata, save=save)
+        stripe_spy.assert_called_once_with(
             customer=contribution.provider_customer_id,
             items=[
                 {
@@ -409,10 +417,25 @@ class TestContributionModel:
             default_payment_method=None,
         )
         contribution.refresh_from_db()
-        assert contribution.payment_provider_data == return_value
-        assert contribution.provider_subscription_id == return_value["id"]
-        assert contribution.provider_payment_id == return_value["latest_invoice"]["payment_intent"]["id"]
+
         assert subscription == return_value
+        assert save_spy.call_count == (1 if save else 0)
+        if save:
+            assert save_spy.call_args[1] == {
+                "update_fields": {
+                    "payment_provider_data",
+                    "provider_subscription_id",
+                    "provider_payment_id",
+                    "modified",
+                }
+            }
+            assert contribution.provider_subscription_id == return_value["id"]
+            assert contribution.provider_payment_id == return_value["latest_invoice"]["payment_intent"]["id"]
+            assert contribution.payment_provider_data == return_value
+        else:
+            assert contribution.provider_subscription_id == initial_subscription_id
+            assert contribution.provider_payment_id == initial_provider_payment_id
+            assert contribution.payment_provider_data == initial_payment_provider_data
 
     @pytest_cases.parametrize(
         "contribution",

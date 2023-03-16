@@ -14,7 +14,7 @@ describe('MaxPagesPublishedModal', () => {
   });
 
   describe('When open', () => {
-    describe('When the user is on the free plan', () => {
+    describe('When the user is on the Free plan', () => {
       it("shows a message that they've exceeded their plan limit", () => {
         tree({ currentPlan: 'FREE' });
         expect(screen.getByText('number of live pages for the Free tier', { exact: false })).toBeVisible();
@@ -23,23 +23,23 @@ describe('MaxPagesPublishedModal', () => {
       it('shows a link to the pricing page', () => {
         tree();
 
-        const link = screen.getByRole('link', { name: 'Learn more about Core and Plus' });
+        const link = screen.getByRole('link', { name: 'Core and Plus' });
 
         expect(link).toBeVisible();
         expect(link).toHaveAttribute('href', PRICING_URL);
       });
     });
 
-    describe('When the user is on the core plan', () => {
+    describe('When the user is on the Core plan', () => {
       it("shows a message that they've exceeded their plan limit", () => {
         tree({ currentPlan: 'CORE' });
         expect(screen.getByText('number of live pages for the Core tier', { exact: false })).toBeVisible();
       });
 
       it('shows a link to the pricing page', () => {
-        tree();
+        tree({ currentPlan: 'CORE' });
 
-        const link = screen.getByRole('link', { name: 'Learn more about Core and Plus' });
+        const link = screen.getByRole('link', { name: 'Plus' });
 
         expect(link).toBeVisible();
         expect(link).toHaveAttribute('href', PRICING_URL);

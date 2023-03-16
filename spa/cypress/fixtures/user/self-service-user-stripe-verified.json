@@ -23,10 +23,11 @@
       "name": "My Org",
       "slug": "my-org",
       "plan": {
-        "name": "FREE",
-        "label": "Free",
-        "page_limit": 1,
-        "style_limit": 1
+        "name": "PLUS",
+        "label": "Plus",
+        "page_limit": 10,
+        "page_publication_limit": 10,
+        "style_limit": 10
       }
     }
   ],

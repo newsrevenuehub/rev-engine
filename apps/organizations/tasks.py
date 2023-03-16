@@ -110,9 +110,7 @@ def _get_and_set_mailchimp_server_prefix(revenue_program: RevenueProgram) -> Non
     )
 
 
-@shared_task(
-    bind=True, autoretry_for=(MailchimpAuthflowRetryableError,), retry_backoff=True, retry_kwargs={"max_retries": 3}
-)
+@shared_task(autoretry_for=(MailchimpAuthflowRetryableError,), retry_backoff=True, retry_kwargs={"max_retries": 3})
 def exchange_mailchimp_oauth_code_for_server_prefix_and_access_token(rp_id: int, oauth_code: str) -> None:
     revenue_program = RevenueProgram.objects.filter(pk=rp_id).first()
     if revenue_program is None:

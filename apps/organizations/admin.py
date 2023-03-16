@@ -9,7 +9,6 @@ from django.urls import reverse
 from django.utils.safestring import mark_safe
 
 from rest_framework.serializers import ValidationError as DRFValidationError
-from reversion.admin import VersionAdmin
 from reversion_compare.admin import CompareVersionAdmin
 from sorl.thumbnail.admin import AdminImageMixin
 
@@ -137,7 +136,7 @@ class OrganizationAdmin(RevEngineBaseAdmin, CompareVersionAdmin):
 
 
 @admin.register(Benefit)
-class BenefitAdmin(RevEngineBaseAdmin, VersionAdmin):
+class BenefitAdmin(RevEngineBaseAdmin, CompareVersionAdmin):
     list_display = ["name", "description", "revenue_program"]
 
     list_filter = ["revenue_program"]
@@ -146,7 +145,7 @@ class BenefitAdmin(RevEngineBaseAdmin, VersionAdmin):
 
 
 @admin.register(BenefitLevel)
-class BenefitLevelAdmin(RevEngineBaseAdmin, VersionAdmin):
+class BenefitLevelAdmin(RevEngineBaseAdmin, CompareVersionAdmin):
     list_display = ["name", "donation_range", "revenue_program"]
 
     list_filter = ["revenue_program"]

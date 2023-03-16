@@ -167,7 +167,7 @@ class TestRevenueProgram:
         "revenue_program,expect_connected",
         (
             (pytest_cases.fixture_ref("revenue_program_with_mailchimp_connection_via_oauth_flow"), True),
-            (pytest_cases.fixture_ref("revenue_program_with_manual_org_mailchimp_connection"), True),
+            (pytest_cases.fixture_ref("revenue_program_with_manual_org_mailchimp_connection"), False),
             (pytest_cases.fixture_ref("revenue_program_with_incomplete_connection_only_has_prefix"), False),
             (pytest_cases.fixture_ref("revenue_program_with_incomplete_connection_only_has_token"), False),
         ),

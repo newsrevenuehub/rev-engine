@@ -102,7 +102,15 @@ class RevenueProgramSerializer(serializers.ModelSerializer):
 
     class Meta:
         model = RevenueProgram
-        fields = ["id", "name", "slug", "tax_id", "mailchimp_integration_connected"]
+        fields = [
+            "id",
+            "name",
+            "slug",
+            "tax_id",
+            "fiscal_status",
+            "fiscal_sponsor_name",
+            "mailchimp_integration_connected",
+        ]
 
 
 class RevenueProgramPatchSerializer(serializers.ModelSerializer):

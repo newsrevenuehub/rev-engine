@@ -3,18 +3,16 @@ import queryString from 'query-string';
 import { useCallback, useEffect } from 'react';
 
 import { NRE_MAILCHIMP_CLIENT_ID } from 'appSettings';
-import { MAILCHIMP_OAUTH_SUCCESS_ROUTE } from 'routes';
-import { EnginePlan } from './useContributionPage';
-import useUser from './useUser';
-import useFeatureFlags from './useFeatureFlags';
-import flagIsActiveForUser from 'utilities/flagIsActiveForUser';
+import SystemNotification from 'components/common/SystemNotification';
 import { MAILCHIMP_INTEGRATION_ACCESS_FLAG_NAME } from 'constants/featureFlagConstants';
 import { useSnackbar } from 'notistack';
-import SystemNotification from 'components/common/SystemNotification';
+import { MAILCHIMP_OAUTH_SUCCESS_ROUTE } from 'routes';
+import flagIsActiveForUser from 'utilities/flagIsActiveForUser';
+import { EnginePlan } from './useContributionPage';
+import useFeatureFlags from './useFeatureFlags';
+import useUser from './useUser';
 
 import usePreviousState from './usePreviousState';
-
-export type UnverifiedReason = '' | 'pending_verification' | 'past_due';
 
 export interface UseConnectMailchimpResult {
   isLoading: UseQueryResult['isLoading'];
@@ -30,12 +28,13 @@ export interface UseConnectMailchimpResult {
   /**
    * User's organization plan
    */
-  organizationPlan?: EnginePlan['name']; //'FREE' | 'CORE' | 'PLUS';
+  organizationPlan?: EnginePlan['name'];
 }
 
+const BASE_URL = window.location.origin;
+export const MAILCHIMP_OAUTH_CALLBACK = `${BASE_URL}${MAILCHIMP_OAUTH_SUCCESS_ROUTE}`;
+
 export default function useConnectMailchimp(): UseConnectMailchimpResult {
-  const BASE_URL = window.location.origin;
-  const OAUTH_CALLBACK = `${BASE_URL}${MAILCHIMP_OAUTH_SUCCESS_ROUTE}`;
   const { enqueueSnackbar } = useSnackbar();
   const { user, isError, isLoading } = useUser();
   const { flags } = useFeatureFlags();
@@ -51,9 +50,9 @@ export default function useConnectMailchimp(): UseConnectMailchimpResult {
     window.location.href = `https://login.mailchimp.com/oauth2/authorize?${queryString.stringify({
       response_type: 'code',
       client_id: NRE_MAILCHIMP_CLIENT_ID,
-      redirect_uri: OAUTH_CALLBACK
+      redirect_uri: MAILCHIMP_OAUTH_CALLBACK
     })}`;
-  }, [OAUTH_CALLBACK]);
+  }, []);
 
   useEffect(() => {
     if (user?.revenue_programs?.[0]?.mailchimp_integration_connected && prevMailchimpConnection === false) {
@@ -88,19 +87,15 @@ export default function useConnectMailchimp(): UseConnectMailchimpResult {
 
   // If the organization has mailchimp connected or if org plan is Free, return that status.
   if (
-    user?.organizations?.[0].show_connected_to_mailchimp ||
+    user?.organizations?.[0]?.show_connected_to_mailchimp ||
     user?.revenue_programs?.[0]?.mailchimp_integration_connected ||
-    !['CORE', 'PLUS'].includes(user?.organizations?.[0]?.plan?.name)
+    (user?.organizations?.[0]?.plan?.name ?? 'FREE') === 'FREE'
   ) {
-    console.log({
-      org: user?.organizations?.[0].show_connected_to_mailchimp,
-      rp: user?.revenue_programs?.[0]?.mailchimp_integration_connected
-    });
     return {
       isError: false,
       isLoading: false,
       connectedToMailchimp:
-        !!user?.organizations?.[0].show_connected_to_mailchimp ||
+        !!user?.organizations?.[0]?.show_connected_to_mailchimp ||
         !!user?.revenue_programs?.[0]?.mailchimp_integration_connected,
       organizationPlan: user?.organizations?.[0]?.plan?.name
     };

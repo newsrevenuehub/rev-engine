@@ -34,4 +34,4 @@ export const VERIFIED = '/verified/';
 export const PROFILE = '/setup/';
 
 // Mailchimp
-export const MAILCHIMP_OAUTH_SUCCESS_ROUTE = '/mailchimp/oauth-success/';
+export const MAILCHIMP_OAUTH_SUCCESS_ROUTE = '/mailchimp/oauth_success/';

@@ -5,8 +5,8 @@ import useConnectMailchimp from 'hooks/useConnectMailchimp';
 import IntegrationCard from '../IntegrationCard';
 
 export function MailchimpIntegrationCard() {
-  const { isLoading, sendUserToMailchimp, connectedToMailchimp, organizationPlan = '' } = useConnectMailchimp();
-  const freePlan = !['CORE', 'PLUS'].includes(organizationPlan);
+  const { isLoading, sendUserToMailchimp, connectedToMailchimp, organizationPlan = 'FREE' } = useConnectMailchimp();
+  const freePlan = organizationPlan === 'FREE';
 
   return (
     <IntegrationCard

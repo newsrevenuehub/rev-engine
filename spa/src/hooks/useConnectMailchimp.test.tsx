@@ -1,18 +1,19 @@
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { renderHook } from '@testing-library/react-hooks';
+import { NRE_MAILCHIMP_CLIENT_ID } from 'appSettings';
 import { MAILCHIMP_INTEGRATION_ACCESS_FLAG_NAME } from 'constants/featureFlagConstants';
 import useUser from 'hooks/useUser';
 import { useSnackbar } from 'notistack';
-import { ReactChild } from 'react';
 import queryString from 'query-string';
-import useConnectMailchimp from './useConnectMailchimp';
+import { ReactChild } from 'react';
+import useConnectMailchimp, { MAILCHIMP_OAUTH_CALLBACK } from './useConnectMailchimp';
 import { RevenueProgram } from './useContributionPage';
 import useFeatureFlags from './useFeatureFlags';
+import usePreviousState from './usePreviousState';
 import { Organization, User } from './useUser.types';
-import { MAILCHIMP_OAUTH_SUCCESS_ROUTE } from 'routes';
-import { NRE_MAILCHIMP_CLIENT_ID } from 'appSettings';
 
 jest.mock('hooks/useUser');
+jest.mock('hooks/usePreviousState');
 jest.mock('hooks/useFeatureFlags');
 jest.mock('appSettings', () => ({
   NRE_MAILCHIMP_CLIENT_ID: 'mock-client-id'
@@ -24,6 +25,7 @@ jest.mock('notistack', () => ({
 
 const useUserMock = jest.mocked(useUser);
 const useFeatureFlagsMock = jest.mocked(useFeatureFlags);
+const usePreviousStateMock = jest.mocked(usePreviousState);
 const useSnackbarMock = useSnackbar as jest.Mock;
 const enqueueSnackbar = jest.fn();
 
@@ -251,12 +253,10 @@ describe('useConnectMailchimp hook', () => {
   });
 
   it('returns a sendUserToMailchimp() function which redirects the user to the URL provided by the API', async () => {
-    const BASE_URL = window.location.origin;
-    const OAUTH_CALLBACK = `${BASE_URL}${MAILCHIMP_OAUTH_SUCCESS_ROUTE}`;
     const mailchimpURL = `https://login.mailchimp.com/oauth2/authorize?${queryString.stringify({
       response_type: 'code',
       client_id: NRE_MAILCHIMP_CLIENT_ID,
-      redirect_uri: OAUTH_CALLBACK
+      redirect_uri: MAILCHIMP_OAUTH_CALLBACK
     })}`;
     useUserMock.mockReturnValue({
       user: {
@@ -278,5 +278,26 @@ describe('useConnectMailchimp hook', () => {
     expect(typeof result.current.sendUserToMailchimp).toBe('function');
     result.current.sendUserToMailchimp!();
     expect(window.location.href).toEqual(mailchimpURL);
+  });
+
+  it('show connection success notification', async () => {
+    usePreviousStateMock.mockReturnValue(false);
+    useUserMock.mockReturnValueOnce({
+      user: {
+        ...mockUser,
+        revenue_programs: [{ ...mockRp, mailchimp_integration_connected: true } as any]
+      },
+      isError: false,
+      isLoading: false,
+      refetch: jest.fn()
+    });
+    renderHook(() => useConnectMailchimp(), { wrapper });
+
+    expect(enqueueSnackbar).toBeCalledWith(
+      'You’ve successfully connected to Mailchimp! Your contributor data will sync automatically.',
+      expect.objectContaining({
+        persist: true
+      })
+    );
   });
 });

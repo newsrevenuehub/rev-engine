@@ -18,22 +18,25 @@ export default function MailchimpOAuthSuccess() {
   const { search } = useLocation();
   const alert = useAlert();
   const { code } = queryString.parse(search);
-  const { user, isError: userError, isLoading: userLoading } = useUser();
+  const { user, isLoading: userLoading } = useUser();
   const [hasUpdatedCode, setHasUpdatedCode] = useState(false);
-  const {
-    mutate: mailchimpOAuthSuccess,
-    isLoading: isMailchimpOAuthLoading,
-    isError: mailchimpOAuthError
-  } = useMutation(({ mailchimpCode, rpId }: { mailchimpCode?: string; rpId?: number }) => {
-    return postMailchimpOAuthSuccess(mailchimpCode, rpId);
-  });
+  const { mutate: mailchimpOAuthSuccess } = useMutation(
+    ({ mailchimpCode, rpId }: { mailchimpCode?: string; rpId?: number }) => {
+      return postMailchimpOAuthSuccess(mailchimpCode, rpId);
+    },
+    {
+      onSuccess: () => {
+        history.push(SETTINGS.INTEGRATIONS);
+      }
+    }
+  );
 
   async function postMailchimpOAuthSuccess(code?: string, rpId?: number) {
     try {
       const result = await axios.post(MAILCHIMP_OAUTH_SUCCESS, { mailchimp_oauth_code: code, revenue_program: rpId });
       return result;
     } catch (error) {
-      console.error({ error });
+      console.error(error);
       alert.error(GENERIC_ERROR);
     }
   }
@@ -44,12 +47,6 @@ export default function MailchimpOAuthSuccess() {
       setHasUpdatedCode(true);
     }
   }, [code, hasUpdatedCode, mailchimpOAuthSuccess, user, userLoading]);
-
-  useEffect(() => {
-    if (!userLoading && !isMailchimpOAuthLoading && !userError && !mailchimpOAuthError && hasUpdatedCode) {
-      history.push(SETTINGS.INTEGRATIONS);
-    }
-  }, [hasUpdatedCode, history, isMailchimpOAuthLoading, mailchimpOAuthError, userError, userLoading]);
 
   return <GlobalLoading />;
 }

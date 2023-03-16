@@ -10,6 +10,7 @@ from django.test import RequestFactory, TestCase
 from django.urls import reverse
 
 import pytest
+from reversion_compare.admin import CompareVersionAdmin
 
 import apps
 from apps.common.tests.test_utils import setup_request
@@ -166,3 +167,12 @@ class ContributionAdminTest(TestCase):
         output = self.contribution_admin.provider_payment_method_details_pretty(contribution)
         assert isinstance(output, str)
         assert len(output)
+
+    def test_will_create_revisions_from_admin_actions(self, *args, **kwargs):
+        """We treat CompareVersionAdmin as a blackbox that should be depended on to consistently produce
+
+        revisions when admin users create, save, and delete from the admin. In other parts of the app, we
+        do more to ensure that revisions are created, but in the admin, we should be able to rely on
+        CompareVersionAdmin to do the right thing.
+        """
+        assert isinstance(self.contribution_admin, CompareVersionAdmin)

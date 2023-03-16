@@ -21,9 +21,6 @@ from apps.organizations.models import (
     RevenueProgram,
     RevenueProgramQuerySet,
 )
-from apps.organizations.tasks import (
-    exchange_mailchimp_oauth_code_for_server_prefix_and_access_token,
-)
 from apps.organizations.tests.factories import OrganizationFactory, RevenueProgramFactory
 from apps.organizations.views import RevenueProgramViewSet, get_stripe_account_link_return_url
 from apps.users.choices import Roles
@@ -885,18 +882,17 @@ def mailchimp_feature_flag_no_group_level_access(mailchimp_feature_flag):
 class TestHandleMailchimpOauthSuccessView:
     def test_happy_path(self, mocker, monkeypatch, org_user_free_plan, api_client):
         api_client.force_authenticate(org_user_free_plan)
-        task_spy = mocker.spy(exchange_mailchimp_oauth_code_for_server_prefix_and_access_token, "delay")
-        monkeypatch.setattr(
-            "apps.organizations.tasks.exchange_mailchimp_oauth_code_for_server_prefix_and_access_token",
-            lambda *args, **kwargs: None,
+        mock_task = mocker.patch(
+            "apps.organizations.tasks.exchange_mailchimp_oauth_code_for_server_prefix_and_access_token.delay"
         )
+        mock_task.return_value = None
         data = {
             "revenue_program": (rp_id := org_user_free_plan.roleassignment.revenue_programs.first().id),
             "mailchimp_oauth_code": (oauth_code := "something"),
         }
         response = api_client.post(reverse("handle-mailchimp-oauth-success"), data=data)
         assert response.status_code == status.HTTP_202_ACCEPTED
-        task_spy.assert_called_once_with(rp_id, oauth_code)
+        mock_task.assert_called_once_with(rp_id, oauth_code)
 
     def test_when_not_authenticated(self, api_client, default_feature_flags):
         response = api_client.post(reverse("handle-mailchimp-oauth-success"), data={})

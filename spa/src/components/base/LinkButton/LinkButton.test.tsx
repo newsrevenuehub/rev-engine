@@ -10,7 +10,7 @@ function tree(props?: Partial<LinkButtonProps>) {
   );
 }
 
-describe('Button', () => {
+describe('LinkButton', () => {
   it('displays a link', () => {
     tree();
     expect(screen.getByRole('link', { name: 'mock-button-label' })).toBeVisible();

@@ -5,6 +5,7 @@ from django.conf import settings
 from django.db.models import TextChoices
 from django.utils import timezone
 
+import reversion
 from rest_framework import serializers
 from rest_framework.exceptions import APIException, PermissionDenied
 from stripe.error import StripeError
@@ -203,10 +204,6 @@ class AbstractPaymentSerializer(serializers.Serializer):
     page_id = serializers.IntegerField(required=False)
     phone = serializers.CharField(max_length=40, required=False, allow_blank=True)
 
-    @classmethod
-    def convert_cents_to_amount(self, cents):
-        return str(float(cents / 100))
-
     def convert_amount_to_cents(self, amount):
         """
         Stripe stores payment amounts in cents.
@@ -221,9 +218,9 @@ class AbstractPaymentSerializer(serializers.Serializer):
             data["amount"] = self.convert_amount_to_cents(data["amount"])
         return super().to_internal_value(data)
 
-    def __init__(self, *args, **kwargs):
-        super().__init__(*args, **kwargs)
-        self.fields["amount"].error_messages["invalid"] = "Enter a valid amount"
+    # def __init__(self, *args, **kwargs):
+    #     super().__init__(*args, **kwargs)
+    # self.fields["amount"].error_messages["invalid"] = "Enter a valid amount"
 
 
 class BaseCreatePaymentSerializer(serializers.Serializer):
@@ -453,7 +450,9 @@ class BaseCreatePaymentSerializer(serializers.Serializer):
             elif self.should_flag(contribution_data["bad_actor_score"]):
                 contribution_data["status"] = ContributionStatus.FLAGGED
                 contribution_data["flagged_date"] = timezone.now()
-        return Contribution.objects.create(**contribution_data)
+        with reversion.create_revision():
+            reversion.set_comment(f"`{self.__class__.__name__}` created a new contribution")
+            return Contribution.objects.create(**contribution_data)
 
 
 class CreateOneTimePaymentSerializer(BaseCreatePaymentSerializer):
@@ -479,12 +478,14 @@ class CreateOneTimePaymentSerializer(BaseCreatePaymentSerializer):
         contributor, _ = Contributor.objects.get_or_create(email=validated_data["email"])
         bad_actor_response = self.get_bad_actor_score(validated_data)
         contribution = self.create_contribution(contributor, validated_data, bad_actor_response)
+        update_fields = set()
         if contribution.status == ContributionStatus.REJECTED:
             # In the case of a rejected contribution, we don't create a Stripe customer or
             # Stripe payment intent, so we raise exception, and leave to SPA to handle accordingly
             raise PermissionDenied("Cannot authorize contribution")
         try:
-            contribution.create_stripe_customer(**validated_data)
+            contribution.create_stripe_customer(**validated_data, save=False)
+            update_fields.update({"provider_customer_id", "modified"})
         except StripeError:
             logger.exception(
                 "CreateOneTimePaymentSerializer.create encountered a Stripe error while attempting to create a Stripe customer for contributor with id %s",
@@ -492,14 +493,15 @@ class CreateOneTimePaymentSerializer(BaseCreatePaymentSerializer):
             )
             raise GenericPaymentError()
         try:
-            payment_intent = contribution.create_stripe_one_time_payment_intent()
+            payment_intent = contribution.create_stripe_one_time_payment_intent(save=False)
+            update_fields.update({"provider_payment_id", "payment_provider_data", "modified"})
         except StripeError:
             logger.exception(
                 "CreateOneTimePaymentSerializer.create encountered a Stripe error while attempting to create a payment intent for contribution with id %s",
                 contribution.id,
             )
             raise GenericPaymentError()
-
+        contribution.save(update_fields=update_fields)
         return {
             "uuid": str(contribution.uuid),
             "client_secret": payment_intent["client_secret"],
@@ -530,6 +532,9 @@ class CreateRecurringPaymentSerializer(BaseCreatePaymentSerializer):
         we raise a PermissionDenied exception, which will signal to the SPA
         that the PaymentElement should not be loaded.
         """
+
+        #  control for update fielsd and revision creation
+
         contributor, _ = Contributor.objects.get_or_create(email=validated_data["email"])
         bad_actor_response = self.get_bad_actor_score(validated_data)
         contribution = self.create_contribution(contributor, validated_data, bad_actor_response)

@@ -7,6 +7,7 @@ from django.test import TestCase
 from django.utils import timezone
 
 import pytest
+import pytest_cases
 import stripe
 from addict import Dict as AttrDict
 from pytest import raises
@@ -23,134 +24,142 @@ from apps.contributions.models import (
     ContributionStatus,
     Contributor,
 )
-from apps.contributions.tests.factories import ContributionFactory, ContributorFactory
-from apps.contributions.utils import format_ambiguous_currency, get_sha256_hash
-from apps.organizations.tests.factories import RevenueProgramFactory
+from apps.contributions.serializers import ContributionSerializer
+from apps.contributions.tests.factories import ContributorFactory
+from apps.contributions.utils import get_sha256_hash
 from apps.pages.tests.factories import DonationPageFactory
 
 
-class ContributionSerializer(TestCase):
-    expected_fields = [
-        "amount",
-        "auto_accepted_on",
-        "bad_actor_score",
-        "contributor_email",
-        "created",
-        "currency",
-        "donation_page_id",
-        "flagged_date",
-        "formatted_payment_provider_used",
-        "id",
-        "interval",
-        "last_payment_date",
-        "provider_customer_url",
-        "provider_payment_url",
-        "provider_subscription_url",
-        "revenue_program",
-        "status",
-    ]
+@pytest.mark.django_db
+class TestContributionSerializer:
+    def test_has_expected_fields(self, one_time_contribution):
+        expected_fields = [
+            "amount",
+            "auto_accepted_on",
+            "bad_actor_score",
+            "contributor_email",
+            "created",
+            "currency",
+            "donation_page_id",
+            "flagged_date",
+            "formatted_payment_provider_used",
+            "id",
+            "interval",
+            "last_payment_date",
+            "provider_customer_url",
+            "provider_payment_url",
+            "provider_subscription_url",
+            "revenue_program",
+            "status",
+        ]
+        serialized = serializers.ContributionSerializer(instance=one_time_contribution)
+        assert set(serialized.data.keys()) == set(expected_fields)
 
-    def setUp(self):
-        self.serializer = serializers.ContributionSerializer
-        self.contributor = ContributorFactory()
-        self.contribution = ContributionFactory(
-            amount=1000, contributor=self.contributor, payment_provider_used="Stripe"
+    @pytest.mark.parametrize(
+        "make_serializer_object_fn",
+        (
+            lambda: Mock(flagged_date=timezone.now()),
+            lambda: Mock(flagged_date=None),
+        ),
+    )
+    def test_get_auto_accepted_on(self, make_serializer_object_fn):
+        obj = make_serializer_object_fn()
+        assert (
+            ContributionSerializer.get_auto_accepted_on(obj) is None
+            if not getattr(obj, "flagged_date", None)
+            else obj.flagged_date + timedelta(settings.FLAGGED_PAYMENT_AUTO_ACCEPT_DELTA)
         )
 
-    def test_returned_fields(self):
-        data = self.serializer(self.contribution).data
-        assert set(data.keys()) == set(self.expected_fields)
+    @pytest_cases.parametrize(
+        "make_serializer_object_fn,expected",
+        (
+            (lambda: Mock(payment_provider_used=None), ""),
+            (lambda: Mock(payment_provider_used=Mock(title=lambda: "something")), "something"),
+        ),
+    )
+    def test_get_formatted_payment_provider_used(self, make_serializer_object_fn, expected):
+        assert ContributionSerializer().get_formatted_payment_provider_used(make_serializer_object_fn()) == expected
 
-    def test_get_auto_accepted_on(self):
-        # Should return null if empty
-        self.contribution.flagged_date = None
-        self.contribution.save()
-        old_data = self.serializer(self.contribution).data
-        self.assertIsNone(old_data["auto_accepted_on"])
-        # Should return a datetime equal to flagged_date + "FLAGGED_PAYMENT_AUTO_ACCEPT_DELTA" setting
-        self.contribution.flagged_date = timezone.now()
-        self.contribution.save()
-        target_date = self.contribution.flagged_date + timedelta(settings.FLAGGED_PAYMENT_AUTO_ACCEPT_DELTA)
-        new_data = self.serializer(self.contribution).data
-        self.assertEqual(new_data["auto_accepted_on"], target_date)
+    @pytest.mark.parametrize(
+        "make_serializer_object_fn,expected",
+        (
+            (lambda: Mock(provider_payment_id=None), ""),
+            (
+                lambda: Mock(provider_payment_id="<some-provider-payment-id>"),
+                "<some-resource-url>/<some-provider-payment-id>",
+            ),
+        ),
+    )
+    def test_get_provider_payment_url(self, make_serializer_object_fn, expected, monkeypatch):
+        resource_url = "<some-resource-url>"
+        monkeypatch.setattr(
+            "apps.contributions.serializers.ContributionSerializer._get_resource_url",
+            lambda *args, **kwargs: resource_url,
+        )
+        assert ContributionSerializer().get_provider_payment_url(make_serializer_object_fn()) == expected
 
-    def test_get_formatted_payment_provider_used(self):
-        data = self.serializer(self.contribution).data
-        self.assertEqual(data["formatted_payment_provider_used"], "Stripe")
+    @pytest.mark.parametrize(
+        "make_serializer_object_fn,expected",
+        (
+            (lambda: Mock(provider_subscription_id=None), ""),
+            (
+                lambda: Mock(provider_subscription_id="<some-provider-subscription-id>"),
+                "<some-resource-url>/<some-provider-subscription-id>",
+            ),
+        ),
+    )
+    def test_get_provider_subscription_url(self, make_serializer_object_fn, expected, monkeypatch):
+        resource_url = "<some-resource-url>"
+        monkeypatch.setattr(
+            "apps.contributions.serializers.ContributionSerializer._get_resource_url",
+            lambda *args, **kwargs: resource_url,
+        )
+        assert ContributionSerializer().get_provider_subscription_url(make_serializer_object_fn()) == expected
 
-    def test_contributor_email(self):
-        data = self.serializer(self.contribution).data
-        self.assertEqual(data["contributor_email"], self.contributor.email)
-
-    def test_get_provider_payment_url(self):
-        my_provider_payment_id = "my_provider_payment_id"
-        self.contribution.provider_payment_id = my_provider_payment_id
-        self.contribution.save()
-
-        data = self.serializer(self.contribution).data
-        self.assertIn(my_provider_payment_id, data["provider_payment_url"])
-
-    def test_get_provider_subscription_url(self):
-        my_provider_subscription_id = "my_provider_subscription_id"
-        self.contribution.provider_subscription_id = my_provider_subscription_id
-        self.contribution.save()
-
-        data = self.serializer(self.contribution).data
-        self.assertIn(my_provider_subscription_id, data["provider_subscription_url"])
-
-    def test_get_provider_customer_url(self):
-        my_provider_customer_id = "my_provider_customer_id"
-        self.contribution.provider_customer_id = my_provider_customer_id
-        self.contribution.save()
-
-        data = self.serializer(self.contribution).data
-        self.assertIn(my_provider_customer_id, data["provider_customer_url"])
+    @pytest.mark.parametrize(
+        "make_serializer_object_fn,expected",
+        (
+            (lambda: Mock(provider_customer_id=None), ""),
+            (
+                lambda: Mock(provider_customer_id="<some-provider-customer-id>"),
+                "<some-resource-url>/<some-provider-customer-id>",
+            ),
+        ),
+    )
+    def test_get_provider_customer_url(self, make_serializer_object_fn, expected, monkeypatch):
+        resource_url = "<some-resource-url>"
+        monkeypatch.setattr(
+            "apps.contributions.serializers.ContributionSerializer._get_resource_url",
+            lambda *args, **kwargs: resource_url,
+        )
+        assert ContributionSerializer().get_provider_subscription_url(make_serializer_object_fn()) == expected
 
 
-class AbstractPaymentSerializerTest(TestCase):
-    def setUp(self):
-        self.serializer = serializers.AbstractPaymentSerializer
-        self.revenue_program = RevenueProgramFactory()
-        self.page = DonationPageFactory(revenue_program=self.revenue_program)
-        self.element = {"type": "Testing", "uuid": "testing-123", "requiredFields": [], "content": {}}
+class TestAbstractPaymentSerializer:
+    def test_convert_amount_to_cents(self):
+        assert serializers.AbstractPaymentSerializer().convert_amount_to_cents("1.2") == 120
 
-        self.payment_data = {
-            "amount": 123,
-            "currency": "USD",
-            "email": "test@test.com",
-            "first_name": "test",
-            "last_name": "test",
-            "ip": "127.0.0.1",
-            "mailing_city": "test",
-            "mailing_country": "test",
-            "mailing_postal_code": "12345",
-            "mailing_state": "test",
-            "mailing_street": "test",
-            "revenue_program_country": "ts",
-            "referer": "https://test.test",
-            "revenue_program_slug": "test",
-            "page_id": self.page.pk,
-        }
+    @pytest.mark.parametrize(
+        "data,expected_amount",
+        (
+            ({"amount": "1.2"}, 120),
+            ({"amount": None}, None),
+            ({"amount": "0.0"}, 0),
+            ({"amount": "0"}, 0),
+            ({"amount": "0.00"}, 0),
+        ),
+    )
+    def test_to_internal_value(self, data, expected_amount, mocker):
+        mock_super_to_internal_val = mocker.patch("rest_framework.serializers.Serializer.to_internal_value")
+        serializers.AbstractPaymentSerializer().to_internal_value(data)
+        mock_super_to_internal_val.assert_called_once_with({"amount": expected_amount})
 
-    def _add_element_to_page(self, element):
-        self.page.elements = [element]
-        self.page.save()
-
-    def test_amount_validation_min(self):
-        self.payment_data["amount"] = serializers.REVENGINE_MIN_AMOUNT - 1
-        serializer = self.serializer(data=self.payment_data)
-        self.assertFalse(serializer.is_valid())
-        self.assertIn("amount", serializer.errors)
-        expected_msg = f"We can only accept contributions greater than or equal to {format_ambiguous_currency(serializers.REVENGINE_MIN_AMOUNT)}"
-        self.assertEqual(str(serializer.errors["amount"][0]), expected_msg)
-
-    def test_amount_validation_max(self):
-        self.payment_data["amount"] = serializers.STRIPE_MAX_AMOUNT + 1
-        serializer = self.serializer(data=self.payment_data)
-        self.assertFalse(serializer.is_valid())
-        self.assertIn("amount", serializer.errors)
-        expected_msg = f"We can only accept contributions less than or equal to {format_ambiguous_currency(serializers.STRIPE_MAX_AMOUNT)}"
-        self.assertEqual(str(serializer.errors["amount"][0]), expected_msg)
+    def test_validates_amount_min_max(self):
+        assert (
+            amount := serializers.AbstractPaymentSerializer().fields["amount"]
+        ).min_value == serializers.REVENGINE_MIN_AMOUNT
+        assert amount.max_value == serializers.STRIPE_MAX_AMOUNT
+        assert {"max_value", "min_value"}.issubset(set(amount.error_messages.keys()))
 
 
 @pytest.mark.django_db()
@@ -795,6 +804,8 @@ class TestBaseCreatePaymentSerializer:
         for key, val in expectations.items():
             assert getattr(contribution, key) == val
 
+        # show that it creates a revision
+
     def test_create_contribution_when_should_flag(self, minimally_valid_data):
         contribution_count = Contribution.objects.count()
         bad_actor_data = {"overall_judgment": settings.BAD_ACTOR_FLAG_SCORE}
@@ -817,6 +828,7 @@ class TestBaseCreatePaymentSerializer:
         for key, val in expectations.items():
             assert getattr(contribution, key) == val
         assert contribution.flagged_date is not None
+        # show that it creates a revision
 
     def test_create_contribution_when_should_reject(self, minimally_valid_data):
         contribution_count = Contribution.objects.count()
@@ -841,6 +853,8 @@ class TestBaseCreatePaymentSerializer:
         for key, val in expectations.items():
             assert getattr(contribution, key) == val
 
+        # show that it creates a revision
+
     def test_create_contribution_when_no_bad_actor_response(self, minimally_valid_data):
         contribution_count = Contribution.objects.count()
         bad_actor_data = None
@@ -863,6 +877,8 @@ class TestBaseCreatePaymentSerializer:
         }
         for key, val in expectations.items():
             assert getattr(contribution, key) == val
+
+        # show that it creates a revision
 
     def test_donation_page_when_element_not_have_required_fields(self, donation_page, minimally_valid_data):
         del donation_page.elements[0]["requiredFields"]
@@ -932,6 +948,10 @@ class TestCreateOneTimePaymentSerializer:
         assert contribution.bad_actor_response == MockBadActorResponseObjectNotBad.mock_bad_actor_response_json
         assert contribution.contribution_metadata is not None
 
+        # SHOULD CREATE A REVISION
+
+        # should call right update fields depending on the situation
+
     def test_when_stripe_errors_creating_payment_intent(self, minimally_valid_data, monkeypatch):
         """Demonstrate `.create` when there's a Stripe error when creating payment intent
 
@@ -966,6 +986,8 @@ class TestCreateOneTimePaymentSerializer:
         assert contribution.status == ContributionStatus.PROCESSING
         assert contribution.contribution_metadata is not None
 
+        # save never called
+
     def test_when_stripe_errors_creating_customer(self, minimally_valid_data, monkeypatch):
         """Demonstrate `.create` when there's a Stripe error when creating customer
 
@@ -997,6 +1019,8 @@ class TestCreateOneTimePaymentSerializer:
         contribution = contributor.contribution_set.first()
         assert contribution.status == ContributionStatus.PROCESSING
         assert contribution.contribution_metadata is not None
+
+        # save never called
 
     def test_when_contribution_is_flagged(self, minimally_valid_data, monkeypatch):
         """Demonstrate `.create` when the contribution gets flagged
@@ -1054,6 +1078,8 @@ class TestCreateOneTimePaymentSerializer:
             "capture_method": "manual",
         }
 
+        # save not called
+
     def test_when_contribution_is_rejected(self, minimally_valid_data, monkeypatch):
         """Demonstrate `.create` when the contribution gets flagged
 
@@ -1084,6 +1110,8 @@ class TestCreateOneTimePaymentSerializer:
         assert contribution.provider_customer_id is None
         assert contribution.provider_payment_id is None
         assert contribution.contribution_metadata is not None
+
+        # save not called
 
 
 @pytest.mark.django_db

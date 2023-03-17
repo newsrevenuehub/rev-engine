@@ -1167,6 +1167,20 @@ class TestContributionModel:
         # assert mock_create_revision.called_once()
         # assert mock_set_revision_comment.called_once()
 
+    def test_fix_contributions_missing_provider_payment_method_id(self, mocker):
+        # have additional for each that are of type but have ID
+        # parametrize dry_run
+        # one time updating only id
+        # one time updating id and details
+        # sub updating only id
+        # sub updating id and details
+        # setup_intent updating only id
+        # setup_intent updating id and details
+        # show reversion per save
+        # show save calls is right
+        # show update fields are right
+        pass
+
     @pytest.mark.parametrize(
         "make_contribution_fn,stripe_return_val,expect_update",
         (

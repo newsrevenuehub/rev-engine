@@ -1,4 +1,5 @@
 import { PRICING_URL } from 'constants/helperUrls';
+import { PLAN_LABELS } from 'constants/orgPlanConstants';
 import { axe } from 'jest-axe';
 import { fireEvent, render, screen } from 'test-utils';
 import MaxPagesPublishedModal, { MaxPagesPublishedModalProps } from './MaxPagesPublishedModal';
@@ -16,7 +17,7 @@ describe('MaxPagesPublishedModal', () => {
   describe('When open', () => {
     describe('When the user is on the Free plan', () => {
       it("shows a message that they've exceeded their plan limit", () => {
-        tree({ currentPlan: 'FREE' });
+        tree({ currentPlan: PLAN_LABELS.FREE });
         expect(screen.getByText('number of live pages for the Free tier', { exact: false })).toBeVisible();
       });
 

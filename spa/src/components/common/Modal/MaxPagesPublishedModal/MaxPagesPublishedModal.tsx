@@ -1,7 +1,7 @@
 import PropTypes, { InferProps } from 'prop-types';
 import { Button, Link, Modal, ModalFooter, ModalHeader } from 'components/base';
 import { PRICING_URL } from 'constants/helperUrls';
-import { PLAN_NAMES } from 'constants/orgPlanConstants';
+import { PLAN_LABELS, PLAN_NAMES } from 'constants/orgPlanConstants';
 import { EnginePlan } from 'hooks/useContributionPage';
 import { ModalContent, ModalHeaderIcon, RedEmphasis } from './MaxPagesPublishedModal.styled';
 
@@ -23,7 +23,7 @@ export function MaxPagesPublishedModal({ currentPlan, onClose, open }: MaxPagesP
         <RedEmphasis>Max Pages Published</RedEmphasis>
       </ModalHeader>
       <ModalContent>
-        {currentPlan === 'FREE' && (
+        {currentPlan === PLAN_LABELS.FREE && (
           <>
             <p>
               You've published the <RedEmphasis>maximum</RedEmphasis> number of live pages for the Free tier. Unpublish

@@ -769,7 +769,7 @@ class Contribution(IndexedTimeStampedModel):
 
         for contribution in eligible_one_time:
             pi = contribution.stripe_payment_intent
-            if pi.payment_method:
+            if pi and pi.payment_method:
                 logger.info(
                     (
                         "Contribution.fix_missing_provider_payment_method_id setting payment method "
@@ -805,7 +805,7 @@ class Contribution(IndexedTimeStampedModel):
 
         for contribution in eligible_recurring_with_subscription:
             sub = contribution.stripe_subscription
-            if sub.default_payment_method:
+            if sub and sub.default_payment_method:
                 logger.info(
                     "Contribution.fix_missing_provider_payment_method_id Setting payment method on contribution with ID %s to %s",
                     contribution.id,
@@ -834,7 +834,7 @@ class Contribution(IndexedTimeStampedModel):
                         )
         for contribution in eligible_recurring_with_setup_intent:
             si = contribution.stripe_setup_intent
-            if si.payment_method:
+            if si and si.payment_method:
                 logger.info(
                     "Contribution.fix_missing_provider_payment_method_id Setting provider_payment_method ID on contribution with ID %s to %s",
                     contribution.id,

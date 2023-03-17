@@ -268,7 +268,6 @@ class TestRevenueProgram:
                     header_font=rp.default_donation_page.styles.styles["font"]["heading"],
                     body_font=rp.default_donation_page.styles.styles["font"]["body"],
                     button_color=rp.default_donation_page.styles.styles["colors"]["cstm_CTAs"],
-                    custom_style=True,
                 ),
             ),
             (
@@ -276,12 +275,7 @@ class TestRevenueProgram:
                     "revenue_program_with_default_donation_page_but_no_transactional_email_style_values"
                 ),
                 lambda rp: TransactionalEmailStyle(
-                    logo_url=None,
-                    header_color=None,
-                    header_font=None,
-                    body_font=None,
-                    button_color=None,
-                    custom_style=True,
+                    logo_url=None, header_color=None, header_font=None, body_font=None, button_color=None
                 ),
             ),
         ),

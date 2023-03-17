@@ -717,8 +717,6 @@ class TestContributionModel:
         "revenue_program",
         (
             pytest_cases.fixture_ref("free_plan_revenue_program"),
-            # TODO: uncomment when CORE plan implemented
-            # pytest_cases.fixture_ref("core_plan_revenue_program"),
             pytest_cases.fixture_ref("plus_plan_revenue_program"),
         ),
     )

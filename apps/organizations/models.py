@@ -263,7 +263,6 @@ class TransactionalEmailStyle:
     header_font: str = None
     body_font: str = None
     button_color: str = None
-    custom_style: bool = False
 
 
 HubDefaultEmailStyle = TransactionalEmailStyle(
@@ -272,7 +271,6 @@ HubDefaultEmailStyle = TransactionalEmailStyle(
     header_font=None,
     body_font=None,
     button_color=None,
-    custom_style=False,
 )
 
 
@@ -412,7 +410,6 @@ class RevenueProgram(IndexedTimeStampedModel):
                 header_font=_style.font.heading or None,
                 body_font=_style.font.body or None,
                 button_color=_style.colors.cstm_CTAs or None,
-                custom_style=True,
             )
 
     def clean_fields(self, **kwargs):

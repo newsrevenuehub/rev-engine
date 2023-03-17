@@ -695,7 +695,7 @@ class Contribution(IndexedTimeStampedModel):
                                 pi.payment_method,
                             )
                             contribution.provider_payment_method_id = pi.payment_method
-                            contribution.provider_payment_method_details = contribution.fetch_payment_method()
+                            contribution.provider_payment_method_details = contribution.fetch_stripe_payment_method()
                             update_fields.add("provider_payment_method_id")
                             update_fields.add("provider_payment_method_details")
                             comment += f" 'provider_payment_method_id' was set to {contribution.provider_payment_method_id} and provider_payment_method_details was set."
@@ -717,10 +717,13 @@ class Contribution(IndexedTimeStampedModel):
                         logger.info("Setting status on contribution with ID %s to PAID", contribution.id)
                         contribution.status = ContributionStatus.PAID
                         comment = f"`Contribution.fix_contributions_stuck_in_processing` updated contribution with ID {contribution.id}"
+
+                        #  need to test for this path
+
                         if sub.default_payment_method and not contribution.provider_payment_method_id:
                             contribution.provider_payment_method_id = sub.default_payment_method
                             update_fields.add("provider_payment_method_id")
-                            contribution.provider_payment_method_details = contribution.fetch_payment_method()
+                            contribution.provider_payment_method_details = contribution.fetch_stripe_payment_method()
                             update_fields.add("provider_payment_method_details")
                             comment += (
                                 f" 'provider_payment_method_id' was set to {contribution.provider_payment_method_id}"
@@ -788,6 +791,7 @@ class Contribution(IndexedTimeStampedModel):
             )
             if not dry_run:
                 logger.info("Setting status on contribution with ID %s to PAID", contribution.id)
+                # need to test for this
                 contribution.provider_payment_method_details = contribution.fetch_stripe_payment_method()
                 contribution.save(update_fields={"provider_payment_method_details", "modified"})
                 recurring_updated += 1

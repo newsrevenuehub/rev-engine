@@ -98,6 +98,7 @@ class RevenueProgramInlineSerializer(serializers.ModelSerializer):
             "tax_id",
             "fiscal_status",
             "fiscal_sponsor_name",
+            "mailchimp_integration_connected",
         ]
 
 

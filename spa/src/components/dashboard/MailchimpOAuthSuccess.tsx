@@ -1,22 +1,23 @@
-import { useMutation } from '@tanstack/react-query';
+import { useMutation, useQueryClient } from '@tanstack/react-query';
 import queryString from 'query-string';
 import { useEffect, useState } from 'react';
 import { useHistory, useLocation } from 'react-router-dom';
 
 import axios from 'ajax/axios';
 import { MAILCHIMP_OAUTH_SUCCESS } from 'ajax/endpoints';
+import { GENERIC_ERROR } from 'constants/textConstants';
 import GlobalLoading from 'elements/GlobalLoading';
 import useUser from 'hooks/useUser';
-import { SETTINGS } from 'routes';
 import { useAlert } from 'react-alert';
-import { GENERIC_ERROR } from 'constants/textConstants';
+import { SETTINGS } from 'routes';
 
 // This is an interstitial page we use solely to call `postMailchimpOAuthSuccess` to
 // send to the BE the Mailchimp connection code. Redirect to /pages after completion.
 export default function MailchimpOAuthSuccess() {
+  const alert = useAlert();
   const history = useHistory();
   const { search } = useLocation();
-  const alert = useAlert();
+  const queryClient = useQueryClient();
   const { code } = queryString.parse(search);
   const { user, isLoading: userLoading } = useUser();
   const [hasUpdatedCode, setHasUpdatedCode] = useState(false);
@@ -27,6 +28,7 @@ export default function MailchimpOAuthSuccess() {
     {
       onSuccess: () => {
         history.push(SETTINGS.INTEGRATIONS);
+        queryClient.invalidateQueries({ queryKey: ['user'] });
       }
     }
   );

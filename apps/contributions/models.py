@@ -743,6 +743,126 @@ class Contribution(IndexedTimeStampedModel):
         )
 
     @staticmethod
+    def fix_missing_provider_payment_method_id(dry_run: bool = False) -> None:
+        """Add provider_payment_method_id from Stripe where empty in our model and available in Stripe"""
+        eligible_one_time = (
+            Contribution.objects.one_time()
+            .filter(provider_payment_method_id__isnull=True)
+            .filter(provider_payment_id__isnull=False)
+        )
+        eligible_recurring_with_subscription = Contribution.objects.recurring().filter(
+            provider_payment_method_id__isnull=True, provider_subscription_id__isnull=False
+        )
+        eligible_recurring_with_setup_intent = Contribution.objects.recurring().filter(
+            provider_payment_method_id__isnull=True, provider_subscription_id__isnull=False
+        )
+        logger.info(
+            (
+                "Contribution.fix_missing_provider_payment_method_id found %s eligible one-time contributions, "
+                "%s eligible recurring contributions with a subscription, and %s eligible recurring "
+                "contributions with a setup intent."
+            ),
+            eligible_one_time.count(),
+            eligible_recurring_with_subscription.count(),
+            eligible_recurring_with_setup_intent.count(),
+        )
+
+        for contribution in eligible_one_time:
+            pi = contribution.stripe_payment_intent
+            if pi.payment_method:
+                logger.info(
+                    (
+                        "Contribution.fix_missing_provider_payment_method_id setting payment method "
+                        "on contribution with ID %s to %s",
+                    ),
+                    contribution.id,
+                    pi.payment_method,
+                )
+                contribution.provider_payment_method_id = pi.payment_method
+                if not dry_run:
+                    with reversion.create_revision():
+                        contribution.save(update_fields=["provider_payment_method_id", "modified"])
+                        logger.info(
+                            "Contribution.fix_missing_provider_payment_method_id saved contribution with ID %s",
+                            contribution.id,
+                        )
+                        reversion.set_comment("Contribution.fix_missing_provider_payment_method_id saved contribution")
+
+                payment_detail_data = contribution.fetch_stripe_payment_method()
+                contribution.provider_payment_method_details = payment_detail_data
+
+                if payment_detail_data and not dry_run:
+                    logger.info(
+                        "Contribution.fix_missing_provider_payment_method_id setting payment details for contribution with ID %s",
+                        contribution.id,
+                    )
+                    with reversion.create_revision():
+                        logger.info(
+                            "Contribution.fix_missing_provider_payment_method_id updated contribution %s after updating provider_payment_method_details",
+                            contribution.id,
+                        )
+                        contribution.save(update_fields=["provider_payment_method_details", "modified"])
+
+        for contribution in eligible_recurring_with_subscription:
+            sub = contribution.stripe_subscription
+            if sub.default_payment_method:
+                logger.info(
+                    "Contribution.fix_missing_provider_payment_method_id Setting payment method on contribution with ID %s to %s",
+                    contribution.id,
+                    sub.default_payment_method,
+                )
+                contribution.provider_payment_method_id = sub.default_payment_method
+                if not dry_run:
+                    with reversion.create_revision():
+                        contribution.save(update_fields=["provider_payment_method_id", "modified"])
+                        logger.info(
+                            "Contribution.fix_missing_provider_payment_method_id saved contribution with ID %s",
+                            contribution.id,
+                        )
+                        reversion.set_comment("Contribution.fix_missing_provider_payment_method_id saved contribution")
+                payment_detail_data = contribution.fetch_stripe_payment_method()
+                contribution.provider_payment_method_details = payment_detail_data
+                if payment_detail_data and not dry_run:
+                    logger.info(
+                        "Contribution.fix_missing_provider_payment_method_id saved payment details for contribution with ID %s",
+                        contribution.id,
+                    )
+                    with reversion.create_revision():
+                        contribution.save(update_fields=["provider_payment_method_details", "modified"])
+                        reversion.set_comment(
+                            "Contribution.fix_missing_provider_payment_method_id saved contribution after updating provider_payment_method_details"
+                        )
+        for contribution in eligible_recurring_with_setup_intent:
+            si = contribution.stripe_setup_intent
+            if si.payment_method:
+                logger.info(
+                    "Contribution.fix_missing_provider_payment_method_id Setting provider_payment_method ID on contribution with ID %s to %s",
+                    contribution.id,
+                    si.payment_method,
+                )
+                contribution.provider_payment_method_id = si.payment_method
+                if not dry_run:
+                    with reversion.create_revision():
+                        contribution.save(update_fields=["provider_payment_method_id", "modified"])
+                        logger.info(
+                            "Contribution.fix_missing_provider_payment_method_id saved contribution with ID %s",
+                            contribution.id,
+                        )
+                        reversion.set_comment("Contribution.fix_missing_provider_payment_method_id saved contribution")
+                payment_detail_data = contribution.fetch_stripe_payment_method()
+                contribution.provider_payment_method_details = payment_detail_data
+                if payment_detail_data and not dry_run:
+                    logger.info(
+                        "Contributions.fix_missing_provider_payment_method_id setting provider_payment_method_details for contribution with ID %s",
+                        contribution.id,
+                    )
+                    with reversion.create_revision():
+                        contribution.save(update_fields=["provider_payment_method_details", "modified"])
+                        reversion.set_comment(
+                            "Contribution.fix_missing_provider_payment_method_id saved contribution after updating provider_payment_method_details"
+                        )
+
+    @staticmethod
     def fix_missing_payment_method_details_data(dry_run: bool = False) -> None:
         """Retrieve provider_payment_method_details from Stripe if it's None and it appears that this should not be the case.
 

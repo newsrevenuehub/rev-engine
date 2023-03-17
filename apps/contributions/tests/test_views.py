@@ -868,6 +868,7 @@ class UpdatePaymentMethodTest(APITestCase):
             default_payment_method=self.payment_method_id,
             stripe_account=self.stripe_account_id,
         )
+        # assert about update fields and revision creation
 
 
 @override_settings(STRIPE_TEST_SECRET_KEY=TEST_STRIPE_API_KEY)
@@ -904,6 +905,8 @@ class CancelRecurringPaymentTest(APITestCase):
         response = self._make_request(self.subscription.id, self.revenue_program.slug)
         self.assertEqual(response.status_code, 204)
         self.assertEqual(response.data["detail"], "Success")
+
+        # test update fields and revision creation
 
     @mock.patch("stripe.Subscription.retrieve")
     def test_delete_recurring_wrong_email(self, mock_retrieve):
@@ -947,6 +950,8 @@ class DeleteSubscriptionsTest(APITestCase):
         response = self._make_request(self.subscription_1.id, self.revenue_program.slug)
         self.assertEqual(response.status_code, 204)
         self.assertEqual(response.data["detail"], "Success")
+
+        # test update fields and revision creation
 
     @mock.patch("stripe.Subscription.retrieve")
     def test_delete_recurring_wrong_email(self, mock_retrieve):
@@ -1010,10 +1015,13 @@ class ProcessFlaggedContributionTest(APITestCase):
         self.assertEqual(response.status_code, 200)
         mock_process_flagged.assert_called_with(reject="True")
 
+        # assert about revision and update fields
+
     def test_response_when_successful_accept(self, mock_process_flagged):
         response = self._make_request(contribution_pk=self.contribution.pk, request_args={"reject": False})
         self.assertEqual(response.status_code, 200)
         mock_process_flagged.assert_called_with(reject="False")
+        # assert about revision and update fields
 
 
 @pytest.fixture
@@ -1096,6 +1104,7 @@ class TestPaymentViewset:
         stripe_create_customer_response,
         interval,
         subscription_id,
+        mocker,
     ):
         """Minimal test of the happy path
 
@@ -1103,20 +1112,22 @@ class TestPaymentViewset:
         are extensively tested elsewhere.
         """
         mock_create_customer = mock.Mock()
-        mock_create_customer.return_value = stripe_create_customer_response
+        mock_create_customer.return_value = AttrDict(stripe_create_customer_response)
         monkeypatch.setattr("stripe.Customer.create", mock_create_customer)
         mock_create_subscription = mock.Mock()
-        mock_create_subscription.return_value = stripe_create_subscription_response
+        mock_create_subscription.return_value = AttrDict(stripe_create_subscription_response)
         monkeypatch.setattr("stripe.Subscription.create", mock_create_subscription)
         monkeypatch.setattr("apps.contributions.serializers.make_bad_actor_request", mock_get_bad_actor)
         mock_create_payment_intent = mock.Mock()
-        mock_create_payment_intent.return_value = stripe_create_payment_intent_response
+        mock_create_payment_intent.return_value = AttrDict(stripe_create_payment_intent_response)
         monkeypatch.setattr("stripe.PaymentIntent.create", mock_create_payment_intent)
 
         contributor_count = Contributor.objects.count()
         contribution_count = Contribution.objects.count()
         data = valid_data | {"interval": interval}
         url = reverse("payment-list")
+
+        save_spy = mocker.spy(Contribution, "save")
         response = self.client.post(url, data, format="json")
         assert response.status_code == status.HTTP_201_CREATED
         assert set(["email_hash", "client_secret", "uuid"]) == set(response.json().keys())
@@ -1126,6 +1137,7 @@ class TestPaymentViewset:
         assert contribution.interval == interval
         assert contribution.provider_subscription_id == subscription_id
         assert contribution.amount == int(data["amount"] * 100)
+        save_spy.assert_called_once()
 
     def test_when_called_with_unexpected_interval(self, valid_data):
         invalid_interval = "this-is-not-legit"
@@ -1177,6 +1189,8 @@ class TestPaymentViewset:
         assert response.status_code == status.HTTP_204_NO_CONTENT
         contribution.refresh_from_db()
         mock_cancel.assert_called_once()
+
+        # test revision and update fields
 
     @pytest.mark.parametrize(
         "contribution_status",

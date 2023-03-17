@@ -419,7 +419,6 @@ class Contribution(IndexedTimeStampedModel):
         mailing_state=None,
         mailing_postal_code=None,
         mailing_country=None,
-        save=False,
         **kwargs,
     ):
         """Create a Stripe customer using contributor email"""
@@ -431,7 +430,7 @@ class Contribution(IndexedTimeStampedModel):
             "country": mailing_country,
         }
         name = " ".join(x for x in [first_name, last_name] if x)
-        customer = stripe.Customer.create(
+        return stripe.Customer.create(
             email=self.contributor.email,
             address=address,
             shipping={"address": address, "name": name},
@@ -439,17 +438,13 @@ class Contribution(IndexedTimeStampedModel):
             phone=phone,
             stripe_account=self.donation_page.revenue_program.payment_provider.stripe_account_id,
         )
-        self.provider_customer_id = customer["id"]
-        if save:
-            self.save(update_fields={"provider_customer_id", "modified"})
-        return customer
 
     def create_stripe_one_time_payment_intent(self, save=True):
-        """Create a Stripe PaymentIntent and attach its id and client_secret to the contribution
+        """Create a Stripe PaymentIntent
 
         See https://stripe.com/docs/api/payment_intents/create for more info
         """
-        intent = stripe.PaymentIntent.create(
+        return stripe.PaymentIntent.create(
             amount=self.amount,
             currency=self.currency,
             customer=self.provider_customer_id,
@@ -459,26 +454,16 @@ class Contribution(IndexedTimeStampedModel):
             stripe_account=self.donation_page.revenue_program.stripe_account_id,
             capture_method="manual" if self.status == ContributionStatus.FLAGGED else "automatic",
         )
-        self.provider_payment_id = intent["id"]
-        # we don't want to save `` because it can be used to authorize payment attempt
-        # so want to keep surface area small as possible
-        self.payment_provider_data = dict(intent) | {"client_secret": None}
-        if save:
-            self.save(update_fields={"provider_payment_id", "payment_provider_data", "modified"})
-        return intent
 
     def create_stripe_setup_intent(self, metadata):
-        setup_intent = stripe.SetupIntent.create(
+        return stripe.SetupIntent.create(
             customer=self.provider_customer_id,
             stripe_account=self.donation_page.revenue_program.payment_provider.stripe_account_id,
             metadata=metadata,
         )
-        self.provider_setup_intent_id = setup_intent["id"]
-        self.save(update_fields={"provider_setup_intent_id", "modified"})
-        return setup_intent
 
     def create_stripe_subscription(
-        self, metadata=None, default_payment_method=None, off_session=False, error_if_incomplete=False, save=True
+        self, metadata=None, default_payment_method=None, off_session=False, error_if_incomplete=False
     ):
         """Create a Stripe Subscription and attach its data to the contribution
 
@@ -507,15 +492,6 @@ class Contribution(IndexedTimeStampedModel):
             expand=["latest_invoice.payment_intent"],
             off_session=off_session,
         )
-        self.payment_provider_data = subscription
-        self.provider_subscription_id = subscription["id"]
-        # this can potentially overwrite a pre-existing non-null value in context, as gets used in webhooks processing
-        # where order is not guaranteed
-        self.provider_payment_id = subscription["latest_invoice"]["payment_intent"]["id"]
-        if save:
-            self.save(
-                update_fields={"payment_provider_data", "provider_subscription_id", "provider_payment_id", "modified"}
-            )
         return subscription
 
     def cancel(self):

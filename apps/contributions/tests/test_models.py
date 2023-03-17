@@ -331,14 +331,16 @@ class TestContributionModel:
         ...that it returns the created payment intent, and that it saves the payment intent ID and
         client secret back to the contribution
         """
-        create_pi_return_val = {
-            "id": "fake_id",
-            "client_secret": "fake_client_secret",
-            "customer": "fake_stripe_customer_id",
-        }
+        create_pi_return_val = AttrDict(
+            {
+                "id": "fake_id",
+                "client_secret": "fake_client_secret",
+                "customer": "fake_stripe_customer_id",
+            }
+        )
         monkeypatch.setattr("stripe.PaymentIntent.create", lambda *args, **kwargs: create_pi_return_val)
         spy = mocker.spy(stripe.PaymentIntent, "create")
-        payment_intent = one_time_contribution.create_stripe_one_time_payment_intent()
+        assert one_time_contribution.create_stripe_one_time_payment_intent() == create_pi_return_val
         spy.assert_called_once_with(
             amount=one_time_contribution.amount,
             currency=one_time_contribution.currency,
@@ -351,10 +353,6 @@ class TestContributionModel:
             stripe_account=rp.stripe_account_id,
             capture_method="automatic",
         )
-        one_time_contribution.refresh_from_db()
-        assert one_time_contribution.provider_payment_id == create_pi_return_val["id"]
-        assert payment_intent == create_pi_return_val
-        assert one_time_contribution.payment_provider_data == create_pi_return_val | {"client_secret": None}
 
     @pytest_cases.parametrize(
         "contribution",
@@ -373,19 +371,12 @@ class TestContributionModel:
         "contribution",
         (pytest_cases.fixture_ref("monthly_contribution"), pytest_cases.fixture_ref("annual_contribution")),
     )
-    @pytest.mark.parametrize("save", (True, False))
-    def test_create_stripe_subscription(self, contribution, save, monkeypatch, mocker):
+    def test_create_stripe_subscription(self, contribution, monkeypatch, mocker):
         """Show Contribution.create_stripe_subscription calls Stripe with right params...
 
-        ...that it returns the created subscription, and that it saves the right subscription data
-        back to the contribution
+        ...that it returns the created subscription
         """
-        initial_subscription_id = contribution.provider_subscription_id
-        initial_provider_payment_id = contribution.provider_payment_id
-        initial_payment_provider_data = contribution.payment_provider_data
-
         contribution.provider_subscription_id = None
-
         return_value = {
             "id": "fake_id",
             "latest_invoice": {"payment_intent": {"client_secret": "fake_client_secret", "id": "pi_fakefakefake"}},
@@ -393,9 +384,8 @@ class TestContributionModel:
         }
         monkeypatch.setattr("stripe.Subscription.create", lambda *args, **kwargs: return_value)
         stripe_spy = mocker.spy(stripe.Subscription, "create")
-        save_spy = mocker.spy(Contribution, "save")
         metadata = {"foo": "bar"}
-        subscription = contribution.create_stripe_subscription(metadata, save=save)
+        subscription = contribution.create_stripe_subscription(metadata)
         stripe_spy.assert_called_once_with(
             customer=contribution.provider_customer_id,
             items=[
@@ -416,26 +406,7 @@ class TestContributionModel:
             off_session=False,
             default_payment_method=None,
         )
-        contribution.refresh_from_db()
-
         assert subscription == return_value
-        assert save_spy.call_count == (1 if save else 0)
-        if save:
-            assert save_spy.call_args[1] == {
-                "update_fields": {
-                    "payment_provider_data",
-                    "provider_subscription_id",
-                    "provider_payment_id",
-                    "modified",
-                }
-            }
-            assert contribution.provider_subscription_id == return_value["id"]
-            assert contribution.provider_payment_id == return_value["latest_invoice"]["payment_intent"]["id"]
-            assert contribution.payment_provider_data == return_value
-        else:
-            assert contribution.provider_subscription_id == initial_subscription_id
-            assert contribution.provider_payment_id == initial_provider_payment_id
-            assert contribution.payment_provider_data == initial_payment_provider_data
 
     @pytest_cases.parametrize(
         "contribution",
@@ -447,10 +418,12 @@ class TestContributionModel:
         ...that it returns the created setup intent, and that it saves the right data
         back to the contribution
         """
-        return_value = {
-            "id": "fake_id",
-            "client_secret": "fake_client_secret",
-        }
+        return_value = AttrDict(
+            {
+                "id": "fake_id",
+                "client_secret": "fake_client_secret",
+            }
+        )
         monkeypatch.setattr("stripe.SetupIntent.create", lambda *args, **kwargs: return_value)
         spy = mocker.spy(stripe.SetupIntent, "create")
         metadata = {"meta": "data"}
@@ -460,8 +433,6 @@ class TestContributionModel:
             stripe_account=contribution.donation_page.revenue_program.stripe_account_id,
             metadata=metadata,
         )
-        contribution.refresh_from_db()
-        assert contribution.provider_setup_intent_id == return_value["id"]
         assert setup_intent == return_value
 
     @pytest_cases.parametrize(
@@ -525,6 +496,33 @@ class TestContributionModel:
             "revenue_program_slug": validated_data["page"].revenue_program.slug,
             "sf_campaign_id": validated_data["sf_campaign_id"],
         }
+
+    def test_cancel_calls_save_with_right_update_fields(self, one_time_contribution, mocker, monkeypatch):
+        # there are other paths through that call save where different stripe return values would need to
+        # be provided. We're only testing processing case, and assume that it also means that save calls right update
+        # fields for all non-error paths through cancel function.
+        one_time_contribution.status = ContributionStatus.PROCESSING
+        one_time_contribution.save()
+        mock_cancel = Mock()
+        monkeypatch.setattr("stripe.PaymentIntent.cancel", mock_cancel)
+        save_spy = mocker.spy(Contribution, "save")
+        one_time_contribution.cancel()
+        save_spy.assert_called_once_with(one_time_contribution, update_fields={"status", "modified"})
+
+    def test_cancel_creates_a_revision(self, one_time_contribution, mocker, monkeypatch):
+        """Show that cancel creates a revision with the right comment"""
+        one_time_contribution.status = ContributionStatus.PROCESSING
+        one_time_contribution.save()
+        mock_create_revision = mocker.patch("reversion.create_revision")
+        mock_create_revision.__enter__.return_value = None
+        mock_cancel = Mock()
+        monkeypatch.setattr("stripe.PaymentIntent.cancel", mock_cancel)
+        mock_set_revision_comment = mocker.patch("reversion.set_comment")
+        one_time_contribution.cancel()
+        mock_create_revision.assert_called_once()
+        mock_set_revision_comment.assert_called_once_with(
+            f"`Contribution.cancel` saved changes to contribution with ID {one_time_contribution.id}"
+        )
 
     @pytest.mark.parametrize(
         "status",
@@ -1139,6 +1137,12 @@ class TestContributionModel:
         self, contribution_fn, stripe_return_val, expect_paid, dry_run, mocker
     ):
         contribution = contribution_fn()
+        # save_spy = mocker.spy(Contribution, "save")
+        # mock_create_revision = mocker.patch("reversion.create_revision")
+        # mock_set_revision_comment = mocker.patch("reversion.set_comment")
+
+        # update fields will need to be part of parametrize setup
+
         earlier_status = contribution.status
         if contribution.interval == ContributionInterval.ONE_TIME:
             mocker.patch(
@@ -1155,6 +1159,13 @@ class TestContributionModel:
         Contribution.fix_contributions_stuck_in_processing(dry_run=dry_run)
         contribution.refresh_from_db()
         assert contribution.status == ContributionStatus.PAID if (expect_paid and not dry_run) else earlier_status
+        # save_spy.assert_called_once()
+
+        # # these are dynamic and need in fixture to track
+        # # assert save_spy.called_once_with(contribution, update_fields={"status"})
+
+        # assert mock_create_revision.called_once()
+        # assert mock_set_revision_comment.called_once()
 
     @pytest.mark.parametrize(
         "make_contribution_fn,stripe_return_val,expect_update",
@@ -1226,6 +1237,9 @@ class TestContributionModel:
         contribution = make_contribution_fn()
         contribution.status = contribution_status
         contribution.save()
+
+        # assert about revision and update fields
+
         old_data = contribution.provider_payment_method_details
         monkeypatch.setattr(
             "apps.contributions.models.Contribution.fetch_stripe_payment_method",
@@ -1347,6 +1361,8 @@ class TestContributionModel:
                 contribution.id,
             )
 
+        # assert about revision and update fields
+
     def test_fix_missing_contribution_metadata_when_no_stripe_entity_found(
         self, monthly_contribution, monkeypatch, mocker
     ):
@@ -1363,6 +1379,7 @@ class TestContributionModel:
             ),
             monthly_contribution.id,
         )
+        # assert about revision and update fields
 
 
 @pytest.mark.django_db

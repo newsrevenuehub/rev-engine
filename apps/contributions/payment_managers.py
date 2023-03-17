@@ -201,7 +201,6 @@ class StripePaymentManager(PaymentManager):
                 error_if_incomplete=True,
                 default_payment_method=setup_intent["payment_method"],
                 metadata=setup_intent["metadata"],
-                save=False,
             )
             # these get updated in `create_stripe_subscription`
             update_fields = update_fields.union(

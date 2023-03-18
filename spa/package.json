@@ -9,6 +9,7 @@
     "@fortawesome/fontawesome-svg-core": "^1.2.35",
     "@fortawesome/free-solid-svg-icons": "^5.15.3",
     "@fortawesome/react-fontawesome": "^0.1.14",
+    "@material-design-icons/svg": "^0.14.2",
     "@material-ui/core": "^4.11.4",
     "@material-ui/icons": "^4.11.3",
     "@material-ui/lab": "^4.0.0-alpha.61",
@@ -73,6 +74,7 @@
     "chromatic": "chromatic --exit-zero-on-changes",
     "cypress:open": "cypress open --e2e",
     "cypress:run": "cypress run --e2e",
+    "lint": "eslint src",
     "test": "react-scripts test",
     "test:coverage": "CI=true npm test -- --env=jsdom --coverage",
     "test:ci": "CI=true npm test -- --env=jsdom",
@@ -105,47 +107,12 @@
       "\\.svg$": "<rootDir>/__mocks__/svgrMock.js"
     }
   },
-  "eslintConfig": {
-    "extends": [
-      "react-app",
-      "react-app/jest",
-      "prettier",
-      "plugin:chai-friendly/recommended"
-    ],
-    "env": {
-      "cypress/globals": true
-    },
-    "plugins": [
-      "cypress",
-      "chai-friendly"
-    ],
-    "overrides": [
-      {
-        "files": [
-          "*.spec.js"
-        ],
-        "rules": {
-          "jest/valid-expect": 0,
-          "jest/valid-expect-in-promise": 0
-        }
-      },
-      {
-        "files": [
-          "**/*.stories.*"
-        ],
-        "rules": {
-          "import/no-anonymous-default-export": "off"
-        }
-      }
-    ]
-  },
   "browserslist": [
     ">0.2%",
     "not dead",
     "not op_mini all"
   ],
   "devDependencies": {
-    "@cypress/react": "^6.2.0",
     "@cypress/webpack-preprocessor": "^5.12.2",
     "@react-theming/storybook-addon": "^1.1.7",
     "@storybook/addon-actions": "^6.5.10",
@@ -158,6 +125,7 @@
     "@storybook/preset-create-react-app": "^4.1.2",
     "@storybook/react": "^6.5.10",
     "@storybook/testing-library": "^0.0.13",
+    "@svgr/webpack": "^6.5.1",
     "@testing-library/cypress": "^8.0.3",
     "@testing-library/jest-dom": "^5.11.10",
     "@testing-library/react": "^11.2.7",
@@ -179,15 +147,17 @@
     "@types/react-router-dom": "^5.3.3",
     "@types/styled-components": "^5.1.26",
     "@types/wcag-contrast": "^3.0.0",
+    "@typescript-eslint/eslint-plugin": "^5.54.0",
+    "@typescript-eslint/parser": "^5.54.0",
     "axios-mock-adapter": "^1.21.2",
     "babel-plugin-named-exports-order": "^0.0.2",
     "chromatic": "^6.10.2",
     "cypress": "^10.9.0",
     "cypress-localstorage-commands": "^1.7.0",
     "eslint": "^7.25.0",
-    "eslint-config-prettier": "^8.3.0",
-    "eslint-plugin-chai-friendly": "^0.7.1",
-    "eslint-plugin-cypress": "^2.11.3",
+    "eslint-config-prettier": "^8.6.0",
+    "eslint-plugin-chai-friendly": "^0.7.2",
+    "eslint-plugin-cypress": "^2.12.1",
     "history": "^5.3.0",
     "http-proxy-middleware": "^2.0.6",
     "jest-axe": "^6.0.0",

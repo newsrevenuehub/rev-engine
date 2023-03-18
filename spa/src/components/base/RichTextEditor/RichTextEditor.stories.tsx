@@ -1,9 +1,7 @@
 import { ComponentMeta, ComponentStory } from '@storybook/react';
 import { useMemo, useState } from 'react';
 import { editorStateToHtml, htmlToEditorState } from 'utilities/draftJs';
-import htmlToDraft from 'html-to-draftjs';
 import RichTextEditor from './RichTextEditor';
-import { ContentState, EditorState } from 'draft-js';
 
 export default {
   component: RichTextEditor,

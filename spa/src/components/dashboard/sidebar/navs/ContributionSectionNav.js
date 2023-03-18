@@ -1,4 +1,3 @@
-import React from 'react';
 import * as S from './../DashboardSidebar.styled';
 import { DONATIONS_SLUG } from 'routes';
 import { ICONS } from 'assets/icons/SvgIcon';

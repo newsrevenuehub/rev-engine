@@ -1,12 +1,19 @@
-import { axe } from 'jest-axe';
-import { render, screen, within } from 'test-utils';
 import userEvent from '@testing-library/user-event';
+import { axe } from 'jest-axe';
+import { useHistory } from 'react-router-dom';
+import { render, screen, within } from 'test-utils';
 
-import { FAQ_URL } from 'constants/helperUrls';
 import onLogout from 'components/authentication/logout';
 import { USER_ROLE_HUB_ADMIN_TYPE } from 'constants/authConstants';
+import { FAQ_URL } from 'constants/helperUrls';
 
+import { SETTINGS } from 'routes';
 import AvatarMenu, { AvatarMenuProps } from './AvatarMenu';
+
+jest.mock('react-router-dom', () => ({
+  ...jest.requireActual('react-router-dom'),
+  useHistory: jest.fn()
+}));
 
 jest.mock('components/authentication/logout');
 
@@ -80,6 +87,29 @@ describe('AvatarMenu', () => {
 
     userEvent.click(screen.getByRole('button', { name: settingsMenu }));
     expect(screen.getByRole('menuitem', { name: 'Integrations' })).toBeEnabled();
+    expect(screen.getByRole('menuitem', { name: 'Organization' })).toBeEnabled();
+  });
+
+  it.each([
+    ['Integrations', SETTINGS.INTEGRATIONS],
+    ['Organization', SETTINGS.ORGANIZATION]
+  ])('should navigate to %s if respective button is clicked', (menuitem, url) => {
+    const user = {
+      email: 'email@mock.com',
+      organizations: [{ id: 'mock-org' }],
+      role_type: ['mock-role']
+    };
+    const push = jest.fn();
+    const historyMock = useHistory as jest.Mock;
+    historyMock.mockReturnValue({
+      push
+    });
+    tree({ user });
+
+    expect(push).not.toBeCalled();
+    userEvent.click(screen.getByRole('button', { name: settingsMenu }));
+    userEvent.click(screen.getByRole('menuitem', { name: menuitem }));
+    expect(push).toBeCalledWith(url);
   });
 
   it('should NOT show settings section if user has more than 1 org', () => {
@@ -92,6 +122,7 @@ describe('AvatarMenu', () => {
 
     userEvent.click(screen.getByRole('button', { name: settingsMenu }));
     expect(screen.queryByRole('menuitem', { name: 'Integrations' })).not.toBeInTheDocument();
+    expect(screen.queryByRole('menuitem', { name: 'Organization' })).not.toBeInTheDocument();
   });
 
   it('should NOT show settings section if user is Hub admin', () => {
@@ -104,6 +135,7 @@ describe('AvatarMenu', () => {
 
     userEvent.click(screen.getByRole('button', { name: settingsMenu }));
     expect(screen.queryByRole('menuitem', { name: 'Integrations' })).not.toBeInTheDocument();
+    expect(screen.queryByRole('menuitem', { name: 'Organization' })).not.toBeInTheDocument();
   });
 
   it('should have correct FAQ link', () => {
@@ -131,7 +163,12 @@ describe('AvatarMenu', () => {
   });
 
   it('is accessible', async () => {
-    const { container } = tree({ user: { email: 'a@a.com' } });
+    const user = {
+      email: 'email@mock.com',
+      organizations: [{ id: 'mock-org' }],
+      role_type: ['mock-role']
+    };
+    const { container } = tree({ user });
     expect(await axe(container)).toHaveNoViolations();
 
     userEvent.click(screen.getByRole('button', { name: settingsMenu }));

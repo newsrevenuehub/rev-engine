@@ -10,7 +10,7 @@ import { within } from '@testing-library/react';
 jest.mock('./PayFeesControl');
 
 const defaultPage = {
-  currency: { symbol: 'mock-currency-symbol' },
+  currency: { code: 'mock-currency-code', symbol: 'mock-currency-symbol' },
   elements: [],
   revenue_program: { name: 'mock-rp-name' },
   payment_provider: {
@@ -135,12 +135,12 @@ describe('DAmount', () => {
 
     const amounts = within(screen.getByTestId('d-amount-amounts'));
 
-    expect(amounts.getByText('mock-currency-symbol1')).toBeVisible();
-    expect(amounts.getByText('mock-currency-symbol2')).toBeVisible();
-    expect(amounts.getByText('mock-currency-symbol3')).toBeVisible();
-    expect(amounts.queryByText('mock-currency-symbol4')).not.toBeInTheDocument();
-    expect(amounts.queryByText('mock-currency-symbol5')).not.toBeInTheDocument();
-    expect(amounts.queryByText('mock-currency-symbol6')).not.toBeInTheDocument();
+    expect(amounts.getByText('mock-currency-symbol1 mock-currency-code')).toBeVisible();
+    expect(amounts.getByText('mock-currency-symbol2 mock-currency-code')).toBeVisible();
+    expect(amounts.getByText('mock-currency-symbol3 mock-currency-code')).toBeVisible();
+    expect(amounts.queryByText('mock-currency-symbol4 mock-currency-code')).not.toBeInTheDocument();
+    expect(amounts.queryByText('mock-currency-symbol5 mock-currency-code')).not.toBeInTheDocument();
+    expect(amounts.queryByText('mock-currency-symbol6 mock-currency-code')).not.toBeInTheDocument();
   });
 
   it('displays no divs if the element is missing options configuration', () => {
@@ -158,16 +158,19 @@ describe('DAmount', () => {
 
   it("selects a div if it matches the page's contribution amount", () => {
     tree(undefined, { amount: 2, frequency: CONTRIBUTION_INTERVALS.ONE_TIME });
-    expect(screen.getByText('mock-currency-symbol1')).toHaveAttribute('data-testid', 'amount-1');
-    expect(screen.getByText('mock-currency-symbol2')).toHaveAttribute('data-testid', 'amount-2-selected');
-    expect(screen.getByText('mock-currency-symbol3')).toHaveAttribute('data-testid', 'amount-3');
+    expect(screen.getByText('mock-currency-symbol1 mock-currency-code')).toHaveAttribute('data-testid', 'amount-1');
+    expect(screen.getByText('mock-currency-symbol2 mock-currency-code')).toHaveAttribute(
+      'data-testid',
+      'amount-2-selected'
+    );
+    expect(screen.getByText('mock-currency-symbol3 mock-currency-code')).toHaveAttribute('data-testid', 'amount-3');
   });
 
   it("selects no divs if none match the page's contribution amount", () => {
     tree(undefined, { amount: 0, frequency: CONTRIBUTION_INTERVALS.ONE_TIME });
-    expect(screen.getByText('mock-currency-symbol1')).toHaveAttribute('data-testid', 'amount-1');
-    expect(screen.getByText('mock-currency-symbol2')).toHaveAttribute('data-testid', 'amount-2');
-    expect(screen.getByText('mock-currency-symbol3')).toHaveAttribute('data-testid', 'amount-3');
+    expect(screen.getByText('mock-currency-symbol1 mock-currency-code')).toHaveAttribute('data-testid', 'amount-1');
+    expect(screen.getByText('mock-currency-symbol2 mock-currency-code')).toHaveAttribute('data-testid', 'amount-2');
+    expect(screen.getByText('mock-currency-symbol3 mock-currency-code')).toHaveAttribute('data-testid', 'amount-3');
   });
 
   it('sets the amount when a payment option div is clicked', () => {
@@ -175,10 +178,10 @@ describe('DAmount', () => {
 
     tree(undefined, { setAmount, amount: 1, frequency: CONTRIBUTION_INTERVALS.ONE_TIME });
     expect(setAmount).not.toBeCalled();
-    userEvent.click(screen.getByText('mock-currency-symbol2'));
+    userEvent.click(screen.getByText('mock-currency-symbol2 mock-currency-code'));
     expect(setAmount.mock.calls).toEqual([[2]]);
     setAmount.mockClear();
-    userEvent.click(screen.getByText('mock-currency-symbol3'));
+    userEvent.click(screen.getByText('mock-currency-symbol3 mock-currency-code'));
     expect(setAmount.mock.calls).toEqual([[3]]);
   });
 
@@ -209,10 +212,10 @@ describe('DAmount', () => {
         { setAmount, amount: 22, frequency: CONTRIBUTION_INTERVALS.MONTHLY }
       );
       expect(setAmount).not.toBeCalled();
-      userEvent.click(screen.getByText('mock-currency-symbol11'));
+      userEvent.click(screen.getByText('mock-currency-symbol11 mock-currency-code'));
       expect(setAmount.mock.calls).toEqual([[11]]);
       setAmount.mockClear();
-      userEvent.click(screen.getByText('mock-currency-symbol33'));
+      userEvent.click(screen.getByText('mock-currency-symbol33 mock-currency-code'));
       expect(setAmount.mock.calls).toEqual([[33]]);
     });
   });
@@ -331,7 +334,7 @@ describe('DAmount', () => {
         page: { ...defaultPage, elements: [propsWithOtherAmount.element] },
         frequency: CONTRIBUTION_INTERVALS.ONE_TIME
       });
-      userEvent.click(screen.getByText('mock-currency-symbol1'));
+      userEvent.click(screen.getByText('mock-currency-symbol1 mock-currency-code'));
       setAmount.mockClear();
       userEvent.click(screen.getByRole('spinbutton'));
       expect(screen.getByRole('spinbutton')).toHaveValue(null);
@@ -421,7 +424,7 @@ describe('DAmount', () => {
         { setAmount, amount: 99, frequency: CONTRIBUTION_INTERVALS.ONE_TIME, overrideAmount: true }
       );
       expect(setAmount).not.toHaveBeenCalled();
-      userEvent.click(screen.getByText('mock-currency-symbol2'));
+      userEvent.click(screen.getByText('mock-currency-symbol2 mock-currency-code'));
       expect(setAmount.mock.calls).toEqual([[2]]);
     });
   });

@@ -62,7 +62,7 @@ function DSwag({ element, ...props }) {
       {element?.content?.swagThreshold > 0 && (
         <S.ThresholdMessage>
           Give a total of {page.currency.symbol}
-          {element.content?.swagThreshold} /year or more to be eligible
+          {element.content?.swagThreshold} {page.currency.code} /year or more to be eligible
         </S.ThresholdMessage>
       )}
       <AnimatePresence>

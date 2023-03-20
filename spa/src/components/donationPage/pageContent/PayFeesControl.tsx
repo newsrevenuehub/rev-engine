@@ -8,6 +8,7 @@ import { Header, ThemedCheckbox } from './PayFeesControl.styled';
 
 const PayFeesControlPropTypes = {
   agreedToPayFees: PropTypes.bool.isRequired,
+  currencyCode: PropTypes.string.isRequired,
   currencySymbol: PropTypes.string.isRequired,
   feeAmount: PropTypes.number.isRequired,
   frequency: PropTypes.string.isRequired,
@@ -22,13 +23,14 @@ export interface PayFeesControlProps extends InferProps<typeof PayFeesControlPro
 
 export function PayFeesControl({
   agreedToPayFees,
+  currencyCode,
   currencySymbol,
   feeAmount,
   frequency,
   onChange,
   revenueProgramName
 }: PayFeesControlProps) {
-  const formattedAmount = `${currencySymbol}${formatStringAmountForDisplay(feeAmount)}`;
+  const formattedAmount = `${currencySymbol}${formatStringAmountForDisplay(feeAmount)} ${currencyCode}`;
   const formattedFrequency = getFrequencyAdjective(frequency).toLocaleLowerCase();
 
   return (

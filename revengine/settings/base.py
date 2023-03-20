@@ -12,6 +12,7 @@ https://docs.djangoproject.com/en/3.2/ref/settings/
 import os
 from datetime import timedelta
 from pathlib import Path
+from typing import Literal, TypedDict
 
 
 DEBUG = os.getenv("DJANGO_DEBUG", "False") == "True"
@@ -57,7 +58,16 @@ USE_TZ = True
 COUNTRIES = ["US", "CA"]  # First in this list will be default.
 # CURRENCIES is not Django setting, is used in models, related to I18N.
 # Map currency-code to symbol.
-CURRENCIES = {"USD": "$", "CAD": "$"}
+CurrencyCode = Literal["CAD", "USD"]
+CurrencySymbol = Literal["$"]
+
+
+class CurrencyDict(TypedDict):
+    code: CurrencyCode
+    symbol: CurrencySymbol
+
+
+CURRENCIES: CurrencyDict = {"USD": "$", "CAD": "$"}
 
 # Static files (CSS, JavaScript, Images)
 # https://docs.djangoproject.com/en/3.2/howto/static-files/

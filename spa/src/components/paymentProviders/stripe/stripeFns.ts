@@ -220,11 +220,19 @@ export function getPaymentSuccessUrl({
 }
 
 interface GetPaymentElementButtonTextArgs {
+  currencyCode: string;
   currencySymbol: string;
   amount: number;
   frequency: ContributionInterval;
 }
 
-export function getPaymentElementButtonText({ currencySymbol, amount, frequency }: GetPaymentElementButtonTextArgs) {
-  return `Give ${currencySymbol}${formatStringAmountForDisplay(amount)} ${getFrequencyAdverb(frequency)}`;
+export function getPaymentElementButtonText({
+  currencyCode,
+  currencySymbol,
+  amount,
+  frequency
+}: GetPaymentElementButtonTextArgs) {
+  return `Give ${currencySymbol}${formatStringAmountForDisplay(amount)}${
+    currencyCode ? ' ' + currencyCode : ''
+  } ${getFrequencyAdverb(frequency)}`;
 }

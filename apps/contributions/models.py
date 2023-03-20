@@ -17,6 +17,7 @@ from apps.emails.tasks import send_thank_you_email
 from apps.organizations.models import RevenueProgram
 from apps.users.choices import Roles
 from apps.users.models import RoleAssignment
+from revengine.settings.base import CurrencyDict
 
 
 logger = logging.getLogger(f"{settings.DEFAULT_LOGGER}.{__name__}")
@@ -265,8 +266,9 @@ class Contribution(IndexedTimeStampedModel):
         return f"{self.formatted_amount}, {self.created.strftime('%Y-%m-%d %H:%M:%S')}"
 
     @property
-    def formatted_amount(self):
-        return f"{'{:.2f}'.format(self.amount / 100)} {self.currency.upper()}"
+    def formatted_amount(self) -> str:
+        currency = self.get_currency_dict()
+        return f"{currency['symbol']}{'{:.2f}'.format(self.amount / 100)} {currency['code']}"
 
     @property
     def revenue_program(self):
@@ -338,6 +340,21 @@ class Contribution(IndexedTimeStampedModel):
         if not self.bad_actor_score:
             return None
         return self.BAD_ACTOR_SCORES[self.bad_actor_score][1]
+
+    def get_currency_dict(self) -> CurrencyDict:
+        """
+        Returns code (i.e. USD) and symbol (i.e. $) for this contribution.
+        """
+        try:
+            return {"code": self.currency.upper(), "symbol": settings.CURRENCIES[self.currency.upper()]}
+        except KeyError:
+            logger.error(
+                'Currency settings for stripe account "%s" misconfigured. Tried to access "%s", but valid options are: %s',
+                self.stripe_account_id,
+                self.currency.upper(),
+                settings.CURRENCIES,
+            )
+            return {"code": "", "symbol": ""}
 
     def get_payment_manager_instance(self):
         """

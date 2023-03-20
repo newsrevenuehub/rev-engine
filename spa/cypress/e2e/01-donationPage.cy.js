@@ -122,7 +122,9 @@ describe('Donation page displays dynamic page elements', () => {
   it('should render swag options if swagThreshold is met', () => {
     const swagElement = livePageOne.elements.find((el) => el.type === 'DSwag');
     const swagThreshold = swagElement.content.swagThreshold;
-    cy.contains(`Give a total of ${livePageOne.currency.symbol}${swagThreshold} /year or more to be eligible`);
+    cy.contains(
+      `Give a total of ${livePageOne.currency.symbol}${swagThreshold} ${livePageOne.currency.code} /year or more to be eligible`
+    );
     cy.getByTestId('swag-content').should('not.exist');
     cy.setUpDonation('Yearly', '365');
     cy.getByTestId('swag-content').should('exist');
@@ -461,6 +463,7 @@ describe('User flow: happy path', () => {
       cy.findByRole('button', {
         name: getPaymentElementButtonText({
           amount: payFees ? 123.01 : 120.0,
+          currencyCode: livePageOne.currency.code,
           currencySymbol: livePageOne.currency.symbol,
           frequency: CONTRIBUTION_INTERVALS.ONE_TIME
         })
@@ -521,6 +524,7 @@ describe('User flow: happy path', () => {
       cy.findByRole('button', {
         name: getPaymentElementButtonText({
           amount: 10.53,
+          currencyCode: livePageOne.currency.code,
           currencySymbol: livePageOne.currency.symbol,
           frequency: CONTRIBUTION_INTERVALS.MONTHLY
         })
@@ -601,6 +605,7 @@ describe('User flow: happy path', () => {
       cy.findByRole('button', {
         name: getPaymentElementButtonText({
           amount: payFees ? 10.53 : 10.0,
+          currencyCode: livePageOne.currency.code,
           currencySymbol: livePageOne.currency.symbol,
           frequency: CONTRIBUTION_INTERVALS.MONTHLY
         })
@@ -666,6 +671,7 @@ describe('User flow: happy path', () => {
     cy.findByRole('button', {
       name: getPaymentElementButtonText({
         amount: 10.53,
+        currencyCode: livePageOne.currency.code,
         currencySymbol: livePageOne.currency.symbol,
         frequency: CONTRIBUTION_INTERVALS.MONTHLY
       })
@@ -913,6 +919,7 @@ describe('StripePaymentForm unhappy paths', () => {
       cy.findByRole('button', {
         name: getPaymentElementButtonText({
           amount: 123.01,
+          currencyCode: livePageOne.currency.code,
           currencySymbol: livePageOne.currency.symbol,
           frequency: CONTRIBUTION_INTERVALS.ONE_TIME
         })
@@ -933,6 +940,7 @@ describe('StripePaymentForm unhappy paths', () => {
       cy.findByRole('button', {
         name: getPaymentElementButtonText({
           amount: 123.01,
+          currencyCode: livePageOne.currency.code,
           currencySymbol: livePageOne.currency.symbol,
           frequency: CONTRIBUTION_INTERVALS.ONE_TIME
         })
@@ -951,6 +959,7 @@ describe('StripePaymentForm unhappy paths', () => {
     cy.findByRole('button', {
       name: getPaymentElementButtonText({
         amount: 123.01,
+        currencyCode: livePageOne.currency.code,
         currencySymbol: livePageOne.currency.symbol,
         frequency: CONTRIBUTION_INTERVALS.ONE_TIME
       })

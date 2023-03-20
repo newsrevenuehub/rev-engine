@@ -17,6 +17,7 @@ const Template: ComponentStory<typeof PayFeesControl> = (props) => <PayFeesContr
 export const Default = Template.bind({});
 
 Default.args = {
+  currencyCode: 'CAD',
   currencySymbol: '🍁',
   feeAmount: 123,
   revenueProgramName: 'A News Organization'

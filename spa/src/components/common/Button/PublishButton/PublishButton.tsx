@@ -1,6 +1,6 @@
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import PropTypes, { InferProps } from 'prop-types';
-// import { CircularProgress, Divider } from '@material-ui/core';
+import { Divider } from '@material-ui/core';
 import LaunchIcon from '@material-ui/icons/Launch';
 import CheckCircleOutlineIcon from '@material-ui/icons/CheckCircleOutline';
 import FiberManualRecordIcon from '@material-ui/icons/FiberManualRecord';
@@ -10,7 +10,7 @@ import formatDatetimeForDisplay from 'utilities/formatDatetimeForDisplay';
 import { getUpdateSuccessMessage, pageIsPublished } from 'utilities/editPageGetSuccessMessage';
 import { pageLink } from 'utilities/getPageLinks';
 
-import { Flex, Button, Popover, LiveText, /*UnpublishButton, */ Text, IconButton } from './PublishButton.styled';
+import { Flex, Button, Popover, LiveText, Text, IconButton, UnpublishButtonContainer } from './PublishButton.styled';
 import PublishModal from './PublishModal';
 import SuccessfulPublishModal from './SuccessfulPublishModal';
 import { ContributionPage } from 'hooks/useContributionPage';
@@ -19,6 +19,7 @@ import { Tooltip } from 'components/base';
 import { GENERIC_ERROR } from 'constants/textConstants';
 import { useAlert } from 'react-alert';
 import { useEditablePageContext } from 'hooks/useEditablePage';
+import { UnpublishButton } from '../UnpublishButton';
 
 const PublishButtonPropTypes = {
   className: PropTypes.string
@@ -48,10 +49,13 @@ function PublishButton({ className }: PublishButtonProps) {
     setAnchorEl(null);
   };
 
-  // TODO: update handleUnpublish when implementation of "Unpublish" functionality is decided
-  // const handleUnpublish = () => {
-  //   patchPage({ published_date: 'TBD' });
-  // };
+  useEffect(() => {
+    // If the page became unpublished, hide the published popover.
+
+    if (page && !pageIsPublished(page) && showPopover) {
+      handleClosePopover();
+    }
+  }, [page, showPopover]);
 
   const handlePublish = async (changes: Pick<ContributionPage, 'slug'>) => {
     // These should never happen, but TypeScript doesn't know that.
@@ -153,14 +157,12 @@ function PublishButton({ className }: PublishButtonProps) {
             </IconButton>
           </Tooltip>
           <Text data-testid="publish-date">
-            {/* TODO: add author of change */}
             {formatDatetimeForDisplay(page?.published_date)} at {formatDatetimeForDisplay(page?.published_date, true)}
           </Text>
-          {/* TODO: update UnpublishButton when implementation of "Unpublish" functionality is decided */}
-          {/* <Divider />
-          <UnpublishButton onClick={handleUnpublish} disabled={loading} aria-label={`Unpublish page ${page?.name}`}>
-            {loading ? <CircularProgress size={16} style={{ color: 'white' }} /> : 'Unpublish'}
-          </UnpublishButton> */}
+          <Divider />
+          <UnpublishButtonContainer>
+            <UnpublishButton />
+          </UnpublishButtonContainer>
         </Popover>
       )}
       {openSuccessfulPublishModal && (

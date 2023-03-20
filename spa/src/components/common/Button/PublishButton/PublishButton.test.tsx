@@ -141,6 +141,7 @@ describe('PublishButton', () => {
 
     expect(goToPageButton).toBeEnabled();
     expect(goToPageButton).toHaveAttribute('href', `//${pageLink(publishedPage)}`);
+    expect(screen.getByRole('button', { name: 'Unpublish' })).toBeVisible();
   });
 
   it('should be accessible', async () => {

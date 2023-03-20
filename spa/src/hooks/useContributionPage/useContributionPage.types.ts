@@ -297,7 +297,7 @@ export interface RevenueProgram {
   /**
    * Is Mailchimp connected?
    */
-  mailchimp_integration_connected: boolean;
+  mailchimp_integration_connected?: boolean;
 }
 
 /**

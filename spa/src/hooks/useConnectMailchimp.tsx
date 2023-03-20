@@ -107,8 +107,8 @@ export default function useConnectMailchimp(): UseConnectMailchimpResult {
     isLoading,
     sendUserToMailchimp,
     connectedToMailchimp:
-      user?.organizations?.[0].show_connected_to_mailchimp ||
-      user?.revenue_programs?.[0]?.mailchimp_integration_connected,
+      !!user?.organizations?.[0]?.show_connected_to_mailchimp ||
+      !!user?.revenue_programs?.[0]?.mailchimp_integration_connected,
     organizationPlan: user?.organizations?.[0].plan.name
   };
 }

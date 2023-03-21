@@ -1,0 +1,42 @@
+{
+    "id": "seti_fake11111111",
+    "object": "setup_intent",
+    "application": "ca_fakefake2222222",
+    "cancellation_reason": null,
+    "client_secret": "seti_fake11111111_secret_fakefakefake3333333333",
+    "created": 1675925607,
+    "customer": "cus_fakeefake44444",
+    "description": null,
+    "flow_directions": null,
+    "last_setup_error": null,
+    "latest_attempt": "setatt_fakefake55555",
+    "livemode": false,
+    "mandate": null,
+    "metadata": {
+        "agreed_to_pay_fees": "False",
+        "contributor_id": "147",
+        "donor_selected_amount": "180.0",
+        "referer": "https://foo.bar.org/donate/",
+        "revenue_program_id": "1",
+        "revenue_program_slug": "foobar",
+        "schema_version": "1.1",
+        "source": "bizz-bang",
+        "swag_opt_out": "False"
+    },
+    "next_action": null,
+    "on_behalf_of": null,
+    "payment_method": "pm_fakefakefake6666666",
+    "payment_method_options": {
+        "card": {
+            "mandate_options": null,
+            "network": null,
+            "request_three_d_secure": "automatic"
+        }
+    },
+    "payment_method_types": [
+        "card"
+    ],
+    "single_use_mandate": null,
+    "status": "succeeded",
+    "usage": "off_session"
+}

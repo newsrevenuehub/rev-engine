@@ -143,6 +143,12 @@ class StripeOneTimePaymentManagerTest(StripePaymentManagerAbstractTestCase):
             str(e2.exception), "PaymentManager must be initialized with either data or a contribution, not both."
         )
 
+    def test_calls_save_with_right_update_fields(self):
+        pass
+
+    def tests_creates_revision_when_saving(self):
+        pass
+
 
 test_stripe_subscription = "test_stripe_subscription"
 
@@ -250,3 +256,9 @@ class StripeRecurringPaymentManagerTest(StripePaymentManagerAbstractTestCase):
         mock_setup_intent_retrieve.assert_called_once()
         mock_subscription_create.assert_called_once()
         self.assertEqual(str(e.exception), "Could not complete payment")
+
+    def test_calls_save_with_right_update_fields(self):
+        pass
+
+    def test_creates_revision_when_saving(self):
+        pass

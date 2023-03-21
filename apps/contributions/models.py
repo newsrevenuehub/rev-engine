@@ -407,7 +407,11 @@ class Contribution(IndexedTimeStampedModel):
             self.provider_payment_method_id,
         )
         if (
-            (previous and previous.provider_payment_method_id != self.provider_payment_method_id)
+            (
+                previous
+                and previous.provider_payment_method_id != self.provider_payment_method_id
+                and not self.provider_payment_method_details
+            )
             or not previous
             and self.provider_payment_method_id
         ):
@@ -772,16 +776,16 @@ class Contribution(IndexedTimeStampedModel):
             Contribution.objects.one_time()
             .filter(provider_payment_method_id__isnull=True)
             .filter(provider_payment_id__isnull=False)
-        ).annotate(type="one_time")
+        ).annotate(type=models.Value("one_time"))
         eligible_recurring_with_subscription = (
             Contribution.objects.recurring()
             .filter(provider_payment_method_id__isnull=True, provider_subscription_id__isnull=False)
-            .annotate(type="recurring_with_subscription")
+            .annotate(type=models.Value("recurring_with_subscription"))
         )
         eligible_recurring_with_setup_intent = (
             Contribution.objects.recurring()
             .filter(provider_payment_method_id__isnull=True, provider_subscription_id__isnull=False)
-            .annotate(type="recurring_with_setup_intent")
+            .annotate(type=models.Value("recurring_with_setup_intent"))
         )
         logger.info(
             (
@@ -810,7 +814,9 @@ class Contribution(IndexedTimeStampedModel):
                 ]
             ):
                 contribution.provider_payment_method_id = pm_id
-                contribution.provider_payment_method_details = contribution.fetch_stripe_payment_method()
+                contribution.provider_payment_method_details = contribution.fetch_stripe_payment_method(
+                    provider_payment_method_id=pm_id
+                )
                 if dry_run:
                     updated += 1
                     continue
@@ -821,11 +827,11 @@ class Contribution(IndexedTimeStampedModel):
                             contribution.id,
                         )
                         contribution.save(
-                            update_fields=[
+                            update_fields={
                                 "provider_payment_method_details",
-                                "provider_payment_method_details",
+                                "provider_payment_method_id",
                                 "modified",
-                            ]
+                            }
                         )
                         reversion.set_comment(
                             "Contribution.fix_missing_provider_payment_method_id updated contribution"

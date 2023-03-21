@@ -1202,27 +1202,64 @@ class TestContributionModel:
             mock_create_revision.assert_not_called()
             mock_set_revision_comment.assert_not_called()
 
-    # @pytest_cases.parametrize(
-    #     "contribution",
-    #     (
-    #         pytest_cases.fixture_ref(""),
-    #         pytest_cases.fixture_ref(""),
-    #     ),
-    # )
-    # @pytest.mark.parametrize("dry_run", (True, False))
-    # def test_fix_contributions_missing_provider_payment_method_id(self, contribution, dry_run, mocker):
-    #     # have additional for each that are of type but have ID
-    #     # parametrize dry_run
-    #     # one time updating only id
-    #     # one time updating id and details
-    #     # sub updating only id
-    #     # sub updating id and details
-    #     # setup_intent updating only id
-    #     # setup_intent updating id and details
-    #     # show reversion per save
-    #     # show save calls is right
-    #     # show update fields are right
-    #     pass
+    @pytest.mark.parametrize(
+        "make_contribution_fn,stripe_pi_return_val,stripe_sub_return_val,stripe_si_return_val,expect_update_fields",
+        (
+            (
+                lambda: ContributionFactory(one_time=True, provider_payment_method_id=None),
+                {"payment_method": "pm_123"},
+                None,
+                None,
+                {"provider_payment_method_id", "provider_payment_method_details", "modified"},
+            ),
+            # lambda: ContributionFactory(monthly_subscription=True, provider_payment_method_id=None),
+            # lambda: ContributionFactory(one_time=True, provider_payment_method_id="something"),
+            # lambda: ContributionFactory(monthly_subscription=True, provider_payment_method_id="something"),
+        ),
+    )
+    @pytest.mark.parametrize("dry_run", (True, False))
+    def test_fix_contributions_missing_provider_payment_method_id(
+        self,
+        make_contribution_fn,
+        stripe_pi_return_val,
+        stripe_sub_return_val,
+        stripe_si_return_val,
+        expect_update_fields,
+        dry_run,
+        mocker,
+    ):
+        contribution = make_contribution_fn()
+        mock_create_revision = mocker.patch("reversion.create_revision")
+        mock_set_revision_comment = mocker.patch("reversion.set_comment")
+        mock_get_stripe_pi = mocker.patch("stripe.PaymentIntent.retrieve", return_value=AttrDict(stripe_pi_return_val))
+        mock_get_stripe_sub = mocker.patch("stripe.Subscription.retrieve", return_value=AttrDict(stripe_sub_return_val))
+        mock_get_stripe_si = mocker.patch("stripe.SetupIntent.retrieve", return_value=AttrDict(stripe_si_return_val))
+        mock_get_stripe_payment_method = mocker.patch(
+            "stripe.PaymentMethod.retrieve", return_value={"card": {"last4": "1234"}}
+        )
+        save_spy = mocker.spy(Contribution, "save")
+        Contribution.fix_missing_provider_payment_method_id(dry_run=dry_run)
+        contribution.refresh_from_db()
+
+        if contribution.interval == ContributionInterval.ONE_TIME:
+            mock_get_stripe_pi.assert_called_once()
+        else:
+            assert mock_get_stripe_sub.call_count or mock_get_stripe_si.call_count
+
+        if "provider_payment_method_details" in expect_update_fields:
+            mock_get_stripe_payment_method.assert_called_once()
+        else:
+            mock_get_stripe_payment_method.assert_not_called()
+
+        if expect_update_fields and not dry_run:
+            save_spy.assert_called_once_with(contribution, update_fields=expect_update_fields)
+            mock_create_revision.assert_called_once()
+            mock_set_revision_comment.assert_called_once()
+
+        else:
+            save_spy.assert_not_called()
+            mock_create_revision.assert_not_called()
+            mock_set_revision_comment.assert_not_called()
 
     @pytest.mark.parametrize(
         "make_contribution_fn,stripe_return_val,expect_update",
@@ -1289,24 +1326,37 @@ class TestContributionModel:
     )
     @pytest.mark.parametrize("dry_run", (True, False))
     def test_fix_missing_payment_method_details(
-        self, make_contribution_fn, stripe_return_val, expect_update, contribution_status, dry_run, monkeypatch
+        self, make_contribution_fn, stripe_return_val, expect_update, contribution_status, dry_run, monkeypatch, mocker
     ):
         contribution = make_contribution_fn()
         contribution.status = contribution_status
         contribution.save()
-
-        # assert about revision and update fields
 
         old_data = contribution.provider_payment_method_details
         monkeypatch.setattr(
             "apps.contributions.models.Contribution.fetch_stripe_payment_method",
             lambda *args, **kwargs: stripe_return_val,
         )
+        save_spy = mocker.spy(Contribution, "save")
+        mock_create_revision = mocker.patch("reversion.create_revision")
+        mock_create_revision.return_value.__enter__.return_value = mocker.Mock()
+        mock_set_revision_comment = mocker.patch("reversion.set_comment")
+
         Contribution.fix_missing_payment_method_details_data(dry_run=dry_run)
         contribution.refresh_from_db()
         assert contribution.provider_payment_method_details == (
             stripe_return_val if (expect_update and not dry_run) else old_data
         )
+        if expect_update and not dry_run:
+            save_spy.assert_called_once_with(
+                contribution, update_fields={"provider_payment_method_details", "modified"}
+            )
+            mock_create_revision.assert_called_once()
+            mock_set_revision_comment.assert_called_once()
+        else:
+            save_spy.assert_not_called()
+            mock_create_revision.assert_not_called()
+            mock_set_revision_comment.assert_not_called()
 
     @pytest_cases.parametrize(
         "make_contribution_fn,stripe_data,expect_update",
@@ -1409,6 +1459,11 @@ class TestContributionModel:
         stripe_object.metadata = metadata
         monkeypatch.setattr(target, lambda *args, **kwargs: stripe_object)
 
+        save_spy = mocker.spy(Contribution, "save")
+        mock_create_revision = mocker.patch("reversion.create_revision")
+        mock_create_revision.return_value.__enter__.return_value = mocker.Mock()
+        mock_set_revision_comment = mocker.patch("reversion.set_comment")
+
         Contribution.fix_missing_contribution_metadata(dry_run)
         contribution.refresh_from_db()
         assert contribution.contribution_metadata == (metadata if not dry_run and expect_update else old_metadata)
@@ -1418,7 +1473,14 @@ class TestContributionModel:
                 contribution.id,
             )
 
-        # assert about revision and update fields
+        if expect_update and not dry_run:
+            save_spy.assert_called_once_with(contribution, update_fields={"contribution_metadata", "modified"})
+            mock_create_revision.assert_called_once()
+            mock_set_revision_comment.assert_called_once()
+        else:
+            save_spy.assert_not_called()
+            mock_create_revision.assert_not_called()
+            mock_set_revision_comment.assert_not_called()
 
     def test_fix_missing_contribution_metadata_when_no_stripe_entity_found(
         self, monthly_contribution, monkeypatch, mocker

@@ -26,9 +26,16 @@ function GenericThankYou() {
   const orgGaV4Id = routedState?.page?.revenue_program?.google_analytics_v4_id;
   const orgFbPixelId = routedState?.page?.revenue_program?.facebook_pixel_id;
 
+  // This only handles CAD and USD correctly, most likely. If we begin
+  // supporting other currencies, this will need to be changed.
+
+  const formattedAmount = `${routedState.page.currency?.symbol ?? '$'}${routedState?.amount} ${
+    routedState.page.currency?.code ?? ''
+  }`;
+
   useEffect(() => {
     setAnalyticsConfig({ hubGaV3Id: HUB_GA_V3_ID, orgGaV3Id, orgGaV3Domain, orgGaV4Id, orgFbPixelId });
-  }, [orgGaV3Domain, orgGaV3Id, orgGaV4Id, orgFbPixelId]);
+  }, [orgGaV3Domain, orgGaV3Id, orgGaV4Id, orgFbPixelId, setAnalyticsConfig]);
 
   const handleRedirect = () => {
     window.open(routedState?.page?.post_thank_you_redirect, '_self');
@@ -67,8 +74,8 @@ function GenericThankYou() {
             <S.TextSection>
               <S.ThankYou>Thank You</S.ThankYou>
               <S.Text>
-                Your <strong>{routedState?.frequencyText}</strong> contribution of{' '}
-                <strong>${routedState?.amount}</strong> to {routedState?.page.revenue_program.name} has been received.
+                Your <strong>{routedState?.frequencyText}</strong> contribution of <strong>{formattedAmount}</strong> to{' '}
+                {routedState?.page.revenue_program.name} has been received.
               </S.Text>
               <S.Text>
                 A receipt will be sent to <strong>{routedState?.email}</strong> shortly.

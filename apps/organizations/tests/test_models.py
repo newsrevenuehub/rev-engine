@@ -174,6 +174,29 @@ def revenue_program_with_default_donation_page_but_no_transactional_email_style_
     return rp
 
 
+@pytest.fixture
+def revenue_program_with_manual_org_mailchimp_connection():
+    rp = RevenueProgramFactory()
+    rp.organization.show_connected_to_mailchimp = True
+    rp.organization.save()
+    return rp
+
+
+@pytest.fixture
+def revenue_program_with_mailchimp_connection_via_oauth_flow():
+    return RevenueProgramFactory(mailchimp_connected_via_oauth=True)
+
+
+@pytest.fixture
+def revenue_program_with_incomplete_connection_only_has_prefix():
+    return RevenueProgramFactory(mailchimp_connected_via_oauth=True, mailchimp_access_token=None)
+
+
+@pytest.fixture
+def revenue_program_with_incomplete_connection_only_has_token():
+    return RevenueProgramFactory(mailchimp_connected_via_oauth=True, mailchimp_server_prefix=None)
+
+
 @pytest.mark.django_db
 class TestRevenueProgram:
     def test_basics(self):
@@ -424,6 +447,19 @@ class TestRevenueProgram:
     def test_filtered_by_role_assignment_when_unexpected_role(self, user_with_unexpected_role):
         RevenueProgramFactory.create_batch(3)
         assert RevenueProgram.objects.filtered_by_role_assignment(user_with_unexpected_role.roleassignment).count() == 0
+        "revenue_program,expect_connected",
+
+    @pytest_cases.parametrize(
+        "revenue_program,expect_connected",
+        (
+            (pytest_cases.fixture_ref("revenue_program_with_mailchimp_connection_via_oauth_flow"), True),
+            (pytest_cases.fixture_ref("revenue_program_with_manual_org_mailchimp_connection"), False),
+            (pytest_cases.fixture_ref("revenue_program_with_incomplete_connection_only_has_prefix"), False),
+            (pytest_cases.fixture_ref("revenue_program_with_incomplete_connection_only_has_token"), False),
+        ),
+    )
+    def test_mailchimp_integration_connected_property(self, revenue_program, expect_connected):
+        assert revenue_program.mailchimp_integration_connected is expect_connected
 
 
 class TestPaymentProvider:

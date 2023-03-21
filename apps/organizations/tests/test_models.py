@@ -1,4 +1,5 @@
 from datetime import timedelta
+from unittest.mock import Mock
 
 from django.conf import settings
 from django.core.exceptions import ValidationError
@@ -8,6 +9,7 @@ from django.utils import timezone
 
 import pytest
 import pytest_cases
+from mailchimp_marketing.api_client import ApiClientError
 from stripe import ApplePayDomain
 from stripe.error import StripeError
 
@@ -29,6 +31,7 @@ from apps.organizations.models import (
     PaymentProvider,
     RevenueProgram,
     TransactionalEmailStyle,
+    logger,
 )
 from apps.organizations.tests.factories import (
     BenefitLevelFactory,
@@ -273,6 +276,41 @@ class TestRevenueProgram:
         rp.stripe_create_apple_pay_domain()
         mock_stripe_create.assert_called_once()
         mock_logger.exception.assert_called_once()
+
+    def test_mailchimp_email_lists_property_happy_path(self, revenue_program, monkeypatch):
+        revenue_program.mailchimp_server_prefix = "us1"
+        revenue_program.mailchimp_access_token = "123456"
+        revenue_program.save()
+        MockClient = Mock()
+        MockClient.lists.get_all_lists.return_value = {"lists": [{"id": "123", "name": "test"}]}
+        monkeypatch.setattr("mailchimp_marketing.Client", lambda *args, **kwargs: MockClient)
+        assert revenue_program.mailchimp_email_lists == MockClient.lists.get_all_lists.return_value["lists"]
+
+    def test_mailchimp_email_lists_property_when_missing_server_prefix(self, revenue_program):
+        revenue_program.mailchimp_server_prefix = None
+        revenue_program.mailchimp_access_token = "123456"
+        revenue_program.save()
+        assert revenue_program.mailchimp_email_lists == []
+
+    def test_mailchimp_email_lists_property_when_missing_access_token(self, revenue_program):
+        revenue_program.mailchimp_server_prefix = "us1"
+        revenue_program.mailchimp_access_token = None
+        revenue_program.save()
+        assert revenue_program.mailchimp_email_lists == []
+
+    def test_mailchimp_email_lists_property_when_mailchimp_api_error(self, revenue_program, monkeypatch, mocker):
+        revenue_program.mailchimp_server_prefix = "us1"
+        revenue_program.mailchimp_access_token = "123456"
+        revenue_program.save()
+        MockClient = Mock()
+        MockClient.lists.get_all_lists.side_effect = ApiClientError("something went wrong")
+        monkeypatch.setattr("mailchimp_marketing.Client", lambda *args, **kwargs: MockClient)
+        log_spy = mocker.spy(logger, "exception")
+        assert revenue_program.mailchimp_email_lists == []
+        log_spy.assert_called_once_with(
+            "`RevenueProgram.mailchimp_email_lists` failed to fetch email lists from Mailchimp for RP with ID %s",
+            revenue_program.id,
+        )
 
     @pytest_cases.parametrize(
         "rp,make_expected_value_fn",

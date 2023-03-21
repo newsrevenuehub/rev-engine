@@ -1,5 +1,6 @@
 import logging
 from dataclasses import dataclass, field
+from functools import cached_property
 
 from django.conf import settings
 from django.core.exceptions import ValidationError
@@ -7,7 +8,9 @@ from django.core.validators import MinLengthValidator
 from django.db import models
 from django.utils import timezone
 
+import mailchimp_marketing as MailchimpMarketing
 import stripe
+from mailchimp_marketing.api_client import ApiClientError
 
 from apps.common.models import IndexedTimeStampedModel
 from apps.common.utils import normalize_slug
@@ -262,6 +265,12 @@ class RevenueProgramQuerySet(models.QuerySet):
                 return self.none()
 
 
+@dataclass
+class MailchimpEmailList:
+    id: str
+    name: str
+
+
 class RevenueProgramManager(models.Manager):
     pass
 
@@ -324,11 +333,20 @@ class RevenueProgram(IndexedTimeStampedModel):
         verbose_name="Country",
         help_text="2-letter country code of RP's company. This gets included in data sent to stripe when creating a payment",
     )
+    # The next two values are used to make requests to Mailchimp on behalf of our users.
+    mailchimp_server_prefix = models.TextField(null=True, blank=True)
+    # TODO: DEV-3302 this is a temporary field, to be removed in https://news-revenue-hub.atlassian.net/browse/DEV-3302
+    mailchimp_access_token = models.TextField(null=True, blank=True)
 
     objects = RevenueProgramManager.from_queryset(RevenueProgramQuerySet)()
 
     def __str__(self):
         return self.name
+
+    @property
+    def mailchimp_integration_connected(self):
+        """Determine mailchimp connection state for the revenue program"""
+        return all([self.mailchimp_access_token, self.mailchimp_server_prefix])
 
     @property
     def payment_provider_stripe_verified(self):
@@ -358,6 +376,23 @@ class RevenueProgram(IndexedTimeStampedModel):
     @property
     def non_profit(self):
         return self.fiscal_status in (FiscalStatusChoices.FISCALLY_SPONSORED, FiscalStatusChoices.NONPROFIT)
+
+    @cached_property
+    def mailchimp_email_lists(self) -> list[MailchimpEmailList]:
+        """"""
+        if not self.mailchimp_server_prefix and self.mailchimp_access_token:
+            return []
+        try:
+            client = MailchimpMarketing.Client()
+            client.set_config({"access_token": self.mailchimp_access_token, "server": self.mailchimp_server_prefix})
+            response = client.lists.get_all_lists(fields="id,name", count=1000)
+            return response["lists"]
+        except ApiClientError:
+            logger.exception(
+                "`RevenueProgram.mailchimp_email_lists` failed to fetch email lists from Mailchimp for RP with ID %s",
+                self.id,
+            )
+            return []
 
     def clean_fields(self, **kwargs):
         if not self.id:

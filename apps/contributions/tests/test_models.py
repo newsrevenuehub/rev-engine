@@ -182,7 +182,7 @@ class TestContributionModel:
     def test_formatted_amount_property(self, one_time_contribution):
         one_time_contribution.amount = 1000
         one_time_contribution.save()
-        assert one_time_contribution.formatted_amount == "10.00 USD"
+        assert one_time_contribution.formatted_amount == "$10.00 USD"
 
     @pytest_cases.parametrize(
         "contribution",
@@ -900,6 +900,23 @@ class TestContributionModel:
         assert contribution.formatted_donor_selected_amount == ""
         logger_spy.assert_called_once()
 
+    @pytest.mark.parametrize("name, symbol", settings.CURRENCIES.items())
+    def test_get_currency_dict(self, name, symbol):
+        contribution = ContributionFactory(currency=name, provider_payment_method_id=None)
+        assert {"code": name, "symbol": symbol} == contribution.get_currency_dict()
+
+    def test_get_currency_dict_bad_value(self, monkeypatch):
+        mock_log_error = Mock()
+        monkeypatch.setattr(logger, "error", mock_log_error)
+        contribution = ContributionFactory(currency="???", provider_payment_method_id=None)
+        assert {"code": "", "symbol": ""} == contribution.get_currency_dict()
+        mock_log_error.assert_called_once_with(
+            'Currency settings for stripe account "%s" misconfigured. Tried to access "%s", but valid options are: %s',
+            contribution.stripe_account_id,
+            "???",
+            settings.CURRENCIES,
+        )
+
     @pytest.mark.parametrize(
         "interval,expect_success",
         (
@@ -998,7 +1015,7 @@ class TestContributionModel:
         email_expectations = [
             f"Scheduled: {next_charge_date.strftime('%m/%d/%Y')}",
             f"Email: {contribution.contributor.email}",
-            f"Amount Contributed: ${contribution.formatted_amount}/{contribution.interval}",
+            f"Amount Contributed: {contribution.formatted_amount}/{contribution.interval}",
         ]
 
         if revenue_program.fiscal_status == FiscalStatusChoices.FISCALLY_SPONSORED:

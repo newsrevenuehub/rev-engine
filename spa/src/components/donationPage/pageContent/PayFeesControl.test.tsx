@@ -7,6 +7,7 @@ function tree(props?: Partial<PayFeesControlProps>) {
   return render(
     <PayFeesControl
       agreedToPayFees={false}
+      currencyCode="mock-currency-code"
       currencySymbol="mock-currency-symbol"
       feeAmount={123}
       frequency="one_time"
@@ -49,10 +50,16 @@ describe('PayFeesControl', () => {
   });
 
   it('sets the label of the checkbox based on the fee amount, currency, frequency, and revenue program', () => {
-    tree({ currencySymbol: '$$$', feeAmount: 9999, frequency: 'month', revenueProgramName: 'test-rp' });
+    tree({
+      currencyCode: 'USD',
+      currencySymbol: '$$$',
+      feeAmount: 9999,
+      frequency: 'month',
+      revenueProgramName: 'test-rp'
+    });
     expect(
       screen.getByLabelText(
-        "I agree to pay a monthly transaction fee of $$$9,999.00 to direct more support to test-rp's mission."
+        "I agree to pay a monthly transaction fee of $$$9,999.00 USD to direct more support to test-rp's mission."
       )
     ).toBeInTheDocument();
   });

@@ -217,10 +217,6 @@ class AbstractPaymentSerializer(serializers.Serializer):
             data["amount"] = self.convert_amount_to_cents(data["amount"])
         return super().to_internal_value(data)
 
-    # def __init__(self, *args, **kwargs):
-    #     super().__init__(*args, **kwargs)
-    # self.fields["amount"].error_messages["invalid"] = "Enter a valid amount"
-
 
 class BaseCreatePaymentSerializer(serializers.Serializer):
     """This is the base serializer for the `CreateOneTimePaymentSerializer` and `CreateRecurringPaymentSerializer`.

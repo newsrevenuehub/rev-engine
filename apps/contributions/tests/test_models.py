@@ -287,6 +287,28 @@ class TestContributionModel:
             contribution.refresh_from_db()
             assert contribution.provider_payment_method_details == stripe_fetch_return_val
 
+    def test_fetch_stripe_payment_method_when_no_provider_payment_method_id(self):
+        contribution = ContributionFactory(provider_payment_method_id=None)
+        with pytest.raises(ValueError):
+            contribution.fetch_stripe_payment_method()
+
+    def test_fetch_stripe_payment_method_happy_path(self, one_time_contribution, mocker):
+        return_value = AttrDict({"key": "val"})
+        mock_retrieve_pm = mocker.patch("stripe.PaymentMethod.retrieve", return_value=return_value)
+        assert one_time_contribution.fetch_stripe_payment_method() == return_value
+        mock_retrieve_pm.assert_called_once_with(
+            one_time_contribution.provider_payment_method_id,
+            stripe_account=one_time_contribution.donation_page.revenue_program.payment_provider.stripe_account_id,
+        )
+
+    def test_fetch_stripe_payment_method_when_stripe_error(self, one_time_contribution, mocker):
+        mock_retrieve_pm = mocker.patch("stripe.PaymentMethod.retrieve", side_effect=stripe.error.StripeError("error"))
+        assert one_time_contribution.fetch_stripe_payment_method() is None
+        mock_retrieve_pm.assert_called_once_with(
+            one_time_contribution.provider_payment_method_id,
+            stripe_account=one_time_contribution.donation_page.revenue_program.payment_provider.stripe_account_id,
+        )
+
     @pytest.mark.parametrize(
         "create_data,expect_stripe_fetch,stripe_fetch_return_val",
         (
@@ -814,7 +836,11 @@ class TestContributionModel:
     @pytest.mark.parametrize("name_val", ("something", None, False, ""))
     def test_billing_name(self, trait, name_val):
         data = {"billing_details": {"name": name_val}}
-        contribution = ContributionFactory(**{trait: True, "provider_payment_method_details": data})
+        # need `provider_payment_method_id` to be `None` to be none so we don't try to retrieve the payment method
+        # on save.
+        contribution = ContributionFactory(
+            **{trait: True, "provider_payment_method_details": data, "provider_payment_method_id": None}
+        )
         assert contribution.billing_name == (name_val or "")
 
     @pytest.mark.parametrize("trait", ("one_time", "annual_subscription", "monthly_subscription"))
@@ -1082,104 +1108,121 @@ class TestContributionModel:
         assert set(result) == set(expected)
 
     @pytest.mark.parametrize(
-        "contribution_fn,stripe_return_val,expect_paid",
+        "contribution_fn,stripe_pi_return_value,stripe_subscription_return_value,expect_update_fields,expect_payment_method_update",
         (
             (
                 lambda: ContributionFactory(
-                    provider_payment_id="something", one_time=True, status=ContributionStatus.PROCESSING
+                    provider_payment_id="something",
+                    one_time=True,
+                    status=ContributionStatus.PROCESSING,
+                    provider_payment_method_id="something",
                 ),
-                {"status": "succeeded"},
+                {"status": "succeeded", "created": 1675925546, "payment_method": "pm_123"},
+                None,
+                {"status", "modified", "last_payment_date"},
+                False,
+            ),
+            (
+                lambda: ContributionFactory(
+                    provider_payment_id="something",
+                    one_time=True,
+                    status=ContributionStatus.PROCESSING,
+                    provider_payment_method_id=None,
+                ),
+                {"status": "succeeded", "created": 1675925546, "payment_method": "pm_123"},
+                None,
+                {
+                    "status",
+                    "modified",
+                    "last_payment_date",
+                    "provider_payment_method_id",
+                    "provider_payment_method_details",
+                },
                 True,
             ),
             (
                 lambda: ContributionFactory(
-                    provider_payment_id="something", one_time=True, status=ContributionStatus.PROCESSING
-                ),
-                {"status": "other"},
-                False,
-            ),
-            (
-                lambda: ContributionFactory(
-                    provider_payment_id=None, one_time=True, status=ContributionStatus.PROCESSING
-                ),
-                {"status": "succeeded"},
-                False,
-            ),
-            (
-                lambda: ContributionFactory(
-                    provider_subscription_id="something",
+                    provider_payment_id="something",
                     monthly_subscription=True,
                     status=ContributionStatus.PROCESSING,
+                    provider_payment_method_id="something",
                 ),
+                {"created": 1675925546, "status": "succeeded"},
                 {"status": "active"},
-                True,
-            ),
-            (
-                lambda: ContributionFactory(
-                    provider_subscription_id="something",
-                    monthly_subscription=True,
-                    status=ContributionStatus.PROCESSING,
-                ),
-                {"status": "other"},
-                False,
-            ),
-            (
-                lambda: ContributionFactory(
-                    provider_subscription_id=None, monthly_subscription=True, status=ContributionStatus.PROCESSING
-                ),
-                {"status": "active"},
+                {"status", "modified", "last_payment_date"},
                 False,
             ),
         ),
     )
     @pytest.mark.parametrize("dry_run", (True, False))
     def test_fix_contributions_stuck_in_processing(
-        self, contribution_fn, stripe_return_val, expect_paid, dry_run, mocker
+        self,
+        contribution_fn,
+        stripe_pi_return_value,
+        stripe_subscription_return_value,
+        expect_update_fields,
+        expect_payment_method_update,
+        dry_run,
+        mocker,
     ):
         contribution = contribution_fn()
-        # save_spy = mocker.spy(Contribution, "save")
-        # mock_create_revision = mocker.patch("reversion.create_revision")
-        # mock_set_revision_comment = mocker.patch("reversion.set_comment")
-
-        # update fields will need to be part of parametrize setup
-
-        earlier_status = contribution.status
-        if contribution.interval == ContributionInterval.ONE_TIME:
-            mocker.patch(
-                "apps.contributions.models.Contribution.stripe_payment_intent",
-                new_callable=mocker.PropertyMock,
-                return_value=AttrDict(stripe_return_val),
-            )
-        else:
-            mocker.patch(
-                "apps.contributions.models.Contribution.stripe_subscription",
-                new_callable=mocker.PropertyMock,
-                return_value=AttrDict(stripe_return_val),
-            )
+        started_with_pm_id = bool(contribution.provider_payment_method_id)
+        save_spy = mocker.spy(Contribution, "save")
+        mock_create_revision = mocker.patch("reversion.create_revision")
+        mock_set_revision_comment = mocker.patch("reversion.set_comment")
+        mock_get_stripe_pi = mocker.patch(
+            "stripe.PaymentIntent.retrieve", return_value=AttrDict(stripe_pi_return_value)
+        )
+        mock_get_stripe_sub = mocker.patch(
+            "stripe.Subscription.retrieve", return_value=AttrDict(stripe_subscription_return_value)
+        )
+        mock_get_stripe_payment_method = mocker.patch(
+            "stripe.PaymentMethod.retrieve", return_value=AttrDict({"card": {"last4": "1234"}})
+        )
         Contribution.fix_contributions_stuck_in_processing(dry_run=dry_run)
         contribution.refresh_from_db()
-        assert contribution.status == ContributionStatus.PAID if (expect_paid and not dry_run) else earlier_status
-        # save_spy.assert_called_once()
 
-        # # these are dynamic and need in fixture to track
-        # # assert save_spy.called_once_with(contribution, update_fields={"status"})
+        mock_get_stripe_pi.assert_called_once()
 
-        # assert mock_create_revision.called_once()
-        # assert mock_set_revision_comment.called_once()
+        if contribution.interval != ContributionInterval.ONE_TIME:
+            mock_get_stripe_sub.assert_called_once()
 
-    def test_fix_contributions_missing_provider_payment_method_id(self, mocker):
-        # have additional for each that are of type but have ID
-        # parametrize dry_run
-        # one time updating only id
-        # one time updating id and details
-        # sub updating only id
-        # sub updating id and details
-        # setup_intent updating only id
-        # setup_intent updating id and details
-        # show reversion per save
-        # show save calls is right
-        # show update fields are right
-        pass
+        if not started_with_pm_id and expect_payment_method_update:
+            mock_get_stripe_payment_method.assert_called_once()
+        else:
+            mock_get_stripe_payment_method.assert_not_called()
+
+        if expect_update_fields and not dry_run:
+            save_spy.assert_called_once_with(contribution, update_fields=expect_update_fields)
+            mock_create_revision.assert_called_once()
+            mock_set_revision_comment.assert_called_once()
+
+        else:
+            save_spy.assert_not_called()
+            mock_create_revision.assert_not_called()
+            mock_set_revision_comment.assert_not_called()
+
+    # @pytest_cases.parametrize(
+    #     "contribution",
+    #     (
+    #         pytest_cases.fixture_ref(""),
+    #         pytest_cases.fixture_ref(""),
+    #     ),
+    # )
+    # @pytest.mark.parametrize("dry_run", (True, False))
+    # def test_fix_contributions_missing_provider_payment_method_id(self, contribution, dry_run, mocker):
+    #     # have additional for each that are of type but have ID
+    #     # parametrize dry_run
+    #     # one time updating only id
+    #     # one time updating id and details
+    #     # sub updating only id
+    #     # sub updating id and details
+    #     # setup_intent updating only id
+    #     # setup_intent updating id and details
+    #     # show reversion per save
+    #     # show save calls is right
+    #     # show update fields are right
+    #     pass
 
     @pytest.mark.parametrize(
         "make_contribution_fn,stripe_return_val,expect_update",

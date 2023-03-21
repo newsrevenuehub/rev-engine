@@ -154,7 +154,10 @@ class StripeWebhookProcessor:
         contribution.payment_provider_data = self.event
         contribution.provider_subscription_id = self.obj_data["id"]
         update_fields = {"modified", "payment_provider_data", "provider_subscription_id"}
-        if "default_payment_method" in self.event.data["previous_attributes"]:
+        if (
+            "default_payment_method" in self.event.data["previous_attributes"]
+            and self.obj_data["default_payment_method"]
+        ):
             contribution.provider_payment_method_id = self.obj_data["default_payment_method"]
             update_fields.add("provider_payment_method_id")
         with reversion.create_revision():

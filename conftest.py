@@ -78,10 +78,13 @@ def dont_use_ssl(settings):
     settings.SECURE_SSL_REDIRECT = False
 
 
-@pytest.fixture(autouse=True)
-def suppress_contribution_stripe_fetch_payment_method_on_save(monkeypatch):
+@pytest.fixture()
+def mock_stripe_retrieve_payment_method(monkeypatch):
+    with open("apps/contributions/tests/fixtures/provider-payment-method-details.json") as f:
+        payment_method_details = json.load(f)
     monkeypatch.setattr(
-        "apps.contributions.models.Contribution.fetch_stripe_payment_method", lambda *args, **kwargs: None
+        "stripe.PaymentMethod.retrieve",
+        lambda *args, **kwargs: payment_method_details,
     )
 
 

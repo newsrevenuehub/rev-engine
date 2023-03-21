@@ -117,11 +117,6 @@ def page_creation_invalid_non_existent_rp(page_creation_data_valid):
 
 
 @pytest.fixture
-def style():
-    return StyleFactory()
-
-
-@pytest.fixture
 def patch_page_valid_data():
     return {
         "name": fake.company(),
@@ -261,7 +256,7 @@ class TestPageViewSet:
         assert response.status_code == status.HTTP_201_CREATED
         assert DonationPage.objects.count() == before_count + 1
         page = DonationPage.objects.get(pk=response.json()["id"])
-        for (key, val) in [(key, val) for (key, val) in page_creation_data_valid.items() if key != "revenue_program"]:
+        for key, val in [(key, val) for (key, val) in page_creation_data_valid.items() if key != "revenue_program"]:
             assert getattr(page, key) == val
             assert response.json()[key] == val
         assert (

@@ -28,16 +28,15 @@ class StyleFactory(DjangoModelFactory):
         model = models.Style
         django_get_or_create = ("name", "revenue_program")
 
-    class Params:
-        org = None
-
     name = factory.Sequence(lambda n: "Test Style %d" % n)
-    styles = {
-        "radii": ["3px", "6px", "12px"],
-        "font": {"body": "'Roboto', sans-serif", "heading": "'Roboto', sans-serif"},
-        "fontSizes": ["12px", "16px", "24px", "32px", "48px", "84px", "96px"],
-    }
     revenue_program = factory.SubFactory(RevenueProgramFactory)
+    styles = factory.LazyFunction(
+        lambda: {
+            "radii": ["3px", "6px", "12px"],
+            "font": {"body": "'Roboto', sans-serif", "heading": "'Roboto', sans-serif"},
+            "fontSizes": ["12px", "16px", "24px", "32px", "48px", "84px", "96px"],
+        }
+    )
 
 
 class FontFactory(DjangoModelFactory):

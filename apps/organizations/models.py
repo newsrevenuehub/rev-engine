@@ -1,5 +1,6 @@
 import logging
 from dataclasses import dataclass, field
+from functools import cached_property
 
 from django.conf import settings
 from django.core.exceptions import ValidationError
@@ -7,7 +8,9 @@ from django.core.validators import MinLengthValidator
 from django.db import models
 from django.utils import timezone
 
+import mailchimp_marketing as MailchimpMarketing
 import stripe
+from mailchimp_marketing.api_client import ApiClientError
 
 from apps.common.models import IndexedTimeStampedModel
 from apps.common.utils import normalize_slug
@@ -262,6 +265,12 @@ class RevenueProgramQuerySet(models.QuerySet):
                 return self.none()
 
 
+@dataclass
+class MailchimpEmailList:
+    id: str
+    name: str
+
+
 class RevenueProgramManager(models.Manager):
     pass
 
@@ -367,6 +376,23 @@ class RevenueProgram(IndexedTimeStampedModel):
     @property
     def non_profit(self):
         return self.fiscal_status in (FiscalStatusChoices.FISCALLY_SPONSORED, FiscalStatusChoices.NONPROFIT)
+
+    @cached_property
+    def mailchimp_email_lists(self) -> list[MailchimpEmailList]:
+        """"""
+        if not self.mailchimp_server_prefix and self.mailchimp_access_token:
+            return []
+        try:
+            client = MailchimpMarketing.Client()
+            client.set_config({"access_token": self.mailchimp_access_token, "server": self.mailchimp_server_prefix})
+            response = client.lists.get_all_lists(fields="id,name", count=1000)
+            return response["lists"]
+        except ApiClientError:
+            logger.exception(
+                "`RevenueProgram.mailchimp_email_lists` failed to fetch email lists from Mailchimp for RP with ID %s",
+                self.id,
+            )
+            return []
 
     def clean_fields(self, **kwargs):
         if not self.id:

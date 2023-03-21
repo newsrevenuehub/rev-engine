@@ -117,11 +117,6 @@ def page_creation_invalid_non_existent_rp(page_creation_data_valid):
 
 
 @pytest.fixture
-def style():
-    return StyleFactory()
-
-
-@pytest.fixture
 def patch_page_valid_data():
     return {
         "name": fake.company(),

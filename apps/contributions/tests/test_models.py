@@ -1,4 +1,5 @@
 import datetime
+from dataclasses import asdict
 from unittest.mock import Mock
 from urllib.parse import parse_qs, quote_plus, urlparse
 
@@ -966,6 +967,7 @@ class TestContributionModel:
                     "magic_link": magic_link,
                     "fiscal_status": contribution.donation_page.revenue_program.fiscal_status,
                     "fiscal_sponsor_name": contribution.donation_page.revenue_program.fiscal_sponsor_name,
+                    "style": asdict(contribution.donation_page.revenue_program.transactional_email_style),
                 },
             )
             assert len(mail.outbox) == 1

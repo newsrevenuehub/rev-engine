@@ -19,11 +19,10 @@ const onPublish = jest.fn();
 const domain = getDomain(window.location.host);
 
 describe('PublishModal', () => {
-  const renderComponent = () =>
-    render(<PublishModal open={true} onClose={onClose} onPublish={onPublish} page={page} />);
+  const tree = () => render(<PublishModal open onClose={onClose} onPublish={onPublish} page={page} />);
 
   it('should render modal', () => {
-    renderComponent();
+    tree();
 
     const modal = screen.getByRole('presentation', { name: `Publish page ${page.name}` });
     expect(modal).toBeVisible();
@@ -45,19 +44,12 @@ describe('PublishModal', () => {
     expect(cancelButton).toBeEnabled();
 
     const publishButton = screen.getByRole('button', { name: 'Publish' });
-    expect(publishButton).toBeDisabled();
+    expect(publishButton).toBeEnabled();
   });
 
-  it('should render pre-existing page slug if page was already once published', () => {
+  it('should render pre-existing page slug', () => {
     const slug = 'previous-published';
-    render(
-      <PublishModal
-        open={true}
-        onClose={onClose}
-        onPublish={onPublish}
-        page={{ ...page, slug, published_date: '2031-11-18T21:51:53Z' }}
-      />
-    );
+    render(<PublishModal open={true} onClose={onClose} onPublish={onPublish} page={{ ...page, slug }} />);
 
     const publishButton = screen.getByRole('button', { name: 'Publish' });
     expect(publishButton).toBeEnabled();
@@ -67,7 +59,7 @@ describe('PublishModal', () => {
   });
 
   it('should call onClose', () => {
-    renderComponent();
+    tree();
 
     const cancelButton = screen.getByRole('button', { name: 'Cancel' });
     expect(cancelButton).toBeEnabled();
@@ -76,14 +68,12 @@ describe('PublishModal', () => {
     expect(onClose).toHaveBeenCalled();
   });
 
-  it('should enable publish when slug is filled in and click it', () => {
-    renderComponent();
+  it('calls the onPublish prop when the Publish button is clicked', () => {
+    tree();
 
     const publishButton = screen.getByRole('button', { name: 'Publish' });
-    expect(publishButton).toBeDisabled();
-
     const slugInput = screen.getByRole('textbox', { name: /page name/i });
-    expect(slugInput).toHaveValue('');
+    expect(slugInput).toHaveValue(page.slug);
 
     fireEvent.change(slugInput, { target: { value: 'donate-now' } });
     expect(slugInput).toHaveValue('donate-now');
@@ -94,7 +84,7 @@ describe('PublishModal', () => {
   });
 
   it('should be accessible', async () => {
-    const { container } = renderComponent();
+    const { container } = tree();
     expect(await axe(container)).toHaveNoViolations();
   });
 });

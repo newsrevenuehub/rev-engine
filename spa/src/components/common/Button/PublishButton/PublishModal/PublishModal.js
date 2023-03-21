@@ -24,7 +24,7 @@ import { PagePropTypes } from 'constants/propTypes';
 import slugify from 'utilities/slugify';
 
 const PublishModal = ({ open, onClose, onPublish, page, loading }) => {
-  const [slug, setSlug] = useState(page?.published_date ? page?.slug || '' : '');
+  const [slug, setSlug] = useState(page?.slug ?? '');
   const domain = getDomain(window.location.host);
 
   const domainUrl = `.${domain}/`;

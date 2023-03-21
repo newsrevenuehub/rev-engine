@@ -228,61 +228,58 @@ class TestContributionModel:
         "make_contribution_fn,update_data,expect_stripe_fetch,stripe_fetch_return_val",
         (
             (
-                lambda: ContributionFactory(provider_payment_method_id=None),
+                lambda: ContributionFactory(one_time=True, provider_payment_method_id="some-id"),
                 {"amount": 2000},
                 False,
                 None,
             ),
             (
-                lambda: ContributionFactory(provider_payment_method_id=None),
+                lambda: ContributionFactory(one_time=True, provider_payment_method_id=None),
                 {"provider_payment_method_id": "something"},
-                True,
-                None,
+                False,
+                {"foo": "bar"},
             ),
             (
-                lambda: ContributionFactory(provider_payment_method_id=None),
-                {"provider_payment_method_id": "something"},
+                lambda: ContributionFactory(
+                    one_time=True, provider_payment_method_id="some-id", provider_payment_method_details=None
+                ),
+                {"provider_payment_method_id": "something-else"},
                 True,
                 {"key": "val"},
             ),
             (
-                lambda: ContributionFactory(provider_payment_method_id="old-id"),
+                lambda: ContributionFactory(
+                    one_time=True,
+                    provider_payment_method_id="old-id",
+                    provider_payment_method_details={"something": "truthy"},
+                ),
                 {"provider_payment_method_id": "new-id"},
-                True,
-                {"key": "val"},
-            ),
-            (
-                lambda: ContributionFactory(provider_payment_method_id="old-id"),
-                {"provider_payment_method_id": "new-id"},
-                True,
-                None,
-            ),
-            (
-                lambda: ContributionFactory(provider_payment_method_id="old-id"),
-                {"provider_payment_method_id": "old-id"},
                 False,
                 None,
             ),
-            (lambda: ContributionFactory(provider_payment_method_id="old-id"), {"amount": 2000}, False, None),
+            (
+                lambda: ContributionFactory(one_time=True, provider_payment_method_id="old-id"),
+                {"amount": 2000},
+                False,
+                None,
+            ),
         ),
     )
     def test_save_method_fetch_payment_method_side_effect_when_update(
-        self, make_contribution_fn, update_data, expect_stripe_fetch, stripe_fetch_return_val, monkeypatch, mocker
+        self, make_contribution_fn, update_data, expect_stripe_fetch, stripe_fetch_return_val, mocker
     ):
         """Show conditions under which `fetch_stripe_payment_method` is expected to be called and when its return value is saved back
 
         Note we only test updates here as the set up for a new contribution vis-a-vis the behavior under test is too distinct.
         """
         contribution = make_contribution_fn()
-        monkeypatch.setattr(
-            "apps.contributions.models.Contribution.fetch_stripe_payment_method",
-            lambda *args, **kwargs: stripe_fetch_return_val,
+        mock_fetch_stripe_payment_method = mocker.patch(
+            "stripe.PaymentMethod.retrieve", return_value=stripe_fetch_return_val
         )
-        stripe_fetch_spy = mocker.spy(Contribution, "fetch_stripe_payment_method")
         for k, v in update_data.items():
             setattr(contribution, k, v)
         contribution.save()
-        assert stripe_fetch_spy.call_count == (1 if expect_stripe_fetch else 0)
+        assert mock_fetch_stripe_payment_method.call_count == (1 if expect_stripe_fetch else 0)
         if expect_stripe_fetch and stripe_fetch_return_val:
             contribution.refresh_from_db()
             assert contribution.provider_payment_method_details == stripe_fetch_return_val

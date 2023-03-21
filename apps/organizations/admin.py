@@ -9,7 +9,6 @@ from django.urls import reverse
 from django.utils.safestring import mark_safe
 
 from rest_framework.serializers import ValidationError as DRFValidationError
-from reversion.admin import VersionAdmin
 from reversion_compare.admin import CompareVersionAdmin
 from sorl.thumbnail.admin import AdminImageMixin
 
@@ -137,7 +136,7 @@ class OrganizationAdmin(RevEngineBaseAdmin, CompareVersionAdmin):
 
 
 @admin.register(Benefit)
-class BenefitAdmin(RevEngineBaseAdmin, VersionAdmin):
+class BenefitAdmin(RevEngineBaseAdmin, CompareVersionAdmin):
     list_display = ["name", "description", "revenue_program"]
 
     list_filter = ["revenue_program"]
@@ -146,7 +145,7 @@ class BenefitAdmin(RevEngineBaseAdmin, VersionAdmin):
 
 
 @admin.register(BenefitLevel)
-class BenefitLevelAdmin(RevEngineBaseAdmin, VersionAdmin):
+class BenefitLevelAdmin(RevEngineBaseAdmin, CompareVersionAdmin):
     list_display = ["name", "donation_range", "revenue_program"]
 
     list_filter = ["revenue_program"]
@@ -202,6 +201,7 @@ class RevenueProgramAdmin(RevEngineBaseAdmin, CompareVersionAdmin, AdminImageMix
                 "fields": ("stripe_statement_descriptor_suffix", "domain_apple_verified_date", "payment_provider"),
             },
         ),
+        ("Mailchimp", {"fields": ("mailchimp_server_prefix", "mailchimp_access_token")}),
         (
             "Analytics",
             {
@@ -251,7 +251,7 @@ class RevenueProgramAdmin(RevEngineBaseAdmin, CompareVersionAdmin, AdminImageMix
     def get_readonly_fields(self, request, obj=None):
         # If it's a changeform
         if obj:
-            return ["name", "slug", "organization"]
+            return ["name", "slug", "organization", "mailchimp_access_token", "mailchimp_server_prefix"]
         # If it's an addform
         # We can't allow setting default_donation_page until the RevenueProgram has been defined
         # because we need to limit the donation_page choices based on this instance.

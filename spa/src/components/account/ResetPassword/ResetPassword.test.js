@@ -1,8 +1,6 @@
-import { render, screen, fireEvent } from 'test-utils';
+import { render, screen } from 'test-utils';
 import ResetPassword from '.';
 import { SIGN_IN } from 'routes';
-
-import Input from 'elements/inputs/Input';
 
 describe('ForgotPassword Tests', () => {
   it('should show the right revengine logo', () => {

@@ -344,6 +344,11 @@ class RevenueProgram(IndexedTimeStampedModel):
         return self.name
 
     @property
+    def mailchimp_integration_connected(self):
+        """Determine mailchimp connection state for the revenue program"""
+        return all([self.mailchimp_access_token, self.mailchimp_server_prefix])
+
+    @property
     def payment_provider_stripe_verified(self):
         return self.payment_provider.stripe_verified if self.payment_provider else False
 

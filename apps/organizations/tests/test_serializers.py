@@ -11,6 +11,9 @@ def test_revenueprogramserializer():
         "name",
         "slug",
         "tax_id",
+        "fiscal_status",
+        "fiscal_sponsor_name",
+        "mailchimp_integration_connected",
         "mailchimp_email_lists",
     )
     rp = RevenueProgramFactory()

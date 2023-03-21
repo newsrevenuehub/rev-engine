@@ -5,6 +5,7 @@ from django.test import override_settings
 from django.utils import timezone
 
 import pytest
+import pytest_cases
 from mailchimp_marketing.api_client import ApiClientError
 from stripe import ApplePayDomain
 from stripe.error import StripeError
@@ -66,6 +67,29 @@ class TestBenefitLevelBenefit:
         str(t)
 
 
+@pytest.fixture
+def revenue_program_with_manual_org_mailchimp_connection():
+    rp = RevenueProgramFactory()
+    rp.organization.show_connected_to_mailchimp = True
+    rp.organization.save()
+    return rp
+
+
+@pytest.fixture
+def revenue_program_with_mailchimp_connection_via_oauth_flow():
+    return RevenueProgramFactory(mailchimp_connected_via_oauth=True)
+
+
+@pytest.fixture
+def revenue_program_with_incomplete_connection_only_has_prefix():
+    return RevenueProgramFactory(mailchimp_connected_via_oauth=True, mailchimp_access_token=None)
+
+
+@pytest.fixture
+def revenue_program_with_incomplete_connection_only_has_token():
+    return RevenueProgramFactory(mailchimp_connected_via_oauth=True, mailchimp_server_prefix=None)
+
+
 @pytest.mark.django_db
 class TestRevenueProgram:
     def test_basics(self):
@@ -115,7 +139,6 @@ class TestRevenueProgram:
             stripe_account=rp.payment_provider.stripe_account_id,
         )
 
-    @pytest.mark.django_db
     @override_settings(STRIPE_LIVE_MODE=True)
     def test_stripe_create_apple_pay_domain_when_already_verified_date_exists(self, mocker):
         mock_stripe_create = mocker.patch.object(ApplePayDomain, "create")
@@ -178,6 +201,18 @@ class TestRevenueProgram:
             "`RevenueProgram.mailchimp_email_lists` failed to fetch email lists from Mailchimp for RP with ID %s",
             revenue_program.id,
         )
+
+    @pytest_cases.parametrize(
+        "revenue_program,expect_connected",
+        (
+            (pytest_cases.fixture_ref("revenue_program_with_mailchimp_connection_via_oauth_flow"), True),
+            (pytest_cases.fixture_ref("revenue_program_with_manual_org_mailchimp_connection"), False),
+            (pytest_cases.fixture_ref("revenue_program_with_incomplete_connection_only_has_prefix"), False),
+            (pytest_cases.fixture_ref("revenue_program_with_incomplete_connection_only_has_token"), False),
+        ),
+    )
+    def test_mailchimp_integration_connected_property(self, revenue_program, expect_connected):
+        assert revenue_program.mailchimp_integration_connected is expect_connected
 
 
 class TestPaymentProvider:

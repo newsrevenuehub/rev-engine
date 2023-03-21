@@ -20,7 +20,7 @@ function StripePaymentForm() {
       thank_you_redirect,
       slug: pageSlug,
       revenue_program: { slug: rpSlug },
-      currency: { symbol: currencySymbol }
+      currency: { code: currencyCode, symbol: currencySymbol }
     },
     frequency,
     totalAmount: amount,
@@ -40,8 +40,8 @@ function StripePaymentForm() {
   }
 
   const paymentSubmitButtonText = useMemo(
-    () => getPaymentElementButtonText({ currencySymbol, amount, frequency }),
-    [currencySymbol, amount, frequency]
+    () => getPaymentElementButtonText({ currencyCode, currencySymbol, amount, frequency }),
+    [currencyCode, currencySymbol, amount, frequency]
   );
 
   const [isLoading, setIsLoading] = useState(false);

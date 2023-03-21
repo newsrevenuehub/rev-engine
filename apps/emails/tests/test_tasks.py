@@ -66,8 +66,6 @@ class TestSendThankYouEmail:
             "style": asdict(contribution.donation_page.revenue_program.transactional_email_style),
         }
 
-    # This test should get parameterized by revenue program only. The test only needs to test
-    # that the correct styles are applied to the email. We just need to know that it uses `revenue_program.transactional_email_style`.
     @pytest_cases.parametrize(
         "revenue_program",
         (

@@ -213,6 +213,7 @@ class TestCustomerSubscriptionUpdated:
         )
         if payment_method_has_changed:
             customer_subscription_updated["data"]["previous_attributes"] = {"default_payment_method": "something"}
+            customer_subscription_updated["data"]["object"]["default_payment_method"] = "something else"
         spy = mocker.spy(Contribution, "save")
         mock_create_revision = mocker.patch("reversion.create_revision")
         mock_create_revision.__enter__.return_value = None

@@ -169,10 +169,8 @@ class StripePaymentManager(PaymentManager):
         if reject:
             if not pm:
                 logger.error(
-                    "`StripePaymentManager.complete_recurring_payment` error detaching payment method for contribution with ID %s and payment_method ID %s",
+                    "`StripePaymentManager.complete_recurring_payment` cannot locate a payment method for contribution with ID %s",
                     self.contribution.id,
-                    self.contribution.provider_setup_intent_id,
-                    si["payment_method"],
                 )
                 raise PaymentProviderError("Cannot retrieve payment data")
             try:
@@ -185,9 +183,8 @@ class StripePaymentManager(PaymentManager):
                 update_data["status"] = ContributionStatus.REJECTED
             except stripe.error.StripeError:
                 logger.exception(
-                    "`StripePaymentManager.complete_recurring_payment` error detaching payment method for contribution with ID %s and payment_method ID %s",
+                    "`StripePaymentManager.complete_recurring_payment` error detaching payment method for contribution with ID %s",
                     self.contribution.id,
-                    si["payment_method"],
                 )
                 raise PaymentProviderError("Cannot retrieve payment data")
 

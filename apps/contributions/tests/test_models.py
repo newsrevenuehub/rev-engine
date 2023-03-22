@@ -311,19 +311,19 @@ class TestContributionModel:
         "create_data,expect_stripe_fetch,stripe_fetch_return_val",
         (
             (
-                {"provider_payment_method_id": None},
+                {"provider_payment_method_id": None, "provider_payment_method_details": {"some": "thing"}},
                 False,
-                None,
+                {"some": "thing"},
             ),
             (
-                {"provider_payment_method_id": "something"},
-                True,
-                None,
-            ),
-            (
-                {"provider_payment_method_id": "something"},
+                {"provider_payment_method_id": "something", "provider_payment_method_details": None},
                 True,
                 {"key": "val"},
+            ),
+            (
+                {"provider_payment_method_id": "something", "provider_payment_method_details": None},
+                False,
+                None,
             ),
         ),
     )
@@ -334,13 +334,15 @@ class TestContributionModel:
 
         Note we only test on new contribution creation here, not updating an existing one as that requires distinct setup.
         """
-        monkeypatch.setattr(
-            "apps.contributions.models.Contribution.fetch_stripe_payment_method",
-            lambda *args, **kwargs: stripe_fetch_return_val,
+        save_spy = mocker.spy(Contribution, "save")
+        mock_fetch_pm = mocker.patch(
+            "apps.contributions.models.Contribution.fetch_stripe_payment_method", return_value=stripe_fetch_return_val
         )
-        stripe_fetch_spy = mocker.spy(Contribution, "fetch_stripe_payment_method")
         contribution = ContributionFactory(**create_data)
-        assert stripe_fetch_spy.call_count == (1 if expect_stripe_fetch else 0)
+        assert save_spy.call_count == 1
+        assert mock_fetch_pm.call_count == (
+            1 if create_data["provider_payment_method_id"] and not create_data["provider_payment_method_details"] else 0
+        )
         if expect_stripe_fetch and stripe_fetch_return_val:
             contribution.refresh_from_db()
             assert contribution.provider_payment_method_details == stripe_fetch_return_val

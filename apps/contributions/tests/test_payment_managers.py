@@ -103,8 +103,8 @@ class TestStripePaymentManager:
 
     def test_complete_payment_when_one_time_and_capture_fails(self, mocker):
         contribution = ContributionFactory(one_time=True, flagged=True)
-        mock_pi = mocker.patch("stripe.PaymentIntent.retrieve")
-        mock_pi.return_value.capture.side_effect = stripe.error.StripeError
+        mock_pi = mocker.patch("stripe.PaymentIntent.retrieve", return_value=AttrDict({"payment_method": "pm_id"}))
+        mock_pi.return_value.capture = mocker.Mock(side_effect=stripe.error.StripeError)
         save_spy = mocker.spy(Contribution, "save")
         spm = StripePaymentManager(contribution=contribution)
         with pytest.raises(PaymentProviderError):
@@ -112,7 +112,7 @@ class TestStripePaymentManager:
         save_spy.assert_not_called()
 
     def test_complete_payment_when_recurring_and_reject_and_no_pm(self, mocker):
-        contribution = ContributionFactory(monthly_subscription=False, flagged=True)
+        contribution = ContributionFactory(monthly_subscription=True, flagged=True)
         mocker.patch("stripe.SetupIntent.retrieve")
         mocker.patch("stripe.PaymentMethod.retrieve", return_value=None)
         save_spy = mocker.spy(Contribution, "save")
@@ -122,7 +122,7 @@ class TestStripePaymentManager:
         save_spy.assert_not_called()
 
     def test_complete_payment_when_recurring_and_reject_and_detach_fails(self, mocker):
-        contribution = ContributionFactory(monthly_subscription=False, flagged=True)
+        contribution = ContributionFactory(monthly_subscription=True, flagged=True)
         mock_si = mocker.patch("stripe.SetupIntent.retrieve")
         mock_si.return_value.payment_method = "pm_123"
         mock_pm = mocker.patch("stripe.PaymentMethod.retrieve")
@@ -134,7 +134,7 @@ class TestStripePaymentManager:
         save_spy.assert_not_called()
 
     def test_complete_payment_when_recurring_and_not_reject_and_not_si(self, mocker):
-        contribution = ContributionFactory(monthly_subscription=False, flagged=True)
+        contribution = ContributionFactory(monthly_subscription=True, flagged=True)
         mocker.patch("stripe.SetupIntent.retrieve", return_value=None)
         save_spy = mocker.spy(Contribution, "save")
         spm = StripePaymentManager(contribution=contribution)
@@ -143,7 +143,7 @@ class TestStripePaymentManager:
         save_spy.assert_not_called()
 
     def test_complete_payment_when_recurring_and_not_reject_and_subscription_create_fails(self, mocker):
-        contribution = ContributionFactory(monthly_subscription=False, flagged=True)
+        contribution = ContributionFactory(monthly_subscription=True, flagged=True)
         model_create_sub_spy = mocker.spy(Contribution, "create_stripe_subscription")
         mocker.patch("stripe.SetupIntent.retrieve")
         mocker.patch("stripe.PaymentMethod.retrieve")

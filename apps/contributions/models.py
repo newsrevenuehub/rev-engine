@@ -307,7 +307,7 @@ class Contribution(IndexedTimeStampedModel):
 
     @property
     def billing_email(self) -> str:
-        return self.billing_details.email or ""
+        return self.contributor.email if self.contributor else ""
 
     @property
     def billing_phone(self) -> str:
@@ -438,6 +438,7 @@ class Contribution(IndexedTimeStampedModel):
             )
             or not previous
             and self.provider_payment_method_id
+            and not self.provider_payment_method_details
         ):
             # If it's an update and the previous pm is different from the new pm, or it's new and there's a pm id...
             # ...get details on payment method

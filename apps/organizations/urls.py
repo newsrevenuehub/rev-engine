@@ -16,5 +16,5 @@ urlpatterns = [
         views.handle_stripe_account_link,
         name="handle-stripe-account-link",
     ),
-    path("mailchimp-oauth-success", views.handle_mailchimp_oauth_success, name="handle-mailchimp-oauth-success"),
+    path("mailchimp-oauth-success/", views.handle_mailchimp_oauth_success, name="handle-mailchimp-oauth-success"),
 ]

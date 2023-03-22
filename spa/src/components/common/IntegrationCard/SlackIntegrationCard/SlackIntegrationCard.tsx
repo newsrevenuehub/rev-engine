@@ -29,7 +29,7 @@ export function SlackIntegrationCard() {
           to disconnect.
         </>
       }
-      isActive={currentOrganization?.show_connected_to_slack}
+      isActive={!!currentOrganization?.show_connected_to_slack}
     />
   );
 }

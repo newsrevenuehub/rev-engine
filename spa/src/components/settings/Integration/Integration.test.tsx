@@ -7,12 +7,11 @@ import useUser from 'hooks/useUser';
 
 import Integration from './Integration';
 
+jest.mock('components/common/IntegrationCard/MailchimpIntegrationCard', () => ({
+  MailchimpIntegrationCard: () => <div data-testid="mock-mailchimp-card">Mailchimp</div>
+}));
 jest.mock('hooks/useConnectStripeAccount');
 jest.mock('hooks/useUser');
-jest.mock('react-router-dom', () => ({
-  ...jest.requireActual('react-router-dom'),
-  Redirect: ({ to }: { to: string }) => <div>mock-redirect-to-{to}</div>
-}));
 
 describe('Settings Integration Page', () => {
   const useConnectStripeAccountMock = useConnectStripeAccount as jest.Mock;
@@ -65,45 +64,6 @@ describe('Settings Integration Page', () => {
     expect(sendUserToStripe).not.toBeCalled();
     userEvent.click(screen.getByRole('checkbox', { name: 'Stripe is connected' }));
     expect(sendUserToStripe).not.toBeCalled();
-  });
-
-  it('should redirect if user has multiple orgs and isLoading = false', async () => {
-    useUserMock.mockReturnValue({
-      user: {
-        organizations: [{ id: 'mock-org' }, { id: 'mock-org-2' }]
-      },
-      isLoading: false
-    });
-
-    tree();
-    expect(screen.getByText('mock-redirect-to-/pages/')).toBeInTheDocument();
-  });
-
-  it("shouldn't redirect if user has only 1 org", async () => {
-    useUserMock.mockReturnValue({
-      user: {
-        organizations: [{ id: 'mock-org' }]
-      }
-    });
-
-    tree();
-    expect(screen.getByText('Settings')).toBeInTheDocument();
-    expect(screen.getByText('Integrations')).toBeInTheDocument();
-    expect(screen.queryByText('mock-redirect-to-/pages/')).not.toBeInTheDocument();
-  });
-
-  it("shouldn't redirect if isLoading = true", async () => {
-    useUserMock.mockReturnValue({
-      user: {
-        organizations: [{ id: 'mock-org' }, { id: 'mock-org' }]
-      },
-      isLoading: true
-    });
-
-    tree();
-    expect(screen.getByText('Settings')).toBeInTheDocument();
-    expect(screen.getByText('Integrations')).toBeInTheDocument();
-    expect(screen.queryByText('mock-redirect-to-/pages/')).not.toBeInTheDocument();
   });
 
   it('should be accessible', async () => {

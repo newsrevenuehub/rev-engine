@@ -13,9 +13,8 @@ describe('fileToDataUrl', () => {
     // Avoiding an arrow function to keep `this` binding.
 
     readAsDataUrlSpy.mockImplementation(function () {
-      // TypeScript doesn't like this usage of `this` because it doesn't know
-      // what the function is being attached to.
-      // @ts-expect-error
+      // @ts-expect-error TypeScript doesn't like this usage of `this` because
+      // it doesn't know what the function is being attached to.
       (this as any).onloaderror(new Error());
     });
 
@@ -28,8 +27,7 @@ describe('fileToDataUrl', () => {
     // Avoiding an arrow function to keep `this` binding.
 
     readAsDataUrlSpy.mockImplementation(function () {
-      // See comment above.
-      // @ts-expect-error
+      // @ts-expect-error See comment above.
       (this as any).onload({});
     });
 

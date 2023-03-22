@@ -89,7 +89,17 @@ class RevenueProgramInlineSerializer(serializers.ModelSerializer):
 
     class Meta:
         model = RevenueProgram
-        fields = ["id", "name", "slug", "organization", "payment_provider_stripe_verified"]
+        fields = [
+            "id",
+            "name",
+            "slug",
+            "organization",
+            "payment_provider_stripe_verified",
+            "tax_id",
+            "fiscal_status",
+            "fiscal_sponsor_name",
+            "mailchimp_integration_connected",
+        ]
 
 
 class RevenueProgramSerializer(serializers.ModelSerializer):
@@ -98,10 +108,19 @@ class RevenueProgramSerializer(serializers.ModelSerializer):
     """
 
     slug = serializers.SlugField(required=False)
+    mailchimp_integration_connected = serializers.ReadOnlyField()
 
     class Meta:
         model = RevenueProgram
-        fields = ["id", "name", "slug", "tax_id"]
+        fields = [
+            "id",
+            "name",
+            "slug",
+            "tax_id",
+            "fiscal_status",
+            "fiscal_sponsor_name",
+            "mailchimp_integration_connected",
+        ]
 
 
 class RevenueProgramPatchSerializer(serializers.ModelSerializer):

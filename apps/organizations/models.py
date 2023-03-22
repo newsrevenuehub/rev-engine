@@ -327,12 +327,18 @@ class RevenueProgram(IndexedTimeStampedModel):
     # The next two values are used to make requests to Mailchimp on behalf of our users.  The first one (mailchimp_server_prefix) is
     # intended to be securely stored elsewhere in a future PR.
     mailchimp_server_prefix = models.CharField(max_length=100, null=True, blank=True)
+    # TODO: DEV-3302 this is a temporary field, to be removed in https://news-revenue-hub.atlassian.net/browse/DEV-3302
     mailchimp_access_token = models.TextField(null=True, blank=True)
 
     objects = RevenueProgramManager.from_queryset(RevenueProgramQuerySet)()
 
     def __str__(self):
         return self.name
+
+    @property
+    def mailchimp_integration_connected(self):
+        """Determine mailchimp connection state for the revenue program"""
+        return all([self.mailchimp_access_token, self.mailchimp_server_prefix])
 
     @property
     def payment_provider_stripe_verified(self):

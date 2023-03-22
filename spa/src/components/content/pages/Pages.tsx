@@ -41,7 +41,7 @@ export const pagesbyRP = (pgsRaw: ContributionPage[], qry?: string) => {
       })
     : pgsRaw;
 
-  let revPrograms = new Set(pgs?.map((p) => p?.revenue_program?.id));
+  const revPrograms = new Set(pgs?.map((p) => p?.revenue_program?.id));
 
   revPrograms.forEach((rpId) => {
     if (rpId) {

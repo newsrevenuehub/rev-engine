@@ -39,7 +39,7 @@ export function SalesforceIntegrationCard() {
           to disconnect.
         </>
       }
-      isActive={currentOrganization?.show_connected_to_salesforce}
+      isActive={!!currentOrganization?.show_connected_to_salesforce}
     />
   );
 }

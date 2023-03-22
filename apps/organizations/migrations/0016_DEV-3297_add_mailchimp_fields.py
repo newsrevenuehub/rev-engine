@@ -4,12 +4,12 @@ from django.db import migrations, models
 
 
 class Migration(migrations.Migration):
-
     dependencies = [
         ("organizations", "0015_DEV-3131_organization_add_fiscal_status_fiscal_sponsor_name_remove_nonprofit"),
     ]
 
     operations = [
+        # this is a temporary field, to be removed in https://news-revenue-hub.atlassian.net/browse/DEV-3302
         migrations.AddField(
             model_name="revenueprogram",
             name="mailchimp_access_token",

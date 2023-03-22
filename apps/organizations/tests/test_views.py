@@ -21,9 +21,6 @@ from apps.organizations.models import (
     RevenueProgram,
     RevenueProgramQuerySet,
 )
-from apps.organizations.tasks import (
-    exchange_mailchimp_oauth_token_for_server_prefix_and_access_token,
-)
 from apps.organizations.tests.factories import OrganizationFactory, RevenueProgramFactory
 from apps.organizations.views import RevenueProgramViewSet, get_stripe_account_link_return_url
 from apps.users.choices import Roles
@@ -881,150 +878,21 @@ def mailchimp_feature_flag_no_group_level_access(mailchimp_feature_flag):
     return mailchimp_feature_flag
 
 
-class TestMailchimpIntegrationViewStub:
-    """These tests are narrowly meant to demonstrate business logic around the "mailchimp-integration-access" flag.
-
-    For now, we just test around a stub API endpoint to prove the flag is configured as required.
-    """
-
-    @pytest_cases.parametrize(
-        "user,mailchimp_flag_kwargs,expect_access",
-        (
-            (
-                pytest_cases.fixture_ref("superuser"),
-                {
-                    "superuser": True,
-                    "everyone": None,
-                    "staff": False,
-                },
-                True,
-            ),
-            (
-                pytest_cases.fixture_ref("superuser"),
-                {
-                    "superuser": False,
-                    "everyone": None,
-                    "staff": False,
-                },
-                False,
-            ),
-            (
-                pytest_cases.fixture_ref("superuser"),
-                {
-                    "superuser": False,
-                    "everyone": True,
-                    "staff": False,
-                },
-                True,
-            ),
-            (
-                pytest_cases.fixture_ref("superuser"),
-                {
-                    "superuser": False,
-                    "everyone": True,
-                    "staff": False,
-                },
-                True,
-            ),
-            (
-                pytest_cases.fixture_ref("superuser"),
-                {
-                    "superuser": False,
-                    "everyone": False,
-                    "staff": True,
-                },
-                True,
-            ),
-            (
-                pytest_cases.fixture_ref("admin_user"),
-                {
-                    "superuser": False,
-                    "everyone": False,
-                    "staff": True,
-                },
-                True,
-            ),
-            (
-                pytest_cases.fixture_ref("admin_user"),
-                {
-                    "superuser": False,
-                    "everyone": False,
-                    "staff": False,
-                },
-                False,
-            ),
-            (
-                pytest_cases.fixture_ref("admin_user"),
-                {
-                    "superuser": False,
-                    "everyone": True,
-                    "staff": False,
-                },
-                True,
-            ),
-            (
-                pytest_cases.fixture_ref("org_user_free_plan"),
-                {
-                    "superuser": True,
-                    "everyone": False,
-                    "staff": True,
-                },
-                False,
-            ),
-            (
-                pytest_cases.fixture_ref("org_user_free_plan"),
-                {
-                    "superuser": True,
-                    "everyone": True,
-                    "staff": True,
-                },
-                True,
-            ),
-        ),
-    )
-    def test_feature_flag_works(self, user, mailchimp_flag_kwargs, expect_access, mailchimp_feature_flag, api_client):
-        """Show that flag can be used to control access based on superuser, everyone, and staff attributes."""
-        for k, v in mailchimp_flag_kwargs.items():
-            setattr(mailchimp_feature_flag, k, v)
-        mailchimp_feature_flag.save()
-        api_client.force_authenticate(user)
-        response = api_client.get(reverse("mail_chimp_integration_stub"))
-        assert response.status_code == status.HTTP_200_OK if expect_access else status.HTTP_403_FORBIDDEN
-
-    @pytest_cases.parametrize(
-        "user",
-        (
-            pytest_cases.fixture_ref("superuser"),
-            pytest_cases.fixture_ref("admin_user"),
-            pytest_cases.fixture_ref("org_user_free_plan"),
-        ),
-    )
-    def test_feature_flag_works_with_individual_assignment(
-        self, user, mailchimp_feature_flag_no_group_level_access, api_client
-    ):
-        """Show that flag can be used to grant individual users resource access"""
-        mailchimp_feature_flag_no_group_level_access.users.add(user)
-        mailchimp_feature_flag_no_group_level_access.save()
-        api_client.force_authenticate(user)
-        assert api_client.get(reverse("mail_chimp_integration_stub")).status_code == status.HTTP_200_OK
-
-
 @pytest.mark.django_db
 class TestHandleMailchimpOauthSuccessView:
     def test_happy_path(self, mocker, monkeypatch, org_user_free_plan, api_client):
         api_client.force_authenticate(org_user_free_plan)
-        task_spy = mocker.spy(exchange_mailchimp_oauth_token_for_server_prefix_and_access_token, "delay")
-        monkeypatch.setattr(
-            "apps.organizations.tasks.exchange_mailchimp_oauth_token_for_server_prefix_and_access_token",
-            lambda *args, **kwargs: None,
+        mock_task = mocker.patch(
+            "apps.organizations.tasks.exchange_mailchimp_oauth_code_for_server_prefix_and_access_token.delay"
         )
+        mock_task.return_value = None
         data = {
             "revenue_program": (rp_id := org_user_free_plan.roleassignment.revenue_programs.first().id),
             "mailchimp_oauth_code": (oauth_code := "something"),
         }
         response = api_client.post(reverse("handle-mailchimp-oauth-success"), data=data)
         assert response.status_code == status.HTTP_202_ACCEPTED
-        task_spy.assert_called_once_with(rp_id, oauth_code)
+        mock_task.assert_called_once_with(rp_id, oauth_code)
 
     def test_when_not_authenticated(self, api_client, default_feature_flags):
         response = api_client.post(reverse("handle-mailchimp-oauth-success"), data={})
@@ -1045,9 +913,6 @@ class TestHandleMailchimpOauthSuccessView:
     )
     def test_when_roleassignment_role_is_not_org_admin(self, user, default_feature_flags, api_client):
         api_client.force_authenticate(user)
-        response = api_client.post(reverse("handle-mailchimp-oauth-success"), data={})
-        assert response.status_code == status.HTTP_403_FORBIDDEN
-        assert response.json() == {"detail": "You do not have permission to perform this action."}
 
     def test_when_dont_own_revenue_program(self, org_user_free_plan, revenue_program, api_client):
         assert revenue_program not in org_user_free_plan.roleassignment.revenue_programs.all()

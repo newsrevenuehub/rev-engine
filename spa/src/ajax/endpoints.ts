@@ -48,3 +48,12 @@ export const FORGOT_PASSWORD_ENDPOINT = 'users/password_reset/';
 export const RESET_PASSWORD_ENDPOINT = 'users/password_reset/confirm/';
 export const VERIFY_EMAIL_REQUEST_ENDPOINT = 'users/request_account_verification/';
 export const CUSTOMIZE_ACCOUNT_ENDPOINT = 'customize_account/';
+
+// Organization
+export const PATCH_ORGANIZATION = 'organizations/';
+
+// Revenue Programs
+export const PATCH_REVENUE_PROGRAM = 'revenue-programs/';
+
+// Mailchimp
+export const MAILCHIMP_OAUTH_SUCCESS = 'mailchimp-oauth-success/';

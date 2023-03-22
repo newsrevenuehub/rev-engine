@@ -1,4 +1,5 @@
 import { ContributionInterval } from 'constants/contributionIntervals';
+import { FiscalStatus } from 'constants/fiscalStatus';
 import { Style } from '../useStyleList';
 
 // Types here come from looking at Django models, in particular whether a field
@@ -277,6 +278,26 @@ export interface RevenueProgram {
    * URL for the revenue program's web site.
    */
   website_url: string;
+  /**
+   * Organization ID from which the Revenue Program belongs.
+   */
+  organization: number;
+  /**
+   * Fiscal status that is "nonprofit", "for-profit" or "fiscally sponsored".
+   */
+  fiscal_status: FiscalStatus;
+  /**
+   * Fiscal sponsor name. Will only have a non-null value if fiscal_status === "fiscally sponsored"
+   */
+  fiscal_sponsor_name?: string | null;
+  /**
+   * EIN tax ID.
+   */
+  tax_id?: string | null;
+  /**
+   * Is Mailchimp connected?
+   */
+  mailchimp_integration_connected?: boolean;
 }
 
 /**

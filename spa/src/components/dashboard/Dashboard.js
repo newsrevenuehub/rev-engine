@@ -14,7 +14,8 @@ import {
   EDITOR_ROUTE_PAGE,
   EDITOR_ROUTE_PAGE_REDIRECT,
   PROFILE,
-  SETTINGS
+  SETTINGS,
+  MAILCHIMP_OAUTH_SUCCESS_ROUTE
 } from 'routes';
 
 // Children
@@ -26,6 +27,8 @@ import DashboardSidebar from 'components/dashboard/sidebar/DashboardSidebar';
 import DashboardTopbar from 'components/dashboard/topbar/DashboardTopbar';
 import Donations from 'components/donations/Donations';
 import Integration from 'components/settings/Integration';
+import Organization from 'components/settings/Organization';
+import SingleOrgUserOnlyRoute from 'components/authentication/SingleOrgUserOnlyRoute';
 import PageEditorRoute from 'components/pageEditor/PageEditorRoute';
 import SystemNotification from 'components/common/SystemNotification/SystemNotification';
 
@@ -42,6 +45,7 @@ import flagIsActiveForUser from 'utilities/flagIsActiveForUser';
 import hasContributionsDashboardAccessToUser from 'utilities/hasContributionsDashboardAccessToUser';
 import { useEffect } from 'react';
 import { PageEditorRedirect } from 'components/pageEditor/PageEditorRedirect';
+import MailchimpOAuthSuccess from './MailchimpOAuthSuccess';
 
 function Dashboard() {
   const { enqueueSnackbar } = useSnackbar();
@@ -87,6 +91,10 @@ function Dashboard() {
             <Switch>
               <Redirect exact from={DASHBOARD_SLUG} to={dashboardSlugRedirect} />
 
+              <SentryRoute path={MAILCHIMP_OAUTH_SUCCESS_ROUTE}>
+                <MailchimpOAuthSuccess />
+              </SentryRoute>
+
               {hasContributionsSectionAccess ? (
                 <SentryRoute path={DONATIONS_SLUG}>
                   <Donations />
@@ -113,7 +121,14 @@ function Dashboard() {
                 </SentryRoute>
               ) : null}
               <SentryRoute path={SETTINGS.INTEGRATIONS}>
-                <Integration />
+                <SingleOrgUserOnlyRoute>
+                  <Integration />
+                </SingleOrgUserOnlyRoute>
+              </SentryRoute>
+              <SentryRoute path={SETTINGS.ORGANIZATION}>
+                <SingleOrgUserOnlyRoute>
+                  <Organization />
+                </SingleOrgUserOnlyRoute>
               </SentryRoute>
               <SentryRoute path={PROFILE}>
                 <Profile />

@@ -82,10 +82,16 @@ PlusPlan = Plan(
     ],
 )
 
+CorePlan = PlusPlan(
+    name="CORE",
+    label="Core",
+)
+
 
 class Plans(models.TextChoices):
     FREE = FreePlan.name, FreePlan.label
     PLUS = PlusPlan.name, PlusPlan.label
+    CORE = CorePlan.name, CorePlan.label
 
     @classmethod
     def get_plan(cls, name):

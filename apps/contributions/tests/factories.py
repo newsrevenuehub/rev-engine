@@ -105,7 +105,7 @@ class ContributionFactory(DjangoModelFactory):
         return {
             "source": settings.METADATA_SOURCE,
             "schema_version": settings.METADATA_SCHEMA_VERSION,
-            "contributor_id": self.contributor.id,
+            "contributor_id": self.contributor.id if self.contributor else "",
             "agreed_to_pay_fees": True,
             "donor_selected_amount": self.amount / 100,
             "revenue_program_id": rp.id or "",

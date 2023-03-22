@@ -31,7 +31,7 @@ import { BANNER_TYPE } from 'constants/bannerConstants';
 import { PAYMENT_STATUS_EXCLUDE_IN_CONTRIBUTIONS } from 'constants/paymentStatus';
 import PageTitle from 'elements/PageTitle';
 import useConnectStripeAccount from 'hooks/useConnectStripeAccount';
-import usePagesList from 'hooks/usePageList';
+import useContributionPageList from 'hooks/useContributionPageList';
 import { SentryRoute } from 'hooks/useSentry';
 import useUser from 'hooks/useUser';
 
@@ -41,7 +41,7 @@ const Donations = () => {
 
   const { user } = useUser();
   const { requiresVerification } = useConnectStripeAccount();
-  const { pages } = usePagesList();
+  const { pages } = useContributionPageList();
   const requestDonations = useRequest();
   const [filters, setFilters] = useState({});
   const [donationsCount, setDonationsCount] = useState([]);

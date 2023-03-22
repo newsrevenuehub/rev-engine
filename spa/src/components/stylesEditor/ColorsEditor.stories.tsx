@@ -3,6 +3,10 @@ import ColorsEditor from './ColorsEditor';
 
 export default {
   component: ColorsEditor,
+  parameters: {
+    // See https://www.chromatic.com/docs/viewports
+    chromatic: { viewports: [1280] }
+  },
   title: 'StylesEditor/ColorsEditor'
 } as ComponentMeta<typeof ColorsEditor>;
 

@@ -1,32 +1,32 @@
 [
   {
-      "id": 29,
-      "name": "Aspen Journalism",
-      "page_screenshot": null,
-      "slug": "donate",
-      "revenue_program": {
-          "id": 10,
-          "name": "Aspen Journalism RP",
-          "slug": "aspenjournalism",
-          "twitter_handle": "",
-          "website_url": "",
-          "contact_email": "",
-          "address": ", , "
-      }
+    "id": 29,
+    "name": "Aspen Journalism",
+    "page_screenshot": null,
+    "slug": "donate",
+    "revenue_program": {
+      "id": 10,
+      "name": "Aspen Journalism RP",
+      "slug": "aspenjournalism",
+      "twitter_handle": "",
+      "website_url": "",
+      "contact_email": "",
+      "address": ", , "
+    }
   },
   {
-      "id": 483,
-      "name": "Another",
-      "page_screenshot": null,
-      "slug": "my-other-page",
-      "revenue_program": {
-          "id": 11,
-          "name": "Another RP",
-          "slug": "aspenjournalism-part-deux",
-          "twitter_handle": "",
-          "website_url": "",
-          "contact_email": "",
-          "address": ", , "
-      }
+    "id": 483,
+    "name": "Some Rev Program Page 1",
+    "page_screenshot": null,
+    "slug": "some-rev-program-page-1",
+    "revenue_program": {
+      "id": 11,
+      "name": "Some Rev Program",
+      "slug": "some-rev-program",
+      "twitter_handle": "",
+      "website_url": "",
+      "contact_email": "",
+      "address": ", , "
+    }
   }
 ]

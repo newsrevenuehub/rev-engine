@@ -1,20 +1,11 @@
-import { useQuery } from '@tanstack/react-query';
 import orderBy from 'lodash.orderby';
-import { Fragment, useMemo, useState } from 'react';
-import { useAlert } from 'react-alert';
+import { Fragment, useState } from 'react';
 import join from 'url-join';
-import { Content } from './Pages.styled';
+import { Content, PageUsage } from './Pages.styled';
 
 // Router
 import { useHistory } from 'react-router-dom';
 import { EDITOR_ROUTE } from 'routes';
-
-// Constants
-import { USER_ROLE_HUB_ADMIN_TYPE, USER_SUPERUSER_TYPE } from 'constants/authConstants';
-import { GENERIC_ERROR } from 'constants/textConstants';
-// AJAX
-import axios from 'ajax/axios';
-import { LIST_PAGES } from 'ajax/endpoints';
 
 // Children
 import EditButton from 'components/common/Button/EditButton';
@@ -23,9 +14,9 @@ import GenericErrorBoundary from 'components/errors/GenericErrorBoundary';
 import { isStringInStringCaseInsensitive } from 'utilities/isStringInString';
 import GlobalLoading from 'elements/GlobalLoading';
 import { ContributionPage } from 'hooks/useContributionPage';
-import useUser from 'hooks/useUser';
 
 import AddPage from './AddPage';
+import useContributionPageList from 'hooks/useContributionPageList';
 
 export const pagesbyRP = (pgsRaw: ContributionPage[], qry?: string) => {
   const pagesByRevProgram: { name: string; pages: ContributionPage[] }[] = [];
@@ -55,58 +46,43 @@ export const pagesbyRP = (pgsRaw: ContributionPage[], qry?: string) => {
   return orderBy(pagesByRevProgram, 'name');
 };
 
-async function fetchPages() {
-  const { data } = await axios.get(LIST_PAGES);
-
-  return data;
-}
-
 function Pages() {
-  const alert = useAlert();
   const history = useHistory();
   const [pageSearchQuery, setPageSearchQuery] = useState('');
-  const { user, isLoading: userLoading } = useUser();
-  const { data: pages, isLoading: pagesLoading } = useQuery(['pages'], fetchPages, {
-    onError: () => alert.error(GENERIC_ERROR),
-    initialData: []
-  });
-
-  const isLoading = pagesLoading || userLoading;
+  const { pages, isLoading } = useContributionPageList();
   const handleEditPage = (page: ContributionPage) =>
     history.push(join([EDITOR_ROUTE, 'pages', page.id.toString(), '/']));
-  const pagesByRevenueProgram = pagesbyRP(pages, pageSearchQuery);
+  const pagesByRevenueProgram = pagesbyRP(pages ?? [], pageSearchQuery);
 
-  const addPageButtonShouldBeDisabled = useMemo(() => {
-    if ([USER_ROLE_HUB_ADMIN_TYPE, USER_SUPERUSER_TYPE].includes(user?.role_type?.[0] ?? '')) {
-      return false;
-    }
-    const pageLimit = user?.organizations?.[0]?.plan?.page_limit ?? 0;
-    return pages.length + 1 > pageLimit;
-  }, [pages.length, user?.organizations, user?.role_type]);
+  if (isLoading) {
+    return (
+      <div data-testid="pages-loading">
+        <GlobalLoading />
+      </div>
+    );
+  }
 
   return (
-    <>
-      <GenericErrorBoundary>
-        {isLoading && <GlobalLoading />}
-        <Hero
-          title="Pages"
-          subtitle="Welcome to Pages. Here you can create, manage, and publish contribution pages. Create a new page by selecting the ‘New Page’ button below."
-          placeholder="Pages"
-          onChange={setPageSearchQuery}
-        />
-        <Content data-testid="pages-list">
-          <AddPage pagesByRevenueProgram={pagesByRevenueProgram} disabled={addPageButtonShouldBeDisabled} />
-          {!!pagesByRevenueProgram.length &&
-            pagesByRevenueProgram.map((revenueProgram) => (
-              <Fragment key={revenueProgram.name}>
-                {revenueProgram.pages.map((donationPage) => (
-                  <EditButton key={donationPage.id} {...donationPage} onClick={() => handleEditPage(donationPage)} />
-                ))}
-              </Fragment>
-            ))}
-        </Content>
-      </GenericErrorBoundary>
-    </>
+    <GenericErrorBoundary>
+      <Hero
+        title="Pages"
+        subtitle="Welcome to Pages. Here you can create, manage, and publish contribution pages. Create a new page by selecting the ‘New Page’ button below."
+        placeholder="Pages"
+        onChange={setPageSearchQuery}
+      />
+      <Content data-testid="pages-list">
+        <AddPage />
+        {!!pagesByRevenueProgram.length &&
+          pagesByRevenueProgram.map((revenueProgram) => (
+            <Fragment key={revenueProgram.name}>
+              {revenueProgram.pages.map((donationPage) => (
+                <EditButton key={donationPage.id} {...donationPage} onClick={() => handleEditPage(donationPage)} />
+              ))}
+            </Fragment>
+          ))}
+      </Content>
+      <PageUsage />
+    </GenericErrorBoundary>
   );
 }
 

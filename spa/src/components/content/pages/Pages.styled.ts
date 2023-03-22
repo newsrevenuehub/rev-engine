@@ -1,4 +1,5 @@
 import styled from 'styled-components';
+import BasePageUsage from './PageUsage';
 
 export const Content = styled.div`
   display: flex;
@@ -6,6 +7,12 @@ export const Content = styled.div`
   align-items: start;
   gap: 2rem;
   flex-wrap: wrap;
+`;
+
+export const PageUsage = styled(BasePageUsage)`
+  color: ${({ theme }) => theme.colors.muiGrey[600]};
+  font-weight: 600;
+  margin-top: 70px;
 `;
 
 // accordionAnimation is being used elsewhere.

@@ -26,11 +26,13 @@ NoDefaultSet.args = {
     { value: CONTRIBUTION_INTERVALS.MONTHLY, displayName: 'Monthly' },
     { value: CONTRIBUTION_INTERVALS.ANNUAL, displayName: 'Yearly' }
   ],
+  onChangeElementContent: () => {},
   setUpdateDisabled: () => {}
 };
 
 export const NoFrequenciesEnabled = Template.bind({});
 NoFrequenciesEnabled.args = {
   elementContent: [],
+  onChangeElementContent: () => {},
   setUpdateDisabled: () => {}
 };

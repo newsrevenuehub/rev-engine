@@ -1,32 +1,13 @@
-import { render, screen, waitFor } from 'test-utils';
-import MockAdapter from 'axios-mock-adapter';
-
+import { fireEvent, render, screen } from 'test-utils';
 import { pagesbyRP, default as Pages } from './Pages';
-import useUserImport from 'hooks/useUser';
-import { USER_ROLE_ORG_ADMIN_TYPE, USER_ROLE_HUB_ADMIN_TYPE, USER_SUPERUSER_TYPE } from 'constants/authConstants';
+import { axe } from 'jest-axe';
+import useContributionPageList from 'hooks/useContributionPageList';
+import { useHistory } from 'react-router-dom';
 
-import { LIST_PAGES } from 'ajax/endpoints';
-import Axios from 'ajax/axios';
-
-const orgAdminUser = {
-  role_type: [USER_ROLE_ORG_ADMIN_TYPE],
-  organizations: [{ plan: { page_limit: 1 } }]
-};
-
-const superUser = {
-  ...orgAdminUser,
-  role_type: [USER_SUPERUSER_TYPE]
-};
-
-const hubAdmin = {
-  ...orgAdminUser,
-  role_type: [USER_ROLE_HUB_ADMIN_TYPE]
-};
-
-jest.mock('hooks/useUser');
-jest.mock('hooks/useRequest');
-
-const useUser = useUserImport as jest.Mock;
+jest.mock('react-router-dom', () => ({ ...jest.requireActual('react-router-dom'), useHistory: jest.fn() }));
+jest.mock('./AddPage');
+jest.mock('./PageUsage');
+jest.mock('hooks/useContributionPageList');
 
 describe('pagesbyRP', () => {
   describe('Given pages list', () => {
@@ -92,51 +73,57 @@ describe('pagesbyRP', () => {
   });
 });
 
-describe('New page button behavior given org plan and user role', () => {
-  const axiosMock = new MockAdapter(Axios);
-  afterEach(() => {
-    axiosMock.reset();
-    axiosMock.resetHistory();
-  });
-  afterAll(() => axiosMock.restore());
-  test('when user is super user can always add', async () => {
-    useUser.mockImplementation(() => ({ user: superUser }));
-    axiosMock.onGet(LIST_PAGES).reply(200, [{}, {}, {}]);
-    render(<Pages />);
-    await waitFor(() => {
-      expect(axiosMock.history.get.length).toBe(1);
+function tree() {
+  return render(<Pages />);
+}
+
+describe('Pages', () => {
+  const useContributionPageListMock = useContributionPageList as jest.Mock;
+  const useHistoryMock = useHistory as jest.Mock;
+
+  beforeEach(() => {
+    useContributionPageListMock.mockReturnValue({
+      pages: [
+        { name: 'Mock Page 1', id: 1, revenue_program: { id: 'mock-rp-id', name: 'Mock RP' } },
+        { name: 'Mock Page 2', id: 2, revenue_program: { id: 'mock-rp-id', name: 'Mock RP' } }
+      ]
     });
-    const newPageButton = screen.getByRole('button', { name: 'New Page' });
-    expect(newPageButton).not.toBeDisabled();
   });
-  test('when user is hub admin can always add', async () => {
-    useUser.mockImplementation(() => ({ user: hubAdmin }));
-    axiosMock.onGet(LIST_PAGES).reply(200, [{}, {}, {}]);
-    render(<Pages />);
-    await waitFor(() => {
-      expect(axiosMock.history.get.length).toBe(1);
-    });
-    const newPageButton = screen.getByRole('button', { name: 'New Page' });
-    expect(newPageButton).not.toBeDisabled();
+
+  it('shows a loading spinner while pages are loading', () => {
+    useContributionPageListMock.mockReturnValue({ isLoading: true, pages: [] });
+    tree();
+    expect(screen.getByTestId('pages-loading')).toBeInTheDocument();
   });
-  test('typical self-onboarded user who has not added a page can add one', async () => {
-    useUser.mockImplementation(() => ({ user: orgAdminUser }));
-    axiosMock.onGet(LIST_PAGES).reply(200, []);
-    render(<Pages />);
-    await waitFor(() => {
-      expect(axiosMock.history.get.length).toBe(1);
-    });
-    const newPageButton = screen.getByRole('button', { name: 'New Page' });
-    expect(newPageButton).not.toBeDisabled();
+
+  it('shows an edit button for every page', () => {
+    tree();
+    expect(screen.getByRole('button', { name: 'Mock Page 1' })).toBeVisible();
+    expect(screen.getByRole('button', { name: 'Mock Page 2' })).toBeVisible();
   });
-  test('typical self-onboarded user who has added a page cannot add one', async () => {
-    useUser.mockImplementation(() => ({ user: orgAdminUser }));
-    axiosMock.onGet(LIST_PAGES).reply(200, [{}]);
-    render(<Pages />);
-    await waitFor(() => {
-      expect(axiosMock.history.get.length).toBe(1);
-    });
-    const newPageButton = screen.getByRole('button', { name: 'New Page' });
-    expect(newPageButton).toBeDisabled();
+
+  it('goes to the page editor route when an edit page is clicked', () => {
+    const push = jest.fn();
+
+    useHistoryMock.mockReturnValue({ push });
+    tree();
+    fireEvent.click(screen.getByRole('button', { name: 'Mock Page 1' }));
+    expect(push.mock.calls).toEqual([['/edit/pages/1/']]);
+  });
+
+  it('shows a button to add a new page', () => {
+    tree();
+    expect(screen.getByTestId('mock-add-page')).toBeVisible();
+  });
+
+  it('shows the page limit', () => {
+    tree();
+    expect(screen.getByTestId('mock-page-usage')).toBeVisible();
+  });
+
+  it('is accessible', async () => {
+    const { container } = tree();
+
+    expect(await axe(container)).toHaveNoViolations();
   });
 });

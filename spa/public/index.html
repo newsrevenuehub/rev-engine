@@ -37,7 +37,13 @@
 
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/semantic-ui/2.4.1/semantic.min.css" />
 
-    {% include "webfonts.html" %} {% if social_meta %}
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      href="https://fonts.googleapis.com/css2?family=DM+Mono:wght@500&family=Roboto:ital,wght@0,100;0,300;0,400;0,500;0,700;1,100;1,300;1,400;1,500;1,700&display=swap"
+      rel="stylesheet"
+    />
+    {% if social_meta %}
     <meta name="og:type" content="website" />
     <meta name="og:url" content="{{ social_meta.url }}" />
     <meta name="og:title" content="{{ social_meta.title }}" />
@@ -51,10 +57,10 @@
 
     <title>RevEngine</title>
     <title>{% if revenue_program_name %}Join | {{ revenue_program_name }}{% else %}RevEngine{% endif %}</title>
-    <link rel="icon" href="/static/favicon.ico" sizes="any">
-    <link rel="icon" href="/static/favicon.svg" type="image/svg+xml">
-    <link rel="apple-touch-icon" href="/static/apple-touch-icon.png">
-    <link rel="manifest" href="/static/manifest.webmanifest">
+    <link rel="icon" href="/static/favicon.ico" sizes="any" />
+    <link rel="icon" href="/static/favicon.svg" type="image/svg+xml" />
+    <link rel="apple-touch-icon" href="/static/apple-touch-icon.png" />
+    <link rel="manifest" href="/static/manifest.webmanifest" />
   </head>
   <body>
     {% if gtm_id %}
@@ -62,7 +68,7 @@
     <noscript
       ><iframe
         src="https://www.googletagmanager.com/ns.html?id={{ gtm_id }}"
-        3height="0"
+        height="0"
         width="0"
         style="display: none; visibility: hidden"
       ></iframe>

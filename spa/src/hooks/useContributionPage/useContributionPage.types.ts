@@ -33,7 +33,7 @@ export interface EnginePlan {
   /**
    * Internal name of the plan.
    */
-  name: string;
+  name: 'CORE' | 'FREE' | 'PLUS';
   /**
    * What element types are allowed in a page's main content?
    */

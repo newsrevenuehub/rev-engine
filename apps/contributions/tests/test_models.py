@@ -25,7 +25,7 @@ from apps.contributions.models import (
     logger,
 )
 from apps.contributions.tasks import task_pull_serialized_stripe_contributions_to_cache
-from apps.contributions.tests.factories import ContributionFactory
+from apps.contributions.tests.factories import ContributionFactory, ContributorFactory
 from apps.emails.tasks import send_templated_email, send_thank_you_email
 from apps.organizations.models import FiscalStatusChoices
 from apps.organizations.tests.factories import OrganizationFactory, RevenueProgramFactory
@@ -842,11 +842,31 @@ class TestContributionModel:
         assert contribution.billing_name == (name_val or "")
 
     @pytest.mark.parametrize("trait", ("one_time", "annual_subscription", "monthly_subscription"))
-    @pytest.mark.parametrize("email_val", ("something", None, False, ""))
-    def test_billing_email(self, trait, email_val):
-        data = {"billing_details": {"email": email_val}}
-        contribution = ContributionFactory(**{trait: True, "provider_payment_method_details": data})
-        assert contribution.billing_email == (email_val or "")
+    @pytest.mark.parametrize(
+        "make_contribution_fn,expected_val",
+        (
+            (
+                lambda trait: ContributionFactory(contributor=ContributorFactory(email=""), **{trait: True}),
+                "",
+            ),
+            (
+                lambda trait: ContributionFactory(contributor=ContributorFactory(email="something"), **{trait: True}),
+                "something",
+            ),
+            (
+                lambda trait: ContributionFactory(contributor=None, **{trait: True}),
+                "",
+            ),
+        ),
+    )
+    def test_billing_email(
+        self,
+        trait,
+        make_contribution_fn,
+        expected_val,
+    ):
+        contribution = make_contribution_fn(trait)
+        assert contribution.billing_email == expected_val
 
     @pytest.mark.parametrize("trait", ("one_time", "annual_subscription", "monthly_subscription"))
     @pytest.mark.parametrize("phone_val", ("something", None, False, ""))

@@ -23,6 +23,22 @@ export const Root = styled.aside`
   }
 `;
 
+export const Banner = styled.div`
+  align-items: center;
+  display: flex;
+`;
+
+export const PlanBadgeContainer = styled.div`
+  border-left: 1px solid rgba(255, 255, 255, 0.6);
+  height: 22px;
+  margin-left: 10px;
+  padding-left: 10px;
+
+  @media (${(props) => props.theme.breakpoints.tabletLandscapeDown}) {
+    display: none;
+  }
+`;
+
 export const Content = styled.div`
   display: flex;
   flex-grow: 1;
@@ -38,7 +54,7 @@ export const Logo = styled.span`
   background-size: auto 30px;
   display: block;
   height: 48px;
-  width: 100%;
+  width: 150px;
 
   @media (${(props) => props.theme.breakpoints.tabletLandscapeDown}) {
     background-image: url(${mobileLogo});

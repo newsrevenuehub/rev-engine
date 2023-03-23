@@ -1,3 +1,4 @@
+from dataclasses import asdict
 from datetime import timedelta
 
 from django.conf import settings
@@ -21,13 +22,18 @@ from apps.contributions.models import Contribution
 from apps.contributions.tests.factories import ContributionFactory
 from apps.organizations.models import (
     RP_SLUG_MAX_LENGTH,
+    UNLIMITED_CEILING,
     Benefit,
     BenefitLevel,
     BenefitLevelBenefit,
+    CorePlan,
     FiscalStatusChoices,
+    FreePlan,
     HubDefaultEmailStyle,
     Organization,
     PaymentProvider,
+    Plans,
+    PlusPlan,
     RevenueProgram,
     TransactionalEmailStyle,
     logger,
@@ -37,13 +43,64 @@ from apps.organizations.tests.factories import (
     OrganizationFactory,
     RevenueProgramFactory,
 )
+from apps.pages.defaults import (
+    BENEFITS,
+    DEFAULT_PERMITTED_PAGE_ELEMENTS,
+    DEFAULT_PERMITTED_SIDEBAR_ELEMENTS,
+    SWAG,
+)
 from apps.pages.models import DonationPage
 from apps.pages.tests.factories import DonationPageFactory, StyleFactory
 from apps.users.models import RoleAssignment, Roles, User
 
 
+class TestPlans:
+    def test_has_expected_plans(self):
+        assert set(Plans) == {Plans.FREE, Plans.CORE, Plans.PLUS}
+
+    def test_free_plan_characteristics(self):
+        assert asdict(FreePlan) == {
+            "name": "FREE",
+            "label": "Free",
+            "page_limit": 1,
+            "style_limit": 1,
+            "custom_thank_you_page_enabled": False,
+            "sidebar_elements": DEFAULT_PERMITTED_SIDEBAR_ELEMENTS,
+            "page_elements": DEFAULT_PERMITTED_PAGE_ELEMENTS,
+        }
+
+    def test_plus_plan_characteristics(self):
+        assert asdict(PlusPlan) == {
+            "name": "PLUS",
+            "label": "Plus",
+            "page_limit": UNLIMITED_CEILING,
+            "style_limit": UNLIMITED_CEILING,
+            "custom_thank_you_page_enabled": True,
+            "sidebar_elements": DEFAULT_PERMITTED_SIDEBAR_ELEMENTS + [BENEFITS],
+            "page_elements": DEFAULT_PERMITTED_PAGE_ELEMENTS + [SWAG],
+        }
+
+    def test_core_plan_characteristics(self):
+        assert asdict(CorePlan) == {
+            "name": "CORE",
+            "label": "Core",
+            "page_limit": UNLIMITED_CEILING,
+            "style_limit": UNLIMITED_CEILING,
+            "custom_thank_you_page_enabled": True,
+            "sidebar_elements": DEFAULT_PERMITTED_SIDEBAR_ELEMENTS + [BENEFITS],
+            "page_elements": DEFAULT_PERMITTED_PAGE_ELEMENTS + [SWAG],
+        }
+
+
 @pytest.mark.django_db
 class TestOrganization:
+    def test_has_expected_plans(self):
+        assert set(Organization.plan_name.field.choices) == {
+            (Plans.FREE.value, Plans.FREE.label),
+            (Plans.CORE.value, Plans.CORE.label),
+            (Plans.PLUS.value, Plans.PLUS.label),
+        }
+
     def test_basics(self):
         t = Organization()
         str(t)

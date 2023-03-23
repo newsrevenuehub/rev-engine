@@ -65,27 +65,20 @@ FreePlan = Plan(
     label="Free",
 )
 
-PlusPlan = Plan(
-    name="PLUS",
-    label="Plus",
-    # If this limit gets hit, it can be dealt with as a customer service issue.
-    page_limit=UNLIMITED_CEILING,
-    style_limit=UNLIMITED_CEILING,
-    custom_thank_you_page_enabled=True,
-    sidebar_elements=DEFAULT_PERMITTED_SIDEBAR_ELEMENTS
-    + [
-        BENEFITS,
-    ],
-    page_elements=DEFAULT_PERMITTED_PAGE_ELEMENTS
-    + [
-        SWAG,
-    ],
-)
 
-CorePlan = PlusPlan(
-    name="CORE",
-    label="Core",
-)
+plus_plan = {
+    "name": "PLUS",
+    "label": "Plus",
+    # If this limit gets hit, it can be dealt with as a customer service issue.
+    "page_limit": UNLIMITED_CEILING,
+    "style_limit": UNLIMITED_CEILING,
+    "custom_thank_you_page_enabled": True,
+    "sidebar_elements": DEFAULT_PERMITTED_SIDEBAR_ELEMENTS + [BENEFITS],
+    "page_elements": DEFAULT_PERMITTED_PAGE_ELEMENTS + [SWAG],
+}
+
+PlusPlan = Plan(**plus_plan)
+CorePlan = Plan(**(plus_plan | {"name": "CORE", "label": "Core"}))
 
 
 class Plans(models.TextChoices):

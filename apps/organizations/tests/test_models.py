@@ -1,5 +1,4 @@
 from datetime import timedelta
-from unittest.mock import Mock
 
 from django.conf import settings
 from django.core.exceptions import ValidationError
@@ -277,40 +276,65 @@ class TestRevenueProgram:
         mock_stripe_create.assert_called_once()
         mock_logger.exception.assert_called_once()
 
-    def test_mailchimp_email_lists_property_happy_path(self, revenue_program, monkeypatch):
+    def test_mailchimp_email_lists_property_happy_path(self, revenue_program, mocker):
         revenue_program.mailchimp_server_prefix = "us1"
         revenue_program.mailchimp_access_token = "123456"
         revenue_program.save()
-        MockClient = Mock()
-        MockClient.lists.get_all_lists.return_value = {"lists": [{"id": "123", "name": "test"}]}
-        monkeypatch.setattr("mailchimp_marketing.Client", lambda *args, **kwargs: MockClient)
-        assert revenue_program.mailchimp_email_lists == MockClient.lists.get_all_lists.return_value["lists"]
+        mock_mc_client = mocker.patch("mailchimp_marketing.Client")
+        mock_mc_client.return_value.lists.get_all_lists.return_value = {"lists": [{"id": "123", "name": "test"}]}
+        assert (
+            revenue_program.mailchimp_email_lists
+            == mock_mc_client.return_value.lists.get_all_lists.return_value["lists"]
+        )
+        mock_mc_client.assert_called_once()
+        mock_mc_client.return_value.lists.get_all_lists.assert_called_once()
 
-    def test_mailchimp_email_lists_property_when_missing_server_prefix(self, revenue_program):
+    def test_mailchimp_email_lists_property_when_missing_server_prefix(self, revenue_program, mocker):
+        mock_mc_client = mocker.patch("mailchimp_marketing.Client")
+        mock_mc_client.return_value.lists.get_all_lists.return_value = {"lists": [{"id": "123", "name": "test"}]}
         revenue_program.mailchimp_server_prefix = None
         revenue_program.mailchimp_access_token = "123456"
         revenue_program.save()
         assert revenue_program.mailchimp_email_lists == []
+        mock_mc_client.assert_not_called()
+        mock_mc_client.return_value.lists.get_all_lists.assert_not_called()
 
-    def test_mailchimp_email_lists_property_when_missing_access_token(self, revenue_program):
+    def test_mailchimp_email_lists_property_when_missing_access_token(self, revenue_program, mocker):
+        mock_mc_client = mocker.patch("mailchimp_marketing.Client")
+        mock_mc_client.return_value.lists.get_all_lists.return_value = {"lists": [{"id": "123", "name": "test"}]}
         revenue_program.mailchimp_server_prefix = "us1"
         revenue_program.mailchimp_access_token = None
         revenue_program.save()
         assert revenue_program.mailchimp_email_lists == []
+        mock_mc_client.assert_not_called()
+        mock_mc_client.return_value.lists.get_all_lists.assert_not_called()
 
-    def test_mailchimp_email_lists_property_when_mailchimp_api_error(self, revenue_program, monkeypatch, mocker):
+    def test_mailchimp_email_lists_property_when_both_missing(self, revenue_program, mocker):
+        mock_mc_client = mocker.patch("mailchimp_marketing.Client")
+        mock_mc_client.return_value.lists.get_all_lists.return_value = {"lists": [{"id": "123", "name": "test"}]}
+        revenue_program.mailchimp_server_prefix = None
+        revenue_program.mailchimp_access_token = None
+        revenue_program.save()
+        assert revenue_program.mailchimp_email_lists == []
+        mock_mc_client.assert_not_called()
+        mock_mc_client.return_value.lists.get_all_lists.assert_not_called()
+
+    def test_mailchimp_email_lists_property_when_mailchimp_api_error(self, revenue_program, mocker):
         revenue_program.mailchimp_server_prefix = "us1"
         revenue_program.mailchimp_access_token = "123456"
         revenue_program.save()
-        MockClient = Mock()
-        MockClient.lists.get_all_lists.side_effect = ApiClientError("something went wrong")
-        monkeypatch.setattr("mailchimp_marketing.Client", lambda *args, **kwargs: MockClient)
+        mock_mc_client = mocker.patch("mailchimp_marketing.Client")
+        mock_mc_client.return_value.lists.get_all_lists.side_effect = ApiClientError("Ruh roh")
+        mock_mc_client.return_value.lists.get_all_lists.return_value = {"lists": [{"id": "123", "name": "test"}]}
         log_spy = mocker.spy(logger, "exception")
         assert revenue_program.mailchimp_email_lists == []
         log_spy.assert_called_once_with(
-            "`RevenueProgram.mailchimp_email_lists` failed to fetch email lists from Mailchimp for RP with ID %s",
+            "`RevenueProgram.mailchimp_email_lists` failed to fetch email lists from Mailchimp for RP with ID %s mc server prefix %s",
             revenue_program.id,
+            revenue_program.mailchimp_server_prefix,
         )
+        mock_mc_client.assert_called_once()
+        mock_mc_client.return_value.lists.get_all_lists.assert_called_once()
 
     @pytest_cases.parametrize(
         "rp,make_expected_value_fn",

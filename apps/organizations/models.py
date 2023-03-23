@@ -433,7 +433,7 @@ class RevenueProgram(IndexedTimeStampedModel):
     @cached_property
     def mailchimp_email_lists(self) -> list[MailchimpEmailList]:
         """"""
-        if not self.mailchimp_server_prefix and self.mailchimp_access_token:
+        if not all([self.mailchimp_server_prefix, self.mailchimp_access_token]):
             return []
         try:
             client = MailchimpMarketing.Client()
@@ -442,8 +442,9 @@ class RevenueProgram(IndexedTimeStampedModel):
             return response["lists"]
         except ApiClientError:
             logger.exception(
-                "`RevenueProgram.mailchimp_email_lists` failed to fetch email lists from Mailchimp for RP with ID %s",
+                "`RevenueProgram.mailchimp_email_lists` failed to fetch email lists from Mailchimp for RP with ID %s mc server prefix %s",
                 self.id,
+                self.mailchimp_server_prefix,
             )
             return []
 

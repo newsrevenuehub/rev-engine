@@ -443,7 +443,7 @@ class RevenueProgram(IndexedTimeStampedModel):
         except ApiClientError:
             logger.exception(
                 "`RevenueProgram.mailchimp_email_lists` failed to fetch email lists from Mailchimp for RP with ID %s",
-                self.id,
+                self.id or "None",
             )
             return []
 

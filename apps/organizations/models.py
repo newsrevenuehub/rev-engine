@@ -433,7 +433,7 @@ class RevenueProgram(IndexedTimeStampedModel):
     @cached_property
     def mailchimp_email_lists(self) -> list[MailchimpEmailList]:
         """"""
-        if not all([self.mailchimp_server_prefix and self.mailchimp_access_token]):
+        if not all([self.mailchimp_server_prefix, self.mailchimp_access_token]):
             return []
         try:
             client = MailchimpMarketing.Client()

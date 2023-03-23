@@ -26,8 +26,11 @@ export const Header = styled.h2`
 `;
 
 export const LearnMoreLink = styled(Link)`
-  font-size: ${({ theme }) => theme.fontSizesUpdated.sm};
-  text-transform: uppercase;
+  && {
+    font-size: ${({ theme }) => theme.fontSizesUpdated.sm};
+    font-weight: 600;
+    text-transform: uppercase;
+  }
 `;
 
 export const Root = styled.div`

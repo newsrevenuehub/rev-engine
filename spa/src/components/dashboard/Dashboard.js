@@ -46,6 +46,8 @@ import hasContributionsDashboardAccessToUser from 'utilities/hasContributionsDas
 import { useEffect } from 'react';
 import { PageEditorRedirect } from 'components/pageEditor/PageEditorRedirect';
 import MailchimpOAuthSuccess from './MailchimpOAuthSuccess';
+import useConnectMailchimp from 'hooks/useConnectMailchimp';
+import AudienceListModal from 'components/common/Modal/AudienceListModal';
 
 function Dashboard() {
   const { enqueueSnackbar } = useSnackbar();
@@ -53,6 +55,7 @@ function Dashboard() {
   const { user } = useUser();
   const { requiresVerification, displayConnectionSuccess, hideConnectionSuccess, isLoading } =
     useConnectStripeAccount();
+  const { requiresAudienceSelection, isLoading: isMailchimpLoading, revenueProgram } = useConnectMailchimp();
   const hasContributionsSectionAccess = user?.role_type && hasContributionsDashboardAccessToUser(flags);
   const hasContentSectionAccess = user?.role_type && flagIsActiveForUser(CONTENT_SECTION_ACCESS_FLAG_NAME, flags);
   const dashboardSlugRedirect = hasContentSectionAccess
@@ -78,11 +81,16 @@ function Dashboard() {
     }
   }, [displayConnectionSuccess, enqueueSnackbar, hideConnectionSuccess]);
 
-  return isLoading ? (
-    <GlobalLoading />
-  ) : (
+  if (isLoading || isMailchimpLoading) {
+    return <GlobalLoading />;
+  }
+
+  return (
     <S.Outer>
-      {requiresVerification ? <ConnectStripeElements /> : ''}
+      {requiresVerification && <ConnectStripeElements />}
+      {requiresAudienceSelection && (
+        <AudienceListModal open={requiresAudienceSelection} revenueProgram={revenueProgram} />
+      )}
       {!isEditPage && <DashboardTopbar user={user} />}
       <S.Dashboard data-testid="dashboard">
         {!isEditPage && <DashboardSidebar />}

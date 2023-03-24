@@ -15,7 +15,8 @@ describe('MailchimpIntegrationCard', () => {
     useConnectMailchimpMock.mockReturnValue({
       isLoading: false,
       isError: false,
-      connectedToMailchimp: false
+      connectedToMailchimp: false,
+      requiresAudienceSelection: false
     });
   });
 
@@ -28,7 +29,8 @@ describe('MailchimpIntegrationCard', () => {
     useConnectMailchimpMock.mockReturnValue({
       isLoading: false,
       isError: false,
-      connectedToMailchimp: true
+      connectedToMailchimp: true,
+      requiresAudienceSelection: false
     });
     tree();
 
@@ -45,7 +47,8 @@ describe('MailchimpIntegrationCard', () => {
         isLoading: false,
         isError: false,
         connectedToMailchimp: false,
-        organizationPlan
+        organizationPlan,
+        requiresAudienceSelection: false
       });
       tree();
       expect(screen.getByTestId('cornerMessage')).toHaveTextContent('Upgrade to Core');
@@ -64,7 +67,8 @@ describe('MailchimpIntegrationCard', () => {
         isLoading: false,
         isError: false,
         connectedToMailchimp: false,
-        organizationPlan
+        organizationPlan,
+        requiresAudienceSelection: false
       });
       tree();
       expect(screen.getByTestId('cornerMessage')).toHaveTextContent('');
@@ -83,7 +87,8 @@ describe('MailchimpIntegrationCard', () => {
         isError: false,
         connectedToMailchimp: false,
         organizationPlan,
-        sendUserToMailchimp
+        sendUserToMailchimp,
+        requiresAudienceSelection: false
       });
       tree();
       expect(sendUserToMailchimp).not.toBeCalled();

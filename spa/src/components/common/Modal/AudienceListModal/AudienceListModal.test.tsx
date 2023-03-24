@@ -3,28 +3,34 @@ import { render, screen, waitFor } from 'test-utils';
 
 import userEvent from '@testing-library/user-event';
 import AudienceListModal, { AudienceListModalProps } from './AudienceListModal';
+import { RevenueProgram } from 'hooks/useContributionPage';
+import useRevenueProgram from 'hooks/useRevenueProgram';
 
-const audienceList = [
-  { id: 1, name: 'audience-mock-1' },
-  { id: 2, name: 'audience-mock-2' },
-  { id: 3, name: 'audience-mock-3' }
-];
+jest.mock('hooks/useRevenueProgram');
 
-const onClose = jest.fn();
-const onSelectAudience = jest.fn();
+const revenueProgram = {
+  id: 1,
+  mailchimp_email_lists: [
+    { id: 1, name: 'audience-mock-1' },
+    { id: 2, name: 'audience-mock-2' },
+    { id: 3, name: 'audience-mock-3' }
+  ]
+};
 
 describe('AudienceListModal', () => {
+  const useRevenueProgramMock = jest.mocked(useRevenueProgram);
+  const updateRevenueProgram = jest.fn();
+
   function tree(props?: Partial<AudienceListModalProps>) {
-    return render(
-      <AudienceListModal
-        open={true}
-        onClose={onClose}
-        onSelectAudience={onSelectAudience}
-        audienceList={audienceList}
-        {...props}
-      />
-    );
+    return render(<AudienceListModal open={true} revenueProgram={revenueProgram as RevenueProgram} {...props} />);
   }
+
+  beforeEach(() => {
+    useRevenueProgramMock.mockReturnValue({
+      isLoading: false,
+      updateRevenueProgram
+    });
+  });
 
   it('should render modal', () => {
     tree();
@@ -60,12 +66,14 @@ describe('AudienceListModal', () => {
 
   it('should call onSelectAudience with selected audience list', async () => {
     tree();
-    expect(onSelectAudience).not.toBeCalled();
+    expect(updateRevenueProgram).not.toBeCalled();
     userEvent.click(screen.getByRole('button', { name: /Audience/i }));
-    userEvent.click(screen.getByRole('option', { name: audienceList[0].name }));
+    userEvent.click(screen.getByRole('option', { name: revenueProgram.mailchimp_email_lists[0].name }));
     userEvent.click(screen.getByRole('button', { name: 'Finish' }));
-    await waitFor(() => onSelectAudience.mock.calls.length > 0);
-    expect(onSelectAudience).toHaveBeenCalledWith(audienceList[0].id);
+    await waitFor(() => updateRevenueProgram.mock.calls.length > 0);
+    expect(updateRevenueProgram).toHaveBeenCalledWith(revenueProgram.id, {
+      mailchimp_email_list: revenueProgram.mailchimp_email_lists[0]
+    });
   });
 
   it('should show error if no audience list is selected and "Finish" is clicked', async () => {

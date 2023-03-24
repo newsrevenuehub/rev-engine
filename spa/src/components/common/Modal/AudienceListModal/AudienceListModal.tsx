@@ -3,12 +3,13 @@ import PropTypes, { InferProps } from 'prop-types';
 import { useMemo } from 'react';
 
 import { Button, MenuItem, Modal, ModalContent, ModalFooter, ModalHeader, TextField } from 'components/base';
+import { RevenueProgram } from 'hooks/useContributionPage';
+import useRevenueProgram from 'hooks/useRevenueProgram';
 import { Controller, useForm } from 'react-hook-form';
 import { ErrorMessage, Highlight, InfoIcon, Label, MenuItemLabel, Title, Typography } from './AudienceListModal.styled';
 
-export interface AudienceListModalProps extends InferProps<typeof AudienceListModalPropTypes> {
-  onSelectAudience: (audienceId: number) => void;
-  onClose: () => void;
+export interface AudienceListModalProps extends Omit<InferProps<typeof AudienceListModalPropTypes>, 'revenueProgram'> {
+  revenueProgram: RevenueProgram;
 }
 
 const formDefaultValues = {
@@ -16,14 +17,7 @@ const formDefaultValues = {
   audience: '.'
 };
 
-const AudienceListModal = ({
-  open,
-  onClose,
-  loading,
-  audienceList,
-  onSelectAudience,
-  outerError
-}: AudienceListModalProps) => {
+const AudienceListModal = ({ open, loading, outerError, revenueProgram }: AudienceListModalProps) => {
   const {
     control,
     handleSubmit,
@@ -31,26 +25,33 @@ const AudienceListModal = ({
   } = useForm({
     defaultValues: formDefaultValues
   });
+  const { updateRevenueProgram, isLoading } = useRevenueProgram();
 
   const onSubmit = (form: typeof formDefaultValues) => {
-    onSelectAudience(parseInt(form.audience));
+    updateRevenueProgram(revenueProgram.id, {
+      mailchimp_email_list: revenueProgram?.mailchimp_email_lists?.find(
+        (audience) => audience.id === parseInt(form.audience)
+      )
+    });
   };
 
   const errorMessage = outerError || errors?.audience?.message;
 
-  const sortedAudienceList = useMemo(() => orderBy(audienceList, 'name'), [audienceList]);
+  const sortedAudienceList = useMemo(
+    () => orderBy(revenueProgram?.mailchimp_email_lists, 'name'),
+    [revenueProgram?.mailchimp_email_lists]
+  );
 
   return (
     <Modal
       open={open}
       width={480}
-      onClose={onClose}
       aria-labelledby="modal-page-header"
       PaperProps={{ component: 'form' }}
       onSubmit={handleSubmit(onSubmit)}
       data-testid="select-audience-modal"
     >
-      <ModalHeader icon={<InfoIcon />} onClose={onClose}>
+      <ModalHeader icon={<InfoIcon />}>
         <Title id="modal-page-header">Finish Connection</Title>
       </ModalHeader>
       <ModalContent>
@@ -84,11 +85,12 @@ const AudienceListModal = ({
               <MenuItem value="." disabled data-testid="select-audience-placeholder">
                 <MenuItemLabel>Select your list</MenuItemLabel>
               </MenuItem>
-              {sortedAudienceList.map((audience, index) => (
-                <MenuItem key={audience.name} value={audience.id} data-testid={`select-revenue-program-${index}`}>
-                  {audience.name}
-                </MenuItem>
-              ))}
+              {sortedAudienceList.length &&
+                sortedAudienceList?.map((audience, index) => (
+                  <MenuItem key={audience?.name} value={audience?.id} data-testid={`select-revenue-program-${index}`}>
+                    {audience?.name}
+                  </MenuItem>
+                ))}
             </TextField>
           )}
         />
@@ -99,7 +101,7 @@ const AudienceListModal = ({
         )}
       </ModalContent>
       <ModalFooter>
-        <Button color="information" disabled={loading!} type="submit" data-testid="select-audience-submit">
+        <Button color="information" disabled={loading! || isLoading} type="submit" data-testid="select-audience-submit">
           Finish
         </Button>
       </ModalFooter>
@@ -111,14 +113,15 @@ const AudienceListModalPropTypes = {
   open: PropTypes.bool.isRequired,
   loading: PropTypes.bool,
   outerError: PropTypes.string,
-  onClose: PropTypes.func.isRequired,
-  onSelectAudience: PropTypes.func.isRequired,
-  audienceList: PropTypes.arrayOf(
-    PropTypes.shape({
-      id: PropTypes.number.isRequired,
-      name: PropTypes.string.isRequired
-    }).isRequired
-  ).isRequired
+  revenueProgram: PropTypes.shape({
+    id: PropTypes.number.isRequired,
+    mailchimp_email_lists: PropTypes.arrayOf(
+      PropTypes.shape({
+        id: PropTypes.number.isRequired,
+        name: PropTypes.string.isRequired
+      }).isRequired
+    ).isRequired
+  }).isRequired
 };
 
 AudienceListModal.propTypes = AudienceListModalPropTypes;

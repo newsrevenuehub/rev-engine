@@ -1,4 +1,5 @@
 import { ComponentMeta, ComponentStory } from '@storybook/react';
+import { RevenueProgram } from 'hooks/useContributionPage';
 import AudienceListModal from './AudienceListModal';
 
 export default {
@@ -15,9 +16,12 @@ export const Default: ComponentStory<typeof AudienceListModal> = (args) => <Audi
 
 Default.args = {
   open: true,
-  audienceList: [
-    { id: 1, name: 'Audience 1' },
-    { id: 3, name: 'Audience 3' },
-    { id: 2, name: 'Audience 2' }
-  ]
+  revenueProgram: {
+    id: 0,
+    mailchimp_email_lists: [
+      { id: 1, name: 'Audience 1' },
+      { id: 3, name: 'Audience 3' },
+      { id: 2, name: 'Audience 2' }
+    ]
+  } as RevenueProgram
 };

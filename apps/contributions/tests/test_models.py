@@ -1,6 +1,6 @@
 import datetime
 from dataclasses import asdict
-from unittest.mock import Mock
+from unittest.mock import Mock, patch
 from urllib.parse import parse_qs, quote_plus, urlparse
 
 from django.conf import settings
@@ -14,6 +14,7 @@ from addict import Dict as AttrDict
 from bs4 import BeautifulSoup
 
 from apps.api.views import construct_rp_domain
+from apps.common.models import IndexedTimeStampedModel
 from apps.contributions.models import (
     Contribution,
     ContributionInterval,
@@ -266,29 +267,55 @@ class TestContributionModel:
             ),
         ),
     )
+    @pytest.mark.parametrize("call_with_update_fields", (True,))
     def test_save_method_fetch_payment_method_side_effect_when_update(
-        self, make_contribution_fn, update_data, expect_stripe_fetch, stripe_fetch_return_val, mocker
+        self,
+        make_contribution_fn,
+        update_data,
+        expect_stripe_fetch,
+        stripe_fetch_return_val,
+        call_with_update_fields,
+        mocker,
     ):
         """Show conditions under which `fetch_stripe_payment_method` is expected to be called and when its return value is saved back
 
         Note we only test updates here as the set up for a new contribution vis-a-vis the behavior under test is too distinct.
         """
-        contribution = make_contribution_fn()
+        with patch("apps.contributions.models.Contribution.fetch_stripe_payment_method", return_value=None):
+            contribution = make_contribution_fn()
         mock_fetch_stripe_payment_method = mocker.patch(
             "stripe.PaymentMethod.retrieve", return_value=stripe_fetch_return_val
         )
         for k, v in update_data.items():
             setattr(contribution, k, v)
-        contribution.save()
+        # we're doing this setup so we can prove that `Contribution.save` fetchs and updates
+        # contribution.provider_payment_method_details under certain conditions
+        save_spy = mocker.spy(IndexedTimeStampedModel, "save")
+        assert issubclass(Contribution, IndexedTimeStampedModel)
+        if call_with_update_fields:
+            contribution.save(update_fields=(subsave_data := set(update_data.keys()).union({"modified"})))
+        else:
+            contribution.save()
+        if all([expect_stripe_fetch, stripe_fetch_return_val, call_with_update_fields]):
+            assert save_spy.call_args.kwargs.get("update_fields", None) == subsave_data.union(
+                {
+                    "provider_payment_method_details",
+                }
+            )
         assert mock_fetch_stripe_payment_method.call_count == (1 if expect_stripe_fetch else 0)
+        contribution.refresh_from_db()
         if expect_stripe_fetch and stripe_fetch_return_val:
-            contribution.refresh_from_db()
             assert contribution.provider_payment_method_details == stripe_fetch_return_val
 
-    def test_fetch_stripe_payment_method_when_no_provider_payment_method_id(self):
+    def test_fetch_stripe_payment_method_when_no_provider_payment_method_id(self, mocker):
         contribution = ContributionFactory(provider_payment_method_id=None)
-        with pytest.raises(ValueError):
-            contribution.fetch_stripe_payment_method()
+        logger_spy = mocker.spy(contribution.logger, "warning")
+        assert contribution.fetch_stripe_payment_method() is None
+        logger_spy.assert_called_once_with(
+            "Contribution.fetch_stripe_payment_method called without a provider_payment_method_id "
+            "on contribution with ID %s",
+            contribution.id,
+        )
 
     def test_fetch_stripe_payment_method_happy_path(self, one_time_contribution, mocker):
         return_value = AttrDict({"key": "val"})

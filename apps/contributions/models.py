@@ -408,7 +408,14 @@ class Contribution(IndexedTimeStampedModel):
     def fetch_stripe_payment_method(self, provider_payment_method_id: str = None):
         pm_id = provider_payment_method_id or self.provider_payment_method_id
         if not pm_id:
-            raise ValueError("Cannot fetch PaymentMethod without provider_payment_method_id")
+            logger.warning(
+                (
+                    "Contribution.fetch_stripe_payment_method called without a provider_payment_method_id "
+                    "on contribution with ID %s"
+                ),
+                self.id,
+            )
+            return None
         try:
             return stripe.PaymentMethod.retrieve(
                 pm_id,
@@ -440,12 +447,11 @@ class Contribution(IndexedTimeStampedModel):
             and self.provider_payment_method_id
             and not self.provider_payment_method_details
         ):
-            # If it's an update and the previous pm is different from the new pm, or it's new and there's a pm id...
-            # ...get details on payment method
-            pm = self.fetch_stripe_payment_method()
-            # We do this so we can stop this behavior in testing by setting return value of `fetch_stripe_payment_method` to `None`
-            if pm:
+            if pm := self.fetch_stripe_payment_method():
                 self.provider_payment_method_details = pm
+                if kwargs.get("update_fields", False):
+                    # we cast update_fields to a set in case it was passed as a list
+                    kwargs["update_fields"] = set(kwargs["update_fields"]).union({"provider_payment_method_details"})
         super().save(*args, **kwargs)
 
     def create_stripe_customer(

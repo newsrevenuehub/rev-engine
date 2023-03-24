@@ -340,6 +340,16 @@ class RevenueProgram(IndexedTimeStampedModel):
         return all([self.mailchimp_access_token, self.mailchimp_server_prefix])
 
     @property
+    def mailchimp_email_lists(self):
+        """TODO: get mailchimp audience lists"""
+        return []
+
+    @property
+    def mailchimp_email_list(self):
+        """TODO: get mailchimp audience list"""
+        return None
+
+    @property
     def payment_provider_stripe_verified(self):
         return self.payment_provider.stripe_verified if self.payment_provider else False
 

@@ -1,5 +1,7 @@
 import logging
+import os
 from dataclasses import dataclass, field
+from functools import cached_property
 
 from django.conf import settings
 from django.core.exceptions import ValidationError
@@ -7,7 +9,10 @@ from django.core.validators import MinLengthValidator
 from django.db import models
 from django.utils import timezone
 
+import mailchimp_marketing as MailchimpMarketing
 import stripe
+from addict import Dict as AttrDict
+from mailchimp_marketing.api_client import ApiClientError
 
 from apps.common.models import IndexedTimeStampedModel
 from apps.common.utils import normalize_slug
@@ -249,6 +254,29 @@ class FiscalStatusChoices(models.TextChoices):
     FISCALLY_SPONSORED = "fiscally sponsored"
 
 
+@dataclass(frozen=True)
+class TransactionalEmailStyle:
+    """Used to model the default style characteristics for a given revenue program,
+
+    though in theory, this need not be tied to a revenue program.
+    """
+
+    logo_url: str = None
+    header_color: str = None
+    header_font: str = None
+    body_font: str = None
+    button_color: str = None
+
+
+HubDefaultEmailStyle = TransactionalEmailStyle(
+    logo_url=os.path.join(settings.SITE_URL, "static", "nre-logo-white.png"),
+    header_color=None,
+    header_font=None,
+    body_font=None,
+    button_color=None,
+)
+
+
 class RevenueProgramQuerySet(models.QuerySet):
     def filtered_by_role_assignment(self, role_assignment: RoleAssignment) -> models.QuerySet:
         match role_assignment.role_type:
@@ -260,6 +288,12 @@ class RevenueProgramQuerySet(models.QuerySet):
                 return self.filter(id__in=role_assignment.revenue_programs.values_list("id", flat=True))
             case _:
                 return self.none()
+
+
+@dataclass
+class MailchimpEmailList:
+    id: str
+    name: str
 
 
 class RevenueProgramManager(models.Manager):
@@ -367,6 +401,52 @@ class RevenueProgram(IndexedTimeStampedModel):
     @property
     def non_profit(self):
         return self.fiscal_status in (FiscalStatusChoices.FISCALLY_SPONSORED, FiscalStatusChoices.NONPROFIT)
+
+    @property
+    def transactional_email_style(self) -> TransactionalEmailStyle:
+        """Guarantees that a TransactionalEmailStyle is returned.
+
+        This value gets used in transactional emails. It's meant to provide a reliable interface for transactional
+        email templates such that they don't need any knowledge about RP plans or broader context. Instead, email
+        templates can assume that the values provided by this property are always present.
+
+        If the RP's org is on free plan, or if there's no default donation page, return the HubDefaultEmailStyle.
+        Otherwise, derive a TransactionalEmailStyle instance based on the default donation page's chracteristics.
+        """
+        if any(
+            [
+                self.organization.plan.name == "FREE",
+                not (page := self.default_donation_page),
+            ]
+        ):
+            return HubDefaultEmailStyle
+        else:
+            _style = AttrDict(page.styles.styles if page.styles else {})
+            return TransactionalEmailStyle(
+                logo_url=page.header_logo.url if page.header_logo else None,
+                header_color=_style.colors.cstm_mainHeader or None,
+                header_font=_style.font.heading or None,
+                body_font=_style.font.body or None,
+                button_color=_style.colors.cstm_CTAs or None,
+            )
+
+    @cached_property
+    def mailchimp_email_lists(self) -> list[MailchimpEmailList]:
+        """"""
+        if not all([self.mailchimp_server_prefix, self.mailchimp_access_token]):
+            return []
+        try:
+            client = MailchimpMarketing.Client()
+            client.set_config({"access_token": self.mailchimp_access_token, "server": self.mailchimp_server_prefix})
+            response = client.lists.get_all_lists(fields="id,name", count=1000)
+            return response["lists"]
+        except ApiClientError:
+            logger.exception(
+                "`RevenueProgram.mailchimp_email_lists` failed to fetch email lists from Mailchimp for RP with ID %s mc server prefix %s",
+                self.id,
+                self.mailchimp_server_prefix,
+            )
+            return []
 
     def clean_fields(self, **kwargs):
         if not self.id:

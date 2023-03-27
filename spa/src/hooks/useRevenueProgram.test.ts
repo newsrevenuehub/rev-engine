@@ -13,7 +13,7 @@ jest.mock('hooks/useUser');
 const rpId = 1;
 
 // eslint-disable-next-line react-hooks/rules-of-hooks
-const testHook = () => useRevenueProgram();
+const testHook = () => useRevenueProgram(rpId);
 
 describe('useRevenueProgram', () => {
   const useUserMock = jest.mocked(useUser);
@@ -39,7 +39,7 @@ describe('useRevenueProgram', () => {
       const { result, waitForNextUpdate } = renderHook(testHook, { wrapper: TestQueryClientProvider });
 
       expect(axiosMock.history.patch.length).toBe(0);
-      await result.current.updateRevenueProgram(rpId, { mailchimp_email_list: { id: 0, name: 'mock-list' } });
+      await result.current.updateRevenueProgram({ mailchimp_email_list: { id: 0, name: 'mock-list' } });
       await waitForNextUpdate();
       expect(axiosMock.history.patch.length).toBe(1);
       expect(axiosMock.history.patch[0].url).toBe(`${REVENUE_PROGRAMS}${rpId}/`);
@@ -64,7 +64,7 @@ describe('useRevenueProgram', () => {
         expect(errorSpy).not.toBeCalled();
 
         try {
-          await result.current.updateRevenueProgram(rpId, { mailchimp_email_list: { id: 0, name: 'mock-list' } });
+          await result.current.updateRevenueProgram({ mailchimp_email_list: { id: 0, name: 'mock-list' } });
         } catch {}
 
         expect(errorSpy).toBeCalledTimes(2); // Axios also logs an error
@@ -79,7 +79,7 @@ describe('useRevenueProgram', () => {
         expect(error).not.toBeCalled();
 
         try {
-          await result.current.updateRevenueProgram(rpId, { mailchimp_email_list: { id: 0, name: 'mock-list' } });
+          await result.current.updateRevenueProgram({ mailchimp_email_list: { id: 0, name: 'mock-list' } });
         } catch {}
 
         expect(error).toBeCalledTimes(1);

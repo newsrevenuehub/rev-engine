@@ -25,10 +25,10 @@ const AudienceListModal = ({ open, loading, outerError, revenueProgram }: Audien
   } = useForm({
     defaultValues: formDefaultValues
   });
-  const { updateRevenueProgram, isLoading } = useRevenueProgram();
+  const { updateRevenueProgram, isLoading } = useRevenueProgram(revenueProgram.id);
 
   const onSubmit = (form: typeof formDefaultValues) => {
-    updateRevenueProgram(revenueProgram.id, {
+    updateRevenueProgram({
       mailchimp_email_list: revenueProgram?.mailchimp_email_lists?.find(
         (audience) => audience.id === parseInt(form.audience)
       )
@@ -85,10 +85,10 @@ const AudienceListModal = ({ open, loading, outerError, revenueProgram }: Audien
               <MenuItem value="." disabled data-testid="select-audience-placeholder">
                 <MenuItemLabel>Select your list</MenuItemLabel>
               </MenuItem>
-              {sortedAudienceList.length &&
+              {sortedAudienceList.length > 0 &&
                 sortedAudienceList?.map((audience, index) => (
-                  <MenuItem key={audience?.name} value={audience?.id} data-testid={`select-revenue-program-${index}`}>
-                    {audience?.name}
+                  <MenuItem key={audience.name} value={audience.id} data-testid={`select-revenue-program-${index}`}>
+                    {audience.name}
                   </MenuItem>
                 ))}
             </TextField>
@@ -101,7 +101,7 @@ const AudienceListModal = ({ open, loading, outerError, revenueProgram }: Audien
         )}
       </ModalContent>
       <ModalFooter>
-        <Button color="information" disabled={loading! || isLoading} type="submit" data-testid="select-audience-submit">
+        <Button color="information" disabled={loading || isLoading} type="submit" data-testid="select-audience-submit">
           Finish
         </Button>
       </ModalFooter>

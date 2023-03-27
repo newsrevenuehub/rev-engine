@@ -13,26 +13,28 @@ export interface useRevenueProgramResult {
   /**
    *  Mutation to update Revenue Program.
    */
-  updateRevenueProgram: (rpId: number, data: Partial<RevenueProgram>) => void;
+  updateRevenueProgram: (data: Partial<RevenueProgram>) => void;
 }
 
-export default function useRevenueProgram(): useRevenueProgramResult {
+export default function useRevenueProgram(rpId: number): useRevenueProgramResult {
   const alert = useAlert();
   const queryClient = useQueryClient();
 
   const { mutateAsync: updateRevenueProgramMutation, isLoading } = useMutation(
-    ({ rpId, data }: { rpId: number; data: Partial<RevenueProgram> }) => {
+    (data: Partial<RevenueProgram>) => {
       return axios.patch(`${REVENUE_PROGRAMS}${rpId}/`, data);
     },
     {
+      // Invalidate `user` because we need to get the latest
+      // values for Revenue Program in user. This forces a refetch
       onSuccess: () => queryClient.invalidateQueries({ queryKey: ['user'] })
     }
   );
 
   const updateRevenueProgram = useCallback(
-    async (rpId: number, data: Partial<RevenueProgram>) => {
+    async (data: Partial<RevenueProgram>) => {
       try {
-        await updateRevenueProgramMutation({ rpId, data });
+        await updateRevenueProgramMutation(data);
       } catch (error) {
         console.error(error);
         alert.error(GENERIC_ERROR);

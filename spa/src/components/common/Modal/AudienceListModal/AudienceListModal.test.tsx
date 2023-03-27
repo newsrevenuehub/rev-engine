@@ -71,7 +71,8 @@ describe('AudienceListModal', () => {
     userEvent.click(screen.getByRole('option', { name: revenueProgram.mailchimp_email_lists[0].name }));
     userEvent.click(screen.getByRole('button', { name: 'Finish' }));
     await waitFor(() => updateRevenueProgram.mock.calls.length > 0);
-    expect(updateRevenueProgram).toHaveBeenCalledWith(revenueProgram.id, {
+    expect(useRevenueProgramMock).toHaveBeenCalledWith(revenueProgram.id);
+    expect(updateRevenueProgram).toHaveBeenCalledWith({
       mailchimp_email_list: revenueProgram.mailchimp_email_lists[0]
     });
   });

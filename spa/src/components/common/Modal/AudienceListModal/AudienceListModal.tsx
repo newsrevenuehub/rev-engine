@@ -45,7 +45,7 @@ const AudienceListModal = ({ open, loading, outerError, revenueProgram }: Audien
   return (
     <Modal
       open={open}
-      width={480}
+      width={660}
       aria-labelledby="modal-page-header"
       PaperProps={{ component: 'form' }}
       onSubmit={handleSubmit(onSubmit)}

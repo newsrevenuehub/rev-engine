@@ -14,7 +14,7 @@ logger = logging.getLogger(f"{settings.DEFAULT_LOGGER}.{__name__}")
 
 
 MAILCHIMP_EXCHANGE_OAUTH_CODE_FOR_ACCESS_TOKEN_URL = "https://login.mailchimp.com/oauth2/token"
-MAILCHIMP_OAUTH_CALLBACK_URL = f"{settings.SITE_URL}mailchimp/oauth_success/';"
+MAILCHIMP_OAUTH_CALLBACK_URL = f"{settings.SITE_URL}mailchimp/oauth_success/"
 MAILCHIMP_GET_SERVER_PREFIX_URL = "https://login.mailchimp.com/oauth2/metadata"
 
 

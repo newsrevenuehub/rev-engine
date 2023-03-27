@@ -8,7 +8,7 @@ export const Flex = styled.div`
   font-family: ${(props) => props.theme.systemFont};
 `;
 
-export const Button = styled(MuiButton)<{ $active?: boolean; $published?: boolean }>`
+export const RootButton = styled(MuiButton)<{ $active?: boolean; $published?: boolean }>`
   && {
     height: 36px;
     font-weight: 600;

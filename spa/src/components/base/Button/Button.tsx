@@ -147,7 +147,18 @@ const StyledMuiButton = styled(ButtonWrapper)<ButtonProps>`
 `;
 
 export function Button(props: ButtonProps) {
-  return <StyledMuiButton classes={{ label: 'NreButtonLabel', outlined: 'NreButtonOutlined' }} {...props} />;
+  // If we're using the outlined variant, disable the ripple because it
+  // interferes with the intended appearance.
+
+  const propOverrides: Partial<ButtonProps> = props.variant === 'outlined' ? { disableRipple: true } : {};
+
+  return (
+    <StyledMuiButton
+      classes={{ label: 'NreButtonLabel', outlined: 'NreButtonOutlined' }}
+      {...props}
+      {...propOverrides}
+    />
+  );
 }
 
 export default Button;

@@ -18,7 +18,7 @@ export function CoreUpgradePrompt({ onClose }: CoreUpgradePromptProps) {
       </CloseButton>
       <Header>Upgrade to Core</Header>
       <Text>Boost your revenue with segmented email marketing.</Text>
-      <LearnMoreButton disableRipple href={PRICING_URL} target="_blank" variant="outlined">
+      <LearnMoreButton href={PRICING_URL} target="_blank" variant="outlined">
         Learn More
       </LearnMoreButton>
     </Root>

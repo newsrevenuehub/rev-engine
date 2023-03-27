@@ -133,7 +133,7 @@ function PublishButton({ className }: PublishButtonProps) {
           anchorEl={anchorEl}
           onClose={handleClosePopover}
           anchorOrigin={{
-            vertical: 'bottom',
+            vertical: 41,
             horizontal: 'right'
           }}
           transformOrigin={{

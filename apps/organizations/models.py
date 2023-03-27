@@ -266,7 +266,7 @@ class TransactionalEmailStyle:
 
 
 HubDefaultEmailStyle = TransactionalEmailStyle(
-    logo_url=os.path.join(settings.SITE_URL, "static", "nre-logo-white.png"),
+    logo_url=os.path.join(settings.SITE_URL, "static", "nre-logo-yellow.png"),
     header_color=None,
     header_font=None,
     body_font=None,

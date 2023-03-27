@@ -38,25 +38,29 @@ def exchange_mc_oauth_code_for_mc_access_token(oauth_code: str) -> str:
             "exchange_mc_oauth_code_for_mc_access_token | required configuration is missing"
         )
 
-    response = requests.post(
-        MAILCHIMP_EXCHANGE_OAUTH_CODE_FOR_ACCESS_TOKEN_URL,
-        data={
-            "grant_type": "authorization_code",
-            "client_id": settings.MAILCHIMP_CLIENT_ID,
-            "client_secret": settings.MAILCHIMP_CLIENT_SECRET,
-            "redirect_uri": MAILCHIMP_OAUTH_CALLBACK_URL,
-            "code": oauth_code,
-        },
+    request_data = {
+        "grant_type": "authorization_code",
+        "client_id": settings.MAILCHIMP_CLIENT_ID,
+        "client_secret": settings.MAILCHIMP_CLIENT_SECRET,
+        "redirect_uri": MAILCHIMP_OAUTH_CALLBACK_URL,
+        "code": oauth_code,
+    }
+
+    logger.info(
+        "exchange_mc_oauth_code_for_mc_access_token making a request to Mailchimp with the following data: %s",
+        request_data,
     )
+    response = requests.post(MAILCHIMP_EXCHANGE_OAUTH_CODE_FOR_ACCESS_TOKEN_URL, data=request_data)
 
     if not response.status_code == status.HTTP_200_OK:
         logger.error(
             (
                 "`exchange_mc_oauth_code_for_mc_access_token` got an unexpected status code when trying to get an access token. "
-                "The oauth_code is %s, and the response status code is %s"
+                "The oauth_code is %s, the response status code is %s, and the response coontained: %s"
             ),
             oauth_code,
             response.status_code,
+            getattr(response, "json", lambda: {})() or {},
         )
         raise MailchimpAuthflowRetryableError(
             f"`exchange_mc_oauth_code_for_mc_access_token` got an unexpected response status code of {response.status_code}"

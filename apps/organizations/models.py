@@ -88,7 +88,7 @@ class Plans(models.TextChoices):
 
     @classmethod
     def get_plan(cls, name):
-        return {cls.FREE.value: FreePlan, cls.PLUS.value: PlusPlan}.get(name, None)
+        return {cls.FREE.value: FreePlan, cls.PLUS.value: PlusPlan, cls.CORE.value: CorePlan}.get(name, None)
 
 
 class OrganizationQuerySet(models.QuerySet):

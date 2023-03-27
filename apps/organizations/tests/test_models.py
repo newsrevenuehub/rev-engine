@@ -91,6 +91,18 @@ class TestPlans:
             "page_elements": DEFAULT_PERMITTED_PAGE_ELEMENTS + [SWAG],
         }
 
+    @pytest.mark.parametrize(
+        "plan_name,expected_plan",
+        (
+            (FreePlan.name, FreePlan),
+            (CorePlan.name, CorePlan),
+            (PlusPlan.name, PlusPlan),
+            ("not-found-name", None),
+        ),
+    )
+    def test_get_plan(self, plan_name, expected_plan):
+        assert Plans.get_plan(plan_name) == expected_plan
+
 
 @pytest.mark.django_db
 class TestOrganization:

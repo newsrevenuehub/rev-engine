@@ -31,7 +31,7 @@ class TestExchangeMailchimpOauthCodeForAccessToken:
             ", ".join([settings_var]),
         )
 
-    def test_when_request_to_mc_non_success(self, mocker):
+    def test_when_request_to_mc_non_success(self, mocker, settings):
         mock_post = mocker.patch("requests.post")
         mock_post.return_value.status_code = (code := status.HTTP_400_BAD_REQUEST)
         logger_spy = mocker.spy(logger, "error")
@@ -40,10 +40,11 @@ class TestExchangeMailchimpOauthCodeForAccessToken:
         logger_spy.assert_called_once_with(
             (
                 "`exchange_mc_oauth_code_for_mc_access_token` got an unexpected status code when trying to get an access token. "
-                "The oauth_code is %s, and the response status code is %s"
+                "The oauth_code is %s, the response status code is %s, and the response contained: %s"
             ),
             oauth_code,
             code,
+            mock_post.return_value.json.return_value,
         )
 
     def test_when_response_body_missing_access_token(self, mocker):

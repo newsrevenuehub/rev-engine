@@ -56,7 +56,7 @@ def exchange_mc_oauth_code_for_mc_access_token(oauth_code: str) -> str:
         logger.error(
             (
                 "`exchange_mc_oauth_code_for_mc_access_token` got an unexpected status code when trying to get an access token. "
-                "The oauth_code is %s, the response status code is %s, and the response coontained: %s"
+                "The oauth_code is %s, the response status code is %s, and the response contained: %s"
             ),
             oauth_code,
             response.status_code,

@@ -320,10 +320,7 @@ class ContributionsViewSet(viewsets.ReadOnlyModelViewSet):
                 html_template="nrh-contribution-csv-email-body.html",
                 template_data={
                     "logo_url": os.path.join(settings.SITE_URL, "static", "nre_logo_black_yellow.png"),
-                    "show_upgrade_prompt": self.model.objects.first().donation_page.organization.plan.name
-                    == FreePlan.name
-                    if self.model.objects.first()
-                    else False,
+                    "show_upgrade_prompt": request.user.roleassignment.organization.plan.name == FreePlan.name,
                 },
                 attachment=contributions_in_csv,
                 content_type="text/csv",

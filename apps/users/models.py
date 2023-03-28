@@ -2,6 +2,7 @@ import logging
 
 from django.conf import settings
 from django.contrib.auth.models import AbstractBaseUser, PermissionsMixin
+from django.core.exceptions import ValidationError
 from django.db import models
 from django.utils.translation import ugettext_lazy as _
 
@@ -14,8 +15,17 @@ from .choices import Roles
 logger = logging.getLogger(f"{settings.DEFAULT_LOGGER}.{__name__}")
 
 
+def case_insensitive_unique_username_validator(value):
+    """Raises ValidationError when a user already exists irrespective of case."""
+    try:
+        User.objects.get_by_natural_key(value)
+    except User.DoesNotExist:
+        return value
+    raise ValidationError("User with this Email already exists.", code="unique_together")
+
+
 class User(AbstractBaseUser, PermissionsMixin, IndexedTimeStampedModel):
-    email = models.EmailField(max_length=255, unique=True)
+    email = models.EmailField(max_length=255, unique=True, validators=[case_insensitive_unique_username_validator])
     is_staff = models.BooleanField(
         default=False,
         help_text=_("Designates whether the user can log into this admin site."),

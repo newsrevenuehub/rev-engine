@@ -46,7 +46,7 @@ from apps.contributions.tasks import task_pull_serialized_stripe_contributions_t
 from apps.contributions.utils import export_contributions_to_csv
 from apps.contributions.webhooks import StripeWebhookProcessor
 from apps.emails.tasks import send_templated_email_with_attachment
-from apps.organizations.models import PaymentProvider, RevenueProgram
+from apps.organizations.models import FreePlan, PaymentProvider, RevenueProgram
 from apps.public.permissions import IsActiveSuperUser
 
 
@@ -320,6 +320,10 @@ class ContributionsViewSet(viewsets.ReadOnlyModelViewSet):
                 html_template="nrh-contribution-csv-email-body.html",
                 template_data={
                     "logo_url": os.path.join(settings.SITE_URL, "static", "nre_logo_black_yellow.png"),
+                    "show_upgrade_prompt": self.model.objects.first().donation_page.organization.plan.name
+                    == FreePlan.name
+                    if self.model.objects.first()
+                    else False,
                 },
                 attachment=contributions_in_csv,
                 content_type="text/csv",

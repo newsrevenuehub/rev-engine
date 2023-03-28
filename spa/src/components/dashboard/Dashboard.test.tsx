@@ -11,7 +11,7 @@ import useConnectMailchimp from 'hooks/useConnectMailchimp';
 import useFeatureFlags from 'hooks/useFeatureFlags';
 import useUser from 'hooks/useUser';
 
-jest.mock('components/common/Modal/AudienceListModal');
+jest.mock('components/common/Modal/AudienceListModal/AudienceListModal');
 jest.mock('elements/GlobalLoading');
 jest.mock('hooks/useFeatureFlags');
 jest.mock('hooks/useRequest');
@@ -103,6 +103,7 @@ describe('Dashboard', () => {
       )
     );
   });
+
   it('should display Audience List modal if requiresAudienceSelection = true', () => {
     useConnectMailchimpMock.mockReturnValue({
       requiresAudienceSelection: true,
@@ -116,11 +117,25 @@ describe('Dashboard', () => {
     expect(audienceListModal).toBeInTheDocument();
     expect(audienceListModal).toHaveTextContent('mock-rp');
   });
+
+  it('should not display Audience List modal if requiresAudienceSelection = false', () => {
+    useConnectMailchimpMock.mockReturnValue({
+      requiresAudienceSelection: false,
+      revenueProgram: 'mock-rp' as any,
+      isLoading: false,
+      connectedToMailchimp: false,
+      isError: false
+    });
+    render(<Dashboard />);
+    expect(screen.queryByTestId('mock-audience-list-modal')).not.toBeInTheDocument();
+  });
+
   it('shows a loading status when Stripe account link status is loading', () => {
     useConnectStripeAccountMock.mockReturnValue({ isLoading: true });
     render(<Dashboard />);
     expect(screen.getByTestId('mock-global-loading')).toBeInTheDocument();
   });
+
   it('does not show a loading status when Stripe account link status is not loading', () => {
     useConnectStripeAccountMock.mockReturnValue({ isLoading: false });
     render(<Dashboard />);

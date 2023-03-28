@@ -12,6 +12,7 @@ from sentry_sdk import configure_scope
 from stripe.error import StripeError
 
 from apps.emails.helpers import convert_to_timezone_formatted
+from apps.organizations.models import FreePlan
 
 
 logger = get_task_logger(f"{settings.DEFAULT_LOGGER}.{__name__}")
@@ -54,7 +55,7 @@ def send_templated_email(
     retry_jitter=False,
     autoretry_for=(AnymailAPIError,),
 )
-def send_thank_you_email(contribution_id: int) -> None:
+def send_thank_you_email(contribution_id: int, is_test_email=False) -> None:
     """Retrieve Stripe customer and send thank you email for a contribution"""
     # vs circular import
     from apps.contributions.models import Contribution, Contributor
@@ -99,6 +100,7 @@ def send_thank_you_email(contribution_id: int) -> None:
             "tax_id": contribution.revenue_program.tax_id,
             "magic_link": Contributor.create_magic_link(contribution),
             "style": asdict(contribution.donation_page.revenue_program.transactional_email_style),
+            "show_upgrade_prompt": is_test_email and contribution.donation_page.organization.plan.name == FreePlan.name,
         },
     )
 

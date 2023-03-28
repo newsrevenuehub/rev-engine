@@ -17,5 +17,5 @@ run:
   web: ./docker-entrypoint.sh
   worker:
     command:
-      - celery --app=revengine worker --beat -l info
+      - celery --app=revengine worker --beat -l info --workdir=.
     image: web

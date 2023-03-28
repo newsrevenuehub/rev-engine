@@ -141,9 +141,14 @@ describe('Add Page modal', () => {
 
     it('redirects the user to the newly-created page', () => {
       cy.intercept(
+        { method: 'GET', pathname: getEndpoint(LIST_PAGES) },
+        { fixture: 'pages/list-pages-1', statusCode: 200 }
+      ).as('listPages');
+      cy.intercept(
         { method: 'POST', pathname: getEndpoint(LIST_PAGES) },
         {
           body: {
+            id: 1,
             slug: 'page-1',
             revenue_program: {
               slug: 'rp-1'
@@ -155,10 +160,14 @@ describe('Add Page modal', () => {
       cy.visit(CONTENT_SLUG);
       cy.getByTestId('new-page-button').click();
       cy.wait('@createNewPage');
-      cy.url().should('include', 'rp-1/page-1');
+      cy.url().should('include', 'edit/pages/1');
     });
 
     it('shows an error if creating the page fails', () => {
+      cy.intercept(
+        { method: 'GET', pathname: getEndpoint(LIST_PAGES) },
+        { fixture: 'pages/list-pages-1', statusCode: 200 }
+      ).as('listPages');
       cy.intercept(
         { method: 'POST', pathname: getEndpoint(LIST_PAGES) },
         {
@@ -169,7 +178,7 @@ describe('Add Page modal', () => {
       cy.visit(CONTENT_SLUG);
       cy.getByTestId('new-page-button').click();
       cy.wait('@createNewPage');
-      cy.contains('Create page error');
+      cy.contains('There was an error and we could not create your new page. We have been notified.');
     });
   });
 });
@@ -205,17 +214,6 @@ describe('Pages view', () => {
     cy.intercept(
       {
         method: 'GET',
-        pathname: getEndpoint(DRAFT_PAGE_DETAIL),
-        query: {
-          revenue_program: createPageResponse.revenue_program.slug,
-          page: createPageResponse.slug
-        }
-      },
-      { fixture: 'pages/create-page-response.json' }
-    ).as('draftPageBySlug');
-    cy.intercept(
-      {
-        method: 'GET',
         pathname: getEndpoint(LIST_PAGES + createPageResponse.id)
       },
       { fixture: 'pages/create-page-response.json' }
@@ -230,7 +228,6 @@ describe('Pages view', () => {
     cy.getByTestId('new-page-button').should('exist');
     cy.getByTestId('new-page-button').click();
     cy.wait('@createNewPage');
-    cy.wait('@draftPageBySlug');
     cy.wait('@draftPageById');
     cy.getByTestId('publish-button').click();
     cy.getByTestId('page-name-input').type('donate');

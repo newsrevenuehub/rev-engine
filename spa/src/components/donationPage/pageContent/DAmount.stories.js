@@ -31,6 +31,7 @@ const baseArgs = {
     frequency: 'one_time',
     page: {
       currency: {
+        code: 'CAD',
         symbol: '🍁'
       },
       elements: [

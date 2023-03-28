@@ -8,6 +8,7 @@ from django.utils import timezone
 
 import pytest
 import pytest_cases
+from mailchimp_marketing.api_client import ApiClientError
 from stripe import ApplePayDomain
 from stripe.error import StripeError
 
@@ -29,6 +30,7 @@ from apps.organizations.models import (
     PaymentProvider,
     RevenueProgram,
     TransactionalEmailStyle,
+    logger,
 )
 from apps.organizations.tests.factories import (
     BenefitLevelFactory,
@@ -174,6 +176,29 @@ def revenue_program_with_default_donation_page_but_no_transactional_email_style_
     return rp
 
 
+@pytest.fixture
+def revenue_program_with_manual_org_mailchimp_connection():
+    rp = RevenueProgramFactory()
+    rp.organization.show_connected_to_mailchimp = True
+    rp.organization.save()
+    return rp
+
+
+@pytest.fixture
+def revenue_program_with_mailchimp_connection_via_oauth_flow():
+    return RevenueProgramFactory(mailchimp_connected_via_oauth=True)
+
+
+@pytest.fixture
+def revenue_program_with_incomplete_connection_only_has_prefix():
+    return RevenueProgramFactory(mailchimp_connected_via_oauth=True, mailchimp_access_token=None)
+
+
+@pytest.fixture
+def revenue_program_with_incomplete_connection_only_has_token():
+    return RevenueProgramFactory(mailchimp_connected_via_oauth=True, mailchimp_server_prefix=None)
+
+
 @pytest.mark.django_db
 class TestRevenueProgram:
     def test_basics(self):
@@ -250,6 +275,66 @@ class TestRevenueProgram:
         rp.stripe_create_apple_pay_domain()
         mock_stripe_create.assert_called_once()
         mock_logger.exception.assert_called_once()
+
+    def test_mailchimp_email_lists_property_happy_path(self, revenue_program, mocker):
+        revenue_program.mailchimp_server_prefix = "us1"
+        revenue_program.mailchimp_access_token = "123456"
+        revenue_program.save()
+        mock_mc_client = mocker.patch("mailchimp_marketing.Client")
+        mock_mc_client.return_value.lists.get_all_lists.return_value = {"lists": [{"id": "123", "name": "test"}]}
+        assert (
+            revenue_program.mailchimp_email_lists
+            == mock_mc_client.return_value.lists.get_all_lists.return_value["lists"]
+        )
+        mock_mc_client.assert_called_once()
+        mock_mc_client.return_value.lists.get_all_lists.assert_called_once()
+
+    def test_mailchimp_email_lists_property_when_missing_server_prefix(self, revenue_program, mocker):
+        mock_mc_client = mocker.patch("mailchimp_marketing.Client")
+        mock_mc_client.return_value.lists.get_all_lists.return_value = {"lists": [{"id": "123", "name": "test"}]}
+        revenue_program.mailchimp_server_prefix = None
+        revenue_program.mailchimp_access_token = "123456"
+        revenue_program.save()
+        assert revenue_program.mailchimp_email_lists == []
+        mock_mc_client.assert_not_called()
+        mock_mc_client.return_value.lists.get_all_lists.assert_not_called()
+
+    def test_mailchimp_email_lists_property_when_missing_access_token(self, revenue_program, mocker):
+        mock_mc_client = mocker.patch("mailchimp_marketing.Client")
+        mock_mc_client.return_value.lists.get_all_lists.return_value = {"lists": [{"id": "123", "name": "test"}]}
+        revenue_program.mailchimp_server_prefix = "us1"
+        revenue_program.mailchimp_access_token = None
+        revenue_program.save()
+        assert revenue_program.mailchimp_email_lists == []
+        mock_mc_client.assert_not_called()
+        mock_mc_client.return_value.lists.get_all_lists.assert_not_called()
+
+    def test_mailchimp_email_lists_property_when_both_missing(self, revenue_program, mocker):
+        mock_mc_client = mocker.patch("mailchimp_marketing.Client")
+        mock_mc_client.return_value.lists.get_all_lists.return_value = {"lists": [{"id": "123", "name": "test"}]}
+        revenue_program.mailchimp_server_prefix = None
+        revenue_program.mailchimp_access_token = None
+        revenue_program.save()
+        assert revenue_program.mailchimp_email_lists == []
+        mock_mc_client.assert_not_called()
+        mock_mc_client.return_value.lists.get_all_lists.assert_not_called()
+
+    def test_mailchimp_email_lists_property_when_mailchimp_api_error(self, revenue_program, mocker):
+        revenue_program.mailchimp_server_prefix = "us1"
+        revenue_program.mailchimp_access_token = "123456"
+        revenue_program.save()
+        mock_mc_client = mocker.patch("mailchimp_marketing.Client")
+        mock_mc_client.return_value.lists.get_all_lists.side_effect = ApiClientError("Ruh roh")
+        mock_mc_client.return_value.lists.get_all_lists.return_value = {"lists": [{"id": "123", "name": "test"}]}
+        log_spy = mocker.spy(logger, "exception")
+        assert revenue_program.mailchimp_email_lists == []
+        log_spy.assert_called_once_with(
+            "`RevenueProgram.mailchimp_email_lists` failed to fetch email lists from Mailchimp for RP with ID %s mc server prefix %s",
+            revenue_program.id,
+            revenue_program.mailchimp_server_prefix,
+        )
+        mock_mc_client.assert_called_once()
+        mock_mc_client.return_value.lists.get_all_lists.assert_called_once()
 
     @pytest_cases.parametrize(
         "rp,make_expected_value_fn",
@@ -420,6 +505,19 @@ class TestRevenueProgram:
     def test_filtered_by_role_assignment_when_unexpected_role(self, user_with_unexpected_role):
         RevenueProgramFactory.create_batch(3)
         assert RevenueProgram.objects.filtered_by_role_assignment(user_with_unexpected_role.roleassignment).count() == 0
+        "revenue_program,expect_connected",
+
+    @pytest_cases.parametrize(
+        "revenue_program,expect_connected",
+        (
+            (pytest_cases.fixture_ref("revenue_program_with_mailchimp_connection_via_oauth_flow"), True),
+            (pytest_cases.fixture_ref("revenue_program_with_manual_org_mailchimp_connection"), False),
+            (pytest_cases.fixture_ref("revenue_program_with_incomplete_connection_only_has_prefix"), False),
+            (pytest_cases.fixture_ref("revenue_program_with_incomplete_connection_only_has_token"), False),
+        ),
+    )
+    def test_mailchimp_integration_connected_property(self, revenue_program, expect_connected):
+        assert revenue_program.mailchimp_integration_connected is expect_connected
 
 
 class TestPaymentProvider:

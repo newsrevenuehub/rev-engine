@@ -15,17 +15,8 @@ from .choices import Roles
 logger = logging.getLogger(f"{settings.DEFAULT_LOGGER}.{__name__}")
 
 
-def case_insensitive_unique_username_validator(value):
-    """Raises ValidationError when a user already exists irrespective of case."""
-    try:
-        User.objects.get_by_natural_key(value)
-    except User.DoesNotExist:
-        return value
-    raise ValidationError("User with this Email already exists.", code="unique_together")
-
-
 class User(AbstractBaseUser, PermissionsMixin, IndexedTimeStampedModel):
-    email = models.EmailField(max_length=255, unique=True, validators=[case_insensitive_unique_username_validator])
+    email = models.EmailField(max_length=255, unique=True)
     is_staff = models.BooleanField(
         default=False,
         help_text=_("Designates whether the user can log into this admin site."),
@@ -64,6 +55,18 @@ class User(AbstractBaseUser, PermissionsMixin, IndexedTimeStampedModel):
             return ("superuser", "Superuser")
         role_assignment = self.get_role_assignment()
         return (role_assignment.role_type, role_assignment.get_role_type_display()) if role_assignment else None
+
+    def validate_unique(self, exclude) -> None:
+        exclude.append(self.USERNAME_FIELD)
+        super().validate_unique(exclude)
+        _user = None
+        try:
+            _user = User.objects.get_by_natural_key(getattr(self, self.USERNAME_FIELD))
+        except User.DoesNotExist:
+            return
+
+        if _user and (self.pk is None or _user.pk != self.pk):
+            raise ValidationError("User with this Email already exists.", code="unique_together")
 
     def __str__(self):
         return self.email

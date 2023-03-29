@@ -109,25 +109,23 @@ def make_send_thank_you_email_data(contribution) -> SendThankYouEmailData:
         )
         raise EmailTaskException("Cannot get required data from Stripe")
 
-    return asdict(
-        SendThankYouEmailData(
-            contribution_amount=contribution.formatted_amount,
-            contribution_date=convert_to_timezone_formatted(contribution.created, "America/New_York"),
-            contribution_interval_display_value=contribution.interval.value
-            if contribution.interval != ContributionInterval.ONE_TIME
-            else "",
-            contribution_interval=contribution.interval.value,
-            contributor_email=contribution.contributor.email,
-            contributor_name=customer.name,
-            copyright_year=contribution.created.year,
-            fiscal_sponsor_name=contribution.revenue_program.fiscal_sponsor_name,
-            fiscal_status=contribution.revenue_program.fiscal_status.value,
-            magic_link=Contributor.create_magic_link(contribution),
-            non_profit=contribution.revenue_program.non_profit,
-            rp_name=contribution.revenue_program.name,
-            style=asdict(contribution.donation_page.revenue_program.transactional_email_style),
-            tax_id=contribution.revenue_program.tax_id,
-        )
+    return SendThankYouEmailData(
+        contribution_amount=contribution.formatted_amount,
+        contribution_date=convert_to_timezone_formatted(contribution.created, "America/New_York"),
+        contribution_interval_display_value=contribution.interval.value
+        if contribution.interval != ContributionInterval.ONE_TIME
+        else "",
+        contribution_interval=contribution.interval.value,
+        contributor_email=contribution.contributor.email,
+        contributor_name=customer.name,
+        copyright_year=contribution.created.year,
+        fiscal_sponsor_name=contribution.revenue_program.fiscal_sponsor_name,
+        fiscal_status=contribution.revenue_program.fiscal_status.value,
+        magic_link=Contributor.create_magic_link(contribution),
+        non_profit=contribution.revenue_program.non_profit,
+        rp_name=contribution.revenue_program.name,
+        style=asdict(contribution.donation_page.revenue_program.transactional_email_style),
+        tax_id=contribution.revenue_program.tax_id,
     )
 
 
@@ -142,13 +140,13 @@ def send_thank_you_email(data: SendThankYouEmailData) -> None:
     """Retrieve Stripe customer and send thank you email for a contribution"""
     logger.info("send_thank_you_email: Attempting to send thank you email with the following template data %s", data)
     with configure_scope() as scope:
-        scope.user = {"email": (to := data["contributor_email"])}
+        scope.user = {"email": (to := data.contributor_email)}
         send_mail(
             subject="Thank you for your contribution!",
-            message=render_to_string("nrh-default-contribution-confirmation-email.txt", data),
+            message=render_to_string("nrh-default-contribution-confirmation-email.txt", asdict(data)),
             from_email=settings.EMAIL_DEFAULT_TRANSACTIONAL_SENDER,
             recipient_list=[to],
-            html_message=render_to_string("nrh-default-contribution-confirmation-email.html", data),
+            html_message=render_to_string("nrh-default-contribution-confirmation-email.html", asdict(data)),
         )
 
 
@@ -192,5 +190,4 @@ def send_templated_email_with_attachment(
             filename,
             attachment,
         )
-
         mail.send()

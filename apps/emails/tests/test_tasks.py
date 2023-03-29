@@ -24,6 +24,7 @@ from apps.emails.tasks import (
     send_thank_you_email,
 )
 from apps.organizations.models import FiscalStatusChoices
+from apps.organizations.tests.factories import RevenueProgramFactory
 
 
 @pytest.mark.django_db
@@ -37,25 +38,23 @@ class TestMakeSendThankYouEmailData:
         mock_get_magic_link = mocker.patch(
             "apps.contributions.models.Contributor.create_magic_link", return_value="magic_link"
         )
-        expected = asdict(
-            SendThankYouEmailData(
-                contribution_amount=contribution.formatted_amount,
-                contribution_date=convert_to_timezone_formatted(contribution.created, "America/New_York"),
-                contribution_interval_display_value=contribution.interval.value
-                if contribution.interval != ContributionInterval.ONE_TIME
-                else "",
-                contribution_interval=contribution.interval.value,
-                contributor_email=contribution.contributor.email,
-                contributor_name=mock_fetch_customer.return_value.name,
-                copyright_year=contribution.created.year,
-                fiscal_sponsor_name=contribution.revenue_program.fiscal_sponsor_name,
-                fiscal_status=contribution.revenue_program.fiscal_status.value,
-                magic_link=mock_get_magic_link.return_value,
-                non_profit=contribution.revenue_program.non_profit,
-                rp_name=contribution.revenue_program.name,
-                style=asdict(contribution.donation_page.revenue_program.transactional_email_style),
-                tax_id=contribution.revenue_program.tax_id,
-            )
+        expected = SendThankYouEmailData(
+            contribution_amount=contribution.formatted_amount,
+            contribution_date=convert_to_timezone_formatted(contribution.created, "America/New_York"),
+            contribution_interval_display_value=contribution.interval.value
+            if contribution.interval != ContributionInterval.ONE_TIME
+            else "",
+            contribution_interval=contribution.interval.value,
+            contributor_email=contribution.contributor.email,
+            contributor_name=mock_fetch_customer.return_value.name,
+            copyright_year=contribution.created.year,
+            fiscal_sponsor_name=contribution.revenue_program.fiscal_sponsor_name,
+            fiscal_status=contribution.revenue_program.fiscal_status.value,
+            magic_link=mock_get_magic_link.return_value,
+            non_profit=contribution.revenue_program.non_profit,
+            rp_name=contribution.revenue_program.name,
+            style=asdict(contribution.donation_page.revenue_program.transactional_email_style),
+            tax_id=contribution.revenue_program.tax_id,
         )
         actual = make_send_thank_you_email_data(contribution)
         assert expected == actual
@@ -96,10 +95,10 @@ class TestSendThankYouEmail:
         send_thank_you_email(data)
         mock_send_mail.assert_called_once_with(
             subject="Thank you for your contribution!",
-            message=render_to_string("nrh-default-contribution-confirmation-email.txt", context=data),
+            message=render_to_string("nrh-default-contribution-confirmation-email.txt", context=asdict(data)),
             from_email=settings.EMAIL_DEFAULT_TRANSACTIONAL_SENDER,
             recipient_list=[contribution.contributor.email],
-            html_message=render_to_string("nrh-default-contribution-confirmation-email.html", context=data),
+            html_message=render_to_string("nrh-default-contribution-confirmation-email.html", context=asdict(data)),
         )
 
     @pytest.mark.parametrize(
@@ -114,23 +113,27 @@ class TestSendThankYouEmail:
         ),
     )
     def test_template_conditionality_around_non_profit_and_fiscal_sponsor_and_tax_status(
-        self, fiscal_status, has_tax_id, monkeypatch
+        self, fiscal_status, has_tax_id, monkeypatch, mocker
     ):
         customer = AttrDict({"name": "Foo Bar"})
         mock_customer_retrieve = Mock()
         mock_customer_retrieve.return_value = customer
         monkeypatch.setattr("stripe.Customer.retrieve", mock_customer_retrieve)
-        # TODO: DEV-3026 clean up here
-        with patch("apps.contributions.models.Contribution.fetch_stripe_payment_method", return_value=None):
-            contribution = ContributionFactory(one_time=True)
-            rp = contribution.donation_page.revenue_program
-            rp.tax_id = "123456789" if has_tax_id else None
-            rp.fiscal_status = fiscal_status
-            rp.fiscal_sponsor_name = (
-                "Mock-fiscal-sponsor-name" if fiscal_status == FiscalStatusChoices.FISCALLY_SPONSORED else None
-            )
-            rp.save()
-            send_thank_you_email(contribution.id)
+        mocker.patch("apps.contributions.models.Contribution.fetch_stripe_payment_method", return_value=None)
+        contribution = ContributionFactory(
+            one_time=True,
+            donation_page__revenue_program=(
+                rp := RevenueProgramFactory(
+                    tax_id="123456789" if has_tax_id else None,
+                    fiscal_status=fiscal_status,
+                    fiscal_sponsor_name=(
+                        "Mock-fiscal-sponsor-name" if fiscal_status == FiscalStatusChoices.FISCALLY_SPONSORED else None
+                    ),
+                )
+            ),
+        )
+        data = make_send_thank_you_email_data(contribution)
+        send_thank_you_email(data)
 
         non_profit_expectation = "This receipt may be used for tax purposes."
         for_profit_expectation = f"Contributions to {rp.name} are not deductible as charitable donations."

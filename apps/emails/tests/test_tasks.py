@@ -95,10 +95,10 @@ class TestSendThankYouEmail:
         send_thank_you_email(data)
         mock_send_mail.assert_called_once_with(
             subject="Thank you for your contribution!",
-            message=render_to_string("nrh-default-contribution-confirmation-email.txt", context=asdict(data)),
+            message=render_to_string("nrh-default-contribution-confirmation-email.txt", context=data),
             from_email=settings.EMAIL_DEFAULT_TRANSACTIONAL_SENDER,
             recipient_list=[contribution.contributor.email],
-            html_message=render_to_string("nrh-default-contribution-confirmation-email.html", context=asdict(data)),
+            html_message=render_to_string("nrh-default-contribution-confirmation-email.html", context=data),
         )
 
     @pytest.mark.parametrize(

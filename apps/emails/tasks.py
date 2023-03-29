@@ -1,6 +1,6 @@
-from dataclasses import asdict, dataclass
+from dataclasses import asdict
 from enum import Enum
-from typing import Literal
+from typing import Literal, TypedDict
 
 from django.conf import settings
 from django.core.mail import EmailMultiAlternatives, send_mail
@@ -67,8 +67,7 @@ class ContributionIntervals(Enum):
     YEAR = ContributionInterval.YEARLY.value
 
 
-@dataclass
-class SendThankYouEmailData:
+class SendThankYouEmailData(TypedDict):
     contribution_amount: str
     contribution_interval: Literal[
         ContributionInterval.ONE_TIME, ContributionInterval.MONTHLY, ContributionInterval.YEARLY
@@ -140,13 +139,13 @@ def send_thank_you_email(data: SendThankYouEmailData) -> None:
     """Retrieve Stripe customer and send thank you email for a contribution"""
     logger.info("send_thank_you_email: Attempting to send thank you email with the following template data %s", data)
     with configure_scope() as scope:
-        scope.user = {"email": (to := data.contributor_email)}
+        scope.user = {"email": (to := data["contributor_email"])}
         send_mail(
             subject="Thank you for your contribution!",
-            message=render_to_string("nrh-default-contribution-confirmation-email.txt", asdict(data)),
+            message=render_to_string("nrh-default-contribution-confirmation-email.txt", data),
             from_email=settings.EMAIL_DEFAULT_TRANSACTIONAL_SENDER,
             recipient_list=[to],
-            html_message=render_to_string("nrh-default-contribution-confirmation-email.html", asdict(data)),
+            html_message=render_to_string("nrh-default-contribution-confirmation-email.html", data),
         )
 
 

@@ -28,11 +28,21 @@ describe('useSessionState', () => {
   });
 
   it('initially sets state to the default value if session storage is not available', () => {
-    window.sessionStorage.setItem('test', 'not parseable as JSON');
+    const oldGetItem = window.sessionStorage.getItem;
+
+    Object.defineProperty(window.sessionStorage, 'getItem', {
+      value: function () {
+        throw new Error();
+      }
+    });
 
     const { result } = renderHook(() => useSessionState('test', 'pass'));
 
     expect(result.current[0]).toBe('pass');
+
+    Object.defineProperty(window.sessionStorage, 'getItem', {
+      value: oldGetItem
+    });
   });
 
   it("doesn't set anything in session state initially", () => {

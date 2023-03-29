@@ -34,14 +34,14 @@ export function useSessionState<T>(key: string, defaultValue: T): UseSessionStat
     // Memoize the value in session storage when we're first used so we don't
     // re-parse it on every render.
 
-    const sessionStorage = window.sessionStorage.getItem(key);
+    try {
+      const sessionStorage = window.sessionStorage.getItem(key);
 
-    if (sessionStorage) {
-      try {
+      if (sessionStorage) {
         return JSON.parse(sessionStorage);
-      } catch {
-        // Do nothing and fall back to the specified default.
       }
+    } catch {
+      // Do nothing and fall back to the specified default.
     }
   }, [key]);
 

@@ -112,15 +112,15 @@ def make_send_thank_you_email_data(contribution) -> SendThankYouEmailData:
     return SendThankYouEmailData(
         contribution_amount=contribution.formatted_amount,
         contribution_date=convert_to_timezone_formatted(contribution.created, "America/New_York"),
-        contribution_interval_display_value=contribution.interval.value
+        contribution_interval_display_value=contribution.interval
         if contribution.interval != ContributionInterval.ONE_TIME
         else "",
-        contribution_interval=contribution.interval.value,
+        contribution_interval=contribution.interval,
         contributor_email=contribution.contributor.email,
         contributor_name=customer.name,
         copyright_year=contribution.created.year,
         fiscal_sponsor_name=contribution.revenue_program.fiscal_sponsor_name,
-        fiscal_status=contribution.revenue_program.fiscal_status.value,
+        fiscal_status=contribution.revenue_program.fiscal_status,
         magic_link=Contributor.create_magic_link(contribution),
         non_profit=contribution.revenue_program.non_profit,
         rp_name=contribution.revenue_program.name,

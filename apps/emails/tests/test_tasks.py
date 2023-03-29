@@ -41,15 +41,15 @@ class TestMakeSendThankYouEmailData:
         expected = SendThankYouEmailData(
             contribution_amount=contribution.formatted_amount,
             contribution_date=convert_to_timezone_formatted(contribution.created, "America/New_York"),
-            contribution_interval_display_value=contribution.interval.value
+            contribution_interval_display_value=contribution.interval
             if contribution.interval != ContributionInterval.ONE_TIME
             else "",
-            contribution_interval=contribution.interval.value,
+            contribution_interval=contribution.interval,
             contributor_email=contribution.contributor.email,
             contributor_name=mock_fetch_customer.return_value.name,
             copyright_year=contribution.created.year,
             fiscal_sponsor_name=contribution.revenue_program.fiscal_sponsor_name,
-            fiscal_status=contribution.revenue_program.fiscal_status.value,
+            fiscal_status=contribution.revenue_program.fiscal_status,
             magic_link=mock_get_magic_link.return_value,
             non_profit=contribution.revenue_program.non_profit,
             rp_name=contribution.revenue_program.name,

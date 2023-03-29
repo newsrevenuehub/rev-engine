@@ -14,7 +14,8 @@ from addict import Dict as AttrDict
 
 from apps.api.tokens import ContributorRefreshToken
 from apps.common.models import IndexedTimeStampedModel
-from apps.emails.tasks import send_thank_you_email
+from apps.contributions.choices import BadActorScores, ContributionInterval, ContributionStatus
+from apps.emails.tasks import make_send_thank_you_email_data, send_thank_you_email
 from apps.organizations.models import RevenueProgram
 from apps.users.choices import Roles
 from apps.users.models import RoleAssignment
@@ -108,63 +109,6 @@ class Contributor(IndexedTimeStampedModel):
             f"https://{construct_rp_domain(contribution.donation_page.revenue_program.slug)}/{settings.CONTRIBUTOR_VERIFY_URL}"
             f"?token={token}&email={quote_plus(contribution.contributor.email)}"
         )
-
-
-class ContributionInterval(models.TextChoices):
-    ONE_TIME = "one_time", "One time"
-    MONTHLY = "month", "Monthly"
-    YEARLY = "year", "Yearly"
-
-
-class ContributionStatus(models.TextChoices):
-    PROCESSING = "processing", "processing"
-    PAID = "paid", "paid"
-    CANCELED = "canceled", "canceled"
-    FAILED = "failed", "failed"
-    FLAGGED = "flagged", "flagged"
-    REJECTED = "rejected", "rejected"
-    REFUNDED = "refunded", "refunded"
-
-
-class CardBrand(models.TextChoices):
-    AMEX = "amex", "Amex"
-    DINERS = "diners", "Diners"
-    DISCOVER = "discover", "Discover"
-    JCB = "jcb", "JCB"
-    MASTERCARD = "mastercard", "Mastercard"
-    UNIONPAY = "unionpay", "UnionPay"
-    VISA = "visa", "Visa"
-    UNKNOWN = "unknown", "Unknown"
-
-
-class PaymentType(models.TextChoices):
-    ACH_CREDIT_TRANSFER = "ach_credit_transfer", "ACH Credit Transfer"
-    ACH_DEBIT = "ach_debit", "ACH Debit"
-    ACSS_DEBIT = "acss_debit", "ACSS Debit"
-    ALIPAY = "alipay", "AliPay"
-    AU_BECS_DEBIT = "au_becs_debit", "AU BECS Debit"
-    BANCONTACT = "bancontact", "Bancontact"
-    CARD = "card", "Card"
-    CARD_PRESENT = "card_present", "Card Present"
-    EPS = "eps", "EPS"
-    GIROPAY = "giropay", "Giropay"
-    IDEAL = "ideal", "Ideal"
-    KLARNA = "klarna", "Klarna"
-    MULTIBANCO = "multibanco", "Multibanco"
-    P24 = "p24", "p24"
-    SEPA_DEBIT = "sepa_debit", "Sepa Debit"
-    SOFORT = "sofort", "Sofort"
-    STRIPE_ACCOUNT = "stripe_account", "Stripe Account"
-    WECHAT = "wechat", "WeChat"
-
-
-class BadActorScores(models.IntegerChoices):
-    INFORMATION = 0, "0 - Information"
-    UNKNOWN = 1, "1 - Unknown"
-    GOOD = 2, "2 - Good"
-    SUSPECT = 3, "3 - Suspect"
-    BAD = 4, "4 - Bad"
-    SUPERBAD = 5, "5 - Very Bad"
 
 
 class CachedStripeContributionResult(TypedDict):
@@ -544,8 +488,10 @@ class Contribution(IndexedTimeStampedModel):
     def handle_thank_you_email(self):
         """Send a thank you email to contribution's contributor if org is configured to have NRE send thank you email"""
         logger.info("`Contribution.handle_thank_you_email` called on contribution with ID %s", self.id)
-        if self.revenue_program.organization.send_receipt_email_via_nre:
-            send_thank_you_email.delay(self.id)
+        if (org := self.revenue_program.organization).send_receipt_email_via_nre:
+            logger.info("Contribution.handle_thank_you_email: the parent org (%s) sends emails with NRE", org.id)
+            data = make_send_thank_you_email_data(self)
+            send_thank_you_email.delay(data)
 
     def send_recurring_contribution_email_reminder(self, next_charge_date: datetime.date) -> None:
         # vs. circular import

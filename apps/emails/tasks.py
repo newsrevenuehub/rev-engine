@@ -1,4 +1,6 @@
-from dataclasses import asdict
+from dataclasses import asdict, dataclass
+from enum import Enum
+from typing import Literal
 
 from django.conf import settings
 from django.core.mail import EmailMultiAlternatives, send_mail
@@ -11,7 +13,9 @@ from celery.utils.log import get_task_logger
 from sentry_sdk import configure_scope
 from stripe.error import StripeError
 
+from apps.contributions.choices import ContributionInterval
 from apps.emails.helpers import convert_to_timezone_formatted
+from apps.organizations.models import FiscalStatusChoices
 
 
 logger = get_task_logger(f"{settings.DEFAULT_LOGGER}.{__name__}")
@@ -51,6 +55,82 @@ def send_templated_email(
         )
 
 
+class FiscalStatuses(Enum):
+    FISCALLY_SPONSORED = FiscalStatusChoices.FISCALLY_SPONSORED.value
+    FOR_PROFIT = FiscalStatusChoices.FOR_PROFIT.value
+    NON_PROFIT = FiscalStatusChoices.NONPROFIT.value
+
+
+class ContributionIntervals(Enum):
+    ONE_TIME = ContributionInterval.ONE_TIME.value
+    MONTH = ContributionInterval.MONTHLY.value
+    YEAR = ContributionInterval.YEARLY.value
+
+
+@dataclass
+class SendThankYouEmailData:
+    contribution_amount: str
+    contribution_interval: Literal[
+        ContributionInterval.ONE_TIME, ContributionInterval.MONTHLY, ContributionInterval.YEARLY
+    ]
+    contribution_interval_display_value: str
+    copyright_year: int
+    rp_name: str
+    contributor_name: str
+    non_profit: bool
+    fiscal_status: Literal[FiscalStatuses.FISCALLY_SPONSORED, FiscalStatuses.FOR_PROFIT, FiscalStatuses.NON_PROFIT]
+    fiscal_sponsor_name: str
+    magic_link: str
+    style: dict
+    contribution_date: str
+    contributor_email: str
+    tax_id: str
+
+
+# would like to have type hint for contribution but that would cause a circular import because need to import class to this file
+def make_send_thank_you_email_data(contribution) -> SendThankYouEmailData:
+    # vs circular import
+    from apps.contributions.models import Contributor
+
+    if not contribution.provider_customer_id:
+        logger.error(
+            "make_send_thank_you_email_data: No Stripe customer id for contribution with id %s", contribution.id
+        )
+        raise EmailTaskException("Cannot get required data from Stripe")
+    try:
+        customer = stripe.Customer.retrieve(
+            contribution.provider_customer_id,
+            stripe_account=contribution.donation_page.revenue_program.payment_provider.stripe_account_id,
+        )
+    except StripeError:
+        logger.exception(
+            "make_send_thank_you_email_data: Something went wrong retrieving Stripe customer for contribution with id %s",
+            contribution.id,
+        )
+        raise EmailTaskException("Cannot get required data from Stripe")
+
+    return asdict(
+        SendThankYouEmailData(
+            contribution_amount=contribution.formatted_amount,
+            contribution_date=convert_to_timezone_formatted(contribution.created, "America/New_York"),
+            contribution_interval_display_value=contribution.interval.value
+            if contribution.interval != ContributionInterval.ONE_TIME
+            else "",
+            contribution_interval=contribution.interval.value,
+            contributor_email=contribution.contributor.email,
+            contributor_name=customer.name,
+            copyright_year=contribution.created.year,
+            fiscal_sponsor_name=contribution.revenue_program.fiscal_sponsor_name,
+            fiscal_status=contribution.revenue_program.fiscal_status.value,
+            magic_link=Contributor.create_magic_link(contribution),
+            non_profit=contribution.revenue_program.non_profit,
+            rp_name=contribution.revenue_program.name,
+            style=asdict(contribution.donation_page.revenue_program.transactional_email_style),
+            tax_id=contribution.revenue_program.tax_id,
+        )
+    )
+
+
 @shared_task(
     name="send_thank_you_email",
     max_retries=5,
@@ -58,73 +138,17 @@ def send_templated_email(
     retry_jitter=False,
     autoretry_for=(AnymailAPIError,),
 )
-def send_thank_you_email(contribution_id: int) -> None:
+def send_thank_you_email(data: SendThankYouEmailData) -> None:
     """Retrieve Stripe customer and send thank you email for a contribution"""
-    # vs circular import
-    from apps.contributions.models import Contribution, Contributor
-
-    logger.info("`send_thank_you_email` sending thank you email for contribution with ID %s", contribution_id)
-    contribution = Contribution.objects.filter(id=contribution_id).first()
-    if not contribution:
-        logger.error("send_thank_you_email: No contribution found with id %s", contribution_id)
-        raise EmailTaskException("Cannot retrieve contribution")
-
-    required_data = {
-        "contribution.provider_customer_id": contribution.provider_customer_id,
-        "contribution.donation_page": (dp := contribution.donation_page),
-        "contribution.donation_page.revenue_program": (rp := getattr(dp, "revenue_program", None)),
-        "contribution.donation_page.revenue_program.payment_provider": getattr(rp, "payment_provider", None),
-    }
-    if not all(required_data.values()):
-        missing = [k for k, v in required_data.items() if not v]
-        logger.error(
-            "send_thank_you_email: Cannot send thank you email for contribution with id %s. Missing data required to send email: %s",
-            contribution.id,
-            ", ".join(missing),
-        )
-        raise EmailTaskException("Cannot locate required data to send email")
-
-    try:
-        customer = stripe.Customer.retrieve(
-            contribution.provider_customer_id,
-            stripe_account=contribution.donation_page.revenue_program.payment_provider.stripe_account_id,
-        )
-    except StripeError as exc:
-        logger.exception(
-            "send_thank_you_email: Something went wrong retrieving Stripe customer for contribution with id %s",
-            contribution_id,
-        )
-        raise exc
-
-    template_data = {
-        "contribution_date": convert_to_timezone_formatted(contribution.created, "America/New_York"),
-        "contributor_email": contribution.contributor.email,
-        "contribution_amount": contribution.formatted_amount,
-        "contribution_interval": contribution.interval,
-        "contribution_interval_display_value": contribution.interval if contribution.interval != "one_time" else None,
-        "copyright_year": contribution.created.year,
-        "rp_name": contribution.revenue_program.name,
-        "contributor_name": customer.name,
-        "non_profit": contribution.revenue_program.non_profit,
-        "fiscal_status": contribution.revenue_program.fiscal_status,
-        "fiscal_sponsor_name": contribution.revenue_program.fiscal_sponsor_name,
-        "tax_id": contribution.revenue_program.tax_id,
-        "magic_link": Contributor.create_magic_link(contribution),
-        "style": asdict(contribution.donation_page.revenue_program.transactional_email_style),
-    }
-
-    logger.info(
-        "send_thank_you_email: Attempting to send thank you email with the following template data %s", template_data
-    )
-
+    logger.info("send_thank_you_email: Attempting to send thank you email with the following template data %s", data)
     with configure_scope() as scope:
-        scope.user = {"email": (to := contribution.contributor.email)}
+        scope.user = {"email": (to := data["contributor_email"])}
         send_mail(
             subject="Thank you for your contribution!",
-            message=render_to_string("nrh-default-contribution-confirmation-email.txt", template_data),
+            message=render_to_string("nrh-default-contribution-confirmation-email.txt", data),
             from_email=settings.EMAIL_DEFAULT_TRANSACTIONAL_SENDER,
             recipient_list=[to],
-            html_message=render_to_string("nrh-default-contribution-confirmation-email.html", template_data),
+            html_message=render_to_string("nrh-default-contribution-confirmation-email.html", data),
         )
 
 

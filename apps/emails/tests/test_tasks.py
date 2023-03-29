@@ -8,14 +8,18 @@ from django.core import mail
 from django.template.loader import render_to_string
 
 import pytest
+import pytest_cases
 from addict import Dict as AttrDict
 from stripe.error import StripeError
 
-from apps.contributions.models import Contribution, ContributionInterval
+from apps.contributions.models import ContributionInterval
 from apps.contributions.tests.factories import ContributionFactory
 from apps.emails.helpers import convert_to_timezone_formatted
 from apps.emails.tasks import (
     EmailTaskException,
+    SendThankYouEmailData,
+    logger,
+    make_send_thank_you_email_data,
     send_templated_email_with_attachment,
     send_thank_you_email,
 )
@@ -23,101 +27,80 @@ from apps.organizations.models import FiscalStatusChoices
 
 
 @pytest.mark.django_db
-class TestSendThankYouEmail:
-    @pytest.mark.parametrize("interval", (ContributionInterval.ONE_TIME, ContributionInterval.MONTHLY))
-    def test_happy_path(self, monkeypatch, interval, mocker):
-        # TODO: DEV-3026 clean up here
-        with patch("apps.contributions.models.Contribution.fetch_stripe_payment_method", return_value=None):
-            contribution = ContributionFactory(provider_customer_id="something", interval=interval)
-        customer = AttrDict({"name": "Foo Bar"})
-        mock_customer_retrieve = Mock()
-        mock_customer_retrieve.return_value = customer
-        monkeypatch.setattr("stripe.Customer.retrieve", mock_customer_retrieve)
-        magic_link = "something"
-        mock_create_magic_link = Mock()
-        mock_create_magic_link.return_value = magic_link
-        mock_send_email = mocker.patch("apps.emails.tasks.send_mail")
-        monkeypatch.setattr("apps.contributions.models.Contributor.create_magic_link", mock_create_magic_link)
-        send_thank_you_email(contribution.id)
-        expected_template_data = {
-            "contribution_date": convert_to_timezone_formatted(contribution.created, "America/New_York"),
-            "contributor_email": contribution.contributor.email,
-            "contribution_amount": contribution.formatted_amount,
-            "contribution_interval": contribution.interval,
-            "contribution_interval_display_value": contribution.interval
-            if contribution.interval != "one_time"
-            else None,
-            "copyright_year": contribution.created.year,
-            "rp_name": contribution.revenue_program.name,
-            "contributor_name": customer.name,
-            "non_profit": contribution.revenue_program.non_profit,
-            "tax_id": contribution.revenue_program.tax_id,
-            "magic_link": magic_link,
-            "fiscal_status": contribution.revenue_program.fiscal_status,
-            "fiscal_sponsor_name": contribution.revenue_program.fiscal_sponsor_name,
-            "style": asdict(contribution.donation_page.revenue_program.transactional_email_style),
-        }
-        mock_send_email.assert_called_once_with(
-            subject="Thank you for your contribution!",
-            message=render_to_string("nrh-default-contribution-confirmation-email.txt", context=expected_template_data),
-            from_email=settings.EMAIL_DEFAULT_TRANSACTIONAL_SENDER,
-            recipient_list=[contribution.contributor.email],
-            html_message=render_to_string(
-                "nrh-default-contribution-confirmation-email.html", context=expected_template_data
-            ),
+class TestMakeSendThankYouEmailData:
+    @pytest_cases.parametrize(
+        "contribution",
+        (pytest_cases.fixture_ref("one_time_contribution"), pytest_cases.fixture_ref("monthly_contribution")),
+    )
+    def test_happy_path(self, contribution, mocker):
+        mock_fetch_customer = mocker.patch("stripe.Customer.retrieve", return_value=AttrDict(name="customer_name"))
+        mock_get_magic_link = mocker.patch(
+            "apps.contributions.models.Contributor.create_magic_link", return_value="magic_link"
+        )
+        expected = asdict(
+            SendThankYouEmailData(
+                contribution_amount=contribution.formatted_amount,
+                contribution_date=convert_to_timezone_formatted(contribution.created, "America/New_York"),
+                contribution_interval_display_value=contribution.interval.value
+                if contribution.interval != ContributionInterval.ONE_TIME
+                else "",
+                contribution_interval=contribution.interval.value,
+                contributor_email=contribution.contributor.email,
+                contributor_name=mock_fetch_customer.return_value.name,
+                copyright_year=contribution.created.year,
+                fiscal_sponsor_name=contribution.revenue_program.fiscal_sponsor_name,
+                fiscal_status=contribution.revenue_program.fiscal_status.value,
+                magic_link=mock_get_magic_link.return_value,
+                non_profit=contribution.revenue_program.non_profit,
+                rp_name=contribution.revenue_program.name,
+                style=asdict(contribution.donation_page.revenue_program.transactional_email_style),
+                tax_id=contribution.revenue_program.tax_id,
+            )
+        )
+        actual = make_send_thank_you_email_data(contribution)
+        assert expected == actual
+
+    def test_when_no_provider_customer_id(self, mocker):
+        logger_spy = mocker.spy(logger, "error")
+        mocker.patch("apps.contributions.models.Contribution.fetch_stripe_payment_method", return_value=None)
+        contribution = ContributionFactory(one_time=True, provider_customer_id=None)
+        with pytest.raises(EmailTaskException):
+            make_send_thank_you_email_data(contribution)
+        logger_spy.assert_called_once_with(
+            "make_send_thank_you_email_data: No Stripe customer id for contribution with id %s", contribution.id
         )
 
-    def test_when_contribution_not_exist(self):
-        contribution_id = "999"
-        assert not Contribution.objects.filter(id=contribution_id).exists()
+    def test_when_error_retrieving_stripe_customer(self, mocker):
+        mocker.patch("stripe.Customer.retrieve", side_effect=StripeError("error"))
+        mocker.patch("apps.contributions.models.Contribution.fetch_stripe_payment_method", return_value=None)
         with pytest.raises(EmailTaskException):
-            send_thank_you_email(contribution_id)
+            make_send_thank_you_email_data(ContributionFactory(one_time=True))
 
-    def test_when_stripe_error(self, monkeypatch):
-        # TODO: DEV-3026 clean up here
-        with patch("apps.contributions.models.Contribution.fetch_stripe_payment_method", return_value=None):
-            contribution = ContributionFactory(one_time=True)
-        mock_customer_retrieve = Mock(side_effect=StripeError("Error"))
-        monkeypatch.setattr("stripe.Customer.retrieve", mock_customer_retrieve)
-        mock_log_exception = Mock()
-        monkeypatch.setattr("apps.emails.tasks.logger.exception", mock_log_exception)
-        with pytest.raises(StripeError):
-            send_thank_you_email(contribution.id)
-        mock_log_exception.assert_called_once()
 
-    def test_when_missing_donation_page(self, monkeypatch):
-        # TODO: DEV-3026 clean up here
-        with patch("apps.contributions.models.Contribution.fetch_stripe_payment_method", return_value=None):
-            contribution = ContributionFactory(one_time=True)
-        contribution.donation_page = None
-        contribution.save()
-        with pytest.raises(EmailTaskException, match=r"Cannot locate required data to send email"):
-            send_thank_you_email(contribution.id)
-
-    def test_when_missing_provider_customer_id(self):
-        # TODO: DEV-3026 clean up here
-        with patch("apps.contributions.models.Contribution.fetch_stripe_payment_method", return_value=None):
-            contribution = ContributionFactory(provider_customer_id=None)
-        with pytest.raises(EmailTaskException, match=r"Cannot locate required data to send email"):
-            send_thank_you_email(contribution.id)
-
-    def test_when_missing_page_revenue_program(self):
-        # TODO: DEV-3026 clean up here
-        with patch("apps.contributions.models.Contribution.fetch_stripe_payment_method", return_value=None):
-            contribution = ContributionFactory(provider_customer_id="something")
-        contribution.donation_page.revenue_program = None
-        contribution.donation_page.save()
-        with pytest.raises(EmailTaskException, match=r"Cannot locate required data to send email"):
-            send_thank_you_email(contribution.id)
-
-    def test_when_missing_page_revenue_program_payment_provider(self):
-        # TODO: DEV-3026 clean up here
-        with patch("apps.contributions.models.Contribution.fetch_stripe_payment_method", return_value=None):
-            contribution = ContributionFactory(provider_customer_id="something")
-        contribution.donation_page.revenue_program.payment_provider = None
-        contribution.donation_page.revenue_program.save()
-        with pytest.raises(EmailTaskException, match=r"Cannot locate required data to send email"):
-            send_thank_you_email(contribution.id)
+@pytest.mark.django_db
+class TestSendThankYouEmail:
+    @pytest.mark.parametrize(
+        "make_contribution_fn",
+        (
+            lambda: ContributionFactory(one_time=True),
+            lambda: ContributionFactory(monthly_subscription=True),
+        ),
+    )
+    def test_happy_path(self, make_contribution_fn, mocker):
+        mocker.patch("apps.contributions.models.Contribution.fetch_stripe_payment_method", return_value=None)
+        mocker.patch("apps.contributions.models.Contributor.create_magic_link", return_value="magic_link")
+        mocker.patch("stripe.Customer.retrieve", return_value=AttrDict(name="customer_name"))
+        mock_send_mail = mocker.patch("apps.emails.tasks.send_mail")
+        contribution = make_contribution_fn()
+        data = make_send_thank_you_email_data(contribution)
+        send_thank_you_email(data)
+        mock_send_mail.assert_called_once_with(
+            subject="Thank you for your contribution!",
+            message=render_to_string("nrh-default-contribution-confirmation-email.txt", context=data),
+            from_email=settings.EMAIL_DEFAULT_TRANSACTIONAL_SENDER,
+            recipient_list=[contribution.contributor.email],
+            html_message=render_to_string("nrh-default-contribution-confirmation-email.html", context=data),
+        )
 
     @pytest.mark.parametrize(
         "fiscal_status,has_tax_id",

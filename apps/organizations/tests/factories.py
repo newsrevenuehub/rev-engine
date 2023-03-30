@@ -30,6 +30,7 @@ class OrganizationFactory(DjangoModelFactory):
     class Params:
         free_plan = factory.Trait(plan_name=models.FreePlan.name)
         plus_plan = factory.Trait(plan_name=models.PlusPlan.name)
+        core_plan = factory.Trait(plan_name=models.CorePlan.name)
 
 
 class PaymentProviderFactory(DjangoModelFactory):

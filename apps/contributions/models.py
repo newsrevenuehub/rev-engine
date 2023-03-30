@@ -1,6 +1,7 @@
 import datetime
 import logging
 import uuid
+from dataclasses import asdict
 from typing import List, TypedDict
 from urllib.parse import quote_plus
 
@@ -17,6 +18,7 @@ from apps.emails.tasks import send_thank_you_email
 from apps.organizations.models import RevenueProgram
 from apps.users.choices import Roles
 from apps.users.models import RoleAssignment
+from revengine.settings.base import CurrencyDict
 
 
 logger = logging.getLogger(f"{settings.DEFAULT_LOGGER}.{__name__}")
@@ -265,8 +267,9 @@ class Contribution(IndexedTimeStampedModel):
         return f"{self.formatted_amount}, {self.created.strftime('%Y-%m-%d %H:%M:%S')}"
 
     @property
-    def formatted_amount(self):
-        return f"{'{:.2f}'.format(self.amount / 100)} {self.currency.upper()}"
+    def formatted_amount(self) -> str:
+        currency = self.get_currency_dict()
+        return f"{currency['symbol']}{'{:.2f}'.format(self.amount / 100)} {currency['code']}"
 
     @property
     def revenue_program(self):
@@ -338,6 +341,21 @@ class Contribution(IndexedTimeStampedModel):
         if not self.bad_actor_score:
             return None
         return self.BAD_ACTOR_SCORES[self.bad_actor_score][1]
+
+    def get_currency_dict(self) -> CurrencyDict:
+        """
+        Returns code (i.e. USD) and symbol (i.e. $) for this contribution.
+        """
+        try:
+            return {"code": self.currency.upper(), "symbol": settings.CURRENCIES[self.currency.upper()]}
+        except KeyError:
+            logger.error(
+                'Currency settings for stripe account "%s" misconfigured. Tried to access "%s", but valid options are: %s',
+                self.stripe_account_id,
+                self.currency.upper(),
+                settings.CURRENCIES,
+            )
+            return {"code": "", "symbol": ""}
 
     def get_payment_manager_instance(self):
         """
@@ -541,6 +559,7 @@ class Contribution(IndexedTimeStampedModel):
             )
             return
         token = str(ContributorRefreshToken.for_contributor(self.contributor.uuid).short_lived_access_token)
+
         send_templated_email.delay(
             self.contributor.email,
             f"Reminder: {self.donation_page.revenue_program.name} scheduled contribution",
@@ -562,6 +581,7 @@ class Contribution(IndexedTimeStampedModel):
                     f"https://{construct_rp_domain(self.donation_page.revenue_program.slug)}/{settings.CONTRIBUTOR_VERIFY_URL}"
                     f"?token={token}&email={quote_plus(self.contributor.email)}"
                 ),
+                "style": asdict(self.donation_page.revenue_program.transactional_email_style),
             },
         )
 

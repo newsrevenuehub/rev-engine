@@ -20,7 +20,9 @@ function DonationPageDisclaimer({ page, amount, frequency }) {
     if (frequency === CONTRIBUTION_INTERVALS.ANNUAL) return `${format(new Date(), 'L/d')} yearly until you cancel`;
   };
 
-  const amountString = `${page.currency?.symbol}${amount}${frequency === CONTRIBUTION_INTERVALS.ONE_TIME ? '' : ','}`;
+  const amountString = `${page.currency?.symbol}${amount} ${page.currency?.code}${
+    frequency === CONTRIBUTION_INTERVALS.ONE_TIME ? '' : ','
+  }`;
 
   return (
     <S.DonationPageDisclaimer data-testid="donation-page-disclaimer">

@@ -117,6 +117,60 @@ class DonationPageAdminTestCase(TestCase):
 
         assert soup.body.find(string=expected_in_soup)
 
+    # do same for update
+
+    # def test_add_published_page_when_already_at_publish_limit(self):
+    #     url = reverse("admin:pages_donationpage_add")
+    #     c = Client()
+    #     c.force_login(self.user)
+    #     data = dict.fromkeys(
+    #         [
+    #             "csrfmiddlewaretoken",
+    #             "published_date_0",
+    #             "published_date_1",
+    #             "slug",
+    #             "name",
+    #             "thank_you_redirect",
+    #             "post_thank_you_redirect",
+    #             "header_bg_image",
+    #             "header_logo",
+    #             "header_link",
+    #             "heading",
+    #             "graphic",
+    #             "styles",
+    #             "elements",
+    #             "initial-elements",
+    #             "sidebar_elements",
+    #             "initial-sidebar_elements",
+    #             "_save",
+    #         ],
+    #         "",
+    #     )
+    #     data["revenue_program"] = self.revenue_program.id
+    #     data["published_date_0"] = "2020-01-01"
+    #     data["published_date_1"] = "00:00:00"
+    #     remaining = (
+    #         self.revenue_program.organization.plan.publish_limit
+    #         - DonationPage.objects.filter(revenue_program=self.revenue_program, published_date__isnull=True).count()
+    #     )
+    #     if remaining:
+    #         DonationPageFactory.create_batch(
+    #             remaining, revenue_program=self.revenue_program, published_date=timezone.now()
+    #         )
+    #     response = c.post(url, data)
+    #     assert response.status_code == 200
+    #     soup = bs4(response.content, "html.parser")
+    #     org = self.revenue_program.organization
+    #     expected = (
+    #         f"The parent org (ID: {org.id} | Name: {org.name}) is on the {org.plan.label} "
+    #         f"plan, and is limited to {org.plan.publish_limit} published page{'' if org.plan.publish_limit == 1 else 's'}"
+    #     )
+
+    #     def expected_in_soup(item):
+    #         return soup.body.find(text=lambda t: expected in item.text)
+
+    #     assert soup.body.find(string=expected_in_soup)
+
 
 @pytest.mark.django_db
 def test_can_modify_donation_page_when_sidebar_elements_is_empty(admin_client):

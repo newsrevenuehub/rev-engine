@@ -251,11 +251,13 @@ class DonationPageFullDetailSerializer(serializers.ModelSerializer):
         NB: publish_limit is not a serializer field, so we have to explicitly call this method from
         .validate() below.
         """
-        if self.context["request"].method != "POST":
+        if self.context["request"].method not in ["POST", "PATCH"]:
             return
-        if DonationPage.objects.filter(
-            revenue_program__organization=(org := data["revenue_program"].organization)
-        ).count() + 1 > (pl := org.plan.publish_limit):
+        org = self.instance.revenue_program.organization if self.instance else data["revenue_program"].organization
+        offset = 0 if self.instance else 1
+        if DonationPage.objects.filter(revenue_program__organization=org).count() + offset > (
+            pl := org.plan.publish_limit
+        ):
             raise serializers.ValidationError(
                 {
                     "non_field_errors": [

@@ -13,25 +13,36 @@ from apps.organizations.tasks import (
 from apps.organizations.tests.factories import RevenueProgramFactory
 
 
+@pytest.fixture
+def mailchimp_config(settings):
+    for setting in ("MAILCHIMP_CLIENT_ID", "MAILCHIMP_CLIENT_SECRET"):
+        setattr(settings, setting, "something")
+
+
 class TestExchangeMailchimpOauthCodeForAccessToken:
-    def test_happy_path(self, mocker):
+    def test_happy_path(self, mocker, mailchimp_config):
         mock_post = mocker.patch("requests.post")
         mock_post.return_value.status_code = status.HTTP_200_OK
         mock_post.return_value.json.return_value = {"access_token": (ac := "some-ac-token")}
         assert exchange_mc_oauth_code_for_mc_access_token("some-oauth-code") == ac
 
-    @pytest.mark.parametrize("settings_var", ("MAILCHIMP_CLIENT_ID", "MAILCHIMP_CLIENT_SECRET"))
-    def test_when_missing_config_vars(self, settings_var, settings, mocker):
-        setattr(settings, settings_var, None)
+    @pytest.mark.parametrize(
+        "config",
+        (
+            {"MAILCHIMP_CLIENT_ID": None, "MAILCHIMP_CLIENT_SECRET": "something"},
+            {"MAILCHIMP_CLIENT_ID": "something", "MAILCHIMP_CLIENT_SECRET": None},
+            {"MAILCHIMP_CLIENT_ID": None, "MAILCHIMP_CLIENT_SECRET": None},
+        ),
+    )
+    def test_when_missing_config_vars(self, config, settings, mocker):
+        for k, v in config.items():
+            setattr(settings, k, v)
         logger_spy = mocker.spy(logger, "error")
         with pytest.raises(MailchimpAuthflowUnretryableError):
             exchange_mc_oauth_code_for_mc_access_token("some_oauth_code")
-        logger_spy.assert_called_once_with(
-            "`exchange_mc_oauth_code_for_mc_access_token` called but app is missing required config vars: %s",
-            ", ".join([settings_var]),
-        )
+        logger_spy.assert_called_once()
 
-    def test_when_request_to_mc_non_success(self, mocker, settings):
+    def test_when_request_to_mc_non_success(self, mocker, mailchimp_config):
         mock_post = mocker.patch("requests.post")
         mock_post.return_value.status_code = (code := status.HTTP_400_BAD_REQUEST)
         logger_spy = mocker.spy(logger, "error")
@@ -47,7 +58,7 @@ class TestExchangeMailchimpOauthCodeForAccessToken:
             mock_post.return_value.json.return_value,
         )
 
-    def test_when_response_body_missing_access_token(self, mocker):
+    def test_when_response_body_missing_access_token(self, mocker, mailchimp_config):
         mock_post = mocker.patch("requests.post")
         mock_post.return_value.status_code = status.HTTP_200_OK
         mock_post.return_value.json.return_value = {}

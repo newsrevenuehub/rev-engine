@@ -3,6 +3,7 @@ import { HELP_URL } from 'constants/helperUrls';
 import useConnectMailchimp from 'hooks/useConnectMailchimp';
 
 import IntegrationCard from '../IntegrationCard';
+import { CornerMessage } from './MailchimpIntegrationCard.styled';
 
 export function MailchimpIntegrationCard() {
   const { isLoading, sendUserToMailchimp, connectedToMailchimp, organizationPlan = 'FREE' } = useConnectMailchimp();
@@ -13,7 +14,7 @@ export function MailchimpIntegrationCard() {
       image={MailchimpLogo}
       title="Mailchimp"
       isRequired={false}
-      cornerMessage={freePlan ? 'Upgrade to Core' : undefined}
+      cornerMessage={!isLoading && freePlan ? <CornerMessage>Upgrade to Core</CornerMessage> : undefined}
       site={{
         label: 'mailchimp.com',
         url: 'https://www.mailchimp.com'

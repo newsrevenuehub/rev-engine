@@ -18,7 +18,7 @@ class DonationPageAdminTestCase(TestCase):
         self.factory = RequestFactory()
         user_model = get_user_model()
         self.user = user_model.objects.create_superuser(email="test@test.com", password="testing")
-        self.revenue_program = RevenueProgramFactory()
+        self.revenue_program = RevenueProgramFactory(organization__plan_name="FREE")
         self.page_admin = DonationPageAdmin(DonationPage, AdminSite())
         self.page = DonationPageFactory(name="My Test Page", revenue_program=self.revenue_program)
         self.change_url = reverse("admin:pages_donationpage_changelist")
@@ -97,6 +97,12 @@ class DonationPageAdminTestCase(TestCase):
             "",
         )
         data["revenue_program"] = self.revenue_program.id
+        remaining = (
+            self.revenue_program.organization.plan.page_limit
+            - DonationPage.objects.filter(revenue_program=self.revenue_program).count()
+        )
+        if remaining:
+            DonationPageFactory.create_batch(remaining, revenue_program=self.revenue_program)
         response = c.post(url, data)
         assert response.status_code == 200
         soup = bs4(response.content, "html.parser")

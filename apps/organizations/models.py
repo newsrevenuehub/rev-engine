@@ -55,7 +55,8 @@ class Plan:
     label: str
     sidebar_elements: list[str] = field(default_factory=lambda: DEFAULT_PERMITTED_SIDEBAR_ELEMENTS)
     page_elements: list[str] = field(default_factory=lambda: DEFAULT_PERMITTED_PAGE_ELEMENTS)
-    page_limit: int = 1
+    page_limit: int = 2
+    publish_limit: int = 1
     style_limit: int = 1
     custom_thank_you_page_enabled: bool = False
 
@@ -66,19 +67,28 @@ FreePlan = Plan(
 )
 
 
-plus_plan = {
-    "name": "PLUS",
-    "label": "Plus",
-    # If this limit gets hit, it can be dealt with as a customer service issue.
-    "page_limit": UNLIMITED_CEILING,
-    "style_limit": UNLIMITED_CEILING,
-    "custom_thank_you_page_enabled": True,
-    "sidebar_elements": DEFAULT_PERMITTED_SIDEBAR_ELEMENTS + [BENEFITS],
-    "page_elements": DEFAULT_PERMITTED_PAGE_ELEMENTS + [SWAG],
-}
+CorePlan = Plan(
+    name="CORE",
+    label="Core",
+    page_limit=5,
+    publish_limit=2,
+    style_limit=UNLIMITED_CEILING,
+    sidebar_elements=DEFAULT_PERMITTED_SIDEBAR_ELEMENTS + [BENEFITS],
+    page_elements=DEFAULT_PERMITTED_PAGE_ELEMENTS + [SWAG],
+    custom_thank_you_page_enabled=True,
+)
 
-PlusPlan = Plan(**plus_plan)
-CorePlan = Plan(**(plus_plan | {"name": "CORE", "label": "Core"}))
+PlusPlan = Plan(
+    name="PLUS",
+    label="Plus",
+    # If this limit gets hit, it can be dealt with as a customer service issue.
+    page_limit=UNLIMITED_CEILING,
+    publish_limit=UNLIMITED_CEILING,
+    style_limit=UNLIMITED_CEILING,
+    custom_thank_you_page_enabled=True,
+    sidebar_elements=DEFAULT_PERMITTED_SIDEBAR_ELEMENTS + [BENEFITS],
+    page_elements=DEFAULT_PERMITTED_PAGE_ELEMENTS + [SWAG],
+)
 
 
 class Plans(models.TextChoices):

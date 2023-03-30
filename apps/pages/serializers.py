@@ -43,7 +43,6 @@ class StyleInlineSerializer(serializers.ModelSerializer):
 
 
 class StyleListSerializer(StyleInlineSerializer):
-
     revenue_program = PresentablePrimaryKeyRelatedField(
         queryset=RevenueProgram.objects.all(),
         presentation_serializer=RevenueProgramInlineSerializer,
@@ -246,6 +245,25 @@ class DonationPageFullDetailSerializer(serializers.ModelSerializer):
                 {"non_field_errors": [f"Your organization has reached its limit of {pl} page{'s' if pl > 1 else ''}"]}
             )
 
+    def validate_publish_limit(self, data):
+        """Ensure that publishing a page would not push parent org over its publish limit
+
+        NB: publish_limit is not a serializer field, so we have to explicitly call this method from
+        .validate() below.
+        """
+        if self.context["request"].method != "POST":
+            return
+        if DonationPage.objects.filter(
+            revenue_program__organization=(org := data["revenue_program"].organization)
+        ).count() + 1 > (pl := org.plan.publish_limit):
+            raise serializers.ValidationError(
+                {
+                    "non_field_errors": [
+                        f"Your organization has reached its limit of {pl} published page{'' if pl == 1 else 's'}"
+                    ]
+                }
+            )
+
     def validate_page_element_permissions(self, data):
         """Ensure that requested page elements are permitted by the organization's plan"""
         rp = self.instance.revenue_program if self.instance else data["revenue_program"]
@@ -270,6 +288,7 @@ class DonationPageFullDetailSerializer(serializers.ModelSerializer):
 
     def validate(self, data):
         self.validate_page_limit(data)
+        self.validate_publish_limit(data)
         # TODO: [DEV-2741] Add granular validation for page and sidebar elements
         self.validate_page_element_permissions(data)
         self.validate_sidebar_element_permissions(data)

@@ -251,13 +251,10 @@ class DonationPageFullDetailSerializer(serializers.ModelSerializer):
         NB: publish_limit is not a serializer field, so we have to explicitly call this method from
         .validate() below.
         """
-        logger.info("DonationPageFullDetailSerializer.validate_publish_limit called with data: %s", data)
-        if self.context["request"].method not in ["POST", "PATCH"]:
-            logger.info(
-                "DonationPageFullDetailSerializer.validate_publish_limit returning early because request doesn't attempt to createa or update a page"
-            )
-            return
+        logger.debug("DonationPageFullDetailSerializer.validate_publish_limit called with data: %s", data)
         org = self.instance.revenue_program.organization if self.instance else data["revenue_program"].organization
+        # this method gets run both in create and update contexts, so we need to account for the fact that with an offset.
+        # What we're trying to compute is the total number of published pages for the org if the current request was processed
         offset = 0 if self.instance else 1
         if DonationPage.objects.filter(revenue_program__organization=org).count() + offset > (
             pl := org.plan.publish_limit

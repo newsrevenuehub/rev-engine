@@ -3,7 +3,7 @@ import EnginePlanBadge from './EnginePlanBadge';
 
 export default {
   component: EnginePlanBadge,
-  title: 'Common/EnginePlanBadge',
+  title: 'Common/Badge/EnginePlanBadge',
   argTypes: {
     plan: {
       control: { type: 'select' },

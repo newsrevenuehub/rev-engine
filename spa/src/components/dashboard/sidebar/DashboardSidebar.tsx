@@ -6,14 +6,15 @@ import useFeatureFlags from 'hooks/useFeatureFlags';
 import ContentSectionNav from './navs/ContentSectionNav';
 import ContributionSectionNav from './navs/ContributionSectionNav';
 import DashboardSidebarFooter from './DashboardSidebarFooter';
-import { Banner, Content, Logo, NavList, PlanBadgeContainer, Root } from './DashboardSidebar.styled';
+import { BadgeContainer, Banner, Content, Logo, NavList, Root } from './DashboardSidebar.styled';
 import OrganizationMenu from 'components/common/OrganizationMenu';
-import EnginePlanBadge from 'components/common/EnginePlanBadge/EnginePlanBadge';
+import AdminBadge from 'components/common/Badge/AdminBadge/AdminBadge';
+import EnginePlanBadge from 'components/common/Badge/EnginePlanBadge/EnginePlanBadge';
 import { getUserRole } from 'utilities/getUserRole';
 
 function DashboardSidebar() {
   const { user } = useUser();
-  const { isHubAdmin } = getUserRole(user);
+  const { isHubAdmin, isSuperUser } = getUserRole(user);
   const { flags } = useFeatureFlags();
   const hasContributionsSectionAccess = hasContributionsDashboardAccessToUser(flags);
   const hasContentSectionAccess = flagIsActiveForUser(CONTENT_SECTION_ACCESS_FLAG_NAME, flags);
@@ -23,10 +24,15 @@ function DashboardSidebar() {
     <Root>
       <Banner>
         <Logo aria-label="News Revenue Engine" role="img" />
+        {(isHubAdmin || isSuperUser) && (
+          <BadgeContainer data-testid="admin-badge">
+            <AdminBadge />
+          </BadgeContainer>
+        )}
         {!isHubAdmin && currentOrg && (
-          <PlanBadgeContainer data-testid="engine-plan-badge">
+          <BadgeContainer data-testid="engine-plan-badge">
             <EnginePlanBadge plan={currentOrg.plan.name} />
-          </PlanBadgeContainer>
+          </BadgeContainer>
         )}
       </Banner>
       <Content>

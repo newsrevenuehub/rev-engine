@@ -23,12 +23,7 @@ export const Root = styled.aside`
   }
 `;
 
-export const Banner = styled.div`
-  align-items: center;
-  display: flex;
-`;
-
-export const PlanBadgeContainer = styled.div`
+export const BadgeContainer = styled.div`
   border-left: 1px solid rgba(255, 255, 255, 0.6);
   height: 22px;
   margin-left: 10px;
@@ -37,6 +32,11 @@ export const PlanBadgeContainer = styled.div`
   @media (${(props) => props.theme.breakpoints.tabletLandscapeDown}) {
     display: none;
   }
+`;
+
+export const Banner = styled.div`
+  align-items: center;
+  display: flex;
 `;
 
 export const Content = styled.div`

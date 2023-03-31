@@ -7,6 +7,7 @@ export default {
   argTypes: {
     plan: {
       control: { type: 'select' },
+      defaultValue: 'FREE',
       options: ['FREE', 'CORE', 'PLUS']
     }
   }

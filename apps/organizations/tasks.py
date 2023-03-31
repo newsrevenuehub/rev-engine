@@ -83,8 +83,7 @@ def get_mailchimp_server_prefix(access_token: str) -> str:
         raise MailchimpAuthflowRetryableError(
             f"Non-200 status code when trying to get server prefix: {response.status_code}"
         )
-    prefix = response.json().get("dc", None)
-    if not prefix:
+    if not (prefix := response.json().get("dc", None)):
         logger.error(
             "`get_mailchimp_server_prefix` got a response body missing a `dc` parameter from Mailchimp when trying to get a server prefix"
         )

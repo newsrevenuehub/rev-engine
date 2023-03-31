@@ -27,7 +27,6 @@ class MailchimpAuthflowUnretryableError(Exception):
 
 
 def exchange_mc_oauth_code_for_mc_access_token(oauth_code: str) -> str:
-    """ """
     if missing := [x for x in ["MAILCHIMP_CLIENT_ID", "MAILCHIMP_CLIENT_SECRET"] if not getattr(settings, x, None)]:
         logger.error(
             "`exchange_mc_oauth_code_for_mc_access_token` called but app is missing required config vars: %s",
@@ -47,7 +46,7 @@ def exchange_mc_oauth_code_for_mc_access_token(oauth_code: str) -> str:
 
     logger.info(
         "exchange_mc_oauth_code_for_mc_access_token making a request to Mailchimp with the following data: %s",
-        request_data,
+        request_data | {"code": "REDACTED"},
     )
     response = requests.post(MAILCHIMP_EXCHANGE_OAUTH_CODE_FOR_ACCESS_TOKEN_URL, data=request_data)
 
@@ -55,9 +54,8 @@ def exchange_mc_oauth_code_for_mc_access_token(oauth_code: str) -> str:
         logger.error(
             (
                 "`exchange_mc_oauth_code_for_mc_access_token` got an unexpected status code when trying to get an access token. "
-                "The oauth_code is %s, the response status code is %s, and the response contained: %s"
+                "The response status code is %s, and the response contained: %s"
             ),
-            oauth_code,
             response.status_code,
             getattr(response, "json", lambda: {})() or {},
         )
@@ -99,6 +97,7 @@ def get_mailchimp_server_prefix(access_token: str) -> str:
 
 @shared_task(autoretry_for=(MailchimpAuthflowRetryableError,), retry_backoff=True, retry_kwargs={"max_retries": 3})
 def exchange_mailchimp_oauth_code_for_server_prefix_and_access_token(rp_id: int, oauth_code: str) -> None:
+    """ """
     logger.info("exchange_mailchimp_oauth_code_for_server_prefix_and_access_token called with rp_id %s", rp_id)
     revenue_program = RevenueProgram.objects.filter(pk=rp_id).first()
     update_data = {}
@@ -131,10 +130,9 @@ def exchange_mailchimp_oauth_code_for_server_prefix_and_access_token(rp_id: int,
         logger.exception(
             (
                 "`exchange_mailchimp_oauth_code_for_server_prefix_and_access_token` encountered an unrecoverable error "
-                "procesesing revenue program with ID %s using oauth-code %s"
+                "procesesing revenue program with ID %s"
             ),
             rp_id,
-            oauth_code,
         )
         return
     finally:

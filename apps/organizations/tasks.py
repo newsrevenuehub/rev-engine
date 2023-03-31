@@ -97,7 +97,13 @@ def get_mailchimp_server_prefix(access_token: str) -> str:
 
 @shared_task(autoretry_for=(MailchimpAuthflowRetryableError,), retry_backoff=True, retry_kwargs={"max_retries": 3})
 def exchange_mailchimp_oauth_code_for_server_prefix_and_access_token(rp_id: int, oauth_code: str) -> None:
-    """ """
+    """Exchange an Oauth code for an access token and a server prefix
+
+    After a user completes the form on Mailchimp's site, they are redirected back to the SPA and provided with
+    an Oauth code from Mailchimp. The view function calls this task which exchanges the Oauth code for an access token,
+    which gets saved back to the revenue program, and which gets used to make an additional request to retrieve the
+    Mailchimp server prefix, which also gets saved to the RP.
+    """
     logger.info("exchange_mailchimp_oauth_code_for_server_prefix_and_access_token called with rp_id %s", rp_id)
     revenue_program = RevenueProgram.objects.filter(pk=rp_id).first()
     update_data = {}

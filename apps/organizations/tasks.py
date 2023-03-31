@@ -50,7 +50,7 @@ def exchange_mc_oauth_code_for_mc_access_token(oauth_code: str) -> str:
     )
     response = requests.post(MAILCHIMP_EXCHANGE_OAUTH_CODE_FOR_ACCESS_TOKEN_URL, data=request_data)
 
-    if not response.status_code == status.HTTP_200_OK:
+    if response.status_code != status.HTTP_200_OK:
         logger.error(
             (
                 "`exchange_mc_oauth_code_for_mc_access_token` got an unexpected status code when trying to get an access token. "
@@ -78,7 +78,7 @@ def get_mailchimp_server_prefix(access_token: str) -> str:
     """
     logger.info("get_mailchimp_server_prefix called with access_token was called")
     response = requests.get(MAILCHIMP_GET_SERVER_PREFIX_URL, headers={"Authorization": f"OAuth {access_token}"})
-    if not response.status_code == status.HTTP_200_OK:
+    if response.status_code != status.HTTP_200_OK:
         logger.error("get_mailchimp_server_prefix called but got a non-200 status code: %s", response.status_code)
         raise MailchimpAuthflowRetryableError(
             f"Non-200 status code when trying to get server prefix: {response.status_code}"

@@ -65,31 +65,30 @@ FreePlan = Plan(
     label="Free",
 )
 
-PlusPlan = Plan(
-    name="PLUS",
-    label="Plus",
+
+plus_plan = {
+    "name": "PLUS",
+    "label": "Plus",
     # If this limit gets hit, it can be dealt with as a customer service issue.
-    page_limit=UNLIMITED_CEILING,
-    style_limit=UNLIMITED_CEILING,
-    custom_thank_you_page_enabled=True,
-    sidebar_elements=DEFAULT_PERMITTED_SIDEBAR_ELEMENTS
-    + [
-        BENEFITS,
-    ],
-    page_elements=DEFAULT_PERMITTED_PAGE_ELEMENTS
-    + [
-        SWAG,
-    ],
-)
+    "page_limit": UNLIMITED_CEILING,
+    "style_limit": UNLIMITED_CEILING,
+    "custom_thank_you_page_enabled": True,
+    "sidebar_elements": DEFAULT_PERMITTED_SIDEBAR_ELEMENTS + [BENEFITS],
+    "page_elements": DEFAULT_PERMITTED_PAGE_ELEMENTS + [SWAG],
+}
+
+PlusPlan = Plan(**plus_plan)
+CorePlan = Plan(**(plus_plan | {"name": "CORE", "label": "Core"}))
 
 
 class Plans(models.TextChoices):
     FREE = FreePlan.name, FreePlan.label
     PLUS = PlusPlan.name, PlusPlan.label
+    CORE = CorePlan.name, CorePlan.label
 
     @classmethod
     def get_plan(cls, name):
-        return {cls.FREE.value: FreePlan, cls.PLUS.value: PlusPlan}.get(name, None)
+        return {cls.FREE.value: FreePlan, cls.PLUS.value: PlusPlan, cls.CORE.value: CorePlan}.get(name, None)
 
 
 class OrganizationQuerySet(models.QuerySet):

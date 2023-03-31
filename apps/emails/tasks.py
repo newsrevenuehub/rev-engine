@@ -1,6 +1,6 @@
 from dataclasses import asdict
 from enum import Enum
-from typing import Literal, TypedDict
+from typing import List, Literal, TypedDict, Union
 
 from django.conf import settings
 from django.core.mail import EmailMultiAlternatives, send_mail
@@ -33,25 +33,20 @@ class EmailTaskException(Exception):
     autoretry_for=(AnymailAPIError,),
 )
 def send_templated_email(
-    to, subject, text_template, html_template, template_data, from_email=settings.EMAIL_DEFAULT_TRANSACTIONAL_SENDER
+    to, subject, message_as_text, message_as_html, from_email=settings.EMAIL_DEFAULT_TRANSACTIONAL_SENDER
 ):
     logger.info("Sending email to recipient `%s` with subject `%s`", to, subject)
-    logger.debug(
-        "`send_templated_email`\ntemplate_data: %s\n\ntext_template: %s\n\nhtml_template: %s",
-        template_data,
-        text_template,
-        html_template,
-    )
     with configure_scope() as scope:
         scope.user = {"email": to}
         send_mail(
             subject,
-            render_to_string(text_template, template_data),
+            # render_to_string(text_template, template_data),
+            message_as_text,
             from_email,
             [
                 to,
             ],
-            html_message=render_to_string(html_template, template_data),
+            html_message=message_as_html,
         )
 
 
@@ -157,11 +152,10 @@ def send_thank_you_email(data: SendThankYouEmailData) -> None:
     autoretry_for=(AnymailAPIError,),
 )
 def send_templated_email_with_attachment(
-    to,
-    subject,
-    text_template,
-    html_template,
-    template_data,
+    to: Union[str, List[str]],
+    subject: str,
+    message_as_text: str,
+    message_as_html: str,
     attachment,
     content_type,
     filename,
@@ -169,24 +163,12 @@ def send_templated_email_with_attachment(
 ):
     with configure_scope() as scope:
         scope.user = {"email": to}
-
         if not isinstance(to, (tuple, list)):
             to = (to,)
-
-        mail = EmailMultiAlternatives(
-            subject=subject, body=render_to_string(text_template, template_data), from_email=from_email, to=to
-        )
+        mail = EmailMultiAlternatives(subject=subject, body=message_as_text, from_email=from_email, to=to)
         mail.attach(
             filename=filename, content=attachment.encode("utf-8", errors="backslashreplace"), mimetype=content_type
         )
-        mail.attach_alternative(render_to_string(html_template, template_data), "text/html")
-
+        mail.attach_alternative(message_as_html, "text/html")
         logger.info("Sending email to recipient `%s` with subject `%s`", to, subject)
-        logger.debug(
-            "`send_templated_email_with_attachment`\ntemplate_data: %s\n\ntext_template: %s\n\nfilename: %s\n\attachment: %s",
-            template_data,
-            text_template,
-            filename,
-            attachment,
-        )
         mail.send()

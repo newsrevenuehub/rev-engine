@@ -7,6 +7,7 @@ from urllib.parse import quote_plus
 
 from django.conf import settings
 from django.db import models
+from django.template.loader import render_to_string
 from django.utils.safestring import SafeString, mark_safe
 
 import stripe
@@ -505,30 +506,29 @@ class Contribution(IndexedTimeStampedModel):
             )
             return
         token = str(ContributorRefreshToken.for_contributor(self.contributor.uuid).short_lived_access_token)
-
+        data = {
+            "rp_name": self.donation_page.revenue_program.name,
+            # nb, we have to send this as pre-formatted because this data will be serialized
+            # when sent to the Celery worker.
+            "contribution_date": next_charge_date.strftime("%m/%d/%Y"),
+            "contribution_amount": self.formatted_amount,
+            "contribution_interval_display_value": self.interval,
+            "non_profit": self.donation_page.revenue_program.non_profit,
+            "contributor_email": self.contributor.email,
+            "tax_id": self.donation_page.revenue_program.tax_id,
+            "fiscal_status": self.donation_page.revenue_program.fiscal_status,
+            "fiscal_sponsor_name": self.donation_page.revenue_program.fiscal_sponsor_name,
+            "magic_link": mark_safe(
+                f"https://{construct_rp_domain(self.donation_page.revenue_program.slug)}/{settings.CONTRIBUTOR_VERIFY_URL}"
+                f"?token={token}&email={quote_plus(self.contributor.email)}"
+            ),
+            "style": asdict(self.donation_page.revenue_program.transactional_email_style),
+        }
         send_templated_email.delay(
             self.contributor.email,
             f"Reminder: {self.donation_page.revenue_program.name} scheduled contribution",
-            "recurring-contribution-email-reminder.txt",
-            "recurring-contribution-email-reminder.html",
-            {
-                "rp_name": self.donation_page.revenue_program.name,
-                # nb, we have to send this as pre-formatted because this data will be serialized
-                # when sent to the Celery worker.
-                "contribution_date": next_charge_date.strftime("%m/%d/%Y"),
-                "contribution_amount": self.formatted_amount,
-                "contribution_interval_display_value": self.interval,
-                "non_profit": self.donation_page.revenue_program.non_profit,
-                "contributor_email": self.contributor.email,
-                "tax_id": self.donation_page.revenue_program.tax_id,
-                "fiscal_status": self.donation_page.revenue_program.fiscal_status,
-                "fiscal_sponsor_name": self.donation_page.revenue_program.fiscal_sponsor_name,
-                "magic_link": mark_safe(
-                    f"https://{construct_rp_domain(self.donation_page.revenue_program.slug)}/{settings.CONTRIBUTOR_VERIFY_URL}"
-                    f"?token={token}&email={quote_plus(self.contributor.email)}"
-                ),
-                "style": asdict(self.donation_page.revenue_program.transactional_email_style),
-            },
+            render_to_string("recurring-contribution-email-reminder.txt", data),
+            render_to_string("recurring-contribution-email-reminder.html", data),
         )
 
     @staticmethod

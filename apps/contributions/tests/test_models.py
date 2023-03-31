@@ -5,6 +5,7 @@ from urllib.parse import parse_qs, quote_plus, urlparse
 
 from django.conf import settings
 from django.core import mail
+from django.template.loader import render_to_string
 from django.test import TestCase, override_settings
 from django.utils import timezone
 from django.utils.safestring import mark_safe
@@ -608,21 +609,25 @@ class TestContributionModel:
             mock_send_templated_email.assert_called_once_with(
                 contribution.contributor.email,
                 f"Reminder: {contribution.donation_page.revenue_program.name} scheduled contribution",
-                "recurring-contribution-email-reminder.txt",
-                "recurring-contribution-email-reminder.html",
-                {
-                    "rp_name": contribution.donation_page.revenue_program.name,
-                    "contribution_date": next_charge_date.strftime("%m/%d/%Y"),
-                    "contribution_amount": contribution.formatted_amount,
-                    "contribution_interval_display_value": contribution.interval,
-                    "non_profit": contribution.donation_page.revenue_program.non_profit,
-                    "contributor_email": contribution.contributor.email,
-                    "tax_id": contribution.donation_page.revenue_program.tax_id,
-                    "magic_link": magic_link,
-                    "fiscal_status": contribution.donation_page.revenue_program.fiscal_status,
-                    "fiscal_sponsor_name": contribution.donation_page.revenue_program.fiscal_sponsor_name,
-                    "style": asdict(contribution.donation_page.revenue_program.transactional_email_style),
-                },
+                render_to_string(
+                    "recurring-contribution-email-reminder.txt",
+                    (
+                        data := {
+                            "rp_name": contribution.donation_page.revenue_program.name,
+                            "contribution_date": next_charge_date.strftime("%m/%d/%Y"),
+                            "contribution_amount": contribution.formatted_amount,
+                            "contribution_interval_display_value": contribution.interval,
+                            "non_profit": contribution.donation_page.revenue_program.non_profit,
+                            "contributor_email": contribution.contributor.email,
+                            "tax_id": contribution.donation_page.revenue_program.tax_id,
+                            "magic_link": magic_link,
+                            "fiscal_status": contribution.donation_page.revenue_program.fiscal_status,
+                            "fiscal_sponsor_name": contribution.donation_page.revenue_program.fiscal_sponsor_name,
+                            "style": asdict(contribution.donation_page.revenue_program.transactional_email_style),
+                        }
+                    ),
+                ),
+                render_to_string("recurring-contribution-email-reminder.html", data),
             )
             assert len(mail.outbox) == 1
         else:

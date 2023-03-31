@@ -14,7 +14,7 @@ export function MailchimpIntegrationCard() {
       image={MailchimpLogo}
       title="Mailchimp"
       isRequired={false}
-      cornerMessage={!isLoading && freePlan ? <CornerMessage>Upgrade to Core</CornerMessage> : undefined}
+      cornerMessage={!isLoading && freePlan && <CornerMessage>Upgrade to Core</CornerMessage>}
       site={{
         label: 'mailchimp.com',
         url: 'https://www.mailchimp.com'

@@ -84,7 +84,7 @@ const StyledAutocomplete = styled(MuiAutocomplete)`
 // See https://github.com/styled-components/styled-components/issues/1803
 
 export function SearchableSelect<OptionType>(props: SearchableSelectProps<OptionType>) {
-  const { error, helperText, label, name, required, ...other } = props;
+  const { error, helperText, label, name, required, innerRef, ...other } = props;
 
   // Autocomplete is disabled in the TextField component because in practice,
   // what seems to happen is that browser autofill will enter a value in the
@@ -114,6 +114,7 @@ export function SearchableSelect<OptionType>(props: SearchableSelectProps<Option
           label={label}
           name={name}
           required={required}
+          {...(innerRef && { ref: innerRef })}
         />
       )}
       {...other}

@@ -55,7 +55,8 @@ describe('AudienceListModal', () => {
 
   it('should render audience list dropdown', () => {
     tree();
-    const input = screen.getByRole('button', { name: /Audience/i });
+    // "Open" is the aria-label of the autocomplete dropdown button
+    const input = screen.getByRole('button', { name: /Open/i });
     userEvent.click(input);
     expect(screen.getAllByRole('option')).toHaveLength(4);
     expect(screen.getByRole('option', { name: 'Select your list' })).toBeVisible();
@@ -67,7 +68,8 @@ describe('AudienceListModal', () => {
   it('should call onSelectAudience with selected audience list', async () => {
     tree();
     expect(updateRevenueProgram).not.toBeCalled();
-    userEvent.click(screen.getByRole('button', { name: /Audience/i }));
+    // "Open" is the aria-label of the autocomplete dropdown button
+    userEvent.click(screen.getByRole('button', { name: /Open/i }));
     userEvent.click(screen.getByRole('option', { name: revenueProgram.mailchimp_email_lists[0].name }));
     userEvent.click(screen.getByRole('button', { name: 'Finish' }));
     await waitFor(() => updateRevenueProgram.mock.calls.length > 0);
@@ -102,7 +104,8 @@ describe('AudienceListModal', () => {
     const { container } = tree();
     expect(await axe(container)).toHaveNoViolations();
 
-    userEvent.click(screen.getByRole('button', { name: /Audience/i }));
+    // "Open" is the aria-label of the autocomplete dropdown button
+    userEvent.click(screen.getByRole('button', { name: /Open/i }));
     expect(await axe(container)).toHaveNoViolations();
   });
 });

@@ -2,11 +2,11 @@ import orderBy from 'lodash.orderby';
 import PropTypes, { InferProps } from 'prop-types';
 import { useMemo } from 'react';
 
-import { Button, MenuItem, Modal, ModalContent, ModalFooter, ModalHeader, TextField } from 'components/base';
-import { RevenueProgram } from 'hooks/useContributionPage';
+import { Button, Modal, ModalContent, ModalFooter, ModalHeader, SearchableSelect } from 'components/base';
+import { Audience, RevenueProgram } from 'hooks/useContributionPage';
 import useRevenueProgram from 'hooks/useRevenueProgram';
 import { Controller, useForm } from 'react-hook-form';
-import { ErrorMessage, Highlight, InfoIcon, Label, MenuItemLabel, Title, Typography } from './AudienceListModal.styled';
+import { ErrorMessage, Highlight, InfoIcon, Label, Title, Typography } from './AudienceListModal.styled';
 
 export interface AudienceListModalProps extends Omit<InferProps<typeof AudienceListModalPropTypes>, 'revenueProgram'> {
   revenueProgram: RevenueProgram;
@@ -14,7 +14,7 @@ export interface AudienceListModalProps extends Omit<InferProps<typeof AudienceL
 
 const formDefaultValues = {
   // "." is to select the dropdown placeholder "Select Audience List"
-  audience: '.'
+  audience: { id: '.' as any, name: 'Select your list' }
 };
 
 const AudienceListModal = ({ open, loading, outerError, revenueProgram }: AudienceListModalProps) => {
@@ -29,9 +29,7 @@ const AudienceListModal = ({ open, loading, outerError, revenueProgram }: Audien
 
   const onSubmit = (form: typeof formDefaultValues) => {
     updateRevenueProgram({
-      mailchimp_email_list: revenueProgram?.mailchimp_email_lists?.find(
-        (audience) => audience.id === parseInt(form.audience)
-      )
+      mailchimp_email_list: form.audience
     });
   };
 
@@ -41,6 +39,9 @@ const AudienceListModal = ({ open, loading, outerError, revenueProgram }: Audien
     () => orderBy(revenueProgram?.mailchimp_email_lists, 'name'),
     [revenueProgram?.mailchimp_email_lists]
   );
+
+  // Adding a "." to the beginning of the array to select the placeholder
+  const options = [{ id: '.' as any, name: 'Select your list' }, ...sortedAudienceList];
 
   return (
     <Modal
@@ -63,35 +64,28 @@ const AudienceListModal = ({ open, loading, outerError, revenueProgram }: Audien
           name="audience"
           control={control}
           rules={{
-            required: 'Please select an Audience',
-            pattern: {
-              value: /.*[a-zA-Z].*/gm,
-              message: 'Please select an Audience'
+            validate: {
+              defaultValue: (option) => option?.id !== '.' || 'Please select an Audience'
             }
           }}
-          render={({ field }) => (
-            <TextField
-              {...field}
-              fullWidth
-              id="audience"
+          render={({ field: { ref, onChange, ...rest } }) => (
+            <SearchableSelect
+              {...rest}
+              innerRef={ref}
               label={
                 <Label>
                   <Highlight>*</Highlight>Audience
                 </Label>
               }
-              select
-              data-testid="select-audience"
-            >
-              <MenuItem value="." disabled data-testid="select-audience-placeholder">
-                <MenuItemLabel>Select your list</MenuItemLabel>
-              </MenuItem>
-              {sortedAudienceList.length > 0 &&
-                sortedAudienceList?.map((audience, index) => (
-                  <MenuItem key={audience.name} value={audience.id} data-testid={`select-revenue-program-${index}`}>
-                    {audience.name}
-                  </MenuItem>
-                ))}
-            </TextField>
+              // Disable the placeholder
+              getOptionDisabled={(option) => (option.id as any) === '.'}
+              getOptionLabel={({ name }: Audience) => name}
+              getOptionSelected={(option, value) => option.id === value.id}
+              options={options}
+              onChange={(_, data) => {
+                onChange(data);
+              }}
+            />
           )}
         />
         {errorMessage && !loading && (

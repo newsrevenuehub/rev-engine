@@ -18,12 +18,6 @@ export const Label = styled(MuiTypography)`
   }
 `;
 
-export const MenuItemLabel = styled(MuiTypography)`
-  && {
-    color: ${(props) => props.theme.colors.muiGrey[450]};
-  }
-`;
-
 export const Highlight = styled.span`
   && {
     color: ${(props) => props.theme.colors.error.primary};

@@ -123,4 +123,10 @@ describe('DashboardSidebar', () => {
 
     expect(await axe(container)).toHaveNoViolations();
   });
+
+  it('is accessible', async () => {
+    const { container } = tree();
+
+    expect(await axe(container)).toHaveNoViolations();
+  });
 });

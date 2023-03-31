@@ -139,7 +139,6 @@ def exchange_mailchimp_oauth_code_for_server_prefix_and_access_token(rp_id: int,
             ),
             rp_id,
         )
-        return
     finally:
         if update_data:
             for k, v in update_data.items():

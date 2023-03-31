@@ -1,4 +1,5 @@
 import datetime
+import os
 from dataclasses import asdict
 from unittest.mock import Mock, patch
 from urllib.parse import parse_qs, quote_plus, urlparse
@@ -26,7 +27,7 @@ from apps.contributions.models import (
 )
 from apps.contributions.tests.factories import ContributionFactory, ContributorFactory
 from apps.emails.tasks import send_templated_email
-from apps.organizations.models import FiscalStatusChoices
+from apps.organizations.models import FiscalStatusChoices, FreePlan
 from apps.organizations.tests.factories import (
     OrganizationFactory,
     PaymentProviderFactory,
@@ -734,6 +735,7 @@ class TestContributionModel:
         "revenue_program",
         (
             pytest_cases.fixture_ref("free_plan_revenue_program"),
+            pytest_cases.fixture_ref("core_plan_revenue_program"),
             pytest_cases.fixture_ref("plus_plan_revenue_program"),
         ),
     )
@@ -794,7 +796,19 @@ class TestContributionModel:
             "fiscal_sponsor_name": contribution.donation_page.revenue_program.fiscal_sponsor_name,
             "style": asdict(contribution.donation_page.revenue_program.transactional_email_style),
         }
-        # test the relevant things...
+
+        default_logo = os.path.join(settings.SITE_URL, "static", "nre-logo-yellow.png")
+        custom_logo = 'src="/media/mock-logo"'
+        custom_header_background = "background: #mock-header-background !important"
+        custom_button_background = "background: #mock-button-color !important"
+
+        if revenue_program.organization.plan.name == FreePlan.name or not has_default_donation_page:
+            expect_present = default_logo
+            expect_missing = (custom_logo, custom_button_background, custom_header_background)
+
+        else:
+            expect_present = (custom_logo, custom_header_background)
+            expect_missing = (custom_button_background, default_logo)
 
         mock_send_templated_email.assert_called_once_with(
             contribution.contributor.email,
@@ -803,6 +817,11 @@ class TestContributionModel:
             "recurring-contribution-email-reminder.html",
             template_data,
         )
+
+        for x in expect_present:
+            assert x in mail.outbox[0].alternatives[0][0]
+        for x in expect_missing:
+            assert x not in mail.outbox[0].alternatives[0][0]
 
     @pytest_cases.parametrize(
         "user",

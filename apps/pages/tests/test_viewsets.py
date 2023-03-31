@@ -802,29 +802,35 @@ class TestPageViewSet:
             "thank_you_redirect": ["This organization's plan does not enable assigning a custom thank you URL"]
         }
 
-    @pytest.mark.parametrize("plan", (Plans.FREE.value, Plans.CORE.value))
+    @pytest.mark.parametrize("plan", (Plans.FREE.value, Plans.CORE.value, Plans.PLUS.value))
     def test_patch_when_at_published_limit_and_try_to_publish(
         self, plan, live_donation_page, hub_admin_user, api_client
     ):
-        live_donation_page.revenue_program.organization.plan_name = plan
-        live_donation_page.revenue_program.organization.save()
-        live_donation_page.refresh_from_db()
-        for i in range((rp := live_donation_page.revenue_program).organization.plan.publish_limit):
-            DonationPageFactory(
-                revenue_program=rp,
-                published_date=timezone.now() if i < rp.organization.plan.publish_limit else None,
+        if plan == Plans.PLUS.value:
+            # there's not a path to test updating an existing page such that would push over publish_limit
+            # because the publish_limit is the same as the page_limit. We test for this equivalence to ensure
+            # we're not errantly leaving out this plan from the other test path.
+            assert PlusPlan.publish_limit == PlusPlan.page_limit
+        else:
+            live_donation_page.revenue_program.organization.plan_name = plan
+            live_donation_page.revenue_program.organization.save()
+            live_donation_page.refresh_from_db()
+            for i in range((rp := live_donation_page.revenue_program).organization.plan.publish_limit):
+                DonationPageFactory(
+                    revenue_program=rp,
+                    published_date=timezone.now() if i < rp.organization.plan.publish_limit else None,
+                )
+            unpublished = DonationPageFactory(revenue_program=rp, published_date=None)
+            data = {"published_date": timezone.now()}
+            api_client.force_authenticate(user=hub_admin_user)
+            response = api_client.patch(
+                reverse("donationpage-detail", args=(unpublished.id,)),
+                data,
             )
-        unpublished = DonationPageFactory(revenue_program=rp, published_date=None)
-        data = {"published_date": timezone.now()}
-        api_client.force_authenticate(user=hub_admin_user)
-        response = api_client.patch(
-            reverse("donationpage-detail", args=(unpublished.id,)),
-            data,
-        )
-        assert response.status_code == status.HTTP_400_BAD_REQUEST
-        assert response.json()["non_field_errors"] == [
-            f"Your organization has reached its limit of {rp.organization.plan.publish_limit} published page{'' if rp.organization.plan.publish_limit == 1 else 's'}"
-        ]
+            assert response.status_code == status.HTTP_400_BAD_REQUEST
+            assert response.json()["non_field_errors"] == [
+                f"Your organization has reached its limit of {rp.organization.plan.publish_limit} published page{'' if rp.organization.plan.publish_limit == 1 else 's'}"
+            ]
 
     def test_update_when_already_sidebar_elements_edge_case(
         self,

@@ -1,4 +1,5 @@
 import datetime
+from dataclasses import asdict
 from unittest.mock import Mock, patch
 from urllib.parse import parse_qs, quote_plus, urlparse
 
@@ -155,7 +156,7 @@ class ContributionTest(TestCase):
         self.assertEqual(customer, mock_create_customer.return_value)
 
     def test_formatted_amount(self, mock_fetch_stripe_payment_method, *args):
-        target_format = "10.00 USD"
+        target_format = "$10.00 USD"
         self.assertEqual(self.contribution.formatted_amount, target_format)
 
     def test_str(self, *args):
@@ -576,6 +577,23 @@ class TestContributionModel:
             and contribution.formatted_donor_selected_amount == f"{contribution.amount} {contribution.currency.upper()}"
         )
 
+    @pytest.mark.parametrize("name, symbol", settings.CURRENCIES.items())
+    def test_get_currency_dict(self, name, symbol):
+        contribution = ContributionFactory(currency=name, provider_payment_method_id=None)
+        assert {"code": name, "symbol": symbol} == contribution.get_currency_dict()
+
+    def test_get_currency_dict_bad_value(self, monkeypatch):
+        mock_log_error = Mock()
+        monkeypatch.setattr(logger, "error", mock_log_error)
+        contribution = ContributionFactory(currency="???", provider_payment_method_id=None)
+        assert {"code": "", "symbol": ""} == contribution.get_currency_dict()
+        mock_log_error.assert_called_once_with(
+            'Currency settings for stripe account "%s" misconfigured. Tried to access "%s", but valid options are: %s',
+            contribution.stripe_account_id,
+            "???",
+            settings.CURRENCIES,
+        )
+
     @pytest.mark.parametrize(
         "interval,expect_success",
         (
@@ -628,6 +646,7 @@ class TestContributionModel:
                     "magic_link": magic_link,
                     "fiscal_status": contribution.donation_page.revenue_program.fiscal_status,
                     "fiscal_sponsor_name": contribution.donation_page.revenue_program.fiscal_sponsor_name,
+                    "style": asdict(contribution.donation_page.revenue_program.transactional_email_style),
                 },
             )
             assert len(mail.outbox) == 1
@@ -678,7 +697,7 @@ class TestContributionModel:
         email_expectations = [
             f"Scheduled: {next_charge_date.strftime('%m/%d/%Y')}",
             f"Email: {contribution.contributor.email}",
-            f"Amount Contributed: ${contribution.formatted_amount}/{contribution.interval}",
+            f"Amount Contributed: {contribution.formatted_amount}/{contribution.interval}",
         ]
 
         if revenue_program.fiscal_status == FiscalStatusChoices.FISCALLY_SPONSORED:

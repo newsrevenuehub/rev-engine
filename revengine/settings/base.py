@@ -12,6 +12,7 @@ https://docs.djangoproject.com/en/3.2/ref/settings/
 import os
 from datetime import timedelta
 from pathlib import Path
+from typing import Literal, TypedDict
 
 
 DEBUG = os.getenv("DJANGO_DEBUG", "False") == "True"
@@ -57,7 +58,16 @@ USE_TZ = True
 COUNTRIES = ["US", "CA"]  # First in this list will be default.
 # CURRENCIES is not Django setting, is used in models, related to I18N.
 # Map currency-code to symbol.
-CURRENCIES = {"USD": "$", "CAD": "$"}
+CurrencyCode = Literal["CAD", "USD"]
+CurrencySymbol = Literal["$"]
+
+
+class CurrencyDict(TypedDict):
+    code: CurrencyCode
+    symbol: CurrencySymbol
+
+
+CURRENCIES: CurrencyDict = {"USD": "$", "CAD": "$"}
 
 # Static files (CSS, JavaScript, Images)
 # https://docs.djangoproject.com/en/3.2/howto/static-files/
@@ -523,10 +533,22 @@ BAD_ACTOR_REJECT_SCORE = BAD_ACTOR_SUPERBAD_SCORE
 BAD_ACTOR_REJECT_SCORE_FOR_ORG_USERS = BAD_ACTOR_SUPERBAD_SCORE
 
 
+# This is meant to facilitate testing of the Stripe Account Link flow in local dev environment
+# By setting this to "http://localhost:3000" in env, when you go through Stripe Account Link flow,
+# on completing the Stripe form, you'll be sent back to localhost:3000 (aka the SPA being served by
+# webpack) instead of getting sent to localhost:8000, which is what would happen by default in local
+# dev environment.
+STRIPE_ACCOUNT_LINK_RETURN_BASE_URL = os.getenv("STRIPE_ACCOUNT_LINK_RETURN_BASE_URL", None)
+
+# These `MAILCHIMP_` values are used by code that makes requests to mailchimp on behalf of org users
+MAILCHIMP_CLIENT_ID = os.getenv("MAILCHIMP_CLIENT_ID", None)
+MAILCHIMP_CLIENT_SECRET = os.getenv("MAILCHIMP_CLIENT_SECRET", None)
+
+
 ### Front End Environment Variables
 SPA_ENV_VARS = {
     "HUB_STRIPE_API_PUB_KEY": os.getenv("SPA_ENV_HUB_STRIPE_API_PUB_KEY"),
-    "NRE_MAILCHIMP_CLIENT_ID": os.getenv("SPA_ENV_NRE_MAILCHIMP_CLIENT_ID"),
+    "NRE_MAILCHIMP_CLIENT_ID": MAILCHIMP_CLIENT_ID,
     "CAPTURE_PAGE_SCREENSHOT": os.getenv("SPA_ENV_CAPTURE_PAGE_SCREENSHOT", "false").lower() == "true",
     "SALESFORCE_CAMPAIGN_ID_QUERYPARAM": os.getenv("SPA_ENV_APP_SALESFORCE_CAMPAIGN_ID_QUERYPARAM", "campaign"),
     "FREQUENCY_QUERYPARAM": os.getenv("SPA_ENV_FREQUENCY_QUERYPARAM", "frequency"),
@@ -542,14 +564,3 @@ SPA_ENV_VARS = {
     "ENVIRONMENT": ENVIRONMENT,
     "DASHBOARD_SUBDOMAINS": DASHBOARD_SUBDOMAINS,
 }
-
-# This is meant to facilitate testing of the Stripe Account Link flow in local dev environment
-# By setting this to "http://localhost:3000" in env, when you go through Stripe Account Link flow,
-# on completing the Stripe form, you'll be sent back to localhost:3000 (aka the SPA being served by
-# webpack) instead of getting sent to localhost:8000, which is what would happen by default in local
-# dev environment.
-STRIPE_ACCOUNT_LINK_RETURN_BASE_URL = os.getenv("STRIPE_ACCOUNT_LINK_RETURN_BASE_URL", None)
-
-# These `MAILCHIMP_` values are used by code that makes requests to mailchimp on behalf of org users
-MAILCHIMP_CLIENT_ID = os.getenv("MAILCHIMP_CLIENT_ID", None)
-MAILCHIMP_CLIENT_SECRET = os.getenv("MAILCHIMP_CLIENT_SECRET", None)

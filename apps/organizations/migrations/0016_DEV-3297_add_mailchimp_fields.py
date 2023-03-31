@@ -3,6 +3,13 @@
 from django.db import migrations, models
 
 
+# Note: due to oddities around the order in which related PRs were merged, this migration
+# ended up being merged with a file name that is contrary to our typical convention. Specifically,
+# this migration should have been named 0016_DEV-3298_add_mailchimp_fields.py, as 3298 pulled in the migration
+# that was in this branch. Ultimately, 3298 was merged into main ahead of 3297, hence discrepancy.
+# See: https://github.com/newsrevenuehub/rev-engine/pull/1027/files#diff-bc1aa5ea11a62439847cfe1661265bc3fd5e880e8fa29190d63280b85cea6d29R1
+
+
 class Migration(migrations.Migration):
     dependencies = [
         ("organizations", "0015_DEV-3131_organization_add_fiscal_status_fiscal_sponsor_name_remove_nonprofit"),

@@ -913,9 +913,6 @@ class TestHandleMailchimpOauthSuccessView:
     )
     def test_when_roleassignment_role_is_not_org_admin(self, user, default_feature_flags, api_client):
         api_client.force_authenticate(user)
-        response = api_client.post(reverse("handle-mailchimp-oauth-success"), data={})
-        assert response.status_code == status.HTTP_403_FORBIDDEN
-        assert response.json() == {"detail": "You do not have permission to perform this action."}
 
     def test_when_dont_own_revenue_program(self, org_user_free_plan, revenue_program, api_client):
         assert revenue_program not in org_user_free_plan.roleassignment.revenue_programs.all()

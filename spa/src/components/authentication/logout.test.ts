@@ -1,5 +1,5 @@
 import Axios from 'ajax/axios';
-import { LS_CSRF_TOKEN, LS_SIDEBAR_CORE_UPGRADE_CLOSED, LS_USER } from 'appSettings';
+import { LS_CSRF_TOKEN, LS_USER } from 'appSettings';
 import MockAdapter from 'axios-mock-adapter';
 import { waitFor } from 'test-utils';
 import logout from './logout';
@@ -39,11 +39,11 @@ describe('logout', () => {
     expect(window.localStorage.getItem(LS_CSRF_TOKEN)).toBeNull();
   });
 
-  it('removes the LS_SIDEBAR_CORE_UPGRADE_CLOSED key from local storage', async () => {
-    window.localStorage.setItem(LS_SIDEBAR_CORE_UPGRADE_CLOSED, 'test');
-    expect(window.localStorage.getItem(LS_SIDEBAR_CORE_UPGRADE_CLOSED)).not.toBeNull();
+  it('clears session storage', async () => {
+    window.sessionStorage.setItem('test', 'true');
+    expect(window.sessionStorage.getItem('test')).not.toBeNull();
     await logout();
-    expect(window.localStorage.getItem(LS_SIDEBAR_CORE_UPGRADE_CLOSED)).toBeNull();
+    expect(window.sessionStorage.getItem('test')).toBeNull();
   });
 
   it('redirects the user to the root of the domain', async () => {

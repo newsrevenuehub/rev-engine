@@ -19,14 +19,14 @@ function tree() {
 }
 
 describe('DashboardSidebar', () => {
-  const hasContributionsDashboardAccessToUserMock = hasContributionsDashboardAccessToUser as jest.Mock;
-  const useFeatureFlagsMock = useFeatureFlags as jest.Mock;
-  const useUserMock = useUser as jest.Mock;
+  const hasContributionsDashboardAccessToUserMock = jest.mocked(hasContributionsDashboardAccessToUser);
+  const useFeatureFlagsMock = jest.mocked(useFeatureFlags);
+  const useUserMock = jest.mocked(useUser);
 
   beforeEach(() => {
     hasContributionsDashboardAccessToUserMock.mockReturnValue(true);
-    useFeatureFlagsMock.mockReturnValue({ flags: [] });
-    useUserMock.mockReturnValue({ user: { organizations: [] } });
+    useFeatureFlagsMock.mockReturnValue({ isError: false, isLoading: false, flags: [] });
+    useUserMock.mockReturnValue({ user: { organizations: [] } } as any);
   });
 
   it('displays the Rev Engine logo', () => {
@@ -35,25 +35,31 @@ describe('DashboardSidebar', () => {
   });
 
   it('displays an organization menu if the user has only one', () => {
-    useUserMock.mockReturnValue({ user: { organizations: [{ name: 'test-org-name' }] } });
+    useUserMock.mockReturnValue({ user: { organizations: [{ name: 'test-org-name' }] } } as any);
     tree();
     expect(screen.getByTestId('mock-organization-menu')).toHaveTextContent('test-org-name');
   });
 
   it("doesn't display an organization menu if the user has more than one", () => {
-    useUserMock.mockReturnValue({ user: { organizations: [{ name: 'test-org-name' }, { name: 'test-org-name-2' }] } });
+    useUserMock.mockReturnValue({
+      user: { organizations: [{ name: 'test-org-name' }, { name: 'test-org-name-2' }] }
+    } as any);
     tree();
     expect(screen.queryByTestId('mock-organization-menu')).not.toBeInTheDocument();
   });
 
   it("doesn't display an organization menu if the user has none", () => {
-    useUserMock.mockReturnValue({ user: { organizations: [] } });
+    useUserMock.mockReturnValue({ user: { organizations: [] } } as any);
     tree();
     expect(screen.queryByTestId('mock-organization-menu')).not.toBeInTheDocument();
   });
 
   it('displays the content section navigation if the user has the matching feature flag', () => {
-    useFeatureFlagsMock.mockReturnValue({ flags: [{ name: CONTENT_SECTION_ACCESS_FLAG_NAME }] });
+    useFeatureFlagsMock.mockReturnValue({
+      isError: false,
+      isLoading: false,
+      flags: [{ name: CONTENT_SECTION_ACCESS_FLAG_NAME }]
+    });
     tree();
     expect(screen.getByTestId('mock-content-section-nav')).toBeInTheDocument();
   });

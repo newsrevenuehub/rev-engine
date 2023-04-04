@@ -71,6 +71,7 @@ class Contributor(IndexedTimeStampedModel):
         customer_name=None,
         phone=None,
         street=None,
+        complement=None,
         city=None,
         state=None,
         postal_code=None,
@@ -80,6 +81,7 @@ class Contributor(IndexedTimeStampedModel):
         """Create a Stripe customer using contributor email"""
         address = {
             "line1": street,
+            "line2": complement,
             "city": city,
             "state": state,
             "postal_code": postal_code,
@@ -408,6 +410,7 @@ class Contribution(IndexedTimeStampedModel):
         last_name=None,
         phone=None,
         mailing_street=None,
+        mailing_complement=None,
         mailing_city=None,
         mailing_state=None,
         mailing_postal_code=None,
@@ -417,6 +420,7 @@ class Contribution(IndexedTimeStampedModel):
         """Create a Stripe customer using contributor email"""
         address = {
             "line1": mailing_street,
+            "line2": mailing_complement,
             "city": mailing_city,
             "state": mailing_state,
             "postal_code": mailing_postal_code,

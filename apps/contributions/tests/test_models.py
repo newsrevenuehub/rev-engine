@@ -128,6 +128,7 @@ class ContributionTest(TestCase):
             "last_name": "doe",
             "phone": "555-555-5555",
             "mailing_street": "123 Street Lane",
+            "mailing_complement": "Ap 1",
             "mailing_city": "Small Town",
             "mailing_state": "OK",
             "mailing_postal_code": "12345",
@@ -140,6 +141,7 @@ class ContributionTest(TestCase):
 
         address = {
             "line1": call_args["mailing_street"],
+            "line2": call_args["mailing_complement"],
             "city": call_args["mailing_city"],
             "state": call_args["mailing_state"],
             "postal_code": call_args["mailing_postal_code"],

@@ -111,6 +111,32 @@ const StyledMuiButton = styled(ButtonWrapper)<ButtonProps>`
     }
   }
 
+  &&.NreButtonOutlined {
+    background: none;
+    border-color: white;
+    box-shadow: none;
+    mix-blend-mode: lighten; /* this causes anything colored #000 to become transparent */
+
+    .NreButtonLabel {
+      color: white;
+    }
+
+    &:active,
+    &:hover:active {
+      background: white;
+
+      .NreButtonLabel {
+        color: black;
+      }
+    }
+
+    &:hover {
+      background-color: rgba(255, 255, 255, 0.6);
+    }
+
+    /* We don't have a disabled appearance for this variant yet. */
+  }
+
   &&.Mui-disabled {
     background-color: ${({ color }) => (color ? colors[color].disabled.bg : colors.primaryLight.disabled.bg)};
 
@@ -121,7 +147,18 @@ const StyledMuiButton = styled(ButtonWrapper)<ButtonProps>`
 `;
 
 export function Button(props: ButtonProps) {
-  return <StyledMuiButton classes={{ label: 'NreButtonLabel' }} {...props} />;
+  // If we're using the outlined variant, disable the ripple because it
+  // interferes with the intended appearance.
+
+  const propOverrides: Partial<ButtonProps> = props.variant === 'outlined' ? { disableRipple: true } : {};
+
+  return (
+    <StyledMuiButton
+      classes={{ label: 'NreButtonLabel', outlined: 'NreButtonOutlined' }}
+      {...props}
+      {...propOverrides}
+    />
+  );
 }
 
 export default Button;

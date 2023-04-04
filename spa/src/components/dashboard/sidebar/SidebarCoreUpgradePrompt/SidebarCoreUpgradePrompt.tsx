@@ -1,15 +1,15 @@
 import { Close } from '@material-ui/icons';
 import { PRICING_URL } from 'constants/helperUrls';
 import PropTypes, { InferProps } from 'prop-types';
-import { CloseButton, Header, LearnMoreButton, Root, Text, UpgradeIcon } from './CoreUpgradePrompt.styled';
+import { CloseButton, Header, LearnMoreButton, Root, Text, UpgradeIcon } from './SidebarCoreUpgradePrompt.styled';
 
-const CoreUpgradePromptPropTypes = {
+const SidebarCoreUpgradePromptPropTypes = {
   onClose: PropTypes.func.isRequired
 };
 
-export type CoreUpgradePromptProps = InferProps<typeof CoreUpgradePromptPropTypes>;
+export type SidebarCoreUpgradePromptProps = InferProps<typeof SidebarCoreUpgradePromptPropTypes>;
 
-export function CoreUpgradePrompt({ onClose }: CoreUpgradePromptProps) {
+export function SidebarCoreUpgradePrompt({ onClose }: SidebarCoreUpgradePromptProps) {
   return (
     <Root>
       <UpgradeIcon />
@@ -25,5 +25,5 @@ export function CoreUpgradePrompt({ onClose }: CoreUpgradePromptProps) {
   );
 }
 
-CoreUpgradePrompt.propTypes = CoreUpgradePromptPropTypes;
-export default CoreUpgradePrompt;
+SidebarCoreUpgradePrompt.propTypes = SidebarCoreUpgradePromptPropTypes;
+export default SidebarCoreUpgradePrompt;

@@ -1,24 +1,33 @@
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import PropTypes, { InferProps } from 'prop-types';
-// import { CircularProgress, Divider } from '@material-ui/core';
+import { Divider } from '@material-ui/core';
 import LaunchIcon from '@material-ui/icons/Launch';
 import CheckCircleOutlineIcon from '@material-ui/icons/CheckCircleOutline';
 import FiberManualRecordIcon from '@material-ui/icons/FiberManualRecord';
 
 import useModal from 'hooks/useModal';
 import formatDatetimeForDisplay from 'utilities/formatDatetimeForDisplay';
-import { getUpdateSuccessMessage, pageIsPublished } from 'utilities/editPageGetSuccessMessage';
+import { pageIsPublished } from 'utilities/editPageGetSuccessMessage';
 import { pageLink } from 'utilities/getPageLinks';
 
-import { Flex, Button, Popover, LiveText, /*UnpublishButton, */ Text, IconButton } from './PublishButton.styled';
+import {
+  Flex,
+  Popover,
+  LiveText,
+  Text,
+  IconButton,
+  UnpublishButtonContainer,
+  RootButton
+} from './PublishButton.styled';
 import PublishModal from './PublishModal';
 import SuccessfulPublishModal from './SuccessfulPublishModal';
 import { ContributionPage } from 'hooks/useContributionPage';
 import formatDatetimeForAPI from 'utilities/formatDatetimeForAPI';
-import { Tooltip } from 'components/base';
+import { Button, Tooltip } from 'components/base';
 import { GENERIC_ERROR } from 'constants/textConstants';
 import { useAlert } from 'react-alert';
 import { useEditablePageContext } from 'hooks/useEditablePage';
+import UnpublishModal from './UnpublishModal';
 
 const PublishButtonPropTypes = {
   className: PropTypes.string
@@ -29,11 +38,20 @@ export type PublishButtonProps = InferProps<typeof PublishButtonPropTypes>;
 function PublishButton({ className }: PublishButtonProps) {
   const alert = useAlert();
   const { isLoading, page, savePageChanges } = useEditablePageContext();
-  const { open, handleClose, handleOpen } = useModal();
+  const {
+    open: openPublishModal,
+    handleClose: handleClosePublishModal,
+    handleOpen: handleOpenPublishModal
+  } = useModal();
   const {
     open: openSuccessfulPublishModal,
     handleClose: handleCloseSuccessfulPublishModal,
     handleOpen: handleOpenSuccessfulPublishModal
+  } = useModal();
+  const {
+    open: openUnpublishModal,
+    handleClose: handleCloseUnpublishModal,
+    handleOpen: handleOpenUnpublishModal
   } = useModal();
   const [anchorEl, setAnchorEl] = useState<HTMLElement | null>(null);
   const showPopover = Boolean(anchorEl);
@@ -48,10 +66,13 @@ function PublishButton({ className }: PublishButtonProps) {
     setAnchorEl(null);
   };
 
-  // TODO: update handleUnpublish when implementation of "Unpublish" functionality is decided
-  // const handleUnpublish = () => {
-  //   patchPage({ published_date: 'TBD' });
-  // };
+  useEffect(() => {
+    // If the page became unpublished, hide the published popover.
+
+    if (page && !pageIsPublished(page) && showPopover) {
+      handleClosePopover();
+    }
+  }, [page, showPopover]);
 
   const handlePublish = async (changes: Pick<ContributionPage, 'slug'>) => {
     // These should never happen, but TypeScript doesn't know that.
@@ -75,14 +96,36 @@ function PublishButton({ className }: PublishButtonProps) {
 
       if (pageIsPublished(change)) {
         handleOpenSuccessfulPublishModal();
-      } else {
-        // This will only ever run if the page has been unpublished by the user
-        // just now, which we haven't implemented yet.
-        alert.success(getUpdateSuccessMessage(page, change));
       }
     } catch (error) {
       alert.error(GENERIC_ERROR);
     }
+  };
+
+  // Opening the unpublish modal should hide the popover it was created from.
+
+  const handleUnpublishOpen = () => {
+    handleClosePopover();
+    handleOpenUnpublishModal();
+  };
+
+  const handleUnpublish = async () => {
+    if (!savePageChanges) {
+      // Should never happen.
+
+      throw new Error('savePageChanges is not defined');
+    }
+
+    try {
+      await savePageChanges({ published_date: undefined });
+    } catch (error) {
+      // Log for Sentry and show an alert.
+
+      console.error(error);
+      alert.error(GENERIC_ERROR);
+    }
+
+    handleCloseUnpublishModal();
   };
 
   if (!page) {
@@ -103,9 +146,9 @@ function PublishButton({ className }: PublishButtonProps) {
       >
         {/* Disabled elements do not fire events. Need the DIV over button for tooltip to listen to events. */}
         <div data-testid="publish-button-wrapper">
-          <Button
+          <RootButton
             variant="contained"
-            onClick={isPublished ? handleOpenPopover : handleOpen}
+            onClick={isPublished ? handleOpenPopover : handleOpenPublishModal}
             $active={showPopover}
             aria-label={`${isPublished ? 'Published' : 'Publish'} page ${page?.name}`}
             data-testid="publish-button"
@@ -117,11 +160,25 @@ function PublishButton({ className }: PublishButtonProps) {
             })}
           >
             {isPublished ? 'Published' : 'Publish'}
-          </Button>
+          </RootButton>
         </div>
       </Tooltip>
-      {open && (
-        <PublishModal open={open} onClose={handleClose} page={page} onPublish={handlePublish} loading={isLoading} />
+      {openPublishModal && (
+        <PublishModal
+          open={openPublishModal}
+          onClose={handleClosePublishModal}
+          page={page}
+          onPublish={handlePublish}
+          loading={isLoading}
+        />
+      )}
+      {openUnpublishModal && (
+        <UnpublishModal
+          onClose={handleCloseUnpublishModal}
+          onUnpublish={handleUnpublish}
+          open={openUnpublishModal}
+          page={page}
+        />
       )}
       {showPopover && (
         <Popover
@@ -129,7 +186,7 @@ function PublishButton({ className }: PublishButtonProps) {
           anchorEl={anchorEl}
           onClose={handleClosePopover}
           anchorOrigin={{
-            vertical: 'bottom',
+            vertical: 41,
             horizontal: 'right'
           }}
           transformOrigin={{
@@ -153,14 +210,14 @@ function PublishButton({ className }: PublishButtonProps) {
             </IconButton>
           </Tooltip>
           <Text data-testid="publish-date">
-            {/* TODO: add author of change */}
             {formatDatetimeForDisplay(page?.published_date)} at {formatDatetimeForDisplay(page?.published_date, true)}
           </Text>
-          {/* TODO: update UnpublishButton when implementation of "Unpublish" functionality is decided */}
-          {/* <Divider />
-          <UnpublishButton onClick={handleUnpublish} disabled={loading} aria-label={`Unpublish page ${page?.name}`}>
-            {loading ? <CircularProgress size={16} style={{ color: 'white' }} /> : 'Unpublish'}
-          </UnpublishButton> */}
+          <Divider />
+          <UnpublishButtonContainer>
+            <Button color="error" onClick={handleUnpublishOpen}>
+              Unpublish
+            </Button>
+          </UnpublishButtonContainer>
         </Popover>
       )}
       {openSuccessfulPublishModal && (

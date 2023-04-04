@@ -1,5 +1,6 @@
 import userEvent from '@testing-library/user-event';
 import { axe } from 'jest-axe';
+import { useAlert } from 'react-alert';
 import { act, render, screen, waitFor } from 'test-utils';
 import { GENERIC_ERROR } from 'constants/textConstants';
 import { EditablePageContext, EditablePageContextResult } from 'hooks/useEditablePage';
@@ -7,7 +8,12 @@ import formatDatetimeForDisplay from 'utilities/formatDatetimeForDisplay';
 import { pageLink } from 'utilities/getPageLinks';
 import PublishButton from './PublishButton';
 
+jest.mock('react-alert', () => ({
+  ...jest.requireActual('react-alert'),
+  useAlert: jest.fn()
+}));
 jest.mock('./PublishModal/PublishModal');
+jest.mock('./UnpublishModal/UnpublishModal');
 
 const unpublishedPage = {
   name: 'Contribution page',
@@ -31,6 +37,8 @@ const publishedPage = {
 };
 
 describe('PublishButton', () => {
+  const useAlertMock = useAlert as jest.Mock;
+
   function tree(context?: Partial<EditablePageContextResult>) {
     return render(
       <EditablePageContext.Provider
@@ -91,12 +99,15 @@ describe('PublishButton', () => {
 
     it("displays an error message if the update doesn't succeed", async () => {
       const savePageChanges = jest.fn();
+      const error = jest.fn();
 
+      useAlertMock.mockReturnValue({ error });
       savePageChanges.mockRejectedValue(new Error());
       tree({ savePageChanges });
       userEvent.click(screen.getByRole('button', { name: /Publish/i }));
       userEvent.click(screen.getByText('onPublish'));
-      expect(await screen.findByRole('alert')).toHaveTextContent(GENERIC_ERROR);
+      await waitFor(() => expect(error).toBeCalled());
+      expect(error.mock.calls).toEqual([[GENERIC_ERROR]]);
     });
   });
 
@@ -118,29 +129,93 @@ describe('PublishButton', () => {
     expect(screen.getByRole('button', { name: /Published/i })).toBeEnabled();
   });
 
-  it('should open popover if published and clicked', async () => {
-    tree({ page: publishedPage as any });
+  describe('The published popover', () => {
+    it('appears when the user clicks the Published button', async () => {
+      tree({ page: publishedPage as any });
 
-    const button = screen.getByRole('button', { name: /Published/i });
+      const button = screen.getByRole('button', { name: /Published/i });
 
-    expect(button).toBeEnabled();
-    userEvent.click(button);
-    await waitFor(() => expect(screen.getByText(/live/i)).toBeVisible());
+      expect(button).toBeEnabled();
+      userEvent.click(button);
+      await waitFor(() => expect(screen.getByText(/live/i)).toBeVisible());
 
-    const liveSince = `${formatDatetimeForDisplay(publishedPage.published_date)} at ${formatDatetimeForDisplay(
-      publishedPage.published_date,
-      true
-    )}`;
+      const liveSince = `${formatDatetimeForDisplay(publishedPage.published_date)} at ${formatDatetimeForDisplay(
+        publishedPage.published_date,
+        true
+      )}`;
 
-    expect(screen.getByTestId('publish-date')).toBeVisible();
+      expect(screen.getByTestId('publish-date')).toBeVisible();
 
-    // Very unclear why, but using .toHaveTextContent() fails... but only in CI.
-    expect(screen.getByTestId('publish-date').textContent).toBe(liveSince);
+      // Very unclear why, but using .toHaveTextContent() fails... but only in CI.
+      expect(screen.getByTestId('publish-date').textContent).toBe(liveSince);
 
-    const goToPageButton = screen.getByRole('link', { name: /page link/i });
+      const goToPageButton = screen.getByRole('link', { name: /page link/i });
 
-    expect(goToPageButton).toBeEnabled();
-    expect(goToPageButton).toHaveAttribute('href', `//${pageLink(publishedPage)}`);
+      expect(goToPageButton).toBeEnabled();
+      expect(goToPageButton).toHaveAttribute('href', `//${pageLink(publishedPage)}`);
+      expect(screen.getByRole('button', { name: 'Unpublish' })).toBeVisible();
+    });
+
+    it('shows the unpublish modal when the unpublish button is clicked', () => {
+      tree({ page: publishedPage as any });
+      userEvent.click(screen.getByRole('button', { name: /Published/i }));
+      expect(screen.queryByTestId('mock-unpublish-modal')).not.toBeInTheDocument();
+      userEvent.click(screen.getByRole('button', { name: 'Unpublish' }));
+      expect(screen.getByTestId('mock-unpublish-modal')).toBeInTheDocument();
+    });
+
+    it('closes the unpublish modal when the user closes it', () => {
+      tree({ page: publishedPage as any });
+      userEvent.click(screen.getByRole('button', { name: /Published/i }));
+      userEvent.click(screen.getByRole('button', { name: 'Unpublish' }));
+      expect(screen.getByTestId('mock-unpublish-modal')).toBeInTheDocument();
+      userEvent.click(screen.getByRole('button', { name: 'onClose' }));
+      expect(screen.queryByTestId('mock-unpublish-modal')).not.toBeInTheDocument();
+    });
+
+    describe('When the user chooses to unpublish the page', () => {
+      it("sets the page's published date to undefined", async () => {
+        const savePageChanges = jest.fn();
+
+        tree({ savePageChanges, page: publishedPage as any });
+        userEvent.click(screen.getByRole('button', { name: /Published/i }));
+        userEvent.click(screen.getByRole('button', { name: 'Unpublish' }));
+        expect(savePageChanges).not.toBeCalled();
+        userEvent.click(screen.getByRole('button', { name: 'onUnpublish' }));
+        expect(savePageChanges.mock.calls).toEqual([[{ published_date: undefined }]]);
+
+        // Let the pending action complete.
+        await waitFor(() => expect(screen.queryByTestId('mock-unpublish-modal')).not.toBeInTheDocument());
+      });
+
+      it('shows an error message and closes the unpublish modal if saving changes fails', async () => {
+        const errorSpy = jest.spyOn(console, 'error').mockImplementation(() => {});
+        const error = jest.fn();
+        const savePageChanges = jest.fn().mockRejectedValue(new Error());
+
+        useAlertMock.mockReturnValue({ error });
+        tree({ savePageChanges, page: publishedPage as any });
+        userEvent.click(screen.getByRole('button', { name: /Published/i }));
+        userEvent.click(screen.getByRole('button', { name: 'Unpublish' }));
+        userEvent.click(screen.getByRole('button', { name: 'onUnpublish' }));
+        await waitFor(() => expect(error).toBeCalled());
+        expect(error.mock.calls).toEqual([[GENERIC_ERROR]]);
+        expect(screen.queryByTestId('mock-unpublish-modal')).not.toBeInTheDocument();
+        errorSpy.mockRestore();
+      });
+
+      it('closes the unpublish modal when saving changes succeeds', async () => {
+        tree({ page: publishedPage as any });
+        userEvent.click(screen.getByRole('button', { name: /Published/i }));
+        userEvent.click(screen.getByRole('button', { name: 'Unpublish' }));
+        expect(screen.getByTestId('mock-unpublish-modal')).toBeInTheDocument();
+        userEvent.click(screen.getByRole('button', { name: 'onUnpublish' }));
+        await waitFor(() => expect(screen.queryByTestId('mock-unpublish-modal')).not.toBeInTheDocument());
+      });
+
+      // We don't need to test the alert on success; useEditablePage takes care
+      // of that for us.
+    });
   });
 
   it('should be accessible', async () => {

@@ -24,7 +24,11 @@ import { PagePropTypes } from 'constants/propTypes';
 import slugify from 'utilities/slugify';
 
 const PublishModal = ({ open, onClose, onPublish, page, loading }) => {
-  const [slug, setSlug] = useState(page?.published_date ? page?.slug || '' : '');
+  // If the page has a default slug (see <AddPage>), default the field to an
+  // empty value.
+  const [slug, setSlug] = useState(
+    new RegExp(`${page?.revenue_program.name}-page-(\\d+)`, 'i').test(page?.slug) ? '' : page?.slug
+  );
   const domain = getDomain(window.location.host);
 
   const domainUrl = `.${domain}/`;

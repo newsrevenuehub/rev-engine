@@ -4,3 +4,24 @@
 <p class="content-header">Your Export is Ready!</p>
 <p class="content-body">Download the attached CSV file to access your exported contributions data.</p>
 {% endblock content %}
+
+
+{% block upgrade_prompt %}
+{% if show_upgrade_prompt %}
+<tr>
+    <td>
+        <div class="upgrade-plan" style="color: #282828; font-size: 16px; line-height: 140%; word-wrap: break-word;">
+        <p style="font-weight: 700; font-family: Roboto, sans-serif;">
+            Tired of manual exports and imports?
+        </p>
+        <p style="font-weight: 400; font-family: Roboto, sans-serif; margin: 6px 0 12px;">
+            Let us streamline your workflow! Upgrade to Core to integrate contributor data with Mailchimp and automate email segmentation.
+        </p>
+        <a style="color: #25192B; font-weight: 600; font-family: Roboto, sans-serif;" href="https://fundjournalism.org/pricing/" target="_blank">
+            Learn more
+        </a>
+        </div>
+    </td>
+</tr>
+{% endif %}
+{% endblock upgrade_prompt %}

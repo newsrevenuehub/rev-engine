@@ -1,13 +1,13 @@
 import { PRICING_URL } from 'constants/helperUrls';
 import { axe } from 'jest-axe';
 import { fireEvent, render, screen } from 'test-utils';
-import CoreUpgradePrompt, { CoreUpgradePromptProps } from './CoreUpgradePrompt';
+import SidebarCoreUpgradePrompt, { SidebarCoreUpgradePromptProps } from './SidebarCoreUpgradePrompt';
 
-function tree(props?: Partial<CoreUpgradePromptProps>) {
-  return render(<CoreUpgradePrompt onClose={jest.fn()} {...props} />);
+function tree(props?: Partial<SidebarCoreUpgradePromptProps>) {
+  return render(<SidebarCoreUpgradePrompt onClose={jest.fn()} {...props} />);
 }
 
-describe('CoreUpgradePrompt', () => {
+describe('SidebarCoreUpgradePrompt', () => {
   it('displays a link to the pricing page', () => {
     tree();
 

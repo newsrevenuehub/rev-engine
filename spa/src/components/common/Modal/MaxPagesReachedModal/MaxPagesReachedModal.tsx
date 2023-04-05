@@ -16,6 +16,8 @@ import {
   RedEmphasis
 } from './MaxPagesReachedModal.styled';
 
+export type UpgradePlan = Exclude<EnginePlan['name'], 'FREE'>;
+
 const planNames: Record<EnginePlan['name'], string> = {
   CORE: 'Core',
   FREE: 'Free',
@@ -23,7 +25,7 @@ const planNames: Record<EnginePlan['name'], string> = {
 };
 
 const MaxPagesReachedModalPropTypes = {
-  currentPlan: PropTypes.oneOf(Object.keys(planNames)).isRequired,
+  currentPlan: PropTypes.oneOf(Object.keys(planNames).filter((name) => name !== 'FREE')).isRequired,
   onClose: PropTypes.func.isRequired,
   open: PropTypes.bool,
   recommendedPlan: PropTypes.string
@@ -32,7 +34,7 @@ const MaxPagesReachedModalPropTypes = {
 export interface MaxPagesReachedModalProps extends InferProps<typeof MaxPagesReachedModalPropTypes> {
   currentPlan: EnginePlan['name'];
   onClose: () => void;
-  recommendedPlan?: EnginePlan['name'];
+  recommendedPlan?: UpgradePlan;
 }
 
 export function MaxPagesReachedModal({

@@ -31,15 +31,6 @@ describe('MaxPagesReachedModal', () => {
   });
 
   describe('The link to upgrade', () => {
-    it('goes to the help URL if the free plan is recommended', () => {
-      tree({ open: true, recommendedPlan: 'FREE' });
-
-      const link = screen.getByRole('link', { name: 'Upgrade' });
-
-      expect(link).toHaveAttribute('href', HELP_URL);
-      expect(link).toHaveAttribute('target', '_blank');
-    });
-
     it('goes to the Core upgrade URL if the Core plan is recommended', () => {
       tree({ open: true, recommendedPlan: 'CORE' });
 

@@ -19,7 +19,7 @@ export function MailchimpIntegrationCard() {
         label: 'mailchimp.com',
         url: 'https://www.mailchimp.com'
       }}
-      description="Automate your welcome series and renewal appeals with the all-in-one email platform newsrooms trust."
+      description="Create custom segments and automations based on contributor data with the email platform newsrooms trust."
       disabled={freePlan || isLoading}
       toggleConnectedTooltipMessage={
         <>

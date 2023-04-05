@@ -1,9 +1,9 @@
+import { motion } from 'framer-motion';
 import styled from 'styled-components';
 import { NavLink } from 'react-router-dom';
 import logo from 'assets/images/nre-logo-blue.svg';
 import mobileLogo from 'assets/images/nre-logo-blue-mobile.svg';
 import SvgIcon from 'assets/icons/SvgIcon';
-import { motion } from 'framer-motion';
 
 export const Root = styled.aside`
   display: flex;
@@ -28,11 +28,7 @@ export const Content = styled.div`
   flex-grow: 1;
   flex-direction: column;
   justify-content: space-between;
-  padding: 2rem 0.5rem;
-
-  @media (${(props) => props.theme.breakpoints.tabletLandscapeDown}) {
-    padding: 2rem 0;
-  }
+  padding: 2rem 0 1.5rem 0;
 `;
 
 export const Logo = styled.span`
@@ -60,7 +56,7 @@ export const SideBarText = styled.span`
 export const NavList = styled.div`
   display: flex;
   flex-direction: column;
-  padding: 0.5rem 0;
+  padding: 0.5rem;
   margin: 0;
 
   @media (${(props) => props.theme.breakpoints.tabletLandscapeDown}) {
@@ -100,9 +96,8 @@ export const NavItemLabel = styled.div`
 `;
 
 export const NavItem = styled(NavLink)`
+  color: ${(props) => props.theme.colors.white};
   text-decoration: none;
-  color: ${(props) => (props.disabled ? props.theme.colors.disabled : props.theme.colors.white)};
-
   margin-bottom: 5px;
   line-height: 1.25rem;
   padding: 7px 18px;
@@ -110,8 +105,6 @@ export const NavItem = styled(NavLink)`
   font-weight: 400;
   line-height: 19px;
   font-family: ${(props) => props.theme.systemFont};
-
-  cursor: ${(props) => (props.disabled ? 'default' : 'pointer')};
   vertical-align: middle;
   display: inline-block;
 

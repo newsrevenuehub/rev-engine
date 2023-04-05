@@ -1,5 +1,6 @@
 import { axe } from 'jest-axe';
 import { render, screen } from 'test-utils';
+import { USER_ROLE_HUB_ADMIN_TYPE, USER_ROLE_ORG_ADMIN_TYPE } from 'constants/authConstants';
 import { CONTENT_SECTION_ACCESS_FLAG_NAME } from 'constants/featureFlagConstants';
 import useFeatureFlags from 'hooks/useFeatureFlags';
 import useUser from 'hooks/useUser';
@@ -14,6 +15,11 @@ jest.mock('./DashboardSidebarFooter');
 jest.mock('./navs/ContentSectionNav');
 jest.mock('./navs/ContributionSectionNav');
 
+const user = {
+  organizations: [{ name: 'mock-rp-name', plan: { name: 'FREE' } }],
+  role_type: [USER_ROLE_ORG_ADMIN_TYPE]
+};
+
 function tree() {
   return render(<DashboardSidebar />);
 }
@@ -26,7 +32,7 @@ describe('DashboardSidebar', () => {
   beforeEach(() => {
     hasContributionsDashboardAccessToUserMock.mockReturnValue(true);
     useFeatureFlagsMock.mockReturnValue({ isError: false, isLoading: false, flags: [] });
-    useUserMock.mockReturnValue({ user: { organizations: [] } } as any);
+    useUserMock.mockReturnValue({ user } as any);
   });
 
   it('displays the Rev Engine logo', () => {
@@ -34,22 +40,48 @@ describe('DashboardSidebar', () => {
     expect(screen.getByRole('img', { name: 'News Revenue Engine' })).toBeVisible();
   });
 
+  it('shows a plan badge if the user is not a Hub admin', () => {
+    useUserMock.mockReturnValue({ user: { ...user, role_type: [USER_ROLE_ORG_ADMIN_TYPE] } } as any);
+    tree();
+    expect(screen.getByTestId('engine-plan-badge')).toBeInTheDocument();
+  });
+
+  it('hides the plan badge if the user is a Hub admin', () => {
+    useUserMock.mockReturnValue({ user: { ...user, role_type: [USER_ROLE_HUB_ADMIN_TYPE] } } as any);
+    tree();
+    expect(screen.queryByTestId('engine-plan-badge')).not.toBeInTheDocument();
+  });
+
+  it('shows an admin badge if the user is a Hub admin', () => {
+    useUserMock.mockReturnValue({ user: { ...user, role_type: [USER_ROLE_HUB_ADMIN_TYPE] } } as any);
+    tree();
+    expect(screen.getByTestId('admin-badge')).toBeInTheDocument();
+  });
+
+  it('hides the admin badge if the user is not a Hub admin', () => {
+    useUserMock.mockReturnValue({ user: { ...user, role_type: [USER_ROLE_ORG_ADMIN_TYPE] } } as any);
+    tree();
+    expect(screen.queryByTestId('admin-plan-badge')).not.toBeInTheDocument();
+  });
+
   it('displays an organization menu if the user has only one', () => {
-    useUserMock.mockReturnValue({ user: { organizations: [{ name: 'test-org-name' }] } } as any);
+    useUserMock.mockReturnValue({
+      user: { ...user, organizations: [{ name: 'test-org-name', plan: { name: 'FREE' } }] }
+    } as any);
     tree();
     expect(screen.getByTestId('mock-organization-menu')).toHaveTextContent('test-org-name');
   });
 
   it("doesn't display an organization menu if the user has more than one", () => {
     useUserMock.mockReturnValue({
-      user: { organizations: [{ name: 'test-org-name' }, { name: 'test-org-name-2' }] }
+      user: { ...user, organizations: [{ name: 'test-org-name', plan: { name: 'FREE' } }, { name: 'test-org-name-2' }] }
     } as any);
     tree();
     expect(screen.queryByTestId('mock-organization-menu')).not.toBeInTheDocument();
   });
 
   it("doesn't display an organization menu if the user has none", () => {
-    useUserMock.mockReturnValue({ user: { organizations: [] } } as any);
+    useUserMock.mockReturnValue({ user: { ...user, organizations: [] } } as any);
     tree();
     expect(screen.queryByTestId('mock-organization-menu')).not.toBeInTheDocument();
   });

@@ -1,4 +1,3 @@
-import OrganizationMenu from 'components/common/OrganizationMenu';
 import { CONTENT_SECTION_ACCESS_FLAG_NAME } from 'constants/featureFlagConstants';
 import useUser from 'hooks/useUser';
 import flagIsActiveForUser from 'utilities/flagIsActiveForUser';
@@ -7,10 +6,15 @@ import useFeatureFlags from 'hooks/useFeatureFlags';
 import ContentSectionNav from './navs/ContentSectionNav';
 import ContributionSectionNav from './navs/ContributionSectionNav';
 import DashboardSidebarFooter from './DashboardSidebarFooter';
-import { Content, Logo, NavList, Root } from './DashboardSidebar.styled';
+import { BadgeContainer, Banner, Content, Logo, NavList, Root } from './DashboardSidebar.styled';
+import OrganizationMenu from 'components/common/OrganizationMenu';
+import AdminBadge from 'components/common/Badge/AdminBadge/AdminBadge';
+import EnginePlanBadge from 'components/common/Badge/EnginePlanBadge/EnginePlanBadge';
+import { getUserRole } from 'utilities/getUserRole';
 
 function DashboardSidebar() {
   const { user } = useUser();
+  const { isHubAdmin, isSuperUser } = getUserRole(user);
   const { flags } = useFeatureFlags();
   const hasContributionsSectionAccess = hasContributionsDashboardAccessToUser(flags);
   const hasContentSectionAccess = flagIsActiveForUser(CONTENT_SECTION_ACCESS_FLAG_NAME, flags);
@@ -18,7 +22,19 @@ function DashboardSidebar() {
 
   return (
     <Root>
-      <Logo aria-label="News Revenue Engine" role="img" />
+      <Banner>
+        <Logo aria-label="News Revenue Engine" role="img" />
+        {(isHubAdmin || isSuperUser) && (
+          <BadgeContainer data-testid="admin-badge">
+            <AdminBadge />
+          </BadgeContainer>
+        )}
+        {!isHubAdmin && currentOrg && (
+          <BadgeContainer data-testid="engine-plan-badge">
+            <EnginePlanBadge plan={currentOrg.plan.name} />
+          </BadgeContainer>
+        )}
+      </Banner>
       <Content>
         <NavList role="list" data-testid="nav-list" aria-labelledby="sidebar-label-id">
           {currentOrg?.name && <OrganizationMenu title={currentOrg.name} />}

@@ -202,7 +202,7 @@ function DonationPage({ page, live = false }) {
         city: data.mailing_city,
         country: data.mailing_country,
         line1: data.mailing_street,
-        line2: '', // stripe complains if this is missing
+        line2: data.mailing_complement,
         postal_code: data.mailing_postal_code,
         state: data.mailing_state
       }

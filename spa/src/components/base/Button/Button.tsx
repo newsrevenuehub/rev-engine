@@ -137,6 +137,38 @@ const StyledMuiButton = styled(ButtonWrapper)<ButtonProps>`
     /* We don't have a disabled appearance for this variant yet. */
   }
 
+  &&.NreButtonText {
+    font-weight: 500;
+    text-transform: none;
+    text-decoration: underline;
+    background: none;
+    border-color: white;
+    box-shadow: none;
+    padding: 0;
+    height: unset;
+
+    .NreButtonLabel {
+      color: ${({ theme }) => theme.colors.muiGrey[900]};
+    }
+
+    &:active,
+    &:hover:active {
+      background: white;
+
+      .NreButtonLabel {
+        color: black;
+      }
+    }
+
+    &:hover {
+      background-color: rgba(255, 255, 255, 0.6);
+    }
+
+    &:disabled {
+      background-color: unset;
+    }
+  }
+
   &&.Mui-disabled {
     background-color: ${({ color }) => (color ? colors[color].disabled.bg : colors.primaryLight.disabled.bg)};
 
@@ -154,7 +186,7 @@ export function Button(props: ButtonProps) {
 
   return (
     <StyledMuiButton
-      classes={{ label: 'NreButtonLabel', outlined: 'NreButtonOutlined' }}
+      classes={{ label: 'NreButtonLabel', outlined: 'NreButtonOutlined', text: 'NreButtonText' }}
       {...props}
       {...propOverrides}
     />

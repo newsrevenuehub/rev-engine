@@ -9,7 +9,7 @@ import { HUB_GOOGLE_MAPS_API_KEY } from 'appSettings';
 import { CountryOption } from 'components/base';
 import { usePage } from 'components/donationPage/DonationPage';
 import DElement from 'components/donationPage/pageContent/DElement';
-import { CountrySelect, TextField } from './DDonorAddress.styled';
+import { CountrySelect, TextField, Button } from './DDonorAddress.styled';
 import { DonorAddressElement } from 'hooks/useContributionPage';
 
 const mapAddrFieldToComponentTypes = {
@@ -48,6 +48,8 @@ export interface DDonorAddressProps extends InferProps<typeof DDonorAddressPropT
 function DDonorAddress({ element }: DDonorAddressProps) {
   const { errors, mailingCountry, setMailingCountry } = usePage();
   const [address, setAddress] = useState('');
+  const [showComplement, setShowComplement] = useState(false);
+  const [complement, setComplement] = useState('');
   const [city, setCity] = useState('');
   const [state, setState] = useState('');
   const [zip, setZip] = useState('');
@@ -88,6 +90,8 @@ function DDonorAddress({ element }: DDonorAddressProps) {
       setMailingCountry(fips);
     }
   });
+
+  const toggleComplement = () => setShowComplement((prev) => !prev);
 
   // We disable browser autofill on the address field so that only Google Maps
   // suggestions appear. If the field loses focus, we re-enable it. The value
@@ -132,7 +136,25 @@ function DDonorAddress({ element }: DDonorAddressProps) {
             required
             data-testid="mailing_street"
           />
+          <Button $showComplement={showComplement} variant="text" onClick={toggleComplement}>
+            {showComplement ? '-' : '+'} Address line 2 (Apt, suite, etc.)
+          </Button>
         </Grid>
+        {showComplement && (
+          <Grid item xs={12}>
+            <TextField
+              error={!!errors.mailing_complement}
+              fullWidth
+              id="mailing_complement"
+              name="mailing_complement"
+              label="Apt, suite, etc."
+              value={complement}
+              onChange={(e) => setComplement(e.target.value)}
+              helperText={errors.mailing_complement}
+              data-testid="mailing_complement"
+            />
+          </Grid>
+        )}
         <Grid item xs={12}>
           <TextField
             error={!!errors.mailing_city}

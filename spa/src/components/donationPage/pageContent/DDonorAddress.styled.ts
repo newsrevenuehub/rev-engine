@@ -1,5 +1,5 @@
 import styled from 'styled-components';
-import { CountrySelect as BaseCountrySelect, TextField as BaseTextField } from 'components/base';
+import { CountrySelect as BaseCountrySelect, TextField as BaseTextField, Button as BaseButton } from 'components/base';
 
 // Our select uses the new text field (under components/base) for display. For
 // the time being, we make it look like the old text fields on the rest of the
@@ -86,5 +86,18 @@ export const TextField = styled(BaseTextField)`
       margin: 0;
       padding: 0;
     }
+  }
+`;
+
+export const Button = styled(BaseButton)<{ $showComplement: boolean }>`
+  && {
+    margin-top: 8px;
+    ${({ $showComplement, theme }) =>
+      $showComplement &&
+      `
+    && .NreButtonLabel {
+      color: ${theme.colors.muiGrey[600]};
+    }
+    `}
   }
 `;

@@ -808,6 +808,7 @@ class TestContributionModel:
 
         else:
             expect_present = (custom_logo, custom_header_background)
+            # Email template doesn't have a button to apply the custom button color to
             expect_missing = (custom_button_background, default_logo)
 
         mock_send_templated_email.assert_called_once_with(

@@ -115,6 +115,7 @@ class TestSendThankYouEmail:
 
         else:
             expect_present = (custom_logo,)
+            # Email template doesn't have a button to apply the custom button color to and also doesn't have a header background to customize
             expect_missing = (custom_button_background, custom_header_background, default_logo)
 
         for x in expect_present:

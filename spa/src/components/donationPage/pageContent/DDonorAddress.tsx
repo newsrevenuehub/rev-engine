@@ -91,7 +91,10 @@ function DDonorAddress({ element }: DDonorAddressProps) {
     }
   });
 
-  const toggleComplement = () => setShowComplement((prev) => !prev);
+  const toggleComplement = () => {
+    setShowComplement((prev) => !prev);
+    setComplement('');
+  };
 
   // We disable browser autofill on the address field so that only Google Maps
   // suggestions appear. If the field loses focus, we re-enable it. The value
@@ -136,7 +139,7 @@ function DDonorAddress({ element }: DDonorAddressProps) {
             required
             data-testid="mailing_street"
           />
-          <Button $showComplement={showComplement} variant="text" onClick={toggleComplement}>
+          <Button $showComplement={showComplement} onClick={toggleComplement}>
             {showComplement ? '-' : '+'} Address line 2 (Apt, suite, etc.)
           </Button>
         </Grid>

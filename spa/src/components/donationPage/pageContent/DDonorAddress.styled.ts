@@ -92,12 +92,31 @@ export const TextField = styled(BaseTextField)`
 export const Button = styled(BaseButton)<{ $showComplement: boolean }>`
   && {
     margin-top: 8px;
-    ${({ $showComplement, theme }) =>
-      $showComplement &&
-      `
-    && .NreButtonLabel {
-      color: ${theme.colors.muiGrey[600]};
+    font-weight: 500;
+    text-transform: none;
+    text-decoration: underline;
+    background: none;
+    border-color: white;
+    box-shadow: none;
+    padding: 0;
+    height: unset;
+
+    .NreButtonLabel {
+      color: ${({ theme }) => theme.colors.muiGrey[900]};
+
+      ${({ $showComplement, theme }) => $showComplement && `color: ${theme.colors.muiGrey[600]};`}
     }
-    `}
+
+    &:hover,
+    &:active,
+    &:hover:active {
+      box-shadow: none;
+      background: transparent;
+      text-decoration: underline;
+    }
+
+    &:disabled {
+      background-color: unset;
+    }
   }
 `;

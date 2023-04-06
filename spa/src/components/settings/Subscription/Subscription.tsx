@@ -1,20 +1,44 @@
 import HeaderSection from 'components/common/HeaderSection';
 import SettingsSection from 'components/common/SettingsSection';
-import PropTypes, { InferProps } from 'prop-types';
-import { Wrapper } from './Subscription.styled';
+import { PricingLink, Wrapper } from './Subscription.styled';
+import { Link } from 'components/base';
+import { HELP_URL, PRICING_URL } from 'constants/helperUrls';
+import useUser from 'hooks/useUser';
+import SubscriptionPlan from './SubscriptionPlan';
+import { PLAN_LABELS } from 'constants/orgPlanConstants';
 
-const SubscriptionPropTypes = {};
+export function Subscription() {
+  const { user } = useUser();
 
-export type SubscriptionProps = InferProps<typeof SubscriptionPropTypes>;
+  if (!user) {
+    return null;
+  }
 
-export function Subscription(props: SubscriptionProps) {
+  const firstOrg = user.organizations[0];
+
   return (
     <Wrapper>
       <HeaderSection title="Settings" />
       <SettingsSection title="Subscription" subtitle="View and manage your plan." />
+      <SettingsSection hideBottomDivider title="Current Plan" />
+      <SubscriptionPlan plan={firstOrg.plan.name} />
+      <PricingLink href={PRICING_URL} target="_blank">
+        View full pricing comparison
+      </PricingLink>
+      {firstOrg.plan.name !== PLAN_LABELS.FREE && (
+        <>
+          <SettingsSection hideBottomDivider title="Downgrade or Cancel" />
+          <p>
+            To downgrade or cancel your plan, contact{' '}
+            <Link href={HELP_URL} target="_blank">
+              Support
+            </Link>
+            .
+          </p>
+        </>
+      )}
     </Wrapper>
   );
 }
 
-Subscription.propTypes = SubscriptionPropTypes;
 export default Subscription;

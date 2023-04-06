@@ -67,10 +67,18 @@ describe('getUpdateSuccessMessage', () => {
       );
     });
 
-    it('says the page is no longer live if the page was published, but is now not published', () => {
+    it('says the page is no longer live if the page was published, but is now published in the future', () => {
       expect(
         getUpdateSuccessMessage({ published_date: formatISO(yesterday) } as any, {
           published_date: formatISO(tomorrow)
+        })
+      ).toBe('Your page has been updated and is no longer live');
+    });
+
+    it('says the page is no longer live if the page was published, but is now unpublished', () => {
+      expect(
+        getUpdateSuccessMessage({ published_date: formatISO(yesterday) } as any, {
+          published_date: undefined
         })
       ).toBe('Your page has been updated and is no longer live');
     });

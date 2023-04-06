@@ -10,6 +10,7 @@ import useConnectStripeAccount from 'hooks/useConnectStripeAccount';
 import useFeatureFlags from 'hooks/useFeatureFlags';
 import useUser from 'hooks/useUser';
 
+jest.mock('./sidebar/DashboardSidebar');
 jest.mock('elements/GlobalLoading');
 jest.mock('hooks/useFeatureFlags');
 jest.mock('hooks/useRequest');

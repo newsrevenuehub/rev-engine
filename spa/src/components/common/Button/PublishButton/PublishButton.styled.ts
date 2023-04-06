@@ -8,7 +8,7 @@ export const Flex = styled.div`
   font-family: ${(props) => props.theme.systemFont};
 `;
 
-export const Button = styled(MuiButton)<{ $active?: boolean; $published?: boolean }>`
+export const RootButton = styled(MuiButton)<{ $active?: boolean; $published?: boolean }>`
   && {
     height: 36px;
     font-weight: 600;
@@ -121,4 +121,8 @@ export const Text = styled.p`
   font-size: ${(props) => props.theme.fontSizesUpdated.sm};
   font-weight: 500;
   margin: 0;
+`;
+
+export const UnpublishButtonContainer = styled.div`
+  text-align: right;
 `;

@@ -45,7 +45,7 @@ describe('MailchimpIntegrationCard', () => {
         isLoading: false,
         isError: false,
         connectedToMailchimp: false,
-        organizationPlan
+        organizationPlan: organizationPlan as any
       });
       tree();
       expect(screen.getByTestId('cornerMessage')).toHaveTextContent('Upgrade to Core');
@@ -64,7 +64,7 @@ describe('MailchimpIntegrationCard', () => {
         isLoading: false,
         isError: false,
         connectedToMailchimp: false,
-        organizationPlan
+        organizationPlan: organizationPlan as any
       });
       tree();
       expect(screen.getByTestId('cornerMessage')).toHaveTextContent('');
@@ -82,7 +82,7 @@ describe('MailchimpIntegrationCard', () => {
         isLoading: false,
         isError: false,
         connectedToMailchimp: false,
-        organizationPlan,
+        organizationPlan: organizationPlan as any,
         sendUserToMailchimp
       });
       tree();

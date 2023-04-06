@@ -29,10 +29,8 @@ export function getUpdateSuccessMessage(oldPage: ContributionPage, changes: Part
   const wasPublished = pageIsPublished(oldPage);
 
   // If the publish date isn't being changed, use the base page's publish date.
-  // We have to be careful about this check because published_date might be set
-  // to undefined.
 
-  const isNowPublished = 'published_date' in changes ? pageIsPublished(changes) : wasPublished;
+  const isNowPublished = changes.published_date ? pageIsPublished(changes) : wasPublished;
 
   if (isNowPublished) {
     if (!wasPublished) {

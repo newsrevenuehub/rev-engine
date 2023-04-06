@@ -34,7 +34,6 @@ import useConnectStripeAccount from 'hooks/useConnectStripeAccount';
 import useContributionPageList from 'hooks/useContributionPageList';
 import { SentryRoute } from 'hooks/useSentry';
 import useUser from 'hooks/useUser';
-import { DonationUpgradePrompts } from './DonationUpgradePrompts';
 
 const Donations = () => {
   const { path } = useRouteMatch();
@@ -156,10 +155,7 @@ const Donations = () => {
   return (
     <>
       <PageTitle title="Contributions" />
-      <div
-        data-testid="donations"
-        style={{ display: 'flex', flexDirection: 'column', height: '100%', position: 'relative' }}
-      >
+      <div data-testid="donations" style={{ display: 'flex', flexDirection: 'column', height: '100%' }}>
         <Switch>
           <SentryRoute path={`${path}:contributionId`}>
             <DashboardSection heading="Contribution Info">
@@ -183,7 +179,6 @@ const Donations = () => {
               placeholder="Contributions"
               exportData={{ email: user.email, transactions: maxData }}
             />
-            <DonationUpgradePrompts />
             <Filters
               filters={filters}
               handleFilterChange={handleFilterChange}

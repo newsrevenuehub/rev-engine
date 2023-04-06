@@ -64,8 +64,7 @@
     "use-debounce": "^8.0.4",
     "uuid": "^8.3.2",
     "wcag-contrast": "^3.0.0",
-    "web-vitals": "^1.1.1",
-    "webfontloader": "^1.6.28"
+    "web-vitals": "^1.1.1"
   },
   "scripts": {
     "start": "craco start",
@@ -148,7 +147,6 @@
     "@types/react-router-dom": "^5.3.3",
     "@types/styled-components": "^5.1.26",
     "@types/wcag-contrast": "^3.0.0",
-    "@types/webfontloader": "^1.6.35",
     "@typescript-eslint/eslint-plugin": "^5.54.0",
     "@typescript-eslint/parser": "^5.54.0",
     "axios-mock-adapter": "^1.21.2",

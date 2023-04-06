@@ -8,9 +8,8 @@ async function logout() {
     await axios.delete(TOKEN);
     localStorage.removeItem(LS_USER);
     localStorage.removeItem(LS_CSRF_TOKEN);
-    window.sessionStorage.clear();
     Sentry.setUser(null);
-    window.location.href = '/';
+    window.location = '/';
   } catch (e) {
     console.error(e);
   }

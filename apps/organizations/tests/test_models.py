@@ -1,5 +1,5 @@
+from dataclasses import asdict
 from datetime import timedelta
-from unittest.mock import Mock
 
 from django.conf import settings
 from django.core.exceptions import ValidationError
@@ -22,13 +22,18 @@ from apps.contributions.models import Contribution
 from apps.contributions.tests.factories import ContributionFactory
 from apps.organizations.models import (
     RP_SLUG_MAX_LENGTH,
+    UNLIMITED_CEILING,
     Benefit,
     BenefitLevel,
     BenefitLevelBenefit,
+    CorePlan,
     FiscalStatusChoices,
+    FreePlan,
     HubDefaultEmailStyle,
     Organization,
     PaymentProvider,
+    Plans,
+    PlusPlan,
     RevenueProgram,
     TransactionalEmailStyle,
     logger,
@@ -38,13 +43,76 @@ from apps.organizations.tests.factories import (
     OrganizationFactory,
     RevenueProgramFactory,
 )
+from apps.pages.defaults import (
+    BENEFITS,
+    DEFAULT_PERMITTED_PAGE_ELEMENTS,
+    DEFAULT_PERMITTED_SIDEBAR_ELEMENTS,
+    SWAG,
+)
 from apps.pages.models import DonationPage
 from apps.pages.tests.factories import DonationPageFactory, StyleFactory
 from apps.users.models import RoleAssignment, Roles, User
 
 
+class TestPlans:
+    def test_has_expected_plans(self):
+        assert set(Plans) == {Plans.FREE, Plans.CORE, Plans.PLUS}
+
+    def test_free_plan_characteristics(self):
+        assert asdict(FreePlan) == {
+            "name": "FREE",
+            "label": "Free",
+            "page_limit": 1,
+            "style_limit": 1,
+            "custom_thank_you_page_enabled": False,
+            "sidebar_elements": DEFAULT_PERMITTED_SIDEBAR_ELEMENTS,
+            "page_elements": DEFAULT_PERMITTED_PAGE_ELEMENTS,
+        }
+
+    def test_plus_plan_characteristics(self):
+        assert asdict(PlusPlan) == {
+            "name": "PLUS",
+            "label": "Plus",
+            "page_limit": UNLIMITED_CEILING,
+            "style_limit": UNLIMITED_CEILING,
+            "custom_thank_you_page_enabled": True,
+            "sidebar_elements": DEFAULT_PERMITTED_SIDEBAR_ELEMENTS + [BENEFITS],
+            "page_elements": DEFAULT_PERMITTED_PAGE_ELEMENTS + [SWAG],
+        }
+
+    def test_core_plan_characteristics(self):
+        assert asdict(CorePlan) == {
+            "name": "CORE",
+            "label": "Core",
+            "page_limit": UNLIMITED_CEILING,
+            "style_limit": UNLIMITED_CEILING,
+            "custom_thank_you_page_enabled": True,
+            "sidebar_elements": DEFAULT_PERMITTED_SIDEBAR_ELEMENTS + [BENEFITS],
+            "page_elements": DEFAULT_PERMITTED_PAGE_ELEMENTS + [SWAG],
+        }
+
+    @pytest.mark.parametrize(
+        "plan_name,expected_plan",
+        (
+            (FreePlan.name, FreePlan),
+            (CorePlan.name, CorePlan),
+            (PlusPlan.name, PlusPlan),
+            ("not-found-name", None),
+        ),
+    )
+    def test_get_plan(self, plan_name, expected_plan):
+        assert Plans.get_plan(plan_name) == expected_plan
+
+
 @pytest.mark.django_db
 class TestOrganization:
+    def test_has_expected_plans(self):
+        assert set(Organization.plan_name.field.choices) == {
+            (Plans.FREE.value, Plans.FREE.label),
+            (Plans.CORE.value, Plans.CORE.label),
+            (Plans.PLUS.value, Plans.PLUS.label),
+        }
+
     def test_basics(self):
         t = Organization()
         str(t)
@@ -277,40 +345,65 @@ class TestRevenueProgram:
         mock_stripe_create.assert_called_once()
         mock_logger.exception.assert_called_once()
 
-    def test_mailchimp_email_lists_property_happy_path(self, revenue_program, monkeypatch):
+    def test_mailchimp_email_lists_property_happy_path(self, revenue_program, mocker):
         revenue_program.mailchimp_server_prefix = "us1"
         revenue_program.mailchimp_access_token = "123456"
         revenue_program.save()
-        MockClient = Mock()
-        MockClient.lists.get_all_lists.return_value = {"lists": [{"id": "123", "name": "test"}]}
-        monkeypatch.setattr("mailchimp_marketing.Client", lambda *args, **kwargs: MockClient)
-        assert revenue_program.mailchimp_email_lists == MockClient.lists.get_all_lists.return_value["lists"]
+        mock_mc_client = mocker.patch("mailchimp_marketing.Client")
+        mock_mc_client.return_value.lists.get_all_lists.return_value = {"lists": [{"id": "123", "name": "test"}]}
+        assert (
+            revenue_program.mailchimp_email_lists
+            == mock_mc_client.return_value.lists.get_all_lists.return_value["lists"]
+        )
+        mock_mc_client.assert_called_once()
+        mock_mc_client.return_value.lists.get_all_lists.assert_called_once()
 
-    def test_mailchimp_email_lists_property_when_missing_server_prefix(self, revenue_program):
+    def test_mailchimp_email_lists_property_when_missing_server_prefix(self, revenue_program, mocker):
+        mock_mc_client = mocker.patch("mailchimp_marketing.Client")
+        mock_mc_client.return_value.lists.get_all_lists.return_value = {"lists": [{"id": "123", "name": "test"}]}
         revenue_program.mailchimp_server_prefix = None
         revenue_program.mailchimp_access_token = "123456"
         revenue_program.save()
         assert revenue_program.mailchimp_email_lists == []
+        mock_mc_client.assert_not_called()
+        mock_mc_client.return_value.lists.get_all_lists.assert_not_called()
 
-    def test_mailchimp_email_lists_property_when_missing_access_token(self, revenue_program):
+    def test_mailchimp_email_lists_property_when_missing_access_token(self, revenue_program, mocker):
+        mock_mc_client = mocker.patch("mailchimp_marketing.Client")
+        mock_mc_client.return_value.lists.get_all_lists.return_value = {"lists": [{"id": "123", "name": "test"}]}
         revenue_program.mailchimp_server_prefix = "us1"
         revenue_program.mailchimp_access_token = None
         revenue_program.save()
         assert revenue_program.mailchimp_email_lists == []
+        mock_mc_client.assert_not_called()
+        mock_mc_client.return_value.lists.get_all_lists.assert_not_called()
 
-    def test_mailchimp_email_lists_property_when_mailchimp_api_error(self, revenue_program, monkeypatch, mocker):
+    def test_mailchimp_email_lists_property_when_both_missing(self, revenue_program, mocker):
+        mock_mc_client = mocker.patch("mailchimp_marketing.Client")
+        mock_mc_client.return_value.lists.get_all_lists.return_value = {"lists": [{"id": "123", "name": "test"}]}
+        revenue_program.mailchimp_server_prefix = None
+        revenue_program.mailchimp_access_token = None
+        revenue_program.save()
+        assert revenue_program.mailchimp_email_lists == []
+        mock_mc_client.assert_not_called()
+        mock_mc_client.return_value.lists.get_all_lists.assert_not_called()
+
+    def test_mailchimp_email_lists_property_when_mailchimp_api_error(self, revenue_program, mocker):
         revenue_program.mailchimp_server_prefix = "us1"
         revenue_program.mailchimp_access_token = "123456"
         revenue_program.save()
-        MockClient = Mock()
-        MockClient.lists.get_all_lists.side_effect = ApiClientError("something went wrong")
-        monkeypatch.setattr("mailchimp_marketing.Client", lambda *args, **kwargs: MockClient)
+        mock_mc_client = mocker.patch("mailchimp_marketing.Client")
+        mock_mc_client.return_value.lists.get_all_lists.side_effect = ApiClientError("Ruh roh")
+        mock_mc_client.return_value.lists.get_all_lists.return_value = {"lists": [{"id": "123", "name": "test"}]}
         log_spy = mocker.spy(logger, "exception")
         assert revenue_program.mailchimp_email_lists == []
         log_spy.assert_called_once_with(
-            "`RevenueProgram.mailchimp_email_lists` failed to fetch email lists from Mailchimp for RP with ID %s",
+            "`RevenueProgram.mailchimp_email_lists` failed to fetch email lists from Mailchimp for RP with ID %s mc server prefix %s",
             revenue_program.id,
+            revenue_program.mailchimp_server_prefix,
         )
+        mock_mc_client.assert_called_once()
+        mock_mc_client.return_value.lists.get_all_lists.assert_called_once()
 
     @pytest_cases.parametrize(
         "rp,make_expected_value_fn",

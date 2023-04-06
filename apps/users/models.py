@@ -57,15 +57,22 @@ class User(AbstractBaseUser, PermissionsMixin, IndexedTimeStampedModel):
         return (role_assignment.role_type, role_assignment.get_role_type_display()) if role_assignment else None
 
     def validate_unique(self, exclude) -> None:
+        # we sidestep default unique validation for the email field
+        val = getattr(self, self.USERNAME_FIELD)
+        logger.info(
+            "User.validate_unique called for user with ID %s and %s value %s", self.pk, self.USERNAME_FIELD, val
+        )
         exclude.append(self.USERNAME_FIELD)
         super().validate_unique(exclude)
         _user = None
         try:
-            _user = User.objects.get_by_natural_key(getattr(self, self.USERNAME_FIELD))
+            _user = User.objects.get_by_natural_key(val)
         except User.DoesNotExist:
             return
-
         if _user and (self.pk is None or _user.pk != self.pk):
+            logger.info(
+                "User.validate_unique found a duplicate user with ID %s for %s %s", _user.pk, self.USERNAME_FIELD, val
+            )
             raise ValidationError("User with this Email already exists.", code="unique_together")
 
     def __str__(self):

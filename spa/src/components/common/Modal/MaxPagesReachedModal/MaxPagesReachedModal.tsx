@@ -25,10 +25,10 @@ const planNames: Record<EnginePlan['name'], string> = {
 };
 
 const MaxPagesReachedModalPropTypes = {
-  currentPlan: PropTypes.oneOf(Object.keys(planNames).filter((name) => name !== 'FREE')).isRequired,
+  currentPlan: PropTypes.oneOf(Object.keys(planNames)).isRequired,
   onClose: PropTypes.func.isRequired,
   open: PropTypes.bool,
-  recommendedPlan: PropTypes.string
+  recommendedPlan: PropTypes.oneOf(Object.keys(planNames).filter((name) => name !== 'FREE'))
 };
 
 export interface MaxPagesReachedModalProps extends InferProps<typeof MaxPagesReachedModalPropTypes> {
@@ -37,12 +37,7 @@ export interface MaxPagesReachedModalProps extends InferProps<typeof MaxPagesRea
   recommendedPlan?: UpgradePlan;
 }
 
-export function MaxPagesReachedModal({
-  currentPlan,
-  onClose,
-  open,
-  recommendedPlan = 'CORE'
-}: MaxPagesReachedModalProps) {
+export function MaxPagesReachedModal({ currentPlan, onClose, open, recommendedPlan }: MaxPagesReachedModalProps) {
   const upgradeUrl = recommendedPlan === 'CORE' ? CORE_UPGRADE_URL : HELP_URL;
 
   return (
@@ -54,33 +49,37 @@ export function MaxPagesReachedModal({
         <PlanLimit data-testid="plan-limit">
           You've reached the <RedEmphasis>maximum</RedEmphasis> number of pages for the {planNames[currentPlan]} tier.
         </PlanLimit>
-        <Recommendation data-testid="recommendation">
-          <strong>Want to create more pages?</strong> Check out{' '}
-          {recommendedPlan !== 'PLUS' && planNames[recommendedPlan]}
-          {recommendedPlan === 'PLUS' && (
-            <PricingLink href={PRICING_URL} target="_blank">
-              {planNames[recommendedPlan]}
-            </PricingLink>
-          )}
-          .
-        </Recommendation>
-        {recommendedPlan === 'CORE' && (
-          <Card>
-            <CardHeader>
-              <CardHeaderHighlight>Core Tier</CardHeaderHighlight>
-            </CardHeader>
-            <BenefitsList>
-              <li>Mailchimp integration</li>
-              <li>Branded receipts</li>
-              <li>Branded contributor portal</li>
-              <li>2 live checkout pages</li>
-              <li>
+        {recommendedPlan && (
+          <>
+            <Recommendation data-testid="recommendation">
+              <strong>Want to create more pages?</strong> Check out{' '}
+              {recommendedPlan !== 'PLUS' && planNames[recommendedPlan]}
+              {recommendedPlan === 'PLUS' && (
                 <PricingLink href={PRICING_URL} target="_blank">
-                  And more!
+                  {planNames[recommendedPlan]}
                 </PricingLink>
-              </li>
-            </BenefitsList>
-          </Card>
+              )}
+              .
+            </Recommendation>
+            {recommendedPlan === 'CORE' && (
+              <Card>
+                <CardHeader>
+                  <CardHeaderHighlight>Core Tier</CardHeaderHighlight>
+                </CardHeader>
+                <BenefitsList>
+                  <li>Mailchimp integration</li>
+                  <li>Branded receipts</li>
+                  <li>Branded contributor portal</li>
+                  <li>2 live checkout pages</li>
+                  <li>
+                    <PricingLink href={PRICING_URL} target="_blank">
+                      And more!
+                    </PricingLink>
+                  </li>
+                </BenefitsList>
+              </Card>
+            )}
+          </>
         )}
       </ModalContent>
       <ModalFooter>

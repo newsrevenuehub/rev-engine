@@ -35,6 +35,18 @@ describe('MailchimpIntegrationCard', () => {
     expect(screen.getByTestId('isActive')).toHaveTextContent('true');
   });
 
+  it('does not render an upgrade prompt while the organization is loading', () => {
+    useConnectMailchimpMock.mockReturnValue({
+      isLoading: true,
+      isError: false,
+      connectedToMailchimp: false
+    });
+    tree();
+    expect(screen.getByTestId('cornerMessage')).toBeEmptyDOMElement();
+    expect(screen.getByTestId('isActive')).toHaveTextContent('false');
+    expect(screen.getByRole('button', { name: 'connect' })).toBeDisabled();
+  });
+
   describe('Free plan', () => {
     it.each([
       [undefined],
@@ -67,7 +79,7 @@ describe('MailchimpIntegrationCard', () => {
         organizationPlan: organizationPlan as any
       });
       tree();
-      expect(screen.getByTestId('cornerMessage')).toHaveTextContent('');
+      expect(screen.getByTestId('cornerMessage')).toBeEmptyDOMElement();
       expect(screen.getByTestId('isActive')).toHaveTextContent('false');
       expect(screen.getByRole('button', { name: 'connect' })).toBeEnabled();
     });

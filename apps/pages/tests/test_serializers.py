@@ -269,6 +269,22 @@ class TestDonationPageFullDetailSerializer:
         assert serializer.data["allow_offer_nyt_comp"] == live_donation_page.revenue_program.allow_offer_nyt_comp
 
     @pytest_cases.parametrize("plan", (Plans.FREE.value, Plans.PLUS.value, Plans.CORE.value))
+    def test_can_create_under_page_limit(self, plan, hub_admin_user):
+        org = OrganizationFactory(plan_name=plan)
+        rp = RevenueProgramFactory(organization=org)
+        DonationPageFactory.create_batch(org.plan.page_limit - 1, revenue_program=rp)
+        serializer = DonationPageFullDetailSerializer(
+            data={
+                "slug": "my-new-page",
+                "revenue_program": rp.pk,
+            }
+        )
+        request = APIRequestFactory().post("/")
+        request.user = hub_admin_user
+        serializer.context["request"] = request
+        assert serializer.is_valid() is True
+
+    @pytest_cases.parametrize("plan", (Plans.FREE.value, Plans.PLUS.value, Plans.CORE.value))
     def test_plan_page_limits_are_respected(self, plan, hub_admin_user):
         org = OrganizationFactory(plan_name=plan)
         rp = RevenueProgramFactory(organization=org)

@@ -256,9 +256,9 @@ class DonationPageFullDetailSerializer(serializers.ModelSerializer):
         # this method gets run both in create and update contexts, so we need to account for the fact that with an offset.
         # What we're trying to compute is the total number of published pages for the org if the current request was processed
         offset = 0 if self.instance else 1
-        if DonationPage.objects.filter(revenue_program__organization=org).count() + offset > (
-            pl := org.plan.publish_limit
-        ):
+        if DonationPage.objects.filter(
+            published_date__isnull=False, revenue_program__organization=org
+        ).count() + offset > (pl := org.plan.publish_limit):
             logger.info(
                 "DonationPageFullDetailSerializer.validate_publish_limit raising ValidationError because org (%s) has reached its publish limit",
                 org.id,

@@ -1,5 +1,5 @@
 import { Button, LinkButton, Modal, ModalFooter } from 'components/base';
-import { CORE_UPGRADE_URL, HELP_URL, PRICING_URL } from 'constants/helperUrls';
+import { CORE_UPGRADE_URL, PRICING_URL } from 'constants/helperUrls';
 import { EnginePlan } from 'hooks/useContributionPage';
 import PropTypes, { InferProps } from 'prop-types';
 import {
@@ -38,7 +38,7 @@ export interface MaxPagesReachedModalProps extends InferProps<typeof MaxPagesRea
 }
 
 export function MaxPagesReachedModal({ currentPlan, onClose, open, recommendedPlan }: MaxPagesReachedModalProps) {
-  const upgradeUrl = recommendedPlan === 'CORE' ? CORE_UPGRADE_URL : HELP_URL;
+  const upgradeUrl = recommendedPlan === 'CORE' ? CORE_UPGRADE_URL : PRICING_URL;
 
   return (
     <Modal open={!!open}>

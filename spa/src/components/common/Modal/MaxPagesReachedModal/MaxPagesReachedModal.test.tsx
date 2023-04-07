@@ -1,4 +1,4 @@
-import { CORE_UPGRADE_URL, HELP_URL } from 'constants/helperUrls';
+import { CORE_UPGRADE_URL, PRICING_URL } from 'constants/helperUrls';
 import { axe } from 'jest-axe';
 import { fireEvent, render, screen } from 'test-utils';
 import MaxPagesReachedModal, { MaxPagesReachedModalProps } from './MaxPagesReachedModal';
@@ -40,12 +40,12 @@ describe('MaxPagesReachedModal', () => {
       expect(link).toHaveAttribute('target', '_blank');
     });
 
-    it('goes to the help URL if the Plus plan is recommended', () => {
+    it('goes to the pricing URL if the Plus plan is recommended', () => {
       tree({ open: true, recommendedPlan: 'PLUS' });
 
       const link = screen.getByRole('link', { name: 'Upgrade' });
 
-      expect(link).toHaveAttribute('href', HELP_URL);
+      expect(link).toHaveAttribute('href', PRICING_URL);
       expect(link).toHaveAttribute('target', '_blank');
     });
   });

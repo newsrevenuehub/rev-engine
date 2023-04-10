@@ -5,6 +5,7 @@ import { HELP_URL, PRICING_URL } from 'constants/helperUrls';
 import useUser from 'hooks/useUser';
 import SubscriptionPlan from './SubscriptionPlan';
 import { Downgrade, PricingLink, SubscriptionPlanContainer, Wrapper } from './Subscription.styled';
+import SubheaderSection from 'components/common/SubheaderSection';
 
 export function Subscription() {
   const { user } = useUser();
@@ -13,12 +14,15 @@ export function Subscription() {
     return null;
   }
 
+  // This must exist--this route is wrapped by <SingleOrgUserOnlyRoute> by
+  // <Dashboard>.
+
   const firstOrg = user.organizations[0];
 
   return (
     <Wrapper>
       <HeaderSection title="Settings" />
-      <SettingsSection title="Subscription" subtitle="View and manage your plan." />
+      <SubheaderSection title="Subscription" subtitle="View and manage your plan." />
       <SettingsSection hideBottomDivider title="Current Plan" />
       <SubscriptionPlanContainer>
         <SubscriptionPlan plan={firstOrg.plan.name} />

@@ -407,7 +407,6 @@ class TestContributionsViewSet:
         processing_contribution,
         api_client,
     ):
-
         """Only superusers and hub admins should see contributions that have status of flagged or rejected"""
         seen = [
             successful_contribution,
@@ -1102,7 +1101,6 @@ def stripe_create_subscription_response(stripe_create_customer_response):
 
 @pytest.mark.django_db
 class TestPaymentViewset:
-
     client = APIClient()
     # this is added because bad actor serializer needs referer
     client.credentials(HTTP_REFERER="https://www.foo.com")

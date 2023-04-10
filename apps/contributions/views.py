@@ -7,6 +7,7 @@ from django.conf import settings
 from django.contrib.auth import get_user_model
 from django.db.models import QuerySet
 from django.shortcuts import get_object_or_404
+from django.template.loader import render_to_string
 from django.utils.decorators import method_decorator
 from django.views.decorators.csrf import csrf_protect
 
@@ -316,14 +317,19 @@ class ContributionsViewSet(viewsets.ReadOnlyModelViewSet):
             send_templated_email_with_attachment.delay(
                 to=request.user.email,
                 subject="Check out your Contributions",
-                text_template="nrh-contribution-csv-email-body.txt",
-                html_template="nrh-contribution-csv-email-body.html",
-                template_data={
-                    "logo_url": os.path.join(settings.SITE_URL, "static", "nre_logo_black_yellow.png"),
-                    "show_upgrade_prompt": request.user.get_role_assignment().organization.plan.name == FreePlan.name
-                    if request.user.get_role_assignment()
-                    else False,
-                },
+                message_as_text=render_to_string(
+                    "nrh-contribution-csv-email-body.txt",
+                    (
+                        data := {
+                            "logo_url": os.path.join(settings.SITE_URL, "static", "nre_logo_black_yellow.png"),
+                            "show_upgrade_prompt": request.user.get_role_assignment().organization.plan.name
+                            == FreePlan.name
+                            if request.user.get_role_assignment()
+                            else False,
+                        }
+                    ),
+                ),
+                message_as_html=render_to_string("nrh-contribution-csv-email-body.html", data),
                 attachment=contributions_in_csv,
                 content_type="text/csv",
                 filename="contributions.csv",

@@ -6,6 +6,7 @@ from urllib.parse import quote_plus, urlparse
 from django.conf import settings
 from django.middleware import csrf
 from django.shortcuts import get_object_or_404
+from django.template.loader import render_to_string
 from django.utils.safestring import mark_safe
 
 from rest_framework import status
@@ -182,17 +183,17 @@ class RequestContributorTokenEmailView(APIView):
         logger.info(
             "Sending magic link email to [%s] | magic link: [%s]", serializer.validated_data["email"], magic_link
         )
+        data = {
+            "magic_link": mark_safe(magic_link),
+            "email": serializer.validated_data["email"],
+            "style": asdict(revenue_program.transactional_email_style),
+            "rp_name": revenue_program.name,
+        }
         send_templated_email.delay(
             serializer.validated_data["email"],
             "Manage your contributions",
-            "nrh-manage-contributions-magic-link.txt",
-            "nrh-manage-contributions-magic-link.html",
-            {
-                "magic_link": mark_safe(magic_link),
-                "email": serializer.validated_data["email"],
-                "style": asdict(revenue_program.transactional_email_style),
-                "rp_name": revenue_program.name,
-            },
+            render_to_string("nrh-manage-contributions-magic-link.txt", data),
+            render_to_string("nrh-manage-contributions-magic-link.html", data),
         )
         # Email is async task. We won't know if it succeeds or not so optimistically send OK.
         return Response({"detail": "success"}, status=status.HTTP_200_OK)

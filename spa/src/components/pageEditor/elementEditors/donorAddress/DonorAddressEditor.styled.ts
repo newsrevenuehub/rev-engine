@@ -1,4 +1,5 @@
 import styled from 'styled-components';
+import { FormControlLabel, RadioGroup as BaseRadioGroup } from 'components/base';
 
 export const Checkboxes = styled.div`
   display: flex;
@@ -16,4 +17,17 @@ export const Header = styled.h4`
 export const Tip = styled.p`
   color: ${({ theme }) => theme.colors.muiGrey[600]};
   margin-bottom: 18px;
+`;
+
+export const RadioGroup = styled(BaseRadioGroup)`
+  margin-top: 20px;
+  gap: 20px;
+`;
+
+export const Text = styled.p`
+  font-size: ${({ theme }) => theme.fontSizesUpdated.md};
+`;
+
+export const StyledFormControlLabel = styled(FormControlLabel)`
+  margin: 24px 0 15px;
 `;

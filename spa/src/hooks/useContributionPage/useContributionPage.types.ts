@@ -124,6 +124,14 @@ export interface DonorAddressElement extends ContributionPageElement {
      * as-is, and order is not significant.
      */
     additionalStateFieldLabels?: DonorAddressElementAdditionalStateFieldLabel[];
+    /**
+     * Address fields are optional?
+     */
+    addressOptional?: boolean;
+    /**
+     * Show zip code and country fields only?
+     */
+    zipAndCountryOnly?: boolean;
   };
 }
 

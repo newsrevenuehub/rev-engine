@@ -4,16 +4,17 @@ import { PlanCost, PlanCostInterval, PlanName, Root } from './SubscriptionPlan.s
 import { EnginePlan } from 'hooks/useContributionPage';
 
 const SubscriptionPlanPropTypes = {
+  className: PropTypes.string,
   plan: PropTypes.oneOf(Object.keys(PLAN_NAMES)).isRequired
 };
 
 export type SubscriptionPlanProps = InferProps<typeof SubscriptionPlanPropTypes>;
 
-export function SubscriptionPlan({ plan }: SubscriptionPlanProps) {
+export function SubscriptionPlan({ className, plan }: SubscriptionPlanProps) {
   return (
-    <Root>
-      <PlanName $plan={plan as EnginePlan['name']}>{PLAN_NAMES[plan as EnginePlan['name']]}</PlanName>
-      {plan in PLAN_ANNUAL_COSTS && (
+    <Root className={className!}>
+      <PlanName $plan={plan as EnginePlan['name']}>{PLAN_NAMES[plan as EnginePlan['name']]} Tier</PlanName>
+      {PLAN_ANNUAL_COSTS[plan as keyof typeof PLAN_ANNUAL_COSTS] !== undefined && (
         <PlanCost>
           ${PLAN_ANNUAL_COSTS[plan as keyof typeof PLAN_ANNUAL_COSTS]}
           <PlanCostInterval>/year</PlanCostInterval>

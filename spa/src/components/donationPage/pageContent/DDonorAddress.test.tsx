@@ -137,6 +137,11 @@ describe('DDonorAddress', () => {
       userEvent.click(screen.getByRole('button', { name: '+ Address line 2 (Apt, suite, etc.)' }));
     }
 
+    it(`is hidden by default`, () => {
+      tree();
+      expect(screen.queryByRole('textbox', { name: 'Apt, suite, etc.' })).not.toBeInTheDocument();
+    });
+
     it(`has the form name mailing_complement`, () => {
       tree();
       openLine2();

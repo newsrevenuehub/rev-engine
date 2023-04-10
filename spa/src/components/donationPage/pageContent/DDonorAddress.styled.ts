@@ -120,3 +120,8 @@ export const Button = styled(BaseButton)<{ $showComplement: boolean }>`
     }
   }
 `;
+
+export const CollapseChild = styled.div`
+  width: 100%;
+  padding: 12px;
+`;

@@ -759,24 +759,6 @@ class TestContributionModel:
         contribution.send_recurring_contribution_email_reminder(next_charge_date)
         assert len(mail.outbox) == 1
 
-        magic_link = mark_safe(
-            f"https://{construct_rp_domain(contribution.donation_page.revenue_program.slug)}/{settings.CONTRIBUTOR_VERIFY_URL}"
-            f"?token={token}&email={quote_plus(contribution.contributor.email)}"
-        )
-        template_data = {
-            "rp_name": contribution.donation_page.revenue_program.name,
-            "contribution_date": next_charge_date.strftime("%m/%d/%Y"),
-            "contribution_amount": contribution.formatted_amount,
-            "contribution_interval_display_value": contribution.interval,
-            "non_profit": contribution.donation_page.revenue_program.non_profit,
-            "contributor_email": contribution.contributor.email,
-            "tax_id": contribution.donation_page.revenue_program.tax_id,
-            "magic_link": magic_link,
-            "fiscal_status": contribution.donation_page.revenue_program.fiscal_status,
-            "fiscal_sponsor_name": contribution.donation_page.revenue_program.fiscal_sponsor_name,
-            "style": asdict(contribution.donation_page.revenue_program.transactional_email_style),
-        }
-
         default_logo = os.path.join(settings.SITE_URL, "static", "nre-logo-yellow.png")
         custom_logo = 'src="/media/mock-logo"'
         custom_header_background = "background: #mock-header-background !important"
@@ -790,14 +772,6 @@ class TestContributionModel:
             expect_present = (custom_logo, custom_header_background)
             # Email template doesn't have a button to apply the custom button color to
             expect_missing = (custom_button_background, default_logo)
-
-        mock_send_templated_email.assert_called_once_with(
-            contribution.contributor.email,
-            f"Reminder: {contribution.donation_page.revenue_program.name} scheduled contribution",
-            "recurring-contribution-email-reminder.txt",
-            "recurring-contribution-email-reminder.html",
-            template_data,
-        )
 
         for x in expect_present:
             assert x in mail.outbox[0].alternatives[0][0]

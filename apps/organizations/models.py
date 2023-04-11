@@ -1,4 +1,5 @@
 import logging
+import os
 from dataclasses import dataclass, field
 from functools import cached_property
 
@@ -8,7 +9,10 @@ from django.core.validators import MinLengthValidator
 from django.db import models
 from django.utils import timezone
 
+import mailchimp_marketing as MailchimpMarketing
 import stripe
+from addict import Dict as AttrDict
+from mailchimp_marketing.api_client import ApiClientError
 
 from apps.common.models import IndexedTimeStampedModel
 from apps.common.utils import normalize_slug
@@ -62,31 +66,30 @@ FreePlan = Plan(
     label="Free",
 )
 
-PlusPlan = Plan(
-    name="PLUS",
-    label="Plus",
+
+plus_plan = {
+    "name": "PLUS",
+    "label": "Plus",
     # If this limit gets hit, it can be dealt with as a customer service issue.
-    page_limit=UNLIMITED_CEILING,
-    style_limit=UNLIMITED_CEILING,
-    custom_thank_you_page_enabled=True,
-    sidebar_elements=DEFAULT_PERMITTED_SIDEBAR_ELEMENTS
-    + [
-        BENEFITS,
-    ],
-    page_elements=DEFAULT_PERMITTED_PAGE_ELEMENTS
-    + [
-        SWAG,
-    ],
-)
+    "page_limit": UNLIMITED_CEILING,
+    "style_limit": UNLIMITED_CEILING,
+    "custom_thank_you_page_enabled": True,
+    "sidebar_elements": DEFAULT_PERMITTED_SIDEBAR_ELEMENTS + [BENEFITS],
+    "page_elements": DEFAULT_PERMITTED_PAGE_ELEMENTS + [SWAG],
+}
+
+PlusPlan = Plan(**plus_plan)
+CorePlan = Plan(**(plus_plan | {"name": "CORE", "label": "Core"}))
 
 
 class Plans(models.TextChoices):
     FREE = FreePlan.name, FreePlan.label
     PLUS = PlusPlan.name, PlusPlan.label
+    CORE = CorePlan.name, CorePlan.label
 
     @classmethod
     def get_plan(cls, name):
-        return {cls.FREE.value: FreePlan, cls.PLUS.value: PlusPlan}.get(name, None)
+        return {cls.FREE.value: FreePlan, cls.PLUS.value: PlusPlan, cls.CORE.value: CorePlan}.get(name, None)
 
 
 class OrganizationQuerySet(models.QuerySet):
@@ -251,6 +254,29 @@ class FiscalStatusChoices(models.TextChoices):
     FISCALLY_SPONSORED = "fiscally sponsored"
 
 
+@dataclass(frozen=True)
+class TransactionalEmailStyle:
+    """Used to model the default style characteristics for a given revenue program,
+
+    though in theory, this need not be tied to a revenue program.
+    """
+
+    logo_url: str = None
+    header_color: str = None
+    header_font: str = None
+    body_font: str = None
+    button_color: str = None
+
+
+HubDefaultEmailStyle = TransactionalEmailStyle(
+    logo_url=os.path.join(settings.SITE_URL, "static", "nre-logo-white.png"),
+    header_color=None,
+    header_font=None,
+    body_font=None,
+    button_color=None,
+)
+
+
 class RevenueProgramQuerySet(models.QuerySet):
     def filtered_by_role_assignment(self, role_assignment: RoleAssignment) -> models.QuerySet:
         match role_assignment.role_type:
@@ -262,6 +288,12 @@ class RevenueProgramQuerySet(models.QuerySet):
                 return self.filter(id__in=role_assignment.revenue_programs.values_list("id", flat=True))
             case _:
                 return self.none()
+
+
+@dataclass
+class MailchimpEmailList:
+    id: str
+    name: str
 
 
 class RevenueProgramManager(models.Manager):
@@ -336,6 +368,11 @@ class RevenueProgram(IndexedTimeStampedModel):
         return self.name
 
     @property
+    def mailchimp_integration_connected(self):
+        """Determine mailchimp connection state for the revenue program"""
+        return all([self.mailchimp_access_token, self.mailchimp_server_prefix])
+
+    @property
     def payment_provider_stripe_verified(self):
         return self.payment_provider.stripe_verified if self.payment_provider else False
 
@@ -384,6 +421,52 @@ class RevenueProgram(IndexedTimeStampedModel):
             logger.debug(
                 "`RevenueProgram.mailchimp_access_token` failed to fetch access token from Google Cloud Secrets for RP with ID %s",
                 self.id,
+            )
+            return None
+
+    @property
+    def transactional_email_style(self) -> TransactionalEmailStyle:
+        """Guarantees that a TransactionalEmailStyle is returned.
+
+        This value gets used in transactional emails. It's meant to provide a reliable interface for transactional
+        email templates such that they don't need any knowledge about RP plans or broader context. Instead, email
+        templates can assume that the values provided by this property are always present.
+
+        If the RP's org is on free plan, or if there's no default donation page, return the HubDefaultEmailStyle.
+        Otherwise, derive a TransactionalEmailStyle instance based on the default donation page's chracteristics.
+        """
+        if any(
+            [
+                self.organization.plan.name == "FREE",
+                not (page := self.default_donation_page),
+            ]
+        ):
+            return HubDefaultEmailStyle
+        else:
+            _style = AttrDict(page.styles.styles if page.styles else {})
+            return TransactionalEmailStyle(
+                logo_url=page.header_logo.url if page.header_logo else None,
+                header_color=_style.colors.cstm_mainHeader or None,
+                header_font=_style.font.heading or None,
+                body_font=_style.font.body or None,
+                button_color=_style.colors.cstm_CTAs or None,
+            )
+
+    @cached_property
+    def mailchimp_email_lists(self) -> list[MailchimpEmailList]:
+        """"""
+        if not all([self.mailchimp_server_prefix, self.mailchimp_access_token]):
+            return []
+        try:
+            client = MailchimpMarketing.Client()
+            client.set_config({"access_token": self.mailchimp_access_token, "server": self.mailchimp_server_prefix})
+            response = client.lists.get_all_lists(fields="id,name", count=1000)
+            return response["lists"]
+        except ApiClientError:
+            logger.exception(
+                "`RevenueProgram.mailchimp_email_lists` failed to fetch email lists from Mailchimp for RP with ID %s mc server prefix %s",
+                self.id,
+                self.mailchimp_server_prefix,
             )
             return None
         except Exception:

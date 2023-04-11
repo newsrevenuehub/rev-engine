@@ -31,9 +31,10 @@ import { BANNER_TYPE } from 'constants/bannerConstants';
 import { PAYMENT_STATUS_EXCLUDE_IN_CONTRIBUTIONS } from 'constants/paymentStatus';
 import PageTitle from 'elements/PageTitle';
 import useConnectStripeAccount from 'hooks/useConnectStripeAccount';
-import usePagesList from 'hooks/usePageList';
+import useContributionPageList from 'hooks/useContributionPageList';
 import { SentryRoute } from 'hooks/useSentry';
 import useUser from 'hooks/useUser';
+import { DonationUpgradePrompts } from './DonationUpgradePrompts';
 
 const Donations = () => {
   const { path } = useRouteMatch();
@@ -41,7 +42,7 @@ const Donations = () => {
 
   const { user } = useUser();
   const { requiresVerification } = useConnectStripeAccount();
-  const { pages } = usePagesList();
+  const { pages } = useContributionPageList();
   const requestDonations = useRequest();
   const [filters, setFilters] = useState({});
   const [donationsCount, setDonationsCount] = useState([]);
@@ -155,7 +156,10 @@ const Donations = () => {
   return (
     <>
       <PageTitle title="Contributions" />
-      <div data-testid="donations" style={{ display: 'flex', flexDirection: 'column', height: '100%' }}>
+      <div
+        data-testid="donations"
+        style={{ display: 'flex', flexDirection: 'column', height: '100%', position: 'relative' }}
+      >
         <Switch>
           <SentryRoute path={`${path}:contributionId`}>
             <DashboardSection heading="Contribution Info">
@@ -179,6 +183,7 @@ const Donations = () => {
               placeholder="Contributions"
               exportData={{ email: user.email, transactions: maxData }}
             />
+            <DonationUpgradePrompts />
             <Filters
               filters={filters}
               handleFilterChange={handleFilterChange}

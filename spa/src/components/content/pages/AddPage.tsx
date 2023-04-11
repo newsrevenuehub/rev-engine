@@ -1,153 +1,132 @@
-import { useState, useCallback } from 'react';
-import PropTypes, { InferProps } from 'prop-types';
-import { useHistory } from 'react-router-dom';
+import { AxiosError } from 'axios';
+import { useCallback, useState } from 'react';
 import { useAlert } from 'react-alert';
+import { useHistory } from 'react-router-dom';
 import join from 'url-join';
-
-import { EDITOR_ROUTE } from 'routes';
-import slugify from 'utilities/slugify';
-import useRequest from 'hooks/useRequest';
-import { LIST_PAGES } from 'ajax/endpoints';
-import useUser from 'hooks/useUser';
 import NewButton from 'components/common/Button/NewButton';
-import useModal from 'hooks/useModal';
 import AddPageModal from 'components/common/Modal/AddPageModal';
-import { ContributionPage } from 'hooks/useContributionPage';
+import MaxPagesReachedModal from 'components/common/Modal/MaxPagesReachedModal';
+import useContributionPageList from 'hooks/useContributionPageList';
+import useUser from 'hooks/useUser';
+import useModal from 'hooks/useModal';
+import { EDITOR_ROUTE } from 'routes';
 
-type AddPageType = InferProps<typeof AddPagePropTypes>;
-
-function AddPage({ pagesByRevenueProgram, disabled }: AddPageType) {
+function AddPage() {
   const alert = useAlert();
-  const { open, handleClose, handleOpen } = useModal();
+  const { open: addModalOpen, handleClose: handleAddModalClose, handleOpen: handleAddModalOpen } = useModal();
+  const {
+    open: tooManyModalOpen,
+    handleClose: handleTooManyModalClose,
+    handleOpen: handleTooManyModalOpen
+  } = useModal();
   const history = useHistory();
+  const { createPage, newPageProperties, userCanCreatePage } = useContributionPageList();
   const { user } = useUser();
-  const createPage = useRequest();
-  const [loading, setLoading] = useState(false);
+  const [isCreating, setIsCreating] = useState(false);
   const [error, setError] = useState<string>();
 
-  const getTemporaryPageName = useCallback(
-    (pages: typeof pagesByRevenueProgram[number]['pages'], revenueProgramName: string) => {
-      const pagesSize = (pages?.length ?? 0) + 1;
-      const slugs = pages ? pages.map(({ slug }) => slug) : [];
-      let number = pagesSize;
-      let tempName = `${revenueProgramName} Page ${number}`;
-      let tempSlug = slugify(tempName);
-      while (slugs.includes(tempSlug)) {
-        number += 1;
-        tempName = `${revenueProgramName} Page ${number}`;
-        tempSlug = slugify(tempName);
-      }
-      return { tempName, tempSlug };
-    },
-    []
-  );
-
-  const handleSaveFailure = useCallback(
-    (e) => {
-      setLoading(false);
-      if (e.response?.data) {
-        if (user?.revenue_programs?.length === 1) {
-          alert.error(Object.values(e.response.data));
-        } else {
-          setError(Object.values(e.response.data as { [x: string]: string[] })[0][0]);
-        }
-      } else {
-        alert.error('There was an error and we could not create your new page. We have been notified.');
-      }
-    },
-    [alert, user?.revenue_programs?.length]
-  );
-
-  const handleSave = useCallback(
-    (
-      pagesBySelectedRp: typeof pagesByRevenueProgram[number]['pages'],
-      revenueProgramId: number,
-      revenueProgramName: string
-    ) => {
-      setLoading(true);
-
-      const { tempName, tempSlug } = getTemporaryPageName(pagesBySelectedRp, revenueProgramName);
-      const formData = {
-        name: tempName,
-        slug: tempSlug,
-        revenue_program: revenueProgramId
-      };
-
-      createPage(
-        {
-          method: 'POST',
-          url: LIST_PAGES,
-          data: formData
-        },
-        {
-          onSuccess: ({ data }: { data: ContributionPage }) => {
-            setLoading(false);
-            history.push({
-              pathname: join([EDITOR_ROUTE, data.revenue_program.slug, data.slug, '/']),
-              state: { pageId: data.id }
-            });
-          },
-          onFailure: handleSaveFailure
-        }
+  const handleImmediateCreation = useCallback(async () => {
+    if (user?.revenue_programs.length !== 1) {
+      // Should never happen.
+      throw new Error(
+        `Tried to immediately create page, but user has ${user?.revenue_programs.length} revenue programs`
       );
-    },
-    [createPage, handleSaveFailure, getTemporaryPageName, history]
-  );
-
-  const checkCreatePage = useCallback(() => {
-    if (user?.revenue_programs?.length === 1) {
-      handleSave(pagesByRevenueProgram[0]?.pages, user!.revenue_programs[0].id, user!.revenue_programs[0].name);
-    } else {
-      handleOpen();
     }
-  }, [handleOpen, handleSave, pagesByRevenueProgram, user]);
 
-  const handleModalSave = useCallback(
-    (revenueProgramId: number) => {
-      const rp = user?.revenue_programs.find((rp) => Number(rp.id) === Number(revenueProgramId));
-      const pages = pagesByRevenueProgram?.find(({ name }) => name === rp?.name)?.pages ?? [];
-      handleSave(pages, revenueProgramId, rp!.name!);
+    const revenueProgram = user.revenue_programs[0];
+
+    try {
+      const page = await createPage({ ...newPageProperties(revenueProgram.name), revenue_program: revenueProgram.id });
+
+      history.push(join([EDITOR_ROUTE, 'pages', page.id.toString(), '/']));
+    } catch (error) {
+      // Log for Sentry.
+
+      console.error(error);
+      alert.error('There was an error and we could not create your new page. We have been notified.');
+    }
+  }, [alert, createPage, history, newPageProperties, user?.revenue_programs]);
+
+  const handleModalCreation = useCallback(
+    async (revenueProgramId: number) => {
+      const revenueProgram = user?.revenue_programs.find(({ id }) => id === revenueProgramId);
+
+      if (!revenueProgram) {
+        throw new Error(`The user does not belong to the revenue program with ID ${revenueProgramId}`);
+      }
+
+      try {
+        setIsCreating(true);
+
+        const page = await createPage({
+          ...newPageProperties(revenueProgram.name),
+          revenue_program: revenueProgram.id
+        });
+
+        history.push(join([EDITOR_ROUTE, 'pages', page.id.toString(), '/']));
+      } catch (error) {
+        setIsCreating(false);
+
+        if ((error as AxiosError).response) {
+          // Use the first error in the response.
+
+          setError(Object.values((error as AxiosError).response!.data as Record<string, string[]>)[0][0]);
+        } else {
+          // Log for Sentry.
+
+          console.error(error);
+          alert.error('There was an error and we could not create your new page. We have been notified.');
+        }
+      }
     },
-    [handleSave, pagesByRevenueProgram, user?.revenue_programs]
+    [alert, createPage, history, newPageProperties, user?.revenue_programs]
   );
+
+  const handleClick = useCallback(() => {
+    if (!user) {
+      // Should never happen.
+      throw new Error('User is not defined');
+    }
+    if (!userCanCreatePage(user)) {
+      handleTooManyModalOpen();
+      return;
+    }
+
+    if (user?.revenue_programs?.length === 1) {
+      handleImmediateCreation();
+      return;
+    }
+
+    handleAddModalOpen();
+  }, [handleAddModalOpen, handleImmediateCreation, handleTooManyModalOpen, user, userCanCreatePage]);
+
+  if (!user) {
+    return null;
+  }
 
   return (
     <>
-      <NewButton buttonTestId="new-page-button" disabled={disabled} onClick={checkCreatePage} />
-      {open && (
+      <NewButton buttonTestId="new-page-button" onClick={handleClick} />
+      {addModalOpen && (
         <AddPageModal
-          open={open}
-          onClose={handleClose}
-          onAddPage={handleModalSave}
+          open={addModalOpen}
+          onClose={handleAddModalClose}
+          onAddPage={handleModalCreation}
           revenuePrograms={user?.revenue_programs ?? []}
-          loading={loading}
+          loading={isCreating}
           outerError={error}
+        />
+      )}
+      {tooManyModalOpen && (
+        <MaxPagesReachedModal
+          currentPlan={user?.organizations[0].plan.name}
+          onClose={handleTooManyModalClose}
+          open={tooManyModalOpen}
+          recommendedPlan={user?.organizations[0].plan.name === 'FREE' ? 'CORE' : 'PLUS'}
         />
       )}
     </>
   );
 }
-
-const AddPagePropTypes = {
-  pagesByRevenueProgram: PropTypes.arrayOf(
-    PropTypes.shape({
-      name: PropTypes.string.isRequired,
-      pages: PropTypes.arrayOf(
-        PropTypes.shape({
-          id: PropTypes.number.isRequired,
-          name: PropTypes.string.isRequired,
-          slug: PropTypes.string.isRequired
-        }).isRequired
-      ).isRequired
-    }).isRequired
-  ).isRequired,
-  disabled: PropTypes.bool
-};
-
-AddPage.propTypes = AddPagePropTypes;
-
-AddPage.defaultProps = {
-  disabled: false
-};
 
 export default AddPage;

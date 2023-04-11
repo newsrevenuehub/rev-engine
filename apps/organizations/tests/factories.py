@@ -6,12 +6,8 @@ from factory.django import DjangoModelFactory
 from faker import Faker
 
 from apps.common.utils import normalize_slug
-from apps.contributions.models import (
-    CardBrand,
-    ContributionInterval,
-    ContributionStatus,
-    PaymentType,
-)
+from apps.contributions.choices import CardBrand, PaymentType
+from apps.contributions.models import ContributionInterval, ContributionStatus
 from apps.organizations import models
 
 
@@ -30,6 +26,7 @@ class OrganizationFactory(DjangoModelFactory):
     class Params:
         free_plan = factory.Trait(plan_name=models.FreePlan.name)
         plus_plan = factory.Trait(plan_name=models.PlusPlan.name)
+        core_plan = factory.Trait(plan_name=models.CorePlan.name)
 
 
 class PaymentProviderFactory(DjangoModelFactory):
@@ -57,6 +54,7 @@ class RevenueProgramFactory(DjangoModelFactory):
         fiscally_sponsored = factory.Trait(fiscal_status=models.FiscalStatusChoices.FISCALLY_SPONSORED)
         non_profit = factory.Trait(fiscal_status=models.FiscalStatusChoices.NONPROFIT)
         for_profit = factory.Trait(fiscal_status=models.FiscalStatusChoices.FOR_PROFIT)
+        mailchimp_connected_via_oauth = factory.Trait(mailchimp_access_token="something", mailchimp_server_prefix="us9")
 
 
 class BenefitFactory(DjangoModelFactory):

@@ -197,7 +197,7 @@ DDonorAddress.propTypes = DDonorAddressPropTypes;
 DDonorAddress.type = 'DDonorAddress';
 DDonorAddress.displayName = 'Contributor Address';
 DDonorAddress.description = 'Collect contributor address';
-DDonorAddress.required = true;
+DDonorAddress.required = false;
 DDonorAddress.unique = true;
 
 export default DDonorAddress;

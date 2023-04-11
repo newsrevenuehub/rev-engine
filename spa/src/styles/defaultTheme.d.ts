@@ -7,6 +7,62 @@ import 'styled-components';
 
 declare module 'styled-components' {
   export interface DefaultTheme {
+    basePalette: {
+      primary: {
+        brandBlue: '#60e0f9';
+        chartreuse: '#f2ff59';
+        engineBlue: '#157cb2';
+        indigo: '#25192b';
+        purple: '#523a5e';
+      };
+      secondary: {
+        error: '#c8203f';
+        hyperlink: '#0052cc';
+        success: '#008e7c';
+        warning: '#fa9908';
+      };
+      greyscale: {
+        black: '#282828';
+        grey1: '#707070';
+        grey2: '#c4c4c4';
+        grey3: '#f1f1f1';
+        grey4: '#f9f9f9';
+        white: '#ffffff';
+      };
+      chartreuse: {
+        '-10': '#f3ff6a';
+        '-20': '#f5ff7a';
+        '-30': '#f6ff8b';
+        '-40': '#f7ff9b';
+        '-50': '#f9ffac';
+        '-60': '#faffbd';
+        '-70': '#fbffcd';
+        '-80': '#fcffde';
+        '-90': '#feffee';
+      };
+      indigo: {
+        '-10': '#3d2947';
+        '-20': '#553963';
+        '-30': '#6d4a7f';
+        '-40': '#855a9b';
+        '-50': '#9a73ae';
+        '-60': '#ae8fbe';
+        '-70': '#c3abce';
+        '-80': '#d7c7de';
+        '-90': '#ebe3ef';
+      };
+      purple: {
+        '-10': '#654874';
+        '-20': '#79558a';
+        '-30': '#8c649f';
+        '-40': '#9c7aad';
+        '-50': '#ad90bb';
+        '-60': '#bda6c8';
+        '-70': '#cebdd6';
+        '-80': '#ded3e4';
+        '-90': '#efe9f1';
+      };
+    };
     colors: {
       cstm_inputBackground?: string;
       cstm_inputBorder?: string;

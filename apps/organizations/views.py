@@ -227,6 +227,7 @@ def handle_stripe_account_link(request, rp_pk):
 @permission_classes([IsAuthenticated, HasFlaggedAccessToMailchimp, IsOrgAdmin])
 def handle_mailchimp_oauth_success(request):
     """"""
+    logger.info("handle_mailchimp_oauth_success called with request data %s", request.data)
     serializer = MailchimpOauthSuccessSerializer(data=request.data)
     serializer.is_valid(raise_exception=True)
     if (
@@ -243,6 +244,10 @@ def handle_mailchimp_oauth_success(request):
             request.user.email,
         )
         return Response({"detail": "Requested revenue program not found"}, status=status.HTTP_404_NOT_FOUND)
+    logger.info(
+        "handle_mailchimp_oauth_success asyncronously exchanging Oauth code for server prefix and access token for revenue program with ID %s",
+        rp_id,
+    )
     exchange_mailchimp_oauth_code_for_server_prefix_and_access_token.delay(
         rp_id, serializer.validated_data["mailchimp_oauth_code"]
     )

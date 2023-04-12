@@ -65,7 +65,8 @@ describe('Donation page displays dynamic page elements', () => {
 
       cy.contains(freq.displayName).click();
       cy.getByTestId('d-amount').find('h2').contains(adjective);
-      cy.getByTestId('pay-fees').scrollIntoView().find('label').contains(adjective, { matchCase: false });
+      cy.getByTestId('pay-fees').scrollIntoView();
+      cy.getByTestId('pay-fees').find('label').contains(adjective, { matchCase: false });
 
       if (rate) {
         cy.getByTestId('custom-amount-rate').contains(rate);
@@ -82,7 +83,8 @@ describe('Donation page displays dynamic page elements', () => {
       amounts.content.options[freq.value].forEach((amount) => {
         cy.contains(amount).click();
         const calculatedFee = calculateStripeFee(amount, freq.value, true);
-        cy.getByTestId('pay-fees').scrollIntoView().find('label').contains(calculatedFee);
+        cy.getByTestId('pay-fees').scrollIntoView();
+        cy.getByTestId('pay-fees').find('label').contains(calculatedFee);
       });
     });
   });

@@ -60,34 +60,35 @@ class TestPaymentIntentSucceeded:
     def test_when_contribution_found(self, payment_intent_succeeded, monkeypatch, client, mocker):
         monkeypatch.setattr(WebhookSignature, "verify_header", lambda *args, **kwargs: True)
 
+        mocker.patch("apps.contributions.models.Contribution.fetch_stripe_payment_method", return_value=None)
         header = {"HTTP_STRIPE_SIGNATURE": "testing", "content_type": "application/json"}
-        with patch("apps.contributions.models.Contribution.fetch_stripe_payment_method", return_value=None):
-            contribution = ContributionFactory(
-                one_time=True,
-                status=ContributionStatus.PROCESSING,
-                last_payment_date=None,
-                payment_provider_data=None,
-                provider_payment_id=payment_intent_succeeded["data"]["object"]["id"],
-            )
-            save_spy = mocker.spy(Contribution, "save")
-            send_receipt_email_spy = mocker.spy(Contribution, "handle_thank_you_email")
-            response = client.post(reverse("stripe-webhooks"), data=payment_intent_succeeded, **header)
+        contribution = ContributionFactory(
+            one_time=True,
+            status=ContributionStatus.PROCESSING,
+            last_payment_date=None,
+            payment_provider_data=None,
+            provider_payment_id=payment_intent_succeeded["data"]["object"]["id"],
+            provider_customer_id="something",
+        )
+        save_spy = mocker.spy(Contribution, "save")
+        mock_send_receipt_email = mocker.patch("apps.contributions.models.Contribution.handle_thank_you_email")
+        response = client.post(reverse("stripe-webhooks"), data=payment_intent_succeeded, **header)
 
         # the next two assertions are to ensure we're only allowing webhook to update a subset of fields
         # on the instance, in order to avoid race conditions
-        save_spy.assert_called_once()
-        assert save_spy.call_args[0][0] == contribution
-        assert save_spy.call_args[1] == {
-            "update_fields": [
+        save_spy.assert_called_once_with(
+            contribution,
+            update_fields=[
                 "status",
                 "last_payment_date",
                 "provider_payment_id",
                 "provider_payment_method_id",
                 "payment_provider_data",
                 "modified",
-            ]
-        }
-        send_receipt_email_spy.assert_called_once_with(contribution)
+            ],
+        )
+
+        mock_send_receipt_email.assert_called_once()
         assert response.status_code == status.HTTP_200_OK
         contribution.refresh_from_db()
         assert contribution.payment_provider_data == payment_intent_succeeded

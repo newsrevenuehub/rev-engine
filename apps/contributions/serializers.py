@@ -258,11 +258,11 @@ class BaseCreatePaymentSerializer(serializers.Serializer):
     page = serializers.PrimaryKeyRelatedField(many=False, queryset=DonationPage.objects.all(), write_only=True)
     first_name = serializers.CharField(max_length=40, write_only=True)
     last_name = serializers.CharField(max_length=80, write_only=True)
-    mailing_postal_code = serializers.CharField(max_length=20, write_only=True)
-    mailing_street = serializers.CharField(max_length=255, write_only=True)
-    mailing_city = serializers.CharField(max_length=40, write_only=True)
-    mailing_state = serializers.CharField(max_length=80, write_only=True)
-    mailing_country = serializers.CharField(max_length=80, write_only=True)
+    mailing_postal_code = serializers.CharField(max_length=20, write_only=True, required=False, default="")
+    mailing_street = serializers.CharField(max_length=255, write_only=True, required=False, default="")
+    mailing_city = serializers.CharField(max_length=40, write_only=True, required=False, default="")
+    mailing_state = serializers.CharField(max_length=80, write_only=True, required=False, default="")
+    mailing_country = serializers.CharField(max_length=80, write_only=True, required=False, default="")
     agreed_to_pay_fees = serializers.BooleanField(default=False, write_only=True)
 
     # See class-level doc string for info on why `default=''` here

@@ -439,7 +439,7 @@ class RevenueProgram(IndexedTimeStampedModel):
             client = MailchimpMarketing.Client()
             client.set_config({"access_token": self.mailchimp_access_token, "server": self.mailchimp_server_prefix})
             response = client.lists.get_all_lists(fields="id,name", count=1000)
-            return response["lists"]
+            return response.json().get("lists", [])
         except ApiClientError:
             logger.exception(
                 "`RevenueProgram.mailchimp_email_lists` failed to fetch email lists from Mailchimp for RP with ID %s mc server prefix %s",

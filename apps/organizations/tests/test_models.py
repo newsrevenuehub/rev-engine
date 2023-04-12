@@ -350,11 +350,9 @@ class TestRevenueProgram:
         revenue_program.mailchimp_access_token = "123456"
         revenue_program.save()
         mock_mc_client = mocker.patch("mailchimp_marketing.Client")
-        mock_mc_client.return_value.lists.get_all_lists.return_value = {"lists": [{"id": "123", "name": "test"}]}
-        assert (
-            revenue_program.mailchimp_email_lists
-            == mock_mc_client.return_value.lists.get_all_lists.return_value["lists"]
-        )
+        return_val = {"lists": [{"id": "123", "name": "test"}]}
+        mock_mc_client.return_value.lists.get_all_lists.return_value.json.return_value = return_val
+        assert revenue_program.mailchimp_email_lists == return_val["lists"]
         mock_mc_client.assert_called_once()
         mock_mc_client.return_value.lists.get_all_lists.assert_called_once()
 

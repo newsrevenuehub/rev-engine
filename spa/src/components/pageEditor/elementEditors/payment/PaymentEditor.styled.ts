@@ -15,7 +15,7 @@ export const AlignedFormControlLabel = styled(FormControlLabel)`
     }
 
     .NreFormControlLabelLabel {
-      color: ${({ theme }) => theme.basePalette.greyscale.grey1};
+      color: ${({ theme }) => theme.basePalette.greyscale.black};
     }
   }
 `;

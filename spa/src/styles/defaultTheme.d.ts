@@ -103,7 +103,7 @@ declare module 'styled-components' {
         A100: '#F5FF75';
       };
       muiGrey: {
-        50: '#F9F9F9';
+        50: BasePalette['greyscale']['grey4'];
         100: BasePalette['greyscale']['grey3'];
         200: '#e3e3e3';
         300: '#D9D9D9';

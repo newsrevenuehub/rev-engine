@@ -106,7 +106,7 @@ export const revEngineTheme: DefaultTheme = {
     },
 
     muiGrey: {
-      50: '#F9F9F9',
+      50: basePalette.greyscale.grey4 as '#f9f9f9',
       100: basePalette.greyscale.grey3 as '#f1f1f1',
       200: '#e3e3e3',
       300: '#D9D9D9',

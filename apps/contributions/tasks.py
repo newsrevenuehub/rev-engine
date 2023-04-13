@@ -172,7 +172,11 @@ def task_verify_apple_domain(self, revenue_program_slug: str):
     revenue_program = RevenueProgram.objects.get(slug=revenue_program_slug)
     try:
         revenue_program.stripe_create_apple_pay_domain()
-        logger.info("[task_verify_apple_domain] Apple Pay domain verified for revenue program ")
+        logger.info(
+            "[task_verify_apple_domain] Apple Pay domain verified for revenue program %s with slug %s",
+            revenue_program,
+            revenue_program_slug,
+        )
     except stripe.error.StripeError as ex:
         logger.exception(
             "[task_verify_apple_domain] task failed for slug %s due to exception: %s", revenue_program_slug, ex.error

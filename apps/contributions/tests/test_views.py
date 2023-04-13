@@ -99,8 +99,9 @@ class StripeOAuthTest(AbstractTestCase):
             body["scope"] = scope
         return self.client.post(complete_url, body)
 
+    @mock.patch("apps.contributions.views.task_verify_apple_domain")
     @mock.patch("stripe.OAuth.token")
-    def test_response_when_missing_params(self, stripe_oauth_token):
+    def test_response_when_missing_params(self, stripe_oauth_token, task_verify_apple_domain):
         # Missing code
         response = self._make_request(code=None, scope=expected_oauth_scope, revenue_program_id=self.org1_rp1.id)
         self.assertEqual(response.status_code, 400)
@@ -124,9 +125,11 @@ class StripeOAuthTest(AbstractTestCase):
         self.assertEqual(response.status_code, 400)
         self.assertIn("missing_params", response.data)
         stripe_oauth_token.assert_not_called()
+        assert not task_verify_apple_domain.delay.called
 
+    @mock.patch("apps.contributions.views.task_verify_apple_domain")
     @mock.patch("stripe.OAuth.token")
-    def test_response_when_scope_param_mismatch(self, stripe_oauth_token):
+    def test_response_when_scope_param_mismatch(self, stripe_oauth_token, task_verify_apple_domain):
         """
         We verify that the "scope" parameter provided by the frontend matches the scope we expect
         """
@@ -134,14 +137,17 @@ class StripeOAuthTest(AbstractTestCase):
         self.assertEqual(response.status_code, 400)
         self.assertIn("scope_mismatch", response.data)
         stripe_oauth_token.assert_not_called()
+        assert not task_verify_apple_domain.delay.called
 
+    @mock.patch("apps.contributions.views.task_verify_apple_domain")
     @mock.patch("stripe.OAuth.token")
-    def test_response_when_invalid_code(self, stripe_oauth_token):
+    def test_response_when_invalid_code(self, stripe_oauth_token, task_verify_apple_domain):
         stripe_oauth_token.side_effect = StripeInvalidGrantError(code="error_code", description="error_description")
         response = self._make_request(code="1234", scope=expected_oauth_scope, revenue_program_id=self.org1_rp1.id)
         self.assertEqual(response.status_code, 400)
         self.assertIn("invalid_code", response.data)
         stripe_oauth_token.assert_called_with(code="1234", grant_type="authorization_code")
+        assert not task_verify_apple_domain.delay.called
 
     @mock.patch("apps.contributions.views.task_verify_apple_domain")
     @mock.patch("stripe.OAuth.token")

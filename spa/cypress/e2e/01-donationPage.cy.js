@@ -1,3 +1,6 @@
+// FIXME in DEV-3494
+/* eslint-disable cypress/unsafe-to-chain-command */
+
 import { LIVE_PAGE_DETAIL, AUTHORIZE_STRIPE_PAYMENT_ROUTE } from 'ajax/endpoints';
 import { PAYMENT_SUCCESS } from 'routes';
 import { getPaymentSuccessUrl, getPaymentElementButtonText } from 'components/paymentProviders/stripe/stripeFns';

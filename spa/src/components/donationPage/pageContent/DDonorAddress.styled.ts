@@ -24,7 +24,9 @@ export const CountrySelect = styled(BaseCountrySelect)`
     }
 
     .NreAutocompleteInput {
+      background: ${({ theme }) => theme.colors.cstm_inputBackground};
       border: 1px solid #080708;
+      border-color: ${({ theme }) => theme.colors.cstm_inputBorder};
       border-radius: 3px;
       height: 19px;
 
@@ -64,7 +66,9 @@ export const TextField = styled(BaseTextField)`
 
     .NreTextFieldInput,
     .Mui-error .NreTextFieldInput {
+      background: ${({ theme }) => theme.colors.cstm_inputBackground};
       border: 1px solid #080708;
+      border-color: ${({ theme }) => theme.colors.cstm_inputBorder};
       border-radius: 3px;
       height: 19px;
 

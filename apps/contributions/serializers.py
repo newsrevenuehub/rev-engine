@@ -11,13 +11,12 @@ from stripe.error import StripeError
 
 from apps.api.error_messages import GENERIC_BLANK, GENERIC_UNEXPECTED_VALUE
 from apps.common.utils import get_original_ip_from_request
+from apps.contributions.choices import CardBrand, PaymentType
 from apps.contributions.models import (
-    CardBrand,
     Contribution,
     ContributionInterval,
     ContributionStatus,
     Contributor,
-    PaymentType,
 )
 from apps.contributions.utils import format_ambiguous_currency, get_sha256_hash
 from apps.organizations.serializers import RevenueProgramSerializer
@@ -263,7 +262,9 @@ class BaseCreatePaymentSerializer(serializers.Serializer):
     last_name = serializers.CharField(max_length=80, write_only=True)
     mailing_postal_code = serializers.CharField(max_length=20, write_only=True)
     mailing_street = serializers.CharField(max_length=255, write_only=True)
-    mailing_complement = serializers.CharField(max_length=255, write_only=True, required=False, default="")
+    mailing_complement = serializers.CharField(
+        max_length=255, write_only=True, required=False, default="", allow_blank=True
+    )
     mailing_city = serializers.CharField(max_length=40, write_only=True)
     mailing_state = serializers.CharField(max_length=80, write_only=True)
     mailing_country = serializers.CharField(max_length=80, write_only=True)

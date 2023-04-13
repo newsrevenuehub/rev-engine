@@ -1,21 +1,58 @@
 import { Checkbox, FormControlLabel, Radio } from 'components/base';
-import { DonorAddressElement, DonorAddressElementAdditionalStateFieldLabel } from 'hooks/useContributionPage';
+import {
+  ContributionPageElement,
+  DonorAddressElement,
+  DonorAddressElementAdditionalStateFieldLabel
+} from 'hooks/useContributionPage';
 import PropTypes, { InferProps } from 'prop-types';
-import { ChangeEvent } from 'react';
+import { ChangeEvent, useCallback, useEffect } from 'react';
 import { Checkboxes, Header, Tip, RadioGroup, Text, StyledFormControlLabel } from './DonorAddressEditor.styled';
+import usePreviousState from 'hooks/usePreviousState';
 
 const DonorAddressEditorPropTypes = {
   elementContent: PropTypes.object.isRequired,
-  onChangeElementContent: PropTypes.func.isRequired
+  onChangeElementContent: PropTypes.func.isRequired,
+  onChangeElementRequiredFields: PropTypes.func.isRequired
 };
 
 export interface DonorAddressEditorProps extends InferProps<typeof DonorAddressEditorPropTypes> {
   elementContent: DonorAddressElement['content'];
   onChangeElementContent: (value: DonorAddressElement['content']) => void;
+  onChangeElementRequiredFields: (value: ContributionPageElement['requiredFields']) => void;
 }
 
-export function DonorAddressEditor({ elementContent, onChangeElementContent }: DonorAddressEditorProps) {
+export function DonorAddressEditor({
+  elementContent,
+  onChangeElementContent,
+  onChangeElementRequiredFields
+}: DonorAddressEditorProps) {
   const zipAndCountryOnly = !!elementContent.zipAndCountryOnly;
+  const prevZipAndCountryOnly = usePreviousState(zipAndCountryOnly);
+  const prevAddressOptional = usePreviousState(elementContent.addressOptional);
+
+  const handleChangeRequiredFields = useCallback(
+    (zipAndCountryOnly: boolean, addressOptional?: boolean) => {
+      const requiredFields = [
+        'mailing_postal_code',
+        'mailing_country',
+        ...(!zipAndCountryOnly ? ['mailing_street', 'mailing_city', 'mailing_state'] : [])
+      ];
+      onChangeElementRequiredFields(addressOptional ? [] : requiredFields);
+    },
+    [onChangeElementRequiredFields]
+  );
+
+  useEffect(() => {
+    if (zipAndCountryOnly !== prevZipAndCountryOnly || elementContent.addressOptional !== prevAddressOptional) {
+      handleChangeRequiredFields(zipAndCountryOnly, elementContent.addressOptional);
+    }
+  }, [
+    elementContent.addressOptional,
+    handleChangeRequiredFields,
+    prevAddressOptional,
+    prevZipAndCountryOnly,
+    zipAndCountryOnly
+  ]);
 
   function handleCheckboxChange(
     value: DonorAddressElementAdditionalStateFieldLabel,

@@ -4,7 +4,14 @@ import { render, screen } from 'test-utils';
 import DonorAddressEditor, { DonorAddressEditorProps } from './DonorAddressEditor';
 
 function tree(props?: Partial<DonorAddressEditorProps>) {
-  return render(<DonorAddressEditor elementContent={{}} onChangeElementContent={jest.fn()} {...props} />);
+  return render(
+    <DonorAddressEditor
+      elementContent={{}}
+      onChangeElementContent={jest.fn()}
+      onChangeElementRequiredFields={jest.fn()}
+      {...props}
+    />
+  );
 }
 
 describe('DonorAddressEditor', () => {
@@ -48,6 +55,26 @@ describe('DonorAddressEditor', () => {
           name: 'Include zip/postal code and country only (exclude all other address fields)'
         })
       ).toBeChecked();
+    });
+
+    it('set all requiredFields to the element when zipAndCountryOnly = false', () => {
+      const onChangeElementRequiredFields = jest.fn();
+
+      expect(onChangeElementRequiredFields).not.toBeCalled();
+      tree({ onChangeElementRequiredFields } as any);
+      expect(onChangeElementRequiredFields).toBeCalledTimes(1);
+      expect(onChangeElementRequiredFields.mock.calls).toEqual([
+        [['mailing_postal_code', 'mailing_country', 'mailing_street', 'mailing_city', 'mailing_state']]
+      ]);
+    });
+
+    it('set only zip & country requiredFields to the element when zipAndCountryOnly = true', () => {
+      const onChangeElementRequiredFields = jest.fn();
+
+      expect(onChangeElementRequiredFields).not.toBeCalled();
+      tree({ elementContent: { zipAndCountryOnly: true }, onChangeElementRequiredFields } as any);
+      expect(onChangeElementRequiredFields).toBeCalledTimes(1);
+      expect(onChangeElementRequiredFields.mock.calls).toEqual([[['mailing_postal_code', 'mailing_country']]]);
     });
 
     it('adds zipAndCountryOnly to the element content when the user checks it', () => {
@@ -112,6 +139,26 @@ describe('DonorAddressEditor', () => {
       expect(onChangeElementContent).not.toBeCalled();
       userEvent.click(screen.getByRole('radio', { name: 'Required' }));
       expect(onChangeElementContent.mock.calls).toEqual([[{ addressOptional: false }]]);
+    });
+
+    it('remove all address fields in "requiredFields" if addressOptional is true', () => {
+      const onChangeElementRequiredFields = jest.fn();
+
+      expect(onChangeElementRequiredFields).not.toBeCalled();
+      tree({ onChangeElementRequiredFields, elementContent: { addressOptional: true } } as any);
+      expect(onChangeElementRequiredFields).toBeCalledTimes(1);
+      expect(onChangeElementRequiredFields.mock.calls).toEqual([[[]]]);
+    });
+
+    it('add all address fields in "requiredFields" if addressOptional is false', () => {
+      const onChangeElementRequiredFields = jest.fn();
+
+      expect(onChangeElementRequiredFields).not.toBeCalled();
+      tree({ elementContent: { addressOptional: false }, onChangeElementRequiredFields } as any);
+      expect(onChangeElementRequiredFields).toBeCalledTimes(1);
+      expect(onChangeElementRequiredFields.mock.calls).toEqual([
+        [['mailing_postal_code', 'mailing_country', 'mailing_street', 'mailing_city', 'mailing_state']]
+      ]);
     });
   });
 

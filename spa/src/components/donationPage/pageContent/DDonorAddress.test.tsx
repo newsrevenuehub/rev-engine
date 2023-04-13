@@ -119,7 +119,7 @@ describe('DDonorAddress', () => {
 
     it(`if zipAndCountryOnly = true -> ${showZipAndCountryOnly ? 'show' : 'hide'}`, () => {
       tree({}, { element: { ...element, content: { zipAndCountryOnly: true } } });
-
+      expect.assertions(1);
       if (showZipAndCountryOnly) {
         // eslint-disable-next-line jest/no-conditional-expect
         expect(screen.getByRole('textbox', { name: visibleName })).toBeVisible();

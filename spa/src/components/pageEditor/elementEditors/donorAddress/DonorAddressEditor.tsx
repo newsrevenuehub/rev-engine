@@ -15,7 +15,7 @@ export interface DonorAddressEditorProps extends InferProps<typeof DonorAddressE
 }
 
 export function DonorAddressEditor({ elementContent, onChangeElementContent }: DonorAddressEditorProps) {
-  const zipAndCountryOnly = !!elementContent?.zipAndCountryOnly;
+  const zipAndCountryOnly = !!elementContent.zipAndCountryOnly;
 
   function handleCheckboxChange(
     value: DonorAddressElementAdditionalStateFieldLabel,
@@ -68,9 +68,9 @@ export function DonorAddressEditor({ elementContent, onChangeElementContent }: D
           </>
         }
       />
-      <Header>Address should be:</Header>
+      <Header id="required-address-label">Address should be:</Header>
       <RadioGroup
-        aria-label="Address should be"
+        aria-labelledby="required-address-label"
         onChange={(event) => handleRadioChange(event.target.value === 'optional')}
         value={elementContent.addressOptional ? 'optional' : 'required'}
       >

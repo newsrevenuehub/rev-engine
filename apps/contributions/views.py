@@ -43,7 +43,9 @@ from apps.contributions.stripe_contributions_provider import SubscriptionsCacheP
 from apps.contributions.tasks import (
     email_contribution_csv_export_to_user,
     task_pull_serialized_stripe_contributions_to_cache,
+    task_verify_apple_domain,
 )
+
 from apps.contributions.webhooks import StripeWebhookProcessor
 from apps.organizations.models import PaymentProvider, RevenueProgram
 from apps.public.permissions import IsActiveSuperUser
@@ -77,23 +79,33 @@ def stripe_oauth(request):
     revenue_program = RevenueProgram.objects.get(id=revenue_program_id)
 
     try:
+        logger.info("Attempting to perform oauth with Stripe for revenue program %s", revenue_program_id)
         oauth_response = stripe.OAuth.token(
             grant_type="authorization_code",
             code=code,
         )
         payment_provider = revenue_program.payment_provider
         if not payment_provider:
+            logger.info(
+                "Payment provider not yet created for revenue program %s, proceeding with creation...",
+                revenue_program_id,
+            )
             payment_provider = PaymentProvider.objects.create(
                 stripe_account_id=oauth_response["stripe_user_id"],
                 stripe_oauth_refresh_token=oauth_response["refresh_token"],
             )
+            logger.info("Payment provider for revenue program %s created: %s", revenue_program_id, payment_provider.id)
             revenue_program.payment_provider = payment_provider
             revenue_program.save()
         else:
+            logger.info(
+                "Updating existing payment provider %s for revenue program %s", payment_provider.id, revenue_program_id
+            )
             payment_provider.stripe_account_id = oauth_response["stripe_user_id"]
             payment_provider.stripe_oauth_refresh_token = oauth_response["refresh_token"]
             payment_provider.save()
-
+        logger.info("Delaying Apple Pay domain verification for revenue program slug: %s", revenue_program.slug)
+        task_verify_apple_domain.delay(revenue_program_slug=revenue_program.slug)
     except stripe.oauth_error.InvalidGrantError:
         logger.error("stripe.OAuth.token failed due to an invalid code")
         return Response({"invalid_code": "stripe_oauth received an invalid code"}, status=status.HTTP_400_BAD_REQUEST)

@@ -8,6 +8,7 @@ from django.template.loader import render_to_string
 from django.utils import timezone
 
 import requests
+import stripe
 from celery import shared_task
 from celery.utils.log import get_task_logger
 from requests.exceptions import RequestException
@@ -26,8 +27,11 @@ from apps.contributions.stripe_contributions_provider import (
     StripePaymentIntent,
     SubscriptionsCacheProvider,
 )
+
 from apps.contributions.utils import export_contributions_to_csv
 from apps.emails.tasks import send_templated_email_with_attachment
+
+from apps.organizations.models import RevenueProgram
 
 
 logger = get_task_logger(f"{settings.DEFAULT_LOGGER}.{__name__}")
@@ -161,3 +165,16 @@ def email_contribution_csv_export_to_user(
         content_type="text/csv",
         filename="contributions.csv",
     )
+
+
+def task_verify_apple_domain(self, revenue_program_slug: str):
+    logger.info("[task_verify_apple_domain] called with revenue_program_slug %s.", revenue_program_slug)
+    revenue_program = RevenueProgram.objects.get(slug=revenue_program_slug)
+    try:
+        revenue_program.stripe_create_apple_pay_domain()
+        logger.info("[task_verify_apple_domain] Apple Pay domain verified for revenue program ")
+    except stripe.error.StripeError as ex:
+        logger.exception(
+            "[task_verify_apple_domain] task failed for slug %s due to exception: %s", revenue_program_slug, ex.error
+        )
+        raise ex

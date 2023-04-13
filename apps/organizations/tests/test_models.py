@@ -11,6 +11,7 @@ from django.utils import timezone
 import faker
 import pytest
 import pytest_cases
+import stripe
 from mailchimp_marketing.api_client import ApiClientError
 from stripe import ApplePayDomain
 from stripe.error import StripeError
@@ -334,7 +335,8 @@ class TestRevenueProgram:
         mock_stripe_create = mocker.patch.object(ApplePayDomain, "create", side_effect=StripeError)
         mock_logger = mocker.patch("apps.organizations.models.logger")
         rp = RevenueProgramFactory(domain_apple_verified_date=None)
-        rp.stripe_create_apple_pay_domain()
+        with pytest.raises(stripe.error.StripeError):
+            rp.stripe_create_apple_pay_domain()
         mock_stripe_create.assert_called_once()
         mock_logger.exception.assert_called_once()
 

@@ -143,8 +143,9 @@ class StripeOAuthTest(AbstractTestCase):
         self.assertIn("invalid_code", response.data)
         stripe_oauth_token.assert_called_with(code="1234", grant_type="authorization_code")
 
+    @mock.patch("apps.contributions.views.task_verify_apple_domain")
     @mock.patch("stripe.OAuth.token")
-    def test_response_success(self, stripe_oauth_token):
+    def test_response_success(self, stripe_oauth_token, task_verify_apple_domain):
         expected_stripe_account_id = "my_test_account_id"
         expected_refresh_token = "my_test_refresh_token"
         stripe_oauth_token.return_value = MockOAuthResponse(
@@ -160,9 +161,11 @@ class StripeOAuthTest(AbstractTestCase):
         self.assertEqual(self.org1_rp1.payment_provider.stripe_account_id, expected_stripe_account_id)
         self.assertEqual(self.org1_rp1.payment_provider.stripe_oauth_refresh_token, expected_refresh_token)
         assert Version.objects.get_for_object(self.org1_rp1.payment_provider).count() == 1
+        task_verify_apple_domain.delay.assert_called_with(revenue_program_slug=self.org1_rp1.slug)
 
+    @mock.patch("apps.contributions.views.task_verify_apple_domain")
     @mock.patch("stripe.OAuth.token")
-    def test_create_payment_provider_if_not_exists(self, stripe_oauth_token):
+    def test_create_payment_provider_if_not_exists(self, stripe_oauth_token, task_verify_apple_domain):
         expected_stripe_account_id = "new_stripe_account_id"
         refresh_token = "my_test_refresh_token"
         stripe_oauth_token.return_value = MockOAuthResponse(
@@ -173,6 +176,7 @@ class StripeOAuthTest(AbstractTestCase):
         self.org1_rp2.refresh_from_db()
         self.assertEqual(self.org1_rp2.payment_provider.stripe_account_id, expected_stripe_account_id)
         assert Version.objects.get_for_object(self.org1_rp1.payment_provider).count() == 1
+        task_verify_apple_domain.delay.assert_called_with(revenue_program_slug=self.org1_rp2.slug)
 
 
 @pytest.mark.django_db

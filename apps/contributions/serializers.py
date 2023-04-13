@@ -262,7 +262,9 @@ class BaseCreatePaymentSerializer(serializers.Serializer):
     last_name = serializers.CharField(max_length=80, write_only=True)
     mailing_postal_code = serializers.CharField(max_length=20, write_only=True)
     mailing_street = serializers.CharField(max_length=255, write_only=True)
-    mailing_complement = serializers.CharField(max_length=255, write_only=True, required=False, default="")
+    mailing_complement = serializers.CharField(
+        max_length=255, write_only=True, required=False, default="", allow_blank=True
+    )
     mailing_city = serializers.CharField(max_length=40, write_only=True)
     mailing_state = serializers.CharField(max_length=80, write_only=True)
     mailing_country = serializers.CharField(max_length=80, write_only=True)

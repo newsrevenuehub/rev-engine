@@ -1,5 +1,8 @@
 from django.contrib.auth import get_user_model
+from django.core import exceptions
 from django.test import TestCase
+
+import pytest
 
 from apps.organizations.models import RevenueProgram
 from apps.organizations.tests.factories import OrganizationFactory, RevenueProgramFactory
@@ -48,6 +51,14 @@ class UserModelTest(TestCase):
         str(self.org_admin_user)
         str(self.rp_admin_user)
         str(create_test_user())
+
+    def test_validate_unique(self):
+        user_1 = create_test_user()
+        user_2_email = user_1.email.upper()
+        user_2 = user_model(email=user_2_email, password="password")
+        with pytest.raises(exceptions.ValidationError) as _ex:
+            user_2.full_clean()
+        self.assertListEqual(_ex.value.messages, ["User with this Email already exists."])
 
 
 class RoleAssignmentModelTest(TestCase):

@@ -514,6 +514,14 @@ class TestUserViewSet(APITestCase):
         self.assertEqual(response.json(), {"email": ["This field must be unique."]})
         self.assertEqual(get_user_model().objects.count(), user_count)
 
+    def test_create_when_taken_email_with_different_case(self):
+        get_user_model().objects.create(**self.create_data | {"email": "case_insensitive@test.com"})
+        user_count = get_user_model().objects.count()
+        response = self.client.post(self.url, data=self.create_data | {"email": "CASE_INSENSITIVE@test.com"})
+        self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
+        self.assertEqual(response.json(), {"email": ["This field must be unique."]})
+        self.assertEqual(get_user_model().objects.count(), user_count)
+
     def test_partial_update_happy_path(self):
         user = get_user_model()(email=self.create_data["email"], email_verified=True)
         user.set_password(self.create_data["password"])
@@ -558,6 +566,15 @@ class TestUserViewSet(APITestCase):
         taken_email = User.objects.create(**(self.create_data | {"email": fake.email()})).email
         self.client.force_authenticate(user=my_user)
         response = self.client.patch(reverse("user-detail", args=(my_user.pk,)), data={"email": taken_email})
+        self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
+        self.assertEqual(response.json(), {"email": ["This field must be unique."]})
+
+    def test_update_when_taken_email_with_different_case(self):
+        User = get_user_model()
+        my_user = User.objects.create(**(self.create_data | {"email_verified": True}))
+        taken_email = User.objects.create(**(self.create_data | {"email": fake.email()})).email
+        self.client.force_authenticate(user=my_user)
+        response = self.client.patch(reverse("user-detail", args=(my_user.pk,)), data={"email": taken_email.upper()})
         self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
         self.assertEqual(response.json(), {"email": ["This field must be unique."]})
 

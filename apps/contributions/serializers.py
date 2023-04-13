@@ -11,13 +11,12 @@ from stripe.error import StripeError
 
 from apps.api.error_messages import GENERIC_BLANK, GENERIC_UNEXPECTED_VALUE
 from apps.common.utils import get_original_ip_from_request
+from apps.contributions.choices import CardBrand, PaymentType
 from apps.contributions.models import (
-    CardBrand,
     Contribution,
     ContributionInterval,
     ContributionStatus,
     Contributor,
-    PaymentType,
 )
 from apps.contributions.utils import format_ambiguous_currency, get_sha256_hash
 from apps.organizations.serializers import RevenueProgramSerializer

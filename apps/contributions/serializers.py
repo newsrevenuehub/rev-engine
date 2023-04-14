@@ -146,7 +146,7 @@ class BadActorSerializer(serializers.Serializer):
     last_name = serializers.CharField(max_length=80)
     email = serializers.EmailField(max_length=80)
     street = serializers.CharField(max_length=255)
-    complement = serializers.CharField(max_length=255)
+    complement = serializers.CharField(max_length=255, required=False, default="", allow_blank=True)
     city = serializers.CharField(max_length=40)
     state = serializers.CharField(max_length=80)
     country = serializers.CharField(max_length=80)

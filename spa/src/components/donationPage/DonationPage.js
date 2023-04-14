@@ -199,12 +199,12 @@ function DonationPage({ page, live = false }) {
       email: data.email,
       phone: data.phone || '', // stripe will complain if its null or undefined, and it's an optional field
       address: {
-        city: data.mailing_city,
-        country: data.mailing_country,
-        line1: data.mailing_street,
+        city: data.mailing_city ?? '',
+        country: data.mailing_country ?? '',
+        line1: data.mailing_street ?? '',
         line2: '', // stripe complains if this is missing
-        postal_code: data.mailing_postal_code,
-        state: data.mailing_state
+        postal_code: data.mailing_postal_code ?? '',
+        state: data.mailing_state ?? ''
       }
     });
     createPayment(data, {

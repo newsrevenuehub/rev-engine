@@ -34,7 +34,9 @@ class UserSerializer(serializers.ModelSerializer):
     revenue_programs = serializers.SerializerMethodField(method_name="get_permitted_revenue_programs")
     flags = serializers.SerializerMethodField(method_name="get_active_flags_for_user")
     password = serializers.CharField(write_only=True, max_length=PASSWORD_MAX_LENGTH, required=True)
-    email = serializers.EmailField(validators=[UniqueValidator(queryset=get_user_model().objects.all())], required=True)
+    email = serializers.EmailField(
+        validators=[UniqueValidator(queryset=get_user_model().objects.all(), lookup="icontains")], required=True
+    )
     accepted_terms_of_service = serializers.DateTimeField(required=True)
 
     def get_role_type(self, obj):

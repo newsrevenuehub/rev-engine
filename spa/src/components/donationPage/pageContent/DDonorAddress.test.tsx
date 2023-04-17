@@ -11,8 +11,8 @@ import DDonorAddress, { DDonorAddressProps } from './DDonorAddress';
 
 jest.mock('country-code-lookup', () => ({
   countries: [
-    { country: 'AAA', fips: 'aaa' },
-    { country: 'BBB', fips: 'bbb' }
+    { country: 'AAA', iso2: 'aa' },
+    { country: 'BBB', iso2: 'bb' }
   ]
 }));
 jest.mock('react-google-autocomplete');
@@ -148,19 +148,19 @@ describe('DDonorAddress', () => {
   });
 
   describe('The Country select', () => {
-    it('displays a country select that shows the mailingCountry FIPS code set in context', () => {
-      tree({ mailingCountry: 'aaa' });
+    it('displays a country select that shows the mailingCountry ISO code set in context', () => {
+      tree({ mailingCountry: 'aa' });
       expect(screen.getByRole('textbox', { name: 'Country' })).toHaveValue('AAA');
     });
 
-    it('updates the country FIPS code in context when the user selects a country', () => {
+    it('updates the country ISO code in context when the user selects a country', () => {
       const setMailingCountry = jest.fn();
 
       tree({ setMailingCountry });
       userEvent.click(screen.getByLabelText('Open'));
       expect(setMailingCountry).not.toBeCalled();
       userEvent.click(screen.getByText('BBB'));
-      expect(setMailingCountry.mock.calls).toEqual([['bbb']]);
+      expect(setMailingCountry.mock.calls).toEqual([['bb']]);
     });
   });
 

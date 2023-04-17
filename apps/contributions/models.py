@@ -73,6 +73,7 @@ class Contributor(IndexedTimeStampedModel):
         customer_name=None,
         phone=None,
         street=None,
+        complement=None,  # apt, room, aka "line2"
         city=None,
         state=None,
         postal_code=None,
@@ -82,6 +83,7 @@ class Contributor(IndexedTimeStampedModel):
         """Create a Stripe customer using contributor email"""
         address = {
             "line1": street,
+            "line2": complement or "",
             "city": city,
             "state": state,
             "postal_code": postal_code,
@@ -353,6 +355,7 @@ class Contribution(IndexedTimeStampedModel):
         last_name=None,
         phone=None,
         mailing_street=None,
+        mailing_complement=None,  # apt, room, aka "line2"
         mailing_city=None,
         mailing_state=None,
         mailing_postal_code=None,
@@ -362,6 +365,7 @@ class Contribution(IndexedTimeStampedModel):
         """Create a Stripe customer using contributor email"""
         address = {
             "line1": mailing_street,
+            "line2": mailing_complement or "",
             "city": mailing_city,
             "state": mailing_state,
             "postal_code": mailing_postal_code,
@@ -488,11 +492,16 @@ class Contribution(IndexedTimeStampedModel):
 
     def handle_thank_you_email(self):
         """Send a thank you email to contribution's contributor if org is configured to have NRE send thank you email"""
-        logger.debug("`Contribution.handle_thank_you_email` called on contribution with ID %s", self.id)
+        logger.info("`Contribution.handle_thank_you_email` called on contribution with ID %s", self.id)
         if (org := self.revenue_program.organization).send_receipt_email_via_nre:
-            logger.debug("Contribution.handle_thank_you_email: the parent org (%s) sends emails with NRE", org.id)
+            logger.info("Contribution.handle_thank_you_email: the parent org (%s) sends emails with NRE", org.id)
             data = make_send_thank_you_email_data(self)
             send_thank_you_email.delay(data)
+        else:
+            logger.info(
+                "Contribution.handle_thank_you_email called on contribution %s the parent org of which does not send email with NRE",
+                self.id,
+            )
 
     def send_recurring_contribution_email_reminder(self, next_charge_date: datetime.date) -> None:
         # vs. circular import

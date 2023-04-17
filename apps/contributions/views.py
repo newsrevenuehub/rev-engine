@@ -79,7 +79,7 @@ def stripe_oauth(request):
     revenue_program = RevenueProgram.objects.get(id=revenue_program_id)
 
     try:
-        logger.info("Attempting to perform oauth with Stripe for revenue program %s", revenue_program_id)
+        logger.info("[stripe_oauth] Attempting to perform oauth with Stripe for revenue program %s", revenue_program_id)
         oauth_response = stripe.OAuth.token(
             grant_type="authorization_code",
             code=code,
@@ -87,27 +87,37 @@ def stripe_oauth(request):
         payment_provider = revenue_program.payment_provider
         if not payment_provider:
             logger.info(
-                "Payment provider not yet created for revenue program %s, proceeding with creation...",
+                "[stripe_oauth] Payment provider not yet created for revenue program %s, proceeding with creation...",
                 revenue_program_id,
             )
             payment_provider = PaymentProvider.objects.create(
                 stripe_account_id=oauth_response["stripe_user_id"],
                 stripe_oauth_refresh_token=oauth_response["refresh_token"],
             )
-            logger.info("Payment provider for revenue program %s created: %s", revenue_program_id, payment_provider.id)
+            logger.info(
+                "[stripe_oauth] Payment provider for revenue program %s created: %s",
+                revenue_program_id,
+                payment_provider.id,
+            )
             revenue_program.payment_provider = payment_provider
             revenue_program.save()
         else:
             logger.info(
-                "Updating existing payment provider %s for revenue program %s", payment_provider.id, revenue_program_id
+                "[stripe_oauth] Updating existing payment provider %s for revenue program %s",
+                payment_provider.id,
+                revenue_program_id,
             )
             payment_provider.stripe_account_id = oauth_response["stripe_user_id"]
             payment_provider.stripe_oauth_refresh_token = oauth_response["refresh_token"]
             payment_provider.save()
-        logger.info("Delaying Apple Pay domain verification for revenue program slug: %s", revenue_program.slug)
+        logger.info(
+            "[stripe_oauth] Starting Apple Pay domain verification background task for revenue program slug: %s",
+            revenue_program.slug,
+        )
         task_verify_apple_domain.delay(revenue_program_slug=revenue_program.slug)
+        logger.info("[stripe_oauth] Started Apple Pay domain verification background task for revenue program slug: %s")
     except stripe.oauth_error.InvalidGrantError:
-        logger.error("stripe.OAuth.token failed due to an invalid code")
+        logger.error("[stripe_oauth] stripe.OAuth.token failed due to an invalid code")
         return Response({"invalid_code": "stripe_oauth received an invalid code"}, status=status.HTTP_400_BAD_REQUEST)
 
     return Response({"detail": "success"}, status=status.HTTP_200_OK)

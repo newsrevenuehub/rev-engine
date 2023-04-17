@@ -51,6 +51,7 @@ class StripePaymentManagerAbstractTestCase(AbstractTestCase):
             "phone": "123-456-7890",
             "mailing_postal_code": 12345,
             "mailing_street": "123 Fake Street",
+            "mailing_complement": "Ap 1",
             "mailing_city": "Fakerton",
             "mailing_state": "FK",
             "mailing_country": "Fakeland",

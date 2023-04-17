@@ -16,7 +16,7 @@ export interface ModalHeaderProps extends InferProps<typeof ModalHeaderPropTypes
 }
 
 const CloseButton = styled(IconButton)`
-  color: #c4c4c4;
+  color: ${({ theme }) => theme.basePalette.greyscale.grey2};
   height: 24px;
   width: 24px;
 
@@ -32,7 +32,7 @@ const Content = styled('div')`
 
 const Root = styled('div')`
   align-items: center;
-  border-bottom: 1px solid #f1f1f1;
+  border-bottom: 1px solid ${({ theme }) => theme.basePalette.greyscale.grey3};
   display: flex;
   font: 18px Roboto, sans-serif;
   gap: 10px;

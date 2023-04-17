@@ -1,3 +1,6 @@
+// FIXME in DEV-3494
+/* eslint-disable cypress/unsafe-to-chain-command */
+
 // Util
 import { getEndpoint } from '../support/util';
 

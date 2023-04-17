@@ -79,13 +79,13 @@ function DDonorAddress({ element }: DDonorAddressProps) {
       }
 
       const addrFields = mapAddressComponentsToAddressFields(address_components);
-      const fips = address_components.find(({ types }) => types.includes('country'))?.short_name ?? '';
+      const isoCountry = address_components.find(({ types }) => types.includes('country'))?.short_name ?? '';
 
       setAddress(addrFields.address ?? '');
       setCity(addrFields.city ?? '');
       setState(addrFields.state ?? '');
       setZip(addrFields.zip ?? '');
-      setMailingCountry(fips);
+      setMailingCountry(isoCountry);
     }
   });
 
@@ -110,7 +110,7 @@ function DDonorAddress({ element }: DDonorAddressProps) {
   // underlying input will always show the label.
 
   function handleChangeCountry(event: ChangeEvent<Record<never, never>>, value: CountryOption) {
-    setMailingCountry(value.fipsCode);
+    setMailingCountry(value.isoCode);
   }
 
   return (

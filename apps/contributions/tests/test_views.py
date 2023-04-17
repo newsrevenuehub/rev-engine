@@ -1060,6 +1060,7 @@ def valid_data(donation_page):
         "email": "bill@smith.com",
         "phone": "123",
         "mailing_street": "123 Glenwood Avenue",
+        "mailing_complement": "Ap 1",
         "mailing_city": "Raleigh",
         "mailing_state": "North Carolina",
         "mailing_postal_code": "27603",

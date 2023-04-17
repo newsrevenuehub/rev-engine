@@ -1,10 +1,11 @@
 import { EnginePlan } from 'hooks/useContributionPage';
 import styled from 'styled-components';
+import { revEngineTheme } from 'styles/themes';
 
 const colors: Record<EnginePlan['name'], string> = {
-  CORE: '#62ffe3',
-  FREE: '#f5ff75',
-  PLUS: '#f323ff'
+  CORE: revEngineTheme.plan.core.background,
+  FREE: revEngineTheme.plan.free.background,
+  PLUS: revEngineTheme.plan.plus.background
 };
 
 export const Root = styled.span<{ $plan: EnginePlan['name'] }>`

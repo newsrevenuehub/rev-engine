@@ -199,6 +199,7 @@ function DonationPage({ page, live = false }) {
       email: data.email,
       phone: data.phone || '', // stripe will complain if its null or undefined, and it's an optional field
       address: {
+        // stripe complains if any of the fields are missing, so we default to empty string
         city: data.mailing_city ?? '',
         country: data.mailing_country ?? '',
         line1: data.mailing_street ?? '',

@@ -29,6 +29,9 @@ const Template: ComponentStory<typeof Button> = (args) => {
       <div style={{ alignItems: 'center', background: 'blue', display: 'grid', padding: 20 }}>
         <Button {...args} variant="outlined" />
       </div>
+      <div style={{ alignItems: 'center', background: 'blue', display: 'grid', padding: 20 }}>
+        <Button {...args} variant="outlined" disabled />
+      </div>
     </div>
   );
 };

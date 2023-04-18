@@ -16,7 +16,7 @@ export interface AnalyticsConfig {
    */
   orgFbPixelId?: string;
   /**
-   * The organization's Google Analytics v3 (aka Univeral Analytics) account ID.
+   * The organization's Google Analytics v3 (aka Universal Analytics) account ID.
    */
   orgGaV3Id?: string;
   /**

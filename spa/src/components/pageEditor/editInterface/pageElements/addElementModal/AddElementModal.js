@@ -25,6 +25,10 @@ const defaultContent = {
   DReason: { askReason: true, reasons: [] }
 };
 
+const defaultRequiredFields = {
+  DDonorAddress: ['mailing_street', 'mailing_city', 'mailing_state', 'mailing_postal_code', 'mailing_country']
+};
+
 function AddElementModal({ addElementModalOpen, setAddElementModalOpen, destination = 'layout' }) {
   const { page } = useEditablePageContext();
   const { elements, setElements, sidebarElements, setSidebarElements } = useEditInterfaceContext();
@@ -45,6 +49,7 @@ function AddElementModal({ addElementModalOpen, setAddElementModalOpen, destinat
     return {
       uuid: uuidv4(),
       content: defaultContent[type] ? { ...defaultContent[type] } : undefined,
+      ...(defaultRequiredFields[type] && { requiredFields: defaultRequiredFields[type] }),
       type
     };
   };

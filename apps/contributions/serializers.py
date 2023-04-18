@@ -227,15 +227,6 @@ class AbstractPaymentSerializer(serializers.Serializer):
         self.fields["amount"].error_messages["invalid"] = "Enter a valid amount"
 
 
-class AddressField(serializers.CharField):
-    def __init__(self, *args, **kwargs):
-        kwargs["write_only"] = kwargs.get("write_only", True)
-        kwargs["required"] = kwargs.get("required", False)
-        kwargs["allow_blank"] = kwargs.get("allow_blank", True)
-        kwargs["default"] = kwargs.get("default", "")
-        super().__init__(*args, **kwargs)
-
-
 class BaseCreatePaymentSerializer(serializers.Serializer):
     """This is the base serializer for the `CreateOneTimePaymentSerializer` and `CreateRecurringPaymentSerializer`.
 
@@ -269,12 +260,21 @@ class BaseCreatePaymentSerializer(serializers.Serializer):
     page = serializers.PrimaryKeyRelatedField(many=False, queryset=DonationPage.objects.all(), write_only=True)
     first_name = serializers.CharField(max_length=40, write_only=True)
     last_name = serializers.CharField(max_length=80, write_only=True)
-    mailing_postal_code = AddressField(max_length=20)
-    mailing_street = AddressField(max_length=255)
-    mailing_complement = AddressField(max_length=255)
-    mailing_city = AddressField(max_length=40)
-    mailing_state = AddressField(max_length=80)
-    mailing_country = AddressField(max_length=80)
+    # TODO: DEV-3440 - handle address structure & validation in a better way.
+    mailing_postal_code = serializers.CharField(
+        max_length=20, write_only=True, required=False, allow_blank=True, default=""
+    )
+    mailing_street = serializers.CharField(
+        max_length=255, write_only=True, required=False, allow_blank=True, default=""
+    )
+    mailing_complement = serializers.CharField(
+        max_length=255, write_only=True, required=False, allow_blank=True, default=""
+    )
+    mailing_city = serializers.CharField(max_length=40, write_only=True, required=False, allow_blank=True, default="")
+    mailing_state = serializers.CharField(max_length=80, write_only=True, required=False, allow_blank=True, default="")
+    mailing_country = serializers.CharField(
+        max_length=80, write_only=True, required=False, allow_blank=True, default=""
+    )
     agreed_to_pay_fees = serializers.BooleanField(default=False, write_only=True)
 
     # See class-level doc string for info on why `default=''` here

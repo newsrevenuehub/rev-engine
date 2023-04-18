@@ -4,7 +4,7 @@ import SettingsSection from 'components/common/SettingsSection';
 import { HELP_URL, PRICING_URL } from 'constants/helperUrls';
 import useUser from 'hooks/useUser';
 import SubscriptionPlan from './SubscriptionPlan';
-import { Downgrade, PricingLink, SubscriptionPlanContainer, Wrapper } from './Subscription.styled';
+import { Downgrade, PricingLinkContainer, SubscriptionPlanContainer, Wrapper } from './Subscription.styled';
 import SubheaderSection from 'components/common/SubheaderSection';
 
 export function Subscription() {
@@ -32,9 +32,11 @@ export function Subscription() {
         title="Upgrade Plan"
         subtitle="Increase your customization and insights by upgrading."
       />
-      <PricingLink href={PRICING_URL} target="_blank">
-        View full pricing comparison
-      </PricingLink>
+      <PricingLinkContainer>
+        <Link href={PRICING_URL} target="_blank">
+          View full pricing comparison
+        </Link>
+      </PricingLinkContainer>
       <SettingsSection hideBottomDivider title="Downgrade or Cancel" />
       <Downgrade>
         To downgrade or cancel your plan, contact{' '}

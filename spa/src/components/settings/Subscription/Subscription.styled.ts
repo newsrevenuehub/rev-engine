@@ -1,12 +1,11 @@
 import styled from 'styled-components';
-import { Link } from 'components/base';
 
 export const Downgrade = styled.p`
   /* Gap in main layout is 40px. We want to leave 12px between it and header above it. */
   margin-top: -28px;
 `;
 
-export const PricingLink = styled(Link)`
+export const PricingLinkContainer = styled.p`
   border-bottom: 1px solid ${({ theme }) => theme.colors.muiGrey[100]};
   padding-bottom: 34px;
 `;

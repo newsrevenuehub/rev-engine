@@ -15,9 +15,9 @@ from addict import Dict as AttrDict
 from mailchimp_marketing.api_client import ApiClientError
 
 from apps.common.models import IndexedTimeStampedModel
+from apps.common.secrets import GoogleCloudSecretProvider
 from apps.common.utils import normalize_slug
 from apps.config.validators import validate_slug_against_denylist
-from apps.google_cloud.secrets_manager import GoogleCloudSecretManagerException, get_secret_version
 from apps.organizations.validators import validate_statement_descriptor_suffix
 from apps.pages.defaults import (
     BENEFITS,
@@ -361,6 +361,7 @@ class RevenueProgram(IndexedTimeStampedModel):
     # This is used to make requests to Mailchimp's API on behalf of users who have gone through the Mailchimp Oauth flow
     # to grant revengine access to their Mailchimp account.  We store sensitive values that are also required to access Mailchimp elsewhere.
     mailchimp_server_prefix = models.TextField(null=True, blank=True)
+    mailchimp_access_token = GoogleCloudSecretProvider(model_attr="mailchimp_access_token_secret_name")
 
     objects = RevenueProgramManager.from_queryset(RevenueProgramQuerySet)()
 
@@ -404,25 +405,7 @@ class RevenueProgram(IndexedTimeStampedModel):
     @property
     def mailchimp_access_token_secret_name(self) -> str:
         """This value will be used as the name of the secret in Google Cloud Secrets Manager"""
-        return f"MAILCHIMP_ACCESS_TOKEN_FOR_RP_{self.id}_[{settings.ENVIRONMENT}]"
-
-    @cached_property
-    def mailchimp_access_token(self) -> str | None:
-        """The value for the RP's Mailchimp access token stored in Google Cloud Secrets Manager, if any.
-
-        Note that this property will return `None` if there are errors retrieving the secret or if the RP
-        is not configured to use Mailchimp.
-        """
-        if not settings.ENABLE_GOOGLE_CLOUD_SECRET_MANAGER:
-            return None
-        try:
-            return get_secret_version(self.mailchimp_access_token_secret_name).payload.data.decode("utf-8")
-        except GoogleCloudSecretManagerException:
-            logger.debug(
-                "`RevenueProgram.mailchimp_access_token` failed to fetch access token from Google Cloud Secrets for RP with ID %s",
-                self.id,
-            )
-            return None
+        return f"MAILCHIMP_ACCESS_TOKEN_FOR_RP_{self.id}_{settings.ENVIRONMENT}"
 
     @property
     def transactional_email_style(self) -> TransactionalEmailStyle:
@@ -468,13 +451,13 @@ class RevenueProgram(IndexedTimeStampedModel):
                 self.id,
                 self.mailchimp_server_prefix,
             )
-            return None
+            return []
         except Exception:
             logger.exception(
                 "`RevenueProgram.mailchimp_access_token` failed to fetch access token from Google Cloud Secrets for RP with ID %s",
                 self.id,
             )
-            return None
+            return []
 
     def clean_fields(self, **kwargs):
         if not self.id:

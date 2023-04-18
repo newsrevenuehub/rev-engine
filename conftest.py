@@ -77,6 +77,12 @@ def dont_use_ssl(settings):
     settings.SECURE_SSL_REDIRECT = False
 
 
+@pytest.fixture(autouse=True)
+def suppress_google_cloud_secret_manager(settings):
+    """Suppresses calls to Google Cloud Secret Manager in tests"""
+    settings.ENABLE_GOOGLE_CLOUD_SECRET_MANAGER = False
+
+
 @pytest.fixture
 def default_feature_flags():
     """ """

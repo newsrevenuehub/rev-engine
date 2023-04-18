@@ -54,7 +54,6 @@ class RevenueProgramFactory(DjangoModelFactory):
         fiscally_sponsored = factory.Trait(fiscal_status=models.FiscalStatusChoices.FISCALLY_SPONSORED)
         non_profit = factory.Trait(fiscal_status=models.FiscalStatusChoices.NONPROFIT)
         for_profit = factory.Trait(fiscal_status=models.FiscalStatusChoices.FOR_PROFIT)
-        mailchimp_connected_via_oauth = factory.Trait(mailchimp_access_token="something", mailchimp_server_prefix="us9")
 
 
 class BenefitFactory(DjangoModelFactory):

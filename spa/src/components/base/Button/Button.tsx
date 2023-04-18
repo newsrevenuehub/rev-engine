@@ -1,6 +1,7 @@
 import { Button as MuiButton, ButtonProps as MuiButtonProps } from '@material-ui/core';
 import { forwardRef } from 'react';
 import styled from 'styled-components';
+import { revEngineTheme } from 'styles/themes';
 
 export interface ButtonProps extends Omit<MuiButtonProps, 'color' | 'size'> {
   color?: 'error' | 'information' | 'primaryDark' | 'primaryLight' | 'secondary' | 'text';
@@ -19,40 +20,40 @@ const ButtonWrapper = forwardRef<HTMLButtonElement, ButtonProps>((props, ref) =>
 const colors = {
   error: {
     active: { bg: '#8c162c', fg: '' },
-    disabled: { bg: '#e86f85', fg: '#f9f9f9' },
+    disabled: { bg: '#e86f85', fg: revEngineTheme.basePalette.greyscale.grey4 },
     hover: { bg: '#a01a32', fg: '' },
-    normal: { bg: '#c8203f', fg: '#fff' }
+    normal: { bg: revEngineTheme.basePalette.secondary.error, fg: revEngineTheme.basePalette.greyscale.white }
   },
   information: {
     // We don't have active or disabled colors yet.
     active: { bg: '', fg: '' },
-    disabled: { bg: '#157cb2', fg: '#fff' },
+    disabled: { bg: revEngineTheme.basePalette.primary.engineBlue, fg: revEngineTheme.basePalette.greyscale.white },
     hover: { bg: '#7eb3d1', fg: '' },
-    normal: { bg: '#157cb2', fg: '#fff' }
+    normal: { bg: revEngineTheme.basePalette.primary.engineBlue, fg: revEngineTheme.basePalette.greyscale.white }
   },
   primaryDark: {
-    active: { bg: '#3d2947', fg: '' },
-    disabled: { bg: '#ded3e4', fg: '#f9f9f9' },
-    hover: { bg: '#9a73ae', fg: '' },
-    normal: { bg: '#523a5e', fg: '#fff' }
+    active: { bg: revEngineTheme.basePalette.indigo[-10], fg: '' },
+    disabled: { bg: revEngineTheme.basePalette.purple[-80], fg: '#f9f9f9' },
+    hover: { bg: revEngineTheme.basePalette.indigo[-60], fg: '' },
+    normal: { bg: revEngineTheme.basePalette.primary.purple, fg: revEngineTheme.basePalette.greyscale.white }
   },
   primaryLight: {
     active: { bg: '#edff14', fg: '' },
-    disabled: { bg: '#f9ffac', fg: '#707070' },
-    hover: { bg: '#f9ffac', fg: '' },
-    normal: { bg: '#f2ff59', fg: '#282828' }
+    disabled: { bg: revEngineTheme.basePalette.chartreuse['-50'], fg: revEngineTheme.basePalette.greyscale.grey1 },
+    hover: { bg: revEngineTheme.basePalette.chartreuse['-50'], fg: '' },
+    normal: { bg: revEngineTheme.basePalette.primary.chartreuse, fg: revEngineTheme.basePalette.greyscale.black }
   },
   secondary: {
-    active: { bg: '#707070', fg: '' },
-    disabled: { bg: '#f9f9f9', fg: '#c4c4c4' },
-    hover: { bg: '#c4c4c4', fg: '' },
-    normal: { bg: '#f1f1f1', fg: '#282828' }
+    active: { bg: revEngineTheme.basePalette.greyscale.grey1, fg: '' },
+    disabled: { bg: revEngineTheme.basePalette.greyscale.grey4, fg: revEngineTheme.basePalette.greyscale.grey2 },
+    hover: { bg: revEngineTheme.basePalette.greyscale.grey2, fg: '' },
+    normal: { bg: revEngineTheme.basePalette.greyscale.grey3, fg: revEngineTheme.basePalette.greyscale.black }
   },
   text: {
-    active: { bg: 'rgba(40, 40, 40, 0.06)', fg: '#25192b' },
-    disabled: { bg: 'transparent', fg: '#c4c4c4' },
-    hover: { bg: 'transparent', fg: '#282828' },
-    normal: { bg: 'transparent', fg: '#707070' }
+    active: { bg: 'rgba(40, 40, 40, 0.06)', fg: revEngineTheme.basePalette.primary.indigo },
+    disabled: { bg: 'transparent', fg: revEngineTheme.basePalette.greyscale.grey2 },
+    hover: { bg: 'transparent', fg: revEngineTheme.basePalette.greyscale.black },
+    normal: { bg: 'transparent', fg: revEngineTheme.basePalette.greyscale.grey1 }
   }
 };
 

@@ -146,6 +146,7 @@ class BadActorSerializer(serializers.Serializer):
     last_name = serializers.CharField(max_length=80)
     email = serializers.EmailField(max_length=80)
     street = serializers.CharField(max_length=255, required=False, default="", allow_blank=True)
+    complement = serializers.CharField(max_length=255, required=False, default="", allow_blank=True)
     city = serializers.CharField(max_length=40, required=False, default="", allow_blank=True)
     state = serializers.CharField(max_length=80, required=False, default="", allow_blank=True)
     country = serializers.CharField(max_length=80, required=False, default="", allow_blank=True)
@@ -163,6 +164,7 @@ class BadActorSerializer(serializers.Serializer):
 
     def to_internal_value(self, data):
         data["street"] = data.get("mailing_street")
+        data["complement"] = data.get("mailing_complement")
         data["city"] = data.get("mailing_city")
         data["state"] = data.get("mailing_state")
         data["zipcode"] = data.get("mailing_postal_code")
@@ -269,6 +271,7 @@ class BaseCreatePaymentSerializer(serializers.Serializer):
     last_name = serializers.CharField(max_length=80, write_only=True)
     mailing_postal_code = AddressField(max_length=20)
     mailing_street = AddressField(max_length=255)
+    mailing_complement = AddressField(max_length=255)
     mailing_city = AddressField(max_length=40)
     mailing_state = AddressField(max_length=80)
     mailing_country = AddressField(max_length=80)

@@ -10,7 +10,7 @@ export const Card = styled.div`
 `;
 
 export const CardHeader = styled.h3`
-  border-bottom: 1px solid ${({ theme }) => theme.colors.muiGrey[100]};
+  border-bottom: 1px solid ${({ theme }) => theme.basePalette.greyscale.grey3};
   font-family: 'DM Mono', monospace;
   font-size: ${({ theme }) => theme.fontSizesUpdated.lg};
   font-weight: 500;
@@ -19,8 +19,8 @@ export const CardHeader = styled.h3`
 `;
 
 export const CardHeaderHighlight = styled.span`
-  background-color: #62ffe3;
-  color: ${({ theme }) => theme.colors.muiGrey[900]};
+  background-color: ${({ theme }) => theme.plan.core.background};
+  color: ${({ theme }) => theme.basePalette.greyscale.black};
   padding: 0 0.1em;
 `;
 
@@ -29,26 +29,26 @@ export const ModalContent = styled(BaseModalContent)`
 `;
 
 export const ModalHeader = styled(BaseModalHeader)`
-  color: ${({ theme }) => theme.colors.muiGrey[900]};
+  color: ${({ theme }) => theme.basePalette.greyscale.black};
 `;
 
 export const ModalHeaderIcon = styled(InfoOutlined)`
   && {
-    color: #523a5e;
+    color: ${({ theme }) => theme.basePalette.primary.purple};
   }
 `;
 
 export const PlanLimit = styled.p`
-  color: ${({ theme }) => theme.colors.muiGrey[900]};
+  color: ${({ theme }) => theme.basePalette.greyscale.black};
   margin-bottom: 2em;
 `;
 
 export const Recommendation = styled.p`
-  color: ${({ theme }) => theme.colors.muiGrey[900]};
+  color: ${({ theme }) => theme.basePalette.greyscale.black};
 `;
 
 export const PricingLink = styled.a`
-  color: #0052cc;
+  color: ${({ theme }) => theme.basePalette.secondary.hyperlink};
   font-weight: 600;
 `;
 
@@ -57,7 +57,7 @@ export const RedEmphasis = styled.strong`
 `;
 
 export const BenefitsList = styled.ul`
-  color: ${({ theme }) => theme.colors.muiGrey[900]};
+  color: ${({ theme }) => theme.basePalette.greyscale.black};
   padding-left: 1em;
 
   & li {

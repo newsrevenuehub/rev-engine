@@ -57,16 +57,12 @@ export default function PaymentSuccess() {
     // for us, because the user will be sent here by Stripe, not the SPA.
 
     if (page && pageFetchSuccess && !analyticsInstance) {
-      const coerceNullToUndefined = (value: string | null) => (value === null ? undefined : value);
-
-      // Coerce null values to undefined.
-
       setAnalyticsConfig({
         hubGaV3Id: HUB_GA_V3_ID,
-        orgFbPixelId: coerceNullToUndefined(page.revenue_program.facebook_pixel_id),
-        orgGaV3Domain: coerceNullToUndefined(page.revenue_program.google_analytics_v3_domain),
-        orgGaV3Id: coerceNullToUndefined(page.revenue_program.google_analytics_v3_id),
-        orgGaV4Id: coerceNullToUndefined(page.revenue_program.google_analytics_v4_id)
+        orgFbPixelId: page.revenue_program.facebook_pixel_id,
+        orgGaV3Domain: page.revenue_program.google_analytics_v3_domain,
+        orgGaV3Id: page.revenue_program.google_analytics_v3_id,
+        orgGaV4Id: page.revenue_program.google_analytics_v4_id
       });
     }
   }, [analyticsInstance, page, pageFetchSuccess, setAnalyticsConfig]);

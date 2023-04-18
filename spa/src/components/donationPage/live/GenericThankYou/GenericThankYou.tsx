@@ -50,16 +50,13 @@ function GenericThankYou() {
   useEffect(() => {
     if (!analyticsInstance && routedState.page?.revenue_program) {
       const { revenue_program } = routedState.page;
-      const coerceNullToUndefined = (value: string | null) => (value === null ? undefined : value);
-
-      // Coerce null values to undefined.
 
       setAnalyticsConfig({
         hubGaV3Id: HUB_GA_V3_ID,
-        orgFbPixelId: coerceNullToUndefined(revenue_program.facebook_pixel_id),
-        orgGaV3Domain: coerceNullToUndefined(revenue_program.google_analytics_v3_domain),
-        orgGaV3Id: coerceNullToUndefined(revenue_program.google_analytics_v3_id),
-        orgGaV4Id: coerceNullToUndefined(revenue_program.google_analytics_v4_id)
+        orgFbPixelId: revenue_program.facebook_pixel_id,
+        orgGaV3Domain: revenue_program.google_analytics_v3_domain,
+        orgGaV3Id: revenue_program.google_analytics_v3_id,
+        orgGaV4Id: revenue_program.google_analytics_v4_id
       });
     }
   }, [analyticsInstance, routedState.page, setAnalyticsConfig]);

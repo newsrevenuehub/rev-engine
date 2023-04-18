@@ -14,19 +14,19 @@ export interface AnalyticsConfig {
   /**
    * The organization's Facebook pixel ID, if any.
    */
-  orgFbPixelId?: string;
+  orgFbPixelId?: string | null;
   /**
    * The organization's Google Analytics v3 (aka Universal Analytics) account ID.
    */
-  orgGaV3Id?: string;
+  orgGaV3Id?: string | null;
   /**
    * The organization's Google Analytics v3 (aka Universal Analytics) domain name.
    */
-  orgGaV3Domain?: string;
+  orgGaV3Domain?: string | null;
   /**
    * The organization's Google Analytics v4 account ID.
    */
-  orgGaV4Id?: string;
+  orgGaV4Id?: string | null;
 }
 
 export interface UseEditInterfaceContextResult {
@@ -60,6 +60,15 @@ const AnalyticsContext = createContext<UseEditInterfaceContextResult>({
 });
 
 export const useAnalyticsContext = () => useContext(AnalyticsContext);
+
+/**
+ * Coerces a null value to undefined. We do this because organizations might
+ * have null values for their tracking IDs, and we want to treat them as
+ * undefined.
+ */
+function coerceNullToUndefined(value?: string | null) {
+  return value === null ? undefined : value;
+}
 
 function getAnalyticsPlugins(
   hubGaV3Id?: string,
@@ -101,7 +110,13 @@ export const AnalyticsContextProvider = ({ children }: { children: ReactNode }) 
   useEffect(() => {
     if (analyticsConfig && !analyticsInstance) {
       const { hubGaV3Id, orgGaV3Id, orgGaV3Domain, orgGaV4Id, orgFbPixelId } = analyticsConfig;
-      const plugins = getAnalyticsPlugins(hubGaV3Id, orgGaV3Id, orgGaV3Domain, orgGaV4Id, orgFbPixelId);
+      const plugins = getAnalyticsPlugins(
+        hubGaV3Id,
+        coerceNullToUndefined(orgGaV3Id),
+        coerceNullToUndefined(orgGaV3Domain),
+        coerceNullToUndefined(orgGaV4Id),
+        coerceNullToUndefined(orgFbPixelId)
+      );
       const analytics = Analytics({ app: HUB_ANALYTICS_APP_NAME, plugins });
 
       setAnalyticsInstance(analytics);

@@ -9,13 +9,11 @@ from django.utils import timezone
 
 import pytest
 import pytest_cases
-from google.api_core.exceptions import NotFound
 from stripe import ApplePayDomain
 from stripe.error import StripeError
 
 import apps
 from apps.common.models import SocialMeta
-from apps.common.secrets import GoogleCloudSecretProvider
 from apps.common.tests.test_utils import get_test_image_file_jpeg
 from apps.config.tests.factories import DenyListWordFactory
 from apps.config.validators import GENERIC_SLUG_DENIED_MSG, SLUG_DENIED_CODE
@@ -30,6 +28,7 @@ from apps.organizations.models import (
     CorePlan,
     FiscalStatusChoices,
     FreePlan,
+    GoogleCloudSecretProvider,
     HubDefaultEmailStyle,
     Organization,
     PaymentProvider,
@@ -245,35 +244,6 @@ def revenue_program_with_default_donation_page_but_no_transactional_email_style_
     return rp
 
 
-@pytest.fixture
-def revenue_program_with_manual_org_mailchimp_connection():
-    rp = RevenueProgramFactory()
-    rp.organization.show_connected_to_mailchimp = True
-    rp.organization.save()
-    return rp
-
-
-@pytest.fixture
-def revenue_program_with_mailchimp_connection_via_oauth_flow(mocker):
-    mock_secret_manager = mocker.patch("google.cloud.secretmanager.SecretManagerServiceClient")
-    mock_secret_manager.return_value.access_secret_version.return_value.payload.data.decode.return_value = "foo"
-    return RevenueProgramFactory(mailchimp_server_prefix="us1")
-
-
-@pytest.fixture
-def revenue_program_with_incomplete_connection_only_has_prefix(mocker):
-    mock_secret_manager = mocker.patch("google.cloud.secretmanager.SecretManagerServiceClient")
-    mock_secret_manager.return_value.access_secret_version.side_effect = NotFound("Not found")
-    return RevenueProgramFactory(mailchimp_server_prefix="us1")
-
-
-@pytest.fixture
-def revenue_program_with_incomplete_connection_only_has_token(mocker):
-    mock_secret_manager = mocker.patch("google.cloud.secretmanager.SecretManagerServiceClient")
-    mock_secret_manager.return_value.access_secret_version.return_value.payload.data.decode.return_value = "foo"
-    return RevenueProgramFactory(mailchimp_server_prefix=None)
-
-
 @pytest.mark.django_db
 class TestRevenueProgram:
     def test_basics(self):
@@ -351,72 +321,41 @@ class TestRevenueProgram:
         mock_stripe_create.assert_called_once()
         mock_logger.exception.assert_called_once()
 
+    @pytest.mark.parametrize("enabled", [True, False])
     def test_mailchimp_access_token(self, enabled, settings, mocker):
         settings.ENABLE_GOOGLE_CLOUD_SECRET_MANAGER = enabled
         mock_client = mocker.patch.object(GoogleCloudSecretProvider, "client")
         mock_client.access_secret_version.return_value.payload.data = (val := b"something")
-        rp = RevenueProgramFactory()
+        rp = RevenueProgramFactory(mailchimp_server_prefix="something")
         assert rp.mailchimp_access_token == (val.decode("utf-8") if enabled else None)
-        # delete it and prove goes through to gc
 
-    # def test_mailchimp_email_lists_property_happy_path(self, revenue_program, mocker):
-    #     revenue_program.mailchimp_server_prefix = "us1"
-    #     revenue_program.mailchimp_access_token = "123456"
-    #     revenue_program.save()
-    #     mock_mc_client = mocker.patch("mailchimp_marketing.Client")
-    #     mock_mc_client.return_value.lists.get_all_lists.return_value = {"lists": [{"id": "123", "name": "test"}]}
-    #     assert (
-    #         revenue_program.mailchimp_email_lists
-    #         == mock_mc_client.return_value.lists.get_all_lists.return_value["lists"]
-    #     )
-    #     mock_mc_client.assert_called_once()
-    #     mock_mc_client.return_value.lists.get_all_lists.assert_called_once()
+    def test_mailchimp_email_lists_property_happy_path(self, mocker, settings):
+        settings.ENABLE_GOOGLE_CLOUD_SECRET_MANAGER = True
+        mock_secret_provider = mocker.patch.object(GoogleCloudSecretProvider, "client")
+        mock_secret_provider.access_secret_version.return_value.payload.data = b"foo"
+        revenue_program = RevenueProgramFactory(mailchimp_server_prefix="something")
+        mock_mc_client = mocker.patch("mailchimp_marketing.Client")
+        mock_mc_client.return_value.lists.get_all_lists.return_value = {"lists": [{"id": "123", "name": "test"}]}
+        assert (
+            revenue_program.mailchimp_email_lists
+            == mock_mc_client.return_value.lists.get_all_lists.return_value["lists"]
+        )
+        mock_mc_client.assert_called_once()
+        mock_mc_client.return_value.lists.get_all_lists.assert_called_once()
 
-    # def test_mailchimp_email_lists_property_when_missing_server_prefix(self, revenue_program, mocker):
-    #     mock_mc_client = mocker.patch("mailchimp_marketing.Client")
-    #     mock_mc_client.return_value.lists.get_all_lists.return_value = {"lists": [{"id": "123", "name": "test"}]}
-    #     revenue_program.mailchimp_server_prefix = None
-    #     revenue_program.mailchimp_access_token = "123456"
-    #     revenue_program.save()
-    #     assert revenue_program.mailchimp_email_lists == []
-    #     mock_mc_client.assert_not_called()
-    #     mock_mc_client.return_value.lists.get_all_lists.assert_not_called()
+    def test_mailchimp_email_lists_property_when_missing_server_prefix(self, mocker, settings):
+        settings.ENABLE_GOOGLE_CLOUD_SECRET_MANAGER = True
+        mock_secret_provider = mocker.patch.object(GoogleCloudSecretProvider, "client")
+        mock_secret_provider.access_secret_version.return_value.payload.data = b"foo"
+        revenue_program = RevenueProgramFactory(mailchimp_server_prefix=None)
+        assert revenue_program.mailchimp_email_lists == []
 
-    # def test_mailchimp_email_lists_property_when_missing_access_token(self, revenue_program, mocker):
-    #     mock_mc_client = mocker.patch("mailchimp_marketing.Client")
-    #     mock_mc_client.return_value.lists.get_all_lists.return_value = {"lists": [{"id": "123", "name": "test"}]}
-    #     revenue_program.mailchimp_server_prefix = "us1"
-    #     revenue_program.mailchimp_access_token = None
-    #     revenue_program.save()
-    #     assert revenue_program.mailchimp_email_lists == []
-    #     mock_mc_client.assert_not_called()
-    #     mock_mc_client.return_value.lists.get_all_lists.assert_not_called()
-
-    # def test_mailchimp_email_lists_property_when_both_missing(self, revenue_program, mocker):
-    #     mock_mc_client = mocker.patch("mailchimp_marketing.Client")
-    #     mock_mc_client.return_value.lists.get_all_lists.return_value = {"lists": [{"id": "123", "name": "test"}]}
-    #     revenue_program.mailchimp_server_prefix = None
-    #     revenue_program.mailchimp_access_token = None
-    #     revenue_program.save()
-    #     assert revenue_program.mailchimp_email_lists == []
-    #     mock_mc_client.assert_not_called()
-    #     mock_mc_client.return_value.lists.get_all_lists.assert_not_called()
-
-    # def test_mailchimp_email_lists_property_when_mailchimp_api_error(self, revenue_program, mocker):
-    #     revenue_program.mailchimp_server_prefix = "us1"
-    #     revenue_program.mailchimp_access_token = "123456"
-    #     revenue_program.save()
-    #     mock_mc_client = mocker.patch("mailchimp_marketing.Client")
-    #     mock_mc_client.return_value.lists.get_all_lists.side_effect = ApiClientError("Ruh roh")
-    #     log_spy = mocker.spy(logger, "exception")
-    #     assert revenue_program.mailchimp_email_lists == []
-    #     log_spy.assert_called_once_with(
-    #         "`RevenueProgram.mailchimp_email_lists` failed to fetch email lists from Mailchimp for RP with ID %s mc server prefix %s",
-    #         revenue_program.id,
-    #         revenue_program.mailchimp_server_prefix,
-    #     )
-    #     mock_mc_client.assert_called_once()
-    #     mock_mc_client.return_value.lists.get_all_lists.assert_called_once()
+    def test_mailchimp_email_lists_property_when_missing_access_token(self, mocker, settings):
+        settings.ENABLE_GOOGLE_CLOUD_SECRET_MANAGER = True
+        mock_secret_provider = mocker.patch.object(GoogleCloudSecretProvider, "client")
+        mock_secret_provider.access_secret_version.return_value = None
+        revenue_program = RevenueProgramFactory(mailchimp_server_prefix="something")
+        assert revenue_program.mailchimp_email_lists == []
 
     @pytest_cases.parametrize(
         "rp,make_expected_value_fn",
@@ -594,19 +533,24 @@ class TestRevenueProgram:
         "revenue_program,expect_connected",
 
     @pytest_cases.parametrize(
-        "revenue_program,expect_connected",
+        "mailchimp_server_prefix,mailchimp_access_token,expect_connected",
         (
-            # (pytest_cases.fixture_ref("revenue_program_with_mailchimp_connection_via_oauth_flow"), True),
-            # (pytest_cases.fixture_ref("revenue_program_with_manual_org_mailchimp_connection"), False),
-            (pytest_cases.fixture_ref("revenue_program_with_incomplete_connection_only_has_prefix"), False),
-            # (pytest_cases.fixture_ref("revenue_program_with_incomplete_connection_only_has_token"), False),
+            ("something", "something", True),
+            (None, "something", False),
+            ("something", None, False),
+            (None, None, False),
         ),
     )
-    def test_mailchimp_integration_connected_property(self, revenue_program, expect_connected, settings, mocker):
+    def test_mailchimp_integration_connected_property(
+        self, mailchimp_server_prefix, mailchimp_access_token, expect_connected, settings, mocker
+    ):
+        mocker.patch(
+            "apps.organizations.models.RevenueProgram.mailchimp_access_token",
+            return_value=mailchimp_access_token,
+            new_callable=mocker.PropertyMock,
+        )
         settings.ENABLE_GOOGLE_CLOUD_SECRET_MANAGER = True
-        secret_client = mocker.patch("google.cloud.secretmanager.SecretManagerServiceClient")
-        secret_client.return_value.access_secret_version.return_value.payload.data.decode.return_value = "my_test_key"
-
+        revenue_program = RevenueProgramFactory(mailchimp_server_prefix=mailchimp_server_prefix)
         assert revenue_program.mailchimp_integration_connected is expect_connected
 
 

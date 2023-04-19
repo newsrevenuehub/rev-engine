@@ -1,7 +1,6 @@
 import logging
 import os
 from dataclasses import dataclass, field
-from functools import cached_property
 
 from django.conf import settings
 from django.core.exceptions import ValidationError
@@ -12,7 +11,6 @@ from django.utils import timezone
 import mailchimp_marketing as MailchimpMarketing
 import stripe
 from addict import Dict as AttrDict
-from mailchimp_marketing.api_client import ApiClientError
 
 from apps.common.models import IndexedTimeStampedModel
 from apps.common.secrets import GoogleCloudSecretProvider
@@ -435,29 +433,15 @@ class RevenueProgram(IndexedTimeStampedModel):
                 button_color=_style.colors.cstm_CTAs or None,
             )
 
-    @cached_property
+    @property
     def mailchimp_email_lists(self) -> list[MailchimpEmailList]:
         """"""
         if not all([self.mailchimp_server_prefix, self.mailchimp_access_token]):
             return []
-        try:
-            client = MailchimpMarketing.Client()
-            client.set_config({"access_token": self.mailchimp_access_token, "server": self.mailchimp_server_prefix})
-            response = client.lists.get_all_lists(fields="id,name", count=1000)
-            return response["lists"]
-        except ApiClientError:
-            logger.exception(
-                "`RevenueProgram.mailchimp_email_lists` failed to fetch email lists from Mailchimp for RP with ID %s mc server prefix %s",
-                self.id,
-                self.mailchimp_server_prefix,
-            )
-            return []
-        except Exception:
-            logger.exception(
-                "`RevenueProgram.mailchimp_access_token` failed to fetch access token from Google Cloud Secrets for RP with ID %s",
-                self.id,
-            )
-            return []
+        client = MailchimpMarketing.Client()
+        client.set_config({"access_token": self.mailchimp_access_token, "server": self.mailchimp_server_prefix})
+        response = client.lists.get_all_lists(fields="id,name", count=1000)
+        return response["lists"]
 
     def clean_fields(self, **kwargs):
         if not self.id:

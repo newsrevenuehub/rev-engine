@@ -89,8 +89,7 @@ class GoogleCloudSecretProvider(SecretProvider):
             )
             raise SecretProviderException("Permission denied")
 
-        else:  # If no exception is raised, then the secret was found
-            return secret.payload.data.decode("UTF-8")
+        return secret.payload.data.decode("UTF-8") if secret else None
 
     def __set__(self, obj, value) -> None:
         secret_name = self.get_secret_name(obj)

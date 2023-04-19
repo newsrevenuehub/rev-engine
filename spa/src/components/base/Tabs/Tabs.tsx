@@ -7,7 +7,7 @@ const StyledTabs = styled(MuiTabs)`
     min-height: 50px;
 
     .NreTabsIndicator {
-      background-color: #523a5e;
+      background-color: ${({ theme }) => theme.basePalette.primary.purple};
     }
   }
 `;

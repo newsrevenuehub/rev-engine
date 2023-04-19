@@ -53,6 +53,6 @@ export const OtherAmountButton = styled(ButtonBase)`
   width: 24px;
 
   svg {
-    color: #008e7c;
+    color: ${({ theme }) => theme.basePalette.secondary.success};
   }
 `;

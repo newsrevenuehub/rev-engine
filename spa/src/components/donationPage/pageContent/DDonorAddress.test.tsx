@@ -11,8 +11,8 @@ import DDonorAddress, { DDonorAddressProps } from './DDonorAddress';
 
 jest.mock('country-code-lookup', () => ({
   countries: [
-    { country: 'AAA', fips: 'aaa' },
-    { country: 'BBB', fips: 'bbb' }
+    { country: 'AAA', iso2: 'aa' },
+    { country: 'BBB', iso2: 'bb' }
   ]
 }));
 jest.mock('react-google-autocomplete');
@@ -127,6 +127,52 @@ describe('DDonorAddress', () => {
     });
   });
 
+  it(`has the show Address line 2 button`, () => {
+    tree();
+    expect(screen.getByRole('button', { name: '+ Address line 2 (Apt, suite, etc.)' })).toBeEnabled();
+  });
+
+  describe('The Line 2 address field', () => {
+    function openLine2() {
+      userEvent.click(screen.getByRole('button', { name: '+ Address line 2 (Apt, suite, etc.)' }));
+    }
+
+    it(`is hidden by default`, () => {
+      tree();
+      expect(screen.queryByRole('textbox', { name: 'Apt, suite, etc.' })).not.toBeInTheDocument();
+    });
+
+    it(`has the form name mailing_complement`, () => {
+      tree();
+      openLine2();
+      const field = screen.getByRole('textbox', { name: 'Apt, suite, etc.' });
+
+      expect(field).toBeVisible();
+      expect(field).toHaveAttribute('name', 'mailing_complement');
+    });
+
+    it('is not required', () => {
+      tree();
+      openLine2();
+      expect(screen.getByRole('textbox', { name: 'Apt, suite, etc.' })).not.toBeRequired();
+    });
+
+    it('updates when the user types into it', () => {
+      tree();
+      openLine2();
+      userEvent.type(screen.getByRole('textbox', { name: 'Apt, suite, etc.' }), `mock-address-line-2`);
+      expect(screen.getByRole('textbox', { name: 'Apt, suite, etc.' })).toHaveValue(`mock-address-line-2`);
+    });
+
+    it(`displays errors keyed on mailing_complement`, () => {
+      tree({ errors: { mailing_complement: 'test-error' } });
+      openLine2();
+      // We don't have test IDs for helper text right now.
+      // eslint-disable-next-line testing-library/no-node-access
+      expect(document.getElementById(`mailing_complement-helper-text`)).toHaveTextContent('test-error');
+    });
+  });
+
   describe('The State field label', () => {
     it('is State by default', () => {
       tree();
@@ -148,19 +194,19 @@ describe('DDonorAddress', () => {
   });
 
   describe('The Country select', () => {
-    it('displays a country select that shows the mailingCountry FIPS code set in context', () => {
-      tree({ mailingCountry: 'aaa' });
+    it('displays a country select that shows the mailingCountry ISO code set in context', () => {
+      tree({ mailingCountry: 'aa' });
       expect(screen.getByRole('textbox', { name: 'Country' })).toHaveValue('AAA');
     });
 
-    it('updates the country FIPS code in context when the user selects a country', () => {
+    it('updates the country ISO code in context when the user selects a country', () => {
       const setMailingCountry = jest.fn();
 
       tree({ setMailingCountry });
       userEvent.click(screen.getByLabelText('Open'));
       expect(setMailingCountry).not.toBeCalled();
       userEvent.click(screen.getByText('BBB'));
-      expect(setMailingCountry.mock.calls).toEqual([['bbb']]);
+      expect(setMailingCountry.mock.calls).toEqual([['bb']]);
     });
   });
 

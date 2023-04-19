@@ -1,5 +1,5 @@
 import styled from 'styled-components';
-import { CountrySelect as BaseCountrySelect, TextField as BaseTextField } from 'components/base';
+import { CountrySelect as BaseCountrySelect, TextField as BaseTextField, Button as BaseButton } from 'components/base';
 
 // Our select uses the new text field (under components/base) for display. For
 // the time being, we make it look like the old text fields on the rest of the
@@ -91,4 +91,41 @@ export const TextField = styled(BaseTextField)`
       padding: 0;
     }
   }
+`;
+
+export const Button = styled(BaseButton)<{ $showComplement: boolean }>`
+  && {
+    margin-top: 8px;
+    font-weight: 500;
+    text-transform: none;
+    text-decoration: underline;
+    background: none;
+    border-color: white;
+    box-shadow: none;
+    padding: 0;
+    height: unset;
+
+    .NreButtonLabel {
+      color: ${({ theme }) => theme.colors.muiGrey[900]};
+
+      ${({ $showComplement, theme }) => $showComplement && `color: ${theme.colors.muiGrey[600]};`}
+    }
+
+    &:hover,
+    &:active,
+    &:hover:active {
+      box-shadow: none;
+      background: transparent;
+      text-decoration: underline;
+    }
+
+    &:disabled {
+      background-color: unset;
+    }
+  }
+`;
+
+export const CollapseChild = styled.div`
+  width: 100%;
+  padding: 12px;
 `;

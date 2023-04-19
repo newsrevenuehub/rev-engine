@@ -14,12 +14,12 @@ const StyledMuiFormControlLabel = styled(MuiFormControlLabel)`
     align-items: flex-start;
 
     .NreFormControlLabelLabel {
-      color: #282828;
+      color: ${({ theme }) => theme.basePalette.greyscale.black};
       font: 16px Roboto, sans-serif;
       line-height: 24px;
 
       &.Mui-disabled {
-        color: ${({ theme }) => theme.colors.muiGrey[600]};
+        color: ${({ theme }) => theme.basePalette.greyscale.grey1};
       }
     }
   }

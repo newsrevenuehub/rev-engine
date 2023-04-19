@@ -106,6 +106,7 @@ class TestSendThankYouEmail:
         "revenue_program",
         (
             pytest_cases.fixture_ref("free_plan_revenue_program"),
+            pytest_cases.fixture_ref("core_plan_revenue_program"),
             pytest_cases.fixture_ref("plus_plan_revenue_program"),
         ),
     )
@@ -140,17 +141,19 @@ class TestSendThankYouEmail:
             data = make_send_thank_you_email_data(contribution)
             send_thank_you_email(data)
 
+        default_logo = os.path.join(settings.SITE_URL, "static", "nre-logo-yellow.png")
         custom_logo = 'src="/media/mock-logo"'
         custom_header_background = "background: #mock-header-background !important"
         custom_button_background = "background: #mock-button-color !important"
 
         if revenue_program.organization.plan.name == FreePlan.name or not default_style:
-            expect_present = ()
+            expect_present = default_logo
             expect_missing = (custom_logo, custom_button_background, custom_header_background)
 
         else:
             expect_present = (custom_logo,)
-            expect_missing = (custom_button_background, custom_header_background)
+            # Email template doesn't have a button to apply the custom button color to and also doesn't have a header background to customize
+            expect_missing = (custom_button_background, custom_header_background, default_logo)
 
         for x in expect_present:
             assert x in mail.outbox[0].alternatives[0][0]

@@ -15,8 +15,9 @@ export const PAYMENT_SUCCESS = '/payment/success/';
 
 // Settings
 export const SETTINGS = {
+  INTEGRATIONS: '/settings/integrations',
   ORGANIZATION: '/settings/organization',
-  INTEGRATIONS: '/settings/integrations'
+  SUBSCRIPTION: '/settings/subscription'
 };
 
 // Contributor

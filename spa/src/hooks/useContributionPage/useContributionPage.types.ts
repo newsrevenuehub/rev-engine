@@ -96,6 +96,22 @@ export interface ContributionPageElement {
    * Internal ID of the element.
    */
   uuid: string;
+  /**
+   * User-visible name of the element.
+   */
+  displayName?: string;
+  /**
+   * User-visible description of the element.
+   */
+  description?: string;
+  /**
+   * Edit block is required?
+   */
+  required?: boolean;
+  /**
+   * Edit block is unique?
+   */
+  unique?: boolean;
 }
 
 export interface AmountElement extends ContributionPageElement {

@@ -131,6 +131,7 @@ class ContributionTest(TestCase):
             "last_name": "doe",
             "phone": "555-555-5555",
             "mailing_street": "123 Street Lane",
+            "mailing_complement": "Ap 1",
             "mailing_city": "Small Town",
             "mailing_state": "OK",
             "mailing_postal_code": "12345",
@@ -143,6 +144,44 @@ class ContributionTest(TestCase):
 
         address = {
             "line1": call_args["mailing_street"],
+            "line2": call_args["mailing_complement"],
+            "city": call_args["mailing_city"],
+            "state": call_args["mailing_state"],
+            "postal_code": call_args["mailing_postal_code"],
+            "country": call_args["mailing_country"],
+        }
+        mock_create_customer.assert_called_once_with(
+            name=name,
+            email=self.contribution.contributor.email,
+            address=address,
+            shipping={"address": address, "name": name},
+            phone=call_args["phone"],
+            stripe_account=self.contribution.donation_page.revenue_program.payment_provider.stripe_account_id,
+        )
+        self.assertEqual(customer, mock_create_customer.return_value)
+
+    @patch("stripe.Customer.create", return_value={"id": "cus_fakefakefake"})
+    def test_create_stripe_customer_empty_complement(self, mock_create_customer, *args):
+        """Show Contributor.create_stripe_customer calls Stripe with right params and returns the customer object"""
+        call_args = {
+            "first_name": "Jane",
+            "last_name": "doe",
+            "phone": "555-555-5555",
+            "mailing_street": "123 Street Lane",
+            "mailing_complement": None,
+            "mailing_city": "Small Town",
+            "mailing_state": "OK",
+            "mailing_postal_code": "12345",
+            "mailing_country": "US",
+        }
+        self.contribution.contributor = ContributorFactory()
+        self.contribution.save()
+        customer = self.contribution.create_stripe_customer(**call_args)
+        name = f"{call_args['first_name']} {call_args['last_name']}"
+
+        address = {
+            "line1": call_args["mailing_street"],
+            "line2": "",
             "city": call_args["mailing_city"],
             "state": call_args["mailing_state"],
             "postal_code": call_args["mailing_postal_code"],
@@ -715,6 +754,7 @@ class TestContributionModel:
         "revenue_program",
         (
             pytest_cases.fixture_ref("free_plan_revenue_program"),
+            pytest_cases.fixture_ref("core_plan_revenue_program"),
             pytest_cases.fixture_ref("plus_plan_revenue_program"),
         ),
     )

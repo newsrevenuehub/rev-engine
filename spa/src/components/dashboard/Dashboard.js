@@ -46,6 +46,7 @@ import hasContributionsDashboardAccessToUser from 'utilities/hasContributionsDas
 import { useEffect } from 'react';
 import { PageEditorRedirect } from 'components/pageEditor/PageEditorRedirect';
 import MailchimpOAuthSuccess from './MailchimpOAuthSuccess';
+import Subscription from 'components/settings/Subscription/Subscription';
 
 function Dashboard() {
   const { enqueueSnackbar } = useSnackbar();
@@ -128,6 +129,11 @@ function Dashboard() {
               <SentryRoute path={SETTINGS.ORGANIZATION}>
                 <SingleOrgUserOnlyRoute>
                   <Organization />
+                </SingleOrgUserOnlyRoute>
+              </SentryRoute>
+              <SentryRoute path={SETTINGS.SUBSCRIPTION}>
+                <SingleOrgUserOnlyRoute>
+                  <Subscription />
                 </SingleOrgUserOnlyRoute>
               </SentryRoute>
               <SentryRoute path={PROFILE}>

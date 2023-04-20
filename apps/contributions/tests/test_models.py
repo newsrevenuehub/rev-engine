@@ -493,8 +493,8 @@ class TestContributionModel:
     @pytest_cases.parametrize(
         "contribution",
         (
-            # pytest_cases.fixture_ref("one_time_contribution"),
-            # pytest_cases.fixture_ref("monthly_contribution"),
+            pytest_cases.fixture_ref("one_time_contribution"),
+            pytest_cases.fixture_ref("monthly_contribution"),
             pytest_cases.fixture_ref("annual_contribution"),
         ),
     )

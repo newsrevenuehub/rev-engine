@@ -3,7 +3,7 @@ import { Button as BaseButton } from 'components/base';
 
 export const Root = styled.div`
   background: white;
-  border-top: 1px solid #c4c4c4;
+  border-top: 1px solid ${({ theme }) => theme.basePalette.greyscale.grey2};
   display: flex;
   gap: 14px;
   justify-content: flex-end;

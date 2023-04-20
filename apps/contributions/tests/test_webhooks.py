@@ -6,6 +6,7 @@ from django.urls import reverse
 from django.utils.timezone import make_aware
 
 import pytest
+from addict import Dict as AttrDict
 from rest_framework import status
 from stripe.webhook import WebhookSignature
 
@@ -60,6 +61,8 @@ class TestPaymentIntentSucceeded:
     def test_when_contribution_found(self, payment_intent_succeeded, monkeypatch, client, mocker):
         monkeypatch.setattr(WebhookSignature, "verify_header", lambda *args, **kwargs: True)
 
+        mocker.patch("apps.contributions.models.Contribution.fetch_stripe_payment_method", return_value=None)
+        mocker.patch("stripe.Customer.retrieve", return_value=AttrDict({"name": "some customer name"}))
         header = {"HTTP_STRIPE_SIGNATURE": "testing", "content_type": "application/json"}
         contribution = ContributionFactory(
             one_time=True,
@@ -86,9 +89,6 @@ class TestPaymentIntentSucceeded:
                 "modified",
             },
         )
-
-        # show revision is created
-
         send_receipt_email_spy.assert_called_once_with(contribution)
         assert response.status_code == status.HTTP_200_OK
         contribution.refresh_from_db()

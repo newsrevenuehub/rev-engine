@@ -45,12 +45,12 @@ export const ToggleFormControlLabel = styled(FormControlLabel)`
     margin-bottom: 20px;
 
     .NreChecked + .NreTrack {
-      background: #157cb2;
+      background: ${({ theme }) => theme.basePalette.primary.engineBlue};
       border-color: #1370a0;
     }
 
     .NreFormControlLabelLabel {
-      color: ${({ theme }) => theme.colors.muiGrey[900]};
+      color: ${({ theme }) => theme.basePalette.greyscale.black};
       font-size: ${({ theme }) => theme.fontSizesUpdated.sm};
     }
   }

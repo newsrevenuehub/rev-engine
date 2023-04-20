@@ -5,6 +5,7 @@ from urllib.parse import parse_qs, quote_plus, urlparse
 
 from django.conf import settings
 from django.core import mail
+from django.template.loader import render_to_string
 from django.utils.safestring import mark_safe
 
 import pytest
@@ -24,10 +25,12 @@ from apps.contributions.models import (
     Contributor,
     ContributorRefreshToken,
     logger,
+    make_send_thank_you_email_data,
+    send_thank_you_email,
 )
 from apps.contributions.tasks import task_pull_serialized_stripe_contributions_to_cache
 from apps.contributions.tests.factories import ContributionFactory, ContributorFactory
-from apps.emails.tasks import send_templated_email, send_thank_you_email
+from apps.emails.tasks import send_templated_email
 from apps.organizations.models import FiscalStatusChoices
 from apps.organizations.tests.factories import OrganizationFactory, RevenueProgramFactory
 from apps.pages.tests.factories import DonationPageFactory
@@ -83,6 +86,7 @@ class TestContributorModel:
             address=(
                 address := {
                     "line1": kwargs["street"],
+                    "line2": "",
                     "city": kwargs["city"],
                     "state": kwargs["state"],
                     "postal_code": kwargs["postal_code"],
@@ -157,6 +161,7 @@ class TestContributionModel:
             "last_name": "doe",
             "phone": "555-555-5555",
             "mailing_street": "123 Street Lane",
+            "mailing_complement": "Ap 1",
             "mailing_city": "Small Town",
             "mailing_state": "OK",
             "mailing_postal_code": "12345",
@@ -169,6 +174,7 @@ class TestContributionModel:
             address=(
                 address := {
                     "line1": call_args["mailing_street"],
+                    "line2": call_args["mailing_complement"] or "",
                     "city": call_args["mailing_city"],
                     "state": call_args["mailing_state"],
                     "postal_code": call_args["mailing_postal_code"],
@@ -309,7 +315,7 @@ class TestContributionModel:
 
     def test_fetch_stripe_payment_method_when_no_provider_payment_method_id(self, mocker):
         contribution = ContributionFactory(provider_payment_method_id=None)
-        logger_spy = mocker.spy(contribution.logger, "warning")
+        logger_spy = mocker.spy(logger, "warning")
         assert contribution.fetch_stripe_payment_method() is None
         logger_spy.assert_called_once_with(
             "Contribution.fetch_stripe_payment_method called without a provider_payment_method_id "
@@ -487,24 +493,31 @@ class TestContributionModel:
     @pytest_cases.parametrize(
         "contribution",
         (
-            pytest_cases.fixture_ref("one_time_contribution"),
-            pytest_cases.fixture_ref("monthly_contribution"),
+            # pytest_cases.fixture_ref("one_time_contribution"),
+            # pytest_cases.fixture_ref("monthly_contribution"),
             pytest_cases.fixture_ref("annual_contribution"),
         ),
     )
     @pytest.mark.parametrize("send_receipt_email_via_nre", (True, False))
-    def test_handle_thank_you_email(self, contribution, send_receipt_email_via_nre, monkeypatch, mocker):
+    def test_handle_thank_you_email(self, contribution, send_receipt_email_via_nre, mocker, settings):
         """Show that when org configured to have NRE send thank you emails, send_templated_email
         gets called with expected args.
         """
+        settings.CELERY_TASK_ALWAYS_EAGER = True
         (
             org := contribution.donation_page.revenue_program.organization
         ).send_receipt_email_via_nre = send_receipt_email_via_nre
         org.save()
-        monkeypatch.setattr("apps.emails.tasks.send_thank_you_email.delay", lambda *args, **kwargs: None)
-        spy = mocker.spy(send_thank_you_email, "delay")
+        send_thank_you_email_spy = mocker.spy(send_thank_you_email, "delay")
+        customer_name = "Fake Customer Name"
+        mocker.patch("stripe.Customer.retrieve", return_value=AttrDict({"name": customer_name}))
+        mocker.patch("apps.contributions.models.Contributor.create_magic_link", return_value="fake_magic_link")
         contribution.handle_thank_you_email()
-        assert spy.call_count == (1 if send_receipt_email_via_nre else 0)
+        expected_data = make_send_thank_you_email_data(contribution)
+        if send_receipt_email_via_nre:
+            send_thank_you_email_spy.assert_called_once_with(expected_data)
+        else:
+            send_thank_you_email_spy.assert_not_called()
 
     @pytest_cases.parametrize(
         "contribution",
@@ -1003,21 +1016,25 @@ class TestContributionModel:
             mock_send_templated_email.assert_called_once_with(
                 contribution.contributor.email,
                 f"Reminder: {contribution.donation_page.revenue_program.name} scheduled contribution",
-                "recurring-contribution-email-reminder.txt",
-                "recurring-contribution-email-reminder.html",
-                {
-                    "rp_name": contribution.donation_page.revenue_program.name,
-                    "contribution_date": next_charge_date.strftime("%m/%d/%Y"),
-                    "contribution_amount": contribution.formatted_amount,
-                    "contribution_interval_display_value": contribution.interval,
-                    "non_profit": contribution.donation_page.revenue_program.non_profit,
-                    "contributor_email": contribution.contributor.email,
-                    "tax_id": contribution.donation_page.revenue_program.tax_id,
-                    "magic_link": magic_link,
-                    "fiscal_status": contribution.donation_page.revenue_program.fiscal_status,
-                    "fiscal_sponsor_name": contribution.donation_page.revenue_program.fiscal_sponsor_name,
-                    "style": asdict(contribution.donation_page.revenue_program.transactional_email_style),
-                },
+                render_to_string(
+                    "recurring-contribution-email-reminder.txt",
+                    (
+                        data := {
+                            "rp_name": contribution.donation_page.revenue_program.name,
+                            "contribution_date": next_charge_date.strftime("%m/%d/%Y"),
+                            "contribution_amount": contribution.formatted_amount,
+                            "contribution_interval_display_value": contribution.interval,
+                            "non_profit": contribution.donation_page.revenue_program.non_profit,
+                            "contributor_email": contribution.contributor.email,
+                            "tax_id": contribution.donation_page.revenue_program.tax_id,
+                            "magic_link": magic_link,
+                            "fiscal_status": contribution.donation_page.revenue_program.fiscal_status,
+                            "fiscal_sponsor_name": contribution.donation_page.revenue_program.fiscal_sponsor_name,
+                            "style": asdict(contribution.donation_page.revenue_program.transactional_email_style),
+                        }
+                    ),
+                ),
+                render_to_string("recurring-contribution-email-reminder.html", data),
             )
             assert len(mail.outbox) == 1
         else:

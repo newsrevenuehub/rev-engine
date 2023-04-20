@@ -333,6 +333,7 @@ def minimally_valid_data(donation_page):
         "last_name": "Bar",
         "mailing_postal_code": "12345",
         "mailing_street": "123 Street St",
+        "mailing_complement": "Ap 1",
         "mailing_city": "Small Town",
         "mailing_state": "OH",
         "mailing_country": "US",

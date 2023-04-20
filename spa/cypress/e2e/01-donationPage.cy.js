@@ -374,6 +374,8 @@ describe('Footer-like content', () => {
 
 function fillOutAddressSection() {
   cy.get('[data-testid*="mailing_street"]').type('123 Main St');
+  cy.findByRole('button', { name: '+ Address line 2 (Apt, suite, etc.)' }).click();
+  cy.get('[data-testid*="mailing_complement"]').type('Ap 1');
   cy.get('[data-testid*="mailing_city"]').type('Big City');
   cy.get('[data-testid*="mailing_state"]').type('NY');
   cy.get('[data-testid*="mailing_postal_code"]').type('100738');
@@ -445,6 +447,7 @@ describe('User flow: happy path', () => {
           email: 'foo@bar.com',
           phone: '212-555-5555',
           mailing_street: '123 Main St',
+          mailing_complement: 'Ap 1',
           mailing_city: 'Big City',
           mailing_state: 'NY',
           mailing_postal_code: '100738',
@@ -585,6 +588,7 @@ describe('User flow: happy path', () => {
           email: 'foo@bar.com',
           phone: '212-555-5555',
           mailing_street: '123 Main St',
+          mailing_complement: 'Ap 1',
           mailing_city: 'Big City',
           mailing_state: 'NY',
           mailing_postal_code: '100738',

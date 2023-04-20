@@ -147,6 +147,7 @@
     "@types/react-input-mask": "^3.0.1",
     "@types/react-router-dom": "^5.3.3",
     "@types/styled-components": "^5.1.26",
+    "@types/uuid": "^9.0.1",
     "@types/wcag-contrast": "^3.0.0",
     "@types/webfontloader": "^1.6.35",
     "@typescript-eslint/eslint-plugin": "^5.54.0",

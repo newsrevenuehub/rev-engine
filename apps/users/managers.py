@@ -15,3 +15,7 @@ class UserManager(BaseUserManager):
         user.is_staff = True
         user.save(using=self._db)
         return user
+
+    def get_by_natural_key(self, username):
+        """Get user by case-insensitive username."""
+        return self.get(**{f"{self.model.USERNAME_FIELD}__iexact": username})

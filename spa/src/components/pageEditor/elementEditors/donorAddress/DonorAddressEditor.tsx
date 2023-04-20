@@ -30,6 +30,8 @@ export function DonorAddressEditor({
   const prevZipAndCountryOnly = usePreviousState(zipAndCountryOnly);
   const prevAddressOptional = usePreviousState(elementContent.addressOptional);
 
+  // This is to make sure that the required fields are updated when the user changes
+  // the address optionality or zipAndCountryOnly setting.
   const handleChangeRequiredFields = useCallback(
     (zipAndCountryOnly: boolean, addressOptional?: boolean) => {
       const requiredFields = [

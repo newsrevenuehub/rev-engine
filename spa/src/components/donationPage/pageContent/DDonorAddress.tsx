@@ -9,8 +9,9 @@ import { HUB_GOOGLE_MAPS_API_KEY } from 'appSettings';
 import { CountryOption } from 'components/base';
 import { usePage } from 'components/donationPage/DonationPage';
 import DElement from 'components/donationPage/pageContent/DElement';
-import { CountrySelect, TextField } from './DDonorAddress.styled';
+import { CountrySelect, TextField, Button, CollapseChild } from './DDonorAddress.styled';
 import { DonorAddressElement } from 'hooks/useContributionPage';
+import { Collapse } from '@material-ui/core';
 
 const mapAddrFieldToComponentTypes = {
   address: ['street_number', 'street_address', 'route'],
@@ -48,6 +49,8 @@ export interface DDonorAddressProps extends InferProps<typeof DDonorAddressPropT
 function DDonorAddress({ element }: DDonorAddressProps) {
   const { errors, mailingCountry, setMailingCountry } = usePage();
   const [address, setAddress] = useState('');
+  const [showComplement, setShowComplement] = useState(false);
+  const [complement, setComplement] = useState('');
   const [city, setCity] = useState('');
   const [state, setState] = useState('');
   const [zip, setZip] = useState('');
@@ -81,15 +84,20 @@ function DDonorAddress({ element }: DDonorAddressProps) {
       }
 
       const addrFields = mapAddressComponentsToAddressFields(address_components);
-      const fips = address_components.find(({ types }) => types.includes('country'))?.short_name ?? '';
+      const isoCountry = address_components.find(({ types }) => types.includes('country'))?.short_name ?? '';
 
       setAddress(addrFields.address ?? '');
       setCity(addrFields.city ?? '');
       setState(addrFields.state ?? '');
       setZip(addrFields.zip ?? '');
-      setMailingCountry(fips);
+      setMailingCountry(isoCountry);
     }
   });
+
+  const toggleComplement = () => {
+    setShowComplement((prev) => !prev);
+    setComplement('');
+  };
 
   // We disable browser autofill on the address field so that only Google Maps
   // suggestions appear. If the field loses focus, we re-enable it. The value
@@ -112,7 +120,7 @@ function DDonorAddress({ element }: DDonorAddressProps) {
   // underlying input will always show the label.
 
   function handleChangeCountry(event: ChangeEvent<Record<never, never>>, value: CountryOption) {
-    setMailingCountry(value.fipsCode);
+    setMailingCountry(value.isoCode);
   }
 
   return (
@@ -136,7 +144,27 @@ function DDonorAddress({ element }: DDonorAddressProps) {
                 required={!isOptional}
                 data-testid="mailing_street"
               />
+              <Button $showComplement={showComplement} onClick={toggleComplement}>
+                {showComplement ? '-' : '+'} Address line 2 (Apt, suite, etc.)
+              </Button>
             </Grid>
+            <Collapse in={showComplement} style={{ width: '100%' }}>
+              <CollapseChild>
+                <Grid item xs={12}>
+                  <TextField
+                    error={!!errors.mailing_complement}
+                    fullWidth
+                    id="mailing_complement"
+                    name="mailing_complement"
+                    label="Apt, suite, etc."
+                    value={complement}
+                    onChange={(e) => setComplement(e.target.value)}
+                    helperText={errors.mailing_complement}
+                    data-testid="mailing_complement"
+                  />
+                </Grid>
+              </CollapseChild>
+            </Collapse>
             <Grid item xs={12}>
               <TextField
                 error={!!errors.mailing_city}

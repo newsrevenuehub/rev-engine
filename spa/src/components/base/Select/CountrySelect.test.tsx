@@ -3,13 +3,13 @@ import { axe } from 'jest-axe';
 import { render, screen } from 'test-utils';
 import CountrySelect, { CountrySelectProps } from './CountrySelect';
 
-// This mock is to test that the select sorts on country name, not FIPS code.
+// This mock is to test that the select sorts on country name, not ISO code.
 
 jest.mock('country-code-lookup', () => ({
   countries: [
-    { country: 'CCC', fips: 'cc' },
-    { country: 'AAA', fips: 'bb' },
-    { country: 'BBB', fips: 'aa' }
+    { country: 'CCC', iso2: 'cc' },
+    { country: 'AAA', iso2: 'bb' },
+    { country: 'BBB', iso2: 'aa' }
   ]
 }));
 
@@ -33,7 +33,7 @@ describe('CountrySelect', () => {
   });
 
   it('selects the correct option based on the value prop', () => {
-    // Set the value to a FIPS code--note mocked country named BBB has FIPS code
+    // Set the value to an ISO code--note mocked country named BBB has ISO code
     // aa.
     tree({ value: 'aa' });
 
@@ -53,7 +53,7 @@ describe('CountrySelect', () => {
       tree({ onChange });
       expect(onChange).not.toBeCalled();
       userEvent.type(screen.getByTestId('autofill-proxy'), 'BBB');
-      expect(onChange.mock.calls).toEqual([[expect.anything(), { fipsCode: 'aa', label: 'BBB' }, 'select-option']]);
+      expect(onChange.mock.calls).toEqual([[expect.anything(), { isoCode: 'aa', label: 'BBB' }, 'select-option']]);
     });
 
     it("doesn't call onChange if the value doesn't match an option", () => {

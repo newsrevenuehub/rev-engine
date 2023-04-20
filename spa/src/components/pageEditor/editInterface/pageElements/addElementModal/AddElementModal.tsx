@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-
+import PropTypes, { InferProps } from 'prop-types';
 import * as S from './AddElementModal.styled';
 
 // Deps
@@ -15,41 +15,59 @@ import { useEditablePageContext } from 'hooks/useEditablePage';
 import * as dynamicLayoutElements from 'components/donationPage/pageContent/dynamicElements';
 import * as dynamicSidebarElements from 'components/donationPage/pageContent/dynamicSidebarElements';
 import PageItem from 'components/pageEditor/editInterface/pageElements/PageItem';
+import { ContributionPageElement, PageElementType } from 'hooks/useContributionPage';
 
 // Additional default values to put into a newly-created element. TODO in
 // DEV-3197: refactor this logic into a hook/utility function.
 
-const defaultContent = {
+export const defaultContent: Partial<Record<PageElementType, unknown>> = {
   // Default reason blocks to ask for a reason at least, and have an empty list
   // of pre-supplied reasons.
   DReason: { askReason: true, reasons: [] }
 };
 
-function AddElementModal({ addElementModalOpen, setAddElementModalOpen, destination = 'layout' }) {
+export const defaultRequiredFields: Partial<Record<PageElementType, string[]>> = {
+  DDonorAddress: ['mailing_street', 'mailing_city', 'mailing_state', 'mailing_postal_code', 'mailing_country']
+};
+
+type EditContributionPageElement = Omit<ContributionPageElement, 'content' | 'uuid' | 'requiredFields'>;
+
+export type AddElementModalProp = InferProps<typeof AddElementModalPropTypes>;
+
+function AddElementModal({ addElementModalOpen, setAddElementModalOpen, destination = 'layout' }: AddElementModalProp) {
   const { page } = useEditablePageContext();
   const { elements, setElements, sidebarElements, setSidebarElements } = useEditInterfaceContext();
-  const [permittedPageElements, setPermittedPageElements] = useState([]);
-  const [permittedSidebarElements, setPermittedSidebarElements] = useState([]);
+  const [permittedPageElements, setPermittedPageElements] = useState<EditContributionPageElement[]>([]);
+  const [permittedSidebarElements, setPermittedSidebarElements] = useState<EditContributionPageElement[]>([]);
 
   useEffect(() => {
     setPermittedPageElements(
-      Object.values(dynamicLayoutElements).filter(({ type }) => (page?.plan?.page_elements ?? []).includes(type))
+      Object.values(
+        dynamicLayoutElements as Record<Exclude<PageElementType, 'DBenefits' | 'DImage'>, EditContributionPageElement>
+      ).filter(({ type }) => (page?.plan?.page_elements ?? []).includes(type))
     );
     setPermittedSidebarElements(
-      Object.values(dynamicSidebarElements).filter(({ type }) => (page?.plan?.sidebar_elements ?? []).includes(type))
+      Object.values({ ...dynamicSidebarElements } as Record<
+        Exclude<
+          PageElementType,
+          'DAmount' | 'DDonorAddress' | 'DDonorInfo' | 'DFrequency' | 'DPayment' | 'DReason' | 'DRichText' | 'DSwag'
+        >,
+        EditContributionPageElement
+      >).filter(({ type }) => (page?.plan?.sidebar_elements ?? []).includes(type))
     );
   }, [page?.plan?.page_elements, page?.plan?.sidebar_elements]);
 
-  const buildElement = (element) => {
+  const buildElement = (element: EditContributionPageElement): ContributionPageElement => {
     const { type } = element;
     return {
       uuid: uuidv4(),
-      content: defaultContent[type] ? { ...defaultContent[type] } : undefined,
+      content: defaultContent[type] ? defaultContent[type] : undefined,
+      requiredFields: defaultRequiredFields[type] ?? [],
       type
     };
   };
 
-  const handleElementSelected = (element) => {
+  const handleElementSelected = (element: EditContributionPageElement) => {
     if (destination === 'sidebar') {
       setSidebarElements([...(sidebarElements || []), buildElement(element)]);
     } else {
@@ -61,12 +79,12 @@ function AddElementModal({ addElementModalOpen, setAddElementModalOpen, destinat
   const renderDynamicLayoutElements = () => {
     const dynamicElements = destination === 'sidebar' ? permittedSidebarElements : permittedPageElements;
     return Object.keys(dynamicElements).map((elName, i) => {
-      const element = dynamicElements[elName];
+      const element = dynamicElements[Number(elName)];
       const els = destination === 'sidebar' ? sidebarElements : elements;
       // An element is disabled if it's unique and already present.
       const disabled = element.unique && els?.some((el) => el.type === element.type);
       return (
-        <S.PageItemWrapper key={element.displayName + i}>
+        <S.PageItemWrapper key={`${element?.displayName}${i}`}>
           <PageItem
             disabled={disabled}
             element={element}
@@ -91,5 +109,13 @@ function AddElementModal({ addElementModalOpen, setAddElementModalOpen, destinat
     </Modal>
   );
 }
+
+const AddElementModalPropTypes = {
+  addElementModalOpen: PropTypes.bool.isRequired,
+  setAddElementModalOpen: PropTypes.func.isRequired,
+  destination: PropTypes.oneOf(['layout', 'sidebar'])
+};
+
+AddElementModal.propTypes = AddElementModalPropTypes;
 
 export default AddElementModal;

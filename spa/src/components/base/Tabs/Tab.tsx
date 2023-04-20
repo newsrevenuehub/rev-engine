@@ -3,13 +3,13 @@ import styled from 'styled-components';
 
 export const Tab = styled(MuiTab)`
   && {
-    color: #707070;
+    color: ${({ theme }) => theme.basePalette.greyscale.grey1};
     font: 14px Roboto, sans-serif;
     min-width: 0;
     text-transform: none;
 
     &.Mui-selected {
-      color: #282828;
+      color: ${({ theme }) => theme.basePalette.greyscale.black};
       font-weight: 500;
     }
   }

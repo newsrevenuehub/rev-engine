@@ -88,7 +88,7 @@ function AddElementModal({ addElementModalOpen, setAddElementModalOpen, destinat
       // An element is disabled if it's unique and already present.
       const disabled = element.unique && els?.some((el) => el.type === element.type);
       return (
-        <S.PageItemWrapper key={`${element?.displayName}${i}`}>
+        <S.PageItemWrapper key={`${element.displayName}${i}`}>
           <PageItem
             disabled={disabled}
             element={element}

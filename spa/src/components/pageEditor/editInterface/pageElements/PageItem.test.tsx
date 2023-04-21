@@ -16,7 +16,7 @@ describe('PageItem', () => {
     return render(<PageItem element={{ type: 'DRichText' }} {...props} />);
   }
 
-  it('does not render buttons if isStatis = true', () => {
+  it('does not render buttons if isStatic = true', () => {
     tree({ isStatic: true });
     expect(screen.queryByLabelText('Edit DRichText block')).not.toBeInTheDocument();
     expect(screen.queryByLabelText('Remove DRichText block')).not.toBeInTheDocument();

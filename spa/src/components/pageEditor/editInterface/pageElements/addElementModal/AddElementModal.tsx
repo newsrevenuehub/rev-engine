@@ -31,6 +31,15 @@ export const defaultRequiredFields: Partial<Record<PageElementType, string[]>> =
 };
 
 type EditContributionPageElement = Omit<ContributionPageElement, 'content' | 'uuid' | 'requiredFields'>;
+// Excludes element blocks that are not supported in the specific editor modal type.
+type ElementRecord = Record<Exclude<PageElementType, 'DBenefits' | 'DImage'>, EditContributionPageElement>;
+type SidebarElementRecord = Record<
+  Exclude<
+    PageElementType,
+    'DAmount' | 'DDonorAddress' | 'DDonorInfo' | 'DFrequency' | 'DPayment' | 'DReason' | 'DRichText' | 'DSwag'
+  >,
+  EditContributionPageElement
+>;
 
 export type AddElementModalProp = InferProps<typeof AddElementModalPropTypes>;
 
@@ -42,18 +51,14 @@ function AddElementModal({ addElementModalOpen, setAddElementModalOpen, destinat
 
   useEffect(() => {
     setPermittedPageElements(
-      Object.values(
-        dynamicLayoutElements as Record<Exclude<PageElementType, 'DBenefits' | 'DImage'>, EditContributionPageElement>
-      ).filter(({ type }) => (page?.plan?.page_elements ?? []).includes(type))
+      Object.values(dynamicLayoutElements as ElementRecord).filter(({ type }) =>
+        (page?.plan?.page_elements ?? []).includes(type)
+      )
     );
     setPermittedSidebarElements(
-      Object.values({ ...dynamicSidebarElements } as Record<
-        Exclude<
-          PageElementType,
-          'DAmount' | 'DDonorAddress' | 'DDonorInfo' | 'DFrequency' | 'DPayment' | 'DReason' | 'DRichText' | 'DSwag'
-        >,
-        EditContributionPageElement
-      >).filter(({ type }) => (page?.plan?.sidebar_elements ?? []).includes(type))
+      Object.values({ ...dynamicSidebarElements } as SidebarElementRecord).filter(({ type }) =>
+        (page?.plan?.sidebar_elements ?? []).includes(type)
+      )
     );
   }, [page?.plan?.page_elements, page?.plan?.sidebar_elements]);
 
@@ -78,8 +83,7 @@ function AddElementModal({ addElementModalOpen, setAddElementModalOpen, destinat
 
   const renderDynamicLayoutElements = () => {
     const dynamicElements = destination === 'sidebar' ? permittedSidebarElements : permittedPageElements;
-    return Object.keys(dynamicElements).map((elName, i) => {
-      const element = dynamicElements[Number(elName)];
+    return dynamicElements.map((element, i) => {
       const els = destination === 'sidebar' ? sidebarElements : elements;
       // An element is disabled if it's unique and already present.
       const disabled = element.unique && els?.some((el) => el.type === element.type);

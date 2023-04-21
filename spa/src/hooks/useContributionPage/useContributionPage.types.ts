@@ -105,11 +105,11 @@ export interface ContributionPageElement {
    */
   description?: string;
   /**
-   * Edit block is required?
+   * Element is required to exist in a page?
    */
   required?: boolean;
   /**
-   * Edit block is unique?
+   * Element can only exist once in a single page?
    */
   unique?: boolean;
 }

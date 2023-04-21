@@ -104,7 +104,7 @@ describe('AddElementModal', () => {
         }
       });
 
-      it(`updates set${name === 'sidebar element' ? 'Sidebar' : ''}Elements correctly`, () => {
+      it(`updates set${name === 'sidebar element' ? 'Sidebar' : ''}Elements correctly when an element is added`, () => {
         const setElements = jest.fn();
         const setSidebarElements = jest.fn();
         const setAddElementModalOpen = jest.fn();

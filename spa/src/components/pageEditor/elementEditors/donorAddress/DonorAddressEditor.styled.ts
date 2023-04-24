@@ -12,6 +12,7 @@ export const Header = styled.h4`
   font-size: ${({ theme }) => theme.fontSizesUpdated.md};
   font-weight: 600;
   margin-bottom: 10px;
+  margin-top: 40px;
 `;
 
 export const Tip = styled.p`
@@ -25,9 +26,10 @@ export const RadioGroup = styled(BaseRadioGroup)`
 `;
 
 export const Text = styled.p`
+  color: ${({ theme }) => theme.colors.muiGrey[900]};
   font-size: ${({ theme }) => theme.fontSizesUpdated.md};
 `;
 
 export const StyledFormControlLabel = styled(FormControlLabel)`
-  margin: 24px 0 15px;
+  margin-top: 40px;
 `;

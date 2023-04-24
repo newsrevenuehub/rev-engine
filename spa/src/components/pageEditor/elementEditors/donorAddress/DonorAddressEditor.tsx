@@ -95,15 +95,15 @@ export function DonorAddressEditor({
         Address data is critical to engage supporters and strengthen reader revenue programs. If you have, or plan to
         have, a major donor program you will need address for wealth-screening.
       </Text>
-      <Text>If you’re including a physical Swag option, full address should be required.</Text>
+      <Text style={{ margin: 0 }}>If you’re including a physical Swag option, full address should be required.</Text>
       <StyledFormControlLabel
         control={<Checkbox checked={zipAndCountryOnly} onChange={handleZipAndCountryOnly} />}
         label={
           <>
-            <p style={{ margin: 0 }}>
+            <Text style={{ margin: 0 }}>
               Include zip/postal code and country <i>only</i>
-            </p>
-            <p>(exclude all other address fields)</p>
+            </Text>
+            <Text>(exclude all other address fields)</Text>
           </>
         }
       />

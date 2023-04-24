@@ -1,13 +1,12 @@
 import { Redirect, useLocation } from 'react-router-dom';
 import { HUB_GA_V3_ID } from 'appSettings';
-import { Link } from 'components/base';
 import SegregatedStyles from 'components/donationPage/SegregatedStyles';
 import { useAnalyticsContext } from 'components/analytics/AnalyticsContext';
 import DonationPageNavbar from 'components/donationPage/DonationPageNavbar';
 import DonationPageFooter from 'components/donationPage/DonationPageFooter';
 import { ContributionPage } from 'hooks/useContributionPage';
 import PostContributionSharing from '../PostContributionSharing';
-import { Header, InnerContent, Root, Text, Wrapper } from './GenericThankYou.styled';
+import { Header, InnerContent, PostThankYouRedirectButton, Root, Text, Wrapper } from './GenericThankYou.styled';
 import { useEffect } from 'react';
 
 /**
@@ -106,7 +105,9 @@ function GenericThankYou() {
               revenueProgram={routedState.page.revenue_program}
             />
             {routedState.page.post_thank_you_redirect && (
-              <Link href={routedState.page.post_thank_you_redirect}>Return to website</Link>
+              <PostThankYouRedirectButton href={routedState.page.post_thank_you_redirect}>
+                Return to website
+              </PostThankYouRedirectButton>
             )}
           </InnerContent>
         </Wrapper>

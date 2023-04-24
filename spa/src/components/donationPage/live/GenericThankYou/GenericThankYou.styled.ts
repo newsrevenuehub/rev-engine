@@ -1,3 +1,5 @@
+import { LinkButton } from 'components/base';
+import lighten from 'styles/utils/lighten';
 import styled from 'styled-components';
 
 export const Root = styled.main`
@@ -29,7 +31,11 @@ export const InnerContent = styled.div`
 `;
 
 export const Header = styled.h2`
-  font-family: ${(props) => props.theme.font.heading};
+  /*
+  Disabling typing on font family because it appears styles apply different
+  structure (with font_name property) than what it is by default.
+  */
+  font-family: ${(props) => (props.theme.font.heading as any)?.font_name};
   font-size: ${(props) => props.theme.fontSizes[4]};
   font-weight: 900;
   color: ${(props) => props.theme.colors.grey[4]};
@@ -38,6 +44,29 @@ export const Header = styled.h2`
 
   @media (${(props) => props.theme.breakpoints.tabletLandscapeDown}) {
     font-size: ${(props) => props.theme.fontSizes[4]};
+  }
+`;
+
+export const PostThankYouRedirectButton = styled(LinkButton)`
+  && {
+    /* Imitate the old button style. */
+    background-color: ${({ theme }) => theme.colors.primary};
+    border: 2px solid ${({ theme }) => theme.colors.primary};
+    box-shadow: none;
+    height: 48px;
+    padding: 0 1rem;
+    text-transform: none;
+
+    .NreButtonLabel {
+      color: ${({ theme }) => theme.colors.white};
+      font-size: ${({ theme }) => theme.fontSizesUpdated.md};
+    }
+
+    &:hover {
+      background-color: ${({ theme }) => theme.colors.primary};
+      border-color: ${({ theme }) => lighten(theme.colors.primary)};
+      box-shadow: none;
+    }
   }
 `;
 

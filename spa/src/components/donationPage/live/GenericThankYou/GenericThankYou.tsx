@@ -5,6 +5,7 @@ import { useAnalyticsContext } from 'components/analytics/AnalyticsContext';
 import DonationPageNavbar from 'components/donationPage/DonationPageNavbar';
 import DonationPageFooter from 'components/donationPage/DonationPageFooter';
 import { ContributionPage } from 'hooks/useContributionPage';
+import useWebFonts from 'hooks/useWebFonts';
 import PostContributionSharing from '../PostContributionSharing';
 import { Header, InnerContent, PostThankYouRedirectButton, Root, Text, Wrapper } from './GenericThankYou.styled';
 import { useEffect } from 'react';
@@ -42,6 +43,7 @@ function GenericThankYou() {
   // result correctly. Probably fixed in a later version of react-router-dom.
   const routedState = useLocation().state as GenericThankYouRouteState;
   const { analyticsInstance, setAnalyticsConfig } = useAnalyticsContext();
+  useWebFonts(routedState.page?.styles?.font);
 
   // Set up analytics if we haven't already. This has to be an effect because
   // we're changing a parent component's state (AnalyticsContextProvider).

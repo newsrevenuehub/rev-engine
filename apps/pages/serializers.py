@@ -295,7 +295,8 @@ class DonationPageFullDetailSerializer(serializers.ModelSerializer):
 
     def validate(self, data):
         self.validate_page_limit(data)
-        self.validate_publish_limit(data)
+        if "published_date" in data:
+            self.validate_publish_limit(data)
         # TODO: [DEV-2741] Add granular validation for page and sidebar elements
         self.validate_page_element_permissions(data)
         self.validate_sidebar_element_permissions(data)

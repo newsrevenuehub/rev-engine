@@ -284,6 +284,24 @@ class TestDonationPageFullDetailSerializer:
         serializer.context["request"] = request
         assert serializer.is_valid() is True
 
+    # Skipping Plus plan because it's meant to have unlimited published pages.
+    @pytest_cases.parametrize("plan", (Plans.CORE.value, Plans.CORE.value))
+    def test_can_create_when_at_publish_limit(self, plan, hub_admin_user):
+        org = OrganizationFactory(plan_name=plan)
+        rp = RevenueProgramFactory(organization=org)
+        print(org.plan.name, org.plan.publish_limit, org.plan.page_limit)
+        DonationPageFactory.create_batch(org.plan.publish_limit, published_date=timezone.now(), revenue_program=rp)
+        serializer = DonationPageFullDetailSerializer(
+            data={
+                "slug": "my-new-page",
+                "revenue_program": rp.pk,
+            }
+        )
+        request = APIRequestFactory().post("/")
+        request.user = hub_admin_user
+        serializer.context["request"] = request
+        assert serializer.is_valid() is True
+
     @pytest_cases.parametrize("plan", (Plans.FREE.value, Plans.PLUS.value, Plans.CORE.value))
     def test_plan_page_limits_are_respected(self, plan, hub_admin_user):
         org = OrganizationFactory(plan_name=plan)

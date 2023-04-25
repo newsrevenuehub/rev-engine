@@ -66,9 +66,11 @@ declare module 'styled-components' {
   export interface DefaultTheme {
     basePalette: BasePalette;
     colors: {
+      cstm_formPanelBackground?: string;
       cstm_inputBackground?: string;
       cstm_inputBorder?: string;
       cstm_mainBackground?: string;
+      cstm_ornaments?: string;
       primary: '#20bfdd';
       primaryLight: '#c7eff7';
       secondary: '#99D17B';

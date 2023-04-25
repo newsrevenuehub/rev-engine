@@ -7,6 +7,7 @@ import { ReactComponent as MoreVertIcon } from '@material-design-icons/svg/fille
 import { ReactComponent as SyncIcon } from '@material-design-icons/svg/filled/sync.svg';
 import { ReactComponent as ContactSupportOutlinedIcon } from '@material-design-icons/svg/outlined/contact_support.svg';
 import { ReactComponent as Lan } from '@material-design-icons/svg/outlined/lan.svg';
+import { ReactComponent as PersonIcon } from '@material-design-icons/svg/filled/person.svg';
 
 import onLogout from 'components/authentication/logout';
 import { USER_ROLE_HUB_ADMIN_TYPE } from 'constants/authConstants';
@@ -86,17 +87,29 @@ const AvatarMenu = ({ user, className }: AvatarMenuProps) => {
         <ListWrapper role="menu">
           {userHasSingleOrg && !isHubAdmin && (
             <>
-              <MenuItem onClick={() => goTo(SETTINGS.ORGANIZATION)} aria-label="Organization">
+              <MenuItem onClick={() => goTo(SETTINGS.SUBSCRIPTION)} aria-labelledby="account-label">
+                <ListItemIcon>
+                  <PersonIcon fontSize="small" />
+                </ListItemIcon>
+                <Typography id="account-label" variant="inherit">
+                  Account
+                </Typography>
+              </MenuItem>
+              <MenuItem onClick={() => goTo(SETTINGS.ORGANIZATION)} aria-labelledby="account-organization">
                 <ListItemIcon>
                   <Lan />
                 </ListItemIcon>
-                <Typography variant="inherit">Organization</Typography>
+                <Typography id="account-organization" variant="inherit">
+                  Organization
+                </Typography>
               </MenuItem>
-              <MenuItem onClick={() => goTo(SETTINGS.INTEGRATIONS)} aria-label="Integrations">
+              <MenuItem onClick={() => goTo(SETTINGS.INTEGRATIONS)} aria-labelledby="account-integrations">
                 <ListItemIcon>
                   <SyncIcon fontSize="small" />
                 </ListItemIcon>
-                <Typography variant="inherit">Integrations</Typography>
+                <Typography id="account-integrations" variant="inherit">
+                  Integrations
+                </Typography>
               </MenuItem>
               <Divider />
             </>

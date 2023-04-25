@@ -86,11 +86,13 @@ describe('AvatarMenu', () => {
     tree({ user });
 
     userEvent.click(screen.getByRole('button', { name: settingsMenu }));
+    expect(screen.getByRole('menuitem', { name: 'Account' })).toBeEnabled();
     expect(screen.getByRole('menuitem', { name: 'Integrations' })).toBeEnabled();
     expect(screen.getByRole('menuitem', { name: 'Organization' })).toBeEnabled();
   });
 
   it.each([
+    ['Account', SETTINGS.SUBSCRIPTION],
     ['Integrations', SETTINGS.INTEGRATIONS],
     ['Organization', SETTINGS.ORGANIZATION]
   ])('should navigate to %s if respective button is clicked', (menuitem, url) => {
@@ -121,6 +123,7 @@ describe('AvatarMenu', () => {
     tree({ user });
 
     userEvent.click(screen.getByRole('button', { name: settingsMenu }));
+    expect(screen.queryByRole('menuitem', { name: 'Account' })).not.toBeInTheDocument();
     expect(screen.queryByRole('menuitem', { name: 'Integrations' })).not.toBeInTheDocument();
     expect(screen.queryByRole('menuitem', { name: 'Organization' })).not.toBeInTheDocument();
   });
@@ -134,6 +137,7 @@ describe('AvatarMenu', () => {
     tree({ user });
 
     userEvent.click(screen.getByRole('button', { name: settingsMenu }));
+    expect(screen.queryByRole('menuitem', { name: 'Account' })).not.toBeInTheDocument();
     expect(screen.queryByRole('menuitem', { name: 'Integrations' })).not.toBeInTheDocument();
     expect(screen.queryByRole('menuitem', { name: 'Organization' })).not.toBeInTheDocument();
   });

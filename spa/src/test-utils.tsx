@@ -11,7 +11,7 @@ import { Provider as AlertProvider } from 'react-alert';
 import Alert, { alertOptions } from 'elements/alert/Alert';
 
 // Context
-import { AnalyticsContextWrapper } from './components/analytics/AnalyticsContext';
+import { AnalyticsContextProvider } from './components/analytics/AnalyticsContext';
 
 // Routing
 import { BrowserRouter } from 'react-router-dom';
@@ -29,7 +29,7 @@ function TestProviders({ children }: { children?: React.ReactNode }) {
         <AlertProvider template={Alert} {...alertOptions}>
           <BrowserRouter>
             <GlobalStyle />
-            <AnalyticsContextWrapper>{children}</AnalyticsContextWrapper>
+            <AnalyticsContextProvider>{children}</AnalyticsContextProvider>
           </BrowserRouter>
         </AlertProvider>
       </ThemeProvider>

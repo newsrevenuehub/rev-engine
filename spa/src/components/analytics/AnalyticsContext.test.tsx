@@ -1,5 +1,5 @@
 import { useEffect } from 'react';
-import { AnalyticsContextWrapper, useAnalyticsContext } from './AnalyticsContext';
+import { AnalyticsContextProvider, useAnalyticsContext } from './AnalyticsContext';
 import { useConfigureAnalytics } from '.';
 import { render } from 'test-utils';
 import Analytics from 'analytics';
@@ -12,7 +12,7 @@ jest.mock('./plugins/facebookPixel');
 
 const TestComponent = () => {
   const { trackConversion, analyticsInstance } = useAnalyticsContext();
-  useConfigureAnalytics({ orgFbPixelId: FB_PIXEL_ID });
+  useConfigureAnalytics({ orgFbPixelId: FB_PIXEL_ID } as any);
   useEffect(() => {
     if (analyticsInstance) {
       trackConversion(DONATION_AMOUNT);
@@ -23,20 +23,20 @@ const TestComponent = () => {
 
 function tree() {
   return render(
-    <AnalyticsContextWrapper>
+    <AnalyticsContextProvider>
       <TestComponent />
-    </AnalyticsContextWrapper>
+    </AnalyticsContextProvider>
   );
 }
 
 describe('trackConversion', () => {
-  const AnalyticsMock = Analytics; // as jest.Mock
-  const fbPixelMock = fbPixel; // as jest.Mock
+  const AnalyticsMock = jest.mocked(Analytics);
+  const fbPixelMock = jest.mocked(fbPixel);
 
   it('sends a donation and purchase event to Facebook Pixel when org has FB pixel id', async () => {
     const trackConversion = jest.fn();
 
-    AnalyticsMock.mockReturnValue({ plugins: { [FB_PIXEL_PLUGIN_NAME]: { trackConversion } } });
+    AnalyticsMock.mockReturnValue({ plugins: { [FB_PIXEL_PLUGIN_NAME]: { trackConversion } } } as any);
     tree();
     expect(fbPixelMock).toBeCalledWith(FB_PIXEL_ID);
     expect(trackConversion.mock.calls).toEqual([[DONATION_AMOUNT]]);

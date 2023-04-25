@@ -2,29 +2,44 @@
 
 {% block custom_style %}
 <style type="text/css">
+  .header-background {
+    width: 600px;
+    height: 80px;
+    background: #ffffff;
+    {% if style.header_color %}
+    background: {{ style.header_color }} !important;
+    {% endif %}
+  }
+
+  .header-logo {
+    height: 46px;
+    margin-top: 17px;
+    margin-bottom: 17px;
+  }
+
   .template-header {
     font-family: Roboto, sans-serif;
     color: #282828;
     font-size: 30px;
   }
 
-  .template-margin-bot {
-    margin-top: 8px;
-    margin-bottom: 32px;
-  }
-
-  .template-margin-top {
+  .template-margin {
     margin-top: 32px;
+    margin-bottom: 32px;
   }
 </style>
 {% endblock custom_style %}
 
 {% block header %}
 <tr>
-  <td style="padding-right: 0px;padding-left: 0px;" align="left">
-    <p class="template-header inner-center template-margin-top">{{ rp_name }}</p>
-    <h1 class="template-header inner-center template-margin-bot">Scheduled Contribution</h1>
+  {% if style.logo_url %}
+  <td class="header-background" align="center" valign="top">
+    <img class="header-logo" src="{{ style.logo_url }}" alt="logo" >
   </td>
+  {% endif %}
+  <td style="padding-right: 0px;padding-left: 0px;" align="left">
+      <h1 class="template-header inner-center template-margin">Scheduled Contribution for {{ rp_name }}</h1>
+    </td>
 </tr>
 {% endblock header %}
 

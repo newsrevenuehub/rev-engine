@@ -857,6 +857,21 @@ redis = ">=3,<4.0.0 || >4.0.0,<4.0.1 || >4.0.1"
 hiredis = ["redis[hiredis] (>=3,!=4.0.0,!=4.0.1)"]
 
 [[package]]
+name = "django-request-id"
+version = "1.0.0"
+description = "Augment each request with unique id for logging purposes"
+category = "main"
+optional = false
+python-versions = "*"
+files = [
+    {file = "django-request-id-1.0.0.tar.gz", hash = "sha256:0eb7ef17e21ff5efe5014e5b3cc6d22fc3396d4ea9d5b353bba2c43107998368"},
+    {file = "django_request_id-1.0.0-py2.py3-none-any.whl", hash = "sha256:f7f296a7c6de44193af9461c72cbdb6a12887fffe00a7dcfa0f43a4ec67e4643"},
+]
+
+[package.dependencies]
+django = "*"
+
+[[package]]
 name = "django-rest-passwordreset"
 version = "1.3.0"
 description = "An extension of django rest framework, providing a configurable password reset strategy"
@@ -3177,4 +3192,4 @@ testing = ["big-O", "flake8 (<5)", "jaraco.functools", "jaraco.itertools", "more
 [metadata]
 lock-version = "2.0"
 python-versions = "^3.10"
-content-hash = "fbfe8261de35230e709a486d1387e138ba2a3ea8da58efb2fe6c588690becda1"
+content-hash = "0ade1d868993db18746fa4d49a44a0fcc0686e96a09b8c48196d5e078aa6b4ff"

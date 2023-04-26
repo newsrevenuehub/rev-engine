@@ -26,6 +26,7 @@ describe('DonorAddressEditor', () => {
       screen.getByText('If you’re including a physical Swag option, full address should be required.')
     ).toBeVisible();
     expect(screen.getByText('Include additional labels above the address field for State.')).toBeVisible();
+    expect(screen.getByText('(Zip/postal code and country are always required.)')).toBeVisible();
   });
 
   it('has a state checkbox which is disabled', () => {
@@ -77,7 +78,7 @@ describe('DonorAddressEditor', () => {
       expect(onChangeElementRequiredFields.mock.calls).toEqual([[['mailing_postal_code', 'mailing_country']]]);
     });
 
-    it('adds zipAndCountryOnly to the element content when the user checks it', () => {
+    it('adds zipAndCountryOnly & updates addressOptional to the element content when the user checks it', () => {
       const onChangeElementContent = jest.fn();
 
       tree({ onChangeElementContent } as any);
@@ -87,7 +88,7 @@ describe('DonorAddressEditor', () => {
           name: 'Include zip/postal code and country only (exclude all other address fields)'
         })
       );
-      expect(onChangeElementContent.mock.calls).toEqual([[{ zipAndCountryOnly: true }]]);
+      expect(onChangeElementContent.mock.calls).toEqual([[{ zipAndCountryOnly: true, addressOptional: false }]]);
     });
 
     it('toggles zipAndCountryOnly from the element content when the user unchecks it', () => {
@@ -105,6 +106,12 @@ describe('DonorAddressEditor', () => {
   });
 
   describe('the address optionality radio group', () => {
+    it('required/optional radio buttons are disabled if zipAndCountryOnly is true', () => {
+      tree({ elementContent: { zipAndCountryOnly: true } } as any);
+      expect(screen.getByRole('radio', { name: 'Required' })).toBeDisabled();
+      expect(screen.getByRole('radio', { name: 'Optional' })).toBeDisabled();
+    });
+
     it('is checked as required as default', () => {
       tree();
       expect(screen.getByRole('radio', { name: 'Required' })).toBeChecked();
@@ -141,13 +148,13 @@ describe('DonorAddressEditor', () => {
       expect(onChangeElementContent.mock.calls).toEqual([[{ addressOptional: false }]]);
     });
 
-    it('remove all address fields in "requiredFields" if addressOptional is true', () => {
+    it('sets "requiredFields" only to zip and country if addressOptional is true', () => {
       const onChangeElementRequiredFields = jest.fn();
 
       expect(onChangeElementRequiredFields).not.toBeCalled();
       tree({ onChangeElementRequiredFields, elementContent: { addressOptional: true } } as any);
       expect(onChangeElementRequiredFields).toBeCalledTimes(1);
-      expect(onChangeElementRequiredFields.mock.calls).toEqual([[[]]]);
+      expect(onChangeElementRequiredFields.mock.calls).toEqual([[['mailing_postal_code', 'mailing_country']]]);
     });
 
     it('add all address fields in "requiredFields" if addressOptional is false', () => {

@@ -205,7 +205,7 @@ function DDonorAddress({ element }: DDonorAddressProps) {
             value={zip}
             onChange={(e) => setZip(e.target.value)}
             helperText={errors.mailing_postal_code}
-            required={!isOptional}
+            required
             data-testid="mailing_postal_code"
           />
         </Grid>
@@ -218,7 +218,7 @@ function DDonorAddress({ element }: DDonorAddressProps) {
             name="mailing_country"
             onChange={handleChangeCountry}
             value={mailingCountry ?? ''}
-            required={!isOptional}
+            required
           />
         </Grid>
       </Grid>

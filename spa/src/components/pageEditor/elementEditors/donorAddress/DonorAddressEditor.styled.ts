@@ -33,3 +33,9 @@ export const Text = styled.p`
 export const StyledFormControlLabel = styled(FormControlLabel)`
   margin-top: 40px;
 `;
+
+export const Disclaimer = styled.p`
+  margin-top: 20px;
+  font-size: ${({ theme }) => theme.fontSizesUpdated.sm};
+  color: ${({ theme }) => theme.colors.muiGrey[600]};
+`;

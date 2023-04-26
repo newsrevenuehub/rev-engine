@@ -6,7 +6,15 @@ import {
 } from 'hooks/useContributionPage';
 import PropTypes, { InferProps } from 'prop-types';
 import { ChangeEvent, useCallback, useEffect } from 'react';
-import { Checkboxes, Header, Tip, RadioGroup, Text, StyledFormControlLabel } from './DonorAddressEditor.styled';
+import {
+  Checkboxes,
+  Header,
+  Tip,
+  RadioGroup,
+  Text,
+  StyledFormControlLabel,
+  Disclaimer
+} from './DonorAddressEditor.styled';
 import usePreviousState from 'hooks/usePreviousState';
 
 const DonorAddressEditorPropTypes = {
@@ -34,12 +42,13 @@ export function DonorAddressEditor({
   // the address optionality or zipAndCountryOnly setting.
   const handleChangeRequiredFields = useCallback(
     (zipAndCountryOnly: boolean, addressOptional?: boolean) => {
-      const requiredFields = [
-        'mailing_postal_code',
-        'mailing_country',
-        ...(!zipAndCountryOnly ? ['mailing_street', 'mailing_city', 'mailing_state'] : [])
-      ];
-      onChangeElementRequiredFields(addressOptional ? [] : requiredFields);
+      const requiredFields = ['mailing_postal_code', 'mailing_country'];
+
+      onChangeElementRequiredFields(
+        addressOptional
+          ? requiredFields
+          : [...requiredFields, ...(!zipAndCountryOnly ? ['mailing_street', 'mailing_city', 'mailing_state'] : [])]
+      );
     },
     [onChangeElementRequiredFields]
   );
@@ -85,7 +94,8 @@ export function DonorAddressEditor({
   function handleZipAndCountryOnly(event: ChangeEvent<HTMLInputElement>) {
     onChangeElementContent({
       ...elementContent,
-      zipAndCountryOnly: event.target.checked
+      zipAndCountryOnly: event.target.checked,
+      ...(event.target.checked && { addressOptional: false })
     });
   }
 
@@ -107,15 +117,16 @@ export function DonorAddressEditor({
           </>
         }
       />
-      <Header id="required-address-label">Address should be:</Header>
+      <Header id="required-address-label">Address is:</Header>
       <RadioGroup
         aria-labelledby="required-address-label"
         onChange={(event) => handleRadioChange(event.target.value === 'optional')}
         value={elementContent.addressOptional ? 'optional' : 'required'}
       >
-        <FormControlLabel value="required" control={<Radio />} label="Required" />
-        <FormControlLabel value="optional" control={<Radio />} label="Optional" />
+        <FormControlLabel value="required" control={<Radio disabled={zipAndCountryOnly} />} label="Required" />
+        <FormControlLabel value="optional" control={<Radio disabled={zipAndCountryOnly} />} label="Optional" />
       </RadioGroup>
+      <Disclaimer>(Zip/postal code and country are always required.)</Disclaimer>
       {!zipAndCountryOnly && (
         <>
           <Header>State Label</Header>

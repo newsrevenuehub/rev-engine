@@ -104,13 +104,14 @@ def publish_revenue_program_mailchimp_list_configuration_complete(rp_id):
 @shared_task()
 def setup_mailchimp_entities_for_rp_mailing_list(rp_id: str) -> None:
     logger.info("Called with rp_id=[%s]", rp_id)
-    # mailchimp prodruct requires mailchimp store, so we need to ensure that first
-    header = [
-        chain(ensure_mailchimp_store.s(rp_id), ensure_mailchimp_product.s(rp_id)),
-        ensure_mailchimp_contributor_segment.s(rp_id),
-        ensure_mailchimp_recurring_segment.s(rp_id),
-    ]
-    chord(header)(publish_revenue_program_mailchimp_list_configuration_complete.s(rp_id))
+    chord(
+        [
+            # mailchimp product requires mailchimp store, so we need to ensure that ahead of creating product
+            chain(ensure_mailchimp_store.s(rp_id), ensure_mailchimp_product.s(rp_id)),
+            ensure_mailchimp_contributor_segment.s(rp_id),
+            ensure_mailchimp_recurring_segment.s(rp_id),
+        ]
+    )(publish_revenue_program_mailchimp_list_configuration_complete.s(rp_id))
 
 
 def exchange_mc_oauth_code_for_mc_access_token(oauth_code: str) -> str:

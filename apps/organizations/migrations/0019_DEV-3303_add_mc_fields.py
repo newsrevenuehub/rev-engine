@@ -24,9 +24,4 @@ class Migration(migrations.Migration):
             name="mailchimp_store_id",
             field=models.TextField(blank=True, null=True),
         ),
-        migrations.AddField(
-            model_name="revenueprogram",
-            name="mailchimp_product_variant_id",
-            field=models.TextField(blank=True, null=True),
-        ),
     ]

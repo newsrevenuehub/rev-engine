@@ -53,7 +53,6 @@ export const STRIPE_OAUTH_SCOPE = resolveConstantFromEnv('STRIPE_OAUTH_SCOPE', '
 
 // Mailchimp
 export const NRE_MAILCHIMP_CLIENT_ID = resolveConstantFromEnv('NRE_MAILCHIMP_CLIENT_ID');
-export const NRE_MAILCHIMP_CLIENT_SECRET = resolveConstantFromEnv('NRE_MAILCHIMP_CLIENT_SECRET');
 
 // Environment {production, staging, test, dev, demo}
 export const ENVIRONMENT = resolveConstantFromEnv('ENVIRONMENT');

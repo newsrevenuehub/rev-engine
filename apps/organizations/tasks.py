@@ -26,6 +26,84 @@ class MailchimpAuthflowUnretryableError(Exception):
     """"""
 
 
+@shared_task()
+def ensure_mailchimp_store(rp_id: str) -> None:
+    logger.info("[ensure_mailchimp_store] called with rp_id=[%s]", rp_id)
+    rp = RevenueProgram.objects.get(id=rp_id)
+    if not rp.mailchimp_store:
+        logger.info("[ensure_mailchimp_store] creating store for rp_id=[%s]", rp_id)
+        store = rp.make_mailchimp_store()
+        logger.info("[ensure_mailchimp_store] store created for rp_id=[%s]", rp_id)
+        rp.mailchimp_store_id = store.id
+        with reversion.create_revision():
+            logger.info("[ensure_mailchimp_store] saving rp_id=[%s] with new store id", rp_id)
+            rp.save(update_fields={"mailchimp_store_id", "modified"})
+            reversion.set_comment("ensure_mailchimp_store ran")
+    else:
+        logger.info("[ensure_mailchimp_store] store already exists for rp_id=[%s]", rp_id)
+
+
+@shared_task()
+def ensure_mailchimp_product(rp_id: str) -> None:
+    logger.info("[ensure_mailchimp_product] called with rp_id=[%s]", rp_id)
+    rp = RevenueProgram.objects.get(id=rp_id)
+    if not rp.mailchimp_product:
+        logger.info("[ensure_mailchimp_product] creating product for rp_id=[%s]", rp_id)
+        product = rp.make_mailchimp_product()
+        logger.info("[ensure_mailchimp_product] product created for rp_id=[%s]", rp_id)
+        rp.mailchimp_product_id = product.id
+        with reversion.create_revision():
+            logger.info("[ensure_mailchimp_product] saving rp_id=[%s] with new product id", rp_id)
+            rp.save(update_fields={"mailchimp_product_id", "modified"})
+            reversion.set_comment("ensure_mailchimp_product ran")
+
+    else:
+        logger.info("[ensure_mailchimp_product] product already exists for rp_id=[%s]", rp_id)
+
+
+@shared_task()
+def ensure_mailchimp_contributor_segment(rp_id: str) -> None:
+    logger.info("Called with rp_id=[%s]", rp_id)
+    rp = RevenueProgram.objects.get(id=rp_id)
+    if not rp.mailchimp_contributor_segment:
+        logger.info(
+            "Creating %s segment for rp_id=[%s]",
+            rp._mailchimp_contributor_segment_name,
+            rp_id,
+        )
+        rp.make_mailchimp_contributor_segment()
+        logger.info("Segment created for rp_id=[%s]", rp_id)
+    else:
+        logger.info("Segment already exists for rp_id=[%s]", rp_id)
+
+
+@shared_task()
+def ensure_mailchimp_recurring_contributor_segment(rp_id: str) -> None:
+    logger.info("Called with rp_id=[%s]", rp_id)
+    rp = RevenueProgram.objects.get(id=rp_id)
+    if not rp.mailchimp_recurring_segment:
+        logger.info(
+            "Creating %s segment for rp_id=[%s]",
+            rp._mailchimp_contributor_segment_name,
+            rp_id,
+        )
+        rp.make_mailchimp_recurring_segment()
+        logger.info("Segment created for rp_id=[%s]", rp_id)
+    else:
+        logger.info("Segment already exists for rp_id=[%s]", rp_id)
+
+
+@shared_task()
+def setup_mailchimp_entities_for_rp_mailing_list(rp_id: str) -> None:
+    logger.info("[setup_mailchimp_entities_for_rp_mailing_list] called with rp_id=[%s]", rp_id)
+    # mailchimp prodruct requires mailchimp store, so we need to ensure that first
+    ensure_mailchimp_store.apply_async((rp_id,), link=ensure_mailchimp_product.s(rp_id))
+    # segments_job = group(
+    #     [ensure_mailchimp_contributor_segment.s(rp_id), ensure_mailchimp_recurring_contributor_segment.s(rp_id)]
+    # )
+    # segments_job.apply_async()
+
+
 def exchange_mc_oauth_code_for_mc_access_token(oauth_code: str) -> str:
     if missing := [x for x in ["MAILCHIMP_CLIENT_ID", "MAILCHIMP_CLIENT_SECRET"] if not getattr(settings, x, None)]:
         logger.error(

@@ -358,7 +358,7 @@ class RevenueProgram(IndexedTimeStampedModel):
         help_text="2-letter country code of RP's company. This gets included in data sent to stripe when creating a payment",
     )
     # The next two values are used to make requests to Mailchimp on behalf of our users.
-    mailchimp_server_prefix = models.TextField(null=True, blank=True)
+    mailchimp_server_prefix = models.CharField(max_length=100, null=True, blank=True)
     # TODO: DEV-3302 this is a temporary field, to be removed in https://news-revenue-hub.atlassian.net/browse/DEV-3302
     mailchimp_access_token = models.TextField(null=True, blank=True)
 
@@ -438,7 +438,7 @@ class RevenueProgram(IndexedTimeStampedModel):
             client = MailchimpMarketing.Client()
             client.set_config({"access_token": self.mailchimp_access_token, "server": self.mailchimp_server_prefix})
             response = client.lists.get_all_lists(fields="id,name", count=1000)
-            return response["lists"]
+            return response.json().get("lists", [])
         except ApiClientError:
             logger.exception(
                 "`RevenueProgram.mailchimp_email_lists` failed to fetch email lists from Mailchimp for RP with ID %s mc server prefix %s",

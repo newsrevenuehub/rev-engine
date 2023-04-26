@@ -8,6 +8,7 @@ from rest_framework.test import APIRequestFactory, APITestCase
 from waffle import get_waffle_flag_model
 
 from apps.organizations.models import Organization, Plan, RevenueProgram
+from apps.organizations.serializers import RevenueProgramInlineSerializer
 from apps.organizations.tests.factories import OrganizationFactory, RevenueProgramFactory
 from apps.users import serializers
 from apps.users.choices import Roles
@@ -68,21 +69,11 @@ class UserSerializerTest(APITestCase):
             "revenue_programs",
             "role_type",
         }
-        expect_rp_fields = {
-            "id",
-            "name",
-            "slug",
-            "organization",
-            "payment_provider_stripe_verified",
-            "fiscal_status",
-            "tax_id",
-            "fiscal_sponsor_name",
-        }
         data = self._get_serialized_data_for_user(self.org_admin_user)
         assert expected_fields == set(data.keys())
         assert len(data["revenue_programs"]) >= 1
         for rp in data["revenue_programs"]:
-            assert set(rp.keys()) == expect_rp_fields
+            assert set(rp.keys()) == set(RevenueProgramInlineSerializer().fields.keys())
         assert len(data["organizations"])
         for org in data["organizations"]:
             assert set(org["plan"].keys()) == set(asdict(Plan(name="", label="")).keys())

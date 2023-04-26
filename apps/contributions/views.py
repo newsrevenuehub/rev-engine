@@ -307,12 +307,13 @@ class ContributionsViewSet(viewsets.ReadOnlyModelViewSet):
         Contributor will not be able to access this endpoint as it's being integrated with the Contribution Dashboard
         as contributors will be able to access only Contributor Portal via magic link.
         """
-        queryset = self.get_queryset() if request.user.is_staff else self.get_queryset()
         logger.info(
             "[ContributionViewSet.email_contributions] enqueueing email_contribution_csv_export_to_user task for request: %s",
             request,
         )
-        email_contribution_csv_export_to_user.delay(list(queryset.values_list("id", flat=True)), request.user.email)
+        email_contribution_csv_export_to_user.delay(
+            list(self.get_queryset().values_list("id", flat=True)), request.user.email
+        )
         return Response(data={"detail": "success"}, status=status.HTTP_200_OK)
 
 

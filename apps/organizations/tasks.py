@@ -4,9 +4,10 @@ from django.conf import settings
 
 import requests
 import reversion
-from celery import shared_task
+from celery import chain, chord, shared_task
 from rest_framework import status
 
+from apps.google_cloud.pubsub import Message, Publisher
 from apps.organizations.models import RevenueProgram
 
 
@@ -78,7 +79,7 @@ def ensure_mailchimp_contributor_segment(rp_id: str) -> None:
 
 
 @shared_task()
-def ensure_mailchimp_recurring_contributor_segment(rp_id: str) -> None:
+def ensure_mailchimp_recurring_segment(rp_id: str) -> None:
     logger.info("Called with rp_id=[%s]", rp_id)
     rp = RevenueProgram.objects.get(id=rp_id)
     if not rp.mailchimp_recurring_segment:
@@ -94,14 +95,22 @@ def ensure_mailchimp_recurring_contributor_segment(rp_id: str) -> None:
 
 
 @shared_task()
+def publish_revenue_program_mailchimp_list_configuration_complete(rp_id):
+    logger.info("Called with rp_id=[%s]", rp_id)
+    rp = RevenueProgram.objects.get(id=rp_id)
+    Publisher.get_instance().publish(settings.RP_MAILCHIMP_LIST_CONFIGURATION_COMPLETE_TOPIC, Message(data=rp.id))
+
+
+@shared_task()
 def setup_mailchimp_entities_for_rp_mailing_list(rp_id: str) -> None:
-    logger.info("[setup_mailchimp_entities_for_rp_mailing_list] called with rp_id=[%s]", rp_id)
+    logger.info("Called with rp_id=[%s]", rp_id)
     # mailchimp prodruct requires mailchimp store, so we need to ensure that first
-    ensure_mailchimp_store.apply_async((rp_id,), link=ensure_mailchimp_product.s(rp_id))
-    # segments_job = group(
-    #     [ensure_mailchimp_contributor_segment.s(rp_id), ensure_mailchimp_recurring_contributor_segment.s(rp_id)]
-    # )
-    # segments_job.apply_async()
+    header = [
+        chain(ensure_mailchimp_store.s(rp_id), ensure_mailchimp_product.s(rp_id)),
+        ensure_mailchimp_contributor_segment.s(rp_id),
+        ensure_mailchimp_recurring_segment.s(rp_id),
+    ]
+    chord(header)(publish_revenue_program_mailchimp_list_configuration_complete.s(rp_id))
 
 
 def exchange_mc_oauth_code_for_mc_access_token(oauth_code: str) -> str:

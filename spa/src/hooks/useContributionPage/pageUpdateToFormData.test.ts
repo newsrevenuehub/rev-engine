@@ -170,7 +170,7 @@ describe('pageUpdateToFormData', () => {
 
   it('sets the style property to just the ID', async () => {
     const result = await pageUpdateToFormData({
-      styles: { created: 'test-created', id: 123, modified: 'test-modified', name: 'test-name', styles: {} }
+      styles: { created: 'test-created', font: {}, id: 123, modified: 'test-modified', name: 'test-name', styles: {} }
     });
 
     expect(formDataToObject(result)).toEqual({ styles: '123' });

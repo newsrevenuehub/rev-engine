@@ -51,6 +51,9 @@ export const STRIPE_API_VERSION = resolveConstantFromEnv('STRIPE_API_VERSION', '
 export const STRIPE_CLIENT_ID = resolveConstantFromEnv('STRIPE_CLIENT_ID', 'test_1234');
 export const STRIPE_OAUTH_SCOPE = resolveConstantFromEnv('STRIPE_OAUTH_SCOPE', 'read_write');
 
+// Mailchimp
+export const NRE_MAILCHIMP_CLIENT_ID = resolveConstantFromEnv('NRE_MAILCHIMP_CLIENT_ID');
+
 // Environment {production, staging, test, dev, demo}
 export const ENVIRONMENT = resolveConstantFromEnv('ENVIRONMENT');
 

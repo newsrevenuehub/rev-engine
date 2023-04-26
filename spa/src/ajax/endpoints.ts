@@ -54,3 +54,6 @@ export const PATCH_ORGANIZATION = 'organizations/';
 
 // Revenue Programs
 export const PATCH_REVENUE_PROGRAM = 'revenue-programs/';
+
+// Mailchimp
+export const MAILCHIMP_OAUTH_SUCCESS = 'mailchimp-oauth-success/';

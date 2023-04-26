@@ -7,6 +7,9 @@ import useUser from 'hooks/useUser';
 
 import Integration from './Integration';
 
+jest.mock('components/common/IntegrationCard/MailchimpIntegrationCard', () => ({
+  MailchimpIntegrationCard: () => <div data-testid="mock-mailchimp-card">Mailchimp</div>
+}));
 jest.mock('hooks/useConnectStripeAccount');
 jest.mock('hooks/useUser');
 

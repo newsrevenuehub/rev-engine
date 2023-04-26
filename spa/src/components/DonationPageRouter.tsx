@@ -15,9 +15,7 @@ import RouterSetup from './routes/RouterSetup';
 /**
  * Split Bundles
  */
-const GenericThankYou = lazy(() =>
-  componentLoader(() => import(`components/donationPage/live/thankYou/GenericThankYou`))
-);
+const GenericThankYou = lazy(() => componentLoader(() => import('components/donationPage/live/GenericThankYou')));
 const LiveDonationPageContainer = lazy(() =>
   componentLoader(() => import(`components/donationPage/LiveDonationPageContainer`))
 );

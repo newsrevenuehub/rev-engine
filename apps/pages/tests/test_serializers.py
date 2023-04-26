@@ -408,6 +408,27 @@ class TestDonationPageFullDetailSerializer:
             == f"Your organization has reached its limit of {org.plan.publish_limit} published page{'' if org.plan.publish_limit == 1 else 's'}"
         )
 
+    @pytest_cases.parametrize("plan", (Plans.FREE.value, Plans.CORE.value))
+    def test_validate_publish_limit_when_patching(self, plan, hub_admin_user):
+        org = OrganizationFactory(plan_name=plan)
+        rp = RevenueProgramFactory(organization=org)
+        DonationPageFactory.create_batch(org.plan.page_limit - 1, revenue_program=rp, published_date=timezone.now())
+        for dp in DonationPage.objects.filter(revenue_program=rp).all()[: org.plan.publish_limit]:
+            dp.published_date = timezone.now()
+            dp.save()
+        request = APIRequestFactory().patch("/")
+        request.user = hub_admin_user
+        serializer = DonationPageFullDetailSerializer(
+            data={"published_date": timezone.now(), "revenue_program": rp.pk, "slug": "my-new-page"},
+            context={"request": request},
+            instance=DonationPage.objects.filter(published_date__isnull=True).first(),
+        )
+        assert serializer.is_valid() is False
+        assert (
+            str(serializer.errors["non_field_errors"][0])
+            == f"Your organization has reached its limit of {org.plan.publish_limit} published page{'' if org.plan.publish_limit == 1 else 's'}"
+        )
+
 
 @pytest.mark.django_db
 class TestStyleListSerializer:

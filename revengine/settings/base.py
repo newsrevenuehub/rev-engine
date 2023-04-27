@@ -94,7 +94,6 @@ ENABLE_PUBSUB = os.getenv("ENABLE_PUBSUB", "false").lower() == "true"
 PAGE_PUBLISHED_TOPIC = os.getenv("PAGE_PUBLISHED_TOPIC", None)
 NEW_USER_TOPIC = os.getenv("NEW_USER_TOPIC", None)
 GOOGLE_CLOUD_PROJECT = os.getenv("GOOGLE_CLOUD_PROJECT", "revenue-engine")
-RP_MAILCHIMP_LIST_CONFIGURATION_COMPLETE_TOPIC = os.getenv("RP_MAILCHIMP_LIST_CONFIGURATION_COMPLETE_TOPIC", None)
 
 # Application definition
 INSTALLED_APPS = [
@@ -133,7 +132,6 @@ INSTALLED_APPS = [
     "reversion",  # Provides undelete and rollback for models' data.
     "reversion_compare",
     "django_test_migrations.contrib.django_checks.AutoNames",
-    "django_celery_results",
 ]
 
 if ENABLE_API_BROWSER:
@@ -258,7 +256,9 @@ LOGGING = {
     "version": 1,
     "disable_existing_loggers": False,
     "filters": {"require_debug_false": {"()": "django.utils.log.RequireDebugFalse"}},
-    "formatters": {"basic": {"format": "%(levelname)s %(name)s:%(lineno)d - %(message)s"}},
+    "formatters": {
+        "basic": {"format": "%(levelname)s %(request_id)s %(name)s:%(lineno)d - [%(funcName)s] %(message)s"}
+    },
     "handlers": {
         "console": {
             "level": LOG_LEVEL,
@@ -566,7 +566,3 @@ SPA_ENV_VARS = {
     "ENVIRONMENT": ENVIRONMENT,
     "DASHBOARD_SUBDOMAINS": DASHBOARD_SUBDOMAINS,
 }
-
-
-CELERY_RESULT_BACKEND = os.getenv("CELERY_RESULT_BACKEND", "django-db")
-CELERY_CACHE_BACKEND = "django-cache"

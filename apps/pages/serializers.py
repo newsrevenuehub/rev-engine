@@ -255,13 +255,18 @@ class DonationPageFullDetailSerializer(serializers.ModelSerializer):
         org = self.instance.revenue_program.organization if self.instance else data["revenue_program"].organization
         # this method gets run both in create and update contexts, so we need to account for the fact that with an offset.
         # What we're trying to compute is the total number of published pages for the org if the current request was processed
-        offset = 0
-        # If the page already exists but is gaining a publish date:
-        if self.instance and self.instance.published_date is None and data["published_date"] is not None:
-            offset = 1
-        # If the page is being created with a publish date:
-        if not self.instance and data["published_date"] is not None:
-            offset = 1
+        offset = (
+            1
+            if any(
+                [
+                    # If the page already exists but is gaining a publish date
+                    self.instance and self.instance.published_date is None and data["published_date"] is not None,
+                    # If the page is being created with a publish date
+                    not self.instance and data["published_date"] is not None,
+                ]
+            )
+            else 0
+        )
         if DonationPage.objects.filter(
             published_date__isnull=False, revenue_program__organization=org
         ).count() + offset > (pl := org.plan.publish_limit):

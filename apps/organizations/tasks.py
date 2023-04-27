@@ -9,6 +9,7 @@ from rest_framework import status
 
 from apps.google_cloud.pubsub import Message, Publisher
 from apps.organizations.models import RevenueProgram
+from revengine.celery import app as celery_app
 
 
 logger = logging.getLogger(f"{settings.DEFAULT_LOGGER}.{__name__}")
@@ -27,8 +28,8 @@ class MailchimpAuthflowUnretryableError(Exception):
     """"""
 
 
-@shared_task()
-def ensure_mailchimp_store(rp_id: str) -> None:
+@celery_app.task(bind=True)
+def ensure_mailchimp_store(self, rp_id: str) -> None:
     logger.info("[ensure_mailchimp_store] called with rp_id=[%s]", rp_id)
     rp = RevenueProgram.objects.get(id=rp_id)
     if not rp.mailchimp_store:
@@ -44,8 +45,8 @@ def ensure_mailchimp_store(rp_id: str) -> None:
         logger.info("[ensure_mailchimp_store] store already exists for rp_id=[%s]", rp_id)
 
 
-@shared_task()
-def ensure_mailchimp_product(rp_id: str) -> None:
+@celery_app.task(bind=True)
+def ensure_mailchimp_product(self, rp_id: str) -> None:
     logger.info("[ensure_mailchimp_product] called with rp_id=[%s]", rp_id)
     rp = RevenueProgram.objects.get(id=rp_id)
     if not rp.mailchimp_product:
@@ -62,8 +63,8 @@ def ensure_mailchimp_product(rp_id: str) -> None:
         logger.info("[ensure_mailchimp_product] product already exists for rp_id=[%s]", rp_id)
 
 
-@shared_task()
-def ensure_mailchimp_contributor_segment(rp_id: str) -> None:
+@celery_app.task(bind=True)
+def ensure_mailchimp_contributor_segment(self, rp_id: str) -> None:
     logger.info("Called with rp_id=[%s]", rp_id)
     rp = RevenueProgram.objects.get(id=rp_id)
     if not rp.mailchimp_contributor_segment:
@@ -78,8 +79,8 @@ def ensure_mailchimp_contributor_segment(rp_id: str) -> None:
         logger.info("Segment already exists for rp_id=[%s]", rp_id)
 
 
-@shared_task()
-def ensure_mailchimp_recurring_segment(rp_id: str) -> None:
+@celery_app.task(bind=True)
+def ensure_mailchimp_recurring_segment(self, rp_id: str) -> None:
     logger.info("Called with rp_id=[%s]", rp_id)
     rp = RevenueProgram.objects.get(id=rp_id)
     if not rp.mailchimp_recurring_segment:
@@ -94,15 +95,15 @@ def ensure_mailchimp_recurring_segment(rp_id: str) -> None:
         logger.info("Segment already exists for rp_id=[%s]", rp_id)
 
 
-@shared_task()
-def publish_revenue_program_mailchimp_list_configuration_complete(rp_id):
+@celery_app.task(bind=True)
+def publish_revenue_program_mailchimp_list_configuration_complete(self, rp_id):
     logger.info("Called with rp_id=[%s]", rp_id)
     rp = RevenueProgram.objects.get(id=rp_id)
     Publisher.get_instance().publish(settings.RP_MAILCHIMP_LIST_CONFIGURATION_COMPLETE_TOPIC, Message(data=rp.id))
 
 
-@shared_task()
-def setup_mailchimp_entities_for_rp_mailing_list(rp_id: str) -> None:
+@celery_app.task(bind=True)
+def setup_mailchimp_entities_for_rp_mailing_list(self, rp_id: str) -> None:
     logger.info("Called with rp_id=[%s]", rp_id)
     chord(
         [

@@ -93,11 +93,11 @@ describe('DDonorAddress', () => {
   // in stripeFns.ts.
 
   describe.each([
-    ['Address', 'mailing_street', false],
-    ['City', 'mailing_city', false],
-    ['State', 'mailing_state', false],
-    ['Zip/Postal code', 'mailing_postal_code', true]
-  ])('The %s text field', (visibleName, internalName, showZipAndCountryOnly) => {
+    ['Address', 'mailing_street', false, false],
+    ['City', 'mailing_city', false, false],
+    ['State', 'mailing_state', false, false],
+    ['Zip/Postal code', 'mailing_postal_code', true, true]
+  ])('The %s text field', (visibleName, internalName, showZipAndCountryOnly, alwaysRequired) => {
     it(`has the form name ${internalName}`, () => {
       tree();
 
@@ -112,9 +112,16 @@ describe('DDonorAddress', () => {
       expect(screen.getByRole('textbox', { name: visibleName })).toBeRequired();
     });
 
-    it('is not required if addressOptional is true', () => {
+    it(`${alwaysRequired ? 'is required even' : 'is not required'} if addressOptional is true`, () => {
       tree({}, { element: { ...element, content: { addressOptional: true } } });
-      expect(screen.getByRole('textbox', { name: visibleName })).not.toBeRequired();
+      expect.assertions(1);
+      if (alwaysRequired) {
+        // eslint-disable-next-line jest/no-conditional-expect
+        expect(screen.getByRole('textbox', { name: visibleName })).toBeRequired();
+      } else {
+        // eslint-disable-next-line jest/no-conditional-expect
+        expect(screen.getByRole('textbox', { name: visibleName })).not.toBeRequired();
+      }
     });
 
     it(`if zipAndCountryOnly = true -> ${showZipAndCountryOnly ? 'show' : 'hide'}`, () => {
@@ -226,9 +233,9 @@ describe('DDonorAddress', () => {
       expect(screen.getByRole('textbox', { name: 'Country' })).toBeRequired();
     });
 
-    it('is not required if addressOptional is true', () => {
+    it('is required even if addressOptional is true', () => {
       tree({}, { element: { ...element, content: { addressOptional: true } } });
-      expect(screen.getByRole('textbox', { name: 'Country' })).not.toBeRequired();
+      expect(screen.getByRole('textbox', { name: 'Country' })).toBeRequired();
     });
 
     it('updates the country ISO code in context when the user selects a country', () => {

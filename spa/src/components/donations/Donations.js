@@ -15,6 +15,7 @@ import { NO_VALUE } from 'constants/textConstants';
 import { DONATIONS_SLUG } from 'routes';
 
 // Util
+import { pageIsPublished } from 'utilities/editPageGetSuccessMessage';
 import formatCurrencyAmount from 'utilities/formatCurrencyAmount';
 import formatDatetimeForDisplay from 'utilities/formatDatetimeForDisplay';
 
@@ -56,7 +57,7 @@ const Donations = () => {
   };
 
   const bannerType = useMemo(() => {
-    const hasPublished = !!pages?.find((_) => _.published_date);
+    const hasPublished = pages && pages.some((page) => pageIsPublished(page));
     if (
       user?.role_type?.includes('hub_admin') ||
       user?.role_type?.includes('Hub Admin') ||

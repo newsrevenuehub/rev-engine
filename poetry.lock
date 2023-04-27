@@ -705,6 +705,22 @@ python-crontab = ">=2.3.4"
 tzdata = "*"
 
 [[package]]
+name = "django-celery-results"
+version = "2.5.0"
+description = "Celery result backends for Django."
+category = "main"
+optional = false
+python-versions = "*"
+files = [
+    {file = "django_celery_results-2.5.0-py3-none-any.whl", hash = "sha256:efb68932bde8938794068a9d0929bea8601ec5f6a4150a7f7ab6e2a83a735938"},
+    {file = "django_celery_results-2.5.0.tar.gz", hash = "sha256:8631fd68158c41afddfc378840ecee2f10ddd7d4879e964f2597f483e4203269"},
+]
+
+[package.dependencies]
+celery = ">=5.2.7,<6.0"
+Django = ">=3.2.18"
+
+[[package]]
 name = "django-csp"
 version = "3.7"
 description = "Django Content Security Policy support."
@@ -3177,4 +3193,4 @@ testing = ["big-O", "flake8 (<5)", "jaraco.functools", "jaraco.itertools", "more
 [metadata]
 lock-version = "2.0"
 python-versions = "^3.10"
-content-hash = "fbfe8261de35230e709a486d1387e138ba2a3ea8da58efb2fe6c588690becda1"
+content-hash = "fd3f5e6bd4d8ee60c6ffc86346a8e9770e9a2dc27d4e2ee81ae6107baf697529"

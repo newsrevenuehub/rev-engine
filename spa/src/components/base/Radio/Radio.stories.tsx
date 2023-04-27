@@ -32,7 +32,7 @@ interface TemplateProps {
 const Template: Story<TemplateProps> = (props: TemplateProps) => (
   <>
     <FormControlLabel control={<Radio checked={props.checked} />} disabled={props.disabled} label="Radio Label" />
-    <FormControlLabel control={<Radio checked={props.checked} />} disabled={true} label="Disabled Radio Label" />
+    <FormControlLabel control={<Radio checked={props.checked} />} disabled label="Disabled Radio Label" />
   </>
 );
 

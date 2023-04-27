@@ -8,7 +8,7 @@ export const Checkboxes = styled.div`
 `;
 
 export const Header = styled.h4`
-  color: ${({ theme }) => theme.colors.muiGrey[900]};
+  color: ${({ theme }) => theme.basePalette.greyscale.black};
   font-size: ${({ theme }) => theme.fontSizesUpdated.md};
   font-weight: 600;
   margin-bottom: 10px;
@@ -16,7 +16,7 @@ export const Header = styled.h4`
 `;
 
 export const Tip = styled.p`
-  color: ${({ theme }) => theme.colors.muiGrey[600]};
+  color: ${({ theme }) => theme.basePalette.greyscale.grey1};
   margin-bottom: 18px;
 `;
 
@@ -26,7 +26,7 @@ export const RadioGroup = styled(BaseRadioGroup)`
 `;
 
 export const Text = styled.p`
-  color: ${({ theme }) => theme.colors.muiGrey[900]};
+  color: ${({ theme }) => theme.basePalette.greyscale.black};
   font-size: ${({ theme }) => theme.fontSizesUpdated.md};
 `;
 
@@ -37,5 +37,5 @@ export const StyledFormControlLabel = styled(FormControlLabel)`
 export const Disclaimer = styled.p`
   margin-top: 20px;
   font-size: ${({ theme }) => theme.fontSizesUpdated.sm};
-  color: ${({ theme }) => theme.colors.muiGrey[600]};
+  color: ${({ theme }) => theme.basePalette.greyscale.grey1};
 `;

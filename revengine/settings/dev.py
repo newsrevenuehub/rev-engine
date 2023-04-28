@@ -47,3 +47,5 @@ if BROKER_URL.startswith("memory"):
             "BACKEND": "django.core.cache.backends.dummy.DummyCache",
         }
     }
+
+CELERY_RESULTS_BACKEND = BROKER_URL

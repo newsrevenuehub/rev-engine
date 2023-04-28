@@ -324,6 +324,7 @@ REST_FRAMEWORK = {
 DTM_IGNORED_MIGRATIONS = {
     ("waffle", "*"),
     ("django_celery_beat", "*"),
+    ("django_celery_results", "*"),
 }
 
 
@@ -574,7 +575,7 @@ SPA_ENV_VARS = {
 }
 
 
-CELERY_RESULTS_BACKEND = os.getenv("CELERY_RESULTS_BACKEND", "django-db")
+CELERY_RESULTS_BACKEND = os.getenv("CELERY_RESULTS_BACKEND", REDIS_URL)
 CELERY_CACHE_BACKEND = "default"
 # https://devcenter.heroku.com/articles/celery-heroku#choosing-a-serializer
 CELERY_TASK_SERIALIZER = "json"

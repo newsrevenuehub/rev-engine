@@ -45,7 +45,7 @@ export interface EnginePlan {
   /**
    * How many published pages can a reveunue program have?
    */
-  page_publication_limit: number;
+  publish_limit: number;
   /**
    * What element types are allowed in a page's sidebar?
    */

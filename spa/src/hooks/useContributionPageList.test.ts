@@ -277,7 +277,7 @@ describe('useContributionPageList', () => {
       await waitFor(() => expect(result.current.pages?.length).toBe(2));
       expect(
         result.current.userCanPublishPage({
-          organizations: [{ plan: { page_publication_limit: 2 } }, { plan: { page_publication_limit: 0 } }],
+          organizations: [{ plan: { publish_limit: 2 } }, { plan: { publish_limit: 0 } }],
           role_type: [USER_ROLE_ORG_ADMIN_TYPE]
         } as any)
       ).toBe(true);
@@ -289,7 +289,7 @@ describe('useContributionPageList', () => {
       await waitFor(() => expect(result.current.pages?.length).toBe(2));
       expect(
         result.current.userCanCreatePage({
-          organizations: [{ plan: { page_publication_limit: 1 } }, { plan: { page_publication_limit: 0 } }],
+          organizations: [{ plan: { publish_limit: 1 } }, { plan: { publish_limit: 0 } }],
           role_type: [USER_ROLE_ORG_ADMIN_TYPE]
         } as any)
       ).toBe(false);
@@ -301,7 +301,7 @@ describe('useContributionPageList', () => {
       await waitFor(() => expect(result.current.pages?.length).toBe(2));
       expect(
         result.current.userCanCreatePage({
-          organizations: [{ plan: { page_publication_limit: 0 } }, { plan: { page_publication_limit: 1 } }],
+          organizations: [{ plan: { publish_limit: 0 } }, { plan: { publish_limit: 1 } }],
           role_type: [USER_ROLE_ORG_ADMIN_TYPE]
         } as any)
       ).toBe(false);

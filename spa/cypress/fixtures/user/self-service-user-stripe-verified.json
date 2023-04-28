@@ -26,7 +26,7 @@
         "name": "PLUS",
         "label": "Plus",
         "page_limit": 10,
-        "page_publication_limit": 10,
+        "publish_limit": 10,
         "style_limit": 10
       }
     }

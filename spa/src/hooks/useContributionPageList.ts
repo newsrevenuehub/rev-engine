@@ -164,7 +164,7 @@ function useContributionPageList(): UseContributionPageListResult {
       // pages that are currently published. We don't consider dates here; e.g.
       // if a page has a publish date a year away, it still counts as published.
 
-      return pages.filter((page) => !!page.published_date).length < user.organizations[0].plan.page_publication_limit;
+      return pages.filter((page) => !!page.published_date).length < user.organizations[0].plan.publish_limit;
     },
     [pages]
   );

@@ -1,17 +1,16 @@
-import logging
-
 from django.conf import settings
 
 import requests
 import reversion
 from celery import chord, shared_task
+from celery.utils.log import get_task_logger
 from rest_framework import status
 
 from apps.google_cloud.pubsub import Message, Publisher
 from apps.organizations.models import RevenueProgram
 
 
-logger = logging.getLogger(f"{settings.DEFAULT_LOGGER}.{__name__}")
+logger = get_task_logger(f"{settings.DEFAULT_LOGGER}.{__name__}")
 
 
 MAILCHIMP_EXCHANGE_OAUTH_CODE_FOR_ACCESS_TOKEN_URL = "https://login.mailchimp.com/oauth2/token"

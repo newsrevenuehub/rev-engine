@@ -34,6 +34,7 @@ from apps.organizations.models import (
     FreePlan,
     HubDefaultEmailStyle,
     MailchimpEmailList,
+    MailchimpIntegrationError,
     MailchimpProduct,
     MailchimpSegment,
     MailchimpStore,
@@ -763,7 +764,7 @@ class TestRevenueProgram:
             "get_mailchimp_client",
             return_value=mock_store_response,
         )
-        with pytest.raises(ApiClientError):
+        with pytest.raises(MailchimpIntegrationError):
             revenue_program_with_mailchimp_connection_via_oauth_flow.mailchimp_store
 
     def test_make_mailchimp_store_when_no_mailchimp_list_id(
@@ -811,7 +812,7 @@ class TestRevenueProgram:
             "get_mailchimp_client",
             return_value=mock_client,
         )
-        with pytest.raises(ApiClientError):
+        with pytest.raises(MailchimpIntegrationError):
             revenue_program_with_mailchimp_connection_via_oauth_flow.make_mailchimp_store()
 
     def test_mailchimp_product_when_no_mailchimp_product_id(
@@ -875,7 +876,7 @@ class TestRevenueProgram:
         mocker.patch.object(
             revenue_program_with_mailchimp_connection_via_oauth_flow, "get_mailchimp_client", return_value=mock_client
         )
-        with pytest.raises(ApiClientError):
+        with pytest.raises(MailchimpIntegrationError):
             revenue_program_with_mailchimp_connection_via_oauth_flow.make_mailchimp_product()
 
     def test_mailchimp_contributor_segment_when_no_mailchimp_list_id(
@@ -925,7 +926,7 @@ class TestRevenueProgram:
         mocker.patch.object(
             revenue_program_with_mailchimp_connection_via_oauth_flow, "get_mailchimp_client", return_value=mock_client
         )
-        with pytest.raises(ApiClientError):
+        with pytest.raises(MailchimpIntegrationError):
             revenue_program_with_mailchimp_connection_via_oauth_flow.mailchimp_contributor_segment
 
     def test_mailchimp_recurring_contributor_segment_happy_path(
@@ -966,7 +967,7 @@ class TestRevenueProgram:
         mocker.patch.object(
             revenue_program_with_mailchimp_connection_via_oauth_flow, "get_mailchimp_client", return_value=mock_client
         )
-        with pytest.raises(ApiClientError):
+        with pytest.raises(MailchimpIntegrationError):
             revenue_program_with_mailchimp_connection_via_oauth_flow.mailchimp_recurring_segment
 
 

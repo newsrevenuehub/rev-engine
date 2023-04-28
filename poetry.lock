@@ -819,6 +819,21 @@ files = [
 future = "*"
 
 [[package]]
+name = "django-log-request-id"
+version = "2.1.0"
+description = "Django middleware and log filter to attach a unique ID to every log message generated as part of a request"
+category = "main"
+optional = false
+python-versions = "*"
+files = [
+    {file = "django-log-request-id-2.1.0.tar.gz", hash = "sha256:b11fc821774b54b820ef2e732dbaa52304711de8d5c4f9031ca48578f6121ab6"},
+    {file = "django_log_request_id-2.1.0-py3-none-any.whl", hash = "sha256:c0793c030cfe9f673eff3f89667711f65c39509c016d85e436f9d48507ee778c"},
+]
+
+[package.dependencies]
+django = ">=1.8"
+
+[[package]]
 name = "django-migration-linter"
 version = "4.1.0"
 description = "Detect backward incompatible migrations for your django project"
@@ -2501,6 +2516,21 @@ decopatch = "*"
 makefun = ">=1.9.5"
 
 [[package]]
+name = "pytest-celery"
+version = "0.0.0"
+description = "pytest-celery a shim pytest plugin to enable celery.contrib.pytest"
+category = "dev"
+optional = false
+python-versions = "*"
+files = [
+    {file = "pytest-celery-0.0.0.tar.gz", hash = "sha256:cfd060fc32676afa1e4f51b2938f903f7f75d952186b8c6cf631628c4088f406"},
+    {file = "pytest_celery-0.0.0-py2.py3-none-any.whl", hash = "sha256:63dec132df3a839226ecb003ffdbb0c2cb88dd328550957e979c942766578060"},
+]
+
+[package.dependencies]
+celery = ">=4.4.0"
+
+[[package]]
 name = "pytest-cov"
 version = "4.0.0"
 description = "Pytest plugin for measuring coverage."
@@ -3193,4 +3223,4 @@ testing = ["big-O", "flake8 (<5)", "jaraco.functools", "jaraco.itertools", "more
 [metadata]
 lock-version = "2.0"
 python-versions = "^3.10"
-content-hash = "fd3f5e6bd4d8ee60c6ffc86346a8e9770e9a2dc27d4e2ee81ae6107baf697529"
+content-hash = "1950edc81a901003190e9db3d235cded75cd81ca90261ae7fc399e02b4c79789"

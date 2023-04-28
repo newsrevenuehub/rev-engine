@@ -4,12 +4,11 @@ from django.conf import settings
 
 import requests
 import reversion
-from celery import chain, chord, shared_task
+from celery import chord, shared_task
 from rest_framework import status
 
 from apps.google_cloud.pubsub import Message, Publisher
 from apps.organizations.models import RevenueProgram
-from revengine.celery import app as celery_app
 
 
 logger = logging.getLogger(f"{settings.DEFAULT_LOGGER}.{__name__}")
@@ -28,44 +27,68 @@ class MailchimpAuthflowUnretryableError(Exception):
     """"""
 
 
-@celery_app.task(bind=True)
-def ensure_mailchimp_store(self, rp_id: str) -> None:
-    logger.info("[ensure_mailchimp_store] called with rp_id=[%s]", rp_id)
+def _ensure_mailchimp_store(rp_id: str) -> None:
+    """Ensure that a Mailchimp store exists for the given RevenueProgram.
+
+    Note that this is intended to be run in the `ensure_mailchimp_store` task. The indirection
+    here is to make `setup_mailchimp_entities_for_rp_mailing_list` more easily testable by providing
+    clean, obvious points to mock out.
+    """
+
     rp = RevenueProgram.objects.get(id=rp_id)
     if not rp.mailchimp_store:
-        logger.info("[ensure_mailchimp_store] creating store for rp_id=[%s]", rp_id)
+        logger.info("Creating store for rp_id=[%s]", rp_id)
         store = rp.make_mailchimp_store()
-        logger.info("[ensure_mailchimp_store] store created for rp_id=[%s]", rp_id)
+        logger.info("Store created for rp_id=[%s]", rp_id)
         rp.mailchimp_store_id = store.id
         with reversion.create_revision():
-            logger.info("[ensure_mailchimp_store] saving rp_id=[%s] with new store id", rp_id)
+            logger.info("Saving rp_id=[%s] with new store id", rp_id)
             rp.save(update_fields={"mailchimp_store_id", "modified"})
             reversion.set_comment("ensure_mailchimp_store ran")
     else:
-        logger.info("[ensure_mailchimp_store] store already exists for rp_id=[%s]", rp_id)
+        logger.info("Store already exists for rp_id=[%s]", rp_id)
 
 
-@celery_app.task(bind=True)
-def ensure_mailchimp_product(self, rp_id: str) -> None:
-    logger.info("[ensure_mailchimp_product] called with rp_id=[%s]", rp_id)
+@shared_task()
+def ensure_mailchimp_store(rp_id: str) -> None:
+    logger.info("Called with rp_id=[%s]", rp_id)
+    _ensure_mailchimp_store(rp_id)
+
+
+def _ensure_mailchimp_product(rp_id: str) -> None:
+    """Ensure that a Mailchimp product exists for the given RevenueProgram.
+
+    Note that this is intended to be run in the `ensure_mailchimp_product` task. The indirection
+    here is to make `setup_mailchimp_entities_for_rp_mailing_list` more easily testable by providing
+    clean, obvious points to mock out.
+    """
     rp = RevenueProgram.objects.get(id=rp_id)
     if not rp.mailchimp_product:
-        logger.info("[ensure_mailchimp_product] creating product for rp_id=[%s]", rp_id)
+        logger.info("Creating product for rp_id=[%s]", rp_id)
         product = rp.make_mailchimp_product()
-        logger.info("[ensure_mailchimp_product] product created for rp_id=[%s]", rp_id)
+        logger.info("Product created for rp_id=[%s]", rp_id)
         rp.mailchimp_product_id = product.id
         with reversion.create_revision():
-            logger.info("[ensure_mailchimp_product] saving rp_id=[%s] with new product id", rp_id)
+            logger.info("Saving rp_id=[%s] with new product id", rp_id)
             rp.save(update_fields={"mailchimp_product_id", "modified"})
             reversion.set_comment("ensure_mailchimp_product ran")
-
     else:
-        logger.info("[ensure_mailchimp_product] product already exists for rp_id=[%s]", rp_id)
+        logger.info("Product already exists for rp_id=[%s]", rp_id)
 
 
-@celery_app.task(bind=True)
-def ensure_mailchimp_contributor_segment(self, rp_id: str) -> None:
+@shared_task()
+def ensure_mailchimp_product(rp_id: str, *args, **kwargs) -> None:
     logger.info("Called with rp_id=[%s]", rp_id)
+    _ensure_mailchimp_product(rp_id)
+
+
+def _ensure_mailchimp_contributor_segment(rp_id: str) -> None:
+    """Ensure that a Mailchimp segment exists for the given RevenueProgram.
+
+    Note that this is intended to be run in the `ensure_mailchimp_contributor_segment` task. The indirection
+    here is to make `setup_mailchimp_entities_for_rp_mailing_list` more easily testable by providing
+    clean, obvious points to mock out.
+    """
     rp = RevenueProgram.objects.get(id=rp_id)
     if not rp.mailchimp_contributor_segment:
         logger.info(
@@ -79,9 +102,19 @@ def ensure_mailchimp_contributor_segment(self, rp_id: str) -> None:
         logger.info("Segment already exists for rp_id=[%s]", rp_id)
 
 
-@celery_app.task(bind=True)
-def ensure_mailchimp_recurring_segment(self, rp_id: str) -> None:
+@shared_task()
+def ensure_mailchimp_contributor_segment(rp_id: str) -> None:
     logger.info("Called with rp_id=[%s]", rp_id)
+    _ensure_mailchimp_contributor_segment(rp_id)
+
+
+def _ensure_mailchimp_recurring_segment(rp_id: str) -> None:
+    """Ensure that a Mailchimp segment exists for recurring contributors for the given RevenueProgram.
+
+    Note that this is intended to be run in the `ensure_mailchimp_recurring_segment` task. The indirection
+    here is to make `setup_mailchimp_entities_for_rp_mailing_list` more easily testable by providing
+    clean, obvious points to mock out.
+    """
     rp = RevenueProgram.objects.get(id=rp_id)
     if not rp.mailchimp_recurring_segment:
         logger.info(
@@ -93,26 +126,42 @@ def ensure_mailchimp_recurring_segment(self, rp_id: str) -> None:
         logger.info("Segment created for rp_id=[%s]", rp_id)
     else:
         logger.info("Segment already exists for rp_id=[%s]", rp_id)
+        return rp.mailchimp_store_id
 
 
-@celery_app.task(bind=True)
-def publish_revenue_program_mailchimp_list_configuration_complete(self, rp_id):
+@shared_task()
+def ensure_mailchimp_recurring_segment(rp_id: str) -> None:
     logger.info("Called with rp_id=[%s]", rp_id)
+    _ensure_mailchimp_recurring_segment(rp_id)
+
+
+def _publish_revenue_program_mailchimp_list_configuration_complete(rp_id: str) -> None:
+    """Publish a message to the `RP_MAILCHIMP_LIST_CONFIGURATION_COMPLETE_TOPIC` topic.
+
+    Note that this is intended to be run in the `publish_revenue_program_mailchimp_list_configuration_complete` task. The indirection
+    here is to make `setup_mailchimp_entities_for_rp_mailing_list` more easily testable by providing
+    clean, obvious points to mock out.
+    """
     rp = RevenueProgram.objects.get(id=rp_id)
-    Publisher.get_instance().publish(settings.RP_MAILCHIMP_LIST_CONFIGURATION_COMPLETE_TOPIC, Message(data=rp.id))
+    Publisher.get_instance().publish(settings.RP_MAILCHIMP_LIST_CONFIGURATION_COMPLETE_TOPIC, Message(data=str(rp.id)))
 
 
-@celery_app.task(bind=True)
-def setup_mailchimp_entities_for_rp_mailing_list(self, rp_id: str) -> None:
+@shared_task()
+def publish_revenue_program_mailchimp_list_configuration_complete(rp_id):
     logger.info("Called with rp_id=[%s]", rp_id)
-    chord(
-        [
-            # mailchimp product requires mailchimp store, so we need to ensure that ahead of creating product
-            chain(ensure_mailchimp_store.s(rp_id), ensure_mailchimp_product.s(rp_id)),
-            ensure_mailchimp_contributor_segment.s(rp_id),
-            ensure_mailchimp_recurring_segment.s(rp_id),
-        ]
-    )(publish_revenue_program_mailchimp_list_configuration_complete.s(rp_id))
+    _publish_revenue_program_mailchimp_list_configuration_complete(rp_id)
+
+
+@shared_task()
+def setup_mailchimp_entities_for_rp_mailing_list(rp_id: str) -> None:
+    logger.info("Called with rp_id=[%s]", rp_id)
+    header = [
+        # can't have product without store, so cahin store into product
+        ensure_mailchimp_store.si(rp_id) | ensure_mailchimp_product.si(rp_id),
+        ensure_mailchimp_contributor_segment.si(rp_id),
+        ensure_mailchimp_recurring_segment.si(rp_id),
+    ]
+    chord(header, publish_revenue_program_mailchimp_list_configuration_complete.si(rp_id)).delay()
 
 
 def exchange_mc_oauth_code_for_mc_access_token(oauth_code: str) -> str:

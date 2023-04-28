@@ -290,6 +290,10 @@ class RevenueProgramQuerySet(models.QuerySet):
                 return self.none()
 
 
+class MailchimpIntegrationError(Exception):
+    pass
+
+
 @dataclass(frozen=True)
 class MailchimpEmailList:
     id: str
@@ -441,7 +445,7 @@ class RevenueProgram(IndexedTimeStampedModel):
 
     @property
     def mailchimp_store(self) -> MailchimpStore | None:
-        logger.info("called for rp %s", self.id)
+        logger.info("Called for rp %s", self.id)
         if not self.mailchimp_integration_connected:
             logger.debug(
                 "Mailchimp integration not connected for this revenue program (%s), returning None",
@@ -461,7 +465,7 @@ class RevenueProgram(IndexedTimeStampedModel):
                 return None
             else:
                 logger.exception("Unexpected error from Mailchimp API")
-                raise error
+                raise MailchimpIntegrationError("Error retrieving mailchimp store")
 
     @property
     def mailchimp_product(self) -> MailchimpProduct | None:
@@ -482,7 +486,7 @@ class RevenueProgram(IndexedTimeStampedModel):
                 return None
             else:
                 logger.exception("Unexpected error from Mailchimp API")
-                raise error
+                raise MailchimpIntegrationError("Error retrieving product")
 
     @property
     def mailchimp_contributor_segment(self) -> MailchimpSegment | None:
@@ -503,7 +507,7 @@ class RevenueProgram(IndexedTimeStampedModel):
                 return None
             else:
                 logger.exception("Unexpected error from Mailchimp API")
-                raise error
+                raise MailchimpIntegrationError("Error retrieving mailchimp contributor segment")
 
     @property
     def mailchimp_recurring_segment(self):
@@ -525,7 +529,7 @@ class RevenueProgram(IndexedTimeStampedModel):
                 return None
             else:
                 logger.exception("Unexpected error from Mailchimp API")
-                raise error
+                raise MailchimpIntegrationError("Error retrieving mailchimp recurring segment")
 
     @property
     def _mailchimp_store_id(self):
@@ -586,7 +590,7 @@ class RevenueProgram(IndexedTimeStampedModel):
             return MailchimpStore(**response)
         except ApiClientError as error:
             logger.exception("Error creating store for RP %s: %s", self.id, error.text)
-            raise error
+            raise MailchimpIntegrationError("Error creating store")
 
     def make_mailchimp_product(self) -> MailchimpProduct:
         logger.info("Called for rp %s", self.id)
@@ -609,7 +613,7 @@ class RevenueProgram(IndexedTimeStampedModel):
             return MailchimpProduct(**response)
         except ApiClientError as error:
             logger.exception("Error creating product for RP %s: %s", self.id, error.text)
-            raise error
+            raise MailchimpIntegrationError("Error creating product")
 
     def make_mailchimp_contributor_segment(self) -> MailchimpSegment:
         logger.info("Called for rp %s", self.id)
@@ -622,13 +626,13 @@ class RevenueProgram(IndexedTimeStampedModel):
                 self.mailchimp_list_id, {"name": self._mailchimp_contributor_segment_name}
             )
             return MailchimpSegment(**response)
-        except ApiClientError as error:
+        except ApiClientError:
             logger.exception(
                 "Error creating %s segment for RP %s",
                 self._mailchimp_contributor_segment_name,
                 self.id,
             )
-            raise error
+            raise MailchimpIntegrationError("Error creating contributor segment")
 
     def make_mailchimp_recurring_segment(self) -> MailchimpSegment:
         """"""
@@ -642,13 +646,13 @@ class RevenueProgram(IndexedTimeStampedModel):
                 self.mailchimp_list_id, {"name": self._mailchimp_recurring_segment_name}
             )
             return MailchimpSegment(**response)
-        except ApiClientError as error:
+        except ApiClientError:
             logger.exception(
                 "Error creating %s segment for RP %s",
                 self._mailchimp_recurring_segment_name,
                 self.id,
             )
-            raise error
+            raise MailchimpIntegrationError("Error creating recurring segment")
 
     objects = RevenueProgramManager.from_queryset(RevenueProgramQuerySet)()
 

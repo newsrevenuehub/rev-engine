@@ -132,6 +132,7 @@ INSTALLED_APPS = [
     "reversion",  # Provides undelete and rollback for models' data.
     "reversion_compare",
     "django_test_migrations.contrib.django_checks.AutoNames",
+    "django_celery_results",
 ]
 
 if ENABLE_API_BROWSER:
@@ -140,6 +141,7 @@ if ENABLE_API_BROWSER:
     ]
 
 MIDDLEWARE = [
+    "log_request_id.middleware.RequestIDMiddleware",
     "django.middleware.security.SecurityMiddleware",
     "whitenoise.middleware.WhiteNoiseMiddleware",
     "django.contrib.sessions.middleware.SessionMiddleware",
@@ -255,15 +257,19 @@ LOG_LEVEL = os.getenv("LOG_LEVEL", "INFO")
 LOGGING = {
     "version": 1,
     "disable_existing_loggers": False,
-    "filters": {"require_debug_false": {"()": "django.utils.log.RequireDebugFalse"}},
+    "filters": {
+        "require_debug_false": {"()": "django.utils.log.RequireDebugFalse"},
+        "request_id": {"()": "log_request_id.filters.RequestIDFilter"},
+    },
     "formatters": {
-        "basic": {"format": "%(levelname)s %(request_id)s %(name)s:%(lineno)d - [%(funcName)s] %(message)s"}
+        "basic": {"format": "%(levelname)s request_id=%(request_id)s %(name)s:%(lineno)d - [%(funcName)s] %(message)s"}
     },
     "handlers": {
         "console": {
             "level": LOG_LEVEL,
             "class": "logging.StreamHandler",
             "formatter": "basic",
+            "filters": ["request_id"],
         },
         "null": {
             "class": "logging.NullHandler",
@@ -566,3 +572,9 @@ SPA_ENV_VARS = {
     "ENVIRONMENT": ENVIRONMENT,
     "DASHBOARD_SUBDOMAINS": DASHBOARD_SUBDOMAINS,
 }
+
+
+CELERY_RESULTS_BACKEND = os.getenv("CELERY_RESULTS_BACKEND", "django-db")
+CELERY_CACHE_BACKEND = "default"
+
+RP_MAILCHIMP_LIST_CONFIGURATION_COMPLETE_TOPIC = os.getenv("RP_MAILCHIMP_LIST_CONFIGURATION_COMPLETE_TOPIC")

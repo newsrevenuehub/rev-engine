@@ -15,7 +15,6 @@ from apps.organizations.tasks import (
     exchange_mc_oauth_code_for_mc_access_token,
     get_mailchimp_server_prefix,
     logger,
-    publish_revenue_program_mailchimp_list_configuration_complete,
     setup_mailchimp_entities_for_rp_mailing_list,
 )
 from apps.organizations.tests.factories import RevenueProgramFactory
@@ -223,42 +222,46 @@ class TestExchangeMailchimpOauthTokenForServerPrefixAndAccessToken:
         assert rp.mailchimp_server_prefix is None
 
 
-@pytest.mark.django_db
-def test_setup_mailchimp_entities_for_rp_mailing_list(mocker, settings, revenue_program):
-    settings.CELERY_TASK_ALWAYS_EAGER = True
-    contributor_segment_task_spy = mocker.spy(ensure_mailchimp_contributor_segment, "s")
-    recurring_segment_task_spy = mocker.spy(ensure_mailchimp_recurring_segment, "s")
-    product_task_spy = mocker.spy(ensure_mailchimp_product, "s")
-    store_task_spy = mocker.spy(ensure_mailchimp_store, "s")
-    publish_connected_spy = mocker.spy(publish_revenue_program_mailchimp_list_configuration_complete, "s")
-    # we patch the internals of each subtask so we can limit to testing only that they get called with the right args,
-    # deferring more in depth testing for the individual subtasks
-    mocker.patch(
-        "apps.organizations.models.RevenueProgram.mailchimp_contributor_segment",
-        return_value="truthy",
+@pytest.fixture
+def mock_rp_mailchimp_store_truthy(mocker):
+    return mocker.patch(
+        "apps.organizations.tasks.RevenueProgram.mailchimp_store",
         new_callable=PropertyMock,
+        return_value=Mock(id="something"),
     )
-    mocker.patch(
-        "apps.organizations.models.RevenueProgram.mailchimp_recurring_segment",
-        return_value="truthy",
-        new_callable=PropertyMock,
+
+
+@pytest.mark.django_db(transaction=True)
+@pytest.mark.celery(result_backend="django-db", cache_backend="django-cache")
+def test_setup_mailchimp_entities_for_rp_mailing_list(
+    settings,
+    mocker,
+    revenue_program,
+    celery_session_worker,
+):
+    """`setup_mailchimp_entities_for_rp_mailing_list` orchestrates several subtasks, some of which
+    presuppose the success of others. This task and its consituents are meant to be idempotent. Here,
+    we test a base case where all subtasks succeed and show only that wrapped functions (each task wraps
+    a similarly named function prefixed with `_` that does the actual work) are called with the correct
+    arguments.
+    """
+    settings.RP_MAILCHIMP_LIST_CONFIGURATION_COMPLETE_TOPIC = "some-topic"
+    mock_ensure_store_fn = mocker.patch("apps.organizations.tasks._ensure_mailchimp_store", return_value=lambda: None)
+    mock_ensure_product_fn = mocker.patch(
+        "apps.organizations.tasks._ensure_mailchimp_product", return_value=lambda: None
     )
-    mocker.patch(
-        "apps.organizations.models.RevenueProgram.mailchimp_product", return_value="truthy", new_callable=PropertyMock
+    mock_ensure_contributor_segment_fn = mocker.patch(
+        "apps.organizations.tasks._ensure_mailchimp_contributor_segment", return_value=lambda: None
     )
-    mocker.patch(
-        "apps.organizations.models.RevenueProgram.mailchimp_store", return_value="truthy", new_callable=PropertyMock
+    mock_ensure_recurring_segment_fn = mocker.patch(
+        "apps.organizations.tasks._ensure_mailchimp_recurring_segment", return_value=lambda: None
     )
-    setup_mailchimp_entities_for_rp_mailing_list.apply(args=(revenue_program.id,)).get()
-    for spy in [
-        contributor_segment_task_spy,
-        recurring_segment_task_spy,
-        product_task_spy,
-        store_task_spy,
-        publish_connected_spy,
-    ]:
-        if spy in [contributor_segment_task_spy, recurring_segment_task_spy]:
-            spy.assert_called_once_with(revenue_program.id)
+    result = setup_mailchimp_entities_for_rp_mailing_list.apply_async(args=(revenue_program.id,))
+    result.wait()
+    mock_ensure_store_fn.assert_called_once_with(revenue_program.id)
+    mock_ensure_product_fn.assert_called_once_with(revenue_program.id)
+    mock_ensure_contributor_segment_fn.assert_called_once_with(revenue_program.id)
+    mock_ensure_recurring_segment_fn.assert_called_once_with(revenue_program.id)
 
 
 @pytest.mark.django_db
@@ -285,9 +288,7 @@ class TestEnsureMailchimpStore:
         logger_spy = mocker.spy(logger, "info")
         ensure_mailchimp_store.apply(args=(revenue_program.id,)).get()
         assert logger_spy.call_count == 2
-        assert logger_spy.call_args_list[1] == mocker.call(
-            "[ensure_mailchimp_store] store already exists for rp_id=[%s]", revenue_program.id
-        )
+        assert logger_spy.call_args_list[1] == mocker.call("Store already exists for rp_id=[%s]", revenue_program.id)
 
 
 @pytest.mark.django_db
@@ -314,9 +315,7 @@ class TestEnsureMailchimpProduct:
         logger_spy = mocker.spy(logger, "info")
         ensure_mailchimp_product.apply(args=(revenue_program.id,)).get()
         assert logger_spy.call_count == 2
-        assert logger_spy.call_args_list[1] == mocker.call(
-            "[ensure_mailchimp_product] product already exists for rp_id=[%s]", revenue_program.id
-        )
+        assert logger_spy.call_args_list[1] == mocker.call("Product already exists for rp_id=[%s]", revenue_program.id)
 
 
 @pytest.mark.django_db

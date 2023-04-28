@@ -43,7 +43,6 @@ class StyleInlineSerializer(serializers.ModelSerializer):
 
 
 class StyleListSerializer(StyleInlineSerializer):
-
     revenue_program = PresentablePrimaryKeyRelatedField(
         queryset=RevenueProgram.objects.all(),
         presentation_serializer=RevenueProgramInlineSerializer,
@@ -246,6 +245,43 @@ class DonationPageFullDetailSerializer(serializers.ModelSerializer):
                 {"non_field_errors": [f"Your organization has reached its limit of {pl} page{'s' if pl > 1 else ''}"]}
             )
 
+    def validate_publish_limit(self, data):
+        """Ensure that publishing a page would not push parent org over its publish limit
+
+        NB: publish_limit is not a serializer field, so we have to explicitly call this method from
+        .validate() below.
+        """
+        logger.debug("DonationPageFullDetailSerializer.validate_publish_limit called with data: %s", data)
+        org = self.instance.revenue_program.organization if self.instance else data["revenue_program"].organization
+        # this method gets run both in create and update contexts, so we need to account for the fact that with an offset.
+        # What we're trying to compute is the total number of published pages for the org if the current request was processed
+        offset = (
+            1
+            if any(
+                [
+                    # If the page already exists but is gaining a publish date
+                    self.instance and self.instance.published_date is None and data["published_date"] is not None,
+                    # If the page is being created with a publish date
+                    not self.instance and data["published_date"] is not None,
+                ]
+            )
+            else 0
+        )
+        if DonationPage.objects.filter(
+            published_date__isnull=False, revenue_program__organization=org
+        ).count() + offset > (pl := org.plan.publish_limit):
+            logger.info(
+                "DonationPageFullDetailSerializer.validate_publish_limit raising ValidationError because org (%s) has reached its publish limit",
+                org.id,
+            )
+            raise serializers.ValidationError(
+                {
+                    "non_field_errors": [
+                        f"Your organization has reached its limit of {pl} published page{'' if pl == 1 else 's'}"
+                    ]
+                }
+            )
+
     def validate_page_element_permissions(self, data):
         """Ensure that requested page elements are permitted by the organization's plan"""
         rp = self.instance.revenue_program if self.instance else data["revenue_program"]
@@ -270,6 +306,8 @@ class DonationPageFullDetailSerializer(serializers.ModelSerializer):
 
     def validate(self, data):
         self.validate_page_limit(data)
+        if "published_date" in data:
+            self.validate_publish_limit(data)
         # TODO: [DEV-2741] Add granular validation for page and sidebar elements
         self.validate_page_element_permissions(data)
         self.validate_sidebar_element_permissions(data)

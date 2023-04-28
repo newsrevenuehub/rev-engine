@@ -65,9 +65,27 @@ class DonationPageAdminForm(forms.ModelForm):
                 )
             )
 
+    def validate_publish_limit(self):
+        org = self.cleaned_data["revenue_program"].organization
+        if (
+            self.cleaned_data["published_date"] is not None
+            and models.DonationPage.objects.filter(
+                revenue_program__organization=org, published_date__isnull=False
+            ).count()
+            >= org.plan.publish_limit
+        ):
+            raise ValidationError(
+                (
+                    f"The parent org (ID: {org.id} | Name: {org.name}) is on the {org.plan.label} plan, "
+                    f"and is limited to {org.plan.publish_limit} published "
+                    f"page{'' if org.plan.publish_limit == 1 else 's'}."
+                )
+            )
+
     def clean(self):
         super().clean()
         self.validate_page_limit()
+        self.validate_publish_limit()
         return self.cleaned_data
 
 

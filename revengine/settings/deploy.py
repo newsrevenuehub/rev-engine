@@ -107,7 +107,6 @@ if BROKER_URL.startswith("rediss"):
 
 CELERYBEAT_SCHEDULER = "django_celery_beat.schedulers:DatabaseScheduler"
 CELERY_HIJACK_ROOT_LOGGER = False
-CELERY_RESULTS_BACKEND = BROKER_URL
 
 ### 3rd-party appplications
 if SENTRY_ENABLE_BACKEND and SENTRY_DSN_BACKEND:

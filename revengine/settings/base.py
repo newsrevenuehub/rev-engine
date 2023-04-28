@@ -574,9 +574,9 @@ SPA_ENV_VARS = {
     "DASHBOARD_SUBDOMAINS": DASHBOARD_SUBDOMAINS,
 }
 
-BROKER_URL = os.getenv("BROKER_URL", "memory://")
-CELERY_RESULTS_BACKEND = os.getenv("CELERY_RESULTS_BACKEND", "cache")
-CELERY_CACHE_BACKEND = BROKER_URL
+
+CELERY_RESULTS_BACKEND = os.getenv("CELERY_RESULTS_BACKEND", "django-db")
+CELERY_CACHE_BACKEND = "default"
 # https://devcenter.heroku.com/articles/celery-heroku#choosing-a-serializer
 CELERY_TASK_SERIALIZER = "json"
 

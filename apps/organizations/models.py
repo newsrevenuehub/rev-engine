@@ -440,8 +440,6 @@ class RevenueProgram(IndexedTimeStampedModel):
     # TODO: DEV-3302 this is a temporary field, to be removed in https://news-revenue-hub.atlassian.net/browse/DEV-3302
     mailchimp_access_token = models.TextField(null=True, blank=True)
     mailchimp_list_id = models.TextField(null=True, blank=True)
-    mailchimp_product_id = models.TextField(null=True, blank=True)
-    mailchimp_store_id = models.TextField(null=True, blank=True)
 
     @property
     def mailchimp_store(self) -> MailchimpStore | None:
@@ -451,9 +449,6 @@ class RevenueProgram(IndexedTimeStampedModel):
                 "Mailchimp integration not connected for this revenue program (%s), returning None",
                 self.id,
             )
-            return None
-        if not self.mailchimp_store_id:
-            logger.debug("No mailchimp_store_id on RP %s, returning None", self.id)
             return None
         try:
             client = self.get_mailchimp_client()
@@ -496,7 +491,7 @@ class RevenueProgram(IndexedTimeStampedModel):
             return None
         try:
             client = self.get_mailchimp_client()
-            response = client.lists.get_segment(self.mailchimp_list_id, self._mailchimp_contributor_segment_name)
+            response = client.lists.get_segment(self.mailchimp_list_id, self.mailchimp_contributor_segment_name)
             return MailchimpSegment(**response)
         except ApiClientError as error:
             if error.status_code == 404:
@@ -518,7 +513,7 @@ class RevenueProgram(IndexedTimeStampedModel):
             return None
         try:
             client = self.get_mailchimp_client()
-            response = client.lists.get_segment(self.mailchimp_list_id, self._mailchimp_recurring_segment_name)
+            response = client.lists.get_segment(self.mailchimp_list_id, self.mailchimp_recurring_segment_name)
             return MailchimpSegment(**response)
         except ApiClientError as error:
             if error.status_code == 404:
@@ -532,27 +527,27 @@ class RevenueProgram(IndexedTimeStampedModel):
                 raise MailchimpIntegrationError("Error retrieving mailchimp recurring segment")
 
     @property
-    def _mailchimp_store_id(self):
+    def mailchimp_store_id(self):
         return f"rp-{self.id}-store"
 
     @property
-    def _mailchimp_store_name(self):
+    def mailchimp_store_name(self):
         return "RevEngine store"
 
     @property
-    def _mailchimp_product_id(self):
+    def mailchimp_product_id(self):
         return f"rp-{self.id}-product"
 
     @property
-    def _mailchimp_product_name(self):
+    def mailchimp_product_name(self):
         return "RevEngine product"
 
     @property
-    def _mailchimp_contributor_segment_name(self):
+    def mailchimp_contributor_segment_name(self):
         return "Contributors"
 
     @property
-    def _mailchimp_recurring_segment_name(self):
+    def mailchimp_recurring_segment_name(self):
         return "Recurring contribtors"
 
     def get_mailchimp_client(self) -> MailchimpMarketing.Client:
@@ -581,9 +576,9 @@ class RevenueProgram(IndexedTimeStampedModel):
         try:
             response = client.ecommerce.add_store(
                 {
-                    "id": self._mailchimp_store_id,
+                    "id": self.mailchimp_store_id,
                     "list_id": self.mailchimp_list_id,
-                    "name": self._mailchimp_store_name,
+                    "name": self.mailchimp_store_name,
                     "currency_code": self.payment_provider.currency,
                 }
             )
@@ -595,16 +590,12 @@ class RevenueProgram(IndexedTimeStampedModel):
     def make_mailchimp_product(self) -> MailchimpProduct:
         logger.info("Called for rp %s", self.id)
         client = self.get_mailchimp_client()
-        if not self.mailchimp_store_id:
-            logger.error("No mailchimp store ID on RP %s", self.id)
-            raise ValidationError("No mailchimp store ID on RP %s", self.id)
-
         try:
             response = client.ecommerce.add_store_product(
                 self.mailchimp_store_id,
                 {
-                    "id": (id := self._mailchimp_product_id),
-                    "title": (title := self._mailchimp_product_name),
+                    "id": (id := self.mailchimp_product_id),
+                    "title": (title := self.mailchimp_product_name),
                     # a product must have at least one variant, but can reusue the parent product's ID and title
                     # See: https://mailchimp.com/developer/marketing/api/ecommerce-products/add-product/
                     "variants": [{"id": id, "title": title}],
@@ -623,13 +614,13 @@ class RevenueProgram(IndexedTimeStampedModel):
         client = self.get_mailchimp_client()
         try:
             response = client.lists.create_segment(
-                self.mailchimp_list_id, {"name": self._mailchimp_contributor_segment_name}
+                self.mailchimp_list_id, {"name": self.mailchimp_contributor_segment_name}
             )
             return MailchimpSegment(**response)
         except ApiClientError:
             logger.exception(
                 "Error creating %s segment for RP %s",
-                self._mailchimp_contributor_segment_name,
+                self.mailchimp_contributor_segment_name,
                 self.id,
             )
             raise MailchimpIntegrationError("Error creating contributor segment")
@@ -643,13 +634,13 @@ class RevenueProgram(IndexedTimeStampedModel):
         client = self.get_mailchimp_client()
         try:
             response = client.lists.create_segment(
-                self.mailchimp_list_id, {"name": self._mailchimp_recurring_segment_name}
+                self.mailchimp_list_id, {"name": self.mailchimp_recurring_segment_name}
             )
             return MailchimpSegment(**response)
         except ApiClientError:
             logger.exception(
                 "Error creating %s segment for RP %s",
-                self._mailchimp_recurring_segment_name,
+                self.mailchimp_recurring_segment_name,
                 self.id,
             )
             raise MailchimpIntegrationError("Error creating recurring segment")

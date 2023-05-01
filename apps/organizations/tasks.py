@@ -92,7 +92,7 @@ def _ensure_mailchimp_contributor_segment(rp_id: str) -> None:
     if not rp.mailchimp_contributor_segment:
         logger.info(
             "Creating %s segment for rp_id=[%s]",
-            rp._mailchimp_contributor_segment_name,
+            rp.mailchimp_contributor_segment_name,
             rp_id,
         )
         rp.make_mailchimp_contributor_segment()
@@ -118,7 +118,7 @@ def _ensure_mailchimp_recurring_segment(rp_id: str) -> None:
     if not rp.mailchimp_recurring_segment:
         logger.info(
             "Creating %s segment for rp_id=[%s]",
-            rp._mailchimp_contributor_segment_name,
+            rp.mailchimp_contributor_segment_name,
             rp_id,
         )
         rp.make_mailchimp_recurring_segment()

@@ -123,8 +123,10 @@ def exchange_mailchimp_oauth_code_for_server_prefix_and_access_token(rp_id: int,
                 "exchange_mailchimp_oauth_code_for_server_prefix_and_access_token is attempting to exchange an oauth code for an access token for RP with ID %s",
                 rp_id,
             )
-            exchange_mc_oauth_code_for_mc_access_token(oauth_code)
-            token = revenue_program.mailchimp_access_token
+            token = exchange_mc_oauth_code_for_mc_access_token(oauth_code)
+            logger.info("Updating revenue program with ID %s with a new access token", revenue_program.id)
+            # NB: mailchimp_access_token is securely stored, and by setting it here, we are overwriting the value
+            revenue_program.mailchimp_access_token = token
         if token and not revenue_program.mailchimp_server_prefix:
             logger.info(
                 "exchange_mailchimp_oauth_code_for_server_prefix_and_access_token is attempting to retrieve the MC server prefix for RP with ID %s",

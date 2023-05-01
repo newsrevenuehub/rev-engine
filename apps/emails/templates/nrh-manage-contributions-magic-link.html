@@ -55,6 +55,9 @@
       width: 600px;
       height: 80px;
       background: #523A5E;
+      {% if style.header_color %}
+      background: {{ style.header_color }} !important;
+      {% endif %}
     }
 
     .header-logo {
@@ -123,6 +126,9 @@
       text-transform: uppercase;
       padding: 15px 50px;
       width: 270px;
+      {% if style.button_color %}
+      background: {{ style.button_color }} !important;
+      {% endif %}
     }
 
     .info {
@@ -150,9 +156,6 @@
       .header-background {
         width: 600px;
         height: 80px;
-        {% if style.header_color %}
-        background: {{ style.header_color }} !important;
-        {% endif %}
       }
 
       .header-logo {
@@ -184,9 +187,6 @@
         text-decoration: none;
         text-transform: uppercase;
         width: 270px;
-        {% if style.button_color %}
-        background: {{ style.button_color }} !important;
-        {% endif %}
         padding: 15px 20px;
       }
 

@@ -8,6 +8,7 @@ import { act, render, screen } from 'test-utils';
 import { HUB_GOOGLE_MAPS_API_KEY } from 'appSettings';
 import { DonationPageContext, UsePageProps } from '../DonationPage';
 import DDonorAddress, { DDonorAddressProps } from './DDonorAddress';
+import { DonorAddressElement } from 'hooks/useContributionPage';
 
 jest.mock('country-code-lookup', () => ({
   countries: [
@@ -60,6 +61,8 @@ const mockAddressComponents: google.maps.GeocoderAddressComponent[] = [
   }
 ];
 
+const element = { content: {}, requiredFields: [], type: 'DDonorAddress', uuid: 'mock-uuid' } as DonorAddressElement;
+
 function tree(pageContext?: Partial<UsePageProps>, props?: Partial<DDonorAddressProps>) {
   return render(
     <DonationPageContext.Provider
@@ -73,10 +76,7 @@ function tree(pageContext?: Partial<UsePageProps>, props?: Partial<DDonorAddress
       }
     >
       <ul>
-        <DDonorAddress
-          element={{ content: {}, requiredFields: [], type: 'DDonorAddress', uuid: 'mock-uuid' }}
-          {...props}
-        />
+        <DDonorAddress element={element} {...props} />
       </ul>
     </DonationPageContext.Provider>
   );
@@ -93,11 +93,11 @@ describe('DDonorAddress', () => {
   // in stripeFns.ts.
 
   describe.each([
-    ['Address', 'mailing_street'],
-    ['City', 'mailing_city'],
-    ['State', 'mailing_state'],
-    ['Zip/Postal code', 'mailing_postal_code']
-  ])('The %s text field', (visibleName, internalName) => {
+    ['Address', 'mailing_street', false, false],
+    ['City', 'mailing_city', false, false],
+    ['State', 'mailing_state', false, false],
+    ['Zip/Postal code', 'mailing_postal_code', true, true]
+  ])('The %s text field', (visibleName, internalName, showZipAndCountryOnly, alwaysRequired) => {
     it(`has the form name ${internalName}`, () => {
       tree();
 
@@ -107,9 +107,33 @@ describe('DDonorAddress', () => {
       expect(field).toHaveAttribute('name', internalName);
     });
 
-    it('is required', () => {
+    it('is required by default', () => {
       tree();
       expect(screen.getByRole('textbox', { name: visibleName })).toBeRequired();
+    });
+
+    it(`${alwaysRequired ? 'is required even' : 'is not required'} if addressOptional is true`, () => {
+      tree({}, { element: { ...element, content: { addressOptional: true } } });
+      expect.assertions(1);
+      if (alwaysRequired) {
+        // eslint-disable-next-line jest/no-conditional-expect
+        expect(screen.getByRole('textbox', { name: visibleName })).toBeRequired();
+      } else {
+        // eslint-disable-next-line jest/no-conditional-expect
+        expect(screen.getByRole('textbox', { name: visibleName })).not.toBeRequired();
+      }
+    });
+
+    it(`if zipAndCountryOnly = true -> ${showZipAndCountryOnly ? 'show' : 'hide'}`, () => {
+      tree({}, { element: { ...element, content: { zipAndCountryOnly: true } } });
+      expect.assertions(1);
+      if (showZipAndCountryOnly) {
+        // eslint-disable-next-line jest/no-conditional-expect
+        expect(screen.getByRole('textbox', { name: visibleName })).toBeVisible();
+      } else {
+        // eslint-disable-next-line jest/no-conditional-expect
+        expect(screen.queryByRole('textbox', { name: visibleName })).not.toBeInTheDocument();
+      }
     });
 
     it('updates when the user types into it', () => {
@@ -197,6 +221,21 @@ describe('DDonorAddress', () => {
     it('displays a country select that shows the mailingCountry ISO code set in context', () => {
       tree({ mailingCountry: 'aa' });
       expect(screen.getByRole('textbox', { name: 'Country' })).toHaveValue('AAA');
+    });
+
+    it('if zipAndCountryOnly = true -> show', () => {
+      tree({}, { element: { ...element, content: { zipAndCountryOnly: true } } });
+      expect(screen.getByRole('textbox', { name: 'Country' })).toBeInTheDocument();
+    });
+
+    it('is required by default', () => {
+      tree();
+      expect(screen.getByRole('textbox', { name: 'Country' })).toBeRequired();
+    });
+
+    it('is required even if addressOptional is true', () => {
+      tree({}, { element: { ...element, content: { addressOptional: true } } });
+      expect(screen.getByRole('textbox', { name: 'Country' })).toBeRequired();
     });
 
     it('updates the country ISO code in context when the user selects a country', () => {

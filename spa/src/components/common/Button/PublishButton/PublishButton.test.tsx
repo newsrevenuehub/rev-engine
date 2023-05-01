@@ -7,13 +7,19 @@ import { useEditablePageContext } from 'hooks/useEditablePage';
 import useUser from 'hooks/useUser';
 import PublishButton from './PublishButton';
 import { PLAN_LABELS } from 'constants/orgPlanConstants';
+import { useAlert } from 'react-alert';
 
+jest.mock('react-alert', () => ({
+  ...jest.requireActual('react-alert'),
+  useAlert: jest.fn()
+}));
 jest.mock('hooks/useContributionPageList');
 jest.mock('hooks/useEditablePage');
 jest.mock('hooks/useUser');
 jest.mock('components/common/Modal/MaxPagesPublishedModal/MaxPagesPublishedModal');
 jest.mock('./PublishedPopover/PublishedPopover');
 jest.mock('./PublishModal/PublishModal');
+jest.mock('./UnpublishModal/UnpublishModal');
 
 const unpublishedPage = {
   name: 'Contribution page',
@@ -41,6 +47,7 @@ const user = {
 };
 
 describe('PublishButton', () => {
+  const useAlertMock = useAlert as jest.Mock;
   const useEditablePageContextMock = useEditablePageContext as jest.Mock;
   const useContributionPageListMock = useContributionPageList as jest.Mock;
   const useUserMock = useUser as jest.Mock;
@@ -50,6 +57,7 @@ describe('PublishButton', () => {
   }
 
   beforeEach(() => {
+    useAlertMock.mockReturnValue({ error: jest.fn() });
     useEditablePageContextMock.mockReturnValue({ isLoading: false, page: unpublishedPage });
     useContributionPageListMock.mockReturnValue({ userCanPublishPage: () => true });
     useUserMock.mockReturnValue({ user });
@@ -121,6 +129,61 @@ describe('PublishButton', () => {
         expect(screen.queryByTestId('mock-published-popover')).not.toBeInTheDocument();
       });
 
+      it('closes the popover when the user opens the unpublish modal', () => {
+        tree();
+        userEvent.click(screen.getByRole('button', { name: `Published page ${publishedPage.name}` }));
+        expect(screen.getByTestId('mock-published-popover')).toBeInTheDocument();
+        userEvent.click(screen.getByText('PublishedPopover onUnpublish'));
+        expect(screen.queryByTestId('mock-published-popover')).not.toBeInTheDocument();
+      });
+
+      describe('When the user chooses to unpublish the page', () => {
+        it("sets the page's published date to undefined", async () => {
+          const savePageChanges = jest.fn();
+
+          useEditablePageContextMock.mockReturnValue({ savePageChanges, page: publishedPage as any });
+          tree();
+          userEvent.click(screen.getByRole('button', { name: /Published/i }));
+          userEvent.click(screen.getByRole('button', { name: 'PublishedPopover onUnpublish' }));
+          expect(savePageChanges).not.toBeCalled();
+          userEvent.click(screen.getByRole('button', { name: 'onUnpublish' }));
+          expect(savePageChanges.mock.calls).toEqual([[{ published_date: undefined }]]);
+
+          // Let the pending action complete.
+          await waitFor(() => expect(screen.queryByTestId('mock-unpublish-modal')).not.toBeInTheDocument());
+        });
+
+        it('shows an error message and closes the unpublish modal if saving changes fails', async () => {
+          const errorSpy = jest.spyOn(console, 'error').mockImplementation(() => {});
+          const error = jest.fn();
+          const savePageChanges = jest.fn().mockRejectedValue(new Error());
+
+          useAlertMock.mockReturnValue({ error });
+          useEditablePageContextMock.mockReturnValue({ savePageChanges, page: publishedPage as any });
+          tree();
+          userEvent.click(screen.getByRole('button', { name: /Published/i }));
+          userEvent.click(screen.getByRole('button', { name: 'PublishedPopover onUnpublish' }));
+          userEvent.click(screen.getByRole('button', { name: 'onUnpublish' }));
+          await waitFor(() => expect(error).toBeCalled());
+          expect(error.mock.calls).toEqual([[GENERIC_ERROR]]);
+          expect(screen.queryByTestId('mock-unpublish-modal')).not.toBeInTheDocument();
+          errorSpy.mockRestore();
+        });
+
+        it('closes the unpublish modal when saving changes succeeds', async () => {
+          useEditablePageContextMock.mockReturnValue({ savePageChanges: jest.fn(), page: publishedPage as any });
+          tree();
+          userEvent.click(screen.getByRole('button', { name: /Published/i }));
+          userEvent.click(screen.getByRole('button', { name: 'PublishedPopover onUnpublish' }));
+          expect(screen.getByTestId('mock-unpublish-modal')).toBeInTheDocument();
+          userEvent.click(screen.getByRole('button', { name: 'onUnpublish' }));
+          await waitFor(() => expect(screen.queryByTestId('mock-unpublish-modal')).not.toBeInTheDocument());
+        });
+
+        // We don't need to test the alert on success; useEditablePage takes care
+        // of that for us.
+      });
+
       it('is accessible', async () => {
         const { container } = tree();
 
@@ -176,14 +239,17 @@ describe('PublishButton', () => {
         });
 
         it('shows an alert if publishing fails', async () => {
+          const error = jest.fn();
           const savePageChanges = jest.fn();
 
+          useAlertMock.mockReturnValue({ error });
           savePageChanges.mockRejectedValue(new Error());
           useEditablePageContextMock.mockReturnValue({ savePageChanges, isLoading: false, page: unpublishedPage });
           tree();
           userEvent.click(screen.getByRole('button', { name: `Publish page ${publishedPage.name}` }));
           userEvent.click(screen.getByText('onPublish'));
-          expect(await screen.findByRole('alert')).toHaveTextContent(GENERIC_ERROR);
+          await waitFor(() => expect(error).toBeCalled());
+          expect(error.mock.calls).toEqual([[GENERIC_ERROR]]);
         });
 
         it('is accessible', async () => {

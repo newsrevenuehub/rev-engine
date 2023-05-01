@@ -1,21 +1,22 @@
 import CheckCircleOutlineIcon from '@material-ui/icons/CheckCircleOutline';
 import PropTypes, { InferProps } from 'prop-types';
-import { MouseEvent, ReactElement, useState } from 'react';
+import { MouseEvent, ReactElement, useEffect, useState } from 'react';
 import { useAlert } from 'react-alert';
 import { Tooltip } from 'components/base';
+import { MaxPagesPublishedModal } from 'components/common/Modal/MaxPagesPublishedModal';
 import { GENERIC_ERROR } from 'constants/textConstants';
 import { ContributionPage } from 'hooks/useContributionPage';
+import useContributionPageList from 'hooks/useContributionPageList';
 import { useEditablePageContext } from 'hooks/useEditablePage';
 import useModal from 'hooks/useModal';
-import { getUpdateSuccessMessage, pageIsPublished } from 'utilities/editPageGetSuccessMessage';
+import useUser from 'hooks/useUser';
+import { pageIsPublished } from 'utilities/editPageGetSuccessMessage';
 import formatDatetimeForAPI from 'utilities/formatDatetimeForAPI';
 import PublishModal from './PublishModal';
 import PublishedPopover from './PublishedPopover';
 import SuccessfulPublishModal from './SuccessfulPublishModal';
+import UnpublishModal from './UnpublishModal';
 import { Root, RootButton } from './PublishButton.styled';
-import { MaxPagesPublishedModal } from 'components/common/Modal/MaxPagesPublishedModal';
-import useUser from 'hooks/useUser';
-import useContributionPageList from 'hooks/useContributionPageList';
 
 const PublishButtonPropTypes = {
   className: PropTypes.string
@@ -54,18 +55,35 @@ function PublishButton({ className }: PublishButtonProps) {
   } = useModal();
   const {
     open: openPublishModal,
-    handleClose: handlePublishModalClose,
-    handleOpen: handlePublishModalOpen
+    handleClose: handleClosePublishModal,
+    handleOpen: handleOpenPublishModal
   } = useModal();
   const {
     open: openSuccessfulPublishModal,
     handleClose: handleCloseSuccessfulPublishModal,
     handleOpen: handleOpenSuccessfulPublishModal
   } = useModal();
+  const {
+    open: openUnpublishModal,
+    handleClose: handleCloseUnpublishModal,
+    handleOpen: handleOpenUnpublishModal
+  } = useModal();
   const [anchorEl, setAnchorEl] = useState<HTMLElement | null>(null);
   const showPopover = Boolean(anchorEl);
   const disabled = !page?.payment_provider?.stripe_verified;
   const isPublished = page && pageIsPublished(page);
+
+  const handleClosePopover = () => {
+    setAnchorEl(null);
+  };
+
+  useEffect(() => {
+    // If the page became unpublished, hide the published popover.
+
+    if (page && !pageIsPublished(page) && showPopover) {
+      handleClosePopover();
+    }
+  }, [page, showPopover]);
 
   const handleClick = (event: MouseEvent<HTMLElement>) => {
     // These should never happen, but TypeScript doesn't know that.
@@ -94,9 +112,16 @@ function PublishButton({ className }: PublishButtonProps) {
 
     // Show them the publish modal.
 
-    handlePublishModalOpen();
+    handleOpenPublishModal();
   };
-  const handleClosePopover = () => setAnchorEl(null);
+
+  // Opening the unpublish modal should hide the popover it was created from.
+
+  const handleUnpublishOpen = () => {
+    handleClosePopover();
+    handleOpenUnpublishModal();
+  };
+
   const handlePublish = async (changes: Pick<ContributionPage, 'slug'>) => {
     // These should never happen, but TypeScript doesn't know that.
 
@@ -117,20 +142,33 @@ function PublishButton({ className }: PublishButtonProps) {
 
       // Close the previous modal.
 
-      handlePublishModalClose();
+      handleClosePublishModal();
 
       // Notify the user of success.
 
-      if (pageIsPublished(change)) {
-        handleOpenSuccessfulPublishModal();
-      } else {
-        // This will only ever run if the page has been unpublished by the user
-        // just now, which we haven't implemented yet.
-        alert.success(getUpdateSuccessMessage(page, change));
-      }
+      handleOpenSuccessfulPublishModal();
     } catch (error) {
       alert.error(GENERIC_ERROR);
     }
+  };
+
+  const handleUnpublish = async () => {
+    if (!savePageChanges) {
+      // Should never happen.
+
+      throw new Error('savePageChanges is not defined');
+    }
+
+    try {
+      await savePageChanges({ published_date: undefined });
+    } catch (error) {
+      // Log for Sentry and show an alert.
+
+      console.error(error);
+      alert.error(GENERIC_ERROR);
+    }
+
+    handleCloseUnpublishModal();
   };
 
   if (!page || !user) {
@@ -166,7 +204,7 @@ function PublishButton({ className }: PublishButtonProps) {
       />
       <PublishModal
         open={openPublishModal}
-        onClose={handlePublishModalClose}
+        onClose={handleClosePublishModal}
         page={page}
         onPublish={handlePublish}
         loading={isLoading}
@@ -176,7 +214,19 @@ function PublishButton({ className }: PublishButtonProps) {
         page={page}
         onClose={handleCloseSuccessfulPublishModal}
       />
-      <PublishedPopover anchorEl={anchorEl} onClose={handleClosePopover} open={showPopover} page={page} />
+      <PublishedPopover
+        anchorEl={anchorEl}
+        onClose={handleClosePopover}
+        onUnpublish={handleUnpublishOpen}
+        open={showPopover}
+        page={page}
+      />
+      <UnpublishModal
+        onClose={handleCloseUnpublishModal}
+        onUnpublish={handleUnpublish}
+        open={openUnpublishModal}
+        page={page}
+      />
     </Root>
   );
 }

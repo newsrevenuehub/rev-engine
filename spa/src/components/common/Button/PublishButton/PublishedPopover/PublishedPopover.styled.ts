@@ -1,4 +1,4 @@
-import { IconButton as MuiIconButton, Popover as MuiPopover } from '@material-ui/core';
+import { Button as MuiButton, IconButton as MuiIconButton, Popover as MuiPopover } from '@material-ui/core';
 import styled from 'styled-components';
 
 export const IconButton = styled(MuiIconButton)`
@@ -49,4 +49,8 @@ export const Text = styled.p`
   font-size: ${(props) => props.theme.fontSizesUpdated.sm};
   font-weight: 500;
   margin: 0;
+`;
+
+export const UnpublishButtonContainer = styled.div`
+  text-align: right;
 `;

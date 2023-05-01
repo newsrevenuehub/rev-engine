@@ -1,12 +1,16 @@
 import { axe } from 'jest-axe';
-import { render, screen } from 'test-utils';
+import { fireEvent, render, screen, waitFor } from 'test-utils';
 import PublishedPopover, { PublishedPopoverProps } from './PublishedPopover';
+import userEvent from '@testing-library/user-event';
+
+jest.mock('../UnpublishModal/UnpublishModal');
 
 function tree(props?: Partial<PublishedPopoverProps>) {
   return render(
     <PublishedPopover
       anchorEl={document.body}
       onClose={jest.fn()}
+      onUnpublish={jest.fn()}
       open
       page={
         {
@@ -40,6 +44,15 @@ describe('PublishedPopover', () => {
     it("displays the page's publish date", () => {
       tree();
       expect(screen.getByText('01/1/2000 at 01:23 PM')).toBeVisible();
+    });
+
+    it('calls the onUnpublish prop when the user clicks the Unpublish button', () => {
+      const onUnpublish = jest.fn();
+
+      tree({ onUnpublish });
+      expect(onUnpublish).not.toBeCalled();
+      userEvent.click(screen.getByRole('button', { name: 'Unpublish' }));
+      expect(onUnpublish).toBeCalledTimes(1);
     });
 
     it('is accessible', async () => {

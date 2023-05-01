@@ -5,7 +5,7 @@ import { Router } from 'react-router-dom';
 import { ThemeProvider } from 'styled-components';
 import { revEngineTheme } from 'styles/themes';
 import DonationPageRouter from './DonationPageRouter';
-import GenericThankYou from 'components/donationPage/live/thankYou/GenericThankYou';
+import GenericThankYou from 'components/donationPage/live/GenericThankYou';
 
 // Turn <BrowserRouter> into a no-op component so we can use our own router.
 
@@ -28,7 +28,7 @@ jest.mock('components/analytics/TrackPageView', () => ({ component }: { componen
 
 // Mock routes. We programmatically mock GenericThankYou so we can have it throw an error to test that.
 
-jest.mock('components/donationPage/live/thankYou/GenericThankYou');
+jest.mock('components/donationPage/live/GenericThankYou/GenericThankYou');
 
 jest.mock('components/donationPage/LiveDonationPageContainer', () => () => (
   <div data-testid="mock-live-donation-page-container" />

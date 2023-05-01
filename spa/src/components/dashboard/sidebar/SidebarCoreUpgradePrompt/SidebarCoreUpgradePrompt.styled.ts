@@ -18,7 +18,7 @@ export const CloseButton = styled(IconButton)`
     }
 
     &:hover {
-      background-color: #6d4a7f;
+      background-color: ${({ theme }) => theme.basePalette.indigo[-30]};
     }
   }
 `;
@@ -35,7 +35,7 @@ export const LearnMoreButton = styled(LinkButton)`
 `;
 
 export const Root = styled.div`
-  background: #3d2947;
+  background: ${({ theme }) => theme.basePalette.indigo[-10]};
   padding: 15px 15px 15px 50px;
   position: relative;
 `;

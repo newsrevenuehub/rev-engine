@@ -15,8 +15,9 @@ export const PAYMENT_SUCCESS = '/payment/success/';
 
 // Settings
 export const SETTINGS = {
+  INTEGRATIONS: '/settings/integrations',
   ORGANIZATION: '/settings/organization',
-  INTEGRATIONS: '/settings/integrations'
+  SUBSCRIPTION: '/settings/subscription'
 };
 
 // Contributor
@@ -32,3 +33,6 @@ export const SIGN_UP = '/create-account/';
 export const VERIFY_EMAIL_SUCCESS = '/verify-email-success/';
 export const VERIFIED = '/verified/';
 export const PROFILE = '/setup/';
+
+// Mailchimp
+export const MAILCHIMP_OAUTH_SUCCESS_ROUTE = '/mailchimp/oauth_success/';

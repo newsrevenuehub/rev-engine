@@ -10,7 +10,7 @@ import isContributorAppPath from 'utilities/isContributorAppPath';
 import { DASHBOARD_SUBDOMAINS } from 'appSettings';
 
 // Analytics
-import { AnalyticsContextWrapper } from './analytics/AnalyticsContext';
+import { AnalyticsContextProvider } from './analytics/AnalyticsContext';
 
 // Children
 import GlobalConfirmationModal from 'elements/modal/GlobalConfirmationModal';
@@ -52,7 +52,7 @@ function MainLayout() {
 
   return (
     <GlobalContext.Provider value={{ getReauth }}>
-      <AnalyticsContextWrapper>
+      <AnalyticsContextProvider>
         <GlobalConfirmationModal>
           {/* Route to donation page if subdomain exists */}
           <S.MainLayout>
@@ -64,7 +64,7 @@ function MainLayout() {
           </S.MainLayout>
         </GlobalConfirmationModal>
         <ReauthModal isOpen={reauthModalOpen} callbacks={reauthCallbacks.current} closeModal={closeReauthModal} />
-      </AnalyticsContextWrapper>
+      </AnalyticsContextProvider>
     </GlobalContext.Provider>
   );
 }

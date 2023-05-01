@@ -85,7 +85,7 @@ const IntegrationCardPropTypes = {
   image: PropTypes.string.isRequired,
   title: PropTypes.string.isRequired,
   isRequired: PropTypes.bool.isRequired,
-  cornerMessage: PropTypes.string,
+  cornerMessage: PropTypes.node,
   site: PropTypes.shape({
     label: PropTypes.string.isRequired,
     url: PropTypes.string.isRequired

@@ -294,6 +294,10 @@ export interface RevenueProgram {
    * EIN tax ID.
    */
   tax_id?: string | null;
+  /**
+   * Is Mailchimp connected?
+   */
+  mailchimp_integration_connected?: boolean;
 }
 
 /**

@@ -136,6 +136,7 @@ def test_magic_link_custom_email_template(rf, mocker, revenue_program, has_defau
             },
             "font": {"heading": "mock-header-font", "body": "mock-body-font"},
         }
+        style.save()
         page = DonationPageFactory(revenue_program=revenue_program, styles=style, header_logo="mock-logo")
         revenue_program.default_donation_page = page
         revenue_program.save()

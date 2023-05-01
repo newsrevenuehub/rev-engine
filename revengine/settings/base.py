@@ -575,7 +575,7 @@ SPA_ENV_VARS = {
 }
 
 
-CELERY_RESULTS_BACKEND = os.getenv("CELERY_RESULTS_BACKEND", "django-db")
+CELERY_RESULT_BACKEND = os.getenv("CELERY_RESULT_BACKEND", "django-db")
 CELERY_CACHE_BACKEND = "default"
 # https://devcenter.heroku.com/articles/celery-heroku#choosing-a-serializer
 CELERY_TASK_SERIALIZER = "json"

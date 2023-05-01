@@ -36,7 +36,9 @@ class SecretProvider:
 class GoogleCloudSecretProvider(SecretProvider):
     """A descriptor that retrieves a secret from Google Cloud Secret Manager."""
 
-    client = SecretManagerServiceClient()
+    # The location of `client` here rather than in __init__ is to facilitate testing.
+    # The client is a class attribute so that it can be mocked in tests.
+    client = SecretManagerServiceClient() if settings.ENABLE_GOOGLE_CLOUD_SECRET_MANAGER else None
 
     def __init__(
         self,
@@ -70,6 +72,12 @@ class GoogleCloudSecretProvider(SecretProvider):
                 secret_name,
             )
             return None
+        if not self.client:
+            logger.debug(
+                "GoogleCloudSecretProvider.get_secret for secret %s returning None because client is None",
+                secret_name,
+            )
+            return None
         try:
             secret = self.client.access_secret_version(
                 request={"name": (secret_version_path := self.get_secret_version_path(obj))}
@@ -96,6 +104,12 @@ class GoogleCloudSecretProvider(SecretProvider):
         if not settings.ENABLE_GOOGLE_CLOUD_SECRET_MANAGER:
             logger.debug(
                 "GoogleCloudSecretProvider.__set__ cannot set secret value for secret %s because ENABLE_GOOGLE_CLOUD_SECRET_MANAGER not true",
+                secret_name,
+            )
+            return
+        if not self.client:
+            logger.debug(
+                "GoogleCloudSecretProvider.__set__ cannot set secret value for secret %s. Returning early",
                 secret_name,
             )
             return
@@ -152,6 +166,12 @@ class GoogleCloudSecretProvider(SecretProvider):
         if not settings.ENABLE_GOOGLE_CLOUD_SECRET_MANAGER:
             logger.info(
                 "GoogleCloudSecretProvider cannot delete secret %s on GC because ENABLE_GOOGLE_CLOUD_SECRET_MANAGER not true",
+                secret_name,
+            )
+            return
+        if not self.client:
+            logger.info(
+                "GoogleCloudSecretProvider cannot delete secret %s on GC because client is None",
                 secret_name,
             )
             return

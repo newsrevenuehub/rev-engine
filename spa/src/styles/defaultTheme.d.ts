@@ -6,38 +6,98 @@
 import 'styled-components';
 
 declare module 'styled-components' {
+  export interface BasePalette {
+    primary: {
+      brandBlue: '#60e0f9';
+      chartreuse: '#f2ff59';
+      engineBlue: '#157cb2';
+      indigo: '#25192b';
+      purple: '#523a5e';
+    };
+    secondary: {
+      error: '#c8203f';
+      hyperlink: '#0052cc';
+      success: '#008e7c';
+      warning: '#fa9908';
+    };
+    greyscale: {
+      black: '#282828';
+      grey1: '#707070';
+      grey2: '#c4c4c4';
+      grey3: '#f1f1f1';
+      grey4: '#f9f9f9';
+      white: '#ffffff';
+    };
+    chartreuse: {
+      '-10': '#f3ff6a';
+      '-20': '#f5ff7a';
+      '-30': '#f6ff8b';
+      '-40': '#f7ff9b';
+      '-50': '#f9ffac';
+      '-60': '#faffbd';
+      '-70': '#fbffcd';
+      '-80': '#fcffde';
+      '-90': '#feffee';
+    };
+    indigo: {
+      '-10': '#3d2947';
+      '-20': '#553963';
+      '-30': '#6d4a7f';
+      '-40': '#855a9b';
+      '-50': '#9a73ae';
+      '-60': '#ae8fbe';
+      '-70': '#c3abce';
+      '-80': '#d7c7de';
+      '-90': '#ebe3ef';
+    };
+    purple: {
+      '-10': '#654874';
+      '-20': '#79558a';
+      '-30': '#8c649f';
+      '-40': '#9c7aad';
+      '-50': '#ad90bb';
+      '-60': '#bda6c8';
+      '-70': '#cebdd6';
+      '-80': '#ded3e4';
+      '-90': '#efe9f1';
+    };
+  }
+
   export interface DefaultTheme {
+    basePalette: BasePalette;
     colors: {
+      cstm_formPanelBackground?: string;
       cstm_inputBackground?: string;
       cstm_inputBorder?: string;
       cstm_mainBackground?: string;
+      cstm_ornaments?: string;
       primary: '#20bfdd';
       primaryLight: '#c7eff7';
       secondary: '#99D17B';
       fieldBackground: '#f7f7f7';
-      paneBackground: '#fff';
-      inputBackground: '#fff';
+      paneBackground: BasePalette['greyscale']['white'];
+      inputBackground: BasePalette['greyscale']['white'];
       inputBorder: '#c3c3c3';
-      sidebarBackground: '#25192B';
-      topbarBackground: '#523A5E';
+      sidebarBackground: BasePalette['primary']['indigo'];
+      topbarBackground: BasePalette['primary']['purple'];
       navSelectedBackground: '#eaf37a';
       navSectionLabelColor: '#ddcbe7';
       navOrgIcon: '#AC256C';
       black: '#080708';
       account: {
-        purple: ['#523a5e', '#25192b', '#19111e'];
+        purple: ['#523a5e', BasePalette['primary']['indigo'], '#19111e'];
         yellow: ['#f5ff75'];
-        blueLink: '#0052cc';
+        blueLink: BasePalette['secondary']['hyperlink'];
       };
-      white: '#ffffff';
+      white: BasePalette['greyscale']['white'];
       grey: ['#eee', '#ccc', '#999', '#666', '#333'];
       muiLightBlue: {
         200: '#6FD1EC';
         500: '#3cade8';
-        800: '#157CB2';
+        800: BasePalette['primary']['engineBlue'];
       };
       muiTeal: {
-        600: '#008E7C';
+        600: BasePalette['secondary']['success'];
         700: '#008070';
       };
       muiYellow: {
@@ -45,16 +105,16 @@ declare module 'styled-components' {
         A100: '#F5FF75';
       };
       muiGrey: {
-        50: '#F9F9F9';
-        100: '#F1F1F1';
+        50: BasePalette['greyscale']['grey4'];
+        100: BasePalette['greyscale']['grey3'];
         200: '#e3e3e3';
         300: '#D9D9D9';
-        400: '#c4c4c4';
+        400: BasePalette['greyscale']['grey2'];
         500: '#969696';
-        600: '#707070';
+        600: BasePalette['greyscale']['grey1'];
         700: '#666666';
         800: '#3c3c3c';
-        900: '#282828';
+        900: BasePalette['greyscale']['black'];
       };
       status: {
         processing: '#ACDCF5';
@@ -63,7 +123,7 @@ declare module 'styled-components' {
         warning: '#FDD69C';
       };
       error: {
-        primary: '#C8203F';
+        primary: BasePalette['secondary']['error'];
         bg: '#f6dbe0';
       };
       caution: '#ff476c';
@@ -76,6 +136,17 @@ declare module 'styled-components' {
       tableRowHover: '#bcd3f5';
       tableRowActive: '#dce8fa';
       cstm_CTAs?: string;
+    };
+    plan: {
+      free: {
+        background: BasePalette['primary']['chartreuse'];
+      };
+      core: {
+        background: '#62ffe3';
+      };
+      plus: {
+        background: '#f323ff';
+      };
     };
     buttons: {
       yellow: {

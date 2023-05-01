@@ -54,7 +54,8 @@ class Plan:
     label: str
     sidebar_elements: list[str] = field(default_factory=lambda: DEFAULT_PERMITTED_SIDEBAR_ELEMENTS)
     page_elements: list[str] = field(default_factory=lambda: DEFAULT_PERMITTED_PAGE_ELEMENTS)
-    page_limit: int = 1
+    page_limit: int = 2
+    publish_limit: int = 1
     style_limit: int = 1
     custom_thank_you_page_enabled: bool = False
 
@@ -65,19 +66,28 @@ FreePlan = Plan(
 )
 
 
-plus_plan = {
-    "name": "PLUS",
-    "label": "Plus",
-    # If this limit gets hit, it can be dealt with as a customer service issue.
-    "page_limit": UNLIMITED_CEILING,
-    "style_limit": UNLIMITED_CEILING,
-    "custom_thank_you_page_enabled": True,
-    "sidebar_elements": DEFAULT_PERMITTED_SIDEBAR_ELEMENTS + [BENEFITS],
-    "page_elements": DEFAULT_PERMITTED_PAGE_ELEMENTS + [SWAG],
-}
+CorePlan = Plan(
+    name="CORE",
+    label="Core",
+    page_limit=5,
+    publish_limit=2,
+    style_limit=UNLIMITED_CEILING,
+    sidebar_elements=DEFAULT_PERMITTED_SIDEBAR_ELEMENTS + [BENEFITS],
+    page_elements=DEFAULT_PERMITTED_PAGE_ELEMENTS + [SWAG],
+    custom_thank_you_page_enabled=True,
+)
 
-PlusPlan = Plan(**plus_plan)
-CorePlan = Plan(**(plus_plan | {"name": "CORE", "label": "Core"}))
+PlusPlan = Plan(
+    name="PLUS",
+    label="Plus",
+    # If this limit gets hit, it can be dealt with as a customer service issue.
+    page_limit=UNLIMITED_CEILING,
+    publish_limit=UNLIMITED_CEILING,
+    style_limit=UNLIMITED_CEILING,
+    custom_thank_you_page_enabled=True,
+    sidebar_elements=DEFAULT_PERMITTED_SIDEBAR_ELEMENTS + [BENEFITS],
+    page_elements=DEFAULT_PERMITTED_PAGE_ELEMENTS + [SWAG],
+)
 
 
 class Plans(models.TextChoices):
@@ -358,7 +368,7 @@ class RevenueProgram(IndexedTimeStampedModel):
     )
     # This is used to make requests to Mailchimp's API on behalf of users who have gone through the Mailchimp Oauth flow
     # to grant revengine access to their Mailchimp account.  We store sensitive values that are also required to access Mailchimp elsewhere.
-    mailchimp_server_prefix = models.TextField(null=True, blank=True)
+    mailchimp_server_prefix = models.CharField(max_length=100, null=True, blank=True)
     mailchimp_access_token = GoogleCloudSecretProvider(model_attr="mailchimp_access_token_secret_name")
 
     objects = RevenueProgramManager.from_queryset(RevenueProgramQuerySet)()

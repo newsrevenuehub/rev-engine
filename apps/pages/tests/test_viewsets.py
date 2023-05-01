@@ -5,6 +5,7 @@ import string
 from io import BytesIO
 
 from django.core.files.uploadedfile import SimpleUploadedFile
+from django.utils import timezone
 
 import pytest
 import pytest_cases
@@ -393,31 +394,41 @@ class TestPageViewSet:
         )
         assert response.json() == {"styles": [f'Invalid pk "{style_id}" - object does not exist.']}
 
-    @pytest_cases.parametrize(
-        "user",
-        (
-            pytest_cases.fixture_ref("org_user_free_plan"),
-            pytest_cases.fixture_ref("rp_user"),
-            pytest_cases.fixture_ref("superuser"),
-        ),
-    )
-    def test_create_when_already_at_page_limit(self, user, api_client, page_creation_data_valid, live_donation_page):
-        page_creation_data_valid["revenue_program"] = (rp_id := live_donation_page.revenue_program.id)
-        if not user.is_superuser:
-            RevenueProgram.objects.filter(pk=rp_id).update(organization=user.roleassignment.organization)
-            user.roleassignment.revenue_programs.add(RevenueProgram.objects.get(pk=rp_id))
-        api_client.force_authenticate(user)
-        live_donation_page.refresh_from_db()
-        assert (
-            DonationPage.objects.filter(
-                revenue_program__organization=live_donation_page.revenue_program.organization
-            ).count()
-            == 1
-        )
-        assert live_donation_page.revenue_program.organization.plan.page_limit == 1
-        response = api_client.post(reverse("donationpage-list"), data=page_creation_data_valid, format="json")
+    @pytest_cases.parametrize("plan", (Plans.FREE.value, Plans.CORE.value, Plans.PLUS.value))
+    def test_create_when_already_at_page_limit(self, plan, hub_admin_user, api_client):
+        rp = RevenueProgramFactory(organization=OrganizationFactory(plan_name=plan))
+        data = {
+            "revenue_program": rp.id,
+            "slug": rp.slug,
+        }
+        api_client.force_authenticate(hub_admin_user)
+        remaining = (limit := rp.organization.plan.page_limit)
+        if remaining:
+            DonationPageFactory.create_batch(remaining, revenue_program=rp, published_date=None)
+        response = api_client.post(reverse("donationpage-list"), data=data, format="json")
         assert response.status_code == status.HTTP_400_BAD_REQUEST
-        assert response.json() == {"non_field_errors": ["Your organization has reached its limit of 1 page"]}
+        assert response.json() == {
+            "non_field_errors": [f"Your organization has reached its limit of {limit} page{'' if limit == 1 else 's'}"]
+        }
+
+    @pytest_cases.parametrize("plan", (Plans.FREE.value, Plans.CORE.value, Plans.PLUS.value))
+    def test_create_when_already_at_publish_limit(self, plan, hub_admin_user, api_client):
+        rp = RevenueProgramFactory(organization=OrganizationFactory(plan_name=plan))
+        for i in range((limit := rp.organization.plan.page_limit)):
+            DonationPageFactory(
+                revenue_program=rp,
+                published_date=timezone.now() if i + 1 < rp.organization.plan.publish_limit else None,
+            )
+        data = {
+            "revenue_program": rp.id,
+            "slug": rp.slug,
+        }
+        api_client.force_authenticate(hub_admin_user)
+        response = api_client.post(reverse("donationpage-list"), data=data, format="json")
+        assert response.status_code == status.HTTP_400_BAD_REQUEST
+        assert response.json() == {
+            "non_field_errors": [f"Your organization has reached its limit of {limit} page{'' if limit == 1 else 's'}"]
+        }
 
     def assert_retrieved_page_detail_looks_right(self, serialized_data, page):
         """"""
@@ -611,41 +622,32 @@ class TestPageViewSet:
             == expected_status
         )
 
-    @pytest_cases.parametrize(
-        "user",
+    @pytest.mark.parametrize(
+        "plan",
         (
-            pytest_cases.fixture_ref("org_user_free_plan"),
-            pytest_cases.fixture_ref("rp_user"),
-            pytest_cases.fixture_ref("superuser"),
+            Plans.FREE.value,
+            Plans.CORE.value,
+            Plans.PLUS.value,
         ),
     )
     def test_patch_when_expected_user_with_valid_data(
-        self, user, patch_page_valid_data, live_donation_page, api_client, mocker
+        self, plan, patch_page_valid_data, hub_admin_user, api_client, mocker
     ):
-        """Show expected users can patch
-
-        In the case of non-superuser, we expect that the PagesAppQuerySet.filtered_by_role_assignment method is called, which
-        we treat as black box.
-        """
-        api_client.force_authenticate(user)
-        spy = mocker.spy(PagesAppQuerySet, "filtered_by_role_assignment")
-        if not user.is_superuser:
-            live_donation_page.revenue_program = user.roleassignment.revenue_programs.first()
-            live_donation_page.save()
-        response = api_client.patch(
-            reverse("donationpage-detail", args=(live_donation_page.id,)), patch_page_valid_data
-        )
+        org = OrganizationFactory(plan_name=plan)
+        rp = RevenueProgramFactory(organization=org)
+        page = DonationPageFactory(revenue_program=rp, published_date=None)
+        api_client.force_authenticate(hub_admin_user)
+        response = api_client.patch(reverse("donationpage-detail", args=(page.id,)), patch_page_valid_data)
         assert response.status_code == status.HTTP_200_OK
-        live_donation_page.refresh_from_db()
-        serialized_from_db = json.loads(json.dumps(DonationPageFullDetailSerializer(live_donation_page).data))
+        page.refresh_from_db()
+        serialized_from_db = json.loads(json.dumps(DonationPageFullDetailSerializer(page).data))
         for k, v in {k: v for k, v in patch_page_valid_data.items() if k not in PAGE_DATA_EXTRA_ITEMS}.items():
             match k:
                 case "elements" | "sidebar_elements":
-                    assert getattr(live_donation_page, k) == json.loads(v)
+                    assert getattr(page, k) == json.loads(v)
                 case _:
                     assert serialized_from_db[k] == v
-        assert response.json() == json.loads(json.dumps(DonationPageFullDetailSerializer(live_donation_page).data))
-        assert spy.call_count == 0 if user.is_superuser else 1
+        assert response.json() == json.loads(json.dumps(DonationPageFullDetailSerializer(page).data))
 
     @pytest_cases.parametrize(
         "user",
@@ -799,6 +801,36 @@ class TestPageViewSet:
         assert response.json() == {
             "thank_you_redirect": ["This organization's plan does not enable assigning a custom thank you URL"]
         }
+
+    @pytest.mark.parametrize("plan", (Plans.FREE.value, Plans.CORE.value, Plans.PLUS.value))
+    def test_patch_when_at_published_limit_and_try_to_publish(
+        self, plan, live_donation_page, hub_admin_user, api_client
+    ):
+        if plan == Plans.PLUS.value:
+            # there's not a path to test updating an existing page such that would push over publish_limit
+            # because the publish_limit is the same as the page_limit. We test for this equivalence to ensure
+            # we're not errantly leaving out this plan from the other test path.
+            assert PlusPlan.publish_limit == PlusPlan.page_limit
+        else:
+            live_donation_page.revenue_program.organization.plan_name = plan
+            live_donation_page.revenue_program.organization.save()
+            live_donation_page.refresh_from_db()
+            for i in range((rp := live_donation_page.revenue_program).organization.plan.publish_limit):
+                DonationPageFactory(
+                    revenue_program=rp,
+                    published_date=timezone.now() if i < rp.organization.plan.publish_limit else None,
+                )
+            unpublished = DonationPageFactory(revenue_program=rp, published_date=None)
+            data = {"published_date": timezone.now()}
+            api_client.force_authenticate(user=hub_admin_user)
+            response = api_client.patch(
+                reverse("donationpage-detail", args=(unpublished.id,)),
+                data,
+            )
+            assert response.status_code == status.HTTP_400_BAD_REQUEST
+            assert response.json()["non_field_errors"] == [
+                f"Your organization has reached its limit of {rp.organization.plan.publish_limit} published page{'' if rp.organization.plan.publish_limit == 1 else 's'}"
+            ]
 
     def test_update_when_already_sidebar_elements_edge_case(
         self,

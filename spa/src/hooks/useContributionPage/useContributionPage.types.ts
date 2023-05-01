@@ -294,6 +294,10 @@ export interface RevenueProgram {
    * EIN tax ID.
    */
   tax_id?: string | null;
+  /**
+   * Is Mailchimp connected?
+   */
+  mailchimp_integration_connected?: boolean;
 }
 
 /**
@@ -436,7 +440,7 @@ export interface ContributionPage {
    */
   revenue_program: RevenueProgram;
   /**
-   * FIPS code of the country that the revenue program belongs to.
+   * ISO-3166 code of the country that the revenue program belongs to.
    */
   revenue_program_country: string;
   /**

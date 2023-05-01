@@ -3,7 +3,7 @@ from unittest.mock import Mock
 import pytest
 from google.api_core.exceptions import NotFound, PermissionDenied
 
-from apps.common.secrets import SecretProviderException
+from apps.common.secrets import SecretProviderException, logger
 from apps.organizations.models import GoogleCloudSecretProvider
 
 
@@ -33,6 +33,11 @@ class TestGoogleCloudSecretProvider:
         settings.ENABLE_GOOGLE_CLOUD_SECRET_MANAGER = True
         mock_client = mocker.patch.object(GoogleCloudSecretProvider, "client")
         mock_client.access_secret_version.side_effect = NotFound("Not found")
+        assert MyObject(**{MODEL_ATTR: "something"}).val is None
+
+    def test_get_when_no_client(self, settings, mocker):
+        settings.ENABLE_GOOGLE_CLOUD_SECRET_MANAGER = True
+        mocker.patch.object(GoogleCloudSecretProvider, "client", None)
         assert MyObject(**{MODEL_ATTR: "something"}).val is None
 
     def test_when_permission_denied(self, settings, mocker):
@@ -106,6 +111,16 @@ class TestGoogleCloudSecretProvider:
         mock_client.get_secret.assert_called_once()
         mock_client.add_secret_version.assert_called_once()
 
+    def test_set_when_no_client(self, settings, mocker):
+        settings.ENABLE_GOOGLE_CLOUD_SECRET_MANAGER = True
+        instance = MyObject(**{MODEL_ATTR: (name := "something")})
+        debug_spy = mocker.spy(logger, "debug")
+        mocker.patch.object(GoogleCloudSecretProvider, "client", None)
+        instance.val = "some-value"
+        debug_spy.assert_called_once_with(
+            "GoogleCloudSecretProvider.__set__ cannot set secret value for secret %s. Returning early", name
+        )
+
     def test_deleting_value_when_not_enabled(self, mocker, settings):
         settings.ENABLE_GOOGLE_CLOUD_SECRET_MANAGER = False
         mock_client = mocker.patch.object(GoogleCloudSecretProvider, "client", autospec=True)
@@ -136,3 +151,13 @@ class TestGoogleCloudSecretProvider:
         instance = MyObject(**{MODEL_ATTR: "something"})
         del instance.val
         mock_client.delete_secret.assert_called_once()
+
+    def test_delete_when_no_client(self, mocker, settings):
+        settings.ENABLE_GOOGLE_CLOUD_SECRET_MANAGER = True
+        instance = MyObject(**{MODEL_ATTR: (name := "something")})
+        info_spy = mocker.spy(logger, "info")
+        mocker.patch.object(GoogleCloudSecretProvider, "client", None)
+        del instance.val
+        info_spy.assert_called_once_with(
+            "GoogleCloudSecretProvider cannot delete secret %s on GC because client is None", name
+        )

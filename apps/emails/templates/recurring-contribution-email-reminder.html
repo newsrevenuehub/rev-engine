@@ -5,6 +5,8 @@
   .header-background {
     width: 600px;
     height: 80px;
+    text-align: center;
+    vertical-align: middle;
     background: #ffffff;
     {% if style.header_color %}
     background: {{ style.header_color }} !important;
@@ -12,9 +14,10 @@
   }
 
   .header-logo {
-    height: 46px;
+    height: auto;
     margin-top: 17px;
     margin-bottom: 17px;
+    max-width: 100%;
   }
 
   .template-header {
@@ -31,15 +34,17 @@
 {% endblock custom_style %}
 
 {% block header %}
+{% if style.logo_url %}
 <tr>
-  {% if style.logo_url %}
-  <td class="header-background" align="center" valign="top">
-    <img class="header-logo" src="{{ style.logo_url }}" alt="logo" >
+  <td class="header-background">
+    <img class="header-logo" src="{{ style.logo_url }}" alt="" />
   </td>
-  {% endif %}
+</tr>
+{% endif %}
+<tr>
   <td style="padding-right: 0px;padding-left: 0px;" align="left">
-      <h1 class="template-header inner-center template-margin">Scheduled Contribution for {{ rp_name }}</h1>
-    </td>
+    <h1 class="template-header inner-center template-margin">Scheduled Contribution for {{ rp_name }}</h1>
+  </td>
 </tr>
 {% endblock header %}
 

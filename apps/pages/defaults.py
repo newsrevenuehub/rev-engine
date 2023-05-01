@@ -58,7 +58,17 @@ def get_default_page_elements():
             "content": {"askPhone": True},
             "requiredFields": [],
         },
-        {"type": CONTRIBUTOR_ADDRESS, "uuid": str(uuid4()), "requiredFields": []},
+        {
+            "type": CONTRIBUTOR_ADDRESS,
+            "uuid": str(uuid4()),
+            "requiredFields": [
+                "mailing_street",
+                "mailing_city",
+                "mailing_state",
+                "mailing_postal_code",
+                "mailing_country",
+            ],
+        },
         {
             "type": PAYMENT,
             "uuid": str(uuid4()),

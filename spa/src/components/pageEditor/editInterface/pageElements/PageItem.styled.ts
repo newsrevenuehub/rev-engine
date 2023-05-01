@@ -1,15 +1,15 @@
 import styled from 'styled-components';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
 
-export const PageItem = styled.div`
-  cursor: ${(props) => (props.disabled ? 'not-allowed' : 'pointer')};
+export const PageItem = styled.div<{ $disabled: boolean }>`
+  cursor: ${(props) => (props.$disabled ? 'not-allowed' : 'pointer')};
   border: 2px solid;
-  border-color: ${(props) => (props.disabled ? props.theme.colors.disabled : props.theme.colors.primary)};
+  border-color: ${(props) => (props.$disabled ? props.theme.colors.disabled : props.theme.colors.primary)};
   border-radius: ${(props) => props.theme.radii[0]};
   background: ${(props) => props.theme.colors.paneBackground};
   display: flex;
   flex-direction: row;
-  opacity: ${(props) => (props.disabled ? 0.5 : 1)};
+  opacity: ${(props) => (props.$disabled ? 0.5 : 1)};
 `;
 
 export const ItemIconWrapper = styled.div`
@@ -19,8 +19,8 @@ export const ItemIconWrapper = styled.div`
   padding: 1rem;
 `;
 
-export const ItemIcon = styled(FontAwesomeIcon)`
-  color: ${(props) => (props.disabled ? props.theme.colors.disabled : props.theme.colors.primary)};
+export const ItemIcon = styled(FontAwesomeIcon)<{ $disabled: boolean }>`
+  color: ${(props) => (props.$disabled ? props.theme.colors.disabled : props.theme.colors.primary)};
   font-size: 20px;
 `;
 

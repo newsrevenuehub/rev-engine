@@ -579,5 +579,6 @@ CELERY_RESULT_BACKEND = os.getenv("CELERY_RESULT_BACKEND", "django-db")
 CELERY_CACHE_BACKEND = "default"
 # https://devcenter.heroku.com/articles/celery-heroku#choosing-a-serializer
 CELERY_TASK_SERIALIZER = "json"
+CELERY_RESULT_EXTENDED = True
 
 RP_MAILCHIMP_LIST_CONFIGURATION_COMPLETE_TOPIC = os.getenv("RP_MAILCHIMP_LIST_CONFIGURATION_COMPLETE_TOPIC")

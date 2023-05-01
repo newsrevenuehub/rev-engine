@@ -49,7 +49,7 @@ def _ensure_mailchimp_store(rp_id: str) -> None:
 
 
 @shared_task
-def ensure_mailchimp_store(self, rp_id: str) -> None:
+def ensure_mailchimp_store(rp_id: str) -> None:
     logger.info("Called with rp_id=[%s]", rp_id)
     _ensure_mailchimp_store(rp_id)
 
@@ -76,7 +76,7 @@ def _ensure_mailchimp_product(rp_id: str) -> None:
 
 
 @shared_task
-def ensure_mailchimp_product(self, rp_id: str) -> None:
+def ensure_mailchimp_product(rp_id: str) -> None:
     logger.info("Called with rp_id=[%s]", rp_id)
     _ensure_mailchimp_product(rp_id)
 
@@ -102,7 +102,7 @@ def _ensure_mailchimp_contributor_segment(rp_id: str) -> None:
 
 
 @shared_task
-def ensure_mailchimp_contributor_segment(self, rp_id: str) -> None:
+def ensure_mailchimp_contributor_segment(rp_id: str) -> None:
     logger.info("Called with rp_id=[%s]", rp_id)
     _ensure_mailchimp_contributor_segment(rp_id)
 
@@ -129,7 +129,7 @@ def _ensure_mailchimp_recurring_segment(rp_id: str) -> None:
 
 
 @shared_task
-def ensure_mailchimp_recurring_segment(self, rp_id: str) -> None:
+def ensure_mailchimp_recurring_segment(rp_id: str) -> None:
     logger.info("Called with rp_id=[%s]", rp_id)
     _ensure_mailchimp_recurring_segment(rp_id)
 
@@ -152,7 +152,7 @@ def publish_revenue_program_mailchimp_list_configuration_complete(rp_id):
 
 
 @shared_task
-def setup_mailchimp_entities_for_rp_mailing_list(self, rp_id: str) -> None:
+def setup_mailchimp_entities_for_rp_mailing_list(rp_id: str) -> None:
     logger.info("Called with rp_id=[%s]", rp_id)
     header = [
         # can't have product without store, so cahin store into product

@@ -56,7 +56,9 @@ function DashboardRouter() {
           ROUTES.VERIFY_EMAIL_SUCCESS,
           ROUTES.PROFILE,
           ROUTES.SETTINGS.INTEGRATIONS,
-          ROUTES.SETTINGS.ORGANIZATION
+          ROUTES.SETTINGS.ORGANIZATION,
+          ROUTES.MAILCHIMP_OAUTH_SUCCESS_ROUTE,
+          ROUTES.SETTINGS.SUBSCRIPTION
         ]}
         render={() => <TrackPageView component={Main} />}
       />

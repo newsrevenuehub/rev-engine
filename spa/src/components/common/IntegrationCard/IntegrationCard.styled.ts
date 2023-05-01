@@ -42,7 +42,7 @@ export const Required = styled.p`
   color: ${(props) => props.theme.colors.error.primary};
 `;
 
-export const CornerMessage = styled.p`
+export const CornerMessage = styled.div`
   margin: 0;
   position: absolute;
   font-weight: 500;

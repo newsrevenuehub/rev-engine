@@ -3,7 +3,7 @@ import { Button as MuiButton } from '@material-ui/core';
 import styled from 'styled-components';
 
 export const ModalHeader = styled(BaseHeader)`
-  color: #c8203f;
+  color: ${({ theme }) => theme.basePalette.secondary.error};
   font-weight: 600;
 `;
 

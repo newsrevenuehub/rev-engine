@@ -122,6 +122,7 @@ function AddPage() {
           currentPlan={user?.organizations[0].plan.name}
           onClose={handleTooManyModalClose}
           open={tooManyModalOpen}
+          recommendedPlan={user?.organizations[0].plan.name === 'FREE' ? 'CORE' : 'PLUS'}
         />
       )}
     </>

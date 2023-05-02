@@ -6,12 +6,8 @@ from factory.django import DjangoModelFactory
 from faker import Faker
 
 from apps.common.utils import normalize_slug
-from apps.contributions.models import (
-    CardBrand,
-    ContributionInterval,
-    ContributionStatus,
-    PaymentType,
-)
+from apps.contributions.choices import CardBrand, PaymentType
+from apps.contributions.models import ContributionInterval, ContributionStatus
 from apps.organizations import models
 
 

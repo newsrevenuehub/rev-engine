@@ -5,12 +5,14 @@ from urllib.parse import parse_qs, quote_plus, urlparse
 
 from django.conf import settings
 from django.core import mail
+from django.template.loader import render_to_string
 from django.test import TestCase, override_settings
 from django.utils import timezone
 from django.utils.safestring import mark_safe
 
 import pytest
 import pytest_cases
+from addict import Dict as AttrDict
 from bs4 import BeautifulSoup
 
 from apps.api.views import construct_rp_domain
@@ -25,7 +27,7 @@ from apps.contributions.models import (
     logger,
 )
 from apps.contributions.tests.factories import ContributionFactory, ContributorFactory
-from apps.emails.tasks import send_templated_email
+from apps.emails.tasks import make_send_thank_you_email_data, send_templated_email
 from apps.organizations.models import FiscalStatusChoices
 from apps.organizations.tests.factories import (
     OrganizationFactory,
@@ -128,6 +130,7 @@ class ContributionTest(TestCase):
             "last_name": "doe",
             "phone": "555-555-5555",
             "mailing_street": "123 Street Lane",
+            "mailing_complement": "Ap 1",
             "mailing_city": "Small Town",
             "mailing_state": "OK",
             "mailing_postal_code": "12345",
@@ -140,6 +143,44 @@ class ContributionTest(TestCase):
 
         address = {
             "line1": call_args["mailing_street"],
+            "line2": call_args["mailing_complement"],
+            "city": call_args["mailing_city"],
+            "state": call_args["mailing_state"],
+            "postal_code": call_args["mailing_postal_code"],
+            "country": call_args["mailing_country"],
+        }
+        mock_create_customer.assert_called_once_with(
+            name=name,
+            email=self.contribution.contributor.email,
+            address=address,
+            shipping={"address": address, "name": name},
+            phone=call_args["phone"],
+            stripe_account=self.contribution.donation_page.revenue_program.payment_provider.stripe_account_id,
+        )
+        self.assertEqual(customer, mock_create_customer.return_value)
+
+    @patch("stripe.Customer.create", return_value={"id": "cus_fakefakefake"})
+    def test_create_stripe_customer_empty_complement(self, mock_create_customer, *args):
+        """Show Contributor.create_stripe_customer calls Stripe with right params and returns the customer object"""
+        call_args = {
+            "first_name": "Jane",
+            "last_name": "doe",
+            "phone": "555-555-5555",
+            "mailing_street": "123 Street Lane",
+            "mailing_complement": None,
+            "mailing_city": "Small Town",
+            "mailing_state": "OK",
+            "mailing_postal_code": "12345",
+            "mailing_country": "US",
+        }
+        self.contribution.contributor = ContributorFactory()
+        self.contribution.save()
+        customer = self.contribution.create_stripe_customer(**call_args)
+        name = f"{call_args['first_name']} {call_args['last_name']}"
+
+        address = {
+            "line1": call_args["mailing_street"],
+            "line2": "",
             "city": call_args["mailing_city"],
             "state": call_args["mailing_state"],
             "postal_code": call_args["mailing_postal_code"],
@@ -346,32 +387,6 @@ class ContributionTest(TestCase):
         self.contribution.refresh_from_db()
         self.assertEqual(self.contribution.provider_setup_intent_id, return_value["id"])
         self.assertEqual(subscription, return_value)
-
-    @patch("apps.emails.tasks.send_templated_email.delay")
-    def test_handle_thank_you_email_when_nre_sends(self, mock_send_email, *args):
-        """Show that when org configured to have NRE send thank you emails, send_templated_email
-        gets called with expected args.
-        """
-        self.org.send_receipt_email_via_nre = True
-        self.org.save()
-        contributor = ContributorFactory()
-        self.contribution.contributor = contributor
-        self.contribution.interval = "month"
-        self.contribution.save()
-        with patch("apps.emails.tasks.send_thank_you_email.delay", return_value=None) as mock_send_email:
-            self.contribution.handle_thank_you_email()
-        mock_send_email.assert_called_once()
-
-    @patch("apps.emails.tasks.send_templated_email.delay")
-    def test_handle_thank_you_email_when_nre_not_send(self, mock_send_email, *args):
-        """Show that when an org is not configured to have NRE send thank you emails...
-
-        ...send_templated_email does not get called
-        """
-        self.org.send_receipt_email_via_nre = False
-        self.org.save()
-        self.contribution.handle_thank_you_email()
-        mock_send_email.assert_not_called()
 
     def test_stripe_metadata(self, mock_fetch_stripe_payment_method, *args):
         referer = "https://somewhere.com"
@@ -633,21 +648,25 @@ class TestContributionModel:
             mock_send_templated_email.assert_called_once_with(
                 contribution.contributor.email,
                 f"Reminder: {contribution.donation_page.revenue_program.name} scheduled contribution",
-                "recurring-contribution-email-reminder.txt",
-                "recurring-contribution-email-reminder.html",
-                {
-                    "rp_name": contribution.donation_page.revenue_program.name,
-                    "contribution_date": next_charge_date.strftime("%m/%d/%Y"),
-                    "contribution_amount": contribution.formatted_amount,
-                    "contribution_interval_display_value": contribution.interval,
-                    "non_profit": contribution.donation_page.revenue_program.non_profit,
-                    "contributor_email": contribution.contributor.email,
-                    "tax_id": contribution.donation_page.revenue_program.tax_id,
-                    "magic_link": magic_link,
-                    "fiscal_status": contribution.donation_page.revenue_program.fiscal_status,
-                    "fiscal_sponsor_name": contribution.donation_page.revenue_program.fiscal_sponsor_name,
-                    "style": asdict(contribution.donation_page.revenue_program.transactional_email_style),
-                },
+                render_to_string(
+                    "recurring-contribution-email-reminder.txt",
+                    (
+                        data := {
+                            "rp_name": contribution.donation_page.revenue_program.name,
+                            "contribution_date": next_charge_date.strftime("%m/%d/%Y"),
+                            "contribution_amount": contribution.formatted_amount,
+                            "contribution_interval_display_value": contribution.interval,
+                            "non_profit": contribution.donation_page.revenue_program.non_profit,
+                            "contributor_email": contribution.contributor.email,
+                            "tax_id": contribution.donation_page.revenue_program.tax_id,
+                            "magic_link": magic_link,
+                            "fiscal_status": contribution.donation_page.revenue_program.fiscal_status,
+                            "fiscal_sponsor_name": contribution.donation_page.revenue_program.fiscal_sponsor_name,
+                            "style": asdict(contribution.donation_page.revenue_program.transactional_email_style),
+                        }
+                    ),
+                ),
+                render_to_string("recurring-contribution-email-reminder.html", data),
             )
             assert len(mail.outbox) == 1
         else:
@@ -803,6 +822,28 @@ class TestContributionModel:
         result = Contribution.objects.filtered_by_role_assignment(user.roleassignment)
         assert result.count() == expected.count()
         assert set(result) == set(expected)
+
+    @pytest.mark.parametrize("contribution_trait", ("one_time", "monthly_subscription", "annual_subscription"))
+    @pytest.mark.parametrize("nre_sends_receipts", (True, False))
+    def test_handle_thank_you_email(self, contribution_trait, nre_sends_receipts, mocker):
+        mock_send_thank_you_task = mocker.patch("apps.contributions.models.send_thank_you_email.delay")
+        mock_stripe_customer = mocker.patch("stripe.Customer.retrieve")
+        mock_stripe_customer.return_value = AttrDict({"name": "Foo Bar"})
+        mock_create_magic_link = mocker.patch("apps.contributions.models.Contributor.create_magic_link")
+        mock_create_magic_link.return_value = "https://example.com/magic-link"
+        contribution = ContributionFactory(
+            **{
+                contribution_trait: True,
+                "donation_page__revenue_program__organization__send_receipt_email_via_nre": nre_sends_receipts,
+                # this is so we don't trigger a call to Stripe
+                "provider_payment_method_id": None,
+            }
+        )
+        contribution.handle_thank_you_email()
+        if nre_sends_receipts:
+            mock_send_thank_you_task.assert_called_once_with(make_send_thank_you_email_data(contribution))
+        else:
+            mock_send_thank_you_task.assert_not_called()
 
 
 @pytest.mark.django_db()

@@ -8,11 +8,12 @@ import { act, render, screen } from 'test-utils';
 import { HUB_GOOGLE_MAPS_API_KEY } from 'appSettings';
 import { DonationPageContext, UsePageProps } from '../DonationPage';
 import DDonorAddress, { DDonorAddressProps } from './DDonorAddress';
+import { DonorAddressElement } from 'hooks/useContributionPage';
 
 jest.mock('country-code-lookup', () => ({
   countries: [
-    { country: 'AAA', fips: 'aaa' },
-    { country: 'BBB', fips: 'bbb' }
+    { country: 'AAA', iso2: 'aa' },
+    { country: 'BBB', iso2: 'bb' }
   ]
 }));
 jest.mock('react-google-autocomplete');
@@ -60,6 +61,8 @@ const mockAddressComponents: google.maps.GeocoderAddressComponent[] = [
   }
 ];
 
+const element = { content: {}, requiredFields: [], type: 'DDonorAddress', uuid: 'mock-uuid' } as DonorAddressElement;
+
 function tree(pageContext?: Partial<UsePageProps>, props?: Partial<DDonorAddressProps>) {
   return render(
     <DonationPageContext.Provider
@@ -73,10 +76,7 @@ function tree(pageContext?: Partial<UsePageProps>, props?: Partial<DDonorAddress
       }
     >
       <ul>
-        <DDonorAddress
-          element={{ content: {}, requiredFields: [], type: 'DDonorAddress', uuid: 'mock-uuid' }}
-          {...props}
-        />
+        <DDonorAddress element={element} {...props} />
       </ul>
     </DonationPageContext.Provider>
   );
@@ -93,11 +93,11 @@ describe('DDonorAddress', () => {
   // in stripeFns.ts.
 
   describe.each([
-    ['Address', 'mailing_street'],
-    ['City', 'mailing_city'],
-    ['State', 'mailing_state'],
-    ['Zip/Postal code', 'mailing_postal_code']
-  ])('The %s text field', (visibleName, internalName) => {
+    ['Address', 'mailing_street', false, false],
+    ['City', 'mailing_city', false, false],
+    ['State', 'mailing_state', false, false],
+    ['Zip/Postal code', 'mailing_postal_code', true, true]
+  ])('The %s text field', (visibleName, internalName, showZipAndCountryOnly, alwaysRequired) => {
     it(`has the form name ${internalName}`, () => {
       tree();
 
@@ -107,9 +107,33 @@ describe('DDonorAddress', () => {
       expect(field).toHaveAttribute('name', internalName);
     });
 
-    it('is required', () => {
+    it('is required by default', () => {
       tree();
       expect(screen.getByRole('textbox', { name: visibleName })).toBeRequired();
+    });
+
+    it(`${alwaysRequired ? 'is required even' : 'is not required'} if addressOptional is true`, () => {
+      tree({}, { element: { ...element, content: { addressOptional: true } } });
+      expect.assertions(1);
+      if (alwaysRequired) {
+        // eslint-disable-next-line jest/no-conditional-expect
+        expect(screen.getByRole('textbox', { name: visibleName })).toBeRequired();
+      } else {
+        // eslint-disable-next-line jest/no-conditional-expect
+        expect(screen.getByRole('textbox', { name: visibleName })).not.toBeRequired();
+      }
+    });
+
+    it(`if zipAndCountryOnly = true -> ${showZipAndCountryOnly ? 'show' : 'hide'}`, () => {
+      tree({}, { element: { ...element, content: { zipAndCountryOnly: true } } });
+      expect.assertions(1);
+      if (showZipAndCountryOnly) {
+        // eslint-disable-next-line jest/no-conditional-expect
+        expect(screen.getByRole('textbox', { name: visibleName })).toBeVisible();
+      } else {
+        // eslint-disable-next-line jest/no-conditional-expect
+        expect(screen.queryByRole('textbox', { name: visibleName })).not.toBeInTheDocument();
+      }
     });
 
     it('updates when the user types into it', () => {
@@ -124,6 +148,52 @@ describe('DDonorAddress', () => {
       // We don't have test IDs for helper text right now.
       // eslint-disable-next-line testing-library/no-node-access
       expect(document.getElementById(`${internalName}-helper-text`)).toHaveTextContent('test-error');
+    });
+  });
+
+  it(`has the show Address line 2 button`, () => {
+    tree();
+    expect(screen.getByRole('button', { name: '+ Address line 2 (Apt, suite, etc.)' })).toBeEnabled();
+  });
+
+  describe('The Line 2 address field', () => {
+    function openLine2() {
+      userEvent.click(screen.getByRole('button', { name: '+ Address line 2 (Apt, suite, etc.)' }));
+    }
+
+    it(`is hidden by default`, () => {
+      tree();
+      expect(screen.queryByRole('textbox', { name: 'Apt, suite, etc.' })).not.toBeInTheDocument();
+    });
+
+    it(`has the form name mailing_complement`, () => {
+      tree();
+      openLine2();
+      const field = screen.getByRole('textbox', { name: 'Apt, suite, etc.' });
+
+      expect(field).toBeVisible();
+      expect(field).toHaveAttribute('name', 'mailing_complement');
+    });
+
+    it('is not required', () => {
+      tree();
+      openLine2();
+      expect(screen.getByRole('textbox', { name: 'Apt, suite, etc.' })).not.toBeRequired();
+    });
+
+    it('updates when the user types into it', () => {
+      tree();
+      openLine2();
+      userEvent.type(screen.getByRole('textbox', { name: 'Apt, suite, etc.' }), `mock-address-line-2`);
+      expect(screen.getByRole('textbox', { name: 'Apt, suite, etc.' })).toHaveValue(`mock-address-line-2`);
+    });
+
+    it(`displays errors keyed on mailing_complement`, () => {
+      tree({ errors: { mailing_complement: 'test-error' } });
+      openLine2();
+      // We don't have test IDs for helper text right now.
+      // eslint-disable-next-line testing-library/no-node-access
+      expect(document.getElementById(`mailing_complement-helper-text`)).toHaveTextContent('test-error');
     });
   });
 
@@ -148,19 +218,34 @@ describe('DDonorAddress', () => {
   });
 
   describe('The Country select', () => {
-    it('displays a country select that shows the mailingCountry FIPS code set in context', () => {
-      tree({ mailingCountry: 'aaa' });
+    it('displays a country select that shows the mailingCountry ISO code set in context', () => {
+      tree({ mailingCountry: 'aa' });
       expect(screen.getByRole('textbox', { name: 'Country' })).toHaveValue('AAA');
     });
 
-    it('updates the country FIPS code in context when the user selects a country', () => {
+    it('if zipAndCountryOnly = true -> show', () => {
+      tree({}, { element: { ...element, content: { zipAndCountryOnly: true } } });
+      expect(screen.getByRole('textbox', { name: 'Country' })).toBeInTheDocument();
+    });
+
+    it('is required by default', () => {
+      tree();
+      expect(screen.getByRole('textbox', { name: 'Country' })).toBeRequired();
+    });
+
+    it('is required even if addressOptional is true', () => {
+      tree({}, { element: { ...element, content: { addressOptional: true } } });
+      expect(screen.getByRole('textbox', { name: 'Country' })).toBeRequired();
+    });
+
+    it('updates the country ISO code in context when the user selects a country', () => {
       const setMailingCountry = jest.fn();
 
       tree({ setMailingCountry });
       userEvent.click(screen.getByLabelText('Open'));
       expect(setMailingCountry).not.toBeCalled();
       userEvent.click(screen.getByText('BBB'));
-      expect(setMailingCountry.mock.calls).toEqual([['bbb']]);
+      expect(setMailingCountry.mock.calls).toEqual([['bb']]);
     });
   });
 

@@ -278,7 +278,7 @@ class TransactionalEmailStyle:
 
 
 HubDefaultEmailStyle = TransactionalEmailStyle(
-    logo_url=os.path.join(settings.SITE_URL, "static", "nre-logo-white.png"),
+    logo_url=os.path.join(settings.SITE_URL, "static", "nre-logo-yellow.png"),
     header_color=None,
     header_font=None,
     body_font=None,
@@ -420,7 +420,7 @@ class RevenueProgram(IndexedTimeStampedModel):
         templates can assume that the values provided by this property are always present.
 
         If the RP's org is on free plan, or if there's no default donation page, return the HubDefaultEmailStyle.
-        Otherwise, derive a TransactionalEmailStyle instance based on the default donation page's chracteristics.
+        Otherwise, derive a TransactionalEmailStyle instance based on the default donation page's characteristics.
         """
         if any(
             [

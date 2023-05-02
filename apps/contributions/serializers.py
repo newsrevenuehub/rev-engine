@@ -145,12 +145,12 @@ class BadActorSerializer(serializers.Serializer):
     first_name = serializers.CharField(max_length=40)
     last_name = serializers.CharField(max_length=80)
     email = serializers.EmailField(max_length=80)
-    street = serializers.CharField(max_length=255)
+    street = serializers.CharField(max_length=255, required=False, default="", allow_blank=True)
     complement = serializers.CharField(max_length=255, required=False, default="", allow_blank=True)
-    city = serializers.CharField(max_length=40)
-    state = serializers.CharField(max_length=80)
-    country = serializers.CharField(max_length=80)
-    zipcode = serializers.CharField(max_length=20)
+    city = serializers.CharField(max_length=40, required=False, default="", allow_blank=True)
+    state = serializers.CharField(max_length=80, required=False, default="", allow_blank=True)
+    country = serializers.CharField(max_length=80, required=False, default="", allow_blank=True)
+    zipcode = serializers.CharField(max_length=20, required=False, default="", allow_blank=True)
 
     # Third-party risk assessment
     captcha_token = serializers.CharField(max_length=2550, required=False, allow_blank=True)
@@ -260,14 +260,21 @@ class BaseCreatePaymentSerializer(serializers.Serializer):
     page = serializers.PrimaryKeyRelatedField(many=False, queryset=DonationPage.objects.all(), write_only=True)
     first_name = serializers.CharField(max_length=40, write_only=True)
     last_name = serializers.CharField(max_length=80, write_only=True)
-    mailing_postal_code = serializers.CharField(max_length=20, write_only=True)
-    mailing_street = serializers.CharField(max_length=255, write_only=True)
-    mailing_complement = serializers.CharField(
-        max_length=255, write_only=True, required=False, default="", allow_blank=True
+    # TODO: DEV-3440 - handle address structure & validation in a better way.
+    mailing_postal_code = serializers.CharField(
+        max_length=20, write_only=True, required=False, allow_blank=True, default=""
     )
-    mailing_city = serializers.CharField(max_length=40, write_only=True)
-    mailing_state = serializers.CharField(max_length=80, write_only=True)
-    mailing_country = serializers.CharField(max_length=80, write_only=True)
+    mailing_street = serializers.CharField(
+        max_length=255, write_only=True, required=False, allow_blank=True, default=""
+    )
+    mailing_complement = serializers.CharField(
+        max_length=255, write_only=True, required=False, allow_blank=True, default=""
+    )
+    mailing_city = serializers.CharField(max_length=40, write_only=True, required=False, allow_blank=True, default="")
+    mailing_state = serializers.CharField(max_length=80, write_only=True, required=False, allow_blank=True, default="")
+    mailing_country = serializers.CharField(
+        max_length=80, write_only=True, required=False, allow_blank=True, default=""
+    )
     agreed_to_pay_fees = serializers.BooleanField(default=False, write_only=True)
 
     # See class-level doc string for info on why `default=''` here

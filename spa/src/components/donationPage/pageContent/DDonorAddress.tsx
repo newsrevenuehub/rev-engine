@@ -54,6 +54,8 @@ function DDonorAddress({ element }: DDonorAddressProps) {
   const [city, setCity] = useState('');
   const [state, setState] = useState('');
   const [zip, setZip] = useState('');
+  const isOptional = element.content?.addressOptional === true;
+  const zipAndCountryOnly = !!element.content?.zipAndCountryOnly;
   const stateLabel = useMemo(() => {
     let result = 'State';
 
@@ -124,72 +126,76 @@ function DDonorAddress({ element }: DDonorAddressProps) {
   return (
     <DElement>
       <Grid container spacing={3}>
-        <Grid item xs={12}>
-          <TextField
-            error={!!errors.mailing_street}
-            fullWidth
-            id="mailing_street"
-            name="mailing_street"
-            label="Address"
-            value={address}
-            onBlur={enableBrowserAutofillOnAddress}
-            onChange={(e) => setAddress(e.target.value)}
-            onFocus={disableBrowserAutofillOnAddress}
-            helperText={errors.mailing_street}
-            inputRef={addressInputRef}
-            required
-            data-testid="mailing_street"
-          />
-          <Button $showComplement={showComplement} onClick={toggleComplement}>
-            {showComplement ? '-' : '+'} Address line 2 (Apt, suite, etc.)
-          </Button>
-        </Grid>
-        <Collapse in={showComplement} style={{ width: '100%' }}>
-          <CollapseChild>
+        {!zipAndCountryOnly && (
+          <>
             <Grid item xs={12}>
               <TextField
-                error={!!errors.mailing_complement}
+                error={!!errors.mailing_street}
                 fullWidth
-                id="mailing_complement"
-                name="mailing_complement"
-                label="Apt, suite, etc."
-                value={complement}
-                onChange={(e) => setComplement(e.target.value)}
-                helperText={errors.mailing_complement}
-                data-testid="mailing_complement"
+                id="mailing_street"
+                name="mailing_street"
+                label="Address"
+                value={address}
+                onBlur={enableBrowserAutofillOnAddress}
+                onChange={(e) => setAddress(e.target.value)}
+                onFocus={disableBrowserAutofillOnAddress}
+                helperText={errors.mailing_street}
+                inputRef={addressInputRef}
+                required={!isOptional}
+                data-testid="mailing_street"
+              />
+              <Button $showComplement={showComplement} onClick={toggleComplement}>
+                {showComplement ? '-' : '+'} Address line 2 (Apt, suite, etc.)
+              </Button>
+            </Grid>
+            <Collapse in={showComplement} style={{ width: '100%' }}>
+              <CollapseChild>
+                <Grid item xs={12}>
+                  <TextField
+                    error={!!errors.mailing_complement}
+                    fullWidth
+                    id="mailing_complement"
+                    name="mailing_complement"
+                    label="Apt, suite, etc."
+                    value={complement}
+                    onChange={(e) => setComplement(e.target.value)}
+                    helperText={errors.mailing_complement}
+                    data-testid="mailing_complement"
+                  />
+                </Grid>
+              </CollapseChild>
+            </Collapse>
+            <Grid item xs={12}>
+              <TextField
+                error={!!errors.mailing_city}
+                fullWidth
+                id="mailing_city"
+                name="mailing_city"
+                label="City"
+                value={city}
+                onChange={(e) => setCity(e.target.value)}
+                helperText={errors.mailing_city}
+                required={!isOptional}
+                data-testid="mailing_city"
               />
             </Grid>
-          </CollapseChild>
-        </Collapse>
-        <Grid item xs={12}>
-          <TextField
-            error={!!errors.mailing_city}
-            fullWidth
-            id="mailing_city"
-            name="mailing_city"
-            label="City"
-            value={city}
-            onChange={(e) => setCity(e.target.value)}
-            helperText={errors.mailing_city}
-            required
-            data-testid="mailing_city"
-          />
-        </Grid>
-        <Grid item xs={12} md={4}>
-          <TextField
-            error={!!errors.mailing_state}
-            fullWidth
-            id="mailing_state"
-            name="mailing_state"
-            label={stateLabel}
-            value={state}
-            onChange={(e) => setState(e.target.value)}
-            helperText={errors.mailing_state}
-            required
-            data-testid="mailing_state"
-          />
-        </Grid>
-        <Grid item xs={12} md={4}>
+            <Grid item xs={12} md={4}>
+              <TextField
+                error={!!errors.mailing_state}
+                fullWidth
+                id="mailing_state"
+                name="mailing_state"
+                label={stateLabel}
+                value={state}
+                onChange={(e) => setState(e.target.value)}
+                helperText={errors.mailing_state}
+                required={!isOptional}
+                data-testid="mailing_state"
+              />
+            </Grid>
+          </>
+        )}
+        <Grid item xs={12} md={zipAndCountryOnly ? 6 : 4}>
           <TextField
             error={!!errors.mailing_postal_code}
             fullWidth
@@ -203,7 +209,7 @@ function DDonorAddress({ element }: DDonorAddressProps) {
             data-testid="mailing_postal_code"
           />
         </Grid>
-        <Grid item xs={12} md={4}>
+        <Grid item xs={12} md={zipAndCountryOnly ? 6 : 4}>
           <CountrySelect
             error={!!errors.mailing_country}
             helperText={errors.mailing_country}

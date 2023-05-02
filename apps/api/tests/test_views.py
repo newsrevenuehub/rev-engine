@@ -213,6 +213,7 @@ def test_request_contributor_token_creates_usable_magic_links(rf, mocker, email,
     assert subject == "Manage your contributions"
     assert to_email_list[0] == email
     assert len(to_email_list) == 1
+    assert email in html_body
     params = parse_qs(urlparse(html_magic_link).query)
     response = client.post(
         reverse("contributor-verify-token"), {"email": params["email"][0], "token": params["token"][0]}

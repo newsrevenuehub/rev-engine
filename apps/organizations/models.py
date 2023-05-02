@@ -2,6 +2,7 @@ import logging
 import os
 from dataclasses import dataclass, field
 from functools import cached_property
+from typing import List
 
 from django.conf import settings
 from django.core.exceptions import ValidationError
@@ -299,10 +300,30 @@ class RevenueProgramQuerySet(models.QuerySet):
                 return self.none()
 
 
-@dataclass
+@dataclass(frozen=True)
 class MailchimpEmailList:
     id: str
+    web_id: int
     name: str
+    contact: dict
+    permission_reminder: str
+    use_archive_bar: bool
+    campaign_defaults: dict
+    notify_on_subscribe: bool
+    notify_on_unsubscribe: bool
+    date_created: str
+    list_rating: str
+    email_type_option: bool
+    subscribe_url_short: str
+    subscribe_url_long: str
+    beamer_address: str
+    visibility: str
+    double_optin: bool
+    has_welcome: bool
+    marketing_permissions: bool
+    modules: List
+    stats: dict
+    _links: List[dict]
 
 
 class RevenueProgramManager(models.Manager):
@@ -371,6 +392,7 @@ class RevenueProgram(IndexedTimeStampedModel):
     mailchimp_server_prefix = models.CharField(max_length=100, null=True, blank=True)
     # TODO: DEV-3302 this is a temporary field, to be removed in https://news-revenue-hub.atlassian.net/browse/DEV-3302
     mailchimp_access_token = models.TextField(null=True, blank=True)
+    mailchimp_list_id = models.TextField(null=True, blank=True)
 
     objects = RevenueProgramManager.from_queryset(RevenueProgramQuerySet)()
 
@@ -445,8 +467,7 @@ class RevenueProgram(IndexedTimeStampedModel):
         if not all([self.mailchimp_server_prefix, self.mailchimp_access_token]):
             return []
         try:
-            client = MailchimpMarketing.Client()
-            client.set_config({"access_token": self.mailchimp_access_token, "server": self.mailchimp_server_prefix})
+            client = self.get_mailchimp_client()
             response = client.lists.get_all_lists(fields="id,name", count=1000)
             return response.json().get("lists", [])
         except ApiClientError:
@@ -504,6 +525,20 @@ class RevenueProgram(IndexedTimeStampedModel):
                     "Failed to register ApplePayDomain for RevenueProgram %s because of StripeError",
                     self.name,
                 )
+
+    def get_mailchimp_client(self) -> MailchimpMarketing.Client:
+        logger.info("Called for rp %s", self.id)
+        if not self.mailchimp_integration_connected:
+            logger.warning("Called for rp %s which is not connected to Mailchimp")
+            raise ValueError("Mailchimp integration not connected for this revenue program")
+        client = MailchimpMarketing.Client()
+        client.set_config(
+            {
+                "access_token": self.mailchimp_access_token,
+                "server": self.mailchimp_server_prefix,
+            }
+        )
+        return client
 
 
 class PaymentProvider(IndexedTimeStampedModel):

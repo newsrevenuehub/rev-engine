@@ -108,6 +108,7 @@ class RevenueProgramSerializer(serializers.ModelSerializer):
     """
 
     slug = serializers.SlugField(required=False)
+
     mailchimp_integration_connected = serializers.ReadOnlyField()
 
     class Meta:
@@ -121,13 +122,26 @@ class RevenueProgramSerializer(serializers.ModelSerializer):
             "fiscal_sponsor_name",
             "mailchimp_integration_connected",
             "mailchimp_email_lists",
+            "mailchimp_list_id",
         ]
+        read_only_fields = ["mailchimp_integration_connected", "mailchimp_email_lists", "id"]
+
+    def validate_mailchimp_list_id(self, value):
+        """We ensure that connection is set up and that the list ID belongs to the organization."""
+        if not all(
+            [
+                self.instance.mailchimp_integration_connected,
+                value in [x["id"] for x in self.instance.mailchimp_email_lists],
+            ]
+        ):
+            raise serializers.ValidationError("Invalid Mailchimp list ID")
+        return value
 
 
 class RevenueProgramPatchSerializer(serializers.ModelSerializer):
     class Meta:
         model = RevenueProgram
-        fields = ["tax_id", "fiscal_status", "fiscal_sponsor_name"]
+        fields = ["tax_id", "fiscal_status", "fiscal_sponsor_name", "mailchimp_list_id"]
 
 
 class BenefitDetailSerializer(serializers.ModelSerializer):

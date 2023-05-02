@@ -51,19 +51,25 @@
 # ):
 # ```
 # """
-
+from dataclasses import asdict
+from random import choice
 from unittest.mock import patch
 
+import faker
 import pytest
 from rest_framework.test import APIClient
 from waffle import get_waffle_flag_model
 
 from apps.common.tests.test_resources import DEFAULT_FLAGS_CONFIG_MAPPING
 from apps.contributions.tests.factories import ContributionFactory, ContributorFactory
+from apps.organizations.models import MailchimpEmailList
 from apps.organizations.tests.factories import OrganizationFactory, RevenueProgramFactory
 from apps.pages.tests.factories import DonationPageFactory, StyleFactory
 from apps.users.models import Roles, User
 from apps.users.tests.factories import RoleAssignmentFactory, UserFactory
+
+
+fake = faker.Faker()
 
 
 @pytest.fixture
@@ -252,3 +258,33 @@ def monthly_contribution(live_donation_page):
 def annual_contribution(live_donation_page):
     with patch("apps.contributions.models.Contribution.fetch_stripe_payment_method", return_value=None):
         return ContributionFactory(donation_page=live_donation_page, annual_subscription=True)
+
+
+@pytest.fixture
+def mailchimp_email_list_from_api():
+    return asdict(
+        MailchimpEmailList(
+            id=fake.uuid4(),
+            web_id=fake.uuid4(),
+            name=fake.word(),
+            contact={},
+            permission_reminder="",
+            use_archive_bar=choice([True, False]),
+            campaign_defaults={},
+            notify_on_subscribe=choice([True, False]),
+            notify_on_unsubscribe=choice([True, False]),
+            date_created="",
+            list_rating="",
+            email_type_option=choice([True, False]),
+            subscribe_url_short="",
+            subscribe_url_long="",
+            beamer_address="",
+            visibility="",
+            double_optin=choice([True, False]),
+            has_welcome=choice([True, False]),
+            marketing_permissions=choice([True, False]),
+            modules=[],
+            stats={},
+            _links=[],
+        )
+    )

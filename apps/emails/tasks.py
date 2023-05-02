@@ -83,6 +83,8 @@ class SendThankYouEmailData(TypedDict):
 
 # would like to have type hint for contribution but that would cause a circular import because need to import class to this file
 def make_send_thank_you_email_data(contribution) -> SendThankYouEmailData:
+    logger.info("make_send_than_you_email_data: called with contribution id %s", contribution.id)
+
     # vs circular import
     from apps.contributions.models import Contributor
 

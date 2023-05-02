@@ -430,11 +430,7 @@ class TestRevenueProgram:
                     "revenue_program_with_default_donation_page_but_no_transactional_email_style_values"
                 ),
                 lambda rp: TransactionalEmailStyle(
-                    logo_url=None,
-                    header_color=None,
-                    header_font=None,
-                    body_font=None,
-                    button_color=None,
+                    logo_url=None, header_color=None, header_font=None, body_font=None, button_color=None
                 ),
             ),
         ),

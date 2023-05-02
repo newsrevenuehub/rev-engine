@@ -140,6 +140,7 @@ if ENABLE_API_BROWSER:
     ]
 
 MIDDLEWARE = [
+    "request_id.middleware.RequestIdMiddleware",
     "django.middleware.security.SecurityMiddleware",
     "whitenoise.middleware.WhiteNoiseMiddleware",
     "django.contrib.sessions.middleware.SessionMiddleware",
@@ -255,13 +256,17 @@ LOG_LEVEL = os.getenv("LOG_LEVEL", "INFO")
 LOGGING = {
     "version": 1,
     "disable_existing_loggers": False,
-    "filters": {"require_debug_false": {"()": "django.utils.log.RequireDebugFalse"}},
-    "formatters": {"basic": {"format": "%(levelname)s %(name)s:%(lineno)d - %(message)s"}},
+    "filters": {
+        "require_debug_false": {"()": "django.utils.log.RequireDebugFalse"},
+        "request_id": {"()": "request_id.logging.RequestIdFilter"},
+    },
+    "formatters": {"basic": {"format": "%(levelname)s %(name)s:%(lineno)d request_id=%(request_id)s %(message)s"}},
     "handlers": {
         "console": {
             "level": LOG_LEVEL,
             "class": "logging.StreamHandler",
             "formatter": "basic",
+            "filters": ["request_id"],
         },
         "null": {
             "class": "logging.NullHandler",

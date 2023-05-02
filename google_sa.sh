@@ -12,4 +12,5 @@ if test -f $FILE; then
 else
   >&2 echo "Creating Google Service account file"
   echo $GS_SERVICE_ACCOUNT | base64 -d > $FILE
+  stat $FILE
 fi

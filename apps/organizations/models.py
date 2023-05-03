@@ -454,12 +454,12 @@ class RevenueProgram(IndexedTimeStampedModel):
             client = self.get_mailchimp_client()
             response = client.ecommerce.get_store(self.mailchimp_store_id)
             return MailchimpStore(**response)
-        except ApiClientError as error:
-            if error.status_code == 404:
+        except ApiClientError as exc:
+            if exc.status_code == 404:
                 logger.debug("Mailchimp store not found for RP %s, returning None", self.id)
                 return None
             else:
-                logger.exception("Unexpected error from Mailchimp API")
+                logger.exception("Unexpected error from Mailchimp API. The errot text is %s", exc.text)
                 raise MailchimpIntegrationError("Error retrieving mailchimp store")
 
     @property
@@ -480,7 +480,7 @@ class RevenueProgram(IndexedTimeStampedModel):
                 logger.debug("Mailchimp store not found for RP %s, returning None", self.id)
                 return None
             else:
-                logger.exception("Unexpected error from Mailchimp API")
+                logger.exception("Unexpected error from Mailchimp API. The error text is %s", error.text)
                 raise MailchimpIntegrationError("Error retrieving product")
 
     @property
@@ -501,7 +501,7 @@ class RevenueProgram(IndexedTimeStampedModel):
                 )
                 return None
             else:
-                logger.exception("Unexpected error from Mailchimp API")
+                logger.exception("Unexpected error from Mailchimp API. The error text is %s", error.text)
                 raise MailchimpIntegrationError("Error retrieving mailchimp contributor segment")
 
     @property
@@ -523,7 +523,7 @@ class RevenueProgram(IndexedTimeStampedModel):
                 )
                 return None
             else:
-                logger.exception("Unexpected error from Mailchimp API")
+                logger.exception("Unexpected error from Mailchimp API. The error text is %s", error.text)
                 raise MailchimpIntegrationError("Error retrieving mailchimp recurring segment")
 
     @property
@@ -617,11 +617,12 @@ class RevenueProgram(IndexedTimeStampedModel):
                 self.mailchimp_list_id, {"name": self.mailchimp_contributor_segment_name}
             )
             return MailchimpSegment(**response)
-        except ApiClientError:
+        except ApiClientError as error:
             logger.exception(
-                "Error creating %s segment for RP %s",
+                "Error creating %s segment for RP %s. The error text is %s",
                 self.mailchimp_contributor_segment_name,
                 self.id,
+                error.text,
             )
             raise MailchimpIntegrationError("Error creating contributor segment")
 
@@ -637,11 +638,12 @@ class RevenueProgram(IndexedTimeStampedModel):
                 self.mailchimp_list_id, {"name": self.mailchimp_recurring_segment_name}
             )
             return MailchimpSegment(**response)
-        except ApiClientError:
+        except ApiClientError as exc:
             logger.exception(
-                "Error creating %s segment for RP %s",
+                "Error creating %s segment for RP %s. The error text is %s",
                 self.mailchimp_recurring_segment_name,
                 self.id,
+                exc.text,
             )
             raise MailchimpIntegrationError("Error creating recurring segment")
 
@@ -733,11 +735,15 @@ class RevenueProgram(IndexedTimeStampedModel):
             lists = response.get("lists", [])
             logger.debug("Response from Mailchimp containing %s list ids", len(lists))
             return [MailchimpEmailList(**x) for x in lists]
-        except ApiClientError:
+        except ApiClientError as exc:
             logger.exception(
-                "Failed to fetch email lists from Mailchimp for RP with ID %s mc server prefix %s",
+                (
+                    "Failed to fetch email lists from Mailchimp for RP with ID %s mc server prefix %s. "
+                    "The error text is %s"
+                ),
                 self.id,
                 self.mailchimp_server_prefix,
+                exc.text,
             )
             return []
 

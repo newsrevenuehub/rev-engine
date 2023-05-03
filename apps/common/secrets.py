@@ -100,7 +100,7 @@ class GoogleCloudSecretProvider(SecretProvider):
         return secret.payload.data.decode("UTF-8") if secret else None
 
     def __set__(self, obj, value) -> None:
-        secret_name = self.get_secret_name(obj)
+        logger.info("GoogleCloudSecretProvider setting secret %s", (secret_name := self.get_secret_name(obj)))
         if not settings.ENABLE_GOOGLE_CLOUD_SECRET_MANAGER:
             logger.debug(
                 "GoogleCloudSecretProvider.__set__ cannot set secret value for secret %s because ENABLE_GOOGLE_CLOUD_SECRET_MANAGER not true",
@@ -162,6 +162,7 @@ class GoogleCloudSecretProvider(SecretProvider):
                 raise SecretProviderException("Permission denied")
 
     def __delete__(self, obj) -> None:
+        logger.info("GoogleCloudSecretProvider deleting secret %s", (secret_name := self.get_secret_name(obj)))
         secret_name = self.get_secret_name(obj)
         if not settings.ENABLE_GOOGLE_CLOUD_SECRET_MANAGER:
             logger.info(

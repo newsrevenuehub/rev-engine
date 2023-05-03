@@ -158,6 +158,7 @@ class TestGoogleCloudSecretProvider:
         info_spy = mocker.spy(logger, "info")
         mocker.patch.object(GoogleCloudSecretProvider, "client", None)
         del instance.val
-        info_spy.assert_called_once_with(
+        assert info_spy.call_count == 2
+        assert info_spy.call_args_list[1] == mocker.call(
             "GoogleCloudSecretProvider cannot delete secret %s on GC because client is None", name
         )

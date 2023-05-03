@@ -215,6 +215,21 @@ def revenue_program(organization):
 
 
 @pytest.fixture
+def free_plan_revenue_program():
+    return RevenueProgramFactory(onboarded=True, organization=OrganizationFactory(free_plan=True))
+
+
+@pytest.fixture
+def core_plan_revenue_program():
+    return RevenueProgramFactory(onboarded=True, organization=OrganizationFactory(core_plan=True))
+
+
+@pytest.fixture
+def plus_plan_revenue_program():
+    return RevenueProgramFactory(onboarded=True, organization=OrganizationFactory(plus_plan=True))
+
+
+@pytest.fixture
 def fiscally_sponsored_revenue_program():
     return RevenueProgramFactory(onboarded=True, fiscally_sponsored=True)
 

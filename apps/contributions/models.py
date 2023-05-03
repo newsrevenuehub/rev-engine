@@ -492,11 +492,16 @@ class Contribution(IndexedTimeStampedModel):
 
     def handle_thank_you_email(self):
         """Send a thank you email to contribution's contributor if org is configured to have NRE send thank you email"""
-        logger.debug("`Contribution.handle_thank_you_email` called on contribution with ID %s", self.id)
+        logger.info("`Contribution.handle_thank_you_email` called on contribution with ID %s", self.id)
         if (org := self.revenue_program.organization).send_receipt_email_via_nre:
-            logger.debug("Contribution.handle_thank_you_email: the parent org (%s) sends emails with NRE", org.id)
+            logger.info("Contribution.handle_thank_you_email: the parent org (%s) sends emails with NRE", org.id)
             data = make_send_thank_you_email_data(self)
             send_thank_you_email.delay(data)
+        else:
+            logger.info(
+                "Contribution.handle_thank_you_email called on contribution %s the parent org of which does not send email with NRE",
+                self.id,
+            )
 
     def send_recurring_contribution_email_reminder(self, next_charge_date: datetime.date) -> None:
         # vs. circular import

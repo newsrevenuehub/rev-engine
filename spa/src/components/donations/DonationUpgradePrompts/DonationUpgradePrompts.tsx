@@ -3,6 +3,8 @@ import useUser from 'hooks/useUser';
 import { getUserRole } from 'utilities/getUserRole';
 import DonationCoreUpgradePrompt from './DonationCoreUpgradePrompt/DonationCoreUpgradePrompt';
 import { Root } from './DonationUpgradePrompts.styled';
+import useContributionPageList from 'hooks/useContributionPageList';
+import { pageIsPublished } from 'utilities/editPageGetSuccessMessage';
 
 // This is a stopgap measure to add functionality to the Donations component in
 // the non-legacy way without refactoring the entire component. Eventually, this
@@ -11,9 +13,15 @@ import { Root } from './DonationUpgradePrompts.styled';
 export function DonationUpgradePrompts() {
   const { user } = useUser();
   const { isOrgAdmin } = getUserRole(user);
+  const { pages } = useContributionPageList();
   const [coreUpgradePromptClosed, setCoreUpgradePromptClosed] = useSessionState(DONATIONS_CORE_UPGRADE_CLOSED, false);
 
+  // The published page check is meant to prevent the prompt from conflicting
+  // with the banners that <Donations> may show.
+
   if (
+    pages &&
+    pages.some((page) => pageIsPublished(page)) &&
     !coreUpgradePromptClosed &&
     isOrgAdmin &&
     user?.organizations[0].plan.name === 'FREE' &&

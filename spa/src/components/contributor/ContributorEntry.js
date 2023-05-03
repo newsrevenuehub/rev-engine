@@ -47,15 +47,10 @@ function ContributorEntry({ page }) {
     }
   };
 
-  let portalName = `RevEngine`;
-  if (page?.revenue_program) {
-    portalName = page.revenue_program.name;
-  }
-
   return (
     <S.ContributorEntry>
       <S.ContentWrapper>
-        <S.Title>Welcome to the {portalName} contributor portal</S.Title>
+        <S.Title>Welcome to the {page?.revenue_program?.name ?? 'RevEngine'} contributor portal</S.Title>
         {showConfirmation ? (
           <S.Confirmation>
             <p>If you're in our system, an email has been sent to you containing your magic link</p>

@@ -37,13 +37,7 @@ def _ensure_mailchimp_store(rp_id: str) -> None:
     rp = RevenueProgram.objects.get(id=rp_id)
     if not rp.mailchimp_store:
         logger.info("Creating store for rp_id=[%s]", rp_id)
-        store = rp.make_mailchimp_store()
-        logger.info("Store created for rp_id=[%s]", rp_id)
-        rp.mailchimp_store_id = store.id
-        with reversion.create_revision():
-            logger.info("Saving rp_id=[%s] with new store id", rp_id)
-            rp.save(update_fields={"mailchimp_store_id", "modified"})
-            reversion.set_comment("ensure_mailchimp_store ran")
+        rp.make_mailchimp_store()
     else:
         logger.info("Store already exists for rp_id=[%s]", rp_id)
 
@@ -64,13 +58,7 @@ def _ensure_mailchimp_product(rp_id: str) -> None:
     rp = RevenueProgram.objects.get(id=rp_id)
     if not rp.mailchimp_product:
         logger.info("Creating product for rp_id=[%s]", rp_id)
-        product = rp.make_mailchimp_product()
-        logger.info("Product created for rp_id=[%s]", rp_id)
-        rp.mailchimp_product_id = product.id
-        with reversion.create_revision():
-            logger.info("Saving rp_id=[%s] with new product id", rp_id)
-            rp.save(update_fields={"mailchimp_product_id", "modified"})
-            reversion.set_comment("ensure_mailchimp_product ran")
+        rp.make_mailchimp_product()
     else:
         logger.info("Product already exists for rp_id=[%s]", rp_id)
 

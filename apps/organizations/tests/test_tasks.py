@@ -267,21 +267,12 @@ def test_setup_mailchimp_entities_for_rp_mailing_list(
 @pytest.mark.django_db
 class TestEnsureMailchimpStore:
     def test_when_no_store_exists(self, revenue_program, mocker):
-        revenue_program.mailchimp_store_id = None
-        revenue_program.save()
-        save_spy = mocker.spy(RevenueProgram, "save")
-        my_id = "some-id"
+        mocker.patch("apps.organizations.models.RevenueProgram.mailchimp_store", None)
         mock_make_store = mocker.patch(
-            "apps.organizations.models.RevenueProgram.make_mailchimp_store", return_value=Mock(id=my_id)
+            "apps.organizations.models.RevenueProgram.make_mailchimp_store", return_value=Mock()
         )
-        mock_create_revision = mocker.patch("reversion.create_revision")
-        mock_create_revision.__enter__.return_value = None
-        mock_set_revision_comment = mocker.patch("reversion.set_comment")
         ensure_mailchimp_store.apply(args=(revenue_program.id,)).get()
         mock_make_store.assert_called_once()
-        save_spy.assert_called_once_with(revenue_program, update_fields={"mailchimp_store_id", "modified"})
-        mock_create_revision.assert_called_once()
-        mock_set_revision_comment.assert_called_once_with("ensure_mailchimp_store ran")
 
     def test_when_store_already_exists(self, mocker, revenue_program):
         mocker.patch("apps.organizations.models.RevenueProgram.mailchimp_store", return_value="something-truthy")
@@ -294,21 +285,12 @@ class TestEnsureMailchimpStore:
 @pytest.mark.django_db
 class TestEnsureMailchimpProduct:
     def test_when_no_product_exists(self, revenue_program, mocker):
-        revenue_program.mailchimp_product_id = None
-        revenue_program.save()
-        save_spy = mocker.spy(RevenueProgram, "save")
-        my_id = "some-id"
+        mocker.patch("apps.organizations.models.RevenueProgram.mailchimp_product", None)
         mock_make_product = mocker.patch(
-            "apps.organizations.models.RevenueProgram.make_mailchimp_product", return_value=Mock(id=my_id)
+            "apps.organizations.models.RevenueProgram.make_mailchimp_product", return_value=Mock()
         )
-        mock_create_revision = mocker.patch("reversion.create_revision")
-        mock_create_revision.__enter__.return_value = None
-        mock_set_revision_comment = mocker.patch("reversion.set_comment")
         ensure_mailchimp_product.apply(args=(revenue_program.id,)).get()
         mock_make_product.assert_called_once()
-        save_spy.assert_called_once_with(revenue_program, update_fields={"mailchimp_product_id", "modified"})
-        mock_create_revision.assert_called_once()
-        mock_set_revision_comment.assert_called_once_with("ensure_mailchimp_product ran")
 
     def test_when_product_already_exists(self, mocker, revenue_program):
         mocker.patch("apps.organizations.models.RevenueProgram.mailchimp_product", return_value="something-truthy")

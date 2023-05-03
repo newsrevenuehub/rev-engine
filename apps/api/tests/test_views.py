@@ -163,13 +163,14 @@ def test_magic_link_custom_email_template(rf, mocker, revenue_program, has_defau
     custom_logo = 'src="/media/mock-logo"'
     custom_header_background = "background: #mock-header-background !important"
     custom_button_background = "background: #mock-button-color !important"
+    white_button_text = "color: #ffffff !important"
 
     if revenue_program.organization.plan.name == FreePlan.name or not has_default_donation_page:
         expect_present = (default_logo,)
-        expect_missing = (custom_logo, custom_button_background, custom_header_background)
+        expect_missing = (custom_logo, custom_button_background, custom_header_background, white_button_text)
 
     else:
-        expect_present = (custom_logo, custom_header_background, custom_button_background)
+        expect_present = (custom_logo, custom_header_background, custom_button_background, white_button_text)
         expect_missing = (default_logo,)
 
     for x in expect_present:

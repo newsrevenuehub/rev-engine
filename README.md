@@ -33,6 +33,7 @@
   - [List running apps](#list-running-apps)
   - [Open a shell on an app](#open-a-shell-on-an-app)
 - [Celery Tasks](#celery-tasks)
+- [Email Template Development](#email-template-development)
 - [Frontend Configuration](#frontend-configuration)
 - [Django migrations](#django-migrations)
   - [No automatic migration names](#no-automatic-migration-names)
@@ -419,6 +420,14 @@ If you have a need to run or test tasks using a Celery worker, there are some Ma
 `make run-redis` brings up the dev services, and a redis container that listens on the default port.
 
 `make start-celery` will bring up a Celery worker. At this point any task that expects a celery worker should run without error.
+
+## Email Template Development
+
+If `DEBUG` is set in Django settings, then the app will serve example emails under `/__debug_emails__/`. This can be useful for testing template changes.
+
+Routes that currently exist:
+
+- `http://localhost:8000/__debug_emails__/recurring-contribution/` shows a recurring contribution reminder email. A revenue program ID set in the query string as `rp` is required, e.g. `/recurring-contribution/?rp=3`. You can also override the header logo of the RP's default page with a `logo` query string, e.g. `/recurring-contribution/?rp=3&logo=https://place-hold.it/100x100`.
 
 ## Frontend Configuration
 

@@ -270,6 +270,7 @@ class TransactionalEmailStyle:
     though in theory, this need not be tied to a revenue program.
     """
 
+    is_default_logo: bool = False
     logo_url: str = None
     header_color: str = None
     header_font: str = None
@@ -278,6 +279,7 @@ class TransactionalEmailStyle:
 
 
 HubDefaultEmailStyle = TransactionalEmailStyle(
+    is_default_logo=True,
     logo_url=os.path.join(settings.SITE_URL, "static", "nre-logo-yellow.png"),
     header_color=None,
     header_font=None,
@@ -421,6 +423,7 @@ class RevenueProgram(IndexedTimeStampedModel):
 
         If the RP's org is on free plan, or if there's no default donation page, return the HubDefaultEmailStyle.
         Otherwise, derive a TransactionalEmailStyle instance based on the default donation page's characteristics.
+        If the default page doesn't have a logo, we use the Hub's instead.
         """
         if any(
             [
@@ -432,7 +435,8 @@ class RevenueProgram(IndexedTimeStampedModel):
         else:
             _style = AttrDict(page.styles.styles if page.styles else {})
             return TransactionalEmailStyle(
-                logo_url=page.header_logo.url if page.header_logo else None,
+                is_default_logo=not page.header_logo,
+                logo_url=page.header_logo.url if page.header_logo else HubDefaultEmailStyle.logo_url,
                 header_color=_style.colors.cstm_mainHeader or None,
                 header_font=_style.font.heading or None,
                 body_font=_style.font.body or None,

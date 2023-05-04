@@ -465,15 +465,12 @@ class RevenueProgram(IndexedTimeStampedModel):
     @property
     def mailchimp_product(self) -> MailchimpProduct | None:
         logger.info("Called for rp %s", self.id)
-        if not self.mailchimp_product_id:
-            logger.debug("No mailchimp_product_id on RP %s, returning None", self.id)
-            return None
         if not self.mailchimp_list_id:
             logger.debug("No email list ID on RP %s, returning None", self.id)
             return None
         try:
             client = self.get_mailchimp_client()
-            response = client.ecommerce.get_store_product(self.mailchimp_list_id, self.mailchimp_product_id)
+            response = client.ecommerce.get_store_product(self.mailchimp_store_id, self.mailchimp_product_id)
             return MailchimpProduct(**response)
         except ApiClientError as error:
             if error.status_code == 404:

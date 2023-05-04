@@ -12,7 +12,13 @@ jest.mock('react-alert');
 
 const mockPages = [
   { id: 'mock-page-id-1', name: 'Page 1', revenue_program: { name: 'mock-rp' }, slug: 'mock-rp-page-1' },
-  { id: 'mock-page-id-2', name: 'Page 2', revenue_program: { name: 'mock-rp' }, slug: 'mock-rp-page-2' }
+  {
+    id: 'mock-page-id-2',
+    name: 'Page 2',
+    published_date: new Date().toString(),
+    revenue_program: { name: 'mock-rp' },
+    slug: 'mock-rp-page-2'
+  }
 ];
 
 function hook() {
@@ -233,6 +239,69 @@ describe('useContributionPageList', () => {
       expect(
         result.current.userCanCreatePage({
           organizations: [{ plan: { page_limit: 1 } }, { plan: { page_limit: 0 } }],
+          role_type: [USER_ROLE_ORG_ADMIN_TYPE]
+        } as any)
+      ).toBe(false);
+    });
+  });
+
+  describe('userCanPublishPage', () => {
+    it('always returns true if the user is a Hub admin', () => {
+      const { result } = hook();
+
+      expect(result.current.userCanPublishPage({ role_type: [USER_ROLE_HUB_ADMIN_TYPE] } as any)).toBe(true);
+    });
+
+    it('always returns true if the user is a superuser', () => {
+      const { result } = hook();
+
+      expect(result.current.userCanPublishPage({ role_type: [USER_SUPERUSER_TYPE] } as any)).toBe(true);
+    });
+
+    it('returns false while pages are loading', () => {
+      const { result } = hook();
+
+      expect(
+        result.current.userCanPublishPage({
+          organizations: [{ plan: { page_limit: 0 } }],
+          role_type: [USER_ROLE_ORG_ADMIN_TYPE]
+        } as any)
+      ).toBe(false);
+    });
+
+    // There's one published and one unpublished page in mock data.
+
+    it("returns true if the user is under their first organization's page limit", async () => {
+      const { result, waitFor } = hook();
+
+      await waitFor(() => expect(result.current.pages?.length).toBe(2));
+      expect(
+        result.current.userCanPublishPage({
+          organizations: [{ plan: { publish_limit: 2 } }, { plan: { publish_limit: 0 } }],
+          role_type: [USER_ROLE_ORG_ADMIN_TYPE]
+        } as any)
+      ).toBe(true);
+    });
+
+    it("returns false if the user is at their first organization's page limit", async () => {
+      const { result, waitFor } = hook();
+
+      await waitFor(() => expect(result.current.pages?.length).toBe(2));
+      expect(
+        result.current.userCanCreatePage({
+          organizations: [{ plan: { publish_limit: 1 } }, { plan: { publish_limit: 0 } }],
+          role_type: [USER_ROLE_ORG_ADMIN_TYPE]
+        } as any)
+      ).toBe(false);
+    });
+
+    it("returns false if the user is above their first organization's page limit", async () => {
+      const { result, waitFor } = hook();
+
+      await waitFor(() => expect(result.current.pages?.length).toBe(2));
+      expect(
+        result.current.userCanCreatePage({
+          organizations: [{ plan: { publish_limit: 0 } }, { plan: { publish_limit: 1 } }],
           role_type: [USER_ROLE_ORG_ADMIN_TYPE]
         } as any)
       ).toBe(false);

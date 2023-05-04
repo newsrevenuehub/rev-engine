@@ -116,6 +116,7 @@ class GoogleCloudSecretProvider(SecretProvider):
         secret = None
         try:
             secret = self.client.get_secret(request={"name": (secret_path := self.get_secret_path(obj))})
+            logger.info("secret data is: %s", secret)
         except NotFound:
             logger.debug(
                 "GoogleCloudSecretProvider did not find an existing secret for secret %s. Creating new secret.",
@@ -160,6 +161,8 @@ class GoogleCloudSecretProvider(SecretProvider):
                     secret_name,
                 )
                 raise SecretProviderException("Permission denied")
+        else:
+            logger.warning("GoogleCloudSecretProvider failed to create secret %s", secret_name)
 
     def __delete__(self, obj) -> None:
         logger.info("GoogleCloudSecretProvider deleting secret %s", (secret_name := self.get_secret_name(obj)))

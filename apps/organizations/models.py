@@ -443,13 +443,26 @@ class RevenueProgram(IndexedTimeStampedModel):
                 button_color=_style.colors.cstm_CTAs or None,
             )
 
+    def get_mailchimp_client(self) -> MailchimpMarketing.Client:
+        logger.info("Called for rp %s", self.id)
+        if not self.mailchimp_integration_connected:
+            logger.warning("Called for rp %s which is not connected to Mailchimp")
+            raise ValueError("Mailchimp integration not connected for this revenue program")
+        client = MailchimpMarketing.Client()
+        client.set_config(
+            {
+                "access_token": self.mailchimp_access_token,
+                "server": self.mailchimp_server_prefix,
+            }
+        )
+        return client
+
     @property
     def mailchimp_email_lists(self) -> list[MailchimpEmailList]:
         """"""
         if not all([self.mailchimp_server_prefix, self.mailchimp_access_token]):
             return []
-        client = MailchimpMarketing.Client()
-        client.set_config({"access_token": self.mailchimp_access_token, "server": self.mailchimp_server_prefix})
+        client = self.get_mailchimp_client()
         response = client.lists.get_all_lists(fields="id,name", count=1000)
         return response["lists"]
 

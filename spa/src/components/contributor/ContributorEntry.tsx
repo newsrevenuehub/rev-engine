@@ -15,30 +15,32 @@ import Input from 'elements/inputs/Input';
 
 // Analytics
 import { useConfigureAnalytics } from 'components/analytics';
+import { PageType } from 'constants/propTypes';
+import { AxiosError } from 'axios';
 
-function ContributorEntry({ page }) {
+function ContributorEntry({ page }: { page?: PageType }) {
   const alert = useAlert();
   const [email, setEmail] = useState('');
   const [loading, setLoading] = useState(false);
-  const [errors, setErrors] = useState({});
+  const [errors, setErrors] = useState<{ email?: string[] }>({});
 
   const [showConfirmation, setShowConfirmation] = useState(false);
   const subdomain = useSubdomain();
 
   useConfigureAnalytics();
 
-  const handleSendMagicLink = async (e) => {
-    e.preventDefault();
+  const handleSendMagicLink = async (event: React.MouseEvent<HTMLElement>) => {
+    event.preventDefault();
     setLoading(true);
     setErrors({});
     try {
       const response = await axios.post(GET_MAGIC_LINK, { email, subdomain });
       if (response.status === 200) setShowConfirmation(true);
-    } catch (e) {
-      if (e.response?.status === 429) {
+    } catch (error) {
+      if ((error as AxiosError).response?.status === 429) {
         setErrors({ email: ['Too many attempts. Try again in one minute.'] });
-      } else if (e.response?.data?.email) {
-        setErrors(e.response.data);
+      } else if ((error as AxiosError).response?.data?.email) {
+        setErrors((error as AxiosError).response?.data);
       } else {
         alert.error(GENERIC_ERROR_WITH_SUPPORT_INFO);
       }
@@ -64,9 +66,9 @@ function ContributorEntry({ page }) {
                 label="Enter the email address you used to make a contribution"
                 value={email}
                 type="email"
-                onChange={(e) => setEmail(e.target.value)}
+                onChange={(e: React.ChangeEvent<HTMLInputElement>) => setEmail(e.target.value)}
                 errors={errors.email}
-                testid="magic-link-email-input"
+                data-testid="magic-link-email-input"
               />
             </S.InputWrapper>
             <S.MagicLinkButton onClick={handleSendMagicLink} disabled={loading} data-testid="magic-link-email-button">

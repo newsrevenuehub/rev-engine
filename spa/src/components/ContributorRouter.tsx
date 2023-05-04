@@ -28,8 +28,7 @@ import SegregatedStyles from 'components/donationPage/SegregatedStyles';
 import { SentryRoute } from 'hooks/useSentry';
 import componentLoader from 'utilities/componentLoader';
 import RouterSetup from './routes/RouterSetup';
-import { InferProps } from 'prop-types';
-import { PagePropTypes } from 'constants/propTypes';
+import { PageType } from 'constants/propTypes';
 
 // Split bundles
 const ContributorEntry = lazy(() => componentLoader(() => import('components/contributor/ContributorEntry')));
@@ -38,22 +37,8 @@ const ContributorDashboard = lazy(() =>
   componentLoader(() => import('components/contributor/contributorDashboard/ContributorDashboard'))
 );
 
-export interface PageData extends InferProps<typeof PagePropTypes> {
-  styles: {
-    font: string;
-  };
-  revenue_program: {
-    default_donation_page: unknown;
-    organization: {
-      plan: {
-        name: string;
-      };
-    };
-  };
-}
-
 function ContributorRouter() {
-  const [pageData, setPageData] = useState<PageData | null>(null);
+  const [pageData, setPageData] = useState<PageType | null>(null);
   const [fetchedPageData, setFetchedPageData] = useState(false);
 
   const isFreeOrg = pageData?.revenue_program?.organization?.plan?.name === 'FREE';
@@ -77,7 +62,7 @@ function ContributorRouter() {
         params: requestParams
       },
       {
-        onSuccess: ({ data }: { data: PageData }) => {
+        onSuccess: ({ data }: { data: PageType }) => {
           setPageData(data);
           setFetchedPageData(true);
         },

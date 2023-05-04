@@ -4,11 +4,12 @@ import { ComponentType } from 'react';
 import { Router } from 'react-router-dom';
 import { ThemeProvider } from 'styled-components';
 import { revEngineTheme } from 'styles/themes';
-import ContributorRouter, { PageData } from './ContributorRouter';
+import ContributorRouter from './ContributorRouter';
 import useWebFonts from 'hooks/useWebFonts';
 import useRequest from 'hooks/useRequest';
 import isAuthenticated from 'utilities/isAuthenticated';
 import useSubdomain from 'hooks/useSubdomain';
+import { PageType } from 'constants/propTypes';
 
 jest.mock('utilities/isAuthenticated');
 jest.mock('hooks/useWebFonts');
@@ -36,7 +37,7 @@ jest.mock('components/analytics/TrackPageView', () => ({ component }: { componen
 jest.mock(
   'components/donationPage/SegregatedStyles',
   () =>
-    ({ children, page }: { children: React.ReactNode; page?: PageData }) => {
+    ({ children, page }: { children: React.ReactNode; page?: PageType }) => {
       return (
         <div data-testid="mock-segregated-styles">
           <div data-testid="page-data">{JSON.stringify(page)}</div>
@@ -80,7 +81,7 @@ const mockData = {
       }
     }
   }
-} as PageData;
+} as PageType;
 
 describe('ContributorRouter', () => {
   const useSubdomainMock = jest.mocked(useSubdomain);
@@ -92,7 +93,7 @@ describe('ContributorRouter', () => {
     useSubdomainMock.mockReturnValue('mock-subdomain');
     useRequestMock.mockImplementation(
       () =>
-        (_: any, { onSuccess }: { onSuccess: ({ data }: { data: PageData }) => void }) =>
+        (_: any, { onSuccess }: { onSuccess: ({ data }: { data: PageType }) => void }) =>
           onSuccess({ data: mockData })
     );
   });

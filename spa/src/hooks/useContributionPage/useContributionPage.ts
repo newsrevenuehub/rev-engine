@@ -98,13 +98,18 @@ export function useContributionPage(revenueProgramSlugOrPageId?: number | string
     { enabled: !!revenueProgramSlugOrPageId }
   );
 
-  const deletePageMutation = useMutation(() => {
-    if (!page) {
-      throw new Error('Page is not yet defined');
-    }
+  const deletePageMutation = useMutation(
+    () => {
+      if (!page) {
+        throw new Error('Page is not yet defined');
+      }
 
-    return axios.delete(`${DELETE_PAGE}${page.id}/`);
-  });
+      return axios.delete(`${DELETE_PAGE}${page.id}/`);
+    },
+    {
+      onSuccess: () => queryClient.invalidateQueries(['pages'])
+    }
+  );
 
   const deletePage = useCallback(async () => {
     try {
@@ -128,8 +133,10 @@ export function useContributionPage(revenueProgramSlugOrPageId?: number | string
       return axios.patch(`${PATCH_PAGE}${page.id}/`, data);
     },
     {
-      onSuccess: () =>
-        queryClient.invalidateQueries({ queryKey: ['contributionPage', revenueProgramSlugOrPageId, pageSlug] })
+      onSuccess: () => {
+        queryClient.invalidateQueries(['pages']);
+        queryClient.invalidateQueries({ queryKey: ['contributionPage', revenueProgramSlugOrPageId, pageSlug] });
+      }
     }
   );
 

@@ -4,7 +4,12 @@ import { useAlert } from 'react-alert';
 import { formDataToObject, TestQueryClientProvider } from 'test-utils';
 import Axios from 'ajax/axios';
 import useContributionPage from './useContributionPage';
+import { useQueryClient } from '@tanstack/react-query';
 
+jest.mock('@tanstack/react-query', () => ({
+  ...jest.requireActual('@tanstack/react-query'),
+  useQueryClient: jest.fn()
+}));
 jest.mock('react-alert');
 
 const mockPage = {
@@ -18,14 +23,16 @@ const testHookWithSlugs = () => useContributionPage('mock-rp-slug', 'mock-page-s
 
 describe('useContributionPage', () => {
   const axiosMock = new MockAdapter(Axios);
-  const useAlertMock = useAlert as jest.Mock;
+  const useQueryClientMock = jest.mocked(useQueryClient);
+  const useAlertMock = jest.mocked(useAlert);
 
   beforeEach(() => {
     axiosMock.onGet('pages/1/').reply(200, mockPage);
     axiosMock
       .onGet('pages/draft-detail/', { revenue_program: 'mock-rp-slug', page: 'mock-page-slug' })
       .reply(200, mockPage);
-    useAlertMock.mockReturnValue({ error: jest.fn(), success: jest.fn() });
+    useAlertMock.mockReturnValue({ error: jest.fn(), success: jest.fn() } as any);
+    useQueryClientMock.mockReturnValue({ invalidateQueries: jest.fn() } as any);
   });
   afterEach(() => axiosMock.reset());
   afterAll(() => axiosMock.restore());
@@ -221,6 +228,22 @@ describe('useContributionPage', () => {
       await waitForNextUpdate();
     });
 
+    it('invalidates the page list query if it succeeds', async () => {
+      const invalidateQueries = jest.fn();
+
+      useQueryClientMock.mockReturnValue({ invalidateQueries } as any);
+      axiosMock.onDelete(`pages/${mockPage.id}/`).reply(204);
+
+      const { result, waitForNextUpdate } = renderHook(testHookWithSlugs, {
+        wrapper: TestQueryClientProvider
+      });
+
+      await waitForNextUpdate();
+      await result.current.deletePage!();
+      await waitForNextUpdate();
+      expect(invalidateQueries.mock.calls).toEqual([[['pages']]]);
+    });
+
     describe('If the DELETE fails', () => {
       let errorSpy: jest.SpyInstance;
 
@@ -247,7 +270,7 @@ describe('useContributionPage', () => {
       it('displays an error alert to the user', async () => {
         const error = jest.fn();
 
-        useAlertMock.mockReturnValue({ error });
+        useAlertMock.mockReturnValue({ error, success: jest.fn() } as any);
 
         const { result, waitForNextUpdate } = renderHook(testHookWithSlugs, { wrapper: TestQueryClientProvider });
 
@@ -302,7 +325,7 @@ describe('useContributionPage', () => {
     it('displays a success notification if the PATCH succeeds', async () => {
       const success = jest.fn();
 
-      useAlertMock.mockReturnValue({ success });
+      useAlertMock.mockReturnValue({ success, error: jest.fn() } as any);
 
       axiosMock.onPatch(`pages/${mockPage.id}/`).reply(200, mockPage);
 
@@ -312,6 +335,25 @@ describe('useContributionPage', () => {
       expect(success).not.toBeCalled();
       await result.current.updatePage!({});
       expect(success).toBeCalledTimes(1);
+    });
+
+    it('invalidates the page and page list queries if it succeeds', async () => {
+      const invalidateQueries = jest.fn();
+
+      useQueryClientMock.mockReturnValue({ invalidateQueries } as any);
+      axiosMock.onPatch(`pages/${mockPage.id}/`).reply(200, mockPage);
+
+      const { result, waitForNextUpdate } = renderHook(testHookWithSlugs, {
+        wrapper: TestQueryClientProvider
+      });
+
+      await waitForNextUpdate();
+      await result.current.updatePage!({});
+      await waitForNextUpdate();
+      expect(invalidateQueries.mock.calls).toEqual([
+        [['pages']],
+        [{ queryKey: ['contributionPage', 'mock-rp-slug', 'mock-page-slug'] }]
+      ]);
     });
 
     describe('If the PATCH fails', () => {

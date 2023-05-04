@@ -9,6 +9,7 @@ jest.mock('react-router-dom', () => ({
   ...jest.requireActual('react-router-dom'),
   useHistory: jest.fn()
 }));
+jest.mock('components/common/Button/PublishButton/PublishButton');
 
 const page = {
   name: 'Page Name',
@@ -72,7 +73,7 @@ describe('PageEditorTopbar', () => {
 
   it('shows a publish button', () => {
     tree();
-    expect(screen.getByTestId('publish-button')).toBeVisible();
+    expect(screen.getByTestId('mock-publish-button')).toBeVisible();
   });
 
   it('shows a back button', () => {

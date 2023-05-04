@@ -73,11 +73,12 @@ class TestPlans:
         assert asdict(FreePlan) == {
             "name": "FREE",
             "label": "Free",
-            "page_limit": 1,
+            "page_limit": 2,
             "style_limit": 1,
             "custom_thank_you_page_enabled": False,
             "sidebar_elements": DEFAULT_PERMITTED_SIDEBAR_ELEMENTS,
             "page_elements": DEFAULT_PERMITTED_PAGE_ELEMENTS,
+            "publish_limit": 1,
         }
 
     def test_plus_plan_characteristics(self):
@@ -89,17 +90,19 @@ class TestPlans:
             "custom_thank_you_page_enabled": True,
             "sidebar_elements": DEFAULT_PERMITTED_SIDEBAR_ELEMENTS + [BENEFITS],
             "page_elements": DEFAULT_PERMITTED_PAGE_ELEMENTS + [SWAG],
+            "publish_limit": UNLIMITED_CEILING,
         }
 
     def test_core_plan_characteristics(self):
         assert asdict(CorePlan) == {
             "name": "CORE",
             "label": "Core",
-            "page_limit": UNLIMITED_CEILING,
+            "page_limit": 5,
             "style_limit": UNLIMITED_CEILING,
             "custom_thank_you_page_enabled": True,
             "sidebar_elements": DEFAULT_PERMITTED_SIDEBAR_ELEMENTS + [BENEFITS],
             "page_elements": DEFAULT_PERMITTED_PAGE_ELEMENTS + [SWAG],
+            "publish_limit": 2,
         }
 
     @pytest.mark.parametrize(
@@ -551,11 +554,7 @@ class TestRevenueProgram:
                     "revenue_program_with_default_donation_page_but_no_transactional_email_style_values"
                 ),
                 lambda rp: TransactionalEmailStyle(
-                    logo_url=None,
-                    header_color=None,
-                    header_font=None,
-                    body_font=None,
-                    button_color=None,
+                    logo_url=None, header_color=None, header_font=None, body_font=None, button_color=None
                 ),
             ),
         ),

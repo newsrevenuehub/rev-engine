@@ -1,3 +1,4 @@
+import os
 import uuid
 from time import time
 from urllib.parse import parse_qs, urlparse
@@ -11,6 +12,7 @@ from django.utils.timezone import timedelta
 
 import jwt
 import pytest
+import pytest_cases
 from bs4 import BeautifulSoup as bs4
 from rest_framework.reverse import reverse
 from rest_framework.test import APITestCase
@@ -26,11 +28,13 @@ from apps.api.views import (
 )
 from apps.contributions.models import Contributor
 from apps.contributions.tests.factories import ContributorFactory
+from apps.organizations.models import FreePlan
 from apps.organizations.tests.factories import (
     OrganizationFactory,
     PaymentProviderFactory,
     RevenueProgramFactory,
 )
+from apps.pages.tests.factories import DonationPageFactory, StyleFactory
 
 
 user_model = get_user_model()
@@ -93,6 +97,86 @@ class TokenObtainPairCookieViewTest(APITestCase):
 
         self.assertEqual(response.status_code, 200)
         self.assertEqual(response.cookies.get("Authorization")._value, "")
+
+
+@pytest_cases.parametrize(
+    "revenue_program",
+    (
+        pytest_cases.fixture_ref("free_plan_revenue_program"),
+        pytest_cases.fixture_ref("core_plan_revenue_program"),
+        pytest_cases.fixture_ref("plus_plan_revenue_program"),
+    ),
+)
+@pytest.mark.parametrize(
+    "has_default_donation_page",
+    (False, True),
+)
+@pytest.mark.django_db()
+@override_settings(CELERY_ALWAYS_EAGER=True)
+def test_magic_link_custom_email_template(rf, mocker, revenue_program, has_default_donation_page, client):
+    email = "vanilla@email.com"
+
+    """This test spans two requests, first requesting magic link, then using data in the magic link to verify contributor token
+
+    Ultimately, it is the SPA's repsonsiblity to correctly handle the data provided in the magic link, but assuming it
+    extracts the values for `email` and `token` that are provided in magic link, and posts them in data sent to
+    the contributor-verify-token endpoint, this test proves that the resulting response will be a success and will contain
+    a JWT with a future expiration for the requesting user.
+    """
+    from apps.emails import tasks as email_tasks
+
+    spy = mocker.spy(email_tasks, "send_mail")
+
+    if has_default_donation_page:
+        style = StyleFactory()
+        style.styles = style.styles | {
+            "colors": {
+                "cstm_mainHeader": "#mock-header-background",
+                "cstm_CTAs": "#mock-button-color",
+            },
+            "font": {"heading": "mock-header-font", "body": "mock-body-font"},
+        }
+        style.save()
+        page = DonationPageFactory(revenue_program=revenue_program, styles=style, header_logo="mock-logo")
+        revenue_program.default_donation_page = page
+        revenue_program.save()
+
+    request = rf.post(
+        "/",
+        data={
+            "email": email,
+            "subdomain": revenue_program.slug,
+        },
+    )
+    response = RequestContributorTokenEmailView.as_view()(request)
+    assert response.status_code == 200
+    assert spy.call_count == 1
+    subject, text_body, _, to_email_list = spy.call_args_list[0][0]
+    html_body = spy.call_args_list[0][1]["html_message"]
+    html_magic_link = bs4(html_body, "html.parser").find("a", {"data-testid": "magic-link"}).attrs["href"]
+    assert html_magic_link in text_body
+    assert subject == "Manage your contributions"
+    assert to_email_list[0] == email
+    assert len(to_email_list) == 1
+
+    default_logo = os.path.join(settings.SITE_URL, "static", "nre-logo-yellow.png")
+    custom_logo = 'src="/media/mock-logo"'
+    custom_header_background = "background: #mock-header-background !important"
+    custom_button_background = "background: #mock-button-color !important"
+    white_button_text = "color: #ffffff !important"
+
+    if revenue_program.organization.plan.name == FreePlan.name or not has_default_donation_page:
+        expect_present = (default_logo,)
+        expect_missing = (custom_logo, custom_button_background, custom_header_background, white_button_text)
+
+    else:
+        expect_present = (custom_logo, custom_header_background, custom_button_background, white_button_text)
+        expect_missing = (default_logo,)
+
+    for x in expect_present:
+        assert x in html_body
+    for x in expect_missing:
+        assert x not in html_body
 
 
 @pytest.mark.parametrize(

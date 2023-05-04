@@ -55,7 +55,8 @@ class Plan:
     label: str
     sidebar_elements: list[str] = field(default_factory=lambda: DEFAULT_PERMITTED_SIDEBAR_ELEMENTS)
     page_elements: list[str] = field(default_factory=lambda: DEFAULT_PERMITTED_PAGE_ELEMENTS)
-    page_limit: int = 1
+    page_limit: int = 2
+    publish_limit: int = 1
     style_limit: int = 1
     custom_thank_you_page_enabled: bool = False
 
@@ -66,19 +67,28 @@ FreePlan = Plan(
 )
 
 
-plus_plan = {
-    "name": "PLUS",
-    "label": "Plus",
-    # If this limit gets hit, it can be dealt with as a customer service issue.
-    "page_limit": UNLIMITED_CEILING,
-    "style_limit": UNLIMITED_CEILING,
-    "custom_thank_you_page_enabled": True,
-    "sidebar_elements": DEFAULT_PERMITTED_SIDEBAR_ELEMENTS + [BENEFITS],
-    "page_elements": DEFAULT_PERMITTED_PAGE_ELEMENTS + [SWAG],
-}
+CorePlan = Plan(
+    name="CORE",
+    label="Core",
+    page_limit=5,
+    publish_limit=2,
+    style_limit=UNLIMITED_CEILING,
+    sidebar_elements=DEFAULT_PERMITTED_SIDEBAR_ELEMENTS + [BENEFITS],
+    page_elements=DEFAULT_PERMITTED_PAGE_ELEMENTS + [SWAG],
+    custom_thank_you_page_enabled=True,
+)
 
-PlusPlan = Plan(**plus_plan)
-CorePlan = Plan(**(plus_plan | {"name": "CORE", "label": "Core"}))
+PlusPlan = Plan(
+    name="PLUS",
+    label="Plus",
+    # If this limit gets hit, it can be dealt with as a customer service issue.
+    page_limit=UNLIMITED_CEILING,
+    publish_limit=UNLIMITED_CEILING,
+    style_limit=UNLIMITED_CEILING,
+    custom_thank_you_page_enabled=True,
+    sidebar_elements=DEFAULT_PERMITTED_SIDEBAR_ELEMENTS + [BENEFITS],
+    page_elements=DEFAULT_PERMITTED_PAGE_ELEMENTS + [SWAG],
+)
 
 
 class Plans(models.TextChoices):
@@ -268,7 +278,7 @@ class TransactionalEmailStyle:
 
 
 HubDefaultEmailStyle = TransactionalEmailStyle(
-    logo_url=os.path.join(settings.SITE_URL, "static", "nre-logo-white.png"),
+    logo_url=os.path.join(settings.SITE_URL, "static", "nre-logo-yellow.png"),
     header_color=None,
     header_font=None,
     body_font=None,
@@ -358,7 +368,7 @@ class RevenueProgram(IndexedTimeStampedModel):
         help_text="2-letter country code of RP's company. This gets included in data sent to stripe when creating a payment",
     )
     # The next two values are used to make requests to Mailchimp on behalf of our users.
-    mailchimp_server_prefix = models.TextField(null=True, blank=True)
+    mailchimp_server_prefix = models.CharField(max_length=100, null=True, blank=True)
     # TODO: DEV-3302 this is a temporary field, to be removed in https://news-revenue-hub.atlassian.net/browse/DEV-3302
     mailchimp_access_token = models.TextField(null=True, blank=True)
 
@@ -410,7 +420,7 @@ class RevenueProgram(IndexedTimeStampedModel):
         templates can assume that the values provided by this property are always present.
 
         If the RP's org is on free plan, or if there's no default donation page, return the HubDefaultEmailStyle.
-        Otherwise, derive a TransactionalEmailStyle instance based on the default donation page's chracteristics.
+        Otherwise, derive a TransactionalEmailStyle instance based on the default donation page's characteristics.
         """
         if any(
             [
@@ -438,7 +448,7 @@ class RevenueProgram(IndexedTimeStampedModel):
             client = MailchimpMarketing.Client()
             client.set_config({"access_token": self.mailchimp_access_token, "server": self.mailchimp_server_prefix})
             response = client.lists.get_all_lists(fields="id,name", count=1000)
-            return response["lists"]
+            return response.json().get("lists", [])
         except ApiClientError:
             logger.exception(
                 "`RevenueProgram.mailchimp_email_lists` failed to fetch email lists from Mailchimp for RP with ID %s mc server prefix %s",

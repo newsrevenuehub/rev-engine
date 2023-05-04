@@ -7,6 +7,7 @@ from urllib.parse import quote_plus
 
 from django.conf import settings
 from django.db import models
+from django.template.loader import render_to_string
 from django.utils.safestring import SafeString, mark_safe
 
 import stripe
@@ -14,7 +15,8 @@ from addict import Dict as AttrDict
 
 from apps.api.tokens import ContributorRefreshToken
 from apps.common.models import IndexedTimeStampedModel
-from apps.emails.tasks import send_thank_you_email
+from apps.contributions.choices import BadActorScores, ContributionInterval, ContributionStatus
+from apps.emails.tasks import make_send_thank_you_email_data, send_thank_you_email
 from apps.organizations.models import RevenueProgram
 from apps.users.choices import Roles
 from apps.users.models import RoleAssignment
@@ -71,6 +73,7 @@ class Contributor(IndexedTimeStampedModel):
         customer_name=None,
         phone=None,
         street=None,
+        complement=None,  # apt, room, aka "line2"
         city=None,
         state=None,
         postal_code=None,
@@ -80,6 +83,7 @@ class Contributor(IndexedTimeStampedModel):
         """Create a Stripe customer using contributor email"""
         address = {
             "line1": street,
+            "line2": complement or "",
             "city": city,
             "state": state,
             "postal_code": postal_code,
@@ -108,63 +112,6 @@ class Contributor(IndexedTimeStampedModel):
             f"https://{construct_rp_domain(contribution.donation_page.revenue_program.slug)}/{settings.CONTRIBUTOR_VERIFY_URL}"
             f"?token={token}&email={quote_plus(contribution.contributor.email)}"
         )
-
-
-class ContributionInterval(models.TextChoices):
-    ONE_TIME = "one_time", "One time"
-    MONTHLY = "month", "Monthly"
-    YEARLY = "year", "Yearly"
-
-
-class ContributionStatus(models.TextChoices):
-    PROCESSING = "processing", "processing"
-    PAID = "paid", "paid"
-    CANCELED = "canceled", "canceled"
-    FAILED = "failed", "failed"
-    FLAGGED = "flagged", "flagged"
-    REJECTED = "rejected", "rejected"
-    REFUNDED = "refunded", "refunded"
-
-
-class CardBrand(models.TextChoices):
-    AMEX = "amex", "Amex"
-    DINERS = "diners", "Diners"
-    DISCOVER = "discover", "Discover"
-    JCB = "jcb", "JCB"
-    MASTERCARD = "mastercard", "Mastercard"
-    UNIONPAY = "unionpay", "UnionPay"
-    VISA = "visa", "Visa"
-    UNKNOWN = "unknown", "Unknown"
-
-
-class PaymentType(models.TextChoices):
-    ACH_CREDIT_TRANSFER = "ach_credit_transfer", "ACH Credit Transfer"
-    ACH_DEBIT = "ach_debit", "ACH Debit"
-    ACSS_DEBIT = "acss_debit", "ACSS Debit"
-    ALIPAY = "alipay", "AliPay"
-    AU_BECS_DEBIT = "au_becs_debit", "AU BECS Debit"
-    BANCONTACT = "bancontact", "Bancontact"
-    CARD = "card", "Card"
-    CARD_PRESENT = "card_present", "Card Present"
-    EPS = "eps", "EPS"
-    GIROPAY = "giropay", "Giropay"
-    IDEAL = "ideal", "Ideal"
-    KLARNA = "klarna", "Klarna"
-    MULTIBANCO = "multibanco", "Multibanco"
-    P24 = "p24", "p24"
-    SEPA_DEBIT = "sepa_debit", "Sepa Debit"
-    SOFORT = "sofort", "Sofort"
-    STRIPE_ACCOUNT = "stripe_account", "Stripe Account"
-    WECHAT = "wechat", "WeChat"
-
-
-class BadActorScores(models.IntegerChoices):
-    INFORMATION = 0, "0 - Information"
-    UNKNOWN = 1, "1 - Unknown"
-    GOOD = 2, "2 - Good"
-    SUSPECT = 3, "3 - Suspect"
-    BAD = 4, "4 - Bad"
-    SUPERBAD = 5, "5 - Very Bad"
 
 
 class CachedStripeContributionResult(TypedDict):
@@ -408,6 +355,7 @@ class Contribution(IndexedTimeStampedModel):
         last_name=None,
         phone=None,
         mailing_street=None,
+        mailing_complement=None,  # apt, room, aka "line2"
         mailing_city=None,
         mailing_state=None,
         mailing_postal_code=None,
@@ -417,6 +365,7 @@ class Contribution(IndexedTimeStampedModel):
         """Create a Stripe customer using contributor email"""
         address = {
             "line1": mailing_street,
+            "line2": mailing_complement or "",
             "city": mailing_city,
             "state": mailing_state,
             "postal_code": mailing_postal_code,
@@ -544,8 +493,15 @@ class Contribution(IndexedTimeStampedModel):
     def handle_thank_you_email(self):
         """Send a thank you email to contribution's contributor if org is configured to have NRE send thank you email"""
         logger.info("`Contribution.handle_thank_you_email` called on contribution with ID %s", self.id)
-        if self.revenue_program.organization.send_receipt_email_via_nre:
-            send_thank_you_email.delay(self.id)
+        if (org := self.revenue_program.organization).send_receipt_email_via_nre:
+            logger.info("Contribution.handle_thank_you_email: the parent org (%s) sends emails with NRE", org.id)
+            data = make_send_thank_you_email_data(self)
+            send_thank_you_email.delay(data)
+        else:
+            logger.info(
+                "Contribution.handle_thank_you_email called on contribution %s the parent org of which does not send email with NRE",
+                self.id,
+            )
 
     def send_recurring_contribution_email_reminder(self, next_charge_date: datetime.date) -> None:
         # vs. circular import
@@ -559,30 +515,29 @@ class Contribution(IndexedTimeStampedModel):
             )
             return
         token = str(ContributorRefreshToken.for_contributor(self.contributor.uuid).short_lived_access_token)
-
+        data = {
+            "rp_name": self.donation_page.revenue_program.name,
+            # nb, we have to send this as pre-formatted because this data will be serialized
+            # when sent to the Celery worker.
+            "contribution_date": next_charge_date.strftime("%m/%d/%Y"),
+            "contribution_amount": self.formatted_amount,
+            "contribution_interval_display_value": self.interval,
+            "non_profit": self.donation_page.revenue_program.non_profit,
+            "contributor_email": self.contributor.email,
+            "tax_id": self.donation_page.revenue_program.tax_id,
+            "fiscal_status": self.donation_page.revenue_program.fiscal_status,
+            "fiscal_sponsor_name": self.donation_page.revenue_program.fiscal_sponsor_name,
+            "magic_link": mark_safe(
+                f"https://{construct_rp_domain(self.donation_page.revenue_program.slug)}/{settings.CONTRIBUTOR_VERIFY_URL}"
+                f"?token={token}&email={quote_plus(self.contributor.email)}"
+            ),
+            "style": asdict(self.donation_page.revenue_program.transactional_email_style),
+        }
         send_templated_email.delay(
             self.contributor.email,
             f"Reminder: {self.donation_page.revenue_program.name} scheduled contribution",
-            "recurring-contribution-email-reminder.txt",
-            "recurring-contribution-email-reminder.html",
-            {
-                "rp_name": self.donation_page.revenue_program.name,
-                # nb, we have to send this as pre-formatted because this data will be serialized
-                # when sent to the Celery worker.
-                "contribution_date": next_charge_date.strftime("%m/%d/%Y"),
-                "contribution_amount": self.formatted_amount,
-                "contribution_interval_display_value": self.interval,
-                "non_profit": self.donation_page.revenue_program.non_profit,
-                "contributor_email": self.contributor.email,
-                "tax_id": self.donation_page.revenue_program.tax_id,
-                "fiscal_status": self.donation_page.revenue_program.fiscal_status,
-                "fiscal_sponsor_name": self.donation_page.revenue_program.fiscal_sponsor_name,
-                "magic_link": mark_safe(
-                    f"https://{construct_rp_domain(self.donation_page.revenue_program.slug)}/{settings.CONTRIBUTOR_VERIFY_URL}"
-                    f"?token={token}&email={quote_plus(self.contributor.email)}"
-                ),
-                "style": asdict(self.donation_page.revenue_program.transactional_email_style),
-            },
+            render_to_string("recurring-contribution-email-reminder.txt", data),
+            render_to_string("recurring-contribution-email-reminder.html", data),
         )
 
     @staticmethod

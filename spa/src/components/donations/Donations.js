@@ -15,6 +15,7 @@ import { NO_VALUE } from 'constants/textConstants';
 import { DONATIONS_SLUG } from 'routes';
 
 // Util
+import { pageIsPublished } from 'utilities/editPageGetSuccessMessage';
 import formatCurrencyAmount from 'utilities/formatCurrencyAmount';
 import formatDatetimeForDisplay from 'utilities/formatDatetimeForDisplay';
 
@@ -34,6 +35,7 @@ import useConnectStripeAccount from 'hooks/useConnectStripeAccount';
 import useContributionPageList from 'hooks/useContributionPageList';
 import { SentryRoute } from 'hooks/useSentry';
 import useUser from 'hooks/useUser';
+import { DonationUpgradePrompts } from './DonationUpgradePrompts';
 
 const Donations = () => {
   const { path } = useRouteMatch();
@@ -55,7 +57,7 @@ const Donations = () => {
   };
 
   const bannerType = useMemo(() => {
-    const hasPublished = !!pages?.find((_) => _.published_date);
+    const hasPublished = pages && pages.some((page) => pageIsPublished(page));
     if (
       user?.role_type?.includes('hub_admin') ||
       user?.role_type?.includes('Hub Admin') ||
@@ -155,7 +157,10 @@ const Donations = () => {
   return (
     <>
       <PageTitle title="Contributions" />
-      <div data-testid="donations" style={{ display: 'flex', flexDirection: 'column', height: '100%' }}>
+      <div
+        data-testid="donations"
+        style={{ display: 'flex', flexDirection: 'column', height: '100%', position: 'relative' }}
+      >
         <Switch>
           <SentryRoute path={`${path}:contributionId`}>
             <DashboardSection heading="Contribution Info">
@@ -179,6 +184,7 @@ const Donations = () => {
               placeholder="Contributions"
               exportData={{ email: user.email, transactions: maxData }}
             />
+            <DonationUpgradePrompts />
             <Filters
               filters={filters}
               handleFilterChange={handleFilterChange}

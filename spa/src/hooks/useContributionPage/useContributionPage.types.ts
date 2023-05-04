@@ -96,6 +96,22 @@ export interface ContributionPageElement {
    * Internal ID of the element.
    */
   uuid: string;
+  /**
+   * User-visible name of the element.
+   */
+  displayName?: string;
+  /**
+   * User-visible description of the element.
+   */
+  description?: string;
+  /**
+   * Element is required to exist in a page?
+   */
+  required?: boolean;
+  /**
+   * Element can only exist once in a single page?
+   */
+  unique?: boolean;
 }
 
 export interface AmountElement extends ContributionPageElement {
@@ -124,6 +140,14 @@ export interface DonorAddressElement extends ContributionPageElement {
      * as-is, and order is not significant.
      */
     additionalStateFieldLabels?: DonorAddressElementAdditionalStateFieldLabel[];
+    /**
+     * Address fields are optional?
+     */
+    addressOptional?: boolean;
+    /**
+     * Show zip code and country fields only?
+     */
+    zipAndCountryOnly?: boolean;
   };
 }
 
@@ -294,6 +318,10 @@ export interface RevenueProgram {
    * EIN tax ID.
    */
   tax_id?: string | null;
+  /**
+   * Is Mailchimp connected?
+   */
+  mailchimp_integration_connected?: boolean;
 }
 
 /**
@@ -436,7 +464,7 @@ export interface ContributionPage {
    */
   revenue_program: RevenueProgram;
   /**
-   * FIPS code of the country that the revenue program belongs to.
+   * ISO-3166 code of the country that the revenue program belongs to.
    */
   revenue_program_country: string;
   /**

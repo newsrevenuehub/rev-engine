@@ -1,5 +1,5 @@
 import styled from 'styled-components';
-import { CountrySelect as BaseCountrySelect, TextField as BaseTextField } from 'components/base';
+import { CountrySelect as BaseCountrySelect, TextField as BaseTextField, Button as BaseButton } from 'components/base';
 
 // Our select uses the new text field (under components/base) for display. For
 // the time being, we make it look like the old text fields on the rest of the
@@ -24,7 +24,9 @@ export const CountrySelect = styled(BaseCountrySelect)`
     }
 
     .NreAutocompleteInput {
+      background: ${({ theme }) => theme.colors.cstm_inputBackground};
       border: 1px solid #080708;
+      border-color: ${({ theme }) => theme.colors.cstm_inputBorder};
       border-radius: 3px;
       height: 19px;
 
@@ -64,7 +66,9 @@ export const TextField = styled(BaseTextField)`
 
     .NreTextFieldInput,
     .Mui-error .NreTextFieldInput {
+      background: ${({ theme }) => theme.colors.cstm_inputBackground};
       border: 1px solid #080708;
+      border-color: ${({ theme }) => theme.colors.cstm_inputBorder};
       border-radius: 3px;
       height: 19px;
 
@@ -87,4 +91,41 @@ export const TextField = styled(BaseTextField)`
       padding: 0;
     }
   }
+`;
+
+export const Button = styled(BaseButton)<{ $showComplement: boolean }>`
+  && {
+    margin-top: 8px;
+    font-weight: 500;
+    text-transform: none;
+    text-decoration: underline;
+    background: none;
+    border-color: white;
+    box-shadow: none;
+    padding: 0;
+    height: unset;
+
+    .NreButtonLabel {
+      color: ${({ theme }) => theme.colors.muiGrey[900]};
+
+      ${({ $showComplement, theme }) => $showComplement && `color: ${theme.colors.muiGrey[600]};`}
+    }
+
+    &:hover,
+    &:active,
+    &:hover:active {
+      box-shadow: none;
+      background: transparent;
+      text-decoration: underline;
+    }
+
+    &:disabled {
+      background-color: unset;
+    }
+  }
+`;
+
+export const CollapseChild = styled.div`
+  width: 100%;
+  padding: 12px;
 `;

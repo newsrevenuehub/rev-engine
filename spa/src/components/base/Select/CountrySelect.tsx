@@ -5,7 +5,7 @@ import { SearchableSelect, SearchableSelectProps } from './SearchableSelect';
 
 export interface CountryOption {
   label: string;
-  fipsCode: string;
+  isoCode: string;
 }
 
 export interface CountrySelectProps extends Omit<SearchableSelectProps<CountryOption>, 'options' | 'value'> {
@@ -13,13 +13,13 @@ export interface CountrySelectProps extends Omit<SearchableSelectProps<CountryOp
 }
 
 const options: CountryOption[] = countryCodes.countries
-  .filter(({ fips }) => fips !== '')
-  .map(({ fips, country }) => ({ label: country, fipsCode: fips }))
+  .filter(({ iso2 }) => iso2 !== '')
+  .map(({ iso2, country }) => ({ label: country, isoCode: iso2 }))
   .sort((a, b) => a.label.localeCompare(b.label));
 
 export function CountrySelect(props: CountrySelectProps) {
-  const { value: fipsValue, ...rest } = props;
-  const selected = useMemo(() => options.find(({ fipsCode }) => fipsValue === fipsCode), [fipsValue]);
+  const { value: isoValue, ...rest } = props;
+  const selected = useMemo(() => options.find(({ isoCode }) => isoCode === isoValue), [isoValue]);
 
   // Browser autofill doesn't play well with the MUI Autocomplete component, so
   // we render a hidden text input that browsers *will* autofill. When the input

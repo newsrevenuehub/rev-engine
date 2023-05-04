@@ -16,6 +16,7 @@ Default.args = {
     { value: CONTRIBUTION_INTERVALS.MONTHLY, displayName: 'Monthly', isDefault: true },
     { value: CONTRIBUTION_INTERVALS.ANNUAL, displayName: 'Yearly' }
   ],
+  onChangeElementContent: () => {},
   setUpdateDisabled: () => {}
 };
 

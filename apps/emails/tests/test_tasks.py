@@ -143,8 +143,8 @@ class TestSendThankYouEmail:
 
         default_logo = os.path.join(settings.SITE_URL, "static", "nre-logo-yellow.png")
         custom_logo = 'src="/media/mock-logo"'
-        custom_header_background = "background: #mock-header-background !important"
-        custom_button_background = "background: #mock-button-color !important"
+        custom_header_background = "header-background: #mock-header-background !important"
+        custom_button_background = "header-background: #mock-button-color !important"
 
         if revenue_program.organization.plan.name == FreePlan.name or not default_style:
             expect_present = default_logo

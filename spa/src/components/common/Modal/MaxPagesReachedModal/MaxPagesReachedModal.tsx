@@ -1,5 +1,6 @@
 import { Button, LinkButton, Modal, ModalFooter } from 'components/base';
 import { CORE_UPGRADE_URL, PRICING_URL } from 'constants/helperUrls';
+import { PLAN_NAMES } from 'constants/orgPlanConstants';
 import { EnginePlan } from 'hooks/useContributionPage';
 import PropTypes, { InferProps } from 'prop-types';
 import {
@@ -18,17 +19,11 @@ import {
 
 export type UpgradePlan = Exclude<EnginePlan['name'], 'FREE'>;
 
-const planNames: Record<EnginePlan['name'], string> = {
-  CORE: 'Core',
-  FREE: 'Free',
-  PLUS: 'Plus'
-};
-
 const MaxPagesReachedModalPropTypes = {
-  currentPlan: PropTypes.oneOf(Object.keys(planNames)).isRequired,
+  currentPlan: PropTypes.oneOf(Object.keys(PLAN_NAMES)).isRequired,
   onClose: PropTypes.func.isRequired,
   open: PropTypes.bool,
-  recommendedPlan: PropTypes.oneOf(Object.keys(planNames).filter((name) => name !== 'FREE'))
+  recommendedPlan: PropTypes.oneOf(Object.keys(PLAN_NAMES).filter((name) => name !== 'FREE'))
 };
 
 export interface MaxPagesReachedModalProps extends InferProps<typeof MaxPagesReachedModalPropTypes> {
@@ -47,16 +42,16 @@ export function MaxPagesReachedModal({ currentPlan, onClose, open, recommendedPl
       </ModalHeader>
       <ModalContent>
         <PlanLimit data-testid="plan-limit">
-          You've reached the <RedEmphasis>maximum</RedEmphasis> number of pages for the {planNames[currentPlan]} tier.
+          You've reached the <RedEmphasis>maximum</RedEmphasis> number of pages for the {PLAN_NAMES[currentPlan]} tier.
         </PlanLimit>
         {recommendedPlan && (
           <>
             <Recommendation data-testid="recommendation">
               <strong>Want to create more pages?</strong> Check out{' '}
-              {recommendedPlan !== 'PLUS' && planNames[recommendedPlan]}
+              {recommendedPlan !== 'PLUS' && PLAN_NAMES[recommendedPlan]}
               {recommendedPlan === 'PLUS' && (
                 <PricingLink href={PRICING_URL} target="_blank">
-                  {planNames[recommendedPlan]}
+                  {PLAN_NAMES[recommendedPlan]}
                 </PricingLink>
               )}
               .

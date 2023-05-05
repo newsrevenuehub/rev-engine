@@ -91,6 +91,7 @@ DEFAULT_FILE_STORAGE = os.getenv("DEFAULT_FILE_STORAGE", "django.core.files.stor
 
 # Google cloud
 GOOGLE_CLOUD_PROJECT = os.getenv("GOOGLE_CLOUD_PROJECT", "revenue-engine")
+GOOGLE_CLOUD_PROJECT_ID = os.getenv("GOOGLE_CLOUD_PROJECT_ID", None)
 #   Pub/Sub
 ENABLE_PUBSUB = os.getenv("ENABLE_PUBSUB", "false").lower() == "true"
 PAGE_PUBLISHED_TOPIC = os.getenv("PAGE_PUBLISHED_TOPIC", None)

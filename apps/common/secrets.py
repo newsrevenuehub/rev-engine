@@ -43,7 +43,7 @@ class GoogleCloudSecretProvider(SecretProvider):
     def __init__(
         self,
         model_attr: str,
-        project_id: str = settings.GOOGLE_CLOUD_PROJECT,
+        project_id: str = settings.GOOGLE_CLOUD_PROJECT_ID,
         *args,
         **kwargs,
     ) -> None:
@@ -184,7 +184,9 @@ class GoogleCloudSecretProvider(SecretProvider):
             logger.info("GoogleCloudSecretProvider deleted secret %s", secret_name)
         except NotFound:
             logger.info(
-                "GoogleCloudSecretProvider could delete secret %s at path because not found", secret_name, secret_path
+                "GoogleCloudSecretProvider couldn't delete secret %s at path %s because not found",
+                secret_name,
+                secret_path,
             )
             return
         except PermissionDenied:

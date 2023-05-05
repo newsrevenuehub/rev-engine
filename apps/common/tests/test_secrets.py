@@ -114,10 +114,11 @@ class TestGoogleCloudSecretProvider:
     def test_set_when_no_client(self, settings, mocker):
         settings.ENABLE_GOOGLE_CLOUD_SECRET_MANAGER = True
         instance = MyObject(**{MODEL_ATTR: (name := "something")})
-        debug_spy = mocker.spy(logger, "debug")
+        log_spy = mocker.spy(logger, "info")
         mocker.patch.object(GoogleCloudSecretProvider, "client", None)
         instance.val = "some-value"
-        debug_spy.assert_called_once_with(
+        assert log_spy.call_count == 2
+        assert log_spy.call_args == mocker.call(
             "GoogleCloudSecretProvider.__set__ cannot set secret value for secret %s. Returning early", name
         )
 

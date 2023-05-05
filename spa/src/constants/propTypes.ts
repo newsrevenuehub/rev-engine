@@ -23,18 +23,3 @@ export const UserPropTypes = {
   lastName: PropTypes.string,
   email: PropTypes.string.isRequired
 };
-
-export interface PageType extends InferProps<typeof PagePropTypes> {
-  styles: {
-    font: string;
-  };
-  revenue_program: {
-    name: string;
-    default_donation_page: unknown;
-    organization: {
-      plan: {
-        name: string;
-      };
-    };
-  };
-}

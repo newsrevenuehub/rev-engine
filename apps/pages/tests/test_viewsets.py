@@ -1108,14 +1108,16 @@ class TestPageViewSet:
         assert response.status_code == status.HTTP_404_NOT_FOUND
         assert response.json() == {"detail": "Could not find page matching those parameters"}
 
-    def test_draft_detail_page_no_default_donation_page(self, superuser, api_client, live_donation_page):
+    def test_draft_detail_page_no_default_donation_page_return_first_available(
+        self, superuser, api_client, live_donation_page
+    ):
         api_client.force_authenticate(superuser)
         assert live_donation_page.revenue_program.default_donation_page is None
         response = api_client.get(
             reverse("donationpage-draft-detail"), {"revenue_program": live_donation_page.revenue_program.slug}
         )
-        assert response.status_code == status.HTTP_404_NOT_FOUND
-        assert response.json() == {"detail": "Could not find page matching those parameters"}
+        assert response.status_code == status.HTTP_200_OK
+        assert response.json() == DonationPageFullDetailSerializer(live_donation_page).data
 
     def test_thank_you_redirect_cannot_be_set_on_existing_page_when_not_enabled(
         self, superuser, api_client, live_donation_page

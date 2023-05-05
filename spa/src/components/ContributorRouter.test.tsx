@@ -9,7 +9,7 @@ import useWebFonts from 'hooks/useWebFonts';
 import useRequest from 'hooks/useRequest';
 import isAuthenticated from 'utilities/isAuthenticated';
 import useSubdomain from 'hooks/useSubdomain';
-import { PageType } from 'constants/propTypes';
+import { ContributionPage } from 'hooks/useContributionPage';
 
 jest.mock('utilities/isAuthenticated');
 jest.mock('hooks/useWebFonts');
@@ -37,7 +37,7 @@ jest.mock('components/analytics/TrackPageView', () => ({ component }: { componen
 jest.mock(
   'components/donationPage/SegregatedStyles',
   () =>
-    ({ children, page }: { children: React.ReactNode; page?: PageType }) => {
+    ({ children, page }: { children: React.ReactNode; page?: ContributionPage }) => {
       return (
         <div data-testid="mock-segregated-styles">
           <div data-testid="page-data">{JSON.stringify(page)}</div>
@@ -81,7 +81,7 @@ const mockData = {
       }
     }
   }
-} as PageType;
+};
 
 describe('ContributorRouter', () => {
   const useSubdomainMock = jest.mocked(useSubdomain);
@@ -93,7 +93,7 @@ describe('ContributorRouter', () => {
     useSubdomainMock.mockReturnValue('mock-subdomain');
     useRequestMock.mockImplementation(
       () =>
-        (_: any, { onSuccess }: { onSuccess: ({ data }: { data: PageType }) => void }) =>
+        (_: any, { onSuccess }: { onSuccess: ({ data }: { data: any }) => void }) =>
           onSuccess({ data: mockData })
     );
   });
@@ -130,61 +130,93 @@ describe('ContributorRouter', () => {
     ).toBeInTheDocument();
   });
 
-  it('renders nothing when: subdomain is not set + no page data + fetchedPageData = false', () => {
+  it('renders nothing when: subdomain is not set and page data has not been fetched yet', () => {
     useRequestMock.mockImplementation(() => (_: any) => {});
     tree();
     expect(screen.queryByTestId('mock-segregated-styles')).not.toBeInTheDocument();
   });
 
-  describe.each([['CORE'], ['FREE'], ['PLUS']])('For the %s plan', (plan) => {
-    // eslint-disable-next-line jest/valid-title
-    describe.each([true, false])('', (hasDefaultDonationPage) => {
-      it(`${hasDefaultDonationPage ? 'if RP has' : 'if RP does not have'} "default_donation_page" use ${
-        plan !== 'FREE' && hasDefaultDonationPage ? 'CUSTOM' : 'DEFAULT'
-      } style`, () => {
-        const mockCustomData = {
-          styles: {
-            font: 'mock-font'
-          },
-          revenue_program: {
-            default_donation_page: hasDefaultDonationPage ? { id: 'mock-id' } : null,
-            organization: {
-              plan: {
-                name: plan
-              }
-            }
+  it('renders normally when fetch pages fails', () => {
+    useRequestMock.mockImplementation(
+      () =>
+        (_: any, { onFailure }: { onFailure: () => void }) =>
+          onFailure()
+    );
+    tree('/contributor/');
+    expect(screen.getByTestId('mock-contributor-entry')).toBeInTheDocument();
+  });
+
+  describe.each([
+    ['CORE', { shouldUseCustomStyle: true }],
+    ['FREE', { shouldUseCustomStyle: false }],
+    ['PLUS', { shouldUseCustomStyle: true }]
+  ])('For the %s plan', (plan, { shouldUseCustomStyle }) => {
+    const mockDefaultData = {
+      styles: {
+        font: 'mock-font'
+      },
+      revenue_program: {
+        default_donation_page: undefined,
+        organization: {
+          plan: {
+            name: plan
           }
-        };
+        }
+      }
+    };
+
+    const mockCustomData = {
+      ...mockDefaultData,
+      revenue_program: {
+        ...mockDefaultData.revenue_program,
+        // Valid default_donation_page values are IDs (numbers).
+        default_donation_page: 1
+      }
+    };
+
+    if (shouldUseCustomStyle) {
+      it("uses the RP's custom page style if it exists", () => {
         useRequestMock.mockImplementation(
           () =>
             (_: any, { onSuccess }: { onSuccess: ({ data }: { data: any }) => void }) =>
               onSuccess({ data: mockCustomData })
         );
         tree();
-        expect.assertions(1);
-        if (plan !== 'FREE' && hasDefaultDonationPage) {
-          // eslint-disable-next-line jest/no-conditional-expect
-          expect(screen.getByTestId('page-data')).toHaveTextContent(JSON.stringify(mockCustomData));
-        } else {
-          // eslint-disable-next-line jest/no-conditional-expect
-          expect(screen.getByTestId('page-data')).toHaveTextContent('false');
-        }
+        expect(screen.getByTestId('page-data')).toHaveTextContent(JSON.stringify(mockCustomData));
       });
+    } else {
+      it('uses the default RevEngine style even if default_donation_page exists', () => {
+        useRequestMock.mockImplementation(
+          () =>
+            (_: any, { onSuccess }: { onSuccess: ({ data }: { data: any }) => void }) =>
+              onSuccess({ data: mockCustomData })
+        );
+        tree();
+        expect(screen.getByTestId('page-data')).toHaveTextContent('false');
+      });
+    }
+
+    it('uses the default RevEngine style if default_donation_page does not exists', () => {
+      useRequestMock.mockImplementation(
+        () =>
+          (_: any, { onSuccess }: { onSuccess: ({ data }: { data: any }) => void }) =>
+            onSuccess({ data: mockDefaultData })
+      );
+      tree();
+      expect(screen.getByTestId('page-data')).toHaveTextContent('false');
     });
   });
 
-  describe('useWebFonts', () => {
-    it('calls with undefined', () => {
-      useRequestMock.mockImplementation(() => (_: any) => {});
-      tree();
-      expect(useWebFonts).toHaveBeenCalled();
-      expect(useWebFonts).toHaveBeenLastCalledWith(undefined);
-    });
-
-    it('calls with page style', () => {
-      tree();
-      expect(useWebFonts).toHaveBeenCalled();
-      expect(useWebFonts).toHaveBeenLastCalledWith(mockData.styles.font);
-    });
+  it('calls useWebFonts with the correct inputs before and after page loading', () => {
+    jest.useFakeTimers();
+    useRequestMock.mockImplementation(
+      () =>
+        (_: any, { onSuccess }: { onSuccess: ({ data }: { data: any }) => void }) =>
+          setTimeout(() => onSuccess({ data: mockData }), 1000)
+    );
+    tree();
+    expect(useWebFonts).toHaveBeenCalledWith(undefined);
+    jest.runOnlyPendingTimers();
+    expect(useWebFonts).toHaveBeenLastCalledWith(mockData.styles.font);
   });
 });

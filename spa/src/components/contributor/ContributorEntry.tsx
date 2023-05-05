@@ -15,10 +15,10 @@ import Input from 'elements/inputs/Input';
 
 // Analytics
 import { useConfigureAnalytics } from 'components/analytics';
-import { PageType } from 'constants/propTypes';
 import { AxiosError } from 'axios';
+import { ContributionPage } from 'hooks/useContributionPage';
 
-function ContributorEntry({ page }: { page?: PageType }) {
+function ContributorEntry({ page }: { page?: ContributionPage }) {
   const alert = useAlert();
   const [email, setEmail] = useState('');
   const [loading, setLoading] = useState(false);
@@ -66,7 +66,7 @@ function ContributorEntry({ page }: { page?: PageType }) {
                 label="Enter the email address you used to make a contribution"
                 value={email}
                 type="email"
-                onChange={(e: React.ChangeEvent<HTMLInputElement>) => setEmail(e.target.value)}
+                onChange={(e) => setEmail(e.target.value)}
                 errors={errors.email}
                 data-testid="magic-link-email-input"
               />

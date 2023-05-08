@@ -23,7 +23,12 @@ describe('useRevenueProgram', () => {
   beforeEach(() => {
     axiosMock.onPatch(`${REVENUE_PROGRAMS}${rpId}/`).reply(200);
     useAlertMock.mockReturnValue({ error: jest.fn(), success: jest.fn() });
-    useUserMock.mockReturnValue({ isError: false, isLoading: false, refetch: jest.fn() });
+    useUserMock.mockReturnValue({
+      isError: false,
+      isLoading: false,
+      refetch: jest.fn(),
+      setRefetchInterval: jest.fn()
+    });
   });
   afterEach(() => axiosMock.reset());
   afterAll(() => axiosMock.restore());

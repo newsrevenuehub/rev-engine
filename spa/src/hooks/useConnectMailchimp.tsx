@@ -11,7 +11,6 @@ import flagIsActiveForUser from 'utilities/flagIsActiveForUser';
 import { EnginePlan, RevenueProgram } from './useContributionPage';
 import useFeatureFlags from './useFeatureFlags';
 import useUser from './useUser';
-
 import usePreviousState from './usePreviousState';
 
 export interface UseConnectMailchimpResult {
@@ -44,7 +43,7 @@ export const MAILCHIMP_OAUTH_CALLBACK = `${BASE_URL}${MAILCHIMP_OAUTH_SUCCESS_RO
 
 export default function useConnectMailchimp(): UseConnectMailchimpResult {
   const { enqueueSnackbar } = useSnackbar();
-  const { user, isError, isLoading } = useUser();
+  const { setRefetchInterval, user, isError, isLoading } = useUser();
   const { flags } = useFeatureFlags();
   const hasMailchimpAccess = flagIsActiveForUser(MAILCHIMP_INTEGRATION_ACCESS_FLAG_NAME, flags);
   const prevMailchimpConnection = usePreviousState(user?.revenue_programs?.[0]?.mailchimp_integration_connected);
@@ -61,6 +60,24 @@ export default function useConnectMailchimp(): UseConnectMailchimpResult {
       redirect_uri: MAILCHIMP_OAUTH_CALLBACK
     })}`;
   }, []);
+
+  // Only require audience selection if there is no list selected, and if the
+  // audience lists is populated (mailchimp connection successfully started).
+
+  const requiresAudienceSelection =
+    !user?.revenue_programs?.[0]?.mailchimp_email_list?.id &&
+    (user?.revenue_programs?.[0]?.mailchimp_email_lists?.length ?? 0) > 0;
+
+  useEffect(() => {
+    // Reset the user retrieval interval; we might have decreased it in
+    // MailchimpOAuthSuccess. We might not have if the user ended their session
+    // after starting the Mailchimp connection process, but in that case, this
+    // will do nothing.
+
+    if (requiresAudienceSelection) {
+      setRefetchInterval(false);
+    }
+  }, [requiresAudienceSelection, setRefetchInterval]);
 
   useEffect(() => {
     if (user?.revenue_programs?.[0]?.mailchimp_integration_connected && prevMailchimpConnection === false) {
@@ -116,19 +133,16 @@ export default function useConnectMailchimp(): UseConnectMailchimpResult {
   }
 
   // We have a user, with a single organization in a paid plan (CORE or PLUS), and without Mailchimp connected.
+
   return {
     isError,
     isLoading,
+    requiresAudienceSelection,
     sendUserToMailchimp,
     connectedToMailchimp:
       !!user?.organizations?.[0]?.show_connected_to_mailchimp ||
       !!user?.revenue_programs?.[0]?.mailchimp_integration_connected,
     organizationPlan: user?.organizations?.[0].plan.name,
-    // Only require audience selection if there is no list selected, and if the
-    // audience lists is populated (mailchimp connection successfully started)
-    requiresAudienceSelection:
-      !user?.revenue_programs?.[0]?.mailchimp_email_list?.id &&
-      (user?.revenue_programs?.[0]?.mailchimp_email_lists?.length ?? 0) > 0,
     revenueProgram: user?.revenue_programs?.[0]
   };
 }

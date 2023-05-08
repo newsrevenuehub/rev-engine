@@ -65,7 +65,8 @@ describe('useConnectStripeAccount hook', () => {
     useUserMock.mockReturnValue({
       refetch: jest.fn(),
       isLoading: true,
-      isError: false
+      isError: false,
+      setRefetchInterval: jest.fn()
     });
 
     // We do this because the hook returns a `sendUserToStripe()` function which sets `window.location.href` to the value
@@ -84,7 +85,7 @@ describe('useConnectStripeAccount hook', () => {
   });
 
   it('returns a loading status when user data is loading', () => {
-    useUserMock.mockReturnValue({ isError: false, isLoading: true, refetch: jest.fn() });
+    useUserMock.mockReturnValue({ isError: false, isLoading: true, refetch: jest.fn(), setRefetchInterval: jest.fn() });
 
     const { result } = renderHook(() => useConnectStripeAccount(), { wrapper });
 
@@ -92,7 +93,7 @@ describe('useConnectStripeAccount hook', () => {
   });
 
   it('returns an error status if an error occurred loading user data', () => {
-    useUserMock.mockReturnValue({ isError: true, isLoading: false, refetch: jest.fn() });
+    useUserMock.mockReturnValue({ isError: true, isLoading: false, refetch: jest.fn(), setRefetchInterval: jest.fn() });
 
     const { result } = renderHook(() => useConnectStripeAccount(), { wrapper });
 
@@ -105,6 +106,7 @@ describe('useConnectStripeAccount hook', () => {
         isError: false,
         isLoading: false,
         refetch: jest.fn(),
+        setRefetchInterval: jest.fn(),
         user: {
           ...mockUser,
           revenue_programs: [{ ...mockRp, payment_provider_stripe_verified: false } as RevenueProgram]
@@ -205,6 +207,7 @@ describe('useConnectStripeAccount hook', () => {
         isError: false,
         isLoading: false,
         refetch: jest.fn(),
+        setRefetchInterval: jest.fn(),
         user: {
           ...mockUser,
           revenue_programs: [{ ...mockRp, payment_provider_stripe_verified: true } as RevenueProgram]
@@ -236,6 +239,7 @@ describe('useConnectStripeAccount hook', () => {
         isError: false,
         isLoading: false,
         refetch: jest.fn(),
+        setRefetchInterval: jest.fn(),
         user: { ...mockUser, revenue_programs: [] }
       });
     });
@@ -265,6 +269,7 @@ describe('useConnectStripeAccount hook', () => {
         isError: false,
         isLoading: false,
         refetch: jest.fn(),
+        setRefetchInterval: jest.fn(),
         user: { ...mockUser, role_type: ['hub_admin', 'Hub Admin'] }
       });
     });

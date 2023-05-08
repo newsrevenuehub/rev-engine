@@ -1,77 +1,73 @@
-import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { renderHook } from '@testing-library/react-hooks';
+import { useSnackbar } from 'notistack';
+import queryString from 'query-string';
 import { NRE_MAILCHIMP_CLIENT_ID } from 'appSettings';
 import { MAILCHIMP_INTEGRATION_ACCESS_FLAG_NAME } from 'constants/featureFlagConstants';
 import useUser from 'hooks/useUser';
-import { useSnackbar } from 'notistack';
-import queryString from 'query-string';
-import { ReactChild } from 'react';
+import { TestQueryClientProvider } from 'test-utils';
 import useConnectMailchimp, { MAILCHIMP_OAUTH_CALLBACK } from './useConnectMailchimp';
 import { RevenueProgram } from './useContributionPage';
 import useFeatureFlags from './useFeatureFlags';
-import usePreviousState from './usePreviousState';
 import { Organization, User } from './useUser.types';
 
-jest.mock('hooks/useUser');
-jest.mock('hooks/usePreviousState');
-jest.mock('hooks/useFeatureFlags');
-jest.mock('appSettings', () => ({
-  NRE_MAILCHIMP_CLIENT_ID: 'mock-client-id'
-}));
 jest.mock('notistack', () => ({
   ...jest.requireActual('notistack'),
   useSnackbar: jest.fn()
 }));
+jest.mock('appSettings', () => ({
+  NRE_MAILCHIMP_CLIENT_ID: 'mock-client-id'
+}));
+jest.mock('hooks/useUser');
+jest.mock('hooks/useFeatureFlags');
 
-const useUserMock = jest.mocked(useUser);
-const useFeatureFlagsMock = jest.mocked(useFeatureFlags);
-const usePreviousStateMock = jest.mocked(usePreviousState);
-const useSnackbarMock = useSnackbar as jest.Mock;
-const enqueueSnackbar = jest.fn();
+const mockUseUserResult = {
+  isError: false,
+  isLoading: false,
+  refetch: jest.fn(),
+  setRefetchInterval: jest.fn(),
+  user: {
+    email: 'mock@email.com',
+    email_verified: true,
+    flags: [],
+    id: 'mock-id',
+    organizations: [
+      {
+        name: 'mock-org-name',
+        plan: { name: 'CORE' },
+        show_connected_to_mailchimp: false,
+        show_connected_to_salesforce: false,
+        show_connected_to_slack: false,
+        slug: 'mock-org-slug'
+      }
+    ] as Organization[],
+    revenue_programs: [{ id: 1, name: 'mock-rp-name', slug: 'mock-rp-slug' }] as RevenueProgram[],
+    role_type: ['org_admin', 'Org Admin']
+  } as User
+};
 
-const mockRp = { id: 1, name: 'mock-rp-name', slug: 'mock-rp-slug' };
-
-const mockUser: User = {
-  email: 'mock@email.com',
-  email_verified: true,
-  flags: [],
-  id: 'mock-id',
-  organizations: [
-    {
-      name: 'mock-org-name',
-      plan: {} as any,
-      show_connected_to_mailchimp: false,
-      show_connected_to_salesforce: false,
-      show_connected_to_slack: false,
-      slug: 'mock-org-slug'
-    }
-  ],
-  revenue_programs: [mockRp as RevenueProgram],
-  role_type: ['org_admin', 'Org Admin']
-} as any;
-
-const wrapper = ({ children }: { children: ReactChild }) => (
-  <QueryClientProvider client={new QueryClient()}>{children}</QueryClientProvider>
-);
+const mockMailchimpLists = [
+  { id: '1', name: 'audience-1' },
+  { id: '2', name: 'audience-2' }
+];
 
 describe('useConnectMailchimp hook', () => {
   const oldLocation = global.window.location;
+  const useUserMock = jest.mocked(useUser);
+  const useFeatureFlagsMock = jest.mocked(useFeatureFlags);
+  const useSnackbarMock = useSnackbar as jest.Mock;
 
   beforeEach(() => {
-    useSnackbarMock.mockReturnValue({ enqueueSnackbar });
     useFeatureFlagsMock.mockReturnValue({
       flags: [{ name: MAILCHIMP_INTEGRATION_ACCESS_FLAG_NAME }],
       isLoading: false,
       isError: false
     });
-    useUserMock.mockReturnValue({
-      refetch: jest.fn(),
-      isLoading: false,
-      isError: false
-    });
+    useSnackbarMock.mockReturnValue({ enqueueSnackbar: jest.fn() });
+    useUserMock.mockReturnValue(mockUseUserResult);
 
-    // We do this because the hook returns a `sendUserToMailchimp()` function which sets `window.location.href` to the value
-    // returned when we fetch account link status.
+    // We do this because the hook returns a `sendUserToMailchimp()` function
+    // which sets `window.location.href` to the value returned when we fetch
+    // account link status.
     //
     // https://www.csrhymes.com/2022/06/18/mocking-window-location-in-jest.html
 
@@ -84,10 +80,10 @@ describe('useConnectMailchimp hook', () => {
     (global as any).window.location = oldLocation;
   });
 
-  it('returns a loading status when user data is loading', () => {
-    useUserMock.mockReturnValue({ isError: false, isLoading: true, refetch: jest.fn() });
+  it('returns a loading status and no functions when user data is loading', () => {
+    useUserMock.mockReturnValue({ ...mockUseUserResult, isError: false, isLoading: true });
 
-    const { result } = renderHook(() => useConnectMailchimp(), { wrapper });
+    const { result } = renderHook(() => useConnectMailchimp(), { wrapper: TestQueryClientProvider });
 
     expect(result.current).toEqual({
       isError: false,
@@ -97,10 +93,10 @@ describe('useConnectMailchimp hook', () => {
     });
   });
 
-  it('returns an error status if an error occurred loading user data', () => {
-    useUserMock.mockReturnValue({ isError: true, isLoading: false, refetch: jest.fn() });
+  it('returns an error status and no functions if an error occurred loading user data', () => {
+    useUserMock.mockReturnValue({ isError: true, isLoading: false, refetch: jest.fn(), setRefetchInterval: jest.fn() });
 
-    const { result } = renderHook(() => useConnectMailchimp(), { wrapper });
+    const { result } = renderHook(() => useConnectMailchimp(), { wrapper: TestQueryClientProvider });
 
     expect(result.current).toEqual({
       isError: true,
@@ -110,9 +106,10 @@ describe('useConnectMailchimp hook', () => {
     });
   });
 
-  it('returns no action if user does not have mailchimp-integration-access feature flag', () => {
+  it('returns no functions if user does not have mailchimp-integration-access feature flag', () => {
     useFeatureFlagsMock.mockReturnValue({ flags: [{ name: 'mock-random-flag' }], isError: false, isLoading: false });
-    const { result } = renderHook(() => useConnectMailchimp(), { wrapper });
+
+    const { result } = renderHook(() => useConnectMailchimp(), { wrapper: TestQueryClientProvider });
 
     expect(result.current).toEqual({
       isError: false,
@@ -122,14 +119,10 @@ describe('useConnectMailchimp hook', () => {
     });
   });
 
-  it('returns no action if user does not have any revenue programs', () => {
-    useUserMock.mockReturnValue({
-      user: { ...mockUser, revenue_programs: [] },
-      isError: false,
-      isLoading: false,
-      refetch: jest.fn()
-    });
-    const { result } = renderHook(() => useConnectMailchimp(), { wrapper });
+  it('returns no functions if user does not have any revenue programs', () => {
+    useUserMock.mockReturnValue({ ...mockUseUserResult, user: { ...mockUseUserResult.user, revenue_programs: [] } });
+
+    const { result } = renderHook(() => useConnectMailchimp(), { wrapper: TestQueryClientProvider });
 
     expect(result.current).toEqual({
       isError: false,
@@ -139,14 +132,10 @@ describe('useConnectMailchimp hook', () => {
     });
   });
 
-  it('returns no action if user does not have any organizations', () => {
-    useUserMock.mockReturnValue({
-      user: { ...mockUser, organizations: [] },
-      isError: false,
-      isLoading: false,
-      refetch: jest.fn()
-    });
-    const { result } = renderHook(() => useConnectMailchimp(), { wrapper });
+  it('returns no functions if user does not have any organizations', () => {
+    useUserMock.mockReturnValue({ ...mockUseUserResult, user: { ...mockUseUserResult.user, organizations: [] } });
+
+    const { result } = renderHook(() => useConnectMailchimp(), { wrapper: TestQueryClientProvider });
 
     expect(result.current).toEqual({
       isError: false,
@@ -156,109 +145,92 @@ describe('useConnectMailchimp hook', () => {
     });
   });
 
-  it('returns no action if user have multiple organizations', () => {
+  it('returns no functions if user has multiple organizations', () => {
     useUserMock.mockReturnValue({
+      ...mockUseUserResult,
       user: {
-        ...mockUser,
+        ...mockUseUserResult.user,
+        organizations: [mockUseUserResult.user.organizations[0], mockUseUserResult.user.organizations[0]]
+      }
+    });
+
+    const { result } = renderHook(() => useConnectMailchimp(), { wrapper: TestQueryClientProvider });
+
+    expect(result.current).toEqual({
+      isError: false,
+      isLoading: false,
+      connectedToMailchimp: false,
+      requiresAudienceSelection: false
+    });
+  });
+
+  it("returns no functions if the user's organization is connected to Mailchimp", () => {
+    useUserMock.mockReturnValue({
+      ...mockUseUserResult,
+      user: {
+        ...mockUseUserResult.user,
         organizations: [
           {
             id: 0,
-            name: 'mock-org-name-1'
-          },
-          {
-            id: 1,
-            name: 'mock-org-name-2'
-          }
-        ] as Organization[]
-      },
-      isError: false,
-      isLoading: false,
-      refetch: jest.fn()
+            name: 'mock-org-name-1',
+            show_connected_to_mailchimp: true,
+            plan: { name: 'mock-plan' } as any
+          } as Organization
+        ]
+      }
     });
-    const { result } = renderHook(() => useConnectMailchimp(), { wrapper });
+
+    const { result } = renderHook(() => useConnectMailchimp(), { wrapper: TestQueryClientProvider });
 
     expect(result.current).toEqual({
       isError: false,
       isLoading: false,
-      connectedToMailchimp: false,
-      requiresAudienceSelection: false
+      connectedToMailchimp: true,
+      organizationPlan: 'mock-plan',
+      requiresAudienceSelection: false,
+      revenueProgram: mockUseUserResult.user.revenue_programs[0]
     });
   });
 
-  describe('returns no action if user has mailchimp connected', () => {
-    it('organization has show_connected_to_mailchimp = true', () => {
-      useUserMock.mockReturnValue({
-        user: {
-          ...mockUser,
-          organizations: [
-            {
-              id: 0,
-              name: 'mock-org-name-1',
-              show_connected_to_mailchimp: true,
-              plan: { name: 'mock-plan' }
-            }
-          ] as unknown as Organization[]
-        },
-        isError: false,
-        isLoading: false,
-        refetch: jest.fn()
-      });
-      const { result } = renderHook(() => useConnectMailchimp(), { wrapper });
-
-      expect(result.current).toEqual({
-        isError: false,
-        isLoading: false,
-        connectedToMailchimp: true,
-        organizationPlan: 'mock-plan',
-        requiresAudienceSelection: false,
-        revenueProgram: mockRp
-      });
-    });
-    it('revenue program has mailchimp_integration_connected = true', () => {
-      useUserMock.mockReturnValue({
-        user: {
-          ...mockUser,
-          organizations: [
-            {
-              id: 0,
-              name: 'mock-org-name-1'
-            }
-          ] as Organization[],
-          revenue_programs: [{ ...mockRp, mailchimp_integration_connected: true } as any]
-        },
-        isError: false,
-        isLoading: false,
-        refetch: jest.fn()
-      });
-      const { result } = renderHook(() => useConnectMailchimp(), { wrapper });
-
-      expect(result.current).toEqual({
-        isError: false,
-        isLoading: false,
-        connectedToMailchimp: true,
-        requiresAudienceSelection: false,
-        revenueProgram: { ...mockRp, mailchimp_integration_connected: true }
-      });
-    });
-  });
-
-  it('returns no action if user has organization not in CORE or PLUS plan', () => {
+  it("returns no functions if the user's revenue program is connected to Mailchimp", () => {
     useUserMock.mockReturnValue({
+      ...mockUseUserResult,
       user: {
-        ...mockUser,
+        ...mockUseUserResult.user,
+        revenue_programs: [
+          { ...mockUseUserResult.user.revenue_programs[0], mailchimp_integration_connected: true } as any
+        ]
+      }
+    });
+
+    const { result } = renderHook(() => useConnectMailchimp(), { wrapper: TestQueryClientProvider });
+
+    expect(result.current).toEqual({
+      isError: false,
+      isLoading: false,
+      connectedToMailchimp: true,
+      organizationPlan: 'CORE',
+      requiresAudienceSelection: false,
+      revenueProgram: { ...mockUseUserResult.user.revenue_programs[0], mailchimp_integration_connected: true }
+    });
+  });
+
+  it("returns no functions if user's organization is on the FREE plan", () => {
+    useUserMock.mockReturnValue({
+      ...mockUseUserResult,
+      user: {
+        ...mockUseUserResult.user,
         organizations: [
           {
             id: 0,
             name: 'mock-org-name-1',
             plan: { name: 'FREE' }
-          }
-        ] as Organization[]
-      },
-      isError: false,
-      isLoading: false,
-      refetch: jest.fn()
+          } as Organization
+        ]
+      }
     });
-    const { result } = renderHook(() => useConnectMailchimp(), { wrapper });
+
+    const { result } = renderHook(() => useConnectMailchimp(), { wrapper: TestQueryClientProvider });
 
     expect(result.current).toEqual({
       isError: false,
@@ -266,150 +238,149 @@ describe('useConnectMailchimp hook', () => {
       connectedToMailchimp: false,
       organizationPlan: 'FREE',
       requiresAudienceSelection: false,
-      revenueProgram: mockRp
+      revenueProgram: mockUseUserResult.user.revenue_programs[0]
     });
   });
 
-  it('returns a sendUserToMailchimp() function which redirects the user to the URL provided by the API', async () => {
-    const mailchimpURL = `https://login.mailchimp.com/oauth2/authorize?${queryString.stringify({
-      response_type: 'code',
-      client_id: NRE_MAILCHIMP_CLIENT_ID,
-      redirect_uri: MAILCHIMP_OAUTH_CALLBACK
-    })}`;
-    useUserMock.mockReturnValue({
-      user: {
-        ...mockUser,
-        organizations: [
-          {
-            id: 0,
-            name: 'mock-org-name-1',
-            plan: { name: 'CORE' }
-          }
-        ] as Organization[]
-      },
-      isError: false,
-      isLoading: false,
-      refetch: jest.fn()
+  describe('When the user meets the criteria to connect Mailchimp', () => {
+    beforeEach(() => {
+      useUserMock.mockReturnValue({
+        ...mockUseUserResult,
+        user: {
+          ...mockUseUserResult.user,
+          revenue_programs: [
+            {
+              ...mockUseUserResult.user.revenue_programs[0],
+              mailchimp_email_list: mockMailchimpLists[0],
+              mailchimp_email_lists: mockMailchimpLists
+            }
+          ]
+        }
+      });
     });
-    const { result } = renderHook(() => useConnectMailchimp(), { wrapper });
 
-    expect(typeof result.current.sendUserToMailchimp).toBe('function');
-    result.current.sendUserToMailchimp!();
-    expect(window.location.href).toEqual(mailchimpURL);
-  });
+    it('returns a sendUserToMailchimp() function which redirects the user to the URL provided by the API', async () => {
+      const { result } = renderHook(() => useConnectMailchimp(), { wrapper: TestQueryClientProvider });
 
-  it('returns audience selected', async () => {
-    useUserMock.mockReturnValue({
-      user: {
-        ...mockUser,
-        organizations: [
-          {
-            id: 0,
-            name: 'mock-org-name-1',
-            plan: { name: 'CORE' }
-          }
-        ] as Organization[],
-        revenue_programs: [
-          {
-            id: 0,
-            name: 'mock-org-name-1',
-            mailchimp_email_list: { id: '1', name: 'audience-1' },
-            mailchimp_email_lists: [
-              { id: '1', name: 'audience-1' },
-              { id: '2', name: 'audience-2' }
+      expect(typeof result.current.sendUserToMailchimp).toBe('function');
+      result.current.sendUserToMailchimp!();
+      expect(window.location.href).toEqual(
+        `https://login.mailchimp.com/oauth2/authorize?${queryString.stringify({
+          response_type: 'code',
+          client_id: NRE_MAILCHIMP_CLIENT_ID,
+          redirect_uri: MAILCHIMP_OAUTH_CALLBACK
+        })}`
+      );
+    });
+
+    it("returns a mailchimp_email_list prop with the revenue program's selected email list", async () => {
+      const { result } = renderHook(() => useConnectMailchimp(), { wrapper: TestQueryClientProvider });
+
+      expect(result.current.revenueProgram?.mailchimp_email_list).toEqual(mockMailchimpLists[0]);
+    });
+
+    it('returns a mailchimp_email_lists prop with all possible email lists', async () => {
+      const { result } = renderHook(() => useConnectMailchimp(), { wrapper: TestQueryClientProvider });
+
+      expect(result.current.revenueProgram?.mailchimp_email_lists).toEqual(mockMailchimpLists);
+    });
+
+    describe.each([
+      [
+        'When their revenue program has neither mailchimp_email_lists set nor mailchimp_email_list',
+        undefined,
+        undefined,
+        false
+      ],
+      [
+        'When their revenue program has mailchimp_email_lists set, but not mailchimp_email_list',
+        mockMailchimpLists,
+        undefined,
+        true
+      ],
+      [
+        'When their revenue program has both mailchimp_email_lists and mailchimp_email_list set',
+        mockMailchimpLists,
+        mockMailchimpLists[0],
+        false
+      ]
+    ])('%s', (_, mailchimp_email_lists, mailchimp_email_list, shouldRequireAudienceSection) => {
+      let setRefetchInterval: jest.SpyInstance;
+
+      beforeEach(() => {
+        setRefetchInterval = jest.fn();
+        useUserMock.mockReturnValue({
+          ...mockUseUserResult,
+          setRefetchInterval: setRefetchInterval as any,
+          user: {
+            ...mockUseUserResult.user,
+            revenue_programs: [
+              {
+                ...mockUseUserResult.user.revenue_programs[0],
+                mailchimp_email_lists,
+                mailchimp_email_list
+              }
             ]
           }
-        ] as RevenueProgram[]
-      },
-      isError: false,
-      isLoading: false,
-      refetch: jest.fn()
-    });
-    const { result } = renderHook(() => useConnectMailchimp(), { wrapper });
+        });
+      });
 
-    expect(result.current).toEqual({
-      isError: false,
-      isLoading: false,
-      connectedToMailchimp: false,
-      organizationPlan: 'CORE',
-      requiresAudienceSelection: false,
-      revenueProgram: {
-        id: 0,
-        name: 'mock-org-name-1',
-        mailchimp_email_list: { id: '1', name: 'audience-1' },
-        mailchimp_email_lists: [
-          { id: '1', name: 'audience-1' },
-          { id: '2', name: 'audience-2' }
-        ]
-      },
-      sendUserToMailchimp: expect.any(Function)
-    });
-  });
+      it(`returns a ${shouldRequireAudienceSection} requiresAudienceSelection prop`, () => {
+        const { result } = renderHook(() => useConnectMailchimp(), { wrapper: TestQueryClientProvider });
 
-  it('returns an audience lists without selected audience', async () => {
-    useUserMock.mockReturnValue({
-      user: {
-        ...mockUser,
-        organizations: [
-          {
-            id: 0,
-            name: 'mock-org-name-1',
-            plan: { name: 'CORE' }
-          }
-        ] as Organization[],
-        revenue_programs: [
-          {
-            id: 0,
-            name: 'mock-org-name-1',
-            mailchimp_email_lists: [
-              { id: '1', name: 'audience-1' },
-              { id: '2', name: 'audience-2' }
+        expect(result.current.requiresAudienceSelection).toBe(shouldRequireAudienceSection);
+      });
+
+      if (shouldRequireAudienceSection) {
+        it('resets the user refetch interval', () => {
+          renderHook(() => useConnectMailchimp(), { wrapper: TestQueryClientProvider });
+          expect(setRefetchInterval.mock.calls).toEqual([[false]]);
+        });
+      } else {
+        it("doesn't reset the user refetch interval", () => {
+          renderHook(() => useConnectMailchimp(), { wrapper: TestQueryClientProvider });
+          expect(setRefetchInterval).not.toBeCalled();
+        });
+      }
+    });
+
+    it('shows a connection success notification if the mailchimp_integration_connected property of the RP changes from false to true', () => {
+      const enqueueSnackbar = jest.fn();
+
+      function mockWithConnection(mailchimp_integration_connected: boolean) {
+        useUserMock.mockReturnValue({
+          ...mockUseUserResult,
+          user: {
+            ...mockUseUserResult.user,
+            revenue_programs: [
+              {
+                ...mockUseUserResult.user.revenue_programs[0],
+                mailchimp_integration_connected,
+                mailchimp_email_list: { id: '1', name: 'audience-1' },
+                mailchimp_email_lists: [
+                  { id: '1', name: 'audience-1' },
+                  { id: '2', name: 'audience-2' }
+                ]
+              }
             ]
           }
-        ] as RevenueProgram[]
-      },
-      isError: false,
-      isLoading: false,
-      refetch: jest.fn()
-    });
-    const { result } = renderHook(() => useConnectMailchimp(), { wrapper });
+        });
+      }
 
-    expect(result.current).toEqual({
-      isError: false,
-      isLoading: false,
-      connectedToMailchimp: false,
-      organizationPlan: 'CORE',
-      requiresAudienceSelection: true,
-      revenueProgram: {
-        id: 0,
-        name: 'mock-org-name-1',
-        mailchimp_email_lists: [
-          { id: '1', name: 'audience-1' },
-          { id: '2', name: 'audience-2' }
-        ]
-      },
-      sendUserToMailchimp: expect.any(Function)
-    });
-  });
+      useSnackbarMock.mockReturnValue({ enqueueSnackbar });
+      mockWithConnection(false);
 
-  it('show connection success notification', async () => {
-    usePreviousStateMock.mockReturnValue(false);
-    useUserMock.mockReturnValueOnce({
-      user: {
-        ...mockUser,
-        revenue_programs: [{ ...mockRp, mailchimp_integration_connected: true } as any]
-      },
-      isError: false,
-      isLoading: false,
-      refetch: jest.fn()
-    });
-    renderHook(() => useConnectMailchimp(), { wrapper });
+      const { rerender } = renderHook(() => useConnectMailchimp(), { wrapper: TestQueryClientProvider });
 
-    expect(enqueueSnackbar).toBeCalledWith(
-      'You’ve successfully connected to Mailchimp! Your contributor data will sync automatically.',
-      expect.objectContaining({
-        persist: true
-      })
-    );
+      mockWithConnection(true);
+      expect(enqueueSnackbar).not.toBeCalled();
+      rerender();
+      expect(enqueueSnackbar).toBeCalledWith(
+        'You’ve successfully connected to Mailchimp! Your contributor data will sync automatically.',
+        expect.objectContaining({
+          persist: true
+        })
+      );
+    });
   });
 });

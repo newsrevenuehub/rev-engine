@@ -29,7 +29,6 @@ import { SentryRoute } from 'hooks/useSentry';
 import componentLoader from 'utilities/componentLoader';
 import RouterSetup from './routes/RouterSetup';
 import { ContributionPage } from 'hooks/useContributionPage';
-import { Organization } from 'hooks/useUser.types';
 
 // Split bundles
 const ContributorEntry = lazy(() => componentLoader(() => import('components/contributor/ContributorEntry')));
@@ -42,7 +41,7 @@ function ContributorRouter() {
   const [pageData, setPageData] = useState<ContributionPage | null>(null);
   const [fetchedPageData, setFetchedPageData] = useState(false);
 
-  const isFreeOrg = (pageData?.revenue_program?.organization as Organization)?.plan?.name === 'FREE';
+  const isFreeOrg = pageData?.revenue_program?.organization?.plan?.name === 'FREE';
   const hasDefaultDonationPage = !!pageData?.revenue_program?.default_donation_page;
   // If Donation page belongs to a paid org (not Free) and RP has a Default Donation Page, use custom styles
   const renderCustomStyles = !isFreeOrg && hasDefaultDonationPage;

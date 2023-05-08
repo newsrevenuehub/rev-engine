@@ -304,9 +304,9 @@ export interface RevenueProgram {
    */
   website_url: string;
   /**
-   * Organization or Organization ID from which the Revenue Program belongs.
+   * Organization object from which the Revenue Program belongs.
    */
-  organization: Organization | number;
+  organization: Organization;
   /**
    * Default donation page ID from Revenue Program, if it exists.
    */

@@ -92,6 +92,8 @@ class RevenueProgramInlineSerializer(serializers.ModelSerializer):
     Used by the UserSerializer when users log in.
     """
 
+    organization = OrganizationInlineSerializer()
+
     class Meta:
         model = RevenueProgram
         fields = [

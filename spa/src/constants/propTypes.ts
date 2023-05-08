@@ -1,4 +1,4 @@
-import PropTypes, { InferProps } from 'prop-types';
+import PropTypes from 'prop-types';
 
 export const PartialPagePropTypes = {
   name: PropTypes.string,

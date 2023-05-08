@@ -51,7 +51,7 @@ def ensure_mailchimp_store(rp_id: str) -> None:
 def _ensure_mailchimp_one_time_contribution_product(rp_id: str) -> None:
     """Ensure that a Mailchimp one-time contribution product exists for the given RevenueProgram.
 
-    Note that this is intended to be run in the `ensure_mailchimp_product` task. The indirection
+    Note that this is intended to be run in the `ensure_mailchimp_one_time_contribution_product` task. The indirection
     here is to make `setup_mailchimp_entities_for_rp_mailing_list` more easily testable by providing
     clean, obvious points to mock out.
     """
@@ -72,7 +72,7 @@ def ensure_mailchimp_one_time_contribution_product(rp_id: str) -> None:
 def _ensure_mailchimp_recurring_contribution_product(rp_id: str) -> None:
     """Ensure that a Mailchimp recurring contribution product exists for the given RevenueProgram.
 
-    Note that this is intended to be run in the `ensure_mailchimp_product` task. The indirection
+    Note that this is intended to be run in the `ensure_mailchimp_recurring_contribution_product` task. The indirection
     here is to make `setup_mailchimp_entities_for_rp_mailing_list` more easily testable by providing
     clean, obvious points to mock out.
     """

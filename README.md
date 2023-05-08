@@ -427,7 +427,14 @@ If `DEBUG` is set in Django settings, then the app will serve example emails und
 
 Routes that currently exist:
 
-- `http://localhost:8000/__debug_emails__/recurring-contribution/` shows a recurring contribution reminder email. A revenue program ID set in the query string as `rp` is required, e.g. `/recurring-contribution/?rp=3`. You can also override the header logo of the RP's default page with a `logo` query string, e.g. `/recurring-contribution/?rp=3&logo=https://place-hold.it/100x100`.
+- `http://localhost:8000/__debug_emails__/contribution-confirmation/` shows a
+  contribution receipt email. A revenue program ID set in the query string as
+  `rp` is required, e.g. `/recurring-contribution/?rp=3`. You can also override
+  the header logo of the RP's default page with a `logo` query string, e.g.
+  `/recurring-contribution/?rp=3&logo=https://place-hold.it/100x100`.
+- `http://localhost:8000/__debug_emails__/recurring-contribution/` shows a
+  recurring contribution reminder email. It takes the same query string
+  parameters as `contribution-confirmation/`, including the required `rp` one.
 
 ## Frontend Configuration
 

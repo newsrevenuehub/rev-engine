@@ -200,9 +200,11 @@ def payment_success(request, uuid=None):
     and use this view to trigger a thank you email to the contributor if the org has configured the contribution page
     accordingly.
     """
+    logger.info("payment_success called with request data: %s, uuid %s", request.data, uuid)
     try:
         contribution = Contribution.objects.get(uuid=uuid)
     except Contribution.DoesNotExist:
+        logger.warning("payment_success called with invalid uuid %s", uuid)
         return Response(status=status.HTTP_404_NOT_FOUND)
     contribution.handle_thank_you_email()
     return Response(status=status.HTTP_204_NO_CONTENT)

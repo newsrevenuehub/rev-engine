@@ -74,6 +74,7 @@ whitenoise = "^6.2.0"
 google-cloud-pubsub = "^2.13"
 pygments = "^2.13.0"
 mailchimp-marketing = "^3.0"
+django-request-id = "^1.0.0"
 
 [tool.poetry.dev-dependencies]
 appnope = "*"

@@ -48,25 +48,46 @@ def ensure_mailchimp_store(rp_id: str) -> None:
     _ensure_mailchimp_store(rp_id)
 
 
-def _ensure_mailchimp_product(rp_id: str) -> None:
-    """Ensure that a Mailchimp product exists for the given RevenueProgram.
+def _ensure_mailchimp_one_time_contribution_product(rp_id: str) -> None:
+    """Ensure that a Mailchimp one-time contribution product exists for the given RevenueProgram.
 
     Note that this is intended to be run in the `ensure_mailchimp_product` task. The indirection
     here is to make `setup_mailchimp_entities_for_rp_mailing_list` more easily testable by providing
     clean, obvious points to mock out.
     """
     rp = RevenueProgram.objects.get(id=rp_id)
-    if not rp.mailchimp_product:
-        logger.info("Creating product for rp_id=[%s]", rp_id)
-        rp.make_mailchimp_product()
+    if not rp.mailchimp_one_time_contribution_product:
+        logger.info("RP with ID %s does not have a one time contributor producxt. Attempting to create", rp_id)
+        rp.make_mailchimp_one_time_contribution_product()
     else:
-        logger.info("Product already exists for rp_id=[%s]", rp_id)
+        logger.info("One-time contribution product already exists for rp_id=[%s]", rp_id)
 
 
 @shared_task
-def ensure_mailchimp_product(rp_id: str) -> None:
+def ensure_mailchimp_one_time_contribution_product(rp_id: str) -> None:
     logger.info("Called with rp_id=[%s]", rp_id)
-    _ensure_mailchimp_product(rp_id)
+    _ensure_mailchimp_one_time_contribution_product(rp_id)
+
+
+def _ensure_mailchimp_recurring_contribution_product(rp_id: str) -> None:
+    """Ensure that a Mailchimp recurring contribution product exists for the given RevenueProgram.
+
+    Note that this is intended to be run in the `ensure_mailchimp_product` task. The indirection
+    here is to make `setup_mailchimp_entities_for_rp_mailing_list` more easily testable by providing
+    clean, obvious points to mock out.
+    """
+    rp = RevenueProgram.objects.get(id=rp_id)
+    if not rp.mailchimp_recurring_contribution_product:
+        logger.info("RP with ID %s does not have a recurring contributor product. Attempting to create", rp_id)
+        rp.make_mailchimp_recurring_contribution_product()
+    else:
+        logger.info("Recurring contribution product already exists for rp_id=[%s]", rp_id)
+
+
+@shared_task
+def ensure_mailchimp_recurring_contribution_product(rp_id: str) -> None:
+    logger.info("Called with rp_id=[%s]", rp_id)
+    _ensure_mailchimp_recurring_contribution_product(rp_id)
 
 
 def _ensure_mailchimp_contributor_segment(rp_id: str) -> None:
@@ -143,8 +164,10 @@ def publish_revenue_program_mailchimp_list_configuration_complete(rp_id):
 def setup_mailchimp_entities_for_rp_mailing_list(rp_id: str) -> None:
     logger.info("Called with rp_id=[%s]", rp_id)
     header = [
-        # can't have product without store, so cahin store into product
-        ensure_mailchimp_store.si(rp_id) | ensure_mailchimp_product.si(rp_id),
+        # can't have product without store, so chain store call ahead of product callsq:
+        ensure_mailchimp_store.si(rp_id)
+        | ensure_mailchimp_one_time_contribution_product.si(rp_id)
+        | ensure_mailchimp_recurring_contribution_product.si(rp_id),
         ensure_mailchimp_contributor_segment.si(rp_id),
         ensure_mailchimp_recurring_segment.si(rp_id),
     ]

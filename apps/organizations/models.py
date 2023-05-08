@@ -473,22 +473,44 @@ class RevenueProgram(IndexedTimeStampedModel):
                 raise MailchimpIntegrationError("Error retrieving mailchimp store")
 
     @property
-    def mailchimp_product(self) -> MailchimpProduct | None:
+    def mailchimp_one_time_contribution_product(self) -> MailchimpProduct | None:
         logger.info("Called for rp %s", self.id)
         if not self.mailchimp_list_id:
             logger.debug("No email list ID on RP %s, returning None", self.id)
             return None
         try:
             client = self.get_mailchimp_client()
-            response = client.ecommerce.get_store_product(self.mailchimp_store_id, self.mailchimp_product_id)
+            response = client.ecommerce.get_store_product(
+                self.mailchimp_store_id, self.mailchimp_one_time_contribution_product_id
+            )
             return MailchimpProduct(**response)
         except ApiClientError as error:
             if error.status_code == 404:
-                logger.debug("Mailchimp store not found for RP %s, returning None", self.id)
+                logger.debug("Mailchimp one-time contribution product not found for RP %s, returning None", self.id)
                 return None
             else:
                 logger.exception("Unexpected error from Mailchimp API. The error text is %s", error.text)
-                raise MailchimpIntegrationError("Error retrieving product")
+                raise MailchimpIntegrationError("Error retrieving one-time contribution product")
+
+    @property
+    def mailchimp_recurring_contribution_product(self) -> MailchimpProduct | None:
+        logger.info("Called for rp %s", self.id)
+        if not self.mailchimp_list_id:
+            logger.debug("No email list ID on RP %s, returning None", self.id)
+            return None
+        try:
+            client = self.get_mailchimp_client()
+            response = client.ecommerce.get_store_product(
+                self.mailchimp_store_id, self.mailchimp_recurring_contribution_product_id
+            )
+            return MailchimpProduct(**response)
+        except ApiClientError as error:
+            if error.status_code == 404:
+                logger.debug("Mailchimp recurring contribution product not found for RP %s, returning None", self.id)
+                return None
+            else:
+                logger.exception("Unexpected error from Mailchimp API. The error text is %s", error.text)
+                raise MailchimpIntegrationError("Error retrieving recurring contribution product")
 
     @property
     def mailchimp_contributor_segment(self) -> MailchimpSegment | None:
@@ -542,12 +564,20 @@ class RevenueProgram(IndexedTimeStampedModel):
         return "RevEngine store"
 
     @property
-    def mailchimp_product_id(self):
-        return f"rp-{self.id}-product"
+    def mailchimp_one_time_contribution_product_id(self):
+        return f"rp-{self.id}-one-time-contribution-product"
 
     @property
-    def mailchimp_product_name(self):
-        return "RevEngine product"
+    def mailchimp_one_time_contribution_product_name(self):
+        return "one-time contribution"
+
+    @property
+    def mailchimp_recurring_contribution_product_id(self):
+        return f"rp-{self.id}-recurring-contribution-product"
+
+    @property
+    def mailchimp_recurring_contribution_product_name(self):
+        return "recurring contribution"
 
     @property
     def mailchimp_contributor_segment_name(self):
@@ -594,24 +624,39 @@ class RevenueProgram(IndexedTimeStampedModel):
             logger.exception("Error creating store for RP %s: %s", self.id, error.text)
             raise MailchimpIntegrationError("Error creating store")
 
-    def make_mailchimp_product(self) -> MailchimpProduct:
+    def make_mailchimp_product(self, product_id: str, product_name: str) -> MailchimpProduct:
         logger.info("Called for rp %s", self.id)
         client = self.get_mailchimp_client()
         try:
             response = client.ecommerce.add_store_product(
                 self.mailchimp_store_id,
                 {
-                    "id": (id := self.mailchimp_product_id),
-                    "title": (title := self.mailchimp_product_name),
-                    # a product must have at least one variant, but can reusue the parent product's ID and title
-                    # See: https://mailchimp.com/developer/marketing/api/ecommerce-products/add-product/
-                    "variants": [{"id": id, "title": title}],
+                    "id": product_id,
+                    "title": product_name,
+                    "variants": [
+                        {
+                            "id": product_id,
+                            "title": product_name,
+                        }
+                    ],
                 },
             )
             return MailchimpProduct(**response)
         except ApiClientError as error:
-            logger.exception("Error creating product for RP %s: %s", self.id, error.text)
+            logger.exception("Error creating product (%s) for RP %s: %s", product_name, self.id, error.text)
             raise MailchimpIntegrationError("Error creating product")
+
+    def make_mailchimp_one_time_contribution_product(self) -> MailchimpProduct:
+        logger.info("Called for rp %s", self.id)
+        return self.make_mailchimp_product(
+            self.mailchimp_one_time_contribution_product_id, self.mailchimp_one_time_contribution_product_name
+        )
+
+    def make_mailchimp_recurring_contribution_product(self) -> MailchimpProduct:
+        logger.info("Called for rp %s", self.id)
+        return self.make_mailchimp_product(
+            self.mailchimp_recurring_contribution_product_id, self.mailchimp_recurring_contribution_product_name
+        )
 
     def make_mailchimp_contributor_segment(self) -> MailchimpSegment:
         logger.info("Called for rp %s", self.id)
@@ -621,7 +666,23 @@ class RevenueProgram(IndexedTimeStampedModel):
         client = self.get_mailchimp_client()
         try:
             response = client.lists.create_segment(
-                self.mailchimp_list_id, {"name": self.mailchimp_contributor_segment_name}
+                self.mailchimp_list_id,
+                {
+                    "name": self.mailchimp_contributor_segment_name,
+                    "options": {
+                        "match": "all",
+                        "conditions": [
+                            {
+                                "field": "ecomm_purchased",
+                                "op": "member",
+                            },
+                            {
+                                "field": "ecomm_prod",
+                                "is": [self.mailchimp_one_time_contribution_product_name],
+                            },
+                        ],
+                    },
+                },
             )
             return MailchimpSegment(**response)
         except ApiClientError as error:
@@ -642,7 +703,23 @@ class RevenueProgram(IndexedTimeStampedModel):
         client = self.get_mailchimp_client()
         try:
             response = client.lists.create_segment(
-                self.mailchimp_list_id, {"name": self.mailchimp_recurring_segment_name}
+                self.mailchimp_list_id,
+                {
+                    "name": self.mailchimp_recurring_segment_name,
+                    "options": {
+                        "match": "all",
+                        "conditions": [
+                            {
+                                "field": "ecomm_purchased",
+                                "op": "member",
+                            },
+                            {
+                                "field": "ecomm_prod",
+                                "is": [self.mailchimp_recurring_contribution_product_name],
+                            },
+                        ],
+                    },
+                },
             )
             return MailchimpSegment(**response)
         except ApiClientError as exc:

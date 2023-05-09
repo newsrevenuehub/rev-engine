@@ -1,7 +1,7 @@
 import os
 from csv import DictReader
 from datetime import timedelta
-from unittest.mock import MagicMock, patch
+from unittest.mock import ANY, MagicMock, patch
 
 from django.conf import settings
 from django.template.loader import render_to_string
@@ -112,24 +112,24 @@ class TestEmailContributionCsvExportToUser:
         contribution_tasks.email_contribution_csv_export_to_user(
             [x.id for x in contributions], org_user_free_plan.email, (show_upgrade_prompt := True)
         )
-        send_email_spy.assert_called_once()
         make_csv_spy.assert_called_once()
         assert set(make_csv_spy.call_args[0][0]) == set(
             Contribution.objects.filter(id__in=[x.id for x in contributions])
         )
-        assert send_email_spy.call_args[1]["to"] == org_user_free_plan.email
-        assert send_email_spy.call_args[1]["subject"] == "Check out your Contributions"
-        assert send_email_spy.call_args[1]["message_as_text"] == render_to_string(
-            "nrh-contribution-csv-email-body.txt",
-            (
+        send_email_spy.assert_called_once_with(
+            to=org_user_free_plan.email,
+            subject="Check out your Contributions",
+            message_as_text=render_to_string(
+                "nrh-contribution-csv-email-body.txt",
                 context := {
                     "logo_url": os.path.join(settings.SITE_URL, "static", "nre_logo_black_yellow.png"),
                     "show_upgrade_prompt": show_upgrade_prompt,
-                }
+                },
             ),
-        )
-        assert send_email_spy.call_args[1]["message_as_html"] == render_to_string(
-            "nrh-contribution-csv-email-body.html", context
+            message_as_html=render_to_string("nrh-contribution-csv-email-body.html", context),
+            attachment=ANY,
+            content_type="text/csv",
+            filename="contributions.csv",
         )
         data = [row for row in DictReader(send_email_spy.call_args[1]["attachment"].splitlines())]
         assert set(data[0].keys()) == set(CONTRIBUTION_EXPORT_CSV_HEADERS)

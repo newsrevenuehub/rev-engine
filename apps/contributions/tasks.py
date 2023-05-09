@@ -157,9 +157,6 @@ def email_contribution_csv_export_to_user(
             ),
         ),
         message_as_html=render_to_string("nrh-contribution-csv-email-body.html", context),
-        template_data={
-            "logo_url": os.path.join(settings.SITE_URL, "static", "nre_logo_black_yellow.png"),
-        },
         attachment=export_contributions_to_csv(contributions),
         content_type="text/csv",
         filename="contributions.csv",

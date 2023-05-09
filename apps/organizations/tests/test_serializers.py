@@ -1,22 +1,27 @@
 import pytest
 
 from apps.organizations.serializers import RevenueProgramSerializer
-from apps.organizations.tests.factories import RevenueProgramFactory
 
 
 @pytest.mark.django_db
-def test_revenueprogramserializer():
-    fields = (
-        "id",
-        "name",
-        "slug",
-        "tax_id",
-        "fiscal_status",
-        "fiscal_sponsor_name",
-        "mailchimp_integration_connected",
-        "mailchimp_email_lists",
-    )
-    rp = RevenueProgramFactory()
-    serialized = RevenueProgramSerializer(rp).data
-    for field in fields:
-        assert serialized[field] == getattr(rp, field)
+class TestRevenueProgramSerializer:
+    def test_has_right_fields_and_values(self, mocker, mailchimp_email_list_from_api, mc_connected_rp):
+        mocker.patch(
+            "apps.organizations.models.RevenueProgram.mailchimp_email_lists",
+            return_value=[mailchimp_email_list_from_api],
+            new_callable=mocker.PropertyMock,
+        )
+        serialized = RevenueProgramSerializer(mc_connected_rp).data
+        for field in (
+            "id",
+            "name",
+            "slug",
+            "tax_id",
+            "fiscal_status",
+            "fiscal_sponsor_name",
+            "mailchimp_integration_connected",
+        ):
+            assert serialized[field] == getattr(mc_connected_rp, field)
+        assert len(serialized["mailchimp_email_lists"]) == 1
+        assert isinstance(serialized["mailchimp_email_lists"][0], dict)
+        assert serialized["mailchimp_email_lists"][0] == mailchimp_email_list_from_api

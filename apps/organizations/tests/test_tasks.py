@@ -232,15 +232,6 @@ def mock_rp_mailchimp_store_truthy(mocker):
     )
 
 
-@pytest.fixture
-def mc_connected_rp(revenue_program):
-    revenue_program.mailchimp_access_token = "something-truthy"
-    revenue_program.mailchimp_server_prefix = "something-truthy"
-    revenue_program.mailchimp_list_id = "something-truthy"
-    revenue_program.save()
-    return revenue_program
-
-
 @pytest.mark.django_db(transaction=True)
 @pytest.mark.celery(result_backend="django-db", cache_backend="django-cache")
 def test_setup_mailchimp_entities_for_rp_mailing_list(

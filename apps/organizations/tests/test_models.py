@@ -283,36 +283,6 @@ def revenue_program_with_incomplete_connection_only_has_token():
 
 
 @pytest.fixture
-def mailchimp_email_list_from_api():
-    return asdict(
-        MailchimpEmailList(
-            id=fake.uuid4(),
-            web_id=fake.uuid4(),
-            name=fake.word(),
-            contact={},
-            permission_reminder="",
-            use_archive_bar=choice([True, False]),
-            campaign_defaults={},
-            notify_on_subscribe=choice([True, False]),
-            notify_on_unsubscribe=choice([True, False]),
-            date_created="",
-            list_rating="",
-            email_type_option=choice([True, False]),
-            subscribe_url_short="",
-            subscribe_url_long="",
-            beamer_address="",
-            visibility="",
-            double_optin=choice([True, False]),
-            has_welcome=choice([True, False]),
-            marketing_permissions=choice([True, False]),
-            modules=[],
-            stats={},
-            _links=[],
-        )
-    )
-
-
-@pytest.fixture
 def mailchimp_store_from_api():
     return asdict(
         MailchimpStore(

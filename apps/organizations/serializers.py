@@ -123,6 +123,9 @@ class RevenueProgramSerializer(serializers.ModelSerializer):
             "mailchimp_email_lists",
         ]
 
+    def get_mailchimp_email_lists(self):
+        return [asdict(email_list) for email_list in self.instance.mailchimp_email_lists]
+
 
 class RevenueProgramPatchSerializer(serializers.ModelSerializer):
     class Meta:

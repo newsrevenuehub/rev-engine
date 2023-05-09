@@ -1,5 +1,4 @@
 import json
-from csv import DictReader
 from unittest import mock
 
 from django.conf import settings
@@ -35,7 +34,10 @@ from apps.contributions.serializers import (
     ContributionSerializer,
     PaymentProviderContributionSerializer,
 )
-from apps.contributions.tasks import task_pull_serialized_stripe_contributions_to_cache
+from apps.contributions.tasks import (
+    email_contribution_csv_export_to_user,
+    task_pull_serialized_stripe_contributions_to_cache,
+)
 from apps.contributions.tests.factories import (
     ContributionFactory,
     ContributorFactory,
@@ -45,7 +47,6 @@ from apps.contributions.tests.test_serializers import (
     mock_get_bad_actor,
     mock_stripe_call_with_error,
 )
-from apps.emails.tasks import send_templated_email_with_attachment
 from apps.organizations.tests.factories import (
     OrganizationFactory,
     PaymentProviderFactory,
@@ -76,42 +77,6 @@ class MockOAuthResponse(StripeObject):
 
 
 expected_oauth_scope = "my_test_scope"
-
-
-@pytest.fixture
-def flagged_contribution():
-    with mock.patch("apps.contributions.models.Contribution.fetch_stripe_payment_method", return_value=None):
-        return ContributionFactory(one_time=True, flagged=True)
-
-
-@pytest.fixture
-def rejected_contribution():
-    with mock.patch("apps.contributions.models.Contribution.fetch_stripe_payment_method", return_value=None):
-        return ContributionFactory(monthly_subscription=True, rejected=True)
-
-
-@pytest.fixture
-def canceled_contribution():
-    with mock.patch("apps.contributions.models.Contribution.fetch_stripe_payment_method", return_value=None):
-        return ContributionFactory(monthly_subscription=True, canceled=True)
-
-
-@pytest.fixture
-def refunded_contribution():
-    with mock.patch("apps.contributions.models.Contribution.fetch_stripe_payment_method", return_value=None):
-        return ContributionFactory(one_time=True, refunded=True)
-
-
-@pytest.fixture
-def successful_contribution():
-    with mock.patch("apps.contributions.models.Contribution.fetch_stripe_payment_method", return_value=None):
-        return ContributionFactory(one_time=True)
-
-
-@pytest.fixture
-def processing_contribution():
-    with mock.patch("apps.contributions.models.Contribution.fetch_stripe_payment_method", return_value=None):
-        return ContributionFactory(processing=True)
 
 
 @override_settings(STRIPE_OAUTH_SCOPE=expected_oauth_scope)
@@ -264,22 +229,20 @@ class TestContributionsViewSet:
         api_client.force_authenticate(user)
         new_rp = RevenueProgramFactory(organization=OrganizationFactory(name="new-org"), name="new rp")
         if user.is_superuser or user.roleassignment.role_type == Roles.HUB_ADMIN:
-            with mock.patch("apps.contributions.models.Contribution.fetch_stripe_payment_method", return_value=None):
-                ContributionFactory(**{"one_time": True, "donation_page__revenue_program": new_rp})
-                ContributionFactory(**{"annual_subscription": True, "donation_page__revenue_program": new_rp})
-                ContributionFactory(**{"monthly_subscription": True, "donation_page__revenue_program": new_rp})
+            ContributionFactory(**{"one_time": True, "donation_page__revenue_program": new_rp})
+            ContributionFactory(**{"annual_subscription": True, "donation_page__revenue_program": new_rp})
+            ContributionFactory(**{"monthly_subscription": True, "donation_page__revenue_program": new_rp})
             query = Contribution.objects.all()
             unpermitted = Contribution.objects.none()
         else:
-            with mock.patch("apps.contributions.models.Contribution.fetch_stripe_payment_method", return_value=None):
-                # this ensures that we'll have both owned and unowned contributions for org and rp admins
-                for kwargs in [
-                    {"donation_page__revenue_program": new_rp},
-                    {"donation_page__revenue_program": user.roleassignment.revenue_programs.first()},
-                ]:
-                    ContributionFactory(**({"one_time": True} | kwargs))
-                    ContributionFactory(**({"annual_subscription": True} | kwargs))
-                    ContributionFactory(**({"monthly_subscription": True} | kwargs))
+            # this ensures that we'll have both owned and unowned contributions for org and rp admins
+            for kwargs in [
+                {"donation_page__revenue_program": new_rp},
+                {"donation_page__revenue_program": user.roleassignment.revenue_programs.first()},
+            ]:
+                ContributionFactory(**({"one_time": True} | kwargs))
+                ContributionFactory(**({"annual_subscription": True} | kwargs))
+                ContributionFactory(**({"monthly_subscription": True} | kwargs))
             query = Contribution.objects.filtered_by_role_assignment(user.roleassignment)
             unpermitted = Contribution.objects.exclude(id__in=query.values_list("id", flat=True))
 
@@ -342,8 +305,7 @@ class TestContributionsViewSet:
         api_client.force_authenticate(user)
         # superuser and hub admin can retrieve all:
         if user.is_superuser or user.roleassignment.role_type == Roles.HUB_ADMIN:
-            with mock.patch("apps.contributions.models.Contribution.fetch_stripe_payment_method", return_value=None):
-                ContributionFactory.create_batch(size=2)
+            ContributionFactory.create_batch(size=2)
             query = (
                 Contribution.objects.all() if user.is_superuser else Contribution.objects.having_org_viewable_status()
             )
@@ -353,12 +315,11 @@ class TestContributionsViewSet:
         else:
             assert revenue_program not in user.roleassignment.revenue_programs.all()
             assert user.roleassignment.revenue_programs.first() is not None
-            with mock.patch("apps.contributions.models.Contribution.fetch_stripe_payment_method", return_value=None):
-                ContributionFactory(
-                    one_time=True,
-                    donation_page=DonationPageFactory(revenue_program=user.roleassignment.revenue_programs.first()),
-                )
-                ContributionFactory(one_time=True, donation_page=DonationPageFactory(revenue_program=revenue_program))
+            ContributionFactory(
+                one_time=True,
+                donation_page=DonationPageFactory(revenue_program=user.roleassignment.revenue_programs.first()),
+            )
+            ContributionFactory(one_time=True, donation_page=DonationPageFactory(revenue_program=revenue_program))
             user.roleassignment.refresh_from_db()
             query = Contribution.objects.filtered_by_role_assignment(user.roleassignment)
             unpermitted = Contribution.objects.exclude(id__in=query.values_list("id", flat=True))
@@ -412,13 +373,17 @@ class TestContributionsViewSet:
             successful_contribution,
             canceled_contribution,
             refunded_contribution,
-            processing_contribution,
         ]
         if user.is_superuser:
-            seen.extend([flagged_contribution, rejected_contribution])
+            seen.extend(
+                [
+                    flagged_contribution,
+                    rejected_contribution,
+                    processing_contribution,
+                ]
+            )
         if not (user.is_superuser or user.roleassignment.role_type == Roles.HUB_ADMIN):
             # ensure all contributions are owned by user so we're narrowly viewing behavior around status inclusion/exclusion
-            # with mock.patch("apps.contributions.models.Contribution.fetch_stripe_payment_method", return_value=None):
             DonationPage.objects.update(revenue_program=user.roleassignment.revenue_programs.first())
         api_client.force_authenticate(user)
         response = api_client.get(reverse("contribution-list"))
@@ -429,9 +394,13 @@ class TestContributionsViewSet:
     @pytest_cases.parametrize(
         "user", (pytest_cases.fixture_ref("superuser"), pytest_cases.fixture_ref("hub_admin_user"))
     )
-    def test_filters_out_flagged_and_rejected_contributions(
+    @pytest.mark.parametrize(
+        "contribution_status", (ContributionStatus.FLAGGED, ContributionStatus.REJECTED, ContributionStatus.PROCESSING)
+    )
+    def test_filter_contributions_based_on_status(
         self,
         user,
+        contribution_status,
         flagged_contribution,
         rejected_contribution,
         canceled_contribution,
@@ -442,16 +411,27 @@ class TestContributionsViewSet:
     ):
         """Superusers and hub admins can filter out flagged and rejected contributions"""
         api_client.force_authenticate(user)
-        qp = "&".join(
-            [f"status__not={i}" for i in [ContributionStatus.FLAGGED.value, ContributionStatus.REJECTED.value]]
-        )
-        expected = [refunded_contribution, canceled_contribution, successful_contribution, processing_contribution]
-        unexpected = [flagged_contribution, rejected_contribution]
-        assert Contribution.objects.count() == len(expected) + len(unexpected)
-        response = api_client.get(f"{reverse('contribution-list')}?{qp}")
-        assert response.status_code == status.HTTP_200_OK
-        assert len(response.json()["results"]) == len(expected)
-        assert set([x["id"] for x in response.json()["results"]]) == set([x.id for x in expected])
+        qp = f"status__not={contribution_status.value}"
+        can_see = [
+            canceled_contribution,
+            refunded_contribution,
+            successful_contribution,
+        ]
+        if user.is_superuser:
+            can_see.extend(
+                [
+                    flagged_contribution,
+                    rejected_contribution,
+                    processing_contribution,
+                ]
+            )
+        if contribution_status in [x.status for x in can_see]:
+            expected = [x for x in can_see if x.status != contribution_status]
+            assert Contribution.objects.count() == len(expected) + 1
+            response = api_client.get(f"{reverse('contribution-list')}?{qp}")
+            assert response.status_code == status.HTTP_200_OK
+            assert len(response.json()["results"]) == len(expected)
+            assert set([x["id"] for x in response.json()["results"]]) == set([x.id for x in expected])
 
 
 @pytest.mark.django_db
@@ -515,35 +495,34 @@ class TestContributionsViewSetExportCSV:
             pytest_cases.fixture_ref("rp_user"),
         ),
     )
-    def test_when_expected_user(self, user, api_client, mocker, revenue_program):
+    def test_when_expected_user(self, user, api_client, mocker, revenue_program, settings):
         """Show expected users get back expected results in CSV"""
+        settings.CELERY_ALWAYS_EAGER = True
         api_client.force_authenticate(user)
         if user.is_staff or user.roleassignment.role_type == Roles.HUB_ADMIN:
-            with mock.patch("apps.contributions.models.Contribution.fetch_stripe_payment_method", return_value=None):
-                ContributionFactory(one_time=True)
-                ContributionFactory(one_time=True, flagged=True)
-                ContributionFactory(one_time=True, rejected=True)
-                ContributionFactory(one_time=True, canceled=True)
-                ContributionFactory(one_time=True, refunded=True)
-                ContributionFactory(one_time=True, processing=True)
+            ContributionFactory(one_time=True)
+            ContributionFactory(one_time=True, flagged=True)
+            ContributionFactory(one_time=True, rejected=True)
+            ContributionFactory(one_time=True, canceled=True)
+            ContributionFactory(one_time=True, refunded=True)
+            ContributionFactory(one_time=True, processing=True)
 
         else:
-            with mock.patch("apps.contributions.models.Contribution.fetch_stripe_payment_method", return_value=None):
-                assert revenue_program not in user.roleassignment.revenue_programs.all()
-                unowned_page = DonationPageFactory(revenue_program=revenue_program)
-                owned_page = DonationPageFactory(revenue_program=user.roleassignment.revenue_programs.first())
-                ContributionFactory(one_time=True, donation_page=owned_page)
-                ContributionFactory(one_time=True, flagged=True, donation_page=owned_page)
-                ContributionFactory(one_time=True, rejected=True, donation_page=owned_page)
-                ContributionFactory(one_time=True, canceled=True, donation_page=owned_page)
-                ContributionFactory(one_time=True, refunded=True, donation_page=owned_page)
-                ContributionFactory(one_time=True, processing=True, donation_page=owned_page)
-                ContributionFactory(one_time=True)
-                ContributionFactory(one_time=True, flagged=True, donation_page=unowned_page)
-                ContributionFactory(one_time=True, rejected=True, donation_page=unowned_page)
-                ContributionFactory(one_time=True, canceled=True, donation_page=unowned_page)
-                ContributionFactory(one_time=True, refunded=True, donation_page=unowned_page)
-                ContributionFactory(one_time=True, processing=True, donation_page=unowned_page)
+            assert revenue_program not in user.roleassignment.revenue_programs.all()
+            unowned_page = DonationPageFactory(revenue_program=revenue_program)
+            owned_page = DonationPageFactory(revenue_program=user.roleassignment.revenue_programs.first())
+            ContributionFactory(one_time=True, donation_page=owned_page)
+            ContributionFactory(one_time=True, flagged=True, donation_page=owned_page)
+            ContributionFactory(one_time=True, rejected=True, donation_page=owned_page)
+            ContributionFactory(one_time=True, canceled=True, donation_page=owned_page)
+            ContributionFactory(one_time=True, refunded=True, donation_page=owned_page)
+            ContributionFactory(one_time=True, processing=True, donation_page=owned_page)
+            ContributionFactory(one_time=True)
+            ContributionFactory(one_time=True, flagged=True, donation_page=unowned_page)
+            ContributionFactory(one_time=True, rejected=True, donation_page=unowned_page)
+            ContributionFactory(one_time=True, canceled=True, donation_page=unowned_page)
+            ContributionFactory(one_time=True, refunded=True, donation_page=unowned_page)
+            ContributionFactory(one_time=True, processing=True, donation_page=unowned_page)
 
         expected = (
             Contribution.objects.all()
@@ -558,19 +537,14 @@ class TestContributionsViewSetExportCSV:
         assert expected.count()
         assert (not_expected.count() == 0) if user.is_staff else (not_expected.count() > 0)
         filter_spy = mocker.spy(Contribution.objects, "filtered_by_role_assignment")
-        email_task_spy = mocker.spy(send_templated_email_with_attachment, "delay")
+        email_export_spy = mocker.spy(email_contribution_csv_export_to_user, "delay")
         response = api_client.post(reverse("contribution-email-contributions"))
         assert response.status_code == status.HTTP_200_OK
-        assert filter_spy.call_count == 0 if user.is_staff else 1
-        assert email_task_spy.call_count == 1
-        assert email_task_spy.call_args_list[0][1]["to"] == user.email
-        contributions_from_email_view = [
-            row for row in DictReader(email_task_spy.call_args_list[0][1]["attachment"].splitlines())
-        ]
-        assert len(contributions_from_email_view) == expected.count()
-        assert set(int(x["Contribution ID"]) for x in contributions_from_email_view) == set(
-            x for x in expected.values_list("id", flat=True)
-        )
+        email_export_spy.assert_called_once()
+        assert set(email_export_spy.call_args[0][0]) == set(expected.values_list("id", flat=True))
+        assert email_export_spy.call_args[0][1] == user.email
+        if (ra := user.get_role_assignment()) is not None:
+            filter_spy.assert_called_once_with(ra)
 
     @pytest_cases.parametrize(
         "user,expected_status",
@@ -894,6 +868,7 @@ class UpdatePaymentMethodTest(APITestCase):
             default_payment_method=self.payment_method_id,
             stripe_account=self.stripe_account_id,
         )
+        # assert about update fields and revision creation
 
 
 @override_settings(STRIPE_TEST_SECRET_KEY=TEST_STRIPE_API_KEY)
@@ -930,6 +905,8 @@ class CancelRecurringPaymentTest(APITestCase):
         response = self._make_request(self.subscription.id, self.revenue_program.slug)
         self.assertEqual(response.status_code, 204)
         self.assertEqual(response.data["detail"], "Success")
+
+        # test update fields and revision creation
 
     @mock.patch("stripe.Subscription.retrieve")
     def test_delete_recurring_wrong_email(self, mock_retrieve):
@@ -973,6 +950,8 @@ class DeleteSubscriptionsTest(APITestCase):
         response = self._make_request(self.subscription_1.id, self.revenue_program.slug)
         self.assertEqual(response.status_code, 204)
         self.assertEqual(response.data["detail"], "Success")
+
+        # test update fields and revision creation
 
     @mock.patch("stripe.Subscription.retrieve")
     def test_delete_recurring_wrong_email(self, mock_retrieve):
@@ -1036,16 +1015,13 @@ class ProcessFlaggedContributionTest(APITestCase):
         self.assertEqual(response.status_code, 200)
         mock_process_flagged.assert_called_with(reject="True")
 
+        # assert about revision and update fields
+
     def test_response_when_successful_accept(self, mock_process_flagged):
         response = self._make_request(contribution_pk=self.contribution.pk, request_args={"reject": False})
         self.assertEqual(response.status_code, 200)
         mock_process_flagged.assert_called_with(reject="False")
-
-
-@pytest.mark.django_db()
-@pytest.fixture
-def donation_page():
-    return DonationPageFactory()
+        # assert about revision and update fields
 
 
 @pytest.fixture
@@ -1129,6 +1105,7 @@ class TestPaymentViewset:
         stripe_create_customer_response,
         interval,
         subscription_id,
+        mocker,
     ):
         """Minimal test of the happy path
 
@@ -1136,20 +1113,22 @@ class TestPaymentViewset:
         are extensively tested elsewhere.
         """
         mock_create_customer = mock.Mock()
-        mock_create_customer.return_value = stripe_create_customer_response
+        mock_create_customer.return_value = AttrDict(stripe_create_customer_response)
         monkeypatch.setattr("stripe.Customer.create", mock_create_customer)
         mock_create_subscription = mock.Mock()
-        mock_create_subscription.return_value = stripe_create_subscription_response
+        mock_create_subscription.return_value = AttrDict(stripe_create_subscription_response)
         monkeypatch.setattr("stripe.Subscription.create", mock_create_subscription)
         monkeypatch.setattr("apps.contributions.serializers.make_bad_actor_request", mock_get_bad_actor)
         mock_create_payment_intent = mock.Mock()
-        mock_create_payment_intent.return_value = stripe_create_payment_intent_response
+        mock_create_payment_intent.return_value = AttrDict(stripe_create_payment_intent_response)
         monkeypatch.setattr("stripe.PaymentIntent.create", mock_create_payment_intent)
 
         contributor_count = Contributor.objects.count()
         contribution_count = Contribution.objects.count()
         data = valid_data | {"interval": interval}
         url = reverse("payment-list")
+
+        save_spy = mocker.spy(Contribution, "save")
         response = self.client.post(url, data, format="json")
         assert response.status_code == status.HTTP_201_CREATED
         assert set(["email_hash", "client_secret", "uuid"]) == set(response.json().keys())
@@ -1159,6 +1138,7 @@ class TestPaymentViewset:
         assert contribution.interval == interval
         assert contribution.provider_subscription_id == subscription_id
         assert contribution.amount == int(data["amount"] * 100)
+        save_spy.assert_called_once()
 
     def test_when_called_with_unexpected_interval(self, valid_data):
         invalid_interval = "this-is-not-legit"
@@ -1189,10 +1169,8 @@ class TestPaymentViewset:
             (ContributionInterval.YEARLY, None, SUBSCRIPTION_ID),
         ),
     )
-    @mock.patch("apps.contributions.models.Contribution.fetch_stripe_payment_method", return_value=None)
     def test_destroy_happy_path(
         self,
-        mock_fetch_stripe_payment_method,
         interval,
         payment_intent_id,
         subscription_id,
@@ -1213,6 +1191,8 @@ class TestPaymentViewset:
         contribution.refresh_from_db()
         mock_cancel.assert_called_once()
 
+        # test revision and update fields
+
     @pytest.mark.parametrize(
         "contribution_status",
         (
@@ -1227,8 +1207,7 @@ class TestPaymentViewset:
         self,
         contribution_status,
     ):
-        with mock.patch("apps.contributions.models.Contribution.fetch_stripe_payment_method", return_value=False):
-            contribution = ContributionFactory(status=contribution_status, one_time=True)
+        contribution = ContributionFactory(status=contribution_status, one_time=True)
         url = reverse("payment-detail", kwargs={"uuid": str(contribution.uuid)})
         response = self.client.delete(url)
         assert response.status_code == status.HTTP_409_CONFLICT
@@ -1236,8 +1215,7 @@ class TestPaymentViewset:
     def test_destroy_when_contribution_interval_unexpected(self):
         interval = "foo"
         assert interval not in ContributionInterval.choices
-        with mock.patch("apps.contributions.models.Contribution.fetch_stripe_payment_method", return_value=False):
-            contribution = ContributionFactory(one_time=True, interval=interval, status=ContributionStatus.PROCESSING)
+        contribution = ContributionFactory(one_time=True, interval=interval, status=ContributionStatus.PROCESSING)
         url = reverse("payment-detail", kwargs={"uuid": str(contribution.uuid)})
         response = self.client.delete(url)
         assert response.status_code == status.HTTP_500_INTERNAL_SERVER_ERROR
@@ -1255,13 +1233,12 @@ class TestPaymentViewset:
         monkeypatch.setattr("stripe.PaymentIntent.cancel", mock_stripe_call_with_error)
         monkeypatch.setattr("stripe.Subscription.delete", mock_stripe_call_with_error)
         monkeypatch.setattr("stripe.PaymentMethod.retrieve", mock_stripe_call_with_error)
-        with mock.patch("apps.contributions.models.Contribution.fetch_stripe_payment_method", return_value=None):
-            contribution = ContributionFactory(
-                **{
-                    contribution_type: True,
-                    "status": contribution_status,
-                }
-            )
+        contribution = ContributionFactory(
+            **{
+                contribution_type: True,
+                "status": contribution_status,
+            }
+        )
         url = reverse("payment-detail", kwargs={"uuid": str(contribution.uuid)})
         response = self.client.delete(url)
         assert response.status_code == status.HTTP_500_INTERNAL_SERVER_ERROR

@@ -84,6 +84,7 @@ class AbstractTestCase(APITestCase):
                             one_time=True,
                             donation_page=page,
                             contributor=contributor,
+                            provider_payment_method_details=None,
                         )
                         mock_method.assert_called_once()
         cls.contributor_user = Contributor.objects.first()

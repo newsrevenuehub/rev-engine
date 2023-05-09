@@ -23,7 +23,7 @@ class Publisher:
 
     def __init__(self):
         self.client = pubsub_v1.PublisherClient(
-            service_account.Credentials.from_service_account_info(settings.GS_SERVICE_ACCOUNT)
+            credentials=service_account.Credentials.from_service_account_info(settings.GS_SERVICE_ACCOUNT)
         )
         self.project_id = settings.GOOGLE_CLOUD_PROJECT
 

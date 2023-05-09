@@ -8,7 +8,8 @@ https://docs.djangoproject.com/en/3.2/topics/settings/
 For the full list of settings and their values, see
 https://docs.djangoproject.com/en/3.2/ref/settings/
 """
-
+import base64
+import json
 import os
 from datetime import timedelta
 from pathlib import Path
@@ -94,6 +95,13 @@ ENABLE_PUBSUB = os.getenv("ENABLE_PUBSUB", "false").lower() == "true"
 PAGE_PUBLISHED_TOPIC = os.getenv("PAGE_PUBLISHED_TOPIC", None)
 NEW_USER_TOPIC = os.getenv("NEW_USER_TOPIC", None)
 GOOGLE_CLOUD_PROJECT = os.getenv("GOOGLE_CLOUD_PROJECT", "revenue-engine")
+
+GS_SERVICE_ACCCOUNT = (
+    json.loads(base64.b64decode(os.environ["GS_SERVICE_ACCCOUNT"]))
+    if os.environ.get("GS_SERVICE_ACCCOUNT", None)
+    else {}
+)
+
 
 # Application definition
 INSTALLED_APPS = [

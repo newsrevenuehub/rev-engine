@@ -550,7 +550,7 @@ class RevenueProgram(IndexedTimeStampedModel):
             return None
         try:
             client = self.get_mailchimp_client()
-            response = client.lists.get_segment(self.mailchimp_list_id, self.mailchimp_recurring_segment_id)
+            response = client.lists.get_segment(self.mailchimp_list_id, self.mailchimp_recurring_contributor_segment_id)
             return MailchimpSegment(**response)
         except ApiClientError as error:
             if error.status_code == 404:

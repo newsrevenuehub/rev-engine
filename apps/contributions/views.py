@@ -313,8 +313,17 @@ class ContributionsViewSet(viewsets.ReadOnlyModelViewSet):
             "[ContributionViewSet.email_contributions] enqueueing email_contribution_csv_export_to_user task for request: %s",
             request,
         )
+        ra = request.user.get_role_assignment()
+        show_upgrade_prompt = (
+            not request.user.is_superuser
+            and ra
+            and (org := getattr(ra, "organization", None))
+            and org.plan.name == "FREE"
+        )
         email_contribution_csv_export_to_user.delay(
-            list(self.get_queryset().values_list("id", flat=True)), request.user.email
+            list(self.get_queryset().values_list("id", flat=True)),
+            request.user.email,
+            show_upgrade_prompt,
         )
         return Response(data={"detail": "success"}, status=status.HTTP_200_OK)
 

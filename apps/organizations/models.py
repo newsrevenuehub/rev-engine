@@ -450,6 +450,8 @@ class RevenueProgram(IndexedTimeStampedModel):
     # TODO: DEV-3302 this is a temporary field, to be removed in https://news-revenue-hub.atlassian.net/browse/DEV-3302
     mailchimp_access_token = models.TextField(null=True, blank=True)
     mailchimp_list_id = models.TextField(null=True, blank=True)
+    mailchimp_contributor_segment_id = models.CharField(max_length=100, null=True, blank=True)
+    mailchimp_recurring_contributor_segment_id = models.CharField(max_length=100, null=True, blank=True)
 
     @property
     def mailchimp_store(self) -> MailchimpStore | None:
@@ -518,9 +520,12 @@ class RevenueProgram(IndexedTimeStampedModel):
         if not self.mailchimp_list_id:
             logger.debug("No email list ID on RP %s, returning None", self.id)
             return None
+        if not self.mailchimp_contributor_segment_id:
+            logger.debug("No mailhcimp_contributor_segment_id on RP %s, returning None", self.id)
+            return None
+        client = self.get_mailchimp_client()
         try:
-            client = self.get_mailchimp_client()
-            response = client.lists.get_segment(self.mailchimp_list_id, self.mailchimp_contributor_segment_name)
+            response = client.lists.get_segment(self.mailchimp_list_id, self.mailchimp_contributor_segment_id)
             return MailchimpSegment(**response)
         except ApiClientError as error:
             if error.status_code == 404:
@@ -540,9 +545,12 @@ class RevenueProgram(IndexedTimeStampedModel):
         if not self.mailchimp_list_id:
             logger.debug("No email list ID on RP %s, returning None", self.id)
             return None
+        if not self.mailchimp_recurring_contributor_segment_id:
+            logger.debug("No mailhcimp_recurring_contributor_segment_id on RP %s, returning None", self.id)
+            return None
         try:
             client = self.get_mailchimp_client()
-            response = client.lists.get_segment(self.mailchimp_list_id, self.mailchimp_recurring_segment_name)
+            response = client.lists.get_segment(self.mailchimp_list_id, self.mailchimp_recurring_segment_id)
             return MailchimpSegment(**response)
         except ApiClientError as error:
             if error.status_code == 404:
@@ -585,7 +593,7 @@ class RevenueProgram(IndexedTimeStampedModel):
 
     @property
     def mailchimp_recurring_segment_name(self):
-        return "Recurring contribtors"
+        return "Recurring contributors"
 
     def get_mailchimp_client(self) -> MailchimpMarketing.Client:
         logger.info("Called for rp %s", self.id)

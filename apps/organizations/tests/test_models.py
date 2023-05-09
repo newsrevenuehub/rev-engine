@@ -906,10 +906,19 @@ class TestRevenueProgram:
         assert revenue_program_with_mailchimp_connection_via_oauth_flow.mailchimp_list_id is None
         assert revenue_program_with_mailchimp_connection_via_oauth_flow.mailchimp_contributor_segment is None
 
+    def test_mailchimp_contributor_segment_when_no_mailchimp_contributor_segment_id(
+        self, revenue_program_with_mailchimp_connection_via_oauth_flow
+    ):
+        revenue_program_with_mailchimp_connection_via_oauth_flow.mailchimp_list_id = "something"
+        revenue_program_with_mailchimp_connection_via_oauth_flow.save()
+        assert revenue_program_with_mailchimp_connection_via_oauth_flow.mailchimp_contributor_segment_id is None
+        assert revenue_program_with_mailchimp_connection_via_oauth_flow.mailchimp_contributor_segment is None
+
     def test_mailchimp_contributor_segment_happy_path(
         self, revenue_program_with_mailchimp_connection_via_oauth_flow, mailchimp_contributor_segment_from_api, mocker
     ):
         revenue_program_with_mailchimp_connection_via_oauth_flow.mailchimp_list_id = "something"
+        revenue_program_with_mailchimp_connection_via_oauth_flow.mailchimp_contributor_segment_id = "something"
         revenue_program_with_mailchimp_connection_via_oauth_flow.save()
         mock_client = Mock()
         mock_client.lists.get_segment.return_value = mailchimp_contributor_segment_from_api
@@ -923,6 +932,7 @@ class TestRevenueProgram:
         self, revenue_program_with_mailchimp_connection_via_oauth_flow, mocker
     ):
         revenue_program_with_mailchimp_connection_via_oauth_flow.mailchimp_list_id = "something"
+        revenue_program_with_mailchimp_connection_via_oauth_flow.mailchimp_contributor_segment_id = "something"
         revenue_program_with_mailchimp_connection_via_oauth_flow.save()
         mock_client = Mock()
         mock_client.lists.get_segment.side_effect = ApiClientError("Not Found", status_code=404)
@@ -937,10 +947,22 @@ class TestRevenueProgram:
         assert revenue_program_with_mailchimp_connection_via_oauth_flow.mailchimp_list_id is None
         assert revenue_program_with_mailchimp_connection_via_oauth_flow.mailchimp_recurring_segment is None
 
+    def test_mailchimp_recurring_contributor_segment_when_no_mailchimp_recurring_contributor_segment_id(
+        self, revenue_program_with_mailchimp_connection_via_oauth_flow
+    ):
+        revenue_program_with_mailchimp_connection_via_oauth_flow.mailchimp_list_id = "something"
+        revenue_program_with_mailchimp_connection_via_oauth_flow.mailchimp_recurring_contributor_segment_id = (
+            "something"
+        )
+        revenue_program_with_mailchimp_connection_via_oauth_flow.save()
+        assert revenue_program_with_mailchimp_connection_via_oauth_flow.mailchimp_contributor_segment_id is None
+        assert revenue_program_with_mailchimp_connection_via_oauth_flow.mailchimp_contributor_segment is None
+
     def test_mailchimp_contributor_segment_when_api_client_error(
         self, revenue_program_with_mailchimp_connection_via_oauth_flow, mocker
     ):
         revenue_program_with_mailchimp_connection_via_oauth_flow.mailchimp_list_id = "something"
+        revenue_program_with_mailchimp_connection_via_oauth_flow.mailchimp_contributor_segment_id = "something"
         revenue_program_with_mailchimp_connection_via_oauth_flow.save()
         mock_client = Mock()
         mock_client.lists.get_segment.side_effect = ApiClientError("Internal Server Error", status_code=500)
@@ -957,6 +979,9 @@ class TestRevenueProgram:
         mocker,
     ):
         revenue_program_with_mailchimp_connection_via_oauth_flow.mailchimp_list_id = "something"
+        revenue_program_with_mailchimp_connection_via_oauth_flow.mailchimp_recurring_contributor_segment_id = (
+            "something"
+        )
         revenue_program_with_mailchimp_connection_via_oauth_flow.save()
         mock_client = Mock()
         mock_client.lists.get_segment.return_value = mailchimp_recurring_contributor_segment_from_api
@@ -970,6 +995,9 @@ class TestRevenueProgram:
         self, revenue_program_with_mailchimp_connection_via_oauth_flow, mocker
     ):
         revenue_program_with_mailchimp_connection_via_oauth_flow.mailchimp_list_id = "something"
+        revenue_program_with_mailchimp_connection_via_oauth_flow.mailchimp_recurring_contributor_segment_id = (
+            "something"
+        )
         revenue_program_with_mailchimp_connection_via_oauth_flow.save()
         mock_client = Mock()
         mock_client.lists.get_segment.side_effect = ApiClientError("Not Found", status_code=404)
@@ -982,6 +1010,9 @@ class TestRevenueProgram:
         self, revenue_program_with_mailchimp_connection_via_oauth_flow, mocker
     ):
         revenue_program_with_mailchimp_connection_via_oauth_flow.mailchimp_list_id = "something"
+        revenue_program_with_mailchimp_connection_via_oauth_flow.mailchimp_recurring_contributor_segment_id = (
+            "something"
+        )
         revenue_program_with_mailchimp_connection_via_oauth_flow.save()
         mock_client = Mock()
         mock_client.lists.get_segment.side_effect = ApiClientError("Internal Server Error", status_code=500)

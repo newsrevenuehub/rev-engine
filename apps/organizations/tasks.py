@@ -104,8 +104,13 @@ def _ensure_mailchimp_contributor_segment(rp_id: str) -> None:
             rp.mailchimp_contributor_segment_name,
             rp_id,
         )
-        rp.make_mailchimp_contributor_segment()
+        segment = rp.make_mailchimp_contributor_segment()
         logger.info("Segment created for rp_id=[%s]", rp_id)
+        rp.mailchimp_contributor_segment_id = segment.id
+        logger.info("Saving mailchimp contributor segment id for rp_id=[%s]", rp_id)
+        with reversion.create_revision():
+            rp.save(update_fields={"mailchimp_contributor_segment_id", "modified"})
+            reversion.set_comment("_ensure_mailchimp_contributor_segment updated contributor segment id")
     else:
         logger.info("Segment already exists for rp_id=[%s]", rp_id)
 
@@ -130,11 +135,15 @@ def _ensure_mailchimp_recurring_segment(rp_id: str) -> None:
             rp.mailchimp_contributor_segment_name,
             rp_id,
         )
-        rp.make_mailchimp_recurring_segment()
+        segment = rp.make_mailchimp_recurring_segment()
         logger.info("Segment created for rp_id=[%s]", rp_id)
+        rp.mailchimp_contributor_segment_id = segment.id
+        logger.info("Saving mailchimp recurring contributor segment id for rp_id=[%s]", rp_id)
+        with reversion.create_revision():
+            rp.save(update_fields={"mailchimp_recurring_contributor_segment_id", "modified"})
+            reversion.set_comment("_ensure_mailchimp_recurring_segment updated recurring contributor segment id")
     else:
         logger.info("Segment already exists for rp_id=[%s]", rp_id)
-        return rp.mailchimp_store_id
 
 
 @shared_task

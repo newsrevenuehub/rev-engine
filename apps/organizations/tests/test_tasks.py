@@ -346,6 +346,10 @@ class TestEnsureMailchimpRecurringContributionProduct:
 @pytest.mark.django_db
 class TestEnsureMailchimpContributorSegment:
     def test_when_no_existing_contributor_segment(self, mc_connected_rp, mocker):
+        save_spy = mocker.spy(RevenueProgram, "save")
+        mock_create_revision = mocker.patch("reversion.create_revision")
+        mock_create_revision.return_value.__enter__.return_value.add = mocker.Mock()
+        mock_set_comment = mocker.patch("reversion.set_comment")
         my_id = "some-id"
         mocker.patch(
             "apps.organizations.models.RevenueProgram.mailchimp_contributor_segment",
@@ -358,6 +362,11 @@ class TestEnsureMailchimpContributorSegment:
         )
         ensure_mailchimp_contributor_segment.apply(args=(mc_connected_rp.id,)).get()
         mock_make_contributor_segment.assert_called_once()
+        save_spy.assert_called_once_with(
+            mc_connected_rp, update_fields={"mailchimp_contributor_segment_id", "modified"}
+        )
+        mock_create_revision.assert_called_once()
+        mock_set_comment.assert_called_once_with("_ensure_mailchimp_contributor_segment updated contributor segment id")
 
     def test_when_contributor_segment_already_exists(self, mc_connected_rp, mocker):
         mocker.patch(

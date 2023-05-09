@@ -96,10 +96,8 @@ PAGE_PUBLISHED_TOPIC = os.getenv("PAGE_PUBLISHED_TOPIC", None)
 NEW_USER_TOPIC = os.getenv("NEW_USER_TOPIC", None)
 GOOGLE_CLOUD_PROJECT = os.getenv("GOOGLE_CLOUD_PROJECT", "revenue-engine")
 
-GS_SERVICE_ACCCOUNT = (
-    json.loads(base64.b64decode(os.environ["GS_SERVICE_ACCCOUNT"]))
-    if os.environ.get("GS_SERVICE_ACCCOUNT", None)
-    else {}
+GS_SERVICE_ACCOUNT = (
+    json.loads(base64.b64decode(os.environ["GS_SERVICE_ACCOUNT"])) if os.environ.get("GS_SERVICE_ACCOUNT", None) else {}
 )
 
 

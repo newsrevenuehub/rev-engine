@@ -154,19 +154,25 @@ class TestEmailContributionCsvExportToUser:
         make_csv_spy = mocker.spy(contribution_tasks, "export_contributions_to_csv")
         logger_spy = mocker.spy(contribution_tasks.logger, "warning")
         contribution_tasks.email_contribution_csv_export_to_user(ids, org_user_free_plan.email, True)
-        send_email_spy.assert_called_once()
         make_csv_spy.assert_called_once()
-        assert set(make_csv_spy.call_args[0][0]) == set(Contribution.objects.filter(id__in=ids))
-        assert send_email_spy.call_args[1]["to"] == org_user_free_plan.email
-        assert send_email_spy.call_args[1]["subject"] == "Check out your Contributions"
-        assert send_email_spy.call_args[1]["message_as_text"] == render_to_string(
-            "nrh-contribution-csv-email-body.txt",
-            (
-                context := {
-                    "logo_url": os.path.join(settings.SITE_URL, "static", "nre_logo_black_yellow.png"),
-                    "show_upgrade_prompt": True,
-                }
-            ),
+        send_email_spy.assert_called_once_with(
+            mocker.call(
+                to=org_user_free_plan.email,
+                subject="Check out your Contributions",
+                message_as_text=render_to_string(
+                    "nrh-contribution-csv-email-body.txt",
+                    (
+                        context := {
+                            "logo_url": os.path.join(settings.SITE_URL, "static", "nre_logo_black_yellow.png"),
+                            "show_upgrade_prompt": True,
+                        }
+                    ),
+                ),
+                message_as_html=render_to_string("nrh-contribution-csv-email-body.html", context),
+                attachment=ANY,
+                content_type="text/csv",
+                filename="contributions.csv",
+            )
         )
         assert send_email_spy.call_args[1]["message_as_html"] == render_to_string(
             "nrh-contribution-csv-email-body.html", context

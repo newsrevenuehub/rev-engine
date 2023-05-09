@@ -4,6 +4,7 @@ from datetime import timedelta
 from typing import List
 
 from django.conf import settings
+from django.template.loader import render_to_string
 from django.utils import timezone
 
 import requests
@@ -124,7 +125,9 @@ def task_pull_payment_intents(self, email_id, customers_query, stripe_account_id
 
 
 @shared_task(bind=True, autoretry_for=(RateLimitError,), retry_backoff=True, retry_kwargs={"max_retries": 3})
-def email_contribution_csv_export_to_user(self, contribution_ids: List[int], to_email: str) -> None:
+def email_contribution_csv_export_to_user(
+    self, contribution_ids: List[int], to_email: str, show_upgrade_prompt: bool
+) -> None:
     """Email a CSV containing data about a set of contributions
 
     Note that this task is intentionally "dumb". It implicitly assumes that it is safe to send data about contribution ids
@@ -144,8 +147,16 @@ def email_contribution_csv_export_to_user(self, contribution_ids: List[int], to_
     send_templated_email_with_attachment(
         to=to_email,
         subject="Check out your Contributions",
-        text_template="nrh-contribution-csv-email-body.txt",
-        html_template="nrh-contribution-csv-email-body.html",
+        message_as_text=render_to_string(
+            "nrh-contribution-csv-email-body.txt",
+            (
+                context := {
+                    "logo_url": os.path.join(settings.SITE_URL, "static", "nre_logo_black_yellow.png"),
+                    "show_upgrade_prompt": show_upgrade_prompt,
+                }
+            ),
+        ),
+        message_as_html=render_to_string("nrh-contribution-csv-email-body.html", context),
         template_data={
             "logo_url": os.path.join(settings.SITE_URL, "static", "nre_logo_black_yellow.png"),
         },

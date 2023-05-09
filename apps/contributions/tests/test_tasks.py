@@ -1,8 +1,10 @@
+import os
 from csv import DictReader
 from datetime import timedelta
 from unittest.mock import MagicMock, patch
 
 from django.conf import settings
+from django.template.loader import render_to_string
 from django.test import TestCase
 
 import pytest
@@ -94,7 +96,7 @@ class TestTaskStripeContributions(TestCase):
 
 @pytest.mark.django_db
 class TestEmailContributionCsvExportToUser:
-    def test_when_all_requesetd_contributions_found(self, monkeypatch, mocker, org_user_free_plan):
+    def test_when_all_requested_contributions_found(self, monkeypatch, mocker, org_user_free_plan):
         """Show happy path behavior when all of requested contributions are found and included in export
 
         Note that we rely on narrow unit testing of export_contributions_to_csv elsewhere. We only assert that
@@ -108,7 +110,7 @@ class TestEmailContributionCsvExportToUser:
         send_email_spy = mocker.spy(contribution_tasks, "send_templated_email_with_attachment")
         make_csv_spy = mocker.spy(contribution_tasks, "export_contributions_to_csv")
         contribution_tasks.email_contribution_csv_export_to_user(
-            [x.id for x in contributions], org_user_free_plan.email
+            [x.id for x in contributions], org_user_free_plan.email, (show_upgrade_prompt := True)
         )
         send_email_spy.assert_called_once()
         make_csv_spy.assert_called_once()
@@ -117,8 +119,18 @@ class TestEmailContributionCsvExportToUser:
         )
         assert send_email_spy.call_args[1]["to"] == org_user_free_plan.email
         assert send_email_spy.call_args[1]["subject"] == "Check out your Contributions"
-        assert send_email_spy.call_args[1]["text_template"] == "nrh-contribution-csv-email-body.txt"
-        assert send_email_spy.call_args[1]["html_template"] == "nrh-contribution-csv-email-body.html"
+        assert send_email_spy.call_args[1]["message_as_text"] == render_to_string(
+            "nrh-contribution-csv-email-body.txt",
+            (
+                context := {
+                    "logo_url": os.path.join(settings.SITE_URL, "static", "nre_logo_black_yellow.png"),
+                    "show_upgrade_prompt": show_upgrade_prompt,
+                }
+            ),
+        )
+        assert send_email_spy.call_args[1]["message_as_html"] == render_to_string(
+            "nrh-contribution-csv-email-body.html", context
+        )
         data = [row for row in DictReader(send_email_spy.call_args[1]["attachment"].splitlines())]
         assert set(data[0].keys()) == set(CONTRIBUTION_EXPORT_CSV_HEADERS)
         assert set([str(_.pk) for _ in contributions]) == set([_["Contribution ID"] for _ in data])
@@ -141,14 +153,24 @@ class TestEmailContributionCsvExportToUser:
         send_email_spy = mocker.spy(contribution_tasks, "send_templated_email_with_attachment")
         make_csv_spy = mocker.spy(contribution_tasks, "export_contributions_to_csv")
         logger_spy = mocker.spy(contribution_tasks.logger, "warning")
-        contribution_tasks.email_contribution_csv_export_to_user(ids, org_user_free_plan.email)
+        contribution_tasks.email_contribution_csv_export_to_user(ids, org_user_free_plan.email, True)
         send_email_spy.assert_called_once()
         make_csv_spy.assert_called_once()
         assert set(make_csv_spy.call_args[0][0]) == set(Contribution.objects.filter(id__in=ids))
         assert send_email_spy.call_args[1]["to"] == org_user_free_plan.email
         assert send_email_spy.call_args[1]["subject"] == "Check out your Contributions"
-        assert send_email_spy.call_args[1]["text_template"] == "nrh-contribution-csv-email-body.txt"
-        assert send_email_spy.call_args[1]["html_template"] == "nrh-contribution-csv-email-body.html"
+        assert send_email_spy.call_args[1]["message_as_text"] == render_to_string(
+            "nrh-contribution-csv-email-body.txt",
+            (
+                context := {
+                    "logo_url": os.path.join(settings.SITE_URL, "static", "nre_logo_black_yellow.png"),
+                    "show_upgrade_prompt": True,
+                }
+            ),
+        )
+        assert send_email_spy.call_args[1]["message_as_html"] == render_to_string(
+            "nrh-contribution-csv-email-body.html", context
+        )
         data = [row for row in DictReader(send_email_spy.call_args[1]["attachment"].splitlines())]
         assert set(str(x) for x in ids).difference(set([_["Contribution ID"] for _ in data])) == {str(deleted_id)}
         logger_spy.assert_called_once_with(
@@ -172,12 +194,22 @@ class TestEmailContributionCsvExportToUser:
         )
         send_email_spy = mocker.spy(contribution_tasks, "send_templated_email_with_attachment")
         make_csv_spy = mocker.spy(contribution_tasks, "export_contributions_to_csv")
-        contribution_tasks.email_contribution_csv_export_to_user(ids, org_user_free_plan.email)
+        contribution_tasks.email_contribution_csv_export_to_user(ids, org_user_free_plan.email, True)
         send_email_spy.assert_called_once()
         make_csv_spy.assert_called_once()
         assert set(make_csv_spy.call_args[0][0]) == set(Contribution.objects.none())
         assert send_email_spy.call_args[1]["to"] == org_user_free_plan.email
         assert send_email_spy.call_args[1]["subject"] == "Check out your Contributions"
-        assert send_email_spy.call_args[1]["text_template"] == "nrh-contribution-csv-email-body.txt"
-        assert send_email_spy.call_args[1]["html_template"] == "nrh-contribution-csv-email-body.html"
+        assert send_email_spy.call_args[1]["message_as_text"] == render_to_string(
+            "nrh-contribution-csv-email-body.txt",
+            (
+                context := {
+                    "logo_url": os.path.join(settings.SITE_URL, "static", "nre_logo_black_yellow.png"),
+                    "show_upgrade_prompt": True,
+                }
+            ),
+        )
+        assert send_email_spy.call_args[1]["message_as_html"] == render_to_string(
+            "nrh-contribution-csv-email-body.html", context
+        )
         assert len([row for row in DictReader(send_email_spy.call_args[1]["attachment"].splitlines())]) == 0

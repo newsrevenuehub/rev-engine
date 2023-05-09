@@ -109,6 +109,7 @@ class RevenueProgramSerializer(serializers.ModelSerializer):
 
     slug = serializers.SlugField(required=False)
     mailchimp_integration_connected = serializers.ReadOnlyField()
+    mailchimp_email_lists = serializers.SerializerMethodField()
 
     class Meta:
         model = RevenueProgram
@@ -123,8 +124,8 @@ class RevenueProgramSerializer(serializers.ModelSerializer):
             "mailchimp_email_lists",
         ]
 
-    def get_mailchimp_email_lists(self):
-        return [asdict(email_list) for email_list in self.instance.mailchimp_email_lists]
+    def get_mailchimp_email_lists(self, obj):
+        return [asdict(email_list) for email_list in obj.mailchimp_email_lists]
 
 
 class RevenueProgramPatchSerializer(serializers.ModelSerializer):

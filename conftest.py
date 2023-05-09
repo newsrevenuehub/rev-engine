@@ -353,33 +353,36 @@ def stripe_subscription_retrieve_response():
 
 
 @pytest.fixture
-def mailchimp_email_list_from_api():
-    return asdict(
-        MailchimpEmailList(
-            id=faker.uuid4(),
-            web_id=faker.uuid4(),
-            name=faker.word(),
-            contact={},
-            permission_reminder="",
-            use_archive_bar=choice([True, False]),
-            campaign_defaults={},
-            notify_on_subscribe=choice([True, False]),
-            notify_on_unsubscribe=choice([True, False]),
-            date_created="",
-            list_rating="",
-            email_type_option=choice([True, False]),
-            subscribe_url_short="",
-            subscribe_url_long="",
-            beamer_address="",
-            visibility="",
-            double_optin=choice([True, False]),
-            has_welcome=choice([True, False]),
-            marketing_permissions=choice([True, False]),
-            modules=[],
-            stats={},
-            _links=[],
-        )
+def mailchimp_email_list():
+    return MailchimpEmailList(
+        id=faker.uuid4(),
+        web_id=faker.uuid4(),
+        name=faker.word(),
+        contact={},
+        permission_reminder="",
+        use_archive_bar=choice([True, False]),
+        campaign_defaults={},
+        notify_on_subscribe=choice([True, False]),
+        notify_on_unsubscribe=choice([True, False]),
+        date_created="",
+        list_rating="",
+        email_type_option=choice([True, False]),
+        subscribe_url_short="",
+        subscribe_url_long="",
+        beamer_address="",
+        visibility="",
+        double_optin=choice([True, False]),
+        has_welcome=choice([True, False]),
+        marketing_permissions=choice([True, False]),
+        modules=[],
+        stats={},
+        _links=[],
     )
+
+
+@pytest.fixture
+def mailchimp_email_list_from_api(mailchimp_email_list):
+    return asdict(mailchimp_email_list)
 
 
 @pytest.fixture

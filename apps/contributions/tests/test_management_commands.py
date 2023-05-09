@@ -1,10 +1,11 @@
 from io import StringIO
-from unittest.mock import patch
+from unittest.mock import Mock, patch
 
 from django.core.management import call_command
 from django.test import TestCase, override_settings
 from django.urls import reverse
 
+import pytest
 import stripe
 
 
@@ -63,3 +64,30 @@ class CreateStripeWebhooksTest(TestCase):
         stripe.WebhookEndpoint.create.assert_called_with(
             url=url, enabled_events=test_events, connect=True, api_key=test_key, api_version=test_stripe_api_version
         )
+
+
+@pytest.mark.parametrize("dry_run", (False, True))
+def test_sync_missing_contribution_data_from_stripe(dry_run, monkeypatch):
+    mock_fix_processing = Mock()
+    mock_fix_pm_details = Mock()
+    mock_fix_pm_id = Mock()
+    mock_fix_missing_contribution_metadata = Mock()
+    monkeypatch.setattr(
+        "apps.contributions.models.Contribution.fix_contributions_stuck_in_processing", mock_fix_processing
+    )
+    monkeypatch.setattr("apps.contributions.models.Contribution.fix_missing_provider_payment_method_id", mock_fix_pm_id)
+    monkeypatch.setattr(
+        "apps.contributions.models.Contribution.fix_missing_payment_method_details_data", mock_fix_pm_details
+    )
+    monkeypatch.setattr(
+        "apps.contributions.models.Contribution.fix_missing_contribution_metadata",
+        mock_fix_missing_contribution_metadata,
+    )
+    args = ["sync_missing_contribution_data_from_stripe"]
+    if dry_run:
+        args.append("--dry-run")
+    call_command(*args)
+    mock_fix_processing.assert_called_once_with(dry_run=dry_run)
+    mock_fix_pm_id.assert_called_once_with(dry_run=dry_run)
+    mock_fix_pm_details.assert_called_once_with(dry_run=dry_run)
+    mock_fix_missing_contribution_metadata.assert_called_once_with(dry_run=dry_run)

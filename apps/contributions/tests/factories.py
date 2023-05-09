@@ -98,20 +98,20 @@ class ContributionFactory(DjangoModelFactory):
     provider_payment_method_id = factory.LazyFunction(lambda: f"pm_{_random_stripe_str()}")
     provider_payment_method_details = factory.LazyFunction(lambda: PAYMENT_METHOD_DETAILS_DATA)
 
-    @factory.post_generation
-    def contribution_metadata(obj, create, extracted, **kwargs):
-        rp = obj.donation_page.revenue_program
-        obj.contribution_metadata = {
+    @factory.lazy_attribute
+    def contribution_metadata(self) -> dict:
+        """Generate realistic looking contribution_metadata"""
+        rp = self.donation_page.revenue_program
+        return {
             "source": settings.METADATA_SOURCE,
             "schema_version": settings.METADATA_SCHEMA_VERSION,
-            "contributor_id": obj.contributor.id,
+            "contributor_id": self.contributor.id if self.contributor else "",
             "agreed_to_pay_fees": True,
-            "donor_selected_amount": obj.amount / 100,
+            "donor_selected_amount": self.amount / 100,
             "revenue_program_id": rp.id or "",
             "revenue_program_slug": rp.slug or "",
             "referer": settings.SITE_URL,
-        } | kwargs
-        obj.save()
+        }
 
     class Params:
         # this is roughly how a successful one-time contribution would look
@@ -142,6 +142,10 @@ class ContributionFactory(DjangoModelFactory):
         flagged = factory.Trait(
             status=models.ContributionStatus.FLAGGED,
             flagged_date=factory.LazyAttribute(lambda o: _get_flagged_date(o.bad_actor_score, o.created)),
+            provider_setup_intent_id=factory.LazyAttribute(
+                lambda o: None if o.interval == models.ContributionInterval.ONE_TIME else f"seti_{_random_stripe_str()}"
+            ),
+            provider_subscription_id=None,
         )
         rejected = factory.Trait(status=models.ContributionStatus.REJECTED)
         canceled = factory.Trait(status=models.ContributionStatus.CANCELED)

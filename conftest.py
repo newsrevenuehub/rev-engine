@@ -352,8 +352,7 @@ def stripe_subscription_retrieve_response():
         return json.load(fl)
 
 
-@pytest.fixture
-def mailchimp_email_list():
+def make_mock_mailchimp_email_list():
     return MailchimpEmailList(
         id=faker.uuid4(),
         web_id=faker.uuid4(),
@@ -378,6 +377,11 @@ def mailchimp_email_list():
         stats={},
         _links=[],
     )
+
+
+@pytest.fixture
+def mailchimp_email_list():
+    return make_mock_mailchimp_email_list()
 
 
 @pytest.fixture

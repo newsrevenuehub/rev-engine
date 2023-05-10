@@ -1,4 +1,7 @@
+import logging
 from dataclasses import asdict
+
+from django.conf import settings
 
 from rest_framework import serializers
 
@@ -9,6 +12,9 @@ from apps.organizations.models import (
     PaymentProvider,
     RevenueProgram,
 )
+
+
+logger = logging.getLogger(f"{settings.DEFAULT_LOGGER}.{__name__}")
 
 
 class OrganizationSerializer(serializers.ModelSerializer):
@@ -122,7 +128,18 @@ class RevenueProgramSerializer(serializers.ModelSerializer):
             "fiscal_sponsor_name",
             "mailchimp_integration_connected",
             "mailchimp_email_lists",
+            "mailchimp_list_id",
         ]
+
+    def validate_mailchimp_list_id(self, value):
+        logger.info("Validating Mailchimp list ID with value %s for RP %s", value, self.instance)
+        if not self.instance:
+            logger.warning("Attempt to set mailchimp_list_id on a new RP")
+            raise serializers.ValidationError("Invalid Mailchimp list ID")
+        if value not in [x.id for x in self.instance.mailchimp_email_lists]:
+            logger.warning("Attempt to set mailchimp_list_id to a list not associated with this RP")
+            raise serializers.ValidationError("Invalid Mailchimp list ID")
+        return value
 
     def get_mailchimp_email_lists(self, obj):
         return [{"id": x.id, "name": x.name} for x in obj.mailchimp_email_lists]

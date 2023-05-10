@@ -129,10 +129,12 @@ class GoogleCloudSecretProvider(SecretProvider):
                 secret_name,
             )
             try:
+                logger.info("GoogleCloudSecretProvider attempting to create new secret for secret %s", secret_name)
                 secret = self.client.create_secret(
                     request={
                         "parent": self.client.secret_path(settings.GOOGLE_CLOUD_PROJECT_ID, secret_name),
                         "secret_id": secret_name,
+                        "secret": {"replication": {"automatic": {}}},
                     }
                 )
                 logger.info("GoogleCloudSecretProvider created a new GC secret for %s", secret_name)

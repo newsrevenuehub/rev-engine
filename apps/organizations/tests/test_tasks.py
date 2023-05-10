@@ -160,6 +160,7 @@ class TestExchangeMailchimpOauthTokenForServerPrefixAndAccessToken:
             request={
                 "parent": secret_path,
                 "secret_id": secret_name,
+                "secret": {"replication": {"automatic": {}}},
             }
         )
         mock_secret_manager_client.add_secret_version.assert_called_once_with(

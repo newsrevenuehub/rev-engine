@@ -4,6 +4,7 @@ from django.conf import settings
 
 from google.api_core.exceptions import NotFound, PermissionDenied
 from google.cloud.secretmanager import SecretManagerServiceClient
+from google.oauth2 import service_account
 
 
 logger = logging.getLogger(f"{settings.DEFAULT_LOGGER}.{__name__}")
@@ -33,27 +34,32 @@ class SecretProvider:
         return f"{self.name}"
 
 
+def _get_secret_manager_client() -> SecretManagerServiceClient:
+    credentials = service_account.Credentials.from_service_account_info(settings.GS_SERVICE_ACCOUNT)
+    return SecretManagerServiceClient(credentials=credentials)
+
+
 class GoogleCloudSecretProvider(SecretProvider):
     """A descriptor that retrieves a secret from Google Cloud Secret Manager."""
 
-    # The location of `client` here rather than in __init__ is to facilitate testing.
-    # The client is a class attribute so that it can be mocked in tests.
-    client = SecretManagerServiceClient() if settings.ENABLE_GOOGLE_CLOUD_SECRET_MANAGER else None
+    client = (
+        _get_secret_manager_client()
+        if settings.ENABLE_GOOGLE_CLOUD_SECRET_MANAGER and settings.GS_SERVICE_ACCOUNT
+        else None
+    )
 
     def __init__(
         self,
         model_attr: str,
-        project_id: str = settings.GOOGLE_CLOUD_PROJECT_ID,
         *args,
         **kwargs,
     ) -> None:
         super().__init__(*args, **kwargs)
         self.model_attr = model_attr
-        self.project_id = project_id
 
     @property
     def project_path(self) -> str:
-        return f"projects/{self.project_id}"
+        return f"projects/{settings.GOOGLE_CLOUD_PROJECT_ID}"
 
     def get_secret_name(self, obj) -> str:
         return getattr(obj, self.model_attr)
@@ -125,7 +131,7 @@ class GoogleCloudSecretProvider(SecretProvider):
             try:
                 secret = self.client.create_secret(
                     request={
-                        "parent": self.client.secret_path(self.project_id, secret_name),
+                        "parent": self.client.secret_path(settings.GOOGLE_CLOUD_PROJECT_ID, secret_name),
                         "secret_id": secret_name,
                     }
                 )

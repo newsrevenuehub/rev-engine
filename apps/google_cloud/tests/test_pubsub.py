@@ -1,4 +1,4 @@
-from unittest.mock import MagicMock
+from unittest.mock import Mock
 
 from google.cloud.pubsub_v1 import futures
 
@@ -10,9 +10,10 @@ def test_encodes_string_to_bytes():
 
 
 def test_publishes_to_google_cloud_pub_sub(mocker, settings):
-    publisher_client = MagicMock()
+    publisher_client = Mock()
     settings.GOOGLE_CLOUD_PROJECT = "project"
-    mocker.patch("apps.google_cloud.pubsub.pubsub_v1.PublisherClient", publisher_client)
+    mocker.patch("google.cloud.pubsub_v1.PublisherClient", return_value=publisher_client)
+    mocker.patch("google.oauth2.service_account.Credentials.from_service_account_info", return_value=None)
     topic = "topic"
     expected = "result"
     future = futures.Future()

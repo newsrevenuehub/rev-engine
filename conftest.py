@@ -52,6 +52,7 @@
 # ```
 # """
 
+import json
 from unittest.mock import patch
 
 import pytest
@@ -83,9 +84,18 @@ def suppress_google_cloud_secret_manager(settings):
     settings.ENABLE_GOOGLE_CLOUD_SECRET_MANAGER = False
 
 
+@pytest.fixture()
+def mock_stripe_retrieve_payment_method(monkeypatch):
+    with open("apps/contributions/tests/fixtures/provider-payment-method-details.json") as f:
+        payment_method_details = json.load(f)
+    monkeypatch.setattr(
+        "stripe.PaymentMethod.retrieve",
+        lambda *args, **kwargs: payment_method_details,
+    )
+
+
 @pytest.fixture
 def default_feature_flags():
-    """ """
     Flag = get_waffle_flag_model()
     for x in DEFAULT_FLAGS_CONFIG_MAPPING.values():
         Flag.objects.get_or_create(name=x["name"], defaults={k: v for k, v in x.items() if k != "name"})
@@ -265,11 +275,78 @@ def one_time_contribution(live_donation_page):
 
 @pytest.fixture
 def monthly_contribution(live_donation_page):
-    with patch("apps.contributions.models.Contribution.fetch_stripe_payment_method", return_value=None):
-        return ContributionFactory(donation_page=live_donation_page, monthly_subscription=True)
+    return ContributionFactory(donation_page=live_donation_page, monthly_subscription=True)
 
 
 @pytest.fixture
 def annual_contribution(live_donation_page):
-    with patch("apps.contributions.models.Contribution.fetch_stripe_payment_method", return_value=None):
-        return ContributionFactory(donation_page=live_donation_page, annual_subscription=True)
+    return ContributionFactory(donation_page=live_donation_page, annual_subscription=True)
+
+
+@pytest.fixture
+def flagged_contribution():
+    return ContributionFactory(one_time=True, flagged=True)
+
+
+@pytest.fixture
+def rejected_contribution():
+    return ContributionFactory(monthly_subscription=True, rejected=True)
+
+
+@pytest.fixture
+def canceled_contribution():
+    return ContributionFactory(monthly_subscription=True, canceled=True)
+
+
+@pytest.fixture
+def refunded_contribution():
+    return ContributionFactory(one_time=True, refunded=True)
+
+
+@pytest.fixture
+def successful_contribution():
+    return ContributionFactory(one_time=True)
+
+
+@pytest.fixture
+def processing_contribution():
+    return ContributionFactory(processing=True)
+
+
+@pytest.mark.django_db()
+@pytest.fixture
+def donation_page():
+    return DonationPageFactory()
+
+
+@pytest.fixture
+def stripe_payment_intent_retrieve_response():
+    """This is a *dict* version of the data that a retrieved Stripe PaymentIntent object will have
+
+    The Stripe Python SDK puts that data into a custom object type that can behave both like a dict and
+    like a class instance (in terms of dot-based attribute access).
+    """
+    with open("apps/contributions/tests/fixtures/stripe-payment-intent-retrieve.json") as fl:
+        return json.load(fl)
+
+
+@pytest.fixture
+def stripe_setup_intent_retrieve_response():
+    """This is a *dict* version of the data that a retrieved Stripe SetupIntent object will have
+
+    The Stripe Python SDK puts that data into a custom object type that can behave both like a dict and
+    like a class instance (in terms of dot-based attribute access).
+    """
+    with open("apps/contributions/tests/fixtures/stripe-setup-intent-retrieve.json") as fl:
+        return json.load(fl)
+
+
+@pytest.fixture
+def stripe_subscription_retrieve_response():
+    """This is a *dict* version of the data that a retrieved Stripe Subscription object will have
+
+    The Stripe Python SDK puts that data into a custom object type that can behave both like a dict and
+    like a class instance (in terms of dot-based attribute access).
+    """
+    with open("apps/contributions/tests/fixtures/stripe-subscription-retrieve.json") as fl:
+        return json.load(fl)

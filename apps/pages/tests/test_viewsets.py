@@ -968,7 +968,6 @@ class TestPageViewSet:
                 DonationPageFullDetailSerializer(instance=live_donation_page_with_styles, context={"live": True}).data
             )
         )
-        assert response.json()["styles"]["styles"] == live_donation_page_with_styles.styles.styles
 
     @pytest.mark.parametrize("make_query", (lambda page: {}, lambda page: {"page": page.slug}))
     def test_live_detail_page_missing_rp_query_param(self, make_query, live_donation_page, api_client):

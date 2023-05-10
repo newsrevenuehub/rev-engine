@@ -1,5 +1,3 @@
-from dataclasses import asdict
-
 import pytest
 
 from apps.organizations.serializers import RevenueProgramSerializer
@@ -26,4 +24,7 @@ class TestRevenueProgramSerializer:
             assert serialized[field] == getattr(mc_connected_rp, field)
         assert len(serialized["mailchimp_email_lists"]) == 1
         assert isinstance(serialized["mailchimp_email_lists"][0], dict)
-        assert serialized["mailchimp_email_lists"][0] == asdict(mailchimp_email_list)
+        assert serialized["mailchimp_email_lists"][0] == {
+            "id": mailchimp_email_list.id,
+            "name": mailchimp_email_list.name,
+        }

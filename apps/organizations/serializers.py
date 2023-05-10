@@ -125,7 +125,7 @@ class RevenueProgramSerializer(serializers.ModelSerializer):
         ]
 
     def get_mailchimp_email_lists(self, obj):
-        return [asdict(email_list) for email_list in obj.mailchimp_email_lists]
+        return [{"id": x.id, "name": x.name} for x in obj.mailchimp_email_lists]
 
 
 class RevenueProgramPatchSerializer(serializers.ModelSerializer):

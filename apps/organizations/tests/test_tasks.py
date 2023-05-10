@@ -128,13 +128,13 @@ class TestExchangeMailchimpOauthTokenForServerPrefixAndAccessToken:
 
     def test_happy_path_when_not_have_either_mc_property(self, mocker, settings):
         settings.ENABLE_GOOGLE_CLOUD_SECRET_MANAGER = True
+        settings.GOOGLE_CLOUD_PROJECT_ID = "some-project-id"
         rp = RevenueProgramFactory(mailchimp_server_prefix=None)
         mock_secret_manager_client = mocker.patch("apps.common.secrets.GoogleCloudSecretProvider.client")
         # this causes it to not be found on initial get
         mock_secret_manager_client.access_secret_version.side_effect = NotFound("Not found")
         mock_secret_manager_client.get_secret.side_effect = NotFound("Not found")
         mock_secret_manager_client.create_secret.return_value = mocker.Mock(name="secret")
-        mock_secret_manager_client.secret_path.return_value = (secret_path := "secret-path")
         mocker.patch(
             "apps.organizations.tasks.exchange_mc_oauth_code_for_mc_access_token", return_value=(token := "some-token")
         )
@@ -158,7 +158,7 @@ class TestExchangeMailchimpOauthTokenForServerPrefixAndAccessToken:
         assert rp.mailchimp_server_prefix == prefix
         mock_secret_manager_client.create_secret.assert_called_once_with(
             request={
-                "parent": secret_path,
+                "parent": f"projects/{settings.GOOGLE_CLOUD_PROJECT_ID}",
                 "secret_id": secret_name,
                 "secret": {"replication": {"automatic": {}}},
             }

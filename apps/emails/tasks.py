@@ -40,7 +40,6 @@ def send_templated_email(
         scope.user = {"email": to}
         send_mail(
             subject,
-            # render_to_string(text_template, template_data),
             message_as_text,
             from_email,
             [

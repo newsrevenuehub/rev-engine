@@ -1,8 +1,12 @@
 import csv
 import hashlib
+import logging
 from io import StringIO
 
 from django.conf import settings
+
+
+logger = logging.getLogger(f"{settings.DEFAULT_LOGGER}.{__name__}")
 
 
 def get_hub_stripe_api_key(livemode=False):
@@ -57,6 +61,16 @@ CONTRIBUTION_EXPORT_CSV_HEADERS = (
 def export_contributions_to_csv(contributions):
     data = []
     for contribution in contributions:
+        contributor = contribution.contributor
+        if not contributor:
+            logger.warning(
+                (
+                    "`export_contributions_to_csv` encountered a contribution (ID %s) that does not have an associated contributor. "
+                    "This contribution will be included in the export, but will have a missing value for the %s field."
+                ),
+                contribution.id,
+                CSV_HEADER_EMAIL,
+            )
         data.append(
             {
                 CSV_HEADER_CONTRIBUTION_ID: contribution.id,
@@ -68,7 +82,7 @@ def export_contributions_to_csv(contributions):
                 CSV_HEADER_PAYMENT_DATE: contribution.created,
                 CSV_HEADER_PAYMENT_STATUS: contribution.status,
                 CSV_HEADER_ADDRESS: contribution.billing_address,
-                CSV_HEADER_EMAIL: contribution.billing_email,
+                CSV_HEADER_EMAIL: contributor.email if contributor else None,
                 CSV_HEADER_PHONE: contribution.billing_phone,
                 CSV_HEADER_PAGE_URL: (contribution.contribution_metadata or {}).get("referer"),
             }

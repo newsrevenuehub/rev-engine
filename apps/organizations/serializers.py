@@ -66,7 +66,6 @@ class RevenueProgramListInlineSerializer(serializers.ModelSerializer):
     the user is redirected to `/edit/undefined/page-slug` after page creation.
     """
 
-    # We need organization.plan
     organization = OrganizationInlineSerializer()
 
     class Meta:

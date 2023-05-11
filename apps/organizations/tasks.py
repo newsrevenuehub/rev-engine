@@ -1,16 +1,16 @@
-import logging
-
 from django.conf import settings
 
 import requests
 import reversion
-from celery import shared_task
+from celery import chord, shared_task
+from celery.utils.log import get_task_logger
 from rest_framework import status
 
+from apps.google_cloud.pubsub import Message, Publisher
 from apps.organizations.models import RevenueProgram
 
 
-logger = logging.getLogger(f"{settings.DEFAULT_LOGGER}.{__name__}")
+logger = get_task_logger(f"{settings.DEFAULT_LOGGER}.{__name__}")
 
 
 MAILCHIMP_EXCHANGE_OAUTH_CODE_FOR_ACCESS_TOKEN_URL = "https://login.mailchimp.com/oauth2/token"
@@ -24,6 +24,163 @@ class MailchimpAuthflowRetryableError(Exception):
 
 class MailchimpAuthflowUnretryableError(Exception):
     """"""
+
+
+def _ensure_mailchimp_store(rp_id: str) -> None:
+    """Ensure that a Mailchimp store exists for the given RevenueProgram.
+
+    Note that this is intended to be run in the `ensure_mailchimp_store` task. The indirection
+    here is to make `setup_mailchimp_entities_for_rp_mailing_list` more easily testable by providing
+    clean, obvious points to mock out.
+    """
+
+    rp = RevenueProgram.objects.get(id=rp_id)
+    if not rp.mailchimp_store:
+        logger.info("Creating store for rp_id=[%s]", rp_id)
+        rp.make_mailchimp_store()
+    else:
+        logger.info("Store already exists for rp_id=[%s]", rp_id)
+
+
+@shared_task
+def ensure_mailchimp_store(rp_id: str) -> None:
+    logger.info("Called with rp_id=[%s]", rp_id)
+    _ensure_mailchimp_store(rp_id)
+
+
+def _ensure_mailchimp_one_time_contribution_product(rp_id: str) -> None:
+    """Ensure that a Mailchimp one-time contribution product exists for the given RevenueProgram.
+
+    Note that this is intended to be run in the `ensure_mailchimp_one_time_contribution_product` task. The indirection
+    here is to make `setup_mailchimp_entities_for_rp_mailing_list` more easily testable by providing
+    clean, obvious points to mock out.
+    """
+    rp = RevenueProgram.objects.get(id=rp_id)
+    if not rp.mailchimp_one_time_contribution_product:
+        logger.info("RP with ID %s does not have a one time contributor producxt. Attempting to create", rp_id)
+        rp.make_mailchimp_one_time_contribution_product()
+    else:
+        logger.info("One-time contribution product already exists for rp_id=[%s]", rp_id)
+
+
+@shared_task
+def ensure_mailchimp_one_time_contribution_product(rp_id: str) -> None:
+    logger.info("Called with rp_id=[%s]", rp_id)
+    _ensure_mailchimp_one_time_contribution_product(rp_id)
+
+
+def _ensure_mailchimp_recurring_contribution_product(rp_id: str) -> None:
+    """Ensure that a Mailchimp recurring contribution product exists for the given RevenueProgram.
+
+    Note that this is intended to be run in the `ensure_mailchimp_recurring_contribution_product` task. The indirection
+    here is to make `setup_mailchimp_entities_for_rp_mailing_list` more easily testable by providing
+    clean, obvious points to mock out.
+    """
+    rp = RevenueProgram.objects.get(id=rp_id)
+    if not rp.mailchimp_recurring_contribution_product:
+        logger.info("RP with ID %s does not have a recurring contributor product. Attempting to create", rp_id)
+        rp.make_mailchimp_recurring_contribution_product()
+    else:
+        logger.info("Recurring contribution product already exists for rp_id=[%s]", rp_id)
+
+
+@shared_task
+def ensure_mailchimp_recurring_contribution_product(rp_id: str) -> None:
+    logger.info("Called with rp_id=[%s]", rp_id)
+    _ensure_mailchimp_recurring_contribution_product(rp_id)
+
+
+def _ensure_mailchimp_contributor_segment(rp_id: str) -> None:
+    """Ensure that a Mailchimp segment exists for the given RevenueProgram.
+
+    Note that this is intended to be run in the `ensure_mailchimp_contributor_segment` task. The indirection
+    here is to make `setup_mailchimp_entities_for_rp_mailing_list` more easily testable by providing
+    clean, obvious points to mock out.
+    """
+    rp = RevenueProgram.objects.get(id=rp_id)
+    if not rp.mailchimp_contributor_segment:
+        logger.info(
+            "Creating %s segment for rp_id=[%s]",
+            rp.mailchimp_contributor_segment_name,
+            rp_id,
+        )
+        segment = rp.make_mailchimp_contributor_segment()
+        logger.info("Segment created for rp_id=[%s]", rp_id)
+        rp.mailchimp_contributor_segment_id = segment.id
+        logger.info("Saving mailchimp contributor segment id for rp_id=[%s]", rp_id)
+        with reversion.create_revision():
+            rp.save(update_fields={"mailchimp_contributor_segment_id", "modified"})
+            reversion.set_comment("_ensure_mailchimp_contributor_segment updated contributor segment id")
+    else:
+        logger.info("Segment already exists for rp_id=[%s]", rp_id)
+
+
+@shared_task
+def ensure_mailchimp_contributor_segment(rp_id: str) -> None:
+    logger.info("Called with rp_id=[%s]", rp_id)
+    _ensure_mailchimp_contributor_segment(rp_id)
+
+
+def _ensure_mailchimp_recurring_segment(rp_id: str) -> None:
+    """Ensure that a Mailchimp segment exists for recurring contributors for the given RevenueProgram.
+
+    Note that this is intended to be run in the `ensure_mailchimp_recurring_segment` task. The indirection
+    here is to make `setup_mailchimp_entities_for_rp_mailing_list` more easily testable by providing
+    clean, obvious points to mock out.
+    """
+    rp = RevenueProgram.objects.get(id=rp_id)
+    if not rp.mailchimp_recurring_segment:
+        logger.info(
+            "Creating %s segment for rp_id=[%s]",
+            rp.mailchimp_contributor_segment_name,
+            rp_id,
+        )
+        segment = rp.make_mailchimp_recurring_segment()
+        logger.info("Segment created for rp_id=[%s]", rp_id)
+        rp.mailchimp_contributor_segment_id = segment.id
+        logger.info("Saving mailchimp recurring contributor segment id for rp_id=[%s]", rp_id)
+        with reversion.create_revision():
+            rp.save(update_fields={"mailchimp_recurring_contributor_segment_id", "modified"})
+            reversion.set_comment("_ensure_mailchimp_recurring_segment updated recurring contributor segment id")
+    else:
+        logger.info("Segment already exists for rp_id=[%s]", rp_id)
+
+
+@shared_task
+def ensure_mailchimp_recurring_segment(rp_id: str) -> None:
+    logger.info("Called with rp_id=[%s]", rp_id)
+    _ensure_mailchimp_recurring_segment(rp_id)
+
+
+def _publish_revenue_program_mailchimp_list_configuration_complete(rp_id: str) -> None:
+    """Publish a message to the `RP_MAILCHIMP_LIST_CONFIGURATION_COMPLETE_TOPIC` topic.
+
+    Note that this is intended to be run in the `publish_revenue_program_mailchimp_list_configuration_complete` task. The indirection
+    here is to make `setup_mailchimp_entities_for_rp_mailing_list` more easily testable by providing
+    clean, obvious points to mock out.
+    """
+    rp = RevenueProgram.objects.get(id=rp_id)
+    Publisher.get_instance().publish(settings.RP_MAILCHIMP_LIST_CONFIGURATION_COMPLETE_TOPIC, Message(data=str(rp.id)))
+
+
+@shared_task
+def publish_revenue_program_mailchimp_list_configuration_complete(rp_id):
+    logger.info("Called with rp_id=[%s]", rp_id)
+    _publish_revenue_program_mailchimp_list_configuration_complete(rp_id)
+
+
+@shared_task
+def setup_mailchimp_entities_for_rp_mailing_list(rp_id: str) -> None:
+    logger.info("Called with rp_id=[%s]", rp_id)
+    header = [
+        # can't have product without store, so chain store call ahead of product callsq:
+        ensure_mailchimp_store.si(rp_id)
+        | ensure_mailchimp_one_time_contribution_product.si(rp_id)
+        | ensure_mailchimp_recurring_contribution_product.si(rp_id),
+        ensure_mailchimp_contributor_segment.si(rp_id),
+        ensure_mailchimp_recurring_segment.si(rp_id),
+    ]
+    chord(header, publish_revenue_program_mailchimp_list_configuration_complete.si(rp_id)).delay()
 
 
 def exchange_mc_oauth_code_for_mc_access_token(oauth_code: str) -> str:

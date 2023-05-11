@@ -1,3 +1,5 @@
+from unittest.mock import Mock, PropertyMock
+
 import pytest
 from rest_framework import status
 
@@ -5,10 +7,16 @@ from apps.organizations.models import RevenueProgram
 from apps.organizations.tasks import (
     MailchimpAuthflowRetryableError,
     MailchimpAuthflowUnretryableError,
+    ensure_mailchimp_contributor_segment,
+    ensure_mailchimp_one_time_contribution_product,
+    ensure_mailchimp_recurring_contribution_product,
+    ensure_mailchimp_recurring_segment,
+    ensure_mailchimp_store,
     exchange_mailchimp_oauth_code_for_server_prefix_and_access_token,
     exchange_mc_oauth_code_for_mc_access_token,
     get_mailchimp_server_prefix,
     logger,
+    setup_mailchimp_entities_for_rp_mailing_list,
 )
 from apps.organizations.tests.factories import RevenueProgramFactory
 
@@ -213,3 +221,179 @@ class TestExchangeMailchimpOauthTokenForServerPrefixAndAccessToken:
         )
         rp.refresh_from_db()
         assert rp.mailchimp_server_prefix is None
+
+
+@pytest.fixture
+def mock_rp_mailchimp_store_truthy(mocker):
+    return mocker.patch(
+        "apps.organizations.tasks.RevenueProgram.mailchimp_store",
+        new_callable=PropertyMock,
+        return_value=Mock(id="something"),
+    )
+
+
+@pytest.mark.django_db(transaction=True)
+@pytest.mark.celery(result_backend="django-db", cache_backend="django-cache")
+def test_setup_mailchimp_entities_for_rp_mailing_list(
+    settings,
+    mocker,
+    revenue_program,
+    celery_session_worker,
+):
+    """`setup_mailchimp_entities_for_rp_mailing_list` orchestrates several subtasks, some of which
+    presuppose the success of others. This task and its consituents are meant to be idempotent. Here,
+    we test a base case where all subtasks succeed and show only that wrapped functions (each task wraps
+    a similarly named function prefixed with `_` that does the actual work) are called with the correct
+    arguments.
+    """
+    settings.RP_MAILCHIMP_LIST_CONFIGURATION_COMPLETE_TOPIC = "some-topic"
+    mock_ensure_store_fn = mocker.patch("apps.organizations.tasks._ensure_mailchimp_store", return_value=lambda: None)
+    mock_ensure_one_time_contribution_product_fn = mocker.patch(
+        "apps.organizations.tasks._ensure_mailchimp_one_time_contribution_product", return_value=lambda: None
+    )
+    mock_ensure_recurring_contribution_product_fn = mocker.patch(
+        "apps.organizations.tasks._ensure_mailchimp_recurring_contribution_product", return_value=lambda: None
+    )
+    mock_ensure_contributor_segment_fn = mocker.patch(
+        "apps.organizations.tasks._ensure_mailchimp_contributor_segment", return_value=lambda: None
+    )
+    mock_ensure_recurring_segment_fn = mocker.patch(
+        "apps.organizations.tasks._ensure_mailchimp_recurring_segment", return_value=lambda: None
+    )
+    result = setup_mailchimp_entities_for_rp_mailing_list.apply_async(args=(revenue_program.id,))
+    result.wait()
+    mock_ensure_store_fn.assert_called_once_with(revenue_program.id)
+    mock_ensure_one_time_contribution_product_fn.assert_called_once_with(revenue_program.id)
+    mock_ensure_recurring_contribution_product_fn.assert_called_once_with(revenue_program.id)
+    mock_ensure_contributor_segment_fn.assert_called_once_with(revenue_program.id)
+    mock_ensure_recurring_segment_fn.assert_called_once_with(revenue_program.id)
+
+
+@pytest.mark.django_db
+class TestEnsureMailchimpStore:
+    def test_when_no_store_exists(self, mc_connected_rp, mocker):
+        mocker.patch("apps.organizations.models.RevenueProgram.mailchimp_store", None)
+        mock_make_store = mocker.patch(
+            "apps.organizations.models.RevenueProgram.make_mailchimp_store", return_value=Mock()
+        )
+        ensure_mailchimp_store.apply(args=(mc_connected_rp.id,)).get()
+        mock_make_store.assert_called_once()
+
+    def test_when_store_already_exists(self, mocker, mc_connected_rp):
+        mocker.patch("apps.organizations.models.RevenueProgram.mailchimp_store", return_value="something-truthy")
+        logger_spy = mocker.spy(logger, "info")
+        ensure_mailchimp_store.apply(args=(mc_connected_rp.id,)).get()
+        assert logger_spy.call_count == 2
+        assert logger_spy.call_args_list[1] == mocker.call("Store already exists for rp_id=[%s]", mc_connected_rp.id)
+
+
+@pytest.mark.django_db
+class TestEnsureMailchimpOneTimeContributionProduct:
+    def test_when_no_product_exists(self, mc_connected_rp, mocker):
+        mocker.patch("apps.organizations.models.RevenueProgram.mailchimp_one_time_contribution_product", None)
+        mock_make_product = mocker.patch(
+            "apps.organizations.models.RevenueProgram.make_mailchimp_one_time_contribution_product", return_value=Mock()
+        )
+        ensure_mailchimp_one_time_contribution_product.apply(args=(mc_connected_rp.id,)).get()
+        mock_make_product.assert_called_once()
+
+    def test_when_product_already_exists(self, mocker, mc_connected_rp):
+        mocker.patch(
+            "apps.organizations.models.RevenueProgram.mailchimp_one_time_contribution_product",
+            return_value="something-truthy",
+        )
+        logger_spy = mocker.spy(logger, "info")
+        ensure_mailchimp_one_time_contribution_product.apply(args=(mc_connected_rp.id,)).get()
+        assert logger_spy.call_count == 2
+        assert logger_spy.call_args_list[1] == mocker.call(
+            "One-time contribution product already exists for rp_id=[%s]", mc_connected_rp.id
+        )
+
+
+@pytest.mark.django_db
+class TestEnsureMailchimpRecurringContributionProduct:
+    def test_when_no_product_exists(self, mc_connected_rp, mocker):
+        mocker.patch("apps.organizations.models.RevenueProgram.mailchimp_recurring_contribution_product", None)
+        mock_make_product = mocker.patch(
+            "apps.organizations.models.RevenueProgram.make_mailchimp_recurring_contribution_product",
+            return_value=Mock(),
+        )
+        ensure_mailchimp_recurring_contribution_product.apply(args=(mc_connected_rp.id,)).get()
+        mock_make_product.assert_called_once()
+
+    def test_when_product_already_exists(self, mocker, mc_connected_rp):
+        mocker.patch(
+            "apps.organizations.models.RevenueProgram.mailchimp_recurring_contribution_product",
+            return_value="something-truthy",
+        )
+        logger_spy = mocker.spy(logger, "info")
+        ensure_mailchimp_recurring_contribution_product.apply(args=(mc_connected_rp.id,)).get()
+        assert logger_spy.call_count == 2
+        assert logger_spy.call_args_list[1] == mocker.call(
+            "Recurring contribution product already exists for rp_id=[%s]", mc_connected_rp.id
+        )
+
+
+@pytest.mark.django_db
+class TestEnsureMailchimpContributorSegment:
+    def test_when_no_existing_contributor_segment(self, mc_connected_rp, mocker):
+        save_spy = mocker.spy(RevenueProgram, "save")
+        mock_create_revision = mocker.patch("reversion.create_revision")
+        mock_create_revision.return_value.__enter__.return_value.add = mocker.Mock()
+        mock_set_comment = mocker.patch("reversion.set_comment")
+        my_id = "some-id"
+        mocker.patch(
+            "apps.organizations.models.RevenueProgram.mailchimp_contributor_segment",
+            return_value=None,
+            new_callable=PropertyMock,
+        )
+        mock_make_contributor_segment = mocker.patch(
+            "apps.organizations.models.RevenueProgram.make_mailchimp_contributor_segment",
+            return_value=Mock(id=my_id),
+        )
+        ensure_mailchimp_contributor_segment.apply(args=(mc_connected_rp.id,)).get()
+        mock_make_contributor_segment.assert_called_once()
+        save_spy.assert_called_once_with(
+            mc_connected_rp, update_fields={"mailchimp_contributor_segment_id", "modified"}
+        )
+        mock_create_revision.assert_called_once()
+        mock_set_comment.assert_called_once_with("_ensure_mailchimp_contributor_segment updated contributor segment id")
+
+    def test_when_contributor_segment_already_exists(self, mc_connected_rp, mocker):
+        mocker.patch(
+            "apps.organizations.models.RevenueProgram.mailchimp_contributor_segment",
+            return_value="something-truthy",
+            new_callable=PropertyMock,
+        )
+        logger_spy = mocker.spy(logger, "info")
+        ensure_mailchimp_contributor_segment.apply(args=(mc_connected_rp.id,)).get()
+        assert logger_spy.call_count == 2
+        assert logger_spy.call_args_list[1] == mocker.call("Segment already exists for rp_id=[%s]", mc_connected_rp.id)
+
+
+@pytest.mark.django_db
+class TestEnsureMailchimpRecurringContributorSegment:
+    def test_when_no_existing_recurring_segment(self, mc_connected_rp, mocker):
+        my_id = "some-id"
+        mocker.patch(
+            "apps.organizations.models.RevenueProgram.mailchimp_recurring_segment",
+            return_value=None,
+            new_callable=PropertyMock,
+        )
+        mock_make_recurring_segment = mocker.patch(
+            "apps.organizations.models.RevenueProgram.make_mailchimp_recurring_segment",
+            return_value=Mock(id=my_id),
+        )
+        ensure_mailchimp_recurring_segment.apply(args=(mc_connected_rp.id,)).get()
+        mock_make_recurring_segment.assert_called_once()
+
+    def test_when_recurring_segment_already_exists(self, mc_connected_rp, mocker):
+        mocker.patch(
+            "apps.organizations.models.RevenueProgram.mailchimp_recurring_segment",
+            return_value="something-truthy",
+            new_callable=PropertyMock,
+        )
+        logger_spy = mocker.spy(logger, "info")
+        ensure_mailchimp_recurring_segment.apply(args=(mc_connected_rp.id,)).get()
+        assert logger_spy.call_count == 2
+        assert logger_spy.call_args_list[1] == mocker.call("Segment already exists for rp_id=[%s]", mc_connected_rp.id)

@@ -51,20 +51,26 @@
 # ):
 # ```
 # """
-
 import json
+from dataclasses import asdict
+from random import choice
 from unittest.mock import patch
 
 import pytest
+from faker import Faker
 from rest_framework.test import APIClient
 from waffle import get_waffle_flag_model
 
 from apps.common.tests.test_resources import DEFAULT_FLAGS_CONFIG_MAPPING
 from apps.contributions.tests.factories import ContributionFactory, ContributorFactory
+from apps.organizations.models import MailchimpEmailList
 from apps.organizations.tests.factories import OrganizationFactory, RevenueProgramFactory
 from apps.pages.tests.factories import DonationPageFactory, StyleFactory
 from apps.users.models import Roles, User
 from apps.users.tests.factories import RoleAssignmentFactory, UserFactory
+
+
+faker = Faker()
 
 
 @pytest.fixture
@@ -344,3 +350,49 @@ def stripe_subscription_retrieve_response():
     """
     with open("apps/contributions/tests/fixtures/stripe-subscription-retrieve.json") as fl:
         return json.load(fl)
+
+
+def make_mock_mailchimp_email_list():
+    return MailchimpEmailList(
+        id=faker.uuid4(),
+        web_id=faker.uuid4(),
+        name=faker.word(),
+        contact={},
+        permission_reminder="",
+        use_archive_bar=choice([True, False]),
+        campaign_defaults={},
+        notify_on_subscribe=choice([True, False]),
+        notify_on_unsubscribe=choice([True, False]),
+        date_created="",
+        list_rating="",
+        email_type_option=choice([True, False]),
+        subscribe_url_short="",
+        subscribe_url_long="",
+        beamer_address="",
+        visibility="",
+        double_optin=choice([True, False]),
+        has_welcome=choice([True, False]),
+        marketing_permissions=choice([True, False]),
+        modules=[],
+        stats={},
+        _links=[],
+    )
+
+
+@pytest.fixture
+def mailchimp_email_list():
+    return make_mock_mailchimp_email_list()
+
+
+@pytest.fixture
+def mailchimp_email_list_from_api(mailchimp_email_list):
+    return asdict(mailchimp_email_list)
+
+
+@pytest.fixture
+def mc_connected_rp(revenue_program):
+    revenue_program.mailchimp_access_token = "something-truthy"
+    revenue_program.mailchimp_server_prefix = "something-truthy"
+    revenue_program.mailchimp_list_id = "something-truthy"
+    revenue_program.save()
+    return revenue_program

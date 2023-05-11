@@ -42,6 +42,7 @@ def _get_secret_manager_client() -> SecretManagerServiceClient:
 class GoogleCloudSecretProvider(SecretProvider):
     """A descriptor that retrieves a secret from Google Cloud Secret Manager."""
 
+    # We define client here rather than in init to facilitate easy mocking in tests
     client = (
         _get_secret_manager_client()
         if settings.ENABLE_GOOGLE_CLOUD_SECRET_MANAGER and settings.GS_SERVICE_ACCOUNT
@@ -54,6 +55,7 @@ class GoogleCloudSecretProvider(SecretProvider):
         *args,
         **kwargs,
     ) -> None:
+        logger.info("GoogleCloudSecretProvider initializing with model_attr %s", model_attr)
         super().__init__(*args, **kwargs)
         self.model_attr = model_attr
 
@@ -122,7 +124,6 @@ class GoogleCloudSecretProvider(SecretProvider):
         secret = None
         try:
             secret = self.client.get_secret(request={"name": (secret_path := self.get_secret_path(obj))})
-            logger.info("secret data is: %s", secret)
         except NotFound:
             logger.info(
                 "GoogleCloudSecretProvider did not find an existing secret for secret %s. Creating new secret.",

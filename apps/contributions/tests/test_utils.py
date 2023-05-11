@@ -1,7 +1,6 @@
 import hashlib
 import io
 from csv import DictReader
-from unittest.mock import Mock
 
 from django.test import TestCase, override_settings
 
@@ -43,10 +42,7 @@ def test_hash_is_salted():
 
 
 @pytest.mark.django_db
-def test_export_contributions_to_csv(monkeypatch):
-    # TODO: DEV-3026 -- remove monkeypatch here
-    mock_fetch = Mock(return_value=None)
-    monkeypatch.setattr(Contribution, "fetch_stripe_payment_method", mock_fetch)
+def test_export_contributions_to_csv():
     contributions = []
     for _ in range(5):
         contributions.extend(
@@ -70,16 +66,32 @@ def test_export_contributions_to_csv(monkeypatch):
             and row[CONTRIBUTION_EXPORT_CSV_HEADERS[3]] == contribution.formatted_donor_selected_amount
         )
         assert row[CONTRIBUTION_EXPORT_CSV_HEADERS[4]] == str(
-            (contribution.contribution_metadata or {}).get("agreed_to_pay_fees")
+            (contribution.contribution_metadata or {}).get("agreed_to_pay_fees", "")
         )
         assert contribution.interval and row[CONTRIBUTION_EXPORT_CSV_HEADERS[5]] == contribution.interval
         assert contribution.created and row[CONTRIBUTION_EXPORT_CSV_HEADERS[6]] == str(contribution.created)
         assert contribution.status and row[CONTRIBUTION_EXPORT_CSV_HEADERS[7]] == contribution.status
         assert contribution.billing_address and row[CONTRIBUTION_EXPORT_CSV_HEADERS[8]] == contribution.billing_address
-        assert contribution.billing_email and row[CONTRIBUTION_EXPORT_CSV_HEADERS[9]] == contribution.billing_email
+        assert contribution.billing_email and row[CONTRIBUTION_EXPORT_CSV_HEADERS[9]] == contribution.contributor.email
         assert contribution.billing_phone and row[CONTRIBUTION_EXPORT_CSV_HEADERS[10]] == contribution.billing_phone
-        assert (
-            row[CONTRIBUTION_EXPORT_CSV_HEADERS[11]]
-            == (referer := (contribution.contribution_metadata or {}).get("referer", ""))
-            and referer
+        assert row[CONTRIBUTION_EXPORT_CSV_HEADERS[11]] == (contribution.contribution_metadata or {}).get("referer", "")
+
+
+@pytest.mark.django_db
+def test_export_contributions_to_csv_when_contribution_has_no_contributor(one_time_contribution):
+    one_time_contribution.contributor.delete()
+    one_time_contribution.refresh_from_db()
+    row = [
+        row
+        for row in DictReader(
+            io.StringIO(
+                export_contributions_to_csv(
+                    [
+                        one_time_contribution,
+                    ]
+                )
+            )
         )
+    ][0]
+    assert row["Contribution ID"] == str(one_time_contribution.id)
+    assert row[CONTRIBUTION_EXPORT_CSV_HEADERS[9]] == ""

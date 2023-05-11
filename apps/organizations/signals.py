@@ -13,16 +13,12 @@ logger = logging.getLogger(f"{settings.DEFAULT_LOGGER}.{__name__}")
 @receiver(post_delete, sender=RevenueProgram)
 def delete_rp_mailchimp_access_token_secret(sender, instance, *args, **kwargs) -> None:
     """When an RP is deleted, we delete the mailchimp_access_token_secret, if there is one"""
-    logger.info(
-        "delete_rp_mailchimp_access_token_secret Deleting mailchimp_access_token_secret called on rp %s", instance.id
-    )
+    logger.info("Deleting mailchimp_access_token_secret called on rp %s", instance.id)
     if instance.mailchimp_access_token:
         logger.info(
-            "delete_rp_mailchimp_access_token_secret Deleting mailchimp_access_token_secret for rp %s",
+            "Deleting mailchimp_access_token_secret for rp %s",
             instance.id,
         )
         del instance.mailchimp_access_token
     else:
-        logger.info(
-            "delete_rp_mailchimp_access_token_secret No mailchimp_access_token_secret to delete for rp %s", instance.id
-        )
+        logger.info("No mailchimp_access_token_secret to delete for rp %s", instance.id)

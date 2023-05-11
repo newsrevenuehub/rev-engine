@@ -367,8 +367,9 @@ class RevenueProgram(IndexedTimeStampedModel):
         help_text="2-letter country code of RP's company. This gets included in data sent to stripe when creating a payment",
     )
     # This is used to make requests to Mailchimp's API on behalf of users who have gone through the Mailchimp Oauth flow
-    # to grant revengine access to their Mailchimp account.  We store sensitive values that are also required to access Mailchimp elsewhere.
+    # to grant revengine access to their Mailchimp account.
     mailchimp_server_prefix = models.CharField(max_length=100, null=True, blank=True)
+    # NB: This field is stored in a secret manager, not in the database.
     mailchimp_access_token = GoogleCloudSecretProvider(model_attr="mailchimp_access_token_secret_name")
 
     objects = RevenueProgramManager.from_queryset(RevenueProgramQuerySet)()

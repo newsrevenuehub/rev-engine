@@ -116,6 +116,12 @@ class RevenueProgramSerializer(serializers.ModelSerializer):
     slug = serializers.SlugField(required=False)
     mailchimp_integration_connected = serializers.ReadOnlyField()
     mailchimp_email_lists = serializers.SerializerMethodField()
+    mailchimp_server_prefix = serializers.ReadOnlyField(allow_null=True)
+    mailchimp_contributor_segment = serializers.ReadOnlyField(allow_null=True)
+    mailchimp_recurring_segment = serializers.ReadOnlyField(allow_null=True)
+    mailchimp_store = serializers.ReadOnlyField(allow_null=True)
+    mailchimp_one_time_contribution_product = serializers.ReadOnlyField(allow_null=True)
+    mailchimp_recurring_contribution_product = serializers.ReadOnlyField(allow_null=True)
 
     class Meta:
         model = RevenueProgram
@@ -129,6 +135,12 @@ class RevenueProgramSerializer(serializers.ModelSerializer):
             "mailchimp_integration_connected",
             "mailchimp_email_lists",
             "mailchimp_list_id",
+            "mailchimp_server_prefix",
+            "mailchimp_contributor_segment",
+            "mailchimp_recurring_segment",
+            "mailchimp_store",
+            "mailchimp_one_time_contribution_product",
+            "mailchimp_recurring_contribution_product",
         ]
 
     def validate_mailchimp_list_id(self, value):

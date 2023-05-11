@@ -55,6 +55,9 @@
       width: 600px;
       height: 80px;
       background: #523A5E;
+      {% if style.header_color %}
+      background: {{ style.header_color }} !important;
+      {% endif %}
     }
 
     .header-logo {
@@ -123,6 +126,10 @@
       text-transform: uppercase;
       padding: 15px 50px;
       width: 270px;
+      {% if style.button_color %}
+      background: {{ style.button_color }} !important;
+      color: #ffffff !important;
+      {% endif %}
     }
 
     .info {
@@ -144,6 +151,18 @@
 
     @media only screen and (max-width:600px) {
       .wrapper {
+        width: 600px
+      }
+
+      .header-background {
+        width: 600px;
+        height: 80px;
+      }
+
+      .header-logo {
+        height: 46px;
+        margin-top: 17px;
+        margin-bottom: 17px;
         width: 100%;
       }
 
@@ -159,6 +178,16 @@
       }
 
       .button {
+        background: #F2FF59;
+        color: #25192B !important;
+        border-radius: 6px;
+        font-family: 'Roboto';
+        font-weight: 600;
+        font-size: 14px;
+        line-height: 16px;
+        text-decoration: none;
+        text-transform: uppercase;
+        width: 270px;
         padding: 15px 20px;
       }
 
@@ -177,7 +206,9 @@
         <table align="center" class="wrapper" border="0" cellspacing="0" cellpadding="0">
           <tr>
             <td class="header-background" align="center" valign="top">
-              <img class="header-logo" src="{{ style.logo_url }}" alt="logo" />
+              {% if style.logo_url %}
+                <img class="header-logo" src="{{ style.logo_url }}" alt="logo" />
+              {% endif %}
             </td>
           </tr>
           <tr>
@@ -193,8 +224,7 @@
                 <tr>
                   <td>
                     <p class="text inner-spacing">
-                      We received a request to manage contributions associated with <span class="email">{{ email
-                        }}</span>.
+                      We received a request to manage contributions associated with <span class="email">{{ email }}</span>.
                     </p>
                     <p class="text inner-spacing bottom-text">
                       Click the button below to review and manage your contributions.
@@ -224,7 +254,7 @@
                 <tr>
                   <td align="center" valign="top">
                     <p class="copyright">
-                      © News Revenue Hub {% now "Y" %}
+                      ©{% now "Y" %} {{ rp_name }}
                     </p>
                   </td>
                 </tr>

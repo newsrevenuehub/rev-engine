@@ -28,7 +28,7 @@
         "city": "Chicago",
         "country": "US",
         "line1": "123 Main Street",
-        "line2": "",
+        "line2": "Ap 1",
         "postal_code": "27777",
         "state": "IL"
       },
@@ -40,7 +40,7 @@
           "city": "Chicago",
           "country": "US",
           "line1": "123 Main Street",
-          "line2": "",
+          "line2": "Ap 1",
           "postal_code": "27777",
           "state": "IL"
         },

@@ -47,13 +47,12 @@ class TestExchangeMailchimpOauthCodeForAccessToken:
         mock_post.return_value.status_code = (code := status.HTTP_400_BAD_REQUEST)
         logger_spy = mocker.spy(logger, "error")
         with pytest.raises(MailchimpAuthflowRetryableError):
-            exchange_mc_oauth_code_for_mc_access_token(oauth_code := "some_oauth_code")
+            exchange_mc_oauth_code_for_mc_access_token("some_oauth_code")
         logger_spy.assert_called_once_with(
             (
                 "`exchange_mc_oauth_code_for_mc_access_token` got an unexpected status code when trying to get an access token. "
-                "The oauth_code is %s, the response status code is %s, and the response contained: %s"
+                "The response status code is %s, and the response contained: %s"
             ),
-            oauth_code,
             code,
             mock_post.return_value.json.return_value,
         )
@@ -178,3 +177,39 @@ class TestExchangeMailchimpOauthTokenForServerPrefixAndAccessToken:
         mock_get_prefix.assert_not_called()
         rp.refresh_from_db()
         assert rp.mailchimp_access_token == token
+
+    def test_when_get_token_request_raises_unretryable_error(self, mocker):
+        rp = RevenueProgramFactory(mailchimp_access_token=None, mailchimp_server_prefix="some-prefix")
+        logger_spy = mocker.spy(logger, "exception")
+        mocker.patch(
+            "apps.organizations.tasks.exchange_mc_oauth_code_for_mc_access_token",
+            side_effect=MailchimpAuthflowUnretryableError("Uh oh"),
+        )
+        save_spy = mocker.spy(RevenueProgram, "save")
+        exchange_mailchimp_oauth_code_for_server_prefix_and_access_token(rp.id, "some-oauth-code")
+        save_spy.assert_not_called()
+        logger_spy.assert_called_once_with(
+            "`exchange_mailchimp_oauth_code_for_server_prefix_and_access_token` encountered an unrecoverable error "
+            "procesesing revenue program with ID %s",
+            rp.id,
+        )
+        rp.refresh_from_db()
+        assert rp.mailchimp_access_token is None
+
+    def test_when_get_server_prefix_request_raises_unretryable_error(self, mocker):
+        rp = RevenueProgramFactory(mailchimp_access_token="some-token", mailchimp_server_prefix=None)
+        mocker.patch(
+            "apps.organizations.tasks.get_mailchimp_server_prefix",
+            side_effect=MailchimpAuthflowUnretryableError("Uh oh"),
+        )
+        save_spy = mocker.spy(RevenueProgram, "save")
+        logger_spy = mocker.spy(logger, "exception")
+        exchange_mailchimp_oauth_code_for_server_prefix_and_access_token(rp.id, "some-oauth-code")
+        save_spy.assert_not_called()
+        logger_spy.assert_called_once_with(
+            "`exchange_mailchimp_oauth_code_for_server_prefix_and_access_token` encountered an unrecoverable error "
+            "procesesing revenue program with ID %s",
+            rp.id,
+        )
+        rp.refresh_from_db()
+        assert rp.mailchimp_server_prefix is None

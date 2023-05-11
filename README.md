@@ -426,7 +426,7 @@ If you have a need to run or test tasks using a Celery worker, there are some Ma
 
 Check `.envrc.example` for all environment variables that are needed to run locally. Note: some of them you will have to get the value from the respective resource (example: Stripe -> get secret key from stripe dashboard)
 
-See [spa/src/appSettings.js](./spa/src/settings.js) for more details on how env vars are configured on the front end. For setup, certain features of the app will require certain env vars define.
+See [spa/src/appSettings.js](./spa/src/appSettings.js) for more details on how env vars are configured on the front end. For setup, certain features of the app will require certain env vars define.
 
 First:
 

@@ -1,4 +1,5 @@
-import { HELP_URL } from 'constants/helperUrls';
+import { CORE_UPGRADE_URL, PRICING_URL } from 'constants/helperUrls';
+import { PLAN_LABELS } from 'constants/orgPlanConstants';
 import { axe } from 'jest-axe';
 import { fireEvent, render, screen } from 'test-utils';
 import MaxPagesReachedModal, { MaxPagesReachedModalProps } from './MaxPagesReachedModal';
@@ -19,7 +20,7 @@ describe('MaxPagesReachedModal', () => {
   });
 
   it('shows a message stating that the user has run out of pages for their plan', () => {
-    tree({ currentPlan: 'FREE', open: true });
+    tree({ currentPlan: PLAN_LABELS.FREE, open: true });
     expect(screen.getByTestId('plan-limit')).toHaveTextContent(
       "You've reached the maximum number of pages for the Free tier."
     );
@@ -30,13 +31,24 @@ describe('MaxPagesReachedModal', () => {
     expect(screen.getByTestId('recommendation')).toHaveTextContent('Want to create more pages? Check out Plus.');
   });
 
-  it('shows a link to upgrade', () => {
-    tree({ open: true });
+  describe('The link to upgrade', () => {
+    it('goes to the Core upgrade URL if the Core plan is recommended', () => {
+      tree({ open: true, recommendedPlan: 'CORE' });
 
-    const link = screen.getByRole('link', { name: 'Upgrade' });
+      const link = screen.getByRole('link', { name: 'Upgrade' });
 
-    expect(link).toHaveAttribute('href', HELP_URL);
-    expect(link).toHaveAttribute('target', '_blank');
+      expect(link).toHaveAttribute('href', CORE_UPGRADE_URL);
+      expect(link).toHaveAttribute('target', '_blank');
+    });
+
+    it('goes to the pricing URL if the Plus plan is recommended', () => {
+      tree({ open: true, recommendedPlan: 'PLUS' });
+
+      const link = screen.getByRole('link', { name: 'Upgrade' });
+
+      expect(link).toHaveAttribute('href', PRICING_URL);
+      expect(link).toHaveAttribute('target', '_blank');
+    });
   });
 
   it('calls the onClose prop when the modal is closed', () => {

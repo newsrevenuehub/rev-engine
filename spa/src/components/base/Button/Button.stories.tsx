@@ -7,7 +7,9 @@ export default {
   parameters: {
     docs: {
       description: {
-        component: 'A MUI-based button. See [the API](https://v4.mui.com/api/button/) for more details.'
+        component: `A MUI-based button. See [the API](https://v4.mui.com/api/button/) for more details.
+
+If you are using the outlined variant of this component, you should also add the noRipple prop for the proper appearance.`
       }
     }
   }
@@ -24,6 +26,12 @@ const Template: ComponentStory<typeof Button> = (args) => {
           <Button {...args} color={color as ButtonProps['color']} disabled />
         </>
       ))}
+      <div style={{ alignItems: 'center', background: 'blue', display: 'grid', padding: 20 }}>
+        <Button {...args} variant="outlined" />
+      </div>
+      <div style={{ alignItems: 'center', background: 'blue', display: 'grid', padding: 20 }}>
+        <Button {...args} variant="outlined" disabled />
+      </div>
     </div>
   );
 };

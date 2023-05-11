@@ -1,5 +1,6 @@
 from django.contrib.auth import get_user_model
 from django.test import Client, TestCase
+from django.urls import reverse
 
 from bs4 import BeautifulSoup
 
@@ -62,3 +63,17 @@ class TestUsersAdmin(TestCase):
         assert soup.find("input", {"name": "email_verified"}) is not None
         assert soup.find("input", {"name": "accepted_terms_of_service_0"}) is not None
         assert soup.find("input", {"name": "accepted_terms_of_service_1"}) is not None
+
+    def test_caseinsensitive_email_uniqueness(self):
+        email_1 = "test.hello.123@test.com"
+        password = "sjdDKKDJF!23233"
+        # create a test user
+        self.client.post(
+            reverse("admin:users_user_add"), {"email": email_1, "password1": password, "password2": password}
+        )
+        # create test user with same email id as previous but in upper case
+        response = self.client.post(
+            reverse("admin:users_user_add"), {"email": email_1.upper(), "password1": password, "password2": password}
+        )
+        content = BeautifulSoup(response.content)
+        assert content.find(text="User with this Email already exists.") is not None

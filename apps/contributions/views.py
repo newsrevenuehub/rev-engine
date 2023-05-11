@@ -1,6 +1,4 @@
-import csv
 import logging
-import os
 from typing import List
 
 from django.conf import settings
@@ -42,10 +40,11 @@ from apps.contributions.models import (
 )
 from apps.contributions.payment_managers import PaymentProviderError
 from apps.contributions.stripe_contributions_provider import SubscriptionsCacheProvider
-from apps.contributions.tasks import task_pull_serialized_stripe_contributions_to_cache
-from apps.contributions.utils import export_contributions_to_csv
+from apps.contributions.tasks import (
+    email_contribution_csv_export_to_user,
+    task_pull_serialized_stripe_contributions_to_cache,
+)
 from apps.contributions.webhooks import StripeWebhookProcessor
-from apps.emails.tasks import send_templated_email_with_attachment
 from apps.organizations.models import PaymentProvider, RevenueProgram
 from apps.public.permissions import IsActiveSuperUser
 
@@ -201,9 +200,11 @@ def payment_success(request, uuid=None):
     and use this view to trigger a thank you email to the contributor if the org has configured the contribution page
     accordingly.
     """
+    logger.info("payment_success called with request data: %s, uuid %s", request.data, uuid)
     try:
         contribution = Contribution.objects.get(uuid=uuid)
     except Contribution.DoesNotExist:
+        logger.warning("payment_success called with invalid uuid %s", uuid)
         return Response(status=status.HTTP_404_NOT_FOUND)
     contribution.handle_thank_you_email()
     return Response(status=status.HTTP_204_NO_CONTENT)
@@ -308,36 +309,23 @@ class ContributionsViewSet(viewsets.ReadOnlyModelViewSet):
         Contributor will not be able to access this endpoint as it's being integrated with the Contribution Dashboard
         as contributors will be able to access only Contributor Portal via magic link.
         """
-        try:
-            contributions_in_csv = export_contributions_to_csv(
-                self.model.objects.all() if request.user.is_staff else self.get_queryset()
-            )
-
-            send_templated_email_with_attachment.delay(
-                to=request.user.email,
-                subject="Check out your Contributions",
-                text_template="nrh-contribution-csv-email-body.txt",
-                html_template="nrh-contribution-csv-email-body.html",
-                template_data={
-                    "logo_url": os.path.join(settings.SITE_URL, "static", "nre_logo_black_yellow.png"),
-                },
-                attachment=contributions_in_csv,
-                content_type="text/csv",
-                filename="contributions.csv",
-            )
-            return Response(data={"detail": "success"}, status=status.HTTP_200_OK)
-        except csv.Error:
-            logger.exception("Error while generating contributions csv file.")
-            return Response(
-                data={"status": "failed", "detail": "Something went wrong generating CSV export"},
-                status=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            )
-        except Exception:
-            logger.exception("Unexpected error.")
-            return Response(
-                data={"status": "failed", "detail": "Something went wrong"},
-                status=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            )
+        logger.info(
+            "[ContributionViewSet.email_contributions] enqueueing email_contribution_csv_export_to_user task for request: %s",
+            request,
+        )
+        ra = request.user.get_role_assignment()
+        show_upgrade_prompt = (
+            not request.user.is_superuser
+            and ra
+            and (org := getattr(ra, "organization", None))
+            and org.plan.name == "FREE"
+        )
+        email_contribution_csv_export_to_user.delay(
+            list(self.get_queryset().values_list("id", flat=True)),
+            request.user.email,
+            show_upgrade_prompt,
+        )
+        return Response(data={"detail": "success"}, status=status.HTTP_200_OK)
 
 
 class SubscriptionsViewSet(viewsets.ViewSet):

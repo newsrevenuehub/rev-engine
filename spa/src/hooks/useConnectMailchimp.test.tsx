@@ -197,7 +197,7 @@ describe('useConnectMailchimp hook', () => {
               show_connected_to_mailchimp: true,
               plan: { name: 'mock-plan' }
             }
-          ] as Organization[]
+          ] as unknown as Organization[]
         },
         isError: false,
         isLoading: false,

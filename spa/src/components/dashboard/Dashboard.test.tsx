@@ -12,6 +12,7 @@ import useFeatureFlags from 'hooks/useFeatureFlags';
 import useUser from 'hooks/useUser';
 
 jest.mock('components/common/Modal/AudienceListModal/AudienceListModal');
+jest.mock('./sidebar/DashboardSidebar');
 jest.mock('elements/GlobalLoading');
 jest.mock('hooks/useFeatureFlags');
 jest.mock('hooks/useRequest');

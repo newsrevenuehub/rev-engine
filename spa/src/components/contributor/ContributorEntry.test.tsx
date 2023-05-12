@@ -32,7 +32,7 @@ describe('ContributorEntry', () => {
   });
 
   it('should have custom portal name', () => {
-    render(<ContributorEntry page={page} />);
+    render(<ContributorEntry page={page as any} />);
     const title = screen.getByRole('heading', {
       name: `Welcome to the ${page.revenue_program.name} contributor portal`
     });
@@ -82,7 +82,7 @@ describe('ContributorEntry', () => {
     const magicLinkButton = screen.getByRole('button', { name: 'Send Magic Link' });
     userEvent.click(magicLinkButton);
 
-    const emailError = await screen.findByTestId('alert', { name: /we encountered an issue and have been notified/i });
+    const emailError = await screen.findByText(/we encountered an issue and have been notified/i);
     expect(emailError).toBeInTheDocument();
   });
 });

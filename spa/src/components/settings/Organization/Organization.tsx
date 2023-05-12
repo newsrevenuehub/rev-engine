@@ -59,7 +59,7 @@ const Organization = () => {
     [user?.organizations]
   );
   const revenueProgramFromCurrentOrg = useMemo(
-    () => user?.revenue_programs?.filter((rp) => rp.organization === currentOrganization?.id),
+    () => user?.revenue_programs?.filter((rp) => rp.organization.id === currentOrganization?.id),
     [currentOrganization?.id, user?.revenue_programs]
   );
   const hasMultipleRPs = revenueProgramFromCurrentOrg && revenueProgramFromCurrentOrg?.length > 1;

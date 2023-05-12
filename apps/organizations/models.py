@@ -462,6 +462,7 @@ class RevenueProgram(IndexedTimeStampedModel):
     def mailchimp_email_lists(self) -> list[MailchimpEmailList]:
         """"""
         if not all([self.mailchimp_server_prefix, self.mailchimp_access_token]):
+            logger.info("Called for rp %s which is not connected to Mailchimp so returning empty list", self.id)
             return []
         client = self.get_mailchimp_client()
         response = client.lists.get_all_lists(fields="id,name", count=1000)

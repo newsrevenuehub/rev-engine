@@ -21,33 +21,31 @@ class SecretProvider:
     def __init__(self, version_id: str = "latest", *args, **kwargs) -> None:
         self.version_id = version_id
 
-    def __get__(self, obj, type=None) -> object:
+    def __get__(self, obj, type=None) -> object:  # pragma: no cover
         raise NotImplementedError("Subclasses of SecretProviderSecret should implement __get__ but does not")
 
-    def __set__(self, obj, value) -> None:
+    def __set__(self, obj, value) -> None:  # pragma: no cover
         raise NotImplementedError("Subclasses of SecretProviderSecret should implement __set__ but does not")
 
-    def __delete__(self, obj) -> None:
+    def __delete__(self, obj) -> None:  # pragma: no cover
         raise NotImplementedError("Subclasses of SecretProviderSecret should implement delete_secret but does not")
 
     def __str__(self) -> str:
         return f"{self.name}"
 
 
-def _get_secret_manager_client() -> SecretManagerServiceClient:
+def get_secret_manager_client() -> SecretManagerServiceClient | None:
+    # NB: This is defined in module scope and not in GoogleCloudSecretProvider even though it's only
+    # caller because it facilitates mocking in tests across unit tests of secrets narrowly,
+    # as well as their use in other contexts.
+    if not settings.GS_SERVICE_ACCOUNT:
+        return None
     credentials = service_account.Credentials.from_service_account_info(settings.GS_SERVICE_ACCOUNT)
     return SecretManagerServiceClient(credentials=credentials)
 
 
 class GoogleCloudSecretProvider(SecretProvider):
     """A descriptor that retrieves a secret from Google Cloud Secret Manager."""
-
-    # We define client here rather than in init to facilitate easy mocking in tests
-    client = (
-        _get_secret_manager_client()
-        if settings.ENABLE_GOOGLE_CLOUD_SECRET_MANAGER and settings.GS_SERVICE_ACCOUNT
-        else None
-    )
 
     def __init__(
         self,
@@ -75,19 +73,16 @@ class GoogleCloudSecretProvider(SecretProvider):
     def __get__(self, obj, type=None) -> str | None:
         logger.info("GoogleCloudSecretProvider retrieving secret %s", (secret_name := self.get_secret_name(obj)))
         if not settings.ENABLE_GOOGLE_CLOUD_SECRET_MANAGER:
-            logger.info(
-                "GoogleCloudSecretProvider.get_secret for secret %s returning None because ENABLE_GOOGLE_CLOUD_SECRET_MANAGER isn't true",
-                secret_name,
-            )
+            logger.info("GoogleCloudSecretProvider not enabled")
             return None
-        if not self.client:
-            logger.info(
-                "GoogleCloudSecretProvider.get_secret for secret %s returning None because client is None",
-                secret_name,
+        client = get_secret_manager_client()
+        if not client:
+            logger.warning(
+                "GoogleCloudSecretProvider cannot get secret %s because client is not initialized", secret_name
             )
             return None
         try:
-            secret = self.client.access_secret_version(
+            secret = client.access_secret_version(
                 request={"name": (secret_version_path := self.get_secret_version_path(obj))}
             )
         except NotFound:
@@ -110,20 +105,17 @@ class GoogleCloudSecretProvider(SecretProvider):
     def __set__(self, obj, value) -> None:
         logger.info("GoogleCloudSecretProvider setting secret %s", (secret_name := self.get_secret_name(obj)))
         if not settings.ENABLE_GOOGLE_CLOUD_SECRET_MANAGER:
-            logger.info(
-                "GoogleCloudSecretProvider.__set__ cannot set secret value for secret %s because ENABLE_GOOGLE_CLOUD_SECRET_MANAGER not true",
-                secret_name,
-            )
-            return
-        if not self.client:
-            logger.info(
-                "GoogleCloudSecretProvider.__set__ cannot set secret value for secret %s. Returning early",
-                secret_name,
-            )
+            logger.warning("GoogleCloudSecretProvider cannot set secret %s because not enabled", secret_name)
             return
         secret = None
+        client = get_secret_manager_client()
+        if not client:
+            logger.warning(
+                "GoogleCloudSecretProvider cannot get secret %s because client is not initialized", secret_name
+            )
+            return None
         try:
-            secret = self.client.get_secret(request={"name": (secret_path := self.get_secret_path(obj))})
+            secret = client.get_secret(request={"name": (secret_path := self.get_secret_path(obj))})
         except NotFound:
             logger.info(
                 "GoogleCloudSecretProvider did not find an existing secret for secret %s. Creating new secret.",
@@ -131,7 +123,7 @@ class GoogleCloudSecretProvider(SecretProvider):
             )
             try:
                 logger.info("GoogleCloudSecretProvider attempting to create new secret for secret %s", secret_name)
-                secret = self.client.create_secret(
+                secret = client.create_secret(
                     request={
                         "parent": f"projects/{settings.GOOGLE_CLOUD_PROJECT_ID}",
                         "secret_id": secret_name,
@@ -157,7 +149,7 @@ class GoogleCloudSecretProvider(SecretProvider):
         if secret:
             try:
                 logger.info("GoogleCloudSecretProvider adding secret version for secret %s", secret_name)
-                self.client.add_secret_version(
+                client.add_secret_version(
                     request={
                         "parent": secret_path,
                         "payload": {"data": value.encode("UTF-8")},
@@ -177,19 +169,19 @@ class GoogleCloudSecretProvider(SecretProvider):
         logger.info("GoogleCloudSecretProvider deleting secret %s", (secret_name := self.get_secret_name(obj)))
         secret_name = self.get_secret_name(obj)
         if not settings.ENABLE_GOOGLE_CLOUD_SECRET_MANAGER:
-            logger.info(
-                "GoogleCloudSecretProvider cannot delete secret %s on GC because ENABLE_GOOGLE_CLOUD_SECRET_MANAGER not true",
+            logger.warning(
+                "GoogleCloudSecretProvider cannot delete secret %s because not enabled",
                 secret_name,
             )
             return
-        if not self.client:
-            logger.info(
-                "GoogleCloudSecretProvider cannot delete secret %s on GC because client is None",
-                secret_name,
+        client = get_secret_manager_client()
+        if not client:
+            logger.warning(
+                "GoogleCloudSecretProvider cannot delete secret %s because client is not initialized", secret_name
             )
-            return
+            return None
         try:
-            self.client.delete_secret(request={"name": (secret_path := self.get_secret_path(obj))})
+            client.delete_secret(request={"name": (secret_path := self.get_secret_path(obj))})
             logger.info("GoogleCloudSecretProvider deleted secret %s", secret_name)
         except NotFound:
             logger.info(

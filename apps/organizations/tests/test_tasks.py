@@ -2,7 +2,7 @@ import pytest
 from google.api_core.exceptions import NotFound
 from rest_framework import status
 
-from apps.organizations.models import GoogleCloudSecretProvider, RevenueProgram
+from apps.organizations.models import RevenueProgram
 from apps.organizations.tasks import (
     MailchimpAuthflowRetryableError,
     MailchimpAuthflowUnretryableError,
@@ -126,15 +126,14 @@ class TestExchangeMailchimpOauthTokenForServerPrefixAndAccessToken:
             "exchange_mailchimp_oauth_code_for_server_prefix_and_access_token called but retrieved RP already MC values set"
         )
 
+    @pytest.mark.django_db(transaction=True)
     def test_happy_path_when_not_have_either_mc_property(self, mocker, settings):
         settings.ENABLE_GOOGLE_CLOUD_SECRET_MANAGER = True
         settings.GOOGLE_CLOUD_PROJECT_ID = "some-project-id"
-        rp = RevenueProgramFactory(mailchimp_server_prefix=None)
-        mock_secret_manager_client = mocker.patch("apps.common.secrets.GoogleCloudSecretProvider.client")
-        # this causes it to not be found on initial get
-        mock_secret_manager_client.access_secret_version.side_effect = NotFound("Not found")
-        mock_secret_manager_client.get_secret.side_effect = NotFound("Not found")
-        mock_secret_manager_client.create_secret.return_value = mocker.Mock(name="secret")
+        mock_get_client = mocker.patch("apps.common.secrets.get_secret_manager_client")
+        mock_get_client.return_value.access_secret_version.side_effect = NotFound("Not found")
+        mock_get_client.return_value.get_secret.side_effect = NotFound("Not found")
+        mock_get_client.return_value.create_secret.return_value = mocker.Mock(name="secret")
         mocker.patch(
             "apps.organizations.tasks.exchange_mc_oauth_code_for_mc_access_token", return_value=(token := "some-token")
         )
@@ -146,24 +145,25 @@ class TestExchangeMailchimpOauthTokenForServerPrefixAndAccessToken:
         mocker.patch(
             "apps.common.secrets.GoogleCloudSecretProvider.get_secret_name", return_value=(secret_name := "secret-name")
         )
-        save_spy = mocker.spy(RevenueProgram, "save")
         mock_create_revision = mocker.patch("reversion.create_revision")
         mock_create_revision.return_value.__enter__.return_value.add = mocker.Mock()
         mock_set_comment = mocker.patch("reversion.set_comment")
-        exchange_mailchimp_oauth_code_for_server_prefix_and_access_token(rp.id, "some-oauth-code")
-        save_spy.assert_called_once_with(rp, update_fields={"mailchimp_server_prefix", "modified"})
+        revenue_program = RevenueProgramFactory()
+        save_spy = mocker.spy(RevenueProgram, "save")
+        exchange_mailchimp_oauth_code_for_server_prefix_and_access_token(revenue_program.id, "some-oauth-code")
+        save_spy.assert_called_once_with(revenue_program, update_fields={"mailchimp_server_prefix", "modified"})
         mock_create_revision.assert_called_once()
         mock_set_comment.assert_called_once_with("exchange_mailchimp_oauth_code_for_server_prefix_and_access_token")
-        rp.refresh_from_db()
-        assert rp.mailchimp_server_prefix == prefix
-        mock_secret_manager_client.create_secret.assert_called_once_with(
+        revenue_program.refresh_from_db()
+        assert revenue_program.mailchimp_server_prefix == prefix
+        mock_get_client.return_value.create_secret.assert_called_once_with(
             request={
                 "parent": f"projects/{settings.GOOGLE_CLOUD_PROJECT_ID}",
                 "secret_id": secret_name,
                 "secret": {"replication": {"automatic": {}}},
             }
         )
-        mock_secret_manager_client.add_secret_version.assert_called_once_with(
+        mock_get_client.return_value.add_secret_version.assert_called_once_with(
             request={
                 "parent": get_secret_path_val,
                 "payload": {"data": token.encode("ascii")},
@@ -188,13 +188,13 @@ class TestExchangeMailchimpOauthTokenForServerPrefixAndAccessToken:
         assert rp.mailchimp_server_prefix == prefix
 
     def test_happy_path_when_not_have_token_but_have_prefix(self, mocker):
-        rp = RevenueProgramFactory(mailchimp_server_prefix="some-prefix")
-        mock_secret_provider = mocker.patch.object(GoogleCloudSecretProvider, "client")
-        mock_secret_provider.access_secret_version.return_value.payload.data = b"foo"
+        mock_get_client = mocker.patch("apps.common.secrets.get_secret_manager_client")
+        mock_get_client.return_value.access_secret_version.side_effect = NotFound("Not found")
         mock_get_prefix = mocker.patch("apps.organizations.tasks.get_mailchimp_server_prefix")
         mock_get_token = mocker.patch(
             "apps.organizations.tasks.exchange_mc_oauth_code_for_mc_access_token", return_value="some-token"
         )
+        rp = RevenueProgramFactory(mailchimp_server_prefix="some-prefix")
         exchange_mailchimp_oauth_code_for_server_prefix_and_access_token(rp.id, "some-oauth-code")
         mock_get_prefix.assert_not_called()
         mock_get_token.assert_called_once()

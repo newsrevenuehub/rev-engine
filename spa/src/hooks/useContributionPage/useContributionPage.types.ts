@@ -1,6 +1,7 @@
 import { ContributionInterval } from 'constants/contributionIntervals';
 import { FiscalStatus } from 'constants/fiscalStatus';
 import { Style } from '../useStyleList';
+import { Organization } from 'hooks/useUser.types';
 
 // Types here come from looking at Django models, in particular whether a field
 // can be null. Even if a field is not nullable, it may be an empty string.
@@ -307,9 +308,13 @@ export interface RevenueProgram {
    */
   website_url: string;
   /**
-   * Organization ID from which the Revenue Program belongs.
+   * Organization object from which the Revenue Program belongs.
    */
-  organization: number;
+  organization: Organization;
+  /**
+   * Default donation page ID from Revenue Program, if it exists.
+   */
+  default_donation_page?: number;
   /**
    * Fiscal status that is "nonprofit", "for-profit" or "fiscally sponsored".
    */

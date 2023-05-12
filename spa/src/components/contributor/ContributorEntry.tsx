@@ -15,30 +15,32 @@ import Input from 'elements/inputs/Input';
 
 // Analytics
 import { useConfigureAnalytics } from 'components/analytics';
+import { AxiosError } from 'axios';
+import { ContributionPage } from 'hooks/useContributionPage';
 
-function ContributorEntry({ page }) {
+function ContributorEntry({ page }: { page?: ContributionPage }) {
   const alert = useAlert();
   const [email, setEmail] = useState('');
   const [loading, setLoading] = useState(false);
-  const [errors, setErrors] = useState({});
+  const [errors, setErrors] = useState<{ email?: string[] }>({});
 
   const [showConfirmation, setShowConfirmation] = useState(false);
   const subdomain = useSubdomain();
 
   useConfigureAnalytics();
 
-  const handleSendMagicLink = async (e) => {
-    e.preventDefault();
+  const handleSendMagicLink = async (event: React.MouseEvent<HTMLElement>) => {
+    event.preventDefault();
     setLoading(true);
     setErrors({});
     try {
       const response = await axios.post(GET_MAGIC_LINK, { email, subdomain });
       if (response.status === 200) setShowConfirmation(true);
-    } catch (e) {
-      if (e.response?.status === 429) {
+    } catch (error) {
+      if ((error as AxiosError).response?.status === 429) {
         setErrors({ email: ['Too many attempts. Try again in one minute.'] });
-      } else if (e.response?.data?.email) {
-        setErrors(e.response.data);
+      } else if ((error as AxiosError).response?.data?.email) {
+        setErrors((error as AxiosError).response?.data);
       } else {
         alert.error(GENERIC_ERROR_WITH_SUPPORT_INFO);
       }
@@ -47,15 +49,10 @@ function ContributorEntry({ page }) {
     }
   };
 
-  let portalName = `RevEngine`;
-  if (page?.revenue_program) {
-    portalName = page.revenue_program.name;
-  }
-
   return (
     <S.ContributorEntry>
       <S.ContentWrapper>
-        <S.Title>Welcome to the {portalName} contributor portal</S.Title>
+        <S.Title>Welcome to the {page?.revenue_program?.name ?? 'RevEngine'} contributor portal</S.Title>
         {showConfirmation ? (
           <S.Confirmation>
             <p>If you're in our system, an email has been sent to you containing your magic link</p>
@@ -71,7 +68,7 @@ function ContributorEntry({ page }) {
                 type="email"
                 onChange={(e) => setEmail(e.target.value)}
                 errors={errors.email}
-                testid="magic-link-email-input"
+                data-testid="magic-link-email-input"
               />
             </S.InputWrapper>
             <S.MagicLinkButton onClick={handleSendMagicLink} disabled={loading} data-testid="magic-link-email-button">

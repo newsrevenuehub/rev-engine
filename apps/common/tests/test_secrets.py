@@ -2,12 +2,25 @@ from unittest.mock import Mock
 
 import pytest
 from google.api_core.exceptions import NotFound, PermissionDenied
+from google.cloud.secretmanager import SecretManagerServiceClient
 
-from apps.common.secrets import SecretProviderException, logger
+from apps.common.secrets import SecretProviderException, get_secret_manager_client, logger
 from apps.organizations.models import GoogleCloudSecretProvider
 
 
 MODEL_ATTR = "some_attr"
+
+
+class TestGetSecretManagerClient:
+    def test_when_no_service_account(self, settings):
+        settings.GS_SERVICE_ACCOUNT = None
+        assert get_secret_manager_client() is None
+
+    def test_when_service_account(self, settings, mocker):
+        settings.GS_SERVICE_ACCOUNT = {"something": "truthy"}
+        mocker.patch("apps.common.secrets.service_account.Credentials.from_service_account_info", return_value=None)
+        client = get_secret_manager_client()
+        assert isinstance(client, SecretManagerServiceClient)
 
 
 def make_my_object(secret_provider: GoogleCloudSecretProvider):

@@ -93,6 +93,7 @@ describe('useConnectMailchimp hook', () => {
       isError: false,
       isLoading: true,
       connectedToMailchimp: false,
+      hasMailchimpAccess: true,
       requiresAudienceSelection: false
     });
   });
@@ -106,6 +107,7 @@ describe('useConnectMailchimp hook', () => {
       isError: true,
       isLoading: false,
       connectedToMailchimp: false,
+      hasMailchimpAccess: true,
       requiresAudienceSelection: false
     });
   });
@@ -118,6 +120,7 @@ describe('useConnectMailchimp hook', () => {
       isError: false,
       isLoading: false,
       connectedToMailchimp: false,
+      hasMailchimpAccess: false,
       requiresAudienceSelection: false
     });
   });
@@ -135,6 +138,7 @@ describe('useConnectMailchimp hook', () => {
       isError: false,
       isLoading: false,
       connectedToMailchimp: false,
+      hasMailchimpAccess: true,
       requiresAudienceSelection: false
     });
   });
@@ -152,6 +156,7 @@ describe('useConnectMailchimp hook', () => {
       isError: false,
       isLoading: false,
       connectedToMailchimp: false,
+      hasMailchimpAccess: true,
       requiresAudienceSelection: false
     });
   });
@@ -181,7 +186,8 @@ describe('useConnectMailchimp hook', () => {
       isError: false,
       isLoading: false,
       connectedToMailchimp: false,
-      requiresAudienceSelection: false
+      requiresAudienceSelection: false,
+      hasMailchimpAccess: true
     });
   });
 
@@ -210,6 +216,7 @@ describe('useConnectMailchimp hook', () => {
         isLoading: false,
         connectedToMailchimp: true,
         organizationPlan: 'mock-plan',
+        hasMailchimpAccess: true,
         requiresAudienceSelection: false
       });
     });
@@ -235,6 +242,8 @@ describe('useConnectMailchimp hook', () => {
         isError: false,
         isLoading: false,
         connectedToMailchimp: true,
+        hasMailchimpAccess: true,
+        organizationPlan: undefined,
         requiresAudienceSelection: false
       });
     });
@@ -263,6 +272,7 @@ describe('useConnectMailchimp hook', () => {
       isLoading: false,
       connectedToMailchimp: false,
       organizationPlan: 'FREE',
+      hasMailchimpAccess: true,
       requiresAudienceSelection: false
     });
   });
@@ -330,6 +340,7 @@ describe('useConnectMailchimp hook', () => {
       connectedToMailchimp: false,
       organizationPlan: 'CORE',
       requiresAudienceSelection: false,
+      hasMailchimpAccess: true,
       revenueProgram: {
         id: 0,
         name: 'mock-org-name-1',
@@ -377,6 +388,7 @@ describe('useConnectMailchimp hook', () => {
       connectedToMailchimp: false,
       organizationPlan: 'CORE',
       requiresAudienceSelection: true,
+      hasMailchimpAccess: true,
       revenueProgram: {
         id: 0,
         name: 'mock-org-name-1',

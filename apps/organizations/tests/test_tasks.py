@@ -7,6 +7,8 @@ from apps.organizations.models import RevenueProgram
 from apps.organizations.tasks import (
     MailchimpAuthflowRetryableError,
     MailchimpAuthflowUnretryableError,
+    Message,
+    _publish_revenue_program_mailchimp_list_configuration_complete,
     ensure_mailchimp_contributor_segment,
     ensure_mailchimp_one_time_contribution_product,
     ensure_mailchimp_recurring_contribution_product,
@@ -397,3 +399,13 @@ class TestEnsureMailchimpRecurringContributorSegment:
         ensure_mailchimp_recurring_segment.apply(args=(mc_connected_rp.id,)).get()
         assert logger_spy.call_count == 2
         assert logger_spy.call_args_list[1] == mocker.call("Segment already exists for rp_id=[%s]", mc_connected_rp.id)
+
+
+@pytest.mark.django_db
+def test__publish_revenue_program_mailchimp_list_configuration_complete(revenue_program, mocker, settings):
+    mock_publisher = mocker.patch("apps.organizations.tasks.Publisher")
+    settings.RP_MAILCHIMP_LIST_CONFIGURATION_COMPLETE_TOPIC = (topic := "something")
+    _publish_revenue_program_mailchimp_list_configuration_complete(revenue_program.id)
+    mock_publisher.get_instance.return_value.publish.assert_called_once_with(
+        topic, Message(data=str(revenue_program.id))
+    )

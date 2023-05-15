@@ -548,8 +548,8 @@ class RevenueProgram(IndexedTimeStampedModel):
         if not self.mailchimp_recurring_contributor_segment_id:
             logger.debug("No mailhcimp_recurring_contributor_segment_id on RP %s, returning None", self.id)
             return None
+        client = self.get_mailchimp_client()
         try:
-            client = self.get_mailchimp_client()
             response = client.lists.get_segment(self.mailchimp_list_id, self.mailchimp_recurring_contributor_segment_id)
             return MailchimpSegment(**response)
         except ApiClientError as error:

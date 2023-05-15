@@ -8,6 +8,7 @@ export type LinkProps = MuiLinkProps;
  */
 export const Link = styled(MuiLink)`
   && {
+    cursor: pointer;
     color: ${({ theme }) => theme.basePalette.secondary.hyperlink};
     font-weight: 500;
 

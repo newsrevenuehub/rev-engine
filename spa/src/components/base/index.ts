@@ -3,6 +3,7 @@ export * from './Checkbox/Checkbox';
 export * from './ColorPicker/ColorPicker';
 export * from './EditableList/EditableList';
 export * from './FormControlLabel/FormControlLabel';
+export * from './IconList/IconList';
 export * from './Link/Link';
 export * from './LinkButton/LinkButton';
 export * from './MenuItem/MenuItem';

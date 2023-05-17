@@ -24,7 +24,7 @@ const IntegrationCardHeader = ({
   site
 }: IntegrationCardHeaderProps) => {
   const renderCornerMessage = useMemo(() => {
-    if (!(isRequired || !!cornerMessage) && enableCornerMessage!) return null;
+    if ((!isRequired || !cornerMessage) && !enableCornerMessage) return null;
     if (isRequired) {
       return <Required>*Required</Required>;
     }

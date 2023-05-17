@@ -1,6 +1,6 @@
 import { ReactComponent as Diversity } from '@material-design-icons/svg/filled/diversity_2.svg';
-import { ReactComponent as GroupAdd } from '@material-design-icons/svg/filled/group_add.svg';
-import { ReactComponent as Mail } from '@material-design-icons/svg/filled/mail.svg';
+import { ReactComponent as GroupAdd } from '@material-design-icons/svg/outlined/group_add.svg';
+import { ReactComponent as Mail } from '@material-design-icons/svg/outlined/mail.svg';
 import InfoOutlinedIcon from '@material-ui/icons/InfoOutlined';
 import { ButtonProps, Modal, ModalContent, ModalFooter, ModalHeader } from 'components/base';
 import PropTypes, { InferProps } from 'prop-types';
@@ -26,8 +26,8 @@ export interface MailchimpModalProps extends InferProps<typeof MailchimpModalPro
 const LIST_CONTENT = {
   NOT_CONNECTED: [
     { icon: <Mail />, text: 'Regularly thank, steward and bump up current contributors.' },
-    { icon: <GroupAdd />, text: 'Re-engage lapsed donors.' },
-    { icon: <Diversity />, text: 'Consistently market to new contributors, segmenting out those who already gave.' }
+    { icon: <Diversity />, text: 'Re-engage lapsed donors.' },
+    { icon: <GroupAdd />, text: 'Consistently market to new contributors, segmenting out those who already gave.' }
   ],
   // TODO: Update copy
   CONNECTED: []

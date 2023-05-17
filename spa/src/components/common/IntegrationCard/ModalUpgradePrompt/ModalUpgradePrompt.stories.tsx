@@ -3,7 +3,7 @@ import ModalUpgradePrompt from './ModalUpgradePrompt';
 
 export default {
   component: ModalUpgradePrompt,
-  title: 'Common/ModalUpgradePrompt'
+  title: 'Common/IntegrationCard/ModalUpgradePrompt'
 } as ComponentMeta<typeof ModalUpgradePrompt>;
 
 const Template: ComponentStory<typeof ModalUpgradePrompt> = (props) => <ModalUpgradePrompt {...props} />;

@@ -39,18 +39,18 @@ export const Site = styled.a`
   align-items: center;
   text-decoration: none;
   font-size: ${(props) => props.theme.fontSizesUpdated.sm};
-  color: ${(props) => props.theme.colors.muiGrey[600]};
+  color: ${(props) => props.theme.basePalette.greyscale.grey1};
   cursor: pointer;
 
   &:hover {
-    color: ${(props) => props.theme.colors.muiGrey[600]};
+    color: ${(props) => props.theme.basePalette.greyscale.grey1};
     text-decoration: none;
   }
 `;
 
 export const LaunchIcon = styled(LaunchMui)`
   && {
-    color: ${(props) => props.theme.colors.muiGrey[600]};
+    color: ${(props) => props.theme.basePalette.greyscale.grey1};
     margin-left: 5px;
     height: 16px;
     width: 16px;
@@ -59,7 +59,7 @@ export const LaunchIcon = styled(LaunchMui)`
 
 export const Title = styled.p`
   font-size: ${(props) => props.theme.fontSizesUpdated.lg};
-  color: ${(props) => props.theme.colors.muiGrey[900]};
+  color: ${(props) => props.theme.basePalette.greyscale.black};
   font-weight: 500;
   margin: 0;
 `;

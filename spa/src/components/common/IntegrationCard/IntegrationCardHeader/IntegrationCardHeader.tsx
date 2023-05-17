@@ -1,3 +1,4 @@
+import { useMemo } from 'react';
 import PropTypes, { InferProps } from 'prop-types';
 
 import {
@@ -22,10 +23,8 @@ const IntegrationCardHeader = ({
   image,
   site
 }: IntegrationCardHeaderProps) => {
-  const showCornerMessage = (isRequired || !!cornerMessage) && enableCornerMessage!;
-
-  const renderCornerMessage = (showMessage: boolean) => {
-    if (!showMessage) return null;
+  const renderCornerMessage = useMemo(() => {
+    if (!(isRequired || !!cornerMessage) && enableCornerMessage!) return null;
     if (isRequired) {
       return <Required>*Required</Required>;
     }
@@ -33,7 +32,7 @@ const IntegrationCardHeader = ({
       return <CornerMessage>{cornerMessage}</CornerMessage>;
     }
     return null;
-  };
+  }, [cornerMessage, enableCornerMessage, isActive, isRequired]);
 
   return (
     <Header>
@@ -47,7 +46,7 @@ const IntegrationCardHeader = ({
           </Site>
         </div>
       </TitleWrapper>
-      {renderCornerMessage(showCornerMessage)}
+      {renderCornerMessage}
     </Header>
   );
 };

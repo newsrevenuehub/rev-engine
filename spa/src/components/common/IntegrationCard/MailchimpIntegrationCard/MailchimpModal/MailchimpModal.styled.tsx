@@ -11,7 +11,7 @@ export const Title = styled.h1`
 export const InfoIcon = styled.div`
   height: 24px;
   width: 24px;
-  color: ${(props) => props.theme.colors.muiLightBlue[800]};
+  color: ${(props) => props.theme.basePalette.primary.engineBlue};
 `;
 
 export const SupportText = styled.p`

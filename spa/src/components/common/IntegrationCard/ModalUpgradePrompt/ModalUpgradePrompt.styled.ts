@@ -2,7 +2,7 @@ import { ReactComponent as CoreUpgradeIcon } from 'assets/icons/upgrade-core.svg
 import styled from 'styled-components';
 
 export const Root = styled.div`
-  border: 1px solid ${({ theme }) => theme.colors.muiGrey[400]};
+  border: 1px solid ${({ theme }) => theme.basePalette.greyscale.grey2};
   border-radius: 10px;
   display: grid;
   position: relative;
@@ -11,7 +11,7 @@ export const Root = styled.div`
 `;
 
 export const Text = styled.p`
-  color: ${({ theme }) => theme.colors.muiGrey[900]};
+  color: ${({ theme }) => theme.basePalette.greyscale.black};
   font-size: ${({ theme }) => theme.fontSizesUpdated.md};
   margin: 0;
 `;

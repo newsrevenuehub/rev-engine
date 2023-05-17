@@ -1,17 +1,19 @@
-import { IconList, Modal, ModalContent, ModalFooter, ModalHeader } from 'components/base';
-import InfoOutlinedIcon from '@material-ui/icons/InfoOutlined';
-import PropTypes, { InferProps } from 'prop-types';
-import { ReactComponent as Mail } from '@material-design-icons/svg/filled/mail.svg';
-import { ReactComponent as GroupAdd } from '@material-design-icons/svg/filled/group_add.svg';
 import { ReactComponent as Diversity } from '@material-design-icons/svg/filled/diversity_2.svg';
+import { ReactComponent as GroupAdd } from '@material-design-icons/svg/filled/group_add.svg';
+import { ReactComponent as Mail } from '@material-design-icons/svg/filled/mail.svg';
+import InfoOutlinedIcon from '@material-ui/icons/InfoOutlined';
+import { ButtonProps, Modal, ModalContent, ModalFooter, ModalHeader } from 'components/base';
+import PropTypes, { InferProps } from 'prop-types';
+import { useMemo } from 'react';
 
-import { CancelButton, ActionButton, InfoIcon, Title, SupportText } from './MailchimpModal.styled';
-import { PLAN_NAMES, PLAN_LABELS } from 'constants/orgPlanConstants';
-import IntegrationCardHeader from '../../IntegrationCardHeader';
+import IconList from 'components/common/IconList/IconList';
 import { CORE_UPGRADE_URL, FAQ_URL, HELP_URL } from 'constants/helperUrls';
+import { PLAN_LABELS, PLAN_NAMES } from 'constants/orgPlanConstants';
 import { useHistory } from 'react-router-dom';
 import { DONATIONS_SLUG } from 'routes';
+import IntegrationCardHeader from '../../IntegrationCardHeader';
 import ModalUpgradePrompt from '../../ModalUpgradePrompt/ModalUpgradePrompt';
+import { ActionButton, CancelButton, InfoIcon, SupportText, Title } from './MailchimpModal.styled';
 
 export interface MailchimpModalProps extends InferProps<typeof MailchimpModalPropTypes> {
   /**
@@ -31,6 +33,12 @@ const LIST_CONTENT = {
   CONNECTED: []
 };
 
+const DISPLAY_STATE = {
+  FREE: 'free',
+  PAID_NOT_CONNECTED: 'paidNotConnected',
+  CONNECTED: 'connected'
+};
+
 const MailchimpModal = ({
   open,
   onClose,
@@ -40,15 +48,19 @@ const MailchimpModal = ({
   ...mailchimpHeaderData
 }: MailchimpModalProps) => {
   const history = useHistory();
-
-  const handleCorrectState = (free: any, paidNotConnected: any, connected: any) => {
-    if ([PLAN_LABELS.CORE, PLAN_LABELS.PLUS].includes(organizationPlan) && !isActive) {
-      return paidNotConnected;
-    } else if ([PLAN_LABELS.CORE, PLAN_LABELS.PLUS].includes(organizationPlan) && isActive) {
-      return connected;
-    }
-    return free;
+  const actionButtonProps: Partial<ButtonProps> = {
+    color: 'primaryDark',
+    variant: 'contained',
+    disableElevation: true
   };
+  const displayState = useMemo(() => {
+    if ([PLAN_LABELS.CORE, PLAN_LABELS.PLUS].includes(organizationPlan) && !isActive) {
+      return DISPLAY_STATE.PAID_NOT_CONNECTED;
+    } else if ([PLAN_LABELS.CORE, PLAN_LABELS.PLUS].includes(organizationPlan) && isActive) {
+      return DISPLAY_STATE.CONNECTED;
+    }
+    return DISPLAY_STATE.FREE;
+  }, [isActive, organizationPlan]);
 
   return (
     <Modal width={isActive ? 660 : 566} open={open} onClose={onClose} aria-label="Mailchimp connection modal">
@@ -62,7 +74,7 @@ const MailchimpModal = ({
           ) : undefined
         }
       >
-        {isActive ? (
+        {displayState === DISPLAY_STATE.CONNECTED ? (
           <Title>Successfully Connected!</Title>
         ) : (
           <IntegrationCardHeader isActive={isActive} {...mailchimpHeaderData} />
@@ -70,57 +82,71 @@ const MailchimpModal = ({
       </ModalHeader>
       <ModalContent>
         <p style={{ marginBottom: 30, marginTop: 0 }}>
-          {handleCorrectState(
-            <>
-              Integrate with Mailchimp to <b>automate targeted</b> emails.
-            </>,
-            <>
-              Integrate with Mailchimp to <b>automate targeted</b> emails.
-            </>,
+          {displayState === DISPLAY_STATE.CONNECTED ? (
             <b>What’s Next?</b>
+          ) : (
+            <>
+              Integrate with Mailchimp to <b>automate targeted</b> emails.
+            </>
           )}
         </p>
         <IconList
-          list={handleCorrectState(LIST_CONTENT.NOT_CONNECTED, LIST_CONTENT.NOT_CONNECTED, LIST_CONTENT.CONNECTED)}
+          list={displayState === DISPLAY_STATE.CONNECTED ? LIST_CONTENT.CONNECTED : LIST_CONTENT.NOT_CONNECTED}
         />
-        {handleCorrectState(
-          <ModalUpgradePrompt text="Upgrade for integrated email marketing and more features!" />,
-          <SupportText>
-            See{' '}
-            <a href={HELP_URL} style={{ textDecoration: 'underline' }} target="_blank" rel="noreferrer">
-              Support
-            </a>{' '}
-            for more integration details and tips.
-          </SupportText>,
-          <SupportText>
-            Need more help? Check our{' '}
-            <a href={FAQ_URL} style={{ textDecoration: 'underline' }} target="_blank" rel="noreferrer">
-              FAQ
-            </a>{' '}
-            for more integration details and tips.
-          </SupportText>
-        )}
+        {
+          {
+            [DISPLAY_STATE.FREE]: (
+              <ModalUpgradePrompt text="Upgrade for integrated email marketing and more features!" />
+            ),
+            [DISPLAY_STATE.PAID_NOT_CONNECTED]: (
+              <SupportText>
+                See{' '}
+                <a href={HELP_URL} style={{ textDecoration: 'underline' }} target="_blank" rel="noreferrer">
+                  Support
+                </a>{' '}
+                for more integration details and tips.
+              </SupportText>
+            ),
+            [DISPLAY_STATE.CONNECTED]: (
+              <SupportText>
+                Need more help? Check our{' '}
+                <a href={FAQ_URL} style={{ textDecoration: 'underline' }} target="_blank" rel="noreferrer">
+                  FAQ
+                </a>{' '}
+                for more integration details and tips.
+              </SupportText>
+            )
+          }[displayState]
+        }
       </ModalContent>
       <ModalFooter>
         <CancelButton color="secondary" variant="contained" onClick={onClose}>
           {isActive ? 'Close' : 'Maybe Later'}
         </CancelButton>
-        <ActionButton
-          color="primaryDark"
-          variant="contained"
-          disableElevation
-          {...handleCorrectState(
-            { href: CORE_UPGRADE_URL },
-            { onClick: sendUserToMailchimp },
-            {
-              onClick: () => {
-                history.push(DONATIONS_SLUG);
-              }
-            }
-          )}
-        >
-          {handleCorrectState('Upgrade', 'Connect', 'Go to contributions')}
-        </ActionButton>
+        {
+          {
+            [DISPLAY_STATE.FREE]: (
+              <ActionButton {...actionButtonProps} href={CORE_UPGRADE_URL}>
+                Upgrade
+              </ActionButton>
+            ),
+            [DISPLAY_STATE.PAID_NOT_CONNECTED]: (
+              <ActionButton {...actionButtonProps} onClick={sendUserToMailchimp!}>
+                Connect
+              </ActionButton>
+            ),
+            [DISPLAY_STATE.CONNECTED]: (
+              <ActionButton
+                {...actionButtonProps}
+                onClick={() => {
+                  history.push(DONATIONS_SLUG);
+                }}
+              >
+                Go to contributions
+              </ActionButton>
+            )
+          }[displayState]
+        }
       </ModalFooter>
     </Modal>
   );

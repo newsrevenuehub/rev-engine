@@ -62,6 +62,5 @@ export const Footer = styled.div<{ $active: boolean }>`
 export const Link = styled(BaseLink)`
   && {
     text-decoration: underline;
-    font-weight: 500;
   }
 `;

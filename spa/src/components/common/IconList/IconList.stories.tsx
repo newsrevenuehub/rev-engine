@@ -8,7 +8,7 @@ import IconList, { IconListProps } from './IconList';
 
 export default {
   component: IconList,
-  title: 'Base/IconList'
+  title: 'Common/IconList'
 } as ComponentMeta<typeof IconList>;
 
 const Template: ComponentStory<typeof IconList> = (props: IconListProps) => <IconList {...props} />;

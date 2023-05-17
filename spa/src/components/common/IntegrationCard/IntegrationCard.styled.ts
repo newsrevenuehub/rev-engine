@@ -1,5 +1,5 @@
 import styled from 'styled-components';
-import { Link as BaseLink } from 'components/base';
+import { Button as BaseButton } from 'components/base';
 
 export const Flex = styled.div`
   display: flex;
@@ -59,8 +59,38 @@ export const Footer = styled.div<{ $active: boolean }>`
   }
 `;
 
-export const Link = styled(BaseLink)`
+export const CustomButtonLink = styled(BaseButton)`
   && {
-    text-decoration: underline;
+    width: fit-content;
+    height: unset;
+    text-transform: none;
+    padding: 0;
+    background-color: unset;
+    box-shadow: unset;
+
+    &:active {
+      box-shadow: unset;
+      background-color: unset;
+    }
+
+    &:hover {
+      box-shadow: unset;
+      background-color: unset;
+    }
+
+    .NreButtonLabel {
+      text-decoration: underline;
+      color: ${({ theme }) => theme.basePalette.secondary.hyperlink};
+      font-weight: 500;
+
+      &:active {
+        color: #0042a3;
+        background-color: unset;
+      }
+
+      &:hover {
+        color: #0a6dff;
+      }
+    }
   }
 `;

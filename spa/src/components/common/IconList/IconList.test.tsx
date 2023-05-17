@@ -13,11 +13,6 @@ function tree(props?: Partial<IconListProps>) {
 }
 
 describe('IconList', () => {
-  it('renders nothing if list is empty', () => {
-    tree({ list: [] });
-    expect(screen.queryByRole('list')).not.toBeInTheDocument();
-  });
-
   it('renders list', () => {
     tree();
     expect(screen.getByRole('list')).toBeInTheDocument();

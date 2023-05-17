@@ -95,6 +95,7 @@ export default function useConnectMailchimp(): UseConnectMailchimpResult {
       isLoading: false,
       connectedToMailchimp: false,
       requiresAudienceSelection: false,
+      organizationPlan: user?.organizations?.[0]?.plan?.name,
       hasMailchimpAccess
     };
   }

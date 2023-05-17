@@ -98,6 +98,35 @@ describe('useConnectMailchimp hook', () => {
     });
   });
 
+  it('returns organization plan even if feature flag is disabled', () => {
+    useFeatureFlagsMock.mockReturnValue({ flags: [{ name: 'mock-random-flag' }], isError: false, isLoading: false });
+    useUserMock.mockReturnValue({
+      user: {
+        ...mockUser,
+        organizations: [
+          {
+            id: 0,
+            name: 'mock-org-name-1',
+            plan: { name: 'mock-plan' }
+          }
+        ] as unknown as Organization[]
+      },
+      isError: false,
+      isLoading: false,
+      refetch: jest.fn()
+    });
+    const { result } = renderHook(() => useConnectMailchimp(), { wrapper });
+
+    expect(result.current).toEqual({
+      isError: false,
+      isLoading: false,
+      connectedToMailchimp: false,
+      hasMailchimpAccess: false,
+      requiresAudienceSelection: false,
+      organizationPlan: 'mock-plan'
+    });
+  });
+
   it('returns an error status if an error occurred loading user data', () => {
     useUserMock.mockReturnValue({ isError: true, isLoading: false, refetch: jest.fn() });
 

@@ -2,7 +2,7 @@ import { Switch, SwitchProps, Tooltip } from 'components/base';
 import useModal from 'hooks/useModal';
 import PropTypes, { InferProps } from 'prop-types';
 
-import { Flex, Content, Description, Footer, Link } from './IntegrationCard.styled';
+import { Flex, Content, Description, Footer, CustomButtonLink } from './IntegrationCard.styled';
 import IntegrationCardHeader from './IntegrationCardHeader';
 
 export interface IntegrationCardProps extends InferProps<typeof IntegrationCardPropTypes> {
@@ -25,11 +25,7 @@ const IntegrationCard = ({ className, isActive, onChange, onViewDetails, ...card
       />
       <Content>
         <Description>{card.description}</Description>
-        {onViewDetails && (
-          <Link role="link" onClick={onViewDetails}>
-            View Details
-          </Link>
-        )}
+        {onViewDetails && <CustomButtonLink onClick={onViewDetails}>View Details</CustomButtonLink>}
       </Content>
       <Footer $active={isActive!}>
         <p>{isActive! ? 'Connected' : card.toggleLabel ?? 'Not Connected'}</p>

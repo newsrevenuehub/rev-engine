@@ -23,6 +23,8 @@ export interface MailchimpModalProps extends InferProps<typeof MailchimpModalPro
   organizationPlan: 'FREE' | 'CORE' | 'PLUS';
 }
 
+type DisplayState = 'free' | 'paidNotConnected' | 'connected';
+
 const LIST_CONTENT = {
   NOT_CONNECTED: [
     { icon: <Mail />, text: 'Regularly thank, steward and bump up current contributors.' },
@@ -33,7 +35,7 @@ const LIST_CONTENT = {
   CONNECTED: []
 };
 
-const DISPLAY_STATE = {
+const DISPLAY_STATE: Record<string, DisplayState> = {
   FREE: 'free',
   PAID_NOT_CONNECTED: 'paidNotConnected',
   CONNECTED: 'connected'

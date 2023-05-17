@@ -32,13 +32,21 @@ describe('Integration Card', () => {
   it('should render view details if onViewDetails is a function', () => {
     tree({ onViewDetails: jest.fn() });
 
-    expect(screen.getByRole('link', { name: 'View Details' })).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: 'View Details' })).toBeEnabled();
+  });
+
+  it('should call onViewDetails if View Details is clicked', () => {
+    const onViewDetails = jest.fn();
+    tree({ onViewDetails });
+    expect(onViewDetails).not.toHaveBeenCalled();
+    userEvent.click(screen.getByRole('button', { name: 'View Details' }));
+    expect(onViewDetails).toHaveBeenCalledTimes(1);
   });
 
   it('should not render view details by default', () => {
     tree();
 
-    expect(screen.queryByRole('link', { name: 'View Details' })).not.toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: 'View Details' })).not.toBeInTheDocument();
   });
 
   it('should render card header', () => {

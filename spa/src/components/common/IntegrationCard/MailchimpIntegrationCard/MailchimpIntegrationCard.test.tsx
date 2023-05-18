@@ -86,7 +86,8 @@ describe('MailchimpIntegrationCard', () => {
         connectedToMailchimp: false,
         organizationPlan: organizationPlan as any,
         requiresAudienceSelection: false,
-        hasMailchimpAccess: true
+        hasMailchimpAccess: true,
+        sendUserToMailchimp: jest.fn()
       });
       tree();
       expect(screen.getByTestId('cornerMessage')).toBeEmptyDOMElement();

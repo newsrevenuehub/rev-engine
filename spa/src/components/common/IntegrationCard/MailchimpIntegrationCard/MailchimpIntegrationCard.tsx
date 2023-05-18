@@ -6,6 +6,7 @@ import IntegrationCard from '../IntegrationCard';
 import { CornerMessage } from './MailchimpIntegrationCard.styled';
 import useModal from 'hooks/useModal';
 import MailchimpModal from './MailchimpModal';
+import { PLAN_LABELS } from 'constants/orgPlanConstants';
 
 export function MailchimpIntegrationCard() {
   const { open, handleToggle } = useModal();
@@ -16,12 +17,13 @@ export function MailchimpIntegrationCard() {
     organizationPlan = 'FREE',
     hasMailchimpAccess
   } = useConnectMailchimp();
-  const freePlan = organizationPlan === 'FREE';
 
   const mailchimpHeaderData = {
     isActive: connectedToMailchimp,
     isRequired: false,
-    cornerMessage: !isLoading && freePlan && <CornerMessage>Upgrade to Core</CornerMessage>,
+    cornerMessage: !isLoading && organizationPlan === PLAN_LABELS.FREE && (
+      <CornerMessage>Upgrade to Core</CornerMessage>
+    ),
     title: 'Mailchimp',
     image: MailchimpLogo,
     site: {
@@ -37,7 +39,7 @@ export function MailchimpIntegrationCard() {
         description="Create custom segments and automations based on contributor data with the email platform newsrooms trust."
         onViewDetails={hasMailchimpAccess ? handleToggle : undefined}
         onChange={sendUserToMailchimp}
-        disabled={freePlan || isLoading}
+        disabled={sendUserToMailchimp === undefined || isLoading}
         toggleConnectedTooltipMessage={
           <>
             Connected to Mailchimp. Contact{' '}

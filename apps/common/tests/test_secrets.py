@@ -19,7 +19,7 @@ class TestGetSecretManagerClient:
     def test_when_service_account(self, settings, mocker):
         settings.GS_SERVICE_ACCOUNT = {"something": "truthy"}
         mocker.patch("apps.common.secrets.service_account.Credentials.from_service_account_info", return_value=None)
-        mocker.patch("google.cloud.secretmanager.SecretManagerServiceClient")
+        mocker.patch("apps.common.secrets.SecretManagerServiceClient.__init__", return_value=None)
         client = get_secret_manager_client()
         assert isinstance(client, SecretManagerServiceClient)
 

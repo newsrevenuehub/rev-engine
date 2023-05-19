@@ -6,7 +6,7 @@
  * @param {string} host - window.location.host
  * @returns {string} - empty if no valid subdomain, subdomain string if found
  */
-function getSubdomain(host) {
+function getSubdomain(host: string) {
   const splitHost = host.split('.');
   if (splitHost.length < 3) return '';
   return splitHost[0];

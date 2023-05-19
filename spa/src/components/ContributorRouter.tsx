@@ -28,6 +28,7 @@ import SegregatedStyles from 'components/donationPage/SegregatedStyles';
 import { SentryRoute } from 'hooks/useSentry';
 import componentLoader from 'utilities/componentLoader';
 import RouterSetup from './routes/RouterSetup';
+import { ContributionPage } from 'hooks/useContributionPage';
 
 // Split bundles
 const ContributorEntry = lazy(() => componentLoader(() => import('components/contributor/ContributorEntry')));
@@ -37,8 +38,13 @@ const ContributorDashboard = lazy(() =>
 );
 
 function ContributorRouter() {
-  const [pageData, setPageData] = useState(null);
-  const [fetchedpageData, setFetchedPageData] = useState(null);
+  const [pageData, setPageData] = useState<ContributionPage | null>(null);
+  const [fetchedPageData, setFetchedPageData] = useState(false);
+
+  const isFreeOrg = pageData?.revenue_program?.organization?.plan?.name === 'FREE';
+  const hasDefaultDonationPage = !!pageData?.revenue_program?.default_donation_page;
+  // If Donation page belongs to a paid org (not Free) and RP has a Default Donation Page, use custom styles
+  const renderCustomStyles = !isFreeOrg && hasDefaultDonationPage;
 
   const subdomain = useSubdomain();
   const requestFullPage = useRequest();
@@ -56,27 +62,27 @@ function ContributorRouter() {
         params: requestParams
       },
       {
-        onSuccess: ({ data }) => {
+        onSuccess: ({ data }: { data: ContributionPage }) => {
           setPageData(data);
           setFetchedPageData(true);
         },
-        onFailure: (e) => {
+        onFailure: (e: unknown) => {
           setFetchedPageData(true);
         }
       }
     );
-  }, [subdomain]);
+  }, [requestFullPage, subdomain]);
 
   useEffect(() => {
     if (!DASHBOARD_SUBDOMAINS.includes(subdomain)) fetchRPLiveContent();
-  }, [fetchRPLiveContent]);
+  }, [fetchRPLiveContent, subdomain]);
 
   // If rp has no default page, normal contributor page is shown
-  if (!DASHBOARD_SUBDOMAINS.includes(subdomain) && !pageData && !fetchedpageData) return null;
+  if (!DASHBOARD_SUBDOMAINS.includes(subdomain) && !pageData && !fetchedPageData) return null;
 
   return (
-    <SegregatedStyles page={pageData}>
-      {pageData ? <DonationPageNavbar page={pageData} /> : null}
+    <SegregatedStyles page={renderCustomStyles && pageData}>
+      {renderCustomStyles && <DonationPageNavbar page={pageData} />}
       <RouterSetup>
         <ProtectedRoute
           path={ROUTES.CONTRIBUTOR_DASHBOARD}

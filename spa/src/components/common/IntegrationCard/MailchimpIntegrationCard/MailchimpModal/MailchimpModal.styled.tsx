@@ -35,3 +35,9 @@ export const ActionButton = styled(Button)`
     border-radius: ${(props) => props.theme.muiBorderRadius.lg};
   }
 `;
+
+export const ExternalLink = styled.a`
+  color: ${(props) => props.theme.basePalette.secondary.hyperlink};
+  font-weight: 500;
+  text-decoration: underline;
+`;

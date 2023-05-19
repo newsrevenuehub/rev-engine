@@ -148,7 +148,7 @@ describe('MailchimpModal', () => {
 
       it('should render "see support" section', () => {
         tree({ organizationPlan: plan });
-        expect(screen.getByText(/for more integration details and tips./i)).toBeVisible();
+        expect(screen.getByText(/For more integration details and tips contact/i)).toBeVisible();
         expect(screen.getByRole('link', { name: /support/i })).toHaveAttribute(
           'href',
           // HELP_URL constant. Link is hardcoded so that if constant is mistakenly changed the test will fail
@@ -176,7 +176,12 @@ describe('MailchimpModal', () => {
       it('should render texts', () => {
         tree({ organizationPlan: plan, isActive: true });
         expect(screen.getByText('What’s Next?')).toBeVisible();
-        // TODO: add tests for additional texts
+        // TODO: DEV-3279 update copy when available
+        expect(screen.getByText('Regularly thank, steward and bump up current contributors.')).toBeVisible();
+        expect(screen.getByText('Re-engage lapsed donors.')).toBeVisible();
+        expect(
+          screen.getByText('Consistently market to new contributors, segmenting out those who already gave.')
+        ).toBeVisible();
       });
 
       it('should render action buttons', () => {
@@ -207,7 +212,8 @@ describe('MailchimpModal', () => {
 
       it('should render "FAQ" section', () => {
         tree({ organizationPlan: plan, isActive: true });
-        expect(screen.getByText('Need more help? Check our', { exact: false })).toBeVisible();
+        expect(screen.getByText('Need more help?', { exact: false })).toBeVisible();
+        expect(screen.getByText('Check our', { exact: false })).toBeVisible();
         expect(screen.getByText(/for more integration details and tips./i)).toBeVisible();
         expect(screen.getByRole('link', { name: /FAQ/i })).toHaveAttribute(
           'href',

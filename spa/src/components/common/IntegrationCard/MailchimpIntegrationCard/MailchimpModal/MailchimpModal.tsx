@@ -13,7 +13,7 @@ import { useHistory } from 'react-router-dom';
 import { DONATIONS_SLUG } from 'routes';
 import IntegrationCardHeader from '../../IntegrationCardHeader';
 import ModalUpgradePrompt from '../../ModalUpgradePrompt/ModalUpgradePrompt';
-import { ActionButton, CancelButton, InfoIcon, SupportText, Title } from './MailchimpModal.styled';
+import { ActionButton, CancelButton, ExternalLink, InfoIcon, SupportText, Title } from './MailchimpModal.styled';
 
 export interface MailchimpModalProps extends InferProps<typeof MailchimpModalPropTypes> {
   /**
@@ -31,8 +31,12 @@ const LIST_CONTENT = {
     { icon: <Diversity />, text: 'Re-engage lapsed donors.' },
     { icon: <GroupAdd />, text: 'Consistently market to new contributors, segmenting out those who already gave.' }
   ],
-  // TODO: Update copy
-  CONNECTED: []
+  // TODO: DEV-3279 Update copy when available
+  CONNECTED: [
+    { icon: <Mail />, text: 'Regularly thank, steward and bump up current contributors.' },
+    { icon: <Diversity />, text: 'Re-engage lapsed donors.' },
+    { icon: <GroupAdd />, text: 'Consistently market to new contributors, segmenting out those who already gave.' }
+  ]
 };
 
 const DISPLAY_STATE: Record<string, DisplayState> = {
@@ -102,19 +106,19 @@ const MailchimpModal = ({
             ),
             [DISPLAY_STATE.PAID_NOT_CONNECTED]: (
               <SupportText>
-                See{' '}
-                <a href={HELP_URL} style={{ textDecoration: 'underline' }} target="_blank" rel="noreferrer">
+                For more integration details and tips contact{' '}
+                <ExternalLink href={HELP_URL} target="_blank" rel="noreferrer">
                   Support
-                </a>{' '}
-                for more integration details and tips.
+                </ExternalLink>
+                .
               </SupportText>
             ),
             [DISPLAY_STATE.CONNECTED]: (
               <SupportText>
-                Need more help? Check our{' '}
-                <a href={FAQ_URL} style={{ textDecoration: 'underline' }} target="_blank" rel="noreferrer">
+                <b>Need more help?</b> Check our{' '}
+                <ExternalLink href={FAQ_URL} target="_blank" rel="noreferrer">
                   FAQ
-                </a>{' '}
+                </ExternalLink>{' '}
                 for more integration details and tips.
               </SupportText>
             )

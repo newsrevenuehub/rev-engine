@@ -123,11 +123,11 @@ class RevenueProgramSerializer(serializers.ModelSerializer):
     mailchimp_integration_connected = serializers.ReadOnlyField()
     mailchimp_email_lists = serializers.SerializerMethodField()
     mailchimp_server_prefix = serializers.ReadOnlyField(allow_null=True)
-    mailchimp_contributor_segment = serializers.ReadOnlyField(allow_null=True)
-    mailchimp_recurring_segment = serializers.ReadOnlyField(allow_null=True)
-    mailchimp_store = serializers.ReadOnlyField(allow_null=True)
-    mailchimp_one_time_contribution_product = serializers.ReadOnlyField(allow_null=True)
-    mailchimp_recurring_contribution_product = serializers.ReadOnlyField(allow_null=True)
+    mailchimp_contributor_segment = serializers.SerializerMethodField()
+    mailchimp_recurring_segment = serializers.SerializerMethodField()
+    mailchimp_store = serializers.SerializerMethodField()
+    mailchimp_one_time_contribution_product = serializers.SerializerMethodField()
+    mailchimp_recurring_contribution_product = serializers.SerializerMethodField()
 
     class Meta:
         model = RevenueProgram
@@ -161,6 +161,27 @@ class RevenueProgramSerializer(serializers.ModelSerializer):
 
     def get_mailchimp_email_lists(self, obj):
         return [{"id": x.id, "name": x.name} for x in obj.mailchimp_email_lists]
+
+    def get_mailchimp_contributor_segment(self, obj):
+        return asdict(obj.mailchimp_contributor_segment) if obj.mailchimp_contributor_segment else None
+
+    def get_mailchimp_recurring_segment(self, obj):
+        return asdict(obj.mailchimp_recurring_segment) if obj.mailchimp_recurring_segment else None
+
+    def get_mailchimp_store(self, obj):
+        return asdict(obj.mailchimp_store) if obj.mailchimp_store else None
+
+    def get_mailchimp_one_time_contribution_product(self, obj):
+        return (
+            asdict(obj.mailchimp_one_time_contribution_product) if obj.mailchimp_one_time_contribution_product else None
+        )
+
+    def get_mailchimp_recurring_contribution_product(self, obj):
+        return (
+            asdict(obj.mailchimp_recurring_contribution_product)
+            if obj.mailchimp_recurring_contribution_product
+            else None
+        )
 
 
 class RevenueProgramPatchSerializer(serializers.ModelSerializer):

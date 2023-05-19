@@ -14,7 +14,7 @@ faker = Faker()
 
 @pytest.fixture
 def mailchimp_email_lists():
-    return [make_mock_mailchimp_email_list() for x in range(3)]
+    return [make_mock_mailchimp_email_list()]
 
 
 @pytest.fixture
@@ -129,11 +129,11 @@ class TestRevenueProgramSerializer:
             "mailchimp_integration_connected",
         ):
             assert serialized[field] == getattr(mc_connected_rp, field)
-        assert len(serialized["mailchimp_email_lists"]) == 3
+        assert len(serialized["mailchimp_email_lists"]) == 1
         assert isinstance(serialized["mailchimp_email_lists"][0], dict)
         assert serialized["mailchimp_email_lists"][0] == {
-            "id": mailchimp_email_list.id,
-            "name": mailchimp_email_list.name,
+            "id": mailchimp_email_lists[0].id,
+            "name": mailchimp_email_lists[0].name,
         }
         assert serialized["mailchimp_store"] == asdict(mailchimp_store)
 

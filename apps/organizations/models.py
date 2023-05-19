@@ -469,10 +469,9 @@ class RevenueProgram(IndexedTimeStampedModel):
         except ApiClientError as exc:
             if exc.status_code == 404:
                 logger.debug("Mailchimp store not found for RP %s, returning None", self.id)
-                return None
             else:
                 logger.exception("Unexpected error from Mailchimp API. The errot text is %s", exc.text)
-                raise MailchimpIntegrationError("Error retrieving mailchimp store")
+            return None
 
     @property
     def mailchimp_one_time_contribution_product(self) -> MailchimpProduct | None:
@@ -489,10 +488,9 @@ class RevenueProgram(IndexedTimeStampedModel):
         except ApiClientError as error:
             if error.status_code == 404:
                 logger.debug("Mailchimp one-time contribution product not found for RP %s, returning None", self.id)
-                return None
             else:
                 logger.exception("Unexpected error from Mailchimp API. The error text is %s", error.text)
-                raise MailchimpIntegrationError("Error retrieving one-time contribution product")
+            return None
 
     @property
     def mailchimp_recurring_contribution_product(self) -> MailchimpProduct | None:
@@ -509,10 +507,9 @@ class RevenueProgram(IndexedTimeStampedModel):
         except ApiClientError as error:
             if error.status_code == 404:
                 logger.debug("Mailchimp recurring contribution product not found for RP %s, returning None", self.id)
-                return None
             else:
                 logger.exception("Unexpected error from Mailchimp API. The error text is %s", error.text)
-                raise MailchimpIntegrationError("Error retrieving recurring contribution product")
+            return None
 
     @property
     def mailchimp_contributor_segment(self) -> MailchimpSegment | None:
@@ -533,14 +530,12 @@ class RevenueProgram(IndexedTimeStampedModel):
                     "Mailchimp segment not found for RP %s, returning None",
                     self.id,
                 )
-                return None
             else:
                 logger.exception("Unexpected error from Mailchimp API. The error text is %s", error.text)
-                raise MailchimpIntegrationError("Error retrieving mailchimp contributor segment")
+            return None
 
     @property
     def mailchimp_recurring_segment(self):
-        """"""
         logger.info("Called for rp %s", self.id)
         if not self.mailchimp_list_id:
             logger.debug("No email list ID on RP %s, returning None", self.id)
@@ -558,10 +553,9 @@ class RevenueProgram(IndexedTimeStampedModel):
                     "Mailchimp segment not found for RP %s, returning None",
                     self.id,
                 )
-                return None
             else:
                 logger.exception("Unexpected error from Mailchimp API. The error text is %s", error.text)
-                raise MailchimpIntegrationError("Error retrieving mailchimp recurring segment")
+            return None
 
     @property
     def mailchimp_store_id(self):

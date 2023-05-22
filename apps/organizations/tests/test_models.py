@@ -1016,7 +1016,7 @@ class TestRevenueProgram:
         revenue_program_with_mailchimp_connection_via_oauth_flow.mailchimp_list_id = "something"
         revenue_program_with_mailchimp_connection_via_oauth_flow.mailchimp_recurring_contributor_segment_id = None
         revenue_program_with_mailchimp_connection_via_oauth_flow.save()
-        assert revenue_program_with_mailchimp_connection_via_oauth_flow.mailchimp_contributor_segment is None
+        assert revenue_program_with_mailchimp_connection_via_oauth_flow.mailchimp_recurring_segment is None
 
     def test_mailchimp_recurring_contributor_segment_when_not_found(
         self, revenue_program_with_mailchimp_connection_via_oauth_flow, mocker

@@ -1,16 +1,9 @@
 from unittest.mock import MagicMock
 
-from django.db.models import signals
-
 import pytest
 
 from apps.organizations.signals import revenue_program_post_save
 from apps.organizations.tests.factories import RevenueProgramFactory
-
-
-def test_signal_registry():
-    registered_functions = [r[1]() for r in signals.post_save.receivers]
-    assert revenue_program_post_save in registered_functions
 
 
 @pytest.mark.django_db

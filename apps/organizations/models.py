@@ -1,7 +1,6 @@
 import logging
 import os
 from dataclasses import dataclass, field
-from functools import cached_property
 
 from django.conf import settings
 from django.core.exceptions import ValidationError
@@ -12,9 +11,9 @@ from django.utils import timezone
 import mailchimp_marketing as MailchimpMarketing
 import stripe
 from addict import Dict as AttrDict
-from mailchimp_marketing.api_client import ApiClientError
 
 from apps.common.models import IndexedTimeStampedModel
+from apps.common.secrets import GoogleCloudSecretProvider
 from apps.common.utils import normalize_slug
 from apps.config.validators import validate_slug_against_denylist
 from apps.organizations.validators import validate_statement_descriptor_suffix
@@ -367,10 +366,11 @@ class RevenueProgram(IndexedTimeStampedModel):
         verbose_name="Country",
         help_text="2-letter country code of RP's company. This gets included in data sent to stripe when creating a payment",
     )
-    # The next two values are used to make requests to Mailchimp on behalf of our users.
+    # This is used to make requests to Mailchimp's API on behalf of users who have gone through the Mailchimp Oauth flow
+    # to grant revengine access to their Mailchimp account.
     mailchimp_server_prefix = models.CharField(max_length=100, null=True, blank=True)
-    # TODO: DEV-3302 this is a temporary field, to be removed in https://news-revenue-hub.atlassian.net/browse/DEV-3302
-    mailchimp_access_token = models.TextField(null=True, blank=True)
+    # NB: This field is stored in a secret manager, not in the database.
+    mailchimp_access_token = GoogleCloudSecretProvider(model_attr="mailchimp_access_token_secret_name")
 
     objects = RevenueProgramManager.from_queryset(RevenueProgramQuerySet)()
 
@@ -412,6 +412,11 @@ class RevenueProgram(IndexedTimeStampedModel):
         return self.fiscal_status in (FiscalStatusChoices.FISCALLY_SPONSORED, FiscalStatusChoices.NONPROFIT)
 
     @property
+    def mailchimp_access_token_secret_name(self) -> str:
+        """This value will be used as the name of the secret in Google Cloud Secrets Manager"""
+        return f"MAILCHIMP_ACCESS_TOKEN_FOR_RP_{self.id}_{settings.ENVIRONMENT}"
+
+    @property
     def transactional_email_style(self) -> TransactionalEmailStyle:
         """Guarantees that a TransactionalEmailStyle is returned.
 
@@ -439,23 +444,29 @@ class RevenueProgram(IndexedTimeStampedModel):
                 button_color=_style.colors.cstm_CTAs or None,
             )
 
-    @cached_property
+    def get_mailchimp_client(self) -> MailchimpMarketing.Client:
+        logger.info("Called for rp %s", self.id)
+        if not self.mailchimp_integration_connected:
+            logger.warning("Called for rp %s which is not connected to Mailchimp")
+            raise ValueError("Mailchimp integration not connected for this revenue program")
+        client = MailchimpMarketing.Client()
+        client.set_config(
+            {
+                "access_token": self.mailchimp_access_token,
+                "server": self.mailchimp_server_prefix,
+            }
+        )
+        return client
+
+    @property
     def mailchimp_email_lists(self) -> list[MailchimpEmailList]:
         """"""
         if not all([self.mailchimp_server_prefix, self.mailchimp_access_token]):
+            logger.info("Called for rp %s which is not connected to Mailchimp so returning empty list", self.id)
             return []
-        try:
-            client = MailchimpMarketing.Client()
-            client.set_config({"access_token": self.mailchimp_access_token, "server": self.mailchimp_server_prefix})
-            response = client.lists.get_all_lists(fields="id,name", count=1000)
-            return response.json().get("lists", [])
-        except ApiClientError:
-            logger.exception(
-                "`RevenueProgram.mailchimp_email_lists` failed to fetch email lists from Mailchimp for RP with ID %s mc server prefix %s",
-                self.id,
-                self.mailchimp_server_prefix,
-            )
-            return []
+        client = self.get_mailchimp_client()
+        response = client.lists.get_all_lists(fields="id,name", count=1000)
+        return response["lists"]
 
     def clean_fields(self, **kwargs):
         if not self.id:

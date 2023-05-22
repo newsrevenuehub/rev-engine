@@ -8,7 +8,8 @@ https://docs.djangoproject.com/en/3.2/topics/settings/
 For the full list of settings and their values, see
 https://docs.djangoproject.com/en/3.2/ref/settings/
 """
-
+import base64
+import json
 import os
 from datetime import timedelta
 from pathlib import Path
@@ -89,11 +90,19 @@ MEDIA_STORAGE_BUCKET_NAME = os.getenv("MEDIA_STORAGE_BUCKET_NAME", "")
 MEDIA_LOCATION = os.getenv("MEDIA_LOCATION", "")
 DEFAULT_FILE_STORAGE = os.getenv("DEFAULT_FILE_STORAGE", "django.core.files.storage.FileSystemStorage")
 
-# Google Pub Sub
+# Google cloud
+GOOGLE_CLOUD_PROJECT = os.getenv("GOOGLE_CLOUD_PROJECT", "revenue-engine")
+GOOGLE_CLOUD_PROJECT_ID = os.getenv("GOOGLE_CLOUD_PROJECT_ID", None)
+#   Pub/Sub
 ENABLE_PUBSUB = os.getenv("ENABLE_PUBSUB", "false").lower() == "true"
 PAGE_PUBLISHED_TOPIC = os.getenv("PAGE_PUBLISHED_TOPIC", None)
 NEW_USER_TOPIC = os.getenv("NEW_USER_TOPIC", None)
-GOOGLE_CLOUD_PROJECT = os.getenv("GOOGLE_CLOUD_PROJECT", "revenue-engine")
+#   Secret Manager
+ENABLE_GOOGLE_CLOUD_SECRET_MANAGER = os.getenv("ENABLE_GOOGLE_CLOUD_SECRET_MANAGER", "false").lower() == "true"
+
+GS_SERVICE_ACCOUNT = (
+    json.loads(base64.b64decode(os.environ["GS_SERVICE_ACCOUNT"])) if os.environ.get("GS_SERVICE_ACCOUNT", None) else {}
+)
 
 # Application definition
 INSTALLED_APPS = [

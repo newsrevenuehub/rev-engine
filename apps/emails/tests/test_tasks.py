@@ -17,7 +17,7 @@ from apps.contributions.tests.factories import ContributionFactory
 from apps.emails.helpers import convert_to_timezone_formatted
 from apps.emails.tasks import (
     EmailTaskException,
-    SendThankYouEmailData,
+    SendContributionEmailData,
     logger,
     make_send_thank_you_email_data,
     send_templated_email_with_attachment,
@@ -39,7 +39,7 @@ class TestMakeSendThankYouEmailData:
         mock_get_magic_link = mocker.patch(
             "apps.contributions.models.Contributor.create_magic_link", return_value="magic_link"
         )
-        expected = SendThankYouEmailData(
+        expected = SendContributionEmailData(
             contribution_amount=contribution.formatted_amount,
             contribution_date=convert_to_timezone_formatted(contribution.created, "America/New_York"),
             contribution_interval_display_value=contribution.interval

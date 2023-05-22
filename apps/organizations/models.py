@@ -1,7 +1,6 @@
 import logging
 import os
 from dataclasses import dataclass, field
-from functools import cached_property
 from typing import List, Literal
 
 from django.conf import settings
@@ -16,6 +15,7 @@ from addict import Dict as AttrDict
 from mailchimp_marketing.api_client import ApiClientError
 
 from apps.common.models import IndexedTimeStampedModel
+from apps.common.secrets import GoogleCloudSecretProvider
 from apps.common.utils import normalize_slug
 from apps.config.validators import validate_slug_against_denylist
 from apps.organizations.validators import validate_statement_descriptor_suffix
@@ -445,13 +445,19 @@ class RevenueProgram(IndexedTimeStampedModel):
         verbose_name="Country",
         help_text="2-letter country code of RP's company. This gets included in data sent to stripe when creating a payment",
     )
-    # The next two values are used to make requests to Mailchimp on behalf of our users.
+    # This is used to make requests to Mailchimp's API on behalf of users who have gone through the Mailchimp Oauth flow
+    # to grant revengine access to their Mailchimp account.
     mailchimp_server_prefix = models.CharField(max_length=100, null=True, blank=True)
-    # TODO: DEV-3302 this is a temporary field, to be removed in https://news-revenue-hub.atlassian.net/browse/DEV-3302
-    mailchimp_access_token = models.TextField(null=True, blank=True)
     mailchimp_list_id = models.TextField(null=True, blank=True)
     mailchimp_contributor_segment_id = models.CharField(max_length=100, null=True, blank=True)
     mailchimp_recurring_contributor_segment_id = models.CharField(max_length=100, null=True, blank=True)
+    # NB: This field is stored in a secret manager, not in the database.
+    mailchimp_access_token = GoogleCloudSecretProvider(model_attr="mailchimp_access_token_secret_name")
+
+    objects = RevenueProgramManager.from_queryset(RevenueProgramQuerySet)()
+
+    def __str__(self):
+        return self.name
 
     @property
     def mailchimp_store(self) -> MailchimpStore | None:
@@ -733,11 +739,6 @@ class RevenueProgram(IndexedTimeStampedModel):
             )
             raise MailchimpIntegrationError("Error creating recurring segment")
 
-    objects = RevenueProgramManager.from_queryset(RevenueProgramQuerySet)()
-
-    def __str__(self):
-        return self.name
-
     @property
     def mailchimp_integration_connected(self):
         """Determine mailchimp connection state for the revenue program"""
@@ -773,6 +774,11 @@ class RevenueProgram(IndexedTimeStampedModel):
         return self.fiscal_status in (FiscalStatusChoices.FISCALLY_SPONSORED, FiscalStatusChoices.NONPROFIT)
 
     @property
+    def mailchimp_access_token_secret_name(self) -> str:
+        """This value will be used as the name of the secret in Google Cloud Secrets Manager"""
+        return f"MAILCHIMP_ACCESS_TOKEN_FOR_RP_{self.id}_{settings.ENVIRONMENT}"
+
+    @property
     def transactional_email_style(self) -> TransactionalEmailStyle:
         """Guarantees that a TransactionalEmailStyle is returned.
 
@@ -800,7 +806,7 @@ class RevenueProgram(IndexedTimeStampedModel):
                 button_color=_style.colors.cstm_CTAs or None,
             )
 
-    @cached_property
+    @property
     def mailchimp_email_lists(self) -> list[MailchimpEmailList]:
         """Retrieve Mailchimp email lists for this RP, if any.
 
@@ -808,7 +814,9 @@ class RevenueProgram(IndexedTimeStampedModel):
         """
         logger.info("Called for rp %s", self.id)
         if not self.mailchimp_integration_connected:
-            logger.debug("Mailchimp integration not connected for this revenue program]")
+            logger.debug(
+                "Mailchimp integration not connected for this revenue program (%s), returning empty list", self.id
+            )
             return []
         try:
             logger.info(

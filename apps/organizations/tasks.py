@@ -203,7 +203,7 @@ def exchange_mc_oauth_code_for_mc_access_token(oauth_code: str) -> str:
 
     logger.info(
         "exchange_mc_oauth_code_for_mc_access_token making a request to Mailchimp with the following data: %s",
-        request_data | {"code": "REDACTED"},
+        request_data | {"code": "REDACTED", "client_secret": "REDACTED"},
     )
     response = requests.post(MAILCHIMP_EXCHANGE_OAUTH_CODE_FOR_ACCESS_TOKEN_URL, data=request_data)
 
@@ -275,19 +275,21 @@ def exchange_mailchimp_oauth_code_for_server_prefix_and_access_token(rp_id: int,
         )
         return
     try:
-        if not revenue_program.mailchimp_access_token:
+        if not (token := revenue_program.mailchimp_access_token):
             logger.info(
                 "exchange_mailchimp_oauth_code_for_server_prefix_and_access_token is attempting to exchange an oauth code for an access token for RP with ID %s",
                 rp_id,
             )
-            update_data["mailchimp_access_token"] = exchange_mc_oauth_code_for_mc_access_token(oauth_code)
-        access_token = update_data.get("mailchimp_access_token", revenue_program.mailchimp_access_token)
-        if access_token and not revenue_program.mailchimp_server_prefix:
+            token = exchange_mc_oauth_code_for_mc_access_token(oauth_code)
+            logger.info("Updating revenue program with ID %s with a new access token", revenue_program.id)
+            # NB: mailchimp_access_token is securely stored, and by setting it here, we are overwriting the value
+            revenue_program.mailchimp_access_token = token
+        if token and not revenue_program.mailchimp_server_prefix:
             logger.info(
                 "exchange_mailchimp_oauth_code_for_server_prefix_and_access_token is attempting to retrieve the MC server prefix for RP with ID %s",
                 rp_id,
             )
-            update_data["mailchimp_server_prefix"] = get_mailchimp_server_prefix(access_token)
+            update_data["mailchimp_server_prefix"] = get_mailchimp_server_prefix(token)
     except MailchimpAuthflowUnretryableError:
         logger.exception(
             (

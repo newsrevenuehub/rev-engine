@@ -5,7 +5,7 @@ from django.db import migrations, models
 
 class Migration(migrations.Migration):
     dependencies = [
-        ("organizations", "0018_DEV-3297_alter_revenueprogram_mailchimp_server_prefix"),
+        ("organizations", "0019_DEV-3302_remove_revenueprogram_mailchimp_access_token"),
     ]
 
     operations = [

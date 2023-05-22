@@ -84,6 +84,12 @@ def dont_use_ssl(settings):
     settings.SECURE_SSL_REDIRECT = False
 
 
+@pytest.fixture(autouse=True)
+def suppress_google_cloud_secret_manager(settings):
+    """Suppresses calls to Google Cloud Secret Manager in tests"""
+    settings.ENABLE_GOOGLE_CLOUD_SECRET_MANAGER = False
+
+
 @pytest.fixture()
 def mock_stripe_retrieve_payment_method(monkeypatch):
     with open("apps/contributions/tests/fixtures/provider-payment-method-details.json") as f:
@@ -390,8 +396,12 @@ def mailchimp_email_list_from_api(mailchimp_email_list):
 
 
 @pytest.fixture
-def mc_connected_rp(revenue_program):
-    revenue_program.mailchimp_access_token = "something-truthy"
+def mc_connected_rp(revenue_program, mocker):
+    mocker.patch(
+        "apps.organizations.models.RevenueProgram.mailchimp_access_token",
+        return_value="something-truthy",
+        new_callable=mocker.PropertyMock,
+    )
     revenue_program.mailchimp_server_prefix = "something-truthy"
     revenue_program.mailchimp_list_id = "something-truthy"
     revenue_program.save()

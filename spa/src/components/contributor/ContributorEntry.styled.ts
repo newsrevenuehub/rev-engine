@@ -19,7 +19,7 @@ export const ContentWrapper = styled.section`
 
 export const Title = styled.h1`
   text-align: center;
-  font-family: ${(props) => props.theme.font.heading?.font_name};
+  font-family: ${(props) => props.theme.font.heading};
 `;
 
 export const EmailForm = styled.form``;

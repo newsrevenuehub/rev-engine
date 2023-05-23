@@ -246,7 +246,7 @@ class ContributionsCacheProvider:
 
     def serialize(self, contributions):
         """Serializes the stripe.PaymentIntent object into json."""
-        logger.info("Serializing %s contributions for email %s", len(contributions), self.email_id)
+        logger.info("Serializing %s contributions for key %s", len(contributions), self.key)
         data = {}
         for contribution in contributions:
             try:
@@ -258,7 +258,7 @@ class ContributionsCacheProvider:
 
     def upsert(self, contributions):
         """Serialized and Upserts contributions data to cache."""
-        logger.info("Upserting %s contributions for email %s", len(contributions), self.email_id)
+        logger.info("Upserting %s contributions for key %s", len(contributions), self.key)
         data = self.serialize(contributions)
         # Since the Stripe objects themselves don't have a field indicating the account they came from (when they come
         # from a Connect webhook they do have this field) they get added here:
@@ -297,7 +297,7 @@ class SubscriptionsCacheProvider:
 
     def serialize(self, subscriptions):
         """Serializes the stripe.Subscription object into json."""
-        logger.info("Serializing %s subscriptions for email %s", len(subscriptions), self.email_id)
+        logger.info("Serializing %s subscriptions for key %s", len(subscriptions), self.key)
         data = {}
         for subscription in subscriptions:
             try:
@@ -309,7 +309,7 @@ class SubscriptionsCacheProvider:
 
     def upsert(self, subscriptions):
         """Serialized and Upserts subscriptions data to cache."""
-        logger.info("Upserting %s subscriptions for email %s", len(subscriptions), self.email_id)
+        logger.info("Upserting %s subscriptions for key %s", len(subscriptions), self.key)
         data = self.serialize(subscriptions)
         # Since the Stripe objects themselves don't have a field indicating the Stripe Account they came
         # from (when they come from a Connect webhook they do have this field)

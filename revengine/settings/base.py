@@ -155,7 +155,7 @@ if ENABLE_API_BROWSER:
     ]
 
 MIDDLEWARE = [
-    "log_request_id.middleware.RequestIDMiddleware",
+    "request_id.middleware.RequestIdMiddleware",
     "django.middleware.security.SecurityMiddleware",
     "whitenoise.middleware.WhiteNoiseMiddleware",
     "django.contrib.sessions.middleware.SessionMiddleware",
@@ -273,7 +273,7 @@ LOGGING = {
     "disable_existing_loggers": False,
     "filters": {
         "require_debug_false": {"()": "django.utils.log.RequireDebugFalse"},
-        "request_id": {"()": "log_request_id.filters.RequestIDFilter"},
+        "request_id": {"()": "request_id.logging.RequestIdFilter"},
     },
     "formatters": {
         "basic": {"format": "%(levelname)s request_id=%(request_id)s %(name)s:%(lineno)d - [%(funcName)s] %(message)s"}

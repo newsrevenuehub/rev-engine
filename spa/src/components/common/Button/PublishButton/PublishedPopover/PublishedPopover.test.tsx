@@ -1,5 +1,5 @@
 import { axe } from 'jest-axe';
-import { fireEvent, render, screen, waitFor } from 'test-utils';
+import { render, screen } from 'test-utils';
 import PublishedPopover, { PublishedPopoverProps } from './PublishedPopover';
 import userEvent from '@testing-library/user-event';
 

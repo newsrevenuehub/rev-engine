@@ -6,4 +6,4 @@ class OrganizationsConfig(AppConfig):
 
     def ready(self):
         # Implicitly connect signal handlers decorated with @receiver.
-        import apps.organizations.signals  # noqa
+        import apps.organizations.signals  # noqa F401

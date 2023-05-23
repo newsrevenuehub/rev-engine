@@ -1,4 +1,4 @@
-import { Button as MuiButton, IconButton as MuiIconButton, Popover as MuiPopover } from '@material-ui/core';
+import { IconButton as MuiIconButton, Popover as MuiPopover } from '@material-ui/core';
 import styled from 'styled-components';
 
 export const IconButton = styled(MuiIconButton)`

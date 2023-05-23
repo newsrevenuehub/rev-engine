@@ -1,4 +1,4 @@
-import { Button } from 'components/base';
+import { Button, Link } from 'components/base';
 import styled from 'styled-components';
 
 export const Title = styled.h1`
@@ -36,8 +36,8 @@ export const ActionButton = styled(Button)`
   }
 `;
 
-export const ExternalLink = styled.a`
-  color: ${(props) => props.theme.basePalette.secondary.hyperlink};
-  font-weight: 500;
-  text-decoration: underline;
+export const ExternalLink = styled(Link)`
+  && {
+    text-decoration: underline;
+  }
 `;

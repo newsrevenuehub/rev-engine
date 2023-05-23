@@ -107,7 +107,7 @@ const MailchimpModal = ({
             [DISPLAY_STATE.PAID_NOT_CONNECTED]: (
               <SupportText>
                 For more integration details and tips contact{' '}
-                <ExternalLink href={HELP_URL} target="_blank" rel="noreferrer">
+                <ExternalLink href={HELP_URL} target="_blank">
                   Support
                 </ExternalLink>
                 .
@@ -116,7 +116,7 @@ const MailchimpModal = ({
             [DISPLAY_STATE.CONNECTED]: (
               <SupportText>
                 <b>Need more help?</b> Check our{' '}
-                <ExternalLink href={FAQ_URL} target="_blank" rel="noreferrer">
+                <ExternalLink href={FAQ_URL} target="_blank">
                   FAQ
                 </ExternalLink>{' '}
                 for more integration details and tips.

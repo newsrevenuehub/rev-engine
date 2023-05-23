@@ -175,6 +175,11 @@ class StripePaymentIntent:
 
 class StripeContributionsProvider:
     def __init__(self, email_id, stripe_account_id) -> None:
+        logger.info(
+            "Initializing StripeContributionsProvider for email_id %s and stripe_account_id %s",
+            email_id,
+            stripe_account_id,
+        )
         self.email_id = email_id
         self.stripe_account_id = stripe_account_id
 
@@ -188,6 +193,9 @@ class StripeContributionsProvider:
         --------
         List: List of customer ids starting with cus_.
         """
+        logger.info(
+            "Fetching customers for email_id %s and stripe_account_id %s", self.email_id, self.stripe_account_id
+        )
         customers_response = stripe.Customer.search(
             query=f"email:'{self.email_id}'",
             limit=MAX_STRIPE_RESPONSE_LIMIT,
@@ -201,11 +209,13 @@ class StripeContributionsProvider:
         Maximum number of customers can be provided is 10.
         https://stripe.com/docs/search.
         """
+        logger.info("Generating chunked customers query for %s customers", len(self.customers))
         for i in range(0, len(self.customers), MAX_STRIPE_CUSTOMERS_LIMIT):
             chunk = self.customers[i : i + MAX_STRIPE_CUSTOMERS_LIMIT]
             yield " OR ".join([f"customer:'{customer_id}'" for customer_id in chunk])
 
     def fetch_payment_intents(self, query=None, page=None):
+        logger.info("Fetching payment intents for query %s and page %s", query, page)
         kwargs = {
             "query": query,
             "expand": ["data.invoice.subscription.default_payment_method", "data.payment_method"],
@@ -222,6 +232,11 @@ class StripeContributionsProvider:
 
 class ContributionsCacheProvider:
     def __init__(self, email_id, stripe_account_id, serializer=None, converter=None) -> None:
+        logger.info(
+            "Initializing ContributionsCacheProvider for email_id %s and stripe_account_id %s",
+            email_id,
+            stripe_account_id,
+        )
         self.cache = caches[DEFAULT_CACHE]
         self.serializer = serializer
         self.converter = converter
@@ -231,6 +246,7 @@ class ContributionsCacheProvider:
 
     def serialize(self, contributions):
         """Serializes the stripe.PaymentIntent object into json."""
+        logger.info("Serializing %s contributions for email %s", len(contributions), self.email_id)
         data = {}
         for contribution in contributions:
             try:
@@ -242,6 +258,7 @@ class ContributionsCacheProvider:
 
     def upsert(self, contributions):
         """Serialized and Upserts contributions data to cache."""
+        logger.info("Upserting %s contributions for email %s", len(contributions), self.email_id)
         data = self.serialize(contributions)
         # Since the Stripe objects themselves don't have a field indicating the account they came from (when they come
         # from a Connect webhook they do have this field) they get added here:
@@ -256,6 +273,7 @@ class ContributionsCacheProvider:
             self.cache.set(self.key, json.dumps(cached_data), timeout=CONTRIBUTION_CACHE_TTL.seconds)
 
     def load(self):
+        logger.info("Loading contributions from cache with key %s", self.key)
         data = self.cache.get(self.key)
         if not data:
             return []
@@ -268,6 +286,9 @@ class ContributionsCacheProvider:
 class SubscriptionsCacheProvider:
     # TODO: [DEV-2449] reduce duplication with ContributionsCacheProvider
     def __init__(self, email_id, stripe_account_id, serializer=None) -> None:
+        logger.info(
+            "Initializing SubscriptionsCacheProvider for email_id %s, stripe_account_id %s", email_id, stripe_account_id
+        )
         self.cache = caches[DEFAULT_CACHE]
         self.serializer = serializer
         self.stripe_account_id = stripe_account_id
@@ -276,6 +297,7 @@ class SubscriptionsCacheProvider:
 
     def serialize(self, subscriptions):
         """Serializes the stripe.Subscription object into json."""
+        logger.info("Serializing %s subscriptions for email %s", len(subscriptions), self.email_id)
         data = {}
         for subscription in subscriptions:
             try:
@@ -287,6 +309,7 @@ class SubscriptionsCacheProvider:
 
     def upsert(self, subscriptions):
         """Serialized and Upserts subscriptions data to cache."""
+        logger.info("Upserting %s subscriptions for email %s", len(subscriptions), self.email_id)
         data = self.serialize(subscriptions)
         # Since the Stripe objects themselves don't have a field indicating the Stripe Account they came
         # from (when they come from a Connect webhook they do have this field)
@@ -300,6 +323,7 @@ class SubscriptionsCacheProvider:
 
     def load(self):
         """Gets the subscription data from cache for a specefic email and stripe account id combo."""
+        logger.info("Loading subscriptions from cache with key %s", self.key)
         data = self.cache.get(self.key)
         if not data:
             return []

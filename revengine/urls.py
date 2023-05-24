@@ -8,6 +8,7 @@ from django.urls import path, re_path
 from django.views.generic.base import RedirectView
 
 from apps.api.urls import urlpatterns as api_urlpatterns
+from apps.emails.urls import debug_urlpatterns as debug_email_urlpatterns
 from apps.users.urls import orgadmin_user_management_urls
 
 from .views import (
@@ -60,6 +61,7 @@ if settings.DEBUG:  # pragma: no cover Is covered, but reimport confuses coverag
 
     urlpatterns += static(settings.MEDIA_URL, document_root=settings.MEDIA_ROOT)
     urlpatterns = [path("__debug__/", include(debug_toolbar.urls))] + urlpatterns
+    urlpatterns += [path("__debug_email__/", include(debug_email_urlpatterns))]
 
 if os.getenv("DJANGO_SETTINGS_MODULE", None) != "deploy":
     # This needs to happen before the catch-all for SPA index below

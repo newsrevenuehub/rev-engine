@@ -33,7 +33,7 @@ from apps.emails.tasks import (
 )
 from apps.organizations import serializers
 from apps.organizations.models import Organization, RevenueProgram
-from apps.organizations.serializers import MailchimpOauthSuccessSerializer
+from apps.organizations.serializers import MailchimpOauthSuccessSerializer, SendTestEmailSerializer
 from apps.organizations.tasks import (
     exchange_mailchimp_oauth_code_for_server_prefix_and_access_token,
 )
@@ -231,7 +231,6 @@ def handle_stripe_account_link(request, rp_pk):
 
 
 @api_view(["POST"])
-# TODO: add correct permissions
 @permission_classes([IsAuthenticated])
 def send_test_email(request):
     """This endpoint sends test emails to the user so that they can see what it looks like.
@@ -241,8 +240,10 @@ def send_test_email(request):
     2. reminder: this is the email that is sent to the user reminding of a future payment
     3. magic_link: this is the email that is sent to the user when they click on the magic link to log in the contributor portal
     """
-    rp_pk = request.data["revenue_program"]
-    email_name = request.data["email_name"]
+    serializer = SendTestEmailSerializer(data=request.data)
+    serializer.is_valid(raise_exception=True)
+    rp_pk = serializer.validated_data["revenue_program"]
+    email_name = serializer.validated_data["email_name"]
 
     revenue_program = get_object_or_404(RevenueProgram, pk=rp_pk)
     if not request.user.is_superuser:
@@ -255,10 +256,10 @@ def send_test_email(request):
                 rp_pk,
                 request.user.id,
             )
-            raise PermissionDenied(f"You do not have permission to access revenue program with the PK {rp_pk}")
+            return Response({"detail": "Requested revenue program not found"}, status=status.HTTP_404_NOT_FOUND)
 
     if email_name not in ["receipt", "reminder", "magic_link"]:
-        raise ValidationError(f"Invalid email: {email_name}")
+        raise ValidationError({"email_name": [f"Invalid email name: {email_name}"]})
 
     logger.info("Sending test email with type '%s', for user %s and rp %s", email_name, request.user.id, rp_pk)
 

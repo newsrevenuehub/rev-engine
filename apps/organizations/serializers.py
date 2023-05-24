@@ -166,3 +166,8 @@ class PaymentProviderSerializer(serializers.ModelSerializer):
 class MailchimpOauthSuccessSerializer(serializers.Serializer):
     mailchimp_oauth_code = serializers.CharField()
     revenue_program = serializers.IntegerField()
+
+
+class SendTestEmailSerializer(serializers.Serializer):
+    email_name = serializers.CharField()
+    revenue_program = serializers.IntegerField()

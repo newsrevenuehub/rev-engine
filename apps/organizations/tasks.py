@@ -7,7 +7,7 @@ from celery.utils.log import get_task_logger
 from rest_framework import status
 
 from apps.google_cloud.pubsub import Message, Publisher
-from apps.organizations.models import RevenueProgram
+from apps.organizations.models import MailchimpRateLimitError, RevenueProgram
 
 
 logger = get_task_logger(f"{settings.DEFAULT_LOGGER}.{__name__}")
@@ -16,6 +16,8 @@ logger = get_task_logger(f"{settings.DEFAULT_LOGGER}.{__name__}")
 MAILCHIMP_EXCHANGE_OAUTH_CODE_FOR_ACCESS_TOKEN_URL = "https://login.mailchimp.com/oauth2/token"
 MAILCHIMP_OAUTH_CALLBACK_URL = f"{settings.SITE_URL}/mailchimp/oauth_success/"
 MAILCHIMP_GET_SERVER_PREFIX_URL = "https://login.mailchimp.com/oauth2/metadata"
+# see https://mailchimp.com/developer/release-notes/message-search-rate-limit-now-enforced/#:~:text=We're%20now%20enforcing%20the,of%20the%20original%2020%20requests.
+MAILCHIMP_RATE_LIMIT_RETRY_WAIT_SECONDS = 60
 
 
 class MailchimpAuthflowRetryableError(Exception):
@@ -42,7 +44,11 @@ def _ensure_mailchimp_store(rp_id: str) -> None:
         logger.info("Store already exists for rp_id=[%s]", rp_id)
 
 
-@shared_task
+@shared_task(
+    autoretry_for=(MailchimpRateLimitError,),
+    retry_backoff=MAILCHIMP_RATE_LIMIT_RETRY_WAIT_SECONDS,
+    retry_kwargs={"max_retries": 3},
+)
 def ensure_mailchimp_store(rp_id: str) -> None:
     logger.info("Called with rp_id=[%s]", rp_id)
     _ensure_mailchimp_store(rp_id)
@@ -63,7 +69,11 @@ def _ensure_mailchimp_one_time_contribution_product(rp_id: str) -> None:
         logger.info("One-time contribution product already exists for rp_id=[%s]", rp_id)
 
 
-@shared_task
+@shared_task(
+    autoretry_for=(MailchimpRateLimitError,),
+    retry_backoff=MAILCHIMP_RATE_LIMIT_RETRY_WAIT_SECONDS,
+    retry_kwargs={"max_retries": 3},
+)
 def ensure_mailchimp_one_time_contribution_product(rp_id: str) -> None:
     logger.info("Called with rp_id=[%s]", rp_id)
     _ensure_mailchimp_one_time_contribution_product(rp_id)
@@ -84,7 +94,11 @@ def _ensure_mailchimp_recurring_contribution_product(rp_id: str) -> None:
         logger.info("Recurring contribution product already exists for rp_id=[%s]", rp_id)
 
 
-@shared_task
+@shared_task(
+    autoretry_for=(MailchimpRateLimitError,),
+    retry_backoff=MAILCHIMP_RATE_LIMIT_RETRY_WAIT_SECONDS,
+    retry_kwargs={"max_retries": 3},
+)
 def ensure_mailchimp_recurring_contribution_product(rp_id: str) -> None:
     logger.info("Called with rp_id=[%s]", rp_id)
     _ensure_mailchimp_recurring_contribution_product(rp_id)
@@ -115,7 +129,11 @@ def _ensure_mailchimp_contributor_segment(rp_id: str) -> None:
         logger.info("Segment already exists for rp_id=[%s]", rp_id)
 
 
-@shared_task
+@shared_task(
+    autoretry_for=(MailchimpRateLimitError,),
+    retry_backoff=MAILCHIMP_RATE_LIMIT_RETRY_WAIT_SECONDS,
+    retry_kwargs={"max_retries": 3},
+)
 def ensure_mailchimp_contributor_segment(rp_id: str) -> None:
     logger.info("Called with rp_id=[%s]", rp_id)
     _ensure_mailchimp_contributor_segment(rp_id)
@@ -146,7 +164,11 @@ def _ensure_mailchimp_recurring_segment(rp_id: str) -> None:
         logger.info("Segment already exists for rp_id=[%s]", rp_id)
 
 
-@shared_task
+@shared_task(
+    autoretry_for=(MailchimpRateLimitError,),
+    retry_backoff=MAILCHIMP_RATE_LIMIT_RETRY_WAIT_SECONDS,
+    retry_kwargs={"max_retries": 3},
+)
 def ensure_mailchimp_recurring_segment(rp_id: str) -> None:
     logger.info("Called with rp_id=[%s]", rp_id)
     _ensure_mailchimp_recurring_segment(rp_id)

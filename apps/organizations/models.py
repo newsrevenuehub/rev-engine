@@ -304,6 +304,10 @@ class MailchimpIntegrationError(Exception):
     pass
 
 
+class MailchimpRateLimitError(Exception):
+    pass
+
+
 @dataclass(frozen=True)
 class MailchimpEmailList:
     id: str
@@ -459,6 +463,20 @@ class RevenueProgram(IndexedTimeStampedModel):
     def __str__(self):
         return self.name
 
+    def handle_mailchimp_api_client_read_error(self, entity: str, exc: ApiClientError) -> None:
+        logger.info("Called for rp %s", self.id)
+        match exc.status_code:
+            case 404:
+                logger.debug("Mailchimp %s not found for RP %s, returning None", entity, self.id)
+            case 429:
+                logger.debug("Mailchimp rate limit exceeded for RP %s, raising exception", self.id)
+                # We raise this error because we have Celery tasks that interact with Mailchimp API and
+                # in case of rate limit error we will want to retry
+                raise MailchimpRateLimitError("Mailchimp rate limit exceeded")
+            case _:
+                logger.exception("Unexpected error from Mailchimp API. The error text is %s", exc.text)
+        return None
+
     @property
     def mailchimp_store(self) -> MailchimpStore | None:
         logger.info("Called for rp %s", self.id)
@@ -473,11 +491,7 @@ class RevenueProgram(IndexedTimeStampedModel):
             response = client.ecommerce.get_store(self.mailchimp_store_id)
             return MailchimpStore(**response)
         except ApiClientError as exc:
-            if exc.status_code == 404:
-                logger.debug("Mailchimp store not found for RP %s, returning None", self.id)
-            else:
-                logger.exception("Unexpected error from Mailchimp API. The errot text is %s", exc.text)
-            return None
+            return self.handle_mailchimp_api_client_read_error("store", exc)
 
     @property
     def mailchimp_one_time_contribution_product(self) -> MailchimpProduct | None:
@@ -491,12 +505,8 @@ class RevenueProgram(IndexedTimeStampedModel):
                 self.mailchimp_store_id, self.mailchimp_one_time_contribution_product_id
             )
             return MailchimpProduct(**response)
-        except ApiClientError as error:
-            if error.status_code == 404:
-                logger.debug("Mailchimp one-time contribution product not found for RP %s, returning None", self.id)
-            else:
-                logger.exception("Unexpected error from Mailchimp API. The error text is %s", error.text)
-            return None
+        except ApiClientError as exc:
+            return self.handle_mailchimp_api_client_read_error("one-time contribution product", exc)
 
     @property
     def mailchimp_recurring_contribution_product(self) -> MailchimpProduct | None:
@@ -511,11 +521,7 @@ class RevenueProgram(IndexedTimeStampedModel):
             )
             return MailchimpProduct(**response)
         except ApiClientError as error:
-            if error.status_code == 404:
-                logger.debug("Mailchimp recurring contribution product not found for RP %s, returning None", self.id)
-            else:
-                logger.exception("Unexpected error from Mailchimp API. The error text is %s", error.text)
-            return None
+            return self.handle_mailchimp_api_client_read_error("recurring contribution product", error)
 
     @property
     def mailchimp_contributor_segment(self) -> MailchimpSegment | None:
@@ -531,14 +537,7 @@ class RevenueProgram(IndexedTimeStampedModel):
             response = client.lists.get_segment(self.mailchimp_list_id, self.mailchimp_contributor_segment_id)
             return MailchimpSegment(**response)
         except ApiClientError as error:
-            if error.status_code == 404:
-                logger.debug(
-                    "Mailchimp segment not found for RP %s, returning None",
-                    self.id,
-                )
-            else:
-                logger.exception("Unexpected error from Mailchimp API. The error text is %s", error.text)
-            return None
+            return self.handle_mailchimp_api_client_read_error("contributor segment", error)
 
     @property
     def mailchimp_recurring_segment(self):
@@ -554,14 +553,7 @@ class RevenueProgram(IndexedTimeStampedModel):
             response = client.lists.get_segment(self.mailchimp_list_id, self.mailchimp_recurring_contributor_segment_id)
             return MailchimpSegment(**response)
         except ApiClientError as error:
-            if error.status_code == 404:
-                logger.debug(
-                    "Mailchimp segment not found for RP %s, returning None",
-                    self.id,
-                )
-            else:
-                logger.exception("Unexpected error from Mailchimp API. The error text is %s", error.text)
-            return None
+            return self.handle_mailchimp_api_client_read_error("recurring segment", error)
 
     @property
     def mailchimp_store_id(self):
@@ -609,6 +601,18 @@ class RevenueProgram(IndexedTimeStampedModel):
         )
         return client
 
+    def handle_mailchimp_api_client_write_error(self, entity: str, exc: ApiClientError) -> None:
+        logger.info("Called for rp %s", self.id)
+        match exc.status_code:
+            case 429:
+                logger.debug("Mailchimp rate limit exceeded for RP %s, raising exception", self.id)
+                # We raise this error because we have Celery tasks that interact with Mailchimp API and
+                # in case of rate limit error we will want to retry
+                raise MailchimpRateLimitError("Mailchimp rate limit exceeded")
+            case _:
+                logger.exception("Error creating %s for RP %s. The error text is %s", entity, self.id, exc.text)
+                raise MailchimpIntegrationError(f"Error creating {entity}")
+
     def make_mailchimp_store(self) -> MailchimpStore:
         logger.info("Called for rp %s", self.id)
         if not self.mailchimp_list_id:
@@ -629,8 +633,7 @@ class RevenueProgram(IndexedTimeStampedModel):
             )
             return MailchimpStore(**response)
         except ApiClientError as error:
-            logger.exception("Error creating store for RP %s: %s", self.id, error.text)
-            raise MailchimpIntegrationError("Error creating store")
+            return self.handle_mailchimp_api_client_write_error("store", error)
 
     def make_mailchimp_product(self, product_id: str, product_name: str) -> MailchimpProduct:
         logger.info("Called for rp %s", self.id)
@@ -651,8 +654,7 @@ class RevenueProgram(IndexedTimeStampedModel):
             )
             return MailchimpProduct(**response)
         except ApiClientError as error:
-            logger.exception("Error creating product (%s) for RP %s: %s", product_name, self.id, error.text)
-            raise MailchimpIntegrationError("Error creating product")
+            return self.handle_mailchimp_api_client_write_error(product_id, error)
 
     def make_mailchimp_one_time_contribution_product(self) -> MailchimpProduct:
         logger.info("Called for rp %s", self.id)
@@ -694,13 +696,7 @@ class RevenueProgram(IndexedTimeStampedModel):
             )
             return MailchimpSegment(**response)
         except ApiClientError as error:
-            logger.exception(
-                "Error creating %s segment for RP %s. The error text is %s",
-                self.mailchimp_contributor_segment_name,
-                self.id,
-                error.text,
-            )
-            raise MailchimpIntegrationError("Error creating contributor segment")
+            return self.handle_mailchimp_api_client_write_error(self.mailchimp_contributor_segment_name, error)
 
     def make_mailchimp_recurring_segment(self) -> MailchimpSegment:
         """"""
@@ -731,13 +727,7 @@ class RevenueProgram(IndexedTimeStampedModel):
             )
             return MailchimpSegment(**response)
         except ApiClientError as exc:
-            logger.exception(
-                "Error creating %s segment for RP %s. The error text is %s",
-                self.mailchimp_recurring_segment_name,
-                self.id,
-                exc.text,
-            )
-            raise MailchimpIntegrationError("Error creating recurring segment")
+            return self.handle_mailchimp_api_client_write_error(self.mailchimp_recurring_segment_name, exc)
 
     @property
     def mailchimp_integration_connected(self):

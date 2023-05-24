@@ -29,11 +29,13 @@ def revenue_program_post_save(sender, instance, created, **kwargs) -> None:
             all([created, instance.mailchimp_list_id]),
         ]
     ):
-        logger.info("Enqueing task to setup mailchimp entities for revenue program mailing list for RP %s", instance.id)
+        logger.info(
+            "Enqueuing task to setup mailchimp entities for revenue program mailing list for RP %s", instance.id
+        )
         setup_mailchimp_entities_for_rp_mailing_list.delay(instance.id)
     else:
         logger.info(
-            "Not enqueing task to setup mailchimp entities for revenue program mailing list for RP %s", instance.id
+            "Not enqueuing task to setup mailchimp entities for revenue program mailing list for RP %s", instance.id
         )
 
 

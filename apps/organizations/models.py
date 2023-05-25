@@ -10,6 +10,7 @@ from django.db import models
 from django.utils import timezone
 
 import mailchimp_marketing as MailchimpMarketing
+import reversion
 import stripe
 from addict import Dict as AttrDict
 from mailchimp_marketing.api_client import ApiClientError
@@ -18,6 +19,7 @@ from apps.common.models import IndexedTimeStampedModel
 from apps.common.secrets import GoogleCloudSecretProvider
 from apps.common.utils import normalize_slug
 from apps.config.validators import validate_slug_against_denylist
+from apps.google_cloud.pubsub import Message, Publisher
 from apps.organizations.validators import validate_statement_descriptor_suffix
 from apps.pages.defaults import (
     BENEFITS,
@@ -733,6 +735,82 @@ class RevenueProgram(IndexedTimeStampedModel):
     def mailchimp_integration_connected(self):
         """Determine mailchimp connection state for the revenue program"""
         return all([self.mailchimp_access_token, self.mailchimp_server_prefix])
+
+    def ensure_mailchimp_store(self) -> None:
+        if not self.mailchimp_store:
+            logger.info("Creating store for rp_id=[%s]", self.id)
+            self.make_mailchimp_store()
+        else:
+            logger.info("Store already exists for rp_id=[%s]", self.id)
+
+    def ensure_mailchimp_one_time_contribution_product(self) -> None:
+        if not self.mailchimp_one_time_contribution_product:
+            logger.info("RP with ID %s does not have a one time contributor producxt. Attempting to create", self.id)
+            self.make_mailchimp_one_time_contribution_product()
+        else:
+            logger.info("One-time contribution product already exists for rp_id=[%s]", self.id)
+
+    def ensure_mailchimp_recurring_contribution_product(self) -> None:
+        if not self.mailchimp_recurring_contribution_product:
+            logger.info("RP with ID %s does not have a recurring contributor product. Attempting to create", self.id)
+            self.make_mailchimp_recurring_contribution_product()
+        else:
+            logger.info("Recurring contribution product already exists for rp_id=[%s]", self.id)
+
+    def ensure_mailchimp_contributor_segment(self) -> None:
+        if not self.mailchimp_contributor_segment:
+            logger.info(
+                "Creating %s segment for rp_id=[%s]",
+                self.mailchimp_contributor_segment_name,
+                self.id,
+            )
+            segment = self.make_mailchimp_contributor_segment()
+            logger.info("Segment created for rp_id=[%s]", self.id)
+            self.mailchimp_contributor_segment_id = segment.id
+            logger.info("Saving mailchimp contributor segment id for rp_id=[%s]", self.id)
+            with reversion.create_revision():
+                self.save(update_fields={"mailchimp_contributor_segment_id", "modified"})
+                reversion.set_comment("ensure_mailchimp_contributor_segment updated contributor segment id")
+        else:
+            logger.info("Segment already exists for rp_id=[%s]", self.id)
+
+    def ensure_mailchimp_recurring_segment(self) -> None:
+        """Ensure that a Mailchimp segment exists for recurring contributors for the given RevenueProgram.
+
+        Note that this is intended to be run in the `ensure_mailchimp_recurring_segment` task. The indirection
+        here is to make `setup_mailchimp_entities_for_rp_mailing_list` more easily testable by providing
+        clean, obvious points to mock out.
+        """
+        if not self.mailchimp_recurring_segment:
+            logger.info(
+                "Creating %s segment for rp_id=[%s]",
+                self.mailchimp_contributor_segment_name,
+                self.id,
+            )
+            segment = self.make_mailchimp_recurring_segment()
+            logger.info("Segment created for rp_id=[%s]", self.id)
+            self.mailchimp_contributor_segment_id = segment.id
+            logger.info("Saving mailchimp recurring contributor segment id for rp_id=[%s]", self.id)
+            with reversion.create_revision():
+                self.save(update_fields={"mailchimp_recurring_contributor_segment_id", "modified"})
+                reversion.set_comment("ensure_mailchimp_recurring_segment updated recurring contributor segment id")
+        else:
+            logger.info("Segment already exists for rp_id=[%s]", self.id)
+
+    def ensure_mailchimp_entities(self) -> None:
+        logger.info("Ensuring mailchimp entities for rp_id=[%s]", self.id)
+        self.ensure_mailchimp_store()
+        self.ensure_mailchimp_one_time_contribution_product()
+        self.ensure_mailchimp_recurring_contribution_product()
+        self.ensure_mailchimp_contributor_segment()
+        self.ensure_mailchimp_recurring_segment()
+
+    def publish_revenue_program_mailchimp_list_configuration_complete(self):
+        """Publish a message to the `RP_MAILCHIMP_LIST_CONFIGURATION_COMPLETE_TOPIC` topic."""
+        logger.info("Publishing RP_MAILCHIMP_LIST_CONFIGURATION_COMPLETE_TOPIC for rp_id=[%s]", self.id)
+        Publisher.get_instance().publish(
+            settings.RP_MAILCHIMP_LIST_CONFIGURATION_COMPLETE_TOPIC, Message(data=str(self.id))
+        )
 
     @property
     def payment_provider_stripe_verified(self):

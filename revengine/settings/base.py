@@ -567,6 +567,9 @@ STRIPE_ACCOUNT_LINK_RETURN_BASE_URL = os.getenv("STRIPE_ACCOUNT_LINK_RETURN_BASE
 MAILCHIMP_CLIENT_ID = os.getenv("MAILCHIMP_CLIENT_ID", None)
 MAILCHIMP_CLIENT_SECRET = os.getenv("MAILCHIMP_CLIENT_SECRET", None)
 
+# see https://mailchimp.com/developer/release-notes/message-search-rate-limit-now-enforced/#:~:text=We're%20now%20enforcing%20the,of%20the%20original%2020%20requests.
+MAILCHIMP_RATE_LIMIT_RETRY_WAIT_SECONDS = 60
+
 
 ### Front End Environment Variables
 SPA_ENV_VARS = {
@@ -588,11 +591,5 @@ SPA_ENV_VARS = {
     "DASHBOARD_SUBDOMAINS": DASHBOARD_SUBDOMAINS,
 }
 
-
-CELERY_RESULT_BACKEND = os.getenv("CELERY_RESULT_BACKEND", "django-db")
-CELERY_CACHE_BACKEND = "default"
-# https://devcenter.heroku.com/articles/celery-heroku#choosing-a-serializer
-CELERY_TASK_SERIALIZER = "json"
-CELERY_RESULT_EXTENDED = True
 
 RP_MAILCHIMP_LIST_CONFIGURATION_COMPLETE_TOPIC = os.getenv("RP_MAILCHIMP_LIST_CONFIGURATION_COMPLETE_TOPIC")

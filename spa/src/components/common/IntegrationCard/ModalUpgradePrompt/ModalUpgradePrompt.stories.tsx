@@ -9,3 +9,7 @@ export default {
 const Template: ComponentStory<typeof ModalUpgradePrompt> = (props) => <ModalUpgradePrompt {...props} />;
 
 export const Default = Template.bind({});
+
+Default.args = {
+  text: 'This is a default ModalUpgradePrompt component'
+};

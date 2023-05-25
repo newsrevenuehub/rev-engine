@@ -13,6 +13,7 @@ export const Root = styled.div`
 export const Text = styled.p`
   color: ${({ theme }) => theme.basePalette.greyscale.black};
   font-size: ${({ theme }) => theme.fontSizesUpdated.md};
+  font-weight: 500;
   margin: 0;
 `;
 

@@ -92,7 +92,7 @@ const MailchimpModal = ({
             <b>What’s Next?</b>
           ) : (
             <>
-              Integrate with Mailchimp to <b>automate targeted</b> emails.
+              Integrate with Mailchimp to <b style={{ fontWeight: 500 }}>automate targeted</b> emails.
             </>
           )}
         </p>

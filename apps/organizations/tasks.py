@@ -32,13 +32,6 @@ class MailchimpAuthflowUnretryableError(Exception):
     retry_jitter=False,
 )
 def setup_mailchimp_entities_for_rp_mailing_list(rp_id: str) -> None:
-    """`setup_mailchimp_entities_for_rp_mailing_list` calls several model methods to create required
-    Mailchimp entities. These tasks are idempotent but their order of execution matters (specifically, )
-    presuppose the success of others. This task and its consituents are meant to be idempotent. Here,
-    we test a base case where all subtasks succeed and show only that wrapped functions (each task wraps
-    a similarly named function prefixed with `_` that does the actual work) are called with the correct
-    arguments.
-    """
     logger.info("Called with rp_id=[%s]", rp_id)
     rp = RevenueProgram.objects.get(id=rp_id)
     rp.ensure_mailchimp_entities()

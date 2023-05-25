@@ -146,7 +146,6 @@ INSTALLED_APPS = [
     "reversion",  # Provides undelete and rollback for models' data.
     "reversion_compare",
     "django_test_migrations.contrib.django_checks.AutoNames",
-    "django_celery_results",
 ]
 
 if ENABLE_API_BROWSER:
@@ -338,7 +337,6 @@ REST_FRAMEWORK = {
 DTM_IGNORED_MIGRATIONS = {
     ("waffle", "*"),
     ("django_celery_beat", "*"),
-    ("django_celery_results", "*"),
 }
 
 
@@ -590,6 +588,11 @@ SPA_ENV_VARS = {
     "ENVIRONMENT": ENVIRONMENT,
     "DASHBOARD_SUBDOMAINS": DASHBOARD_SUBDOMAINS,
 }
+
+
+CELERY_RESULT_BACKEND = os.getenv("CELERY_RESULT_BACKEND", "cache")
+CELERY_CACHE_BACKEND = BROKER_URL
+CELERY_IMPORTS = ("apps.emails.tasks",)
 
 
 RP_MAILCHIMP_LIST_CONFIGURATION_COMPLETE_TOPIC = os.getenv("RP_MAILCHIMP_LIST_CONFIGURATION_COMPLETE_TOPIC")

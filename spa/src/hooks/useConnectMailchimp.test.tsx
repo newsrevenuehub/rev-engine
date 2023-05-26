@@ -69,19 +69,6 @@ describe('useConnectMailchimp hook', () => {
       isLoading: false,
       isError: false
     });
-
-    // We do this because the hook returns a `sendUserToMailchimp()` function which sets `window.location.href` to the value
-    // returned when we fetch account link status.
-    //
-    // https://www.csrhymes.com/2022/06/18/mocking-window-location-in-jest.html
-
-    delete (global as any).window.location;
-    global.window = Object.create(window);
-    (global as any).window.location = { origin: oldLocation.origin };
-  });
-
-  afterEach(() => {
-    (global as any).window.location = oldLocation;
   });
 
   it('returns a loading status when user data is loading', () => {
@@ -274,10 +261,12 @@ describe('useConnectMailchimp hook', () => {
       refetch: jest.fn()
     });
     const { result } = renderHook(() => useConnectMailchimp(), { wrapper });
+    const assignSpy = jest.spyOn(window.location, 'assign');
 
     expect(typeof result.current.sendUserToMailchimp).toBe('function');
+    expect(assignSpy).not.toBeCalled();
     result.current.sendUserToMailchimp!();
-    expect(window.location.href).toEqual(mailchimpURL);
+    expect(assignSpy.mock.calls).toEqual([[mailchimpURL]]);
   });
 
   it('show connection success notification', async () => {

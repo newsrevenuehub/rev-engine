@@ -119,7 +119,7 @@ export default function useConnectStripeAccount(): UseConnectStripeAccountResult
       throw new Error('There is no URL to send the user to');
     }
 
-    window.location.href = data?.url;
+    window.location.assign(data?.url);
   }, [data?.url]);
 
   // If the user is loading or errored, return that status.

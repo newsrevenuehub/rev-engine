@@ -47,10 +47,9 @@ describe('logout', () => {
   });
 
   it('redirects the user to the root of the domain', async () => {
-    delete (global as any).window.location;
-    global.window = Object.create(window);
-    (global as any).window.location = { href: '/somewhere-else' };
+    const assignSpy = jest.spyOn(window.location, 'assign');
+
     await logout();
-    expect(window.location.href).toBe('/');
+    expect(assignSpy.mock.calls).toEqual([['/']]);
   });
 });

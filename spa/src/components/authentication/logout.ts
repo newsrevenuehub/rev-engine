@@ -10,7 +10,7 @@ async function logout() {
     localStorage.removeItem(LS_CSRF_TOKEN);
     window.sessionStorage.clear();
     Sentry.setUser(null);
-    window.location.href = '/';
+    window.location.assign('/');
   } catch (e) {
     console.error(e);
   }

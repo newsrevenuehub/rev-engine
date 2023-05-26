@@ -9,3 +9,27 @@ afterEach(() => {
   // can stick around and cause unexpected behavior in subsequent tests.
   Object.keys(Cookies).forEach((cookie) => Cookies.remove(cookie));
 });
+
+// Mock the global location object to make assign() able to be spied on.
+// See https://www.benmvp.com/blog/mocking-window-location-methods-jest-jsdom/
+
+const oldWindowLocation = window.location;
+
+beforeAll(() => {
+  delete window.location;
+
+  window.location = Object.defineProperties(
+    {},
+    {
+      ...Object.getOwnPropertyDescriptors(oldWindowLocation),
+      assign: {
+        configurable: true,
+        value: jest.fn()
+      }
+    }
+  );
+});
+
+afterAll(() => {
+  window.location = oldWindowLocation;
+});

@@ -210,7 +210,8 @@ describe('useConnectMailchimp hook', () => {
         isLoading: false,
         connectedToMailchimp: true,
         organizationPlan: 'mock-plan',
-        requiresAudienceSelection: false
+        requiresAudienceSelection: false,
+        revenueProgram: mockRp
       });
     });
     it('revenue program has mailchimp_integration_connected = true', () => {
@@ -235,7 +236,8 @@ describe('useConnectMailchimp hook', () => {
         isError: false,
         isLoading: false,
         connectedToMailchimp: true,
-        requiresAudienceSelection: false
+        requiresAudienceSelection: false,
+        revenueProgram: { ...mockRp, mailchimp_integration_connected: true }
       });
     });
   });
@@ -263,7 +265,8 @@ describe('useConnectMailchimp hook', () => {
       isLoading: false,
       connectedToMailchimp: false,
       organizationPlan: 'FREE',
-      requiresAudienceSelection: false
+      requiresAudienceSelection: false,
+      revenueProgram: mockRp
     });
   });
 

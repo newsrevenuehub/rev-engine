@@ -164,7 +164,8 @@ class RevenueProgramSerializer(serializers.ModelSerializer):
         return value
 
     def get_mailchimp_email_list(self, obj):
-        return asdict(obj.mailchimp_email_list) if obj.mailchimp_email_list else None
+        mc_list = obj.mailchimp_email_list
+        return {"id": mc_list.id, "name": mc_list.name} if mc_list else None
 
     def get_mailchimp_email_lists(self, obj):
         return [{"id": x.id, "name": x.name} for x in obj.mailchimp_email_lists]

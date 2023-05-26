@@ -145,7 +145,10 @@ class TestRevenueProgramSerializer:
         assert serialized["mailchimp_recurring_segment"] == asdict(mailchimp_segment)
         assert serialized["mailchimp_one_time_contribution_product"] == asdict(mailchimp_product)
         assert serialized["mailchimp_contributor_segment"] == asdict(mailchimp_segment)
-        assert serialized["mailchimp_email_list"] == asdict(mailchimp_email_list)
+        assert serialized["mailchimp_email_list"] == {
+            "id": mailchimp_email_list.id,
+            "name": mailchimp_email_list.name,
+        }
 
     def test_validate_mailchimp_list_id_when_valid(self, mailchimp_email_lists, mc_connected_rp, mocker):
         mocker.patch(

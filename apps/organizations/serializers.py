@@ -98,6 +98,8 @@ class RevenueProgramInlineSerializer(serializers.ModelSerializer):
     """
 
     organization = OrganizationInlineSerializer()
+    mailchimp_email_list = serializers.SerializerMethodField()
+    mailchimp_email_lists = serializers.SerializerMethodField()
 
     class Meta:
         model = RevenueProgram
@@ -114,6 +116,13 @@ class RevenueProgramInlineSerializer(serializers.ModelSerializer):
             "mailchimp_email_list",
             "mailchimp_email_lists",
         ]
+
+    def get_mailchimp_email_list(self, obj):
+        mc_list = obj.mailchimp_email_list
+        return {"id": mc_list.id, "name": mc_list.name} if mc_list else None
+
+    def get_mailchimp_email_lists(self, obj):
+        return [{"id": x.id, "name": x.name} for x in obj.mailchimp_email_lists]
 
 
 class RevenueProgramSerializer(serializers.ModelSerializer):

@@ -350,9 +350,6 @@ No copies found. Use heroku pg:copy to copy a database to another
 
 ```sh
 heroku pg:backups:download
-
-Getting backup from ⬢ rev-engine-test... done, #1
-Downloading latest.dump.1... ████████████████████████▏  100% 00:00 66.75KB
 ```
 
 #### Download a specific backup

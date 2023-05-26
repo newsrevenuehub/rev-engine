@@ -11,9 +11,9 @@ jest.mock('hooks/useRevenueProgram');
 const revenueProgram = {
   id: 1,
   mailchimp_email_lists: [
-    { id: 1, name: 'audience-mock-1' },
-    { id: 2, name: 'audience-mock-2' },
-    { id: 3, name: 'audience-mock-3' }
+    { id: '1', name: 'audience-mock-1' },
+    { id: '2', name: 'audience-mock-2' },
+    { id: '3', name: 'audience-mock-3' }
   ]
 };
 

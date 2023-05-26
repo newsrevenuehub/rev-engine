@@ -49,7 +49,11 @@ class PageFullDetailHelper:
         self.donation_page = (
             self.revenue_program.donationpage_set.filter(slug=self.page_slug).first()
             if self.page_slug
-            else self.revenue_program.default_donation_page
+            # If no default_donation_page is set, return the first page in the RP
+            # We need to return a valid "donation_page" to populate "Welcome to the {page.revenue_program.name} contributor portal" in the UI
+            else self.revenue_program.default_donation_page or self.revenue_program.donationpage_set.first()
+            # Context why this can be done:
+            # The serializer returns rp.default_donation_page, so we can check on the Frontend if the donation page is the default page or not
         )
         if not self.donation_page:
             if self.page_slug:

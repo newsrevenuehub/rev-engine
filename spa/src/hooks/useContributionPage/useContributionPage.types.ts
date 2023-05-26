@@ -341,9 +341,8 @@ export interface RevenueProgram {
   mailchimp_email_list?: Audience;
 }
 
-// TODO: update TS after DEV-3299 is done
 export interface Audience {
-  id: number;
+  id: string;
   name: string;
 }
 

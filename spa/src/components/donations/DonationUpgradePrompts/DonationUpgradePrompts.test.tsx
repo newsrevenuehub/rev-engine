@@ -6,7 +6,7 @@ import {
 } from 'constants/authConstants';
 import { DONATIONS_CORE_UPGRADE_CLOSED } from 'hooks/useSessionState';
 import useUser from 'hooks/useUser';
-import { fireEvent, render, screen } from 'test-utils';
+import { act, fireEvent, render, screen, waitFor } from 'test-utils';
 import DonationUpgradePrompts from './DonationUpgradePrompts';
 import useContributionPageList from 'hooks/useContributionPageList';
 
@@ -53,6 +53,27 @@ describe('DonationUpgradePrompts', () => {
     it('shows a Core upgrade prompt', () => {
       tree();
       expect(screen.getByTestId('mock-donation-core-upgrade-prompt')).toBeInTheDocument();
+    });
+
+    describe('Prompt Highlight', () => {
+      it('shows a highlight', () => {
+        tree();
+        expect(screen.getByTestId('prompt-highlight-true')).toBeInTheDocument();
+      });
+
+      it('hides the highlight after 1 second', async () => {
+        jest.useFakeTimers();
+        tree();
+        expect(screen.getByTestId('prompt-highlight-true')).toBeInTheDocument();
+        act(() => {
+          jest.runAllTimers();
+        });
+        await waitFor(() => {
+          expect(screen.getByTestId('prompt-highlight-false')).toBeInTheDocument();
+        });
+
+        jest.useRealTimers();
+      });
     });
 
     it('hides the prompt when closed', () => {

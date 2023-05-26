@@ -75,7 +75,7 @@ describe('AudienceListModal', () => {
     await waitFor(() => updateRevenueProgram.mock.calls.length > 0);
     expect(useRevenueProgramMock).toHaveBeenCalledWith(revenueProgram.id);
     expect(updateRevenueProgram).toHaveBeenCalledWith({
-      mailchimp_email_list: revenueProgram.mailchimp_email_lists[0]
+      mailchimp_list_id: revenueProgram.mailchimp_email_lists[0].id
     });
   });
 

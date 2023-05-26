@@ -339,6 +339,10 @@ export interface RevenueProgram {
    * Selected audience list for mailchimp
    */
   mailchimp_email_list?: Audience;
+  /**
+   * Select id of Mailchimp audience list
+   */
+  mailchimp_list_id?: string;
 }
 
 export interface Audience {

@@ -29,7 +29,7 @@ const AudienceListModal = ({ open, loading, outerError, revenueProgram }: Audien
 
   const onSubmit = (form: typeof formDefaultValues) => {
     updateRevenueProgram({
-      mailchimp_email_list: form.audience
+      mailchimp_list_id: form.audience.id
     });
   };
 

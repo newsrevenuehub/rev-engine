@@ -124,6 +124,7 @@ class RevenueProgramSerializer(serializers.ModelSerializer):
     slug = serializers.SlugField(required=False)
     mailchimp_integration_connected = serializers.ReadOnlyField()
     mailchimp_email_lists = serializers.SerializerMethodField()
+    mailchimp_email_list = serializers.SerializerMethodField()
     mailchimp_server_prefix = serializers.ReadOnlyField(allow_null=True)
     mailchimp_contributor_segment = serializers.SerializerMethodField()
     mailchimp_recurring_segment = serializers.SerializerMethodField()
@@ -141,6 +142,7 @@ class RevenueProgramSerializer(serializers.ModelSerializer):
             "fiscal_status",
             "fiscal_sponsor_name",
             "mailchimp_integration_connected",
+            "mailchimp_email_list",
             "mailchimp_email_lists",
             "mailchimp_list_id",
             "mailchimp_server_prefix",
@@ -160,6 +162,9 @@ class RevenueProgramSerializer(serializers.ModelSerializer):
             logger.warning("Attempt to set mailchimp_list_id to a list not associated with this RP")
             raise serializers.ValidationError("Invalid Mailchimp list ID")
         return value
+
+    def get_mailchimp_email_list(self, obj):
+        return asdict(obj.mailchimp_email_list) if obj.mailchimp_email_list else None
 
     def get_mailchimp_email_lists(self, obj):
         return [{"id": x.id, "name": x.name} for x in obj.mailchimp_email_lists]

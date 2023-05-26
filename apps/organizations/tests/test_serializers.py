@@ -89,6 +89,11 @@ class TestRevenueProgramSerializer:
         mc_connected_rp,
     ):
         mocker.patch(
+            "apps.organizations.models.RevenueProgram.mailchimp_email_list",
+            return_value=mailchimp_email_list,
+            new_callable=mocker.PropertyMock,
+        )
+        mocker.patch(
             "apps.organizations.models.RevenueProgram.mailchimp_email_lists",
             return_value=mailchimp_email_lists,
             new_callable=mocker.PropertyMock,
@@ -115,7 +120,7 @@ class TestRevenueProgramSerializer:
         )
         mocker.patch(
             "apps.organizations.models.RevenueProgram.mailchimp_contributor_segment",
-            return_value=mailchimp_product,
+            return_value=mailchimp_segment,
             new_callable=mocker.PropertyMock,
         )
         serialized = RevenueProgramSerializer(mc_connected_rp).data
@@ -136,6 +141,11 @@ class TestRevenueProgramSerializer:
             "name": mailchimp_email_lists[0].name,
         }
         assert serialized["mailchimp_store"] == asdict(mailchimp_store)
+        assert serialized["mailchimp_recurring_contribution_product"] == asdict(mailchimp_product)
+        assert serialized["mailchimp_recurring_segment"] == asdict(mailchimp_segment)
+        assert serialized["mailchimp_one_time_contribution_product"] == asdict(mailchimp_product)
+        assert serialized["mailchimp_contributor_segment"] == asdict(mailchimp_segment)
+        assert serialized["mailchimp_email_list"] == asdict(mailchimp_email_list)
 
     def test_validate_mailchimp_list_id_when_valid(self, mailchimp_email_lists, mc_connected_rp, mocker):
         mocker.patch(

@@ -920,6 +920,27 @@ class TestRevenueProgram:
         mc_connected_rp.make_mailchimp_recurring_contribution_product()
         mock_handle_error.assert_called_once_with(mc_connected_rp.mailchimp_recurring_contribution_product_id, error)
 
+    def test_mailchimp_email_list_when_no_mailchimp_list_id(self, mc_connected_rp):
+        mc_connected_rp.mailchimp_list_id = None
+        mc_connected_rp.save()
+        assert mc_connected_rp.mailchimp_email_list is None
+
+    def test_mailchimp_email_list_happy_path(self, mc_connected_rp, mocker, mailchimp_email_list_from_api):
+        mock_get_client = mocker.patch("apps.organizations.models.RevenueProgram.get_mailchimp_client")
+        mock_get_client.return_value.lists.get_list.return_value = mailchimp_email_list_from_api
+        assert mc_connected_rp.mailchimp_email_list == MailchimpEmailList(**mailchimp_email_list_from_api)
+
+    def test_mailchimp_email_list_when_api_error(self, mc_connected_rp, mocker):
+        mock_get_client = mocker.patch("apps.organizations.models.RevenueProgram.get_mailchimp_client")
+        mock_get_client.return_value.lists.get_list.side_effect = (
+            error := ApiClientError("Internal Server Error", status_code=500)
+        )
+        mock_handle_error = mocker.patch(
+            "apps.organizations.models.RevenueProgram.handle_mailchimp_api_client_read_error"
+        )
+        mc_connected_rp.mailchimp_email_list
+        mock_handle_error.assert_called_once_with("mailchimp email list", error, log_level_on_not_found="error")
+
     def test_mailchimp_contributor_segment_when_no_mailchimp_list_id(self, mc_connected_rp):
         mc_connected_rp.mailchimp_list_id = None
         mc_connected_rp.save()

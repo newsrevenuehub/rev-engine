@@ -467,11 +467,15 @@ class RevenueProgram(IndexedTimeStampedModel):
     def __str__(self):
         return self.name
 
-    def handle_mailchimp_api_client_read_error(self, entity: str, exc: ApiClientError) -> None:
+    def handle_mailchimp_api_client_read_error(
+        self, entity: str, exc: ApiClientError, log_level_on_not_found: Literal["debug", "error", "warning"] = "debug"
+    ) -> None:
         logger.info("Called for rp %s", self.id)
         match exc.status_code:
             case 404:
-                logger.debug("Mailchimp %s not found for RP %s, returning None", entity, self.id)
+                getattr(logger, log_level_on_not_found)(
+                    "Mailchimp %s not found for RP %s, returning None", entity, self.id
+                )
             case 429:
                 logger.debug("Mailchimp rate limit exceeded for RP %s, raising exception", self.id)
                 # We raise this error because we have Celery tasks that interact with Mailchimp API and
@@ -558,6 +562,25 @@ class RevenueProgram(IndexedTimeStampedModel):
             return MailchimpSegment(**response)
         except ApiClientError as error:
             return self.handle_mailchimp_api_client_read_error("recurring segment", error)
+
+    @property
+    def mailchimp_email_list(self) -> MailchimpEmailList | None:
+        logger.info("Called for rp %s", self.id)
+        if not (list_id := self.mailchimp_list_id):
+            logger.debug("No email list ID on RP %s, returning None", self.id)
+            return None
+        client = self.get_mailchimp_client()
+        try:
+            logger.info("Getting list %s for RP %s", list_id, self.id)
+            response = client.lists.get_list(list_id)
+            return MailchimpEmailList(**response)
+        except ApiClientError as error:
+            # we want to log as an error if not found because in this case, something has gone wrong in that we have a
+            # list ID but it is not found on Mailchimp.  This will give us a signal in Sentry, while not blocking
+            # serialization of the revenue program.
+            return self.handle_mailchimp_api_client_read_error(
+                "mailchimp email list", error, log_level_on_not_found="error"
+            )
 
     @property
     def mailchimp_store_id(self):
@@ -813,11 +836,6 @@ class RevenueProgram(IndexedTimeStampedModel):
         Publisher.get_instance().publish(
             settings.RP_MAILCHIMP_LIST_CONFIGURATION_COMPLETE_TOPIC, Message(data=str(self.id))
         )
-
-    @property
-    def mailchimp_email_list(self):
-        """TODO: get selected mailchimp audience list"""
-        return None
 
     @property
     def payment_provider_stripe_verified(self):

@@ -39,12 +39,12 @@ describe('useRevenueProgram', () => {
       const { result, waitForNextUpdate } = renderHook(testHook, { wrapper: TestQueryClientProvider });
 
       expect(axiosMock.history.patch.length).toBe(0);
-      await result.current.updateRevenueProgram({ mailchimp_email_list: { id: 0, name: 'mock-list' } });
+      await result.current.updateRevenueProgram({ mailchimp_email_list: { id: '0', name: 'mock-list' } });
       await waitForNextUpdate();
       expect(axiosMock.history.patch.length).toBe(1);
       expect(axiosMock.history.patch[0].url).toBe(`${REVENUE_PROGRAMS}${rpId}/`);
       expect(axiosMock.history.patch[0].data).toBe(
-        JSON.stringify({ mailchimp_email_list: { id: 0, name: 'mock-list' } })
+        JSON.stringify({ mailchimp_email_list: { id: '0', name: 'mock-list' } })
       );
     });
 
@@ -64,7 +64,7 @@ describe('useRevenueProgram', () => {
         expect(errorSpy).not.toBeCalled();
 
         try {
-          await result.current.updateRevenueProgram({ mailchimp_email_list: { id: 0, name: 'mock-list' } });
+          await result.current.updateRevenueProgram({ mailchimp_email_list: { id: '0', name: 'mock-list' } });
         } catch {}
 
         expect(errorSpy).toBeCalledTimes(2); // Axios also logs an error
@@ -79,7 +79,7 @@ describe('useRevenueProgram', () => {
         expect(error).not.toBeCalled();
 
         try {
-          await result.current.updateRevenueProgram({ mailchimp_email_list: { id: 0, name: 'mock-list' } });
+          await result.current.updateRevenueProgram({ mailchimp_email_list: { id: '0', name: 'mock-list' } });
         } catch {}
 
         expect(error).toBeCalledTimes(1);

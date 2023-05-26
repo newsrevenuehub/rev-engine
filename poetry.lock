@@ -2503,6 +2503,21 @@ decopatch = "*"
 makefun = ">=1.9.5"
 
 [[package]]
+name = "pytest-celery"
+version = "0.0.0"
+description = "pytest-celery a shim pytest plugin to enable celery.contrib.pytest"
+category = "dev"
+optional = false
+python-versions = "*"
+files = [
+    {file = "pytest-celery-0.0.0.tar.gz", hash = "sha256:cfd060fc32676afa1e4f51b2938f903f7f75d952186b8c6cf631628c4088f406"},
+    {file = "pytest_celery-0.0.0-py2.py3-none-any.whl", hash = "sha256:63dec132df3a839226ecb003ffdbb0c2cb88dd328550957e979c942766578060"},
+]
+
+[package.dependencies]
+celery = ">=4.4.0"
+
+[[package]]
 name = "pytest-cov"
 version = "4.0.0"
 description = "Pytest plugin for measuring coverage."
@@ -3201,4 +3216,4 @@ testing = ["big-O", "flake8 (<5)", "jaraco.functools", "jaraco.itertools", "more
 [metadata]
 lock-version = "2.0"
 python-versions = "^3.10"
-content-hash = "4c0d89f5c66e1b7808f6379f25e069202f2c2c1fcaa9b49a18c45af6b8f54c20"
+content-hash = "b361087147251bc633c7230a293fb1f0090eef3f827478f0628c279dbc099f58"

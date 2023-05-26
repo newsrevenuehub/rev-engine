@@ -1,16 +1,15 @@
-import logging
-
 from django.conf import settings
 
 import requests
 import reversion
 from celery import shared_task
+from celery.utils.log import get_task_logger
 from rest_framework import status
 
-from apps.organizations.models import RevenueProgram
+from apps.organizations.models import MailchimpRateLimitError, RevenueProgram
 
 
-logger = logging.getLogger(f"{settings.DEFAULT_LOGGER}.{__name__}")
+logger = get_task_logger(f"{settings.DEFAULT_LOGGER}.{__name__}")
 
 
 MAILCHIMP_EXCHANGE_OAUTH_CODE_FOR_ACCESS_TOKEN_URL = "https://login.mailchimp.com/oauth2/token"
@@ -24,6 +23,19 @@ class MailchimpAuthflowRetryableError(Exception):
 
 class MailchimpAuthflowUnretryableError(Exception):
     """"""
+
+
+@shared_task(
+    autoretry_for=(MailchimpRateLimitError,),
+    retry_backoff=settings.MAILCHIMP_RATE_LIMIT_RETRY_WAIT_SECONDS,
+    retry_kwargs={"max_retries": 6},
+    retry_jitter=False,
+)
+def setup_mailchimp_entities_for_rp_mailing_list(rp_id: str) -> None:
+    logger.info("Called with rp_id=[%s]", rp_id)
+    rp = RevenueProgram.objects.get(id=rp_id)
+    rp.ensure_mailchimp_entities()
+    rp.publish_revenue_program_mailchimp_list_configuration_complete()
 
 
 def exchange_mc_oauth_code_for_mc_access_token(oauth_code: str) -> str:

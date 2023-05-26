@@ -1,3 +1,5 @@
+from unittest.mock import Mock, PropertyMock
+
 import pytest
 from google.api_core.exceptions import NotFound
 from rest_framework import status
@@ -10,6 +12,7 @@ from apps.organizations.tasks import (
     exchange_mc_oauth_code_for_mc_access_token,
     get_mailchimp_server_prefix,
     logger,
+    setup_mailchimp_entities_for_rp_mailing_list,
 )
 from apps.organizations.tests.factories import RevenueProgramFactory
 
@@ -235,3 +238,48 @@ class TestExchangeMailchimpOauthTokenForServerPrefixAndAccessToken:
         )
         rp.refresh_from_db()
         assert rp.mailchimp_server_prefix is None
+
+
+@pytest.fixture
+def mock_rp_mailchimp_store_truthy(mocker):
+    return mocker.patch(
+        "apps.organizations.tasks.RevenueProgram.mailchimp_store",
+        new_callable=PropertyMock,
+        return_value=Mock(id="something"),
+    )
+
+
+@pytest.mark.django_db(transaction=True)
+@pytest.mark.celery(result_backend="django-db", cache_backend="django-cache")
+class TestSetupMailchimpEntitiesForRpMailingList:
+    def test_happy_path(
+        self,
+        settings,
+        mocker,
+        revenue_program,
+        celery_session_worker,
+    ):
+        settings.RP_MAILCHIMP_LIST_CONFIGURATION_COMPLETE_TOPIC = "some-topic"
+        mock_ensure_store_fn = mocker.patch("apps.organizations.models.RevenueProgram.ensure_mailchimp_store")
+        mock_ensure_one_time_contribution_product_fn = mocker.patch(
+            "apps.organizations.models.RevenueProgram.ensure_mailchimp_one_time_contribution_product"
+        )
+        mock_ensure_recurring_contribution_product_fn = mocker.patch(
+            "apps.organizations.models.RevenueProgram.ensure_mailchimp_recurring_contribution_product"
+        )
+        mock_ensure_contributor_segment_fn = mocker.patch(
+            "apps.organizations.models.RevenueProgram.ensure_mailchimp_contributor_segment"
+        )
+        mock_ensure_recurring_segment_fn = mocker.patch(
+            "apps.organizations.models.RevenueProgram.ensure_mailchimp_recurring_segment"
+        )
+        mock_publish_revenue_program_mailchimp_list_configuration_complete_fn = mocker.patch(
+            "apps.organizations.models.RevenueProgram.publish_revenue_program_mailchimp_list_configuration_complete",
+        )
+        setup_mailchimp_entities_for_rp_mailing_list.delay(revenue_program.id).wait()
+        mock_ensure_store_fn.assert_called_once()
+        mock_ensure_one_time_contribution_product_fn.assert_called_once()
+        mock_ensure_recurring_contribution_product_fn.assert_called_once()
+        mock_ensure_contributor_segment_fn.assert_called_once()
+        mock_ensure_recurring_segment_fn.assert_called_once()
+        mock_publish_revenue_program_mailchimp_list_configuration_complete_fn.assert_called_once()

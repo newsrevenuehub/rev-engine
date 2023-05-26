@@ -98,6 +98,8 @@ class RevenueProgramInlineSerializer(serializers.ModelSerializer):
     """
 
     organization = OrganizationInlineSerializer()
+    mailchimp_email_list = serializers.SerializerMethodField()
+    mailchimp_email_lists = serializers.SerializerMethodField()
 
     class Meta:
         model = RevenueProgram
@@ -111,7 +113,16 @@ class RevenueProgramInlineSerializer(serializers.ModelSerializer):
             "fiscal_status",
             "fiscal_sponsor_name",
             "mailchimp_integration_connected",
+            "mailchimp_email_list",
+            "mailchimp_email_lists",
         ]
+
+    def get_mailchimp_email_list(self, obj):
+        mc_list = obj.mailchimp_email_list
+        return {"id": mc_list.id, "name": mc_list.name} if mc_list else None
+
+    def get_mailchimp_email_lists(self, obj):
+        return [{"id": x.id, "name": x.name} for x in obj.mailchimp_email_lists]
 
 
 class RevenueProgramSerializer(serializers.ModelSerializer):
@@ -122,6 +133,7 @@ class RevenueProgramSerializer(serializers.ModelSerializer):
     slug = serializers.SlugField(required=False)
     mailchimp_integration_connected = serializers.ReadOnlyField()
     mailchimp_email_lists = serializers.SerializerMethodField()
+    mailchimp_email_list = serializers.SerializerMethodField()
     mailchimp_server_prefix = serializers.ReadOnlyField(allow_null=True)
     mailchimp_contributor_segment = serializers.SerializerMethodField()
     mailchimp_recurring_segment = serializers.SerializerMethodField()
@@ -139,6 +151,7 @@ class RevenueProgramSerializer(serializers.ModelSerializer):
             "fiscal_status",
             "fiscal_sponsor_name",
             "mailchimp_integration_connected",
+            "mailchimp_email_list",
             "mailchimp_email_lists",
             "mailchimp_list_id",
             "mailchimp_server_prefix",
@@ -149,6 +162,17 @@ class RevenueProgramSerializer(serializers.ModelSerializer):
             "mailchimp_recurring_contribution_product",
         ]
 
+    def update(self, instance, validated_data):
+        """We override `.update` so we can pass update_fields to `instance.save()`. We have code that creates mailchimp entities
+        if mailchimp_list_id is being updated. Beyond that, `update_fields` guards against race conditions."""
+        logger.info("Updating RP %s with data %s", instance, validated_data)
+        update_fields = [field for field in validated_data if field in self.fields]
+        for attr, value in validated_data.items():
+            if attr in update_fields:
+                setattr(instance, attr, value)
+        instance.save(update_fields={field for field in validated_data if field in self.fields})
+        return instance
+
     def validate_mailchimp_list_id(self, value):
         logger.info("Validating Mailchimp list ID with value %s for RP %s", value, self.instance)
         if not self.instance:
@@ -158,6 +182,10 @@ class RevenueProgramSerializer(serializers.ModelSerializer):
             logger.warning("Attempt to set mailchimp_list_id to a list not associated with this RP")
             raise serializers.ValidationError("Invalid Mailchimp list ID")
         return value
+
+    def get_mailchimp_email_list(self, obj):
+        mc_list = obj.mailchimp_email_list
+        return {"id": mc_list.id, "name": mc_list.name} if mc_list else None
 
     def get_mailchimp_email_lists(self, obj):
         return [{"id": x.id, "name": x.name} for x in obj.mailchimp_email_lists]

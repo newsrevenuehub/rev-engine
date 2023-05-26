@@ -110,6 +110,7 @@ declare module 'styled-components' {
         200: '#e3e3e3';
         300: '#D9D9D9';
         400: BasePalette['greyscale']['grey2'];
+        450: '#a7a7a7';
         500: '#969696';
         600: BasePalette['greyscale']['grey1'];
         700: '#666666';

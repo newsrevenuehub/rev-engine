@@ -331,6 +331,23 @@ export interface RevenueProgram {
    * Is Mailchimp connected?
    */
   mailchimp_integration_connected?: boolean;
+  /**
+   * All available audience lists for mailchimp
+   */
+  mailchimp_email_lists?: Audience[];
+  /**
+   * Selected audience list for mailchimp
+   */
+  mailchimp_email_list?: Audience;
+  /**
+   * Select id of Mailchimp audience list
+   */
+  mailchimp_list_id?: string;
+}
+
+export interface Audience {
+  id: string;
+  name: string;
 }
 
 /**

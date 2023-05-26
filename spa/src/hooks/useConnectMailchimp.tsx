@@ -8,7 +8,7 @@ import { MAILCHIMP_INTEGRATION_ACCESS_FLAG_NAME } from 'constants/featureFlagCon
 import { useSnackbar } from 'notistack';
 import { MAILCHIMP_OAUTH_SUCCESS_ROUTE } from 'routes';
 import flagIsActiveForUser from 'utilities/flagIsActiveForUser';
-import { EnginePlan } from './useContributionPage';
+import { EnginePlan, RevenueProgram } from './useContributionPage';
 import useFeatureFlags from './useFeatureFlags';
 import useUser from './useUser';
 
@@ -25,6 +25,14 @@ export interface UseConnectMailchimpResult {
    * Has Mailchimp been connected?
    */
   connectedToMailchimp: boolean;
+  /**
+   * Mailchimp connection started but hasn't finished and still need audience selection?
+   */
+  requiresAudienceSelection: boolean;
+  /**
+   * Current Revenue Program being connected to Mailchimp
+   */
+  revenueProgram?: RevenueProgram;
   /**
    * User's organization plan
    */
@@ -67,7 +75,7 @@ export default function useConnectMailchimp(): UseConnectMailchimpResult {
 
   // If the user is loading or errored, return that status.
   if (isLoading || isError) {
-    return { isError, isLoading, connectedToMailchimp: false };
+    return { isError, isLoading, connectedToMailchimp: false, requiresAudienceSelection: false };
   }
 
   // If the user has no feature flag enabling mailchimp integration, has no revenue programs, no org or multiple orgs return that there's no action to take.
@@ -81,7 +89,8 @@ export default function useConnectMailchimp(): UseConnectMailchimpResult {
     return {
       isError: false,
       isLoading: false,
-      connectedToMailchimp: false
+      connectedToMailchimp: false,
+      requiresAudienceSelection: false
     };
   }
 
@@ -97,7 +106,12 @@ export default function useConnectMailchimp(): UseConnectMailchimpResult {
       connectedToMailchimp:
         !!user?.organizations?.[0]?.show_connected_to_mailchimp ||
         !!user?.revenue_programs?.[0]?.mailchimp_integration_connected,
-      organizationPlan: user?.organizations?.[0]?.plan?.name
+      organizationPlan: user?.organizations?.[0]?.plan?.name,
+      // Even with Mailchimp connected, we still may need to select an audience list.
+      requiresAudienceSelection:
+        !user?.revenue_programs?.[0]?.mailchimp_email_list?.id &&
+        (user?.revenue_programs?.[0]?.mailchimp_email_lists?.length ?? 0) > 0,
+      revenueProgram: user?.revenue_programs?.[0]
     };
   }
 
@@ -109,6 +123,12 @@ export default function useConnectMailchimp(): UseConnectMailchimpResult {
     connectedToMailchimp:
       !!user?.organizations?.[0]?.show_connected_to_mailchimp ||
       !!user?.revenue_programs?.[0]?.mailchimp_integration_connected,
-    organizationPlan: user?.organizations?.[0].plan.name
+    organizationPlan: user?.organizations?.[0].plan.name,
+    // Only require audience selection if there is no list selected, and if the
+    // audience lists is populated (mailchimp connection successfully started)
+    requiresAudienceSelection:
+      !user?.revenue_programs?.[0]?.mailchimp_email_list?.id &&
+      (user?.revenue_programs?.[0]?.mailchimp_email_lists?.length ?? 0) > 0,
+    revenueProgram: user?.revenue_programs?.[0]
   };
 }

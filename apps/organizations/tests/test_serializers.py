@@ -186,3 +186,10 @@ class TestRevenueProgramSerializer:
         assert serializer.is_valid() is False
         assert "mailchimp_list_id" in serializer.errors
         logger_spy.assert_called_once_with("Attempt to set mailchimp_list_id on a new RP")
+
+    def test_update_override_has_update_fields_in_save(self, revenue_program, mocker):
+        save_spy = mocker.patch("apps.organizations.models.RevenueProgram.save")
+        data = {"mailchimp_list_id": "something-made-up", "name": "something"}
+        serializer = RevenueProgramSerializer(revenue_program)
+        serializer.update(revenue_program, data)
+        save_spy.assert_called_once_with(update_fields=set(data.keys()))

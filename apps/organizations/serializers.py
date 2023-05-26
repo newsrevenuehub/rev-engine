@@ -162,6 +162,17 @@ class RevenueProgramSerializer(serializers.ModelSerializer):
             "mailchimp_recurring_contribution_product",
         ]
 
+    def update(self, instance, validated_data):
+        """We override `.update` so we can pass update_fields to `instance.save()`. We have code that creates mailchimp entities
+        if mailchimp_list_id is being updated. Beyond that, `update_fields` guards against race conditions."""
+        logger.info("Updating RP %s with data %s", instance, validated_data)
+        update_fields = [field for field in validated_data if field in self.fields]
+        for attr, value in validated_data.items():
+            if attr in update_fields:
+                setattr(instance, attr, value)
+        instance.save(update_fields={field for field in validated_data if field in self.fields})
+        return instance
+
     def validate_mailchimp_list_id(self, value):
         logger.info("Validating Mailchimp list ID with value %s for RP %s", value, self.instance)
         if not self.instance:

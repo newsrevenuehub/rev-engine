@@ -17,6 +17,7 @@ const formDefaultValues = {
   audience: { id: '.', name: 'Select your list' }
 };
 
+// TODO: [DEV-3580] Handle case where user has successfully connected to Mailchimp but has no audiences
 const AudienceListModal = ({ open, loading, outerError, revenueProgram }: AudienceListModalProps) => {
   const {
     control,

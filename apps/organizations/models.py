@@ -1,6 +1,7 @@
 import logging
 import os
 from dataclasses import dataclass, field
+from functools import cached_property
 from typing import List, Literal
 
 from django.conf import settings
@@ -485,7 +486,7 @@ class RevenueProgram(IndexedTimeStampedModel):
                 logger.exception("Unexpected error from Mailchimp API. The error text is %s", exc.text)
         return None
 
-    @property
+    @cached_property
     def mailchimp_store(self) -> MailchimpStore | None:
         logger.info("Called for rp %s", self.id)
         if not self.mailchimp_integration_connected:
@@ -501,7 +502,7 @@ class RevenueProgram(IndexedTimeStampedModel):
         except ApiClientError as exc:
             return self.handle_mailchimp_api_client_read_error("store", exc)
 
-    @property
+    @cached_property
     def mailchimp_one_time_contribution_product(self) -> MailchimpProduct | None:
         logger.info("Called for rp %s", self.id)
         if not self.mailchimp_list_id:
@@ -516,7 +517,7 @@ class RevenueProgram(IndexedTimeStampedModel):
         except ApiClientError as exc:
             return self.handle_mailchimp_api_client_read_error("one-time contribution product", exc)
 
-    @property
+    @cached_property
     def mailchimp_recurring_contribution_product(self) -> MailchimpProduct | None:
         logger.info("Called for rp %s", self.id)
         if not self.mailchimp_list_id:
@@ -531,7 +532,7 @@ class RevenueProgram(IndexedTimeStampedModel):
         except ApiClientError as error:
             return self.handle_mailchimp_api_client_read_error("recurring contribution product", error)
 
-    @property
+    @cached_property
     def mailchimp_contributor_segment(self) -> MailchimpSegment | None:
         logger.info("Called for rp %s", self.id)
         if not self.mailchimp_list_id:
@@ -563,7 +564,7 @@ class RevenueProgram(IndexedTimeStampedModel):
         except ApiClientError as error:
             return self.handle_mailchimp_api_client_read_error("recurring segment", error)
 
-    @property
+    @cached_property
     def mailchimp_email_list(self) -> MailchimpEmailList | None:
         logger.info("Called for rp %s", self.id)
         if not (list_id := self.mailchimp_list_id):
@@ -901,7 +902,7 @@ class RevenueProgram(IndexedTimeStampedModel):
                 button_color=_style.colors.cstm_CTAs or None,
             )
 
-    @property
+    @cached_property
     def mailchimp_email_lists(self) -> list[MailchimpEmailList]:
         """Retrieve Mailchimp email lists for this RP, if any.
 

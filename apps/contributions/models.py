@@ -154,6 +154,18 @@ class ContributionQuerySet(models.QuerySet):
                 contributor.email, revenue_program.stripe_account_id
             )
         logger.info("These are the contributions %s", contributions)
+        logger.info(
+            "Contributions post filtering %s",
+            [
+                x
+                for x in contributions
+                if x.get("revenue_program") == revenue_program.slug
+                and x.get("payment_type") is not None
+                and x.get("status") == ContributionStatus.PAID
+            ],
+        )
+        logger.info("Contribution status, %s", ContributionStatus.PAID)
+        logger.info("Contribution status from dict, %s", contributions[0].get("status"))
         return [
             x
             for x in contributions

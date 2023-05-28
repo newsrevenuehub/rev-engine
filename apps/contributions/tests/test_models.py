@@ -1694,9 +1694,9 @@ class TestContributionQuerySetMethods:
     ):
         """Show behavior of this method when results in cache"""
         results = [
-            {"id": 1, "revenue_program": revenue_program.slug, "payment_type": "something", "status": "succeeded"},
-            {"id": 2, "revenue_program": revenue_program.slug, "payment_type": None, "status": "succeeded"},
-            {"id": 3, "revenue_program": "something-different", "payment_type": "something", "status": "succeeded"},
+            {"id": 1, "revenue_program": revenue_program.slug, "payment_type": "something", "status": "paid"},
+            {"id": 2, "revenue_program": revenue_program.slug, "payment_type": None, "status": "paid"},
+            {"id": 3, "revenue_program": "something-different", "payment_type": "something", "status": "paid"},
         ]
         monkeypatch.setattr(
             "apps.contributions.stripe_contributions_provider.ContributionsCacheProvider.load",
@@ -1731,9 +1731,10 @@ class TestContributionQuerySetMethods:
         monkeypatch.setattr(
             "apps.contributions.stripe_contributions_provider.ContributionsCacheProvider.load",
             lambda *args, **kwargs: [
-                {"id": 1, "revenue_program": revenue_program.slug, "payment_type": "something", "status": "succeeded"},
+                {"id": 1, "revenue_program": revenue_program.slug, "payment_type": "something", "status": "paid"},
                 {"id": 2, "revenue_program": revenue_program.slug, "payment_type": None, "status": "cancelled"},
-                {"id": 3, "revenue_program": revenue_program.slug, "payment_type": "something", "status": "succeeded"},
+                {"id": 3, "revenue_program": "something-different", "payment_type": "something", "status": "refunded"},
+                {"id": 4, "revenue_program": revenue_program.slug, "payment_type": "something", "status": "paid"},
             ],
         )
         monkeypatch.setattr(

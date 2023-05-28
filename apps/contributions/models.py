@@ -154,13 +154,12 @@ class ContributionQuerySet(models.QuerySet):
             task_pull_serialized_stripe_contributions_to_cache.delay(
                 contributor.email, revenue_program.stripe_account_id
             )
-        logger.info("1 %s", contributions[0].get("revenue_program"))
-        logger.info("1 %s", contributions[0].get("status"))
-        logger.info("1 %s", contributions[0].get("payment_type"))
         return [
             x
             for x in contributions
-            if x.get("revenue_program") == revenue_program.slug and x.get("payment_type") is not None
+            if x.get("revenue_program") == revenue_program.slug
+            and x.get("payment_type") is not None
+            and x.get("status") == ContributionStatus.PAID.value
         ]
 
     def filtered_by_role_assignment(self, role_assignment: RoleAssignment) -> models.QuerySet:

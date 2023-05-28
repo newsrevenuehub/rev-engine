@@ -119,7 +119,6 @@ class Contributor(IndexedTimeStampedModel):
 class CachedStripeContributionResult(TypedDict):
     revenue_program: str
     payment_type: str
-    status: str
 
 
 class ContributionQuerySet(models.QuerySet):

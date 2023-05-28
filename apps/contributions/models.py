@@ -154,6 +154,7 @@ class ContributionQuerySet(models.QuerySet):
             task_pull_serialized_stripe_contributions_to_cache.delay(
                 contributor.email, revenue_program.stripe_account_id
             )
+        logger.info("These are the contributions %s", contributions)
         return [
             x
             for x in contributions

@@ -22,18 +22,14 @@ export function DonationUpgradePrompts() {
 
   useEffect(() => {
     if (showAnimation) {
-      console.log('start delay to hide highlight');
       setTimeout(() => {
-        console.log('hide highlight');
         setShowHighlight(false);
-      }, 1000);
+      }, 500);
     }
   }, [showAnimation]);
 
   useEffect(() => {
-    console.log('start delay to show animation');
     setTimeout(() => {
-      console.log('show animation');
       setShowAnimation(true);
     }, 1000);
   }, []);
@@ -49,9 +45,9 @@ export function DonationUpgradePrompts() {
     user?.revenue_programs[0].payment_provider_stripe_verified
   ) {
     return (
-      <Fade in={showAnimation} timeout={1000} data-testid={`show-animation-${showAnimation}`}>
+      <Fade in={showAnimation} timeout={500} data-testid={`show-animation-${showAnimation}`}>
         <Root>
-          <Fade in={showHighlight} timeout={500} data-testid={`prompt-highlight-${showHighlight}`}>
+          <Fade in={showHighlight} timeout={300} data-testid={`prompt-highlight-${showHighlight}`}>
             <Highlight />
           </Fade>
           <DonationCoreUpgradePrompt onClose={() => setCoreUpgradePromptClosed(true)} />

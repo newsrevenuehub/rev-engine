@@ -206,34 +206,22 @@ describe('DonationUpgradePrompts', () => {
       expect(screen.getByTestId('prompt-highlight-true')).toBeInTheDocument();
     });
 
-    it.skip('hides the highlight 1 second after animation', async () => {
+    it('hides the highlight 1 second after animation', () => {
       tree();
       expect(screen.getByTestId('prompt-highlight-true')).toBeInTheDocument();
-      act(() => {
-        jest.runAllTimers();
-      });
-      await waitFor(() => {
-        expect(screen.getByTestId('prompt-highlight-false')).toBeInTheDocument();
-      });
+      act(() => jest.advanceTimersByTime(animationTimeout));
+      act(() => jest.runAllTimers());
+      expect(screen.getByTestId('prompt-highlight-false')).toBeInTheDocument();
     });
 
-    it.skip('animation flow is done correctly', async () => {
+    it('triggers fades in the correct order', () => {
       tree();
       expect(screen.getByTestId('show-animation-false')).toBeInTheDocument();
-      act(() => {
-        jest.advanceTimersByTime(animationTimeout);
-      });
-      await waitFor(() => {
-        expect(screen.getByTestId('show-animation-true')).toBeInTheDocument();
-      });
-      expect(screen.getByTestId('prompt-highlight-true')).toBeInTheDocument();
-      act(() => {
-        jest.runOnlyPendingTimers();
-      });
+      act(() => jest.advanceTimersByTime(animationTimeout));
       expect(screen.getByTestId('show-animation-true')).toBeInTheDocument();
-      await waitFor(() => {
-        expect(screen.getByTestId('prompt-highlight-false')).toBeInTheDocument();
-      });
+      expect(screen.getByTestId('prompt-highlight-true')).toBeInTheDocument();
+      act(() => jest.runAllTimers());
+      expect(screen.getByTestId('prompt-highlight-false')).toBeInTheDocument();
     });
   });
 });

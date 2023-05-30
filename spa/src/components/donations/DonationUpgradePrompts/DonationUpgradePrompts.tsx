@@ -21,17 +21,21 @@ export function DonationUpgradePrompts() {
   const [showHighlight, setShowHighlight] = useState(true);
 
   useEffect(() => {
-    if (showAnimation) {
-      setTimeout(() => {
-        setShowHighlight(false);
-      }, 500);
-    }
+    if (!showAnimation) return;
+
+    const highlight = setTimeout(() => {
+      setShowHighlight(false);
+    }, 500);
+
+    return () => clearTimeout(highlight);
   }, [showAnimation]);
 
   useEffect(() => {
-    setTimeout(() => {
+    const animation = setTimeout(() => {
       setShowAnimation(true);
     }, 1000);
+
+    return () => clearTimeout(animation);
   }, []);
 
   // The published page check is meant to prevent the prompt from conflicting

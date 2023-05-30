@@ -16,7 +16,8 @@ describe('MailchimpIntegrationCard', () => {
       isLoading: false,
       isError: false,
       connectedToMailchimp: false,
-      requiresAudienceSelection: false
+      requiresAudienceSelection: false,
+      hasMailchimpAccess: false
     });
   });
 
@@ -30,7 +31,8 @@ describe('MailchimpIntegrationCard', () => {
       isLoading: false,
       isError: false,
       connectedToMailchimp: true,
-      requiresAudienceSelection: false
+      requiresAudienceSelection: false,
+      hasMailchimpAccess: true
     });
     tree();
 
@@ -42,7 +44,8 @@ describe('MailchimpIntegrationCard', () => {
       isLoading: true,
       isError: false,
       connectedToMailchimp: false,
-      requiresAudienceSelection: false
+      requiresAudienceSelection: false,
+      hasMailchimpAccess: false
     });
     tree();
     expect(screen.getByTestId('cornerMessage')).toBeEmptyDOMElement();
@@ -61,7 +64,8 @@ describe('MailchimpIntegrationCard', () => {
         isError: false,
         connectedToMailchimp: false,
         organizationPlan: organizationPlan as any,
-        requiresAudienceSelection: false
+        requiresAudienceSelection: false,
+        hasMailchimpAccess: true
       });
       tree();
       expect(screen.getByTestId('cornerMessage')).toHaveTextContent('Upgrade to Core');
@@ -81,7 +85,9 @@ describe('MailchimpIntegrationCard', () => {
         isError: false,
         connectedToMailchimp: false,
         organizationPlan: organizationPlan as any,
-        requiresAudienceSelection: false
+        requiresAudienceSelection: false,
+        hasMailchimpAccess: true,
+        sendUserToMailchimp: jest.fn()
       });
       tree();
       expect(screen.getByTestId('cornerMessage')).toBeEmptyDOMElement();
@@ -101,7 +107,8 @@ describe('MailchimpIntegrationCard', () => {
         connectedToMailchimp: false,
         organizationPlan: organizationPlan as any,
         sendUserToMailchimp,
-        requiresAudienceSelection: false
+        requiresAudienceSelection: false,
+        hasMailchimpAccess: true
       });
       tree();
       expect(sendUserToMailchimp).not.toBeCalled();

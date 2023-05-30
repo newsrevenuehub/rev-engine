@@ -53,7 +53,8 @@ describe('Dashboard', () => {
       requiresAudienceSelection: false,
       isLoading: false,
       connectedToMailchimp: false,
-      isError: false
+      isError: false,
+      hasMailchimpAccess: true
     });
     useConnectStripeAccountMock.mockReturnValue({
       requiresVerification: false,
@@ -111,7 +112,8 @@ describe('Dashboard', () => {
       revenueProgram: 'mock-rp' as any,
       isLoading: false,
       connectedToMailchimp: false,
-      isError: false
+      isError: false,
+      hasMailchimpAccess: true
     });
     render(<Dashboard />);
     const audienceListModal = screen.getByTestId('mock-audience-list-modal');
@@ -125,7 +127,8 @@ describe('Dashboard', () => {
       revenueProgram: 'mock-rp' as any,
       isLoading: false,
       connectedToMailchimp: false,
-      isError: false
+      isError: false,
+      hasMailchimpAccess: true
     });
     render(<Dashboard />);
     expect(screen.queryByTestId('mock-audience-list-modal')).not.toBeInTheDocument();

@@ -37,6 +37,10 @@ export interface UseConnectMailchimpResult {
    * User's organization plan
    */
   organizationPlan?: EnginePlan['name'];
+  /**
+   * User has Mailchimp feature flag enabled
+   */
+  hasMailchimpAccess: boolean;
 }
 
 const BASE_URL = window.location.origin;
@@ -75,7 +79,7 @@ export default function useConnectMailchimp(): UseConnectMailchimpResult {
 
   // If the user is loading or errored, return that status.
   if (isLoading || isError) {
-    return { isError, isLoading, connectedToMailchimp: false, requiresAudienceSelection: false };
+    return { isError, isLoading, connectedToMailchimp: false, requiresAudienceSelection: false, hasMailchimpAccess };
   }
 
   // If the user has no feature flag enabling mailchimp integration, has no revenue programs, no org or multiple orgs return that there's no action to take.
@@ -90,7 +94,9 @@ export default function useConnectMailchimp(): UseConnectMailchimpResult {
       isError: false,
       isLoading: false,
       connectedToMailchimp: false,
-      requiresAudienceSelection: false
+      requiresAudienceSelection: false,
+      organizationPlan: user?.organizations?.[0]?.plan?.name,
+      hasMailchimpAccess
     };
   }
 
@@ -101,6 +107,7 @@ export default function useConnectMailchimp(): UseConnectMailchimpResult {
     (user?.organizations?.[0]?.plan?.name ?? 'FREE') === 'FREE'
   ) {
     return {
+      hasMailchimpAccess,
       isError: false,
       isLoading: false,
       connectedToMailchimp:
@@ -129,6 +136,7 @@ export default function useConnectMailchimp(): UseConnectMailchimpResult {
     requiresAudienceSelection:
       !user?.revenue_programs?.[0]?.mailchimp_email_list?.id &&
       (user?.revenue_programs?.[0]?.mailchimp_email_lists?.length ?? 0) > 0,
-    revenueProgram: user?.revenue_programs?.[0]
+    revenueProgram: user?.revenue_programs?.[0],
+    hasMailchimpAccess
   };
 }

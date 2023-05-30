@@ -93,7 +93,37 @@ describe('useConnectMailchimp hook', () => {
       isError: false,
       isLoading: true,
       connectedToMailchimp: false,
+      hasMailchimpAccess: true,
       requiresAudienceSelection: false
+    });
+  });
+
+  it('returns organization plan even if feature flag is disabled', () => {
+    useFeatureFlagsMock.mockReturnValue({ flags: [{ name: 'mock-random-flag' }], isError: false, isLoading: false });
+    useUserMock.mockReturnValue({
+      user: {
+        ...mockUser,
+        organizations: [
+          {
+            id: 0,
+            name: 'mock-org-name-1',
+            plan: { name: 'mock-plan' }
+          }
+        ] as unknown as Organization[]
+      },
+      isError: false,
+      isLoading: false,
+      refetch: jest.fn()
+    });
+    const { result } = renderHook(() => useConnectMailchimp(), { wrapper });
+
+    expect(result.current).toEqual({
+      isError: false,
+      isLoading: false,
+      connectedToMailchimp: false,
+      hasMailchimpAccess: false,
+      requiresAudienceSelection: false,
+      organizationPlan: 'mock-plan'
     });
   });
 
@@ -106,6 +136,7 @@ describe('useConnectMailchimp hook', () => {
       isError: true,
       isLoading: false,
       connectedToMailchimp: false,
+      hasMailchimpAccess: true,
       requiresAudienceSelection: false
     });
   });
@@ -118,6 +149,7 @@ describe('useConnectMailchimp hook', () => {
       isError: false,
       isLoading: false,
       connectedToMailchimp: false,
+      hasMailchimpAccess: false,
       requiresAudienceSelection: false
     });
   });
@@ -135,6 +167,7 @@ describe('useConnectMailchimp hook', () => {
       isError: false,
       isLoading: false,
       connectedToMailchimp: false,
+      hasMailchimpAccess: true,
       requiresAudienceSelection: false
     });
   });
@@ -152,6 +185,7 @@ describe('useConnectMailchimp hook', () => {
       isError: false,
       isLoading: false,
       connectedToMailchimp: false,
+      hasMailchimpAccess: true,
       requiresAudienceSelection: false
     });
   });
@@ -181,7 +215,8 @@ describe('useConnectMailchimp hook', () => {
       isError: false,
       isLoading: false,
       connectedToMailchimp: false,
-      requiresAudienceSelection: false
+      requiresAudienceSelection: false,
+      hasMailchimpAccess: true
     });
   });
 
@@ -210,6 +245,7 @@ describe('useConnectMailchimp hook', () => {
         isLoading: false,
         connectedToMailchimp: true,
         organizationPlan: 'mock-plan',
+        hasMailchimpAccess: true,
         requiresAudienceSelection: false,
         revenueProgram: mockRp
       });
@@ -236,6 +272,8 @@ describe('useConnectMailchimp hook', () => {
         isError: false,
         isLoading: false,
         connectedToMailchimp: true,
+        hasMailchimpAccess: true,
+        organizationPlan: undefined,
         requiresAudienceSelection: false,
         revenueProgram: { ...mockRp, mailchimp_integration_connected: true }
       });
@@ -265,6 +303,7 @@ describe('useConnectMailchimp hook', () => {
       isLoading: false,
       connectedToMailchimp: false,
       organizationPlan: 'FREE',
+      hasMailchimpAccess: true,
       requiresAudienceSelection: false,
       revenueProgram: mockRp
     });
@@ -333,6 +372,7 @@ describe('useConnectMailchimp hook', () => {
       connectedToMailchimp: false,
       organizationPlan: 'CORE',
       requiresAudienceSelection: false,
+      hasMailchimpAccess: true,
       revenueProgram: {
         id: 0,
         name: 'mock-org-name-1',
@@ -380,6 +420,7 @@ describe('useConnectMailchimp hook', () => {
       connectedToMailchimp: false,
       organizationPlan: 'CORE',
       requiresAudienceSelection: true,
+      hasMailchimpAccess: true,
       revenueProgram: {
         id: 0,
         name: 'mock-org-name-1',

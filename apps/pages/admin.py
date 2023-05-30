@@ -108,6 +108,7 @@ class DonationPageAdmin(CompareVersionAdmin, DonationPageAdminAbstract):
     list_display = (
         "organization",
         "revenue_program",
+        "name",
         "slug",
         "is_live",
         "published_date",

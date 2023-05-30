@@ -1162,6 +1162,10 @@ class TestRevenueProgram:
 
     def test_ensure_mailchimp_recurring_segment_when_no_existing_recurring_segment(self, mc_connected_rp, mocker):
         my_id = "some-id"
+        mock_create_revision = mocker.patch("reversion.create_revision")
+        mock_create_revision.return_value.__enter__.return_value.add = mocker.Mock()
+        mock_set_comment = mocker.patch("reversion.set_comment")
+        save_spy = mocker.spy(RevenueProgram, "save")
         mocker.patch(
             "apps.organizations.models.RevenueProgram.mailchimp_recurring_segment",
             return_value=None,
@@ -1173,6 +1177,13 @@ class TestRevenueProgram:
         )
         mc_connected_rp.ensure_mailchimp_recurring_segment()
         mock_make_recurring_segment.assert_called_once()
+        save_spy.assert_called_once_with(
+            mc_connected_rp, update_fields={"mailchimp_recurring_contributor_segment_id", "modified"}
+        )
+        mock_create_revision.assert_called_once()
+        mock_set_comment.assert_called_once_with(
+            "ensure_mailchimp_recurring_segment updated recurring contributor segment id"
+        )
 
     def test_ensure_mailchimp_recurring_segment_when_recurring_segment_already_exists(self, mc_connected_rp, mocker):
         mocker.patch(

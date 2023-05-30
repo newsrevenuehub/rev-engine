@@ -15,7 +15,8 @@ describe('MailchimpIntegrationCard', () => {
     useConnectMailchimpMock.mockReturnValue({
       isLoading: false,
       isError: false,
-      connectedToMailchimp: false
+      connectedToMailchimp: false,
+      requiresAudienceSelection: false
     });
   });
 
@@ -28,7 +29,8 @@ describe('MailchimpIntegrationCard', () => {
     useConnectMailchimpMock.mockReturnValue({
       isLoading: false,
       isError: false,
-      connectedToMailchimp: true
+      connectedToMailchimp: true,
+      requiresAudienceSelection: false
     });
     tree();
 
@@ -39,7 +41,8 @@ describe('MailchimpIntegrationCard', () => {
     useConnectMailchimpMock.mockReturnValue({
       isLoading: true,
       isError: false,
-      connectedToMailchimp: false
+      connectedToMailchimp: false,
+      requiresAudienceSelection: false
     });
     tree();
     expect(screen.getByTestId('cornerMessage')).toBeEmptyDOMElement();
@@ -57,7 +60,8 @@ describe('MailchimpIntegrationCard', () => {
         isLoading: false,
         isError: false,
         connectedToMailchimp: false,
-        organizationPlan: organizationPlan as any
+        organizationPlan: organizationPlan as any,
+        requiresAudienceSelection: false
       });
       tree();
       expect(screen.getByTestId('cornerMessage')).toHaveTextContent('Upgrade to Core');
@@ -76,7 +80,8 @@ describe('MailchimpIntegrationCard', () => {
         isLoading: false,
         isError: false,
         connectedToMailchimp: false,
-        organizationPlan: organizationPlan as any
+        organizationPlan: organizationPlan as any,
+        requiresAudienceSelection: false
       });
       tree();
       expect(screen.getByTestId('cornerMessage')).toBeEmptyDOMElement();
@@ -95,7 +100,8 @@ describe('MailchimpIntegrationCard', () => {
         isError: false,
         connectedToMailchimp: false,
         organizationPlan: organizationPlan as any,
-        sendUserToMailchimp
+        sendUserToMailchimp,
+        requiresAudienceSelection: false
       });
       tree();
       expect(sendUserToMailchimp).not.toBeCalled();

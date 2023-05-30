@@ -89,9 +89,12 @@ describe('useConnectMailchimp hook', () => {
 
     const { result } = renderHook(() => useConnectMailchimp(), { wrapper });
 
-    expect(result.current).toEqual(
-      expect.objectContaining({ isError: false, isLoading: true, connectedToMailchimp: false })
-    );
+    expect(result.current).toEqual({
+      isError: false,
+      isLoading: true,
+      connectedToMailchimp: false,
+      requiresAudienceSelection: false
+    });
   });
 
   it('returns an error status if an error occurred loading user data', () => {
@@ -99,18 +102,24 @@ describe('useConnectMailchimp hook', () => {
 
     const { result } = renderHook(() => useConnectMailchimp(), { wrapper });
 
-    expect(result.current).toEqual(
-      expect.objectContaining({ isError: true, isLoading: false, connectedToMailchimp: false })
-    );
+    expect(result.current).toEqual({
+      isError: true,
+      isLoading: false,
+      connectedToMailchimp: false,
+      requiresAudienceSelection: false
+    });
   });
 
   it('returns no action if user does not have mailchimp-integration-access feature flag', () => {
     useFeatureFlagsMock.mockReturnValue({ flags: [{ name: 'mock-random-flag' }], isError: false, isLoading: false });
     const { result } = renderHook(() => useConnectMailchimp(), { wrapper });
 
-    expect(result.current).toEqual(
-      expect.objectContaining({ isError: false, isLoading: false, connectedToMailchimp: false })
-    );
+    expect(result.current).toEqual({
+      isError: false,
+      isLoading: false,
+      connectedToMailchimp: false,
+      requiresAudienceSelection: false
+    });
   });
 
   it('returns no action if user does not have any revenue programs', () => {
@@ -122,9 +131,12 @@ describe('useConnectMailchimp hook', () => {
     });
     const { result } = renderHook(() => useConnectMailchimp(), { wrapper });
 
-    expect(result.current).toEqual(
-      expect.objectContaining({ isError: false, isLoading: false, connectedToMailchimp: false })
-    );
+    expect(result.current).toEqual({
+      isError: false,
+      isLoading: false,
+      connectedToMailchimp: false,
+      requiresAudienceSelection: false
+    });
   });
 
   it('returns no action if user does not have any organizations', () => {
@@ -136,9 +148,12 @@ describe('useConnectMailchimp hook', () => {
     });
     const { result } = renderHook(() => useConnectMailchimp(), { wrapper });
 
-    expect(result.current).toEqual(
-      expect.objectContaining({ isError: false, isLoading: false, connectedToMailchimp: false })
-    );
+    expect(result.current).toEqual({
+      isError: false,
+      isLoading: false,
+      connectedToMailchimp: false,
+      requiresAudienceSelection: false
+    });
   });
 
   it('returns no action if user have multiple organizations', () => {
@@ -162,9 +177,12 @@ describe('useConnectMailchimp hook', () => {
     });
     const { result } = renderHook(() => useConnectMailchimp(), { wrapper });
 
-    expect(result.current).toEqual(
-      expect.objectContaining({ isError: false, isLoading: false, connectedToMailchimp: false })
-    );
+    expect(result.current).toEqual({
+      isError: false,
+      isLoading: false,
+      connectedToMailchimp: false,
+      requiresAudienceSelection: false
+    });
   });
 
   describe('returns no action if user has mailchimp connected', () => {
@@ -187,14 +205,14 @@ describe('useConnectMailchimp hook', () => {
       });
       const { result } = renderHook(() => useConnectMailchimp(), { wrapper });
 
-      expect(result.current).toEqual(
-        expect.objectContaining({
-          isError: false,
-          isLoading: false,
-          connectedToMailchimp: true,
-          organizationPlan: 'mock-plan'
-        })
-      );
+      expect(result.current).toEqual({
+        isError: false,
+        isLoading: false,
+        connectedToMailchimp: true,
+        organizationPlan: 'mock-plan',
+        requiresAudienceSelection: false,
+        revenueProgram: mockRp
+      });
     });
     it('revenue program has mailchimp_integration_connected = true', () => {
       useUserMock.mockReturnValue({
@@ -214,13 +232,13 @@ describe('useConnectMailchimp hook', () => {
       });
       const { result } = renderHook(() => useConnectMailchimp(), { wrapper });
 
-      expect(result.current).toEqual(
-        expect.objectContaining({
-          isError: false,
-          isLoading: false,
-          connectedToMailchimp: true
-        })
-      );
+      expect(result.current).toEqual({
+        isError: false,
+        isLoading: false,
+        connectedToMailchimp: true,
+        requiresAudienceSelection: false,
+        revenueProgram: { ...mockRp, mailchimp_integration_connected: true }
+      });
     });
   });
 
@@ -242,14 +260,14 @@ describe('useConnectMailchimp hook', () => {
     });
     const { result } = renderHook(() => useConnectMailchimp(), { wrapper });
 
-    expect(result.current).toEqual(
-      expect.objectContaining({
-        isError: false,
-        isLoading: false,
-        connectedToMailchimp: false,
-        organizationPlan: 'FREE'
-      })
-    );
+    expect(result.current).toEqual({
+      isError: false,
+      isLoading: false,
+      connectedToMailchimp: false,
+      organizationPlan: 'FREE',
+      requiresAudienceSelection: false,
+      revenueProgram: mockRp
+    });
   });
 
   it('returns a sendUserToMailchimp() function which redirects the user to the URL provided by the API', async () => {
@@ -278,6 +296,100 @@ describe('useConnectMailchimp hook', () => {
     expect(typeof result.current.sendUserToMailchimp).toBe('function');
     result.current.sendUserToMailchimp!();
     expect(window.location.href).toEqual(mailchimpURL);
+  });
+
+  it('returns audience selected', async () => {
+    useUserMock.mockReturnValue({
+      user: {
+        ...mockUser,
+        organizations: [
+          {
+            id: 0,
+            name: 'mock-org-name-1',
+            plan: { name: 'CORE' }
+          }
+        ] as Organization[],
+        revenue_programs: [
+          {
+            id: 0,
+            name: 'mock-org-name-1',
+            mailchimp_email_list: { id: '1', name: 'audience-1' },
+            mailchimp_email_lists: [
+              { id: '1', name: 'audience-1' },
+              { id: '2', name: 'audience-2' }
+            ]
+          }
+        ] as RevenueProgram[]
+      },
+      isError: false,
+      isLoading: false,
+      refetch: jest.fn()
+    });
+    const { result } = renderHook(() => useConnectMailchimp(), { wrapper });
+
+    expect(result.current).toEqual({
+      isError: false,
+      isLoading: false,
+      connectedToMailchimp: false,
+      organizationPlan: 'CORE',
+      requiresAudienceSelection: false,
+      revenueProgram: {
+        id: 0,
+        name: 'mock-org-name-1',
+        mailchimp_email_list: { id: '1', name: 'audience-1' },
+        mailchimp_email_lists: [
+          { id: '1', name: 'audience-1' },
+          { id: '2', name: 'audience-2' }
+        ]
+      },
+      sendUserToMailchimp: expect.any(Function)
+    });
+  });
+
+  it('returns an audience lists without selected audience', async () => {
+    useUserMock.mockReturnValue({
+      user: {
+        ...mockUser,
+        organizations: [
+          {
+            id: 0,
+            name: 'mock-org-name-1',
+            plan: { name: 'CORE' }
+          }
+        ] as Organization[],
+        revenue_programs: [
+          {
+            id: 0,
+            name: 'mock-org-name-1',
+            mailchimp_email_lists: [
+              { id: '1', name: 'audience-1' },
+              { id: '2', name: 'audience-2' }
+            ]
+          }
+        ] as RevenueProgram[]
+      },
+      isError: false,
+      isLoading: false,
+      refetch: jest.fn()
+    });
+    const { result } = renderHook(() => useConnectMailchimp(), { wrapper });
+
+    expect(result.current).toEqual({
+      isError: false,
+      isLoading: false,
+      connectedToMailchimp: false,
+      organizationPlan: 'CORE',
+      requiresAudienceSelection: true,
+      revenueProgram: {
+        id: 0,
+        name: 'mock-org-name-1',
+        mailchimp_email_lists: [
+          { id: '1', name: 'audience-1' },
+          { id: '2', name: 'audience-2' }
+        ]
+      },
+      sendUserToMailchimp: expect.any(Function)
+    });
   });
 
   it('show connection success notification', async () => {

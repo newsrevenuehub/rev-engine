@@ -1,6 +1,7 @@
 import logging
 import os
 from dataclasses import dataclass, field
+from functools import cached_property
 from typing import List, Literal
 
 from django.conf import settings
@@ -460,6 +461,7 @@ class RevenueProgram(IndexedTimeStampedModel):
     mailchimp_contributor_segment_id = models.CharField(max_length=100, null=True, blank=True)
     mailchimp_recurring_contributor_segment_id = models.CharField(max_length=100, null=True, blank=True)
     # NB: This field is stored in a secret manager, not in the database.
+    # TODO: [DEV-3581] Cache the value for mailchimp_access_token to avoid hitting the secret manager on every request (potentially multiple times per request)
     mailchimp_access_token = GoogleCloudSecretProvider(model_attr="mailchimp_access_token_secret_name")
 
     objects = RevenueProgramManager.from_queryset(RevenueProgramQuerySet)()
@@ -467,11 +469,15 @@ class RevenueProgram(IndexedTimeStampedModel):
     def __str__(self):
         return self.name
 
-    def handle_mailchimp_api_client_read_error(self, entity: str, exc: ApiClientError) -> None:
+    def handle_mailchimp_api_client_read_error(
+        self, entity: str, exc: ApiClientError, log_level_on_not_found: Literal["debug", "error", "warning"] = "debug"
+    ) -> None:
         logger.info("Called for rp %s", self.id)
         match exc.status_code:
             case 404:
-                logger.debug("Mailchimp %s not found for RP %s, returning None", entity, self.id)
+                getattr(logger, log_level_on_not_found)(
+                    "Mailchimp %s not found for RP %s, returning None", entity, self.id
+                )
             case 429:
                 logger.debug("Mailchimp rate limit exceeded for RP %s, raising exception", self.id)
                 # We raise this error because we have Celery tasks that interact with Mailchimp API and
@@ -481,7 +487,8 @@ class RevenueProgram(IndexedTimeStampedModel):
                 logger.exception("Unexpected error from Mailchimp API. The error text is %s", exc.text)
         return None
 
-    @property
+    # TODO: [DEV-3582] Better caching for mailchimp entities
+    @cached_property
     def mailchimp_store(self) -> MailchimpStore | None:
         logger.info("Called for rp %s", self.id)
         if not self.mailchimp_integration_connected:
@@ -497,7 +504,8 @@ class RevenueProgram(IndexedTimeStampedModel):
         except ApiClientError as exc:
             return self.handle_mailchimp_api_client_read_error("store", exc)
 
-    @property
+    # TODO: [DEV-3582] Better caching for mailchimp entities
+    @cached_property
     def mailchimp_one_time_contribution_product(self) -> MailchimpProduct | None:
         logger.info("Called for rp %s", self.id)
         if not self.mailchimp_list_id:
@@ -512,7 +520,8 @@ class RevenueProgram(IndexedTimeStampedModel):
         except ApiClientError as exc:
             return self.handle_mailchimp_api_client_read_error("one-time contribution product", exc)
 
-    @property
+    # TODO: [DEV-3582] Better caching for mailchimp entities
+    @cached_property
     def mailchimp_recurring_contribution_product(self) -> MailchimpProduct | None:
         logger.info("Called for rp %s", self.id)
         if not self.mailchimp_list_id:
@@ -527,7 +536,8 @@ class RevenueProgram(IndexedTimeStampedModel):
         except ApiClientError as error:
             return self.handle_mailchimp_api_client_read_error("recurring contribution product", error)
 
-    @property
+    # TODO: [DEV-3582] Better caching for mailchimp entities
+    @cached_property
     def mailchimp_contributor_segment(self) -> MailchimpSegment | None:
         logger.info("Called for rp %s", self.id)
         if not self.mailchimp_list_id:
@@ -543,6 +553,7 @@ class RevenueProgram(IndexedTimeStampedModel):
         except ApiClientError as error:
             return self.handle_mailchimp_api_client_read_error("contributor segment", error)
 
+    # TODO: [DEV-3582] Better caching for mailchimp entities
     @property
     def mailchimp_recurring_segment(self):
         logger.info("Called for rp %s", self.id)
@@ -558,6 +569,26 @@ class RevenueProgram(IndexedTimeStampedModel):
             return MailchimpSegment(**response)
         except ApiClientError as error:
             return self.handle_mailchimp_api_client_read_error("recurring segment", error)
+
+    # TODO: [DEV-3582] Better caching for mailchimp entities
+    @cached_property
+    def mailchimp_email_list(self) -> MailchimpEmailList | None:
+        logger.info("Called for rp %s", self.id)
+        if not (list_id := self.mailchimp_list_id):
+            logger.debug("No email list ID on RP %s, returning None", self.id)
+            return None
+        client = self.get_mailchimp_client()
+        try:
+            logger.info("Getting list %s for RP %s", list_id, self.id)
+            response = client.lists.get_list(list_id)
+            return MailchimpEmailList(**response)
+        except ApiClientError as error:
+            # we want to log as an error if not found because in this case, something has gone wrong in that we have a
+            # list ID but it is not found on Mailchimp.  This will give us a signal in Sentry, while not blocking
+            # serialization of the revenue program.
+            return self.handle_mailchimp_api_client_read_error(
+                "mailchimp email list", error, log_level_on_not_found="error"
+            )
 
     @property
     def mailchimp_store_id(self):
@@ -760,6 +791,7 @@ class RevenueProgram(IndexedTimeStampedModel):
             logger.info("Recurring contribution product already exists for rp_id=[%s]", self.id)
 
     def ensure_mailchimp_contributor_segment(self) -> None:
+        # TODO: [DEV-3579] Handle edge case where segment has been defined in Mailchimp but the ID is not saved in the RP
         if not self.mailchimp_contributor_segment:
             logger.info(
                 "Creating %s segment for rp_id=[%s]",
@@ -783,6 +815,7 @@ class RevenueProgram(IndexedTimeStampedModel):
         here is to make `setup_mailchimp_entities_for_rp_mailing_list` more easily testable by providing
         clean, obvious points to mock out.
         """
+        # TODO: [DEV-3579] Handle edge case where segment has been defined in Mailchimp but the ID is not saved in the RP
         if not self.mailchimp_recurring_segment:
             logger.info(
                 "Creating %s segment for rp_id=[%s]",
@@ -878,7 +911,8 @@ class RevenueProgram(IndexedTimeStampedModel):
                 button_color=_style.colors.cstm_CTAs or None,
             )
 
-    @property
+    # TODO: [DEV-3582] Better caching for mailchimp entities
+    @cached_property
     def mailchimp_email_lists(self) -> list[MailchimpEmailList]:
         """Retrieve Mailchimp email lists for this RP, if any.
 

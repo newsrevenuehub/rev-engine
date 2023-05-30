@@ -11,9 +11,9 @@ jest.mock('hooks/useRevenueProgram');
 const revenueProgram = {
   id: 1,
   mailchimp_email_lists: [
-    { id: 1, name: 'audience-mock-1' },
-    { id: 2, name: 'audience-mock-2' },
-    { id: 3, name: 'audience-mock-3' }
+    { id: '1', name: 'audience-mock-1' },
+    { id: '2', name: 'audience-mock-2' },
+    { id: '3', name: 'audience-mock-3' }
   ]
 };
 
@@ -75,7 +75,7 @@ describe('AudienceListModal', () => {
     await waitFor(() => updateRevenueProgram.mock.calls.length > 0);
     expect(useRevenueProgramMock).toHaveBeenCalledWith(revenueProgram.id);
     expect(updateRevenueProgram).toHaveBeenCalledWith({
-      mailchimp_email_list: revenueProgram.mailchimp_email_lists[0]
+      mailchimp_list_id: revenueProgram.mailchimp_email_lists[0].id
     });
   });
 

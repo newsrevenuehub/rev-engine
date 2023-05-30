@@ -246,7 +246,8 @@ describe('useConnectMailchimp hook', () => {
         connectedToMailchimp: true,
         organizationPlan: 'mock-plan',
         hasMailchimpAccess: true,
-        requiresAudienceSelection: false
+        requiresAudienceSelection: false,
+        revenueProgram: mockRp
       });
     });
     it('revenue program has mailchimp_integration_connected = true', () => {
@@ -273,7 +274,8 @@ describe('useConnectMailchimp hook', () => {
         connectedToMailchimp: true,
         hasMailchimpAccess: true,
         organizationPlan: undefined,
-        requiresAudienceSelection: false
+        requiresAudienceSelection: false,
+        revenueProgram: { ...mockRp, mailchimp_integration_connected: true }
       });
     });
   });
@@ -302,7 +304,8 @@ describe('useConnectMailchimp hook', () => {
       connectedToMailchimp: false,
       organizationPlan: 'FREE',
       hasMailchimpAccess: true,
-      requiresAudienceSelection: false
+      requiresAudienceSelection: false,
+      revenueProgram: mockRp
     });
   });
 
@@ -349,10 +352,10 @@ describe('useConnectMailchimp hook', () => {
           {
             id: 0,
             name: 'mock-org-name-1',
-            mailchimp_email_list: { id: 1, name: 'audience-1' },
+            mailchimp_email_list: { id: '1', name: 'audience-1' },
             mailchimp_email_lists: [
-              { id: 1, name: 'audience-1' },
-              { id: 2, name: 'audience-2' }
+              { id: '1', name: 'audience-1' },
+              { id: '2', name: 'audience-2' }
             ]
           }
         ] as RevenueProgram[]
@@ -373,10 +376,10 @@ describe('useConnectMailchimp hook', () => {
       revenueProgram: {
         id: 0,
         name: 'mock-org-name-1',
-        mailchimp_email_list: { id: 1, name: 'audience-1' },
+        mailchimp_email_list: { id: '1', name: 'audience-1' },
         mailchimp_email_lists: [
-          { id: 1, name: 'audience-1' },
-          { id: 2, name: 'audience-2' }
+          { id: '1', name: 'audience-1' },
+          { id: '2', name: 'audience-2' }
         ]
       },
       sendUserToMailchimp: expect.any(Function)
@@ -399,8 +402,8 @@ describe('useConnectMailchimp hook', () => {
             id: 0,
             name: 'mock-org-name-1',
             mailchimp_email_lists: [
-              { id: 1, name: 'audience-1' },
-              { id: 2, name: 'audience-2' }
+              { id: '1', name: 'audience-1' },
+              { id: '2', name: 'audience-2' }
             ]
           }
         ] as RevenueProgram[]
@@ -422,8 +425,8 @@ describe('useConnectMailchimp hook', () => {
         id: 0,
         name: 'mock-org-name-1',
         mailchimp_email_lists: [
-          { id: 1, name: 'audience-1' },
-          { id: 2, name: 'audience-2' }
+          { id: '1', name: 'audience-1' },
+          { id: '2', name: 'audience-2' }
         ]
       },
       sendUserToMailchimp: expect.any(Function)

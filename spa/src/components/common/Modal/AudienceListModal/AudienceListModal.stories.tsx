@@ -19,9 +19,9 @@ Default.args = {
   revenueProgram: {
     id: 0,
     mailchimp_email_lists: [
-      { id: 1, name: 'Audience 1' },
-      { id: 3, name: 'Audience 3' },
-      { id: 2, name: 'Audience 2' }
+      { id: '1', name: 'Audience 1' },
+      { id: '3', name: 'Audience 3' },
+      { id: '2', name: 'Audience 2' }
     ]
   } as RevenueProgram
 };

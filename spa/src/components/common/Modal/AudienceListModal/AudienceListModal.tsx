@@ -14,9 +14,10 @@ export interface AudienceListModalProps extends Omit<InferProps<typeof AudienceL
 
 const formDefaultValues = {
   // "." is to select the dropdown placeholder "Select Audience List"
-  audience: { id: '.' as any, name: 'Select your list' }
+  audience: { id: '.', name: 'Select your list' }
 };
 
+// TODO: [DEV-3580] Handle case where user has successfully connected to Mailchimp but has no audiences
 const AudienceListModal = ({ open, loading, outerError, revenueProgram }: AudienceListModalProps) => {
   const {
     control,
@@ -29,7 +30,7 @@ const AudienceListModal = ({ open, loading, outerError, revenueProgram }: Audien
 
   const onSubmit = (form: typeof formDefaultValues) => {
     updateRevenueProgram({
-      mailchimp_email_list: form.audience
+      mailchimp_list_id: form.audience.id
     });
   };
 
@@ -41,7 +42,7 @@ const AudienceListModal = ({ open, loading, outerError, revenueProgram }: Audien
   );
 
   // Adding a "." to the beginning of the array to select the placeholder
-  const options = [{ id: '.' as any, name: 'Select your list' }, ...sortedAudienceList];
+  const options = [{ id: '.', name: 'Select your list' }, ...sortedAudienceList];
 
   return (
     <Modal
@@ -78,7 +79,7 @@ const AudienceListModal = ({ open, loading, outerError, revenueProgram }: Audien
                 </Label>
               }
               // Disable the placeholder
-              getOptionDisabled={(option) => (option.id as any) === '.'}
+              getOptionDisabled={({ id }) => id === '.'}
               getOptionLabel={({ name }: Audience) => name}
               getOptionSelected={(option, value) => option.id === value.id}
               options={options}
@@ -111,7 +112,7 @@ const AudienceListModalPropTypes = {
     id: PropTypes.number.isRequired,
     mailchimp_email_lists: PropTypes.arrayOf(
       PropTypes.shape({
-        id: PropTypes.number.isRequired,
+        id: PropTypes.string.isRequired,
         name: PropTypes.string.isRequired
       }).isRequired
     ).isRequired

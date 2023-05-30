@@ -107,14 +107,18 @@ export default function useConnectMailchimp(): UseConnectMailchimpResult {
     (user?.organizations?.[0]?.plan?.name ?? 'FREE') === 'FREE'
   ) {
     return {
+      hasMailchimpAccess,
       isError: false,
       isLoading: false,
       connectedToMailchimp:
         !!user?.organizations?.[0]?.show_connected_to_mailchimp ||
         !!user?.revenue_programs?.[0]?.mailchimp_integration_connected,
       organizationPlan: user?.organizations?.[0]?.plan?.name,
-      requiresAudienceSelection: false,
-      hasMailchimpAccess
+      // Even with Mailchimp connected, we still may need to select an audience list.
+      requiresAudienceSelection:
+        !user?.revenue_programs?.[0]?.mailchimp_email_list?.id &&
+        (user?.revenue_programs?.[0]?.mailchimp_email_lists?.length ?? 0) > 0,
+      revenueProgram: user?.revenue_programs?.[0]
     };
   }
 

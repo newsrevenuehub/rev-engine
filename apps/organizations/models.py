@@ -824,7 +824,7 @@ class RevenueProgram(IndexedTimeStampedModel):
             )
             segment = self.make_mailchimp_recurring_segment()
             logger.info("Segment created for rp_id=[%s]", self.id)
-            self.mailchimp_contributor_segment_id = segment.id
+            self.mailchimp_recurring_contributor_segment_id = segment.id
             logger.info("Saving mailchimp recurring contributor segment id for rp_id=[%s]", self.id)
             with reversion.create_revision():
                 self.save(update_fields={"mailchimp_recurring_contributor_segment_id", "modified"})

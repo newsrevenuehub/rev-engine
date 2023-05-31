@@ -72,6 +72,22 @@ class OrganizationViewSet(
         return Response(serializers.OrganizationSerializer(organization).data)
 
 
+class RevenueProgramMailchimpIntegrationViewSet(
+    FilterForSuperUserOrRoleAssignmentUserMixin,
+    viewsets.GenericViewSet,
+    mixins.RetrieveModelMixin,
+    mixins.UpdateModelMixin,
+):
+    model = RevenueProgram
+    permission_classes = [IsAuthenticated, IsActiveSuperUser | (HasRoleAssignment & IsOrgAdmin)]
+    serializer_class = serializers.MailchimpIntegratedRevenueProgramSerializer
+    # we do this as an easy way to support PATCH but not PUT
+    http_method_names = ["patch", "get"]
+
+    def get_queryset(self) -> models.QuerySet:
+        return self.filter_queryset_for_superuser_or_ra()
+
+
 class RevenueProgramViewSet(FilterForSuperUserOrRoleAssignmentUserMixin, viewsets.ModelViewSet):
     model = RevenueProgram
     permission_classes = [

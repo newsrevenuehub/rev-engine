@@ -147,12 +147,7 @@ describe('PaymentSuccess', () => {
     });
 
     it('sends the user to the next URL with amount, frequency, and UID params if that is configured in the URL query string', async () => {
-      const oldWindow = window;
-
-      delete (global as any).window.location;
-      global.window = Object.create(window);
-      (global as any).window.location = { href: '/somewhere-else' };
-
+      const assignSpy = jest.spyOn(window.location, 'assign');
       const on = jest.fn();
       const replace = jest.fn();
 
@@ -167,11 +162,11 @@ describe('PaymentSuccess', () => {
       useLocationMock.mockReturnValue({ search: search.search });
       tree();
       await waitFor(() => expect(on).toBeCalled());
+      expect(assignSpy).not.toBeCalled();
       on.mock.calls[0][1]();
-      expect(window.location.href).toBe(
-        'https://mock-next-url.org/somewhere?uid=mock-uid&frequency=mock-frequency&amount=123.45'
-      );
-      global.window = oldWindow;
+      expect(assignSpy.mock.calls).toEqual([
+        ['https://mock-next-url.org/somewhere?uid=mock-uid&frequency=mock-frequency&amount=123.45']
+      ]);
     });
 
     it('sends the user to the generic thank you page if a next URL is not configured in the URL query string', async () => {

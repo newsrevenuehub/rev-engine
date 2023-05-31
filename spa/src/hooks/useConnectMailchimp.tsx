@@ -58,11 +58,13 @@ export default function useConnectMailchimp(): UseConnectMailchimpResult {
       throw new Error('There is no Mailchimp client ID associated.');
     }
 
-    window.location.href = `https://login.mailchimp.com/oauth2/authorize?${queryString.stringify({
-      response_type: 'code',
-      client_id: NRE_MAILCHIMP_CLIENT_ID,
-      redirect_uri: MAILCHIMP_OAUTH_CALLBACK
-    })}`;
+    window.location.assign(
+      `https://login.mailchimp.com/oauth2/authorize?${queryString.stringify({
+        response_type: 'code',
+        client_id: NRE_MAILCHIMP_CLIENT_ID,
+        redirect_uri: MAILCHIMP_OAUTH_CALLBACK
+      })}`
+    );
   }, []);
 
   // Only require audience selection if there is no list selected, and if the

@@ -75,19 +75,6 @@ describe('useConnectMailchimp hook', () => {
       isLoading: false,
       isError: false
     });
-
-    // We do this because the hook returns a `sendUserToMailchimp()` function which sets `window.location.href` to the value
-    // returned when we fetch account link status.
-    //
-    // https://www.csrhymes.com/2022/06/18/mocking-window-location-in-jest.html
-
-    delete (global as any).window.location;
-    global.window = Object.create(window);
-    (global as any).window.location = { origin: oldLocation.origin };
-  });
-
-  afterEach(() => {
-    (global as any).window.location = oldLocation;
   });
 
   it('returns a loading status when user data is loading', () => {
@@ -342,17 +329,36 @@ describe('useConnectMailchimp hook', () => {
     });
 
     it('returns a sendUserToMailchimp() function which redirects the user to the URL provided by the API', async () => {
+      const mailchimpURL = `https://login.mailchimp.com/oauth2/authorize?${queryString.stringify({
+        response_type: 'code',
+        client_id: NRE_MAILCHIMP_CLIENT_ID,
+        redirect_uri: MAILCHIMP_OAUTH_CALLBACK
+      })}`;
+
+      useUserMock.mockReturnValue({
+        user: {
+          ...mockUser,
+          organizations: [
+            {
+              id: 0,
+              name: 'mock-org-name-1',
+              plan: { name: 'CORE' }
+            }
+          ] as Organization[]
+        },
+        isError: false,
+        isLoading: false,
+        refetch: jest.fn(),
+        setRefetchInterval: jest.fn()
+      });
+
       const { result } = renderHook(() => useConnectMailchimp(), { wrapper: TestQueryClientProvider });
+      const assignSpy = jest.spyOn(window.location, 'assign');
 
       expect(typeof result.current.sendUserToMailchimp).toBe('function');
+      expect(assignSpy).not.toBeCalled();
       result.current.sendUserToMailchimp!();
-      expect(window.location.href).toEqual(
-        `https://login.mailchimp.com/oauth2/authorize?${queryString.stringify({
-          response_type: 'code',
-          client_id: NRE_MAILCHIMP_CLIENT_ID,
-          redirect_uri: MAILCHIMP_OAUTH_CALLBACK
-        })}`
-      );
+      expect(assignSpy.mock.calls).toEqual([[mailchimpURL]]);
     });
 
     it("returns a mailchimp_email_list prop with the revenue program's selected email list", async () => {

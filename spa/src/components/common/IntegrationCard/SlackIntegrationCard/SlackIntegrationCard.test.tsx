@@ -16,6 +16,7 @@ describe('SlackIntegrationCard', () => {
       isLoading: false,
       isError: false,
       refetch: jest.fn(),
+      setRefetchInterval: jest.fn(),
       user: {
         organizations: [
           {
@@ -36,6 +37,7 @@ describe('SlackIntegrationCard', () => {
       isLoading: false,
       isError: false,
       refetch: jest.fn(),
+      setRefetchInterval: jest.fn(),
       user: {
         organizations: [
           {

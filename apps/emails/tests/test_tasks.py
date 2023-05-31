@@ -2,6 +2,7 @@ import os
 from dataclasses import asdict
 from unittest import TestCase
 from unittest.mock import Mock, call, patch
+from urllib.parse import quote_plus
 
 from django.conf import settings
 from django.core import mail
@@ -18,6 +19,7 @@ from apps.emails.helpers import convert_to_timezone_formatted
 from apps.emails.tasks import (
     EmailTaskException,
     SendContributionEmailData,
+    get_test_magic_link,
     logger,
     make_send_thank_you_email_data,
     send_templated_email_with_attachment,
@@ -26,6 +28,34 @@ from apps.emails.tasks import (
 from apps.organizations.models import FiscalStatusChoices, FreePlan
 from apps.organizations.tests.factories import RevenueProgramFactory
 from apps.pages.tests.factories import DonationPageFactory, StyleFactory
+from apps.users.tests.factories import UserFactory
+
+
+@pytest.mark.django_db
+class TestMagicLink:
+    def test_get_test_magic_link(self, mocker):
+        user = UserFactory()
+        revenue_program = RevenueProgramFactory()
+
+        class MockSerializer:
+            validated_data = {"access": "mock-token"}
+
+            def is_valid(self, raise_exception=False):
+                return None
+
+            def update_short_lived_token(self, contributor):
+                return None
+
+        mock_contributor_serializer = mocker.patch(
+            "apps.api.serializers.ContributorObtainTokenSerializer",
+            return_value=MockSerializer(),
+        )
+        mock_construct_rp_domain = mocker.patch(
+            "apps.api.views.construct_rp_domain",
+            return_value="mock-domain",
+        )
+        expected = f"https://{mock_construct_rp_domain.return_value}/{settings.CONTRIBUTOR_VERIFY_URL}?token={mock_contributor_serializer().validated_data['access']}&email={quote_plus(user.email)}"
+        assert expected == get_test_magic_link(user, revenue_program)
 
 
 @pytest.mark.django_db

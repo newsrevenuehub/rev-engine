@@ -17,7 +17,7 @@ from stripe.error import StripeError
 
 from apps.contributions.choices import ContributionInterval
 from apps.emails.helpers import convert_to_timezone_formatted
-from apps.organizations.models import FiscalStatusChoices
+from apps.organizations.models import FiscalStatusChoices, TransactionalEmailStyle
 
 
 logger = get_task_logger(f"{settings.DEFAULT_LOGGER}.{__name__}")
@@ -74,19 +74,19 @@ class SendContributionEmailData(TypedDict):
     contributor_name: str
     non_profit: bool
     fiscal_status: Literal[FiscalStatuses.FISCALLY_SPONSORED, FiscalStatuses.FOR_PROFIT, FiscalStatuses.NON_PROFIT]
-    fiscal_sponsor_name: str
+    fiscal_sponsor_name: str | None
     magic_link: str
-    style: dict
+    style: TransactionalEmailStyle
     contribution_date: str
     contributor_email: str
-    tax_id: str
+    tax_id: str | None
 
 
 class SendMagicLinkEmailData(TypedDict):
     magic_link: str
     email: str
     rp_name: str
-    style: dict
+    style: TransactionalEmailStyle
 
 
 # would like to have type hint for contribution but that would cause a circular import because need to import class to this file
@@ -182,7 +182,6 @@ def get_test_magic_link(user, revenue_program) -> str:
     from apps.api.views import construct_rp_domain
     from apps.contributions.models import Contributor
 
-    # --- Generate magic link ---
     serializer = ContributorObtainTokenSerializer(data={"email": user.email, "subdomain": revenue_program.slug})
     serializer.is_valid(raise_exception=True)
     contributor, created = Contributor.objects.get_or_create(email=user.email)
@@ -192,7 +191,6 @@ def get_test_magic_link(user, revenue_program) -> str:
     token = serializer.validated_data["access"]
     domain = construct_rp_domain(serializer.validated_data.get("subdomain", ""), None)
     magic_link = f"https://{domain}/{settings.CONTRIBUTOR_VERIFY_URL}?token={token}&email={quote_plus(user.email)}"
-    # --- End generate magic link ---
     return magic_link
 
 

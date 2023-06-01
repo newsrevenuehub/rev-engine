@@ -724,7 +724,7 @@ class RevenueProgram(IndexedTimeStampedModel):
                             {
                                 "field": "ecomm_prod",
                                 "op": "is",
-                                "value": [self.mailchimp_one_time_contribution_product_name],
+                                "value": self.mailchimp_one_time_contribution_product_name,
                             },
                         ],
                     },
@@ -756,7 +756,7 @@ class RevenueProgram(IndexedTimeStampedModel):
                             {
                                 "field": "ecomm_prod",
                                 "op": "is",
-                                "value": [self.mailchimp_recurring_contribution_product_name],
+                                "value": self.mailchimp_recurring_contribution_product_name,
                             },
                         ],
                     },

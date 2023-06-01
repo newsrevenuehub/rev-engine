@@ -137,17 +137,23 @@ class MailchimpIntegratedRevenueProgramSerializer(serializers.ModelSerializer):
     mailchimp_store = serializers.SerializerMethodField()
     mailchimp_one_time_contribution_product = serializers.SerializerMethodField()
     mailchimp_recurring_contribution_product = serializers.SerializerMethodField()
+    stripe_account_id = serializers.ReadOnlyField(source="payment_provider_stripe.stripe_account_id")
+    id = serializers.ReadOnlyField(source="id")
+    name = serializers.ReadOnlyField(source="name")
+    slug = serializers.ReadOnlyField(source="slug")
 
     class Meta:
         model = RevenueProgram
         fields = [
+            # NB, this is the only field that is not read only
+            "mailchimp_list_id",
             "id",
             "name",
             "slug",
+            "stripe_account_id",
             "mailchimp_integration_connected",
             "mailchimp_email_list",
             "mailchimp_email_lists",
-            "mailchimp_list_id",
             "mailchimp_server_prefix",
             "mailchimp_contributor_segment",
             "mailchimp_recurring_segment",

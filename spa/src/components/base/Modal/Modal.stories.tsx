@@ -52,3 +52,22 @@ const UncloseableTemplate: ComponentStory<typeof Modal> = (args) => (
 );
 
 export const Uncloseable = UncloseableTemplate.bind({});
+
+const CloseableTallTitleTemplate: ComponentStory<typeof Modal> = (args) => (
+  <Modal width={400} {...args}>
+    <ModalHeader icon={<Face />} onClose={() => {}}>
+      <strong>Modal Header</strong>
+      <br />A second line
+    </ModalHeader>
+    <ModalContent>
+      Lorem ipsum dolor sit amet, consectetur adipiscing elit. Vestibulum nec tincidunt dui, sed hendrerit erat.
+      Suspendisse libero eros, pulvinar ac tellus non, tincidunt mollis lacus.
+    </ModalContent>
+    <ModalFooter>
+      <Button color="secondary">Cancel</Button>
+      <Button>OK</Button>
+    </ModalFooter>
+  </Modal>
+);
+
+export const CloseableTallTitle = CloseableTallTitleTemplate.bind({});

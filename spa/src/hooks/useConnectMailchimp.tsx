@@ -8,10 +8,9 @@ import { MAILCHIMP_INTEGRATION_ACCESS_FLAG_NAME } from 'constants/featureFlagCon
 import { useSnackbar } from 'notistack';
 import { MAILCHIMP_OAUTH_SUCCESS_ROUTE } from 'routes';
 import flagIsActiveForUser from 'utilities/flagIsActiveForUser';
-import { EnginePlan } from './useContributionPage';
+import { EnginePlan, RevenueProgram } from './useContributionPage';
 import useFeatureFlags from './useFeatureFlags';
 import useUser from './useUser';
-
 import usePreviousState from './usePreviousState';
 
 export interface UseConnectMailchimpResult {
@@ -26,9 +25,21 @@ export interface UseConnectMailchimpResult {
    */
   connectedToMailchimp: boolean;
   /**
+   * Mailchimp connection started but hasn't finished and still need audience selection?
+   */
+  requiresAudienceSelection: boolean;
+  /**
+   * Current Revenue Program being connected to Mailchimp
+   */
+  revenueProgram?: RevenueProgram;
+  /**
    * User's organization plan
    */
   organizationPlan?: EnginePlan['name'];
+  /**
+   * User has Mailchimp feature flag enabled
+   */
+  hasMailchimpAccess: boolean;
 }
 
 const BASE_URL = window.location.origin;
@@ -36,7 +47,7 @@ export const MAILCHIMP_OAUTH_CALLBACK = `${BASE_URL}${MAILCHIMP_OAUTH_SUCCESS_RO
 
 export default function useConnectMailchimp(): UseConnectMailchimpResult {
   const { enqueueSnackbar } = useSnackbar();
-  const { user, isError, isLoading } = useUser();
+  const { setRefetchInterval, user, isError, isLoading } = useUser();
   const { flags } = useFeatureFlags();
   const hasMailchimpAccess = flagIsActiveForUser(MAILCHIMP_INTEGRATION_ACCESS_FLAG_NAME, flags);
   const prevMailchimpConnection = usePreviousState(user?.revenue_programs?.[0]?.mailchimp_integration_connected);
@@ -56,6 +67,24 @@ export default function useConnectMailchimp(): UseConnectMailchimpResult {
     );
   }, []);
 
+  // Only require audience selection if there is no list selected, and if the
+  // audience lists is populated (mailchimp connection successfully started).
+
+  const requiresAudienceSelection =
+    !user?.revenue_programs?.[0]?.mailchimp_email_list?.id &&
+    (user?.revenue_programs?.[0]?.mailchimp_email_lists?.length ?? 0) > 0;
+
+  useEffect(() => {
+    // Reset the user retrieval interval; we might have decreased it in
+    // MailchimpOAuthSuccess. We might not have if the user ended their session
+    // after starting the Mailchimp connection process, but in that case, this
+    // will do nothing.
+
+    if (requiresAudienceSelection) {
+      setRefetchInterval(false);
+    }
+  }, [requiresAudienceSelection, setRefetchInterval]);
+
   useEffect(() => {
     if (user?.revenue_programs?.[0]?.mailchimp_integration_connected && prevMailchimpConnection === false) {
       enqueueSnackbar('You’ve successfully connected to Mailchimp! Your contributor data will sync automatically.', {
@@ -69,7 +98,7 @@ export default function useConnectMailchimp(): UseConnectMailchimpResult {
 
   // If the user is loading or errored, return that status.
   if (isLoading || isError) {
-    return { isError, isLoading, connectedToMailchimp: false };
+    return { isError, isLoading, connectedToMailchimp: false, requiresAudienceSelection: false, hasMailchimpAccess };
   }
 
   // If the user has no feature flag enabling mailchimp integration, has no revenue programs, no org or multiple orgs return that there's no action to take.
@@ -83,7 +112,10 @@ export default function useConnectMailchimp(): UseConnectMailchimpResult {
     return {
       isError: false,
       isLoading: false,
-      connectedToMailchimp: false
+      connectedToMailchimp: false,
+      requiresAudienceSelection: false,
+      organizationPlan: user?.organizations?.[0]?.plan?.name,
+      hasMailchimpAccess
     };
   }
 
@@ -94,23 +126,31 @@ export default function useConnectMailchimp(): UseConnectMailchimpResult {
     (user?.organizations?.[0]?.plan?.name ?? 'FREE') === 'FREE'
   ) {
     return {
+      hasMailchimpAccess,
+      // Even with Mailchimp connected, we still may need to select an audience list.
+      requiresAudienceSelection,
       isError: false,
       isLoading: false,
       connectedToMailchimp:
         !!user?.organizations?.[0]?.show_connected_to_mailchimp ||
         !!user?.revenue_programs?.[0]?.mailchimp_integration_connected,
-      organizationPlan: user?.organizations?.[0]?.plan?.name
+      organizationPlan: user?.organizations?.[0]?.plan?.name,
+      revenueProgram: user?.revenue_programs?.[0]
     };
   }
 
   // We have a user, with a single organization in a paid plan (CORE or PLUS), and without Mailchimp connected.
+
   return {
+    hasMailchimpAccess,
     isError,
     isLoading,
+    requiresAudienceSelection,
     sendUserToMailchimp,
     connectedToMailchimp:
       !!user?.organizations?.[0]?.show_connected_to_mailchimp ||
       !!user?.revenue_programs?.[0]?.mailchimp_integration_connected,
-    organizationPlan: user?.organizations?.[0].plan.name
+    organizationPlan: user?.organizations?.[0].plan.name,
+    revenueProgram: user?.revenue_programs?.[0]
   };
 }

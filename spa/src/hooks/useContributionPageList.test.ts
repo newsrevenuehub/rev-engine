@@ -72,9 +72,9 @@ describe('useContributionPageList', () => {
       axiosMock.reset();
       axiosMock.onGet('pages/').reply(401, {});
 
-      const { waitFor } = hook();
+      const { result, waitFor } = hook();
 
-      await waitFor(() => expect(axiosMock.history.get.length).toBe(1));
+      await waitFor(() => expect(result.current.isError).toBe(true));
       expect(push.mock.calls).toEqual([['/sign-in/']]);
     });
 
@@ -83,9 +83,9 @@ describe('useContributionPageList', () => {
 
       useAlertMock.mockReturnValue({ error });
 
-      const { waitFor } = hook();
+      const { result, waitFor } = hook();
 
-      await waitFor(() => expect(axiosMock.history.get.length).toBe(1));
+      await waitFor(() => expect(result.current.isError).toBe(true));
       await waitFor(() => expect(error).toBeCalled());
       expect(error.mock.calls).toEqual([['We encountered an issue and have been notified. Please try again.']]);
     });
@@ -93,7 +93,7 @@ describe('useContributionPageList', () => {
     it('returns an undefined list of pages', async () => {
       const { result, waitFor } = hook();
 
-      await waitFor(() => expect(axiosMock.history.get.length).toBe(1));
+      await waitFor(() => expect(result.current.isError).toBe(true));
       expect(result.current.pages).toBeUndefined();
     });
   });

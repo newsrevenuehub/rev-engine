@@ -23,6 +23,7 @@ from django.utils.safestring import mark_safe
 from django.utils.text import slugify
 from django.views.decorators.http import require_GET
 
+import reversion
 from django_rest_passwordreset.signals import reset_password_token_created
 from rest_framework import mixins, status
 from rest_framework.decorators import action
@@ -66,7 +67,9 @@ def account_verification(request, email, token):
     checker = AccountVerification()
     if user := checker.validate(email, token):
         user.email_verified = True
-        user.save()
+        with reversion.create_revision():
+            user.save(update_fields={"email_verified", "modified"})
+            reversion.set_comment("Updated by `account_verification` view.")
         return HttpResponseRedirect(reverse("spa_account_verification"))
     else:
         # Having failure reason in URL is non-optimal.

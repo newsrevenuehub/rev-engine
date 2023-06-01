@@ -6,7 +6,7 @@ export const apiBaseUrl = `/api/${REVENGINE_API_VERSION}/`;
 
 const Axios = axios.create({
   baseURL: apiBaseUrl,
-  timeout: 7000,
+  timeout: 15000,
   withCredentials: true // allow setting/passing cookies
 });
 

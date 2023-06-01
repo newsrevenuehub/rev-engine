@@ -201,7 +201,7 @@ class RevenueProgramAdmin(RevEngineBaseAdmin, CompareVersionAdmin, AdminImageMix
                 "fields": ("stripe_statement_descriptor_suffix", "domain_apple_verified_date", "payment_provider"),
             },
         ),
-        ("Mailchimp", {"fields": ("mailchimp_server_prefix", "mailchimp_access_token")}),
+        ("Mailchimp", {"fields": ("mailchimp_server_prefix",)}),
         (
             "Analytics",
             {
@@ -251,7 +251,7 @@ class RevenueProgramAdmin(RevEngineBaseAdmin, CompareVersionAdmin, AdminImageMix
     def get_readonly_fields(self, request, obj=None):
         # If it's a changeform
         if obj:
-            return ["name", "slug", "organization", "mailchimp_access_token", "mailchimp_server_prefix"]
+            return ["name", "slug", "organization", "mailchimp_server_prefix"]
         # If it's an addform
         # We can't allow setting default_donation_page until the RevenueProgram has been defined
         # because we need to limit the donation_page choices based on this instance.

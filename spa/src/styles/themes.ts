@@ -111,6 +111,7 @@ export const revEngineTheme: DefaultTheme = {
       200: '#e3e3e3',
       300: '#D9D9D9',
       400: basePalette.greyscale.grey2 as '#c4c4c4',
+      450: '#a7a7a7',
       500: '#969696',
       600: basePalette.greyscale.grey1 as '#707070',
       700: '#666666',

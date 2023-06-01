@@ -53,7 +53,7 @@
 # """
 import json
 from dataclasses import asdict
-from random import choice
+from random import choice, randint
 from unittest.mock import patch
 
 import pytest
@@ -63,14 +63,14 @@ from waffle import get_waffle_flag_model
 
 from apps.common.tests.test_resources import DEFAULT_FLAGS_CONFIG_MAPPING
 from apps.contributions.tests.factories import ContributionFactory, ContributorFactory
-from apps.organizations.models import MailchimpEmailList
+from apps.organizations.models import MailchimpEmailList, MailchimpProduct, MailchimpSegment, MailchimpStore
 from apps.organizations.tests.factories import OrganizationFactory, RevenueProgramFactory
 from apps.pages.tests.factories import DonationPageFactory, StyleFactory
 from apps.users.models import Roles, User
 from apps.users.tests.factories import RoleAssignmentFactory, UserFactory
 
 
-faker = Faker()
+fake = Faker()
 
 
 @pytest.fixture
@@ -360,9 +360,9 @@ def stripe_subscription_retrieve_response():
 
 def make_mock_mailchimp_email_list():
     return MailchimpEmailList(
-        id=faker.uuid4(),
-        web_id=faker.uuid4(),
-        name=faker.word(),
+        id=fake.uuid4(),
+        web_id=fake.uuid4(),
+        name=fake.word(),
         contact={},
         permission_reminder="",
         use_archive_bar=choice([True, False]),
@@ -406,3 +406,85 @@ def mc_connected_rp(revenue_program, mocker):
     revenue_program.mailchimp_list_id = "something-truthy"
     revenue_program.save()
     return revenue_program
+
+
+@pytest.fixture
+def mailchimp_store_from_api():
+    return asdict(
+        MailchimpStore(
+            id=fake.uuid4(),
+            list_id=fake.uuid4(),
+            name=fake.word(),
+            platform="",
+            domain="",
+            is_syncing=choice([True, False]),
+            email_address="",
+            currency_code="",
+            money_format="",
+            primary_locale="",
+            timezone="",
+            phone="",
+            address={},
+            connected_site={},
+            automations={},
+            list_is_active=choice([True, False]),
+            created_at="",
+            updated_at="",
+            _links=[],
+        )
+    )
+
+
+@pytest.fixture
+def mailchimp_product_from_api():
+    return asdict(
+        MailchimpProduct(
+            id=fake.uuid4(),
+            currency_code="",
+            title="",
+            handle="",
+            url="",
+            description="",
+            type="",
+            vendor="",
+            image_url="",
+            variants=[],
+            images=[],
+            published_at_foreign="",
+            _links=[],
+        )
+    )
+
+
+@pytest.fixture
+def mailchimp_contributor_segment_from_api():
+    return asdict(
+        MailchimpSegment(
+            id=fake.uuid4(),
+            name="Contributors",
+            member_count=randint(0, 100),
+            type=choice(["static", "saved", "fuzzy"]),
+            created_at="",
+            updated_at="",
+            options={},
+            list_id=fake.uuid4(),
+            _links=[],
+        )
+    )
+
+
+@pytest.fixture
+def mailchimp_recurring_contributor_segment_from_api():
+    return asdict(
+        MailchimpSegment(
+            id=fake.uuid4(),
+            name="Recurring contributors",
+            member_count=randint(0, 100),
+            type=choice(["static", "saved", "fuzzy"]),
+            created_at="",
+            updated_at="",
+            options={},
+            list_id=fake.uuid4(),
+            _links=[],
+        )
+    )

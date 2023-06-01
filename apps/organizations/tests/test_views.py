@@ -13,6 +13,7 @@ from stripe.error import StripeError
 from waffle import get_waffle_flag_model
 
 from apps.common.constants import MAILCHIMP_INTEGRATION_ACCESS_FLAG_NAME
+from apps.common.secrets import GoogleCloudSecretProvider
 from apps.organizations.models import (
     TAX_ID_MAX_LENGTH,
     TAX_ID_MIN_LENGTH,
@@ -20,10 +21,12 @@ from apps.organizations.models import (
     OrganizationQuerySet,
     RevenueProgram,
     RevenueProgramQuerySet,
+    CorePlan,
 )
 from apps.organizations.tests.factories import OrganizationFactory, RevenueProgramFactory
 from apps.organizations.views import RevenueProgramViewSet, get_stripe_account_link_return_url
 from apps.users.choices import Roles
+from apps.users.tests.factories import RoleAssignmentFactory
 
 
 user_model = get_user_model()
@@ -315,6 +318,97 @@ def rp_invalid_patch_data_tax_id_too_long(tax_id_invalid_too_long):
 @pytest.fixture
 def invalid_patch_data_unexpected_fields():
     return {"foo": "bar"}
+
+
+@pytest.fixture
+def mock_secret_manager(mocker):
+    mocker.patch.object(GoogleCloudSecretProvider, "__get__", return_value="shhhhhh")
+    mocker.patch.object(GoogleCloudSecretProvider, "__set__")
+    mocker.patch.object(GoogleCloudSecretProvider, "__delete__")
+
+
+@pytest.fixture
+def mock_mailchimp_entities(
+    mocker,
+    mailchimp_store_from_api,
+    mailchimp_email_list_from_api,
+    mailchimp_product_from_api,
+    mailchimp_contributor_segment_from_api,
+):
+    mock_mc_client = mocker.Mock()
+    mock_mc_client.lists.get_all_lists.return_value = {"lists": [mailchimp_email_list_from_api]}
+    mock_mc_client.ecommerce.stores.get.return_value = mailchimp_store_from_api
+    mock_mc_client.ecommerce.products.get.return_value = mailchimp_product_from_api
+    # NB: we're erasing some complexity that exists in our actual code here in that we're letting
+    # mailchimp_contributor_segment_from_api be a standin for both contributor and recurring segments
+    mock_mc_client.lists.get_segment.side_effect = mailchimp_contributor_segment_from_api
+    # NB: We're doing same as previous NB here, but for the two products (mailchimp_recurring_contribution_product and
+    # mailchimp_one_time_contribution_product)
+    mock_mc_client.ecommerce.get_store_product = mailchimp_store_from_api
+
+
+@pytest.fixture
+def org_user_with_mc_integration():
+    ra = RoleAssignmentFactory(
+        role_type=Roles.ORG_ADMIN.value,
+        organization__plan_name=CorePlan.name,
+    )
+    ra.revenue_programs.set([RevenueProgramFactory(organization=ra.organization)])
+    ra.save()
+    return ra.user
+
+
+@pytest.mark.django_db
+class TestRevenueProgramMailchimpIntegrationViewSet:
+    def test_cant_put(self, api_client, superuser):
+        api_client.force_authenticate(superuser)
+        response = api_client.put(reverse("revenue-program-mailchimp-detail", args=(1,)))
+        assert response.status_code == status.HTTP_405_METHOD_NOT_ALLOWED
+
+    def test_retrieve_happy_path_when_superuser(
+        self, api_client, superuser, mc_connected_rp, mock_secret_manager, mock_mailchimp_entities
+    ):
+        api_client.force_authenticate(superuser)
+        response = api_client.get(reverse("revenue-program-mailchimp-detail", args=(mc_connected_rp.id,)))
+        assert response.status_code == status.HTTP_200_OK
+
+    def test_retrieve_happy_path_when_hub_admin(
+        self, api_client, hub_admin_user, mc_connected_rp, mock_secret_manager, mock_mailchimp_entities
+    ):
+        api_client.force_authenticate(hub_admin_user)
+        response = api_client.get(reverse("revenue-program-mailchimp-detail", args=(mc_connected_rp.id,)))
+        assert response.status_code == status.HTTP_200_OK
+
+    def test_retrieve_happy_path_when_org_admin(
+        self, api_client, org_user_with_mc_integration, mock_secret_manager, mock_mailchimp_entities
+    ):
+        rp = org_user_with_mc_integration.roleassignment.revenue_programs.first()
+        api_client.force_authenticate(org_user_with_mc_integration)
+        response = api_client.get(reverse("revenue-program-mailchimp-detail", args=(rp.id,)))
+        assert response.status_code == status.HTTP_200_OK
+
+    def test_org_admin_cant_retrieve_when_not_own_rp(
+        self, api_client, org_user_with_mc_integration, mock_secret_manager, mock_mailchimp_entities
+    ):
+        rp = org_user_with_mc_integration.roleassignment.revenue_programs.first()
+        api_client.force_authenticate(org_user_with_mc_integration)
+        response = api_client.get(reverse("revenue-program-mailchimp-detail", args=(rp.id,)))
+        assert response.status_code == status.HTTP_200_OK
+
+    def test_patch_happy_path_when_superuser(self):
+        pass
+
+    def test_patch_happy_path_when_hub_admin(self):
+        pass
+
+    def test_patch_happy_path_when_org_admin(self):
+        pass
+
+    def test_org_admin_cant_patch_when_not_own_rp(self):
+        pass
+
+    def test_overrides_get_queryset(self):
+        pass
 
 
 @pytest.mark.django_db

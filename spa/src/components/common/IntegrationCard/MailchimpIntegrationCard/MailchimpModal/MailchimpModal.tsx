@@ -1,6 +1,9 @@
 import { ReactComponent as Diversity } from '@material-design-icons/svg/filled/diversity_2.svg';
 import { ReactComponent as GroupAdd } from '@material-design-icons/svg/outlined/group_add.svg';
 import { ReactComponent as Mail } from '@material-design-icons/svg/outlined/mail.svg';
+import { ReactComponent as MailCheck } from '@material-design-icons/svg/outlined/mark_email_read.svg';
+import { ReactComponent as BarChart } from '@material-design-icons/svg/outlined/bar_chart.svg';
+import { ReactComponent as Group } from '@material-design-icons/svg/outlined/group.svg';
 import InfoOutlinedIcon from '@material-ui/icons/InfoOutlined';
 import { ButtonProps, Modal, ModalContent, ModalFooter, ModalHeader } from 'components/base';
 import PropTypes, { InferProps } from 'prop-types';
@@ -31,11 +34,16 @@ const LIST_CONTENT = {
     { icon: <Diversity />, text: 'Re-engage lapsed donors.' },
     { icon: <GroupAdd />, text: 'Consistently market to new contributors, segmenting out those who already gave.' }
   ],
-  // TODO: DEV-3279 Update copy when available
   CONNECTED: [
-    { icon: <Mail />, text: 'Regularly thank, steward and bump up current contributors.' },
-    { icon: <Diversity />, text: 'Re-engage lapsed donors.' },
-    { icon: <GroupAdd />, text: 'Consistently market to new contributors, segmenting out those who already gave.' }
+    {
+      icon: <MailCheck />,
+      text: 'You can now send email campaigns to your RevEngine contributors without manually importing or exporting their contact information.'
+    },
+    {
+      icon: <Group />,
+      text: 'Create and automate targeted emails with pre-populated segments based on a contributor’s activity.'
+    },
+    { icon: <BarChart />, text: 'You can track contributor engagement from the moment they give.' }
   ]
 };
 

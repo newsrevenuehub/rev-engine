@@ -176,12 +176,17 @@ describe('MailchimpModal', () => {
       it('should render texts', () => {
         tree({ organizationPlan: plan, isActive: true });
         expect(screen.getByText('What’s Next?')).toBeVisible();
-        // TODO: DEV-3279 update copy when available
-        expect(screen.getByText('Regularly thank, steward and bump up current contributors.')).toBeVisible();
-        expect(screen.getByText('Re-engage lapsed donors.')).toBeVisible();
         expect(
-          screen.getByText('Consistently market to new contributors, segmenting out those who already gave.')
+          screen.getByText(
+            'You can now send email campaigns to your RevEngine contributors without manually importing or exporting their contact information.'
+          )
         ).toBeVisible();
+        expect(
+          screen.getByText(
+            'Create and automate targeted emails with pre-populated segments based on a contributor’s activity.'
+          )
+        ).toBeVisible();
+        expect(screen.getByText('You can track contributor engagement from the moment they give.')).toBeVisible();
       });
 
       it('should render action buttons', () => {

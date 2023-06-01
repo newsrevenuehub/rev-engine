@@ -9,6 +9,7 @@ import { LS_USER } from 'appSettings';
 import { GENERIC_ERROR } from 'constants/textConstants';
 import { SIGN_IN } from 'routes';
 import { User } from './useUser.types';
+import { Dispatch, SetStateAction, useState } from 'react';
 
 const fetchUser = () => {
   return axios.get(USER).then(({ data }) => data);
@@ -18,10 +19,14 @@ export interface UserHookResult {
   isLoading: UseQueryResult['isLoading'];
   isError: UseQueryResult['isError'];
   refetch: UseQueryResult['refetch'];
+  setRefetchInterval: Dispatch<SetStateAction<false | number>>;
   user?: User;
 }
 
 function useUser(): UserHookResult {
+  // Allow our refetch interval to be configurable, but default to false, which
+  // means it won't refetch on its own.
+  const [refetchInterval, setRefetchInterval] = useState<false | number>(false);
   const alert = useAlert();
   const history = useHistory();
 
@@ -31,6 +36,7 @@ function useUser(): UserHookResult {
     isError,
     refetch
   } = useQuery(['user'], fetchUser, {
+    refetchInterval,
     // this means that user won't be re-fetched for two minutes. After 2 minutes
     // React Query's default "window focus" behavior could trigger a refetch if
     // user is in different window and comes back to this one. Also, this query
@@ -60,7 +66,7 @@ function useUser(): UserHookResult {
     }
   });
 
-  return { refetch, user, isLoading, isError };
+  return { refetch, setRefetchInterval, user, isLoading, isError };
 }
 
 export default useUser;

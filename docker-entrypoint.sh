@@ -12,7 +12,7 @@ if [ "x$DATABASE_CHECK_CONNECTION" = 'xon' ]; then
 fi
 
 if [ "x$DJANGO_MANAGEPY_MIGRATE" = 'xon' ]; then
-    >&2 echo "Running Migrations"
+    >&2 echo "Running Migrations in docker-entrypoint.sh"
     python manage.py migrate --noinput
 fi
 

@@ -4,6 +4,8 @@ import { render, screen, waitFor } from 'test-utils';
 
 import IntegrationCard, { IntegrationCardProps } from './IntegrationCard';
 
+jest.mock('./IntegrationCardHeader/IntegrationCardHeader');
+
 const card = {
   image: 'mock-logo',
   title: 'mock-title',
@@ -21,27 +23,49 @@ describe('Integration Card', () => {
     return render(<IntegrationCard {...card} {...props} />);
   }
 
-  it('should render texts on card', () => {
+  it('should render description on card', () => {
     tree();
 
-    expect(screen.getByText(card.title)).toBeInTheDocument();
     expect(screen.getByText(card.description)).toBeInTheDocument();
-    expect(screen.getByRole('link', { name: card.site.label })).toHaveAttribute('href', card.site.url);
   });
 
-  it('should render image', () => {
+  it('should render view details if onViewDetails is a function', () => {
+    tree({ onViewDetails: jest.fn() });
+
+    expect(screen.getByRole('button', { name: 'View Details' })).toBeEnabled();
+  });
+
+  it('should call onViewDetails if View Details is clicked', () => {
+    const onViewDetails = jest.fn();
+    tree({ onViewDetails });
+    expect(onViewDetails).not.toHaveBeenCalled();
+    userEvent.click(screen.getByRole('button', { name: 'View Details' }));
+    expect(onViewDetails).toHaveBeenCalledTimes(1);
+  });
+
+  it('should not render view details by default', () => {
     tree();
-    expect(screen.getByRole('img', { name: `${card.title} logo` })).toHaveAttribute('src', card.image);
+
+    expect(screen.queryByRole('button', { name: 'View Details' })).not.toBeInTheDocument();
   });
 
-  it('should render required tag', () => {
-    tree();
-    expect(screen.getByText('*Required')).toBeVisible();
-  });
+  it('should render card header', () => {
+    const headerProps = {
+      image: 'mock-image',
+      title: 'mock-title',
+      site: {
+        label: 'mock-label',
+        url: 'mock-url'
+      },
+      isRequired: true,
+      isActive: true,
+      enableCornerMessage: true,
+      cornerMessage: 'mock-corner-message'
+    };
+    tree(headerProps);
 
-  it('should render corner message', () => {
-    tree({ isRequired: false, cornerMessage: 'mock-corner-message' });
-    expect(screen.getByText('mock-corner-message')).toBeVisible();
+    expect(screen.getByTestId('mock-integration-card-header')).toBeInTheDocument();
+    expect(screen.getByTestId('mock-integration-card-header-props')).toHaveTextContent(JSON.stringify(headerProps));
   });
 
   it('should render active state', () => {

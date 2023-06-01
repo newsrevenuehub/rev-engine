@@ -15,7 +15,9 @@ describe('MailchimpIntegrationCard', () => {
     useConnectMailchimpMock.mockReturnValue({
       isLoading: false,
       isError: false,
-      connectedToMailchimp: false
+      connectedToMailchimp: false,
+      requiresAudienceSelection: false,
+      hasMailchimpAccess: false
     });
   });
 
@@ -28,7 +30,9 @@ describe('MailchimpIntegrationCard', () => {
     useConnectMailchimpMock.mockReturnValue({
       isLoading: false,
       isError: false,
-      connectedToMailchimp: true
+      connectedToMailchimp: true,
+      requiresAudienceSelection: false,
+      hasMailchimpAccess: true
     });
     tree();
 
@@ -39,7 +43,9 @@ describe('MailchimpIntegrationCard', () => {
     useConnectMailchimpMock.mockReturnValue({
       isLoading: true,
       isError: false,
-      connectedToMailchimp: false
+      connectedToMailchimp: false,
+      requiresAudienceSelection: false,
+      hasMailchimpAccess: false
     });
     tree();
     expect(screen.getByTestId('cornerMessage')).toBeEmptyDOMElement();
@@ -57,7 +63,9 @@ describe('MailchimpIntegrationCard', () => {
         isLoading: false,
         isError: false,
         connectedToMailchimp: false,
-        organizationPlan: organizationPlan as any
+        organizationPlan: organizationPlan as any,
+        requiresAudienceSelection: false,
+        hasMailchimpAccess: true
       });
       tree();
       expect(screen.getByTestId('cornerMessage')).toHaveTextContent('Upgrade to Core');
@@ -76,7 +84,10 @@ describe('MailchimpIntegrationCard', () => {
         isLoading: false,
         isError: false,
         connectedToMailchimp: false,
-        organizationPlan: organizationPlan as any
+        organizationPlan: organizationPlan as any,
+        requiresAudienceSelection: false,
+        hasMailchimpAccess: true,
+        sendUserToMailchimp: jest.fn()
       });
       tree();
       expect(screen.getByTestId('cornerMessage')).toBeEmptyDOMElement();
@@ -95,7 +106,9 @@ describe('MailchimpIntegrationCard', () => {
         isError: false,
         connectedToMailchimp: false,
         organizationPlan: organizationPlan as any,
-        sendUserToMailchimp
+        sendUserToMailchimp,
+        requiresAudienceSelection: false,
+        hasMailchimpAccess: true
       });
       tree();
       expect(sendUserToMailchimp).not.toBeCalled();

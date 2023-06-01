@@ -6,4 +6,4 @@ class PagesConfig(AppConfig):
 
     def ready(self):
         # Implicitly connect signal handlers decorated with @receiver.
-        import apps.pages.signals  # noqa
+        import apps.pages.signals  # noqa F401

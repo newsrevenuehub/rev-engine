@@ -1,82 +1,63 @@
 // Avoiding our own test-utils so we can create a custom render context without
 // the normal BrowserRouter.
-import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { render, screen, waitFor } from '@testing-library/react';
-import Axios from 'ajax/axios';
-import { MAILCHIMP_OAUTH_SUCCESS } from 'ajax/endpoints';
 import MockAdapter from 'axios-mock-adapter';
-import { GENERIC_ERROR } from 'constants/textConstants';
 import { createMemoryHistory, InitialEntry } from 'history';
-import useUserImport from 'hooks/useUser';
 import { useAlert } from 'react-alert';
 import { Route, Router } from 'react-router-dom';
+import Axios from 'ajax/axios';
+import { MAILCHIMP_OAUTH_SUCCESS } from 'ajax/endpoints';
+import { GENERIC_ERROR } from 'constants/textConstants';
+import useUser from 'hooks/useUser';
 import { MAILCHIMP_OAUTH_SUCCESS_ROUTE, SETTINGS } from 'routes';
+import { TestQueryClientProvider } from 'test-utils';
 import MailchimpOAuthSuccess from './MailchimpOAuthSuccess';
 
 jest.mock('elements/GlobalLoading');
 jest.mock('hooks/useUser');
 jest.mock('react-alert');
 
-const queryClient = new QueryClient();
+const mockUseUserResult = {
+  user: { revenue_programs: [{ id: 'mock-rp-id' }] } as any,
+  isLoading: false,
+  isError: false,
+  refetch: jest.fn(),
+  setRefetchInterval: jest.fn()
+};
 
-function tree(initialEntries?: InitialEntry[]) {
+function tree(initialEntries: InitialEntry[] = [`/${MAILCHIMP_OAUTH_SUCCESS_ROUTE}?code=mock-mailchimp-code`]) {
   const history = createMemoryHistory({ initialEntries });
 
   return {
     history,
     ...render(
-      <QueryClientProvider client={queryClient}>
+      <TestQueryClientProvider>
         <Router history={history}>
           <Route>
             <MailchimpOAuthSuccess />
           </Route>
         </Router>
-      </QueryClientProvider>
+      </TestQueryClientProvider>
     )
   };
 }
 
 describe('MailchimpOAuthSuccess', () => {
   const axiosMock = new MockAdapter(Axios);
-  const useAlertMock = useAlert as jest.Mock;
-  const useUserMock = useUserImport as jest.Mock;
+  const useAlertMock = jest.mocked(useAlert);
+  const useUserMock = jest.mocked(useUser);
 
   beforeEach(() => {
-    useUserMock.mockReturnValue({
-      user: {
-        revenue_programs: [
-          {
-            id: 'mock-rp-id'
-          }
-        ]
-      },
-      isLoading: false,
-      isError: false,
-      refetch: jest.fn()
-    });
+    axiosMock.onPost(MAILCHIMP_OAUTH_SUCCESS).reply(200);
+    useUserMock.mockReturnValue(mockUseUserResult);
   });
 
   afterEach(() => axiosMock.reset());
-
   afterAll(() => axiosMock.restore());
 
-  it('render component with correct pathname and search argument', () => {
-    useUserMock.mockReturnValue({
-      isLoading: true,
-      isError: false,
-      refetch: jest.fn()
-    });
-    const { history } = tree([`${MAILCHIMP_OAUTH_SUCCESS_ROUTE}?code=mock-mailchimp-code`]);
-
-    expect(history.location.pathname).toBe(MAILCHIMP_OAUTH_SUCCESS_ROUTE);
-    expect(history.location.search).toBe('?code=mock-mailchimp-code');
-  });
-
-  it('call axios with correct params', async () => {
-    tree([`${MAILCHIMP_OAUTH_SUCCESS_ROUTE}?code=mock-mailchimp-code`]);
-
+  it('makes a POST request to update the Mailchimp code', async () => {
+    tree();
     await waitFor(() => expect(axiosMock.history.post).toHaveLength(1));
-    console.log(axiosMock.history);
     expect(axiosMock.history.post[0]).toEqual(
       expect.objectContaining({
         data: JSON.stringify({
@@ -88,28 +69,63 @@ describe('MailchimpOAuthSuccess', () => {
     );
   });
 
-  it('show generic error if mutation fails and calls onError', async () => {
-    const error = jest.fn();
-    useAlertMock.mockReturnValue({ error });
-    axiosMock.onPost().networkError();
-    tree([`${MAILCHIMP_OAUTH_SUCCESS_ROUTE}?code=mock-mailchimp-code`]);
+  describe('When the POST to update the Mailchimp code succeeds', () => {
+    it('redirects to /pages/', async () => {
+      const { history } = tree();
 
-    await waitFor(() => expect(axiosMock.history.post).toHaveLength(1));
-    expect(error).toBeCalledTimes(1);
-    expect(error).toBeCalledWith(GENERIC_ERROR);
+      await waitFor(() => expect(axiosMock.history.post).toHaveLength(1));
+      expect(history.location.pathname).toBe(SETTINGS.INTEGRATIONS);
+    });
+
+    it('sets the user refetch interval to 10 seconds', async () => {
+      const setRefetchInterval = jest.fn();
+
+      useUserMock.mockReturnValue({ ...mockUseUserResult, setRefetchInterval });
+      tree();
+      expect(setRefetchInterval).not.toBeCalled();
+      await waitFor(() => expect(axiosMock.history.post).toHaveLength(1));
+      expect(setRefetchInterval.mock.calls).toEqual([[10000]]);
+    });
   });
 
-  it('redirect to /pages/ after successful mailchimp code update to the BE', async () => {
-    axiosMock.onPost(MAILCHIMP_OAUTH_SUCCESS).reply(200);
-    const { history } = tree([`${MAILCHIMP_OAUTH_SUCCESS_ROUTE}?code=mock-mailchimp-code`]);
+  describe('When the POST to update the Mailchimp code fails', () => {
+    // Silence noisy errors to make test output easier to read.
 
-    await waitFor(() => expect(axiosMock.history.post).toHaveLength(1));
-    expect(history.location.pathname).toBe(SETTINGS.INTEGRATIONS);
+    let errorSpy: jest.SpyInstance;
+    let logSpy: jest.SpyInstance;
+
+    beforeEach(() => {
+      axiosMock.onPost(MAILCHIMP_OAUTH_SUCCESS).networkError();
+      errorSpy = jest.spyOn(console, 'error').mockReturnValue();
+      logSpy = jest.spyOn(console, 'log').mockReturnValue();
+    });
+
+    afterEach(() => {
+      errorSpy.mockRestore();
+      logSpy.mockRestore();
+    });
+
+    it('shows a generic error', async () => {
+      const error = jest.fn();
+
+      useAlertMock.mockReturnValue({ error } as any);
+      tree([`/${MAILCHIMP_OAUTH_SUCCESS_ROUTE}?code=mock-mailchimp-code`]);
+      await waitFor(() => expect(axiosMock.history.post).toHaveLength(1));
+      expect(error.mock.calls).toEqual([[GENERIC_ERROR]]);
+    });
+
+    it('does not reset the user refetch interval', async () => {
+      const setRefetchInterval = jest.fn();
+
+      useUserMock.mockReturnValue({ ...mockUseUserResult, setRefetchInterval });
+      tree();
+      await waitFor(() => expect(axiosMock.history.post).toHaveLength(1));
+      expect(setRefetchInterval).not.toBeCalled();
+    });
   });
 
   it('renders GlobalLoading', () => {
-    tree(['mock']);
-
+    tree();
     expect(screen.getByTestId('mock-global-loading')).toBeInTheDocument();
   });
 });

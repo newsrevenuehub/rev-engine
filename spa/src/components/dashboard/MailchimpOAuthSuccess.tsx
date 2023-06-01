@@ -19,7 +19,7 @@ export default function MailchimpOAuthSuccess() {
   const { search } = useLocation();
   const queryClient = useQueryClient();
   const { code } = queryString.parse(search);
-  const { user, isLoading: userLoading } = useUser();
+  const { user, setRefetchInterval, isLoading: userLoading } = useUser();
   const [hasUpdatedCode, setHasUpdatedCode] = useState(false);
   const { mutate: mailchimpOAuthSuccess } = useMutation(
     ({ mailchimpCode, rpId }: { mailchimpCode?: string; rpId?: number }) => {
@@ -27,6 +27,11 @@ export default function MailchimpOAuthSuccess() {
     },
     {
       onSuccess: () => {
+        // Start refreshing the user every 10 seconds, so that when they finish
+        // connecting Mailchimp, we see that and can present the audience
+        // selection modal to them.
+
+        setRefetchInterval(10000);
         history.push(SETTINGS.INTEGRATIONS);
         queryClient.invalidateQueries({ queryKey: ['user'] });
       }

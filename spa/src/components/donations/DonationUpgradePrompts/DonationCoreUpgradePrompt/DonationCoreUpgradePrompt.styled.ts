@@ -34,7 +34,7 @@ export const LearnMoreLink = styled(Link)`
 `;
 
 export const Root = styled.div`
-  border: 1px solid ${({ theme }) => theme.colors.muiGrey[400]};
+  border: 1px solid ${({ theme }) => theme.basePalette.greyscale.grey2};
   border-radius: 10px;
   display: grid;
   gap: 12px;

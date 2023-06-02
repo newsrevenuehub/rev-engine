@@ -5,7 +5,11 @@ import pytest
 from faker import Faker
 
 from apps.organizations.models import MailchimpProduct, MailchimpSegment, MailchimpStore
-from apps.organizations.serializers import RevenueProgramSerializer, MailchimpIntegratedRevenueProgramSerializer, logger
+from apps.organizations.serializers import (
+    MailchimpRevenueProgramForSwitchboard,
+    RevenueProgramSerializer,
+    logger,
+)
 from conftest import make_mock_mailchimp_email_list
 
 
@@ -196,27 +200,14 @@ class TestRevenueProgramSerializer:
 
 
 @pytest.mark.django_db
-class TestMailchimpIntegratedRevenueProgramSerializer:
+class TestMailchimpRevenueProgramForSwitchboard:
     def test_has_right_fields_and_values(
         self,
         mailchimp_store,
         mailchimp_product,
-        mailchimp_segment,
-        mailchimp_email_lists,
         mocker,
-        mailchimp_email_list,
         mc_connected_rp,
     ):
-        mocker.patch(
-            "apps.organizations.models.RevenueProgram.mailchimp_email_list",
-            return_value=mailchimp_email_list,
-            new_callable=mocker.PropertyMock,
-        )
-        mocker.patch(
-            "apps.organizations.models.RevenueProgram.mailchimp_email_lists",
-            return_value=mailchimp_email_lists,
-            new_callable=mocker.PropertyMock,
-        )
         mocker.patch(
             "apps.organizations.models.RevenueProgram.mailchimp_store",
             return_value=mailchimp_store,
@@ -242,59 +233,17 @@ class TestMailchimpIntegratedRevenueProgramSerializer:
             return_value=mailchimp_segment,
             new_callable=mocker.PropertyMock,
         )
-        serialized = MailchimpIntegratedRevenueProgramSerializer(mc_connected_rp).data
+        serialized = MailchimpRevenueProgramForSwitchboard(mc_connected_rp).data
         for field in (
             "id",
             "name",
             "slug",
             "mailchimp_server_prefix",
-            "mailchimp_list_id",
             "mailchimp_integration_connected",
+            "stripe_account_id",
         ):
             assert serialized[field] == getattr(mc_connected_rp, field)
-        assert len(serialized["mailchimp_email_lists"]) == 1
-        assert isinstance(serialized["mailchimp_email_lists"][0], dict)
-        assert serialized["mailchimp_email_lists"][0] == {
-            "id": mailchimp_email_lists[0].id,
-            "name": mailchimp_email_lists[0].name,
-        }
+
         assert serialized["mailchimp_store"] == asdict(mailchimp_store)
         assert serialized["mailchimp_recurring_contribution_product"] == asdict(mailchimp_product)
-        assert serialized["mailchimp_recurring_segment"] == asdict(mailchimp_segment)
         assert serialized["mailchimp_one_time_contribution_product"] == asdict(mailchimp_product)
-        assert serialized["mailchimp_contributor_segment"] == asdict(mailchimp_segment)
-        assert serialized["mailchimp_email_list"] == {
-            "id": mailchimp_email_list.id,
-            "name": mailchimp_email_list.name,
-        }
-
-    def test_validate_mailchimp_list_id_when_valid(self, mailchimp_email_lists, mc_connected_rp, mocker):
-        mocker.patch(
-            "apps.organizations.models.RevenueProgram.mailchimp_email_lists",
-            return_value=mailchimp_email_lists,
-            new_callable=mocker.PropertyMock,
-        )
-        data = {"mailchimp_list_id": mailchimp_email_lists[0].id, "name": "something"}
-        serializer = MailchimpIntegratedRevenueProgramSerializer(mc_connected_rp, data=data)
-        assert serializer.is_valid()
-        assert serializer.validated_data["mailchimp_list_id"] == data["mailchimp_list_id"]
-
-    def test_validate_mailchimp_list_id_when_invalid(self, mailchimp_email_lists, mc_connected_rp, mocker):
-        logger_spy = mocker.spy(logger, "warning")
-        mocker.patch(
-            "apps.organizations.models.RevenueProgram.mailchimp_email_lists",
-            return_value=mailchimp_email_lists,
-            new_callable=mocker.PropertyMock,
-        )
-        data = {"mailchimp_list_id": "something-made-up", "name": "something"}
-        serializer = MailchimpIntegratedRevenueProgramSerializer(mc_connected_rp, data=data)
-        assert serializer.is_valid() is False
-        assert "mailchimp_list_id" in serializer.errors
-        logger_spy.assert_called_once_with("Attempt to set mailchimp_list_id to a list not associated with this RP")
-
-    def test_update_override_has_update_fields_in_save(self, revenue_program, mocker):
-        save_spy = mocker.patch("apps.organizations.models.RevenueProgram.save")
-        data = {"mailchimp_list_id": "something-made-up", "name": "something"}
-        serializer = RevenueProgramSerializer(revenue_program)
-        serializer.update(revenue_program, data)
-        save_spy.assert_called_once_with(update_fields=set(data.keys()))

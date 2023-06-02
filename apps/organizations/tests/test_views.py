@@ -6,6 +6,7 @@ import pytest
 import pytest_cases
 from faker import Faker
 from rest_framework import status
+from rest_framework.permissions import IsAuthenticated
 from rest_framework.reverse import reverse
 from rest_framework.test import APIRequestFactory
 from reversion.models import Version
@@ -17,14 +18,16 @@ from apps.common.secrets import GoogleCloudSecretProvider
 from apps.organizations.models import (
     TAX_ID_MAX_LENGTH,
     TAX_ID_MIN_LENGTH,
+    CorePlan,
     Organization,
     OrganizationQuerySet,
     RevenueProgram,
     RevenueProgramQuerySet,
-    CorePlan,
 )
+from apps.organizations.serializers import MailchimpRevenueProgramForSwitchboard
 from apps.organizations.tests.factories import OrganizationFactory, RevenueProgramFactory
 from apps.organizations.views import RevenueProgramViewSet, get_stripe_account_link_return_url
+from apps.public.permissions import IsActiveSuperUser
 from apps.users.choices import Roles
 from apps.users.tests.factories import RoleAssignmentFactory
 
@@ -359,59 +362,6 @@ def org_user_with_mc_integration():
 
 
 @pytest.mark.django_db
-class TestRevenueProgramMailchimpIntegrationViewSet:
-    def test_cant_put(self, api_client, superuser):
-        api_client.force_authenticate(superuser)
-        response = api_client.put(reverse("revenue-program-mailchimp-detail", args=(1,)))
-        assert response.status_code == status.HTTP_405_METHOD_NOT_ALLOWED
-
-    def test_retrieve_happy_path_when_superuser(
-        self, api_client, superuser, mc_connected_rp, mock_secret_manager, mock_mailchimp_entities
-    ):
-        api_client.force_authenticate(superuser)
-        response = api_client.get(reverse("revenue-program-mailchimp-detail", args=(mc_connected_rp.id,)))
-        assert response.status_code == status.HTTP_200_OK
-
-    def test_retrieve_happy_path_when_hub_admin(
-        self, api_client, hub_admin_user, mc_connected_rp, mock_secret_manager, mock_mailchimp_entities
-    ):
-        api_client.force_authenticate(hub_admin_user)
-        response = api_client.get(reverse("revenue-program-mailchimp-detail", args=(mc_connected_rp.id,)))
-        assert response.status_code == status.HTTP_200_OK
-
-    def test_retrieve_happy_path_when_org_admin(
-        self, api_client, org_user_with_mc_integration, mock_secret_manager, mock_mailchimp_entities
-    ):
-        rp = org_user_with_mc_integration.roleassignment.revenue_programs.first()
-        api_client.force_authenticate(org_user_with_mc_integration)
-        response = api_client.get(reverse("revenue-program-mailchimp-detail", args=(rp.id,)))
-        assert response.status_code == status.HTTP_200_OK
-
-    def test_org_admin_cant_retrieve_when_not_own_rp(
-        self, api_client, org_user_with_mc_integration, mock_secret_manager, mock_mailchimp_entities
-    ):
-        rp = org_user_with_mc_integration.roleassignment.revenue_programs.first()
-        api_client.force_authenticate(org_user_with_mc_integration)
-        response = api_client.get(reverse("revenue-program-mailchimp-detail", args=(rp.id,)))
-        assert response.status_code == status.HTTP_200_OK
-
-    def test_patch_happy_path_when_superuser(self):
-        pass
-
-    def test_patch_happy_path_when_hub_admin(self):
-        pass
-
-    def test_patch_happy_path_when_org_admin(self):
-        pass
-
-    def test_org_admin_cant_patch_when_not_own_rp(self):
-        pass
-
-    def test_overrides_get_queryset(self):
-        pass
-
-
-@pytest.mark.django_db
 class TestRevenueProgramViewSet:
     def test_pagination_disabled(self):
         assert RevenueProgramViewSet.pagination_class is None
@@ -686,6 +636,24 @@ class TestRevenueProgramViewSet:
         api_client.force_authenticate(org_user_free_plan)
         response = api_client.patch(reverse("revenue-program-detail", args=(revenue_program.id,)), data={})
         assert response.status_code == status.HTTP_404_NOT_FOUND
+
+    def test_mailchimp_detail_configured_correctly(self):
+        """Prove the mailchimp detail endpoint is configured properly
+
+        We use this approach so that we don't end up testing DRF itself. Knowing that this view
+        is configured in the way expected here should be a guarantee that this endpoint
+        results in desired permissions and serializer class being set.
+        """
+        assert RevenueProgramViewSet.mailchimp.detail is True
+        assert RevenueProgramViewSet.mailchimp.url_name == "mailchimp"
+        assert set(RevenueProgramViewSet.mailchimp.kwargs.get("permission_classes", [])) == {
+            IsAuthenticated,
+            IsActiveSuperUser,
+        }
+        assert (
+            RevenueProgramViewSet.mailchimp.kwargs.get("serializer_class", None)
+            == MailchimpRevenueProgramForSwitchboard
+        )
 
 
 class FakeStripeProduct:

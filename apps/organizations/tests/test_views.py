@@ -6,6 +6,7 @@ import pytest
 import pytest_cases
 from faker import Faker
 from rest_framework import status
+from rest_framework.permissions import IsAuthenticated
 from rest_framework.reverse import reverse
 from rest_framework.test import APIRequestFactory
 from reversion.models import Version
@@ -13,6 +14,7 @@ from stripe.error import StripeError
 from waffle import get_waffle_flag_model
 
 from apps.common.constants import MAILCHIMP_INTEGRATION_ACCESS_FLAG_NAME
+from apps.common.secrets import GoogleCloudSecretProvider
 from apps.organizations.models import (
     TAX_ID_MAX_LENGTH,
     TAX_ID_MIN_LENGTH,
@@ -21,8 +23,10 @@ from apps.organizations.models import (
     RevenueProgram,
     RevenueProgramQuerySet,
 )
+from apps.organizations.serializers import MailchimpRevenueProgramForSwitchboard
 from apps.organizations.tests.factories import OrganizationFactory, RevenueProgramFactory
 from apps.organizations.views import RevenueProgramViewSet, get_stripe_account_link_return_url
+from apps.public.permissions import IsActiveSuperUser
 from apps.users.choices import Roles
 
 
@@ -317,6 +321,13 @@ def invalid_patch_data_unexpected_fields():
     return {"foo": "bar"}
 
 
+@pytest.fixture
+def mock_secret_manager(mocker):
+    mocker.patch.object(GoogleCloudSecretProvider, "__get__", return_value="shhhhhh")
+    mocker.patch.object(GoogleCloudSecretProvider, "__set__")
+    mocker.patch.object(GoogleCloudSecretProvider, "__delete__")
+
+
 @pytest.mark.django_db
 class TestRevenueProgramViewSet:
     def test_pagination_disabled(self):
@@ -592,6 +603,24 @@ class TestRevenueProgramViewSet:
         api_client.force_authenticate(org_user_free_plan)
         response = api_client.patch(reverse("revenue-program-detail", args=(revenue_program.id,)), data={})
         assert response.status_code == status.HTTP_404_NOT_FOUND
+
+    def test_mailchimp_detail_configured_correctly(self):
+        """Prove the mailchimp detail endpoint is configured properly
+
+        We use this approach so that we don't end up testing DRF itself. Knowing that this view
+        is configured in the way expected here should be a guarantee that this endpoint
+        results in desired permissions and serializer class being set.
+        """
+        assert RevenueProgramViewSet.mailchimp.detail is True
+        assert RevenueProgramViewSet.mailchimp.url_name == "mailchimp"
+        assert set(RevenueProgramViewSet.mailchimp.kwargs.get("permission_classes", [])) == {
+            IsAuthenticated,
+            IsActiveSuperUser,
+        }
+        assert (
+            RevenueProgramViewSet.mailchimp.kwargs.get("serializer_class", None)
+            == MailchimpRevenueProgramForSwitchboard
+        )
 
 
 class FakeStripeProduct:

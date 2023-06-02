@@ -125,6 +125,29 @@ class RevenueProgramInlineSerializer(serializers.ModelSerializer):
         return [{"id": x.id, "name": x.name} for x in obj.mailchimp_email_lists]
 
 
+class MailchimpRevenueProgramForSpaConfiguration(serializers.ModelSerializer):
+    """
+    Primary consumer is the SPA...
+    """
+
+    id = serializers.ReadOnlyField()
+    name = serializers.ReadOnlyField()
+    slug = serializers.ReadOnlyField()
+    mailchimp_integration_connected = serializers.ReadOnlyField()
+    chosen_mailchimp_list_id: serializers.ModelField("mailchimp_list_id")
+    chosen_mailchimp_email_list: serializers.ModelField("mailchimp_email_list")
+    available_mailchimp_email_lists: serializers.ModelField("mailchimp_email_lists")
+
+    def update(self, foo):
+        # override save with update fields os get behavior of triggering signal
+        pass
+
+    def validate_chosen_mailchimp_list_id(self, value):
+        if value not in [x.id for x in self.instance.mailchimp_email_lists]:
+            raise serializers.ValidationError("Invalid Mailchimp list ID")
+        return value
+
+
 class MailchimpRevenueProgramForSwitchboard(serializers.ModelSerializer):
     """Primary consumer is switchboard API. This is a read-only serializer."""
 

@@ -6,6 +6,7 @@ from faker import Faker
 
 from apps.organizations.models import MailchimpProduct, MailchimpSegment, MailchimpStore
 from apps.organizations.serializers import (
+    MailchimpRevenueProgramForSpaConfiguration,
     MailchimpRevenueProgramForSwitchboard,
     RevenueProgramSerializer,
     logger,
@@ -201,19 +202,46 @@ class TestRevenueProgramSerializer:
 
 @pytest.mark.django_db
 class TestMailchimpRevenueProgramForSpaConfiguration:
-    def test_has_right_fields_and_values(self, mc_connected_rp):
-        pass
+    def test_has_right_fields_and_values(self, mc_connected_rp, mocker, mailchimp_email_list_from_api):
+        mock_get_client = mocker.patch("apps.organizations.models.RevenueProgram.get_mailchimp_client")
+        mock_get_client.return_value.lists.get_list.return_value = mailchimp_email_list_from_api
+        mock_get_client.return_value.lists.get_all_lists.return_value = {"lists": [mailchimp_email_list_from_api]}
+        mc_connected_rp.mailchimp_list_id = mailchimp_email_list_from_api["id"]
+        mc_connected_rp.save()
+        serializer = MailchimpRevenueProgramForSpaConfiguration(mc_connected_rp)
+        serialized_data = serializer.data
+        for field in (
+            "id",
+            "name",
+            "slug",
+            "mailchimp_integration_connected",
+            "mailchimp_list_id",
+        ):
+            assert serialized_data[field] == getattr(mc_connected_rp, field)
+        assert serialized_data["chosen_mailchimp_email_list"] == mailchimp_email_list_from_api
+        assert serialized_data["available_mailchimp_email_lists"] == [mailchimp_email_list_from_api]
 
-    def test_update_override_has_update_fields_in_save(self, revenue_program, mocker):
+    def test_update_override_has_update_fields_in_save(self, mc_connected_rp, mocker, mailchimp_email_list):
+        mocker.patch(
+            "apps.organizations.models.RevenueProgram.mailchimp_email_lists",
+            return_value=[mailchimp_email_list],
+            new_callable=mocker.PropertyMock,
+        )
         save_spy = mocker.patch("apps.organizations.models.RevenueProgram.save")
-        data = {"mailchimp_list_id": "something-made-up", "name": "something"}
-        serializer = MailchimpRevenueProgramForSwitchboard(revenue_program)
-        serializer.update(revenue_program, data)
+        data = {"mailchimp_list_id": mailchimp_email_list.id, "name": "something"}
+        serializer = MailchimpRevenueProgramForSpaConfiguration(mc_connected_rp, data=data)
+        assert serializer.is_valid(raise_exception=True) is True
+        serializer.update(mc_connected_rp, data)
         save_spy.assert_called_once_with(update_fields=set(data.keys()))
 
-    def test_validate_mailchimp_list_id(self, mc_connected_rp):
+    def test_validate_mailchimp_list_id(self, mc_connected_rp, mocker, mailchimp_email_list):
+        mocker.patch(
+            "apps.organizations.models.RevenueProgram.mailchimp_email_lists",
+            return_value=[mailchimp_email_list],
+            new_callable=mocker.PropertyMock,
+        )
         data = {"mailchimp_list_id": "something-made-up", "name": "something"}
-        serializer = MailchimpRevenueProgramForSwitchboard(mc_connected_rp, data=data)
+        serializer = MailchimpRevenueProgramForSpaConfiguration(mc_connected_rp, data=data)
         assert serializer.is_valid() is False
         assert "mailchimp_list_id" in serializer.errors
 

@@ -130,20 +130,19 @@ class MailchimpRevenueProgramForSpaConfiguration(serializers.ModelSerializer):
     Primary consumer is the SPA...
     """
 
-    id = serializers.ReadOnlyField()
-    name = serializers.ReadOnlyField()
-    slug = serializers.ReadOnlyField()
-    mailchimp_integration_connected = serializers.ReadOnlyField()
-    mailchimp_list_id: serializers.ReadOnlyField()
-    chosen_mailchimp_email_list: serializers.SerializerMethodField()
-    available_mailchimp_email_lists: serializers.SerializerMethodField
+    mailchimp_list_id = serializers.CharField(required=False, max_length=50)
 
-    def get_chosen_mailchimp_email_list(self, obj):
-        email_list = obj.mailchimp_email_list
-        return asdict(email_list) if email_list else None
-
-    def get_available_mailchimp_email_lists(self, obj):
-        return [asdict(x) for x in obj.mailchimp_email_lists]
+    class Meta:
+        model = RevenueProgram
+        fields = [
+            "id",
+            "name",
+            "slug",
+            "chosen_mailchimp_email_list",
+            "available_mailchimp_email_lists",
+            "mailchimp_integration_connected",
+            "mailchimp_list_id",
+        ]
 
     def update(self, instance, validated_data):
         """We override `.update` so we can pass update_fields to `instance.save()`. We have code that creates mailchimp entities

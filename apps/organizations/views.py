@@ -7,7 +7,7 @@ from django.shortcuts import get_object_or_404
 
 import stripe
 from rest_framework import mixins, status, viewsets
-from rest_framework.decorators import api_view, permission_classes
+from rest_framework.decorators import action, api_view, permission_classes
 from rest_framework.exceptions import PermissionDenied, ValidationError
 from rest_framework.permissions import IsAuthenticated
 from rest_framework.response import Response
@@ -86,6 +86,17 @@ class RevenueProgramViewSet(FilterForSuperUserOrRoleAssignmentUserMixin, viewset
 
     def get_queryset(self) -> models.QuerySet:
         return self.filter_queryset_for_superuser_or_ra()
+
+    @action(
+        methods=["GET"],
+        detail=True,
+        permission_classes=[IsAuthenticated, IsActiveSuperUser],
+        serializer_class=serializers.MailchimpRevenueProgramForSwitchboard,
+    )
+    def mailchimp(self, request, pk=None):
+        """Return the mailchimp data for the revenue program with the given pk"""
+        revenue_program = get_object_or_404(self.get_queryset(), pk=pk)
+        return Response(serializers.MailchimpRevenueProgramForSwitchboard(revenue_program).data)
 
 
 def get_stripe_account_link_return_url(request):

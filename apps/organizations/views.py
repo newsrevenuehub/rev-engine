@@ -19,6 +19,7 @@ from apps.api.permissions import (
     HasFlaggedAccessToMailchimp,
     HasRoleAssignment,
     IsGetRequest,
+    IsHubAdmin,
     IsOrgAdmin,
     IsPatchRequest,
     IsRpAdmin,
@@ -96,6 +97,24 @@ class RevenueProgramViewSet(FilterForSuperUserOrRoleAssignmentUserMixin, viewset
     def mailchimp(self, request, pk=None):
         """Return the mailchimp data for the revenue program with the given pk"""
         revenue_program = get_object_or_404(self.get_queryset(), pk=pk)
+        return Response(serializers.MailchimpRevenueProgramForSwitchboard(revenue_program).data)
+
+    @action(
+        methods=["GET", "PATCH"],
+        detail=True,
+        permission_classes=[IsAuthenticated, IsActiveSuperUser | (HasRoleAssignment & (IsOrgAdmin | IsHubAdmin))],
+        serializer_class=serializers.MailchimpRevenueProgramForSwitchboard,
+    )
+    def mailchimp_configure(self, request, pk=None):
+        """Return the mailchimp data for the revenue program with the given pk"""
+        revenue_program = get_object_or_404(self.get_queryset(), pk=pk)
+        if request.method == "PATCH":
+            serializer = serializers.MailchimpRevenueProgramForSwitchboard(
+                revenue_program, data=request.data, partial=True
+            )
+            serializer.is_valid(raise_exception=True)
+            serializer.save()
+            revenue_program.refresh_from_db()
         return Response(serializers.MailchimpRevenueProgramForSwitchboard(revenue_program).data)
 
 

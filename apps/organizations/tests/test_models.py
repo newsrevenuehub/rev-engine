@@ -1,6 +1,5 @@
 from dataclasses import asdict
 from datetime import timedelta
-from random import choice, randint
 from unittest.mock import Mock
 
 from django.conf import settings

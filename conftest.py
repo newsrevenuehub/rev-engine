@@ -63,7 +63,12 @@ from waffle import get_waffle_flag_model
 
 from apps.common.tests.test_resources import DEFAULT_FLAGS_CONFIG_MAPPING
 from apps.contributions.tests.factories import ContributionFactory, ContributorFactory
-from apps.organizations.models import MailchimpEmailList, MailchimpProduct, MailchimpSegment, MailchimpStore
+from apps.organizations.models import (
+    MailchimpEmailList,
+    MailchimpProduct,
+    MailchimpSegment,
+    MailchimpStore,
+)
 from apps.organizations.tests.factories import OrganizationFactory, RevenueProgramFactory
 from apps.pages.tests.factories import DonationPageFactory, StyleFactory
 from apps.users.models import Roles, User

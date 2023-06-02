@@ -134,16 +134,32 @@ class MailchimpRevenueProgramForSpaConfiguration(serializers.ModelSerializer):
     name = serializers.ReadOnlyField()
     slug = serializers.ReadOnlyField()
     mailchimp_integration_connected = serializers.ReadOnlyField()
-    chosen_mailchimp_list_id: serializers.ModelField("mailchimp_list_id")
-    chosen_mailchimp_email_list: serializers.ModelField("mailchimp_email_list")
-    available_mailchimp_email_lists: serializers.ModelField("mailchimp_email_lists")
+    mailchimp_list_id: serializers.ReadOnlyField()
+    chosen_mailchimp_email_list: serializers.SerializerMethodField()
+    available_mailchimp_email_lists: serializers.SerializerMethodField
 
-    def update(self, foo):
-        # override save with update fields os get behavior of triggering signal
-        pass
+    def get_chosen_mailchimp_email_list(self, obj):
+        email_list = obj.mailchimp_email_list
+        return asdict(email_list) if email_list else None
 
-    def validate_chosen_mailchimp_list_id(self, value):
+    def get_available_mailchimp_email_lists(self, obj):
+        return [asdict(x) for x in obj.mailchimp_email_lists]
+
+    def update(self, instance, validated_data):
+        """We override `.update` so we can pass update_fields to `instance.save()`. We have code that creates mailchimp entities
+        if mailchimp_list_id is being updated. Beyond that, `update_fields` guards against race conditions."""
+        logger.info("Updating RP %s with data %s", instance, validated_data)
+        update_fields = [field for field in validated_data if field in self.fields]
+        for attr, value in validated_data.items():
+            if attr in update_fields:
+                setattr(instance, attr, value)
+        instance.save(update_fields={field for field in validated_data if field in self.fields})
+        return instance
+
+    def validate_mailchimp_list_id(self, value):
+        logger.info("Validating Mailchimp list ID with value %s for RP %s", value, self.instance)
         if value not in [x.id for x in self.instance.mailchimp_email_lists]:
+            logger.warning("Attempt to set mailchimp_list_id to a list not associated with this RP")
             raise serializers.ValidationError("Invalid Mailchimp list ID")
         return value
 

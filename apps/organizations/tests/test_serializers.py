@@ -200,6 +200,25 @@ class TestRevenueProgramSerializer:
 
 
 @pytest.mark.django_db
+class TestMailchimpRevenueProgramForSpaConfiguration:
+    def test_has_right_fields_and_values(self, mc_connected_rp):
+        pass
+
+    def test_update_override_has_update_fields_in_save(self, revenue_program, mocker):
+        save_spy = mocker.patch("apps.organizations.models.RevenueProgram.save")
+        data = {"mailchimp_list_id": "something-made-up", "name": "something"}
+        serializer = MailchimpRevenueProgramForSwitchboard(revenue_program)
+        serializer.update(revenue_program, data)
+        save_spy.assert_called_once_with(update_fields=set(data.keys()))
+
+    def test_validate_mailchimp_list_id(self, mc_connected_rp):
+        data = {"mailchimp_list_id": "something-made-up", "name": "something"}
+        serializer = MailchimpRevenueProgramForSwitchboard(mc_connected_rp, data=data)
+        assert serializer.is_valid() is False
+        assert "mailchimp_list_id" in serializer.errors
+
+
+@pytest.mark.django_db
 class TestMailchimpRevenueProgramForSwitchboard:
     def test_has_right_fields_and_values(
         self,

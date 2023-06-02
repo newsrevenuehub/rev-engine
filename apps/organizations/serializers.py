@@ -125,6 +125,49 @@ class RevenueProgramInlineSerializer(serializers.ModelSerializer):
         return [{"id": x.id, "name": x.name} for x in obj.mailchimp_email_lists]
 
 
+class MailchimpRevenueProgramForSwitchboard(serializers.ModelSerializer):
+    """Primary consumer is switchboard API. This is a read-only serializer."""
+
+    mailchimp_integration_connected = serializers.ReadOnlyField()
+    mailchimp_server_prefix = serializers.ReadOnlyField(allow_null=True)
+    mailchimp_store = serializers.SerializerMethodField()
+    mailchimp_one_time_contribution_product = serializers.SerializerMethodField()
+    mailchimp_recurring_contribution_product = serializers.SerializerMethodField()
+    stripe_account_id = serializers.ReadOnlyField()
+    id = serializers.ReadOnlyField()
+    name = serializers.ReadOnlyField()
+    slug = serializers.ReadOnlyField()
+
+    class Meta:
+        model = RevenueProgram
+        fields = [
+            "id",
+            "name",
+            "slug",
+            "stripe_account_id",
+            "mailchimp_integration_connected",
+            "mailchimp_server_prefix",
+            "mailchimp_store",
+            "mailchimp_one_time_contribution_product",
+            "mailchimp_recurring_contribution_product",
+        ]
+
+    def get_mailchimp_store(self, obj) -> dict | None:
+        return asdict(obj.mailchimp_store) if obj.mailchimp_store else None
+
+    def get_mailchimp_one_time_contribution_product(self, obj) -> dict | None:
+        return (
+            asdict(obj.mailchimp_one_time_contribution_product) if obj.mailchimp_one_time_contribution_product else None
+        )
+
+    def get_mailchimp_recurring_contribution_product(self, obj) -> dict | None:
+        return (
+            asdict(obj.mailchimp_recurring_contribution_product)
+            if obj.mailchimp_recurring_contribution_product
+            else None
+        )
+
+
 class RevenueProgramSerializer(serializers.ModelSerializer):
     """
     This is the RevenueProgram serializer you should consider updating.

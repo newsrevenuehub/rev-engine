@@ -8,9 +8,7 @@ from apps.organizations import views
 router = routers.DefaultRouter()
 router.register(r"organizations", views.OrganizationViewSet, basename="organization")
 router.register(r"revenue-programs", views.RevenueProgramViewSet, basename="revenue-program")
-router.register(
-    r"revenue-program-mailchimp", views.RevenueProgramMailchimpIntegrationViewSet, basename="revenue-program-mailchimp"
-)
+
 
 urlpatterns = [
     path("", include(router.urls)),

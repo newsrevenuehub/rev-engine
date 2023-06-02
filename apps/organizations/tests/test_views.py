@@ -328,26 +328,6 @@ def mock_secret_manager(mocker):
     mocker.patch.object(GoogleCloudSecretProvider, "__delete__")
 
 
-@pytest.fixture
-def mock_mailchimp_entities(
-    mocker,
-    mailchimp_store_from_api,
-    mailchimp_email_list_from_api,
-    mailchimp_product_from_api,
-    mailchimp_contributor_segment_from_api,
-):
-    mock_mc_client = mocker.Mock()
-    mock_mc_client.lists.get_all_lists.return_value = {"lists": [mailchimp_email_list_from_api]}
-    mock_mc_client.ecommerce.stores.get.return_value = mailchimp_store_from_api
-    mock_mc_client.ecommerce.products.get.return_value = mailchimp_product_from_api
-    # NB: we're erasing some complexity that exists in our actual code here in that we're letting
-    # mailchimp_contributor_segment_from_api be a standin for both contributor and recurring segments
-    mock_mc_client.lists.get_segment.side_effect = mailchimp_contributor_segment_from_api
-    # NB: We're doing same as previous NB here, but for the two products (mailchimp_recurring_contribution_product and
-    # mailchimp_one_time_contribution_product)
-    mock_mc_client.ecommerce.get_store_product = mailchimp_store_from_api
-
-
 @pytest.mark.django_db
 class TestRevenueProgramViewSet:
     def test_pagination_disabled(self):

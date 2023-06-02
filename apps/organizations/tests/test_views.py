@@ -18,7 +18,6 @@ from apps.common.secrets import GoogleCloudSecretProvider
 from apps.organizations.models import (
     TAX_ID_MAX_LENGTH,
     TAX_ID_MIN_LENGTH,
-    CorePlan,
     Organization,
     OrganizationQuerySet,
     RevenueProgram,
@@ -29,7 +28,6 @@ from apps.organizations.tests.factories import OrganizationFactory, RevenueProgr
 from apps.organizations.views import RevenueProgramViewSet, get_stripe_account_link_return_url
 from apps.public.permissions import IsActiveSuperUser
 from apps.users.choices import Roles
-from apps.users.tests.factories import RoleAssignmentFactory
 
 
 user_model = get_user_model()
@@ -348,17 +346,6 @@ def mock_mailchimp_entities(
     # NB: We're doing same as previous NB here, but for the two products (mailchimp_recurring_contribution_product and
     # mailchimp_one_time_contribution_product)
     mock_mc_client.ecommerce.get_store_product = mailchimp_store_from_api
-
-
-@pytest.fixture
-def org_user_with_mc_integration():
-    ra = RoleAssignmentFactory(
-        role_type=Roles.ORG_ADMIN.value,
-        organization__plan_name=CorePlan.name,
-    )
-    ra.revenue_programs.set([RevenueProgramFactory(organization=ra.organization)])
-    ra.save()
-    return ra.user
 
 
 @pytest.mark.django_db

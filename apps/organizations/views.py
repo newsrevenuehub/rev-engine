@@ -100,13 +100,13 @@ class RevenueProgramViewSet(FilterForSuperUserOrRoleAssignmentUserMixin, viewset
         The primary consumer of this data at time of this comment is Switchboard API.
         """
         revenue_program = get_object_or_404(self.get_queryset(), pk=pk)
-        return Response(serializers.MailchimpRevenueProgramForSwitchboard(revenue_program).data)
+        return Response(self.serializer_class(revenue_program).data)
 
     @action(
         methods=["GET", "PATCH"],
         detail=True,
         permission_classes=[IsAuthenticated, IsActiveSuperUser | (HasRoleAssignment & (IsOrgAdmin | IsHubAdmin))],
-        serializer_class=serializers.MailchimpRevenueProgramForSwitchboard,
+        serializer_class=serializers.MailchimpRevenueProgramForSpaConfiguration,
     )
     def mailchimp_configure(self, request, pk=None):
         """Allow retrieval and update of mailchimp configuration for the revenue program with the given pk
@@ -115,13 +115,11 @@ class RevenueProgramViewSet(FilterForSuperUserOrRoleAssignmentUserMixin, viewset
         """
         revenue_program = get_object_or_404(self.get_queryset(), pk=pk)
         if request.method == "PATCH":
-            serializer = serializers.MailchimpRevenueProgramForSwitchboard(
-                revenue_program, data=request.data, partial=True
-            )
+            serializer = self.serializer_class(revenue_program, data=request.data, partial=True)
             serializer.is_valid(raise_exception=True)
             serializer.save()
             revenue_program.refresh_from_db()
-        return Response(serializers.MailchimpRevenueProgramForSwitchboard(revenue_program).data)
+        return Response(self.serializer_class(revenue_program).data)
 
 
 def get_stripe_account_link_return_url(request):

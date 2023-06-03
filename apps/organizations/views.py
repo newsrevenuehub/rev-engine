@@ -100,7 +100,7 @@ class RevenueProgramViewSet(FilterForSuperUserOrRoleAssignmentUserMixin, viewset
         The primary consumer of this data at time of this comment is Switchboard API.
         """
         revenue_program = get_object_or_404(self.get_queryset(), pk=pk)
-        return Response(serializers.MailchimpRevenueProgramForSwitchboard(revenue_program).data)
+        return Response(self.serializer_class(revenue_program).data)
 
     @action(
         methods=["GET", "PATCH"],

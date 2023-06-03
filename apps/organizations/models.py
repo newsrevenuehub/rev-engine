@@ -539,7 +539,7 @@ class RevenueProgram(IndexedTimeStampedModel):
         """Alias for self.mailchimp_email_list
 
         This is boilerplate that's necessary to make MailchimpRevenueProgramForSpaConfiguration (serializer) happy
-        and easiliy testable.
+        and easily testable.
         """
         return asdict(self.mailchimp_email_list) if self.mailchimp_email_list else None
 
@@ -548,7 +548,7 @@ class RevenueProgram(IndexedTimeStampedModel):
         """Alias for self.mailchimp_email_lists
 
         This is boilerplate that's necessary to make MailchimpRevenueProgramForSpaConfiguration (serializer) happy
-        and easiliy testable.
+        and easily testable.
         """
         return [asdict(x) for x in self.mailchimp_email_lists]
 

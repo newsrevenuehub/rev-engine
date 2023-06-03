@@ -127,7 +127,8 @@ class RevenueProgramInlineSerializer(serializers.ModelSerializer):
 
 class MailchimpRevenueProgramForSpaConfiguration(serializers.ModelSerializer):
     """
-    Primary consumer is the SPA...
+    Used by the SPA configuration endpoint. This is a read-only except for mailchimp_list_id
+    which gets validated vs. the available lists.
     """
 
     mailchimp_list_id = serializers.CharField(required=False, max_length=50)

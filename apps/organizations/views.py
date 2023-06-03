@@ -103,19 +103,17 @@ class RevenueProgramViewSet(FilterForSuperUserOrRoleAssignmentUserMixin, viewset
         methods=["GET", "PATCH"],
         detail=True,
         permission_classes=[IsAuthenticated, IsActiveSuperUser | (HasRoleAssignment & (IsOrgAdmin | IsHubAdmin))],
-        serializer_class=serializers.MailchimpRevenueProgramForSwitchboard,
+        serializer_class=serializers.MailchimpRevenueProgramForSpaConfiguration,
     )
     def mailchimp_configure(self, request, pk=None):
         """Return the mailchimp data for the revenue program with the given pk"""
         revenue_program = get_object_or_404(self.get_queryset(), pk=pk)
         if request.method == "PATCH":
-            serializer = serializers.MailchimpRevenueProgramForSwitchboard(
-                revenue_program, data=request.data, partial=True
-            )
+            serializer = self.serializer_class(revenue_program, data=request.data, partial=True)
             serializer.is_valid(raise_exception=True)
             serializer.save()
             revenue_program.refresh_from_db()
-        return Response(serializers.MailchimpRevenueProgramForSwitchboard(revenue_program).data)
+        return Response(self.serializer_class(revenue_program).data)
 
 
 def get_stripe_account_link_return_url(request):

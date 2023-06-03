@@ -95,7 +95,10 @@ class RevenueProgramViewSet(FilterForSuperUserOrRoleAssignmentUserMixin, viewset
         serializer_class=serializers.MailchimpRevenueProgramForSwitchboard,
     )
     def mailchimp(self, request, pk=None):
-        """Return the mailchimp data for the revenue program with the given pk"""
+        """Return the mailchimp data for the revenue program with the given pk
+
+        The primary consumer of this data at time of this comment is Switchboard API.
+        """
         revenue_program = get_object_or_404(self.get_queryset(), pk=pk)
         return Response(serializers.MailchimpRevenueProgramForSwitchboard(revenue_program).data)
 
@@ -106,7 +109,10 @@ class RevenueProgramViewSet(FilterForSuperUserOrRoleAssignmentUserMixin, viewset
         serializer_class=serializers.MailchimpRevenueProgramForSwitchboard,
     )
     def mailchimp_configure(self, request, pk=None):
-        """Return the mailchimp data for the revenue program with the given pk"""
+        """Allow retrieval and update of mailchimp configuration for the revenue program with the given pk
+
+        The primary consumer of this data at time of this comment is the RevEngine SPA.
+        """
         revenue_program = get_object_or_404(self.get_queryset(), pk=pk)
         if request.method == "PATCH":
             serializer = serializers.MailchimpRevenueProgramForSwitchboard(

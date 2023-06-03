@@ -355,7 +355,6 @@ class MailchimpProduct:
 
     """An instance of a Mailchimp product link, as represented by the Mailchimp API and relayed by rev-engine"""
 
-    # When this is created by rev-engine, the value will be of form "rp-<revenue_program_id>-one-time-contribution-product" or "rp-<revenue_program_id>-recurring-contribution-product"
     id: str
     currency_code: str
     # When this is created by rev-engine, the value will be either "one-time contribution" or "recurring contribution"

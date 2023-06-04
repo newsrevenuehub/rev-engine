@@ -262,5 +262,6 @@ class TestMailchimpRevenueProgramForSwitchboard:
     def test_stripe_account_id_is_nullable(self, mc_connected_rp):
         mc_connected_rp.payment_provider.stripe_account_id = None
         mc_connected_rp.payment_provider.save()
+        assert mc_connected_rp.stripe_account_id is None
         serialized = MailchimpRevenueProgramForSwitchboard(mc_connected_rp).data
         assert serialized["stripe_account_id"] is None

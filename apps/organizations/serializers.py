@@ -133,7 +133,7 @@ class MailchimpRevenueProgramForSwitchboard(serializers.ModelSerializer):
     mailchimp_store = serializers.SerializerMethodField()
     mailchimp_one_time_contribution_product = serializers.SerializerMethodField()
     mailchimp_recurring_contribution_product = serializers.SerializerMethodField()
-    stripe_account_id = serializers.ReadOnlyField()
+    stripe_account_id = serializers.ReadOnlyField(allow_null=True)
     id = serializers.ReadOnlyField()
     name = serializers.ReadOnlyField()
     slug = serializers.ReadOnlyField()

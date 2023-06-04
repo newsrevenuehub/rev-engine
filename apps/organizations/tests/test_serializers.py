@@ -234,6 +234,18 @@ class TestMailchimpRevenueProgramForSwitchboard:
             new_callable=mocker.PropertyMock,
         )
         serialized = MailchimpRevenueProgramForSwitchboard(mc_connected_rp).data
+        assert set(serialized.keys()) == {
+            "id",
+            "name",
+            "slug",
+            "mailchimp_server_prefix",
+            "mailchimp_integration_connected",
+            "stripe_account_id",
+            "mailchimp_store",
+            "mailchimp_recurring_contribution_product",
+            "mailchimp_one_time_contribution_product",
+        }
+
         for field in (
             "id",
             "name",
@@ -243,7 +255,6 @@ class TestMailchimpRevenueProgramForSwitchboard:
             "stripe_account_id",
         ):
             assert serialized[field] == getattr(mc_connected_rp, field)
-
         assert serialized["mailchimp_store"] == asdict(mailchimp_store)
         assert serialized["mailchimp_recurring_contribution_product"] == asdict(mailchimp_product)
         assert serialized["mailchimp_one_time_contribution_product"] == asdict(mailchimp_product)

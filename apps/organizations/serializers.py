@@ -131,7 +131,7 @@ class MailchimpRevenueProgramForSpaConfiguration(serializers.ModelSerializer):
     which gets validated vs. the available lists.
     """
 
-    mailchimp_list_id = serializers.CharField(required=False, max_length=50)
+    mailchimp_list_id = serializers.CharField(required=False, allow_null=True, max_length=50)
 
     class Meta:
         model = RevenueProgram
@@ -158,7 +158,7 @@ class MailchimpRevenueProgramForSpaConfiguration(serializers.ModelSerializer):
 
     def validate_mailchimp_list_id(self, value):
         logger.info("Validating Mailchimp list ID with value %s for RP %s", value, self.instance)
-        if value not in [x.id for x in self.instance.mailchimp_email_lists]:
+        if value is not None and value not in [x.id for x in self.instance.mailchimp_email_lists]:
             logger.warning("Attempt to set mailchimp_list_id to a list not associated with this RP")
             raise serializers.ValidationError("Invalid Mailchimp list ID")
         return value

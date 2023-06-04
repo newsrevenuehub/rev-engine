@@ -258,3 +258,9 @@ class TestMailchimpRevenueProgramForSwitchboard:
         assert serialized["mailchimp_store"] == asdict(mailchimp_store)
         assert serialized["mailchimp_recurring_contribution_product"] == asdict(mailchimp_product)
         assert serialized["mailchimp_one_time_contribution_product"] == asdict(mailchimp_product)
+
+    def test_stripe_account_id_is_nullable(self, mc_connected_rp):
+        mc_connected_rp.payment_provider.stripe_account_id = None
+        mc_connected_rp.payment_provider.save()
+        serialized = MailchimpRevenueProgramForSwitchboard(mc_connected_rp).data
+        assert serialized["stripe_account_id"] is None

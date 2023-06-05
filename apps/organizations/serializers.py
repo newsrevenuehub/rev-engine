@@ -125,6 +125,45 @@ class RevenueProgramInlineSerializer(serializers.ModelSerializer):
         return [{"id": x.id, "name": x.name} for x in obj.mailchimp_email_lists]
 
 
+class MailchimpRevenueProgramForSpaConfiguration(serializers.ModelSerializer):
+    """
+    Used by the SPA configuration endpoint. This is a read-only except for mailchimp_list_id
+    which gets validated vs. the available lists.
+    """
+
+    mailchimp_list_id = serializers.CharField(required=False, allow_null=True, max_length=50)
+
+    class Meta:
+        model = RevenueProgram
+        fields = [
+            "id",
+            "name",
+            "slug",
+            "chosen_mailchimp_email_list",
+            "available_mailchimp_email_lists",
+            "mailchimp_integration_connected",
+            "mailchimp_list_id",
+        ]
+
+    def update(self, instance, validated_data):
+        """We override `.update` so we can pass update_fields to `instance.save()`. We have code that creates mailchimp entities
+        if mailchimp_list_id is being updated. Beyond that, `update_fields` guards against race conditions."""
+        logger.info("Updating RP %s with data %s", instance, validated_data)
+        update_fields = [field for field in validated_data if field in self.fields]
+        for attr, value in validated_data.items():
+            if attr in update_fields:
+                setattr(instance, attr, value)
+        instance.save(update_fields={field for field in validated_data if field in self.fields})
+        return instance
+
+    def validate_mailchimp_list_id(self, value):
+        logger.info("Validating Mailchimp list ID with value %s for RP %s", value, self.instance)
+        if value is not None and value not in [x.id for x in self.instance.mailchimp_email_lists]:
+            logger.warning("Attempt to set mailchimp_list_id to a list not associated with this RP")
+            raise serializers.ValidationError("Invalid Mailchimp list ID")
+        return value
+
+
 class MailchimpRevenueProgramForSwitchboard(serializers.ModelSerializer):
     """Primary consumer is switchboard API. This is a read-only serializer."""
 

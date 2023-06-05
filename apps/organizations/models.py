@@ -1,6 +1,6 @@
 import logging
 import os
-from dataclasses import dataclass, field
+from dataclasses import asdict, dataclass, field
 from functools import cached_property
 from typing import List, Literal, Optional
 
@@ -533,6 +533,24 @@ class RevenueProgram(IndexedTimeStampedModel):
             case _:
                 logger.exception("Unexpected error from Mailchimp API. The error text is %s", exc.text)
         return None
+
+    @cached_property
+    def chosen_mailchimp_email_list(self) -> MailchimpEmailList | None:
+        """Alias for self.mailchimp_email_list
+
+        This is boilerplate that's necessary to make MailchimpRevenueProgramForSpaConfiguration (serializer) happy
+        and easily testable.
+        """
+        return asdict(self.mailchimp_email_list) if self.mailchimp_email_list else None
+
+    @cached_property
+    def available_mailchimp_email_lists(self) -> List[MailchimpEmailList]:
+        """Alias for self.mailchimp_email_lists
+
+        This is boilerplate that's necessary to make MailchimpRevenueProgramForSpaConfiguration (serializer) happy
+        and easily testable.
+        """
+        return [asdict(x) for x in self.mailchimp_email_lists]
 
     @cached_property
     def mailchimp_store(self) -> MailchimpStore | None:

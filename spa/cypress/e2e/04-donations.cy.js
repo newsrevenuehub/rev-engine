@@ -362,7 +362,7 @@ describe('Donations list', () => {
         { statusCode: 202, body: { requiresVerification: true } }
       ).as('stripeAccountLink');
       cy.intercept({ method: 'GET', pathname: getEndpoint(USER) }, { body: selfServiceUserNotStripeVerified });
-      cy.intercept({ method: 'GET', pathname: getEndpoint('/revenue-programs/*/mailchimp-integration/') }, {});
+      cy.intercept({ method: 'GET', pathname: getEndpoint('/revenue-programs/*/mailchimp_configure/') }, {});
       cy.interceptPaginatedDonations();
       cy.visit(DONATIONS_SLUG);
       cy.wait('@listPages');
@@ -377,7 +377,7 @@ describe('Donations list', () => {
       cy.forceLogin({ ...orgAdminUser, user: selfServiceUserStripeVerified });
       cy.intercept(getEndpoint(LIST_PAGES), { fixture: 'pages/list-pages-1' }).as('listPages');
       cy.intercept({ method: 'GET', pathname: getEndpoint(USER) }, { body: selfServiceUserStripeVerified });
-      cy.intercept({ method: 'GET', pathname: getEndpoint('/revenue-programs/*/mailchimp-integration/') }, {});
+      cy.intercept({ method: 'GET', pathname: getEndpoint('/revenue-programs/*/mailchimp_configure/') }, {});
       cy.interceptPaginatedDonations();
       cy.visit(DONATIONS_SLUG);
       cy.wait('@listPages');
@@ -389,7 +389,7 @@ describe('Donations list', () => {
       cy.forceLogin({ ...orgAdminUser, user: selfServiceUserStripeVerified });
       cy.intercept(getEndpoint(LIST_PAGES), { fixture: 'pages/list-pages-1-live' }).as('listPages');
       cy.intercept({ method: 'GET', pathname: getEndpoint(USER) }, { body: selfServiceUserStripeVerified });
-      cy.intercept({ method: 'GET', pathname: getEndpoint('/revenue-programs/*/mailchimp-integration/') }, {});
+      cy.intercept({ method: 'GET', pathname: getEndpoint('/revenue-programs/*/mailchimp_configure/') }, {});
       cy.interceptPaginatedDonations();
       cy.visit(DONATIONS_SLUG);
       cy.wait('@listPages');
@@ -408,7 +408,7 @@ describe('Donations list', () => {
           }
         }
       );
-      cy.intercept({ method: 'GET', pathname: getEndpoint('/revenue-programs/*/mailchimp-integration/') }, {});
+      cy.intercept({ method: 'GET', pathname: getEndpoint('/revenue-programs/*/mailchimp_configure/') }, {});
       cy.interceptPaginatedDonations();
       cy.visit(DONATIONS_SLUG);
       cy.wait('@listPages');
@@ -428,7 +428,7 @@ describe('Table sorting for revenue program name', () => {
     cy.forceLogin(orgAdminUserSingleRP);
     cy.intercept(getEndpoint(LIST_PAGES), { fixture: 'pages/list-pages-1' }).as('listPages');
     cy.intercept({ method: 'GET', pathname: getEndpoint(USER) }, { body: orgAdminOneRpWithAccessFlags });
-    cy.intercept({ method: 'GET', pathname: getEndpoint('/revenue-programs/*/mailchimp-integration/') }, {});
+    cy.intercept({ method: 'GET', pathname: getEndpoint('/revenue-programs/*/mailchimp_configure/') }, {});
     cy.interceptPaginatedDonations(donationsDataOneRp);
     cy.visit(DONATIONS_SLUG);
     cy.wait('@getDonations');
@@ -441,7 +441,7 @@ describe('Table sorting for revenue program name', () => {
     cy.forceLogin(orgAdminTwoRpsWithAccessFlags);
     cy.intercept(getEndpoint(LIST_PAGES), { fixture: 'pages/list-pages-1' }).as('listPages');
     cy.intercept({ method: 'GET', pathname: getEndpoint(USER) }, { body: orgAdminTwoRpsWithAccessFlags });
-    cy.intercept({ method: 'GET', pathname: getEndpoint('/revenue-programs/*/mailchimp-integration/') }, {});
+    cy.intercept({ method: 'GET', pathname: getEndpoint('/revenue-programs/*/mailchimp_configure/') }, {});
     cy.interceptPaginatedDonations(donationsDataTwoRps);
     cy.visit(DONATIONS_SLUG);
     cy.wait('@getDonations');

@@ -16,7 +16,7 @@ describe('Styles view', () => {
       'listStyles'
     );
     cy.intercept({ method: 'GET', pathname: getEndpoint(USER) }, { body: stripeVerifiedOrgAdmin });
-    cy.intercept({ method: 'GET', pathname: getEndpoint('/revenue-programs/*/mailchimp-integration/') }, {});
+    cy.intercept({ method: 'GET', pathname: getEndpoint('/revenue-programs/*/mailchimp_configure/') }, {});
     cy.intercept({ method: 'GET', pathname: getEndpoint(LIST_FONTS) }, {});
     cy.intercept(
       { method: 'POST', pathname: getEndpoint(LIST_STYLES + '**') },

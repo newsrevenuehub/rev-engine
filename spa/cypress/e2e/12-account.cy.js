@@ -180,7 +180,7 @@ describe('Account', () => {
     it('should not show `verify-email screen` if user is verified', () => {
       cy.forceLogin(orgAdminUser);
       cy.intercept({ method: 'GET', pathname: getEndpoint(USER) }, { body: orgAdminWithContentFlag });
-      cy.intercept({ method: 'GET', pathname: getEndpoint('/revenue-programs/*/mailchimp-integration/') }, {});
+      cy.intercept({ method: 'GET', pathname: getEndpoint('/revenue-programs/*/mailchimp_configure/') }, {});
       cy.intercept({ method: 'GET', pathname: getEndpoint(LIST_PAGES) }, { fixture: 'pages/list-pages-1' });
       cy.intercept({ method: 'GET', pathname: getEndpoint(LIST_STYLES) }, { fixture: 'styles/list-styles-1' });
       cy.visit(DASHBOARD_SLUG);
@@ -224,7 +224,7 @@ describe('Account', () => {
       };
       cy.forceLogin({ ...orgAdminUser, user: selfServiceUserNotStripeVerified });
       cy.intercept({ method: 'GET', pathname: getEndpoint(USER) }, { body: selfServiceUserNotStripeVerified });
-      cy.intercept({ method: 'GET', pathname: getEndpoint('/revenue-programs/*/mailchimp-integration/') }, {});
+      cy.intercept({ method: 'GET', pathname: getEndpoint('/revenue-programs/*/mailchimp_configure/') }, {});
       cy.intercept(
         { method: 'POST', pathname: getEndpoint(getStripeAccountLinkStatusPath(rp.id)) },
         { statusCode: 202, body: stripeAccountLinkResponse }
@@ -240,7 +240,7 @@ describe('Account', () => {
       cy.setCookie(CONNECT_STRIPE_COOKIE_NAME, 'true', { path: '/' });
       cy.forceLogin({ ...orgAdminUser, user: selfServiceUserNotStripeVerified });
       cy.intercept({ method: 'GET', pathname: getEndpoint(USER) }, { body: selfServiceUserNotStripeVerified });
-      cy.intercept({ method: 'GET', pathname: getEndpoint('/revenue-programs/*/mailchimp-integration/') }, {});
+      cy.intercept({ method: 'GET', pathname: getEndpoint('/revenue-programs/*/mailchimp_configure/') }, {});
       const stripeAccountLinkResponse = {
         reason: 'past_due',
         requiresVerification: true,

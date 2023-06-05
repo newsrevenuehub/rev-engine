@@ -33,7 +33,7 @@ describe('Contribution page list', () => {
     beforeEach(() => {
       cy.forceLogin(orgAdmin);
       cy.intercept({ method: 'GET', pathname: getEndpoint(USER) }, { body: orgAdminWithContentFlag });
-      cy.intercept({ method: 'GET', pathname: getEndpoint('/revenue-programs/*/mailchimp-integration/') }, {});
+      cy.intercept({ method: 'GET', pathname: getEndpoint('/revenue-programs/*/mailchimp_configure/') }, {});
       cy.intercept(
         { method: 'GET', pathname: getEndpoint(LIST_PAGES) },
         { fixture: 'pages/list-pages-1', statusCode: 200 }
@@ -76,7 +76,7 @@ describe('Add Page modal', () => {
 
   it('opens when the user clicks the New Page button', () => {
     cy.intercept({ method: 'GET', pathname: getEndpoint(USER) }, { body: orgAdminWithContentFlag });
-    cy.intercept({ method: 'GET', pathname: getEndpoint('/revenue-programs/*/mailchimp-integration/') }, {});
+    cy.intercept({ method: 'GET', pathname: getEndpoint('/revenue-programs/*/mailchimp_configure/') }, {});
     cy.intercept(
       { method: 'GET', pathname: getEndpoint(LIST_PAGES) },
       { fixture: 'pages/list-pages-1', statusCode: 200 }
@@ -91,7 +91,7 @@ describe('Add Page modal', () => {
 
   it('puts the rev_program in the outgoing request', () => {
     cy.intercept({ method: 'GET', pathname: getEndpoint(USER) }, { body: orgAdminWithContentFlag });
-    cy.intercept({ method: 'GET', pathname: getEndpoint('/revenue-programs/*/mailchimp-integration/') }, {});
+    cy.intercept({ method: 'GET', pathname: getEndpoint('/revenue-programs/*/mailchimp_configure/') }, {});
     cy.intercept(
       { method: 'GET', pathname: getEndpoint(LIST_PAGES) },
       { fixture: 'pages/list-pages-1', statusCode: 200 }
@@ -108,7 +108,7 @@ describe('Add Page modal', () => {
   describe('when the user has only one revenue program', () => {
     beforeEach(() => {
       cy.intercept({ method: 'GET', pathname: getEndpoint(USER) }, { body: orgAdminWithContentFlagAndOneRP });
-      cy.intercept({ method: 'GET', pathname: getEndpoint('/revenue-programs/*/mailchimp-integration/') }, {});
+      cy.intercept({ method: 'GET', pathname: getEndpoint('/revenue-programs/*/mailchimp_configure/') }, {});
     });
 
     it('immediately creates a page with a temporary slug', () => {
@@ -196,12 +196,12 @@ describe('Pages view', () => {
     cy.intercept({ method: 'GET', pathname: getEndpoint(LIST_PAGES) }, { body: [], statusCode: 200 }).as('listPages');
     cy.forceLogin(orgAdmin);
     cy.intercept({ method: 'GET', pathname: getEndpoint(USER) }, { body: orgAdminWithContentFlag });
-    cy.intercept({ method: 'GET', pathname: getEndpoint('/revenue-programs/*/mailchimp-integration/') }, {});
+    cy.intercept({ method: 'GET', pathname: getEndpoint('/revenue-programs/*/mailchimp_configure/') }, {});
     cy.intercept({ method: 'GET', pathname: getEndpoint(LIST_STYLES + '/') }, { body: [], statusCode: 200 }).as(
       'listStyles'
     );
     cy.intercept({ method: 'GET', pathname: getEndpoint(USER) }, { body: stripeVerifiedOrgAdmin });
-    cy.intercept({ method: 'GET', pathname: getEndpoint('/revenue-programs/*/mailchimp-integration/') }, {});
+    cy.intercept({ method: 'GET', pathname: getEndpoint('/revenue-programs/*/mailchimp_configure/') }, {});
     cy.intercept(
       { method: 'POST', pathname: getEndpoint(LIST_PAGES) },
       { fixture: 'pages/create-page-response.json' }

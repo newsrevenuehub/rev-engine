@@ -84,7 +84,7 @@ export default function useConnectMailchimp(): UseConnectMailchimpResult {
   // audience lists is populated (mailchimp connection successfully started).
 
   const requiresAudienceSelection =
-    !mailchimpData?.mailchimp_email_list?.id && (mailchimpData?.mailchimp_email_lists?.length ?? 0) > 0;
+    !mailchimpData?.mailchimp_list_id && (mailchimpData?.available_mailchimp_email_lists?.length ?? 0) > 0;
 
   useEffect(() => {
     // Reset the retrieval interval; we might have increased it in
@@ -106,12 +106,7 @@ export default function useConnectMailchimp(): UseConnectMailchimpResult {
         )
       });
     }
-  }, [
-    enqueueSnackbar,
-    mailchimpData?.mailchimp_integration_connected,
-    prevMailchimpConnection,
-    user?.revenue_programs
-  ]);
+  }, [enqueueSnackbar, mailchimpData?.mailchimp_integration_connected, prevMailchimpConnection]);
 
   const result: UseConnectMailchimpResult = {
     hasMailchimpAccess,
@@ -144,9 +139,9 @@ export default function useConnectMailchimp(): UseConnectMailchimpResult {
   // If we are connected to Mailchimp, add related properties.
 
   if (result.connectedToMailchimp) {
-    result.audiences = mailchimpData?.mailchimp_email_lists;
+    result.audiences = mailchimpData?.available_mailchimp_email_lists;
     result.selectAudience = selectAudience;
-    result.selectedAudience = mailchimpData?.mailchimp_email_list;
+    result.selectedAudience = mailchimpData?.chosen_mailchimp_email_list;
   }
 
   return result;

@@ -54,7 +54,7 @@ const mockUseUserResult = {
 // URL is hardcoded so that if constant is mistakenly changed, the test
 // will fail.
 
-const mailchimpStatusEndpoint = `/revenue-programs/${mockUser.revenue_programs[0].id}/mailchimp-integration/`;
+const mailchimpStatusEndpoint = `/revenue-programs/${mockUser.revenue_programs[0].id}/mailchimp_configure/`;
 
 const mockMailchimpLists = [
   { id: '1', name: 'audience-1' },
@@ -77,8 +77,9 @@ describe('useConnectMailchimp hook', () => {
     });
     useUserMock.mockReturnValue(mockUseUserResult);
     axiosMock.onGet(mailchimpStatusEndpoint).reply(200, {
-      mailchimp_email_lists: mockMailchimpLists,
-      mailchimp_email_list: mockMailchimpLists[0],
+      available_mailchimp_email_lists: mockMailchimpLists,
+      chosen_mailchimp_email_list: mockMailchimpLists[0],
+      mailchimp_list_id: mockMailchimpLists[0].id,
       mailchimp_integration_connected: true
     });
     axiosMock.onPatch(mailchimpStatusEndpoint).reply(200, {});
@@ -273,7 +274,6 @@ describe('useConnectMailchimp hook', () => {
       const { result } = hook();
 
       await Promise.resolve();
-      console.log(result.current);
       expect(result.current.isLoading).toBe(false);
       expect(axiosMock.history.get.length).toBe(0);
     });
@@ -374,14 +374,14 @@ describe('useConnectMailchimp hook', () => {
         expect(result.current.isLoading).toBe(false);
       });
 
-      it("returns a audiences property with the Mailchimp status's mailchimp_email_lists property", async () => {
+      it("returns a audiences property with the Mailchimp status's available_mailchimp_email_lists property", async () => {
         const { result, waitFor } = hook();
 
         await waitFor(() => expect(axiosMock.history.get.length).toBe(1));
         expect(result.current.audiences).toEqual(mockMailchimpLists);
       });
 
-      it("returns a selectedAudience property with the Mailchimp status's mailchimp_email_list property", async () => {
+      it("returns a selectedAudience property with the Mailchimp status's chosen_mailchimp_email_list property", async () => {
         const { result, waitFor } = hook();
 
         await waitFor(() => expect(axiosMock.history.get.length).toBe(1));
@@ -390,8 +390,9 @@ describe('useConnectMailchimp hook', () => {
 
       it('sets selectedAudience property to undefined if there is none in the Mailchimp status', async () => {
         axiosMock.onGet(mailchimpStatusEndpoint).reply(200, {
-          mailchimp_email_lists: mockMailchimpLists,
-          mailchimp_email_list: undefined,
+          available_mailchimp_email_lists: mockMailchimpLists,
+          chosen_mailchimp_email_list: undefined,
+          mailchimp_list_id: undefined,
           mailchimp_integration_connected: true
         });
 
@@ -426,28 +427,29 @@ describe('useConnectMailchimp hook', () => {
 
       describe.each([
         [
-          'When Mailchimp status has neither mailchimp_email_lists set nor mailchimp_email_list',
+          'When Mailchimp status has neither available_mailchimp_email_lists set nor chosen_mailchimp_email_list',
           undefined,
           undefined,
           false
         ],
         [
-          'When Mailchimp status has mailchimp_email_lists set, but not mailchimp_email_list',
+          'When Mailchimp status has available_mailchimp_email_lists set, but not chosen_mailchimp_email_list',
           mockMailchimpLists,
           undefined,
           true
         ],
         [
-          'When Mailchimp status has both mailchimp_email_lists and mailchimp_email_list set',
+          'When Mailchimp status has both available_mailchimp_email_lists and chosen_mailchimp_email_list set',
           mockMailchimpLists,
           mockMailchimpLists[0],
           false
         ]
-      ])('%s', (_, mailchimp_email_lists, mailchimp_email_list, shouldRequireAudienceSection) => {
+      ])('%s', (_, available_mailchimp_email_lists, chosen_mailchimp_email_list, shouldRequireAudienceSection) => {
         beforeEach(() => {
           axiosMock.onGet(mailchimpStatusEndpoint).reply(200, {
-            mailchimp_email_list,
-            mailchimp_email_lists,
+            chosen_mailchimp_email_list,
+            available_mailchimp_email_lists,
+            mailchimp_list_id: chosen_mailchimp_email_list?.id,
             mailchimp_integration_connected: true
           });
         });
@@ -508,7 +510,7 @@ describe('useConnectMailchimp hook', () => {
         expect(axiosMock.history.patch[0]).toEqual(
           expect.objectContaining({
             data: JSON.stringify({ mailchimp_list_id: '100' }),
-            url: '/revenue-programs/1/mailchimp-integration/'
+            url: '/revenue-programs/1/mailchimp_configure/'
           })
         );
       });
@@ -518,12 +520,12 @@ describe('useConnectMailchimp hook', () => {
         axiosMock
           .onGet(mailchimpStatusEndpoint)
           .replyOnce(200, {
-            mailchimp_email_lists: mockMailchimpLists,
+            available_mailchimp_email_lists: mockMailchimpLists,
             mailchimp_integration_connected: false
           })
           .onGet(mailchimpStatusEndpoint)
           .reply(200, {
-            mailchimp_email_lists: mockMailchimpLists,
+            available_mailchimp_email_lists: mockMailchimpLists,
             mailchimp_integration_connected: true
           });
 

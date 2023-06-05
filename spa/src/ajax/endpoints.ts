@@ -35,7 +35,7 @@ export const REVENUE_PROGRAMS = 'revenue-programs/';
 
 export function getRevenueProgramMailchimpStatusEndpoint(revenueProgramId: RevenueProgram['id']) {
   // TODO use correct URL once implemented
-  return `/revenue-programs/${revenueProgramId}/mailchimp-integration/`;
+  return `/revenue-programs/${revenueProgramId}/mailchimp_configure/`;
 }
 
 // Contributions

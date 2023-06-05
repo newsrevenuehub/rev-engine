@@ -25,6 +25,16 @@ export interface RevenueProgramMailchimpStatus {
   id: string;
 
   /**
+   * Name of the revenue program.
+   */
+  name: string;
+
+  /**
+   * Slug of the revenue program.
+   */
+  slug: string;
+
+  /**
    * Is the revenue program currently connected to Mailchimp?
    */
   mailchimp_integration_connected: boolean;
@@ -33,16 +43,16 @@ export interface RevenueProgramMailchimpStatus {
    * Audience that will be synced with our contributor data. Only set when
    * mailchimp_integration_connected is true.
    */
-  mailchimp_email_list?: MailchimpAudience;
+  chosen_mailchimp_email_list?: MailchimpAudience;
 
   /**
    * All audiences visible to us through Mailchimp's API.
    */
-  mailchimp_email_lists?: MailchimpAudience[];
+  available_mailchimp_email_lists?: MailchimpAudience[];
 
   /**
    * ID of the audience that will be synced with our contributor data. This
-   * should be identical to mailchimp_email_list.id, but is a separate property
+   * should be identical to chosen_mailchimp_email_list.id, but is a separate property
    * so we can PATCH it.
    */
   mailchimp_list_id?: MailchimpAudience['id'];

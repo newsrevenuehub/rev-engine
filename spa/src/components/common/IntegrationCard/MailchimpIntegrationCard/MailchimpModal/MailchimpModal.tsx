@@ -16,7 +16,16 @@ import { useHistory } from 'react-router-dom';
 import { DONATIONS_SLUG } from 'routes';
 import IntegrationCardHeader from '../../IntegrationCardHeader';
 import ModalUpgradePrompt from '../../ModalUpgradePrompt/ModalUpgradePrompt';
-import { ActionButton, CancelButton, ExternalLink, InfoIcon, SupportText, Title } from './MailchimpModal.styled';
+import {
+  ActionButton,
+  CancelButton,
+  ConnectedTitle,
+  ExternalLink,
+  InfoIcon,
+  NotConnectedTitle,
+  SupportText,
+  Title
+} from './MailchimpModal.styled';
 
 export interface MailchimpModalProps extends InferProps<typeof MailchimpModalPropTypes> {
   /**
@@ -95,16 +104,15 @@ const MailchimpModal = ({
         )}
       </ModalHeader>
       <ModalContent>
-        <p style={{ marginBottom: 30, marginTop: 0 }}>
-          {displayState === DISPLAY_STATE.CONNECTED ? (
-            <b>What’s Next?</b>
-          ) : (
-            <>
-              Integrate with Mailchimp to <b style={{ fontWeight: 500 }}>automate targeted</b> emails.
-            </>
-          )}
-        </p>
+        {displayState === DISPLAY_STATE.CONNECTED ? (
+          <ConnectedTitle>What’s Next?</ConnectedTitle>
+        ) : (
+          <NotConnectedTitle>
+            Integrate with Mailchimp to <b style={{ fontWeight: 500 }}>automate targeted</b> emails.
+          </NotConnectedTitle>
+        )}
         <IconList
+          iconSize={displayState === DISPLAY_STATE.CONNECTED ? 'medium' : 'small'}
           list={displayState === DISPLAY_STATE.CONNECTED ? LIST_CONTENT.CONNECTED : LIST_CONTENT.NOT_CONNECTED}
         />
         {

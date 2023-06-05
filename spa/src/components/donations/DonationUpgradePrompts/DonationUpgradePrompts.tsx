@@ -1,10 +1,12 @@
+import { Fade } from '@material-ui/core';
+import useContributionPageList from 'hooks/useContributionPageList';
 import { DONATIONS_CORE_UPGRADE_CLOSED, useSessionState } from 'hooks/useSessionState';
 import useUser from 'hooks/useUser';
+import { useEffect, useState } from 'react';
+import { pageIsPublished } from 'utilities/editPageGetSuccessMessage';
 import { getUserRole } from 'utilities/getUserRole';
 import DonationCoreUpgradePrompt from './DonationCoreUpgradePrompt/DonationCoreUpgradePrompt';
-import { Root } from './DonationUpgradePrompts.styled';
-import useContributionPageList from 'hooks/useContributionPageList';
-import { pageIsPublished } from 'utilities/editPageGetSuccessMessage';
+import { Highlight, Root } from './DonationUpgradePrompts.styled';
 
 // This is a stopgap measure to add functionality to the Donations component in
 // the non-legacy way without refactoring the entire component. Eventually, this
@@ -15,10 +17,29 @@ export function DonationUpgradePrompts() {
   const { isOrgAdmin } = getUserRole(user);
   const { pages } = useContributionPageList();
   const [coreUpgradePromptClosed, setCoreUpgradePromptClosed] = useSessionState(DONATIONS_CORE_UPGRADE_CLOSED, false);
+  const [showAnimation, setShowAnimation] = useState(false);
+  const [showHighlight, setShowHighlight] = useState(true);
+
+  useEffect(() => {
+    if (!showAnimation) return;
+
+    const highlight = setTimeout(() => {
+      setShowHighlight(false);
+    }, 500);
+
+    return () => clearTimeout(highlight);
+  }, [showAnimation]);
+
+  useEffect(() => {
+    const animation = setTimeout(() => {
+      setShowAnimation(true);
+    }, 1000);
+
+    return () => clearTimeout(animation);
+  }, []);
 
   // The published page check is meant to prevent the prompt from conflicting
   // with the banners that <Donations> may show.
-
   if (
     pages &&
     pages.some((page) => pageIsPublished(page)) &&
@@ -28,9 +49,14 @@ export function DonationUpgradePrompts() {
     user?.revenue_programs[0].payment_provider_stripe_verified
   ) {
     return (
-      <Root>
-        <DonationCoreUpgradePrompt onClose={() => setCoreUpgradePromptClosed(true)} />
-      </Root>
+      <Fade in={showAnimation} timeout={500} data-testid={`show-animation-${showAnimation}`}>
+        <Root>
+          <Fade in={showHighlight} timeout={300} data-testid={`prompt-highlight-${showHighlight}`}>
+            <Highlight />
+          </Fade>
+          <DonationCoreUpgradePrompt onClose={() => setCoreUpgradePromptClosed(true)} />
+        </Root>
+      </Fade>
     );
   }
 

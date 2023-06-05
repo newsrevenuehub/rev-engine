@@ -6,13 +6,16 @@ import pytest
 import pytest_cases
 from faker import Faker
 from rest_framework import status
+from rest_framework.permissions import AND, OR, IsAuthenticated
 from rest_framework.reverse import reverse
 from rest_framework.test import APIRequestFactory
 from reversion.models import Version
 from stripe.error import StripeError
 from waffle import get_waffle_flag_model
 
+from apps.api.permissions import HasRoleAssignment, IsHubAdmin, IsOrgAdmin
 from apps.common.constants import MAILCHIMP_INTEGRATION_ACCESS_FLAG_NAME
+from apps.common.secrets import GoogleCloudSecretProvider
 from apps.organizations.models import (
     TAX_ID_MAX_LENGTH,
     TAX_ID_MIN_LENGTH,
@@ -21,8 +24,13 @@ from apps.organizations.models import (
     RevenueProgram,
     RevenueProgramQuerySet,
 )
+from apps.organizations.serializers import (
+    MailchimpRevenueProgramForSpaConfiguration,
+    MailchimpRevenueProgramForSwitchboard,
+)
 from apps.organizations.tests.factories import OrganizationFactory, RevenueProgramFactory
 from apps.organizations.views import RevenueProgramViewSet, get_stripe_account_link_return_url
+from apps.public.permissions import IsActiveSuperUser
 from apps.users.choices import Roles
 
 
@@ -317,6 +325,13 @@ def invalid_patch_data_unexpected_fields():
     return {"foo": "bar"}
 
 
+@pytest.fixture
+def mock_secret_manager(mocker):
+    mocker.patch.object(GoogleCloudSecretProvider, "__get__", return_value="shhhhhh")
+    mocker.patch.object(GoogleCloudSecretProvider, "__set__")
+    mocker.patch.object(GoogleCloudSecretProvider, "__delete__")
+
+
 @pytest.mark.django_db
 class TestRevenueProgramViewSet:
     def test_pagination_disabled(self):
@@ -592,6 +607,72 @@ class TestRevenueProgramViewSet:
         api_client.force_authenticate(org_user_free_plan)
         response = api_client.patch(reverse("revenue-program-detail", args=(revenue_program.id,)), data={})
         assert response.status_code == status.HTTP_404_NOT_FOUND
+
+    def test_mailchimp_detail_configured_correctly(self):
+        """Prove the mailchimp detail endpoint is configured properly
+
+        We use this approach so that we don't end up testing DRF itself. Knowing that this view
+        is configured in the way expected here should be a guarantee that this endpoint
+        results in desired permissions and serializer class being set.
+        """
+        assert RevenueProgramViewSet.mailchimp.detail is True
+        assert RevenueProgramViewSet.mailchimp.url_name == "mailchimp"
+        assert set(RevenueProgramViewSet.mailchimp.kwargs.get("permission_classes", [])) == {
+            IsAuthenticated,
+            IsActiveSuperUser,
+        }
+        assert (
+            RevenueProgramViewSet.mailchimp.kwargs.get("serializer_class", None)
+            == MailchimpRevenueProgramForSwitchboard
+        )
+
+    def test_mailchimp_configure_detail_configured_correctly(self):
+        """ """
+        assert RevenueProgramViewSet.mailchimp_configure.detail is True
+        assert RevenueProgramViewSet.mailchimp_configure.url_name == "mailchimp-configure"
+        assert (
+            RevenueProgramViewSet.mailchimp_configure.kwargs.get("serializer_class", None)
+            == MailchimpRevenueProgramForSpaConfiguration
+        )
+        permission_classes = RevenueProgramViewSet.mailchimp_configure.kwargs.get("permission_classes")
+        assert permission_classes[0] == IsAuthenticated
+        assert permission_classes[1].operator_class == OR
+        assert permission_classes[1].op1_class == IsActiveSuperUser
+        assert permission_classes[1].op2_class.operator_class == AND
+        assert permission_classes[1].op2_class.op1_class == HasRoleAssignment
+        assert permission_classes[1].op2_class.op2_class.operator_class == OR
+        assert permission_classes[1].op2_class.op2_class.op1_class == IsOrgAdmin
+        assert permission_classes[1].op2_class.op2_class.op2_class == IsHubAdmin
+
+    def test_mailchimp_configure_get_happy_path(
+        self, mc_connected_rp, hub_admin_user, api_client, mocker, mailchimp_email_list
+    ):
+        mocker.patch("apps.organizations.models.RevenueProgram.mailchimp_email_list", mailchimp_email_list)
+        mocker.patch("apps.organizations.models.RevenueProgram.mailchimp_email_lists", [mailchimp_email_list])
+        mc_connected_rp.mailchimp_list_id = mailchimp_email_list.id
+        mc_connected_rp.save()
+        api_client.force_authenticate(hub_admin_user)
+        response = api_client.get(reverse("revenue-program-mailchimp-configure", args=(mc_connected_rp.id,)))
+        assert response.status_code == status.HTTP_200_OK
+        assert response.json() == MailchimpRevenueProgramForSpaConfiguration(mc_connected_rp).data
+
+    def test_mailchimp_configure_patch_mailchimp_list_id_happy_path(
+        self, mc_connected_rp, hub_admin_user, api_client, mocker, mailchimp_email_list
+    ):
+        mocker.patch("apps.organizations.models.RevenueProgram.mailchimp_email_list", mailchimp_email_list)
+        mocker.patch("apps.organizations.models.RevenueProgram.mailchimp_email_lists", [mailchimp_email_list])
+        mc_connected_rp.mailchimp_list_id = None
+        mc_connected_rp.save()
+
+        api_client.force_authenticate(hub_admin_user)
+        response = api_client.patch(
+            reverse("revenue-program-mailchimp-configure", args=(mc_connected_rp.id,)),
+            data={"mailchimp_list_id": mailchimp_email_list.id},
+        )
+        assert response.status_code == status.HTTP_200_OK
+        mc_connected_rp.refresh_from_db()
+        assert response.json() == MailchimpRevenueProgramForSpaConfiguration(mc_connected_rp).data
+        assert mc_connected_rp.mailchimp_list_id == mailchimp_email_list.id
 
 
 class FakeStripeProduct:

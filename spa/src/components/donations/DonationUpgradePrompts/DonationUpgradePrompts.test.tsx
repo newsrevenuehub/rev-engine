@@ -79,6 +79,7 @@ describe('DonationUpgradePrompts', () => {
       isError: false,
       isLoading: false,
       refetch: jest.fn(),
+      setRefetchInterval: jest.fn(),
       user: { ...mockUser, role_type: [role] } as any
     });
     tree();
@@ -90,6 +91,7 @@ describe('DonationUpgradePrompts', () => {
       isError: false,
       isLoading: false,
       refetch: jest.fn(),
+      setRefetchInterval: jest.fn(),
       user: { ...mockUser, organizations: [{ plan: { name } }] } as any
     });
     tree();
@@ -101,6 +103,7 @@ describe('DonationUpgradePrompts', () => {
       isError: false,
       isLoading: false,
       refetch: jest.fn(),
+      setRefetchInterval: jest.fn(),
       user: { ...mockUser, revenue_programs: [{ payment_provider_stripe_verified: false }] } as any
     });
     tree();
@@ -112,6 +115,7 @@ describe('DonationUpgradePrompts', () => {
       isError: false,
       isLoading: false,
       refetch: jest.fn(),
+      setRefetchInterval: jest.fn(),
       user: { ...mockUser, revenue_programs: [{}] } as any
     });
     tree();

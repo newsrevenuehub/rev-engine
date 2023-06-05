@@ -92,7 +92,7 @@ export default function PaymentSuccess() {
           nextUrl.searchParams.append('uid', params.get('uid') ?? '');
           nextUrl.searchParams.append('frequency', frequency ?? '');
           nextUrl.searchParams.append('amount', amount);
-          window.location.href = nextUrl.toString();
+          window.location.assign(nextUrl.toString());
         } else {
           // We're going to the on-site generic thank you page. We need to
           // construct this URL because we're currently on `/payment/success`.

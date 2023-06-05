@@ -163,6 +163,7 @@ class TestSendThankYouEmail:
                     },
                     "font": {"heading": "mock-header-font", "body": "mock-body-font"},
                 }
+                style.save()
                 page = DonationPageFactory(revenue_program=revenue_program, styles=style, header_logo="mock-logo")
                 revenue_program.default_donation_page = page
                 revenue_program.save()
@@ -181,9 +182,9 @@ class TestSendThankYouEmail:
             expect_missing = (custom_logo, custom_button_background, custom_header_background)
 
         else:
-            expect_present = (custom_logo,)
-            # Email template doesn't have a button to apply the custom button color to and also doesn't have a header background to customize
-            expect_missing = (custom_button_background, custom_header_background, default_logo)
+            expect_present = (custom_logo, custom_header_background)
+            # Email template doesn't have a button to apply the custom button color to
+            expect_missing = (custom_button_background, default_logo)
 
         for x in expect_present:
             assert x in mail.outbox[0].alternatives[0][0]

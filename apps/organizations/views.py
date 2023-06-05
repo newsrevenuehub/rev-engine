@@ -8,7 +8,7 @@ from django.template.loader import render_to_string
 
 import stripe
 from rest_framework import mixins, status, viewsets
-from rest_framework.decorators import api_view, permission_classes
+from rest_framework.decorators import action, api_view, permission_classes
 from rest_framework.exceptions import PermissionDenied, ValidationError
 from rest_framework.permissions import IsAuthenticated
 from rest_framework.response import Response
@@ -20,6 +20,7 @@ from apps.api.permissions import (
     HasFlaggedAccessToMailchimp,
     HasRoleAssignment,
     IsGetRequest,
+    IsHubAdmin,
     IsOrgAdmin,
     IsPatchRequest,
     IsRpAdmin,
@@ -93,6 +94,39 @@ class RevenueProgramViewSet(FilterForSuperUserOrRoleAssignmentUserMixin, viewset
 
     def get_queryset(self) -> models.QuerySet:
         return self.filter_queryset_for_superuser_or_ra()
+
+    @action(
+        methods=["GET"],
+        detail=True,
+        permission_classes=[IsAuthenticated, IsActiveSuperUser],
+        serializer_class=serializers.MailchimpRevenueProgramForSwitchboard,
+    )
+    def mailchimp(self, request, pk=None):
+        """Return the mailchimp data for the revenue program with the given pk
+
+        The primary consumer of this data at time of this comment is Switchboard API.
+        """
+        revenue_program = get_object_or_404(self.get_queryset(), pk=pk)
+        return Response(self.serializer_class(revenue_program).data)
+
+    @action(
+        methods=["GET", "PATCH"],
+        detail=True,
+        permission_classes=[IsAuthenticated, IsActiveSuperUser | (HasRoleAssignment & (IsOrgAdmin | IsHubAdmin))],
+        serializer_class=serializers.MailchimpRevenueProgramForSpaConfiguration,
+    )
+    def mailchimp_configure(self, request, pk=None):
+        """Allow retrieval and update of mailchimp configuration for the revenue program with the given pk
+
+        The primary consumer of this data at time of this comment is the RevEngine SPA.
+        """
+        revenue_program = get_object_or_404(self.get_queryset(), pk=pk)
+        if request.method == "PATCH":
+            serializer = self.serializer_class(revenue_program, data=request.data, partial=True)
+            serializer.is_valid(raise_exception=True)
+            serializer.save()
+            revenue_program.refresh_from_db()
+        return Response(self.serializer_class(revenue_program).data)
 
 
 def get_stripe_account_link_return_url(request):

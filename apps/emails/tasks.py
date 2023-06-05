@@ -184,9 +184,7 @@ def get_test_magic_link(user, revenue_program) -> str:
 
     serializer = ContributorObtainTokenSerializer(data={"email": user.email, "subdomain": revenue_program.slug})
     serializer.is_valid(raise_exception=True)
-    contributor, created = Contributor.objects.get_or_create(email=user.email)
-    if created:
-        logger.info("[make_send_test_contribution_email_data] Created new contributor with email %s", user.email)
+    contributor = Contributor(email=user.email)
     serializer.update_short_lived_token(contributor)
     token = serializer.validated_data["access"]
     domain = construct_rp_domain(serializer.validated_data.get("subdomain", ""), None)

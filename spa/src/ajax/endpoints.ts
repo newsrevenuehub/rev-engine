@@ -34,7 +34,6 @@ export const LIST_FONTS = 'fonts/';
 export const REVENUE_PROGRAMS = 'revenue-programs/';
 
 export function getRevenueProgramMailchimpStatusEndpoint(revenueProgramId: RevenueProgram['id']) {
-  // TODO use correct URL once implemented
   return `/revenue-programs/${revenueProgramId}/mailchimp_configure/`;
 }
 

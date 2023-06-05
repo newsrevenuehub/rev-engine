@@ -17,8 +17,6 @@ export interface MailchimpAudience {
 }
 
 export interface RevenueProgramMailchimpStatus {
-  // TODO update when API is implemented
-
   /**
    * ID of the revenue program.
    */

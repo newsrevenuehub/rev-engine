@@ -1,8 +1,8 @@
 import logging
 import os
-from dataclasses import dataclass, field
+from dataclasses import asdict, dataclass, field
 from functools import cached_property
-from typing import List, Literal
+from typing import List, Literal, Optional
 
 from django.conf import settings
 from django.core.exceptions import ValidationError
@@ -313,8 +313,68 @@ class MailchimpRateLimitError(Exception):
     pass
 
 
+# A sibling app (switchboard-api) has manually managed definitions like the `Mailchimp...` ones below
+# This is not an ideal way to manage this but in short term it allows us to get everything running in prod quickly
+# while also ensuring the two app data models are in sync (insofar as we human maintainers can ensure that).
+@dataclass(frozen=True)
+class MailchimpProductImage:
+    """An instance of a Mailchimp product image, as represented by the Mailchimp API and relayed by rev-engine"""
+
+    id: str  # Unique identifier for the image
+    product_id: str  # ID of the product this image belongs to
+    url: str  # URL to the product image
+    variant_ids: list[str]  # List of variant IDs associated with this image
+
+
+@dataclass(frozen=True)
+class MailchimpProductVariant:
+    """An instance of a Mailchimp product variant, as represented by the Mailchimp API and relayed by rev-engine"""
+
+    id: str  # Unique identifier for the product variant
+    product_id: str  # ID of the product this variant belongs to
+    title: str  # Title of the product variant
+    url: str  # URL to the product variant
+    sku: str  # Stock Keeping Unit (SKU) associated with the product variant
+    price: float  # Price of the product variant
+    inventory_quantity: int  # Available inventory for the product variant
+    image_url: Optional[str] = None  # URL of the product variant's image
+
+
+@dataclass(frozen=True)
+class MailchimpProductLink:
+    """An instance of a Mailchimp product link, as represented by the Mailchimp API and relayed by rev-engine"""
+
+    id: str  # Unique identifier for the link
+    product_id: str  # ID of the product this link belongs to
+    url: str  # URL to the product link
+    type: str  # Type of the link (could be 'website', 'store', etc.)
+
+
+@dataclass(frozen=True)
+class MailchimpProduct:
+
+    """An instance of a Mailchimp product link, as represented by the Mailchimp API and relayed by rev-engine"""
+
+    id: str
+    currency_code: str
+    # When this is created by rev-engine, the value will be either "one-time contribution" or "recurring contribution"
+    title: str
+    handle: str
+    url: str
+    description: str
+    type: str
+    vendor: str
+    image_url: str
+    variants: List[MailchimpProductVariant]
+    images: List[MailchimpProductImage]
+    published_at_foreign: str
+    _links: List[MailchimpProductLink]
+
+
 @dataclass(frozen=True)
 class MailchimpEmailList:
+    """An instance of a Mailchimp email list (aka audience), as represented by the Mailchimp API and relayed by rev-engine"""
+
     id: str
     web_id: int
     name: str
@@ -341,6 +401,8 @@ class MailchimpEmailList:
 
 @dataclass(frozen=True)
 class MailchimpStore:
+    """An instance of a Mailchimp store, as represented by the Mailchimp API and relayed by rev-engine"""
+
     id: str
     list_id: str
     name: str
@@ -364,6 +426,8 @@ class MailchimpStore:
 
 @dataclass(frozen=True)
 class MailchimpSegment:
+    """An instance of a Mailchimp segment, as represented by the Mailchimp API and relayed by rev-engine"""
+
     id: str
     name: str
     member_count: int
@@ -372,23 +436,6 @@ class MailchimpSegment:
     updated_at: str
     options: dict
     list_id: str
-    _links: List[dict]
-
-
-@dataclass(frozen=True)
-class MailchimpProduct:
-    id: str
-    currency_code: str
-    title: str
-    handle: str
-    url: str
-    description: str
-    type: str
-    vendor: str
-    image_url: str
-    variants: List[dict]
-    images: List[dict]
-    published_at_foreign: str
     _links: List[dict]
 
 
@@ -487,7 +534,24 @@ class RevenueProgram(IndexedTimeStampedModel):
                 logger.exception("Unexpected error from Mailchimp API. The error text is %s", exc.text)
         return None
 
-    # TODO: [DEV-3582] Better caching for mailchimp entities
+    @cached_property
+    def chosen_mailchimp_email_list(self) -> MailchimpEmailList | None:
+        """Alias for self.mailchimp_email_list
+
+        This is boilerplate that's necessary to make MailchimpRevenueProgramForSpaConfiguration (serializer) happy
+        and easily testable.
+        """
+        return asdict(self.mailchimp_email_list) if self.mailchimp_email_list else None
+
+    @cached_property
+    def available_mailchimp_email_lists(self) -> List[MailchimpEmailList]:
+        """Alias for self.mailchimp_email_lists
+
+        This is boilerplate that's necessary to make MailchimpRevenueProgramForSpaConfiguration (serializer) happy
+        and easily testable.
+        """
+        return [asdict(x) for x in self.mailchimp_email_lists]
+
     @cached_property
     def mailchimp_store(self) -> MailchimpStore | None:
         logger.info("Called for rp %s", self.id)
@@ -504,7 +568,6 @@ class RevenueProgram(IndexedTimeStampedModel):
         except ApiClientError as exc:
             return self.handle_mailchimp_api_client_read_error("store", exc)
 
-    # TODO: [DEV-3582] Better caching for mailchimp entities
     @cached_property
     def mailchimp_one_time_contribution_product(self) -> MailchimpProduct | None:
         logger.info("Called for rp %s", self.id)
@@ -520,7 +583,6 @@ class RevenueProgram(IndexedTimeStampedModel):
         except ApiClientError as exc:
             return self.handle_mailchimp_api_client_read_error("one-time contribution product", exc)
 
-    # TODO: [DEV-3582] Better caching for mailchimp entities
     @cached_property
     def mailchimp_recurring_contribution_product(self) -> MailchimpProduct | None:
         logger.info("Called for rp %s", self.id)
@@ -536,7 +598,6 @@ class RevenueProgram(IndexedTimeStampedModel):
         except ApiClientError as error:
             return self.handle_mailchimp_api_client_read_error("recurring contribution product", error)
 
-    # TODO: [DEV-3582] Better caching for mailchimp entities
     @cached_property
     def mailchimp_contributor_segment(self) -> MailchimpSegment | None:
         logger.info("Called for rp %s", self.id)
@@ -553,7 +614,6 @@ class RevenueProgram(IndexedTimeStampedModel):
         except ApiClientError as error:
             return self.handle_mailchimp_api_client_read_error("contributor segment", error)
 
-    # TODO: [DEV-3582] Better caching for mailchimp entities
     @property
     def mailchimp_recurring_segment(self):
         logger.info("Called for rp %s", self.id)
@@ -570,7 +630,6 @@ class RevenueProgram(IndexedTimeStampedModel):
         except ApiClientError as error:
             return self.handle_mailchimp_api_client_read_error("recurring segment", error)
 
-    # TODO: [DEV-3582] Better caching for mailchimp entities
     @cached_property
     def mailchimp_email_list(self) -> MailchimpEmailList | None:
         logger.info("Called for rp %s", self.id)

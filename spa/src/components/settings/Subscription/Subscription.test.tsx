@@ -19,13 +19,12 @@ describe('Subscription', () => {
       isError: false,
       isLoading: false,
       refetch: jest.fn(),
-      setRefetchInterval: jest.fn(),
       user: { organizations: [{ plan: { name: PLAN_LABELS.FREE } }, { plan: { name: PLAN_LABELS.CORE } }] } as any
     });
   });
 
   it('displays nothing if the user is not available in context', () => {
-    useUserMock.mockReturnValue({ isError: false, isLoading: true, refetch: jest.fn(), setRefetchInterval: jest.fn() });
+    useUserMock.mockReturnValue({ isError: false, isLoading: true, refetch: jest.fn() });
     tree();
     expect(document.body.textContent).toBe('');
   });

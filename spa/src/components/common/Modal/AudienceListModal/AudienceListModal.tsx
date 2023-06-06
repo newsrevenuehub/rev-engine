@@ -3,22 +3,20 @@ import PropTypes, { InferProps } from 'prop-types';
 import { useMemo } from 'react';
 
 import { Button, Modal, ModalContent, ModalFooter, ModalHeader, SearchableSelect } from 'components/base';
-import { Audience, RevenueProgram } from 'hooks/useContributionPage';
-import useRevenueProgram from 'hooks/useRevenueProgram';
 import { Controller, useForm } from 'react-hook-form';
 import { ErrorMessage, Highlight, InfoIcon, Label, Title, Typography } from './AudienceListModal.styled';
+import { MailchimpAudience } from 'hooks/useConnectMailchimp.types';
+import useConnectMailchimp from 'hooks/useConnectMailchimp';
 
-export interface AudienceListModalProps extends Omit<InferProps<typeof AudienceListModalPropTypes>, 'revenueProgram'> {
-  revenueProgram: RevenueProgram;
-}
+export type AudienceListModalProps = InferProps<typeof AudienceListModalPropTypes>;
 
 const formDefaultValues = {
   // "." is to select the dropdown placeholder "Select Audience List"
   audience: { id: '.', name: 'Select your list' }
 };
 
-// TODO: [DEV-3580] Handle case where user has successfully connected to Mailchimp but has no audiences
-const AudienceListModal = ({ open, loading, outerError, revenueProgram }: AudienceListModalProps) => {
+const AudienceListModal = ({ open, loading, outerError }: AudienceListModalProps) => {
+  const { audiences, isLoading, selectAudience } = useConnectMailchimp();
   const {
     control,
     handleSubmit,
@@ -26,20 +24,18 @@ const AudienceListModal = ({ open, loading, outerError, revenueProgram }: Audien
   } = useForm({
     defaultValues: formDefaultValues
   });
-  const { updateRevenueProgram, isLoading } = useRevenueProgram(revenueProgram.id);
-
   const onSubmit = (form: typeof formDefaultValues) => {
-    updateRevenueProgram({
-      mailchimp_list_id: form.audience.id
-    });
+    if (!selectAudience) {
+      // Shouldn't happen.
+      throw new Error('selectAudience is not defined');
+    }
+
+    selectAudience(form.audience.id);
   };
 
   const errorMessage = outerError || errors?.audience?.message;
 
-  const sortedAudienceList = useMemo(
-    () => orderBy(revenueProgram?.mailchimp_email_lists, 'name'),
-    [revenueProgram?.mailchimp_email_lists]
-  );
+  const sortedAudienceList = useMemo(() => orderBy(audiences ?? [], 'name'), [audiences]);
 
   // Adding a "." to the beginning of the array to select the placeholder
   const options = [{ id: '.', name: 'Select your list' }, ...sortedAudienceList];
@@ -80,7 +76,7 @@ const AudienceListModal = ({ open, loading, outerError, revenueProgram }: Audien
               }
               // Disable the placeholder
               getOptionDisabled={({ id }) => id === '.'}
-              getOptionLabel={({ name }: Audience) => name}
+              getOptionLabel={({ name }: MailchimpAudience) => name}
               getOptionSelected={(option, value) => option.id === value.id}
               options={options}
               onChange={(_, data) => {
@@ -96,7 +92,12 @@ const AudienceListModal = ({ open, loading, outerError, revenueProgram }: Audien
         )}
       </ModalContent>
       <ModalFooter>
-        <Button color="information" disabled={loading || isLoading} type="submit" data-testid="select-audience-submit">
+        <Button
+          color="information"
+          disabled={loading || isLoading || !selectAudience}
+          type="submit"
+          data-testid="select-audience-submit"
+        >
           Finish
         </Button>
       </ModalFooter>
@@ -107,16 +108,7 @@ const AudienceListModal = ({ open, loading, outerError, revenueProgram }: Audien
 const AudienceListModalPropTypes = {
   open: PropTypes.bool.isRequired,
   loading: PropTypes.bool,
-  outerError: PropTypes.string,
-  revenueProgram: PropTypes.shape({
-    id: PropTypes.number.isRequired,
-    mailchimp_email_lists: PropTypes.arrayOf(
-      PropTypes.shape({
-        id: PropTypes.string.isRequired,
-        name: PropTypes.string.isRequired
-      }).isRequired
-    ).isRequired
-  }).isRequired
+  outerError: PropTypes.string
 };
 
 AudienceListModal.propTypes = AudienceListModalPropTypes;

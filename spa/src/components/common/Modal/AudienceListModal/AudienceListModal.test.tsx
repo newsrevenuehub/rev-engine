@@ -1,35 +1,35 @@
+import userEvent from '@testing-library/user-event';
 import { axe } from 'jest-axe';
 import { render, screen, waitFor } from 'test-utils';
-
-import userEvent from '@testing-library/user-event';
+import useConnectMailchimp from 'hooks/useConnectMailchimp';
 import AudienceListModal, { AudienceListModalProps } from './AudienceListModal';
-import { RevenueProgram } from 'hooks/useContributionPage';
-import useRevenueProgram from 'hooks/useRevenueProgram';
 
-jest.mock('hooks/useRevenueProgram');
+jest.mock('hooks/useConnectMailchimp');
 
-const revenueProgram = {
-  id: 1,
-  mailchimp_email_lists: [
+const mockMailchimpStatus = {
+  audiences: [
     { id: '1', name: 'audience-mock-1' },
     { id: '2', name: 'audience-mock-2' },
     { id: '3', name: 'audience-mock-3' }
-  ]
+  ],
+  connectedToMailchimp: true,
+  hasMailchimpAccess: true,
+  isError: false,
+  isLoading: false,
+  requiresAudienceSelection: true,
+  selectAudience: jest.fn(),
+  setRefetchInterval: jest.fn()
 };
 
 describe('AudienceListModal', () => {
-  const useRevenueProgramMock = jest.mocked(useRevenueProgram);
-  const updateRevenueProgram = jest.fn();
+  const useConnectMailchimpMock = jest.mocked(useConnectMailchimp);
 
   function tree(props?: Partial<AudienceListModalProps>) {
-    return render(<AudienceListModal open={true} revenueProgram={revenueProgram as RevenueProgram} {...props} />);
+    return render(<AudienceListModal open {...props} />);
   }
 
   beforeEach(() => {
-    useRevenueProgramMock.mockReturnValue({
-      isLoading: false,
-      updateRevenueProgram
-    });
+    useConnectMailchimpMock.mockReturnValue(mockMailchimpStatus);
   });
 
   it('should render modal', () => {
@@ -65,18 +65,18 @@ describe('AudienceListModal', () => {
     expect(screen.getByRole('option', { name: 'audience-mock-3' })).toBeVisible();
   });
 
-  it('should call onSelectAudience with selected audience list', async () => {
+  it('should call selectAudience with selected audience list', async () => {
+    const selectAudience = jest.fn();
+
+    useConnectMailchimpMock.mockReturnValue({ ...mockMailchimpStatus, selectAudience });
     tree();
-    expect(updateRevenueProgram).not.toBeCalled();
+    expect(selectAudience).not.toBeCalled();
     // "Open" is the aria-label of the autocomplete dropdown button
     userEvent.click(screen.getByRole('button', { name: /Open/i }));
-    userEvent.click(screen.getByRole('option', { name: revenueProgram.mailchimp_email_lists[0].name }));
+    userEvent.click(screen.getByRole('option', { name: mockMailchimpStatus.audiences[0].name }));
     userEvent.click(screen.getByRole('button', { name: 'Finish' }));
-    await waitFor(() => updateRevenueProgram.mock.calls.length > 0);
-    expect(useRevenueProgramMock).toHaveBeenCalledWith(revenueProgram.id);
-    expect(updateRevenueProgram).toHaveBeenCalledWith({
-      mailchimp_list_id: revenueProgram.mailchimp_email_lists[0].id
-    });
+    await waitFor(() => expect(selectAudience).toBeCalled());
+    expect(selectAudience.mock.calls).toEqual([[mockMailchimpStatus.audiences[0].id]]);
   });
 
   it('should show error if no audience list is selected and "Finish" is clicked', async () => {

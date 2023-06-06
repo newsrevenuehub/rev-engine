@@ -56,7 +56,7 @@ function Dashboard() {
   const { user } = useUser();
   const { requiresVerification, displayConnectionSuccess, hideConnectionSuccess, isLoading } =
     useConnectStripeAccount();
-  const { requiresAudienceSelection, isLoading: isMailchimpLoading, revenueProgram } = useConnectMailchimp();
+  const { requiresAudienceSelection, isLoading: isMailchimpLoading } = useConnectMailchimp();
   const hasContributionsSectionAccess = user?.role_type && hasContributionsDashboardAccessToUser(flags);
   const hasContentSectionAccess = user?.role_type && flagIsActiveForUser(CONTENT_SECTION_ACCESS_FLAG_NAME, flags);
   const dashboardSlugRedirect = hasContentSectionAccess
@@ -89,9 +89,7 @@ function Dashboard() {
   return (
     <S.Outer>
       {requiresVerification && <ConnectStripeElements />}
-      {requiresAudienceSelection && (
-        <AudienceListModal open={requiresAudienceSelection} revenueProgram={revenueProgram} />
-      )}
+      {requiresAudienceSelection && <AudienceListModal open={requiresAudienceSelection} />}
       {!isEditPage && <DashboardTopbar user={user} />}
       <S.Dashboard data-testid="dashboard">
         {!isEditPage && <DashboardSidebar />}

@@ -8,20 +8,23 @@ import { Route, Router } from 'react-router-dom';
 import Axios from 'ajax/axios';
 import { MAILCHIMP_OAUTH_SUCCESS } from 'ajax/endpoints';
 import { GENERIC_ERROR } from 'constants/textConstants';
-import useUser from 'hooks/useUser';
+import useConnectMailchimp from 'hooks/useConnectMailchimp';
 import { MAILCHIMP_OAUTH_SUCCESS_ROUTE, SETTINGS } from 'routes';
 import { TestQueryClientProvider } from 'test-utils';
 import MailchimpOAuthSuccess from './MailchimpOAuthSuccess';
+import { RevenueProgram } from 'hooks/useContributionPage';
 
 jest.mock('elements/GlobalLoading');
-jest.mock('hooks/useUser');
+jest.mock('hooks/useConnectMailchimp');
 jest.mock('react-alert');
 
-const mockUseUserResult = {
-  user: { revenue_programs: [{ id: 'mock-rp-id' }] } as any,
-  isLoading: false,
+const mockUseConnectMailchimpResult = {
+  connectedToMailchimp: false,
+  hasMailchimpAccess: false,
   isError: false,
-  refetch: jest.fn(),
+  isLoading: false,
+  requiresAudienceSelection: false,
+  revenueProgram: { id: 'mock-rp-id' } as unknown as RevenueProgram,
   setRefetchInterval: jest.fn()
 };
 
@@ -45,11 +48,11 @@ function tree(initialEntries: InitialEntry[] = [`/${MAILCHIMP_OAUTH_SUCCESS_ROUT
 describe('MailchimpOAuthSuccess', () => {
   const axiosMock = new MockAdapter(Axios);
   const useAlertMock = jest.mocked(useAlert);
-  const useUserMock = jest.mocked(useUser);
+  const useConnectMailchimpMock = jest.mocked(useConnectMailchimp);
 
   beforeEach(() => {
     axiosMock.onPost(MAILCHIMP_OAUTH_SUCCESS).reply(200);
-    useUserMock.mockReturnValue(mockUseUserResult);
+    useConnectMailchimpMock.mockReturnValue(mockUseConnectMailchimpResult);
   });
 
   afterEach(() => axiosMock.reset());
@@ -77,10 +80,10 @@ describe('MailchimpOAuthSuccess', () => {
       expect(history.location.pathname).toBe(SETTINGS.INTEGRATIONS);
     });
 
-    it('sets the user refetch interval to 10 seconds', async () => {
+    it('sets the Mailchimp status refetch interval to 10 seconds', async () => {
       const setRefetchInterval = jest.fn();
 
-      useUserMock.mockReturnValue({ ...mockUseUserResult, setRefetchInterval });
+      useConnectMailchimpMock.mockReturnValue({ ...mockUseConnectMailchimpResult, setRefetchInterval });
       tree();
       expect(setRefetchInterval).not.toBeCalled();
       await waitFor(() => expect(axiosMock.history.post).toHaveLength(1));
@@ -114,10 +117,10 @@ describe('MailchimpOAuthSuccess', () => {
       expect(error.mock.calls).toEqual([[GENERIC_ERROR]]);
     });
 
-    it('does not reset the user refetch interval', async () => {
+    it('does not reset the Mailchimp status refetch interval', async () => {
       const setRefetchInterval = jest.fn();
 
-      useUserMock.mockReturnValue({ ...mockUseUserResult, setRefetchInterval });
+      useConnectMailchimpMock.mockReturnValue({ ...mockUseConnectMailchimpResult, setRefetchInterval });
       tree();
       await waitFor(() => expect(axiosMock.history.post).toHaveLength(1));
       expect(setRefetchInterval).not.toBeCalled();

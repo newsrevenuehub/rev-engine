@@ -17,7 +17,7 @@ from stripe.error import StripeError
 
 from apps.contributions.choices import ContributionInterval
 from apps.emails.helpers import convert_to_timezone_formatted
-from apps.organizations.models import FiscalStatusChoices, TransactionalEmailStyle
+from apps.organizations.models import FiscalStatusChoices, FreePlan, TransactionalEmailStyle
 
 
 logger = get_task_logger(f"{settings.DEFAULT_LOGGER}.{__name__}")
@@ -80,6 +80,7 @@ class SendContributionEmailData(TypedDict):
     contribution_date: str
     contributor_email: str
     tax_id: str | None
+    show_upgrade_prompt: bool | None
 
 
 class SendMagicLinkEmailData(TypedDict):
@@ -130,6 +131,7 @@ def make_send_thank_you_email_data(contribution) -> SendContributionEmailData:
         rp_name=contribution.revenue_program.name,
         style=asdict(contribution.donation_page.revenue_program.transactional_email_style),
         tax_id=contribution.revenue_program.tax_id,
+        show_upgrade_prompt=False,
     )
 
 
@@ -158,6 +160,7 @@ def make_send_test_contribution_email_data(user, revenue_program) -> SendContrib
         rp_name=revenue_program.name,
         style=asdict(revenue_program.transactional_email_style),
         tax_id=revenue_program.tax_id,
+        show_upgrade_prompt=revenue_program.organization.plan.name == FreePlan.name,
     )
 
 

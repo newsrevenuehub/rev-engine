@@ -26,6 +26,7 @@ from apps.emails.tasks import (
 from apps.organizations.models import (
     TAX_ID_MAX_LENGTH,
     TAX_ID_MIN_LENGTH,
+    FreePlan,
     Organization,
     OrganizationQuerySet,
     RevenueProgram,
@@ -1070,6 +1071,44 @@ class TestSendTestEmail:
         response = api_client.post(reverse("send-test-email"), data=data)
         assert response.status_code == status.HTTP_400_BAD_REQUEST
         assert response.json() == expected_response
+
+    @pytest_cases.parametrize(
+        "revenue_program",
+        (
+            pytest_cases.fixture_ref("free_plan_revenue_program"),
+            pytest_cases.fixture_ref("core_plan_revenue_program"),
+            pytest_cases.fixture_ref("plus_plan_revenue_program"),
+        ),
+    )
+    def test_show_upgrade_prompt_conditionality_around_org_plan(
+        self, revenue_program, hub_admin_user, api_client, mocker
+    ):
+        api_client.force_authenticate(hub_admin_user)
+
+        mocker.patch("apps.emails.tasks.get_test_magic_link", return_value="fake_magic_link")
+        send_email_spy = mocker.spy(send_templated_email, "delay")
+
+        api_client.post(
+            reverse("send-test-email"),
+            data={"revenue_program": revenue_program.id, "email_name": "reminder"},
+        )
+
+        title_prompt = "Can I brand my email receipts?"
+        description_prompt = "Yes! Upgrade to Core to use your logo and brand for email receipts."
+        link_prompt = "https://fundjournalism.org/pricing/"
+
+        if revenue_program.organization.plan.name == FreePlan.name:
+            expect_present = (title_prompt, description_prompt, link_prompt)
+            expect_missing = ()
+        else:
+            expect_present = ()
+            expect_missing = (title_prompt, description_prompt, link_prompt)
+
+        for x in expect_present:
+            assert x in send_email_spy.call_args[0][3]
+
+        for x in expect_missing:
+            assert x not in send_email_spy.call_args[0][3]
 
     @pytest_cases.parametrize(
         "user",

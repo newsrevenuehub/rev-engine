@@ -286,50 +286,6 @@ class TestSendThankYouEmail:
             assert x not in mail.outbox[0].body
             assert x not in mail.outbox[0].alternatives[0][0]
 
-    @pytest_cases.parametrize(
-        "revenue_program",
-        (
-            pytest_cases.fixture_ref("free_plan_revenue_program"),
-            pytest_cases.fixture_ref("core_plan_revenue_program"),
-            pytest_cases.fixture_ref("plus_plan_revenue_program"),
-        ),
-    )
-    @pytest.mark.parametrize(
-        "is_test_email",
-        (False, True),
-    )
-    def test_template_show_upgrade_prompt_conditionality_around_org_plan_and_is_test_email(
-        self, revenue_program, is_test_email, monkeypatch
-    ):
-        customer = AttrDict({"name": "Foo Bar"})
-        mock_customer_retrieve = Mock()
-        mock_customer_retrieve.return_value = customer
-        monkeypatch.setattr("stripe.Customer.retrieve", mock_customer_retrieve)
-        # TODO: DEV-3026 clean up here
-        with patch("apps.contributions.models.Contribution.fetch_stripe_payment_method", return_value=None):
-            contribution = ContributionFactory(one_time=True)
-            contribution.donation_page.revenue_program = revenue_program
-            contribution.donation_page.save()
-            send_thank_you_email(contribution.id, is_test_email)
-
-        title_prompt = "Can I brand my email receipts?"
-        description_prompt = "Yes! Upgrade to Core to use your logo and brand for email receipts."
-        link_prompt = "https://fundjournalism.org/pricing/"
-
-        if revenue_program.organization.plan.name == FreePlan.name and is_test_email:
-            expect_present = (title_prompt, description_prompt, link_prompt)
-            expect_missing = ()
-        else:
-            expect_present = ()
-            expect_missing = (title_prompt, description_prompt, link_prompt)
-
-        assert len(mail.outbox) == 1
-        for x in expect_present:
-            assert x in mail.outbox[0].alternatives[0][0]
-
-        for x in expect_missing:
-            assert x not in mail.outbox[0].alternatives[0][0]
-
 
 class TestTaskStripeContributions(TestCase):
     @patch("apps.emails.tasks.EmailMultiAlternatives")

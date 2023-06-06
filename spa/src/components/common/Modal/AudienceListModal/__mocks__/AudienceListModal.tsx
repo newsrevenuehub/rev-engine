@@ -1,12 +1,7 @@
-import { RevenueProgram } from 'hooks/useContributionPage';
+import { AudienceListModalProps } from '../AudienceListModal';
 
-type AudienceListModalProps = {
-  open: boolean;
-  revenueProgram?: RevenueProgram;
-};
-
-const AudienceListModal = ({ open, revenueProgram }: AudienceListModalProps) => {
-  return <>{open && <div data-testid="mock-audience-list-modal">{revenueProgram}</div>}</>;
+const AudienceListModal = ({ open }: AudienceListModalProps) => {
+  return <>{open && <div data-testid="mock-audience-list-modal" />}</>;
 };
 
 export default AudienceListModal;

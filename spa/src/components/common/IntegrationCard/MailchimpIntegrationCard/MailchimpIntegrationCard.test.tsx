@@ -1,6 +1,7 @@
 import { render, screen } from 'test-utils';
 import MailchimpIntegrationCard from './MailchimpIntegrationCard';
 import useConnectMailchimp from 'hooks/useConnectMailchimp';
+import { SetStateAction } from 'react';
 
 jest.mock('../IntegrationCard');
 jest.mock('hooks/useConnectMailchimp');
@@ -17,7 +18,8 @@ describe('MailchimpIntegrationCard', () => {
       isError: false,
       connectedToMailchimp: false,
       requiresAudienceSelection: false,
-      hasMailchimpAccess: false
+      hasMailchimpAccess: false,
+      setRefetchInterval: jest.fn()
     });
   });
 
@@ -32,7 +34,8 @@ describe('MailchimpIntegrationCard', () => {
       isError: false,
       connectedToMailchimp: true,
       requiresAudienceSelection: false,
-      hasMailchimpAccess: true
+      hasMailchimpAccess: true,
+      setRefetchInterval: jest.fn()
     });
     tree();
 
@@ -45,7 +48,8 @@ describe('MailchimpIntegrationCard', () => {
       isError: false,
       connectedToMailchimp: false,
       requiresAudienceSelection: false,
-      hasMailchimpAccess: false
+      hasMailchimpAccess: false,
+      setRefetchInterval: jest.fn()
     });
     tree();
     expect(screen.getByTestId('cornerMessage')).toBeEmptyDOMElement();
@@ -65,7 +69,8 @@ describe('MailchimpIntegrationCard', () => {
         connectedToMailchimp: false,
         organizationPlan: organizationPlan as any,
         requiresAudienceSelection: false,
-        hasMailchimpAccess: true
+        hasMailchimpAccess: true,
+        setRefetchInterval: jest.fn()
       });
       tree();
       expect(screen.getByTestId('cornerMessage')).toHaveTextContent('Upgrade to Core');
@@ -87,7 +92,8 @@ describe('MailchimpIntegrationCard', () => {
         organizationPlan: organizationPlan as any,
         requiresAudienceSelection: false,
         hasMailchimpAccess: true,
-        sendUserToMailchimp: jest.fn()
+        sendUserToMailchimp: jest.fn(),
+        setRefetchInterval: jest.fn()
       });
       tree();
       expect(screen.getByTestId('cornerMessage')).toBeEmptyDOMElement();
@@ -108,7 +114,8 @@ describe('MailchimpIntegrationCard', () => {
         organizationPlan: organizationPlan as any,
         sendUserToMailchimp,
         requiresAudienceSelection: false,
-        hasMailchimpAccess: true
+        hasMailchimpAccess: true,
+        setRefetchInterval: jest.fn()
       });
       tree();
       expect(sendUserToMailchimp).not.toBeCalled();

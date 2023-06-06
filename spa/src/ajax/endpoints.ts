@@ -1,3 +1,5 @@
+import { RevenueProgram } from 'hooks/useContributionPage';
+
 export const TOKEN = 'token/';
 export const USER = 'users/';
 
@@ -30,6 +32,10 @@ export const LIST_FONTS = 'fonts/';
 
 // Revenue Programs
 export const REVENUE_PROGRAMS = 'revenue-programs/';
+
+export function getRevenueProgramMailchimpStatusEndpoint(revenueProgramId: RevenueProgram['id']) {
+  return `/revenue-programs/${revenueProgramId}/mailchimp_configure/`;
+}
 
 // Contributions
 export const CONTRIBUTIONS = 'contributions/';

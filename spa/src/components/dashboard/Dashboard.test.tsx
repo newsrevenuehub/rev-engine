@@ -54,7 +54,8 @@ describe('Dashboard', () => {
       isLoading: false,
       connectedToMailchimp: false,
       isError: false,
-      hasMailchimpAccess: true
+      hasMailchimpAccess: true,
+      setRefetchInterval: jest.fn()
     });
     useConnectStripeAccountMock.mockReturnValue({
       requiresVerification: false,
@@ -113,12 +114,11 @@ describe('Dashboard', () => {
       isLoading: false,
       connectedToMailchimp: false,
       isError: false,
-      hasMailchimpAccess: true
+      hasMailchimpAccess: true,
+      setRefetchInterval: jest.fn()
     });
     render(<Dashboard />);
-    const audienceListModal = screen.getByTestId('mock-audience-list-modal');
-    expect(audienceListModal).toBeInTheDocument();
-    expect(audienceListModal).toHaveTextContent('mock-rp');
+    expect(screen.getByTestId('mock-audience-list-modal')).toBeInTheDocument();
   });
 
   it('should not display Audience List modal if requiresAudienceSelection = false', () => {
@@ -128,7 +128,8 @@ describe('Dashboard', () => {
       isLoading: false,
       connectedToMailchimp: false,
       isError: false,
-      hasMailchimpAccess: true
+      hasMailchimpAccess: true,
+      setRefetchInterval: jest.fn()
     });
     render(<Dashboard />);
     expect(screen.queryByTestId('mock-audience-list-modal')).not.toBeInTheDocument();

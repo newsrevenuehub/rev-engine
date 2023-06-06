@@ -1,14 +1,14 @@
 import { useMutation, useQueryClient } from '@tanstack/react-query';
 import queryString from 'query-string';
 import { useEffect, useState } from 'react';
+import { useAlert } from 'react-alert';
 import { useHistory, useLocation } from 'react-router-dom';
 
 import axios from 'ajax/axios';
 import { MAILCHIMP_OAUTH_SUCCESS } from 'ajax/endpoints';
 import { GENERIC_ERROR } from 'constants/textConstants';
 import GlobalLoading from 'elements/GlobalLoading';
-import useUser from 'hooks/useUser';
-import { useAlert } from 'react-alert';
+import useConnectMailchimp from 'hooks/useConnectMailchimp';
 import { SETTINGS } from 'routes';
 
 // This is an interstitial page we use solely to call `postMailchimpOAuthSuccess` to
@@ -19,7 +19,7 @@ export default function MailchimpOAuthSuccess() {
   const { search } = useLocation();
   const queryClient = useQueryClient();
   const { code } = queryString.parse(search);
-  const { user, setRefetchInterval, isLoading: userLoading } = useUser();
+  const { setRefetchInterval, isLoading: mailchimpLoading, revenueProgram } = useConnectMailchimp();
   const [hasUpdatedCode, setHasUpdatedCode] = useState(false);
   const { mutate: mailchimpOAuthSuccess } = useMutation(
     ({ mailchimpCode, rpId }: { mailchimpCode?: string; rpId?: number }) => {
@@ -33,7 +33,7 @@ export default function MailchimpOAuthSuccess() {
 
         setRefetchInterval(10000);
         history.push(SETTINGS.INTEGRATIONS);
-        queryClient.invalidateQueries({ queryKey: ['user'] });
+        queryClient.invalidateQueries({ queryKey: ['revenueProgramMailchimpStatus'] });
       }
     }
   );
@@ -49,11 +49,11 @@ export default function MailchimpOAuthSuccess() {
   }
 
   useEffect(() => {
-    if (user && !userLoading && !hasUpdatedCode) {
-      mailchimpOAuthSuccess({ mailchimpCode: code as string, rpId: user?.revenue_programs?.[0]?.id });
+    if (revenueProgram && !mailchimpLoading && !hasUpdatedCode) {
+      mailchimpOAuthSuccess({ mailchimpCode: code as string, rpId: revenueProgram.id });
       setHasUpdatedCode(true);
     }
-  }, [code, hasUpdatedCode, mailchimpOAuthSuccess, user, userLoading]);
+  }, [code, hasUpdatedCode, mailchimpOAuthSuccess, mailchimpLoading, revenueProgram]);
 
   return <GlobalLoading />;
 }

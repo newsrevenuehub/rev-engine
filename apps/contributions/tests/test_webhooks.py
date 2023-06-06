@@ -1,11 +1,12 @@
 import json
 from datetime import datetime
-from unittest.mock import Mock, patch
+from unittest.mock import Mock
 
 from django.urls import reverse
 from django.utils.timezone import make_aware
 
 import pytest
+from addict import Dict as AttrDict
 from rest_framework import status
 from stripe.webhook import WebhookSignature
 
@@ -60,33 +61,34 @@ class TestPaymentIntentSucceeded:
     def test_when_contribution_found(self, payment_intent_succeeded, monkeypatch, client, mocker):
         monkeypatch.setattr(WebhookSignature, "verify_header", lambda *args, **kwargs: True)
 
+        mocker.patch("apps.contributions.models.Contribution.fetch_stripe_payment_method", return_value=None)
+        mocker.patch("stripe.Customer.retrieve", return_value=AttrDict({"name": "some customer name"}))
         header = {"HTTP_STRIPE_SIGNATURE": "testing", "content_type": "application/json"}
-        with patch("apps.contributions.models.Contribution.fetch_stripe_payment_method", return_value=None):
-            contribution = ContributionFactory(
-                one_time=True,
-                status=ContributionStatus.PROCESSING,
-                last_payment_date=None,
-                payment_provider_data=None,
-                provider_payment_id=payment_intent_succeeded["data"]["object"]["id"],
-            )
-            save_spy = mocker.spy(Contribution, "save")
-            send_receipt_email_spy = mocker.spy(Contribution, "handle_thank_you_email")
-            response = client.post(reverse("stripe-webhooks"), data=payment_intent_succeeded, **header)
+        contribution = ContributionFactory(
+            one_time=True,
+            status=ContributionStatus.PROCESSING,
+            last_payment_date=None,
+            payment_provider_data=None,
+            provider_payment_id=payment_intent_succeeded["data"]["object"]["id"],
+        )
+        save_spy = mocker.spy(Contribution, "save")
+        send_receipt_email_spy = mocker.spy(Contribution, "handle_thank_you_email")
+        response = client.post(reverse("stripe-webhooks"), data=payment_intent_succeeded, **header)
 
         # the next two assertions are to ensure we're only allowing webhook to update a subset of fields
         # on the instance, in order to avoid race conditions
-        save_spy.assert_called_once()
-        assert save_spy.call_args[0][0] == contribution
-        assert save_spy.call_args[1] == {
-            "update_fields": [
+        save_spy.assert_called_once_with(
+            contribution,
+            update_fields={
                 "status",
                 "last_payment_date",
                 "provider_payment_id",
                 "provider_payment_method_id",
+                "provider_payment_method_details",
                 "payment_provider_data",
                 "modified",
-            ]
-        }
+            },
+        )
         send_receipt_email_spy.assert_called_once_with(contribution)
         assert response.status_code == status.HTTP_200_OK
         contribution.refresh_from_db()
@@ -114,20 +116,28 @@ class TestPaymentIntentCanceled:
     def test_when_contribution_found(self, cancellation_reason, monkeypatch, client, payment_intent_canceled, mocker):
         monkeypatch.setattr(WebhookSignature, "verify_header", lambda *args, **kwargs: True)
         header = {"HTTP_STRIPE_SIGNATURE": "testing", "content_type": "application/json"}
-        with patch("apps.contributions.models.Contribution.fetch_stripe_payment_method", return_value=None):
-            contribution = ContributionFactory(
-                one_time=True,
-                status=ContributionStatus.PROCESSING,
-                provider_payment_id=payment_intent_canceled["data"]["object"]["id"],
-            )
-            payment_intent_canceled["data"]["object"]["cancellation_reason"] = cancellation_reason
-            spy = mocker.spy(Contribution, "save")
-            response = client.post(reverse("stripe-webhooks"), data=payment_intent_canceled, **header)
+        contribution = ContributionFactory(
+            one_time=True,
+            status=ContributionStatus.PROCESSING,
+            provider_payment_id=payment_intent_canceled["data"]["object"]["id"],
+        )
+        payment_intent_canceled["data"]["object"]["cancellation_reason"] = cancellation_reason
+        spy = mocker.spy(Contribution, "save")
+
+        mock_create_revision = mocker.patch("reversion.create_revision")
+        mock_create_revision.__enter__.return_value = None
+        mock_set_revision_comment = mocker.patch("reversion.set_comment")
+
+        response = client.post(reverse("stripe-webhooks"), data=payment_intent_canceled, **header)
 
         # the next two assertions are to ensure we're only allowing webhook to update a subset of fields
         # on the instance, in order to avoid race conditions
-        assert spy.call_args[0][0] == contribution
-        assert spy.call_args[1] == {"update_fields": ["status", "payment_provider_data", "modified"]}
+        spy.assert_called_once_with(contribution, update_fields={"status", "payment_provider_data", "modified"})
+        mock_create_revision.assert_called_once()
+        mock_set_revision_comment.assert_called_once_with(
+            f"`StripeWebhookProcessor.handle_payment_intent_canceled` webhook handler ran for contribution with ID {contribution.id}"
+        )
+
         assert response.status_code == status.HTTP_200_OK
         contribution.refresh_from_db()
         assert contribution.payment_provider_data == payment_intent_canceled
@@ -155,19 +165,21 @@ class TestPaymentIntentPaymentFailed:
     def test_when_contribution_found(self, monkeypatch, client, payment_intent_payment_failed, mocker):
         monkeypatch.setattr(WebhookSignature, "verify_header", lambda *args, **kwargs: True)
         header = {"HTTP_STRIPE_SIGNATURE": "testing", "content_type": "application/json"}
-        with patch("apps.contributions.models.Contribution.fetch_stripe_payment_method", return_value=None):
-            contribution = ContributionFactory(
-                one_time=True,
-                status=ContributionStatus.PROCESSING,
-                provider_payment_id=payment_intent_payment_failed["data"]["object"]["id"],
-            )
-            spy = mocker.spy(Contribution, "save")
-            response = client.post(reverse("stripe-webhooks"), data=payment_intent_payment_failed, **header)
-
-        # the next two assertions are to ensure we're only allowing webhook to update a subset of fields
-        # on the instance, in order to avoid race conditions
-        assert spy.call_args[0][0] == contribution
-        assert spy.call_args[1] == {"update_fields": ["status", "payment_provider_data", "modified"]}
+        contribution = ContributionFactory(
+            one_time=True,
+            status=ContributionStatus.PROCESSING,
+            provider_payment_id=payment_intent_payment_failed["data"]["object"]["id"],
+        )
+        spy = mocker.spy(Contribution, "save")
+        mock_create_revision = mocker.patch("reversion.create_revision")
+        mock_create_revision.__enter__.return_value = None
+        mock_set_revision_comment = mocker.patch("reversion.set_comment")
+        response = client.post(reverse("stripe-webhooks"), data=payment_intent_payment_failed, **header)
+        spy.assert_called_once_with(contribution, update_fields={"status", "payment_provider_data", "modified"})
+        mock_create_revision.assert_called_once()
+        mock_set_revision_comment.assert_called_once_with(
+            f"StripeWebhookProcessor.handle_payment_intent_failed webhook handler updated payment provider data for contribution with ID {contribution.id}."
+        )
 
         assert response.status_code == status.HTTP_200_OK
         contribution.refresh_from_db()
@@ -195,28 +207,32 @@ class TestCustomerSubscriptionUpdated:
     ):
         monkeypatch.setattr(WebhookSignature, "verify_header", lambda *args, **kwargs: True)
         header = {"HTTP_STRIPE_SIGNATURE": "testing", "content_type": "application/json"}
-        with patch("apps.contributions.models.Contribution.fetch_stripe_payment_method", return_value=None):
-            contribution = ContributionFactory(
-                annual_subscription=True,
-                provider_subscription_id=customer_subscription_updated["data"]["object"]["id"],
-            )
-            if payment_method_has_changed:
-                customer_subscription_updated["data"]["previous_attributes"] = {"default_payment_method": "something"}
-            spy = mocker.spy(Contribution, "save")
-            response = client.post(reverse("stripe-webhooks"), data=customer_subscription_updated, **header)
+        contribution = ContributionFactory(
+            annual_subscription=True,
+            provider_subscription_id=customer_subscription_updated["data"]["object"]["id"],
+        )
+        if payment_method_has_changed:
+            customer_subscription_updated["data"]["previous_attributes"] = {"default_payment_method": "something"}
+            customer_subscription_updated["data"]["object"]["default_payment_method"] = "something else"
+        spy = mocker.spy(Contribution, "save")
+        mock_create_revision = mocker.patch("reversion.create_revision")
+        mock_create_revision.__enter__.return_value = None
+        mock_set_revision_comment = mocker.patch("reversion.set_comment")
 
-        # the next two assertions are to ensure we're only allowing webhook to update a subset of fields
-        # on the instance, in order to avoid race conditions
-        assert spy.call_args[0][0] == contribution
-        expected_update_fields = [
+        response = client.post(reverse("stripe-webhooks"), data=customer_subscription_updated, **header)
+
+        expected_update_fields = {
             "modified",
             "payment_provider_data",
             "provider_subscription_id",
-        ]
+        }
         if payment_method_has_changed:
-            expected_update_fields.append("provider_payment_method_id")
-        assert spy.call_args[1] == {"update_fields": expected_update_fields}
-
+            expected_update_fields.add("provider_payment_method_id")
+        spy.assert_called_once_with(contribution, update_fields=expected_update_fields)
+        mock_create_revision.assert_called_once()
+        mock_set_revision_comment.assert_called_once_with(
+            f"`StripeWebhookProcessor.handle_subscription_updated` webhook handler ran for contribution with ID {contribution.id}"
+        )
         assert response.status_code == status.HTTP_200_OK
         contribution.refresh_from_db()
         assert contribution.payment_provider_data == customer_subscription_updated
@@ -245,18 +261,21 @@ class TestCustomerSubscriptionDeleted:
     def test_when_contribution_found(self, monkeypatch, client, customer_subscription_deleted, mocker):
         monkeypatch.setattr(WebhookSignature, "verify_header", lambda *args, **kwargs: True)
         header = {"HTTP_STRIPE_SIGNATURE": "testing", "content_type": "application/json"}
-        with patch("apps.contributions.models.Contribution.fetch_stripe_payment_method", return_value=None):
-            contribution = ContributionFactory(
-                annual_subscription=True,
-                provider_subscription_id=customer_subscription_deleted["data"]["object"]["id"],
-            )
-            spy = mocker.spy(Contribution, "save")
-            response = client.post(reverse("stripe-webhooks"), data=customer_subscription_deleted, **header)
-        # the next two assertions are to ensure we're only allowing webhook to update a subset of fields
-        # on the instance, in order to avoid race conditions
-        assert spy.call_args[0][0] == contribution
-        assert spy.call_args[1] == {"update_fields": ["status", "payment_provider_data", "modified"]}
+        contribution = ContributionFactory(
+            annual_subscription=True,
+            provider_subscription_id=customer_subscription_deleted["data"]["object"]["id"],
+        )
+        spy = mocker.spy(Contribution, "save")
+        mock_create_revision = mocker.patch("reversion.create_revision")
+        mock_create_revision.__enter__.return_value = None
+        mock_set_revision_comment = mocker.patch("reversion.set_comment")
 
+        response = client.post(reverse("stripe-webhooks"), data=customer_subscription_deleted, **header)
+        spy.assert_called_once_with(contribution, update_fields={"status", "payment_provider_data", "modified"})
+        mock_create_revision.assert_called_once()
+        mock_set_revision_comment.assert_called_once_with(
+            f"`StripeWebhookProcessor.handle_subscription_canceled` webhook handler updated contribution with ID {contribution.id}"
+        )
         assert response.status_code == status.HTTP_200_OK
         contribution.refresh_from_db()
         assert contribution.payment_provider_data == customer_subscription_deleted
@@ -282,13 +301,12 @@ def test_customer_subscription_untracked_event(client, customer_subscription_upd
     monkeypatch.setattr("apps.contributions.webhooks.logger.warning", mock_log_warning)
     monkeypatch.setattr(WebhookSignature, "verify_header", lambda *args, **kwargs: True)
     header = {"HTTP_STRIPE_SIGNATURE": "testing", "content_type": "application/json"}
-    with patch("apps.contributions.models.Contribution.fetch_stripe_payment_method", return_value=None):
-        ContributionFactory(
-            annual_subscription=True,
-            provider_subscription_id=customer_subscription_updated["data"]["object"]["id"],
-        )
-        customer_subscription_updated["type"] = "untracked-event"
-        response = client.post(reverse("stripe-webhooks"), data=customer_subscription_updated, **header)
+    ContributionFactory(
+        annual_subscription=True,
+        provider_subscription_id=customer_subscription_updated["data"]["object"]["id"],
+    )
+    customer_subscription_updated["type"] = "untracked-event"
+    response = client.post(reverse("stripe-webhooks"), data=customer_subscription_updated, **header)
     assert response.status_code == status.HTTP_200_OK
     mock_log_warning.assert_called_once_with(
         "`StripeWebhookProcessor.process_subscription` called with unexpected event type: %s",
@@ -300,17 +318,14 @@ def test_customer_subscription_untracked_event(client, customer_subscription_upd
 def test_payment_method_attached(client, monkeypatch, payment_method_attached, mocker):
     monkeypatch.setattr(WebhookSignature, "verify_header", lambda *args, **kwargs: True)
     header = {"HTTP_STRIPE_SIGNATURE": "testing", "content_type": "application/json"}
-    with patch("apps.contributions.models.Contribution.fetch_stripe_payment_method", return_value=None):
-        contribution = ContributionFactory(
-            one_time=True,
-            provider_customer_id=payment_method_attached["data"]["object"]["customer"],
-        )
-        spy = mocker.spy(Contribution, "save")
-        response = client.post(reverse("stripe-webhooks"), data=payment_method_attached, **header)
-    # the next two assertions are to ensure we're only allowing webhook to update a subset of fields
-    # on the instance, in order to avoid race conditions
-    assert spy.call_args[0][0] == contribution
-    assert spy.call_args[1] == {"update_fields": ["provider_payment_method_id", "modified"]}
+    contribution = ContributionFactory(
+        one_time=True,
+        provider_customer_id=payment_method_attached["data"]["object"]["customer"],
+    )
+    spy = mocker.spy(Contribution, "save")
+    response = client.post(reverse("stripe-webhooks"), data=payment_method_attached, **header)
+
+    spy.assert_called_once_with(contribution, update_fields={"provider_payment_method_id", "modified"})
     assert response.status_code == status.HTTP_200_OK
     contribution.refresh_from_db()
     assert contribution.provider_payment_method_id == payment_method_attached["data"]["object"]["id"]
@@ -332,15 +347,14 @@ def test_stripe_webhooks_endpoint_when_invalid_signature(client):
         (ContributionInterval.YEARLY, True),
     ),
 )
-def test_invoice_updated_webhook(interval, expect_reminder_email, client, monkeypatch, invoice_upcoming):
+def test_invoice_updated_webhook(interval, expect_reminder_email, client, monkeypatch, invoice_upcoming, mocker):
     mock_send_reminder = Mock()
     monkeypatch.setattr(Contribution, "send_recurring_contribution_email_reminder", mock_send_reminder)
     monkeypatch.setattr(WebhookSignature, "verify_header", lambda *args, **kwargs: True)
-    # TODO: DEV-3026
-    with patch("apps.contributions.models.Contribution.fetch_stripe_payment_method", return_value=None):
-        ContributionFactory(
-            interval=interval, provider_subscription_id=invoice_upcoming["data"]["object"]["subscription"]
-        )
+    contribution = ContributionFactory(
+        interval=interval, provider_subscription_id=invoice_upcoming["data"]["object"]["subscription"]
+    )
+    save_spy = mocker.spy(Contribution, "save")
     header = {"HTTP_STRIPE_SIGNATURE": "testing", "content_type": "application/json"}
     response = client.post(reverse("stripe-webhooks"), data=invoice_upcoming, **header)
     assert response.status_code == status.HTTP_200_OK
@@ -350,3 +364,5 @@ def test_invoice_updated_webhook(interval, expect_reminder_email, client, monkey
         )
     else:
         mock_send_reminder.assert_not_called()
+    contribution.refresh_from_db()
+    save_spy.assert_not_called()

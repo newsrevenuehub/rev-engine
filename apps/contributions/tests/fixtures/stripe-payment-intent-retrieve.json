@@ -1,0 +1,178 @@
+{
+    "id": "pi_fake99999",
+    "object": "payment_intent",
+    "amount": 12000,
+    "amount_capturable": 0,
+    "amount_details": {
+        "tip": {}
+    },
+    "amount_received": 12000,
+    "application": "ca_fake8888888888",
+    "application_fee_amount": null,
+    "automatic_payment_methods": null,
+    "canceled_at": null,
+    "cancellation_reason": null,
+    "capture_method": "manual",
+    "charges": {
+        "object": "list",
+        "data": [
+            {
+                "id": "ch_fake44444444",
+                "object": "charge",
+                "amount": 12000,
+                "amount_captured": 12000,
+                "amount_refunded": 0,
+                "application": "ca_fake8888888888",
+                "application_fee": null,
+                "application_fee_amount": null,
+                "balance_transaction": "txn_fake333333",
+                "billing_details": {
+                    "address": {
+                        "city": "Charlotte",
+                        "country": "US",
+                        "line1": "Watts Drive",
+                        "line2": "",
+                        "postal_code": "28216",
+                        "state": "North Carolina"
+                    },
+                    "email": "foo@fundjournalism.org",
+                    "name": "Foo",
+                    "phone": "3213213"
+                },
+                "calculated_statement_descriptor": "WWW.FOOBAR.ORG",
+                "captured": true,
+                "created": 1675925557,
+                "currency": "usd",
+                "customer": "cus_fakefake77777777",
+                "description": null,
+                "destination": null,
+                "dispute": null,
+                "disputed": false,
+                "failure_balance_transaction": null,
+                "failure_code": null,
+                "failure_message": null,
+                "fraud_details": {},
+                "invoice": null,
+                "livemode": false,
+                "metadata": {
+                    "agreed_to_pay_fees": "False",
+                    "contributor_id": "146",
+                    "donor_selected_amount": "120.0",
+                    "referer": "https://foo.bar.org/donate/",
+                    "revenue_program_id": "3",
+                    "revenue_program_slug": "foobar",
+                    "schema_version": "1.1",
+                    "source": "bizz-bang",
+                    "swag_opt_out": "False"
+                },
+                "on_behalf_of": null,
+                "order": null,
+                "outcome": {
+                    "network_status": "approved_by_network",
+                    "reason": null,
+                    "risk_level": "normal",
+                    "risk_score": 50,
+                    "seller_message": "Payment complete.",
+                    "type": "authorized"
+                },
+                "paid": true,
+                "payment_intent": "pi_fake99999",
+                "payment_method": "pm_fakefakefakefakefakefake",
+                "payment_method_details": {
+                    "card": {
+                        "brand": "visa",
+                        "checks": {
+                            "address_line1_check": "pass",
+                            "address_postal_code_check": "pass",
+                            "cvc_check": "pass"
+                        },
+                        "country": "US",
+                        "exp_month": 4,
+                        "exp_year": 2024,
+                        "fingerprint": "fakefingies",
+                        "funding": "credit",
+                        "installments": null,
+                        "last4": "4242",
+                        "mandate": null,
+                        "network": "visa",
+                        "three_d_secure": null,
+                        "wallet": null
+                    },
+                    "type": "card"
+                },
+                "receipt_email": "foo@bar.com",
+                "receipt_number": null,
+                "receipt_url": "https://pay.stripe.com/receipts/payment/faaaaaaaaaaake",
+                "refunded": false,
+                "refunds": {
+                    "object": "list",
+                    "data": [],
+                    "has_more": false,
+                    "total_count": 0,
+                    "url": "/v1/charges/ch_fake44444444/refunds"
+                },
+                "review": null,
+                "shipping": null,
+                "source": null,
+                "source_transfer": null,
+                "statement_descriptor": null,
+                "statement_descriptor_suffix": null,
+                "status": "succeeded",
+                "transfer_data": null,
+                "transfer_group": null
+            }
+        ],
+        "has_more": false,
+        "total_count": 1,
+        "url": "/v1/charges?payment_intent=pi_fake99999"
+    },
+    "client_secret": "pi_fake99999_secret_fakesecret",
+    "confirmation_method": "automatic",
+    "created": 1675925546,
+    "currency": "usd",
+    "customer": "cus_fakefake77777777",
+    "description": null,
+    "invoice": null,
+    "last_payment_error": null,
+    "latest_charge": "ch_fake44444444",
+    "livemode": false,
+    "metadata": {
+        "agreed_to_pay_fees": "False",
+        "contributor_id": "146",
+        "donor_selected_amount": "120.0",
+        "honoree": "",
+        "in_memory_of": "",
+        "reason_for_giving": "",
+        "referer": "https://foobar.revengine-staging.org/donate/",
+        "revenue_program_id": "3",
+        "revenue_program_slug": "foobar",
+        "schema_version": "1.1",
+        "source": "bizz-bang",
+        "swag_opt_out": "False"
+    },
+    "next_action": null,
+    "on_behalf_of": null,
+    "payment_method": "pm_fakefakefakefakefakefake",
+    "payment_method_options": {
+        "card": {
+            "installments": null,
+            "mandate_options": null,
+            "network": null,
+            "request_three_d_secure": "automatic"
+        }
+    },
+    "payment_method_types": [
+        "card"
+    ],
+    "processing": null,
+    "receipt_email": "foo@bar.com",
+    "review": null,
+    "setup_future_usage": null,
+    "shipping": null,
+    "source": null,
+    "statement_descriptor": null,
+    "statement_descriptor_suffix": null,
+    "status": "succeeded",
+    "transfer_data": null,
+    "transfer_group": null
+}

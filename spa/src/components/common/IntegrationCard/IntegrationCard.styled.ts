@@ -1,5 +1,5 @@
 import styled from 'styled-components';
-import LaunchMui from '@material-ui/icons/Launch';
+import { Button as BaseButton } from 'components/base';
 
 export const Flex = styled.div`
   display: flex;
@@ -19,69 +19,13 @@ export const Flex = styled.div`
   }
 `;
 
-export const Header = styled.div`
-  display: flex;
-  align-items: center;
-  gap: 12px;
-  position: relative;
-`;
-
-export const Image = styled.img`
-  height: 55px;
-  width: 55px;
-  border-radius: ${(props) => props.theme.muiBorderRadius.lg};
-`;
-
-export const Required = styled.p`
-  margin: 0;
-  position: absolute;
-  font-weight: 500;
-  top: 0;
-  right: 0;
-  font-size: ${(props) => props.theme.fontSizesUpdated.sm};
-  color: ${(props) => props.theme.colors.error.primary};
-`;
-
-export const CornerMessage = styled.p`
-  margin: 0;
-  position: absolute;
-  font-weight: 500;
-  top: 0;
-  right: 0;
-  font-size: ${(props) => props.theme.fontSizesUpdated.sm};
-  color: ${(props) => props.theme.colors.topbarBackground};
-`;
-
 export const Content = styled.div`
   flex-grow: 1;
   margin-top: 15px;
   margin-bottom: 15px;
   display: flex;
   flex-direction: column;
-  gap: 15px;
-`;
-
-export const Site = styled.a`
-  display: flex;
-  align-items: center;
-  text-decoration: none;
-  font-size: ${(props) => props.theme.fontSizesUpdated.sm};
-  color: ${(props) => props.theme.colors.muiGrey[600]};
-  cursor: pointer;
-
-  &:hover {
-    color: ${(props) => props.theme.colors.muiGrey[600]};
-    text-decoration: none;
-  }
-`;
-
-export const LaunchIcon = styled(LaunchMui)`
-  && {
-    color: ${(props) => props.theme.colors.muiGrey[600]};
-    margin-left: 5px;
-    height: 16px;
-    width: 16px;
-  }
+  gap: 5px;
 `;
 
 export const Description = styled.p`
@@ -115,9 +59,38 @@ export const Footer = styled.div<{ $active: boolean }>`
   }
 `;
 
-export const Title = styled.p`
-  font-size: ${(props) => props.theme.fontSizesUpdated.lg};
-  color: ${(props) => props.theme.colors.muiGrey[900]};
-  font-weight: 500;
-  margin: 0;
+export const CustomButtonLink = styled(BaseButton)`
+  && {
+    width: fit-content;
+    height: unset;
+    text-transform: none;
+    padding: 0;
+    background-color: unset;
+    box-shadow: unset;
+
+    &:active {
+      box-shadow: unset;
+      background-color: unset;
+    }
+
+    &:hover {
+      box-shadow: unset;
+      background-color: unset;
+    }
+
+    .NreButtonLabel {
+      text-decoration: underline;
+      color: ${({ theme }) => theme.basePalette.secondary.hyperlink};
+      font-weight: 500;
+
+      &:active {
+        color: #0042a3;
+        background-color: unset;
+      }
+
+      &:hover {
+        color: #0a6dff;
+      }
+    }
+  }
 `;

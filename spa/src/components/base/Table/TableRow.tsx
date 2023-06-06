@@ -3,16 +3,17 @@ import styled from 'styled-components';
 
 export const TableRow = styled(MuiTableRow)`
   && {
+    background-color: ${({ theme }) => theme.basePalette.greyscale.white};
     border: none;
   }
 
   &&:hover,
   &&:nth-child(odd):hover {
-    background-color: #bcd3f5;
+    background-color: ${({ theme }) => theme.colors.tableRowHover};
   }
 
   &&:nth-child(odd) {
-    background-color: #f1f1f1;
+    background-color: ${({ theme }) => theme.basePalette.greyscale.grey3};
   }
 `;
 

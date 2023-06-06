@@ -33,6 +33,7 @@
   - [List running apps](#list-running-apps)
   - [Open a shell on an app](#open-a-shell-on-an-app)
 - [Celery Tasks](#celery-tasks)
+- [Email Template Development](#email-template-development)
 - [Frontend Configuration](#frontend-configuration)
 - [Django migrations](#django-migrations)
   - [No automatic migration names](#no-automatic-migration-names)
@@ -350,9 +351,6 @@ No copies found. Use heroku pg:copy to copy a database to another
 
 ```sh
 heroku pg:backups:download
-
-Getting backup from ⬢ rev-engine-test... done, #1
-Downloading latest.dump.1... ████████████████████████▏  100% 00:00 66.75KB
 ```
 
 #### Download a specific backup
@@ -420,11 +418,28 @@ If you have a need to run or test tasks using a Celery worker, there are some Ma
 
 `make start-celery` will bring up a Celery worker. At this point any task that expects a celery worker should run without error.
 
+## Email Template Development
+
+If `DEBUG` is set in Django settings, then the app will serve example emails under `/__debug_emails__/`. This can be useful for testing template changes.
+
+Routes that currently exist:
+
+- `http://localhost:8000/__debug_emails__/contribution-confirmation/?rp=3` shows
+  a contribution receipt email. A revenue program ID set in the query string as
+  `rp` is required. You can also override the header logo of the RP's default
+  page with a `logo` query string, e.g.
+  `/contribution-confirmation/?rp=3&logo=https://place-hold.it/100x100`.
+- `http://localhost:8000/__debug_emails__/recurring-contribution/` shows a
+  recurring contribution reminder email. It takes the same query string
+  parameters as `contribution-confirmation/`, including the required `rp` one.
+
 ## Frontend Configuration
+
+**Attention**: If the environment variable is going to be needed in deployed environments (e.g: dev, prod) don't forget to add it also in the file `revengine/settings` inside `SPA_ENV_VARS`, and also add it to the correct Heroku build.
 
 Check `.envrc.example` for all environment variables that are needed to run locally. Note: some of them you will have to get the value from the respective resource (example: Stripe -> get secret key from stripe dashboard)
 
-See [spa/src/settings.js](./spa/src/settings.js) for more details on how env vars are configured on the front end. For setup, certain features of the app will require certain env vars define.
+See [spa/src/appSettings.js](./spa/src/appSettings.js) for more details on how env vars are configured on the front end. For setup, certain features of the app will require certain env vars define.
 
 First:
 

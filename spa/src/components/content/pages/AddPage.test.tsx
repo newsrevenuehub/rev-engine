@@ -5,6 +5,7 @@ import { fireEvent, render, screen, waitFor } from 'test-utils';
 import AddPage from './AddPage';
 import { useHistory } from 'react-router-dom';
 import { useAlert } from 'react-alert';
+import { PLAN_LABELS } from 'constants/orgPlanConstants';
 
 jest.mock('react-alert', () => ({
   ...jest.requireActual('react-alert'),
@@ -31,6 +32,12 @@ describe('AddPage', () => {
   beforeEach(() => {
     useContributionPageListMock.mockReturnValue({ isLoading: false, pages: [] });
     useUserMock.mockReturnValue({ isLoading: false, user: {} });
+  });
+
+  it('displays nothing if the user is not available in context', () => {
+    useUserMock.mockReturnValue({ isLoading: true });
+    tree();
+    expect(document.body.textContent).toBe('');
   });
 
   it('displays a button', () => {
@@ -153,7 +160,7 @@ describe('AddPage', () => {
     });
   });
 
-  describe('When the user cannot create a new page', () => {
+  describe('When the user has exceeded the limit of the free plan', () => {
     beforeEach(() => {
       useContributionPageListMock.mockReturnValue({
         isLoading: false,
@@ -162,7 +169,7 @@ describe('AddPage', () => {
       useUserMock.mockReturnValue({
         isLoading: false,
         user: {
-          organizations: [{ plan: { name: 'FREE' } }],
+          organizations: [{ plan: { name: PLAN_LABELS.FREE } }],
           revenue_programs: [{ id: 'mock-rp-1' }]
         }
       });
@@ -172,6 +179,48 @@ describe('AddPage', () => {
       tree();
       fireEvent.click(screen.getByRole('button', { name: 'New Page' }));
       expect(screen.getByText('Max Pages Reached')).toBeVisible();
+    });
+
+    it('recommends upgrading to the Core plan', () => {
+      tree();
+      fireEvent.click(screen.getByRole('button', { name: 'New Page' }));
+      expect(screen.getByTestId('recommendation')).toHaveTextContent('Check out Core.');
+    });
+
+    it('closes the modal if the user closes it', () => {
+      tree();
+      fireEvent.click(screen.getByRole('button', { name: 'New Page' }));
+      expect(screen.getByText('Max Pages Reached')).toBeVisible();
+      fireEvent.click(screen.getByRole('button', { name: 'Close' }));
+      expect(screen.queryByText('Max Pages Reached')).not.toBeInTheDocument();
+    });
+  });
+
+  describe('When the user has exceeded the limit of the Core plan', () => {
+    beforeEach(() => {
+      useContributionPageListMock.mockReturnValue({
+        isLoading: false,
+        userCanCreatePage: () => false
+      });
+      useUserMock.mockReturnValue({
+        isLoading: false,
+        user: {
+          organizations: [{ plan: { name: 'CORE' } }],
+          revenue_programs: [{ id: 'mock-rp-1' }]
+        }
+      });
+    });
+
+    it("shows a modal indicating they've hit the page limit", () => {
+      tree();
+      fireEvent.click(screen.getByRole('button', { name: 'New Page' }));
+      expect(screen.getByText('Max Pages Reached')).toBeVisible();
+    });
+
+    it('recommends upgrading to the Plus plan', () => {
+      tree();
+      fireEvent.click(screen.getByRole('button', { name: 'New Page' }));
+      expect(screen.getByTestId('recommendation')).toHaveTextContent('Check out Plus.');
     });
 
     it('closes the modal if the user closes it', () => {

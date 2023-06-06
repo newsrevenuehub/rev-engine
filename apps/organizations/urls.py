@@ -12,9 +12,14 @@ router.register(r"revenue-programs", views.RevenueProgramViewSet, basename="reve
 urlpatterns = [
     path("", include(router.urls)),
     path(
+        "send-test-email/",
+        views.send_test_email,
+        name="send-test-email",
+    ),
+    path(
         "handle-stripe-account-link/<rp_pk>/",
         views.handle_stripe_account_link,
         name="handle-stripe-account-link",
     ),
-    path("mailchimp/", views.mailchimp_integration_stub, name="mail_chimp_integration_stub"),
+    path("mailchimp-oauth-success/", views.handle_mailchimp_oauth_success, name="handle-mailchimp-oauth-success"),
 ]

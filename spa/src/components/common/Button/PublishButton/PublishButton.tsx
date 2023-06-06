@@ -1,24 +1,22 @@
-import React, { useState } from 'react';
-import PropTypes, { InferProps } from 'prop-types';
-// import { CircularProgress, Divider } from '@material-ui/core';
-import LaunchIcon from '@material-ui/icons/Launch';
 import CheckCircleOutlineIcon from '@material-ui/icons/CheckCircleOutline';
-import FiberManualRecordIcon from '@material-ui/icons/FiberManualRecord';
-
-import useModal from 'hooks/useModal';
-import formatDatetimeForDisplay from 'utilities/formatDatetimeForDisplay';
-import { getUpdateSuccessMessage, pageIsPublished } from 'utilities/editPageGetSuccessMessage';
-import { pageLink } from 'utilities/getPageLinks';
-
-import { Flex, Button, Popover, LiveText, /*UnpublishButton, */ Text, IconButton } from './PublishButton.styled';
-import PublishModal from './PublishModal';
-import SuccessfulPublishModal from './SuccessfulPublishModal';
-import { ContributionPage } from 'hooks/useContributionPage';
-import formatDatetimeForAPI from 'utilities/formatDatetimeForAPI';
-import { Tooltip } from 'components/base';
-import { GENERIC_ERROR } from 'constants/textConstants';
+import PropTypes, { InferProps } from 'prop-types';
+import { MouseEvent, ReactElement, useEffect, useState } from 'react';
 import { useAlert } from 'react-alert';
+import { Tooltip } from 'components/base';
+import { MaxPagesPublishedModal } from 'components/common/Modal/MaxPagesPublishedModal';
+import { GENERIC_ERROR } from 'constants/textConstants';
+import { ContributionPage } from 'hooks/useContributionPage';
+import useContributionPageList from 'hooks/useContributionPageList';
 import { useEditablePageContext } from 'hooks/useEditablePage';
+import useModal from 'hooks/useModal';
+import useUser from 'hooks/useUser';
+import { pageIsPublished } from 'utilities/editPageGetSuccessMessage';
+import formatDatetimeForAPI from 'utilities/formatDatetimeForAPI';
+import PublishModal from './PublishModal';
+import PublishedPopover from './PublishedPopover';
+import SuccessfulPublishModal from './SuccessfulPublishModal';
+import UnpublishModal from './UnpublishModal';
+import { Root, RootButton } from './PublishButton.styled';
 
 const PublishButtonPropTypes = {
   className: PropTypes.string
@@ -26,32 +24,103 @@ const PublishButtonPropTypes = {
 
 export type PublishButtonProps = InferProps<typeof PublishButtonPropTypes>;
 
+function DisabledTooltip({ children, disabled }: { children: ReactElement; disabled?: boolean }) {
+  return disabled ? (
+    <Tooltip
+      placement="bottom-end"
+      title={
+        <div>
+          Connect to Stripe to publish page.
+          <br />
+          Return to dashboard to connect.
+        </div>
+      }
+    >
+      {children}
+    </Tooltip>
+  ) : (
+    <>{children}</>
+  );
+}
+
 function PublishButton({ className }: PublishButtonProps) {
   const alert = useAlert();
   const { isLoading, page, savePageChanges } = useEditablePageContext();
-  const { open, handleClose, handleOpen } = useModal();
+  const { userCanPublishPage } = useContributionPageList();
+  const { user } = useUser();
+  const {
+    open: openMaxPagesPublishedModal,
+    handleClose: handleCloseMaxPagesPublishedModal,
+    handleOpen: handleOpenMaxPagesPublishedModal
+  } = useModal();
+  const {
+    open: openPublishModal,
+    handleClose: handleClosePublishModal,
+    handleOpen: handleOpenPublishModal
+  } = useModal();
   const {
     open: openSuccessfulPublishModal,
     handleClose: handleCloseSuccessfulPublishModal,
     handleOpen: handleOpenSuccessfulPublishModal
+  } = useModal();
+  const {
+    open: openUnpublishModal,
+    handleClose: handleCloseUnpublishModal,
+    handleOpen: handleOpenUnpublishModal
   } = useModal();
   const [anchorEl, setAnchorEl] = useState<HTMLElement | null>(null);
   const showPopover = Boolean(anchorEl);
   const disabled = !page?.payment_provider?.stripe_verified;
   const isPublished = page && pageIsPublished(page);
 
-  const handleOpenPopover: React.MouseEventHandler<HTMLButtonElement> = (event) => {
-    setAnchorEl(event.currentTarget);
-  };
-
   const handleClosePopover = () => {
     setAnchorEl(null);
   };
 
-  // TODO: update handleUnpublish when implementation of "Unpublish" functionality is decided
-  // const handleUnpublish = () => {
-  //   patchPage({ published_date: 'TBD' });
-  // };
+  useEffect(() => {
+    // If the page became unpublished, hide the published popover.
+
+    if (page && !pageIsPublished(page) && showPopover) {
+      handleClosePopover();
+    }
+  }, [page, showPopover]);
+
+  const handleClick = (event: MouseEvent<HTMLElement>) => {
+    // These should never happen, but TypeScript doesn't know that.
+
+    if (!page) {
+      throw new Error('page is not defined');
+    }
+
+    if (!user) {
+      throw new Error('user is not defined');
+    }
+
+    // If the page has been published, show the popover.
+
+    if (pageIsPublished(page)) {
+      setAnchorEl(event.currentTarget);
+      return;
+    }
+
+    // If the user's hit their plan limit, stop them here.
+
+    if (!userCanPublishPage(user)) {
+      handleOpenMaxPagesPublishedModal();
+      return;
+    }
+
+    // Show them the publish modal.
+
+    handleOpenPublishModal();
+  };
+
+  // Opening the unpublish modal should hide the popover it was created from.
+
+  const handleUnpublishOpen = () => {
+    handleClosePopover();
+    handleOpenUnpublishModal();
+  };
 
   const handlePublish = async (changes: Pick<ContributionPage, 'slug'>) => {
     // These should never happen, but TypeScript doesn't know that.
@@ -71,41 +140,49 @@ function PublishButton({ className }: PublishButtonProps) {
 
       await savePageChanges(change);
 
+      // Close the previous modal.
+
+      handleClosePublishModal();
+
       // Notify the user of success.
 
-      if (pageIsPublished(change)) {
-        handleOpenSuccessfulPublishModal();
-      } else {
-        // This will only ever run if the page has been unpublished by the user
-        // just now, which we haven't implemented yet.
-        alert.success(getUpdateSuccessMessage(page, change));
-      }
+      handleOpenSuccessfulPublishModal();
     } catch (error) {
       alert.error(GENERIC_ERROR);
     }
   };
 
-  if (!page) {
+  const handleUnpublish = async () => {
+    if (!savePageChanges) {
+      // Should never happen.
+
+      throw new Error('savePageChanges is not defined');
+    }
+
+    try {
+      await savePageChanges({ published_date: undefined });
+    } catch (error) {
+      // Log for Sentry and show an alert.
+
+      console.error(error);
+      alert.error(GENERIC_ERROR);
+    }
+
+    handleCloseUnpublishModal();
+  };
+
+  if (!page || !user) {
     return null;
   }
 
   return (
-    <Flex className={className!}>
-      <Tooltip
-        placement="bottom-end"
-        title={
-          <div>
-            Connect to Stripe to publish page.
-            <br />
-            Return to dashboard to connect.
-          </div>
-        }
-      >
+    <Root className={className!}>
+      <DisabledTooltip disabled={disabled}>
         {/* Disabled elements do not fire events. Need the DIV over button for tooltip to listen to events. */}
         <div data-testid="publish-button-wrapper">
-          <Button
+          <RootButton
             variant="contained"
-            onClick={isPublished ? handleOpenPopover : handleOpen}
+            onClick={handleClick}
             $active={showPopover}
             aria-label={`${isPublished ? 'Published' : 'Publish'} page ${page?.name}`}
             data-testid="publish-button"
@@ -117,60 +194,40 @@ function PublishButton({ className }: PublishButtonProps) {
             })}
           >
             {isPublished ? 'Published' : 'Publish'}
-          </Button>
+          </RootButton>
         </div>
-      </Tooltip>
-      {open && (
-        <PublishModal open={open} onClose={handleClose} page={page} onPublish={handlePublish} loading={isLoading} />
-      )}
-      {showPopover && (
-        <Popover
-          open={showPopover}
-          anchorEl={anchorEl}
-          onClose={handleClosePopover}
-          anchorOrigin={{
-            vertical: 'bottom',
-            horizontal: 'right'
-          }}
-          transformOrigin={{
-            vertical: 'top',
-            horizontal: 'right'
-          }}
-        >
-          <LiveText>
-            <FiberManualRecordIcon />
-            Live
-          </LiveText>
-          <Tooltip title="Go to Page" placement="bottom-end">
-            <IconButton
-              component="a"
-              href={`//${pageLink(page)}`}
-              target="_blank"
-              rel="noopener noreferrer"
-              aria-label="Page link"
-            >
-              <LaunchIcon />
-            </IconButton>
-          </Tooltip>
-          <Text data-testid="publish-date">
-            {/* TODO: add author of change */}
-            {formatDatetimeForDisplay(page?.published_date)} at {formatDatetimeForDisplay(page?.published_date, true)}
-          </Text>
-          {/* TODO: update UnpublishButton when implementation of "Unpublish" functionality is decided */}
-          {/* <Divider />
-          <UnpublishButton onClick={handleUnpublish} disabled={loading} aria-label={`Unpublish page ${page?.name}`}>
-            {loading ? <CircularProgress size={16} style={{ color: 'white' }} /> : 'Unpublish'}
-          </UnpublishButton> */}
-        </Popover>
-      )}
-      {openSuccessfulPublishModal && (
-        <SuccessfulPublishModal
-          open={openSuccessfulPublishModal}
-          page={page}
-          onClose={handleCloseSuccessfulPublishModal}
-        />
-      )}
-    </Flex>
+      </DisabledTooltip>
+      <MaxPagesPublishedModal
+        onClose={handleCloseMaxPagesPublishedModal}
+        open={openMaxPagesPublishedModal}
+        currentPlan={user.organizations[0].plan.name}
+      />
+      <PublishModal
+        open={openPublishModal}
+        onClose={handleClosePublishModal}
+        page={page}
+        onPublish={handlePublish}
+        loading={isLoading}
+      />
+      <SuccessfulPublishModal
+        open={openSuccessfulPublishModal}
+        page={page}
+        onClose={handleCloseSuccessfulPublishModal}
+      />
+      <PublishedPopover
+        anchorEl={anchorEl}
+        onClose={handleClosePopover}
+        onUnpublish={handleUnpublishOpen}
+        open={showPopover}
+        page={page}
+      />
+      <UnpublishModal
+        onClose={handleCloseUnpublishModal}
+        onUnpublish={handleUnpublish}
+        open={openUnpublishModal}
+        page={page}
+      />
+    </Root>
   );
 }
 

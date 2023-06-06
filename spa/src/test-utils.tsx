@@ -11,7 +11,7 @@ import { Provider as AlertProvider } from 'react-alert';
 import Alert, { alertOptions } from 'elements/alert/Alert';
 
 // Context
-import { AnalyticsContextWrapper } from './components/analytics/AnalyticsContext';
+import { AnalyticsContextProvider } from './components/analytics/AnalyticsContext';
 
 // Routing
 import { BrowserRouter } from 'react-router-dom';
@@ -29,7 +29,7 @@ function TestProviders({ children }: { children?: React.ReactNode }) {
         <AlertProvider template={Alert} {...alertOptions}>
           <BrowserRouter>
             <GlobalStyle />
-            <AnalyticsContextWrapper>{children}</AnalyticsContextWrapper>
+            <AnalyticsContextProvider>{children}</AnalyticsContextProvider>
           </BrowserRouter>
         </AlertProvider>
       </ThemeProvider>
@@ -40,7 +40,8 @@ function TestProviders({ children }: { children?: React.ReactNode }) {
 /**
  * A wrapper component for testing hooks that use react-query. This creates a
  * new query client for each usage--e.g. avoids caching results from a previous
- * test--that also instantly fails if fetching fails instead of retrying.
+ * test--that also instantly fails if fetching fails instead of retrying, and
+ * retries instantly if a query has overriden this logic.
  */
 export function TestQueryClientProvider({ children }: { children: ReactChild }) {
   return (
@@ -49,7 +50,8 @@ export function TestQueryClientProvider({ children }: { children: ReactChild }) 
         new QueryClient({
           defaultOptions: {
             queries: {
-              retry: false
+              retry: false,
+              retryDelay: 0
             }
           }
         })

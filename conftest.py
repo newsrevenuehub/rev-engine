@@ -51,19 +51,31 @@
 # ):
 # ```
 # """
-
+import json
+from dataclasses import asdict
+from random import choice, randint
 from unittest.mock import patch
 
 import pytest
+from faker import Faker
 from rest_framework.test import APIClient
 from waffle import get_waffle_flag_model
 
 from apps.common.tests.test_resources import DEFAULT_FLAGS_CONFIG_MAPPING
 from apps.contributions.tests.factories import ContributionFactory, ContributorFactory
+from apps.organizations.models import (
+    MailchimpEmailList,
+    MailchimpProduct,
+    MailchimpSegment,
+    MailchimpStore,
+)
 from apps.organizations.tests.factories import OrganizationFactory, RevenueProgramFactory
 from apps.pages.tests.factories import DonationPageFactory, StyleFactory
 from apps.users.models import Roles, User
 from apps.users.tests.factories import RoleAssignmentFactory, UserFactory
+
+
+fake = Faker()
 
 
 @pytest.fixture
@@ -77,9 +89,24 @@ def dont_use_ssl(settings):
     settings.SECURE_SSL_REDIRECT = False
 
 
+@pytest.fixture(autouse=True)
+def suppress_google_cloud_secret_manager(settings):
+    """Suppresses calls to Google Cloud Secret Manager in tests"""
+    settings.ENABLE_GOOGLE_CLOUD_SECRET_MANAGER = False
+
+
+@pytest.fixture()
+def mock_stripe_retrieve_payment_method(monkeypatch):
+    with open("apps/contributions/tests/fixtures/provider-payment-method-details.json") as f:
+        payment_method_details = json.load(f)
+    monkeypatch.setattr(
+        "stripe.PaymentMethod.retrieve",
+        lambda *args, **kwargs: payment_method_details,
+    )
+
+
 @pytest.fixture
 def default_feature_flags():
-    """ """
     Flag = get_waffle_flag_model()
     for x in DEFAULT_FLAGS_CONFIG_MAPPING.values():
         Flag.objects.get_or_create(name=x["name"], defaults={k: v for k, v in x.items() if k != "name"})
@@ -259,11 +286,210 @@ def one_time_contribution(live_donation_page):
 
 @pytest.fixture
 def monthly_contribution(live_donation_page):
-    with patch("apps.contributions.models.Contribution.fetch_stripe_payment_method", return_value=None):
-        return ContributionFactory(donation_page=live_donation_page, monthly_subscription=True)
+    return ContributionFactory(donation_page=live_donation_page, monthly_subscription=True)
 
 
 @pytest.fixture
 def annual_contribution(live_donation_page):
-    with patch("apps.contributions.models.Contribution.fetch_stripe_payment_method", return_value=None):
-        return ContributionFactory(donation_page=live_donation_page, annual_subscription=True)
+    return ContributionFactory(donation_page=live_donation_page, annual_subscription=True)
+
+
+@pytest.fixture
+def flagged_contribution():
+    return ContributionFactory(one_time=True, flagged=True)
+
+
+@pytest.fixture
+def rejected_contribution():
+    return ContributionFactory(monthly_subscription=True, rejected=True)
+
+
+@pytest.fixture
+def canceled_contribution():
+    return ContributionFactory(monthly_subscription=True, canceled=True)
+
+
+@pytest.fixture
+def refunded_contribution():
+    return ContributionFactory(one_time=True, refunded=True)
+
+
+@pytest.fixture
+def successful_contribution():
+    return ContributionFactory(one_time=True)
+
+
+@pytest.fixture
+def processing_contribution():
+    return ContributionFactory(processing=True)
+
+
+@pytest.mark.django_db()
+@pytest.fixture
+def donation_page():
+    return DonationPageFactory()
+
+
+@pytest.fixture
+def stripe_payment_intent_retrieve_response():
+    """This is a *dict* version of the data that a retrieved Stripe PaymentIntent object will have
+
+    The Stripe Python SDK puts that data into a custom object type that can behave both like a dict and
+    like a class instance (in terms of dot-based attribute access).
+    """
+    with open("apps/contributions/tests/fixtures/stripe-payment-intent-retrieve.json") as fl:
+        return json.load(fl)
+
+
+@pytest.fixture
+def stripe_setup_intent_retrieve_response():
+    """This is a *dict* version of the data that a retrieved Stripe SetupIntent object will have
+
+    The Stripe Python SDK puts that data into a custom object type that can behave both like a dict and
+    like a class instance (in terms of dot-based attribute access).
+    """
+    with open("apps/contributions/tests/fixtures/stripe-setup-intent-retrieve.json") as fl:
+        return json.load(fl)
+
+
+@pytest.fixture
+def stripe_subscription_retrieve_response():
+    """This is a *dict* version of the data that a retrieved Stripe Subscription object will have
+
+    The Stripe Python SDK puts that data into a custom object type that can behave both like a dict and
+    like a class instance (in terms of dot-based attribute access).
+    """
+    with open("apps/contributions/tests/fixtures/stripe-subscription-retrieve.json") as fl:
+        return json.load(fl)
+
+
+def make_mock_mailchimp_email_list():
+    return MailchimpEmailList(
+        id=fake.uuid4(),
+        web_id=fake.uuid4(),
+        name=fake.word(),
+        contact={},
+        permission_reminder="",
+        use_archive_bar=choice([True, False]),
+        campaign_defaults={},
+        notify_on_subscribe=choice([True, False]),
+        notify_on_unsubscribe=choice([True, False]),
+        date_created="",
+        list_rating="",
+        email_type_option=choice([True, False]),
+        subscribe_url_short="",
+        subscribe_url_long="",
+        beamer_address="",
+        visibility="",
+        double_optin=choice([True, False]),
+        has_welcome=choice([True, False]),
+        marketing_permissions=choice([True, False]),
+        modules=[],
+        stats={},
+        _links=[],
+    )
+
+
+@pytest.fixture
+def mailchimp_email_list():
+    return make_mock_mailchimp_email_list()
+
+
+@pytest.fixture
+def mailchimp_email_list_from_api(mailchimp_email_list):
+    return asdict(mailchimp_email_list)
+
+
+@pytest.fixture
+def mc_connected_rp(revenue_program, mocker):
+    mocker.patch(
+        "apps.organizations.models.RevenueProgram.mailchimp_access_token",
+        return_value="something-truthy",
+        new_callable=mocker.PropertyMock,
+    )
+    revenue_program.mailchimp_server_prefix = "something-truthy"
+    revenue_program.mailchimp_list_id = "something-truthy"
+    revenue_program.save()
+    return revenue_program
+
+
+@pytest.fixture
+def mailchimp_store_from_api():
+    return asdict(
+        MailchimpStore(
+            id=fake.uuid4(),
+            list_id=fake.uuid4(),
+            name=fake.word(),
+            platform="",
+            domain="",
+            is_syncing=choice([True, False]),
+            email_address="",
+            currency_code="",
+            money_format="",
+            primary_locale="",
+            timezone="",
+            phone="",
+            address={},
+            connected_site={},
+            automations={},
+            list_is_active=choice([True, False]),
+            created_at="",
+            updated_at="",
+            _links=[],
+        )
+    )
+
+
+@pytest.fixture
+def mailchimp_product_from_api():
+    return asdict(
+        MailchimpProduct(
+            id=fake.uuid4(),
+            currency_code="",
+            title="",
+            handle="",
+            url="",
+            description="",
+            type="",
+            vendor="",
+            image_url="",
+            variants=[],
+            images=[],
+            published_at_foreign="",
+            _links=[],
+        )
+    )
+
+
+@pytest.fixture
+def mailchimp_contributor_segment_from_api():
+    return asdict(
+        MailchimpSegment(
+            id=fake.uuid4(),
+            name="Contributors",
+            member_count=randint(0, 100),
+            type=choice(["static", "saved", "fuzzy"]),
+            created_at="",
+            updated_at="",
+            options={},
+            list_id=fake.uuid4(),
+            _links=[],
+        )
+    )
+
+
+@pytest.fixture
+def mailchimp_recurring_contributor_segment_from_api():
+    return asdict(
+        MailchimpSegment(
+            id=fake.uuid4(),
+            name="Recurring contributors",
+            member_count=randint(0, 100),
+            type=choice(["static", "saved", "fuzzy"]),
+            created_at="",
+            updated_at="",
+            options={},
+            list_id=fake.uuid4(),
+            _links=[],
+        )
+    )

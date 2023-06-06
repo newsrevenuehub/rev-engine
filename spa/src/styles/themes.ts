@@ -2,19 +2,77 @@ import { createTheme as createMuiTheme } from '@material-ui/core/styles';
 import merge from 'lodash/merge';
 import { DefaultTheme } from 'styled-components';
 
+const basePalette = {
+  primary: {
+    brandBlue: '#60e0f9',
+    chartreuse: '#f2ff59',
+    engineBlue: '#157cb2',
+    indigo: '#25192b',
+    purple: '#523a5e'
+  },
+  secondary: {
+    error: '#c8203f',
+    hyperlink: '#0052cc',
+    success: '#008e7c',
+    warning: '#fa9908'
+  },
+  greyscale: {
+    black: '#282828',
+    grey1: '#707070',
+    grey2: '#c4c4c4',
+    grey3: '#f1f1f1',
+    grey4: '#f9f9f9',
+    white: '#ffffff'
+  },
+  chartreuse: {
+    '-10': '#f3ff6a',
+    '-20': '#f5ff7a',
+    '-30': '#f6ff8b',
+    '-40': '#f7ff9b',
+    '-50': '#f9ffac',
+    '-60': '#faffbd',
+    '-70': '#fbffcd',
+    '-80': '#fcffde',
+    '-90': '#feffee'
+  },
+  indigo: {
+    '-10': '#3d2947',
+    '-20': '#553963',
+    '-30': '#6d4a7f',
+    '-40': '#855a9b',
+    '-50': '#9a73ae',
+    '-60': '#ae8fbe',
+    '-70': '#c3abce',
+    '-80': '#d7c7de',
+    '-90': '#ebe3ef'
+  },
+  purple: {
+    '-10': '#654874',
+    '-20': '#79558a',
+    '-30': '#8c649f',
+    '-40': '#9c7aad',
+    '-50': '#ad90bb',
+    '-60': '#bda6c8',
+    '-70': '#cebdd6',
+    '-80': '#ded3e4',
+    '-90': '#efe9f1'
+  }
+};
+
 export const revEngineTheme: DefaultTheme = {
+  basePalette: basePalette as DefaultTheme['basePalette'],
   colors: {
     primary: '#20bfdd',
     primaryLight: '#c7eff7',
     secondary: '#99D17B',
 
     fieldBackground: '#f7f7f7',
-    paneBackground: '#fff',
-    inputBackground: '#fff',
+    paneBackground: basePalette.greyscale.white as '#ffffff',
+    inputBackground: basePalette.greyscale.white as '#ffffff',
     inputBorder: '#c3c3c3',
 
-    sidebarBackground: '#25192B',
-    topbarBackground: '#523A5E',
+    sidebarBackground: basePalette.primary.indigo as '#25192b',
+    topbarBackground: basePalette.primary.purple as '#523a5e',
     navSelectedBackground: '#eaf37a',
     navSectionLabelColor: '#ddcbe7',
     navOrgIcon: '#AC256C',
@@ -22,23 +80,23 @@ export const revEngineTheme: DefaultTheme = {
     black: '#080708',
 
     account: {
-      purple: ['#523a5e', '#25192b', '#19111e'],
+      purple: ['#523a5e', basePalette.primary.indigo as '#25192b', '#19111e'],
       yellow: ['#f5ff75'],
-      blueLink: '#0052cc'
+      blueLink: basePalette.secondary.hyperlink as '#0052cc'
     },
 
-    white: '#ffffff',
+    white: basePalette.greyscale.white as '#ffffff',
 
     grey: ['#eee', '#ccc', '#999', '#666', '#333'],
 
     muiLightBlue: {
       200: '#6FD1EC',
       500: '#3cade8',
-      800: '#157CB2'
+      800: basePalette.primary.engineBlue as '#157cb2'
     },
 
     muiTeal: {
-      600: '#008E7C',
+      600: basePalette.secondary.success as '#008e7c',
       700: '#008070'
     },
 
@@ -48,16 +106,17 @@ export const revEngineTheme: DefaultTheme = {
     },
 
     muiGrey: {
-      50: '#F9F9F9',
-      100: '#F1F1F1',
+      50: basePalette.greyscale.grey4 as '#f9f9f9',
+      100: basePalette.greyscale.grey3 as '#f1f1f1',
       200: '#e3e3e3',
       300: '#D9D9D9',
-      400: '#c4c4c4',
+      400: basePalette.greyscale.grey2 as '#c4c4c4',
+      450: '#a7a7a7',
       500: '#969696',
-      600: '#707070',
+      600: basePalette.greyscale.grey1 as '#707070',
       700: '#666666',
       800: '#3c3c3c',
-      900: '#282828'
+      900: basePalette.greyscale.black as '#282828'
     },
 
     status: {
@@ -68,7 +127,7 @@ export const revEngineTheme: DefaultTheme = {
     },
 
     error: {
-      primary: '#C8203F',
+      primary: basePalette.secondary.error as '#c8203f',
       bg: '#f6dbe0'
     },
 
@@ -83,6 +142,18 @@ export const revEngineTheme: DefaultTheme = {
 
     tableRowHover: '#bcd3f5',
     tableRowActive: '#dce8fa'
+  },
+
+  plan: {
+    free: {
+      background: basePalette.primary.chartreuse as '#f2ff59'
+    },
+    core: {
+      background: '#62ffe3'
+    },
+    plus: {
+      background: '#f323ff'
+    }
   },
 
   buttons: {

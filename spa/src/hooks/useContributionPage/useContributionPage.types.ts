@@ -1,6 +1,7 @@
 import { ContributionInterval } from 'constants/contributionIntervals';
 import { FiscalStatus } from 'constants/fiscalStatus';
 import { Style } from '../useStyleList';
+import { Organization } from 'hooks/useUser.types';
 
 // Types here come from looking at Django models, in particular whether a field
 // can be null. Even if a field is not nullable, it may be an empty string.
@@ -42,6 +43,10 @@ export interface EnginePlan {
    * How many pages can a revenue program have?
    */
   page_limit: number;
+  /**
+   * How many published pages can a reveunue program have?
+   */
+  publish_limit: number;
   /**
    * What element types are allowed in a page's sidebar?
    */
@@ -96,6 +101,22 @@ export interface ContributionPageElement {
    * Internal ID of the element.
    */
   uuid: string;
+  /**
+   * User-visible name of the element.
+   */
+  displayName?: string;
+  /**
+   * User-visible description of the element.
+   */
+  description?: string;
+  /**
+   * Element is required to exist in a page?
+   */
+  required?: boolean;
+  /**
+   * Element can only exist once in a single page?
+   */
+  unique?: boolean;
 }
 
 export interface AmountElement extends ContributionPageElement {
@@ -124,6 +145,14 @@ export interface DonorAddressElement extends ContributionPageElement {
      * as-is, and order is not significant.
      */
     additionalStateFieldLabels?: DonorAddressElementAdditionalStateFieldLabel[];
+    /**
+     * Address fields are optional?
+     */
+    addressOptional?: boolean;
+    /**
+     * Show zip code and country fields only?
+     */
+    zipAndCountryOnly?: boolean;
   };
 }
 
@@ -279,9 +308,13 @@ export interface RevenueProgram {
    */
   website_url: string;
   /**
-   * Organization ID from which the Revenue Program belongs.
+   * Organization object from which the Revenue Program belongs.
    */
-  organization: number;
+  organization: Organization;
+  /**
+   * Default donation page ID from Revenue Program, if it exists.
+   */
+  default_donation_page?: number;
   /**
    * Fiscal status that is "nonprofit", "for-profit" or "fiscally sponsored".
    */
@@ -436,7 +469,7 @@ export interface ContributionPage {
    */
   revenue_program: RevenueProgram;
   /**
-   * FIPS code of the country that the revenue program belongs to.
+   * ISO-3166 code of the country that the revenue program belongs to.
    */
   revenue_program_country: string;
   /**

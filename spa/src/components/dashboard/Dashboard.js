@@ -14,7 +14,8 @@ import {
   EDITOR_ROUTE_PAGE,
   EDITOR_ROUTE_PAGE_REDIRECT,
   PROFILE,
-  SETTINGS
+  SETTINGS,
+  MAILCHIMP_OAUTH_SUCCESS_ROUTE
 } from 'routes';
 
 // Children
@@ -44,6 +45,10 @@ import flagIsActiveForUser from 'utilities/flagIsActiveForUser';
 import hasContributionsDashboardAccessToUser from 'utilities/hasContributionsDashboardAccessToUser';
 import { useEffect } from 'react';
 import { PageEditorRedirect } from 'components/pageEditor/PageEditorRedirect';
+import MailchimpOAuthSuccess from './MailchimpOAuthSuccess';
+import useConnectMailchimp from 'hooks/useConnectMailchimp';
+import AudienceListModal from 'components/common/Modal/AudienceListModal';
+import Subscription from 'components/settings/Subscription/Subscription';
 
 function Dashboard() {
   const { enqueueSnackbar } = useSnackbar();
@@ -51,6 +56,7 @@ function Dashboard() {
   const { user } = useUser();
   const { requiresVerification, displayConnectionSuccess, hideConnectionSuccess, isLoading } =
     useConnectStripeAccount();
+  const { requiresAudienceSelection, isLoading: isMailchimpLoading } = useConnectMailchimp();
   const hasContributionsSectionAccess = user?.role_type && hasContributionsDashboardAccessToUser(flags);
   const hasContentSectionAccess = user?.role_type && flagIsActiveForUser(CONTENT_SECTION_ACCESS_FLAG_NAME, flags);
   const dashboardSlugRedirect = hasContentSectionAccess
@@ -76,11 +82,14 @@ function Dashboard() {
     }
   }, [displayConnectionSuccess, enqueueSnackbar, hideConnectionSuccess]);
 
-  return isLoading ? (
-    <GlobalLoading />
-  ) : (
+  if (isLoading || isMailchimpLoading) {
+    return <GlobalLoading />;
+  }
+
+  return (
     <S.Outer>
-      {requiresVerification ? <ConnectStripeElements /> : ''}
+      {requiresVerification && <ConnectStripeElements />}
+      {requiresAudienceSelection && <AudienceListModal open={requiresAudienceSelection} />}
       {!isEditPage && <DashboardTopbar user={user} />}
       <S.Dashboard data-testid="dashboard">
         {!isEditPage && <DashboardSidebar />}
@@ -88,6 +97,10 @@ function Dashboard() {
           <S.DashboardContent>
             <Switch>
               <Redirect exact from={DASHBOARD_SLUG} to={dashboardSlugRedirect} />
+
+              <SentryRoute path={MAILCHIMP_OAUTH_SUCCESS_ROUTE}>
+                <MailchimpOAuthSuccess />
+              </SentryRoute>
 
               {hasContributionsSectionAccess ? (
                 <SentryRoute path={DONATIONS_SLUG}>
@@ -122,6 +135,11 @@ function Dashboard() {
               <SentryRoute path={SETTINGS.ORGANIZATION}>
                 <SingleOrgUserOnlyRoute>
                   <Organization />
+                </SingleOrgUserOnlyRoute>
+              </SentryRoute>
+              <SentryRoute path={SETTINGS.SUBSCRIPTION}>
+                <SingleOrgUserOnlyRoute>
+                  <Subscription />
                 </SingleOrgUserOnlyRoute>
               </SentryRoute>
               <SentryRoute path={PROFILE}>

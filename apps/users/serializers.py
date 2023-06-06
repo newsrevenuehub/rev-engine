@@ -34,7 +34,9 @@ class UserSerializer(serializers.ModelSerializer):
     revenue_programs = serializers.SerializerMethodField(method_name="get_permitted_revenue_programs")
     flags = serializers.SerializerMethodField(method_name="get_active_flags_for_user")
     password = serializers.CharField(write_only=True, max_length=PASSWORD_MAX_LENGTH, required=True)
-    email = serializers.EmailField(validators=[UniqueValidator(queryset=get_user_model().objects.all())], required=True)
+    email = serializers.EmailField(
+        validators=[UniqueValidator(queryset=get_user_model().objects.all(), lookup="icontains")], required=True
+    )
     accepted_terms_of_service = serializers.DateTimeField(required=True)
 
     def get_role_type(self, obj):
@@ -66,7 +68,10 @@ class UserSerializer(serializers.ModelSerializer):
             return []
         qs = RevenueProgram.objects.all()
         role_assignment = obj.get_role_assignment()
-        if not role_assignment and not obj.is_superuser:
+        # TODO: revert to commented line below after or as part of DEV-3589 has shipped. This is temporarily
+        # set like this to allow superusers to authenticate before solving bug.
+        # if not role_assignment and not obj.is_superuser:
+        if not role_assignment:
             qs = qs.none()
         elif not obj.is_superuser and role_assignment.role_type != Roles.HUB_ADMIN:
             if role_assignment.role_type == Roles.ORG_ADMIN:

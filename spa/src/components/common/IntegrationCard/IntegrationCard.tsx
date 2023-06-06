@@ -2,54 +2,30 @@ import { Switch, SwitchProps, Tooltip } from 'components/base';
 import useModal from 'hooks/useModal';
 import PropTypes, { InferProps } from 'prop-types';
 
-import {
-  Title,
-  Flex,
-  Required,
-  CornerMessage,
-  Header,
-  Image,
-  Content,
-  Site,
-  Description,
-  Footer,
-  LaunchIcon
-} from './IntegrationCard.styled';
+import { Flex, Content, Description, Footer, CustomButtonLink } from './IntegrationCard.styled';
+import IntegrationCardHeader from './IntegrationCardHeader';
 
 export interface IntegrationCardProps extends InferProps<typeof IntegrationCardPropTypes> {
   onChange?: SwitchProps['onChange'];
 }
 
-const IntegrationCard = ({ className, isActive, onChange, ...card }: IntegrationCardProps) => {
+const IntegrationCard = ({ className, isActive, onChange, onViewDetails, ...card }: IntegrationCardProps) => {
   const { open: showTooltip, handleClose: handleCloseTooltip, handleOpen: handleOpenTooltip } = useModal();
-  const showCornerMessage = card.isRequired || !!card.cornerMessage;
-
-  const renderCornerMessage = (showMessage: boolean) => {
-    if (!showMessage) return null;
-    if (card.isRequired) {
-      return <Required>*Required</Required>;
-    }
-    if (card.cornerMessage && !isActive) {
-      return <CornerMessage>{card.cornerMessage}</CornerMessage>;
-    }
-    return null;
-  };
 
   return (
     <Flex className={className!} data-testid="integration-card">
-      <Header>
-        <Image src={card.image} aria-label={`${card.title} logo`} />
-        <Title>{card.title}</Title>
-        {renderCornerMessage(showCornerMessage)}
-      </Header>
+      <IntegrationCardHeader
+        image={card.image}
+        title={card.title}
+        site={card.site}
+        isRequired={card.isRequired}
+        isActive={isActive}
+        enableCornerMessage={true}
+        cornerMessage={card.cornerMessage}
+      />
       <Content>
-        <div style={{ display: 'flex' }}>
-          <Site href={card.site.url} rel="noopener noreferrer" target="_blank">
-            {card.site.label}
-            <LaunchIcon />
-          </Site>
-        </div>
         <Description>{card.description}</Description>
+        {onViewDetails && <CustomButtonLink onClick={onViewDetails}>View Details</CustomButtonLink>}
       </Content>
       <Footer $active={isActive!}>
         <p>{isActive! ? 'Connected' : card.toggleLabel ?? 'Not Connected'}</p>
@@ -85,7 +61,7 @@ const IntegrationCardPropTypes = {
   image: PropTypes.string.isRequired,
   title: PropTypes.string.isRequired,
   isRequired: PropTypes.bool.isRequired,
-  cornerMessage: PropTypes.string,
+  cornerMessage: PropTypes.node,
   site: PropTypes.shape({
     label: PropTypes.string.isRequired,
     url: PropTypes.string.isRequired
@@ -97,6 +73,7 @@ const IntegrationCardPropTypes = {
   className: PropTypes.string,
   disabled: PropTypes.bool.isRequired,
   isActive: PropTypes.bool,
+  onViewDetails: PropTypes.func,
   onChange: PropTypes.func
 };
 

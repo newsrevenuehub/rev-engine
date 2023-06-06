@@ -1,4 +1,5 @@
 import isEqual from 'lodash.isequal';
+import orderBy from 'lodash.orderby';
 
 import { NO_VALUE } from 'constants/textConstants';
 import { PAYMENT_STATUS_EXCLUDE_IN_CONTRIBUTIONS } from 'constants/paymentStatus';
@@ -153,10 +154,15 @@ describe('Donations list', () => {
     });
 
     it('should make donations sortable by payment date', () => {
+      const sortedData = orderBy(donationsData, 'last_payment_date');
+
       cy.wait('@getDonations');
       // will be in ascending order
       cy.getByTestId('donation-header-last_payment_date').click();
-      cy.wait('@getDonations');
+
+      cy.getByTestId('donation-row')
+        .first()
+        .should('have.attr', 'data-lastpaymentdate', sortedData[0].last_payment_date);
       cy.getByTestId('donation-row').should(($rows) => {
         const rows = $rows.toArray();
         rows
@@ -168,7 +174,9 @@ describe('Donations list', () => {
       });
       // will be in descending order
       cy.getByTestId('donation-header-last_payment_date').click();
-      cy.wait('@getDonations');
+      cy.getByTestId('donation-row')
+        .first()
+        .should('have.attr', 'data-lastpaymentdate', sortedData[sortedData.length - 1].last_payment_date);
       cy.getByTestId('donation-row').should(($rows) => {
         const rows = $rows.toArray();
         rows
@@ -179,11 +187,14 @@ describe('Donations list', () => {
           });
       });
     });
+
     it('should make donations sortable by amount', () => {
+      const sortedData = orderBy(donationsData, 'amount');
+
       cy.wait('@getDonations');
       // will be in ascending order
       cy.getByTestId('donation-header-amount').click();
-      cy.wait('@getDonations');
+      cy.getByTestId('donation-row').first().should('have.attr', 'data-amount', sortedData[0].amount);
       cy.getByTestId('donation-row').should(($rows) => {
         const rows = $rows.toArray();
         rows
@@ -195,7 +206,9 @@ describe('Donations list', () => {
       });
       // will be in descending order
       cy.getByTestId('donation-header-amount').click();
-      cy.wait('@getDonations');
+      cy.getByTestId('donation-row')
+        .first()
+        .should('have.attr', 'data-amount', sortedData[sortedData.length - 1].amount);
       cy.getByTestId('donation-row').should(($rows) => {
         const rows = $rows.toArray();
         rows
@@ -208,10 +221,12 @@ describe('Donations list', () => {
     });
 
     it('should make contributions sortable by contributor', () => {
+      const sortedData = orderBy(donationsData, 'contributor_email');
+
       cy.wait('@getDonations');
       // will be in ascending order
       cy.getByTestId('donation-header-contributor_email').click();
-      cy.wait('@getDonations');
+      cy.getByTestId('donation-row').first().should('have.attr', 'data-donor', sortedData[0].contributor_email);
       cy.getByTestId('donation-row').should(($rows) => {
         const rows = $rows.toArray();
         rows
@@ -223,7 +238,9 @@ describe('Donations list', () => {
       });
       // will be in descending order
       cy.getByTestId('donation-header-contributor_email').click();
-      cy.wait('@getDonations');
+      cy.getByTestId('donation-row')
+        .first()
+        .should('have.attr', 'data-donor', sortedData[sortedData.length - 1].contributor_email);
       cy.getByTestId('donation-row').should(($rows) => {
         const rows = $rows.toArray();
         rows
@@ -236,10 +253,12 @@ describe('Donations list', () => {
     });
 
     it('should make donations sortable by status', () => {
+      const sortedData = orderBy(donationsData, 'status');
+
       cy.wait('@getDonations');
       // will be in ascending order
       cy.getByTestId('donation-header-status').click();
-      cy.wait('@getDonations');
+      cy.getByTestId('donation-row').first().should('have.attr', 'data-status', sortedData[0].status);
       cy.getByTestId('donation-row').should(($rows) => {
         const rows = $rows.toArray();
         rows
@@ -251,7 +270,9 @@ describe('Donations list', () => {
       });
       // will be in descending order
       cy.getByTestId('donation-header-status').click();
-      cy.wait('@getDonations');
+      cy.getByTestId('donation-row')
+        .first()
+        .should('have.attr', 'data-status', sortedData[sortedData.length - 1].status);
       cy.getByTestId('donation-row').should(($rows) => {
         const rows = $rows.toArray();
         rows
@@ -341,6 +362,7 @@ describe('Donations list', () => {
         { statusCode: 202, body: { requiresVerification: true } }
       ).as('stripeAccountLink');
       cy.intercept({ method: 'GET', pathname: getEndpoint(USER) }, { body: selfServiceUserNotStripeVerified });
+      cy.intercept({ method: 'GET', pathname: getEndpoint('/revenue-programs/*/mailchimp_configure/') }, {});
       cy.interceptPaginatedDonations();
       cy.visit(DONATIONS_SLUG);
       cy.wait('@listPages');
@@ -355,6 +377,7 @@ describe('Donations list', () => {
       cy.forceLogin({ ...orgAdminUser, user: selfServiceUserStripeVerified });
       cy.intercept(getEndpoint(LIST_PAGES), { fixture: 'pages/list-pages-1' }).as('listPages');
       cy.intercept({ method: 'GET', pathname: getEndpoint(USER) }, { body: selfServiceUserStripeVerified });
+      cy.intercept({ method: 'GET', pathname: getEndpoint('/revenue-programs/*/mailchimp_configure/') }, {});
       cy.interceptPaginatedDonations();
       cy.visit(DONATIONS_SLUG);
       cy.wait('@listPages');
@@ -366,6 +389,7 @@ describe('Donations list', () => {
       cy.forceLogin({ ...orgAdminUser, user: selfServiceUserStripeVerified });
       cy.intercept(getEndpoint(LIST_PAGES), { fixture: 'pages/list-pages-1-live' }).as('listPages');
       cy.intercept({ method: 'GET', pathname: getEndpoint(USER) }, { body: selfServiceUserStripeVerified });
+      cy.intercept({ method: 'GET', pathname: getEndpoint('/revenue-programs/*/mailchimp_configure/') }, {});
       cy.interceptPaginatedDonations();
       cy.visit(DONATIONS_SLUG);
       cy.wait('@listPages');
@@ -384,6 +408,7 @@ describe('Donations list', () => {
           }
         }
       );
+      cy.intercept({ method: 'GET', pathname: getEndpoint('/revenue-programs/*/mailchimp_configure/') }, {});
       cy.interceptPaginatedDonations();
       cy.visit(DONATIONS_SLUG);
       cy.wait('@listPages');
@@ -403,6 +428,7 @@ describe('Table sorting for revenue program name', () => {
     cy.forceLogin(orgAdminUserSingleRP);
     cy.intercept(getEndpoint(LIST_PAGES), { fixture: 'pages/list-pages-1' }).as('listPages');
     cy.intercept({ method: 'GET', pathname: getEndpoint(USER) }, { body: orgAdminOneRpWithAccessFlags });
+    cy.intercept({ method: 'GET', pathname: getEndpoint('/revenue-programs/*/mailchimp_configure/') }, {});
     cy.interceptPaginatedDonations(donationsDataOneRp);
     cy.visit(DONATIONS_SLUG);
     cy.wait('@getDonations');
@@ -415,6 +441,7 @@ describe('Table sorting for revenue program name', () => {
     cy.forceLogin(orgAdminTwoRpsWithAccessFlags);
     cy.intercept(getEndpoint(LIST_PAGES), { fixture: 'pages/list-pages-1' }).as('listPages');
     cy.intercept({ method: 'GET', pathname: getEndpoint(USER) }, { body: orgAdminTwoRpsWithAccessFlags });
+    cy.intercept({ method: 'GET', pathname: getEndpoint('/revenue-programs/*/mailchimp_configure/') }, {});
     cy.interceptPaginatedDonations(donationsDataTwoRps);
     cy.visit(DONATIONS_SLUG);
     cy.wait('@getDonations');

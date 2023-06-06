@@ -1,18 +1,28 @@
 from unittest import mock
 
 from django.contrib.auth import get_user_model
+from django.template.loader import render_to_string
 
 import pytest
 import pytest_cases
 from faker import Faker
 from rest_framework import status
+from rest_framework.permissions import AND, OR, IsAuthenticated
 from rest_framework.reverse import reverse
 from rest_framework.test import APIRequestFactory
 from reversion.models import Version
 from stripe.error import StripeError
 from waffle import get_waffle_flag_model
 
+from apps.api.permissions import HasRoleAssignment, IsHubAdmin, IsOrgAdmin
 from apps.common.constants import MAILCHIMP_INTEGRATION_ACCESS_FLAG_NAME
+from apps.common.secrets import GoogleCloudSecretProvider
+from apps.emails.tasks import (
+    make_send_test_contribution_email_data,
+    make_send_test_magic_link_email_data,
+    send_templated_email,
+    send_thank_you_email,
+)
 from apps.organizations.models import (
     TAX_ID_MAX_LENGTH,
     TAX_ID_MIN_LENGTH,
@@ -21,8 +31,13 @@ from apps.organizations.models import (
     RevenueProgram,
     RevenueProgramQuerySet,
 )
+from apps.organizations.serializers import (
+    MailchimpRevenueProgramForSpaConfiguration,
+    MailchimpRevenueProgramForSwitchboard,
+)
 from apps.organizations.tests.factories import OrganizationFactory, RevenueProgramFactory
 from apps.organizations.views import RevenueProgramViewSet, get_stripe_account_link_return_url
+from apps.public.permissions import IsActiveSuperUser
 from apps.users.choices import Roles
 
 
@@ -317,6 +332,13 @@ def invalid_patch_data_unexpected_fields():
     return {"foo": "bar"}
 
 
+@pytest.fixture
+def mock_secret_manager(mocker):
+    mocker.patch.object(GoogleCloudSecretProvider, "__get__", return_value="shhhhhh")
+    mocker.patch.object(GoogleCloudSecretProvider, "__set__")
+    mocker.patch.object(GoogleCloudSecretProvider, "__delete__")
+
+
 @pytest.mark.django_db
 class TestRevenueProgramViewSet:
     def test_pagination_disabled(self):
@@ -592,6 +614,72 @@ class TestRevenueProgramViewSet:
         api_client.force_authenticate(org_user_free_plan)
         response = api_client.patch(reverse("revenue-program-detail", args=(revenue_program.id,)), data={})
         assert response.status_code == status.HTTP_404_NOT_FOUND
+
+    def test_mailchimp_detail_configured_correctly(self):
+        """Prove the mailchimp detail endpoint is configured properly
+
+        We use this approach so that we don't end up testing DRF itself. Knowing that this view
+        is configured in the way expected here should be a guarantee that this endpoint
+        results in desired permissions and serializer class being set.
+        """
+        assert RevenueProgramViewSet.mailchimp.detail is True
+        assert RevenueProgramViewSet.mailchimp.url_name == "mailchimp"
+        assert set(RevenueProgramViewSet.mailchimp.kwargs.get("permission_classes", [])) == {
+            IsAuthenticated,
+            IsActiveSuperUser,
+        }
+        assert (
+            RevenueProgramViewSet.mailchimp.kwargs.get("serializer_class", None)
+            == MailchimpRevenueProgramForSwitchboard
+        )
+
+    def test_mailchimp_configure_detail_configured_correctly(self):
+        """ """
+        assert RevenueProgramViewSet.mailchimp_configure.detail is True
+        assert RevenueProgramViewSet.mailchimp_configure.url_name == "mailchimp-configure"
+        assert (
+            RevenueProgramViewSet.mailchimp_configure.kwargs.get("serializer_class", None)
+            == MailchimpRevenueProgramForSpaConfiguration
+        )
+        permission_classes = RevenueProgramViewSet.mailchimp_configure.kwargs.get("permission_classes")
+        assert permission_classes[0] == IsAuthenticated
+        assert permission_classes[1].operator_class == OR
+        assert permission_classes[1].op1_class == IsActiveSuperUser
+        assert permission_classes[1].op2_class.operator_class == AND
+        assert permission_classes[1].op2_class.op1_class == HasRoleAssignment
+        assert permission_classes[1].op2_class.op2_class.operator_class == OR
+        assert permission_classes[1].op2_class.op2_class.op1_class == IsOrgAdmin
+        assert permission_classes[1].op2_class.op2_class.op2_class == IsHubAdmin
+
+    def test_mailchimp_configure_get_happy_path(
+        self, mc_connected_rp, hub_admin_user, api_client, mocker, mailchimp_email_list
+    ):
+        mocker.patch("apps.organizations.models.RevenueProgram.mailchimp_email_list", mailchimp_email_list)
+        mocker.patch("apps.organizations.models.RevenueProgram.mailchimp_email_lists", [mailchimp_email_list])
+        mc_connected_rp.mailchimp_list_id = mailchimp_email_list.id
+        mc_connected_rp.save()
+        api_client.force_authenticate(hub_admin_user)
+        response = api_client.get(reverse("revenue-program-mailchimp-configure", args=(mc_connected_rp.id,)))
+        assert response.status_code == status.HTTP_200_OK
+        assert response.json() == MailchimpRevenueProgramForSpaConfiguration(mc_connected_rp).data
+
+    def test_mailchimp_configure_patch_mailchimp_list_id_happy_path(
+        self, mc_connected_rp, hub_admin_user, api_client, mocker, mailchimp_email_list
+    ):
+        mocker.patch("apps.organizations.models.RevenueProgram.mailchimp_email_list", mailchimp_email_list)
+        mocker.patch("apps.organizations.models.RevenueProgram.mailchimp_email_lists", [mailchimp_email_list])
+        mc_connected_rp.mailchimp_list_id = None
+        mc_connected_rp.save()
+
+        api_client.force_authenticate(hub_admin_user)
+        response = api_client.patch(
+            reverse("revenue-program-mailchimp-configure", args=(mc_connected_rp.id,)),
+            data={"mailchimp_list_id": mailchimp_email_list.id},
+        )
+        assert response.status_code == status.HTTP_200_OK
+        mc_connected_rp.refresh_from_db()
+        assert response.json() == MailchimpRevenueProgramForSpaConfiguration(mc_connected_rp).data
+        assert mc_connected_rp.mailchimp_list_id == mailchimp_email_list.id
 
 
 class FakeStripeProduct:
@@ -878,129 +966,220 @@ def mailchimp_feature_flag_no_group_level_access(mailchimp_feature_flag):
     return mailchimp_feature_flag
 
 
-class TestMailchimpIntegrationViewStub:
-    """These tests are narrowly meant to demonstrate business logic around the "mailchimp-integration-access" flag.
+@pytest.mark.django_db
+class TestHandleMailchimpOauthSuccessView:
+    def test_happy_path(self, mocker, monkeypatch, org_user_free_plan, api_client):
+        api_client.force_authenticate(org_user_free_plan)
+        mock_task = mocker.patch(
+            "apps.organizations.tasks.exchange_mailchimp_oauth_code_for_server_prefix_and_access_token.delay"
+        )
+        mock_task.return_value = None
+        data = {
+            "revenue_program": (rp_id := org_user_free_plan.roleassignment.revenue_programs.first().id),
+            "mailchimp_oauth_code": (oauth_code := "something"),
+        }
+        response = api_client.post(reverse("handle-mailchimp-oauth-success"), data=data)
+        assert response.status_code == status.HTTP_202_ACCEPTED
+        mock_task.assert_called_once_with(rp_id, oauth_code)
 
-    For now, we just test around a stub API endpoint to prove the flag is configured as required.
-    """
+    def test_when_not_authenticated(self, api_client, default_feature_flags):
+        response = api_client.post(reverse("handle-mailchimp-oauth-success"), data={})
+        assert response.status_code == status.HTTP_401_UNAUTHORIZED
 
-    @pytest_cases.parametrize(
-        "user,mailchimp_flag_kwargs,expect_access",
-        (
-            (
-                pytest_cases.fixture_ref("superuser"),
-                {
-                    "superuser": True,
-                    "everyone": None,
-                    "staff": False,
-                },
-                True,
-            ),
-            (
-                pytest_cases.fixture_ref("superuser"),
-                {
-                    "superuser": False,
-                    "everyone": None,
-                    "staff": False,
-                },
-                False,
-            ),
-            (
-                pytest_cases.fixture_ref("superuser"),
-                {
-                    "superuser": False,
-                    "everyone": True,
-                    "staff": False,
-                },
-                True,
-            ),
-            (
-                pytest_cases.fixture_ref("superuser"),
-                {
-                    "superuser": False,
-                    "everyone": True,
-                    "staff": False,
-                },
-                True,
-            ),
-            (
-                pytest_cases.fixture_ref("superuser"),
-                {
-                    "superuser": False,
-                    "everyone": False,
-                    "staff": True,
-                },
-                True,
-            ),
-            (
-                pytest_cases.fixture_ref("admin_user"),
-                {
-                    "superuser": False,
-                    "everyone": False,
-                    "staff": True,
-                },
-                True,
-            ),
-            (
-                pytest_cases.fixture_ref("admin_user"),
-                {
-                    "superuser": False,
-                    "everyone": False,
-                    "staff": False,
-                },
-                False,
-            ),
-            (
-                pytest_cases.fixture_ref("admin_user"),
-                {
-                    "superuser": False,
-                    "everyone": True,
-                    "staff": False,
-                },
-                True,
-            ),
-            (
-                pytest_cases.fixture_ref("org_user_free_plan"),
-                {
-                    "superuser": True,
-                    "everyone": False,
-                    "staff": True,
-                },
-                False,
-            ),
-            (
-                pytest_cases.fixture_ref("org_user_free_plan"),
-                {
-                    "superuser": True,
-                    "everyone": True,
-                    "staff": True,
-                },
-                True,
-            ),
-        ),
-    )
-    def test_feature_flag_works(self, user, mailchimp_flag_kwargs, expect_access, mailchimp_feature_flag, api_client):
-        """Show that flag can be used to control access based on superuser, everyone, and staff attributes."""
-        for k, v in mailchimp_flag_kwargs.items():
-            setattr(mailchimp_feature_flag, k, v)
-        mailchimp_feature_flag.save()
-        api_client.force_authenticate(user)
-        response = api_client.get(reverse("mail_chimp_integration_stub"))
-        assert response.status_code == status.HTTP_200_OK if expect_access else status.HTTP_403_FORBIDDEN
+    def test_when_no_roleassignment(self, user_no_role_assignment, api_client):
+        response = api_client.post(reverse("handle-mailchimp-oauth-success"), data={})
+        assert response.status_code == status.HTTP_401_UNAUTHORIZED
 
     @pytest_cases.parametrize(
         "user",
         (
+            pytest_cases.fixture_ref("hub_admin_user"),
             pytest_cases.fixture_ref("superuser"),
-            pytest_cases.fixture_ref("admin_user"),
-            pytest_cases.fixture_ref("org_user_free_plan"),
+            pytest_cases.fixture_ref("rp_user"),
+            pytest_cases.fixture_ref("user_with_unexpected_role"),
         ),
     )
-    def test_feature_flag_works_with_individual_assignment(
-        self, user, mailchimp_feature_flag_no_group_level_access, api_client
-    ):
-        """Show that flag can be used to grant individual users resource access"""
-        mailchimp_feature_flag_no_group_level_access.users.add(user)
-        mailchimp_feature_flag_no_group_level_access.save()
+    def test_when_roleassignment_role_is_not_org_admin(self, user, default_feature_flags, api_client):
         api_client.force_authenticate(user)
-        assert api_client.get(reverse("mail_chimp_integration_stub")).status_code == status.HTTP_200_OK
+
+    def test_when_dont_own_revenue_program(self, org_user_free_plan, revenue_program, api_client):
+        assert revenue_program not in org_user_free_plan.roleassignment.revenue_programs.all()
+        api_client.force_authenticate(org_user_free_plan)
+        response = api_client.post(
+            reverse("handle-mailchimp-oauth-success"),
+            data={"revenue_program": revenue_program.id, "mailchimp_oauth_code": "something"},
+        )
+        assert response.status_code == status.HTTP_404_NOT_FOUND
+        assert response.json() == {"detail": "Requested revenue program not found"}
+
+    def test_when_rp_not_found(self, org_user_free_plan, api_client):
+        rp = org_user_free_plan.roleassignment.revenue_programs.first()
+        rp_id = rp.id
+        rp.delete()
+        api_client.force_authenticate(org_user_free_plan)
+        response = api_client.post(
+            reverse("handle-mailchimp-oauth-success"),
+            data={"revenue_program": rp_id, "mailchimp_oauth_code": "something"},
+        )
+        assert response.status_code == status.HTTP_404_NOT_FOUND
+        assert response.json() == {"detail": "Requested revenue program not found"}
+
+    @pytest.mark.parametrize(
+        "data,expected_response",
+        (
+            ({"mailchimp_oauth_code": "something"}, {"revenue_program": ["This field is required."]}),
+            ({"revenue_program": 1}, {"mailchimp_oauth_code": ["This field is required."]}),
+        ),
+    )
+    def test_when_missing_request_data(self, data, expected_response, org_user_free_plan, api_client):
+        api_client.force_authenticate(org_user_free_plan)
+        response = api_client.post(reverse("handle-mailchimp-oauth-success"), data=data)
+        assert response.status_code == status.HTTP_400_BAD_REQUEST
+        assert response.json() == expected_response
+
+    def test_when_user_not_have_feature_flag(
+        self, org_user_free_plan, mailchimp_feature_flag_no_group_level_access, api_client
+    ):
+        api_client.force_authenticate(org_user_free_plan)
+        response = api_client.post(reverse("handle-mailchimp-oauth-success"), data={})
+        assert response.status_code == status.HTTP_403_FORBIDDEN
+        assert response.json() == {"detail": "You do not have permission to perform this action."}
+
+
+@pytest.mark.django_db
+class TestSendTestEmail:
+    def test_when_dont_own_revenue_program(self, org_user_free_plan, revenue_program, api_client):
+        assert revenue_program not in org_user_free_plan.roleassignment.revenue_programs.all()
+        api_client.force_authenticate(org_user_free_plan)
+        response = api_client.post(
+            reverse("send-test-email"),
+            data={"revenue_program": revenue_program.id, "email_name": "something"},
+        )
+        assert response.status_code == status.HTTP_404_NOT_FOUND
+        assert response.json() == {"detail": "Requested revenue program not found"}
+
+    @pytest.mark.parametrize(
+        "data,expected_response",
+        (
+            ({"email_name": "something"}, {"revenue_program": ["This field is required."]}),
+            ({"revenue_program": 1}, {"email_name": ["This field is required."]}),
+        ),
+    )
+    def test_when_missing_request_data(self, data, expected_response, org_user_free_plan, api_client):
+        api_client.force_authenticate(org_user_free_plan)
+        response = api_client.post(reverse("send-test-email"), data=data)
+        assert response.status_code == status.HTTP_400_BAD_REQUEST
+        assert response.json() == expected_response
+
+    @pytest_cases.parametrize(
+        "user",
+        (
+            pytest_cases.fixture_ref("hub_admin_user"),
+            pytest_cases.fixture_ref("superuser"),
+            pytest_cases.fixture_ref("rp_user"),
+        ),
+    )
+    def test_invalid_email_name_independent_of_user_role(self, user, revenue_program, api_client):
+        api_client.force_authenticate(user)
+        rp_pk = (
+            user.roleassignment.revenue_programs.first().id
+            if user.roleassignment.revenue_programs.first()
+            else revenue_program.id
+        )
+        response = api_client.post(
+            reverse("send-test-email"),
+            data={"revenue_program": rp_pk, "email_name": "something"},
+        )
+        assert response.status_code == status.HTTP_400_BAD_REQUEST
+        assert response.json() == {"email_name": ["Invalid email name: something"]}
+
+    @pytest_cases.parametrize(
+        "user",
+        (
+            pytest_cases.fixture_ref("hub_admin_user"),
+            pytest_cases.fixture_ref("superuser"),
+            pytest_cases.fixture_ref("rp_user"),
+        ),
+    )
+    def test_send_test_receipt_email(self, user, revenue_program, mocker, api_client, settings):
+        settings.CELERY_TASK_ALWAYS_EAGER = True
+        api_client.force_authenticate(user)
+        rp = (
+            user.roleassignment.revenue_programs.first()
+            if user.roleassignment.revenue_programs.first()
+            else revenue_program
+        )
+
+        mocker.patch("apps.emails.tasks.get_test_magic_link", return_value="fake_magic_link")
+        send_thank_you_email_spy = mocker.spy(send_thank_you_email, "delay")
+        expected_data = make_send_test_contribution_email_data(user, rp)
+
+        api_client.post(
+            reverse("send-test-email"),
+            data={"revenue_program": rp.id, "email_name": "receipt"},
+        )
+        send_thank_you_email_spy.assert_called_once_with(expected_data)
+
+    @pytest_cases.parametrize(
+        "user",
+        (
+            pytest_cases.fixture_ref("hub_admin_user"),
+            pytest_cases.fixture_ref("superuser"),
+            pytest_cases.fixture_ref("rp_user"),
+        ),
+    )
+    def test_send_test_reminder_email(self, user, revenue_program, mocker, api_client, settings):
+        settings.CELERY_ALWAYS_EAGER = True
+        api_client.force_authenticate(user)
+        rp = (
+            user.roleassignment.revenue_programs.first()
+            if user.roleassignment.revenue_programs.first()
+            else revenue_program
+        )
+
+        send_email_spy = mocker.spy(send_templated_email, "delay")
+        mocker.patch("apps.emails.tasks.get_test_magic_link", return_value="fake_magic_link")
+        expected_data = make_send_test_contribution_email_data(user, rp)
+
+        api_client.post(
+            reverse("send-test-email"),
+            data={"revenue_program": rp.id, "email_name": "reminder"},
+        )
+        send_email_spy.assert_called_once_with(
+            user.email,
+            f"Reminder: {rp.name} scheduled contribution",
+            render_to_string("recurring-contribution-email-reminder.txt", expected_data),
+            render_to_string("recurring-contribution-email-reminder.html", expected_data),
+        )
+
+    @pytest_cases.parametrize(
+        "user",
+        (
+            pytest_cases.fixture_ref("hub_admin_user"),
+            pytest_cases.fixture_ref("superuser"),
+            pytest_cases.fixture_ref("rp_user"),
+        ),
+    )
+    def test_send_test_magic_link_email(self, user, revenue_program, mocker, api_client, settings):
+        settings.CELERY_ALWAYS_EAGER = True
+        api_client.force_authenticate(user)
+        rp = (
+            user.roleassignment.revenue_programs.first()
+            if user.roleassignment.revenue_programs.first()
+            else revenue_program
+        )
+
+        send_email_spy = mocker.spy(send_templated_email, "delay")
+        mocker.patch("apps.emails.tasks.get_test_magic_link", return_value="fake_magic_link")
+        expected_data = make_send_test_magic_link_email_data(user, rp)
+
+        api_client.post(
+            reverse("send-test-email"),
+            data={"revenue_program": rp.id, "email_name": "magic_link"},
+        )
+        send_email_spy.assert_called_once_with(
+            user.email,
+            "Manage your contributions",
+            render_to_string("nrh-manage-contributions-magic-link.txt", expected_data),
+            render_to_string("nrh-manage-contributions-magic-link.html", expected_data),
+        )

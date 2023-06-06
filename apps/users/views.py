@@ -17,11 +17,13 @@ from django.core import signing
 from django.core.exceptions import ValidationError as DjangoValidationError
 from django.dispatch import receiver
 from django.http import HttpResponseRedirect
+from django.template.loader import render_to_string
 from django.urls import reverse, reverse_lazy
 from django.utils.safestring import mark_safe
 from django.utils.text import slugify
 from django.views.decorators.http import require_GET
 
+import reversion
 from django_rest_passwordreset.signals import reset_password_token_created
 from rest_framework import mixins, status
 from rest_framework.decorators import action
@@ -65,7 +67,9 @@ def account_verification(request, email, token):
     checker = AccountVerification()
     if user := checker.validate(email, token):
         user.email_verified = True
-        user.save()
+        with reversion.create_revision():
+            user.save(update_fields={"email_verified", "modified"})
+            reversion.set_comment("Updated by `account_verification` view.")
         return HttpResponseRedirect(reverse("spa_account_verification"))
     else:
         # Having failure reason in URL is non-optimal.
@@ -218,15 +222,15 @@ class UserViewset(
         url = self.request.build_absolute_uri(
             reverse("account_verification", kwargs={"email": encoded_email, "token": token})
         )
+        data = {
+            "verification_url": django.utils.safestring.mark_safe(url),
+            "logo_url": os.path.join(settings.SITE_URL, "static", "nre_logo_black_yellow.png"),
+        }
         send_templated_email.delay(
             user.email,
             EMAIL_VERIFICATION_EMAIL_SUBJECT,
-            "nrh-org-account-creation-verification-email.txt",
-            "nrh-org-account-creation-verification-email.html",
-            {
-                "verification_url": django.utils.safestring.mark_safe(url),
-                "logo_url": os.path.join(settings.SITE_URL, "static", "nre_logo_black_yellow.png"),
-            },
+            render_to_string("nrh-org-account-creation-verification-email.txt", data),
+            render_to_string("nrh-org-account-creation-verification-email.html", data),
         )
 
     def validate_password(self, email, password):
@@ -382,7 +386,6 @@ def password_reset_token_created(sender, instance, reset_password_token, *args, 
     send_templated_email(
         email,
         "Reset your password for News Revenue Engine",
-        "nrh-org-portal-password-reset.txt",
-        "nrh-org-portal-password-reset.html",
-        context,
+        render_to_string("nrh-org-portal-password-reset.txt", context),
+        render_to_string("nrh-org-portal-password-reset.html", context),
     )

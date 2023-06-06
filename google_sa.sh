@@ -3,13 +3,6 @@ set -e
 
 FILE="google-sa/google-service-account.json"
 
->&2 echo "Setup Google Service Account"
-
-if test -f $FILE; then
-  >&2 echo "Google Service account file exists."
-  rm $FILE
-  echo $GS_SERVICE_ACCOUNT | base64 -d > $FILE
-else
-  >&2 echo "Creating Google Service account file"
-  echo $GS_SERVICE_ACCOUNT | base64 -d > $FILE
-fi
+>&2 echo "google_sa.sh | Setting up Google Service Account credentials"
+echo $GS_SERVICE_ACCOUNT | base64 -d >| $FILE
+stat $FILE

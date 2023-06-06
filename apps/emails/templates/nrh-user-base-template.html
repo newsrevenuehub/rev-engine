@@ -88,6 +88,7 @@
       font-size: 16px;
       font-weight: 400;
       color: #707070;
+      margin-bottom: 115px;
     }
 
     .links {
@@ -96,7 +97,6 @@
       color: #C4C4C4;
       font-weight: 600;
       font-size: 18px;
-      margin-top: 115px;
       margin-bottom: 6px;
     }
 
@@ -127,6 +127,17 @@
       font-weight: 600;
       font-size: 14px;
       line-height: 16px;
+    }
+
+    .upgrade-plan {
+      box-sizing: border-box;
+      border-radius: 10px;
+      max-width: 533px;
+      margin: auto;
+      margin-bottom: 32px;
+      padding: 19px;
+      background: #62FFE3;
+      background: linear-gradient(39.42deg, #6FD1EC 47.23%, #8AF7E3 105.55%);
     }
 
     @media (max-width: 570px) {
@@ -194,6 +205,8 @@
                   </p>
                 </td>
               </tr>
+              {% block upgrade_prompt %}
+              {% endblock upgrade_prompt %}
               <tr>
                 <td style="padding-right: 0px;padding-left: 0px;" align="left">
                   <p class="links inner-center">

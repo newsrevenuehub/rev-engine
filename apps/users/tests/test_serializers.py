@@ -8,6 +8,10 @@ from rest_framework.test import APIRequestFactory, APITestCase
 from waffle import get_waffle_flag_model
 
 from apps.organizations.models import Organization, Plan, RevenueProgram
+from apps.organizations.serializers import (
+    OrganizationInlineSerializer,
+    RevenueProgramInlineSerializer,
+)
 from apps.organizations.tests.factories import OrganizationFactory, RevenueProgramFactory
 from apps.users import serializers
 from apps.users.choices import Roles
@@ -68,21 +72,11 @@ class UserSerializerTest(APITestCase):
             "revenue_programs",
             "role_type",
         }
-        expect_rp_fields = {
-            "id",
-            "name",
-            "slug",
-            "organization",
-            "payment_provider_stripe_verified",
-            "fiscal_status",
-            "tax_id",
-            "fiscal_sponsor_name",
-        }
         data = self._get_serialized_data_for_user(self.org_admin_user)
         assert expected_fields == set(data.keys())
         assert len(data["revenue_programs"]) >= 1
         for rp in data["revenue_programs"]:
-            assert set(rp.keys()) == expect_rp_fields
+            assert set(rp.keys()) == set(RevenueProgramInlineSerializer().fields.keys())
         assert len(data["organizations"])
         for org in data["organizations"]:
             assert set(org["plan"].keys()) == set(asdict(Plan(name="", label="")).keys())
@@ -122,7 +116,7 @@ class UserSerializerTest(APITestCase):
     def test_get_permitted_revenue_programs(self):
         super_user_data = self._get_serialized_data_for_user(self.superuser_user)
         su_rp_ids = self._ids_from_data(super_user_data["revenue_programs"])
-        self.assertEqual(su_rp_ids, list(RevenueProgram.objects.values_list("pk", flat=True)))
+        self.assertEqual(su_rp_ids, [])
 
         hub_admin_data = self._get_serialized_data_for_user(self.hub_admin_user)
         ha_rp_ids = self._ids_from_data(hub_admin_data["revenue_programs"])
@@ -151,7 +145,7 @@ class UserSerializerTest(APITestCase):
         self.assertEqual(self.no_role_user.pk, no_role_data["id"])
         self.assertEqual(self.no_role_user.email, no_role_data["email"])
 
-    def test_listed_revenue_programs_include_org_id(self):
+    def test_listed_revenue_programs_include_org_objects(self):
         """
         The front-end uses the RevenueProgram.organization.pk for some simple filtering. Ensure that it is present.
         """
@@ -159,9 +153,9 @@ class UserSerializerTest(APITestCase):
         rps = rp_admin_data["revenue_programs"]
         # An "organization" field should be present
         self.assertTrue(all([True for rp in rps if "organization" in rp]))
-        org_ids = [rp["organization"] for rp in rps]
-        expected_org_ids = [rp.organization.pk for rp in self.included_rps]
-        self.assertEqual(org_ids, expected_org_ids)
+        org_objects = [rp["organization"] for rp in rps]
+        expected_org_objects = [OrganizationInlineSerializer(rp.organization).data for rp in self.included_rps]
+        self.assertEqual(org_objects, expected_org_objects)
 
     def test_empty_results(self):
         not_a_user_instance = mock.Mock()

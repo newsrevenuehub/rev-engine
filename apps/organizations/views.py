@@ -4,6 +4,7 @@ from django.conf import settings
 from django.contrib.auth import get_user_model
 from django.db import models
 from django.shortcuts import get_object_or_404
+from django.template.loader import render_to_string
 
 import stripe
 from rest_framework import mixins, status, viewsets
@@ -25,9 +26,15 @@ from apps.api.permissions import (
     IsRpAdmin,
 )
 from apps.common.views import FilterForSuperUserOrRoleAssignmentUserMixin
+from apps.emails.tasks import (
+    make_send_test_contribution_email_data,
+    make_send_test_magic_link_email_data,
+    send_templated_email,
+    send_thank_you_email,
+)
 from apps.organizations import serializers
 from apps.organizations.models import Organization, RevenueProgram
-from apps.organizations.serializers import MailchimpOauthSuccessSerializer
+from apps.organizations.serializers import MailchimpOauthSuccessSerializer, SendTestEmailSerializer
 from apps.organizations.tasks import (
     exchange_mailchimp_oauth_code_for_server_prefix_and_access_token,
 )
@@ -255,6 +262,63 @@ def handle_stripe_account_link(request, rp_pk):
                 status=status.HTTP_500_INTERNAL_SERVER_ERROR,
             )
     return Response(data)
+
+
+@api_view(["POST"])
+@permission_classes([IsAuthenticated])
+def send_test_email(request):
+    """This endpoint sends test emails to the user so that they can see what it looks like.
+    Available email types are:
+
+    1. receipt: this is the email that is sent to the user when they make a payment
+    2. reminder: this is the email that is sent to the user reminding of a future payment
+    3. magic_link: this is the email that is sent to the user when they click on the magic link to log in the contributor portal
+    """
+    serializer = SendTestEmailSerializer(data=request.data)
+    serializer.is_valid(raise_exception=True)
+    rp_pk = serializer.validated_data["revenue_program"]
+    email_name = serializer.validated_data["email_name"]
+
+    revenue_program = get_object_or_404(RevenueProgram, pk=rp_pk)
+    if not request.user.is_superuser:
+        if not request.user.roleassignment.can_access_rp(revenue_program):
+            logger.warning(
+                (
+                    "[send_test_email] was asked to send a test email link for RP with ID %s by user with id %s who does "
+                    "not have access."
+                ),
+                rp_pk,
+                request.user.id,
+            )
+            return Response({"detail": "Requested revenue program not found"}, status=status.HTTP_404_NOT_FOUND)
+
+    if email_name not in ["receipt", "reminder", "magic_link"]:
+        raise ValidationError({"email_name": [f"Invalid email name: {email_name}"]})
+
+    logger.info("Sending test email with type '%s', for user %s and rp %s", email_name, request.user.id, rp_pk)
+
+    match email_name:
+        case "receipt":
+            data = make_send_test_contribution_email_data(request.user, revenue_program)
+            send_thank_you_email.delay(data)
+        case "reminder":
+            data = make_send_test_contribution_email_data(request.user, revenue_program)
+            send_templated_email.delay(
+                request.user.email,
+                f"Reminder: {revenue_program.name} scheduled contribution",
+                render_to_string("recurring-contribution-email-reminder.txt", data),
+                render_to_string("recurring-contribution-email-reminder.html", data),
+            )
+        case "magic_link":
+            data = make_send_test_magic_link_email_data(request.user, revenue_program)
+            send_templated_email.delay(
+                request.user.email,
+                "Manage your contributions",
+                render_to_string("nrh-manage-contributions-magic-link.txt", data),
+                render_to_string("nrh-manage-contributions-magic-link.html", data),
+            )
+
+    return Response(status=status.HTTP_202_ACCEPTED)
 
 
 @api_view(["POST"])

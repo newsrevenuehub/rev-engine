@@ -6,12 +6,11 @@ export interface IconListProps extends InferProps<typeof IconListPropTypes> {
 }
 
 export const IconList = ({ list, iconSize = 'small' }: IconListProps) => {
-  console.log({ list, iconSize });
   return (
     <List data-testid="list-item">
       {list.map(({ icon, text }) => (
         <Item key={text}>
-          <Icon $size={iconSize!} data-testid="list-item-icon">
+          <Icon $size={iconSize} data-testid="list-item-icon">
             {icon}
           </Icon>
           <Text data-testid="list-item-text">{text}</Text>

@@ -54,6 +54,7 @@ describe('Contribution page edit', () => {
   beforeEach(() => {
     cy.forceLogin(orgAdminUser);
     cy.intercept({ method: 'GET', pathname: getEndpoint(USER) }, { body: stripeVerifiedOrgAdmin });
+    cy.intercept({ method: 'GET', pathname: getEndpoint('/revenue-programs/*/mailchimp_configure/') }, {});
     cy.intercept({ method: 'GET', pathname: getEndpoint(LIST_STYLES) }, {});
     cy.intercept(
       { method: 'GET', pathname: `${getEndpoint(LIST_PAGES)}**` },
@@ -510,6 +511,7 @@ describe('Edit interface: Setup', () => {
     };
     cy.forceLogin(orgAdminStripeVerifiedLoginSuccess);
     cy.intercept({ method: 'GET', pathname: getEndpoint(USER) }, { body: orgAdminStripeVerifiedLoginSuccess.user });
+    cy.intercept({ method: 'GET', pathname: getEndpoint('/revenue-programs/*/mailchimp_configure/') }, {});
     cy.intercept(
       { method: 'GET', pathname: `${getEndpoint(LIST_PAGES)}**` },
       { body: pageDetailBody, statusCode: 200 }
@@ -729,6 +731,7 @@ describe('Edit interface: Styles', () => {
     };
     cy.forceLogin(orgAdminStripeVerifiedLoginSuccess);
     cy.intercept({ method: 'GET', pathname: getEndpoint(USER) }, { body: orgAdminStripeVerifiedLoginSuccess.user });
+    cy.intercept({ method: 'GET', pathname: getEndpoint('/revenue-programs/*/mailchimp_configure/') }, {});
     cy.intercept(
       { method: 'GET', pathname: `${getEndpoint(LIST_PAGES)}**` },
       { body: pageDetailBody, statusCode: 200 }
@@ -791,6 +794,7 @@ describe('Contribution page delete', () => {
   beforeEach(() => {
     cy.forceLogin(orgAdminUser);
     cy.intercept({ method: 'GET', pathname: getEndpoint(USER) }, { body: orgAdminWithContentFlag });
+    cy.intercept({ method: 'GET', pathname: getEndpoint('/revenue-programs/*/mailchimp_configure/') }, {});
     cy.intercept({ method: 'DELETE', pathname: getEndpoint(`${DELETE_PAGE}*/`) }, { statusCode: 204 }).as('deletePage');
     cy.intercept({ method: 'GET', pathname: getEndpoint(LIST_PAGES) }, { body: [], statusCode: 200 });
   });
@@ -836,6 +840,7 @@ describe('Page load side effects', () => {
   beforeEach(() => {
     cy.forceLogin(orgAdminUser);
     cy.intercept({ method: 'GET', pathname: getEndpoint(USER) }, { body: orgAdminWithContentFlag });
+    cy.intercept({ method: 'GET', pathname: getEndpoint('/revenue-programs/*/mailchimp_configure/') }, {});
     cy.intercept(
       { method: 'GET', pathname: `${getEndpoint(LIST_PAGES)}**` },
       { fixture: 'pages/live-page-1', statusCode: 200 }
@@ -856,6 +861,7 @@ describe('ReasonEditor', () => {
   beforeEach(() => {
     cy.forceLogin(orgAdminUser);
     cy.intercept({ method: 'GET', pathname: getEndpoint(USER) }, { body: orgAdminWithContentFlag });
+    cy.intercept({ method: 'GET', pathname: getEndpoint('/revenue-programs/*/mailchimp_configure/') }, {});
     cy.intercept(
       { method: 'GET', pathname: `${getEndpoint(LIST_PAGES)}**` },
       { fixture: 'pages/live-page-1', statusCode: 200 }

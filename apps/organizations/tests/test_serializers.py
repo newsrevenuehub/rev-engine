@@ -151,6 +151,19 @@ class TestMailchimpRevenueProgramForSpaConfiguration:
         assert serializer.is_valid() is False
         assert "mailchimp_list_id" in serializer.errors
 
+    def test_validate_mailchimp_list_id_can_set_to_none(self, mc_connected_rp, mocker, mailchimp_email_list):
+        mocker.patch(
+            "apps.organizations.models.RevenueProgram.mailchimp_email_lists",
+            return_value=[mailchimp_email_list],
+            new_callable=mocker.PropertyMock,
+        )
+        mc_connected_rp.mailchimp_list_id = mailchimp_email_list.id
+        mc_connected_rp.save()
+        data = {"mailchimp_list_id": None, "name": "something"}
+        serializer = MailchimpRevenueProgramForSpaConfiguration(mc_connected_rp, data=data)
+        assert serializer.is_valid() is True
+        assert serializer.validated_data["mailchimp_list_id"] is None
+
 
 @pytest.mark.django_db
 class TestMailchimpRevenueProgramForSwitchboard:
@@ -187,6 +200,18 @@ class TestMailchimpRevenueProgramForSwitchboard:
             new_callable=mocker.PropertyMock,
         )
         serialized = MailchimpRevenueProgramForSwitchboard(mc_connected_rp).data
+        assert set(serialized.keys()) == {
+            "id",
+            "name",
+            "slug",
+            "mailchimp_server_prefix",
+            "mailchimp_integration_connected",
+            "stripe_account_id",
+            "mailchimp_store",
+            "mailchimp_recurring_contribution_product",
+            "mailchimp_one_time_contribution_product",
+        }
+
         for field in (
             "id",
             "name",
@@ -196,7 +221,13 @@ class TestMailchimpRevenueProgramForSwitchboard:
             "stripe_account_id",
         ):
             assert serialized[field] == getattr(mc_connected_rp, field)
-
         assert serialized["mailchimp_store"] == asdict(mailchimp_store)
         assert serialized["mailchimp_recurring_contribution_product"] == asdict(mailchimp_product)
         assert serialized["mailchimp_one_time_contribution_product"] == asdict(mailchimp_product)
+
+    def test_stripe_account_id_is_nullable(self, mc_connected_rp):
+        mc_connected_rp.payment_provider.stripe_account_id = None
+        mc_connected_rp.payment_provider.save()
+        assert mc_connected_rp.stripe_account_id is None
+        serialized = MailchimpRevenueProgramForSwitchboard(mc_connected_rp).data
+        assert serialized["stripe_account_id"] is None

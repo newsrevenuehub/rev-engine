@@ -3,6 +3,7 @@ import { ChangeEvent, FormEvent, KeyboardEvent, useRef, useState } from 'react';
 import { IconButton, OffscreenText, Tooltip } from 'components/base';
 import { useEditablePageContext } from 'hooks/useEditablePage';
 import { Button, Label, TextField } from './PageName.styled';
+import { ClickAwayListener } from '@material-ui/core';
 
 export function PageName() {
   const { setPageChanges, updatedPagePreview } = useEditablePageContext();
@@ -56,20 +57,22 @@ export function PageName() {
 
   if (editing) {
     return (
-      <form onSubmit={handleFinishEditing}>
-        <TextField
-          autoFocus
-          id="page-name"
-          label={<OffscreenText>Page Name</OffscreenText>}
-          onChange={handleChange}
-          onKeyUp={handleKeyUp}
-          ref={fieldRef}
-          value={editValue}
-        />
-        <IconButton aria-label="Save" color="primaryDark" type="submit">
-          <Check />
-        </IconButton>
-      </form>
+      <ClickAwayListener onClickAway={() => setEditing(false)}>
+        <form onSubmit={handleFinishEditing}>
+          <TextField
+            autoFocus
+            id="page-name"
+            label={<OffscreenText>Page Name</OffscreenText>}
+            onChange={handleChange}
+            onKeyUp={handleKeyUp}
+            ref={fieldRef}
+            value={editValue}
+          />
+          <IconButton aria-label="Save" color="primaryDark" type="submit">
+            <Check />
+          </IconButton>
+        </form>
+      </ClickAwayListener>
     );
   }
 

@@ -147,6 +147,34 @@ describe('PageName', () => {
       expect(screen.getByRole('button', { name: 'mock-page-name' })).toBeVisible();
     });
 
+    it('cancels changes and goes into the noneditable state when the user clicks outside the field', () => {
+      // Fake timers are needed to test <ClickAwayListener>.
+      // See https://github.com/mui/material-ui/issues/24783
+
+      jest.useFakeTimers();
+
+      const setPageChanges = jest.fn();
+
+      useEditablePageContextMock.mockReturnValue({
+        setPageChanges,
+        deletePage: jest.fn(),
+        isError: false,
+        isLoading: true,
+        pageChanges: {},
+        updatedPagePreview: { name: 'mock-page-name' } as any
+      });
+      tree();
+      fireEvent.click(screen.getByRole('button', { name: 'mock-page-name' }));
+      fireEvent.change(screen.getByRole('textbox', { name: 'Page Name' }), { target: { value: 'new-name' } });
+      jest.advanceTimersToNextTimer();
+      fireEvent.click(document.body);
+      expect(setPageChanges).not.toBeCalled();
+      expect(screen.queryByRole('textbox', { name: 'Page Name' })).not.toBeInTheDocument();
+      expect(screen.getByRole('button', { name: 'mock-page-name' })).toBeVisible();
+
+      jest.useRealTimers();
+    });
+
     it('does not save changes but goes into the noneditable state if the field only contains whitespace', () => {
       const setPageChanges = jest.fn();
 
@@ -191,7 +219,11 @@ describe('PageName', () => {
       const { container } = tree();
 
       fireEvent.click(screen.getByRole('button', { name: 'mock-page-name' }));
-      expect(await axe(container)).toHaveNoViolations();
+
+      // axe seems to trip over contrast detection on this component.
+      // See https://github.com/nickcolley/jest-axe/issues/147
+
+      expect(await axe(container, { rules: { 'color-contrast': { enabled: false } } })).toHaveNoViolations();
     });
   });
 });

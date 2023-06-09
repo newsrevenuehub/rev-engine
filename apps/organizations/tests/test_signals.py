@@ -63,3 +63,42 @@ class TestRevenueProgramDeletedhandler:
                 "name": f"projects/{settings.GOOGLE_CLOUD_PROJECT_ID}/secrets/{revenue_program.mailchimp_access_token_secret_name}"
             }
         )
+
+
+@pytest.mark.django_db
+class TestOrganizationPostSaveHandler:
+    def test_happy_path(self, organization, mocker):
+        pass
+
+
+@pytest.mark.django_db
+class TestHandleSetDefaultDonationPage:
+    def test_when_no_rp(self):
+        pass
+
+    def test_when_already_have_default(self):
+        pass
+
+    def test_when_no_page_to_set(self):
+        pass
+
+    def test_when_page_to_set(self):
+        pass
+
+
+@pytest.mark.django_db
+class TestGetPageToBeSetAsDefault:
+    def test_when_no_pages(self):
+        pass
+
+    def test_when_one_page(self):
+        pass
+
+    def test_when_gt_1_page_and_1_published(self):
+        pass
+
+    def test_when_gt_1_page_and_gt_1_published(self):
+        pass
+
+    def test_when_gt_1_page_and_none_published(self):
+        pass

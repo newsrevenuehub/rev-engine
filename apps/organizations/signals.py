@@ -37,7 +37,7 @@ def handle_rp_mailchimp_entity_setup(sender, instance: RevenueProgram, created: 
         )
         setup_mailchimp_entities_for_rp_mailing_list.delay(instance.id)
     else:
-        logger.info(
+        logger.debug(
             "Not enqueuing task to setup mailchimp entities for revenue program mailing list for RP %s", instance.id
         )
 
@@ -45,7 +45,7 @@ def handle_rp_mailchimp_entity_setup(sender, instance: RevenueProgram, created: 
 @receiver(post_delete, sender=RevenueProgram)
 def handle_delete_rp_mailchimp_access_token_secret(sender, instance, *args, **kwargs) -> None:
     """When an RP is deleted, we delete the mailchimp_access_token_secret, if there is one"""
-    logger.info("Deleting mailchimp_access_token_secret called on rp %s", instance.id)
+    logger.debug("hand handle_delete_rp_mailchimp_access_token_secret on rp %s", instance.id)
     if instance.mailchimp_access_token:
         logger.info(
             "Deleting mailchimp_access_token_secret for rp %s",
@@ -53,40 +53,69 @@ def handle_delete_rp_mailchimp_access_token_secret(sender, instance, *args, **kw
         )
         del instance.mailchimp_access_token
     else:
-        logger.info("No mailchimp_access_token_secret to delete for rp %s", instance.id)
+        logger.debug("No mailchimp_access_token_secret to delete for rp %s", instance.id)
 
 
 def get_page_to_be_set_as_default(rp) -> DonationPage:
-    # Default donation page corresponds to the org’s only donation page that exists at the time of upgrade,
-    # if only one exists. If two pages exist, default donation page should correspond to the only page
-    # published at the time of upgrade. If two pages exist but neither is published, default donation page should
-    # correspond to the first page created for that Org/RP.
-    if (count := rp.donationpage_set.count()) == 0:
-        return None
-    elif count == 1:
-        return rp.donationpage_set.first()
-    # Is it okay to only look at > 1
-    elif count > 1:
-        return (
-            rp.donationpage_set.filter(is_published=True).order_by("created").first()
-            if rp.donationpage_set.filter(is_published=True).exists()
-            else rp.donationpage_set.order_by("created").first()
-        )
+    """Return the page to be set as default donation page for an RP"""
+    logger.debug("get_page_to_be_set_as_default called on rp %s", rp.id)
+    match (count := rp.donationpage_set.count()):
+        case 0:
+            return None
+        case 1:
+            return rp.donationpage_set.first()
+        case _ if count > 1:
+            return (
+                rp.donationpage_set.filter(is_published=True).order_by("created").first()
+                if rp.donationpage_set.filter(is_published=True).exists()
+                else rp.donationpage_set.order_by("created").first()
+            )
 
 
 @receiver(post_save, sender=Organization)
-def handle_set_default_donation_page(sender, instance: Organization, created: bool, **kwargs) -> None:
-    """
+def handle_set_default_donation_page_on_select_core_plan(
+    sender, instance: Organization, created: bool, **kwargs
+) -> None:
+    """Under certain conditions, set the default_donation_page of an RP of the sending org
 
-    Note that this gets called whether first time or nth time an org is saved and its plan is core
-    but no default donation page
+    Under the following conditions the default donation page will be set when saving an org:
+
+    - The org is on the CorePlan
+    - The org is either being created with CorePlan.name as value for plan_name or is being updated
+    with `plan_name` as an update field and CorePlan.name as the new value
+    - The org has at least one RP
+    - The org's RP does not have a default_donation_page set
+    - The org's RP has at least one donation page
+
+    Preference is given for:
+
+    - first RP in terms of `created` value if there are more than 1 encountered
+    - First published page (by creation date) if there are multiple pages
+
     """
-    logger.debug("handle_set_default_donation_page called on org %s", instance.id)
+    logger.debug("handle_set_default_donation_page_on_select_core_plan called on org %s", instance.id)
     if instance.plan != CorePlan:
         logger.debug("Org %s is not on CorePlan, skipping", instance.id)
         return
     if not (rp := instance.revenueprogram_set.first()):
-        logger.warning("No RP found for organization %s", instance.id)
+        logger.debug("No RP found for organization %s, skipping", instance.id)
+        return
+    is_update_to_core_plan = all(
+        [
+            not created,
+            (update_fields := kwargs.get("update_fields", None) or {}),
+            "plan_name" in update_fields,
+            instance.plan_name == CorePlan.name,
+        ]
+    )
+    is_create_with_core_plan = all([created, instance.plan_name == CorePlan.name])
+    if not any([is_update_to_core_plan, is_create_with_core_plan]):
+        logger.debug(
+            "Skipping for org %s because is_update_to_core_plan is %s and is_create_with_core_plan is %s",
+            instance.id,
+            is_update_to_core_plan,
+            is_create_with_core_plan,
+        )
         return
     if rp.default_donation_page:
         logger.debug("RP %s already has a default donation page %s", rp.id, rp.default_donation_page.id)
@@ -96,6 +125,6 @@ def handle_set_default_donation_page(sender, instance: Organization, created: bo
         rp.default_donation_page = page
         with reversion.create_revision():
             rp.save(update_fields={"default_donation_page", "modified"})
-            reversion.set_comment("handle_set_default_donation_page set default_donation_page")
+            reversion.set_comment("handle_set_default_donation_page_on_select_core_plan set default_donation_page")
     else:
         logger.warning("No donation pages found for RP %s, can't set default donation page", rp.id)

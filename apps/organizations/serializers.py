@@ -168,11 +168,11 @@ class MailchimpRevenueProgramForSwitchboard(serializers.ModelSerializer):
     """Primary consumer is switchboard API. This is a read-only serializer."""
 
     mailchimp_integration_connected = serializers.ReadOnlyField()
-    mailchimp_server_prefix = serializers.ReadOnlyField(allow_null=True)
+    mailchimp_server_prefix = serializers.SerializerMethodField()
     mailchimp_store = serializers.SerializerMethodField()
     mailchimp_one_time_contribution_product = serializers.SerializerMethodField()
     mailchimp_recurring_contribution_product = serializers.SerializerMethodField()
-    stripe_account_id = serializers.ReadOnlyField(allow_null=True)
+    stripe_account_id = serializers.SerializerMethodField()
     id = serializers.ReadOnlyField()
     name = serializers.ReadOnlyField()
     slug = serializers.ReadOnlyField()
@@ -190,6 +190,14 @@ class MailchimpRevenueProgramForSwitchboard(serializers.ModelSerializer):
             "mailchimp_one_time_contribution_product",
             "mailchimp_recurring_contribution_product",
         ]
+
+    def get_mailchimp_server_prefix(self, obj) -> str:
+        """This allows us to return an empty string. Otherwise, DRF will return null if value is None"""
+        return obj.mailchimp_server_prefix or ""
+
+    def get_stripe_account_id(self, obj) -> str:
+        """This allows us to return an empty string. Otherwise, DRF will return null if value is None"""
+        return obj.stripe_account_id or ""
 
     def get_mailchimp_store(self, obj) -> dict | None:
         return asdict(obj.mailchimp_store) if obj.mailchimp_store else None

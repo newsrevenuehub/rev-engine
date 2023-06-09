@@ -11,6 +11,7 @@ from apps.organizations.serializers import (
     RevenueProgramSerializer,
     logger,
 )
+from apps.organizations.tests.factories import PaymentProviderFactory
 from conftest import make_mock_mailchimp_email_list
 
 
@@ -319,9 +320,19 @@ class TestMailchimpRevenueProgramForSwitchboard:
         assert serialized["mailchimp_recurring_contribution_product"] == asdict(mailchimp_product)
         assert serialized["mailchimp_one_time_contribution_product"] == asdict(mailchimp_product)
 
-    def test_stripe_account_id_is_nullable(self, mc_connected_rp):
-        mc_connected_rp.payment_provider.stripe_account_id = None
-        mc_connected_rp.payment_provider.save()
-        assert mc_connected_rp.stripe_account_id is None
-        serialized = MailchimpRevenueProgramForSwitchboard(mc_connected_rp).data
-        assert serialized["stripe_account_id"] is None
+    def test_returns_empty_string_for_mailchimp_server_prefix_when_none(self, revenue_program):
+        revenue_program.mailchimp_server_prefix = None
+        revenue_program.save()
+        assert MailchimpRevenueProgramForSwitchboard(revenue_program).data["mailchimp_server_prefix"] == ""
+
+    def test_returns_empty_string_for_stripe_account_id_when_no_payment_provider(self, revenue_program):
+        revenue_program.payment_provider = None
+        revenue_program.save()
+        assert MailchimpRevenueProgramForSwitchboard(revenue_program).data["stripe_account_id"] == ""
+
+    def test_returns_empty_string_for_stripe_account_id_when_payment_provider_has_no_stripe_account_id(
+        self, revenue_program
+    ):
+        revenue_program.payment_provider = PaymentProviderFactory(stripe_account_id=None)
+        revenue_program.save()
+        assert MailchimpRevenueProgramForSwitchboard(revenue_program).data["stripe_account_id"] == ""

@@ -2,12 +2,16 @@ from unittest.mock import MagicMock
 
 import pytest
 
-from apps.organizations.models import RevenueProgram
+from apps.organizations.models import FreePlan, Organization, RevenueProgram
 from apps.organizations.signals import (
-    delete_rp_mailchimp_access_token_secret,
-    revenue_program_post_save,
+    get_page_to_be_set_as_default,
+    handle_delete_rp_mailchimp_access_token_secret,
+    handle_rp_mailchimp_entity_setup,
+    handle_set_default_donation_page,
+    logger,
 )
-from apps.organizations.tests.factories import RevenueProgramFactory
+from apps.organizations.tests.factories import OrganizationFactory, RevenueProgramFactory
+from apps.pages.tests.factories import DonationPageFactory
 
 
 @pytest.mark.django_db
@@ -22,7 +26,7 @@ class TestRevenueProgramPostSaveHandler:
     def test_when_new_instance(self, make_rp_kwargs, expect_task_called, mocker):
         rp = RevenueProgramFactory.build(**make_rp_kwargs)
         setup_mc_task = mocker.patch("apps.organizations.signals.setup_mailchimp_entities_for_rp_mailing_list")
-        revenue_program_post_save(sender=MagicMock(), instance=rp, created=True)
+        handle_rp_mailchimp_entity_setup(sender=MagicMock(), instance=rp, created=True)
         if expect_task_called:
             setup_mc_task.delay.assert_called_once_with(rp.id)
         else:
@@ -57,7 +61,7 @@ class TestRevenueProgramDeletedhandler:
         mock_get_client.return_value.access_secret_version.return_value.payload.data = (token := b"token-val")
         revenue_program = RevenueProgramFactory(mailchimp_server_prefix="us1")
         assert revenue_program.mailchimp_access_token == token.decode("UTF-8")
-        delete_rp_mailchimp_access_token_secret(RevenueProgram, revenue_program)
+        handle_delete_rp_mailchimp_access_token_secret(RevenueProgram, revenue_program)
         mock_get_client.return_value.delete_secret.assert_called_once_with(
             request={
                 "name": f"projects/{settings.GOOGLE_CLOUD_PROJECT_ID}/secrets/{revenue_program.mailchimp_access_token_secret_name}"
@@ -65,34 +69,78 @@ class TestRevenueProgramDeletedhandler:
         )
 
 
-@pytest.mark.django_db
-class TestOrganizationPostSaveHandler:
-    def test_happy_path(self, organization, mocker):
-        pass
+@pytest.fixture
+def rp_with_org_on_core():
+    return RevenueProgramFactory(organization=OrganizationFactory(core_plan=True))
+
+
+@pytest.fixture
+def rp_with_org_on_free():
+    return RevenueProgramFactory(organization=OrganizationFactory(core_plan=True))
 
 
 @pytest.mark.django_db
 class TestHandleSetDefaultDonationPage:
-    def test_when_no_rp(self):
-        pass
+    def test_when_not_on_core_plan(self, rp_with_org_on_free, mocker):
+        rp_with_org_on_free.organization.plan_name = FreePlan.name
+        rp_with_org_on_free.organization.save()
+        logger_spy = mocker.spy(logger, "debug")
+        handle_set_default_donation_page(sender=Organization, instance=rp_with_org_on_free.organization, created=False)
+        assert logger_spy.call_args == mocker.call(
+            "Org %s is not on CorePlan, skipping", rp_with_org_on_free.organization.id
+        )
 
-    def test_when_already_have_default(self):
-        pass
+    def test_when_no_rp(self, mocker, rp_with_org_on_core):
+        org = OrganizationFactory(core_plan=True)
+        assert org.revenueprogram_set.count() == 0
+        logger_spy = mocker.spy(logger, "warning")
+        handle_set_default_donation_page(sender=Organization, instance=org, created=False)
+        logger_spy.assert_called_once_with("No RP found for organization %s", org.id)
 
-    def test_when_no_page_to_set(self):
-        pass
+    def test_when_already_have_default(self, rp_with_org_on_core, mocker):
+        rp_with_org_on_core.default_donation_page = DonationPageFactory(revenue_program=rp_with_org_on_core)
+        rp_with_org_on_core.save()
+        logger_spy = mocker.spy(logger, "debug")
+        handle_set_default_donation_page(sender=Organization, instance=rp_with_org_on_core.organization, created=False)
+        assert logger_spy.call_args == mocker.call(
+            "RP %s already has a default donation page %s",
+            rp_with_org_on_core.id,
+            rp_with_org_on_core.default_donation_page.id,
+        )
 
-    def test_when_page_to_set(self):
-        pass
+    def test_when_no_default_and_no_page_to_set(self, rp_with_org_on_core, mocker):
+        logger_spy = mocker.spy(logger, "warning")
+        assert rp_with_org_on_core.default_donation_page is None
+        mocker.patch("apps.organizations.signals.get_page_to_be_set_as_default", return_value=None)
+        handle_set_default_donation_page(sender=Organization, instance=rp_with_org_on_core.organization, created=False)
+        logger_spy.assert_called_once_with(
+            "No donation pages found for RP %s, can't set default donation page", rp_with_org_on_core.id
+        )
+
+    def test_when_page_to_set(self, mocker, rp_with_org_on_core):
+        save_spy = mocker.spy(RevenueProgram, "save")
+        page = DonationPageFactory(revenue_program=rp_with_org_on_core)
+        mock_create_revision = mocker.patch("reversion.create_revision")
+        mock_create_revision.return_value.__enter__.return_value.add = mocker.Mock()
+        mock_set_comment = mocker.patch("reversion.set_comment")
+        mocker.patch("apps.organizations.signals.get_page_to_be_set_as_default", return_value=page)
+        handle_set_default_donation_page(sender=Organization, instance=rp_with_org_on_core.organization, created=False)
+        save_spy.assert_called_once_with(rp_with_org_on_core, update_fields={"default_donation_page", "modified"})
+        rp_with_org_on_core.refresh_from_db()
+        assert rp_with_org_on_core.default_donation_page == page
+        mock_create_revision.assert_called_once()
+        mock_set_comment.assert_called_once_with("handle_set_default_donation_page set default_donation_page")
 
 
 @pytest.mark.django_db
 class TestGetPageToBeSetAsDefault:
-    def test_when_no_pages(self):
-        pass
+    def test_when_no_pages(self, revenue_program):
+        assert revenue_program.donationpage_set.count() == 0
+        assert get_page_to_be_set_as_default(revenue_program) is None
 
-    def test_when_one_page(self):
-        pass
+    def test_when_one_page(self, revenue_program):
+        page = DonationPageFactory(revenue_program=revenue_program)
+        assert get_page_to_be_set_as_default(revenue_program) == page
 
     def test_when_gt_1_page_and_1_published(self):
         pass

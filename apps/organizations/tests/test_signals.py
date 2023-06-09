@@ -7,7 +7,7 @@ from apps.organizations.signals import (
     get_page_to_be_set_as_default,
     handle_delete_rp_mailchimp_access_token_secret,
     handle_rp_mailchimp_entity_setup,
-    handle_set_default_donation_page,
+    handle_set_default_donation_page_on_select_core_plan,
     logger,
 )
 from apps.organizations.tests.factories import OrganizationFactory, RevenueProgramFactory
@@ -85,23 +85,27 @@ class TestHandleSetDefaultDonationPage:
         rp_with_org_on_free.organization.plan_name = FreePlan.name
         rp_with_org_on_free.organization.save()
         logger_spy = mocker.spy(logger, "debug")
-        handle_set_default_donation_page(sender=Organization, instance=rp_with_org_on_free.organization, created=False)
+        handle_set_default_donation_page_on_select_core_plan(
+            sender=Organization, instance=rp_with_org_on_free.organization, created=False
+        )
         assert logger_spy.call_args == mocker.call(
             "Org %s is not on CorePlan, skipping", rp_with_org_on_free.organization.id
         )
 
-    def test_when_no_rp(self, mocker, rp_with_org_on_core):
+    def test_when_no_rp(self, mocker):
         org = OrganizationFactory(core_plan=True)
         assert org.revenueprogram_set.count() == 0
-        logger_spy = mocker.spy(logger, "warning")
-        handle_set_default_donation_page(sender=Organization, instance=org, created=False)
-        logger_spy.assert_called_once_with("No RP found for organization %s", org.id)
+        logger_spy = mocker.spy(logger, "debug")
+        handle_set_default_donation_page_on_select_core_plan(sender=Organization, instance=org, created=False)
+        assert logger_spy.call_args == mocker.call("No RP found for organization %s, skipping", org.id)
 
     def test_when_already_have_default(self, rp_with_org_on_core, mocker):
         rp_with_org_on_core.default_donation_page = DonationPageFactory(revenue_program=rp_with_org_on_core)
         rp_with_org_on_core.save()
         logger_spy = mocker.spy(logger, "debug")
-        handle_set_default_donation_page(sender=Organization, instance=rp_with_org_on_core.organization, created=False)
+        handle_set_default_donation_page_on_select_core_plan(
+            sender=Organization, instance=rp_with_org_on_core.organization, created=False, update_fields={"plan_name"}
+        )
         assert logger_spy.call_args == mocker.call(
             "RP %s already has a default donation page %s",
             rp_with_org_on_core.id,
@@ -112,7 +116,9 @@ class TestHandleSetDefaultDonationPage:
         logger_spy = mocker.spy(logger, "warning")
         assert rp_with_org_on_core.default_donation_page is None
         mocker.patch("apps.organizations.signals.get_page_to_be_set_as_default", return_value=None)
-        handle_set_default_donation_page(sender=Organization, instance=rp_with_org_on_core.organization, created=False)
+        handle_set_default_donation_page_on_select_core_plan(
+            sender=Organization, instance=rp_with_org_on_core.organization, created=False, update_fields={"plan_name"}
+        )
         logger_spy.assert_called_once_with(
             "No donation pages found for RP %s, can't set default donation page", rp_with_org_on_core.id
         )
@@ -124,12 +130,16 @@ class TestHandleSetDefaultDonationPage:
         mock_create_revision.return_value.__enter__.return_value.add = mocker.Mock()
         mock_set_comment = mocker.patch("reversion.set_comment")
         mocker.patch("apps.organizations.signals.get_page_to_be_set_as_default", return_value=page)
-        handle_set_default_donation_page(sender=Organization, instance=rp_with_org_on_core.organization, created=False)
+        handle_set_default_donation_page_on_select_core_plan(
+            sender=Organization, instance=rp_with_org_on_core.organization, created=False, update_fields={"plan_name"}
+        )
         save_spy.assert_called_once_with(rp_with_org_on_core, update_fields={"default_donation_page", "modified"})
         rp_with_org_on_core.refresh_from_db()
         assert rp_with_org_on_core.default_donation_page == page
         mock_create_revision.assert_called_once()
-        mock_set_comment.assert_called_once_with("handle_set_default_donation_page set default_donation_page")
+        mock_set_comment.assert_called_once_with(
+            "handle_set_default_donation_page_on_select_core_plan set default_donation_page"
+        )
 
 
 @pytest.mark.django_db
@@ -142,11 +152,21 @@ class TestGetPageToBeSetAsDefault:
         page = DonationPageFactory(revenue_program=revenue_program)
         assert get_page_to_be_set_as_default(revenue_program) == page
 
-    def test_when_gt_1_page_and_1_published(self):
-        pass
+    def test_when_gt_1_page_and_1_published(self, revenue_program):
+        DonationPageFactory(revenue_program=revenue_program, published=False)
+        published = DonationPageFactory(revenue_program=revenue_program, published=True)
+        revenue_program.refresh_from_db()
+        assert revenue_program.donationpage_set.count() == 2
+        assert get_page_to_be_set_as_default(revenue_program) == published
 
-    def test_when_gt_1_page_and_gt_1_published(self):
-        pass
+    def test_when_gt_1_page_and_gt_1_published(self, revenue_program):
+        created_first = DonationPageFactory(published=True, revenue_program=revenue_program)
+        # created second
+        DonationPageFactory(published=True, revenue_program=revenue_program)
+        assert get_page_to_be_set_as_default(revenue_program) == created_first
 
-    def test_when_gt_1_page_and_none_published(self):
-        pass
+    def test_when_gt_1_page_and_none_published(self, revenue_program):
+        created_first = DonationPageFactory(published=False, revenue_program=revenue_program)
+        # created second
+        DonationPageFactory(published=False, revenue_program=revenue_program)
+        assert get_page_to_be_set_as_default(revenue_program) == created_first

@@ -65,11 +65,8 @@ def get_page_to_be_set_as_default(rp) -> DonationPage:
         case 1:
             return rp.donationpage_set.first()
         case _ if count > 1:
-            return (
-                rp.donationpage_set.filter(is_published=True).order_by("created").first()
-                if rp.donationpage_set.filter(is_published=True).exists()
-                else rp.donationpage_set.order_by("created").first()
-            )
+            query = rp.donationpage_set.order_by("created")
+            return query.filter(published_date__isnull=False).first() or query.first()
 
 
 @receiver(post_save, sender=Organization)

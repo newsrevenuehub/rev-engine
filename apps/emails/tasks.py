@@ -80,7 +80,7 @@ class SendContributionEmailData(TypedDict):
     contribution_date: str
     contributor_email: str
     tax_id: str | None
-    show_upgrade_prompt: bool | None
+    show_upgrade_prompt: bool
 
 
 class SendMagicLinkEmailData(TypedDict):
@@ -164,7 +164,7 @@ def make_send_test_contribution_email_data(user, revenue_program) -> SendContrib
     )
 
 
-def make_send_test_magic_link_email_data(user, revenue_program) -> SendContributionEmailData:
+def make_send_test_magic_link_email_data(user, revenue_program) -> SendMagicLinkEmailData:
     logger.info(
         "make_send_test_magic_link_email_data: called with contribution user %s and rp %s",
         user.id,

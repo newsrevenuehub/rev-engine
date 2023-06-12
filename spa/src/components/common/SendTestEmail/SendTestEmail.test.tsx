@@ -2,7 +2,7 @@ import { axe } from 'jest-axe';
 import { render, screen, waitFor } from 'test-utils';
 import useUserImport from 'hooks/useUser';
 import SendTestEmail from './SendTestEmail';
-import { USER_ROLE_HUB_ADMIN_TYPE } from 'constants/authConstants';
+import { USER_ROLE_HUB_ADMIN_TYPE, USER_SUPERUSER_TYPE } from 'constants/authConstants';
 import MockAdapter from 'axios-mock-adapter';
 import Axios from 'ajax/axios';
 import userEvent from '@testing-library/user-event';
@@ -27,6 +27,25 @@ describe('SendTestEmail', () => {
   afterEach(() => axiosMock.reset());
 
   afterAll(() => axiosMock.restore());
+
+  it('should not render if user is not hub admin or superuser', () => {
+    useUserMock.mockReturnValue({ user: { role_type: ['USER'] } } as any);
+    tree();
+    expect(screen.queryByText('Test email')).not.toBeInTheDocument();
+    expect(document.body.textContent).toBe('');
+  });
+
+  it('should render if user is hub admin', () => {
+    useUserMock.mockReturnValue({ user: { role_type: [USER_ROLE_HUB_ADMIN_TYPE] } } as any);
+    tree();
+    expect(screen.getByText('Test email')).toBeInTheDocument();
+  });
+
+  it('should render if user is superuser', () => {
+    useUserMock.mockReturnValue({ user: { role_type: [USER_SUPERUSER_TYPE] } } as any);
+    tree();
+    expect(screen.getByText('Test email')).toBeInTheDocument();
+  });
 
   it('should render label', () => {
     tree();

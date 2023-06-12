@@ -11,6 +11,8 @@ jest.mock('react-router-dom', () => ({
 }));
 jest.mock('components/common/Button/PublishButton/PublishButton');
 
+jest.mock('./PageName/PageName');
+
 const page = {
   name: 'Page Name',
   revenue_program: {
@@ -56,19 +58,9 @@ describe('PageEditorTopbar', () => {
     expect(screen.queryByRole('button', { name: /grab link/i })).not.toBeInTheDocument();
   });
 
-  it('shows the page title if present in props', () => {
-    tree({ page: page as any });
-    expect(screen.getByText(page.name)).toBeVisible();
-  });
-
-  it('hides the page title if page is not passed in props', () => {
-    tree({ page: undefined });
-    expect(screen.queryByText(page.name)).not.toBeInTheDocument();
-  });
-
-  it('hides the page title if the page prop has no name', () => {
-    tree({ page: { ...page, name: undefined } as any });
-    expect(screen.queryByText(page.name)).not.toBeInTheDocument();
+  it('shows the page name', () => {
+    tree();
+    expect(screen.getByTestId('mock-page-name')).toBeVisible();
   });
 
   it('shows a publish button', () => {

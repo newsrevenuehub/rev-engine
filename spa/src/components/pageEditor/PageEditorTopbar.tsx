@@ -9,10 +9,11 @@ import { BackIcon } from 'elements/BackButton.styled';
 import { useEditablePageContext } from 'hooks/useEditablePage';
 import useModal from 'hooks/useModal';
 import { CONTENT_SLUG } from 'routes';
-import { BackIconButton, Root, SvgLogo, Title, TopMenu } from './PageEditorTopbar.styled';
+import { BackIconButton, Group, Root, SvgLogo } from './PageEditorTopbar.styled';
+import PageName from './PageName';
 
 function PageEditorTopbar() {
-  const { page, pageChanges } = useEditablePageContext();
+  const { pageChanges } = useEditablePageContext();
   const { open: showUnsavedModal, handleClose: closeUnsavedModal, handleOpen: openUnsavedModal } = useModal();
   const updatedPageIsEmpty = Object.keys(pageChanges).length === 0;
   const backButton = updatedPageIsEmpty ? (
@@ -27,16 +28,18 @@ function PageEditorTopbar() {
 
   return (
     <Root>
-      <TopMenu>
+      <Group>
         <Tooltip title="Exit">{backButton}</Tooltip>
         <SvgLogo src={logoBlue} alt="News Revenue Hub Logo" />
-        <Title>{page?.name}</Title>
+        <PageName />
+      </Group>
+      <Group>
         <GrabLink />
         <PublishButton />
         {showUnsavedModal && (
           <UnsavedChangesModal to={CONTENT_SLUG} isOpen={showUnsavedModal} closeModal={closeUnsavedModal} />
         )}
-      </TopMenu>
+      </Group>
     </Root>
   );
 }

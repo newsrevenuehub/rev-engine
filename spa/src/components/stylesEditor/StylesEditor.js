@@ -1,10 +1,10 @@
-import { useState, useEffect } from 'react';
 import { Label } from 'elements/inputs/BaseField.styled';
+import { useEffect, useState } from 'react';
 import * as S from './StylesEditor.styled';
 
 // AJAX
+import { LIST_FONTS, LIST_STYLES } from 'ajax/endpoints';
 import useRequest from 'hooks/useRequest';
-import { LIST_STYLES, LIST_FONTS } from 'ajax/endpoints';
 
 // Assets
 import { faSave, faTimes, faTrash } from '@fortawesome/free-solid-svg-icons';
@@ -14,19 +14,19 @@ import { GENERIC_ERROR } from 'constants/textConstants';
 import { useAlert } from 'react-alert';
 
 // Hooks
-import useWebFonts from 'hooks/useWebFonts';
 import useUser from 'hooks/useUser';
+import useWebFonts from 'hooks/useWebFonts';
 
 // Context
 import { useConfirmationModalContext } from 'elements/modal/GlobalConfirmationModal';
 
 // Children
+import ButtonBorderPreview from 'components/common/ButtonBorderPreview';
+import SendTestEmail from 'components/common/SendTestEmail/SendTestEmail';
 import CircleButton from 'elements/buttons/CircleButton';
 import Select from 'elements/inputs/Select';
-import ButtonBorderPreview from 'components/common/ButtonBorderPreview';
-import ColorsEditor from './ColorsEditor';
-import { Button } from 'components/base';
 import { getUserRole } from 'utilities/getUserRole';
+import ColorsEditor from './ColorsEditor';
 
 const UNIQUE_NAME_ERROR = 'The fields name, organization must make a unique set.';
 
@@ -39,14 +39,12 @@ function StylesEditor({ styles, setStyles, handleKeepChanges, handleDiscardChang
   const [loading, setLoading] = useState(false);
   const [availableFonts, setAvailableFonts] = useState([]);
   const { user } = useUser();
-  const { isHubAdmin, isSuperUser } = getUserRole(user);
 
   const requestGetFonts = useRequest();
 
   const requestCreateStyles = useRequest();
   const requestUpdateStyles = useRequest();
   const requestDeleteStyles = useRequest();
-  const requestSendTestEmail = useRequest();
 
   useWebFonts(styles.font);
 
@@ -174,23 +172,6 @@ function StylesEditor({ styles, setStyles, handleKeepChanges, handleDiscardChang
     }
   };
 
-  const handleSendTestEmail = (email_name) => () => {
-    requestSendTestEmail(
-      {
-        method: 'POST',
-        url: `send-test-email/`,
-        data: {
-          email_name,
-          revenue_program: styles.revenue_program?.id
-        }
-      },
-      {
-        onSuccess: () => alert.info(`Sending test ${email_name} email. Check your inbox.`),
-        onFailure: () => alert.error('Error sending test email')
-      }
-    );
-  };
-
   return (
     <S.StylesEditor>
       <S.StylesForm>
@@ -263,14 +244,10 @@ function StylesEditor({ styles, setStyles, handleKeepChanges, handleDiscardChang
             <ButtonBorderPreview borderRadius={getBaseFromRadii(styles.radii) * 2} />
           </S.FieldRow>
         </StylesFieldset>
-        {(isHubAdmin || isSuperUser) && isUpdate && (
-          <StylesFieldset label="Test email">
-            <div style={{ display: 'flex', gap: '16px' }}>
-              <Button onClick={handleSendTestEmail('receipt')}>RECEIPT</Button>
-              <Button onClick={handleSendTestEmail('reminder')}>REMINDER</Button>
-              <Button onClick={handleSendTestEmail('magic_link')}>MAGIC LINK</Button>
-            </div>
-          </StylesFieldset>
+        {isUpdate && (
+          <div style={{ paddingLeft: 10.5, paddingRight: 10.5 }}>
+            <SendTestEmail rpId={styles.revenue_program?.id} />
+          </div>
         )}
       </S.StylesForm>
       <S.Buttons>

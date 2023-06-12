@@ -26,21 +26,20 @@ import Select from 'elements/inputs/Select';
 import ButtonBorderPreview from 'components/common/ButtonBorderPreview';
 import ColorsEditor from './ColorsEditor';
 import { Button } from 'components/base';
+import { getUserRole } from 'utilities/getUserRole';
 
 const UNIQUE_NAME_ERROR = 'The fields name, organization must make a unique set.';
 
 const PANGRAM = 'The quick brown fox jumps over the lazy dog.';
 
-function StylesEditor({ styles, setStyles, handleKeepChanges, handleDiscardChanges, isUpdate, styleNameInputId }) {
+function StylesEditor({ styles, setStyles, handleKeepChanges, handleDiscardChanges, isUpdate }) {
   const alert = useAlert();
   const getUserConfirmation = useConfirmationModalContext();
   const [errors, setErrors] = useState({});
   const [loading, setLoading] = useState(false);
   const [availableFonts, setAvailableFonts] = useState([]);
-
-  const {
-    user: { revenue_programs: availableRevenuePrograms }
-  } = useUser();
+  const { user } = useUser();
+  const { isHubAdmin, isSuperUser } = getUserRole(user);
 
   const requestGetFonts = useRequest();
 
@@ -56,7 +55,6 @@ function StylesEditor({ styles, setStyles, handleKeepChanges, handleDiscardChang
   };
 
   const setColor = (colorName, value) => {
-    console.log('setCOlor', colorName, value);
     setStyles({ ...styles, colors: { ...styles.colors, [colorName]: value } });
   };
 
@@ -210,7 +208,7 @@ function StylesEditor({ styles, setStyles, handleKeepChanges, handleDiscardChang
           <Select
             errors={errors.revenue_program}
             label="Select a revenue program"
-            items={availableRevenuePrograms}
+            items={user.revenue_programs}
             // if no selected item, need to default to object with empty string for name
             // otherwise initial value will be undefined, and when updated,
             // will cause a warning re: changing from uncontrolled to controlled.
@@ -265,13 +263,15 @@ function StylesEditor({ styles, setStyles, handleKeepChanges, handleDiscardChang
             <ButtonBorderPreview borderRadius={getBaseFromRadii(styles.radii) * 2} />
           </S.FieldRow>
         </StylesFieldset>
-        <StylesFieldset label="Test email">
-          <div style={{ display: 'flex', gap: '16px' }}>
-            <Button onClick={handleSendTestEmail('receipt')}>RECEIPT</Button>
-            <Button onClick={handleSendTestEmail('reminder')}>REMINDER</Button>
-            <Button onClick={handleSendTestEmail('magic_link')}>MAGIC LINK</Button>
-          </div>
-        </StylesFieldset>
+        {(isHubAdmin || isSuperUser) && isUpdate && (
+          <StylesFieldset label="Test email">
+            <div style={{ display: 'flex', gap: '16px' }}>
+              <Button onClick={handleSendTestEmail('receipt')}>RECEIPT</Button>
+              <Button onClick={handleSendTestEmail('reminder')}>REMINDER</Button>
+              <Button onClick={handleSendTestEmail('magic_link')}>MAGIC LINK</Button>
+            </div>
+          </StylesFieldset>
+        )}
       </S.StylesForm>
       <S.Buttons>
         <CircleButton

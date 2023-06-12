@@ -1,6 +1,7 @@
 import PropTypes, { InferProps } from 'prop-types';
 import { createContext, useState, useContext, Dispatch, SetStateAction, useCallback, useMemo } from 'react';
 import { ContributionPage, useContributionPage, UseContributionPageResult } from './useContributionPage';
+import useContributionPageList from './useContributionPageList';
 
 /**
  * Properties provided to consumers of useEditablePageContext().
@@ -84,6 +85,7 @@ const EditablePageContextProviderPropTypes = {
  */
 export function EditablePageContextProvider(props: InferProps<typeof EditablePageContextProviderPropTypes>) {
   const { children, pageId } = props;
+  const { isLoading: pageListIsLoading, pages } = useContributionPageList();
   const { deletePage, error, isError, isLoading, page, updatePage } = useContributionPage(pageId);
   const [pageChanges, setPageChanges] = useState<EditablePageContextResult['pageChanges']>({});
 
@@ -109,8 +111,18 @@ export function EditablePageContextProvider(props: InferProps<typeof EditablePag
   }, [page, pageChanges]);
   const savePageChanges = useCallback(
     async (changes: Partial<ContributionPage> = {}, screenshotBaseName?: string, elementToScreenshot?: HTMLElement) => {
-      if (!updatePage) {
+      if (!page) {
         // Should never happen--see logic below.
+        throw new Error('page is not set');
+      }
+
+      if (!pages) {
+        // Should also never happen.
+        throw new Error('pages is not set');
+      }
+
+      if (!updatePage) {
+        // Should also never happen.
         throw new Error('updatePage is not set');
       }
 
@@ -121,32 +133,59 @@ export function EditablePageContextProvider(props: InferProps<typeof EditablePag
         return Promise.resolve();
       }
 
+      // If we are changing the page name, make sure the name is unique.
+
+      const overrides: Partial<ContributionPage> = {};
+
+      if ('name' in pageChanges || 'name' in changes) {
+        const newName = pageChanges.name ?? (changes.name as string);
+
+        const existing = pages!.filter(
+          ({ id, revenue_program }) => revenue_program.id === page.revenue_program.id && id !== page.id
+        );
+
+        if (existing.some(({ name: existingName }) => newName === existingName)) {
+          // We have a dupe. Add a number to the end and increment until it's
+          // unique.
+
+          let suffix = 1;
+
+          // eslint doesn't like that we're creating a function in the while clause.
+          // eslint-disable-next-line no-loop-func
+          while (existing.some(({ name: existingName }) => existingName === `${newName} (${suffix})`)) {
+            suffix++;
+          }
+
+          overrides.name = `${newName} (${suffix})`;
+        }
+      }
+
       // Don't reset changes until after updating has successfully completed.
       // Otherwise, users will see the old page briefly while the update is in
       // progress.
 
       const finish = async () => {
-        await updatePage({ ...pageChanges, ...changes }, screenshotBaseName, elementToScreenshot);
+        await updatePage({ ...pageChanges, ...changes, ...overrides }, screenshotBaseName, elementToScreenshot);
         setPageChanges({});
       };
 
       return finish();
     },
-    [updatePage, pageChanges]
+    [page, pages, pageChanges, updatePage]
   );
 
   const context: EditablePageContextResult = {
     deletePage,
     error,
     isError,
-    isLoading,
     page,
     pageChanges,
     setPageChanges,
-    updatedPagePreview
+    updatedPagePreview,
+    isLoading: isLoading || pageListIsLoading
   };
 
-  if (updatePage) {
+  if (page && pages && updatePage) {
     context.savePageChanges = savePageChanges;
   }
 

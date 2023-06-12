@@ -1,23 +1,23 @@
-import { Button as MuiButton, ButtonProps as MuiButtonProps } from '@material-ui/core';
+import { IconButton as MuiIconButton, IconButtonProps as MuiIconButtonProps } from '@material-ui/core';
 import { forwardRef } from 'react';
 import styled from 'styled-components';
 import { buttonColors, buttonSizes } from '../buttonStyles';
 
-export interface ButtonProps extends Omit<MuiButtonProps, 'color' | 'size'> {
+export interface IconButtonProps extends Omit<MuiIconButtonProps, 'color' | 'size'> {
   color?: 'error' | 'information' | 'primaryDark' | 'primaryLight' | 'secondary' | 'text';
   size?: 'small' | 'medium' | 'large' | 'extraLarge';
 }
 
-const ButtonWrapper = forwardRef<HTMLButtonElement, ButtonProps>((props, ref) => {
+const IconButtonWrapper = forwardRef<HTMLButtonElement, IconButtonProps>((props, ref) => {
   const { color, size, ...rest } = props;
 
-  return <MuiButton ref={ref} variant="contained" {...rest} />;
+  return <MuiIconButton ref={ref} {...rest} />;
 });
 
 /**
- * @see https://v4.mui.com/api/button/
+ * @see https://v4.mui.com/api/icon-button/
  */
-const StyledMuiButton = styled(ButtonWrapper)<ButtonProps>`
+const StyledMuiIconButton = styled(IconButtonWrapper)<IconButtonProps>`
   && {
     background-color: ${({ color }) => (color ? buttonColors[color].normal.bg : buttonColors.primaryLight.normal.bg)};
     border-radius: 6px;
@@ -86,19 +86,8 @@ const StyledMuiButton = styled(ButtonWrapper)<ButtonProps>`
   }
 `;
 
-export function Button(props: ButtonProps) {
-  // If we're using the outlined variant, disable the ripple because it
-  // interferes with the intended appearance.
-
-  const propOverrides: Partial<ButtonProps> = props.variant === 'outlined' ? { disableRipple: true } : {};
-
-  return (
-    <StyledMuiButton
-      classes={{ label: 'NreButtonLabel', outlined: 'NreButtonOutlined' }}
-      {...props}
-      {...propOverrides}
-    />
-  );
+export function IconButton(props: IconButtonProps) {
+  return <StyledMuiIconButton classes={{ label: 'NreButtonLabel' }} {...props} />;
 }
 
-export default Button;
+export default IconButton;

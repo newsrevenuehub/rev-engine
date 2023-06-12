@@ -43,6 +43,11 @@ describe('PageName', () => {
       expect(screen.getByRole('button', { name: 'mock-page-name' })).toBeVisible();
     });
 
+    it('gives the button an Edit tooltip', () => {
+      tree();
+      expect(screen.getByRole('button', { name: 'mock-page-name' })).toHaveAttribute('title', 'Edit');
+    });
+
     it('is accessible', async () => {
       const { container } = tree();
 

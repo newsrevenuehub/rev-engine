@@ -13,50 +13,30 @@ export const BackIconButton = styled(IconButton)`
   }
 `;
 
-export const Logo = styled.img`
-  margin-top: 8px;
-  height: 29px;
-  padding-left: 26px;
-
-  @media (${(props) => props.theme.breakpoints.tabletLandscapeDown}) {
-    height: 29px;
-    padding-left: 8px;
-  }
+export const Group = styled.div`
+  align-items: center;
+  display: flex;
+  gap: 16px;
 `;
 
 export const Root = styled.div`
-  width: 100%;
-  height: 48px;
-  left: 0;
-  background: ${(props) => props.theme.colors.topbarBackground};
+  align-items: center;
+  background-color: ${(props) => props.theme.colors.topbarBackground};
   box-shadow: ${(props) => props.theme.shadows[0]};
   display: flex;
   flex-direction: row;
+  height: 48px;
+  justify-content: space-between;
+  left: 0;
+  padding: 0px 24px 0px 25px;
   position: fixed;
   top: 0;
+  width: 100%;
   z-index: ${(props) => props.theme.zIndex.header};
 `;
 
 export const SvgLogo = styled.img`
   height: 29px;
-`;
-
-export const Title = styled.span`
-  padding-left: 24px;
-  margin-right: auto;
-  border-left: 1px solid ${(props) => props.theme.colors.muiGrey[50]};
-  color: ${(props) => props.theme.colors.white};
-  font-family: ${(props) => props.theme.systemFont};
-  font-size: ${(props) => props.theme.fontSizesUpdated.md};
-  line-height: 29px;
-`;
-
-export const TopMenu = styled.div`
-  flex: 1;
-  padding: 0px 20px 0px 25px;
-  margin-right: 20px;
-  display: flex;
-  gap: 16px;
-  align-items: center;
-  justify-content: end;
+  border-right: 1px solid ${({ theme }) => theme.basePalette.greyscale.grey4};
+  padding-right: 16px;
 `;

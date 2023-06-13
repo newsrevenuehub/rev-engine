@@ -97,6 +97,11 @@ def handle_set_default_donation_page_on_select_core_plan(
     if not (rp := instance.revenueprogram_set.first()):
         logger.debug("No RP found for organization %s, skipping", instance.id)
         return
+
+    if rp.default_donation_page:
+        logger.debug("RP %s already has a default donation page %s", rp.id, rp.default_donation_page.id)
+        return
+
     is_update_to_core_plan = all(
         [
             not created,
@@ -112,9 +117,6 @@ def handle_set_default_donation_page_on_select_core_plan(
             is_update_to_core_plan,
             is_create_with_core_plan,
         )
-        return
-    if rp.default_donation_page:
-        logger.debug("RP %s already has a default donation page %s", rp.id, rp.default_donation_page.id)
         return
     if page := get_page_to_be_set_as_default(rp):
         logger.info("Setting default_donation_page for RP %s to page %s", rp.id, page.id)

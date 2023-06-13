@@ -100,8 +100,7 @@ def handle_set_default_donation_page_on_select_core_plan(
     is_update_to_core_plan = all(
         [
             not created,
-            (update_fields := kwargs.get("update_fields", None) or {}),
-            "plan_name" in update_fields,
+            "plan_name" in kwargs.get("update_fields", {}),
             instance.plan_name == CorePlan.name,
         ]
     )

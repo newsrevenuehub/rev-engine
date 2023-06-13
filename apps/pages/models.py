@@ -7,7 +7,6 @@ from django.utils import timezone
 from solo.models import SingletonModel
 from sorl.thumbnail import ImageField as SorlImageField
 
-from apps.api.error_messages import UNIQUE_PAGE_SLUG
 from apps.common.models import IndexedTimeStampedModel
 from apps.common.utils import normalize_slug
 from apps.config.validators import validate_slug_against_denylist
@@ -76,7 +75,6 @@ class DonationPage(IndexedTimeStampedModel):
     slug = models.SlugField(
         blank=True,
         help_text="If not entered, it will be built from the Page name",
-        error_messages={"unique": UNIQUE_PAGE_SLUG},
         validators=[validate_slug_against_denylist],
     )
 
@@ -86,10 +84,10 @@ class DonationPage(IndexedTimeStampedModel):
     objects = PagesAppManager.from_queryset(PagesAppQuerySet)()
 
     class Meta:
-        unique_together = (
-            "slug",
-            "revenue_program",
-        )
+        constraints = [
+            models.UniqueConstraint(fields=["revenue_program", "name"], name="unique_name"),
+            models.UniqueConstraint(fields=["revenue_program", "slug"], name="unique_slug"),
+        ]
 
     def __str__(self):
         return self.name

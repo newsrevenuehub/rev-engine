@@ -16,16 +16,11 @@ const SendTestEmail = ({ rpId }: SendTestEmailProps) => {
   const { isHubAdmin, isSuperUser } = getUserRole(user);
 
   async function postSendTestEmail(email_name?: string, revenue_program?: number) {
-    try {
-      const result = await axios.post(SEND_TEST_EMAIL, {
-        email_name,
-        revenue_program
-      });
-      return result;
-    } catch (error) {
-      console.error(error);
-      alert.error('Error sending test email');
-    }
+    const result = await axios.post(SEND_TEST_EMAIL, {
+      email_name,
+      revenue_program
+    });
+    return result;
   }
 
   const { mutate: sendTestEmail } = useMutation(
@@ -35,6 +30,9 @@ const SendTestEmail = ({ rpId }: SendTestEmailProps) => {
     {
       onSuccess: () => {
         alert.info('Sending test email. Check your inbox.');
+      },
+      onError: () => {
+        alert.error('Error sending test email');
       }
     }
   );
@@ -49,9 +47,9 @@ const SendTestEmail = ({ rpId }: SendTestEmailProps) => {
     <Flex>
       <Label>Test email</Label>
       <ButtonWrapper>
-        <Button onClick={handleSendTestEmail('receipt')}>RECEIPT</Button>
-        <Button onClick={handleSendTestEmail('reminder')}>REMINDER</Button>
-        <Button onClick={handleSendTestEmail('magic_link')}>MAGIC LINK</Button>
+        <Button onClick={handleSendTestEmail('receipt')}>Receipt</Button>
+        <Button onClick={handleSendTestEmail('reminder')}>Reminder</Button>
+        <Button onClick={handleSendTestEmail('magic_link')}>Magic link</Button>
       </ButtonWrapper>
     </Flex>
   );

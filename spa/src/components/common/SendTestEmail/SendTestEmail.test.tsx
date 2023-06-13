@@ -7,8 +7,13 @@ import MockAdapter from 'axios-mock-adapter';
 import Axios from 'ajax/axios';
 import userEvent from '@testing-library/user-event';
 import { SEND_TEST_EMAIL } from 'ajax/endpoints';
+import { useAlert } from 'react-alert';
 
 jest.mock('hooks/useUser');
+jest.mock('react-alert', () => ({
+  ...jest.requireActual('react-alert'),
+  useAlert: jest.fn()
+}));
 
 const rpId = 1;
 
@@ -18,9 +23,11 @@ function tree() {
 
 describe('SendTestEmail', () => {
   const useUserMock = jest.mocked(useUserImport);
+  const useAlertMock = jest.mocked(useAlert);
   const axiosMock = new MockAdapter(Axios);
 
   beforeEach(() => {
+    useAlertMock.mockReturnValue({ info: jest.fn(), error: jest.fn() } as any);
     useUserMock.mockReturnValue({ user: { role_type: [USER_ROLE_HUB_ADMIN_TYPE, 'HUB_ADMIN'] } } as any);
   });
 
@@ -52,18 +59,17 @@ describe('SendTestEmail', () => {
     expect(screen.getByText('Test email')).toBeInTheDocument();
   });
 
-  it.each(['RECEIPT', 'REMINDER', 'MAGIC LINK'])('should render %s button', (name) => {
+  it.each(['Receipt', 'Reminder', 'Magic link'])('should render %s button', (name) => {
     tree();
     expect(screen.getByRole('button', { name })).toBeEnabled();
   });
 
-  it.each(['RECEIPT', 'REMINDER', 'MAGIC LINK'])(
+  it.each(['Receipt', 'Reminder', 'Magic link'])(
     'should POST to "/send-test-email/" if %s button is clicked',
     async (name) => {
       axiosMock.onPost(SEND_TEST_EMAIL).reply(200);
       tree();
       userEvent.click(screen.getByRole('button', { name }));
-      console.log(axiosMock.history);
       await waitFor(() => expect(axiosMock.history.post).toHaveLength(1));
       expect(axiosMock.history.post[0]).toEqual(
         expect.objectContaining({
@@ -76,6 +82,36 @@ describe('SendTestEmail', () => {
       );
     }
   );
+
+  it('should show success notification is POST completes', async () => {
+    const info = jest.fn();
+    const error = jest.fn();
+    useAlertMock.mockReturnValue({ info, error } as any);
+    axiosMock.onPost(SEND_TEST_EMAIL).reply(200);
+    tree();
+    expect(info).not.toHaveBeenCalled();
+    userEvent.click(screen.getByRole('button', { name: 'Receipt' }));
+
+    await waitFor(() => expect(axiosMock.history.post).toHaveLength(1));
+    expect(info).toHaveBeenCalledWith('Sending test email. Check your inbox.');
+    expect(info).toHaveBeenCalledTimes(1);
+    expect(error).toHaveBeenCalledTimes(0);
+  });
+
+  it('should show error notification if POST fails', async () => {
+    const info = jest.fn();
+    const error = jest.fn();
+    useAlertMock.mockReturnValue({ info, error } as any);
+    axiosMock.onPost().networkError();
+    tree();
+    expect(error).not.toHaveBeenCalled();
+    userEvent.click(screen.getByRole('button', { name: 'Receipt' }));
+
+    await waitFor(() => expect(axiosMock.history.post).toHaveLength(1));
+    expect(error).toHaveBeenCalledWith('Error sending test email');
+    expect(error).toHaveBeenCalledTimes(1);
+    expect(info).toHaveBeenCalledTimes(0);
+  });
 
   it('is accessible', async () => {
     const { container } = tree();

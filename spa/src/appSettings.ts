@@ -67,8 +67,8 @@ function resolveConstantFromEnv(constantName: string, defaultValue?: boolean | s
   // ||s for compares here are to maintain existing functionality as ?? has
   // different behavior with null values.
 
-  if (process.env.NODE_ENV === 'development') {
-    return process.env[`REACT_APP_${constantName}`] || defaultValue;
+  if (import.meta.env.NODE_ENV === 'development') {
+    return import.meta.env[`VITE_${constantName}`] || defaultValue;
   }
 
   if ((window as any).ENV) {

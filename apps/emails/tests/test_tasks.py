@@ -86,6 +86,7 @@ class TestMakeSendThankYouEmailData:
             rp_name=contribution.revenue_program.name,
             style=asdict(contribution.donation_page.revenue_program.transactional_email_style),
             tax_id=contribution.revenue_program.tax_id,
+            show_upgrade_prompt=False,
         )
         actual = make_send_thank_you_email_data(contribution)
         assert expected == actual

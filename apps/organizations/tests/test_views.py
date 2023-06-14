@@ -1,6 +1,7 @@
 from unittest import mock
 
 from django.contrib.auth import get_user_model
+from django.template.loader import render_to_string
 
 import pytest
 import pytest_cases
@@ -16,6 +17,12 @@ from waffle import get_waffle_flag_model
 from apps.api.permissions import HasRoleAssignment, IsHubAdmin, IsOrgAdmin
 from apps.common.constants import MAILCHIMP_INTEGRATION_ACCESS_FLAG_NAME
 from apps.common.secrets import GoogleCloudSecretProvider
+from apps.emails.tasks import (
+    make_send_test_contribution_email_data,
+    make_send_test_magic_link_email_data,
+    send_templated_email,
+    send_thank_you_email,
+)
 from apps.organizations.models import (
     TAX_ID_MAX_LENGTH,
     TAX_ID_MIN_LENGTH,
@@ -1037,3 +1044,142 @@ class TestHandleMailchimpOauthSuccessView:
         response = api_client.post(reverse("handle-mailchimp-oauth-success"), data={})
         assert response.status_code == status.HTTP_403_FORBIDDEN
         assert response.json() == {"detail": "You do not have permission to perform this action."}
+
+
+@pytest.mark.django_db
+class TestSendTestEmail:
+    def test_when_dont_own_revenue_program(self, org_user_free_plan, revenue_program, api_client):
+        assert revenue_program not in org_user_free_plan.roleassignment.revenue_programs.all()
+        api_client.force_authenticate(org_user_free_plan)
+        response = api_client.post(
+            reverse("send-test-email"),
+            data={"revenue_program": revenue_program.id, "email_name": "something"},
+        )
+        assert response.status_code == status.HTTP_404_NOT_FOUND
+        assert response.json() == {"detail": "Requested revenue program not found"}
+
+    @pytest.mark.parametrize(
+        "data,expected_response",
+        (
+            ({"email_name": "something"}, {"revenue_program": ["This field is required."]}),
+            ({"revenue_program": 1}, {"email_name": ["This field is required."]}),
+        ),
+    )
+    def test_when_missing_request_data(self, data, expected_response, org_user_free_plan, api_client):
+        api_client.force_authenticate(org_user_free_plan)
+        response = api_client.post(reverse("send-test-email"), data=data)
+        assert response.status_code == status.HTTP_400_BAD_REQUEST
+        assert response.json() == expected_response
+
+    @pytest_cases.parametrize(
+        "user",
+        (
+            pytest_cases.fixture_ref("hub_admin_user"),
+            pytest_cases.fixture_ref("superuser"),
+            pytest_cases.fixture_ref("rp_user"),
+        ),
+    )
+    def test_invalid_email_name_independent_of_user_role(self, user, revenue_program, api_client):
+        api_client.force_authenticate(user)
+        rp_pk = (
+            user.roleassignment.revenue_programs.first().id
+            if user.roleassignment.revenue_programs.first()
+            else revenue_program.id
+        )
+        response = api_client.post(
+            reverse("send-test-email"),
+            data={"revenue_program": rp_pk, "email_name": "something"},
+        )
+        assert response.status_code == status.HTTP_400_BAD_REQUEST
+        assert response.json() == {"email_name": ["Invalid email name: something"]}
+
+    @pytest_cases.parametrize(
+        "user",
+        (
+            pytest_cases.fixture_ref("hub_admin_user"),
+            pytest_cases.fixture_ref("superuser"),
+            pytest_cases.fixture_ref("rp_user"),
+        ),
+    )
+    def test_send_test_receipt_email(self, user, revenue_program, mocker, api_client, settings):
+        settings.CELERY_TASK_ALWAYS_EAGER = True
+        api_client.force_authenticate(user)
+        rp = (
+            user.roleassignment.revenue_programs.first()
+            if user.roleassignment.revenue_programs.first()
+            else revenue_program
+        )
+
+        mocker.patch("apps.emails.tasks.get_test_magic_link", return_value="fake_magic_link")
+        send_thank_you_email_spy = mocker.spy(send_thank_you_email, "delay")
+        expected_data = make_send_test_contribution_email_data(user, rp)
+
+        api_client.post(
+            reverse("send-test-email"),
+            data={"revenue_program": rp.id, "email_name": "receipt"},
+        )
+        send_thank_you_email_spy.assert_called_once_with(expected_data)
+
+    @pytest_cases.parametrize(
+        "user",
+        (
+            pytest_cases.fixture_ref("hub_admin_user"),
+            pytest_cases.fixture_ref("superuser"),
+            pytest_cases.fixture_ref("rp_user"),
+        ),
+    )
+    def test_send_test_reminder_email(self, user, revenue_program, mocker, api_client, settings):
+        settings.CELERY_ALWAYS_EAGER = True
+        api_client.force_authenticate(user)
+        rp = (
+            user.roleassignment.revenue_programs.first()
+            if user.roleassignment.revenue_programs.first()
+            else revenue_program
+        )
+
+        send_email_spy = mocker.spy(send_templated_email, "delay")
+        mocker.patch("apps.emails.tasks.get_test_magic_link", return_value="fake_magic_link")
+        expected_data = make_send_test_contribution_email_data(user, rp)
+
+        api_client.post(
+            reverse("send-test-email"),
+            data={"revenue_program": rp.id, "email_name": "reminder"},
+        )
+        send_email_spy.assert_called_once_with(
+            user.email,
+            f"Reminder: {rp.name} scheduled contribution",
+            render_to_string("recurring-contribution-email-reminder.txt", expected_data),
+            render_to_string("recurring-contribution-email-reminder.html", expected_data),
+        )
+
+    @pytest_cases.parametrize(
+        "user",
+        (
+            pytest_cases.fixture_ref("hub_admin_user"),
+            pytest_cases.fixture_ref("superuser"),
+            pytest_cases.fixture_ref("rp_user"),
+        ),
+    )
+    def test_send_test_magic_link_email(self, user, revenue_program, mocker, api_client, settings):
+        settings.CELERY_ALWAYS_EAGER = True
+        api_client.force_authenticate(user)
+        rp = (
+            user.roleassignment.revenue_programs.first()
+            if user.roleassignment.revenue_programs.first()
+            else revenue_program
+        )
+
+        send_email_spy = mocker.spy(send_templated_email, "delay")
+        mocker.patch("apps.emails.tasks.get_test_magic_link", return_value="fake_magic_link")
+        expected_data = make_send_test_magic_link_email_data(user, rp)
+
+        api_client.post(
+            reverse("send-test-email"),
+            data={"revenue_program": rp.id, "email_name": "magic_link"},
+        )
+        send_email_spy.assert_called_once_with(
+            user.email,
+            "Manage your contributions",
+            render_to_string("nrh-manage-contributions-magic-link.txt", expected_data),
+            render_to_string("nrh-manage-contributions-magic-link.html", expected_data),
+        )

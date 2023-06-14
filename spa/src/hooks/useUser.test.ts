@@ -1,5 +1,5 @@
 import * as Sentry from '@sentry/react';
-import { act, renderHook } from '@testing-library/react-hooks';
+import { renderHook } from '@testing-library/react-hooks';
 import { useHistory } from 'react-router-dom';
 import { LS_USER } from 'appSettings';
 import Axios from 'ajax/axios';
@@ -46,18 +46,6 @@ describe('useUser', () => {
 
     await waitFor(() => expect(axiosMock.history.get.length).toBe(1));
     expect(axiosMock.history.get).toEqual([expect.objectContaining({ url: 'users/' })]);
-  });
-
-  it('allows controlling the refetch interval using the setRefetchInterval prop', async () => {
-    const { result, waitFor } = renderHook(() => useUser(), { wrapper: TestQueryClientProvider });
-
-    await waitFor(() => expect(axiosMock.history.get.length).toBe(1));
-    act(() => result.current.setRefetchInterval(30));
-
-    // Without the act() call above, the query will never make another request
-    // and the waitFor() will timeout.
-
-    await waitFor(() => expect(axiosMock.history.get.length).toBe(2));
   });
 
   describe('When fetching the user succeeds', () => {

@@ -515,38 +515,18 @@ describe('useConnectMailchimp hook', () => {
         );
       });
 
-      it('shows a connection success notification if the mailchimp_integration_connected property changes from false to true', async () => {
-        axiosMock.reset();
-        axiosMock
-          .onGet(mailchimpStatusEndpoint)
-          .replyOnce(200, {
-            available_mailchimp_email_lists: mockMailchimpLists,
-            mailchimp_integration_connected: false
-          })
-          .onGet(mailchimpStatusEndpoint)
-          .reply(200, {
-            available_mailchimp_email_lists: mockMailchimpLists,
-            mailchimp_integration_connected: true
-          });
-
+      it('shows a connection success notification if audience selection patch succeeds', async () => {
         const enqueueSnackbar = jest.fn();
-
         useSnackbarMock.mockReturnValue({ enqueueSnackbar, closeSnackbar: jest.fn() });
-
+        axiosMock.onPatch(mailchimpStatusEndpoint).reply(200);
         const { result, waitFor } = hook();
 
-        // Wait for the initial render.
-
         await waitFor(() => expect(axiosMock.history.get.length).toBe(1));
-
-        // Force refetch to go faster.
-
-        act(() => result.current.setRefetchInterval(30));
+        expect(typeof result.current.selectAudience).toBe('function');
         expect(enqueueSnackbar).not.toBeCalled();
-
-        // When the second request finishes, the notification should fire.
-
-        await waitFor(() => expect(axiosMock.history.get.length).toBe(2));
+        result.current.selectAudience!('100');
+        await waitFor(() => expect(axiosMock.history.patch.length).toBe(1));
+        expect(enqueueSnackbar).toBeCalledTimes(1);
         expect(enqueueSnackbar).toBeCalledWith(
           'You’ve successfully connected to Mailchimp! Your contributor data will sync automatically.',
           expect.objectContaining({

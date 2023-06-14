@@ -10,7 +10,6 @@ import { MAILCHIMP_OAUTH_SUCCESS_ROUTE } from 'routes';
 import flagIsActiveForUser from 'utilities/flagIsActiveForUser';
 import useFeatureFlags from './useFeatureFlags';
 import useUser from './useUser';
-import usePreviousState from './usePreviousState';
 import {
   MailchimpAudience,
   RevenueProgramMailchimpStatus,
@@ -53,7 +52,15 @@ export default function useConnectMailchimp(): UseConnectMailchimpResult {
       return axios.patch(getRevenueProgramMailchimpStatusEndpoint(firstRevenueProgram.id), data);
     },
     {
-      onSuccess: () => queryClient.invalidateQueries(['revenueProgramMailchimpStatus'])
+      onSuccess: () => {
+        queryClient.invalidateQueries(['revenueProgramMailchimpStatus']);
+        enqueueSnackbar('You’ve successfully connected to Mailchimp! Your contributor data will sync automatically.', {
+          persist: true,
+          content: (key: string, message: string) => (
+            <SystemNotification id={key} message={message} header="Successfully Connected!" type="success" />
+          )
+        });
+      }
     }
   );
   const selectAudience = useCallback(
@@ -64,7 +71,6 @@ export default function useConnectMailchimp(): UseConnectMailchimpResult {
   );
   const { flags } = useFeatureFlags();
   const hasMailchimpAccess = flagIsActiveForUser(MAILCHIMP_INTEGRATION_ACCESS_FLAG_NAME, flags);
-  const prevMailchimpConnection = usePreviousState(mailchimpData?.mailchimp_integration_connected);
   const sendUserToMailchimp = useCallback(() => {
     if (!NRE_MAILCHIMP_CLIENT_ID) {
       // Should never happen--only if there is an issue with the env variable.
@@ -96,17 +102,6 @@ export default function useConnectMailchimp(): UseConnectMailchimpResult {
       setRefetchInterval(false);
     }
   }, [requiresAudienceSelection, setRefetchInterval]);
-
-  useEffect(() => {
-    if (mailchimpData?.mailchimp_integration_connected && prevMailchimpConnection === false) {
-      enqueueSnackbar('You’ve successfully connected to Mailchimp! Your contributor data will sync automatically.', {
-        persist: true,
-        content: (key: string, message: string) => (
-          <SystemNotification id={key} message={message} header="Successfully Connected!" type="success" />
-        )
-      });
-    }
-  }, [enqueueSnackbar, mailchimpData?.mailchimp_integration_connected, prevMailchimpConnection]);
 
   const result: UseConnectMailchimpResult = {
     hasMailchimpAccess,

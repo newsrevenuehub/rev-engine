@@ -10,7 +10,9 @@ COPY ./spa /code/spa/
 WORKDIR /code/spa/
 
 # Limit memory usage to avoid Heroku deploy issues.
+RUN date '+%d/%m/%Y %H:%M:%S'
 RUN npm run build:low-memory
+RUN date '+%d/%m/%Y %H:%M:%S'
 
 FROM python:3.10-slim as base
 

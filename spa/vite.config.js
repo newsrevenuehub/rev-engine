@@ -4,6 +4,9 @@ import svgr from 'vite-plugin-svgr';
 import tsconfigPaths from 'vite-tsconfig-paths';
 
 const config = defineConfig({
+  build: {
+    outDir: 'build'
+  },
   plugins: [react(), svgr(), tsconfigPaths()],
   server: {
     open: true,

@@ -1,7 +1,7 @@
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { CookiesProvider } from 'react-cookie';
 
-import AdminGlobalStyles from 'styles/AdminGlobalStyles.js';
+import AdminGlobalStyles from './styles/AdminGlobalStyles.js';
 import { SnackbarProvider } from 'notistack';
 
 // Styles

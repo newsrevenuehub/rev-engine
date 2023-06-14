@@ -1094,7 +1094,7 @@ class TestSendTestEmail:
         )
 
         title_prompt = "Can I brand my email receipts?"
-        description_prompt = "Yes! Upgrade to Core to use your logo and brand for email receipts."
+        description_prompt = "Yes! Upgrade to Core to use your logo and branding for all email receipts."
         link_prompt = "https://fundjournalism.org/pricing/"
 
         if revenue_program.organization.plan.name == FreePlan.name:

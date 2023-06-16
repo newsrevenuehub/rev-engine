@@ -8,7 +8,8 @@ import pytest
 from bs4 import BeautifulSoup
 from bs4 import BeautifulSoup as bs4
 
-from apps.organizations.admin import PaymentProviderAdmin
+from apps.organizations.admin import OrganizationAdmin, PaymentProviderAdmin
+from apps.organizations.models import CorePlan, FreePlan, Organization
 from apps.organizations.tests.factories import (
     BenefitLevelFactory,
     OrganizationFactory,
@@ -161,3 +162,30 @@ def test_show_expected_fields_on_rp_pages(admin_client):
         assert soup.find("input", {"name": "twitter_handle"})
         assert soup.find("input", {"name": "website_url"})
         assert soup.find("input", {"name": "allow_offer_nyt_comp"})
+
+
+@pytest.mark.django_db
+class TestOrganizationAdmin:
+    @pytest.fixture
+    def model_admin(self):
+        return OrganizationAdmin(Organization, AdminSite())
+
+    def test_save_model_sets_update_fields(self, rf, model_admin, superuser, mocker):
+        org = OrganizationFactory(plan_name=FreePlan.name, name=(previous_name := "something"))
+        save_spy = mocker.spy(org, "save")
+        data = {
+            "name": previous_name,
+            # this is the only field changing
+            "plan_name": CorePlan.name,
+            "slug": org.slug,
+        }
+        post_request = rf.post("/admin/", data)
+        post_request.user = superuser
+        form = model_admin.get_form(post_request)(data, instance=org)
+        assert form.is_valid()
+        model_admin.save_model(request=post_request, obj=form.instance, form=form, change=True)
+        org.refresh_from_db()
+        assert org.name == previous_name
+        assert org.plan_name == data["plan_name"]
+        assert "plan_name" in save_spy.call_args[1]["update_fields"]
+        assert "modified" in save_spy.call_args[1]["update_fields"]

@@ -1,5 +1,5 @@
-import styled from 'styled-components';
 import { Button } from 'components/base';
+import styled, { DefaultTheme } from 'styled-components';
 
 export const Outer = styled.div`
   font-family: ${(props) => props.theme.systemFont};
@@ -20,7 +20,7 @@ export const Outer = styled.div`
   }
 `;
 
-export const Left = styled.div`
+export const Left = styled.div<{ isCreateAccountPage?: boolean }>`
   position: relative;
   background: ${(props) =>
     props.isCreateAccountPage
@@ -74,7 +74,7 @@ export const Right = styled.div`
   }
 `;
 
-export const FormElements = styled.div`
+export const FormElements = styled.div<{ shorten?: boolean }>`
   width: 80%;
   max-width: ${(props) => (props.shorten ? '320px' : '437px')};
   text-align: left;
@@ -103,7 +103,7 @@ export const BottomBarYellowSVG = styled.img`
   }
 `;
 
-export const Heading = styled.h1`
+export const Heading = styled.h1<{ marginBottom?: number }>`
   font-weight: 700;
   font-size: ${(props) => props.theme.fontSizesUpdated.h1};
   margin-bottom: ${(props) => (props.marginBottom ? `${props.marginBottom}px` : '20px')};
@@ -120,7 +120,7 @@ export const Heading = styled.h1`
   }
 `;
 
-export const Subheading = styled.div`
+export const Subheading = styled.div<{ fontSize?: keyof DefaultTheme['fontSizesUpdated']; shorten?: boolean }>`
   margin: ${(props) => (props.shorten ? '5px 0px 5px' : '5px 0px 25px')};
 
   font-weight: 300;
@@ -144,7 +144,7 @@ export const Submit = styled(Button)`
   }
 `;
 
-export const Message = styled.div`
+export const Message = styled.div<{ isSuccess?: boolean; info?: string }>`
   background: ${(props) => (props.isSuccess ? props.theme.colors.status.done : props.theme.colors.error.bg)};
   border-radius: ${(props) => props.theme.muiBorderRadius.sm};
   font-weight: 400;
@@ -167,7 +167,7 @@ export const MessageSpacer = styled.div`
   height: ${(props) => props.theme.fontSizesUpdated.lg};
 `;
 
-export const PasswordLabel = styled.label`
+export const PasswordLabel = styled.label<{ hasError?: boolean }>`
   display: flex;
   font-weight: 600;
   font-size: ${(props) => props.theme.fontSizesUpdated.md};
@@ -183,7 +183,7 @@ export const PasswordLabel = styled.label`
   }
 `;
 
-export const InputOuter = styled.div`
+export const InputOuter = styled.div<{ hasError?: boolean }>`
   border: 1.5px solid;
   border-color: ${(props) => (props.hasError ? props.theme.colors.error.primary : props.theme.colors.muiGrey[300])};
   border-radius: ${(props) => props.theme.muiBorderRadius.md};
@@ -206,7 +206,7 @@ export const InputOuter = styled.div`
   }
 `;
 
-export const Visibility = styled.img`
+export const Visibility = styled.img<{ visible: string }>`
   width: 24px;
   height: 22px;
   cursor: pointer;
@@ -218,7 +218,7 @@ export const Visibility = styled.img`
   `}
 `;
 
-export const InputLabel = styled.label`
+export const InputLabel = styled.label<{ hasError?: boolean }>`
   font-weight: 600;
   font-size: ${(props) => props.theme.fontSizesUpdated.md};
   line-height: ${(props) => props.theme.fontSizesUpdated.md};
@@ -238,7 +238,7 @@ export const AcceptTermsText = styled.p`
   line-height: 16px;
 `;
 
-export const NavLink = styled.p`
+export const NavLink = styled.p<{ alignLeft?: boolean }>`
   margin: 15px 0px 12px;
   width: 100%;
   text-align: ${(props) => (props.alignLeft ? 'left' : 'center')};

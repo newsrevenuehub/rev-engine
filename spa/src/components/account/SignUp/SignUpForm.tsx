@@ -1,20 +1,34 @@
-import { useState, useMemo } from 'react';
+import PropTypes, { InferProps } from 'prop-types';
+import { useMemo, useState } from 'react';
 import { useForm } from 'react-hook-form';
-import PropTypes from 'prop-types';
 
 import useModal from 'hooks/useModal';
 
 import * as S from '../Account.styled';
 
-import visibilityOn from 'assets/images/account/visibility_on.png';
-import visibilityOff from 'assets/images/account/visibility_off.png';
 import Checkbox from '@material-ui/core/Checkbox';
+import visibilityOff from 'assets/images/account/visibility_off.png';
+import visibilityOn from 'assets/images/account/visibility_on.png';
 import { Tooltip } from 'components/base';
 
 export const termsLink = 'https://fundjournalism.org/faq/terms-of-service/';
 export const policyLink = 'https://fundjournalism.org/faq/privacy-policy/';
 
-function AcceptTerms({ checked, handleTOSChange }) {
+export type SignUpFormValues = {
+  email: string;
+  password: string;
+};
+
+export interface SignUpFormProps extends InferProps<typeof SignUpFormPropTypes> {
+  onSubmitSignUp: (fdata: SignUpFormValues) => void;
+}
+
+type AcceptTermsProps = {
+  checked: boolean;
+  handleTOSChange: (event: React.ChangeEvent<HTMLInputElement>) => void;
+};
+
+function AcceptTerms({ checked, handleTOSChange }: AcceptTermsProps) {
   return (
     <S.AcceptTerms>
       <Checkbox
@@ -42,11 +56,12 @@ function AcceptTerms({ checked, handleTOSChange }) {
   );
 }
 
-function SignUpForm({ onSubmitSignUp, loading, errorMessage }) {
+function SignUpForm({ onSubmitSignUp, loading, errorMessage }: SignUpFormProps) {
+  const hasError = errorMessage && Object.keys(errorMessage).length > 0;
   const [checked, setChecked] = useState(false);
   const { open: showPassword, handleToggle: togglePasswordVisiblity } = useModal();
 
-  const handleTOSChange = (event) => {
+  const handleTOSChange = (event: React.ChangeEvent<HTMLInputElement>) => {
     setChecked(event.target.checked);
   };
 
@@ -55,7 +70,7 @@ function SignUpForm({ onSubmitSignUp, loading, errorMessage }) {
     handleSubmit,
     formState: { errors },
     watch
-  } = useForm();
+  } = useForm<SignUpFormValues>();
 
   const watchEmail = watch('email', '');
   const watchPassword = watch('password', '');
@@ -70,18 +85,17 @@ function SignUpForm({ onSubmitSignUp, loading, errorMessage }) {
       );
     }
 
-    if (errorMessage) return errorMessage;
+    if (errorMessage?.email) return errorMessage.email;
 
     return <S.MessageSpacer />;
   }, [errorMessage, errors.email]);
 
   return (
-    <form onSubmit={disabled ? () => {} : handleSubmit(onSubmitSignUp)}>
-      <S.InputLabel hasError={errors.email || errorMessage}>Email</S.InputLabel>
-      <S.InputOuter hasError={errors.email || errorMessage}>
+    <form onSubmit={disabled ? () => null : handleSubmit(onSubmitSignUp)}>
+      <S.InputLabel hasError={!!(errors.email || errorMessage?.email)}>Email</S.InputLabel>
+      <S.InputOuter hasError={!!(errors.email || errorMessage?.email)}>
         <input
           id="email"
-          name="email"
           {...register('email', {
             pattern: {
               value: /\S+@\S+\.\S+/,
@@ -89,17 +103,15 @@ function SignUpForm({ onSubmitSignUp, loading, errorMessage }) {
             }
           })}
           type="text"
-          status={errors.email || errorMessage}
           data-testid="signup-email"
         />
       </S.InputOuter>
       {renderEmailError}
 
-      <S.InputLabel hasError={errors.password}>Password</S.InputLabel>
-      <S.InputOuter hasError={errors.password}>
+      <S.InputLabel hasError={!!(errors.password || errorMessage?.password)}>Password</S.InputLabel>
+      <S.InputOuter hasError={!!(errors.password || errorMessage?.password)}>
         <input
           id="password"
-          name="password"
           {...register('password', {
             required: 'Please enter your password',
             validate: (val) => {
@@ -109,7 +121,6 @@ function SignUpForm({ onSubmitSignUp, loading, errorMessage }) {
             }
           })}
           type={showPassword ? 'text' : 'password'}
-          status={errors.password}
           data-testid="signup-pwd"
         />
         <Tooltip title={showPassword ? 'Hide password' : 'Show password'}>
@@ -121,8 +132,8 @@ function SignUpForm({ onSubmitSignUp, loading, errorMessage }) {
           />
         </Tooltip>
       </S.InputOuter>
-      {errors.password ? (
-        <S.Message role="error">{errors.password.message}</S.Message>
+      {errors.password || errorMessage?.password ? (
+        <S.Message role="error">{errors?.password?.message || errorMessage?.password}</S.Message>
       ) : (
         <S.Message info="true">Password must be 8 characters long and alphanumerical.</S.Message>
       )}
@@ -134,10 +145,15 @@ function SignUpForm({ onSubmitSignUp, loading, errorMessage }) {
   );
 }
 
-SignUpForm.propTypes = {
+const SignUpFormPropTypes = {
   onSubmitSignUp: PropTypes.func,
   loading: PropTypes.bool,
-  errorMessage: PropTypes.node
+  errorMessage: PropTypes.shape({
+    password: PropTypes.node,
+    email: PropTypes.node
+  })
 };
+
+SignUpForm.propTypes = SignUpFormPropTypes;
 
 export default SignUpForm;

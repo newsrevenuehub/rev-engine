@@ -1,30 +1,33 @@
-import { useReducer, useMemo } from 'react';
+import PropTypes, { InferProps } from 'prop-types';
+import { useMemo, useReducer } from 'react';
 
 // AJAX
 import axios from 'ajax/axios';
 import { TOKEN, USER } from 'ajax/endpoints';
 
 // State management
-import fetchReducer, { initialState, FETCH_START, FETCH_SUCCESS, FETCH_FAILURE } from 'state/fetch-reducer';
+import fetchReducer, { FETCH_FAILURE, FETCH_START, FETCH_SUCCESS, initialState } from 'state/fetch-reducer';
 
 import * as S from '../Account.styled';
-import SignUpForm from './SignUpForm';
+import SignUpForm, { SignUpFormValues } from './SignUpForm';
 
-import Logobar from 'components/account/common/logobar/Logobar';
 import Leftbar from 'components/account/common/leftbar/Leftbar';
+import Logobar from 'components/account/common/logobar/Logobar';
 import { Link, useHistory } from 'react-router-dom';
 
 import { handleLoginSuccess } from 'components/authentication/util';
-import { CONTENT_SLUG, SIGN_IN } from 'routes';
 import PageTitle from 'elements/PageTitle';
+import { CONTENT_SLUG, SIGN_IN } from 'routes';
 
-import { SIGN_UP_GENERIC_ERROR_TEXT } from 'constants/textConstants';
 import YellowSVG from 'assets/images/account/yellow-bar.svg';
+import { SIGN_UP_GENERIC_ERROR_TEXT } from 'constants/textConstants';
 
 // Analytics
 import { useConfigureAnalytics } from 'components/analytics';
 
-function SignUp({ onSuccess }) {
+export type SignUpProps = InferProps<typeof SignUpPropTypes>;
+
+function SignUp({ onSuccess }: SignUpProps) {
   const [signUpState, dispatch] = useReducer(fetchReducer, initialState);
 
   const history = useHistory();
@@ -35,7 +38,7 @@ function SignUp({ onSuccess }) {
     else history.push(CONTENT_SLUG);
   };
 
-  const handleLogin = async (fdata) => {
+  const handleLogin = async (fdata: SignUpFormValues) => {
     dispatch({ type: FETCH_START });
     try {
       const { data, status } = await axios.post(TOKEN, { email: fdata.email, password: fdata.password });
@@ -46,12 +49,12 @@ function SignUp({ onSuccess }) {
       } else {
         dispatch({ type: FETCH_FAILURE, payload: data });
       }
-    } catch (e) {
+    } catch (e: any) {
       dispatch({ type: FETCH_FAILURE, payload: e?.response?.data });
     }
   };
 
-  const onSubmitSignUp = async (fdata) => {
+  const onSubmitSignUp = async (fdata: SignUpFormValues) => {
     dispatch({ type: FETCH_START });
     try {
       const { data, status } = await axios.post(USER, {
@@ -65,7 +68,7 @@ function SignUp({ onSuccess }) {
       } else {
         dispatch({ type: FETCH_FAILURE, payload: data });
       }
-    } catch (e) {
+    } catch (e: any) {
       dispatch({ type: FETCH_FAILURE, payload: e?.response?.data });
     }
   };
@@ -73,11 +76,13 @@ function SignUp({ onSuccess }) {
   const formSubmissionMessage = useMemo(() => {
     if (signUpState?.errors?.email) {
       if (signUpState?.errors?.email[0] === 'This field must be unique.') {
-        return <S.Message>This email is already being used by an account. Try signing in.</S.Message>;
+        return { email: <S.Message>This email is already being used by an account. Try signing in.</S.Message> };
       }
-      return <S.Message>Email: {signUpState?.errors?.email}</S.Message>;
+      return { email: <S.Message>Email: {signUpState?.errors?.email}</S.Message> };
+    } else if (signUpState?.errors?.password) {
+      return { password: <S.Message>{signUpState?.errors?.password}</S.Message> };
     } else if (signUpState?.errors && signUpState?.errors.length !== 0) {
-      return <S.Message>{SIGN_UP_GENERIC_ERROR_TEXT}</S.Message>;
+      return { email: <S.Message>{SIGN_UP_GENERIC_ERROR_TEXT}</S.Message> };
     }
     return undefined;
   }, [signUpState]);
@@ -115,5 +120,11 @@ function SignUp({ onSuccess }) {
     </S.Outer>
   );
 }
+
+const SignUpPropTypes = {
+  onSuccess: PropTypes.func
+};
+
+SignUp.propTypes = SignUpPropTypes;
 
 export default SignUp;

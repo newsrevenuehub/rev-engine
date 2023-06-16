@@ -149,17 +149,9 @@ class OrganizationAdmin(RevEngineBaseAdmin, CompareVersionAdmin):
         if change:  # if the obj is being changed, not added
             initial_form = self.get_changeform_initial_data(request)
             changed_data = form.changed_data
-            update_fields = set()
-
-            for field in changed_data:
-                initial_value = initial_form.get(field)
-                current_value = getattr(obj, field)
-
-                if initial_value != current_value:
-                    update_fields.add(field)
-
+            update_fields = set(x for x in changed_data if initial_form.get(x) != getattr(obj, x))
             if update_fields:
-                obj.save(update_fields=update_fields)
+                obj.save(update_fields=update_fields.union({"modified"}))
             else:
                 obj.save()
         else:

@@ -63,3 +63,5 @@ export const PATCH_REVENUE_PROGRAM = 'revenue-programs/';
 
 // Mailchimp
 export const MAILCHIMP_OAUTH_SUCCESS = 'mailchimp-oauth-success/';
+
+export const SEND_TEST_EMAIL = 'send-test-email/';

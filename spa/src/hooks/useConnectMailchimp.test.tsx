@@ -534,6 +534,22 @@ describe('useConnectMailchimp hook', () => {
           })
         );
       });
+
+      it('does not show any notification if audience selection patch fails', async () => {
+        const enqueueSnackbar = jest.fn();
+        useSnackbarMock.mockReturnValue({ enqueueSnackbar, closeSnackbar: jest.fn() });
+        axiosMock.onPatch().networkError();
+        const { result, waitFor } = hook();
+
+        await waitFor(() => expect(axiosMock.history.get.length).toBe(1));
+        expect(typeof result.current.selectAudience).toBe('function');
+        expect(enqueueSnackbar).not.toBeCalled();
+        result.current.selectAudience!('100');
+        await waitFor(() => {
+          Promise.resolve();
+        });
+        expect(enqueueSnackbar).not.toBeCalled();
+      });
     });
   });
 });

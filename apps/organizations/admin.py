@@ -134,6 +134,37 @@ class OrganizationAdmin(RevEngineBaseAdmin, CompareVersionAdmin):
             return []
         return ["name"]
 
+    def save_model(self, request, obj, form, change):
+        """Override save_model so we pass update_fields to obj.save()
+
+        We do this because have a Django signal that looks to `update_fields` to determine whether to
+        set a default donation page when an org is being configured to be on core plan.
+
+        Note that this approach is somewhat naive and will not work if the model is being saved with
+        foreign key or m2m fields, as these do not appear in `.changed_data`.
+
+        This does not create a problem for us now though because no such fields are being set on the organization
+        via admin.
+        """
+        if change:  # if the obj is being changed, not added
+            initial_form = self.get_changeform_initial_data(request)
+            changed_data = form.changed_data
+            update_fields = set()
+
+            for field in changed_data:
+                initial_value = initial_form.get(field)
+                current_value = getattr(obj, field)
+
+                if initial_value != current_value:
+                    update_fields.add(field)
+
+            if update_fields:
+                obj.save(update_fields=update_fields)
+            else:
+                obj.save()
+        else:
+            obj.save()
+
 
 @admin.register(Benefit)
 class BenefitAdmin(RevEngineBaseAdmin, CompareVersionAdmin):

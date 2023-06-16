@@ -26,6 +26,7 @@ const useUserMock = jest.mocked(useUser);
 const useHistoryMock = jest.mocked(useHistory);
 
 const mockRp = { id: 1, name: 'mock-rp-name', slug: 'mock-rp-slug', payment_provider_stripe_verified: true };
+const mockDisconnectedRp = { ...mockRp, payment_provider_stripe_verified: false };
 
 const mockUser: User = {
   email: 'mock@email.com',
@@ -250,13 +251,46 @@ describe('useConnectStripeAccount hook', () => {
     });
   });
 
+  describe('When the user is an org admin but their org has multiple revenue programs', () => {
+    beforeEach(() => {
+      useUserMock.mockReturnValue({
+        isError: false,
+        isLoading: false,
+        refetch: jest.fn(),
+        user: { ...mockUser, revenue_programs: [mockDisconnectedRp, mockDisconnectedRp] as any }
+      });
+    });
+
+    it("returns that the user doesn't need to verify Stripe", () => {
+      const { result } = renderHook(() => useConnectStripeAccount(), { wrapper });
+
+      expect(result.current).toEqual(
+        expect.objectContaining({
+          isError: false,
+          isLoading: false,
+          requiresVerification: false,
+          stripeConnectStarted: false
+        })
+      );
+    });
+
+    it('does not fetch Stripe connection status', () => {
+      renderHook(() => useConnectStripeAccount(), { wrapper });
+      expect(axiosMock.history.post.length).toBe(0);
+    });
+  });
+
   describe('When the user is a Hub admin', () => {
     beforeEach(() => {
       useUserMock.mockReturnValue({
         isError: false,
         isLoading: false,
         refetch: jest.fn(),
-        user: { ...mockUser, role_type: ['hub_admin', 'Hub Admin'] }
+        user: {
+          ...mockUser,
+          revenue_programs: [mockDisconnectedRp, mockDisconnectedRp] as any,
+          role_type: ['hub_admin', 'Hub Admin']
+        }
       });
     });
 

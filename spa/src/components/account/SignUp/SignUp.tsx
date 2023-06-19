@@ -1,4 +1,3 @@
-import PropTypes, { InferProps } from 'prop-types';
 import { useMemo, useReducer } from 'react';
 
 // AJAX
@@ -23,34 +22,28 @@ import YellowSVG from 'assets/images/account/yellow-bar.svg';
 import { SIGN_UP_GENERIC_ERROR_TEXT } from 'constants/textConstants';
 
 // Analytics
+import { AxiosError } from 'axios';
 import { useConfigureAnalytics } from 'components/analytics';
 
-export type SignUpProps = InferProps<typeof SignUpPropTypes>;
-
-function SignUp({ onSuccess }: SignUpProps) {
+function SignUp() {
   const [signUpState, dispatch] = useReducer(fetchReducer, initialState);
 
   const history = useHistory();
   useConfigureAnalytics();
 
-  const handlePostLogin = () => {
-    if (onSuccess) onSuccess();
-    else history.push(CONTENT_SLUG);
-  };
-
   const handleLogin = async (fdata: SignUpFormValues) => {
     dispatch({ type: FETCH_START });
     try {
-      const { data, status } = await axios.post(TOKEN, { email: fdata.email, password: fdata.password });
+      const { data, status } = await axios.post(TOKEN, fdata);
       if (status === 200 && data.detail === 'success') {
         handleLoginSuccess(data);
-        handlePostLogin();
+        history.push(CONTENT_SLUG);
         dispatch({ type: FETCH_SUCCESS });
       } else {
         dispatch({ type: FETCH_FAILURE, payload: data });
       }
     } catch (e: any) {
-      dispatch({ type: FETCH_FAILURE, payload: e?.response?.data });
+      dispatch({ type: FETCH_FAILURE, payload: (e as AxiosError).response?.data });
     }
   };
 
@@ -69,7 +62,7 @@ function SignUp({ onSuccess }: SignUpProps) {
         dispatch({ type: FETCH_FAILURE, payload: data });
       }
     } catch (e: any) {
-      dispatch({ type: FETCH_FAILURE, payload: e?.response?.data });
+      dispatch({ type: FETCH_FAILURE, payload: (e as AxiosError).response?.data });
     }
   };
 
@@ -120,11 +113,5 @@ function SignUp({ onSuccess }: SignUpProps) {
     </S.Outer>
   );
 }
-
-const SignUpPropTypes = {
-  onSuccess: PropTypes.func
-};
-
-SignUp.propTypes = SignUpPropTypes;
 
 export default SignUp;

@@ -4,12 +4,20 @@ import { useForm } from 'react-hook-form';
 
 import useModal from 'hooks/useModal';
 
-import * as S from '../Account.styled';
-
 import Checkbox from '@material-ui/core/Checkbox';
 import visibilityOff from 'assets/images/account/visibility_off.png';
 import visibilityOn from 'assets/images/account/visibility_on.png';
 import { Tooltip } from 'components/base';
+import {
+  AcceptTermsText,
+  AcceptTermsWrapper,
+  InputLabel,
+  InputOuter,
+  Message,
+  MessageSpacer,
+  Submit,
+  Visibility
+} from '../Account.styled';
 
 export const termsLink = 'https://fundjournalism.org/faq/terms-of-service/';
 export const policyLink = 'https://fundjournalism.org/faq/privacy-policy/';
@@ -30,7 +38,7 @@ type AcceptTermsProps = {
 
 function AcceptTerms({ checked, handleTOSChange }: AcceptTermsProps) {
   return (
-    <S.AcceptTerms>
+    <AcceptTermsWrapper>
       <Checkbox
         checked={checked}
         onChange={handleTOSChange}
@@ -41,7 +49,7 @@ function AcceptTerms({ checked, handleTOSChange }: AcceptTermsProps) {
           padding: 0
         }}
       />
-      <S.AcceptTermsText>
+      <AcceptTermsText>
         I agree to News Revenue Hub’s{' '}
         <a href={termsLink} rel="noreferrer" target="_blank">
           Terms & Conditions
@@ -51,13 +59,12 @@ function AcceptTerms({ checked, handleTOSChange }: AcceptTermsProps) {
           Privacy Policy
         </a>
         .
-      </S.AcceptTermsText>
-    </S.AcceptTerms>
+      </AcceptTermsText>
+    </AcceptTermsWrapper>
   );
 }
 
 function SignUpForm({ onSubmitSignUp, loading, errorMessage }: SignUpFormProps) {
-  const hasError = errorMessage && Object.keys(errorMessage).length > 0;
   const [checked, setChecked] = useState(false);
   const { open: showPassword, handleToggle: togglePasswordVisiblity } = useModal();
 
@@ -79,21 +86,21 @@ function SignUpForm({ onSubmitSignUp, loading, errorMessage }: SignUpFormProps) 
   const renderEmailError = useMemo(() => {
     if (errors.email) {
       return (
-        <S.Message role="error" data-testid="email-error">
+        <Message role="error" data-testid="email-error">
           {errors.email.message}
-        </S.Message>
+        </Message>
       );
     }
 
     if (errorMessage?.email) return errorMessage.email;
 
-    return <S.MessageSpacer />;
+    return <MessageSpacer />;
   }, [errorMessage, errors.email]);
 
   return (
-    <form onSubmit={disabled ? () => null : handleSubmit(onSubmitSignUp)}>
-      <S.InputLabel hasError={!!(errors.email || errorMessage?.email)}>Email</S.InputLabel>
-      <S.InputOuter hasError={!!(errors.email || errorMessage?.email)}>
+    <form onSubmit={disabled ? undefined : handleSubmit(onSubmitSignUp)}>
+      <InputLabel hasError={!!(errors.email || errorMessage?.email)}>Email</InputLabel>
+      <InputOuter hasError={!!(errors.email || errorMessage?.email)}>
         <input
           id="email"
           {...register('email', {
@@ -105,11 +112,11 @@ function SignUpForm({ onSubmitSignUp, loading, errorMessage }: SignUpFormProps) 
           type="text"
           data-testid="signup-email"
         />
-      </S.InputOuter>
+      </InputOuter>
       {renderEmailError}
 
-      <S.InputLabel hasError={!!(errors.password || errorMessage?.password)}>Password</S.InputLabel>
-      <S.InputOuter hasError={!!(errors.password || errorMessage?.password)}>
+      <InputLabel hasError={!!(errors.password || errorMessage?.password)}>Password</InputLabel>
+      <InputOuter hasError={!!(errors.password || errorMessage?.password)}>
         <input
           id="password"
           {...register('password', {
@@ -124,23 +131,23 @@ function SignUpForm({ onSubmitSignUp, loading, errorMessage }: SignUpFormProps) 
           data-testid="signup-pwd"
         />
         <Tooltip title={showPassword ? 'Hide password' : 'Show password'}>
-          <S.Visibility
+          <Visibility
             data-testid="toggle-password"
             onClick={togglePasswordVisiblity}
             src={showPassword ? visibilityOn : visibilityOff}
             visible={showPassword ? 'true' : ''}
           />
         </Tooltip>
-      </S.InputOuter>
+      </InputOuter>
       {errors.password || errorMessage?.password ? (
-        <S.Message role="error">{errors?.password?.message || errorMessage?.password}</S.Message>
+        <Message role="error">{errors?.password?.message || errorMessage?.password}</Message>
       ) : (
-        <S.Message info="true">Password must be 8 characters long and alphanumerical.</S.Message>
+        <Message info="true">Password must be 8 characters long and alphanumerical.</Message>
       )}
       <AcceptTerms checked={checked} handleTOSChange={handleTOSChange} />
-      <S.Submit type="submit" disabled={disabled} name="Create Account" size="extraLarge">
+      <Submit type="submit" disabled={disabled} name="Create Account" size="extraLarge">
         Create Account
-      </S.Submit>
+      </Submit>
     </form>
   );
 }

@@ -263,7 +263,7 @@ export const Disclaimer = styled.div`
   margin: 10px 0px 12px;
 `;
 
-export const AcceptTerms = styled.div`
+export const AcceptTermsWrapper = styled.div`
   display: flex;
   font-weight: 400;
   font-size: ${(props) => props.theme.fontSizesUpdated.sm};

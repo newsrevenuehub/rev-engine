@@ -29,6 +29,17 @@ describe('Subscription', () => {
     expect(document.body.textContent).toBe('');
   });
 
+  it('displays nothing if the user in context has no organizations', () => {
+    useUserMock.mockReturnValue({
+      isError: false,
+      isLoading: true,
+      refetch: jest.fn(),
+      user: { organizations: [] } as any
+    });
+    tree();
+    expect(document.body.textContent).toBe('');
+  });
+
   it("displays the plan the user's first organization has", () => {
     tree();
     expect(screen.getByText('Free Tier')).toBeVisible();

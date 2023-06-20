@@ -1,5 +1,6 @@
-import { Redirect, Switch, useLocation } from 'react-router-dom';
 import { useSnackbar } from 'notistack';
+import { useEffect } from 'react';
+import { Redirect, Switch, useLocation } from 'react-router-dom';
 
 import GlobalLoading from 'elements/GlobalLoading';
 import * as S from './Dashboard.styled';
@@ -13,42 +14,42 @@ import {
   EDITOR_ROUTE,
   EDITOR_ROUTE_PAGE,
   EDITOR_ROUTE_PAGE_REDIRECT,
+  MAILCHIMP_OAUTH_SUCCESS_ROUTE,
   PROFILE,
-  SETTINGS,
-  MAILCHIMP_OAUTH_SUCCESS_ROUTE
+  SETTINGS
 } from 'routes';
 
 // Children
 import Profile from 'components/account/Profile';
+import SingleOrgUserOnlyRoute from 'components/authentication/SingleOrgUserOnlyRoute';
 import LivePage404 from 'components/common/LivePage404';
+import SystemNotification from 'components/common/SystemNotification/SystemNotification';
 import Content from 'components/content/Content';
 import Customize from 'components/content/Customize';
+import ConnectStripeElements from 'components/dashboard/connectStripe/ConnectStripeElements';
 import DashboardSidebar from 'components/dashboard/sidebar/DashboardSidebar';
 import DashboardTopbar from 'components/dashboard/topbar/DashboardTopbar';
 import Donations from 'components/donations/Donations';
+import PageEditorRoute from 'components/pageEditor/PageEditorRoute';
 import Integration from 'components/settings/Integration';
 import Organization from 'components/settings/Organization';
-import SingleOrgUserOnlyRoute from 'components/authentication/SingleOrgUserOnlyRoute';
-import PageEditorRoute from 'components/pageEditor/PageEditorRoute';
-import SystemNotification from 'components/common/SystemNotification/SystemNotification';
-
-import ConnectStripeElements from 'components/dashboard/connectStripe/ConnectStripeElements';
 
 // Feature flag-related
 import { CONTENT_SECTION_ACCESS_FLAG_NAME } from 'constants/featureFlagConstants';
 import useFeatureFlags from 'hooks/useFeatureFlags';
 
+import AudienceListModal from 'components/common/Modal/AudienceListModal';
+import { PageEditorRedirect } from 'components/pageEditor/PageEditorRedirect';
+import Subscription from 'components/settings/Subscription/Subscription';
+import useConnectMailchimp from 'hooks/useConnectMailchimp';
 import useConnectStripeAccount from 'hooks/useConnectStripeAccount';
+import useModal from 'hooks/useModal';
 import { SentryRoute } from 'hooks/useSentry';
 import useUser from 'hooks/useUser';
 import flagIsActiveForUser from 'utilities/flagIsActiveForUser';
 import hasContributionsDashboardAccessToUser from 'utilities/hasContributionsDashboardAccessToUser';
-import { useEffect } from 'react';
-import { PageEditorRedirect } from 'components/pageEditor/PageEditorRedirect';
 import MailchimpOAuthSuccess from './MailchimpOAuthSuccess';
-import useConnectMailchimp from 'hooks/useConnectMailchimp';
-import AudienceListModal from 'components/common/Modal/AudienceListModal';
-import Subscription from 'components/settings/Subscription/Subscription';
+import MailchimpModal from 'components/common/IntegrationCard/MailchimpIntegrationCard/MailchimpModal';
 
 function Dashboard() {
   const { enqueueSnackbar } = useSnackbar();
@@ -56,7 +57,15 @@ function Dashboard() {
   const { user } = useUser();
   const { requiresVerification, displayConnectionSuccess, hideConnectionSuccess, isLoading } =
     useConnectStripeAccount();
-  const { requiresAudienceSelection, isLoading: isMailchimpLoading } = useConnectMailchimp();
+  const {
+    requiresAudienceSelection,
+    isLoading: isMailchimpLoading,
+    recentlyConnectedToMailchimp,
+    organizationPlan,
+    connectedToMailchimp
+  } = useConnectMailchimp();
+  const { open, handleToggle } = useModal(true);
+  const showSuccessModal = open && recentlyConnectedToMailchimp;
   const hasContributionsSectionAccess = user?.role_type && hasContributionsDashboardAccessToUser(flags);
   const hasContentSectionAccess = user?.role_type && flagIsActiveForUser(CONTENT_SECTION_ACCESS_FLAG_NAME, flags);
   const dashboardSlugRedirect = hasContentSectionAccess
@@ -90,6 +99,15 @@ function Dashboard() {
     <S.Outer>
       {requiresVerification && <ConnectStripeElements />}
       {requiresAudienceSelection && <AudienceListModal open={requiresAudienceSelection} />}
+      {showSuccessModal && (
+        <MailchimpModal
+          firstTimeConnected
+          open={showSuccessModal}
+          onClose={handleToggle}
+          organizationPlan={organizationPlan}
+          isActive={connectedToMailchimp}
+        />
+      )}
       {!isEditPage && <DashboardTopbar user={user} />}
       <S.Dashboard data-testid="dashboard">
         {!isEditPage && <DashboardSidebar />}

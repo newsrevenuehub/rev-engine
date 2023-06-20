@@ -119,4 +119,8 @@ export interface UseConnectMailchimpResult {
    * Changes how quickly we refetch data from the API.
    */
   setRefetchInterval: Dispatch<SetStateAction<false | number>>;
+  /**
+   *  Mailchimp just connected and we need to show the user a success modal.
+   */
+  recentlyConnectedToMailchimp: boolean;
 }

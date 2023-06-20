@@ -1,22 +1,21 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
-import { useSnackbar } from 'notistack';
+import axios from 'ajax/axios';
+import { getRevenueProgramMailchimpStatusEndpoint } from 'ajax/endpoints';
+import { NRE_MAILCHIMP_CLIENT_ID } from 'appSettings';
+import { MAILCHIMP_INTEGRATION_ACCESS_FLAG_NAME } from 'constants/featureFlagConstants';
 import queryString from 'query-string';
 import { useCallback, useEffect, useMemo, useState } from 'react';
-import { NRE_MAILCHIMP_CLIENT_ID } from 'appSettings';
-import axios from 'ajax/axios';
-import SystemNotification from 'components/common/SystemNotification';
-import { MAILCHIMP_INTEGRATION_ACCESS_FLAG_NAME } from 'constants/featureFlagConstants';
 import { MAILCHIMP_OAUTH_SUCCESS_ROUTE } from 'routes';
 import flagIsActiveForUser from 'utilities/flagIsActiveForUser';
-import useFeatureFlags from './useFeatureFlags';
-import useUser from './useUser';
 import {
   MailchimpAudience,
   RevenueProgramMailchimpStatus,
   UseConnectMailchimpResult
 } from './useConnectMailchimp.types';
 import { RevenueProgram } from './useContributionPage';
-import { getRevenueProgramMailchimpStatusEndpoint } from 'ajax/endpoints';
+import useFeatureFlags from './useFeatureFlags';
+import usePreviousState from './usePreviousState';
+import useUser from './useUser';
 
 const BASE_URL = window.location.origin;
 export const MAILCHIMP_OAUTH_CALLBACK = `${BASE_URL}${MAILCHIMP_OAUTH_SUCCESS_ROUTE}`;
@@ -29,7 +28,6 @@ export default function useConnectMailchimp(): UseConnectMailchimpResult {
   // Allow our refetch interval to be configurable, but default to false, which
   // means it won't refetch on its own.
   const [refetchInterval, setRefetchInterval] = useState<false | number>(false);
-  const { enqueueSnackbar } = useSnackbar();
   const { user, isError: userIsError, isLoading: userIsLoading } = useUser();
   const firstRevenueProgram = useMemo(() => user?.revenue_programs?.[0], [user?.revenue_programs]);
   const queryClient = useQueryClient();
@@ -54,12 +52,6 @@ export default function useConnectMailchimp(): UseConnectMailchimpResult {
     {
       onSuccess: () => {
         queryClient.invalidateQueries(['revenueProgramMailchimpStatus']);
-        enqueueSnackbar('You’ve successfully connected to Mailchimp! Your contributor data will sync automatically.', {
-          persist: true,
-          content: (key: string, message: string) => (
-            <SystemNotification id={key} message={message} header="Successfully Connected!" type="success" />
-          )
-        });
       }
     }
   );
@@ -71,6 +63,7 @@ export default function useConnectMailchimp(): UseConnectMailchimpResult {
   );
   const { flags } = useFeatureFlags();
   const hasMailchimpAccess = flagIsActiveForUser(MAILCHIMP_INTEGRATION_ACCESS_FLAG_NAME, flags);
+  const prevMailchimpConnection = usePreviousState(mailchimpData?.mailchimp_integration_connected);
   const sendUserToMailchimp = useCallback(() => {
     if (!NRE_MAILCHIMP_CLIENT_ID) {
       // Should never happen--only if there is an issue with the env variable.
@@ -91,6 +84,11 @@ export default function useConnectMailchimp(): UseConnectMailchimpResult {
 
   const requiresAudienceSelection =
     !mailchimpData?.mailchimp_list_id && (mailchimpData?.available_mailchimp_email_lists?.length ?? 0) > 0;
+
+  const recentlyConnectedToMailchimp = useMemo(
+    () => !!(mailchimpData?.mailchimp_integration_connected && prevMailchimpConnection === false),
+    [mailchimpData?.mailchimp_integration_connected, prevMailchimpConnection]
+  );
 
   useEffect(() => {
     // Reset the retrieval interval; we might have increased it in
@@ -113,7 +111,8 @@ export default function useConnectMailchimp(): UseConnectMailchimpResult {
     isError: userIsError || mailchimpIsError,
     isLoading: userIsLoading || (mailchimpQueryEnabled && mailchimpIsLoading),
     organizationPlan: user?.organizations?.[0]?.plan?.name,
-    revenueProgram: firstRevenueProgram
+    revenueProgram: firstRevenueProgram,
+    recentlyConnectedToMailchimp
   };
 
   // If we are in an error state, then override loading status. e.g. If the user

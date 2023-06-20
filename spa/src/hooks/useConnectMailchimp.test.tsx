@@ -1,6 +1,5 @@
 import { act, renderHook } from '@testing-library/react-hooks';
 import MockAdapter from 'axios-mock-adapter';
-import { useSnackbar } from 'notistack';
 import queryString from 'query-string';
 import { NRE_MAILCHIMP_CLIENT_ID } from 'appSettings';
 import Axios from 'ajax/axios';
@@ -16,14 +15,9 @@ jest.mock('appSettings', () => ({
 }));
 jest.mock('hooks/useUser');
 jest.mock('hooks/useFeatureFlags');
-jest.mock('notistack', () => ({
-  ...jest.requireActual('notistack'),
-  useSnackbar: jest.fn()
-}));
 
 const useUserMock = jest.mocked(useUser);
 const useFeatureFlagsMock = jest.mocked(useFeatureFlags);
-const useSnackbarMock = jest.mocked(useSnackbar);
 
 const mockUser: User = {
   email: 'mock@email.com',
@@ -69,7 +63,6 @@ describe('useConnectMailchimp hook', () => {
   const axiosMock = new MockAdapter(Axios);
 
   beforeEach(() => {
-    useSnackbarMock.mockReturnValue({ enqueueSnackbar: jest.fn(), closeSnackbar: jest.fn() });
     useFeatureFlagsMock.mockReturnValue({
       flags: [{ name: MAILCHIMP_INTEGRATION_ACCESS_FLAG_NAME }],
       isLoading: false,
@@ -119,6 +112,7 @@ describe('useConnectMailchimp hook', () => {
         connectedToMailchimp: false,
         hasMailchimpAccess: false,
         requiresAudienceSelection: false,
+        recentlyConnectedToMailchimp: false,
         setRefetchInterval: expect.any(Function)
       });
     });
@@ -159,6 +153,7 @@ describe('useConnectMailchimp hook', () => {
         connectedToMailchimp: false,
         hasMailchimpAccess: false,
         requiresAudienceSelection: false,
+        recentlyConnectedToMailchimp: false,
         setRefetchInterval: expect.any(Function)
       });
     });
@@ -515,40 +510,36 @@ describe('useConnectMailchimp hook', () => {
         );
       });
 
-      it('shows a connection success notification if audience selection patch succeeds', async () => {
-        const enqueueSnackbar = jest.fn();
-        useSnackbarMock.mockReturnValue({ enqueueSnackbar, closeSnackbar: jest.fn() });
-        axiosMock.onPatch(mailchimpStatusEndpoint).reply(200);
-        const { result, waitFor } = hook();
-
-        await waitFor(() => expect(axiosMock.history.get.length).toBe(1));
-        expect(typeof result.current.selectAudience).toBe('function');
-        expect(enqueueSnackbar).not.toBeCalled();
-        result.current.selectAudience!('100');
-        await waitFor(() => expect(axiosMock.history.patch.length).toBe(1));
-        expect(enqueueSnackbar).toBeCalledTimes(1);
-        expect(enqueueSnackbar).toBeCalledWith(
-          'You’ve successfully connected to Mailchimp! Your contributor data will sync automatically.',
-          expect.objectContaining({
-            persist: true
+      it('shows returns "recentlyConnectedToMailchimp = true" if the mailchimp_integration_connected property changes from false to true', async () => {
+        axiosMock.reset();
+        axiosMock
+          .onGet(mailchimpStatusEndpoint)
+          .replyOnce(200, {
+            available_mailchimp_email_lists: mockMailchimpLists,
+            mailchimp_integration_connected: false
           })
-        );
-      });
+          .onGet(mailchimpStatusEndpoint)
+          .reply(200, {
+            available_mailchimp_email_lists: mockMailchimpLists,
+            mailchimp_integration_connected: true
+          });
 
-      it('does not show any notification if audience selection patch fails', async () => {
-        const enqueueSnackbar = jest.fn();
-        useSnackbarMock.mockReturnValue({ enqueueSnackbar, closeSnackbar: jest.fn() });
-        axiosMock.onPatch().networkError();
         const { result, waitFor } = hook();
+        expect(result.current.recentlyConnectedToMailchimp).toEqual(false);
+
+        // Wait for the initial render.
 
         await waitFor(() => expect(axiosMock.history.get.length).toBe(1));
-        expect(typeof result.current.selectAudience).toBe('function');
-        expect(enqueueSnackbar).not.toBeCalled();
-        result.current.selectAudience!('100');
-        await waitFor(() => {
-          Promise.resolve();
-        });
-        expect(enqueueSnackbar).not.toBeCalled();
+
+        // Force refetch to go faster.
+
+        act(() => result.current.setRefetchInterval(30));
+        expect(result.current.recentlyConnectedToMailchimp).toEqual(false);
+
+        // When the second request finishes, the notification should fire.
+
+        await waitFor(() => expect(axiosMock.history.get.length).toBe(2));
+        expect(result.current.recentlyConnectedToMailchimp).toEqual(true);
       });
     });
   });

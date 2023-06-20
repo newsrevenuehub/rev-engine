@@ -17,6 +17,7 @@ const mockMailchimpStatus = {
   isError: false,
   isLoading: false,
   requiresAudienceSelection: true,
+  recentlyConnectedToMailchimp: false,
   selectAudience: jest.fn(),
   setRefetchInterval: jest.fn()
 };

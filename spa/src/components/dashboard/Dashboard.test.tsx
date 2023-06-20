@@ -56,6 +56,7 @@ describe('Dashboard', () => {
       connectedToMailchimp: false,
       isError: false,
       hasMailchimpAccess: true,
+      recentlyConnectedToMailchimp: false,
       setRefetchInterval: jest.fn()
     });
     useConnectStripeAccountMock.mockReturnValue({
@@ -116,6 +117,7 @@ describe('Dashboard', () => {
       connectedToMailchimp: false,
       isError: false,
       hasMailchimpAccess: true,
+      recentlyConnectedToMailchimp: false,
       setRefetchInterval: jest.fn()
     });
     render(<Dashboard />);
@@ -130,6 +132,7 @@ describe('Dashboard', () => {
       connectedToMailchimp: false,
       isError: false,
       hasMailchimpAccess: true,
+      recentlyConnectedToMailchimp: false,
       setRefetchInterval: jest.fn()
     });
     render(<Dashboard />);

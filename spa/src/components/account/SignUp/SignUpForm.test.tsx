@@ -1,16 +1,11 @@
-import { render, screen, fireEvent, waitFor } from 'test-utils';
-import SignUpForm from './SignUpForm';
-import ReactTestUtils from 'react-dom/test-utils';
+import { fireEvent, render, screen, waitFor } from 'test-utils';
+import SignUpForm, { SignUpFormProps } from './SignUpForm';
 
-import Input from 'elements/inputs/Input';
-
-const mockSubmit = jest.fn((email, password) => {
-  return Promise.resolve({ email, password });
-});
+const mockSubmit = jest.fn();
 
 describe('SignUpForm Tests', () => {
-  function getScreen() {
-    return render(<SignUpForm onSubmitSignUp={mockSubmit} loading={false} />);
+  function getScreen(props?: Partial<SignUpFormProps>) {
+    return render(<SignUpForm onSubmitSignUp={mockSubmit} loading={false} {...props} />);
   }
 
   it('should have password toggle icon to show/hide value of password if visibility icon is clicked', () => {
@@ -23,14 +18,14 @@ describe('SignUpForm Tests', () => {
     });
     const toggleIcon = screen.getByTestId('toggle-password');
     fireEvent.click(toggleIcon);
-    expect(password.getAttribute('type')).toEqual(Input.types.TEXT);
+    expect(password.getAttribute('type')).toEqual('text');
     fireEvent.click(toggleIcon);
-    expect(password.getAttribute('type')).toEqual(Input.types.PASSWORD);
+    expect(password.getAttribute('type')).toEqual('password');
   });
 
   it('should not submit if email and password are blank', async () => {
     getScreen();
-    fireEvent.submit(screen.getByRole('button', { type: 'submit' }));
+    fireEvent.submit(screen.getByRole('button', { name: 'Create Account' }));
     await waitFor(() => expect(screen.queryAllByRole('error')).toHaveLength(0));
     expect(mockSubmit).not.toBeCalled();
   });
@@ -42,7 +37,7 @@ describe('SignUpForm Tests', () => {
         value: 'test@test.com'
       }
     });
-    fireEvent.submit(screen.getByRole('button', { type: 'submit' }));
+    fireEvent.submit(screen.getByRole('button', { name: 'Create Account' }));
     await waitFor(() => expect(screen.queryAllByRole('error')).toHaveLength(0));
     expect(mockSubmit).not.toBeCalled();
   });
@@ -59,9 +54,10 @@ describe('SignUpForm Tests', () => {
         value: 'test'
       }
     });
-    const inp = screen.getByTestId('acceptTermsCheckbox').querySelector('input[type="checkbox"]');
-    ReactTestUtils.Simulate.change(inp, { target: { checked: true } });
-    fireEvent.submit(screen.getByRole('button', { type: 'submit' }));
+    fireEvent.click(screen.getByRole('checkbox'));
+    expect(screen.getByRole('checkbox')).toBeChecked();
+
+    fireEvent.submit(screen.getByRole('button', { name: 'Create Account' }));
     expect(await screen.findAllByRole('error')).toHaveLength(1);
     expect(mockSubmit).not.toBeCalled();
   });
@@ -79,10 +75,10 @@ describe('SignUpForm Tests', () => {
       }
     });
 
-    const inp = screen.getByTestId('acceptTermsCheckbox').querySelector('input[type="checkbox"]');
-    ReactTestUtils.Simulate.change(inp, { target: { checked: true } });
+    fireEvent.click(screen.getByRole('checkbox'));
+    expect(screen.getByRole('checkbox')).toBeChecked();
 
-    fireEvent.submit(screen.getByRole('button', { type: 'submit' }));
+    fireEvent.submit(screen.getByRole('button', { name: 'Create Account' }));
     expect(await screen.findAllByRole('error')).toHaveLength(2);
     expect(mockSubmit).not.toBeCalled();
   });
@@ -100,7 +96,8 @@ describe('SignUpForm Tests', () => {
       }
     });
 
-    fireEvent.submit(screen.getByRole('button', { type: 'submit' }));
+    expect(screen.getByRole('checkbox')).not.toBeChecked();
+    fireEvent.submit(screen.getByRole('button', { name: 'Create Account' }));
     await waitFor(() => expect(screen.queryAllByRole('error')).toHaveLength(0));
     expect(mockSubmit).not.toBeCalled();
   });
@@ -118,11 +115,21 @@ describe('SignUpForm Tests', () => {
       }
     });
 
-    const inp = screen.getByTestId('acceptTermsCheckbox').querySelector('input[type="checkbox"]');
-    ReactTestUtils.Simulate.change(inp, { target: { checked: true } });
+    expect(screen.getByRole('checkbox')).not.toBeChecked();
+    fireEvent.click(screen.getByRole('checkbox'));
+    expect(screen.getByRole('checkbox')).toBeChecked();
 
-    fireEvent.submit(screen.getByRole('button', { type: 'submit' }));
+    fireEvent.submit(screen.getByRole('button', { name: 'Create Account' }));
     await waitFor(() => expect(screen.queryAllByRole('error')).toHaveLength(0));
     expect(mockSubmit).toBeCalled();
+  });
+
+  it('should show custom email error message if errorMessage.email is set', () => {
+    getScreen({ errorMessage: { email: 'mock-error-message' } });
+    expect(screen.getByText('mock-error-message')).toBeInTheDocument();
+  });
+  it('should show custom password error message if errorMessage.password is set', () => {
+    getScreen({ errorMessage: { password: 'mock-error-message' } });
+    expect(screen.getByText('mock-error-message')).toBeInTheDocument();
   });
 });

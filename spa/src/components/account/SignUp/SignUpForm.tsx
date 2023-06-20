@@ -1,22 +1,44 @@
-import { useState, useMemo } from 'react';
+import PropTypes, { InferProps } from 'prop-types';
+import { useMemo, useState } from 'react';
 import { useForm } from 'react-hook-form';
-import PropTypes from 'prop-types';
 
 import useModal from 'hooks/useModal';
 
-import * as S from '../Account.styled';
-
-import visibilityOn from 'assets/images/account/visibility_on.png';
-import visibilityOff from 'assets/images/account/visibility_off.png';
 import Checkbox from '@material-ui/core/Checkbox';
+import visibilityOff from 'assets/images/account/visibility_off.png';
+import visibilityOn from 'assets/images/account/visibility_on.png';
 import { Tooltip } from 'components/base';
+import {
+  AcceptTermsText,
+  AcceptTermsWrapper,
+  InputLabel,
+  InputOuter,
+  Message,
+  MessageSpacer,
+  Submit,
+  Visibility
+} from '../Account.styled';
 
 export const termsLink = 'https://fundjournalism.org/faq/terms-of-service/';
 export const policyLink = 'https://fundjournalism.org/faq/privacy-policy/';
 
-function AcceptTerms({ checked, handleTOSChange }) {
+export type SignUpFormValues = {
+  email: string;
+  password: string;
+};
+
+export interface SignUpFormProps extends InferProps<typeof SignUpFormPropTypes> {
+  onSubmitSignUp: (fdata: SignUpFormValues) => void;
+}
+
+type AcceptTermsProps = {
+  checked: boolean;
+  handleTOSChange: (event: React.ChangeEvent<HTMLInputElement>) => void;
+};
+
+function AcceptTerms({ checked, handleTOSChange }: AcceptTermsProps) {
   return (
-    <S.AcceptTerms>
+    <AcceptTermsWrapper>
       <Checkbox
         checked={checked}
         onChange={handleTOSChange}
@@ -27,7 +49,7 @@ function AcceptTerms({ checked, handleTOSChange }) {
           padding: 0
         }}
       />
-      <S.AcceptTermsText>
+      <AcceptTermsText>
         I agree to News Revenue Hub’s{' '}
         <a href={termsLink} rel="noreferrer" target="_blank">
           Terms & Conditions
@@ -37,16 +59,16 @@ function AcceptTerms({ checked, handleTOSChange }) {
           Privacy Policy
         </a>
         .
-      </S.AcceptTermsText>
-    </S.AcceptTerms>
+      </AcceptTermsText>
+    </AcceptTermsWrapper>
   );
 }
 
-function SignUpForm({ onSubmitSignUp, loading, errorMessage }) {
+function SignUpForm({ onSubmitSignUp, loading, errorMessage }: SignUpFormProps) {
   const [checked, setChecked] = useState(false);
   const { open: showPassword, handleToggle: togglePasswordVisiblity } = useModal();
 
-  const handleTOSChange = (event) => {
+  const handleTOSChange = (event: React.ChangeEvent<HTMLInputElement>) => {
     setChecked(event.target.checked);
   };
 
@@ -55,7 +77,7 @@ function SignUpForm({ onSubmitSignUp, loading, errorMessage }) {
     handleSubmit,
     formState: { errors },
     watch
-  } = useForm();
+  } = useForm<SignUpFormValues>();
 
   const watchEmail = watch('email', '');
   const watchPassword = watch('password', '');
@@ -64,24 +86,23 @@ function SignUpForm({ onSubmitSignUp, loading, errorMessage }) {
   const renderEmailError = useMemo(() => {
     if (errors.email) {
       return (
-        <S.Message role="error" data-testid="email-error">
+        <Message role="error" data-testid="email-error">
           {errors.email.message}
-        </S.Message>
+        </Message>
       );
     }
 
-    if (errorMessage) return errorMessage;
+    if (errorMessage?.email) return errorMessage.email;
 
-    return <S.MessageSpacer />;
+    return <MessageSpacer />;
   }, [errorMessage, errors.email]);
 
   return (
-    <form onSubmit={disabled ? () => {} : handleSubmit(onSubmitSignUp)}>
-      <S.InputLabel hasError={errors.email || errorMessage}>Email</S.InputLabel>
-      <S.InputOuter hasError={errors.email || errorMessage}>
+    <form onSubmit={disabled ? undefined : handleSubmit(onSubmitSignUp)}>
+      <InputLabel hasError={!!(errors.email || errorMessage?.email)}>Email</InputLabel>
+      <InputOuter hasError={!!(errors.email || errorMessage?.email)}>
         <input
           id="email"
-          name="email"
           {...register('email', {
             pattern: {
               value: /\S+@\S+\.\S+/,
@@ -89,17 +110,15 @@ function SignUpForm({ onSubmitSignUp, loading, errorMessage }) {
             }
           })}
           type="text"
-          status={errors.email || errorMessage}
           data-testid="signup-email"
         />
-      </S.InputOuter>
+      </InputOuter>
       {renderEmailError}
 
-      <S.InputLabel hasError={errors.password}>Password</S.InputLabel>
-      <S.InputOuter hasError={errors.password}>
+      <InputLabel hasError={!!(errors.password || errorMessage?.password)}>Password</InputLabel>
+      <InputOuter hasError={!!(errors.password || errorMessage?.password)}>
         <input
           id="password"
-          name="password"
           {...register('password', {
             required: 'Please enter your password',
             validate: (val) => {
@@ -109,35 +128,39 @@ function SignUpForm({ onSubmitSignUp, loading, errorMessage }) {
             }
           })}
           type={showPassword ? 'text' : 'password'}
-          status={errors.password}
           data-testid="signup-pwd"
         />
         <Tooltip title={showPassword ? 'Hide password' : 'Show password'}>
-          <S.Visibility
+          <Visibility
             data-testid="toggle-password"
             onClick={togglePasswordVisiblity}
             src={showPassword ? visibilityOn : visibilityOff}
             visible={showPassword ? 'true' : ''}
           />
         </Tooltip>
-      </S.InputOuter>
-      {errors.password ? (
-        <S.Message role="error">{errors.password.message}</S.Message>
+      </InputOuter>
+      {errors.password || errorMessage?.password ? (
+        <Message role="error">{errors?.password?.message || errorMessage?.password}</Message>
       ) : (
-        <S.Message info="true">Password must be 8 characters long and alphanumerical.</S.Message>
+        <Message info="true">Password must be 8 characters long and alphanumerical.</Message>
       )}
       <AcceptTerms checked={checked} handleTOSChange={handleTOSChange} />
-      <S.Submit type="submit" disabled={disabled} name="Create Account" size="extraLarge">
+      <Submit type="submit" disabled={disabled} name="Create Account" size="extraLarge">
         Create Account
-      </S.Submit>
+      </Submit>
     </form>
   );
 }
 
-SignUpForm.propTypes = {
+const SignUpFormPropTypes = {
   onSubmitSignUp: PropTypes.func,
   loading: PropTypes.bool,
-  errorMessage: PropTypes.node
+  errorMessage: PropTypes.shape({
+    password: PropTypes.node,
+    email: PropTypes.node
+  })
 };
+
+SignUpForm.propTypes = SignUpFormPropTypes;
 
 export default SignUpForm;

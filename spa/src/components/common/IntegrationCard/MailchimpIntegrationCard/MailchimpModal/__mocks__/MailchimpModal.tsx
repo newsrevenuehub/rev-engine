@@ -4,8 +4,7 @@ const MailchimpModal = ({ open, onClose, firstTimeConnected }: MailchimpModalPro
   return (
     <>
       {open && (
-        <div data-testid="mock-mailchimp-modal">
-          firstTimeConnected={firstTimeConnected ? 'true' : 'false'}
+        <div data-testid="mock-mailchimp-modal" data-firstTimeConnected={firstTimeConnected}>
           <button onClick={onClose} data-testid="mock-mailchimp-modal-close">
             mailchimp-modal-close
           </button>

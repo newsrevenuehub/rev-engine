@@ -112,7 +112,7 @@ describe('useConnectMailchimp hook', () => {
         connectedToMailchimp: false,
         hasMailchimpAccess: false,
         requiresAudienceSelection: false,
-        recentlyConnectedToMailchimp: false,
+        justConnectedToMailchimp: false,
         setRefetchInterval: expect.any(Function)
       });
     });
@@ -153,7 +153,7 @@ describe('useConnectMailchimp hook', () => {
         connectedToMailchimp: false,
         hasMailchimpAccess: false,
         requiresAudienceSelection: false,
-        recentlyConnectedToMailchimp: false,
+        justConnectedToMailchimp: false,
         setRefetchInterval: expect.any(Function)
       });
     });
@@ -510,7 +510,7 @@ describe('useConnectMailchimp hook', () => {
         );
       });
 
-      it('shows returns "recentlyConnectedToMailchimp = true" if the mailchimp_integration_connected property changes from false to true', async () => {
+      it('shows returns "justConnectedToMailchimp = true" if the mailchimp_integration_connected property changes from false to true', async () => {
         axiosMock.reset();
         axiosMock
           .onGet(mailchimpStatusEndpoint)
@@ -525,7 +525,7 @@ describe('useConnectMailchimp hook', () => {
           });
 
         const { result, waitFor } = hook();
-        expect(result.current.recentlyConnectedToMailchimp).toEqual(false);
+        expect(result.current.justConnectedToMailchimp).toEqual(false);
 
         // Wait for the initial render.
 
@@ -534,12 +534,12 @@ describe('useConnectMailchimp hook', () => {
         // Force refetch to go faster.
 
         act(() => result.current.setRefetchInterval(30));
-        expect(result.current.recentlyConnectedToMailchimp).toEqual(false);
+        expect(result.current.justConnectedToMailchimp).toEqual(false);
 
-        // When the second request finishes, the notification should fire.
+        // When the second request finishes, justConnectedToMailchimp should return "true".
 
         await waitFor(() => expect(axiosMock.history.get.length).toBe(2));
-        expect(result.current.recentlyConnectedToMailchimp).toEqual(true);
+        expect(result.current.justConnectedToMailchimp).toEqual(true);
       });
     });
   });

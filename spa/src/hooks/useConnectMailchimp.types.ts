@@ -122,5 +122,5 @@ export interface UseConnectMailchimpResult {
   /**
    *  Mailchimp just connected and we need to show the user a success modal.
    */
-  recentlyConnectedToMailchimp: boolean;
+  justConnectedToMailchimp: boolean;
 }

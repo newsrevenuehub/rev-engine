@@ -60,12 +60,12 @@ function Dashboard() {
   const {
     requiresAudienceSelection,
     isLoading: isMailchimpLoading,
-    recentlyConnectedToMailchimp,
+    justConnectedToMailchimp,
     organizationPlan,
     connectedToMailchimp
   } = useConnectMailchimp();
   const { open, handleToggle } = useModal(true);
-  const showSuccessModal = open && recentlyConnectedToMailchimp;
+  const showSuccessModal = open && justConnectedToMailchimp;
   const hasContributionsSectionAccess = user?.role_type && hasContributionsDashboardAccessToUser(flags);
   const hasContentSectionAccess = user?.role_type && flagIsActiveForUser(CONTENT_SECTION_ACCESS_FLAG_NAME, flags);
   const dashboardSlugRedirect = hasContentSectionAccess

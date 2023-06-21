@@ -24,7 +24,7 @@ const mockUseConnectMailchimpResult = {
   isError: false,
   isLoading: false,
   requiresAudienceSelection: false,
-  recentlyConnectedToMailchimp: false,
+  justConnectedToMailchimp: false,
   revenueProgram: { id: 'mock-rp-id' } as unknown as RevenueProgram,
   setRefetchInterval: jest.fn()
 };

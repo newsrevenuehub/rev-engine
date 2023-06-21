@@ -19,7 +19,7 @@ describe('MailchimpIntegrationCard', () => {
       connectedToMailchimp: false,
       requiresAudienceSelection: false,
       hasMailchimpAccess: false,
-      recentlyConnectedToMailchimp: false,
+      justConnectedToMailchimp: false,
       setRefetchInterval: jest.fn()
     });
   });
@@ -36,7 +36,7 @@ describe('MailchimpIntegrationCard', () => {
       connectedToMailchimp: true,
       requiresAudienceSelection: false,
       hasMailchimpAccess: true,
-      recentlyConnectedToMailchimp: false,
+      justConnectedToMailchimp: false,
       setRefetchInterval: jest.fn()
     });
     tree();
@@ -51,7 +51,7 @@ describe('MailchimpIntegrationCard', () => {
       connectedToMailchimp: false,
       requiresAudienceSelection: false,
       hasMailchimpAccess: false,
-      recentlyConnectedToMailchimp: false,
+      justConnectedToMailchimp: false,
       setRefetchInterval: jest.fn()
     });
     tree();
@@ -73,7 +73,7 @@ describe('MailchimpIntegrationCard', () => {
         organizationPlan: organizationPlan as any,
         requiresAudienceSelection: false,
         hasMailchimpAccess: true,
-        recentlyConnectedToMailchimp: false,
+        justConnectedToMailchimp: false,
         setRefetchInterval: jest.fn()
       });
       tree();
@@ -97,7 +97,7 @@ describe('MailchimpIntegrationCard', () => {
         requiresAudienceSelection: false,
         hasMailchimpAccess: true,
         sendUserToMailchimp: jest.fn(),
-        recentlyConnectedToMailchimp: false,
+        justConnectedToMailchimp: false,
         setRefetchInterval: jest.fn()
       });
       tree();
@@ -120,7 +120,7 @@ describe('MailchimpIntegrationCard', () => {
         sendUserToMailchimp,
         requiresAudienceSelection: false,
         hasMailchimpAccess: true,
-        recentlyConnectedToMailchimp: false,
+        justConnectedToMailchimp: false,
         setRefetchInterval: jest.fn()
       });
       tree();

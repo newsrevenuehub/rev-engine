@@ -56,7 +56,7 @@ describe('Dashboard', () => {
       connectedToMailchimp: false,
       isError: false,
       hasMailchimpAccess: true,
-      recentlyConnectedToMailchimp: false,
+      justConnectedToMailchimp: false,
       setRefetchInterval: jest.fn()
     });
     useConnectStripeAccountMock.mockReturnValue({
@@ -117,7 +117,7 @@ describe('Dashboard', () => {
       connectedToMailchimp: false,
       isError: false,
       hasMailchimpAccess: true,
-      recentlyConnectedToMailchimp: false,
+      justConnectedToMailchimp: false,
       setRefetchInterval: jest.fn()
     });
     render(<Dashboard />);
@@ -132,7 +132,7 @@ describe('Dashboard', () => {
       connectedToMailchimp: false,
       isError: false,
       hasMailchimpAccess: true,
-      recentlyConnectedToMailchimp: false,
+      justConnectedToMailchimp: false,
       setRefetchInterval: jest.fn()
     });
     render(<Dashboard />);
@@ -140,7 +140,7 @@ describe('Dashboard', () => {
   });
 
   describe('Mailchimp Success modal', () => {
-    it('should display Mailchimp Success modal if recentlyConnectedToMailchimp = true', () => {
+    it('should display Mailchimp Success modal if justConnectedToMailchimp = true', () => {
       useConnectMailchimpMock.mockReturnValue({
         requiresAudienceSelection: true,
         revenueProgram: 'mock-rp' as any,
@@ -148,7 +148,7 @@ describe('Dashboard', () => {
         connectedToMailchimp: false,
         isError: false,
         hasMailchimpAccess: true,
-        recentlyConnectedToMailchimp: true,
+        justConnectedToMailchimp: true,
         setRefetchInterval: jest.fn()
       });
       render(<Dashboard />);
@@ -163,15 +163,16 @@ describe('Dashboard', () => {
         connectedToMailchimp: false,
         isError: false,
         hasMailchimpAccess: true,
-        recentlyConnectedToMailchimp: true,
+        justConnectedToMailchimp: true,
         setRefetchInterval: jest.fn()
       });
       render(<Dashboard />);
-      expect(screen.getByTestId('mock-mailchimp-modal')).toBeInTheDocument();
-      expect(screen.getByText('firstTimeConnected=true')).toBeInTheDocument();
+      const modal = screen.getByTestId('mock-mailchimp-modal');
+      expect(modal).toBeInTheDocument();
+      expect(modal).toHaveAttribute('data-firstTimeConnected', 'true');
     });
 
-    it('should not display Mailchimp Success modal if recentlyConnectedToMailchimp = false', () => {
+    it('should not display Mailchimp Success modal if justConnectedToMailchimp = false', () => {
       useConnectMailchimpMock.mockReturnValue({
         requiresAudienceSelection: false,
         revenueProgram: 'mock-rp' as any,
@@ -180,7 +181,7 @@ describe('Dashboard', () => {
         isError: false,
         hasMailchimpAccess: true,
         setRefetchInterval: jest.fn(),
-        recentlyConnectedToMailchimp: false
+        justConnectedToMailchimp: false
       });
       render(<Dashboard />);
       expect(screen.queryByTestId('mock-mailchimp-modal')).not.toBeInTheDocument();
@@ -195,7 +196,7 @@ describe('Dashboard', () => {
         isError: false,
         hasMailchimpAccess: true,
         setRefetchInterval: jest.fn(),
-        recentlyConnectedToMailchimp: true
+        justConnectedToMailchimp: true
       });
       render(<Dashboard />);
       expect(screen.getByTestId('mock-mailchimp-modal')).toBeInTheDocument();

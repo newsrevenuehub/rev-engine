@@ -85,7 +85,7 @@ export default function useConnectMailchimp(): UseConnectMailchimpResult {
   const requiresAudienceSelection =
     !mailchimpData?.mailchimp_list_id && (mailchimpData?.available_mailchimp_email_lists?.length ?? 0) > 0;
 
-  const recentlyConnectedToMailchimp = useMemo(
+  const justConnectedToMailchimp = useMemo(
     () => !!(mailchimpData?.mailchimp_integration_connected && prevMailchimpConnection === false),
     [mailchimpData?.mailchimp_integration_connected, prevMailchimpConnection]
   );
@@ -112,7 +112,7 @@ export default function useConnectMailchimp(): UseConnectMailchimpResult {
     isLoading: userIsLoading || (mailchimpQueryEnabled && mailchimpIsLoading),
     organizationPlan: user?.organizations?.[0]?.plan?.name,
     revenueProgram: firstRevenueProgram,
-    recentlyConnectedToMailchimp
+    justConnectedToMailchimp
   };
 
   // If we are in an error state, then override loading status. e.g. If the user

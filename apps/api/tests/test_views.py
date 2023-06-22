@@ -114,7 +114,7 @@ class TokenObtainPairCookieViewTest(APITestCase):
 @pytest.mark.django_db()
 @override_settings(CELERY_ALWAYS_EAGER=True)
 def test_magic_link_custom_email_template(rf, mocker, revenue_program, has_default_donation_page, client):
-    email = "vanilla@email.com"
+    email = ContributorFactory().email
 
     """This test spans two requests, first requesting magic link, then using data in the magic link to verify contributor token
 
@@ -179,13 +179,10 @@ def test_magic_link_custom_email_template(rf, mocker, revenue_program, has_defau
         assert x not in html_body
 
 
-@pytest.mark.parametrize(
-    "email",
-    ["vanilla@email.com", "vanilla+spice@email.com"],
-)
 @pytest.mark.django_db()
 @override_settings(CELERY_ALWAYS_EAGER=True)
-def test_request_contributor_token_creates_usable_magic_links(rf, mocker, email, client):
+def test_request_contributor_token_creates_usable_magic_links(rf, mocker, client):
+    email = ContributorFactory().email
     """This test spans two requests, first requesting magic link, then using data in the magic link to verify contributor token
 
     Ultimately, it is the SPA's repsonsiblity to correctly handle the data provided in the magic link, but assuming it
@@ -240,15 +237,15 @@ class RequestContributorTokenEmailViewTest(APITestCase):
         self.url = reverse("contributor-token-request")
         self.outbox = mail.outbox
 
-    def test_normal_response_when_valid_but_unrecognized_email(self):
+    def test_fail_response_when_valid_but_unrecognized_email(self):
         target_email = "testing123@testing123.com"
         # Verify that there are no contributors with target email
         self.assertEqual(Contributor.objects.filter(email=target_email).count(), 0)
         response = self.client.post(self.url, {"email": target_email, "subdomain": "rp"})
-        # We don't want to indicate in any way whether or not an email is in the system.
-        self.assertEqual(response.status_code, 200)
-        # this view creates a contributor if none exists
-        self.assertEqual(Contributor.objects.filter(email=target_email).count(), 1)
+        # Return a "Not found" response
+        self.assertEqual(response.status_code, 404)
+        # this view doesn't create a contributor if none exists
+        self.assertEqual(Contributor.objects.filter(email=target_email).count(), 0)
 
     def test_validation_when_email_is_invalid(self):
         response = self.client.post(self.url, {"email": "invalid_email"})

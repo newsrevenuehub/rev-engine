@@ -155,11 +155,11 @@ class RequestContributorTokenEmailView(APIView):
         logger.info("[RequestContributorTokenEmailView][post] Request received for magic link %s", request.data)
         serializer = ContributorObtainTokenSerializer(data=request.data)
         serializer.is_valid(raise_exception=True)
-        contributor, created = Contributor.objects.get_or_create(email=request.data["email"])
-        if created:
-            logger.info(
-                "[RequestContributorTokenEmailView] Created new contributor with email %s", request.data["email"]
-            )
+        logger.info(
+            "[RequestContributorTokenEmailView] Searching for contributor with email %s...", request.data["email"]
+        )
+        contributor = get_object_or_404(Contributor, email=request.data["email"])
+        logger.info("[RequestContributorTokenEmailView] Contributor with email %s found", request.data["email"])
 
         serializer.update_short_lived_token(contributor)
 

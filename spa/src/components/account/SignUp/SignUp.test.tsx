@@ -1,6 +1,6 @@
+import { SIGN_IN } from 'routes';
 import { render, screen } from 'test-utils';
 import SignUp from './SignUp';
-import { SIGN_IN } from 'routes';
 
 it('should show the right revengine logo', () => {
   render(<SignUp />);

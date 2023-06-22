@@ -165,6 +165,7 @@ def email_contribution_csv_export_to_user(
     )
 
 
+@shared_task(bind=True, autoretry_for=(RateLimitError,), retry_backoff=True, retry_kwargs={"max_retries": 3})
 def task_verify_apple_domain(self, revenue_program_slug: str):
     logger.info("[task_verify_apple_domain] called with revenue_program_slug %s.", revenue_program_slug)
     revenue_program = RevenueProgram.objects.get(slug=revenue_program_slug)

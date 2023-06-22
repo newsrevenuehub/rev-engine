@@ -223,7 +223,7 @@ def test_task_verify_apple_domain_happy_path(mock_rp_get):
     slug = "slug"
     mock_revenue_program = MagicMock()
     mock_rp_get.return_value = mock_revenue_program
-    task_verify_apple_domain(slug)
+    task_verify_apple_domain(revenue_program_slug=slug)
     assert mock_revenue_program.stripe_create_apple_pay_domain.called
     mock_rp_get.assert_called_with(slug=slug)
 
@@ -235,6 +235,6 @@ def test_task_verify_apple_domain_when_stripe_error(mock_rp_get):
     mock_rp_get.return_value = mock_revenue_program
     mock_revenue_program.stripe_create_apple_pay_domain.side_effect = stripe.error.StripeError()
     with pytest.raises(stripe.error.StripeError):
-        task_verify_apple_domain(slug)
+        task_verify_apple_domain(revenue_program_slug=slug)
     assert mock_revenue_program.stripe_create_apple_pay_domain.called
     mock_rp_get.assert_called_with(slug=slug)

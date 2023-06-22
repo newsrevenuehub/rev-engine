@@ -99,6 +99,8 @@ describe('SendTestEmail', () => {
   });
 
   it('should show error notification if POST fails', async () => {
+    const errorSpy = jest.spyOn(console, 'error').mockImplementation(() => {});
+
     const info = jest.fn();
     const error = jest.fn();
     useAlertMock.mockReturnValue({ info, error } as any);
@@ -111,6 +113,7 @@ describe('SendTestEmail', () => {
     expect(error).toHaveBeenCalledWith('Error sending test email');
     expect(error).toHaveBeenCalledTimes(1);
     expect(info).toHaveBeenCalledTimes(0);
+    errorSpy.mockRestore();
   });
 
   it('is accessible', async () => {

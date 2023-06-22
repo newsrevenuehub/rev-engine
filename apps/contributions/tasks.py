@@ -27,10 +27,8 @@ from apps.contributions.stripe_contributions_provider import (
     StripePaymentIntent,
     SubscriptionsCacheProvider,
 )
-
 from apps.contributions.utils import export_contributions_to_csv
 from apps.emails.tasks import send_templated_email_with_attachment
-
 from apps.organizations.models import RevenueProgram
 
 

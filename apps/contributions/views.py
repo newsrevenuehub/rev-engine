@@ -45,7 +45,6 @@ from apps.contributions.tasks import (
     task_pull_serialized_stripe_contributions_to_cache,
     task_verify_apple_domain,
 )
-
 from apps.contributions.webhooks import StripeWebhookProcessor
 from apps.organizations.models import PaymentProvider, RevenueProgram
 from apps.public.permissions import IsActiveSuperUser

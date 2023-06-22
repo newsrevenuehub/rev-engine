@@ -271,7 +271,7 @@ describe('MailchimpModal', () => {
             fireEvent.click(button);
             expect(onClose).toHaveBeenCalledTimes(index + 1);
           });
-          expect(enqueueSnackbar).toBeCalledTimes(2);
+          expect(enqueueSnackbar).toBeCalledTimes(closeButtons.length);
           expect(enqueueSnackbar).toBeCalledWith(
             'You’ve successfully connected to Mailchimp! Your contributor data will sync automatically.',
             expect.objectContaining({

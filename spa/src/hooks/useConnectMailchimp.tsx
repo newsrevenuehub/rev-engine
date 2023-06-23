@@ -87,7 +87,7 @@ export default function useConnectMailchimp(): UseConnectMailchimpResult {
   // To know when mailchimp has successfully finalized the entire connection process,
   // we need to know when the user has just selected an audience.
   const justConnectedToMailchimp = useMemo(
-    () => !!mailchimpData?.mailchimp_list_id && !prevMailchimpAudienceId,
+    () => typeof mailchimpData?.mailchimp_list_id === 'string' && prevMailchimpAudienceId === null,
     [mailchimpData?.mailchimp_list_id, prevMailchimpAudienceId]
   );
 

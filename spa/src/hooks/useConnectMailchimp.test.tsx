@@ -510,18 +510,20 @@ describe('useConnectMailchimp hook', () => {
         );
       });
 
-      it('shows returns "justConnectedToMailchimp = true" if the mailchimp_integration_connected property changes from false to true', async () => {
+      it('shows returns "justConnectedToMailchimp = true" if "mailchimp_list_id" property changes from "null" to a valid id', async () => {
         axiosMock.reset();
         axiosMock
           .onGet(mailchimpStatusEndpoint)
           .replyOnce(200, {
             available_mailchimp_email_lists: mockMailchimpLists,
-            mailchimp_integration_connected: false
+            mailchimp_integration_connected: true,
+            mailchimp_list_id: null
           })
           .onGet(mailchimpStatusEndpoint)
           .reply(200, {
             available_mailchimp_email_lists: mockMailchimpLists,
-            mailchimp_integration_connected: true
+            mailchimp_integration_connected: true,
+            mailchimp_list_id: mockMailchimpLists[0].id
           });
 
         const { result, waitFor } = hook();

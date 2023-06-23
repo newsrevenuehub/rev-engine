@@ -63,7 +63,7 @@ export default function useConnectMailchimp(): UseConnectMailchimpResult {
   );
   const { flags } = useFeatureFlags();
   const hasMailchimpAccess = flagIsActiveForUser(MAILCHIMP_INTEGRATION_ACCESS_FLAG_NAME, flags);
-  const prevMailchimpConnection = usePreviousState(mailchimpData?.mailchimp_integration_connected);
+  const prevMailchimpAudienceId = usePreviousState(mailchimpData?.mailchimp_list_id);
   const sendUserToMailchimp = useCallback(() => {
     if (!NRE_MAILCHIMP_CLIENT_ID) {
       // Should never happen--only if there is an issue with the env variable.
@@ -81,13 +81,14 @@ export default function useConnectMailchimp(): UseConnectMailchimpResult {
 
   // Only require audience selection if there is no list selected, and if the
   // audience lists is populated (mailchimp connection successfully started).
-
   const requiresAudienceSelection =
     !mailchimpData?.mailchimp_list_id && (mailchimpData?.available_mailchimp_email_lists?.length ?? 0) > 0;
 
+  // To know when mailchimp has successfully finalized the entire connection process,
+  // we need to know when the user has just selected an audience.
   const justConnectedToMailchimp = useMemo(
-    () => !!(mailchimpData?.mailchimp_integration_connected && prevMailchimpConnection === false),
-    [mailchimpData?.mailchimp_integration_connected, prevMailchimpConnection]
+    () => !!mailchimpData?.mailchimp_list_id && !prevMailchimpAudienceId,
+    [mailchimpData?.mailchimp_list_id, prevMailchimpAudienceId]
   );
 
   useEffect(() => {

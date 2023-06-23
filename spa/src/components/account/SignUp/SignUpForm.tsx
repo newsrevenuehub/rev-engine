@@ -123,7 +123,7 @@ function SignUpForm({ onSubmitSignUp, loading, errorMessage }: SignUpFormProps) 
             required: 'Please enter your password',
             validate: (val) => {
               if (val.length < 8) {
-                return 'Password must be at least 8 characters long';
+                return 'Password must be at least 8 characters long.';
               }
             }
           })}

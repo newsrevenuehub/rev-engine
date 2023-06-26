@@ -1,4 +1,4 @@
-import { render, screen, waitFor } from 'test-utils';
+import { fireEvent, render, screen, waitFor } from 'test-utils';
 import { useLocation } from 'react-router-dom';
 import { useSnackbar } from 'notistack';
 
@@ -12,6 +12,7 @@ import useFeatureFlags from 'hooks/useFeatureFlags';
 import useUser from 'hooks/useUser';
 
 jest.mock('components/common/Modal/AudienceListModal/AudienceListModal');
+jest.mock('components/common/IntegrationCard/MailchimpIntegrationCard/MailchimpModal/MailchimpModal');
 jest.mock('./sidebar/DashboardSidebar');
 jest.mock('elements/GlobalLoading');
 jest.mock('hooks/useFeatureFlags');
@@ -55,6 +56,7 @@ describe('Dashboard', () => {
       connectedToMailchimp: false,
       isError: false,
       hasMailchimpAccess: true,
+      justConnectedToMailchimp: false,
       setRefetchInterval: jest.fn()
     });
     useConnectStripeAccountMock.mockReturnValue({
@@ -115,6 +117,7 @@ describe('Dashboard', () => {
       connectedToMailchimp: false,
       isError: false,
       hasMailchimpAccess: true,
+      justConnectedToMailchimp: false,
       setRefetchInterval: jest.fn()
     });
     render(<Dashboard />);
@@ -129,10 +132,77 @@ describe('Dashboard', () => {
       connectedToMailchimp: false,
       isError: false,
       hasMailchimpAccess: true,
+      justConnectedToMailchimp: false,
       setRefetchInterval: jest.fn()
     });
     render(<Dashboard />);
     expect(screen.queryByTestId('mock-audience-list-modal')).not.toBeInTheDocument();
+  });
+
+  describe('Mailchimp Success modal', () => {
+    it('should display Mailchimp Success modal if justConnectedToMailchimp = true', () => {
+      useConnectMailchimpMock.mockReturnValue({
+        requiresAudienceSelection: true,
+        revenueProgram: 'mock-rp' as any,
+        isLoading: false,
+        connectedToMailchimp: false,
+        isError: false,
+        hasMailchimpAccess: true,
+        justConnectedToMailchimp: true,
+        setRefetchInterval: jest.fn()
+      });
+      render(<Dashboard />);
+      expect(screen.getByTestId('mock-mailchimp-modal')).toBeInTheDocument();
+    });
+
+    it('should pass prop firstTimeConnected = true to Mailchimp Modal', () => {
+      useConnectMailchimpMock.mockReturnValue({
+        requiresAudienceSelection: true,
+        revenueProgram: 'mock-rp' as any,
+        isLoading: false,
+        connectedToMailchimp: false,
+        isError: false,
+        hasMailchimpAccess: true,
+        justConnectedToMailchimp: true,
+        setRefetchInterval: jest.fn()
+      });
+      render(<Dashboard />);
+      const modal = screen.getByTestId('mock-mailchimp-modal');
+      expect(modal).toBeInTheDocument();
+      expect(modal).toHaveAttribute('data-firstTimeConnected', 'true');
+    });
+
+    it('should not display Mailchimp Success modal if justConnectedToMailchimp = false', () => {
+      useConnectMailchimpMock.mockReturnValue({
+        requiresAudienceSelection: false,
+        revenueProgram: 'mock-rp' as any,
+        isLoading: false,
+        connectedToMailchimp: false,
+        isError: false,
+        hasMailchimpAccess: true,
+        setRefetchInterval: jest.fn(),
+        justConnectedToMailchimp: false
+      });
+      render(<Dashboard />);
+      expect(screen.queryByTestId('mock-mailchimp-modal')).not.toBeInTheDocument();
+    });
+
+    it('should close Mailchimp Success modal if "onClose" is clicked', () => {
+      useConnectMailchimpMock.mockReturnValue({
+        requiresAudienceSelection: false,
+        revenueProgram: 'mock-rp' as any,
+        isLoading: false,
+        connectedToMailchimp: false,
+        isError: false,
+        hasMailchimpAccess: true,
+        setRefetchInterval: jest.fn(),
+        justConnectedToMailchimp: true
+      });
+      render(<Dashboard />);
+      expect(screen.getByTestId('mock-mailchimp-modal')).toBeInTheDocument();
+      fireEvent.click(screen.getByTestId('mock-mailchimp-modal-close'));
+      expect(screen.queryByTestId('mock-mailchimp-modal')).not.toBeInTheDocument();
+    });
   });
 
   it('shows a loading status when Stripe account link status is loading', () => {

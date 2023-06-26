@@ -1,5 +1,5 @@
 import { IconButton as MuiIconButton, IconButtonProps as MuiIconButtonProps } from '@material-ui/core';
-import { forwardRef } from 'react';
+import { ForwardedRef, forwardRef } from 'react';
 import styled from 'styled-components';
 import { buttonColors, buttonSizes } from '../buttonStyles';
 
@@ -86,8 +86,8 @@ const StyledMuiIconButton = styled(IconButtonWrapper)<IconButtonProps>`
   }
 `;
 
-export function IconButton(props: IconButtonProps) {
-  return <StyledMuiIconButton classes={{ label: 'NreButtonLabel' }} {...props} />;
-}
+export const IconButton = forwardRef((props: IconButtonProps, ref: ForwardedRef<HTMLButtonElement>) => {
+  return <StyledMuiIconButton classes={{ label: 'NreButtonLabel' }} ref={ref} {...props} />;
+});
 
 export default IconButton;

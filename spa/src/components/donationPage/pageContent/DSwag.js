@@ -96,6 +96,7 @@ function DSwag({ element, ...props }) {
                         inputProps={{ 'aria-label': 'controlled' }}
                         onChange={() => setNytCompSub(!nytCompSub)}
                         label="I'd like to include a New York Times subscription"
+                        value="nyt"
                       />
                     </motion.div>
                   )}

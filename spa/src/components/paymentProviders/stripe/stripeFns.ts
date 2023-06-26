@@ -42,7 +42,7 @@ export function getTotalAmount(
 }
 
 function serializeForm(form: HTMLFormElement) {
-  const booleans = ['swag_opt_out', 'comp_subscription', 'tribute_type_honoree', 'tribute_type_in_memory_of'];
+  const booleans = ['swag_opt_out', 'tribute_type_honoree', 'tribute_type_in_memory_of'];
   const tributesToConvert = { tribute_type_honoree: 'type_honoree', tribute_type_in_memory_of: 'type_in_memory_of' };
   const obj: Record<string, File | boolean | null | string> = {};
   const formData = new FormData(form);

@@ -176,6 +176,10 @@ describe('Donation page displays dynamic page elements', () => {
 
     cy.setUpDonation('One time', '365');
     cy.getByTestId('nyt-comp-sub').should('exist');
+    cy.getByTestId('nyt-comp-sub').click();
+    cy.getByTestId('nyt-comp-sub').within(() => {
+      cy.findByRole('checkbox').should('have.value', 'nyt');
+    });
   });
 });
 

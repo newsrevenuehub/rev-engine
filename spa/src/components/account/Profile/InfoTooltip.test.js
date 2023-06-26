@@ -1,6 +1,6 @@
 import userEvent from '@testing-library/user-event';
 import { axe } from 'jest-axe';
-import { render, screen, waitFor } from 'test-utils';
+import { act, render, screen, waitFor } from 'test-utils';
 import InfoTooltip from './InfoTooltip';
 
 function tree(props) {
@@ -40,12 +40,17 @@ describe('InfoTooltip', () => {
       const { container } = tree();
 
       expect(await axe(container)).toHaveNoViolations();
+
+      // Wait for pending updates.
+
+      await act(() => Promise.resolve());
     });
 
     it('is accessible when the tooltip is open', async () => {
-      const { container } = tree();
+      const { container } = tree({ title: 'test tooltip' });
 
       userEvent.click(screen.getByRole('button', { name: 'mock-label' }));
+      await waitFor(() => expect(screen.getByText('test tooltip')).toBeVisible());
       expect(await axe(container)).toHaveNoViolations();
     });
   });

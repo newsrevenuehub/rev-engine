@@ -281,17 +281,19 @@ describe('DDonorAddress', () => {
       // TODO: country field in DEV-2691
     });
 
-    it("defaults fields that don't appear in the API response to empty strings", () => {
+    it("defaults fields that don't appear in the API response to empty strings", async () => {
       tree();
-      usePlacesWidgetMock.mock.calls[0][0].onPlaceSelected({
-        address_components: [
-          {
-            long_name: '12345',
-            short_name: '12345',
-            types: ['postal_code']
-          }
-        ]
-      });
+      act(() =>
+        usePlacesWidgetMock.mock.calls[0][0].onPlaceSelected({
+          address_components: [
+            {
+              long_name: '12345',
+              short_name: '12345',
+              types: ['postal_code']
+            }
+          ]
+        })
+      );
       expect(screen.getByRole('textbox', { name: 'Address' })).toHaveValue('');
       expect(screen.getByRole('textbox', { name: 'City' })).toHaveValue('');
       expect(screen.getByRole('textbox', { name: 'State' })).toHaveValue('');

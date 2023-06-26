@@ -16,6 +16,14 @@ const ChildWithError = () => {
 };
 
 describe('ChunkErrorBoundary', () => {
+  let errorSpy: jest.SpyInstance;
+
+  beforeEach(() => {
+    errorSpy = jest.spyOn(console, 'error').mockImplementation(() => {});
+  });
+
+  afterEach(() => errorSpy.mockRestore());
+
   function tree(children: ReactNode) {
     return render(<ChunkErrorBoundary>{children}</ChunkErrorBoundary>);
   }

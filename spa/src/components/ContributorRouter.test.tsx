@@ -1,9 +1,9 @@
-import { render, screen, within } from '@testing-library/react';
 import { createMemoryHistory } from 'history';
 import { ComponentType } from 'react';
 import { Router } from 'react-router-dom';
 import { ThemeProvider } from 'styled-components';
 import { revEngineTheme } from 'styles/themes';
+import { act, render, screen, within } from 'test-utils';
 import ContributorRouter from './ContributorRouter';
 import useWebFonts from 'hooks/useWebFonts';
 import useRequest from 'hooks/useRequest';
@@ -216,7 +216,7 @@ describe('ContributorRouter', () => {
     );
     tree();
     expect(useWebFonts).toHaveBeenCalledWith(undefined);
-    jest.runOnlyPendingTimers();
+    act(() => jest.runOnlyPendingTimers());
     expect(useWebFonts).toHaveBeenLastCalledWith(mockData.styles.font);
   });
 });

@@ -1,7 +1,7 @@
 import userEvent from '@testing-library/user-event';
 import MockAdapter from 'axios-mock-adapter';
 import { axe } from 'jest-axe';
-import { fireEvent, render, screen, waitFor } from 'test-utils';
+import { act, fireEvent, render, screen, waitFor } from 'test-utils';
 import Axios from 'ajax/axios';
 import { useSnackbar } from 'notistack';
 
@@ -62,6 +62,10 @@ describe('ExportButton', () => {
     fireEvent.click(screen.getByRole('button', { name: /Export/i }));
     expect(screen.queryByRole('dialog')).not.toBeInTheDocument();
     expect(screen.getByRole('button', { name: /Sending.../i })).toBeDisabled();
+
+    // Let pending update finish.
+
+    await act(() => Promise.resolve());
   });
 
   it('should show success system notification if export is confirmed in modal and succeeds', async () => {

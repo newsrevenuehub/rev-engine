@@ -36,6 +36,9 @@ describe('Searchbar', () => {
 
   it('should be accessible', async () => {
     const { container } = tree();
-    expect(await axe(container)).toHaveNoViolations();
+    // axe seems to trip over contrast detection on this component.
+    // See https://github.com/nickcolley/jest-axe/issues/147
+
+    expect(await axe(container, { rules: { 'color-contrast': { enabled: false } } })).toHaveNoViolations();
   });
 });

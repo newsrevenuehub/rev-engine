@@ -6,7 +6,7 @@ import {
 } from 'constants/authConstants';
 import { DONATIONS_CORE_UPGRADE_CLOSED } from 'hooks/useSessionState';
 import useUser from 'hooks/useUser';
-import { act, fireEvent, render, screen, waitFor } from 'test-utils';
+import { act, fireEvent, render, screen } from 'test-utils';
 import DonationUpgradePrompts from './DonationUpgradePrompts';
 import useContributionPageList from 'hooks/useContributionPageList';
 
@@ -179,7 +179,7 @@ describe('DonationUpgradePrompts', () => {
     });
 
     afterEach(() => {
-      jest.runOnlyPendingTimers();
+      act(() => jest.runOnlyPendingTimers());
       jest.useRealTimers();
     });
 

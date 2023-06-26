@@ -75,6 +75,7 @@ describe('AudienceListModal', () => {
     // "Open" is the aria-label of the autocomplete dropdown button
     userEvent.click(screen.getByRole('button', { name: /Open/i }));
     userEvent.click(screen.getByRole('option', { name: mockMailchimpStatus.audiences[0].name }));
+    expect(screen.getByRole('button', { name: 'Finish' })).toBeEnabled();
     userEvent.click(screen.getByRole('button', { name: 'Finish' }));
     await waitFor(() => expect(selectAudience).toBeCalled());
     expect(selectAudience.mock.calls).toEqual([[mockMailchimpStatus.audiences[0].id]]);

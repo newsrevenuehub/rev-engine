@@ -1,6 +1,6 @@
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import * as reactQuery from '@tanstack/react-query';
-import { renderHook } from '@testing-library/react-hooks';
+import { cleanup, renderHook } from '@testing-library/react-hooks';
 import MockAdapter from 'axios-mock-adapter';
 import { ReactChild } from 'react';
 
@@ -71,6 +71,9 @@ describe('useStyleList hook', () => {
     expect(typeof refetch).toBe('function');
     refetch();
     expect(mockInvalidateQueries).toHaveBeenCalledWith(['styles']);
+
+    // Prevents an update on unmounted component warning.
+    cleanup();
   });
 
   it('returns the styles furnished by the styles API endpoint', async () => {
@@ -80,14 +83,20 @@ describe('useStyleList hook', () => {
   });
 
   it('console.errors and alerts when there is a network error', async () => {
+    const errorSpy = jest.spyOn(console, 'error').mockImplementation(() => {});
+
     axiosMock.reset();
     axiosMock.onGet(LIST_STYLES).networkError();
     const { waitForValueToChange, result } = renderHook(() => useStyleList(), { wrapper });
     await waitForValueToChange(() => result.current.isError);
     expect(mockAlertError).toHaveBeenCalledTimes(1);
     expect(mockAlertError).toHaveBeenCalledWith(GENERIC_ERROR);
+    errorSpy.mockRestore();
   });
+
   it('redirects user to log in when auth error', async () => {
+    const errorSpy = jest.spyOn(console, 'error').mockImplementation(() => {});
+
     axiosMock.reset();
     axiosMock.onGet(LIST_STYLES).reply(function (config) {
       return Promise.reject({ name: 'AuthenticationError' });
@@ -96,5 +105,6 @@ describe('useStyleList hook', () => {
     await waitForValueToChange(() => result.current.isError);
     expect(mockHistoryPush).toHaveBeenCalledTimes(1);
     expect(mockHistoryPush).toHaveBeenCalledWith(SIGN_IN);
+    errorSpy.mockRestore();
   });
 });

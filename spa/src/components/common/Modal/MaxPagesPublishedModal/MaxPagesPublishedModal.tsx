@@ -39,17 +39,19 @@ export function MaxPagesPublishedModal({ currentPlan, onClose, open }: MaxPagesP
           </>
         )}
         {currentPlan === 'CORE' && (
-          <p>
+          <>
             <p>
               You've published the <RedEmphasis>maximum</RedEmphasis> number of live pages for the Core tier. Unpublish
               a published checkout page to make this page live.
             </p>
-            <strong>Want more published pages?</strong> Learn more about{' '}
-            <Link href={PRICING_URL} target="_blank">
-              Plus
-            </Link>
-            .
-          </p>
+            <p>
+              <strong>Want more published pages?</strong> Learn more about{' '}
+              <Link href={PRICING_URL} target="_blank">
+                Plus
+              </Link>
+              .
+            </p>
+          </>
         )}
       </ModalContent>
       <ModalFooter>

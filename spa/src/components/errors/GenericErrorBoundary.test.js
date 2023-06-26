@@ -19,29 +19,39 @@ function CustomFallbackComponent() {
   return <div data-testid={CUSTOM_FALLBACK_ID}></div>;
 }
 
-it('should render children by default', () => {
-  render(
-    <GenericErrorBoundary>
-      <ChildComponent />
-    </GenericErrorBoundary>
-  );
-  expect(screen.getByTestId(CHILD_ID)).toBeInTheDocument();
-});
+describe('GenericErrorBoundary', () => {
+  let errorSpy;
 
-it('should render default fallback component on error if fallback prop not provided', () => {
-  render(
-    <GenericErrorBoundary>
-      <BrokenChildComponent />
-    </GenericErrorBoundary>
-  );
-  expect(screen.getByText('Something went wrong loading this part of the page.')).toBeInTheDocument();
-});
+  beforeEach(() => {
+    errorSpy = jest.spyOn(console, 'error').mockImplementation(() => {});
+  });
 
-it('should render provided fallback component on error if fallback prop not provided', () => {
-  render(
-    <GenericErrorBoundary fallback={CustomFallbackComponent}>
-      <BrokenChildComponent />
-    </GenericErrorBoundary>
-  );
-  expect(screen.getByTestId(CUSTOM_FALLBACK_ID)).toBeInTheDocument();
+  afterEach(() => errorSpy.mockRestore());
+
+  it('should render children by default', () => {
+    render(
+      <GenericErrorBoundary>
+        <ChildComponent />
+      </GenericErrorBoundary>
+    );
+    expect(screen.getByTestId(CHILD_ID)).toBeInTheDocument();
+  });
+
+  it('should render default fallback component on error if fallback prop not provided', () => {
+    render(
+      <GenericErrorBoundary>
+        <BrokenChildComponent />
+      </GenericErrorBoundary>
+    );
+    expect(screen.getByText('Something went wrong loading this part of the page.')).toBeInTheDocument();
+  });
+
+  it('should render provided fallback component on error if fallback prop not provided', () => {
+    render(
+      <GenericErrorBoundary fallback={CustomFallbackComponent}>
+        <BrokenChildComponent />
+      </GenericErrorBoundary>
+    );
+    expect(screen.getByTestId(CUSTOM_FALLBACK_ID)).toBeInTheDocument();
+  });
 });

@@ -1,45 +1,28 @@
-import { BUTTON_TYPE, NewButtonType } from 'constants/buttonConstants';
 import styled from 'styled-components';
-import lighten from 'styles/utils/lighten';
+import { IconPreview } from '../PreviewButton';
+import { Add } from '@material-ui/icons';
 
-export const Flex = styled.div<{ disabled: boolean }>`
-  display: flex;
-  flex-direction: column;
-  align-items: start;
-  font-family: ${(props) => props.theme.systemFont};
-  pointer-events: ${({ disabled }) => (disabled ? 'none' : 'auto')};
-  color: ${(props) => (props.disabled ? '#AFAFAF' : 'inherit')};
-`;
-
-export const Button = styled.button<{ customType: NewButtonType }>`
-  display: flex;
-  justify-content: center;
-  align-items: center;
+export const Preview = styled(IconPreview)<{ $disabled: boolean | null | undefined }>`
   background-color: ${(props) =>
-    props.disabled ? props.theme.colors.status.processing : props.theme.colors.muiLightBlue[800]};
-  height: ${(props) => (props.customType === BUTTON_TYPE.PAGE ? '120px' : '70px')};
-  width: 168px;
-  font-size: ${(props) => props.theme.fontSizesUpdated.h1};
-  border-radius: ${(props) => props.theme.muiBorderRadius.lg};
-  font-weight: 600;
-  border-color: transparent;
-  cursor: pointer;
+    props.$disabled ? props.theme.colors.status.processing : props.theme.basePalette.primary.engineBlue};
 
-  &:hover {
-    background-color: ${(props) => lighten(props.theme.colors.muiLightBlue[800], 5)};
-  }
+  ${(props) =>
+    !props.$disabled &&
+    `
+    &:hover {
+      background-color: #188cc9;
+    }
 
-  &:active {
-    background-color: ${(props) => props.theme.colors.muiLightBlue[500]};
-  }
+    &:active {
+      background-color: ${props.theme.colors.muiLightBlue[500]};
+    }
+  `}
 `;
 
-export const Label = styled.label`
-  margin-top: 0.75rem;
-  font-size: ${(props) => props.theme.fontSizesUpdated.sm};
-  font-weight: 600;
-
-  ${Flex}:active & {
-    color: ${(props) => props.theme.colors.muiLightBlue[500]};
+export const AddIcon = styled(Add)`
+  && {
+    fill: ${({ theme }) => theme.basePalette.greyscale.white};
+    height: 40px;
+    width: 40px;
   }
 `;

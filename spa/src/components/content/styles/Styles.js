@@ -7,10 +7,9 @@ import orderBy from 'lodash.orderby';
 import { Content } from 'components/content/pages/Pages.styled';
 import GenericErrorBoundary from 'components/errors/GenericErrorBoundary';
 import Hero from 'components/common/Hero';
-import NewButton from 'components/common/Button/NewButton';
-import { BUTTON_TYPE } from 'constants/buttonConstants';
+import { NewButton } from 'components/common/Button/NewButton';
+import { StyleButton } from 'components/common/Button/StyleButton';
 import { GENERIC_ERROR } from 'constants/textConstants';
-import EditButton from 'components/common/Button/EditButton';
 import axios from 'ajax/axios';
 import { LIST_STYLES } from 'ajax/endpoints';
 import GlobalLoading from 'elements/GlobalLoading';
@@ -78,19 +77,20 @@ function Styles({ setShowEditStylesModal, setStyleToEdit }) {
       />
       <Content data-testid="styles-list">
         <NewButton
+          ariaLabel="New Style"
           disabled={addStyleButtonShouldBeDisabled()}
-          type={BUTTON_TYPE.STYLE}
+          label="New Style"
           onClick={() => setShowEditStylesModal(true)}
+          previewHeight={70}
           data-testid="new-style-button"
         />
         {/* TODO: [DEV-2559] Make styles be pre-selected and disabled */}
         {!!styles.length &&
           stylesFiltered.map((style, index) => (
-            <EditButton
+            <StyleButton
               key={`${style.id}${styles.name}${index}`}
               name={style.name}
               style={style}
-              type={BUTTON_TYPE.STYLE}
               onClick={() => handleStyleSelect(style)}
             />
           ))}

@@ -183,7 +183,7 @@ describe('serializeData', () => {
     mockForm.appendChild(mockElement);
   });
 
-  it.each([['swag_opt_out'], ['comp_subscription'], ['tribute_type_honoree'], ['tribute_type_in_memory_of']])(
+  it.each([['swag_opt_out'], ['tribute_type_honoree'], ['tribute_type_in_memory_of']])(
     'converts the %s form field to actual booleans',
     (fieldName) => {
       mockElement.setAttribute('name', fieldName);

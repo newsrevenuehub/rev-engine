@@ -508,6 +508,8 @@ describe('Settings Organization Page', () => {
     });
 
     it('should show generic error if patch fails', async () => {
+      const errorSpy = jest.spyOn(console, 'error').mockImplementation(() => {});
+
       axiosMock.onPatch().networkError();
 
       tree();
@@ -524,6 +526,7 @@ describe('Settings Organization Page', () => {
       });
       expect(axiosMock.history.patch[0].url).toBe(`revenue-programs/1/`);
       expect(screen.getByText(GENERIC_ERROR)).toBeVisible();
+      errorSpy.mockRestore();
     });
   });
 

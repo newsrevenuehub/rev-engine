@@ -23,6 +23,31 @@ describe('SignUpForm Tests', () => {
     expect(password.getAttribute('type')).toEqual('password');
   });
 
+  it('should show password helper text', async () => {
+    getScreen();
+    expect(screen.getByText('Password must be at least 8 characters long.')).toBeInTheDocument();
+    expect(screen.queryByRole('error')).not.toBeInTheDocument();
+  });
+
+  it('should show password error message if password is smaller than 8 chars', async () => {
+    getScreen();
+    fireEvent.input(screen.getByTestId('signup-email'), {
+      target: {
+        value: 'test@test.com'
+      }
+    });
+    fireEvent.input(screen.getByTestId('signup-pwd'), {
+      target: {
+        value: '1234567'
+      }
+    });
+    fireEvent.click(screen.getByRole('checkbox'));
+    fireEvent.submit(screen.getByRole('button', { name: 'Create Account' }));
+    await waitFor(() =>
+      expect(screen.getByRole('error')).toHaveTextContent('Password must be at least 8 characters long.')
+    );
+  });
+
   it('should not submit if email and password are blank', async () => {
     getScreen();
     fireEvent.submit(screen.getByRole('button', { name: 'Create Account' }));

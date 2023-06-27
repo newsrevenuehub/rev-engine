@@ -122,8 +122,8 @@ function SignUpForm({ onSubmitSignUp, loading, errorMessage }: SignUpFormProps) 
           {...register('password', {
             required: 'Please enter your password',
             validate: (val) => {
-              if (val.length < 8 || !/[a-zA-Z]/.test(val)) {
-                return 'Password should be alphanumeric and at least 8 characters long';
+              if (val.length < 8) {
+                return 'Password must be at least 8 characters long.';
               }
             }
           })}
@@ -142,7 +142,7 @@ function SignUpForm({ onSubmitSignUp, loading, errorMessage }: SignUpFormProps) 
       {errors.password || errorMessage?.password ? (
         <Message role="error">{errors?.password?.message || errorMessage?.password}</Message>
       ) : (
-        <Message info="true">Password must be 8 characters long and alphanumerical.</Message>
+        <Message info="true">Password must be at least 8 characters long.</Message>
       )}
       <AcceptTerms checked={checked} handleTOSChange={handleTOSChange} />
       <Submit type="submit" disabled={disabled} name="Create Account" size="extraLarge">

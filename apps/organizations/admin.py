@@ -253,7 +253,7 @@ class RevenueProgramAdmin(RevEngineBaseAdmin, CompareVersionAdmin, AdminImageMix
         ),
     )
 
-    search_fields = ["payment_provider__stripe_account_id"]
+    search_fields = ["name", "slug", "payment_provider__stripe_account_id"]
 
     list_display = ["name", "organization", "slug", "payment_provider_url"]
 

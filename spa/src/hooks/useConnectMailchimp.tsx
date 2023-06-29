@@ -4,7 +4,7 @@ import { getRevenueProgramMailchimpStatusEndpoint } from 'ajax/endpoints';
 import { NRE_MAILCHIMP_CLIENT_ID } from 'appSettings';
 import { MAILCHIMP_INTEGRATION_ACCESS_FLAG_NAME } from 'constants/featureFlagConstants';
 import queryString from 'query-string';
-import { useCallback, useEffect, useMemo, useState } from 'react';
+import { useCallback, useMemo, useState } from 'react';
 import { MAILCHIMP_OAUTH_SUCCESS_ROUTE } from 'routes';
 import flagIsActiveForUser from 'utilities/flagIsActiveForUser';
 import {
@@ -14,7 +14,6 @@ import {
 } from './useConnectMailchimp.types';
 import { RevenueProgram } from './useContributionPage';
 import useFeatureFlags from './useFeatureFlags';
-import usePreviousState from './usePreviousState';
 import useUser from './useUser';
 
 const BASE_URL = window.location.origin;
@@ -31,7 +30,7 @@ export default function useConnectMailchimp(): UseConnectMailchimpResult {
   const { user, isError: userIsError, isLoading: userIsLoading } = useUser();
   const firstRevenueProgram = useMemo(() => user?.revenue_programs?.[0], [user?.revenue_programs]);
   const queryClient = useQueryClient();
-  const mailchimpQueryEnabled = !!(firstRevenueProgram && user?.organizations.length === 1);
+  const mailchimpQueryEnabled = !!(firstRevenueProgram && user?.organizations?.length === 1);
   const {
     data: mailchimpData,
     isError: mailchimpIsError,
@@ -63,7 +62,6 @@ export default function useConnectMailchimp(): UseConnectMailchimpResult {
   );
   const { flags } = useFeatureFlags();
   const hasMailchimpAccess = flagIsActiveForUser(MAILCHIMP_INTEGRATION_ACCESS_FLAG_NAME, flags);
-  const prevMailchimpAudienceId = usePreviousState(mailchimpData?.mailchimp_list_id);
   const sendUserToMailchimp = useCallback(() => {
     if (!NRE_MAILCHIMP_CLIENT_ID) {
       // Should never happen--only if there is an issue with the env variable.
@@ -79,32 +77,8 @@ export default function useConnectMailchimp(): UseConnectMailchimpResult {
     );
   }, []);
 
-  // Only require audience selection if there is no list selected, and if the
-  // audience lists is populated (mailchimp connection successfully started).
-  const requiresAudienceSelection =
-    !mailchimpData?.mailchimp_list_id && (mailchimpData?.available_mailchimp_email_lists?.length ?? 0) > 0;
-
-  // To know when mailchimp has successfully finalized the entire connection process,
-  // we need to know when the user has just selected an audience.
-  const justConnectedToMailchimp = useMemo(
-    () => typeof mailchimpData?.mailchimp_list_id === 'string' && prevMailchimpAudienceId === null,
-    [mailchimpData?.mailchimp_list_id, prevMailchimpAudienceId]
-  );
-
-  useEffect(() => {
-    // Reset the retrieval interval; we might have increased it in
-    // MailchimpOAuthSuccess. We might not have if the user ended their session
-    // after starting the Mailchimp connection process, but in that case, this
-    // will do nothing.
-
-    if (requiresAudienceSelection) {
-      setRefetchInterval(false);
-    }
-  }, [requiresAudienceSelection, setRefetchInterval]);
-
   const result: UseConnectMailchimpResult = {
     hasMailchimpAccess,
-    requiresAudienceSelection,
     setRefetchInterval,
     connectedToMailchimp: !!(
       user?.organizations?.[0]?.show_connected_to_mailchimp || mailchimpData?.mailchimp_integration_connected
@@ -112,8 +86,7 @@ export default function useConnectMailchimp(): UseConnectMailchimpResult {
     isError: userIsError || mailchimpIsError,
     isLoading: userIsLoading || (mailchimpQueryEnabled && mailchimpIsLoading),
     organizationPlan: user?.organizations?.[0]?.plan?.name,
-    revenueProgram: firstRevenueProgram,
-    justConnectedToMailchimp
+    revenueProgram: firstRevenueProgram
   };
 
   // If we are in an error state, then override loading status. e.g. If the user
@@ -136,7 +109,7 @@ export default function useConnectMailchimp(): UseConnectMailchimpResult {
   if (result.connectedToMailchimp) {
     result.audiences = mailchimpData?.available_mailchimp_email_lists;
     result.selectAudience = selectAudience;
-    result.selectedAudience = mailchimpData?.chosen_mailchimp_email_list;
+    result.selectedAudienceId = mailchimpData?.mailchimp_list_id;
   }
 
   return result;

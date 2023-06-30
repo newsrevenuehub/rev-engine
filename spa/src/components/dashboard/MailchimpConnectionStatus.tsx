@@ -29,15 +29,17 @@ export default function MailchimpConnectionStatus() {
     [audiences?.length, selectedAudienceId]
   );
 
-  // To know when mailchimp has successfully finalized the entire connection process,
-  // we need to know when the user has just selected an audience.
-  const justConnectedToMailchimp = useMemo(
-    () =>
+  const showSuccessModal = useMemo(() => {
+    // If the user closed the modal, don't show it again.
+    if (!open) {
+      return false;
+    }
+    // Otherwise, show it if the user has just selected an audience.
+    return (
       typeof selectedAudienceId === 'string' &&
-      (prevMailchimpAudienceId === null || prevMailchimpAudienceId === undefined),
-    [selectedAudienceId, prevMailchimpAudienceId]
-  );
-  const showSuccessModal = open && justConnectedToMailchimp;
+      (prevMailchimpAudienceId === null || prevMailchimpAudienceId === undefined)
+    );
+  }, [open, prevMailchimpAudienceId, selectedAudienceId]);
 
   useEffect(() => {
     // Reset the retrieval interval; we might have increased it in

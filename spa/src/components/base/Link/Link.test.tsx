@@ -18,7 +18,7 @@ describe('Link', () => {
   });
 
   it('is accessible', async () => {
-    const { container } = tree();
+    const { container } = tree({ children: 'label' });
 
     expect(await axe(container)).toHaveNoViolations();
   });

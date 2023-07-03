@@ -7,7 +7,18 @@ import { CONTENT_SLUG } from 'routes';
 
 jest.mock('react-router-dom', () => ({
   ...jest.requireActual('react-router-dom'),
-  Prompt: ({ when }: { when: boolean }) => <div data-testid="mock-prompt" data-when={when} />,
+
+  // This mock allows for manually checking the return value of the message prop
+  // without re-rendering. It's ARIA hidden because the button has no text.
+
+  Prompt: ({ message }: { message: () => string | boolean }) => (
+    <button
+      aria-hidden
+      data-testid="mock-prompt"
+      data-message={message()}
+      onClick={(event) => ((event.target as HTMLElement).dataset.message = message().toString())}
+    />
+  ),
   useHistory: jest.fn()
 }));
 
@@ -40,7 +51,7 @@ describe('BackButton', () => {
 
     it("doesn't prompt the user if they navigate to another route", () => {
       tree();
-      expect(screen.getByTestId('mock-prompt').dataset.when).toBe('false');
+      expect(screen.getByTestId('mock-prompt').dataset.message).toBe('true');
     });
 
     it("doesn't prompt the user if they navigate outside of the app", () => {
@@ -73,9 +84,33 @@ describe('BackButton', () => {
       expect(screen.getByText('Unsaved Changes')).toBeVisible();
     });
 
+    it('closes the unsaved changes modal if the user cancels out of it', () => {
+      tree({ confirmNavigation: true });
+      userEvent.click(screen.getByRole('button', { name: 'Exit' }));
+      expect(screen.getByText('Unsaved Changes')).toBeVisible();
+      userEvent.click(screen.getByRole('button', { name: 'Cancel' }));
+      expect(screen.queryByText('Unsaved Changes')).not.toBeInTheDocument();
+    });
+
+    it('goes to CONTENT_SLUG without further confirmation if the user confirms the navigation in the unsaved changes modal', () => {
+      tree({ confirmNavigation: true });
+      userEvent.click(screen.getByRole('button', { name: 'Exit' }));
+      expect(historyPushMock).not.toBeCalled();
+      userEvent.click(screen.getByRole('button', { name: 'Yes, exit' }));
+      expect(historyPushMock.mock.calls).toEqual([[CONTENT_SLUG]]);
+
+      // We need to simulate the update manually because it relies on a ref in
+      // the component, which won't trigger a re-render.
+
+      userEvent.click(screen.getByTestId('mock-prompt'));
+      expect(screen.getByTestId('mock-prompt').dataset.message).toBe('true');
+    });
+
     it('prompts the user if they navigate to another route', () => {
       tree({ confirmNavigation: true });
-      expect(screen.getByTestId('mock-prompt').dataset.when).toBe('true');
+      expect(screen.getByTestId('mock-prompt').dataset.message).toBe(
+        'Are you sure you want to exit without saving your changes?'
+      );
     });
 
     it('prompts the user if they navigate outside of the app', () => {

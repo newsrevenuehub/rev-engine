@@ -655,7 +655,7 @@ class RevenueProgram(IndexedTimeStampedModel):
 
     @property
     def mailchimp_store_name(self):
-        return "RevEngine store"
+        return "RevEngine"
 
     @property
     def mailchimp_one_time_contribution_product_id(self):

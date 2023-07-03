@@ -1050,11 +1050,12 @@ class RevenueProgram(IndexedTimeStampedModel):
                 )
                 self.domain_apple_verified_date = timezone.now()
                 self.save()
-            except stripe.error.StripeError:
+            except stripe.error.StripeError as ex:
                 logger.exception(
                     "Failed to register ApplePayDomain for RevenueProgram %s because of StripeError",
                     self.name,
                 )
+                raise ex
 
 
 class PaymentProvider(IndexedTimeStampedModel):

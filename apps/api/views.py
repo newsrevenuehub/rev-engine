@@ -19,7 +19,6 @@ from apps.api.authentication import ShortLivedTokenAuthentication
 from apps.api.serializers import ContributorObtainTokenSerializer, TokenObtainPairCookieSerializer
 from apps.api.throttling import ContributorRateThrottle
 from apps.api.tokens import ContributorRefreshToken
-from apps.contributions.models import Contributor
 from apps.contributions.serializers import ContributorSerializer
 from apps.contributions.tasks import task_pull_serialized_stripe_contributions_to_cache
 from apps.emails.tasks import send_templated_email
@@ -155,13 +154,7 @@ class RequestContributorTokenEmailView(APIView):
         logger.info("[RequestContributorTokenEmailView][post] Request received for magic link %s", request.data)
         serializer = ContributorObtainTokenSerializer(data=request.data)
         serializer.is_valid(raise_exception=True)
-        logger.info(
-            "[RequestContributorTokenEmailView] Searching for contributor with email %s...", request.data["email"]
-        )
-        contributor = get_object_or_404(Contributor, email=request.data["email"])
-        logger.info("[RequestContributorTokenEmailView] Contributor with email %s found", request.data["email"])
-
-        serializer.update_short_lived_token(contributor)
+        serializer.update_short_lived_token(serializer.data["contributor"])
 
         domain = construct_rp_domain(serializer.validated_data.get("subdomain", ""), request.headers.get("Referer", ""))
 

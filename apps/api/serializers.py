@@ -1,6 +1,7 @@
 import logging
 
 from django.conf import settings
+from django.shortcuts import get_object_or_404
 
 from rest_framework import serializers
 from rest_framework_simplejwt.serializers import TokenObtainPairSerializer
@@ -8,6 +9,8 @@ from rest_framework_simplejwt.serializers import TokenObtainPairSerializer
 # Import error messages to set defaults for fields
 import apps.api.error_messages  # noqa
 from apps.api.tokens import ContributorRefreshToken
+from apps.contributions.models import Contributor
+from apps.contributions.serializers import ContributorSerializer
 from apps.users.serializers import UserSerializer
 
 
@@ -39,10 +42,17 @@ class ContributorObtainTokenSerializer(serializers.Serializer):
 
     email = serializers.EmailField()
     access = serializers.CharField(required=False)  # Token used in magic-link url/email.
-
+    contributor = ContributorSerializer(read_only=True)
     subdomain = serializers.RegexField(
         r"^[-0-9a-zA-Z]+$", required=False, allow_blank=True
     )  # rp_slug / subdomain used in magic-link url/email.
+
+    def validate(self, attrs):
+        data = super().validate(attrs)
+        logger.info("[ContributorObtainTokenSerializer] Validate that contributor with email %s exists", data["email"])
+        data["contributor"] = get_object_or_404(Contributor, email=data["email"])
+        logger.info("[ContributorObtainTokenSerializer] Contributor with email %s exists", data["email"])
+        return data
 
     @classmethod
     def get_token(cls, contributor):
@@ -53,7 +63,7 @@ class ContributorObtainTokenSerializer(serializers.Serializer):
             "[ContributorObtainTokenSerializer][get_token] getting token for contributor %s",
             contributor,
         )
-        return ContributorRefreshToken.for_contributor(contributor.uuid)
+        return ContributorRefreshToken.for_contributor(contributor["uuid"])
 
     def update_short_lived_token(self, contributor):
         logger.info(

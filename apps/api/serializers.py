@@ -1,7 +1,6 @@
 import logging
 
 from django.conf import settings
-from django.shortcuts import get_object_or_404
 
 from rest_framework import serializers
 from rest_framework_simplejwt.serializers import TokenObtainPairSerializer
@@ -50,7 +49,12 @@ class ContributorObtainTokenSerializer(serializers.Serializer):
     def validate(self, attrs):
         data = super().validate(attrs)
         logger.info("[ContributorObtainTokenSerializer] Validate that contributor with email %s exists", data["email"])
-        data["contributor"] = get_object_or_404(Contributor, email=data["email"])
+        try:
+            contributor = Contributor.objects.get(email=data["email"])
+        except Contributor.DoesNotExist:
+            logger.error("[ContributorObtainTokenSerializer] Contributor with email %s not found", data["email"])
+            raise serializers.ValidationError("contributor not found.")
+        data["contributor"] = contributor
         logger.info("[ContributorObtainTokenSerializer] Contributor with email %s exists", data["email"])
         return data
 

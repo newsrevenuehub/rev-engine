@@ -37,6 +37,7 @@ class ContributorFactory(DjangoModelFactory):
         django_get_or_create = ("email",)
 
     email = factory.Sequence(lambda n: f"{fake.user_name()}-{n}@{fake.domain_name()}")
+    uuid = fake.uuid4()
 
 
 def _get_flagged_date(bad_actor_score, created_at):

@@ -68,10 +68,7 @@ class UserSerializer(serializers.ModelSerializer):
             return []
         qs = RevenueProgram.objects.all()
         role_assignment = obj.get_role_assignment()
-        # TODO: revert to commented line below after or as part of DEV-3589 has shipped. This is temporarily
-        # set like this to allow superusers to authenticate before solving bug.
-        # if not role_assignment and not obj.is_superuser:
-        if not role_assignment:
+        if not role_assignment and not obj.is_superuser:
             qs = qs.none()
         elif not obj.is_superuser and role_assignment.role_type != Roles.HUB_ADMIN:
             if role_assignment.role_type == Roles.ORG_ADMIN:

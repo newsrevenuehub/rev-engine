@@ -116,7 +116,7 @@ class UserSerializerTest(APITestCase):
     def test_get_permitted_revenue_programs(self):
         super_user_data = self._get_serialized_data_for_user(self.superuser_user)
         su_rp_ids = self._ids_from_data(super_user_data["revenue_programs"])
-        self.assertEqual(su_rp_ids, [])
+        self.assertEqual(su_rp_ids, list(RevenueProgram.objects.values_list("pk", flat=True)))
 
         hub_admin_data = self._get_serialized_data_for_user(self.hub_admin_user)
         ha_rp_ids = self._ids_from_data(hub_admin_data["revenue_programs"])

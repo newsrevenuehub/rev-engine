@@ -2,6 +2,7 @@ import os
 from dataclasses import asdict
 from unittest import TestCase
 from unittest.mock import Mock, call, patch
+from urllib.parse import quote_plus
 
 from django.conf import settings
 from django.core import mail
@@ -17,7 +18,8 @@ from apps.contributions.tests.factories import ContributionFactory
 from apps.emails.helpers import convert_to_timezone_formatted
 from apps.emails.tasks import (
     EmailTaskException,
-    SendThankYouEmailData,
+    SendContributionEmailData,
+    get_test_magic_link,
     logger,
     make_send_thank_you_email_data,
     send_templated_email_with_attachment,
@@ -26,6 +28,34 @@ from apps.emails.tasks import (
 from apps.organizations.models import FiscalStatusChoices, FreePlan
 from apps.organizations.tests.factories import RevenueProgramFactory
 from apps.pages.tests.factories import DonationPageFactory, StyleFactory
+from apps.users.tests.factories import UserFactory
+
+
+@pytest.mark.django_db
+class TestMagicLink:
+    def test_get_test_magic_link(self, mocker):
+        user = UserFactory()
+        revenue_program = RevenueProgramFactory()
+
+        class MockSerializer:
+            validated_data = {"access": "mock-token"}
+
+            def is_valid(self, raise_exception=False):
+                return None
+
+            def update_short_lived_token(self, contributor):
+                return None
+
+        mock_contributor_serializer = mocker.patch(
+            "apps.api.serializers.ContributorObtainTokenSerializer",
+            return_value=MockSerializer(),
+        )
+        mock_construct_rp_domain = mocker.patch(
+            "apps.api.views.construct_rp_domain",
+            return_value="mock-domain",
+        )
+        expected = f"https://{mock_construct_rp_domain.return_value}/{settings.CONTRIBUTOR_VERIFY_URL}?token={mock_contributor_serializer().validated_data['access']}&email={quote_plus(user.email)}"
+        assert expected == get_test_magic_link(user, revenue_program)
 
 
 @pytest.mark.django_db
@@ -39,7 +69,7 @@ class TestMakeSendThankYouEmailData:
         mock_get_magic_link = mocker.patch(
             "apps.contributions.models.Contributor.create_magic_link", return_value="magic_link"
         )
-        expected = SendThankYouEmailData(
+        expected = SendContributionEmailData(
             contribution_amount=contribution.formatted_amount,
             contribution_date=convert_to_timezone_formatted(contribution.created, "America/New_York"),
             contribution_interval_display_value=contribution.interval
@@ -56,6 +86,7 @@ class TestMakeSendThankYouEmailData:
             rp_name=contribution.revenue_program.name,
             style=asdict(contribution.donation_page.revenue_program.transactional_email_style),
             tax_id=contribution.revenue_program.tax_id,
+            show_upgrade_prompt=False,
         )
         actual = make_send_thank_you_email_data(contribution)
         assert expected == actual
@@ -133,6 +164,7 @@ class TestSendThankYouEmail:
                     },
                     "font": {"heading": "mock-header-font", "body": "mock-body-font"},
                 }
+                style.save()
                 page = DonationPageFactory(revenue_program=revenue_program, styles=style, header_logo="mock-logo")
                 revenue_program.default_donation_page = page
                 revenue_program.save()
@@ -151,9 +183,9 @@ class TestSendThankYouEmail:
             expect_missing = (custom_logo, custom_button_background, custom_header_background)
 
         else:
-            expect_present = (custom_logo,)
-            # Email template doesn't have a button to apply the custom button color to and also doesn't have a header background to customize
-            expect_missing = (custom_button_background, custom_header_background, default_logo)
+            expect_present = (custom_logo, custom_header_background)
+            # Email template doesn't have a button to apply the custom button color to
+            expect_missing = (custom_button_background, default_logo)
 
         for x in expect_present:
             assert x in mail.outbox[0].alternatives[0][0]

@@ -1,114 +1,143 @@
-import { UseQueryResult } from '@tanstack/react-query';
-import queryString from 'query-string';
-import { useCallback, useEffect } from 'react';
-
+import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
+import axios from 'ajax/axios';
+import { getRevenueProgramMailchimpStatusEndpoint } from 'ajax/endpoints';
 import { NRE_MAILCHIMP_CLIENT_ID } from 'appSettings';
-import SystemNotification from 'components/common/SystemNotification';
 import { MAILCHIMP_INTEGRATION_ACCESS_FLAG_NAME } from 'constants/featureFlagConstants';
-import { useSnackbar } from 'notistack';
+import queryString from 'query-string';
+import { useCallback, useEffect, useMemo, useState } from 'react';
 import { MAILCHIMP_OAUTH_SUCCESS_ROUTE } from 'routes';
 import flagIsActiveForUser from 'utilities/flagIsActiveForUser';
-import { EnginePlan } from './useContributionPage';
+import {
+  MailchimpAudience,
+  RevenueProgramMailchimpStatus,
+  UseConnectMailchimpResult
+} from './useConnectMailchimp.types';
+import { RevenueProgram } from './useContributionPage';
 import useFeatureFlags from './useFeatureFlags';
-import useUser from './useUser';
-
 import usePreviousState from './usePreviousState';
-
-export interface UseConnectMailchimpResult {
-  isLoading: UseQueryResult['isLoading'];
-  isError: UseQueryResult['isError'];
-  /**
-   * Sends the user to Mailchimp to continue setup.
-   */
-  sendUserToMailchimp?: () => void;
-  /**
-   * Has Mailchimp been connected?
-   */
-  connectedToMailchimp: boolean;
-  /**
-   * User's organization plan
-   */
-  organizationPlan?: EnginePlan['name'];
-}
+import useUser from './useUser';
 
 const BASE_URL = window.location.origin;
 export const MAILCHIMP_OAUTH_CALLBACK = `${BASE_URL}${MAILCHIMP_OAUTH_SUCCESS_ROUTE}`;
 
+function fetchMailchimpStatus(revenueProgramId: RevenueProgram['id']): Promise<RevenueProgramMailchimpStatus> {
+  return axios.get(getRevenueProgramMailchimpStatusEndpoint(revenueProgramId)).then(({ data }) => data);
+}
+
 export default function useConnectMailchimp(): UseConnectMailchimpResult {
-  const { enqueueSnackbar } = useSnackbar();
-  const { user, isError, isLoading } = useUser();
+  // Allow our refetch interval to be configurable, but default to false, which
+  // means it won't refetch on its own.
+  const [refetchInterval, setRefetchInterval] = useState<false | number>(false);
+  const { user, isError: userIsError, isLoading: userIsLoading } = useUser();
+  const firstRevenueProgram = useMemo(() => user?.revenue_programs?.[0], [user?.revenue_programs]);
+  const queryClient = useQueryClient();
+  const mailchimpQueryEnabled = !!(firstRevenueProgram && user?.organizations.length === 1);
+  const {
+    data: mailchimpData,
+    isError: mailchimpIsError,
+    isLoading: mailchimpIsLoading
+  } = useQuery(['revenueProgramMailchimpStatus'], () => fetchMailchimpStatus(firstRevenueProgram!.id), {
+    refetchInterval,
+    enabled: mailchimpQueryEnabled
+  });
+  const patchMutation = useMutation(
+    (data: Partial<RevenueProgramMailchimpStatus>) => {
+      if (!firstRevenueProgram) {
+        // Should never happen.
+        throw new Error('User has no revenue program');
+      }
+
+      return axios.patch(getRevenueProgramMailchimpStatusEndpoint(firstRevenueProgram.id), data);
+    },
+    {
+      onSuccess: () => {
+        queryClient.invalidateQueries(['revenueProgramMailchimpStatus']);
+      }
+    }
+  );
+  const selectAudience = useCallback(
+    async (id: MailchimpAudience['id']) => {
+      await patchMutation.mutateAsync({ mailchimp_list_id: id });
+    },
+    [patchMutation]
+  );
   const { flags } = useFeatureFlags();
   const hasMailchimpAccess = flagIsActiveForUser(MAILCHIMP_INTEGRATION_ACCESS_FLAG_NAME, flags);
-  const prevMailchimpConnection = usePreviousState(user?.revenue_programs?.[0]?.mailchimp_integration_connected);
-
+  const prevMailchimpAudienceId = usePreviousState(mailchimpData?.mailchimp_list_id);
   const sendUserToMailchimp = useCallback(() => {
     if (!NRE_MAILCHIMP_CLIENT_ID) {
       // Should never happen--only if there is an issue with the env variable.
       throw new Error('There is no Mailchimp client ID associated.');
     }
 
-    window.location.href = `https://login.mailchimp.com/oauth2/authorize?${queryString.stringify({
-      response_type: 'code',
-      client_id: NRE_MAILCHIMP_CLIENT_ID,
-      redirect_uri: MAILCHIMP_OAUTH_CALLBACK
-    })}`;
+    window.location.assign(
+      `https://login.mailchimp.com/oauth2/authorize?${queryString.stringify({
+        response_type: 'code',
+        client_id: NRE_MAILCHIMP_CLIENT_ID,
+        redirect_uri: MAILCHIMP_OAUTH_CALLBACK
+      })}`
+    );
   }, []);
 
+  // Only require audience selection if there is no list selected, and if the
+  // audience lists is populated (mailchimp connection successfully started).
+  const requiresAudienceSelection =
+    !mailchimpData?.mailchimp_list_id && (mailchimpData?.available_mailchimp_email_lists?.length ?? 0) > 0;
+
+  // To know when mailchimp has successfully finalized the entire connection process,
+  // we need to know when the user has just selected an audience.
+  const justConnectedToMailchimp = useMemo(
+    () => typeof mailchimpData?.mailchimp_list_id === 'string' && prevMailchimpAudienceId === null,
+    [mailchimpData?.mailchimp_list_id, prevMailchimpAudienceId]
+  );
+
   useEffect(() => {
-    if (user?.revenue_programs?.[0]?.mailchimp_integration_connected && prevMailchimpConnection === false) {
-      enqueueSnackbar('You’ve successfully connected to Mailchimp! Your contributor data will sync automatically.', {
-        persist: true,
-        content: (key: string, message: string) => (
-          <SystemNotification id={key} message={message} header="Successfully Connected!" type="success" />
-        )
-      });
+    // Reset the retrieval interval; we might have increased it in
+    // MailchimpOAuthSuccess. We might not have if the user ended their session
+    // after starting the Mailchimp connection process, but in that case, this
+    // will do nothing.
+
+    if (requiresAudienceSelection) {
+      setRefetchInterval(false);
     }
-  }, [enqueueSnackbar, prevMailchimpConnection, user?.revenue_programs]);
+  }, [requiresAudienceSelection, setRefetchInterval]);
 
-  // If the user is loading or errored, return that status.
-  if (isLoading || isError) {
-    return { isError, isLoading, connectedToMailchimp: false };
-  }
-
-  // If the user has no feature flag enabling mailchimp integration, has no revenue programs, no org or multiple orgs return that there's no action to take.
-  if (
-    !hasMailchimpAccess ||
-    user?.organizations?.length === 0 ||
-    (user?.organizations?.length ?? 0) > 1 ||
-    !user?.revenue_programs ||
-    user.revenue_programs.length === 0
-  ) {
-    return {
-      isError: false,
-      isLoading: false,
-      connectedToMailchimp: false
-    };
-  }
-
-  // If the organization has mailchimp connected or if org plan is Free, return that status.
-  if (
-    user?.organizations?.[0]?.show_connected_to_mailchimp ||
-    user?.revenue_programs?.[0]?.mailchimp_integration_connected ||
-    (user?.organizations?.[0]?.plan?.name ?? 'FREE') === 'FREE'
-  ) {
-    return {
-      isError: false,
-      isLoading: false,
-      connectedToMailchimp:
-        !!user?.organizations?.[0]?.show_connected_to_mailchimp ||
-        !!user?.revenue_programs?.[0]?.mailchimp_integration_connected,
-      organizationPlan: user?.organizations?.[0]?.plan?.name
-    };
-  }
-
-  // We have a user, with a single organization in a paid plan (CORE or PLUS), and without Mailchimp connected.
-  return {
-    isError,
-    isLoading,
-    sendUserToMailchimp,
-    connectedToMailchimp:
-      !!user?.organizations?.[0]?.show_connected_to_mailchimp ||
-      !!user?.revenue_programs?.[0]?.mailchimp_integration_connected,
-    organizationPlan: user?.organizations?.[0].plan.name
+  const result: UseConnectMailchimpResult = {
+    hasMailchimpAccess,
+    requiresAudienceSelection,
+    setRefetchInterval,
+    connectedToMailchimp: !!(
+      user?.organizations?.[0]?.show_connected_to_mailchimp || mailchimpData?.mailchimp_integration_connected
+    ),
+    isError: userIsError || mailchimpIsError,
+    isLoading: userIsLoading || (mailchimpQueryEnabled && mailchimpIsLoading),
+    organizationPlan: user?.organizations?.[0]?.plan?.name,
+    revenueProgram: firstRevenueProgram,
+    justConnectedToMailchimp
   };
+
+  // If we are in an error state, then override loading status. e.g. If the user
+  // query has errored out, the Mailchimp query status is still 'loading', but
+  // we want to hide that from the consumer.
+
+  if (result.isError) {
+    result.isLoading = false;
+  }
+
+  // If we have access to Mailchimp through the feature flag, are on a paid
+  // plan, and Mailchimp status has loaded, allow the user to connect to it.
+
+  if (result.hasMailchimpAccess && result.organizationPlan !== 'FREE' && mailchimpData) {
+    result.sendUserToMailchimp = sendUserToMailchimp;
+  }
+
+  // If we are connected to Mailchimp, add related properties.
+
+  if (result.connectedToMailchimp) {
+    result.audiences = mailchimpData?.available_mailchimp_email_lists;
+    result.selectAudience = selectAudience;
+    result.selectedAudience = mailchimpData?.chosen_mailchimp_email_list;
+  }
+
+  return result;
 }

@@ -9,15 +9,11 @@ import SubheaderSection from 'components/common/SubheaderSection';
 
 export function Subscription() {
   const { user } = useUser();
+  const firstOrg = user?.organizations[0];
 
-  if (!user) {
+  if (!user || !firstOrg) {
     return null;
   }
-
-  // This must exist--this route is wrapped by <SingleOrgUserOnlyRoute> by
-  // <Dashboard>.
-
-  const firstOrg = user.organizations[0];
 
   return (
     <Wrapper>

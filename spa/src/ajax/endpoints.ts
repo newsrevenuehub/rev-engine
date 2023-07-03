@@ -1,3 +1,5 @@
+import { RevenueProgram } from 'hooks/useContributionPage';
+
 export const TOKEN = 'token/';
 export const USER = 'users/';
 
@@ -31,6 +33,10 @@ export const LIST_FONTS = 'fonts/';
 // Revenue Programs
 export const REVENUE_PROGRAMS = 'revenue-programs/';
 
+export function getRevenueProgramMailchimpStatusEndpoint(revenueProgramId: RevenueProgram['id']) {
+  return `/revenue-programs/${revenueProgramId}/mailchimp_configure/`;
+}
+
 // Contributions
 export const CONTRIBUTIONS = 'contributions/';
 export const EMAIL_CONTRIBUTIONS = 'email-contributions/';
@@ -57,3 +63,5 @@ export const PATCH_REVENUE_PROGRAM = 'revenue-programs/';
 
 // Mailchimp
 export const MAILCHIMP_OAUTH_SUCCESS = 'mailchimp-oauth-success/';
+
+export const SEND_TEST_EMAIL = 'send-test-email/';

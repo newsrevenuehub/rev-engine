@@ -6,7 +6,7 @@ import {
 } from 'constants/authConstants';
 import { DONATIONS_CORE_UPGRADE_CLOSED } from 'hooks/useSessionState';
 import useUser from 'hooks/useUser';
-import { fireEvent, render, screen } from 'test-utils';
+import { act, fireEvent, render, screen } from 'test-utils';
 import DonationUpgradePrompts from './DonationUpgradePrompts';
 import useContributionPageList from 'hooks/useContributionPageList';
 
@@ -169,5 +169,59 @@ describe('DonationUpgradePrompts', () => {
     });
     tree();
     expect(screen.queryByTestId('mock-donation-core-upgrade-prompt')).not.toBeInTheDocument();
+  });
+
+  describe('Animation', () => {
+    const animationTimeout = 1000;
+
+    beforeEach(() => {
+      jest.useFakeTimers();
+    });
+
+    afterEach(() => {
+      act(() => jest.runOnlyPendingTimers());
+      jest.useRealTimers();
+    });
+
+    it('initially hide animation', () => {
+      tree();
+      expect(screen.getByTestId('show-animation-false')).toBeInTheDocument();
+    });
+
+    it('show animation after 1s', () => {
+      tree();
+      expect(screen.getByTestId('show-animation-false')).toBeInTheDocument();
+      act(() => {
+        jest.advanceTimersByTime(animationTimeout);
+      });
+      expect(screen.getByTestId('show-animation-true')).toBeInTheDocument();
+    });
+
+    it('show highlight after animation', () => {
+      tree();
+      act(() => {
+        jest.advanceTimersByTime(animationTimeout);
+      });
+      expect(screen.getByTestId('show-animation-true')).toBeInTheDocument();
+      expect(screen.getByTestId('prompt-highlight-true')).toBeInTheDocument();
+    });
+
+    it('hides the highlight 1 second after animation', () => {
+      tree();
+      expect(screen.getByTestId('prompt-highlight-true')).toBeInTheDocument();
+      act(() => jest.advanceTimersByTime(animationTimeout));
+      act(() => jest.runAllTimers());
+      expect(screen.getByTestId('prompt-highlight-false')).toBeInTheDocument();
+    });
+
+    it('triggers fades in the correct order', () => {
+      tree();
+      expect(screen.getByTestId('show-animation-false')).toBeInTheDocument();
+      act(() => jest.advanceTimersByTime(animationTimeout));
+      expect(screen.getByTestId('show-animation-true')).toBeInTheDocument();
+      expect(screen.getByTestId('prompt-highlight-true')).toBeInTheDocument();
+      act(() => jest.runAllTimers());
+      expect(screen.getByTestId('prompt-highlight-false')).toBeInTheDocument();
+    });
   });
 });

@@ -1,7 +1,7 @@
 import { Button as MuiButton, ButtonProps as MuiButtonProps } from '@material-ui/core';
 import { forwardRef } from 'react';
 import styled from 'styled-components';
-import { revEngineTheme } from 'styles/themes';
+import { buttonColors, buttonSizes } from '../buttonStyles';
 
 export interface ButtonProps extends Omit<MuiButtonProps, 'color' | 'size'> {
   color?: 'error' | 'information' | 'primaryDark' | 'primaryLight' | 'secondary' | 'text';
@@ -14,82 +14,20 @@ const ButtonWrapper = forwardRef<HTMLButtonElement, ButtonProps>((props, ref) =>
   return <MuiButton ref={ref} variant="contained" {...rest} />;
 });
 
-// To make the style declarations easier to follow, size and color dependent
-// properties are pulled out here.
-
-const colors = {
-  error: {
-    active: { bg: '#8c162c', fg: '' },
-    disabled: { bg: '#e86f85', fg: revEngineTheme.basePalette.greyscale.grey4 },
-    hover: { bg: '#a01a32', fg: '' },
-    normal: { bg: revEngineTheme.basePalette.secondary.error, fg: revEngineTheme.basePalette.greyscale.white }
-  },
-  information: {
-    // We don't have active or disabled colors yet.
-    active: { bg: '', fg: '' },
-    disabled: { bg: revEngineTheme.basePalette.primary.engineBlue, fg: revEngineTheme.basePalette.greyscale.white },
-    hover: { bg: '#7eb3d1', fg: '' },
-    normal: { bg: revEngineTheme.basePalette.primary.engineBlue, fg: revEngineTheme.basePalette.greyscale.white }
-  },
-  primaryDark: {
-    active: { bg: revEngineTheme.basePalette.indigo[-10], fg: '' },
-    disabled: { bg: revEngineTheme.basePalette.purple[-80], fg: '#f9f9f9' },
-    hover: { bg: revEngineTheme.basePalette.indigo[-60], fg: '' },
-    normal: { bg: revEngineTheme.basePalette.primary.purple, fg: revEngineTheme.basePalette.greyscale.white }
-  },
-  primaryLight: {
-    active: { bg: '#edff14', fg: '' },
-    disabled: { bg: revEngineTheme.basePalette.chartreuse['-50'], fg: revEngineTheme.basePalette.greyscale.grey1 },
-    hover: { bg: revEngineTheme.basePalette.chartreuse['-50'], fg: '' },
-    normal: { bg: revEngineTheme.basePalette.primary.chartreuse, fg: revEngineTheme.basePalette.greyscale.black }
-  },
-  secondary: {
-    active: { bg: revEngineTheme.basePalette.greyscale.grey1, fg: '' },
-    disabled: { bg: revEngineTheme.basePalette.greyscale.grey4, fg: revEngineTheme.basePalette.greyscale.grey2 },
-    hover: { bg: revEngineTheme.basePalette.greyscale.grey2, fg: '' },
-    normal: { bg: revEngineTheme.basePalette.greyscale.grey3, fg: revEngineTheme.basePalette.greyscale.black }
-  },
-  text: {
-    active: { bg: 'rgba(40, 40, 40, 0.06)', fg: revEngineTheme.basePalette.primary.indigo },
-    disabled: { bg: 'transparent', fg: revEngineTheme.basePalette.greyscale.grey2 },
-    hover: { bg: 'transparent', fg: revEngineTheme.basePalette.greyscale.black },
-    normal: { bg: 'transparent', fg: revEngineTheme.basePalette.greyscale.grey1 }
-  }
-};
-
-const sizes = {
-  small: {
-    height: '32px',
-    padding: '8px'
-  },
-  medium: {
-    height: '36px',
-    padding: '10px'
-  },
-  large: {
-    height: '40px',
-    padding: '12px'
-  },
-  extraLarge: {
-    height: '48px',
-    padding: '16px'
-  }
-};
-
 /**
  * @see https://v4.mui.com/api/button/
  */
 const StyledMuiButton = styled(ButtonWrapper)<ButtonProps>`
   && {
-    background-color: ${({ color }) => (color ? colors[color].normal.bg : colors.primaryLight.normal.bg)};
+    background-color: ${({ color }) => (color ? buttonColors[color].normal.bg : buttonColors.primaryLight.normal.bg)};
     border-radius: 6px;
     box-shadow: ${({ color }) =>
       color === 'text' ? 'none' : '0px 0.3px 0.5px rgba(0, 0, 0, 0.1), 0px 2px 4px rgba(0, 0, 0, 0.2)'};
-    height: ${({ size }) => (size ? sizes[size].height : sizes.medium.height)};
-    padding: ${({ size }) => (size ? sizes[size].padding : sizes.medium.padding)};
+    height: ${({ size }) => (size ? buttonSizes[size].height : buttonSizes.medium.height)};
+    padding: ${({ size }) => (size ? buttonSizes[size].padding : buttonSizes.medium.padding)};
 
     .NreButtonLabel {
-      color: ${({ color }) => (color ? colors[color].normal.fg : colors.primaryLight.normal.fg)};
+      color: ${({ color }) => (color ? buttonColors[color].normal.fg : buttonColors.primaryLight.normal.fg)};
       font: 600 14px Roboto, sans-serif;
     }
   }
@@ -98,17 +36,17 @@ const StyledMuiButton = styled(ButtonWrapper)<ButtonProps>`
     // Background color seems to be overridden by the ripple animation.
 
     .NreButtonLabel {
-      color: ${({ color }) => (color ? colors[color].active.fg : colors.primaryLight.active.fg)};
+      color: ${({ color }) => (color ? buttonColors[color].active.fg : buttonColors.primaryLight.active.fg)};
     }
   }
 
   &&:hover {
-    background-color: ${({ color }) => (color ? colors[color].hover.bg : colors.primaryLight.hover.bg)};
+    background-color: ${({ color }) => (color ? buttonColors[color].hover.bg : buttonColors.primaryLight.hover.bg)};
     box-shadow: ${({ color }) =>
       color === 'text' ? 'none' : '0px 0.3px 0.5px rgba(0, 0, 0, 0.1), 0px 2px 4px rgba(0, 0, 0, 0.2)'};
 
     .NreButtonLabel {
-      color: ${({ color }) => (color ? colors[color].hover.fg : colors.primaryLight.hover.fg)};
+      color: ${({ color }) => (color ? buttonColors[color].hover.fg : buttonColors.primaryLight.hover.fg)};
     }
   }
 
@@ -139,10 +77,11 @@ const StyledMuiButton = styled(ButtonWrapper)<ButtonProps>`
   }
 
   &&.Mui-disabled {
-    background-color: ${({ color }) => (color ? colors[color].disabled.bg : colors.primaryLight.disabled.bg)};
+    background-color: ${({ color }) =>
+      color ? buttonColors[color].disabled.bg : buttonColors.primaryLight.disabled.bg};
 
     .NreButtonLabel {
-      color: ${({ color }) => (color ? colors[color].disabled.fg : colors.primaryLight.disabled.fg)};
+      color: ${({ color }) => (color ? buttonColors[color].disabled.fg : buttonColors.primaryLight.disabled.fg)};
     }
   }
 `;

@@ -119,7 +119,7 @@ export default function useConnectStripeAccount(): UseConnectStripeAccountResult
       throw new Error('There is no URL to send the user to');
     }
 
-    window.location.href = data?.url;
+    window.location.assign(data?.url);
   }, [data?.url]);
 
   // If the user is loading or errored, return that status.
@@ -128,9 +128,10 @@ export default function useConnectStripeAccount(): UseConnectStripeAccountResult
     return { isError: userIsError, isLoading: userIsLoading, displayConnectionSuccess, hideConnectionSuccess };
   }
 
-  // If the user has no revenue programs, return that there's no action to take.
+  // If the user has 0 or more than 1 revenue program, return that there's no
+  // action to take.
 
-  if (!user?.revenue_programs || user.revenue_programs.length === 0) {
+  if (!user?.revenue_programs || user.revenue_programs.length === 0 || user.revenue_programs.length > 1) {
     return {
       isError: false,
       isLoading: false,

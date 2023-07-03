@@ -26,6 +26,7 @@ const useUserMock = jest.mocked(useUser);
 const useHistoryMock = jest.mocked(useHistory);
 
 const mockRp = { id: 1, name: 'mock-rp-name', slug: 'mock-rp-slug', payment_provider_stripe_verified: true };
+const mockDisconnectedRp = { ...mockRp, payment_provider_stripe_verified: false };
 
 const mockUser: User = {
   email: 'mock@email.com',
@@ -57,8 +58,6 @@ describe('useConnectStripeAccount hook', () => {
   const wrapper = ({ children }: { children: ReactChild }) => (
     <QueryClientProvider client={new QueryClient()}>{children}</QueryClientProvider>
   );
-  const oldLocation = global.window.location;
-
   beforeEach(() => {
     axiosMock.onPost(getStripeAccountLinkStatusPath(mockRp.id)).reply(200, mockApiResponse);
     useHistoryMock.mockReturnValue({ push: jest.fn() });
@@ -67,20 +66,10 @@ describe('useConnectStripeAccount hook', () => {
       isLoading: true,
       isError: false
     });
-
-    // We do this because the hook returns a `sendUserToStripe()` function which sets `window.location.href` to the value
-    // returned when we fetch account link status.
-    //
-    // https://www.csrhymes.com/2022/06/18/mocking-window-location-in-jest.html
-
-    delete (global as any).window.location;
-    global.window = Object.create(window);
-    (global as any).window.location = {};
   });
 
   afterEach(() => {
     axiosMock.reset();
-    (global as any).window.location = oldLocation;
   });
 
   it('returns a loading status when user data is loading', () => {
@@ -162,14 +151,17 @@ describe('useConnectStripeAccount hook', () => {
     });
 
     it('returns a sendUserToStripe() function which redirects the user to the URL provided by the API', async () => {
+      const assignSpy = jest.spyOn(window.location, 'assign');
+
       axiosMock.onPost(getStripeAccountLinkStatusPath(mockRp.id)).reply(200, { ...mockApiResponse, url: 'mock-url' });
 
       const { result, waitFor } = renderHook(() => useConnectStripeAccount(), { wrapper });
 
       await waitFor(() => axiosMock.history.post.length > 0);
       expect(typeof result.current.sendUserToStripe).toBe('function');
+      expect(assignSpy).not.toBeCalled();
       result.current.sendUserToStripe!();
-      expect(window.location.href).toEqual('mock-url');
+      expect(assignSpy.mock.calls).toEqual([['mock-url']]);
     });
 
     it('returns an error state if retrieving connection status fails', async () => {
@@ -259,13 +251,46 @@ describe('useConnectStripeAccount hook', () => {
     });
   });
 
+  describe('When the user is an org admin but their org has multiple revenue programs', () => {
+    beforeEach(() => {
+      useUserMock.mockReturnValue({
+        isError: false,
+        isLoading: false,
+        refetch: jest.fn(),
+        user: { ...mockUser, revenue_programs: [mockDisconnectedRp, mockDisconnectedRp] as any }
+      });
+    });
+
+    it("returns that the user doesn't need to verify Stripe", () => {
+      const { result } = renderHook(() => useConnectStripeAccount(), { wrapper });
+
+      expect(result.current).toEqual(
+        expect.objectContaining({
+          isError: false,
+          isLoading: false,
+          requiresVerification: false,
+          stripeConnectStarted: false
+        })
+      );
+    });
+
+    it('does not fetch Stripe connection status', () => {
+      renderHook(() => useConnectStripeAccount(), { wrapper });
+      expect(axiosMock.history.post.length).toBe(0);
+    });
+  });
+
   describe('When the user is a Hub admin', () => {
     beforeEach(() => {
       useUserMock.mockReturnValue({
         isError: false,
         isLoading: false,
         refetch: jest.fn(),
-        user: { ...mockUser, role_type: ['hub_admin', 'Hub Admin'] }
+        user: {
+          ...mockUser,
+          revenue_programs: [mockDisconnectedRp, mockDisconnectedRp] as any,
+          role_type: ['hub_admin', 'Hub Admin']
+        }
       });
     });
 

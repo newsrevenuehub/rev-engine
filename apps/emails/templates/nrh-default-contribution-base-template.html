@@ -97,6 +97,17 @@
       font-weight: 500;
       font-size: 14px;
     }
+
+    .upgrade-plan {
+      box-sizing: border-box;
+      border-radius: 10px;
+      max-width: 533px;
+      margin: auto;
+      margin-bottom: 32px;
+      padding: 19px;
+      background: #62FFE3;
+      background: linear-gradient(39.42deg, #6FD1EC 47.23%, #8AF7E3 105.55%);
+    }
   </style>
 
   {% block custom_style %}
@@ -196,11 +207,28 @@
                   <td style="overflow-wrap:break-word;word-break:break-word;padding:10px 10px 15px;" align="left">
                     <div style="color: #7e8c8d; line-height: 140%; text-align: center; word-wrap: break-word;">
                       <p style="font-size: 14px; line-height: 140%; font-family: Roboto, sans-serif;">
-                        ©{{ copyright_year }} {{ rp_name }}.
+                        ©{{ copyright_year }} {{ rp_name }}
                       </p>
                     </div>
                   </td>
                 </tr>
+                {% if show_upgrade_prompt %}
+                <tr>
+                  <td>
+                    <div class="upgrade-plan" style="color: #282828; font-size: 16px; line-height: 140%; word-wrap: break-word;">
+                    <p style="font-weight: 700; font-family: Roboto, sans-serif;">
+                      Can I brand my email receipts?
+                    </p>
+                    <p style="font-weight: 400; font-family: Roboto, sans-serif; margin: 6px 0 12px;">
+                      Yes! Upgrade to Core to use your logo and branding for all email receipts.
+                    </p>
+                    <a style="color: #25192B; font-weight: 600; font-family: Roboto, sans-serif;" href="https://fundjournalism.org/pricing/" target="_blank">
+                      Learn more
+                    </a>
+                    </div>
+                  </td>
+                </tr>
+                {% endif %}
               </tbody>
             </table>
           </div>

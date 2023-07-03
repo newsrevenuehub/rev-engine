@@ -134,6 +134,29 @@ class OrganizationAdmin(RevEngineBaseAdmin, CompareVersionAdmin):
             return []
         return ["name"]
 
+    def save_model(self, request, obj, form, change):
+        """Override save_model so we pass update_fields to obj.save()
+
+        We do this because have a Django signal that looks to `update_fields` to determine whether to
+        set a default donation page when an org is being configured to be on core plan.
+
+        Note that this approach is somewhat naive and will not work if the model is being saved with
+        foreign key or m2m fields, as these do not appear in `.changed_data`.
+
+        This does not create a problem for us now though because no such fields are being set on the organization
+        via admin.
+        """
+        if change:  # if the obj is being changed, not added
+            initial_form = self.get_changeform_initial_data(request)
+            changed_data = form.changed_data
+            update_fields = set(x for x in changed_data if initial_form.get(x) != getattr(obj, x))
+            if update_fields:
+                obj.save(update_fields=update_fields.union({"modified"}))
+            else:
+                obj.save()
+        else:
+            obj.save()
+
 
 @admin.register(Benefit)
 class BenefitAdmin(RevEngineBaseAdmin, CompareVersionAdmin):
@@ -201,7 +224,7 @@ class RevenueProgramAdmin(RevEngineBaseAdmin, CompareVersionAdmin, AdminImageMix
                 "fields": ("stripe_statement_descriptor_suffix", "domain_apple_verified_date", "payment_provider"),
             },
         ),
-        ("Mailchimp", {"fields": ("mailchimp_server_prefix", "mailchimp_access_token")}),
+        ("Mailchimp", {"fields": ("mailchimp_server_prefix",)}),
         (
             "Analytics",
             {
@@ -230,7 +253,7 @@ class RevenueProgramAdmin(RevEngineBaseAdmin, CompareVersionAdmin, AdminImageMix
         ),
     )
 
-    search_fields = ["payment_provider__stripe_account_id"]
+    search_fields = ["name", "slug", "payment_provider__stripe_account_id"]
 
     list_display = ["name", "organization", "slug", "payment_provider_url"]
 
@@ -251,7 +274,7 @@ class RevenueProgramAdmin(RevEngineBaseAdmin, CompareVersionAdmin, AdminImageMix
     def get_readonly_fields(self, request, obj=None):
         # If it's a changeform
         if obj:
-            return ["name", "slug", "organization", "mailchimp_access_token", "mailchimp_server_prefix"]
+            return ["name", "slug", "organization", "mailchimp_server_prefix"]
         # If it's an addform
         # We can't allow setting default_donation_page until the RevenueProgram has been defined
         # because we need to limit the donation_page choices based on this instance.

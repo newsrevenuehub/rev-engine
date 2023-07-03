@@ -1,6 +1,7 @@
 import { render, screen } from 'test-utils';
 import MailchimpIntegrationCard from './MailchimpIntegrationCard';
 import useConnectMailchimp from 'hooks/useConnectMailchimp';
+import { SetStateAction } from 'react';
 
 jest.mock('../IntegrationCard');
 jest.mock('hooks/useConnectMailchimp');
@@ -15,7 +16,11 @@ describe('MailchimpIntegrationCard', () => {
     useConnectMailchimpMock.mockReturnValue({
       isLoading: false,
       isError: false,
-      connectedToMailchimp: false
+      connectedToMailchimp: false,
+      requiresAudienceSelection: false,
+      hasMailchimpAccess: false,
+      justConnectedToMailchimp: false,
+      setRefetchInterval: jest.fn()
     });
   });
 
@@ -28,7 +33,11 @@ describe('MailchimpIntegrationCard', () => {
     useConnectMailchimpMock.mockReturnValue({
       isLoading: false,
       isError: false,
-      connectedToMailchimp: true
+      connectedToMailchimp: true,
+      requiresAudienceSelection: false,
+      hasMailchimpAccess: true,
+      justConnectedToMailchimp: false,
+      setRefetchInterval: jest.fn()
     });
     tree();
 
@@ -39,7 +48,11 @@ describe('MailchimpIntegrationCard', () => {
     useConnectMailchimpMock.mockReturnValue({
       isLoading: true,
       isError: false,
-      connectedToMailchimp: false
+      connectedToMailchimp: false,
+      requiresAudienceSelection: false,
+      hasMailchimpAccess: false,
+      justConnectedToMailchimp: false,
+      setRefetchInterval: jest.fn()
     });
     tree();
     expect(screen.getByTestId('cornerMessage')).toBeEmptyDOMElement();
@@ -57,7 +70,11 @@ describe('MailchimpIntegrationCard', () => {
         isLoading: false,
         isError: false,
         connectedToMailchimp: false,
-        organizationPlan: organizationPlan as any
+        organizationPlan: organizationPlan as any,
+        requiresAudienceSelection: false,
+        hasMailchimpAccess: true,
+        justConnectedToMailchimp: false,
+        setRefetchInterval: jest.fn()
       });
       tree();
       expect(screen.getByTestId('cornerMessage')).toHaveTextContent('Upgrade to Core');
@@ -76,7 +93,12 @@ describe('MailchimpIntegrationCard', () => {
         isLoading: false,
         isError: false,
         connectedToMailchimp: false,
-        organizationPlan: organizationPlan as any
+        organizationPlan: organizationPlan as any,
+        requiresAudienceSelection: false,
+        hasMailchimpAccess: true,
+        sendUserToMailchimp: jest.fn(),
+        justConnectedToMailchimp: false,
+        setRefetchInterval: jest.fn()
       });
       tree();
       expect(screen.getByTestId('cornerMessage')).toBeEmptyDOMElement();
@@ -95,7 +117,11 @@ describe('MailchimpIntegrationCard', () => {
         isError: false,
         connectedToMailchimp: false,
         organizationPlan: organizationPlan as any,
-        sendUserToMailchimp
+        sendUserToMailchimp,
+        requiresAudienceSelection: false,
+        hasMailchimpAccess: true,
+        justConnectedToMailchimp: false,
+        setRefetchInterval: jest.fn()
       });
       tree();
       expect(sendUserToMailchimp).not.toBeCalled();

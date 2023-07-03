@@ -108,14 +108,14 @@ describe('MailchimpConnectionStatus', () => {
   });
 
   describe('Mailchimp Success modal', () => {
-    it('should display Mailchimp Success modal if audience selected and prev audience undefined', () => {
+    it('should not display Mailchimp Success modal if audience selected and prev audience undefined', () => {
       useConnectMailchimpMock.mockReturnValue({
         isLoading: false,
         selectedAudienceId: 'mock-audience-id'
       } as any);
       usePreviousStateMock.mockReturnValueOnce(undefined);
       tree();
-      expect(screen.getByTestId('mock-mailchimp-modal')).toBeInTheDocument();
+      expect(screen.queryByTestId('mock-mailchimp-modal')).not.toBeInTheDocument();
     });
 
     it('should display Mailchimp Success modal if audience selected and prev audience null', () => {

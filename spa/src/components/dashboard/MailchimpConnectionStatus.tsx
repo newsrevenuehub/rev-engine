@@ -35,10 +35,7 @@ export default function MailchimpConnectionStatus() {
       return false;
     }
     // Otherwise, show it if the user has just selected an audience.
-    return (
-      typeof selectedAudienceId === 'string' &&
-      (prevMailchimpAudienceId === null || prevMailchimpAudienceId === undefined)
-    );
+    return typeof selectedAudienceId === 'string' && prevMailchimpAudienceId === null;
   }, [open, prevMailchimpAudienceId, selectedAudienceId]);
 
   useEffect(() => {

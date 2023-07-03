@@ -51,5 +51,6 @@ coverage
 htmlcov
 spa/cypress/screenshots
 spa/cypress/videos
+coverage.xml
 
 .venv

@@ -8,11 +8,13 @@ from django.template.loader import render_to_string
 from django.test import TestCase
 
 import pytest
+import stripe.error
 from addict import Dict as AttrDict
 
 from apps.contributions import tasks as contribution_tasks
 from apps.contributions.models import Contribution, ContributionStatus
 from apps.contributions.payment_managers import PaymentProviderError
+from apps.contributions.tasks import task_verify_apple_domain
 from apps.contributions.tests.factories import ContributionFactory
 from apps.contributions.utils import CONTRIBUTION_EXPORT_CSV_HEADERS
 
@@ -214,3 +216,25 @@ class TestEmailContributionCsvExportToUser:
             "nrh-contribution-csv-email-body.html", context
         )
         assert len([row for row in DictReader(send_email_spy.call_args[1]["attachment"].splitlines())]) == 0
+
+
+@patch("apps.contributions.tasks.RevenueProgram.objects.get")
+def test_task_verify_apple_domain_happy_path(mock_rp_get):
+    slug = "slug"
+    mock_revenue_program = MagicMock()
+    mock_rp_get.return_value = mock_revenue_program
+    task_verify_apple_domain(revenue_program_slug=slug)
+    assert mock_revenue_program.stripe_create_apple_pay_domain.called
+    mock_rp_get.assert_called_with(slug=slug)
+
+
+@patch("apps.contributions.tasks.RevenueProgram.objects.get")
+def test_task_verify_apple_domain_when_stripe_error(mock_rp_get):
+    slug = "slug"
+    mock_revenue_program = MagicMock()
+    mock_rp_get.return_value = mock_revenue_program
+    mock_revenue_program.stripe_create_apple_pay_domain.side_effect = stripe.error.StripeError()
+    with pytest.raises(stripe.error.StripeError):
+        task_verify_apple_domain(revenue_program_slug=slug)
+    assert mock_revenue_program.stripe_create_apple_pay_domain.called
+    mock_rp_get.assert_called_with(slug=slug)

@@ -36,6 +36,9 @@ export default function MailchimpConnectionStatus() {
     }
     // Otherwise, show it if the user has just selected an audience.
     return typeof selectedAudienceId === 'string' && prevMailchimpAudienceId === null;
+    // Cannot check for "prevMailchimpAudienceId === undefined" because initial
+    // render will always return undefined making the modal always show up on
+    //  first render if audience is selected
   }, [open, prevMailchimpAudienceId, selectedAudienceId]);
 
   useEffect(() => {

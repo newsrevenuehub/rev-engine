@@ -1,8 +1,8 @@
 import { axe } from 'jest-axe';
-import { fireEvent, render, screen } from 'test-utils';
 import { useSnackbar } from 'notistack';
-import MailchimpModal, { MailchimpModalProps } from './MailchimpModal';
 import { DONATIONS_SLUG } from 'routes';
+import { fireEvent, render, screen } from 'test-utils';
+import MailchimpModal, { MailchimpModalProps } from './MailchimpModal';
 
 jest.mock('../../IntegrationCardHeader/IntegrationCardHeader');
 
@@ -103,15 +103,14 @@ describe('MailchimpModal', () => {
       it('should render integration card header', () => {
         const headerProps = {
           isActive: false,
-          isRequired: true,
-          cornerMessage: 'mock-corner-message',
           title: 'mock-title',
           image: 'mock-image',
+          isRequired: true,
+          cornerMessage: 'mock-corner-message',
           site: {
             label: 'mock-label',
             url: 'mock-url'
-          },
-          enableCornerMessage: false
+          }
         };
         tree({ organizationPlan: plan, ...headerProps });
         expect(screen.getByTestId('mock-integration-card-header')).toBeVisible();
@@ -208,18 +207,15 @@ describe('MailchimpModal', () => {
       });
 
       it('should redirect user to Contributions page when "Go to contributions" is clicked', () => {
-        const enqueueSnackbar = jest.fn();
-        useSnackbarMock.mockReturnValue({ enqueueSnackbar, closeSnackbar: jest.fn() });
+        expect(onClose).not.toHaveBeenCalled();
         tree({ organizationPlan: plan, isActive: true });
         expect(mockHistoryPush).not.toHaveBeenCalled();
         screen.getByRole('button', { name: /Go to contributions/i }).click();
-        expect(enqueueSnackbar).not.toBeCalled();
+        expect(onClose).toHaveBeenCalledTimes(1);
         expect(mockHistoryPush).toHaveBeenCalledWith(DONATIONS_SLUG);
       });
 
       it('should call onClose', () => {
-        const enqueueSnackbar = jest.fn();
-        useSnackbarMock.mockReturnValue({ enqueueSnackbar, closeSnackbar: jest.fn() });
         tree({ organizationPlan: plan, isActive: true });
         expect(onClose).not.toHaveBeenCalled();
         const closeButtons = screen.getAllByRole('button', { name: 'Close' });
@@ -228,7 +224,6 @@ describe('MailchimpModal', () => {
           expect(onClose).toHaveBeenCalledTimes(index + 1);
         });
         expect(onClose).toHaveBeenCalledTimes(2);
-        expect(enqueueSnackbar).not.toBeCalled();
       });
 
       it('should render "FAQ" section', () => {
@@ -241,44 +236,6 @@ describe('MailchimpModal', () => {
           // FAQ_URL constant. Link is hardcoded so that if constant is mistakenly changed the test will fail
           'https://news-revenue-hub.atlassian.net/servicedesk/customer/portal/11/article/2195423496'
         );
-      });
-
-      describe('firstTimeConnected = true', () => {
-        const enqueueSnackbar = jest.fn();
-
-        const setup = () => {
-          useSnackbarMock.mockReturnValue({ enqueueSnackbar, closeSnackbar: jest.fn() });
-          tree({ organizationPlan: plan, isActive: true, firstTimeConnected: true });
-          expect(enqueueSnackbar).not.toBeCalled();
-        };
-
-        it('should show successful connection notification on "Go to contributions" click', () => {
-          setup();
-          fireEvent.click(screen.getByRole('button', { name: /Go to contributions/i }));
-          expect(enqueueSnackbar).toBeCalledTimes(1);
-          expect(enqueueSnackbar).toBeCalledWith(
-            'You’ve successfully connected to Mailchimp! Your contributor data will sync automatically.',
-            expect.objectContaining({
-              persist: true
-            })
-          );
-        });
-
-        it('should show successful connection notification on any "Close" click', () => {
-          setup();
-          const closeButtons = screen.getAllByRole('button', { name: 'Close' });
-          closeButtons.forEach((button, index) => {
-            fireEvent.click(button);
-            expect(onClose).toHaveBeenCalledTimes(index + 1);
-          });
-          expect(enqueueSnackbar).toBeCalledTimes(closeButtons.length);
-          expect(enqueueSnackbar).toBeCalledWith(
-            'You’ve successfully connected to Mailchimp! Your contributor data will sync automatically.',
-            expect.objectContaining({
-              persist: true
-            })
-          );
-        });
       });
 
       it('should be accessible', async () => {

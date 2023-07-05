@@ -2,16 +2,10 @@ import { axe } from 'jest-axe';
 import { fireEvent, render, screen } from 'test-utils';
 import UnpublishModal, { UnpublishModalProps } from './UnpublishModal';
 
+const mockPage = { id: 'mock-id', name: 'mock-page-name', revenue_program: { default_donation_page: 'default-id' } };
+
 function tree(props?: Partial<UnpublishModalProps>) {
-  return render(
-    <UnpublishModal
-      onClose={jest.fn()}
-      onUnpublish={jest.fn()}
-      open
-      page={{ name: 'mock-page-name' } as any}
-      {...props}
-    />
-  );
+  return render(<UnpublishModal onClose={jest.fn()} onUnpublish={jest.fn()} open page={mockPage as any} {...props} />);
 }
 
 describe('UnpublishModal', () => {
@@ -26,8 +20,36 @@ describe('UnpublishModal', () => {
   });
 
   describe('When open', () => {
+    describe('When the page is not the default for the revenue program', () => {
+      it('displays a "Unpublish Live Page" header', () => {
+        tree();
+        expect(screen.getByText('Unpublish Live Page')).toBeVisible();
+        expect(screen.queryByText('Unpublish Default Page')).not.toBeInTheDocument();
+      });
+
+      it('displays default content', () => {
+        tree();
+        expect(screen.getByTestId('unpublish-prompt')).toBeVisible();
+        expect(screen.queryByTestId('unpublish-default-prompt')).not.toBeInTheDocument();
+      });
+    });
+
+    describe('When the page is the default for the revenue program', () => {
+      it('displays a "Unpublish Default Page" header', () => {
+        tree({ page: { ...mockPage, id: 'default-id' } as any });
+        expect(screen.getByText('Unpublish Default Page')).toBeVisible();
+        expect(screen.queryByText('Unpublish Live Page')).not.toBeInTheDocument();
+      });
+
+      it('displays default content', () => {
+        tree({ page: { ...mockPage, id: 'default-id' } as any });
+        expect(screen.getByTestId('unpublish-default-prompt')).toBeVisible();
+        expect(screen.queryByTestId('unpublish-prompt')).not.toBeInTheDocument();
+      });
+    });
+
     it('displays a prompt that includes the page name', () => {
-      tree({ page: { name: 'test-page-name' } as any });
+      tree({ page: { ...mockPage, name: 'test-page-name' } as any });
       expect(screen.getByTestId('unpublish-prompt')).toHaveTextContent(
         "Are you sure you want to unpublish 'test-page-name'?"
       );

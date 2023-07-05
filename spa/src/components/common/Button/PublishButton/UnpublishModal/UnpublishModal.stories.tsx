@@ -11,5 +11,11 @@ const Template: ComponentStory<typeof UnpublishModal> = (props) => <UnpublishMod
 export const Default = Template.bind({});
 Default.args = {
   open: true,
-  page: { name: 'Page Name' } as any
+  page: { id: 'mock-id', name: 'Page Name', revenue_program: {} } as any
+};
+
+export const PageIsDefault = Template.bind({});
+PageIsDefault.args = {
+  open: true,
+  page: { id: 'mock-id', name: 'Page Name', revenue_program: { default_donation_page: 'mock-id' } } as any
 };

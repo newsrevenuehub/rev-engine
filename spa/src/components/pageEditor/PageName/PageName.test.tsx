@@ -267,7 +267,7 @@ describe('PageName', () => {
       });
       const { container } = tree();
 
-      fireEvent.click(screen.getByRole('button', { name: 'mock-page-name' }));
+      fireEvent.click(screen.getByRole('button', { name: 'Default Contribution Page mock-page-name' }));
 
       // axe seems to trip over contrast detection on this component.
       // See https://github.com/nickcolley/jest-axe/issues/147

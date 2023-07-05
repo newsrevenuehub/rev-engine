@@ -58,7 +58,7 @@ export function PageName() {
 
   const Icon = () => (
     <ListItemIcon>
-      <BookmarkIcon data-testid="bookmark-icon" />
+      <BookmarkIcon data-testid="bookmark-icon" aria-label="Default Contribution Page" />
     </ListItemIcon>
   );
 

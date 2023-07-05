@@ -1,9 +1,15 @@
-import { Button as MuiButton } from '@material-ui/core';
+import { Button as MuiButton, ListItemIcon as MuiListItemIcon } from '@material-ui/core';
 import { TextField as BaseTextField } from 'components/base';
 import styled from 'styled-components';
 
 export const Label = styled.span`
   padding-right: 20px;
+`;
+
+export const Form = styled.form`
+  display: flex;
+  align-items: center;
+  margin-bottom: 0;
 `;
 
 export const Button = styled(MuiButton)`
@@ -14,6 +20,19 @@ export const Button = styled(MuiButton)`
     height: 100%;
     letter-spacing: 0;
     text-transform: none;
+  }
+`;
+
+export const ListItemIcon = styled(MuiListItemIcon)`
+  && {
+    margin-right: 6px;
+    min-width: unset;
+    fill: ${(props) => props.theme.basePalette.greyscale.grey3};
+
+    svg {
+      width: 16px;
+      height: 16px;
+    }
   }
 `;
 

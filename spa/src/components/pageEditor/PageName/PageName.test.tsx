@@ -48,6 +48,24 @@ describe('PageName', () => {
       expect(screen.getByRole('button', { name: 'mock-page-name' })).toHaveAttribute('title', 'Edit');
     });
 
+    it('should not render bookmark icon by default', () => {
+      tree();
+      expect(screen.queryByTestId('bookmark-icon')).not.toBeInTheDocument();
+    });
+
+    it('should render bookmark icon if page id === revenue program default donation page', () => {
+      useEditablePageContextMock.mockReturnValue({
+        deletePage: jest.fn(),
+        isError: false,
+        isLoading: false,
+        pageChanges: {},
+        setPageChanges: jest.fn(),
+        updatedPagePreview: { name: 'mock-page-name', id: 1, revenue_program: { default_donation_page: 1 } } as any
+      });
+      tree();
+      expect(screen.getByTestId('bookmark-icon')).toBeInTheDocument();
+    });
+
     it('is accessible', async () => {
       const { container } = tree();
 
@@ -220,7 +238,33 @@ describe('PageName', () => {
       expect(screen.getByRole('button', { name: 'mock-page-name' })).toBeVisible();
     });
 
+    it('should not render bookmark icon by default', () => {
+      tree();
+      expect(screen.queryByTestId('bookmark-icon')).not.toBeInTheDocument();
+    });
+
+    it('should render bookmark icon if page id === revenue program default donation page', () => {
+      useEditablePageContextMock.mockReturnValue({
+        deletePage: jest.fn(),
+        isError: false,
+        isLoading: false,
+        pageChanges: {},
+        setPageChanges: jest.fn(),
+        updatedPagePreview: { name: 'mock-page-name', id: 1, revenue_program: { default_donation_page: 1 } } as any
+      });
+      tree();
+      expect(screen.getByTestId('bookmark-icon')).toBeInTheDocument();
+    });
+
     it('is accessible', async () => {
+      useEditablePageContextMock.mockReturnValue({
+        deletePage: jest.fn(),
+        isError: false,
+        isLoading: false,
+        pageChanges: {},
+        setPageChanges: jest.fn(),
+        updatedPagePreview: { name: 'mock-page-name', id: 1, revenue_program: { default_donation_page: 1 } } as any
+      });
       const { container } = tree();
 
       fireEvent.click(screen.getByRole('button', { name: 'mock-page-name' }));

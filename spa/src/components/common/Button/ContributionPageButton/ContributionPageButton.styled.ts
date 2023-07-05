@@ -25,7 +25,8 @@ export const EditIcon = styled(EditOutlined)`
 export const Label = styled.div`
   align-items: center;
   display: flex;
-  gap: 8px;
+  gap: 4px;
+  min-height: 28px;
 `;
 
 export const PublishedBadge = styled.div`

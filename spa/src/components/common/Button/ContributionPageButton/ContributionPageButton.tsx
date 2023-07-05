@@ -23,7 +23,7 @@ export function ContributionPageButton({ page, ...other }: ContributionPageButto
         <DefaultPageButton domId={page.name.replace(/\s/g, '-') + '-default-page'} /> {page.name}
       </Label>
     ) : (
-      page.name
+      <Label>{page.name}</Label>
     );
 
   const preview = page.page_screenshot ? (

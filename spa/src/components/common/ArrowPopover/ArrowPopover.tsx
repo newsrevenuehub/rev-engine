@@ -30,7 +30,7 @@ export function ArrowPopover({ children, onClose, ...other }: ArrowPopoverProps)
 
   return (
     <Popper
-      modifiers={{ arrow: { element: arrowRef, enabled: true }, offset: { enabled: true, offset: '0, 20px' } }}
+      modifiers={{ arrow: { element: arrowRef, enabled: true }, offset: { enabled: true, offset: '0, 26px' } }}
       transition
       {...other}
     >

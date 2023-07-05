@@ -5,7 +5,6 @@ import styled from 'styled-components';
 export const Button = styled(ButtonBase)`
   && {
     border-radius: ${({ theme }) => theme.muiBorderRadius.sm};
-    height: 16px;
     padding: 4px;
 
     &:hover {
@@ -22,8 +21,8 @@ export const Button = styled(ButtonBase)`
     }
 
     svg {
-      height: 12px;
-      width: 12px;
+      height: 20px;
+      width: 20px;
     }
   }
 `;

@@ -9,11 +9,10 @@ import { ButtonProps, Modal, ModalContent, ModalFooter, ModalHeader } from 'comp
 import PropTypes, { InferProps } from 'prop-types';
 import { useMemo } from 'react';
 
+import MailchimpLogo from 'assets/images/mailchimp.png';
 import IconList from 'components/common/IconList/IconList';
-import SystemNotification from 'components/common/SystemNotification';
 import { CORE_UPGRADE_URL, FAQ_URL, HELP_URL } from 'constants/helperUrls';
 import { PLAN_LABELS, PLAN_NAMES } from 'constants/orgPlanConstants';
-import { useSnackbar } from 'notistack';
 import { useHistory } from 'react-router-dom';
 import { DONATIONS_SLUG } from 'routes';
 import IntegrationCardHeader from '../../IntegrationCardHeader';
@@ -70,11 +69,16 @@ const MailchimpModal = ({
   isActive,
   sendUserToMailchimp,
   organizationPlan,
-  firstTimeConnected,
-  ...mailchimpHeaderData
+  title = 'Mailchimp',
+  image = MailchimpLogo,
+  isRequired = false,
+  cornerMessage,
+  site = {
+    label: 'mailchimp.com',
+    url: 'https://www.mailchimp.com'
+  }
 }: MailchimpModalProps) => {
   const history = useHistory();
-  const { enqueueSnackbar } = useSnackbar();
   const actionButtonProps: Partial<ButtonProps> = {
     color: 'primaryDark',
     variant: 'contained',
@@ -89,26 +93,10 @@ const MailchimpModal = ({
     return DISPLAY_STATE.FREE;
   }, [isActive, organizationPlan]);
 
-  const showSuccessfulConnectionNotification = () => {
-    if (firstTimeConnected) {
-      enqueueSnackbar('You’ve successfully connected to Mailchimp! Your contributor data will sync automatically.', {
-        persist: true,
-        content: (key: string, message: string) => (
-          <SystemNotification id={key} message={message} header="Successfully Connected!" type="success" />
-        )
-      });
-    }
-  };
-
-  const handleClose = () => {
-    onClose();
-    showSuccessfulConnectionNotification();
-  };
-
   return (
-    <Modal width={isActive ? 660 : 566} open={open} onClose={handleClose} aria-label="Mailchimp connection modal">
+    <Modal width={isActive ? 660 : 566} open={open} onClose={onClose} aria-label="Mailchimp connection modal">
       <ModalHeader
-        onClose={handleClose}
+        onClose={onClose}
         icon={
           isActive ? (
             <InfoIcon>
@@ -120,7 +108,14 @@ const MailchimpModal = ({
         {displayState === DISPLAY_STATE.CONNECTED ? (
           <Title>Successfully Connected!</Title>
         ) : (
-          <IntegrationCardHeader isActive={isActive} {...mailchimpHeaderData} />
+          <IntegrationCardHeader
+            isActive={isActive}
+            title={title!}
+            image={image!}
+            isRequired={isRequired!}
+            cornerMessage={cornerMessage}
+            site={site!}
+          />
         )}
       </ModalHeader>
       <ModalContent>
@@ -162,7 +157,7 @@ const MailchimpModal = ({
         }
       </ModalContent>
       <ModalFooter>
-        <CancelButton color="secondary" variant="contained" onClick={handleClose}>
+        <CancelButton color="secondary" variant="contained" onClick={onClose}>
           {isActive ? 'Close' : 'Maybe Later'}
         </CancelButton>
         {
@@ -181,7 +176,7 @@ const MailchimpModal = ({
               <ActionButton
                 {...actionButtonProps}
                 onClick={() => {
-                  showSuccessfulConnectionNotification();
+                  onClose();
                   history.push(DONATIONS_SLUG);
                 }}
               >
@@ -199,17 +194,16 @@ const MailchimpModalPropTypes = {
   open: PropTypes.bool.isRequired,
   onClose: PropTypes.func.isRequired,
   sendUserToMailchimp: PropTypes.func,
-  image: PropTypes.string.isRequired,
-  title: PropTypes.string.isRequired,
+  image: PropTypes.string,
+  title: PropTypes.string,
   cornerMessage: PropTypes.node,
   site: PropTypes.shape({
     label: PropTypes.string.isRequired,
     url: PropTypes.string.isRequired
-  }).isRequired,
+  }),
   isActive: PropTypes.bool,
-  isRequired: PropTypes.bool.isRequired,
-  organizationPlan: PropTypes.oneOf(Object.keys(PLAN_NAMES)).isRequired,
-  firstTimeConnected: PropTypes.bool
+  isRequired: PropTypes.bool,
+  organizationPlan: PropTypes.oneOf(Object.keys(PLAN_NAMES)).isRequired
 };
 
 MailchimpModal.propTypes = MailchimpModalPropTypes;

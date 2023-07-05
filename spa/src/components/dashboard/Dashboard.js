@@ -33,23 +33,20 @@ import Donations from 'components/donations/Donations';
 import PageEditorRoute from 'components/pageEditor/PageEditorRoute';
 import Integration from 'components/settings/Integration';
 import Organization from 'components/settings/Organization';
+import MailchimpConnectionStatus from './MailchimpConnectionStatus';
 
 // Feature flag-related
 import { CONTENT_SECTION_ACCESS_FLAG_NAME } from 'constants/featureFlagConstants';
 import useFeatureFlags from 'hooks/useFeatureFlags';
 
-import AudienceListModal from 'components/common/Modal/AudienceListModal';
 import { PageEditorRedirect } from 'components/pageEditor/PageEditorRedirect';
 import Subscription from 'components/settings/Subscription/Subscription';
-import useConnectMailchimp from 'hooks/useConnectMailchimp';
 import useConnectStripeAccount from 'hooks/useConnectStripeAccount';
-import useModal from 'hooks/useModal';
 import { SentryRoute } from 'hooks/useSentry';
 import useUser from 'hooks/useUser';
 import flagIsActiveForUser from 'utilities/flagIsActiveForUser';
 import hasContributionsDashboardAccessToUser from 'utilities/hasContributionsDashboardAccessToUser';
 import MailchimpOAuthSuccess from './MailchimpOAuthSuccess';
-import MailchimpModal from 'components/common/IntegrationCard/MailchimpIntegrationCard/MailchimpModal';
 
 function Dashboard() {
   const { enqueueSnackbar } = useSnackbar();
@@ -57,15 +54,6 @@ function Dashboard() {
   const { user } = useUser();
   const { requiresVerification, displayConnectionSuccess, hideConnectionSuccess, isLoading } =
     useConnectStripeAccount();
-  const {
-    requiresAudienceSelection,
-    isLoading: isMailchimpLoading,
-    justConnectedToMailchimp,
-    organizationPlan,
-    connectedToMailchimp
-  } = useConnectMailchimp();
-  const { open, handleToggle } = useModal(true);
-  const showSuccessModal = open && justConnectedToMailchimp;
   const hasContributionsSectionAccess = user?.role_type && hasContributionsDashboardAccessToUser(flags);
   const hasContentSectionAccess = user?.role_type && flagIsActiveForUser(CONTENT_SECTION_ACCESS_FLAG_NAME, flags);
   const dashboardSlugRedirect = hasContentSectionAccess
@@ -91,23 +79,14 @@ function Dashboard() {
     }
   }, [displayConnectionSuccess, enqueueSnackbar, hideConnectionSuccess]);
 
-  if (isLoading || isMailchimpLoading) {
+  if (isLoading) {
     return <GlobalLoading />;
   }
 
   return (
     <S.Outer>
+      <MailchimpConnectionStatus />
       {requiresVerification && <ConnectStripeElements />}
-      {requiresAudienceSelection && <AudienceListModal open={requiresAudienceSelection} />}
-      {showSuccessModal && (
-        <MailchimpModal
-          firstTimeConnected
-          open={showSuccessModal}
-          onClose={handleToggle}
-          organizationPlan={organizationPlan}
-          isActive={connectedToMailchimp}
-        />
-      )}
       {!isEditPage && <DashboardTopbar user={user} />}
       <S.Dashboard data-testid="dashboard">
         {!isEditPage && <DashboardSidebar />}

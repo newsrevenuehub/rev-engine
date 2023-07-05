@@ -48,7 +48,7 @@ export function ModalHeader({ children, className, closeAriaLabel, icon, id, onC
   // react-focus-lock usage in <Modal>.
 
   return (
-    <Root className={className!} id={id ?? undefined}>
+    <Root className={className!} id={id!}>
       {icon}
       <Content>{children}</Content>
       {onClose && (

@@ -95,10 +95,6 @@ export interface UseConnectMailchimpResult {
    */
   organizationPlan?: EnginePlan['name'];
   /**
-   * Mailchimp connection started but hasn't finished and still need audience selection?
-   */
-  requiresAudienceSelection: boolean;
-  /**
    * Current Revenue Program being connected to Mailchimp.
    */
   revenueProgram?: RevenueProgram;
@@ -108,9 +104,9 @@ export interface UseConnectMailchimpResult {
    */
   selectAudience?: (id: MailchimpAudience['id']) => Promise<void>;
   /**
-   * Audience that will be synced with our contributor data.
+   * AudienceId that will be synced with our contributor data.
    */
-  selectedAudience?: MailchimpAudience;
+  selectedAudienceId?: string;
   /**
    * Sends the user to Mailchimp to continue setup.
    */
@@ -119,8 +115,4 @@ export interface UseConnectMailchimpResult {
    * Changes how quickly we refetch data from the API.
    */
   setRefetchInterval: Dispatch<SetStateAction<false | number>>;
-  /**
-   *  Mailchimp just connected and we need to show the user a success modal.
-   */
-  justConnectedToMailchimp: boolean;
 }

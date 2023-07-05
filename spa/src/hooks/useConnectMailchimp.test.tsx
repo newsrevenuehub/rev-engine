@@ -1,10 +1,10 @@
 import { act, renderHook } from '@testing-library/react-hooks';
-import MockAdapter from 'axios-mock-adapter';
-import queryString from 'query-string';
-import { NRE_MAILCHIMP_CLIENT_ID } from 'appSettings';
 import Axios from 'ajax/axios';
+import { NRE_MAILCHIMP_CLIENT_ID } from 'appSettings';
+import MockAdapter from 'axios-mock-adapter';
 import { MAILCHIMP_INTEGRATION_ACCESS_FLAG_NAME } from 'constants/featureFlagConstants';
 import useUser from 'hooks/useUser';
+import queryString from 'query-string';
 import { TestQueryClientProvider } from 'test-utils';
 import useConnectMailchimp, { MAILCHIMP_OAUTH_CALLBACK } from './useConnectMailchimp';
 import useFeatureFlags from './useFeatureFlags';
@@ -111,8 +111,6 @@ describe('useConnectMailchimp hook', () => {
         isLoading: true,
         connectedToMailchimp: false,
         hasMailchimpAccess: false,
-        requiresAudienceSelection: false,
-        justConnectedToMailchimp: false,
         setRefetchInterval: expect.any(Function)
       });
     });
@@ -122,9 +120,8 @@ describe('useConnectMailchimp hook', () => {
 
       expect(result.current.audiences).toBeUndefined();
       expect(result.current.connectedToMailchimp).toBe(false);
-      expect(result.current.requiresAudienceSelection).toBe(false);
       expect(result.current.selectAudience).toBeUndefined();
-      expect(result.current.selectedAudience).toBeUndefined();
+      expect(result.current.selectedAudienceId).toBeUndefined();
       expect(result.current.sendUserToMailchimp).toBeUndefined();
     });
 
@@ -152,8 +149,6 @@ describe('useConnectMailchimp hook', () => {
         isLoading: false,
         connectedToMailchimp: false,
         hasMailchimpAccess: false,
-        requiresAudienceSelection: false,
-        justConnectedToMailchimp: false,
         setRefetchInterval: expect.any(Function)
       });
     });
@@ -163,9 +158,8 @@ describe('useConnectMailchimp hook', () => {
 
       expect(result.current.audiences).toBeUndefined();
       expect(result.current.connectedToMailchimp).toBe(false);
-      expect(result.current.requiresAudienceSelection).toBe(false);
       expect(result.current.selectAudience).toBeUndefined();
-      expect(result.current.selectedAudience).toBeUndefined();
+      expect(result.current.selectedAudienceId).toBeUndefined();
       expect(result.current.sendUserToMailchimp).toBeUndefined();
     });
 
@@ -309,9 +303,8 @@ describe('useConnectMailchimp hook', () => {
 
         expect(result.current.audiences).toBeUndefined();
         expect(result.current.connectedToMailchimp).toBe(false);
-        expect(result.current.requiresAudienceSelection).toBe(false);
         expect(result.current.selectAudience).toBeUndefined();
-        expect(result.current.selectedAudience).toBeUndefined();
+        expect(result.current.selectedAudienceId).toBeUndefined();
         expect(result.current.sendUserToMailchimp).toBeUndefined();
       });
     });
@@ -347,9 +340,8 @@ describe('useConnectMailchimp hook', () => {
 
         expect(result.current.audiences).toBeUndefined();
         expect(result.current.connectedToMailchimp).toBe(false);
-        expect(result.current.requiresAudienceSelection).toBe(false);
         expect(result.current.selectAudience).toBeUndefined();
-        expect(result.current.selectedAudience).toBeUndefined();
+        expect(result.current.selectedAudienceId).toBeUndefined();
         expect(result.current.sendUserToMailchimp).toBeUndefined();
       });
     });
@@ -380,7 +372,7 @@ describe('useConnectMailchimp hook', () => {
         const { result, waitFor } = hook();
 
         await waitFor(() => expect(axiosMock.history.get.length).toBe(1));
-        expect(result.current.selectedAudience).toEqual(mockMailchimpLists[0]);
+        expect(result.current.selectedAudienceId).toEqual(mockMailchimpLists[0].id);
       });
 
       it('sets selectedAudience property to undefined if there is none in the Mailchimp status', async () => {
@@ -394,7 +386,7 @@ describe('useConnectMailchimp hook', () => {
         const { result, waitFor } = hook();
 
         await waitFor(() => expect(axiosMock.history.get.length).toBe(1));
-        expect(result.current.selectedAudience).toBeUndefined();
+        expect(result.current.selectedAudienceId).toBeUndefined();
       });
 
       it.each([
@@ -419,65 +411,6 @@ describe('useConnectMailchimp hook', () => {
           expect(result.current.connectedToMailchimp).toBe(connectedToMailchimp);
         }
       );
-
-      describe.each([
-        [
-          'When Mailchimp status has neither available_mailchimp_email_lists set nor chosen_mailchimp_email_list',
-          undefined,
-          undefined,
-          false
-        ],
-        [
-          'When Mailchimp status has available_mailchimp_email_lists set, but not chosen_mailchimp_email_list',
-          mockMailchimpLists,
-          undefined,
-          true
-        ],
-        [
-          'When Mailchimp status has both available_mailchimp_email_lists and chosen_mailchimp_email_list set',
-          mockMailchimpLists,
-          mockMailchimpLists[0],
-          false
-        ]
-      ])('%s', (_, available_mailchimp_email_lists, chosen_mailchimp_email_list, shouldRequireAudienceSection) => {
-        beforeEach(() => {
-          axiosMock.onGet(mailchimpStatusEndpoint).reply(200, {
-            chosen_mailchimp_email_list,
-            available_mailchimp_email_lists,
-            mailchimp_list_id: chosen_mailchimp_email_list?.id,
-            mailchimp_integration_connected: true
-          });
-        });
-
-        it(`returns a ${shouldRequireAudienceSection} requiresAudienceSelection prop`, async () => {
-          const { result, waitFor } = hook();
-
-          await waitFor(() => expect(axiosMock.history.get.length).toBe(1));
-          expect(result.current.requiresAudienceSelection).toBe(shouldRequireAudienceSection);
-        });
-
-        // See "allows controlling the Mailchimp status refetch interval using
-        // the setRefetchInterval prop" test for explanation of how these work.
-
-        if (shouldRequireAudienceSection) {
-          it('resets the Mailchimp status refetch interval', async () => {
-            const { result, waitFor } = hook();
-
-            act(() => result.current.setRefetchInterval(30));
-            await waitFor(() => expect(axiosMock.history.get.length).toBe(1));
-            await new Promise((resolve) => window.setTimeout(resolve, 50));
-            expect(axiosMock.history.get.length).toBe(1);
-          });
-        } else {
-          it("doesn't reset the Mailchimp status refetch interval", async () => {
-            const { result, waitFor } = hook();
-
-            act(() => result.current.setRefetchInterval(30));
-            await waitFor(() => expect(axiosMock.history.get.length).toBe(1));
-            await waitFor(() => expect(axiosMock.history.get.length).toBe(2));
-          });
-        }
-      });
 
       it('returns a sendUserToMailchimp function which redirects the user to the URL provided by the API', async () => {
         const mailchimpURL = `https://login.mailchimp.com/oauth2/authorize?${queryString.stringify({
@@ -508,40 +441,6 @@ describe('useConnectMailchimp hook', () => {
             url: '/revenue-programs/1/mailchimp_configure/'
           })
         );
-      });
-
-      it('shows returns "justConnectedToMailchimp = true" if "mailchimp_list_id" property changes from "null" to a valid id', async () => {
-        axiosMock.reset();
-        axiosMock
-          .onGet(mailchimpStatusEndpoint)
-          .replyOnce(200, {
-            available_mailchimp_email_lists: mockMailchimpLists,
-            mailchimp_integration_connected: true,
-            mailchimp_list_id: null
-          })
-          .onGet(mailchimpStatusEndpoint)
-          .reply(200, {
-            available_mailchimp_email_lists: mockMailchimpLists,
-            mailchimp_integration_connected: true,
-            mailchimp_list_id: mockMailchimpLists[0].id
-          });
-
-        const { result, waitFor } = hook();
-        expect(result.current.justConnectedToMailchimp).toEqual(false);
-
-        // Wait for the initial render.
-
-        await waitFor(() => expect(axiosMock.history.get.length).toBe(1));
-
-        // Force refetch to go faster.
-
-        act(() => result.current.setRefetchInterval(30));
-        expect(result.current.justConnectedToMailchimp).toEqual(false);
-
-        // When the second request finishes, justConnectedToMailchimp should return "true".
-
-        await waitFor(() => expect(axiosMock.history.get.length).toBe(2));
-        expect(result.current.justConnectedToMailchimp).toEqual(true);
       });
     });
   });

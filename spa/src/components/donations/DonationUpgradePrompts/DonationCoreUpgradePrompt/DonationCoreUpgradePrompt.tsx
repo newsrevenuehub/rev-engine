@@ -12,7 +12,7 @@ export type DonationCoreUpgradePromptProps = InferProps<typeof DonationCoreUpgra
 export function DonationCoreUpgradePrompt({ onClose }: DonationCoreUpgradePromptProps) {
   return (
     <Root>
-      <UpgradeIcon />
+      <UpgradeIcon aria-hidden />
       <CloseButton aria-label="Close" onClick={onClose}>
         <Close />
       </CloseButton>

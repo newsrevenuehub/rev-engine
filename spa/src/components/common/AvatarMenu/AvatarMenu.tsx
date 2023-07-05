@@ -67,7 +67,7 @@ const AvatarMenu = ({ user, className }: AvatarMenuProps) => {
     <>
       <Container open={open ? 'open' : ''} className={className!} onClick={handleClick} aria-label="Settings">
         <Avatar data-testid="avatar">{avatarInitials}</Avatar>
-        <MoreVertIcon />
+        <MoreVertIcon aria-hidden />
       </Container>
       <Popover
         id={id}
@@ -89,7 +89,7 @@ const AvatarMenu = ({ user, className }: AvatarMenuProps) => {
             <>
               <MenuItem onClick={() => goTo(SETTINGS.SUBSCRIPTION)} aria-labelledby="account-label">
                 <ListItemIcon>
-                  <PersonIcon fontSize="small" />
+                  <PersonIcon fontSize="small" aria-hidden />
                 </ListItemIcon>
                 <Typography id="account-label" variant="inherit">
                   Account
@@ -97,7 +97,7 @@ const AvatarMenu = ({ user, className }: AvatarMenuProps) => {
               </MenuItem>
               <MenuItem onClick={() => goTo(SETTINGS.ORGANIZATION)} aria-labelledby="account-organization">
                 <ListItemIcon>
-                  <Lan />
+                  <Lan aria-hidden />
                 </ListItemIcon>
                 <Typography id="account-organization" variant="inherit">
                   Organization
@@ -105,7 +105,7 @@ const AvatarMenu = ({ user, className }: AvatarMenuProps) => {
               </MenuItem>
               <MenuItem onClick={() => goTo(SETTINGS.INTEGRATIONS)} aria-labelledby="account-integrations">
                 <ListItemIcon>
-                  <SyncIcon fontSize="small" />
+                  <SyncIcon fontSize="small" aria-hidden />
                 </ListItemIcon>
                 <Typography id="account-integrations" variant="inherit">
                   Integrations
@@ -114,11 +114,13 @@ const AvatarMenu = ({ user, className }: AvatarMenuProps) => {
               <Divider />
             </>
           )}
-          <MenuItem onClick={handleFAQ} aria-label="FAQ">
+          <MenuItem onClick={handleFAQ} aria-labelledby="faq">
             <ListItemIcon>
-              <ContactSupportOutlinedIcon fontSize="small" />
+              <ContactSupportOutlinedIcon fontSize="small" aria-hidden />
             </ListItemIcon>
-            <Typography variant="inherit">FAQ</Typography>
+            <Typography id="faq" variant="inherit">
+              FAQ
+            </Typography>
           </MenuItem>
           <MenuItem onClick={onLogout} aria-label="Sign out">
             <ListItemIcon>

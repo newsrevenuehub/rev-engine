@@ -24,8 +24,8 @@ const StyledMuiRadio = styled(MuiRadio)`
 export function Radio(props: RadioProps) {
   return (
     <StyledMuiRadio
-      checkedIcon={props.disabled ? <CheckedIconDisabled /> : <CheckedIcon />}
-      icon={<RadioButtonUnchecked />}
+      checkedIcon={props.disabled ? <CheckedIconDisabled aria-hidden /> : <CheckedIcon aria-hidden />}
+      icon={<RadioButtonUnchecked aria-hidden />}
       {...props}
     />
   );

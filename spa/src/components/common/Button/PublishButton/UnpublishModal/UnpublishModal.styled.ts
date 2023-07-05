@@ -4,6 +4,10 @@ import styled from 'styled-components';
 
 export const ModalContent = styled(BaseModalContent)`
   width: 590px;
+
+  p {
+    font-family: Roboto, sans-serif;
+  }
 `;
 
 export const ModalHeaderIcon = styled(ReportOutlined)`

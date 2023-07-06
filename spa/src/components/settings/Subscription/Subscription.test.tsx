@@ -1,17 +1,21 @@
 import { axe } from 'jest-axe';
-import { render, screen } from 'test-utils';
+import { fireEvent, render, screen } from 'test-utils';
 import Subscription from './Subscription';
 import useUser from 'hooks/useUser';
 import { PLAN_LABELS } from 'constants/orgPlanConstants';
-import { HELP_URL, PRICING_URL } from 'constants/helperUrls';
+import useQueryString from 'hooks/useQueryString';
 
+jest.mock('hooks/useQueryString');
 jest.mock('hooks/useUser');
+jest.mock('./ManageSubscription');
+jest.mock('./UpgradePlan');
 
 function tree() {
   return render(<Subscription />);
 }
 
 describe('Subscription', () => {
+  const useQueryStringMock = jest.mocked(useQueryString);
   const useUserMock = jest.mocked(useUser);
 
   beforeEach(() => {
@@ -19,7 +23,10 @@ describe('Subscription', () => {
       isError: false,
       isLoading: false,
       refetch: jest.fn(),
-      user: { organizations: [{ plan: { name: PLAN_LABELS.FREE } }, { plan: { name: PLAN_LABELS.CORE } }] } as any
+      user: {
+        id: -1,
+        organizations: [{ id: -2, plan: { name: PLAN_LABELS.FREE } }, { plan: { name: PLAN_LABELS.CORE } }]
+      } as any
     });
   });
 
@@ -45,22 +52,81 @@ describe('Subscription', () => {
     expect(screen.getByText('Free Tier')).toBeVisible();
   });
 
-  it('displays a link for a pricing comparison', () => {
+  it('displays a ManageSubscription component', () => {
     tree();
 
-    const link = screen.getByRole('link', { name: 'View full pricing comparison' });
+    const manageSub = screen.queryByTestId('mock-manage-subscription');
 
-    expect(link).toBeVisible();
-    expect(link).toHaveAttribute('href', PRICING_URL);
+    expect(manageSub).toBeInTheDocument();
+    expect(manageSub?.dataset.organizationId).toBe('-2');
+    expect(manageSub?.dataset.userId).toBe('-1');
   });
 
-  it('displays a link for help with downgrading or cancelling an account', () => {
+  it('displays an UpgradePlan component', () => {
     tree();
 
-    const link = screen.getByRole('link', { name: 'Support' });
+    const upgradePlan = screen.queryByTestId('mock-upgrade-plan');
 
-    expect(link).toBeVisible();
-    expect(link).toHaveAttribute('href', HELP_URL);
+    expect(upgradePlan).toBeInTheDocument();
+    expect(upgradePlan?.dataset.organizationId).toBe('-2');
+    expect(upgradePlan?.dataset.userId).toBe('-1');
+  });
+
+  it("doesn't show a PlanChangePendingModal", () => {
+    tree();
+    expect(screen.queryByText('Upgrade Pending')).not.toBeInTheDocument();
+  });
+
+  describe('When a pendingPlanUpgrade query param is present', () => {
+    beforeEach(() => {
+      useQueryStringMock.mockImplementation((name) => {
+        if (name === 'pendingPlanUpgrade') {
+          return 'CORE';
+        }
+
+        return '';
+      });
+    });
+
+    it('shows a pending plan change modal', () => {
+      tree();
+      expect(screen.getByText('Upgrade Pending')).toBeVisible();
+    });
+
+    it('closes the modal when the user closes it', () => {
+      tree();
+      expect(screen.getByText('Upgrade Pending')).toBeVisible();
+      fireEvent.click(screen.getAllByRole('button', { name: 'Close' })[0]);
+      expect(screen.queryByText('Upgrade Pending')).not.toBeInTheDocument();
+    });
+
+    it('ignores any query param value other than CORE', () => {
+      const replaceStateSpy = jest.spyOn(window.history, 'replaceState');
+
+      useQueryStringMock.mockImplementation((name) => {
+        if (name === 'pendingPlanUpgrade') {
+          return 'PLUS';
+        }
+
+        return '';
+      });
+      tree();
+      expect(screen.queryByText('Upgrade Pending')).not.toBeInTheDocument();
+      expect(replaceStateSpy).not.toBeCalled();
+    });
+
+    it('removes the query param from the URL', () => {
+      const replaceStateSpy = jest.spyOn(window.history, 'replaceState');
+
+      tree();
+      expect(replaceStateSpy.mock.calls).toEqual([[null, '', 'http://localhost/']]);
+    });
+
+    it('is accessible', async () => {
+      const { container } = tree();
+
+      expect(await axe(container)).toHaveNoViolations();
+    });
   });
 
   it('is accessible', async () => {

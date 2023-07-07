@@ -25,6 +25,7 @@ export const Button = styled(MuiButton)`
 
 export const IconWrapper = styled.span`
   && {
+    display: flex;
     margin-right: 6px;
     min-width: unset;
     fill: ${(props) => props.theme.basePalette.greyscale.grey3};

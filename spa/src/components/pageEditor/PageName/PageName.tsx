@@ -3,7 +3,7 @@ import { ChangeEvent, FormEvent, KeyboardEvent, useRef, useState } from 'react';
 import { ReactComponent as BookmarkIcon } from '@material-design-icons/svg/outlined/bookmark_border.svg';
 import { IconButton, OffscreenText, Tooltip } from 'components/base';
 import { useEditablePageContext } from 'hooks/useEditablePage';
-import { Button, Label, TextField, ListItemIcon, Form } from './PageName.styled';
+import { Button, Label, TextField, IconWrapper, Form } from './PageName.styled';
 import { ClickAwayListener } from '@material-ui/core';
 
 export function PageName() {
@@ -13,9 +13,8 @@ export function PageName() {
   const fieldRef = useRef<HTMLDivElement>(null);
 
   const defaultDonationPage =
-    updatedPagePreview?.id === updatedPagePreview?.revenue_program?.default_donation_page &&
-    !!updatedPagePreview?.revenue_program?.default_donation_page;
-
+    updatedPagePreview && updatedPagePreview.id === updatedPagePreview?.revenue_program?.default_donation_page;
+  console.log({ defaultDonationPage, updatedPagePreview });
   function handleFinishEditing(event?: FormEvent) {
     if (editValue.trim() !== '' && editValue !== updatedPagePreview?.name) {
       setPageChanges((changes) => ({ ...changes, name: editValue }));
@@ -57,9 +56,9 @@ export function PageName() {
   }
 
   const Icon = () => (
-    <ListItemIcon>
+    <IconWrapper>
       <BookmarkIcon data-testid="bookmark-icon" aria-label="Default Contribution Page" />
-    </ListItemIcon>
+    </IconWrapper>
   );
 
   if (!updatedPagePreview) {

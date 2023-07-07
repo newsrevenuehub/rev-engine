@@ -9,6 +9,12 @@ function tree() {
   return render(<PageName />);
 }
 
+const mockPagePreview = {
+  id: 123,
+  name: 'mock-page-name',
+  revenue_program: { default_donation_page: null }
+};
+
 describe('PageName', () => {
   const useEditablePageContextMock = jest.mocked(useEditablePageContext);
 
@@ -19,7 +25,7 @@ describe('PageName', () => {
       isLoading: false,
       pageChanges: {},
       setPageChanges: jest.fn(),
-      updatedPagePreview: { name: 'mock-page-name' } as any
+      updatedPagePreview: mockPagePreview as any
     });
   });
 
@@ -49,6 +55,14 @@ describe('PageName', () => {
     });
 
     it('should not render bookmark icon by default', () => {
+      useEditablePageContextMock.mockReturnValue({
+        deletePage: jest.fn(),
+        isError: false,
+        isLoading: false,
+        pageChanges: {},
+        setPageChanges: jest.fn(),
+        updatedPagePreview: undefined
+      });
       tree();
       expect(screen.queryByTestId('bookmark-icon')).not.toBeInTheDocument();
     });
@@ -91,7 +105,7 @@ describe('PageName', () => {
         isLoading: false,
         pageChanges: {},
         setPageChanges: jest.fn(),
-        updatedPagePreview: {} as any
+        updatedPagePreview: { ...mockPagePreview, name: null } as any
       });
       tree();
       fireEvent.click(screen.getByRole('button'));
@@ -127,7 +141,7 @@ describe('PageName', () => {
         isError: false,
         isLoading: true,
         pageChanges: {},
-        updatedPagePreview: { name: 'mock-page-name' } as any
+        updatedPagePreview: mockPagePreview as any
       });
       tree();
       fireEvent.click(screen.getByRole('button', { name: 'mock-page-name' }));
@@ -159,7 +173,7 @@ describe('PageName', () => {
         isError: false,
         isLoading: true,
         pageChanges: {},
-        updatedPagePreview: { name: 'mock-page-name' } as any
+        updatedPagePreview: mockPagePreview as any
       });
       tree();
       fireEvent.click(screen.getByRole('button', { name: 'mock-page-name' }));
@@ -184,7 +198,7 @@ describe('PageName', () => {
         isError: false,
         isLoading: true,
         pageChanges: {},
-        updatedPagePreview: { name: 'mock-page-name' } as any
+        updatedPagePreview: mockPagePreview as any
       });
       tree();
       fireEvent.click(screen.getByRole('button', { name: 'mock-page-name' }));
@@ -207,7 +221,7 @@ describe('PageName', () => {
         isError: false,
         isLoading: true,
         pageChanges: {},
-        updatedPagePreview: { name: 'mock-page-name' } as any
+        updatedPagePreview: mockPagePreview as any
       });
       tree();
       fireEvent.click(screen.getByRole('button', { name: 'mock-page-name' }));
@@ -227,7 +241,7 @@ describe('PageName', () => {
         isError: false,
         isLoading: true,
         pageChanges: {},
-        updatedPagePreview: { name: 'mock-page-name' } as any
+        updatedPagePreview: mockPagePreview as any
       });
       tree();
       fireEvent.click(screen.getByRole('button', { name: 'mock-page-name' }));
@@ -240,6 +254,7 @@ describe('PageName', () => {
 
     it('should not render bookmark icon by default', () => {
       tree();
+      fireEvent.click(screen.getByRole('button', { name: 'mock-page-name' }));
       expect(screen.queryByTestId('bookmark-icon')).not.toBeInTheDocument();
     });
 
@@ -253,6 +268,7 @@ describe('PageName', () => {
         updatedPagePreview: { name: 'mock-page-name', id: 1, revenue_program: { default_donation_page: 1 } } as any
       });
       tree();
+      fireEvent.click(screen.getByRole('button', { name: 'Default Contribution Page mock-page-name' }));
       expect(screen.getByTestId('bookmark-icon')).toBeInTheDocument();
     });
 

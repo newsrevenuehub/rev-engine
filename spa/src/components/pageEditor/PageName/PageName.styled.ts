@@ -1,4 +1,4 @@
-import { Button as MuiButton, ListItemIcon as MuiListItemIcon } from '@material-ui/core';
+import { Button as MuiButton } from '@material-ui/core';
 import { TextField as BaseTextField } from 'components/base';
 import styled from 'styled-components';
 
@@ -23,7 +23,7 @@ export const Button = styled(MuiButton)`
   }
 `;
 
-export const ListItemIcon = styled(MuiListItemIcon)`
+export const IconWrapper = styled.span`
   && {
     margin-right: 6px;
     min-width: unset;

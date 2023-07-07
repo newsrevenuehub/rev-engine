@@ -12,7 +12,7 @@ export type SidebarCoreUpgradePromptProps = InferProps<typeof SidebarCoreUpgrade
 export function SidebarCoreUpgradePrompt({ onClose }: SidebarCoreUpgradePromptProps) {
   return (
     <Root>
-      <UpgradeIcon aria-hidden />
+      <UpgradeIcon />
       <CloseButton aria-label="Close" onClick={onClose}>
         <Close />
       </CloseButton>

@@ -12,7 +12,7 @@ export type ModalUpgradePromptProps = InferProps<typeof ModalUpgradePromptPropTy
 export function ModalUpgradePrompt({ text }: ModalUpgradePromptProps) {
   return (
     <Root>
-      <UpgradeIcon aria-hidden />
+      <UpgradeIcon />
       <Text>{text}</Text>
       <Link href={PRICING_URL} target="_blank">
         Learn More

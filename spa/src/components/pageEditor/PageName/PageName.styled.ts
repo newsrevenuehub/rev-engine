@@ -1,4 +1,4 @@
-import { Button as MuiButton } from '@material-ui/core';
+import { Button as MuiButton, InputAdornment as MuiInputAdornment } from '@material-ui/core';
 import { TextField as BaseTextField } from 'components/base';
 import styled from 'styled-components';
 
@@ -37,21 +37,26 @@ export const IconWrapper = styled.span`
   }
 `;
 
+export const InputAdornment = styled(MuiInputAdornment)`
+  && {
+    margin-right: unset;
+    margin-left: -2.5px;
+  }
+`;
+
 export const TextField = styled(BaseTextField)`
   && {
+    border: 1.5px solid ${({ theme }) => theme.basePalette.greyscale.white};
+    border-radius: 4px;
+    padding: 5px 10px;
+    font-size: 14px;
+    background-color: #3d2947;
+    margin-right: 14px;
+    width: 400px;
+
     input[type='text'] {
-      background-color: #3d2947;
-      border-color: ${({ theme }) => theme.basePalette.greyscale.white};
       color: ${({ theme }) => theme.basePalette.greyscale.white};
-      height: 8px; /* works out to 34px total with padding */
-      margin-right: 14px;
-      width: 400px;
-
-      /* Force the border to remain white when focused. */
-
-      &:focus {
-        border-color: ${({ theme }) => theme.basePalette.greyscale.white};
-      }
+      height: 9px; /* works out to 34px total with padding */
 
       &::selection {
         background-color: rgba(255, 255, 255, 0.8);

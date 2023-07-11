@@ -3,7 +3,7 @@ import { ChangeEvent, FormEvent, KeyboardEvent, useRef, useState } from 'react';
 import { ReactComponent as BookmarkIcon } from '@material-design-icons/svg/outlined/bookmark_border.svg';
 import { IconButton, OffscreenText, Tooltip } from 'components/base';
 import { useEditablePageContext } from 'hooks/useEditablePage';
-import { Button, Label, TextField, IconWrapper, Form } from './PageName.styled';
+import { Button, Label, TextField, InputAdornment, IconWrapper, Form } from './PageName.styled';
 import { ClickAwayListener } from '@material-ui/core';
 
 export function PageName() {
@@ -69,8 +69,18 @@ export function PageName() {
     return (
       <ClickAwayListener onClickAway={() => setEditing(false)}>
         <Form onSubmit={handleFinishEditing}>
-          {defaultDonationPage && <Icon />}
           <TextField
+            {...(defaultDonationPage && {
+              InputProps: {
+                classes: { root: 'NreTextFieldInputRoot', underline: 'NreTextFieldInputUnderline' },
+                startAdornment: (
+                  <InputAdornment position="start">
+                    <Icon />
+                  </InputAdornment>
+                )
+              },
+              inputProps: {}
+            })}
             autoFocus
             id="page-name"
             label={<OffscreenText>Page Name</OffscreenText>}

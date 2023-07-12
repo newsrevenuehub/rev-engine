@@ -1,16 +1,9 @@
 import { axe } from 'jest-axe';
-import { useHistory } from 'react-router-dom';
 import { EditablePageContext, EditablePageContextResult } from 'hooks/useEditablePage';
-import { fireEvent, render, screen } from 'test-utils';
+import { render, screen } from 'test-utils';
 import PageEditorTopbar from './PageEditorTopbar';
-import { CONTENT_SLUG } from 'routes';
 
-jest.mock('react-router-dom', () => ({
-  ...jest.requireActual('react-router-dom'),
-  useHistory: jest.fn()
-}));
 jest.mock('components/common/Button/PublishButton/PublishButton');
-
 jest.mock('./PageName/PageName');
 
 const page = {
@@ -42,10 +35,6 @@ function tree(context?: Partial<EditablePageContextResult>) {
 }
 
 describe('PageEditorTopbar', () => {
-  const useHistoryMock = useHistory as jest.Mock;
-
-  beforeEach(() => useHistoryMock.mockReturnValue({ replace: jest.fn() }));
-
   it('shows the grab link button if the page is published', () => {
     tree();
     expect(screen.queryByText('Sign out')).not.toBeInTheDocument();
@@ -71,29 +60,6 @@ describe('PageEditorTopbar', () => {
   it('shows a back button', () => {
     tree();
     expect(screen.getByRole('button', { name: 'Exit' })).toBeEnabled();
-  });
-
-  describe('When the back button is clicked', () => {
-    it('goes back to the main dashboard if there are no page changes in context', () => {
-      const historyReplaceMock = jest.fn();
-
-      useHistoryMock.mockReturnValue({ replace: historyReplaceMock });
-      tree({ pageChanges: {} });
-      fireEvent.click(screen.getByRole('button', { name: 'Exit' }));
-      expect(historyReplaceMock).toHaveBeenCalledWith(CONTENT_SLUG);
-    });
-
-    it('shows an unsaved changes modal if there are page changes in context', () => {
-      tree({ pageChanges: page as any });
-      fireEvent.click(screen.getByRole('button', { name: 'Exit' }));
-      expect(screen.getByText('Unsaved Changes')).toBeVisible();
-    });
-
-    it("doesn't show an unsaved changes modal if there are no page changes in context", () => {
-      tree({ pageChanges: {} });
-      fireEvent.click(screen.getByRole('button', { name: 'Exit' }));
-      expect(screen.queryByText('Unsaved Changes')).not.toBeInTheDocument();
-    });
   });
 
   it('is accessible', async () => {

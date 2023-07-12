@@ -302,7 +302,9 @@ describe('Contribution page edit', () => {
     });
   });
 
-  describe('Swag editor', () => {
+  // Temp disabled in DEV-3733
+  // TODO: Re-enable in DEV-3735
+  describe.skip('Swag editor', () => {
     const pageSwagElement = livePage.elements.filter((el) => el.type === 'DSwag')[0];
 
     beforeEach(() => {

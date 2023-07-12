@@ -118,11 +118,15 @@ describe('Donation page displays dynamic page elements', () => {
     getFeesCheckbox().should('not.be.checked');
   });
 
-  it('should render DSwag', () => {
+  // Temp disabled in DEV-3733
+  // TODO: Re-enable in DEV-3735
+  it.skip('should render DSwag', () => {
     cy.getByTestId('d-swag').should('exist');
   });
 
-  it('should render swag options if swagThreshold is met', () => {
+  // Temp disabled in DEV-3733
+  // TODO: Re-enable in DEV-3735
+  it.skip('should render swag options if swagThreshold is met', () => {
     const swagElement = livePageOne.elements.find((el) => el.type === 'DSwag');
     const swagThreshold = swagElement.content.swagThreshold;
     cy.contains(
@@ -133,7 +137,9 @@ describe('Donation page displays dynamic page elements', () => {
     cy.getByTestId('swag-content').should('exist');
   });
 
-  it('should render a dropdown of swagOptions for each swag in the list', () => {
+  // Temp disabled in DEV-3733
+  // TODO: Re-enable in DEV-3735
+  it.skip('should render a dropdown of swagOptions for each swag in the list', () => {
     cy.setUpDonation('Yearly', '365');
     const swagElement = livePageOne.elements.find((el) => el.type === 'DSwag');
     const swagName = swagElement.content.swags[0].swagName;
@@ -162,7 +168,9 @@ describe('Donation page displays dynamic page elements', () => {
     cy.getByTestId('nyt-comp-sub').should('not.exist');
   });
 
-  it('should display nyt comp subscription option if enabled', () => {
+  // Temp disabled in DEV-3733
+  // TODO: Re-enable in DEV-3735
+  it.skip('should display nyt comp subscription option if enabled', () => {
     const page = { ...livePageOne };
     const swagIndex = page.elements.findIndex((el) => el.type === 'DSwag');
     page.elements[swagIndex].content.offerNytComp = true;

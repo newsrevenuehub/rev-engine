@@ -1,17 +1,4 @@
-import { IconButton } from '@material-ui/core';
 import styled from 'styled-components';
-
-export const BackIconButton = styled(IconButton)`
-  && {
-    height: 22px;
-    width: 32px;
-    padding: 0;
-    fill: ${(props) => props.theme.colors.white};
-    &:hover {
-      transform: translate(-2px, 0px) scale(1.1);
-    }
-  }
-`;
 
 export const Group = styled.div`
   align-items: center;
@@ -28,7 +15,8 @@ export const Root = styled.div`
   height: 48px;
   justify-content: space-between;
   left: 0;
-  padding: 0px 24px 0px 25px;
+  /* Padding on the left is reduced because the back button has its own padding. */
+  padding: 0px 24px 0px 12px;
   position: fixed;
   top: 0;
   width: 100%;

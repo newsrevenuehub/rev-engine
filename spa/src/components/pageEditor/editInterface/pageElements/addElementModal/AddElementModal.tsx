@@ -49,15 +49,29 @@ function AddElementModal({ addElementModalOpen, setAddElementModalOpen, destinat
   const [permittedPageElements, setPermittedPageElements] = useState<EditContributionPageElement[]>([]);
   const [permittedSidebarElements, setPermittedSidebarElements] = useState<EditContributionPageElement[]>([]);
 
+  // Temp disabling DSwag elements in DEV-3733
+  // TODO: Re-enable in DEV-3735
+  // useEffect(() => {
+  //   setPermittedPageElements(
+  //     Object.values(dynamicLayoutElements as ElementRecord).filter(({ type }) =>
+  //       (page?.plan?.page_elements ?? []).includes(type)
+  //     )
+  //   );
+  //   setPermittedSidebarElements(
+  //     Object.values({ ...dynamicSidebarElements } as SidebarElementRecord).filter(({ type }) =>
+  //       (page?.plan?.sidebar_elements ?? []).includes(type)
+  //     )
+  //   );
+  // }, [page?.plan?.page_elements, page?.plan?.sidebar_elements]);
   useEffect(() => {
     setPermittedPageElements(
-      Object.values(dynamicLayoutElements as ElementRecord).filter(({ type }) =>
-        (page?.plan?.page_elements ?? []).includes(type)
+      Object.values(dynamicLayoutElements as ElementRecord).filter(
+        ({ type }) => (page?.plan?.page_elements ?? []).includes(type) && type !== 'DSwag'
       )
     );
     setPermittedSidebarElements(
-      Object.values({ ...dynamicSidebarElements } as SidebarElementRecord).filter(({ type }) =>
-        (page?.plan?.sidebar_elements ?? []).includes(type)
+      Object.values({ ...dynamicSidebarElements } as SidebarElementRecord).filter(
+        ({ type }) => (page?.plan?.sidebar_elements ?? []).includes(type) && type !== 'DSwag'
       )
     );
   }, [page?.plan?.page_elements, page?.plan?.sidebar_elements]);

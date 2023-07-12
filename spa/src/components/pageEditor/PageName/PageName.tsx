@@ -14,7 +14,7 @@ export function PageName() {
 
   const defaultDonationPage =
     updatedPagePreview && updatedPagePreview.id === updatedPagePreview?.revenue_program?.default_donation_page;
-  console.log({ defaultDonationPage, updatedPagePreview });
+
   function handleFinishEditing(event?: FormEvent) {
     if (editValue.trim() !== '' && editValue !== updatedPagePreview?.name) {
       setPageChanges((changes) => ({ ...changes, name: editValue }));

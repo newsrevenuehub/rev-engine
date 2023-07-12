@@ -6,7 +6,6 @@ export const ICONS = {
   CLOSE: 'close',
   CHECK_MARK: 'check-mark',
   LOGOUT: 'logout',
-  ARROW_LEFT: 'arrow-left',
   STRIPE_POWERED: 'powered-by-stripe',
   NOTIFICATIONS: 'notifications',
   PAGES: 'pages',

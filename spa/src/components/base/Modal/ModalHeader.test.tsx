@@ -8,6 +8,12 @@ describe('ModalHeader', () => {
     return render(<ModalHeader {...props}>children</ModalHeader>);
   }
 
+  it('sets the ID prop on its DOM element', () => {
+    tree({ id: 'mock-id' });
+    // eslint-disable-next-line testing-library/no-node-access
+    expect(document.getElementById('mock-id')).toHaveTextContent('children');
+  });
+
   it('displays its children', () => {
     tree();
     expect(screen.getByText('children')).toBeInTheDocument();

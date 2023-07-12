@@ -1,1 +1,1 @@
-export const ReactComponent = 'icon-mock';
+export const ReactComponent = (props) => <icon-mock {...props} role="graphics-document" />;

@@ -3,7 +3,7 @@ import { useCallback, useState } from 'react';
 import { useAlert } from 'react-alert';
 import { useHistory } from 'react-router-dom';
 import join from 'url-join';
-import NewButton from 'components/common/Button/NewButton';
+import { NewButton } from 'components/common/Button/NewButton';
 import AddPageModal from 'components/common/Modal/AddPageModal';
 import MaxPagesReachedModal from 'components/common/Modal/MaxPagesReachedModal';
 import useContributionPageList from 'hooks/useContributionPageList';
@@ -106,7 +106,7 @@ function AddPage() {
 
   return (
     <>
-      <NewButton buttonTestId="new-page-button" onClick={handleClick} />
+      <NewButton ariaLabel="New Page" data-testid="new-page-button" label="New Page" onClick={handleClick} />
       {addModalOpen && (
         <AddPageModal
           open={addModalOpen}

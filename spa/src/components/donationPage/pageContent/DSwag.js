@@ -44,6 +44,10 @@ function getYearlyMeetsThreshold(yearly, threshold) {
 }
 
 function DSwag({ element, ...props }) {
+  // Temp disabled in DEV-3733
+  // TODO: Re-enable in DEV-3735
+  return null;
+
   const theme = useTheme();
   const { page, frequency, amount } = usePage();
 

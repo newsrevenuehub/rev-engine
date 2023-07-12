@@ -1,37 +1,41 @@
-import { render, screen, fireEvent } from 'test-utils';
-import { BUTTON_TYPE } from 'constants/buttonConstants';
+import { axe } from 'jest-axe';
+import { fireEvent, render, screen } from 'test-utils';
+import NewButton, { NewButtonProps } from './NewButton';
 
-import NewButton from './NewButton';
-
-const onClick = jest.fn();
+function tree(props?: Partial<NewButtonProps>) {
+  return render(<NewButton ariaLabel="mock-label" label="mock-label" {...props} />);
+}
 
 describe('NewButton', () => {
-  it('should render default new page button and label', () => {
-    render(<NewButton onClick={onClick} />);
+  // More thorough testing is in <PreviewButton>. This tests that functionality
+  // there is still present here.
 
-    const buttonLabel = screen.getByText(/new page/i);
-    expect(buttonLabel).toBeVisible();
+  it('displays an enabled button by default', () => {
+    tree();
 
     const button = screen.getByRole('button');
+
+    expect(button).toBeVisible();
     expect(button).toBeEnabled();
   });
 
-  it('should render new style button and label', () => {
-    render(<NewButton type={BUTTON_TYPE.STYLE} onClick={onClick} />);
-
-    const buttonLabel = screen.getByText(/new style/i);
-    expect(buttonLabel).toBeVisible();
-
-    const button = screen.getByRole('button');
-    expect(button).toBeEnabled();
+  it('disables the button if the disabled prop is true', () => {
+    tree({ disabled: true });
+    expect(screen.getByRole('button')).toBeDisabled();
   });
 
-  it('should call onClick when button is clicked', () => {
-    render(<NewButton type={BUTTON_TYPE.STYLE} onClick={onClick} />);
+  it('calls the onClick prop when the button is clicked', () => {
+    const onClick = jest.fn();
 
-    const button = screen.getByRole('button');
-    expect(button).toBeEnabled();
-    fireEvent.click(button);
-    expect(onClick).toHaveBeenCalledTimes(1);
+    tree({ onClick });
+    expect(onClick).not.toBeCalled();
+    fireEvent.click(screen.getByRole('button'));
+    expect(onClick).toBeCalledTimes(1);
+  });
+
+  it('is accessible', async () => {
+    const { container } = tree();
+
+    expect(await axe(container)).toHaveNoViolations();
   });
 });

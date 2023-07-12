@@ -29,7 +29,7 @@ describe('Styles view', () => {
     cy.visit(CUSTOMIZE_SLUG);
     cy.url().should('include', CUSTOMIZE_SLUG);
     cy.wait('@listStyles');
-    cy.getByTestId('new-style-button').click();
+    cy.findByRole('button', { name: 'New Style' }).click();
     cy.getByTestId('style-name-input').type(styleName);
     cy.get('#downshift-1-toggle-button').click();
     cy.getByTestId('select-item-0').click();

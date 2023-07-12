@@ -2,11 +2,9 @@ import styled from 'styled-components';
 import BasePageUsage from './PageUsage';
 
 export const Content = styled.div`
-  display: flex;
-  justify-content: start;
-  align-items: start;
+  display: grid;
+  grid-template-columns: repeat(auto-fit, 170px);
   gap: 2rem;
-  flex-wrap: wrap;
 `;
 
 export const PageUsage = styled(BasePageUsage)`

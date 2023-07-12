@@ -1,8 +1,9 @@
 import { Check, EditOutlined } from '@material-ui/icons';
 import { ChangeEvent, FormEvent, KeyboardEvent, useRef, useState } from 'react';
+import { ReactComponent as BookmarkIcon } from '@material-design-icons/svg/outlined/bookmark_border.svg';
 import { IconButton, OffscreenText, Tooltip } from 'components/base';
 import { useEditablePageContext } from 'hooks/useEditablePage';
-import { Button, Label, TextField } from './PageName.styled';
+import { Button, Label, TextField, InputAdornment, IconWrapper, Form } from './PageName.styled';
 import { ClickAwayListener } from '@material-ui/core';
 
 export function PageName() {
@@ -10,6 +11,9 @@ export function PageName() {
   const [editing, setEditing] = useState(false);
   const [editValue, setEditValue] = useState('');
   const fieldRef = useRef<HTMLDivElement>(null);
+
+  const defaultDonationPage =
+    updatedPagePreview && updatedPagePreview.id === updatedPagePreview?.revenue_program?.default_donation_page;
 
   function handleFinishEditing(event?: FormEvent) {
     if (editValue.trim() !== '' && editValue !== updatedPagePreview?.name) {
@@ -51,6 +55,12 @@ export function PageName() {
     }
   }
 
+  const Icon = () => (
+    <IconWrapper>
+      <BookmarkIcon data-testid="bookmark-icon" aria-label="Default Contribution Page" />
+    </IconWrapper>
+  );
+
   if (!updatedPagePreview) {
     return null;
   }
@@ -58,8 +68,19 @@ export function PageName() {
   if (editing) {
     return (
       <ClickAwayListener onClickAway={() => setEditing(false)}>
-        <form onSubmit={handleFinishEditing}>
+        <Form onSubmit={handleFinishEditing}>
           <TextField
+            {...(defaultDonationPage && {
+              InputProps: {
+                classes: { root: 'NreTextFieldInputRoot', underline: 'NreTextFieldInputUnderline' },
+                startAdornment: (
+                  <InputAdornment position="start">
+                    <Icon />
+                  </InputAdornment>
+                )
+              },
+              inputProps: {}
+            })}
             autoFocus
             id="page-name"
             label={<OffscreenText>Page Name</OffscreenText>}
@@ -71,7 +92,7 @@ export function PageName() {
           <IconButton aria-label="Save" color="primaryDark" type="submit">
             <Check />
           </IconButton>
-        </form>
+        </Form>
       </ClickAwayListener>
     );
   }
@@ -79,6 +100,7 @@ export function PageName() {
   return (
     <Tooltip title="Edit">
       <Button endIcon={<EditOutlined />} onClick={handleClick}>
+        {defaultDonationPage && <Icon />}
         <Label>{updatedPagePreview?.name}</Label>
       </Button>
     </Tooltip>

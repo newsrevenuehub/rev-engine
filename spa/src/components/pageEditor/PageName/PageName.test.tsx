@@ -9,6 +9,12 @@ function tree() {
   return render(<PageName />);
 }
 
+const mockPagePreview = {
+  id: 123,
+  name: 'mock-page-name',
+  revenue_program: { default_donation_page: null }
+};
+
 describe('PageName', () => {
   const useEditablePageContextMock = jest.mocked(useEditablePageContext);
 
@@ -19,7 +25,7 @@ describe('PageName', () => {
       isLoading: false,
       pageChanges: {},
       setPageChanges: jest.fn(),
-      updatedPagePreview: { name: 'mock-page-name' } as any
+      updatedPagePreview: mockPagePreview as any
     });
   });
 
@@ -48,6 +54,32 @@ describe('PageName', () => {
       expect(screen.getByRole('button', { name: 'mock-page-name' })).toHaveAttribute('title', 'Edit');
     });
 
+    it('should not render bookmark icon by default', () => {
+      useEditablePageContextMock.mockReturnValue({
+        deletePage: jest.fn(),
+        isError: false,
+        isLoading: false,
+        pageChanges: {},
+        setPageChanges: jest.fn(),
+        updatedPagePreview: undefined
+      });
+      tree();
+      expect(screen.queryByTestId('bookmark-icon')).not.toBeInTheDocument();
+    });
+
+    it('should render bookmark icon if page id === revenue program default donation page', () => {
+      useEditablePageContextMock.mockReturnValue({
+        deletePage: jest.fn(),
+        isError: false,
+        isLoading: false,
+        pageChanges: {},
+        setPageChanges: jest.fn(),
+        updatedPagePreview: { name: 'mock-page-name', id: 1, revenue_program: { default_donation_page: 1 } } as any
+      });
+      tree();
+      expect(screen.getByTestId('bookmark-icon')).toBeInTheDocument();
+    });
+
     it('is accessible', async () => {
       const { container } = tree();
 
@@ -73,7 +105,7 @@ describe('PageName', () => {
         isLoading: false,
         pageChanges: {},
         setPageChanges: jest.fn(),
-        updatedPagePreview: {} as any
+        updatedPagePreview: { ...mockPagePreview, name: null } as any
       });
       tree();
       fireEvent.click(screen.getByRole('button'));
@@ -109,7 +141,7 @@ describe('PageName', () => {
         isError: false,
         isLoading: true,
         pageChanges: {},
-        updatedPagePreview: { name: 'mock-page-name' } as any
+        updatedPagePreview: mockPagePreview as any
       });
       tree();
       fireEvent.click(screen.getByRole('button', { name: 'mock-page-name' }));
@@ -141,7 +173,7 @@ describe('PageName', () => {
         isError: false,
         isLoading: true,
         pageChanges: {},
-        updatedPagePreview: { name: 'mock-page-name' } as any
+        updatedPagePreview: mockPagePreview as any
       });
       tree();
       fireEvent.click(screen.getByRole('button', { name: 'mock-page-name' }));
@@ -166,7 +198,7 @@ describe('PageName', () => {
         isError: false,
         isLoading: true,
         pageChanges: {},
-        updatedPagePreview: { name: 'mock-page-name' } as any
+        updatedPagePreview: mockPagePreview as any
       });
       tree();
       fireEvent.click(screen.getByRole('button', { name: 'mock-page-name' }));
@@ -189,7 +221,7 @@ describe('PageName', () => {
         isError: false,
         isLoading: true,
         pageChanges: {},
-        updatedPagePreview: { name: 'mock-page-name' } as any
+        updatedPagePreview: mockPagePreview as any
       });
       tree();
       fireEvent.click(screen.getByRole('button', { name: 'mock-page-name' }));
@@ -209,7 +241,7 @@ describe('PageName', () => {
         isError: false,
         isLoading: true,
         pageChanges: {},
-        updatedPagePreview: { name: 'mock-page-name' } as any
+        updatedPagePreview: mockPagePreview as any
       });
       tree();
       fireEvent.click(screen.getByRole('button', { name: 'mock-page-name' }));
@@ -220,10 +252,38 @@ describe('PageName', () => {
       expect(screen.getByRole('button', { name: 'mock-page-name' })).toBeVisible();
     });
 
+    it('should not render bookmark icon by default', () => {
+      tree();
+      fireEvent.click(screen.getByRole('button', { name: 'mock-page-name' }));
+      expect(screen.queryByTestId('bookmark-icon')).not.toBeInTheDocument();
+    });
+
+    it('should render bookmark icon if page id === revenue program default donation page', () => {
+      useEditablePageContextMock.mockReturnValue({
+        deletePage: jest.fn(),
+        isError: false,
+        isLoading: false,
+        pageChanges: {},
+        setPageChanges: jest.fn(),
+        updatedPagePreview: { name: 'mock-page-name', id: 1, revenue_program: { default_donation_page: 1 } } as any
+      });
+      tree();
+      fireEvent.click(screen.getByRole('button', { name: 'Default Contribution Page mock-page-name' }));
+      expect(screen.getByTestId('bookmark-icon')).toBeInTheDocument();
+    });
+
     it('is accessible', async () => {
+      useEditablePageContextMock.mockReturnValue({
+        deletePage: jest.fn(),
+        isError: false,
+        isLoading: false,
+        pageChanges: {},
+        setPageChanges: jest.fn(),
+        updatedPagePreview: { name: 'mock-page-name', id: 1, revenue_program: { default_donation_page: 1 } } as any
+      });
       const { container } = tree();
 
-      fireEvent.click(screen.getByRole('button', { name: 'mock-page-name' }));
+      fireEvent.click(screen.getByRole('button', { name: 'Default Contribution Page mock-page-name' }));
 
       // axe seems to trip over contrast detection on this component.
       // See https://github.com/nickcolley/jest-axe/issues/147

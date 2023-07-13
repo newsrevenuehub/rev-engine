@@ -1,44 +1,12 @@
-import PropTypes, { InferProps } from 'prop-types';
+import { PreviewButton, PreviewButtonProps } from '../PreviewButton';
+import { AddIcon, Preview } from './NewButton.styled';
 
-import { Button, Flex, Label } from './NewButton.styled';
+export type NewButtonProps = Omit<PreviewButtonProps, 'corner' | 'preview'>;
 
-import AddIcon from 'assets/icons/add.svg';
-import { BUTTON_TYPE } from 'constants/buttonConstants';
+export function NewButton(props: NewButtonProps) {
+  const { label, ...other } = props;
 
-interface NewButtonType extends InferProps<typeof NewButtonPropTypes> {
-  onClick: () => void;
+  return <PreviewButton label={label} preview={<Preview $disabled={other.disabled} icon={<AddIcon />} />} {...other} />;
 }
-
-const NewButton = ({ type, onClick, className, disabled, buttonTestId, ...rest }: NewButtonType) => {
-  const buttonLabel = {
-    [BUTTON_TYPE.PAGE]: 'New Page',
-    [BUTTON_TYPE.STYLE]: 'New Style'
-  }[type!];
-
-  return (
-    <Flex className={className!} disabled={disabled!} {...rest}>
-      <Button data-testid={buttonTestId} customType={type!} onClick={onClick} disabled={disabled!}>
-        <img src={AddIcon} alt={buttonLabel} />
-      </Button>
-      <Label>{buttonLabel}</Label>
-    </Flex>
-  );
-};
-
-const NewButtonPropTypes = {
-  type: PropTypes.oneOf(Object.values(BUTTON_TYPE)),
-  onClick: PropTypes.func.isRequired,
-  className: PropTypes.string,
-  buttonTestId: PropTypes.string,
-  disabled: PropTypes.bool
-};
-
-NewButton.propTypes = NewButtonPropTypes;
-
-NewButton.defaultProps = {
-  type: BUTTON_TYPE.PAGE,
-  className: '',
-  disabled: false
-};
 
 export default NewButton;

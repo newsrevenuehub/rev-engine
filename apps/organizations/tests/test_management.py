@@ -10,11 +10,9 @@ from apps.organizations.models import RevenueProgram
 from apps.organizations.tests.factories import RevenueProgramFactory
 
 
-TEST_LIVE_KEY = "live-key-test"
 TEST_DOMAIN_APEX = "testing.com"
 
 
-@override_settings(STRIPE_LIVE_SECRET_KEY=TEST_LIVE_KEY)
 @override_settings(STRIPE_LIVE_MODE=True)
 class AppleDomainVerifyCommandTest(TestCase):
     @patch("stripe.ApplePayDomain.create")

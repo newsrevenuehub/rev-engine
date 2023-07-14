@@ -1,5 +1,4 @@
 import logging
-from typing import Optional
 
 from django.conf import settings
 from django.contrib.auth import get_user_model
@@ -7,7 +6,6 @@ from django.db import models
 from django.shortcuts import get_object_or_404
 from django.template.loader import render_to_string
 
-import reversion
 import stripe
 from rest_framework import mixins, status, viewsets
 from rest_framework.decorators import action, api_view, permission_classes
@@ -35,7 +33,7 @@ from apps.emails.tasks import (
     send_thank_you_email,
 )
 from apps.organizations import serializers
-from apps.organizations.models import Organization, Plan, Plans, RevenueProgram
+from apps.organizations.models import Organization, RevenueProgram
 from apps.organizations.serializers import MailchimpOauthSuccessSerializer, SendTestEmailSerializer
 from apps.organizations.tasks import (
     exchange_mailchimp_oauth_code_for_server_prefix_and_access_token,
@@ -81,62 +79,9 @@ class OrganizationViewSet(
         organization.refresh_from_db()
         return Response(serializers.OrganizationSerializer(organization).data)
 
-    def get_org_from_event(self, event: stripe.Event) -> Optional[Organization]:
-        """ """
-        logger.info("StripeWebhookProcessor.get_org_from_event called")
-        org_uuid = self.obj_data.get("client_reference_id", None)
-        if not org_uuid:
-            logger.info(
-                "StripeWebhookProcessor.get_org_from_event no org_uuid found in event data under key for `client_reference_id`"
-            )
-            return None
-        return get_object_or_404(Organization, uuid=org_uuid)
-
-    def get_upgrade_plan_from_event(self, api_key) -> Optional[Plan]:
-        """ """
-        logger.info("StripeWebhookProcessor.get_upgrade_plan_from_event called")
-        sub_id = self.obj_data.get("subscription", None)
-        if not sub_id:
-            logger.info("StripeWebhookProcessor.get_upgrade_plan_from_event no subscription found in event data")
-            return None
-        sub = stripe.Subscription.retrieve(sub_id, api_key=api_key)
-        # https://stripe.com/docs/api/subscriptions/retrieve
-        plan_name = sub["items"]["data"][0]["??"]
-        return Plans.get_plan(plan_name)
-
-    def process_checkout_session_completed(self) -> None:
-        """ """
-        logger.info("StripeWebhookProcessor.process_checkout_session_completed called")
-        org = self.get_org_from_event()
-        upgrade_plan = self.get_upgrade_plan_from_event()
-        if not org or not upgrade_plan:
-            logger.info("StripeWebhookProcessor.process_checkout_session_completed no org and/or upgrade plan found")
-            return
-        if org.plan_name == upgrade_plan.name:
-            logger.info("StripeWebhookProcessor.process_checkout_session_completed org plan name already set")
-            return
-        org.plan_name = upgrade_plan.name
-
-        with reversion.create_revision():
-            reversion.set_comment("Contribution.process_checkout_session_completed updated org plan name")
-            org.save(update_fields={"plan_name", "modified"})
-
     @action(detail=False, methods=["post"], permission_classes=[])
     def handle_stripe_webhook(self, request):
-        try:
-            stripe.Webhook.construct_event(
-                request.body, request.META["HTTP_STRIPE_SIGNATURE"], settings.STRIPE_WEBHOOK_SECRET_FOR_UPGRADES
-            )
-        except ValueError:
-            logger.warning("Invalid payload from Stripe webhook request")
-            return Response(data={"error": "Invalid payload"}, status=status.HTTP_400_BAD_REQUEST)
-
-        except stripe.error.SignatureVerificationError:
-            logger.exception(
-                "Invalid signature on Stripe webhook request. Is STRIPE_WEBHOOK_SECRET_FOR_CONTRIBUTIONS set correctly?"
-            )
-            return Response(data={"error": "Invalid signature"}, status=status.HTTP_400_BAD_REQUEST)
-        self.process_checkout_session_completed()
+        """Initially we'll just return 200 without doing anything, ahead of full implementation"""
         return Response(status=status.HTTP_200_OK)
 
 

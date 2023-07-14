@@ -1,5 +1,6 @@
 import logging
 import os
+import uuid
 from dataclasses import asdict, dataclass, field
 from functools import cached_property
 from typing import List, Literal, Optional
@@ -121,6 +122,10 @@ class OrganizationManager(models.Manager):
 
 
 class Organization(IndexedTimeStampedModel):
+    # This gets used (at a minimum) to allow us to listen for checkout.session.completed events
+    # and look up org by uuid, by passing as value for `client-reference-id` in pricing table on front
+    # end
+    uuid = models.UUIDField(default=uuid.uuid4, editable=False)
     name = models.CharField(max_length=255, unique=True)
     plan_name = models.CharField(choices=Plans.choices, max_length=10, default=Plans.FREE)
     salesforce_id = models.CharField(max_length=255, blank=True, verbose_name="Salesforce ID")
@@ -152,7 +157,7 @@ class Organization(IndexedTimeStampedModel):
         unique=True,
         validators=[validate_slug_against_denylist],
     )
-
+    stripe_subscription_id = models.CharField(max_length=255, blank=True, null=True)
     users = models.ManyToManyField("users.User", through="users.OrganizationUser")
     send_receipt_email_via_nre = models.BooleanField(
         default=True,
@@ -163,6 +168,12 @@ class Organization(IndexedTimeStampedModel):
 
     def __str__(self):
         return self.name
+
+    @property
+    def stripe_subscription(self, api_key: str) -> Optional[stripe.Subscription]:
+        if s_id := self.stripe_subscription_id:
+            return None
+        return stripe.Subscription.retrieve(s_id, api_key=api_key)
 
     @property
     def plan(self):
@@ -1044,7 +1055,7 @@ class RevenueProgram(IndexedTimeStampedModel):
         if settings.STRIPE_LIVE_MODE and not self.domain_apple_verified_date:
             try:
                 stripe.ApplePayDomain.create(
-                    api_key=settings.STRIPE_LIVE_SECRET_KEY,
+                    api_key=settings.STRIPE_LIVE_SECRET_KEY_CONTRIBUTIONS,
                     domain_name=f"{self.slug}.{settings.DOMAIN_APEX}",
                     stripe_account=self.payment_provider.stripe_account_id,
                 )

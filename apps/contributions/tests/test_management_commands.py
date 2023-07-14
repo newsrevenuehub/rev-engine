@@ -102,9 +102,6 @@ class TestCreateStripeWebhooks:
             api_version="2020-08-27",
         )
 
-    def test_when_webhook_already_exists(self, mocker, settings):
-        pass
-
 
 @pytest.mark.parametrize("dry_run", (False, True))
 def test_sync_missing_contribution_data_from_stripe(dry_run, monkeypatch, mocker):

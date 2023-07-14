@@ -312,9 +312,9 @@ export interface RevenueProgram {
    */
   organization: Organization;
   /**
-   * Default donation page ID from Revenue Program, if it exists.
+   * ID of the default donation page of this revenue program, if it exists.
    */
-  default_donation_page?: number;
+  default_donation_page: number | null;
   /**
    * Fiscal status that is "nonprofit", "for-profit" or "fiscally sponsored".
    */

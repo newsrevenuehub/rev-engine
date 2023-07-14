@@ -1,26 +1,33 @@
 import { ComponentMeta, ComponentStory } from '@storybook/react';
-import { BUTTON_TYPE } from 'constants/buttonConstants';
 import NewButton from './NewButton';
 
 export default {
-  title: 'Common/Button/NewButton',
   component: NewButton,
-  argTypes: {
-    type: {
-      options: Object.values(BUTTON_TYPE)
-    }
-  }
+  title: 'Common/Button/NewButton'
 } as ComponentMeta<typeof NewButton>;
 
-export const Default: ComponentStory<typeof NewButton> = NewButton.bind({});
+const Template: ComponentStory<typeof NewButton> = (props) => <NewButton {...props} />;
+
+export const Default = Template.bind({});
 Default.args = {
-  type: BUTTON_TYPE.PAGE
+  label: <>New Page</>
 };
 
-export const Style: ComponentStory<typeof NewButton> = NewButton.bind({});
+export const Disabled = Template.bind({});
+Disabled.args = {
+  disabled: true,
+  label: <>New Page</>
+};
+
+export const Style = Template.bind({});
 Style.args = {
-  type: BUTTON_TYPE.STYLE
+  label: <>New Style</>,
+  previewHeight: 70
 };
 
-export const Disabled: ComponentStory<typeof NewButton> = NewButton.bind({});
-Disabled.args = { ...Default.args, disabled: true };
+export const StyleDisabled = Template.bind({});
+StyleDisabled.args = {
+  disabled: true,
+  label: <>New Style</>,
+  previewHeight: 70
+};

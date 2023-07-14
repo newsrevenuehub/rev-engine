@@ -8,8 +8,8 @@ import { useHistory } from 'react-router-dom';
 import { EDITOR_ROUTE } from 'routes';
 
 // Children
-import EditButton from 'components/common/Button/EditButton';
 import Hero from 'components/common/Hero';
+import { ContributionPageButton } from 'components/common/Button/ContributionPageButton';
 import GenericErrorBoundary from 'components/errors/GenericErrorBoundary';
 import { isStringInStringCaseInsensitive } from 'utilities/isStringInString';
 import GlobalLoading from 'elements/GlobalLoading';
@@ -76,7 +76,11 @@ function Pages() {
           pagesByRevenueProgram.map((revenueProgram) => (
             <Fragment key={revenueProgram.name}>
               {revenueProgram.pages.map((donationPage) => (
-                <EditButton key={donationPage.id} {...donationPage} onClick={() => handleEditPage(donationPage)} />
+                <ContributionPageButton
+                  key={donationPage.id}
+                  page={donationPage}
+                  onClick={() => handleEditPage(donationPage)}
+                />
               ))}
             </Fragment>
           ))}

@@ -164,12 +164,6 @@ class Organization(IndexedTimeStampedModel):
         return self.name
 
     @property
-    def stripe_subscription(self, api_key: str) -> Optional[stripe.Subscription]:
-        if s_id := self.stripe_subscription_id:
-            return None
-        return stripe.Subscription.retrieve(s_id, api_key=api_key)
-
-    @property
     def plan(self):
         return Plans.get_plan(self.plan_name)
 

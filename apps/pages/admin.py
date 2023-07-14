@@ -22,7 +22,7 @@ class DonationPageAdminAbstract(RevEngineBaseAdmin, AdminImageMixin):
     fieldsets = (
         (None, {"fields": ("name",)}),
         ("Redirects", {"fields": ("thank_you_redirect", "post_thank_you_redirect")}),
-        ("Header", {"fields": ("header_bg_image", "header_logo", "header_link")}),
+        ("Header", {"fields": ("header_bg_image", "header_logo", "header_logo_alt_text", "header_link")}),
         ("Heading", {"fields": ("heading", "graphic")}),
         ("Styles", {"fields": ("styles",)}),
         ("Content", {"fields": ("elements", "sidebar_elements")}),

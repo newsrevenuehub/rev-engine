@@ -40,6 +40,7 @@ class TestDonationPageFullDetailSerializer:
             "header_link",
             "header_logo_thumbnail",
             "header_logo",
+            "header_logo_alt_text",
             "heading",
             "id",
             "modified",

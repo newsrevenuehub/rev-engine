@@ -45,7 +45,9 @@ class TestBootstrapReviewApp(TestCase):
             call_command("bootstrap-review-app")
             mock_bootstrap_hookdeck.assert_called_once_with(
                 MOCK_TICKET_ID.lower(),
-                urljoin(f"https://{MOCK_TICKET_ID.lower()}.{MOCK_CF_ZONE_NAME}", reverse("stripe-webhooks")),
+                urljoin(
+                    f"https://{MOCK_TICKET_ID.lower()}.{MOCK_CF_ZONE_NAME}", reverse("stripe-webhooks-contributions")
+                ),
             )
 
 

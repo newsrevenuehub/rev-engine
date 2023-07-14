@@ -1279,7 +1279,7 @@ class TestStripeWebhooksView:
             provider_payment_method_id=None,
         )
         header = {"HTTP_STRIPE_SIGNATURE": "testing"}
-        response = client.post(reverse("stripe-webhooks"), payment_method_attached_request_data, **header)
+        response = client.post(reverse("stripe-webhooks-contributions"), payment_method_attached_request_data, **header)
         assert response.status_code == status.HTTP_200_OK
         contribution.refresh_from_db()
         assert contribution.provider_payment_method_id == payment_method_attached_request_data["data"]["object"]["id"]
@@ -1295,6 +1295,6 @@ class TestStripeWebhooksView:
             stripe.Webhook, "construct_event", lambda *args, **kwargs: AttrDict(payment_method_attached_request_data)
         )
         header = {"HTTP_STRIPE_SIGNATURE": "testing"}
-        response = client.post(reverse("stripe-webhooks"), payment_method_attached_request_data, **header)
+        response = client.post(reverse("stripe-webhooks-contributions"), payment_method_attached_request_data, **header)
         assert response.status_code == status.HTTP_200_OK
         assert Contribution.objects.count() == count

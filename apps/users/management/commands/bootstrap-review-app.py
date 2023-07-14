@@ -48,7 +48,7 @@ class Command(BaseCommand):  # pragma: no cover low ROI for test of command line
             heroku_app.add_domain(fqdn, None)
 
         site_url = f"https://{ticket_id}.{zone_name}"
-        bootstrap_hookdeck(ticket_id, urljoin(site_url, reverse("stripe-webhooks")))
+        bootstrap_hookdeck(ticket_id, urljoin(site_url, reverse("stripe-webhooks-contributions")))
 
         # insert config vars
         heroku_config = heroku_app.config()

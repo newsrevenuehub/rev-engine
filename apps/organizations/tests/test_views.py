@@ -1,5 +1,6 @@
 from unittest import mock
 
+from django.conf import settings
 from django.contrib.auth import get_user_model
 from django.template.loader import render_to_string
 
@@ -296,6 +297,10 @@ class TestOrganizationViewSet:
         api_client.force_authenticate(org_user_free_plan)
         response = api_client.patch(reverse("organization-detail", args=(organization.id,)), data={})
         assert response.status_code == status.HTTP_404_NOT_FOUND
+
+    def test_handle_stripe_webhook(self, api_client):
+        """Show that the handle_stripe_webhook endpoint works as expected"""
+        assert api_client.post(reverse("organization-handle-stripe-webhook")).status_code == status.HTTP_200_OK
 
 
 @pytest.fixture
@@ -949,7 +954,7 @@ def test_get_stripe_account_link_return_url_when_env_var_set(settings_stripe_acc
 
 def test_get_stripe_account_link_return_url_when_env_var_not_set():
     factory = APIRequestFactory()
-    assert get_stripe_account_link_return_url(factory.get("")) == f"http://testserver{reverse('index')}"
+    assert get_stripe_account_link_return_url(factory.get("")) == f"{settings.SITE_URL}{reverse('index')}"
 
 
 @pytest.fixture

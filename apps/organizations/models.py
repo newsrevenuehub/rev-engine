@@ -157,11 +157,17 @@ class Organization(IndexedTimeStampedModel):
         default=True,
         help_text="If false, receipt email assumed to be sent via Salesforce. Other emails, e.g. magic_link, are always sent via NRE regardless of this setting",
     )
-
+    stripe_subscription_id = models.CharField(max_length=255, blank=True, null=True)
     objects = OrganizationManager.from_queryset(OrganizationQuerySet)()
 
     def __str__(self):
         return self.name
+
+    @property
+    def stripe_subscription(self, api_key: str) -> Optional[stripe.Subscription]:
+        if s_id := self.stripe_subscription_id:
+            return None
+        return stripe.Subscription.retrieve(s_id, api_key=api_key)
 
     @property
     def plan(self):

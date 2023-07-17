@@ -409,11 +409,11 @@ def test_bootstrap(mocker, settings):
     assert mock_upsert_destination.call_count == 2
 
     assert mock_upsert_destination.call_args_list[0] == mocker.call(
-        name=name,
+        name=f"{name}-stripe-contributions",
         url=contributions_webhook_url,
     )
     assert mock_upsert_destination.call_args_list[1] == mocker.call(
-        name=name,
+        name=f"{name}-organization-upgrades",
         url=upgrades_webhook_url,
     )
 

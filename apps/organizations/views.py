@@ -3,9 +3,11 @@ import logging
 from django.conf import settings
 from django.contrib.auth import get_user_model
 from django.db import models
+from django.http import HttpRequest
 from django.shortcuts import get_object_or_404
 from django.template.loader import render_to_string
 
+import reversion
 import stripe
 from rest_framework import mixins, status, viewsets
 from rest_framework.decorators import action, api_view, permission_classes
@@ -13,7 +15,6 @@ from rest_framework.exceptions import PermissionDenied, ValidationError
 from rest_framework.permissions import IsAuthenticated
 from rest_framework.response import Response
 from rest_framework.reverse import reverse
-from reversion.views import create_revision
 from stripe.error import StripeError
 
 from apps.api.permissions import (
@@ -33,7 +34,7 @@ from apps.emails.tasks import (
     send_thank_you_email,
 )
 from apps.organizations import serializers
-from apps.organizations.models import Organization, RevenueProgram
+from apps.organizations.models import CorePlan, Organization, RevenueProgram
 from apps.organizations.serializers import MailchimpOauthSuccessSerializer, SendTestEmailSerializer
 from apps.organizations.tasks import (
     exchange_mailchimp_oauth_code_for_server_prefix_and_access_token,
@@ -79,9 +80,52 @@ class OrganizationViewSet(
         organization.refresh_from_db()
         return Response(serializers.OrganizationSerializer(organization).data)
 
+    def construct_stripe_event(self, request: HttpRequest) -> None:
+        logger.info("Constructing Stripe event")
+        try:
+            return stripe.Webhook.construct_event(
+                request.body, request.META["HTTP_STRIPE_SIGNATURE"], settings.STRIPE_WEBHOOK_SECRET_FOR_CONTRIBUTIONS
+            )
+        except stripe.error.SignatureVerificationError:
+            logger.exception(
+                "Invalid signature on Stripe webhook request. Is STRIPE_WEBHOOK_SECRET_FOR_CONTRIBUTIONS set correctly?"
+            )
+            # can i raise a DRF exception here? to get 400 response?
+            return Response(data={"error": "Invalid signature"}, status=status.HTTP_400_BAD_REQUEST)
+
+    def is_upgrade_from_free_to_core(self, event: stripe.Event) -> bool:
+        return True
+
+    def handle_checkout_session_completed_event(self, event: stripe.Event) -> None:
+        logger.info("Handling checkout session completed event with event id %s", event["id"])
+        ref_id = event["data"]["object"]["client_reference_id"]
+        org = Organization.objects.filter(uuid=ref_id).first()
+        if not org:
+            logger.warning("No organization found with uuid %s", ref_id)
+            return
+        if org.stripe_subscription_id:
+            logger.info(
+                "Organization with uuid %s already has a stripe subscription id. No further action to be taken", ref_id
+            )
+            return
+        if not self.is_upgrade_from_free_to_core(event):
+            logger.info(
+                "Organization with uuid %s is not upgrading from free to core. No further action to be taken", ref_id
+            )
+            return
+        org.stripe_subscription_id = event["data"]["object"]["subscription"]
+        org.plan_name = CorePlan.name
+        with reversion.create_revision():
+            org.save(update_fields={"stripe_subscription_id", "plan_name", "modified"})
+            reversion.set_comment("`handle_checkout_session_completed_event`  upgraded org to core")
+
     @action(detail=False, methods=["post"], permission_classes=[])
-    def handle_stripe_webhook(self, request):
+    def handle_stripe_webhook(self, request: HttpRequest) -> Response:
         """Initially we'll just return 200 without doing anything, ahead of full implementation"""
+        logger.info("Handling Stripe webhook event with type %s", request.data["type"])
+        event = self.construct_stripe_event(request)
+        if event["type"] == "checkout.session.completed":
+            self.handle_checkout_session_completed_event(event)
         return Response(status=status.HTTP_200_OK)
 
 
@@ -146,7 +190,7 @@ def get_stripe_account_link_return_url(request):
         return request.build_absolute_uri(reversed)
 
 
-@create_revision()
+@reversion.create_revision()
 @api_view(["POST"])
 @permission_classes([IsAuthenticated, HasRoleAssignment])
 def handle_stripe_account_link(request, rp_pk):

@@ -51,7 +51,7 @@ class Command(BaseCommand):  # pragma: no cover low ROI for test of command line
         bootstrap_hookdeck(
             ticket_id,
             urljoin(site_url, reverse("stripe-webhooks-contributions")),
-            urljoin(site_url, reverse("stripe-webhooks-upgrades")),
+            urljoin(site_url, reverse("organization-handle-stripe-webhook")),
         )
 
         # insert config vars

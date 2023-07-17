@@ -117,7 +117,7 @@ class OrganizationViewSet(
         org.plan_name = CorePlan.name
         with reversion.create_revision():
             org.save(update_fields={"stripe_subscription_id", "plan_name", "modified"})
-            reversion.set_comment("`handle_checkout_session_completed_event`  upgraded org to core")
+            reversion.set_comment("`handle_checkout_session_completed_event` upgraded org to core")
 
     @action(detail=False, methods=["post"], permission_classes=[])
     def handle_stripe_webhook(self, request: HttpRequest) -> Response:

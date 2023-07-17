@@ -26,6 +26,7 @@ from apps.emails.tasks import (
 from apps.organizations.models import (
     TAX_ID_MAX_LENGTH,
     TAX_ID_MIN_LENGTH,
+    CorePlan,
     FreePlan,
     Organization,
     OrganizationQuerySet,
@@ -37,7 +38,11 @@ from apps.organizations.serializers import (
     MailchimpRevenueProgramForSwitchboard,
 )
 from apps.organizations.tests.factories import OrganizationFactory, RevenueProgramFactory
-from apps.organizations.views import RevenueProgramViewSet, get_stripe_account_link_return_url
+from apps.organizations.views import (
+    OrganizationViewSet,
+    RevenueProgramViewSet,
+    get_stripe_account_link_return_url,
+)
 from apps.public.permissions import IsActiveSuperUser
 from apps.users.choices import Roles
 
@@ -297,9 +302,70 @@ class TestOrganizationViewSet:
         response = api_client.patch(reverse("organization-detail", args=(organization.id,)), data={})
         assert response.status_code == status.HTTP_404_NOT_FOUND
 
-    def test_handle_stripe_webhook(self, api_client):
+    def test_construct_stripe_event_happy_path(self, mocker):
+        pass
+
+    def test_construct_stripe_event_bad_signature(self, mocker):
+        pass
+
+    def test_is_upgrade_from_free_to_core(self, mocker):
+        pass
+
+    def test_handle_checkout_session_completed_event_when_org_not_found(self, mocker, organization):
+        pass
+
+    def test_handle_checkout_session_completed_event_when_org_already_has_stripe_subscription_id(
+        self, mocker, organization
+    ):
+        pass
+
+    def test_handle_checkout_session_completed_event_when_not_upgrade_from_free_to_core(self, mocker, organization):
+        organization.stripe_subscription_id = "<some-id>"
+        organization.save()
+        log_spy = mocker.spy(OrganizationViewSet.logger, "info")
+        mocker.patch("apps.organizations.models.Organization.is_upgrade_from_free_to_core", return_value=False)
+        mock_event = {
+            "data": {"object": {"client_reference_id": str(organization.uuid), "subscription": "<some-sub-id>"}}
+        }
+        OrganizationViewSet.handle_checkout_session_completed_event(mock_event)
+        log_spy.assert_called_once_with(
+            "Organization with uuid %s is not upgrading from free to core. No further action to be taken",
+            organization.uuid,
+        )
+
+    def test_handle_checkout_session_completed_event_happy_path(self, organization, mocker):
+        organization.stripe_subscription_id = "<some-id>"
+        organization.save()
+        mocker.patch("apps.organizations.models.Organization.is_upgrade_from_free_to_core", return_value=True)
+        save_spy = mocker.spy(Organization, "save")
+        mock_set_revision_comment = mocker.patch("reversion.set_comment")
+        mock_event = {
+            "data": {
+                "object": {"client_reference_id": str(organization.uuid), "subscription": (sub_id := "<some-sub-id>")}
+            }
+        }
+        OrganizationViewSet.handle_checkout_session_completed_event(mock_event)
+        organization.refresh_from_db()
+        assert organization.stripe_subscription_id == sub_id
+        assert organization.plan_name == CorePlan.name
+        save_spy.assert_called_once_with(
+            organization, update_fields={"stripe_subscription_id", "plan_name", "modified"}
+        )
+        mock_set_revision_comment.assert_called_once_with(
+            "`handle_checkout_session_completed_event` upgraded org to core"
+        )
+
+    def test_handle_stripe_webhook(self, api_client, mocker):
         """Show that the handle_stripe_webhook endpoint works as expected"""
+        mocker.patch(
+            "apps.organizations.views.OrganizationViewSet.construct_stripe_event",
+            return_value={"type": "checkout.session.completed"},
+        )
+        mock_handle_checkout_session_completed = mocker.patch(
+            "apps.organizations.views.OrganizationViewSet.handle_checkout_session_completed_event"
+        )
         assert api_client.post(reverse("organization-handle-stripe-webhook")).status_code == status.HTTP_200_OK
+        mock_handle_checkout_session_completed.assert_called_once()
 
 
 @pytest.fixture

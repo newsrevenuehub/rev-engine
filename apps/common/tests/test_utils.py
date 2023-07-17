@@ -205,6 +205,7 @@ def test_upsert_cloudflare_cnames(cloudflare_class_mock):
 @mock.patch("stripe.WebhookEndpoint.list")
 @mock.patch("stripe.WebhookEndpoint.delete")
 def test_delete_stripe_webhook(delete_mock, list_mock):
+
     list_mock.return_value = {"data": [{"url": "https://notthere.com/webhook", "id": "123"}]}
     delete_stripe_webhook("https://example.com/webhook", api_key="bogus")
     assert not delete_mock.called
@@ -217,12 +218,13 @@ def test_delete_stripe_webhook(delete_mock, list_mock):
 @mock.patch("stripe.WebhookEndpoint.list")
 @mock.patch("stripe.WebhookEndpoint.create")
 def test_create_stripe_webhook(create_mock, list_mock):
+
     list_mock.return_value = {"data": [{"url": "https://example.com/webhook", "id": "123"}]}
-    create_stripe_webhook("https://example.com/webhook", api_key="bogus", enabled_events=[])
+    create_stripe_webhook("https://example.com/webhook", api_key="bogus")
     assert not create_mock.called
 
     list_mock.return_value = {"data": [{"url": "https://example.com/webhook", "id": "123"}]}
-    create_stripe_webhook("https://notthere.com/webhook", api_key="bogus", enabled_events=[])
+    create_stripe_webhook("https://notthere.com/webhook", api_key="bogus")
     assert create_mock.called_with("https://notthere.com/webhook", api_key="bogus")
 
 

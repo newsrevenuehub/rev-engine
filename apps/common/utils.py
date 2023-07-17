@@ -19,9 +19,9 @@ def delete_stripe_webhook(webhook_url, api_key):
         stripe.WebhookEndpoint.delete(webhook_id, api_key=api_key)
 
 
-def create_stripe_webhook(webhook_url, api_key, enabled_events):
-    logger.info("Creating webhook: %s", webhook_url)
-    webhooks = stripe.WebhookEndpoint.list(api_key=api_key)
+def create_stripe_webhook(webhook_url, api_key, enabled_events=None):
+    enabled_events = enabled_events if enabled_events else settings.STRIPE_WEBHOOK_EVENTS
+    webhooks = stripe.WebhookEndpoint.list()
     urls = [x["url"] for x in webhooks["data"]]
     if webhook_url in urls:
         logger.info("Webhook already exists: %s", webhook_url)

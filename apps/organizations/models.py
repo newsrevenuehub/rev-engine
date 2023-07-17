@@ -1,6 +1,5 @@
 import logging
 import os
-import uuid
 from dataclasses import asdict, dataclass, field
 from functools import cached_property
 from typing import List, Literal, Optional
@@ -123,7 +122,6 @@ class OrganizationManager(models.Manager):
 
 class Organization(IndexedTimeStampedModel):
     name = models.CharField(max_length=255, unique=True)
-    uuid = models.UUIDField(default=uuid.uuid4, primary_key=False, editable=False)
     plan_name = models.CharField(choices=Plans.choices, max_length=10, default=Plans.FREE)
     salesforce_id = models.CharField(max_length=255, blank=True, verbose_name="Salesforce ID")
     show_connected_to_slack = models.BooleanField(
@@ -154,27 +152,17 @@ class Organization(IndexedTimeStampedModel):
         unique=True,
         validators=[validate_slug_against_denylist],
     )
+
     users = models.ManyToManyField("users.User", through="users.OrganizationUser")
     send_receipt_email_via_nre = models.BooleanField(
         default=True,
         help_text="If false, receipt email assumed to be sent via Salesforce. Other emails, e.g. magic_link, are always sent via NRE regardless of this setting",
     )
-    stripe_subscription_id = models.CharField(max_length=255, blank=True, null=True)
+
     objects = OrganizationManager.from_queryset(OrganizationQuerySet)()
 
     def __str__(self):
         return self.name
-
-    @cached_property
-    def stripe_subscription(self) -> Optional[stripe.Subscription]:
-        api_key = (
-            settings.STRIPE_LIVE_SECRET_KEY_CONTRIBUTIONS
-            if settings.STRIPE_LIVE_MODE
-            else settings.STRIPE_TEST_SECRET_KEY_CONTRIBUTIONS
-        )
-        if not (s_id := self.stripe_subscription_id):
-            return None
-        return stripe.Subscription.retrieve(s_id, api_key=api_key)
 
     @property
     def plan(self):
@@ -1056,7 +1044,7 @@ class RevenueProgram(IndexedTimeStampedModel):
         if settings.STRIPE_LIVE_MODE and not self.domain_apple_verified_date:
             try:
                 stripe.ApplePayDomain.create(
-                    api_key=settings.STRIPE_LIVE_SECRET_KEY_CONTRIBUTIONS,
+                    api_key=settings.STRIPE_LIVE_SECRET_KEY,
                     domain_name=f"{self.slug}.{settings.DOMAIN_APEX}",
                     stripe_account=self.payment_provider.stripe_account_id,
                 )

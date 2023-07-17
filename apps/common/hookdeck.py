@@ -219,23 +219,23 @@ def bootstrap(name: str, webhooks_url_contributions: str, webhooks_url_upgrades:
     The second source is for webhooks related to self-upgrades.
     """
     logger.info("Upserting a destination with name %s and url %s", name, webhooks_url_contributions)
-    contributions_webhooks_destination = upsert_destination(
-        name=f"{name}-stripe-contributions", url=webhooks_url_contributions
-    )
+    contributions_name = f"{name}-stripe-contributions"
+    contributions_webhooks_destination = upsert_destination(name=contributions_name, url=webhooks_url_contributions)
     logger.info(
         "Upserting connection with name %s and destination with id %s",
-        name,
+        contributions_name,
         (con_wh_id := contributions_webhooks_destination["id"]),
     )
-    upsert_connection(name, settings.HOOKDECK_STRIPE_WEBHOOK_SOURCE, con_wh_id)
+    upsert_connection(contributions_name, settings.HOOKDECK_STRIPE_WEBHOOK_SOURCE, con_wh_id)
     logger.info("Upserting a destination with name %s and url %s", name, webhooks_url_upgrades)
-    upgrades_webhooks_destination = upsert_destination(name=f"{name}-organization-upgrades", url=webhooks_url_upgrades)
+    upgrades_name = f"{name}-stripe-upgrades"
+    upgrades_webhooks_destination = upsert_destination(name=upgrades_name, url=webhooks_url_upgrades)
     logger.info(
         "Upserting connection with name %s and destination with id %s",
-        name,
+        upgrades_name,
         (ug_wh_id := upgrades_webhooks_destination["id"]),
     )
-    upsert_connection(name, settings.HOOKDECK_STRIPE_WEBHOOK_SOURCE, ug_wh_id)
+    upsert_connection(upgrades_name, settings.HOOKDECK_STRIPE_WEBHOOK_SOURCE, ug_wh_id)
 
 
 def tear_down(

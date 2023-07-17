@@ -412,7 +412,7 @@ describe('useConnectMailchimp hook', () => {
         }
       );
 
-      it('returns a sendUserToMailchimp function which redirects the user to the URL provided by the API', async () => {
+      it('returns a sendUserToMailchimp function which redirects the user to the URL provided by the API if the user has the access flag and is on the Core plan', async () => {
         const mailchimpURL = `https://login.mailchimp.com/oauth2/authorize?${queryString.stringify({
           response_type: 'code',
           client_id: NRE_MAILCHIMP_CLIENT_ID,

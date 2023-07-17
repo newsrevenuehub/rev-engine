@@ -152,7 +152,6 @@ Assuming you're using [direnv](https://direnv.net/) (see [setting up environment
 echo "export STRIPE_TEST_SECRET_KEY_CONTRIBUTIONS=sk_test_???" >> .envrc
 echo "export REACT_APP_HUB_STRIPE_API_PUB_KEY=pk_test_???" >> .envrc
 echo "export STRIPE_WEBHOOK_SECRET_FOR_CONTRIBUTIONS=whsec_???" >> .envrc
-echo "export STRIPE_WEBHOOK_SECRET_FOR_UPGRADES=whsec_??"
 
 ```
 
@@ -173,8 +172,6 @@ Next, copy the url its exposing your port through (example:http://610d1234567.ng
 
 Then, run `./manage.py create_stripe_webhooks`. This will use the Stripe SDK to add WebhookEndpoints to the NRH Stripe account.
 For the `STRIPE_WEBHOOK_SECRET_FOR_CONTRIBUTIONS`, you'll then need access to the Hub Stripe Dashboard — specifically, the one called `NRH (NRE, Connect, legacy donations and client ACH)`. Go to Developers --> Webhooks --> [your newly added endpoint] --> "Signing secret"
-
-You'll also need to set `STRIPE_WEBHOOK_SECRET_FOR_UPGRADES`, which corresponds to the `NRH (customer billing)` account.
 
 ### 6. Set up subdomains in `/etc/hosts`
 

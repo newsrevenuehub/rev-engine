@@ -400,20 +400,22 @@ def test_bootstrap(mocker, settings):
     )
     bootstrap(name, webhooks_url_contributions=contributions_webhook_url, webhooks_url_upgrades=upgrades_webhook_url)
     assert mock_upsert_connection.call_count == 2
+    expected_contributions_name = f"{name}-stripe-contributions"
+    expected_upgrades_name = f"{name}-stripe-upgrades"
     assert mock_upsert_connection.call_args_list[0] == mocker.call(
-        name, settings.HOOKDECK_STRIPE_WEBHOOK_SOURCE, dest_1_id
+        expected_contributions_name, settings.HOOKDECK_STRIPE_WEBHOOK_SOURCE, dest_1_id
     )
     assert mock_upsert_connection.call_args_list[1] == mocker.call(
-        name, settings.HOOKDECK_STRIPE_WEBHOOK_SOURCE, dest_2_id
+        expected_upgrades_name, settings.HOOKDECK_STRIPE_WEBHOOK_SOURCE, dest_2_id
     )
     assert mock_upsert_destination.call_count == 2
 
     assert mock_upsert_destination.call_args_list[0] == mocker.call(
-        name=f"{name}-stripe-contributions",
+        name=expected_contributions_name,
         url=contributions_webhook_url,
     )
     assert mock_upsert_destination.call_args_list[1] == mocker.call(
-        name=f"{name}-organization-upgrades",
+        name=expected_upgrades_name,
         url=upgrades_webhook_url,
     )
 

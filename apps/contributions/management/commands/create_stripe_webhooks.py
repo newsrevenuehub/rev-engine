@@ -32,6 +32,9 @@ class Command(BaseCommand):
             if options.get("url-upgrades")
             else settings.SITE_URL + reverse("organization-handle-stripe-webhook")
         )
+        self.stdout.write(
+            f"contributions_webhook_url = {contributions_webhook_url}, upgrades_webhook_url = {upgrades_webhook_url}",
+        )
         contributions_api_key = (
             settings.STRIPE_LIVE_SECRET_KEY_CONTRIBUTIONS
             if (live := options["live"])

@@ -12,8 +12,10 @@ class Command(BaseCommand):
         parser.add_argument("url", nargs="?", type=str)
 
     def handle(self, *args, **options):
-        webhook_url = options["url"] if options.get("url") else settings.SITE_URL + reverse("stripe-webhooks")
+        webhook_url = (
+            options["url"] if options.get("url") else settings.SITE_URL + reverse("stripe-webhooks-contributions")
+        )
         api_key = get_hub_stripe_api_key(options["live"])
-        kwargs = {"webhook_url": webhook_url, "api_key": api_key}
+        kwargs = {"webhook_url": webhook_url, "api_key": api_key, "enabled_events": settings.STRIPE_WEBHOOK_EVENTS}
         secret = create_stripe_webhook(**kwargs)
         self.stdout.write(self.style.WARNING("wh_sec = %s" % secret))

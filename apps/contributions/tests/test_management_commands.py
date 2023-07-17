@@ -24,8 +24,8 @@ def mock_create_stripe_endpoint(*args, **kwargs):
 
 @override_settings(STRIPE_WEBHOOK_EVENTS=test_events)
 @override_settings(SITE_URL=test_site_url)
-@override_settings(STRIPE_LIVE_SECRET_KEY=live_key)
-@override_settings(STRIPE_TEST_SECRET_KEY=test_key)
+@override_settings(STRIPE_LIVE_SECRET_KEY_CONTRIBUTIONS=live_key)
+@override_settings(STRIPE_TEST_SECRET_KEY_CONTRIBUTIONS=test_key)
 @override_settings(STRIPE_API_VERSION=test_stripe_api_version)
 @patch("stripe.WebhookEndpoint.create", side_effect=mock_create_stripe_endpoint)
 @patch("stripe.WebhookEndpoint.list")
@@ -41,7 +41,7 @@ class CreateStripeWebhooksTest(TestCase):
     def test_proper_args_with_live_flag(self, mock_endpoint_list, mock_endpoint_create):
         self.run_command(live=True)
         stripe.WebhookEndpoint.create.assert_called_with(
-            url=test_site_url + reverse("stripe-webhooks"),
+            url=test_site_url + reverse("stripe-webhooks-contributions"),
             enabled_events=test_events,
             connect=True,
             api_key=live_key,
@@ -51,7 +51,7 @@ class CreateStripeWebhooksTest(TestCase):
     def test_proper_args_without_live_flag(self, mock_endpoint_list, mock_endpoint_create):
         self.run_command(live=False)
         stripe.WebhookEndpoint.create.assert_called_with(
-            url=test_site_url + reverse("stripe-webhooks"),
+            url=test_site_url + reverse("stripe-webhooks-contributions"),
             enabled_events=test_events,
             connect=True,
             api_key=test_key,
@@ -62,7 +62,11 @@ class CreateStripeWebhooksTest(TestCase):
         url = "http://google.com"
         self.run_command(url=url)
         stripe.WebhookEndpoint.create.assert_called_with(
-            url=url, enabled_events=test_events, connect=True, api_key=test_key, api_version=test_stripe_api_version
+            url=url,
+            enabled_events=test_events,
+            connect=True,
+            api_key=test_key,
+            api_version=test_stripe_api_version,
         )
 
 

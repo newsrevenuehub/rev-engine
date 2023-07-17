@@ -24,8 +24,8 @@ describe('Subscription', () => {
       isLoading: false,
       refetch: jest.fn(),
       user: {
-        id: -1,
-        organizations: [{ id: -2, plan: { name: PLAN_LABELS.FREE } }, { plan: { name: PLAN_LABELS.CORE } }]
+        id: 'mock-user-id',
+        organizations: [{ id: 'mock-org-id', plan: { name: PLAN_LABELS.FREE } }, { plan: { name: PLAN_LABELS.CORE } }]
       } as any
     });
   });
@@ -58,8 +58,8 @@ describe('Subscription', () => {
     const manageSub = screen.queryByTestId('mock-manage-subscription');
 
     expect(manageSub).toBeInTheDocument();
-    expect(manageSub?.dataset.organizationId).toBe('-2');
-    expect(manageSub?.dataset.userId).toBe('-1');
+    expect(manageSub?.dataset.organizationId).toBe('mock-org-id');
+    expect(manageSub?.dataset.userId).toBe('mock-user-id');
   });
 
   it('displays an UpgradePlan component', () => {
@@ -68,8 +68,8 @@ describe('Subscription', () => {
     const upgradePlan = screen.queryByTestId('mock-upgrade-plan');
 
     expect(upgradePlan).toBeInTheDocument();
-    expect(upgradePlan?.dataset.organizationId).toBe('-2');
-    expect(upgradePlan?.dataset.userId).toBe('-1');
+    expect(upgradePlan?.dataset.organizationId).toBe('mock-org-id');
+    expect(upgradePlan?.dataset.userId).toBe('mock-user-id');
   });
 
   it("doesn't show a PlanChangePendingModal", () => {

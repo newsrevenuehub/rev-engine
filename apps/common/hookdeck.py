@@ -206,6 +206,17 @@ def unarchive(entity_type: Literal["connection", "destination", "source"], id: s
         return response.json()
 
 
+def bootstrap_endpoint(name: str, url: str) -> None:
+    logger.info("Upserting a destination with name %s and url %s", name, url)
+    dest = upsert_destination(name=name, url=url)
+    logger.info(
+        "Upserting connection with name %s and destination with id %s",
+        name,
+        (_id := dest["id"]),
+    )
+    upsert_connection(name, settings.HOOKDECK_STRIPE_WEBHOOK_SOURCE, _id)
+
+
 def bootstrap(name: str, webhooks_url_contributions: str, webhooks_url_upgrades: str) -> dict:
     """Used to bootstrap an app deployment's Stripe/Hookdeck integration
 
@@ -218,24 +229,8 @@ def bootstrap(name: str, webhooks_url_contributions: str, webhooks_url_upgrades:
 
     The second source is for webhooks related to self-upgrades.
     """
-    logger.info("Upserting a destination with name %s and url %s", name, webhooks_url_contributions)
-    contributions_name = f"{name}-stripe-contributions"
-    contributions_webhooks_destination = upsert_destination(name=contributions_name, url=webhooks_url_contributions)
-    logger.info(
-        "Upserting connection with name %s and destination with id %s",
-        contributions_name,
-        (con_wh_id := contributions_webhooks_destination["id"]),
-    )
-    upsert_connection(contributions_name, settings.HOOKDECK_STRIPE_WEBHOOK_SOURCE, con_wh_id)
-    logger.info("Upserting a destination with name %s and url %s", name, webhooks_url_upgrades)
-    upgrades_name = f"{name}-stripe-upgrades"
-    upgrades_webhooks_destination = upsert_destination(name=upgrades_name, url=webhooks_url_upgrades)
-    logger.info(
-        "Upserting connection with name %s and destination with id %s",
-        upgrades_name,
-        (ug_wh_id := upgrades_webhooks_destination["id"]),
-    )
-    upsert_connection(upgrades_name, settings.HOOKDECK_STRIPE_WEBHOOK_SOURCE, ug_wh_id)
+    bootstrap_endpoint(f"{name}-stripe-contributions", webhooks_url_contributions)
+    bootstrap_endpoint(f"{name}-stripe-upgrades", webhooks_url_upgrades)
 
 
 def tear_down(

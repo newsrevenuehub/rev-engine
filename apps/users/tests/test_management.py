@@ -48,6 +48,10 @@ class TestBootstrapReviewApp(TestCase):
                 urljoin(
                     f"https://{MOCK_TICKET_ID.lower()}.{MOCK_CF_ZONE_NAME}", reverse("stripe-webhooks-contributions")
                 ),
+                urljoin(
+                    f"https://{MOCK_TICKET_ID.lower()}.{MOCK_CF_ZONE_NAME}",
+                    reverse("organization-handle-stripe-webhook"),
+                ),
             )
 
 

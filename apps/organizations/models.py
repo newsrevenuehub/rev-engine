@@ -1,5 +1,6 @@
 import logging
 import os
+import uuid
 from dataclasses import asdict, dataclass, field
 from functools import cached_property
 from typing import List, Literal, Optional
@@ -122,6 +123,7 @@ class OrganizationManager(models.Manager):
 
 class Organization(IndexedTimeStampedModel):
     name = models.CharField(max_length=255, unique=True)
+    uuid = models.UUIDField(default=uuid.uuid4, primary_key=False, editable=False)
     plan_name = models.CharField(choices=Plans.choices, max_length=10, default=Plans.FREE)
     salesforce_id = models.CharField(max_length=255, blank=True, verbose_name="Salesforce ID")
     show_connected_to_slack = models.BooleanField(
@@ -163,7 +165,7 @@ class Organization(IndexedTimeStampedModel):
     def __str__(self):
         return self.name
 
-    @property
+    @cached_property
     def stripe_subscription(self) -> Optional[stripe.Subscription]:
         api_key = (
             settings.STRIPE_LIVE_SECRET_KEY_CONTRIBUTIONS

@@ -164,8 +164,13 @@ class Organization(IndexedTimeStampedModel):
         return self.name
 
     @property
-    def stripe_subscription(self, api_key: str) -> Optional[stripe.Subscription]:
-        if s_id := self.stripe_subscription_id:
+    def stripe_subscription(self) -> Optional[stripe.Subscription]:
+        api_key = (
+            settings.STRIPE_LIVE_SECRET_KEY_CONTRIBUTIONS
+            if settings.STRIPE_LIVE_MODE
+            else settings.STRIPE_TEST_SECRET_KEY_CONTRIBUTIONS
+        )
+        if not (s_id := self.stripe_subscription_id):
             return None
         return stripe.Subscription.retrieve(s_id, api_key=api_key)
 

@@ -430,13 +430,12 @@ GENERIC_STRIPE_PRODUCT_NAME = "Contribution via RevEngine"
 WEBHOOK_URL = r"^revengine-stripe-webhook/"
 STRIPE_LIVE_SECRET_KEY_CONTRIBUTIONS = os.getenv("STRIPE_LIVE_SECRET_KEY_CONTRIBUTIONS", "")
 STRIPE_TEST_SECRET_KEY_CONTRIBUTIONS = os.getenv("STRIPE_TEST_SECRET_KEY_CONTRIBUTIONS", "")
-STRIPE_LIVE_SECRET_KEY_UPGRADES = os.getenv("STRIPE_UPGRADE_LIVE_SECRET_KEY", "")
 STRIPE_OAUTH_SCOPE = "read_write"
 STRIPE_LIVE_MODE = os.getenv("STRIPE_LIVE_MODE", "false").lower() == "true"
 # Get it from the section in the Stripe dashboard where you added the webhook endpoint
 STRIPE_WEBHOOK_SECRET_FOR_CONTRIBUTIONS = os.getenv("STRIPE_WEBHOOK_SECRET_FOR_CONTRIBUTIONS", "")
 # this is the list of events that we want to listen for
-STRIPE_WEBHOOK_EVENTS_FOR_CONTRIBUTIONS = [
+STRIPE_WEBHOOK_EVENTS = [
     "payment_intent.canceled",
     "payment_intent.payment_failed",
     "payment_intent.succeeded",
@@ -444,9 +443,6 @@ STRIPE_WEBHOOK_EVENTS_FOR_CONTRIBUTIONS = [
     "customer.subscription.deleted",
     "payment_method.attached",
     "invoice.upcoming",
-]
-STRIPE_WEBHOOK_EVENTS_FOR_UPGRADES = [
-    "checkout.session.completed",
 ]
 
 HOOKDECK_API_KEY = os.getenv("HOOKDECK_API_KEY", "")

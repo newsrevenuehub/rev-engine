@@ -26,6 +26,7 @@ def create_stripe_webhook(webhook_url, api_key, enabled_events):
     if webhook_url in urls:
         logger.info("Webhook already exists: %s", webhook_url)
         return None
+
     response = stripe.WebhookEndpoint.create(
         url=webhook_url,
         enabled_events=enabled_events,

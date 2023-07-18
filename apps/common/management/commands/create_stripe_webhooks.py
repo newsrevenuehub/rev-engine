@@ -11,24 +11,31 @@ class Command(BaseCommand):
         parser.add_argument("url-contributions", nargs="?", type=str)
         parser.add_argument("url-upgrades", nargs="?", type=str)
 
+    def get_contributions_endpoint_url(self, options: dict) -> str:
+        if options.get("url-contributions", False):
+            return options["url-contributions"]
+        else:
+            return settings.SITE_URL + reverse("stripe-webhooks-contributions")
+
+    def get_upgrades_endpoint_url(self, options: dict) -> str:
+        if options.get("url-upgrades", False):
+            return options["url-upgrades"]
+        else:
+            return settings.SITE_URL + reverse("organization-handle-stripe-webhook")
+
     def handle(self, *args, **options):
-        # contributions
         contributions_stripe_secret = create_stripe_webhook(
             api_key=settings.STRIPE_LIVE_SECRET_KEY_CONTRIBUTIONS
             if (live := options["live"])
             else settings.STRIPE_TEST_SECRET_KEY_CONTRIBUTIONS,
             enabled_events=settings.STRIPE_WEBHOOK_EVENTS_FOR_CONTRIBUTIONS,
-            webhook_url=options["url-contributions"]
-            if options.get("url-contributions")
-            else settings.SITE_URL + reverse("stripe-webhooks-contributions"),
+            webhook_url=self.get_contributions_endpoint_url(options),
         )
         self.stdout.write(self.style.WARNING("For contributions, wh_sec = %s" % contributions_stripe_secret))
-        # upgrades
+
         upgrade_stripe_secret = create_stripe_webhook(
             api_key=settings.STRIPE_LIVE_SECRET_KEY_UPGRADES if live else settings.STRIPE_TEST_SECRET_KEY_UPGRADES,
             enabled_events=settings.STRIPE_WEBHOOK_EVENTS_FOR_UPGRADES,
-            webhook_url=options["url-upgrades"]
-            if options.get("url-upgrades")
-            else settings.SITE_URL + reverse("organization-handle-stripe-webhook"),
+            webhook_url=self.get_upgrades_endpoint_url(options),
         )
         self.stdout.write(self.style.WARNING("For self-upgrade, wh_sec = %s" % upgrade_stripe_secret))

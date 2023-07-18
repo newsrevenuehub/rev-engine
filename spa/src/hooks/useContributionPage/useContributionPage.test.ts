@@ -1,16 +1,21 @@
 import { renderHook } from '@testing-library/react-hooks';
 import MockAdapter from 'axios-mock-adapter';
 import { useAlert } from 'react-alert';
-import { formDataToObject, TestQueryClientProvider } from 'test-utils';
+import { formDataToObject, TestQueryClientProvider, waitFor } from 'test-utils';
 import Axios from 'ajax/axios';
 import useContributionPage from './useContributionPage';
 import { useQueryClient } from '@tanstack/react-query';
+import { useSnackbar } from 'notistack';
 
 jest.mock('@tanstack/react-query', () => ({
   ...jest.requireActual('@tanstack/react-query'),
   useQueryClient: jest.fn()
 }));
 jest.mock('react-alert');
+jest.mock('notistack', () => ({
+  ...jest.requireActual('notistack'),
+  useSnackbar: jest.fn()
+}));
 
 const mockPage = {
   id: 'mock-page-id'
@@ -25,6 +30,8 @@ describe('useContributionPage', () => {
   const axiosMock = new MockAdapter(Axios);
   const useQueryClientMock = jest.mocked(useQueryClient);
   const useAlertMock = jest.mocked(useAlert);
+  const useSnackbarMock = useSnackbar as jest.Mock;
+  const enqueueSnackbar = jest.fn();
 
   beforeEach(() => {
     axiosMock.onGet('pages/1/').reply(200, mockPage);
@@ -33,6 +40,7 @@ describe('useContributionPage', () => {
       .reply(200, mockPage);
     useAlertMock.mockReturnValue({ error: jest.fn(), success: jest.fn() } as any);
     useQueryClientMock.mockReturnValue({ invalidateQueries: jest.fn() } as any);
+    useSnackbarMock.mockReturnValue({ enqueueSnackbar });
   });
   afterEach(() => axiosMock.reset());
   afterAll(() => axiosMock.restore());
@@ -322,6 +330,83 @@ describe('useContributionPage', () => {
       await waitForNextUpdate();
     });
 
+    it('makes a PATCH request to styles/[id]/ if update contains an existing style', async () => {
+      const mockStyles = { id: 'mock-style-id' };
+      axiosMock.onPatch(`styles/${mockStyles.id}/`).reply(200, mockStyles);
+      axiosMock.onPatch(`pages/${mockPage.id}/`).reply(200, mockPage);
+
+      const { result, waitForNextUpdate } = renderHook(testHookWithSlugs, { wrapper: TestQueryClientProvider });
+
+      await waitForNextUpdate();
+      expect(axiosMock.history.patch.length).toBe(0);
+      await result.current.updatePage!({ styles: mockStyles as any });
+      expect(axiosMock.history.patch.length).toBe(2);
+      expect(axiosMock.history.patch[0].url).toBe(`styles/${mockStyles.id}/`);
+      expect(axiosMock.history.patch[1].url).toBe(`pages/${mockPage.id}/`);
+
+      expect(axiosMock.history.patch[0].data).toEqual(JSON.stringify(mockStyles));
+      expect(formDataToObject(axiosMock.history.patch[1].data as FormData)).toEqual({ styles: mockStyles.id });
+      await waitForNextUpdate();
+    });
+
+    it('makes a POST request to styles/ if update contains a new style', async () => {
+      const mockStyles = { fonts: 'mock-style-id' };
+      axiosMock.onPost(`styles/`).reply(200, { id: 'mock-new-style-id' });
+      axiosMock.onPatch(`pages/${mockPage.id}/`).reply(200, mockPage);
+
+      const { result, waitForNextUpdate } = renderHook(testHookWithSlugs, { wrapper: TestQueryClientProvider });
+
+      await waitForNextUpdate();
+      expect(axiosMock.history.patch.length).toBe(0);
+      await result.current.updatePage!({ styles: mockStyles as any });
+      expect(axiosMock.history.post.length).toBe(1);
+      expect(axiosMock.history.patch.length).toBe(1);
+      expect(axiosMock.history.post[0].url).toBe(`styles/`);
+      expect(axiosMock.history.patch[0].url).toBe(`pages/${mockPage.id}/`);
+
+      expect(JSON.parse(axiosMock.history.post[0].data)).toEqual(
+        expect.objectContaining({
+          fonts: 'mock-style-id',
+          name: expect.any(String)
+        })
+      );
+      expect(formDataToObject(axiosMock.history.patch[0].data as FormData)).toEqual({ styles: 'mock-new-style-id' });
+      await waitForNextUpdate();
+    });
+
+    it.each([
+      ['PATCH', { id: 'mock-patch-style-id' }],
+      ['POST', { font: 'mock-font' }]
+    ])('shows an error notification if the styles %s fails', async (method, mockStyles) => {
+      axiosMock.onPost(`styles/`).networkError();
+      axiosMock.onPatch(`styles/mock-patch-style-id/`).networkError();
+
+      const { result, waitForNextUpdate } = renderHook(testHookWithSlugs, { wrapper: TestQueryClientProvider });
+
+      await waitForNextUpdate();
+      expect(axiosMock.history.patch.length).toBe(0);
+      expect(axiosMock.history.post.length).toBe(0);
+      let err: any;
+      try {
+        await result.current.updatePage!({ styles: mockStyles as any });
+      } catch (error) {
+        err = error;
+      }
+      expect(err.message).toBe('Network Error');
+
+      expect(axiosMock.history.post.length).toBe(method === 'POST' ? 1 : 0);
+      expect(axiosMock.history.patch.length).toBe(method === 'PATCH' ? 1 : 0);
+
+      await waitFor(() =>
+        expect(enqueueSnackbar).toBeCalledWith(
+          'Style changes were not saved. Please wait and try again or changes will be lost.',
+          expect.objectContaining({
+            persist: true
+          })
+        )
+      );
+    });
+
     it('displays a success notification if the PATCH succeeds', async () => {
       const success = jest.fn();
 
@@ -373,12 +458,13 @@ describe('useContributionPage', () => {
 
         await waitForNextUpdate();
 
+        let err: any;
         try {
           await result.current.updatePage!({});
         } catch (error) {
-          // eslint-disable-next-line jest/no-conditional-expect
-          expect(error).toBeInstanceOf(Error);
+          err = error;
         }
+        expect(err).toBeInstanceOf(Error);
 
         await waitForNextUpdate();
       });

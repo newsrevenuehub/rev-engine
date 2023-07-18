@@ -14,17 +14,19 @@ async function fetchStyles() {
 
 type StyleColors = Record<string, string>;
 type StyleFonts = Record<string, { accessor: string; font_name: string; id: number; name: string; source: 'google' }>;
-type StyleStyles = string | { [property: string]: StyleStyles } | StyleStyles[];
+type StyleStyles = Array<string> | Record<string, unknown> | number | string | boolean;
 
 export interface Style {
+  [x: string]: StyleStyles;
   id: number;
   colors: StyleColors;
   created: string;
   font: StyleFonts;
   modified: string;
   name: string;
-  styles: StyleStyles;
   used_live: boolean;
+  radii: string[];
+  fontSizes: string[];
 }
 
 export interface UseStyleListResult {

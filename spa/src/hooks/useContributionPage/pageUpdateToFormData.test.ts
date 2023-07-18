@@ -178,6 +178,8 @@ describe('pageUpdateToFormData', () => {
         modified: 'test-modified',
         name: 'test-name',
         styles: {},
+        radii: [],
+        fontSizes: [],
         used_live: false
       }
     });

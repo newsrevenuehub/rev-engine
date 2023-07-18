@@ -1,13 +1,16 @@
 import { useMutation, useQuery, useQueryClient, UseQueryResult } from '@tanstack/react-query';
+import axios from 'ajax/axios';
+import { DELETE_PAGE, DRAFT_PAGE_DETAIL, LIST_PAGES, LIST_STYLES, PATCH_PAGE } from 'ajax/endpoints';
+import SystemNotification from 'components/common/SystemNotification';
+import { GENERIC_ERROR } from 'constants/textConstants';
+import { Style } from 'hooks/useStyleList';
+import { useSnackbar } from 'notistack';
 import { useCallback } from 'react';
 import { useAlert } from 'react-alert';
-import axios from 'ajax/axios';
-import { DELETE_PAGE, DRAFT_PAGE_DETAIL, LIST_PAGES, PATCH_PAGE } from 'ajax/endpoints';
-import { GENERIC_ERROR } from 'constants/textConstants';
+import urlJoin from 'url-join';
 import { getUpdateSuccessMessage } from 'utilities/editPageGetSuccessMessage';
 import { pageUpdateToFormData } from './pageUpdateToFormData';
 import { ContributionPage } from './useContributionPage.types';
-import urlJoin from 'url-join';
 
 async function fetchPageById(pageId: number) {
   const { data } = await axios.get<ContributionPage>(urlJoin(LIST_PAGES, pageId.toString(), '/'));
@@ -74,6 +77,7 @@ export function useContributionPage(revenueProgramSlug: string, pageSlug: string
  */
 export function useContributionPage(revenueProgramSlugOrPageId?: number | string, pageSlug?: string) {
   const alert = useAlert();
+  const { enqueueSnackbar } = useSnackbar();
   const queryClient = useQueryClient();
   const {
     data: page,
@@ -140,6 +144,56 @@ export function useContributionPage(revenueProgramSlugOrPageId?: number | string
     }
   );
 
+  const onSaveStylesError = () => {
+    enqueueSnackbar('Style changes were not saved. Please wait and try again or changes will be lost.', {
+      persist: true,
+      content: (key: string, message: string) => (
+        <SystemNotification id={key} message={message} header="Style Not Saved!" type="error" />
+      )
+    });
+  };
+
+  const updateStyleMutation = useMutation(
+    (data: Partial<ContributionPage>) => {
+      if (!page) {
+        throw new Error('Page is not yet defined');
+      }
+      if (!data.styles || !data.styles.id) {
+        // Should never happen
+        throw new Error('Style is not yet defined');
+      }
+
+      return axios.patch<Style>(`${LIST_STYLES}${data.styles.id}/`, {
+        ...data.styles,
+        revenue_program: page.revenue_program?.id
+      });
+    },
+    {
+      onError: onSaveStylesError
+    }
+  );
+
+  const createStyleMutation = useMutation(
+    (data: Partial<ContributionPage>) => {
+      if (!page) {
+        throw new Error('Page is not yet defined');
+      }
+      if (!data.styles) {
+        // Should never happen
+        throw new Error('Style is not yet defined');
+      }
+      return axios.post<Style>(LIST_STYLES, {
+        ...data.styles,
+        // TODO: Handle style name creation/generation better
+        name: (Math.random() + 1).toString(36).substring(4),
+        revenue_program: page.revenue_program?.id
+      });
+    },
+    {
+      onError: onSaveStylesError
+    }
+  );
+
   const updatePage = useCallback(
     async (data: Partial<ContributionPage>, screenshotBaseName?: string, elementToScreenshot?: HTMLElement) => {
       // No error handling here to allow callers to implement their own
@@ -152,12 +206,28 @@ export function useContributionPage(revenueProgramSlugOrPageId?: number | string
         throw new Error('Page is not yet defined');
       }
 
-      const formData = await pageUpdateToFormData(data, screenshotBaseName, elementToScreenshot);
+      let styles: Style | undefined;
+      if (data.styles) {
+        if (data.styles?.id) {
+          const { data: response } = await updateStyleMutation.mutateAsync(data);
+          styles = response;
+        } else {
+          const { data: response } = await createStyleMutation.mutateAsync(data);
+          styles = response;
+        }
+      }
+
+      const formData = await pageUpdateToFormData(
+        // Only add styles to data if it's not undefined
+        { ...data, ...(styles && { styles }) },
+        screenshotBaseName,
+        elementToScreenshot
+      );
 
       await updatePageMutation.mutateAsync(formData);
       alert.success(getUpdateSuccessMessage(page, data));
     },
-    [alert, page, updatePageMutation]
+    [alert, createStyleMutation, page, updatePageMutation, updateStyleMutation]
   );
 
   if (page) {

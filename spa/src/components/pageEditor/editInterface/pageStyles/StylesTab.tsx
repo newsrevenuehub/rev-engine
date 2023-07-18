@@ -1,0 +1,195 @@
+import PropTypes, { InferProps } from 'prop-types';
+
+import { useQuery } from '@tanstack/react-query';
+import axios from 'ajax/axios';
+import { LIST_FONTS } from 'ajax/endpoints';
+import { ColorPicker, SearchableSelect } from 'components/base';
+import { GENERIC_ERROR } from 'constants/textConstants';
+import { Style } from 'hooks/useStyleList';
+import { useAlert } from 'react-alert';
+import { Flex, Pickers, Section, Title } from './StylesTab.styled';
+
+const COLOR_PICKERS = [
+  { field: 'cstm_mainHeader', label: 'Header' },
+  { field: 'cstm_mainBackground', label: 'Background' },
+  { field: 'cstm_formPanelBackground', label: 'Panel background' },
+  { field: 'cstm_CTAs', label: 'Buttons' },
+  { field: 'cstm_ornaments', label: 'Accents' }
+];
+
+const FONT_PICKERS = [
+  { field: 'heading', label: 'Heading Font' },
+  { field: 'body', label: 'Body Font' }
+];
+
+type AllowedFontSizes = 24 | 32 | 36;
+
+const FONT_SIZE_OPTIONS: Array<{ label: string; value: AllowedFontSizes }> = [
+  { label: 'Small', value: 24 },
+  { label: 'Standard', value: 32 },
+  { label: 'Large', value: 36 }
+];
+
+const BUTTON_RADIUS_BASE_OPTIONS = [
+  { label: 'Square', value: 0 },
+  { label: 'Semi-round', value: 5 },
+  { label: 'Rounded', value: 20 }
+];
+
+type Font = {
+  accessor: string;
+  font_name: string;
+  id: number;
+  name: string;
+  source: 'google';
+};
+
+export interface StylesTabProps extends InferProps<typeof StylesTabPropTypes> {
+  styles: Style;
+  setStyles: (styles: Style) => void;
+}
+
+async function fetchFont() {
+  const { data } = await axios.get(LIST_FONTS);
+
+  return data;
+}
+
+function StylesTab({ styles, setStyles }: StylesTabProps) {
+  const alert = useAlert();
+
+  // While fontSize is an array, select font corresponding index to the Heading font
+  const headingFontSize = Number(styles.fontSizes[3]?.split('px')[0]);
+  const { data: fonts, isLoading: fontLoading } = useQuery<Font[]>(['fonts'], fetchFont, {
+    initialData: [],
+    onError: () => alert.error(GENERIC_ERROR)
+  });
+
+  const setColor = (colorName: string, value: string) => {
+    setStyles({ ...styles, colors: { ...styles.colors, [colorName]: value } });
+  };
+
+  const setSelectedFonts = (fontType: string, selectedFont: Font) => {
+    setStyles({ ...styles, font: { ...styles.font, [fontType]: selectedFont } });
+  };
+
+  const setFontSize = (fontSize: AllowedFontSizes) => {
+    const fontSizes = getFontSizesFromFontSize(fontSize);
+    setStyles({ ...styles, fontSizes });
+  };
+
+  const setRadii = (radiiBase: number) => {
+    const radii = getRadiiFromBase(radiiBase);
+    setStyles({ ...styles, radii });
+  };
+
+  return (
+    <Flex>
+      <Section>
+        <Title>Colors</Title>
+        <Pickers>
+          {COLOR_PICKERS.map(({ field, label }) => (
+            <ColorPicker
+              id={`colors-editor-${field}`}
+              key={field}
+              label={label}
+              onChange={(value) => setColor(field, value)}
+              value={styles.colors ? styles.colors[field] : ''}
+            />
+          ))}
+        </Pickers>
+      </Section>
+      <Section>
+        <Title>Fonts</Title>
+        <Pickers>
+          {FONT_PICKERS.map(({ field, label }) => (
+            <SearchableSelect
+              disabled={fontLoading}
+              label={label}
+              options={[
+                {
+                  name: 'Select a font',
+                  id: ''
+                },
+                ...fonts
+              ]}
+              getOptionLabel={(option) => option.name}
+              getOptionDisabled={(option) => option.id === ''}
+              onChange={(e: any, value) => {
+                setSelectedFonts(field, fonts.find((font) => font.id === value.id)!);
+              }}
+              value={fonts.find((font) => font.id === styles.font[field]?.id) || { name: 'Select a font', id: '' }}
+            />
+          ))}
+          <SearchableSelect
+            label="Font Size"
+            options={FONT_SIZE_OPTIONS}
+            getOptionLabel={(option) => option.label}
+            onChange={(e: any, value) => {
+              setFontSize(value.value);
+            }}
+            value={FONT_SIZE_OPTIONS.find((option) => option.value === headingFontSize)}
+          />
+        </Pickers>
+      </Section>
+      <Section>
+        <Title>Button Style</Title>
+        <Pickers>
+          <SearchableSelect
+            label="Radius"
+            options={BUTTON_RADIUS_BASE_OPTIONS}
+            getOptionLabel={(option) => option.label}
+            onChange={(e: any, value) => {
+              setRadii(value.value);
+            }}
+            value={
+              BUTTON_RADIUS_BASE_OPTIONS.find((option) => option.value === getBaseFromRadii(styles?.radii)) ||
+              // Set as null = no option selected.
+              (null as any)
+            }
+          />
+        </Pickers>
+      </Section>
+    </Flex>
+  );
+}
+
+/**
+ * Helper functions used in the StyledEditor component
+ * */
+export function getFontSizesFromFontSize(fontSize: AllowedFontSizes) {
+  const firstFontSize = `${0.375 * fontSize}px`;
+  const mainValues = {
+    24: ['16px', '18px', '24px'],
+    32: ['16px', '24px', '32px'],
+    36: ['18px', '28px', '36px']
+  }[fontSize];
+  const afterFactors = [1.5, 2.5, 3];
+  return [firstFontSize, ...mainValues, ...afterFactors.map((factor) => `${fontSize * factor}px`)];
+}
+
+function getBaseFromRadii(radii: Array<string>) {
+  if (radii && radii[0]) {
+    return parseInt(radii[0], 10);
+  }
+  return 1;
+}
+
+function getRadiiFromBase(radiiBase: number) {
+  const factoredString = (num: number, factor = 1) => {
+    return `${num * factor}px`;
+  };
+  return [factoredString(radiiBase), factoredString(radiiBase, 2), factoredString(radiiBase, 4)];
+}
+/**
+ * End of Helper functions
+ * */
+
+const StylesTabPropTypes = {
+  style: PropTypes.object,
+  setStyles: PropTypes.func.isRequired
+};
+
+StylesTab.propTypes = StylesTabPropTypes;
+
+export default StylesTab;

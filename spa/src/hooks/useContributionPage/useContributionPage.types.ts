@@ -448,6 +448,10 @@ export interface ContributionPage {
    */
   header_logo: string | File | null;
   /**
+   * Alt text for the header logo.
+   */
+  header_logo_alt_text: string;
+  /**
    * URL for a thumbnail of the header logo.
    */
   header_logo_thumbnail: string;

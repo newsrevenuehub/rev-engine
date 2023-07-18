@@ -216,11 +216,17 @@ Then add to the file the following line.
 echo "export DJANGO_SETTINGS_MODULE=revengine.settings.local" >> .envrc
 ```
 
-Next, we need to set up a fake test Stripe ID so that stripe functionality will work when running tests locally
+Next, we need to set up a fake test Stripe ID so that stripe functionality will work when running tests locally:
 
 ```sh
 echo "export REACT_APP_HUB_STRIPE_API_PUB_KEY=pk_test_3737373" >> .envrc
 ```
+
+The following environment variables will also need to be set for self-upgrade features to function in the SPA:
+
+- `REACT_APP_STRIPE_SELF_UPGRADE_CUSTOMER_PORTAL_URL`: the URL to direct users to to access the customer portal.
+- `REACT_APP_STRIPE_SELF_UPGRADE_PRICING_TABLE_ID`: ID of the Stripe pricing table to embed in the SPA.
+- `REACT_APP_STRIPE_SELF_UPGRADE_PRICING_TABLE_PUBLISHABLE_KEY`: publishable key for the pricing table set above. This is different from the public API key (`REACT_APP_HUB_STRIPE_API_PUB_KEY`).
 
 To use a local Web browsable version of the API add `export ENABLE_API_BROWSER=True` to your `.envrc`. (Then visit /api/swagger/ or /api/redoc/.)
 

@@ -1,7 +1,7 @@
 import json
 from unittest.mock import Mock
 
-from django.conf import settings
+from django.urls import reverse
 from django.utils import timezone
 
 import pytest
@@ -386,17 +386,38 @@ def test_unarchive_when_hookdeck_non_200(entity_type, resource_url):
         assert unarchive(entity_type, id)
 
 
-def test_bootstrap(monkeypatch):
-    destination_id = "dest-id"
-    mock_upsert_destination = Mock(return_value={"id": destination_id})
-    mock_upsert_connection = Mock()
+def test_bootstrap(mocker, settings):
     name = "name"
-    destination_url = "https://www.somewhere.com"
-    monkeypatch.setattr("apps.common.hookdeck.upsert_destination", mock_upsert_destination)
-    monkeypatch.setattr("apps.common.hookdeck.upsert_connection", mock_upsert_connection)
-    bootstrap(name, destination_url)
-    mock_upsert_destination.assert_called_once_with(name=name, url=destination_url)
-    mock_upsert_connection.assert_called_once_with(name, settings.HOOKDECK_STRIPE_WEBHOOK_SOURCE, destination_id)
+    contributions_webhook_url = f"{settings.SITE_URL}{reverse('stripe-webhooks-contributions')}"
+    upgrades_webhook_url = f"{settings.SITE_URL}{reverse('organization-handle-stripe-webhook')}"
+    mock_upsert_destination = mocker.patch(
+        "apps.common.hookdeck.upsert_destination",
+        side_effect=[{"id": (dest_1_id := "<destination-1-id>")}, {"id": (dest_2_id := "<destination-2-id>")}],
+    )
+    mock_upsert_connection = mocker.patch(
+        "apps.common.hookdeck.upsert_connection",
+        side_effect=[{"id": "<connection-1-id>"}, {"id": "<connection-2-id>"}],
+    )
+    bootstrap(name, webhooks_url_contributions=contributions_webhook_url, webhooks_url_upgrades=upgrades_webhook_url)
+    assert mock_upsert_connection.call_count == 2
+    expected_contributions_name = f"{name}-stripe-contributions"
+    expected_upgrades_name = f"{name}-stripe-upgrades"
+    assert mock_upsert_connection.call_args_list[0] == mocker.call(
+        expected_contributions_name, settings.HOOKDECK_STRIPE_WEBHOOK_SOURCE, dest_1_id
+    )
+    assert mock_upsert_connection.call_args_list[1] == mocker.call(
+        expected_upgrades_name, settings.HOOKDECK_STRIPE_WEBHOOK_SOURCE, dest_2_id
+    )
+    assert mock_upsert_destination.call_count == 2
+
+    assert mock_upsert_destination.call_args_list[0] == mocker.call(
+        name=expected_contributions_name,
+        url=contributions_webhook_url,
+    )
+    assert mock_upsert_destination.call_args_list[1] == mocker.call(
+        name=expected_upgrades_name,
+        url=upgrades_webhook_url,
+    )
 
 
 def test_teardown(monkeypatch):

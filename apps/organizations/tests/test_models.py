@@ -306,7 +306,7 @@ class TestRevenueProgram:
         rp.refresh_from_db()
         assert rp.domain_apple_verified_date is not None
         mock_stripe_create.assert_called_once_with(
-            api_key="",
+            api_key=settings.STRIPE_LIVE_SECRET_KEY_CONTRIBUTIONS,
             domain_name=f"{rp.slug}.{settings.DOMAIN_APEX}",
             stripe_account=rp.payment_provider.stripe_account_id,
         )

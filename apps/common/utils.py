@@ -26,7 +26,10 @@ def create_stripe_webhook(webhook_url, api_key, enabled_events):
     if webhook_url in urls:
         logger.info("Webhook already exists: %s", webhook_url)
         return None
-
+    if not api_key:
+        logger.warning("No API key provided for creating webhook: %s", webhook_url)
+    else:
+        logger.info("API key is '%s-redacted'", api_key[:7])
     response = stripe.WebhookEndpoint.create(
         url=webhook_url,
         enabled_events=enabled_events,

@@ -121,7 +121,6 @@ class OrganizationViewSet(
 
     @action(detail=False, methods=["post"], permission_classes=[])
     def handle_stripe_webhook(self, request: HttpRequest) -> Response:
-        """Initially we'll just return 200 without doing anything, ahead of full implementation"""
         logger.info("Handling Stripe webhook event with type %s", request.data["type"])
         event = self.construct_stripe_event(request)
         if event["type"] == "checkout.session.completed":

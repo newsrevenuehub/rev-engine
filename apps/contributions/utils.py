@@ -15,7 +15,7 @@ def get_hub_stripe_api_key(livemode=False):
     """
     if livemode or settings.STRIPE_LIVE_MODE:
         return settings.STRIPE_LIVE_SECRET_KEY
-    return settings.STRIPE_TEST_SECRET_KEY
+    return settings.STRIPE_TEST_SECRET_KEY_CONTRIBUTIONS
 
 
 def format_ambiguous_currency(integer):

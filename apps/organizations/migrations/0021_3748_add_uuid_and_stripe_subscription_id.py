@@ -5,7 +5,6 @@ import uuid
 
 
 class Migration(migrations.Migration):
-
     dependencies = [
         ("organizations", "0020_DEV-3303_add_rp_fields"),
     ]
@@ -19,6 +18,6 @@ class Migration(migrations.Migration):
         migrations.AddField(
             model_name="organization",
             name="uuid",
-            field=models.UUIDField(default=uuid.uuid4, editable=False),
+            field=models.UUIDField(default=uuid.uuid4, editable=False, unique=True),
         ),
     ]

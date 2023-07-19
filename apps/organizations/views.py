@@ -81,7 +81,7 @@ class OrganizationViewSet(
 
     @action(detail=False, methods=["post"], permission_classes=[])
     def handle_stripe_webhook(self, request):
-        """Initially we'll just return 200 without doing anything, ahead of full implementation"""
+        """Initially we'll just return 200 without doing anything, ahead of full implementation in DEV-3748"""
         return Response(status=status.HTTP_200_OK)
 
 

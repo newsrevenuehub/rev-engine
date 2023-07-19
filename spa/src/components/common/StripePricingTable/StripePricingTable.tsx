@@ -48,6 +48,7 @@ export function StripePricingTable({
     const script = document.createElement('script');
 
     script.setAttribute('async', '');
+    script.setAttribute('nonce', (window as any).csp_nonce);
     script.setAttribute('src', 'https://js.stripe.com/v3/pricing-table.js');
     document.body.appendChild(script);
     return () => script.remove();

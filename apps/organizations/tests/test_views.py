@@ -42,6 +42,7 @@ from apps.organizations.views import (
     OrganizationViewSet,
     RevenueProgramViewSet,
     get_stripe_account_link_return_url,
+    logger,
 )
 from apps.public.permissions import IsActiveSuperUser
 from apps.users.choices import Roles
@@ -63,6 +64,50 @@ def org_invalid_patch_data_name_too_long():
         "name": fake.pystr(
             min_chars=Organization.name.field.max_length + 1, max_chars=Organization.name.field.max_length + 100
         )
+    }
+
+
+@pytest.fixture
+def stripe_checkout_process_completed():
+    return {
+        "id": "evt_1234567890",
+        "object": "event",
+        "api_version": "2020-08-27",
+        "created": 1569139579,
+        "data": {
+            "object": {
+                "id": "cs_test_1234567890abcdef",
+                "object": "checkout.session",
+                "billing_address_collection": "required",
+                "client_reference_id": None,
+                "customer": "cus_1234567890abcdef",
+                "customer_email": "example@example.com",
+                "display_items": [
+                    {
+                        "amount": 2000,
+                        "currency": "usd",
+                        "custom": {
+                            "description": "Example Item",
+                            "images": None,
+                            "name": "Example Item",
+                            "sku": "sku_1234567890abcdef",
+                        },
+                        "quantity": 1,
+                        "type": "custom",
+                    }
+                ],
+                "livemode": False,
+                "locale": None,
+                "metadata": {},
+                "payment_intent": "pi_1234567890abcdef",
+                "payment_method_types": ["card"],
+                "subscription": None,
+                "success_url": "https://example.com/success",
+                "total_details": {"amount_discount": 0, "amount_tax": 0},
+            }
+        },
+        "livemode": False,
+        "type": "checkout.session.completed",
     }
 
 
@@ -320,29 +365,29 @@ class TestOrganizationViewSet:
         pass
 
     def test_handle_checkout_session_completed_event_when_not_upgrade_from_free_to_core(self, mocker, organization):
-        organization.stripe_subscription_id = "<some-id>"
-        organization.save()
-        log_spy = mocker.spy(OrganizationViewSet.logger, "info")
-        mocker.patch("apps.organizations.models.Organization.is_upgrade_from_free_to_core", return_value=False)
+        log_spy = mocker.spy(logger, "info")
+        mocker.patch("apps.organizations.views.OrganizationViewSet.is_upgrade_from_free_to_core", return_value=False)
         mock_event = {
-            "data": {"object": {"client_reference_id": str(organization.uuid), "subscription": "<some-sub-id>"}}
+            "id": "<some-id>",
+            "data": {"object": {"client_reference_id": str(organization.uuid), "subscription": "<some-sub-id>"}},
         }
         OrganizationViewSet.handle_checkout_session_completed_event(mock_event)
-        log_spy.assert_called_once_with(
+        assert log_spy.call_count == 2
+        assert log_spy.call_args == mocker.call(
             "Organization with uuid %s is not upgrading from free to core. No further action to be taken",
-            organization.uuid,
+            str(organization.uuid),
         )
 
     def test_handle_checkout_session_completed_event_happy_path(self, organization, mocker):
-        organization.stripe_subscription_id = "<some-id>"
         organization.save()
-        mocker.patch("apps.organizations.models.Organization.is_upgrade_from_free_to_core", return_value=True)
+        mocker.patch("apps.organizations.views.OrganizationViewSet.is_upgrade_from_free_to_core", return_value=True)
         save_spy = mocker.spy(Organization, "save")
         mock_set_revision_comment = mocker.patch("reversion.set_comment")
         mock_event = {
+            "id": "<some-id>",
             "data": {
                 "object": {"client_reference_id": str(organization.uuid), "subscription": (sub_id := "<some-sub-id>")}
-            }
+            },
         }
         OrganizationViewSet.handle_checkout_session_completed_event(mock_event)
         organization.refresh_from_db()
@@ -355,17 +400,20 @@ class TestOrganizationViewSet:
             "`handle_checkout_session_completed_event` upgraded org to core"
         )
 
-    def test_handle_stripe_webhook(self, api_client, mocker):
+    def test_handle_stripe_webhook(self, api_client, stripe_checkout_process_completed, mocker):
         """Show that the handle_stripe_webhook endpoint works as expected"""
-        mocker.patch(
-            "apps.organizations.views.OrganizationViewSet.construct_stripe_event",
-            return_value={"type": "checkout.session.completed"},
+        mocker.patch("stripe.webhook.WebhookSignature.verify_header", return_value=True)
+        headers = {"HTTP_STRIPE_SIGNATURE": "some-signature"}
+
+        assert (
+            api_client.post(
+                reverse("organization-handle-stripe-webhook"),
+                stripe_checkout_process_completed,
+                format="json",
+                **headers,
+            ).status_code
+            == status.HTTP_200_OK
         )
-        mock_handle_checkout_session_completed = mocker.patch(
-            "apps.organizations.views.OrganizationViewSet.handle_checkout_session_completed_event"
-        )
-        assert api_client.post(reverse("organization-handle-stripe-webhook")).status_code == status.HTTP_200_OK
-        mock_handle_checkout_session_completed.assert_called_once()
 
 
 @pytest.fixture

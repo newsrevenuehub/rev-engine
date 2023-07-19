@@ -80,11 +80,13 @@ class OrganizationViewSet(
         organization.refresh_from_db()
         return Response(serializers.OrganizationSerializer(organization).data)
 
-    def construct_stripe_event(self, request: HttpRequest) -> None:
+    def construct_stripe_event(self, request: HttpRequest, payload: bytes) -> None:
         logger.info("Constructing Stripe event")
         try:
             return stripe.Webhook.construct_event(
-                request.body, request.META["HTTP_STRIPE_SIGNATURE"], settings.STRIPE_WEBHOOK_SECRET_FOR_CONTRIBUTIONS
+                payload,
+                request.META["HTTP_STRIPE_SIGNATURE"],
+                secret=settings.STRIPE_WEBHOOK_SECRET_FOR_CONTRIBUTIONS,
             )
         except stripe.error.SignatureVerificationError:
             logger.exception(
@@ -96,7 +98,8 @@ class OrganizationViewSet(
     def is_upgrade_from_free_to_core(self, event: stripe.Event) -> bool:
         return True
 
-    def handle_checkout_session_completed_event(self, event: stripe.Event) -> None:
+    @classmethod
+    def handle_checkout_session_completed_event(cls, event: stripe.Event) -> None:
         logger.info("Handling checkout session completed event with event id %s", event["id"])
         ref_id = event["data"]["object"]["client_reference_id"]
         org = Organization.objects.filter(uuid=ref_id).first()
@@ -108,7 +111,7 @@ class OrganizationViewSet(
                 "Organization with uuid %s already has a stripe subscription id. No further action to be taken", ref_id
             )
             return
-        if not self.is_upgrade_from_free_to_core(event):
+        if not cls.is_upgrade_from_free_to_core(event):
             logger.info(
                 "Organization with uuid %s is not upgrading from free to core. No further action to be taken", ref_id
             )
@@ -121,8 +124,9 @@ class OrganizationViewSet(
 
     @action(detail=False, methods=["post"], permission_classes=[])
     def handle_stripe_webhook(self, request: HttpRequest) -> Response:
+        payload = request.body
         logger.info("Handling Stripe webhook event with type %s", request.data["type"])
-        event = self.construct_stripe_event(request)
+        event = self.construct_stripe_event(request, payload)
         if event["type"] == "checkout.session.completed":
             self.handle_checkout_session_completed_event(event)
         return Response(status=status.HTTP_200_OK)

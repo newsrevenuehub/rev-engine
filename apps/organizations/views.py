@@ -80,7 +80,8 @@ class OrganizationViewSet(
         organization.refresh_from_db()
         return Response(serializers.OrganizationSerializer(organization).data)
 
-    def construct_stripe_event(self, request: HttpRequest, payload: bytes) -> None:
+    @staticmethod
+    def construct_stripe_event(request: HttpRequest, payload: bytes) -> None:
         logger.info("Constructing Stripe event")
         try:
             return stripe.Webhook.construct_event(
@@ -92,9 +93,10 @@ class OrganizationViewSet(
             logger.exception(
                 "Invalid signature on Stripe webhook request. Is STRIPE_WEBHOOK_SECRET_FOR_CONTRIBUTIONS set correctly?"
             )
-            raise APIException(status_code=status.HTTP_400_BAD_REQUEST, default_detail="Invalid signature")
+            raise APIException(code=status.HTTP_400_BAD_REQUEST)
 
-    def is_upgrade_from_free_to_core(self, event: stripe.Event, org: Organization) -> bool:
+    @classmethod
+    def is_upgrade_from_free_to_core(cls, event: stripe.Event, org: Organization) -> bool:
         api_key = (
             settings.STRIPE_LIVE_SECRET_KEY_UPGRADES
             if settings.STRIPE_LIVE_MODE
@@ -127,7 +129,7 @@ class OrganizationViewSet(
                 "Organization with uuid %s already has a stripe subscription id. No further action to be taken", ref_id
             )
             return
-        if not cls.is_upgrade_from_free_to_core(event):
+        if not cls.is_upgrade_from_free_to_core(event, org):
             logger.info(
                 "Organization with uuid %s is not upgrading from free to core. No further action to be taken", ref_id
             )

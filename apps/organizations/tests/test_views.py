@@ -381,7 +381,7 @@ class TestOrganizationViewSet:
         assert OrganizationViewSet.is_upgrade_from_free_to_core(stripe_checkout_process_completed, organization) is True
 
     def test_is_upgrade_from_free_to_core_when_event_data_not_have_subscription(
-        self, stripe_checkout_process_completed, mocker, settings, organization
+        self, stripe_checkout_process_completed, mocker, organization
     ):
         logger_spy = mocker.spy(logger, "warning")
         stripe_checkout_process_completed["data"]["object"]["subscription"] = None

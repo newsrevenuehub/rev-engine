@@ -11,7 +11,7 @@ import reversion
 import stripe
 from rest_framework import mixins, status, viewsets
 from rest_framework.decorators import action, api_view, permission_classes
-from rest_framework.exceptions import PermissionDenied, ValidationError
+from rest_framework.exceptions import APIException, PermissionDenied, ValidationError
 from rest_framework.permissions import IsAuthenticated
 from rest_framework.response import Response
 from rest_framework.reverse import reverse
@@ -34,7 +34,7 @@ from apps.emails.tasks import (
     send_thank_you_email,
 )
 from apps.organizations import serializers
-from apps.organizations.models import CorePlan, Organization, RevenueProgram
+from apps.organizations.models import CorePlan, FreePlan, Organization, RevenueProgram
 from apps.organizations.serializers import MailchimpOauthSuccessSerializer, SendTestEmailSerializer
 from apps.organizations.tasks import (
     exchange_mailchimp_oauth_code_for_server_prefix_and_access_token,
@@ -92,11 +92,27 @@ class OrganizationViewSet(
             logger.exception(
                 "Invalid signature on Stripe webhook request. Is STRIPE_WEBHOOK_SECRET_FOR_CONTRIBUTIONS set correctly?"
             )
-            # can i raise a DRF exception here? to get 400 response?
-            return Response(data={"error": "Invalid signature"}, status=status.HTTP_400_BAD_REQUEST)
+            raise APIException(status_code=status.HTTP_400_BAD_REQUEST, default_detail="Invalid signature")
 
-    def is_upgrade_from_free_to_core(self, event: stripe.Event) -> bool:
-        return True
+    def is_upgrade_from_free_to_core(self, event: stripe.Event, org: Organization) -> bool:
+        api_key = (
+            settings.STRIPE_LIVE_SECRET_KEY_UPGRADES
+            if settings.STRIPE_LIVE_MODE
+            else settings.STRIPE_TEST_SECRET_KEY_UPGRADES
+        )
+        if not (sub_id := event["data"]["object"]["subscription"]):
+            logger.warning("No subscription ID found in event %s", event.get("id", "no id"))
+            return False
+        subscription = stripe.Subscription.retrieve(sub_id, api_key=api_key)
+        return all(
+            [
+                event["data"]["object"]["client_reference_id"] == str(org.uuid),
+                event["type"] == "checkout.session.completed",
+                settings.STRIPE_CORE_PRODUCT_ID,
+                subscription.items.data[0].price.product == settings.STRIPE_CORE_PRODUCT_ID,
+                org.plan_name == FreePlan.name,
+            ]
+        )
 
     @classmethod
     def handle_checkout_session_completed_event(cls, event: stripe.Event) -> None:

@@ -80,7 +80,9 @@ export function usePendo() {
         },
         visitor: {
           email: user.email,
-          id: `${PENDO_VISITOR_PREFIX}-${user.id}`
+          // User prefix is to distinguish users from contributors in the future.
+          id: `${PENDO_VISITOR_PREFIX}-user-${user.id}`,
+          role: user.role_type[0]
         }
       });
       setNeedsInit(false);

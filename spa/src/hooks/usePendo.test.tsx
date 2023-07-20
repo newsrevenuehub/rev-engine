@@ -172,10 +172,21 @@ describe('usePendo', () => {
       tree();
       expect(initializeMock.mock.calls[0][0]).toEqual(
         expect.objectContaining({
-          visitor: {
-            id: 'mock-pendo-visitor-prefix-mock-user-id',
+          visitor: expect.objectContaining({
+            id: 'mock-pendo-visitor-prefix-user-mock-user-id',
             email: 'mock-user-email'
-          }
+          })
+        })
+      );
+    });
+
+    it('sets the visitor role correctly', () => {
+      tree();
+      expect(initializeMock.mock.calls[0][0]).toEqual(
+        expect.objectContaining({
+          visitor: expect.objectContaining({
+            role: 'org_admin'
+          })
         })
       );
     });

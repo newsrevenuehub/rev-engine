@@ -4,7 +4,7 @@ import { Style } from 'hooks/useStyleList';
 import PropTypes, { InferProps } from 'prop-types';
 import { Flex, Pickers, Section, Title } from './StylesTab.styled';
 
-const COLOR_PICKERS = [
+export const COLOR_PICKERS = [
   { field: 'cstm_mainHeader', label: 'Header' },
   { field: 'cstm_mainBackground', label: 'Background' },
   { field: 'cstm_formPanelBackground', label: 'Panel background' },
@@ -12,12 +12,12 @@ const COLOR_PICKERS = [
   { field: 'cstm_ornaments', label: 'Accents' }
 ];
 
-const FONT_PICKERS = [
+export const FONT_PICKERS = [
   { field: 'heading', label: 'Heading Font' },
   { field: 'body', label: 'Body Font' }
 ];
 
-type AllowedFontSizes = 24 | 32 | 36;
+export type AllowedFontSizes = 24 | 32 | 36;
 
 const FONT_SIZE_OPTIONS: Array<{ label: string; value: AllowedFontSizes }> = [
   { label: 'Small', value: 24 },
@@ -25,19 +25,11 @@ const FONT_SIZE_OPTIONS: Array<{ label: string; value: AllowedFontSizes }> = [
   { label: 'Large', value: 36 }
 ];
 
-const BUTTON_RADIUS_BASE_OPTIONS = [
+export const BUTTON_RADIUS_BASE_OPTIONS = [
   { label: 'Square', value: 0 },
   { label: 'Semi-round', value: 5 },
   { label: 'Rounded', value: 20 }
 ];
-
-type Font = {
-  accessor: string;
-  font_name: string;
-  id: number;
-  name: string;
-  source: 'google';
-};
 
 export interface StylesTabProps extends InferProps<typeof StylesTabPropTypes> {
   styles: Style;
@@ -54,7 +46,7 @@ function StylesTab({ styles, setStyles }: StylesTabProps) {
     setStyles({ ...styles, colors: { ...styles.colors, [colorName]: value } });
   };
 
-  const setSelectedFonts = (fontType: string, selectedFont: Font) => {
+  const setSelectedFonts = (fontType: string, selectedFont: typeof fonts[number]) => {
     setStyles({ ...styles, font: { ...styles.font, [fontType]: selectedFont } });
   };
 
@@ -89,6 +81,7 @@ function StylesTab({ styles, setStyles }: StylesTabProps) {
         <Pickers>
           {FONT_PICKERS.map(({ field, label }) => (
             <SearchableSelect
+              key={field}
               disabled={fontLoading}
               label={label}
               options={[
@@ -100,6 +93,7 @@ function StylesTab({ styles, setStyles }: StylesTabProps) {
               ]}
               getOptionLabel={(option) => option.name}
               getOptionDisabled={(option) => option.id === ''}
+              getOptionSelected={(option, value) => option.id === value.id}
               onChange={(e: any, value) => {
                 setSelectedFonts(field, fonts.find((font) => font.id === value.id)!);
               }}
@@ -153,14 +147,14 @@ export function getFontSizesFromFontSize(fontSize: AllowedFontSizes) {
   return [firstFontSize, ...mainValues, ...afterFactors.map((factor) => `${fontSize * factor}px`)];
 }
 
-function getBaseFromRadii(radii: Array<string>) {
+export function getBaseFromRadii(radii: Array<string>) {
   if (radii && radii[0]) {
     return parseInt(radii[0], 10);
   }
   return 1;
 }
 
-function getRadiiFromBase(radiiBase: number) {
+export function getRadiiFromBase(radiiBase: number) {
   const factoredString = (num: number, factor = 1) => {
     return `${num * factor}px`;
   };

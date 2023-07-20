@@ -22,7 +22,7 @@ jest.mock('appSettings', () => ({
   }
 }));
 
-const mockOrg = { id: -1, plan: { name: 'CORE' } } as Organization;
+const mockOrg = { id: -1, plan: { name: 'CORE' }, uuid: '1235467abcdef' } as Organization;
 const mockUser = { email: 'mock-user-email', flags: [{ name: SELF_UPGRADE_ACCESS_FLAG_NAME }] } as unknown as User;
 
 function tree(props?: Partial<UpgradePlanProps>) {
@@ -74,7 +74,7 @@ describe('UpgradePlan', () => {
         const table = screen.getByTestId('mock-stripe-pricing-table');
 
         expect(table).toBeInTheDocument();
-        expect(table.dataset.clientReferenceId).toBe(mockOrg.id.toString());
+        expect(table.dataset.clientReferenceId).toBe(mockOrg.uuid);
         expect(table.dataset.customerEmail).toBe(mockUser.email);
         expect(table.dataset.pricingTableId).toBe('mock-pricing-table-id');
         expect(table.dataset.publishableKey).toBe('mock-publishable-key');

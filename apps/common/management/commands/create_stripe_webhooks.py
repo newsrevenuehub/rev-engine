@@ -26,7 +26,7 @@ class Command(BaseCommand):
             api_key=settings.STRIPE_LIVE_SECRET_KEY_CONTRIBUTIONS
             if (live := options["live"])
             else settings.STRIPE_TEST_SECRET_KEY_CONTRIBUTIONS,
-            enabled_events=settings.STRIPE_WEBHOOK_EVENTS_FOR_CONTRIBUTIONS,
+            enabled_events=settings.STRIPE_WEBHOOK_EVENTS_CONTRIBUTIONS,
             webhook_url=options["url-contributions"],
         )
         self.stdout.write(self.style.WARNING("For contributions, wh_sec = %s" % contributions_stripe_secret))

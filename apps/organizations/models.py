@@ -122,6 +122,9 @@ class OrganizationManager(models.Manager):
 
 
 class Organization(IndexedTimeStampedModel):
+    # used in self-upgrade flow. Stripe checkouts can have associated client-reference-id, and we set that
+    # to the value of an org.uuid so that we can look up the org in the self-upgrade flow, which is triggered
+    # by stripe webhooks.
     uuid = models.UUIDField(default=uuid.uuid4, editable=False, unique=True)
     name = models.CharField(max_length=255, unique=True)
     plan_name = models.CharField(choices=Plans.choices, max_length=10, default=Plans.FREE)
@@ -1058,7 +1061,7 @@ class RevenueProgram(IndexedTimeStampedModel):
         if settings.STRIPE_LIVE_MODE and not self.domain_apple_verified_date:
             try:
                 stripe.ApplePayDomain.create(
-                    api_key=settings.STRIPE_LIVE_SECRET_KEY,
+                    api_key=settings.STRIPE_LIVE_SECRET_KEY_CONTRIBUTIONS,
                     domain_name=f"{self.slug}.{settings.DOMAIN_APEX}",
                     stripe_account=self.payment_provider.stripe_account_id,
                 )

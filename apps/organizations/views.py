@@ -11,7 +11,7 @@ import reversion
 import stripe
 from rest_framework import mixins, status, viewsets
 from rest_framework.decorators import action, api_view, permission_classes
-from rest_framework.exceptions import PermissionDenied, ValidationError
+from rest_framework.exceptions import APIException, PermissionDenied, ValidationError
 from rest_framework.permissions import IsAuthenticated
 from rest_framework.response import Response
 from rest_framework.reverse import reverse
@@ -34,7 +34,7 @@ from apps.emails.tasks import (
     send_thank_you_email,
 )
 from apps.organizations import serializers
-from apps.organizations.models import CorePlan, Organization, RevenueProgram
+from apps.organizations.models import CorePlan, FreePlan, Organization, RevenueProgram
 from apps.organizations.serializers import MailchimpOauthSuccessSerializer, SendTestEmailSerializer
 from apps.organizations.tasks import (
     exchange_mailchimp_oauth_code_for_server_prefix_and_access_token,
@@ -80,23 +80,47 @@ class OrganizationViewSet(
         organization.refresh_from_db()
         return Response(serializers.OrganizationSerializer(organization).data)
 
-    def construct_stripe_event(self, request: HttpRequest) -> None:
+    @staticmethod
+    def construct_stripe_event(request: HttpRequest, payload: bytes) -> None:
         logger.info("Constructing Stripe event")
         try:
             return stripe.Webhook.construct_event(
-                request.body, request.META["HTTP_STRIPE_SIGNATURE"], settings.STRIPE_WEBHOOK_SECRET_FOR_CONTRIBUTIONS
+                payload,
+                request.META["HTTP_STRIPE_SIGNATURE"],
+                secret=settings.STRIPE_WEBHOOK_SECRET_UPGRADES,
             )
         except stripe.error.SignatureVerificationError:
             logger.exception(
-                "Invalid signature on Stripe webhook request. Is STRIPE_WEBHOOK_SECRET_FOR_CONTRIBUTIONS set correctly?"
+                "Invalid signature on Stripe webhook request. Is STRIPE_WEBHOOK_SECRET_CONTRIBUTIONS set correctly?"
             )
-            # can i raise a DRF exception here? to get 400 response?
-            return Response(data={"error": "Invalid signature"}, status=status.HTTP_400_BAD_REQUEST)
+            raise APIException(code=status.HTTP_400_BAD_REQUEST)
 
-    def is_upgrade_from_free_to_core(self, event: stripe.Event) -> bool:
-        return True
+    @classmethod
+    def is_upgrade_from_free_to_core(cls, event: stripe.Event, org: Organization) -> bool:
+        logger.info(
+            "Checking if event %s is an upgrade from free to core for org with ID %s", event.get("id", "no id"), org.id
+        )
+        api_key = (
+            settings.STRIPE_LIVE_SECRET_KEY_UPGRADES
+            if settings.STRIPE_LIVE_MODE
+            else settings.STRIPE_TEST_SECRET_KEY_UPGRADES
+        )
+        if not (sub_id := event["data"]["object"]["subscription"]):
+            logger.warning("No subscription ID found in event %s", event.get("id", "no id"))
+            return False
+        subscription = stripe.Subscription.retrieve(sub_id, api_key=api_key)
+        return all(
+            [
+                event["data"]["object"]["client_reference_id"] == str(org.uuid),
+                event["type"] == "checkout.session.completed",
+                settings.STRIPE_CORE_PRODUCT_ID,
+                subscription.items.data[0].price.product == settings.STRIPE_CORE_PRODUCT_ID,
+                org.plan_name == FreePlan.name,
+            ]
+        )
 
-    def handle_checkout_session_completed_event(self, event: stripe.Event) -> None:
+    @classmethod
+    def handle_checkout_session_completed_event(cls, event: stripe.Event) -> None:
         logger.info("Handling checkout session completed event with event id %s", event["id"])
         ref_id = event["data"]["object"]["client_reference_id"]
         org = Organization.objects.filter(uuid=ref_id).first()
@@ -108,7 +132,7 @@ class OrganizationViewSet(
                 "Organization with uuid %s already has a stripe subscription id. No further action to be taken", ref_id
             )
             return
-        if not self.is_upgrade_from_free_to_core(event):
+        if not cls.is_upgrade_from_free_to_core(event, org):
             logger.info(
                 "Organization with uuid %s is not upgrading from free to core. No further action to be taken", ref_id
             )
@@ -121,8 +145,9 @@ class OrganizationViewSet(
 
     @action(detail=False, methods=["post"], permission_classes=[])
     def handle_stripe_webhook(self, request: HttpRequest) -> Response:
+        payload = request.body
         logger.info("Handling Stripe webhook event with type %s", request.data["type"])
-        event = self.construct_stripe_event(request)
+        event = self.construct_stripe_event(request, payload)
         if event["type"] == "checkout.session.completed":
             self.handle_checkout_session_completed_event(event)
         return Response(status=status.HTTP_200_OK)

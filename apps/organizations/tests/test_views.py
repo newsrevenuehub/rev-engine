@@ -7,11 +7,12 @@ import pytest
 import pytest_cases
 from faker import Faker
 from rest_framework import status
+from rest_framework.exceptions import APIException
 from rest_framework.permissions import AND, OR, IsAuthenticated
 from rest_framework.reverse import reverse
 from rest_framework.test import APIRequestFactory
 from reversion.models import Version
-from stripe.error import StripeError
+from stripe.error import SignatureVerificationError, StripeError
 from waffle import get_waffle_flag_model
 
 from apps.api.permissions import HasRoleAssignment, IsHubAdmin, IsOrgAdmin
@@ -42,6 +43,7 @@ from apps.organizations.views import (
     OrganizationViewSet,
     RevenueProgramViewSet,
     get_stripe_account_link_return_url,
+    logger,
 )
 from apps.public.permissions import IsActiveSuperUser
 from apps.users.choices import Roles
@@ -63,6 +65,50 @@ def org_invalid_patch_data_name_too_long():
         "name": fake.pystr(
             min_chars=Organization.name.field.max_length + 1, max_chars=Organization.name.field.max_length + 100
         )
+    }
+
+
+@pytest.fixture
+def stripe_checkout_process_completed(organization):
+    return {
+        "id": "evt_1234567890",
+        "object": "event",
+        "api_version": "2020-08-27",
+        "created": 1569139579,
+        "data": {
+            "object": {
+                "id": "cs_test_1234567890abcdef",
+                "object": "checkout.session",
+                "billing_address_collection": "required",
+                "client_reference_id": str(organization.uuid),
+                "customer": "cus_1234567890abcdef",
+                "customer_email": "example@example.com",
+                "display_items": [
+                    {
+                        "amount": 2000,
+                        "currency": "usd",
+                        "custom": {
+                            "description": "Example Item",
+                            "images": None,
+                            "name": "Example Item",
+                            "sku": "sku_1234567890abcdef",
+                        },
+                        "quantity": 1,
+                        "type": "custom",
+                    }
+                ],
+                "livemode": False,
+                "locale": None,
+                "metadata": {},
+                "payment_intent": "pi_1234567890abcdef",
+                "payment_method_types": ["card"],
+                "subscription": "<some-sub-id>",
+                "success_url": "https://example.com/success",
+                "total_details": {"amount_discount": 0, "amount_tax": 0},
+            }
+        },
+        "livemode": False,
+        "type": "checkout.session.completed",
     }
 
 
@@ -302,70 +348,146 @@ class TestOrganizationViewSet:
         response = api_client.patch(reverse("organization-detail", args=(organization.id,)), data={})
         assert response.status_code == status.HTTP_404_NOT_FOUND
 
-    def test_construct_stripe_event_happy_path(self, mocker):
-        pass
+    def test_construct_stripe_event_happy_path(self, mocker, settings):
+        settings.STRIPE_WEBHOOK_SECRET_UPGRADES = "some-secret"
+        mock_construct = mocker.patch("stripe.Webhook.construct_event", return_value=(mock_event := mocker.Mock()))
+        mock_request = mocker.Mock(META={"HTTP_STRIPE_SIGNATURE": "some-signature"})
+        payload = mocker.Mock()
+        assert OrganizationViewSet.construct_stripe_event(mock_request, payload) == mock_event
+        mock_construct.assert_called_once_with(payload, mocker.ANY, secret=settings.STRIPE_WEBHOOK_SECRET_UPGRADES)
 
     def test_construct_stripe_event_bad_signature(self, mocker):
-        pass
-
-    def test_is_upgrade_from_free_to_core(self, mocker):
-        pass
-
-    def test_handle_checkout_session_completed_event_when_org_not_found(self, mocker, organization):
-        pass
-
-    def test_handle_checkout_session_completed_event_when_org_already_has_stripe_subscription_id(
-        self, mocker, organization
-    ):
-        pass
-
-    def test_handle_checkout_session_completed_event_when_not_upgrade_from_free_to_core(self, mocker, organization):
-        organization.stripe_subscription_id = "<some-id>"
-        organization.save()
-        log_spy = mocker.spy(OrganizationViewSet.logger, "info")
-        mocker.patch("apps.organizations.models.Organization.is_upgrade_from_free_to_core", return_value=False)
-        mock_event = {
-            "data": {"object": {"client_reference_id": str(organization.uuid), "subscription": "<some-sub-id>"}}
-        }
-        OrganizationViewSet.handle_checkout_session_completed_event(mock_event)
-        log_spy.assert_called_once_with(
-            "Organization with uuid %s is not upgrading from free to core. No further action to be taken",
-            organization.uuid,
+        logger_spy = mocker.spy(logger, "exception")
+        mock_request = mocker.Mock(META={"HTTP_STRIPE_SIGNATURE": "some-signature"})
+        mocker.patch(
+            "stripe.Webhook.construct_event", side_effect=SignatureVerificationError("Uh oh", sig_header="something")
+        )
+        with pytest.raises(APIException):
+            OrganizationViewSet.construct_stripe_event(mock_request, mocker.Mock())
+        logger_spy.assert_called_once_with(
+            "Invalid signature on Stripe webhook request. Is STRIPE_WEBHOOK_SECRET_CONTRIBUTIONS set correctly?"
         )
 
-    def test_handle_checkout_session_completed_event_happy_path(self, organization, mocker):
-        organization.stripe_subscription_id = "<some-id>"
-        organization.save()
-        mocker.patch("apps.organizations.models.Organization.is_upgrade_from_free_to_core", return_value=True)
+    def test_is_upgrade_from_free_to_core(self, mocker, organization, stripe_checkout_process_completed, settings):
+        mocker.patch("stripe.Subscription.retrieve", return_value=(mock_sub := mocker.Mock()))
+        mock_sub.items.data = [(mock_item := mocker.Mock())]
+        settings.STRIPE_CORE_PRODUCT_ID = "some-product-id"
+        mock_item.price.product = settings.STRIPE_CORE_PRODUCT_ID
+        assert stripe_checkout_process_completed["data"]["object"]["client_reference_id"] == str(organization.uuid)
+        assert stripe_checkout_process_completed["type"] == "checkout.session.completed"
+        assert organization.plan_name == FreePlan.name
+        assert OrganizationViewSet.is_upgrade_from_free_to_core(stripe_checkout_process_completed, organization) is True
+
+    def test_is_upgrade_from_free_to_core_when_event_data_not_have_subscription(
+        self, stripe_checkout_process_completed, mocker, organization
+    ):
+        logger_spy = mocker.spy(logger, "warning")
+        stripe_checkout_process_completed["data"]["object"]["subscription"] = None
+        assert not OrganizationViewSet.is_upgrade_from_free_to_core(stripe_checkout_process_completed, organization)
+        logger_spy.assert_called_once_with(
+            "No subscription ID found in event %s", stripe_checkout_process_completed["id"]
+        )
+
+    def handle_checkout_session_completed_event(self, api_client, stripe_checkout_process_completed, mocker, settings):
+        """Show that the handle_stripe_webhook endpoint works as expected"""
+        settings.STRIPE_CORE_PRODUCT_ID = "some-product-id"
         save_spy = mocker.spy(Organization, "save")
         mock_set_revision_comment = mocker.patch("reversion.set_comment")
-        mock_event = {
-            "data": {
-                "object": {"client_reference_id": str(organization.uuid), "subscription": (sub_id := "<some-sub-id>")}
-            }
-        }
-        OrganizationViewSet.handle_checkout_session_completed_event(mock_event)
-        organization.refresh_from_db()
-        assert organization.stripe_subscription_id == sub_id
-        assert organization.plan_name == CorePlan.name
-        save_spy.assert_called_once_with(
-            organization, update_fields={"stripe_subscription_id", "plan_name", "modified"}
+        mocker.patch("stripe.webhook.WebhookSignature.verify_header", return_value=True)
+        mock_sub = mocker.Mock()
+        mock_item = mocker.Mock()
+        mock_item.price.product = settings.STRIPE_CORE_PRODUCT_ID
+        mock_sub.items.data = [mock_item]
+        mocker.patch("stripe.Subscription.retrieve", return_value=mock_sub)
+        headers = {"HTTP_STRIPE_SIGNATURE": "some-signature"}
+        org = Organization.objects.get(uuid=stripe_checkout_process_completed["data"]["object"]["client_reference_id"])
+        assert org.stripe_subscription_id is None
+        assert org.plan_name == FreePlan.name
+        assert (
+            api_client.post(
+                reverse("organization-handle-stripe-webhook"),
+                stripe_checkout_process_completed,
+                format="json",
+                **headers,
+            ).status_code
+            == status.HTTP_200_OK
         )
+        org.refresh_from_db()
+        assert org.stripe_subscription_id == stripe_checkout_process_completed["data"]["object"]["subscription"]
+        assert org.plan_name == CorePlan.name
+        save_spy.assert_called_once_with(org, update_fields={"stripe_subscription_id", "plan_name", "modified"})
         mock_set_revision_comment.assert_called_once_with(
             "`handle_checkout_session_completed_event` upgraded org to core"
         )
 
-    def test_handle_stripe_webhook(self, api_client, mocker):
-        """Show that the handle_stripe_webhook endpoint works as expected"""
-        mocker.patch(
-            "apps.organizations.views.OrganizationViewSet.construct_stripe_event",
-            return_value={"type": "checkout.session.completed"},
+    def test_handle_checkout_session_completed_event_when_org_not_found(
+        self, mocker, stripe_checkout_process_completed, api_client
+    ):
+        save_spy = mocker.spy(Organization, "save")
+        logger_spy = mocker.spy(logger, "warning")
+        mocker.patch("stripe.webhook.WebhookSignature.verify_header", return_value=True)
+        headers = {"HTTP_STRIPE_SIGNATURE": "some-signature"}
+        Organization.objects.filter(
+            uuid=(uid := stripe_checkout_process_completed["data"]["object"]["client_reference_id"])
+        ).delete()
+        assert (
+            api_client.post(
+                reverse("organization-handle-stripe-webhook"),
+                stripe_checkout_process_completed,
+                format="json",
+                **headers,
+            ).status_code
+            == status.HTTP_200_OK
         )
-        mock_handle_checkout_session_completed = mocker.patch(
-            "apps.organizations.views.OrganizationViewSet.handle_checkout_session_completed_event"
+        logger_spy.assert_called_once_with("No organization found with uuid %s", uid)
+        save_spy.assert_not_called()
+
+    def test_handle_checkout_session_completed_event_when_org_already_has_stripe_subscription_id(
+        self, stripe_checkout_process_completed, organization, api_client, mocker
+    ):
+        organization.stripe_subscription_id = "something"
+        organization.save()
+        save_spy = mocker.spy(Organization, "save")
+        logger_spy = mocker.spy(logger, "info")
+        mocker.patch("stripe.webhook.WebhookSignature.verify_header", return_value=True)
+        headers = {"HTTP_STRIPE_SIGNATURE": "some-signature"}
+        assert (
+            api_client.post(
+                reverse("organization-handle-stripe-webhook"),
+                stripe_checkout_process_completed,
+                format="json",
+                **headers,
+            ).status_code
+            == status.HTTP_200_OK
         )
-        assert api_client.post(reverse("organization-handle-stripe-webhook")).status_code == status.HTTP_200_OK
-        mock_handle_checkout_session_completed.assert_called_once()
+        save_spy.assert_not_called()
+        assert logger_spy.call_args == mocker.call(
+            "Organization with uuid %s already has a stripe subscription id. No further action to be taken",
+            str(organization.uuid),
+        )
+
+    def test_handle_checkout_session_completed_event_when_not_upgrade_from_free_to_core(
+        self, mocker, api_client, organization, stripe_checkout_process_completed
+    ):
+        mocker.patch("apps.organizations.views.OrganizationViewSet.is_upgrade_from_free_to_core", return_value=False)
+        save_spy = mocker.spy(Organization, "save")
+        logger_spy = mocker.spy(logger, "info")
+        mocker.patch("stripe.webhook.WebhookSignature.verify_header", return_value=True)
+        headers = {"HTTP_STRIPE_SIGNATURE": "some-signature"}
+        assert (
+            api_client.post(
+                reverse("organization-handle-stripe-webhook"),
+                stripe_checkout_process_completed,
+                format="json",
+                **headers,
+            ).status_code
+            == status.HTTP_200_OK
+        )
+        save_spy.assert_not_called()
+        assert logger_spy.call_args == mocker.call(
+            "Organization with uuid %s is not upgrading from free to core. No further action to be taken",
+            str(organization.uuid),
+        )
 
 
 @pytest.fixture

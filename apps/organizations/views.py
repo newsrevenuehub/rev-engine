@@ -97,6 +97,9 @@ class OrganizationViewSet(
 
     @classmethod
     def is_upgrade_from_free_to_core(cls, event: stripe.Event, org: Organization) -> bool:
+        logger.info(
+            "Checking if event %s is an upgrade from free to core for org with ID %s", event.get("id", "no id"), org.id
+        )
         api_key = (
             settings.STRIPE_LIVE_SECRET_KEY_UPGRADES
             if settings.STRIPE_LIVE_MODE

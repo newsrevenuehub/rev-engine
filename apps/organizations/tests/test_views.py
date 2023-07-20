@@ -486,7 +486,7 @@ class TestOrganizationViewSet:
         save_spy.assert_not_called()
         assert logger_spy.call_args == mocker.call(
             "Organization with uuid %s is not upgrading from free to core. No further action to be taken",
-            organization.uuid,
+            str(organization.uuid),
         )
 
 

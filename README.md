@@ -152,6 +152,7 @@ Assuming you're using [direnv](https://direnv.net/) (see [setting up environment
 echo "export REACT_APP_HUB_STRIPE_API_PUB_KEY=pk_test_???" >> .envrc
 echo "export STRIPE_WEBHOOK_SECRET_CONTRIBUTIONS=whsec_???" >> .envrc
 echo "export STRIPE_WEBHOOK_SECRET_UPGRADES=whsec_???*" >> .envrc
+echo "export STRIPE_CORE_PRODUCT_ID=prod_??? >> .envrc
 ```
 
 Then, in Django-admin, create an Organization for that connected stripe account and add your Stripe Account ID to the stripe_account_id field. Make sure that `default_payment_provider` is "stripe". The Stripe Account ID can be found in the stripe dashboard, settings --> Business Settings --> Your Business --> Account details, in the top right corner.

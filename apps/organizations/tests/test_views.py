@@ -349,12 +349,12 @@ class TestOrganizationViewSet:
         assert response.status_code == status.HTTP_404_NOT_FOUND
 
     def test_construct_stripe_event_happy_path(self, mocker, settings):
-        settings.STRIPE_WEBHOOK_SECRET_CONTRIBUTIONS = "some-secret"
+        settings.STRIPE_WEBHOOK_SECRET_UPGRADES = "some-secret"
         mock_construct = mocker.patch("stripe.Webhook.construct_event", return_value=(mock_event := mocker.Mock()))
         mock_request = mocker.Mock(META={"HTTP_STRIPE_SIGNATURE": "some-signature"})
         payload = mocker.Mock()
         assert OrganizationViewSet.construct_stripe_event(mock_request, payload) == mock_event
-        mock_construct.assert_called_once_with(payload, mocker.ANY, secret=settings.STRIPE_WEBHOOK_SECRET_CONTRIBUTIONS)
+        mock_construct.assert_called_once_with(payload, mocker.ANY, secret=settings.STRIPE_WEBHOOK_SECRET_UPGRADES)
 
     def test_construct_stripe_event_bad_signature(self, mocker):
         logger_spy = mocker.spy(logger, "exception")

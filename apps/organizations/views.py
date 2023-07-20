@@ -87,11 +87,11 @@ class OrganizationViewSet(
             return stripe.Webhook.construct_event(
                 payload,
                 request.META["HTTP_STRIPE_SIGNATURE"],
-                secret=settings.STRIPE_WEBHOOK_SECRET_FOR_CONTRIBUTIONS,
+                secret=settings.STRIPE_WEBHOOK_SECRET_UPGRADES,
             )
         except stripe.error.SignatureVerificationError:
             logger.exception(
-                "Invalid signature on Stripe webhook request. Is STRIPE_WEBHOOK_SECRET_FOR_CONTRIBUTIONS set correctly?"
+                "Invalid signature on Stripe webhook request. Is STRIPE_WEBHOOK_SECRET_CONTRIBUTIONS set correctly?"
             )
             raise APIException(code=status.HTTP_400_BAD_REQUEST)
 

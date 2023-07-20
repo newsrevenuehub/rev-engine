@@ -15,7 +15,7 @@ urlpatterns = [
     path("stripe/oauth/", views.stripe_oauth, name="stripe-oauth"),
     re_path(
         settings.WEBHOOK_URL,
-        views.process_stripe_webhook_view,
+        views.process_stripe_webhook,
         name="stripe-webhooks-contributions",
     ),
 ]

@@ -428,16 +428,16 @@ STRIPE_API_VERSION = "2020-08-27"  # Stripe API Target Version
 DEFAULT_CURRENCY = "usd"
 GENERIC_STRIPE_PRODUCT_NAME = "Contribution via RevEngine"
 WEBHOOK_URL = r"^revengine-stripe-webhook/"
+# THE ID of the Stripe product that is used for subscriptions to the Core org plan
 STRIPE_CORE_PRODUCT_ID = os.getenv("STRIPE_CORE_PRODUCT_ID", "")
-STRIPE_LIVE_SECRET_KEY_CONTRIBUTIONS = os.getenv("STRIPE_LIVE_SECRET_KEY_CONTRIBUTIONS", "")
-STRIPE_TEST_SECRET_KEY_CONTRIBUTIONS = os.getenv("STRIPE_TEST_SECRET_KEY_CONTRIBUTIONS", "")
-STRIPE_LIVE_SECRET_KEY_UPGRADES = os.getenv("STRIPE_LIVE_SECRET_KEY_UPGRADES", "")
-STRIPE_TEST_SECRET_KEY_UPGRADES = os.getenv("STRIPE_TEST_SECRET_KEY_UPGRADES", "")
 STRIPE_OAUTH_SCOPE = "read_write"
 STRIPE_LIVE_MODE = os.getenv("STRIPE_LIVE_MODE", "false").lower() == "true"
+# The following values that end in `_UPGRADES` are for interacting with Stripe to create and manage contributions
+STRIPE_LIVE_SECRET_KEY_CONTRIBUTIONS = os.getenv("STRIPE_LIVE_SECRET_KEY_CONTRIBUTIONS", "")
+STRIPE_TEST_SECRET_KEY_CONTRIBUTIONS = os.getenv("STRIPE_TEST_SECRET_KEY_CONTRIBUTIONS", "")
 # Get it from the section in the Stripe dashboard where you added the webhook endpoint
-STRIPE_WEBHOOK_SECRET_FOR_CONTRIBUTIONS = os.getenv("STRIPE_WEBHOOK_SECRET_FOR_CONTRIBUTIONS", "")
-STRIPE_WEBHOOK_EVENTS_FOR_CONTRIBUTIONS = [
+STRIPE_WEBHOOK_SECRET_CONTRIBUTIONS = os.getenv("STRIPE_WEBHOOK_SECRET_CONTRIBUTIONS", "")
+STRIPE_WEBHOOK_EVENTS_CONTRIBUTIONS = [
     "payment_intent.canceled",
     "payment_intent.payment_failed",
     "payment_intent.succeeded",
@@ -446,7 +446,11 @@ STRIPE_WEBHOOK_EVENTS_FOR_CONTRIBUTIONS = [
     "payment_method.attached",
     "invoice.upcoming",
 ]
-STRIPE_WEBHOOK_SECRET_FOR_UPGRADES = os.getenv("STRIPE_WEBHOOK_SECRET_FOR_UPGRADES", "")
+
+# The following values that end in `_UPGRADES` are for interacting with Stripe to manage org upgrades
+STRIPE_LIVE_SECRET_KEY_UPGRADES = os.getenv("STRIPE_LIVE_SECRET_KEY_UPGRADES", "")
+STRIPE_TEST_SECRET_KEY_UPGRADES = os.getenv("STRIPE_TEST_SECRET_KEY_UPGRADES", "")
+STRIPE_WEBHOOK_SECRET_UPGRADES = os.getenv("STRIPE_WEBHOOK_SECRET_UPGRADES", "")
 STRIPE_WEBHOOK_EVENTS_FOR_UPGRADES = [
     "checkout.session.completed",
 ]

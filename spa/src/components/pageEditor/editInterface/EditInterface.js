@@ -106,7 +106,7 @@ function InnerEditInterface() {
                 }}
               />
             </TabPanel>
-            <TabPanel active={tab === 2} id="edit-setup-tab-panel" tabId="edit-setup-tab">
+            <TabPanel active={tab === 2} id="edit-settings-tab-panel" tabId="edit-settings-tab">
               <PageSetup />
             </TabPanel>
             <TabPanel active={tab === 3} id="edit-styles-tab-panel" tabId="edit-styles-tab">

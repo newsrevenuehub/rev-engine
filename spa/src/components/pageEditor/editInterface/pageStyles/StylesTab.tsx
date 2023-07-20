@@ -1,12 +1,7 @@
-import PropTypes, { InferProps } from 'prop-types';
-
-import { useQuery } from '@tanstack/react-query';
-import axios from 'ajax/axios';
-import { LIST_FONTS } from 'ajax/endpoints';
 import { ColorPicker, SearchableSelect } from 'components/base';
-import { GENERIC_ERROR } from 'constants/textConstants';
+import useFontList from 'hooks/useFontList';
 import { Style } from 'hooks/useStyleList';
-import { useAlert } from 'react-alert';
+import PropTypes, { InferProps } from 'prop-types';
 import { Flex, Pickers, Section, Title } from './StylesTab.styled';
 
 const COLOR_PICKERS = [
@@ -49,21 +44,11 @@ export interface StylesTabProps extends InferProps<typeof StylesTabPropTypes> {
   setStyles: (styles: Style) => void;
 }
 
-async function fetchFont() {
-  const { data } = await axios.get(LIST_FONTS);
-
-  return data;
-}
-
 function StylesTab({ styles, setStyles }: StylesTabProps) {
-  const alert = useAlert();
+  const { fonts, isLoading: fontLoading } = useFontList();
 
   // While fontSize is an array, select font corresponding index to the Heading font
   const headingFontSize = Number(styles.fontSizes[3]?.split('px')[0]);
-  const { data: fonts, isLoading: fontLoading } = useQuery<Font[]>(['fonts'], fetchFont, {
-    initialData: [],
-    onError: () => alert.error(GENERIC_ERROR)
-  });
 
   const setColor = (colorName: string, value: string) => {
     setStyles({ ...styles, colors: { ...styles.colors, [colorName]: value } });

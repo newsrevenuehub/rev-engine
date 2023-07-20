@@ -19,7 +19,7 @@ function PageStyles() {
       <EditTabHeader prompt="Start branding your page. Choose header logo, colors, and more." />
       <Controls>
         <StylesTab
-          styles={batchPreview.styles || (donationPageBase as unknown as Style)}
+          styles={batchPreview?.styles || (donationPageBase as unknown as Style)}
           setStyles={(styles: Style) => addBatchChange({ styles })}
         />
       </Controls>

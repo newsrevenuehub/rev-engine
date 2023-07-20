@@ -1,21 +1,18 @@
-import { renderHook } from '@testing-library/react-hooks';
-import MockAdapter from 'axios-mock-adapter';
-import { useAlert } from 'react-alert';
-import { formDataToObject, TestQueryClientProvider, waitFor } from 'test-utils';
-import Axios from 'ajax/axios';
-import useContributionPage from './useContributionPage';
 import { useQueryClient } from '@tanstack/react-query';
-import { useSnackbar } from 'notistack';
+import { renderHook } from '@testing-library/react-hooks';
+import Axios from 'ajax/axios';
+import MockAdapter from 'axios-mock-adapter';
+import useStyleList from 'hooks/useStyleList';
+import { useAlert } from 'react-alert';
+import { formDataToObject, TestQueryClientProvider } from 'test-utils';
+import useContributionPage from './useContributionPage';
 
+jest.mock('hooks/useStyleList');
 jest.mock('@tanstack/react-query', () => ({
   ...jest.requireActual('@tanstack/react-query'),
   useQueryClient: jest.fn()
 }));
 jest.mock('react-alert');
-jest.mock('notistack', () => ({
-  ...jest.requireActual('notistack'),
-  useSnackbar: jest.fn()
-}));
 
 const mockPage = {
   id: 'mock-page-id'
@@ -29,9 +26,8 @@ const testHookWithSlugs = () => useContributionPage('mock-rp-slug', 'mock-page-s
 describe('useContributionPage', () => {
   const axiosMock = new MockAdapter(Axios);
   const useQueryClientMock = jest.mocked(useQueryClient);
+  const useStyleListMock = jest.mocked(useStyleList);
   const useAlertMock = jest.mocked(useAlert);
-  const useSnackbarMock = useSnackbar as jest.Mock;
-  const enqueueSnackbar = jest.fn();
 
   beforeEach(() => {
     axiosMock.onGet('pages/1/').reply(200, mockPage);
@@ -40,7 +36,11 @@ describe('useContributionPage', () => {
       .reply(200, mockPage);
     useAlertMock.mockReturnValue({ error: jest.fn(), success: jest.fn() } as any);
     useQueryClientMock.mockReturnValue({ invalidateQueries: jest.fn() } as any);
-    useSnackbarMock.mockReturnValue({ enqueueSnackbar });
+    useStyleListMock.mockReturnValue({
+      createStyle: jest.fn().mockReturnValue({ data: { id: 'mock-new-style-id' } }),
+      updateStyle: jest.fn().mockReturnValue({ data: { id: 'mock-style-id' } }),
+      deleteStyle: jest.fn().mockResolvedValue({})
+    } as any);
   });
   afterEach(() => axiosMock.reset());
   afterAll(() => axiosMock.restore());
@@ -236,6 +236,23 @@ describe('useContributionPage', () => {
       await waitForNextUpdate();
     });
 
+    it('should call deleteStyle if page has styles', async () => {
+      axiosMock
+        .onGet('pages/draft-detail/', { revenue_program: 'mock-rp-slug', page: 'mock-page-slug' })
+        .reply(200, { ...mockPage, styles: { id: 'mock-delete-style-id' } });
+      axiosMock.onDelete(`pages/${mockPage.id}/`).reply(204);
+      const { result, waitForNextUpdate } = renderHook(testHookWithSlugs, { wrapper: TestQueryClientProvider });
+
+      await waitForNextUpdate();
+      expect(useStyleListMock().deleteStyle).not.toHaveBeenCalled();
+      expect(axiosMock.history.delete.length).toBe(0);
+      await result.current.deletePage!();
+      expect(useStyleListMock().deleteStyle).toHaveBeenCalledTimes(1);
+      expect(useStyleListMock().deleteStyle).toHaveBeenCalledWith({ id: 'mock-delete-style-id' });
+      expect(axiosMock.history.delete.length).toBe(1);
+      await waitForNextUpdate();
+    });
+
     it('invalidates the page list query if it succeeds', async () => {
       const invalidateQueries = jest.fn();
 
@@ -330,46 +347,42 @@ describe('useContributionPage', () => {
       await waitForNextUpdate();
     });
 
-    it('makes a PATCH request to styles/[id]/ if update contains an existing style', async () => {
+    it('should call updateStyle if update contains an existing style', async () => {
       const mockStyles = { id: 'mock-style-id' };
-      axiosMock.onPatch(`styles/${mockStyles.id}/`).reply(200, mockStyles);
       axiosMock.onPatch(`pages/${mockPage.id}/`).reply(200, mockPage);
 
       const { result, waitForNextUpdate } = renderHook(testHookWithSlugs, { wrapper: TestQueryClientProvider });
 
       await waitForNextUpdate();
+      expect(useStyleListMock().updateStyle).not.toBeCalled();
       expect(axiosMock.history.patch.length).toBe(0);
       await result.current.updatePage!({ styles: mockStyles as any });
-      expect(axiosMock.history.patch.length).toBe(2);
-      expect(axiosMock.history.patch[0].url).toBe(`styles/${mockStyles.id}/`);
-      expect(axiosMock.history.patch[1].url).toBe(`pages/${mockPage.id}/`);
+      expect(axiosMock.history.patch.length).toBe(1);
+      expect(axiosMock.history.patch[0].url).toBe(`pages/${mockPage.id}/`);
 
-      expect(axiosMock.history.patch[0].data).toEqual(JSON.stringify(mockStyles));
-      expect(formDataToObject(axiosMock.history.patch[1].data as FormData)).toEqual({ styles: mockStyles.id });
+      expect(useStyleListMock().updateStyle).toHaveBeenCalledTimes(1);
+      expect(useStyleListMock().updateStyle).toBeCalledWith(mockStyles);
+      expect(formDataToObject(axiosMock.history.patch[0].data as FormData)).toEqual({ styles: mockStyles.id });
       await waitForNextUpdate();
     });
 
-    it('makes a POST request to styles/ if update contains a new style', async () => {
+    it('should call createStyle if update contains a new style', async () => {
       const mockStyles = { fonts: 'mock-style-id' };
-      axiosMock.onPost(`styles/`).reply(200, { id: 'mock-new-style-id' });
       axiosMock.onPatch(`pages/${mockPage.id}/`).reply(200, mockPage);
 
       const { result, waitForNextUpdate } = renderHook(testHookWithSlugs, { wrapper: TestQueryClientProvider });
 
       await waitForNextUpdate();
+      expect(useStyleListMock().createStyle).not.toBeCalled();
       expect(axiosMock.history.patch.length).toBe(0);
+
       await result.current.updatePage!({ styles: mockStyles as any });
-      expect(axiosMock.history.post.length).toBe(1);
+
       expect(axiosMock.history.patch.length).toBe(1);
-      expect(axiosMock.history.post[0].url).toBe(`styles/`);
       expect(axiosMock.history.patch[0].url).toBe(`pages/${mockPage.id}/`);
 
-      expect(JSON.parse(axiosMock.history.post[0].data)).toEqual(
-        expect.objectContaining({
-          fonts: 'mock-style-id',
-          name: expect.any(String)
-        })
-      );
+      expect(useStyleListMock().createStyle).toHaveBeenCalledTimes(1);
+      expect(useStyleListMock().createStyle).toBeCalledWith(mockStyles, mockPage);
       expect(formDataToObject(axiosMock.history.patch[0].data as FormData)).toEqual({ styles: 'mock-new-style-id' });
       await waitForNextUpdate();
     });
@@ -378,8 +391,10 @@ describe('useContributionPage', () => {
       ['PATCH', { id: 'mock-patch-style-id' }],
       ['POST', { font: 'mock-font' }]
     ])('shows an error notification if the styles %s fails', async (method, mockStyles) => {
-      axiosMock.onPost(`styles/`).networkError();
-      axiosMock.onPatch(`styles/mock-patch-style-id/`).networkError();
+      useStyleListMock.mockReturnValue({
+        createStyle: jest.fn().mockRejectedValue(new Error('Network Error')),
+        updateStyle: jest.fn().mockRejectedValue(new Error('Network Error'))
+      } as any);
 
       const { result, waitForNextUpdate } = renderHook(testHookWithSlugs, { wrapper: TestQueryClientProvider });
 
@@ -387,6 +402,7 @@ describe('useContributionPage', () => {
       expect(axiosMock.history.patch.length).toBe(0);
       expect(axiosMock.history.post.length).toBe(0);
       let err: any;
+      // TODO: use expect toThrowError()
       try {
         await result.current.updatePage!({ styles: mockStyles as any });
       } catch (error) {
@@ -394,17 +410,8 @@ describe('useContributionPage', () => {
       }
       expect(err.message).toBe('Network Error');
 
-      expect(axiosMock.history.post.length).toBe(method === 'POST' ? 1 : 0);
-      expect(axiosMock.history.patch.length).toBe(method === 'PATCH' ? 1 : 0);
-
-      await waitFor(() =>
-        expect(enqueueSnackbar).toBeCalledWith(
-          'Style changes were not saved. Please wait and try again or changes will be lost.',
-          expect.objectContaining({
-            persist: true
-          })
-        )
-      );
+      expect(useStyleListMock().createStyle).toBeCalledTimes(method === 'POST' ? 1 : 0);
+      expect(useStyleListMock().updateStyle).toBeCalledTimes(method === 'PATCH' ? 1 : 0);
     });
 
     it('displays a success notification if the PATCH succeeds', async () => {

@@ -43,7 +43,6 @@ export interface UsePageProps {
    */
   page: ContributionPage;
   setUserAgreesToPayFees: Dispatch<SetStateAction<boolean>>;
-  stripeClientSecret: string;
   /**
    * Has the user agreed to pay payment processing fees?
    */

@@ -1,7 +1,6 @@
 import { useState, useRef } from 'react';
 import PropTypes from 'prop-types';
 import * as S from './EditRecurringPaymentModal.styled';
-import { CardElementStyle, PaymentError } from 'components/paymentProviders/stripe/StripePaymentForm.styled';
 
 // Ajax
 import axios, { AuthenticationError } from 'ajax/axios';
@@ -165,7 +164,7 @@ function CardForm({ onPaymentMethod, closeModal }) {
         <S.Description>Update your payment method</S.Description>
 
         <S.CardElementWrapper>
-          <CardElement id="card-element" options={{ style: CardElementStyle(theme) }} onChange={handleChange} />
+          <CardElement id="card-element" options={{ style: S.CardElementStyle(theme) }} onChange={handleChange} />
         </S.CardElementWrapper>
 
         <Button
@@ -178,9 +177,9 @@ function CardForm({ onPaymentMethod, closeModal }) {
           Update payment method
         </Button>
         {errors.stripe && (
-          <PaymentError role="alert" data-testid="donation-error">
+          <S.PaymentError role="alert" data-testid="donation-error">
             {errors.stripe}
-          </PaymentError>
+          </S.PaymentError>
         )}
       </S.CardForm>
       {loading && <GlobalLoading />}

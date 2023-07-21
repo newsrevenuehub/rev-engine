@@ -20,6 +20,7 @@ export const alertOptions = {
   // you can also just use 'scale'
   transition: transitions.SCALE,
   containerStyle: {
-    zIndex: 1020
+    // Needs to be above our base Modal component, which currently uses z index of 1300.
+    zIndex: 1500
   }
 };

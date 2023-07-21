@@ -16,7 +16,6 @@ from apps.common.hookdeck import (
     HookDeckIntegrationError,
     archive,
     bootstrap,
-    logger,
     retrieve,
     search_connections,
     search_destinations,
@@ -420,44 +419,114 @@ def test_bootstrap(mocker, settings):
     )
 
 
-def test_teardown(monkeypatch):
-    mock_search_destinations = Mock(
-        return_value={"models": [{"id": "some-id-1", "name": "something"}, {"id": "some-id-2", "name": "something"}]}
-    )
-    mock_search_connections = Mock(
-        return_value={
-            "models": [
-                {"id": "some-id-3", "name": "something"},
-            ]
-        }
-    )
-    mock_archive = Mock()
-    monkeypatch.setattr("apps.common.hookdeck.search_destinations", mock_search_destinations)
-    monkeypatch.setattr("apps.common.hookdeck.search_connections", mock_search_connections)
-    monkeypatch.setattr("apps.common.hookdeck.archive", mock_archive)
-    ticket_name = "my-unique-ticket-name"
-    tear_down(ticket_name)
-    mock_search_destinations.assert_called_once_with(name=ticket_name)
-    mock_search_connections.assert_called_once_with(name=ticket_name)
-    assert mock_archive.call_count == len(mock_search_destinations.return_value["models"]) + len(
-        mock_search_connections.return_value["models"]
-    )
+class TestTearDown:
+    def test_happy_path(self, mocker):
+        mock_search_destinations = mocker.patch(
+            "apps.common.hookdeck.search_destinations",
+            side_effect=[
+                {
+                    "models": [
+                        {"id": "<destination-1-id>"},
+                    ]
+                },
+                {
+                    "models": [
+                        {"id": "<destination-2-id>"},
+                    ]
+                },
+            ],
+        )
+        mock_search_connections = mocker.patch(
+            "apps.common.hookdeck.search_connections",
+            side_effect=[
+                {
+                    "models": [
+                        {"id": "<connection-1-id>"},
+                    ]
+                },
+                {
+                    "models": [
+                        {"id": "<connection-2-id>"},
+                    ]
+                },
+            ],
+        )
+        mock_archive = mocker.patch("apps.common.hookdeck.archive")
+        ticket_name = "my-unique-ticket-name"
+        tear_down(ticket_name)
+        assert mock_search_destinations.call_count == 2
+        assert mock_search_destinations.call_args_list[0] == mocker.call(name=f"{ticket_name}-stripe-contributions")
+        assert mock_search_destinations.call_args_list[1] == mocker.call(name=f"{ticket_name}-stripe-upgrades")
+        assert mock_search_connections.call_count == 2
 
+        mock_search_connections.call_args_list[0] == mocker.call(name=f"{ticket_name}-stripe-contributions")
+        mock_search_connections.call_args_list[1] == mocker.call(name=f"{ticket_name}-stripe-upgrades")
+        assert mock_archive.call_count == 4
+        assert mock_archive.call_args_list[0] == mocker.call("connection", "<connection-1-id>")
+        assert mock_archive.call_args_list[1] == mocker.call("connection", "<connection-2-id>")
+        assert mock_archive.call_args_list[2] == mocker.call("destination", "<destination-1-id>")
+        assert mock_archive.call_args_list[3] == mocker.call("destination", "<destination-2-id>")
 
-def test_teardown_when_destinations_and_connections_not_found(monkeypatch, mocker):
-    spy = mocker.spy(logger, "info")
-    mock_search_destinations = Mock(return_value={"models": []})
-    mock_search_connections = Mock(return_value={"models": []})
-    mock_archive = Mock()
-    monkeypatch.setattr("apps.common.hookdeck.search_destinations", mock_search_destinations)
-    monkeypatch.setattr("apps.common.hookdeck.search_connections", mock_search_connections)
-    monkeypatch.setattr("apps.common.hookdeck.archive", mock_archive)
-    ticket_name = "my-unique-ticket-name"
-    tear_down(ticket_name)
-    mock_search_destinations.assert_called_once_with(name=ticket_name)
-    mock_search_connections.assert_called_once_with(name=ticket_name)
-    assert mock_archive.call_count == len(mock_search_destinations.return_value["models"]) + len(
-        mock_search_connections.return_value["models"]
-    )
-    assert spy.call_args_list[0][0] == ("No connections found for ticket with prefix %s", ticket_name)
-    assert spy.call_args_list[1][0] == ("No destinations found for ticket with prefix %s", ticket_name)
+    def test_when_no_conns_found(self, mocker):
+        mock_search_destinations = mocker.patch(
+            "apps.common.hookdeck.search_destinations",
+            side_effect=[
+                {
+                    "models": [
+                        {"id": "<destination-1-id>"},
+                    ]
+                },
+                {
+                    "models": [
+                        {"id": "<destination-2-id>"},
+                    ]
+                },
+            ],
+        )
+        mock_search_connections = mocker.patch(
+            "apps.common.hookdeck.search_connections",
+            side_effect=[
+                {"models": []},
+                {"models": []},
+            ],
+        )
+        mock_archive = mocker.patch("apps.common.hookdeck.archive")
+        ticket_name = "my-unique-ticket-name"
+        tear_down(ticket_name)
+        assert mock_search_destinations.call_count == 2
+        assert mock_search_connections.call_count == 2
+        assert mock_archive.call_count == 2
+        assert mock_archive.call_args_list[0] == mocker.call("destination", "<destination-1-id>")
+        assert mock_archive.call_args_list[1] == mocker.call("destination", "<destination-2-id>")
+
+    def test_when_no_dests_found(self, mocker):
+        mock_search_connections = mocker.patch(
+            "apps.common.hookdeck.search_connections",
+            side_effect=[
+                {
+                    "models": [
+                        {"id": "<connection-1-id>"},
+                    ]
+                },
+                {
+                    "models": [
+                        {"id": "<connection-2-id>"},
+                    ]
+                },
+            ],
+        )
+        mock_search_destinations = mocker.patch(
+            "apps.common.hookdeck.search_destinations",
+            side_effect=[
+                {"models": []},
+                {"models": []},
+            ],
+        )
+        mock_archive = mocker.patch("apps.common.hookdeck.archive")
+        ticket_name = "my-unique-ticket-name"
+        tear_down(ticket_name)
+        assert mock_search_destinations.call_count == 2
+        assert mock_search_connections.call_count == 2
+        assert mock_archive.call_count == 2
+        assert mock_archive.call_args_list[0] == mocker.call("connection", "<connection-1-id>")
+        assert mock_archive.call_args_list[1] == mocker.call("connection", "<connection-2-id>")

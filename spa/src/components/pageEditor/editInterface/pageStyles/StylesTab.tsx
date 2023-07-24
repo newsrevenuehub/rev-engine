@@ -104,7 +104,7 @@ function StylesTab({ styles, setStyles }: StylesTabProps) {
             label="Font Size"
             options={FONT_SIZE_OPTIONS}
             getOptionLabel={(option) => option.label}
-            onChange={(e: any, value) => {
+            onChange={(_, value) => {
               setFontSize(value.value);
             }}
             value={FONT_SIZE_OPTIONS.find((option) => option.value === headingFontSize)}
@@ -118,7 +118,7 @@ function StylesTab({ styles, setStyles }: StylesTabProps) {
             label="Radius"
             options={BUTTON_RADIUS_BASE_OPTIONS}
             getOptionLabel={(option) => option.label}
-            onChange={(e: any, value) => {
+            onChange={(_, value) => {
               setRadii(value.value);
             }}
             value={

@@ -3,9 +3,9 @@ import { ColorPickerProps } from '../ColorPicker';
 export function ColorPicker({ onChange, label, value }: ColorPickerProps) {
   return (
     <div data-testid="color-picker">
-      <label id={`color-picker-${label?.toString().replace(/ /g, '')}`}>{label}</label>
-      <input defaultValue={value as string} aria-labelledby={`color-picker-${label?.toString().replace(/ /g, '')}`} />
-      <button onClick={() => onChange?.('mock-color')}>color picker {label}</button>
+      <button onClick={() => onChange?.('mock-color')} data-label={label} data-value={value}>
+        color picker {label}
+      </button>
     </div>
   );
 }

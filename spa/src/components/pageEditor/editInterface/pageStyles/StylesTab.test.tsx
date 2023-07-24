@@ -59,8 +59,10 @@ describe('StylesTab', () => {
     it(`should render color picker with correct color: ${mockStyles.colors[field]}`, () => {
       tree();
       expect(screen.getAllByTestId('color-picker')).toHaveLength(COLOR_PICKERS.length);
-      expect(screen.getByText(label)).toBeVisible();
-      expect(screen.getByRole('textbox', { name: label })).toBeInTheDocument();
+
+      const colorPickers = screen.getByRole('button', { name: 'color picker ' + label });
+      expect(colorPickers.dataset.label).toBe(label);
+      expect(colorPickers.dataset.value).toBe(mockStyles.colors[field]);
     });
 
     it('should call setColor on change', () => {

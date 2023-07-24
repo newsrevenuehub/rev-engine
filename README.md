@@ -149,6 +149,7 @@ If you want to test Stripe payments locally, add the Hub testing "Secret key", s
 Assuming you're using [direnv](https://direnv.net/) (see [setting up environment variables, below](#7-set-up-environment-variables)), do:
 
 ```sh
+echo "export STRIPE_TEST_SECRET_KEY_CONTRIBUTIONS=sk_test_???" >> .envrc
 echo "export REACT_APP_HUB_STRIPE_API_PUB_KEY=pk_test_???" >> .envrc
 echo "export STRIPE_WEBHOOK_SECRET_CONTRIBUTIONS=whsec_???" >> .envrc
 echo "export STRIPE_WEBHOOK_SECRET_UPGRADES=whsec_???*" >> .envrc

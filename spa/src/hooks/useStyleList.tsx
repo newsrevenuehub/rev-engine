@@ -17,7 +17,10 @@ async function fetchStyles() {
 }
 
 type StyleColors = Record<string, string>;
-type StyleFonts = Record<string, { accessor: string; font_name: string; id: number; name: string; source: 'google' }>;
+type StyleFonts = Record<
+  string,
+  { accessor: string; font_name: string; id: number; name: string; source: 'google' | 'typekit' }
+>;
 
 export interface Style {
   id: number;
@@ -102,7 +105,7 @@ function useStyleList(): UseStyleListResult {
       return axios.post<Style>(LIST_STYLES, {
         ...styles,
         name: page.name,
-        revenue_program: page.revenue_program?.id
+        revenue_program: page.revenue_program.id
       });
     },
     {

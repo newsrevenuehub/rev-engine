@@ -18,7 +18,7 @@ type Font = {
   font_name: string;
   id: number;
   name: string;
-  source: 'google';
+  source: 'google' | 'typekit';
 };
 
 export interface UseFontListResult {

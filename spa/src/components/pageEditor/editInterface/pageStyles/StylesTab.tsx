@@ -40,7 +40,7 @@ function StylesTab({ styles, setStyles }: StylesTabProps) {
   const { fonts, isLoading: fontLoading } = useFontList();
 
   // While fontSize is an array, select font corresponding index to the Heading font
-  const headingFontSize = Number(styles.fontSizes[3]?.split('px')[0]);
+  const headingFontSize = parseInt(styles.fontSizes[3]);
 
   const setColor = (colorName: string, value: string) => {
     setStyles({ ...styles, colors: { ...styles.colors, [colorName]: value } });
@@ -94,10 +94,10 @@ function StylesTab({ styles, setStyles }: StylesTabProps) {
               getOptionLabel={(option) => option.name}
               getOptionDisabled={(option) => option.id === ''}
               getOptionSelected={(option, value) => option.id === value.id}
-              onChange={(e: any, value) => {
+              onChange={(_, value) => {
                 setSelectedFonts(field, fonts.find((font) => font.id === value.id)!);
               }}
-              value={fonts.find((font) => font.id === styles.font[field]?.id) || { name: 'Select a font', id: '' }}
+              value={fonts.find((font) => font.id === styles.font[field]?.id) ?? { name: 'Select a font', id: '' }}
             />
           ))}
           <SearchableSelect
@@ -122,7 +122,7 @@ function StylesTab({ styles, setStyles }: StylesTabProps) {
               setRadii(value.value);
             }}
             value={
-              BUTTON_RADIUS_BASE_OPTIONS.find((option) => option.value === getBaseFromRadii(styles?.radii)) ||
+              BUTTON_RADIUS_BASE_OPTIONS.find((option) => option.value === getBaseFromRadii(styles.radii)) ||
               // Set as null = no option selected.
               (null as any)
             }
@@ -148,10 +148,7 @@ export function getFontSizesFromFontSize(fontSize: AllowedFontSizes) {
 }
 
 export function getBaseFromRadii(radii: Array<string>) {
-  if (radii && radii[0]) {
-    return parseInt(radii[0], 10);
-  }
-  return 1;
+  return parseInt(radii[0]);
 }
 
 export function getRadiiFromBase(radiiBase: number) {

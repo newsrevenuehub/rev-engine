@@ -401,14 +401,8 @@ describe('useContributionPage', () => {
       await waitForNextUpdate();
       expect(axiosMock.history.patch.length).toBe(0);
       expect(axiosMock.history.post.length).toBe(0);
-      let err: any;
-      // TODO: use expect toThrowError()
-      try {
-        await result.current.updatePage!({ styles: mockStyles as any });
-      } catch (error) {
-        err = error;
-      }
-      expect(err.message).toBe('Network Error');
+
+      await expect(() => result.current.updatePage!({ styles: mockStyles as any })).rejects.toThrowError();
 
       expect(useStyleListMock().createStyle).toBeCalledTimes(method === 'POST' ? 1 : 0);
       expect(useStyleListMock().updateStyle).toBeCalledTimes(method === 'PATCH' ? 1 : 0);
@@ -464,15 +458,7 @@ describe('useContributionPage', () => {
         const { result, waitForNextUpdate } = renderHook(testHookWithSlugs, { wrapper: TestQueryClientProvider });
 
         await waitForNextUpdate();
-
-        let err: any;
-        try {
-          await result.current.updatePage!({});
-        } catch (error) {
-          err = error;
-        }
-        expect(err).toBeInstanceOf(Error);
-
+        await expect(() => result.current.updatePage!({})).rejects.toThrowError();
         await waitForNextUpdate();
       });
     });

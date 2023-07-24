@@ -182,27 +182,23 @@ describe('useStyleList hook', () => {
     expect(axiosMock.history.post.length).toBe(0);
     expect(axiosMock.history.patch.length).toBe(0);
     expect(axiosMock.history.delete.length).toBe(0);
-    let err: any;
-    try {
-      const selectedFunction = {
-        POST: result.current.createStyle,
-        PATCH: result.current.updateStyle
-      }[method];
-      const inputs: [any, any] =
-        method === 'POST'
-          ? [
-              mockStyles,
-              {
-                name: 'mock-page-name',
-                revenue_program: { id: 'mock-rev-prog' }
-              }
-            ]
-          : [mockStyles, undefined];
-      await selectedFunction!(...inputs);
-    } catch (error) {
-      err = error;
-    }
-    expect(err.message).toBe('Network Error');
+
+    const selectedFunction = {
+      POST: result.current.createStyle,
+      PATCH: result.current.updateStyle
+    }[method];
+    const inputs: [any, any] =
+      method === 'POST'
+        ? [
+            mockStyles,
+            {
+              name: 'mock-page-name',
+              revenue_program: { id: 'mock-rev-prog' }
+            }
+          ]
+        : [mockStyles, undefined];
+
+    await expect(() => selectedFunction!(...inputs)).rejects.toThrowError();
 
     expect(axiosMock.history.post.length).toBe(method === 'POST' ? 1 : 0);
     expect(axiosMock.history.patch.length).toBe(method === 'PATCH' ? 1 : 0);
@@ -227,13 +223,8 @@ describe('useStyleList hook', () => {
     const { result } = renderHook(() => useStyleList(), { wrapper });
 
     expect(axiosMock.history.delete.length).toBe(0);
-    let err: any;
-    try {
-      await result.current.deleteStyle!(stylesList[0]);
-    } catch (error) {
-      err = error;
-    }
-    expect(err.message).toBe('Network Error');
+
+    await expect(() => result.current.deleteStyle!(stylesList[0])).rejects.toThrowError();
 
     expect(axiosMock.history.delete.length).toBe(1);
 

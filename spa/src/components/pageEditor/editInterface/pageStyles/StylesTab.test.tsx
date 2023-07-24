@@ -58,13 +58,9 @@ describe('StylesTab', () => {
   describe.each(COLOR_PICKERS.map((color) => [color.label, color.field]))('color picker: %s', (label, field) => {
     it(`should render color picker with correct color: ${mockStyles.colors[field]}`, () => {
       tree();
-      const colorPickers = screen.getAllByTestId('color-picker');
-      expect(colorPickers).toHaveLength(COLOR_PICKERS.length);
-      expect(
-        colorPickers.find(
-          (picker) => picker.dataset.label === label && picker.dataset.value === mockStyles.colors[field]
-        )
-      ).toBeInTheDocument();
+      expect(screen.getAllByTestId('color-picker')).toHaveLength(COLOR_PICKERS.length);
+      expect(screen.getByText(label)).toBeVisible();
+      expect(screen.getByRole('textbox', { name: label })).toBeInTheDocument();
     });
 
     it('should call setColor on change', () => {

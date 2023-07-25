@@ -9,6 +9,7 @@ import Dashboard from './Dashboard';
 import useConnectStripeAccount from 'hooks/useConnectStripeAccount';
 import useFeatureFlags from 'hooks/useFeatureFlags';
 import useUser from 'hooks/useUser';
+import usePendo from 'hooks/usePendo';
 
 jest.mock('components/common/Modal/AudienceListModal/AudienceListModal');
 jest.mock('components/common/IntegrationCard/MailchimpIntegrationCard/MailchimpModal/MailchimpModal');
@@ -16,6 +17,7 @@ jest.mock('./MailchimpConnectionStatus', () => () => <div data-testid="mock-mail
 jest.mock('./sidebar/DashboardSidebar');
 jest.mock('elements/GlobalLoading');
 jest.mock('hooks/useFeatureFlags');
+jest.mock('hooks/usePendo');
 jest.mock('hooks/useRequest');
 jest.mock('hooks/useUser');
 jest.mock('hooks/useConnectStripeAccount');
@@ -40,11 +42,12 @@ const useUserMockDefaults = {
 };
 
 describe('Dashboard', () => {
-  const useConnectStripeAccountMock = useConnectStripeAccount as jest.Mock;
-  const useFeatureFlagsMock = useFeatureFlags as jest.Mock;
-  const useUserMock = useUser as jest.Mock;
-  const useLocationMock = useLocation as jest.Mock;
-  const useSnackbarMock = useSnackbar as jest.Mock;
+  const usePendoMock = jest.mocked(usePendo);
+  const useConnectStripeAccountMock = jest.mocked(useConnectStripeAccount);
+  const useFeatureFlagsMock = jest.mocked(useFeatureFlags);
+  const useUserMock = jest.mocked(useUser);
+  const useLocationMock = jest.mocked(useLocation);
+  const useSnackbarMock = jest.mocked(useSnackbar);
 
   beforeEach(() => {
     useSnackbarMock.mockReturnValue({ enqueueSnackbar: jest.fn(), closeSnackbar: jest.fn() });
@@ -53,13 +56,13 @@ describe('Dashboard', () => {
       displayConnectionSuccess: false,
       hideConnectionSuccess: jest.fn(),
       isLoading: false
-    });
+    } as any);
     useFeatureFlagsMock.mockReturnValue({
       flags: [{ name: CONTENT_SECTION_ACCESS_FLAG_NAME }],
       isLoading: false,
       isError: false
     });
-    useUserMock.mockReturnValue({ ...useUserMockDefaults });
+    useUserMock.mockReturnValue({ ...useUserMockDefaults } as any);
     useLocationMock.mockReturnValue({
       pathname: CONTENT_SLUG,
       search: '',
@@ -83,13 +86,13 @@ describe('Dashboard', () => {
       displayConnectionSuccess: true,
       hideConnectionSuccess,
       isLoading: false
-    });
+    } as any);
     useUserMock.mockReturnValue({
       ...useUserMockDefaults,
       user: {
         ...useUserMockDefaults.user,
         revenue_programs: [{ payment_provider_stripe_verified: false, id: rpId }]
-      }
+      } as any
     });
     render(<Dashboard />);
     expect(hideConnectionSuccess).toHaveBeenCalledTimes(1);
@@ -104,14 +107,19 @@ describe('Dashboard', () => {
   });
 
   it('shows a loading status when Stripe account link status is loading', () => {
-    useConnectStripeAccountMock.mockReturnValue({ isLoading: true });
+    useConnectStripeAccountMock.mockReturnValue({ isLoading: true } as any);
     render(<Dashboard />);
     expect(screen.getByTestId('mock-global-loading')).toBeInTheDocument();
   });
 
   it('does not show a loading status when Stripe account link status is not loading', () => {
-    useConnectStripeAccountMock.mockReturnValue({ isLoading: false });
+    useConnectStripeAccountMock.mockReturnValue({ isLoading: false } as any);
     render(<Dashboard />);
     expect(screen.queryByTestId('mock-global-loading')).not.toBeInTheDocument();
+  });
+
+  it('loads Pendo', () => {
+    render(<Dashboard />);
+    expect(usePendoMock).toBeCalledTimes(1);
   });
 });

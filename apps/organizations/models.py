@@ -152,7 +152,6 @@ class Organization(IndexedTimeStampedModel):
         unique=True,
         validators=[validate_slug_against_denylist],
     )
-
     users = models.ManyToManyField("users.User", through="users.OrganizationUser")
     send_receipt_email_via_nre = models.BooleanField(
         default=True,
@@ -1044,7 +1043,7 @@ class RevenueProgram(IndexedTimeStampedModel):
         if settings.STRIPE_LIVE_MODE and not self.domain_apple_verified_date:
             try:
                 stripe.ApplePayDomain.create(
-                    api_key=settings.STRIPE_LIVE_SECRET_KEY,
+                    api_key=settings.STRIPE_LIVE_SECRET_KEY_CONTRIBUTIONS,
                     domain_name=f"{self.slug}.{settings.DOMAIN_APEX}",
                     stripe_account=self.payment_provider.stripe_account_id,
                 )

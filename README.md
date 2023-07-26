@@ -149,12 +149,13 @@ If you want to test Stripe payments locally, add the Hub testing "Secret key", s
 Assuming you're using [direnv](https://direnv.net/) (see [setting up environment variables, below](#7-set-up-environment-variables)), do:
 
 ```sh
-echo "export TEST_HUB_STRIPE_API_SECRET_KEY=sk_test_???" >> .envrc
+echo "export STRIPE_TEST_SECRET_KEY_CONTRIBUTIONS=sk_test_???" >> .envrc
 echo "export REACT_APP_HUB_STRIPE_API_PUB_KEY=pk_test_???" >> .envrc
-echo "export STRIPE_WEBHOOK_SECRET=whsec_???" >> .envrc
+echo "export STRIPE_WEBHOOK_SECRET_FOR_CONTRIBUTIONS=whsec_???" >> .envrc
+
 ```
 
-`TEST_HUB_STRIPE_API_SECRET_KEY` and `REACT_APP_HUB_STRIPE_API_PUB_KEY` are the Secret Key and Publishable Key for the NRH Stripe Account.
+`STRIPE_TEST_SECRET_KEY_CONTRIBUTIONS` and `REACT_APP_HUB_STRIPE_API_PUB_KEY` are the Secret Key and Publishable Key for the NRH Stripe Account.
 
 Then, in Django-admin, create an Organization for that connected stripe account and add your Stripe Account ID to the stripe_account_id field. Make sure that `default_payment_provider` is "stripe". The Stripe Account ID can be found in the stripe dashboard, settings --> Business Settings --> Your Business --> Account details, in the top right corner.
 
@@ -170,7 +171,7 @@ First, download NGROK and expose whichever port your running the server on. Some
 Next, copy the url its exposing your port through (example:http://610d1234567.ngrok.io) and add `SITE_URL = "http://610d1234567.ngrok.io"`, as well as adding `610d1234567.ngrok.io` to ALLOWED_HOSTS.
 
 Then, run `./manage.py create_stripe_webhooks`. This will use the Stripe SDK to add WebhookEndpoints to the NRH Stripe account.
-For the `STRIPE_WEBHOOK_SECRET`, you'll then need access to the Hub Stripe Dashboard. Go to Developers --> Webhooks --> [your newly added endpoint] --> "Signing secret"
+For the `STRIPE_WEBHOOK_SECRET_FOR_CONTRIBUTIONS`, you'll then need access to the Hub Stripe Dashboard — specifically, the one called `NRH (NRE, Connect, legacy donations and client ACH)`. Go to Developers --> Webhooks --> [your newly added endpoint] --> "Signing secret"
 
 ### 6. Set up subdomains in `/etc/hosts`
 

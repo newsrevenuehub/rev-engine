@@ -2,6 +2,7 @@ import hashlib
 import io
 from csv import DictReader
 
+from django.conf import settings
 from django.test import TestCase, override_settings
 
 import pytest
@@ -16,22 +17,16 @@ from apps.contributions.utils import (
 )
 
 
-LIVE_KEY = "live-key-test"
-TEST_KEY = "test-key"
-
-
-@override_settings(STRIPE_LIVE_SECRET_KEY=LIVE_KEY)
-@override_settings(STRIPE_TEST_SECRET_KEY=TEST_KEY)
 class UtilsTest(TestCase):
     @override_settings(STRIPE_LIVE_MODE=True)
     def test_get_hub_stripe_api_key_returns_live_key_when_proper_setting(self):
         key = get_hub_stripe_api_key()
-        self.assertEqual(key, LIVE_KEY)
+        self.assertEqual(key, settings.STRIPE_LIVE_SECRET_KEY_CONTRIBUTIONS)
 
     @override_settings(STRIPE_LIVE_MODE=False)
     def test_get_hub_stripe_api_key_returns_test_key_otherwise(self):
         key = get_hub_stripe_api_key()
-        self.assertEqual(key, TEST_KEY)
+        self.assertEqual(key, settings.STRIPE_TEST_SECRET_KEY_CONTRIBUTIONS)
 
 
 @override_settings(ENCRYPTION_SALT="salt")

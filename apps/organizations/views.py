@@ -79,6 +79,11 @@ class OrganizationViewSet(
         organization.refresh_from_db()
         return Response(serializers.OrganizationSerializer(organization).data)
 
+    @action(detail=False, methods=["post"], permission_classes=[])
+    def handle_stripe_webhook(self, request):
+        """Initially we'll just return 200 without doing anything, ahead of full implementation in DEV-3748"""
+        return Response(status=status.HTTP_200_OK)
+
 
 class RevenueProgramViewSet(FilterForSuperUserOrRoleAssignmentUserMixin, viewsets.ModelViewSet):
     model = RevenueProgram

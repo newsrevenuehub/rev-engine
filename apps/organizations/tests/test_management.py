@@ -1,6 +1,7 @@
 from io import StringIO
 from unittest.mock import patch
 
+from django.conf import settings
 from django.core.management import call_command
 from django.core.management.base import CommandError
 from django.test import TestCase, override_settings
@@ -9,11 +10,9 @@ from apps.organizations.models import RevenueProgram
 from apps.organizations.tests.factories import RevenueProgramFactory
 
 
-TEST_LIVE_KEY = "live-key-test"
 TEST_DOMAIN_APEX = "testing.com"
 
 
-@override_settings(STRIPE_LIVE_SECRET_KEY=TEST_LIVE_KEY)
 @override_settings(STRIPE_LIVE_MODE=True)
 class AppleDomainVerifyCommandTest(TestCase):
     @patch("stripe.ApplePayDomain.create")
@@ -54,7 +53,7 @@ class AppleDomainVerifyCommandTest(TestCase):
         expected_domain = f"{self.revenue_program.slug}.{TEST_DOMAIN_APEX}"
         self.run_command(slug=self.revenue_program.slug)
         mock_applepay_verify.assert_called_with(
-            api_key=TEST_LIVE_KEY,
+            api_key=settings.STRIPE_LIVE_SECRET_KEY_CONTRIBUTIONS,
             domain_name=expected_domain,
             stripe_account=self.revenue_program.payment_provider.stripe_account_id,
         )

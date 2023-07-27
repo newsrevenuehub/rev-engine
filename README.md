@@ -152,6 +152,7 @@ Assuming you're using [direnv](https://direnv.net/) (see [setting up environment
 echo "export STRIPE_TEST_SECRET_KEY_CONTRIBUTIONS=sk_test_???" >> .envrc
 echo "export REACT_APP_HUB_STRIPE_API_PUB_KEY=pk_test_???" >> .envrc
 echo "export STRIPE_WEBHOOK_SECRET_FOR_CONTRIBUTIONS=whsec_???" >> .envrc
+echo "export STRIPE_WEBHOOK_SECRET_FOR_UPGRADES=whsec_???*" >> .envrc
 
 ```
 

@@ -3,6 +3,7 @@ import useFontList from 'hooks/useFontList';
 import { Style } from 'hooks/useStyleList';
 import PropTypes, { InferProps } from 'prop-types';
 import { Flex, Pickers, Section, Title } from './StylesTab.styled';
+import Select from 'elements/inputs/Select';
 
 export const COLOR_PICKERS = [
   { field: 'cstm_mainHeader', label: 'Header' },
@@ -19,7 +20,8 @@ export const FONT_PICKERS = [
 
 export type AllowedFontSizes = 24 | 32 | 36;
 
-const FONT_SIZE_OPTIONS: Array<{ label: string; value: AllowedFontSizes }> = [
+type FONT_SIZE = { label: string; value: AllowedFontSizes };
+const FONT_SIZE_OPTIONS: Array<FONT_SIZE> = [
   { label: 'Small', value: 24 },
   { label: 'Standard', value: 32 },
   { label: 'Large', value: 36 }
@@ -100,14 +102,18 @@ function StylesTab({ styles, setStyles }: StylesTabProps) {
               value={fonts.find((font) => font.id === styles.font[field]?.id) ?? { name: 'Select a font', id: '' }}
             />
           ))}
-          <SearchableSelect
+          <Select
             label="Font Size"
-            options={FONT_SIZE_OPTIONS}
-            getOptionLabel={(option) => option.label}
-            onChange={(_, value) => {
-              setFontSize(value.value);
+            items={FONT_SIZE_OPTIONS}
+            selectedItem={FONT_SIZE_OPTIONS.find((option) => option.value === headingFontSize)}
+            onSelectedItemChange={({ selectedItem }: { selectedItem: FONT_SIZE }) => {
+              setFontSize(selectedItem.value);
             }}
-            value={FONT_SIZE_OPTIONS.find((option) => option.value === headingFontSize)}
+            testId="heading-font-select"
+            name="revenue_program"
+            displayAccessor="label"
+            placeholder="Select font size"
+            dropdownPosition=""
           />
         </Pickers>
       </Section>

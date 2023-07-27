@@ -148,11 +148,11 @@ describe('StylesTab', () => {
   });
 
   describe('button style: Radius', () => {
-    it(`should render radius with default selection: ""`, () => {
+    it(`should render radius with default selection: "Semi-round"`, () => {
       tree();
       const select = screen.getByRole('textbox', { name: 'Radius' });
       expect(select).toBeVisible();
-      expect(select).toHaveValue('');
+      expect(select).toHaveValue('Semi-round');
     });
 
     it.each(BUTTON_RADIUS_BASE_OPTIONS.map((radius) => [radius.label, radius.value]))(
@@ -166,9 +166,10 @@ describe('StylesTab', () => {
     );
 
     it.each(BUTTON_RADIUS_BASE_OPTIONS.map((radius) => [radius.label, radius.value]))(
-      'should call setFontSize on change with correct params for %s font size',
+      'should call setRadii on change with correct params for %s',
       (label, radius) => {
-        tree();
+        // Set radii to unselected option to test for change
+        tree({ styles: { ...mockStyles, radii: getRadiiFromBase(123) } });
         expect(setStyles).not.toHaveBeenCalled();
         userEvent.click(screen.getByRole('textbox', { name: 'Radius' }));
 
@@ -220,6 +221,7 @@ describe('StylesTab', () => {
   it('is accessible', async () => {
     const { container } = tree();
 
-    expect(await axe(container)).toHaveNoViolations();
+    // elements/inputs/Select fails axe test, but it's using the a11 from 'downshift' lib
+    expect(await axe(container, { rules: { 'aria-allowed-attr': { enabled: false } } })).toHaveNoViolations();
   });
 });

@@ -15,7 +15,7 @@ export const Section = styled.section`
 export const Title = styled.h1`
   font-family: ${(props) => props.theme.systemFont};
   color: ${(props) => props.theme.basePalette.greyscale.grey1};
-  font-size: 24px;
+  font-size: ${({ theme }) => theme.fontSizesUpdated.lg};
   font-weight: 400;
   margin: 0;
 `;

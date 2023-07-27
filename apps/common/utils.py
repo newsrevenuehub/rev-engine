@@ -79,11 +79,15 @@ def upsert_cloudflare_cnames(slugs: list = None):
             logger.warning("Something went wrong with Cloudflare", exc_info=error)
 
 
-def extract_ticket_id_from_branch_name(branch_name):
+def extract_ticket_id_from_branch_name(branch_name: str) -> str | None:
     """
     Extracts the ticket id from the branch name.
     """
-    return re.match(r"^[a-zA-Z]*-[0-9]*", branch_name).group().lower()
+    logger.info("Extracting ticket id from branch name: %s", branch_name)
+    match = re.match(r"^[a-zA-Z]*-[0-9]*", branch_name)
+    if not match:
+        logger.warning("Could not extract ticket id from branch name: %s", branch_name)
+    return match.group().lower() if match else None
 
 
 def normalize_slug(name="", slug="", max_length=50):

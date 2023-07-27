@@ -12,7 +12,7 @@ logger = logging.getLogger(f"{settings.DEFAULT_LOGGER}.{__name__}")
 
 
 def delete_stripe_webhook(webhook_url, api_key):
-    webhooks = stripe.WebhookEndpoint.list(limit=20)
+    webhooks = stripe.WebhookEndpoint.list(limit=20, api_key=api_key)
     urls = {x["url"]: x["id"] for x in webhooks["data"]}
     if webhook_url in urls:
         webhook_id = urls[webhook_url]
@@ -20,7 +20,6 @@ def delete_stripe_webhook(webhook_url, api_key):
 
 
 def create_stripe_webhook(webhook_url, api_key, enabled_events):
-    logger.info("Creating webhook: %s", webhook_url)
     webhooks = stripe.WebhookEndpoint.list(api_key=api_key)
     urls = [x["url"] for x in webhooks["data"]]
     if webhook_url in urls:

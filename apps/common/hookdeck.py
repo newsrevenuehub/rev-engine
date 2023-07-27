@@ -206,15 +206,15 @@ def unarchive(entity_type: Literal["connection", "destination", "source"], id: s
         return response.json()
 
 
-def bootstrap_endpoint(name: str, url: str) -> None:
+def bootstrap_endpoint(name: str, url: str, source_id: str) -> None:
     logger.info("Upserting a destination with name %s and url %s", name, url)
     dest = upsert_destination(name=name, url=url)
     logger.info(
         "Upserting connection with name %s and destination with id %s",
         name,
-        (_id := dest["id"]),
+        (dest_id := dest["id"]),
     )
-    upsert_connection(name, settings.HOOKDECK_STRIPE_WEBHOOK_SOURCE, _id)
+    upsert_connection(name, source_id, dest_id)
 
 
 def bootstrap(name: str, webhooks_url_contributions: str, webhooks_url_upgrades: str) -> dict:
@@ -229,8 +229,14 @@ def bootstrap(name: str, webhooks_url_contributions: str, webhooks_url_upgrades:
 
     The second source is for webhooks related to self-upgrades.
     """
-    bootstrap_endpoint(f"{name}-stripe-contributions", webhooks_url_contributions)
-    bootstrap_endpoint(f"{name}-stripe-upgrades", webhooks_url_upgrades)
+    bootstrap_endpoint(
+        f"{name}-stripe-contributions",
+        webhooks_url_contributions,
+        settings.HOOKDECK_STRIPE_WEBHOOK_SOURCE_CONTRIBUTIONS,
+    )
+    bootstrap_endpoint(
+        f"{name}-stripe-upgrades", webhooks_url_upgrades, settings.HOOKDECK_STRIPE_WEBHOOK_SOURCE_UPGRADES
+    )
 
 
 def tear_down(

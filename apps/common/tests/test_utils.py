@@ -223,7 +223,7 @@ def test_create_stripe_webhook(create_mock, list_mock):
 
     list_mock.return_value = {"data": [{"url": "https://example.com/webhook", "id": "123"}]}
     create_stripe_webhook("https://notthere.com/webhook", api_key="bogus", enabled_events=[])
-    assert create_mock.called_with("https://notthere.com/webhook", api_key="bogus")
+    assert create_mock.called_with("https://notthere.com/webhook", api_key="bogus", enabled_events=[])
 
 
 @override_settings(HEROKU_APP_NAME="foo")

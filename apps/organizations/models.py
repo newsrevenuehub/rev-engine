@@ -1,5 +1,6 @@
 import logging
 import os
+import uuid
 from dataclasses import asdict, dataclass, field
 from functools import cached_property
 from typing import List, Literal, Optional
@@ -121,6 +122,10 @@ class OrganizationManager(models.Manager):
 
 
 class Organization(IndexedTimeStampedModel):
+    # used in self-upgrade flow. Stripe checkouts can have associated client-reference-id, and we set that
+    # to the value of an org.uuid so that we can look up the org in the self-upgrade flow, which is triggered
+    # by stripe webhooks.
+    uuid = models.UUIDField(default=uuid.uuid4, editable=False, unique=True)
     name = models.CharField(max_length=255, unique=True)
     plan_name = models.CharField(choices=Plans.choices, max_length=10, default=Plans.FREE)
     salesforce_id = models.CharField(max_length=255, blank=True, verbose_name="Salesforce ID")
@@ -152,16 +157,29 @@ class Organization(IndexedTimeStampedModel):
         unique=True,
         validators=[validate_slug_against_denylist],
     )
+
     users = models.ManyToManyField("users.User", through="users.OrganizationUser")
     send_receipt_email_via_nre = models.BooleanField(
         default=True,
         help_text="If false, receipt email assumed to be sent via Salesforce. Other emails, e.g. magic_link, are always sent via NRE regardless of this setting",
     )
+    stripe_subscription_id = models.CharField(max_length=255, blank=True, null=True)
 
     objects = OrganizationManager.from_queryset(OrganizationQuerySet)()
 
     def __str__(self):
         return self.name
+
+    @cached_property
+    def stripe_subscription(self):
+        if not self.stripe_subscription_id:
+            return None
+        return stripe.Subscription.retrieve(
+            self.stripe_subscription_id,
+            api_key=settings.LIVE_SECRET_KEY_FOR_UPGRADES
+            if settings.STRIPE_LIVE_MODE
+            else settings.STRIPE_TEST_SECRET_KEY_UPGRADES,
+        )
 
     @property
     def plan(self):

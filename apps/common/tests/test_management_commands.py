@@ -13,8 +13,8 @@ class TestCreateStripeWebhooks:
             "create_stripe_webhooks",
             **{
                 "live": live,
-                "url-contributions": url_contributions,
-                "url-upgrades": url_upgrades,
+                "url_contributions": url_contributions,
+                "url_upgrades": url_upgrades,
                 "stdout": out,
             },
         )

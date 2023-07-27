@@ -61,6 +61,10 @@ export const STRIPE_SELF_UPGRADE_PRICING_TABLE_PUBLISHABLE_KEY = resolveConstant
 // Mailchimp
 export const NRE_MAILCHIMP_CLIENT_ID = resolveConstantFromEnv('NRE_MAILCHIMP_CLIENT_ID');
 
+// Pendo
+export const PENDO_API_KEY = resolveConstantFromEnv('PENDO_API_KEY');
+export const PENDO_VISITOR_PREFIX = resolveConstantFromEnv('PENDO_VISITOR_PREFIX');
+
 // Environment {production, staging, test, dev, demo}
 export const ENVIRONMENT = resolveConstantFromEnv('ENVIRONMENT');
 

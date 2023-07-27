@@ -53,6 +53,7 @@ class DonationPage(IndexedTimeStampedModel):
     graphic = SorlImageField(null=True, blank=True)
     header_bg_image = SorlImageField(null=True, blank=True)
     header_logo = SorlImageField(null=True, blank=True, default=None)
+    header_logo_alt_text = models.CharField(max_length=255, blank=True, default="")
     header_link = models.URLField(blank=True)
 
     sidebar_elements = models.JSONField(default=list, blank=True)

@@ -32,6 +32,7 @@ def upsert(entity_type: Literal["connection", "destination"], data: dict, auto_u
     case for Hookdeck: review apps. In that context, we should expect to sometimes need to restore a previous
     entity named after a ticket/review app.
     """
+    logger.info("Upserting %s with data %s and auto_unarchive %s", entity_type, data, auto_unarchive)
     response = requests.put(
         {"connection": CONNECTIONS_URL, "destination": DESTINATIONS_URL}[entity_type],
         data=data,
@@ -78,7 +79,9 @@ def upsert_connection(name: str, source_id: str, destination_id: str, auto_unarc
     case for Hookdeck: review apps. In that context, we should expect to sometimes need to restore a previous
     entity named after a ticket/review app.
     """
-
+    logger.info(
+        "Upserting connection with name %s, source id %s, and destination id %s", name, source_id, destination_id
+    )
     return upsert(
         "connection",
         {"name": name, "source_id": source_id, "destination_id": destination_id},

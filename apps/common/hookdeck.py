@@ -175,6 +175,7 @@ def archive(entity_type: Literal["connection", "destination", "source"], id: str
     Archiving an entity causes that entities send/receipt behavior to cease. An archived resource can be
     unarchived to turn that behavior back on. Archiving is not the same as deleting.
     """
+    logger.info("Archiving %s with id %s", entity_type, id)
     response = requests.put(
         f"""{
             {'connection': CONNECTIONS_URL, 'destination': DESTINATIONS_URL}[entity_type]
@@ -255,7 +256,7 @@ def tear_down(
     conns = []
     dests = []
     for x in conn_names:
-        logger.info("Finding connectsion and destinations for %s", x)
+        logger.info("Finding connections and destinations for %s", x)
         found_conns = search_connections(name=x)["models"]
         if not found_conns:
             logger.info("No connections found for name %s", x)

@@ -1,0 +1,19 @@
+{% extends "nrh-user-base-template.html" %}
+
+{% block content %}
+{% comment %} TODO: [DEV-3779] Style this email in accordance with design spec{% endcomment %}
+<p class="content-header">Start enjoying your new features!</p>
+<ul>
+  <li>Save time with a mailchimp integration</li>
+  <li>Styled receipts, payment reminders, and contributor portal</li>
+  <li>Create and publish more pages</li>
+</ul>
+<p><b>Get started with your Core integration now:</b></p>
+<div class="button-wrapper">
+  <a class="button" href="{{ mailchimp_integration_url }}">
+    CONNECT NOW
+  </a>
+</div>
+<p>*Upgrade may not be reflected immediately. In most cases, your upgrade will be active within 30 minutes. Please allow up to {{upgrade_days_wait}} <p>
+
+{% endblock content %}

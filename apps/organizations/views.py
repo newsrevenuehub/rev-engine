@@ -40,11 +40,15 @@ from apps.organizations.tasks import (
     exchange_mailchimp_oauth_code_for_server_prefix_and_access_token,
 )
 from apps.public.permissions import IsActiveSuperUser
+from apps.users.models import Roles
 
 
 user_model = get_user_model()
 
 logger = logging.getLogger(f"{settings.DEFAULT_LOGGER}.{__name__}")
+
+
+FREE_TO_CORE_UPGRADE_EMAIL_SUBJECT = "You've Upgraded to Core!"
 
 
 class OrganizationViewSet(
@@ -120,6 +124,37 @@ class OrganizationViewSet(
         )
 
     @classmethod
+    def send_upgrade_success_confirmation_email(cls, org: Organization):
+        logger.info("`send_upgrade_success_confirmation_email` running")
+        # TODO: [DEV-3777] Refactor `send_templated_email` to accomodate a list of recipients
+        for to in (
+            org.roleassignment_set.filter(role_type=Roles.ORG_ADMIN.value)
+            .values_list("user__email", flat=True)
+            .distinct("user__email")
+        ):
+            context = {
+                "mailchimp_integration_url": "",
+                "upgrade_days_wait": settings.UPGRADE_DAYS_WAIT,
+            }
+            logger.info("Sending upgrade confirmation email to %s", to)
+            send_templated_email.delay(
+                to=to,
+                subject=FREE_TO_CORE_UPGRADE_EMAIL_SUBJECT,
+                message_as_text=render_to_string("upgrade-confirmation.txt", context=context),
+                message_as_html=render_to_string("upgrade-confirmation.html", context=context),
+            )
+
+    @classmethod
+    def upgrade_from_free_to_core(cls, org: Organization, event: stripe.Event) -> None:
+        logger.info("Upgrading org with ID %s from free to core", org.id)
+        org.stripe_subscription_id = event["data"]["object"]["subscription"]
+        org.plan_name = CorePlan.name
+        with reversion.create_revision():
+            org.save(update_fields={"stripe_subscription_id", "plan_name", "modified"})
+            reversion.set_comment("`upgrade_from_free_to_core` upgraded this org")
+        cls.send_upgrade_success_confirmation_email(org)
+
+    @classmethod
     def handle_checkout_session_completed_event(cls, event: stripe.Event) -> None:
         logger.info("Handling checkout session completed event with event id %s", event["id"])
         ref_id = event["data"]["object"]["client_reference_id"]
@@ -137,14 +172,11 @@ class OrganizationViewSet(
                 "Organization with uuid %s is not upgrading from free to core. No further action to be taken", ref_id
             )
             return
-        org.stripe_subscription_id = event["data"]["object"]["subscription"]
-        org.plan_name = CorePlan.name
-        with reversion.create_revision():
-            org.save(update_fields={"stripe_subscription_id", "plan_name", "modified"})
-            reversion.set_comment("`handle_checkout_session_completed_event` upgraded org to core")
+        cls.upgrade_from_free_to_core(org, event)
 
     @action(detail=False, methods=["post"], permission_classes=[])
     def handle_stripe_webhook(self, request: HttpRequest) -> Response:
+        logger.info("Handling Stripe webhook")
         payload = request.body
         logger.info("Handling Stripe webhook event with type %s", request.data["type"])
         event = self.construct_stripe_event(request, payload)

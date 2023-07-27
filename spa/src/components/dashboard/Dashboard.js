@@ -42,6 +42,7 @@ import useFeatureFlags from 'hooks/useFeatureFlags';
 import { PageEditorRedirect } from 'components/pageEditor/PageEditorRedirect';
 import Subscription from 'components/settings/Subscription/Subscription';
 import useConnectStripeAccount from 'hooks/useConnectStripeAccount';
+import { usePendo } from 'hooks/usePendo';
 import { SentryRoute } from 'hooks/useSentry';
 import useUser from 'hooks/useUser';
 import flagIsActiveForUser from 'utilities/flagIsActiveForUser';
@@ -64,6 +65,8 @@ function Dashboard() {
 
   const { pathname } = useLocation();
   const isEditPage = pathname.includes(EDITOR_ROUTE);
+
+  usePendo();
 
   useEffect(() => {
     if (displayConnectionSuccess) {

@@ -1,17 +1,6 @@
 import { EnginePlan } from 'hooks/useContributionPage';
 
 /**
- * Annual cost of each plan in USD. These are *only* for display purposes. These
- * are not used for actual billing. Undefined here means that we don't have a
- * cost to display.
- */
-export const PLAN_ANNUAL_COSTS: Record<EnginePlan['name'], number | undefined> = {
-  CORE: 2000,
-  FREE: 0,
-  PLUS: undefined
-};
-
-/**
  * Human-readable names of plans.
  */
 export const PLAN_NAMES: Record<EnginePlan['name'], string> = {

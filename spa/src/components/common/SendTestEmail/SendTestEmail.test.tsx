@@ -18,7 +18,7 @@ jest.mock('react-alert', () => ({
 const rpId = 1;
 
 function tree() {
-  return render(<SendTestEmail rpId={rpId} />);
+  return render(<SendTestEmail rpId={rpId} description="mock-description" />);
 }
 
 describe('SendTestEmail', () => {
@@ -54,9 +54,10 @@ describe('SendTestEmail', () => {
     expect(screen.getByText('Test email')).toBeInTheDocument();
   });
 
-  it('should render label', () => {
+  it('should render texts', () => {
     tree();
     expect(screen.getByText('Test email')).toBeInTheDocument();
+    expect(screen.getByText('mock-description')).toBeVisible();
   });
 
   it.each(['Receipt', 'Reminder', 'Magic link'])('should render %s button', (name) => {

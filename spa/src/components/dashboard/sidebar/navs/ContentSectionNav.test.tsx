@@ -2,6 +2,9 @@ import { axe } from 'jest-axe';
 import { CONTENT_SLUG, CUSTOMIZE_SLUG } from 'routes';
 import { render, screen } from 'test-utils';
 import ContentSectionNav from './ContentSectionNav';
+import { getUserRole } from 'utilities/getUserRole';
+
+jest.mock('utilities/getUserRole');
 
 function tree() {
   return render(
@@ -12,6 +15,12 @@ function tree() {
 }
 
 describe('ContentSectionNav', () => {
+  const getUserRoleMock = jest.mocked(getUserRole);
+
+  beforeEach(() => {
+    getUserRoleMock.mockReturnValue({ isSuperUser: false, isHubAdmin: false } as any);
+  });
+
   it('shows a link to the Pages page', () => {
     tree();
 
@@ -28,6 +37,15 @@ describe('ContentSectionNav', () => {
 
     expect(pagesLink).toBeVisible();
     expect(pagesLink).toHaveAttribute('href', CUSTOMIZE_SLUG);
+  });
+
+  it.each([
+    ['superuser', { isSuperUser: true }],
+    ['hub admin', { isHubAdmin: true }]
+  ])('hides link to Customize page if user role = %s', (_, role) => {
+    getUserRoleMock.mockReturnValue(role as any);
+    tree();
+    expect(screen.queryByRole('listitem', { name: 'Customize' })).not.toBeInTheDocument();
   });
 
   it('is accessible', async () => {

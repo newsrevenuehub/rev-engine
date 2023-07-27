@@ -3,6 +3,7 @@ import { render, screen } from 'test-utils';
 import UpgradePlan, { UpgradePlanProps } from './UpgradePlan';
 import { Organization, User } from 'hooks/useUser.types';
 import { SELF_UPGRADE_ACCESS_FLAG_NAME } from 'constants/featureFlagConstants';
+import { PLUS_UPGRADE_URL } from 'constants/helperUrls';
 
 jest.mock('components/common/StripePricingTable/StripePricingTable');
 
@@ -146,6 +147,15 @@ describe('UpgradePlan', () => {
       it('displays the Plus feature list', () => {
         tree();
         expect(screen.getByText('Plus Tier')).toBeVisible();
+      });
+
+      it('displays a link to upgrade', () => {
+        tree();
+
+        const link = screen.getByRole('link', { name: 'Join the Waitlist' });
+
+        expect(link).toBeVisible();
+        expect(link).toHaveAttribute('href', PLUS_UPGRADE_URL);
       });
 
       it('is accessible', async () => {

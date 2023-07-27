@@ -4,7 +4,7 @@ import { Link, LinkButton } from 'components/base';
 import SettingsSection from 'components/common/SettingsSection';
 import { StripePricingTable } from 'components/common/StripePricingTable';
 import { SELF_UPGRADE_ACCESS_FLAG_NAME } from 'constants/featureFlagConstants';
-import { HELP_URL, PRICING_URL } from 'constants/helperUrls';
+import { PLUS_UPGRADE_URL, PRICING_URL } from 'constants/helperUrls';
 import { PLAN_LABELS } from 'constants/orgPlanConstants';
 import { Organization, User } from 'hooks/useUser.types';
 import flagIsActiveForUser from 'utilities/flagIsActiveForUser';
@@ -63,7 +63,7 @@ export function UpgradePlan({ organization, user }: UpgradePlanProps) {
                 <li>Custom Domains</li>
                 <li>Benchmarking</li>
               </PlusFeatureList>
-              <LinkButton href={HELP_URL} target="_blank">
+              <LinkButton href={PLUS_UPGRADE_URL} target="_blank">
                 Join the Waitlist
               </LinkButton>
             </div>

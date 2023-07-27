@@ -388,7 +388,9 @@ class TestOrganizationViewSet:
             "No subscription ID found in event %s", stripe_checkout_process_completed["id"]
         )
 
-    def handle_checkout_session_completed_event(self, api_client, stripe_checkout_process_completed, mocker, settings):
+    def test_handle_checkout_session_completed_event(
+        self, api_client, stripe_checkout_process_completed, mocker, settings
+    ):
         """Show that the handle_stripe_webhook endpoint works as expected"""
         settings.STRIPE_CORE_PRODUCT_ID = "some-product-id"
         save_spy = mocker.spy(Organization, "save")

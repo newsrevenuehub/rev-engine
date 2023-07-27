@@ -170,7 +170,7 @@ class Organization(IndexedTimeStampedModel):
     def __str__(self):
         return self.name
 
-    @property
+    @cached_property
     def stripe_subscription(self):
         if not self.stripe_subscription_id:
             return None

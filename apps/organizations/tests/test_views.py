@@ -393,6 +393,10 @@ class TestOrganizationViewSet:
     def test_send_upgrade_success_confirmation_email_sends_to_all_relevant_org_admins(
         self, mocker, organization, settings
     ):
+        mocker.patch(
+            "apps.organizations.views.OrganizationViewSet.generate_integrations_management_url",
+            return_value=(mailchimp_url := fake.url()),
+        )
         settings.UPGRADE_DAYS_WAIT = 3
         RoleAssignmentFactory.create_batch(
             organization=organization, role_type=Roles.ORG_ADMIN, user__email=fake.email, size=(size := 2)
@@ -409,7 +413,7 @@ class TestOrganizationViewSet:
         assert mock_send_email.call_count == len(org_admin_emails)
         for n, x in enumerate(org_admin_emails):
             expected_context = {
-                "mailchimp_integration_url": "",
+                "mailchimp_integration_url": mailchimp_url,
                 "upgrade_days_wait": settings.UPGRADE_DAYS_WAIT,
             }
             assert mock_send_email.call_args_list[n] == mocker.call(
@@ -418,6 +422,12 @@ class TestOrganizationViewSet:
                 message_as_text=render_to_string("upgrade-confirmation.txt", context=expected_context),
                 message_as_html=render_to_string("upgrade-confirmation.html", context=expected_context),
             )
+
+    def test_generate_integrations_management_url(self, organization, settings):
+        assert (
+            OrganizationViewSet.generate_integrations_management_url(organization)
+            == f"{settings.SITE_URL}/settings/integrations/"
+        )
 
     def test_upgrade_from_free_to_core(self, organization, stripe_checkout_process_completed, mocker):
         organization.stripe_subscription_id = stripe_checkout_process_completed["data"]["object"]["subscription"]

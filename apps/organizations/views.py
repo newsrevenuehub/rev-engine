@@ -123,6 +123,11 @@ class OrganizationViewSet(
             ]
         )
 
+    @staticmethod
+    def generate_integrations_management_url(org: Organization) -> str:
+        logger.info("Generating mailchimp integration URL for org with ID %s", org.id)
+        return f"{settings.SITE_URL}/settings/integrations/"
+
     @classmethod
     def send_upgrade_success_confirmation_email(cls, org: Organization):
         logger.info("`send_upgrade_success_confirmation_email` running")
@@ -133,7 +138,7 @@ class OrganizationViewSet(
             .distinct("user__email")
         ):
             context = {
-                "mailchimp_integration_url": "",
+                "mailchimp_integration_url": cls.generate_integrations_management_url(org),
                 "upgrade_days_wait": settings.UPGRADE_DAYS_WAIT,
             }
             logger.info("Sending upgrade confirmation email to %s", to)

@@ -38,7 +38,8 @@ export interface ModalProps extends Omit<MuiModalProps, 'children'> {
 // instead.
 //
 // To direct react-focus-lock to first focus on a particular input, put a
-// `data-autoFocus` attribute on it.
+// `data-autofocus` attribute on it. <ModalHeader> does this to its content by
+// default, so you may not need to do this.
 
 /**
  * see https://v4.mui.com/api/modal/

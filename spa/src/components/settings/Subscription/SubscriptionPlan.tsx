@@ -1,6 +1,6 @@
-import { PLAN_ANNUAL_COSTS, PLAN_NAMES } from 'constants/orgPlanConstants';
+import { PLAN_NAMES } from 'constants/orgPlanConstants';
 import PropTypes, { InferProps } from 'prop-types';
-import { PlanCost, PlanCostInterval, PlanName, Root } from './SubscriptionPlan.styled';
+import { PlanName, Root } from './SubscriptionPlan.styled';
 import { EnginePlan } from 'hooks/useContributionPage';
 
 const SubscriptionPlanPropTypes = {
@@ -14,12 +14,6 @@ export function SubscriptionPlan({ className, plan }: SubscriptionPlanProps) {
   return (
     <Root className={className!}>
       <PlanName $plan={plan as EnginePlan['name']}>{PLAN_NAMES[plan as EnginePlan['name']]} Tier</PlanName>
-      {PLAN_ANNUAL_COSTS[plan as keyof typeof PLAN_ANNUAL_COSTS] !== undefined && (
-        <PlanCost>
-          ${PLAN_ANNUAL_COSTS[plan as keyof typeof PLAN_ANNUAL_COSTS]}
-          <PlanCostInterval>/year</PlanCostInterval>
-        </PlanCost>
-      )}
     </Root>
   );
 }

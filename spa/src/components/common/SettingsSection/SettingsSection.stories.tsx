@@ -18,6 +18,7 @@ export const Default: ComponentStory<typeof SettingsSection> = (args) => (
 );
 
 Default.args = {
+  orientation: 'horizontal',
   title: 'Organization Tax Status',
   subtitle:
     'The status is used to calculate fees associated with contributions. For non-profits, tax ID (EIN) will be included on contributor receipts.'
@@ -32,14 +33,16 @@ export const NoBottomDivider: ComponentStory<typeof SettingsSection> = (args) =>
 );
 
 NoBottomDivider.args = {
+  orientation: 'horizontal',
   title: 'Organization Name',
   subtitle: 'This will update the name displayed in the navigation menu.',
   hideBottomDivider: true
 };
 
-export const LeftOnly: ComponentStory<typeof SettingsSection> = (args) => <SettingsSection {...args} />;
+export const HeaderOnly: ComponentStory<typeof SettingsSection> = (args) => <SettingsSection {...args} />;
 
-LeftOnly.args = {
+HeaderOnly.args = {
+  orientation: 'horizontal',
   title: 'Details',
   subtitle: 'Update your Organization details and settings here.'
 };

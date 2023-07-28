@@ -1,55 +1,55 @@
 import styled from 'styled-components';
 
-export const Flex = styled.div<{ $hideBottomDivider: boolean }>`
-  display: flex;
-  gap: 40px;
+export const Root = styled.div<{ $hideBottomDivider: boolean; $orientation: 'horizontal' | 'vertical' }>`
+  display: grid;
+
+  ${({ $orientation }) => {
+    switch ($orientation) {
+      case 'horizontal':
+        return `
+          gap: 40px;
+          grid-template-columns: 400px 440px;
+
+          // Switch to a vertical layout below our minimum width.
+
+          @media (max-width: 880px) {
+            gap: 25px;
+            grid-template-columns: 1fr;
+          }
+        `;
+      case 'vertical':
+        return 'gap: 25px;';
+    }
+  }}
 
   ${(props) =>
     !props.$hideBottomDivider &&
     `
-    padding-bottom: 26px;
-    border-bottom: 1px solid ${props.theme.colors.muiGrey[100]};
+    padding-bottom: 25px;
+    border-bottom: 1px solid ${props.theme.basePalette.greyscale.grey3};
   `}
 
   h2,
   p {
-    font-family: ${(props) => props.theme.systemFont};
-  }
-
-  @media (${(props) => props.theme.breakpoints.phoneOnly}) {
-    flex-direction: column;
+    font-family: ${({ theme }) => theme.systemFont};
   }
 `;
 
 export const H3 = styled.h3`
-  font-size: ${(props) => props.theme.fontSizesUpdated[20]};
-  color: ${(props) => props.theme.colors.muiGrey[900]};
+  font-size: ${({ theme }) => theme.fontSizesUpdated[20]};
+  color: ${({ theme }) => theme.basePalette.greyscale.black};
   font-weight: 500;
   margin: 0;
 `;
 
 export const Subtitle = styled.p`
   font-size: ${(props) => props.theme.fontSizesUpdated.md};
-  color: ${(props) => props.theme.colors.muiGrey[600]};
+  color: ${({ theme }) => theme.basePalette.greyscale.grey1};
   margin: 0;
 `;
 
-export const Left = styled.div`
+export const Header = styled.div`
   display: flex;
   flex-direction: column;
-  width: 400px;
   gap: 6px;
-
-  @media (${(props) => props.theme.breakpoints.phoneOnly}) {
-    width: unset;
-  }
-`;
-
-export const Right = styled.div`
-  width: 440px;
-  gap: 6px;
-
-  @media (${(props) => props.theme.breakpoints.phoneOnly}) {
-    width: unset;
-  }
 `;

@@ -30,6 +30,7 @@ const CloseButton = styled(IconButton)`
 
 const Content = styled('div')`
   flex-grow: 1;
+  outline: none;
 `;
 
 const Root = styled('div')`
@@ -43,16 +44,18 @@ const Root = styled('div')`
 `;
 
 export function ModalHeader({ children, className, closeAriaLabel, icon, id, onClose }: ModalHeaderProps) {
-  // The usage of data-no-autofocus on the close button is to prevent it from
-  // being the first focused element when the modal first opens. See
-  // react-focus-lock usage in <Modal>.
+  // The data-autofocus and tabIndex props on Content below ask react-focus-lock
+  // to focus the header first, but keep it out of tab order when the user tabs
+  // around.
 
   return (
     <Root className={className!} id={id!}>
       {icon}
-      <Content>{children}</Content>
+      <Content data-autofocus tabIndex={-1}>
+        {children}
+      </Content>
       {onClose && (
-        <CloseButton aria-label={closeAriaLabel ?? 'Close'} data-no-autofocus onClick={onClose}>
+        <CloseButton aria-label={closeAriaLabel ?? 'Close'} onClick={onClose}>
           <Close />
         </CloseButton>
       )}

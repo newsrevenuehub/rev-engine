@@ -5,7 +5,7 @@ import uuid
 
 def create_uuid(apps, schema_editor):
     Organization = apps.get_model("organizations", "Organization")
-    for organization in Organization.objects.all():
+    for organization in Organization.objects.filter(uuid__isnull=True).all():
         organization.uuid = uuid.uuid4()
         organization.save(update_fields={"uuid", "modified"})
 

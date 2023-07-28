@@ -49,16 +49,27 @@ def upsert(entity_type: Literal["connection", "destination"], data: dict, auto_u
     return data
 
 
-def upsert_destination(name: str, url: str, auto_unarchive: bool = True) -> dict:
+def upsert_destination(name: str, url: str, auto_unarchive: bool = True) -> dict | None:
     """Upsert a destination to Hookdeck.
 
     A *destination* is a named URL to which Hookdeck should forward on received webhooks.
+
+    This will return None if required parameters are missing.
 
     When True, the `auto_unarchive` param will cause a found-but-previously-archived entity in
     to be unarchived and have its state set to state in `data`. This is helpful for our primary use
     case for Hookdeck: review apps. In that context, we should expect to sometimes need to restore a previous
     entity named after a ticket/review app.
     """
+    logger.info("Upserting a destination with name %s url %s and auto_unarchive %s", name, url, auto_unarchive)
+    missing = set()
+    if not name:
+        missing.add("name")
+    if not url:
+        missing.add("url")
+    if missing:
+        logger.warning("Missing required params: %s. Will not upsert this destination", missing)
+        return
     return upsert(
         "destination",
         {
@@ -68,11 +79,13 @@ def upsert_destination(name: str, url: str, auto_unarchive: bool = True) -> dict
     )
 
 
-def upsert_connection(name: str, source_id: str, destination_id: str, auto_unarchive: bool = True) -> dict:
+def upsert_connection(name: str, source_id: str, destination_id: str, auto_unarchive: bool = True) -> dict | None:
     """Upsert a connection to Hookdeck.
 
     A *connection* maps a Hookdeck source to a Hookdeck destination. A given source can be configured
     to have many destinations via a connection.
+
+    This will return None if required parameters are missing.
 
     When True, the `auto_unarchive` param will cause a found-but-previously-archived entity in
     to be unarchived and have its state set to state in `data`. This is helpful for our primary use
@@ -82,6 +95,16 @@ def upsert_connection(name: str, source_id: str, destination_id: str, auto_unarc
     logger.info(
         "Upserting connection with name %s, source id %s, and destination id %s", name, source_id, destination_id
     )
+    missing = set()
+    if not name:
+        missing.add("name")
+    if not source_id:
+        missing.add("source_id")
+    if not destination_id:
+        missing.add("destination_id")
+    if missing:
+        logger.warning("Missing required params: %s. Will not upsert this connection", missing)
+        return
     return upsert(
         "connection",
         {"name": name, "source_id": source_id, "destination_id": destination_id},

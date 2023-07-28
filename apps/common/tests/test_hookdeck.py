@@ -1,5 +1,4 @@
 import json
-from unittest.mock import Mock
 
 from django.urls import reverse
 from django.utils import timezone
@@ -16,6 +15,7 @@ from apps.common.hookdeck import (
     HookDeckIntegrationError,
     archive,
     bootstrap,
+    logger,
     retrieve,
     search_connections,
     search_destinations,
@@ -198,20 +198,38 @@ def test_upsert_when_hookdeck_not_200(entity_type):
         upsert(entity_type, {})
 
 
-def test_upsert_destination(monkeypatch):
-    kwargs = {"name": "my-destination", "url": "https://foo.bar"}
-    mock = Mock()
-    monkeypatch.setattr("apps.common.hookdeck.upsert", mock)
-    upsert_destination(**kwargs)
-    mock.assert_called_once_with("destination", kwargs)
+class TestUpsertDestination:
+    def test_happy_path(self, mocker):
+        kwargs = {"name": "my-destination", "url": "https://foo.bar"}
+        mock_upsert = mocker.patch("apps.common.hookdeck.upsert")
+        assert upsert_destination(**kwargs)
+        mock_upsert.assert_called_once_with("destination", kwargs)
+
+    def test_when_required_are_empty_strings(self, mocker):
+        logger_spy = mocker.spy(logger, "warning")
+        kwargs = {"name": "", "url": ""}
+        mock_upsert = mocker.patch("apps.common.hookdeck.upsert")
+        assert upsert_destination(**kwargs) is None
+        mock_upsert.assert_not_called()
+        for k in kwargs:
+            assert k in logger_spy.call_args[0][1]
 
 
-def test_upsert_connection(monkeypatch):
-    kwargs = {"name": "my-connection", "source_id": "<some-source-id>", "destination_id": "<some-destination-id>"}
-    mock = Mock()
-    monkeypatch.setattr("apps.common.hookdeck.upsert", mock)
-    upsert_connection(**kwargs)
-    mock.assert_called_once_with("connection", kwargs)
+class TestUpsertConnection:
+    def test_happy_path(self, mocker):
+        kwargs = {"name": "my-connection", "source_id": "<some-source-id>", "destination_id": "<some-destination-id>"}
+        mock_upsert = mocker.patch("apps.common.hookdeck.upsert")
+        assert upsert_connection(**kwargs)
+        mock_upsert.assert_called_once_with("connection", kwargs)
+
+    def test_when_required_are_empty_strings(self, mocker):
+        logger_spy = mocker.spy(logger, "warning")
+        kwargs = {"name": "", "source_id": "", "destination_id": ""}
+        mock_upsert = mocker.patch("apps.common.hookdeck.upsert")
+        assert upsert_connection(**kwargs) is None
+        mock_upsert.assert_not_called()
+        for k in kwargs:
+            assert k in logger_spy.call_args[0][1]
 
 
 @responses.activate

@@ -38,7 +38,7 @@ const SendTestEmail = ({ rpId, description }: SendTestEmailProps) => {
   };
 
   return (
-    <div>
+    <div data-testid="send-test-email">
       <Label>Emails</Label>
       <Description>{description}</Description>
       <Preview>Preview sample emails</Preview>

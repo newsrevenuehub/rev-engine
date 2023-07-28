@@ -369,8 +369,8 @@ class TestOrganizationViewSet:
         )
 
     def test_is_upgrade_from_free_to_core(self, mocker, organization, stripe_checkout_process_completed, settings):
-        mocker.patch("stripe.Subscription.retrieve", return_value=(mock_sub := mocker.Mock()))
-        mock_sub.items.data = [(mock_item := mocker.Mock())]
+        mocker.patch("stripe.Subscription.retrieve", return_value=(mock_sub := mocker.MagicMock()))
+        mock_sub["items"].data = [(mock_item := mocker.Mock())]
         settings.STRIPE_CORE_PRODUCT_ID = "some-product-id"
         mock_item.price.product = settings.STRIPE_CORE_PRODUCT_ID
         assert stripe_checkout_process_completed["data"]["object"]["client_reference_id"] == str(organization.uuid)
@@ -396,10 +396,10 @@ class TestOrganizationViewSet:
         save_spy = mocker.spy(Organization, "save")
         mock_set_revision_comment = mocker.patch("reversion.set_comment")
         mocker.patch("stripe.webhook.WebhookSignature.verify_header", return_value=True)
-        mock_sub = mocker.Mock()
+        mock_sub = mocker.MagicMock()
         mock_item = mocker.Mock()
         mock_item.price.product = settings.STRIPE_CORE_PRODUCT_ID
-        mock_sub.items.data = [mock_item]
+        mock_sub["items"].data = [mock_item]
         mocker.patch("stripe.Subscription.retrieve", return_value=mock_sub)
         headers = {"HTTP_STRIPE_SIGNATURE": "some-signature"}
         org = Organization.objects.get(uuid=stripe_checkout_process_completed["data"]["object"]["client_reference_id"])

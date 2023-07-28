@@ -24,6 +24,7 @@ from apps.common.utils import (
     get_original_ip_from_request,
     get_subdomain_from_request,
     google_cloud_pub_sub_is_configured,
+    logger,
     normalize_slug,
     upsert_cloudflare_cnames,
 )
@@ -158,10 +159,16 @@ class TestMigrations(TestCase):
         pass
 
 
-def test_extract_ticket_id_from_branch_name():
-    branch_name = "DEV-1420_db_review_apps"
-    ticket_id = extract_ticket_id_from_branch_name(branch_name)
-    assert ticket_id == "dev-1420"
+@pytest.mark.parametrize(
+    "branch_name,expected", (("dev-1234", "dev-1234"), ("dev-1234-foo", "dev-1234"), ("rando", None))
+)
+def test_extract_ticket_id_from_branch_name(branch_name: str, expected: str, mocker):
+    logger_spy = mocker.spy(logger, "warning")
+    assert extract_ticket_id_from_branch_name(branch_name) == expected
+    if not expected:
+        logger_spy.assert_called_once_with("Could not extract ticket id from branch name: %s", branch_name)
+    else:
+        logger_spy.assert_not_called()
 
 
 @override_settings(HEROKU_APP_NAME="foo")

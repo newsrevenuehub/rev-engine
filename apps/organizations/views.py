@@ -113,15 +113,19 @@ class OrganizationViewSet(
             logger.warning("No subscription ID found in event %s", event.get("id", "no id"))
             return False
         subscription = stripe.Subscription.retrieve(sub_id, api_key=api_key)
-        return all(
-            [
-                event["data"]["object"]["client_reference_id"] == str(org.uuid),
-                event["type"] == "checkout.session.completed",
-                settings.STRIPE_CORE_PRODUCT_ID,
-                subscription.items.data[0].price.product == settings.STRIPE_CORE_PRODUCT_ID,
-                org.plan_name == FreePlan.name,
-            ]
-        )
+
+        conditions = {
+            "client_reference_id": event["data"]["object"]["client_reference_id"] == str(org.uuid),
+            "checkout_sesion_completed": event["type"] == "checkout.session.completed",
+            "stripe_core_product_id": settings.STRIPE_CORE_PRODUCT_ID
+            and subscription["items"].data[0].price.product == settings.STRIPE_CORE_PRODUCT_ID,
+            "org_plan_name": org.plan_name == FreePlan.name,
+        }
+        if missing := [k for k, v in conditions.items() if not v]:
+            logger.info("The following conditions were not met: %s. Returning false", missing)
+            return False
+        else:
+            return True
 
     @staticmethod
     def generate_integrations_management_url(org: Organization) -> str:
@@ -184,6 +188,7 @@ class OrganizationViewSet(
         logger.info("Handling Stripe webhook")
         payload = request.body
         logger.info("Handling Stripe webhook event with type %s", request.data["type"])
+        logger.info("The request body is %s", payload)
         event = self.construct_stripe_event(request, payload)
         if event["type"] == "checkout.session.completed":
             self.handle_checkout_session_completed_event(event)

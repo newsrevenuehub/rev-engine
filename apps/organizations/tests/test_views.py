@@ -371,8 +371,8 @@ class TestOrganizationViewSet:
         )
 
     def test_is_upgrade_from_free_to_core(self, mocker, organization, stripe_checkout_process_completed, settings):
-        mocker.patch("stripe.Subscription.retrieve", return_value=(mock_sub := mocker.Mock()))
-        mock_sub.items.data = [(mock_item := mocker.Mock())]
+        mocker.patch("stripe.Subscription.retrieve", return_value=(mock_sub := mocker.MagicMock()))
+        mock_sub["items"].data = [(mock_item := mocker.Mock())]
         settings.STRIPE_CORE_PRODUCT_ID = "some-product-id"
         mock_item.price.product = settings.STRIPE_CORE_PRODUCT_ID
         assert stripe_checkout_process_completed["data"]["object"]["client_reference_id"] == str(organization.uuid)
@@ -451,14 +451,15 @@ class TestOrganizationViewSet:
         """Show that the handle_stripe_webhook endpoint works as expected"""
         settings.STRIPE_CORE_PRODUCT_ID = "some-product-id"
         mocker.patch("stripe.webhook.WebhookSignature.verify_header", return_value=True)
-        mock_upgrade_from_free_to_core = mocker.patch(
-            "apps.organizations.views.OrganizationViewSet.upgrade_from_free_to_core"
-        )
-        mock_sub = mocker.Mock()
+        mock_sub = mocker.MagicMock()
         mock_item = mocker.Mock()
         mock_item.price.product = settings.STRIPE_CORE_PRODUCT_ID
-        mock_sub.items.data = [mock_item]
+        mock_sub["items"].data = [mock_item]
         mocker.patch("stripe.Subscription.retrieve", return_value=mock_sub)
+        mock_is_upgrade_from_free_to_core = mocker.patch(
+            "apps.organizations.views.OrganizationViewSet.is_upgrade_from_free_to_core", return_value=True
+        )
+        upgrade_from_free_to_core_spy = mocker.spy(OrganizationViewSet, "upgrade_from_free_to_core")
         headers = {"HTTP_STRIPE_SIGNATURE": "some-signature"}
         org = Organization.objects.get(uuid=stripe_checkout_process_completed["data"]["object"]["client_reference_id"])
         assert org.stripe_subscription_id is None
@@ -472,7 +473,8 @@ class TestOrganizationViewSet:
             ).status_code
             == status.HTTP_200_OK
         )
-        mock_upgrade_from_free_to_core.assert_called_once_with(org, stripe_checkout_process_completed)
+        mock_is_upgrade_from_free_to_core.assert_called_once_with(stripe_checkout_process_completed, org)
+        upgrade_from_free_to_core_spy.assert_called_once_with(org, stripe_checkout_process_completed)
 
     def test_handle_checkout_session_completed_event_when_org_not_found(
         self, mocker, stripe_checkout_process_completed, api_client

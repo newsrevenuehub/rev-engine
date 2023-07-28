@@ -114,7 +114,7 @@ class OrganizationViewSet(
                 event["data"]["object"]["client_reference_id"] == str(org.uuid),
                 event["type"] == "checkout.session.completed",
                 settings.STRIPE_CORE_PRODUCT_ID,
-                subscription.items.data[0].price.product == settings.STRIPE_CORE_PRODUCT_ID,
+                subscription["items"].data[0].price.product == settings.STRIPE_CORE_PRODUCT_ID,
                 org.plan_name == FreePlan.name,
             ]
         )

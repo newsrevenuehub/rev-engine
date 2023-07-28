@@ -147,6 +147,7 @@ class OrganizationViewSet(
     def handle_stripe_webhook(self, request: HttpRequest) -> Response:
         payload = request.body
         logger.info("Handling Stripe webhook event with type %s", request.data["type"])
+        logger.info("The request body is %s", payload)
         event = self.construct_stripe_event(request, payload)
         if event["type"] == "checkout.session.completed":
             self.handle_checkout_session_completed_event(event)

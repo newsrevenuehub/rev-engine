@@ -6,7 +6,7 @@ import SendTestEmail from 'components/common/SendTestEmail';
 import { CustomizeContent, SectionWrapper } from 'components/content/pages/Pages.styled';
 import GenericErrorBoundary from 'components/errors/GenericErrorBoundary';
 import { PRICING_URL } from 'constants/helperUrls';
-import { PLAN_NAMES } from 'constants/orgPlanConstants';
+import { PLAN_LABELS } from 'constants/orgPlanConstants';
 import GlobalLoading from 'elements/GlobalLoading';
 import { CUSTOMIZE_CORE_UPGRADE_CLOSED, useSessionState } from 'hooks/useSessionState';
 import useUser from 'hooks/useUser';
@@ -21,7 +21,7 @@ function Styles() {
   const { user, isLoading: userLoading } = useUser();
   const history = useHistory();
   const { isOrgAdmin } = getUserRole(user);
-  const isFreeOrg = user?.organizations?.[0]?.plan?.name === PLAN_NAMES.FREE;
+  const isFreeOrg = user?.organizations?.[0]?.plan?.name === PLAN_LABELS.FREE;
 
   const [coreUpgradePromptClosed, setCoreUpgradePromptClosed] = useSessionState(CUSTOMIZE_CORE_UPGRADE_CLOSED, false);
   const showCoreUpgradePrompt =

@@ -1,7 +1,7 @@
 import { render, screen } from 'test-utils';
 
 import { USER_ROLE_ORG_ADMIN_TYPE } from 'constants/authConstants';
-import { PLAN_NAMES } from 'constants/orgPlanConstants';
+import { PLAN_LABELS } from 'constants/orgPlanConstants';
 import { useSessionState } from 'hooks/useSessionState';
 import useUser from 'hooks/useUser';
 import Styles, { PAID_SUBTITLE } from './Styles';
@@ -44,7 +44,7 @@ describe('Customize Styles', () => {
     expect(screen.getByTestId('mock-global-loading')).toBeInTheDocument();
   });
 
-  describe.each([PLAN_NAMES.FREE, PLAN_NAMES.CORE, PLAN_NAMES.PLUS])('org plan: %s', (plan) => {
+  describe.each([PLAN_LABELS.FREE, PLAN_LABELS.CORE, PLAN_LABELS.PLUS])('org plan: %s', (plan) => {
     beforeEach(() => {
       useUserMock.mockImplementation(
         () => ({ user: { ...orgAdminUser, organizations: [orgPlan(plan)] }, isLoading: false } as any)
@@ -52,7 +52,7 @@ describe('Customize Styles', () => {
     });
 
     it('should render Hero component with correct subtitle', () => {
-      const subtitle = plan === PLAN_NAMES.FREE ? '' : PAID_SUBTITLE;
+      const subtitle = plan === PLAN_LABELS.FREE ? '' : PAID_SUBTITLE;
       tree();
       const hero = screen.getByTestId('mock-hero');
       expect(hero).toBeVisible();
@@ -64,7 +64,7 @@ describe('Customize Styles', () => {
       expect(screen.getByTestId('mock-send-test-email').dataset.rpid).toBe('mock-id');
     });
 
-    if (plan === PLAN_NAMES.FREE) {
+    if (plan === PLAN_LABELS.FREE) {
       it('should render SendTestEmail with free description', () => {
         tree();
         expect(

@@ -1,47 +1,51 @@
-import { Link } from 'components/base';
+import { useEffect } from 'react';
 import HeaderSection from 'components/common/HeaderSection';
+import { PlanChangePendingModal } from 'components/common/Modal/PlanChangePendingModal';
 import SettingsSection from 'components/common/SettingsSection';
-import { HELP_URL, PRICING_URL } from 'constants/helperUrls';
+import SubheaderSection from 'components/common/SubheaderSection';
+import useModal from 'hooks/useModal';
+import useQueryString from 'hooks/useQueryString';
 import useUser from 'hooks/useUser';
 import SubscriptionPlan from './SubscriptionPlan';
-import { Downgrade, PricingLinkContainer, SubscriptionPlanContainer, Wrapper } from './Subscription.styled';
-import SubheaderSection from 'components/common/SubheaderSection';
+import { UpgradePlan } from './UpgradePlan';
+import ManageSubscription from './ManageSubscription';
+import { Root } from './Subscription.styled';
 
 export function Subscription() {
   const { user } = useUser();
   const firstOrg = user?.organizations[0];
+  const { handleClose, handleOpen, open } = useModal();
+  const planUpgrade = useQueryString('pendingPlanUpgrade');
+
+  useEffect(() => {
+    // If the user came back from self-upgrade, then remove the query param from
+    // the URL and show the upgrade pending modal. This query param is defined
+    // in the Stripe pricing table itself.
+
+    if (planUpgrade === 'CORE') {
+      const parsedUrl = new URL(window.location.href);
+
+      parsedUrl.searchParams.delete('pendingPlanUpgrade');
+      window.history.replaceState(null, '', parsedUrl.toString());
+      handleOpen();
+    }
+  }, [handleOpen, planUpgrade]);
 
   if (!user || !firstOrg) {
     return null;
   }
 
   return (
-    <Wrapper>
+    <Root>
       <HeaderSection title="Settings" />
       <SubheaderSection title="Subscription" subtitle="View and manage your plan." />
-      <SettingsSection hideBottomDivider title="Current Plan" />
-      <SubscriptionPlanContainer>
+      <SettingsSection orientation="vertical" title="Current Plan">
         <SubscriptionPlan plan={firstOrg.plan.name} />
-      </SubscriptionPlanContainer>
-      <SettingsSection
-        hideBottomDivider
-        title="Upgrade Plan"
-        subtitle="Increase your customization and insights by upgrading."
-      />
-      <PricingLinkContainer>
-        <Link href={PRICING_URL} target="_blank">
-          View full pricing comparison
-        </Link>
-      </PricingLinkContainer>
-      <SettingsSection hideBottomDivider title="Downgrade or Cancel" />
-      <Downgrade>
-        To downgrade or cancel your plan, contact{' '}
-        <Link href={HELP_URL} target="_blank">
-          Support
-        </Link>
-        .
-      </Downgrade>
-    </Wrapper>
+      </SettingsSection>
+      <ManageSubscription organization={firstOrg} user={user} />
+      <UpgradePlan organization={firstOrg} user={user} />
+      <PlanChangePendingModal futurePlan="CORE" onClose={handleClose} open={open} />
+    </Root>
   );
 }
 

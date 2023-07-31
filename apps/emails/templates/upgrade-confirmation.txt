@@ -7,4 +7,4 @@ Start enjoying your new features!
 To get started with your Core integration now, go to {{mailchimp_integration_url}} and follow the instructions.
 
 
-*Upgrade may not be reflected immediately. In most cases, your upgrade will be active within 30 minutes. Please allow up to {{upgrade_days_wait}} <p>
+*Upgrade may not be reflected immediately. In most cases, your upgrade will be active within 30 minutes. Please allow up to {{upgrade_days_wait}} business days.<p>

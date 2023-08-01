@@ -2,7 +2,7 @@ import { axe } from 'jest-axe';
 import { render, screen } from 'test-utils';
 import Subscription from './Subscription';
 import useUser from 'hooks/useUser';
-import { PLAN_LABELS } from 'constants/orgPlanConstants';
+import { PLAN_NAMES } from 'constants/orgPlanConstants';
 import { HELP_URL, PRICING_URL } from 'constants/helperUrls';
 
 jest.mock('hooks/useUser');
@@ -19,7 +19,7 @@ describe('Subscription', () => {
       isError: false,
       isLoading: false,
       refetch: jest.fn(),
-      user: { organizations: [{ plan: { name: PLAN_LABELS.FREE } }, { plan: { name: PLAN_LABELS.CORE } }] } as any
+      user: { organizations: [{ plan: { name: PLAN_NAMES.FREE } }, { plan: { name: PLAN_NAMES.CORE } }] } as any
     });
   });
 

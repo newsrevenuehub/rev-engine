@@ -1,12 +1,13 @@
-import { ReactComponent as KeyIcon } from '@material-design-icons/svg/outlined/vpn_key.svg';
+import { ReactComponent as LightIcon } from 'assets/icons/recycle_light.svg';
 import { LinkButton } from 'components/base';
 import styled from 'styled-components';
 
 export const Header = styled.h2`
-  color: ${({ theme }) => theme.basePalette.greyscale.black};
+  color: ${({ theme }) => theme.basePalette.primary.purple};
   font-size: ${({ theme }) => theme.fontSizesUpdated.md};
-  font-weight: 500;
+  font-weight: 600;
   margin: 0;
+  margin-top: -10px;
 `;
 
 export const LearnMoreButton = styled(LinkButton)`
@@ -22,28 +23,29 @@ export const LearnMoreButton = styled(LinkButton)`
 
 export const Root = styled.div`
   display: flex;
-  justify-content: space-between;
-  gap: 30px;
+  flex-direction: column;
+  justify-content: center;
+  align-items: center;
+  gap: 20px;
   width: 100%;
-  background: linear-gradient(330deg, #62ffe3 0%, #ecff59 100%);
+  background-color: ${({ theme }) => theme.basePalette.greyscale.grey3};
   border-radius: ${({ theme }) => theme.muiBorderRadius.xl};
-  padding: 15px 30px 15px 50px;
+  padding: 30px;
   position: relative;
   margin-bottom: 40px;
 `;
 
 export const Text = styled.p`
+  max-width: 494px;
+  text-align: center;
   color: ${({ theme }) => theme.basePalette.greyscale.black};
   font-size: ${({ theme }) => theme.fontSizesUpdated.sm};
   margin-top: 10px;
   margin-bottom: 0;
 `;
 
-export const Icon = styled(KeyIcon)`
+export const Icon = styled(LightIcon)`
   height: 24px;
-  left: 15px;
-  position: absolute;
-  top: 13px;
   width: 24px;
 `;
 

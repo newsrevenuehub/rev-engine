@@ -65,6 +65,11 @@ describe('Customize Styles', () => {
     });
 
     if (plan === PLAN_LABELS.FREE) {
+      it('should not render Coming Soon section', () => {
+        tree();
+        expect(screen.queryByText('More features coming soon!')).not.toBeInTheDocument();
+      });
+
       it('should render SendTestEmail with free description', () => {
         tree();
         expect(
@@ -78,7 +83,7 @@ describe('Customize Styles', () => {
         tree();
         expect(screen.getByRole('link', { name: 'upgrade to Core!' })).toHaveAttribute(
           'href',
-          'https://fundjournalism.org/pricing/'
+          'https://fundjournalism.org/i-want-revengine-core/'
         );
       });
 
@@ -95,6 +100,11 @@ describe('Customize Styles', () => {
         expect(setSessionState).toHaveBeenCalledWith(true);
       });
     } else {
+      it('should render Coming Soon section', () => {
+        tree();
+        expect(screen.getByText('More features coming soon!')).toBeInTheDocument();
+      });
+
       it('should not render core upgrade prompt', () => {
         tree();
         expect(screen.queryByTestId('mock-customize-core-upgrade-prompt')).not.toBeInTheDocument();

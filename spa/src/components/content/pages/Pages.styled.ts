@@ -10,13 +10,18 @@ export const Content = styled.div`
 export const CustomizeContent = styled.div`
   display: flex;
   flex-direction: column;
-  gap: 2rem;
+  gap: 40px;
 `;
 
 export const SectionWrapper = styled.div`
   border-radius: 10px;
   border: 1px solid ${({ theme }) => theme.basePalette.greyscale.grey3};
   padding: 20px 25px;
+  margin-right: -26px;
+  margin-left: -26px;
+`;
+
+export const WideMargin = styled.div`
   margin-right: -26px;
   margin-left: -26px;
 `;

@@ -3,9 +3,9 @@ import { useHistory } from 'react-router-dom';
 import { Link } from 'components/base';
 import Hero from 'components/common/Hero';
 import SendTestEmail from 'components/common/SendTestEmail';
-import { CustomizeContent, SectionWrapper } from 'components/content/pages/Pages.styled';
+import { CustomizeContent, SectionWrapper, WideMargin } from 'components/content/pages/Pages.styled';
 import GenericErrorBoundary from 'components/errors/GenericErrorBoundary';
-import { PRICING_URL } from 'constants/helperUrls';
+import { CORE_UPGRADE_URL } from 'constants/helperUrls';
 import { PLAN_LABELS } from 'constants/orgPlanConstants';
 import GlobalLoading from 'elements/GlobalLoading';
 import { CUSTOMIZE_CORE_UPGRADE_CLOSED, useSessionState } from 'hooks/useSessionState';
@@ -13,6 +13,7 @@ import useUser from 'hooks/useUser';
 import { SETTINGS } from 'routes';
 import { getUserRole } from 'utilities/getUserRole';
 import { CustomizeCoreUpgradePrompt } from './CustomizeCoreUpgradePrompt';
+import { ComingSoon } from './ComingSoon';
 
 export const PAID_SUBTITLE =
   'Create branding elements to customize checkout pages, receipt emails, and more. Make adjustments directly in the page editor for special campaigns.';
@@ -31,7 +32,7 @@ function Styles() {
     <>
       RevEngine will automatically send email receipts to your contributors. To use your logo and branding for email
       receipts,{' '}
-      <Link href={PRICING_URL} target="_blank">
+      <Link href={CORE_UPGRADE_URL} target="_blank">
         upgrade to Core!
       </Link>
     </>
@@ -68,6 +69,11 @@ function Styles() {
         <SectionWrapper>
           <SendTestEmail description={emailDescription} rpId={user.revenue_programs[0].id} />
         </SectionWrapper>
+        {!isFreeOrg && (
+          <WideMargin>
+            <ComingSoon />
+          </WideMargin>
+        )}
       </CustomizeContent>
     </GenericErrorBoundary>
   );

@@ -14,3 +14,6 @@ const Template: ComponentStory<typeof Link> = (props) => (
 
 export const Default = Template.bind({});
 Default.args = { href: 'https://fundjournalism.org' };
+
+export const External = Template.bind({});
+External.args = { external: true, href: 'https://fundjournalism.org' };

@@ -17,6 +17,19 @@ describe('Link', () => {
     expect(link).toHaveTextContent('label');
   });
 
+  // These use direct node queries because the SVG image is presentational, so
+  // we can't reach it with Testing Library.
+
+  it("doesn't display an external icon by default", () => {
+    tree({ children: 'label', href: 'test-url' });
+    expect(document.querySelector('svg')).not.toBeInTheDocument();
+  });
+
+  it('displays an external icon if that prop is set', () => {
+    tree({ children: 'label', external: true, href: 'test-url' });
+    expect(document.querySelector('svg')).toBeInTheDocument();
+  });
+
   it('is accessible', async () => {
     const { container } = tree({ children: 'label' });
 

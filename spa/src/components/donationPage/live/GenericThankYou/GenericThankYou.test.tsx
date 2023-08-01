@@ -13,6 +13,7 @@ jest.mock('react-router-dom', () => ({
   useLocation: jest.fn()
 }));
 jest.mock('../../DonationPageFooter/DonationPageFooter');
+jest.mock('../../DonationPageHeader/DonationPageHeader');
 jest.mock('../PostContributionSharing/PostContributionSharing');
 
 function tree() {
@@ -90,9 +91,9 @@ describe('GenericThankYou', () => {
       contextSpy.mockRestore();
     });
 
-    it('shows the donation page navbar', () => {
+    it('shows the donation page header', () => {
       tree();
-      expect(screen.getByTestId('s-header-bar')).toBeInTheDocument();
+      expect(screen.getByTestId('mock-donation-page-header')).toBeInTheDocument();
     });
 
     it('shows the donation page footer', () => {

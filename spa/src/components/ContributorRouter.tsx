@@ -21,7 +21,7 @@ import * as ROUTES from 'routes';
 
 // Components/Children
 import TrackPageView from 'components/analytics/TrackPageView';
-import DonationPageNavbar from 'components/donationPage/DonationPageNavbar';
+import DonationPageHeader from './donationPage/DonationPageHeader';
 import SegregatedStyles from 'components/donationPage/SegregatedStyles';
 
 // Utilities
@@ -82,7 +82,7 @@ function ContributorRouter() {
 
   return (
     <SegregatedStyles page={renderCustomStyles && pageData}>
-      {renderCustomStyles && <DonationPageNavbar page={pageData} />}
+      {renderCustomStyles && <DonationPageHeader page={pageData} />}
       <RouterSetup>
         <ProtectedRoute
           path={ROUTES.CONTRIBUTOR_DASHBOARD}

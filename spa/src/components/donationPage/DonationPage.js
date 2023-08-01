@@ -21,6 +21,7 @@ import {
 } from 'appSettings';
 import DonationPageSidebar from 'components/donationPage/DonationPageSidebar';
 import DonationPageFooter from 'components/donationPage/DonationPageFooter';
+import DonationPageHeader from 'components/donationPage/DonationPageHeader';
 import StripePaymentWrapper from 'components/paymentProviders/stripe/StripePaymentWrapper';
 import Modal from 'elements/modal/Modal';
 import LiveErrorFallback from './live/LiveErrorFallback';
@@ -268,7 +269,7 @@ function DonationPage({ page, live = false }) {
       }}
     >
       <S.DonationPage data-testid="donation-page">
-        {getters.getHeaderBarElement()}
+        <DonationPageHeader page={page} />
         <S.PageMain>
           <S.SideOuter>
             <S.SideInner>

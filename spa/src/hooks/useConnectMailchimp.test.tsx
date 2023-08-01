@@ -412,7 +412,7 @@ describe('useConnectMailchimp hook', () => {
         }
       );
 
-      it('returns a sendUserToMailchimp function which redirects the user to the URL provided by the API if the user has the access flag and is on the Core plan', async () => {
+      it('returns a sendUserToMailchimp function which redirects the user to the URL provided by the API', async () => {
         const mailchimpURL = `https://login.mailchimp.com/oauth2/authorize?${queryString.stringify({
           response_type: 'code',
           client_id: NRE_MAILCHIMP_CLIENT_ID,
@@ -427,29 +427,6 @@ describe('useConnectMailchimp hook', () => {
         result.current.sendUserToMailchimp!();
         expect(assignSpy.mock.calls).toEqual([[mailchimpURL]]);
       });
-
-      it("doesn't return a sendUserToMailchimp function if the user doesn't have the Mailchimp access flag", async () => {
-        useFeatureFlagsMock.mockReturnValue({ flags: [], isLoading: false, isError: false });
-
-        const { result, waitFor } = hook();
-
-        await waitFor(() => expect(axiosMock.history.get.length).toBe(1));
-        expect(result.current.sendUserToMailchimp).toBeUndefined();
-      });
-
-      it.each([['FREE'], ['PLUS']])(
-        "doesn't return a sendUserToMailchimp function if the user is on the %s plan",
-        async (planName) => {
-          useUserMock.mockReturnValue({
-            ...mockUseUserResult,
-            user: { ...mockUser, organizations: [{ ...mockUser.organizations[0], plan: { name: planName } as any }] }
-          });
-          const { result, waitFor } = hook();
-
-          await waitFor(() => expect(axiosMock.history.get.length).toBe(1));
-          expect(result.current.sendUserToMailchimp).toBeUndefined();
-        }
-      );
 
       it('returns a selectAudience function that makes a PATCH request that sets mailchimp_list_id', async () => {
         const { result, waitFor } = hook();

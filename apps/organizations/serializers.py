@@ -48,6 +48,7 @@ class OrganizationInlineSerializer(serializers.ModelSerializer):
         model = Organization
         fields = [
             "id",
+            "uuid",
             "name",
             "slug",
             "plan",

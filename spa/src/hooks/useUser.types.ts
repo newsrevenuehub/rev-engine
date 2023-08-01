@@ -4,6 +4,7 @@ import { EnginePlan, RevenueProgram } from './useContributionPage';
 
 export interface Organization {
   id: number;
+  uuid: string;
   name: string;
   slug: string;
   plan: EnginePlan;

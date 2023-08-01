@@ -97,10 +97,10 @@ export default function useConnectMailchimp(): UseConnectMailchimpResult {
     result.isLoading = false;
   }
 
-  // If we have access to Mailchimp through the feature flag, are on the Core
+  // If we have access to Mailchimp through the feature flag, are on a paid
   // plan, and Mailchimp status has loaded, allow the user to connect to it.
 
-  if (result.hasMailchimpAccess && result.organizationPlan === 'CORE' && mailchimpData) {
+  if (result.hasMailchimpAccess && result.organizationPlan !== 'FREE' && mailchimpData) {
     result.sendUserToMailchimp = sendUserToMailchimp;
   }
 

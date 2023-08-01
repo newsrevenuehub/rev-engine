@@ -8,6 +8,7 @@ from apps.organizations.models import MailchimpProduct, MailchimpSegment, Mailch
 from apps.organizations.serializers import (
     MailchimpRevenueProgramForSpaConfiguration,
     MailchimpRevenueProgramForSwitchboard,
+    OrganizationInlineSerializer,
     RevenueProgramSerializer,
 )
 from conftest import make_mock_mailchimp_email_list
@@ -80,11 +81,31 @@ def mailchimp_segment():
     )
 
 
+EXPECTED_ORGANIZATION_INLINE_SERIALIZER_FIELDS = {
+    "id",
+    "uuid",
+    "name",
+    "slug",
+    "plan",
+    "show_connected_to_slack",
+    "show_connected_to_salesforce",
+    "show_connected_to_mailchimp",
+}
+
+
+@pytest.mark.django_db
+class TestOrganizationInlineSerializer:
+    def test_has_right_fields(self, organization):
+        assert (
+            set(OrganizationInlineSerializer(organization).data.keys())
+            == EXPECTED_ORGANIZATION_INLINE_SERIALIZER_FIELDS
+        )
+
+
 @pytest.mark.django_db
 class TestRevenueProgramSerializer:
     def test_has_right_fields_and_values(
         self,
-        mocker,
         mc_connected_rp,
     ):
         serialized = RevenueProgramSerializer(mc_connected_rp).data

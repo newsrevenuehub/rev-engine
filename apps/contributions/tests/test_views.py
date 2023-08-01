@@ -742,7 +742,7 @@ def test_feature_flagging_when_flag_not_found():
 TEST_STRIPE_API_KEY = "test_stripe_api_key"
 
 
-@override_settings(STRIPE_TEST_SECRET_KEY=TEST_STRIPE_API_KEY)
+@override_settings(STRIPE_TEST_SECRET_KEY_CONTRIBUTIONS=TEST_STRIPE_API_KEY)
 class UpdatePaymentMethodTest(APITestCase):
     def setUp(self):
         self.subscription_id = "test-subscription-id"
@@ -881,7 +881,7 @@ class UpdatePaymentMethodTest(APITestCase):
         # assert about update fields and revision creation
 
 
-@override_settings(STRIPE_TEST_SECRET_KEY=TEST_STRIPE_API_KEY)
+@override_settings(STRIPE_TEST_SECRET_KEY_CONTRIBUTIONS=TEST_STRIPE_API_KEY)
 class CancelRecurringPaymentTest(APITestCase):
     def setUp(self):
         self.subscription_id = "test-subscription-id"
@@ -927,7 +927,7 @@ class CancelRecurringPaymentTest(APITestCase):
         mock_retrieve.assert_called_once()
 
 
-@override_settings(STRIPE_TEST_SECRET_KEY=TEST_STRIPE_API_KEY)
+@override_settings(STRIPE_TEST_SECRET_KEY_CONTRIBUTIONS=TEST_STRIPE_API_KEY)
 class DeleteSubscriptionsTest(APITestCase):
     def setUp(self):
         self.stripe_account_id = "testing-stripe-account-id"
@@ -1279,7 +1279,7 @@ class TestStripeWebhooksView:
             provider_payment_method_id=None,
         )
         header = {"HTTP_STRIPE_SIGNATURE": "testing"}
-        response = client.post(reverse("stripe-webhooks"), payment_method_attached_request_data, **header)
+        response = client.post(reverse("stripe-webhooks-contributions"), payment_method_attached_request_data, **header)
         assert response.status_code == status.HTTP_200_OK
         contribution.refresh_from_db()
         assert contribution.provider_payment_method_id == payment_method_attached_request_data["data"]["object"]["id"]
@@ -1295,6 +1295,6 @@ class TestStripeWebhooksView:
             stripe.Webhook, "construct_event", lambda *args, **kwargs: AttrDict(payment_method_attached_request_data)
         )
         header = {"HTTP_STRIPE_SIGNATURE": "testing"}
-        response = client.post(reverse("stripe-webhooks"), payment_method_attached_request_data, **header)
+        response = client.post(reverse("stripe-webhooks-contributions"), payment_method_attached_request_data, **header)
         assert response.status_code == status.HTTP_200_OK
         assert Contribution.objects.count() == count

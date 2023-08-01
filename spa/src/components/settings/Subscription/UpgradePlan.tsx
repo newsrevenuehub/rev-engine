@@ -45,7 +45,7 @@ export function UpgradePlan({ organization, user }: UpgradePlanProps) {
             STRIPE_SELF_UPGRADE_PRICING_TABLE_PUBLISHABLE_KEY && (
               <PricingTableContainer>
                 <StripePricingTable
-                  clientReferenceId={organization.id.toString()}
+                  clientReferenceId={organization.uuid}
                   customerEmail={user.email}
                   pricingTableId={STRIPE_SELF_UPGRADE_PRICING_TABLE_ID}
                   publishableKey={STRIPE_SELF_UPGRADE_PRICING_TABLE_PUBLISHABLE_KEY}

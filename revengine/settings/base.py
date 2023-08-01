@@ -428,14 +428,16 @@ STRIPE_API_VERSION = "2020-08-27"  # Stripe API Target Version
 DEFAULT_CURRENCY = "usd"
 GENERIC_STRIPE_PRODUCT_NAME = "Contribution via RevEngine"
 WEBHOOK_URL = r"^revengine-stripe-webhook/"
-STRIPE_LIVE_SECRET_KEY = os.getenv("LIVE_HUB_STRIPE_API_SECRET_KEY", "")
-STRIPE_TEST_SECRET_KEY = os.getenv("TEST_HUB_STRIPE_API_SECRET_KEY", "")
+# THE ID of the Stripe product that is used for subscriptions to the Core org plan
+STRIPE_CORE_PRODUCT_ID = os.getenv("STRIPE_CORE_PRODUCT_ID", "")
 STRIPE_OAUTH_SCOPE = "read_write"
 STRIPE_LIVE_MODE = os.getenv("STRIPE_LIVE_MODE", "false").lower() == "true"
+# The following values that end in `_UPGRADES` are for interacting with Stripe to create and manage contributions
+STRIPE_LIVE_SECRET_KEY_CONTRIBUTIONS = os.getenv("STRIPE_LIVE_SECRET_KEY_CONTRIBUTIONS", "")
+STRIPE_TEST_SECRET_KEY_CONTRIBUTIONS = os.getenv("STRIPE_TEST_SECRET_KEY_CONTRIBUTIONS", "")
 # Get it from the section in the Stripe dashboard where you added the webhook endpoint
-STRIPE_WEBHOOK_SECRET = os.getenv("STRIPE_WEBHOOK_SECRET", "")
-# this is the list of events that we want to listen for
-STRIPE_WEBHOOK_EVENTS = [
+STRIPE_WEBHOOK_SECRET_CONTRIBUTIONS = os.getenv("STRIPE_WEBHOOK_SECRET_CONTRIBUTIONS", "")
+STRIPE_WEBHOOK_EVENTS_CONTRIBUTIONS = [
     "payment_intent.canceled",
     "payment_intent.payment_failed",
     "payment_intent.succeeded",
@@ -445,8 +447,17 @@ STRIPE_WEBHOOK_EVENTS = [
     "invoice.upcoming",
 ]
 
+# The following values that end in `_UPGRADES` are for interacting with Stripe to manage org upgrades
+STRIPE_LIVE_SECRET_KEY_UPGRADES = os.getenv("STRIPE_LIVE_SECRET_KEY_UPGRADES", "")
+STRIPE_TEST_SECRET_KEY_UPGRADES = os.getenv("STRIPE_TEST_SECRET_KEY_UPGRADES", "")
+STRIPE_WEBHOOK_SECRET_UPGRADES = os.getenv("STRIPE_WEBHOOK_SECRET_UPGRADES", "")
+STRIPE_WEBHOOK_EVENTS_FOR_UPGRADES = [
+    "checkout.session.completed",
+]
+
 HOOKDECK_API_KEY = os.getenv("HOOKDECK_API_KEY", "")
-HOOKDECK_STRIPE_WEBHOOK_SOURCE = os.getenv("HOOKDECK_STRIPE_WEBHOOK_SOURCE", "")
+HOOKDECK_STRIPE_WEBHOOK_SOURCE_CONTRIBUTIONS = os.getenv("HOOKDECK_STRIPE_WEBHOOK_SOURCE_CONTRIBUTIONS", "")
+HOOKDECK_STRIPE_WEBHOOK_SOURCE_UPGRADES = os.getenv("HOOKDECK_STRIPE_WEBHOOK_SOURCE_UPGRADES", "")
 
 ### django-healthcheck Settings
 # This URL will get pinged when in the `auto_accept_flagged_contributions``

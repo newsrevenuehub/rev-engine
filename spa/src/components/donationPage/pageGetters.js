@@ -3,10 +3,6 @@ import * as dynamicSidebarElements from 'components/donationPage/pageContent/dyn
 import * as staticElements from 'components/donationPage/pageContent/staticElements';
 import ElementError from 'components/donationPage/pageContent/ElementError';
 
-export const getHeaderBarElement = () => {
-  return <staticElements.SHeaderBar />;
-};
-
 export const getPageHeadingElement = () => {
   return <staticElements.SPageHeading />;
 };

@@ -70,6 +70,7 @@ declare module 'styled-components' {
       cstm_inputBackground?: string;
       cstm_inputBorder?: string;
       cstm_mainBackground?: string;
+      cstm_mainHeader?: string;
       cstm_ornaments?: string;
       primary: '#20bfdd';
       primaryLight: '#c7eff7';

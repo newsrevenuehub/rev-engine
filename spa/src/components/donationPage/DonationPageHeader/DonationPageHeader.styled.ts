@@ -1,9 +1,10 @@
 import styled from 'styled-components';
 
-export const DonationPageNavbar = styled.header`
-  width: 100%;
+export const Root = styled.header<{ $bgImage?: string | null }>`
   background: ${(props) =>
-    props.bgImg ? `url(${props.bgImg})` : props.theme.colors.cstm_mainHeader || props.theme.colors.white};
+    props.$bgImage
+      ? `url(${props.$bgImage})`
+      : props.theme.colors.cstm_mainHeader ?? props.theme.basePalette.greyscale.white};
   background-size: cover;
   height: 60px;
   display: flex;
@@ -11,10 +12,10 @@ export const DonationPageNavbar = styled.header`
   align-items: center;
   padding: 0 3rem;
 
-  box-shadow: ${(props) => props.theme.shadows[0]};
+  box-shadow: ${({ theme }) => theme.shadows[0]};
 `;
 
-export const DonationPageNavbarLogo = styled.img`
+export const Logo = styled.img`
   display: block;
   max-height: 50px;
   width: auto;

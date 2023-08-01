@@ -32,7 +32,7 @@ export const Root = styled.div`
   border-radius: ${({ theme }) => theme.muiBorderRadius.xl};
   padding: 30px;
   position: relative;
-  margin-bottom: 40px;
+  margin-bottom: 20px;
 `;
 
 export const Text = styled.p`
@@ -40,8 +40,7 @@ export const Text = styled.p`
   text-align: center;
   color: ${({ theme }) => theme.basePalette.greyscale.black};
   font-size: ${({ theme }) => theme.fontSizesUpdated.sm};
-  margin-top: 10px;
-  margin-bottom: 0;
+  margin: 0;
 `;
 
 export const Icon = styled(LightIcon)`

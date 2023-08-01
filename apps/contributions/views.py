@@ -126,19 +126,21 @@ def stripe_oauth(request):
 @api_view(["POST"])
 @authentication_classes([])
 @permission_classes([])
-def process_stripe_webhook_view(request):
+def process_stripe_webhook(request):
     payload = request.body
     sig_header = request.META["HTTP_STRIPE_SIGNATURE"]
     event = None
     logger.info("In process webhook.")
     try:
         logger.info("Constructing event.")
-        event = stripe.Webhook.construct_event(payload, sig_header, settings.STRIPE_WEBHOOK_SECRET)
+        event = stripe.Webhook.construct_event(payload, sig_header, settings.STRIPE_WEBHOOK_SECRET_CONTRIBUTIONS)
     except ValueError:
         logger.warning("Invalid payload from Stripe webhook request")
         return Response(data={"error": "Invalid payload"}, status=status.HTTP_400_BAD_REQUEST)
     except stripe.error.SignatureVerificationError:
-        logger.exception("Invalid signature on Stripe webhook request. Is STRIPE_WEBHOOK_SECRET set correctly?")
+        logger.exception(
+            "Invalid signature on Stripe webhook request. Is STRIPE_WEBHOOK_SECRET_CONTRIBUTIONS set correctly?"
+        )
         return Response(data={"error": "Invalid signature"}, status=status.HTTP_400_BAD_REQUEST)
 
     try:

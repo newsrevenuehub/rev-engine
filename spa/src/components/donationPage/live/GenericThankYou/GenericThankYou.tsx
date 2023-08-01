@@ -2,8 +2,8 @@ import { Redirect, useLocation } from 'react-router-dom';
 import { HUB_GA_V3_ID } from 'appSettings';
 import SegregatedStyles from 'components/donationPage/SegregatedStyles';
 import { useAnalyticsContext } from 'components/analytics/AnalyticsContext';
-import DonationPageNavbar from 'components/donationPage/DonationPageNavbar';
 import DonationPageFooter from 'components/donationPage/DonationPageFooter';
+import DonationPageHeader from 'components/donationPage/DonationPageHeader';
 import { ContributionPage } from 'hooks/useContributionPage';
 import useWebFonts from 'hooks/useWebFonts';
 import PostContributionSharing from '../PostContributionSharing';
@@ -86,7 +86,7 @@ function GenericThankYou() {
   return (
     <SegregatedStyles page={routedState.page}>
       <Root data-testid="generic-thank-you">
-        <DonationPageNavbar page={routedState.page} />
+        <DonationPageHeader page={routedState.page} />
         <Wrapper>
           <InnerContent>
             <div>

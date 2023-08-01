@@ -40,6 +40,7 @@ from apps.organizations.serializers import (
 )
 from apps.organizations.tests.factories import OrganizationFactory, RevenueProgramFactory
 from apps.organizations.views import (
+    FREE_TO_CORE_UPGRADE_EMAIL_SUBJECT,
     OrganizationViewSet,
     RevenueProgramViewSet,
     get_stripe_account_link_return_url,
@@ -47,6 +48,7 @@ from apps.organizations.views import (
 )
 from apps.public.permissions import IsActiveSuperUser
 from apps.users.choices import Roles
+from apps.users.tests.factories import RoleAssignmentFactory
 
 
 user_model = get_user_model()
@@ -388,19 +390,76 @@ class TestOrganizationViewSet:
             "No subscription ID found in event %s", stripe_checkout_process_completed["id"]
         )
 
+    def test_send_upgrade_success_confirmation_email_sends_to_all_relevant_org_admins(
+        self, mocker, organization, settings
+    ):
+        mocker.patch(
+            "apps.organizations.views.OrganizationViewSet.generate_integrations_management_url",
+            return_value=(mailchimp_url := fake.url()),
+        )
+        settings.UPGRADE_DAYS_WAIT = 3
+        RoleAssignmentFactory.create_batch(
+            organization=organization, role_type=Roles.ORG_ADMIN, user__email=fake.email, size=(size := 2)
+        )
+        organization.refresh_from_db()
+        assert organization.roleassignment_set.filter(role_type="org_admin").count() == size
+        mock_send_email = mocker.patch("apps.emails.tasks.send_templated_email.delay")
+        OrganizationViewSet.send_upgrade_success_confirmation_email(organization)
+        org_admin_emails = (
+            organization.roleassignment_set.filter(role_type="org_admin")
+            .values_list("user__email", flat=True)
+            .distinct("user__email")
+        )
+        assert mock_send_email.call_count == len(org_admin_emails)
+        for n, x in enumerate(org_admin_emails):
+            expected_context = {
+                "mailchimp_integration_url": mailchimp_url,
+                "upgrade_days_wait": settings.UPGRADE_DAYS_WAIT,
+            }
+            assert mock_send_email.call_args_list[n] == mocker.call(
+                to=x,
+                subject=FREE_TO_CORE_UPGRADE_EMAIL_SUBJECT,
+                message_as_text=render_to_string("upgrade-confirmation.txt", context=expected_context),
+                message_as_html=render_to_string("upgrade-confirmation.html", context=expected_context),
+            )
+
+    def test_generate_integrations_management_url(self, organization, settings):
+        assert (
+            OrganizationViewSet.generate_integrations_management_url(organization)
+            == f"{settings.SITE_URL}/settings/integrations/"
+        )
+
+    def test_upgrade_from_free_to_core(self, organization, stripe_checkout_process_completed, mocker):
+        organization.stripe_subscription_id = stripe_checkout_process_completed["data"]["object"]["subscription"]
+        save_spy = mocker.spy(Organization, "save")
+        assert organization.plan_name == FreePlan.name
+        mock_set_revision_comment = mocker.patch("reversion.set_comment")
+        OrganizationViewSet.upgrade_from_free_to_core(organization, stripe_checkout_process_completed)
+        assert (
+            organization.stripe_subscription_id == stripe_checkout_process_completed["data"]["object"]["subscription"]
+        )
+        organization.refresh_from_db()
+        assert organization.plan_name == CorePlan.name
+        save_spy.assert_called_once_with(
+            organization, update_fields={"stripe_subscription_id", "plan_name", "modified"}
+        )
+        mock_set_revision_comment.assert_called_once_with("`upgrade_from_free_to_core` upgraded this org")
+
     def test_handle_checkout_session_completed_event(
         self, api_client, stripe_checkout_process_completed, mocker, settings
     ):
         """Show that the handle_stripe_webhook endpoint works as expected"""
         settings.STRIPE_CORE_PRODUCT_ID = "some-product-id"
-        save_spy = mocker.spy(Organization, "save")
-        mock_set_revision_comment = mocker.patch("reversion.set_comment")
         mocker.patch("stripe.webhook.WebhookSignature.verify_header", return_value=True)
         mock_sub = mocker.MagicMock()
         mock_item = mocker.Mock()
         mock_item.price.product = settings.STRIPE_CORE_PRODUCT_ID
         mock_sub["items"].data = [mock_item]
         mocker.patch("stripe.Subscription.retrieve", return_value=mock_sub)
+        mock_is_upgrade_from_free_to_core = mocker.patch(
+            "apps.organizations.views.OrganizationViewSet.is_upgrade_from_free_to_core", return_value=True
+        )
+        upgrade_from_free_to_core_spy = mocker.spy(OrganizationViewSet, "upgrade_from_free_to_core")
         headers = {"HTTP_STRIPE_SIGNATURE": "some-signature"}
         org = Organization.objects.get(uuid=stripe_checkout_process_completed["data"]["object"]["client_reference_id"])
         assert org.stripe_subscription_id is None
@@ -414,13 +473,8 @@ class TestOrganizationViewSet:
             ).status_code
             == status.HTTP_200_OK
         )
-        org.refresh_from_db()
-        assert org.stripe_subscription_id == stripe_checkout_process_completed["data"]["object"]["subscription"]
-        assert org.plan_name == CorePlan.name
-        save_spy.assert_called_once_with(org, update_fields={"stripe_subscription_id", "plan_name", "modified"})
-        mock_set_revision_comment.assert_called_once_with(
-            "`handle_checkout_session_completed_event` upgraded org to core"
-        )
+        mock_is_upgrade_from_free_to_core.assert_called_once_with(stripe_checkout_process_completed, org)
+        upgrade_from_free_to_core_spy.assert_called_once_with(org, stripe_checkout_process_completed)
 
     def test_handle_checkout_session_completed_event_when_org_not_found(
         self, mocker, stripe_checkout_process_completed, api_client

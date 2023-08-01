@@ -454,6 +454,9 @@ STRIPE_WEBHOOK_SECRET_UPGRADES = os.getenv("STRIPE_WEBHOOK_SECRET_UPGRADES", "")
 STRIPE_WEBHOOK_EVENTS_FOR_UPGRADES = [
     "checkout.session.completed",
 ]
+# Applied in email template sent to confirm successful upgrade from free to core. We advise the recipient
+# that max expected wait time is UPGRADE_DAYS_WAIT days.
+UPGRADE_DAYS_WAIT = 3
 
 HOOKDECK_API_KEY = os.getenv("HOOKDECK_API_KEY", "")
 HOOKDECK_STRIPE_WEBHOOK_SOURCE_CONTRIBUTIONS = os.getenv("HOOKDECK_STRIPE_WEBHOOK_SOURCE_CONTRIBUTIONS", "")

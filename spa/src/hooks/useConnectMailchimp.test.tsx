@@ -428,6 +428,29 @@ describe('useConnectMailchimp hook', () => {
         expect(assignSpy.mock.calls).toEqual([[mailchimpURL]]);
       });
 
+      it("doesn't return a sendUserToMailchimp function if the user doesn't have the Mailchimp access flag", async () => {
+        useFeatureFlagsMock.mockReturnValue({ flags: [], isLoading: false, isError: false });
+
+        const { result, waitFor } = hook();
+
+        await waitFor(() => expect(axiosMock.history.get.length).toBe(1));
+        expect(result.current.sendUserToMailchimp).toBeUndefined();
+      });
+
+      it.each([['FREE'], ['PLUS']])(
+        "doesn't return a sendUserToMailchimp function if the user is on the %s plan",
+        async (planName) => {
+          useUserMock.mockReturnValue({
+            ...mockUseUserResult,
+            user: { ...mockUser, organizations: [{ ...mockUser.organizations[0], plan: { name: planName } as any }] }
+          });
+          const { result, waitFor } = hook();
+
+          await waitFor(() => expect(axiosMock.history.get.length).toBe(1));
+          expect(result.current.sendUserToMailchimp).toBeUndefined();
+        }
+      );
+
       it('returns a selectAudience function that makes a PATCH request that sets mailchimp_list_id', async () => {
         const { result, waitFor } = hook();
 

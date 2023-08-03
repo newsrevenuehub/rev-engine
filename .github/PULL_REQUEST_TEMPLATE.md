@@ -20,6 +20,6 @@ Please fill out each section even if it's just with "N/A"
 
 #### What are the relevant tickets? Add a link to any relevant ones.
 
-#### Do any changes need to be made before deployment to production (adding environment variables, for example)?
+#### Do any changes need to be made before deployment to production (adding environment variables, for example)? If so, open a ticket and link it to the ticket for this PR and list it here:
 
 #### Are there next steps? If so, what? Have tickets been opened for them? List next-step tickets here:

@@ -1,7 +1,6 @@
 import json
-from unittest.mock import Mock
 
-from django.conf import settings
+from django.urls import reverse
 from django.utils import timezone
 
 import pytest
@@ -199,20 +198,38 @@ def test_upsert_when_hookdeck_not_200(entity_type):
         upsert(entity_type, {})
 
 
-def test_upsert_destination(monkeypatch):
-    kwargs = {"name": "my-destination", "url": "https://foo.bar"}
-    mock = Mock()
-    monkeypatch.setattr("apps.common.hookdeck.upsert", mock)
-    upsert_destination(**kwargs)
-    mock.assert_called_once_with("destination", kwargs)
+class TestUpsertDestination:
+    def test_happy_path(self, mocker):
+        kwargs = {"name": "my-destination", "url": "https://foo.bar"}
+        mock_upsert = mocker.patch("apps.common.hookdeck.upsert")
+        assert upsert_destination(**kwargs)
+        mock_upsert.assert_called_once_with("destination", kwargs)
+
+    def test_when_required_are_empty_strings(self, mocker):
+        logger_spy = mocker.spy(logger, "warning")
+        kwargs = {"name": "", "url": ""}
+        mock_upsert = mocker.patch("apps.common.hookdeck.upsert")
+        assert upsert_destination(**kwargs) is None
+        mock_upsert.assert_not_called()
+        for k in kwargs:
+            assert k in logger_spy.call_args[0][1]
 
 
-def test_upsert_connection(monkeypatch):
-    kwargs = {"name": "my-connection", "source_id": "<some-source-id>", "destination_id": "<some-destination-id>"}
-    mock = Mock()
-    monkeypatch.setattr("apps.common.hookdeck.upsert", mock)
-    upsert_connection(**kwargs)
-    mock.assert_called_once_with("connection", kwargs)
+class TestUpsertConnection:
+    def test_happy_path(self, mocker):
+        kwargs = {"name": "my-connection", "source_id": "<some-source-id>", "destination_id": "<some-destination-id>"}
+        mock_upsert = mocker.patch("apps.common.hookdeck.upsert")
+        assert upsert_connection(**kwargs)
+        mock_upsert.assert_called_once_with("connection", kwargs)
+
+    def test_when_required_are_empty_strings(self, mocker):
+        logger_spy = mocker.spy(logger, "warning")
+        kwargs = {"name": "", "source_id": "", "destination_id": ""}
+        mock_upsert = mocker.patch("apps.common.hookdeck.upsert")
+        assert upsert_connection(**kwargs) is None
+        mock_upsert.assert_not_called()
+        for k in kwargs:
+            assert k in logger_spy.call_args[0][1]
 
 
 @responses.activate
@@ -386,57 +403,148 @@ def test_unarchive_when_hookdeck_non_200(entity_type, resource_url):
         assert unarchive(entity_type, id)
 
 
-def test_bootstrap(monkeypatch):
-    destination_id = "dest-id"
-    mock_upsert_destination = Mock(return_value={"id": destination_id})
-    mock_upsert_connection = Mock()
+def test_bootstrap(mocker, settings):
     name = "name"
-    destination_url = "https://www.somewhere.com"
-    monkeypatch.setattr("apps.common.hookdeck.upsert_destination", mock_upsert_destination)
-    monkeypatch.setattr("apps.common.hookdeck.upsert_connection", mock_upsert_connection)
-    bootstrap(name, destination_url)
-    mock_upsert_destination.assert_called_once_with(name=name, url=destination_url)
-    mock_upsert_connection.assert_called_once_with(name, settings.HOOKDECK_STRIPE_WEBHOOK_SOURCE, destination_id)
+    contributions_webhook_url = f"{settings.SITE_URL}{reverse('stripe-webhooks-contributions')}"
+    upgrades_webhook_url = f"{settings.SITE_URL}{reverse('organization-handle-stripe-webhook')}"
+    mock_upsert_destination = mocker.patch(
+        "apps.common.hookdeck.upsert_destination",
+        side_effect=[{"id": (dest_1_id := "<destination-1-id>")}, {"id": (dest_2_id := "<destination-2-id>")}],
+    )
+    mock_upsert_connection = mocker.patch(
+        "apps.common.hookdeck.upsert_connection",
+        side_effect=[{"id": "<connection-1-id>"}, {"id": "<connection-2-id>"}],
+    )
+    bootstrap(name, webhooks_url_contributions=contributions_webhook_url, webhooks_url_upgrades=upgrades_webhook_url)
+    assert mock_upsert_connection.call_count == 2
+    expected_contributions_name = f"{name}-stripe-contributions"
+    expected_upgrades_name = f"{name}-stripe-upgrades"
+    assert mock_upsert_connection.call_args_list[0] == mocker.call(
+        expected_contributions_name, settings.HOOKDECK_STRIPE_WEBHOOK_SOURCE_CONTRIBUTIONS, dest_1_id
+    )
+    assert mock_upsert_connection.call_args_list[1] == mocker.call(
+        expected_upgrades_name, settings.HOOKDECK_STRIPE_WEBHOOK_SOURCE_UPGRADES, dest_2_id
+    )
+    assert mock_upsert_destination.call_count == 2
+
+    assert mock_upsert_destination.call_args_list[0] == mocker.call(
+        name=expected_contributions_name,
+        url=contributions_webhook_url,
+    )
+    assert mock_upsert_destination.call_args_list[1] == mocker.call(
+        name=expected_upgrades_name,
+        url=upgrades_webhook_url,
+    )
 
 
-def test_teardown(monkeypatch):
-    mock_search_destinations = Mock(
-        return_value={"models": [{"id": "some-id-1", "name": "something"}, {"id": "some-id-2", "name": "something"}]}
-    )
-    mock_search_connections = Mock(
-        return_value={
-            "models": [
-                {"id": "some-id-3", "name": "something"},
-            ]
-        }
-    )
-    mock_archive = Mock()
-    monkeypatch.setattr("apps.common.hookdeck.search_destinations", mock_search_destinations)
-    monkeypatch.setattr("apps.common.hookdeck.search_connections", mock_search_connections)
-    monkeypatch.setattr("apps.common.hookdeck.archive", mock_archive)
-    ticket_name = "my-unique-ticket-name"
-    tear_down(ticket_name)
-    mock_search_destinations.assert_called_once_with(name=ticket_name)
-    mock_search_connections.assert_called_once_with(name=ticket_name)
-    assert mock_archive.call_count == len(mock_search_destinations.return_value["models"]) + len(
-        mock_search_connections.return_value["models"]
-    )
+class TestTearDown:
+    def test_happy_path(self, mocker):
+        mock_search_destinations = mocker.patch(
+            "apps.common.hookdeck.search_destinations",
+            side_effect=[
+                {
+                    "models": [
+                        {"id": "<destination-1-id>"},
+                    ]
+                },
+                {
+                    "models": [
+                        {"id": "<destination-2-id>"},
+                    ]
+                },
+            ],
+        )
+        mock_search_connections = mocker.patch(
+            "apps.common.hookdeck.search_connections",
+            side_effect=[
+                {
+                    "models": [
+                        {"id": "<connection-1-id>"},
+                    ]
+                },
+                {
+                    "models": [
+                        {"id": "<connection-2-id>"},
+                    ]
+                },
+            ],
+        )
+        mock_archive = mocker.patch("apps.common.hookdeck.archive")
+        ticket_name = "my-unique-ticket-name"
+        tear_down(ticket_name)
+        assert mock_search_destinations.call_count == 2
+        assert mock_search_destinations.call_args_list[0] == mocker.call(name=f"{ticket_name}-stripe-contributions")
+        assert mock_search_destinations.call_args_list[1] == mocker.call(name=f"{ticket_name}-stripe-upgrades")
+        assert mock_search_connections.call_count == 2
 
+        mock_search_connections.call_args_list[0] == mocker.call(name=f"{ticket_name}-stripe-contributions")
+        mock_search_connections.call_args_list[1] == mocker.call(name=f"{ticket_name}-stripe-upgrades")
+        assert mock_archive.call_count == 4
+        assert mock_archive.call_args_list[0] == mocker.call("connection", "<connection-1-id>")
+        assert mock_archive.call_args_list[1] == mocker.call("connection", "<connection-2-id>")
+        assert mock_archive.call_args_list[2] == mocker.call("destination", "<destination-1-id>")
+        assert mock_archive.call_args_list[3] == mocker.call("destination", "<destination-2-id>")
 
-def test_teardown_when_destinations_and_connections_not_found(monkeypatch, mocker):
-    spy = mocker.spy(logger, "info")
-    mock_search_destinations = Mock(return_value={"models": []})
-    mock_search_connections = Mock(return_value={"models": []})
-    mock_archive = Mock()
-    monkeypatch.setattr("apps.common.hookdeck.search_destinations", mock_search_destinations)
-    monkeypatch.setattr("apps.common.hookdeck.search_connections", mock_search_connections)
-    monkeypatch.setattr("apps.common.hookdeck.archive", mock_archive)
-    ticket_name = "my-unique-ticket-name"
-    tear_down(ticket_name)
-    mock_search_destinations.assert_called_once_with(name=ticket_name)
-    mock_search_connections.assert_called_once_with(name=ticket_name)
-    assert mock_archive.call_count == len(mock_search_destinations.return_value["models"]) + len(
-        mock_search_connections.return_value["models"]
-    )
-    assert spy.call_args_list[0][0] == ("No connections found for ticket with prefix %s", ticket_name)
-    assert spy.call_args_list[1][0] == ("No destinations found for ticket with prefix %s", ticket_name)
+    def test_when_no_conns_found(self, mocker):
+        mock_search_destinations = mocker.patch(
+            "apps.common.hookdeck.search_destinations",
+            side_effect=[
+                {
+                    "models": [
+                        {"id": "<destination-1-id>"},
+                    ]
+                },
+                {
+                    "models": [
+                        {"id": "<destination-2-id>"},
+                    ]
+                },
+            ],
+        )
+        mock_search_connections = mocker.patch(
+            "apps.common.hookdeck.search_connections",
+            side_effect=[
+                {"models": []},
+                {"models": []},
+            ],
+        )
+        mock_archive = mocker.patch("apps.common.hookdeck.archive")
+        ticket_name = "my-unique-ticket-name"
+        tear_down(ticket_name)
+        assert mock_search_destinations.call_count == 2
+        assert mock_search_connections.call_count == 2
+        assert mock_archive.call_count == 2
+        assert mock_archive.call_args_list[0] == mocker.call("destination", "<destination-1-id>")
+        assert mock_archive.call_args_list[1] == mocker.call("destination", "<destination-2-id>")
+
+    def test_when_no_dests_found(self, mocker):
+        mock_search_connections = mocker.patch(
+            "apps.common.hookdeck.search_connections",
+            side_effect=[
+                {
+                    "models": [
+                        {"id": "<connection-1-id>"},
+                    ]
+                },
+                {
+                    "models": [
+                        {"id": "<connection-2-id>"},
+                    ]
+                },
+            ],
+        )
+        mock_search_destinations = mocker.patch(
+            "apps.common.hookdeck.search_destinations",
+            side_effect=[
+                {"models": []},
+                {"models": []},
+            ],
+        )
+        mock_archive = mocker.patch("apps.common.hookdeck.archive")
+        ticket_name = "my-unique-ticket-name"
+        tear_down(ticket_name)
+        assert mock_search_destinations.call_count == 2
+        assert mock_search_connections.call_count == 2
+        assert mock_archive.call_count == 2
+        assert mock_archive.call_args_list[0] == mocker.call("connection", "<connection-1-id>")
+        assert mock_archive.call_args_list[1] == mocker.call("connection", "<connection-2-id>")

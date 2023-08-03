@@ -73,7 +73,7 @@ class TestPaymentIntentSucceeded:
         )
         save_spy = mocker.spy(Contribution, "save")
         send_receipt_email_spy = mocker.spy(Contribution, "handle_thank_you_email")
-        response = client.post(reverse("stripe-webhooks"), data=payment_intent_succeeded, **header)
+        response = client.post(reverse("stripe-webhooks-contributions"), data=payment_intent_succeeded, **header)
 
         # the next two assertions are to ensure we're only allowing webhook to update a subset of fields
         # on the instance, in order to avoid race conditions
@@ -105,7 +105,7 @@ class TestPaymentIntentSucceeded:
         assert not Contribution.objects.filter(
             provider_payment_id=payment_intent_succeeded["data"]["object"]["id"]
         ).exists()
-        response = client.post(reverse("stripe-webhooks"), data=payment_intent_succeeded, **header)
+        response = client.post(reverse("stripe-webhooks-contributions"), data=payment_intent_succeeded, **header)
         assert response.status_code == status.HTTP_200_OK
         mock_log_exception.assert_called_once_with("Could not find contribution")
 
@@ -128,7 +128,7 @@ class TestPaymentIntentCanceled:
         mock_create_revision.__enter__.return_value = None
         mock_set_revision_comment = mocker.patch("reversion.set_comment")
 
-        response = client.post(reverse("stripe-webhooks"), data=payment_intent_canceled, **header)
+        response = client.post(reverse("stripe-webhooks-contributions"), data=payment_intent_canceled, **header)
 
         # the next two assertions are to ensure we're only allowing webhook to update a subset of fields
         # on the instance, in order to avoid race conditions
@@ -155,7 +155,7 @@ class TestPaymentIntentCanceled:
         assert not Contribution.objects.filter(
             provider_payment_id=payment_intent_canceled["data"]["object"]["id"]
         ).exists()
-        response = client.post(reverse("stripe-webhooks"), data=payment_intent_canceled, **header)
+        response = client.post(reverse("stripe-webhooks-contributions"), data=payment_intent_canceled, **header)
         assert response.status_code == status.HTTP_200_OK
         mock_log_exception.assert_called_once_with("Could not find contribution")
 
@@ -174,7 +174,7 @@ class TestPaymentIntentPaymentFailed:
         mock_create_revision = mocker.patch("reversion.create_revision")
         mock_create_revision.__enter__.return_value = None
         mock_set_revision_comment = mocker.patch("reversion.set_comment")
-        response = client.post(reverse("stripe-webhooks"), data=payment_intent_payment_failed, **header)
+        response = client.post(reverse("stripe-webhooks-contributions"), data=payment_intent_payment_failed, **header)
         spy.assert_called_once_with(contribution, update_fields={"status", "payment_provider_data", "modified"})
         mock_create_revision.assert_called_once()
         mock_set_revision_comment.assert_called_once_with(
@@ -194,7 +194,7 @@ class TestPaymentIntentPaymentFailed:
         assert not Contribution.objects.filter(
             provider_payment_id=payment_intent_payment_failed["data"]["object"]["id"]
         ).exists()
-        response = client.post(reverse("stripe-webhooks"), data=payment_intent_payment_failed, **header)
+        response = client.post(reverse("stripe-webhooks-contributions"), data=payment_intent_payment_failed, **header)
         assert response.status_code == status.HTTP_200_OK
         mock_log_exception.assert_called_once_with("Could not find contribution")
 
@@ -219,7 +219,7 @@ class TestCustomerSubscriptionUpdated:
         mock_create_revision.__enter__.return_value = None
         mock_set_revision_comment = mocker.patch("reversion.set_comment")
 
-        response = client.post(reverse("stripe-webhooks"), data=customer_subscription_updated, **header)
+        response = client.post(reverse("stripe-webhooks-contributions"), data=customer_subscription_updated, **header)
 
         expected_update_fields = {
             "modified",
@@ -251,7 +251,7 @@ class TestCustomerSubscriptionUpdated:
         assert not Contribution.objects.filter(
             provider_subscription_id=customer_subscription_updated["data"]["object"]["id"]
         ).exists()
-        response = client.post(reverse("stripe-webhooks"), data=customer_subscription_updated, **header)
+        response = client.post(reverse("stripe-webhooks-contributions"), data=customer_subscription_updated, **header)
         assert response.status_code == status.HTTP_200_OK
         mock_log_exception.assert_called_once_with("Could not find contribution")
 
@@ -270,7 +270,7 @@ class TestCustomerSubscriptionDeleted:
         mock_create_revision.__enter__.return_value = None
         mock_set_revision_comment = mocker.patch("reversion.set_comment")
 
-        response = client.post(reverse("stripe-webhooks"), data=customer_subscription_deleted, **header)
+        response = client.post(reverse("stripe-webhooks-contributions"), data=customer_subscription_deleted, **header)
         spy.assert_called_once_with(contribution, update_fields={"status", "payment_provider_data", "modified"})
         mock_create_revision.assert_called_once()
         mock_set_revision_comment.assert_called_once_with(
@@ -290,7 +290,7 @@ class TestCustomerSubscriptionDeleted:
         assert not Contribution.objects.filter(
             provider_subscription_id=customer_subscription_updated["data"]["object"]["id"]
         ).exists()
-        response = client.post(reverse("stripe-webhooks"), data=customer_subscription_updated, **header)
+        response = client.post(reverse("stripe-webhooks-contributions"), data=customer_subscription_updated, **header)
         assert response.status_code == status.HTTP_200_OK
         mock_log_exception.assert_called_once_with("Could not find contribution")
 
@@ -306,7 +306,7 @@ def test_customer_subscription_untracked_event(client, customer_subscription_upd
         provider_subscription_id=customer_subscription_updated["data"]["object"]["id"],
     )
     customer_subscription_updated["type"] = "untracked-event"
-    response = client.post(reverse("stripe-webhooks"), data=customer_subscription_updated, **header)
+    response = client.post(reverse("stripe-webhooks-contributions"), data=customer_subscription_updated, **header)
     assert response.status_code == status.HTTP_200_OK
     mock_log_warning.assert_called_once_with(
         "`StripeWebhookProcessor.process_subscription` called with unexpected event type: %s",
@@ -323,7 +323,7 @@ def test_payment_method_attached(client, monkeypatch, payment_method_attached, m
         provider_customer_id=payment_method_attached["data"]["object"]["customer"],
     )
     spy = mocker.spy(Contribution, "save")
-    response = client.post(reverse("stripe-webhooks"), data=payment_method_attached, **header)
+    response = client.post(reverse("stripe-webhooks-contributions"), data=payment_method_attached, **header)
 
     spy.assert_called_once_with(contribution, update_fields={"provider_payment_method_id", "modified"})
     assert response.status_code == status.HTTP_200_OK
@@ -334,7 +334,7 @@ def test_payment_method_attached(client, monkeypatch, payment_method_attached, m
 @pytest.mark.django_db
 def test_stripe_webhooks_endpoint_when_invalid_signature(client):
     header = {"HTTP_STRIPE_SIGNATURE": "testing", "content_type": "application/json"}
-    response = client.post(reverse("stripe-webhooks"), data={}, **header)
+    response = client.post(reverse("stripe-webhooks-contributions"), data={}, **header)
     assert response.status_code == status.HTTP_400_BAD_REQUEST
     assert response.data["error"] == "Invalid signature"
 
@@ -356,7 +356,7 @@ def test_invoice_updated_webhook(interval, expect_reminder_email, client, monkey
     )
     save_spy = mocker.spy(Contribution, "save")
     header = {"HTTP_STRIPE_SIGNATURE": "testing", "content_type": "application/json"}
-    response = client.post(reverse("stripe-webhooks"), data=invoice_upcoming, **header)
+    response = client.post(reverse("stripe-webhooks-contributions"), data=invoice_upcoming, **header)
     assert response.status_code == status.HTTP_200_OK
     if expect_reminder_email:
         mock_send_reminder.assert_called_once_with(

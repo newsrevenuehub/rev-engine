@@ -2,8 +2,6 @@ import hashlib
 import io
 from csv import DictReader
 
-from django.test import TestCase, override_settings
-
 import pytest
 
 from apps.contributions.models import Contribution
@@ -16,26 +14,22 @@ from apps.contributions.utils import (
 )
 
 
-LIVE_KEY = "live-key-test"
-TEST_KEY = "test-key"
-
-
-@override_settings(STRIPE_LIVE_SECRET_KEY=LIVE_KEY)
-@override_settings(STRIPE_TEST_SECRET_KEY=TEST_KEY)
-class UtilsTest(TestCase):
-    @override_settings(STRIPE_LIVE_MODE=True)
-    def test_get_hub_stripe_api_key_returns_live_key_when_proper_setting(self):
+class TestUtils:
+    def test_get_hub_stripe_api_key_returns_live_key_when_proper_setting(self, settings):
+        settings.STRIPE_LIVE_MODE = True
+        settings.STRIPE_LIVE_SECRET_KEY_CONTRIBUTIONS = "live-key"
         key = get_hub_stripe_api_key()
-        self.assertEqual(key, LIVE_KEY)
+        assert key == settings.STRIPE_LIVE_SECRET_KEY_CONTRIBUTIONS
 
-    @override_settings(STRIPE_LIVE_MODE=False)
-    def test_get_hub_stripe_api_key_returns_test_key_otherwise(self):
+    def test_get_hub_stripe_api_key_returns_test_key_otherwise(self, settings):
+        settings.STRIPE_LIVE_MODE = False
+        settings.STRIPE_TEST_SECRET_KEY_CONTRIBUTIONS = "test-key"
         key = get_hub_stripe_api_key()
-        self.assertEqual(key, TEST_KEY)
+        assert key == settings.STRIPE_TEST_SECRET_KEY_CONTRIBUTIONS
 
 
-@override_settings(ENCRYPTION_SALT="salt")
-def test_hash_is_salted():
+def test_hash_is_salted(settings):
+    settings.ENCRYPTION_SALT = "salt"
     result = hashlib.sha256("test".encode())
     hash_str = result.hexdigest()
     assert hash_str[:15] != get_sha256_hash("test")  # because salt is added

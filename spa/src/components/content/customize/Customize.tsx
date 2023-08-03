@@ -1,4 +1,4 @@
-import { useHistory } from 'react-router-dom';
+import { Link as RouterLink } from 'react-router-dom';
 
 import { Link } from 'components/base';
 import Hero from 'components/common/Hero';
@@ -12,15 +12,16 @@ import { CUSTOMIZE_CORE_UPGRADE_CLOSED, useSessionState } from 'hooks/useSession
 import useUser from 'hooks/useUser';
 import { SETTINGS } from 'routes';
 import { getUserRole } from 'utilities/getUserRole';
-import { CustomizeCoreUpgradePrompt } from './CustomizeCoreUpgradePrompt';
 import { ComingSoon } from './ComingSoon';
+import { CustomizeCoreUpgradePrompt } from './CustomizeCoreUpgradePrompt';
+
+const LooseLink = Link as any;
 
 export const PAID_SUBTITLE =
   'Create branding elements to customize checkout pages, receipt emails, and more. Make adjustments directly in the page editor for special campaigns.';
 
-function Styles() {
+function Customize() {
   const { user, isLoading: userLoading } = useUser();
-  const history = useHistory();
   const { isOrgAdmin } = getUserRole(user);
   const isFreeOrg = user?.organizations?.[0]?.plan?.name === PLAN_NAMES.FREE;
 
@@ -40,17 +41,9 @@ function Styles() {
     <>
       We’ll use your brand elements and default contribution page to style receipts, payment reminders, and contributor
       portal emails. For marketing and engagement emails, check out{' '}
-      <Link
-        onClick={(e) => {
-          // prevent default so that the link doesn't navigate with refresh, but instead uses react-router
-          e.preventDefault();
-          history.push(SETTINGS.INTEGRATIONS);
-        }}
-        // href is setup here so that link URL is shown in the bottom of the browser window on hover
-        href={SETTINGS.INTEGRATIONS}
-      >
+      <LooseLink component={RouterLink} to={SETTINGS.INTEGRATIONS}>
         email automation integrations.
-      </Link>
+      </LooseLink>
     </>
   );
 
@@ -65,7 +58,7 @@ function Styles() {
     <GenericErrorBoundary>
       <Hero title="Customize" subtitle={isFreeOrg ? '' : PAID_SUBTITLE} />
       {showCoreUpgradePrompt && <CustomizeCoreUpgradePrompt onClose={() => setCoreUpgradePromptClosed(true)} />}
-      <CustomizeContent data-testid="styles-list">
+      <CustomizeContent>
         <SectionWrapper>
           <SendTestEmail description={emailDescription} rpId={user.revenue_programs[0].id} />
         </SectionWrapper>
@@ -79,4 +72,4 @@ function Styles() {
   );
 }
 
-export default Styles;
+export default Customize;

@@ -1,4 +1,4 @@
-import Styles from 'components/content/styles/Styles';
+import Styles from 'components/content/customize/Customize';
 import GlobalLoading from 'elements/GlobalLoading';
 import PageTitle from 'elements/PageTitle';
 import useUser from 'hooks/useUser';
@@ -6,7 +6,7 @@ import { Redirect } from 'react-router-dom';
 import { CONTENT_SLUG } from 'routes';
 import { getUserRole } from 'utilities/getUserRole';
 
-function Customize() {
+function CustomizeRoute() {
   const { user, isLoading } = useUser();
   const { isHubAdmin, isSuperUser } = getUserRole(user);
 
@@ -24,4 +24,4 @@ function Customize() {
   );
 }
 
-export default Customize;
+export default CustomizeRoute;

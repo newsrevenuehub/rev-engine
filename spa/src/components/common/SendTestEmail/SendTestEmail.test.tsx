@@ -3,14 +3,15 @@ import Axios from 'ajax/axios';
 import { SEND_TEST_EMAIL } from 'ajax/endpoints';
 import MockAdapter from 'axios-mock-adapter';
 import { axe } from 'jest-axe';
-import { useAlert } from 'react-alert';
+import { useSnackbar } from 'notistack';
+
 import { render, screen, waitFor } from 'test-utils';
 import SendTestEmail from './SendTestEmail';
 
 jest.mock('hooks/useUser');
-jest.mock('react-alert', () => ({
-  ...jest.requireActual('react-alert'),
-  useAlert: jest.fn()
+jest.mock('notistack', () => ({
+  ...jest.requireActual('notistack'),
+  useSnackbar: jest.fn()
 }));
 
 const rpId = 1;
@@ -20,11 +21,12 @@ function tree() {
 }
 
 describe('SendTestEmail', () => {
-  const useAlertMock = jest.mocked(useAlert);
+  const useSnackbarMock = jest.mocked(useSnackbar);
+  const enqueueSnackbar = jest.fn();
   const axiosMock = new MockAdapter(Axios);
 
   beforeEach(() => {
-    useAlertMock.mockReturnValue({ info: jest.fn(), error: jest.fn() } as any);
+    useSnackbarMock.mockReturnValue({ enqueueSnackbar } as any);
   });
 
   afterEach(() => axiosMock.reset());
@@ -43,57 +45,60 @@ describe('SendTestEmail', () => {
     expect(screen.getByRole('button', { name })).toBeEnabled();
   });
 
-  it.each([
+  describe.each([
     ['Send Receipt', 'receipt'],
     ['Send Reminder', 'reminder'],
     ['Send Magic link', 'magic_link']
-  ])('should POST to "/send-test-email/" if %s button is clicked', async (name, email_name) => {
-    axiosMock.onPost(SEND_TEST_EMAIL).reply(200);
-    tree();
-    userEvent.click(screen.getByRole('button', { name }));
-    await waitFor(() => expect(axiosMock.history.post).toHaveLength(1));
-    expect(axiosMock.history.post[0]).toEqual(
-      expect.objectContaining({
-        data: JSON.stringify({
-          email_name,
-          revenue_program: rpId
-        }),
-        url: SEND_TEST_EMAIL
-      })
-    );
-  });
+  ])('%s', (name, email_name) => {
+    it(`should POST to "/send-test-email/" if ${name} button is clicked`, async () => {
+      axiosMock.onPost(SEND_TEST_EMAIL).reply(200);
+      tree();
+      userEvent.click(screen.getByRole('button', { name }));
+      await waitFor(() => expect(axiosMock.history.post).toHaveLength(1));
+      expect(axiosMock.history.post[0]).toEqual(
+        expect.objectContaining({
+          data: JSON.stringify({
+            email_name,
+            revenue_program: rpId
+          }),
+          url: SEND_TEST_EMAIL
+        })
+      );
+    });
 
-  it('should show success notification is POST completes', async () => {
-    const info = jest.fn();
-    const error = jest.fn();
-    useAlertMock.mockReturnValue({ info, error } as any);
-    axiosMock.onPost(SEND_TEST_EMAIL).reply(200);
-    tree();
-    expect(info).not.toHaveBeenCalled();
-    userEvent.click(screen.getByRole('button', { name: 'Send Receipt' }));
+    it('should show success notification is POST completes', async () => {
+      axiosMock.onPost(SEND_TEST_EMAIL).reply(200);
+      tree();
+      expect(enqueueSnackbar).not.toHaveBeenCalled();
+      userEvent.click(screen.getByRole('button', { name }));
 
-    await waitFor(() => expect(axiosMock.history.post).toHaveLength(1));
-    expect(info).toHaveBeenCalledWith('Sending test email. Check your inbox.');
-    expect(info).toHaveBeenCalledTimes(1);
-    expect(error).toHaveBeenCalledTimes(0);
-  });
+      await waitFor(() => expect(axiosMock.history.post).toHaveLength(1));
+      expect(enqueueSnackbar).toHaveBeenCalledWith(
+        'Sending test email. Please check your inbox.',
+        expect.objectContaining({
+          persist: true
+        })
+      );
+      expect(enqueueSnackbar).toHaveBeenCalledTimes(1);
+    });
 
-  it('should show error notification if POST fails', async () => {
-    const errorSpy = jest.spyOn(console, 'error').mockImplementation(() => {});
+    it('should show error notification if POST fails', async () => {
+      const errorSpy = jest.spyOn(console, 'error').mockImplementation(() => {});
+      axiosMock.onPost().networkError();
+      tree();
+      expect(enqueueSnackbar).not.toHaveBeenCalled();
+      userEvent.click(screen.getByRole('button', { name }));
 
-    const info = jest.fn();
-    const error = jest.fn();
-    useAlertMock.mockReturnValue({ info, error } as any);
-    axiosMock.onPost().networkError();
-    tree();
-    expect(error).not.toHaveBeenCalled();
-    userEvent.click(screen.getByRole('button', { name: 'Send Receipt' }));
-
-    await waitFor(() => expect(axiosMock.history.post).toHaveLength(1));
-    expect(error).toHaveBeenCalledWith('Error sending test email');
-    expect(error).toHaveBeenCalledTimes(1);
-    expect(info).toHaveBeenCalledTimes(0);
-    errorSpy.mockRestore();
+      await waitFor(() => expect(axiosMock.history.post).toHaveLength(1));
+      expect(enqueueSnackbar).toHaveBeenCalledWith(
+        'There’s been a problem sending test email. Please try again.',
+        expect.objectContaining({
+          persist: true
+        })
+      );
+      expect(enqueueSnackbar).toHaveBeenCalledTimes(1);
+      errorSpy.mockRestore();
+    });
   });
 
   it('is accessible', async () => {

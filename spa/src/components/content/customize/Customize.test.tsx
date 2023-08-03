@@ -4,7 +4,7 @@ import { USER_ROLE_ORG_ADMIN_TYPE } from 'constants/authConstants';
 import { PLAN_NAMES } from 'constants/orgPlanConstants';
 import { useSessionState } from 'hooks/useSessionState';
 import useUser from 'hooks/useUser';
-import Styles, { PAID_SUBTITLE } from './Styles';
+import Customize, { PAID_SUBTITLE } from './Customize';
 
 jest.mock('hooks/useUser');
 jest.mock('hooks/useSessionState');
@@ -31,7 +31,7 @@ describe('Customize Styles', () => {
   const setSessionState = jest.fn();
 
   function tree() {
-    return render(<Styles />);
+    return render(<Customize />);
   }
 
   beforeEach(() => {

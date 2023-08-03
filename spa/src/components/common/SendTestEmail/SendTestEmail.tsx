@@ -3,13 +3,14 @@ import axios from 'ajax/axios';
 import { SEND_TEST_EMAIL } from 'ajax/endpoints';
 import { Button } from 'components/base';
 import PropTypes, { InferProps } from 'prop-types';
-import { useAlert } from 'react-alert';
+import { useSnackbar } from 'notistack';
 import { ButtonWrapper, Description, Label, Preview } from './SendTestEmail.styled';
+import SystemNotification from '../SystemNotification';
 
 export type SendTestEmailProps = InferProps<typeof SendTestEmailPropTypes>;
 
 const SendTestEmail = ({ rpId, description }: SendTestEmailProps) => {
-  const alert = useAlert();
+  const { enqueueSnackbar } = useSnackbar();
 
   async function postSendTestEmail(email_name?: string, revenue_program?: number) {
     const result = await axios.post(SEND_TEST_EMAIL, {
@@ -25,10 +26,20 @@ const SendTestEmail = ({ rpId, description }: SendTestEmailProps) => {
     },
     {
       onSuccess: () => {
-        alert.info('Sending test email. Check your inbox.');
+        enqueueSnackbar('Sending test email. Please check your inbox.', {
+          persist: true,
+          content: (key: string, message: string) => (
+            <SystemNotification id={key} message={message} header="Sending Email" type="info" />
+          )
+        });
       },
       onError: () => {
-        alert.error('Error sending test email');
+        enqueueSnackbar('There’s been a problem sending test email. Please try again.', {
+          persist: true,
+          content: (key: string, message: string) => (
+            <SystemNotification id={key} message={message} header="Error sending test email" type="error" />
+          )
+        });
       }
     }
   );

@@ -261,14 +261,14 @@ class StripeMetaDataBase(pydantic.BaseModel):
     @pydantic.validator("marketing_consent", "swag_opt_out", "agreed_to_pay_fees")
     @classmethod
     def normalize_boolean(cls, v: Any) -> bool | None:
-        if v in (True, None, False):
+        if any([isinstance(v, bool), v is None]):
             return v
         if isinstance(v, str):
             if v.lower() in ["false", "none", "no", "n"]:
                 return False
             if v.lower() in ["true", "yes", "y"]:
                 return True
-        raise ValueError("Value must be a boolean, None, or string")
+        raise ValueError("Value must be a boolean, None, or castable string")
 
     @classmethod
     def build(cls, *args, **kwargs) -> None:

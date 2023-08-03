@@ -24,7 +24,7 @@ from apps.contributions.models import (
     ContributionStatus,
     Contributor,
 )
-from apps.contributions.serializers import ContributionSerializer
+from apps.contributions.serializers import ContributionSerializer, StripeMetaDataBase
 from apps.contributions.tests.factories import ContributorFactory
 from apps.contributions.utils import get_sha256_hash
 from apps.pages.tests.factories import DonationPageFactory
@@ -1463,3 +1463,35 @@ class SubscriptionsSerializer(TestCase):
     def test_payment_type(self):
         data = self.serializer(self.subscription).data
         assert data["payment_type"] == "card"
+
+
+class TestStripeMetaDataBase:
+    @pytest.mark.parametrize(
+        "value, expected",
+        (
+            (True, True),
+            (False, False),
+            (None, None),
+            ("false", False),
+            ("none", False),
+            ("no", False),
+            ("n", False),
+            ("true", True),
+            ("yes", True),
+            ("y", True),
+            ("FALSE", False),
+            ("NONE", False),
+            ("NO", False),
+            ("N", False),
+            ("TRUE", True),
+            ("YES", True),
+            ("Y", True),
+        ),
+    )
+    def test_normalize_boolean_happy_path(self, value, expected):
+        assert StripeMetaDataBase.normalize_boolean(value) == expected
+
+    @pytest.mark.parametrize("value", (0, 1, 2, "0", "1", "cats"))
+    def test_when_value_is_not_valid_type(self, value):
+        with pytest.raises(ValueError):
+            StripeMetaDataBase.normalize_boolean(value)

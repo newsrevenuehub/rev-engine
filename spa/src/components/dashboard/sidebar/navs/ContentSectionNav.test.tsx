@@ -48,6 +48,15 @@ describe('ContentSectionNav', () => {
     expect(screen.queryByRole('listitem', { name: 'Customize' })).not.toBeInTheDocument();
   });
 
+  it.each([
+    ['org admin', { isOrgAdmin: true }],
+    ['rp admin', { isRPAdmin: true }]
+  ])('shows link to Customize page if user role = %s', (_, role) => {
+    getUserRoleMock.mockReturnValue(role as any);
+    tree();
+    expect(screen.getByRole('listitem', { name: 'Customize' })).toBeInTheDocument();
+  });
+
   it('is accessible', async () => {
     // It looks like axe does not like us putting `role="listitem"` directly on
     // an <a> element (aria-allowed-role). The other rule violations disabled

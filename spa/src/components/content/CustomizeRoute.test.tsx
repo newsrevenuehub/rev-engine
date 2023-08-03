@@ -2,7 +2,7 @@ import useUser from 'hooks/useUser';
 import { Helmet } from 'react-helmet';
 import { render, screen } from 'test-utils';
 import { getUserRole } from 'utilities/getUserRole';
-import Customize from './Customize';
+import Customize from './CustomizeRoute';
 
 jest.mock('react-router-dom', () => ({
   ...jest.requireActual('react-router-dom'),
@@ -14,7 +14,7 @@ jest.mock('react-router-dom', () => ({
 jest.mock('elements/GlobalLoading');
 jest.mock('utilities/getUserRole');
 jest.mock('hooks/useUser');
-jest.mock('components/content/styles/Styles', () => () => <div data-testid="styles-mock" />);
+jest.mock('components/content/customize/Customize', () => () => <div data-testid="styles-mock" />);
 
 function tree() {
   return render(<Customize />);

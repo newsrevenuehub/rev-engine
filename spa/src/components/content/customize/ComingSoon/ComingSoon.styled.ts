@@ -44,8 +44,7 @@ export const Text = styled.p`
 `;
 
 export const Icon = styled(LightIcon)`
-  height: 24px;
-  width: 24px;
+  fill: ${({ theme }) => theme.basePalette.primary.purple};
 `;
 
 export const ButtonWrapper = styled.div`

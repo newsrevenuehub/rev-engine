@@ -1,10 +1,12 @@
 import logging
 from datetime import datetime, timedelta
+from typing import Any, List, Optional, Union
 
 from django.conf import settings
 from django.db.models import TextChoices
 from django.utils import timezone
 
+import pydantic
 from rest_framework import serializers
 from rest_framework.exceptions import APIException, PermissionDenied
 from stripe.error import StripeError
@@ -24,6 +26,10 @@ from apps.pages.models import DonationPage
 
 from .bad_actor import BadActorAPIError, make_bad_actor_request
 from .fields import StripeAmountField
+
+
+SWAG_CHOICES_DELIMITER = ";"
+SWAG_SUB_CHOICE_DELIMITER = ":"
 
 
 class GenericPaymentError(APIException):
@@ -217,6 +223,91 @@ class AbstractPaymentSerializer(serializers.Serializer):
         if isinstance(amount, str):
             data["amount"] = self.convert_amount_to_cents(data["amount"])
         return super().to_internal_value(data)
+
+
+class StripeMetaDataBase(pydantic.BaseModel):
+    """
+
+    The schemas will:
+    - validate that all required fields are present
+    - validate that extra fields are not present
+    - coerce values to the correct type
+    - provide defaults for some optional fields
+    """
+
+    class Config:
+        extra = pydantic.Extra.forbid  # don't allow extra fields
+
+    agreed_to_pay_fees: bool
+    marketing_consent: Optional[bool] = None
+    contributor_id: str | int
+    donor_selected_amount: int
+    referer: str
+    revenue_program_id: str | int
+    revenue_program_slug: str
+    schema_version: str
+    swag_opt_out: bool | None = None
+
+    honoree: str = ""
+    in_memory_of: str = ""
+    occupation: str = ""
+    reason_for_giving: str = ""
+    sf_campaign_id: Optional[str] = ""
+    source: str
+
+    comp_subscription: str = ""
+    company_name: str = ""
+
+    @pydantic.validator("marketing_consent", "swag_opt_out", "agreed_to_pay_fees")
+    @classmethod
+    def normalize_boolean(cls, v: Any) -> bool | None:
+        if v in (True, None, False):
+            return v
+        if isinstance(v, str):
+            if v.lower() in ["false", "none", "no", "n"]:
+                return False
+            if v.lower() in ["true", "yes", "y"]:
+                return True
+        raise ValueError("Value must be a boolean, None, or string")
+
+    @classmethod
+    def build(cls, *args, **kwargs) -> None:
+        raise NotImplementedError("This method must be implemented by subclasses")
+
+
+class SwagChoice(pydantic.BaseModel):
+    name: str
+    variation: int
+
+
+def swag_choices_from_str(
+    s: str, choice_delimiter=SWAG_CHOICES_DELIMITER, sub_choice_delimiter=SWAG_SUB_CHOICE_DELIMITER
+) -> List[SwagChoice]:
+    choices = []
+    for choice in s.split(choice_delimiter):
+        choices.append(
+            SwagChoice(name=choice.split(sub_choice_delimiter)[0], variation=choice.split(sub_choice_delimiter)[1])
+        )
+    return choices
+
+
+class StripeMetadataSchemaV1_1(StripeMetaDataBase):
+    """"""
+
+    # schema_version: settings.METADATA_SCHEMA_VERSION_1_1
+    t_shirt_size: str | None
+
+
+class StripeMetadataSchemaV1_4(StripeMetaDataBase):
+    # schema_version: settings.METADATA_SCHEMA_VERSION_1_4
+    swag_choices: Optional[List[SwagChoice]] = []
+
+    @pydantic.validator("swag_choices", pre=True)
+    def parse_swag_choices(cls, v) -> Any:
+        """
+        Document how this works
+        """
+        return swag_choices_from_str(v) if isinstance(v, str) else v
 
 
 class BaseCreatePaymentSerializer(serializers.Serializer):
@@ -414,26 +505,6 @@ class BaseCreatePaymentSerializer(serializers.Serializer):
         """Determine if bad actor score should lead to contribution being flagged"""
         return bad_actor_score == settings.BAD_ACTOR_FLAG_SCORE
 
-    def get_stripe_payment_metadata(self, contributor_id, validated_data):
-        """Generate dict of metadata to be sent to Stripe when creating a PaymentIntent or Subscription"""
-        return {
-            "source": settings.METADATA_SOURCE,
-            "schema_version": settings.METADATA_SCHEMA_VERSION,
-            "contributor_id": contributor_id,
-            "agreed_to_pay_fees": validated_data["agreed_to_pay_fees"],
-            "donor_selected_amount": validated_data["donor_selected_amount"],
-            "reason_for_giving": validated_data["reason_for_giving"],
-            "honoree": validated_data.get("honoree"),
-            "in_memory_of": validated_data.get("in_memory_of"),
-            "comp_subscription": validated_data.get("comp_subscription"),
-            "swag_opt_out": validated_data.get("swag_opt_out"),
-            "swag_choice": validated_data.get("swag_choice"),
-            "referer": self.context["request"].META.get("HTTP_REFERER"),
-            "revenue_program_id": validated_data["page"].revenue_program.id,
-            "revenue_program_slug": validated_data["page"].revenue_program.slug,
-            "sf_campaign_id": validated_data.get("sf_campaign_id"),
-        }
-
     def build_contribution(self, contributor, validated_data, bad_actor_response=None):
         """Create an NRE contribution using validated data"""
         contribution_data = {
@@ -444,9 +515,6 @@ class BaseCreatePaymentSerializer(serializers.Serializer):
             "donation_page": validated_data["page"],
             "contributor": contributor,
             "payment_provider_used": "Stripe",
-            "contribution_metadata": Contribution.stripe_metadata(
-                contributor, validated_data, self.context["request"].META.get("HTTP_REFERER")
-            ),
         }
         if bad_actor_response:
             contribution_data["bad_actor_score"] = bad_actor_response["overall_judgment"]
@@ -457,6 +525,88 @@ class BaseCreatePaymentSerializer(serializers.Serializer):
                 contribution_data["status"] = ContributionStatus.FLAGGED
                 contribution_data["flagged_date"] = timezone.now()
         return Contribution(**contribution_data)
+
+    @classmethod
+    def generate_stripe_metadata_v1_1(
+        cls, contribution: Contribution, validated_data: dict, referer: str
+    ) -> StripeMetadataSchemaV1_1:
+        return StripeMetadataSchemaV1_1(
+            source=settings.METADATA_SOURCE_REVENGINE,
+            schema_version=settings.METADATA_SCHEMA_VERSION_1_1,
+            contributor_id=contribution.contributor.id,
+            agreed_to_pay_fees=validated_data["agreed_to_pay_fees"],
+            donor_selected_amount=validated_data["donor_selected_amount"],
+            reason_for_giving=validated_data["reason_for_giving"],
+            honoree=validated_data.get("honoree"),
+            in_memory_of=validated_data.get("in_memory_of"),
+            comp_subscription=validated_data.get("comp_subscription"),
+            swag_opt_out=validated_data.get("swag_opt_out"),
+            referer=referer,
+            revenue_program_id=validated_data["page"].revenue_program.id,
+            revenue_program_slug=validated_data["page"].revenue_program.slug,
+            sf_campaign_id=validated_data.get("sf_campaign_id"),
+        )
+
+    @classmethod
+    def generate_stripe_metadata_v1_4(
+        cls, contribution: Contribution, validated_data: dict, referer: str
+    ) -> StripeMetadataSchemaV1_4:
+        return StripeMetadataSchemaV1_4(
+            source=settings.METADATA_SOURCE_REVENGINE,
+            schema_version=settings.METADATA_SCHEMA_VERSION_1_4,
+            contributor_id=contribution.contributor.id,
+            agreed_to_pay_fees=validated_data["agreed_to_pay_fees"],
+            donor_selected_amount=validated_data["donor_selected_amount"],
+            reason_for_giving=validated_data["reason_for_giving"],
+            honoree=validated_data.get("honoree"),
+            in_memory_of=validated_data.get("in_memory_of"),
+            comp_subscription=validated_data.get("comp_subscription"),
+            swag_opt_out=validated_data.get("swag_opt_out"),
+            swag_choice=validated_data.get("swag_choice"),
+            referer=referer,
+            revenue_program_id=validated_data["page"].revenue_program.id,
+            revenue_program_slug=validated_data["page"].revenue_program.slug,
+            sf_campaign_id=validated_data.get("sf_campaign_id"),
+        )
+
+    def generate_stripe_metadata(
+        self,
+        contribution: Contribution,
+        contributor: Contributor,
+        validated_data: dict,
+        referer: str,
+        schema_version: Union[settings.METADATA_SCHEMA_VERSION_1_1, settings.METADATA_SCHEMA_VERSION_1_4],
+    ) -> StripeMetadataSchemaV1_1 | StripeMetadataSchemaV1_4:
+        """Generate dict of metadata to be sent to Stripe when creating a PaymentIntent or Subscription"""
+        logger.debug("`Contribution.generate_stripe_metadata` called on contribution with ID %s", contribution.id)
+        kwargs = {
+            "source": settings.METADATA_SOURCE_REVENGINE,
+            "schema_version": schema_version,
+            "contributor_id": contributor.id,
+            "agreed_to_pay_fees": validated_data["agreed_to_pay_fees"],
+            "donor_selected_amount": validated_data["donor_selected_amount"],
+            "reason_for_giving": validated_data["reason_for_giving"],
+            "honoree": validated_data.get("honoree"),
+            "in_memory_of": validated_data.get("in_memory_of"),
+            # TODO -- how do we know that it's a comp subscription?
+            # "comp_subscription": validated_data.get("comp_subscription"),
+            "swag_opt_out": validated_data.get("swag_opt_out"),
+            "referer": referer,
+            "revenue_program_id": validated_data["page"].revenue_program.id,
+            "revenue_program_slug": validated_data["page"].revenue_program.slug,
+            "sf_campaign_id": validated_data.get("sf_campaign_id"),
+        }
+        if schema_version == settings.METADATA_SCHEMA_VERSION_1_4:
+            kwargs["swag_choices"] = validated_data.get("swag_choices")
+
+        match schema_version:
+            case settings.METADATA_SCHEMA_VERSION_1_1:
+                return StripeMetadataSchemaV1_1(**kwargs)
+            case settings.METADATA_SCHEMA_VERSION_1_4:
+                return StripeMetadataSchemaV1_4(**kwargs)
+            case _:
+                # log / raise exception
+                pass
 
 
 class CreateOneTimePaymentSerializer(BaseCreatePaymentSerializer):
@@ -500,6 +650,7 @@ class CreateOneTimePaymentSerializer(BaseCreatePaymentSerializer):
             logger.info(
                 "`CreateOneTimePaymentSerializer.create` successfully created a Stripe customer with id %s", customer.id
             )
+            contribution.provider_customer_id = customer["id"]
         except StripeError:
             logger.info(
                 "`CreateOneTimePaymentSerializer.create` is saving a new contribution after encountering a Stripe error"
@@ -511,11 +662,23 @@ class CreateOneTimePaymentSerializer(BaseCreatePaymentSerializer):
             )
             raise GenericPaymentError()
 
-        contribution.provider_customer_id = customer["id"]
+        try:
+            contribution.contribution_metadata = self.generate_stripe_metadata(
+                contribution,
+                contributor,
+                validated_data,
+                self.context["request"].META.get("HTTP_REFERER"),
+                settings.METADATA_SCHEMA_VERSION_CURRENT,
+            ).model_dump(mode="json")
+        except pydantic.ValidationError:
+            logger.exception("Unable to create valid Stripe metadata")
+            raise APIException("Cannot authorize contribution")
 
         try:
             logger.info("`CreateOneTimePaymentSerializer.create` is attempting to create a Stripe payment intent")
-            payment_intent = contribution.create_stripe_one_time_payment_intent(save=False)
+            payment_intent = contribution.create_stripe_one_time_payment_intent(
+                save=False, metadata=contribution.contribution_metadata
+            )
             logger.info(
                 "`CreateOneTimePaymentSerializer.create` successfully created a Stripe payment intent with id %s",
                 payment_intent.id,
@@ -537,8 +700,8 @@ class CreateOneTimePaymentSerializer(BaseCreatePaymentSerializer):
 
         contribution.provider_payment_id = payment_intent.id
         contribution.payment_provider_data = dict(payment_intent) | {"client_secret": None}
-
         logger.info("`CreateOneTimePaymentSerializer.create` is saving a new contribution")
+
         contribution.save()
         logger.info("`CreateOneTimePaymentSerializer.create` saved a new contribution with ID %s", contribution.id)
 
@@ -577,7 +740,6 @@ class CreateRecurringPaymentSerializer(BaseCreatePaymentSerializer):
         bad_actor_response = self.get_bad_actor_score(validated_data)
         logger.info("`CreateRecurringPaymentSerializer.create` is building a contribution")
         contribution = self.build_contribution(contributor, validated_data, bad_actor_response)
-
         if contribution.status == ContributionStatus.REJECTED:
             logger.info(
                 "`CreateRecurringPaymentSerializer.create` is saving a new contribution with REJECTED status for contributor with ID %s",
@@ -591,6 +753,19 @@ class CreateRecurringPaymentSerializer(BaseCreatePaymentSerializer):
                 contribution.id,
             )
             raise PermissionDenied("Cannot authorize contribution")
+
+        try:
+            contribution.contribution_metadata = self.generate_stripe_metadata(
+                contribution,
+                contributor,
+                validated_data,
+                self.context["request"].META.get("HTTP_REFERER"),
+                settings.METADATA_SCHEMA_VERSION_CURRENT,
+            ).model_dump(mode="json")
+        except pydantic.ValidationError:
+            logger.exception("Unable to create valid Stripe metadata")
+            raise APIException("Cannot authorize contribution")
+
         try:
             logger.info(
                 "`CreateRecurringPaymentSerializer.create` is attempting to create a Stripe customer for contributor with ID %s",

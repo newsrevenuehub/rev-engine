@@ -12,6 +12,7 @@ import base64
 import json
 import os
 from datetime import timedelta
+from enum import Enum
 from pathlib import Path
 from typing import Literal, TypedDict
 
@@ -491,9 +492,13 @@ DOMAIN_APEX = os.getenv("DOMAIN_APEX")
 # Application subdomains (that are NOT revenue program slugs)
 DASHBOARD_SUBDOMAINS = os.getenv("DASHBOARD_SUBDOMAINS", "www:dashboard:").split(":")
 
-# These values are part of metadata sent to Stripe.
-METADATA_SOURCE = os.getenv("METADATA_SOURCE", "rev-engine")
-METADATA_SCHEMA_VERSION = os.getenv("METADATA_SCHEMA_VERSION", "1.1")
+
+# These values are used in the generation of Stripe metadata for contribution payments. These values must be coordinated
+# with their counterparts in switchboard.
+METADATA_SOURCE_REVENGINE = "rev-engine"
+METADATA_SCHEMA_VERSION_1_1 = "1.1"
+METADATA_SCHEMA_VERSION_1_4 = "1.4"
+METADATA_SCHEMA_VERSION_CURRENT = os.getenv("METADATA_SCHEMA_VERSION", METADATA_SCHEMA_VERSION_1_4)
 
 
 # This is the interval at which flagged payments will be automatically captured.

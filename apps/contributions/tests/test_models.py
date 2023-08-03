@@ -395,13 +395,14 @@ class TestContributionModel:
         )
         monkeypatch.setattr("stripe.PaymentIntent.create", lambda *args, **kwargs: create_pi_return_val)
         spy = mocker.spy(stripe.PaymentIntent, "create")
-        assert one_time_contribution.create_stripe_one_time_payment_intent() == create_pi_return_val
+        metadata = {}
+        assert one_time_contribution.create_stripe_one_time_payment_intent(metadata=metadata) == create_pi_return_val
         spy.assert_called_once_with(
             amount=one_time_contribution.amount,
             currency=one_time_contribution.currency,
             customer=one_time_contribution.provider_customer_id,
             receipt_email=one_time_contribution.contributor.email,
-            metadata=one_time_contribution.contribution_metadata,
+            metadata=metadata,
             statement_descriptor_suffix=(
                 (rp := one_time_contribution.donation_page.revenue_program).stripe_statement_descriptor_suffix
             ),
@@ -518,46 +519,6 @@ class TestContributionModel:
             send_thank_you_email_spy.assert_called_once_with(expected_data)
         else:
             send_thank_you_email_spy.assert_not_called()
-
-    @pytest_cases.parametrize(
-        "contribution",
-        (
-            pytest_cases.fixture_ref("one_time_contribution"),
-            pytest_cases.fixture_ref("monthly_contribution"),
-            pytest_cases.fixture_ref("annual_contribution"),
-        ),
-    )
-    def test_stripe_metadata(self, contribution):
-        referer = "https://somewhere.com"
-        validated_data = {
-            "agreed_to_pay_fees": True,
-            "donor_selected_amount": "120",
-            "reason_for_giving": "reason",
-            "honoree": None,
-            "in_memory_of": None,
-            "comp_subscription": False,
-            "swag_opt_out": True,
-            "swag_choice": None,
-            "page": contribution.donation_page,
-            "sf_campaign_id": "some-id",
-        }
-        assert Contribution.stripe_metadata(contribution.contributor, validated_data, referer) == {
-            "source": settings.METADATA_SOURCE,
-            "schema_version": settings.METADATA_SCHEMA_VERSION,
-            "contributor_id": contribution.contributor.id,
-            "agreed_to_pay_fees": validated_data["agreed_to_pay_fees"],
-            "donor_selected_amount": validated_data["donor_selected_amount"],
-            "reason_for_giving": validated_data["reason_for_giving"],
-            "honoree": validated_data["honoree"],
-            "in_memory_of": validated_data["in_memory_of"],
-            "comp_subscription": validated_data["comp_subscription"],
-            "swag_opt_out": validated_data["swag_opt_out"],
-            "swag_choice": validated_data["swag_choice"],
-            "referer": referer,
-            "revenue_program_id": validated_data["page"].revenue_program.id,
-            "revenue_program_slug": validated_data["page"].revenue_program.slug,
-            "sf_campaign_id": validated_data["sf_campaign_id"],
-        }
 
     def test_cancel_calls_save_with_right_update_fields(self, one_time_contribution, mocker, monkeypatch):
         # there are other paths through that call save where different stripe return values would need to

@@ -103,8 +103,8 @@ class ContributionFactory(DjangoModelFactory):
         """Generate realistic looking contribution_metadata"""
         rp = self.donation_page.revenue_program
         return {
-            "source": settings.METADATA_SOURCE,
-            "schema_version": settings.METADATA_SCHEMA_VERSION,
+            "source": settings.METADATA_SOURCE_REVENGINE,
+            "schema_version": settings.METADATA_SCHEMA_VERSION_CURRENT,
             "contributor_id": self.contributor.id if self.contributor else "",
             "agreed_to_pay_fees": True,
             "donor_selected_amount": self.amount / 100,

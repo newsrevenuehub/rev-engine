@@ -20,8 +20,8 @@ export const FONT_PICKERS = [
 
 export type AllowedFontSizes = 24 | 32 | 36;
 
-type FONT_SIZE = { label: string; value: AllowedFontSizes };
-const FONT_SIZE_OPTIONS: Array<FONT_SIZE> = [
+type FontSizeOption = { label: string; value: AllowedFontSizes };
+const FONT_SIZE_OPTIONS: Array<FontSizeOption> = [
   { label: 'Small', value: 24 },
   { label: 'Standard', value: 32 },
   { label: 'Large', value: 36 }
@@ -106,7 +106,7 @@ function StylesTab({ styles, setStyles }: StylesTabProps) {
             label="Font Size"
             items={FONT_SIZE_OPTIONS}
             selectedItem={FONT_SIZE_OPTIONS.find((option) => option.value === headingFontSize)}
-            onSelectedItemChange={({ selectedItem }: { selectedItem: FONT_SIZE }) => {
+            onSelectedItemChange={({ selectedItem }: { selectedItem: FontSizeOption }) => {
               setFontSize(selectedItem.value);
             }}
             testId="heading-font-select"

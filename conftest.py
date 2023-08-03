@@ -496,30 +496,6 @@ def mailchimp_recurring_contributor_segment_from_api():
 
 
 @pytest.fixture
-def minimally_valid_data(donation_page):
-    """This fixture represents the fields that must always appear in request data for creating
-    a payment. If a page has configured to include elements like phone number, reason for giving, etc.,
-    then the request data will contain additional fields."""
-    return {
-        "agreed_to_pay_fees": True,
-        "amount": "123",
-        "captcha_token": "12345",
-        "donor_selected_amount": 120,
-        "email": "foo@bar.com",
-        "first_name": "Foo",
-        "interval": "one_time",
-        "last_name": "Bar",
-        "mailing_city": "Small Town",
-        "mailing_complement": "Ap 1",
-        "mailing_country": "US",
-        "mailing_postal_code": "12345",
-        "mailing_state": "OH",
-        "mailing_street": "123 Street St",
-        "page": donation_page.id,
-    }
-
-
-@pytest.fixture
 def minimally_valid_contribution_form_data(donation_page):
     return {
         "agreed_to_pay_fees": True,

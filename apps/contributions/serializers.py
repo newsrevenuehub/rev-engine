@@ -276,10 +276,6 @@ class StripeMetaDataBase(pydantic.BaseModel):
             raise ValueError("Invalid schema version")
         return v
 
-    @classmethod
-    def build(cls, *args, **kwargs) -> None:
-        raise NotImplementedError("This method must be implemented by subclasses")
-
 
 class SwagChoice(pydantic.BaseModel):
     name: str

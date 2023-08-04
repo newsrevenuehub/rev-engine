@@ -903,15 +903,10 @@ class TestBaseCreatePaymentSerializer:
     def test_validate_swag_choices_string_when_valid(self, value):
         assert StripeMetadataSchemaV1_4.validate_swag_choices_string(value) == value
 
-    def test_validate_swag_choices_string_when_exceed_max_length(
-        self, invalid_swag_choices_string_exceed_max_length, settings
-    ):
+    def test_validate_swag_choices_string_when_exceed_max_length(self, invalid_swag_choices_string_exceed_max_length):
         with pytest.raises(ValueError) as exc:
             StripeMetadataSchemaV1_4.validate_swag_choices_string(invalid_swag_choices_string_exceed_max_length)
             assert str(exc) == "Provided swag_choices value is too long"
-
-    def test_generate_stripe_metadata_when_unexpected_version(self):
-        pass
 
 
 @pytest.mark.django_db

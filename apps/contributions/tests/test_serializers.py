@@ -24,8 +24,14 @@ from apps.contributions.models import (
     ContributionStatus,
     Contributor,
 )
-from apps.contributions.serializers import ContributionSerializer, StripeMetaDataBase
-from apps.contributions.tests.factories import ContributorFactory
+from apps.contributions.serializers import (
+    SWAG_CHOICES_DELIMITER,
+    SWAG_SUB_CHOICE_DELIMITER,
+    ContributionSerializer,
+    StripeMetaDataBase,
+    StripeMetadataSchemaV1_4,
+)
+from apps.contributions.tests.factories import ContributionFactory, ContributorFactory
 from apps.contributions.utils import get_sha256_hash
 from apps.pages.tests.factories import DonationPageFactory
 
@@ -372,6 +378,15 @@ def mock_stripe_call_with_error(*args, **kwargs):
 
 def mock_create_stripe_customer_with_exception(*args, **kwargs):
     raise stripe.error.APIError("Something horrible has happened")
+
+
+@pytest.fixture
+def valid_swag_choices_string():
+    choice_1_raw = f"t-shirt{SWAG_SUB_CHOICE_DELIMITER}small"
+    choice_2_raw = f"hat{SWAG_SUB_CHOICE_DELIMITER}huge"
+    choices_raw = f"{choice_1_raw}{SWAG_CHOICES_DELIMITER}{choice_2_raw}"
+    assert StripeMetadataSchemaV1_4.validate_swag_choices_string(choices_raw)
+    return choices_raw
 
 
 @pytest.mark.django_db
@@ -835,6 +850,46 @@ class TestBaseCreatePaymentSerializer:
         request = APIRequestFactory().post("", {}, format="json")
         serializer = self.serializer_class(data=minimally_valid_contribution_form_data, context={"request": request})
         assert serializer.is_valid()
+
+    def test_generate_stripe_metadata_when_v1_4(
+        self, minimally_valid_contribution_form_data, valid_swag_choices_string
+    ):
+        assert settings.METADATA_SCHEMA_VERSION_1_4
+        minimally_valid_contribution_form_data["swag_choices"] = valid_swag_choices_string
+        contribution = ContributionFactory(donation_page_id=minimally_valid_contribution_form_data["page"])
+        request = APIRequestFactory(HTTP_REFERER=(referer := "https://www.google.com")).post("", {}, format="json")
+        serializer = self.serializer_class(data=minimally_valid_contribution_form_data, context={"request": request})
+        serializer.is_valid(raise_exception=True)
+        metadata = serializer.generate_stripe_metadata(contribution)
+        assert isinstance(metadata, StripeMetadataSchemaV1_4)
+        assert metadata.agreed_to_pay_fees == minimally_valid_contribution_form_data["agreed_to_pay_fees"]
+        assert metadata.referer == referer
+        assert metadata.swag_choices == valid_swag_choices_string
+        assert metadata.schema_version == settings.METADATA_SCHEMA_VERSION_1_4
+        assert metadata.source == settings.METADATA_SOURCE_REVENGINE
+        assert metadata.contributor_id == contribution.contributor.id
+        assert metadata.donor_selected_amount == minimally_valid_contribution_form_data["donor_selected_amount"]
+        assert metadata.revenue_program_id == contribution.donation_page.revenue_program_id
+        assert metadata.revenue_program_slug == contribution.donation_page.revenue_program_slug
+
+        defaulted_none_fields = ("marketing_consent", "swag_opt_out")
+        for x in defaulted_none_fields:
+            assert getattr(metadata, x) is None
+
+        defaulted_empty_str_fields = (
+            "honoree",
+            "in_memory_of",
+            "occupation",
+            "reason_for_giving",
+            "sf_campaign_id",
+            "comp_subscription",
+            "company_name",
+        )
+        for x in defaulted_empty_str_fields:
+            assert getattr(metadata, x) == ""
+
+    def test_generate_stripe_metadata_when_unexpected_version(self):
+        pass
 
 
 @pytest.mark.django_db
@@ -1497,28 +1552,6 @@ class TestStripeMetaDataBase:
         assert StripeMetaDataBase.normalize_boolean(value) == expected
 
     @pytest.mark.parametrize("value", (0, 1, 2, "0", "1", "cats"))
-    def test_when_value_is_not_valid_type(self, value):
+    def test_normalize_boolean_when_value_is_not_valid_type(self, value):
         with pytest.raises(ValueError):
             StripeMetaDataBase.normalize_boolean(value)
-
-    def test_build(self):
-        with pytest.raises(NotImplementedError):
-            StripeMetaDataBase.build()
-
-    def test_swag_choices_from_str(self):
-        pass
-
-    def test_parse_swag_choices(self):
-        pass
-
-    def test_generate_stripe_metadata_v1_1(self):
-        pass
-
-    def test_generate_stripe_metadata_v1_4(self):
-        pass
-
-    def test_generate_stripe_metadata(self):
-        pass
-
-    def test_ensure_known_version(self):
-        pass

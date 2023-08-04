@@ -513,8 +513,4 @@ def minimally_valid_contribution_form_data(donation_page):
         "mailing_state": "North Carolina",
         "mailing_street": "123 Glenwood Avenue",
         "page": donation_page.id,
-        # "phone": "123",
-        # "reason_for_giving": "Other",
-        # "reason_other": "None of ya...",
-        # "tribute_type": "",
     }

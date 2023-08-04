@@ -496,10 +496,8 @@ DASHBOARD_SUBDOMAINS = os.getenv("DASHBOARD_SUBDOMAINS", "www:dashboard:").split
 # These values are used in the generation of Stripe metadata for contribution payments. These values must be coordinated
 # with their counterparts in switchboard.
 METADATA_SOURCE_REVENGINE = "rev-engine"
-METADATA_SCHEMA_VERSION_1_1 = "1.1"
 METADATA_SCHEMA_VERSION_1_4 = "1.4"
-METADATA_SCHEMA_VERSION_CURRENT = os.getenv("METADATA_SCHEMA_VERSION", METADATA_SCHEMA_VERSION_1_4)
-
+METADATA_SCHEMA_VERSION_CURRENT = METADATA_SCHEMA_VERSION_1_4
 
 # This is the interval at which flagged payments will be automatically captured.
 # NOTE: Stripe automatically REJECTS flagged payments every 7 days. Make sure

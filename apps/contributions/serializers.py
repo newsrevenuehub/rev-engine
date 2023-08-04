@@ -253,7 +253,7 @@ class StripeMetaDataBase(pydantic.BaseModel):
     occupation: str = ""
     reason_for_giving: str = ""
     sf_campaign_id: Optional[str] = ""
-    source: str
+    source: str = settings.METADATA_SOURCE_REVENGINE
 
     comp_subscription: str = ""
     company_name: str = ""
@@ -270,6 +270,12 @@ class StripeMetaDataBase(pydantic.BaseModel):
                 return True
         raise ValueError("Value must be a boolean, None, or castable string")
 
+    @pydantic.validator("schema_version", pre=True, always=True)
+    def ensure_known_version(cls, v):
+        if v not in [settings.METADATA_SCHEMA_VERSION_1_1, settings.METADATA_SCHEMA_VERSION_1_4]:
+            raise ValueError("Invalid schema version")
+        return v
+
     @classmethod
     def build(cls, *args, **kwargs) -> None:
         raise NotImplementedError("This method must be implemented by subclasses")
@@ -280,34 +286,34 @@ class SwagChoice(pydantic.BaseModel):
     variation: int
 
 
-def swag_choices_from_str(
-    s: str, choice_delimiter=SWAG_CHOICES_DELIMITER, sub_choice_delimiter=SWAG_SUB_CHOICE_DELIMITER
-) -> List[SwagChoice]:
-    choices = []
-    for choice in s.split(choice_delimiter):
-        choices.append(
-            SwagChoice(name=choice.split(sub_choice_delimiter)[0], variation=choice.split(sub_choice_delimiter)[1])
-        )
-    return choices
-
-
 class StripeMetadataSchemaV1_1(StripeMetaDataBase):
     """"""
 
-    # schema_version: settings.METADATA_SCHEMA_VERSION_1_1
+    schema_version: str = settings.METADATA_SCHEMA_VERSION_1_1
     t_shirt_size: str | None
 
 
 class StripeMetadataSchemaV1_4(StripeMetaDataBase):
-    # schema_version: settings.METADATA_SCHEMA_VERSION_1_4
+    schema_version: str = settings.METADATA_SCHEMA_VERSION_1_4
     swag_choices: Optional[List[SwagChoice]] = []
+
+    @classmethod
+    def swag_choices_from_str(
+        cls, s: str, choice_delimiter=SWAG_CHOICES_DELIMITER, sub_choice_delimiter=SWAG_SUB_CHOICE_DELIMITER
+    ) -> List[SwagChoice]:
+        choices = []
+        for choice in s.split(choice_delimiter):
+            choices.append(
+                SwagChoice(name=choice.split(sub_choice_delimiter)[0], variation=choice.split(sub_choice_delimiter)[1])
+            )
+        return choices
 
     @pydantic.validator("swag_choices", pre=True)
     def parse_swag_choices(cls, v) -> Any:
         """
         Document how this works
         """
-        return swag_choices_from_str(v) if isinstance(v, str) else v
+        return cls.swag_choices_from_str(v) if isinstance(v, str) else v
 
 
 class BaseCreatePaymentSerializer(serializers.Serializer):

@@ -389,6 +389,15 @@ def valid_swag_choices_string():
     return choices_raw
 
 
+@pytest.fixture
+def invalid_swag_choices_string_exceed_max_length(valid_swag_choices_string, settings):
+    assert settings.METADATA_MAX_SWAG_CHOICES_LENGTH
+    invalid_string = ""
+    while len(invalid_string) <= settings.METADATA_MAX_SWAG_CHOICES_LENGTH:
+        invalid_string += valid_swag_choices_string
+    return invalid_string
+
+
 @pytest.mark.django_db
 class TestBaseCreatePaymentSerializer:
     serializer_class = serializers.BaseCreatePaymentSerializer
@@ -870,11 +879,13 @@ class TestBaseCreatePaymentSerializer:
         assert metadata.contributor_id == contribution.contributor.id
         assert metadata.donor_selected_amount == minimally_valid_contribution_form_data["donor_selected_amount"]
         assert metadata.revenue_program_id == contribution.donation_page.revenue_program_id
-        assert metadata.revenue_program_slug == contribution.donation_page.revenue_program_slug
-
-        defaulted_none_fields = ("marketing_consent", "swag_opt_out")
-        for x in defaulted_none_fields:
-            assert getattr(metadata, x) is None
+        assert metadata.revenue_program_slug == contribution.donation_page.revenue_program.slug
+        assert (
+            metadata.marketing_consent is None
+        )  # not provided in form data, this is default via this pydantic model def
+        assert (
+            metadata.swag_opt_out is False
+        )  # not provided in form data, this is default via default def in serializer field def
 
         defaulted_empty_str_fields = (
             "honoree",
@@ -887,6 +898,17 @@ class TestBaseCreatePaymentSerializer:
         )
         for x in defaulted_empty_str_fields:
             assert getattr(metadata, x) == ""
+
+    @pytest.mark.parametrize("value", ("", "foo:bar", "foo:bar;bizz:bang"))
+    def test_validate_swag_choices_string_when_valid(self, value):
+        assert StripeMetadataSchemaV1_4.validate_swag_choices_string(value) == value
+
+    def test_validate_swag_choices_string_when_exceed_max_length(
+        self, invalid_swag_choices_string_exceed_max_length, settings
+    ):
+        with pytest.raises(ValueError) as exc:
+            StripeMetadataSchemaV1_4.validate_swag_choices_string(invalid_swag_choices_string_exceed_max_length)
+            assert str(exc) == "Provided swag_choices value is too long"
 
     def test_generate_stripe_metadata_when_unexpected_version(self):
         pass

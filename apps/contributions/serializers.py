@@ -293,9 +293,19 @@ class StripeMetadataSchemaV1_4(StripeMetaDataBase):
     schema_version: str = settings.METADATA_SCHEMA_VERSION_1_4
     swag_choices: str = ""
 
-    @pydantic.validator("swag_choices", pre=True)
-    def validate_swag_choices_string(cls, v: str) -> Any:
+    @classmethod
+    @pydantic.validator("swag_choices")
+    def validate_swag_choices_string(cls, v: str) -> str:
         """We ensure that provided value is parseable to a list of `SwagChoice`s"""
+        if not len(v):
+            return v
+        if len(v) > settings.METADATA_MAX_SWAG_CHOICES_LENGTH:
+            logger.warning(
+                "Provided swag_choices value is too long. Must be <= %s chars and is %s",
+                settings.METADATA_MAX_SWAG_CHOICES_LENGTH,
+                len(v),
+            )
+            raise ValueError("Provided swag_choices value is too long")
         for x in v.split(SWAG_CHOICES_DELIMITER):
             try:
                 SwagChoice(
@@ -305,7 +315,6 @@ class StripeMetadataSchemaV1_4(StripeMetaDataBase):
             except (pydantic.ValidationError, IndexError):
                 logger.exception((msg := "Invalid swag_choices value"))
                 raise ValueError(msg)
-
         return v
 
 
@@ -373,6 +382,9 @@ class BaseCreatePaymentSerializer(serializers.Serializer):
     # See class-level doc string for info on why `default=''` here
     in_memory_of = serializers.CharField(max_length=255, required=False, allow_blank=True, write_only=True, default="")
     swag_opt_out = serializers.BooleanField(required=False, default=False, write_only=True)
+    swag_choices = serializers.CharField(
+        max_length=settings.METADATA_MAX_SWAG_CHOICES_LENGTH, required=False, write_only=True, default=""
+    )
     comp_subscription = serializers.ChoiceField(
         choices=CompSubscriptions.choices, required=False, allow_blank=True, write_only=True, default=""
     )

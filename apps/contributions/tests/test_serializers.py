@@ -932,9 +932,6 @@ class TestCreateOneTimePaymentSerializer:
         - Create a Stripe Customer
         - Create a Stripe PaymentIntent
         """
-
-        # ensure we have right contribution_metadata, and that right method gets called
-
         contribution_count = Contribution.objects.count()
         contributor_count = Contributor.objects.count()
 

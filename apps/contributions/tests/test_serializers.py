@@ -860,6 +860,9 @@ class TestCreateOneTimePaymentSerializer:
         - Create a Stripe Customer
         - Create a Stripe PaymentIntent
         """
+
+        # ensure we have right contribution_metadata, and that right method gets called
+
         contribution_count = Contribution.objects.count()
         contributor_count = Contributor.objects.count()
 
@@ -1130,6 +1133,8 @@ class TestCreateRecurringPaymentSerializer:
         - create a Stripe Customer
         - create a Stripe Subscription
         """
+
+        # ensure we have right contribution_metadata, and that right method gets called
         save_spy = mocker.spy(Contribution, "save")
 
         data = minimally_valid_contribution_form_data | {"interval": interval}
@@ -1495,3 +1500,25 @@ class TestStripeMetaDataBase:
     def test_when_value_is_not_valid_type(self, value):
         with pytest.raises(ValueError):
             StripeMetaDataBase.normalize_boolean(value)
+
+    def test_build(self):
+        with pytest.raises(NotImplementedError):
+            StripeMetaDataBase.build()
+
+    def test_swag_choices_from_str(self):
+        pass
+
+    def test_parse_swag_choices(self):
+        pass
+
+    def test_generate_stripe_metadata_v1_1(self):
+        pass
+
+    def test_generate_stripe_metadata_v1_4(self):
+        pass
+
+    def test_generate_stripe_metadata(self):
+        pass
+
+    def test_ensure_known_version(self):
+        pass

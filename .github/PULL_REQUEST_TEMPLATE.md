@@ -6,7 +6,7 @@ Please fill out each section even if it's just with "N/A"
 
 #### Why are we doing this? How does it help us?
 
-#### How should this be manually tested? Please include detailed step-by-step instructions.
+#### Are there detailed, specific, step-by-step testing instructions in the associated ticket?
 
 #### Did this PR make changes to the user interface that may require changes to the user-facing docs?
 

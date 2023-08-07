@@ -21,7 +21,7 @@ export const CardElementStyle = (theme) => ({
   }
 });
 
-export const EditRecurringPaymentModal = styled.div`
+export const ModalRoot = styled.div`
   font-family: ${(props) => props.theme.systemFont};
   overflow-y: auto;
   min-width: 350px;
@@ -56,7 +56,7 @@ export const Datum = styled.span`
   color: ${(props) => props.theme.colors.grey[2]};
 `;
 
-export const CardForm = styled.form`
+export const CardFormRoot = styled.form`
   margin-top: 4rem;
 `;
 

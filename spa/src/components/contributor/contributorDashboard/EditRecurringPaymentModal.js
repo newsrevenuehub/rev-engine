@@ -1,6 +1,17 @@
 import { useState, useRef } from 'react';
 import PropTypes from 'prop-types';
-import * as S from './EditRecurringPaymentModal.styled';
+import {
+  CardElementStyle,
+  CardElementWrapper,
+  CardFormRoot,
+  CompletedMessage,
+  CurrentDatum,
+  CurrentList,
+  Datum,
+  Description,
+  ModalRoot,
+  PaymentError
+} from './EditRecurringPaymentModal.styled';
 
 // Ajax
 import axios, { AuthenticationError } from 'ajax/axios';
@@ -53,9 +64,9 @@ function EditRecurringPaymentModal({ isOpen, closeModal, contribution, onComplet
 
   return (
     <Modal isOpen={isOpen} closeModal={closeModal}>
-      <S.EditRecurringPaymentModal data-testid="edit-recurring-payment-modal">
+      <ModalRoot data-testid="edit-recurring-payment-modal">
         {showCompletedMessage ? (
-          <S.CompletedMessage data-testid="edit-recurring-payment-modal-success">
+          <CompletedMessage data-testid="edit-recurring-payment-modal-success">
             <p>
               Your new payment method will be used for the next payment. Changes may not appear in our system right
               away.
@@ -63,22 +74,22 @@ function EditRecurringPaymentModal({ isOpen, closeModal, contribution, onComplet
             <Button onClick={onCompleteOk} type="positive">
               Ok
             </Button>
-          </S.CompletedMessage>
+          </CompletedMessage>
         ) : (
           <>
             <h2>Update recurring contribution</h2>
-            <S.CurrentList>
-              <S.CurrentDatum>
+            <CurrentList>
+              <CurrentDatum>
                 <span>Amount:</span>
-                <S.Datum>{formatCurrencyAmount(contribution.amount)}</S.Datum>
-              </S.CurrentDatum>
-              <S.CurrentDatum>
-                <span>Interval:</span> <S.Datum>{getFrequencyAdjective(contribution.interval)}</S.Datum>
-              </S.CurrentDatum>
-              <S.CurrentDatum>
+                <Datum>{formatCurrencyAmount(contribution.amount)}</Datum>
+              </CurrentDatum>
+              <CurrentDatum>
+                <span>Interval:</span> <Datum>{getFrequencyAdjective(contribution.interval)}</Datum>
+              </CurrentDatum>
+              <CurrentDatum>
                 <span>Payment method:</span> <ContributionPaymentMethod contribution={contribution} disabled />
-              </S.CurrentDatum>
-            </S.CurrentList>
+              </CurrentDatum>
+            </CurrentList>
             {stripe && stripe.current && (
               <Elements stripe={stripe.current}>
                 <CardForm onPaymentMethod={handleNewPaymentMethod} closeModal={closeModal} />
@@ -86,7 +97,7 @@ function EditRecurringPaymentModal({ isOpen, closeModal, contribution, onComplet
             )}
           </>
         )}
-      </S.EditRecurringPaymentModal>
+      </ModalRoot>
     </Modal>
   );
 }
@@ -160,12 +171,12 @@ function CardForm({ onPaymentMethod, closeModal }) {
 
   return (
     <>
-      <S.CardForm>
-        <S.Description>Update your payment method</S.Description>
+      <CardFormRoot>
+        <Description>Update your payment method</Description>
 
-        <S.CardElementWrapper>
-          <CardElement id="card-element" options={{ style: S.CardElementStyle(theme) }} onChange={handleChange} />
-        </S.CardElementWrapper>
+        <CardElementWrapper>
+          <CardElement id="card-element" options={{ style: CardElementStyle(theme) }} onChange={handleChange} />
+        </CardElementWrapper>
 
         <Button
           onClick={handleUpdatePaymentMethod}
@@ -177,11 +188,11 @@ function CardForm({ onPaymentMethod, closeModal }) {
           Update payment method
         </Button>
         {errors.stripe && (
-          <S.PaymentError role="alert" data-testid="donation-error">
+          <PaymentError role="alert" data-testid="donation-error">
             {errors.stripe}
-          </S.PaymentError>
+          </PaymentError>
         )}
-      </S.CardForm>
+      </CardFormRoot>
       {loading && <GlobalLoading />}
     </>
   );

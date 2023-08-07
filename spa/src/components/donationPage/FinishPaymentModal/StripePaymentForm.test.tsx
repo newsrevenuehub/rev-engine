@@ -134,9 +134,9 @@ describe('StripePaymentForm', () => {
     });
 
     describe.each([
-      ['payment intent', 'pi_mock-payment-intent-id', 'confirmPayment'],
-      ['setup intent', 'seti_mock-setup-intent-id', 'confirmSetup']
-    ])('For payments that contain a %s with client secret %s', (_, clientSecret, finalizerName) => {
+      ['payment intent', 'pi_mock-payment-intent-id', 'confirmPayment', 'confirmSetup'],
+      ['setup intent', 'seti_mock-setup-intent-id', 'confirmSetup', 'confirmPayment']
+    ])('For payments that contain a %s with client secret %s', (_, clientSecret, finalizerName, badFinalizerName) => {
       const payment: Payment = { ...mockPayment, stripe: { ...mockPayment.stripe, clientSecret } };
       let error: jest.SpyInstance;
 
@@ -145,15 +145,17 @@ describe('StripePaymentForm', () => {
         useAlertMock.mockReturnValue({ error } as any);
       });
 
-      it(`finalizes the Stripe payment using ${finalizerName}`, async () => {
+      it(`finalizes the Stripe payment using ${finalizerName}, not ${badFinalizerName}`, async () => {
+        const badFinalizer = jest.fn();
         const finalizer = jest.fn(() => Promise.resolve({}));
         const mockElements: any = {};
 
-        useStripeMock.mockReturnValue({ [finalizerName]: finalizer } as any);
+        useStripeMock.mockReturnValue({ [badFinalizerName]: badFinalizer, [finalizerName]: finalizer } as any);
         tree({ payment });
         expect(finalizer).not.toBeCalled();
         fireEvent.click(screen.getByRole('button'));
         await act(() => Promise.resolve());
+        expect(badFinalizer).not.toBeCalled();
         expect(finalizer.mock.calls).toEqual([
           [
             {

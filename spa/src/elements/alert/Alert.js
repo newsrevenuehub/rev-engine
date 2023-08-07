@@ -1,5 +1,6 @@
 import * as S from './Alert.styled';
 import { transitions, positions } from 'react-alert';
+import { revEngineTheme } from 'styles/themes';
 
 function Alert({ style, options, message, close }) {
   return (
@@ -20,7 +21,6 @@ export const alertOptions = {
   // you can also just use 'scale'
   transition: transitions.SCALE,
   containerStyle: {
-    // Needs to be above our base Modal component, which currently uses z index of 1300.
-    zIndex: 1500
+    zIndex: revEngineTheme.zIndex.notifications
   }
 };

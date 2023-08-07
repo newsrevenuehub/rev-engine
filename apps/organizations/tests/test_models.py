@@ -123,6 +123,15 @@ class TestPlans:
 
 @pytest.mark.django_db
 class TestOrganization:
+    def test_stripe_subscription_when_stripe_subscription_id_is_none(self, organization):
+        assert organization.stripe_subscription_id is None
+        assert organization.stripe_subscription is None
+
+    def test_stripe_subscription_when_exists(self, organization, mocker):
+        organization.stripe_subscription_id = "sub_123"
+        mocker.patch("stripe.Subscription.retrieve", return_value=(mock_sub := Mock()))
+        assert organization.stripe_subscription == mock_sub
+
     def test_has_expected_plans(self):
         assert set(Organization.plan_name.field.choices) == {
             (Plans.FREE.value, Plans.FREE.label),
@@ -306,7 +315,7 @@ class TestRevenueProgram:
         rp.refresh_from_db()
         assert rp.domain_apple_verified_date is not None
         mock_stripe_create.assert_called_once_with(
-            api_key="",
+            api_key=settings.STRIPE_LIVE_SECRET_KEY_CONTRIBUTIONS,
             domain_name=f"{rp.slug}.{settings.DOMAIN_APEX}",
             stripe_account=rp.payment_provider.stripe_account_id,
         )
@@ -492,7 +501,7 @@ class TestRevenueProgram:
 
     def test_apple_pay_domain_verification_not_called_when_updated_and_live(self, revenue_program, settings, mocker):
         settings.STRIPE_LIVE_MODE = True
-        settings.STRIPE_LIVE_SECRET_KEY = "my_test_live_key"
+        settings.STRIPE_LIVE_SECRET_KEY_CONTRIBUTIONS = "my_test_live_key"
         settings.DOMAIN_APEX = "testapexdomain.com"
         spy = mocker.spy(ApplePayDomain, "create")
         revenue_program.slug = "my-new-slug"

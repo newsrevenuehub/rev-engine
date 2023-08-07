@@ -265,6 +265,7 @@ class StripeMetaDataBase(pydantic.BaseModel):
         Convert some known values to their boolean counterpart, while still allowing
         for a `None` value which indicates that the value was not provided.
         """
+        logger.info("Normalizing boolean value %s", v)
         if any([isinstance(v, bool), v is None]):
             return v
         if isinstance(v, str):
@@ -288,6 +289,7 @@ class SwagChoice(pydantic.BaseModel):
     @classmethod
     def validate_not_empty(cls, v: str) -> str:
         """Ensure that name is not an empty string"""
+        logger.debug("Validating swag choice name %s", v)
         if not len((stripped := v.strip())):
             raise ValueError("name cannot be empty")
         return stripped
@@ -305,6 +307,7 @@ class StripeMetadataSchemaV1_4(StripeMetaDataBase):
     @pydantic.validator("swag_choices")
     def validate_swag_choices_string(cls, v: str) -> str:
         """We ensure that provided value is parseable to a list of `SwagChoice`s"""
+        logger.info("Validating swag_choices value %s", v)
         if not len(v):
             return v
         if len(v) > settings.METADATA_MAX_SWAG_CHOICES_LENGTH:

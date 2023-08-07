@@ -12,7 +12,7 @@ import { BackButton, Root } from './FinishPaymentModal.styled';
 const FinishPaymentModalPropTypes = {
   onCancel: PropTypes.func.isRequired,
   onError: PropTypes.func,
-  open: PropTypes.bool,
+  open: PropTypes.bool.isRequired,
   payment: PropTypes.object.isRequired
 };
 
@@ -30,7 +30,7 @@ export interface FinishPaymentModalProps extends InferProps<typeof FinishPayment
  */
 export function FinishPaymentModal({ onCancel, onError, open, payment }: FinishPaymentModalProps) {
   return (
-    <Modal open={open!}>
+    <Modal open={open}>
       <AlertProvider template={Alert} {...alertOptions}>
         <StripePaymentWrapper
           onError={onError}

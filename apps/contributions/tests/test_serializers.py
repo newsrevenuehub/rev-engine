@@ -10,8 +10,7 @@ import pytest
 import pytest_cases
 import stripe
 from addict import Dict as AttrDict
-from pytest import raises
-from rest_framework.exceptions import PermissionDenied
+from rest_framework.exceptions import APIException, PermissionDenied
 from rest_framework.serializers import ValidationError
 from rest_framework.test import APIRequestFactory
 
@@ -30,6 +29,7 @@ from apps.contributions.serializers import (
     ContributionSerializer,
     StripeMetaDataBase,
     StripeMetadataSchemaV1_4,
+    SwagChoice,
 )
 from apps.contributions.tests.factories import ContributionFactory, ContributorFactory
 from apps.contributions.utils import get_sha256_hash
@@ -899,14 +899,33 @@ class TestBaseCreatePaymentSerializer:
         for x in defaulted_empty_str_fields:
             assert getattr(metadata, x) == ""
 
+
+class TestSwagChoice:
+    @pytest.mark.parametrize("value,expect_valid", (("", False), (" ", False), ("a", True)))
+    def test_validate_not_empty(self, value: str, expect_valid: bool):
+        if expect_valid:
+            assert SwagChoice.validate_not_empty(value) == value.strip()
+        else:
+            with pytest.raises(ValueError) as exc:
+                SwagChoice.validate_not_empty(value)
+            assert str(exc.value) == "name cannot be empty"
+
+
+class TestStripeMetadataSchemaV1_4:
     @pytest.mark.parametrize("value", ("", "foo:bar", "foo:bar;bizz:bang"))
     def test_validate_swag_choices_string_when_valid(self, value):
         assert StripeMetadataSchemaV1_4.validate_swag_choices_string(value) == value
 
+    @pytest.mark.parametrize("value", ("foo", ":", "foo:bar;"))
+    def test_validate_swag_choices_string_when_invalid(self, value):
+        with pytest.raises(ValueError) as exc:
+            StripeMetadataSchemaV1_4.validate_swag_choices_string(value)
+        assert str(exc.value) == "Invalid swag_choices value"
+
     def test_validate_swag_choices_string_when_exceed_max_length(self, invalid_swag_choices_string_exceed_max_length):
         with pytest.raises(ValueError) as exc:
             StripeMetadataSchemaV1_4.validate_swag_choices_string(invalid_swag_choices_string_exceed_max_length)
-            assert str(exc) == "Provided swag_choices value is too long"
+        assert str(exc.value) == "Provided swag_choices value is too long"
 
 
 @pytest.mark.django_db
@@ -1177,6 +1196,22 @@ class TestCreateOneTimePaymentSerializer:
         assert contribution.payment_provider_data is None
         save_spy.assert_called_once()
 
+    def test_create_when_value_error_creating_metadata(self, minimally_valid_contribution_form_data, mocker):
+        minimally_valid_contribution_form_data["interval"] = ContributionInterval.ONE_TIME.value
+        mocker.patch(
+            "apps.contributions.models.Contribution.create_stripe_customer", return_value=AttrDict({"id": "fake-id"})
+        )
+        mocker.patch(
+            "apps.contributions.serializers.BaseCreatePaymentSerializer.generate_stripe_metadata",
+            side_effect=ValueError("Not valid"),
+        )
+        request = APIRequestFactory(HTTP_REFERER="https://www.google.com").post("", {}, format="json")
+        serializer = self.serializer_class(data=minimally_valid_contribution_form_data, context={"request": request})
+        # DRF serializer validation is separate from the pydantic validation of metadata
+        assert serializer.is_valid() is True
+        with pytest.raises(APIException):
+            serializer.create(serializer.validated_data)
+
 
 @pytest.mark.django_db
 class TestCreateRecurringPaymentSerializer:
@@ -1379,7 +1414,7 @@ class TestCreateRecurringPaymentSerializer:
         assert contribution.provider_setup_intent_id == setup_intent_id
         save_spy.assert_called_once()
 
-    def test_when_contribution_is_rejected(self, minimally_valid_contribution_form_data, monkeypatch, mocker):
+    def test_create_when_contribution_is_rejected(self, minimally_valid_contribution_form_data, monkeypatch, mocker):
         """Demonstrate `.create` when the contribution gets flagged.
 
         A contributor and contribution should still be created as in happy path, but a PermissionDenied error should occur, and
@@ -1415,6 +1450,22 @@ class TestCreateRecurringPaymentSerializer:
         assert contribution.payment_provider_data is None
         assert contribution.contribution_metadata is None
         save_spy.assert_called_once()
+
+    def test_create_when_value_error_creating_metadata(self, minimally_valid_contribution_form_data, mocker):
+        minimally_valid_contribution_form_data["interval"] = ContributionInterval.MONTHLY.value
+        mocker.patch(
+            "apps.contributions.models.Contribution.create_stripe_customer", return_value=AttrDict({"id": "fake-id"})
+        )
+        mocker.patch(
+            "apps.contributions.serializers.BaseCreatePaymentSerializer.generate_stripe_metadata",
+            side_effect=ValueError("Not valid"),
+        )
+        request = APIRequestFactory(HTTP_REFERER="https://www.google.com").post("", {}, format="json")
+        serializer = self.serializer_class(data=minimally_valid_contribution_form_data, context={"request": request})
+        # DRF serializer validation is separate from the pydantic validation of metadata
+        assert serializer.is_valid() is True
+        with pytest.raises(APIException):
+            serializer.create(serializer.validated_data)
 
 
 class SubscriptionsSerializer(TestCase):
@@ -1515,14 +1566,14 @@ class SubscriptionsSerializer(TestCase):
         self.subscription.plan.interval_count = 1
         data = self.serializer(self.subscription).data
         assert data["interval"] == ContributionInterval.YEARLY
-        with raises(ValidationError):
+        with pytest.raises(ValidationError):
             self.subscription.plan.interval_count = 2
             data = self.serializer(self.subscription).data
 
     def test_revenue_program_slug(self):
         data = self.serializer(self.subscription).data
         assert data["revenue_program_slug"] == "foo"
-        with raises(ValidationError):
+        with pytest.raises(ValidationError):
             del self.subscription.metadata
             data = self.serializer(self.subscription).data
 

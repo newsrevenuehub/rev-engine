@@ -239,23 +239,23 @@ class StripeMetaDataBase(pydantic.BaseModel):
         extra = pydantic.Extra.forbid  # don't allow extra fields
 
     agreed_to_pay_fees: bool
-    marketing_consent: Optional[bool] = None
     contributor_id: str | int
     donor_selected_amount: int
     referer: str
     revenue_program_id: str | int
     revenue_program_slug: str
     schema_version: str
-    swag_opt_out: bool | None = None
 
+    comp_subscription: str = ""
+    company_name: str = ""
     honoree: str = ""
     in_memory_of: str = ""
+    marketing_consent: Optional[bool] = None
     occupation: str = ""
     reason_for_giving: str = ""
     sf_campaign_id: Optional[str] = ""
-    comp_subscription: str = ""
-    company_name: str = ""
     source: str = settings.METADATA_SOURCE_REVENGINE
+    swag_opt_out: bool | None = None
 
     @pydantic.validator("marketing_consent", "swag_opt_out", "agreed_to_pay_fees")
     @classmethod
@@ -283,6 +283,14 @@ class SwagChoice(pydantic.BaseModel):
 
     name: str
     variation: str
+
+    @pydantic.validator("name")
+    @classmethod
+    def validate_not_empty(cls, v: str) -> str:
+        """Ensure that name is not an empty string"""
+        if not len((stripped := v.strip())):
+            raise ValueError("name cannot be empty")
+        return stripped
 
 
 class StripeMetadataSchemaV1_4(StripeMetaDataBase):
@@ -312,7 +320,7 @@ class StripeMetadataSchemaV1_4(StripeMetaDataBase):
                     name=x.split(SWAG_SUB_CHOICE_DELIMITER)[0],
                     variation=x.split(SWAG_SUB_CHOICE_DELIMITER)[1],
                 )
-            except (pydantic.ValidationError, IndexError):
+            except (ValueError, IndexError):
                 logger.exception((msg := "Invalid swag_choices value"))
                 raise ValueError(msg)
         return v
@@ -367,19 +375,14 @@ class BaseCreatePaymentSerializer(serializers.Serializer):
         max_length=80, write_only=True, required=False, allow_blank=True, default=""
     )
     agreed_to_pay_fees = serializers.BooleanField(default=False, write_only=True)
-
-    # See class-level doc string for info on why `default=''` here
     phone = serializers.CharField(max_length=40, required=False, allow_blank=True, write_only=True, default="")
-    # See class-level doc string for info on why `default=''` here
     reason_for_giving = serializers.CharField(
         max_length=255, required=False, allow_blank=True, write_only=True, default=""
     )
-    # See class-level doc string for info on why `default=''` here
+
     reason_other = serializers.CharField(max_length=255, required=False, allow_blank=True, write_only=True, default="")
     tribute_type = serializers.CharField(max_length=255, required=False, allow_blank=True, write_only=True)
-    # See class-level doc string for info on why `default=''` here
     honoree = serializers.CharField(max_length=255, required=False, allow_blank=True, write_only=True, default="")
-    # See class-level doc string for info on why `default=''` here
     in_memory_of = serializers.CharField(max_length=255, required=False, allow_blank=True, write_only=True, default="")
     swag_opt_out = serializers.BooleanField(required=False, default=False, write_only=True)
     swag_choices = serializers.CharField(
@@ -615,7 +618,7 @@ class CreateOneTimePaymentSerializer(BaseCreatePaymentSerializer):
 
         try:
             contribution.contribution_metadata = self.generate_stripe_metadata(contribution).model_dump(mode="json")
-        except pydantic.ValidationError:
+        except ValueError:
             logger.exception("Unable to create valid Stripe metadata")
             raise APIException("Cannot authorize contribution")
 
@@ -701,7 +704,7 @@ class CreateRecurringPaymentSerializer(BaseCreatePaymentSerializer):
 
         try:
             contribution.contribution_metadata = self.generate_stripe_metadata(contribution).model_dump(mode="json")
-        except pydantic.ValidationError:
+        except ValueError:
             logger.exception("Unable to create valid Stripe metadata")
             raise APIException("Cannot authorize contribution")
 

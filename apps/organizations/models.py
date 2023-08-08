@@ -982,12 +982,11 @@ class RevenueProgram(IndexedTimeStampedModel):
             return HubDefaultEmailStyle
         else:
             _style = AttrDict(page.styles.styles if page.styles else {})
-            custom_logo_alt_text = page.header_logo_alt_text or ""
 
             return TransactionalEmailStyle(
                 is_default_logo=not page.header_logo,
                 logo_url=page.header_logo.url if page.header_logo else HubDefaultEmailStyle.logo_url,
-                logo_alt_text=custom_logo_alt_text if page.header_logo else HubDefaultEmailStyle.logo_alt_text,
+                logo_alt_text=page.header_logo_alt_text if page.header_logo else HubDefaultEmailStyle.logo_alt_text,
                 header_color=_style.colors.cstm_mainHeader or None,
                 header_font=_style.font.heading or None,
                 body_font=_style.font.body or None,

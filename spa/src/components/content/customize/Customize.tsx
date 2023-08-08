@@ -6,7 +6,7 @@ import SendTestEmail from 'components/common/SendTestEmail';
 import { CustomizeContent, SectionWrapper, WideMargin } from 'components/content/pages/Pages.styled';
 import GenericErrorBoundary from 'components/errors/GenericErrorBoundary';
 import { CORE_UPGRADE_URL } from 'constants/helperUrls';
-import { PLAN_LABELS } from 'constants/orgPlanConstants';
+import { PLAN_NAMES } from 'constants/orgPlanConstants';
 import GlobalLoading from 'elements/GlobalLoading';
 import { CUSTOMIZE_CORE_UPGRADE_CLOSED, useSessionState } from 'hooks/useSessionState';
 import useUser from 'hooks/useUser';
@@ -23,7 +23,7 @@ export const PAID_SUBTITLE =
 function Customize() {
   const { user, isLoading: userLoading } = useUser();
   const { isOrgAdmin } = getUserRole(user);
-  const isFreeOrg = user?.organizations?.[0]?.plan?.name === PLAN_LABELS.FREE;
+  const isFreeOrg = user?.organizations?.[0]?.plan?.name === PLAN_NAMES.FREE;
 
   const [coreUpgradePromptClosed, setCoreUpgradePromptClosed] = useSessionState(CUSTOMIZE_CORE_UPGRADE_CLOSED, false);
   const showCoreUpgradePrompt =

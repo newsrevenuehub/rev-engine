@@ -13,8 +13,9 @@ import MailchimpLogo from 'assets/images/mailchimp.png';
 import IconList from 'components/common/IconList/IconList';
 import { CORE_UPGRADE_URL, FAQ_URL, HELP_URL } from 'constants/helperUrls';
 import { PLAN_LABELS, PLAN_NAMES } from 'constants/orgPlanConstants';
-import { useHistory } from 'react-router-dom';
-import { DONATIONS_SLUG } from 'routes';
+import { User } from 'hooks/useUser.types';
+import { Link, useHistory } from 'react-router-dom';
+import { DONATIONS_SLUG, SETTINGS } from 'routes';
 import IntegrationCardHeader from '../../IntegrationCardHeader';
 import ModalUpgradePrompt from '../../ModalUpgradePrompt/ModalUpgradePrompt';
 import {
@@ -27,6 +28,8 @@ import {
   SupportText,
   Title
 } from './MailchimpModal.styled';
+import flagIsActiveForUser from 'utilities/flagIsActiveForUser';
+import { SELF_UPGRADE_ACCESS_FLAG_NAME } from 'constants/featureFlagConstants';
 
 export interface MailchimpModalProps extends InferProps<typeof MailchimpModalPropTypes> {
   /**
@@ -34,6 +37,7 @@ export interface MailchimpModalProps extends InferProps<typeof MailchimpModalPro
    */
   isActive: boolean;
   organizationPlan: 'FREE' | 'CORE' | 'PLUS';
+  user: User;
 }
 
 type DisplayState = 'free' | 'paidNotConnected' | 'connected';
@@ -76,9 +80,11 @@ const MailchimpModal = ({
   site = {
     label: 'mailchimp.com',
     url: 'https://www.mailchimp.com'
-  }
+  },
+  user
 }: MailchimpModalProps) => {
   const history = useHistory();
+  const LooseActionButton = ActionButton as any;
   const actionButtonProps: Partial<ButtonProps> = {
     color: 'primaryDark',
     variant: 'contained',
@@ -162,7 +168,11 @@ const MailchimpModal = ({
         </CancelButton>
         {
           {
-            [DISPLAY_STATE.FREE]: (
+            [DISPLAY_STATE.FREE]: flagIsActiveForUser(SELF_UPGRADE_ACCESS_FLAG_NAME, user) ? (
+              <LooseActionButton {...actionButtonProps} component={Link} to={SETTINGS.SUBSCRIPTION}>
+                Upgrade
+              </LooseActionButton>
+            ) : (
               <ActionButton {...actionButtonProps} href={CORE_UPGRADE_URL}>
                 Upgrade
               </ActionButton>
@@ -173,15 +183,9 @@ const MailchimpModal = ({
               </ActionButton>
             ),
             [DISPLAY_STATE.CONNECTED]: (
-              <ActionButton
-                {...actionButtonProps}
-                onClick={() => {
-                  onClose();
-                  history.push(DONATIONS_SLUG);
-                }}
-              >
+              <LooseActionButton {...actionButtonProps} component={Link} to={DONATIONS_SLUG}>
                 Go to contributions
-              </ActionButton>
+              </LooseActionButton>
             )
           }[displayState]
         }
@@ -203,7 +207,8 @@ const MailchimpModalPropTypes = {
   }),
   isActive: PropTypes.bool,
   isRequired: PropTypes.bool,
-  organizationPlan: PropTypes.oneOf(Object.keys(PLAN_NAMES)).isRequired
+  organizationPlan: PropTypes.oneOf(Object.keys(PLAN_NAMES)).isRequired,
+  user: PropTypes.object.isRequired
 };
 
 MailchimpModal.propTypes = MailchimpModalPropTypes;

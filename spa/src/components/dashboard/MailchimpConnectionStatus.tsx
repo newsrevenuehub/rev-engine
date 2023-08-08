@@ -5,11 +5,13 @@ import GlobalLoading from 'elements/GlobalLoading';
 import useConnectMailchimp from 'hooks/useConnectMailchimp';
 import useModal from 'hooks/useModal';
 import usePreviousState from 'hooks/usePreviousState';
+import useUser from 'hooks/useUser';
 import { useSnackbar } from 'notistack';
 import { useEffect, useMemo } from 'react';
 
 // This is a component responsible for handling connection status to Mailchimp.
 export default function MailchimpConnectionStatus() {
+  const { user } = useUser();
   const {
     isLoading,
     audiences,
@@ -68,12 +70,13 @@ export default function MailchimpConnectionStatus() {
   return (
     <>
       {requiresAudienceSelection && <AudienceListModal open={requiresAudienceSelection} />}
-      {showSuccessModal && (
+      {showSuccessModal && user && (
         <MailchimpModal
           open={showSuccessModal}
           onClose={closeAndShowSuccessNotification}
           organizationPlan={organizationPlan}
           isActive={connectedToMailchimp}
+          user={user}
         />
       )}
     </>

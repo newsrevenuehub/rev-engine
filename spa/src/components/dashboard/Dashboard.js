@@ -37,7 +37,6 @@ import MailchimpConnectionStatus from './MailchimpConnectionStatus';
 
 // Feature flag-related
 import { CONTENT_SECTION_ACCESS_FLAG_NAME } from 'constants/featureFlagConstants';
-import useFeatureFlags from 'hooks/useFeatureFlags';
 
 import { PageEditorRedirect } from 'components/pageEditor/PageEditorRedirect';
 import Subscription from 'components/settings/Subscription/Subscription';
@@ -46,20 +45,18 @@ import { usePendo } from 'hooks/usePendo';
 import { SentryRoute } from 'hooks/useSentry';
 import useUser from 'hooks/useUser';
 import flagIsActiveForUser from 'utilities/flagIsActiveForUser';
-import hasContributionsDashboardAccessToUser from 'utilities/hasContributionsDashboardAccessToUser';
+import hasContributionsSectionAccess from 'utilities/hasContributionsSectionAccess';
 import MailchimpOAuthSuccess from './MailchimpOAuthSuccess';
 
 function Dashboard() {
   const { enqueueSnackbar } = useSnackbar();
-  const { flags } = useFeatureFlags();
   const { user } = useUser();
   const { requiresVerification, displayConnectionSuccess, hideConnectionSuccess, isLoading } =
     useConnectStripeAccount();
-  const hasContributionsSectionAccess = user?.role_type && hasContributionsDashboardAccessToUser(flags);
-  const hasContentSectionAccess = user?.role_type && flagIsActiveForUser(CONTENT_SECTION_ACCESS_FLAG_NAME, flags);
+  const hasContentSectionAccess = user?.role_type && flagIsActiveForUser(CONTENT_SECTION_ACCESS_FLAG_NAME, user);
   const dashboardSlugRedirect = hasContentSectionAccess
     ? CONTENT_SLUG
-    : hasContributionsSectionAccess
+    : hasContributionsSectionAccess(user)
     ? DONATIONS_SLUG
     : 'not-found';
 
@@ -97,12 +94,10 @@ function Dashboard() {
           <S.DashboardContent>
             <Switch>
               <Redirect exact from={DASHBOARD_SLUG} to={dashboardSlugRedirect} />
-
               <SentryRoute path={MAILCHIMP_OAUTH_SUCCESS_ROUTE}>
                 <MailchimpOAuthSuccess />
               </SentryRoute>
-
-              {hasContributionsSectionAccess ? (
+              {hasContributionsSectionAccess(user) ? (
                 <SentryRoute path={DONATIONS_SLUG}>
                   <Donations />
                 </SentryRoute>

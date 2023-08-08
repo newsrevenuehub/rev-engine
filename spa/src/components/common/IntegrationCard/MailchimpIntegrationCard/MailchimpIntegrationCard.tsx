@@ -7,8 +7,10 @@ import { CornerMessage } from './MailchimpIntegrationCard.styled';
 import useModal from 'hooks/useModal';
 import MailchimpModal from './MailchimpModal';
 import { PLAN_LABELS } from 'constants/orgPlanConstants';
+import useUser from 'hooks/useUser';
 
 export function MailchimpIntegrationCard() {
+  const { user } = useUser();
   const { open, handleToggle } = useModal();
   const {
     isLoading,
@@ -50,12 +52,13 @@ export function MailchimpIntegrationCard() {
           </>
         }
       />
-      {open && (
+      {open && user && (
         <MailchimpModal
           open={open}
           onClose={handleToggle}
           organizationPlan={organizationPlan}
           sendUserToMailchimp={sendUserToMailchimp}
+          user={user}
           {...mailchimpHeaderData}
         />
       )}

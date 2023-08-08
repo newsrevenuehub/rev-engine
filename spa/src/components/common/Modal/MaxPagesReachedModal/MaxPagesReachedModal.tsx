@@ -1,8 +1,13 @@
+import PropTypes, { InferProps } from 'prop-types';
+import { Link } from 'react-router-dom';
 import { Button, LinkButton, Modal, ModalFooter } from 'components/base';
 import { CORE_UPGRADE_URL, PRICING_URL } from 'constants/helperUrls';
+import { SELF_UPGRADE_ACCESS_FLAG_NAME } from 'constants/featureFlagConstants';
 import { PLAN_NAMES } from 'constants/orgPlanConstants';
 import { EnginePlan } from 'hooks/useContributionPage';
-import PropTypes, { InferProps } from 'prop-types';
+import useUser from 'hooks/useUser';
+import { SETTINGS } from 'routes';
+import flagIsActiveForUser from 'utilities/flagIsActiveForUser';
 import {
   BenefitsList,
   Card,
@@ -33,7 +38,32 @@ export interface MaxPagesReachedModalProps extends InferProps<typeof MaxPagesRea
 }
 
 export function MaxPagesReachedModal({ currentPlan, onClose, open, recommendedPlan }: MaxPagesReachedModalProps) {
-  const upgradeUrl = recommendedPlan === 'CORE' ? CORE_UPGRADE_URL : PRICING_URL;
+  const { user } = useUser();
+
+  // The destination of the Upgrade button may be either internal or external.
+
+  const LooseButton = Button as any;
+  let upgradeButton = (
+    <LinkButton color="primaryDark" href={PRICING_URL} target="_blank">
+      Upgrade
+    </LinkButton>
+  );
+
+  if (recommendedPlan === 'CORE') {
+    if (user && flagIsActiveForUser(SELF_UPGRADE_ACCESS_FLAG_NAME, user)) {
+      upgradeButton = (
+        <LooseButton color="primaryDark" component={Link} to={SETTINGS.SUBSCRIPTION}>
+          Upgrade
+        </LooseButton>
+      );
+    } else {
+      upgradeButton = (
+        <LinkButton color="primaryDark" href={CORE_UPGRADE_URL} target="_blank">
+          Upgrade
+        </LinkButton>
+      );
+    }
+  }
 
   return (
     <Modal open={!!open}>
@@ -81,9 +111,7 @@ export function MaxPagesReachedModal({ currentPlan, onClose, open, recommendedPl
         <Button color="secondary" onClick={onClose}>
           Maybe Later
         </Button>
-        <LinkButton color="primaryDark" href={upgradeUrl} target="_blank">
-          Upgrade
-        </LinkButton>
+        {upgradeButton}
       </ModalFooter>
     </Modal>
   );

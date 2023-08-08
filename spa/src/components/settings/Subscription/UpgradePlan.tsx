@@ -38,7 +38,7 @@ export function UpgradePlan({ organization, user }: UpgradePlanProps) {
       title="Upgrade Plan"
       subtitle="Increase your customization and insights by upgrading."
     >
-      {flagIsActiveForUser(SELF_UPGRADE_ACCESS_FLAG_NAME, user.flags) && (
+      {flagIsActiveForUser(SELF_UPGRADE_ACCESS_FLAG_NAME, user) && (
         <>
           {organization.plan.name === PLAN_LABELS.FREE &&
             STRIPE_SELF_UPGRADE_PRICING_TABLE_ID &&

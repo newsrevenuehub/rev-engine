@@ -18,7 +18,7 @@ export interface ManageSubscriptionProps extends InferProps<typeof ManageSubscri
 }
 
 export function ManageSubscription({ organization, user }: ManageSubscriptionProps) {
-  if (organization.plan.name === PLAN_LABELS.FREE || !flagIsActiveForUser(SELF_UPGRADE_ACCESS_FLAG_NAME, user.flags)) {
+  if (organization.plan.name === PLAN_LABELS.FREE || !flagIsActiveForUser(SELF_UPGRADE_ACCESS_FLAG_NAME, user)) {
     return null;
   }
 

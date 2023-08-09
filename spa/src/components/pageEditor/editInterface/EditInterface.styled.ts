@@ -39,5 +39,6 @@ export const Root = styled(motion.aside)`
 `;
 
 export const TabPanel = styled(BaseTabPanel)`
+  height: 100%;
   overflow-y: auto;
 `;

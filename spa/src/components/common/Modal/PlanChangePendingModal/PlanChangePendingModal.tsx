@@ -6,7 +6,7 @@ import { PLAN_LABELS, PLAN_NAMES } from 'constants/orgPlanConstants';
 import { HeaderIcon, ModalContent } from './PlanChangePendingModal.styled';
 
 const PlanChangePendingModalPropTypes = {
-  futurePlan: PropTypes.oneOf([PLAN_LABELS.CORE, PLAN_LABELS.PLUS]).isRequired,
+  futurePlan: PropTypes.oneOf([PLAN_NAMES.CORE, PLAN_NAMES.PLUS]).isRequired,
   onClose: PropTypes.func.isRequired,
   open: PropTypes.bool
 };
@@ -35,7 +35,7 @@ export function PlanChangePendingModal({ futurePlan, onClose, open }: PlanChange
       </ModalHeader>
       <ModalContent>
         <p>
-          <strong>Your {PLAN_NAMES[futurePlan]} features are on the way!</strong>
+          <strong>Your {PLAN_LABELS[futurePlan]} features are on the way!</strong>
         </p>
         <p>
           We're working on upgrading your account. Please allow 1-2 business days. We'll notify you once you've been
@@ -46,7 +46,7 @@ export function PlanChangePendingModal({ futurePlan, onClose, open }: PlanChange
         <Button color="secondary" onClick={onClose}>
           Close
         </Button>
-        {futurePlan === PLAN_LABELS.CORE && (
+        {futurePlan === PLAN_NAMES.CORE && (
           <Button color="primaryDark" onClick={handleViewCoreFeaturesClick}>
             View Core Features
           </Button>

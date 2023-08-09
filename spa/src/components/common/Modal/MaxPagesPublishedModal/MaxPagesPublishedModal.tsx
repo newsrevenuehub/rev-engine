@@ -6,7 +6,7 @@ import { EnginePlan } from 'hooks/useContributionPage';
 import { ModalContent, ModalHeaderIcon, RedEmphasis } from './MaxPagesPublishedModal.styled';
 
 const MaxPagesPublishedPropTypes = {
-  currentPlan: PropTypes.oneOf(Object.keys(PLAN_NAMES).filter((name) => name !== 'PLUS')).isRequired,
+  currentPlan: PropTypes.oneOf(Object.keys(PLAN_LABELS).filter((name) => name !== PLAN_NAMES.PLUS)).isRequired,
   onClose: PropTypes.func.isRequired,
   open: PropTypes.bool
 };
@@ -23,7 +23,7 @@ export function MaxPagesPublishedModal({ currentPlan, onClose, open }: MaxPagesP
         <RedEmphasis>Max Pages Published</RedEmphasis>
       </ModalHeader>
       <ModalContent>
-        {currentPlan === PLAN_LABELS.FREE && (
+        {currentPlan === PLAN_NAMES.FREE && (
           <>
             <p>
               You've published the <RedEmphasis>maximum</RedEmphasis> number of live pages for the Free tier. Unpublish
@@ -38,7 +38,7 @@ export function MaxPagesPublishedModal({ currentPlan, onClose, open }: MaxPagesP
             </p>
           </>
         )}
-        {currentPlan === 'CORE' && (
+        {currentPlan === PLAN_NAMES.CORE && (
           <>
             <p>
               You've published the <RedEmphasis>maximum</RedEmphasis> number of live pages for the Core tier. Unpublish

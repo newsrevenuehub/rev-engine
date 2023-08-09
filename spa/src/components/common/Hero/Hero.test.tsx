@@ -39,12 +39,18 @@ describe('Hero', () => {
   it('should render export even if exportData.transactions is 0', () => {
     tree({ exportData: { email: 'mock-email', transactions: 0 } });
     expect(screen.getByRole('button', { name: 'mock-export-button' })).toBeInTheDocument();
+    expect(screen.getByTestId('right-action')).toBeInTheDocument();
   });
 
   it("shouldn't render export if exportData is not defined", () => {
     tree({ exportData: undefined });
 
     expect(screen.queryByRole('button', { name: 'mock-export-button' })).not.toBeInTheDocument();
+  });
+
+  it('should not render RightAction if neither exportData and onChange is defined', () => {
+    tree({ exportData: undefined, onChange: undefined });
+    expect(screen.queryByTestId('right-action')).not.toBeInTheDocument();
   });
 
   it('should be accessible with export button', async () => {

@@ -4,7 +4,7 @@ import useUser from 'hooks/useUser';
 import { render } from 'test-utils';
 import PageUsage, { PageUsageProps } from './PageUsage';
 import { USER_ROLE_HUB_ADMIN_TYPE, USER_ROLE_ORG_ADMIN_TYPE, USER_SUPERUSER_TYPE } from 'constants/authConstants';
-import { PLAN_LABELS } from 'constants/orgPlanConstants';
+import { PLAN_NAMES } from 'constants/orgPlanConstants';
 
 jest.mock('hooks/useContributionPageList');
 jest.mock('hooks/useUser');
@@ -73,7 +73,7 @@ describe('PageUsage', () => {
       isError: false,
       isLoading: false,
       user: {
-        organizations: [{ plan: { name: PLAN_LABELS.PLUS, page_limit: 10 } }],
+        organizations: [{ plan: { name: PLAN_NAMES.PLUS, page_limit: 10 } }],
         role_type: [USER_ROLE_ORG_ADMIN_TYPE]
       }
     });
@@ -86,7 +86,7 @@ describe('PageUsage', () => {
       isError: false,
       isLoading: false,
       user: {
-        organizations: [{ plan: { name: PLAN_LABELS.FREE, page_limit: 10 } }],
+        organizations: [{ plan: { name: PLAN_NAMES.FREE, page_limit: 10 } }],
         role_type: [USER_ROLE_ORG_ADMIN_TYPE]
       }
     });
@@ -99,7 +99,7 @@ describe('PageUsage', () => {
       isError: false,
       isLoading: false,
       user: {
-        organizations: [{ plan: { name: PLAN_LABELS.CORE, page_limit: 1 } }],
+        organizations: [{ plan: { name: PLAN_NAMES.CORE, page_limit: 1 } }],
         role_type: [USER_ROLE_ORG_ADMIN_TYPE]
       }
     });

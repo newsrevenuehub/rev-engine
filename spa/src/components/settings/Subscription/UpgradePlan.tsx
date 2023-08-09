@@ -5,7 +5,7 @@ import SettingsSection from 'components/common/SettingsSection';
 import { StripePricingTable } from 'components/common/StripePricingTable';
 import { SELF_UPGRADE_ACCESS_FLAG_NAME } from 'constants/featureFlagConstants';
 import { PLUS_UPGRADE_URL, PRICING_URL } from 'constants/helperUrls';
-import { PLAN_LABELS } from 'constants/orgPlanConstants';
+import { PLAN_NAMES } from 'constants/orgPlanConstants';
 import { Organization, User } from 'hooks/useUser.types';
 import flagIsActiveForUser from 'utilities/flagIsActiveForUser';
 import {
@@ -27,7 +27,7 @@ export interface UpgradePlanProps extends InferProps<typeof UpgradePlanPropTypes
 }
 
 export function UpgradePlan({ organization, user }: UpgradePlanProps) {
-  if (organization.plan.name === PLAN_LABELS.PLUS) {
+  if (organization.plan.name === PLAN_NAMES.PLUS) {
     return null;
   }
 
@@ -40,7 +40,7 @@ export function UpgradePlan({ organization, user }: UpgradePlanProps) {
     >
       {flagIsActiveForUser(SELF_UPGRADE_ACCESS_FLAG_NAME, user.flags) && (
         <>
-          {organization.plan.name === PLAN_LABELS.FREE &&
+          {organization.plan.name === PLAN_NAMES.FREE &&
             STRIPE_SELF_UPGRADE_PRICING_TABLE_ID &&
             STRIPE_SELF_UPGRADE_PRICING_TABLE_PUBLISHABLE_KEY && (
               <PricingTableContainer>
@@ -52,7 +52,7 @@ export function UpgradePlan({ organization, user }: UpgradePlanProps) {
                 />
               </PricingTableContainer>
             )}
-          {organization.plan.name === PLAN_LABELS.CORE && (
+          {organization.plan.name === PLAN_NAMES.CORE && (
             <div>
               <PlusHeader>
                 <PlusHeaderHighlight>Plus Tier</PlusHeaderHighlight> coming soon!

@@ -20,7 +20,7 @@ export const Select = styled.input`
 
 export const CaretWrapper = styled(motion.span)`
   position: absolute;
-  right: 10px;
+  right: 16px;
   top: 50%;
   height: 0;
   display: inline-block;

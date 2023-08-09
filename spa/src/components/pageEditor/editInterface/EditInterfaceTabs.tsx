@@ -2,7 +2,7 @@ import PropTypes, { InferProps } from 'prop-types';
 import { Tab } from 'components/base';
 import { Tabs } from './EditInterfaceTabs.styled';
 
-export const EDIT_INTERFACE_TAB_NAMES = ['Layout', 'Sidebar', 'Setup', 'Style'];
+export const EDIT_INTERFACE_TAB_NAMES = ['Layout', 'Sidebar', 'Settings', 'Style'];
 
 const EditInterfaceTabsPropTypes = {
   onChangeTab: PropTypes.func.isRequired,

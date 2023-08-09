@@ -2,7 +2,7 @@ import { axe } from 'jest-axe';
 import { fireEvent, render, screen } from 'test-utils';
 import Subscription from './Subscription';
 import useUser from 'hooks/useUser';
-import { PLAN_LABELS } from 'constants/orgPlanConstants';
+import { PLAN_NAMES } from 'constants/orgPlanConstants';
 import useQueryString from 'hooks/useQueryString';
 
 jest.mock('hooks/useQueryString');
@@ -25,7 +25,7 @@ describe('Subscription', () => {
       refetch: jest.fn(),
       user: {
         id: 'mock-user-id',
-        organizations: [{ id: 'mock-org-id', plan: { name: PLAN_LABELS.FREE } }, { plan: { name: PLAN_LABELS.CORE } }]
+        organizations: [{ id: 'mock-org-id', plan: { name: PLAN_NAMES.FREE } }, { plan: { name: PLAN_NAMES.CORE } }]
       } as any
     });
   });

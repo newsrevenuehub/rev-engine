@@ -29,7 +29,6 @@ from apps.contributions.serializers import (
     ContributionSerializer,
     StripeMetaDataBase,
     StripeMetadataSchemaV1_4,
-    SwagChoice,
 )
 from apps.contributions.tests.factories import ContributionFactory, ContributorFactory
 from apps.contributions.utils import get_sha256_hash
@@ -898,17 +897,6 @@ class TestBaseCreatePaymentSerializer:
         )
         for x in defaulted_empty_str_fields:
             assert getattr(metadata, x) == ""
-
-
-class TestSwagChoice:
-    @pytest.mark.parametrize("value,expect_valid", (("", False), (" ", False), ("a", True)))
-    def test_validate_not_empty(self, value: str, expect_valid: bool):
-        if expect_valid:
-            assert SwagChoice.validate_not_empty(value) == value.strip()
-        else:
-            with pytest.raises(ValueError) as exc:
-                SwagChoice.validate_not_empty(value)
-            assert str(exc.value) == "name cannot be empty"
 
 
 class TestStripeMetadataSchemaV1_4:

@@ -269,9 +269,9 @@ class StripeMetaDataBase(pydantic.BaseModel):
         if any([isinstance(v, bool), v is None]):
             return v
         if isinstance(v, str):
-            if v.lower() in ["false", "none", "no", "n"]:
+            if v.lower().strip() in ["false", "none", "no", "n"]:
                 return False
-            if v.lower() in ["true", "yes", "y"]:
+            if v.lower().strip() in ["true", "yes", "y"]:
                 return True
         raise ValueError("Value must be a boolean, None, or castable string")
 
@@ -283,16 +283,7 @@ class SwagChoice(pydantic.BaseModel):
     """
 
     name: str
-    variation: str
-
-    @pydantic.validator("name")
-    @classmethod
-    def validate_not_empty(cls, v: str) -> str:
-        """Ensure that name is not an empty string"""
-        logger.debug("Validating swag choice name %s", v)
-        if not len((stripped := v.strip())):
-            raise ValueError("name cannot be empty")
-        return stripped
+    variation: pydantic.constr(strip_whitespace=True, min_length=1)
 
 
 class StripeMetadataSchemaV1_4(StripeMetaDataBase):

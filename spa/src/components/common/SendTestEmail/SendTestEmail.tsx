@@ -2,18 +2,15 @@ import { useMutation } from '@tanstack/react-query';
 import axios from 'ajax/axios';
 import { SEND_TEST_EMAIL } from 'ajax/endpoints';
 import { Button } from 'components/base';
-import useUser from 'hooks/useUser';
 import PropTypes, { InferProps } from 'prop-types';
-import { useAlert } from 'react-alert';
-import { getUserRole } from 'utilities/getUserRole';
-import { ButtonWrapper, Flex, Label } from './SendTestEmail.styled';
+import { useSnackbar } from 'notistack';
+import { ButtonWrapper, Description, Label, Preview } from './SendTestEmail.styled';
+import SystemNotification from '../SystemNotification';
 
-type SendTestEmailProps = InferProps<typeof SendTestEmailPropTypes>;
+export type SendTestEmailProps = InferProps<typeof SendTestEmailPropTypes>;
 
-const SendTestEmail = ({ rpId }: SendTestEmailProps) => {
-  const alert = useAlert();
-  const { user } = useUser();
-  const { isHubAdmin, isSuperUser } = getUserRole(user);
+const SendTestEmail = ({ rpId, description }: SendTestEmailProps) => {
+  const { enqueueSnackbar } = useSnackbar();
 
   async function postSendTestEmail(email_name?: string, revenue_program?: number) {
     const result = await axios.post(SEND_TEST_EMAIL, {
@@ -29,10 +26,20 @@ const SendTestEmail = ({ rpId }: SendTestEmailProps) => {
     },
     {
       onSuccess: () => {
-        alert.info('Sending test email. Check your inbox.');
+        enqueueSnackbar('Sending test email. Please check your inbox.', {
+          persist: true,
+          content: (key: string, message: string) => (
+            <SystemNotification id={key} message={message} header="Sending Email" type="info" />
+          )
+        });
       },
       onError: () => {
-        alert.error('Error sending test email');
+        enqueueSnackbar('There’s been a problem sending test email. Please try again.', {
+          persist: true,
+          content: (key: string, message: string) => (
+            <SystemNotification id={key} message={message} header="Error sending test email" type="error" />
+          )
+        });
       }
     }
   );
@@ -41,22 +48,29 @@ const SendTestEmail = ({ rpId }: SendTestEmailProps) => {
     sendTestEmail({ email_name, rpId });
   };
 
-  if (!(isHubAdmin || isSuperUser)) return null;
-
   return (
-    <Flex>
-      <Label>Test email</Label>
+    <div data-testid="send-test-email">
+      <Label>Emails</Label>
+      <Description>{description}</Description>
+      <Preview>Preview sample emails</Preview>
       <ButtonWrapper>
-        <Button onClick={handleSendTestEmail('receipt')}>Receipt</Button>
-        <Button onClick={handleSendTestEmail('reminder')}>Reminder</Button>
-        <Button onClick={handleSendTestEmail('magic_link')}>Magic link</Button>
+        <Button color="secondary" onClick={handleSendTestEmail('receipt')}>
+          Send Receipt
+        </Button>
+        <Button color="secondary" onClick={handleSendTestEmail('reminder')}>
+          Send Reminder
+        </Button>
+        <Button color="secondary" onClick={handleSendTestEmail('magic_link')}>
+          Send Magic link
+        </Button>
       </ButtonWrapper>
-    </Flex>
+    </div>
   );
 };
 
 const SendTestEmailPropTypes = {
-  rpId: PropTypes.number.isRequired
+  rpId: PropTypes.number.isRequired,
+  description: PropTypes.node.isRequired
 };
 
 SendTestEmail.propTypes = SendTestEmailPropTypes;

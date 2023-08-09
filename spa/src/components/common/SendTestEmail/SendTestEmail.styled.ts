@@ -1,14 +1,27 @@
 import styled from 'styled-components';
 
-export const Flex = styled.div`
-  margin: 4rem 0;
-`;
-
 export const Label = styled.p`
   font-size: ${(props) => props.theme.fontSizesUpdated.lgx};
-  font-weight: 100;
-  letter-spacing: 0.03em;
-  color: ${(props) => props.theme.colors.black};
+  font-weight: 400;
+  color: ${(props) => props.theme.basePalette.greyscale.grey1};
+  margin-bottom: 20px;
+  line-height: normal;
+`;
+
+export const Description = styled.p`
+  font-size: ${(props) => props.theme.fontSizesUpdated.md};
+  font-weight: 400;
+  color: ${(props) => props.theme.basePalette.greyscale.grey1};
+  margin-bottom: 20px;
+  line-height: normal;
+`;
+
+export const Preview = styled.p`
+  font-size: ${(props) => props.theme.fontSizesUpdated.md};
+  font-weight: 400;
+  color: ${(props) => props.theme.basePalette.greyscale.black};
+  margin-bottom: 30px;
+  line-height: normal;
 `;
 
 export const ButtonWrapper = styled.div`

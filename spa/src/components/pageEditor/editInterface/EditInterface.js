@@ -44,13 +44,12 @@ function InnerEditInterface() {
   /**
    * This method exists to acknowledge potential additional complexity. Lucky for this developer,
    * there is not currently a scenario where validation errors will come back for somewhere other
-   * than the Setup tab.
+   * than the Settings tab.
    */
   const setTabFromErrors = useCallback((errorsObj) => {
     const firstError = Object.keys(errorsObj)[0];
     if (PAGE_SETUP_FIELDS.includes(firstError)) {
-      const setupTab = EDIT_INTERFACE_TAB_NAMES.indexOf('Setup');
-      setTab(setupTab);
+      setTab(EDIT_INTERFACE_TAB_NAMES.indexOf('Settings'));
     }
   }, []);
 
@@ -107,7 +106,7 @@ function InnerEditInterface() {
                 }}
               />
             </TabPanel>
-            <TabPanel active={tab === 2} id="edit-setup-tab-panel" tabId="edit-setup-tab">
+            <TabPanel active={tab === 2} id="edit-settings-tab-panel" tabId="edit-settings-tab">
               <PageSetup />
             </TabPanel>
             <TabPanel active={tab === 3} id="edit-styles-tab-panel" tabId="edit-styles-tab">

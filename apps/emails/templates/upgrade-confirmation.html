@@ -1,19 +1,157 @@
 {% extends "nrh-user-base-template.html" %}
 
+{% block custom_style %}
+<style type="text/css">
+  .text-sub {
+    font-size: 24px;
+    margin-top: 0px;
+    margin-bottom: 0px;
+    font-family: 'Roboto';
+    font-weight: 600;
+    color: #25192B;
+  }
+
+  .list-item {
+    margin-top: 27px;
+    margin-bottom: 27px;
+    margin-right: 20px;
+  }
+
+  .list-icon {
+    margin-right: 10px;
+  }
+
+  .bottom-text {
+    font-size: 18px;
+    margin-bottom: 0px;
+    font-family: 'Roboto';
+    font-weight: 400;
+    color: #282828;
+    text-align: center;
+    font-weight: 600;
+    margin-top: 40px;
+  }
+
+  .small-text {
+    color: #707070;
+    font-family: 'Roboto';
+    font-weight: 400;
+    font-size: 14px;
+    margin-bottom: 20px;
+  }
+</style>
+{% endblock custom_style %}
+
 {% block content %}
 {% comment %} TODO: [DEV-3779] Style this email in accordance with design spec{% endcomment %}
-<p class="content-header">Start enjoying your new features!</p>
-<ul>
-  <li>Save time with a mailchimp integration</li>
-  <li>Styled receipts, payment reminders, and contributor portal</li>
-  <li>Create and publish more pages</li>
+<h1 class="content-header" style="margin-bottom: 20px;">
+  <svg class="header-icon" xmlns="http://www.w3.org/2000/svg" width="31" height="30" viewBox="0 0 31 30" fill="none">
+    <circle cx="15.644" cy="15" r="15" fill="#008E7C" />
+    <mask id="mask0_332_3335" style="mask-type:alpha" maskUnits="userSpaceOnUse" x="3" y="3" width="25" height="24">
+      <rect x="3.64404" y="3" width="24" height="24" fill="#D9D9D9" />
+    </mask>
+    <g mask="url(#mask0_332_3335)">
+      <path d="M13.1941 21L7.49414 15.3L8.91914 13.875L13.1941 18.15L22.3691 8.97498L23.7941 10.4L13.1941 21Z"
+        fill="white" />
+    </g>
+  </svg>
+  You’ve *Upgraded to Core!
+</h1>
+
+<div style="height: 1px; background: #f1f1f1; margin-bottom: 20px; margin-top: 20px;"></div>
+
+<p class="text-sub">Start enjoying your new features!</p>
+<ul style="list-style-type: none;">
+  <li class="list-item">
+    <table>
+      <tr>
+        <td>
+          <svg class="list-icon" xmlns="http://www.w3.org/2000/svg" width="31" height="31" viewBox="0 0 31 31"
+            fill="none">
+            <circle cx="15.5" cy="15.7559" r="15" fill="#25192B" />
+            <mask id="mask0_332_4151" style="mask-type:alpha" maskUnits="userSpaceOnUse" x="5" y="6" width="20"
+              height="19">
+              <rect x="5.88477" y="6.1405" width="18.4615" height="18.4615" fill="#D9D9D9" />
+            </mask>
+            <g mask="url(#mask0_332_4151)">
+              <path
+                d="M15.1156 16.1405L8.9618 12.2943V19.9866H15.8849V21.5251H8.9618C8.53872 21.5251 8.17655 21.3745 7.87526 21.0732C7.57398 20.7719 7.42334 20.4097 7.42334 19.9866V10.7559C7.42334 10.3328 7.57398 9.97061 7.87526 9.66933C8.17655 9.36805 8.53872 9.21741 8.9618 9.21741H21.2695C21.6926 9.21741 22.0548 9.36805 22.356 9.66933C22.6573 9.97061 22.808 10.3328 22.808 10.7559V16.1405H21.2695V12.2943L15.1156 16.1405ZM15.1156 14.602L21.2695 10.7559H8.9618L15.1156 14.602ZM20.5003 23.8328L19.4233 22.7559L20.6349 21.5251H17.4233V19.9866H20.6349L19.4041 18.7559L20.5003 17.6789L23.5772 20.7559L20.5003 23.8328ZM8.9618 12.2943V20.7559V16.1405V16.1982V10.7559V12.2943Z"
+                fill="#F2FF59" />
+            </g>
+          </svg>
+        </td>
+        <td>
+          <p class="text">
+            Save time with a Mailchimp integration
+          </p>
+        </td>
+      </tr>
+    </table>
+  </li>
+  <li class="list-item">
+    <table>
+      <tr>
+        <td>
+          <svg class="list-icon" xmlns="http://www.w3.org/2000/svg" width="31" height="31" viewBox="0 0 31 31"
+            fill="none">
+            <circle cx="15.5" cy="15.8604" r="15" fill="#25192B" />
+            <mask id="mask0_332_4162" style="mask-type:alpha" maskUnits="userSpaceOnUse" x="5" y="6" width="20"
+              height="19">
+              <rect x="5.88477" y="6.245" width="18.4615" height="18.4615" fill="#D9D9D9" />
+            </mask>
+            <g mask="url(#mask0_332_4162)">
+              <path
+                d="M15.1156 23.1681C14.0644 23.1681 13.0708 22.9661 12.1349 22.5623C11.199 22.1584 10.3817 21.6072 9.68296 20.9084C8.98424 20.2097 8.43296 19.3924 8.02911 18.4565C7.62526 17.5206 7.42334 16.527 7.42334 15.4758C7.42334 14.4117 7.63167 13.4117 8.04834 12.4758C8.46501 11.5399 9.02911 10.7258 9.74065 10.0334C10.4522 9.34114 11.2823 8.79306 12.231 8.38922C13.1797 7.98537 14.1926 7.78345 15.2695 7.78345C16.2951 7.78345 17.2631 7.95973 18.1733 8.31229C19.0836 8.66486 19.8817 9.15204 20.5676 9.77383C21.2535 10.3956 21.7983 11.1328 22.2022 11.9854C22.606 12.8379 22.808 13.7578 22.808 14.745C22.808 16.2193 22.3592 17.3508 21.4618 18.1392C20.5644 18.9277 19.4746 19.3219 18.1926 19.3219H16.7695C16.6541 19.3219 16.574 19.354 16.5291 19.4181C16.4842 19.4822 16.4618 19.5527 16.4618 19.6296C16.4618 19.7834 16.558 20.0046 16.7503 20.2931C16.9426 20.5815 17.0387 20.9117 17.0387 21.2834C17.0387 21.9245 16.8624 22.3988 16.5099 22.7065C16.1573 23.0142 15.6926 23.1681 15.1156 23.1681ZM10.8849 16.245C11.2182 16.245 11.4939 16.136 11.7118 15.9181C11.9297 15.7001 12.0387 15.4245 12.0387 15.0911C12.0387 14.7578 11.9297 14.4822 11.7118 14.2642C11.4939 14.0463 11.2182 13.9373 10.8849 13.9373C10.5515 13.9373 10.2759 14.0463 10.058 14.2642C9.84001 14.4822 9.73103 14.7578 9.73103 15.0911C9.73103 15.4245 9.84001 15.7001 10.058 15.9181C10.2759 16.136 10.5515 16.245 10.8849 16.245ZM13.1926 13.1681C13.5259 13.1681 13.8015 13.0591 14.0195 12.8411C14.2374 12.6232 14.3464 12.3475 14.3464 12.0142C14.3464 11.6809 14.2374 11.4052 14.0195 11.1873C13.8015 10.9693 13.5259 10.8604 13.1926 10.8604C12.8592 10.8604 12.5836 10.9693 12.3656 11.1873C12.1477 11.4052 12.0387 11.6809 12.0387 12.0142C12.0387 12.3475 12.1477 12.6232 12.3656 12.8411C12.5836 13.0591 12.8592 13.1681 13.1926 13.1681ZM17.0387 13.1681C17.3721 13.1681 17.6477 13.0591 17.8656 12.8411C18.0836 12.6232 18.1926 12.3475 18.1926 12.0142C18.1926 11.6809 18.0836 11.4052 17.8656 11.1873C17.6477 10.9693 17.3721 10.8604 17.0387 10.8604C16.7054 10.8604 16.4297 10.9693 16.2118 11.1873C15.9939 11.4052 15.8849 11.6809 15.8849 12.0142C15.8849 12.3475 15.9939 12.6232 16.2118 12.8411C16.4297 13.0591 16.7054 13.1681 17.0387 13.1681ZM19.3464 16.245C19.6797 16.245 19.9554 16.136 20.1733 15.9181C20.3913 15.7001 20.5003 15.4245 20.5003 15.0911C20.5003 14.7578 20.3913 14.4822 20.1733 14.2642C19.9554 14.0463 19.6797 13.9373 19.3464 13.9373C19.0131 13.9373 18.7374 14.0463 18.5195 14.2642C18.3015 14.4822 18.1926 14.7578 18.1926 15.0911C18.1926 15.4245 18.3015 15.7001 18.5195 15.9181C18.7374 16.136 19.0131 16.245 19.3464 16.245ZM15.1156 21.6296C15.231 21.6296 15.324 21.5975 15.3945 21.5334C15.465 21.4693 15.5003 21.386 15.5003 21.2834C15.5003 21.104 15.4041 20.8924 15.2118 20.6488C15.0195 20.4052 14.9233 20.0399 14.9233 19.5527C14.9233 19.0142 15.1092 18.5847 15.481 18.2642C15.8528 17.9437 16.308 17.7834 16.8464 17.7834H18.1926C19.0387 17.7834 19.7631 17.5367 20.3656 17.0431C20.9682 16.5495 21.2695 15.7834 21.2695 14.745C21.2695 13.1937 20.6765 11.902 19.4906 10.87C18.3047 9.83793 16.8977 9.32191 15.2695 9.32191C13.5259 9.32191 12.0387 9.91806 10.808 11.1104C9.57719 12.3027 8.9618 13.7578 8.9618 15.4758C8.9618 17.1809 9.56116 18.6328 10.7599 19.8315C11.9586 21.0302 13.4105 21.6296 15.1156 21.6296Z"
+                fill="#F2FF59" />
+            </g>
+          </svg>
+        </td>
+        <td>
+          <p class="text">
+            Styled receipts, payment reminders, and Contributor Portal
+          </p>
+        </td>
+      </tr>
+    </table>
+  </li>
+  <li class="list-item">
+    <table>
+      <tr>
+        <td>
+          <svg class="list-icon" xmlns="http://www.w3.org/2000/svg" width="31" height="31" viewBox="0 0 31 31"
+            fill="none">
+            <circle cx="15.5" cy="15.3494" r="15" fill="#25192B" />
+            <mask id="mask0_332_4173" style="mask-type:alpha" maskUnits="userSpaceOnUse" x="5" y="5" width="20"
+              height="20">
+              <rect x="5.88477" y="5.73401" width="18.4615" height="18.4615" fill="#D9D9D9" />
+            </mask>
+            <g mask="url(#mask0_332_4173)">
+              <path
+                d="M14.3463 20.3494V15.734H9.73096V14.1956H14.3463V9.5802H15.8848V14.1956H20.5002V15.734H15.8848V20.3494H14.3463Z"
+                fill="#F2FF59" />
+            </g>
+          </svg>
+        </td>
+        <td>
+          <p class="text">
+            More pages to create and publish
+          </p>
+        </td>
+      </tr>
+    </table>
+  </li>
 </ul>
-<p><b>Get started with your Core integration now:</b></p>
+<p class="bottom-text">
+  Get started with your Mailchimp integration now:
+</p>
 <div class="button-wrapper">
-  <a class="button" href="{{ mailchimp_integration_url }}">
+  <a class="button" href="{{ mailchimp_integration_url }}" target="_blank">
     Connect to Mailchimp
   </a>
 </div>
-<p>*Upgrade may not be reflected immediately. In most cases, your upgrade will be active within 30 minutes. Please allow up to {{upgrade_days_wait}} business days.<p>
+<p class="small-text">
+  *Upgrade may not be reflected immediately. In most cases, your upgrade will be active within 30 minutes. Please allow
+  up to {{upgrade_days_wait}} business days.
+<p>
 
-{% endblock content %}
+  {% endblock content %}

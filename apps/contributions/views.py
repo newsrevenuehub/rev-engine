@@ -28,9 +28,9 @@ from apps.api.permissions import (
     IsHubAdmin,
 )
 from apps.contributions import serializers
+from apps.contributions.exceptions import InvalidIntervalError, InvalidMetadataError
 from apps.contributions.filters import ContributionFilter
 from apps.contributions.models import (
-    CachedStripeContributionResult,
     Contribution,
     ContributionInterval,
     ContributionIntervalError,
@@ -39,7 +39,11 @@ from apps.contributions.models import (
     Contributor,
 )
 from apps.contributions.payment_managers import PaymentProviderError
-from apps.contributions.stripe_contributions_provider import SubscriptionsCacheProvider
+from apps.contributions.stripe_contributions_provider import (
+    StripeSubscriptionsCacheProvider,
+    StripePiAsPortalContribution,
+    StripePaymentIntentsCacheProvider,
+)
 from apps.contributions.tasks import (
     email_contribution_csv_export_to_user,
     task_pull_serialized_stripe_contributions_to_cache,
@@ -256,18 +260,14 @@ class ContributionsViewSet(viewsets.ReadOnlyModelViewSet):
     filterset_class = ContributionFilter
     filter_backends = [DjangoFilterBackend]
 
-    def filter_queryset_for_user(
-        self, user: UserModel | Contributor
-    ) -> QuerySet | List[CachedStripeContributionResult]:
+    def filter_queryset_for_user(self, user: UserModel | Contributor) -> QuerySet:
         """Return the right results to the right user
 
         Contributors get cached serialized contribution data (if it's already cached when this runs, otherwise,
         query to Stripe will happen in background, and this will return an empty list).
         """
         ra = getattr(user, "get_role_assignment", lambda: None)()
-        if isinstance(user, Contributor):
-            return self.filter_queryset_for_contributor(user)
-        elif user.is_anonymous:
+        if user.is_anonymous:
             return self.model.objects.none()
         elif user.is_superuser:
             return self.model.objects.all()
@@ -277,16 +277,30 @@ class ContributionsViewSet(viewsets.ReadOnlyModelViewSet):
             logger.warning("Encountered unexpected user")
             raise ApiConfigurationError
 
-    def get_queryset(self):
-        return self.filter_queryset_for_user(self.request.user)
+    def get_queryset(self) -> QuerySet | list[StripePiAsPortalContribution]:
+        if isinstance((u := self.request.user), Contributor):
+            return self.get_contributions_for_portal(self.request.user)
+        return self.filter_queryset_for_user(u)
 
-    def filter_queryset_for_contributor(self, contributor) -> List[CachedStripeContributionResult]:
-        """ """
+    def get_contributions_for_portal(self, contributor: Contributor) -> List[StripePiAsPortalContribution]:
+        """Explain"""
+        logger.info("Getting contributions for portal for contributor %s", contributor.id)
         if (rp_slug := self.request.GET.get("rp", None)) is None:
             logger.warning("")
             raise ParseError("rp not supplied")
         rp = get_object_or_404(RevenueProgram, slug=rp_slug)
-        return self.model.objects.filter_queryset_for_contributor(contributor, rp)
+        cache_provider = StripePaymentIntentsCacheProvider(contributor.email, rp.stripe_account_id)
+        contributions = cache_provider.load()
+        if not contributions:
+            logger.info("[ContributionViewSet.get_contributions_for_portal] cache is empty, triggering task")
+            task_pull_serialized_stripe_contributions_to_cache.delay(contributor.email, rp.stripe_account_id)
+        return [
+            StripePiAsPortalContribution(**x)
+            for x in contributions
+            if x.get("revenue_program") == rp.slug
+            and x.get("payment_type") is not None
+            and x.get("status") == ContributionStatus.PAID.value
+        ]
 
     def filter_queryset(self, queryset):
         """Remove filter backend if user is a contributor
@@ -353,46 +367,37 @@ class ContributionsViewSet(viewsets.ReadOnlyModelViewSet):
 
 class SubscriptionsViewSet(viewsets.ViewSet):
     permission_classes = [
-        IsAuthenticated,
+        IsContributor,
     ]
     serializer_class = serializers.SubscriptionsSerializer
 
-    def _fetch_subscriptions(self, request):
+    def _get_or_fetch_subscriptions(self, request) -> list[stripe.Subscription]:
+        """Document inlcuding synch pull"""
+        logger.info("Called with request: %s", request)
         revenue_program_slug = request.query_params.get("revenue_program_slug")
         try:
             revenue_program = RevenueProgram.objects.get(slug=revenue_program_slug)
         except RevenueProgram.DoesNotExist:
+            logger.warning("Could not find revenue program with slug %s", revenue_program_slug)
             return Response({"detail": "Revenue Program not found"}, status=status.HTTP_404_NOT_FOUND)
-        cache_provider = SubscriptionsCacheProvider(self.request.user.email, revenue_program.stripe_account_id)
+        cache_provider = StripeSubscriptionsCacheProvider(self.request.user.email, revenue_program.stripe_account_id)
         subscriptions = cache_provider.load()
         if not subscriptions:
+            logger.info("No subscriptions found. Synchronously fetching from Stripe.")
             task_pull_serialized_stripe_contributions_to_cache(
                 self.request.user.email, revenue_program.stripe_account_id
             )
         subscriptions = cache_provider.load()
         return [x for x in subscriptions if x.get("revenue_program_slug") == revenue_program_slug]
 
-    def retrieve(self, request, pk):
-        #  TODO: [DEV-3227] Here...
-        subscriptions = self._fetch_subscriptions(request)
-        for subscription in subscriptions:
-            if (
-                subscription.get("revenue_program_slug") == self.request.query_params["revenue_program_slug"]
-                and subscription.get("id") == pk
-            ):
-                return Response(subscription, status=status.HTTP_200_OK)
-        return Response({"detail": "Not Found"}, status=status.HTTP_404_NOT_FOUND)
-
-    def list(self, request):
-        subscriptions = self._fetch_subscriptions(request)
-        return Response(subscriptions, status=status.HTTP_200_OK)
-
     def partial_update(self, request, pk):
         """
         payment_method_id - the new payment method id to use for the subscription
         revenue_program_slug - the revenue program this subscription belongs to
         """
+        logger.info("partial_update called for pk %s with request: %s", pk, request)
         if request.data.keys() != {"payment_method_id", "revenue_program_slug"}:
+            logger.warning("Request for pk %s contains unsupported fields", pk)
             return Response({"detail": "Request contains unsupported fields"}, status=status.HTTP_400_BAD_REQUEST)
 
         revenue_program_slug = request.data.get("revenue_program_slug")
@@ -403,6 +408,9 @@ class SubscriptionsViewSet(viewsets.ViewSet):
             pk, stripe_account=revenue_program.payment_provider.stripe_account_id, expand=["customer"]
         )
         if request.user.email.lower() != subscription.customer.email.lower():
+            logger.warning(
+                "User %s attempted to update subscription %s which belongs to another user", request.user.email, pk
+            )
             # TODO: [DEV-2287] should we find a way to user DRF's permissioning scheme here instead?
             return Response({"detail": "Forbidden"}, status=status.HTTP_403_FORBIDDEN)
         payment_method_id = request.data.get("payment_method_id")
@@ -442,6 +450,9 @@ class SubscriptionsViewSet(viewsets.ViewSet):
             pk, stripe_account=revenue_program.payment_provider.stripe_account_id, expand=["customer"]
         )
         if request.user.email.lower() != subscription.customer.email.lower():
+            logger.warning(
+                "User %s attempted to cancel subscription %s which belongs to another user", request.user, pk
+            )
             # TODO: [DEV-2287] should we find a way to user DRF's permissioning scheme here instead?
             return Response({"detail": "Forbidden"}, status=status.HTTP_403_FORBIDDEN)
 

@@ -17,20 +17,17 @@ from stripe.error import RateLimitError
 
 from apps.contributions.models import Contribution, ContributionStatus
 from apps.contributions.payment_managers import PaymentProviderError
-from apps.contributions.serializers import (
-    PaymentProviderContributionSerializer,
-    SubscriptionsSerializer,
-)
 from apps.contributions.stripe_contributions_provider import (
-    ContributionsCacheProvider,
+    StripePaymentIntentsCacheProvider,
     StripeContributionsProvider,
-    StripePaymentIntent,
-    SubscriptionsCacheProvider,
+    StripeSubscriptionsCacheProvider,
 )
 from apps.contributions.utils import export_contributions_to_csv
 from apps.emails.tasks import send_templated_email_with_attachment
 from apps.organizations.models import RevenueProgram
 
+
+STRIPE_PAYMENT_INTENT_DESCRIPTION_FOR_SUBSCRIPTION = "Subscription creation"
 
 logger = get_task_logger(f"{settings.DEFAULT_LOGGER}.{__name__}")
 
@@ -95,35 +92,24 @@ def task_pull_serialized_stripe_contributions_to_cache(self, email_id, stripe_ac
 
 
 @shared_task(bind=True, autoretry_for=(RateLimitError,), retry_backoff=True, retry_kwargs={"max_retries": 3})
-def task_pull_payment_intents(self, email_id, customers_query, stripe_account_id):
+def task_pull_payment_intents(self, email_id: str, customers_query: str, stripe_account_id: str) -> None:
     """Pull all payment_intents from stripe for a given set of customers."""
     with configure_scope() as scope:
         scope.user = {"email": email_id}
         provider = StripeContributionsProvider(email_id, stripe_account_id)
-        pi_cache_provider = ContributionsCacheProvider(
-            email_id,
-            stripe_account_id,
-            serializer=PaymentProviderContributionSerializer,
-            converter=StripePaymentIntent,
-        )
-        sub_cache_provider = SubscriptionsCacheProvider(
-            email_id,
-            stripe_account_id,
-            serializer=SubscriptionsSerializer,
-        )
-        pi_response = provider.fetch_payment_intents(query=customers_query)
-        # from celery.contrib import rdb; rdb.set_trace()
-        # grab subscriptions
-        logger.debug("pi_response: %s", pi_response)
-        pi_cache_provider.upsert(pi_response)
-        subscriptions = [x.invoice.subscription for x in pi_response if x.invoice]
-        sub_cache_provider.upsert(subscriptions)
-        # iterate through all pages of stripe payment intents
-        while pi_response.has_more:
-            pi_response = provider.fetch_payment_intents(query=customers_query, page=pi_response.next_page)
-            pi_cache_provider.upsert(pi_response)
+        pi_cache_provider = StripePaymentIntentsCacheProvider(email_id, stripe_account_id)
+        sub_cache_provider = StripeSubscriptionsCacheProvider(email_id, stripe_account_id)
+
+        keep_going = True
+        next_page = None
+
+        while keep_going:
+            pi_response = provider.fetch_payment_intents(query=customers_query, page=next_page)
+            pi_cache_provider.upsert(pi_response.data)
             subscriptions = [x.invoice.subscription for x in pi_response if x.invoice]
             sub_cache_provider.upsert(subscriptions)
+            next_page = pi_response.next_page
+            keep_going = pi_response.has_more
 
 
 @shared_task(bind=True, autoretry_for=(RateLimitError,), retry_backoff=True, retry_kwargs={"max_retries": 3})

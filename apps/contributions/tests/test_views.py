@@ -463,7 +463,7 @@ class TestContributionViewSetForContributorUser:
         ]
         stripe_contributions = [PaymentProviderContributionSerializer(instance=i).data for i in contributions]
         monkeypatch.setattr(
-            "apps.contributions.stripe_contributions_provider.ContributionsCacheProvider.load",
+            "apps.contributions.stripe_contributions_provider.StripePaymentIntentsCacheProvider.load",
             lambda *args, **kwargs: stripe_contributions,
         )
         spy = mocker.spy(task_pull_serialized_stripe_contributions_to_cache, "delay")
@@ -479,7 +479,7 @@ class TestContributionViewSetForContributorUser:
     ):
         """When there are not contributions in the cache, background task to retrieve and cache should be called"""
         monkeypatch.setattr(
-            "apps.contributions.stripe_contributions_provider.ContributionsCacheProvider.load",
+            "apps.contributions.stripe_contributions_provider.StripePaymentIntentsCacheProvider.load",
             lambda *args, **kwargs: [],
         )
         spy = mocker.spy(task_pull_serialized_stripe_contributions_to_cache, "delay")
@@ -577,7 +577,7 @@ class TestSubscriptionViewSet:
         self, api_client, contributor_user, revenue_program, monkeypatch, mocker
     ):
         monkeypatch.setattr(
-            "apps.contributions.stripe_contributions_provider.SubscriptionsCacheProvider.load",
+            "apps.contributions.stripe_contributions_provider.SerializedSubscriptionsCacheProvider.load",
             lambda *args, **kwargs: [
                 {"revenue_program_slug": revenue_program.slug, "id": 1},
                 {"revenue_program_slug": revenue_program.slug, "id": 2},
@@ -597,7 +597,7 @@ class TestSubscriptionViewSet:
         self, monkeypatch, mocker, api_client, contributor_user, revenue_program
     ):
         monkeypatch.setattr(
-            "apps.contributions.stripe_contributions_provider.SubscriptionsCacheProvider.load",
+            "apps.contributions.stripe_contributions_provider.SerializedSubscriptionsCacheProvider.load",
             lambda *args, **kwargs: [],
         )
         monkeypatch.setattr(
@@ -618,7 +618,7 @@ class TestSubscriptionViewSet:
         TODO: [DEV-3227] Here...
         """
         monkeypatch.setattr(
-            "apps.contributions.stripe_contributions_provider.SubscriptionsCacheProvider.load",
+            "apps.contributions.stripe_contributions_provider.SerializedSubscriptionsCacheProvider.load",
             lambda *args, **kwargs: [],
         )
         monkeypatch.setattr(
@@ -638,7 +638,7 @@ class TestSubscriptionViewSet:
     ):
         """ """
         monkeypatch.setattr(
-            "apps.contributions.stripe_contributions_provider.SubscriptionsCacheProvider.load",
+            "apps.contributions.stripe_contributions_provider.SerializedSubscriptionsCacheProvider.load",
             lambda *args, **kwargs: [
                 {"revenue_program_slug": revenue_program.slug, "id": str(revenue_program.id)},
             ],

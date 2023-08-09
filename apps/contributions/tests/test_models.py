@@ -1672,41 +1672,6 @@ class TestContributionQuerySetMethods:
         assert (returned_recurring := Contribution.objects.recurring()).count() == recurring.count()
         assert set(returned_recurring.values_list("id", flat=True)) == set(recurring.values_list("id", flat=True))
 
-    def test_filter_queryset_for_contributor_when_cache_empty(
-        self, contributor_user, revenue_program, mocker, monkeypatch
-    ):
-        """Show behavior of this method when no results in cache"""
-        monkeypatch.setattr(
-            "apps.contributions.stripe_contributions_provider.ContributionsCacheProvider.load",
-            lambda *args, **kwargs: [],
-        )
-        monkeypatch.setattr(
-            "apps.contributions.tasks.task_pull_serialized_stripe_contributions_to_cache.delay",
-            lambda *args, **kwargs: None,
-        )
-        spy = mocker.spy(task_pull_serialized_stripe_contributions_to_cache, "delay")
-        results = Contribution.objects.filter_queryset_for_contributor(contributor_user, revenue_program)
-        assert results == []
-        spy.assert_called_once_with(contributor_user.email, revenue_program.stripe_account_id)
-
-    def test_filter_queryset_for_contributor_when_cache_not_empty(
-        self, contributor_user, revenue_program, mocker, monkeypatch
-    ):
-        """Show behavior of this method when results in cache"""
-        results = [
-            {"id": 1, "revenue_program": revenue_program.slug, "payment_type": "something", "status": "paid"},
-            {"id": 2, "revenue_program": revenue_program.slug, "payment_type": None, "status": "paid"},
-            {"id": 3, "revenue_program": "something-different", "payment_type": "something", "status": "paid"},
-        ]
-        monkeypatch.setattr(
-            "apps.contributions.stripe_contributions_provider.ContributionsCacheProvider.load",
-            lambda *args, **kwargs: results,
-        )
-        spy = mocker.spy(task_pull_serialized_stripe_contributions_to_cache, "delay")
-        results = Contribution.objects.filter_queryset_for_contributor(contributor_user, revenue_program)
-        assert set([1]) == set(item["id"] for item in results)
-        spy.assert_not_called()
-
     def test_having_org_viewable_status(
         self,
         flagged_contribution,
@@ -1724,23 +1689,3 @@ class TestContributionQuerySetMethods:
                 successful_contribution.id,
             )
         )
-
-    def test_excludes_failed_contributions_from_contributor_queryset(
-        self, contributor_user, revenue_program, monkeypatch
-    ):
-        monkeypatch.setattr(
-            "apps.contributions.stripe_contributions_provider.ContributionsCacheProvider.load",
-            lambda *args, **kwargs: [
-                {"id": 1, "revenue_program": revenue_program.slug, "payment_type": "something", "status": "paid"},
-                {"id": 2, "revenue_program": revenue_program.slug, "payment_type": None, "status": "cancelled"},
-                {"id": 3, "revenue_program": "something-different", "payment_type": "something", "status": "refunded"},
-                {"id": 4, "revenue_program": revenue_program.slug, "payment_type": "something", "status": "paid"},
-            ],
-        )
-        monkeypatch.setattr(
-            "apps.contributions.tasks.task_pull_serialized_stripe_contributions_to_cache.delay",
-            lambda *args, **kwargs: None,
-        )
-        results = Contribution.objects.filter_queryset_for_contributor(contributor_user, revenue_program)
-
-        assert len(results) == 2

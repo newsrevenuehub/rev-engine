@@ -5,11 +5,10 @@ from unittest.mock import ANY, MagicMock, patch
 
 from django.conf import settings
 from django.template.loader import render_to_string
-from django.test import TestCase
 
 import pytest
 import stripe.error
-from addict import Dict as AttrDict
+import stripe
 
 from apps.contributions import tasks as contribution_tasks
 from apps.contributions.models import Contribution, ContributionStatus
@@ -17,6 +16,7 @@ from apps.contributions.payment_managers import PaymentProviderError
 from apps.contributions.tasks import task_verify_apple_domain
 from apps.contributions.tests.factories import ContributionFactory
 from apps.contributions.utils import CONTRIBUTION_EXPORT_CSV_HEADERS
+from apps.contributions.stripe_contributions_provider import StripePiSearchResponse
 
 
 @pytest.fixture
@@ -63,37 +63,70 @@ class AutoAcceptFlaggedContributionsTaskTest:
         assert failed == 0
 
 
-class TestTaskStripeContributions(TestCase):
-    @patch("apps.contributions.tasks.task_pull_payment_intents.delay")
-    @patch(
-        "apps.contributions.stripe_contributions_provider.StripeContributionsProvider.generate_chunked_customers_query"
+def make_stripe_pi_search_response(has_more=True):
+    return StripePiSearchResponse(
+        object="search_result",
+        url="something",
+        has_more=has_more,
+        total_count=10,
+        data=[
+            stripe.PaymentIntent.construct_from(
+                {
+                    "id": "pi_00000000000000",
+                    "amount": 500,
+                    "currency": "usd",
+                    "customer": "cus_00000000000000",
+                    "invoice": None,
+                    "payment_method": "pm_00000000000000",
+                    "status": "requires_capture",
+                    "created": 1600000000,
+                },
+                key="test",
+            ),
+            stripe.PaymentIntent.construct_from(
+                {
+                    "id": "pi_00000000000001",
+                    "amount": 500,
+                    "currency": "usd",
+                    "customer": "cus_00000000000001",
+                    "invoice": None,
+                    "payment_method": "pm_00000000000001",
+                    "status": "requires_capture",
+                    "created": 1600000000,
+                },
+                key="test",
+            ),
+        ],
     )
-    def test_task_pull_serialized_stripe_contributions_to_cache(self, customers_query_mock, pull_payment_intents_mock):
-        customers_query_mock.return_value = [
-            "customer:'cust_0' OR customer:'cust_1'",
-            "customer:'cust_2' OR customer:'cust_3'",
-            "customer:'cust_4' OR customer:'cust_5'",
-        ]
+
+
+class TestTaskPullSerializedStripeContributionsToCache:
+    def test_task_pull_serialized_stripe_contributions_to_cache(self, mocker):
+        mock_pull_pi_delay = mocker.patch("apps.contributions.tasks.task_pull_payment_intents.delay")
+        mocker.patch(
+            "apps.contributions.stripe_contributions_provider.StripeContributionsProvider.generate_chunked_customers_query",
+            return_value=(
+                queries := [
+                    "customer:'cust_0' OR customer:'cust_1'",
+                    "customer:'cust_2' OR customer:'cust_3'",
+                    "customer:'cust_4' OR customer:'cust_5'",
+                ]
+            ),
+        )
         contribution_tasks.task_pull_serialized_stripe_contributions_to_cache("test@email.com", "acc_00000")
-        self.assertEqual(pull_payment_intents_mock.call_count, 3)
+        assert mock_pull_pi_delay.call_count == len(queries)
 
-    @patch("apps.contributions.stripe_contributions_provider.StripeContributionsProvider.fetch_payment_intents")
-    @patch("apps.contributions.tasks.ContributionsCacheProvider")
-    @patch("apps.contributions.tasks.SubscriptionsCacheProvider")
-    def test_task_pull_payment_intents(self, sub_cache_mock, contrib_cache_mock, fetch_payment_intents_mock):
-        mock_1 = MagicMock()
-        mock_1.has_more = True
-        mock_1.__iter__.return_value = [AttrDict(**{"id": "ch_000000", "invoice": None})]
-
-        mock_2 = MagicMock()
-        mock_2.has_more = False
-        mock_2.__iter__.return_value = [AttrDict(**{"id": "ch_000001", "invoice": None})]
-
-        fetch_payment_intents_mock.side_effect = [mock_1, mock_2]
+    def test_task_pull_payment_intents(self, mocker):
+        mock_fetch_pis = mocker.patch(
+            "apps.contributions.stripe_contributions_provider.StripeContributionsProvider.fetch_payment_intents",
+            side_effect=[make_stripe_pi_search_response(has_more=True), make_stripe_pi_search_response(has_more=False)],
+        )
         contribution_tasks.task_pull_payment_intents(
             "test@email.com", "customer:'cust_0' OR customer:'cust_1'", "acc_0000"
         )
-        self.assertEqual(fetch_payment_intents_mock.call_count, 2)
+        assert mock_fetch_pis.call_count == 2
+        assert mock_fetch_pis.call_args_list[0] == mocker.call("customer:'cust_0' OR customer:'cust_1'")
+        assert mock_fetch_pis.call_args_list[1] == mocker.call("customer:'cust_2' OR customer:'cust_3'")
 
 
 @pytest.mark.django_db

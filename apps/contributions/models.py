@@ -116,9 +116,9 @@ class Contributor(IndexedTimeStampedModel):
         )
 
 
-class CachedStripeContributionResult(TypedDict):
-    revenue_program: str
-    payment_type: str
+# class CachedStripeContributionResult(TypedDict):
+#     revenue_program: str
+#     payment_type: str
 
 
 class ContributionQuerySet(models.QuerySet):
@@ -137,29 +137,6 @@ class ContributionQuerySet(models.QuerySet):
                 ContributionStatus.PROCESSING,
             ]
         )
-
-    def filter_queryset_for_contributor(
-        self, contributor: Contributor, revenue_program: RevenueProgram
-    ) -> List[CachedStripeContributionResult]:
-        # vs circular import
-        from apps.contributions.stripe_contributions_provider import ContributionsCacheProvider
-        from apps.contributions.tasks import task_pull_serialized_stripe_contributions_to_cache
-
-        cache_provider = ContributionsCacheProvider(contributor.email, revenue_program.stripe_account_id)
-        contributions = cache_provider.load()
-        # trigger celery task to pull contributions and load to cache if the cache is empty
-        if not contributions:
-            # log
-            task_pull_serialized_stripe_contributions_to_cache.delay(
-                contributor.email, revenue_program.stripe_account_id
-            )
-        return [
-            x
-            for x in contributions
-            if x.get("revenue_program") == revenue_program.slug
-            and x.get("payment_type") is not None
-            and x.get("status") == ContributionStatus.PAID.value
-        ]
 
     def filtered_by_role_assignment(self, role_assignment: RoleAssignment) -> models.QuerySet:
         """Return results based on user's role type"""

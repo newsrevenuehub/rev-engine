@@ -435,6 +435,9 @@ STRIPE_LIVE_MODE = os.getenv("STRIPE_LIVE_MODE", "false").lower() == "true"
 # The following values that end in `_UPGRADES` are for interacting with Stripe to create and manage contributions
 STRIPE_LIVE_SECRET_KEY_CONTRIBUTIONS = os.getenv("STRIPE_LIVE_SECRET_KEY_CONTRIBUTIONS", "")
 STRIPE_TEST_SECRET_KEY_CONTRIBUTIONS = os.getenv("STRIPE_TEST_SECRET_KEY_CONTRIBUTIONS", "")
+STRIPE_CURRENT_SECRET_KEY_CONTRIBUTIONS = (
+    STRIPE_LIVE_SECRET_KEY_CONTRIBUTIONS if STRIPE_LIVE_MODE else STRIPE_TEST_SECRET_KEY_CONTRIBUTIONS
+)
 # Get it from the section in the Stripe dashboard where you added the webhook endpoint
 STRIPE_WEBHOOK_SECRET_CONTRIBUTIONS = os.getenv("STRIPE_WEBHOOK_SECRET_CONTRIBUTIONS", "")
 STRIPE_WEBHOOK_EVENTS_CONTRIBUTIONS = [

@@ -39,7 +39,7 @@ describe('Customize Styles', () => {
   });
 
   it('should render loading is user is loading', () => {
-    useUserMock.mockImplementation(() => ({ isLoading: true } as any));
+    useUserMock.mockImplementation(() => ({ isLoading: true }) as any);
     tree();
     expect(screen.getByTestId('mock-global-loading')).toBeInTheDocument();
   });
@@ -47,7 +47,7 @@ describe('Customize Styles', () => {
   describe.each([PLAN_NAMES.FREE, PLAN_NAMES.CORE, PLAN_NAMES.PLUS])('org plan: %s', (plan) => {
     beforeEach(() => {
       useUserMock.mockImplementation(
-        () => ({ user: { ...orgAdminUser, organizations: [orgPlan(plan)] }, isLoading: false } as any)
+        () => ({ user: { ...orgAdminUser, organizations: [orgPlan(plan)] }, isLoading: false }) as any
       );
     });
 

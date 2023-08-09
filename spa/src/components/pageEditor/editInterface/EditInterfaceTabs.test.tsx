@@ -16,7 +16,7 @@ function tree(props?: Partial<EditInterfaceTabsProps>) {
       <TabPanel id="edit-sidebar-tab-panel" tabId="edit-sidebar-tab">
         child
       </TabPanel>
-      <TabPanel id="edit-setup-tab-panel" tabId="edit-setup-tab">
+      <TabPanel id="edit-settings-tab-panel" tabId="edit-settings-tab">
         child
       </TabPanel>
       <TabPanel id="edit-style-tab-panel" tabId="edit-style-tab-panel">
@@ -27,7 +27,7 @@ function tree(props?: Partial<EditInterfaceTabsProps>) {
 }
 
 describe('EditInterfaceTabs', () => {
-  it.each([['Layout'], ['Sidebar'], ['Setup'], ['Style']])('shows a %s tab', (name) => {
+  it.each([['Layout'], ['Sidebar'], ['Settings'], ['Style']])('shows a %s tab', (name) => {
     tree();
     expect(screen.getByRole('tab', { name })).toBeVisible();
   });
@@ -36,7 +36,7 @@ describe('EditInterfaceTabs', () => {
     tree({ tab: 1 });
     expect(screen.getByRole('tab', { name: 'Layout' })).toHaveAttribute('aria-selected', 'false');
     expect(screen.getByRole('tab', { name: 'Sidebar' })).toHaveAttribute('aria-selected', 'true');
-    expect(screen.getByRole('tab', { name: 'Setup' })).toHaveAttribute('aria-selected', 'false');
+    expect(screen.getByRole('tab', { name: 'Settings' })).toHaveAttribute('aria-selected', 'false');
     expect(screen.getByRole('tab', { name: 'Style' })).toHaveAttribute('aria-selected', 'false');
   });
 
@@ -45,7 +45,7 @@ describe('EditInterfaceTabs', () => {
 
     tree({ onChangeTab });
     expect(onChangeTab).not.toBeCalled();
-    userEvent.click(screen.getByRole('tab', { name: 'Setup' }));
+    userEvent.click(screen.getByRole('tab', { name: 'Settings' }));
     expect(onChangeTab.mock.calls).toEqual([[2]]);
   });
 

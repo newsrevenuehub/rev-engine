@@ -34,6 +34,6 @@ export default createGlobalStyle`
 
   h2 {
     color: ${(props) => props.theme.colors.black};
-    font-size: ${(props) => props.theme.fontSizes[2]};
+    font-size: ${(props) => props.theme.fontSizes[3]};
   }
 `;

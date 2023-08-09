@@ -4,7 +4,6 @@ from django.db import migrations, models
 
 
 class Migration(migrations.Migration):
-
     dependencies = [
         ("pages", "0002_DEV-2030_rp_deletion_cascades_to_template_and_page"),
     ]

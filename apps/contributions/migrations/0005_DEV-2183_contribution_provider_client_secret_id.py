@@ -4,7 +4,6 @@ from django.db import migrations, models
 
 
 class Migration(migrations.Migration):
-
     dependencies = [
         ("contributions", "0004_DEV-1691_alter_contribution_status"),
     ]

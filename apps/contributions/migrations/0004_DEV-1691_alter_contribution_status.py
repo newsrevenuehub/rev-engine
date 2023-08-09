@@ -4,7 +4,6 @@ from django.db import migrations, models
 
 
 class Migration(migrations.Migration):
-
     dependencies = [
         ("contributions", "0003_DEV-2030_alter_contribution_donation_page"),
     ]

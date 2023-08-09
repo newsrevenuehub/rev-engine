@@ -4,7 +4,6 @@ from django.db import migrations
 
 
 class Migration(migrations.Migration):
-
     dependencies = [
         ("organizations", "0004_DEV-2049_add_org_country_retire_address"),
         ("common", "0001_initial"),

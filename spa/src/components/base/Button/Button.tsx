@@ -28,7 +28,9 @@ const StyledMuiButton = styled(ButtonWrapper)<ButtonProps>`
 
     .NreButtonLabel {
       color: ${({ color }) => (color ? buttonColors[color].normal.fg : buttonColors.primaryLight.normal.fg)};
-      font: 600 14px Roboto, sans-serif;
+      font:
+        600 14px Roboto,
+        sans-serif;
     }
   }
 

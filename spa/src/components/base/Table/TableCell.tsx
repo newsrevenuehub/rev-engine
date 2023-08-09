@@ -4,7 +4,9 @@ import styled from 'styled-components';
 export const TableCell = styled(MuiTableCell)`
   && {
     border: none;
-    font: 16px Roboto, sans-serif;
+    font:
+      16px Roboto,
+      sans-serif;
   }
 `;
 

@@ -6,7 +6,7 @@ import useContributionPageList from 'hooks/useContributionPageList';
 import { useEditablePageContext } from 'hooks/useEditablePage';
 import useUser from 'hooks/useUser';
 import PublishButton from './PublishButton';
-import { PLAN_LABELS } from 'constants/orgPlanConstants';
+import { PLAN_NAMES } from 'constants/orgPlanConstants';
 import { useAlert } from 'react-alert';
 
 jest.mock('react-alert', () => ({
@@ -43,7 +43,7 @@ const publishedPage = {
 };
 
 const user = {
-  organizations: [{ plan: { name: PLAN_LABELS.FREE } }]
+  organizations: [{ plan: { name: PLAN_NAMES.FREE } }]
 };
 
 describe('PublishButton', () => {

@@ -56,6 +56,7 @@ describe('Contribution page edit', () => {
     cy.intercept({ method: 'GET', pathname: getEndpoint(USER) }, { body: stripeVerifiedOrgAdmin });
     cy.intercept({ method: 'GET', pathname: getEndpoint('/revenue-programs/*/mailchimp_configure/') }, {});
     cy.intercept({ method: 'GET', pathname: getEndpoint(LIST_STYLES) }, {});
+    cy.intercept({ method: 'GET', pathname: getEndpoint(LIST_FONTS) }, []);
     cy.intercept(
       { method: 'GET', pathname: `${getEndpoint(LIST_PAGES)}**` },
       { fixture: 'pages/live-page-1', statusCode: 200 }
@@ -145,7 +146,7 @@ describe('Contribution page edit', () => {
 
     it('should render layout and setup tabs', () => {
       cy.getByTestId('edit-layout-tab');
-      cy.getByTestId('edit-setup-tab');
+      cy.getByTestId('edit-settings-tab');
     });
 
     it('should add elements to the editor tab', () => {
@@ -397,9 +398,11 @@ describe('Contribution page edit', () => {
       cy.visit(testEditPageUrl);
       cy.wait('@getPageDetail');
       cy.getByTestId('edit-page-button').click();
-      cy.getByTestId('edit-setup-tab').click({ force: true });
+      cy.getByTestId('edit-settings-tab').click({ force: true });
       cy.getByTestId('thank-you-redirect-link-input').type('https://valid-url-but-intercept-will-dislikeit.org');
-      cy.get('#edit-setup-tab-panel').within(() => cy.findByRole('button', { name: 'Update' }).click({ force: true }));
+      cy.get('#edit-settings-tab-panel').within(() =>
+        cy.findByRole('button', { name: 'Update' }).click({ force: true })
+      );
 
       // Before we save, let's close the tab so we can more meaningfully assert its presence later.
       cy.getByTestId('preview-page-button').click({ force: true });
@@ -415,7 +418,7 @@ describe('Contribution page edit', () => {
       cy.getByTestId('save-page-button').click({ force: true });
       cy.wait('@patchPage');
 
-      // Now we should see the Setup tab and our error message
+      // Now we should see the Settings tab and our error message
       cy.getByTestId('edit-interface').should('exist');
       cy.getByTestId('errors-Thank You page link').contains(expectedErrorMessage);
     });
@@ -499,7 +502,7 @@ describe('Contribution page edit', () => {
   });
 });
 
-describe('Edit interface: Setup', () => {
+describe('Edit interface: Settings', () => {
   const imageFieldNames = ['Main header background', 'Main header logo', 'Graphic'];
   const textFieldNames = ['Form panel heading', 'Form panel heading', 'Post Thank You redirect'];
 
@@ -525,10 +528,10 @@ describe('Edit interface: Setup', () => {
     cy.url().should('include', testEditPageUrl);
     // cy.wait('@getPageDetail');
     cy.getByTestId('edit-page-button').click();
-    cy.getByTestId('edit-setup-tab').click({ force: true });
+    cy.getByTestId('edit-settings-tab').click({ force: true });
   });
 
-  it('should render the setup tab when setup tab clicked', () => {
+  it('should render the settings tab when settings tab clicked', () => {
     cy.getByTestId('page-setup');
   });
 
@@ -546,7 +549,9 @@ describe('Edit interface: Setup', () => {
     cy.getByTestId('s-page-heading').contains(previousHeading);
     cy.getByTestId('setup-heading-input').clear();
     cy.getByTestId('setup-heading-input').type(newHeading, { force: true });
-    cy.get('#edit-setup-tab-panel').within(() => cy.findByRole('button', { name: 'Update' }).scrollIntoView().click());
+    cy.get('#edit-settings-tab-panel').within(() =>
+      cy.findByRole('button', { name: 'Update' }).scrollIntoView().click()
+    );
     cy.getByTestId('s-page-heading').contains(previousHeading).should('not.exist');
     cy.getByTestId('s-page-heading').contains(newHeading);
 
@@ -652,7 +657,7 @@ describe('Edit interface: Setup', () => {
     cy.url().should('include', route);
     cy.wait('@getPage');
     cy.getByTestId('edit-page-button').click();
-    cy.getByTestId('edit-setup-tab').click({ force: true });
+    cy.getByTestId('edit-settings-tab').click({ force: true });
     cy.findAllByLabelText('Remove').filter(':enabled').click({ multiple: true });
     // Accept changes
     cy.findByRole('button', { name: 'Update' }).click({ force: true });
@@ -707,7 +712,7 @@ describe('Edit interface: Setup', () => {
     cy.url().should('include', route);
     cy.wait('@getPage');
     cy.getByTestId('edit-page-button').click();
-    cy.getByTestId('edit-setup-tab').click({ force: true });
+    cy.getByTestId('edit-settings-tab').click({ force: true });
     cy.findAllByLabelText('Remove').filter(':enabled:first').click();
     // Accept changes
     cy.findByRole('button', { name: 'Update' }).click({ force: true });
@@ -739,6 +744,7 @@ describe('Edit interface: Styles', () => {
       { body: pageDetailBody, statusCode: 200 }
     ).as('getPageDetail');
     cy.intercept({ method: 'GET', pathname: getEndpoint(LIST_STYLES) }, [{ name: 'mock-style' }]);
+    cy.intercept({ method: 'GET', pathname: getEndpoint(LIST_FONTS) }, [{ id: 1, name: 'Custom Font' }]);
 
     cy.visit(testEditPageUrl);
 
@@ -747,48 +753,23 @@ describe('Edit interface: Styles', () => {
     cy.getByTestId('edit-style-tab').click({ force: true });
   });
 
-  it("disables the Undo button if the user hasn't made a change", () => {
-    cy.findByRole('button', { name: 'Undo' }).should('be.disabled');
+  it("disables the Cancel button if the user hasn't made a change", () => {
+    cy.findByRole('button', { name: 'Cancel' }).should('be.disabled');
   });
 
-  it('enables the Undo button when the user makes a change', () => {
-    cy.findByLabelText('Choose from existing styles', { selector: 'input' }).click();
-    cy.findByText('----none----').click();
-    cy.findByRole('button', { name: 'Undo' }).should('not.be.disabled');
+  it('enables the Cancel button when the user makes a change', () => {
+    cy.findByLabelText('Heading Font', { selector: 'input' }).click();
+    cy.findByText('Custom Font').click();
+    cy.findByRole('button', { name: 'Cancel' }).should('not.be.disabled');
   });
 
-  it('resets changes when the Undo button is clicked', () => {
-    cy.findByLabelText('Choose from existing styles', { selector: 'input' }).should('have.value', 'mock-style');
-    cy.findByLabelText('Choose from existing styles', { selector: 'input' }).click();
-    cy.findByText('----none----').click();
-    cy.findByLabelText('Choose from existing styles', { selector: 'input' }).should('have.value', '----none----');
-    cy.findByRole('button', { name: 'Undo' }).click();
-    cy.findByLabelText('Choose from existing styles', { selector: 'input' }).should('have.value', 'mock-style');
-  });
-
-  describe('When creating a new style', () => {
-    beforeEach(() => {
-      cy.intercept({ method: 'GET', pathname: getEndpoint(LIST_FONTS) }, { body: [] });
-      cy.findByRole('button', { name: 'Style' }).click();
-    });
-
-    it('reports back errors related to the style name', () => {
-      cy.intercept(
-        { method: 'POST', pathname: getEndpoint(LIST_STYLES) },
-        { body: { name: 'mock-name-error' }, statusCode: 400 }
-      );
-      cy.getByTestId('save-styles-button').click();
-      cy.contains('mock-name-error');
-    });
-
-    it('reports back errors related to the revenue program', () => {
-      cy.intercept(
-        { method: 'POST', pathname: getEndpoint(LIST_STYLES) },
-        { body: { revenue_program: 'mock-rp-error' }, statusCode: 400 }
-      );
-      cy.getByTestId('save-styles-button').click();
-      cy.contains('mock-rp-error');
-    });
+  it('resets changes when the Cancel button is clicked', () => {
+    cy.findByLabelText('Heading Font', { selector: 'input' }).should('have.value', 'Select a font');
+    cy.findByLabelText('Heading Font', { selector: 'input' }).click();
+    cy.findByText('Custom Font').click();
+    cy.findByLabelText('Heading Font', { selector: 'input' }).should('have.value', 'Custom Font');
+    cy.findByRole('button', { name: 'Cancel' }).click();
+    cy.findByLabelText('Heading Font', { selector: 'input' }).should('have.value', 'Select a font');
   });
 });
 
@@ -799,6 +780,7 @@ describe('Contribution page delete', () => {
     cy.intercept({ method: 'GET', pathname: getEndpoint('/revenue-programs/*/mailchimp_configure/') }, {});
     cy.intercept({ method: 'DELETE', pathname: getEndpoint(`${DELETE_PAGE}*/`) }, { statusCode: 204 }).as('deletePage');
     cy.intercept({ method: 'GET', pathname: getEndpoint(LIST_PAGES) }, { body: [], statusCode: 200 });
+    cy.intercept({ method: 'GET', pathname: getEndpoint(LIST_FONTS) }, []);
   });
 
   it('should delete an unpublished page when delete button is pushed', () => {
@@ -830,6 +812,7 @@ describe('Contribution page delete', () => {
     cy.getByTestId('delete-page-button').click();
 
     cy.getByTestId('confirmation-modal').contains(DELETE_LIVE_PAGE_CONFIRM_TEXT).getByTestId('continue-button').click();
+    cy.intercept({ method: 'DELETE', pathname: getEndpoint(`${LIST_STYLES}*/`) }, { statusCode: 204 });
     cy.wait('@deletePage').then((interception) => {
       const pkPathIndex = interception.request.url.split('/').length - 2;
       expect(interception.request.url.split('/')[pkPathIndex]).to.equal(livePage.id.toString());

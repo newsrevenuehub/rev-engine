@@ -15,10 +15,12 @@ const Hero = ({ title, subtitle, onChange, placeholder, className, exportData }:
   return (
     <Flex className={className!}>
       <HeaderSection title={title} subtitle={subtitle} />
-      <RightAction>
-        {showExport && <ExportButton transactions={exportData.transactions!} email={exportData.email!} />}
-        {onChange && <Searchbar placeholder={placeholder ?? ''} className={classes.searchbar} onChange={onChange} />}
-      </RightAction>
+      {(showExport || onChange) && (
+        <RightAction data-testid="right-action">
+          {showExport && <ExportButton transactions={exportData.transactions!} email={exportData.email!} />}
+          {onChange && <Searchbar placeholder={placeholder ?? ''} className={classes.searchbar} onChange={onChange} />}
+        </RightAction>
+      )}
     </Flex>
   );
 };

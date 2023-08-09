@@ -1,6 +1,7 @@
 import useConnectMailchimp from 'hooks/useConnectMailchimp';
 import { render, screen } from 'test-utils';
 import MailchimpIntegrationCard from './MailchimpIntegrationCard';
+import { PLAN_NAMES } from 'constants/orgPlanConstants';
 
 jest.mock('../IntegrationCard');
 jest.mock('hooks/useConnectMailchimp');
@@ -54,24 +55,23 @@ describe('MailchimpIntegrationCard', () => {
   });
 
   describe('Free plan', () => {
-    it.each([
-      [undefined],
-      // TODO: use constant file after DEV-3330 is merged
-      ['FREE']
-    ])('renders mailchimp card for "%s" organization plan', (organizationPlan) => {
-      useConnectMailchimpMock.mockReturnValue({
-        isLoading: false,
-        isError: false,
-        connectedToMailchimp: false,
-        organizationPlan: organizationPlan as any,
-        hasMailchimpAccess: true,
-        setRefetchInterval: jest.fn()
-      });
-      tree();
-      expect(screen.getByTestId('cornerMessage')).toHaveTextContent('Upgrade to Core');
-      expect(screen.getByTestId('isActive')).toHaveTextContent('false');
-      expect(screen.getByRole('button', { name: 'connect' })).toBeDisabled();
-    });
+    it.each([[undefined], [PLAN_NAMES.FREE]])(
+      'renders mailchimp card for "%s" organization plan',
+      (organizationPlan) => {
+        useConnectMailchimpMock.mockReturnValue({
+          isLoading: false,
+          isError: false,
+          connectedToMailchimp: false,
+          organizationPlan: organizationPlan as any,
+          hasMailchimpAccess: true,
+          setRefetchInterval: jest.fn()
+        });
+        tree();
+        expect(screen.getByTestId('cornerMessage')).toHaveTextContent('Upgrade to Core');
+        expect(screen.getByTestId('isActive')).toHaveTextContent('false');
+        expect(screen.getByRole('button', { name: 'connect' })).toBeDisabled();
+      }
+    );
   });
 
   describe('Paid plan', () => {

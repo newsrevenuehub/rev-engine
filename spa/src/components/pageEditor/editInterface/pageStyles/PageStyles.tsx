@@ -1,30 +1,14 @@
 import { Controls, Root } from './PageStyles.styled';
 
-// Context
-import { usePageEditorContext } from 'components/pageEditor/PageEditor';
-
-// Children
-import useModal from 'hooks/useModal';
-import StylesChooser from 'components/pageEditor/editInterface/pageStyles/StylesChooser';
-import AddStylesModal from 'components/pageEditor/editInterface/pageStyles/AddStylesModal';
-import EditSaveControls from '../EditSaveControls';
-import EditTabHeader from '../EditTabHeader';
 import { useEditablePageBatch } from 'hooks/useEditablePageBatch';
 import { Style } from 'hooks/useStyleList';
+import { donationPageBase } from 'styles/themes';
+import EditSaveControls from '../EditSaveControls';
+import EditTabHeader from '../EditTabHeader';
+import StylesTab from './StylesTab';
 
 function PageStyles() {
   const { addBatchChange, batchHasChanges, batchPreview, commitBatch, resetBatch } = useEditablePageBatch();
-  const { availableStyles, setAvailableStyles } = usePageEditorContext();
-  const {
-    open: addStylesModalOpen,
-    handleClose: handleAddStylesModalClose,
-    handleOpen: handleAddStylesModalOpen
-  } = useModal(false);
-
-  const handleAddNewStyles = (newStyles: Style) => {
-    setAvailableStyles([newStyles, ...availableStyles]);
-    addBatchChange({ styles: newStyles });
-  };
 
   if (!batchPreview) {
     return null;
@@ -32,23 +16,18 @@ function PageStyles() {
 
   return (
     <Root>
-      <EditTabHeader
-        addButtonLabel="Style"
-        onAdd={handleAddStylesModalOpen}
-        prompt="Add or create a new style to customize your page."
-      />
+      <EditTabHeader prompt="Start branding your page. Choose header logo, colors, and more." />
       <Controls>
-        <StylesChooser
-          styles={availableStyles}
-          selected={batchPreview.styles}
-          setSelected={(styles: Style) => addBatchChange({ styles })}
+        <StylesTab
+          styles={batchPreview?.styles || (donationPageBase as unknown as Style)}
+          setStyles={(styles: Style) => addBatchChange({ styles })}
         />
       </Controls>
-      <EditSaveControls cancelDisabled={!batchHasChanges} onCancel={resetBatch} onUpdate={commitBatch} variant="undo" />
-      <AddStylesModal
-        isOpen={addStylesModalOpen}
-        closeModal={handleAddStylesModalClose}
-        handleAddNewStyles={handleAddNewStyles}
+      <EditSaveControls
+        cancelDisabled={!batchHasChanges}
+        onCancel={resetBatch}
+        onUpdate={commitBatch}
+        variant="cancel"
       />
     </Root>
   );

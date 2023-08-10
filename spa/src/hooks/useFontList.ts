@@ -2,47 +2,41 @@ import { useQueryClient, useQuery, UseQueryResult } from '@tanstack/react-query'
 import { useAlert } from 'react-alert';
 import { useHistory } from 'react-router-dom';
 
-import { LIST_STYLES } from 'ajax/endpoints';
+import { LIST_FONTS } from 'ajax/endpoints';
 import axios from 'ajax/axios';
 import { GENERIC_ERROR } from 'constants/textConstants';
 import { SIGN_IN } from 'routes';
 
-async function fetchStyles() {
-  const { data } = await axios.get(LIST_STYLES);
+async function fetchFonts() {
+  const { data } = await axios.get(LIST_FONTS);
+
   return data;
 }
 
-type StyleColors = Record<string, string>;
-type StyleFonts = Record<string, { accessor: string; font_name: string; id: number; name: string; source: 'google' }>;
-type StyleStyles = string | { [property: string]: StyleStyles } | StyleStyles[];
-
-export interface Style {
+type Font = {
+  accessor: string;
+  font_name: string;
   id: number;
-  colors: StyleColors;
-  created: string;
-  font: StyleFonts;
-  modified: string;
   name: string;
-  styles: StyleStyles;
-  used_live: boolean;
-}
+  source: 'google' | 'typekit';
+};
 
-export interface UseStyleListResult {
+export interface UseFontListResult {
   isLoading: UseQueryResult['isLoading'];
   isError: UseQueryResult['isError'];
-  styles: Style[];
+  fonts: Font[];
   refetch: () => void;
 }
 
-function useStyleList(): UseStyleListResult {
+function useFontList(): UseFontListResult {
   const alert = useAlert();
   const history = useHistory();
   const queryClient = useQueryClient();
   const {
-    data: styles,
+    data: fonts,
     isLoading,
     isError
-  } = useQuery(['styles'], fetchStyles, {
+  } = useQuery(['fonts'], fetchFonts, {
     initialData: [],
     onError: (err: Error) => {
       if (err?.name === 'AuthenticationError') {
@@ -54,13 +48,13 @@ function useStyleList(): UseStyleListResult {
     }
   });
   return {
-    styles,
+    fonts,
     isLoading,
     isError,
     refetch: () => {
-      queryClient.invalidateQueries(['styles']);
+      queryClient.invalidateQueries(['fonts']);
     }
   };
 }
 
-export default useStyleList;
+export default useFontList;

@@ -6,6 +6,7 @@ from django.conf import settings
 from django.test import TestCase
 from django.utils import timezone
 
+import pydantic
 import pytest
 import pytest_cases
 import stripe
@@ -384,7 +385,6 @@ def valid_swag_choices_string():
     choice_1_raw = f"t-shirt{SWAG_SUB_CHOICE_DELIMITER}small"
     choice_2_raw = f"hat{SWAG_SUB_CHOICE_DELIMITER}huge"
     choices_raw = f"{choice_1_raw}{SWAG_CHOICES_DELIMITER}{choice_2_raw}"
-    assert StripeMetadataSchemaV1_4.validate_swag_choices_string(choices_raw)
     return choices_raw
 
 
@@ -899,21 +899,38 @@ class TestBaseCreatePaymentSerializer:
             assert getattr(metadata, x) == ""
 
 
+@pytest.fixture
+def valid_stripe_metadata_v1_4_data():
+    return {
+        "agreed_to_pay_fees": True,
+        "contributor_id": "1",
+        "donor_selected_amount": 1000,
+        "referer": "https://www.google.com",
+        "revenue_program_id": "1",
+        "revenue_program_slug": "revenue-program-slug",
+        "swag_choices": "",
+        "schema_version": settings.METADATA_SCHEMA_VERSION_1_4,
+    }
+
+
 class TestStripeMetadataSchemaV1_4:
     @pytest.mark.parametrize("value", ("", "foo:bar", "foo:bar;bizz:bang"))
-    def test_validate_swag_choices_string_when_valid(self, value):
-        assert StripeMetadataSchemaV1_4.validate_swag_choices_string(value) == value
+    def test_with_valid_swag_choices_values(self, value, valid_stripe_metadata_v1_4_data):
+        instance = StripeMetadataSchemaV1_4(**(valid_stripe_metadata_v1_4_data | {"swag_choices": value}))
+        assert instance.swag_choices == value
 
-    @pytest.mark.parametrize("value", ("foo", ":", "foo:bar;"))
-    def test_validate_swag_choices_string_when_invalid(self, value):
-        with pytest.raises(ValueError) as exc:
-            StripeMetadataSchemaV1_4.validate_swag_choices_string(value)
-        assert str(exc.value) == "Invalid swag_choices value"
+    @pytest.mark.parametrize("value", (":", ";", ":bar", ":bar;"))
+    def test_with_invalid_swag_choices_value(self, value, valid_stripe_metadata_v1_4_data):
+        with pytest.raises(pydantic.ValidationError):
+            StripeMetadataSchemaV1_4(**(valid_stripe_metadata_v1_4_data | {"swag_choices": value}))
 
-    def test_validate_swag_choices_string_when_exceed_max_length(self, invalid_swag_choices_string_exceed_max_length):
-        with pytest.raises(ValueError) as exc:
-            StripeMetadataSchemaV1_4.validate_swag_choices_string(invalid_swag_choices_string_exceed_max_length)
-        assert str(exc.value) == "Provided swag_choices value is too long"
+    def test_with_invalid_swag_choices_when_exceed_max_length(
+        self, valid_stripe_metadata_v1_4_data, invalid_swag_choices_string_exceed_max_length
+    ):
+        with pytest.raises(pydantic.ValidationError):
+            StripeMetadataSchemaV1_4(
+                **(valid_stripe_metadata_v1_4_data | {"swag_choices": invalid_swag_choices_string_exceed_max_length})
+            )
 
 
 @pytest.mark.django_db

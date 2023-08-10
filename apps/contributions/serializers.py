@@ -1,6 +1,6 @@
 import logging
 from datetime import datetime, timedelta
-from typing import Any, Optional
+from typing import Any, Literal, Optional, Union
 
 from django.conf import settings
 from django.db.models import TextChoices
@@ -276,14 +276,20 @@ class StripeMetaDataBase(pydantic.BaseModel):
         raise ValueError("Value must be a boolean, None, or castable string")
 
 
-class SwagChoice(pydantic.BaseModel):
-    """Represents a contributor's choice of swag item
-
-    For instance name might be "tshirt" and variation might be "small"
-    """
-
-    name: str
-    variation: pydantic.constr(strip_whitespace=True, min_length=1)
+# we define this here instead of inside `StripeMetadataSchemaV1_4` because including there was
+# causing Flake8 to complain. See here for more info:
+# https://stackoverflow.com/questions/64909849/syntax-error-with-flake8-and-pydantic-constrained-types-constrregex
+SwagChoicesString = pydantic.constr(
+    max_length=settings.METADATA_MAX_SWAG_CHOICES_LENGTH,
+    strip_whitespace=True,
+    pattern=(
+        # this pattern is meant to match prototypically on foo:bar;bizz:bang or foo:bar. The left of colon item is the swag type
+        # and the optional right of colon is the subchoice (for instance, size of a shirt). The semicolon is the delimiter between
+        # swag choices. The regex is meant to match on zero or more swag choices, and zero or one trailing semicolon.
+        rf"^ *([a-z0-9_\-]+ *{SWAG_SUB_CHOICE_DELIMITER}? *[a-z0-9_\-]*)(?{SWAG_SUB_CHOICE_DELIMITER} *{SWAG_CHOICES_DELIMITER}"
+        rf" *[a-z0-9_\-]+ *{SWAG_SUB_CHOICE_DELIMITER}? *[a-z0-9_\-]*)*{SWAG_CHOICES_DELIMITER}? *$"
+    ),
+)
 
 
 class StripeMetadataSchemaV1_4(StripeMetaDataBase):
@@ -292,32 +298,7 @@ class StripeMetadataSchemaV1_4(StripeMetaDataBase):
     """
 
     schema_version: str = settings.METADATA_SCHEMA_VERSION_1_4
-    swag_choices: str = ""
-
-    @classmethod
-    @pydantic.validator("swag_choices")
-    def validate_swag_choices_string(cls, v: str) -> str:
-        """We ensure that provided value is parseable to a list of `SwagChoice`s"""
-        logger.info("Validating swag_choices value %s", v)
-        if not len(v):
-            return v
-        if len(v) > settings.METADATA_MAX_SWAG_CHOICES_LENGTH:
-            logger.warning(
-                "Provided swag_choices value is too long. Must be <= %s chars and is %s",
-                settings.METADATA_MAX_SWAG_CHOICES_LENGTH,
-                len(v),
-            )
-            raise ValueError("Provided swag_choices value is too long")
-        for x in v.split(SWAG_CHOICES_DELIMITER):
-            try:
-                SwagChoice(
-                    name=x.split(SWAG_SUB_CHOICE_DELIMITER)[0],
-                    variation=x.split(SWAG_SUB_CHOICE_DELIMITER)[1],
-                )
-            except (ValueError, IndexError):
-                logger.exception((msg := "Invalid swag_choices value"))
-                raise ValueError(msg)
-        return v
+    swag_choices: Union[Literal[""], SwagChoicesString] = ""
 
 
 class BaseCreatePaymentSerializer(serializers.Serializer):

@@ -1621,6 +1621,8 @@ class TestStripeMetaDataBase:
             ("nOnE", False),
             ("nO", False),
             ("yEs", True),
+            (" false ", False),
+            (" true ", True),
         ),
     )
     def test_normalize_boolean_happy_path(self, value, expected):

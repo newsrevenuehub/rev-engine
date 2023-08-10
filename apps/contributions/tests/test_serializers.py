@@ -1628,7 +1628,7 @@ class TestStripeMetaDataBase:
     def test_normalize_boolean_happy_path(self, value, expected):
         assert StripeMetaDataBase.normalize_boolean(value) == expected
 
-    @pytest.mark.parametrize("value", (0, 1, 2, "0", "1", "cats"))
+    @pytest.mark.parametrize("value", (0, 1, 2, "0", "1", "cats", [], ["True"]))
     def test_normalize_boolean_when_value_is_not_valid_type(self, value):
         with pytest.raises(ValueError):
             StripeMetaDataBase.normalize_boolean(value)

@@ -1,6 +1,27 @@
 import styled from 'styled-components';
 
-export const EditRecurringPaymentModal = styled.div`
+export const CardElementStyle = (theme) => ({
+  base: {
+    iconColor: '#666ee8',
+    color: '#31325f',
+    fontWeight: 400,
+    fontFamily: theme.systemFont,
+    fontSmoothing: 'antialiased',
+    fontSize: theme.fontSizes[1],
+    '::placeholder': {
+      color: '#aab7c4'
+    },
+    ':-webkit-autofill': {
+      color: '#666ee8'
+    }
+  },
+  invalid: {
+    color: '#fa755a',
+    iconColor: '#fa755a'
+  }
+});
+
+export const ModalRoot = styled.div`
   font-family: ${(props) => props.theme.systemFont};
   overflow-y: auto;
   min-width: 350px;
@@ -35,7 +56,7 @@ export const Datum = styled.span`
   color: ${(props) => props.theme.colors.grey[2]};
 `;
 
-export const CardForm = styled.form`
+export const CardFormRoot = styled.form`
   margin-top: 4rem;
 `;
 
@@ -48,3 +69,9 @@ export const CardElementWrapper = styled.div`
 `;
 
 export const CompletedMessage = styled.div``;
+
+export const PaymentError = styled.div`
+  margin-bottom: 2rem;
+  color: ${(props) => props.theme.colors.caution};
+  font-family: ${(props) => props.theme.systemFont};
+`;

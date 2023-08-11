@@ -221,6 +221,7 @@ export const revEngineTheme: DefaultTheme = {
 
   zIndex: {
     header: 10,
+    notifications: 1500,
     sidebar: 5
   }
 };

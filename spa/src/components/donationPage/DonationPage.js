@@ -1,10 +1,7 @@
 import { useRef, useState, useEffect, createContext, useContext } from 'react';
-import { useMutation } from '@tanstack/react-query';
-import { useCookies } from 'react-cookie';
 import { useAlert } from 'react-alert';
 
 import * as S from './DonationPage.styled';
-import axios from 'ajax/axios';
 import useReCAPTCHAScript from 'hooks/useReCAPTCHAScript';
 import useQueryString from 'hooks/useQueryString';
 import useErrorFocus from 'hooks/useErrorFocus';
@@ -16,45 +13,26 @@ import {
   GRECAPTCHA_SITE_KEY,
   SALESFORCE_CAMPAIGN_ID_QUERYPARAM,
   FREQUENCY_QUERYPARAM,
-  AMOUNT_QUERYPARAM,
-  CSRF_HEADER
+  AMOUNT_QUERYPARAM
 } from 'appSettings';
 import DonationPageSidebar from 'components/donationPage/DonationPageSidebar';
 import DonationPageFooter from 'components/donationPage/DonationPageFooter';
 import DonationPageHeader from 'components/donationPage/DonationPageHeader';
-import StripePaymentWrapper from 'components/paymentProviders/stripe/StripePaymentWrapper';
-import Modal from 'elements/modal/Modal';
 import LiveErrorFallback from './live/LiveErrorFallback';
 import { SubmitButton } from './DonationPage.styled';
 import GenericErrorBoundary from 'components/errors/GenericErrorBoundary';
-import { AUTHORIZE_STRIPE_PAYMENT_ROUTE } from 'ajax/endpoints';
 import { serializeData } from 'components/paymentProviders/stripe/stripeFns';
 import calculateStripeFee from 'utilities/calculateStripeFee';
 import { CONTRIBUTION_INTERVALS } from 'constants/contributionIntervals';
 import { GENERIC_ERROR } from 'constants/textConstants';
-
-function authorizePayment(paymentData, csrftoken) {
-  // we manually set the X-CSRFTOKEN value in header here. This is an unauthed endpoint
-  // that on the backend requires csrf header, which will be in cookie returned by request
-  // for page data (that happens in parent context)
-  return axios
-    .post(AUTHORIZE_STRIPE_PAYMENT_ROUTE, paymentData, { headers: { [CSRF_HEADER]: csrftoken } })
-    .then(({ data }) => data);
-}
-
-function cancelPayment(paymentId, csrftoken) {
-  const endpoint = `${AUTHORIZE_STRIPE_PAYMENT_ROUTE}${paymentId}/`;
-  // we manually set the X-CSRFTOKEN value in header here. This is an unauthed endpoint
-  // that on the backend requires csrf header, which will be in cookie returned by request
-  // for page data (that happens in parent context)
-
-  return axios.delete(endpoint, { headers: { [CSRF_HEADER]: csrftoken } }).then(({ data }) => data);
-}
+import { usePayment } from 'hooks/usePayment';
+import FinishPaymentModal from './FinishPaymentModal/FinishPaymentModal';
 
 export const DonationPageContext = createContext({});
 
 export const CANCEL_PAYMENT_FAILURE_MESSAGE =
   "Something went wrong, but don't worry, you haven't been charged. Try refreshing.";
+
 class DonationPageUnrecoverableError extends Error {
   constructor(message) {
     super(message);
@@ -76,29 +54,8 @@ function DonationPage({ page, live = false }) {
   });
   const [totalAmount, setTotalAmount] = useState(0);
   const [displayErrorFallback, setDisplayErrorFallback] = useState(false);
-  const [stripeClientSecret, setStripeClientSecret] = useState();
-  const [emailHash, setEmailHash] = useState();
-  const [displayStripePaymentForm, setDisplayStripePaymentForm] = useState(false);
-  const [contributorEmail, setContributorEmail] = useState();
   const [mailingCountry, setMailingCountry] = useState();
-  const [stripeBillingDetails, setStripeBillingDetails] = useState();
-  const [contributionUuid, setContributionUuid] = useState();
-
-  const [cookies] = useCookies(['csrftoken']);
-
-  // we use this on form submission to authorize a one-time payment or subscription. Note that the function
-  // passed to `useMutation` must return a promise.
-  const { mutate: createPayment, isLoading: createPaymentIsLoading } = useMutation((paymentData) =>
-    authorizePayment(paymentData, cookies.csrftoken)
-  );
-
-  const { mutate: deletePayment } = useMutation((paymentId) => cancelPayment(paymentId, cookies.csrftoken), {
-    onError: (err) => {
-      // calling console.error will create a Sentry error.
-      console.error(err);
-      alert.error(CANCEL_PAYMENT_FAILURE_MESSAGE);
-    }
-  });
+  const { createPayment, deletePayment, isLoading: paymentIsLoading, payment } = usePayment();
 
   /*
   If window.grecaptcha is defined-- which should be done in useReCAPTCHAScript hook--
@@ -164,77 +121,74 @@ function DonationPage({ page, live = false }) {
   // Used for pre-submission validation below.
   const isValidTotalAmount = Number.isFinite(totalAmount);
 
-  const getCheckoutData = async () => {
+  async function handleCheckoutSubmit(event) {
+    event.preventDefault();
     let reCAPTCHAToken = '';
-    // getReCAPTCHAToken returns rejected promise if window.grecaptcha is not defined when function runs.
-    // In tests, and quite possibly in deployed environments, this causes form submission to fail if grecaptcha
-    // hasn't loaded. We don't want tests to fail or users to be blocked from making a contribution just because
-    // this script hasn't loaded, so if error occurs, we just go with default empty string value for token, and log.
+
+    // getReCAPTCHAToken returns rejected promise if window.grecaptcha is not
+    // defined when function runs. In tests, and quite possibly in deployed
+    // environments, this causes form submission to fail if grecaptcha hasn't
+    // loaded. We don't want tests to fail or users to be blocked from making a
+    // contribution just because this script hasn't loaded, so if error occurs,
+    // we just go with default empty string value for token, and log.
+
     try {
       reCAPTCHAToken = await getReCAPTCHAToken();
     } catch (error) {
       console.error('No recaptcha token, defaulting to empty string');
     }
-    return serializeData(formRef.current, {
-      amount,
-      frequency,
-      mailingCountry,
-      reCAPTCHAToken,
-      pageId: page.id,
-      payFee: userAgreesToPayFees,
-      rpIsNonProfit: page.revenue_program_is_nonprofit,
-      salesforceCampaignId
-    });
-  };
 
-  const handleCheckoutSubmit = async (e) => {
-    e.preventDefault();
-    const data = await getCheckoutData();
-    // we grab form data and set it different state objects, some of which in turn gets
-    // passed in donation page context, so will be available in usePage, when `StripePaymentForm` loads.
-    // ideally, we'd use a library like React Hook Form for and we could watch the relevant form fields
-    // and pass along to context that way, but that was not feasible in short term.
-    setContributorEmail(data.email);
-    setStripeBillingDetails({
-      name: `${data.first_name}${data.first_name ? ' ' : ''}${data.last_name}`,
-      email: data.email,
-      phone: data.phone || '', // stripe will complain if its null or undefined, and it's an optional field
-      address: {
-        // stripe complains if any of the fields are missing, so we default to empty string
-        city: data.mailing_city ?? '',
-        country: data.mailing_country ?? '',
-        line1: data.mailing_street ?? '',
-        line2: data.mailing_complement ?? '',
-        postal_code: data.mailing_postal_code ?? '',
-        state: data.mailing_state ?? ''
-      }
-    });
-    createPayment(data, {
-      onSuccess: ({ client_secret, email_hash, uuid }) => {
-        setStripeClientSecret(client_secret);
-        setEmailHash(email_hash);
-        setDisplayStripePaymentForm(true);
-        setContributionUuid(uuid);
-      },
-      onError: ({ name, message, response }) => {
-        // this would happen on client side if request couldn't be made. See above.
-        if (name === DonationPageUnrecoverableError.name) {
-          console.error(message);
-          setDisplayErrorFallback(true);
-          // This would happen if the server returned validation errors on the form
-        } else if (response?.status === 400 && response?.data) {
-          setErrors(response.data);
-        } else {
-          // This happens if something really unexpected happens, or if there was a 403
-          console.error('Something unexpected happened', name, message);
-          setDisplayErrorFallback(true);
-        }
-      }
-    });
-  };
+    try {
+      await createPayment(
+        serializeData(formRef.current, {
+          amount,
+          frequency,
+          mailingCountry,
+          reCAPTCHAToken,
+          pageId: page.id,
+          payFee: userAgreesToPayFees,
+          rpIsNonProfit: page.revenue_program_is_nonprofit,
+          salesforceCampaignId
+        }),
+        page
+      );
 
-  function handleStripePaymentWrapperError() {
-    setDisplayStripePaymentForm(false);
+      // When this succeeds, a payment will be returned by usePayment() and the
+      // modal will appear, allowing the user to continue.
+    } catch (error) {
+      // this would happen on client side if request couldn't be made. See above.
+      if (error.name === DonationPageUnrecoverableError.name) {
+        console.error(error.message);
+        setDisplayErrorFallback(true);
+        // This would happen if the server returned validation errors on the form
+      } else if (error.response?.status === 400 && error.response?.data) {
+        setErrors(error.response.data);
+      } else {
+        // This happens if something really unexpected happens, or if there was a 403
+        console.error('Something unexpected happened', error.name, error.message);
+        setDisplayErrorFallback(true);
+      }
+    }
+  }
+
+  async function handleCompleteContributionCancel() {
+    if (deletePayment) {
+      try {
+        await deletePayment();
+      } catch (error) {
+        // calling console.error will create a Sentry error.
+        console.error(error);
+        alert.error(CANCEL_PAYMENT_FAILURE_MESSAGE);
+      }
+    }
+  }
+
+  function handleCompleteContributionError() {
+    if (deletePayment) {
+      deletePayment();
+    }
+
+    setDisplayErrorFallback(true);
     alert.error(GENERIC_ERROR);
   }
 
@@ -255,17 +209,8 @@ function DonationPage({ page, live = false }) {
         setErrors,
         feeAmount,
         totalAmount,
-        emailHash,
-        stripeBillingDetails,
-        contributorEmail,
-        stripeClientSecret,
         mailingCountry,
-        setMailingCountry,
-        contributionUuid,
-        cancelPayment: () => {
-          deletePayment(contributionUuid);
-          setDisplayStripePaymentForm(false);
-        }
+        setMailingCountry
       }}
     >
       <S.DonationPage data-testid="donation-page">
@@ -296,19 +241,21 @@ function DonationPage({ page, live = false }) {
                         ))}
                     </S.PageElements>
                     <SubmitButton
-                      disabled={!isValidTotalAmount || createPaymentIsLoading}
-                      loading={createPaymentIsLoading}
+                      disabled={!isValidTotalAmount || paymentIsLoading || payment}
+                      loading={paymentIsLoading}
                       type="submit"
                     >
                       {isValidTotalAmount ? 'Continue to Payment' : 'Enter a valid amount'}
                     </SubmitButton>
                   </form>
                 )}
-
-                {displayStripePaymentForm && (
-                  <Modal isOpen={displayStripePaymentForm}>
-                    <StripePaymentWrapper onError={handleStripePaymentWrapperError} />
-                  </Modal>
+                {payment && !displayErrorFallback && (
+                  <FinishPaymentModal
+                    onCancel={handleCompleteContributionCancel}
+                    onError={handleCompleteContributionError}
+                    open
+                    payment={payment}
+                  />
                 )}
               </S.DonationContent>
             </S.SideInner>

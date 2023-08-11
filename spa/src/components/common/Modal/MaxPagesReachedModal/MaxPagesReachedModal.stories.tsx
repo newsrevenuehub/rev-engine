@@ -1,5 +1,5 @@
 import { ComponentMeta, ComponentStory } from '@storybook/react';
-import { PLAN_LABELS } from 'constants/orgPlanConstants';
+import { PLAN_NAMES } from 'constants/orgPlanConstants';
 import MaxPagesReachedModal from './MaxPagesReachedModal';
 
 export default {
@@ -10,7 +10,7 @@ export default {
 const Template: ComponentStory<typeof MaxPagesReachedModal> = (props) => <MaxPagesReachedModal {...props} />;
 
 export const FreeToCore = Template.bind({});
-FreeToCore.args = { currentPlan: PLAN_LABELS.FREE, recommendedPlan: 'CORE', open: true };
+FreeToCore.args = { currentPlan: PLAN_NAMES.FREE, recommendedPlan: 'CORE', open: true };
 
 export const CoreToPlus = Template.bind({});
-CoreToPlus.args = { currentPlan: PLAN_LABELS.CORE, recommendedPlan: 'PLUS', open: true };
+CoreToPlus.args = { currentPlan: PLAN_NAMES.CORE, recommendedPlan: 'PLUS', open: true };

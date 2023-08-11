@@ -3,7 +3,7 @@ import { STRIPE_SELF_UPGRADE_CUSTOMER_PORTAL_URL } from 'appSettings';
 import { Link } from 'components/base';
 import SettingsSection from 'components/common/SettingsSection';
 import { SELF_UPGRADE_ACCESS_FLAG_NAME } from 'constants/featureFlagConstants';
-import { PLAN_LABELS } from 'constants/orgPlanConstants';
+import { PLAN_NAMES } from 'constants/orgPlanConstants';
 import { Organization, User } from 'hooks/useUser.types';
 import flagIsActiveForUser from 'utilities/flagIsActiveForUser';
 
@@ -18,7 +18,7 @@ export interface ManageSubscriptionProps extends InferProps<typeof ManageSubscri
 }
 
 export function ManageSubscription({ organization, user }: ManageSubscriptionProps) {
-  if (organization.plan.name === PLAN_LABELS.FREE || !flagIsActiveForUser(SELF_UPGRADE_ACCESS_FLAG_NAME, user.flags)) {
+  if (organization.plan.name === PLAN_NAMES.FREE || !flagIsActiveForUser(SELF_UPGRADE_ACCESS_FLAG_NAME, user.flags)) {
     return null;
   }
 

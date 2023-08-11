@@ -1,13 +1,14 @@
 import { useMutation, useQuery, useQueryClient, UseQueryResult } from '@tanstack/react-query';
-import { useCallback } from 'react';
-import { useAlert } from 'react-alert';
 import axios from 'ajax/axios';
 import { DELETE_PAGE, DRAFT_PAGE_DETAIL, LIST_PAGES, PATCH_PAGE } from 'ajax/endpoints';
 import { GENERIC_ERROR } from 'constants/textConstants';
+import useStyleList, { Style } from 'hooks/useStyleList';
+import { useCallback } from 'react';
+import { useAlert } from 'react-alert';
+import urlJoin from 'url-join';
 import { getUpdateSuccessMessage } from 'utilities/editPageGetSuccessMessage';
 import { pageUpdateToFormData } from './pageUpdateToFormData';
 import { ContributionPage } from './useContributionPage.types';
-import urlJoin from 'url-join';
 
 async function fetchPageById(pageId: number) {
   const { data } = await axios.get<ContributionPage>(urlJoin(LIST_PAGES, pageId.toString(), '/'));
@@ -74,6 +75,7 @@ export function useContributionPage(revenueProgramSlug: string, pageSlug: string
  */
 export function useContributionPage(revenueProgramSlugOrPageId?: number | string, pageSlug?: string) {
   const alert = useAlert();
+  const { createStyle, updateStyle, deleteStyle } = useStyleList();
   const queryClient = useQueryClient();
   const {
     data: page,
@@ -113,6 +115,9 @@ export function useContributionPage(revenueProgramSlugOrPageId?: number | string
 
   const deletePage = useCallback(async () => {
     try {
+      if (page?.styles) {
+        await deleteStyle(page?.styles);
+      }
       await deletePageMutation.mutateAsync();
     } catch (error) {
       // Unlike page updates, this call should never fail. We log it to Sentry,
@@ -122,7 +127,7 @@ export function useContributionPage(revenueProgramSlugOrPageId?: number | string
       alert.error(GENERIC_ERROR);
       throw error;
     }
-  }, [alert, deletePageMutation]);
+  }, [alert, deletePageMutation, deleteStyle, page?.styles]);
 
   const updatePageMutation = useMutation(
     (data: FormData) => {
@@ -152,12 +157,28 @@ export function useContributionPage(revenueProgramSlugOrPageId?: number | string
         throw new Error('Page is not yet defined');
       }
 
-      const formData = await pageUpdateToFormData(data, screenshotBaseName, elementToScreenshot);
+      let styles: Style | undefined;
+      if (data.styles) {
+        if (data.styles?.id) {
+          const { data: response } = await updateStyle(data.styles);
+          styles = response;
+        } else {
+          const { data: response } = await createStyle(data.styles, page);
+          styles = response;
+        }
+      }
+
+      const formData = await pageUpdateToFormData(
+        // Only add styles to data if it's not undefined
+        { ...data, ...(styles && { styles }) },
+        screenshotBaseName,
+        elementToScreenshot
+      );
 
       await updatePageMutation.mutateAsync(formData);
       alert.success(getUpdateSuccessMessage(page, data));
     },
-    [alert, page, updatePageMutation]
+    [alert, createStyle, page, updatePageMutation, updateStyle]
   );
 
   if (page) {

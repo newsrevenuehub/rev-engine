@@ -1,5 +1,6 @@
 import * as S from './Alert.styled';
 import { transitions, positions } from 'react-alert';
+import { revEngineTheme } from 'styles/themes';
 
 function Alert({ style, options, message, close }) {
   return (
@@ -20,6 +21,6 @@ export const alertOptions = {
   // you can also just use 'scale'
   transition: transitions.SCALE,
   containerStyle: {
-    zIndex: 1020
+    zIndex: revEngineTheme.zIndex.notifications
   }
 };

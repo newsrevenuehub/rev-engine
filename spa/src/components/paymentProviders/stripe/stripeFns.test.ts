@@ -135,20 +135,23 @@ describe('createPaymentMethod', () => {
 });
 
 describe('getPaymentSuccessUrl', () => {
-  it.each([[fromPageSlugParams], [fromDefaultPageParams]])('generates the expected payment success URL,', (args) => {
+  it.each([[fromPageSlugParams], [fromDefaultPageParams]])('generates the expected payment success URL', (args) => {
     const url = getPaymentSuccessUrl(args);
     const parsed = new URL(url);
+
     expect(`${parsed.protocol}//${parsed.hostname}`).toEqual(args.baseUrl);
     expect(parsed.pathname).toEqual(PAYMENT_SUCCESS);
+
     const search = new URLSearchParams(parsed.search);
-    expect(search.get('next')).toEqual(args['thankYouRedirectUrl']);
-    expect(search.get('amount')).toEqual(args['amount']);
-    expect(search.get('frequency')).toEqual(args['frequencyDisplayValue']);
-    expect(search.get('uid')).toEqual(args.emailHash);
-    expect(search.get('email')).toEqual(args.contributorEmail);
-    expect(search.get('pageSlug')).toEqual(args.pageSlug);
-    expect(search.get('rpSlug')).toEqual(args.rpSlug);
-    expect(search.get('fromPath')).toEqual(args.pathName === '/' ? '' : args.pathName);
+
+    expect(search.get('next')).toBe(args['thankYouRedirectUrl']);
+    expect(search.get('amount')).toBe(args['amount']);
+    expect(search.get('frequency')).toBe(args['frequencyDisplayValue']);
+    expect(search.get('uid')).toBe(args.emailHash);
+    expect(search.get('email')).toBe(args.contributorEmail);
+    expect(search.get('pageSlug')).toBe(args.pageSlug);
+    expect(search.get('rpSlug')).toBe(args.rpSlug);
+    expect(search.get('fromPath')).toBe(args.pathName === '/' ? '' : args.pathName);
   });
   // this test is here syntax in original implementation was flawed and caused `amount: 1` to
   // raise the missing args error.

@@ -205,6 +205,7 @@ declare module 'styled-components' {
     };
     zIndex: {
       header: 10;
+      notifications: 1500;
       sidebar: 5;
     };
   }

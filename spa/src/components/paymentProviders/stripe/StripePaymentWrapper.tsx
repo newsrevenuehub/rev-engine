@@ -1,31 +1,32 @@
-import PropTypes, { InferProps } from 'prop-types';
-import { useEffect, useState } from 'react';
 import { loadStripe, Stripe } from '@stripe/stripe-js';
 import { Elements } from '@stripe/react-stripe-js';
-
+import PropTypes, { InferProps } from 'prop-types';
+import { useEffect, useState } from 'react';
 import { HUB_STRIPE_API_PUB_KEY } from 'appSettings';
-import StripePaymentForm from 'components/paymentProviders/stripe/StripePaymentForm';
-import { usePage } from 'components/donationPage/DonationPage';
 import GlobalLoading from 'elements/GlobalLoading';
 
 const StripePaymentWrapperPropTypes = {
-  onError: PropTypes.func
+  children: PropTypes.node,
+  onError: PropTypes.func,
+  stripeAccountId: PropTypes.string.isRequired,
+  stripeClientSecret: PropTypes.string.isRequired
 };
 
 export interface StripePaymentWrapperProps extends InferProps<typeof StripePaymentWrapperPropTypes> {
   onError?: (error: Error) => void;
 }
 
-// This element loads the Stripe `Elements` component, which the Stripe `PaymentElement` needs
-// in order to have expected context. This is where we configure and load Stripe with the connected
-// account for this page.
-function StripePaymentWrapper({ onError }: StripePaymentWrapperProps) {
-  const {
-    page: {
-      payment_provider: { stripe_account_id: stripeAccount }
-    },
-    stripeClientSecret
-  } = usePage();
+/**
+ * This element loads the Stripe `Elements` component, which the Stripe
+ * `PaymentElement` needs in order to have expected context. This is where we
+ * configure and load Stripe.
+ */
+export function StripePaymentWrapper({
+  children,
+  onError,
+  stripeAccountId,
+  stripeClientSecret
+}: StripePaymentWrapperProps) {
   const [inited, setInited] = useState(false);
   const [stripe, setStripe] = useState<Stripe | null>(null);
 
@@ -34,11 +35,11 @@ function StripePaymentWrapper({ onError }: StripePaymentWrapperProps) {
   // https://stripe.com/docs/connect/authentication#adding-the-connected-account-id-to-a-client-side-application
 
   useEffect(() => {
-    async function init(stripeAccount: string) {
+    async function init() {
       try {
         // Have to cast because TypeScript doesn't understand we checked
         // stripeAccount before running this function.
-        const loadedStripe = await loadStripe(HUB_STRIPE_API_PUB_KEY, { stripeAccount });
+        const loadedStripe = await loadStripe(HUB_STRIPE_API_PUB_KEY, { stripeAccount: stripeAccountId });
 
         if (loadedStripe) {
           setStripe(loadedStripe);
@@ -54,19 +55,15 @@ function StripePaymentWrapper({ onError }: StripePaymentWrapperProps) {
       }
     }
 
-    if (stripeAccount && !inited) {
+    if (stripeAccountId && !inited) {
       setInited(true);
-      init(stripeAccount);
+      init();
     }
-  }, [inited, onError, stripeAccount]);
+  }, [inited, onError, stripeAccountId]);
 
-  const options = {
-    clientSecret: stripeClientSecret
-  };
-
-  return stripeAccount ? (
-    <Elements stripe={stripe} options={options}>
-      <StripePaymentForm />
+  return stripe ? (
+    <Elements stripe={stripe} options={{ clientSecret: stripeClientSecret }}>
+      {children}
     </Elements>
   ) : (
     <GlobalLoading />

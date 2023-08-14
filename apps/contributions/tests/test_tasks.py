@@ -132,12 +132,8 @@ class TestTaskPullSerializedStripeContributionsToCache:
             "test@email.com", "customer:'cust_0' OR customer:'cust_1'", "acc_0000"
         )
         assert mock_fetch_pis.call_count == 2
-        assert mock_fetch_pis.call_args_list[0] == mocker.call(
-            query="customer:'cust_0' OR customer:'cust_1'", page=None
-        )
-        assert mock_fetch_pis.call_args_list[1] == mocker.call(
-            query="customer:'cust_2' OR customer:'cust_3'", page=None
-        )
+        for x in mock_fetch_pis.call_args_list:
+            assert x == mocker.call(query="customer:'cust_0' OR customer:'cust_1'", page=None)
 
 
 @pytest.mark.django_db

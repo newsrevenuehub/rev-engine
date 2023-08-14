@@ -28,7 +28,6 @@ from apps.contributions.models import (
     logger,
     send_thank_you_email,
 )
-from apps.contributions.tasks import task_pull_serialized_stripe_contributions_to_cache
 from apps.contributions.tests.factories import ContributionFactory, ContributorFactory
 from apps.emails.tasks import make_send_thank_you_email_data, send_templated_email
 from apps.organizations.models import FiscalStatusChoices, FreePlan

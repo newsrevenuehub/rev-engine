@@ -443,23 +443,6 @@ class TestContributionsViewSet:
             assert set([x["id"] for x in response.json()["results"]]) == set([x.id for x in expected])
 
 
-# @pytest.fixture
-# def cached_pi_as_dashboard_contribution_result_factory(default_paid_pi_data_factory):
-#     class Factory:
-#         def get(self, rp_slug):
-#             provider = StripePiAsPortalContributionCacheProvider(
-#                 stripe_account_id=(id := "bogus-stripe-id"), email_id="foo@bar.com"
-#             )
-#             serialized = provider.serialize(
-#                 [stripe.PaymentIntent.construct_from((data := default_paid_pi_data_factory.get()), key="something")],
-#             )
-#             return AttrDict(
-#                 dict(serialized[data["id"]].data) | {"stripe_account_id": "bogus", "revenue_program": rp_slug}
-#             )
-
-#     return Factory()
-
-
 @pytest.mark.django_db
 class TestContributionViewSetForContributorUser:
     """Test the ContributionsViewSet's behavior when a contributor user is interacting with relevant endpoints"""
@@ -495,13 +478,39 @@ class TestContributionViewSetForContributorUser:
         assert response.json()["count"] == 2
         assert response.json()["results"] == list(data.values())
 
-    def test_list_when_contributions_not_in_cache(
-        self, contributor_user, monkeypatch, mocker, api_client, revenue_program
+    def test_list_when_contributions_in_cache_but_status_not_paid(
+        self,
+        contributor_user,
+        mocker,
+        api_client,
+        revenue_program,
+        default_paid_pi_data_factory,
     ):
-        """When there are not contributions in the cache, background task to retrieve and cache should be called"""
-        monkeypatch.setattr(
+        """Contributions can be in cache, but if status is not paid, they won't be returned. This test demonstrates that behavior"""
+        provider = StripePiAsPortalContributionCacheProvider(
+            email_id=contributor_user.email, stripe_account_id=(id := "bogus")
+        )
+        pi = default_paid_pi_data_factory.get()
+        pi["metadata"]["revenue_program_slug"] = revenue_program.slug
+        data = provider.serialize([stripe.PaymentIntent.construct_from(pi, key="something")])
+        for k, v in data.items():
+            data[k] = v.data | {"stripe_account_id": id, "status": ContributionStatus.PROCESSING.value}
+        mocker.patch(
             "apps.contributions.stripe_contributions_provider.StripePiAsPortalContributionCacheProvider.load",
-            lambda *args, **kwargs: [],
+            return_value=[AttrDict(**x) for x in data.values()],
+        )
+        spy = mocker.spy(task_pull_serialized_stripe_contributions_to_cache, "delay")
+        api_client.force_authenticate(contributor_user)
+        response = api_client.get(reverse("contribution-list"), {"rp": revenue_program.slug})
+        assert response.status_code == status.HTTP_200_OK
+        assert spy.call_count == 0
+        assert response.json()["count"] == 0
+
+    def test_list_when_contributions_not_in_cache(self, contributor_user, mocker, api_client, revenue_program):
+        """When there are not contributions in the cache, background task to retrieve and cache should be called"""
+        mocker.patch(
+            "apps.contributions.stripe_contributions_provider.StripePiAsPortalContributionCacheProvider.load",
+            return_value=[],
         )
         spy = mocker.spy(task_pull_serialized_stripe_contributions_to_cache, "delay")
         api_client.force_authenticate(contributor_user)
@@ -594,12 +603,10 @@ class TestContributionsViewSetExportCSV:
 
 @pytest.mark.django_db
 class TestSubscriptionViewSet:
-    def test_contributor_list_when_subscriptions_in_cache(
-        self, api_client, contributor_user, revenue_program, monkeypatch, mocker
-    ):
-        monkeypatch.setattr(
-            "apps.contributions.stripe_contributions_provider.SerializedSubscriptionsCacheProvider.load",
-            lambda *args, **kwargs: [
+    def test_contributor_list_when_subscriptions_in_cache(self, api_client, contributor_user, revenue_program, mocker):
+        mocker.patch(
+            "apps.contributions.stripe_contributions_provider.StripeSubscriptionsCacheProvider.load",
+            return_value=[
                 {"revenue_program_slug": revenue_program.slug, "id": 1},
                 {"revenue_program_slug": revenue_program.slug, "id": 2},
                 {"revenue_program_slug": RevenueProgramFactory().slug, "id": 3},
@@ -615,15 +622,13 @@ class TestSubscriptionViewSet:
         assert set([x["id"] for x in response.json()]) == set([1, 2])
 
     def test_contributor_list_when_subscription_not_in_cache(
-        self, monkeypatch, mocker, api_client, contributor_user, revenue_program
+        self, mocker, api_client, contributor_user, revenue_program
     ):
-        monkeypatch.setattr(
-            "apps.contributions.stripe_contributions_provider.SerializedSubscriptionsCacheProvider.load",
-            lambda *args, **kwargs: [],
+        mocker.patch(
+            "apps.contributions.stripe_contributions_provider.StripeSubscriptionsCacheProvider.load",
+            return_value=[],
         )
-        monkeypatch.setattr(
-            "apps.contributions.views.task_pull_serialized_stripe_contributions_to_cache", lambda *args, **kwargs: None
-        )
+        mocker.patch("apps.contributions.views.task_pull_serialized_stripe_contributions_to_cache")
         spy = mocker.spy(contributions_views, "task_pull_serialized_stripe_contributions_to_cache")
         api_client.force_authenticate(contributor_user)
         response = api_client.get(reverse("subscription-list"), {"revenue_program_slug": revenue_program.slug})
@@ -631,21 +636,16 @@ class TestSubscriptionViewSet:
         assert spy.call_count == 1
         assert len(response.json()) == 0
 
-    def test_retrieve_when_subscription_not_in_cache(
-        self, monkeypatch, mocker, api_client, contributor_user, revenue_program
-    ):
+    def test_retrieve_when_subscription_not_in_cache(self, mocker, api_client, contributor_user, revenue_program):
         """Show behavior when attempt to retrieve a subscription that's not in cache
 
         TODO: [DEV-3227] Here...
         """
-        monkeypatch.setattr(
-            "apps.contributions.stripe_contributions_provider.SerializedSubscriptionsCacheProvider.load",
-            lambda *args, **kwargs: [],
+        mocker.patch(
+            "apps.contributions.stripe_contributions_provider.StripeSubscriptionsCacheProvider.load",
+            return_value=[],
         )
-        monkeypatch.setattr(
-            "apps.contributions.views.task_pull_serialized_stripe_contributions_to_cache",
-            lambda *args, **kwargs: None,
-        )
+        mocker.patch("apps.contributions.views.task_pull_serialized_stripe_contributions_to_cache")
         spy = mocker.spy(contributions_views, "task_pull_serialized_stripe_contributions_to_cache")
         api_client.force_authenticate(contributor_user)
         response = api_client.get(
@@ -654,13 +654,10 @@ class TestSubscriptionViewSet:
         assert response.status_code == status.HTTP_404_NOT_FOUND
         assert spy.call_count == 1
 
-    def test_retrieve_when_subscription_in_cache(
-        self, api_client, contributor_user, revenue_program, monkeypatch, mocker
-    ):
-        """ """
-        monkeypatch.setattr(
-            "apps.contributions.stripe_contributions_provider.SerializedSubscriptionsCacheProvider.load",
-            lambda *args, **kwargs: [
+    def test_retrieve_when_subscription_in_cache(self, api_client, contributor_user, revenue_program, mocker):
+        mocker.patch(
+            "apps.contributions.stripe_contributions_provider.StripeSubscriptionsCacheProvider.load",
+            return_value=[
                 {"revenue_program_slug": revenue_program.slug, "id": str(revenue_program.id)},
             ],
         )

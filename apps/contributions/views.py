@@ -390,6 +390,21 @@ class SubscriptionsViewSet(viewsets.ViewSet):
         subscriptions = cache_provider.load()
         return [x for x in subscriptions if x.get("revenue_program_slug") == revenue_program_slug]
 
+    def retrieve(self, request, pk):
+        #  TODO: [DEV-3227] Here...
+        subscriptions = self._get_or_fetch_subscriptions(request)
+        for subscription in subscriptions:
+            if (
+                subscription.get("revenue_program_slug") == self.request.query_params["revenue_program_slug"]
+                and subscription.get("id") == pk
+            ):
+                return Response(subscription, status=status.HTTP_200_OK)
+        return Response({"detail": "Not Found"}, status=status.HTTP_404_NOT_FOUND)
+
+    def list(self, request):
+        subscriptions = self._get_or_fetch_subscriptions(request)
+        return Response(subscriptions, status=status.HTTP_200_OK)
+
     def partial_update(self, request, pk):
         """
         payment_method_id - the new payment method id to use for the subscription

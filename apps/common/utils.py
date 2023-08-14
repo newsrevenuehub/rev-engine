@@ -1,13 +1,11 @@
 import logging
 import re
-from typing import Any
 
 from django.conf import settings
 from django.utils.text import slugify
 
 import CloudFlare
 import stripe
-from rest_framework.exceptions import ValidationError
 
 
 logger = logging.getLogger(f"{settings.DEFAULT_LOGGER}.{__name__}")
@@ -137,20 +135,3 @@ def get_original_ip_from_request(request):
 
 def google_cloud_pub_sub_is_configured() -> bool:
     return all([settings.ENABLE_PUBSUB and settings.GOOGLE_CLOUD_PROJECT])
-
-
-def drf_validation_error_to_string(error: Any) -> str:
-    """This function converts a DRF ValidationError to a string.
-
-    It can be particularly useful in contexts where it's desirable to log validation errors
-    """
-    if isinstance(error, ValidationError) and hasattr(error, "detail"):
-        errors = error.detail
-    else:
-        errors = error
-    messages = []
-    for field, error_list in errors.items():
-        for err in error_list:
-            messages.append(f"{field}: {err}")
-
-    return ", ".join(messages)

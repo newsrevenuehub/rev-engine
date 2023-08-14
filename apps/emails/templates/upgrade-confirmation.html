@@ -2,16 +2,16 @@
 
 {% block custom_style %}
 <style type="text/css">
+  .content-container {
+    max-width: 520px;
+    padding: 20px;
+  }
+
   .header-icon {
     height: 30px;
     width: 30px;
     margin-bottom: -5px;
     margin-right: 7px;
-  }
-
-  .remove-side-space {
-    margin-left: -18px;
-    margin-right: -18px;
   }
 
   .text-sub {
@@ -23,10 +23,17 @@
     color: #25192B;
   }
 
+  .text {
+    font-size: 18px;
+    margin-top: 0px;
+    margin-bottom: 0px;
+    font-family: 'Roboto';
+    font-weight: 400;
+    color: #282828;
+  }
+
   .list-item {
-    margin-top: 27px;
-    margin-bottom: 27px;
-    margin-right: 20px;
+    margin: 27px 0px;
   }
 
   .list-icon {
@@ -59,17 +66,16 @@
 
 {% block content %}
 {% comment %} TODO: [DEV-3779] Style this email in accordance with design spec{% endcomment %}
-<h1 class="content-header remove-side-space" style="margin-bottom: 20px;">
+<h1 class="content-header" style="margin-bottom: 20px; margin-top: 0px;">
   <img class="header-icon" src="{{ check_icon }}" alt="Check icon" />
   You’ve *Upgraded to Core!
 </h1>
 
-<div
-  style="height: 1px; background: #f1f1f1; margin-bottom: 20px; margin-top: 20px; margin-left: -38px; margin-right: -38px;">
+<div style="height: 1px; background: #f1f1f1; margin: 20px -38px;">
 </div>
 
-<p class="text-sub remove-side-space">Start enjoying your new features!</p>
-<ul class="remove-side-space" style="list-style-type: none;">
+<p class="text-sub">Start enjoying your new features!</p>
+<ul style="list-style-type: none;">
   <li class="list-item">
     <table>
       <tr>
@@ -113,7 +119,7 @@
     </table>
   </li>
 </ul>
-<p class="bottom-text remove-side-space">
+<p class="bottom-text">
   Get started with your Mailchimp integration now:
 </p>
 <div class="button-wrapper" style="text-align: center;">
@@ -121,7 +127,7 @@
     Connect to Mailchimp
   </a>
 </div>
-<p class="small-text remove-side-space">
+<p class="small-text">
   *Upgrade may not be reflected immediately. In most cases, your upgrade will be active within 30 minutes. Please allow
   up to {{upgrade_days_wait}} business days.
 <p>

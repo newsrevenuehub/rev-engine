@@ -2,7 +2,6 @@ import datetime
 import logging
 import uuid
 from dataclasses import asdict
-from typing import List, TypedDict
 from urllib.parse import quote_plus
 
 from django.conf import settings
@@ -19,7 +18,6 @@ from apps.api.tokens import ContributorRefreshToken
 from apps.common.models import IndexedTimeStampedModel
 from apps.contributions.choices import BadActorScores, ContributionInterval, ContributionStatus
 from apps.emails.tasks import make_send_thank_you_email_data, send_thank_you_email
-from apps.organizations.models import RevenueProgram
 from apps.users.choices import Roles
 from apps.users.models import RoleAssignment
 from revengine.settings.base import CurrencyDict
@@ -114,11 +112,6 @@ class Contributor(IndexedTimeStampedModel):
             f"https://{construct_rp_domain(contribution.donation_page.revenue_program.slug)}/{settings.CONTRIBUTOR_VERIFY_URL}"
             f"?token={token}&email={quote_plus(contribution.contributor.email)}"
         )
-
-
-# class CachedStripeContributionResult(TypedDict):
-#     revenue_program: str
-#     payment_type: str
 
 
 class ContributionQuerySet(models.QuerySet):

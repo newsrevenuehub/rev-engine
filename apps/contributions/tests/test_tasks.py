@@ -7,16 +7,16 @@ from django.conf import settings
 from django.template.loader import render_to_string
 
 import pytest
-import stripe.error
 import stripe
+import stripe.error
 
 from apps.contributions import tasks as contribution_tasks
 from apps.contributions.models import Contribution, ContributionStatus
 from apps.contributions.payment_managers import PaymentProviderError
+from apps.contributions.stripe_contributions_provider import StripePiSearchResponse
 from apps.contributions.tasks import task_verify_apple_domain
 from apps.contributions.tests.factories import ContributionFactory
 from apps.contributions.utils import CONTRIBUTION_EXPORT_CSV_HEADERS
-from apps.contributions.stripe_contributions_provider import StripePiSearchResponse
 
 
 @pytest.fixture
@@ -101,10 +101,13 @@ def make_stripe_pi_search_response(has_more=True):
 
 
 class TestTaskPullSerializedStripeContributionsToCache:
-    def test_task_pull_serialized_stripe_contributions_to_cache(self, mocker):
+    def test_task_pull_serialized_stripe_contributions_to_cache(
+        self,
+        mocker,
+    ):
         mock_pull_pi_delay = mocker.patch("apps.contributions.tasks.task_pull_payment_intents.delay")
         mocker.patch(
-            "apps.contributions.stripe_contributions_provider.StripeContributionsProvider.generate_chunked_customers_query",
+            "apps.contributions.stripe_contributions_provider.StripePaymentIntentsProvider.generate_chunked_customers_query",
             return_value=(
                 queries := [
                     "customer:'cust_0' OR customer:'cust_1'",
@@ -118,15 +121,23 @@ class TestTaskPullSerializedStripeContributionsToCache:
 
     def test_task_pull_payment_intents(self, mocker):
         mock_fetch_pis = mocker.patch(
-            "apps.contributions.stripe_contributions_provider.StripeContributionsProvider.fetch_payment_intents",
+            "apps.contributions.stripe_contributions_provider.StripePaymentIntentsProvider.fetch_payment_intents",
             side_effect=[make_stripe_pi_search_response(has_more=True), make_stripe_pi_search_response(has_more=False)],
         )
+        mocker.patch(
+            "apps.contributions.stripe_contributions_provider.StripePiAsPortalContributionCacheProvider.upsert"
+        )
+        mocker.patch("apps.contributions.stripe_contributions_provider.StripeSubscriptionsCacheProvider.upsert")
         contribution_tasks.task_pull_payment_intents(
             "test@email.com", "customer:'cust_0' OR customer:'cust_1'", "acc_0000"
         )
         assert mock_fetch_pis.call_count == 2
-        assert mock_fetch_pis.call_args_list[0] == mocker.call("customer:'cust_0' OR customer:'cust_1'")
-        assert mock_fetch_pis.call_args_list[1] == mocker.call("customer:'cust_2' OR customer:'cust_3'")
+        assert mock_fetch_pis.call_args_list[0] == mocker.call(
+            query="customer:'cust_0' OR customer:'cust_1'", page=None
+        )
+        assert mock_fetch_pis.call_args_list[1] == mocker.call(
+            query="customer:'cust_2' OR customer:'cust_3'", page=None
+        )
 
 
 @pytest.mark.django_db

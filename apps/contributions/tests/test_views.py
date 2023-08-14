@@ -30,9 +30,9 @@ from apps.contributions.models import (
     Contributor,
 )
 from apps.contributions.payment_managers import PaymentProviderError
-from apps.contributions.serializers import (
-    ContributionSerializer,
-    PaymentProviderContributionSerializer,
+from apps.contributions.serializers import ContributionSerializer
+from apps.contributions.stripe_contributions_provider import (
+    StripePiAsPortalContributionCacheProvider,
 )
 from apps.contributions.tasks import (
     email_contribution_csv_export_to_user,
@@ -51,7 +51,6 @@ from apps.organizations.tests.factories import (
     OrganizationFactory,
     PaymentProviderFactory,
     RevenueProgramFactory,
-    StripePaymentIntentFactory,
 )
 from apps.pages.models import DonationPage
 from apps.pages.tests.factories import DonationPageFactory
@@ -444,6 +443,23 @@ class TestContributionsViewSet:
             assert set([x["id"] for x in response.json()["results"]]) == set([x.id for x in expected])
 
 
+# @pytest.fixture
+# def cached_pi_as_dashboard_contribution_result_factory(default_paid_pi_data_factory):
+#     class Factory:
+#         def get(self, rp_slug):
+#             provider = StripePiAsPortalContributionCacheProvider(
+#                 stripe_account_id=(id := "bogus-stripe-id"), email_id="foo@bar.com"
+#             )
+#             serialized = provider.serialize(
+#                 [stripe.PaymentIntent.construct_from((data := default_paid_pi_data_factory.get()), key="something")],
+#             )
+#             return AttrDict(
+#                 dict(serialized[data["id"]].data) | {"stripe_account_id": "bogus", "revenue_program": rp_slug}
+#             )
+
+#     return Factory()
+
+
 @pytest.mark.django_db
 class TestContributionViewSetForContributorUser:
     """Test the ContributionsViewSet's behavior when a contributor user is interacting with relevant endpoints"""
@@ -451,35 +467,40 @@ class TestContributionViewSetForContributorUser:
     def test_list_when_contributions_in_cache(
         self,
         contributor_user,
-        monkeypatch,
         mocker,
         api_client,
         revenue_program,
+        default_paid_pi_data_factory,
     ):
         """When there are contributions in cache, those should be returned by the request"""
-        contributions = [
-            (seen := StripePaymentIntentFactory(revenue_program=revenue_program.slug)),
-            StripePaymentIntentFactory(payment_type=None, revenue_program=revenue_program.slug),
-        ]
-        stripe_contributions = [PaymentProviderContributionSerializer(instance=i).data for i in contributions]
-        monkeypatch.setattr(
-            "apps.contributions.stripe_contributions_provider.StripePaymentIntentsCacheProvider.load",
-            lambda *args, **kwargs: stripe_contributions,
+        provider = StripePiAsPortalContributionCacheProvider(
+            email_id=contributor_user.email, stripe_account_id=(id := "bogus")
+        )
+        pis_data = [default_paid_pi_data_factory.get() for _ in range(2)]
+        for x in pis_data:
+            x["metadata"]["revenue_program_slug"] = revenue_program.slug
+        pis = [stripe.PaymentIntent.construct_from(x, key="something") for x in pis_data]
+        data = provider.serialize(pis)
+        for k, v in data.items():
+            data[k] = v.data | {"stripe_account_id": id}
+        mocker.patch(
+            "apps.contributions.stripe_contributions_provider.StripePiAsPortalContributionCacheProvider.load",
+            return_value=[AttrDict(**x) for x in data.values()],
         )
         spy = mocker.spy(task_pull_serialized_stripe_contributions_to_cache, "delay")
         api_client.force_authenticate(contributor_user)
         response = api_client.get(reverse("contribution-list"), {"rp": revenue_program.slug})
         assert response.status_code == status.HTTP_200_OK
         assert spy.call_count == 0
-        assert response.json()["count"] == 1
-        assert response.json()["results"][0]["id"] == seen.id
+        assert response.json()["count"] == 2
+        assert response.json()["results"] == list(data.values())
 
     def test_list_when_contributions_not_in_cache(
         self, contributor_user, monkeypatch, mocker, api_client, revenue_program
     ):
         """When there are not contributions in the cache, background task to retrieve and cache should be called"""
         monkeypatch.setattr(
-            "apps.contributions.stripe_contributions_provider.StripePaymentIntentsCacheProvider.load",
+            "apps.contributions.stripe_contributions_provider.StripePiAsPortalContributionCacheProvider.load",
             lambda *args, **kwargs: [],
         )
         spy = mocker.spy(task_pull_serialized_stripe_contributions_to_cache, "delay")

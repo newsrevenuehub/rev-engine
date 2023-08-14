@@ -1,27 +1,30 @@
-from dataclasses import dataclass
 import datetime
 import json
 import logging
+from dataclasses import dataclass
 from functools import cached_property
-from typing import Generator, Literal, Optional, TypedDict
+from typing import Generator, Literal, Optional
 
-from addict import Dict as AttrDict
 from django.conf import settings
 from django.core.cache import caches
 from django.core.serializers.json import DjangoJSONEncoder
 
-from pydantic import BaseModel
 import stripe
-from rest_framework import exceptions
+from addict import Dict as AttrDict
+from pydantic import BaseModel
 
-from revengine.settings.base import CONTRIBUTION_CACHE_TTL, DEFAULT_CACHE
+from apps.common.utils import drf_validation_error_to_string
+from apps.contributions.choices import ContributionInterval, ContributionStatus
+from apps.contributions.exceptions import (
+    ContributionIgnorableError,
+    InvalidIntervalError,
+    InvalidMetadataError,
+)
 from apps.contributions.serializers import (
     PaymentProviderContributionSerializer,
     SubscriptionsSerializer,
 )
-
-from apps.contributions.choices import ContributionInterval, ContributionStatus
-from apps.contributions.exceptions import ContributionIgnorableError, InvalidIntervalError, InvalidMetadataError
+from revengine.settings.base import CONTRIBUTION_CACHE_TTL, DEFAULT_CACHE
 
 
 MAX_STRIPE_RESPONSE_LIMIT = 100
@@ -37,75 +40,101 @@ class StripePiAsPortalContribution:
     by the portal's contributions tables in the SPA.
 
     Note that this class is not responsible for serializing the object into JSON. The expected caller for this class is
-    `StripePaymentIntentsCacheProvider`. This class is responsible for converting the Stripe PaymentIntent object into
+    `StripePiAsPortalContributionCacheProvider`. This class is responsible for converting the Stripe PaymentIntent object into
     that can be consumed when serialized in the cache provider.
+
     """
 
     payment_intent: stripe.PaymentIntent
 
+    CANCELABLE_SUBSCRIPTION_STATUSES = ["trialing", "active", "past_due"]
+    MODIFIABLE_SUBSCRIPTION_STATUSES = ["incomplete", "trialing", "active", "past_due"]
+
+    def ensure_payment_intent_expanded(self) -> None:
+        """Ensures that the PaymentIntent has the necessary attributes expanded
+
+        There are several methods in this class that assume that in case of PI for a recurring payment, the returned
+        PaymentIntent has expanded:
+            - invoice.subscription.plan (note this means invoice and subscription will also be expanded)
+            - payment_method
+
+        """
+        logger.info("Ensuring payment_intent %s has necessary attributes expanded", {self.id})
+        problems = []
+        # recurring payments have an invoice but one-time do not
+        if invoice := self.payment_intent.invoice:
+            if not (sub := invoice.subscription):
+                problems.append("invoice.subscription")
+            if sub and not sub.plan:
+                problems.append("invoice.subscription.plan")
+        # relevant to both one-time and recurring
+        if not self.payment_intent.payment_method:
+            problems.append("payment_method")
+        if problems:
+            raise ContributionIgnorableError(f"PaymentIntent {self.id} does not have required attributes: {problems}")
+
+    def __post_init__(self) -> None:
+        self.ensure_payment_intent_expanded()
+
     @property
-    def invoice_line_item(self) -> list[stripe.InvoiceLineItem | dict]:
-        if not self.payment_intent.invoice:
-            return [{}]
-        line_item = self.payment_intent.invoice.lines.data
-        if not line_item:
-            line_item = [{}]
-        return line_item[0]
+    def invoice_line_item(self) -> AttrDict:
+        line_item = AttrDict({})
+        if invoice := self.payment_intent.invoice:
+            line_item = AttrDict(invoice.lines.data[0].to_dict())
+        return line_item
 
     @property
     def is_cancelable(self) -> bool:
-        if not self.payment_intent.invoice:  # one-time payment
+        if not (invoice := self.payment_intent.invoice):  # one-time payment
             return False
-        if self.payment_intent.invoice.subscription.status in [
-            "incomplete",
-            "incomplete_expired",
-            "canceled",
-            "unpaid",
-        ]:
-            return False
-        # statuses "trialing", "active", and "past_due" are cancelable
-        return True
+        return invoice.subscription.status in self.CANCELABLE_SUBSCRIPTION_STATUSES
 
     @property
     def is_modifiable(self) -> bool:
-        if not self.payment_intent.invoice:  # one-time payment
+        if not (invoice := self.payment_intent.invoice):  # one-time payment
             return False
-        if self.payment_intent.invoice.subscription.status in ["incomplete_expired", "canceled", "unpaid"]:
-            return False
-        # statuses "incomplete", "trialing", "active", and "past_due" are modifiable
-        return True
+        return invoice.subscription.status in self.MODIFIABLE_SUBSCRIPTION_STATUSES
 
     @property
     def interval(self) -> ContributionInterval:
-        if not self.payment_intent.invoice:
-            # if there's no invoice then it's a one-time payment
+        if not (invoice := self.payment_intent.invoice):
             return ContributionInterval.ONE_TIME
-        interval = self.invoice_line_item.get("plan", {}).get("interval")
-        interval_count = self.invoice_line_item.get("plan", {}).get("interval_count")
-        if interval == "year" and interval_count == 1:
-            return ContributionInterval.YEARLY
-        if interval == "month" and interval_count == 1:
-            return ContributionInterval.MONTHLY
-        raise InvalidIntervalError(f"Invalid interval {interval} for payment_intent : {self.payment_intent.id}")
+        if (count := (plan := invoice.subscription.plan).interval_count) != 1:
+            raise InvalidIntervalError(f"Unexpected interval_count ({count}) for payment_intent {self.id}")
+        if plan.interval not in ["month", "year"]:
+            raise InvalidIntervalError(f"Unexpected plan interval ({plan.interval}) for payment_intent {self.id}")
+        return ContributionInterval.MONTHLY if plan.interval == "month" else ContributionInterval.YEARLY
 
     @property
     def revenue_program(self) -> str:
-        metadata = self.payment_intent.get("metadata") or self.invoice_line_item.get("metadata") or {}
-        if not metadata or "revenue_program_slug" not in metadata:
-            raise InvalidMetadataError(f"Metadata is invalid for payment_intent : {self.id}")
+        metadata = None
+        if self.payment_intent.metadata:
+            metadata = self.payment_intent.metadata
+            source = "payment intent"
+        else:
+            metadata = self.invoice_line_item.metadata
+            source = "invoice line item"
+        if metadata is None:
+            raise InvalidMetadataError(
+                f"Cannot determine revenue_program for payment intent {self.id} because metadata is missing"
+            )
+        if "revenue_program_slug" not in metadata:
+            raise InvalidMetadataError(
+                f"Cannot determine revenue_program for payment intent {self.id} because metadata in {source} doesn't have revenue_program_slug"
+            )
         return metadata["revenue_program_slug"]
 
     @property
     def subscription_id(self) -> str | None:
-        if not self.payment_intent.invoice:  # this isn't a subscription
+        if not (invoice := self.payment_intent.invoice):  # this isn't a subscription
             return None
-        return self.payment_intent.invoice.subscription.id
+        return invoice.subscription.id
 
     @property
-    def card(self) -> stripe.PaymentMethod | AttrDict:
-        return getattr(self.payment_intent.payment_method, "card", None) or AttrDict(
-            **{"brand": None, "last4": None, "exp_month": None}
-        )
+    def card(self) -> AttrDict:
+        if card := getattr(self.payment_intent.payment_method, "card", None):
+            return AttrDict(card.to_dict())
+        return AttrDict({"brand": None, "last4": None, "exp_month": None})
 
     @property
     def card_brand(self) -> str | None:
@@ -145,13 +174,18 @@ class StripePiAsPortalContribution:
             return ContributionStatus.REFUNDED
         if self.payment_intent.status == "succeeded":
             return ContributionStatus.PAID
+        # NB: this is in original code but is not a valid status for Stripe PIs.
+        # https://web.archive.org/web/20200907115209/https://stripe.com/docs/api/payment_intents/object
+        # (note that must use wayback machine to see API docs for non-current versions of Stripe API).
+        # Maybe the status that's wanted is "requires_action" and/or "processing"??
+        # TODO: [DEV-3855] Determine business logic for StripePiAsPortalContribution.status when it should be "pending"
         if self.payment_intent.status == "pending":
             return ContributionStatus.PROCESSING
         return ContributionStatus.FAILED
 
     @property
     def credit_card_expiration_date(self) -> str | None:
-        return f"{self.card.exp_month}/{self.card.exp_year}" if self.card.exp_month else None
+        return f"{self.card.exp_month}/{self.card.exp_year}" if all([self.card.exp_month, self.card.exp_year]) else None
 
     @property
     def payment_type(self) -> str:
@@ -184,12 +218,12 @@ class StripePiSearchResponse(BaseModel):
     that Stripe does not provide type hints for the objects returned by .search.
     """
 
-    object: Literal["search_result"]
     url: str
     has_more: bool
     total_count: Optional[int]
     data: list[stripe.PaymentIntent]
     next_page: str | None = None
+    object: Literal["search_result"] = "search_result"
 
     class Config:
         # we do this to enable using `stripe.PaymentIntent` in data field type hint. Without this, pydantic will
@@ -198,9 +232,19 @@ class StripePiSearchResponse(BaseModel):
 
 
 @dataclass
-class StripeContributionsProvider:
+class StripePaymentIntentsProvider:
+    """
+    Explain
+    """
+
     email_id: str
     stripe_account_id: str
+
+    EXPAND_FIELDS = [
+        "data.invoice.subscription.default_payment_method",
+        "data.invoice.subscription.plan.product",
+        "data.payment_method",
+    ]
 
     @cached_property
     def customers(self) -> list[str]:
@@ -229,10 +273,10 @@ class StripeContributionsProvider:
             chunk = self.customers[i : i + MAX_STRIPE_CUSTOMERS_LIMIT]
             yield " OR ".join([f"customer:'{customer_id}'" for customer_id in chunk])
 
-    def fetch_payment_intents(self, query: dict | None = None, page: str = "") -> StripePiSearchResponse:
+    def fetch_payment_intents(self, query: str, page: str = "") -> StripePiSearchResponse:
         kwargs = {
             "query": query,
-            "expand": ["data.invoice.subscription.default_payment_method", "data.payment_method"],
+            "expand": self.EXPAND_FIELDS,
             "limit": MAX_STRIPE_RESPONSE_LIMIT,
             "stripe_account": self.stripe_account_id,
         }
@@ -246,13 +290,12 @@ class StripeContributionsProvider:
 
 
 @dataclass
-class StripePaymentIntentsCacheProvider:
+class StripePiAsPortalContributionCacheProvider:
     """Explain away"""
 
     email_id: str
     stripe_account_id: str
 
-    # fix this
     converter = StripePiAsPortalContribution
     serializer = PaymentProviderContributionSerializer
     cache = caches[DEFAULT_CACHE]
@@ -267,25 +310,41 @@ class StripePaymentIntentsCacheProvider:
         The data returned is a dict whose keys are payment intent IDs found for the given email on the given stripe account.
 
         The values in this dict will a dictionary representing the serialized payment intent (given the serializer that
-        StripePaymentIntentsCacheProvider is configured with).
+        StripePiAsPortalContributionCacheProvider is configured with).
         """
         data = {}
         for pi in payment_intents:
             try:
-                serialized_obj = self.serializer(instance=self.converter(pi))
-                data[pi.id] = serialized_obj
-            except ContributionIgnorableError as ex:
-                logger.warning("Unable to process payment intent [%s] due to [%s]", pi.id, type(ex))
+                # Note on this weirdness
+                initial_serialized = self.serializer(instance=self.converter(AttrDict(pi.to_dict())))
+                serialized = self.serializer(data=initial_serialized.data)
+                if not serialized.is_valid():
+                    logger.info(
+                        "Unable to serialize payment intent %s because %s",
+                        pi.id,
+                        drf_validation_error_to_string(serialized.errors),
+                    )
+                    raise ContributionIgnorableError(
+                        f"Unable to serialize payment intent {pi.id} because: {serialized.errors}"
+                    )
+                data[pi.id] = serialized
+            # this can happen because of above raise or because it happens in `self.converter()` above
+            except ContributionIgnorableError:
+                logger.info("Unable to serialize payment intent %s", pi.id)
         return data
 
-    def upsert(self, payment_intents: list[stripe.PaymentIntent]) -> None:
-        """Serializes raw Stripe payment intents and stores in cache."""
+    def upsert(self, payment_intents: dict) -> None:
+        """Serializes raw Stripe payment intents and stores in cache
+
+        Add note on what's in this dict -- keyed
+        """
+
         data = self.serialize(payment_intents)
         # Since the Stripe objects themselves don't have a field indicating the account they came from (when they come
-        # from a Connect webhook they do have this field) they get added here:
-        for v in data.values():
-            v.stripe_account_id = self.stripe_account_id
-
+        # from a Connect webhook they do have this field) they get added here.
+        # Also, our serializer instances will not be directly JSON serializable, so we need to extract the data from them
+        for k, v in data.items():
+            data[k] = v.data | {"stripe_account_id": self.stripe_account_id}
         cached_data = json.loads(self.cache.get(self.key) or "{}")
         cached_data.update(data)
 
@@ -293,22 +352,17 @@ class StripePaymentIntentsCacheProvider:
             logger.info("Inserting %s payment intents into cache with key %s", len(data), self.key)
             self.cache.set(self.key, json.dumps(cached_data), timeout=CONTRIBUTION_CACHE_TTL.seconds)
 
-    def load(self) -> list[stripe.PaymentIntent]:
+    def load(self) -> list[dict]:
         logger.info("Loading payment intents from cache with key %s", self.key)
         data = self.cache.get(self.key)
         if not data:
             logger.info("No payment intents found in cache with key %s", self.key)
             return []
-        data = [
-            stripe.PaymentIntent.construct_from(values=x, key=settings.STRIPE_CURRENT_SECRET_KEY_CONTRIBUTION)
-            for x in json.loads(data).values()
-        ]
+        # we use AttrDict here instead of constructing stripe object directly because there is the extra stripe_account_id key/val
+        # which are not on a Stripe sub object
+        data = [AttrDict(**x) for x in json.loads(data).values()]
         logger.info("Retrieved and hydrated %s payment intents from cache with key %s", len(data), self.key)
         return data
-
-
-class SerializedStripeSubscription(TypedDict):
-    pass
 
 
 @dataclass
@@ -323,7 +377,7 @@ class StripeSubscriptionsCacheProvider:
 
     @property
     def key(self) -> str:
-        self.key = f"{self.email_id}-subscriptions-{self.stripe_account_id}"
+        return f"{self.email_id}-subscriptions-{self.stripe_account_id}"
 
     def upsert(self, subscriptions: list[stripe.Subscription]) -> None:
         """Upserts stripe subscriptions in the cache."""
@@ -333,9 +387,14 @@ class StripeSubscriptionsCacheProvider:
             try:
                 # Since the Stripe objects themselves don't have a field indicating the Stripe Account they came
                 # from (when they come from a Connect webhook they do have this field)
-                data[s.id] = self.serializer(instance=s) | {"stripe_account_id": self.stripe_account_id}
-            except exceptions.ValidationError as ex:
-                logger.warning("Unable to process Subscription [%s] due to [%s]", s.id, type(ex))
+                data[s.id] = self.serializer(instance=s).data | {"stripe_account_id": self.stripe_account_id}
+            # this will happen if for some reason the subscription does not have data that the serializer expects.
+            # For instance, if it gets passed a subscription that doesn't have default payment method expanded, then
+            # this could occur
+            except AttributeError as ex:
+                logger.warning(
+                    "Unable to process Subscription [%s] due to [%s]", getattr(s, "id", "<missing-id>"), type(ex)
+                )
         cached_data = json.loads(self.cache.get(self.key) or "{}") | data
         logger.info(
             "Upserting %s total subscriptions (%s new) into cache with key %s",
@@ -345,13 +404,15 @@ class StripeSubscriptionsCacheProvider:
         )
         self.cache.set(self.key, json.dumps(cached_data, cls=DjangoJSONEncoder), timeout=CONTRIBUTION_CACHE_TTL.seconds)
 
-    def load(self) -> list[stripe.Subscription]:
+    def load(self) -> list[dict]:
         """Gets the subscription data from cache for a specefic email and stripe account id combo."""
         logger.info("Loading subscriptions from cache with key %s", self.key)
         cached = self.cache.get(self.key)
         if not cached:
             logger.info("No subscriptions found in cache with key %s", self.key)
             return []
-        data = [stripe.Subscription.construct_from(**x) for x in json.loads(cached).values()]
+        # we use AttrDict here instead of constructing stripe object directly because there is the extra stripe_account_id key/val
+        # which are not on a Stripe sub object
+        data = [AttrDict(**x) for x in json.loads(cached).values()]
         logger.info("Retrieved %s contributions from cache with key %s", len(data), self.key)
         return data

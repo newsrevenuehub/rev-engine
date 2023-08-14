@@ -705,7 +705,11 @@ class PaymentProviderContributionSerializer(serializers.Serializer):
     # https://stripe.com/docs/upgrades#what-changes-does-stripe-consider-to-be-backwards-compatible
     id = serializers.CharField(max_length=255)
     subscription_id = serializers.CharField(
-        max_length=255, required=False, allow_blank=True, help_text="Stripe Subscription ID"
+        allow_null=True,
+        max_length=255,
+        required=False,
+        help_text="Stripe Subscription ID",
+        default=None,
     )
     # TODO: [DEV-2320] remove these two booleans after the frontend is fully using the Subscriptions API
     is_modifiable = serializers.BooleanField(

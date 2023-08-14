@@ -1,11 +1,13 @@
 import logging
 import re
+from typing import Any
 
 from django.conf import settings
 from django.utils.text import slugify
 
 import CloudFlare
 import stripe
+from rest_framework.exceptions import ValidationError
 
 
 logger = logging.getLogger(f"{settings.DEFAULT_LOGGER}.{__name__}")
@@ -137,15 +139,18 @@ def google_cloud_pub_sub_is_configured() -> bool:
     return all([settings.ENABLE_PUBSUB and settings.GOOGLE_CLOUD_PROJECT])
 
 
-# class AttrDict(dict):
-#     def __init__(self, *args, **kwargs):
-#         super().__init__(*args, **kwargs)
-#         self.__dict__ = self
+def drf_validation_error_to_string(error: Any) -> str:
+    """This function converts a DRF ValidationError to a string.
 
-#     @classmethod
-#     def construct_from_dict(cls, data):
-#         if isinstance(data, dict):
-#             return cls({key: cls.construct_from_dict(data[key]) for key in data})
-#         if isinstance(data, list):
-#             return [cls.construct_from_dict(i) for i in data]
-#        return data
+    It can be particularly useful in contexts where it's desirable to log validation errors
+    """
+    if isinstance(error, ValidationError) and hasattr(error, "detail"):
+        errors = error.detail
+    else:
+        errors = error
+    messages = []
+    for field, error_list in errors.items():
+        for err in error_list:
+            messages.append(f"{field}: {err}")
+
+    return ", ".join(messages)

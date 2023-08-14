@@ -28,7 +28,6 @@ from apps.api.permissions import (
     IsHubAdmin,
 )
 from apps.contributions import serializers
-from apps.contributions.exceptions import InvalidIntervalError, InvalidMetadataError
 from apps.contributions.filters import ContributionFilter
 from apps.contributions.models import (
     Contribution,
@@ -40,9 +39,9 @@ from apps.contributions.models import (
 )
 from apps.contributions.payment_managers import PaymentProviderError
 from apps.contributions.stripe_contributions_provider import (
-    StripeSubscriptionsCacheProvider,
     StripePiAsPortalContribution,
-    StripePaymentIntentsCacheProvider,
+    StripePiAsPortalContributionCacheProvider,
+    StripeSubscriptionsCacheProvider,
 )
 from apps.contributions.tasks import (
     email_contribution_csv_export_to_user,
@@ -279,23 +278,24 @@ class ContributionsViewSet(viewsets.ReadOnlyModelViewSet):
 
     def get_queryset(self) -> QuerySet | list[StripePiAsPortalContribution]:
         if isinstance((u := self.request.user), Contributor):
-            return self.get_contributions_for_portal(self.request.user)
+            return self.get_portal_contributions(self.request.user)
         return self.filter_queryset_for_user(u)
 
-    def get_contributions_for_portal(self, contributor: Contributor) -> List[StripePiAsPortalContribution]:
+    def get_portal_contributions(self, contributor: Contributor) -> List[dict]:
         """Explain"""
         logger.info("Getting contributions for portal for contributor %s", contributor.id)
         if (rp_slug := self.request.GET.get("rp", None)) is None:
             logger.warning("")
             raise ParseError("rp not supplied")
         rp = get_object_or_404(RevenueProgram, slug=rp_slug)
-        cache_provider = StripePaymentIntentsCacheProvider(contributor.email, rp.stripe_account_id)
+        cache_provider = StripePiAsPortalContributionCacheProvider(contributor.email, rp.stripe_account_id)
+
         contributions = cache_provider.load()
         if not contributions:
-            logger.info("[ContributionViewSet.get_contributions_for_portal] cache is empty, triggering task")
+            logger.info("Cache is empty, triggering task")
             task_pull_serialized_stripe_contributions_to_cache.delay(contributor.email, rp.stripe_account_id)
         return [
-            StripePiAsPortalContribution(**x)
+            x
             for x in contributions
             if x.get("revenue_program") == rp.slug
             and x.get("payment_type") is not None

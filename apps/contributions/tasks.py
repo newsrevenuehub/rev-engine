@@ -18,8 +18,8 @@ from stripe.error import RateLimitError
 from apps.contributions.models import Contribution, ContributionStatus
 from apps.contributions.payment_managers import PaymentProviderError
 from apps.contributions.stripe_contributions_provider import (
-    StripePaymentIntentsCacheProvider,
-    StripeContributionsProvider,
+    StripePaymentIntentsProvider,
+    StripePiAsPortalContributionCacheProvider,
     StripeSubscriptionsCacheProvider,
 )
 from apps.contributions.utils import export_contributions_to_csv
@@ -83,7 +83,7 @@ def task_pull_serialized_stripe_contributions_to_cache(self, email_id, stripe_ac
     )
     with configure_scope() as scope:
         scope.user = {"email": email_id}
-        provider = StripeContributionsProvider(email_id, stripe_account_id)
+        provider = StripePaymentIntentsProvider(email_id, stripe_account_id)
         # trigger async tasks to pull payment intents for a given set of customer queries, if there are two queries
         # the task will get triggered two times which are asynchronous
         for customer_query in provider.generate_chunked_customers_query():
@@ -96,8 +96,8 @@ def task_pull_payment_intents(self, email_id: str, customers_query: str, stripe_
     """Pull all payment_intents from stripe for a given set of customers."""
     with configure_scope() as scope:
         scope.user = {"email": email_id}
-        provider = StripeContributionsProvider(email_id, stripe_account_id)
-        pi_cache_provider = StripePaymentIntentsCacheProvider(email_id, stripe_account_id)
+        provider = StripePaymentIntentsProvider(email_id, stripe_account_id)
+        pi_cache_provider = StripePiAsPortalContributionCacheProvider(email_id, stripe_account_id)
         sub_cache_provider = StripeSubscriptionsCacheProvider(email_id, stripe_account_id)
 
         keep_going = True
@@ -106,7 +106,7 @@ def task_pull_payment_intents(self, email_id: str, customers_query: str, stripe_
         while keep_going:
             pi_response = provider.fetch_payment_intents(query=customers_query, page=next_page)
             pi_cache_provider.upsert(pi_response.data)
-            subscriptions = [x.invoice.subscription for x in pi_response if x.invoice]
+            subscriptions = [x.invoice.subscription for x in pi_response.data if x.invoice]
             sub_cache_provider.upsert(subscriptions)
             next_page = pi_response.next_page
             keep_going = pi_response.has_more

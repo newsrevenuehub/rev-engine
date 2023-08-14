@@ -509,7 +509,7 @@ class TestStripePiAsPortalContributionCacheProvider:
         assert logger_spy.call_args_list[1] == mocker.call(
             "Unable to serialize payment intent %s because %s",
             pi_for_valid_one_time.id,
-            'card_brand: "bogus" is not a valid choice.',
+            ['card_brand: "bogus" is not a valid choice.'],
         )
         assert logger_spy.call_args_list[2] == mocker.call(
             "Unable to serialize payment intent %s", pi_for_valid_one_time.id

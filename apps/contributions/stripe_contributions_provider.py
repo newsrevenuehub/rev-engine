@@ -13,7 +13,6 @@ import stripe
 from addict import Dict as AttrDict
 from pydantic import BaseModel
 
-from apps.common.utils import drf_validation_error_to_string
 from apps.contributions.choices import CardBrand, ContributionInterval, ContributionStatus
 from apps.contributions.exceptions import (
     ContributionIgnorableError,
@@ -347,10 +346,13 @@ class StripePiAsPortalContributionCacheProvider:
                 initial_serialized = self.serializer(instance=self.converter(AttrDict(pi.to_dict())))
                 serialized = self.serializer(data=initial_serialized.data)
                 if not serialized.is_valid():
+                    messages = []
+                    for field, err in serialized.errors.items():
+                        messages.append(f"{field}: {err[0]}")
                     logger.info(
                         "Unable to serialize payment intent %s because %s",
                         pi.id,
-                        drf_validation_error_to_string(serialized.errors),
+                        messages,
                     )
                     raise ContributionIgnorableError(
                         f"Unable to serialize payment intent {pi.id} because: {serialized.errors}"

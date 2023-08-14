@@ -3,7 +3,7 @@ import { Link } from 'react-router-dom';
 import { Button, LinkButton, Modal, ModalFooter } from 'components/base';
 import { CORE_UPGRADE_URL, PRICING_URL } from 'constants/helperUrls';
 import { SELF_UPGRADE_ACCESS_FLAG_NAME } from 'constants/featureFlagConstants';
-import { PLAN_NAMES } from 'constants/orgPlanConstants';
+import { PLAN_LABELS, PLAN_NAMES } from 'constants/orgPlanConstants';
 import { EnginePlan } from 'hooks/useContributionPage';
 import useUser from 'hooks/useUser';
 import { SETTINGS } from 'routes';
@@ -25,10 +25,10 @@ import {
 export type UpgradePlan = Exclude<EnginePlan['name'], 'FREE'>;
 
 const MaxPagesReachedModalPropTypes = {
-  currentPlan: PropTypes.oneOf(Object.keys(PLAN_NAMES)).isRequired,
+  currentPlan: PropTypes.oneOf(Object.keys(PLAN_LABELS)).isRequired,
   onClose: PropTypes.func.isRequired,
   open: PropTypes.bool,
-  recommendedPlan: PropTypes.oneOf(Object.keys(PLAN_NAMES).filter((name) => name !== 'FREE'))
+  recommendedPlan: PropTypes.oneOf(Object.keys(PLAN_LABELS).filter((name) => name !== PLAN_NAMES.FREE))
 };
 
 export interface MaxPagesReachedModalProps extends InferProps<typeof MaxPagesReachedModalPropTypes> {
@@ -72,21 +72,21 @@ export function MaxPagesReachedModal({ currentPlan, onClose, open, recommendedPl
       </ModalHeader>
       <ModalContent>
         <PlanLimit data-testid="plan-limit">
-          You've reached the <RedEmphasis>maximum</RedEmphasis> number of pages for the {PLAN_NAMES[currentPlan]} tier.
+          You've reached the <RedEmphasis>maximum</RedEmphasis> number of pages for the {PLAN_LABELS[currentPlan]} tier.
         </PlanLimit>
         {recommendedPlan && (
           <>
             <Recommendation data-testid="recommendation">
               <strong>Want to create more pages?</strong> Check out{' '}
-              {recommendedPlan !== 'PLUS' && PLAN_NAMES[recommendedPlan]}
-              {recommendedPlan === 'PLUS' && (
+              {recommendedPlan !== PLAN_NAMES.PLUS && PLAN_LABELS[recommendedPlan]}
+              {recommendedPlan === PLAN_NAMES.PLUS && (
                 <PricingLink href={PRICING_URL} target="_blank">
-                  {PLAN_NAMES[recommendedPlan]}
+                  {PLAN_LABELS[recommendedPlan]}
                 </PricingLink>
               )}
               .
             </Recommendation>
-            {recommendedPlan === 'CORE' && (
+            {recommendedPlan === PLAN_NAMES.CORE && (
               <Card>
                 <CardHeader>
                   <CardHeaderHighlight>Core Tier</CardHeaderHighlight>

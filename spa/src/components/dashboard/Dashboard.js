@@ -25,7 +25,7 @@ import SingleOrgUserOnlyRoute from 'components/authentication/SingleOrgUserOnlyR
 import LivePage404 from 'components/common/LivePage404';
 import SystemNotification from 'components/common/SystemNotification/SystemNotification';
 import Content from 'components/content/Content';
-import Customize from 'components/content/Customize';
+import CustomizeRoute from 'components/content/CustomizeRoute';
 import ConnectStripeElements from 'components/dashboard/connectStripe/ConnectStripeElements';
 import DashboardSidebar from 'components/dashboard/sidebar/DashboardSidebar';
 import DashboardTopbar from 'components/dashboard/topbar/DashboardTopbar';
@@ -109,7 +109,7 @@ function Dashboard() {
               ) : null}
               {hasContentSectionAccess ? (
                 <SentryRoute path={CUSTOMIZE_SLUG}>
-                  <Customize />
+                  <CustomizeRoute />
                 </SentryRoute>
               ) : null}
               {hasContentSectionAccess ? (

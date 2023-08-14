@@ -1,7 +1,7 @@
-import { axe } from 'jest-axe';
 import { CORE_UPGRADE_URL, PRICING_URL } from 'constants/helperUrls';
+import { PLAN_NAMES } from 'constants/orgPlanConstants';
+import { axe } from 'jest-axe';
 import { SELF_UPGRADE_ACCESS_FLAG_NAME } from 'constants/featureFlagConstants';
-import { PLAN_LABELS } from 'constants/orgPlanConstants';
 import useUser from 'hooks/useUser';
 import { fireEvent, render, screen } from 'test-utils';
 import MaxPagesReachedModal, { MaxPagesReachedModalProps } from './MaxPagesReachedModal';
@@ -29,7 +29,7 @@ describe('MaxPagesReachedModal', () => {
   });
 
   it('shows a message stating that the user has run out of pages for their plan', () => {
-    tree({ currentPlan: PLAN_LABELS.FREE, open: true });
+    tree({ currentPlan: PLAN_NAMES.FREE, open: true });
     expect(screen.getByTestId('plan-limit')).toHaveTextContent(
       "You've reached the maximum number of pages for the Free tier."
     );

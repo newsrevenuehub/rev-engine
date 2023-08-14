@@ -5,7 +5,7 @@ import { fireEvent, render, screen, waitFor } from 'test-utils';
 import AddPage from './AddPage';
 import { useHistory } from 'react-router-dom';
 import { useAlert } from 'react-alert';
-import { PLAN_LABELS } from 'constants/orgPlanConstants';
+import { PLAN_NAMES } from 'constants/orgPlanConstants';
 
 jest.mock('react-alert', () => ({
   ...jest.requireActual('react-alert'),
@@ -171,7 +171,7 @@ describe('AddPage', () => {
         isLoading: false,
         user: {
           flags: [],
-          organizations: [{ plan: { name: PLAN_LABELS.FREE } }],
+          organizations: [{ plan: { name: PLAN_NAMES.FREE } }],
           revenue_programs: [{ id: 'mock-rp-1' }]
         }
       });

@@ -2,6 +2,7 @@ import { PLAN_LABELS } from 'constants/orgPlanConstants';
 import useConnectMailchimp from 'hooks/useConnectMailchimp';
 import { render, screen } from 'test-utils';
 import MailchimpIntegrationCard from './MailchimpIntegrationCard';
+import { PLAN_NAMES } from 'constants/orgPlanConstants';
 
 jest.mock('../IntegrationCard');
 jest.mock('hooks/useConnectMailchimp');
@@ -55,7 +56,7 @@ describe('MailchimpIntegrationCard', () => {
   });
 
   describe('Free plan', () => {
-    it.each([[undefined], [PLAN_LABELS.FREE]])(
+    it.each([[undefined], [PLAN_NAMES.FREE]])(
       'renders mailchimp card for "%s" organization plan',
       (organizationPlan) => {
         useConnectMailchimpMock.mockReturnValue({

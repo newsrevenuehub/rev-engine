@@ -202,7 +202,7 @@ export const revEngineTheme: DefaultTheme = {
     19: '19px'
   },
 
-  radii: ['3px', '6px', '12px'],
+  radii: ['5px', '10px', '20px'],
 
   shadows: ['0 1px 2px 0 rgb(0 0 0 / 15%)', '0 10px 25px 0 rgb(0 0 0 / 6%)', '0 12px 25px 0 rgb(0 0 0 / 10%)'],
 
@@ -221,6 +221,7 @@ export const revEngineTheme: DefaultTheme = {
 
   zIndex: {
     header: 10,
+    notifications: 1500,
     sidebar: 5
   }
 };

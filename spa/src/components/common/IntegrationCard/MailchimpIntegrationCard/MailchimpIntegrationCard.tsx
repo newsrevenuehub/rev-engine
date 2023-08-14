@@ -2,11 +2,11 @@ import MailchimpLogo from 'assets/images/mailchimp.png';
 import { HELP_URL } from 'constants/helperUrls';
 import useConnectMailchimp from 'hooks/useConnectMailchimp';
 
+import { PLAN_NAMES } from 'constants/orgPlanConstants';
+import useModal from 'hooks/useModal';
 import IntegrationCard from '../IntegrationCard';
 import { CornerMessage } from './MailchimpIntegrationCard.styled';
-import useModal from 'hooks/useModal';
 import MailchimpModal from './MailchimpModal';
-import { PLAN_LABELS } from 'constants/orgPlanConstants';
 import useUser from 'hooks/useUser';
 
 export function MailchimpIntegrationCard() {
@@ -16,16 +16,14 @@ export function MailchimpIntegrationCard() {
     isLoading,
     sendUserToMailchimp,
     connectedToMailchimp,
-    organizationPlan = 'FREE',
+    organizationPlan = PLAN_NAMES.FREE,
     hasMailchimpAccess
   } = useConnectMailchimp();
 
   const mailchimpHeaderData = {
     isActive: connectedToMailchimp,
     isRequired: false,
-    cornerMessage: !isLoading && organizationPlan === PLAN_LABELS.FREE && (
-      <CornerMessage>Upgrade to Core</CornerMessage>
-    ),
+    cornerMessage: !isLoading && organizationPlan === PLAN_NAMES.FREE && <CornerMessage>Upgrade to Core</CornerMessage>,
     title: 'Mailchimp',
     image: MailchimpLogo,
     site: {

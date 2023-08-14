@@ -91,9 +91,9 @@ const MailchimpModal = ({
     disableElevation: true
   };
   const displayState = useMemo(() => {
-    if ([PLAN_LABELS.CORE, PLAN_LABELS.PLUS].includes(organizationPlan) && !isActive) {
+    if ([PLAN_NAMES.CORE, PLAN_NAMES.PLUS].includes(organizationPlan) && !isActive) {
       return DISPLAY_STATE.PAID_NOT_CONNECTED;
-    } else if ([PLAN_LABELS.CORE, PLAN_LABELS.PLUS].includes(organizationPlan) && isActive) {
+    } else if ([PLAN_NAMES.CORE, PLAN_NAMES.PLUS].includes(organizationPlan) && isActive) {
       return DISPLAY_STATE.CONNECTED;
     }
     return DISPLAY_STATE.FREE;
@@ -207,8 +207,8 @@ const MailchimpModalPropTypes = {
   }),
   isActive: PropTypes.bool,
   isRequired: PropTypes.bool,
-  organizationPlan: PropTypes.oneOf(Object.keys(PLAN_NAMES)).isRequired,
-  user: PropTypes.object.isRequired
+  user: PropTypes.object.isRequired,
+  organizationPlan: PropTypes.oneOf(Object.keys(PLAN_LABELS)).isRequired
 };
 
 MailchimpModal.propTypes = MailchimpModalPropTypes;

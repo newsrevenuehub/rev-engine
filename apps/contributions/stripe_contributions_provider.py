@@ -3,7 +3,7 @@ import json
 import logging
 from dataclasses import dataclass
 from functools import cached_property
-from typing import Generator, Literal, Optional
+from typing import Generator, Literal, Optional, TypedDict
 
 from django.conf import settings
 from django.core.cache import caches
@@ -14,7 +14,7 @@ from addict import Dict as AttrDict
 from pydantic import BaseModel
 
 from apps.common.utils import drf_validation_error_to_string
-from apps.contributions.choices import ContributionInterval, ContributionStatus
+from apps.contributions.choices import CardBrand, ContributionInterval, ContributionStatus
 from apps.contributions.exceptions import (
     ContributionIgnorableError,
     InvalidIntervalError,
@@ -42,7 +42,6 @@ class StripePiAsPortalContribution:
     Note that this class is not responsible for serializing the object into JSON. The expected caller for this class is
     `StripePiAsPortalContributionCacheProvider`. This class is responsible for converting the Stripe PaymentIntent object into
     that can be consumed when serialized in the cache provider.
-
     """
 
     payment_intent: stripe.PaymentIntent
@@ -208,7 +207,7 @@ class StripePiAsPortalContribution:
 
 class StripePiSearchResponse(BaseModel):
     """
-    Wrapper for Stripe PaymentIntent search respons as documented here:
+    Wrapper for Stripe PaymentIntent search response as documented here:
     https://stripe.com/docs/api/pagination/search as of August 2023.
 
 
@@ -234,7 +233,7 @@ class StripePiSearchResponse(BaseModel):
 @dataclass
 class StripePaymentIntentsProvider:
     """
-    Explain
+    This is a wrapper for retrieving Stripe PaymentIntents for a given email and stripe account combo.
     """
 
     email_id: str
@@ -289,9 +288,42 @@ class StripePaymentIntentsProvider:
         return StripePiSearchResponse(**stripe.PaymentIntent.search(**kwargs))
 
 
+class StripeEntityAsPortalEntityBase(TypedDict):
+    id: str
+    is_modifiable: bool
+    is_cancelable: bool
+    status: Literal[
+        ContributionStatus.REFUNDED, ContributionStatus.PAID, ContributionStatus.PROCESSING, ContributionStatus.FAILED
+    ]
+    card_brand: Literal[
+        CardBrand.AMEX, CardBrand.DISCOVER, CardBrand.MASTERCARD, CardBrand.VISA, CardBrand.UNKNOWN
+    ] | None
+    last4: int | None
+    payment_type: str
+    amount: int
+    credit_card_expiration_date: str | None
+    created: str
+    last_payment_date: str
+    stripe_account_id: str
+
+
+class StripePiAsPortalContributionCacheResult(StripeEntityAsPortalEntityBase):
+    """This is the data that we store in the cache for a given email and stripe account combo."""
+
+    subscription_id: Optional[str]
+    interval: Literal[ContributionInterval.MONTHLY, ContributionInterval.YEARLY, ContributionInterval.ONE_TIME]
+    revenue_program: str
+    provider_customer_id: str
+
+
 @dataclass
 class StripePiAsPortalContributionCacheProvider:
-    """Explain away"""
+    """This class provides an interface with our cache to store and retrieve Stripe PaymentIntents for a given email and stripe account.
+
+    The `StripePiAsPortalContribution` in the class name relates to the converter below. This is meant to communicate that we're taking
+    Stripe PaymentIntents and converting them to data that the SPA uses in the contributor portal to display the user's contribution history.
+
+    """
 
     email_id: str
     stripe_account_id: str
@@ -305,17 +337,13 @@ class StripePiAsPortalContributionCacheProvider:
         return f"{self.email_id}-payment-intents-{self.stripe_account_id}"
 
     def serialize(self, payment_intents: list[stripe.PaymentIntent]) -> dict:
-        """Serializes the stripe.PaymentIntent object into json.
-
-        The data returned is a dict whose keys are payment intent IDs found for the given email on the given stripe account.
-
-        The values in this dict will a dictionary representing the serialized payment intent (given the serializer that
-        StripePiAsPortalContributionCacheProvider is configured with).
-        """
+        """Serializes the stripe.PaymentIntent object into serializable data"""
         data = {}
         for pi in payment_intents:
             try:
-                # Note on this weirdness
+                # This code is a bit convoluted. Our converter returns a value that cannot be serialized by DRF via `data=`,
+                # which means that we would be unable to validate.  So we first serialize the data via `instance=`, and that gives
+                # us a value that can be serialized by DRF via `data=`, which we then validate.
                 initial_serialized = self.serializer(instance=self.converter(AttrDict(pi.to_dict())))
                 serialized = self.serializer(data=initial_serialized.data)
                 if not serialized.is_valid():
@@ -334,10 +362,7 @@ class StripePiAsPortalContributionCacheProvider:
         return data
 
     def upsert(self, payment_intents: dict) -> None:
-        """Serializes raw Stripe payment intents and stores in cache
-
-        Add note on what's in this dict -- keyed
-        """
+        """Serializes raw Stripe payment intents and stores in cache"""
 
         data = self.serialize(payment_intents)
         # Since the Stripe objects themselves don't have a field indicating the account they came from (when they come
@@ -352,7 +377,7 @@ class StripePiAsPortalContributionCacheProvider:
             logger.info("Inserting %s payment intents into cache with key %s", len(data), self.key)
             self.cache.set(self.key, json.dumps(cached_data), timeout=CONTRIBUTION_CACHE_TTL.seconds)
 
-    def load(self) -> list[dict]:
+    def load(self) -> list[StripePiAsPortalContributionCacheResult]:
         logger.info("Loading payment intents from cache with key %s", self.key)
         data = self.cache.get(self.key)
         if not data:
@@ -365,9 +390,16 @@ class StripePiAsPortalContributionCacheProvider:
         return data
 
 
+class StripeSubscriptionsCacheResult(StripeEntityAsPortalEntityBase):
+    next_payment_date: str
+    interval: Literal[ContributionInterval.MONTHLY, ContributionInterval.YEARLY]
+    revenue_program_slug: str
+    customer_id: str
+
+
 @dataclass
 class StripeSubscriptionsCacheProvider:
-    """Explain away"""
+    """This class provides an interface with our cache to store and retrieve Stripe subscriptions for a given email and stripe account."""
 
     email_id: str
     stripe_account_id: str
@@ -404,7 +436,7 @@ class StripeSubscriptionsCacheProvider:
         )
         self.cache.set(self.key, json.dumps(cached_data, cls=DjangoJSONEncoder), timeout=CONTRIBUTION_CACHE_TTL.seconds)
 
-    def load(self) -> list[dict]:
+    def load(self) -> list[StripeSubscriptionsCacheResult]:
         """Gets the subscription data from cache for a specefic email and stripe account id combo."""
         logger.info("Loading subscriptions from cache with key %s", self.key)
         cached = self.cache.get(self.key)

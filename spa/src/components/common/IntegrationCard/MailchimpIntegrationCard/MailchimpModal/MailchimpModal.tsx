@@ -90,7 +90,7 @@ const MailchimpModal = ({
   },
   user
 }: MailchimpModalProps) => {
-  const actionButtonProps: Partial<ButtonProps> = {
+  const actionButtonProps: Partial<ButtonProps & RouterLinkButtonProps> = {
     color: 'primaryDark',
     variant: 'contained',
     disableElevation: true
@@ -174,7 +174,7 @@ const MailchimpModal = ({
         {
           {
             [DISPLAY_STATE.FREE]: flagIsActiveForUser(SELF_UPGRADE_ACCESS_FLAG_NAME, user) ? (
-              <RouterLinkButton {...(actionButtonProps as RouterLinkButtonProps)} to={SETTINGS.SUBSCRIPTION}>
+              <RouterLinkButton {...actionButtonProps} to={SETTINGS.SUBSCRIPTION}>
                 Upgrade
               </RouterLinkButton>
             ) : (
@@ -188,7 +188,7 @@ const MailchimpModal = ({
               </ActionButton>
             ),
             [DISPLAY_STATE.CONNECTED]: (
-              <RouterLinkButton {...(actionButtonProps as RouterLinkButtonProps)} to={DONATIONS_SLUG}>
+              <RouterLinkButton {...actionButtonProps} to={DONATIONS_SLUG}>
                 Go to contributions
               </RouterLinkButton>
             )

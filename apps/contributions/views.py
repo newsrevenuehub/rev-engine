@@ -406,6 +406,18 @@ class SubscriptionsViewSet(viewsets.ViewSet):
         subscriptions = self._get_or_fetch_subscriptions(request)
         return Response(subscriptions, status=status.HTTP_200_OK)
 
+    def update_cache(
+        self,
+        email: str,
+        stripe_account_id: str,
+        subscription: stripe.Subscription,
+        payment_intent: stripe.PaymentIntent,
+    ):
+        pi_cache_provider = StripePiAsPortalContributionCacheProvider(email, stripe_account_id)
+        sub_cache_provider = StripeSubscriptionsCacheProvider(email, stripe_account_id)
+        pi_cache_provider.upsert([payment_intent])
+        sub_cache_provider.upsert([subscription])
+
     def partial_update(self, request, pk):
         """
         payment_method_id - the new payment method id to use for the subscription
@@ -423,7 +435,7 @@ class SubscriptionsViewSet(viewsets.ViewSet):
         subscription = stripe.Subscription.retrieve(
             pk, stripe_account=revenue_program.payment_provider.stripe_account_id, expand=["customer"]
         )
-        if request.user.email.lower() != subscription.customer.email.lower():
+        if request.user.email.lower() != (email := subscription.customer.email.lower()):
             logger.warning(
                 "User %s attempted to update subscription %s which belongs to another user", request.user.email, pk
             )
@@ -446,11 +458,20 @@ class SubscriptionsViewSet(viewsets.ViewSet):
                 pk,
                 default_payment_method=payment_method_id,
                 stripe_account=revenue_program.payment_provider.stripe_account_id,
+                # we expand these fields so we have data required to update subscription and pi in cache
+                expand=[
+                    "default_payment_method",
+                    "payment_intent.invoice",
+                    "payment_intent.payment_method",
+                ],
             )
+
         except stripe.error.StripeError:
             logger.exception("stripe.Subscription.modify returned a StripeError")
-            return Response({"detail": "Error updating Subscription"}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
 
+        self.update_cache(
+            email, revenue_program.payment_provider.stripe_account_id, subscription, subscription.payment_intent
+        )
         # TODO: [DEV-2438] return the updated sub and update the cache
 
         return Response({"detail": "Success"}, status=status.HTTP_204_NO_CONTENT)

@@ -363,9 +363,8 @@ class StripePiAsPortalContributionCacheProvider:
                 logger.info("Unable to serialize payment intent %s", pi.id, exc_info=exc)
         return data
 
-    def upsert(self, payment_intents: dict) -> None:
+    def upsert(self, payment_intents: list[stripe.PaymentIntent]) -> None:
         """Serializes raw Stripe payment intents and stores in cache"""
-
         data = self.serialize(payment_intents)
         # Since the Stripe objects themselves don't have a field indicating the account they came from (when they come
         # from a Connect webhook they do have this field) they get added here.

@@ -283,7 +283,7 @@ class ContributionsViewSet(viewsets.ReadOnlyModelViewSet):
         return self.filter_queryset_for_user(u)
 
     def get_portal_contributions(self, contributor: Contributor) -> List[StripePiAsPortalContributionCacheResult]:
-        """Explain"""
+        """Retrieve contributions as displayed in portal from cache (if any) and display. If none, call task to populate cache."""
         logger.info("Getting contributions for portal for contributor %s", contributor.id)
         if (rp_slug := self.request.GET.get("rp", None)) is None:
             logger.warning("")

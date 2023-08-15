@@ -53,7 +53,7 @@ class StripePiAsPortalContribution:
 
         There are several methods in this class that assume that in case of PI for a recurring payment, the returned
         PaymentIntent has expanded:
-            - invoice.subscription
+            - invoice.subscription.default_payment_method
             - payment_method
 
         """

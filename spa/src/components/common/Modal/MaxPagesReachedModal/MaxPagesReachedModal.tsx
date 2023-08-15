@@ -49,7 +49,7 @@ export function MaxPagesReachedModal({ currentPlan, onClose, open, recommendedPl
     </LinkButton>
   );
 
-  if (recommendedPlan === 'CORE') {
+  if (recommendedPlan === PLAN_NAMES.CORE) {
     if (user && flagIsActiveForUser(SELF_UPGRADE_ACCESS_FLAG_NAME, user)) {
       upgradeButton = (
         <LooseButton color="primaryDark" component={Link} to={SETTINGS.SUBSCRIPTION}>

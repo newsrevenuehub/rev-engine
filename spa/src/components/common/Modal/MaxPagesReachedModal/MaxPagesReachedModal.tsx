@@ -1,6 +1,5 @@
 import PropTypes, { InferProps } from 'prop-types';
-import { Link } from 'react-router-dom';
-import { Button, LinkButton, Modal, ModalFooter } from 'components/base';
+import { Button, LinkButton, Modal, ModalFooter, RouterLinkButton } from 'components/base';
 import { CORE_UPGRADE_URL, PRICING_URL } from 'constants/helperUrls';
 import { SELF_UPGRADE_ACCESS_FLAG_NAME } from 'constants/featureFlagConstants';
 import { PLAN_LABELS, PLAN_NAMES } from 'constants/orgPlanConstants';
@@ -42,7 +41,6 @@ export function MaxPagesReachedModal({ currentPlan, onClose, open, recommendedPl
 
   // The destination of the Upgrade button may be either internal or external.
 
-  const LooseButton = Button as any;
   let upgradeButton = (
     <LinkButton color="primaryDark" href={PRICING_URL} target="_blank">
       Upgrade
@@ -52,9 +50,9 @@ export function MaxPagesReachedModal({ currentPlan, onClose, open, recommendedPl
   if (recommendedPlan === PLAN_NAMES.CORE) {
     if (user && flagIsActiveForUser(SELF_UPGRADE_ACCESS_FLAG_NAME, user)) {
       upgradeButton = (
-        <LooseButton color="primaryDark" component={Link} to={SETTINGS.SUBSCRIPTION}>
+        <RouterLinkButton color="primaryDark" to={SETTINGS.SUBSCRIPTION}>
           Upgrade
-        </LooseButton>
+        </RouterLinkButton>
       );
     } else {
       upgradeButton = (

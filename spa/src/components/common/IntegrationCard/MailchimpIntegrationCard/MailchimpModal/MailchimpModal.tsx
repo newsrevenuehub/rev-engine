@@ -5,7 +5,15 @@ import { ReactComponent as GroupAdd } from '@material-design-icons/svg/outlined/
 import { ReactComponent as Mail } from '@material-design-icons/svg/outlined/mail.svg';
 import { ReactComponent as MailCheck } from '@material-design-icons/svg/outlined/mark_email_read.svg';
 import InfoOutlinedIcon from '@material-ui/icons/InfoOutlined';
-import { ButtonProps, Modal, ModalContent, ModalFooter, ModalHeader } from 'components/base';
+import {
+  ButtonProps,
+  Modal,
+  ModalContent,
+  ModalFooter,
+  ModalHeader,
+  RouterLinkButton,
+  RouterLinkButtonProps
+} from 'components/base';
 import PropTypes, { InferProps } from 'prop-types';
 import { useMemo } from 'react';
 
@@ -14,7 +22,6 @@ import IconList from 'components/common/IconList/IconList';
 import { CORE_UPGRADE_URL, FAQ_URL, HELP_URL } from 'constants/helperUrls';
 import { PLAN_LABELS, PLAN_NAMES } from 'constants/orgPlanConstants';
 import { User } from 'hooks/useUser.types';
-import { Link, useHistory } from 'react-router-dom';
 import { DONATIONS_SLUG, SETTINGS } from 'routes';
 import IntegrationCardHeader from '../../IntegrationCardHeader';
 import ModalUpgradePrompt from '../../ModalUpgradePrompt/ModalUpgradePrompt';
@@ -83,8 +90,6 @@ const MailchimpModal = ({
   },
   user
 }: MailchimpModalProps) => {
-  const history = useHistory();
-  const LooseActionButton = ActionButton as any;
   const actionButtonProps: Partial<ButtonProps> = {
     color: 'primaryDark',
     variant: 'contained',
@@ -169,9 +174,9 @@ const MailchimpModal = ({
         {
           {
             [DISPLAY_STATE.FREE]: flagIsActiveForUser(SELF_UPGRADE_ACCESS_FLAG_NAME, user) ? (
-              <LooseActionButton {...actionButtonProps} component={Link} to={SETTINGS.SUBSCRIPTION}>
+              <RouterLinkButton {...(actionButtonProps as RouterLinkButtonProps)} to={SETTINGS.SUBSCRIPTION}>
                 Upgrade
-              </LooseActionButton>
+              </RouterLinkButton>
             ) : (
               <ActionButton {...actionButtonProps} href={CORE_UPGRADE_URL}>
                 Upgrade
@@ -183,9 +188,9 @@ const MailchimpModal = ({
               </ActionButton>
             ),
             [DISPLAY_STATE.CONNECTED]: (
-              <LooseActionButton {...actionButtonProps} component={Link} to={DONATIONS_SLUG}>
+              <RouterLinkButton {...(actionButtonProps as RouterLinkButtonProps)} to={DONATIONS_SLUG}>
                 Go to contributions
-              </LooseActionButton>
+              </RouterLinkButton>
             )
           }[displayState]
         }

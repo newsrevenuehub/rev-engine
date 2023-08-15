@@ -4,8 +4,8 @@ import { Header, Button, Root, Text, Icon, ButtonWrapper } from './CustomizeCore
 import { User } from 'hooks/useUser.types';
 import flagIsActiveForUser from 'utilities/flagIsActiveForUser';
 import { SELF_UPGRADE_ACCESS_FLAG_NAME } from 'constants/featureFlagConstants';
-import { Link } from 'react-router-dom';
 import { SETTINGS } from 'routes';
+import { RouterLinkButton } from 'components/base';
 
 const CustomizeCoreUpgradePromptPropTypes = {
   onClose: PropTypes.func.isRequired,
@@ -18,11 +18,8 @@ export interface CustomizeCoreUpgradePromptProps extends InferProps<typeof Custo
 }
 
 export function CustomizeCoreUpgradePrompt({ onClose, user }: CustomizeCoreUpgradePromptProps) {
-  const LooseButton = Button as any;
   const upgradeButton = flagIsActiveForUser(SELF_UPGRADE_ACCESS_FLAG_NAME, user) ? (
-    <LooseButton component={Link} to={SETTINGS.SUBSCRIPTION}>
-      Upgrade
-    </LooseButton>
+    <RouterLinkButton to={SETTINGS.SUBSCRIPTION}>Upgrade</RouterLinkButton>
   ) : (
     <Button href={PRICING_URL} target="_blank">
       Upgrade

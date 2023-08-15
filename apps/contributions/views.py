@@ -297,9 +297,9 @@ class ContributionsViewSet(viewsets.ReadOnlyModelViewSet):
         return [
             x
             for x in contributions
-            if x.get("revenue_program") == rp.slug
-            and x.get("payment_type") is not None
-            and x.get("status") == ContributionStatus.PAID.value
+            if x.get("revenue_program", None) == rp.slug
+            and x.get("payment_type", None) is not None
+            and x.get("status", None) == ContributionStatus.PAID.value
         ]
 
     def filter_queryset(self, queryset):
@@ -388,7 +388,7 @@ class SubscriptionsViewSet(viewsets.ViewSet):
                 self.request.user.email, revenue_program.stripe_account_id
             )
         subscriptions = cache_provider.load()
-        return [x for x in subscriptions if x.get("revenue_program_slug") == revenue_program_slug]
+        return [x for x in subscriptions if x.get("revenue_program_slug", None) == revenue_program_slug]
 
     def retrieve(self, request, pk):
         #  TODO: [DEV-3227] Here...

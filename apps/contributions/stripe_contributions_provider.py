@@ -53,7 +53,7 @@ class StripePiAsPortalContribution:
 
         There are several methods in this class that assume that in case of PI for a recurring payment, the returned
         PaymentIntent has expanded:
-            - invoice.subscription.plan (note this means invoice and subscription will also be expanded)
+            - invoice.subscription
             - payment_method
 
         """
@@ -61,10 +61,8 @@ class StripePiAsPortalContribution:
         problems = []
         # recurring payments have an invoice but one-time do not
         if invoice := self.payment_intent.invoice:
-            if not (sub := invoice.subscription):
+            if not invoice.subscription:
                 problems.append("invoice.subscription")
-            if sub and not sub.plan:
-                problems.append("invoice.subscription.plan")
         # relevant to both one-time and recurring
         if not self.payment_intent.payment_method:
             problems.append("payment_method")
@@ -239,9 +237,8 @@ class StripePaymentIntentsProvider:
     stripe_account_id: str
 
     EXPAND_FIELDS = [
-        "invoice.subscription.default_payment_method",
-        "invoice.subscription.plan.product",
-        "payment_method",
+        "data.invoice.subscription.default_payment_method",
+        "data.payment_method",
     ]
 
     @cached_property

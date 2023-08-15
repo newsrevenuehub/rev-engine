@@ -44,7 +44,6 @@ def pi_one_time_with_required_expanded_attributes(pi_for_valid_one_time):
 def pi_recurring_with_required_expanded_attributes(pi_for_active_subscription):
     assert pi_for_active_subscription.invoice is not None
     assert pi_for_active_subscription.invoice.subscription is not None
-    assert pi_for_active_subscription.invoice.subscription.plan is not None
     assert pi_for_active_subscription.payment_method is not None
     return pi_for_active_subscription
 
@@ -53,13 +52,6 @@ def pi_recurring_with_required_expanded_attributes(pi_for_active_subscription):
 def pi_recurring_with_missing_subscription(pi_data_for_active_subscription):
     pi_data = deepcopy(pi_data_for_active_subscription)
     pi_data["invoice"]["subscription"] = None
-    return stripe.PaymentIntent.construct_from(pi_data, key="test")
-
-
-@pytest.fixture
-def pi_recurring_with_missing_subscription_plan(pi_data_for_active_subscription):
-    pi_data = deepcopy(pi_data_for_active_subscription)
-    pi_data["invoice"]["subscription"]["plan"] = None
     return stripe.PaymentIntent.construct_from(pi_data, key="test")
 
 
@@ -90,10 +82,6 @@ class TestStripePiAsPortalContribution:
             (
                 pytest_cases.fixture_ref(pi_recurring_with_missing_subscription),
                 lambda id: f"PaymentIntent {id} does not have required attributes: ['invoice.subscription']",
-            ),
-            (
-                pytest_cases.fixture_ref(pi_recurring_with_missing_subscription_plan),
-                lambda id: f"PaymentIntent {id} does not have required attributes: ['invoice.subscription.plan']",
             ),
         ),
     )

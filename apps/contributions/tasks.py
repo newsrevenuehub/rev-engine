@@ -27,8 +27,6 @@ from apps.emails.tasks import send_templated_email_with_attachment
 from apps.organizations.models import RevenueProgram
 
 
-STRIPE_PAYMENT_INTENT_DESCRIPTION_FOR_SUBSCRIPTION = "Subscription creation"
-
 logger = get_task_logger(f"{settings.DEFAULT_LOGGER}.{__name__}")
 
 

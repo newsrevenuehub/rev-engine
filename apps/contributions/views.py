@@ -9,6 +9,7 @@ from django.utils.decorators import method_decorator
 from django.views.decorators.csrf import csrf_protect
 
 import stripe
+from addict import Dict as AttrDict
 from django_filters.rest_framework import DjangoFilterBackend
 from rest_framework import mixins, status, viewsets
 from rest_framework.decorators import action, api_view, authentication_classes, permission_classes
@@ -39,7 +40,6 @@ from apps.contributions.models import (
 )
 from apps.contributions.payment_managers import PaymentProviderError
 from apps.contributions.stripe_contributions_provider import (
-    StripePiAsPortalContribution,
     StripePiAsPortalContributionCacheProvider,
     StripeSubscriptionsCacheProvider,
 )
@@ -276,12 +276,12 @@ class ContributionsViewSet(viewsets.ReadOnlyModelViewSet):
             logger.warning("Encountered unexpected user")
             raise ApiConfigurationError
 
-    def get_queryset(self) -> QuerySet | list[StripePiAsPortalContribution]:
+    def get_queryset(self) -> QuerySet | list[AttrDict]:
         if isinstance((u := self.request.user), Contributor):
             return self.get_portal_contributions(self.request.user)
         return self.filter_queryset_for_user(u)
 
-    def get_portal_contributions(self, contributor: Contributor) -> List[dict]:
+    def get_portal_contributions(self, contributor: Contributor) -> List[AttrDict]:
         """Explain"""
         logger.info("Getting contributions for portal for contributor %s", contributor.id)
         if (rp_slug := self.request.GET.get("rp", None)) is None:

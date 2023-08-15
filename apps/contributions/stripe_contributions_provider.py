@@ -366,8 +366,7 @@ class StripePiAsPortalContributionCacheProvider:
     def upsert(self, payment_intents: list[stripe.PaymentIntent]) -> None:
         """Serializes raw Stripe payment intents and stores in cache"""
         data = self.serialize(payment_intents)
-        # Since the Stripe objects themselves don't have a field indicating the account they came from (when they come
-        # from a Connect webhook they do have this field) they get added here.
+        # Since the Stripe objects themselves don't have a field indicating the account they came from they get added here.
         # Also, our serializer instances will not be directly JSON serializable, so we need to extract the data from them
         for k, v in data.items():
             data[k] = v.data | {"stripe_account_id": self.stripe_account_id}
@@ -375,19 +374,25 @@ class StripePiAsPortalContributionCacheProvider:
         cached_data.update(data)
 
         with self.cache.lock(f"{self.key}-lock"):
-            logger.info("Inserting %s payment intents into cache with key %s", len(data), self.key)
+            logger.info(
+                "Inserting %s payment intents as portal contributions into cache with key %s", len(data), self.key
+            )
             self.cache.set(self.key, json.dumps(cached_data), timeout=CONTRIBUTION_CACHE_TTL.seconds)
 
     def load(self) -> list[StripePiAsPortalContributionCacheResult]:
-        logger.info("Loading payment intents from cache with key %s", self.key)
+        logger.info("Loading payment intents as portal contributions from cache with key %s", self.key)
         data = self.cache.get(self.key)
         if not data:
-            logger.info("No payment intents found in cache with key %s", self.key)
+            logger.info("No payment intents as portal contributions found in cache with key %s", self.key)
             return []
         # we use AttrDict here instead of constructing stripe object directly because there is the extra stripe_account_id key/val
         # which are not on a Stripe sub object
         data = [AttrDict(**x) for x in json.loads(data).values()]
-        logger.info("Retrieved and hydrated %s payment intents from cache with key %s", len(data), self.key)
+        logger.info(
+            "Retrieved and hydrated %s payment intents as portal contributions from cache with key %s",
+            len(data),
+            self.key,
+        )
         return data
 
 

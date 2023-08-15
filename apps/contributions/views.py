@@ -9,7 +9,6 @@ from django.utils.decorators import method_decorator
 from django.views.decorators.csrf import csrf_protect
 
 import stripe
-from addict import Dict as AttrDict
 from django_filters.rest_framework import DjangoFilterBackend
 from rest_framework import mixins, status, viewsets
 from rest_framework.decorators import action, api_view, authentication_classes, permission_classes
@@ -41,7 +40,9 @@ from apps.contributions.models import (
 from apps.contributions.payment_managers import PaymentProviderError
 from apps.contributions.stripe_contributions_provider import (
     StripePiAsPortalContributionCacheProvider,
+    StripePiAsPortalContributionCacheResult,
     StripeSubscriptionsCacheProvider,
+    StripeSubscriptionsCacheResult,
 )
 from apps.contributions.tasks import (
     email_contribution_csv_export_to_user,
@@ -276,12 +277,12 @@ class ContributionsViewSet(viewsets.ReadOnlyModelViewSet):
             logger.warning("Encountered unexpected user")
             raise ApiConfigurationError
 
-    def get_queryset(self) -> QuerySet | list[AttrDict]:
+    def get_queryset(self) -> QuerySet | list[StripePiAsPortalContributionCacheResult]:
         if isinstance((u := self.request.user), Contributor):
             return self.get_portal_contributions(self.request.user)
         return self.filter_queryset_for_user(u)
 
-    def get_portal_contributions(self, contributor: Contributor) -> List[AttrDict]:
+    def get_portal_contributions(self, contributor: Contributor) -> List[StripePiAsPortalContributionCacheResult]:
         """Explain"""
         logger.info("Getting contributions for portal for contributor %s", contributor.id)
         if (rp_slug := self.request.GET.get("rp", None)) is None:
@@ -371,7 +372,7 @@ class SubscriptionsViewSet(viewsets.ViewSet):
     ]
     serializer_class = serializers.SubscriptionsSerializer
 
-    def _get_or_fetch_subscriptions(self, request) -> list[stripe.Subscription]:
+    def _get_or_fetch_subscriptions(self, request) -> list[StripeSubscriptionsCacheResult]:
         """Document inlcuding synch pull"""
         logger.info("Called with request: %s", request)
         revenue_program_slug = request.query_params.get("revenue_program_slug")

@@ -385,9 +385,7 @@ class StripePiAsPortalContributionCacheProvider:
         if not data:
             logger.info("No payment intents as portal contributions found in cache with key %s", self.key)
             return []
-        # we use AttrDict here instead of constructing stripe object directly because there is the extra stripe_account_id key/val
-        # which are not on a Stripe sub object
-        data = [AttrDict(**x) for x in json.loads(data).values()]
+        data = [StripePiAsPortalContributionCacheResult(**x) for x in json.loads(data).values()]
         logger.info(
             "Retrieved and hydrated %s payment intents as portal contributions from cache with key %s",
             len(data),
@@ -449,8 +447,6 @@ class StripeSubscriptionsCacheProvider:
         if not cached:
             logger.info("No subscriptions found in cache with key %s", self.key)
             return []
-        # we use AttrDict here instead of constructing stripe object directly because there is the extra stripe_account_id key/val
-        # which are not on a Stripe sub object
-        data = [AttrDict(**x) for x in json.loads(cached).values()]
+        data = [StripeSubscriptionsCacheResult(**x) for x in json.loads(cached).values()]
         logger.info("Retrieved %s contributions from cache with key %s", len(data), self.key)
         return data

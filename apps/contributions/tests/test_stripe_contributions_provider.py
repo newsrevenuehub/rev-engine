@@ -512,7 +512,7 @@ class TestStripePiAsPortalContributionCacheProvider:
             ['card_brand: "bogus" is not a valid choice.'],
         )
         assert logger_spy.call_args_list[2] == mocker.call(
-            "Unable to serialize payment intent %s", pi_for_valid_one_time.id
+            "Unable to serialize payment intent %s", pi_for_valid_one_time.id, exc_info=mocker.ANY
         )
 
     def test_serialize_when_converter_invalid(self, pi_for_valid_one_time, mocker):
@@ -524,7 +524,7 @@ class TestStripePiAsPortalContributionCacheProvider:
         data = provider.serialize([pi_for_valid_one_time])
         assert data == {}
         assert logger_spy.call_args_list[1] == mocker.call(
-            "Unable to serialize payment intent %s", pi_for_valid_one_time.id
+            "Unable to serialize payment intent %s", pi_for_valid_one_time.id, exc_info=mocker.ANY
         )
 
     def test_upsert(self, pi_for_valid_one_time, pi_for_active_subscription, mock_redis_cache_for_pis):

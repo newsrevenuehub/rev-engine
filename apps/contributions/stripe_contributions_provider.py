@@ -359,8 +359,8 @@ class StripePiAsPortalContributionCacheProvider:
                     )
                 data[pi.id] = serialized
             # this can happen because of above raise or because it happens in `self.converter()` above
-            except ContributionIgnorableError:
-                logger.info("Unable to serialize payment intent %s", pi.id)
+            except ContributionIgnorableError as exc:
+                logger.info("Unable to serialize payment intent %s", pi.id, exc_info=exc)
         return data
 
     def upsert(self, payment_intents: dict) -> None:

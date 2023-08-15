@@ -461,8 +461,8 @@ class SubscriptionsViewSet(viewsets.ViewSet):
                 # we expand these fields so we have data required to update subscription and pi in cache
                 expand=[
                     "default_payment_method",
-                    "payment_intent.invoice",
-                    "payment_intent.payment_method",
+                    "latest_invoice.payment_intent.invoice",
+                    "latest_invoice.payment_intent.payment_method",
                 ],
             )
 
@@ -486,7 +486,7 @@ class SubscriptionsViewSet(viewsets.ViewSet):
         subscription = stripe.Subscription.retrieve(
             pk, stripe_account=revenue_program.payment_provider.stripe_account_id, expand=["customer"]
         )
-        if request.user.email.lower() != subscription.customer.email.lower():
+        if request.user.email.lower() != (email := subscription.customer.email.lower()):
             logger.warning(
                 "User %s attempted to cancel subscription %s which belongs to another user", request.user, pk
             )
@@ -498,6 +498,22 @@ class SubscriptionsViewSet(viewsets.ViewSet):
         except stripe.error.StripeError:
             logger.exception("stripe.Subscription.delete returned a StripeError")
             return Response({"detail": "Error"}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+
+        try:
+            sub = stripe.Subscription.retrieve(
+                pk,
+                stripe_account=revenue_program.payment_provider.stripe_account_id,
+                expand=[
+                    "default_payment_method",
+                    "latest_invoice.payment_intent.invoice",
+                    "latest_invoice.payment_intent.payment_method",
+                ],
+            )
+        except stripe.error.StripeError:
+            # do something real here
+            pass
+
+        self.update_cache(email, revenue_program.payment_provider.stripe_account_id, sub, sub.payment_intent)
 
         # TODO: [DEV-2438] return the canceled sub and update the cache
 

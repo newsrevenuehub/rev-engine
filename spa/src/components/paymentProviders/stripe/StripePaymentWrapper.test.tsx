@@ -1,5 +1,4 @@
 import { loadStripe } from '@stripe/stripe-js';
-import { DonationPage, DonationPageContext } from 'components/donationPage/DonationPage';
 import { render, screen, waitFor } from 'test-utils';
 import StripePaymentWrapper, { StripePaymentWrapperProps } from './StripePaymentWrapper';
 
@@ -10,73 +9,56 @@ jest.mock('@stripe/react-stripe-js', () => ({
       data-testid="mock-stripe-elements"
       data-stripe={JSON.stringify(props.stripe)}
       data-options={JSON.stringify(props.options)}
-    />
+    >
+      {props.children}
+    </div>
   )
 }));
 jest.mock('appSettings', () => ({ HUB_STRIPE_API_PUB_KEY: 'mock-hub-stripe-key' }));
 jest.mock('elements/GlobalLoading');
 
-function tree(props?: Partial<StripePaymentWrapperProps>, context?: Partial<DonationPage>) {
+function tree(props?: Partial<StripePaymentWrapperProps>) {
   return render(
-    <DonationPageContext.Provider
-      value={
-        {
-          feeAmount: 0,
-          frequency: 'one_time',
-          page: {
-            payment_provider: {
-              stripe_account_id: 'mock-stripe-account-id'
-            },
-            revenue_program: {
-              name: 'mock-rp-name'
-            },
-            elements: []
-          },
-          setAmount: () => {},
-          overrideAmount: false,
-          errors: {},
-          setUserAgreesToPayFees: jest.fn(),
-          stripeClientSecret: 'mock-stripe-client-secret',
-          userAgreesToPayFees: false,
-          ...context
-        } as any
-      }
+    <StripePaymentWrapper
+      onError={jest.fn()}
+      stripeAccountId="mock-stripe-account-id"
+      stripeClientSecret="mock-stripe-client-secret"
+      {...props}
     >
-      <StripePaymentWrapper {...props} />
-    </DonationPageContext.Provider>
+      children
+    </StripePaymentWrapper>
   );
 }
 
 describe('StripePaymentWrapper', () => {
-  const loadStripeMock = loadStripe as jest.Mock;
+  const loadStripeMock = jest.mocked(loadStripe);
 
-  describe("When a Stripe client secret and account ID aren't available in context", () => {
-    it('shows a loading spinner', () => {
-      tree(undefined, { page: { payment_provider: {} }, stripeClientSecret: undefined } as any);
-      expect(screen.getByTestId('mock-global-loading')).toBeInTheDocument();
-    });
-
-    it("doesn't load Stripe", async () => {
-      tree(undefined, { page: { payment_provider: {} }, stripeClientSecret: undefined } as any);
-      await Promise.resolve(); // let any async actions resolve
-      expect(loadStripeMock).not.toBeCalled();
-    });
-  });
-
-  describe('When a Stripe client secret is available in context', () => {
+  describe('On first render', () => {
     it("loads Stripe with the Hub public key and page's Stripe account ID", () => {
       tree();
       expect(loadStripeMock.mock.calls).toEqual([['mock-hub-stripe-key', { stripeAccount: 'mock-stripe-account-id' }]]);
     });
 
-    it("doesn't show a loading spinner", () => {
+    it('shows a spinner', () => {
       tree();
+      expect(screen.getByTestId('mock-global-loading')).toBeInTheDocument();
+    });
+  });
+
+  describe('When Stripe loads', () => {
+    beforeEach(() => {
+      loadStripeMock.mockReturnValue('mock-stripe-loaded' as any);
+    });
+
+    it("doesn't show a loading spinner", async () => {
+      tree();
+      await waitFor(() => expect(loadStripeMock).toBeCalled());
       expect(screen.queryByTestId('mock-global-loading')).not.toBeInTheDocument();
     });
 
     it('shows a configured Stripe <Elements> component', async () => {
-      loadStripeMock.mockResolvedValue('mock-stripe-loaded');
       tree();
+      await waitFor(() => expect(loadStripeMock).toBeCalled());
 
       const elements = screen.getByTestId('mock-stripe-elements');
 
@@ -86,30 +68,41 @@ describe('StripePaymentWrapper', () => {
       expect(elements.dataset.stripe).toEqual('"mock-stripe-loaded"');
     });
 
-    describe('When loading Stripe fails', () => {
-      const error = new Error();
-      let warnSpy: jest.SpyInstance;
+    it('shows children', async () => {
+      tree();
+      await waitFor(() => expect(loadStripeMock).toBeCalled());
+      expect(screen.getByText('children')).toBeVisible();
+    });
+  });
 
-      beforeEach(() => {
-        loadStripeMock.mockRejectedValue(error);
-        warnSpy = jest.spyOn(console, 'warn').mockImplementation(() => {});
-      });
+  describe('When loading Stripe fails', () => {
+    const error = new Error();
+    let warnSpy: jest.SpyInstance;
 
-      afterEach(() => warnSpy.mockRestore());
+    beforeEach(() => {
+      loadStripeMock.mockRejectedValue(error);
+      warnSpy = jest.spyOn(console, 'warn').mockImplementation(() => {});
+    });
 
-      it('logs a warning to the console', async () => {
-        tree();
-        await waitFor(() => expect(warnSpy).toBeCalled());
-        expect(warnSpy.mock.calls).toEqual([[error]]);
-      });
+    afterEach(() => warnSpy.mockRestore());
 
-      it("calls the onError prop if it's defined", async () => {
-        const onError = jest.fn();
+    it('logs a warning to the console', async () => {
+      tree();
+      await waitFor(() => expect(warnSpy).toBeCalled());
+      expect(warnSpy.mock.calls).toEqual([[error]]);
+    });
 
-        tree({ onError });
-        await waitFor(() => expect(onError).toBeCalled());
-        expect(onError.mock.calls).toEqual([[error]]);
-      });
+    it("calls the onError prop if it's defined", async () => {
+      const onError = jest.fn();
+
+      tree({ onError });
+      await waitFor(() => expect(onError).toBeCalled());
+      expect(onError.mock.calls).toEqual([[error]]);
+    });
+
+    it('shows a spinner', async () => {
+      tree();
+      await waitFor(() => expect(loadStripeMock).toBeCalled());
     });
   });
 });

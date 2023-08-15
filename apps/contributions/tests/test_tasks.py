@@ -68,7 +68,6 @@ def make_stripe_pi_search_response(has_more=True):
         object="search_result",
         url="something",
         has_more=has_more,
-        total_count=10,
         data=[
             stripe.PaymentIntent.construct_from(
                 {

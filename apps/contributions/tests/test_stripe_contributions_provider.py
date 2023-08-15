@@ -371,7 +371,6 @@ class TestStripePiSearchResponse:
         StripePiSearchResponse(
             data=[stripe.PaymentIntent.construct_from({"id": "pi_1", "amount": 100}, key="test")],
             has_more=False,
-            total_count=1,
             url="https://stripe.com",
             headers=AttrDict({"request-id": "1234"}),
         )
@@ -421,7 +420,6 @@ class TestStripePaymentIntentsProvider:
             {
                 "url": "https://stripe.com",
                 "has_more": False,
-                "total_count": 2,
                 "next_page": None,
                 "object": "search_result",
             }
@@ -441,7 +439,6 @@ class TestStripePaymentIntentsProvider:
         assert isinstance(pis, StripePiSearchResponse)
         assert pis.data == mock_search_result.data
         assert pis.has_more == mock_search_result.has_more
-        assert pis.total_count == mock_search_result.total_count
         assert pis.url == mock_search_result.url
         assert pis.next_page == mock_search_result.next_page
 

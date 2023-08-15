@@ -216,7 +216,6 @@ class StripePiSearchResponse(BaseModel):
 
     url: str
     has_more: bool
-    total_count: Optional[int]
     data: list[stripe.PaymentIntent]
     next_page: str | None = None
     object: Literal["search_result"] = "search_result"

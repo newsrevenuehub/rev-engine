@@ -239,9 +239,9 @@ class StripePaymentIntentsProvider:
     stripe_account_id: str
 
     EXPAND_FIELDS = [
-        "data.invoice.subscription.default_payment_method",
-        "data.invoice.subscription.plan.product",
-        "data.payment_method",
+        "invoice.subscription.default_payment_method",
+        "invoice.subscription.plan.product",
+        "payment_method",
     ]
 
     @cached_property

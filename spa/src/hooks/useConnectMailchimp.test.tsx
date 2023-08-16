@@ -7,22 +7,19 @@ import useUser from 'hooks/useUser';
 import queryString from 'query-string';
 import { TestQueryClientProvider } from 'test-utils';
 import useConnectMailchimp, { MAILCHIMP_OAUTH_CALLBACK } from './useConnectMailchimp';
-import useFeatureFlags from './useFeatureFlags';
 import { User } from './useUser.types';
 
 jest.mock('appSettings', () => ({
   NRE_MAILCHIMP_CLIENT_ID: 'mock-client-id'
 }));
 jest.mock('hooks/useUser');
-jest.mock('hooks/useFeatureFlags');
 
 const useUserMock = jest.mocked(useUser);
-const useFeatureFlagsMock = jest.mocked(useFeatureFlags);
 
 const mockUser: User = {
   email: 'mock@email.com',
   email_verified: true,
-  flags: [],
+  flags: [{ name: MAILCHIMP_INTEGRATION_ACCESS_FLAG_NAME }],
   id: 'mock-id',
   organizations: [
     {
@@ -63,11 +60,6 @@ describe('useConnectMailchimp hook', () => {
   const axiosMock = new MockAdapter(Axios);
 
   beforeEach(() => {
-    useFeatureFlagsMock.mockReturnValue({
-      flags: [{ name: MAILCHIMP_INTEGRATION_ACCESS_FLAG_NAME }],
-      isLoading: false,
-      isError: false
-    });
     useUserMock.mockReturnValue(mockUseUserResult);
     axiosMock.onGet(mailchimpStatusEndpoint).reply(200, {
       available_mailchimp_email_lists: mockMailchimpLists,
@@ -95,13 +87,7 @@ describe('useConnectMailchimp hook', () => {
   });
 
   describe('While user data is loading', () => {
-    beforeEach(() => {
-      // useFeatureFlags depends on useUser, so it will return a loading status
-      // while useUser loads.
-
-      useFeatureFlagsMock.mockReturnValue({ flags: [], isLoading: true, isError: false });
-      useUserMock.mockReturnValue({ isError: false, isLoading: true, refetch: jest.fn() });
-    });
+    beforeEach(() => useUserMock.mockReturnValue({ isError: false, isLoading: true, refetch: jest.fn() }));
 
     it('returns a loading status', () => {
       const { result } = hook();
@@ -133,13 +119,7 @@ describe('useConnectMailchimp hook', () => {
   });
 
   describe('If loading user data failed', () => {
-    beforeEach(() => {
-      // useFeatureFlags depends on useUser, so it will return an error status
-      // if useUser fails.
-
-      useFeatureFlagsMock.mockReturnValue({ flags: [], isLoading: false, isError: true });
-      useUserMock.mockReturnValue({ isError: true, isLoading: false, refetch: jest.fn() });
-    });
+    beforeEach(() => useUserMock.mockReturnValue({ isError: true, isLoading: false, refetch: jest.fn() }));
 
     it('returns an error status', () => {
       const { result } = hook();
@@ -189,11 +169,10 @@ describe('useConnectMailchimp hook', () => {
     });
 
     it("returns the user's plan even if they don't have the Mailchimp access feature flag", async () => {
-      useFeatureFlagsMock.mockReturnValue({
-        flags: [],
-        isLoading: false,
-        isError: false
-      });
+      useUserMock.mockReturnValue({
+        ...mockUseUserResult,
+        user: { ...mockUser, flags: [] }
+      } as any);
 
       const { result, waitFor } = hook();
 
@@ -221,11 +200,10 @@ describe('useConnectMailchimp hook', () => {
     });
 
     it("returns that the user doesn't have Mailchimp access if they don't have the feature flag", async () => {
-      useFeatureFlagsMock.mockReturnValue({
-        flags: [],
-        isLoading: false,
-        isError: false
-      });
+      useUserMock.mockReturnValue({
+        ...mockUseUserResult,
+        user: { ...mockUser, flags: [] }
+      } as any);
 
       const { result, waitFor } = hook();
 
@@ -429,7 +407,10 @@ describe('useConnectMailchimp hook', () => {
       });
 
       it("doesn't return a sendUserToMailchimp function if the user doesn't have the Mailchimp access flag", async () => {
-        useFeatureFlagsMock.mockReturnValue({ flags: [], isLoading: false, isError: false });
+        useUserMock.mockReturnValue({
+          ...mockUseUserResult,
+          user: { ...mockUser, flags: [] }
+        } as any);
 
         const { result, waitFor } = hook();
 

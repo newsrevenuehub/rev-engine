@@ -12,7 +12,7 @@ WORKDIR /code/spa/
 # Limit memory usage to avoid Heroku deploy issues.
 RUN npm run build:low-memory
 
-FROM python:3.10-slim as base
+FROM python:3.11.4-slim as base
 
 # Install packages needed to run your application (not build deps):
 #   mime-support -- for mime types when serving static files

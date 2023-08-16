@@ -21,18 +21,36 @@ const sampleImage = new File([sampleImageBlob], 'uploaded-file.svg', { type: 'im
 
 const Template: ComponentStory<typeof ImageUpload> = (props) => <ImageUpload {...props} />;
 
-export const Empty = Template.bind({});
-Empty.args = { label: 'Input label', prompt: 'Choose an image' };
+export const BulkyEmpty = Template.bind({});
+BulkyEmpty.args = { label: 'Input label', prompt: 'Choose an image' };
 
-export const WithThumbnailOnly = Template.bind({});
-WithThumbnailOnly.args = {
+export const BulkyWithThumbnailOnly = Template.bind({});
+BulkyWithThumbnailOnly.args = {
   label: 'Input label',
   thumbnailUrl: sampleImageUri
 };
 
-export const WithImage = Template.bind({});
-WithImage.args = {
+export const BulkyWithImage = Template.bind({});
+BulkyWithImage.args = {
   label: 'Input label',
   thumbnailUrl: sampleImageUri,
   value: sampleImage
+};
+
+export const SlimEmpty = Template.bind({});
+SlimEmpty.args = { label: 'Input label', prompt: 'Choose an image', variation: 'slim' };
+
+export const SlimWithThumbnailOnly = Template.bind({});
+SlimWithThumbnailOnly.args = {
+  label: 'Input label',
+  thumbnailUrl: sampleImageUri,
+  variation: 'slim'
+};
+
+export const SlimWithImage = Template.bind({});
+SlimWithImage.args = {
+  label: 'Input label',
+  thumbnailUrl: sampleImageUri,
+  value: sampleImage,
+  variation: 'slim'
 };

@@ -503,7 +503,7 @@ describe('Contribution page edit', () => {
 });
 
 describe('Edit interface: Settings', () => {
-  const imageFieldNames = ['Main header background', 'Main header logo', 'Graphic'];
+  const imageFieldNames = ['Main header background', 'Graphic'];
   const textFieldNames = ['Form panel heading', 'Form panel heading', 'Post Thank You redirect'];
 
   beforeEach(() => {

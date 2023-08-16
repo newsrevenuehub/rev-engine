@@ -1,9 +1,12 @@
-import { ColorPicker, SearchableSelect } from 'components/base';
+import { ColorPicker, SearchableSelect, TextField } from 'components/base';
 import useFontList from 'hooks/useFontList';
 import { Style } from 'hooks/useStyleList';
 import PropTypes, { InferProps } from 'prop-types';
-import { Flex, Pickers, Section, Title } from './StylesTab.styled';
+import { Flex, Pickers, Section, Title, FullLine } from './StylesTab.styled';
 import Select from 'elements/inputs/Select';
+import { ContributionPage } from 'hooks/useContributionPage/useContributionPage.types';
+import ImageUpload from 'components/base/ImageUpload/ImageUpload';
+import { isValidWebUrl } from 'utilities/isValidWebUrl';
 
 export const COLOR_PICKERS = [
   { field: 'cstm_mainHeader', label: 'Header' },
@@ -34,11 +37,36 @@ export const BUTTON_RADIUS_BASE_OPTIONS = [
 ];
 
 export interface StylesTabProps extends InferProps<typeof StylesTabPropTypes> {
+  headerThumbnail: ContributionPage['header_logo_thumbnail'];
+  headerLogo: ContributionPage['header_logo'];
+  headerLink: ContributionPage['header_link'];
+  headerAltText: ContributionPage['header_logo_alt_text'];
+  setChanges: (changes: Partial<ContributionPage>) => void;
   styles: Style;
   setStyles: (styles: Style) => void;
 }
 
-function StylesTab({ styles, setStyles }: StylesTabProps) {
+function StylesTab({
+  headerThumbnail,
+  headerLogo,
+  headerLink,
+  headerAltText,
+  styles,
+  setStyles,
+  setChanges
+}: StylesTabProps) {
+  let showLogoInput = false;
+  if (headerThumbnail) {
+    showLogoInput = true;
+
+    if (headerLogo === '') {
+      showLogoInput = false;
+    }
+  }
+  if (headerLogo !== '') {
+    showLogoInput = true;
+  }
+
   const { fonts, isLoading: fontLoading } = useFontList();
 
   // While fontSize is an array, select font corresponding index to the Heading font
@@ -64,6 +92,38 @@ function StylesTab({ styles, setStyles }: StylesTabProps) {
 
   return (
     <Flex>
+      <Section>
+        <Title>Logo</Title>
+        <FullLine>
+          <ImageUpload
+            id="page-setup-header_logo"
+            variation="slim"
+            onChange={(file, thumbnailUrl) => setChanges({ header_logo: file, header_logo_thumbnail: thumbnailUrl })}
+            label="Main header logo"
+            prompt="Choose an image"
+            thumbnailUrl={headerThumbnail}
+            value={headerLogo as any}
+          />
+          {showLogoInput && (
+            <>
+              <TextField
+                id="headerLink"
+                label="Logo Link"
+                onChange={(e) => setChanges({ header_link: e.target.value })}
+                value={headerLink}
+                error={!isValidWebUrl(headerLink, true)}
+                helperText={!isValidWebUrl(headerLink, true) && 'Please enter a valid URL.'}
+              />
+              <TextField
+                id="headerAltText"
+                label="Logo Alt Text"
+                onChange={(e) => setChanges({ header_logo_alt_text: e.target.value })}
+                value={headerAltText}
+              />
+            </>
+          )}
+        </FullLine>
+      </Section>
       <Section>
         <Title>Colors</Title>
         <Pickers>

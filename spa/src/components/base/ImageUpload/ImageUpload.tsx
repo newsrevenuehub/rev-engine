@@ -2,7 +2,24 @@ import { faFileUpload, faTimes } from '@fortawesome/free-solid-svg-icons';
 import PropTypes, { InferProps } from 'prop-types';
 import { ChangeEvent, useRef } from 'react';
 import fileToDataUrl from 'utilities/fileToDataUrl';
-import { IconButton, Label, Preview, Prompt, RemoveIcon, Root, Thumbnail, UploadIcon } from './ImageUpload.styled';
+import { ReactComponent as CloseIcon } from '@material-design-icons/svg/filled/close.svg';
+import {
+  IconButton,
+  Label,
+  Preview,
+  Prompt,
+  RemoveIcon,
+  Root,
+  Thumbnail,
+  UploadIcon,
+  Slim,
+  SlimThumbnail,
+  PreviewSlim,
+  PromptSlim,
+  FileNameSlim,
+  IconButtonSlim
+} from './ImageUpload.styled';
+import addMiddleEllipsis from 'utilities/addMiddleEllipsis';
 
 const ImageUploadPropTypes = {
   accept: PropTypes.string,
@@ -21,6 +38,7 @@ export interface ImageUploadProps extends InferProps<typeof ImageUploadPropTypes
    * the user removed the image.
    */
   onChange: (value?: File, thumbnailUrl?: string) => void;
+  variation?: 'bulky' | 'slim';
 }
 
 /**
@@ -43,7 +61,8 @@ export function ImageUpload(props: ImageUploadProps) {
     onChange,
     prompt,
     thumbnailUrl,
-    value
+    value,
+    variation = 'bulky'
   } = props;
   const inputRef = useRef<HTMLInputElement>(null);
 
@@ -57,6 +76,29 @@ export function ImageUpload(props: ImageUploadProps) {
     if (event.target.files) {
       onChange(event.target.files[0], await fileToDataUrl(event.target.files[0]));
     }
+  }
+
+  if (variation === 'slim') {
+    return (
+      <Slim className={className!}>
+        <input accept={accept!} hidden id={id} onChange={handleChange} ref={inputRef} type="file" />
+        <PreviewSlim onClick={clickOnHiddenInput}>
+          {thumbnailUrl ? (
+            <>
+              <SlimThumbnail src={typeof value === 'string' ? value : thumbnailUrl} alt={value?.name ?? prompt} />
+              <FileNameSlim>{addMiddleEllipsis(value?.name || thumbnailUrl)}</FileNameSlim>
+            </>
+          ) : (
+            <PromptSlim>{prompt}</PromptSlim>
+          )}
+        </PreviewSlim>
+        {thumbnailUrl && (
+          <IconButtonSlim disabled={!thumbnailUrl && !value} onClick={() => onChange()} aria-label="Remove">
+            <CloseIcon />
+          </IconButtonSlim>
+        )}
+      </Slim>
+    );
   }
 
   return (

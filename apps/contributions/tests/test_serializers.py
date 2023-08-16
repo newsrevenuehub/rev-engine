@@ -921,6 +921,9 @@ class TestStripeMetadataSchemaV1_4:
             "foo",
             # this is an unexpected case, but allowed for now so adding to make clear it gets through
             ";",
+            "foo;",
+            "foo:bar;bizz",
+            "bizz;foo:bar",
         ),
     )
     def test_with_valid_swag_choices_values(self, value, valid_stripe_metadata_v1_4_data):

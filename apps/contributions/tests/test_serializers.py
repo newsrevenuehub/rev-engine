@@ -919,11 +919,15 @@ class TestStripeMetadataSchemaV1_4:
             "foo:bar;bizz:bang",
             "foo:bar;",
             "foo",
-            # this is an unexpected case, but allowed for now so adding to make clear it gets through
-            ";",
             "foo;",
             "foo:bar;bizz",
             "bizz;foo:bar",
+            "foo2:bar",
+            "1foo:bar",
+            "fo-o:bar",
+            # the following cases are unexpected, but allowed for now so adding to make clear they get through
+            ";",
+            ";foo:bar",
         ),
     )
     def test_with_valid_swag_choices_values(self, value, valid_stripe_metadata_v1_4_data):
@@ -942,6 +946,9 @@ class TestStripeMetadataSchemaV1_4:
             "foo : bar ; bizz : bang",
             "foo : bar ; bizz : bang ;",
             "foo: bar ;",
+            "f oo",
+            "fo'o:bar",
+            "foo:bar\n",
         ),
     )
     def test_with_invalid_swag_choices_value(self, value, valid_stripe_metadata_v1_4_data):

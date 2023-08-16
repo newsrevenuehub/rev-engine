@@ -3,8 +3,10 @@ import usePreviousState from 'hooks/usePreviousState';
 import { useSnackbar } from 'notistack';
 import { fireEvent, render, screen } from 'test-utils';
 import MailchimpConnectionStatus from './MailchimpConnectionStatus';
+import useUser from 'hooks/useUser';
 
 jest.mock('hooks/usePreviousState');
+jest.mock('hooks/useUser');
 jest.mock('components/common/Modal/AudienceListModal/AudienceListModal');
 jest.mock('components/common/IntegrationCard/MailchimpIntegrationCard/MailchimpModal/MailchimpModal');
 jest.mock('hooks/useConnectMailchimp');
@@ -19,12 +21,15 @@ const mockMailchimpLists = [
   { id: '2', name: 'audience-2' }
 ];
 
+const mockUser = { mockUser: true };
+
 describe('MailchimpConnectionStatus', () => {
   const enqueueSnackbar = jest.fn();
   const setRefetchInterval = jest.fn();
   const useSnackbarMock = jest.mocked(useSnackbar);
   const usePreviousStateMock = jest.mocked(usePreviousState);
   const useConnectMailchimpMock = jest.mocked(useConnectMailchimp);
+  const useUserMock = jest.mocked(useUser);
 
   function tree() {
     return render(<MailchimpConnectionStatus />);
@@ -32,6 +37,7 @@ describe('MailchimpConnectionStatus', () => {
 
   beforeEach(() => {
     useSnackbarMock.mockReturnValue({ enqueueSnackbar, closeSnackbar: jest.fn() });
+    useUserMock.mockReturnValue({ user: mockUser } as any);
   });
 
   afterAll(() => {
@@ -125,7 +131,11 @@ describe('MailchimpConnectionStatus', () => {
       } as any);
       usePreviousStateMock.mockReturnValueOnce(null);
       tree();
-      expect(screen.getByTestId('mock-mailchimp-modal')).toBeInTheDocument();
+
+      const modal = screen.getByTestId('mock-mailchimp-modal');
+
+      expect(modal).toBeInTheDocument();
+      expect(modal.dataset.user).toBe(JSON.stringify(mockUser));
     });
 
     it('should not display Mailchimp Success modal if audience not selected', () => {

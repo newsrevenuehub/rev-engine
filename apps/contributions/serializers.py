@@ -246,16 +246,16 @@ class StripeMetaDataBase(pydantic.BaseModel):
     revenue_program_slug: str
     schema_version: str
 
-    comp_subscription: str = ""
-    company_name: str = ""
-    honoree: str = ""
-    in_memory_of: str = ""
+    comp_subscription: Optional[str] = None
+    company_name: Optional[str] = None
+    honoree: Optional[str] = None
+    in_memory_of: Optional[str] = None
     marketing_consent: Optional[bool] = None
-    occupation: str = ""
-    reason_for_giving: str = ""
-    sf_campaign_id: Optional[str] = ""
+    occupation: Optional[str] = None
+    reason_for_giving: Optional[str] = None
+    sf_campaign_id: Optional[str] = None
     source: str = settings.METADATA_SOURCE_REVENGINE
-    swag_opt_out: bool | None = None
+    swag_opt_out: Optional[bool] = None
 
     @pydantic.validator("marketing_consent", "swag_opt_out", "agreed_to_pay_fees")
     @classmethod
@@ -265,7 +265,7 @@ class StripeMetaDataBase(pydantic.BaseModel):
         Convert some known values to their boolean counterpart, while still allowing
         for a `None` value which indicates that the value was not provided.
         """
-        logger.info("Normalizing boolean value %s", v)
+        logger.debug("Normalizing boolean value %s", v)
         if any([isinstance(v, bool), v is None]):
             return v
         if isinstance(v, str):
@@ -298,7 +298,7 @@ class StripeMetadataSchemaV1_4(StripeMetaDataBase):
     """
 
     schema_version: str = settings.METADATA_SCHEMA_VERSION_1_4
-    swag_choices: Union[Literal[""], SwagChoicesString] = ""
+    swag_choices: Union[Literal[""], SwagChoicesString, None] = None
 
 
 class BaseCreatePaymentSerializer(serializers.Serializer):
@@ -521,20 +521,22 @@ class BaseCreatePaymentSerializer(serializers.Serializer):
         """Generate dict of metadata to be sent to Stripe when creating a PaymentIntent or Subscription"""
         logger.info("`Contribution.generate_stripe_metadata` called on contribution with ID %s", contribution.id)
         return StripeMetadataSchemaV1_4(
-            contributor_id=contribution.contributor_id,
             agreed_to_pay_fees=self.validated_data["agreed_to_pay_fees"],
+            contributor_id=contribution.contributor_id,
             donor_selected_amount=self.validated_data["donor_selected_amount"],
-            reason_for_giving=self.validated_data["reason_for_giving"],
-            honoree=self.validated_data["honoree"],
-            in_memory_of=self.validated_data["in_memory_of"],
-            # TODO: [DEV-3827] Coordinate comp_subscription between server and SPA
-            comp_subscription=self.validated_data["comp_subscription"],
-            swag_opt_out=self.validated_data["swag_opt_out"],
             referer=self._context["request"].META["HTTP_REFERER"],
             revenue_program_id=self.validated_data["page"].revenue_program.id,
             revenue_program_slug=self.validated_data["page"].revenue_program.slug,
-            sf_campaign_id=self.validated_data["sf_campaign_id"],
-            swag_choices=self.validated_data["swag_choices"],
+            swag_opt_out=self.validated_data["swag_opt_out"],
+            # the `or None` pattern here is because in validated data, these fields are allowed to be blank, but in
+            # the Stripe metadata, we want to send null, not blank.
+            # TODO: [DEV-3827] Coordinate comp_subscription between server and SPA
+            comp_subscription=self.validated_data["comp_subscription"] or None,
+            honoree=self.validated_data["honoree"] or None,
+            in_memory_of=self.validated_data["in_memory_of"] or None,
+            reason_for_giving=self.validated_data["reason_for_giving"] or None,
+            sf_campaign_id=self.validated_data["sf_campaign_id"] or None,
+            swag_choices=self.validated_data["swag_choices"] or None,
         )
 
 

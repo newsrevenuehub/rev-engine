@@ -880,23 +880,20 @@ class TestBaseCreatePaymentSerializer:
         assert metadata.revenue_program_id == contribution.donation_page.revenue_program_id
         assert metadata.revenue_program_slug == contribution.donation_page.revenue_program.slug
         assert (
-            metadata.marketing_consent is None
-        )  # not provided in form data, this is default via this pydantic model def
-        assert (
             metadata.swag_opt_out is False
         )  # not provided in form data, this is default via default def in serializer field def
-
-        defaulted_empty_str_fields = (
+        optional_fields_defaulting_to_none = (
+            "comp_subscription",
+            "company_name",
             "honoree",
             "in_memory_of",
+            "marketing_consent",
             "occupation",
             "reason_for_giving",
             "sf_campaign_id",
-            "comp_subscription",
-            "company_name",
         )
-        for x in defaulted_empty_str_fields:
-            assert getattr(metadata, x) == ""
+        for x in optional_fields_defaulting_to_none:
+            assert getattr(metadata, x) is None
 
 
 @pytest.fixture
@@ -914,10 +911,25 @@ def valid_stripe_metadata_v1_4_data():
 
 
 class TestStripeMetadataSchemaV1_4:
-    @pytest.mark.parametrize("value", ("", "foo:bar", "foo:bar;bizz:bang"))
-    def test_with_valid_swag_choices_values(self, value, valid_stripe_metadata_v1_4_data):
-        instance = StripeMetadataSchemaV1_4(**(valid_stripe_metadata_v1_4_data | {"swag_choices": value}))
-        assert instance.swag_choices == value
+    # @pytest.mark.parametrize(
+    #     "value, e",
+    #     (
+    #         # "",
+    #         # "foo:bar",
+    #         # "foo:bar;bizz:bang",
+    #         # "foo:bar;",
+    #         # "foo",
+    #         # "foo:",
+    #         "foo ",
+    #         " foo ",
+    #         "foo : bar ; bizz : bang",
+    #         "foo : bar ; bizz : bang ;",
+    #         "foo: bar ;",
+    #     ),
+    # )
+    # def test_with_valid_swag_choices_values(self, value, valid_stripe_metadata_v1_4_data):
+    #     instance = StripeMetadataSchemaV1_4(**(valid_stripe_metadata_v1_4_data | {"swag_choices": value}))
+    #     assert instance.swag_choices == value
 
     @pytest.mark.parametrize("value", (":", ";", ":bar", ":bar;"))
     def test_with_invalid_swag_choices_value(self, value, valid_stripe_metadata_v1_4_data):

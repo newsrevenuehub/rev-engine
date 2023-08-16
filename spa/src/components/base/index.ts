@@ -13,6 +13,7 @@ export * from './Pagination/Pagination';
 export * from './Radio/Radio';
 export * from './RadioGroup/RadioGroup';
 export * from './RichTextEditor';
+export * from './RouterLinkButton/RouterLinkButton';
 export * from './Select';
 export * from './Stepper';
 export * from './Switch/Switch';

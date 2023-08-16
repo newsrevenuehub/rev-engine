@@ -13,7 +13,6 @@ import {
   UseConnectMailchimpResult
 } from './useConnectMailchimp.types';
 import { RevenueProgram } from './useContributionPage';
-import useFeatureFlags from './useFeatureFlags';
 import useUser from './useUser';
 
 const BASE_URL = window.location.origin;
@@ -60,8 +59,7 @@ export default function useConnectMailchimp(): UseConnectMailchimpResult {
     },
     [patchMutation]
   );
-  const { flags } = useFeatureFlags();
-  const hasMailchimpAccess = flagIsActiveForUser(MAILCHIMP_INTEGRATION_ACCESS_FLAG_NAME, flags);
+  const hasMailchimpAccess = !!(user && flagIsActiveForUser(MAILCHIMP_INTEGRATION_ACCESS_FLAG_NAME, user));
   const sendUserToMailchimp = useCallback(() => {
     if (!NRE_MAILCHIMP_CLIENT_ID) {
       // Should never happen--only if there is an issue with the env variable.

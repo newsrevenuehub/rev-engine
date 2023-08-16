@@ -1,8 +1,7 @@
 import { CONTENT_SECTION_ACCESS_FLAG_NAME } from 'constants/featureFlagConstants';
 import useUser from 'hooks/useUser';
 import flagIsActiveForUser from 'utilities/flagIsActiveForUser';
-import hasContributionsDashboardAccessToUser from 'utilities/hasContributionsDashboardAccessToUser';
-import useFeatureFlags from 'hooks/useFeatureFlags';
+import hasContributionsSectionAccess from 'utilities/hasContributionsSectionAccess';
 import ContentSectionNav from './navs/ContentSectionNav';
 import ContributionSectionNav from './navs/ContributionSectionNav';
 import DashboardSidebarFooter from './DashboardSidebarFooter';
@@ -15,9 +14,7 @@ import { getUserRole } from 'utilities/getUserRole';
 function DashboardSidebar() {
   const { user } = useUser();
   const { isHubAdmin, isSuperUser } = getUserRole(user);
-  const { flags } = useFeatureFlags();
-  const hasContributionsSectionAccess = hasContributionsDashboardAccessToUser(flags);
-  const hasContentSectionAccess = flagIsActiveForUser(CONTENT_SECTION_ACCESS_FLAG_NAME, flags);
+  const hasContentSectionAccess = user && flagIsActiveForUser(CONTENT_SECTION_ACCESS_FLAG_NAME, user);
   const currentOrg = user?.organizations?.length === 1 ? user?.organizations?.[0] : undefined;
 
   return (
@@ -39,7 +36,7 @@ function DashboardSidebar() {
         <NavList role="list" data-testid="nav-list" aria-labelledby="sidebar-label-id">
           {currentOrg?.name && <OrganizationMenu title={currentOrg.name} />}
           {hasContentSectionAccess && <ContentSectionNav />}
-          {hasContributionsSectionAccess && <ContributionSectionNav />}
+          {user && hasContributionsSectionAccess(user) && <ContributionSectionNav />}
         </NavList>
         <DashboardSidebarFooter />
       </Content>

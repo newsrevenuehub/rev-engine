@@ -5,7 +5,15 @@ import { ReactComponent as GroupAdd } from '@material-design-icons/svg/outlined/
 import { ReactComponent as Mail } from '@material-design-icons/svg/outlined/mail.svg';
 import { ReactComponent as MailCheck } from '@material-design-icons/svg/outlined/mark_email_read.svg';
 import InfoOutlinedIcon from '@material-ui/icons/InfoOutlined';
-import { ButtonProps, Modal, ModalContent, ModalFooter, ModalHeader } from 'components/base';
+import {
+  ButtonProps,
+  Modal,
+  ModalContent,
+  ModalFooter,
+  ModalHeader,
+  RouterLinkButton,
+  RouterLinkButtonProps
+} from 'components/base';
 import PropTypes, { InferProps } from 'prop-types';
 import { useMemo } from 'react';
 
@@ -13,8 +21,8 @@ import MailchimpLogo from 'assets/images/mailchimp.png';
 import IconList from 'components/common/IconList/IconList';
 import { CORE_UPGRADE_URL, FAQ_URL, HELP_URL } from 'constants/helperUrls';
 import { PLAN_LABELS, PLAN_NAMES } from 'constants/orgPlanConstants';
-import { useHistory } from 'react-router-dom';
-import { DONATIONS_SLUG } from 'routes';
+import { User } from 'hooks/useUser.types';
+import { DONATIONS_SLUG, SETTINGS } from 'routes';
 import IntegrationCardHeader from '../../IntegrationCardHeader';
 import ModalUpgradePrompt from '../../ModalUpgradePrompt/ModalUpgradePrompt';
 import {
@@ -27,6 +35,8 @@ import {
   SupportText,
   Title
 } from './MailchimpModal.styled';
+import flagIsActiveForUser from 'utilities/flagIsActiveForUser';
+import { SELF_UPGRADE_ACCESS_FLAG_NAME } from 'constants/featureFlagConstants';
 
 export interface MailchimpModalProps extends InferProps<typeof MailchimpModalPropTypes> {
   /**
@@ -34,6 +44,7 @@ export interface MailchimpModalProps extends InferProps<typeof MailchimpModalPro
    */
   isActive: boolean;
   organizationPlan: 'FREE' | 'CORE' | 'PLUS';
+  user: User;
 }
 
 type DisplayState = 'free' | 'paidNotConnected' | 'connected';
@@ -76,10 +87,10 @@ const MailchimpModal = ({
   site = {
     label: 'mailchimp.com',
     url: 'https://www.mailchimp.com'
-  }
+  },
+  user
 }: MailchimpModalProps) => {
-  const history = useHistory();
-  const actionButtonProps: Partial<ButtonProps> = {
+  const actionButtonProps: Partial<ButtonProps & RouterLinkButtonProps> = {
     color: 'primaryDark',
     variant: 'contained',
     disableElevation: true
@@ -162,7 +173,11 @@ const MailchimpModal = ({
         </CancelButton>
         {
           {
-            [DISPLAY_STATE.FREE]: (
+            [DISPLAY_STATE.FREE]: flagIsActiveForUser(SELF_UPGRADE_ACCESS_FLAG_NAME, user) ? (
+              <RouterLinkButton {...actionButtonProps} to={SETTINGS.SUBSCRIPTION}>
+                Upgrade
+              </RouterLinkButton>
+            ) : (
               <ActionButton {...actionButtonProps} href={CORE_UPGRADE_URL}>
                 Upgrade
               </ActionButton>
@@ -173,15 +188,9 @@ const MailchimpModal = ({
               </ActionButton>
             ),
             [DISPLAY_STATE.CONNECTED]: (
-              <ActionButton
-                {...actionButtonProps}
-                onClick={() => {
-                  onClose();
-                  history.push(DONATIONS_SLUG);
-                }}
-              >
+              <RouterLinkButton {...actionButtonProps} to={DONATIONS_SLUG}>
                 Go to contributions
-              </ActionButton>
+              </RouterLinkButton>
             )
           }[displayState]
         }
@@ -203,6 +212,7 @@ const MailchimpModalPropTypes = {
   }),
   isActive: PropTypes.bool,
   isRequired: PropTypes.bool,
+  user: PropTypes.object.isRequired,
   organizationPlan: PropTypes.oneOf(Object.keys(PLAN_LABELS)).isRequired
 };
 

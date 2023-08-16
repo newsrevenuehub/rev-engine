@@ -1,23 +1,15 @@
 import { axe } from 'jest-axe';
 import { useSnackbar } from 'notistack';
-import { DONATIONS_SLUG } from 'routes';
+import { DONATIONS_SLUG, SETTINGS } from 'routes';
 import { fireEvent, render, screen } from 'test-utils';
 import MailchimpModal, { MailchimpModalProps } from './MailchimpModal';
+import { SELF_UPGRADE_ACCESS_FLAG_NAME } from 'constants/featureFlagConstants';
 
 jest.mock('../../IntegrationCardHeader/IntegrationCardHeader');
-
-const mockHistoryPush = jest.fn();
 
 jest.mock('notistack', () => ({
   ...jest.requireActual('notistack'),
   useSnackbar: jest.fn()
-}));
-
-jest.mock('react-router-dom', () => ({
-  ...jest.requireActual('react-router-dom'),
-  useHistory: () => ({
-    push: mockHistoryPush
-  })
 }));
 
 const onClose = jest.fn();
@@ -35,7 +27,10 @@ const defaultProps = {
     label: 'mock-label',
     url: 'mock-url'
   },
-  organizationPlan: 'FREE' as any
+  organizationPlan: 'FREE' as any,
+  user: {
+    flags: []
+  } as any
 };
 
 describe('MailchimpModal', () => {
@@ -73,13 +68,18 @@ describe('MailchimpModal', () => {
       expect(screen.getByRole('button', { name: /Maybe later/i })).toBeEnabled();
     });
 
-    it('should link "Upgrade" button to "I want RevEngine Core" page', () => {
+    it('should link "Upgrade" button to "I want RevEngine Core" page if the user doesn\'t have the self-upgrade feature flag', () => {
       tree();
       expect(screen.getByRole('link', { name: /Upgrade/i })).toHaveAttribute(
         'href',
         // CORE_UPGRADE_URL constant. Link is hardcoded so that if constant is mistakenly changed the test will fail
         'https://fundjournalism.org/i-want-revengine-core/'
       );
+    });
+
+    it('should link "Upgrade" button to the subscription route if the user has the self-upgrade feature flag', () => {
+      tree({ ...defaultProps, user: { flags: [{ name: SELF_UPGRADE_ACCESS_FLAG_NAME }] } as any });
+      expect(screen.getByRole('button', { name: /Upgrade/i })).toHaveAttribute('href', SETTINGS.SUBSCRIPTION);
     });
 
     it('should call onClose when the Maybe Later button is clicked', () => {
@@ -206,24 +206,14 @@ describe('MailchimpModal', () => {
         expect(screen.getByRole('button', { name: /Go to contributions/i })).toBeEnabled();
       });
 
-      it('should redirect user to Contributions page when "Go to contributions" is clicked', () => {
+      it('should render a "Go to contributions" button that links to the contributions route', () => {
         expect(onClose).not.toHaveBeenCalled();
         tree({ organizationPlan: plan, isActive: true });
-        expect(mockHistoryPush).not.toHaveBeenCalled();
-        screen.getByRole('button', { name: /Go to contributions/i }).click();
-        expect(onClose).toHaveBeenCalledTimes(1);
-        expect(mockHistoryPush).toHaveBeenCalledWith(DONATIONS_SLUG);
-      });
 
-      it('should call onClose', () => {
-        tree({ organizationPlan: plan, isActive: true });
-        expect(onClose).not.toHaveBeenCalled();
-        const closeButtons = screen.getAllByRole('button', { name: 'Close' });
-        closeButtons.forEach((button, index) => {
-          fireEvent.click(button);
-          expect(onClose).toHaveBeenCalledTimes(index + 1);
-        });
-        expect(onClose).toHaveBeenCalledTimes(2);
+        const button = screen.getByRole('button', { name: 'Go to contributions' });
+
+        expect(button).toBeVisible();
+        expect(button).toHaveAttribute('href', DONATIONS_SLUG);
       });
 
       it('should render "FAQ" section', () => {

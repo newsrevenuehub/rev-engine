@@ -1,7 +1,7 @@
-import { FeatureFlag } from 'hooks/useFeatureFlags.types';
+import { User } from 'hooks/useUser.types';
 
-function flagIsActiveForUser(flagName: string, userFlags: FeatureFlag[]) {
-  return userFlags.some(({ name }) => name === flagName);
+function flagIsActiveForUser(flagName: string, user: User) {
+  return user.flags.some(({ name }) => name === flagName);
 }
 
 export default flagIsActiveForUser;

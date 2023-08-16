@@ -125,6 +125,13 @@ def task_pull_payment_intents(self, email_id, customers_query, stripe_account_id
             subscriptions = [x.invoice.subscription for x in pi_response if x.invoice]
             sub_cache_provider.upsert(subscriptions)
 
+        logger.info("Pulling uninvoiced subscriptions for %s", email_id)
+        uninvoiced_subs = provider.fetch_uninvoiced_subscriptions_for_contributor()
+        sub_cache_provider.upsert(uninvoiced_subs)
+        pi_cache_provider.upsert_uninvoiced_subscriptions(
+            [provider.cast_subscription_to_pi_for_portal(x) for x in uninvoiced_subs]
+        )
+
 
 @shared_task(bind=True, autoretry_for=(RateLimitError,), retry_backoff=True, retry_kwargs={"max_retries": 3})
 def email_contribution_csv_export_to_user(

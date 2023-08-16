@@ -2,6 +2,7 @@ import datetime
 import json
 import logging
 from functools import cached_property
+from typing import TypedDict
 
 from django.conf import settings
 from django.core.cache import caches
@@ -173,6 +174,24 @@ class StripePaymentIntent:
         return self.payment_intent.id
 
 
+class StripePiAsPortalContribution(TypedDict):
+    id: str
+    amount: int
+    created: datetime.datetime
+    credit_card_expiration_date: str
+    interval: ContributionInterval
+    is_cancelable: bool
+    is_modifiable: bool
+    last4: str
+    last_payment_date: datetime.datetime
+    payment_type: str
+    provider_customer_id: str
+    revenue_program: str
+    status: ContributionStatus
+    stripe_account_id: str
+    subscription_id: str
+
+
 class StripeContributionsProvider:
     def __init__(self, email_id, stripe_account_id) -> None:
         self.email_id = email_id
@@ -219,6 +238,48 @@ class StripeContributionsProvider:
         # TODO: [DEV-2193] this should probably be refactored to fetch PaymentIntents instead of Charges and expand `invoice.subscription`
         return stripe.PaymentIntent.search(**kwargs)
 
+    def fetch_uninvoiced_subscriptions_for_customer(self, customer_id: str) -> list[stripe.Subscription]:
+        logger.info("Fetching subscriptions for stripe customer id %s", customer_id)
+        subs = stripe.Subscription.list(
+            customer=customer_id,
+            expand=["data.default_payment_method"],
+            limit=MAX_STRIPE_RESPONSE_LIMIT,
+            stripe_account=self.stripe_account_id,
+            status="active",
+        )
+        return [sub for sub in subs.auto_paging_iter() if sub.latest_invoice is None]
+
+    def fetch_uninvoiced_subscriptions_for_contributor(self) -> list[stripe.Subscription]:
+        """ """
+        logger.info("Fetching uninvoiced subscriptions for contributor with email %s", self.email_id)
+        subs = []
+        for cus in self.customers:
+            subs.extend(self.fetch_uninvoiced_subscriptions_for_customer(cus))
+        logger.info("Fetched %s uninvoiced subscriptions for contributor with email %s", len(subs), self.email_id)
+        return subs
+
+    def cast_subscription_to_pi_for_portal(self, subscription: stripe.Subscription) -> StripePiAsPortalContribution:
+        """Casts a Subscription object to a PaymentIntent object for use in the Stripe Customer Portal."""
+        logger.debug("Casting subscription %s to a portal contribution", subscription.id)
+        # next step, fix the attributes
+        return StripePiAsPortalContribution(
+            id=subscription.id,
+            amount=subscription.plan.amount,
+            created=subscription.created,
+            credit_card_expiration_date=subscription.default_payment_method.card.exp_month,
+            interval=subscription.plan.interval,
+            is_cancelable=subscription,
+            is_modifiable=subscription,
+            last4=subscription.default_payment_method.card.last4,
+            last_payment_date=subscription.latest_invoice.paid_at,
+            payment_type=subscription.default_payment_method.type,
+            provider_customer_id=subscription.customer,
+            revenue_program=subscription.metadata.revenue_program_slug,
+            status=subscription.status,
+            stripe_account_id=self.stripe_account_id,
+            subscription_id=subscription.id,
+        )
+
 
 class ContributionsCacheProvider:
     def __init__(self, email_id, stripe_account_id, serializer=None, converter=None) -> None:
@@ -239,6 +300,16 @@ class ContributionsCacheProvider:
             except ContributionIgnorableError as ex:
                 logger.warning("Unable to process Contribution [%s] due to [%s]", contribution.id, type(ex))
         return data
+
+    def upsert_uninvoiced_subscriptions(self, subscriptions: list[StripePiAsPortalContribution]) -> None:
+        """"""
+        data = {x.id: x for x in subscriptions}
+        cached_data = json.loads(self.cache.get(self.key) or "{}")
+        cached_data.update(data)
+        logger.info(
+            "Inserting %s stripe subscriptions cast as portal contributions into cache with key %s", len(data), self.key
+        )
+        self.cache.set(self.key, json.dumps(cached_data, cls=DjangoJSONEncoder), timeout=CONTRIBUTION_CACHE_TTL.seconds)
 
     def upsert(self, contributions):
         """Serialized and Upserts contributions data to cache."""

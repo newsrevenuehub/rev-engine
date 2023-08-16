@@ -9,7 +9,7 @@ export const Header = styled.h2`
   margin: 0;
 `;
 
-export const LearnMoreButton = styled(LinkButton)`
+export const Button = styled(LinkButton)`
   && {
     padding: 10px 16px;
     height: 40px;

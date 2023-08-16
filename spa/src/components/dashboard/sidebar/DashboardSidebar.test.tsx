@@ -2,20 +2,19 @@ import { axe } from 'jest-axe';
 import { render, screen } from 'test-utils';
 import { USER_ROLE_HUB_ADMIN_TYPE, USER_ROLE_ORG_ADMIN_TYPE } from 'constants/authConstants';
 import { CONTENT_SECTION_ACCESS_FLAG_NAME } from 'constants/featureFlagConstants';
-import useFeatureFlags from 'hooks/useFeatureFlags';
 import useUser from 'hooks/useUser';
-import hasContributionsDashboardAccessToUser from 'utilities/hasContributionsDashboardAccessToUser';
+import hasContributionsSectionAccess from 'utilities/hasContributionsSectionAccess';
 import DashboardSidebar from './DashboardSidebar';
 
 jest.mock('components/common/OrganizationMenu/OrganizationMenu');
-jest.mock('hooks/useFeatureFlags');
 jest.mock('hooks/useUser');
-jest.mock('utilities/hasContributionsDashboardAccessToUser');
+jest.mock('utilities/hasContributionsSectionAccess');
 jest.mock('./DashboardSidebarFooter');
 jest.mock('./navs/ContentSectionNav');
 jest.mock('./navs/ContributionSectionNav');
 
 const user = {
+  flags: [],
   organizations: [{ name: 'mock-rp-name', plan: { name: 'FREE' } }],
   role_type: [USER_ROLE_ORG_ADMIN_TYPE]
 };
@@ -25,13 +24,11 @@ function tree() {
 }
 
 describe('DashboardSidebar', () => {
-  const hasContributionsDashboardAccessToUserMock = jest.mocked(hasContributionsDashboardAccessToUser);
-  const useFeatureFlagsMock = jest.mocked(useFeatureFlags);
+  const hasContributionsDashboardAccessToUserMock = jest.mocked(hasContributionsSectionAccess);
   const useUserMock = jest.mocked(useUser);
 
   beforeEach(() => {
     hasContributionsDashboardAccessToUserMock.mockReturnValue(true);
-    useFeatureFlagsMock.mockReturnValue({ isError: false, isLoading: false, flags: [] });
     useUserMock.mockReturnValue({ user } as any);
   });
 
@@ -87,11 +84,9 @@ describe('DashboardSidebar', () => {
   });
 
   it('displays the content section navigation if the user has the matching feature flag', () => {
-    useFeatureFlagsMock.mockReturnValue({
-      isError: false,
-      isLoading: false,
-      flags: [{ name: CONTENT_SECTION_ACCESS_FLAG_NAME }]
-    });
+    useUserMock.mockReturnValue({
+      user: { flags: [{ name: CONTENT_SECTION_ACCESS_FLAG_NAME }] }
+    } as any);
     tree();
     expect(screen.getByTestId('mock-content-section-nav')).toBeInTheDocument();
   });

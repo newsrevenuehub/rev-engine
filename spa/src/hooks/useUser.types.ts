@@ -1,4 +1,3 @@
-import { FeatureFlag } from './useFeatureFlags.types';
 import { UserRole } from 'constants/authConstants';
 import { EnginePlan, RevenueProgram } from './useContributionPage';
 
@@ -23,5 +22,5 @@ export interface User {
    */
   role_type: [UserRole, string];
   organizations: Organization[];
-  flags: FeatureFlag[];
+  flags: { name: string }[];
 }

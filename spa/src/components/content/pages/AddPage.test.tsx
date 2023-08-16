@@ -31,7 +31,7 @@ describe('AddPage', () => {
 
   beforeEach(() => {
     useContributionPageListMock.mockReturnValue({ isLoading: false, pages: [] });
-    useUserMock.mockReturnValue({ isLoading: false, user: {} });
+    useUserMock.mockReturnValue({ isLoading: false, user: { flags: [] } });
   });
 
   it('displays nothing if the user is not available in context', () => {
@@ -101,6 +101,7 @@ describe('AddPage', () => {
       useUserMock.mockReturnValue({
         isLoading: false,
         user: {
+          flags: [],
           revenue_programs: [
             { id: 1, name: 'rp-1' },
             { id: 2, name: 'rp-2' }
@@ -169,6 +170,7 @@ describe('AddPage', () => {
       useUserMock.mockReturnValue({
         isLoading: false,
         user: {
+          flags: [],
           organizations: [{ plan: { name: PLAN_NAMES.FREE } }],
           revenue_programs: [{ id: 'mock-rp-1' }]
         }
@@ -205,6 +207,7 @@ describe('AddPage', () => {
       useUserMock.mockReturnValue({
         isLoading: false,
         user: {
+          flags: [],
           organizations: [{ plan: { name: 'CORE' } }],
           revenue_programs: [{ id: 'mock-rp-1' }]
         }

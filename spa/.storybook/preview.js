@@ -3,6 +3,7 @@ import { ThemeProvider as MuiThemeProvider } from '@material-ui/core';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { SnackbarProvider } from 'notistack';
 import { Provider as AlertProvider } from 'react-alert';
+import { BrowserRouter } from 'react-router-dom';
 import { ThemeProvider } from 'styled-components';
 
 import Alert, { alertOptions } from 'elements/alert/Alert';
@@ -16,20 +17,22 @@ const queryClient = new QueryClient();
 // uses classes like MuiButton-5 instead of MuiButton. This helps us catch
 // styling mistakes in Storybook as opposed to the app.
 const providerFn = ({ children }) => (
-  <QueryClientProvider client={queryClient}>
-    <ThemeProvider theme={revEngineTheme}>
-      <MuiThemeProvider theme={muiThemeOverrides}>
-        <MuiThemeProvider>
-          <AlertProvider template={Alert} {...alertOptions}>
-            <SnackbarProvider anchorOrigin={{ horizontal: 'right', vertical: 'bottom' }}>
-              <AdminGlobalStyles />
-              <GlobalContext.Provider value={{ getReauth: () => {} }}>{children}</GlobalContext.Provider>
-            </SnackbarProvider>
-          </AlertProvider>
+  <BrowserRouter>
+    <QueryClientProvider client={queryClient}>
+      <ThemeProvider theme={revEngineTheme}>
+        <MuiThemeProvider theme={muiThemeOverrides}>
+          <MuiThemeProvider>
+            <AlertProvider template={Alert} {...alertOptions}>
+              <SnackbarProvider anchorOrigin={{ horizontal: 'right', vertical: 'bottom' }}>
+                <AdminGlobalStyles />
+                <GlobalContext.Provider value={{ getReauth: () => {} }}>{children}</GlobalContext.Provider>
+              </SnackbarProvider>
+            </AlertProvider>
+          </MuiThemeProvider>
         </MuiThemeProvider>
-      </MuiThemeProvider>
-    </ThemeProvider>
-  </QueryClientProvider>
+      </ThemeProvider>
+    </QueryClientProvider>
+  </BrowserRouter>
 );
 
 export const decorators = [withThemes(null, [revEngineTheme], { providerFn })];

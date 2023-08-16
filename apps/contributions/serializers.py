@@ -1,6 +1,7 @@
 import logging
+import re
 from datetime import datetime, timedelta
-from typing import Any, Literal, Optional, Union
+from typing import Any, Optional
 
 from django.conf import settings
 from django.db.models import TextChoices
@@ -276,29 +277,34 @@ class StripeMetaDataBase(pydantic.BaseModel):
         raise ValueError("Value must be a boolean, None, or castable string")
 
 
-# we define this here instead of inside `StripeMetadataSchemaV1_4` because including there was
-# causing Flake8 to complain. See here for more info:
-# https://stackoverflow.com/questions/64909849/syntax-error-with-flake8-and-pydantic-constrained-types-constrregex
-SwagChoicesString = pydantic.constr(
-    max_length=settings.METADATA_MAX_SWAG_CHOICES_LENGTH,
-    strip_whitespace=True,
-    pattern=(
-        # this pattern is meant to match prototypically on foo:bar;bizz:bang or foo:bar. The left of colon item is the swag type
-        # and the optional right of colon is the subchoice (for instance, size of a shirt). The semicolon is the delimiter between
-        # swag choices. The regex is meant to match on zero or more swag choices, and zero or one trailing semicolon.
-        rf"^ *([a-z0-9_\-]+ *{SWAG_SUB_CHOICE_DELIMITER}? *[a-z0-9_\-]*)(?{SWAG_SUB_CHOICE_DELIMITER} *{SWAG_CHOICES_DELIMITER}"
-        rf" *[a-z0-9_\-]+ *{SWAG_SUB_CHOICE_DELIMITER}? *[a-z0-9_\-]*)*{SWAG_CHOICES_DELIMITER}? *$"
-    ),
-)
-
-
 class StripeMetadataSchemaV1_4(StripeMetaDataBase):
     """This schema is used to validate and normalize the metadata that is sent to Stripe using v1.4 of the schema
     as documented elsewhere
     """
 
     schema_version: str = settings.METADATA_SCHEMA_VERSION_1_4
-    swag_choices: Union[Literal[""], SwagChoicesString, None] = None
+    swag_choices: Optional[str] = None
+
+    @pydantic.validator("swag_choices")
+    @classmethod
+    def validate_swag_choices(cls, v: Any) -> str | None:
+        """Validate swag_choices
+
+        This validator is responsible for ensuring that the swag_choices field is valid.
+        """
+        # if empty or none, return
+        if not v:
+            return v
+        if len(v) > settings.METADATA_MAX_SWAG_CHOICES_LENGTH:
+            raise ValueError("swag_choices is too long")
+        choices = v.split(SWAG_CHOICES_DELIMITER)
+        # for instance, "tshirt" or "tshirt:hoodie"
+        choice_pattern = rf"[\w-]+({SWAG_SUB_CHOICE_DELIMITER}[\w]+)?"
+        for choice in choices:
+            # we check if choice is truthy to allow for case of a hanging `;` leading to an empty choice
+            if choice and not re.fullmatch(choice_pattern, choice):
+                raise ValueError("swag_choices is not valid")
+        return v
 
 
 class BaseCreatePaymentSerializer(serializers.Serializer):

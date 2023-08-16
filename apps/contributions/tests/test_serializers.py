@@ -911,27 +911,36 @@ def valid_stripe_metadata_v1_4_data():
 
 
 class TestStripeMetadataSchemaV1_4:
-    # @pytest.mark.parametrize(
-    #     "value, e",
-    #     (
-    #         # "",
-    #         # "foo:bar",
-    #         # "foo:bar;bizz:bang",
-    #         # "foo:bar;",
-    #         # "foo",
-    #         # "foo:",
-    #         "foo ",
-    #         " foo ",
-    #         "foo : bar ; bizz : bang",
-    #         "foo : bar ; bizz : bang ;",
-    #         "foo: bar ;",
-    #     ),
-    # )
-    # def test_with_valid_swag_choices_values(self, value, valid_stripe_metadata_v1_4_data):
-    #     instance = StripeMetadataSchemaV1_4(**(valid_stripe_metadata_v1_4_data | {"swag_choices": value}))
-    #     assert instance.swag_choices == value
+    @pytest.mark.parametrize(
+        "value",
+        (
+            "",
+            "foo:bar",
+            "foo:bar;bizz:bang",
+            "foo:bar;",
+            "foo",
+            # this is an unexpected case, but allowed for now so adding to make clear it gets through
+            ";",
+        ),
+    )
+    def test_with_valid_swag_choices_values(self, value, valid_stripe_metadata_v1_4_data):
+        instance = StripeMetadataSchemaV1_4(**(valid_stripe_metadata_v1_4_data | {"swag_choices": value}))
+        assert instance.swag_choices == value
 
-    @pytest.mark.parametrize("value", (":", ";", ":bar", ":bar;"))
+    @pytest.mark.parametrize(
+        "value",
+        (
+            ":",
+            ":bar",
+            ":bar;",
+            "foo:",
+            "foo ",
+            " foo ",
+            "foo : bar ; bizz : bang",
+            "foo : bar ; bizz : bang ;",
+            "foo: bar ;",
+        ),
+    )
     def test_with_invalid_swag_choices_value(self, value, valid_stripe_metadata_v1_4_data):
         with pytest.raises(pydantic.ValidationError):
             StripeMetadataSchemaV1_4(**(valid_stripe_metadata_v1_4_data | {"swag_choices": value}))

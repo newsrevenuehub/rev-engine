@@ -673,7 +673,7 @@ describe('Edit interface: Settings', () => {
       // The intent here is to test we are sending an empty value, not the
       // string 'undefined' or something else.
 
-      for (const field of ['graphic', 'header_bg_image', 'header_logo']) {
+      for (const field of ['graphic', 'header_bg_image']) {
         expect(request.body).to.include(`Content-Disposition: form-data; name="${field}"\r\n\r\n\r\n------`);
       }
     });

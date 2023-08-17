@@ -214,6 +214,9 @@ class StripePiSearchResponse(BaseModel):
 
 
 class StripeContributionsProvider:
+    FETCH_PI_EXPAND_FIELDS = ["data.invoice.subscription.default_payment_method", "data.payment_method"]
+    FETCH_SUB_EXPAND_FIELDS = ["data.default_payment_method"]
+
     def __init__(self, email_id, stripe_account_id) -> None:
         self.email_id = email_id
         self.stripe_account_id = stripe_account_id
@@ -248,7 +251,7 @@ class StripeContributionsProvider:
     def fetch_payment_intents(self, query=None, page=None) -> StripePiSearchResponse:
         kwargs = {
             "query": query,
-            "expand": ["data.invoice.subscription.default_payment_method", "data.payment_method"],
+            "expand": self.FETCH_PI_EXPAND_FIELDS,
             "limit": MAX_STRIPE_RESPONSE_LIMIT,
             "stripe_account": self.stripe_account_id,
         }
@@ -264,12 +267,12 @@ class StripeContributionsProvider:
         logger.info("Fetching subscriptions for stripe customer id %s", customer_id)
         subs = stripe.Subscription.list(
             customer=customer_id,
-            expand=["data.default_payment_method"],
+            expand=self.FETCH_SUB_EXPAND_FIELDS,
             limit=MAX_STRIPE_RESPONSE_LIMIT,
             stripe_account=self.stripe_account_id,
             status="active",
         )
-        return [sub for sub in subs.auto_paging_iter() if sub.latest_invoice is None]
+        return [sub for sub in subs.auto_paging_iter() if not getattr(sub, "latest_invoice", None)]
 
     def fetch_uninvoiced_subscriptions_for_contributor(self) -> list[stripe.Subscription]:
         """ """
@@ -293,22 +296,29 @@ class StripeContributionsProvider:
     def cast_subscription_to_pi_for_portal(self, subscription: stripe.Subscription) -> StripePiAsPortalContribution:
         """Casts a Subscription object to a PaymentIntent object for use in the Stripe Customer Portal."""
         logger.debug("Casting subscription %s to a portal contribution", subscription.id)
-        card = subscription.default_payment_method.card or AttrDict(**{"brand": None, "last4": None, "exp_month": None})
         try:
+            card = subscription.default_payment_method.card or AttrDict(
+                **{"brand": None, "last4": None, "exp_month": None}
+            )
             return StripePiAsPortalContribution(
-                id=subscription.id,
                 amount=subscription.plan.amount,
                 created=datetime.datetime.fromtimestamp(int(subscription.created), tz=datetime.timezone.utc),
+                card_brand=card.brand,
                 credit_card_expiration_date=f"{card.exp_month}/{card.exp_year}" if card.exp_month else None,
+                id=subscription.id,
                 interval=self.get_interval_from_subscription(subscription),
                 is_cancelable=subscription.status in StripePaymentIntent.CANCELABLE_STATUSES,
                 is_modifiable=subscription.status in StripePaymentIntent.MODIFIABLE_STATUSES,
-                last4=card.last4,
                 last_payment_date=None,
+                last4=card.last4,
                 payment_type=subscription.default_payment_method.type,
                 provider_customer_id=subscription.customer,
                 revenue_program=subscription.metadata.revenue_program_slug,
-                status=subscription.status,
+                # note that subscriptions don't quite map to how we're using status when representing a Stripe PaymentIntent.
+                # For serialization etc. to work out, we need to have a status though. From contributors and org's perspective,
+                # these subscriptions are "paid" in the sense that user has already been invoice in legacy system. So we use PAID instead
+                # of introducing a new ContributionStatus just to represent this case.
+                status=ContributionStatus.PAID,
                 stripe_account_id=self.stripe_account_id,
                 subscription_id=subscription.id,
             )

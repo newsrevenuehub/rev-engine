@@ -753,22 +753,22 @@ describe('Edit interface: Styles', () => {
     cy.getByTestId('edit-style-tab').click({ force: true });
   });
 
-  it("disables the Cancel button if the user hasn't made a change", () => {
-    cy.findByRole('button', { name: 'Cancel' }).should('be.disabled');
+  it("disables the Undo button if the user hasn't made a change", () => {
+    cy.findByRole('button', { name: 'Undo' }).should('be.disabled');
   });
 
-  it('enables the Cancel button when the user makes a change', () => {
+  it('enables the Undo button when the user makes a change', () => {
     cy.findByLabelText('Heading Font', { selector: 'input' }).click();
     cy.findByText('Custom Font').click();
-    cy.findByRole('button', { name: 'Cancel' }).should('not.be.disabled');
+    cy.findByRole('button', { name: 'Undo' }).should('not.be.disabled');
   });
 
-  it('resets changes when the Cancel button is clicked', () => {
+  it('resets changes when the Undo button is clicked', () => {
     cy.findByLabelText('Heading Font', { selector: 'input' }).should('have.value', 'Select a font');
     cy.findByLabelText('Heading Font', { selector: 'input' }).click();
     cy.findByText('Custom Font').click();
     cy.findByLabelText('Heading Font', { selector: 'input' }).should('have.value', 'Custom Font');
-    cy.findByRole('button', { name: 'Cancel' }).click();
+    cy.findByRole('button', { name: 'Undo' }).click();
     cy.findByLabelText('Heading Font', { selector: 'input' }).should('have.value', 'Select a font');
   });
 });

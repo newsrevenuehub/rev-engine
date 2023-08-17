@@ -1,7 +1,7 @@
-You’ve Upgraded to Core!
+You’ve Upgraded to Core!*
 
 ------------------------
-Start enjoying your new features!
+Start enjoying your new features:
 
 - Save time with a mailchimp integration
 - Styled receipts, payment reminders, and Contributor Portal

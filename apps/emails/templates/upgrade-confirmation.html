@@ -7,6 +7,13 @@
     padding: 20px;
   }
 
+  .asterisk {
+    font-family: Roboto, sans-serif;
+    font-size: 16px;
+    font-weight: 700;
+    color: #25192B;
+  }
+
   .header-icon {
     height: 30px;
     width: 30px;
@@ -60,6 +67,10 @@
     font-size: 14px;
     margin-top: 36px;
   }
+
+  .button-wrapper {
+    margin-top: 38px;
+  }
 </style>
 {% endblock custom_style %}
 
@@ -67,14 +78,14 @@
 {% comment %} TODO: [DEV-3779] Style this email in accordance with design spec{% endcomment %}
 <h1 class="content-header" style="margin-bottom: 20px; margin-top: 0px;">
   <img class="header-icon" src="{{ check_icon }}" alt="Check icon" />
-  You’ve *Upgraded to Core!
+  You’ve Upgraded to Core!<span class="asterisk">*</span>
 </h1>
 
 <div style="height: 1px; background: #f1f1f1; margin-top: 20px; margin-bottom: 20px;">
 </div>
 
-<p class="text-sub">Start enjoying your new features!</p>
-<ul style="list-style-type: none;">
+<p class="text-sub">Start enjoying your new features:</p>
+<ul style="list-style-type: none; padding-left: 25px;">
   <li class="list-item">
     <table>
       <tr>
@@ -126,9 +137,21 @@
     Connect to Mailchimp
   </a>
 </div>
-<p class="small-text">
-  *Upgrade may not be reflected immediately. In most cases, your upgrade will be active within 30 minutes. Please allow
-  up to {{upgrade_days_wait}} business days.
-<p>
+<table>
+  <tr style="vertical-align: baseline;">
+    <td>
+      <p class="small-text">
+        *
+      <p>
+    </td>
+    <td>
+      <p class="small-text">
+        Upgrade may not be reflected immediately. In most cases, your upgrade will be active within 30 minutes. Please
+        allow
+        up to {{upgrade_days_wait}} business days.
+      <p>
+    </td>
+  </tr>
+</table>
 
-  {% endblock content %}
+{% endblock content %}

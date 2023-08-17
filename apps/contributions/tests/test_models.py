@@ -1142,7 +1142,12 @@ class TestContributionModel:
                 },
                 "font": {"heading": "mock-header-font", "body": "mock-body-font"},
             }
-            page = DonationPageFactory(revenue_program=revenue_program, styles=style, header_logo="mock-logo")
+            page = DonationPageFactory(
+                revenue_program=revenue_program,
+                styles=style,
+                header_logo="mock-logo",
+                header_logo_alt_text="Mock-Alt-Text",
+            )
             revenue_program.default_donation_page = page
             revenue_program.save()
         contribution.donation_page.revenue_program = revenue_program
@@ -1165,18 +1170,20 @@ class TestContributionModel:
         assert len(mail.outbox) == 1
 
         default_logo = os.path.join(settings.SITE_URL, "static", "nre-logo-yellow.png")
+        default_alt_text = "News Revenue Hub"
         custom_logo = 'src="/media/mock-logo"'
+        custom_alt_text = 'alt="Mock-Alt-Text"'
         custom_header_background = "background: #mock-header-background !important"
         custom_button_background = "background: #mock-button-color !important"
 
         if revenue_program.organization.plan.name == FreePlan.name or not has_default_donation_page:
-            expect_present = default_logo
-            expect_missing = (custom_logo, custom_button_background, custom_header_background)
+            expect_present = (default_logo, default_alt_text)
+            expect_missing = (custom_logo, custom_alt_text, custom_button_background, custom_header_background)
 
         else:
-            expect_present = (custom_logo, custom_header_background)
+            expect_present = (custom_logo, custom_alt_text, custom_header_background)
             # Email template doesn't have a button to apply the custom button color to
-            expect_missing = (custom_button_background, default_logo)
+            expect_missing = (custom_button_background, default_logo, default_alt_text)
 
         for x in expect_present:
             assert x in mail.outbox[0].alternatives[0][0]

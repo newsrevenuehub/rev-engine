@@ -2,7 +2,7 @@ import datetime
 import json
 import logging
 from functools import cached_property
-from typing import TypedDict
+from typing import Literal
 
 from django.conf import settings
 from django.core.cache import caches
@@ -10,6 +10,7 @@ from django.core.serializers.json import DjangoJSONEncoder
 
 import stripe
 from addict import Dict as AttrDict
+from pydantic import BaseModel
 from rest_framework import exceptions
 
 from apps.contributions.models import ContributionInterval, ContributionStatus
@@ -46,6 +47,9 @@ class StripePaymentIntent:
     If there's no Invoice associated with a Payment Intent then it's a one-time payment.
     """
 
+    CANCELABLE_STATUSES = ["trialing", "active", "past_due"]
+    MODIFIABLE_STATUSES = ["incomplete", "trialing", "active", "past_due"]
+
     def __init__(self, payment_intent):
         self.payment_intent = payment_intent
 
@@ -62,24 +66,13 @@ class StripePaymentIntent:
     def is_cancelable(self):
         if not self.payment_intent.invoice:  # one-time payment
             return False
-        if self.payment_intent.invoice.subscription.status in [
-            "incomplete",
-            "incomplete_expired",
-            "canceled",
-            "unpaid",
-        ]:
-            return False
-        # statuses "trialing", "active", and "past_due" are cancelable
-        return True
+        return self.payment_intent.invoice.subscription.status in self.CANCELABLE_STATUSES
 
     @property
     def is_modifiable(self):
         if not self.payment_intent.invoice:  # one-time payment
             return False
-        if self.payment_intent.invoice.subscription.status in ["incomplete_expired", "canceled", "unpaid"]:
-            return False
-        # statuses "incomplete", "trialing", "active", and "past_due" are modifiable
-        return True
+        return self.payment_intent.invoice.subscription.status in self.MODIFIABLE_STATUSES
 
     @property
     def interval(self):
@@ -174,22 +167,50 @@ class StripePaymentIntent:
         return self.payment_intent.id
 
 
-class StripePiAsPortalContribution(TypedDict):
-    id: str
+class StripePiAsPortalContribution(BaseModel):
     amount: int
+    card_brand: str | None
     created: datetime.datetime
-    credit_card_expiration_date: str
+    credit_card_expiration_date: str | None
+    id: str
     interval: ContributionInterval
     is_cancelable: bool
     is_modifiable: bool
-    last4: str
-    last_payment_date: datetime.datetime
+    last_payment_date: str | None
+    last4: int | None
     payment_type: str
     provider_customer_id: str
     revenue_program: str
     status: ContributionStatus
     stripe_account_id: str
-    subscription_id: str
+    subscription_id: str | None
+
+    class Config:
+        extra = "forbid"
+
+
+class StripePiSearchResponse(BaseModel):
+    """
+    Wrapper for Stripe PaymentIntent search response as documented here:
+    https://stripe.com/docs/api/pagination/search as of August 2023.
+
+
+    Its expected usage is converting the attrdict like Stripe object returned by .search to a StripePiSearchResponse.
+
+    This is desirable from a type safety perspective as it allows us to refer to be more specific than typing.Any given
+    that Stripe does not provide type hints for the objects returned by .search.
+    """
+
+    url: str
+    has_more: bool
+    data: list[stripe.PaymentIntent]
+    next_page: str | None = None
+    object: Literal["search_result"] = "search_result"
+
+    class Config:
+        # we do this to enable using `stripe.PaymentIntent` in data field type hint. Without this, pydantic will
+        # raise an error because it expects stripe.PaymentIntent to be JSON serializable, which it is not.
+        arbitrary_types_allowed = True
 
 
 class StripeContributionsProvider:
@@ -224,7 +245,7 @@ class StripeContributionsProvider:
             chunk = self.customers[i : i + MAX_STRIPE_CUSTOMERS_LIMIT]
             yield " OR ".join([f"customer:'{customer_id}'" for customer_id in chunk])
 
-    def fetch_payment_intents(self, query=None, page=None):
+    def fetch_payment_intents(self, query=None, page=None) -> StripePiSearchResponse:
         kwargs = {
             "query": query,
             "expand": ["data.invoice.subscription.default_payment_method", "data.payment_method"],
@@ -235,8 +256,9 @@ class StripeContributionsProvider:
         if page:
             kwargs["page"] = page
 
-        # TODO: [DEV-2193] this should probably be refactored to fetch PaymentIntents instead of Charges and expand `invoice.subscription`
-        return stripe.PaymentIntent.search(**kwargs)
+        # unfortunately, Stripe doesn't provide off the shelf types we can refer to in type hint for this method,
+        # so as an alternative to typing.Any we use a this dataclass wrapper to provide some type safety
+        return StripePiSearchResponse(**stripe.PaymentIntent.search(**kwargs))
 
     def fetch_uninvoiced_subscriptions_for_customer(self, customer_id: str) -> list[stripe.Subscription]:
         logger.info("Fetching subscriptions for stripe customer id %s", customer_id)
@@ -258,27 +280,43 @@ class StripeContributionsProvider:
         logger.info("Fetched %s uninvoiced subscriptions for contributor with email %s", len(subs), self.email_id)
         return subs
 
+    def get_interval_from_subscription(self, subscription: stripe.Subscription) -> ContributionInterval:
+        """Gets the ContributionInterval from a stripe.Subscription object."""
+        interval = subscription.plan.interval
+        interval_count = subscription.plan.interval_count
+        if interval == "year" and interval_count == 1:
+            return ContributionInterval.YEARLY
+        if interval == "month" and interval_count == 1:
+            return ContributionInterval.MONTHLY
+        raise InvalidIntervalError(f"Invalid interval {interval} for subscription : {subscription.id}")
+
     def cast_subscription_to_pi_for_portal(self, subscription: stripe.Subscription) -> StripePiAsPortalContribution:
         """Casts a Subscription object to a PaymentIntent object for use in the Stripe Customer Portal."""
         logger.debug("Casting subscription %s to a portal contribution", subscription.id)
-        # next step, fix the attributes
-        return StripePiAsPortalContribution(
-            id=subscription.id,
-            amount=subscription.plan.amount,
-            created=subscription.created,
-            credit_card_expiration_date=subscription.default_payment_method.card.exp_month,
-            interval=subscription.plan.interval,
-            is_cancelable=subscription,
-            is_modifiable=subscription,
-            last4=subscription.default_payment_method.card.last4,
-            last_payment_date=subscription.latest_invoice.paid_at,
-            payment_type=subscription.default_payment_method.type,
-            provider_customer_id=subscription.customer,
-            revenue_program=subscription.metadata.revenue_program_slug,
-            status=subscription.status,
-            stripe_account_id=self.stripe_account_id,
-            subscription_id=subscription.id,
-        )
+        card = subscription.default_payment_method.card or AttrDict(**{"brand": None, "last4": None, "exp_month": None})
+        try:
+            return StripePiAsPortalContribution(
+                id=subscription.id,
+                amount=subscription.plan.amount,
+                created=datetime.datetime.fromtimestamp(int(subscription.created), tz=datetime.timezone.utc),
+                credit_card_expiration_date=f"{card.exp_month}/{card.exp_year}" if card.exp_month else None,
+                interval=self.get_interval_from_subscription(subscription),
+                is_cancelable=subscription.status in StripePaymentIntent.CANCELABLE_STATUSES,
+                is_modifiable=subscription.status in StripePaymentIntent.MODIFIABLE_STATUSES,
+                last4=card.last4,
+                last_payment_date=None,
+                payment_type=subscription.default_payment_method.type,
+                provider_customer_id=subscription.customer,
+                revenue_program=subscription.metadata.revenue_program_slug,
+                status=subscription.status,
+                stripe_account_id=self.stripe_account_id,
+                subscription_id=subscription.id,
+            )
+        # We don't expect this to happen, but it's conceivable that a subscription could be missing a default payment method or card thereon
+        except AttributeError as exc:
+            raise ContributionIgnorableError(
+                f"Unable to cast subscription {subscription.id} to a portal contribution"
+            ) from exc
 
 
 class ContributionsCacheProvider:
@@ -326,11 +364,11 @@ class ContributionsCacheProvider:
             logger.info("Inserting %s contributions into cache with key %s", len(data), self.key)
             self.cache.set(self.key, json.dumps(cached_data), timeout=CONTRIBUTION_CACHE_TTL.seconds)
 
-    def load(self):
+    def load(self) -> list[StripePiAsPortalContribution]:
         data = self.cache.get(self.key)
         if not data:
             return []
-        data = [AttrDict(**x) for x in json.loads(data).values()]
+        data = [StripePiAsPortalContribution(**x) for x in json.loads(data).values()]
         logger.debug("Data to be returned %s", data)
         logger.info("Retrieved %s contributions from cache with key %s", len(data), self.key)
         return data

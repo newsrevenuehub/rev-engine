@@ -17,7 +17,8 @@ import {
   PreviewSlim,
   PromptSlim,
   FileNameSlim,
-  IconButtonSlim
+  IconButtonSlim,
+  SlimThumbnailWrapper
 } from './ImageUpload.styled';
 import addMiddleEllipsis from 'utilities/addMiddleEllipsis';
 
@@ -85,7 +86,9 @@ export function ImageUpload(props: ImageUploadProps) {
         <PreviewSlim onClick={clickOnHiddenInput}>
           {thumbnailUrl ? (
             <>
-              <SlimThumbnail src={typeof value === 'string' ? value : thumbnailUrl} alt={value?.name ?? prompt} />
+              <SlimThumbnailWrapper>
+                <SlimThumbnail src={typeof value === 'string' ? value : thumbnailUrl} alt={value?.name ?? prompt} />
+              </SlimThumbnailWrapper>
               <FileNameSlim>{addMiddleEllipsis(value?.name || thumbnailUrl)}</FileNameSlim>
             </>
           ) : (

@@ -109,6 +109,7 @@ function StylesTab({
               <TextField
                 id="headerLink"
                 label="Logo Link"
+                placeholder="e.g. https://www.fundjournalism.org"
                 onChange={(e) => setChanges({ header_link: e.target.value })}
                 value={headerLink}
                 error={!isValidWebUrl(headerLink, true)}
@@ -117,6 +118,7 @@ function StylesTab({
               <TextField
                 id="headerAltText"
                 label="Logo Alt Text"
+                placeholder="Enter logo text to assist screen readers"
                 onChange={(e) => setChanges({ header_logo_alt_text: e.target.value })}
                 value={headerAltText}
               />

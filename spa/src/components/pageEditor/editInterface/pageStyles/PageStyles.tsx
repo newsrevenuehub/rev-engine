@@ -35,7 +35,7 @@ function PageStyles() {
         cancelDisabled={!batchHasChanges}
         onCancel={resetBatch}
         onUpdate={commitBatch}
-        variant="cancel"
+        variant="undo"
       />
     </Root>
   );

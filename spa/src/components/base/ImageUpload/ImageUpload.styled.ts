@@ -79,10 +79,19 @@ export const Slim = styled.div`
   border-radius: ${({ theme }) => theme.muiBorderRadius.lg};
 `;
 
-export const SlimThumbnail = styled.img`
+export const SlimThumbnailWrapper = styled.div`
+  display: flex;
+  align-items: center;
+  justify-content: center;
   height: 64px;
   width: 64px;
+  overflow: hidden;
+`;
+
+export const SlimThumbnail = styled.img`
   border-radius: ${({ theme }) => theme.muiBorderRadius.lg};
+  max-height: 64px;
+  max-width: 64px;
 `;
 
 export const PromptSlim = styled.div`

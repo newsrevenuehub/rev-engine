@@ -658,7 +658,7 @@ describe('Edit interface: Settings', () => {
     cy.wait('@getPage');
     cy.getByTestId('edit-page-button').click();
     cy.getByTestId('edit-settings-tab').click({ force: true });
-    cy.findAllByLabelText('Remove').filter(':enabled').click({ multiple: true });
+    cy.findAllByLabelText('Remove').filter(':enabled').click({ multiple: true, force: true });
     // Accept changes
     cy.findByRole('button', { name: 'Update' }).click({ force: true });
 

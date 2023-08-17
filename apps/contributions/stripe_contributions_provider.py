@@ -261,7 +261,8 @@ class StripeContributionsProvider:
 
         # unfortunately, Stripe doesn't provide off the shelf types we can refer to in type hint for this method,
         # so as an alternative to typing.Any we use a this dataclass wrapper to provide some type safety
-        return StripePiSearchResponse(**stripe.PaymentIntent.search(**kwargs))
+        # return StripePiSearchResponse(**stripe.PaymentIntent.search(**kwargs))
+        return stripe.PaymentIntent.search(**kwargs)
 
     def fetch_uninvoiced_subscriptions_for_customer(self, customer_id: str) -> list[stripe.Subscription]:
         logger.info("Fetching subscriptions for stripe customer id %s", customer_id)

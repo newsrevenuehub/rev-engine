@@ -17,7 +17,7 @@
   .header-icon {
     height: 30px;
     width: 30px;
-    margin-bottom: -5px;
+    margin-top: 8px;
     margin-right: 7px;
   }
 
@@ -75,11 +75,21 @@
 {% endblock custom_style %}
 
 {% block content %}
-{% comment %} TODO: [DEV-3779] Style this email in accordance with design spec{% endcomment %}
-<h1 class="content-header" style="margin-bottom: 20px; margin-top: 0px;">
-  <img class="header-icon" src="{{ check_icon }}" alt="Check icon" />
-  You’ve Upgraded to Core!<span class="asterisk">*</span>
-</h1>
+<table>
+  <tr>
+    <td>
+      <img class="header-icon" src="{{ check_icon }}" alt="Check icon" />
+    </td>
+    <td>
+      <h1 class="content-header" style="margin-bottom: 0px; margin-top: 0px;">
+        You’ve Upgraded to Core!
+      </h1>
+    </td>
+    <td style="padding-top: 5px;">
+      <span class="asterisk">*</span>
+    </td>
+  </tr>
+</table>
 
 <div style="height: 1px; background: #f1f1f1; margin-top: 20px; margin-bottom: 20px;">
 </div>

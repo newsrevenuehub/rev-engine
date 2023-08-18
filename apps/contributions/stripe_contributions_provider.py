@@ -360,11 +360,13 @@ class SubscriptionsCacheProvider:
             try:
                 serialized_obj = self.serializer(instance=subscription)
                 data[subscription.id] = serialized_obj.data
+            # Note: I don't think there's a way to reach this path, as we are not initializing the serializer with data
+            # and then calling .is_valid(exception=True), but not changing for now.
             except exceptions.ValidationError as ex:
                 logger.warning("Unable to process Subscription [%s] due to [%s]", subscription.id, type(ex))
         return data
 
-    def upsert(self, subscriptions):
+    def upsert(self, subscriptions: list[stripe.Subscription]):
         """Serialized and Upserts subscriptions data to cache."""
         data = self.serialize(subscriptions)
         # Since the Stripe objects themselves don't have a field indicating the Stripe Account they came

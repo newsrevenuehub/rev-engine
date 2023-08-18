@@ -176,9 +176,10 @@ class StripePiAsPortalContribution(BaseModel):
     interval: ContributionInterval
     is_cancelable: bool
     is_modifiable: bool
-    last_payment_date: str | None
+    # this can be None in case of uninvoiced subscriptions (aka, legacy contributions that have been imported)
+    last_payment_date: datetime.datetime | None
     last4: int | None
-    payment_type: str
+    payment_type: str | None
     provider_customer_id: str
     revenue_program: str
     status: ContributionStatus

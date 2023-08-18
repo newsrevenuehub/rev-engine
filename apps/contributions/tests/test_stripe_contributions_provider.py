@@ -14,6 +14,7 @@ from apps.contributions.stripe_contributions_provider import (
     MAX_STRIPE_CUSTOMERS_LIMIT,
     MAX_STRIPE_RESPONSE_LIMIT,
     ContributionIgnorableError,
+    ContributionsCacheProvider,
     InvalidIntervalError,
     InvalidMetadataError,
     StripeContributionsProvider,
@@ -473,7 +474,16 @@ class TestStripeContributionsProvider:
 
 class TestContributionsCacheProvider:
     def test__init__(self):
-        pass
+        provider = ContributionsCacheProvider(
+            email_id=(email := "foo@bar.com"),
+            stripe_account_id=(id := "some-account-id"),
+            serializer=(serializer := "truthy-serializer"),
+            converter=(converter := "truthy-converter"),
+        )
+        assert provider.key == f"{email}-payment-intents-{id}"
+        assert provider.stripe_account_id == id
+        assert provider.serializer == serializer
+        assert provider.converter == converter
 
     def test_serialize(self):
         pass

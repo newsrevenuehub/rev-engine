@@ -156,9 +156,9 @@ class ContributionQuerySet(models.QuerySet):
         return [
             x
             for x in contributions
-            if x.get("revenue_program") == revenue_program.slug
-            and x.get("payment_type") is not None
-            and x.get("status") == ContributionStatus.PAID.value
+            if x.revenue_program == revenue_program.slug
+            and x.payment_type is not None
+            and x.status == ContributionStatus.PAID.value
         ]
 
     def filtered_by_role_assignment(self, role_assignment: RoleAssignment) -> models.QuerySet:

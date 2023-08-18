@@ -127,12 +127,12 @@ class StripePaymentIntent:
         return self.payment_intent.customer
 
     @property
-    def last_payment_date(self):
+    def last_payment_date(self) -> datetime.datetime | None:
         if not self.payment_intent.invoice:
             return datetime.datetime.fromtimestamp(int(self.payment_intent.created), tz=datetime.timezone.utc)
-        return datetime.datetime.fromtimestamp(
-            int(self.payment_intent.invoice.status_transitions.paid_at), tz=datetime.timezone.utc
-        )
+        # note on this
+        paid_at = getattr(self.payment_intent.invoice.status_transitions, "paid_at", None)
+        return paid_at if paid_at is None else datetime.datetime.fromtimestamp(int(paid_at), tz=datetime.timezone.utc)
 
     @property
     def status(self):
@@ -261,8 +261,9 @@ class StripeContributionsProvider:
 
         # unfortunately, Stripe doesn't provide off the shelf types we can refer to in type hint for this method,
         # so as an alternative to typing.Any we use a this dataclass wrapper to provide some type safety
-        # return StripePiSearchResponse(**stripe.PaymentIntent.search(**kwargs))
-        return stripe.PaymentIntent.search(**kwargs)
+
+        # add big warning about how counterintuitive the returned stripe object is!
+        return StripePiSearchResponse(**stripe.PaymentIntent.search(**kwargs))
 
     def fetch_uninvoiced_subscriptions_for_customer(self, customer_id: str) -> list[stripe.Subscription]:
         logger.info("Fetching subscriptions for stripe customer id %s", customer_id)

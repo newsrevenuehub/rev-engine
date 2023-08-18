@@ -119,11 +119,11 @@ def task_pull_payment_intents_and_uninvoiced_subs(self, email_id, customers_quer
         # iterate through all pages of stripe payment intents
         logger.info("Pulling payment intents for email %s with query %s", email_id, customers_query)
         while keep_going:
-            pi_response = provider.fetch_payment_intents(query=customers_query)
-            pi_cache_provider.upsert(pi_response)
-            subscriptions = [x.invoice.subscription for x in pi_response if x.invoice]
+            pi_search_response = provider.fetch_payment_intents(query=customers_query)
+            pi_cache_provider.upsert(pi_search_response.data)
+            subscriptions = [x.invoice.subscription for x in pi_search_response if x.invoice]
             sub_cache_provider.upsert(subscriptions)
-            keep_going = pi_response.has_more
+            keep_going = pi_search_response.has_more
         logger.info("Pulling uninvoiced subscriptions for %s", email_id)
         uninvoiced_subs = provider.fetch_uninvoiced_subscriptions_for_contributor()
         sub_cache_provider.upsert(uninvoiced_subs)

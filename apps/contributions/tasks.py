@@ -17,15 +17,10 @@ from stripe.error import RateLimitError
 
 from apps.contributions.models import Contribution, ContributionStatus
 from apps.contributions.payment_managers import PaymentProviderError
-from apps.contributions.serializers import (
-    PaymentProviderContributionSerializer,
-    SubscriptionsSerializer,
-)
 from apps.contributions.stripe_contributions_provider import (
     ContributionIgnorableError,
     ContributionsCacheProvider,
     StripeContributionsProvider,
-    StripePaymentIntent,
     SubscriptionsCacheProvider,
 )
 from apps.contributions.utils import export_contributions_to_csv
@@ -107,13 +102,10 @@ def task_pull_payment_intents_and_uninvoiced_subs(self, email_id, customers_quer
         pi_cache_provider = ContributionsCacheProvider(
             email_id,
             stripe_account_id,
-            serializer=PaymentProviderContributionSerializer,
-            converter=StripePaymentIntent,
         )
         sub_cache_provider = SubscriptionsCacheProvider(
             email_id,
             stripe_account_id,
-            serializer=SubscriptionsSerializer,
         )
         keep_going = True
         page = None

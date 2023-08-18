@@ -1,4 +1,5 @@
 import datetime
+import json
 from unittest.mock import patch
 
 from django.test import TestCase
@@ -6,10 +7,14 @@ from django.test import TestCase
 import pytest
 import stripe
 from addict import Dict as AttrDict
+from rest_framework.utils.serializer_helpers import ReturnDict
 
 from apps.common.tests.test_resources import AbstractTestCase
 from apps.contributions.models import ContributionInterval, ContributionStatus
-from apps.contributions.serializers import SubscriptionsSerializer
+from apps.contributions.serializers import (
+    PaymentProviderContributionSerializer,
+    SubscriptionsSerializer,
+)
 from apps.contributions.stripe_contributions_provider import (
     MAX_STRIPE_CUSTOMERS_LIMIT,
     MAX_STRIPE_RESPONSE_LIMIT,
@@ -19,11 +24,11 @@ from apps.contributions.stripe_contributions_provider import (
     InvalidMetadataError,
     StripeContributionsProvider,
     StripePaymentIntent,
-    StripePiAsPortalContribution,
-    StripePiSearchResponse,
     SubscriptionsCacheProvider,
+    logger,
 )
 from apps.contributions.tests import RedisMock
+from apps.contributions.types import StripePiAsPortalContribution, StripePiSearchResponse
 
 
 class AbstractTestStripeContributions(TestCase):
@@ -472,45 +477,131 @@ class TestStripeContributionsProvider:
             provider.cast_subscription_to_pi_for_portal(sub)
 
 
+@pytest.fixture()
+def mock_redis_cache_for_pis_factory(mocker):
+    class Factory:
+        def get(self, cache_provider):
+            redis_mock = RedisMock()
+            mocker.patch.object(cache_provider, "cache", redis_mock)
+            return redis_mock
+
+    return Factory()
+
+
+@pytest.fixture
+def mock_redis_cache_for_subs(mocker):
+    redis_mock = RedisMock()
+    mocker.patch.object(SubscriptionsCacheProvider, "cache", redis_mock)
+    return redis_mock
+
+
 class TestContributionsCacheProvider:
-    def test__init__(self):
-        provider = ContributionsCacheProvider(
-            email_id=(email := "foo@bar.com"),
-            stripe_account_id=(id := "some-account-id"),
-            serializer=(serializer := "truthy-serializer"),
-            converter=(converter := "truthy-converter"),
+    EMAIL_ID = "foo@bar.com"
+    STRIPE_ACCOUNT_ID = "test"
+
+    def get_cache_provider(self):
+        return ContributionsCacheProvider(
+            stripe_account_id=self.STRIPE_ACCOUNT_ID,
+            email_id=self.EMAIL_ID,
         )
-        assert provider.key == f"{email}-payment-intents-{id}"
-        assert provider.stripe_account_id == id
-        assert provider.serializer == serializer
-        assert provider.converter == converter
 
-    def test_serialize(self):
-        pass
+    def test__init__(self):
+        provider = self.get_cache_provider()
+        assert provider.key == f"{self.EMAIL_ID}-payment-intents-{self.STRIPE_ACCOUNT_ID}"
+        assert provider.stripe_account_id == self.STRIPE_ACCOUNT_ID
 
-    def test_serialize_when_contribution_ignorable_error(self):
-        pass
+    def test_serialize(self, pi_for_active_subscription_factory, pi_for_valid_one_time_factory):
+        provider = self.get_cache_provider()
+        data = provider.serialize(
+            [(pi_1 := pi_for_active_subscription_factory.get()), (pi_2 := pi_for_valid_one_time_factory.get())]
+        )
+        for x in [pi_1, pi_2]:
+            serialized = data[x.id]
+            assert isinstance(serialized, ReturnDict)
+            assert isinstance(serialized.serializer, PaymentProviderContributionSerializer)
 
-    def test_upsert_uninvoiced_subscriptions(self):
-        pass
+    def test_serialize_when_contribution_ignorable_error(self, mocker, pi_for_valid_one_time_factory):
+        logger_spy = mocker.spy(logger, "warning")
+        pi = pi_for_valid_one_time_factory.get()
+        # StripePiAsPortalContribution will raise an InvalidMetadataError
+        # if this key is not in metadata
+        del pi.metadata["revenue_program_slug"]
+        provider = self.get_cache_provider()
+        data = provider.serialize([pi])
+        assert data == {}
+        logger_spy.assert_called_once_with("Unable to process Contribution [%s]", pi.id, exc_info=mocker.ANY)
 
-    def test_upsert_uninvoiced_subscriptions_overwrite(self):
-        pass
+    # def test_upsert_uninvoiced_subscriptions(self):
+    #     provider = self.get_cache_provider()
 
-    def test_upsert_uninvoiced_subscriptions_override(self):
-        pass
+    # def test_upsert_uninvoiced_subscriptions_overwrite(self):
+    #     provider = self.get_cache_provider()
 
-    def test_upsert(self):
-        pass
+    # def test_upsert_uninvoiced_subscriptions_override(self):
+    #     provider = self.get_cache_provider()
 
-    def test_upsert_overwrite(self):
-        pass
+    def test_upsert(self, pi_for_valid_one_time_factory, mock_redis_cache_for_pis_factory):
+        provider = self.get_cache_provider()
+        mock_redis_cache_for_pis = mock_redis_cache_for_pis_factory.get(provider)
+        provider.upsert((pis := [pi_for_valid_one_time_factory.get()]))
+        cached = json.loads(
+            mock_redis_cache_for_pis._data.get(f"{self.EMAIL_ID}-payment-intents-{self.STRIPE_ACCOUNT_ID}")
+        )
+        for x in pis:
+            assert cached[x.id] == dict(provider.serializer(instance=provider.converter(x)).data) | {
+                "stripe_account_id": self.STRIPE_ACCOUNT_ID
+            }
 
-    def test_upsert_override(self):
-        pass
+    def test_upsert_overwrite(self, pi_for_valid_one_time_factory, mock_redis_cache_for_pis_factory):
+        provider = self.get_cache_provider()
+        mock_redis_cache_for_pis = mock_redis_cache_for_pis_factory.get(provider)
+        provider.upsert([(pi := pi_for_valid_one_time_factory.get())])
+        cached = json.loads(
+            mock_redis_cache_for_pis._data.get(f"{self.EMAIL_ID}-payment-intents-{self.STRIPE_ACCOUNT_ID}")
+        )
+        assert len(cached) == 1
+        assert pi.id in cached
+        pi_2 = pi_for_valid_one_time_factory.get()
+        # ensure different id
+        pi_2.id = pi.id[::-1]
+        provider.upsert([pi_2])
+        cached = json.loads(
+            mock_redis_cache_for_pis._data.get(f"{self.EMAIL_ID}-payment-intents-{self.STRIPE_ACCOUNT_ID}")
+        )
+        assert len(cached) == 2
+        assert pi.id in cached
+        assert pi_2.id in cached
 
-    def test_load(self):
-        pass
+    def test_upsert_updates(self, mock_redis_cache_for_pis_factory, pi_for_valid_one_time_factory):
+        provider = self.get_cache_provider()
+        mock_redis_cache_for_pis = mock_redis_cache_for_pis_factory.get(provider)
+        provider.upsert([(pi := pi_for_valid_one_time_factory.get())])
+        cached = json.loads(
+            mock_redis_cache_for_pis._data.get(f"{self.EMAIL_ID}-payment-intents-{self.STRIPE_ACCOUNT_ID}")
+        )
+        assert cached[pi.id]["amount"] == pi.amount
+        pi.amount = (new_amount := pi.amount + 100)
+        provider.upsert([pi])
+        cached = json.loads(
+            mock_redis_cache_for_pis._data.get(f"{self.EMAIL_ID}-payment-intents-{self.STRIPE_ACCOUNT_ID}")
+        )
+        assert cached[pi.id]["amount"] == new_amount
+
+    def test_load_when_no_data(self, mock_redis_cache_for_pis_factory):
+        provider = self.get_cache_provider()
+        mock_redis_cache_for_pis_factory.get(provider)
+        assert provider.load() == []
+
+    def test_load_happy_path(self, mock_redis_cache_for_pis_factory, pi_for_valid_one_time_factory):
+        provider = self.get_cache_provider()
+        mock_redis_cache_for_pis_factory.get(provider)
+        provider.upsert([(pi := pi_for_valid_one_time_factory.get())])
+        assert provider.load()[0] == StripePiAsPortalContribution(
+            **(
+                dict(provider.serializer(instance=provider.converter(pi)).data)
+                | {"stripe_account_id": provider.stripe_account_id}
+            )
+        )
 
 
 # class TestContributionsCacheProvider(AbstractTestStripeContributions):

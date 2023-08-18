@@ -2,7 +2,6 @@ import datetime
 import json
 import logging
 from functools import cached_property
-from typing import Literal
 
 from django.conf import settings
 from django.core.cache import caches
@@ -10,10 +9,14 @@ from django.core.serializers.json import DjangoJSONEncoder
 
 import stripe
 from addict import Dict as AttrDict
-from pydantic import BaseModel
 from rest_framework import exceptions
 
 from apps.contributions.models import ContributionInterval, ContributionStatus
+from apps.contributions.serializers import (
+    PaymentProviderContributionSerializer,
+    SubscriptionsSerializer,
+)
+from apps.contributions.types import StripePiAsPortalContribution, StripePiSearchResponse
 from revengine.settings.base import CONTRIBUTION_CACHE_TTL, DEFAULT_CACHE
 
 
@@ -167,53 +170,6 @@ class StripePaymentIntent:
         return self.payment_intent.id
 
 
-class StripePiAsPortalContribution(BaseModel):
-    amount: int
-    card_brand: str | None
-    created: datetime.datetime
-    credit_card_expiration_date: str | None
-    id: str
-    interval: ContributionInterval
-    is_cancelable: bool
-    is_modifiable: bool
-    # this can be None in case of uninvoiced subscriptions (aka, legacy contributions that have been imported)
-    last_payment_date: datetime.datetime | None
-    last4: int | None
-    payment_type: str | None
-    provider_customer_id: str
-    revenue_program: str
-    status: ContributionStatus
-    stripe_account_id: str
-    subscription_id: str | None
-
-    class Config:
-        extra = "forbid"
-
-
-class StripePiSearchResponse(BaseModel):
-    """
-    Wrapper for Stripe PaymentIntent search response as documented here:
-    https://stripe.com/docs/api/pagination/search as of August 2023.
-
-
-    Its expected usage is converting the attrdict like Stripe object returned by .search to a StripePiSearchResponse.
-
-    This is desirable from a type safety perspective as it allows us to refer to be more specific than typing.Any given
-    that Stripe does not provide type hints for the objects returned by .search.
-    """
-
-    url: str
-    has_more: bool
-    data: list[stripe.PaymentIntent]
-    next_page: str | None = None
-    object: Literal["search_result"] = "search_result"
-
-    class Config:
-        # we do this to enable using `stripe.PaymentIntent` in data field type hint. Without this, pydantic will
-        # raise an error because it expects stripe.PaymentIntent to be JSON serializable, which it is not.
-        arbitrary_types_allowed = True
-
-
 class StripeContributionsProvider:
     FETCH_PI_EXPAND_FIELDS = ["data.invoice.subscription.default_payment_method", "data.payment_method"]
     FETCH_SUB_EXPAND_FIELDS = ["data.default_payment_method"]
@@ -333,10 +289,12 @@ class StripeContributionsProvider:
 
 
 class ContributionsCacheProvider:
-    def __init__(self, email_id, stripe_account_id, serializer=None, converter=None) -> None:
+    cache = caches[DEFAULT_CACHE]
+    serializer = PaymentProviderContributionSerializer
+    converter = StripePaymentIntent
+
+    def __init__(self, email_id, stripe_account_id) -> None:
         self.cache = caches[DEFAULT_CACHE]
-        self.serializer = serializer
-        self.converter = converter
         self.stripe_account_id = stripe_account_id
 
         self.key = f"{email_id}-payment-intents-{self.stripe_account_id}"
@@ -349,7 +307,7 @@ class ContributionsCacheProvider:
                 serialized_obj = self.serializer(instance=self.converter(pi))
                 data[pi.id] = serialized_obj.data
             except ContributionIgnorableError as ex:
-                logger.warning("Unable to process Contribution [%s] due to [%s]", pi.id, type(ex))
+                logger.warning("Unable to process Contribution [%s]", pi.id, exc_info=ex)
         return data
 
     def upsert_uninvoiced_subscriptions(self, subscriptions: list[StripePiAsPortalContribution]) -> None:
@@ -388,12 +346,11 @@ class ContributionsCacheProvider:
 
 
 class SubscriptionsCacheProvider:
-    # TODO: [DEV-2449] reduce duplication with ContributionsCacheProvider
-    def __init__(self, email_id, stripe_account_id, serializer=None) -> None:
-        self.cache = caches[DEFAULT_CACHE]
-        self.serializer = serializer
-        self.stripe_account_id = stripe_account_id
+    cache = caches[DEFAULT_CACHE]
+    serializer = SubscriptionsSerializer
 
+    def __init__(self, email_id, stripe_account_id) -> None:
+        self.stripe_account_id = stripe_account_id
         self.key = f"{email_id}-subscriptions-{self.stripe_account_id}"
 
     def serialize(self, subscriptions):

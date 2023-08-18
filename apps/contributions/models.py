@@ -18,7 +18,7 @@ from stripe.error import StripeError
 from apps.api.tokens import ContributorRefreshToken
 from apps.common.models import IndexedTimeStampedModel
 from apps.contributions.choices import BadActorScores, ContributionInterval, ContributionStatus
-from apps.contributions.stripe_contributions_provider import StripePiAsPortalContribution
+from apps.contributions.types import StripePiAsPortalContribution
 from apps.emails.tasks import make_send_thank_you_email_data, send_thank_you_email
 from apps.organizations.models import RevenueProgram
 from apps.users.choices import Roles

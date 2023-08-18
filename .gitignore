@@ -19,8 +19,6 @@ env-local.sh
 .direnv
 local-google-sa
 # Project Static Files
-package-lock.json
-package.json
 node_modules/*
 static/*
 public/static/

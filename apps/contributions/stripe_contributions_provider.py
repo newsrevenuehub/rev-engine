@@ -340,20 +340,20 @@ class ContributionsCacheProvider:
 
         self.key = f"{email_id}-payment-intents-{self.stripe_account_id}"
 
-    def serialize(self, contributions):
+    def serialize(self, payment_intents: list[stripe.PaymentIntent]) -> dict[str, dict]:
         """Serializes the stripe.PaymentIntent object into json."""
         data = {}
-        for contribution in contributions:
+        for pi in payment_intents:
             try:
-                serialized_obj = self.serializer(instance=self.converter(contribution))
-                data[contribution.id] = serialized_obj.data
+                serialized_obj = self.serializer(instance=self.converter(pi))
+                data[pi.id] = serialized_obj.data
             except ContributionIgnorableError as ex:
-                logger.warning("Unable to process Contribution [%s] due to [%s]", contribution.id, type(ex))
+                logger.warning("Unable to process Contribution [%s] due to [%s]", pi.id, type(ex))
         return data
 
     def upsert_uninvoiced_subscriptions(self, subscriptions: list[StripePiAsPortalContribution]) -> None:
         """"""
-        data = {x.id: x for x in subscriptions}
+        data = {x.id: dict(x) for x in subscriptions}
         cached_data = json.loads(self.cache.get(self.key) or "{}")
         cached_data.update(data)
         logger.info(

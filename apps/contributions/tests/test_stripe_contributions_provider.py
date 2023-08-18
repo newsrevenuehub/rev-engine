@@ -530,23 +530,53 @@ class TestContributionsCacheProvider:
         assert data == {}
         logger_spy.assert_called_once_with("Unable to process Contribution [%s]", pi.id, exc_info=mocker.ANY)
 
-    # def test_upsert_uninvoiced_subscriptions(self, mock_redis_cache_for_pis_factory, subscription_factory):
-    #     # contributions_provider = StripeContributionsProvider(self.EMAIL_ID, self.STRIPE_ACCOUNT_ID)
-    #     cache_provider = self.get_cache_provider()
-    #     mock_redis_cache_for_pis = mock_redis_cache_for_pis_factory.get(cache_provider)
-    #     subscription = subscription_factory.get()
-    #     cache_provider.upsert_uninvoiced_subscriptions([subscription])
-    #     cached = json.loads(
-    #         mock_redis_cache_for_pis._data.get(f"{self.EMAIL_ID}-payment-intents-{self.STRIPE_ACCOUNT_ID}")
-    #     )
-    # breakpoint()
-    # assert cached[subscription.id] == dict(pi_as_portal_contribution)
+    def test_upsert_uninvoiced_subscriptions(self, mock_redis_cache_for_pis_factory, subscription_factory):
+        cache_provider = self.get_cache_provider()
+        mock_redis_cache_for_pis = mock_redis_cache_for_pis_factory.get(cache_provider)
+        subscription = subscription_factory.get()
+        cache_provider.upsert_uninvoiced_subscriptions([subscription])
+        cached = json.loads(
+            mock_redis_cache_for_pis._data.get(f"{self.EMAIL_ID}-payment-intents-{self.STRIPE_ACCOUNT_ID}")
+        )
+        assert cached[subscription.id]["id"] == subscription.id
 
-    # def test_upsert_uninvoiced_subscriptions_overwrite(self):
-    #     provider = self.get_cache_provider()
+    def test_upsert_uninvoiced_subscriptions_overwrite(self, subscription_factory, mock_redis_cache_for_pis_factory):
+        cache_provider = self.get_cache_provider()
+        mock_redis_cache_for_pis = mock_redis_cache_for_pis_factory.get(cache_provider)
+        subscription = subscription_factory.get()
+        cache_provider.upsert_uninvoiced_subscriptions([subscription])
+        cached = json.loads(
+            mock_redis_cache_for_pis._data.get(f"{self.EMAIL_ID}-payment-intents-{self.STRIPE_ACCOUNT_ID}")
+        )
+        assert len(cached) == 1
+        assert cached[subscription.id]["created"] == subscription.created
+        sub2 = subscription_factory.get()
+        # ensure different ID
+        sub2.id = subscription.id[::-1]
+        cache_provider.upsert_uninvoiced_subscriptions([sub2])
+        cached = json.loads(
+            mock_redis_cache_for_pis._data.get(f"{self.EMAIL_ID}-payment-intents-{self.STRIPE_ACCOUNT_ID}")
+        )
+        assert len(cached) == 2
+        for k in [subscription.id, sub2.id]:
+            assert k in cached
 
-    # def test_upsert_uninvoiced_subscriptions_override(self):
-    #     provider = self.get_cache_provider()
+    def test_upsert_uninvoiced_subscriptions_override(self, mock_redis_cache_for_pis_factory, subscription_factory):
+        cache_provider = self.get_cache_provider()
+        mock_redis_cache_for_pis = mock_redis_cache_for_pis_factory.get(cache_provider)
+        subscription = subscription_factory.get()
+        cache_provider.upsert_uninvoiced_subscriptions([subscription])
+        cached = json.loads(
+            mock_redis_cache_for_pis._data.get(f"{self.EMAIL_ID}-payment-intents-{self.STRIPE_ACCOUNT_ID}")
+        )
+        assert cached[subscription.id]["created"] == subscription.created
+        subscription.created = subscription.created + 1000
+        cache_provider.upsert_uninvoiced_subscriptions([subscription])
+        cached = json.loads(
+            mock_redis_cache_for_pis._data.get(f"{self.EMAIL_ID}-payment-intents-{self.STRIPE_ACCOUNT_ID}")
+        )
+        assert len(cached) == 1
+        assert cached[subscription.id]["created"] == subscription.created
 
     def test_upsert(self, pi_for_valid_one_time_factory, mock_redis_cache_for_pis_factory):
         provider = self.get_cache_provider()

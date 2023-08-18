@@ -121,7 +121,7 @@ def task_pull_payment_intents_and_uninvoiced_subs(self, email_id, customers_quer
         while keep_going:
             pi_search_response = provider.fetch_payment_intents(query=customers_query)
             pi_cache_provider.upsert(pi_search_response.data)
-            subscriptions = [x.invoice.subscription for x in pi_search_response if x.invoice]
+            subscriptions = [x.invoice.subscription for x in pi_search_response.data if x.invoice]
             sub_cache_provider.upsert(subscriptions)
             keep_going = pi_search_response.has_more
         logger.info("Pulling uninvoiced subscriptions for %s", email_id)

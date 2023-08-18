@@ -1,4 +1,5 @@
 import logging
+import os
 
 from django.conf import settings
 from django.contrib.auth import get_user_model
@@ -142,6 +143,11 @@ class OrganizationViewSet(
             .distinct("user__email")
         ):
             context = {
+                "logo_url": os.path.join(settings.SITE_URL, "static", "nre_logo_black_yellow.png"),
+                "plus_icon": os.path.join(settings.SITE_URL, "static", "plus-icon.png"),
+                "mail_icon": os.path.join(settings.SITE_URL, "static", "mail-icon.png"),
+                "paint_icon": os.path.join(settings.SITE_URL, "static", "paint-icon.png"),
+                "check_icon": os.path.join(settings.SITE_URL, "static", "check-icon.png"),
                 "mailchimp_integration_url": cls.generate_integrations_management_url(org),
                 "upgrade_days_wait": settings.UPGRADE_DAYS_WAIT,
             }

@@ -81,6 +81,20 @@ export interface ContributionFormExtraData {
   salesforceCampaignId?: string;
 }
 
+export interface SerializedContributionForm extends ReturnType<typeof serializeForm> {
+  agreed_to_pay_fees: boolean;
+  amount: string;
+  captcha_token: string;
+  currency: string;
+  donation_page_slug: string;
+  donor_selected_amount: string;
+  mailing_country: string;
+  page: string;
+  revenue_program_country: string;
+  revenue_program_slug: string;
+  sf_campaign_id: string | null;
+}
+
 /**
  * serializeData takes a ref to a form, turns it into a javascript object, then merges in non-form state.
  * @param {object} formRef - a reference to the form element containing all our inputs
@@ -105,7 +119,9 @@ export function serializeData(formRef: HTMLFormElement, state: ContributionFormE
     serializedData.sf_campaign_id = state.salesforceCampaignId;
   }
 
-  return serializedData;
+  // Cast is needed here because we're making the interface more strict.
+
+  return serializedData as SerializedContributionForm;
 }
 
 /**
@@ -206,9 +222,9 @@ export function getPaymentSuccessUrl({
   // set up, that page can appear at rev-program-slug.revengine.com/ (with no page), in which
   // case, the thank-you page URL can be rev-program-slug.revengine.com/thank-you.
   paymentSuccessUrl.search = new URLSearchParams({
-    amount,
     pageSlug,
     rpSlug,
+    amount: amount.toString(),
     email: contributorEmail,
     frequency: frequencyDisplayValue,
     fromPath: pathName === '/' ? '' : pathName,

@@ -12,15 +12,10 @@ import stripe.error
 from apps.contributions import tasks as contribution_tasks
 from apps.contributions.models import Contribution, ContributionStatus
 from apps.contributions.payment_managers import PaymentProviderError
-from apps.contributions.serializers import (
-    PaymentProviderContributionSerializer,
-    SubscriptionsSerializer,
-)
 from apps.contributions.stripe_contributions_provider import (
     ContributionIgnorableError,
     ContributionsCacheProvider,
     StripeContributionsProvider,
-    StripePaymentIntent,
     StripePiSearchResponse,
     SubscriptionsCacheProvider,
 )
@@ -179,12 +174,8 @@ class TestTaskPullPaymentIntentsAndUninvoicedSubs:
             mocker.ANY,
             email,
             stripe_account,
-            serializer=PaymentProviderContributionSerializer,
-            converter=StripePaymentIntent,
         )
-        subscriptions_cache_init_spy.assert_called_once_with(
-            mocker.ANY, email, stripe_account, serializer=SubscriptionsSerializer
-        )
+        subscriptions_cache_init_spy.assert_called_once_with(mocker.ANY, email, stripe_account)
         contributions_provider_init_spy.assert_called_once_with(mocker.ANY, email, stripe_account)
         # the first pi search result has `has_more=True` so we expect two calls in next two lines
         assert mock_fetch_pis.call_count == 2

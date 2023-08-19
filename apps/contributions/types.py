@@ -32,8 +32,7 @@ class StripePiAsPortalContribution(BaseModel):
 
 class StripePiSearchResponse(BaseModel):
     """
-    Wrapper for Stripe PaymentIntent search response as documented here:
-    https://stripe.com/docs/api/pagination/search as of August 2023.
+    Wrapper for Stripe PaymentIntent search response as documented in Stripe API docs.
 
 
     Its expected usage is converting the attrdict like Stripe object returned by .search to a StripePiSearchResponse.

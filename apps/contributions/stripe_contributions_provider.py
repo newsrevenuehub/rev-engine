@@ -219,8 +219,6 @@ class StripeContributionsProvider:
 
         # unfortunately, Stripe doesn't provide off the shelf types we can refer to in type hint for this method,
         # so as an alternative to typing.Any we use a this dataclass wrapper to provide some type safety
-
-        # add big warning about how counterintuitive the returned stripe object is!
         return StripePiSearchResponse(**stripe.PaymentIntent.search(**kwargs))
 
     def fetch_uninvoiced_subscriptions_for_customer(self, customer_id: str) -> list[stripe.Subscription]:
@@ -324,7 +322,9 @@ class ContributionsCacheProvider:
         return data
 
     def upsert_uninvoiced_subscriptions(self, subscriptions: list[StripePiAsPortalContribution]) -> None:
-        """"""
+        """Upsert uninvoiced subscriptions into the cache as though they were "normal" contributions (that always have a payment intent
+        associated with them).
+        """
         data = {x.id: dict(x) for x in subscriptions}
         cached_data = json.loads(self.cache.get(self.key) or "{}")
         cached_data.update(data)

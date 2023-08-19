@@ -8,6 +8,7 @@ from django.template.loader import render_to_string
 
 import pytest
 import stripe.error
+from requests.exceptions import RequestException
 
 from apps.contributions import tasks as contribution_tasks
 from apps.contributions.models import Contribution, ContributionStatus
@@ -366,3 +367,24 @@ class TestTaskverifyAppleDomain:
             contribution_tasks.task_verify_apple_domain(revenue_program_slug=(slug := "slug"))
         rp.stripe_create_apple_pay_domain.assert_called_once()
         mock_get_rp.assert_called_with(slug=slug)
+
+
+class TestPingHealthChecks:
+    def test_when_healthchecks_url_not_truthy(self, mocker):
+        logger_spy = mocker.spy(contribution_tasks.logger, "warning")
+        mock_requests_get = mocker.patch("requests.get")
+        contribution_tasks.ping_healthchecks(check_name=(check_name := "foo"), healthcheck_url=None)
+        mock_requests_get.assert_not_called()
+        logger_spy.assert_called_once_with("URL for %s not available in this environment", check_name)
+
+    def test_happy_path(self, mocker):
+        mock_requests_get = mocker.patch("requests.get")
+        contribution_tasks.ping_healthchecks(check_name="foo", healthcheck_url=(url := "https://foo"))
+        mock_requests_get.assert_called_once_with(url, timeout=1)
+
+    def test_when_request_exception(self, mocker):
+        logger_spy = mocker.spy(contribution_tasks.logger, "warning")
+        mocker.patch("requests.get", side_effect=RequestException("Uh oh"))
+        contribution_tasks.ping_healthchecks(check_name=(check_name := "foo"), healthcheck_url="https://foo")
+        for i, x in enumerate(logger_spy.call_args_list):
+            assert x == mocker.call("Request %s for %s healthcheck failed", i + 1, check_name)

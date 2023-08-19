@@ -133,7 +133,8 @@ class StripePaymentIntent:
     def last_payment_date(self) -> datetime.datetime | None:
         if not self.payment_intent.invoice:
             return datetime.datetime.fromtimestamp(int(self.payment_intent.created), tz=datetime.timezone.utc)
-        # note on this
+        # Unclear if this can happen in prod, but in review app, and working on DEV-3762, there was at least one
+        # payment intent encountered that had None for invoice.status_transitions.paid_at, which caused an error here.
         paid_at = getattr(self.payment_intent.invoice.status_transitions, "paid_at", None)
         return paid_at if paid_at is None else datetime.datetime.fromtimestamp(int(paid_at), tz=datetime.timezone.utc)
 

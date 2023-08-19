@@ -260,7 +260,13 @@ class StripeContributionsProvider:
         raise InvalidIntervalError(f"Invalid interval {interval} for subscription : {subscription.id}")
 
     def cast_subscription_to_pi_for_portal(self, subscription: stripe.Subscription) -> StripePiAsPortalContribution:
-        """Casts a Subscription object to a PaymentIntent object for use in the Stripe Customer Portal."""
+        """Casts a Subscription object to a PaymentIntent object for use in the Stripe Customer Portal.
+
+        The primary use case for this is retrieving subscriptions that have been imported into revengine from legacy system.
+        Those subscriptions get imported via Switchboard, and have a future date for billing anchor, and no proration behavior, as the
+        contributor has already paid for the given interval on the old subscription. This method casts those subscriptions to the same
+        form that "normal" subscriptions take, so that they can be managed in the contributor portal.
+        """
         logger.debug("Casting subscription %s to a portal contribution", subscription.id)
         try:
             card = subscription.default_payment_method.card or AttrDict(

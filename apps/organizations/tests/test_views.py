@@ -1,3 +1,4 @@
+import os
 from unittest import mock
 
 from django.contrib.auth import get_user_model
@@ -413,6 +414,11 @@ class TestOrganizationViewSet:
         assert mock_send_email.call_count == len(org_admin_emails)
         for n, x in enumerate(org_admin_emails):
             expected_context = {
+                "logo_url": os.path.join(settings.SITE_URL, "static", "nre_logo_black_yellow.png"),
+                "plus_icon": os.path.join(settings.SITE_URL, "static", "plus-icon.png"),
+                "mail_icon": os.path.join(settings.SITE_URL, "static", "mail-icon.png"),
+                "paint_icon": os.path.join(settings.SITE_URL, "static", "paint-icon.png"),
+                "check_icon": os.path.join(settings.SITE_URL, "static", "check-icon.png"),
                 "mailchimp_integration_url": mailchimp_url,
                 "upgrade_days_wait": settings.UPGRADE_DAYS_WAIT,
             }

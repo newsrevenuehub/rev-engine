@@ -224,7 +224,7 @@ class StripeContributionsProvider:
         return StripePiSearchResponse(**stripe.PaymentIntent.search(**kwargs))
 
     def fetch_uninvoiced_subscriptions_for_customer(self, customer_id: str) -> list[stripe.Subscription]:
-        logger.info("Fetching subscriptions for stripe customer id %s", customer_id)
+        logger.info("Fetching uninvoiced active subscriptions for stripe customer id %s", customer_id)
         subs = stripe.Subscription.list(
             customer=customer_id,
             expand=self.FETCH_SUB_EXPAND_FIELDS,

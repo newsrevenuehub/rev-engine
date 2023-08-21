@@ -307,9 +307,7 @@ class ContributionsCacheProvider:
     converter = StripePaymentIntent
 
     def __init__(self, email_id, stripe_account_id) -> None:
-        self.cache = caches[DEFAULT_CACHE]
         self.stripe_account_id = stripe_account_id
-
         self.key = f"{email_id}-payment-intents-{self.stripe_account_id}"
 
     def serialize(self, payment_intents: list[stripe.PaymentIntent]) -> dict[str, dict]:

@@ -270,7 +270,7 @@ class StripeContributionsProvider:
         logger.debug("Casting subscription %s to a portal contribution", subscription.id)
         try:
             card = subscription.default_payment_method.card or AttrDict(
-                **{"brand": None, "last4": None, "exp_month": None}
+                **{"brand": None, "last4": None, "exp_month": None, "exp_year": None}
             )
             return StripePiAsPortalContribution(
                 amount=subscription.plan.amount,

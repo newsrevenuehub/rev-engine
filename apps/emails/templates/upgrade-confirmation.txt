@@ -1,10 +1,14 @@
-Start enjoying your new features!
+You’ve Upgraded to Core!*
+
+------------------------
+Start enjoying your new features:
 
 - Save time with a mailchimp integration
-- Styled receipts, payment reminders, and contributor portal
-- Create and publish more pages
+- Styled receipts, payment reminders, and Contributor Portal
+- More pages to create and publish
 
-To get started with your Core integration now, go to {{mailchimp_integration_url}} and follow the instructions.
+Get started with your Mailchimp integration now:
+Connect to Mailchimp: {{mailchimp_integration_url}}
 
 
 *Upgrade may not be reflected immediately. In most cases, your upgrade will be active within 30 minutes. Please allow up to {{upgrade_days_wait}} business days.<p>

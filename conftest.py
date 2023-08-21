@@ -501,7 +501,7 @@ def minimally_valid_contribution_form_data(donation_page):
         "agreed_to_pay_fees": True,
         "amount": "120",
         "captcha_token": "12345",
-        "donor_selected_amount": 120,
+        "donor_selected_amount": 120.0,
         "email": "bill@smith.com",
         "first_name": "Bill",
         "interval": "one_time",

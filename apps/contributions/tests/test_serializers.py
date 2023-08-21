@@ -901,7 +901,7 @@ def valid_stripe_metadata_v1_4_data():
     return {
         "agreed_to_pay_fees": True,
         "contributor_id": "1",
-        "donor_selected_amount": 1000,
+        "donor_selected_amount": 1000.0,
         "referer": "https://www.google.com",
         "revenue_program_id": "1",
         "revenue_program_slug": "revenue-program-slug",

@@ -358,6 +358,7 @@ class TestStripeContributionsProvider:
                 {"id": (id := "sub_2"), "status": "active", "latest_invoice": None}, key="test"
             ),
         ]
+
         provider = StripeContributionsProvider(email_id="foo@bar.com", stripe_account_id=(account_id := "test"))
         subs = provider.fetch_uninvoiced_subscriptions_for_customer(customer_id=(cust_id := "cust_1"))
         # only the one without a latest_invoice should appear

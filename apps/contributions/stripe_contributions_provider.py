@@ -232,7 +232,9 @@ class StripeContributionsProvider:
             status="active",
         )
         returned_subs = [sub for sub in subs.auto_paging_iter() if not getattr(sub, "latest_invoice", None)]
-        logger.info("Fetched %s uninvoiced subscriptions for customer with customer_id %s", len(subs), customer_id)
+        logger.info(
+            "Fetched %s uninvoiced subscriptions for customer with customer_id %s", len(returned_subs), customer_id
+        )
         return returned_subs
 
     def fetch_uninvoiced_subscriptions_for_contributor(self) -> list[stripe.Subscription]:

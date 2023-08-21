@@ -189,6 +189,24 @@ class OrganizationViewSet(
             return
         cls.upgrade_from_free_to_core(org, event)
 
+    @classmethod
+    def handle_customer_subscription_deleted_event(cls, event: stripe.Event) -> None:
+        logger.info("Handling customer subscription deleted event with event id %s", event["id"])
+        sub_id = event["data"]["object"]["id"]
+        try:
+            org = Organization.objects.get(stripe_subscription_id=sub_id)
+        except Organization.DoesNotExist:
+            logger.warning("No organization found with stripe subscription id %s", sub_id)
+            return
+        except Organization.MultipleObjectsReturned:
+            logger.warning("Multiple organizations found with stripe subscription id %s", sub_id)
+            return
+        org.stripe_subscription_id = None
+        org.plan_name = FreePlan.name
+        with reversion.create_revision():
+            org.save(update_fields={"stripe_subscription_id", "plan_name", "modified"})
+            reversion.set_comment("`handle_customer_subscription_deleted_event` downgraded this org")
+
     @action(detail=False, methods=["post"], permission_classes=[])
     def handle_stripe_webhook(self, request: HttpRequest) -> Response:
         logger.info("Handling Stripe webhook")
@@ -196,8 +214,13 @@ class OrganizationViewSet(
         logger.info("Handling Stripe webhook event with type %s", request.data["type"])
         logger.info("The request body is %s", payload)
         event = self.construct_stripe_event(request, payload)
-        if event["type"] == "checkout.session.completed":
-            self.handle_checkout_session_completed_event(event)
+        match event["type"]:
+            case "checkout.session.completed":
+                self.handle_checkout_session_completed_event(event)
+            case "customer.subscription.deleted":
+                self.handle_customer_subscription_deleted_event(event)
+            case _:
+                logger.info("No handler for event type %s", event["type"])
         return Response(status=status.HTTP_200_OK)
 
 

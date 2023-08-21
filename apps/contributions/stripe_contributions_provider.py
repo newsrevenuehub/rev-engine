@@ -223,7 +223,11 @@ class StripeContributionsProvider:
 
     def fetch_uninvoiced_subscriptions_for_customer(self, customer_id: str) -> list[stripe.Subscription]:
         """Gets all the uninvoiced subscriptions for a given customer id (for a given connected Stripe account)"""
-        logger.info("Fetching uninvoiced active subscriptions for stripe customer id %s", customer_id)
+        logger.info(
+            "Fetching uninvoiced active subscriptions for stripe customer id %s and stripe account %s",
+            customer_id,
+            self.stripe_account_id,
+        )
         subs = stripe.Subscription.list(
             customer=customer_id,
             expand=self.FETCH_SUB_EXPAND_FIELDS,
@@ -244,7 +248,11 @@ class StripeContributionsProvider:
         has a unique email address (for a given RP) and can have more than one Stripe customer associated with it,
         as we create a new customer for each contribution.
         """
-        logger.info("Fetching uninvoiced active subscriptions for contributor with email %s", self.email_id)
+        logger.info(
+            "Fetching uninvoiced active subscriptions for contributor with email %s for stripe account %s",
+            self.email_id,
+            self.stripe_account_id,
+        )
         subs = []
         for cus in self.customers:
             subs.extend(self.fetch_uninvoiced_subscriptions_for_customer(cus))

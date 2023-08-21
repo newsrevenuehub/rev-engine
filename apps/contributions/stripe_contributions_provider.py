@@ -222,7 +222,7 @@ class StripeContributionsProvider:
         return StripePiSearchResponse(**stripe.PaymentIntent.search(**kwargs))
 
     def fetch_uninvoiced_subscriptions_for_customer(self, customer_id: str) -> list[stripe.Subscription]:
-        """Gets all the uninvoiced subscriptions for a given customer id (for a given connected tripe account)"""
+        """Gets all the uninvoiced subscriptions for a given customer id (for a given connected Stripe account)"""
         logger.info("Fetching uninvoiced active subscriptions for stripe customer id %s", customer_id)
         subs = stripe.Subscription.list(
             customer=customer_id,
@@ -234,7 +234,7 @@ class StripeContributionsProvider:
         return [sub for sub in subs.auto_paging_iter() if not getattr(sub, "latest_invoice", None)]
 
     def fetch_uninvoiced_subscriptions_for_contributor(self) -> list[stripe.Subscription]:
-        """Gets all the uninvoiced subscriptions for a given contributor (for a given connected tripe account)
+        """Gets all the uninvoiced subscriptions for a given contributor (for a given connected Stripe account)
 
         Note there is a distinction between a revengine contributor and a Stripe customer. A revengine contributor
         has a unique email address (for a given RP) and can have more than one Stripe customer associated with it,

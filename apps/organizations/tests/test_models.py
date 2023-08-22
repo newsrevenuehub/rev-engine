@@ -209,6 +209,34 @@ class TestOrganization:
         OrganizationFactory.create_batch(3)
         assert Organization.objects.filtered_by_role_assignment(user_with_unexpected_role.roleassignment).count() == 0
 
+    def test_downgrade_to_free_plan_happy_path(self, organization_on_core_plan_with_mailchimp_set_up, mocker):
+        assert organization_on_core_plan_with_mailchimp_set_up.plan_name == Plans.CORE.name
+        assert organization_on_core_plan_with_mailchimp_set_up.stripe_subscription_id
+        assert organization_on_core_plan_with_mailchimp_set_up.revenueprogram_set.count() == (rp_count := 1)
+        mock_reversion_set_comment = mocker.patch("reversion.set_comment")
+        save_spy = mocker.spy(Organization, "save")
+        mock_disable_mailchimp_integration = mocker.patch(
+            "apps.organizations.models.RevenueProgram.disable_mailchimp_integration"
+        )
+        organization_on_core_plan_with_mailchimp_set_up.downgrade_to_free_plan()
+        organization_on_core_plan_with_mailchimp_set_up.refresh_from_db()
+        assert organization_on_core_plan_with_mailchimp_set_up.plan_name == Plans.FREE.name
+        assert organization_on_core_plan_with_mailchimp_set_up.stripe_subscription_id is None
+        save_spy.assert_called_once_with(
+            organization_on_core_plan_with_mailchimp_set_up,
+            update_fields={"plan_name", "stripe_subscription_id", "modified"},
+        )
+        mock_reversion_set_comment.assert_called_once_with(
+            "`handle_customer_subscription_deleted_event` downgraded this org"
+        )
+        assert mock_disable_mailchimp_integration.call_count == rp_count
+
+    def test_downgrade_to_free_plan_when_already_downgraded(self, mocker):
+        org = OrganizationFactory(plan_name=Plans.FREE.name, stripe_subscription_id=None)
+        logger_spy = mocker.spy(logger, "info")
+        org.downgrade_to_free_plan()
+        logger_spy.call_args == mocker.call("Org %s already downgraded to free plan", org.id)
+
 
 class TestBenefit:
     def test_basics(self):
@@ -1153,6 +1181,23 @@ class TestRevenueProgram:
         mock_publisher.get_instance.return_value.publish.assert_called_once_with(
             topic, Message(data=str(revenue_program.id))
         )
+
+    def test_disable_mailchimp_integration(self, revenue_program, mocker):
+        revenue_program.mailchimp_server_prefix = "something"
+        revenue_program.mailchimp_list_id = "something"
+        revenue_program.save()
+        mock_delete_secret = mocker.patch("apps.common.secrets.GoogleCloudSecretProvider.__delete__")
+        save_spy = mocker.spy(RevenueProgram, "save")
+        mock_reversion_set_comment = mocker.patch("reversion.set_comment")
+        revenue_program.disable_mailchimp_integration()
+        revenue_program.refresh_from_db()
+        assert revenue_program.mailchimp_server_prefix is None
+        assert revenue_program.mailchimp_list_id is None
+        save_spy.assert_called_once_with(
+            revenue_program, update_fields={"mailchimp_server_prefix", "mailchimp_list_id", "modified"}
+        )
+        mock_reversion_set_comment.assert_called_once_with("disable_mailchimp_integration updated this RP")
+        mock_delete_secret.assert_called_once()
 
 
 class TestPaymentProvider:

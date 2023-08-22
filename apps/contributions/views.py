@@ -30,7 +30,6 @@ from apps.api.permissions import (
 from apps.contributions import serializers
 from apps.contributions.filters import ContributionFilter
 from apps.contributions.models import (
-    CachedStripeContributionResult,
     Contribution,
     ContributionInterval,
     ContributionIntervalError,
@@ -39,7 +38,10 @@ from apps.contributions.models import (
     Contributor,
 )
 from apps.contributions.payment_managers import PaymentProviderError
-from apps.contributions.stripe_contributions_provider import SubscriptionsCacheProvider
+from apps.contributions.stripe_contributions_provider import (
+    StripePiAsPortalContribution,
+    SubscriptionsCacheProvider,
+)
 from apps.contributions.tasks import (
     email_contribution_csv_export_to_user,
     task_pull_serialized_stripe_contributions_to_cache,
@@ -256,9 +258,7 @@ class ContributionsViewSet(viewsets.ReadOnlyModelViewSet):
     filterset_class = ContributionFilter
     filter_backends = [DjangoFilterBackend]
 
-    def filter_queryset_for_user(
-        self, user: UserModel | Contributor
-    ) -> QuerySet | List[CachedStripeContributionResult]:
+    def filter_queryset_for_user(self, user: UserModel | Contributor) -> QuerySet | List[StripePiAsPortalContribution]:
         """Return the right results to the right user
 
         Contributors get cached serialized contribution data (if it's already cached when this runs, otherwise,
@@ -280,10 +280,9 @@ class ContributionsViewSet(viewsets.ReadOnlyModelViewSet):
     def get_queryset(self):
         return self.filter_queryset_for_user(self.request.user)
 
-    def filter_queryset_for_contributor(self, contributor) -> List[CachedStripeContributionResult]:
+    def filter_queryset_for_contributor(self, contributor) -> List[StripePiAsPortalContribution]:
         """ """
         if (rp_slug := self.request.GET.get("rp", None)) is None:
-            logger.warning("")
             raise ParseError("rp not supplied")
         rp = get_object_or_404(RevenueProgram, slug=rp_slug)
         return self.model.objects.filter_queryset_for_contributor(contributor, rp)

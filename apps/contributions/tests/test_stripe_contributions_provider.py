@@ -1,26 +1,29 @@
 import datetime
-from unittest.mock import PropertyMock, patch
+import json
 
 from django.test import TestCase
 
+import pytest
 import stripe
 from addict import Dict as AttrDict
+from rest_framework.utils.serializer_helpers import ReturnDict
 
-from apps.common.tests.test_resources import AbstractTestCase
 from apps.contributions.models import ContributionInterval, ContributionStatus
-from apps.contributions.serializers import (
-    PaymentProviderContributionSerializer,
-    SubscriptionsSerializer,
-)
+from apps.contributions.serializers import PaymentProviderContributionSerializer
 from apps.contributions.stripe_contributions_provider import (
+    MAX_STRIPE_CUSTOMERS_LIMIT,
+    MAX_STRIPE_RESPONSE_LIMIT,
+    ContributionIgnorableError,
     ContributionsCacheProvider,
     InvalidIntervalError,
     InvalidMetadataError,
     StripeContributionsProvider,
     StripePaymentIntent,
     SubscriptionsCacheProvider,
+    logger,
 )
 from apps.contributions.tests import RedisMock
+from apps.contributions.types import StripePiAsPortalContribution, StripePiSearchResponse
 
 
 class AbstractTestStripeContributions(TestCase):
@@ -263,198 +266,417 @@ class TestStripePaymentIntent(AbstractTestStripeContributions):
         self.assertEqual(StripePaymentIntent(self.payment_intent_1).status, ContributionStatus.REFUNDED)
 
 
-class TestStripeContributionsProvider(AbstractTestStripeContributions):
-    def setUp(self):
-        super().setUp()
-        self._setup_stripe_customers()
-        self._setup_stripe_customer_ids(10)
-        self.expected_customer_ids = [
-            "customer:'cust_0' OR customer:'cust_1'",
-            "customer:'cust_2' OR customer:'cust_3'",
-            "customer:'cust_4' OR customer:'cust_5'",
-            "customer:'cust_6' OR customer:'cust_7'",
-            "customer:'cust_8' OR customer:'cust_9'",
+@pytest.fixture
+def customer_factory(faker):
+    class Factory:
+        def get(self):
+            return stripe.Customer.construct_from(
+                {"id": faker.pystr_format(string_format="cust_?????"), "name": faker.name()}, key="test"
+            )
+
+    return Factory()
+
+
+class TestStripeContributionsProvider:
+    def test__init__(self):
+        provider = StripeContributionsProvider((email := "foo@bar.com"), (id := "some-account-id"))
+        assert provider.email_id == email
+        assert provider.stripe_account_id == id
+
+    def test_customers(self, mocker, customer_factory):
+        customers = [customer_factory.get(), customer_factory.get()]
+        mock_search = mocker.patch("stripe.Customer.search")
+        mock_search.return_value.auto_paging_iter.return_value = customers
+        assert StripeContributionsProvider(
+            email_id=(email := "foo@bar.com"), stripe_account_id=(id := "test")
+        ).customers == [x.id for x in customers]
+        mock_search.assert_called_once_with(
+            query=f"email:'{email}'", limit=MAX_STRIPE_RESPONSE_LIMIT, stripe_account=id
+        )
+
+    def test_generate_chunked_customers_query(self, mocker, customer_factory):
+        customers = [customer_factory.get().id for _ in range(MAX_STRIPE_CUSTOMERS_LIMIT + 1)]
+        mocker.patch.object(
+            StripeContributionsProvider, "customers", new_callable=mocker.PropertyMock, return_value=customers
+        )
+        query = list(
+            StripeContributionsProvider(
+                email_id="foo@bar.com", stripe_account_id="test"
+            ).generate_chunked_customers_query()
+        )
+        # we expect to get back two, because we have one more customer than the limit
+        assert len(query) == 2
+        assert query[0] == " OR ".join([f"customer:'{x}'" for x in customers[:MAX_STRIPE_CUSTOMERS_LIMIT]])
+        assert query[1] == f"customer:'{customers[-1]}'"
+
+    @pytest.mark.parametrize("page", ("1", None))
+    def test_fetch_payment_intents(self, page, mocker):
+        mock_search_result = AttrDict(
+            {
+                "url": "https://stripe.com",
+                "has_more": False,
+                "next_page": None,
+                "object": "search_result",
+            }
+        )
+        # initially tried to put data in init of mock_search_result, but it doing it that way
+        # caused the PI object to be cast to dict.
+        mock_search_result.data = [
+            stripe.PaymentIntent.construct_from({"id": "pi_1", "amount": 100}, key="test"),
+            stripe.PaymentIntent.construct_from({"id": "pi_2", "amount": 200}, key="test"),
+        ]
+        mock_search = mocker.patch(
+            "stripe.PaymentIntent.search",
+            return_value=mock_search_result,
+        )
+        provider = StripeContributionsProvider(email_id="foo@bar.com", stripe_account_id="test")
+        pis = provider.fetch_payment_intents(query=(query := "foo"), page=page)
+        assert isinstance(pis, StripePiSearchResponse)
+        assert pis.data == mock_search_result.data
+        assert pis.has_more == mock_search_result.has_more
+        assert pis.url == mock_search_result.url
+        assert pis.next_page == mock_search_result.next_page
+
+        mock_search_kwargs = {
+            "query": query,
+            "expand": provider.FETCH_PI_EXPAND_FIELDS,
+            "limit": MAX_STRIPE_RESPONSE_LIMIT,
+            "stripe_account": provider.stripe_account_id,
+        }
+        if page:
+            mock_search_kwargs["page"] = page
+
+        mock_search.assert_called_once_with(**mock_search_kwargs)
+
+    def test_fetch_uninvoiced_subscriptions_for_customer(self, mocker):
+        mock_list = mocker.patch("stripe.Subscription.list", return_value=(sub_list := mocker.Mock()))
+        sub_list.auto_paging_iter.return_value = [
+            stripe.Subscription.construct_from(
+                {"id": "sub_1", "status": "active", "latest_invoice": "something-truthy"}, key="test"
+            ),
+            stripe.Subscription.construct_from(
+                {"id": (id := "sub_2"), "status": "active", "latest_invoice": None}, key="test"
+            ),
         ]
 
-    @patch(
-        "apps.contributions.stripe_contributions_provider.StripeContributionsProvider.customers",
-        new_callable=PropertyMock,
+        provider = StripeContributionsProvider(email_id="foo@bar.com", stripe_account_id=(account_id := "test"))
+        subs = provider.fetch_uninvoiced_subscriptions_for_customer(customer_id=(cust_id := "cust_1"))
+        # only the one without a latest_invoice should appear
+        assert len(subs) == 1
+        assert subs[0].id == id
+        mock_list.assert_called_once_with(
+            customer=cust_id,
+            expand=["data.default_payment_method"],
+            limit=MAX_STRIPE_RESPONSE_LIMIT,
+            stripe_account=account_id,
+            status="active",
+        )
+
+    def test_fetch_uninvoiced_subscriptions_for_contributor(self, mocker):
+        mocker.patch(
+            "apps.contributions.stripe_contributions_provider.StripeContributionsProvider.fetch_uninvoiced_subscriptions_for_customer",
+            return_value=(subs := [mocker.Mock(), mocker.Mock()]),
+        )
+        mocker.patch(
+            "apps.contributions.stripe_contributions_provider.StripeContributionsProvider.customers",
+            new_callable=mocker.PropertyMock,
+            return_value=(customers := ["cus_1", "cus_2"]),
+        )
+        provider = StripeContributionsProvider(email_id="foo@bar.com", stripe_account_id="test")
+        fetched = provider.fetch_uninvoiced_subscriptions_for_contributor()
+        provider.fetch_uninvoiced_subscriptions_for_customer.assert_has_calls([mocker.call(x) for x in customers])
+        # we're returning `subs` twice, once for each customer
+        assert fetched == subs + subs
+
+    @pytest.mark.parametrize(
+        "interval,interval_count,expected,expected_error",
+        (
+            ("year", 1, ContributionInterval.YEARLY, None),
+            ("month", 1, ContributionInterval.MONTHLY, None),
+            ("unexpected", 1, None, InvalidIntervalError),
+            ("year", 2, None, InvalidIntervalError),
+            ("month", 2, None, InvalidIntervalError),
+        ),
     )
-    @patch("apps.contributions.stripe_contributions_provider.MAX_STRIPE_CUSTOMERS_LIMIT", 2)
-    def test_generate_chunked_customers_query(self, customers_mock):
-        customers_mock.return_value = self.customer_ids
-        provider = StripeContributionsProvider("test@email.com", "acc_000000")
-        actual_customers_query = [i for i in provider.generate_chunked_customers_query()]
-        expected_customers_query = self.expected_customer_ids
-        self.assertListEqual(actual_customers_query, expected_customers_query)
-
-    @patch("apps.contributions.stripe_contributions_provider.stripe.Customer.search")
-    def test_customers(self, stripe_customer_search_mock):
-        stripe_customer_search_mock.return_value.auto_paging_iter.return_value = iter(self.customers)
-        provider = StripeContributionsProvider("test@email.com", "acc_000000")
-        result = provider.customers
-        self.assertEqual(result, ["cust_1", "cust_2", "cust_3"])
-
-    @patch("apps.contributions.stripe_contributions_provider.stripe.PaymentIntent.search")
-    def test_fetch_payment_intents(self, mock_payment_intent_search):
-        provider = StripeContributionsProvider("test@email.com", "acc_000000")
-        provider.fetch_payment_intents()
-        assert mock_payment_intent_search.called_with(
+    def test_get_interval_from_subscription(self, interval, interval_count, expected, expected_error, mocker):
+        provider = StripeContributionsProvider(email_id="foo@bar.com", stripe_account_id="test")
+        sub = stripe.Subscription.construct_from(
             {
-                "query": None,
-                "expand": ["data.invoice.subscription.default_payment_method", "data.payment_method"],
-                "limit": 100,
-                "stripe_account": "acc_000000",
-            }
+                "id": "sub_1",
+                "plan": {
+                    "interval": interval,
+                    "interval_count": interval_count,
+                },
+            },
+            key="test",
         )
-        provider.fetch_payment_intents(query="foo", page="bar")
-        assert mock_payment_intent_search.called_with(
+        if expected_error:
+            with pytest.raises(expected_error):
+                provider.get_interval_from_subscription(sub)
+        else:
+            assert provider.get_interval_from_subscription(sub) == expected
+
+    def test_cast_subscription_to_pi_for_portal(self, faker):
+        sub = stripe.Subscription.construct_from(
             {
-                "query": "foo",
-                "expand": ["data.invoice.subscription.default_payment_method", "data.payment_method"],
-                "limit": 100,
-                "stripe_account": "acc_000000",
-                "page": "bar",
+                "id": "sub_1",
+                "plan": {"amount": 100, "interval": "month", "interval_count": 1},
+                "created": faker.unix_time(),
+                "default_payment_method": {
+                    "card": {
+                        "brand": "visa",
+                        "last4": 1234,
+                        "exp_month": (month := 1),
+                        "exp_year": (year := 2024),
+                    },
+                    "type": "card",
+                },
+                "customer": faker.pystr_format(string_format="cust_?????"),
+                "metadata": {"revenue_program_slug": "testrp"},
+                "status": "active",
+            },
+            key="test",
+        )
+        provider = StripeContributionsProvider(email_id="foo@bar.com", stripe_account_id=(account_id := "test"))
+        result = provider.cast_subscription_to_pi_for_portal(sub)
+        assert isinstance(result, StripePiAsPortalContribution)
+        assert result.amount == sub.plan.amount
+        assert result.created == datetime.datetime.fromtimestamp(sub.created, tz=datetime.timezone.utc)
+        assert result.credit_card_expiration_date == f"{month}/{year}"
+        assert result.id == sub.id
+        assert result.interval == ContributionInterval.MONTHLY
+        assert result.is_cancelable is True
+        assert result.is_modifiable is True
+        assert result.last4 == sub.default_payment_method.card.last4
+        assert result.payment_type == sub.default_payment_method.type
+        assert result.provider_customer_id == sub.customer
+        assert result.revenue_program == sub.metadata.revenue_program_slug
+        assert result.status == ContributionStatus.PAID
+        assert result.stripe_account_id == account_id
+        assert result.subscription_id == sub.id
+
+    def test_cast_subscription_to_pi_for_portal_when_attribute_error(self, faker):
+        sub = stripe.Subscription.construct_from(
+            {
+                "id": "sub_1",
+                "plan": {"amount": 100, "interval": "month", "interval_count": 1},
+                "created": faker.unix_time(),
+                "default_payment_method": None,
+                "customer": faker.pystr_format(string_format="cust_?????"),
+                "metadata": {"revenue_program_slug": "testrp"},
+                "status": "active",
+            },
+            key="test",
+        )
+        provider = StripeContributionsProvider(email_id="foo@bar.com", stripe_account_id="test")
+        with pytest.raises(ContributionIgnorableError):
+            provider.cast_subscription_to_pi_for_portal(sub)
+
+
+@pytest.fixture()
+def mock_redis_cache_for_pis_factory(mocker):
+    class Factory:
+        def get(self, cache_provider):
+            redis_mock = RedisMock()
+            mocker.patch.object(cache_provider, "cache", redis_mock)
+            return redis_mock
+
+    return Factory()
+
+
+@pytest.fixture
+def mock_redis_cache_for_subs_factory(mocker):
+    class Factory:
+        def get(self, cache_provider):
+            redis_mock = RedisMock()
+            mocker.patch.object(cache_provider, "cache", redis_mock)
+            return redis_mock
+
+    return Factory()
+
+
+class TestContributionsCacheProvider:
+    EMAIL_ID = "foo@bar.com"
+    STRIPE_ACCOUNT_ID = "test"
+
+    def get_cache_provider(self):
+        return ContributionsCacheProvider(
+            stripe_account_id=self.STRIPE_ACCOUNT_ID,
+            email_id=self.EMAIL_ID,
+        )
+
+    def test__init__(self):
+        provider = self.get_cache_provider()
+        assert provider.key == f"{self.EMAIL_ID}-payment-intents-{self.STRIPE_ACCOUNT_ID}"
+        assert provider.stripe_account_id == self.STRIPE_ACCOUNT_ID
+
+    def test_serialize(self, pi_for_active_subscription_factory, pi_for_valid_one_time_factory):
+        provider = self.get_cache_provider()
+        data = provider.serialize(
+            [(pi_1 := pi_for_active_subscription_factory.get()), (pi_2 := pi_for_valid_one_time_factory.get())]
+        )
+        for x in [pi_1, pi_2]:
+            serialized = data[x.id]
+            assert isinstance(serialized, ReturnDict)
+            assert isinstance(serialized.serializer, PaymentProviderContributionSerializer)
+
+    def test_serialize_when_contribution_ignorable_error(self, mocker, pi_for_valid_one_time_factory):
+        logger_spy = mocker.spy(logger, "warning")
+        pi = pi_for_valid_one_time_factory.get()
+        # StripePiAsPortalContribution will raise an InvalidMetadataError
+        # if this key is not in metadata
+        del pi.metadata["revenue_program_slug"]
+        provider = self.get_cache_provider()
+        data = provider.serialize([pi])
+        assert data == {}
+        logger_spy.assert_called_once_with("Unable to process Contribution [%s]", pi.id, exc_info=mocker.ANY)
+
+    def test_upsert_uninvoiced_subscriptions(self, mock_redis_cache_for_pis_factory, subscription_factory):
+        cache_provider = self.get_cache_provider()
+        mock_redis_cache_for_pis = mock_redis_cache_for_pis_factory.get(cache_provider)
+        subscription = subscription_factory.get()
+        cache_provider.upsert_uninvoiced_subscriptions([subscription])
+        cached = json.loads(
+            mock_redis_cache_for_pis._data.get(f"{self.EMAIL_ID}-payment-intents-{self.STRIPE_ACCOUNT_ID}")
+        )
+        assert cached[subscription.id]["id"] == subscription.id
+
+    def test_upsert_uninvoiced_subscriptions_overwrite(self, subscription_factory, mock_redis_cache_for_pis_factory):
+        cache_provider = self.get_cache_provider()
+        mock_redis_cache_for_pis = mock_redis_cache_for_pis_factory.get(cache_provider)
+        subscription = subscription_factory.get()
+        cache_provider.upsert_uninvoiced_subscriptions([subscription])
+        cached = json.loads(
+            mock_redis_cache_for_pis._data.get(f"{self.EMAIL_ID}-payment-intents-{self.STRIPE_ACCOUNT_ID}")
+        )
+        assert len(cached) == 1
+        assert cached[subscription.id]["created"] == subscription.created
+        sub2 = subscription_factory.get()
+        # ensure different ID
+        sub2.id = subscription.id[::-1]
+        cache_provider.upsert_uninvoiced_subscriptions([sub2])
+        cached = json.loads(
+            mock_redis_cache_for_pis._data.get(f"{self.EMAIL_ID}-payment-intents-{self.STRIPE_ACCOUNT_ID}")
+        )
+        assert len(cached) == 2
+        for k in [subscription.id, sub2.id]:
+            assert k in cached
+
+    def test_upsert_uninvoiced_subscriptions_override(self, mock_redis_cache_for_pis_factory, subscription_factory):
+        cache_provider = self.get_cache_provider()
+        mock_redis_cache_for_pis = mock_redis_cache_for_pis_factory.get(cache_provider)
+        subscription = subscription_factory.get()
+        cache_provider.upsert_uninvoiced_subscriptions([subscription])
+        cached = json.loads(
+            mock_redis_cache_for_pis._data.get(f"{self.EMAIL_ID}-payment-intents-{self.STRIPE_ACCOUNT_ID}")
+        )
+        assert cached[subscription.id]["created"] == subscription.created
+        subscription.created = subscription.created + 1000
+        cache_provider.upsert_uninvoiced_subscriptions([subscription])
+        cached = json.loads(
+            mock_redis_cache_for_pis._data.get(f"{self.EMAIL_ID}-payment-intents-{self.STRIPE_ACCOUNT_ID}")
+        )
+        assert len(cached) == 1
+        assert cached[subscription.id]["created"] == subscription.created
+
+    def test_upsert(self, pi_for_valid_one_time_factory, mock_redis_cache_for_pis_factory):
+        provider = self.get_cache_provider()
+        mock_redis_cache_for_pis = mock_redis_cache_for_pis_factory.get(provider)
+        provider.upsert((pis := [pi_for_valid_one_time_factory.get()]))
+        cached = json.loads(
+            mock_redis_cache_for_pis._data.get(f"{self.EMAIL_ID}-payment-intents-{self.STRIPE_ACCOUNT_ID}")
+        )
+        for x in pis:
+            assert cached[x.id] == dict(provider.serializer(instance=provider.converter(x)).data) | {
+                "stripe_account_id": self.STRIPE_ACCOUNT_ID
             }
+
+    def test_upsert_overwrite(self, pi_for_valid_one_time_factory, mock_redis_cache_for_pis_factory):
+        provider = self.get_cache_provider()
+        mock_redis_cache_for_pis = mock_redis_cache_for_pis_factory.get(provider)
+        provider.upsert([(pi := pi_for_valid_one_time_factory.get())])
+        cached = json.loads(
+            mock_redis_cache_for_pis._data.get(f"{self.EMAIL_ID}-payment-intents-{self.STRIPE_ACCOUNT_ID}")
+        )
+        assert len(cached) == 1
+        assert pi.id in cached
+        pi_2 = pi_for_valid_one_time_factory.get()
+        # ensure different id
+        pi_2.id = pi.id[::-1]
+        provider.upsert([pi_2])
+        cached = json.loads(
+            mock_redis_cache_for_pis._data.get(f"{self.EMAIL_ID}-payment-intents-{self.STRIPE_ACCOUNT_ID}")
+        )
+        assert len(cached) == 2
+        assert pi.id in cached
+        assert pi_2.id in cached
+
+    def test_upsert_updates(self, mock_redis_cache_for_pis_factory, pi_for_valid_one_time_factory):
+        provider = self.get_cache_provider()
+        mock_redis_cache_for_pis = mock_redis_cache_for_pis_factory.get(provider)
+        provider.upsert([(pi := pi_for_valid_one_time_factory.get())])
+        cached = json.loads(
+            mock_redis_cache_for_pis._data.get(f"{self.EMAIL_ID}-payment-intents-{self.STRIPE_ACCOUNT_ID}")
+        )
+        assert cached[pi.id]["amount"] == pi.amount
+        pi.amount = (new_amount := pi.amount + 100)
+        provider.upsert([pi])
+        cached = json.loads(
+            mock_redis_cache_for_pis._data.get(f"{self.EMAIL_ID}-payment-intents-{self.STRIPE_ACCOUNT_ID}")
+        )
+        assert cached[pi.id]["amount"] == new_amount
+
+    def test_load_when_no_data(self, mock_redis_cache_for_pis_factory):
+        provider = self.get_cache_provider()
+        mock_redis_cache_for_pis_factory.get(provider)
+        assert provider.load() == []
+
+    def test_load_happy_path(self, mock_redis_cache_for_pis_factory, pi_for_valid_one_time_factory):
+        provider = self.get_cache_provider()
+        mock_redis_cache_for_pis_factory.get(provider)
+        provider.upsert([(pi := pi_for_valid_one_time_factory.get())])
+        assert provider.load()[0] == StripePiAsPortalContribution(
+            **(
+                dict(provider.serializer(instance=provider.converter(pi)).data)
+                | {"stripe_account_id": provider.stripe_account_id}
+            )
         )
 
 
-class TestContributionsCacheProvider(AbstractTestStripeContributions):
-    def setUp(self):
-        super().setUp()
-        self._setup_stripe_payment_intents()
-        self._setup_stripe_contributions()
-        self.serializer = PaymentProviderContributionSerializer
-        self.converter = StripePaymentIntent
+class TestSubscriptionsCacheProvider:
+    EMAIL_ID = "foo@bar.com"
+    STRIPE_ACCOUNT_ID = "test-id"
 
-    def test_serialize(self):
-        cache_provider = ContributionsCacheProvider(
-            stripe_account_id="bogus", email_id="test@email.com", serializer=self.serializer, converter=self.converter
-        )
-        data = cache_provider.serialize(self.contributions_1)
-        self.assertEqual(len(data), 1)
+    def get_provider(self):
+        return SubscriptionsCacheProvider(self.EMAIL_ID, self.STRIPE_ACCOUNT_ID)
 
-    def test_upsert(self):
-        redis_mock = RedisMock()
-        with patch.dict("apps.contributions.stripe_contributions_provider.caches", {"default": redis_mock}):
-            cache_provider = ContributionsCacheProvider(
-                "test@email.com", "acc_0000", serializer=self.serializer, converter=self.converter
-            )
-            cache_provider.upsert(self.contributions_1)
-            self.assertIsNotNone(redis_mock._data.get("test@email.com-payment-intents-acc_0000"))
+    def test__init__(self):
+        provider = self.get_provider()
+        assert provider.stripe_account_id == self.STRIPE_ACCOUNT_ID
+        assert provider.key == f"{self.EMAIL_ID}-subscriptions-{self.STRIPE_ACCOUNT_ID}"
 
-    def test_upsert_overwrite(self):
-        redis_mock = RedisMock()
-        with patch.dict("apps.contributions.stripe_contributions_provider.caches", {"default": redis_mock}):
-            cache_provider = ContributionsCacheProvider(
-                "test@email.com", "acc_0000", serializer=self.serializer, converter=self.converter
-            )
-            cache_provider.upsert(self.contributions_2)
-            self.assertIsNotNone(redis_mock._data.get("test@email.com-payment-intents-acc_0000"))
-            self.assertEqual(len(cache_provider.load()), 2)
+    def test_serialize_happy_path(self, subscription_factory):
+        cache_provider = self.get_provider()
+        data = cache_provider.serialize([(sub := subscription_factory.get())])
+        assert data[sub.id]["id"] == sub.id
+        assert isinstance(data[sub.id], ReturnDict)
+        assert isinstance(data[sub.id].serializer, cache_provider.serializer)
 
-            cache_provider.upsert(self.contributions_1)
-            self.assertEqual(len(cache_provider.load()), 3)
+    def test_upsert(self, mock_redis_cache_for_subs_factory, subscription_factory):
+        cache_provider = self.get_provider()
+        mock_redis_cache = mock_redis_cache_for_subs_factory.get(cache_provider)
+        cache_provider.upsert([(sub := subscription_factory.get())])
+        cached = json.loads(mock_redis_cache._data.get(cache_provider.key))
+        assert cached[sub.id]["id"] == sub.id
 
-    def test_upsert_override(self):
-        redis_mock = RedisMock()
-        with patch.dict("apps.contributions.stripe_contributions_provider.caches", {"default": redis_mock}):
-            cache_provider = ContributionsCacheProvider(
-                "test@email.com", "acc_0000", serializer=self.serializer, converter=self.converter
-            )
+    def test_load_when_empty(self, mock_redis_cache_for_subs_factory):
+        cache_provider = self.get_provider()
+        mock_redis_cache_for_subs_factory.get(cache_provider)
+        assert cache_provider.load() == []
 
-            cache_provider.upsert(self.contributions_1)
-            data = cache_provider.load()
-            self.assertEqual(data[0].amount, 2000)
-
-            cache_provider.upsert([self.payment_intent_1_1])
-            data = cache_provider.load()
-            self.assertEqual(data[0].amount, 4000)
-
-    def test_load(self):
-        redis_mock = RedisMock()
-        with patch.dict("apps.contributions.stripe_contributions_provider.caches", {"default": redis_mock}):
-            cache_provider = ContributionsCacheProvider(
-                email_id="test@email.com",
-                stripe_account_id="bogus",
-                serializer=self.serializer,
-                converter=self.converter,
-            )
-            cache_provider.upsert(self.contributions_1)
-            data = cache_provider.load()
-            self.assertEqual(len(data), 1)
-            self.assertEqual(data[0].id, "payment_intent_1")
-            self.assertEqual(data[0].provider_customer_id, "customer_1")
-
-
-class TestSubscriptionsCacheProvider(AbstractTestCase):
-    def setUp(self):
-        super().setUp()
-        self.serializer = SubscriptionsSerializer
-
-        self.subscription = {
-            "id": "sub_1234",
-            "status": "incomplete",
-            "card_brand": "Visa",
-            "last4": "4242",
-            "plan": {
-                "interval": "month",
-                "interval_count": 1,
-                "amount": 1234,
-            },
-            "metadata": {
-                "revenue_program_slug": "foo",
-            },
-            "amount": "100",
-            "customer": "cus_1234",
-            "current_period_end": 1654892502,
-            "current_period_start": 1686428502,
-            "created": 1654892502,
-            "default_payment_method": {
-                "id": "pm_1234",
-                "type": "card",
-                "card": {"brand": "discover", "last4": "7834", "exp_month": "12", "exp_year": "2022"},
-            },
-        }
-        self.sub_1 = AttrDict(self.subscription)
-        self.sub_2 = AttrDict(self.subscription)
-        self.sub_3 = AttrDict(self.subscription)
-        self.sub_2.metadata.revenue_program_slug = "bar"
-        self.sub_2.id = "sub_5678"
-        del self.sub_3.metadata
-
-    def test_serialize(self):
-        cache_provider = SubscriptionsCacheProvider(
-            email_id="test@email.com", stripe_account_id="bogus", serializer=self.serializer
-        )
-        data = cache_provider.serialize([self.sub_1, self.sub_2, self.sub_3])
-        assert len(data) == 2  # because the third one is missing metadata
-
-    def test_upsert(self):
-        redis_mock = RedisMock()
-        with patch.dict("apps.contributions.stripe_contributions_provider.caches", {"default": redis_mock}):
-            cache_provider = SubscriptionsCacheProvider(
-                "test@email.com",
-                "acc_0000",
-                serializer=self.serializer,
-            )
-            cache_provider.upsert([self.sub_1, self.sub_2, self.sub_3])
-            assert redis_mock._data.get("test@email.com-subscriptions-acc_0000") is not None
-
-    def test_load(self):
-        redis_mock = RedisMock()
-        with patch.dict("apps.contributions.stripe_contributions_provider.caches", {"default": redis_mock}):
-            cache_provider = SubscriptionsCacheProvider(
-                email_id="test@email.com",
-                stripe_account_id="bogus",
-                serializer=self.serializer,
-            )
-            data = cache_provider.load()
-            assert data == []
-            cache_provider.upsert([self.sub_1, self.sub_2])
-            data = cache_provider.load()
-            assert len(data) == 2
-            assert data[0].id == "sub_1234"
-            assert data[1].id == "sub_5678"
-            for datum in data:
-                assert datum.stripe_account_id == "bogus"
+    def test_load_happy_path(self, mock_redis_cache_for_subs_factory, subscription_factory):
+        cache_provider = self.get_provider()
+        mock_redis_cache_for_subs_factory.get(cache_provider)
+        cache_provider.upsert([(sub := subscription_factory.get())])
+        cached = cache_provider.load()
+        assert cached[0].id == sub.id

@@ -103,14 +103,20 @@ class OrganizationAdmin(RevEngineBaseAdmin, CompareVersionAdmin):
                 )
             },
         ),
-        (None, {"fields": ("salesforce_id",)}),
+        (None, {"fields": ("salesforce_id", "stripe_subscription_id")}),
         (
             "Email Templates",
             {"fields": ("send_receipt_email_via_nre",)},
         ),
         (
             "Integrations",
-            {"fields": ("show_connected_to_slack", "show_connected_to_salesforce", "show_connected_to_mailchimp")},
+            {
+                "fields": (
+                    "show_connected_to_slack",
+                    "show_connected_to_salesforce",
+                    "show_connected_to_mailchimp",
+                )
+            },
         ),
     )
 

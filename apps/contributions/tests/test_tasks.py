@@ -1,20 +1,25 @@
+import datetime
 import os
 from csv import DictReader
 from datetime import timedelta
-from unittest.mock import ANY, MagicMock, patch
 
 from django.conf import settings
 from django.template.loader import render_to_string
-from django.test import TestCase
 
 import pytest
 import stripe.error
-from addict import Dict as AttrDict
+from requests.exceptions import RequestException
 
 from apps.contributions import tasks as contribution_tasks
 from apps.contributions.models import Contribution, ContributionStatus
 from apps.contributions.payment_managers import PaymentProviderError
-from apps.contributions.tasks import task_verify_apple_domain
+from apps.contributions.stripe_contributions_provider import (
+    ContributionIgnorableError,
+    ContributionsCacheProvider,
+    StripeContributionsProvider,
+    StripePiSearchResponse,
+    SubscriptionsCacheProvider,
+)
 from apps.contributions.tests.factories import ContributionFactory
 from apps.contributions.utils import CONTRIBUTION_EXPORT_CSV_HEADERS
 
@@ -63,37 +68,163 @@ class AutoAcceptFlaggedContributionsTaskTest:
         assert failed == 0
 
 
-class TestTaskStripeContributions(TestCase):
-    @patch("apps.contributions.tasks.task_pull_payment_intents.delay")
-    @patch(
-        "apps.contributions.stripe_contributions_provider.StripeContributionsProvider.generate_chunked_customers_query"
-    )
-    def test_task_pull_serialized_stripe_contributions_to_cache(self, customers_query_mock, pull_payment_intents_mock):
-        customers_query_mock.return_value = [
-            "customer:'cust_0' OR customer:'cust_1'",
-            "customer:'cust_2' OR customer:'cust_3'",
-            "customer:'cust_4' OR customer:'cust_5'",
-        ]
-        contribution_tasks.task_pull_serialized_stripe_contributions_to_cache("test@email.com", "acc_00000")
-        self.assertEqual(pull_payment_intents_mock.call_count, 3)
-
-    @patch("apps.contributions.stripe_contributions_provider.StripeContributionsProvider.fetch_payment_intents")
-    @patch("apps.contributions.tasks.ContributionsCacheProvider")
-    @patch("apps.contributions.tasks.SubscriptionsCacheProvider")
-    def test_task_pull_payment_intents(self, sub_cache_mock, contrib_cache_mock, fetch_payment_intents_mock):
-        mock_1 = MagicMock()
-        mock_1.has_more = True
-        mock_1.__iter__.return_value = [AttrDict(**{"id": "ch_000000", "invoice": None})]
-
-        mock_2 = MagicMock()
-        mock_2.has_more = False
-        mock_2.__iter__.return_value = [AttrDict(**{"id": "ch_000001", "invoice": None})]
-
-        fetch_payment_intents_mock.side_effect = [mock_1, mock_2]
-        contribution_tasks.task_pull_payment_intents(
-            "test@email.com", "customer:'cust_0' OR customer:'cust_1'", "acc_0000"
+class TestTaskPullSerializedStripeContributionsToCache:
+    def test_happy_path(self, mocker):
+        mocker.patch(
+            "apps.contributions.stripe_contributions_provider.StripeContributionsProvider.generate_chunked_customers_query",
+            return_value=(
+                queries := [
+                    "customer:'cust_0' OR customer:'cust_1'",
+                    "customer:'cust_2' OR customer:'cust_3'",
+                    "customer:'cust_4' OR customer:'cust_5'",
+                ]
+            ),
         )
-        self.assertEqual(fetch_payment_intents_mock.call_count, 2)
+        mock_pull_pis = mocker.patch("apps.contributions.tasks.task_pull_payment_intents_and_uninvoiced_subs.delay")
+        contribution_tasks.task_pull_serialized_stripe_contributions_to_cache("test@email.com", "acc_00000")
+        assert mock_pull_pis.call_count == len(queries)
+
+
+NEXT_PAGE = "some-page-identifier"
+
+
+@pytest.fixture
+def stripe_pi_search_result_factory(pi_for_active_subscription_factory, pi_for_valid_one_time_factory):
+    class Factory:
+        def get(self, rp_slug: str, has_more: bool, num_with_subs: int, num_without_subs: int):
+            one_time_pis = [pi_for_valid_one_time_factory.get() for _ in range(num_without_subs)]
+            subscription_pis = [pi_for_active_subscription_factory.get(rp_slug) for _ in range(num_with_subs)]
+            for pi in one_time_pis + subscription_pis:
+                pi["metadata"]["revenue_program_slug"] = rp_slug
+
+            return StripePiSearchResponse(
+                url="something",
+                has_more=has_more,
+                data=one_time_pis + subscription_pis,
+                next_page=NEXT_PAGE if has_more else None,
+            )
+
+    return Factory()
+
+
+@pytest.fixture
+def stripe_uninvoiced_subscription_factory(subscription_data_factory):
+    class Factory:
+        def get(self, rp_slug: str, *args, **kwargs) -> stripe.Subscription:
+            anchor = (now := datetime.datetime.now(tz=datetime.timezone.utc)) + datetime.timedelta(days=365)
+            data = subscription_data_factory.get()
+            data = data | {
+                "created": now.timestamp(),
+                "latest_invoice": None,
+                "billing_cycle_anchor": anchor.timestamp(),
+                "interval": "year",
+                "status": "active",
+                "metadata": data["metadata"] | {"revenue_program_slug": rp_slug},
+            }
+            return stripe.Subscription.construct_from(data | kwargs, stripe.api_key)
+
+    return Factory()
+
+
+@pytest.mark.django_db
+class TestTaskPullPaymentIntentsAndUninvoicedSubs:
+    def test_happy_path(
+        self, revenue_program, mocker, stripe_pi_search_result_factory, stripe_uninvoiced_subscription_factory
+    ):
+        contributions_cache_init_spy = mocker.spy(ContributionsCacheProvider, "__init__")
+        subscriptions_cache_init_spy = mocker.spy(SubscriptionsCacheProvider, "__init__")
+        contributions_provider_init_spy = mocker.spy(StripeContributionsProvider, "__init__")
+        contributions_provider_cast_sub_to_pi_spy = mocker.spy(
+            StripeContributionsProvider, "cast_subscription_to_pi_for_portal"
+        )
+
+        mock_contributions_cache_upsert = mocker.patch(
+            "apps.contributions.stripe_contributions_provider.ContributionsCacheProvider.upsert"
+        )
+        mock_subscriptions_cache_upsert = mocker.patch(
+            "apps.contributions.stripe_contributions_provider.SubscriptionsCacheProvider.upsert"
+        )
+        mock_fetch_pis = mocker.patch(
+            "apps.contributions.stripe_contributions_provider.StripeContributionsProvider.fetch_payment_intents",
+            side_effect=[
+                (
+                    pi_search1 := stripe_pi_search_result_factory.get(
+                        has_more=True, num_with_subs=2, num_without_subs=2, rp_slug=revenue_program.slug
+                    )
+                ),
+                (
+                    pi_search2 := stripe_pi_search_result_factory.get(
+                        has_more=False, num_with_subs=2, num_without_subs=2, rp_slug=revenue_program.slug
+                    )
+                ),
+            ],
+        )
+        mock_fetch_uninvoiced_subs = mocker.patch(
+            "apps.contributions.stripe_contributions_provider.StripeContributionsProvider.fetch_uninvoiced_subscriptions_for_contributor",
+            return_value=[stripe_uninvoiced_subscription_factory.get(revenue_program.slug) for _ in range(2)],
+        )
+        mock_upsert_uninvoiced_subs = mocker.patch(
+            "apps.contributions.stripe_contributions_provider.ContributionsCacheProvider.upsert_uninvoiced_subscriptions"
+        )
+        contribution_tasks.task_pull_payment_intents_and_uninvoiced_subs(
+            email_id=(email := "test@test.com"),
+            customers_query=(query := "some-query"),
+            stripe_account_id=(stripe_account := "acc_0000"),
+        )
+        contributions_cache_init_spy.assert_called_once_with(
+            mocker.ANY,
+            email,
+            stripe_account,
+        )
+        subscriptions_cache_init_spy.assert_called_once_with(mocker.ANY, email, stripe_account)
+        contributions_provider_init_spy.assert_called_once_with(mocker.ANY, email, stripe_account)
+        # the first pi search result has `has_more=True` so we expect two calls in next two lines
+        assert mock_fetch_pis.call_count == 2
+        assert mock_fetch_pis.has_calls(
+            [
+                mocker.call(query=query, page=None),
+                mocker.call(query=query, page=NEXT_PAGE),
+            ]
+        )
+        assert mock_contributions_cache_upsert.call_count == 2
+        assert mock_contributions_cache_upsert.has_calls([mocker.call(pi_search1.data), mocker.call(pi_search2.data)])
+        mock_fetch_uninvoiced_subs.assert_called_once()
+        # twice when retrieving pis, once when retrieving uninvoiced subs
+        assert mock_subscriptions_cache_upsert.call_count == 3
+        assert contributions_provider_cast_sub_to_pi_spy.call_count == 2
+        assert contributions_provider_cast_sub_to_pi_spy.call_count == 2
+        assert mock_upsert_uninvoiced_subs.call_count == 1
+
+    def test_when_contribution_ignorable_error_on_uninvoiced_subs_conversion(
+        self, mocker, revenue_program, stripe_uninvoiced_subscription_factory
+    ):
+        logger_spy = mocker.spy(contribution_tasks.logger, "warning")
+        mocker.patch("apps.contributions.stripe_contributions_provider.ContributionsCacheProvider.upsert")
+        mocker.patch("apps.contributions.stripe_contributions_provider.SubscriptionsCacheProvider.upsert")
+        mocker.patch(
+            "apps.contributions.stripe_contributions_provider.StripeContributionsProvider.fetch_payment_intents",
+            return_value=StripePiSearchResponse(data=[], has_more=False, next_page=None, url=""),
+        )
+        mocker.patch(
+            "apps.contributions.stripe_contributions_provider.StripeContributionsProvider.fetch_uninvoiced_subscriptions_for_contributor",
+            return_value=[stripe_uninvoiced_subscription_factory.get(revenue_program.slug)],
+        )
+        mocker.patch(
+            "apps.contributions.stripe_contributions_provider.StripeContributionsProvider.cast_subscription_to_pi_for_portal",
+            side_effect=ContributionIgnorableError("ruh roh"),
+        )
+        mock_upsert_uninvoiced_subs = mocker.patch(
+            "apps.contributions.stripe_contributions_provider.ContributionsCacheProvider.upsert_uninvoiced_subscriptions"
+        )
+        contribution_tasks.task_pull_payment_intents_and_uninvoiced_subs(
+            email_id="test@test.com",
+            customers_query="some-query",
+            stripe_account_id="acc_0000",
+        )
+        logger_spy.assert_called_once_with(
+            "Unable to cast subscription %s to a portal contribution", mocker.ANY, exc_info=mocker.ANY
+        )
+        mock_upsert_uninvoiced_subs.assert_called_once_with([])
 
 
 @pytest.mark.django_db
@@ -129,7 +260,7 @@ class TestEmailContributionCsvExportToUser:
                 },
             ),
             message_as_html=render_to_string("nrh-contribution-csv-email-body.html", context),
-            attachment=ANY,
+            attachment=mocker.ANY,
             content_type="text/csv",
             filename="contributions.csv",
         )
@@ -170,7 +301,7 @@ class TestEmailContributionCsvExportToUser:
                 ),
             ),
             message_as_html=render_to_string("nrh-contribution-csv-email-body.html", context),
-            attachment=ANY,
+            attachment=mocker.ANY,
             content_type="text/csv",
             filename="contributions.csv",
         )
@@ -218,23 +349,42 @@ class TestEmailContributionCsvExportToUser:
         assert len([row for row in DictReader(send_email_spy.call_args[1]["attachment"].splitlines())]) == 0
 
 
-@patch("apps.contributions.tasks.RevenueProgram.objects.get")
-def test_task_verify_apple_domain_happy_path(mock_rp_get):
-    slug = "slug"
-    mock_revenue_program = MagicMock()
-    mock_rp_get.return_value = mock_revenue_program
-    task_verify_apple_domain(revenue_program_slug=slug)
-    assert mock_revenue_program.stripe_create_apple_pay_domain.called
-    mock_rp_get.assert_called_with(slug=slug)
+class TestTaskverifyAppleDomain:
+    def test_happy_path(self, mocker):
+        mock_get_rp = mocker.patch(
+            "apps.contributions.tasks.RevenueProgram.objects.get", return_value=(rp := mocker.MagicMock())
+        )
+        contribution_tasks.task_verify_apple_domain(revenue_program_slug=(slug := "slug"))
+        rp.stripe_create_apple_pay_domain.assert_called_once()
+        mock_get_rp.assert_called_once_with(slug=slug)
+
+    def test_task_verify_apple_domain_when_stripe_error(self, mocker):
+        mock_get_rp = mocker.patch(
+            "apps.organizations.models.RevenueProgram.objects.get", return_value=(rp := mocker.MagicMock())
+        )
+        rp.stripe_create_apple_pay_domain.side_effect = stripe.error.StripeError("Uh oh")
+        with pytest.raises(stripe.error.StripeError):
+            contribution_tasks.task_verify_apple_domain(revenue_program_slug=(slug := "slug"))
+        rp.stripe_create_apple_pay_domain.assert_called_once()
+        mock_get_rp.assert_called_with(slug=slug)
 
 
-@patch("apps.contributions.tasks.RevenueProgram.objects.get")
-def test_task_verify_apple_domain_when_stripe_error(mock_rp_get):
-    slug = "slug"
-    mock_revenue_program = MagicMock()
-    mock_rp_get.return_value = mock_revenue_program
-    mock_revenue_program.stripe_create_apple_pay_domain.side_effect = stripe.error.StripeError()
-    with pytest.raises(stripe.error.StripeError):
-        task_verify_apple_domain(revenue_program_slug=slug)
-    assert mock_revenue_program.stripe_create_apple_pay_domain.called
-    mock_rp_get.assert_called_with(slug=slug)
+class TestPingHealthChecks:
+    def test_when_healthchecks_url_not_truthy(self, mocker):
+        logger_spy = mocker.spy(contribution_tasks.logger, "warning")
+        mock_requests_get = mocker.patch("requests.get")
+        contribution_tasks.ping_healthchecks(check_name=(check_name := "foo"), healthcheck_url=None)
+        mock_requests_get.assert_not_called()
+        logger_spy.assert_called_once_with("URL for %s not available in this environment", check_name)
+
+    def test_happy_path(self, mocker):
+        mock_requests_get = mocker.patch("requests.get")
+        contribution_tasks.ping_healthchecks(check_name="foo", healthcheck_url=(url := "https://foo"))
+        mock_requests_get.assert_called_once_with(url, timeout=1)
+
+    def test_when_request_exception(self, mocker):
+        logger_spy = mocker.spy(contribution_tasks.logger, "warning")
+        mocker.patch("requests.get", side_effect=RequestException("Uh oh"))
+        contribution_tasks.ping_healthchecks(check_name=(check_name := "foo"), healthcheck_url="https://foo")
+        for i, x in enumerate(logger_spy.call_args_list):
+            assert x == mocker.call("Request %s for %s healthcheck failed", i + 1, check_name)

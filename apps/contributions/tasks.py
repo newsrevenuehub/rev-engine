@@ -17,14 +17,10 @@ from stripe.error import RateLimitError
 
 from apps.contributions.models import Contribution, ContributionStatus
 from apps.contributions.payment_managers import PaymentProviderError
-from apps.contributions.serializers import (
-    PaymentProviderContributionSerializer,
-    SubscriptionsSerializer,
-)
 from apps.contributions.stripe_contributions_provider import (
+    ContributionIgnorableError,
     ContributionsCacheProvider,
     StripeContributionsProvider,
-    StripePaymentIntent,
     SubscriptionsCacheProvider,
 )
 from apps.contributions.utils import export_contributions_to_csv
@@ -91,39 +87,49 @@ def task_pull_serialized_stripe_contributions_to_cache(self, email_id, stripe_ac
         # the task will get triggered two times which are asynchronous
         for customer_query in provider.generate_chunked_customers_query():
             logger.info("Pulling payment intents for %s", customer_query)
-            task_pull_payment_intents.delay(email_id, customer_query, stripe_account_id)
+            task_pull_payment_intents_and_uninvoiced_subs.delay(email_id, customer_query, stripe_account_id)
 
 
 @shared_task(bind=True, autoretry_for=(RateLimitError,), retry_backoff=True, retry_kwargs={"max_retries": 3})
-def task_pull_payment_intents(self, email_id, customers_query, stripe_account_id):
-    """Pull all payment_intents from stripe for a given set of customers."""
+def task_pull_payment_intents_and_uninvoiced_subs(self, email_id, customers_query, stripe_account_id):
+    """Pull all payment_intents and uninvoiced subscriptions from stripe for a given set of customers."""
+    logger.info(
+        "Pulling payment intents and uninvoiced subscriptions for email %s with query %s", email_id, customers_query
+    )
     with configure_scope() as scope:
         scope.user = {"email": email_id}
         provider = StripeContributionsProvider(email_id, stripe_account_id)
         pi_cache_provider = ContributionsCacheProvider(
             email_id,
             stripe_account_id,
-            serializer=PaymentProviderContributionSerializer,
-            converter=StripePaymentIntent,
         )
         sub_cache_provider = SubscriptionsCacheProvider(
             email_id,
             stripe_account_id,
-            serializer=SubscriptionsSerializer,
         )
-        pi_response = provider.fetch_payment_intents(query=customers_query)
-        # from celery.contrib import rdb; rdb.set_trace()
-        # grab subscriptions
-        logger.debug("pi_response: %s", pi_response)
-        pi_cache_provider.upsert(pi_response)
-        subscriptions = [x.invoice.subscription for x in pi_response if x.invoice]
-        sub_cache_provider.upsert(subscriptions)
+        keep_going = True
+        page = None
         # iterate through all pages of stripe payment intents
-        while pi_response.has_more:
-            pi_response = provider.fetch_payment_intents(query=customers_query, page=pi_response.next_page)
-            pi_cache_provider.upsert(pi_response)
-            subscriptions = [x.invoice.subscription for x in pi_response if x.invoice]
+        logger.info("Pulling payment intents for email %s with query %s", email_id, customers_query)
+        while keep_going:
+            pi_search_response = provider.fetch_payment_intents(query=customers_query, page=page)
+            pi_cache_provider.upsert(pi_search_response.data)
+            subscriptions = [x.invoice.subscription for x in pi_search_response.data if x.invoice]
             sub_cache_provider.upsert(subscriptions)
+            keep_going = pi_search_response.has_more
+            page = pi_search_response.next_page
+        logger.info("Pulling uninvoiced subscriptions for %s", email_id)
+        uninvoiced_subs = provider.fetch_uninvoiced_subscriptions_for_contributor()
+        sub_cache_provider.upsert(uninvoiced_subs)
+        converted = []
+        for x in uninvoiced_subs:
+            try:
+                converted.append(provider.cast_subscription_to_pi_for_portal(x))
+            # if there's a problem converting one, we don't let it effect the rest
+            except ContributionIgnorableError as exc:
+                logger.warning("Unable to cast subscription %s to a portal contribution", x.id, exc_info=exc)
+        logger.info("Converted %s uninvoiced subscriptions to portal contributions", len(converted))
+        pi_cache_provider.upsert_uninvoiced_subscriptions(converted)
 
 
 @shared_task(bind=True, autoretry_for=(RateLimitError,), retry_backoff=True, retry_kwargs={"max_retries": 3})

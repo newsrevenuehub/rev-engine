@@ -724,7 +724,10 @@ class PaymentProviderContributionSerializer(serializers.Serializer):
     provider_customer_id = serializers.CharField(max_length=255)
     credit_card_expiration_date = serializers.CharField(max_length=7)
     created = serializers.DateTimeField()
-    last_payment_date = serializers.DateTimeField()
+    # we allow_null and set default to None because apps.contributions.stripe_contributions_provider.StripePaymentIntent
+    # is used for both Stripe payment intents (main use case) and for wrapping Stripe subscriptions
+    # that don't have invoices (that is, subscriptions with a future first charge date)
+    last_payment_date = serializers.DateTimeField(allow_null=True, default=None)
     stripe_account_id = serializers.CharField(max_length=255, required=False, allow_blank=True)
 
 

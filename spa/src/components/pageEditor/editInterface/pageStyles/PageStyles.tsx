@@ -26,7 +26,7 @@ function PageStyles() {
           headerLink={batchPreview?.header_link}
           headerAltText={batchPreview?.header_logo_alt_text}
           styles={batchPreview?.styles || (donationPageBase as unknown as Style)}
-          setChanges={(changes: Partial<ContributionPage>) => addBatchChange(changes)}
+          onChangePage={(changes: Partial<ContributionPage>) => addBatchChange(changes)}
           setStyles={(styles: Style) => addBatchChange({ styles })}
         />
       </Controls>

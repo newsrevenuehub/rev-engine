@@ -1,36 +1,31 @@
-import { faFileUpload, faTimes } from '@fortawesome/free-solid-svg-icons';
-import PropTypes, { InferProps } from 'prop-types';
-import { ChangeEvent, useRef } from 'react';
-import fileToDataUrl from 'utilities/fileToDataUrl';
 import { ReactComponent as CloseIcon } from '@material-design-icons/svg/filled/close.svg';
+import PropTypes, { InferProps } from 'prop-types';
+import { ChangeEvent, useMemo, useRef } from 'react';
+import addMiddleEllipsis from 'utilities/addMiddleEllipsis';
+import fileToDataUrl from 'utilities/fileToDataUrl';
+import OffscreenText from '../OffscreenText/OffscreenText';
 import {
-  IconButton,
-  Label,
-  Preview,
-  Prompt,
-  RemoveIcon,
-  Root,
-  Thumbnail,
-  UploadIcon,
-  Slim,
-  SlimThumbnail,
-  PreviewSlim,
-  PromptSlim,
   FileNameSlim,
   IconButtonSlim,
+  ImageUploadWrapper,
+  Label,
+  PreviewSlim,
+  PromptSlim,
+  Slim,
+  SlimThumbnail,
   SlimThumbnailWrapper
 } from './ImageUpload.styled';
-import addMiddleEllipsis from 'utilities/addMiddleEllipsis';
 
 const ImageUploadPropTypes = {
   accept: PropTypes.string,
   id: PropTypes.string.isRequired,
   label: PropTypes.node.isRequired,
+  showLabel: PropTypes.bool,
   prompt: PropTypes.string.isRequired,
   className: PropTypes.string,
   onChange: PropTypes.func.isRequired,
   thumbnailUrl: PropTypes.string,
-  value: PropTypes.instanceOf(File)
+  value: PropTypes.oneOfType([PropTypes.string, PropTypes.instanceOf(File)])
 };
 
 export interface ImageUploadProps extends InferProps<typeof ImageUploadPropTypes> {
@@ -39,7 +34,7 @@ export interface ImageUploadProps extends InferProps<typeof ImageUploadPropTypes
    * the user removed the image.
    */
   onChange: (value?: File, thumbnailUrl?: string) => void;
-  variation?: 'bulky' | 'slim';
+  value?: string | File | null;
 }
 
 /**
@@ -63,7 +58,7 @@ export function ImageUpload(props: ImageUploadProps) {
     prompt,
     thumbnailUrl,
     value,
-    variation = 'bulky'
+    showLabel = false
   } = props;
   const inputRef = useRef<HTMLInputElement>(null);
 
@@ -79,17 +74,23 @@ export function ImageUpload(props: ImageUploadProps) {
     }
   }
 
-  if (variation === 'slim') {
-    return (
+  const renderLabel = useMemo(() => <Label htmlFor={id}>{label}</Label>, [id, label]);
+
+  return (
+    <ImageUploadWrapper>
+      {showLabel ? renderLabel : <OffscreenText>{renderLabel}</OffscreenText>}
       <Slim className={className!}>
         <input accept={accept!} hidden id={id} onChange={handleChange} ref={inputRef} type="file" />
         <PreviewSlim onClick={clickOnHiddenInput}>
           {thumbnailUrl ? (
             <>
               <SlimThumbnailWrapper>
-                <SlimThumbnail src={typeof value === 'string' ? value : thumbnailUrl} alt={value?.name ?? prompt} />
+                <SlimThumbnail
+                  src={typeof value === 'string' ? value : thumbnailUrl}
+                  alt={(value as File)?.name ?? prompt}
+                />
               </SlimThumbnailWrapper>
-              <FileNameSlim>{addMiddleEllipsis(value?.name || thumbnailUrl)}</FileNameSlim>
+              <FileNameSlim>{addMiddleEllipsis((value as File)?.name || thumbnailUrl)}</FileNameSlim>
             </>
           ) : (
             <PromptSlim>{prompt}</PromptSlim>
@@ -101,23 +102,7 @@ export function ImageUpload(props: ImageUploadProps) {
           </IconButtonSlim>
         )}
       </Slim>
-    );
-  }
-
-  return (
-    <Root className={className!}>
-      <Label htmlFor={id}>{label}</Label>
-      <input accept={accept!} hidden id={id} onChange={handleChange} ref={inputRef} type="file" />
-      <Preview onClick={clickOnHiddenInput}>
-        {thumbnailUrl ? <Thumbnail src={thumbnailUrl} alt={value?.name ?? prompt} /> : <Prompt>{prompt}</Prompt>}
-      </Preview>
-      <IconButton onClick={clickOnHiddenInput} aria-label="Change">
-        <UploadIcon icon={faFileUpload} />
-      </IconButton>
-      <IconButton disabled={!thumbnailUrl && !value} onClick={() => onChange()} aria-label="Remove">
-        <RemoveIcon icon={faTimes} />
-      </IconButton>
-    </Root>
+    </ImageUploadWrapper>
   );
 }
 

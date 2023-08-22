@@ -48,6 +48,7 @@ function PageSetup() {
             prompt="Choose an image"
             thumbnailUrl={batchPreview.header_bg_image_thumbnail}
             value={batchPreview.header_bg_image}
+            showLabel
           />
           <ImageSelectorHelpText>Background of header bar</ImageSelectorHelpText>
         </ImageSelectorWrapper>
@@ -70,6 +71,7 @@ function PageSetup() {
             prompt="Choose an image"
             thumbnailUrl={batchPreview.graphic_thumbnail}
             value={batchPreview.graphic}
+            showLabel
           />
           <ImageSelectorHelpText>Graphic displays below form panel heading</ImageSelectorHelpText>
         </ImageSelectorWrapper>

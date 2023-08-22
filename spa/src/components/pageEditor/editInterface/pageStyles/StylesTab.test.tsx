@@ -19,7 +19,7 @@ jest.mock('components/base/ColorPicker/ColorPicker');
 jest.mock('hooks/useFontList');
 
 const setStyles = jest.fn();
-const setChanges = jest.fn();
+const onChangePage = jest.fn();
 
 const mockStyles = {
   id: 'mock-styles-id' as any,
@@ -44,7 +44,7 @@ function tree(props?: Partial<StylesTabProps>) {
       headerThumbnail="mock-header-thumbnail"
       styles={mockStyles}
       setStyles={setStyles}
-      setChanges={setChanges}
+      onChangePage={onChangePage}
       {...props}
     />
   );
@@ -88,12 +88,23 @@ describe('StylesTab', () => {
 
     it('should update logo image', () => {
       tree();
-      expect(setChanges).not.toHaveBeenCalled();
+      expect(onChangePage).not.toHaveBeenCalled();
       userEvent.click(screen.getByTestId('mock-image-upload'));
-      expect(setChanges).toHaveBeenCalledTimes(1);
-      expect(setChanges).toHaveBeenCalledWith({
+      expect(onChangePage).toHaveBeenCalledTimes(1);
+      expect(onChangePage).toHaveBeenCalledWith({
         header_logo: expect.any(File),
         header_logo_thumbnail: 'mock-thumbnail-url'
+      });
+    });
+
+    it('should remove logo image', () => {
+      tree();
+      expect(onChangePage).not.toHaveBeenCalled();
+      userEvent.click(screen.getByRole('button', { name: 'remove image' }));
+      expect(onChangePage).toHaveBeenCalledTimes(1);
+      expect(onChangePage).toHaveBeenCalledWith({
+        header_logo: undefined,
+        header_logo_thumbnail: undefined
       });
     });
 
@@ -105,10 +116,10 @@ describe('StylesTab', () => {
 
     it('should update logo link', () => {
       tree();
-      expect(setChanges).not.toHaveBeenCalled();
+      expect(onChangePage).not.toHaveBeenCalled();
       userEvent.type(screen.getByLabelText('Logo Link'), 'A');
-      expect(setChanges).toHaveBeenCalledTimes(1);
-      expect(setChanges).toHaveBeenCalledWith({ header_link: 'mock-header-linkA' });
+      expect(onChangePage).toHaveBeenCalledTimes(1);
+      expect(onChangePage).toHaveBeenCalledWith({ header_link: 'mock-header-linkA' });
     });
 
     it('should display error if logo link is invalid', () => {
@@ -123,10 +134,10 @@ describe('StylesTab', () => {
 
     it('should update logo alt text', () => {
       tree();
-      expect(setChanges).not.toHaveBeenCalled();
+      expect(onChangePage).not.toHaveBeenCalled();
       userEvent.type(screen.getByLabelText('Logo Alt Text'), 'A');
-      expect(setChanges).toHaveBeenCalledTimes(1);
-      expect(setChanges).toHaveBeenCalledWith({ header_logo_alt_text: 'mock-header-alt-textA' });
+      expect(onChangePage).toHaveBeenCalledTimes(1);
+      expect(onChangePage).toHaveBeenCalledWith({ header_logo_alt_text: 'mock-header-alt-textA' });
     });
   });
 

@@ -41,7 +41,7 @@ export interface StylesTabProps extends InferProps<typeof StylesTabPropTypes> {
   headerLogo: ContributionPage['header_logo'];
   headerLink: ContributionPage['header_link'];
   headerAltText: ContributionPage['header_logo_alt_text'];
-  setChanges: (changes: Partial<ContributionPage>) => void;
+  onChangePage: (changes: Partial<ContributionPage>) => void;
   styles: Style;
   setStyles: (styles: Style) => void;
 }
@@ -53,19 +53,9 @@ function StylesTab({
   headerAltText,
   styles,
   setStyles,
-  setChanges
+  onChangePage
 }: StylesTabProps) {
-  let showLogoInput = false;
-  if (headerThumbnail) {
-    showLogoInput = true;
-
-    if (headerLogo === '') {
-      showLogoInput = false;
-    }
-  }
-  if (headerLogo !== '') {
-    showLogoInput = true;
-  }
+  const showLogoInput = (headerThumbnail && headerLogo) || headerLogo;
 
   const { fonts, isLoading: fontLoading } = useFontList();
 
@@ -96,30 +86,29 @@ function StylesTab({
         <Title>Logo</Title>
         <FullLine>
           <ImageUpload
-            id="page-setup-header_logo"
-            variation="slim"
-            onChange={(file, thumbnailUrl) => setChanges({ header_logo: file, header_logo_thumbnail: thumbnailUrl })}
+            id="page-style-header-logo"
+            onChange={(file, thumbnailUrl) => onChangePage({ header_logo: file, header_logo_thumbnail: thumbnailUrl })}
             label="Main header logo"
             prompt="Choose an image"
             thumbnailUrl={headerThumbnail}
-            value={headerLogo as any}
+            value={headerLogo}
           />
           {showLogoInput && (
             <>
               <TextField
-                id="headerLink"
+                id="page-style-header-logo-link"
                 label="Logo Link"
                 placeholder="e.g. https://www.fundjournalism.org"
-                onChange={(e) => setChanges({ header_link: e.target.value })}
+                onChange={(e) => onChangePage({ header_link: e.target.value })}
                 value={headerLink}
                 error={!isValidWebUrl(headerLink, true)}
                 helperText={!isValidWebUrl(headerLink, true) && 'Please enter a valid URL.'}
               />
               <TextField
-                id="headerAltText"
+                id="page-style-header-logo-alt-text"
                 label="Logo Alt Text"
                 placeholder="Enter logo text to assist screen readers"
-                onChange={(e) => setChanges({ header_logo_alt_text: e.target.value })}
+                onChange={(e) => onChangePage({ header_logo_alt_text: e.target.value })}
                 value={headerAltText}
               />
             </>

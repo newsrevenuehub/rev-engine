@@ -186,7 +186,7 @@ function PageEditor() {
 
       try {
         if (CAPTURE_PAGE_SCREENSHOT) {
-          await savePageChanges({}, updatedPagePreview.name, document.getElementById('root'));
+          await savePageChanges({}, updatedPagePreview.name, document.getElementById('donation-page-wrapper'));
         } else {
           await savePageChanges();
         }
@@ -246,7 +246,7 @@ function PageEditor() {
               <InnerEditInterface />
             </AnimatePresence>
           )}
-          {!isLoading && !isSaving && !stylesLoading && updatedPagePreview && (
+          {updatedPagePreview && (
             <SegregatedStyles page={updatedPagePreview}>
               {/* set stringified page as key to guarantee that ALL page changes will re-render the page in edit mode */}
               <DonationPage key={JSON.stringify(updatedPagePreview ?? '')} live={false} page={updatedPagePreview} />

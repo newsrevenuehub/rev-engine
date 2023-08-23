@@ -213,7 +213,7 @@ function DonationPage({ page, live = false }) {
         setMailingCountry
       }}
     >
-      <S.DonationPage data-testid="donation-page">
+      <S.DonationPage data-testid="donation-page" id="donation-page-wrapper">
         <DonationPageHeader page={page} />
         <S.PageMain>
           <S.SideOuter>

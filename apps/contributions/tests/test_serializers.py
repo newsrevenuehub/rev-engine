@@ -29,8 +29,6 @@ from apps.contributions.serializers import (
     SWAG_SUB_CHOICE_DELIMITER,
     ContributionSerializer,
     StripeMetadataSchemaBase,
-    StripeMetadataSchemaSources,
-    StripeMetadataSchemaVersions,
     StripePaymentMetadataSchemaV1_4,
 )
 from apps.contributions.tests.factories import ContributionFactory, ContributorFactory
@@ -875,8 +873,8 @@ class TestBaseCreatePaymentSerializer:
         assert metadata.agreed_to_pay_fees == minimally_valid_contribution_form_data["agreed_to_pay_fees"]
         assert metadata.referer == pydantic.pydantic_core.Url(referer)
         assert metadata.swag_choices == valid_swag_choices_string
-        assert metadata.schema_version == StripeMetadataSchemaVersions.V1_4
-        assert metadata.source == StripeMetadataSchemaSources.REVENGINE
+        assert metadata.schema_version == "1.4"
+        assert metadata.source == "rev-engine"
         assert metadata.contributor_id == str(contribution.contributor.id)
         assert metadata.donor_selected_amount == minimally_valid_contribution_form_data["donor_selected_amount"]
         assert metadata.revenue_program_id == str(contribution.donation_page.revenue_program_id)
@@ -906,7 +904,7 @@ def valid_stripe_metadata_v1_4_data():
         "revenue_program_id": "1",
         "revenue_program_slug": "revenue-program-slug",
         "swag_choices": "",
-        "schema_version": StripeMetadataSchemaVersions.V1_4,
+        "schema_version": "1.4",
     }
 
 

@@ -1,7 +1,6 @@
 import logging
 import re
 from datetime import datetime, timedelta
-from enum import Enum
 from typing import Any, Literal, Optional
 
 from django.conf import settings
@@ -227,18 +226,6 @@ class AbstractPaymentSerializer(serializers.Serializer):
         return super().to_internal_value(data)
 
 
-class StripeMetadataSchemaVersions(Enum):
-    """Stripe metadata schema versions"""
-
-    V1_4 = settings.METADATA_SCHEMA_VERSION_1_4
-
-
-class StripeMetadataSchemaSources(Enum):
-    """Stripe metadata schema sources"""
-
-    REVENGINE = settings.METADATA_SOURCE_REVENGINE
-
-
 class StripeMetadataSchemaBase(pydantic.BaseModel):
     """
 
@@ -252,8 +239,8 @@ class StripeMetadataSchemaBase(pydantic.BaseModel):
     class Config:
         extra = pydantic.Extra.forbid  # don't allow extra fields
 
-    schema_version: Literal[StripeMetadataSchemaVersions.V1_4]
-    source: Literal[StripeMetadataSchemaSources.REVENGINE] = StripeMetadataSchemaSources.REVENGINE
+    schema_version: Literal["1.4"]
+    source: Literal["rev-engine"] = "rev-engine"
 
     @classmethod
     def normalize_boolean(cls, v: Any) -> bool | None:
@@ -292,7 +279,7 @@ class StripePaymentMetadataSchemaV1_4(StripeMetadataSchemaBase):
     sf_campaign_id: Optional[str] = None
     swag_choices: Optional[str] = None
     swag_opt_out: Optional[bool] = False
-    schema_version: Literal[StripeMetadataSchemaVersions.V1_4] = StripeMetadataSchemaVersions.V1_4
+    schema_version: Literal["1.4"] = "1.4"
 
     @pydantic.validator("contributor_id", "revenue_program_id", pre=True)
     @classmethod

@@ -28,8 +28,10 @@ from apps.contributions.serializers import (
     SWAG_CHOICES_DELIMITER,
     SWAG_SUB_CHOICE_DELIMITER,
     ContributionSerializer,
-    StripeMetaDataBase,
-    StripeMetadataSchemaV1_4,
+    StripeMetadataSchemaBase,
+    StripeMetadataSchemaSources,
+    StripeMetadataSchemaVersions,
+    StripePaymentMetadataSchemaV1_4,
 )
 from apps.contributions.tests.factories import ContributionFactory, ContributorFactory
 from apps.contributions.utils import get_sha256_hash
@@ -869,12 +871,12 @@ class TestBaseCreatePaymentSerializer:
         serializer = self.serializer_class(data=minimally_valid_contribution_form_data, context={"request": request})
         serializer.is_valid(raise_exception=True)
         metadata = serializer.generate_stripe_metadata(contribution)
-        assert isinstance(metadata, StripeMetadataSchemaV1_4)
+        assert isinstance(metadata, StripePaymentMetadataSchemaV1_4)
         assert metadata.agreed_to_pay_fees == minimally_valid_contribution_form_data["agreed_to_pay_fees"]
-        assert metadata.referer == referer
+        assert metadata.referer == pydantic.pydantic_core.Url(referer)
         assert metadata.swag_choices == valid_swag_choices_string
-        assert metadata.schema_version == settings.METADATA_SCHEMA_VERSION_1_4
-        assert metadata.source == settings.METADATA_SOURCE_REVENGINE
+        assert metadata.schema_version == StripeMetadataSchemaVersions.V1_4
+        assert metadata.source == StripeMetadataSchemaSources.REVENGINE
         assert metadata.contributor_id == contribution.contributor.id
         assert metadata.donor_selected_amount == minimally_valid_contribution_form_data["donor_selected_amount"]
         assert metadata.revenue_program_id == contribution.donation_page.revenue_program_id
@@ -887,8 +889,6 @@ class TestBaseCreatePaymentSerializer:
             "company_name",
             "honoree",
             "in_memory_of",
-            "marketing_consent",
-            "occupation",
             "reason_for_giving",
             "sf_campaign_id",
         )
@@ -906,11 +906,11 @@ def valid_stripe_metadata_v1_4_data():
         "revenue_program_id": "1",
         "revenue_program_slug": "revenue-program-slug",
         "swag_choices": "",
-        "schema_version": settings.METADATA_SCHEMA_VERSION_1_4,
+        "schema_version": StripeMetadataSchemaVersions.V1_4,
     }
 
 
-class TestStripeMetadataSchemaV1_4:
+class TestStripePaymentMetadataSchemaV1_4:
     @pytest.mark.parametrize(
         "value",
         (
@@ -931,7 +931,7 @@ class TestStripeMetadataSchemaV1_4:
         ),
     )
     def test_with_valid_swag_choices_values(self, value, valid_stripe_metadata_v1_4_data):
-        instance = StripeMetadataSchemaV1_4(**(valid_stripe_metadata_v1_4_data | {"swag_choices": value}))
+        instance = StripePaymentMetadataSchemaV1_4(**(valid_stripe_metadata_v1_4_data | {"swag_choices": value}))
         assert instance.swag_choices == value
 
     @pytest.mark.parametrize(
@@ -953,13 +953,13 @@ class TestStripeMetadataSchemaV1_4:
     )
     def test_with_invalid_swag_choices_value(self, value, valid_stripe_metadata_v1_4_data):
         with pytest.raises(pydantic.ValidationError):
-            StripeMetadataSchemaV1_4(**(valid_stripe_metadata_v1_4_data | {"swag_choices": value}))
+            StripePaymentMetadataSchemaV1_4(**(valid_stripe_metadata_v1_4_data | {"swag_choices": value}))
 
     def test_with_invalid_swag_choices_when_exceed_max_length(
         self, valid_stripe_metadata_v1_4_data, invalid_swag_choices_string_exceed_max_length
     ):
         with pytest.raises(pydantic.ValidationError):
-            StripeMetadataSchemaV1_4(
+            StripePaymentMetadataSchemaV1_4(
                 **(valid_stripe_metadata_v1_4_data | {"swag_choices": invalid_swag_choices_string_exceed_max_length})
             )
 
@@ -1626,7 +1626,7 @@ class SubscriptionsSerializer(TestCase):
         assert data["payment_type"] == "card"
 
 
-class TestStripeMetaDataBase:
+class TestStripeMetadataSchemaBase:
     @pytest.mark.parametrize(
         "value, expected",
         (
@@ -1657,9 +1657,9 @@ class TestStripeMetaDataBase:
         ),
     )
     def test_normalize_boolean_happy_path(self, value, expected):
-        assert StripeMetaDataBase.normalize_boolean(value) == expected
+        assert StripeMetadataSchemaBase.normalize_boolean(value) == expected
 
     @pytest.mark.parametrize("value", (0, 1, 2, "0", "1", "cats", [], ["True"]))
     def test_normalize_boolean_when_value_is_not_valid_type(self, value):
         with pytest.raises(ValueError):
-            StripeMetaDataBase.normalize_boolean(value)
+            StripeMetadataSchemaBase.normalize_boolean(value)

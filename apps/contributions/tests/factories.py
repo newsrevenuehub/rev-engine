@@ -13,7 +13,7 @@ from faker import Faker
 
 from apps.common.tests.test_utils import generate_random_datetime
 from apps.contributions import models
-from apps.contributions.serializers import StripeMetadataSchemaV1_4
+from apps.contributions.serializers import StripePaymentMetadataSchemaV1_4
 from apps.pages.tests.factories import DonationPageFactory
 
 
@@ -101,7 +101,7 @@ class ContributionFactory(DjangoModelFactory):
 
     @factory.lazy_attribute
     def contribution_metadata(self):
-        return StripeMetadataSchemaV1_4(
+        return StripePaymentMetadataSchemaV1_4(
             contributor_id=self.contributor.id if self.contributor else "",
             agreed_to_pay_fees=True,
             donor_selected_amount=self.amount / 100,

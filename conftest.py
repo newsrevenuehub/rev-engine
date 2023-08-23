@@ -560,7 +560,6 @@ def valid_metadata_factory(faker):
         "revenue_program_id": faker.uuid4(),
         "revenue_program_slug": f"rp-{faker.word()}",
         "sf_campaign_id": None,
-        "marketing_consent": None,
         "occupation": None,
         "comp_subscription": None,
         "honoree": None,

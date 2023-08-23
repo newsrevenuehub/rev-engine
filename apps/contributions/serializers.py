@@ -1,7 +1,8 @@
 import logging
 import re
 from datetime import datetime, timedelta
-from typing import Any, Optional
+from enum import Enum
+from typing import Any, Literal, Optional
 
 from django.conf import settings
 from django.db.models import TextChoices
@@ -226,6 +227,18 @@ class AbstractPaymentSerializer(serializers.Serializer):
         return super().to_internal_value(data)
 
 
+class StripeMetadataSchemaVersions(Enum):
+    """Stripe metadata schema versions"""
+
+    V1_4 = settings.METADATA_SCHEMA_VERSION_1_4
+
+
+class StripeMetadataSchemaSources(Enum):
+    """Stripe metadata schema sources"""
+
+    REVENGINE = settings.METADATA_SOURCE_REVENGINE
+
+
 class StripeMetadataSchemaBase(pydantic.BaseModel):
     """
 
@@ -239,8 +252,8 @@ class StripeMetadataSchemaBase(pydantic.BaseModel):
     class Config:
         extra = pydantic.Extra.forbid  # don't allow extra fields
 
-    schema_version: str
-    source: str = settings.METADATA_SOURCE_REVENGINE
+    schema_version: Literal[StripeMetadataSchemaVersions.V1_4]
+    source: Literal[StripeMetadataSchemaSources.REVENGINE] = StripeMetadataSchemaSources.REVENGINE
 
     @classmethod
     def normalize_boolean(cls, v: Any) -> bool | None:
@@ -260,53 +273,27 @@ class StripeMetadataSchemaBase(pydantic.BaseModel):
         raise ValueError("Value must be a boolean, None, or castable string")
 
 
-class StripeMetadataSchemaV1_4(StripeMetadataSchemaBase):
-    """Note"""
-
-    schema_version = settings.METADATA_SCHEMA_VERSION_1_4
-
-
-class StripeMetadataSchemaV1_4ForCustomer(StripeMetadataSchemaV1_4):
-    """
-
-    note
-
-    """
-
-    # in prod `contributor_id` will be a string, but in test it will be an int
-    contributor_id: str | int
-    marketing_consent: Optional[bool] = None
-    occupation: Optional[str] = None
-
-    @pydantic.validator("marketing_consent")
-    @classmethod
-    def validate_marketing_consent(cls, v: Any) -> bool | None:
-        """Validate marketing_consent
-
-        This validator is responsible for ensuring that the marketing_consent field is valid.
-        """
-        return cls.normalize_boolean(v)
-
-
-class StripeMetadataSchemaV1_4ForSubscription(StripeMetadataSchemaV1_4):
+class StripePaymentMetadataSchemaV1_4(StripeMetadataSchemaBase):
     """Note"""
 
     agreed_to_pay_fees: bool
     donor_selected_amount: float
-    referer: str
+    referer: pydantic.HttpUrl
     # in prod `revenue_program_id` will be a string, but in test it will be an int
     revenue_program_id: str | int
     revenue_program_slug: str
 
+    # in prod `contributor_id` will be a string, but in test it will be an int.
+    contributor_id: Optional[str | int] = None
     comp_subscription: Optional[str] = None
     company_name: Optional[str] = None
     honoree: Optional[str] = None
     in_memory_of: Optional[str] = None
-    occupation: Optional[str] = None
     reason_for_giving: Optional[str] = None
     sf_campaign_id: Optional[str] = None
     swag_choices: Optional[str] = None
-    swag_opt_out: Optional[bool] = None
+    swag_opt_out: Optional[bool] = False
+    schema_version: Literal[StripeMetadataSchemaVersions.V1_4] = StripeMetadataSchemaVersions.V1_4
 
     @pydantic.validator("agreed_to_pay_fees", "swag_opt_out")
     @classmethod
@@ -337,13 +324,6 @@ class StripeMetadataSchemaV1_4ForSubscription(StripeMetadataSchemaV1_4):
             if choice and not re.fullmatch(choice_pattern, choice):
                 raise ValueError("swag_choices is not valid")
         return v
-
-
-class StripeMetadataSchemaV1_4ForPaymentIntent(StripeMetadataSchemaV1_4ForSubscription):
-    """ """
-
-    # in prod `customer_id` will be a string, but in test it will be an int
-    customer_id: str | int
 
 
 class BaseCreatePaymentSerializer(serializers.Serializer):
@@ -562,13 +542,12 @@ class BaseCreatePaymentSerializer(serializers.Serializer):
                 contribution_data["flagged_date"] = timezone.now()
         return Contribution(**contribution_data)
 
-    def generate_stripe_metadata_for_subscription(
-        self, contribution: Contribution
-    ) -> StripeMetadataSchemaV1_4ForSubscription:
-        """ """
-        logger.info("Generating stripe metadata v1.4 for subscription on contribution %s", contribution.id)
-        return StripeMetadataSchemaV1_4ForSubscription(
+    def generate_stripe_metadata(self, contribution: Contribution) -> StripePaymentMetadataSchemaV1_4:
+        """Generate Stripe metadata for a contribution based on validated data"""
+        logger.info("Generating stripe metadata for contribution %s", contribution.id)
+        return StripePaymentMetadataSchemaV1_4(
             agreed_to_pay_fees=self.validated_data["agreed_to_pay_fees"],
+            contributor_id=contribution.contributor.id,
             # the `or None` pattern here and below because in validated data, these fields are allowed to be blank, but in
             # the Stripe metadata, we want to send null, not blank.
             # TODO: [DEV-3827] Coordinate comp_subscription between server and SPA
@@ -583,37 +562,6 @@ class BaseCreatePaymentSerializer(serializers.Serializer):
             sf_campaign_id=self.validated_data["sf_campaign_id"] or None,
             swag_choices=self.validated_data["swag_choices"] or None,
             swag_opt_out=self.validated_data["swag_opt_out"],
-        )
-
-    def generate_stripe_metadata_for_payment_intent(
-        self, contribution: Contribution
-    ) -> StripeMetadataSchemaV1_4ForPaymentIntent:
-        logger.info("Generating stripe metadata v1.4 for payment intent on contribution %s", contribution.id)
-        return StripeMetadataSchemaV1_4ForPaymentIntent(
-            agreed_to_pay_fees=self.validated_data["agreed_to_pay_fees"],
-            contributor_id=contribution.contributor_id,
-            # the `or None` pattern here and below because in validated data, these fields are allowed to be blank, but in
-            # the Stripe metadata, we want to send null, not blank.
-            # TODO: [DEV-3827] Coordinate comp_subscription between server and SPA
-            comp_subscription=self.validated_data["comp_subscription"] or None,
-            donor_selected_amount=self.validated_data["donor_selected_amount"],
-            honoree=self.validated_data["honoree"] or None,
-            in_memory_of=self.validated_data["in_memory_of"] or None,
-            reason_for_giving=self.validated_data["reason_for_giving"] or None,
-            referer=self._context["request"].META["HTTP_REFERER"],
-            revenue_program_id=self.validated_data["page"].revenue_program.id,
-            revenue_program_slug=self.validated_data["page"].revenue_program.slug,
-            sf_campaign_id=self.validated_data["sf_campaign_id"] or None,
-            swag_choices=self.validated_data["swag_choices"] or None,
-            swag_opt_out=self.validated_data["swag_opt_out"],
-        )
-
-    def generate_stripe_metadata_for_customer(self, contribution: Contribution) -> StripeMetadataSchemaV1_4ForCustomer:
-        logger.info("Generating stripe metadata v1.4 for customer on contribution %s", contribution.id)
-        return StripeMetadataSchemaV1_4ForCustomer(
-            contributor_id=contribution.contributor_id,
-            marketing_consent=self.validated_data["page"].revenue_program.marketing_consent,
-            occupation=self.validated_data["page"].revenue_program.occupation,
         )
 
 

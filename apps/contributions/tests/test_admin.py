@@ -16,7 +16,7 @@ import apps
 from apps.common.tests.test_utils import setup_request
 from apps.contributions.admin import ContributionAdmin, ContributorAdmin
 from apps.contributions.models import Contribution, ContributionStatus, Contributor
-from apps.contributions.tests.factories import ContributionFactory
+from apps.contributions.tests.factories import ContributionFactory, ContributorFactory
 from apps.organizations.tests.factories import (
     OrganizationFactory,
     PaymentProviderFactory,
@@ -25,15 +25,30 @@ from apps.organizations.tests.factories import (
 from apps.pages.tests.factories import DonationPageFactory
 
 
+@pytest.mark.django_db
 class TestContributorAdmin:
-    def test_contributions_count(self, client, admin_user):
-        """Number of contributions found for this contributor"""
+    def test_queryset_annotated_with_contributions_count(self):
         contribution = ContributionFactory()
         assert Contribution.objects.filter(contributor=contribution.contributor).count() == (expected := 1)
-        client.force_login(admin_user)
         admin = ContributorAdmin(Contributor, AdminSite())
         qs = admin.get_queryset(None)
         assert qs.first().contributions_count == expected
+
+    def test_views_stand_up(self, client, admin_user):
+        """This test is here both to ensure views load and also so we get test coverage for the ContributorAdmin.contributions_count method"""
+        contributor = ContributorFactory()
+        client.force_login(admin_user)
+        for x in [
+            reverse("admin:contributions_contributor_changelist"),
+            reverse("admin:contributions_contributor_add"),
+        ]:
+            assert client.get(x, follow=True).status_code == 200
+        assert (
+            client.get(
+                reverse("admin:contributions_contributor_change", args=[contributor.pk]), follow=True
+            ).status_code
+            == 200
+        )
 
 
 @mock.patch("apps.contributions.models.Contribution.fetch_stripe_payment_method", return_value=None)

@@ -103,7 +103,16 @@ class OrganizationAdmin(RevEngineBaseAdmin, CompareVersionAdmin):
                 )
             },
         ),
-        (None, {"fields": ("salesforce_id", "stripe_subscription_id")}),
+        (
+            None,
+            {
+                "fields": (
+                    "salesforce_id",
+                    "stripe_subscription_id",
+                    "uuid",
+                )
+            },
+        ),
         (
             "Email Templates",
             {"fields": ("send_receipt_email_via_nre",)},
@@ -133,12 +142,10 @@ class OrganizationAdmin(RevEngineBaseAdmin, CompareVersionAdmin):
 
     inline_type = "stacked"
 
-    readonly_fields = ["name"]
+    readonly_fields = ["uuid"]
 
     def get_readonly_fields(self, request, obj=None):
-        if Path(request.path).parts[-1] == "add":
-            return []
-        return ["name"]
+        return self.readonly_fields if Path(request.path).parts[-1] == "add" else self.readonly_fields + ["name"]
 
     def save_model(self, request, obj, form, change):
         """Override save_model so we pass update_fields to obj.save()

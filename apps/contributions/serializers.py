@@ -279,8 +279,7 @@ class StripePaymentMetadataSchemaV1_4(StripeMetadataSchemaBase):
     agreed_to_pay_fees: bool
     donor_selected_amount: float
     referer: pydantic.HttpUrl
-    # in prod `revenue_program_id` will be a string, but in test it will be an int
-    revenue_program_id: str | int
+    revenue_program_id: str
     revenue_program_slug: str
 
     # in prod `contributor_id` will be a string, but in test it will be an int.

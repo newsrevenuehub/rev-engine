@@ -877,7 +877,7 @@ class TestBaseCreatePaymentSerializer:
         assert metadata.swag_choices == valid_swag_choices_string
         assert metadata.schema_version == StripeMetadataSchemaVersions.V1_4
         assert metadata.source == StripeMetadataSchemaSources.REVENGINE
-        assert metadata.contributor_id == contribution.contributor.id
+        assert metadata.contributor_id == str(contribution.contributor.id)
         assert metadata.donor_selected_amount == minimally_valid_contribution_form_data["donor_selected_amount"]
         assert metadata.revenue_program_id == contribution.donation_page.revenue_program_id
         assert metadata.revenue_program_slug == contribution.donation_page.revenue_program.slug
@@ -962,6 +962,19 @@ class TestStripePaymentMetadataSchemaV1_4:
             StripePaymentMetadataSchemaV1_4(
                 **(valid_stripe_metadata_v1_4_data | {"swag_choices": invalid_swag_choices_string_exceed_max_length})
             )
+
+    def test_converts_contributor_id_to_string(self, valid_stripe_metadata_v1_4_data):
+        # Note the reason for existence of this conversion and test is that in test env, contributor_id will
+        # be an int, but in prod will be a string. We want to strictly type to string, so we convert in validation
+        # step in class.
+        valid_stripe_metadata_v1_4_data["contributor_id"] = (con_id := 1)
+        instance = StripePaymentMetadataSchemaV1_4(**valid_stripe_metadata_v1_4_data)
+        assert instance.contributor_id == str(con_id)
+
+    def test_keeps_contributor_id_as_none_when_none(self, valid_stripe_metadata_v1_4_data):
+        valid_stripe_metadata_v1_4_data["contributor_id"] = None
+        instance = StripePaymentMetadataSchemaV1_4(**valid_stripe_metadata_v1_4_data)
+        assert instance.contributor_id is None
 
 
 @pytest.mark.django_db

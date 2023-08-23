@@ -102,7 +102,7 @@ class ContributionFactory(DjangoModelFactory):
     @factory.lazy_attribute
     def contribution_metadata(self):
         return StripePaymentMetadataSchemaV1_4(
-            contributor_id=self.contributor.id if self.contributor else "",
+            contributor_id=self.contributor.id if self.contributor else None,
             agreed_to_pay_fees=True,
             donor_selected_amount=self.amount / 100,
             referer="https://www.google.com/",

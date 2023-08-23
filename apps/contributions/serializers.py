@@ -274,7 +274,7 @@ class StripeMetadataSchemaBase(pydantic.BaseModel):
 
 
 class StripePaymentMetadataSchemaV1_4(StripeMetadataSchemaBase):
-    """Note"""
+    """Schema for used for generating metadata on Stripe payment intents and subscriptions"""
 
     agreed_to_pay_fees: bool
     donor_selected_amount: float
@@ -284,7 +284,7 @@ class StripePaymentMetadataSchemaV1_4(StripeMetadataSchemaBase):
     revenue_program_slug: str
 
     # in prod `contributor_id` will be a string, but in test it will be an int.
-    contributor_id: Optional[str | int] = None
+    contributor_id: Optional[str] = None
     comp_subscription: Optional[str] = None
     company_name: Optional[str] = None
     honoree: Optional[str] = None
@@ -294,6 +294,19 @@ class StripePaymentMetadataSchemaV1_4(StripeMetadataSchemaBase):
     swag_choices: Optional[str] = None
     swag_opt_out: Optional[bool] = False
     schema_version: Literal[StripeMetadataSchemaVersions.V1_4] = StripeMetadataSchemaVersions.V1_4
+
+    @pydantic.validator("contributor_id", pre=True)
+    @classmethod
+    def convert_contributor_id_to_string(cls, v: Any) -> str | None:
+        """Convert contributor_id to string
+
+        This validator is responsible for ensuring that the contributor_id field is a string.
+        In prod, this value will aready be a string, but in test, it will be an integer. This allows
+        us to handle both cases, while still having strict type checking.
+        """
+        if v is None:
+            return v
+        return str(v)
 
     @pydantic.validator("agreed_to_pay_fees", "swag_opt_out")
     @classmethod

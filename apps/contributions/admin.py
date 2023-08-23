@@ -1,5 +1,4 @@
 import logging
-from typing import Any
 
 from django.conf import settings
 from django.contrib import admin, messages
@@ -32,19 +31,23 @@ class ContributorAdmin(RevEngineBaseAdmin, CompareVersionAdmin):
     search_fields = ("email",)
 
     readonly_fields = (
-        "email",
         "contributions_count",
+        "email",
         "most_recent_contribution",
     )
 
-    def get_queryset(self, request: HttpRequest) -> QuerySet[Any]:
-        """ """
+    def get_queryset(self, request: HttpRequest) -> QuerySet[Contributor]:
+        """We annotate the queryset with the number of contributions for each contributor
+
+        We use this approach (annotating) vs. defining a property on model in order to avoid
+        n+1 queries when rendering the list view
+        """
         queryset = super().get_queryset(request)
         queryset = queryset.annotate(contributions_count=Count("contribution"))
         return queryset
 
-    def contributions_count(self, obj):
-        """"""
+    def contributions_count(self, obj: Contributor) -> int:
+        """Number of contributions found for this contributor"""
         return obj.contributions_count
 
 

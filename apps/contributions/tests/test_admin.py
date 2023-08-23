@@ -14,8 +14,8 @@ from reversion_compare.admin import CompareVersionAdmin
 
 import apps
 from apps.common.tests.test_utils import setup_request
-from apps.contributions.admin import ContributionAdmin
-from apps.contributions.models import Contribution, ContributionStatus
+from apps.contributions.admin import ContributionAdmin, ContributorAdmin
+from apps.contributions.models import Contribution, ContributionStatus, Contributor
 from apps.contributions.tests.factories import ContributionFactory
 from apps.organizations.tests.factories import (
     OrganizationFactory,
@@ -23,6 +23,17 @@ from apps.organizations.tests.factories import (
     RevenueProgramFactory,
 )
 from apps.pages.tests.factories import DonationPageFactory
+
+
+class TestContributorAdmin:
+    def test_contributions_count(self, client, admin_user):
+        """Number of contributions found for this contributor"""
+        contribution = ContributionFactory()
+        assert Contribution.objects.filter(contributor=contribution.contributor).count() == (expected := 1)
+        client.force_login(admin_user)
+        admin = ContributorAdmin(Contributor, AdminSite())
+        qs = admin.get_queryset(None)
+        assert qs.first().contributions_count == expected
 
 
 @mock.patch("apps.contributions.models.Contribution.fetch_stripe_payment_method", return_value=None)

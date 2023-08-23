@@ -297,7 +297,7 @@ class StripePaymentMetadataSchemaV1_4(StripeMetadataSchemaBase):
 
     @pydantic.validator("contributor_id", "revenue_program_id", pre=True)
     @classmethod
-    def convert_id_id_to_string(cls, v: Any) -> str | None:
+    def convert_id_to_string(cls, v: Any) -> str | None:
         """Convert id to string
 
         This validator is responsible for ensuring that the field is a string.

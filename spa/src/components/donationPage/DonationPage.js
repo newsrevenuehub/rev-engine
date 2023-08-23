@@ -33,6 +33,8 @@ export const DonationPageContext = createContext({});
 export const CANCEL_PAYMENT_FAILURE_MESSAGE =
   "Something went wrong, but don't worry, you haven't been charged. Try refreshing.";
 
+export const DONATION_PAGE_ID = 'donation-page-wrapper';
+
 class DonationPageUnrecoverableError extends Error {
   constructor(message) {
     super(message);
@@ -213,7 +215,7 @@ function DonationPage({ page, live = false }) {
         setMailingCountry
       }}
     >
-      <S.DonationPage data-testid="donation-page" id="donation-page-wrapper">
+      <S.DonationPage data-testid="donation-page" id={DONATION_PAGE_ID}>
         <DonationPageHeader page={page} />
         <S.PageMain>
           <S.SideOuter>

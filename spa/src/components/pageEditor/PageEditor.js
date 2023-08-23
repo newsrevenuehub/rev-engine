@@ -39,7 +39,7 @@ import { useConfigureAnalytics } from 'components/analytics';
 // Children
 import CircleButton from 'elements/buttons/CircleButton';
 import SegregatedStyles from 'components/donationPage/SegregatedStyles';
-import DonationPage from 'components/donationPage/DonationPage';
+import DonationPage, { DONATION_PAGE_ID } from 'components/donationPage/DonationPage';
 import GlobalLoading from 'elements/GlobalLoading';
 import InnerEditInterface from 'components/pageEditor/editInterface/EditInterface';
 import PageTitle from 'elements/PageTitle';
@@ -186,7 +186,7 @@ function PageEditor() {
 
       try {
         if (CAPTURE_PAGE_SCREENSHOT) {
-          await savePageChanges({}, updatedPagePreview.name, document.getElementById('donation-page-wrapper'));
+          await savePageChanges({}, updatedPagePreview.name, document.getElementById(DONATION_PAGE_ID));
         } else {
           await savePageChanges();
         }

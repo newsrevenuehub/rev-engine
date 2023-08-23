@@ -2,6 +2,7 @@ import datetime
 import logging
 import uuid
 from dataclasses import asdict
+from functools import cached_property
 from typing import List
 from urllib.parse import quote_plus
 
@@ -41,7 +42,7 @@ class Contributor(IndexedTimeStampedModel):
     uuid = models.UUIDField(default=uuid.uuid4, primary_key=False, editable=False)
     email = models.EmailField(unique=True)
 
-    @property
+    @cached_property
     def contributions_count(self):
         return self.contribution_set.count()
 

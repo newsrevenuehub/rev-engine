@@ -1,7 +1,11 @@
 import logging
+from typing import Any
 
 from django.conf import settings
 from django.contrib import admin, messages
+from django.db.models import Count
+from django.db.models.query import QuerySet
+from django.http.request import HttpRequest
 from django.utils.html import format_html
 
 from reversion_compare.admin import CompareVersionAdmin
@@ -32,6 +36,16 @@ class ContributorAdmin(RevEngineBaseAdmin, CompareVersionAdmin):
         "contributions_count",
         "most_recent_contribution",
     )
+
+    def get_queryset(self, request: HttpRequest) -> QuerySet[Any]:
+        """ """
+        queryset = super().get_queryset(request)
+        queryset = queryset.annotate(contributions_count=Count("contribution"))
+        return queryset
+
+    def contributions_count(self, obj):
+        """"""
+        return obj.contributions_count
 
 
 @admin.register(Contribution)

@@ -295,13 +295,13 @@ class StripePaymentMetadataSchemaV1_4(StripeMetadataSchemaBase):
     swag_opt_out: Optional[bool] = False
     schema_version: Literal[StripeMetadataSchemaVersions.V1_4] = StripeMetadataSchemaVersions.V1_4
 
-    @pydantic.validator("contributor_id", pre=True)
+    @pydantic.validator("contributor_id", "revenue_program_id", pre=True)
     @classmethod
-    def convert_contributor_id_to_string(cls, v: Any) -> str | None:
-        """Convert contributor_id to string
+    def convert_id_id_to_string(cls, v: Any) -> str | None:
+        """Convert id to string
 
-        This validator is responsible for ensuring that the contributor_id field is a string.
-        In prod, this value will aready be a string, but in test, it will be an integer. This allows
+        This validator is responsible for ensuring that the field is a string.
+        In prod, IDs will aready be a string, but in test, they will be an integer. This allows
         us to handle both cases, while still having strict type checking.
         """
         if v is None:

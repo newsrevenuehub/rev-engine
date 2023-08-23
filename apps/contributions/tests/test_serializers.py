@@ -879,7 +879,7 @@ class TestBaseCreatePaymentSerializer:
         assert metadata.source == StripeMetadataSchemaSources.REVENGINE
         assert metadata.contributor_id == str(contribution.contributor.id)
         assert metadata.donor_selected_amount == minimally_valid_contribution_form_data["donor_selected_amount"]
-        assert metadata.revenue_program_id == contribution.donation_page.revenue_program_id
+        assert metadata.revenue_program_id == str(contribution.donation_page.revenue_program_id)
         assert metadata.revenue_program_slug == contribution.donation_page.revenue_program.slug
         assert (
             metadata.swag_opt_out is False
@@ -963,13 +963,15 @@ class TestStripePaymentMetadataSchemaV1_4:
                 **(valid_stripe_metadata_v1_4_data | {"swag_choices": invalid_swag_choices_string_exceed_max_length})
             )
 
-    def test_converts_contributor_id_to_string(self, valid_stripe_metadata_v1_4_data):
-        # Note the reason for existence of this conversion and test is that in test env, contributor_id will
-        # be an int, but in prod will be a string. We want to strictly type to string, so we convert in validation
+    def test_converts_id_to_string(self, valid_stripe_metadata_v1_4_data):
+        # Note the reason for existence of this conversion and test is that in test env, contributor_id and revenue_program_id
+        # will be an int, but in prod will be a string. We want to strictly type to string, so we convert in validation
         # step in class.
         valid_stripe_metadata_v1_4_data["contributor_id"] = (con_id := 1)
+        valid_stripe_metadata_v1_4_data["revenue_program_id"] = (rp_id := 1)
         instance = StripePaymentMetadataSchemaV1_4(**valid_stripe_metadata_v1_4_data)
         assert instance.contributor_id == str(con_id)
+        assert instance.revenue_program_id == str(rp_id)
 
     def test_keeps_contributor_id_as_none_when_none(self, valid_stripe_metadata_v1_4_data):
         valid_stripe_metadata_v1_4_data["contributor_id"] = None

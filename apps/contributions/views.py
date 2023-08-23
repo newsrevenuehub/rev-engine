@@ -14,6 +14,7 @@ from rest_framework import mixins, status, viewsets
 from rest_framework.decorators import action, api_view, authentication_classes, permission_classes
 from rest_framework.exceptions import ParseError
 from rest_framework.permissions import IsAdminUser, IsAuthenticated
+from rest_framework.request import Request
 from rest_framework.response import Response
 from rest_framework.serializers import ValidationError
 from reversion.views import create_revision
@@ -39,6 +40,7 @@ from apps.contributions.models import (
 )
 from apps.contributions.payment_managers import PaymentProviderError
 from apps.contributions.stripe_contributions_provider import (
+    ContributionsCacheProvider,
     StripePiAsPortalContribution,
     SubscriptionsCacheProvider,
 )
@@ -386,11 +388,8 @@ class SubscriptionsViewSet(viewsets.ViewSet):
         subscriptions = self._fetch_subscriptions(request)
         return Response(subscriptions, status=status.HTTP_200_OK)
 
-    def partial_update(self, request, pk):
-        """
-        payment_method_id - the new payment method id to use for the subscription
-        revenue_program_slug - the revenue program this subscription belongs to
-        """
+    def partial_update(self, request: Request, pk: str) -> Response:
+        logger.info("Updating subscription %s", pk)
         if request.data.keys() != {"payment_method_id", "revenue_program_slug"}:
             return Response({"detail": "Request contains unsupported fields"}, status=status.HTTP_400_BAD_REQUEST)
 
@@ -401,7 +400,7 @@ class SubscriptionsViewSet(viewsets.ViewSet):
         subscription = stripe.Subscription.retrieve(
             pk, stripe_account=revenue_program.payment_provider.stripe_account_id, expand=["customer"]
         )
-        if request.user.email.lower() != subscription.customer.email.lower():
+        if (email := request.user.email.lower()) != subscription.customer.email.lower():
             # TODO: [DEV-2287] should we find a way to user DRF's permissioning scheme here instead?
             return Response({"detail": "Forbidden"}, status=status.HTTP_403_FORBIDDEN)
         payment_method_id = request.data.get("payment_method_id")
@@ -421,26 +420,33 @@ class SubscriptionsViewSet(viewsets.ViewSet):
                 pk,
                 default_payment_method=payment_method_id,
                 stripe_account=revenue_program.payment_provider.stripe_account_id,
+                # we expand these fields so we have data required to update subscription and pi in cache
+                expand=[
+                    "default_payment_method",
+                    "latest_invoice.payment_intent.invoice",
+                    "latest_invoice.payment_intent.payment_method",
+                ],
             )
         except stripe.error.StripeError:
             logger.exception("stripe.Subscription.modify returned a StripeError")
             return Response({"detail": "Error updating Subscription"}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
 
-        # TODO: [DEV-2438] return the updated sub and update the cache
+        self.update_subscription_in_cache(
+            email, revenue_program.payment_provider.stripe_account_id, subscription, subscription.payment_intent
+        )
 
+        # TODO: [DEV-2438] return the updated sub
         return Response({"detail": "Success"}, status=status.HTTP_204_NO_CONTENT)
 
-    def destroy(self, request, pk):
-        """
-        revenue_program_slug - the revenue program this subscription belongs to
-        """
+    def destroy(self, request: Request, pk: str) -> Response:
+        logger.info("Attempting to cacnel subscription %s", pk)
         revenue_program_slug = request.data.get("revenue_program_slug")
         revenue_program = RevenueProgram.objects.get(slug=revenue_program_slug)
         # TODO: [DEV-2286] should we look in the cache first for the Subscription (and related) objects?
         subscription = stripe.Subscription.retrieve(
             pk, stripe_account=revenue_program.payment_provider.stripe_account_id, expand=["customer"]
         )
-        if request.user.email.lower() != subscription.customer.email.lower():
+        if (email := request.user.email.lower()) != subscription.customer.email.lower():
             # TODO: [DEV-2287] should we find a way to user DRF's permissioning scheme here instead?
             return Response({"detail": "Forbidden"}, status=status.HTTP_403_FORBIDDEN)
 
@@ -450,6 +456,43 @@ class SubscriptionsViewSet(viewsets.ViewSet):
             logger.exception("stripe.Subscription.delete returned a StripeError")
             return Response({"detail": "Error"}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
 
-        # TODO: [DEV-2438] return the canceled sub and update the cache
+        # We re-retrieve here in order to update the cache with updated subscription data
+        try:
+            sub = stripe.Subscription.retrieve(
+                pk,
+                stripe_account=revenue_program.payment_provider.stripe_account_id,
+                expand=[
+                    "default_payment_method",
+                    "latest_invoice.payment_intent.invoice",
+                    "latest_invoice.payment_intent.payment_method",
+                ],
+            )
+        except stripe.error.StripeError as exc:
+            # in this case, we only want to log because the subscription has already been canceled and user shouldn't retry
+            logger.warning(
+                "stripe.Subscription.retrieve returned a StripeError after canceling subscription %s",
+                subscription.id,
+                exc_info=exc,
+            )
+
+        self.update_subscription_in_cache(
+            email, revenue_program.payment_provider.stripe_account_id, sub, sub.payment_intent
+        )
+
+        # TODO: [DEV-2438] return the canceled sub
 
         return Response({"detail": "Success"}, status=status.HTTP_204_NO_CONTENT)
+
+    @staticmethod
+    def update_subscription_in_cache(
+        email: str,
+        stripe_account_id: str,
+        subscription: stripe.Subscription,
+        payment_intent: stripe.PaymentIntent,
+    ) -> None:
+        """Used to update respective caches after a subscription is updated or canceled."""
+        logger.info("Updating caches for subscription %s and payment intent %s", subscription.id, payment_intent.id)
+        pi_cache_provider = ContributionsCacheProvider(email, stripe_account_id)
+        sub_cache_provider = SubscriptionsCacheProvider(email, stripe_account_id)
+        pi_cache_provider.upsert([payment_intent])
+        sub_cache_provider.upsert([subscription])

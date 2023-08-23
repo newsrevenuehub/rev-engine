@@ -664,6 +664,36 @@ class TestSubscriptionViewSet:
         assert spy.call_count == 0
         assert response.json()["id"] == str(revenue_program.id)
 
+    def test_update_subscription_in_cache(
+        self,
+        pi_for_active_subscription_factory,
+        subscription_factory,
+        mocker,
+    ):
+        pi_cache_init_spy = mocker.spy((con_cache := contributions_views.ContributionsCacheProvider), "__init__")
+        sub_cache_init_spy = mocker.spy((sub_cache := contributions_views.SubscriptionsCacheProvider), "__init__")
+        mocker.patch.object(
+            con_cache,
+            "cache",
+            new_callable=mocker.PropertyMock,
+        )
+        mocker.patch.object(
+            sub_cache,
+            "cache",
+            new_callable=mocker.PropertyMock,
+        )
+        mock_pi_upsert = mocker.patch.object(con_cache, "upsert")
+        mock_sub_upsert = mocker.patch.object(sub_cache, "upsert")
+        payment_intent = pi_for_active_subscription_factory.get()
+        subscription = subscription_factory.get()
+        contributions_views.SubscriptionsViewSet.update_subscription_in_cache(
+            (email := "foo@bar.com"), (stripe_account_id := "some-id"), subscription, payment_intent
+        )
+        pi_cache_init_spy.assert_called_once_with(mocker.ANY, email, stripe_account_id)
+        sub_cache_init_spy.assert_called_once_with(mocker.ANY, email, stripe_account_id)
+        mock_pi_upsert.assert_called_once_with([payment_intent])
+        mock_sub_upsert.assert_called_once_with([subscription])
+
 
 @pytest.mark.parametrize(
     (

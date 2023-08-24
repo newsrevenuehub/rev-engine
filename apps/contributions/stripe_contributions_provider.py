@@ -142,6 +142,8 @@ class StripePaymentIntent:
     def status(self):
         if self.refunded:
             return ContributionStatus.REFUNDED
+        if self.canceled:
+            return ContributionStatus.CANCELED
         if self.payment_intent.status == "succeeded":
             return ContributionStatus.PAID
         if self.payment_intent.status == "pending":
@@ -155,6 +157,13 @@ class StripePaymentIntent:
     @property
     def payment_type(self):
         return self.payment_intent.payment_method.type
+
+    @property
+    def canceled(self):
+        """ """
+        if not self.payment_intent.invoice:  # it's not a subscription
+            return False
+        return self.payment_intent.invoice.subscription.status == "canceled"
 
     @property
     def refunded(self):

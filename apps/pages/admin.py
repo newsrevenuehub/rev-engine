@@ -130,7 +130,7 @@ class DonationPageAdmin(CompareVersionAdmin, DonationPageAdminAbstract):
         "page_screenshot",
     ]
 
-    actions = ("make_template", "undelete_selected")
+    actions = ("make_template", "undelete_selected", "duplicate_page")
 
     # Overriding this template to add the `admin_limited_select` inclusion tag
     change_form_template = "pages/contributionpage_changeform.html"
@@ -165,6 +165,16 @@ class DonationPageAdmin(CompareVersionAdmin, DonationPageAdminAbstract):
                 f"{created_template_count} {'template' if created_template_count == 1 else 'templates'} created.",
                 messages.SUCCESS,
             )
+
+    @admin.action(description="Duplicate pages")
+    def duplicate_page(self, request, queryset):
+        # https://docs.djangoproject.com/en/4.2/topics/db/queries/#copying-model-instances
+        for obj in queryset:
+            obj.name += " Duplicate"
+            obj.slug += "-duplicate"
+            obj.pk = None
+            obj._state.adding = True
+            obj.save()
 
 
 @admin.register(models.Style)

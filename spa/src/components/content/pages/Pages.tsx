@@ -76,11 +76,9 @@ function Pages() {
           pagesByRevenueProgram.map((revenueProgram) => (
             <Fragment key={revenueProgram.name}>
               {revenueProgram.pages.map((donationPage) => (
-                <ContributionPageButton
-                  key={donationPage.id}
-                  page={donationPage}
-                  onClick={() => handleEditPage(donationPage)}
-                />
+                <Fragment key={donationPage.id}>
+                  <ContributionPageButton page={donationPage} onClick={() => handleEditPage(donationPage)} />
+                </Fragment>
               ))}
             </Fragment>
           ))}

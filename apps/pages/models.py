@@ -24,7 +24,7 @@ logger = logging.getLogger(f"{settings.DEFAULT_LOGGER}.{__name__}")
 
 
 def _get_screenshot_upload_path(instance, filename):
-    timestamp = datetime.now().strftime("%Y%m%d%H%M%S")
+    timestamp = datetime.datetime.utcnow().strftime("%Y%m%d%H%M%S")
     return f"{instance.organization.name}/page_screenshots/{instance.name}_{timestamp}.png"
 
 

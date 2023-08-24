@@ -1,4 +1,4 @@
-import { ColorPicker, SearchableSelect, TextField } from 'components/base';
+import { ColorPicker, OffscreenText, SearchableSelect, TextField } from 'components/base';
 import useFontList from 'hooks/useFontList';
 import { Style } from 'hooks/useStyleList';
 import PropTypes, { InferProps } from 'prop-types';
@@ -88,7 +88,11 @@ function StylesTab({
           <ImageUpload
             id="page-style-header-logo"
             onChange={(file, thumbnailUrl) => onChangePage({ header_logo: file, header_logo_thumbnail: thumbnailUrl })}
-            label="Main header logo"
+            label={
+              <OffscreenText>
+                <label htmlFor="page-style-header-logo">Main header logo</label>
+              </OffscreenText>
+            }
             prompt="Choose an image"
             thumbnailUrl={headerThumbnail}
             value={headerLogo}

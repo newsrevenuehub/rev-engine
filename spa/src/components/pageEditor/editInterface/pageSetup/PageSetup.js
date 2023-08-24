@@ -1,4 +1,4 @@
-import { Controls, ImageSelectorHelpText, ImageSelectorWrapper, InputWrapper, Root } from './PageSetup.styled';
+import { Controls, ImageSelectorHelpText, ImageSelectorWrapper, InputWrapper, Root, Label } from './PageSetup.styled';
 
 // Context
 import { usePageEditorContext } from 'components/pageEditor/PageEditor';
@@ -44,11 +44,10 @@ function PageSetup() {
           <ImageUpload
             id="page-setup-header_bg_image"
             onChange={(file, thumbnailUrl) => handleImageChange('header_bg_image', file, thumbnailUrl)}
-            label="Main header background"
+            label={<Label htmlFor="page-setup-header_bg_image">Main header background</Label>}
             prompt="Choose an image"
             thumbnailUrl={batchPreview.header_bg_image_thumbnail}
             value={batchPreview.header_bg_image}
-            showLabel
           />
           <ImageSelectorHelpText>Background of header bar</ImageSelectorHelpText>
         </ImageSelectorWrapper>
@@ -66,12 +65,11 @@ function PageSetup() {
           <ImageUpload
             id="page-setup-graphic"
             onChange={(file, thumbnailUrl) => handleImageChange('graphic', file, thumbnailUrl)}
-            label="Graphic"
+            label={<Label htmlFor="page-setup-graphic">Graphic</Label>}
             errors={errors.graphic}
             prompt="Choose an image"
             thumbnailUrl={batchPreview.graphic_thumbnail}
             value={batchPreview.graphic}
-            showLabel
           />
           <ImageSelectorHelpText>Graphic displays below form panel heading</ImageSelectorHelpText>
         </ImageSelectorWrapper>

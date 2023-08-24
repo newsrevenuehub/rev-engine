@@ -1,26 +1,23 @@
 import { ReactComponent as CloseIcon } from '@material-design-icons/svg/filled/close.svg';
 import PropTypes, { InferProps } from 'prop-types';
-import { ChangeEvent, useMemo, useRef } from 'react';
+import { ChangeEvent, useRef } from 'react';
 import addMiddleEllipsis from 'utilities/addMiddleEllipsis';
 import fileToDataUrl from 'utilities/fileToDataUrl';
-import OffscreenText from '../OffscreenText/OffscreenText';
 import {
-  FileNameSlim,
-  IconButtonSlim,
+  FileName,
+  IconButton,
   ImageUploadWrapper,
-  Label,
-  PreviewSlim,
-  PromptSlim,
-  Slim,
-  SlimThumbnail,
-  SlimThumbnailWrapper
+  Preview,
+  Prompt,
+  Root,
+  Thumbnail,
+  ThumbnailWrapper
 } from './ImageUpload.styled';
 
 const ImageUploadPropTypes = {
   accept: PropTypes.string,
   id: PropTypes.string.isRequired,
   label: PropTypes.node.isRequired,
-  showLabel: PropTypes.bool,
   prompt: PropTypes.string.isRequired,
   className: PropTypes.string,
   onChange: PropTypes.func.isRequired,
@@ -57,8 +54,7 @@ export function ImageUpload(props: ImageUploadProps) {
     onChange,
     prompt,
     thumbnailUrl,
-    value,
-    showLabel = false
+    value
   } = props;
   const inputRef = useRef<HTMLInputElement>(null);
 
@@ -74,34 +70,32 @@ export function ImageUpload(props: ImageUploadProps) {
     }
   }
 
-  const renderLabel = useMemo(() => <Label htmlFor={id}>{label}</Label>, [id, label]);
-
   return (
     <ImageUploadWrapper>
-      {showLabel ? renderLabel : <OffscreenText>{renderLabel}</OffscreenText>}
-      <Slim className={className!}>
+      {label}
+      <Root className={className!}>
         <input accept={accept!} hidden id={id} onChange={handleChange} ref={inputRef} type="file" />
-        <PreviewSlim onClick={clickOnHiddenInput}>
+        <Preview onClick={clickOnHiddenInput}>
           {thumbnailUrl ? (
             <>
-              <SlimThumbnailWrapper>
-                <SlimThumbnail
+              <ThumbnailWrapper>
+                <Thumbnail
                   src={typeof value === 'string' ? value : thumbnailUrl}
                   alt={(value as File)?.name ?? prompt}
                 />
-              </SlimThumbnailWrapper>
-              <FileNameSlim>{addMiddleEllipsis((value as File)?.name || thumbnailUrl)}</FileNameSlim>
+              </ThumbnailWrapper>
+              <FileName>{addMiddleEllipsis((value as File)?.name || thumbnailUrl)}</FileName>
             </>
           ) : (
-            <PromptSlim>{prompt}</PromptSlim>
+            <Prompt>{prompt}</Prompt>
           )}
-        </PreviewSlim>
+        </Preview>
         {thumbnailUrl && (
-          <IconButtonSlim disabled={!thumbnailUrl && !value} onClick={() => onChange()} aria-label="Remove">
+          <IconButton disabled={!thumbnailUrl && !value} onClick={() => onChange()} aria-label="Remove">
             <CloseIcon />
-          </IconButtonSlim>
+          </IconButton>
         )}
-      </Slim>
+      </Root>
     </ImageUploadWrapper>
   );
 }

@@ -21,17 +21,9 @@ describe('ImageUpload', () => {
       expect(screen.getByText('test-prompt')).toBeVisible();
     });
 
-    it('displays the label prop', () => {
-      tree({ showLabel: true });
-      expect(screen.queryByTestId('offscreen-text')).not.toBeInTheDocument();
+    it('displays the label', () => {
+      tree();
       expect(screen.getByText('mock-label')).toBeVisible();
-    });
-
-    it('hides the label prop', () => {
-      tree({ showLabel: false });
-      const offscreen = screen.getByTestId('offscreen-text');
-      expect(screen.getByTestId('offscreen-text')).toBeInTheDocument();
-      expect(within(offscreen).getByText('mock-label')).toBeInTheDocument();
     });
 
     it('sets the accept property of the file input based on the accept prop', () => {

@@ -69,7 +69,7 @@ describe('PageSetup', () => {
       });
       tree();
 
-      const input = screen.getByText(label);
+      const input = screen.getByRole('button', { name: label });
 
       expect(input).toBeVisible();
       expect(input.dataset.value).toBe(`test-${fieldName}`);

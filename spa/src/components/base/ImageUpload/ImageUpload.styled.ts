@@ -12,14 +12,14 @@ export const Label = styled.label`
   font-weight: 500;
 `;
 
-export const Slim = styled.div`
+export const Root = styled.div`
   position: relative;
   height: 76px;
   background-color: ${({ theme }) => theme.basePalette.greyscale.grey3};
   border-radius: ${({ theme }) => theme.muiBorderRadius.lg};
 `;
 
-export const SlimThumbnailWrapper = styled.div`
+export const ThumbnailWrapper = styled.div`
   display: flex;
   align-items: center;
   justify-content: center;
@@ -28,13 +28,13 @@ export const SlimThumbnailWrapper = styled.div`
   overflow: hidden;
 `;
 
-export const SlimThumbnail = styled.img`
+export const Thumbnail = styled.img`
   border-radius: ${({ theme }) => theme.muiBorderRadius.lg};
   max-height: 64px;
   max-width: 64px;
 `;
 
-export const PromptSlim = styled.div`
+export const Prompt = styled.div`
   align-items: center;
   border: 1px solid ${({ theme }) => theme.colors.grey[0]};
   display: flex;
@@ -44,7 +44,7 @@ export const PromptSlim = styled.div`
   justify-content: center;
 `;
 
-export const PreviewSlim = styled.button`
+export const Preview = styled.button`
   display: flex;
   align-items: center;
   gap: 14px;
@@ -56,12 +56,12 @@ export const PreviewSlim = styled.button`
   position: relative;
 `;
 
-export const FileNameSlim = styled.p`
+export const FileName = styled.p`
   font-size: ${({ theme }) => theme.fontSizesUpdated.md};
   color: ${({ theme }) => theme.basePalette.greyscale.grey1};
 `;
 
-export const IconButtonSlim = styled(MuiIconButton)`
+export const IconButton = styled(MuiIconButton)`
   && {
     position: absolute;
     right: 5px;

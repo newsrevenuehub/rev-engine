@@ -261,7 +261,7 @@ class StripeMetadataSchemaBase(pydantic.BaseModel):
 
 
 class StripePaymentMetadataSchemaV1_4(StripeMetadataSchemaBase):
-    """Schema for used for generating metadata on Stripe payment intents and subscriptions"""
+    """Schema used for generating metadata on Stripe payment intents and subscriptions"""
 
     agreed_to_pay_fees: bool
     donor_selected_amount: float
@@ -269,7 +269,6 @@ class StripePaymentMetadataSchemaV1_4(StripeMetadataSchemaBase):
     revenue_program_id: str
     revenue_program_slug: str
 
-    # in prod `contributor_id` will be a string, but in test it will be an int.
     contributor_id: Optional[str] = None
     comp_subscription: Optional[str] = None
     company_name: Optional[str] = None
@@ -286,9 +285,8 @@ class StripePaymentMetadataSchemaV1_4(StripeMetadataSchemaBase):
     def convert_id_to_string(cls, v: Any) -> str | None:
         """Convert id to string
 
-        This validator is responsible for ensuring that the field is a string.
-        In prod, IDs will aready be a string, but in test, they will be an integer. This allows
-        us to handle both cases, while still having strict type checking.
+        This validator is responsible for ensuring that the field is a string. These fields are naturally
+        integers on their way in, but the metadata schema in Switchboard calls for them to be strings.
         """
         if v is None:
             return v

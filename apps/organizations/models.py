@@ -1109,6 +1109,7 @@ class RevenueProgram(IndexedTimeStampedModel):
             self.mailchimp_access_token_secret_name,
             self.id,
         )
+        # Note, we should confirm DEV-3581 doesn't cause any issues with this line if we end up doing that ticket.
         del self.mailchimp_access_token  # This will delete the secret from Google Cloud Secrets Manager if it exists
         logger.info("Setting mailchimp_server_prefix to None for rp_id=[%s]", self.id)
         with reversion.create_revision():

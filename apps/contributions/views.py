@@ -4,6 +4,7 @@ from typing import List
 from django.conf import settings
 from django.contrib.auth import get_user_model
 from django.db.models import QuerySet
+from django.http import Http404
 from django.shortcuts import get_object_or_404
 from django.utils.decorators import method_decorator
 from django.views.decorators.csrf import csrf_protect
@@ -364,7 +365,8 @@ class SubscriptionsViewSet(viewsets.ViewSet):
         try:
             revenue_program = RevenueProgram.objects.get(slug=revenue_program_slug)
         except RevenueProgram.DoesNotExist:
-            return Response({"detail": "Revenue Program not found"}, status=status.HTTP_404_NOT_FOUND)
+            logger.warning("Revenue program not found for slug %s", revenue_program_slug)
+            raise Http404("Revenue program not found")
         cache_provider = SubscriptionsCacheProvider(request.user.email, revenue_program.stripe_account_id)
         subscriptions = cache_provider.load()
         if not subscriptions:

@@ -3,6 +3,7 @@ from unittest import mock
 
 from django.conf import settings
 from django.core.serializers.json import DjangoJSONEncoder
+from django.http import Http404
 from django.test import RequestFactory, override_settings
 
 import pytest
@@ -593,6 +594,18 @@ def loaded_cached_subscription_factory(revenue_program, subscription_factory, su
 
 @pytest.mark.django_db
 class TestSubscriptionViewSet:
+    def test__fetch_subscriptions_when_rp_not_found(self, revenue_program, mocker):
+        rp_slug = revenue_program.slug
+        revenue_program.delete()
+        factory = RequestFactory()
+        request = factory.get(reverse("subscription-list"), data={"revenue_program_slug": rp_slug})
+        request = Request(request)
+        request.user = mocker.Mock(email="foo@bar.com")
+        logger_spy = mocker.spy(contributions_views.logger, "warning")
+        with pytest.raises(Http404):
+            contributions_views.SubscriptionsViewSet._fetch_subscriptions(request)
+        logger_spy.assert_called_once_with("Revenue program not found for slug %s", rp_slug)
+
     def test__fetch_subscriptions_when_subscriptions_in_cache(
         self, loaded_cached_subscription_factory, revenue_program, mocker
     ):

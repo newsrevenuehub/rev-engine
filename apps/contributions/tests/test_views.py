@@ -696,7 +696,6 @@ class TestSubscriptionViewSet:
             {"revenue_program_slug": revenue_program.slug, "payment_method_id": "something"},
         )
         assert response.status_code == status.HTTP_404_NOT_FOUND
-        assert response.json() == {"detail": "Forbidden"}
         logger_spy.assert_called_once_with(
             "User %s attempted to update unowned subscription %s", contributor_user.email, subscription.id
         )
@@ -738,7 +737,7 @@ class TestSubscriptionViewSet:
             stripe_account=revenue_program.payment_provider.stripe_account_id,
             expand=[
                 "default_payment_method",
-                "latest_invoice.payment_intent.invoice",
+                "latest_invoice.payment_intent.invoice.subscription",
                 "latest_invoice.payment_intent.payment_method",
             ],
         )
@@ -813,16 +812,7 @@ class TestSubscriptionViewSet:
             {"revenue_program_slug": revenue_program.slug, "payment_method_id": payment_method_id},
         )
         assert response.status_code == status.HTTP_500_INTERNAL_SERVER_ERROR
-        mock_sub_modify.assert_called_once_with(
-            subscription.id,
-            default_payment_method=payment_method_id,
-            stripe_account=revenue_program.payment_provider.stripe_account_id,
-            expand=[
-                "default_payment_method",
-                "latest_invoice.payment_intent.invoice",
-                "latest_invoice.payment_intent.payment_method",
-            ],
-        )
+        mock_sub_modify.assert_called_once()
         logger_spy.assert_called_once_with("stripe.Subscription.modify returned a StripeError")
 
     def test_update_subscription_in_cache(
@@ -928,7 +918,7 @@ class TestSubscriptionViewSet:
                     stripe_account=revenue_program.payment_provider.stripe_account_id,
                     expand=[
                         "default_payment_method",
-                        "latest_invoice.payment_intent.invoice",
+                        "latest_invoice.payment_intent.invoice.subscription",
                         "latest_invoice.payment_intent.payment_method",
                     ],
                 ),

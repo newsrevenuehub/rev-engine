@@ -1,3 +1,4 @@
+import datetime
 import logging
 
 from django.conf import settings
@@ -23,7 +24,8 @@ logger = logging.getLogger(f"{settings.DEFAULT_LOGGER}.{__name__}")
 
 
 def _get_screenshot_upload_path(instance, filename):
-    return f"{instance.organization.name}/page_screenshots/{instance.name}_latest.png"
+    timestamp = datetime.now().strftime("%Y%m%d%H%M%S")
+    return f"{instance.organization.name}/page_screenshots/{instance.name}_{timestamp}.png"
 
 
 class PagesAppQuerySet(models.QuerySet):

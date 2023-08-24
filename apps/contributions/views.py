@@ -429,7 +429,7 @@ class SubscriptionsViewSet(viewsets.ViewSet):
                 # we expand these fields so we have data required to update subscription and pi in cache
                 expand=[
                     "default_payment_method",
-                    "latest_invoice.payment_intent.invoice",
+                    "latest_invoice.payment_intent.invoice.subscription",
                     "latest_invoice.payment_intent.payment_method",
                 ],
             )
@@ -479,7 +479,7 @@ class SubscriptionsViewSet(viewsets.ViewSet):
                 stripe_account=revenue_program.payment_provider.stripe_account_id,
                 expand=[
                     "default_payment_method",
-                    "latest_invoice.payment_intent.invoice",
+                    "latest_invoice.payment_intent.invoice.subscription",
                     "latest_invoice.payment_intent.payment_method",
                 ],
             )

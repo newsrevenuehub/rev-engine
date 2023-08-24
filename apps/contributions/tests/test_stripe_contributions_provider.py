@@ -268,7 +268,7 @@ class TestStripePaymentIntent(AbstractTestStripeContributions):
 
 @pytest.mark.django_db
 class TestStripePaymentIntentViaPytest:
-    """This is the same as TestStripePaymentIntent, but using pytest instead of unittest
+    """NB:
 
     This was created to test newly touched code without refactoring existing tests. We've opted
     to refactor to pytest in other places, but there is upcoming work that may lead to StripePaymentIntent and

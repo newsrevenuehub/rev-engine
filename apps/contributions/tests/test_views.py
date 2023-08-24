@@ -876,11 +876,54 @@ class TestSubscriptionViewSet:
             "User %s attempted to delete unowned subscription %s", contributor_user.email, subscription.id
         )
 
-    def test_destroy_when_error_deleting_subscription(self, mocker, contributor_user, api_client, revenue_program):
-        pass
+    def test_destroy_when_error_deleting_subscription(
+        self, mocker, contributor_user, api_client, revenue_program, subscription_factory
+    ):
+        subscription = subscription_factory.get()
+        subscription.customer = stripe.Customer.construct_from(
+            {"email": contributor_user.email, "id": "cus_XXXX"}, "some-id"
+        )
+        mocker.patch("stripe.Subscription.retrieve", return_value=subscription)
+        mock_sub_delete = mocker.patch("stripe.Subscription.delete", side_effect=stripe.error.StripeError("ruh roh"))
+        logger_spy = mocker.spy(contributions_views.logger, "exception")
+        api_client.force_authenticate(contributor_user)
+        response = api_client.delete(
+            reverse("subscription-detail", args=(subscription.id,)), data={"revenue_program_slug": revenue_program.slug}
+        )
+        assert response.status_code == status.HTTP_500_INTERNAL_SERVER_ERROR
+        mock_sub_delete.assert_called_once_with(
+            subscription.id, stripe_account=revenue_program.payment_provider.stripe_account_id
+        )
+        logger_spy.assert_called_once_with("stripe.Subscription.delete returned a StripeError")
 
-    def test_destroy_when_error_re_retrieving_subscription(self, mocker, contributor_user, api_client, revenue_program):
-        pass
+    def test_destroy_when_error_re_retrieving_subscription(
+        self, mocker, contributor_user, api_client, revenue_program, subscription_factory
+    ):
+        subscription = subscription_factory.get()
+        subscription.customer = stripe.Customer.construct_from(
+            {"email": contributor_user.email, "id": "cus_XXXX"}, "some-id"
+        )
+        # subscription.Retrieve gets called twice in this method, once to check if subscription is owned by requester, second time
+        # to retrieve updated state in order to update cache
+        mock_sub_retrieve = mocker.patch(
+            "stripe.Subscription.retrieve",
+            side_effect=[
+                subscription,
+                stripe.error.StripeError("ruh roh"),
+            ],
+        )
+        mocker.patch("stripe.Subscription.delete")
+        logger_spy = mocker.spy(contributions_views.logger, "exception")
+        api_client.force_authenticate(contributor_user)
+        response = api_client.delete(
+            reverse("subscription-detail", args=(subscription.id,)), data={"revenue_program_slug": revenue_program.slug}
+        )
+        assert response.status_code == status.HTTP_204_NO_CONTENT
+        assert mock_sub_retrieve.call_count == 2
+        logger_spy.assert_called_once_with(
+            "stripe.Subscription.retrieve returned a StripeError after canceling subscription %s",
+            subscription.id,
+        )
 
     def test_destroy_happy_path(self, mocker, contributor_user, api_client, revenue_program, subscription_factory):
         subscription = subscription_factory.get()

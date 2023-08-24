@@ -483,17 +483,17 @@ class SubscriptionsViewSet(viewsets.ViewSet):
                     "latest_invoice.payment_intent.payment_method",
                 ],
             )
-        except stripe.error.StripeError as exc:
-            # in this case, we only want to log because the subscription has already been canceled and user shouldn't retry
-            logger.warning(
-                "stripe.Subscription.retrieve returned a StripeError after canceling subscription %s",
-                subscription.id,
-                exc_info=exc,
+            # only need to update cache if we successfully retrieve
+            self.update_subscription_in_cache(
+                email, revenue_program.payment_provider.stripe_account_id, sub, sub.latest_invoice.payment_intent
             )
 
-        self.update_subscription_in_cache(
-            email, revenue_program.payment_provider.stripe_account_id, sub, sub.latest_invoice.payment_intent
-        )
+        except stripe.error.StripeError:
+            # in this case, we only want to log because the subscription has already been canceled and user shouldn't retry
+            logger.exception(
+                "stripe.Subscription.retrieve returned a StripeError after canceling subscription %s",
+                subscription.id,
+            )
 
         # TODO: [DEV-2438] return the canceled sub
 

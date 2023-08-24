@@ -160,7 +160,6 @@ class StripePaymentIntent:
 
     @property
     def canceled(self):
-        """ """
         if not self.payment_intent.invoice:  # it's not a subscription
             return False
         return self.payment_intent.invoice.subscription.status == "canceled"

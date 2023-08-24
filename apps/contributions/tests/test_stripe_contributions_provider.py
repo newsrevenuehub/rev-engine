@@ -266,6 +266,59 @@ class TestStripePaymentIntent(AbstractTestStripeContributions):
         self.assertEqual(StripePaymentIntent(self.payment_intent_1).status, ContributionStatus.REFUNDED)
 
 
+@pytest.mark.django_db
+class TestStripePaymentIntentViaPytest:
+    """This is the same as TestStripePaymentIntent, but using pytest instead of unittest
+
+    This was created to test newly touched code without refactoring existing tests. We've opted
+    to refactor to pytest in other places, but there is upcoming work that may lead to StripePaymentIntent and
+    its use cases drastically changing, so cleaning up the campsite is not worthwhile now.
+    """
+
+    def test_canceled_when_no_pi_has_no_invoice(self, pi_for_valid_one_time_factory):
+        pi = pi_for_valid_one_time_factory.get()
+        assert pi.invoice is None
+        assert StripePaymentIntent(pi).is_cancelable is False
+
+    @pytest.mark.parametrize(
+        "status, expected",
+        (
+            ("active", False),
+            ("canceled", True),
+        ),
+    )
+    def test_canceled_when_pi_has_invoice(self, status, expected, pi_for_active_subscription_factory):
+        pi = pi_for_active_subscription_factory.get()
+        assert pi.invoice is not None
+        pi.invoice.subscription.status = status
+        assert StripePaymentIntent(pi).canceled is expected
+
+    def test_status_when_refunded(self, pi_for_valid_one_time_factory):
+        pi = pi_for_valid_one_time_factory.get(refunded=True)
+        instance = StripePaymentIntent(pi)
+        assert pi.refunded is True
+        assert instance.status == ContributionStatus.REFUNDED
+
+    def test_status_when_canceled(self, pi_for_active_subscription_factory):
+        pi = pi_for_active_subscription_factory.get()
+        pi.invoice.subscription.status = "canceled"
+        instance = StripePaymentIntent(pi)
+        assert instance.canceled is True
+        assert instance.status == ContributionStatus.CANCELED
+
+    def test_status_when_succeeded(self, pi_for_valid_one_time_factory):
+        pi = pi_for_valid_one_time_factory.get(status="succeeded")
+        assert StripePaymentIntent(pi).status == ContributionStatus.PAID
+
+    def test_status_when_pending(self, pi_for_valid_one_time_factory):
+        pi = pi_for_valid_one_time_factory.get(status="pending")
+        assert StripePaymentIntent(pi).status == ContributionStatus.PROCESSING
+
+    def test_status_when_other_status(self, pi_for_valid_one_time_factory):
+        pi = pi_for_valid_one_time_factory.get(status="unexpected")
+        assert StripePaymentIntent(pi).status == ContributionStatus.FAILED
+
+
 @pytest.fixture
 def customer_factory(faker):
     class Factory:

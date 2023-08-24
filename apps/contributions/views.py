@@ -358,18 +358,17 @@ class SubscriptionsViewSet(viewsets.ViewSet):
     ]
     serializer_class = serializers.SubscriptionsSerializer
 
-    def _fetch_subscriptions(self, request):
+    @staticmethod
+    def _fetch_subscriptions(request: Request) -> List[StripePiAsPortalContribution]:
         revenue_program_slug = request.query_params.get("revenue_program_slug")
         try:
             revenue_program = RevenueProgram.objects.get(slug=revenue_program_slug)
         except RevenueProgram.DoesNotExist:
             return Response({"detail": "Revenue Program not found"}, status=status.HTTP_404_NOT_FOUND)
-        cache_provider = SubscriptionsCacheProvider(self.request.user.email, revenue_program.stripe_account_id)
+        cache_provider = SubscriptionsCacheProvider(request.user.email, revenue_program.stripe_account_id)
         subscriptions = cache_provider.load()
         if not subscriptions:
-            task_pull_serialized_stripe_contributions_to_cache(
-                self.request.user.email, revenue_program.stripe_account_id
-            )
+            task_pull_serialized_stripe_contributions_to_cache(request.user.email, revenue_program.stripe_account_id)
         subscriptions = cache_provider.load()
         return [x for x in subscriptions if x.get("revenue_program_slug") == revenue_program_slug]
 
@@ -397,12 +396,19 @@ class SubscriptionsViewSet(viewsets.ViewSet):
         revenue_program = RevenueProgram.objects.get(slug=revenue_program_slug)
 
         # TODO: [DEV-2286] should we look in the cache first for the Subscription (and related) objects to avoid extra API calls?
-        subscription = stripe.Subscription.retrieve(
-            pk, stripe_account=revenue_program.payment_provider.stripe_account_id, expand=["customer"]
-        )
+        try:
+            subscription = stripe.Subscription.retrieve(
+                pk, stripe_account=revenue_program.payment_provider.stripe_account_id, expand=["customer"]
+            )
+        except stripe.error.StripeError:
+            logger.exception("stripe.Subscription.retrieve returned a StripeError")
+            return Response({"detail": "subscription not found"}, status=status.HTTP_404_NOT_FOUND)
+
         if (email := request.user.email.lower()) != subscription.customer.email.lower():
             # TODO: [DEV-2287] should we find a way to user DRF's permissioning scheme here instead?
-            return Response({"detail": "Forbidden"}, status=status.HTTP_403_FORBIDDEN)
+            # treat as not found so as to not leak info about subscription
+            logger.warning("User %s attempted to update unowned subscription %s", email, pk)
+            return Response({"detail": "subscription not found"}, status=status.HTTP_404_NOT_FOUND)
         payment_method_id = request.data.get("payment_method_id")
 
         try:
@@ -416,7 +422,7 @@ class SubscriptionsViewSet(viewsets.ViewSet):
             return Response({"detail": "Error attaching payment method"}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
 
         try:
-            stripe.Subscription.modify(
+            subscription = stripe.Subscription.modify(
                 pk,
                 default_payment_method=payment_method_id,
                 stripe_account=revenue_program.payment_provider.stripe_account_id,
@@ -432,7 +438,10 @@ class SubscriptionsViewSet(viewsets.ViewSet):
             return Response({"detail": "Error updating Subscription"}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
 
         self.update_subscription_in_cache(
-            email, revenue_program.payment_provider.stripe_account_id, subscription, subscription.payment_intent
+            email,
+            revenue_program.payment_provider.stripe_account_id,
+            subscription,
+            subscription.latest_invoice.payment_intent,
         )
 
         # TODO: [DEV-2438] return the updated sub
@@ -443,12 +452,19 @@ class SubscriptionsViewSet(viewsets.ViewSet):
         revenue_program_slug = request.data.get("revenue_program_slug")
         revenue_program = RevenueProgram.objects.get(slug=revenue_program_slug)
         # TODO: [DEV-2286] should we look in the cache first for the Subscription (and related) objects?
-        subscription = stripe.Subscription.retrieve(
-            pk, stripe_account=revenue_program.payment_provider.stripe_account_id, expand=["customer"]
-        )
+        try:
+            subscription = stripe.Subscription.retrieve(
+                pk, stripe_account=revenue_program.payment_provider.stripe_account_id, expand=["customer"]
+            )
+        except stripe.error.StripeError:
+            logger.exception("stripe.Subscription.retrieve returned a StripeError")
+            return Response({"detail": "subscription not found"}, status=status.HTTP_404_NOT_FOUND)
+
         if (email := request.user.email.lower()) != subscription.customer.email.lower():
+            logger.warning("User %s attempted to delete unowned subscription %s", email, pk)
             # TODO: [DEV-2287] should we find a way to user DRF's permissioning scheme here instead?
-            return Response({"detail": "Forbidden"}, status=status.HTTP_403_FORBIDDEN)
+            # treat as not found so not leak info about subscription
+            return Response({"detail": "subscription not found"}, status=status.HTTP_404_NOT_FOUND)
 
         try:
             stripe.Subscription.delete(pk, stripe_account=revenue_program.payment_provider.stripe_account_id)
@@ -476,7 +492,7 @@ class SubscriptionsViewSet(viewsets.ViewSet):
             )
 
         self.update_subscription_in_cache(
-            email, revenue_program.payment_provider.stripe_account_id, sub, sub.payment_intent
+            email, revenue_program.payment_provider.stripe_account_id, sub, sub.latest_invoice.payment_intent
         )
 
         # TODO: [DEV-2438] return the canceled sub

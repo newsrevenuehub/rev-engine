@@ -371,7 +371,7 @@ class SubscriptionsViewSet(viewsets.ViewSet):
         subscriptions = cache_provider.load()
         if not subscriptions:
             task_pull_serialized_stripe_contributions_to_cache(request.user.email, revenue_program.stripe_account_id)
-        subscriptions = cache_provider.load()
+            subscriptions = cache_provider.load()
         return [x for x in subscriptions if x.get("revenue_program_slug") == revenue_program_slug]
 
     def retrieve(self, request, pk):

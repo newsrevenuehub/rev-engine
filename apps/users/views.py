@@ -298,11 +298,7 @@ class UserViewset(
     def customize_account(self, request, pk=None):
         """Allows customizing an account"""
         customize_account_serializer = CustomizeAccountSerializer(data=request.data)
-        customize_account_serializer.is_valid()
-        if customize_account_serializer.errors:
-            errors = {**customize_account_serializer.errors, **customize_account_serializer.errors}
-            logger.info("Request %s is invalid; errors: %s", request.data, errors)
-            raise ValidationError(errors)
+        customize_account_serializer.is_valid(raise_exception=True)
         first_name = customize_account_serializer.validated_data["first_name"]
         last_name = customize_account_serializer.validated_data["last_name"]
         organization_name = customize_account_serializer.validated_data["organization_name"]

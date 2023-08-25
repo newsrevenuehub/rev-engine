@@ -13,6 +13,7 @@ from django.test import Client, TestCase
 from django.test.utils import override_settings
 from django.urls import reverse
 from django.utils import timezone
+from django.utils.text import slugify
 
 import pytest
 import pytest_cases
@@ -44,7 +45,7 @@ from apps.users.permissions import (
     UserOwnsUser,
 )
 from apps.users.tests.factories import create_test_user
-from apps.users.views import AccountVerification, UserViewset
+from apps.users.views import AccountVerification, UserViewset, logger
 
 
 user_model = get_user_model()
@@ -914,3 +915,103 @@ def test_retrieve_user_endpoint(user, serializer, api_client):
     assert response.status_code == status.HTTP_200_OK
     serialized = serializer(user)
     assert response.json() == json.loads(json.dumps(serialized.data))
+
+
+@pytest.fixture
+def valid_customize_account_request_data():
+    return {
+        "first_name": "Test",
+        "last_name": "User",
+        "organization_name": "Test Organization",
+        "organization_tax_id": "123456789",
+        "job_title": "Test Title",
+        "fiscal_status": FiscalStatusChoices.FOR_PROFIT,
+    }
+
+
+@pytest.mark.django_db
+class TestUserViewSetViaPytest:
+    """NB:
+
+    This test class is where we incrementally start moving our tests for the UserViewSet
+    over to pytest.
+    """
+
+    def test_customize_account_happy_path_when_org_with_name_not_exist(
+        self,
+        org_user_free_plan_verified_email_and_tos_accepted,
+        api_client,
+        valid_customize_account_request_data,
+    ):
+        api_client.force_authenticate(org_user_free_plan_verified_email_and_tos_accepted)
+        response = api_client.patch(
+            reverse("user-customize-account", args=(org_user_free_plan_verified_email_and_tos_accepted.pk,)),
+            data=valid_customize_account_request_data,
+        )
+        assert response.status_code == status.HTTP_204_NO_CONTENT
+        org_user_free_plan_verified_email_and_tos_accepted.refresh_from_db()
+        for x in ["first_name", "last_name", "job_title"]:
+            assert (
+                getattr(org_user_free_plan_verified_email_and_tos_accepted, x)
+                == valid_customize_account_request_data[x]
+            )
+        assert (
+            org_user_free_plan_verified_email_and_tos_accepted.first_name
+            == valid_customize_account_request_data["first_name"]
+        )
+        ra = org_user_free_plan_verified_email_and_tos_accepted.roleassignment
+        org = ra.organization
+        rp = org.revenueprogram_set.first()
+        assert org.name == valid_customize_account_request_data["organization_name"]
+        assert org.slug == slugify(valid_customize_account_request_data["organization_name"])
+        assert rp.payment_provider is not None
+        assert rp.name == org.name
+        assert rp.organization == org
+        assert rp.slug == slugify(org.name)
+        assert rp.fiscal_status == valid_customize_account_request_data["fiscal_status"]
+        assert rp.fiscal_sponsor_name == valid_customize_account_request_data.get("fiscal_sponsor_name")
+        assert rp.tax_id == valid_customize_account_request_data["organization_tax_id"]
+        assert ra.user == org_user_free_plan_verified_email_and_tos_accepted
+        assert ra.role_type == Roles.ORG_ADMIN
+        assert ra.organization == org
+
+    def test_customize_account_happy_path_when_org_with_name_already_exists(
+        self,
+        org_user_free_plan_verified_email_and_tos_accepted,
+        api_client,
+        valid_customize_account_request_data,
+    ):
+        OrganizationFactory(name=valid_customize_account_request_data["organization_name"])
+        api_client.force_authenticate(org_user_free_plan_verified_email_and_tos_accepted)
+        expected_name = f"{valid_customize_account_request_data['organization_name']}-1"
+        response = api_client.patch(
+            reverse("user-customize-account", args=(org_user_free_plan_verified_email_and_tos_accepted.pk,)),
+            data=valid_customize_account_request_data,
+        )
+        assert response.status_code == status.HTTP_204_NO_CONTENT
+        org_user_free_plan_verified_email_and_tos_accepted.refresh_from_db()
+        org = org_user_free_plan_verified_email_and_tos_accepted.roleassignment.organization
+        rp = org.revenueprogram_set.first()
+        assert org.name == expected_name
+        assert org.slug == slugify(expected_name)
+        assert rp.name == expected_name
+        assert rp.slug == slugify(expected_name)
+
+    def test_customize_account_when_serializer_errors(
+        self,
+        org_user_free_plan_verified_email_and_tos_accepted,
+        api_client,
+        valid_customize_account_request_data,
+        mocker,
+    ):
+        logger_spy = mocker.spy(logger, "info")
+        api_client.force_authenticate(org_user_free_plan_verified_email_and_tos_accepted)
+        data = valid_customize_account_request_data.copy()
+        del data["organization_name"]
+        response = api_client.patch(
+            reverse("user-customize-account", args=(org_user_free_plan_verified_email_and_tos_accepted.pk,)),
+            data=data,
+        )
+        assert response.status_code == status.HTTP_400_BAD_REQUEST
+        logger_spy.assert_called_once_with("Request %s is invalid; errors: %s", mocker.ANY, mocker.ANY)
+        assert "organization_name" in response.json()

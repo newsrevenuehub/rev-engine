@@ -301,7 +301,7 @@ class UserViewset(
         customize_account_serializer.is_valid()
         if customize_account_serializer.errors:
             errors = {**customize_account_serializer.errors, **customize_account_serializer.errors}
-            logger.warning("Request %s is invalid; errors: %s", request.data, errors)
+            logger.info("Request %s is invalid; errors: %s", request.data, errors)
             raise ValidationError(errors)
         first_name = customize_account_serializer.validated_data["first_name"]
         last_name = customize_account_serializer.validated_data["last_name"]

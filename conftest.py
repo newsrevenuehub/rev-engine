@@ -156,6 +156,18 @@ def org_user_free_plan(default_feature_flags) -> User:
 
 
 @pytest.fixture
+def org_user_free_plan_verified_email_and_tos_accepted(org_user_free_plan):
+    # This is meant to represent a user who has gone through self onbboarding up to the point
+    # of accepting terms of service and verify email, but not customzing account.
+    org_user_free_plan.roleassignment.organization.delete()
+    org_user_free_plan.roleassignment.delete()
+    org_user_free_plan.email_verified = True
+    org_user_free_plan.accepted_terms_of_service = datetime.datetime.utcnow()
+    org_user_free_plan.save()
+    return org_user_free_plan
+
+
+@pytest.fixture
 def org_user_multiple_rps(org_user_free_plan, default_feature_flags) -> User:
     """A user instance for an org admin administering multiple RPs
 

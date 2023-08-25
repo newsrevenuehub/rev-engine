@@ -1,4 +1,4 @@
-import { useRef, useState, useEffect, createContext, useContext } from 'react';
+import { useRef, useState, useEffect, createContext, useContext, forwardRef } from 'react';
 import { useAlert } from 'react-alert';
 
 import * as S from './DonationPage.styled';
@@ -33,8 +33,6 @@ export const DonationPageContext = createContext({});
 export const CANCEL_PAYMENT_FAILURE_MESSAGE =
   "Something went wrong, but don't worry, you haven't been charged. Try refreshing.";
 
-export const DONATION_PAGE_ID = 'donation-page-wrapper';
-
 class DonationPageUnrecoverableError extends Error {
   constructor(message) {
     super(message);
@@ -42,7 +40,7 @@ class DonationPageUnrecoverableError extends Error {
   }
 }
 
-function DonationPage({ page, live = false }) {
+function DonationPage({ page, live = false }, ref) {
   const alert = useAlert();
   const formRef = useRef();
   const salesforceCampaignId = useQueryString(SALESFORCE_CAMPAIGN_ID_QUERYPARAM);
@@ -215,7 +213,7 @@ function DonationPage({ page, live = false }) {
         setMailingCountry
       }}
     >
-      <S.DonationPage data-testid="donation-page" id={DONATION_PAGE_ID}>
+      <S.DonationPage data-testid="donation-page" ref={ref}>
         <DonationPageHeader page={page} />
         <S.PageMain>
           <S.SideOuter>
@@ -272,7 +270,7 @@ function DonationPage({ page, live = false }) {
 
 export const usePage = () => useContext(DonationPageContext);
 
-export default DonationPage;
+export default forwardRef(DonationPage);
 
 // Keys are the strings expected as querys params, values are our version.
 const mapQSFreqToProperFreq = {

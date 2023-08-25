@@ -1,4 +1,4 @@
-import { createContext, useState, useEffect, useContext, useMemo } from 'react';
+import { createContext, useState, useEffect, useContext, useMemo, useRef } from 'react';
 import { useHistory } from 'react-router-dom';
 import * as S from './PageEditor.styled';
 import { useTheme } from 'styled-components';
@@ -39,7 +39,7 @@ import { useConfigureAnalytics } from 'components/analytics';
 // Children
 import CircleButton from 'elements/buttons/CircleButton';
 import SegregatedStyles from 'components/donationPage/SegregatedStyles';
-import DonationPage, { DONATION_PAGE_ID } from 'components/donationPage/DonationPage';
+import DonationPage from 'components/donationPage/DonationPage';
 import GlobalLoading from 'elements/GlobalLoading';
 import InnerEditInterface from 'components/pageEditor/editInterface/EditInterface';
 import PageTitle from 'elements/PageTitle';
@@ -81,6 +81,7 @@ function PageEditor() {
     setPageChanges,
     updatedPagePreview
   } = useEditablePageContext();
+  const donationPageRef = useRef();
   const [availableStyles, setAvailableStyles] = useState([]);
   const requestGetPageStyles = useRequest();
   const history = useHistory();
@@ -186,7 +187,7 @@ function PageEditor() {
 
       try {
         if (CAPTURE_PAGE_SCREENSHOT) {
-          await savePageChanges({}, updatedPagePreview.name, document.getElementById(DONATION_PAGE_ID));
+          await savePageChanges({}, updatedPagePreview.name, donationPageRef?.current);
         } else {
           await savePageChanges();
         }
@@ -249,7 +250,12 @@ function PageEditor() {
           {updatedPagePreview && (
             <SegregatedStyles page={updatedPagePreview}>
               {/* set stringified page as key to guarantee that ALL page changes will re-render the page in edit mode */}
-              <DonationPage key={JSON.stringify(updatedPagePreview ?? '')} live={false} page={updatedPagePreview} />
+              <DonationPage
+                key={JSON.stringify(updatedPagePreview ?? '')}
+                live={false}
+                page={updatedPagePreview}
+                ref={donationPageRef}
+              />
             </SegregatedStyles>
           )}
 

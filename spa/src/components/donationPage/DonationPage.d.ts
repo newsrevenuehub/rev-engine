@@ -7,8 +7,6 @@ import { ContributionPage } from 'hooks/useContributionPage';
 
 export type DonationPage = ContributionPage;
 
-export type DONATION_PAGE_ID = 'donation-page-wrapper';
-
 /**
  * Info available in the contribution page context. **THIS TYPE IS INCOMPLETE.**
  */

@@ -457,7 +457,7 @@ class SubscriptionsViewSet(viewsets.ViewSet):
                 pi,
             )
         except stripe.error.StripeError:
-            # we only log an exception here because the subscription has already been updated            logger.exception("stripe.PaymentIntent.retrieve returned a StripeError when re-retrieving pi %s after update", subscription.latest_invoice.payment_intent)
+            # we only log an exception here because the subscription has already been updated
             logger.exception(
                 "stripe.PaymentIntent.retrieve returned a StripeError when re-retrieving pi %s after update",
                 subscription.latest_invoice.payment_intent,

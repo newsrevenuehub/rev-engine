@@ -727,6 +727,8 @@ class TestSubscriptionViewSet:
         mock_subscription_modify = mocker.patch(
             "stripe.Subscription.modify", return_value=(mock_modified_sub := mocker.Mock())
         )
+        mock_modified_sub.latest_invoice.payment_intent = "pi_XXX"
+        mock_pi_retrieve = mocker.patch("stripe.PaymentIntent.retrieve", return_value=(mock_pi := mocker.Mock()))
         mock_update_subs_in_cache = mocker.patch(
             "apps.contributions.views.SubscriptionsViewSet.update_subscription_in_cache"
         )
@@ -748,17 +750,18 @@ class TestSubscriptionViewSet:
             subscription.id,
             default_payment_method=payment_method_id,
             stripe_account=revenue_program.payment_provider.stripe_account_id,
-            expand=[
-                "default_payment_method",
-                "latest_invoice.payment_intent.invoice.subscription",
-                "latest_invoice.payment_intent.payment_method",
-            ],
+            expand=["default_payment_method", "latest_invoice"],
+        )
+        mock_pi_retrieve.assert_called_once_with(
+            mock_modified_sub.latest_invoice.payment_intent,
+            stripe_account=revenue_program.payment_provider.stripe_account_id,
+            expand=["invoice.subscription.default_payment_method"],
         )
         mock_update_subs_in_cache.assert_called_once_with(
             contributor_user.email.lower(),
             revenue_program.payment_provider.stripe_account_id,
             mock_modified_sub,
-            mock_modified_sub.latest_invoice.payment_intent,
+            mock_pi,
         )
 
     def test_partial_update_when_error_retrieving_subscription(
@@ -826,7 +829,38 @@ class TestSubscriptionViewSet:
         )
         assert response.status_code == status.HTTP_500_INTERNAL_SERVER_ERROR
         mock_sub_modify.assert_called_once()
-        logger_spy.assert_called_once_with("stripe.Subscription.modify returned a StripeError")
+        logger_spy.assert_called_once_with(
+            "stripe.Subscription.modify returned a StripeError when modifying subscription %s", subscription.id
+        )
+
+    def test_partial_update_when_error_retrieving_payment_intent(
+        self, mocker, api_client, contributor_user, subscription_factory, revenue_program
+    ):
+        subscription = subscription_factory.get()
+        subscription.metadata["revenue_program_slug"] = revenue_program.slug
+        subscription.customer = stripe.Customer.construct_from(
+            {"email": contributor_user.email, "id": "cust_XXX"}, "some-id"
+        )
+        payment_method_id = "some-new-id"
+        mocker.patch("stripe.Subscription.retrieve", return_value=subscription)
+        mocker.patch("stripe.PaymentMethod.attach")
+        mocker.patch("stripe.Subscription.modify", return_value=(mock_modified_sub := mocker.Mock()))
+        mock_modified_sub.latest_invoice.payment_intent = "pi_XXX"
+        mock_pi_retrieve = mocker.patch(
+            "stripe.PaymentIntent.retrieve", side_effect=stripe.error.StripeError("ruh roh")
+        )
+        logger_spy = mocker.spy(contributions_views.logger, "exception")
+        api_client.force_authenticate(contributor_user)
+        response = api_client.patch(
+            reverse("subscription-detail", args=(subscription.id,)),
+            {"revenue_program_slug": revenue_program.slug, "payment_method_id": payment_method_id},
+        )
+        assert response.status_code == status.HTTP_204_NO_CONTENT
+        mock_pi_retrieve.assert_called_once()
+        logger_spy.assert_called_once_with(
+            "stripe.PaymentIntent.retrieve returned a StripeError when re-retrieving pi %s after update",
+            mock_modified_sub.latest_invoice.payment_intent,
+        )
 
     def test_update_subscription_in_cache(
         self,

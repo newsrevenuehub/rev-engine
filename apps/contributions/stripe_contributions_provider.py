@@ -107,8 +107,10 @@ class StripePaymentIntent:
     def card(self):
         default = AttrDict(**{"brand": None, "last4": None, "exp_month": None})
         if invoice := self.payment_intent.invoice:  # it's a subscription
-            return invoice.get("subscription" or {}).get("default_payment_method", {}).get("card", default)
-        return self.payment_intent.get("payment_method", {}).get("card", default)
+            return ((invoice.get("subscription", {}) or {}).get("default_payment_method", {}) or {}).get(
+                "card", {}
+            ) or default
+        return (self.payment_intent.get("payment_method", {}) or {}).get("card", {}) or default
 
     @property
     def card_brand(self):

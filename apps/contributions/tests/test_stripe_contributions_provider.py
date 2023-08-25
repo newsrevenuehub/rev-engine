@@ -4,6 +4,7 @@ import json
 from django.test import TestCase
 
 import pytest
+import pytest_cases
 import stripe
 from addict import Dict as AttrDict
 from rest_framework.utils.serializer_helpers import ReturnDict
@@ -180,6 +181,41 @@ class AbstractTestStripeContributions(TestCase):
         self.customer_ids = [f"cust_{i}" for i in range(count)]
 
 
+@pytest.fixture
+def pi_for_subscription_when_no_subscription_invoice(pi_for_active_subscription_factory):
+    pi = pi_for_active_subscription_factory.get()
+    pi.invoice.subscription = None
+    return pi
+
+
+@pytest.fixture
+def pi_for_subscription_when_no_default_pm_on_sub(pi_for_active_subscription_factory):
+    pi = pi_for_active_subscription_factory.get()
+    pi.invoice.subscription.default_payment_method = None
+    return pi
+
+
+@pytest.fixture
+def pi_for_subscription_when_no_card_on_default_pm(pi_for_active_subscription_factory):
+    pi = pi_for_active_subscription_factory.get()
+    pi.invoice.subscription.default_payment_method.card = None
+    return pi
+
+
+@pytest.fixture
+def pi_for_one_time_when_no_payment_method(pi_for_valid_one_time_factory):
+    pi = pi_for_valid_one_time_factory.get()
+    pi.payment_method = None
+    return pi
+
+
+@pytest.fixture
+def pi_for_one_time_when_no_card_on_payment_method(pi_for_valid_one_time_factory):
+    pi = pi_for_valid_one_time_factory.get()
+    pi.payment_method.card = None
+    return pi
+
+
 class TestStripePaymentIntent(AbstractTestStripeContributions):
     def setUp(self):
         super().setUp()
@@ -211,18 +247,6 @@ class TestStripePaymentIntent(AbstractTestStripeContributions):
             StripePaymentIntent(self.payment_intent_without_metadata).revenue_program
         with self.assertRaises(InvalidMetadataError):
             StripePaymentIntent(self.payment_intent_without_revenue_program).revenue_program
-
-    def test_stripe_payment_intent_without_card(self):
-        payment_intent = StripePaymentIntent(self.payment_intent_without_card)
-        self.assertIsNone(payment_intent.card_brand)
-        self.assertIsNone(payment_intent.last4)
-        self.assertIsNone(payment_intent.credit_card_expiration_date)
-
-    def test_stripe_payment_intent_with_null_card(self):
-        payment_intent = StripePaymentIntent(self.payment_intent_with_null_card)
-        self.assertIsNone(payment_intent.card_brand)
-        self.assertIsNone(payment_intent.last4)
-        self.assertIsNone(payment_intent.credit_card_expiration_date)
 
     def test_stripe_payment_intent_with_valid_data(self):
         stripe_payment_intent = StripePaymentIntent(self.payment_intent_1)
@@ -317,6 +341,29 @@ class TestStripePaymentIntentViaPytest:
     def test_status_when_other_status(self, pi_for_valid_one_time_factory):
         pi = pi_for_valid_one_time_factory.get(status="unexpected")
         assert StripePaymentIntent(pi).status == ContributionStatus.FAILED
+
+    @pytest_cases.parametrize(
+        "pi",
+        (
+            pi_for_one_time_when_no_payment_method,
+            # pi_for_one_time_when_no_card_on_payment_method,
+            # pi_for_subscription_when_no_card_on_default_pm,
+            # pi_for_subscription_when_no_default_pm_on_sub,
+            # pi_for_subscription_when_no_subscription_invoice,
+        ),
+    )
+    def test_card_when_gets_default_value(self, pi):
+        assert StripePaymentIntent(pi).card == AttrDict(**{"brand": None, "last4": None, "exp_month": None})
+
+    def test_card_when_one_time_has_card(self, pi_for_valid_one_time_factory):
+        pi = pi_for_valid_one_time_factory.get()
+        assert (expected := pi.payment_method.card) is not None
+        assert StripePaymentIntent(pi).card == expected
+
+    def test_card_when_subscription_has_card(self, pi_for_active_subscription_factory):
+        pi = pi_for_active_subscription_factory.get()
+        assert (expected := pi.invoice.subscription.default_payment_method.card) is not None
+        assert StripePaymentIntent(pi).card == expected
 
 
 @pytest.fixture

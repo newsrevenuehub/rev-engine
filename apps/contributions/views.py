@@ -428,24 +428,40 @@ class SubscriptionsViewSet(viewsets.ViewSet):
                 pk,
                 default_payment_method=payment_method_id,
                 stripe_account=revenue_program.payment_provider.stripe_account_id,
-                # we expand these fields so we have data required to update subscription and pi in cache
                 expand=[
+                    # this is expanded so can properly serialize sub and upsert in cache
                     "default_payment_method",
-                    "latest_invoice.payment_intent.invoice.subscription",
-                    "latest_invoice.payment_intent.payment_method",
+                    # this is expanded so can re-retrieve PI below
+                    "latest_invoice",
                 ],
             )
         except stripe.error.StripeError:
-            logger.exception("stripe.Subscription.modify returned a StripeError")
+            logger.exception("stripe.Subscription.modify returned a StripeError when modifying subscription %s", pk)
             return Response({"detail": "Error updating Subscription"}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
 
-        self.update_subscription_in_cache(
-            email,
-            revenue_program.payment_provider.stripe_account_id,
-            subscription,
-            subscription.latest_invoice.payment_intent,
-        )
-
+        try:
+            # we have to retrieve the updated PI separately because Stripe only lets you have
+            # up to four levels of expansion, which is not enough to get the default payment method
+            # on the returned PI, which is what we need to serialize the PI and put in cache -- which
+            # ultimately allows the contributor to see updated payment method info in portal
+            pi = stripe.PaymentIntent.retrieve(
+                subscription.latest_invoice.payment_intent,
+                stripe_account=revenue_program.payment_provider.stripe_account_id,
+                expand=["invoice.subscription.default_payment_method"],
+            )
+            # we only update cache if able to successfully retrieve PI
+            self.update_subscription_in_cache(
+                email,
+                revenue_program.payment_provider.stripe_account_id,
+                subscription,
+                pi,
+            )
+        except stripe.error.StripeError:
+            # we only log an exception here because the subscription has already been updated            logger.exception("stripe.PaymentIntent.retrieve returned a StripeError when re-retrieving pi %s after update", subscription.latest_invoice.payment_intent)
+            logger.exception(
+                "stripe.PaymentIntent.retrieve returned a StripeError when re-retrieving pi %s after update",
+                subscription.latest_invoice.payment_intent,
+            )
         # TODO: [DEV-2438] return the updated sub
         return Response({"detail": "Success"}, status=status.HTTP_204_NO_CONTENT)
 

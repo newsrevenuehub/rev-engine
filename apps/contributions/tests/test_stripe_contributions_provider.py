@@ -597,8 +597,8 @@ def mock_redis_cache_for_subs_factory(mocker):
 
 
 class TestContributionsCacheProvider:
-    EMAIL_ID = "foo@bar.com"
-    STRIPE_ACCOUNT_ID = "test"
+    EMAIL_ID = "foo@BAR.com"
+    STRIPE_ACCOUNT_ID = "tEst"
 
     def get_cache_provider(self):
         return ContributionsCacheProvider(
@@ -608,7 +608,7 @@ class TestContributionsCacheProvider:
 
     def test__init__(self):
         provider = self.get_cache_provider()
-        assert provider.key == f"{self.EMAIL_ID}-payment-intents-{self.STRIPE_ACCOUNT_ID}"
+        assert provider.key == f"{self.EMAIL_ID}-payment-intents-{self.STRIPE_ACCOUNT_ID}".lower()
         assert provider.stripe_account_id == self.STRIPE_ACCOUNT_ID
 
     def test_serialize(self, pi_for_active_subscription_factory, pi_for_valid_one_time_factory):
@@ -637,9 +637,7 @@ class TestContributionsCacheProvider:
         mock_redis_cache_for_pis = mock_redis_cache_for_pis_factory.get(cache_provider)
         subscription = subscription_factory.get()
         cache_provider.upsert_uninvoiced_subscriptions([subscription])
-        cached = json.loads(
-            mock_redis_cache_for_pis._data.get(f"{self.EMAIL_ID}-payment-intents-{self.STRIPE_ACCOUNT_ID}")
-        )
+        cached = json.loads(mock_redis_cache_for_pis._data.get(cache_provider.key))
         assert cached[subscription.id]["id"] == subscription.id
 
     def test_upsert_uninvoiced_subscriptions_overwrite(self, subscription_factory, mock_redis_cache_for_pis_factory):
@@ -647,18 +645,14 @@ class TestContributionsCacheProvider:
         mock_redis_cache_for_pis = mock_redis_cache_for_pis_factory.get(cache_provider)
         subscription = subscription_factory.get()
         cache_provider.upsert_uninvoiced_subscriptions([subscription])
-        cached = json.loads(
-            mock_redis_cache_for_pis._data.get(f"{self.EMAIL_ID}-payment-intents-{self.STRIPE_ACCOUNT_ID}")
-        )
+        cached = json.loads(mock_redis_cache_for_pis._data.get(cache_provider.key))
         assert len(cached) == 1
         assert cached[subscription.id]["created"] == subscription.created
         sub2 = subscription_factory.get()
         # ensure different ID
         sub2.id = subscription.id[::-1]
         cache_provider.upsert_uninvoiced_subscriptions([sub2])
-        cached = json.loads(
-            mock_redis_cache_for_pis._data.get(f"{self.EMAIL_ID}-payment-intents-{self.STRIPE_ACCOUNT_ID}")
-        )
+        cached = json.loads(mock_redis_cache_for_pis._data.get(cache_provider.key))
         assert len(cached) == 2
         for k in [subscription.id, sub2.id]:
             assert k in cached
@@ -668,15 +662,11 @@ class TestContributionsCacheProvider:
         mock_redis_cache_for_pis = mock_redis_cache_for_pis_factory.get(cache_provider)
         subscription = subscription_factory.get()
         cache_provider.upsert_uninvoiced_subscriptions([subscription])
-        cached = json.loads(
-            mock_redis_cache_for_pis._data.get(f"{self.EMAIL_ID}-payment-intents-{self.STRIPE_ACCOUNT_ID}")
-        )
+        cached = json.loads(mock_redis_cache_for_pis._data.get(cache_provider.key))
         assert cached[subscription.id]["created"] == subscription.created
         subscription.created = subscription.created + 1000
         cache_provider.upsert_uninvoiced_subscriptions([subscription])
-        cached = json.loads(
-            mock_redis_cache_for_pis._data.get(f"{self.EMAIL_ID}-payment-intents-{self.STRIPE_ACCOUNT_ID}")
-        )
+        cached = json.loads(mock_redis_cache_for_pis._data.get(cache_provider.key))
         assert len(cached) == 1
         assert cached[subscription.id]["created"] == subscription.created
 
@@ -684,9 +674,7 @@ class TestContributionsCacheProvider:
         provider = self.get_cache_provider()
         mock_redis_cache_for_pis = mock_redis_cache_for_pis_factory.get(provider)
         provider.upsert((pis := [pi_for_valid_one_time_factory.get()]))
-        cached = json.loads(
-            mock_redis_cache_for_pis._data.get(f"{self.EMAIL_ID}-payment-intents-{self.STRIPE_ACCOUNT_ID}")
-        )
+        cached = json.loads(mock_redis_cache_for_pis._data.get(provider.key))
         for x in pis:
             assert cached[x.id] == dict(provider.serializer(instance=provider.converter(x)).data) | {
                 "stripe_account_id": self.STRIPE_ACCOUNT_ID
@@ -696,18 +684,14 @@ class TestContributionsCacheProvider:
         provider = self.get_cache_provider()
         mock_redis_cache_for_pis = mock_redis_cache_for_pis_factory.get(provider)
         provider.upsert([(pi := pi_for_valid_one_time_factory.get())])
-        cached = json.loads(
-            mock_redis_cache_for_pis._data.get(f"{self.EMAIL_ID}-payment-intents-{self.STRIPE_ACCOUNT_ID}")
-        )
+        cached = json.loads(mock_redis_cache_for_pis._data.get(provider.key))
         assert len(cached) == 1
         assert pi.id in cached
         pi_2 = pi_for_valid_one_time_factory.get()
         # ensure different id
         pi_2.id = pi.id[::-1]
         provider.upsert([pi_2])
-        cached = json.loads(
-            mock_redis_cache_for_pis._data.get(f"{self.EMAIL_ID}-payment-intents-{self.STRIPE_ACCOUNT_ID}")
-        )
+        cached = json.loads(mock_redis_cache_for_pis._data.get(provider.key))
         assert len(cached) == 2
         assert pi.id in cached
         assert pi_2.id in cached
@@ -716,15 +700,11 @@ class TestContributionsCacheProvider:
         provider = self.get_cache_provider()
         mock_redis_cache_for_pis = mock_redis_cache_for_pis_factory.get(provider)
         provider.upsert([(pi := pi_for_valid_one_time_factory.get())])
-        cached = json.loads(
-            mock_redis_cache_for_pis._data.get(f"{self.EMAIL_ID}-payment-intents-{self.STRIPE_ACCOUNT_ID}")
-        )
+        cached = json.loads(mock_redis_cache_for_pis._data.get(provider.key))
         assert cached[pi.id]["amount"] == pi.amount
         pi.amount = (new_amount := pi.amount + 100)
         provider.upsert([pi])
-        cached = json.loads(
-            mock_redis_cache_for_pis._data.get(f"{self.EMAIL_ID}-payment-intents-{self.STRIPE_ACCOUNT_ID}")
-        )
+        cached = json.loads(mock_redis_cache_for_pis._data.get(provider.key))
         assert cached[pi.id]["amount"] == new_amount
 
     def test_load_when_no_data(self, mock_redis_cache_for_pis_factory):
@@ -745,8 +725,8 @@ class TestContributionsCacheProvider:
 
 
 class TestSubscriptionsCacheProvider:
-    EMAIL_ID = "foo@bar.com"
-    STRIPE_ACCOUNT_ID = "test-id"
+    EMAIL_ID = "foo@BAR.com"
+    STRIPE_ACCOUNT_ID = "test-ID"
 
     def get_provider(self):
         return SubscriptionsCacheProvider(self.EMAIL_ID, self.STRIPE_ACCOUNT_ID)
@@ -754,7 +734,7 @@ class TestSubscriptionsCacheProvider:
     def test__init__(self):
         provider = self.get_provider()
         assert provider.stripe_account_id == self.STRIPE_ACCOUNT_ID
-        assert provider.key == f"{self.EMAIL_ID}-subscriptions-{self.STRIPE_ACCOUNT_ID}"
+        assert provider.key == f"{self.EMAIL_ID}-subscriptions-{self.STRIPE_ACCOUNT_ID}".lower()
 
     def test_serialize_happy_path(self, subscription_factory):
         cache_provider = self.get_provider()

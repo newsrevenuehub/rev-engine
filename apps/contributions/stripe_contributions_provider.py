@@ -187,7 +187,7 @@ class StripeContributionsProvider:
     FETCH_SUB_EXPAND_FIELDS = ["data.default_payment_method"]
 
     def __init__(self, email_id, stripe_account_id) -> None:
-        self.email_id = email_id.lower()
+        self.email_id = email_id
         self.stripe_account_id = stripe_account_id
 
     @cached_property
@@ -329,7 +329,7 @@ class ContributionsCacheProvider:
 
     def __init__(self, email_id, stripe_account_id) -> None:
         self.stripe_account_id = stripe_account_id
-        self.key = f"{email_id.lower()}-payment-intents-{self.stripe_account_id}"
+        self.key = f"{email_id}-payment-intents-{self.stripe_account_id}".lower()
 
     def serialize(self, payment_intents: list[stripe.PaymentIntent]) -> dict[str, dict]:
         """Serializes the stripe.PaymentIntent object into json."""
@@ -385,7 +385,7 @@ class SubscriptionsCacheProvider:
 
     def __init__(self, email_id, stripe_account_id) -> None:
         self.stripe_account_id = stripe_account_id
-        self.key = f"{email_id.lower()}-subscriptions-{self.stripe_account_id}"
+        self.key = f"{email_id}-subscriptions-{self.stripe_account_id}".lower()
 
     def serialize(self, subscriptions):
         """Serializes the stripe.Subscription object into json."""

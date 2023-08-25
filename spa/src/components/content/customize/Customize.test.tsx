@@ -45,10 +45,10 @@ describe('Customize Styles', () => {
   });
 
   describe.each([PLAN_NAMES.FREE, PLAN_NAMES.CORE, PLAN_NAMES.PLUS])('org plan: %s', (plan) => {
+    const mockUser = { ...orgAdminUser, organizations: [orgPlan(plan)] };
+
     beforeEach(() => {
-      useUserMock.mockImplementation(
-        () => ({ user: { ...orgAdminUser, organizations: [orgPlan(plan)] }, isLoading: false } as any)
-      );
+      useUserMock.mockReturnValue({ isLoading: false, user: mockUser } as any);
     });
 
     it('should render Hero component with correct subtitle', () => {
@@ -87,9 +87,13 @@ describe('Customize Styles', () => {
         );
       });
 
-      it('should render core upgrade prompt', () => {
+      it('should render core upgrade prompt with the user', () => {
         tree();
-        expect(screen.getByTestId('mock-customize-core-upgrade-prompt')).toBeVisible();
+
+        const upgradePrompt = screen.getByTestId('mock-customize-core-upgrade-prompt');
+
+        expect(upgradePrompt).toBeVisible();
+        expect(upgradePrompt.dataset.user).toBe(JSON.stringify(mockUser));
       });
 
       it('should call onClose for upgrade prompt', () => {

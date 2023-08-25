@@ -7,7 +7,6 @@ import { CONTENT_SLUG } from 'routes';
 import Dashboard from './Dashboard';
 
 import useConnectStripeAccount from 'hooks/useConnectStripeAccount';
-import useFeatureFlags from 'hooks/useFeatureFlags';
 import useUser from 'hooks/useUser';
 import usePendo from 'hooks/usePendo';
 
@@ -16,7 +15,6 @@ jest.mock('components/common/IntegrationCard/MailchimpIntegrationCard/MailchimpM
 jest.mock('./MailchimpConnectionStatus', () => () => <div data-testid="mock-mailchimp-connection-status" />);
 jest.mock('./sidebar/DashboardSidebar');
 jest.mock('elements/GlobalLoading');
-jest.mock('hooks/useFeatureFlags');
 jest.mock('hooks/usePendo');
 jest.mock('hooks/useRequest');
 jest.mock('hooks/useUser');
@@ -37,6 +35,7 @@ const useUserMockDefaults = {
   refetch: jest.fn(),
   user: {
     email: 'foo@bar.com',
+    flags: [{ name: CONTENT_SECTION_ACCESS_FLAG_NAME }],
     role_type: ['org_admin']
   }
 };
@@ -44,7 +43,6 @@ const useUserMockDefaults = {
 describe('Dashboard', () => {
   const usePendoMock = jest.mocked(usePendo);
   const useConnectStripeAccountMock = jest.mocked(useConnectStripeAccount);
-  const useFeatureFlagsMock = jest.mocked(useFeatureFlags);
   const useUserMock = jest.mocked(useUser);
   const useLocationMock = jest.mocked(useLocation);
   const useSnackbarMock = jest.mocked(useSnackbar);
@@ -57,12 +55,7 @@ describe('Dashboard', () => {
       hideConnectionSuccess: jest.fn(),
       isLoading: false
     } as any);
-    useFeatureFlagsMock.mockReturnValue({
-      flags: [{ name: CONTENT_SECTION_ACCESS_FLAG_NAME }],
-      isLoading: false,
-      isError: false
-    });
-    useUserMock.mockReturnValue({ ...useUserMockDefaults } as any);
+    useUserMock.mockReturnValue(useUserMockDefaults as any);
     useLocationMock.mockReturnValue({
       pathname: CONTENT_SLUG,
       search: '',

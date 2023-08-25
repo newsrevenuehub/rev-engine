@@ -56,13 +56,13 @@
 {% if style.is_default_logo == True and style.logo_url %}
 <tr>
   <td class="header-background default">
-    <img class="header-logo inner-center default" src="{{ style.logo_url }}" alt="News Revenue Engine" />
+    <img class="header-logo inner-center default" src="{{ style.logo_url }}" alt="{{ style.logo_alt_text }}" />
   </td>
 </tr>
 {% elif style.logo_url %}
 <tr>
   <td class="header-background">
-    <img class="header-logo" src="{{ style.logo_url }}" alt="" />
+    <img class="header-logo" src="{{ style.logo_url }}" alt="{{ style.logo_alt_text }}" />
   </td>
 </tr>
 {% endif %}

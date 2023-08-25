@@ -1142,7 +1142,12 @@ class TestContributionModel:
                 },
                 "font": {"heading": "mock-header-font", "body": "mock-body-font"},
             }
-            page = DonationPageFactory(revenue_program=revenue_program, styles=style, header_logo="mock-logo")
+            page = DonationPageFactory(
+                revenue_program=revenue_program,
+                styles=style,
+                header_logo="mock-logo",
+                header_logo_alt_text="Mock-Alt-Text",
+            )
             revenue_program.default_donation_page = page
             revenue_program.save()
         contribution.donation_page.revenue_program = revenue_program
@@ -1165,18 +1170,20 @@ class TestContributionModel:
         assert len(mail.outbox) == 1
 
         default_logo = os.path.join(settings.SITE_URL, "static", "nre-logo-yellow.png")
+        default_alt_text = "News Revenue Hub"
         custom_logo = 'src="/media/mock-logo"'
+        custom_alt_text = 'alt="Mock-Alt-Text"'
         custom_header_background = "background: #mock-header-background !important"
         custom_button_background = "background: #mock-button-color !important"
 
         if revenue_program.organization.plan.name == FreePlan.name or not has_default_donation_page:
-            expect_present = default_logo
-            expect_missing = (custom_logo, custom_button_background, custom_header_background)
+            expect_present = (default_logo, default_alt_text)
+            expect_missing = (custom_logo, custom_alt_text, custom_button_background, custom_header_background)
 
         else:
-            expect_present = (custom_logo, custom_header_background)
+            expect_present = (custom_logo, custom_alt_text, custom_header_background)
             # Email template doesn't have a button to apply the custom button color to
-            expect_missing = (custom_button_background, default_logo)
+            expect_missing = (custom_button_background, default_logo, default_alt_text)
 
         for x in expect_present:
             assert x in mail.outbox[0].alternatives[0][0]
@@ -1690,21 +1697,21 @@ class TestContributionQuerySetMethods:
         spy.assert_called_once_with(contributor_user.email, revenue_program.stripe_account_id)
 
     def test_filter_queryset_for_contributor_when_cache_not_empty(
-        self, contributor_user, revenue_program, mocker, monkeypatch
+        self, contributor_user, revenue_program, mocker, pi_as_portal_contribution_factory
     ):
         """Show behavior of this method when results in cache"""
         results = [
-            {"id": 1, "revenue_program": revenue_program.slug, "payment_type": "something", "status": "paid"},
-            {"id": 2, "revenue_program": revenue_program.slug, "payment_type": None, "status": "paid"},
-            {"id": 3, "revenue_program": "something-different", "payment_type": "something", "status": "paid"},
+            (pi_1 := pi_as_portal_contribution_factory.get(revenue_program=revenue_program.slug)),
+            pi_as_portal_contribution_factory.get(revenue_program=revenue_program.slug, payment_type=None),
+            pi_as_portal_contribution_factory.get(revenue_program="something-different"),
         ]
-        monkeypatch.setattr(
-            "apps.contributions.stripe_contributions_provider.ContributionsCacheProvider.load",
-            lambda *args, **kwargs: results,
+        mocker.patch(
+            "apps.contributions.stripe_contributions_provider.ContributionsCacheProvider.load", return_value=results
         )
         spy = mocker.spy(task_pull_serialized_stripe_contributions_to_cache, "delay")
         results = Contribution.objects.filter_queryset_for_contributor(contributor_user, revenue_program)
-        assert set([1]) == set(item["id"] for item in results)
+        # the results contain one that's got wrong rp slug, and another with no payment type, so only should get one back
+        assert set([pi_1.id]) == set(item.id for item in results)
         spy.assert_not_called()
 
     def test_having_org_viewable_status(
@@ -1725,22 +1732,35 @@ class TestContributionQuerySetMethods:
             )
         )
 
-    def test_excludes_failed_contributions_from_contributor_queryset(
-        self, contributor_user, revenue_program, monkeypatch
+    def test_filter_queryset_for_contributor_excludes_statuses_other_than_paid(
+        self, contributor_user, revenue_program, mocker, pi_as_portal_contribution_factory
     ):
-        monkeypatch.setattr(
+        mocker.patch(
             "apps.contributions.stripe_contributions_provider.ContributionsCacheProvider.load",
-            lambda *args, **kwargs: [
-                {"id": 1, "revenue_program": revenue_program.slug, "payment_type": "something", "status": "paid"},
-                {"id": 2, "revenue_program": revenue_program.slug, "payment_type": None, "status": "cancelled"},
-                {"id": 3, "revenue_program": "something-different", "payment_type": "something", "status": "refunded"},
-                {"id": 4, "revenue_program": revenue_program.slug, "payment_type": "something", "status": "paid"},
+            return_value=[
+                pi_as_portal_contribution_factory.get(
+                    revenue_program=revenue_program.slug, status=ContributionStatus.CANCELED
+                ),
+                pi_as_portal_contribution_factory.get(
+                    revenue_program=revenue_program.slug, status=ContributionStatus.FLAGGED
+                ),
+                (
+                    paid := pi_as_portal_contribution_factory.get(
+                        revenue_program=revenue_program.slug, status=ContributionStatus.PAID
+                    )
+                ),
+                pi_as_portal_contribution_factory.get(
+                    revenue_program=revenue_program.slug, status=ContributionStatus.PROCESSING
+                ),
+                pi_as_portal_contribution_factory.get(
+                    revenue_program=revenue_program.slug, status=ContributionStatus.REFUNDED
+                ),
+                pi_as_portal_contribution_factory.get(
+                    revenue_program=revenue_program.slug, status=ContributionStatus.REJECTED
+                ),
             ],
         )
-        monkeypatch.setattr(
-            "apps.contributions.tasks.task_pull_serialized_stripe_contributions_to_cache.delay",
-            lambda *args, **kwargs: None,
-        )
+        mocker.patch("apps.contributions.tasks.task_pull_serialized_stripe_contributions_to_cache.delay")
         results = Contribution.objects.filter_queryset_for_contributor(contributor_user, revenue_program)
-
-        assert len(results) == 2
+        assert len(results) == 1
+        assert results[0].id == paid.id

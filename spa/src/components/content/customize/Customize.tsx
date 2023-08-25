@@ -57,7 +57,9 @@ function Customize() {
   return (
     <GenericErrorBoundary>
       <Hero title="Customize" subtitle={isFreeOrg ? '' : PAID_SUBTITLE} />
-      {showCoreUpgradePrompt && <CustomizeCoreUpgradePrompt onClose={() => setCoreUpgradePromptClosed(true)} />}
+      {showCoreUpgradePrompt && (
+        <CustomizeCoreUpgradePrompt onClose={() => setCoreUpgradePromptClosed(true)} user={user} />
+      )}
       <CustomizeContent>
         <SectionWrapper>
           <SendTestEmail description={emailDescription} rpId={user.revenue_programs[0].id} />

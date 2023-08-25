@@ -2,7 +2,7 @@ import datetime
 import logging
 import uuid
 from dataclasses import asdict
-from typing import List, TypedDict
+from typing import List
 from urllib.parse import quote_plus
 
 from django.conf import settings
@@ -18,6 +18,7 @@ from stripe.error import StripeError
 from apps.api.tokens import ContributorRefreshToken
 from apps.common.models import IndexedTimeStampedModel
 from apps.contributions.choices import BadActorScores, ContributionInterval, ContributionStatus
+from apps.contributions.types import StripePiAsPortalContribution
 from apps.emails.tasks import make_send_thank_you_email_data, send_thank_you_email
 from apps.organizations.models import RevenueProgram
 from apps.users.choices import Roles
@@ -116,11 +117,6 @@ class Contributor(IndexedTimeStampedModel):
         )
 
 
-class CachedStripeContributionResult(TypedDict):
-    revenue_program: str
-    payment_type: str
-
-
 class ContributionQuerySet(models.QuerySet):
     def one_time(self):
         return self.filter(interval=ContributionInterval.ONE_TIME)
@@ -140,7 +136,7 @@ class ContributionQuerySet(models.QuerySet):
 
     def filter_queryset_for_contributor(
         self, contributor: Contributor, revenue_program: RevenueProgram
-    ) -> List[CachedStripeContributionResult]:
+    ) -> List[StripePiAsPortalContribution]:
         # vs circular import
         from apps.contributions.stripe_contributions_provider import ContributionsCacheProvider
         from apps.contributions.tasks import task_pull_serialized_stripe_contributions_to_cache
@@ -156,9 +152,9 @@ class ContributionQuerySet(models.QuerySet):
         return [
             x
             for x in contributions
-            if x.get("revenue_program") == revenue_program.slug
-            and x.get("payment_type") is not None
-            and x.get("status") == ContributionStatus.PAID.value
+            if x.revenue_program == revenue_program.slug
+            and x.payment_type is not None
+            and x.status == ContributionStatus.PAID.value
         ]
 
     def filtered_by_role_assignment(self, role_assignment: RoleAssignment) -> models.QuerySet:

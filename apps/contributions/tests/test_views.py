@@ -624,7 +624,7 @@ class TestSubscriptionViewSet:
         subscriptions = contributions_views.SubscriptionsViewSet._fetch_subscriptions(request)
         assert len(subscriptions) == 1
         assert subscriptions[0].id == my_sub_for_other_rp.id
-        assert mock_sub_cache.return_value.load.call_count == 2
+        mock_sub_cache.return_value.load.assert_called_once()
         assert mock_sub_cache.called_once_with(email, this_rp.payment_provider.stripe_account_id)
 
     def test__fetch_subscriptions_when_no_subscriptions_in_cache(

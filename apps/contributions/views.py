@@ -490,6 +490,7 @@ class SubscriptionsViewSet(viewsets.ViewSet):
             logger.exception("stripe.Subscription.delete returned a StripeError")
             return Response({"detail": "Error"}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
 
+        response = Response({"detail": "Success"}, status=status.HTTP_204_NO_CONTENT)
         # We re-retrieve here in order to update the cache with updated subscription data
         try:
             sub = stripe.Subscription.retrieve(
@@ -497,25 +498,33 @@ class SubscriptionsViewSet(viewsets.ViewSet):
                 stripe_account=revenue_program.payment_provider.stripe_account_id,
                 expand=[
                     "default_payment_method",
-                    "latest_invoice.payment_intent.invoice.subscription",
-                    "latest_invoice.payment_intent.payment_method",
+                    "latest_invoice.payment_intent",
                 ],
             )
-            # only need to update cache if we successfully retrieve
-            self.update_subscription_in_cache(
-                email, revenue_program.payment_provider.stripe_account_id, sub, sub.latest_invoice.payment_intent
-            )
-
         except stripe.error.StripeError:
             # in this case, we only want to log because the subscription has already been canceled and user shouldn't retry
             logger.exception(
                 "stripe.Subscription.retrieve returned a StripeError after canceling subscription %s",
                 subscription.id,
             )
-
+            return response
+        try:
+            # we need to re-retrieve the PI separately because Stripe only lets you have 4 levels of expansion
+            pi = stripe.PaymentIntent.retrieve(
+                sub.latest_invoice.payment_intent.id,
+                stripe_account=revenue_program.payment_provider.stripe_account_id,
+                expand=["payment_method", "invoice.subscription.default_payment_method"],
+            )
+            # only need to update cache if we successfully retrieve sub and PI
+            self.update_subscription_in_cache(email, revenue_program.payment_provider.stripe_account_id, sub, pi)
+        except stripe.error.StripeError:
+            # in this case, we only want to log because the subscription has already been canceled and user shouldn't retry
+            logger.exception(
+                "stripe.PaymentIntent.retrieve returned a StripeError after canceling subscription when re-retrieving PI %s",
+                sub.latest_invoice.payment_intent.id,
+            )
         # TODO: [DEV-2438] return the canceled sub
-
-        return Response({"detail": "Success"}, status=status.HTTP_204_NO_CONTENT)
+        return response
 
     @staticmethod
     def update_subscription_in_cache(

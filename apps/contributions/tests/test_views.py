@@ -972,6 +972,39 @@ class TestSubscriptionViewSet:
             subscription.id,
         )
 
+    def test_destroy_when_error_re_retrieving_payment_intent(
+        self, mocker, contributor_user, api_client, revenue_program, subscription_factory
+    ):
+        subscription = subscription_factory.get()
+        subscription.customer = stripe.Customer.construct_from(
+            {"email": contributor_user.email, "id": "cus_XXXX"}, "some-id"
+        )
+        # subscription.Retrieve gets called twice in this method, once to check if subscription is owned by requester, second time
+        # to retrieve updated state in order to update cache
+        mocker.patch(
+            "stripe.Subscription.retrieve",
+            side_effect=[
+                subscription,
+                (modified_sub := mocker.Mock()),
+            ],
+        )
+        modified_sub.latest_invoice.payment_intent.id = "pi_XXX"
+        mocker.patch("stripe.Subscription.delete")
+        mock_pi_retrieve = mocker.patch(
+            "stripe.PaymentIntent.retrieve", side_effect=stripe.error.StripeError("ruh roh")
+        )
+        logger_spy = mocker.spy(contributions_views.logger, "exception")
+        api_client.force_authenticate(contributor_user)
+        response = api_client.delete(
+            reverse("subscription-detail", args=(subscription.id,)), data={"revenue_program_slug": revenue_program.slug}
+        )
+        assert response.status_code == status.HTTP_204_NO_CONTENT
+        mock_pi_retrieve.assert_called_once()
+        logger_spy.assert_called_once_with(
+            "stripe.PaymentIntent.retrieve returned a StripeError after canceling subscription when re-retrieving PI %s",
+            modified_sub.latest_invoice.payment_intent.id,
+        )
+
     def test_destroy_happy_path(self, mocker, contributor_user, api_client, revenue_program, subscription_factory):
         subscription = subscription_factory.get()
         subscription.customer = stripe.Customer.construct_from(
@@ -986,10 +1019,12 @@ class TestSubscriptionViewSet:
                 (modified_sub := mocker.Mock()),
             ],
         )
+        modified_sub.latest_invoice.payment_intent.id = (pi_id := "pi_XXX")
         mock_sub_delete = mocker.patch("stripe.Subscription.delete")
         mock_update_sub_cache = mocker.patch(
             "apps.contributions.views.SubscriptionsViewSet.update_subscription_in_cache"
         )
+        mock_pi_retrieve = mocker.patch("stripe.PaymentIntent.retrieve", return_value=(mock_pi := mocker.Mock()))
         api_client.force_authenticate(contributor_user)
         response = api_client.delete(
             reverse("subscription-detail", args=(subscription.id,)), data={"revenue_program_slug": revenue_program.slug}
@@ -1008,8 +1043,7 @@ class TestSubscriptionViewSet:
                     stripe_account=revenue_program.payment_provider.stripe_account_id,
                     expand=[
                         "default_payment_method",
-                        "latest_invoice.payment_intent.invoice.subscription",
-                        "latest_invoice.payment_intent.payment_method",
+                        "latest_invoice.payment_intent",
                     ],
                 ),
             ]
@@ -1017,11 +1051,16 @@ class TestSubscriptionViewSet:
         mock_sub_delete.assert_called_once_with(
             subscription.id, stripe_account=revenue_program.payment_provider.stripe_account_id
         )
+        mock_pi_retrieve.assert_called_once_with(
+            pi_id,
+            stripe_account=revenue_program.payment_provider.stripe_account_id,
+            expand=["payment_method", "invoice.subscription.default_payment_method"],
+        )
         mock_update_sub_cache.assert_called_once_with(
             contributor_user.email.lower(),
             revenue_program.payment_provider.stripe_account_id,
             modified_sub,
-            modified_sub.latest_invoice.payment_intent,
+            mock_pi,
         )
 
 

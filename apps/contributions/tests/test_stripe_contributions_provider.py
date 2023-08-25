@@ -88,6 +88,7 @@ class AbstractTestStripeContributions(TestCase):
                 "subscription": {
                     "id": "subscription_1",
                     "status": "active",
+                    "default_payment_method": payment_method["payment_method"],
                 },
             }
         }

@@ -447,7 +447,7 @@ class SubscriptionsViewSet(viewsets.ViewSet):
             pi = stripe.PaymentIntent.retrieve(
                 subscription.latest_invoice.payment_intent,
                 stripe_account=revenue_program.payment_provider.stripe_account_id,
-                expand=["invoice.subscription.default_payment_method"],
+                expand=["payment_method", "invoice.subscription.default_payment_method"],
             )
             # we only update cache if able to successfully retrieve PI
             self.update_subscription_in_cache(

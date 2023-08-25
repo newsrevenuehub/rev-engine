@@ -755,7 +755,7 @@ class TestSubscriptionViewSet:
         mock_pi_retrieve.assert_called_once_with(
             mock_modified_sub.latest_invoice.payment_intent,
             stripe_account=revenue_program.payment_provider.stripe_account_id,
-            expand=["invoice.subscription.default_payment_method"],
+            expand=["payment_method", "invoice.subscription.default_payment_method"],
         )
         mock_update_subs_in_cache.assert_called_once_with(
             contributor_user.email.lower(),

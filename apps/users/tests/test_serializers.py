@@ -40,7 +40,7 @@ class TestCustomizeAccountSerializer:
             ("job_title", JOB_TITLE_MAX_LENGTH),
         ),
     )
-    def test_enforces_max_length_on_relvant_fields(self, exceed, field, max_length, organization):
+    def test_enforces_max_length_on_relevant_fields(self, exceed, field, max_length, organization):
         val = "a" * (max_length + 1) if exceed else "a" * max_length
         serializer = serializers.CustomizeAccountSerializer(instance=organization, data={field: val}, partial=True)
         assert serializer.is_valid() if not exceed else not serializer.is_valid()

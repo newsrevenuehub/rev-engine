@@ -7,7 +7,12 @@ import pytest
 from rest_framework.test import APIRequestFactory, APITestCase
 from waffle import get_waffle_flag_model
 
-from apps.organizations.models import Organization, Plan, RevenueProgram
+from apps.organizations.models import (
+    FISCAL_SPONSOR_NAME_MAX_LENGTH,
+    Organization,
+    Plan,
+    RevenueProgram,
+)
 from apps.organizations.serializers import (
     OrganizationInlineSerializer,
     RevenueProgramInlineSerializer,
@@ -15,10 +20,31 @@ from apps.organizations.serializers import (
 from apps.organizations.tests.factories import OrganizationFactory, RevenueProgramFactory
 from apps.users import serializers
 from apps.users.choices import Roles
+from apps.users.constants import FIRST_NAME_MAX_LENGTH, JOB_TITLE_MAX_LENGTH, LAST_NAME_MAX_LENGTH
 from apps.users.tests.factories import create_test_user
 
 
 user_model = get_user_model()
+
+
+@pytest.mark.django_db
+class TestCustomizeAccountSerializer:
+    @pytest.mark.parametrize("exceed", [True, False])
+    @pytest.mark.parametrize(
+        "field, max_length",
+        (
+            ("organization_name", serializers.CUSTOMIZE_ACCOUNT_ORG_NAME_MAX_LENGTH),
+            ("fiscal_sponsor_name", FISCAL_SPONSOR_NAME_MAX_LENGTH),
+            ("last_name", LAST_NAME_MAX_LENGTH),
+            ("first_name", FIRST_NAME_MAX_LENGTH),
+            ("job_title", JOB_TITLE_MAX_LENGTH),
+        ),
+    )
+    def test_enforces_max_length_on_relvant_fields(self, exceed, field, max_length, organization):
+        val = "a" * (max_length + 1) if exceed else "a" * max_length
+        serializer = serializers.CustomizeAccountSerializer(instance=organization, data={field: val}, partial=True)
+        assert serializer.is_valid() if not exceed else not serializer.is_valid()
+        assert field in serializer.errors if exceed else field not in serializer.errors
 
 
 class UserSerializerTest(APITestCase):

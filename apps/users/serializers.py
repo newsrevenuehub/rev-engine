@@ -8,7 +8,13 @@ from rest_framework import serializers
 from rest_framework.validators import UniqueValidator
 from waffle import get_waffle_flag_model
 
-from apps.organizations.models import FiscalStatusChoices, Organization, RevenueProgram
+from apps.organizations.models import (
+    FISCAL_SPONSOR_NAME_MAX_LENGTH,
+    ORG_NAME_MAX_LENGTH,
+    FiscalStatusChoices,
+    Organization,
+    RevenueProgram,
+)
 from apps.organizations.serializers import (
     OrganizationInlineSerializer,
     RevenueProgramInlineSerializer,
@@ -16,10 +22,15 @@ from apps.organizations.serializers import (
 from apps.users.choices import Roles
 from apps.users.constants import PASSWORD_MAX_LENGTH
 
+from .constants import FIRST_NAME_MAX_LENGTH, JOB_TITLE_MAX_LENGTH, LAST_NAME_MAX_LENGTH
 from .validators import tax_id_validator
 
 
 logger = logging.getLogger(f"{settings.DEFAULT_LOGGER}.{__name__}")
+
+# We subtract 3 from the max length to account for the "-XY" that can be appended to the end of the name
+# in the case of duplicate names. See UserViewSet.customize_account for implementation of this.
+CUSTOMIZE_ACCOUNT_ORG_NAME_MAX_LENGTH = ORG_NAME_MAX_LENGTH - 3
 
 
 class UserSerializer(serializers.ModelSerializer):
@@ -152,16 +163,20 @@ class UserSerializer(serializers.ModelSerializer):
 class CustomizeAccountSerializer(UserSerializer):
     """Special custom serializer to validate data received from customize_account method"""
 
-    first_name = serializers.CharField(write_only=True, required=True)
-    fiscal_sponsor_name = serializers.CharField(write_only=True, required=False, default=None)
+    first_name = serializers.CharField(write_only=True, required=True, max_length=FIRST_NAME_MAX_LENGTH)
+    fiscal_sponsor_name = serializers.CharField(
+        write_only=True, required=False, default=None, max_length=FISCAL_SPONSOR_NAME_MAX_LENGTH
+    )
     fiscal_status = serializers.ChoiceField(
         choices=FiscalStatusChoices.choices,
         write_only=True,
         required=True,
     )
-    last_name = serializers.CharField(write_only=True, required=True)
-    job_title = serializers.CharField(write_only=True, required=False, default=None)
-    organization_name = serializers.CharField(write_only=True, required=True)
+    last_name = serializers.CharField(write_only=True, required=True, max_length=LAST_NAME_MAX_LENGTH)
+    job_title = serializers.CharField(write_only=True, required=False, default=None, max_length=JOB_TITLE_MAX_LENGTH)
+    organization_name = serializers.CharField(
+        write_only=True, required=True, max_length=CUSTOMIZE_ACCOUNT_ORG_NAME_MAX_LENGTH
+    )
     organization_tax_id = serializers.CharField(
         write_only=True, required=False, validators=[tax_id_validator], default=None
     )

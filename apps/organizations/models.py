@@ -42,6 +42,9 @@ logger = logging.getLogger(f"{settings.DEFAULT_LOGGER}.{__name__}")
 UNLIMITED_CEILING = 200
 
 
+ORG_NAME_MAX_LENGTH = 255
+RP_NAME_MAX_LENGTH = ORG_NAME_MAX_LENGTH
+
 # RFC-1035 limits domain labels to 63 characters, and RP slugs are used for subdomains,
 # so we limit to 63 chars
 RP_SLUG_MAX_LENGTH = 63
@@ -126,7 +129,7 @@ class Organization(IndexedTimeStampedModel):
     # to the value of an org.uuid so that we can look up the org in the self-upgrade flow, which is triggered
     # by stripe webhooks.
     uuid = models.UUIDField(default=uuid.uuid4, editable=False, unique=True)
-    name = models.CharField(max_length=255, unique=True)
+    name = models.CharField(max_length=ORG_NAME_MAX_LENGTH, unique=True)
     plan_name = models.CharField(choices=Plans.choices, max_length=10, default=Plans.FREE)
     salesforce_id = models.CharField(max_length=255, blank=True, verbose_name="Salesforce ID")
     show_connected_to_slack = models.BooleanField(
@@ -463,7 +466,7 @@ class RevenueProgramManager(models.Manager):
 
 
 class RevenueProgram(IndexedTimeStampedModel):
-    name = models.CharField(max_length=255)
+    name = models.CharField(max_length=RP_NAME_MAX_LENGTH)
     slug = models.SlugField(
         max_length=RP_SLUG_MAX_LENGTH,
         blank=True,

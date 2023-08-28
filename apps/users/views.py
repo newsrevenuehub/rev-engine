@@ -297,6 +297,7 @@ class UserViewset(
     @action(detail=True, methods=["patch"])
     def customize_account(self, request, pk=None):
         """Allows customizing an account"""
+        logger.info("Received request to customize account for user %s; request: %s", request.user.id, request.data)
         customize_account_serializer = CustomizeAccountSerializer(data=request.data)
         customize_account_serializer.is_valid(raise_exception=True)
         first_name = customize_account_serializer.validated_data["first_name"]
@@ -316,7 +317,6 @@ class UserViewset(
             while Organization.objects.filter(name=f"{organization_name}-{counter}").exists():
                 counter += 1
             organization_name = f"{organization_name}-{counter}"
-
         organization = Organization.objects.create(name=organization_name, slug=slugify(organization_name))
         payment_provider = PaymentProvider.objects.create()
         revenue_program = RevenueProgram.objects.create(

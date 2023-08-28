@@ -106,11 +106,7 @@ export async function pageUpdateToFormData(
       throw new Error('Could not convert canvas to blob');
     }
 
-    formData.append(
-      'page_screenshot',
-      blob,
-      `${screenshotBaseName.replace(/\s/g, '')}_${formatDatetimeForAPI(new Date())}.png`
-    );
+    formData.append('page_screenshot', blob, `${screenshotBaseName}_${formatDatetimeForAPI(new Date())}.png`);
   }
 
   return formData;

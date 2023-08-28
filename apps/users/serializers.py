@@ -160,7 +160,7 @@ class UserSerializer(serializers.ModelSerializer):
         ]
 
 
-class CustomizeAccountSerializer(UserSerializer):
+class CustomizeAccountSerializer(serializers.Serializer):
     """Special custom serializer to validate data received from customize_account method"""
 
     first_name = serializers.CharField(write_only=True, required=True, max_length=FIRST_NAME_MAX_LENGTH)
@@ -190,15 +190,3 @@ class CustomizeAccountSerializer(UserSerializer):
                 "Only fiscally sponsored Revenue Programs can have a fiscal sponsor name."
             )
         return value
-
-    class Meta:
-        model = get_user_model()
-        fields = [
-            "first_name",
-            "fiscal_sponsor_name",
-            "fiscal_status",
-            "last_name",
-            "job_title",
-            "organization_name",
-            "organization_tax_id",
-        ]

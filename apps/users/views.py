@@ -299,7 +299,14 @@ class UserViewset(
         """Allows customizing an account"""
         logger.info("Received request to customize account for user %s; request: %s", request.user.id, request.data)
         customize_account_serializer = CustomizeAccountSerializer(data=request.data)
-        customize_account_serializer.is_valid(raise_exception=True)
+        customize_account_serializer.is_valid()
+        if not customize_account_serializer.is_valid():
+            logger.info(
+                "Customize account for user %s failed because of the following validation errors: %s",
+                request.user.id,
+                customize_account_serializer.errors,
+            )
+            return Response(status=status.HTTP_400_BAD_REQUEST, data=customize_account_serializer.errors)
         first_name = customize_account_serializer.validated_data["first_name"]
         last_name = customize_account_serializer.validated_data["last_name"]
         organization_name = customize_account_serializer.validated_data["organization_name"]

@@ -45,7 +45,7 @@ from apps.users.permissions import (
     UserOwnsUser,
 )
 from apps.users.tests.factories import create_test_user
-from apps.users.views import AccountVerification, UserViewset
+from apps.users.views import AccountVerification, UserViewset, logger
 
 
 user_model = get_user_model()
@@ -1004,6 +1004,7 @@ class TestUserViewSetViaPytest:
         valid_customize_account_request_data,
         mocker,
     ):
+        logger_spy = mocker.spy(logger, "info")
         api_client.force_authenticate(org_user_free_plan_verified_email_and_tos_accepted)
         data = valid_customize_account_request_data.copy()
         del data["organization_name"]
@@ -1013,3 +1014,9 @@ class TestUserViewSetViaPytest:
         )
         assert response.status_code == status.HTTP_400_BAD_REQUEST
         assert "organization_name" in response.json()
+        assert logger_spy.call_args == mocker.call(
+            "Customize account for user %s failed because of the following validation errors: %s",
+            org_user_free_plan_verified_email_and_tos_accepted.id,
+            mocker.ANY,
+        )
+        assert list(logger_spy.call_args[0][2].keys()) == ["organization_name"]

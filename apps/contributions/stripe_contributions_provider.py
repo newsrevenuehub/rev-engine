@@ -1,7 +1,7 @@
 import datetime
 import json
 import logging
-from functools import cached_property
+from functools import cached_property, wraps
 
 from django.conf import settings
 from django.core.cache import caches
@@ -42,6 +42,19 @@ class InvalidMetadataError(ContributionIgnorableError):
     pass
 
 
+def convert_attribute_error_to_ignorable_error(f: callable) -> callable:
+    """Decorator to convert AttributeError to ContributionIgnorableError."""
+
+    @wraps(f)
+    def wrapper(*args, **kwargs):
+        try:
+            return f(*args, **kwargs)
+        except AttributeError as e:
+            raise ContributionIgnorableError(e)
+
+    return wrapper
+
+
 class StripePaymentIntent:
     """
     Wrapper on stripe payment_intent object to extract the required details in
@@ -57,6 +70,7 @@ class StripePaymentIntent:
         self.payment_intent = payment_intent
 
     @property
+    @convert_attribute_error_to_ignorable_error
     def invoice_line_item(self):
         if not self.payment_intent.invoice:
             return [{}]
@@ -66,18 +80,21 @@ class StripePaymentIntent:
         return line_item[0]
 
     @property
+    @convert_attribute_error_to_ignorable_error
     def is_cancelable(self):
         if not self.payment_intent.invoice:  # one-time payment
             return False
         return self.payment_intent.invoice.subscription.status in self.CANCELABLE_STATUSES
 
     @property
+    @convert_attribute_error_to_ignorable_error
     def is_modifiable(self):
         if not self.payment_intent.invoice:  # one-time payment
             return False
         return self.payment_intent.invoice.subscription.status in self.MODIFIABLE_STATUSES
 
     @property
+    @convert_attribute_error_to_ignorable_error
     def interval(self):
         if not self.payment_intent.invoice:
             # if there's no invoice then it's a one-time payment
@@ -91,6 +108,7 @@ class StripePaymentIntent:
         raise InvalidIntervalError(f"Invalid interval {interval} for payment_intent : {self.payment_intent.id}")
 
     @property
+    @convert_attribute_error_to_ignorable_error
     def revenue_program(self):
         metadata = self.payment_intent.get("metadata") or self.invoice_line_item.get("metadata") or {}
         if not metadata or "revenue_program_slug" not in metadata:
@@ -98,12 +116,14 @@ class StripePaymentIntent:
         return metadata["revenue_program_slug"]
 
     @property
+    @convert_attribute_error_to_ignorable_error
     def subscription_id(self):
         if not self.payment_intent.invoice:  # this isn't a subscription
             return None
         return self.payment_intent.invoice.subscription.id
 
     @property
+    @convert_attribute_error_to_ignorable_error
     def card(self):
         default = AttrDict(**{"brand": None, "last4": None, "exp_month": None})
         if invoice := self.payment_intent.invoice:  # it's a subscription
@@ -113,26 +133,32 @@ class StripePaymentIntent:
         return (self.payment_intent.get("payment_method", {}) or {}).get("card", {}) or default
 
     @property
+    @convert_attribute_error_to_ignorable_error
     def card_brand(self):
         return self.card.brand
 
     @property
+    @convert_attribute_error_to_ignorable_error
     def last4(self):
         return self.card.last4
 
     @property
+    @convert_attribute_error_to_ignorable_error
     def amount(self):
         return self.payment_intent.amount
 
     @property
+    @convert_attribute_error_to_ignorable_error
     def created(self):
         return datetime.datetime.fromtimestamp(int(self.payment_intent.created), tz=datetime.timezone.utc)
 
     @property
+    @convert_attribute_error_to_ignorable_error
     def provider_customer_id(self):
         return self.payment_intent.customer
 
     @property
+    @convert_attribute_error_to_ignorable_error
     def last_payment_date(self) -> datetime.datetime | None:
         if not self.payment_intent.invoice:
             return datetime.datetime.fromtimestamp(int(self.payment_intent.created), tz=datetime.timezone.utc)
@@ -142,6 +168,7 @@ class StripePaymentIntent:
         return paid_at if paid_at is None else datetime.datetime.fromtimestamp(int(paid_at), tz=datetime.timezone.utc)
 
     @property
+    @convert_attribute_error_to_ignorable_error
     def status(self):
         if self.refunded:
             return ContributionStatus.REFUNDED
@@ -154,20 +181,24 @@ class StripePaymentIntent:
         return ContributionStatus.FAILED
 
     @property
+    @convert_attribute_error_to_ignorable_error
     def credit_card_expiration_date(self):
         return f"{self.card.exp_month}/{self.card.exp_year}" if self.card.exp_month else None
 
     @property
+    @convert_attribute_error_to_ignorable_error
     def payment_type(self):
         return self.payment_intent.payment_method.type
 
     @property
+    @convert_attribute_error_to_ignorable_error
     def canceled(self):
         if not self.payment_intent.invoice:  # it's not a subscription
             return False
         return self.payment_intent.invoice.subscription.status == "canceled"
 
     @property
+    @convert_attribute_error_to_ignorable_error
     def refunded(self):
         """For a contribution to consider it as refunded either refunded flag will be set for full refunds
         or acount_refunded will be > 0 (will be useful in case of partial refund and we still want to set
@@ -178,6 +209,7 @@ class StripePaymentIntent:
         return self.payment_intent.get("refunded", False) or self.payment_intent.get("amount_refunded", 0) > 0
 
     @property
+    @convert_attribute_error_to_ignorable_error
     def id(self):
         return self.payment_intent.id
 
@@ -335,6 +367,7 @@ class ContributionsCacheProvider:
         """Serializes the stripe.PaymentIntent object into json."""
         data = {}
         for pi in payment_intents:
+            logger.debug("Serializing payment intent %s", pi.id)
             try:
                 serialized_obj = self.serializer(instance=self.converter(pi))
                 data[pi.id] = serialized_obj.data

@@ -21,7 +21,6 @@ from apps.contributions.stripe_contributions_provider import (
     StripeContributionsProvider,
     StripePaymentIntent,
     SubscriptionsCacheProvider,
-    convert_attribute_error_to_ignorable_error,
     logger,
 )
 from apps.contributions.tests import RedisMock
@@ -216,25 +215,6 @@ def pi_for_one_time_when_no_card_on_payment_method(pi_for_valid_one_time_factory
     pi = pi_for_valid_one_time_factory.get()
     pi.payment_method.card = None
     return pi
-
-
-class TestConvertAttributeErrorToIgnorableError:
-    def test_when_no_attribute_error(self):
-        expected = 1
-
-        @convert_attribute_error_to_ignorable_error
-        def my_func():
-            return expected
-
-        assert my_func() == expected
-
-    def test_when_attribute_error(self):
-        @convert_attribute_error_to_ignorable_error
-        def my_func():
-            raise AttributeError("foo")
-
-        with pytest.raises(ContributionIgnorableError):
-            my_func()
 
 
 class TestStripePaymentIntent(AbstractTestStripeContributions):

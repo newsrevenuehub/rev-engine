@@ -730,7 +730,7 @@ class TestSubscriptionViewSet:
         mock_modified_sub.latest_invoice.payment_intent = "pi_XXX"
         mock_pi_retrieve = mocker.patch("stripe.PaymentIntent.retrieve", return_value=(mock_pi := mocker.Mock()))
         mock_update_subs_in_cache = mocker.patch(
-            "apps.contributions.views.SubscriptionsViewSet.update_subscription_in_cache"
+            "apps.contributions.views.SubscriptionsViewSet.update_subscription_and_pi_in_cache"
         )
         api_client.force_authenticate(contributor_user)
         response = api_client.patch(
@@ -862,7 +862,7 @@ class TestSubscriptionViewSet:
             mock_modified_sub.latest_invoice.payment_intent,
         )
 
-    def test_update_subscription_in_cache(
+    def test_update_subscription_and_pi_in_cache(
         self,
         pi_for_active_subscription_factory,
         subscription_factory,
@@ -884,7 +884,7 @@ class TestSubscriptionViewSet:
         mock_sub_upsert = mocker.patch.object(sub_cache, "upsert")
         payment_intent = pi_for_active_subscription_factory.get()
         subscription = subscription_factory.get()
-        contributions_views.SubscriptionsViewSet.update_subscription_in_cache(
+        contributions_views.SubscriptionsViewSet.update_subscription_and_pi_in_cache(
             (email := "foo@bar.com"), (stripe_account_id := "some-id"), subscription, payment_intent
         )
         pi_cache_init_spy.assert_called_once_with(mocker.ANY, email, stripe_account_id)
@@ -1022,7 +1022,7 @@ class TestSubscriptionViewSet:
         modified_sub.latest_invoice.payment_intent.id = (pi_id := "pi_XXX")
         mock_sub_delete = mocker.patch("stripe.Subscription.delete")
         mock_update_sub_cache = mocker.patch(
-            "apps.contributions.views.SubscriptionsViewSet.update_subscription_in_cache"
+            "apps.contributions.views.SubscriptionsViewSet.update_subscription_and_pi_in_cache"
         )
         mock_pi_retrieve = mocker.patch("stripe.PaymentIntent.retrieve", return_value=(mock_pi := mocker.Mock()))
         api_client.force_authenticate(contributor_user)

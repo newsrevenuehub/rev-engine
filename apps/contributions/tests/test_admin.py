@@ -14,8 +14,8 @@ from reversion_compare.admin import CompareVersionAdmin
 
 import apps
 from apps.common.tests.test_utils import setup_request
-from apps.contributions.admin import ContributionAdmin, ContributorAdmin
-from apps.contributions.models import Contribution, ContributionStatus, Contributor
+from apps.contributions.admin import ContributionAdmin
+from apps.contributions.models import Contribution, ContributionStatus
 from apps.contributions.tests.factories import ContributionFactory, ContributorFactory
 from apps.organizations.tests.factories import (
     OrganizationFactory,
@@ -27,15 +27,7 @@ from apps.pages.tests.factories import DonationPageFactory
 
 @pytest.mark.django_db
 class TestContributorAdmin:
-    def test_queryset_annotated_with_contributions_count(self):
-        contribution = ContributionFactory()
-        assert Contribution.objects.filter(contributor=contribution.contributor).count() == (expected := 1)
-        admin = ContributorAdmin(Contributor, AdminSite())
-        qs = admin.get_queryset(None)
-        assert qs.first().contributions_count == expected
-
     def test_views_stand_up(self, client, admin_user):
-        """This test is here both to ensure views load and also so we get test coverage for the ContributorAdmin.contributions_count method"""
         contributor = ContributorFactory()
         client.force_login(admin_user)
         for x in [

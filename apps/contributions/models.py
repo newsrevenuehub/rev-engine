@@ -42,10 +42,6 @@ class Contributor(IndexedTimeStampedModel):
     email = models.EmailField(unique=True)
 
     @property
-    def most_recent_contribution(self):
-        return self.contribution_set.filter(status="paid").latest()
-
-    @property
     def is_authenticated(self):
         """
         Copy django.contrib.auth.models import AbstractBaseUser for request.user.is_authenticated

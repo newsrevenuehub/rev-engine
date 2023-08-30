@@ -7,6 +7,7 @@ from django.utils import timezone
 
 from drf_extra_fields.relations import PresentablePrimaryKeyRelatedField
 from rest_framework import serializers
+from rest_framework.exceptions import ValidationError
 from rest_framework.validators import UniqueTogetherValidator
 from sorl_thumbnail_serializer.fields import HyperlinkedSorlImageField
 
@@ -305,9 +306,31 @@ class DonationPageFullDetailSerializer(serializers.ModelSerializer):
                 {"sidebar_elements": f"You're not allowed to use the following elements: {', '.join(prohibited)}"}
             )
 
+    def is_valid(self, *args, **kwargs):
+        """We override `is_valid` so we can turn slug+rp uniqueness constraint violation into a field-level error.
+
+        We do this to make the SPA's life easier.
+        """
+        try:
+            super().is_valid(*args, **kwargs)
+        except ValidationError as exc:
+            if (
+                detail := exc.detail.get("non_field_errors", [""])[0]
+            ) == "The fields revenue_program, slug must make a unique set.":
+                raise ValidationError({"slug": [detail]})
+            else:
+                raise
+        return True
+
+    def ensure_slug(self, val: str | None) -> None:
+        """Ensure that a slug is provided"""
+        if not val:
+            raise serializers.ValidationError({"slug": "This field is required."})
+
     def validate(self, data):
         self.validate_page_limit(data)
         if "published_date" in data:
+            self.ensure_slug(data.get("slug", None))
             self.validate_publish_limit(data)
         # TODO: [DEV-2741] Add granular validation for page and sidebar elements
         self.validate_page_element_permissions(data)

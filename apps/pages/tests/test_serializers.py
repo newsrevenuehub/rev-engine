@@ -430,6 +430,59 @@ class TestDonationPageFullDetailSerializer:
             == f"Your organization has reached its limit of {org.plan.publish_limit} published page{'' if org.plan.publish_limit == 1 else 's'}"
         )
 
+    @pytest.mark.parametrize("include_published_date", (True, False))
+    def test_validate(self, include_published_date, hub_admin_user, mocker):
+        """The purpose of this test is just to prove that the validate method calls expected methods,
+        which are tested elsewhere.
+        """
+        data = {}
+        if include_published_date:
+            data["published_date"] = "truthy"
+        mock_validate_page_limit = mocker.patch.object(DonationPageFullDetailSerializer, "validate_page_limit")
+        mock_ensure_slug = mocker.patch.object(DonationPageFullDetailSerializer, "ensure_slug")
+        mock_validate_publish_limit = mocker.patch.object(DonationPageFullDetailSerializer, "validate_publish_limit")
+        mock_validate_page_element_permissions = mocker.patch.object(
+            DonationPageFullDetailSerializer, "validate_page_element_permissions"
+        )
+        mock_validate_sidebar_element_permissions = mocker.patch.object(
+            DonationPageFullDetailSerializer, "validate_sidebar_element_permissions"
+        )
+        request = APIRequestFactory().patch("/")
+        request.user = hub_admin_user
+        serializer = DonationPageFullDetailSerializer()
+        serializer.validate(data)
+        mock_validate_page_limit.assert_called_once_with(data)
+        if include_published_date:
+            mock_ensure_slug.assert_called_once_with(data.get("slug", None))
+            mock_validate_publish_limit.assert_called_once_with(data)
+        else:
+            mock_validate_publish_limit.assert_not_called()
+        mock_validate_page_element_permissions.assert_called_once_with(data)
+        mock_validate_sidebar_element_permissions.assert_called_once_with(data)
+
+    @pytest.mark.parametrize(
+        "val,expect_valid",
+        (
+            ("my-new-page", True),
+            ("", False),
+            # this is allowed through because slug formatting already enforced at field level. We put here
+            # to document this gets through this method, but in reality don't expect it to ever get here.
+            ("my new page", True),
+            (None, False),
+        ),
+    )
+    def test_ensure_slug(self, val, expect_valid):
+        serializer = DonationPageFullDetailSerializer()
+        if expect_valid:
+            assert serializer.ensure_slug(val) is None
+        else:
+            with pytest.raises(serializers.ValidationError):
+                serializer.ensure_slug(val)
+
+    # def test_is_valid_override(self, live_donation_page):
+    #     serializer = DonationPageFullDetailSerializer(instance=live_donation_page)
+    #     assert serializer.is_valid() is True
+
 
 @pytest.mark.django_db
 class TestStyleListSerializer:

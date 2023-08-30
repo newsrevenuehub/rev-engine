@@ -47,11 +47,7 @@ def page_creation_data_valid():
     Note that a request made using this data could still fail if the requesting user does not have the right user
     type or permissions
     """
-    return {
-        "revenue_program": RevenueProgramFactory(onboarded=True).id,
-        "name": "some-name",
-        "slug": "some-slug",
-    }
+    return {"revenue_program": RevenueProgramFactory(onboarded=True).id, "name": "some name"}
 
 
 @pytest.fixture
@@ -78,6 +74,54 @@ def page_creation_invalid_non_unique_slug_for_rp(page_creation_data_valid, live_
     live_donation_page.revenue_program_id = page_creation_data_valid["revenue_program"]
     live_donation_page.save()
     return page_creation_data_valid | {"slug": live_donation_page.slug}
+
+
+@pytest.fixture
+def page_data_with_invalid_slug_spaces():
+    return {"slug": "some invalid slug"}
+
+
+@pytest.fixture
+def page_data_with_invalid_slug_invalid_chars():
+    return {"slug": "!"}
+
+
+@pytest.fixture
+def page_data_with_invalid_slug_too_long():
+    return {"slug": "x" * (DonationPage._meta.get_field("slug").max_length + 1)}
+
+
+@pytest.fixture(
+    params=[
+        "page_data_with_invalid_slug_invalid_chars",
+        "page_data_with_invalid_slug_spaces",
+        "page_data_with_invalid_slug_too_long",
+        "page_creation_invalid_non_unique_slug_for_rp",
+    ]
+)
+def page_creation_data_with_invalid_slug(page_creation_data_valid, request):
+    return page_creation_data_valid | request.getfixturevalue(request.param)
+
+
+@pytest.fixture
+def page_update_data_invalid_non_unique_slug_for_rp(live_donation_page):
+    data = {"slug": (slug := live_donation_page.slug)}
+    live_donation_page.slug = live_donation_page.slug[::-1]
+    live_donation_page.save()
+    DonationPageFactory(revenue_program=live_donation_page.revenue_program, slug=slug)
+    return data
+
+
+@pytest.fixture(
+    params=[
+        "page_data_with_invalid_slug_invalid_chars",
+        "page_data_with_invalid_slug_spaces",
+        "page_data_with_invalid_slug_too_long",
+        "page_update_data_invalid_non_unique_slug_for_rp",
+    ]
+)
+def page_update_data_with_invalid_slug(request):
+    return request.getfixturevalue(request.param)
 
 
 @pytest.fixture
@@ -295,7 +339,7 @@ class TestPageViewSet:
             ),
             (
                 pytest_cases.fixture_ref("page_creation_invalid_non_unique_slug_for_rp"),
-                {"non_field_errors": ["The fields revenue_program, slug must make a unique set."]},
+                {"slug": ["The fields revenue_program, slug must make a unique set."]},
             ),
             (
                 pytest_cases.fixture_ref("page_creation_invalid_heading_too_long"),
@@ -429,6 +473,15 @@ class TestPageViewSet:
         assert response.json() == {
             "non_field_errors": [f"Your organization has reached its limit of {limit} page{'' if limit == 1 else 's'}"]
         }
+
+    def test_create_page_when_invalid_slug(self, hub_admin_user, page_creation_data_with_invalid_slug, api_client):
+        """Show the behavior when a user tries to create a page with an invalid slug"""
+        api_client.force_authenticate(hub_admin_user)
+        response = api_client.post(
+            reverse("donationpage-list"), data=page_creation_data_with_invalid_slug, format="json"
+        )
+        assert response.status_code == status.HTTP_400_BAD_REQUEST
+        assert "slug" in response.json()
 
     def assert_retrieved_page_detail_looks_right(self, serialized_data, page):
         """"""
@@ -832,7 +885,19 @@ class TestPageViewSet:
                 f"Your organization has reached its limit of {rp.organization.plan.publish_limit} published page{'' if rp.organization.plan.publish_limit == 1 else 's'}"
             ]
 
-    def test_update_when_already_sidebar_elements_edge_case(
+    def test_patch_when_invalid_slug_data(
+        self, superuser, api_client, live_donation_page, page_update_data_with_invalid_slug
+    ):
+        api_client.force_authenticate(superuser)
+        response = api_client.patch(
+            reverse("donationpage-detail", args=(live_donation_page.id,)),
+            data=page_update_data_with_invalid_slug,
+            format="json",
+        )
+        assert response.status_code == status.HTTP_400_BAD_REQUEST
+        assert "slug" in response.json()
+
+    def test_patch_when_already_sidebar_elements_edge_case(
         self,
         superuser,
         api_client,

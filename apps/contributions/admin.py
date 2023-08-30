@@ -16,22 +16,11 @@ logger = logging.getLogger(f"{settings.DEFAULT_LOGGER}.{__name__}")
 
 @admin.register(Contributor)
 class ContributorAdmin(RevEngineBaseAdmin, CompareVersionAdmin):
-    list_display = (
-        "email",
-        "contributions_count",
-        "most_recent_contribution",
-    )
+    list_display = ("email",)
     list_filter = ("email",)
-
     ordering = ("email",)
-
     search_fields = ("email",)
-
-    readonly_fields = (
-        "email",
-        "contributions_count",
-        "most_recent_contribution",
-    )
+    readonly_fields = ("email",)
 
 
 @admin.register(Contribution)

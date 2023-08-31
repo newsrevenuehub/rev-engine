@@ -113,15 +113,15 @@ function useContributionPageList(): UseContributionPageListResult {
     (revenueProgramName: string) => {
       const rpPages = (pages ?? []).filter(({ revenue_program }) => revenue_program?.name === revenueProgramName);
       const pagesSize = rpPages.length + 1;
-      const slugs = rpPages.map(({ slug }) => slug);
+      const names = rpPages.map(({ name }) => name);
       let number = pagesSize;
       let name = `${revenueProgramName} Page ${number}`;
 
-      while (slugs.includes(slugify(name))) {
+      while (names.includes(slugify(name))) {
         number++;
         name = `${revenueProgramName} Page ${number}`;
       }
-      return { name, slug: slugify(name) };
+      return { name };
     },
     [pages]
   );

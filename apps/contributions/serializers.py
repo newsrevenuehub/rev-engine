@@ -240,7 +240,7 @@ class StripeMetadataSchemaBase(pydantic.BaseModel):
         extra = pydantic.Extra.forbid  # don't allow extra fields
 
     schema_version: Literal["1.4"]
-    source: Literal["rev-engine"] = "rev-engine"
+    source: Literal["rev-engine"]
 
     @classmethod
     def normalize_boolean(cls, v: Any) -> bool | None:
@@ -278,7 +278,7 @@ class StripePaymentMetadataSchemaV1_4(StripeMetadataSchemaBase):
     sf_campaign_id: Optional[str] = None
     swag_choices: Optional[str] = None
     swag_opt_out: Optional[bool] = False
-    schema_version: Literal["1.4"] = "1.4"
+    schema_version: Literal["1.4"]
 
     @pydantic.validator("contributor_id", "revenue_program_id", pre=True)
     @classmethod
@@ -559,6 +559,8 @@ class BaseCreatePaymentSerializer(serializers.Serializer):
             sf_campaign_id=self.validated_data["sf_campaign_id"] or None,
             swag_choices=self.validated_data["swag_choices"] or None,
             swag_opt_out=self.validated_data["swag_opt_out"],
+            source="rev-engine",
+            schema_version="1.4",
         )
 
 

@@ -108,6 +108,8 @@ class ContributionFactory(DjangoModelFactory):
             referer="https://www.google.com/",
             revenue_program_id=self.donation_page.revenue_program_id,
             revenue_program_slug=self.donation_page.revenue_program.slug,
+            source="rev-engine",
+            schema_version="1.4",
         ).model_dump(mode="json")
 
     class Params:

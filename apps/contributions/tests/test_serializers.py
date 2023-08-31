@@ -905,6 +905,7 @@ def valid_stripe_metadata_v1_4_data():
         "revenue_program_slug": "revenue-program-slug",
         "swag_choices": "",
         "schema_version": "1.4",
+        "source": "rev-engine",
     }
 
 

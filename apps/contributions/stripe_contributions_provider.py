@@ -105,9 +105,12 @@ class StripePaymentIntent:
 
     @property
     def card(self):
-        return getattr(self.payment_intent.payment_method, "card", None) or AttrDict(
-            **{"brand": None, "last4": None, "exp_month": None}
-        )
+        default = AttrDict(**{"brand": None, "last4": None, "exp_month": None})
+        if invoice := self.payment_intent.invoice:  # it's a subscription
+            return ((invoice.get("subscription", {}) or {}).get("default_payment_method", {}) or {}).get(
+                "card", {}
+            ) or default
+        return (self.payment_intent.get("payment_method", {}) or {}).get("card", {}) or default
 
     @property
     def card_brand(self):
@@ -142,6 +145,8 @@ class StripePaymentIntent:
     def status(self):
         if self.refunded:
             return ContributionStatus.REFUNDED
+        if self.canceled:
+            return ContributionStatus.CANCELED
         if self.payment_intent.status == "succeeded":
             return ContributionStatus.PAID
         if self.payment_intent.status == "pending":
@@ -155,6 +160,12 @@ class StripePaymentIntent:
     @property
     def payment_type(self):
         return self.payment_intent.payment_method.type
+
+    @property
+    def canceled(self):
+        if not self.payment_intent.invoice:  # it's not a subscription
+            return False
+        return self.payment_intent.invoice.subscription.status == "canceled"
 
     @property
     def refunded(self):
@@ -318,7 +329,7 @@ class ContributionsCacheProvider:
 
     def __init__(self, email_id, stripe_account_id) -> None:
         self.stripe_account_id = stripe_account_id
-        self.key = f"{email_id}-payment-intents-{self.stripe_account_id}"
+        self.key = f"{email_id}-payment-intents-{self.stripe_account_id}".lower()
 
     def serialize(self, payment_intents: list[stripe.PaymentIntent]) -> dict[str, dict]:
         """Serializes the stripe.PaymentIntent object into json."""
@@ -374,7 +385,7 @@ class SubscriptionsCacheProvider:
 
     def __init__(self, email_id, stripe_account_id) -> None:
         self.stripe_account_id = stripe_account_id
-        self.key = f"{email_id}-subscriptions-{self.stripe_account_id}"
+        self.key = f"{email_id}-subscriptions-{self.stripe_account_id}".lower()
 
     def serialize(self, subscriptions):
         """Serializes the stripe.Subscription object into json."""

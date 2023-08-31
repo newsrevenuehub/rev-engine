@@ -25,6 +25,9 @@ from apps.pages.models import PAGE_NAME_MAX_LENGTH, DonationPage, Font, Style
 logger = logging.getLogger(f"{settings.DEFAULT_LOGGER}.{__name__}")
 
 
+RP_SLUG_UNIQUENESS_VIOLATION_MSG = "The fields revenue_program, slug must make a unique set."
+
+
 class StyleInlineSerializer(serializers.ModelSerializer):
     def to_representation(self, instance):
         styles = instance.styles if instance.styles else {}
@@ -305,18 +308,16 @@ class DonationPageFullDetailSerializer(serializers.ModelSerializer):
                 {"sidebar_elements": f"You're not allowed to use the following elements: {', '.join(prohibited)}"}
             )
 
-    def is_valid(self, raise_exception=False, *args, **kwargs):
+    def is_valid(self, raise_exception: bool = False):
         """We override `is_valid` so we can turn slug+rp uniqueness constraint violation into a field-level error.
 
         We do this to make the SPA's life easier.
         """
         try:
-            return super().is_valid(raise_exception=raise_exception, *args, **kwargs)
+            return super().is_valid(raise_exception=raise_exception)
         except ValidationError as exc:
-            if (
-                detail := exc.detail.get("non_field_errors", [""])[0]
-            ) == "The fields revenue_program, slug must make a unique set.":
-                raise ValidationError({"slug": [detail]})
+            if exc.detail.get("non_field_errors", [""])[0] == RP_SLUG_UNIQUENESS_VIOLATION_MSG:
+                raise ValidationError({"slug": [RP_SLUG_UNIQUENESS_VIOLATION_MSG]})
             else:
                 raise
 
@@ -324,17 +325,21 @@ class DonationPageFullDetailSerializer(serializers.ModelSerializer):
     def is_new(self):
         return not self.instance or not self.instance.id
 
-    def ensure_slug(self, data) -> None:
-        """Ensure that a slug is is provided or already exists for this page"""
+    def ensure_slug_for_publication(self, data) -> None:
+        """Ensure that a page will have a slug"""
         in_data = "slug" in data
         sent_slug = data.get("slug", None)
-        if any(
-            [
-                all([self.is_new, not in_data or not sent_slug]),
-                all([not self.is_new, not in_data or not sent_slug, not self.instance.slug]),
-            ]
-        ):
-            raise serializers.ValidationError({"slug": "This field is required."})
+        is_new = self.is_new
+        validation_error = serializers.ValidationError({"slug": "This field is required."})
+        # if it's new and no slug is provided or the sent slug is Falsy
+        if is_new and not sent_slug:
+            raise validation_error
+        # if it's not new and no slug was sent in data and the instance has no slug
+        if not is_new and not in_data and not self.instance.slug:
+            raise validation_error
+        # if it's not new and slug value was sent in data but the sent value is Falsy
+        if not is_new and in_data and not sent_slug:
+            raise validation_error
 
     def ensure_slug_is_unique_for_rp(self, data) -> None:
         """Ensure that a slug is unique for a given revenue program
@@ -370,7 +375,7 @@ class DonationPageFullDetailSerializer(serializers.ModelSerializer):
     def validate(self, data):
         self.validate_page_limit(data)
         if "published_date" in data:
-            self.ensure_slug(data)
+            self.ensure_slug_for_publication(data)
             self.validate_publish_limit(data)
 
         if "slug" in data:

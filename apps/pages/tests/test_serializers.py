@@ -17,10 +17,34 @@ from apps.organizations.tests.factories import (
 )
 from apps.pages.defaults import BENEFITS, SWAG, get_default_page_elements
 from apps.pages.models import DonationPage, Style
-from apps.pages.serializers import DonationPageFullDetailSerializer, StyleListSerializer
+from apps.pages.serializers import (
+    RP_SLUG_UNIQUENESS_VIOLATION_MSG,
+    DonationPageFullDetailSerializer,
+    StyleListSerializer,
+)
 from apps.pages.tests.factories import DonationPageFactory, StyleFactory
 from apps.users.models import Roles
 from apps.users.tests.factories import create_test_user
+
+
+@pytest.fixture
+def field_error_for_rp_name():
+    return serializers.ValidationError({"name": ["this isn't right"]})
+
+
+@pytest.fixture
+def non_field_error_other():
+    return serializers.ValidationError({"non_field_errors": ["random error"]})
+
+
+@pytest.fixture
+def non_field_error_for_rp_slug_uniqueness():
+    return serializers.ValidationError({"non_field_errors": [RP_SLUG_UNIQUENESS_VIOLATION_MSG]})
+
+
+@pytest.fixture
+def non_field_error_expected_transformation():
+    return serializers.ValidationError({"slug": [RP_SLUG_UNIQUENESS_VIOLATION_MSG]})
 
 
 @pytest.mark.django_db
@@ -439,7 +463,9 @@ class TestDonationPageFullDetailSerializer:
         if include_published_date:
             data["published_date"] = "truthy"
         mock_validate_page_limit = mocker.patch.object(DonationPageFullDetailSerializer, "validate_page_limit")
-        mock_ensure_slug = mocker.patch.object(DonationPageFullDetailSerializer, "ensure_slug")
+        mock_ensure_slug_for_publication = mocker.patch.object(
+            DonationPageFullDetailSerializer, "ensure_slug_for_publication"
+        )
         mock_validate_publish_limit = mocker.patch.object(DonationPageFullDetailSerializer, "validate_publish_limit")
         mock_validate_page_element_permissions = mocker.patch.object(
             DonationPageFullDetailSerializer, "validate_page_element_permissions"
@@ -453,35 +479,89 @@ class TestDonationPageFullDetailSerializer:
         serializer.validate(data)
         mock_validate_page_limit.assert_called_once_with(data)
         if include_published_date:
-            mock_ensure_slug.assert_called_once_with(data.get("slug", None))
+            mock_ensure_slug_for_publication.assert_called_once_with(data)
             mock_validate_publish_limit.assert_called_once_with(data)
         else:
             mock_validate_publish_limit.assert_not_called()
         mock_validate_page_element_permissions.assert_called_once_with(data)
         mock_validate_sidebar_element_permissions.assert_called_once_with(data)
 
+    @pytest_cases.parametrize(
+        "instance,expect",
+        (
+            (pytest_cases.fixture_ref("live_donation_page"), False),
+            (None, True),
+        ),
+    )
+    def test_is_new(self, instance, expect):
+        serializer = DonationPageFullDetailSerializer(instance=instance)
+        assert serializer.is_new is expect
+
     @pytest.mark.parametrize(
         "val,expect_valid",
         (
-            ("my-new-page", True),
-            ("", False),
-            # this is allowed through because slug formatting already enforced at field level. We put here
-            # to document this gets through this method, but in reality don't expect it to ever get here.
-            ("my new page", True),
-            (None, False),
+            ({"slug": "my-new-page"}, True),
+            ({"slug": ""}, False),
+            ({"slug": None}, False),
+            ({}, False),
         ),
     )
-    def test_ensure_slug(self, val, expect_valid):
+    def test_ensure_slug_for_publication_when_new(self, val, expect_valid):
         serializer = DonationPageFullDetailSerializer()
         if expect_valid:
-            assert serializer.ensure_slug(val) is None
+            assert serializer.ensure_slug_for_publication(val) is None
         else:
             with pytest.raises(serializers.ValidationError):
-                serializer.ensure_slug(val)
+                serializer.ensure_slug_for_publication(val)
 
-    # def test_is_valid_override(self, live_donation_page):
-    #     serializer = DonationPageFullDetailSerializer(instance=live_donation_page)
-    #     assert serializer.is_valid() is True
+    @pytest.mark.parametrize(
+        ("slug_on_instance", "data", "expect_valid"),
+        (
+            ("my-new-page", {}, True),
+            ("my-old-slug", {"slug": "my-new-slug"}, True),
+            ("my-new-page", {"slug": None}, False),
+            ("my-new-page", {"slug": ""}, False),
+            (None, {"slug": "my-new-page"}, True),
+            (None, {"slug": None}, False),
+            (None, {"slug": ""}, False),
+            (None, {}, False),
+        ),
+    )
+    def test_ensure_slug_for_publication_when_instance_no_slug_in_data(
+        self, slug_on_instance, data, expect_valid, live_donation_page
+    ):
+        live_donation_page.slug = slug_on_instance
+        serializer = DonationPageFullDetailSerializer(instance=live_donation_page)
+        if expect_valid:
+            assert serializer.ensure_slug_for_publication(data) is None
+        else:
+            with pytest.raises(serializers.ValidationError):
+                serializer.ensure_slug_for_publication(data)
+
+    @pytest.mark.parametrize("raise_exception", (True, False))
+    def test_is_valid_override(self, raise_exception, live_donation_page, mocker):
+        mock_super_validate = mocker.patch("rest_framework.serializers.ModelSerializer.is_valid")
+        serializer = DonationPageFullDetailSerializer(instance=live_donation_page)
+        serializer.is_valid(raise_exception=raise_exception)
+        mock_super_validate.assert_called_once_with(raise_exception=raise_exception)
+
+    @pytest_cases.parametrize(
+        "error,expected",
+        (
+            (pytest_cases.fixture_ref("field_error_for_rp_name"), pytest_cases.fixture_ref("field_error_for_rp_name")),
+            (pytest_cases.fixture_ref("non_field_error_other"), pytest_cases.fixture_ref("non_field_error_other")),
+            (
+                pytest_cases.fixture_ref("non_field_error_for_rp_slug_uniqueness"),
+                pytest_cases.fixture_ref("non_field_error_expected_transformation"),
+            ),
+        ),
+    )
+    def test_is_valid_override_when_validation_error(self, live_donation_page, error, expected, mocker):
+        mocker.patch("rest_framework.serializers.ModelSerializer.is_valid", side_effect=error)
+        serializer = DonationPageFullDetailSerializer(instance=live_donation_page)
+        with pytest.raises(serializers.ValidationError) as exc:
+            serializer.is_valid(raise_exception=True)
+        assert exc.value.detail == expected.detail
 
 
 @pytest.mark.django_db

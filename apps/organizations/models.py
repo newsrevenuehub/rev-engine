@@ -148,7 +148,6 @@ class Organization(IndexedTimeStampedModel):
         help_text="Indicates Mailchimp integration status, designed for manual operation by staff members",
     )
 
-    # TODO: [DEV-2035] Remove Organization.slug field entirely
     slug = models.SlugField(
         # 63 here is somewhat arbitrary. This used to be set to `RP_SLUG_MAX_LENGTH` (which used to have a different name),
         # which is the maximum length a domain can be according to RFC-1035. We're retaining that value

@@ -2,7 +2,7 @@ import { lazy } from 'react';
 import join from 'url-join';
 
 // Router
-import * as ROUTES from 'routes';
+import { DONATION_PAGE_SLUG, PAYMENT_SUCCESS, THANK_YOU_SLUG } from 'routes';
 
 // Analytics
 import TrackPageView from 'components/analytics/TrackPageView';
@@ -22,17 +22,24 @@ const LiveDonationPageContainer = lazy(() =>
 
 // TODO: [DEV-2374] Determine if this `componentLoader` function can be removed
 const PaymentSuccess = lazy(() => componentLoader(() => import('components/donationPage/live/PaymentSuccess')));
+const ExtraneousURLRedirect = lazy(() =>
+  componentLoader(() => import('components/donationPage/ExtraneousURLRedirect'))
+);
 
 function DonationPageRouter() {
+  // Ordering of routes is important. The GenericThankYou and PaymentSuccess
+  // routes need to take precedence over ExtraneousURLRedirect.
+
   return (
     <RouterSetup>
       <SentryRoute
-        path={[join(ROUTES.DONATION_PAGE_SLUG, ROUTES.THANK_YOU_SLUG), ROUTES.THANK_YOU_SLUG]}
+        path={[join(DONATION_PAGE_SLUG, THANK_YOU_SLUG), THANK_YOU_SLUG]}
         render={() => <TrackPageView component={GenericThankYou} />}
       />
-      <SentryRoute path={ROUTES.PAYMENT_SUCCESS} render={() => <PaymentSuccess />} />
+      <SentryRoute path={PAYMENT_SUCCESS} render={() => <PaymentSuccess />} />
+      <SentryRoute path="/*/*/*" render={() => <ExtraneousURLRedirect />} />
       <SentryRoute
-        path={[ROUTES.DONATION_PAGE_SLUG, '/']}
+        path={[DONATION_PAGE_SLUG, '/']}
         render={() => <TrackPageView component={LiveDonationPageContainer} />}
       />
     </RouterSetup>

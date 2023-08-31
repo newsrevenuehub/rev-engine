@@ -1,9 +1,12 @@
 import logging
+from typing import Any, Dict, TypedDict
 
 from django.conf import settings
 from django.contrib.auth import get_user_model
+from django.db import transaction
 from django.db.models import Q
 
+import reversion
 from rest_framework import serializers
 from rest_framework.validators import UniqueValidator
 from waffle import get_waffle_flag_model
@@ -13,6 +16,9 @@ from apps.organizations.models import (
     ORG_NAME_MAX_LENGTH,
     FiscalStatusChoices,
     Organization,
+    OrgNameNonUniqueError,
+    OrgNameTooLongError,
+    PaymentProvider,
     RevenueProgram,
 )
 from apps.organizations.serializers import (
@@ -21,6 +27,7 @@ from apps.organizations.serializers import (
 )
 from apps.users.choices import Roles
 from apps.users.constants import PASSWORD_MAX_LENGTH
+from apps.users.models import RoleAssignment
 
 from .constants import FIRST_NAME_MAX_LENGTH, JOB_TITLE_MAX_LENGTH, LAST_NAME_MAX_LENGTH
 from .validators import tax_id_validator
@@ -160,6 +167,13 @@ class UserSerializer(serializers.ModelSerializer):
         ]
 
 
+class CustomizeAccountSerializerReturnValue(TypedDict):
+    organization: Organization
+    revenue_program: RevenueProgram
+    user: get_user_model()
+    role_assignment: RoleAssignment
+
+
 class CustomizeAccountSerializer(serializers.Serializer):
     """Special custom serializer to validate data received from customize_account method"""
 
@@ -190,3 +204,53 @@ class CustomizeAccountSerializer(serializers.Serializer):
                 "Only fiscally sponsored Revenue Programs can have a fiscal sponsor name."
             )
         return value
+
+    def validate(self, data: Dict[str, Any]) -> Dict[str, Any]:
+        """ """
+        data["organization_slug"] = Organization.generate_slug_from_name(data["organization_name"])
+        return data
+
+    def to_internal_value(self, data: Dict[str, Any]) -> Dict[str, Any]:
+        """ """
+        try:
+            data["organization_name"] = Organization.generate_unique_valid_name(data["organization_name"])
+        except (OrgNameTooLongError, OrgNameNonUniqueError):
+            logger.warning("Organization name could not be ", exc_info=True)
+            raise serializers.ValidationError({"organization_name": ["Organization name is already in use."]})
+        return super().to_internal_value(data)
+
+    @transaction.atomic
+    def create(self, validated_data: Dict[str, Any]) -> CustomizeAccountSerializerReturnValue:
+        """Note what gets created and why wrapped"""
+        organization = Organization.objects.create(
+            name=(organization_name := validated_data["organization_name"]),
+            slug=(org_slug := validated_data["organization_slug"]),
+        )
+        rp = RevenueProgram.objects.create(
+            name=organization_name,
+            organization=organization,
+            slug=org_slug,
+            fiscal_status=validated_data["fiscal_status"],
+            tax_id=validated_data["organization_tax_id"],
+            payment_provider=PaymentProvider.objects.create(),
+            fiscal_sponsor_name=validated_data["fiscal_sponsor_name"],
+        )
+
+        user = self.context.get("user")
+        user.first_name = validated_data["first_name"]
+        user.last_name = validated_data["last_name"]
+        user.job_title = validated_data["job_title"]
+
+        with reversion.create_revision():
+            # do this with revision history
+            user.save(update_fields=["first_name", "last_name", "job_title", "modified"])
+            reversion.set_comment("CustomizeAccountSerializer.create updated user")
+
+        ra = RoleAssignment.objects.create(user=user, role_type=Roles.ORG_ADMIN, organization=organization)
+
+        return {
+            "organization": organization,
+            "revenue_program": rp,
+            "user": user,
+            "role_assignment": ra,
+        }

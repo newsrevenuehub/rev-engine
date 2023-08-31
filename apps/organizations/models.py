@@ -42,8 +42,9 @@ logger = logging.getLogger(f"{settings.DEFAULT_LOGGER}.{__name__}")
 UNLIMITED_CEILING = 200
 
 
-ORG_NAME_MAX_LENGTH = 255
-RP_NAME_MAX_LENGTH = ORG_NAME_MAX_LENGTH
+ORG_NAME_MAX_LENGTH = 63
+ORG_SLUG_MAX_LENGTH = ORG_NAME_MAX_LENGTH
+RP_NAME_MAX_LENGTH = 255
 
 # RFC-1035 limits domain labels to 63 characters, and RP slugs are used for subdomains,
 # so we limit to 63 chars
@@ -124,6 +125,18 @@ class OrganizationManager(models.Manager):
     pass
 
 
+class OrgNameTooLongError(Exception):
+    """Used when an organization name is too long"""
+
+    pass
+
+
+class OrgNameNonUniqueError(Exception):
+    """Used when a unique name cannot be generated for an organization based on provided name"""
+
+    pass
+
+
 class Organization(IndexedTimeStampedModel):
     # used in self-upgrade flow. Stripe checkouts can have associated client-reference-id, and we set that
     # to the value of an org.uuid so that we can look up the org in the self-upgrade flow, which is triggered
@@ -149,13 +162,10 @@ class Organization(IndexedTimeStampedModel):
     )
 
     slug = models.SlugField(
-        # 63 here is somewhat arbitrary. This used to be set to `RP_SLUG_MAX_LENGTH` (which used to have a different name),
-        # which is the maximum length a domain can be according to RFC-1035. We're retaining that value
-        # but without a reference to the constant, because using the constant would imply there
-        # are business requirements related to sub-domain length around this field which there are not
-        # (and given TODO above, it would appear that the business requirements that originally
-        # led to org slug being a field are no longer around)
-        max_length=63,
+        # This is currently set to 63. It's also the same limit that is set on org name. This is because we
+        # have code that attempts to derive the slug from the name, and we want to ensure that the derived
+        # slug is not longer than the slug field.
+        max_length=ORG_SLUG_MAX_LENGTH,
         unique=True,
         validators=[validate_slug_against_denylist],
     )
@@ -197,6 +207,34 @@ class Organization(IndexedTimeStampedModel):
 
     def user_is_owner(self, user):
         return user in [through.user for through in self.user_set.through.objects.filter(is_owner=True)]
+
+    @classmethod
+    def generate_unique_valid_name(cls, name: str) -> str:
+        """Generate a unique organization name based on input name"""
+        logger.info("Called with name %s", name)
+        if not cls.objects.filter(name=name).exists():
+            return name
+        counter = 1
+        # we limit to 99 because we don't want to have to deal with 3-digit numbers.
+        # also, note that we would never expect to reach this limit and if we do, there's probably something
+        # untoward going on.
+        while counter >= 99:
+            if not cls.objects.filter(name=(name := f"{name}-{counter}")).exists():
+                if len(name) <= ORG_NAME_MAX_LENGTH:
+                    return f"{name}-{counter}"
+                else:
+                    logger.warning(
+                        "Unable to generate unique organization name based on input %s because would be too long", name
+                    )
+                    raise OrgNameTooLongError("Unable to generate unique organization name because too long")
+            else:
+                counter += 1
+        logger.warning("Unable to generate unique organization name based on input %s", name)
+        raise OrgNameNonUniqueError("Unable to generate unique organization name because already taken")
+
+    @staticmethod
+    def generate_slug_from_name(name):
+        return normalize_slug(name=name, max_length=ORG_SLUG_MAX_LENGTH)
 
 
 class Benefit(IndexedTimeStampedModel):

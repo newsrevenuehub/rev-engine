@@ -87,6 +87,11 @@ def page_data_with_invalid_slug_invalid_chars():
 
 
 @pytest.fixture
+def page_data_with_invalid_slug_empty_string():
+    return {"slug": ""}
+
+
+@pytest.fixture
 def page_data_with_invalid_slug_too_long():
     return {"slug": "x" * (DonationPage._meta.get_field("slug").max_length + 1)}
 
@@ -97,6 +102,7 @@ def page_data_with_invalid_slug_too_long():
         "page_data_with_invalid_slug_spaces",
         "page_data_with_invalid_slug_too_long",
         "page_creation_invalid_non_unique_slug_for_rp",
+        "page_data_with_invalid_slug_empty_string",
     ]
 )
 def page_creation_data_with_invalid_slug(page_creation_data_valid, request):
@@ -336,10 +342,6 @@ class TestPageViewSet:
             (
                 pytest_cases.fixture_ref("page_creation_invalid_name_too_long"),
                 {"name": [f"Ensure this field has no more than {PAGE_NAME_MAX_LENGTH} characters."]},
-            ),
-            (
-                pytest_cases.fixture_ref("page_creation_invalid_non_unique_slug_for_rp"),
-                {"slug": ["The fields revenue_program, slug must make a unique set."]},
             ),
             (
                 pytest_cases.fixture_ref("page_creation_invalid_heading_too_long"),

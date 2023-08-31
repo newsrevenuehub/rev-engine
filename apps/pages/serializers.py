@@ -164,7 +164,6 @@ class DonationPageFullDetailSerializer(serializers.ModelSerializer):
         validators = [
             ValidateFkReferenceOwnership(fk_attribute="styles", model=DonationPage),
             ValidateFkReferenceOwnership(fk_attribute="revenue_program", model=DonationPage),
-            UniqueTogetherValidator(queryset=DonationPage.objects.all(), fields=["revenue_program", "slug"]),
         ]
 
     def get_plan(self, obj):
@@ -306,13 +305,13 @@ class DonationPageFullDetailSerializer(serializers.ModelSerializer):
                 {"sidebar_elements": f"You're not allowed to use the following elements: {', '.join(prohibited)}"}
             )
 
-    def is_valid(self, *args, **kwargs):
+    def is_valid(self, raise_exception=False, *args, **kwargs):
         """We override `is_valid` so we can turn slug+rp uniqueness constraint violation into a field-level error.
 
         We do this to make the SPA's life easier.
         """
         try:
-            super().is_valid(*args, **kwargs)
+            return super().is_valid(raise_exception=raise_exception, *args, **kwargs)
         except ValidationError as exc:
             if (
                 detail := exc.detail.get("non_field_errors", [""])[0]
@@ -320,18 +319,62 @@ class DonationPageFullDetailSerializer(serializers.ModelSerializer):
                 raise ValidationError({"slug": [detail]})
             else:
                 raise
-        return True
 
-    def ensure_slug(self, val: str | None) -> None:
-        """Ensure that a slug is provided"""
-        if not val:
+    @property
+    def is_new(self):
+        return not self.instance or not self.instance.id
+
+    def ensure_slug(self, data) -> None:
+        """Ensure that a slug is is provided or already exists for this page"""
+        in_data = "slug" in data
+        sent_slug = data.get("slug", None)
+        if any(
+            [
+                all([self.is_new, not in_data or not sent_slug]),
+                all([not self.is_new, not in_data or not sent_slug, not self.instance.slug]),
+            ]
+        ):
             raise serializers.ValidationError({"slug": "This field is required."})
+
+    def ensure_slug_is_unique_for_rp(self, data) -> None:
+        """Ensure that a slug is unique for a given revenue program
+
+        NB: We are not using a UniqueTogetherValidator for this because we that validator
+        requires that the fields are truthy, and we allow nulls for slug.  A given RP can
+        have > 1 page with a null slug.
+
+        NB: we assume rp is already validated at this point, so we can safely access it in case of
+        new page creation.
+
+        and assume if key is there, it's non empty if string
+        """
+        # if this is an update
+        slug = data["slug"] if "slug" in data else None
+        is_new = not self.instance or not self.instance.id
+        rp = data["revenue_program"] if is_new else self.instance.revenue_program
+        logger.info("Ensuring that slug %s is unique for rp %s", slug, rp.id)
+        if slug is None:
+            logger.debug("Slug is empty, so skipping uniqueness check")
+            return
+        if slug == "":
+            raise serializers.ValidationError({"slug": "This field must be at least 1 character long."})
+        if self.instance and self.instance.id:
+            already_exists = (
+                DonationPage.objects.filter(revenue_program=rp, slug=slug).exclude(id=self.instance.id).exists()
+            )
+        else:
+            already_exists = DonationPage.objects.filter(revenue_program=rp, slug=slug).exists()
+        if already_exists:
+            raise serializers.ValidationError({"slug": "This field must be unique for the given revenue program."})
 
     def validate(self, data):
         self.validate_page_limit(data)
         if "published_date" in data:
-            self.ensure_slug(data.get("slug", None))
+            self.ensure_slug(data)
             self.validate_publish_limit(data)
+
+        if "slug" in data:
+            self.ensure_slug_is_unique_for_rp(data)
         # TODO: [DEV-2741] Add granular validation for page and sidebar elements
         self.validate_page_element_permissions(data)
         self.validate_sidebar_element_permissions(data)

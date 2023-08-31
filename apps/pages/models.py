@@ -73,7 +73,8 @@ class DonationPage(IndexedTimeStampedModel):
     elements = models.JSONField(null=True, blank=True, default=defaults.get_default_page_elements)
 
     slug = models.SlugField(
-        blank=True,
+        # why we have to do this -- weird interaction with DRF
+        blank=False,
         validators=[validate_slug_against_denylist],
         null=True,
     )
@@ -86,7 +87,9 @@ class DonationPage(IndexedTimeStampedModel):
     class Meta:
         constraints = [
             models.UniqueConstraint(fields=["revenue_program", "name"], name="unique_name"),
-            models.UniqueConstraint(fields=["revenue_program", "slug"], name="unique_slug"),
+            models.UniqueConstraint(
+                fields=["revenue_program", "slug"], name="unique_slug", condition=models.Q(slug__isnull=False)
+            ),
         ]
 
     def __str__(self):

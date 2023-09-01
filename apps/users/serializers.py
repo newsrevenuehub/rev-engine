@@ -35,7 +35,7 @@ from .validators import tax_id_validator
 logger = logging.getLogger(f"{settings.DEFAULT_LOGGER}.{__name__}")
 
 # We subtract 3 from the max length to account for the "-XY" that can be appended to the end of the name
-# in the case of duplicate names. See UserViewSet.customize_account for implementation of this.
+# in the case of duplicate names. See not in CustomizeAccountSerializer.save() below for more info.
 CUSTOMIZE_ACCOUNT_ORG_NAME_MAX_LENGTH = ORG_NAME_MAX_LENGTH - 3
 
 FISCAL_SPONSOR_NAME_REQUIRED_ERROR_MESSAGE = "Please enter the fiscal sponsor name."
@@ -230,6 +230,10 @@ class CustomizeAccountSerializer(serializers.Serializer):
 
     def save(self, **kwargs):
         name = self.handle_organization_name(self.validated_data["organization_name"])
+        # The initial value for organization_name is guaranteed to be at most `CUSTOMIZE_ACCOUNT_ORG_NAME_MAX_LENGTH` long at this point,
+        # which is 3 less than the max length of the Organization name field. The reason for the 3 less is that we allow for handle_organization_name
+        # to take that already validated value and append up to 3 characters to make it unique. That method is unit-tested elsewhere
+        # to prove that it raises OrgNameNonUniqueError if it gets past `-99` in its attempts to make the name unique.
         self.validated_data["organization_name"] = name
         self.validated_data["organization_slug"] = Organization.generate_slug_from_name(name)
         return super().save(**kwargs)

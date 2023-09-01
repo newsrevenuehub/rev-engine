@@ -1,28 +1,23 @@
-import addMiddleEllipsis, { MAX_LENGTH, POST_ELLIPSIS_SIZE, PRE_ELLIPSIS_SIZE } from './addMiddleEllipsis';
+import addMiddleEllipsis, { MAX_LENGTH } from './addMiddleEllipsis';
 
 describe('addMiddleEllipsis', () => {
   describe.each([
-    ['default (length 35)', undefined, undefined, undefined],
-    ['custom long (length 50)', 50, undefined, undefined],
-    ['custom short (length 10)', 10, undefined, undefined]
+    ['default (length 35)', undefined, 17, 17],
+    ['custom long (length 50)', 50, 25, 24],
+    ['custom short (length 10)', 10, 5, 4]
   ])('max string size = %s', (_, maxSize, preEllipsis, postEllipsis) => {
     const nonNullMaxSize = maxSize ?? MAX_LENGTH;
 
     it(`should return the original string if it's less than or equal to ${maxSize ?? MAX_LENGTH} characters`, () => {
-      expect(addMiddleEllipsis('x'.repeat(nonNullMaxSize), maxSize, preEllipsis, postEllipsis)).toBe(
-        'x'.repeat(nonNullMaxSize)
-      );
+      expect(addMiddleEllipsis('x'.repeat(nonNullMaxSize), maxSize)).toBe('x'.repeat(nonNullMaxSize));
     });
 
     it(`should return a string with an ellipsis in the middle`, () => {
-      const beforeEllipsis = nonNullMaxSize < MAX_LENGTH ? nonNullMaxSize / 2 : PRE_ELLIPSIS_SIZE;
-      const afterEllipsis = nonNullMaxSize < MAX_LENGTH ? nonNullMaxSize / 5 : POST_ELLIPSIS_SIZE;
-
-      expect(addMiddleEllipsis('x'.repeat(nonNullMaxSize + 1), maxSize, preEllipsis, postEllipsis)).toBe(
-        'x'.repeat(preEllipsis ?? beforeEllipsis) + '…' + 'x'.repeat(postEllipsis ?? afterEllipsis)
+      expect(addMiddleEllipsis('x'.repeat(nonNullMaxSize + 1), maxSize)).toBe(
+        'x'.repeat(preEllipsis) + '…' + 'x'.repeat(postEllipsis)
       );
-      expect(addMiddleEllipsis('x'.repeat(nonNullMaxSize * 2), maxSize, preEllipsis, postEllipsis)).toBe(
-        'x'.repeat(preEllipsis ?? beforeEllipsis) + '…' + 'x'.repeat(postEllipsis ?? afterEllipsis)
+      expect(addMiddleEllipsis('x'.repeat(nonNullMaxSize * 2), maxSize)).toBe(
+        'x'.repeat(preEllipsis) + '…' + 'x'.repeat(postEllipsis)
       );
     });
   });

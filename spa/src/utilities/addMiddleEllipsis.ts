@@ -1,25 +1,25 @@
 export const MAX_LENGTH = 35;
-export const PRE_ELLIPSIS_SIZE = 20;
-export const POST_ELLIPSIS_SIZE = 10;
 
-function addMiddleEllipsis(
-  str: string,
-  maxLength = MAX_LENGTH,
-  preEllipsisSize = PRE_ELLIPSIS_SIZE,
-  postEllipsisSize = POST_ELLIPSIS_SIZE
-) {
-  // If the maxLength is greater than the MAX_LENGTH, then the preEllipsisSize and postEllipsisSize are ignored.
-  if (maxLength > MAX_LENGTH && maxLength < preEllipsisSize + postEllipsisSize + 1) {
-    throw new Error('The "maxLength" should be greater than the "preEllipsisSize + … + postEllipsisSize"');
+function addMiddleEllipsis(string: string, maxLength = MAX_LENGTH) {
+  if (maxLength < 3) {
+    throw new Error('Max length must be at least 3');
   }
 
-  if (str.length > maxLength) {
-    const preEllipsis = maxLength < MAX_LENGTH ? maxLength / 2 : preEllipsisSize;
-    const postEllipsis = maxLength < MAX_LENGTH ? maxLength / 5 : postEllipsisSize;
-
-    return str.substring(0, preEllipsis) + '…' + str.substring(str.length - postEllipsis, str.length);
+  if (string.length <= maxLength) {
+    return string;
   }
-  return str;
+
+  // We want to truncate the string to maxLength - 1, to leave room for the
+  // ellipsis in the middle.
+  const sliceLength = Math.floor((maxLength - 1) / 2);
+
+  // However, if the requested length is even, we need uneven slices--we'll
+  // favor the start.
+  if (maxLength % 2 === 0) {
+    return string.slice(0, sliceLength + 1) + '…' + string.slice(-sliceLength);
+  }
+
+  return string.slice(0, sliceLength) + '…' + string.slice(-sliceLength);
 }
 
 export default addMiddleEllipsis;

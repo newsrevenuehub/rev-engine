@@ -274,7 +274,7 @@ class TestOrganizationViewSet:
             (
                 pytest_cases.fixture_ref("org_invalid_patch_data_name_too_long"),
                 status.HTTP_400_BAD_REQUEST,
-                {"name": ["Ensure this field has no more than 255 characters."]},
+                {"name": ["Ensure this field has no more than 63 characters."]},
                 False,
             ),
             (

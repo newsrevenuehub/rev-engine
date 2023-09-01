@@ -55,6 +55,8 @@ CURRENCY_CHOICES = [(k, k) for k in settings.CURRENCIES.keys()]
 
 TAX_ID_MAX_LENGTH = TAX_ID_MIN_LENGTH = 9
 
+MAX_APPEND_ORG_NAME_ATTEMPTS = 99
+
 
 @dataclass(frozen=True)
 class Plan:
@@ -122,12 +124,6 @@ class OrganizationQuerySet(models.QuerySet):
 
 
 class OrganizationManager(models.Manager):
-    pass
-
-
-class OrgNameTooLongError(Exception):
-    """Used when an organization name is too long"""
-
     pass
 
 
@@ -209,8 +205,11 @@ class Organization(IndexedTimeStampedModel):
         return user in [through.user for through in self.user_set.through.objects.filter(is_owner=True)]
 
     @classmethod
-    def generate_unique_valid_name(cls, name: str) -> str:
-        """Generate a unique organization name based on input name"""
+    def generate_unique_name(cls, name: str) -> str:
+        """Generate a unique organization name based on input name
+
+        Note that this does not guarantee that the name will be otherwise valid in terms of max length.
+        """
         logger.info("Called with name %s", name)
         if not cls.objects.filter(name=name).exists():
             return name
@@ -218,15 +217,10 @@ class Organization(IndexedTimeStampedModel):
         # we limit to 99 because we don't want to have to deal with 3-digit numbers.
         # also, note that we would never expect to reach this limit and if we do, there's probably something
         # untoward going on.
-        while counter >= 99:
-            if not cls.objects.filter(name=(name := f"{name}-{counter}")).exists():
-                if len(name) <= ORG_NAME_MAX_LENGTH:
-                    return f"{name}-{counter}"
-                else:
-                    logger.warning(
-                        "Unable to generate unique organization name based on input %s because would be too long", name
-                    )
-                    raise OrgNameTooLongError("Unable to generate unique organization name because too long")
+        while counter <= MAX_APPEND_ORG_NAME_ATTEMPTS:
+            appended = f"{name}-{counter}"
+            if not cls.objects.filter(name=appended).exists():
+                return appended
             else:
                 counter += 1
         logger.warning("Unable to generate unique organization name based on input %s", name)

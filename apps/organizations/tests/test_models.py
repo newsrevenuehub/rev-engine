@@ -219,7 +219,7 @@ class TestOrganization:
         pre_existing_name = organization.name
         assert Organization.generate_unique_name(pre_existing_name) == f"{pre_existing_name}-1"
 
-    def test_generate_unique_name_when_already_too_many_times_multiple_times(self):
+    def test_generate_unique_name_when_too_many_similar_already_exist(self):
         OrganizationFactory(name=(name := "test"))
         for x in range(MAX_APPEND_ORG_NAME_ATTEMPTS + 1):
             OrganizationFactory(name=f"{name}-{x}")

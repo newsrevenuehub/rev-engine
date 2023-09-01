@@ -211,12 +211,17 @@ class CustomizeAccountSerializer(serializers.Serializer):
         return data
 
     def to_internal_value(self, data: Dict[str, Any]) -> Dict[str, Any]:
-        """ """
-        try:
-            data["organization_name"] = Organization.generate_unique_valid_name(data["organization_name"])
-        except (OrgNameTooLongError, OrgNameNonUniqueError):
-            logger.warning("Organization name could not be ", exc_info=True)
-            raise serializers.ValidationError({"organization_name": ["Organization name is already in use."]})
+        """We allow SPA to send an arbitrary org name, and here we attempt to ensure its uniqueness, modifying if need be
+
+        NB: We don't check if this is for an existing instance or not because this serializer is expected to be used
+        only for creation.
+        """
+        if "organization_name" in data:
+            try:
+                data["organization_name"] = Organization.generate_unique_valid_name(data["organization_name"])
+            except (OrgNameTooLongError, OrgNameNonUniqueError):
+                logger.warning("Organization name could not be ", exc_info=True)
+                raise serializers.ValidationError({"organization_name": ["Organization name is already in use."]})
         return super().to_internal_value(data)
 
     @transaction.atomic

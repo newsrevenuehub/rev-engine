@@ -17,7 +17,6 @@ from apps.organizations.models import (
     FiscalStatusChoices,
     Organization,
     OrgNameNonUniqueError,
-    OrgNameTooLongError,
     PaymentProvider,
     RevenueProgram,
 )
@@ -38,6 +37,11 @@ logger = logging.getLogger(f"{settings.DEFAULT_LOGGER}.{__name__}")
 # We subtract 3 from the max length to account for the "-XY" that can be appended to the end of the name
 # in the case of duplicate names. See UserViewSet.customize_account for implementation of this.
 CUSTOMIZE_ACCOUNT_ORG_NAME_MAX_LENGTH = ORG_NAME_MAX_LENGTH - 3
+
+FISCAL_SPONSOR_NAME_REQUIRED_ERROR_MESSAGE = "Please enter the fiscal sponsor name."
+FISCAL_SPONSOR_NAME_NOT_PERMITTED_ERROR_MESSAGE = (
+    "Only fiscally sponsored Revenue Programs can have a fiscal sponsor name."
+)
 
 
 class UserSerializer(serializers.ModelSerializer):
@@ -179,7 +183,12 @@ class CustomizeAccountSerializer(serializers.Serializer):
 
     first_name = serializers.CharField(write_only=True, required=True, max_length=FIRST_NAME_MAX_LENGTH)
     fiscal_sponsor_name = serializers.CharField(
-        write_only=True, required=False, default=None, max_length=FISCAL_SPONSOR_NAME_MAX_LENGTH
+        write_only=True,
+        required=False,
+        default=None,
+        max_length=FISCAL_SPONSOR_NAME_MAX_LENGTH,
+        allow_null=True,
+        allow_blank=True,
     )
     fiscal_status = serializers.ChoiceField(
         choices=FiscalStatusChoices.choices,
@@ -198,35 +207,40 @@ class CustomizeAccountSerializer(serializers.Serializer):
     def validate_fiscal_status(self, value):
         fiscal_sponsor_name = self.initial_data.get("fiscal_sponsor_name")
         if value == FiscalStatusChoices.FISCALLY_SPONSORED and not fiscal_sponsor_name:
-            raise serializers.ValidationError("Please enter the fiscal sponsor name.")
+            raise serializers.ValidationError({"fiscal_sponsor_name": [FISCAL_SPONSOR_NAME_REQUIRED_ERROR_MESSAGE]})
         elif fiscal_sponsor_name and value != FiscalStatusChoices.FISCALLY_SPONSORED:
             raise serializers.ValidationError(
-                "Only fiscally sponsored Revenue Programs can have a fiscal sponsor name."
+                {"fiscal_sponsor_name": [FISCAL_SPONSOR_NAME_NOT_PERMITTED_ERROR_MESSAGE]}
             )
         return value
 
-    def validate(self, data: Dict[str, Any]) -> Dict[str, Any]:
-        """ """
-        data["organization_slug"] = Organization.generate_slug_from_name(data["organization_name"])
-        return data
-
-    def to_internal_value(self, data: Dict[str, Any]) -> Dict[str, Any]:
+    @staticmethod
+    def handle_organization_name(name: str) -> str:
         """We allow SPA to send an arbitrary org name, and here we attempt to ensure its uniqueness, modifying if need be
 
-        NB: We don't check if this is for an existing instance or not because this serializer is expected to be used
+        We don't check if this is for an existing instance or not because this serializer is expected to be used
         only for creation.
         """
-        if "organization_name" in data:
-            try:
-                data["organization_name"] = Organization.generate_unique_valid_name(data["organization_name"])
-            except (OrgNameTooLongError, OrgNameNonUniqueError):
-                logger.warning("Organization name could not be ", exc_info=True)
-                raise serializers.ValidationError({"organization_name": ["Organization name is already in use."]})
-        return super().to_internal_value(data)
+
+        try:
+            return Organization.generate_unique_name(name)
+        except OrgNameNonUniqueError:
+            logger.warning("Organization name could not be ", exc_info=True)
+            raise serializers.ValidationError({"organization_name": ["Organization name is already in use."]})
+
+    def save(self, **kwargs):
+        name = self.handle_organization_name(self.validated_data["organization_name"])
+        self.validated_data["organization_name"] = name
+        self.validated_data["organization_slug"] = Organization.generate_slug_from_name(name)
+        return super().save(**kwargs)
 
     @transaction.atomic
     def create(self, validated_data: Dict[str, Any]) -> CustomizeAccountSerializerReturnValue:
-        """Note what gets created and why wrapped"""
+        """Create an organization, revenue program and role assignment. Also update user with new data
+
+        This function is wrapped in a transaction.atomic() block because we want to ensure that if any part of this
+        fails, none of the entities are created.
+        """
         organization = Organization.objects.create(
             name=(organization_name := validated_data["organization_name"]),
             slug=(org_slug := validated_data["organization_slug"]),
@@ -240,7 +254,6 @@ class CustomizeAccountSerializer(serializers.Serializer):
             payment_provider=PaymentProvider.objects.create(),
             fiscal_sponsor_name=validated_data["fiscal_sponsor_name"],
         )
-
         user = self.context.get("user")
         user.first_name = validated_data["first_name"]
         user.last_name = validated_data["last_name"]
@@ -248,7 +261,7 @@ class CustomizeAccountSerializer(serializers.Serializer):
 
         with reversion.create_revision():
             # do this with revision history
-            user.save(update_fields=["first_name", "last_name", "job_title", "modified"])
+            user.save(update_fields={"first_name", "last_name", "job_title", "modified"})
             reversion.set_comment("CustomizeAccountSerializer.create updated user")
 
         ra = RoleAssignment.objects.create(user=user, role_type=Roles.ORG_ADMIN, organization=organization)

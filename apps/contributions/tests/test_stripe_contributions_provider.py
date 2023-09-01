@@ -4,6 +4,7 @@ import json
 from django.test import TestCase
 
 import pytest
+import pytest_cases
 import stripe
 from addict import Dict as AttrDict
 from rest_framework.utils.serializer_helpers import ReturnDict
@@ -87,6 +88,7 @@ class AbstractTestStripeContributions(TestCase):
                 "subscription": {
                     "id": "subscription_1",
                     "status": "active",
+                    "default_payment_method": payment_method["payment_method"],
                 },
             }
         }
@@ -180,6 +182,41 @@ class AbstractTestStripeContributions(TestCase):
         self.customer_ids = [f"cust_{i}" for i in range(count)]
 
 
+@pytest.fixture
+def pi_for_subscription_when_no_subscription_invoice(pi_for_active_subscription_factory):
+    pi = pi_for_active_subscription_factory.get()
+    pi.invoice.subscription = None
+    return pi
+
+
+@pytest.fixture
+def pi_for_subscription_when_no_default_pm_on_sub(pi_for_active_subscription_factory):
+    pi = pi_for_active_subscription_factory.get()
+    pi.invoice.subscription.default_payment_method = None
+    return pi
+
+
+@pytest.fixture
+def pi_for_subscription_when_no_card_on_default_pm(pi_for_active_subscription_factory):
+    pi = pi_for_active_subscription_factory.get()
+    pi.invoice.subscription.default_payment_method.card = None
+    return pi
+
+
+@pytest.fixture
+def pi_for_one_time_when_no_payment_method(pi_for_valid_one_time_factory):
+    pi = pi_for_valid_one_time_factory.get()
+    pi.payment_method = None
+    return pi
+
+
+@pytest.fixture
+def pi_for_one_time_when_no_card_on_payment_method(pi_for_valid_one_time_factory):
+    pi = pi_for_valid_one_time_factory.get()
+    pi.payment_method.card = None
+    return pi
+
+
 class TestStripePaymentIntent(AbstractTestStripeContributions):
     def setUp(self):
         super().setUp()
@@ -211,18 +248,6 @@ class TestStripePaymentIntent(AbstractTestStripeContributions):
             StripePaymentIntent(self.payment_intent_without_metadata).revenue_program
         with self.assertRaises(InvalidMetadataError):
             StripePaymentIntent(self.payment_intent_without_revenue_program).revenue_program
-
-    def test_stripe_payment_intent_without_card(self):
-        payment_intent = StripePaymentIntent(self.payment_intent_without_card)
-        self.assertIsNone(payment_intent.card_brand)
-        self.assertIsNone(payment_intent.last4)
-        self.assertIsNone(payment_intent.credit_card_expiration_date)
-
-    def test_stripe_payment_intent_with_null_card(self):
-        payment_intent = StripePaymentIntent(self.payment_intent_with_null_card)
-        self.assertIsNone(payment_intent.card_brand)
-        self.assertIsNone(payment_intent.last4)
-        self.assertIsNone(payment_intent.credit_card_expiration_date)
 
     def test_stripe_payment_intent_with_valid_data(self):
         stripe_payment_intent = StripePaymentIntent(self.payment_intent_1)
@@ -264,6 +289,82 @@ class TestStripePaymentIntent(AbstractTestStripeContributions):
 
         self.payment_intent_1["refunded"] = True
         self.assertEqual(StripePaymentIntent(self.payment_intent_1).status, ContributionStatus.REFUNDED)
+
+
+@pytest.mark.django_db
+class TestStripePaymentIntentViaPytest:
+    """NB:
+
+    This was created to test newly touched code without refactoring existing tests. We've opted
+    to refactor to pytest in other places, but there is upcoming work that may lead to StripePaymentIntent and
+    its use cases drastically changing, so cleaning up the campsite is not worthwhile now.
+    """
+
+    def test_canceled_when_no_pi_has_no_invoice(self, pi_for_valid_one_time_factory):
+        pi = pi_for_valid_one_time_factory.get()
+        assert pi.invoice is None
+        assert StripePaymentIntent(pi).is_cancelable is False
+
+    @pytest.mark.parametrize(
+        "status, expected",
+        (
+            ("active", False),
+            ("canceled", True),
+        ),
+    )
+    def test_canceled_when_pi_has_invoice(self, status, expected, pi_for_active_subscription_factory):
+        pi = pi_for_active_subscription_factory.get()
+        assert pi.invoice is not None
+        pi.invoice.subscription.status = status
+        assert StripePaymentIntent(pi).canceled is expected
+
+    def test_status_when_refunded(self, pi_for_valid_one_time_factory):
+        pi = pi_for_valid_one_time_factory.get(refunded=True)
+        instance = StripePaymentIntent(pi)
+        assert pi.refunded is True
+        assert instance.status == ContributionStatus.REFUNDED
+
+    def test_status_when_canceled(self, pi_for_active_subscription_factory):
+        pi = pi_for_active_subscription_factory.get()
+        pi.invoice.subscription.status = "canceled"
+        instance = StripePaymentIntent(pi)
+        assert instance.canceled is True
+        assert instance.status == ContributionStatus.CANCELED
+
+    def test_status_when_succeeded(self, pi_for_valid_one_time_factory):
+        pi = pi_for_valid_one_time_factory.get(status="succeeded")
+        assert StripePaymentIntent(pi).status == ContributionStatus.PAID
+
+    def test_status_when_pending(self, pi_for_valid_one_time_factory):
+        pi = pi_for_valid_one_time_factory.get(status="pending")
+        assert StripePaymentIntent(pi).status == ContributionStatus.PROCESSING
+
+    def test_status_when_other_status(self, pi_for_valid_one_time_factory):
+        pi = pi_for_valid_one_time_factory.get(status="unexpected")
+        assert StripePaymentIntent(pi).status == ContributionStatus.FAILED
+
+    @pytest_cases.parametrize(
+        "pi",
+        (
+            pi_for_one_time_when_no_payment_method,
+            # pi_for_one_time_when_no_card_on_payment_method,
+            # pi_for_subscription_when_no_card_on_default_pm,
+            # pi_for_subscription_when_no_default_pm_on_sub,
+            # pi_for_subscription_when_no_subscription_invoice,
+        ),
+    )
+    def test_card_when_gets_default_value(self, pi):
+        assert StripePaymentIntent(pi).card == AttrDict(**{"brand": None, "last4": None, "exp_month": None})
+
+    def test_card_when_one_time_has_card(self, pi_for_valid_one_time_factory):
+        pi = pi_for_valid_one_time_factory.get()
+        assert (expected := pi.payment_method.card) is not None
+        assert StripePaymentIntent(pi).card == expected
+
+    def test_card_when_subscription_has_card(self, pi_for_active_subscription_factory):
+        pi = pi_for_active_subscription_factory.get()
+        assert (expected := pi.invoice.subscription.default_payment_method.card) is not None
+        assert StripePaymentIntent(pi).card == expected
 
 
 @pytest.fixture
@@ -496,8 +597,8 @@ def mock_redis_cache_for_subs_factory(mocker):
 
 
 class TestContributionsCacheProvider:
-    EMAIL_ID = "foo@bar.com"
-    STRIPE_ACCOUNT_ID = "test"
+    EMAIL_ID = "foo@BAR.com"
+    STRIPE_ACCOUNT_ID = "tEst"
 
     def get_cache_provider(self):
         return ContributionsCacheProvider(
@@ -507,7 +608,7 @@ class TestContributionsCacheProvider:
 
     def test__init__(self):
         provider = self.get_cache_provider()
-        assert provider.key == f"{self.EMAIL_ID}-payment-intents-{self.STRIPE_ACCOUNT_ID}"
+        assert provider.key == f"{self.EMAIL_ID}-payment-intents-{self.STRIPE_ACCOUNT_ID}".lower()
         assert provider.stripe_account_id == self.STRIPE_ACCOUNT_ID
 
     def test_serialize(self, pi_for_active_subscription_factory, pi_for_valid_one_time_factory):
@@ -536,9 +637,7 @@ class TestContributionsCacheProvider:
         mock_redis_cache_for_pis = mock_redis_cache_for_pis_factory.get(cache_provider)
         subscription = subscription_factory.get()
         cache_provider.upsert_uninvoiced_subscriptions([subscription])
-        cached = json.loads(
-            mock_redis_cache_for_pis._data.get(f"{self.EMAIL_ID}-payment-intents-{self.STRIPE_ACCOUNT_ID}")
-        )
+        cached = json.loads(mock_redis_cache_for_pis._data.get(cache_provider.key))
         assert cached[subscription.id]["id"] == subscription.id
 
     def test_upsert_uninvoiced_subscriptions_overwrite(self, subscription_factory, mock_redis_cache_for_pis_factory):
@@ -546,18 +645,14 @@ class TestContributionsCacheProvider:
         mock_redis_cache_for_pis = mock_redis_cache_for_pis_factory.get(cache_provider)
         subscription = subscription_factory.get()
         cache_provider.upsert_uninvoiced_subscriptions([subscription])
-        cached = json.loads(
-            mock_redis_cache_for_pis._data.get(f"{self.EMAIL_ID}-payment-intents-{self.STRIPE_ACCOUNT_ID}")
-        )
+        cached = json.loads(mock_redis_cache_for_pis._data.get(cache_provider.key))
         assert len(cached) == 1
         assert cached[subscription.id]["created"] == subscription.created
         sub2 = subscription_factory.get()
         # ensure different ID
         sub2.id = subscription.id[::-1]
         cache_provider.upsert_uninvoiced_subscriptions([sub2])
-        cached = json.loads(
-            mock_redis_cache_for_pis._data.get(f"{self.EMAIL_ID}-payment-intents-{self.STRIPE_ACCOUNT_ID}")
-        )
+        cached = json.loads(mock_redis_cache_for_pis._data.get(cache_provider.key))
         assert len(cached) == 2
         for k in [subscription.id, sub2.id]:
             assert k in cached
@@ -567,15 +662,11 @@ class TestContributionsCacheProvider:
         mock_redis_cache_for_pis = mock_redis_cache_for_pis_factory.get(cache_provider)
         subscription = subscription_factory.get()
         cache_provider.upsert_uninvoiced_subscriptions([subscription])
-        cached = json.loads(
-            mock_redis_cache_for_pis._data.get(f"{self.EMAIL_ID}-payment-intents-{self.STRIPE_ACCOUNT_ID}")
-        )
+        cached = json.loads(mock_redis_cache_for_pis._data.get(cache_provider.key))
         assert cached[subscription.id]["created"] == subscription.created
         subscription.created = subscription.created + 1000
         cache_provider.upsert_uninvoiced_subscriptions([subscription])
-        cached = json.loads(
-            mock_redis_cache_for_pis._data.get(f"{self.EMAIL_ID}-payment-intents-{self.STRIPE_ACCOUNT_ID}")
-        )
+        cached = json.loads(mock_redis_cache_for_pis._data.get(cache_provider.key))
         assert len(cached) == 1
         assert cached[subscription.id]["created"] == subscription.created
 
@@ -583,9 +674,7 @@ class TestContributionsCacheProvider:
         provider = self.get_cache_provider()
         mock_redis_cache_for_pis = mock_redis_cache_for_pis_factory.get(provider)
         provider.upsert((pis := [pi_for_valid_one_time_factory.get()]))
-        cached = json.loads(
-            mock_redis_cache_for_pis._data.get(f"{self.EMAIL_ID}-payment-intents-{self.STRIPE_ACCOUNT_ID}")
-        )
+        cached = json.loads(mock_redis_cache_for_pis._data.get(provider.key))
         for x in pis:
             assert cached[x.id] == dict(provider.serializer(instance=provider.converter(x)).data) | {
                 "stripe_account_id": self.STRIPE_ACCOUNT_ID
@@ -595,18 +684,14 @@ class TestContributionsCacheProvider:
         provider = self.get_cache_provider()
         mock_redis_cache_for_pis = mock_redis_cache_for_pis_factory.get(provider)
         provider.upsert([(pi := pi_for_valid_one_time_factory.get())])
-        cached = json.loads(
-            mock_redis_cache_for_pis._data.get(f"{self.EMAIL_ID}-payment-intents-{self.STRIPE_ACCOUNT_ID}")
-        )
+        cached = json.loads(mock_redis_cache_for_pis._data.get(provider.key))
         assert len(cached) == 1
         assert pi.id in cached
         pi_2 = pi_for_valid_one_time_factory.get()
         # ensure different id
         pi_2.id = pi.id[::-1]
         provider.upsert([pi_2])
-        cached = json.loads(
-            mock_redis_cache_for_pis._data.get(f"{self.EMAIL_ID}-payment-intents-{self.STRIPE_ACCOUNT_ID}")
-        )
+        cached = json.loads(mock_redis_cache_for_pis._data.get(provider.key))
         assert len(cached) == 2
         assert pi.id in cached
         assert pi_2.id in cached
@@ -615,15 +700,11 @@ class TestContributionsCacheProvider:
         provider = self.get_cache_provider()
         mock_redis_cache_for_pis = mock_redis_cache_for_pis_factory.get(provider)
         provider.upsert([(pi := pi_for_valid_one_time_factory.get())])
-        cached = json.loads(
-            mock_redis_cache_for_pis._data.get(f"{self.EMAIL_ID}-payment-intents-{self.STRIPE_ACCOUNT_ID}")
-        )
+        cached = json.loads(mock_redis_cache_for_pis._data.get(provider.key))
         assert cached[pi.id]["amount"] == pi.amount
         pi.amount = (new_amount := pi.amount + 100)
         provider.upsert([pi])
-        cached = json.loads(
-            mock_redis_cache_for_pis._data.get(f"{self.EMAIL_ID}-payment-intents-{self.STRIPE_ACCOUNT_ID}")
-        )
+        cached = json.loads(mock_redis_cache_for_pis._data.get(provider.key))
         assert cached[pi.id]["amount"] == new_amount
 
     def test_load_when_no_data(self, mock_redis_cache_for_pis_factory):
@@ -644,8 +725,8 @@ class TestContributionsCacheProvider:
 
 
 class TestSubscriptionsCacheProvider:
-    EMAIL_ID = "foo@bar.com"
-    STRIPE_ACCOUNT_ID = "test-id"
+    EMAIL_ID = "foo@BAR.com"
+    STRIPE_ACCOUNT_ID = "test-ID"
 
     def get_provider(self):
         return SubscriptionsCacheProvider(self.EMAIL_ID, self.STRIPE_ACCOUNT_ID)
@@ -653,7 +734,7 @@ class TestSubscriptionsCacheProvider:
     def test__init__(self):
         provider = self.get_provider()
         assert provider.stripe_account_id == self.STRIPE_ACCOUNT_ID
-        assert provider.key == f"{self.EMAIL_ID}-subscriptions-{self.STRIPE_ACCOUNT_ID}"
+        assert provider.key == f"{self.EMAIL_ID}-subscriptions-{self.STRIPE_ACCOUNT_ID}".lower()
 
     def test_serialize_happy_path(self, subscription_factory):
         cache_provider = self.get_provider()

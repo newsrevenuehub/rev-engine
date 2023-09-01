@@ -39,22 +39,6 @@ from apps.users.choices import Roles
 
 @pytest.mark.django_db
 class TestContributorModel:
-    def test_contributions_count(self, contributor_user):
-        target_count = 3
-        ContributionFactory.create_batch(
-            size=target_count,
-            contributor=contributor_user,
-        )
-        assert contributor_user.contributions_count == target_count
-
-    def test_most_recent_contribution(self, contributor_user):
-        ContributionFactory.create_batch(size=3, contributor=contributor_user, status=ContributionStatus.PAID)
-        ContributionFactory(contributor=contributor_user, status=ContributionStatus.REFUNDED)
-        assert (
-            contributor_user.most_recent_contribution
-            == Contribution.objects.filter(contributor=contributor_user, status="paid").latest()
-        )
-
     def test__str__(self, contributor_user):
         assert str(contributor_user) == contributor_user.email
 

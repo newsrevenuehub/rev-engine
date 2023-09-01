@@ -887,7 +887,9 @@ class TestUserViewSetViaPytest:
         user_no_role_assignment.accepted_terms_of_service = timezone.now()
         user_no_role_assignment.save()
         api_client.force_authenticate(user_no_role_assignment)
-        response = api_client.patch(reverse("user-customize-account", args=(user_no_role_assignment.pk,)), data={})
+        response = api_client.patch(
+            reverse("user-customize-account", args=(user_no_role_assignment.pk,)), data={"organization_name": "foo"}
+        )
         assert response.status_code == status.HTTP_403_FORBIDDEN
         assert response.json() == {"detail": UserIsAllowedToUpdate.message}
 

@@ -157,8 +157,6 @@ def org_user_free_plan(default_feature_flags) -> User:
 
 @pytest.fixture
 def org_user_free_plan_verified_email_and_tos_accepted():
-    # This is meant to represent a user who has gone through self onbboarding up to the point
-    # of accepting terms of service and verify email, but not customzing account.
     return UserFactory(accepted_terms_of_service=datetime.datetime.utcnow(), email_verified=True)
 
 

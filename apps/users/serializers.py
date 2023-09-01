@@ -235,6 +235,8 @@ class CustomizeAccountSerializer(serializers.Serializer):
         # to take that already validated value and append up to 3 characters to make it unique. That method is unit-tested elsewhere
         # to prove that it raises OrgNameNonUniqueError if it gets past `-99` in its attempts to make the name unique.
         self.validated_data["organization_name"] = name
+        # This is guaranteed to meet length requirements because internally .generate_slug_from_name ensures max length doesn't exceed the value
+        # set for max length on Organization.slug
         self.validated_data["organization_slug"] = Organization.generate_slug_from_name(name)
         return super().save(**kwargs)
 

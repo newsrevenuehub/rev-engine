@@ -6,7 +6,16 @@ import ProfileForm, { ProfileFormProps } from './ProfileForm';
 
 const onProfileSubmit = jest.fn();
 
-function tree(props?: ProfileFormProps) {
+const fieldErrors = {
+  first_name: ['First name is required'],
+  last_name: ['Last name is required'],
+  organization_name: ['Organization name is required'],
+  job_title: ['Job title is required'],
+  fiscal_sponsor_name: ['Fiscal sponsor name is required'],
+  detail: 'An error occurred'
+};
+
+function tree(props?: Partial<ProfileFormProps>) {
   return render(<ProfileForm onProfileSubmit={onProfileSubmit} {...props} />);
 }
 
@@ -104,7 +113,7 @@ describe('ProfileForm', () => {
 
     userEvent.click(screen.getByRole('button', { name: /Company Tax Status Select your status/i }));
     userEvent.click(screen.getByRole('option', { name: 'Nonprofit' }));
-    expect(submitButton()).not.toBeDisabled();
+    expect(submitButton()).toBeEnabled();
   });
 
   it('calls the onProfileSubmit prop with form data when submitted', async () => {
@@ -199,6 +208,88 @@ describe('ProfileForm', () => {
           }
         ]
       ]);
+    });
+  });
+
+  describe('Errors', () => {
+    it('does not display errors by default', () => {
+      tree();
+
+      userEvent.click(screen.getByRole('button', { name: /Company Tax Status Select your status/i }));
+      userEvent.click(screen.getByRole('option', { name: 'Fiscally sponsored' }));
+
+      expect(screen.queryByText('First name is required')).not.toBeInTheDocument();
+      expect(screen.queryByText('Last name is required')).not.toBeInTheDocument();
+      expect(screen.queryByText('Organization name is required')).not.toBeInTheDocument();
+      expect(screen.queryByText('Job title is required')).not.toBeInTheDocument();
+      expect(screen.queryByText('Fiscal sponsor name is required')).not.toBeInTheDocument();
+      expect(screen.queryByText('An error occurred')).not.toBeInTheDocument();
+    });
+
+    it('displays incoming errors', () => {
+      tree({ error: fieldErrors });
+
+      userEvent.click(screen.getByRole('button', { name: /Company Tax Status Select your status/i }));
+      userEvent.click(screen.getByRole('option', { name: 'Fiscally sponsored' }));
+
+      expect(screen.getByText('First name is required')).toBeVisible();
+      expect(screen.getByText('Last name is required')).toBeVisible();
+      expect(screen.getByText('Organization name is required')).toBeVisible();
+      expect(screen.getByText('Job title is required')).toBeVisible();
+      expect(screen.getByText('Fiscal sponsor name is required')).toBeVisible();
+      expect(screen.getByText('An error occurred')).toBeVisible();
+    });
+
+    it('displays max length error related to all fields with a character limit (FE validation)', async () => {
+      tree();
+
+      const limitTesting = [
+        {
+          field: 'First Name',
+          limit: 50,
+          error: 'First Name must have a maximum of 50 characters.'
+        },
+        {
+          field: 'Last Name',
+          limit: 50,
+          error: 'Last Name must have a maximum of 50 characters.'
+        },
+        {
+          field: 'Job Title Optional',
+          limit: 50,
+          error: 'Job Title must have a maximum of 50 characters.'
+        },
+        {
+          field: 'Organization',
+          limit: 253,
+          error: 'Organization must have a maximum of 253 characters.'
+        },
+        {
+          field: 'Fiscal Sponsor Name',
+          limit: 100,
+          error: 'Fiscal Sponsor Name must have a maximum of 100 characters.'
+        }
+      ];
+
+      userEvent.click(screen.getByRole('button', { name: /Company Tax Status Select your status/i }));
+      userEvent.click(screen.getByRole('option', { name: 'Fiscally sponsored' }));
+
+      limitTesting.forEach(({ field, limit, error }) => {
+        userEvent.type(screen.getByLabelText(field), 'x'.repeat(limit + 1));
+        expect(screen.queryByText(error)).not.toBeInTheDocument();
+      });
+
+      const submitButton = screen.getByRole('button', { name: 'Finalize Account' });
+      expect(submitButton).toBeEnabled();
+      userEvent.click(submitButton);
+
+      await waitFor(() =>
+        expect(screen.getByText('First Name must have a maximum of 50 characters', { exact: false })).toBeVisible()
+      );
+
+      limitTesting.forEach(({ error }) => {
+        expect(screen.getByText(error, { exact: false })).toBeVisible();
+      });
     });
   });
 

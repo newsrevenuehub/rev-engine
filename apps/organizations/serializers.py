@@ -55,6 +55,7 @@ class OrganizationInlineSerializer(serializers.ModelSerializer):
             "show_connected_to_slack",
             "show_connected_to_salesforce",
             "show_connected_to_mailchimp",
+            "send_receipt_email_via_nre",
         ]
 
     def get_plan(self, obj):

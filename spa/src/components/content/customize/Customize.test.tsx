@@ -16,7 +16,8 @@ jest.mock('./CustomizeCoreUpgradePrompt/CustomizeCoreUpgradePrompt');
 const orgPlan = (plan: string) => ({
   plan: {
     name: plan
-  }
+  },
+  send_receipt_email_via_nre: true
 });
 
 const orgAdminUser = {
@@ -42,6 +43,27 @@ describe('Customize Styles', () => {
     useUserMock.mockImplementation(() => ({ isLoading: true } as any));
     tree();
     expect(screen.getByTestId('mock-global-loading')).toBeInTheDocument();
+  });
+
+  it('should render description for org without NRE email flag enabled', () => {
+    useUserMock.mockImplementation(
+      () =>
+        ({
+          isLoading: false,
+          user: { ...orgAdminUser, organizations: [{ ...orgPlan('CORE'), send_receipt_email_via_nre: false }] }
+        } as any)
+    );
+    tree();
+    expect(
+      screen.getByText('You’re not using RevEngine to send receipts. To start using RevEngine receipts, contact', {
+        exact: false
+      })
+    ).toBeInTheDocument();
+    expect(screen.getByRole('link', { name: 'Support' })).toHaveAttribute(
+      'href',
+      'https://fundjournalism.org/news-revenue-engine-help/'
+    );
+    expect(screen.getByText('Send a test email to see our receipts!', { exact: false })).toBeInTheDocument();
   });
 
   describe.each([PLAN_NAMES.FREE, PLAN_NAMES.CORE, PLAN_NAMES.PLUS])('org plan: %s', (plan) => {

@@ -90,6 +90,7 @@ EXPECTED_ORGANIZATION_INLINE_SERIALIZER_FIELDS = {
     "show_connected_to_slack",
     "show_connected_to_salesforce",
     "show_connected_to_mailchimp",
+    "send_receipt_email_via_nre",
 }
 
 

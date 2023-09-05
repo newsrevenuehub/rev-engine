@@ -73,8 +73,7 @@ class DonationPage(IndexedTimeStampedModel):
     elements = models.JSONField(null=True, blank=True, default=defaults.get_default_page_elements)
 
     slug = models.SlugField(
-        # why we have to do this -- weird interaction with DRF
-        blank=False,
+        blank=True,
         validators=[validate_slug_against_denylist],
         null=True,
     )

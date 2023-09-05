@@ -1,4 +1,6 @@
-const PublishModal = ({ onClose, onPublish, open }) => (
+import { PublishModalProps } from '../PublishModal';
+
+export const PublishModal = ({ onClose, onPublish, open }: PublishModalProps) => (
   <>
     {open && (
       <div data-testid="mock-publish-modal">

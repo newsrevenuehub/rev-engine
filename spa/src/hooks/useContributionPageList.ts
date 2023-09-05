@@ -8,15 +8,12 @@ import axios from 'ajax/axios';
 import { GENERIC_ERROR } from 'constants/textConstants';
 import { SIGN_IN } from 'routes';
 import { ContributionPage } from './useContributionPage';
-import slugify from 'utilities/slugify';
 import { User } from './useUser.types';
 import { USER_ROLE_HUB_ADMIN_TYPE, USER_SUPERUSER_TYPE } from 'constants/authConstants';
 
 export interface CreatePageProperties extends Partial<Omit<ContributionPage, 'revenue_program'>> {
   // These are required when creating a page.
   name: string;
-  slug: string;
-
   // Unlike a retrieved page, the revenue_program property is required, and
   // should be the ID of the revenue program that the page will belong to.
   revenue_program: number;
@@ -41,11 +38,11 @@ export interface UseContributionPageListResult {
    */
   isLoading: UseQueryResult['isLoading'];
   /**
-   * Returns properties for a new page that ensure its name and slug will be
+   * Returns properties for a new page that ensure its name will be
    * unique based on pages loaded. This function doesn't require that `pages` be
    * loaded first, however.
    */
-  newPageProperties: (revenueProgramName: string) => Pick<CreatePageProperties, 'name' | 'slug'>;
+  newPageProperties: (revenueProgramName: string) => Pick<CreatePageProperties, 'name'>;
   /**
    * Pages available to the user. While fetching or if there was an error
    * retrieving pages, this is undefined.
@@ -115,11 +112,11 @@ function useContributionPageList(): UseContributionPageListResult {
       const pagesSize = rpPages.length + 1;
       const names = rpPages.map(({ name }) => name);
       let number = pagesSize;
-      let name = `${revenueProgramName} Page ${number}`;
+      let name = `Page ${number}`;
 
-      while (names.includes(slugify(name))) {
+      while (names.includes(name)) {
         number++;
-        name = `${revenueProgramName} Page ${number}`;
+        name = `Page ${number}`;
       }
       return { name };
     },

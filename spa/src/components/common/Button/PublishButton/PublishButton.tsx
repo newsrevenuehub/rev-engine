@@ -2,6 +2,7 @@ import CheckCircleOutlineIcon from '@material-ui/icons/CheckCircleOutline';
 import PropTypes, { InferProps } from 'prop-types';
 import { MouseEvent, ReactElement, useEffect, useState } from 'react';
 import { useAlert } from 'react-alert';
+import { AxiosError } from 'axios';
 import { Tooltip } from 'components/base';
 import { MaxPagesPublishedModal } from 'components/common/Modal/MaxPagesPublishedModal';
 import { GENERIC_ERROR } from 'constants/textConstants';
@@ -148,6 +149,10 @@ function PublishButton({ className }: PublishButtonProps) {
 
       handleOpenSuccessfulPublishModal();
     } catch (error) {
+      // display field level errors if any
+      // if ((error as AxiosError).response?.data?.email) {
+      //     setErrors((error as AxiosError).response?.data);
+      //   } else {
       alert.error(GENERIC_ERROR);
     }
   };

@@ -76,7 +76,11 @@ export const Paper = styled(MuiPaper)`
   }
 `;
 
-export const Icon = styled.div`
+interface IconProps {
+  type: string;
+}
+
+export const Icon = styled.div<IconProps>`
   > svg {
     height: 24px;
     width: 24px;
@@ -116,7 +120,13 @@ export const PublishButton = styled(MuiButton)`
   }
 `;
 
-export const Input = styled.input`
+interface InputProps {
+  start?: boolean;
+  center?: boolean;
+  end?: boolean;
+}
+
+export const Input = styled.input<InputProps>`
   width: 100%;
   padding: 12px;
   height: 40px;

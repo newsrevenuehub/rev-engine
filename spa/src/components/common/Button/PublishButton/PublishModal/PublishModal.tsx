@@ -30,16 +30,18 @@ const PublishModalPropTypes = {
   onClose: PropTypes.func.isRequired,
   onPublish: PropTypes.func.isRequired,
   page: PropTypes.shape(PagePropTypes).isRequired,
-  loading: PropTypes.bool
+  loading: PropTypes.bool,
+  errors: PropTypes.object
 };
 
 export interface PublishModalProps extends InferProps<typeof PublishModalPropTypes> {
   onClose: () => void;
   onPublish: ({ slug }: { slug: string }) => void;
   page: ContributionPage;
+  errors?: Record<string, string>;
 }
 
-export function PublishModal({ open, onClose, onPublish, page, loading }: PublishModalProps) {
+export function PublishModal({ open, onClose, onPublish, page, loading, errors }: PublishModalProps) {
   // If the page has a default slug (see <AddPage>), default the field to an
   // empty value.
   const [slug, setSlug] = useState(
@@ -85,16 +87,18 @@ export function PublishModal({ open, onClose, onPublish, page, loading }: Publis
               <Label>Page Name</Label>
             </Grid>
             <Grid item xs={4}>
-              <Input value={page?.revenue_program?.slug} start={true} readOnly />
+              <Input value={page?.revenue_program?.slug} readOnly className="start" />
             </Grid>
             <Grid item xs={3}>
-              <Input disabled defaultValue={domainUrl} center={true} aria-label="Domain URL" />
+              <Input disabled defaultValue={domainUrl} aria-label="Domain URL" className="center" />
             </Grid>
             <Grid item xs={5}>
               <Input
+                className="end"
+                error={!!errors?.slug}
                 data-testid="page-name-input"
                 placeholder="Ex. contribute, donate, join"
-                end={true}
+                helperText={errors?.slug ?? ''}
                 value={slug}
                 onChange={handleChangeSlug}
                 aria-label="Page name"

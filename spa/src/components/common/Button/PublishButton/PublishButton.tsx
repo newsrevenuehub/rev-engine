@@ -70,6 +70,8 @@ function PublishButton({ className }: PublishButtonProps) {
     handleOpen: handleOpenUnpublishModal
   } = useModal();
   const [anchorEl, setAnchorEl] = useState<HTMLElement | null>(null);
+  const [publishFormErrors, setPublishFormErrors] = useState<Record<string, string>>({});
+
   const showPopover = Boolean(anchorEl);
   const disabled = !page?.payment_provider?.stripe_verified;
   const isPublished = page && pageIsPublished(page);
@@ -150,10 +152,11 @@ function PublishButton({ className }: PublishButtonProps) {
       handleOpenSuccessfulPublishModal();
     } catch (error) {
       // display field level errors if any
-      // if ((error as AxiosError).response?.data?.email) {
-      //     setErrors((error as AxiosError).response?.data);
-      //   } else {
-      alert.error(GENERIC_ERROR);
+      if ((error as AxiosError).response?.data) {
+        setPublishFormErrors((error as AxiosError).response?.data);
+      } else {
+        alert.error(GENERIC_ERROR);
+      }
     }
   };
 
@@ -168,7 +171,6 @@ function PublishButton({ className }: PublishButtonProps) {
       await savePageChanges({ published_date: undefined });
     } catch (error) {
       // Log for Sentry and show an alert.
-
       console.error(error);
       alert.error(GENERIC_ERROR);
     }
@@ -208,6 +210,7 @@ function PublishButton({ className }: PublishButtonProps) {
         currentPlan={user.organizations[0].plan.name}
       />
       <PublishModal
+        errors={publishFormErrors}
         open={openPublishModal}
         onClose={handleClosePublishModal}
         page={page}

@@ -42,7 +42,6 @@ describe('PublishModal', () => {
     const warning = screen.getByText('*Site name can’t be changed upon publish.');
     expect(warning).toBeVisible();
 
-    console.log(domain);
     const domainUrl = screen.getByRole('textbox', { name: 'Domain URL' });
     expect(domainUrl).toBeVisible();
     expect(domainUrl).toHaveValue(`.${domain}/`);

@@ -86,7 +86,7 @@ export function PublishModal({ open, onClose, onPublish, page, loading, slugErro
               <Input value={page?.revenue_program?.slug} readOnly start />
             </Grid>
             <Grid item xs={3}>
-              <Input disabled defaultValue={domainUrl} aria-label="Domain URL" center />
+              <Input disabled defaultValue={domainUrl} inputProps={{ 'aria-label': 'Domain URL' }} center />
             </Grid>
             <Grid item xs={5}>
               <Input
@@ -97,7 +97,7 @@ export function PublishModal({ open, onClose, onPublish, page, loading, slugErro
                 helperText={slugError?.length ? slugError.join('. ') : ''}
                 value={slug}
                 onChange={handleChangeSlug}
-                aria-label="Page name"
+                inputProps={{ 'aria-label': 'Page name' }}
               />
             </Grid>
             <Grid item xs={5}>

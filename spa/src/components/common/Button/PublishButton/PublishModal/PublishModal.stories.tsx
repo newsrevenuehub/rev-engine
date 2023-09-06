@@ -3,7 +3,7 @@ import PublishModal from './PublishModal';
 
 export default {
   component: PublishModal,
-  title: 'Common/Modal/PublishModal'
+  title: 'Common/Button/PublishButton/PublishModal'
 } as ComponentMeta<typeof PublishModal>;
 
 const Template: ComponentStory<typeof PublishModal> = (props) => <PublishModal {...props} />;
@@ -11,11 +11,12 @@ const Template: ComponentStory<typeof PublishModal> = (props) => <PublishModal {
 export const Default = Template.bind({});
 Default.args = {
   open: true,
-  page: { id: 'mock-id', name: 'Page Name', revenue_program: {} } as any
+  page: { id: 'mock-id', name: 'Page Name', revenue_program: { slug: 'my-rp' } } as any
 };
 
-export const PageIsDefault = Template.bind({});
-PageIsDefault.args = {
-  open: true,
-  page: { id: 'mock-id', name: 'Page Name', revenue_program: { default_donation_page: 'mock-id' } } as any
+export const WithSlugError = Template.bind({});
+WithSlugError.args = {
+  ...Default.args,
+  page: { ...Default.args.page, slug: 'this-slug-is-not-unique' } as any,
+  slugError: ['Ensure this field has no more than 50 characters.']
 };

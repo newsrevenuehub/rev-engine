@@ -123,6 +123,9 @@ export const PublishButton = styled(MuiButton)`
 `;
 
 interface InputProps {
+  start?: boolean;
+  center?: boolean;
+  end?: boolean;
   readOnly?: boolean;
 }
 
@@ -132,25 +135,33 @@ export const Input = styled(TextField)<InputProps>`
   height: 40px;
   border: 1px solid ${(props) => props.theme.colors.muiGrey[400]};
 
-  &.start input {
-    border-top-right-radius: 0 !important;
-    border-bottom-right-radius: 0 !important;
-    border-right: none !important;
-  }
+  ${(props) =>
+    props.start &&
+    `input {
+      border-top-left-radius: ${props.theme.muiBorderRadius.md};
+      border-bottom-left-radius: ${props.theme.muiBorderRadius.md};
+      border-right: none;
+    }
+  `}
 
-  &.center input {
-    text-align: center;
-    padding: 12px 3px;
-    font-weight: 600;
-    font-size: 16px;
-    border-left: none !important;
-    border-right: none !important;
-    color: ${(props) => props.theme.colors.muiGrey[500]};
-  }
+  ${(props) =>
+    props.center &&
+    `input {
+      text-align: center;
+      padding: 12px 3px;
+      font-weight: 600;
+      font-size: 16px;
+      border-left: none;
+      border-right: none;
+      color: ${props.theme.colors.muiGrey[500]};
+    }
+  `}
 
-  &.end input {
-    border-top-right-radius: ${(props) => props.theme.muiBorderRadius.md};
-    border-bottom-right-radius: ${(props) => props.theme.muiBorderRadius.md};
-    border-left: none;
-  }
+  ${(props) =>
+    props.end &&
+    `input {
+      border-top-right-radius: ${props.theme.muiBorderRadius.md};
+      border-bottom-right-radius: ${props.theme.muiBorderRadius.md};
+    }
+  `}
 `;

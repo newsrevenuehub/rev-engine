@@ -31,22 +31,18 @@ const PublishModalPropTypes = {
   onPublish: PropTypes.func.isRequired,
   page: PropTypes.shape(PagePropTypes).isRequired,
   loading: PropTypes.bool,
-  errors: PropTypes.object
+  slugError: PropTypes.arrayOf(PropTypes.string)
 };
 
 export interface PublishModalProps extends InferProps<typeof PublishModalPropTypes> {
   onClose: () => void;
   onPublish: ({ slug }: { slug: string }) => void;
   page: ContributionPage;
-  errors?: Record<string, string>;
+  slugError?: string[] | null;
 }
 
-export function PublishModal({ open, onClose, onPublish, page, loading, errors }: PublishModalProps) {
-  // If the page has a default slug (see <AddPage>), default the field to an
-  // empty value.
-  const [slug, setSlug] = useState(
-    new RegExp(`${page?.revenue_program.name}-page-(\\d+)`, 'i').test(page?.slug) ? '' : page?.slug
-  );
+export function PublishModal({ open, onClose, onPublish, page, loading, slugError }: PublishModalProps) {
+  const [slug, setSlug] = useState(page?.slug ?? '');
   const domain = getDomain(window.location.host);
 
   const domainUrl = `.${domain}/`;
@@ -87,18 +83,18 @@ export function PublishModal({ open, onClose, onPublish, page, loading, errors }
               <Label>Page Name</Label>
             </Grid>
             <Grid item xs={4}>
-              <Input value={page?.revenue_program?.slug} readOnly className="start" />
+              <Input value={page?.revenue_program?.slug} readOnly start />
             </Grid>
             <Grid item xs={3}>
-              <Input disabled defaultValue={domainUrl} aria-label="Domain URL" className="center" />
+              <Input disabled defaultValue={domainUrl} aria-label="Domain URL" center />
             </Grid>
             <Grid item xs={5}>
               <Input
-                className="end"
-                error={!!errors?.slug}
+                end
+                error={!!slugError?.length}
                 data-testid="page-name-input"
                 placeholder="Ex. contribute, donate, join"
-                helperText={errors?.slug ?? ''}
+                helperText={slugError?.length ? slugError.join('. ') : ''}
                 value={slug}
                 onChange={handleChangeSlug}
                 aria-label="Page name"

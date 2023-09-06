@@ -70,7 +70,7 @@ function PublishButton({ className }: PublishButtonProps) {
     handleOpen: handleOpenUnpublishModal
   } = useModal();
   const [anchorEl, setAnchorEl] = useState<HTMLElement | null>(null);
-  const [publishFormErrors, setPublishFormErrors] = useState<Record<string, string>>({});
+  const [slugError, setSlugError] = useState<string[] | null>(null);
 
   const showPopover = Boolean(anchorEl);
   const disabled = !page?.payment_provider?.stripe_verified;
@@ -151,9 +151,9 @@ function PublishButton({ className }: PublishButtonProps) {
 
       handleOpenSuccessfulPublishModal();
     } catch (error) {
-      // display field level errors if any
-      if ((error as AxiosError).response?.data) {
-        setPublishFormErrors((error as AxiosError).response?.data);
+      // If there is a slug error, we pass it to the modal.
+      if ((error as AxiosError).response?.data?.slug) {
+        setSlugError((error as AxiosError).response?.data?.slug);
       } else {
         alert.error(GENERIC_ERROR);
       }
@@ -210,7 +210,7 @@ function PublishButton({ className }: PublishButtonProps) {
         currentPlan={user.organizations[0].plan.name}
       />
       <PublishModal
-        errors={publishFormErrors}
+        slugError={slugError}
         open={openPublishModal}
         onClose={handleClosePublishModal}
         page={page}

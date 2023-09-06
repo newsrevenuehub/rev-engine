@@ -274,10 +274,10 @@ describe('ProfileForm', () => {
       userEvent.click(screen.getByRole('button', { name: /Company Tax Status Select your status/i }));
       userEvent.click(screen.getByRole('option', { name: 'Fiscally sponsored' }));
 
-      limitTesting.forEach(({ field, limit, error }) => {
+      for (const { field, limit, error } of limitTesting) {
         userEvent.type(screen.getByLabelText(field), 'x'.repeat(limit + 1));
         expect(screen.queryByText(error)).not.toBeInTheDocument();
-      });
+      }
 
       const submitButton = screen.getByRole('button', { name: 'Finalize Account' });
       expect(submitButton).toBeEnabled();
@@ -287,9 +287,9 @@ describe('ProfileForm', () => {
         expect(screen.getByText('First Name must have a maximum of 50 characters', { exact: false })).toBeVisible()
       );
 
-      limitTesting.forEach(({ error }) => {
+      for (const { error } of limitTesting) {
         expect(screen.getByText(error, { exact: false })).toBeVisible();
-      });
+      }
     });
   });
 

@@ -35,7 +35,7 @@ export const Modal = styled(MuiModal)`
   a span,
   a:hover,
   a:hover span {
-    color: ${(props) => props.theme.colors.account.blueLink};
+    color: ${({ theme }) => theme.basePalette.secondary.hyperlink};
     text-decoration: underline;
   }
 `;

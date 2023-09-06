@@ -14,9 +14,12 @@ import StylesTab, {
 } from './StylesTab';
 import userEvent from '@testing-library/user-event';
 
+jest.mock('components/base/ImageUpload/ImageUpload');
 jest.mock('components/base/ColorPicker/ColorPicker');
 jest.mock('hooks/useFontList');
+
 const setStyles = jest.fn();
+const onChangePage = jest.fn();
 
 const mockStyles = {
   id: 'mock-styles-id' as any,
@@ -33,7 +36,18 @@ const mockFont = {
 } as any;
 
 function tree(props?: Partial<StylesTabProps>) {
-  return render(<StylesTab styles={mockStyles} setStyles={setStyles} {...props} />);
+  return render(
+    <StylesTab
+      headerAltText="mock-header-alt-text"
+      headerLink="mock-header-link"
+      headerLogo="mock-header-logo"
+      headerThumbnail="mock-header-thumbnail"
+      styles={mockStyles}
+      setStyles={setStyles}
+      onChangePage={onChangePage}
+      {...props}
+    />
+  );
 }
 
 describe('StylesTab', () => {
@@ -53,6 +67,78 @@ describe('StylesTab', () => {
     expect(screen.getByText('Colors')).toBeInTheDocument();
     expect(screen.getByText('Fonts')).toBeInTheDocument();
     expect(screen.getByText('Button Style')).toBeInTheDocument();
+  });
+
+  describe('logo section', () => {
+    it('should render logo input section', () => {
+      tree();
+      expect(screen.getByText('Logo')).toBeInTheDocument();
+      expect(screen.getByLabelText('Logo Link')).toBeInTheDocument();
+      expect(screen.getByLabelText('Logo Alt Text')).toBeInTheDocument();
+    });
+
+    it('should render image upload component', () => {
+      tree();
+      const imageUpload = screen.getByTestId('mock-image-upload');
+      expect(imageUpload).toBeInTheDocument();
+      expect(imageUpload.dataset.thumbnailUrl).toBe('mock-header-thumbnail');
+      expect(imageUpload.dataset.value).toBe('mock-header-logo');
+      expect(imageUpload).toHaveTextContent('Main header logo');
+    });
+
+    it('should update logo image', () => {
+      tree();
+      expect(onChangePage).not.toHaveBeenCalled();
+      userEvent.click(screen.getByTestId('mock-image-upload'));
+      expect(onChangePage).toHaveBeenCalledTimes(1);
+      expect(onChangePage).toHaveBeenCalledWith({
+        header_logo: expect.any(File),
+        header_logo_thumbnail: 'mock-thumbnail-url'
+      });
+    });
+
+    it('should remove logo image', () => {
+      tree();
+      expect(onChangePage).not.toHaveBeenCalled();
+      userEvent.click(screen.getByRole('button', { name: 'remove image' }));
+      expect(onChangePage).toHaveBeenCalledTimes(1);
+      expect(onChangePage).toHaveBeenCalledWith({
+        header_logo: undefined,
+        header_logo_thumbnail: undefined
+      });
+    });
+
+    it('should hide logo link and logo alt text inputs if no logo is uploaded', () => {
+      tree({ headerLogo: '', headerThumbnail: '' });
+      expect(screen.queryByLabelText('Logo link')).not.toBeInTheDocument();
+      expect(screen.queryByLabelText('Logo alt text')).not.toBeInTheDocument();
+    });
+
+    it('should update logo link', () => {
+      tree();
+      expect(onChangePage).not.toHaveBeenCalled();
+      userEvent.type(screen.getByLabelText('Logo Link'), 'A');
+      expect(onChangePage).toHaveBeenCalledTimes(1);
+      expect(onChangePage).toHaveBeenCalledWith({ header_link: 'mock-header-linkA' });
+    });
+
+    it('should display error if logo link is invalid', () => {
+      tree({ headerLink: 'invalid-url' });
+      expect(screen.getByText('Please enter a valid URL.')).toBeInTheDocument();
+    });
+
+    it('should not display error if logo link is valid', () => {
+      tree({ headerLink: 'https://www.google.com' });
+      expect(screen.queryByText('Please enter a valid URL.')).not.toBeInTheDocument();
+    });
+
+    it('should update logo alt text', () => {
+      tree();
+      expect(onChangePage).not.toHaveBeenCalled();
+      userEvent.type(screen.getByLabelText('Logo Alt Text'), 'A');
+      expect(onChangePage).toHaveBeenCalledTimes(1);
+      expect(onChangePage).toHaveBeenCalledWith({ header_logo_alt_text: 'mock-header-alt-textA' });
+    });
   });
 
   describe.each(COLOR_PICKERS.map((color) => [color.label, color.field]))('color picker: %s', (label, field) => {

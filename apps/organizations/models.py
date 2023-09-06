@@ -217,12 +217,10 @@ class Organization(IndexedTimeStampedModel):
         # we limit to 99 because we don't want to have to deal with 3-digit numbers.
         # also, note that we would never expect to reach this limit and if we do, there's probably something
         # untoward going on.
-        while counter <= MAX_APPEND_ORG_NAME_ATTEMPTS:
+        for counter in range(1, MAX_APPEND_ORG_NAME_ATTEMPTS):
             appended = f"{name}-{counter}"
             if not cls.objects.filter(name=appended).exists():
                 return appended
-            else:
-                counter += 1
         logger.warning("Unable to generate unique organization name based on input %s", name)
         raise OrgNameNonUniqueError("Unable to generate unique organization name because already taken")
 

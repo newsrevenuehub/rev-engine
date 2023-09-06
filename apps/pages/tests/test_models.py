@@ -26,6 +26,10 @@ def test__get_screenshot_upload_path():
     instance = mock.Mock(name="landing", organization=mock.Mock(name="justiceleague"))
     filename = mock.Mock()
     assert isinstance(_get_screenshot_upload_path(instance, filename), str)
+    assert (
+        _get_screenshot_upload_path(instance, filename)
+        == f"{instance.organization.name}/page_screenshots/{instance.name}_{datetime.datetime.utcnow().strftime('%Y%m%d%H%M%S')}.png"
+    )
 
 
 @pytest.mark.django_db

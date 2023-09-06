@@ -1,4 +1,4 @@
-import { createContext, useState, useEffect, useContext, useMemo } from 'react';
+import { createContext, useState, useEffect, useContext, useMemo, useRef } from 'react';
 import { useHistory } from 'react-router-dom';
 import * as S from './PageEditor.styled';
 import { useTheme } from 'styled-components';
@@ -81,6 +81,7 @@ function PageEditor() {
     setPageChanges,
     updatedPagePreview
   } = useEditablePageContext();
+  const donationPageRef = useRef();
   const [availableStyles, setAvailableStyles] = useState([]);
   const requestGetPageStyles = useRequest();
   const history = useHistory();
@@ -186,7 +187,7 @@ function PageEditor() {
 
       try {
         if (CAPTURE_PAGE_SCREENSHOT) {
-          await savePageChanges({}, updatedPagePreview.name, document.getElementById('root'));
+          await savePageChanges({}, updatedPagePreview.name, donationPageRef?.current);
         } else {
           await savePageChanges();
         }
@@ -246,10 +247,15 @@ function PageEditor() {
               <InnerEditInterface />
             </AnimatePresence>
           )}
-          {!isLoading && !isSaving && !stylesLoading && updatedPagePreview && (
+          {updatedPagePreview && (
             <SegregatedStyles page={updatedPagePreview}>
               {/* set stringified page as key to guarantee that ALL page changes will re-render the page in edit mode */}
-              <DonationPage key={JSON.stringify(updatedPagePreview ?? '')} live={false} page={updatedPagePreview} />
+              <DonationPage
+                key={JSON.stringify(updatedPagePreview ?? '')}
+                live={false}
+                page={updatedPagePreview}
+                ref={donationPageRef}
+              />
             </SegregatedStyles>
           )}
 

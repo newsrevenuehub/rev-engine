@@ -19,7 +19,7 @@ def update_keys_dont_require_email_verification(request) -> bool:
 
 
 def user_email_is_verified(request) -> bool:
-    return bool(request.user) and request.user.email_verified
+    return request.user is not None and request.user.email_verified
 
 
 class UserIsAllowedToUpdate(permissions.BasePermission):

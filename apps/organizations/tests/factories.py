@@ -25,8 +25,8 @@ class OrganizationFactory(DjangoModelFactory):
 
     class Params:
         free_plan = factory.Trait(plan_name=models.FreePlan.name)
-        plus_plan = factory.Trait(plan_name=models.PlusPlan.name)
-        core_plan = factory.Trait(plan_name=models.CorePlan.name)
+        plus_plan = factory.Trait(plan_name=models.PlusPlan.name, stripe_subscription_id=f"sub_{fake.uuid4()}")
+        core_plan = factory.Trait(plan_name=models.CorePlan.name, stripe_subscription_id=f"sub_{fake.uuid4()}")
 
 
 class PaymentProviderFactory(DjangoModelFactory):

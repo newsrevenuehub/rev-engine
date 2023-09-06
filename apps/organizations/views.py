@@ -189,6 +189,17 @@ class OrganizationViewSet(
             return
         cls.upgrade_from_free_to_core(org, event)
 
+    @classmethod
+    def handle_customer_subscription_deleted_event(cls, event: stripe.Event) -> None:
+        logger.info("Handling customer subscription deleted event with event id %s", event["id"])
+        sub_id = event["data"]["object"]["id"]
+        try:
+            org = Organization.objects.get(stripe_subscription_id=sub_id)
+        except Organization.DoesNotExist:
+            logger.warning("No organization found with stripe subscription id %s", sub_id)
+            return
+        org.downgrade_to_free_plan()
+
     @action(detail=False, methods=["post"], permission_classes=[])
     def handle_stripe_webhook(self, request: HttpRequest) -> Response:
         logger.info("Handling Stripe webhook")
@@ -196,8 +207,13 @@ class OrganizationViewSet(
         logger.info("Handling Stripe webhook event with type %s", request.data["type"])
         logger.info("The request body is %s", payload)
         event = self.construct_stripe_event(request, payload)
-        if event["type"] == "checkout.session.completed":
-            self.handle_checkout_session_completed_event(event)
+        match event["type"]:
+            case "checkout.session.completed":
+                self.handle_checkout_session_completed_event(event)
+            case "customer.subscription.deleted":
+                self.handle_customer_subscription_deleted_event(event)
+            case _:
+                logger.debug("No handler for event type %s", event["type"])
         return Response(status=status.HTTP_200_OK)
 
 

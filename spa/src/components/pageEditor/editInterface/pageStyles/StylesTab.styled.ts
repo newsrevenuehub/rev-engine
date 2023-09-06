@@ -20,6 +20,13 @@ export const Title = styled.h1`
   margin: 0;
 `;
 
+export const FullLine = styled.div`
+  display: grid;
+  grid-auto-flow: row;
+  flex-grow: 1;
+  gap: 20px;
+`;
+
 export const Pickers = styled.div`
   display: grid;
   grid-template-columns: 1fr 1fr;

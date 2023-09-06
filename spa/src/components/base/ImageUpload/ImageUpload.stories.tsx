@@ -1,5 +1,6 @@
 import { ComponentMeta, ComponentStory } from '@storybook/react';
 import ImageUpload from './ImageUpload';
+import OffscreenText from '../OffscreenText/OffscreenText';
 
 export default {
   component: ImageUpload,
@@ -22,17 +23,35 @@ const sampleImage = new File([sampleImageBlob], 'uploaded-file.svg', { type: 'im
 const Template: ComponentStory<typeof ImageUpload> = (props) => <ImageUpload {...props} />;
 
 export const Empty = Template.bind({});
-Empty.args = { label: 'Input label', prompt: 'Choose an image' };
+Empty.args = {
+  prompt: 'Choose an image',
+  label: (
+    <OffscreenText>
+      <label>Main image</label>
+    </OffscreenText>
+  )
+};
+
+export const WithLabel = Template.bind({});
+WithLabel.args = { prompt: 'Choose an image', label: <label>Main image</label> };
 
 export const WithThumbnailOnly = Template.bind({});
 WithThumbnailOnly.args = {
-  label: 'Input label',
-  thumbnailUrl: sampleImageUri
+  thumbnailUrl: sampleImageUri,
+  label: (
+    <OffscreenText>
+      <label>Main image</label>
+    </OffscreenText>
+  )
 };
 
 export const WithImage = Template.bind({});
 WithImage.args = {
-  label: 'Input label',
   thumbnailUrl: sampleImageUri,
-  value: sampleImage
+  value: sampleImage,
+  label: (
+    <OffscreenText>
+      <label>Main image</label>
+    </OffscreenText>
+  )
 };

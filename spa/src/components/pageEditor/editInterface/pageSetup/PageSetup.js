@@ -1,15 +1,15 @@
-import { Controls, ImageSelectorHelpText, ImageSelectorWrapper, InputWrapper, Root } from './PageSetup.styled';
+import { Controls, ImageSelectorHelpText, ImageSelectorWrapper, InputWrapper, Root, Label } from './PageSetup.styled';
 
 // Context
-import { useEditablePageBatch } from 'hooks/useEditablePageBatch';
 import { usePageEditorContext } from 'components/pageEditor/PageEditor';
+import { useEditablePageBatch } from 'hooks/useEditablePageBatch';
 
 // Children
 import ImageUpload from 'components/base/ImageUpload/ImageUpload';
 import Input from 'elements/inputs/Input';
+import { isValidWebUrl } from 'utilities/isValidWebUrl';
 import EditSaveControls from '../EditSaveControls';
 import EditTabHeader from '../EditTabHeader';
-import { isValidWebUrl } from 'utilities/isValidWebUrl';
 
 const INVALID_URL_MESSAGE = 'Please enter a valid URL.';
 
@@ -27,31 +27,14 @@ function PageSetup() {
     addBatchChange({ [type]: file, [`${type}_thumbnail`]: thumbnailUrl });
   };
 
-  let showLogoInput = false;
-
   if (!batchPreview) {
     return null;
   }
 
-  if (batchPreview.header_logo_thumbnail) {
-    showLogoInput = true;
-
-    if (batchPreview.header_logo === '') {
-      showLogoInput = false;
-    }
-  }
-
-  if (batchPreview.header_logo !== '') {
-    showLogoInput = true;
-  }
-
   // If any URL field is not valid, disable the update button.
-
-  const updateDisabled = [
-    batchPreview.header_link,
-    batchPreview.post_thank_you_redirect,
-    batchPreview.thank_you_redirect
-  ].some((value) => !isValidWebUrl(value, true));
+  const updateDisabled = [batchPreview.post_thank_you_redirect, batchPreview.thank_you_redirect].some(
+    (value) => !isValidWebUrl(value, true)
+  );
 
   return (
     <Root data-testid="page-setup">
@@ -61,40 +44,13 @@ function PageSetup() {
           <ImageUpload
             id="page-setup-header_bg_image"
             onChange={(file, thumbnailUrl) => handleImageChange('header_bg_image', file, thumbnailUrl)}
-            label="Main header background"
+            label={<Label htmlFor="page-setup-header_bg_image">Main header background</Label>}
             prompt="Choose an image"
             thumbnailUrl={batchPreview.header_bg_image_thumbnail}
             value={batchPreview.header_bg_image}
           />
           <ImageSelectorHelpText>Background of header bar</ImageSelectorHelpText>
         </ImageSelectorWrapper>
-        <ImageSelectorWrapper>
-          <ImageUpload
-            id="page-setup-header_logo"
-            onChange={(file, thumbnailUrl) => handleImageChange('header_logo', file, thumbnailUrl)}
-            label="Main header logo"
-            prompt="Choose an image"
-            thumbnailUrl={batchPreview.header_logo_thumbnail}
-            value={batchPreview.header_logo}
-          />
-          <ImageSelectorHelpText>
-            Logo to display in header. Please choose a horizontally-oriented logo with minimal padding. Images will be
-            scaled down to a height of 50 px.
-          </ImageSelectorHelpText>
-        </ImageSelectorWrapper>
-        {showLogoInput && (
-          <InputWrapper border>
-            <Input
-              errors={!isValidWebUrl(batchPreview.header_link, true) && [INVALID_URL_MESSAGE]}
-              type="url"
-              label="Logo link"
-              value={batchPreview.header_link}
-              helpText="Where does clicking your logo take your users?"
-              onChange={(e) => addBatchChange({ header_link: e.target.value })}
-              testid="logo-link-input"
-            />
-          </InputWrapper>
-        )}
         <InputWrapper border>
           <Input
             type="text"
@@ -109,7 +65,7 @@ function PageSetup() {
           <ImageUpload
             id="page-setup-graphic"
             onChange={(file, thumbnailUrl) => handleImageChange('graphic', file, thumbnailUrl)}
-            label="Graphic"
+            label={<Label htmlFor="page-setup-graphic">Graphic</Label>}
             errors={errors.graphic}
             prompt="Choose an image"
             thumbnailUrl={batchPreview.graphic_thumbnail}
@@ -163,8 +119,6 @@ export default PageSetup;
 export const PAGE_SETUP_FIELDS = [
   'heading',
   'header_bg_image_thumbnail',
-  'header_logo_thumbnail',
-  'header_link',
   'graphic_thumbnail',
   'thank_you_redirect',
   'post_thank_you_redirect',

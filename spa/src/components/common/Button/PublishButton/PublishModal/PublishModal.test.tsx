@@ -53,56 +53,56 @@ describe('PublishModal', () => {
     expect(publishButton).toBeEnabled();
   });
 
-  // it("sets the slug field to the page's slug", () => {
-  //   const slug = 'previous-published';
+  it("sets the slug field to the page's slug", () => {
+    const slug = 'previous-published';
 
-  //   tree({ page: { ...mockPage, slug } as any });
-  //   expect(screen.getByRole('button', { name: 'Publish' })).toBeEnabled();
-  //   expect(screen.getByRole('textbox', { name: /page name/i })).toHaveValue(slug);
-  // });
+    tree({ page: { ...mockPage, slug } as any });
+    expect(screen.getByRole('button', { name: 'Publish' })).toBeEnabled();
+    expect(screen.getByRole('textbox', { name: /page name/i })).toHaveValue(slug);
+  });
 
-  // it('disables the publish button if the slug field is empty', () => {
-  //   tree({ page: { ...mockPage, slug: '' } as any });
-  //   expect(screen.getByRole('button', { name: 'Publish' })).toBeDisabled();
-  // });
+  it('disables the publish button if the slug field is empty', () => {
+    tree({ page: { ...mockPage, slug: '' } as any });
+    expect(screen.getByRole('button', { name: 'Publish' })).toBeDisabled();
+  });
 
-  // it('should call onClose', () => {
-  //   tree();
+  it('should call onClose', () => {
+    tree();
 
-  //   const cancelButton = screen.getByRole('button', { name: 'Cancel' });
-  //   expect(cancelButton).toBeEnabled();
+    const cancelButton = screen.getByRole('button', { name: 'Cancel' });
+    expect(cancelButton).toBeEnabled();
 
-  //   fireEvent.click(cancelButton);
-  //   expect(onClose).toHaveBeenCalled();
-  // });
+    fireEvent.click(cancelButton);
+    expect(onClose).toHaveBeenCalled();
+  });
 
-  // it('calls the onPublish prop when the Publish button is clicked', () => {
-  //   tree();
+  it('calls the onPublish prop when the Publish button is clicked', () => {
+    tree();
 
-  //   const publishButton = screen.getByRole('button', { name: 'Publish' });
-  //   const slugInput = screen.getByRole('textbox', { name: /page name/i });
-  //   expect(slugInput).toHaveValue(mockPage.slug);
+    const publishButton = screen.getByRole('button', { name: 'Publish' });
+    const slugInput = screen.getByRole('textbox', { name: /page name/i });
+    expect(slugInput).toHaveValue(mockPage.slug);
 
-  //   fireEvent.change(slugInput, { target: { value: 'donate-now' } });
-  //   expect(slugInput).toHaveValue('donate-now');
-  //   expect(publishButton).toBeEnabled();
+    fireEvent.change(slugInput, { target: { value: 'donate-now' } });
+    expect(slugInput).toHaveValue('donate-now');
+    expect(publishButton).toBeEnabled();
 
-  //   fireEvent.click(publishButton);
-  //   expect(onPublish).toHaveBeenCalled();
-  // });
+    fireEvent.click(publishButton);
+    expect(onPublish).toHaveBeenCalled();
+  });
 
-  // it('should be accessible', async () => {
-  //   const { container } = tree();
-  //   expect(await axe(container)).toHaveNoViolations();
-  // });
+  it('should be accessible', async () => {
+    const { container } = tree();
+    expect(await axe(container)).toHaveNoViolations();
+  });
 
-  // it('should display an error message if there is an error with page slug', () => {
-  //   const msg1 = 'This field is toooooo loooooong';
-  //   const msg2 = 'Page slug is already taken';
-  //   tree({ slugError: [msg1, msg2] });
+  it('should display an error message if there is an error with page slug', () => {
+    const msg1 = 'This field is toooooo loooooong';
+    const msg2 = 'Page slug is already taken';
+    tree({ slugError: [msg1, msg2] });
 
-  //   const concatenatedMsg = `${msg1}. ${msg2}`;
-  //   const errorMsg = screen.getByText(concatenatedMsg);
-  //   expect(errorMsg).toBeVisible();
-  // });
+    const concatenatedMsg = `${msg1}. ${msg2}`;
+    const errorMsg = screen.getByText(concatenatedMsg);
+    expect(errorMsg).toBeVisible();
+  });
 });

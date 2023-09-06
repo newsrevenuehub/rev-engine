@@ -49,6 +49,7 @@ export const UnderText = styled.p`
   color: ${(props) => props.theme.colors.muiGrey[600]};
   font-weight: 400;
   margin: 8px 0 0 0 !important;
+  position: absolute;
 `;
 
 export const Modal = styled(MuiModal)`
@@ -130,38 +131,44 @@ interface InputProps {
 }
 
 export const Input = styled(TextField)<InputProps>`
-  width: 100%;
-  padding: 12px;
-  height: 40px;
-  border: 1px solid ${(props) => props.theme.colors.muiGrey[400]};
+  && {
+    width: 100%;
 
-  ${(props) =>
-    props.start &&
-    `input {
-      border-top-left-radius: ${props.theme.muiBorderRadius.md};
-      border-bottom-left-radius: ${props.theme.muiBorderRadius.md};
+    ${(props) =>
+      props.start &&
+      `&& input {
       border-right: none;
+      border-top-right-radius: 0;
+      border-bottom-right-radius: 0;
     }
   `}
 
-  ${(props) =>
-    props.center &&
-    `input {
+    ${(props) =>
+      props.center &&
+      `&& input {
       text-align: center;
       padding: 12px 3px;
       font-weight: 600;
       font-size: 16px;
       border-left: none;
       border-right: none;
+      border-radius: 0;
       color: ${props.theme.colors.muiGrey[500]};
+      background-color: ${props.theme.colors.muiGrey[50]};
     }
   `}
 
   ${(props) =>
-    props.end &&
-    `input {
-      border-top-right-radius: ${props.theme.muiBorderRadius.md};
-      border-bottom-right-radius: ${props.theme.muiBorderRadius.md};
+      props.end &&
+      `&& input {
+      border-left: none;
+      border-top-left-radius: 0;
+      border-bottom-left-radius: 0;
+
+      &::placeholder {
+        font-style: italic;
+      }
     }
   `}
+  }
 `;

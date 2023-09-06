@@ -84,9 +84,15 @@ export function PublishModal({ open, onClose, onPublish, page, loading, slugErro
             </Grid>
             <Grid item xs={4}>
               <Input value={page?.revenue_program?.slug} readOnly start />
+              <UnderText>*Site name can’t be changed upon publish.</UnderText>
             </Grid>
             <Grid item xs={3}>
-              <Input disabled defaultValue={domainUrl} inputProps={{ 'aria-label': 'Domain URL' }} center />
+              <Input
+                center
+                disabled
+                defaultValue={domainUrl}
+                inputProps={{ 'aria-label': 'Domain URL', className: 'NreTextFieldInput' }}
+              />
             </Grid>
             <Grid item xs={5}>
               <Input
@@ -97,11 +103,8 @@ export function PublishModal({ open, onClose, onPublish, page, loading, slugErro
                 helperText={slugError?.length ? slugError.join('. ') : ''}
                 value={slug}
                 onChange={handleChangeSlug}
-                inputProps={{ 'aria-label': 'Page name' }}
+                inputProps={{ 'aria-label': 'Page Name', className: 'NreTextFieldInput' }}
               />
-            </Grid>
-            <Grid item xs={5}>
-              <UnderText>*Site name can’t be changed upon publish.</UnderText>
             </Grid>
             <Grid item xs={2} />
             <Grid item xs={5}>

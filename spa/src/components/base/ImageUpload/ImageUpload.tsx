@@ -1,8 +1,18 @@
-import { faFileUpload, faTimes } from '@fortawesome/free-solid-svg-icons';
+import { ReactComponent as CloseIcon } from '@material-design-icons/svg/filled/close.svg';
 import PropTypes, { InferProps } from 'prop-types';
 import { ChangeEvent, useRef } from 'react';
+import addMiddleEllipsis from 'utilities/addMiddleEllipsis';
 import fileToDataUrl from 'utilities/fileToDataUrl';
-import { IconButton, Label, Preview, Prompt, RemoveIcon, Root, Thumbnail, UploadIcon } from './ImageUpload.styled';
+import {
+  FileName,
+  IconButton,
+  ImageUploadWrapper,
+  Preview,
+  Prompt,
+  Root,
+  Thumbnail,
+  ThumbnailWrapper
+} from './ImageUpload.styled';
 
 const ImageUploadPropTypes = {
   accept: PropTypes.string,
@@ -12,7 +22,7 @@ const ImageUploadPropTypes = {
   className: PropTypes.string,
   onChange: PropTypes.func.isRequired,
   thumbnailUrl: PropTypes.string,
-  value: PropTypes.instanceOf(File)
+  value: PropTypes.oneOfType([PropTypes.string, PropTypes.instanceOf(File)])
 };
 
 export interface ImageUploadProps extends InferProps<typeof ImageUploadPropTypes> {
@@ -21,6 +31,7 @@ export interface ImageUploadProps extends InferProps<typeof ImageUploadPropTypes
    * the user removed the image.
    */
   onChange: (value?: File, thumbnailUrl?: string) => void;
+  value?: string | File | null;
 }
 
 /**
@@ -60,19 +71,32 @@ export function ImageUpload(props: ImageUploadProps) {
   }
 
   return (
-    <Root className={className!}>
-      <Label htmlFor={id}>{label}</Label>
-      <input accept={accept!} hidden id={id} onChange={handleChange} ref={inputRef} type="file" />
-      <Preview onClick={clickOnHiddenInput}>
-        {thumbnailUrl ? <Thumbnail src={thumbnailUrl} alt={value?.name ?? prompt} /> : <Prompt>{prompt}</Prompt>}
-      </Preview>
-      <IconButton onClick={clickOnHiddenInput} aria-label="Change">
-        <UploadIcon icon={faFileUpload} />
-      </IconButton>
-      <IconButton disabled={!thumbnailUrl && !value} onClick={() => onChange()} aria-label="Remove">
-        <RemoveIcon icon={faTimes} />
-      </IconButton>
-    </Root>
+    <ImageUploadWrapper>
+      {label}
+      <Root className={className!}>
+        <input accept={accept!} hidden id={id} onChange={handleChange} ref={inputRef} type="file" />
+        <Preview onClick={clickOnHiddenInput}>
+          {thumbnailUrl ? (
+            <>
+              <ThumbnailWrapper>
+                <Thumbnail
+                  src={typeof value === 'string' ? value : thumbnailUrl}
+                  alt={(value as File)?.name ?? prompt}
+                />
+              </ThumbnailWrapper>
+              <FileName>{addMiddleEllipsis((value as File)?.name || thumbnailUrl)}</FileName>
+            </>
+          ) : (
+            <Prompt>{prompt}</Prompt>
+          )}
+        </Preview>
+        {thumbnailUrl && (
+          <IconButton disabled={!thumbnailUrl && !value} onClick={() => onChange()} aria-label="Remove">
+            <CloseIcon />
+          </IconButton>
+        )}
+      </Root>
+    </ImageUploadWrapper>
   );
 }
 

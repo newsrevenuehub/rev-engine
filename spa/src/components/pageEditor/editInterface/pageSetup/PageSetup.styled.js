@@ -33,3 +33,8 @@ export const InputWrapper = styled.div`
   border-bottom: ${(props) => (props.border ? '1px solid' : 'none')};
   border-color: ${(props) => props.theme.colors.grey[0]};
 `;
+
+export const Label = styled.label`
+  font-size: ${({ theme }) => theme.fontSizesUpdated.md};
+  font-weight: 500;
+`;

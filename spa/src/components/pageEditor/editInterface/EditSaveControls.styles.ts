@@ -12,6 +12,7 @@ export const Root = styled.div`
   position: sticky;
   right: 0;
   bottom: 0;
+  z-index: ${({ theme }) => theme.zIndex.sidebar};
 `;
 
 export const Button = styled(BaseButton)`

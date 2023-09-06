@@ -15,7 +15,7 @@ jest.mock('../EditTabHeader', () => ({ prompt }: EditTabHeaderProps) => (
 jest.mock('../EditSaveControls', () => ({ cancelDisabled, onCancel, onUpdate, variant }: EditSaveControlsProps) => (
   <div data-testid="mock-edit-controls" data-variant={variant}>
     <button disabled={cancelDisabled!} onClick={onCancel}>
-      cancel
+      undo
     </button>
     <button onClick={onUpdate}>update</button>
   </div>
@@ -88,17 +88,17 @@ describe('PageStyles', () => {
 
   it('should render action buttons', () => {
     tree();
-    expect(screen.getByTestId('mock-edit-controls')).toHaveAttribute('data-variant', 'cancel');
-    expect(screen.getByRole('button', { name: 'cancel' })).toBeDisabled();
+    expect(screen.getByTestId('mock-edit-controls')).toHaveAttribute('data-variant', 'undo');
+    expect(screen.getByRole('button', { name: 'undo' })).toBeDisabled();
     expect(screen.getByRole('button', { name: 'update' })).toBeEnabled();
   });
 
-  it('should disable cancel button if batchHasChanges is "false"', () => {
+  it('should disable undo button if batchHasChanges is "false"', () => {
     tree();
-    expect(screen.getByRole('button', { name: 'cancel' })).toBeDisabled();
+    expect(screen.getByRole('button', { name: 'undo' })).toBeDisabled();
   });
 
-  it('should enable cancel button if batchHasChanges is "true"', () => {
+  it('should enable undo button if batchHasChanges is "true"', () => {
     useEditablePageBatchMock.mockReturnValue({
       addBatchChange: jest.fn(),
       batchHasChanges: true,
@@ -107,10 +107,10 @@ describe('PageStyles', () => {
       resetBatch: jest.fn()
     });
     tree();
-    expect(screen.getByRole('button', { name: 'cancel' })).toBeEnabled();
+    expect(screen.getByRole('button', { name: 'undo' })).toBeEnabled();
   });
 
-  it('should call resetBatch when cancel button is clicked', () => {
+  it('should call resetBatch when undo button is clicked', () => {
     useEditablePageBatchMock.mockReturnValue({
       addBatchChange: jest.fn(),
       batchHasChanges: true,
@@ -120,7 +120,7 @@ describe('PageStyles', () => {
     });
     tree();
     expect(useEditablePageBatchMock().resetBatch).not.toHaveBeenCalled();
-    userEvent.click(screen.getByRole('button', { name: 'cancel' }));
+    userEvent.click(screen.getByRole('button', { name: 'undo' }));
     expect(useEditablePageBatchMock().resetBatch).toHaveBeenCalled();
   });
 

@@ -111,21 +111,7 @@ describe('Add Page modal', () => {
       cy.intercept({ method: 'GET', pathname: getEndpoint('/revenue-programs/*/mailchimp_configure/') }, {});
     });
 
-    it('immediately creates a page with a temporary slug', () => {
-      cy.intercept({ method: 'GET', pathname: getEndpoint(LIST_PAGES) }, { body: [], statusCode: 200 }).as('listPages');
-      cy.intercept({ method: 'POST', pathname: getEndpoint(LIST_PAGES) }).as('createNewPage');
-      cy.visit(CONTENT_SLUG);
-      cy.findByRole('button', { name: 'New Page' }).click();
-      cy.wait('@createNewPage').then(({ request }) => {
-        expect(request.body).to.eql({
-          name: 'Some Rev Program Page 1',
-          revenue_program: 1,
-          slug: 'some-rev-program-page-1'
-        });
-      });
-    });
-
-    it('immediately creates a page with a unique name and slug based on existing pages', () => {
+    it('immediately creates a page with a unique name based on existing pages', () => {
       cy.intercept(
         { method: 'GET', pathname: getEndpoint(LIST_PAGES) },
         { fixture: 'pages/list-pages-1', statusCode: 200 }
@@ -136,9 +122,8 @@ describe('Add Page modal', () => {
       cy.findByRole('button', { name: 'New Page' }).click();
       cy.wait('@createNewPage').then(({ request }) => {
         expect(request.body).to.eql({
-          name: 'Some Rev Program Page 2',
-          revenue_program: 1,
-          slug: 'some-rev-program-page-2'
+          name: 'Page 2',
+          revenue_program: 1
         });
       });
     });
@@ -167,7 +152,7 @@ describe('Add Page modal', () => {
       cy.url().should('include', 'edit/pages/1');
     });
 
-    it('shows an error if creating the page fails', () => {
+    it('shows an error if creating the page fails due to error', () => {
       cy.intercept(
         { method: 'GET', pathname: getEndpoint(LIST_PAGES) },
         { fixture: 'pages/list-pages-1', statusCode: 200 }

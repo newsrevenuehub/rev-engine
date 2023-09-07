@@ -327,6 +327,7 @@ class DonationPageFullDetailSerializer(serializers.ModelSerializer):
 
     def ensure_slug_for_publication(self, data) -> None:
         """Ensure that a page will have a slug"""
+        logger.debug("Ensuring slug for data: %s", data)
         in_data = "slug" in data
         sent_slug = data.get("slug", None)
         is_new = self.is_new

@@ -453,6 +453,7 @@ STRIPE_TEST_SECRET_KEY_UPGRADES = os.getenv("STRIPE_TEST_SECRET_KEY_UPGRADES", "
 STRIPE_WEBHOOK_SECRET_UPGRADES = os.getenv("STRIPE_WEBHOOK_SECRET_UPGRADES", "")
 STRIPE_WEBHOOK_EVENTS_FOR_UPGRADES = [
     "checkout.session.completed",
+    "customer.subscription.deleted",
 ]
 # Applied in email template sent to confirm successful upgrade from free to core. We advise the recipient
 # that max expected wait time is UPGRADE_DAYS_WAIT days.

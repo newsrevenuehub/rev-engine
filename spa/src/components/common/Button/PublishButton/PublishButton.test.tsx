@@ -1,6 +1,7 @@
 import userEvent from '@testing-library/user-event';
 import { axe } from 'jest-axe';
 import { act, render, screen, waitFor } from 'test-utils';
+import { AxiosError, AxiosResponse } from 'axios';
 import { GENERIC_ERROR } from 'constants/textConstants';
 import useContributionPageList from 'hooks/useContributionPageList';
 import { useEditablePageContext } from 'hooks/useEditablePage';
@@ -232,6 +233,8 @@ describe('PublishButton', () => {
           useEditablePageContextMock.mockReturnValue({ savePageChanges, isLoading: false, page: unpublishedPage });
           tree();
           userEvent.click(screen.getByRole('button', { name: `Publish page ${publishedPage.name}` }));
+          expect(screen.getByTestId('mock-publish-modal')).toBeInTheDocument();
+
           userEvent.click(screen.getByText('onPublish'));
           expect(savePageChanges.mock.calls).toEqual([[{ published_date: expect.any(String), slug: 'mock-slug' }]]);
           // Allow pending re-renders to complete.
@@ -250,6 +253,19 @@ describe('PublishButton', () => {
           userEvent.click(screen.getByText('onPublish'));
           await waitFor(() => expect(error).toBeCalled());
           expect(error.mock.calls).toEqual([[GENERIC_ERROR]]);
+        });
+
+        it('causes publish modal to display field-level error message when slug error after publish attempt', async () => {
+          const error = new Error('ruh roh') as Partial<AxiosError>;
+          const errorMsg = 'Slug error message';
+          (error as any).response = { data: { slug: [errorMsg] } };
+          const savePageChanges = jest.fn();
+          savePageChanges.mockRejectedValue(error);
+          useEditablePageContextMock.mockReturnValue({ savePageChanges, isLoading: false, page: unpublishedPage });
+          tree();
+          userEvent.click(screen.getByRole('button', { name: `Publish page ${publishedPage.name}` }));
+          expect(screen.getByTestId('mock-publish-modal')).toBeInTheDocument();
+          expect(screen.getByText(errorMsg)).toBeVisible();
         });
 
         it('is accessible', async () => {

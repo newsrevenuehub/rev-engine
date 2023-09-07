@@ -130,7 +130,11 @@ interface InputProps {
   readOnly?: boolean;
 }
 
-export const Input = styled(TextField)<InputProps>`
+export const Input = styled(TextField).withConfig({
+  // This is here to avoid downstream complaints about the `start`, `center`, and `end` props
+  // being passed to TextField
+  shouldForwardProp: (prop: any) => !['start', 'center', 'end'].includes(prop)
+})<InputProps>`
   && {
     width: 100%;
 

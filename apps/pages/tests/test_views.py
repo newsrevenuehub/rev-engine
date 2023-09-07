@@ -168,6 +168,33 @@ def page_creation_invalid_non_existent_rp(page_creation_data_valid):
 
 
 @pytest.fixture
+def page_creation_invalid_with_published_but_slug_empty(page_creation_data_valid):
+    data = {**page_creation_data_valid | {"published_date": "2020-09-17T00:00:00", "slug": ""}}
+    return data
+
+
+@pytest.fixture
+def page_creation_invalid_with_published_but_no_slug_field(page_creation_data_valid):
+    assert "slug" not in page_creation_data_valid
+    data = {**page_creation_data_valid | {"published_date": "2020-09-17T00:00:00"}}
+    return data
+
+
+@pytest.fixture
+def page_creation_data_with_unpermitted_sidebar_elements(page_creation_data_valid):
+    org = RevenueProgram.objects.get(pk=page_creation_data_valid["revenue_program"]).organization
+    assert org.plan_name == Plans.FREE
+    return page_creation_data_valid | {"sidebar_elements": [{"type": x} for x in PlusPlan.sidebar_elements]}
+
+
+@pytest.fixture
+def page_creation_data_with_unpermitted_elements(page_creation_data_valid):
+    org = RevenueProgram.objects.get(pk=page_creation_data_valid["revenue_program"]).organization
+    assert org.plan_name == Plans.FREE
+    return page_creation_data_valid | {"elements": [{"type": x} for x in PlusPlan.page_elements]}
+
+
+@pytest.fixture
 def patch_page_valid_data():
     return {
         "name": fake.company(),
@@ -355,6 +382,22 @@ class TestPageViewSet:
                 pytest_cases.fixture_ref("page_creation_invalid_blank_rp"),
                 {"revenue_program": ["This field may not be null."]},
             ),
+            (
+                pytest_cases.fixture_ref("page_creation_invalid_with_published_but_slug_empty"),
+                {"slug": ["This field is required."]},
+            ),
+            (
+                pytest_cases.fixture_ref("page_creation_invalid_with_published_but_no_slug_field"),
+                {"slug": ["This field is required."]},
+            ),
+            (
+                pytest_cases.fixture_ref("page_creation_data_with_unpermitted_elements"),
+                {"page_elements": ["You're not allowed to use the following elements: DSwag"]},
+            ),
+            (
+                pytest_cases.fixture_ref("page_creation_data_with_unpermitted_sidebar_elements"),
+                {"sidebar_elements": ["You're not allowed to use the following elements: DBenefits"]},
+            ),
         ),
     )
     def test_create_page_when_invalid_data(self, data, expected_response, hub_admin_user, api_client):
@@ -369,6 +412,7 @@ class TestPageViewSet:
         """
         api_client.force_authenticate(hub_admin_user)
         response = api_client.post(reverse("donationpage-list"), data=data, format="json")
+
         assert response.status_code == status.HTTP_400_BAD_REQUEST
         assert response.json() == expected_response
 
@@ -484,6 +528,9 @@ class TestPageViewSet:
         )
         assert response.status_code == status.HTTP_400_BAD_REQUEST
         assert "slug" in response.json()
+
+    def test_create_page_when_prohibited_sidebar_elements(self, hub_admin_user, api_client):
+        pass
 
     def assert_retrieved_page_detail_looks_right(self, serialized_data, page):
         """"""

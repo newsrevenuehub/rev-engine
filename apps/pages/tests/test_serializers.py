@@ -454,38 +454,6 @@ class TestDonationPageFullDetailSerializer:
             == f"Your organization has reached its limit of {org.plan.publish_limit} published page{'' if org.plan.publish_limit == 1 else 's'}"
         )
 
-    @pytest.mark.parametrize("include_published_date", (True, False))
-    def test_validate(self, include_published_date, hub_admin_user, mocker):
-        """The purpose of this test is just to prove that the validate method calls expected methods,
-        which are tested elsewhere.
-        """
-        data = {}
-        if include_published_date:
-            data["published_date"] = "truthy"
-        mock_validate_page_limit = mocker.patch.object(DonationPageFullDetailSerializer, "validate_page_limit")
-        mock_ensure_slug_for_publication = mocker.patch.object(
-            DonationPageFullDetailSerializer, "ensure_slug_for_publication"
-        )
-        mock_validate_publish_limit = mocker.patch.object(DonationPageFullDetailSerializer, "validate_publish_limit")
-        mock_validate_page_element_permissions = mocker.patch.object(
-            DonationPageFullDetailSerializer, "validate_page_element_permissions"
-        )
-        mock_validate_sidebar_element_permissions = mocker.patch.object(
-            DonationPageFullDetailSerializer, "validate_sidebar_element_permissions"
-        )
-        request = APIRequestFactory().patch("/")
-        request.user = hub_admin_user
-        serializer = DonationPageFullDetailSerializer()
-        serializer.validate(data)
-        mock_validate_page_limit.assert_called_once_with(data)
-        if include_published_date:
-            mock_ensure_slug_for_publication.assert_called_once_with(data)
-            mock_validate_publish_limit.assert_called_once_with(data)
-        else:
-            mock_validate_publish_limit.assert_not_called()
-        mock_validate_page_element_permissions.assert_called_once_with(data)
-        mock_validate_sidebar_element_permissions.assert_called_once_with(data)
-
     @pytest_cases.parametrize(
         "instance,expect",
         (

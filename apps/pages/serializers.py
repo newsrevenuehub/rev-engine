@@ -345,14 +345,18 @@ class DonationPageFullDetailSerializer(serializers.ModelSerializer):
     def ensure_slug_is_unique_for_rp(self, data) -> None:
         """Ensure that a slug is unique for a given revenue program
 
-        NB: We are not using a UniqueTogetherValidator for this because we that validator
-        requires that the fields are truthy, and we allow nulls for slug.  A given RP can
+        NB: We are not using a UniqueTogetherValidator for this because that validator
+        requires that the fields are truthy, and we allow nulls for slug. A given RP can
         have > 1 page with a null slug.
 
-        NB: we assume rp is already validated at this point, so we can safely access it in case of
-        new page creation.
+        NB: We assume rp is already validated at this point, so we can safely access it in case of
+        new page creation. We also assume that if key "slug" is in data, its value is truthy at this point.
 
-        and assume if key is there, it's non empty if string
+        These assumptions are only true insofar as this gets called after individual field validation ha
+        run. At time of this comment being written, this gets called in the `validate` method,
+        which in natural DRF validation lifecycle happens after field level validation has been run. In
+        other words, field-level validation should already catch those cases.
+
         """
         slug = data["slug"] if "slug" in data else None
         is_new = not self.instance or not self.instance.id

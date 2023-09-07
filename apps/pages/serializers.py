@@ -370,7 +370,7 @@ class DonationPageFullDetailSerializer(serializers.ModelSerializer):
         else:
             already_exists = DonationPage.objects.filter(revenue_program=rp, slug=slug).exists()
         if already_exists:
-            raise serializers.ValidationError({"slug": "This field must be unique for the given revenue program."})
+            raise serializers.ValidationError({"slug": "This value is already being used."})
 
     def validate(self, data):
         self.validate_page_limit(data)

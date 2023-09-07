@@ -298,6 +298,23 @@ def patch_page_unpermitted_sidebar_elements(patch_page_valid_data, live_donation
 
 
 @pytest.fixture
+def patch_page_when_publishing_and_no_slug_param(patch_page_valid_data, live_donation_page):
+    live_donation_page.published_date = None
+    live_donation_page.slug = None
+    live_donation_page.save()
+    assert "slug" not in patch_page_valid_data
+    return patch_page_valid_data | {"published_date": "2020-09-17T00:00:00"}
+
+
+@pytest.fixture
+def patch_page_when_publishing_and_empty_slug_param(patch_page_valid_data, live_donation_page):
+    live_donation_page.published_date = None
+    live_donation_page.slug = None
+    live_donation_page.save()
+    return patch_page_valid_data | {"published_date": "2020-09-17T00:00:00", "slug": ""}
+
+
+@pytest.fixture
 def live_donation_page_with_styles(live_donation_page):
     styles = StyleFactory(revenue_program=live_donation_page.revenue_program)
     live_donation_page.styles = styles
@@ -853,6 +870,8 @@ class TestPageViewSet:
             (pytest_cases.fixture_ref("patch_page_unpermitted_sidebar_elements"), "sidebar_elements"),
             (pytest_cases.fixture_ref("patch_page_poorly_formed_elements"), "elements"),
             (pytest_cases.fixture_ref("patch_page_poorly_formed_sidebar_elements"), "sidebar_elements"),
+            (pytest_cases.fixture_ref("patch_page_when_publishing_and_empty_slug_param"), "slug"),
+            (pytest_cases.fixture_ref("patch_page_when_publishing_and_no_slug_param"), "slug"),
         ),
     )
     def test_patch_when_expected_user_with_invalid_data(self, user, data, error_key, api_client, live_donation_page):

@@ -264,8 +264,9 @@ describe('PublishButton', () => {
           useEditablePageContextMock.mockReturnValue({ savePageChanges, isLoading: false, page: unpublishedPage });
           tree();
           userEvent.click(screen.getByRole('button', { name: `Publish page ${publishedPage.name}` }));
-          expect(screen.getByTestId('mock-publish-modal')).toBeInTheDocument();
-          expect(screen.getByText(errorMsg)).toBeVisible();
+          userEvent.click(screen.getByText('onPublish'));
+          expect(screen.getByTestId('mock-publish-modal')).toBeVisible();
+          await waitFor(() => expect(screen.getByText(errorMsg, { exact: false })).toBeVisible());
         });
 
         it('is accessible', async () => {

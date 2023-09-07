@@ -107,9 +107,7 @@ export function PublishModal({ open, onClose, onPublish, page, loading, slugErro
               />
             </Grid>
             <Grid item xs={2} />
-            <Grid item xs={5}>
-              {/* TODO: add input error messages */}
-            </Grid>
+            <Grid item xs={5}></Grid>
           </Grid>
           <Actions>
             <CancelButton variant="contained" onClick={onClose} disableElevation>

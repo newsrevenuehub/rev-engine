@@ -9,7 +9,6 @@ from solo.models import SingletonModel
 from sorl.thumbnail import ImageField as SorlImageField
 
 from apps.common.models import IndexedTimeStampedModel
-from apps.common.validators import validate_non_empty_string
 from apps.config.validators import validate_slug_against_denylist
 from apps.pages import defaults, signals
 from apps.pages.validators import style_validator
@@ -77,7 +76,7 @@ class DonationPage(IndexedTimeStampedModel):
 
     slug = models.SlugField(
         blank=True,
-        validators=[validate_slug_against_denylist, validate_non_empty_string],
+        validators=[validate_slug_against_denylist],
         null=True,
     )
 

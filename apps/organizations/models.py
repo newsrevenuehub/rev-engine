@@ -213,7 +213,6 @@ class Organization(IndexedTimeStampedModel):
         logger.info("Called with name %s", name)
         if not cls.objects.filter(name=name).exists():
             return name
-        counter = 1
         # we limit to 99 because we don't want to have to deal with 3-digit numbers.
         # also, note that we would never expect to reach this limit and if we do, there's probably something
         # untoward going on.

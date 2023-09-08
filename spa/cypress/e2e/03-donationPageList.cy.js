@@ -196,8 +196,7 @@ describe('Pages view', () => {
         method: 'GET',
         pathname: getEndpoint(DRAFT_PAGE_DETAIL),
         query: {
-          revenue_program: createPageResponse.revenue_program.slug,
-          page: createPageResponse.slug
+          revenue_program: createPageResponse.revenue_program.slug
         }
       },
       { fixture: 'pages/live-page-element-validation' }

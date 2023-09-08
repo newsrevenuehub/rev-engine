@@ -1,6 +1,8 @@
 import logging
+from typing import Any
 
 from django.conf import settings
+from django.core.exceptions import ValidationError
 
 from rest_framework import serializers
 
@@ -83,3 +85,13 @@ class ValidateFkReferenceOwnership:
                 instance,
             )
             raise serializers.ValidationError({self.fk_attribute: "Not found"})
+
+
+def validate_non_empty_string(value: Any):
+    """Validate that a string is not empty
+
+    Note that this doesn't validate that the value is a string, just that it's not empty if it is.
+    """
+    logger.debug("validate_non_empty_string: %s", value)
+    if isinstance(value, str) and value.strip() == "":
+        raise ValidationError("This field cannot be an empty string.")

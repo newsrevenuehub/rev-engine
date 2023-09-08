@@ -401,7 +401,9 @@ class TestPageViewSet:
             ),
             (
                 pytest_cases.fixture_ref("page_creation_invalid_with_published_but_slug_empty"),
-                {"slug": ["This field is required."]},
+                # The validation message here is different than one below because it's default value that is generated
+                # by DRF when validation fails because of model-level validation problem
+                {"slug": ["This information is required"]},
             ),
             (
                 pytest_cases.fixture_ref("page_creation_invalid_with_published_but_no_slug_field"),

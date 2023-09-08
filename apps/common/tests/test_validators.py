@@ -1,9 +1,11 @@
 from unittest import mock
 
+from django.core.exceptions import ValidationError as DjangoValidationError
+
 import pytest
 from rest_framework import serializers
 
-from apps.common.validators import ValidateFkReferenceOwnership
+from apps.common.validators import ValidateFkReferenceOwnership, validate_non_empty_string
 from apps.contributions.models import Contribution
 from apps.organizations.models import RevenueProgram
 from apps.pages.tests.factories import DonationPageFactory
@@ -79,3 +81,34 @@ class TestValidateFkReferenceOwnership:
             context=mock.Mock(get=mock.Mock(return_value=mock.Mock(user=org_user_free_plan))),
         )
         t(value, serializer)
+
+
+@pytest.mark.parametrize(
+    "val, expect_valid",
+    (
+        ("", False),
+        (" ", False),
+        ("a", True),
+        (None, True),
+        (0, True),
+        (1, True),
+        (False, True),
+        (True, True),
+        (0.0, True),
+        (0.1, True),
+        ({}, True),
+        ({"foo": "bar"}, True),
+        ([], True),
+        (["foo"], True),
+        (set(), True),
+        (set("a"), True),
+        ((), True),
+        (("a",), True),
+    ),
+)
+def test_validate_non_empty_string(val, expect_valid):
+    if expect_valid:
+        validate_non_empty_string(val)
+    else:
+        with pytest.raises(DjangoValidationError):
+            validate_non_empty_string(val)

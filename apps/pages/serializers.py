@@ -329,7 +329,7 @@ class DonationPageFullDetailSerializer(serializers.ModelSerializer):
         """Ensure that a page will have a slug"""
         logger.debug("Ensuring slug for data: %s", data)
         in_data = "slug" in data
-        sent_slug = data["slug"] if "slug" in data else None
+        sent_slug = data.get("slug", None)
         is_new = self.is_new
         validation_error = serializers.ValidationError({"slug": "This field is required."})
         # if it's new and no slug is provided or the sent slug is Falsy
@@ -350,29 +350,25 @@ class DonationPageFullDetailSerializer(serializers.ModelSerializer):
         have > 1 page with a null slug.
 
         NB: We assume rp is already validated at this point, so we can safely access it in case of
-        new page creation. We also assume that if key "slug" is in data, its value is truthy at this point.
+        new page creation. This should be guaranteed because field level validation will have run for revenue_program
+        before this method is called (insofar as this method is called from `validate` method, which is called after field level
+        validations in natural DRF validation lifecycle).
 
-        These assumptions are only true insofar as this gets called after individual field validation ha
-        run. At time of this comment being written, this gets called in the `validate` method,
-        which in natural DRF validation lifecycle happens after field level validation has been run. In
-        other words, field-level validation should already catch those cases.
-
+        The default field-level validator for slug will also have run at this point (insofar as this is called in validate), which means
+        that we should be guaranteed to have either a non empty string or else a null value for slug (see the configuration of the slug
+        field in DonationPage model, which uses validate_non_empty_string validator).
         """
-        slug = data["slug"] if "slug" in data else None
+        slug = data.get("slug", None)
         is_new = not self.instance or not self.instance.id
         rp = data["revenue_program"] if is_new else self.instance.revenue_program
-        logger.info("Ensuring that slug %s is unique for rp %s", slug, rp.id)
+        logger.debug("Ensuring that slug %s is unique for rp %s", slug, rp.id)
         if slug is None:
-            logger.debug("Slug is empty, so skipping uniqueness check")
+            logger.debug("Slug is null, so skipping uniqueness check")
             return
-        if slug == "":
-            raise serializers.ValidationError({"slug": "This field must be at least 1 character long."})
-        if self.instance and self.instance.id:
-            already_exists = (
-                DonationPage.objects.filter(revenue_program=rp, slug=slug).exclude(id=self.instance.id).exists()
-            )
-        else:
-            already_exists = DonationPage.objects.filter(revenue_program=rp, slug=slug).exists()
+        query = DonationPage.objects.filter(revenue_program=rp, slug=slug)
+        already_exists = (
+            query.exclude(id=self.instance.id).exists() if self.instance and self.instance.id else query.exists()
+        )
         if already_exists:
             raise serializers.ValidationError({"slug": "This value is already being used."})
 

@@ -1,3 +1,4 @@
+import json
 import os
 from unittest import mock
 
@@ -6,6 +7,7 @@ from django.template.loader import render_to_string
 
 import pytest
 import pytest_cases
+import stripe
 from faker import Faker
 from rest_framework import status
 from rest_framework.exceptions import APIException
@@ -550,6 +552,66 @@ class TestOrganizationViewSet:
             "Organization with uuid %s is not upgrading from free to core. No further action to be taken",
             str(organization.uuid),
         )
+
+    @pytest.mark.parametrize(
+        "event_type,handler",
+        (
+            ("checkout.session.completed", "handle_checkout_session_completed_event"),
+            ("customer.subscription.deleted", "handle_customer_subscription_deleted_event"),
+        ),
+    )
+    def test_handle_stripe_webhook_when_handled_event_type(self, event_type, handler, mocker, api_client):
+        mock_handler = mocker.patch(f"apps.organizations.views.OrganizationViewSet.{handler}")
+        mocker.patch(
+            "apps.organizations.views.OrganizationViewSet.construct_stripe_event",
+            return_value=(event := {"type": event_type}),
+        )
+        assert (
+            api_client.post(
+                reverse("organization-handle-stripe-webhook"),
+                json.dumps(event),
+                content_type="application/json",
+            ).status_code
+            == status.HTTP_200_OK
+        )
+        mock_handler.assert_called_once_with(event)
+
+    def test_handle_stripe_webhook_when_unhandled_event_type(self, mocker, api_client):
+        mocker.patch(
+            "apps.organizations.views.OrganizationViewSet.construct_stripe_event",
+            return_value=(event := {"type": (event_type := "some-other-event")}),
+        )
+        logger_spy = mocker.spy(logger, "debug")
+        assert (
+            api_client.post(
+                reverse("organization-handle-stripe-webhook"),
+                json.dumps(event),
+                content_type="application/json",
+            ).status_code
+            == status.HTTP_200_OK
+        )
+        logger_spy.assert_called_once_with("No handler for event type %s", event_type)
+
+    def test_handle_customer_subscription_deleted_event_happy_path(self, mocker, organization):
+        mock_downgrade_org = mocker.patch("apps.organizations.models.Organization.downgrade_to_free_plan")
+        event = stripe.Event.construct_from(
+            {"id": "evt_XXX", "data": {"object": {"id": (sub_id := "sub_XXX")}}}, key="test"
+        )
+        organization.stripe_subscription_id = sub_id
+        organization.save()
+        OrganizationViewSet.handle_customer_subscription_deleted_event(event)
+        mock_downgrade_org.assert_called_once()
+
+    def test_handle_customer_subscription_deleted_event_when_no_org_found_with_sub_id(self, mocker, organization):
+        logger_spy = mocker.spy(logger, "warning")
+        mock_downgrade_org = mocker.patch("apps.organizations.models.Organization.downgrade_to_free_plan")
+        event = stripe.Event.construct_from(
+            {"id": "evt_XXX", "data": {"object": {"id": (sub_id := "sub_XXX")}}}, key="test"
+        )
+        assert organization.stripe_subscription_id != sub_id
+        OrganizationViewSet.handle_customer_subscription_deleted_event(event)
+        mock_downgrade_org.assert_not_called()
+        logger_spy.assert_called_once_with("No organization found with stripe subscription id %s", sub_id)
 
 
 @pytest.fixture

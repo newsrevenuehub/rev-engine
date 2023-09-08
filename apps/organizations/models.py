@@ -227,6 +227,24 @@ class Organization(IndexedTimeStampedModel):
     def generate_slug_from_name(name):
         return normalize_slug(name=name, max_length=ORG_SLUG_MAX_LENGTH)
 
+    def downgrade_to_free_plan(self):
+        """Downgrade an org to the free plan
+
+        We set `stripe_subscription_id` to None, change plan_name to FreePlan.name, and iterate over any RPs, calling
+        `disable_mailchimp_integration` on each one.
+        """
+        logger.info("Downgrading org %s to free plan", self.id)
+        if not any([self.stripe_subscription_id, self.plan_name != FreePlan.name]):
+            logger.info("Org %s already downgraded to free plan", self.id)
+            return
+        self.stripe_subscription_id = None
+        self.plan_name = FreePlan.name
+        for rp in self.revenueprogram_set.all():
+            rp.disable_mailchimp_integration()
+        with reversion.create_revision():
+            self.save(update_fields={"stripe_subscription_id", "plan_name", "modified"})
+            reversion.set_comment("`handle_customer_subscription_deleted_event` downgraded this org")
+
 
 class Benefit(IndexedTimeStampedModel):
     name = models.CharField(max_length=128, help_text="A way to uniquely identify this Benefit")
@@ -1108,6 +1126,28 @@ class RevenueProgram(IndexedTimeStampedModel):
                     self.name,
                 )
                 raise ex
+
+    def disable_mailchimp_integration(self):
+        """Disable mailchimp integration for this revenue program.
+
+        We do this by deleting the mailchimp_access_token and setting mailchimp_server_prefix and mailchimp_list_id to None.
+
+        This has the effect of disabling Mailchimp integration downstream in switchboard.
+        """
+        logger.info("Disabling mailchimp integration for rp_id=[%s]", self.id)
+        logger.info(
+            "Attempting to delete mailchimp_access_token_secret_name=[%s] for RP %s",
+            self.mailchimp_access_token_secret_name,
+            self.id,
+        )
+        # Note, we should confirm DEV-3581 doesn't cause any issues with this line if we end up doing that ticket.
+        del self.mailchimp_access_token  # This will delete the secret from Google Cloud Secrets Manager if it exists
+        logger.info("Setting mailchimp_server_prefix to None for rp_id=[%s]", self.id)
+        with reversion.create_revision():
+            self.mailchimp_server_prefix = None
+            self.mailchimp_list_id = None
+            self.save(update_fields={"mailchimp_server_prefix", "modified", "mailchimp_list_id"})
+            reversion.set_comment("disable_mailchimp_integration updated this RP")
 
 
 class PaymentProvider(IndexedTimeStampedModel):

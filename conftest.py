@@ -240,6 +240,16 @@ def organization():
 
 
 @pytest.fixture
+def organization_on_core_plan_with_mailchimp_set_up():
+    org = OrganizationFactory(core_plan=True)
+    # note that an RP in this state will also have a `mailchimp_access_token` set, but that's not stored
+    # in db layer and needs to be handled on case by case basis in test
+    RevenueProgramFactory(organization=org, onboarded=True, mailchimp_server_prefix="us1")
+    org.refresh_from_db()
+    return org
+
+
+@pytest.fixture
 def revenue_program(organization):
     return RevenueProgramFactory(organization=organization)
 

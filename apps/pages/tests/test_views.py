@@ -401,9 +401,7 @@ class TestPageViewSet:
             ),
             (
                 pytest_cases.fixture_ref("page_creation_invalid_with_published_but_slug_empty"),
-                # The validation message here is different than one below because it's default value that is generated
-                # by DRF when validation fails because of model-level validation problem
-                {"slug": ["This information is required"]},
+                {"slug": ["This field may not be blank."]},
             ),
             (
                 pytest_cases.fixture_ref("page_creation_invalid_with_published_but_no_slug_field"),
@@ -547,9 +545,6 @@ class TestPageViewSet:
         )
         assert response.status_code == status.HTTP_400_BAD_REQUEST
         assert "slug" in response.json()
-
-    def test_create_page_when_prohibited_sidebar_elements(self, hub_admin_user, api_client):
-        pass
 
     def assert_retrieved_page_detail_looks_right(self, serialized_data, page):
         """"""
@@ -758,7 +753,10 @@ class TestPageViewSet:
         rp = RevenueProgramFactory(organization=org)
         page = DonationPageFactory(revenue_program=rp, published_date=None)
         api_client.force_authenticate(hub_admin_user)
-        response = api_client.patch(reverse("donationpage-detail", args=(page.id,)), patch_page_valid_data)
+        response = api_client.patch(
+            reverse("donationpage-detail", args=(page.id,)),
+            patch_page_valid_data,
+        )
         assert response.status_code == status.HTTP_200_OK
         page.refresh_from_db()
         serialized_from_db = json.loads(json.dumps(DonationPageFullDetailSerializer(page).data))

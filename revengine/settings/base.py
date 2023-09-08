@@ -580,6 +580,8 @@ MAILCHIMP_CLIENT_SECRET = os.getenv("MAILCHIMP_CLIENT_SECRET", None)
 # see https://mailchimp.com/developer/release-notes/message-search-rate-limit-now-enforced/#:~:text=We're%20now%20enforcing%20the,of%20the%20original%2020%20requests.
 MAILCHIMP_RATE_LIMIT_RETRY_WAIT_SECONDS = 60
 
+### Waffle flag custom model
+WAFFLE_FLAG_MODEL = "config.Flag"
 
 ### Front End Environment Variables
 SPA_ENV_VARS = {

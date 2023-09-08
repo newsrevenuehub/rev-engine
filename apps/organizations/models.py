@@ -16,6 +16,7 @@ import reversion
 import stripe
 from addict import Dict as AttrDict
 from mailchimp_marketing.api_client import ApiClientError
+from waffle import get_waffle_flag_model
 
 from apps.common.models import IndexedTimeStampedModel
 from apps.common.secrets import GoogleCloudSecretProvider
@@ -184,6 +185,12 @@ class Organization(IndexedTimeStampedModel):
     @property
     def plan(self):
         return Plans.get_plan(self.plan_name)
+
+    @property
+    def new_portal_flag(self):
+        Flag = get_waffle_flag_model()
+        flag_object = Flag.objects.filter(name="new-portal").first()
+        return flag_object.is_active_for_org(self) or flag_object.everyone
 
     @property
     def admin_revenueprogram_options(self):

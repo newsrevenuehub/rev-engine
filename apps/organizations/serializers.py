@@ -2,8 +2,10 @@ import logging
 from dataclasses import asdict
 
 from django.conf import settings
+from django.db.models import Q
 
 from rest_framework import serializers
+from waffle import get_waffle_flag_model
 
 from apps.organizations.models import (
     Benefit,
@@ -43,6 +45,12 @@ class OrganizationSerializer(serializers.ModelSerializer):
 
 class OrganizationInlineSerializer(serializers.ModelSerializer):
     plan = serializers.SerializerMethodField()
+    flags = serializers.SerializerMethodField(method_name="get_active_flags_for_org")
+
+    def get_active_flags_for_org(self, obj):
+        Flag = get_waffle_flag_model()
+        qs = Flag.objects.filter(Q(everyone=True) | Q(organizations__in=[obj]))
+        return list(qs.values("name", "id"))
 
     class Meta:
         model = Organization
@@ -56,6 +64,8 @@ class OrganizationInlineSerializer(serializers.ModelSerializer):
             "show_connected_to_salesforce",
             "show_connected_to_mailchimp",
             "send_receipt_email_via_nre",
+            "new_portal_flag",
+            "flags",
         ]
 
     def get_plan(self, obj):

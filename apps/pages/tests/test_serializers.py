@@ -8,6 +8,8 @@ import pytest_cases
 from rest_framework import serializers
 from rest_framework.test import APIRequestFactory
 
+from apps.config.tests.factories import DenyListWordFactory
+from apps.config.validators import GENERIC_SLUG_DENIED_MSG
 from apps.organizations.models import FiscalStatusChoices, FreePlan, Plans
 from apps.organizations.serializers import PaymentProviderSerializer
 from apps.organizations.tests.factories import (
@@ -457,7 +459,10 @@ class TestDonationPageFullDetailSerializer:
     @pytest_cases.parametrize(
         "instance,expect",
         (
+            # has instance and id
             (pytest_cases.fixture_ref("live_donation_page"), False),
+            # has instance but no id
+            (DonationPage(), True),
             (None, True),
         ),
     )
@@ -513,23 +518,41 @@ class TestDonationPageFullDetailSerializer:
         serializer.is_valid(raise_exception=raise_exception)
         mock_super_validate.assert_called_once_with(raise_exception=raise_exception)
 
-    @pytest_cases.parametrize(
-        "error,expected",
-        (
-            (pytest_cases.fixture_ref("field_error_for_rp_name"), pytest_cases.fixture_ref("field_error_for_rp_name")),
-            (pytest_cases.fixture_ref("non_field_error_other"), pytest_cases.fixture_ref("non_field_error_other")),
-            (
-                pytest_cases.fixture_ref("non_field_error_for_rp_slug_uniqueness"),
-                pytest_cases.fixture_ref("non_field_error_expected_transformation"),
-            ),
-        ),
-    )
-    def test_is_valid_override_when_validation_error(self, live_donation_page, error, expected, mocker):
-        mocker.patch("rest_framework.serializers.ModelSerializer.is_valid", side_effect=error)
-        serializer = DonationPageFullDetailSerializer(instance=live_donation_page)
+    def test_validate_slug_when_invalid_because_empty_string(self):
+        serializer = DonationPageFullDetailSerializer()
         with pytest.raises(serializers.ValidationError) as exc:
-            serializer.is_valid(raise_exception=True)
-        assert exc.value.detail == expected.detail
+            serializer.validate_slug("")
+        assert str(exc.value.detail[0]) == "This field may not be blank."
+
+    def test_validate_slug_when_invalid_because_denied_word(self):
+        DenyListWordFactory(word=(word := "foo"))
+        serializer = DonationPageFullDetailSerializer()
+        with pytest.raises(serializers.ValidationError) as exc:
+            serializer.validate_slug(word)
+        assert str(exc.value.detail[0]) == GENERIC_SLUG_DENIED_MSG
+
+    def test_ensure_slug_is_unique_for_rp_when_data_not_have_slug_field(self):
+        serializer = DonationPageFullDetailSerializer()
+        assert serializer.ensure_slug_is_unique_for_rp({}) is None
+
+    def test_ensure_slug_when_sent_value_is_none(self):
+        serializer = DonationPageFullDetailSerializer()
+        assert serializer.ensure_slug_is_unique_for_rp({"slug": None}) is None
+
+    def test_ensure_slug_when_new_and_non_unique(self, live_donation_page):
+        serializer = DonationPageFullDetailSerializer()
+        with pytest.raises(serializers.ValidationError) as exc:
+            serializer.ensure_slug_is_unique_for_rp(
+                {"slug": live_donation_page.slug, "revenue_program": live_donation_page.revenue_program}
+            )
+        assert str(exc.value.detail["slug"]) == RP_SLUG_UNIQUENESS_VIOLATION_MSG
+
+    def test_ensure_slug_when_not_new_and_non_unique(self, live_donation_page):
+        page = DonationPageFactory(revenue_program=live_donation_page.revenue_program)
+        serializer = DonationPageFullDetailSerializer(instance=page)
+        with pytest.raises(serializers.ValidationError) as exc:
+            serializer.ensure_slug_is_unique_for_rp({"slug": live_donation_page.slug})
+        assert str(exc.value.detail["slug"]) == RP_SLUG_UNIQUENESS_VIOLATION_MSG
 
 
 @pytest.mark.django_db
@@ -567,3 +590,9 @@ class TestStyleListSerializer:
         page.styles = StyleFactory(revenue_program=page.revenue_program)
         page.save()
         assert StyleListSerializer(page.styles).data["used_live"] is published
+
+    def test_validate_revenue_program(self):
+        serializer = StyleListSerializer()
+        with pytest.raises(serializers.ValidationError) as exc:
+            serializer.validate_revenue_program(None)
+        assert str(exc.value.detail[0]) == "This field is required."

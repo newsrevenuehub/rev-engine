@@ -3,15 +3,16 @@ import logging
 from dataclasses import asdict
 
 from django.conf import settings
+from django.core.exceptions import ValidationError as DjangoValidationError
 from django.utils import timezone
 
 from drf_extra_fields.relations import PresentablePrimaryKeyRelatedField
 from rest_framework import serializers
-from rest_framework.exceptions import ValidationError
 from rest_framework.validators import UniqueTogetherValidator
 from sorl_thumbnail_serializer.fields import HyperlinkedSorlImageField
 
 from apps.common.validators import ValidateFkReferenceOwnership
+from apps.config.validators import GENERIC_SLUG_DENIED_MSG, validate_slug_against_denylist
 from apps.organizations.models import Organization, RevenueProgram
 from apps.organizations.serializers import (
     BenefitLevelDetailSerializer,
@@ -223,6 +224,17 @@ class DonationPageFullDetailSerializer(serializers.ModelSerializer):
             serializer = BenefitLevelDetailSerializer(benefit_levels, many=True)
             return serializer.data
 
+    def validate_slug(self, value):
+        logger.debug("Validating slug with value %s", value)
+        if isinstance(value, str) and not value.strip():
+            raise serializers.ValidationError("This field may not be blank.")
+        try:
+            validate_slug_against_denylist(value)
+        except DjangoValidationError:
+            # we do this so can consistently have DRF validation errors coming from this serializer
+            raise serializers.ValidationError(GENERIC_SLUG_DENIED_MSG)
+        return value
+
     def validate_thank_you_redirect(self, value):
         if self.instance and self.instance.id:
             org = self.instance.revenue_program.organization
@@ -308,19 +320,6 @@ class DonationPageFullDetailSerializer(serializers.ModelSerializer):
                 {"sidebar_elements": f"You're not allowed to use the following elements: {', '.join(prohibited)}"}
             )
 
-    def is_valid(self, raise_exception: bool = False):
-        """We override `is_valid` so we can turn slug+rp uniqueness constraint violation into a field-level error.
-
-        We do this to make the SPA's life easier.
-        """
-        try:
-            return super().is_valid(raise_exception=raise_exception)
-        except ValidationError as exc:
-            if exc.detail.get("non_field_errors", [""])[0] == RP_SLUG_UNIQUENESS_VIOLATION_MSG:
-                raise ValidationError({"slug": [RP_SLUG_UNIQUENESS_VIOLATION_MSG]})
-            else:
-                raise
-
     @property
     def is_new(self):
         return not self.instance or not self.instance.id
@@ -354,31 +353,31 @@ class DonationPageFullDetailSerializer(serializers.ModelSerializer):
         before this method is called (insofar as this method is called from `validate` method, which is called after field level
         validations in natural DRF validation lifecycle).
 
-        The default field-level validator for slug will also have run at this point (insofar as this is called in validate), which means
-        that we should be guaranteed to have either a non empty string or else a null value for slug (see the configuration of the slug
-        field in DonationPage model, which uses validate_non_empty_string validator).
+
         """
-        slug = data.get("slug", None)
-        is_new = not self.instance or not self.instance.id
-        rp = data["revenue_program"] if is_new else self.instance.revenue_program
-        logger.debug("Ensuring that slug %s is unique for rp %s", slug, rp.id)
-        if slug is None:
+        logger.debug("Ensuring slug is unique for rp for data: %s", data)
+        if "slug" not in data:
+            logger.debug("Slug not in data, so skipping uniqueness check")
+            return
+        if (slug := data["slug"]) is None:
             logger.debug("Slug is null, so skipping uniqueness check")
             return
+        rp = data["revenue_program"] if self.is_new else self.instance.revenue_program
         query = DonationPage.objects.filter(revenue_program=rp, slug=slug)
         already_exists = (
             query.exclude(id=self.instance.id).exists() if self.instance and self.instance.id else query.exists()
         )
         if already_exists:
-            raise serializers.ValidationError({"slug": "This value is already being used."})
+            raise serializers.ValidationError({"slug": RP_SLUG_UNIQUENESS_VIOLATION_MSG})
 
     def validate(self, data):
+        data = super().validate(data)
         self.validate_page_limit(data)
+        if "slug" in data:
+            self.ensure_slug_is_unique_for_rp(data)
         if "published_date" in data:
             self.ensure_slug_for_publication(data)
             self.validate_publish_limit(data)
-        if "slug" in data:
-            self.ensure_slug_is_unique_for_rp(data)
         # TODO: [DEV-2741] Add granular validation for page and sidebar elements
         self.validate_page_element_permissions(data)
         self.validate_sidebar_element_permissions(data)

@@ -511,12 +511,16 @@ class TestDonationPageFullDetailSerializer:
             with pytest.raises(serializers.ValidationError):
                 serializer.ensure_slug_for_publication(data)
 
-    @pytest.mark.parametrize("raise_exception", (True, False))
-    def test_is_valid_override(self, raise_exception, live_donation_page, mocker):
-        mock_super_validate = mocker.patch("rest_framework.serializers.ModelSerializer.is_valid")
-        serializer = DonationPageFullDetailSerializer(instance=live_donation_page)
-        serializer.is_valid(raise_exception=raise_exception)
-        mock_super_validate.assert_called_once_with(raise_exception=raise_exception)
+    @pytest.mark.parametrize(
+        "val",
+        # NB: the only expect types that would make it to this validator are None or str
+        # but we add the additional cases here to be thorough
+        (1, 1.0, True, False, [], {}, set(), tuple(), object()),
+    )
+    def test_validate_slug_when_not_string(self, val, mocker):
+        mock_deny_list_validator = mocker.patch("apps.config.validators.validate_slug_against_denylist")
+        assert DonationPageFullDetailSerializer().validate_slug(val) == val
+        mock_deny_list_validator.assert_not_called()
 
     def test_validate_slug_when_invalid_because_empty_string(self):
         serializer = DonationPageFullDetailSerializer()

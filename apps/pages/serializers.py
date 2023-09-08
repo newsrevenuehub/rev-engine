@@ -225,14 +225,32 @@ class DonationPageFullDetailSerializer(serializers.ModelSerializer):
             return serializer.data
 
     def validate_slug(self, value):
+        """If value is string, ensure slug is not empty string and not in deny list
+
+        NB: There are some oddities around the validation flow for the slug field here to note.
+
+        First, this only validates the slug in isolation of other fields, but in the overridden validate method below, we
+        do some additional validation based on the presence of other fields (after those fields have gone through their own
+        field-level validation.
+
+        Second, we don't get the benefit of the validators kwarg on the SlugField here, which means that we don't get the denylist
+        validation that is defined on the model field.
+
+        Third, to make matters somewhat confusing, we DO get the benefit of the max_length validation that is defined internally in
+        the models.SlugField. In other words, if a slug is sent in request data that exceeds max length of 50 from models.SlugField,
+        that will raise a validation error before this method is ever called. This is evidenced in our `page_creation_data_with_invalid_slug`
+        test fixture in apps/pages/tests_views.py where among othercases, we test that a slug that exceeds 50 chars will raise a validation
+        error.
+        """
         logger.debug("Validating slug with value %s", value)
-        if isinstance(value, str) and not value.strip():
-            raise serializers.ValidationError("This field may not be blank.")
-        try:
-            validate_slug_against_denylist(value)
-        except DjangoValidationError:
-            # we do this so can consistently have DRF validation errors coming from this serializer
-            raise serializers.ValidationError(GENERIC_SLUG_DENIED_MSG)
+        if isinstance(value, str):
+            if not value.strip():
+                raise serializers.ValidationError("This field may not be blank.")
+            try:
+                validate_slug_against_denylist(value)
+            except DjangoValidationError:
+                # we do this so can consistently have DRF validation errors coming from this serializer
+                raise serializers.ValidationError(GENERIC_SLUG_DENIED_MSG)
         return value
 
     def validate_thank_you_redirect(self, value):
@@ -353,7 +371,13 @@ class DonationPageFullDetailSerializer(serializers.ModelSerializer):
         before this method is called (insofar as this method is called from `validate` method, which is called after field level
         validations in natural DRF validation lifecycle).
 
+        Also, at point that this method runs, `validate_slug` will have already run, which means if the slug is in data and is a string,
+        it will have a min-length of 1 and will not violate the denylist.
 
+        For not entirely understood reasons, we get the field-level validations that are inherent to the models.SlugField for free here, which
+        means that max length (default of 50) will also have been enforced at this point (the reason this is somewhat mysterious is that we
+        don't get the field level validations specified with the `validators=[...]` argument on the SlugField) There's more context for this
+        in doc string for `validate_slug` above.
         """
         logger.debug("Ensuring slug is unique for rp for data: %s", data)
         if "slug" not in data:

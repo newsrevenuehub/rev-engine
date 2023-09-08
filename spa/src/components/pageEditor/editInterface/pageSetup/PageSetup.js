@@ -77,9 +77,8 @@ function PageSetup() {
           <InputWrapper>
             <Input
               errors={
-                errors.thank_you_redirect
-                  ? !isValidWebUrl(batchPreview.thank_you_redirect, true) && [INVALID_URL_MESSAGE]
-                  : []
+                errors.thank_you_redirect ??
+                (!isValidWebUrl(batchPreview.thank_you_redirect, true) && [INVALID_URL_MESSAGE])
               }
               type="url"
               label="Thank You page link"
@@ -93,9 +92,8 @@ function PageSetup() {
         <InputWrapper border>
           <Input
             errors={
-              errors.post_thank_you_redirect
-                ? !isValidWebUrl(batchPreview.post_thank_you_redirect, true) && [INVALID_URL_MESSAGE]
-                : []
+              errors.post_thank_you_redirect ??
+              (!isValidWebUrl(batchPreview.post_thank_you_redirect, true) && [INVALID_URL_MESSAGE])
             }
             type="url"
             label="Post Thank You redirect"

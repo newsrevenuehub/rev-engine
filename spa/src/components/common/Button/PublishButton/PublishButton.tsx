@@ -70,7 +70,7 @@ function PublishButton({ className }: PublishButtonProps) {
     handleOpen: handleOpenUnpublishModal
   } = useModal();
   const [anchorEl, setAnchorEl] = useState<HTMLElement | null>(null);
-  const [slugError, setSlugError] = useState<string[]>();
+  const [slugError, setSlugError] = useState<string[] | null>(null);
 
   const showPopover = Boolean(anchorEl);
   const disabled = !page?.payment_provider?.stripe_verified;

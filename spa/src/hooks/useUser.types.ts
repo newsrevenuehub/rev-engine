@@ -10,6 +10,7 @@ export interface Organization {
   show_connected_to_mailchimp: boolean;
   show_connected_to_salesforce: boolean;
   show_connected_to_slack: boolean;
+  send_receipt_email_via_nre: boolean;
 }
 
 export interface User {

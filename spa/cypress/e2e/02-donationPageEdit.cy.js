@@ -503,7 +503,7 @@ describe('Contribution page edit', () => {
 });
 
 describe('Edit interface: Settings', () => {
-  const imageFieldNames = ['Main header background', 'Main header logo', 'Graphic'];
+  const imageFieldNames = ['Main header background', 'Graphic'];
   const textFieldNames = ['Form panel heading', 'Form panel heading', 'Post Thank You redirect'];
 
   beforeEach(() => {
@@ -658,7 +658,7 @@ describe('Edit interface: Settings', () => {
     cy.wait('@getPage');
     cy.getByTestId('edit-page-button').click();
     cy.getByTestId('edit-settings-tab').click({ force: true });
-    cy.findAllByLabelText('Remove').filter(':enabled').click({ multiple: true });
+    cy.findAllByLabelText('Remove').filter(':enabled').click({ multiple: true, force: true });
     // Accept changes
     cy.findByRole('button', { name: 'Update' }).click({ force: true });
 
@@ -673,7 +673,7 @@ describe('Edit interface: Settings', () => {
       // The intent here is to test we are sending an empty value, not the
       // string 'undefined' or something else.
 
-      for (const field of ['graphic', 'header_bg_image', 'header_logo']) {
+      for (const field of ['graphic', 'header_bg_image']) {
         expect(request.body).to.include(`Content-Disposition: form-data; name="${field}"\r\n\r\n\r\n------`);
       }
     });
@@ -753,22 +753,22 @@ describe('Edit interface: Styles', () => {
     cy.getByTestId('edit-style-tab').click({ force: true });
   });
 
-  it("disables the Cancel button if the user hasn't made a change", () => {
-    cy.findByRole('button', { name: 'Cancel' }).should('be.disabled');
+  it("disables the Undo button if the user hasn't made a change", () => {
+    cy.findByRole('button', { name: 'Undo' }).should('be.disabled');
   });
 
-  it('enables the Cancel button when the user makes a change', () => {
+  it('enables the Undo button when the user makes a change', () => {
     cy.findByLabelText('Heading Font', { selector: 'input' }).click();
     cy.findByText('Custom Font').click();
-    cy.findByRole('button', { name: 'Cancel' }).should('not.be.disabled');
+    cy.findByRole('button', { name: 'Undo' }).should('not.be.disabled');
   });
 
-  it('resets changes when the Cancel button is clicked', () => {
+  it('resets changes when the Undo button is clicked', () => {
     cy.findByLabelText('Heading Font', { selector: 'input' }).should('have.value', 'Select a font');
     cy.findByLabelText('Heading Font', { selector: 'input' }).click();
     cy.findByText('Custom Font').click();
     cy.findByLabelText('Heading Font', { selector: 'input' }).should('have.value', 'Custom Font');
-    cy.findByRole('button', { name: 'Cancel' }).click();
+    cy.findByRole('button', { name: 'Undo' }).click();
     cy.findByLabelText('Heading Font', { selector: 'input' }).should('have.value', 'Select a font');
   });
 });

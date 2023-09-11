@@ -6,7 +6,7 @@ export const PublishModal = ({ onClose, onPublish, open, slugError }: PublishMod
       <div data-testid="mock-publish-modal">
         <button onClick={() => onPublish({ slug: 'mock-slug' })}>onPublish</button>
         <button onClick={onClose}>PublishModal onClose</button>
-        <div>Slug error:{slugError?.[0]}</div>
+        <div>{slugError?.[0]}</div>
       </div>
     )}
   </>

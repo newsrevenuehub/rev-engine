@@ -38,7 +38,7 @@ export interface PublishModalProps extends InferProps<typeof PublishModalPropTyp
   onClose: () => void;
   onPublish: ({ slug }: { slug: string }) => void;
   page: ContributionPage;
-  slugError: string[] | null;
+  slugError?: string[];
 }
 
 export function PublishModal({ open, onClose, onPublish, page, loading, slugError }: PublishModalProps) {
@@ -132,8 +132,7 @@ export function PublishModal({ open, onClose, onPublish, page, loading, slugErro
 PublishModal.defaultProps = {
   className: '',
   loading: false,
-  open: false,
-  slugError: null
+  open: false
 };
 
 PublishModal.propTypes = PublishModalPropTypes;

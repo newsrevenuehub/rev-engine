@@ -20,19 +20,11 @@ describe('useAmountAuditing', () => {
       sentryMock.captureException = captureExceptionMock;
     });
 
-    it('logs a Sentry exception if the amount is $1.00', () => {
+    it.each([[1], [1.33], [1.99]])('logs a Sentry exception if the amount is %i', (amount) => {
       const { result } = hook();
 
       expect(captureExceptionMock).not.toBeCalled();
-      result.current.auditPaymentCreation(1);
-      expect(captureExceptionMock.mock.calls).toEqual([[expect.any(Error)]]);
-    });
-
-    it('logs a Sentry exception if the amount is $1.33', () => {
-      const { result } = hook();
-
-      expect(captureExceptionMock).not.toBeCalled();
-      result.current.auditPaymentCreation(1.33);
+      result.current.auditPaymentCreation(amount);
       expect(captureExceptionMock.mock.calls).toEqual([[expect.any(Error)]]);
     });
 

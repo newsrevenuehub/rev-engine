@@ -120,22 +120,18 @@ export const PublishButton = styled(MuiButton)`
 `;
 
 interface InputProps {
-  start?: boolean;
-  center?: boolean;
-  end?: boolean;
+  $start?: boolean;
+  $center?: boolean;
+  $end?: boolean;
   readOnly?: boolean;
 }
 
-export const Input = styled(TextField).withConfig({
-  // This is here to avoid downstream complaints about the `start`, `center`, and `end` props
-  // being passed to TextField
-  shouldForwardProp: (prop: any) => !['start', 'center', 'end'].includes(prop)
-})<InputProps>`
+export const Input = styled(TextField)<InputProps>`
   && {
     width: 100%;
 
     ${(props) =>
-      props.start &&
+      props.$start &&
       `&& input {
       border-right: none;
       border-top-right-radius: 0;
@@ -144,7 +140,7 @@ export const Input = styled(TextField).withConfig({
   `}
 
     ${(props) =>
-      props.center &&
+      props.$center &&
       `&& input {
       text-align: center;
       padding: 12px 3px;
@@ -159,7 +155,7 @@ export const Input = styled(TextField).withConfig({
   `}
 
   ${(props) =>
-      props.end &&
+      props.$end &&
       `&& input {
       border-left: none;
       border-top-left-radius: 0;

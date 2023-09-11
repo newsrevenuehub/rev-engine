@@ -83,12 +83,12 @@ export function PublishModal({ open, onClose, onPublish, page, loading, slugErro
               <Label>Page Name</Label>
             </Grid>
             <Grid item xs={4}>
-              <Input value={page?.revenue_program?.slug} readOnly start />
+              <Input value={page?.revenue_program?.slug} readOnly $start />
               <UnderText>*Site name can’t be changed upon publish.</UnderText>
             </Grid>
             <Grid item xs={3}>
               <Input
-                center
+                $center
                 disabled
                 defaultValue={domainUrl}
                 inputProps={{ 'aria-label': 'Domain URL', className: 'NreTextFieldInput' }}
@@ -96,7 +96,7 @@ export function PublishModal({ open, onClose, onPublish, page, loading, slugErro
             </Grid>
             <Grid item xs={5}>
               <Input
-                end
+                $end
                 error={!!slugError?.length}
                 data-testid="page-name-input"
                 placeholder="Ex. contribute, donate, join"

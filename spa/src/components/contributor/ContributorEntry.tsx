@@ -55,7 +55,7 @@ function ContributorEntry({ page }: { page?: ContributionPage }) {
         <S.Title>Welcome to the {page?.revenue_program?.name ?? 'RevEngine'} contributor portal</S.Title>
         {showConfirmation ? (
           <S.Confirmation>
-            <p>If you're in our system, an email has been sent to you containing your magic link</p>
+            <p>An email has been sent to you containing your magic link</p>
             <p>Click on your magic link to view your contributions</p>
             <p>(It's safe to close this tab)</p>
           </S.Confirmation>

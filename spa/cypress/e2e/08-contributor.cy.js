@@ -51,7 +51,7 @@ describe('Contributor portal', () => {
     it('should display generic success message if status 200', () => {
       cy.intercept({ method: 'POST', url: getEndpoint(GET_MAGIC_LINK) }, { statusCode: 200 }).as('getMagicLink');
       cy.getByTestId('magic-link-email-button').click();
-      cy.contains("If you're in our system, an email has been sent to you containing your magic link");
+      cy.contains('An email has been sent to you containing your magic link');
     });
   });
 

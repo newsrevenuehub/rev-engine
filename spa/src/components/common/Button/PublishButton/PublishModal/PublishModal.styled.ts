@@ -79,11 +79,7 @@ export const Paper = styled(MuiPaper)`
   }
 `;
 
-interface IconProps {
-  type: string;
-}
-
-export const Icon = styled.div<IconProps>`
+export const Icon = styled.div`
   > svg {
     height: 24px;
     width: 24px;

@@ -60,7 +60,7 @@ export function PublishModal({ open, onClose, onPublish, page, loading, slugErro
     <Modal open={!!open} onClose={onClose} aria-label={`Publish page ${page?.name}`}>
       <Paper>
         <IconButton onClick={onClose}>
-          <Icon type="grey">
+          <Icon>
             <CloseIcon />
           </Icon>
         </IconButton>

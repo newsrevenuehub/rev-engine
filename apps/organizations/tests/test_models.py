@@ -24,6 +24,8 @@ from apps.config.validators import GENERIC_SLUG_DENIED_MSG, SLUG_DENIED_CODE
 from apps.contributions.models import Contribution
 from apps.contributions.tests.factories import ContributionFactory
 from apps.organizations.models import (
+    MAX_APPEND_ORG_NAME_ATTEMPTS,
+    ORG_SLUG_MAX_LENGTH,
     RP_SLUG_MAX_LENGTH,
     UNLIMITED_CEILING,
     Benefit,
@@ -41,6 +43,7 @@ from apps.organizations.models import (
     MailchimpStore,
     Message,
     Organization,
+    OrgNameNonUniqueError,
     PaymentProvider,
     Plans,
     PlusPlan,
@@ -208,6 +211,25 @@ class TestOrganization:
     def test_organization_filtered_by_role_assignment_when_unexpected_role(self, user_with_unexpected_role):
         OrganizationFactory.create_batch(3)
         assert Organization.objects.filtered_by_role_assignment(user_with_unexpected_role.roleassignment).count() == 0
+
+    def test_generate_unique_name_when_not_already_exist(self):
+        assert Organization.generate_unique_name("test") == "test"
+
+    def test_generate_unique_name_when_already_exist(self, organization):
+        pre_existing_name = organization.name
+        assert Organization.generate_unique_name(pre_existing_name) == f"{pre_existing_name}-1"
+
+    def test_generate_unique_name_when_too_many_similar_already_exist(self):
+        OrganizationFactory(name=(name := "test"))
+        for x in range(MAX_APPEND_ORG_NAME_ATTEMPTS + 1):
+            OrganizationFactory(name=f"{name}-{x}")
+        with pytest.raises(OrgNameNonUniqueError):
+            Organization.generate_unique_name(name)
+
+    def test_generate_slug_from_name(self, mocker):
+        mock_normalize_slug = mocker.patch("apps.organizations.models.normalize_slug")
+        Organization.generate_slug_from_name((name := "test"))
+        mock_normalize_slug.assert_called_once_with(name=name, max_length=ORG_SLUG_MAX_LENGTH)
 
     def test_downgrade_to_free_plan_happy_path(self, organization_on_core_plan_with_mailchimp_set_up, mocker):
         assert organization_on_core_plan_with_mailchimp_set_up.plan_name == Plans.CORE.name

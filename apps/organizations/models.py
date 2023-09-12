@@ -42,6 +42,10 @@ logger = logging.getLogger(f"{settings.DEFAULT_LOGGER}.{__name__}")
 UNLIMITED_CEILING = 200
 
 
+ORG_NAME_MAX_LENGTH = 63
+ORG_SLUG_MAX_LENGTH = ORG_NAME_MAX_LENGTH
+RP_NAME_MAX_LENGTH = 255
+
 # RFC-1035 limits domain labels to 63 characters, and RP slugs are used for subdomains,
 # so we limit to 63 chars
 RP_SLUG_MAX_LENGTH = 63
@@ -50,6 +54,8 @@ FISCAL_SPONSOR_NAME_MAX_LENGTH = 100
 CURRENCY_CHOICES = [(k, k) for k in settings.CURRENCIES.keys()]
 
 TAX_ID_MAX_LENGTH = TAX_ID_MIN_LENGTH = 9
+
+MAX_APPEND_ORG_NAME_ATTEMPTS = 99
 
 
 @dataclass(frozen=True)
@@ -121,12 +127,18 @@ class OrganizationManager(models.Manager):
     pass
 
 
+class OrgNameNonUniqueError(Exception):
+    """Used when a unique name cannot be generated for an organization based on provided name"""
+
+    pass
+
+
 class Organization(IndexedTimeStampedModel):
     # used in self-upgrade flow. Stripe checkouts can have associated client-reference-id, and we set that
     # to the value of an org.uuid so that we can look up the org in the self-upgrade flow, which is triggered
     # by stripe webhooks.
     uuid = models.UUIDField(default=uuid.uuid4, editable=False, unique=True)
-    name = models.CharField(max_length=255, unique=True)
+    name = models.CharField(max_length=ORG_NAME_MAX_LENGTH, unique=True)
     plan_name = models.CharField(choices=Plans.choices, max_length=10, default=Plans.FREE)
     salesforce_id = models.CharField(max_length=255, blank=True, verbose_name="Salesforce ID")
     show_connected_to_slack = models.BooleanField(
@@ -145,15 +157,11 @@ class Organization(IndexedTimeStampedModel):
         help_text="Indicates Mailchimp integration status, designed for manual operation by staff members",
     )
 
-    # TODO: [DEV-2035] Remove Organization.slug field entirely
     slug = models.SlugField(
-        # 63 here is somewhat arbitrary. This used to be set to `RP_SLUG_MAX_LENGTH` (which used to have a different name),
-        # which is the maximum length a domain can be according to RFC-1035. We're retaining that value
-        # but without a reference to the constant, because using the constant would imply there
-        # are business requirements related to sub-domain length around this field which there are not
-        # (and given TODO above, it would appear that the business requirements that originally
-        # led to org slug being a field are no longer around)
-        max_length=63,
+        # This is currently set to 63. It's also the same limit that is set on org name. This is because we
+        # have code that attempts to derive the slug from the name, and we want to ensure that the derived
+        # slug is not longer than the slug field.
+        max_length=ORG_SLUG_MAX_LENGTH,
         unique=True,
         validators=[validate_slug_against_denylist],
     )
@@ -195,6 +203,29 @@ class Organization(IndexedTimeStampedModel):
 
     def user_is_owner(self, user):
         return user in [through.user for through in self.user_set.through.objects.filter(is_owner=True)]
+
+    @classmethod
+    def generate_unique_name(cls, name: str) -> str:
+        """Generate a unique organization name based on input name
+
+        Note that this does not guarantee that the name will be otherwise valid in terms of max length.
+        """
+        logger.info("Called with name %s", name)
+        if not cls.objects.filter(name=name).exists():
+            return name
+        # we limit to 99 because we don't want to have to deal with 3-digit numbers.
+        # also, note that we would never expect to reach this limit and if we do, there's probably something
+        # untoward going on.
+        for counter in range(1, MAX_APPEND_ORG_NAME_ATTEMPTS):
+            appended = f"{name}-{counter}"
+            if not cls.objects.filter(name=appended).exists():
+                return appended
+        logger.warning("Unable to generate unique organization name based on input %s", name)
+        raise OrgNameNonUniqueError("Unable to generate unique organization name because already taken")
+
+    @staticmethod
+    def generate_slug_from_name(name):
+        return normalize_slug(name=name, max_length=ORG_SLUG_MAX_LENGTH)
 
     def downgrade_to_free_plan(self):
         """Downgrade an org to the free plan
@@ -481,7 +512,7 @@ class RevenueProgramManager(models.Manager):
 
 
 class RevenueProgram(IndexedTimeStampedModel):
-    name = models.CharField(max_length=255)
+    name = models.CharField(max_length=RP_NAME_MAX_LENGTH)
     slug = models.SlugField(
         max_length=RP_SLUG_MAX_LENGTH,
         blank=True,

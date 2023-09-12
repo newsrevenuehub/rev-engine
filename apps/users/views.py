@@ -20,7 +20,6 @@ from django.http import HttpResponseRedirect
 from django.template.loader import render_to_string
 from django.urls import reverse, reverse_lazy
 from django.utils.safestring import mark_safe
-from django.utils.text import slugify
 from django.views.decorators.http import require_GET
 
 import reversion
@@ -37,8 +36,6 @@ from apps.common.utils import get_original_ip_from_request
 from apps.contributions.bad_actor import BadActorAPIError, make_bad_actor_request
 from apps.contributions.utils import get_sha256_hash
 from apps.emails.tasks import send_templated_email
-from apps.organizations.models import Organization, PaymentProvider, RevenueProgram
-from apps.users.choices import Roles
 from apps.users.constants import (
     BAD_ACTOR_CLIENT_FACING_VALIDATION_MESSAGE,
     BAD_ACTOR_FAKE_AMOUNT,
@@ -47,7 +44,7 @@ from apps.users.constants import (
     PASSWORD_UNEXPECTED_VALIDATION_MESSAGE_SUBSTITUTE,
     PASSWORD_VALIDATION_EXPECTED_MESSAGES,
 )
-from apps.users.models import RoleAssignment, User
+from apps.users.models import User
 from apps.users.permissions import (
     UserHasAcceptedTermsOfService,
     UserIsAllowedToUpdate,
@@ -297,48 +294,10 @@ class UserViewset(
     @action(detail=True, methods=["patch"])
     def customize_account(self, request, pk=None):
         """Allows customizing an account"""
-        customize_account_serializer = CustomizeAccountSerializer(data=request.data)
-        customize_account_serializer.is_valid()
-        if customize_account_serializer.errors:
-            errors = {**customize_account_serializer.errors, **customize_account_serializer.errors}
-            logger.warning("Request %s is invalid; errors: %s", request.data, errors)
-            raise ValidationError(errors)
-        first_name = customize_account_serializer.validated_data["first_name"]
-        last_name = customize_account_serializer.validated_data["last_name"]
-        organization_name = customize_account_serializer.validated_data["organization_name"]
-        organization_tax_id = customize_account_serializer.validated_data["organization_tax_id"]
-        fiscal_sponsor_name = customize_account_serializer.validated_data["fiscal_sponsor_name"]
-        fiscal_status = customize_account_serializer.validated_data["fiscal_status"]
-        user = request.user
-        logger.debug("Received request to customize account for user %s; request: %s", user.id, request.data)
-        user.first_name = first_name
-        user.last_name = last_name
-        user.job_title = customize_account_serializer.validated_data["job_title"]
-        user.save()
-        if Organization.objects.filter(name=organization_name).exists():
-            counter = 1
-            while Organization.objects.filter(name=f"{organization_name}-{counter}").exists():
-                counter += 1
-            organization_name = f"{organization_name}-{counter}"
-
-        organization = Organization.objects.create(name=organization_name, slug=slugify(organization_name))
-        payment_provider = PaymentProvider.objects.create()
-        revenue_program = RevenueProgram.objects.create(
-            name=organization_name,
-            organization=organization,
-            slug=slugify(organization_name),
-            fiscal_status=fiscal_status,
-            tax_id=organization_tax_id,
-            payment_provider=payment_provider,
-            fiscal_sponsor_name=fiscal_sponsor_name,
-        )
-        RoleAssignment.objects.create(user=user, role_type=Roles.ORG_ADMIN, organization=organization)
-        logger.info(
-            "Customize account for user %s successful; organization %s and revenue program %s created.",
-            user.id,
-            organization.pk,
-            revenue_program.pk,
-        )
+        logger.info("Received request to customize account for user %s; request: %s", request.user.id, request.data)
+        serializer = CustomizeAccountSerializer(data=request.data, context={"user": request.user})
+        serializer.is_valid(raise_exception=True)
+        serializer.save()
         return Response(status=status.HTTP_204_NO_CONTENT)
 
     @action(detail=False, methods=["get"])

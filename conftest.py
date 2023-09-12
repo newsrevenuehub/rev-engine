@@ -156,6 +156,11 @@ def org_user_free_plan(default_feature_flags) -> User:
 
 
 @pytest.fixture
+def user_with_verified_email_and_tos_accepted():
+    return UserFactory(accepted_terms_of_service=datetime.datetime.utcnow(), email_verified=True)
+
+
+@pytest.fixture
 def org_user_multiple_rps(org_user_free_plan, default_feature_flags) -> User:
     """A user instance for an org admin administering multiple RPs
 

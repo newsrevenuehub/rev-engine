@@ -10,6 +10,7 @@ from apps.common.models import IndexedTimeStampedModel
 from apps.users.managers import UserManager
 
 from .choices import Roles
+from .constants import FIRST_NAME_MAX_LENGTH, JOB_TITLE_MAX_LENGTH, LAST_NAME_MAX_LENGTH
 
 
 logger = logging.getLogger(f"{settings.DEFAULT_LOGGER}.{__name__}")
@@ -30,9 +31,9 @@ class User(AbstractBaseUser, PermissionsMixin, IndexedTimeStampedModel):
     organizations = models.ManyToManyField("organizations.Organization", through="users.OrganizationUser")
     accepted_terms_of_service = models.DateTimeField(null=True, blank=True)
     email_verified = models.BooleanField(default=False)
-    first_name = models.CharField(max_length=50, blank=True, null=True)
-    last_name = models.CharField(max_length=50, blank=True, null=True)
-    job_title = models.CharField(max_length=50, blank=True, null=True)
+    first_name = models.CharField(max_length=FIRST_NAME_MAX_LENGTH, blank=True, null=True)
+    last_name = models.CharField(max_length=LAST_NAME_MAX_LENGTH, blank=True, null=True)
+    job_title = models.CharField(max_length=JOB_TITLE_MAX_LENGTH, blank=True, null=True)
 
     objects = UserManager()
 

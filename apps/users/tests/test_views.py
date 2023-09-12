@@ -13,6 +13,7 @@ from django.test import Client, TestCase
 from django.test.utils import override_settings
 from django.urls import reverse
 from django.utils import timezone
+from django.utils.text import slugify
 
 import pytest
 import pytest_cases
@@ -20,9 +21,10 @@ from bs4 import BeautifulSoup
 from django_rest_passwordreset.models import ResetPasswordToken
 from faker import Faker
 from rest_framework import status
+from rest_framework.permissions import IsAuthenticated
 from rest_framework.test import APITestCase
 
-from apps.organizations.models import FiscalStatusChoices, Organization, RevenueProgram
+from apps.organizations.models import FiscalStatusChoices
 from apps.organizations.tests.factories import OrganizationFactory
 from apps.users import serializers
 from apps.users.choices import Roles
@@ -37,7 +39,7 @@ from apps.users.constants import (
     PASSWORD_TOO_SHORT_VALIDATION_MESSAGE,
     PASSWORD_TOO_SIMILAR_TO_EMAIL_VALIDATION_MESSAGE,
 )
-from apps.users.models import RoleAssignment, User
+from apps.users.models import User
 from apps.users.permissions import (
     UserHasAcceptedTermsOfService,
     UserIsAllowedToUpdate,
@@ -675,166 +677,6 @@ class TestUserViewSet(APITestCase):
         response = self.client.delete(reverse("user-detail", args=(my_user.pk,)))
         assert response.status_code == status.HTTP_405_METHOD_NOT_ALLOWED
 
-    def test_cannot_update_user_account_missing_first_name(self):
-        user = self.__create_authenticated_user()
-        response = self.client.patch(
-            reverse("user-customize-account", args=(user.pk,)),
-            data={**self.customize_account_request, "first_name": ""},
-        )
-        assert response.status_code == status.HTTP_400_BAD_REQUEST
-        assert response.json() == {"first_name": ["This information is required"]}
-
-    def test_cannot_update_user_account_missing_last_name(self):
-        user = self.__create_authenticated_user()
-        response = self.client.patch(
-            reverse("user-customize-account", args=(user.pk,)), data={**self.customize_account_request, "last_name": ""}
-        )
-        assert response.status_code == status.HTTP_400_BAD_REQUEST
-        assert response.json() == {"last_name": ["This information is required"]}
-
-    def test_cannot_update_user_account_missing_organization_name(self):
-        user = self.__create_authenticated_user()
-        response = self.client.patch(
-            reverse("user-customize-account", args=(user.pk,)),
-            data={**self.customize_account_request, "organization_name": ""},
-        )
-        assert response.status_code == status.HTTP_400_BAD_REQUEST
-        assert response.json() == {"organization_name": ["This information is required"]}
-
-    def test_cannot_update_user_account_tos_not_accepted(self):
-        user = self.__create_authenticated_user(email_verified=True, accepted_terms_of_service=None)
-        self.client.force_authenticate(user=user)
-        response = self.client.patch(
-            reverse("user-customize-account", args=(user.pk,)), data=self.customize_account_request
-        )
-        assert response.status_code == status.HTTP_403_FORBIDDEN
-        assert response.json() == {"detail": UserHasAcceptedTermsOfService.message}
-
-    def test_cannot_update_user_account_unverified(self):
-        user = self.__create_authenticated_user(email_verified=False)
-        response = self.client.patch(
-            reverse("user-customize-account", args=(user.pk,)), data=self.customize_account_request
-        )
-        assert response.status_code == status.HTTP_403_FORBIDDEN
-        assert response.json() == {"detail": UserIsAllowedToUpdate.message}
-
-    def test_can_customize_account(self):
-        user = self.__create_authenticated_user()
-        response = self.client.patch(
-            reverse("user-customize-account", args=(user.pk,)), data=self.customize_account_request
-        )
-        assert response.status_code == status.HTTP_204_NO_CONTENT
-        user.refresh_from_db()
-        assert Organization.objects.filter(name=self.customize_account_request["organization_name"]).exists()
-        assert RevenueProgram.objects.filter(name=self.customize_account_request["organization_name"]).exists()
-
-        rp = RevenueProgram.objects.filter(name=self.customize_account_request["organization_name"]).first()
-        assert rp.payment_provider
-        assert RoleAssignment.objects.filter(
-            user=user,
-            organization=Organization.objects.get(name=self.customize_account_request["organization_name"]),
-            role_type=Roles.ORG_ADMIN,
-        )
-        assert self.customize_account_request["first_name"] == user.first_name
-        assert self.customize_account_request["last_name"] == user.last_name
-        assert self.customize_account_request["job_title"] == user.job_title
-
-    def test_can_customize_account_without_job_title(self):
-        user = self.__create_authenticated_user()
-        no_job_title = {**self.customize_account_request}
-        del no_job_title["job_title"]
-        response = self.client.patch(
-            reverse("user-customize-account", args=(user.pk,)),
-            data={**no_job_title},
-        )
-        assert response.status_code == status.HTTP_204_NO_CONTENT
-        assert self.customize_account_request["first_name"] == user.first_name
-        assert self.customize_account_request["last_name"] == user.last_name
-
-    def test_can_customize_account_with_conflicting_org_name(self):
-        taken_name = "already-in-use"
-        Organization.objects.create(name=taken_name, slug=taken_name)
-        Organization.objects.create(name=f"{taken_name}-1", slug=f"{taken_name}-1")
-        user = self.__create_authenticated_user()
-        response = self.client.patch(
-            reverse("user-customize-account", args=(user.pk,)),
-            data={**self.customize_account_request, "organization_name": taken_name},
-        )
-        assert response.status_code == status.HTTP_204_NO_CONTENT
-        expected_organization_name = f"{taken_name}-2"
-        assert Organization.objects.filter(name=expected_organization_name).exists()
-        assert RevenueProgram.objects.filter(name=expected_organization_name).exists()
-
-    def test_customize_account_sets_revenue_program_tax_id(self):
-        user = self.__create_authenticated_user()
-        response = self.client.patch(
-            reverse("user-customize-account", args=(user.pk,)),
-            data={**self.customize_account_request, "organization_tax_id": "987654321"},
-        )
-        assert response.status_code == status.HTTP_204_NO_CONTENT
-        revenue_program = RevenueProgram.objects.get(name=self.customize_account_request["organization_name"])
-        assert self.customize_account_request["organization_tax_id"] == revenue_program.tax_id
-
-    def test_customize_account_sets_fiscal_sponsor_name(self):
-        user = self.__create_authenticated_user()
-        fiscal_sponsor_name = "News Revenue Hub"
-        response = self.client.patch(
-            reverse("user-customize-account", args=(user.pk,)),
-            data={
-                **self.customize_account_request,
-                "fiscal_sponsor_name": fiscal_sponsor_name,
-                "fiscal_status": FiscalStatusChoices.FISCALLY_SPONSORED,
-            },
-        )
-        assert response.status_code == status.HTTP_204_NO_CONTENT
-        revenue_program = RevenueProgram.objects.get(name=self.customize_account_request["organization_name"])
-        assert fiscal_sponsor_name == revenue_program.fiscal_sponsor_name
-        assert revenue_program.fiscal_status == FiscalStatusChoices.FISCALLY_SPONSORED
-        assert revenue_program.non_profit
-
-    def test_can_customize_account_sets_fiscal_status(self):
-        user = self.__create_authenticated_user()
-        response = self.client.patch(
-            reverse("user-customize-account", args=(user.pk,)),
-            data={**self.customize_account_request, "fiscal_status": FiscalStatusChoices.FOR_PROFIT},
-        )
-        assert response.status_code == status.HTTP_204_NO_CONTENT
-        revenue_program = RevenueProgram.objects.last()
-        assert revenue_program.fiscal_status == FiscalStatusChoices.FOR_PROFIT
-        assert not revenue_program.non_profit
-
-    def test_fiscal_status_validations(self):
-        user = self.__create_authenticated_user()
-        assert (
-            self.client.patch(
-                reverse("user-customize-account", args=(user.pk,)),
-                data={**self.customize_account_request, "fiscal_status": FiscalStatusChoices.FISCALLY_SPONSORED},
-            ).status_code
-            == status.HTTP_400_BAD_REQUEST
-        )
-        assert (
-            self.client.patch(
-                reverse("user-customize-account", args=(user.pk,)),
-                data={
-                    **self.customize_account_request,
-                    "fiscal_status": FiscalStatusChoices.FOR_PROFIT,
-                    "fiscal_sponsor_name": "will not work",
-                },
-            ).status_code
-            == status.HTTP_400_BAD_REQUEST
-        )
-        assert (
-            self.client.patch(
-                reverse("user-customize-account", args=(user.pk,)),
-                data={
-                    **self.customize_account_request,
-                    "fiscal_status": FiscalStatusChoices.NONPROFIT,
-                    "fiscal_sponsor_name": "will not work",
-                },
-            ).status_code
-            == status.HTTP_400_BAD_REQUEST
-        )
-
     def __create_authenticated_user(self, email_verified=True, accepted_terms_of_service=timezone.now()) -> User:
         user = get_user_model().objects.create(
             email=self.create_data["email"],
@@ -914,3 +756,159 @@ def test_retrieve_user_endpoint(user, serializer, api_client):
     assert response.status_code == status.HTTP_200_OK
     serialized = serializer(user)
     assert response.json() == json.loads(json.dumps(serialized.data))
+
+
+@pytest.fixture
+def valid_customize_account_request_data():
+    return {
+        "first_name": "Test",
+        "last_name": "User",
+        "organization_name": "Test Organization",
+        "organization_tax_id": "123456789",
+        "job_title": "Test Title",
+        "fiscal_status": FiscalStatusChoices.FOR_PROFIT,
+    }
+
+
+@pytest.mark.django_db
+class TestUserViewSetViaPytest:
+    """NB:
+
+    This test class is where we incrementally start moving our tests for the UserViewSet
+    over to pytest.
+    """
+
+    def test_customize_account_happy_path_when_org_with_name_not_exist(
+        self,
+        user_with_verified_email_and_tos_accepted,
+        api_client,
+        valid_customize_account_request_data,
+    ):
+        api_client.force_authenticate(user_with_verified_email_and_tos_accepted)
+        response = api_client.patch(
+            reverse("user-customize-account", args=(user_with_verified_email_and_tos_accepted.pk,)),
+            data=valid_customize_account_request_data,
+        )
+        assert response.status_code == status.HTTP_204_NO_CONTENT
+        user_with_verified_email_and_tos_accepted.refresh_from_db()
+        for x in ["first_name", "last_name", "job_title"]:
+            assert getattr(user_with_verified_email_and_tos_accepted, x) == valid_customize_account_request_data[x]
+        assert (
+            user_with_verified_email_and_tos_accepted.first_name == valid_customize_account_request_data["first_name"]
+        )
+        ra = user_with_verified_email_and_tos_accepted.roleassignment
+        org = ra.organization
+        rp = org.revenueprogram_set.first()
+        assert org.name == valid_customize_account_request_data["organization_name"]
+        assert org.slug == slugify(valid_customize_account_request_data["organization_name"])
+        assert rp.payment_provider is not None
+        assert rp.name == org.name
+        assert rp.organization == org
+        assert rp.slug == slugify(org.name)
+        assert rp.fiscal_status == valid_customize_account_request_data["fiscal_status"]
+        assert rp.fiscal_sponsor_name == valid_customize_account_request_data.get("fiscal_sponsor_name")
+        assert rp.tax_id == valid_customize_account_request_data["organization_tax_id"]
+        assert ra.user == user_with_verified_email_and_tos_accepted
+        assert ra.role_type == Roles.ORG_ADMIN
+        assert ra.organization == org
+
+    def test_customize_account_happy_path_when_org_with_name_already_exists(
+        self,
+        user_with_verified_email_and_tos_accepted,
+        api_client,
+        valid_customize_account_request_data,
+    ):
+        OrganizationFactory(name=valid_customize_account_request_data["organization_name"])
+        api_client.force_authenticate(user_with_verified_email_and_tos_accepted)
+        expected_name = f"{valid_customize_account_request_data['organization_name']}-1"
+        response = api_client.patch(
+            reverse("user-customize-account", args=(user_with_verified_email_and_tos_accepted.pk,)),
+            data=valid_customize_account_request_data,
+        )
+        assert response.status_code == status.HTTP_204_NO_CONTENT
+        user_with_verified_email_and_tos_accepted.refresh_from_db()
+        org = user_with_verified_email_and_tos_accepted.roleassignment.organization
+        rp = org.revenueprogram_set.first()
+        assert org.name == expected_name
+        assert org.slug == slugify(expected_name)
+        assert rp.name == expected_name
+        assert rp.slug == slugify(expected_name)
+
+    def test_customize_account_when_serializer_errors(
+        self,
+        user_with_verified_email_and_tos_accepted,
+        api_client,
+        valid_customize_account_request_data,
+    ):
+        api_client.force_authenticate(user_with_verified_email_and_tos_accepted)
+        data = valid_customize_account_request_data.copy()
+        del data["organization_name"]
+        response = api_client.patch(
+            reverse("user-customize-account", args=(user_with_verified_email_and_tos_accepted.pk,)),
+            data=data,
+        )
+        assert response.status_code == status.HTTP_400_BAD_REQUEST
+        assert "organization_name" in response.json()
+
+    def test_customize_account_permissions(self):
+        """Test that customize account permissions uses expected permissions.
+
+        This allows us to unit test the permissions separately and not have to test via API layer, which is much slower.
+        """
+        view = UserViewset()
+        view.action = "customize_account"
+        permissions = view.get_permissions()
+        assert isinstance(permissions[0], UserOwnsUser)
+        assert isinstance(permissions[1], IsAuthenticated)
+        assert isinstance(permissions[2], UserIsAllowedToUpdate)
+        assert isinstance(permissions[3], UserHasAcceptedTermsOfService)
+
+    def test_customize_account_when_missing_required_fields(
+        self, user_with_verified_email_and_tos_accepted, api_client
+    ):
+        api_client.force_authenticate(user_with_verified_email_and_tos_accepted)
+        response = api_client.patch(
+            reverse("user-customize-account", args=(user_with_verified_email_and_tos_accepted.pk,)),
+            data={},
+        )
+        assert response.status_code == status.HTTP_400_BAD_REQUEST
+        for x in ["fiscal_status", "first_name", "last_name", "organization_name"]:
+            response.json()[x] == ["This field is required"]
+
+    def test_customize_account_when_tos_not_accepted(self, api_client, user_no_role_assignment):
+        assert not user_no_role_assignment.accepted_terms_of_service
+        api_client.force_authenticate(user_no_role_assignment)
+        response = api_client.patch(reverse("user-customize-account", args=(user_no_role_assignment.pk,)), data={})
+        assert response.status_code == status.HTTP_403_FORBIDDEN
+        assert response.json() == {"detail": UserHasAcceptedTermsOfService.message}
+
+    def test_customize_account_when_email_unverified(self, api_client, user_no_role_assignment):
+        assert not user_no_role_assignment.email_verified
+        user_no_role_assignment.accepted_terms_of_service = timezone.now()
+        user_no_role_assignment.save()
+        api_client.force_authenticate(user_no_role_assignment)
+        response = api_client.patch(
+            reverse("user-customize-account", args=(user_no_role_assignment.pk,)), data={"organization_name": "foo"}
+        )
+        assert response.status_code == status.HTTP_403_FORBIDDEN
+        assert response.json() == {"detail": UserIsAllowedToUpdate.message}
+
+    def test_customize_account_when_conflicting_org_name(
+        self, organization, api_client, user_with_verified_email_and_tos_accepted
+    ):
+        api_client.force_authenticate(user_with_verified_email_and_tos_accepted)
+        data = {
+            "first_name": "Test",
+            "last_name": "User",
+            "organization_name": organization.name,
+            "organization_tax_id": "123456789",
+            "job_title": "Test Title",
+            "fiscal_status": FiscalStatusChoices.FOR_PROFIT,
+        }
+        response = api_client.patch(
+            reverse("user-customize-account", args=(user_with_verified_email_and_tos_accepted.pk,)),
+            data=data,
+        )
+        assert response.status_code == status.HTTP_204_NO_CONTENT
+        user_with_verified_email_and_tos_accepted.refresh_from_db()
+        assert user_with_verified_email_and_tos_accepted.roleassignment.organization.name == f"{organization.name}-1"

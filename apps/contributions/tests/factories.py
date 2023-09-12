@@ -13,6 +13,7 @@ from faker import Faker
 
 from apps.common.tests.test_utils import generate_random_datetime
 from apps.contributions import models
+from apps.contributions.serializers import StripePaymentMetadataSchemaV1_4
 from apps.pages.tests.factories import DonationPageFactory
 
 
@@ -99,19 +100,17 @@ class ContributionFactory(DjangoModelFactory):
     provider_payment_method_details = factory.LazyFunction(lambda: PAYMENT_METHOD_DETAILS_DATA)
 
     @factory.lazy_attribute
-    def contribution_metadata(self) -> dict:
-        """Generate realistic looking contribution_metadata"""
-        rp = self.donation_page.revenue_program
-        return {
-            "source": settings.METADATA_SOURCE,
-            "schema_version": settings.METADATA_SCHEMA_VERSION,
-            "contributor_id": self.contributor.id if self.contributor else "",
-            "agreed_to_pay_fees": True,
-            "donor_selected_amount": self.amount / 100,
-            "revenue_program_id": rp.id or "",
-            "revenue_program_slug": rp.slug or "",
-            "referer": settings.SITE_URL,
-        }
+    def contribution_metadata(self):
+        return StripePaymentMetadataSchemaV1_4(
+            contributor_id=self.contributor.id if self.contributor else None,
+            agreed_to_pay_fees=True,
+            donor_selected_amount=self.amount / 100,
+            referer="https://www.google.com/",
+            revenue_program_id=self.donation_page.revenue_program_id,
+            revenue_program_slug=self.donation_page.revenue_program.slug,
+            source="rev-engine",
+            schema_version="1.4",
+        ).model_dump(mode="json")
 
     class Params:
         # this is roughly how a successful one-time contribution would look

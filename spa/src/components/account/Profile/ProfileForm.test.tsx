@@ -240,7 +240,39 @@ describe('ProfileForm', () => {
       expect(screen.getByText('An error occurred')).toBeVisible();
     });
 
-    // TODO: Figure out why this test is failing with timeout in CI
+    it.each([
+      ['First Name', 50],
+      ['Last Name', 50],
+      ['Job Title', 50],
+      ['Organization', 253],
+      ['Fiscal Sponsor Name', 100]
+    ])('displays a validation error for the %s field if too many characters are entered', async (fieldName, length) => {
+      tree();
+      userEvent.click(screen.getByRole('button', { name: /Company Tax Status Select your status/i }));
+      userEvent.click(screen.getByRole('option', { name: 'Fiscally sponsored' }));
+
+      // Fill out all required fields with something so that the submit button
+      // becomes enabled, then put too much text into the field under test.
+
+      userEvent.type(screen.getByLabelText('First Name'), 'x');
+      userEvent.type(screen.getByLabelText('Last Name'), 'x');
+      userEvent.type(screen.getByLabelText('Organization'), 'x');
+      userEvent.type(screen.getByLabelText('Fiscal Sponsor Name', { exact: false }), 'x');
+      userEvent.type(screen.getByLabelText(fieldName, { exact: false }), 'x'.repeat(length + 1));
+
+      const submitButton = screen.getByRole('button', { name: 'Finalize Account' });
+
+      expect(submitButton).toBeEnabled();
+      userEvent.click(submitButton);
+
+      await waitFor(() =>
+        expect(
+          screen.getByText(`${fieldName} must have a maximum of ${length} characters`, { exact: false })
+        ).toBeVisible()
+      );
+      expect(screen.getByLabelText(fieldName, { exact: false })).toBeInvalid();
+    });
+
     it.skip('displays max length error related to all fields with a character limit (FE validation)', async () => {
       tree();
 

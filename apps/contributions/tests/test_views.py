@@ -1228,31 +1228,6 @@ class ProcessFlaggedContributionTest(APITestCase):
 
 
 @pytest.fixture
-def valid_data(donation_page):
-    return {
-        "donor_selected_amount": 123.01,
-        "amount": 120.0,
-        "agreed_to_Pay_fees": True,
-        "interval": "one_time",
-        "first_name": "Bill",
-        "last_name": "Smith",
-        "email": "bill@smith.com",
-        "phone": "123",
-        "mailing_street": "123 Glenwood Avenue",
-        "mailing_complement": "Ap 1",
-        "mailing_city": "Raleigh",
-        "mailing_state": "North Carolina",
-        "mailing_postal_code": "27603",
-        "mailing_country": "United States",
-        "reason_for_giving": "Other",
-        "reason_other": "None of ya...",
-        "tribute_type": "",
-        "page": donation_page.id,
-        "captcha_token": "HFbTRmfk1CPXUxMwRTQx5CQlV",
-    }
-
-
-@pytest.fixture
 def stripe_create_customer_response():
     return {"id": "customer-id"}
 
@@ -1301,7 +1276,7 @@ class TestPaymentViewset:
     )
     def test_create_happy_path(
         self,
-        valid_data,
+        minimally_valid_contribution_form_data,
         monkeypatch,
         stripe_create_subscription_response,
         stripe_create_payment_intent_response,
@@ -1325,10 +1300,9 @@ class TestPaymentViewset:
         mock_create_payment_intent = mock.Mock()
         mock_create_payment_intent.return_value = AttrDict(stripe_create_payment_intent_response)
         monkeypatch.setattr("stripe.PaymentIntent.create", mock_create_payment_intent)
-
-        contributor_count = Contributor.objects.count()
         contribution_count = Contribution.objects.count()
-        data = valid_data | {"interval": interval}
+        contributor_count = Contributor.objects.count()
+        data = minimally_valid_contribution_form_data | {"interval": interval}
         url = reverse("payment-list")
 
         save_spy = mocker.spy(Contribution, "save")
@@ -1340,13 +1314,13 @@ class TestPaymentViewset:
         contribution = Contribution.objects.get(uuid=response.json()["uuid"])
         assert contribution.interval == interval
         assert contribution.provider_subscription_id == subscription_id
-        assert contribution.amount == int(data["amount"] * 100)
+        assert contribution.amount == int(data["amount"]) * 100
         save_spy.assert_called_once()
 
-    def test_when_called_with_unexpected_interval(self, valid_data):
+    def test_when_called_with_unexpected_interval(self, minimally_valid_contribution_form_data):
         invalid_interval = "this-is-not-legit"
         assert invalid_interval not in ContributionInterval.choices
-        data = valid_data | {"interval": invalid_interval}
+        data = minimally_valid_contribution_form_data | {"interval": invalid_interval}
         url = reverse("payment-list")
         response = self.client.post(url, data, format="json")
         assert response.status_code == status.HTTP_400_BAD_REQUEST

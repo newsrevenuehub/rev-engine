@@ -1,10 +1,13 @@
 import logging
+import re
 from datetime import datetime, timedelta
+from typing import Any, Literal, Optional
 
 from django.conf import settings
 from django.db.models import TextChoices
 from django.utils import timezone
 
+import pydantic
 from rest_framework import serializers
 from rest_framework.exceptions import APIException, PermissionDenied
 from stripe.error import StripeError
@@ -24,6 +27,10 @@ from apps.pages.models import DonationPage
 
 from .bad_actor import BadActorAPIError, make_bad_actor_request
 from .fields import StripeAmountField
+
+
+SWAG_CHOICES_DELIMITER = ";"
+SWAG_SUB_CHOICE_DELIMITER = ":"
 
 
 class GenericPaymentError(APIException):
@@ -160,7 +167,7 @@ class BadActorSerializer(serializers.Serializer):
     referer = serializers.URLField()
 
     # Contribution additional
-    reason_for_giving = serializers.CharField(max_length=255, required=False, allow_blank=True)
+    reason_for_giving = serializers.CharField(max_length=255, required=False, allow_blank=True, default="")
 
     def to_internal_value(self, data):
         data["street"] = data.get("mailing_street")
@@ -219,6 +226,103 @@ class AbstractPaymentSerializer(serializers.Serializer):
         return super().to_internal_value(data)
 
 
+class StripeMetadataSchemaBase(pydantic.BaseModel):
+    """
+
+    This schema:
+    - validates that all required fields are present
+    - validates that extra fields are not present
+    - provides default values for some optional fields
+    - normalizes boolean values
+    """
+
+    class Config:
+        extra = pydantic.Extra.forbid  # don't allow extra fields
+
+    schema_version: Literal["1.4"]
+    source: Literal["rev-engine"]
+
+    @classmethod
+    def normalize_boolean(cls, v: Any) -> bool | None:
+        """Normalize boolean values
+
+        Convert some known values to their boolean counterpart, while still allowing
+        for a `None` value which indicates that the value was not provided.
+        """
+        logger.debug("Normalizing boolean value %s", v)
+        if any([isinstance(v, bool), v is None]):
+            return v
+        if isinstance(v, str):
+            if v.lower().strip() in ["false", "none", "no", "n"]:
+                return False
+            if v.lower().strip() in ["true", "yes", "y"]:
+                return True
+        raise ValueError("Value must be a boolean, None, or castable string")
+
+
+class StripePaymentMetadataSchemaV1_4(StripeMetadataSchemaBase):
+    """Schema used for generating metadata on Stripe payment intents and subscriptions"""
+
+    agreed_to_pay_fees: bool
+    donor_selected_amount: float
+    referer: pydantic.HttpUrl
+    revenue_program_id: str
+    revenue_program_slug: str
+
+    contributor_id: Optional[str] = None
+    comp_subscription: Optional[str] = None
+    company_name: Optional[str] = None
+    honoree: Optional[str] = None
+    in_memory_of: Optional[str] = None
+    reason_for_giving: Optional[str] = None
+    sf_campaign_id: Optional[str] = None
+    swag_choices: Optional[str] = None
+    swag_opt_out: Optional[bool] = False
+    schema_version: Literal["1.4"]
+
+    @pydantic.validator("contributor_id", "revenue_program_id", pre=True)
+    @classmethod
+    def convert_id_to_string(cls, v: Any) -> str | None:
+        """Convert id to string
+
+        This validator is responsible for ensuring that the field is a string. These fields are naturally
+        integers on their way in, but the metadata schema in Switchboard calls for them to be strings.
+        """
+        if v is None:
+            return v
+        return str(v)
+
+    @pydantic.validator("agreed_to_pay_fees", "swag_opt_out")
+    @classmethod
+    def validate_booleans(cls, v: Any) -> bool | None:
+        """Validate booleans
+
+        This validator is responsible for ensuring that the agreed_to_pay_fees and swag_opt_out fields are valid.
+        """
+        return cls.normalize_boolean(v)
+
+    @pydantic.validator("swag_choices")
+    @classmethod
+    def validate_swag_choices(cls, v: Any) -> str | None:
+        """Validate swag_choices
+
+        This validator is responsible for ensuring that the swag_choices field is valid.
+        """
+        # if empty or none, return
+        if not v:
+            return v
+        if len(v) > settings.METADATA_MAX_SWAG_CHOICES_LENGTH:
+            raise ValueError("swag_choices is too long")
+        choices = v.split(SWAG_CHOICES_DELIMITER)
+        # for instance, "tshirt" or "tshirt:hoodie"
+        choice_pattern = rf"[\w-]+({SWAG_SUB_CHOICE_DELIMITER}[\w]+)?"
+        for choice in choices:
+            # we check if choice is truthy to allow for case of a hanging `;` leading to an empty choice
+            if choice and not re.fullmatch(choice_pattern, choice):
+                raise ValueError("swag_choices is not valid")
+        return v
+
+
 class BaseCreatePaymentSerializer(serializers.Serializer):
     """This is the base serializer for the `CreateOneTimePaymentSerializer` and `CreateRecurringPaymentSerializer`.
 
@@ -268,25 +372,25 @@ class BaseCreatePaymentSerializer(serializers.Serializer):
         max_length=80, write_only=True, required=False, allow_blank=True, default=""
     )
     agreed_to_pay_fees = serializers.BooleanField(default=False, write_only=True)
-
-    # See class-level doc string for info on why `default=''` here
     phone = serializers.CharField(max_length=40, required=False, allow_blank=True, write_only=True, default="")
-    # See class-level doc string for info on why `default=''` here
     reason_for_giving = serializers.CharField(
         max_length=255, required=False, allow_blank=True, write_only=True, default=""
     )
-    # See class-level doc string for info on why `default=''` here
+
     reason_other = serializers.CharField(max_length=255, required=False, allow_blank=True, write_only=True, default="")
     tribute_type = serializers.CharField(max_length=255, required=False, allow_blank=True, write_only=True)
-    # See class-level doc string for info on why `default=''` here
     honoree = serializers.CharField(max_length=255, required=False, allow_blank=True, write_only=True, default="")
-    # See class-level doc string for info on why `default=''` here
     in_memory_of = serializers.CharField(max_length=255, required=False, allow_blank=True, write_only=True, default="")
     swag_opt_out = serializers.BooleanField(required=False, default=False, write_only=True)
-    comp_subscription = serializers.ChoiceField(
-        choices=CompSubscriptions.choices, required=False, allow_blank=True, write_only=True
+    swag_choices = serializers.CharField(
+        max_length=settings.METADATA_MAX_SWAG_CHOICES_LENGTH, required=False, write_only=True, default=""
     )
-    sf_campaign_id = serializers.CharField(max_length=255, required=False, allow_blank=True, write_only=True)
+    comp_subscription = serializers.ChoiceField(
+        choices=CompSubscriptions.choices, required=False, allow_blank=True, write_only=True, default=""
+    )
+    sf_campaign_id = serializers.CharField(
+        max_length=255, required=False, allow_blank=True, write_only=True, default=""
+    )
     captcha_token = serializers.CharField(max_length=2550, allow_blank=True, write_only=True)
     email_hash = serializers.CharField(read_only=True)
     donor_selected_amount = serializers.FloatField(write_only=True)
@@ -414,26 +518,6 @@ class BaseCreatePaymentSerializer(serializers.Serializer):
         """Determine if bad actor score should lead to contribution being flagged"""
         return bad_actor_score == settings.BAD_ACTOR_FLAG_SCORE
 
-    def get_stripe_payment_metadata(self, contributor_id, validated_data):
-        """Generate dict of metadata to be sent to Stripe when creating a PaymentIntent or Subscription"""
-        return {
-            "source": settings.METADATA_SOURCE,
-            "schema_version": settings.METADATA_SCHEMA_VERSION,
-            "contributor_id": contributor_id,
-            "agreed_to_pay_fees": validated_data["agreed_to_pay_fees"],
-            "donor_selected_amount": validated_data["donor_selected_amount"],
-            "reason_for_giving": validated_data["reason_for_giving"],
-            "honoree": validated_data.get("honoree"),
-            "in_memory_of": validated_data.get("in_memory_of"),
-            "comp_subscription": validated_data.get("comp_subscription"),
-            "swag_opt_out": validated_data.get("swag_opt_out"),
-            "swag_choice": validated_data.get("swag_choice"),
-            "referer": self.context["request"].META.get("HTTP_REFERER"),
-            "revenue_program_id": validated_data["page"].revenue_program.id,
-            "revenue_program_slug": validated_data["page"].revenue_program.slug,
-            "sf_campaign_id": validated_data.get("sf_campaign_id"),
-        }
-
     def build_contribution(self, contributor, validated_data, bad_actor_response=None):
         """Create an NRE contribution using validated data"""
         contribution_data = {
@@ -444,9 +528,6 @@ class BaseCreatePaymentSerializer(serializers.Serializer):
             "donation_page": validated_data["page"],
             "contributor": contributor,
             "payment_provider_used": "Stripe",
-            "contribution_metadata": Contribution.stripe_metadata(
-                contributor, validated_data, self.context["request"].META.get("HTTP_REFERER")
-            ),
         }
         if bad_actor_response:
             contribution_data["bad_actor_score"] = bad_actor_response["overall_judgment"]
@@ -457,6 +538,30 @@ class BaseCreatePaymentSerializer(serializers.Serializer):
                 contribution_data["status"] = ContributionStatus.FLAGGED
                 contribution_data["flagged_date"] = timezone.now()
         return Contribution(**contribution_data)
+
+    def generate_stripe_metadata(self, contribution: Contribution) -> StripePaymentMetadataSchemaV1_4:
+        """Generate Stripe metadata for a contribution based on validated data"""
+        logger.info("Generating stripe metadata for contribution %s", contribution.id)
+        return StripePaymentMetadataSchemaV1_4(
+            agreed_to_pay_fees=self.validated_data["agreed_to_pay_fees"],
+            contributor_id=contribution.contributor.id,
+            # the `or None` pattern here and below because in validated data, these fields are allowed to be blank, but in
+            # the Stripe metadata, we want to send null, not blank.
+            # TODO: [DEV-3827] Coordinate comp_subscription between server and SPA
+            comp_subscription=self.validated_data["comp_subscription"] or None,
+            donor_selected_amount=self.validated_data["donor_selected_amount"],
+            honoree=self.validated_data["honoree"] or None,
+            in_memory_of=self.validated_data["in_memory_of"] or None,
+            reason_for_giving=self.validated_data["reason_for_giving"] or None,
+            referer=self._context["request"].META["HTTP_REFERER"],
+            revenue_program_id=self.validated_data["page"].revenue_program.id,
+            revenue_program_slug=self.validated_data["page"].revenue_program.slug,
+            sf_campaign_id=self.validated_data["sf_campaign_id"] or None,
+            swag_choices=self.validated_data["swag_choices"] or None,
+            swag_opt_out=self.validated_data["swag_opt_out"],
+            source="rev-engine",
+            schema_version="1.4",
+        )
 
 
 class CreateOneTimePaymentSerializer(BaseCreatePaymentSerializer):
@@ -500,6 +605,7 @@ class CreateOneTimePaymentSerializer(BaseCreatePaymentSerializer):
             logger.info(
                 "`CreateOneTimePaymentSerializer.create` successfully created a Stripe customer with id %s", customer.id
             )
+            contribution.provider_customer_id = customer["id"]
         except StripeError:
             logger.info(
                 "`CreateOneTimePaymentSerializer.create` is saving a new contribution after encountering a Stripe error"
@@ -511,11 +617,17 @@ class CreateOneTimePaymentSerializer(BaseCreatePaymentSerializer):
             )
             raise GenericPaymentError()
 
-        contribution.provider_customer_id = customer["id"]
+        try:
+            contribution.contribution_metadata = self.generate_stripe_metadata(contribution).model_dump(mode="json")
+        except ValueError:
+            logger.exception("Unable to create valid Stripe metadata")
+            raise APIException("Cannot authorize contribution")
 
         try:
             logger.info("`CreateOneTimePaymentSerializer.create` is attempting to create a Stripe payment intent")
-            payment_intent = contribution.create_stripe_one_time_payment_intent(save=False)
+            payment_intent = contribution.create_stripe_one_time_payment_intent(
+                save=False, metadata=contribution.contribution_metadata
+            )
             logger.info(
                 "`CreateOneTimePaymentSerializer.create` successfully created a Stripe payment intent with id %s",
                 payment_intent.id,
@@ -537,8 +649,8 @@ class CreateOneTimePaymentSerializer(BaseCreatePaymentSerializer):
 
         contribution.provider_payment_id = payment_intent.id
         contribution.payment_provider_data = dict(payment_intent) | {"client_secret": None}
-
         logger.info("`CreateOneTimePaymentSerializer.create` is saving a new contribution")
+
         contribution.save()
         logger.info("`CreateOneTimePaymentSerializer.create` saved a new contribution with ID %s", contribution.id)
 
@@ -577,7 +689,6 @@ class CreateRecurringPaymentSerializer(BaseCreatePaymentSerializer):
         bad_actor_response = self.get_bad_actor_score(validated_data)
         logger.info("`CreateRecurringPaymentSerializer.create` is building a contribution")
         contribution = self.build_contribution(contributor, validated_data, bad_actor_response)
-
         if contribution.status == ContributionStatus.REJECTED:
             logger.info(
                 "`CreateRecurringPaymentSerializer.create` is saving a new contribution with REJECTED status for contributor with ID %s",
@@ -591,6 +702,13 @@ class CreateRecurringPaymentSerializer(BaseCreatePaymentSerializer):
                 contribution.id,
             )
             raise PermissionDenied("Cannot authorize contribution")
+
+        try:
+            contribution.contribution_metadata = self.generate_stripe_metadata(contribution).model_dump(mode="json")
+        except ValueError:
+            logger.exception("Unable to create valid Stripe metadata")
+            raise APIException("Cannot authorize contribution")
+
         try:
             logger.info(
                 "`CreateRecurringPaymentSerializer.create` is attempting to create a Stripe customer for contributor with ID %s",

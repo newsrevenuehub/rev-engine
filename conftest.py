@@ -515,6 +515,27 @@ def mailchimp_recurring_contributor_segment_from_api():
 
 
 @pytest.fixture
+def minimally_valid_contribution_form_data(donation_page):
+    return {
+        "agreed_to_pay_fees": True,
+        "amount": "120",
+        "captcha_token": "12345",
+        "donor_selected_amount": 120.0,
+        "email": "bill@smith.com",
+        "first_name": "Bill",
+        "interval": "one_time",
+        "last_name": "Smith",
+        "mailing_city": "Raleigh",
+        "mailing_complement": "Ap 1",
+        "mailing_country": "United States",
+        "mailing_postal_code": "27603",
+        "mailing_state": "North Carolina",
+        "mailing_street": "123 Glenwood Avenue",
+        "page": donation_page.id,
+    }
+
+
+@pytest.fixture
 def pi_as_portal_contribution_factory(faker):
     class Factory:
         def get(self, *args, **kwargs):
@@ -554,8 +575,6 @@ def valid_metadata_factory(faker):
         "revenue_program_id": faker.uuid4(),
         "revenue_program_slug": f"rp-{faker.word()}",
         "sf_campaign_id": None,
-        "marketing_consent": None,
-        "occupation": None,
         "comp_subscription": None,
         "honoree": None,
         "in_memory_of": None,

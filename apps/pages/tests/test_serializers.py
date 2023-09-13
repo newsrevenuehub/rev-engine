@@ -8,6 +8,8 @@ import pytest_cases
 from rest_framework import serializers
 from rest_framework.test import APIRequestFactory
 
+from apps.config.tests.factories import DenyListWordFactory
+from apps.config.validators import GENERIC_SLUG_DENIED_MSG
 from apps.organizations.models import FiscalStatusChoices, FreePlan, Plans
 from apps.organizations.serializers import PaymentProviderSerializer
 from apps.organizations.tests.factories import (
@@ -430,6 +432,112 @@ class TestDonationPageFullDetailSerializer:
             == f"Your organization has reached its limit of {org.plan.publish_limit} published page{'' if org.plan.publish_limit == 1 else 's'}"
         )
 
+    @pytest_cases.parametrize(
+        "instance,expect",
+        (
+            # has instance and id
+            (pytest_cases.fixture_ref("live_donation_page"), False),
+            # has instance but no id
+            (DonationPage(), True),
+            (None, True),
+        ),
+    )
+    def test_is_new(self, instance, expect):
+        serializer = DonationPageFullDetailSerializer(instance=instance)
+        assert serializer.is_new is expect
+
+    @pytest.mark.parametrize(
+        "val,expect_valid",
+        (
+            ({"slug": "my-new-page"}, True),
+            ({"slug": ""}, False),
+            ({"slug": None}, False),
+            ({}, False),
+        ),
+    )
+    def test_ensure_slug_for_publication_when_new(self, val, expect_valid):
+        serializer = DonationPageFullDetailSerializer()
+        if expect_valid:
+            assert serializer.ensure_slug_for_publication(val) is None
+        else:
+            with pytest.raises(serializers.ValidationError):
+                serializer.ensure_slug_for_publication(val)
+
+    @pytest.mark.parametrize(
+        ("slug_on_instance", "data", "expect_valid"),
+        (
+            ("my-new-page", {}, True),
+            ("my-old-slug", {"slug": "my-new-slug"}, True),
+            ("my-new-page", {"slug": None}, False),
+            ("my-new-page", {"slug": ""}, False),
+            (None, {"slug": "my-new-page"}, True),
+            (None, {"slug": None}, False),
+            (None, {"slug": ""}, False),
+            (None, {}, False),
+        ),
+    )
+    def test_ensure_slug_for_publication_when_instance_no_slug_in_data(
+        self, slug_on_instance, data, expect_valid, live_donation_page
+    ):
+        live_donation_page.slug = slug_on_instance
+        serializer = DonationPageFullDetailSerializer(instance=live_donation_page)
+        if expect_valid:
+            assert serializer.ensure_slug_for_publication(data) is None
+        else:
+            with pytest.raises(serializers.ValidationError):
+                serializer.ensure_slug_for_publication(data)
+
+    @pytest.mark.parametrize(
+        "val",
+        # NB: the only expect types that would make it to this validator are None or str
+        # but we add the additional cases here to be thorough
+        (1, 1.0, True, False, [], {}, set(), tuple(), object()),
+    )
+    def test_validate_slug_when_not_string(self, val, mocker):
+        mock_deny_list_validator = mocker.patch("apps.config.validators.validate_slug_against_denylist")
+        assert DonationPageFullDetailSerializer().validate_slug(val) == val
+        mock_deny_list_validator.assert_not_called()
+
+    def test_validate_slug_when_invalid_because_empty_string(self):
+        serializer = DonationPageFullDetailSerializer()
+        with pytest.raises(serializers.ValidationError) as exc:
+            serializer.validate_slug("")
+        assert str(exc.value.detail[0]) == "This field may not be blank."
+
+    def test_validate_slug_when_invalid_because_denied_word(self):
+        DenyListWordFactory(word=(word := "foo"))
+        serializer = DonationPageFullDetailSerializer()
+        with pytest.raises(serializers.ValidationError) as exc:
+            serializer.validate_slug(word)
+        assert str(exc.value.detail[0]) == GENERIC_SLUG_DENIED_MSG
+
+    def test_ensure_slug_is_unique_for_rp_when_data_not_have_slug_field(self):
+        serializer = DonationPageFullDetailSerializer()
+        assert serializer.ensure_slug_is_unique_for_rp({}) is None
+
+    def test_ensure_slug_when_sent_value_is_none(self):
+        serializer = DonationPageFullDetailSerializer()
+        assert serializer.ensure_slug_is_unique_for_rp({"slug": None}) is None
+
+    def test_ensure_slug_when_new_and_non_unique(self, live_donation_page):
+        serializer = DonationPageFullDetailSerializer()
+        with pytest.raises(serializers.ValidationError) as exc:
+            serializer.ensure_slug_is_unique_for_rp(
+                {"slug": live_donation_page.slug, "revenue_program": live_donation_page.revenue_program}
+            )
+        assert (
+            str(exc.value.detail["slug"]) == f"Value must be unique and '{live_donation_page.slug}' is already in use"
+        )
+
+    def test_ensure_slug_when_not_new_and_non_unique(self, live_donation_page):
+        page = DonationPageFactory(revenue_program=live_donation_page.revenue_program)
+        serializer = DonationPageFullDetailSerializer(instance=page)
+        with pytest.raises(serializers.ValidationError) as exc:
+            serializer.ensure_slug_is_unique_for_rp({"slug": live_donation_page.slug})
+        assert (
+            str(exc.value.detail["slug"]) == f"Value must be unique and '{live_donation_page.slug}' is already in use"
+        )
+
 
 @pytest.mark.django_db
 class TestStyleListSerializer:
@@ -466,3 +574,9 @@ class TestStyleListSerializer:
         page.styles = StyleFactory(revenue_program=page.revenue_program)
         page.save()
         assert StyleListSerializer(page.styles).data["used_live"] is published
+
+    def test_validate_revenue_program(self):
+        serializer = StyleListSerializer()
+        with pytest.raises(serializers.ValidationError) as exc:
+            serializer.validate_revenue_program(None)
+        assert str(exc.value.detail[0]) == "This field is required."

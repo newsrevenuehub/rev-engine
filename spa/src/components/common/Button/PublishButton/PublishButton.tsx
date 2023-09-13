@@ -2,6 +2,7 @@ import CheckCircleOutlineIcon from '@material-ui/icons/CheckCircleOutline';
 import PropTypes, { InferProps } from 'prop-types';
 import { MouseEvent, ReactElement, useEffect, useState } from 'react';
 import { useAlert } from 'react-alert';
+import { AxiosError } from 'axios';
 import { Tooltip } from 'components/base';
 import { MaxPagesPublishedModal } from 'components/common/Modal/MaxPagesPublishedModal';
 import { GENERIC_ERROR } from 'constants/textConstants';
@@ -69,6 +70,8 @@ function PublishButton({ className }: PublishButtonProps) {
     handleOpen: handleOpenUnpublishModal
   } = useModal();
   const [anchorEl, setAnchorEl] = useState<HTMLElement | null>(null);
+  const [slugError, setSlugError] = useState<string[]>();
+
   const showPopover = Boolean(anchorEl);
   const disabled = !page?.payment_provider?.stripe_verified;
   const isPublished = page && pageIsPublished(page);
@@ -148,7 +151,12 @@ function PublishButton({ className }: PublishButtonProps) {
 
       handleOpenSuccessfulPublishModal();
     } catch (error) {
-      alert.error(GENERIC_ERROR);
+      // If there is a slug error, we pass it to the modal.
+      if ((error as AxiosError).response?.data?.slug) {
+        setSlugError((error as AxiosError).response?.data?.slug);
+      } else {
+        alert.error(GENERIC_ERROR);
+      }
     }
   };
 
@@ -163,7 +171,6 @@ function PublishButton({ className }: PublishButtonProps) {
       await savePageChanges({ published_date: undefined });
     } catch (error) {
       // Log for Sentry and show an alert.
-
       console.error(error);
       alert.error(GENERIC_ERROR);
     }
@@ -203,6 +210,7 @@ function PublishButton({ className }: PublishButtonProps) {
         currentPlan={user.organizations[0].plan.name}
       />
       <PublishModal
+        slugError={slugError}
         open={openPublishModal}
         onClose={handleClosePublishModal}
         page={page}

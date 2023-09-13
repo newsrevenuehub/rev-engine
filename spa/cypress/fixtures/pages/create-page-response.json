@@ -37,10 +37,19 @@
   "header_logo_thumbnail": "",
   "revenue_program_is_nonprofit": true,
   "stripe_account_id": null,
-  "currency": { "code": "USD", "symbol": "$" },
+  "currency": {
+    "code": "USD",
+    "symbol": "$"
+  },
   "revenue_program_country": "US",
   "allow_offer_nyt_comp": false,
-  "benefit_levels": [{ "name": "tier 1", "donation_range": "$1-12", "benefits": [] }],
+  "benefit_levels": [
+    {
+      "name": "tier 1",
+      "donation_range": "$1-12",
+      "benefits": []
+    }
+  ],
   "created": "2022-10-14T15:22:31.484775Z",
   "modified": "2022-10-14T15:22:31.484775Z",
   "heading": "",
@@ -59,9 +68,21 @@
       "type": "DFrequency",
       "uuid": "53c95ab1-9812-4972-a846-efc02227c2a8",
       "content": [
-        { "value": "one_time", "isDefault": false, "displayName": "One time" },
-        { "value": "month", "isDefault": true, "displayName": "Monthly" },
-        { "value": "year", "isDefault": false, "displayName": "Yearly" }
+        {
+          "value": "one_time",
+          "isDefault": false,
+          "displayName": "One time"
+        },
+        {
+          "value": "month",
+          "isDefault": true,
+          "displayName": "Monthly"
+        },
+        {
+          "value": "year",
+          "isDefault": false,
+          "displayName": "Yearly"
+        }
       ],
       "requiredFields": []
     },
@@ -69,8 +90,28 @@
       "type": "DAmount",
       "uuid": "42e0324a-3960-4b66-b3d5-ab8c84224160",
       "content": {
-        "options": { "year": [120, 180, 365], "month": [10, 15, 25], "one_time": [120, 180, 365] },
-        "defaults": { "year": 180, "month": 15, "one_time": 180 },
+        "options": {
+          "year": [
+            120,
+            180,
+            365
+          ],
+          "month": [
+            10,
+            15,
+            25
+          ],
+          "one_time": [
+            120,
+            180,
+            365
+          ]
+        },
+        "defaults": {
+          "year": 180,
+          "month": 15,
+          "one_time": 180
+        },
         "allowOther": true
       },
       "requiredFields": []
@@ -78,14 +119,29 @@
     {
       "type": "DDonorInfo",
       "uuid": "9e91f505-c02d-4d84-8f48-bdb8afb22a18",
-      "content": { "askPhone": true },
+      "content": {
+        "askPhone": true
+      },
       "requiredFields": []
     },
-    { "type": "DDonorAddress", "uuid": "10de2134-1a7e-4261-85ef-ae9e445ecd87", "requiredFields": [] },
+    {
+      "type": "DDonorAddress",
+      "uuid": "10de2134-1a7e-4261-85ef-ae9e445ecd87",
+      "requiredFields": []
+    },
     {
       "type": "DPayment",
       "uuid": "81276ff1-ab04-4f42-b434-41374b7fbff8",
-      "content": { "stripe": ["card", "apple", "google", "browser"], "offerPayFees": true, "payFeesDefault": true },
+      "content": {
+        "stripe": [
+          "card",
+          "apple",
+          "google",
+          "browser"
+        ],
+        "offerPayFees": true,
+        "payFeesDefault": true
+      },
       "requiredFields": []
     },
     {
@@ -95,7 +151,7 @@
       "requiredFields": []
     }
   ],
-  "slug": "testing-04583",
+  "slug": null,
   "published_date": null,
   "page_screenshot": null
 }

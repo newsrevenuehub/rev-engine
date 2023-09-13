@@ -1,5 +1,5 @@
-import { useState } from 'react';
-import PropTypes from 'prop-types';
+import { useState, FormEvent } from 'react';
+import PropTypes, { InferProps } from 'prop-types';
 import { CircularProgress, Divider, Grid } from '@material-ui/core';
 import CloseIcon from '@material-ui/icons/Close';
 import PublicIcon from '@material-ui/icons/Public';
@@ -22,19 +22,34 @@ import {
 import getDomain from 'utilities/getDomain';
 import { PagePropTypes } from 'constants/propTypes';
 import slugify from 'utilities/slugify';
+import { ContributionPage } from 'hooks/useContributionPage';
 
-const PublishModal = ({ open, onClose, onPublish, page, loading }) => {
-  // If the page has a default slug (see <AddPage>), default the field to an
-  // empty value.
-  const [slug, setSlug] = useState(
-    new RegExp(`${page?.revenue_program.name}-page-(\\d+)`, 'i').test(page?.slug) ? '' : page?.slug
-  );
+const PublishModalPropTypes = {
+  className: PropTypes.string,
+  open: PropTypes.bool,
+  onClose: PropTypes.func.isRequired,
+  onPublish: PropTypes.func.isRequired,
+  page: PropTypes.shape(PagePropTypes).isRequired,
+  loading: PropTypes.bool,
+  slugError: PropTypes.arrayOf(PropTypes.string)
+};
+
+export interface PublishModalProps extends InferProps<typeof PublishModalPropTypes> {
+  onClose: () => void;
+  onPublish: ({ slug }: { slug: string }) => void;
+  page: ContributionPage;
+  slugError?: string[];
+}
+
+export function PublishModal({ open, onClose, onPublish, page, loading, slugError }: PublishModalProps) {
+  const [slug, setSlug] = useState(page?.slug ?? '');
   const domain = getDomain(window.location.host);
 
   const domainUrl = `.${domain}/`;
 
-  const handleChangeSlug = (event) => {
-    setSlug(slugify(event.target.value ?? ''));
+  const handleChangeSlug = (event: FormEvent) => {
+    const element = event.target as HTMLInputElement;
+    setSlug(slugify(element.value ?? ''));
   };
 
   const handlePublish = () => {
@@ -42,10 +57,10 @@ const PublishModal = ({ open, onClose, onPublish, page, loading }) => {
   };
 
   return (
-    <Modal open={open} onClose={onClose} aria-label={`Publish page ${page?.name}`}>
+    <Modal open={!!open} onClose={onClose} aria-label={`Publish page ${page?.name}`}>
       <Paper>
         <IconButton onClick={onClose}>
-          <Icon type="grey">
+          <Icon>
             <CloseIcon />
           </Icon>
         </IconButton>
@@ -68,28 +83,31 @@ const PublishModal = ({ open, onClose, onPublish, page, loading }) => {
               <Label>Page Name</Label>
             </Grid>
             <Grid item xs={4}>
-              <Input value={page?.revenue_program?.slug} start="true" readOnly />
+              <Input value={page?.revenue_program?.slug} readOnly $start />
+              <UnderText>*Site name can’t be changed upon publish.</UnderText>
             </Grid>
             <Grid item xs={3}>
-              <Input disabled defaultValue={domainUrl} center="true" aria-label="Domain URL" />
-            </Grid>
-            <Grid item xs={5}>
               <Input
-                data-testid="page-name-input"
-                placeholder="Ex. contribute, donate, join"
-                end="true"
-                value={slug}
-                onChange={handleChangeSlug}
-                aria-label="Page name"
+                $center
+                disabled
+                defaultValue={domainUrl}
+                inputProps={{ 'aria-label': 'Domain URL', className: 'NreTextFieldInput' }}
               />
             </Grid>
             <Grid item xs={5}>
-              <UnderText>*Site name can’t be changed upon publish.</UnderText>
+              <Input
+                $end
+                error={!!slugError?.length}
+                data-testid="page-name-input"
+                placeholder="Ex. contribute, donate, join"
+                helperText={slugError?.length ? slugError.join('. ') : ''}
+                value={slug}
+                onChange={handleChangeSlug}
+                inputProps={{ 'aria-label': 'Page Name', className: 'NreTextFieldInput' }}
+              />
             </Grid>
             <Grid item xs={2} />
-            <Grid item xs={5}>
-              {/* TODO: add input error messages */}
-            </Grid>
+            <Grid item xs={5}></Grid>
           </Grid>
           <Actions>
             <CancelButton variant="contained" onClick={onClose} disableElevation>
@@ -100,7 +118,7 @@ const PublishModal = ({ open, onClose, onPublish, page, loading }) => {
               variant="contained"
               onClick={handlePublish}
               disableElevation
-              disabled={!slug || loading}
+              disabled={!slug ?? loading}
             >
               {loading ? <CircularProgress size={16} style={{ color: 'white' }} /> : 'Publish'}
             </PublishButton>
@@ -109,21 +127,14 @@ const PublishModal = ({ open, onClose, onPublish, page, loading }) => {
       </Paper>
     </Modal>
   );
-};
-
-PublishModal.propTypes = {
-  className: PropTypes.string,
-  page: PropTypes.shape(PagePropTypes).isRequired,
-  open: PropTypes.bool,
-  loading: PropTypes.bool,
-  onClose: PropTypes.func.isRequired,
-  onPublish: PropTypes.func.isRequired
-};
+}
 
 PublishModal.defaultProps = {
   className: '',
   loading: false,
   open: false
 };
+
+PublishModal.propTypes = PublishModalPropTypes;
 
 export default PublishModal;

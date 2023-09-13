@@ -26,9 +26,6 @@ from apps.pages.models import PAGE_NAME_MAX_LENGTH, DonationPage, Font, Style
 logger = logging.getLogger(f"{settings.DEFAULT_LOGGER}.{__name__}")
 
 
-RP_SLUG_UNIQUENESS_VIOLATION_MSG = "The fields revenue_program, slug must make a unique set."
-
-
 class StyleInlineSerializer(serializers.ModelSerializer):
     def to_representation(self, instance):
         styles = instance.styles if instance.styles else {}
@@ -392,7 +389,7 @@ class DonationPageFullDetailSerializer(serializers.ModelSerializer):
             query.exclude(id=self.instance.id).exists() if self.instance and self.instance.id else query.exists()
         )
         if already_exists:
-            raise serializers.ValidationError({"slug": RP_SLUG_UNIQUENESS_VIOLATION_MSG})
+            raise serializers.ValidationError({"slug": f"Value must be unique and '{slug}' is already in use"})
 
     def validate(self, data):
         data = super().validate(data)

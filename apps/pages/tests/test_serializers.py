@@ -19,34 +19,10 @@ from apps.organizations.tests.factories import (
 )
 from apps.pages.defaults import BENEFITS, SWAG, get_default_page_elements
 from apps.pages.models import DonationPage, Style
-from apps.pages.serializers import (
-    RP_SLUG_UNIQUENESS_VIOLATION_MSG,
-    DonationPageFullDetailSerializer,
-    StyleListSerializer,
-)
+from apps.pages.serializers import DonationPageFullDetailSerializer, StyleListSerializer
 from apps.pages.tests.factories import DonationPageFactory, StyleFactory
 from apps.users.models import Roles
 from apps.users.tests.factories import create_test_user
-
-
-@pytest.fixture
-def field_error_for_rp_name():
-    return serializers.ValidationError({"name": ["this isn't right"]})
-
-
-@pytest.fixture
-def non_field_error_other():
-    return serializers.ValidationError({"non_field_errors": ["random error"]})
-
-
-@pytest.fixture
-def non_field_error_for_rp_slug_uniqueness():
-    return serializers.ValidationError({"non_field_errors": [RP_SLUG_UNIQUENESS_VIOLATION_MSG]})
-
-
-@pytest.fixture
-def non_field_error_expected_transformation():
-    return serializers.ValidationError({"slug": [RP_SLUG_UNIQUENESS_VIOLATION_MSG]})
 
 
 @pytest.mark.django_db
@@ -549,14 +525,18 @@ class TestDonationPageFullDetailSerializer:
             serializer.ensure_slug_is_unique_for_rp(
                 {"slug": live_donation_page.slug, "revenue_program": live_donation_page.revenue_program}
             )
-        assert str(exc.value.detail["slug"]) == RP_SLUG_UNIQUENESS_VIOLATION_MSG
+        assert (
+            str(exc.value.detail["slug"]) == f"Value must be unique and '{live_donation_page.slug}' is already in use"
+        )
 
     def test_ensure_slug_when_not_new_and_non_unique(self, live_donation_page):
         page = DonationPageFactory(revenue_program=live_donation_page.revenue_program)
         serializer = DonationPageFullDetailSerializer(instance=page)
         with pytest.raises(serializers.ValidationError) as exc:
             serializer.ensure_slug_is_unique_for_rp({"slug": live_donation_page.slug})
-        assert str(exc.value.detail["slug"]) == RP_SLUG_UNIQUENESS_VIOLATION_MSG
+        assert (
+            str(exc.value.detail["slug"]) == f"Value must be unique and '{live_donation_page.slug}' is already in use"
+        )
 
 
 @pytest.mark.django_db

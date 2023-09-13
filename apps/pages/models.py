@@ -9,7 +9,6 @@ from solo.models import SingletonModel
 from sorl.thumbnail import ImageField as SorlImageField
 
 from apps.common.models import IndexedTimeStampedModel
-from apps.common.utils import normalize_slug
 from apps.config.validators import validate_slug_against_denylist
 from apps.pages import defaults, signals
 from apps.pages.validators import style_validator
@@ -77,8 +76,8 @@ class DonationPage(IndexedTimeStampedModel):
 
     slug = models.SlugField(
         blank=True,
-        help_text="If not entered, it will be built from the Page name",
         validators=[validate_slug_against_denylist],
+        null=True,
     )
 
     published_date = models.DateTimeField(null=True, blank=True)
@@ -89,7 +88,9 @@ class DonationPage(IndexedTimeStampedModel):
     class Meta:
         constraints = [
             models.UniqueConstraint(fields=["revenue_program", "name"], name="unique_name"),
-            models.UniqueConstraint(fields=["revenue_program", "slug"], name="unique_slug"),
+            models.UniqueConstraint(
+                fields=["revenue_program", "slug"], name="unique_slug", condition=models.Q(slug__isnull=False)
+            ),
         ]
 
     def __str__(self):
@@ -122,10 +123,6 @@ class DonationPage(IndexedTimeStampedModel):
         default_logo = DefaultPageLogo.get_solo()
         if not self.pk and not self.header_logo and default_logo.logo:
             self.header_logo = default_logo.logo
-
-    def clean_fields(self, **kwargs):
-        self.slug = normalize_slug(self.name, self.slug)
-        super().clean_fields(**kwargs)
 
     def save(self, *args, **kwargs):
         # should_send_first_publication_signal has to be called prior to saving the record

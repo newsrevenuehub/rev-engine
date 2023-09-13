@@ -35,15 +35,26 @@
   "sidebar_elements": [],
   "thank_you_redirect": "",
   "post_thank_you_redirect": "",
-  "slug": "yet-another-new-page",
+  "slug": null,
   "published_date": null,
   "page_screenshot": null,
   "email_templates": [],
   "plan": {
     "name": "FREE",
     "label": "Free",
-    "sidebar_elements": ["DRichText", "DImage"],
-    "page_elements": ["DAmount", "DDonorAddress", "DDonorInfo", "DFrequency", "DPayment", "DReason", "DRichText"],
+    "sidebar_elements": [
+      "DRichText",
+      "DImage"
+    ],
+    "page_elements": [
+      "DAmount",
+      "DDonorAddress",
+      "DDonorInfo",
+      "DFrequency",
+      "DPayment",
+      "DReason",
+      "DRichText"
+    ],
     "page_limit": 1,
     "custom_thank_you_page_enabled": false
   }

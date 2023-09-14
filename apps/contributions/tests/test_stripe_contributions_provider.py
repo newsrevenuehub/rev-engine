@@ -332,6 +332,10 @@ class TestStripePaymentIntent:
                 pytest_cases.fixture_ref(pi_no_pm_no_invoice_charges_is_zero_length),
                 lambda x: None,
             ),
+            (
+                pytest_cases.fixture_ref("pi_for_accepted_flagged_recurring_contribution"),
+                lambda x: x.invoice.subscription.default_payment_method,
+            ),
         ),
     )
     def test_payment_method(self, pi, get_expected_fn):

@@ -933,6 +933,15 @@ def pi_for_valid_one_time_factory(default_paid_pi_data_factory):
 
 
 @pytest.fixture
+def pi_for_accepted_flagged_recurring_contribution(pi_for_active_subscription_factory):
+    pm = stripe.PaymentMethod.construct_from({}, key="test")
+    return pi_for_active_subscription_factory.get(
+        payment_method=None,
+        invoice=stripe.Invoice.construct_from({"subscription": {"default_payment_method": pm}}, key="test"),
+    )
+
+
+@pytest.fixture
 def subscription_factory(subscription_data_factory):
     """Factory for creating a Stripe subscription object"""
 

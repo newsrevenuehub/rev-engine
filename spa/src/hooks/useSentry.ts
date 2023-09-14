@@ -2,7 +2,7 @@ import { useEffect } from 'react';
 
 // Sentry
 import * as Sentry from '@sentry/react';
-import { BrowserTracing } from '@sentry/tracing';
+import { CaptureConsole } from '@sentry/integrations';
 import { Route, useHistory } from 'react-router-dom';
 
 // Const
@@ -22,9 +22,10 @@ function useSentry() {
         dsn: SENTRY_DSN_FRONTEND,
         integrations: [
           // Ref: https://docs.sentry.io/platforms/javascript/guides/react/configuration/integrations/react-router/#react-router-v4v5
-          new BrowserTracing({
+          new Sentry.BrowserTracing({
             routingInstrumentation: Sentry.reactRouterV5Instrumentation(history)
-          })
+          }),
+          new CaptureConsole({ levels: ['error'] })
         ],
         tracesSampleRate: 0.3,
         environment: ENVIRONMENT

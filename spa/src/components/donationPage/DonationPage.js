@@ -27,6 +27,7 @@ import { CONTRIBUTION_INTERVALS } from 'constants/contributionIntervals';
 import { GENERIC_ERROR } from 'constants/textConstants';
 import { usePayment } from 'hooks/usePayment';
 import FinishPaymentModal from './FinishPaymentModal/FinishPaymentModal';
+import { useAmountAuditing } from './useAmountAuditing';
 
 export const DonationPageContext = createContext({});
 
@@ -56,6 +57,12 @@ function DonationPage({ page, live = false }, ref) {
   const [displayErrorFallback, setDisplayErrorFallback] = useState(false);
   const [mailingCountry, setMailingCountry] = useState();
   const { createPayment, deletePayment, isLoading: paymentIsLoading, payment } = usePayment();
+  const { auditAmountChange, auditFrequencyChange, auditPayFeesChange, auditPaymentCreation } = useAmountAuditing();
+
+  // Whenever amount, frequency, or fees changes, track it.
+  useEffect(() => auditAmountChange(amount), [amount, auditAmountChange]);
+  useEffect(() => auditFrequencyChange(frequency), [auditFrequencyChange, frequency]);
+  useEffect(() => auditPayFeesChange(userAgreesToPayFees), [auditPayFeesChange, userAgreesToPayFees]);
 
   /*
   If window.grecaptcha is defined-- which should be done in useReCAPTCHAScript hook--
@@ -139,6 +146,7 @@ function DonationPage({ page, live = false }, ref) {
     }
 
     try {
+      auditPaymentCreation(amount);
       await createPayment(
         serializeData(formRef.current, {
           amount,

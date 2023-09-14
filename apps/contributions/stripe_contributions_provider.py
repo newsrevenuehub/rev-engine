@@ -70,8 +70,8 @@ class StripePaymentIntent:
             pm = self.payment_intent.payment_method
         # However, some NRE payment intents intents will not have a payment method attached directly to the PaymentIntent. There may be other ways to end
         # up in this state, but one is when instead of creating a payment intent we create a setup intent (which is case when a contribution exceeds threshold
-        # to be marked as "bad" by bad actor API). In this case, a payment intent only later gets created when the setup intent is completed, and that does
-        # not result in the payment method automatically being attached to the pi.
+        # to be marked as "bad" by bad actor API when signing up for a recurring contribution). In this case, a payment intent only later gets created when
+        # the setup intent is completed, and that does not result in the payment method automatically being attached to the pi.
         elif invoice := self.payment_intent.invoice:
             pm = (invoice.get("subscription", {}) or {}).get("default_payment_method", {})
         # in the case of imported legacy subscriptions, it seems that the payment method is not directly on the

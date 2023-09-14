@@ -1,7 +1,8 @@
 import PropTypes, { InferProps } from 'prop-types';
-import { Content, Root } from './DonationPageFooter.styled';
+import { useTranslation } from 'react-i18next';
 import { HOME_PAGE_URL } from 'constants/helperUrls';
 import { ContributionPage } from 'hooks/useContributionPage';
+import { Content, Root } from './DonationPageFooter.styled';
 
 const DonationPageFooterPropTypes = {
   page: PropTypes.object
@@ -12,12 +13,14 @@ export interface DonationPageFooterProps extends InferProps<typeof DonationPageF
 }
 
 function DonationPageFooter({ page }: DonationPageFooterProps) {
+  const { t } = useTranslation();
+
   return (
     <Root data-testid="donation-page-footer">
       <Content>
         {/* eslint-disable-next-line react/jsx-no-target-blank */}
         <a href={HOME_PAGE_URL} target="_blank">
-          What is fundjournalism.org?
+          {t('donationPage.donationPageFooter.whatIsFundJournalismOrg')}
         </a>
         <p>
           &copy; {new Date().getFullYear()} {page?.revenue_program.name}

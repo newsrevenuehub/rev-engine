@@ -1,8 +1,6 @@
 import datetime
 import json
 
-from django.test import TestCase
-
 import pytest
 import pytest_cases
 import stripe
@@ -25,161 +23,6 @@ from apps.contributions.stripe_contributions_provider import (
 )
 from apps.contributions.tests import RedisMock
 from apps.contributions.types import StripePiAsPortalContribution, StripePiSearchResponse
-
-
-class AbstractTestStripeContributions(TestCase):
-    def _setup_stripe_customers(self):
-        self.customers = [
-            stripe.Customer.construct_from({"id": "cust_1"}, key="test"),
-            stripe.Customer.construct_from({"id": "cust_2"}, key="test"),
-            stripe.Customer.construct_from({"id": "cust_3"}, key="test"),
-        ]
-
-    def _setup_stripe_payment_intents(self):
-        payment_intent_1 = {
-            "id": "payment_intent_1",
-            "amount": 2000,
-            "customer": "customer_1",
-            "status": "succeeded",
-            "created": 1656915040,
-        }
-
-        payment_intent_1_1 = {
-            "id": "payment_intent_1",
-            "amount": 4000,
-            "customer": "customer_3",
-            "status": "succeeded",
-            "created": 1656915040,
-        }
-
-        payment_intent_2 = {
-            "id": "payment_intent_2",
-            "amount": 2000,
-            "customer": "customer_2",
-            "status": "succeeded",
-            "created": 1656915040,
-        }
-
-        payment_intent_3 = {
-            "id": "payment_intent_3",
-            "amount": 2000,
-            "customer": "customer_3",
-            "status": "succeeded",
-            "created": 1656915040,
-        }
-
-        metadata = {"metadata": {"revenue_program_slug": "testrp"}}
-        metadata_1 = {"metadata": {}}
-        payment_method = {
-            "payment_method": {
-                "card": {"brand": "visa", "last4": "1234", "exp_month": 1, "exp_year": 2023},
-                "type": "card",
-            }
-        }
-        payment_method_details_without_card = {"payment_method": {}}
-        payment_method_details_with_null_card = {"payment_method": {"card": None}}
-        line_item = {"plan": {"interval": "year", "interval_count": 1}}
-        invoice = {
-            "invoice": {
-                "id": "invoice_1",
-                "status_transitions": {"paid_at": 1656915047},
-                "lines": {"data": [line_item]},
-                "next_payment_attempt": 1656915047,
-                "subscription": {
-                    "id": "subscription_1",
-                    "status": "active",
-                    "default_payment_method": payment_method["payment_method"],
-                },
-            }
-        }
-        invoice_without_line_item = {
-            "invoice": {
-                "id": "invoice_1",
-                "status_transitions": {"paid_at": 1656915047},
-                "lines": {"data": None},
-                "next_payment_attempt": 1656915047,
-                "subscription": {
-                    "id": "subscription_1",
-                    "status": "active",
-                },
-            }
-        }
-        invoice_with_canceled_subscription = {
-            "invoice": {
-                "id": "invoice_1",
-                "status_transitions": {"paid_at": 1656915047},
-                "lines": {"data": [line_item]},
-                "next_payment_attempt": 1656915047,
-                "subscription": {
-                    "id": "subscription_1",
-                    "status": "canceled",
-                },
-            }
-        }
-
-        invoice_with_active_subscription = {
-            "invoice": {
-                "id": "invoice_1",
-                "status_transitions": {"paid_at": 1656915047},
-                "lines": {"data": [line_item]},
-                "next_payment_attempt": 1656915047,
-                "subscription": {
-                    "id": "subscription_1",
-                    "status": "active",
-                },
-            }
-        }
-
-        self.payment_intent_without_invoice = stripe.PaymentIntent.construct_from(
-            payment_intent_1 | metadata | {"invoice": None} | payment_method, "TEST-KEY"
-        )
-        self.payment_intent_with_canceled_subscription = stripe.PaymentIntent.construct_from(
-            payment_intent_1 | metadata | invoice_with_canceled_subscription | payment_method, "TEST-KEY"
-        )
-        self.payment_intent_with_active_subscription = stripe.PaymentIntent.construct_from(
-            payment_intent_1 | metadata | invoice_with_active_subscription | payment_method, "TEST-KEY"
-        )
-        self.payment_intent_without_metadata = stripe.PaymentIntent.construct_from(
-            payment_intent_1 | invoice | payment_method, "TEST-KEY"
-        )
-        self.payment_intent_without_revenue_program = stripe.PaymentIntent.construct_from(
-            payment_intent_1 | invoice | payment_method | metadata_1, "TEST-KEY"
-        )
-        self.payment_intent_without_invoice_line_item = stripe.PaymentIntent.construct_from(
-            payment_intent_1 | invoice_without_line_item | payment_method | metadata_1, "TEST-KEY"
-        )
-        self.payment_intent_without_card = stripe.PaymentIntent.construct_from(
-            payment_intent_1 | invoice_without_line_item | payment_method_details_without_card | metadata_1, "TEST-KEY"
-        )
-        self.payment_intent_with_null_card = stripe.PaymentIntent.construct_from(
-            payment_intent_1 | invoice_without_line_item | payment_method_details_with_null_card | metadata_1,
-            "TEST-KEY",
-        )
-        self.payment_intent_1 = stripe.PaymentIntent.construct_from(
-            payment_intent_1 | metadata | invoice | payment_method, "TEST-KEY"
-        )
-        self.payment_intent_1_1 = stripe.PaymentIntent.construct_from(
-            payment_intent_1_1 | metadata | invoice | payment_method, "TEST-KEY"
-        )
-        self.payment_intent_2 = stripe.PaymentIntent.construct_from(
-            payment_intent_2 | metadata | invoice | payment_method, "TEST-KEY"
-        )
-        self.payment_intent_3 = stripe.PaymentIntent.construct_from(
-            payment_intent_3 | metadata | invoice | payment_method, "TEST-KEY"
-        )
-
-    def _setup_stripe_contributions(self):
-        self.contributions_1 = [
-            self.payment_intent_1,
-            self.payment_intent_without_invoice,
-            self.payment_intent_without_metadata,
-            self.payment_intent_without_revenue_program,
-        ]
-
-        self.contributions_2 = [self.payment_intent_2, self.payment_intent_3]
-
-    def _setup_stripe_customer_ids(self, count):
-        self.customer_ids = [f"cust_{i}" for i in range(count)]
 
 
 @pytest.fixture
@@ -227,6 +70,35 @@ def card(pi_for_valid_one_time):
 
 
 @pytest.fixture
+def pi_without_invoice(pi_for_valid_one_time_factory):
+    return pi_for_valid_one_time_factory.get(invoice=None)
+
+
+@pytest.fixture
+def pi_with_invoice_but_falsy_lines_data(pi_for_active_subscription_factory):
+    pi = pi_for_active_subscription_factory.get()
+    pi.invoice.lines.data = []
+    return pi
+
+
+@pytest.fixture
+def pi_for_canceled_subscription(pi_for_active_subscription_factory):
+    pi = pi_for_active_subscription_factory.get()
+    pi.invoice.subscription.status = "canceled"
+    return pi
+
+
+@pytest.fixture
+def pi_no_metadata(pi_for_valid_one_time_factory):
+    return pi_for_valid_one_time_factory.get(metadata=None)
+
+
+@pytest.fixture
+def pi_no_revenue_program_in_metadata(pi_for_valid_one_time_factory):
+    return pi_for_valid_one_time_factory.get(metadata={"foo": "bar"})
+
+
+@pytest.fixture
 def dummy_card():
     # .DUMMY_CARD is an attrdict and when trying to pass that as a parameter in tests, got an error
     # so we create a fixture to pass instead
@@ -243,88 +115,63 @@ def pm_no_card():
     return stripe.PaymentMethod.construct_from(AttrDict({}), "test")
 
 
-class TestStripePaymentIntent(AbstractTestStripeContributions):
-    def setUp(self):
-        super().setUp()
-        self._setup_stripe_payment_intents()
-
-    def test_payment_intent_with_canceled_subscription(self):
-        payment_intent = StripePaymentIntent(self.payment_intent_with_canceled_subscription)
-        assert payment_intent.subscription_id == "subscription_1"
+@pytest.mark.django_db
+class TestStripePaymentIntent:
+    def test_payment_intent_with_canceled_subscription(self, pi_for_canceled_subscription):
+        payment_intent = StripePaymentIntent(pi_for_canceled_subscription)
+        assert payment_intent.subscription_id == pi_for_canceled_subscription.invoice.subscription.id
         assert payment_intent.is_modifiable is False
         assert payment_intent.is_cancelable is False
 
-    def test_payment_intent_with_active_subscription(self):
-        payment_intent = StripePaymentIntent(self.payment_intent_with_active_subscription)
-        assert payment_intent.subscription_id == "subscription_1"
+    def test_payment_intent_with_active_subscription(self, pi_for_active_subscription):
+        payment_intent = StripePaymentIntent(pi_for_active_subscription)
+        assert payment_intent.subscription_id == pi_for_active_subscription.invoice.subscription.id
         assert payment_intent.is_modifiable is True
         assert payment_intent.is_cancelable is True
 
-    def test_stripe_payment_intent_without_invoice(self):
-        stripe_payment_intent = StripePaymentIntent(self.payment_intent_without_invoice)
-        self.assertEqual(stripe_payment_intent.interval, ContributionInterval.ONE_TIME)
-        assert stripe_payment_intent.invoice_line_item == [{}]
+    def test_invoice_line_item_when_no_invoice(self, pi_without_invoice):
+        assert StripePaymentIntent(pi_without_invoice).invoice_line_item == {}
 
-    def test_stripe_payment_intent_without_invoice_line_item(self):
-        stripe_payment_intent = StripePaymentIntent(self.payment_intent_without_invoice_line_item)
-        assert stripe_payment_intent.invoice_line_item == {}
+    def test_invoice_line_item_when_invoice_but_no_lines(self, pi_with_invoice_but_falsy_lines_data):
+        assert StripePaymentIntent(pi_with_invoice_but_falsy_lines_data).invoice_line_item == {}
 
-    def test_stripe_payment_intent_with_invalid_metadata(self):
-        with self.assertRaises(InvalidMetadataError):
-            StripePaymentIntent(self.payment_intent_without_metadata).revenue_program
-        with self.assertRaises(InvalidMetadataError):
-            StripePaymentIntent(self.payment_intent_without_revenue_program).revenue_program
-
-    def test_stripe_payment_intent_with_valid_data(self):
-        stripe_payment_intent = StripePaymentIntent(self.payment_intent_1)
-        self.assertEqual(stripe_payment_intent.interval, ContributionInterval.YEARLY)
-        self.assertEqual(stripe_payment_intent.revenue_program, "testrp")
-        self.assertEqual(stripe_payment_intent.card_brand, "visa")
-        self.assertEqual(stripe_payment_intent.last4, "1234")
-        self.assertEqual(stripe_payment_intent.amount, 2000)
-        self.assertEqual(
-            stripe_payment_intent.created, datetime.datetime(2022, 7, 4, 6, 10, 40, tzinfo=datetime.timezone.utc)
+    def test_invoice_line_item_when_lines(self, pi_for_active_subscription):
+        assert (
+            StripePaymentIntent(pi_for_active_subscription).invoice_line_item
+            == pi_for_active_subscription.invoice.lines.data[0]
         )
-        self.assertEqual(stripe_payment_intent.provider_customer_id, "customer_1")
-        self.assertEqual(
-            stripe_payment_intent.last_payment_date,
-            datetime.datetime(2022, 7, 4, 6, 10, 47, tzinfo=datetime.timezone.utc),
+
+    def test_revenue_program(self, pi_for_valid_one_time):
+        assert (
+            StripePaymentIntent(pi_for_valid_one_time).revenue_program
+            == pi_for_valid_one_time.metadata["revenue_program_slug"]
         )
-        self.assertEqual(stripe_payment_intent.status, ContributionStatus.PAID)
-        self.assertEqual(stripe_payment_intent.credit_card_expiration_date, "1/2023")
-        self.assertEqual(stripe_payment_intent.payment_type, "card")
-        self.assertEqual(stripe_payment_intent.refunded, False)
-        self.assertEqual(stripe_payment_intent.id, "payment_intent_1")
 
-        self.payment_intent_1["invoice"]["lines"]["data"][0]["plan"]["interval"] = "month"
-        stripe_payment_intent = StripePaymentIntent(self.payment_intent_1)
-        self.assertEqual(stripe_payment_intent.interval, ContributionInterval.MONTHLY)
+    def test_revenue_program_when_no_metadata(self, pi_no_metadata):
+        with pytest.raises(InvalidMetadataError):
+            StripePaymentIntent(pi_no_metadata).revenue_program
 
-        self.payment_intent_1["invoice"]["lines"]["data"][0]["plan"]["interval"] = "day"
-        with self.assertRaises(InvalidIntervalError):
-            StripePaymentIntent(self.payment_intent_1).interval
+    def test_revenue_program_when_rp_slug_not_in_metadata(self, pi_no_revenue_program_in_metadata):
+        with pytest.raises(InvalidMetadataError):
+            StripePaymentIntent(pi_no_revenue_program_in_metadata).revenue_program
 
-        self.payment_intent_1["status"] = "no status"
-        self.assertEqual(StripePaymentIntent(self.payment_intent_1).status, ContributionStatus.FAILED)
+    def test_subscription_id_when_one_time(self, pi_for_valid_one_time):
+        assert StripePaymentIntent(pi_for_valid_one_time).subscription_id is None
 
-        self.payment_intent_1["status"] = "pending"
-        self.assertEqual(StripePaymentIntent(self.payment_intent_1).status, ContributionStatus.PROCESSING)
+    def test_subscription_id_when_recurring(self, pi_for_active_subscription):
+        assert (
+            StripePaymentIntent(pi_for_active_subscription).subscription_id
+            == pi_for_active_subscription.invoice.subscription.id
+        )
 
-        self.payment_intent_1["amount_refunded"] = 0.5
-        self.assertEqual(StripePaymentIntent(self.payment_intent_1).status, ContributionStatus.REFUNDED)
+    # TODO: [DEV-3987] Fix StripePaymentIntent.refunded property
+    # We'll test this once there is a functional implementation. At the moment
+    # the real implementation is faulty, so no reason to test it.
+    # def test_refunded(self):
+    #     pass
 
-        self.payment_intent_1["refunded"] = True
-        self.assertEqual(StripePaymentIntent(self.payment_intent_1).status, ContributionStatus.REFUNDED)
-
-
-@pytest.mark.django_db
-class TestStripePaymentIntentViaPytest:
-    """NB:
-
-    This was created to test newly touched code without refactoring existing tests. We've opted
-    to refactor to pytest in other places, but there is upcoming work that may lead to StripePaymentIntent and
-    its use cases drastically changing, so cleaning up the campsite is not worthwhile now.
-    """
+    def test_id(self, pi_for_valid_one_time):
+        assert StripePaymentIntent(pi_for_valid_one_time).id == pi_for_valid_one_time.id
 
     def test_canceled_when_no_pi_has_no_invoice(self, pi_for_valid_one_time_factory):
         pi = pi_for_valid_one_time_factory.get()
@@ -382,6 +229,81 @@ class TestStripePaymentIntentViaPytest:
             "apps.contributions.stripe_contributions_provider.StripePaymentIntent.payment_method", payment_method
         )
         assert StripePaymentIntent(None).card == expected
+
+    def test_last_payment_date_when_no_invoice(self, pi_without_invoice):
+        assert StripePaymentIntent(pi_without_invoice).last_payment_date == datetime.datetime.fromtimestamp(
+            int(pi_without_invoice.created), tz=datetime.timezone.utc
+        )
+
+    def test_last_payment_date_when_status_transitions_no_paid_at(self, pi_for_active_subscription):
+        pi_for_active_subscription.invoice.status_transitions.paid_at = None
+        assert StripePaymentIntent(pi_for_active_subscription).last_payment_date is None
+
+    def test_last_payment_date_when_status_transitions_paid_at(self, pi_for_active_subscription):
+        assert (paid_at := pi_for_active_subscription.invoice.status_transitions.paid_at)
+        assert StripePaymentIntent(pi_for_active_subscription).last_payment_date == datetime.datetime.fromtimestamp(
+            paid_at, tz=datetime.timezone.utc
+        )
+
+    def test_credit_card_expiration_date_when_card_has_month(self, pi_for_valid_one_time):
+        assert pi_for_valid_one_time.payment_method.card.exp_month
+        assert (
+            StripePaymentIntent(pi_for_valid_one_time).credit_card_expiration_date
+            == f"{pi_for_valid_one_time.payment_method.card.exp_month}/{pi_for_valid_one_time.payment_method.card.exp_year}"
+        )
+
+    def test_credit_card_expiration_date_when_card_not_have_month(self, pi_no_pm_no_invoice_charges_is_zero_length):
+        assert StripePaymentIntent(pi_no_pm_no_invoice_charges_is_zero_length).credit_card_expiration_date is None
+
+    @pytest.mark.parametrize(
+        "payment_method, expected",
+        (
+            (None, None),
+            (stripe.PaymentMethod.construct_from({"type": "card"}, "test"), "card"),
+        ),
+    )
+    def test_payment_type(self, payment_method, expected, mocker):
+        mocker.patch(
+            "apps.contributions.stripe_contributions_provider.StripePaymentIntent.payment_method",
+            return_value=payment_method,
+            new_callable=mocker.PropertyMock,
+        )
+        assert StripePaymentIntent(None).payment_type == expected
+
+    def test_interval_when_no_invoice(self, pi_without_invoice):
+        assert StripePaymentIntent(pi_without_invoice).interval is ContributionInterval.ONE_TIME
+
+    @pytest.mark.parametrize(
+        "interval, interval_count, expected_val, expected_error",
+        (
+            ("year", 1, ContributionInterval.YEARLY, None),
+            ("month", 1, ContributionInterval.MONTHLY, None),
+            ("unexpected", 1, None, InvalidIntervalError),
+            ("year", 2, None, InvalidIntervalError),
+            ("month", 2, None, InvalidIntervalError),
+        ),
+    )
+    def test_interval_when_invoice(self, interval, interval_count, expected_val, expected_error):
+        pi = stripe.PaymentIntent.construct_from(
+            {
+                "id": "pi_1",
+                "invoice": {
+                    "lines": {
+                        "data": [
+                            {
+                                "plan": {"interval": interval, "interval_count": interval_count},
+                            }
+                        ]
+                    }
+                },
+            },
+            key="test",
+        )
+        if expected_error:
+            with pytest.raises(expected_error):
+                StripePaymentIntent(pi).interval
+        else:
+            assert StripePaymentIntent(pi).interval == expected_val
 
     @pytest_cases.parametrize(
         "pi, get_expected_fn",

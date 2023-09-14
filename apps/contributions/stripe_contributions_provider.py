@@ -82,12 +82,13 @@ class StripePaymentIntent:
 
     @property
     def invoice_line_item(self):
+        default = AttrDict({})
         if not self.payment_intent.invoice:
-            return [{}]
-        line_item = self.payment_intent.invoice.lines.data
-        if not line_item:
-            line_item = [{}]
-        return line_item[0]
+            return default
+        lines_data = self.payment_intent.invoice.lines.data
+        if lines_data:
+            return lines_data[0]
+        return default
 
     @property
     def is_cancelable(self):
@@ -165,6 +166,8 @@ class StripePaymentIntent:
 
     @property
     def status(self):
+        # NB: There is a bug with our .refunded property to be addressed in DEV-3987 which means
+        # that .refunded will never be True.
         if self.refunded:
             return ContributionStatus.REFUNDED
         if self.canceled:
@@ -189,15 +192,20 @@ class StripePaymentIntent:
             return False
         return self.payment_intent.invoice.subscription.status == "canceled"
 
+    # TODO: [DEV-3987] Fix StripePaymentIntent.refunded property
     @property
     def refunded(self):
-        """For a contribution to consider it as refunded either refunded flag will be set for full refunds
+        """For a contribution to be considered as refunded either refunded flag will be set for full refunds
         or acount_refunded will be > 0 (will be useful in case of partial refund and we still want to set
         the status as refunded)
         https://stripe.com/docs/api/charges/object#charge_object-refunded
         https://stripe.com/docs/api/charges/object#charge_object-amount_refunded
         """
-        return self.payment_intent.get("refunded", False) or self.payment_intent.get("amount_refunded", 0) > 0
+        if "refunded" in self.payment_intent:
+            return self.payment_intent.refunded
+        if "amount_refunded" in self.payment_intent:
+            return self.payment_intent.amount_refunded > 0
+        return False
 
     @property
     def id(self):

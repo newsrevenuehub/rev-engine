@@ -144,43 +144,43 @@ describe('useContributionPageList', () => {
   });
 
   describe('newPageProperties', () => {
-    it('returns a name and slug for the revenue program passed', () => {
+    it('returns a name for the revenue program passed', () => {
       const { result } = hook();
 
-      expect(result.current.newPageProperties('mock-rp')).toEqual({ name: 'mock-rp Page 1', slug: 'mock-rp-page-1' });
+      expect(result.current.newPageProperties('mock-rp')).toEqual({ name: 'Page 1' });
     });
 
-    it("returns a name and slug that don't conflict with an existing page", async () => {
+    it("returns a name that doesn't conflict with an existing page", async () => {
       const { result, waitFor } = hook();
 
       await waitFor(() => expect(result.current.pages?.length).toBe(2));
-      expect(result.current.newPageProperties('mock-rp')).toEqual({ name: 'mock-rp Page 3', slug: 'mock-rp-page-3' });
+      expect(result.current.newPageProperties('mock-rp')).toEqual({ name: 'Page 3' });
     });
 
-    it("returns a name and slug that don't conflict, even if there are gaps in the numbering sequence in existing pages", async () => {
+    it("returns a name that doesn't conflict, even if there are gaps in the numbering sequence in existing pages", async () => {
       axiosMock.reset();
       axiosMock.onGet('pages/').reply(200, [
-        { id: 'mock-page-id-1', name: 'Page 1', revenue_program: { name: 'mock-rp' }, slug: 'mock-rp-page-1' },
-        { id: 'mock-page-id-3', name: 'Page 3', revenue_program: { name: 'mock-rp' }, slug: 'mock-rp-page-3' }
+        { id: 'mock-page-id-1', name: 'Page 1', revenue_program: { name: 'mock-rp' } },
+        { id: 'mock-page-id-3', name: 'Page 3', revenue_program: { name: 'mock-rp' } }
       ]);
 
       const { result, waitFor } = hook();
 
       await waitFor(() => expect(result.current.pages?.length).toBe(2));
-      expect(result.current.newPageProperties('mock-rp')).toEqual({ name: 'mock-rp Page 4', slug: 'mock-rp-page-4' });
+      expect(result.current.newPageProperties('mock-rp')).toEqual({ name: 'Page 4' });
     });
 
     it("ignores pages that aren't linked to the revenue program requested", async () => {
       axiosMock.reset();
       axiosMock.onGet('pages/').reply(200, [
-        { id: 'mock-page-id-1', name: 'Page 1', revenue_program: { name: 'mock-rp' }, slug: 'mock-rp-page-1' },
-        { id: 'mock-page-id-2', name: 'Page 2', revenue_program: { name: 'other-rp' }, slug: 'other-rp-page-2' }
+        { id: 'mock-page-id-1', name: 'Page 1', revenue_program: { name: 'mock-rp' } },
+        { id: 'mock-page-id-2', name: 'Page 2', revenue_program: { name: 'other-rp' } }
       ]);
 
       const { result, waitFor } = hook();
 
       await waitFor(() => expect(result.current.pages?.length).toBe(2));
-      expect(result.current.newPageProperties('mock-rp')).toEqual({ name: 'mock-rp Page 2', slug: 'mock-rp-page-2' });
+      expect(result.current.newPageProperties('mock-rp')).toEqual({ name: 'Page 2' });
     });
   });
 

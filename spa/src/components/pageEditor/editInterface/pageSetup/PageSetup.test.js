@@ -22,7 +22,7 @@ const page = {
 
 function tree() {
   return render(
-    <PageEditorContext.Provider value={{ errors: {} }}>
+    <PageEditorContext.Provider value={{ errors: [] }}>
       <PageSetup />
     </PageEditorContext.Provider>
   );

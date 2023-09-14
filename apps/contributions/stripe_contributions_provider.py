@@ -10,6 +10,7 @@ from django.core.serializers.json import DjangoJSONEncoder
 import stripe
 from addict import Dict as AttrDict
 from rest_framework import exceptions
+from stripe.stripe_object import StripeObject
 
 from apps.contributions.models import ContributionInterval, ContributionStatus
 from apps.contributions.serializers import (
@@ -53,8 +54,31 @@ class StripePaymentIntent:
     CANCELABLE_STATUSES = ["trialing", "active", "past_due"]
     MODIFIABLE_STATUSES = ["incomplete", "trialing", "active", "past_due"]
 
+    DUMMY_CARD = AttrDict(**{"brand": None, "last4": None, "exp_month": None, "exp_year": None})
+
     def __init__(self, payment_intent):
         self.payment_intent = payment_intent
+
+    @property
+    def payment_method(self) -> StripeObject | None:
+        pm = None
+        # check that it's an instance of a payment method object. if for some reason the passed instance does not have payment method expanded
+        # this could be a string.
+        if self.payment_intent.payment_method and isinstance(self.payment_intent.payment_method, StripeObject):
+            pm = self.payment_intent.payment_method
+        # in the case of imported legacy subscriptions, it seems that the payment method is not directly on the
+        # payment intent, though it is available through this route. This probably has to do with how the original PI
+        # was created. PIs are not guaranteed to have a payment method attached, even if they're associated with a subscription.
+        # In general, NRE-generated PIs will have a payment method attached, but for these legacy PIs this is not necessarily (or even usually
+        # the case)
+        elif getattr(self.payment_intent, "charges", None) and self.payment_intent.charges.total_count > 0:
+            most_recent = max(self.payment_intent.charges.data, key=lambda x: x.created)
+            pm = most_recent.payment_method_details
+
+        elif invoice := self.payment_intent.invoice:  # it's an NRE-generated pi for a subscription
+            pm = (invoice.get("subscription", {}) or {}).get("default_payment_method", {})
+
+        return pm
 
     @property
     def invoice_line_item(self):
@@ -105,12 +129,10 @@ class StripePaymentIntent:
 
     @property
     def card(self):
-        default = AttrDict(**{"brand": None, "last4": None, "exp_month": None})
-        if invoice := self.payment_intent.invoice:  # it's a subscription
-            return ((invoice.get("subscription", {}) or {}).get("default_payment_method", {}) or {}).get(
-                "card", {}
-            ) or default
-        return (self.payment_intent.get("payment_method", {}) or {}).get("card", {}) or default
+        card = self.DUMMY_CARD
+        if self.payment_method and self.payment_method.card:
+            card = self.payment_method.card
+        return card
 
     @property
     def card_brand(self):
@@ -158,8 +180,8 @@ class StripePaymentIntent:
         return f"{self.card.exp_month}/{self.card.exp_year}" if self.card.exp_month else None
 
     @property
-    def payment_type(self):
-        return self.payment_intent.payment_method.type
+    def payment_type(self) -> str | None:
+        return None if self.payment_method is None else self.payment_method.type
 
     @property
     def canceled(self):
@@ -350,7 +372,9 @@ class ContributionsCacheProvider:
         cached_data = json.loads(self.cache.get(self.key) or "{}")
         cached_data.update(data)
         logger.info(
-            "Inserting %s stripe subscriptions cast as portal contributions into cache with key %s", len(data), self.key
+            "Inserting %s stripe subscriptions cast as portal contributions into cache with key %s",
+            len(data),
+            self.key,
         )
         self.cache.set(self.key, json.dumps(cached_data, cls=DjangoJSONEncoder), timeout=CONTRIBUTION_CACHE_TTL.seconds)
 

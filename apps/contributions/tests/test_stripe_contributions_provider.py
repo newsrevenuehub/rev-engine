@@ -183,27 +183,6 @@ class AbstractTestStripeContributions(TestCase):
 
 
 @pytest.fixture
-def pi_for_subscription_when_no_subscription_invoice(pi_for_active_subscription_factory):
-    pi = pi_for_active_subscription_factory.get()
-    pi.invoice.subscription = None
-    return pi
-
-
-@pytest.fixture
-def pi_for_subscription_when_no_default_pm_on_sub(pi_for_active_subscription_factory):
-    pi = pi_for_active_subscription_factory.get()
-    pi.invoice.subscription.default_payment_method = None
-    return pi
-
-
-@pytest.fixture
-def pi_for_subscription_when_no_card_on_default_pm(pi_for_active_subscription_factory):
-    pi = pi_for_active_subscription_factory.get()
-    pi.invoice.subscription.default_payment_method.card = None
-    return pi
-
-
-@pytest.fixture
 def pi_for_one_time_when_no_payment_method(pi_for_valid_one_time_factory):
     pi = pi_for_valid_one_time_factory.get()
     pi.payment_method = None
@@ -211,10 +190,57 @@ def pi_for_one_time_when_no_payment_method(pi_for_valid_one_time_factory):
 
 
 @pytest.fixture
-def pi_for_one_time_when_no_card_on_payment_method(pi_for_valid_one_time_factory):
-    pi = pi_for_valid_one_time_factory.get()
-    pi.payment_method.card = None
+def pi_for_imported_legacy_subscription():
+    with open("apps/contributions/tests/fixtures/example-legacy-imported-pi.json") as fl:
+        return stripe.PaymentIntent.construct_from(json.load(fl), "test")
+
+
+@pytest.fixture
+def pi_for_valid_one_time(pi_for_valid_one_time_factory):
+    return pi_for_valid_one_time_factory.get()
+
+
+@pytest.fixture
+def pi_for_active_subscription(pi_for_active_subscription_factory):
+    return pi_for_active_subscription_factory.get()
+
+
+@pytest.fixture
+def pi_with_unexpanded_payment_method(pi_for_valid_one_time_factory):
+    return pi_for_valid_one_time_factory.get(payment_method="pm_12345")
+
+
+@pytest.fixture
+def pi_no_pm_no_invoice_charges_is_zero_length():
+    # don't reuse the fixture from above because modifications to it will affect fixture used alone
+    with open("apps/contributions/tests/fixtures/example-legacy-imported-pi.json") as fl:
+        pi = stripe.PaymentIntent.construct_from(json.load(fl), "test")
+    pi.charges.data = []
+    pi.charges.total_count = 0
+    pi.invoice = None
     return pi
+
+
+@pytest.fixture
+def card(pi_for_valid_one_time):
+    return pi_for_valid_one_time.payment_method.card
+
+
+@pytest.fixture
+def dummy_card():
+    # .DUMMY_CARD is an attrdict and when trying to pass that as a parameter in tests, got an error
+    # so we create a fixture to pass instead
+    return StripePaymentIntent.DUMMY_CARD
+
+
+@pytest.fixture
+def pm_with_card(card):
+    return stripe.PaymentMethod.construct_from(AttrDict({"card": card}), "test")
+
+
+@pytest.fixture
+def pm_no_card():
+    return stripe.PaymentMethod.construct_from(AttrDict({}), "test")
 
 
 class TestStripePaymentIntent(AbstractTestStripeContributions):
@@ -344,27 +370,50 @@ class TestStripePaymentIntentViaPytest:
         assert StripePaymentIntent(pi).status == ContributionStatus.FAILED
 
     @pytest_cases.parametrize(
-        "pi",
+        "payment_method, expected",
         (
-            pi_for_one_time_when_no_payment_method,
-            # pi_for_one_time_when_no_card_on_payment_method,
-            # pi_for_subscription_when_no_card_on_default_pm,
-            # pi_for_subscription_when_no_default_pm_on_sub,
-            # pi_for_subscription_when_no_subscription_invoice,
+            (None, pytest_cases.fixture_ref(dummy_card)),
+            (pytest_cases.fixture_ref(pm_no_card), pytest_cases.fixture_ref(dummy_card)),
+            (pytest_cases.fixture_ref(pm_with_card), pytest_cases.fixture_ref(card)),
         ),
     )
-    def test_card_when_gets_default_value(self, pi):
-        assert StripePaymentIntent(pi).card == AttrDict(**{"brand": None, "last4": None, "exp_month": None})
+    def test_card(self, payment_method, expected, pi_for_valid_one_time_factory, mocker):
+        mocker.patch(
+            "apps.contributions.stripe_contributions_provider.StripePaymentIntent.payment_method", payment_method
+        )
+        assert StripePaymentIntent(None).card == expected
 
-    def test_card_when_one_time_has_card(self, pi_for_valid_one_time_factory):
-        pi = pi_for_valid_one_time_factory.get()
-        assert (expected := pi.payment_method.card) is not None
-        assert StripePaymentIntent(pi).card == expected
-
-    def test_card_when_subscription_has_card(self, pi_for_active_subscription_factory):
-        pi = pi_for_active_subscription_factory.get()
-        assert (expected := pi.invoice.subscription.default_payment_method.card) is not None
-        assert StripePaymentIntent(pi).card == expected
+    @pytest_cases.parametrize(
+        "pi, get_expected_fn",
+        (
+            (
+                pytest_cases.fixture_ref(pi_for_imported_legacy_subscription),
+                lambda x: x.charges.data[0].payment_method_details,
+            ),
+            (
+                pytest_cases.fixture_ref(pi_for_one_time_when_no_payment_method),
+                lambda x: None,
+            ),
+            (
+                pytest_cases.fixture_ref(pi_for_valid_one_time),
+                lambda x: x.payment_method,
+            ),
+            (
+                pytest_cases.fixture_ref(pi_for_active_subscription),
+                lambda x: x.invoice.subscription.default_payment_method,
+            ),
+            (
+                pytest_cases.fixture_ref(pi_with_unexpanded_payment_method),
+                lambda x: None,
+            ),
+            (
+                pytest_cases.fixture_ref(pi_no_pm_no_invoice_charges_is_zero_length),
+                lambda x: None,
+            ),
+        ),
+    )
+    def test_payment_method(self, pi, get_expected_fn):
+        assert StripePaymentIntent(pi).payment_method == get_expected_fn(pi)
 
 
 @pytest.fixture

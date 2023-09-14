@@ -62,10 +62,18 @@ class StripePaymentIntent:
     @property
     def payment_method(self) -> StripeObject | None:
         pm = None
-        # check that it's an instance of a payment method object. if for some reason the passed instance does not have payment method expanded
-        # this could be a string.
+        # this is the most commonly expected path for NRE-generated PMs where the checkout process goes through the Stripe PaymentElement workflow
+        # in the spa, after having gone through the initial page that collects contribution data. In this scenario, the user's contribution has
+        # been approved by our system, and we have already created a payment intent. When the user completes the PaymentElement form, they are immediately
+        # charged. Our implementation of the PaymentElement will cause the payment method to appear on the payment intent.
         if self.payment_intent.payment_method and isinstance(self.payment_intent.payment_method, StripeObject):
             pm = self.payment_intent.payment_method
+        # However, some NRE payment intents intents will not have a payment method attached directly to the PaymentIntent. There may be other ways to end
+        # up in this state, but one is when instead of creating a payment intent we create a setup intent (which is case when a contribution exceeds threshold
+        # to be marked as "bad" by bad actor API). In this case, a payment intent only later gets created when the setup intent is completed, and that does
+        # not result in the payment method automatically being attached to the pi.
+        elif invoice := self.payment_intent.invoice:
+            pm = (invoice.get("subscription", {}) or {}).get("default_payment_method", {})
         # in the case of imported legacy subscriptions, it seems that the payment method is not directly on the
         # payment intent, though it is available through this route. This probably has to do with how the original PI
         # was created. PIs are not guaranteed to have a payment method attached, even if they're associated with a subscription.
@@ -74,9 +82,6 @@ class StripePaymentIntent:
         elif getattr(self.payment_intent, "charges", None) and self.payment_intent.charges.total_count > 0:
             most_recent = max(self.payment_intent.charges.data, key=lambda x: x.created)
             pm = most_recent.payment_method_details
-
-        elif invoice := self.payment_intent.invoice:  # it's an NRE-generated pi for a subscription
-            pm = (invoice.get("subscription", {}) or {}).get("default_payment_method", {})
 
         return pm
 

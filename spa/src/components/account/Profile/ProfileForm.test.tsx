@@ -244,7 +244,7 @@ describe('ProfileForm', () => {
       ['First Name', 50],
       ['Last Name', 50],
       ['Job Title', 50],
-      ['Organization', 253],
+      ['Organization', 60],
       ['Fiscal Sponsor Name', 100]
     ])('displays a validation error for the %s field if too many characters are entered', async (fieldName, length) => {
       tree();
@@ -294,8 +294,8 @@ describe('ProfileForm', () => {
         },
         {
           field: 'Organization',
-          limit: 253,
-          error: 'Organization must have a maximum of 253 characters.'
+          limit: 60,
+          error: 'Organization must have a maximum of 60 characters.'
         },
         {
           field: 'Fiscal Sponsor Name',

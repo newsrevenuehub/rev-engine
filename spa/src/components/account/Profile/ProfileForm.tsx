@@ -121,7 +121,7 @@ function ProfileForm({ disabled: disabledProp, onProfileSubmit, error }: Profile
             control={control}
             rules={{
               required: 'Organization is required',
-              maxLength: { value: 253, message: 'Organization must have a maximum of 253 characters.' }
+              maxLength: { value: 60, message: 'Organization must have a maximum of 60 characters.' }
             }}
             render={({ field }) => (
               <TextField

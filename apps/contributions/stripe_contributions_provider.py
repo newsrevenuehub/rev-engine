@@ -126,7 +126,7 @@ class StripePaymentIntent:
     def revenue_program(self):
         metadata = self.payment_intent.get("metadata") or self.invoice_line_item.get("metadata") or {}
         if not metadata or "revenue_program_slug" not in metadata:
-            raise InvalidMetadataError(f"Metadata is invalid for payment_intent : {self.id}")
+            raise InvalidMetadataError(f"Metadata is invalid for payment_intent : {self.id}, %s", metadata)
         return metadata["revenue_program_slug"]
 
     @property
@@ -365,6 +365,7 @@ class ContributionsCacheProvider:
     converter = StripePaymentIntent
 
     def __init__(self, email_id, stripe_account_id) -> None:
+        self.email_id = email_id
         self.stripe_account_id = stripe_account_id
         self.key = f"{email_id}-payment-intents-{self.stripe_account_id}".lower()
 
@@ -378,6 +379,21 @@ class ContributionsCacheProvider:
             except ContributionIgnorableError as ex:
                 logger.warning("Unable to process Contribution [%s]", pi.id, exc_info=ex)
         return data
+
+    def convert_uninvoiced_subs_into_contributions(
+        self, subscriptions: list[stripe.Subscription]
+    ) -> list[StripePiAsPortalContribution]:
+        """ """
+        logger.debug("Converting %s subscriptions to portal contributions", len(subscriptions))
+        converted = []
+        provider = StripeContributionsProvider(self.email_id, self.stripe_account_id)
+        for x in subscriptions:
+            try:
+                converted.append(provider.cast_subscription_to_pi_for_portal(x))
+            # if there's a problem converting one, we don't let it effect the rest
+            except ContributionIgnorableError as exc:
+                logger.warning("Unable to cast subscription %s to a portal contribution", x.id, exc_info=exc)
+        logger.info("Converted %s subscriptions to portal contributions", len(converted))
 
     def upsert_uninvoiced_subscriptions(self, subscriptions: list[StripePiAsPortalContribution]) -> None:
         """Upsert uninvoiced subscriptions into the cache as though they were "normal" contributions (that always have a payment intent

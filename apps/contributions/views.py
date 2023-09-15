@@ -442,15 +442,14 @@ class SubscriptionsViewSet(viewsets.ViewSet):
         try:
             self._re_retrieve_pi_and_insert_pi_and_sub_into_cache(
                 subscription=subscription,
-                pi_id=(pi_id := subscription.latest_invoice.payment_intent),
                 email=email,
                 stripe_account_id=revenue_program.payment_provider.stripe_account_id,
             )
         except stripe.error.StripeError:
             # we only log an exception here because the subscription has already been updated
             logger.exception(
-                "stripe.PaymentIntent.retrieve returned a StripeError when re-retrieving pi %s after update",
-                pi_id,
+                "stripe.PaymentIntent.retrieve returned a StripeError when re-retrieving pi related to subscription %s after update",
+                subscription.id,
             )
         # TODO: [DEV-2438] return the updated sub
         return Response({"detail": "Success"}, status=status.HTTP_204_NO_CONTENT)
@@ -502,15 +501,14 @@ class SubscriptionsViewSet(viewsets.ViewSet):
             # we need to re-retrieve the PI separately because Stripe only lets you have 4 levels of expansion
             self._re_retrieve_pi_and_insert_pi_and_sub_into_cache(
                 subscription=sub,
-                pi_id=(pi_id := sub.latest_invoice.payment_intent.id),
                 email=email,
                 stripe_account_id=revenue_program.payment_provider.stripe_account_id,
             )
         except stripe.error.StripeError:
             # in this case, we only want to log because the subscription has already been canceled and user shouldn't retry
             logger.exception(
-                "stripe.PaymentIntent.retrieve returned a StripeError after canceling subscription when re-retrieving PI %s",
-                pi_id,
+                "stripe.PaymentIntent.retrieve returned a StripeError after canceling subscription when working on subscription %s",
+                subscription.id,
             )
         # TODO: [DEV-2438] return the canceled sub
         return response
@@ -520,26 +518,40 @@ class SubscriptionsViewSet(viewsets.ViewSet):
         email: str,
         stripe_account_id: str,
         subscription: stripe.Subscription,
-        payment_intent: stripe.PaymentIntent,
+        payment_intent: stripe.PaymentIntent | None = None,
     ) -> None:
         """Used to update respective caches after a subscription is updated or canceled."""
         logger.info("Updating caches for subscription %s and payment intent %s", subscription.id, payment_intent.id)
         pi_cache_provider = ContributionsCacheProvider(email, stripe_account_id)
         sub_cache_provider = SubscriptionsCacheProvider(email, stripe_account_id)
-        pi_cache_provider.upsert([payment_intent])
+        sub_cache_provider.upsert([subscription])
+        if payment_intent:
+            pi_cache_provider.upsert([payment_intent])
+        # this means it's for an uninvoiced subscription
+        elif not subscription.latest_invoice:
+            converted = pi_cache_provider.convert_uninvoiced_subs_into_contributions([subscription])
+            pi_cache_provider.upsert_uninvoiced_subscriptions([converted])
+
+    @staticmethod
+    def update_uninvoiced_subscription_in_cache(email: str, stripe_account_id: str, subscription: stripe.Subscription):
+        """Used to update respective caches after a subscription is updated or canceled."""
+        logger.info("Updating caches for subscription %s", subscription.id)
+        sub_cache_provider = SubscriptionsCacheProvider(email, stripe_account_id)
         sub_cache_provider.upsert([subscription])
 
     @classmethod
     def _re_retrieve_pi_and_insert_pi_and_sub_into_cache(
-        cls, subscription: stripe.Subscription, pi_id: str, email: str, stripe_account_id: str
+        cls, subscription: stripe.Subscription, email: str, stripe_account_id: str
     ) -> None:
         """Used to re-retrieve PI and insert into cache after a subscription is updated or canceled."""
-        logger.info("Re-retrieving PI %s and inserting along with subscription %s into cache", pi_id, subscription.id)
-        pi = stripe.PaymentIntent.retrieve(
-            pi_id,
-            stripe_account=stripe_account_id,
-            expand=["payment_method", "invoice.subscription.default_payment_method"],
-        )
+        logger.info("Called for subscription %s", subscription.id)
+        pi_id = subscription.latest_invoice.payment_intent if subscription.latest_invoice else None
+        if pi_id:
+            pi = stripe.PaymentIntent.retrieve(
+                pi_id,
+                stripe_account=stripe_account_id,
+                expand=["payment_method", "invoice.subscription.default_payment_method"],
+            )
         cls.update_subscription_and_pi_in_cache(
             email=email,
             stripe_account_id=stripe_account_id,

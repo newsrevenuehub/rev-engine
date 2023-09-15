@@ -546,12 +546,15 @@ class SubscriptionsViewSet(viewsets.ViewSet):
         """Used to re-retrieve PI and insert into cache after a subscription is updated or canceled."""
         logger.info("Called for subscription %s", subscription.id)
         pi_id = subscription.latest_invoice.payment_intent if subscription.latest_invoice else None
-        if pi_id:
-            pi = stripe.PaymentIntent.retrieve(
+        pi = (
+            stripe.PaymentIntent.retrieve(
                 pi_id,
                 stripe_account=stripe_account_id,
                 expand=["payment_method", "invoice.subscription.default_payment_method"],
             )
+            if pi_id
+            else None
+        )
         cls.update_subscription_and_pi_in_cache(
             email=email,
             stripe_account_id=stripe_account_id,

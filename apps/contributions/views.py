@@ -521,7 +521,11 @@ class SubscriptionsViewSet(viewsets.ViewSet):
         payment_intent: stripe.PaymentIntent | None = None,
     ) -> None:
         """Used to update respective caches after a subscription is updated or canceled."""
-        logger.info("Updating caches for subscription %s and payment intent %s", subscription.id, payment_intent.id)
+        logger.info(
+            "Updating caches for subscription %s and payment intent %s",
+            subscription.id,
+            payment_intent.id if payment_intent else None,
+        )
         pi_cache_provider = ContributionsCacheProvider(email, stripe_account_id)
         sub_cache_provider = SubscriptionsCacheProvider(email, stripe_account_id)
         sub_cache_provider.upsert([subscription])

@@ -394,6 +394,7 @@ class ContributionsCacheProvider:
             except ContributionIgnorableError as exc:
                 logger.warning("Unable to cast subscription %s to a portal contribution", x.id, exc_info=exc)
         logger.info("Converted %s subscriptions to portal contributions", len(converted))
+        return converted
 
     def upsert_uninvoiced_subscriptions(self, subscriptions: list[StripePiAsPortalContribution]) -> None:
         """Upsert uninvoiced subscriptions into the cache as though they were "normal" contributions (that always have a payment intent

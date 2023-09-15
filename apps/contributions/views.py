@@ -155,7 +155,11 @@ def process_stripe_webhook(request):
     except ValueError:
         logger.exception("Something went wrong processing webhook")
     except Contribution.DoesNotExist:
-        logger.exception("Could not find contribution")
+        # there's an entire class of customer subscriptions for which we do not expect to have a Contribution object.
+        # Specifically, we expect this to be the case for import legacy recurring contributions, which may have a future
+        # first/next(in NRE platform) payment date.  In the future, we may want to consider devising a way to determine if
+        # we're looking at a legacy recurring contribution, and if not, raise an exception here.
+        logger.info("Could not find contribution", exc_info=True)
 
     return Response(status=status.HTTP_200_OK)
 
@@ -533,8 +537,9 @@ class SubscriptionsViewSet(viewsets.ViewSet):
             pi_cache_provider.upsert([payment_intent])
         # this means it's for an uninvoiced subscription
         elif not subscription.latest_invoice:
-            converted = pi_cache_provider.convert_uninvoiced_subs_into_contributions([subscription])
-            pi_cache_provider.upsert_uninvoiced_subscriptions([converted])
+            pi_cache_provider.upsert_uninvoiced_subscriptions(
+                pi_cache_provider.convert_uninvoiced_subs_into_contributions([subscription])
+            )
 
     @staticmethod
     def update_uninvoiced_subscription_in_cache(email: str, stripe_account_id: str, subscription: stripe.Subscription):

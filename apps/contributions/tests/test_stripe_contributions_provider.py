@@ -675,6 +675,19 @@ class TestContributionsCacheProvider:
             )
         )
 
+    def test_convert_uninvoiced_subs_into_contributions_ignores_ignorable_errors(revenue_program, mocker):
+        mocker.patch(
+            "apps.contributions.stripe_contributions_provider.StripeContributionsProvider.cast_subscription_to_pi_for_portal",
+            side_effect=[ContributionIgnorableError("ruh roh")],
+        )
+        logger_spy = mocker.spy(logger, "warning")
+        provider = ContributionsCacheProvider(email_id="", stripe_account_id="")
+        subs = [(sub1 := mocker.Mock(id="my-id"))]
+        assert provider.convert_uninvoiced_subs_into_contributions(subs) == []
+        logger_spy.assert_called_once_with(
+            "Unable to cast subscription %s to a portal contribution", sub1.id, exc_info=mocker.ANY
+        )
+
 
 class TestSubscriptionsCacheProvider:
     EMAIL_ID = "foo@BAR.com"

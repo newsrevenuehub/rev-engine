@@ -135,9 +135,8 @@ def process_stripe_webhook(request):
     payload = request.body
     sig_header = request.META["HTTP_STRIPE_SIGNATURE"]
     event = None
-    logger.info("In process webhook.")
+    logger.debug("Processing stripe webhook")
     try:
-        logger.info("Constructing event.")
         event = stripe.Webhook.construct_event(payload, sig_header, settings.STRIPE_WEBHOOK_SECRET_CONTRIBUTIONS)
     except ValueError:
         logger.warning("Invalid payload from Stripe webhook request")
@@ -149,7 +148,6 @@ def process_stripe_webhook(request):
         return Response(data={"error": "Invalid signature"}, status=status.HTTP_400_BAD_REQUEST)
 
     try:
-        logger.info("Processing event.")
         processor = StripeWebhookProcessor(event)
         processor.process()
     except ValueError:
@@ -459,7 +457,7 @@ class SubscriptionsViewSet(viewsets.ViewSet):
         return Response({"detail": "Success"}, status=status.HTTP_204_NO_CONTENT)
 
     def destroy(self, request: Request, pk: str) -> Response:
-        logger.info("Attempting to cacnel subscription %s", pk)
+        logger.info("Attempting to cancel subscription %s", pk)
         revenue_program_slug = request.data.get("revenue_program_slug")
         revenue_program = RevenueProgram.objects.get(slug=revenue_program_slug)
         # TODO: [DEV-2286] should we look in the cache first for the Subscription (and related) objects?

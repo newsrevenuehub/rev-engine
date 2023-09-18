@@ -1105,6 +1105,16 @@ class TestSubscriptionViewSet:
             # because gets inserted in cache as a pi
             assert cached_pis.get(subscription.id)["id"] == subscription.id
 
+    def test_update_uninvoiced_subscription_in_cache(self, mocker):
+        mock_cache_provider = mocker.patch.object(contributions_views, "SubscriptionsCacheProvider", autospec=True)
+        contributions_views.SubscriptionsViewSet.update_subscription_and_pi_in_cache(
+            email=(email := "foo@bar.com"),
+            stripe_account_id=(stripe_account_id := "some-id"),
+            subscription=(subscription := mocker.Mock()),
+        )
+        mock_cache_provider.assert_called_once_with(email, stripe_account_id)
+        mock_cache_provider.return_value.upsert.assert_called_once_with([subscription])
+
 
 @pytest.mark.parametrize(
     (

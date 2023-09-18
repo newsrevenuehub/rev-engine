@@ -66,6 +66,7 @@ from waffle import get_waffle_flag_model
 from apps.common.tests.test_resources import DEFAULT_FLAGS_CONFIG_MAPPING
 from apps.contributions.choices import CardBrand, ContributionInterval
 from apps.contributions.stripe_contributions_provider import StripePiAsPortalContribution
+from apps.contributions.tests import RedisMock
 from apps.contributions.tests.factories import ContributionFactory, ContributorFactory
 from apps.organizations.models import (
     MailchimpEmailList,
@@ -948,5 +949,34 @@ def subscription_factory(subscription_data_factory):
     class Factory:
         def get(self, *args, **kwargs) -> stripe.Subscription:
             return stripe.Subscription.construct_from(subscription_data_factory.get() | kwargs, key="test")
+
+    return Factory()
+
+
+@pytest.fixture
+def uninvoiced_subscription():
+    """What we expect unimported legacy subscriptions based on what we've seen in real life"""
+    with json.open("apps/contributions/tests/fixtures/example-legacy-imported-pi.json") as data:
+        return stripe.Subscription().construct_from(data, key="tests")
+
+
+@pytest.fixture()
+def mock_redis_cache_for_pis_factory(mocker):
+    class Factory:
+        def get(self, cache_provider):
+            redis_mock = RedisMock()
+            mocker.patch.object(cache_provider, "cache", redis_mock)
+            return redis_mock
+
+    return Factory()
+
+
+@pytest.fixture
+def mock_redis_cache_for_subs_factory(mocker):
+    class Factory:
+        def get(self, cache_provider):
+            redis_mock = RedisMock()
+            mocker.patch.object(cache_provider, "cache", redis_mock)
+            return redis_mock
 
     return Factory()

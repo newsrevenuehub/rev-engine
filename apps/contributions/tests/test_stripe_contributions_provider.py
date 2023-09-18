@@ -21,7 +21,6 @@ from apps.contributions.stripe_contributions_provider import (
     SubscriptionsCacheProvider,
     logger,
 )
-from apps.contributions.tests import RedisMock
 from apps.contributions.types import StripePiAsPortalContribution, StripePiSearchResponse
 
 
@@ -547,28 +546,6 @@ class TestStripeContributionsProvider:
         provider = StripeContributionsProvider(email_id="foo@bar.com", stripe_account_id="test")
         with pytest.raises(ContributionIgnorableError):
             provider.cast_subscription_to_pi_for_portal(sub)
-
-
-@pytest.fixture()
-def mock_redis_cache_for_pis_factory(mocker):
-    class Factory:
-        def get(self, cache_provider):
-            redis_mock = RedisMock()
-            mocker.patch.object(cache_provider, "cache", redis_mock)
-            return redis_mock
-
-    return Factory()
-
-
-@pytest.fixture
-def mock_redis_cache_for_subs_factory(mocker):
-    class Factory:
-        def get(self, cache_provider):
-            redis_mock = RedisMock()
-            mocker.patch.object(cache_provider, "cache", redis_mock)
-            return redis_mock
-
-    return Factory()
 
 
 class TestContributionsCacheProvider:

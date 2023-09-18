@@ -696,6 +696,10 @@ def invoice_line_item_data_factory(faker):
             "end": faker.unix_time(),
             "start": faker.unix_time(),
         },
+        "plan": {
+            "interval": "month",
+            "interval_count": 1,
+        },
         "price": {
             "id": faker.pystr_format(string_format="price_??????"),
             "object": "price",

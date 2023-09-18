@@ -957,13 +957,6 @@ def subscription_factory(subscription_data_factory):
     return Factory()
 
 
-@pytest.fixture
-def uninvoiced_subscription():
-    """What we expect unimported legacy subscriptions based on what we've seen in real life"""
-    with json.open("apps/contributions/tests/fixtures/example-legacy-imported-pi.json") as data:
-        return stripe.Subscription().construct_from(data, key="tests")
-
-
 @pytest.fixture()
 def mock_redis_cache_for_pis_factory(mocker):
     class Factory:

@@ -155,8 +155,7 @@ def process_stripe_webhook(request):
     except Contribution.DoesNotExist:
         # there's an entire class of customer subscriptions for which we do not expect to have a Contribution object.
         # Specifically, we expect this to be the case for import legacy recurring contributions, which may have a future
-        # first/next(in NRE platform) payment date.  In the future, we may want to consider devising a way to determine if
-        # we're looking at a legacy recurring contribution, and if not, raise an exception here.
+        # first/next(in NRE platform) payment date.
         logger.info("Could not find contribution", exc_info=True)
 
     return Response(status=status.HTTP_200_OK)

@@ -4,6 +4,8 @@ from datetime import datetime
 from urllib.parse import quote_plus, urlparse
 
 from django.conf import settings
+from django.contrib.auth import get_user_model
+from django.db.models import Prefetch
 from django.middleware import csrf
 from django.shortcuts import get_object_or_404
 from django.template.loader import render_to_string
@@ -14,9 +16,10 @@ from rest_framework.response import Response
 from rest_framework.views import APIView
 from rest_framework_simplejwt import exceptions
 from rest_framework_simplejwt import views as simplejwt_views
+from rest_framework_simplejwt.serializers import TokenObtainPairSerializer
 
 from apps.api.authentication import ShortLivedTokenAuthentication
-from apps.api.serializers import ContributorObtainTokenSerializer, TokenObtainPairCookieSerializer
+from apps.api.serializers import ContributorObtainTokenSerializer
 from apps.api.throttling import ContributorRateThrottle
 from apps.api.tokens import ContributorRefreshToken
 from apps.contributions.models import Contributor
@@ -24,6 +27,7 @@ from apps.contributions.serializers import ContributorSerializer
 from apps.contributions.tasks import task_pull_serialized_stripe_contributions_to_cache
 from apps.emails.tasks import send_templated_email
 from apps.organizations.models import RevenueProgram
+from apps.users.serializers import UserSerializer
 
 
 logger = logging.getLogger(f"{settings.DEFAULT_LOGGER}.{__name__}")
@@ -92,7 +96,9 @@ class TokenObtainPairCookieView(simplejwt_views.TokenObtainPairView):
     """
 
     permission_classes = []
-    serializer_class = TokenObtainPairCookieSerializer
+    serializer_class = TokenObtainPairSerializer
+
+    # def _get_queryset(self, request):
 
     def post(self, request, *args, **kwargs):
         serializer = self.get_serializer(data=request.data)
@@ -101,6 +107,19 @@ class TokenObtainPairCookieView(simplejwt_views.TokenObtainPairView):
             serializer.is_valid(raise_exception=True)
         except exceptions.TokenError as e:
             raise exceptions.InvalidToken(e.args[0])
+
+        user = (
+            get_user_model()
+            .objects.filter(id=serializer.user.id)
+            .prefetch_related(
+                Prefetch("roleassignment"),
+                Prefetch("organization_set"),
+            )
+            .first()
+        )
+
+        rps = user.roleassignment.revenue_programs.all() if user.get_role_assignment() else []
+        user_serializer = UserSerializer(instance=user, context={"revenue_programs": rps})
 
         response = Response(serializer.validated_data, status=status.HTTP_200_OK)
         csrf_token = csrf.get_token(self.request)
@@ -112,7 +131,7 @@ class TokenObtainPairCookieView(simplejwt_views.TokenObtainPairView):
         # We don't want 'access' or 'refresh' in response body
         response.data = {
             "detail": "success",
-            "user": serializer.validated_data["user"],
+            "user": user_serializer.data,
             "csrftoken": csrf_token,
         }
 

@@ -94,7 +94,7 @@ class RoleAssignment(models.Model):
     a user's organization (for instance).
     """
 
-    user = models.OneToOneField(User, on_delete=models.CASCADE)
+    user = models.OneToOneField(User, on_delete=models.CASCADE, related_name="roleassignment")
     role_type = models.CharField(max_length=50, choices=Roles.choices)
     organization = models.ForeignKey("organizations.Organization", null=True, blank=True, on_delete=models.CASCADE)
     revenue_programs = models.ManyToManyField("organizations.RevenueProgram", blank=True)

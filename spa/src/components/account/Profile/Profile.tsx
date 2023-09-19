@@ -18,6 +18,7 @@ import { useConfigureAnalytics } from 'components/analytics';
 import ProfileForm, { ProfileFormFields } from './ProfileForm';
 import { OffscreenText, StepperDots } from 'components/base';
 import { TAX_STATUS } from 'constants/fiscalStatus';
+import { AxiosError } from 'axios';
 
 function Profile() {
   const { open } = useModal(true);
@@ -60,19 +61,14 @@ function Profile() {
     } catch (e: any) {
       // If we didn't get a specific error message from the API, default to
       // something generic.
-      let errorMessage = e?.message && [e.message];
-      if (e?.response?.data) {
-        if (typeof e?.response?.data === 'object') {
-          errorMessage = Object.values(e?.response?.data)[0];
-        } else {
-          errorMessage = e?.response?.data;
-        }
+      let errorMessage = e?.message && { detail: e.message };
+      const axiosError = e as AxiosError;
+      if (axiosError?.response?.data) {
+        errorMessage = axiosError.response.data;
       }
-      dispatch({ type: FETCH_FAILURE, payload: errorMessage ?? ['An Error Occurred'] });
+      dispatch({ type: FETCH_FAILURE, payload: errorMessage ?? { detail: 'An Error Occurred' } });
     }
   };
-
-  const formSubmitErrors = profileState?.errors?.length && profileState?.errors[0];
 
   return (
     <S.Modal open={open} aria-labelledby="profile-modal-title" data-testid="finalize-profile-modal">
@@ -80,7 +76,7 @@ function Profile() {
         <OffscreenText>Step 1 of 2</OffscreenText>
         <S.Title id="profile-modal-title">Let's Customize Your Account</S.Title>
         <S.Description>Help us create your personalized experience!</S.Description>
-        <ProfileForm onProfileSubmit={onProfileSubmit} disabled={profileState.loading} error={formSubmitErrors} />
+        <ProfileForm onProfileSubmit={onProfileSubmit} disabled={profileState.loading} error={profileState?.errors} />
         <StepperDots aria-hidden activeStep={0} steps={2} />
       </S.Profile>
     </S.Modal>

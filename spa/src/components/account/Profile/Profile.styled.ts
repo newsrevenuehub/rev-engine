@@ -14,6 +14,7 @@ export const Profile = styled.div`
   padding: 30px 65px;
   width: 90%;
   max-width: 610px;
+  max-height: 100vh;
 
   @media (${(props) => props.theme.breakpoints.tabletLandscapeDown}) {
     padding: 30px;
@@ -34,7 +35,7 @@ export const Modal = styled(MuiModal)`
   a span,
   a:hover,
   a:hover span {
-    color: ${(props) => props.theme.colors.blueLink};
+    color: ${({ theme }) => theme.basePalette.secondary.hyperlink};
     text-decoration: underline;
   }
 `;

@@ -152,6 +152,7 @@ export const Message = styled.div<{ isSuccess?: boolean; info?: string }>`
   line-height: 24px;
   color: ${(props) => props.theme.colors.muiGrey[600]};
   padding: 0px 4px;
+  margin-top: 6px;
   margin-bottom: 6px;
 
   ${(props) =>

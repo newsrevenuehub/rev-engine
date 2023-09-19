@@ -1107,7 +1107,7 @@ class TestSubscriptionViewSet:
 
     def test_update_uninvoiced_subscription_in_cache(self, mocker):
         mock_cache_provider = mocker.patch.object(contributions_views, "SubscriptionsCacheProvider", autospec=True)
-        contributions_views.SubscriptionsViewSet.update_subscription_and_pi_in_cache(
+        contributions_views.SubscriptionsViewSet.update_uninvoiced_subscription_in_cache(
             email=(email := "foo@bar.com"),
             stripe_account_id=(stripe_account_id := "some-id"),
             subscription=(subscription := mocker.Mock()),

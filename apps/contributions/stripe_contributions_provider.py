@@ -75,7 +75,7 @@ class StripePaymentIntent:
         elif (invoice := self.payment_intent.invoice) and isinstance(
             invoice, StripeObject
         ):  # could be a string so that's why type check
-            pm = (invoice.get("subscription", {}) or {}).get("default_payment_method", {})
+            pm = (invoice.get("subscription", {}) or {}).get("default_payment_method", None)
         # in the case of imported legacy subscriptions, it seems that the payment method is not directly on the
         # payment intent, though it is available through this route. This probably has to do with how the original PI
         # was created. PIs are not guaranteed to have a payment method attached, even if they're associated with a subscription.

@@ -11,7 +11,7 @@ describe('DonationPageFooter', () => {
   it('displays a link to fundjournalism.org', () => {
     tree();
 
-    const link = screen.getByRole('link', { name: 'What is fundjournalism.org?' });
+    const link = screen.getByRole('link', { name: 'donationPage.donationPageFooter.whatIsFundJournalismOrg' });
 
     expect(link).toBeVisible();
     expect(link).toHaveAttribute('href', HOME_PAGE_URL);

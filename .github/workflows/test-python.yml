@@ -27,6 +27,11 @@ jobs:
               - 'apps/**'
               - 'public/**'
               - 'revengine/**'
+              - 'conftest.py'
+              - 'manage.py'
+              - 'poetry.lock'
+              - 'pyproject.toml'
+              - 'pytest.ini'
   build_test_python:
     needs: check-changes
     if: ${{ needs['check-changes'].outputs.django == 'true' }}

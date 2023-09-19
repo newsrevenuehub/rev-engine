@@ -1,6 +1,7 @@
 import { StrictMode } from 'react';
 import ReactDOM from 'react-dom';
 import App from './App';
+import './i18n';
 
 // Fontawesome config for CSP`
 import { config as fontawesomeConfig } from '@fortawesome/fontawesome-svg-core';

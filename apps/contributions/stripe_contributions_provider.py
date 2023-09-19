@@ -126,7 +126,7 @@ class StripePaymentIntent:
     def revenue_program(self):
         metadata = self.payment_intent.get("metadata") or self.invoice_line_item.get("metadata") or {}
         if not metadata or "revenue_program_slug" not in metadata:
-            raise InvalidMetadataError(f"Metadata is invalid for payment_intent : {self.id}, %s", metadata)
+            raise InvalidMetadataError(f"Metadata is invalid for payment_intent : {self.id}, {metadata}")
         return metadata["revenue_program_slug"]
 
     @property

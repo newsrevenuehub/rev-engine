@@ -1,5 +1,6 @@
 import { FormEvent } from 'react';
 import { TAX_STATUS } from 'constants/fiscalStatus';
+import { ProfileFormProps } from '../ProfileForm';
 
 const mockFormData = {
   firstName: 'mock-first-name',
@@ -14,7 +15,7 @@ const mockFormData = {
 type ProfileFormType = {
   disabled: boolean;
   onProfileSubmit: (form: typeof mockFormData) => void;
-  error?: string;
+  error?: ProfileFormProps['error'];
 };
 
 const ProfileForm = ({ disabled, onProfileSubmit, error }: ProfileFormType) => {
@@ -43,7 +44,7 @@ const ProfileForm = ({ disabled, onProfileSubmit, error }: ProfileFormType) => {
           mock-profile-form-fiscal-sponsor
         </button>
       </form>
-      {error && <div data-testid="profile-modal-error">{error}</div>}
+      {error?.detail && <div data-testid="profile-modal-error">{error.detail}</div>}
     </>
   );
 };

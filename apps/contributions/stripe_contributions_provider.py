@@ -92,8 +92,7 @@ class StripePaymentIntent:
         default = AttrDict({})
         if not self.payment_intent.invoice:
             return default
-        lines_data = self.payment_intent.invoice.lines.data
-        if lines_data:
+        if lines_data := self.payment_intent.invoice.lines.data:
             return lines_data[0]
         return default
 

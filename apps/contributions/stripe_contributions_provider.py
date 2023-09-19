@@ -203,7 +203,7 @@ class StripePaymentIntent:
     @property
     def refunded(self):
         """For a contribution to be considered as refunded either refunded flag will be set for full refunds
-        or acount_refunded will be > 0 (will be useful in case of partial refund and we still want to set
+        or amount_refunded will be > 0 (will be useful in case of partial refund and we still want to set
         the status as refunded)
         https://stripe.com/docs/api/charges/object#charge_object-refunded
         https://stripe.com/docs/api/charges/object#charge_object-amount_refunded

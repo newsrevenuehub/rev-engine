@@ -55,7 +55,7 @@ function ContributionDisclaimer({ formattedAmount, interval }: ContributionDiscl
         </Link>
         . Additionally, by proceeding with this transaction, you're authorizing today's payment{frequencySuffix} of{' '}
         <strong>
-          <span data-testid="amount">{amountText}</span> to be processed on or adjacent to
+          <span data-testid="amount">{amountText}</span> to be processed on or adjacent to{' '}
           <span data-testid="processingDate">{processingDate}</span>.
         </strong>
       </p>

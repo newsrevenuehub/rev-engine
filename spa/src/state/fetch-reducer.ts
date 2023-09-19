@@ -4,7 +4,7 @@ export const FETCH_FAILURE = 'FETCH_FAILURE';
 
 export const initialState = {
   loading: false,
-  errors: [],
+  errors: null,
   data: null
 };
 

@@ -7,25 +7,24 @@ from django.conf import settings
 from django.contrib.auth import get_user_model
 from django.core import mail
 from django.middleware import csrf
-from django.test import RequestFactory, override_settings
+from django.test import override_settings
 from django.utils.timezone import timedelta
 
 import jwt
 import pytest
 import pytest_cases
 from bs4 import BeautifulSoup as bs4
+from rest_framework import status
 from rest_framework.reverse import reverse
 from rest_framework.test import APITestCase
+from rest_framework_simplejwt.exceptions import TokenError
 from rest_framework_simplejwt.tokens import AccessToken
+from waffle import get_waffle_flag_model
 
 from apps.api.error_messages import GENERIC_BLANK
 from apps.api.tests import RevEngineApiAbstractTestCase
 from apps.api.tokens import LONG_TOKEN, ContributorRefreshToken
-from apps.api.views import (
-    RequestContributorTokenEmailView,
-    TokenObtainPairCookieView,
-    construct_rp_domain,
-)
+from apps.api.views import RequestContributorTokenEmailView, construct_rp_domain
 from apps.contributions.models import Contributor
 from apps.contributions.tests.factories import ContributorFactory
 from apps.organizations.models import FreePlan
@@ -59,44 +58,62 @@ def test_construct_rp_domain(expected, site_url, post, header):
         assert expected == construct_rp_domain(post, header)
 
 
-class TokenObtainPairCookieViewTest(APITestCase):
-    def setUp(self):
-        self.url = reverse("token-obtain-pair")
-        self.email = "test@test.com"
-        self.password = "testing"
-        self.user = user_model.objects.create_user(email=self.email, password=self.password)
+KNOWN_PASSWORD = "myGreatAndSecurePassword7"
 
-    def test_post_valid_credentials_returns_user(self):
-        response = self.client.post(self.url, {"email": self.email, "password": self.password})
-        data = response.json()
-        self.assertIn("user", data)
-        self.assertEqual(self.email, data["user"]["email"])
 
-    def test_post_valid_credentials_returns_csrf(self):
-        response = self.client.post(self.url, {"email": self.email, "password": self.password})
-        data = response.json()
-        # csrf token should be in body
-        self.assertIn(settings.CSRF_COOKIE_NAME, data)
-        # csrf token should be in cookies
-        self.assertIn(settings.CSRF_COOKIE_NAME, response.cookies)
+@pytest.fixture
+def user_with_known_password(org_user_free_plan):
+    org_user_free_plan.set_password(KNOWN_PASSWORD)
+    org_user_free_plan.save()
+    return org_user_free_plan
 
-    def test_post_valid_credentials_set_jwt_cookie(self):
-        response = self.client.post(self.url, {"email": self.email, "password": self.password})
-        self.assertIn("Authorization", response.cookies)
 
-    def test_post_invalid_credentials_fails(self):
-        response = self.client.post(self.url, {"email": self.email, "password": "wrong"})
-        self.assertEqual(response.status_code, 401)
-        self.assertEqual(response.json()["detail"], "No active account found with the given credentials")
+@pytest.mark.django_db
+class TestTokenObtainPairCookieView:
+    def test_post_happy_path(self, user_with_known_password, api_client, settings):
+        response = api_client.post(
+            reverse("token-obtain-pair"), {"email": user_with_known_password.email, "password": KNOWN_PASSWORD}
+        )
+        assert response.status_code == status.HTTP_200_OK
+        assert response.json()["user"]["email"] == user_with_known_password.email
+        Flag = get_waffle_flag_model()
+        assert set([x["id"] for x in response.json()["user"]["flags"]]) == set(
+            [x.id for x in user_with_known_password.flag_set.all()] + [x.id for x in Flag.objects.filter(everyone=True)]
+        )
+        assert set([x["id"] for x in response.json()["user"]["organizations"]]) == set(
+            [x.id for x in user_with_known_password.organizations.all()]
+        )
+        assert set([x["id"] for x in response.json()["user"]["revenue_programs"]]) == set(
+            [x.id for x in user_with_known_password.roleassignment.revenue_programs.all()]
+        )
+        assert settings.CSRF_COOKIE_NAME in response.json()
+        assert settings.CSRF_COOKIE_NAME in response.cookies
+        assert "Authorization" in response.cookies
 
-    def test_delete_removes_auth_cookie(self):
-        factory = RequestFactory(enforce_csrf_checks=True)
-        self.request = factory.delete(self.url)
-        self.request.COOKIES[settings.AUTH_COOKIE_KEY] = AccessToken().for_user(self.user)
-        response = TokenObtainPairCookieView().delete(self.request)
+    def test_post_when_invalid_password(self, user_with_known_password, api_client):
+        password = "different"
+        assert password != KNOWN_PASSWORD
+        response = api_client.post(
+            reverse("token-obtain-pair"), {"email": user_with_known_password.email, "password": password}
+        )
+        assert response.status_code == status.HTTP_401_UNAUTHORIZED
 
-        self.assertEqual(response.status_code, 200)
-        self.assertEqual(response.cookies.get("Authorization")._value, "")
+    def test_post_when_token_error(self, user_with_known_password, api_client, mocker):
+        mocker.patch(
+            "rest_framework_simplejwt.tokens.Token.__init__",
+            side_effect=TokenError((msg := "ruh roh")),
+        )
+        response = api_client.post(
+            reverse("token-obtain-pair"), {"email": user_with_known_password.email, "password": KNOWN_PASSWORD}
+        )
+        assert response.status_code == status.HTTP_401_UNAUTHORIZED
+        assert response.json() == {"detail": msg, "code": "token_not_valid"}
+
+    def test_delete(self, user_with_known_password, api_client):
+        api_client.force_authenticate(user=user_with_known_password)
+        response = api_client.delete(reverse("token-obtain-pair"))
+        assert response.status_code == status.HTTP_200_OK
+        assert response.cookies.get("Authorization")._value == ""
 
 
 @pytest_cases.parametrize(

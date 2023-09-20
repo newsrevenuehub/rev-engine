@@ -218,7 +218,7 @@ class StripePaymentManager(PaymentManager):
                         # if we don't explicitly convert to a dict
                         "payment_provider_data": dict(subscription),
                         "provider_subscription_id": subscription.id,
-                        "provider_payment_id": subscription.latest_invoice.payment_intent,
+                        "provider_payment_id": subscription.latest_invoice.payment_intent.id,
                     }
                 )
             except stripe.error.StripeError as stripe_error:

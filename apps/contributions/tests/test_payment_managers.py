@@ -22,7 +22,6 @@ class TestStripePaymentManager:
         mock_pi_retrieve = mocker.patch("stripe.PaymentIntent.retrieve")
         mock_si_retrieve = mocker.patch("stripe.SetupIntent.retrieve")
         mock_si_retrieve.return_value.payment_method = "pm_id_123"
-        mock_si_retrieve.return_value.payment_method = "pm_id_123"
         mock_si_retrieve.return_value.metadata = {"meta": "data"}
         mock_pm_retrieve = mocker.patch("stripe.PaymentMethod.retrieve")
         mock_pm_retrieve.return_value = AttrDict(
@@ -31,7 +30,9 @@ class TestStripePaymentManager:
         mock_pm_retrieve.return_value.detach = mocker.Mock()
         mock_sub_create = mocker.patch(
             "stripe.Subscription.create",
-            return_value=AttrDict({"id": "sub_id_123", "latest_invoice": AttrDict({"payment_intent": "pi_id"})}),
+            return_value=stripe.Subscription.construct_from(
+                {"id": "sub_id_123", "latest_invoice": {"payment_intent": {"id": "pi_test"}}}, key="test"
+            ),
         )
         save_spy = mocker.spy(Contribution, "save")
         mock_create_revision = mocker.patch("reversion.create_revision")
@@ -70,7 +71,7 @@ class TestStripePaymentManager:
                 mock_sub_create.assert_called_once()
                 assert contribution.provider_subscription_id == mock_sub_create.return_value.id
                 assert contribution.payment_provider_data == dict(mock_sub_create.return_value)
-                assert contribution.provider_payment_id == mock_sub_create.return_value.latest_invoice.payment_intent
+                assert contribution.provider_payment_id == mock_sub_create.return_value.latest_invoice.payment_intent.id
         expected_update_fields = {"status", "modified"}
         if not reject and contribution.interval != ContributionInterval.ONE_TIME:
             expected_update_fields.update({"provider_subscription_id", "payment_provider_data", "provider_payment_id"})

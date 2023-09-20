@@ -98,8 +98,6 @@ class TokenObtainPairCookieView(simplejwt_views.TokenObtainPairView):
     permission_classes = []
     serializer_class = TokenObtainPairSerializer
 
-    # def _get_queryset(self, request):
-
     def post(self, request, *args, **kwargs):
         serializer = self.get_serializer(data=request.data)
 

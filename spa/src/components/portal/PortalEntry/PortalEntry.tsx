@@ -3,14 +3,14 @@ import { GET_MAGIC_LINK } from 'ajax/endpoints';
 import { ReactComponent as NRELogo } from 'assets/images/nre-logo-yellow.svg';
 import { AxiosError } from 'axios';
 import { useConfigureAnalytics } from 'components/analytics';
-import { Button, TextField } from 'components/base';
+import { TextField } from 'components/base';
 import { GENERIC_ERROR_WITH_SUPPORT_INFO } from 'constants/textConstants';
 import { ContributionPage } from 'hooks/useContributionPage';
 import useSubdomain from 'hooks/useSubdomain';
 import { useState } from 'react';
 import { useAlert } from 'react-alert';
 import { useForm } from 'react-hook-form';
-import { Confirmation, Content, Form, PoweredBy, Subtitle, Title, Wrapper } from './PortalEntry.styled';
+import { Confirmation, Content, Form, PoweredBy, Subtitle, Title, Wrapper, Button } from './PortalEntry.styled';
 
 export type PortalFormValues = {
   email: string;
@@ -59,10 +59,7 @@ function PortalEntry({ page }: { page?: ContributionPage }) {
     <Wrapper>
       <Content>
         <Title>Welcome to the {page?.revenue_program?.name ?? 'RevEngine'} Contributor Portal</Title>
-        <Subtitle>
-          Thank you for supporting our community. To access your contributions, enter the email used for contributions
-          below and we’ll send you an email with a magic link.
-        </Subtitle>
+
         {showConfirmation ? (
           <Confirmation>
             <p>An email has been sent to you containing your magic link</p>
@@ -70,24 +67,30 @@ function PortalEntry({ page }: { page?: ContributionPage }) {
             <p>(It's safe to close this tab)</p>
           </Confirmation>
         ) : (
-          <Form onSubmit={handleSubmit(handleSendMagicLink)}>
-            <TextField
-              {...register('email', {
-                pattern: {
-                  value: /\S+@\S+\.\S+/,
-                  message: 'Please enter a valid email address'
-                }
-              })}
-              label="Email Address"
-              placeholder="support@email.com"
-              helperText={errors.email?.message || error?.email?.join('. ')}
-              error={!!errors.email || !!error?.email}
-              data-testid="magic-link-email-input"
-            />
-            <Button type="submit" disabled={disabled} color="primaryDark">
-              Send Magic Link
-            </Button>
-          </Form>
+          <>
+            <Subtitle>
+              Thank you for supporting our community. To access your contributions, enter the email used for
+              contributions below and we’ll send you an email with a magic link.
+            </Subtitle>
+            <Form onSubmit={handleSubmit(handleSendMagicLink)}>
+              <TextField
+                {...register('email', {
+                  pattern: {
+                    value: /\S+@\S+\.\S+/,
+                    message: 'Please enter a valid email address'
+                  }
+                })}
+                label="Email Address"
+                placeholder="support@email.com"
+                helperText={errors.email?.message || error?.email?.join('. ')}
+                error={!!errors.email || !!error?.email}
+                data-testid="magic-link-email-input"
+              />
+              <Button type="submit" disabled={disabled} color="primaryDark">
+                Send Magic Link
+              </Button>
+            </Form>
+          </>
         )}
       </Content>
       <PoweredBy>

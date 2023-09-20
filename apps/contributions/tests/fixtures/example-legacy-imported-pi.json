@@ -1,0 +1,201 @@
+{
+    "id": "pi_fakeyfakefake",
+    "object": "payment_intent",
+    "amount": 1500,
+    "amount_capturable": 0,
+    "amount_details": {
+        "tip": {}
+    },
+    "amount_received": 1500,
+    "application": "ca_fakeyfakefake",
+    "application_fee_amount": null,
+    "automatic_payment_methods": null,
+    "canceled_at": null,
+    "cancellation_reason": null,
+    "capture_method": "automatic",
+    "charges": {
+        "object": "list",
+        "data": [
+            {
+                "id": "ch_fakey_fakey_fakey",
+                "object": "charge",
+                "amount": 1500,
+                "amount_captured": 1500,
+                "amount_refunded": 1500,
+                "application": "ca_fakeyfakefake",
+                "application_fee": null,
+                "application_fee_amount": null,
+                "balance_transaction": "txn_fake",
+                "billing_details": {
+                    "address": {
+                        "city": null,
+                        "country": null,
+                        "line1": null,
+                        "line2": null,
+                        "postal_code": null,
+                        "state": null
+                    },
+                    "email": null,
+                    "name": "foobar@fundjournalism.org",
+                    "phone": null
+                },
+                "calculated_statement_descriptor": "FOO.ORG",
+                "captured": true,
+                "created": 1692866382,
+                "currency": "usd",
+                "customer": "cus_fakefakefake",
+                "description": "Subscription creation",
+                "destination": null,
+                "dispute": null,
+                "disputed": false,
+                "failure_balance_transaction": null,
+                "failure_code": null,
+                "failure_message": null,
+                "fraud_details": {},
+                "invoice": "in_fakefakefake",
+                "livemode": true,
+                "metadata": {},
+                "on_behalf_of": null,
+                "order": null,
+                "outcome": {
+                    "network_status": "approved_by_network",
+                    "reason": null,
+                    "risk_level": "normal",
+                    "seller_message": "Payment complete.",
+                    "type": "authorized"
+                },
+                "paid": true,
+                "payment_intent": "pi_fakeyfakefake",
+                "payment_method": "card_fakefakefake",
+                "payment_method_details": {
+                    "card": {
+                        "brand": "visa",
+                        "checks": {
+                            "address_line1_check": null,
+                            "address_postal_code_check": null,
+                            "cvc_check": null
+                        },
+                        "country": "US",
+                        "exp_month": 1,
+                        "exp_year": 2028,
+                        "fingerprint": "fakefingerprint",
+                        "funding": "credit",
+                        "installments": null,
+                        "last4": "1234",
+                        "mandate": null,
+                        "network": "visa",
+                        "network_token": {
+                            "used": false
+                        },
+                        "three_d_secure": null,
+                        "wallet": null
+                    },
+                    "type": "card"
+                },
+                "receipt_email": null,
+                "receipt_number": null,
+                "receipt_url": "https://pay.stripe.com/receipts/invoices/fakefake?s=ap",
+                "refunded": true,
+                "refunds": {
+                    "object": "list",
+                    "data": [
+                        {
+                            "id": "re_fakefakefake",
+                            "object": "refund",
+                            "amount": 1500,
+                            "balance_transaction": "txn_fakefakefake",
+                            "charge": "ch_fakey_fakey_fakey",
+                            "created": 1693931995,
+                            "currency": "usd",
+                            "metadata": {},
+                            "payment_intent": "pi_fakeyfakefake",
+                            "reason": null,
+                            "receipt_number": "1000-1000",
+                            "source_transfer_reversal": null,
+                            "status": "succeeded",
+                            "transfer_reversal": null
+                        }
+                    ],
+                    "has_more": false,
+                    "total_count": 1,
+                    "url": "/v1/charges/ch_fakey_fakey_fakey/refunds"
+                },
+                "review": null,
+                "shipping": null,
+                "source": {
+                    "id": "card_fakefakefake",
+                    "object": "card",
+                    "address_city": null,
+                    "address_country": null,
+                    "address_line1": null,
+                    "address_line1_check": null,
+                    "address_line2": null,
+                    "address_state": null,
+                    "address_zip": null,
+                    "address_zip_check": null,
+                    "brand": "Visa",
+                    "country": "US",
+                    "customer": "cus_fakefakefake",
+                    "cvc_check": null,
+                    "dynamic_last4": null,
+                    "exp_month": 1,
+                    "exp_year": 2028,
+                    "fingerprint": "fakefingerprint",
+                    "funding": "credit",
+                    "last4": "2706",
+                    "metadata": {},
+                    "name": "foobar@fundjournalism.org",
+                    "tokenization_method": null,
+                    "wallet": null
+                },
+                "source_transfer": null,
+                "statement_descriptor": null,
+                "statement_descriptor_suffix": null,
+                "status": "succeeded",
+                "transfer_data": null,
+                "transfer_group": null
+            }
+        ],
+        "has_more": false,
+        "total_count": 1,
+        "url": "/v1/charges?payment_intent=pi_fakeyfakefake"
+    },
+    "client_secret": "pi_fakeyfakefake_secret_fakefakefake",
+    "confirmation_method": "automatic",
+    "created": 1692866381,
+    "currency": "usd",
+    "customer": "cus_fakefakefake",
+    "description": "Subscription creation",
+    "invoice": "in_fakefakefake",
+    "last_payment_error": null,
+    "latest_charge": "ch_fakey_fakey_fakey",
+    "livemode": true,
+    "metadata": {},
+    "next_action": null,
+    "on_behalf_of": null,
+    "payment_method": null,
+    "payment_method_options": {
+        "card": {
+            "installments": null,
+            "mandate_options": null,
+            "network": null,
+            "request_three_d_secure": "automatic"
+        },
+        "cashapp": {}
+    },
+    "payment_method_types": [
+        "card",
+        "cashapp"
+    ],
+    "processing": null,
+    "receipt_email": null,
+    "review": null,
+    "setup_future_usage": null,
+    "shipping": null,
+    "source": "card_fakefakefake",
+    "statement_descriptor": null,
+    "statement_descriptor_suffix": null,
+    "status": "succeeded",
+    "transfer_data": null,
+    "transfer_group": null
+}

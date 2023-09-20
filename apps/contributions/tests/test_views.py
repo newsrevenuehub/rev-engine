@@ -35,6 +35,7 @@ from apps.contributions.tasks import (
     email_contribution_csv_export_to_user,
     task_pull_serialized_stripe_contributions_to_cache,
 )
+from apps.contributions.tests import RedisMock
 from apps.contributions.tests.factories import ContributionFactory, ContributorFactory
 from apps.contributions.tests.test_serializers import (
     mock_get_bad_actor,
@@ -753,7 +754,6 @@ class TestSubscriptionViewSet:
         )
         mock_re_retrieve_and_update_cache.assert_called_once_with(
             subscription=mock_modified_sub,
-            pi_id=mock_modified_sub.latest_invoice.payment_intent,
             email=contributor_user.email,
             stripe_account_id=revenue_program.payment_provider.stripe_account_id,
         )
@@ -853,8 +853,8 @@ class TestSubscriptionViewSet:
         assert response.status_code == status.HTTP_204_NO_CONTENT
         mock_re_retrieve_and_update_cache.assert_called_once()
         logger_spy.assert_called_once_with(
-            "stripe.PaymentIntent.retrieve returned a StripeError when re-retrieving pi %s after update",
-            mock_modified_sub.latest_invoice.payment_intent,
+            "stripe.PaymentIntent.retrieve returned a StripeError when re-retrieving pi related to subscription %s after update",
+            mock_modified_sub.id,
         )
 
     def test_update_subscription_and_pi_in_cache(
@@ -997,8 +997,8 @@ class TestSubscriptionViewSet:
         assert response.status_code == status.HTTP_204_NO_CONTENT
         mock_re_retrieve_pi_and_update_cache.assert_called_once()
         logger_spy.assert_called_once_with(
-            "stripe.PaymentIntent.retrieve returned a StripeError after canceling subscription when re-retrieving PI %s",
-            modified_sub.latest_invoice.payment_intent.id,
+            "stripe.PaymentIntent.retrieve returned a StripeError after canceling subscription when working on subscription %s",
+            subscription.id,
         )
 
     def test_destroy_happy_path(self, mocker, contributor_user, api_client, revenue_program, subscription_factory):
@@ -1015,7 +1015,7 @@ class TestSubscriptionViewSet:
                 (modified_sub := mocker.Mock()),
             ],
         )
-        modified_sub.latest_invoice.payment_intent.id = (pi_id := "pi_XXX")
+        modified_sub.latest_invoice.payment_intent.id = "pi_XXX"
         mock_sub_delete = mocker.patch("stripe.Subscription.delete")
         mock_re_retrieve_pi_and_update_cache = mocker.patch(
             "apps.contributions.views.SubscriptionsViewSet._re_retrieve_pi_and_insert_pi_and_sub_into_cache",
@@ -1048,36 +1048,72 @@ class TestSubscriptionViewSet:
         )
         mock_re_retrieve_pi_and_update_cache.assert_called_once_with(
             subscription=modified_sub,
-            pi_id=pi_id,
             email=contributor_user.email,
             stripe_account_id=revenue_program.payment_provider.stripe_account_id,
         )
 
+    @pytest.mark.parametrize(
+        "has_pi",
+        (True, False),
+    )
     def test__re_retrieve_pi_and_insert_pi_and_sub_into_cache(
         self,
+        has_pi,
         subscription_factory,
+        pi_for_active_subscription_factory,
         mocker,
         revenue_program,
     ):
-        subscription = subscription_factory.get(latest_invoice={"payment_intent": (pi_id := "pi_XXX")})
-        mock_pi_retrieve = mocker.patch("stripe.PaymentIntent.retrieve", return_value=(pi := mocker.Mock(id=pi_id)))
-        mock_update_sub_and_pi_in_cache = mocker.patch(
-            "apps.contributions.views.SubscriptionsViewSet.update_subscription_and_pi_in_cache"
+        pi_id = "pi_XXX"
+        email_id = "foo@bar.com"
+        subscription = subscription_factory.get(latest_invoice={"payment_intent": pi_id} if has_pi else None)
+        mock_pi_retrieve = mocker.patch(
+            "stripe.PaymentIntent.retrieve",
+            return_value=(pi_for_active_subscription_factory.get(id=pi_id)),
+        )
+        mock_redis_pis = RedisMock()
+        mocker.patch(
+            "apps.contributions.stripe_contributions_provider.ContributionsCacheProvider.cache",
+            mock_redis_pis,
+        )
+        mock_redis_subs = RedisMock()
+        mocker.patch(
+            "apps.contributions.stripe_contributions_provider.SubscriptionsCacheProvider.cache",
+            mock_redis_subs,
         )
         contributions_views.SubscriptionsViewSet._re_retrieve_pi_and_insert_pi_and_sub_into_cache(
-            subscription, pi_id, (email := "foo@bar.com"), revenue_program.payment_provider.stripe_account_id
+            subscription, email_id, revenue_program.payment_provider.stripe_account_id
         )
-        mock_pi_retrieve.assert_called_once_with(
-            pi_id,
-            stripe_account=revenue_program.payment_provider.stripe_account_id,
-            expand=["payment_method", "invoice.subscription.default_payment_method"],
+        cached_pis = json.loads(
+            mock_redis_pis._data.get(f"{email_id}-payment-intents-{revenue_program.payment_provider.stripe_account_id}")
         )
-        mock_update_sub_and_pi_in_cache.assert_called_once_with(
-            email=email,
-            stripe_account_id=revenue_program.payment_provider.stripe_account_id,
-            subscription=subscription,
-            payment_intent=pi,
+        cached_subs = json.loads(
+            mock_redis_subs._data.get(f"{email_id}-subscriptions-{revenue_program.payment_provider.stripe_account_id}")
         )
+        assert len(cached_pis) == 1
+        assert len(cached_subs) == 1
+        assert cached_subs[subscription.id]["id"] == subscription.id
+        if has_pi:
+            mock_pi_retrieve.assert_called_once_with(
+                pi_id,
+                stripe_account=revenue_program.payment_provider.stripe_account_id,
+                expand=["payment_method", "invoice.subscription.default_payment_method"],
+            )
+            assert cached_pis[pi_id]["id"] == pi_id if has_pi else None
+        else:
+            assert mock_pi_retrieve.called is False
+            # because gets inserted in cache as a pi
+            assert cached_pis.get(subscription.id)["id"] == subscription.id
+
+    def test_update_uninvoiced_subscription_in_cache(self, mocker):
+        mock_cache_provider = mocker.patch.object(contributions_views, "SubscriptionsCacheProvider", autospec=True)
+        contributions_views.SubscriptionsViewSet.update_uninvoiced_subscription_in_cache(
+            email=(email := "foo@bar.com"),
+            stripe_account_id=(stripe_account_id := "some-id"),
+            subscription=(subscription := mocker.Mock()),
+        )
+        mock_cache_provider.assert_called_once_with(email, stripe_account_id)
+        mock_cache_provider.return_value.upsert.assert_called_once_with([subscription])
 
 
 @pytest.mark.parametrize(

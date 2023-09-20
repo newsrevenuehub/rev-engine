@@ -695,6 +695,10 @@ def invoice_line_item_data_factory(faker):
             "end": faker.unix_time(),
             "start": faker.unix_time(),
         },
+        "plan": {
+            "interval": "month",
+            "interval_count": 1,
+        },
         "price": {
             "id": faker.pystr_format(string_format="price_??????"),
             "object": "price",
@@ -930,6 +934,15 @@ def pi_for_valid_one_time_factory(default_paid_pi_data_factory):
             return stripe.PaymentIntent.construct_from(default_paid_pi_data_factory.get() | kwargs, key="test")
 
     return Factory()
+
+
+@pytest.fixture
+def pi_for_accepted_flagged_recurring_contribution(pi_for_active_subscription_factory):
+    pm = stripe.PaymentMethod.construct_from({}, key="test")
+    return pi_for_active_subscription_factory.get(
+        payment_method=None,
+        invoice=stripe.Invoice.construct_from({"subscription": {"default_payment_method": pm}}, key="test"),
+    )
 
 
 @pytest.fixture

@@ -1,11 +1,13 @@
 import itertools
 import logging
 from dataclasses import asdict
+from typing import Literal
 
 from django.conf import settings
 from django.core.exceptions import ValidationError as DjangoValidationError
 from django.utils import timezone
 
+import pydantic
 from drf_extra_fields.relations import PresentablePrimaryKeyRelatedField
 from rest_framework import serializers
 from rest_framework.validators import UniqueTogetherValidator
@@ -116,6 +118,22 @@ class StyleListSerializer(StyleInlineSerializer):
         if self.context["request"].method == "POST":
             self._validate_style_limit(data)
         return data
+
+
+class LocaleMapping(pydantic.BaseModel):
+    model_config = pydantic.ConfigDict(frozen=True)
+
+    adjective: str
+    code: Literal["en", "es"]
+
+
+EnglishLocale = LocaleMapping(adjective="English", code="en")
+SpanishLocale = LocaleMapping(adjective="Spanish", code="es")
+
+LOCALE_MAP = {
+    EnglishLocale.code: EnglishLocale,
+    SpanishLocale.code: SpanishLocale,
+}
 
 
 class DonationPageFullDetailSerializer(serializers.ModelSerializer):
@@ -261,19 +279,30 @@ class DonationPageFullDetailSerializer(serializers.ModelSerializer):
             )
         return value
 
+    def valiate_locale(self, value):
+        if value not in LOCALE_MAP:
+            raise serializers.ValidationError({"locale": f"Invalid locale: {value}"})
+        return value
+
     def validate_page_limit(self, data):
         """Ensure that adding a page would not push parent org over its page limit
 
         NB: page_limit is not a serializer field, so we have to explicitly call this method from
         .validate() below.
         """
+        locale = LOCALE_MAP[data["locale"]]
         if self.context["request"].method != "POST":
             return
         if DonationPage.objects.filter(
-            revenue_program__organization=(org := data["revenue_program"].organization)
+            revenue_program__organization=(org := data["revenue_program"].organization),
+            locale=(locale.code),
         ).count() + 1 > (pl := org.plan.page_limit):
             raise serializers.ValidationError(
-                {"non_field_errors": [f"Your organization has reached its limit of {pl} page{'s' if pl > 1 else ''}"]}
+                {
+                    "non_field_errors": [
+                        f"Your organization has reached its limit of {pl} {locale.adjective} page{'s' if pl > 1 else ''}"
+                    ]
+                }
             )
 
     def validate_publish_limit(self, data):

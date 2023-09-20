@@ -10,7 +10,7 @@ from rest_framework.test import APIRequestFactory
 
 from apps.config.tests.factories import DenyListWordFactory
 from apps.config.validators import GENERIC_SLUG_DENIED_MSG
-from apps.organizations.models import FiscalStatusChoices, FreePlan, Plans
+from apps.organizations.models import CorePlan, FiscalStatusChoices, FreePlan, Plans, PlusPlan
 from apps.organizations.serializers import PaymentProviderSerializer
 from apps.organizations.tests.factories import (
     BenefitLevelFactory,
@@ -19,7 +19,11 @@ from apps.organizations.tests.factories import (
 )
 from apps.pages.defaults import BENEFITS, SWAG, get_default_page_elements
 from apps.pages.models import DonationPage, Style
-from apps.pages.serializers import DonationPageFullDetailSerializer, StyleListSerializer
+from apps.pages.serializers import (
+    DonationPageFullDetailSerializer,
+    LocaleMapping,
+    StyleListSerializer,
+)
 from apps.pages.tests.factories import DonationPageFactory, StyleFactory
 from apps.users.models import Roles
 from apps.users.tests.factories import create_test_user
@@ -537,6 +541,23 @@ class TestDonationPageFullDetailSerializer:
         assert (
             str(exc.value.detail["slug"]) == f"Value must be unique and '{live_donation_page.slug}' is already in use"
         )
+
+    @pytest.mark.parametrize(
+        "locale",
+        LocaleMapping.keys(),
+    )
+    @pytest.mark.parametrize("plan", (FreePlan, CorePlan, PlusPlan))
+    def test_validate_page_limit(self, locale, plan, revenue_program):
+        revenue_program.organization.plan_name = plan.name
+        revenue_program.organization.save()
+        DonationPageFactory.create_batch(
+            plan.page_limit,
+            revenue_program=revenue_program,
+            locale=locale,
+        )
+        data = {"revenue_program": revenue_program}
+        serializer = DonationPageFullDetailSerializer()
+        assert serializer.validate_page_limit(data) is None
 
 
 @pytest.mark.django_db

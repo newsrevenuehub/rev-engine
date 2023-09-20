@@ -28,6 +28,8 @@ from apps.pages.models import (
 from apps.pages.serializers import (
     DonationPageFullDetailSerializer,
     DonationPageListSerializer,
+    EnglishLocale,
+    SpanishLocale,
     StyleListSerializer,
 )
 from apps.pages.tests.factories import DonationPageFactory, FontFactory, StyleFactory
@@ -502,20 +504,24 @@ class TestPageViewSet:
         assert response.json() == {"styles": [f'Invalid pk "{style_id}" - object does not exist.']}
 
     @pytest_cases.parametrize("plan", (Plans.FREE.value, Plans.CORE.value, Plans.PLUS.value))
-    def test_create_when_already_at_page_limit(self, plan, hub_admin_user, api_client):
+    @pytest.mark.parametrize("locale", (SpanishLocale, EnglishLocale))
+    def test_create_when_already_at_page_limit(self, plan, locale, hub_admin_user, api_client):
         rp = RevenueProgramFactory(organization=OrganizationFactory(plan_name=plan))
         data = {
             "revenue_program": rp.id,
             "slug": rp.slug,
+            "locale": locale.code,
         }
         api_client.force_authenticate(hub_admin_user)
         remaining = (limit := rp.organization.plan.page_limit)
         if remaining:
-            DonationPageFactory.create_batch(remaining, revenue_program=rp, published_date=None)
+            DonationPageFactory.create_batch(remaining, revenue_program=rp, published_date=None, locale=locale.code)
         response = api_client.post(reverse("donationpage-list"), data=data, format="json")
         assert response.status_code == status.HTTP_400_BAD_REQUEST
         assert response.json() == {
-            "non_field_errors": [f"Your organization has reached its limit of {limit} page{'' if limit == 1 else 's'}"]
+            "non_field_errors": [
+                f"Your organization has reached its limit of {limit} {locale.adjective} page{'' if limit == 1 else 's'}"
+            ]
         }
 
     @pytest_cases.parametrize("plan", (Plans.FREE.value, Plans.CORE.value, Plans.PLUS.value))

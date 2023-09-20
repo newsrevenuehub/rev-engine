@@ -18,7 +18,6 @@ from stripe.error import RateLimitError
 from apps.contributions.models import Contribution, ContributionStatus
 from apps.contributions.payment_managers import PaymentProviderError
 from apps.contributions.stripe_contributions_provider import (
-    ContributionIgnorableError,
     ContributionsCacheProvider,
     StripeContributionsProvider,
     SubscriptionsCacheProvider,
@@ -121,14 +120,7 @@ def task_pull_payment_intents_and_uninvoiced_subs(self, email_id, customers_quer
         logger.info("Pulling uninvoiced subscriptions for %s", email_id)
         uninvoiced_subs = provider.fetch_uninvoiced_subscriptions_for_contributor()
         sub_cache_provider.upsert(uninvoiced_subs)
-        converted = []
-        for x in uninvoiced_subs:
-            try:
-                converted.append(provider.cast_subscription_to_pi_for_portal(x))
-            # if there's a problem converting one, we don't let it effect the rest
-            except ContributionIgnorableError as exc:
-                logger.warning("Unable to cast subscription %s to a portal contribution", x.id, exc_info=exc)
-        logger.info("Converted %s uninvoiced subscriptions to portal contributions", len(converted))
+        converted = pi_cache_provider.convert_uninvoiced_subs_into_contributions(uninvoiced_subs)
         pi_cache_provider.upsert_uninvoiced_subscriptions(converted)
 
 

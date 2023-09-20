@@ -49,7 +49,11 @@ def page_creation_data_valid():
     Note that a request made using this data could still fail if the requesting user does not have the right user
     type or permissions
     """
-    return {"revenue_program": RevenueProgramFactory(onboarded=True).id, "name": "some name"}
+    return {
+        "revenue_program": RevenueProgramFactory(onboarded=True).id,
+        "name": "some name",
+        "locale": EnglishLocale.code,
+    }
 
 
 @pytest.fixture
@@ -524,23 +528,30 @@ class TestPageViewSet:
             ]
         }
 
-    @pytest_cases.parametrize("plan", (Plans.FREE.value, Plans.CORE.value, Plans.PLUS.value))
-    def test_create_when_already_at_publish_limit(self, plan, hub_admin_user, api_client):
+    # NB we don't test on plus plan because it is meant to have unlimited pages (published or otherwise)
+    @pytest_cases.parametrize("plan", (Plans.FREE.value, Plans.CORE.value))
+    @pytest_cases.parametrize("locale", (SpanishLocale, EnglishLocale))
+    def test_create_when_already_at_publish_limit(self, plan, locale, hub_admin_user, api_client):
         rp = RevenueProgramFactory(organization=OrganizationFactory(plan_name=plan))
-        for i in range((limit := rp.organization.plan.page_limit)):
+        for i in range((limit := rp.organization.plan.publish_limit)):
             DonationPageFactory(
+                locale=locale.code,
                 revenue_program=rp,
-                published_date=timezone.now() if i + 1 < rp.organization.plan.publish_limit else None,
+                published_date=timezone.now() if i + 1 <= rp.organization.plan.publish_limit else None,
             )
         data = {
             "revenue_program": rp.id,
             "slug": rp.slug,
+            "published_date": timezone.now(),
+            "locale": locale.code,
         }
         api_client.force_authenticate(hub_admin_user)
         response = api_client.post(reverse("donationpage-list"), data=data, format="json")
         assert response.status_code == status.HTTP_400_BAD_REQUEST
         assert response.json() == {
-            "non_field_errors": [f"Your organization has reached its limit of {limit} page{'' if limit == 1 else 's'}"]
+            "non_field_errors": [
+                f"Your organization has reached its limit of {limit} published {locale.adjective} page{'' if limit == 1 else 's'}"
+            ]
         }
 
     def test_create_page_when_invalid_slug(self, hub_admin_user, page_creation_data_with_invalid_slug, api_client):
@@ -930,8 +941,9 @@ class TestPageViewSet:
         }
 
     @pytest.mark.parametrize("plan", (Plans.FREE.value, Plans.CORE.value, Plans.PLUS.value))
+    @pytest.mark.parametrize("locale", (SpanishLocale, EnglishLocale))
     def test_patch_when_at_published_limit_and_try_to_publish(
-        self, plan, live_donation_page, hub_admin_user, api_client
+        self, plan, locale, live_donation_page, hub_admin_user, api_client
     ):
         if plan == Plans.PLUS.value:
             # there's not a path to test updating an existing page such that would push over publish_limit
@@ -939,6 +951,7 @@ class TestPageViewSet:
             # we're not errantly leaving out this plan from the other test path.
             assert PlusPlan.publish_limit == PlusPlan.page_limit
         else:
+            live_donation_page.locale = locale.code
             live_donation_page.revenue_program.organization.plan_name = plan
             live_donation_page.revenue_program.organization.save()
             live_donation_page.refresh_from_db()
@@ -946,8 +959,9 @@ class TestPageViewSet:
                 DonationPageFactory(
                     revenue_program=rp,
                     published_date=timezone.now() if i < rp.organization.plan.publish_limit else None,
+                    locale=locale.code,
                 )
-            unpublished = DonationPageFactory(revenue_program=rp, published_date=None)
+            unpublished = DonationPageFactory(revenue_program=rp, published_date=None, locale=locale.code)
             data = {"published_date": timezone.now()}
             api_client.force_authenticate(user=hub_admin_user)
             response = api_client.patch(
@@ -956,7 +970,7 @@ class TestPageViewSet:
             )
             assert response.status_code == status.HTTP_400_BAD_REQUEST
             assert response.json()["non_field_errors"] == [
-                f"Your organization has reached its limit of {rp.organization.plan.publish_limit} published page{'' if rp.organization.plan.publish_limit == 1 else 's'}"
+                f"Your organization has reached its limit of {rp.organization.plan.publish_limit} published {locale.adjective} page{'' if rp.organization.plan.publish_limit == 1 else 's'}"
             ]
 
     def test_patch_when_invalid_slug_data(

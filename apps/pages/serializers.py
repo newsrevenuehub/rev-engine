@@ -139,6 +139,7 @@ LOCALE_MAP = {
 class DonationPageFullDetailSerializer(serializers.ModelSerializer):
     # these settings enable auto-generation for name
     name = serializers.CharField(max_length=PAGE_NAME_MAX_LENGTH, allow_blank=True, allow_null=True, required=False)
+    locale = serializers.ChoiceField(choices=list(LOCALE_MAP.keys()), default=EnglishLocale.code)
     styles = PresentablePrimaryKeyRelatedField(
         queryset=Style.objects.all(),
         presentation_serializer=StyleInlineSerializer,
@@ -284,13 +285,16 @@ class DonationPageFullDetailSerializer(serializers.ModelSerializer):
             raise serializers.ValidationError({"locale": f"Invalid locale: {value}"})
         return value
 
+    def _get_locale(self, data) -> str:
+        return LOCALE_MAP[self.instance.locale if self.instance and "locale" not in data else data["locale"]]
+
     def validate_page_limit(self, data):
         """Ensure that adding a page would not push parent org over its page limit
 
         NB: page_limit is not a serializer field, so we have to explicitly call this method from
         .validate() below.
         """
-        locale = LOCALE_MAP[data["locale"]]
+        locale = self._get_locale(data)
         if self.context["request"].method != "POST":
             return
         if DonationPage.objects.filter(
@@ -312,6 +316,7 @@ class DonationPageFullDetailSerializer(serializers.ModelSerializer):
         .validate() below.
         """
         logger.debug("DonationPageFullDetailSerializer.validate_publish_limit called with data: %s", data)
+        locale = self._get_locale(data)
         org = self.instance.revenue_program.organization if self.instance else data["revenue_program"].organization
         # this method gets run both in create and update contexts, so we need to account for the fact that with an offset.
         # What we're trying to compute is the total number of published pages for the org if the current request was processed
@@ -328,16 +333,19 @@ class DonationPageFullDetailSerializer(serializers.ModelSerializer):
             else 0
         )
         if DonationPage.objects.filter(
-            published_date__isnull=False, revenue_program__organization=org
+            published_date__isnull=False,
+            revenue_program__organization=org,
+            locale=locale.code,
         ).count() + offset > (pl := org.plan.publish_limit):
             logger.info(
-                "DonationPageFullDetailSerializer.validate_publish_limit raising ValidationError because org (%s) has reached its publish limit",
+                "DonationPageFullDetailSerializer.validate_publish_limit raising ValidationError because org (%s) has reached its publish limit for %s",
                 org.id,
+                locale.adjective,
             )
             raise serializers.ValidationError(
                 {
                     "non_field_errors": [
-                        f"Your organization has reached its limit of {pl} published page{'' if pl == 1 else 's'}"
+                        f"Your organization has reached its limit of {pl} published {locale.adjective} page{'' if pl == 1 else 's'}"
                     ]
                 }
             )

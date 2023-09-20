@@ -45,11 +45,7 @@ FISCAL_SPONSOR_NAME_NOT_PERMITTED_ERROR_MESSAGE = (
 
 
 class UserSerializer(serializers.ModelSerializer):
-    """
-    # This is the serializer that is used to return user data back after successful login.
-    # It returns a complete list of (pared-down) available Organizations and RevenuePrograms based on the user's
-    # super_user status and RoleAssignment.
-    """
+    """This is the serializer that is used to return user data back after successful login."""
 
     role_type = serializers.SerializerMethodField(method_name="get_role_type", read_only=True)
     revenue_programs = serializers.SerializerMethodField(method_name="get_revenue_programs")

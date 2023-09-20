@@ -20,9 +20,9 @@ import RouterSetup from './routes/RouterSetup';
 
 // Split bundles
 const Main = lazy(() => componentLoader(() => import('components/Main')));
+const PortalRouter = lazy(() => componentLoader(() => import('components/PortalRouter')));
 
 // Account Screens
-
 const SignIn = lazy(() => componentLoader(() => import('components/account/SignIn')));
 const SignUp = lazy(() => componentLoader(() => import('components/account/SignUp')));
 const ForgotPassword = lazy(() => componentLoader(() => import('components/account/ForgotPassword')));
@@ -35,6 +35,8 @@ function DashboardRouter() {
 
   return (
     <RouterSetup>
+      <SentryRoute path={Object.values(ROUTES.PORTAL)} render={() => <TrackPageView component={PortalRouter} />} />
+
       {/* Login URL */}
 
       <SentryRoute exact path={ROUTES.SIGN_IN} render={() => <TrackPageView component={SignIn} />} />

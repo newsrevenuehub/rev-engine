@@ -37,6 +37,8 @@ const StyledMuiTextField = styled(MuiTextField)`
     }
 
     .NreTextFieldInput {
+      /* Needed for custom styles */
+      background-color: white;
       border: 1.5px solid rgb(196, 196, 196);
       border-radius: 4px;
       font-size: 16px;

@@ -3,13 +3,14 @@ import { useEffect, useState } from 'react';
 import { ContributionPage } from 'hooks/useContributionPage';
 import fileToDataUrl from 'utilities/fileToDataUrl';
 import { Logo, Root } from './DonationPageHeader.styled';
+import NRELogo from 'assets/images/nre-logo-blue.svg';
 
 const DonationPageHeaderPropTypes = {
-  page: PropTypes.object.isRequired
+  page: PropTypes.object
 };
 
 export interface DonationPageHeaderProps extends InferProps<typeof DonationPageHeaderPropTypes> {
-  page: ContributionPage;
+  page?: ContributionPage;
 }
 
 export function DonationPageHeader({ page }: DonationPageHeaderProps) {
@@ -20,41 +21,50 @@ export function DonationPageHeader({ page }: DonationPageHeaderProps) {
   // be interactible. As a fallback, we set it to "Logo" (though this is far
   // from ideal). If the image is unlinked, it's fine for it to have blank alt text.
 
-  const altTextWithFallback = page.header_logo_alt_text === '' ? 'Logo' : page.header_logo_alt_text;
+  const altTextWithFallback = page?.header_logo_alt_text === '' ? 'Logo' : page?.header_logo_alt_text;
 
   // If the user has set new images on either of these properties in the page,
   // they will exist there as files, not string URLs.
 
   useEffect(() => {
     async function run() {
-      if (page.header_logo instanceof File) {
-        setLogoSource(await fileToDataUrl(page.header_logo));
+      if (page?.header_logo instanceof File) {
+        setLogoSource(await fileToDataUrl(page?.header_logo));
       } else {
-        setLogoSource(page.header_logo);
+        setLogoSource(page?.header_logo);
       }
     }
 
     run();
-  }, [page.header_logo]);
+  }, [page?.header_logo]);
 
   useEffect(() => {
     async function run() {
-      if (page.header_bg_image instanceof File) {
-        setBackgroundSource(await fileToDataUrl(page.header_bg_image));
+      if (page?.header_bg_image instanceof File) {
+        setBackgroundSource(await fileToDataUrl(page?.header_bg_image));
       } else {
-        setBackgroundSource(page.header_bg_image);
+        setBackgroundSource(page?.header_bg_image);
       }
     }
 
     run();
-  }, [page.header_bg_image]);
+  }, [page?.header_bg_image]);
 
   let logo = null;
 
-  if (logoSource) {
-    logo = <Logo src={logoSource} alt={page.header_logo_alt_text} />;
+  if (!page) {
+    // Return NRE logo + header
+    return (
+      <Root $isNRE>
+        <Logo src={NRELogo} alt="News Revenue Engine" />
+      </Root>
+    );
+  }
 
-    if (page.header_link) {
+  if (logoSource) {
+    logo = <Logo src={logoSource} alt={page?.header_logo_alt_text} />;
+
+    if (page?.header_link) {
       logo = (
         <a href={page?.header_link} target="_blank" rel="noreferrer noopener">
           <Logo src={logoSource} alt={altTextWithFallback} />

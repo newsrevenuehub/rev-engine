@@ -5,6 +5,7 @@ import * as S from './MainLayout.styled';
 import useSentry from 'hooks/useSentry';
 import useSubdomain from 'hooks/useSubdomain';
 import isContributorAppPath from 'utilities/isContributorAppPath';
+import isPortalAppPath from 'utilities/isPortalAppPath';
 
 // Constants
 import { DASHBOARD_SUBDOMAINS } from 'appSettings';
@@ -49,6 +50,7 @@ function MainLayout() {
   };
 
   const isContributorApp = isContributorAppPath();
+  const isPortalApp = isPortalAppPath();
 
   return (
     <GlobalContext.Provider value={{ getReauth }}>
@@ -56,7 +58,7 @@ function MainLayout() {
         <GlobalConfirmationModal>
           {/* Route to donation page if subdomain exists */}
           <S.MainLayout>
-            {!DASHBOARD_SUBDOMAINS.includes(subdomain) && !isContributorApp ? (
+            {!DASHBOARD_SUBDOMAINS.includes(subdomain) && !isContributorApp && !isPortalApp ? (
               <DonationPageRouter />
             ) : (
               <DashboardRouter />

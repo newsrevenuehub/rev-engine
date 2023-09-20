@@ -96,6 +96,7 @@ class DonationPageAdmin(CompareVersionAdmin, DonationPageAdminAbstract):
         (
             (None, {"fields": ("revenue_program",)}),
             (None, {"fields": ("published_date",)}),
+            (None, {"fields": ("locale",)}),
             (
                 None,
                 {"fields": ("slug",)},
@@ -112,8 +113,9 @@ class DonationPageAdmin(CompareVersionAdmin, DonationPageAdminAbstract):
         "slug",
         "is_live",
         "published_date",
+        "locale",
     )
-    list_filter = ("revenue_program",)
+    list_filter = ("revenue_program", "locale")
 
     order = (
         "created",
@@ -126,9 +128,7 @@ class DonationPageAdmin(CompareVersionAdmin, DonationPageAdminAbstract):
         "revenue_program__name",
     )
 
-    readonly_fields = [
-        "page_screenshot",
-    ]
+    readonly_fields = ["page_screenshot", "locale"]
 
     actions = ("make_template", "undelete_selected")
 

@@ -19,11 +19,7 @@ from apps.organizations.tests.factories import (
 )
 from apps.pages.defaults import BENEFITS, SWAG, get_default_page_elements
 from apps.pages.models import DonationPage, Style
-from apps.pages.serializers import (
-    DonationPageFullDetailSerializer,
-    LocaleMapping,
-    StyleListSerializer,
-)
+from apps.pages.serializers import LOCALE_MAP, DonationPageFullDetailSerializer, StyleListSerializer
 from apps.pages.tests.factories import DonationPageFactory, StyleFactory
 from apps.users.models import Roles
 from apps.users.tests.factories import create_test_user
@@ -544,7 +540,7 @@ class TestDonationPageFullDetailSerializer:
 
     @pytest.mark.parametrize(
         "locale",
-        LocaleMapping.keys(),
+        LOCALE_MAP.keys(),
     )
     @pytest.mark.parametrize("plan", (FreePlan, CorePlan, PlusPlan))
     def test_validate_page_limit(self, locale, plan, revenue_program):

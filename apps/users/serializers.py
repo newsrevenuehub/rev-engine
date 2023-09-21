@@ -46,8 +46,6 @@ FISCAL_SPONSOR_NAME_NOT_PERMITTED_ERROR_MESSAGE = (
 
 
 def get_active_flags_for_user(obj):
-    if not isinstance(obj, get_user_model()):
-        return []
     Flag = get_waffle_flag_model()
     if obj.is_superuser:
         qs = Flag.objects.filter(Q(superusers=True) | Q(everyone=True) | Q(users__in=[obj]))

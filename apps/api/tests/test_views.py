@@ -1,3 +1,4 @@
+import datetime
 import os
 import uuid
 from time import time
@@ -27,13 +28,14 @@ from apps.api.tokens import LONG_TOKEN, ContributorRefreshToken
 from apps.api.views import RequestContributorTokenEmailView, construct_rp_domain
 from apps.contributions.models import Contributor
 from apps.contributions.tests.factories import ContributorFactory
-from apps.organizations.models import FreePlan
+from apps.organizations.models import FreePlan, Organization, RevenueProgram
 from apps.organizations.tests.factories import (
     OrganizationFactory,
     PaymentProviderFactory,
     RevenueProgramFactory,
 )
 from apps.pages.tests.factories import DonationPageFactory, StyleFactory
+from apps.users.choices import Roles
 
 
 user_model = get_user_model()
@@ -62,55 +64,146 @@ KNOWN_PASSWORD = "myGreatAndSecurePassword7"
 
 
 @pytest.fixture
-def user_with_known_password(org_user_free_plan):
+def org_user_with_pw(org_user_free_plan):
+    org_user_free_plan.accepted_terms_of_service = datetime.datetime.utcnow()
     org_user_free_plan.set_password(KNOWN_PASSWORD)
     org_user_free_plan.save()
     return org_user_free_plan
 
 
+@pytest.fixture
+def hub_user_with_pw(hub_admin_user):
+    hub_admin_user.set_password(KNOWN_PASSWORD)
+    hub_admin_user.save()
+    return hub_admin_user
+
+
+@pytest.fixture
+def superuser_with_pw(superuser):
+    superuser.set_password(KNOWN_PASSWORD)
+    superuser.save()
+    return superuser
+
+
+@pytest.fixture
+def user_no_role_assignment_with_pw(user_no_role_assignment):
+    user_no_role_assignment.set_password(KNOWN_PASSWORD)
+    user_no_role_assignment.save()
+    return user_no_role_assignment
+
+
+@pytest.fixture
+def rp_user_with_pw(rp_user):
+    rp_user.set_password(KNOWN_PASSWORD)
+    rp_user.accepted_terms_of_service = datetime.datetime.utcnow()
+    rp_user.save()
+    return rp_user
+
+
+@pytest.fixture
+def many_orgs():
+    return OrganizationFactory.create_batch(10)
+
+
+@pytest.fixture
+def many_rps():
+    return RevenueProgramFactory.create_batch(10)
+
+
 @pytest.mark.django_db
 class TestTokenObtainPairCookieView:
-    def test_post_happy_path(self, user_with_known_password, api_client, settings):
-        response = api_client.post(
-            reverse("token-obtain-pair"), {"email": user_with_known_password.email, "password": KNOWN_PASSWORD}
-        )
+    @pytest_cases.parametrize(
+        "user, expected_orgs",
+        (
+            (pytest_cases.fixture_ref("superuser_with_pw"), "all"),
+            (pytest_cases.fixture_ref("hub_user_with_pw"), "all"),
+            (pytest_cases.fixture_ref("org_user_with_pw"), "one"),
+            (pytest_cases.fixture_ref("rp_user_with_pw"), "one"),
+            (pytest_cases.fixture_ref("user_no_role_assignment_with_pw"), "none"),
+        ),
+    )
+    def test_post_happy_path(self, user, expected_orgs, many_orgs, many_rps, api_client):
+        response = api_client.post(reverse("token-obtain-pair"), {"email": user.email, "password": KNOWN_PASSWORD})
         assert response.status_code == status.HTTP_200_OK
-        assert response.json()["user"]["email"] == user_with_known_password.email
-        Flag = get_waffle_flag_model()
-        assert set([x["id"] for x in response.json()["user"]["flags"]]) == set(
-            [x.id for x in user_with_known_password.flag_set.all()] + [x.id for x in Flag.objects.filter(everyone=True)]
-        )
-        assert set([x["id"] for x in response.json()["user"]["organizations"]]) == set(
-            [x.id for x in user_with_known_password.organizations.all()]
-        )
-        assert set([x["id"] for x in response.json()["user"]["revenue_programs"]]) == set(
-            [x.id for x in user_with_known_password.roleassignment.revenue_programs.all()]
-        )
-        assert settings.CSRF_COOKIE_NAME in response.json()
-        assert settings.CSRF_COOKIE_NAME in response.cookies
-        assert "Authorization" in response.cookies
 
-    def test_post_when_invalid_password(self, user_with_known_password, api_client):
+        assert set(response.json().keys()) == {"detail", "user", "csrftoken"}
+
+        _user = response.json()["user"]
+
+        assert set(_user.keys()) == {
+            "email",
+            "id",
+            "organizations",
+            "revenue_programs",
+            "flags",
+            "accepted_terms_of_service",
+            "email_verified",
+            "role_type",
+        }
+
+        orgs = _user["organizations"]
+        rps = _user["revenue_programs"]
+
+        match expected_orgs:
+            case "all":
+                assert set([x["id"] for x in orgs]) == set(Organization.objects.all().values_list("id", flat=True))
+                assert set([x["id"] for x in rps]) == set(RevenueProgram.objects.all().values_list("id", flat=True))
+            case "one":
+                assert len(orgs) == 1
+                assert orgs[0]["id"] == user.roleassignment.organization.id
+                assert len(rps) == user.roleassignment.revenue_programs.count()
+                assert set([x["id"] for x in rps]) == set(
+                    user.roleassignment.revenue_programs.values_list("id", flat=True)
+                )
+            case "none":
+                assert len(orgs) == 0
+                assert len(rps) == 0
+
+        Flag = get_waffle_flag_model()
+        expected_flags = set([x.id for x in user.flag_set.all()] + [x.id for x in Flag.objects.filter(everyone=True)])
+        assert len(_user["flags"]) == len(expected_flags)
+        assert set([x["id"] for x in _user["flags"]]) == expected_flags
+
+        assert _user["email"] == user.email
+        assert _user["id"] == str(user.id)
+        if user.accepted_terms_of_service:
+            assert _user["accepted_terms_of_service"] == f"{user.accepted_terms_of_service.isoformat()}Z"
+        else:
+            assert _user["accepted_terms_of_service"] is None
+        assert _user["email_verified"] == user.email_verified
+        role_type = user.get_role_type()
+        if role_type and (
+            role_type[0] == "superuser" or role_type[0] in [Roles.HUB_ADMIN, Roles.ORG_ADMIN, Roles.RP_ADMIN]
+        ):
+            assert _user["role_type"] == list(role_type)
+        else:
+            assert _user["role_type"] is None
+
+        assert response.json()["csrftoken"]
+        assert response.cookies[settings.CSRF_COOKIE_NAME]
+        assert response.cookies["Authorization"]
+
+    def test_post_when_invalid_password(self, org_user_with_pw, api_client):
         password = "different"
         assert password != KNOWN_PASSWORD
         response = api_client.post(
-            reverse("token-obtain-pair"), {"email": user_with_known_password.email, "password": password}
+            reverse("token-obtain-pair"), {"email": org_user_with_pw.email, "password": password}
         )
         assert response.status_code == status.HTTP_401_UNAUTHORIZED
 
-    def test_post_when_token_error(self, user_with_known_password, api_client, mocker):
+    def test_post_when_token_error(self, org_user_with_pw, api_client, mocker):
         mocker.patch(
             "rest_framework_simplejwt.tokens.Token.__init__",
             side_effect=TokenError((msg := "ruh roh")),
         )
         response = api_client.post(
-            reverse("token-obtain-pair"), {"email": user_with_known_password.email, "password": KNOWN_PASSWORD}
+            reverse("token-obtain-pair"), {"email": org_user_with_pw.email, "password": KNOWN_PASSWORD}
         )
         assert response.status_code == status.HTTP_401_UNAUTHORIZED
         assert response.json() == {"detail": msg, "code": "token_not_valid"}
 
-    def test_delete(self, user_with_known_password, api_client):
-        api_client.force_authenticate(user=user_with_known_password)
+    def test_delete(self, org_user_with_pw, api_client):
+        api_client.force_authenticate(user=org_user_with_pw)
         response = api_client.delete(reverse("token-obtain-pair"))
         assert response.status_code == status.HTTP_200_OK
         assert response.cookies.get("Authorization")._value == ""

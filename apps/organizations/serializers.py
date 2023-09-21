@@ -94,12 +94,8 @@ class RevenueProgramListInlineSerializer(serializers.ModelSerializer):
         ]
 
 
-class RevenueProgramInlineSerializer(serializers.ModelSerializer):
-    """
-    Used by the UserSerializer when users log in.
-    """
-
-    organization = OrganizationInlineSerializer()
+class RevenueProgramInlineSerializerForAuthedUserSerializer(serializers.ModelSerializer):
+    """ """
 
     class Meta:
         model = RevenueProgram
@@ -113,6 +109,14 @@ class RevenueProgramInlineSerializer(serializers.ModelSerializer):
             "fiscal_status",
             "fiscal_sponsor_name",
         ]
+
+
+class RevenueProgramInlineSerializer(RevenueProgramInlineSerializerForAuthedUserSerializer):
+    """
+    Used by the UserSerializer when users log in.
+    """
+
+    organization = OrganizationInlineSerializer()
 
 
 class MailchimpRevenueProgramForSpaConfiguration(serializers.ModelSerializer):

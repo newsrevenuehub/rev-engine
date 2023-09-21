@@ -23,6 +23,7 @@ from apps.organizations.models import (
 from apps.organizations.serializers import (
     OrganizationInlineSerializer,
     RevenueProgramInlineSerializer,
+    RevenueProgramInlineSerializerForAuthedUserSerializer,
 )
 from apps.users.choices import Roles
 from apps.users.constants import PASSWORD_MAX_LENGTH
@@ -44,26 +45,92 @@ FISCAL_SPONSOR_NAME_NOT_PERMITTED_ERROR_MESSAGE = (
 )
 
 
-class UserSerializer(serializers.ModelSerializer):
-    """This is the serializer that is used to return user data back after successful login."""
+def get_active_flags_for_user(obj):
+    if not isinstance(obj, get_user_model()):
+        return []
+    Flag = get_waffle_flag_model()
+    if obj.is_superuser:
+        qs = Flag.objects.filter(Q(superusers=True) | Q(everyone=True) | Q(users__in=[obj]))
+    else:
+        qs = Flag.objects.filter(Q(everyone=True) | Q(users__in=[obj]))
+    return list(qs.only("name", "id").distinct().values("name", "id"))
 
-    role_type = serializers.SerializerMethodField(method_name="get_role_type", read_only=True)
-    revenue_programs = serializers.SerializerMethodField(method_name="get_revenue_programs")
-    organizations = OrganizationInlineSerializer(many=True, read_only=True)
-    flags = serializers.SerializerMethodField(method_name="get_active_flags_for_user", read_only=True)
+
+class AuthedUserSerializer(serializers.Serializer):
+    """This serializer is used for creating and updating users."""
+
+    flags = serializers.SerializerMethodField(method_name="get_active_flags_for_user")
+    email = serializers.EmailField()
+    id = serializers.CharField()
+    accepted_terms_of_service = serializers.DateTimeField()
+    email_verified = serializers.BooleanField()
+    organizations = OrganizationInlineSerializer(many=True, source="_organizations")
+    revenue_programs = RevenueProgramInlineSerializerForAuthedUserSerializer(many=True)
+    role_type = serializers.ChoiceField(choices=Roles.choices, default=None, allow_null=True)
+
+    def get_active_flags_for_user(self, obj):
+        return get_active_flags_for_user(obj)
+
+
+class UserSerializer(serializers.ModelSerializer):
+    """
+    This serializer is used for creating and updating users.
+
+    """
+
+    role_type = serializers.SerializerMethodField(method_name="get_role_type")
+    organizations = serializers.SerializerMethodField(method_name="get_permitted_organizations")
+    revenue_programs = serializers.SerializerMethodField(method_name="get_permitted_revenue_programs")
+    flags = serializers.SerializerMethodField(method_name="get_active_flags_for_user")
     password = serializers.CharField(write_only=True, max_length=PASSWORD_MAX_LENGTH, required=True)
     email = serializers.EmailField(
         validators=[UniqueValidator(queryset=get_user_model().objects.all(), lookup="icontains")], required=True
     )
     accepted_terms_of_service = serializers.DateTimeField(required=True)
 
-    def get_revenue_programs(self, obj):
-        return RevenueProgramInlineSerializer(self.context.get("revenue_programs", []), many=True).data
-
     def get_role_type(self, obj):
+        # `obj` will be a dict of data when serializer being used in create view
+        if not isinstance(obj, get_user_model()):
+            return None
         return obj.get_role_type()
 
+    def get_permitted_organizations(self, obj):
+        # `obj` will be a dict of data when serializer being used in create view
+        if not isinstance(obj, get_user_model()):
+            return []
+        qs = Organization.objects.all()
+        role_assignment = obj.get_role_assignment()
+        if not role_assignment and not obj.is_superuser:
+            qs = qs.none()
+        elif role_assignment and role_assignment.role_type != Roles.HUB_ADMIN:
+            org = getattr(role_assignment, "organization", None)
+            if org is None:
+                qs = qs.none()
+            else:
+                qs = qs.filter(pk=org.pk)
+        serializer = OrganizationInlineSerializer(qs, many=True)
+        return serializer.data
+
+    def get_permitted_revenue_programs(self, obj):
+        # `obj` will be a dict of data when serializer being used in create view
+        if not isinstance(obj, get_user_model()):
+            return []
+        qs = RevenueProgram.objects.all()
+        role_assignment = obj.get_role_assignment()
+        if not role_assignment and not obj.is_superuser:
+            qs = qs.none()
+        elif not obj.is_superuser and role_assignment.role_type != Roles.HUB_ADMIN:
+            if role_assignment.role_type == Roles.ORG_ADMIN:
+                qs = role_assignment.organization.revenueprogram_set.all()
+            elif role_assignment.role_type == Roles.RP_ADMIN:
+                qs = role_assignment.revenue_programs
+        serializer = RevenueProgramInlineSerializer(qs, many=True)
+        return serializer.data
+
     def get_active_flags_for_user(self, obj):
+        # `obj` will be a dict of data when serializer being used in create view
+        if not isinstance(obj, get_user_model()):
+            return []
         Flag = get_waffle_flag_model()
         if obj.is_superuser:
             qs = Flag.objects.filter(Q(superusers=True) | Q(everyone=True) | Q(users__in=[obj]))

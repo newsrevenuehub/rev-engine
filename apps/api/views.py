@@ -104,7 +104,10 @@ class TokenObtainPairCookieView(simplejwt_views.TokenObtainPairView):
 
     @property
     def org_onlies(self) -> list[str]:
-        # as needed by OrganizationInlineSerializer, which AuthedUserSerializer uses
+        """These fields are used in calls to .only below to optimize queries.
+
+        They are required by OrganizationInlineSerializer, which AuthedUserSerializer uses
+        """
         return [
             "id",
             "name",
@@ -119,7 +122,10 @@ class TokenObtainPairCookieView(simplejwt_views.TokenObtainPairView):
 
     @property
     def rp_onlies(self) -> list[str]:
-        # as needed by RevenueProgramInlineSerializerForAuthedUserSerializer, which AuthedUserSerializer uses
+        """These fields are used in calls to .only below to optimize queries.
+
+        They are required by RevenueProgramInlineSerializerForAuthedUserSerializer, which AuthedUserSerializer uses
+        """
         return [
             "fiscal_sponsor_name",
             "fiscal_status",
@@ -133,18 +139,30 @@ class TokenObtainPairCookieView(simplejwt_views.TokenObtainPairView):
 
     @property
     def ra_onlies(self) -> list[str]:
+        """These fields are used in calls to .only below to optimize queries.
+
+        They are required by RevenueProgramInlineSerializerForAuthedUserSerializer and OrganizationInlineSerializer,
+        which AuthedUserSerializer uses
+        """
         return [f"organization__{x}" for x in self.org_onlies] + [f"revenue_programs__{x}" for x in self.rp_onlies]
 
     def get_all_orgs_and_rps(self) -> tuple[QuerySet, QuerySet]:
+        """Convenience method to dry up repeated logic used for superusers and hub admins."""
         return (
             Organization.objects.only(*self.org_onlies).all(),
             RevenueProgram.objects.select_related("payment_provider").only(*self.rp_onlies).all(),
         )
 
     def get_user(self, user: get_user_model()) -> get_user_model():
-        """Return user with role assignment and revenue programs annotated."""
+        """Return a user object as required by the AuthedUserSerializer.
+
+        This method is somewhat convoluted but this is in the service of fully optimizing the queries
+        and handling complexity around superusers and hub admins requiring different queries than
+        org admins and rp admins.
+        """
 
         if user.is_superuser:
+            # TODO: [DEV-3913] Change this to .organizations once that's no longer on user model
             user._organizations, user.revenue_programs = self.get_all_orgs_and_rps()
             user.role_type = ("superuser", "Superuser")
             return user
@@ -155,11 +173,13 @@ class TokenObtainPairCookieView(simplejwt_views.TokenObtainPairView):
             role_type = None
 
         if role_type == Roles.HUB_ADMIN:
+            # TODO: [DEV-3913] Change this to .organizations once that's no longer on user model
             user._organizations, user.revenue_programs = self.get_all_orgs_and_rps()
             user.role_type = self.get_role_type(val=role_type)
             return user
 
         if role_type not in [Roles.ORG_ADMIN, Roles.RP_ADMIN, Roles.HUB_ADMIN]:
+            # TODO: [DEV-3913] Change this to .organizations once that's no longer on user model
             user._organizations = []
             user.revenue_programs = []
             user.role_type = None
@@ -174,6 +194,7 @@ class TokenObtainPairCookieView(simplejwt_views.TokenObtainPairView):
             .only(*self.ra_onlies)
             .first()
         )
+        # TODO: [DEV-3913] Change this to .organizations once that's no longer on user model
         user._organizations = [ra.organization]
         user.revenue_programs = ra.revenue_programs
         return user
@@ -185,15 +206,14 @@ class TokenObtainPairCookieView(simplejwt_views.TokenObtainPairView):
         except exceptions.TokenError as e:
             raise exceptions.InvalidToken(e.args[0])
 
-        data = {
-            "detail": "success",
-            "csrftoken": csrf.get_token(self.request),
-        }
-
-        user_serializer = AuthedUserSerializer(self.get_user(jwt_serializer.user))
-        data["user"] = user_serializer.data
-
-        response = Response(data, status=status.HTTP_200_OK)
+        response = Response(
+            {
+                "detail": "success",
+                "csrftoken": csrf.get_token(self.request),
+                "user": AuthedUserSerializer(self.get_user(jwt_serializer.user)).data,
+            },
+            status=status.HTTP_200_OK,
+        )
         response = set_token_cookie(
             response,
             jwt_serializer.validated_data["access"],
@@ -208,9 +228,7 @@ class TokenObtainPairCookieView(simplejwt_views.TokenObtainPairView):
             domain=getattr(settings, "AUTH_COOKIE_DOMAIN", None),
             path=COOKIE_PATH,
         )
-
         response.data = {"detail": "success"}
-
         return response
 
 

@@ -1,9 +1,15 @@
-import { useEffect } from 'react';
+import { ComponentType, useEffect } from 'react';
 import { useLocation } from 'react-router';
 
 import { useAnalyticsContext } from './AnalyticsContext';
 
-export default function TrackPageView({ component: Component, ...rest }) {
+export default function TrackPageView({
+  component: Component,
+  ...rest
+}: {
+  component: ComponentType;
+  [x: string]: any;
+}) {
   const location = useLocation();
   const { analyticsInstance } = useAnalyticsContext();
 

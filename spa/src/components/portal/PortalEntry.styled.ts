@@ -7,25 +7,28 @@ export const Wrapper = styled.main`
   align-items: center;
   justify-content: space-between;
   height: 100%;
-  padding-bottom: 50px;
   background: ${(props) => props.theme.basePalette.greyscale.grey4};
 `;
 
-export const Button = styled(BaseButton)`
+export const Button = styled(BaseButton)<{ $customPage: boolean }>`
+  ${(props) =>
+    props.$customPage &&
+    `
   && {
-    background-color: ${(props) => props.theme.colors.cstm_CTAs};
+    background-color: ${props.theme.colors.cstm_CTAs};
 
     &.Mui-disabled {
-      background-color: ${(props) => props.theme.colors.cstm_CTAs};
+      background-color: ${props.theme.colors.cstm_CTAs};
       opacity: 0.4;
     }
 
     &:active,
     &:hover {
-      background-color: ${(props) => props.theme.colors.cstm_CTAs};
+      background-color: ${props.theme.colors.cstm_CTAs};
       opacity: 0.8;
     }
   }
+  `}
 `;
 
 export const Content = styled.section`
@@ -53,18 +56,6 @@ export const Subtitle = styled.p`
   color: ${(props) => props.theme.basePalette.greyscale.grey1};
 `;
 
-export const PoweredBy = styled.div`
-  width: 100%;
-  gap: 12px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  font-family: ${(props) => props.theme.font.body};
-  font-weight: 400;
-  font-size: ${(props) => props.theme.fontSizesUpdated.sm};
-  color: ${(props) => props.theme.basePalette.greyscale.black};
-`;
-
 export const Form = styled.form`
   display: flex;
   flex-direction: column;
@@ -74,10 +65,27 @@ export const Form = styled.form`
 `;
 
 export const Confirmation = styled.div`
-  margin-top: 4rem;
-  p {
-    max-width: 400px;
-    margin: 1rem auto;
+  max-width: 633px;
+  box-shadow: 0px 0px 4px 0px rgba(0, 0, 0, 0.2);
+  border-radius: ${(props) => props.theme.muiBorderRadius.xl};
+  border: 0.5px solid ${(props) => props.theme.basePalette.greyscale.grey2};
+  background-color: ${(props) => props.theme.basePalette.greyscale.white};
+  padding: 22px 28px;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+
+  h2 {
+    font-size: ${(props) => props.theme.fontSizesUpdated.lg};
     font-family: ${(props) => props.theme.systemFont};
+    font-weight: 600;
+    margin: 0;
+  }
+
+  p {
+    margin: 0;
+    font-family: ${(props) => props.theme.systemFont};
+    font-weight: 400;
+    font-size: ${(props) => props.theme.fontSizesUpdated.md};
   }
 `;

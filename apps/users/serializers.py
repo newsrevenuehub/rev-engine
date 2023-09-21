@@ -55,7 +55,7 @@ def get_active_flags_for_user(obj):
 
 
 class AuthedUserSerializer(serializers.Serializer):
-    """This serializer is used for creating and updating users."""
+    """This serializer is used to represent user data after users log in in api/v1/token."""
 
     flags = serializers.SerializerMethodField(method_name="get_active_flags_for_user")
     email = serializers.EmailField()
@@ -67,14 +67,13 @@ class AuthedUserSerializer(serializers.Serializer):
     revenue_programs = RevenueProgramInlineSerializerForAuthedUserSerializer(many=True)
     role_type = serializers.ChoiceField(choices=Roles.choices, default=None, allow_null=True)
 
-    def get_active_flags_for_user(self, obj):
+    def get_active_flags_for_user(self, obj) -> list[get_waffle_flag_model]:
         return get_active_flags_for_user(obj)
 
 
 class UserSerializer(serializers.ModelSerializer):
     """
     This serializer is used for creating and updating users.
-
     """
 
     role_type = serializers.SerializerMethodField(method_name="get_role_type")

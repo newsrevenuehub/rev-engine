@@ -95,7 +95,10 @@ class RevenueProgramListInlineSerializer(serializers.ModelSerializer):
 
 
 class RevenueProgramInlineSerializerForAuthedUserSerializer(serializers.ModelSerializer):
-    """ """
+    """Serializer used for representing revenue programs inline in AuthedUserSerializer...
+
+    which is used to represent users in the api/v1/token authentication endpoint.
+    """
 
     class Meta:
         model = RevenueProgram
@@ -112,10 +115,9 @@ class RevenueProgramInlineSerializerForAuthedUserSerializer(serializers.ModelSer
 
 
 class RevenueProgramInlineSerializer(RevenueProgramInlineSerializerForAuthedUserSerializer):
-    """
-    Used by the UserSerializer when users log in.
-    """
-
+    # TODO: [DEV-2738]: This is likely the cause of at least part of the N+1 and poor performance
+    # of api/v1/users. That endpoint serializers orgs using organizaioninline serializer, then seriales
+    # revenue programs using this serializer, which redundantly serializes the orgs.
     organization = OrganizationInlineSerializer()
 
 

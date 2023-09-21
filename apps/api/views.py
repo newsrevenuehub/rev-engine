@@ -99,15 +99,11 @@ class TokenObtainPairCookieView(simplejwt_views.TokenObtainPairView):
 
     permission_classes = []
 
-    def _get_role_type(self, val: str = None, is_superuser: bool = False) -> tuple | None:
-        if is_superuser:
-            return ("superuser", "Superuser")
-        if val not in Roles:
-            return None
+    def get_role_type(self, val: str = None) -> tuple[str, str]:
         return (str(Roles(val)), Roles(val).label)
 
     @property
-    def _org_onlies(self) -> list[str]:
+    def org_onlies(self) -> list[str]:
         # as needed by OrganizationInlineSerializer, which AuthedUserSerializer uses
         return [
             "id",
@@ -122,7 +118,7 @@ class TokenObtainPairCookieView(simplejwt_views.TokenObtainPairView):
         ]
 
     @property
-    def _rp_onlies(self) -> list[str]:
+    def rp_onlies(self) -> list[str]:
         # as needed by RevenueProgramInlineSerializerForAuthedUserSerializer, which AuthedUserSerializer uses
         return [
             "fiscal_sponsor_name",
@@ -136,21 +132,21 @@ class TokenObtainPairCookieView(simplejwt_views.TokenObtainPairView):
         ]
 
     @property
-    def _ra_onlies(self) -> list[str]:
-        return [f"organization__{x}" for x in self._org_onlies] + [f"revenue_programs__{x}" for x in self._rp_onlies]
+    def ra_onlies(self) -> list[str]:
+        return [f"organization__{x}" for x in self.org_onlies] + [f"revenue_programs__{x}" for x in self.rp_onlies]
 
-    def _get_all_orgs_and_rps(self) -> tuple[QuerySet, QuerySet]:
+    def get_all_orgs_and_rps(self) -> tuple[QuerySet, QuerySet]:
         return (
-            Organization.objects.only(*self._org_onlies).all(),
-            RevenueProgram.objects.select_related("payment_provider").only(*self._rp_onlies).all(),
+            Organization.objects.only(*self.org_onlies).all(),
+            RevenueProgram.objects.select_related("payment_provider").only(*self.rp_onlies).all(),
         )
 
-    def _get_user(self, user: get_user_model()) -> get_user_model():
+    def get_user(self, user: get_user_model()) -> get_user_model():
         """Return user with role assignment and revenue programs annotated."""
 
         if user.is_superuser:
-            user._organizations, user.revenue_programs = self._get_all_orgs_and_rps()
-            user.role_type = self._get_role_type(is_superuser=True)
+            user._organizations, user.revenue_programs = self.get_all_orgs_and_rps()
+            user.role_type = ("superuser", "Superuser")
             return user
 
         try:
@@ -159,8 +155,8 @@ class TokenObtainPairCookieView(simplejwt_views.TokenObtainPairView):
             role_type = None
 
         if role_type == Roles.HUB_ADMIN:
-            user._organizations, user.revenue_programs = self._get_all_orgs_and_rps()
-            user.role_type = self._get_role_type(val=role_type)
+            user._organizations, user.revenue_programs = self.get_all_orgs_and_rps()
+            user.role_type = self.get_role_type(val=role_type)
             return user
 
         if role_type not in [Roles.ORG_ADMIN, Roles.RP_ADMIN, Roles.HUB_ADMIN]:
@@ -170,12 +166,12 @@ class TokenObtainPairCookieView(simplejwt_views.TokenObtainPairView):
             return user
 
         # default case for rp_admin and org_admin
-        user.role_type = self._get_role_type(val=role_type)
+        user.role_type = self.get_role_type(val=role_type)
         ra = (
             RoleAssignment.objects.filter(user=user)
             .prefetch_related("revenue_programs", "revenue_programs__payment_provider")
             .select_related("organization")
-            .only(*self._ra_onlies)
+            .only(*self.ra_onlies)
             .first()
         )
         user._organizations = [ra.organization]
@@ -194,7 +190,7 @@ class TokenObtainPairCookieView(simplejwt_views.TokenObtainPairView):
             "csrftoken": csrf.get_token(self.request),
         }
 
-        user_serializer = AuthedUserSerializer(self._get_user(jwt_serializer.user))
+        user_serializer = AuthedUserSerializer(self.get_user(jwt_serializer.user))
         data["user"] = user_serializer.data
 
         response = Response(data, status=status.HTTP_200_OK)

@@ -62,6 +62,7 @@ class AuthedUserSerializer(serializers.Serializer):
     id = serializers.CharField()
     accepted_terms_of_service = serializers.DateTimeField()
     email_verified = serializers.BooleanField()
+    # TODO: [DEV-3913] Remove this once no longer on model
     organizations = OrganizationInlineSerializer(many=True, source="_organizations")
     revenue_programs = RevenueProgramInlineSerializerForAuthedUserSerializer(many=True)
     role_type = serializers.ChoiceField(choices=Roles.choices, default=None, allow_null=True)

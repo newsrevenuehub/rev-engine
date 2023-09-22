@@ -185,7 +185,7 @@ describe('usePortal', () => {
 
         await waitFor(() => expect(enqueueSnackbar).toBeCalledTimes(1));
         expect(enqueueSnackbar).toBeCalledWith(
-          'There’s been a problem sending your magic link. Please try again.',
+          'There’s been a problem sending your magic link. Please try again. If this issue persists, please contact revenginesupport@fundjournalism.org',
           expect.objectContaining({
             persist: true
           })

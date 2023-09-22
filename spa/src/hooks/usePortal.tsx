@@ -56,12 +56,15 @@ export default function usePortal() {
         } else if ((error as AxiosError).response?.data?.email) {
           setError((error as AxiosError).response?.data);
         } else {
-          enqueueSnackbar('There’s been a problem sending your magic link. Please try again.', {
-            persist: true,
-            content: (key: string, message: string) => (
-              <SystemNotification id={key} message={message} header="Error sending email" type="error" />
-            )
-          });
+          enqueueSnackbar(
+            'There’s been a problem sending your magic link. Please try again. If this issue persists, please contact revenginesupport@fundjournalism.org',
+            {
+              persist: true,
+              content: (key: string, message: string) => (
+                <SystemNotification id={key} message={message} header="Error sending email" type="error" />
+              )
+            }
+          );
         }
       }
     }

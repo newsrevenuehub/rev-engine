@@ -76,6 +76,34 @@ class User(AbstractBaseUser, PermissionsMixin, IndexedTimeStampedModel):
             )
             raise ValidationError("User with this Email already exists.", code="unique_together")
 
+    @classmethod
+    def get_permitted_organizations_and_revenue_programs(
+        cls, user, org_onlies: list[str] = None, rp_onlies: list[str] = None
+    ) -> (models.QuerySet, models.QuerySet):
+        from apps.organizations.models import Organization, RevenueProgram  # avoid circular import
+
+        ra_org_onlies = [f"organization__{x}" for x in org_onlies] if org_onlies else None
+        ra_rp_onlies = [f"revenue_programs__{x}" for x in rp_onlies] if rp_onlies else None
+        try:
+            ra = (
+                RoleAssignment.objects.only(*(ra_org_onlies + ra_rp_onlies)).get(user=user)
+                if ra_org_onlies or ra_rp_onlies
+                else RoleAssignment.objects.get(user=user)
+            )
+        except RoleAssignment.DoesNotExist:
+            ra = None
+
+        if user.is_superuser or (ra and ra.role_type == Roles.HUB_ADMIN):
+            orgs = Organization.objects.all() if org_onlies is None else Organization.objects.only(*org_onlies)
+            rps = RevenueProgram.objects.all() if rp_onlies is None else RevenueProgram.objects.only(*rp_onlies)
+            return orgs, rps
+        if not ra:
+            return Organization.objects.none(), RevenueProgram.objects.none()
+        return (
+            [ra.organization],
+            ra.revenue_programs.all(),
+        )
+
     def __str__(self):
         return self.email
 

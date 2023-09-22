@@ -1,4 +1,5 @@
 import logging
+from dataclasses import asdict
 from typing import Any, Dict, TypedDict
 
 from django.conf import settings
@@ -36,12 +37,43 @@ logger = logging.getLogger(f"{settings.DEFAULT_LOGGER}.{__name__}")
 
 # We subtract 3 from the max length to account for the "-XY" that can be appended to the end of the name
 # in the case of duplicate names. See not in CustomizeAccountSerializer.save() below for more info.
-CUSTOMIZE_ACCOUNT_ORG_NAME_MAX_LENGTH = ORG_NAME_MAX_LENGTH - 3
+CUSTOMIZE_ACCOUNT_ORG_NAME_MAX_LENGTH = ORG_NAME_MAX_LENGTH
 
 FISCAL_SPONSOR_NAME_REQUIRED_ERROR_MESSAGE = "Please enter the fiscal sponsor name."
 FISCAL_SPONSOR_NAME_NOT_PERMITTED_ERROR_MESSAGE = (
     "Only fiscally sponsored Revenue Programs can have a fiscal sponsor name."
 )
+
+
+class OrganizationSerializerForSpaUseUser(serializers.ModelSerializer):
+    plan = serializers.SerializerMethodField("get_plan")
+
+    class Meta:
+        model = Organization
+        fields = [
+            "id",
+            "name",
+            "slug",
+            "plan",
+            "show_connected_to_slack",
+            "show_connected_to_salesforce",
+            "show_connected_to_mailchimp",
+            "send_receipt_email_via_nre",
+        ]
+
+    def get_plan(self, obj):
+        return asdict(obj.plan)
+
+
+class UserSerializerForSpaUseUser(serializers.Serializer):
+    id = serializers.IntegerField()
+    accepted_terms_of_service = serializers.DateTimeField()
+    role_type = serializers.ListField(child=serializers.CharField())
+    email = serializers.EmailField()
+    email_verified = serializers.BooleanField()
+    flags = serializers.ListField()
+    organizations = OrganizationSerializerForSpaUseUser(many=True)
+    revenue_programs = RevenueProgramInlineSerializer(many=True)
 
 
 class UserSerializer(serializers.ModelSerializer):

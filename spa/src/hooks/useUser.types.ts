@@ -13,11 +13,15 @@ export interface Organization {
   send_receipt_email_via_nre: boolean;
 }
 
+export interface UserRevenueProgram extends Omit<RevenueProgram, 'organization'> {
+  organization: number;
+}
+
 export interface User {
   email_verified: boolean;
   id: string;
   email: string;
-  revenue_programs: RevenueProgram[];
+  revenue_programs: UserRevenueProgram[];
   /**
    * The role the user has. The first value is an internal ID, the second is human-readable.
    */

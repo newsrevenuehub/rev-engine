@@ -68,6 +68,17 @@ class OrganizationPatchSerializer(serializers.ModelSerializer):
         fields = ["name"]
 
 
+class RevenueProgramListSerializerForPageOrg(serializers.ModelSerializer):
+    class Meta:
+        model = RevenueProgram
+        fields = [
+            "id",
+            "name",
+            "slug",
+            "default_donation_page",
+        ]
+
+
 class RevenueProgramListInlineSerializer(serializers.ModelSerializer):
     """
     I am needed for Page creation. In particular, if "slug" is not provided,
@@ -98,8 +109,6 @@ class RevenueProgramInlineSerializer(serializers.ModelSerializer):
     """
     Used by the UserSerializer when users log in.
     """
-
-    organization = OrganizationInlineSerializer()
 
     class Meta:
         model = RevenueProgram

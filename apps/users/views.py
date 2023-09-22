@@ -15,6 +15,7 @@ from django.contrib.auth.views import (
 )
 from django.core import signing
 from django.core.exceptions import ValidationError as DjangoValidationError
+from django.db.models import Q
 from django.dispatch import receiver
 from django.http import HttpResponseRedirect
 from django.template.loader import render_to_string
@@ -31,6 +32,7 @@ from rest_framework.response import Response
 from rest_framework.serializers import ValidationError
 from rest_framework.viewsets import GenericViewSet
 from reversion.views import RevisionMixin
+from waffle import get_waffle_flag_model
 
 from apps.common.utils import get_original_ip_from_request
 from apps.contributions.bad_actor import BadActorAPIError, make_bad_actor_request
@@ -50,7 +52,11 @@ from apps.users.permissions import (
     UserIsAllowedToUpdate,
     UserOwnsUser,
 )
-from apps.users.serializers import CustomizeAccountSerializer, UserSerializer
+from apps.users.serializers import (
+    CustomizeAccountSerializer,
+    UserSerializer,
+    UserSerializerForSpaUseUser,
+)
 
 
 logger = logging.getLogger(__name__)
@@ -173,6 +179,15 @@ class CustomPasswordResetCompleteView(PasswordResetCompleteView):
     template_name = "orgadmin_password_reset_complete.html"
 
 
+def get_active_flags_for_user(user):
+    Flag = get_waffle_flag_model()
+    if user.is_superuser:
+        qs = Flag.objects.filter(Q(superusers=True) | Q(everyone=True) | Q(users__in=[user]))
+    else:
+        qs = Flag.objects.filter(Q(everyone=True) | Q(users__in=[user]))
+    return qs
+
+
 class UserViewset(
     mixins.CreateModelMixin,
     mixins.RetrieveModelMixin,
@@ -285,11 +300,45 @@ class UserViewset(
         if password := serializer.validated_data.get("password"):
             self.validate_password(serializer.validated_data.get("email", self.get_object().email), password)
         serializer.save()
-        # TODO: If email changed, unset email_verified and resend verification email.
+        # TODO: If email ch
+        # anged, unset email_verified and resend verification email.
 
     def list(self, request, *args, **kwargs):
         """Returns the requesting user's serialized user instance, not a list."""
-        return Response(self.get_serializer(request.user).data)
+        orgs, rps = User.get_permitted_organizations_and_revenue_programs(
+            (user := request.user),
+            org_onlies=[
+                "id",
+                "name",
+                "slug",
+                "plan_name",
+                "show_connected_to_slack",
+                "show_connected_to_salesforce",
+                "show_connected_to_mailchimp",
+                "send_receipt_email_via_nre",
+            ],
+            rp_onlies=[
+                "id",
+                "name",
+                "slug",
+                "organization",
+                "payment_provider",
+                "tax_id",
+                "fiscal_status",
+                "fiscal_sponsor_name",
+            ],
+        )
+        data = {
+            "id": user.id,
+            "accepted_terms_of_service": user.accepted_terms_of_service,
+            "role_type": user.get_role_type(),
+            "email": user.email,
+            "email_verified": user.email_verified,
+            "flags": get_active_flags_for_user(user).values("name", "id"),
+            "organizations": orgs,
+            "revenue_programs": rps,
+        }
+        return Response(UserSerializerForSpaUseUser(data).data)
 
     @action(detail=True, methods=["patch"])
     def customize_account(self, request, pk=None):

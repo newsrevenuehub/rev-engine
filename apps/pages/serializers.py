@@ -19,6 +19,7 @@ from apps.organizations.serializers import (
     PaymentProviderSerializer,
     RevenueProgramInlineSerializer,
     RevenueProgramListInlineSerializer,
+    RevenueProgramListSerializerForPageOrg,
 )
 from apps.pages.models import PAGE_NAME_MAX_LENGTH, DonationPage, Font, Style
 
@@ -431,7 +432,7 @@ class DonationPageFullDetailSerializer(serializers.ModelSerializer):
 
 
 class DonationPageListSerializer(serializers.ModelSerializer):
-    revenue_program = RevenueProgramListInlineSerializer(read_only=True)
+    revenue_program = RevenueProgramListSerializerForPageOrg()
 
     class Meta:
         model = DonationPage
@@ -442,7 +443,6 @@ class DonationPageListSerializer(serializers.ModelSerializer):
             "slug",
             "revenue_program",
             "published_date",
-            "is_live",
         ]
 
 

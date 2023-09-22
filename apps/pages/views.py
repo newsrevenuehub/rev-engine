@@ -220,6 +220,15 @@ class PageViewSet(FilterForSuperUserOrRoleAssignmentUserMixin, RevisionMixin, vi
         page.delete()
         return Response(status=status.HTTP_204_NO_CONTENT)
 
+    def list(self, request):
+        """List all pages for the current user.
+
+        If the user is a superuser, return all pages.
+        If the user is a hub admin, return all pages for the orgs and rps they are assigned to.
+        """
+        serializer = self.get_serializer(self.get_queryset().prefetch_related("revenue_program"), many=True)
+        return Response(serializer.data)
+
 
 class StyleViewSet(FilterForSuperUserOrRoleAssignmentUserMixin, RevisionMixin, viewsets.ModelViewSet):
     """Contribution Page Template styles exposed through API

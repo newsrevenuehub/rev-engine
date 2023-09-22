@@ -42,7 +42,7 @@ const StyledMuiTextField = styled(MuiTextField)`
       font-size: 16px;
       padding: 12px 16px;
       /* Needed for custom styles */
-      background-color: ${({ theme }) => theme.basePalette.greyscale.grey4}};
+      background-color: ${({ theme }) => theme.basePalette.greyscale.white}};
 
       &:focus {
         border-color: rgb(0, 191, 223);

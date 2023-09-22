@@ -35,6 +35,20 @@ describe('DonationPageHeader', () => {
     });
   });
 
+  describe('When page is undefined', () => {
+    it('displays the NRE logo', () => {
+      tree({ page: undefined });
+
+      expect(screen.getByRole('img', { name: 'News Revenue Engine' })).toBeInTheDocument();
+    });
+
+    it('is accessible', async () => {
+      const { container } = tree({ page: undefined });
+
+      expect(await axe(container)).toHaveNoViolations();
+    });
+  });
+
   describe('When a logo is set', () => {
     const page = { ...mockPage, header_link: undefined };
 

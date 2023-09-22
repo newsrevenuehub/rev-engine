@@ -1,75 +1,37 @@
-import { useMutation } from '@tanstack/react-query';
-import axios from 'ajax/axios';
-import { GET_MAGIC_LINK } from 'ajax/endpoints';
-import { AxiosError } from 'axios';
 import { useConfigureAnalytics } from 'components/analytics';
 import { TextField } from 'components/base';
-import SystemNotification from 'components/common/SystemNotification';
-import { ContributionPage } from 'hooks/useContributionPage';
-import useSubdomain from 'hooks/useSubdomain';
-import { useSnackbar } from 'notistack';
-import { useState } from 'react';
-import { useForm } from 'react-hook-form';
+import usePortal from 'hooks/usePortal';
+import { Controller, useForm } from 'react-hook-form';
 import { Button, Confirmation, Content, Form, Subtitle, Title, Wrapper } from './PortalEntry.styled';
 
 export type PortalFormValues = {
   email: string;
 };
 
-async function postMagicLink({ email, subdomain }: { email: string; subdomain: string }) {
-  const result = await axios.post(GET_MAGIC_LINK, { email, subdomain });
-  return result;
-}
-
-function PortalEntry({ page }: { page?: ContributionPage }) {
+function PortalEntry() {
   const {
-    register,
+    control,
     handleSubmit,
     formState: { errors },
     watch
-  } = useForm<PortalFormValues>();
+  } = useForm<PortalFormValues>({ defaultValues: { email: '' } });
 
-  const { enqueueSnackbar } = useSnackbar();
-  const [error, setError] = useState<{ email?: string[] }>({});
-  const subdomain = useSubdomain();
+  const { page, sendMagicLink, magicLinkError, magicLinkIsLoading, magicLinkIsSuccess } = usePortal();
 
   useConfigureAnalytics();
 
-  const {
-    mutate: getMagicLink,
-    isLoading,
-    isSuccess
-  } = useMutation(
-    ({ email }: PortalFormValues) => {
-      return postMagicLink({ email, subdomain });
-    },
-    {
-      onError: (error) => {
-        if ((error as AxiosError).response?.status === 429) {
-          setError({ email: ['Too many attempts. Try again in one minute.'] });
-        } else if ((error as AxiosError).response?.data?.email) {
-          setError((error as AxiosError).response?.data);
-        } else {
-          enqueueSnackbar('There’s been a problem sending your magic link. Please try again.', {
-            persist: true,
-            content: (key: string, message: string) => (
-              <SystemNotification id={key} message={message} header="Error sending email" type="error" />
-            )
-          });
-        }
-      }
-    }
-  );
-
   const watchEmail = watch('email', '');
-  const disabled = isLoading || !watchEmail;
+  const disabled = magicLinkIsLoading || !watchEmail;
+
+  const onSubmit = (formData: PortalFormValues) => {
+    sendMagicLink(formData);
+  };
 
   return (
     <Wrapper>
       <Content>
         <Title>Welcome to the {page?.revenue_program?.name ?? 'RevEngine'} Contributor Portal</Title>
-
-        {isSuccess ? (
+        {magicLinkIsSuccess ? (
           <Confirmation>
             <h2>Email Sent!</h2>
             <p>
@@ -87,18 +49,26 @@ function PortalEntry({ page }: { page?: ContributionPage }) {
               Thank you for supporting our community. To access your contributions, enter the email used for
               contributions below and we’ll send you an email with a magic link.
             </Subtitle>
-            <Form onSubmit={handleSubmit(getMagicLink as (data: PortalFormValues) => Promise<any>)}>
-              <TextField
-                {...register('email', {
+            <Form onSubmit={handleSubmit(onSubmit)}>
+              <Controller
+                name="email"
+                control={control}
+                rules={{
                   pattern: {
                     value: /\S+@\S+\.\S+/,
                     message: 'Please enter a valid email address'
                   }
-                })}
-                label="Email Address"
-                placeholder="support@email.com"
-                helperText={errors.email?.message || error?.email?.join('. ')}
-                error={!!errors.email || !!error?.email}
+                }}
+                render={({ field }) => (
+                  <TextField
+                    {...field}
+                    id="email"
+                    label="Email Address"
+                    placeholder="support@email.com"
+                    helperText={errors.email?.message || magicLinkError?.email?.join('. ')}
+                    error={!!errors.email || !!magicLinkError?.email}
+                  />
+                )}
               />
               <Button type="submit" disabled={disabled} color="primaryDark" $customPage={!!page}>
                 Send Magic Link

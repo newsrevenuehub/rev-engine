@@ -4,12 +4,13 @@ import { useLocation } from 'react-router';
 import { useAnalyticsContext } from './AnalyticsContext';
 
 export default function TrackPageView({
+  children,
   component: Component,
   ...rest
-}: {
-  component: ComponentType;
+}: React.PropsWithChildren<{
+  component?: ComponentType;
   [x: string]: any;
-}) {
+}>) {
   const location = useLocation();
   const { analyticsInstance } = useAnalyticsContext();
 
@@ -17,6 +18,14 @@ export default function TrackPageView({
   useEffect(() => {
     analyticsInstance?.page();
   }, [location.pathname, analyticsInstance]);
+
+  if (children) {
+    return <>{children}</>;
+  }
+
+  if (!Component) {
+    throw new Error('TrackPageView must have either children or a component prop');
+  }
 
   return <Component {...rest} />;
 }

@@ -12,7 +12,7 @@ import useConnectMailchimp from 'hooks/useConnectMailchimp';
 import { MAILCHIMP_OAUTH_SUCCESS_ROUTE, SETTINGS } from 'routes';
 import { TestQueryClientProvider } from 'test-utils';
 import MailchimpOAuthSuccess from './MailchimpOAuthSuccess';
-import { RevenueProgram } from 'hooks/useContributionPage';
+import { UserRevenueProgram } from 'hooks/useUser.types';
 
 jest.mock('elements/GlobalLoading');
 jest.mock('hooks/useConnectMailchimp');
@@ -25,7 +25,7 @@ const mockUseConnectMailchimpResult = {
   isLoading: false,
   requiresAudienceSelection: false,
   justConnectedToMailchimp: false,
-  revenueProgram: { id: 'mock-rp-id' } as unknown as RevenueProgram,
+  revenueProgram: { id: 'mock-rp-id' } as unknown as UserRevenueProgram,
   setRefetchInterval: jest.fn()
 };
 

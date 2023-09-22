@@ -6,10 +6,9 @@ import axios from 'ajax/axios';
 import { getStripeAccountLinkStatusPath } from 'ajax/endpoints';
 import useUser from 'hooks/useUser';
 import useConnectStripeAccount, { StripeAccountLinkStatusResponse } from './useConnectStripeAccount';
-import { User } from './useUser.types';
+import { User, UserRevenueProgram } from './useUser.types';
 import { useHistory } from 'react-router-dom';
 import { SIGN_IN } from 'routes';
-import { RevenueProgram } from './useContributionPage';
 
 jest.mock('hooks/useUser');
 jest.mock('react-router-dom', () => ({
@@ -43,7 +42,7 @@ const mockUser: User = {
       slug: 'mock-org-slug'
     }
   ],
-  revenue_programs: [mockRp as RevenueProgram],
+  revenue_programs: [mockRp as UserRevenueProgram],
   role_type: ['org_admin', 'Org Admin']
 } as any;
 
@@ -96,7 +95,7 @@ describe('useConnectStripeAccount hook', () => {
         refetch: jest.fn(),
         user: {
           ...mockUser,
-          revenue_programs: [{ ...mockRp, payment_provider_stripe_verified: false } as RevenueProgram]
+          revenue_programs: [{ ...mockRp, payment_provider_stripe_verified: false } as UserRevenueProgram]
         }
       });
     });
@@ -199,7 +198,7 @@ describe('useConnectStripeAccount hook', () => {
         refetch: jest.fn(),
         user: {
           ...mockUser,
-          revenue_programs: [{ ...mockRp, payment_provider_stripe_verified: true } as RevenueProgram]
+          revenue_programs: [{ ...mockRp, payment_provider_stripe_verified: true } as UserRevenueProgram]
         }
       });
     });

@@ -99,52 +99,43 @@ class TokenObtainPairCookieView(simplejwt_views.TokenObtainPairView):
 
     permission_classes = []
 
+    # These fields are used in calls to .only below to optimize queries.
+    # They are required by OrganizationInlineSerializer, which AuthedUserSerializer uses
+    # """
+    org_onlies: tuple[str] = (
+        "id",
+        "name",
+        "plan_name",
+        "send_receipt_email_via_nre",
+        "show_connected_to_mailchimp",
+        "show_connected_to_salesforce",
+        "show_connected_to_slack",
+        "slug",
+        "uuid",
+    )
+
+    # These fields are used in calls to .only below to optimize queries.
+    # They are required by RevenueProgramInlineSerializerForAuthedUserSerializer, which AuthedUserSerializer uses
+    rp_onlies: tuple[str] = (
+        "fiscal_sponsor_name",
+        "fiscal_status",
+        "id",
+        "name",
+        "organization",
+        "payment_provider__stripe_verified",
+        "slug",
+        "tax_id",
+    )
+
+    # These fields are used in calls to .only below to optimize queries.
+    # They are required by RevenueProgramInlineSerializerForAuthedUserSerializer and OrganizationInlineSerializer,
+    # which AuthedUserSerializer uses
+    ra_onlies: tuple[str] = tuple(
+        [f"organization__{x}" for x in org_onlies] + [f"revenue_programs__{x}" for x in rp_onlies]
+    )
+
     def get_role_type(self, val: str = None) -> tuple[str, str]:
         return (str(Roles(val)), Roles(val).label)
-
-    @property
-    def org_onlies(self) -> list[str]:
-        """These fields are used in calls to .only below to optimize queries.
-
-        They are required by OrganizationInlineSerializer, which AuthedUserSerializer uses
-        """
-        return [
-            "id",
-            "name",
-            "plan_name",
-            "send_receipt_email_via_nre",
-            "show_connected_to_mailchimp",
-            "show_connected_to_salesforce",
-            "show_connected_to_slack",
-            "slug",
-            "uuid",
-        ]
-
-    @property
-    def rp_onlies(self) -> list[str]:
-        """These fields are used in calls to .only below to optimize queries.
-
-        They are required by RevenueProgramInlineSerializerForAuthedUserSerializer, which AuthedUserSerializer uses
-        """
-        return [
-            "fiscal_sponsor_name",
-            "fiscal_status",
-            "id",
-            "name",
-            "organization",
-            "payment_provider__stripe_verified",
-            "slug",
-            "tax_id",
-        ]
-
-    @property
-    def ra_onlies(self) -> list[str]:
-        """These fields are used in calls to .only below to optimize queries.
-
-        They are required by RevenueProgramInlineSerializerForAuthedUserSerializer and OrganizationInlineSerializer,
-        which AuthedUserSerializer uses
-        """
-        return [f"organization__{x}" for x in self.org_onlies] + [f"revenue_programs__{x}" for x in self.rp_onlies]
 
     def get_all_orgs_and_rps(self) -> tuple[QuerySet, QuerySet]:
         """Convenience method to dry up repeated logic used for superusers and hub admins."""

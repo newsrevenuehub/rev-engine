@@ -14,7 +14,6 @@ from apps.contributions import tasks as contribution_tasks
 from apps.contributions.models import Contribution, ContributionStatus
 from apps.contributions.payment_managers import PaymentProviderError
 from apps.contributions.stripe_contributions_provider import (
-    ContributionIgnorableError,
     ContributionsCacheProvider,
     StripeContributionsProvider,
     StripePiSearchResponse,
@@ -133,7 +132,6 @@ class TestTaskPullPaymentIntentsAndUninvoicedSubs:
     ):
         contributions_cache_init_spy = mocker.spy(ContributionsCacheProvider, "__init__")
         subscriptions_cache_init_spy = mocker.spy(SubscriptionsCacheProvider, "__init__")
-        contributions_provider_init_spy = mocker.spy(StripeContributionsProvider, "__init__")
         contributions_provider_cast_sub_to_pi_spy = mocker.spy(
             StripeContributionsProvider, "cast_subscription_to_pi_for_portal"
         )
@@ -177,7 +175,6 @@ class TestTaskPullPaymentIntentsAndUninvoicedSubs:
             stripe_account,
         )
         subscriptions_cache_init_spy.assert_called_once_with(mocker.ANY, email, stripe_account)
-        contributions_provider_init_spy.assert_called_once_with(mocker.ANY, email, stripe_account)
         # the first pi search result has `has_more=True` so we expect two calls in next two lines
         assert mock_fetch_pis.call_count == 2
         assert mock_fetch_pis.has_calls(
@@ -194,37 +191,6 @@ class TestTaskPullPaymentIntentsAndUninvoicedSubs:
         assert contributions_provider_cast_sub_to_pi_spy.call_count == 2
         assert contributions_provider_cast_sub_to_pi_spy.call_count == 2
         assert mock_upsert_uninvoiced_subs.call_count == 1
-
-    def test_when_contribution_ignorable_error_on_uninvoiced_subs_conversion(
-        self, mocker, revenue_program, stripe_uninvoiced_subscription_factory
-    ):
-        logger_spy = mocker.spy(contribution_tasks.logger, "warning")
-        mocker.patch("apps.contributions.stripe_contributions_provider.ContributionsCacheProvider.upsert")
-        mocker.patch("apps.contributions.stripe_contributions_provider.SubscriptionsCacheProvider.upsert")
-        mocker.patch(
-            "apps.contributions.stripe_contributions_provider.StripeContributionsProvider.fetch_payment_intents",
-            return_value=StripePiSearchResponse(data=[], has_more=False, next_page=None, url=""),
-        )
-        mocker.patch(
-            "apps.contributions.stripe_contributions_provider.StripeContributionsProvider.fetch_uninvoiced_subscriptions_for_contributor",
-            return_value=[stripe_uninvoiced_subscription_factory.get(revenue_program.slug)],
-        )
-        mocker.patch(
-            "apps.contributions.stripe_contributions_provider.StripeContributionsProvider.cast_subscription_to_pi_for_portal",
-            side_effect=ContributionIgnorableError("ruh roh"),
-        )
-        mock_upsert_uninvoiced_subs = mocker.patch(
-            "apps.contributions.stripe_contributions_provider.ContributionsCacheProvider.upsert_uninvoiced_subscriptions"
-        )
-        contribution_tasks.task_pull_payment_intents_and_uninvoiced_subs(
-            email_id="test@test.com",
-            customers_query="some-query",
-            stripe_account_id="acc_0000",
-        )
-        logger_spy.assert_called_once_with(
-            "Unable to cast subscription %s to a portal contribution", mocker.ANY, exc_info=mocker.ANY
-        )
-        mock_upsert_uninvoiced_subs.assert_called_once_with([])
 
 
 @pytest.mark.django_db

@@ -16,12 +16,10 @@ logger = logging.getLogger(f"{settings.DEFAULT_LOGGER}.{__name__}")
 def user_post_save_handler(sender, instance, created, **kwargs) -> None:
     """We publish a message whenever user is added for the first time"""
     if not created:
-        logger.debug("user_post_save_handler: Existing user modified, will not send to Google Cloud")
+        logger.debug("Existing user modified, will not send to Google Cloud")
         return
     if not google_cloud_pub_sub_is_configured() or not settings.NEW_USER_TOPIC:
-        logger.warning(
-            "user_post_save_handler: Unable to proceed with publishing message, please verify GoogleCloudPubSub configuration"
-        )
+        logger.warning("Unable to proceed with publishing message, please verify GoogleCloudPubSub configuration")
         return
-    logger.info("user_post_save_handler: Will publish email to Google Cloud PubSub for user: %s", instance.email)
+    logger.info("Will publish email to Google Cloud PubSub for user: %s", instance.email)
     Publisher.get_instance().publish(settings.NEW_USER_TOPIC, Message(data=instance.email))

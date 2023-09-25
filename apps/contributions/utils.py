@@ -65,7 +65,7 @@ def export_contributions_to_csv(contributions):
         if not contributor:
             logger.warning(
                 (
-                    "`export_contributions_to_csv` encountered a contribution (ID %s) that does not have an associated contributor. "
+                    "Encountered a contribution (ID %s) that does not have an associated contributor. "
                     "This contribution will be included in the export, but will have a missing value for the %s field."
                 ),
                 contribution.id,

@@ -83,7 +83,7 @@ def stripe_oauth(request):
     revenue_program = RevenueProgram.objects.get(id=revenue_program_id)
 
     try:
-        logger.info("[stripe_oauth] Attempting to perform oauth with Stripe for revenue program %s", revenue_program_id)
+        logger.info("Attempting to perform oauth with Stripe for revenue program %s", revenue_program_id)
         oauth_response = stripe.OAuth.token(
             grant_type="authorization_code",
             code=code,
@@ -91,7 +91,7 @@ def stripe_oauth(request):
         payment_provider = revenue_program.payment_provider
         if not payment_provider:
             logger.info(
-                "[stripe_oauth] Payment provider not yet created for revenue program %s, proceeding with creation...",
+                "Payment provider not yet created for revenue program %s, proceeding with creation...",
                 revenue_program_id,
             )
             payment_provider = PaymentProvider.objects.create(
@@ -99,7 +99,7 @@ def stripe_oauth(request):
                 stripe_oauth_refresh_token=oauth_response["refresh_token"],
             )
             logger.info(
-                "[stripe_oauth] Payment provider for revenue program %s created: %s",
+                "Payment provider for revenue program %s created: %s",
                 revenue_program_id,
                 payment_provider.id,
             )
@@ -107,7 +107,7 @@ def stripe_oauth(request):
             revenue_program.save()
         else:
             logger.info(
-                "[stripe_oauth] Updating existing payment provider %s for revenue program %s",
+                "Updating existing payment provider %s for revenue program %s",
                 payment_provider.id,
                 revenue_program_id,
             )
@@ -115,13 +115,13 @@ def stripe_oauth(request):
             payment_provider.stripe_oauth_refresh_token = oauth_response["refresh_token"]
             payment_provider.save()
         logger.info(
-            "[stripe_oauth] Starting Apple Pay domain verification background task for revenue program slug: %s",
+            "Starting Apple Pay domain verification background task for revenue program slug: %s",
             revenue_program.slug,
         )
         task_verify_apple_domain.delay(revenue_program_slug=revenue_program.slug)
-        logger.info("[stripe_oauth] Started Apple Pay domain verification background task for revenue program slug: %s")
+        logger.info("Started Apple Pay domain verification background task for revenue program slug: %s")
     except stripe.oauth_error.InvalidGrantError:
-        logger.error("[stripe_oauth] stripe.OAuth.token failed due to an invalid code")
+        logger.error("stripe.OAuth.token failed due to an invalid code")
         return Response({"invalid_code": "stripe_oauth received an invalid code"}, status=status.HTTP_400_BAD_REQUEST)
 
     return Response({"detail": "success"}, status=status.HTTP_200_OK)
@@ -187,7 +187,7 @@ class PaymentViewset(mixins.CreateModelMixin, mixins.DestroyModelMixin, viewsets
         if contribution.status not in (ContributionStatus.PROCESSING, ContributionStatus.FLAGGED):
             logger.warning(
                 (
-                    "`PaymentViewset.destroy` was called on a contribution with status other than %s or %s. "
+                    "Called on a contribution with status other than %s or %s. "
                     "contribution.id: %s, contribution.status: %s,  contributor.id: %s, donation_page.id: %s"
                 ),
                 ContributionStatus.PROCESSING.label,
@@ -201,14 +201,10 @@ class PaymentViewset(mixins.CreateModelMixin, mixins.DestroyModelMixin, viewsets
         try:
             contribution.cancel()
         except ContributionIntervalError:
-            logger.exception(
-                "`PaymentViewset.destroy` called for contribution with unexpected interval %s", contribution.interval
-            )
+            logger.exception("Called for contribution with unexpected interval %s", contribution.interval)
             return Response({"detail": "Something went wrong"}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
         except ContributionStatusError:
-            logger.exception(
-                "`PaymentViewset.destroy` called for contribution with unexpected status %s", contribution.status
-            )
+            logger.exception("Called for contribution with unexpected status %s", contribution.status)
             return Response({"detail": "Something went wrong"}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
         except StripeError:
             logger.exception(
@@ -229,7 +225,7 @@ def payment_success(request, uuid=None):
     and use this view to trigger a thank you email to the contributor if the org has configured the contribution page
     accordingly.
     """
-    logger.info("payment_success called with request data: %s, uuid %s", request.data, uuid)
+    logger.info("Called with request data: %s, uuid %s", request.data, uuid)
     try:
         contribution = Contribution.objects.get(uuid=uuid)
     except Contribution.DoesNotExist:
@@ -336,7 +332,7 @@ class ContributionsViewSet(viewsets.ReadOnlyModelViewSet):
         as contributors will be able to access only Contributor Portal via magic link.
         """
         logger.info(
-            "[ContributionViewSet.email_contributions] enqueueing email_contribution_csv_export_to_user task for request: %s",
+            "Enqueueing email_contribution_csv_export_to_user task for request: %s",
             request,
         )
         ra = request.user.get_role_assignment()

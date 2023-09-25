@@ -92,15 +92,13 @@ class SendMagicLinkEmailData(TypedDict):
 
 # would like to have type hint for contribution but that would cause a circular import because need to import class to this file
 def make_send_thank_you_email_data(contribution) -> SendContributionEmailData:
-    logger.info("make_send_than_you_email_data: called with contribution id %s", contribution.id)
+    logger.info("Called with contribution id %s", contribution.id)
 
     # vs circular import
     from apps.contributions.models import Contributor
 
     if not contribution.provider_customer_id:
-        logger.error(
-            "make_send_thank_you_email_data: No Stripe customer id for contribution with id %s", contribution.id
-        )
+        logger.error("No Stripe customer id for contribution with id %s", contribution.id)
         raise EmailTaskException("Cannot get required data from Stripe")
     try:
         customer = stripe.Customer.retrieve(
@@ -109,7 +107,7 @@ def make_send_thank_you_email_data(contribution) -> SendContributionEmailData:
         )
     except StripeError:
         logger.exception(
-            "make_send_thank_you_email_data: Something went wrong retrieving Stripe customer for contribution with id %s",
+            "Something went wrong retrieving Stripe customer for contribution with id %s",
             contribution.id,
         )
         raise EmailTaskException("Cannot get required data from Stripe")
@@ -137,7 +135,7 @@ def make_send_thank_you_email_data(contribution) -> SendContributionEmailData:
 
 def make_send_test_contribution_email_data(user, revenue_program) -> SendContributionEmailData:
     logger.info(
-        "make_send_test_contribution_email_data: called with contribution user %s and rp %s",
+        "Called with contribution user %s and rp %s",
         user.id,
         revenue_program.id,
     )
@@ -166,7 +164,7 @@ def make_send_test_contribution_email_data(user, revenue_program) -> SendContrib
 
 def make_send_test_magic_link_email_data(user, revenue_program) -> SendMagicLinkEmailData:
     logger.info(
-        "make_send_test_magic_link_email_data: called with contribution user %s and rp %s",
+        "Called with contribution user %s and rp %s",
         user.id,
         revenue_program.id,
     )
@@ -204,7 +202,7 @@ def get_test_magic_link(user, revenue_program) -> str:
 )
 def send_thank_you_email(data: SendContributionEmailData) -> None:
     """Retrieve Stripe customer and send thank you email for a contribution"""
-    logger.info("send_thank_you_email: Attempting to send thank you email with the following template data %s", data)
+    logger.info("Attempting to send thank you email with the following template data %s", data)
     with configure_scope() as scope:
         scope.user = {"email": (to := data["contributor_email"])}
         send_mail(

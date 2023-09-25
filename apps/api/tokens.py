@@ -27,7 +27,7 @@ class ContributorRefreshToken(RefreshToken):
         Returns a refresh token that is used to generate an access token, following the pattern set by
         simplejwt, but in this case we're using a contributor instance, and setting the CONTRIBUTOR_ID_CLAIM
         """
-        logger.info("[ContributorRefreshToken][for_contributor] called for contributor_uuid (%s)", contributor_uuid)
+        logger.info("Called for contributor_uuid (%s)", contributor_uuid)
         token = cls()
         token[settings.CONTRIBUTOR_ID_CLAIM] = str(contributor_uuid)
 

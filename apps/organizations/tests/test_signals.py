@@ -137,9 +137,7 @@ class TestHandleSetDefaultDonationPage:
         rp_with_org_on_core.refresh_from_db()
         assert rp_with_org_on_core.default_donation_page == page
         mock_create_revision.assert_called_once()
-        mock_set_comment.assert_called_once_with(
-            "handle_set_default_donation_page_on_select_core_plan set default_donation_page"
-        )
+        mock_set_comment.assert_called_once_with("Set default_donation_page")
 
 
 @pytest.mark.django_db

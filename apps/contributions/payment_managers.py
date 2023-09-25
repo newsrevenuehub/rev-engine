@@ -91,10 +91,7 @@ class StripePaymentManager(PaymentManager):
             )
         except (stripe.error.StripeError, stripe.error.InvalidRequestError):
             logger.exception(
-                (
-                    "`StripePaymentManager.attach_payment_method_to_customer` resulted in a StripeError for stripe_customer_id "
-                    "%s org_stripe_account %s payment_method_id %s",
-                ),
+                ("Resulted in a StripeError for stripe_customer_id " "%s org_stripe_account %s payment_method_id %s",),
                 stripe_customer_id,
                 org_stripe_account,
                 payment_method_id,
@@ -112,7 +109,7 @@ class StripePaymentManager(PaymentManager):
         update_data = {}
         if not (pi := self.contribution.stripe_payment_intent):
             logger.error(
-                "`StripePaymentManager.complete_one_time_payment` cannot retrieve a payment intent for contribution with ID %s",
+                "Cannot retrieve a payment intent for contribution with ID %s",
                 self.contribution.id,
             )
             raise PaymentProviderError("Cannot retrieve payment data")
@@ -132,7 +129,7 @@ class StripePaymentManager(PaymentManager):
                 update_data["status"] = ContributionStatus.REJECTED
             except stripe.error.StripeError:
                 logger.exception(
-                    "`StripePaymentManager.complete_one_time_payment` canceling Stripe  PI %s for contribution %s",
+                    "Canceling Stripe  PI %s for contribution %s",
                     self.contribution.provider_payment_id,
                     self.contribution.pk,
                 )
@@ -147,7 +144,7 @@ class StripePaymentManager(PaymentManager):
                 update_data["status"] = ContributionStatus.PAID
             except stripe.error.StripeError:
                 logger.exception(
-                    "`StripePaymentManager.complete_one_time_payment` error capturing payment intent for id (%s}",
+                    "Error capturing payment intent for id (%s}",
                     self.contribution.pk,
                 )
                 raise PaymentProviderError("Something went wrong with Stripe")
@@ -169,13 +166,13 @@ class StripePaymentManager(PaymentManager):
         if reject:
             if not pm:
                 logger.error(
-                    "`StripePaymentManager.complete_recurring_payment` cannot locate a payment method for contribution with ID %s",
+                    "Cannot locate a payment method for contribution with ID %s",
                     self.contribution.id,
                 )
                 raise PaymentProviderError("Cannot retrieve payment data")
             try:
                 logger.info(
-                    "StripePaymentManager.complete_recurring_payment detaching Stripe PM %s for contribution %s",
+                    "Detaching Stripe PM %s for contribution %s",
                     pm.id,
                     self.contribution.id,
                 )
@@ -183,7 +180,7 @@ class StripePaymentManager(PaymentManager):
                 update_data["status"] = ContributionStatus.REJECTED
             except stripe.error.StripeError:
                 logger.exception(
-                    "`StripePaymentManager.complete_recurring_payment` error detaching payment method for contribution with ID %s",
+                    "Error detaching payment method for contribution with ID %s",
                     self.contribution.id,
                 )
                 raise PaymentProviderError("Cannot retrieve payment data")
@@ -191,7 +188,7 @@ class StripePaymentManager(PaymentManager):
         else:
             if not si:
                 logger.error(
-                    "`StripePaymentManager.complete_recurring_payment` error retrieving setup intent for contribution with ID %s and setup intent ID %s",
+                    "Error retrieving setup intent for contribution with ID %s and setup intent ID %s",
                     self.contribution.id,
                     self.contribution.provider_setup_intent_id,
                 )

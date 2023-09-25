@@ -71,7 +71,7 @@ class TestGoogleCloudSecretProvider:
         MyObject = make_my_object(GoogleCloudSecretProvider)
         assert MyObject(**{MODEL_ATTR: "something"}).val is None
         assert logger_spy.call_args == mocker.call(
-            "GoogleCloudSecretProvider.get_secret did not find secret version for secret %s with path %s",
+            "Did not find secret version for secret %s with path %s",
             secret_name,
             secret_version_path,
         )
@@ -83,7 +83,7 @@ class TestGoogleCloudSecretProvider:
         MyObject = make_my_object(GoogleCloudSecretProvider)
         assert MyObject(**{MODEL_ATTR: "something"}).val is None
         mock_get_client.return_value.access_secret_version.assert_not_called()
-        assert logger_spy.call_args == mocker.call("GoogleCloudSecretProvider not enabled")
+        assert logger_spy.call_args == mocker.call("Not enabled")
 
     def test_get_when_no_client(self, settings, mocker):
         logger_spy = mocker.spy(logger, "warning")
@@ -94,7 +94,7 @@ class TestGoogleCloudSecretProvider:
         assert MyObject(**{MODEL_ATTR: "something"}).val is None
         mock_get_client.assert_called_once()
         assert logger_spy.call_args == mocker.call(
-            "GoogleCloudSecretProvider cannot get secret %s because client is not initialized", secret_name
+            "Cannot get secret %s because client is not initialized", secret_name
         )
 
     def test_get_when_permission_denied(self, settings, mocker):
@@ -114,7 +114,7 @@ class TestGoogleCloudSecretProvider:
         with pytest.raises(SecretProviderException):
             MyObject(**{MODEL_ATTR: "something"}).val
         logger_spy.assert_called_once_with(
-            "GoogleCloudSecretProvider.get_secret cannot access secret version for secret %s with path %s because permission denied",
+            "Cannot access secret version for secret %s with path %s because permission denied",
             secret_name,
             secret_version_path,
         )
@@ -132,9 +132,7 @@ class TestGoogleCloudSecretProvider:
         mock_client.return_value.get_secret.assert_not_called()
         mock_client.return_value.create_secret.assert_not_called()
         mock_client.return_value.add_secret_version.assert_not_called()
-        logger_spy.assert_called_once_with(
-            "GoogleCloudSecretProvider cannot set secret %s because not enabled", secret_name
-        )
+        logger_spy.assert_called_once_with("Cannot set secret %s because not enabled", secret_name)
 
     def test_set_when_no_client(self, settings, mocker):
         logger_spy = mocker.spy(logger, "warning")
@@ -146,9 +144,7 @@ class TestGoogleCloudSecretProvider:
         my_obj = MyObject(**{MODEL_ATTR: "something"})
         my_obj.val = "some-value"
         mock_client.assert_called_once()
-        logger_spy.assert_called_once_with(
-            "GoogleCloudSecretProvider cannot get secret %s because client is not initialized", secret_name
-        )
+        logger_spy.assert_called_once_with("Cannot get secret %s because client is not initialized", secret_name)
 
     def test_set_when_no_previous_secret(self, mocker, settings):
         settings.ENABLE_GOOGLE_CLOUD_SECRET_MANAGER = True
@@ -234,7 +230,7 @@ class TestGoogleCloudSecretProvider:
         del instance.val
         mock_client.return_value.delete_secret.assert_not_called()
         logger_spy.assert_called_once_with(
-            "GoogleCloudSecretProvider cannot delete secret %s because not enabled",
+            "Cannot delete secret %s because not enabled",
             secret_name,
         )
 
@@ -247,9 +243,7 @@ class TestGoogleCloudSecretProvider:
         MyObject = make_my_object(GoogleCloudSecretProvider)
         instance = MyObject(**{MODEL_ATTR: "something"})
         del instance.val
-        logger_spy.assert_called_once_with(
-            "GoogleCloudSecretProvider cannot delete secret %s because client is not initialized", secret_name
-        )
+        logger_spy.assert_called_once_with("Cannot delete secret %s because client is not initialized", secret_name)
 
     def test_delete_when_enabled(self, mocker, settings):
         settings.ENABLE_GOOGLE_CLOUD_SECRET_MANAGER = True
@@ -274,9 +268,7 @@ class TestGoogleCloudSecretProvider:
         with pytest.raises(SecretProviderException):
             del instance.val
         mock_client.return_value.delete_secret.assert_called_once()
-        logger_spy.assert_called_once_with(
-            "GoogleCloudSecretProvider cannot delete secret %s because permission denied", secret_name
-        )
+        logger_spy.assert_called_once_with("Cannot delete secret %s because permission denied", secret_name)
 
     def test_delete_when_not_found(self, mocker, settings):
         logger_spy = mocker.spy(logger, "info")
@@ -292,7 +284,7 @@ class TestGoogleCloudSecretProvider:
         del instance.val
         mock_client.return_value.delete_secret.assert_called_once()
         assert logger_spy.call_args == mocker.call(
-            "GoogleCloudSecretProvider couldn't delete secret %s at path %s because not found",
+            "Couldn't delete secret %s at path %s because not found",
             secret_name,
             secret_path,
         )

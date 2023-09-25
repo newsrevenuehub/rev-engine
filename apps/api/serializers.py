@@ -50,14 +50,14 @@ class ContributorObtainTokenSerializer(serializers.Serializer):
         Use custom ContributorRefreshToken to obtain a contributors-only JWT.
         """
         logger.info(
-            "[ContributorObtainTokenSerializer][get_token] getting token for contributor %s",
+            "Getting token for contributor %s",
             contributor,
         )
         return ContributorRefreshToken.for_contributor(contributor.uuid)
 
     def update_short_lived_token(self, contributor):
         logger.info(
-            "[ContributorObtainTokenSerializer][update_short_lived_token] updating short lived token for contributor %s",
+            "Updating short lived token for contributor %s",
             contributor,
         )
         self.validated_data["access"] = str(self.get_token(contributor).short_lived_access_token)

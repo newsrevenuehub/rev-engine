@@ -50,7 +50,7 @@ class ValidateFkReferenceOwnership:
             raise serializers.ValidationError(f"{self.__class__} initialized with function with unexpected signature")
         if not getattr(self.model.objects, "filtered_by_role_assignment", None):
             logger.warning(
-                "`ValidateFKReferenceOwnership` initialized with a model (%s) that does not implement `filtered_by_role_assignment`, which is required.",
+                "Initialized with a model (%s) that does not implement `filtered_by_role_assignment`, which is required.",
                 self.model.__name__,
             )
             raise serializers.ValidationError(
@@ -61,16 +61,14 @@ class ValidateFkReferenceOwnership:
         """ """
         user = serializer.context.get("request").user
         if not user:
-            logger.error("`ValidateFkReferenceOwnership` expected user in request context but there wasn't one")
+            logger.error("Expected user in request context but there wasn't one")
             raise serializers.ValidationError(MISSING_USER_IN_CONTEXT_MESSAGE.format(serializer.model.__name__))
 
         ra = getattr(user, "roleassignment", None)
         if self.has_default_access(user, ra):
             return
         elif not ra:
-            logger.error(
-                "`ValidateFkReferenceOwnership` expected role assignmment in request context but there wasn't one"
-            )
+            logger.error("Expected role assignmment in request context but there wasn't one")
             raise serializers.ValidationError(MISSING_USER_IN_CONTEXT_MESSAGE.format(serializer.model.__name__))
 
         instance = value.get(self.fk_attribute, None)

@@ -97,9 +97,7 @@ class TestMakeSendThankYouEmailData:
         contribution = ContributionFactory(one_time=True, provider_customer_id=None)
         with pytest.raises(EmailTaskException):
             make_send_thank_you_email_data(contribution)
-        logger_spy.assert_called_once_with(
-            "make_send_thank_you_email_data: No Stripe customer id for contribution with id %s", contribution.id
-        )
+        logger_spy.assert_called_once_with("No Stripe customer id for contribution with id %s", contribution.id)
 
     def test_when_error_retrieving_stripe_customer(self, mocker):
         mocker.patch("stripe.Customer.retrieve", side_effect=StripeError("error"))

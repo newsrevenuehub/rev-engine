@@ -21,7 +21,7 @@ class StripeWebhookProcessor:
 
     def get_contribution_from_event(self):
         # TODO: [DEV-3350] change to debug and/or just log the event ID
-        logger.info("StripeWebhookProcessor.get_contribution_from_event called with event data: %s", self.event)
+        logger.info("Called with event data: %s", self.event)
         if (event_type := self.obj_data["object"]) == "subscription":
             # TODO: [DEV-2467] this will generate lots of spurious errors for events from Stripe that we don't care about. See ticket.
             return Contribution.objects.get(provider_subscription_id=self.obj_data["id"])
@@ -36,23 +36,23 @@ class StripeWebhookProcessor:
                     raise
 
     def process(self):
-        logger.info('StripeWebhookProcessor.process processing Stripe Event of type "%s"', self.event.type)
+        logger.info('Processing Stripe Event of type "%s"', self.event.type)
         logger.debug(
-            "StripeWebhookProcessor event received in live mode: %s; stripe live mode on: %s",
+            "Event received in live mode: %s; stripe live mode on: %s",
             self.event.livemode,
             settings.STRIPE_LIVE_MODE,
         )
         object_type = self.obj_data["object"]
         if settings.STRIPE_LIVE_MODE and not self.event.livemode:
             logger.debug(
-                "StripeWebhookProcessor.process test mode event %s for account %s received while in live mode; ignoring",
+                "Test mode event %s for account %s received while in live mode; ignoring",
                 self.event.id,
                 self.event.account,
             )
             return
         if not settings.STRIPE_LIVE_MODE and self.event.livemode:
             logger.debug(
-                "StripeWebhookProcessor.process live mode event %s for account %s received while in test mode; ignoring",
+                "Live mode event %s for account %s received while in test mode; ignoring",
                 self.event.id,
                 self.event.account,
             )
@@ -71,7 +71,7 @@ class StripeWebhookProcessor:
 
     # PaymentIntent processing
     def process_payment_intent(self):
-        logger.info("StripeWebhookProcessor.process_payment_intent called")
+        logger.info("Called")
         if self.event.type == "payment_intent.canceled":
             self.handle_payment_intent_canceled()
 
@@ -87,7 +87,7 @@ class StripeWebhookProcessor:
         if self._cancellation_was_rejection():
             contribution.status = ContributionStatus.REJECTED
             contribution.payment_provider_data = self.event
-            logger.info("StripeWebhookProcessor.handle_payment_intent_canceled Contribution %s rejected.", contribution)
+            logger.info("Contribution %s rejected.", contribution)
         else:
             contribution.status = ContributionStatus.CANCELED
             contribution.payment_provider_data = self.event
@@ -145,15 +145,13 @@ class StripeWebhookProcessor:
 
     # Subscription Processing
     def process_subscription(self):
-        logger.info("StripeWebhookProcessor.process_subscription called")
+        logger.info("Called")
         if self.event.type == "customer.subscription.updated":
             self.handle_subscription_updated()
         elif self.event.type == "customer.subscription.deleted":
             self.handle_subscription_canceled()
         else:
-            logger.warning(
-                "`StripeWebhookProcessor.process_subscription` called with unexpected event type: %s", self.event.type
-            )
+            logger.warning("Called with unexpected event type: %s", self.event.type)
 
     def handle_subscription_updated(self):
         """
@@ -212,15 +210,13 @@ class StripeWebhookProcessor:
         """
         logger.info("StripeWebhookProcessor.process_invoice called")
         if self.event.type != "invoice.upcoming":
-            logger.info("StripeWebhookProcessor.process_invoice called with event %s which is a noop", self.event.type)
+            logger.info("Called with event %s which is a noop", self.event.type)
             return
         contribution = Contribution.objects.get(provider_subscription_id=self.obj_data["subscription"])
         if contribution.interval == ContributionInterval.YEARLY:
-            logger.info(
-                "StripeWebhookProcessor.process_invoice called for contribution %s which is yearly. Triggering a reminder email."
-            )
+            logger.info("Called for contribution %s which is yearly. Triggering a reminder email.")
             contribution.send_recurring_contribution_email_reminder(
                 make_aware(datetime.datetime.fromtimestamp(self.obj_data["next_payment_attempt"])).date()
             )
         else:
-            logger.info("StripeWebhookProcessor.process_invoice called for contribution %s which is not yearly. Noop.")
+            logger.info("Called for contribution %s which is not yearly. Noop.")

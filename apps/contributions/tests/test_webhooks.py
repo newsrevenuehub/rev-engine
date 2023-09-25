@@ -305,7 +305,7 @@ def test_customer_subscription_untracked_event(client, customer_subscription_upd
     response = client.post(reverse("stripe-webhooks-contributions"), data=customer_subscription_updated, **header)
     assert response.status_code == status.HTTP_200_OK
     mock_log_warning.assert_called_once_with(
-        "`StripeWebhookProcessor.process_subscription` called with unexpected event type: %s",
+        "Called with unexpected event type: %s",
         customer_subscription_updated["type"],
     )
 

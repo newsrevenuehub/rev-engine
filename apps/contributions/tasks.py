@@ -136,10 +136,7 @@ def email_contribution_csv_export_to_user(
     contributions = Contribution.objects.filter(id__in=contribution_ids)
     if diff := set(contribution_ids).difference(set(contributions.values_list("id", flat=True))):
         logger.warning(
-            (
-                "`email_contribution_csv_export_to_user` was unable to locate %s of %s requested contributions. The following "
-                "IDs could not be found: %s"
-            ),
+            ("Unable to locate %s of %s requested contributions. The following " "IDs could not be found: %s"),
             len(diff),
             len(contribution_ids),
             ", ".join(str(x) for x in diff),
@@ -170,12 +167,10 @@ def task_verify_apple_domain(self, revenue_program_slug: str):
     try:
         revenue_program.stripe_create_apple_pay_domain()
         logger.info(
-            "[task_verify_apple_domain] Apple Pay domain verified for revenue program %s with slug %s",
+            "Apple Pay domain verified for revenue program %s with slug %s",
             revenue_program,
             revenue_program_slug,
         )
     except stripe.error.StripeError as ex:
-        logger.exception(
-            "[task_verify_apple_domain] task failed for slug %s due to exception: %s", revenue_program_slug, ex.error
-        )
+        logger.exception("Task failed for slug %s due to exception: %s", revenue_program_slug, ex.error)
         raise ex

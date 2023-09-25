@@ -16,7 +16,7 @@ logger = logging.getLogger(f"{settings.DEFAULT_LOGGER}.{__name__}")
 
 @receiver(post_save, sender=RevenueProgram)
 def handle_rp_mailchimp_entity_setup(sender, instance: RevenueProgram, created: bool, **kwargs) -> None:
-    logger.debug("handle_mailchimp_entity_setup called on rp %s", instance.id)
+    logger.debug("C on rp %s", instance.id)
     if any(
         [
             # if it's an update and mailchimp_list_id is being set
@@ -45,7 +45,7 @@ def handle_rp_mailchimp_entity_setup(sender, instance: RevenueProgram, created: 
 @receiver(post_delete, sender=RevenueProgram)
 def handle_delete_rp_mailchimp_access_token_secret(sender, instance, *args, **kwargs) -> None:
     """When an RP is deleted, we delete the mailchimp_access_token_secret, if there is one"""
-    logger.debug("hand handle_delete_rp_mailchimp_access_token_secret on rp %s", instance.id)
+    logger.debug("Called on rp %s", instance.id)
     if instance.mailchimp_access_token:
         logger.info(
             "Deleting mailchimp_access_token_secret for rp %s",
@@ -90,7 +90,7 @@ def handle_set_default_donation_page_on_select_core_plan(
     - First published page (by creation date) if there are multiple pages
 
     """
-    logger.debug("handle_set_default_donation_page_on_select_core_plan called on org %s", instance.id)
+    logger.debug("Called on org %s", instance.id)
     if instance.plan != CorePlan:
         logger.debug("Org %s is not on CorePlan, skipping", instance.id)
         return
@@ -123,6 +123,6 @@ def handle_set_default_donation_page_on_select_core_plan(
         rp.default_donation_page = page
         with reversion.create_revision():
             rp.save(update_fields={"default_donation_page", "modified"})
-            reversion.set_comment("handle_set_default_donation_page_on_select_core_plan set default_donation_page")
+            reversion.set_comment("Set default_donation_page")
     else:
         logger.warning("No donation pages found for RP %s, can't set default donation page", rp.id)

@@ -54,7 +54,7 @@ class TestExchangeMailchimpOauthCodeForAccessToken:
             exchange_mc_oauth_code_for_mc_access_token("some_oauth_code")
         logger_spy.assert_called_once_with(
             (
-                "`exchange_mc_oauth_code_for_mc_access_token` got an unexpected status code when trying to get an access token. "
+                "Got an unexpected status code when trying to get an access token. "
                 "The response status code is %s, and the response contained: %s"
             ),
             code,
@@ -68,9 +68,7 @@ class TestExchangeMailchimpOauthCodeForAccessToken:
         logger_spy = mocker.spy(logger, "error")
         with pytest.raises(MailchimpAuthflowUnretryableError):
             exchange_mc_oauth_code_for_mc_access_token("some_oauth_code")
-        logger_spy.assert_called_once_with(
-            "`exchange_mc_oauth_code_for_mc_access_token` got a response body missing an `access_token` parameter from Mailchimp"
-        )
+        logger_spy.assert_called_once_with("Got a response body missing an `access_token` parameter from Mailchimp")
 
 
 class TestGetMailchimpServerPrefix:
@@ -87,7 +85,7 @@ class TestGetMailchimpServerPrefix:
         with pytest.raises(MailchimpAuthflowRetryableError):
             get_mailchimp_server_prefix("some-access-token")
         logger_spy.assert_called_once_with(
-            "get_mailchimp_server_prefix called but got a non-200 status code: %s",
+            "Called but got a non-200 status code: %s",
             code,
         )
 
@@ -99,7 +97,7 @@ class TestGetMailchimpServerPrefix:
         with pytest.raises(MailchimpAuthflowUnretryableError):
             get_mailchimp_server_prefix("some-access-token")
         logger_spy.assert_called_once_with(
-            "`get_mailchimp_server_prefix` got a response body missing a `dc` parameter from Mailchimp when trying to get a server prefix"
+            "Got a response body missing a `dc` parameter from Mailchimp when trying to get a server prefix"
         )
 
 
@@ -112,7 +110,7 @@ class TestExchangeMailchimpOauthTokenForServerPrefixAndAccessToken:
         revenue_program.delete()
         exchange_mailchimp_oauth_code_for_server_prefix_and_access_token(rp_id, "some-oauth-code")
         logger_spy.assert_called_once_with(
-            "exchange_mailchimp_oauth_code_for_server_prefix_and_access_token cannot find revenue program with ID %s",
+            "Cannot find revenue program with ID %s",
             rp_id,
         )
         save_spy.assert_not_called()
@@ -125,9 +123,7 @@ class TestExchangeMailchimpOauthTokenForServerPrefixAndAccessToken:
         exchange_mailchimp_oauth_code_for_server_prefix_and_access_token(rp.id, "some-oauth-code")
         save_spy.assert_not_called()
         assert logger_spy.call_count == 2
-        assert logger_spy.call_args_list[1][0][0] == (
-            "exchange_mailchimp_oauth_code_for_server_prefix_and_access_token called but retrieved RP already MC values set"
-        )
+        assert logger_spy.call_args_list[1][0][0] == ("Called but retrieved RP already MC values set")
 
     @pytest.mark.django_db(transaction=True)
     def test_happy_path_when_not_have_either_mc_property(self, mocker, settings):
@@ -213,8 +209,7 @@ class TestExchangeMailchimpOauthTokenForServerPrefixAndAccessToken:
         exchange_mailchimp_oauth_code_for_server_prefix_and_access_token(rp.id, "some-oauth-code")
         save_spy.assert_not_called()
         logger_spy.assert_called_once_with(
-            "`exchange_mailchimp_oauth_code_for_server_prefix_and_access_token` encountered an unrecoverable error "
-            "procesesing revenue program with ID %s",
+            "Encountered an unrecoverable error " "procesesing revenue program with ID %s",
             rp.id,
         )
         rp.refresh_from_db()
@@ -232,8 +227,7 @@ class TestExchangeMailchimpOauthTokenForServerPrefixAndAccessToken:
         exchange_mailchimp_oauth_code_for_server_prefix_and_access_token(rp.id, "some-oauth-code")
         save_spy.assert_not_called()
         logger_spy.assert_called_once_with(
-            "`exchange_mailchimp_oauth_code_for_server_prefix_and_access_token` encountered an unrecoverable error "
-            "procesesing revenue program with ID %s",
+            "Encountered an unrecoverable error " "procesesing revenue program with ID %s",
             rp.id,
         )
         rp.refresh_from_db()

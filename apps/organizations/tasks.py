@@ -41,7 +41,7 @@ def setup_mailchimp_entities_for_rp_mailing_list(rp_id: str) -> None:
 def exchange_mc_oauth_code_for_mc_access_token(oauth_code: str) -> str:
     if missing := [x for x in ["MAILCHIMP_CLIENT_ID", "MAILCHIMP_CLIENT_SECRET"] if not getattr(settings, x, None)]:
         logger.error(
-            "`exchange_mc_oauth_code_for_mc_access_token` called but app is missing required config vars: %s",
+            "Called but app is missing required config vars: %s",
             ", ".join(missing),
         )
         raise MailchimpAuthflowUnretryableError(
@@ -65,7 +65,7 @@ def exchange_mc_oauth_code_for_mc_access_token(oauth_code: str) -> str:
     if response.status_code != status.HTTP_200_OK:
         logger.error(
             (
-                "`exchange_mc_oauth_code_for_mc_access_token` got an unexpected status code when trying to get an access token. "
+                "Got an unexpected status code when trying to get an access token. "
                 "The response status code is %s, and the response contained: %s"
             ),
             response.status_code,
@@ -75,9 +75,7 @@ def exchange_mc_oauth_code_for_mc_access_token(oauth_code: str) -> str:
             f"`exchange_mc_oauth_code_for_mc_access_token` got an unexpected response status code of {response.status_code}"
         )
     if not (token := response.json().get("access_token", None)):
-        logger.error(
-            "`exchange_mc_oauth_code_for_mc_access_token` got a response body missing an `access_token` parameter from Mailchimp"
-        )
+        logger.error("Got a response body missing an `access_token` parameter from Mailchimp")
         raise MailchimpAuthflowUnretryableError(
             "`exchange_mc_oauth_code_for_mc_access_token` got a response body missing a value for `access_token`"
         )
@@ -88,21 +86,19 @@ def get_mailchimp_server_prefix(access_token: str) -> str:
     """
     NB: Don't log or expose access token in any error messages.
     """
-    logger.info("get_mailchimp_server_prefix called with access_token was called")
+    logger.info("Called with access_token was called")
     response = requests.get(MAILCHIMP_GET_SERVER_PREFIX_URL, headers={"Authorization": f"OAuth {access_token}"})
     if response.status_code != status.HTTP_200_OK:
-        logger.error("get_mailchimp_server_prefix called but got a non-200 status code: %s", response.status_code)
+        logger.error("Called but got a non-200 status code: %s", response.status_code)
         raise MailchimpAuthflowRetryableError(
             f"Non-200 status code when trying to get server prefix: {response.status_code}"
         )
     if not (prefix := response.json().get("dc", None)):
-        logger.error(
-            "`get_mailchimp_server_prefix` got a response body missing a `dc` parameter from Mailchimp when trying to get a server prefix"
-        )
+        logger.error("Got a response body missing a `dc` parameter from Mailchimp when trying to get a server prefix")
         raise MailchimpAuthflowUnretryableError(
             f"`get_mailchimp_server_prefix` got an unexpected response status code of {response.status_code}"
         )
-    logger.info("get_mailchimp_server_prefix called retrieved a server prefix of %s", prefix)
+    logger.info("Called retrieved a server prefix of %s", prefix)
     return prefix
 
 
@@ -115,24 +111,22 @@ def exchange_mailchimp_oauth_code_for_server_prefix_and_access_token(rp_id: int,
     which gets saved back to the revenue program, and which gets used to make an additional request to retrieve the
     Mailchimp server prefix, which also gets saved to the RP.
     """
-    logger.info("exchange_mailchimp_oauth_code_for_server_prefix_and_access_token called with rp_id %s", rp_id)
+    logger.info("Called with rp_id %s", rp_id)
     revenue_program = RevenueProgram.objects.filter(pk=rp_id).first()
     update_data = {}
     if revenue_program is None:
         logger.error(
-            "exchange_mailchimp_oauth_code_for_server_prefix_and_access_token cannot find revenue program with ID %s",
+            "Cannot find revenue program with ID %s",
             rp_id,
         )
         return
     if revenue_program.mailchimp_access_token and revenue_program.mailchimp_server_prefix:
-        logger.info(
-            "exchange_mailchimp_oauth_code_for_server_prefix_and_access_token called but retrieved RP already MC values set"
-        )
+        logger.info("Called but retrieved RP already MC values set")
         return
     try:
         if not (token := revenue_program.mailchimp_access_token):
             logger.info(
-                "exchange_mailchimp_oauth_code_for_server_prefix_and_access_token is attempting to exchange an oauth code for an access token for RP with ID %s",
+                "Attempting to exchange an oauth code for an access token for RP with ID %s",
                 rp_id,
             )
             token = exchange_mc_oauth_code_for_mc_access_token(oauth_code)
@@ -141,16 +135,13 @@ def exchange_mailchimp_oauth_code_for_server_prefix_and_access_token(rp_id: int,
             revenue_program.mailchimp_access_token = token
         if token and not revenue_program.mailchimp_server_prefix:
             logger.info(
-                "exchange_mailchimp_oauth_code_for_server_prefix_and_access_token is attempting to retrieve the MC server prefix for RP with ID %s",
+                "Attempting to retrieve the MC server prefix for RP with ID %s",
                 rp_id,
             )
             update_data["mailchimp_server_prefix"] = get_mailchimp_server_prefix(token)
     except MailchimpAuthflowUnretryableError:
         logger.exception(
-            (
-                "`exchange_mailchimp_oauth_code_for_server_prefix_and_access_token` encountered an unrecoverable error "
-                "procesesing revenue program with ID %s"
-            ),
+            ("Encountered an unrecoverable error " "procesesing revenue program with ID %s"),
             rp_id,
         )
     finally:
@@ -158,8 +149,6 @@ def exchange_mailchimp_oauth_code_for_server_prefix_and_access_token(rp_id: int,
             for k, v in update_data.items():
                 setattr(revenue_program, k, v)
             with reversion.create_revision():
-                logger.info(
-                    "exchange_mailchimp_oauth_code_for_server_prefix_and_access_token updating RP with ID %s", rp_id
-                )
+                logger.info("Updating RP with ID %s", rp_id)
                 revenue_program.save(update_fields=set(update_data.keys()).union({"modified"}))
                 reversion.set_comment("exchange_mailchimp_oauth_code_for_server_prefix_and_access_token")

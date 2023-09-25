@@ -53,7 +53,7 @@ class GoogleCloudSecretProvider(SecretProvider):
         *args,
         **kwargs,
     ) -> None:
-        logger.info("GoogleCloudSecretProvider initializing with model_attr %s", model_attr)
+        logger.info("Initializing with model_attr %s", model_attr)
         super().__init__(*args, **kwargs)
         self.model_attr = model_attr
 
@@ -71,15 +71,13 @@ class GoogleCloudSecretProvider(SecretProvider):
         return f"{self.get_secret_path(obj)}/versions/{self.version_id}"
 
     def __get__(self, obj, type=None) -> str | None:
-        logger.info("GoogleCloudSecretProvider retrieving secret %s", (secret_name := self.get_secret_name(obj)))
+        logger.info("Retrieving secret %s", (secret_name := self.get_secret_name(obj)))
         if not settings.ENABLE_GOOGLE_CLOUD_SECRET_MANAGER:
-            logger.info("GoogleCloudSecretProvider not enabled")
+            logger.info("Not enabled")
             return None
         client = get_secret_manager_client()
         if not client:
-            logger.warning(
-                "GoogleCloudSecretProvider cannot get secret %s because client is not initialized", secret_name
-            )
+            logger.warning("Cannot get secret %s because client is not initialized", secret_name)
             return None
         try:
             secret = client.access_secret_version(
@@ -87,14 +85,14 @@ class GoogleCloudSecretProvider(SecretProvider):
             )
         except NotFound:
             logger.info(
-                "GoogleCloudSecretProvider.get_secret did not find secret version for secret %s with path %s",
+                "Did not find secret version for secret %s with path %s",
                 secret_name,
                 secret_version_path,
             )
             return None
         except PermissionDenied:
             logger.exception(
-                "GoogleCloudSecretProvider.get_secret cannot access secret version for secret %s with path %s because permission denied",
+                "Cannot access secret version for secret %s with path %s because permission denied",
                 secret_name,
                 secret_version_path,
             )
@@ -103,26 +101,24 @@ class GoogleCloudSecretProvider(SecretProvider):
         return secret.payload.data.decode("UTF-8") if secret else None
 
     def __set__(self, obj, value) -> None:
-        logger.info("GoogleCloudSecretProvider setting secret %s", (secret_name := self.get_secret_name(obj)))
+        logger.info("Setting secret %s", (secret_name := self.get_secret_name(obj)))
         if not settings.ENABLE_GOOGLE_CLOUD_SECRET_MANAGER:
-            logger.warning("GoogleCloudSecretProvider cannot set secret %s because not enabled", secret_name)
+            logger.warning("Cannot set secret %s because not enabled", secret_name)
             return
         secret = None
         client = get_secret_manager_client()
         if not client:
-            logger.warning(
-                "GoogleCloudSecretProvider cannot get secret %s because client is not initialized", secret_name
-            )
+            logger.warning("Cannot get secret %s because client is not initialized", secret_name)
             return None
         try:
             secret = client.get_secret(request={"name": (secret_path := self.get_secret_path(obj))})
         except NotFound:
             logger.info(
-                "GoogleCloudSecretProvider did not find an existing secret for secret %s. Creating new secret.",
+                "Did not find an existing secret for secret %s. Creating new secret.",
                 secret_name,
             )
             try:
-                logger.info("GoogleCloudSecretProvider attempting to create new secret for secret %s", secret_name)
+                logger.info("Attempting to create new secret for secret %s", secret_name)
                 secret = client.create_secret(
                     request={
                         "parent": f"projects/{settings.GOOGLE_CLOUD_PROJECT_ID}",
@@ -130,17 +126,17 @@ class GoogleCloudSecretProvider(SecretProvider):
                         "secret": {"replication": {"automatic": {}}},
                     }
                 )
-                logger.info("GoogleCloudSecretProvider created a new GC secret for %s", secret_name)
+                logger.info("Created a new GC secret for %s", secret_name)
             except PermissionDenied:
                 logger.exception(
-                    "GoogleCloudSecretProvider cannot create secret for secret %s at path %s because permission denied",
+                    "Cannot create secret for secret %s at path %s because permission denied",
                     secret_name,
                     secret_path,
                 )
                 raise SecretProviderException("Permission denied")
         except PermissionDenied:
             logger.exception(
-                "GoogleCloudSecretProvider cannot check for existing secret %s at path %s because permission denied",
+                "Cannot check for existing secret %s at path %s because permission denied",
                 secret_name,
                 secret_path,
             )
@@ -148,7 +144,7 @@ class GoogleCloudSecretProvider(SecretProvider):
 
         if secret:
             try:
-                logger.info("GoogleCloudSecretProvider adding secret version for secret %s", secret_name)
+                logger.info("Adding secret version for secret %s", secret_name)
                 client.add_secret_version(
                     request={
                         "parent": secret_path,
@@ -158,38 +154,36 @@ class GoogleCloudSecretProvider(SecretProvider):
                 return
             except PermissionDenied:
                 logger.exception(
-                    "`GoogleCloudSecretProvider cannot add secret version for secret %s because permission denied",
+                    "Cannot add secret version for secret %s because permission denied",
                     secret_name,
                 )
                 raise SecretProviderException("Permission denied")
         else:
-            logger.warning("GoogleCloudSecretProvider failed to create secret %s", secret_name)
+            logger.warning("Failed to create secret %s", secret_name)
 
     def __delete__(self, obj) -> None:
-        logger.info("GoogleCloudSecretProvider deleting secret %s", (secret_name := self.get_secret_name(obj)))
+        logger.info("Deleting secret %s", (secret_name := self.get_secret_name(obj)))
         secret_name = self.get_secret_name(obj)
         if not settings.ENABLE_GOOGLE_CLOUD_SECRET_MANAGER:
             logger.warning(
-                "GoogleCloudSecretProvider cannot delete secret %s because not enabled",
+                "Cannot delete secret %s because not enabled",
                 secret_name,
             )
             return
         client = get_secret_manager_client()
         if not client:
-            logger.warning(
-                "GoogleCloudSecretProvider cannot delete secret %s because client is not initialized", secret_name
-            )
+            logger.warning("Cannot delete secret %s because client is not initialized", secret_name)
             return None
         try:
             client.delete_secret(request={"name": (secret_path := self.get_secret_path(obj))})
-            logger.info("GoogleCloudSecretProvider deleted secret %s", secret_name)
+            logger.info("Deleted secret %s", secret_name)
         except NotFound:
             logger.info(
-                "GoogleCloudSecretProvider couldn't delete secret %s at path %s because not found",
+                "Couldn't delete secret %s at path %s because not found",
                 secret_name,
                 secret_path,
             )
             return
         except PermissionDenied:
-            logger.exception("GoogleCloudSecretProvider cannot delete secret %s because permission denied", secret_name)
+            logger.exception("Cannot delete secret %s because permission denied", secret_name)
             raise SecretProviderException("Permission denied")

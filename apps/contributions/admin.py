@@ -136,10 +136,7 @@ class ContributionAdmin(RevEngineBaseAdmin, CompareVersionAdmin):
         # Bail if any of the selected Contributions are not "FLAGGED"
         action = "reject" if reject else "accept"
         if queryset.exclude(status=ContributionStatus.FLAGGED).exists():
-            logger.error(
-                "ContributionAdmin._process_flagged_payment - Unable to process flagged payments when flagged "
-                "contribution is selected"
-            )
+            logger.error("Unable to process flagged payments when flagged " "contribution is selected")
             self.message_user(
                 request,
                 f"Cannot {action} a non-flagged Contribution.",
@@ -166,7 +163,7 @@ class ContributionAdmin(RevEngineBaseAdmin, CompareVersionAdmin):
 
         if failed:
             error_message = ", ".join([str(cont) for cont in failed])
-            logger.error("ContributionAdmin._process_flagged_payment - %s", error_message)
+            logger.error(error_message)
             self.message_user(
                 request,
                 f"Could not complete action for contributions: {error_message}",

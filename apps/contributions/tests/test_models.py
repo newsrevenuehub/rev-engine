@@ -302,8 +302,7 @@ class TestContributionModel:
         logger_spy = mocker.spy(logger, "warning")
         assert contribution.fetch_stripe_payment_method() is None
         logger_spy.assert_called_once_with(
-            "Contribution.fetch_stripe_payment_method called without a provider_payment_method_id "
-            "on contribution with ID %s",
+            "Called without a provider_payment_method_id " "on contribution with ID %s",
             contribution.id,
         )
 
@@ -694,7 +693,7 @@ class TestContributionModel:
         assert contribution.stripe_setup_intent is None
         spy.assert_called_once_with(
             (
-                "`Contribution.stripe_setup_intent` encountered a Stripe error trying to retrieve stripe setup intent "
+                "Encountered a Stripe error trying to retrieve stripe setup intent "
                 "with ID %s and stripe account ID %s for contribution with ID %s"
             ),
             contribution.provider_setup_intent_id,
@@ -747,7 +746,7 @@ class TestContributionModel:
         assert contribution.stripe_payment_intent is None
         spy.assert_called_once_with(
             (
-                "`Contribution.stripe_payment_intent` encountered a Stripe error trying to retrieve stripe payment intent "
+                "Encountered a Stripe error trying to retrieve stripe payment intent "
                 "with ID %s and stripe account ID %s for contribution with ID %s"
             ),
             contribution.provider_payment_id,
@@ -800,7 +799,7 @@ class TestContributionModel:
         assert contribution.stripe_subscription is None
         spy.assert_called_once_with(
             (
-                "`Contribution.stripe_subscription` encountered a Stripe error trying to retrieve stripe subscription "
+                "Encountered a Stripe error trying to retrieve stripe subscription "
                 "with ID %s and stripe account ID %s for contribution with ID %s"
             ),
             contribution.provider_subscription_id,
@@ -984,7 +983,7 @@ class TestContributionModel:
             assert len(mail.outbox) == 1
         else:
             mock_log_warning.assert_called_once_with(
-                "`Contribution.send_recurring_contribution_email_reminder` was called on an instance (ID: %s) whose interval is one-time",
+                "Called on an instance (ID: %s) whose interval is one-time",
                 contribution.id,
             )
 
@@ -1570,7 +1569,7 @@ class TestContributionModel:
         assert contribution.contribution_metadata == (metadata if not dry_run and expect_update else old_metadata)
         if not Contribution._stripe_metadata_is_valid_for_contribution_metadata_backfill(metadata):
             spy.assert_called_once_with(
-                "`Contribution.fix_missing_contribution_metadata` could not find any valid backfill data for contribution_metadata for contribution with ID %s",
+                "Could not find any valid backfill data for contribution_metadata for contribution with ID %s",
                 contribution.id,
             )
 
@@ -1594,9 +1593,7 @@ class TestContributionModel:
         monthly_contribution.refresh_from_db()
         assert monthly_contribution.contribution_metadata is None
         spy.assert_called_once_with(
-            (
-                "`Contribution.fix_missing_contribution_metadata` could not find any data on Stripe to backfill contribution with ID  %s",
-            ),
+            ("Could not find any data on Stripe to backfill contribution with ID  %s",),
             monthly_contribution.id,
         )
         # assert about revision and update fields

@@ -135,7 +135,7 @@ class OrganizationViewSet(
 
     @classmethod
     def send_upgrade_success_confirmation_email(cls, org: Organization):
-        logger.info("`send_upgrade_success_confirmation_email` running")
+        logger.info("Running")
         # TODO: [DEV-3777] Refactor `send_templated_email` to accomodate a list of recipients
         for to in (
             org.roleassignment_set.filter(role_type=Roles.ORG_ADMIN.value)
@@ -312,7 +312,7 @@ def handle_stripe_account_link(request, rp_pk):
     if not request.user.roleassignment.can_access_rp(revenue_program):
         logger.warning(
             (
-                "[handle_stripe_account_link] was asked to report on status of account link for RP with ID %s by user with id %s who does "
+                "Asked to report on status of account link for RP with ID %s by user with id %s who does "
                 "not have access."
             ),
             rp_pk,
@@ -321,10 +321,7 @@ def handle_stripe_account_link(request, rp_pk):
         raise PermissionDenied(f"You do not have permission to access revenue program with the PK {rp_pk}")
     if not (payment_provider := revenue_program.payment_provider):
         logger.warning(
-            (
-                "[handle_stripe_account_link] was asked to handle RP with ID %s , "
-                "but that RP does not have a payment provider."
-            ),
+            ("Asked to handle RP with ID %s , " "but that RP does not have a payment provider."),
             rp_pk,
         )
         return Response(
@@ -340,7 +337,7 @@ def handle_stripe_account_link(request, rp_pk):
                 country=revenue_program.country,
             )
         except StripeError:
-            logger.exception("[handle_stripe_account_link] A stripe error occurred")
+            logger.exception("A stripe error occurred")
             return Response(
                 {"detail": "Something went wrong creating Stripe account. Try again later."},
                 status=status.HTTP_500_INTERNAL_SERVER_ERROR,
@@ -351,7 +348,7 @@ def handle_stripe_account_link(request, rp_pk):
         try:
             payment_provider.stripe_create_default_product()
         except StripeError:
-            logger.exception("[handle_stripe_account_link] A stripe error occurred creating Stripe product")
+            logger.exception("A stripe error occurred creating Stripe product")
             return Response(
                 {"detail": "Something went wrong. Try again later."},
                 status=status.HTTP_500_INTERNAL_SERVER_ERROR,
@@ -361,7 +358,7 @@ def handle_stripe_account_link(request, rp_pk):
         try:
             account = stripe.Account.retrieve(payment_provider.stripe_account_id)
         except StripeError:
-            logger.exception("[handle_stripe_account_link] A stripe error occurred")
+            logger.exception("A stripe error occurred")
             return Response(
                 {"detail": "Something went wrong retrieving the Stripe account for this RP. Try again later."},
                 status=status.HTTP_500_INTERNAL_SERVER_ERROR,
@@ -393,7 +390,7 @@ def handle_stripe_account_link(request, rp_pk):
             )
             data = data | stripe_response
         except StripeError:
-            logger.exception("[handle_stripe_account_link] A stripe error occurred")
+            logger.exception("A stripe error occurred")
             return Response(
                 {"detail": "Cannot get stripe account link status at this time. Try again later."},
                 status=status.HTTP_500_INTERNAL_SERVER_ERROR,
@@ -420,10 +417,7 @@ def send_test_email(request):
     if not request.user.is_superuser:
         if not request.user.roleassignment.can_access_rp(revenue_program):
             logger.warning(
-                (
-                    "[send_test_email] was asked to send a test email link for RP with ID %s by user with id %s who does "
-                    "not have access."
-                ),
+                ("Asked to send a test email link for RP with ID %s by user with id %s who does " "not have access."),
                 rp_pk,
                 request.user.id,
             )
@@ -462,7 +456,7 @@ def send_test_email(request):
 @permission_classes([IsAuthenticated, HasFlaggedAccessToMailchimp, IsOrgAdmin])
 def handle_mailchimp_oauth_success(request):
     """"""
-    logger.info("handle_mailchimp_oauth_success called with request data %s", request.data)
+    logger.info("Called with request data %s", request.data)
     serializer = MailchimpOauthSuccessSerializer(data=request.data)
     serializer.is_valid(raise_exception=True)
     if (
@@ -472,7 +466,7 @@ def handle_mailchimp_oauth_success(request):
     ):
         logger.warning(
             (
-                "`handle_mailchimp_oauth_success` called with request data referencing a non-existent or unowned revenue program "
+                "Called with request data referencing a non-existent or unowned revenue program "
                 "with ID %s by user with email %s"
             ),
             rp_id,
@@ -480,7 +474,7 @@ def handle_mailchimp_oauth_success(request):
         )
         return Response({"detail": "Requested revenue program not found"}, status=status.HTTP_404_NOT_FOUND)
     logger.info(
-        "handle_mailchimp_oauth_success asyncronously exchanging Oauth code for server prefix and access token for revenue program with ID %s",
+        "Asynchronously exchanging Oauth code for server prefix and access token for revenue program with ID %s",
         rp_id,
     )
     exchange_mailchimp_oauth_code_for_server_prefix_and_access_token.delay(

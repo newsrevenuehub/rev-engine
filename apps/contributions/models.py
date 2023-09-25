@@ -100,7 +100,7 @@ class Contributor(IndexedTimeStampedModel):
         from apps.api.views import construct_rp_domain  # vs. circular import
 
         if not isinstance(contribution, Contribution):
-            logger.error("`Contributor.create_magic_link` called with invalid contributon value: %s", contribution)
+            logger.error("Called with invalid contributon value: %s", contribution)
             raise ValueError("Invalid value provided for `contribution`")
         token = str(ContributorRefreshToken.for_contributor(contribution.contributor.uuid).short_lived_access_token)
         return mark_safe(
@@ -260,7 +260,7 @@ class Contribution(IndexedTimeStampedModel):
         if not (amt := (self.contribution_metadata or {}).get("donor_selected_amount", None)):
             logger.warning(
                 (
-                    "`Contribution.formatted_donor_selected_amount` called on contribution with ID %s that "
+                    "Called on contribution with ID %s that "
                     "does not have a value set for `contribution_metadata['donor_selected_amount']`"
                 ),
                 self.id,
@@ -271,7 +271,7 @@ class Contribution(IndexedTimeStampedModel):
         except ValueError:
             logger.warning(
                 (
-                    "`Contribution.formatted_donor_selected_amount` called on contribution with ID %s whose "
+                    "Called on contribution with ID %s whose "
                     "value set for `contribution_metadata['donor_selected_amount']` is %s which cannot be cast to an integer."
                 ),
                 self.id,
@@ -337,19 +337,16 @@ class Contribution(IndexedTimeStampedModel):
         return manager_class(contribution=self)
 
     def process_flagged_payment(self, reject=False):
-        logger.info("Contribution.process_flagged_payment - processing flagged payment for contribution %s", self.pk)
+        logger.info("Processing flagged payment for contribution %s", self.pk)
         payment_manager = self.get_payment_manager_instance()
         payment_manager.complete_payment(reject=reject)
-        logger.info("Contribution.process_flagged_payment - processing for contribution %s complete", self.pk)
+        logger.info("Processing for contribution %s complete", self.pk)
 
     def fetch_stripe_payment_method(self, provider_payment_method_id: str = None):
         pm_id = provider_payment_method_id or self.provider_payment_method_id
         if not pm_id:
             logger.warning(
-                (
-                    "Contribution.fetch_stripe_payment_method called without a provider_payment_method_id "
-                    "on contribution with ID %s"
-                ),
+                ("Called without a provider_payment_method_id " "on contribution with ID %s"),
                 self.id,
             )
             return None
@@ -360,7 +357,7 @@ class Contribution(IndexedTimeStampedModel):
             )
         except StripeError:
             logger.exception(
-                "Contribution.fetch_stripe_payment_method encountered a Stripe error when attempting to fetch payment method with id %s for contribution with id %s",
+                "Encountered a Stripe error when attempting to fetch payment method with id %s for contribution with id %s",
                 self.provider_payment_method_id,
                 self.id,
             )
@@ -369,7 +366,7 @@ class Contribution(IndexedTimeStampedModel):
     def save(self, *args, **kwargs):
         previous = self.__class__.objects.filter(pk=self.pk).first()
         logger.info(
-            "`Contribution.save` called. Existing contribution has id: %s and provider_payment_method_id: %s \n The save value for provider_payment_method_id is %s",
+            "Existing contribution has id: %s and provider_payment_method_id: %s \n The save value for provider_payment_method_id is %s",
             getattr(previous, "id", None),
             getattr(previous, "provider_payment_method_id", None),
             self.provider_payment_method_id,
@@ -481,7 +478,7 @@ class Contribution(IndexedTimeStampedModel):
     def cancel(self):
         if self.status not in (ContributionStatus.PROCESSING, ContributionStatus.FLAGGED):
             logger.warning(
-                "`Contribution.cancel` called on contribution (ID: %s) with unexpected status %s",
+                "Called on contribution (ID: %s) with unexpected status %s",
                 self.id,
                 self.status,
             )
@@ -493,7 +490,7 @@ class Contribution(IndexedTimeStampedModel):
             )
         elif self.interval not in (ContributionInterval.MONTHLY, ContributionInterval.YEARLY):
             logger.warning(
-                "`Contribution.cancel` called on contribution (ID: %s) with unexpected interval %s",
+                "Called on contribution (ID: %s) with unexpected interval %s",
                 self.id,
                 self.interval,
             )
@@ -516,14 +513,14 @@ class Contribution(IndexedTimeStampedModel):
 
     def handle_thank_you_email(self):
         """Send a thank you email to contribution's contributor if org is configured to have NRE send thank you email"""
-        logger.info("`Contribution.handle_thank_you_email` called on contribution with ID %s", self.id)
+        logger.info("Called on contribution with ID %s", self.id)
         if (org := self.revenue_program.organization).send_receipt_email_via_nre:
-            logger.info("Contribution.handle_thank_you_email: the parent org (%s) sends emails with NRE", org.id)
+            logger.info("The parent org (%s) sends emails with NRE", org.id)
             data = make_send_thank_you_email_data(self)
             send_thank_you_email.delay(data)
         else:
             logger.info(
-                "Contribution.handle_thank_you_email called on contribution %s the parent org of which does not send email with NRE",
+                "Called on contribution %s the parent org of which does not send email with NRE",
                 self.id,
             )
 
@@ -534,7 +531,7 @@ class Contribution(IndexedTimeStampedModel):
 
         if self.interval == ContributionInterval.ONE_TIME:
             logger.warning(
-                "`Contribution.send_recurring_contribution_email_reminder` was called on an instance (ID: %s) whose interval is one-time",
+                "Called on an instance (ID: %s) whose interval is one-time",
                 self.id,
             )
             return
@@ -576,7 +573,7 @@ class Contribution(IndexedTimeStampedModel):
         except stripe.error.StripeError:
             logger.exception(
                 (
-                    "`Contribution.stripe_setup_intent` encountered a Stripe error trying to retrieve stripe setup intent "
+                    "Encountered a Stripe error trying to retrieve stripe setup intent "
                     "with ID %s and stripe account ID %s for contribution with ID %s"
                 ),
                 si_id,
@@ -597,7 +594,7 @@ class Contribution(IndexedTimeStampedModel):
         except stripe.error.StripeError:
             logger.exception(
                 (
-                    "`Contribution.stripe_payment_intent` encountered a Stripe error trying to retrieve stripe payment intent "
+                    "Encountered a Stripe error trying to retrieve stripe payment intent "
                     "with ID %s and stripe account ID %s for contribution with ID %s"
                 ),
                 pi_id,
@@ -620,7 +617,7 @@ class Contribution(IndexedTimeStampedModel):
         except stripe.error.StripeError:
             logger.exception(
                 (
-                    "`Contribution.stripe_subscription` encountered a Stripe error trying to retrieve stripe subscription "
+                    "Encountered a Stripe error trying to retrieve stripe subscription "
                     "with ID %s and stripe account ID %s for contribution with ID %s"
                 ),
                 sub_id,
@@ -687,7 +684,7 @@ class Contribution(IndexedTimeStampedModel):
                 ]
             ):
                 logger.info(
-                    "`Contribution.fix_contributions_stuck_in_processing` Setting payment method on contribution with ID %s to %s",
+                    "Setting payment method on contribution with ID %s to %s",
                     contribution.id,
                     pi.payment_method,
                 )
@@ -705,10 +702,7 @@ class Contribution(IndexedTimeStampedModel):
             elif update_data:
                 with reversion.create_revision():
                     logger.info(
-                        (
-                            "`Contribution.fix_contributions_stuck_in_processing` is saving updates to contribution with"
-                            "ID %s with the following data: %s"
-                        ),
+                        ("Saving updates to contribution with" "ID %s with the following data: %s"),
                         contribution.id,
                         update_data,
                     )
@@ -718,7 +712,7 @@ class Contribution(IndexedTimeStampedModel):
                         f"`Contribution.fix_contributions_stuck_in_processing` updated contribution with ID {contribution.id}"
                     )
         logger.info(
-            "Contribution.fix_contributions_stuck_in_processing %sUpdated  %s contributions",
+            "%sUpdated  %s contributions",
             "[DRY-RUN] " if dry_run else "",
             updated,
         )
@@ -743,7 +737,7 @@ class Contribution(IndexedTimeStampedModel):
         )
         logger.info(
             (
-                "Contribution.fix_missing_provider_payment_method_id found %s eligible one-time contributions, "
+                "Found %s eligible one-time contributions, "
                 "%s eligible recurring contributions with a subscription, and %s eligible recurring "
                 "contributions with a setup intent."
             ),
@@ -777,7 +771,7 @@ class Contribution(IndexedTimeStampedModel):
                 else:
                     with reversion.create_revision():
                         logger.info(
-                            "Contributions.fix_missing_provider_payment_method_id updating and saving contribution with ID %s",
+                            "Updating and saving contribution with ID %s",
                             contribution.id,
                         )
                         contribution.save(
@@ -884,10 +878,7 @@ class Contribution(IndexedTimeStampedModel):
                 stripe_entity = contribution.stripe_subscription
             if not stripe_entity:
                 logger.warning(
-                    (
-                        "`Contribution.fix_missing_contribution_metadata` could not find any data on "
-                        "Stripe to backfill contribution with ID  %s",
-                    ),
+                    ("Could not find any data on " "Stripe to backfill contribution with ID  %s",),
                     contribution.id,
                 )
                 continue
@@ -915,10 +906,7 @@ class Contribution(IndexedTimeStampedModel):
                         reversion.set_comment("`Contribution.fix_missing_contribution_metadata` updated contribution")
             else:
                 logger.warning(
-                    (
-                        "`Contribution.fix_missing_contribution_metadata` could not find any valid backfill data for "
-                        "contribution_metadata for contribution with ID %s"
-                    ),
+                    ("Could not find any valid backfill data for " "contribution_metadata for contribution with ID %s"),
                     contribution.id,
                 )
         logger.info(

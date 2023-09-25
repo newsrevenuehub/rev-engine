@@ -68,7 +68,12 @@ class OrganizationPatchSerializer(serializers.ModelSerializer):
         fields = ["name"]
 
 
-class RevenueProgramListSerializerForPageOrg(serializers.ModelSerializer):
+class RevenueProgramForDonationPageListSerializer(serializers.ModelSerializer):
+    """Narrowly used to serialize a revenue program in the DonationPageListSerializer
+
+    The field requirements here are determined by what the SPA needs
+    """
+
     class Meta:
         model = RevenueProgram
         fields = [

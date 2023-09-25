@@ -17,9 +17,9 @@ from apps.organizations.models import Organization, RevenueProgram
 from apps.organizations.serializers import (
     BenefitLevelDetailSerializer,
     PaymentProviderSerializer,
+    RevenueProgramForDonationPageListSerializer,
     RevenueProgramInlineSerializer,
     RevenueProgramListInlineSerializer,
-    RevenueProgramListSerializerForPageOrg,
 )
 from apps.pages.models import PAGE_NAME_MAX_LENGTH, DonationPage, Font, Style
 
@@ -432,7 +432,7 @@ class DonationPageFullDetailSerializer(serializers.ModelSerializer):
 
 
 class DonationPageListSerializer(serializers.ModelSerializer):
-    revenue_program = RevenueProgramListSerializerForPageOrg()
+    revenue_program = RevenueProgramForDonationPageListSerializer()
 
     class Meta:
         model = DonationPage

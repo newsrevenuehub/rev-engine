@@ -4,12 +4,7 @@ import { useLocation } from 'react-router';
 import React from 'react';
 import { useAnalyticsContext } from './AnalyticsContext';
 
-export default function TrackPageView({
-  children,
-  ...rest
-}: React.PropsWithChildren<{
-  [x: string]: any;
-}>) {
+export default function TrackPageView({ children }: { children: React.ReactNode }) {
   const location = useLocation();
   const { analyticsInstance } = useAnalyticsContext();
 
@@ -18,15 +13,5 @@ export default function TrackPageView({
     analyticsInstance?.page();
   }, [location.pathname, analyticsInstance]);
 
-  const renderChildren = () => {
-    return React.Children.map(children, (child) => {
-      if (!React.isValidElement(child)) return null;
-
-      return React.cloneElement(child, {
-        ...rest
-      });
-    });
-  };
-
-  return <>{renderChildren()}</>;
+  return <>{children}</>;
 }

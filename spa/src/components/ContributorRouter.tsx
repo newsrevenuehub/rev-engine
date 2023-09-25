@@ -96,8 +96,8 @@ function ContributorRouter() {
         <SentryRoute
           path={ROUTES.CONTRIBUTOR_ENTRY}
           render={() => (
-            <TrackPageView page={pageData}>
-              <ContributorEntry />
+            <TrackPageView>
+              <ContributorEntry page={pageData} />
             </TrackPageView>
           )}
         />

@@ -32,17 +32,6 @@ describe('TrackPageView', () => {
     expect(screen.getByTestId('child')).toBeInTheDocument();
   });
 
-  it('should render children with props', () => {
-    render(
-      <TrackPageView custom="mock-props">
-        <div data-testid="child" />
-      </TrackPageView>
-    );
-
-    expect(screen.getByTestId('child')).toBeInTheDocument();
-    expect(screen.getByTestId('child')).toHaveAttribute('custom', 'mock-props');
-  });
-
   it('should call analyticsInstance.page on mount', () => {
     render(
       <TrackPageView>

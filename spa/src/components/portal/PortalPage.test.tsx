@@ -19,17 +19,15 @@ jest.mock('components/donationPage/SegregatedStyles', () => ({ children }: { chi
   <div data-testid="mock-segregated-styles">{children}</div>
 ));
 
-const Component = () => <div data-testid="mock-content-component" />;
-
 const page = {
   styles: {
     font: 'mock-font'
   },
   revenue_program: {
-    default_donation_page: null,
+    default_donation_page: '123',
     organization: {
       plan: {
-        name: 'FREE'
+        name: 'CORE'
       }
     }
   }
@@ -47,7 +45,11 @@ describe('PortalPage', () => {
   afterAll(() => axiosMock.restore());
 
   function tree() {
-    return render(<PortalPage component={Component} />);
+    return render(
+      <PortalPage>
+        <div data-testid="mock-content-component" />
+      </PortalPage>
+    );
   }
 
   const assertContentIsRendered = async () => {
@@ -75,5 +77,42 @@ describe('PortalPage', () => {
     tree();
     await waitFor(() => expect(useWebFonts).toHaveBeenCalledTimes(1));
     expect(useWebFonts).toHaveBeenCalledWith(page.styles.font);
+  });
+
+  describe('should render NRE logo header', () => {
+    it('when page is undefined', () => {
+      axiosMock.onGet(LIVE_PAGE_DETAIL).reply(200, null);
+      tree();
+      expect(screen.getByRole('graphics-document', { name: 'News Revenue Engine logo' })).toBeVisible();
+    });
+
+    it('when no default donation page', () => {
+      axiosMock.onGet(LIVE_PAGE_DETAIL).reply(200, {
+        ...page,
+        revenue_program: {
+          ...page.revenue_program,
+          default_donation_page: null
+        }
+      });
+      tree();
+      expect(screen.getByRole('graphics-document', { name: 'News Revenue Engine logo' })).toBeVisible();
+    });
+
+    it('when org plan is FREE', () => {
+      axiosMock.onGet(LIVE_PAGE_DETAIL).reply(200, {
+        ...page,
+        revenue_program: {
+          ...page.revenue_program,
+          organization: {
+            ...page.revenue_program.organization,
+            plan: {
+              name: 'FREE'
+            }
+          }
+        }
+      });
+      tree();
+      expect(screen.getByRole('graphics-document', { name: 'News Revenue Engine logo' })).toBeVisible();
+    });
   });
 });

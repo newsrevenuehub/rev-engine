@@ -63,6 +63,7 @@ function PortalEntry() {
                   <TextField
                     {...field}
                     id="email"
+                    type="email"
                     label="Email Address"
                     placeholder="support@email.com"
                     helperText={errors.email?.message || magicLinkError?.email?.join('. ')}

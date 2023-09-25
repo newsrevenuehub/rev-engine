@@ -1,4 +1,4 @@
-import { ReactComponent as NRELogo } from 'assets/images/nre-logo-yellow.svg';
+import { ReactComponent as PoweredByNRELogo } from 'assets/images/nre-logo-yellow.svg';
 import TrackPageView from 'components/analytics/TrackPageView';
 import DonationPageHeader from 'components/donationPage/DonationPageHeader';
 import SegregatedStyles from 'components/donationPage/SegregatedStyles';
@@ -6,9 +6,10 @@ import { PLAN_NAMES } from 'constants/orgPlanConstants';
 import usePortal from 'hooks/usePortal';
 import useWebFonts from 'hooks/useWebFonts';
 import React from 'react';
-import { PoweredBy } from './PortalPage.styled';
+import NRELogo from 'assets/images/nre-logo-blue.svg';
+import { PoweredBy, Header, Logo } from './PortalPage.styled';
 
-function PortalPage({ component: Component }: { component: React.ComponentType<any> }) {
+function PortalPage({ children }: { children: React.ReactNode }) {
   const { page, pageIsFetched, enablePageFetch } = usePortal();
 
   const isFreeOrg = page?.revenue_program?.organization?.plan?.name === PLAN_NAMES.FREE;
@@ -24,11 +25,17 @@ function PortalPage({ component: Component }: { component: React.ComponentType<a
   return (
     <TrackPageView>
       <SegregatedStyles page={renderCustomStyles && page}>
-        <DonationPageHeader page={page} />
-        <Component />
+        {renderCustomStyles ? (
+          <DonationPageHeader page={page} />
+        ) : (
+          <Header>
+            <Logo src={NRELogo} alt="News Revenue Engine" />
+          </Header>
+        )}
+        {children}
         <PoweredBy>
           <span>Powered by</span>
-          <NRELogo aria-label="News Revenue Engine logo" style={{ width: 145 }} />
+          <PoweredByNRELogo aria-label="News Revenue Engine logo" style={{ width: 145 }} />
         </PoweredBy>
       </SegregatedStyles>
     </TrackPageView>

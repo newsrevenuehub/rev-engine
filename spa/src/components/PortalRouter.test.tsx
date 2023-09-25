@@ -16,10 +16,8 @@ jest.mock('react-router-dom', () => ({
 
 // Mock TrackPageView as a passthrough.
 
-jest.mock('components/portal/PortalPage', () => ({ component: Component }: { component: ComponentType<any> }) => (
-  <div data-testid="mock-portal-page">
-    <Component />
-  </div>
+jest.mock('components/portal/PortalPage', () => ({ children }: { children: React.ReactNode }) => (
+  <div data-testid="mock-portal-page">{children}</div>
 ));
 
 jest.mock('components/authentication/ProtectedRoute', () => ({ render }: { render: () => React.ReactNode }) => (

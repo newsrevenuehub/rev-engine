@@ -38,6 +38,7 @@ export const Content = styled.section`
   margin-top: 4rem;
   padding: 2rem;
   max-width: 693px;
+  box-sizing: content-box;
 `;
 
 export const Title = styled.h1`

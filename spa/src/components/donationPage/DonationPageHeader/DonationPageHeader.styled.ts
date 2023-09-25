@@ -2,13 +2,9 @@ import styled from 'styled-components';
 
 export const Root = styled.header<{ $bgImage?: string | null; $isNRE?: boolean }>`
   background: ${(props) => {
-    if (props.$isNRE) {
-      return props.theme.basePalette.primary.indigo;
-    } else {
-      return props.$bgImage
-        ? `url(${props.$bgImage})`
-        : props.theme.colors.cstm_mainHeader ?? props.theme.basePalette.greyscale.white;
-    }
+    return props.$bgImage
+      ? `url(${props.$bgImage})`
+      : props.theme.colors.cstm_mainHeader ?? props.theme.basePalette.greyscale.white;
   }};
   background-size: cover;
   height: 60px;

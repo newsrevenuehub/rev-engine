@@ -53,24 +53,24 @@ function MainLayout() {
   const isContributorApp = isContributorAppPath();
   const isPortalApp = isPortalAppPath();
 
-  const renderRouter = () => {
-    if (!DASHBOARD_SUBDOMAINS.includes(subdomain) && !isContributorApp && !isPortalApp) {
-      return <DonationPageRouter />;
-    }
+  let Router = DashboardRouter;
 
-    if (isPortalApp) {
-      return <PortalRouter />;
-    }
+  if (!DASHBOARD_SUBDOMAINS.includes(subdomain) && !isContributorApp && !isPortalApp) {
+    Router = DonationPageRouter;
+  }
 
-    return <DashboardRouter />;
-  };
+  if (isPortalApp) {
+    Router = PortalRouter;
+  }
 
   return (
     <GlobalContext.Provider value={{ getReauth }}>
       <AnalyticsContextProvider>
         <GlobalConfirmationModal>
           {/* Route to donation page if subdomain exists */}
-          <S.MainLayout>{renderRouter()}</S.MainLayout>
+          <S.MainLayout>
+            <Router />
+          </S.MainLayout>
         </GlobalConfirmationModal>
         <ReauthModal isOpen={reauthModalOpen} callbacks={reauthCallbacks.current} closeModal={closeReauthModal} />
       </AnalyticsContextProvider>

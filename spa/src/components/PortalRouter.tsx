@@ -19,13 +19,31 @@ function PortalRouter() {
     <RouterSetup>
       <ProtectedRoute
         path={ROUTES.PORTAL.DASHBOARD}
-        // TODO: Update to New Portal Dashboard
-        render={() => <PortalPage component={ContributorDashboard} />}
+        // TODO: DEV-3886 Update to New Portal Dashboard
+        render={() => (
+          <PortalPage>
+            <ContributorDashboard />
+          </PortalPage>
+        )}
         contributor
       />
-      <SentryRoute exact path={ROUTES.PORTAL.ENTRY} render={() => <PortalPage component={PortalEntry} />} />
-      {/* TODO: Update to New Portal Verify */}
-      <SentryRoute path={ROUTES.PORTAL.VERIFY} render={() => <PortalPage component={ContributorVerify} />} />
+      <SentryRoute
+        exact
+        path={ROUTES.PORTAL.ENTRY}
+        render={() => (
+          <PortalPage>
+            <PortalEntry />
+          </PortalPage>
+        )}
+      />
+      <SentryRoute
+        path={ROUTES.PORTAL.VERIFY}
+        render={() => (
+          <PortalPage>
+            <ContributorVerify />
+          </PortalPage>
+        )}
+      />
       <Redirect to={ROUTES.PORTAL.ENTRY} />
     </RouterSetup>
   );

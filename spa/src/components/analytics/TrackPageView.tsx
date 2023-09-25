@@ -1,14 +1,13 @@
-import { ComponentType, useEffect } from 'react';
+import { useEffect } from 'react';
 import { useLocation } from 'react-router';
 
+import React from 'react';
 import { useAnalyticsContext } from './AnalyticsContext';
 
 export default function TrackPageView({
   children,
-  component: Component,
   ...rest
 }: React.PropsWithChildren<{
-  component?: ComponentType;
   [x: string]: any;
 }>) {
   const location = useLocation();
@@ -19,13 +18,15 @@ export default function TrackPageView({
     analyticsInstance?.page();
   }, [location.pathname, analyticsInstance]);
 
-  if (children) {
-    return <>{children}</>;
-  }
+  const renderChildren = () => {
+    return React.Children.map(children, (child) => {
+      if (!React.isValidElement(child)) return null;
 
-  if (!Component) {
-    throw new Error('TrackPageView must have either children or a component prop');
-  }
+      return React.cloneElement(child, {
+        ...rest
+      });
+    });
+  };
 
-  return <Component {...rest} />;
+  return <>{renderChildren()}</>;
 }

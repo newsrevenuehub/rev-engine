@@ -32,18 +32,15 @@ describe('TrackPageView', () => {
     expect(screen.getByTestId('child')).toBeInTheDocument();
   });
 
-  it('should render component', () => {
-    const Component = (props: any) => <div {...props} data-testid="component" />;
+  it('should render children with props', () => {
+    render(
+      <TrackPageView custom="mock-props">
+        <div data-testid="child" />
+      </TrackPageView>
+    );
 
-    render(<TrackPageView aria-label="mock-props" component={Component} />);
-
-    expect(screen.getByTestId('component')).toBeInTheDocument();
-    expect(screen.getByTestId('component')).toHaveAttribute('aria-label', 'mock-props');
-  });
-
-  it('should throw error if no children or component', () => {
-    jest.spyOn(console, 'error').mockImplementation(() => {});
-    expect(() => render(<TrackPageView />)).toThrowError();
+    expect(screen.getByTestId('child')).toBeInTheDocument();
+    expect(screen.getByTestId('child')).toHaveAttribute('custom', 'mock-props');
   });
 
   it('should call analyticsInstance.page on mount', () => {

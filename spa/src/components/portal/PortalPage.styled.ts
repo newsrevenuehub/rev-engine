@@ -13,3 +13,24 @@ export const PoweredBy = styled.div`
   background: ${(props) => props.theme.basePalette.greyscale.grey4};
   padding-bottom: 45px;
 `;
+
+export const Header = styled.header`
+  background: ${(props) => props.theme.basePalette.primary.indigo};
+  background-size: cover;
+  height: 60px;
+  min-height: 60px;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  padding: 0 3rem;
+
+  box-shadow: ${({ theme }) => theme.shadows[0]};
+`;
+
+export const Logo = styled.img`
+  display: block;
+  max-height: 44px;
+  width: auto;
+  max-width: 100%;
+  margin: 0 auto;
+`;

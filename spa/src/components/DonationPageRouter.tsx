@@ -34,13 +34,21 @@ function DonationPageRouter() {
     <RouterSetup>
       <SentryRoute
         path={[join(DONATION_PAGE_SLUG, THANK_YOU_SLUG), THANK_YOU_SLUG]}
-        render={() => <TrackPageView component={GenericThankYou} />}
+        render={() => (
+          <TrackPageView>
+            <GenericThankYou />
+          </TrackPageView>
+        )}
       />
       <SentryRoute path={PAYMENT_SUCCESS} render={() => <PaymentSuccess />} />
       <SentryRoute path="/*/*/*" render={() => <ExtraneousURLRedirect />} />
       <SentryRoute
         path={[DONATION_PAGE_SLUG, '/']}
-        render={() => <TrackPageView component={LiveDonationPageContainer} />}
+        render={() => (
+          <TrackPageView>
+            <LiveDonationPageContainer />
+          </TrackPageView>
+        )}
       />
     </RouterSetup>
   );

@@ -269,16 +269,19 @@ LOGGING = {
     "filters": {
         "require_debug_false": {"()": "django.utils.log.RequireDebugFalse"},
         "request_id": {"()": "request_id.logging.RequestIdFilter"},
+        "classname": {"()": "revengine.logging.filters.ClassNameFilter"},
     },
     "formatters": {
-        "basic": {"format": "%(levelname)s request_id=%(request_id)s %(name)s:%(lineno)d - [%(funcName)s] %(message)s"}
+        "basic": {
+            "format": "%(levelname)s request_id=%(request_id)s %(name)s:%(lineno)d - %(classname)s[%(funcName)s] %(message)s"
+        }
     },
     "handlers": {
         "console": {
             "level": LOG_LEVEL,
             "class": "logging.StreamHandler",
             "formatter": "basic",
-            "filters": ["request_id"],
+            "filters": ["request_id", "classname"],
         },
         "null": {
             "class": "logging.NullHandler",

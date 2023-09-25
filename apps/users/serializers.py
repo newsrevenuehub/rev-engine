@@ -45,15 +45,6 @@ FISCAL_SPONSOR_NAME_NOT_PERMITTED_ERROR_MESSAGE = (
 )
 
 
-def get_active_flags_for_user(obj):
-    Flag = get_waffle_flag_model()
-    if obj.is_superuser:
-        qs = Flag.objects.filter(Q(superusers=True) | Q(everyone=True) | Q(users__in=[obj]))
-    else:
-        qs = Flag.objects.filter(Q(everyone=True) | Q(users__in=[obj]))
-    return list(qs.only("name", "id").distinct().values("name", "id"))
-
-
 class AuthedUserSerializer(serializers.Serializer):
     """This serializer is used to represent user data after users log in in api/v1/token."""
 
@@ -68,7 +59,12 @@ class AuthedUserSerializer(serializers.Serializer):
     role_type = serializers.ChoiceField(choices=Roles.choices, default=None, allow_null=True)
 
     def get_active_flags_for_user(self, obj) -> list[get_waffle_flag_model]:
-        return get_active_flags_for_user(obj)
+        Flag = get_waffle_flag_model()
+        if obj.is_superuser:
+            qs = Flag.objects.filter(Q(superusers=True) | Q(everyone=True) | Q(users__in=[obj]))
+        else:
+            qs = Flag.objects.filter(Q(everyone=True) | Q(users__in=[obj]))
+        return list(qs.only("name", "id").distinct().values("name", "id"))
 
 
 class UserSerializer(serializers.ModelSerializer):

@@ -205,12 +205,11 @@ class TokenObtainPairCookieView(simplejwt_views.TokenObtainPairView):
             },
             status=status.HTTP_200_OK,
         )
-        response = set_token_cookie(
+        return set_token_cookie(
             response,
             jwt_serializer.validated_data["access"],
             datetime.now() + settings.SIMPLE_JWT["ACCESS_TOKEN_LIFETIME"],
         )
-        return response
 
     def delete(self, request, *args, **kwargs):
         response = Response({})

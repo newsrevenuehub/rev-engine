@@ -1,13 +1,13 @@
-import * as S from './LiveErrorFallback.styled';
+import { Wrapper, FiveHundred, Description, Content } from './LiveErrorFallback.styled';
 
 function LiveErrorFallback() {
   return (
-    <S.LiveErrorFallback data-testid="500-something-wrong">
-      <S.Wrapper>
-        <S.FiveHundred>500</S.FiveHundred>
-        <S.Description>Something went really wrong. Use your browser's back button and try again.</S.Description>
-      </S.Wrapper>
-    </S.LiveErrorFallback>
+    <Wrapper data-testid="500-something-wrong">
+      <Content>
+        <FiveHundred>500</FiveHundred>
+        <Description>Something went really wrong. Use your browser's back button and try again.</Description>
+      </Content>
+    </Wrapper>
   );
 }
 

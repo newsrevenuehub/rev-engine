@@ -143,8 +143,6 @@ class PageViewSet(FilterForSuperUserOrRoleAssignmentUserMixin, RevisionMixin, vi
     def get_serializer_class(self):
         if self.action in ("partial_update", "create", "retrieve"):
             return serializers.DonationPageFullDetailSerializer
-        else:
-            return serializers.DonationPageListSerializer
 
     @method_decorator(ensure_csrf_cookie)
     @action(detail=False, methods=["get"], permission_classes=[], authentication_classes=[], url_path="live-detail")
@@ -221,13 +219,21 @@ class PageViewSet(FilterForSuperUserOrRoleAssignmentUserMixin, RevisionMixin, vi
         return Response(status=status.HTTP_204_NO_CONTENT)
 
     def list(self, request):
-        """List all pages for the current user.
+        """List all available pages for the current user.
 
-        If the user is a superuser, return all pages.
-        If the user is a hub admin, return all pages for the orgs and rps they are assigned to.
+        NB: This method assumes that any queryset filtering vis-a-vis user role and identity has
+        already done upstream in get_queryset.
+
+
+        We prefetch_related on revenue program because that makes the queries required for DonationPageListSerializer
+        to run much faster.
+
         """
-        serializer = self.get_serializer(self.get_queryset().prefetch_related("revenue_program"), many=True)
-        return Response(serializer.data)
+        serializer = serializers.DonationPageListSerializer
+        # serializer defines its own fields that can be passed to .only() in order to make queries mroe performant
+        qs = self.get_queryset().only(*serializer._ONLIES)
+        serialized = serializer(qs, many=True)
+        return Response(serialized.data)
 
 
 class StyleViewSet(FilterForSuperUserOrRoleAssignmentUserMixin, RevisionMixin, viewsets.ModelViewSet):

@@ -289,3 +289,30 @@ class MailchimpOauthSuccessSerializer(serializers.Serializer):
 class SendTestEmailSerializer(serializers.Serializer):
     email_name = serializers.CharField()
     revenue_program = serializers.IntegerField()
+
+
+class OrganizationSerializerForSpaUseUser(serializers.ModelSerializer):
+    """Expected use case is representing an organization inline in the user object that the useUser hook in the SPA's react
+    app uses.
+    """
+
+    plan = serializers.SerializerMethodField("get_plan")
+
+    class Meta:
+        model = Organization
+        fields = (
+            fields := [
+                "id",
+                "name",
+                "slug",
+                "plan",
+                "show_connected_to_slack",
+                "show_connected_to_salesforce",
+                "show_connected_to_mailchimp",
+                "send_receipt_email_via_nre",
+            ]
+        )
+        read_only_fields = fields
+
+    def get_plan(self, obj):
+        return asdict(obj.plan)

@@ -45,6 +45,9 @@ class StyleInlineSerializer(serializers.ModelSerializer):
         )
 
 
+# need to try not to have to use RevenueProgramInlineSerializer here if  possible
+
+
 class StyleListSerializer(StyleInlineSerializer):
     revenue_program = PresentablePrimaryKeyRelatedField(
         queryset=RevenueProgram.objects.all(),
@@ -431,19 +434,36 @@ class DonationPageFullDetailSerializer(serializers.ModelSerializer):
         return data
 
 
+DONATION_PAGE_LIST_FIELDS = (
+    "id",
+    "name",
+    "page_screenshot",
+    "slug",
+    "revenue_program",
+    "published_date",
+)
+
+
 class DonationPageListSerializer(serializers.ModelSerializer):
+    """Expected usage is representing lists of donation pages in api/v1/pages/
+
+    The primary consumer of this page at time of this comment is the SPA, and specifically
+    the pages list view in the org dashboard.
+
+    Note that at present, pagiation is not enabled for this serializer, and superusers and hub
+    admins get all pages as currently configured. See [DEV-4030](https://news-revenue-hub.atlassian.net/browse/DEV-4030) for
+    further discussion.
+    """
+
     revenue_program = RevenueProgramForDonationPageListSerializer()
+
+    # These are used in view layer db queries to reduce footprint.
+    _ONLIES = DONATION_PAGE_LIST_FIELDS
 
     class Meta:
         model = DonationPage
-        fields = [
-            "id",
-            "name",
-            "page_screenshot",
-            "slug",
-            "revenue_program",
-            "published_date",
-        ]
+        fields = DONATION_PAGE_LIST_FIELDS
+        read_only_fields = DONATION_PAGE_LIST_FIELDS
 
 
 class FontSerializer(serializers.ModelSerializer):

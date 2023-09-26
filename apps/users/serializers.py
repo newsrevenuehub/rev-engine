@@ -1,5 +1,4 @@
 import logging
-from dataclasses import asdict
 from typing import Any, Dict, TypedDict
 
 from django.conf import settings
@@ -23,7 +22,9 @@ from apps.organizations.models import (
 )
 from apps.organizations.serializers import (
     OrganizationInlineSerializer,
+    OrganizationSerializerForSpaUseUser,
     RevenueProgramInlineSerializer,
+    RevenueProgramInlineSerializerForAuthedUserSerializer,
 )
 from apps.users.choices import Roles
 from apps.users.constants import PASSWORD_MAX_LENGTH
@@ -45,27 +46,12 @@ FISCAL_SPONSOR_NAME_NOT_PERMITTED_ERROR_MESSAGE = (
 )
 
 
-class OrganizationSerializerForSpaUseUser(serializers.ModelSerializer):
-    plan = serializers.SerializerMethodField("get_plan")
-
-    class Meta:
-        model = Organization
-        fields = [
-            "id",
-            "name",
-            "slug",
-            "plan",
-            "show_connected_to_slack",
-            "show_connected_to_salesforce",
-            "show_connected_to_mailchimp",
-            "send_receipt_email_via_nre",
-        ]
-
-    def get_plan(self, obj):
-        return asdict(obj.plan)
-
-
+# TODO: [DEV-4031] Harmonize user serialization in /api/v1/users vs. /api/v1/token
 class UserSerializerForSpaUseUser(serializers.Serializer):
+    """Expected use is for representing the user when SPA (specifically its useUser hook) makes a GET
+    request to /api/v1/users/ (which we've configured to return a single user, the one making the request)
+    """
+
     id = serializers.IntegerField()
     accepted_terms_of_service = serializers.DateTimeField()
     role_type = serializers.ListField(child=serializers.CharField())
@@ -76,11 +62,32 @@ class UserSerializerForSpaUseUser(serializers.Serializer):
     revenue_programs = RevenueProgramInlineSerializer(many=True)
 
 
+class AuthedUserSerializer(serializers.Serializer):
+    """Expected use is for representing user in part of data returned in response to POST api/v1/token"""
+
+    # determine if this can be retired? Does front end not care about flags here and instead only from useUser?
+    flags = serializers.SerializerMethodField(method_name="get_active_flags_for_user")
+    email = serializers.EmailField()
+    id = serializers.CharField()
+    accepted_terms_of_service = serializers.DateTimeField()
+    email_verified = serializers.BooleanField()
+    # TODO: [DEV-3913] Remove this once no longer on model
+    organizations = OrganizationInlineSerializer(many=True, source="_organizations")
+    revenue_programs = RevenueProgramInlineSerializerForAuthedUserSerializer(many=True)
+    role_type = serializers.ChoiceField(choices=Roles.choices, default=None, allow_null=True)
+
+    def get_active_flags_for_user(self, obj) -> list[get_waffle_flag_model]:
+        Flag = get_waffle_flag_model()
+        if obj.is_superuser:
+            qs = Flag.objects.filter(Q(superusers=True) | Q(everyone=True) | Q(users__in=[obj]))
+        else:
+            qs = Flag.objects.filter(Q(everyone=True) | Q(users__in=[obj]))
+        return list(qs.only("name", "id").distinct().values("name", "id"))
+
+
 class UserSerializer(serializers.ModelSerializer):
     """
-    This is the serializer that is used to return user data back after successful login.
-    It returns a complete list of (pared-down) available Organizations and RevenuePrograms based on the user's
-    super_user status and RoleAssignment.
+    This serializer is used for creating and updating users.
     """
 
     role_type = serializers.SerializerMethodField(method_name="get_role_type")

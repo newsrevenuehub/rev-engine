@@ -32,6 +32,7 @@ export const Option = styled.div`
   display: flex;
   justify-content: space-between;
   padding: 10px 0 10px 15px;
+  word-wrap: anywhere;
 `;
 
 export const NewOptionButton = styled(ButtonBase)`

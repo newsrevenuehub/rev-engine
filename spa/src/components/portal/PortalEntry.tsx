@@ -38,10 +38,7 @@ function PortalEntry() {
               An email has been sent to you containing your magic link. Click on your magic link to view your
               contributions.
             </p>
-            <p>
-              <br />
-              (It's safe to close this tab)
-            </p>
+            <p style={{ marginTop: 5 }}>(It's safe to close this tab)</p>
           </Confirmation>
         ) : (
           <>

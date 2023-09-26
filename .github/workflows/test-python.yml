@@ -6,7 +6,35 @@ on:
     branches: [main, develop]
 
 jobs:
+  # Only run if Django code has changed
+  check-changes:
+    runs-on: ubuntu-latest
+    # Required permissions
+    permissions:
+      pull-requests: read
+    # Set job outputs to values from filter step
+    outputs:
+      django: ${{ steps.filter.outputs.django }}
+    steps:
+      - uses: actions/checkout@v3
+        with:
+          fetch-depth: 0
+      - uses: dorny/paths-filter@v2
+        id: filter
+        with:
+          filters: |
+            django:
+              - 'apps/**'
+              - 'public/**'
+              - 'revengine/**'
+              - 'conftest.py'
+              - 'manage.py'
+              - 'poetry.lock'
+              - 'pyproject.toml'
+              - 'pytest.ini'
   build_test_python:
+    needs: check-changes
+    if: ${{ needs['check-changes'].outputs.django == 'true' }}
     runs-on: ubuntu-latest
     services:
       postgres:

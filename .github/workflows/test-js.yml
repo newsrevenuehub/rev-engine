@@ -5,7 +5,28 @@ on:
     branches:
       - "*"
 jobs:
+  # Only run if SPA code has changed
+  check-changes:
+    runs-on: ubuntu-latest
+    # Required permissions
+    permissions:
+      pull-requests: read
+    # Set job outputs to values from filter step
+    outputs:
+      spa: ${{ steps.filter.outputs.spa }}
+    steps:
+      - uses: actions/checkout@v3
+        with:
+          fetch-depth: 0
+      - uses: dorny/paths-filter@v2
+        id: filter
+        with:
+          filters: |
+            spa:
+              - 'spa/**'
   js-test:
+    needs: check-changes
+    if: ${{ needs['check-changes'].outputs.spa == 'true' }}
     runs-on: ubuntu-latest
     permissions:
       pull-requests: write
@@ -41,6 +62,8 @@ jobs:
           repo-token: ${{ secrets.GITHUB_TOKEN }}
 
   cypress-test:
+    needs: check-changes
+    if: ${{ needs['check-changes'].outputs.spa == 'true' }}
     runs-on: ubuntu-latest
     strategy:
       # when one test fails, DO NOT cancel the other

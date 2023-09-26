@@ -18,8 +18,8 @@ from apps.organizations.serializers import (
     BenefitLevelDetailSerializer,
     PaymentProviderSerializer,
     RevenueProgramForDonationPageListSerializer,
+    RevenueProgramForPageDetailSerializer,
     RevenueProgramInlineSerializer,
-    RevenueProgramListInlineSerializer,
 )
 from apps.pages.models import PAGE_NAME_MAX_LENGTH, DonationPage, Font, Style
 
@@ -43,9 +43,6 @@ class StyleInlineSerializer(serializers.ModelSerializer):
             "name",
             "styles",
         )
-
-
-# need to try not to have to use RevenueProgramInlineSerializer here if  possible
 
 
 class StyleListSerializer(StyleInlineSerializer):
@@ -134,7 +131,7 @@ class DonationPageFullDetailSerializer(serializers.ModelSerializer):
     )
     revenue_program = PresentablePrimaryKeyRelatedField(
         queryset=RevenueProgram.objects.all(),
-        presentation_serializer=RevenueProgramListInlineSerializer,
+        presentation_serializer=RevenueProgramForPageDetailSerializer,
         read_source=None,
         allow_null=False,
         required=True,

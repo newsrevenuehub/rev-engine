@@ -41,22 +41,26 @@ class OrganizationSerializer(serializers.ModelSerializer):
         return representation
 
 
+_ORGANIZATION_INLINE_SERIALIZER_FIELDS = (
+    "id",
+    "name",
+    "plan",
+    "send_receipt_email_via_nre",
+    "show_connected_to_mailchimp",
+    "show_connected_to_salesforce",
+    "show_connected_to_slack",
+    "slug",
+    "uuid",
+)
+
+
 class OrganizationInlineSerializer(serializers.ModelSerializer):
     plan = serializers.SerializerMethodField()
 
     class Meta:
         model = Organization
-        fields = [
-            "id",
-            "uuid",
-            "name",
-            "slug",
-            "plan",
-            "show_connected_to_slack",
-            "show_connected_to_salesforce",
-            "show_connected_to_mailchimp",
-            "send_receipt_email_via_nre",
-        ]
+        fields = _ORGANIZATION_INLINE_SERIALIZER_FIELDS
+        read_only_fields = _ORGANIZATION_INLINE_SERIALIZER_FIELDS
 
     def get_plan(self, obj):
         return asdict(obj.plan)
@@ -68,6 +72,14 @@ class OrganizationPatchSerializer(serializers.ModelSerializer):
         fields = ["name"]
 
 
+_RP_FOR_DONATION_PAGE_LIST_SERIALIZER_FIELDS = (
+    "id",
+    "name",
+    "slug",
+    "default_donation_page",
+)
+
+
 class RevenueProgramForDonationPageListSerializer(serializers.ModelSerializer):
     """Narrowly used to serialize a revenue program in the DonationPageListSerializer
 
@@ -76,65 +88,53 @@ class RevenueProgramForDonationPageListSerializer(serializers.ModelSerializer):
 
     class Meta:
         model = RevenueProgram
-        fields = [
-            "id",
-            "name",
-            "slug",
-            "default_donation_page",
-        ]
+        fields = _RP_FOR_DONATION_PAGE_LIST_SERIALIZER_FIELDS
+        read_only_fields = _RP_FOR_DONATION_PAGE_LIST_SERIALIZER_FIELDS
 
 
-class RevenueProgramListInlineSerializer(serializers.ModelSerializer):
-    """
-    I am needed for Page creation. In particular, if "slug" is not provided,
-    the user is redirected to `/edit/undefined/page-slug` after page creation.
-    """
-
-    organization = OrganizationInlineSerializer()
+class RevenueProgramForPageDetailSerializer(serializers.ModelSerializer):
+    """Expected use case is as presentation serializer for the revenue_program field on DonationPageFullDetailSerializer"""
 
     class Meta:
         model = RevenueProgram
-        fields = [
-            "id",
-            "name",
-            "slug",
-            "twitter_handle",
-            "website_url",
-            "contact_email",
-            "google_analytics_v3_domain",
-            "google_analytics_v3_id",
-            "google_analytics_v4_id",
-            "facebook_pixel_id",
-            "organization",
-            "default_donation_page",
-        ]
+        fields = (
+            fields := _RP_FOR_DONATION_PAGE_LIST_SERIALIZER_FIELDS
+            + (
+                "contact_email",
+                "facebook_pixel_id",
+                "google_analytics_v3_domain",
+                "google_analytics_v3_id",
+                "google_analytics_v4_id",
+                "organization",
+                "twitter_handle",
+                "website_url",
+            )
+        )
+        read_only_fields = fields
 
 
-class RevenueProgramInlineSerializerForAuthedUserSerializer(serializers.ModelSerializer):
-    """Serializer used for representing revenue programs inline in AuthedUserSerializer...
+class RevenueProgramInlineSerializer(serializers.ModelSerializer):
+    """Relatively lightweight reprsentation of an RP
 
-    which is used to represent users in the api/v1/token authentication endpoint.
+    Used for for representing revenue programs inline in AuthedUserSerializer and
+    used in StyleListSerializer.
     """
 
     class Meta:
         model = RevenueProgram
-        fields = [
-            "id",
-            "name",
-            "slug",
-            "organization",
-            "payment_provider_stripe_verified",
-            "tax_id",
-            "fiscal_status",
-            "fiscal_sponsor_name",
-        ]
-
-
-class RevenueProgramInlineSerializer(RevenueProgramInlineSerializerForAuthedUserSerializer):
-    # TODO: [DEV-2738]: This is likely the cause of at least part of the N+1 and poor performance
-    # of api/v1/users. That endpoint serializers orgs using organizaioninline serializer, then seriales
-    # revenue programs using this serializer, which redundantly serializes the orgs.
-    organization = OrganizationInlineSerializer()
+        fields = (
+            fields := (
+                _RP_FOR_DONATION_PAGE_LIST_SERIALIZER_FIELDS
+                + (
+                    "fiscal_sponsor_name",
+                    "fiscal_status",
+                    "organization",
+                    "payment_provider_stripe_verified",
+                    "tax_id",
+                )
+            )
+        )
+        read_only_fields = fields
 
 
 class MailchimpRevenueProgramForSpaConfiguration(serializers.ModelSerializer):
@@ -289,30 +289,3 @@ class MailchimpOauthSuccessSerializer(serializers.Serializer):
 class SendTestEmailSerializer(serializers.Serializer):
     email_name = serializers.CharField()
     revenue_program = serializers.IntegerField()
-
-
-class OrganizationSerializerForSpaUseUser(serializers.ModelSerializer):
-    """Expected use case is representing an organization inline in the user object that the useUser hook in the SPA's react
-    app uses.
-    """
-
-    plan = serializers.SerializerMethodField("get_plan")
-
-    class Meta:
-        model = Organization
-        fields = (
-            fields := [
-                "id",
-                "name",
-                "slug",
-                "plan",
-                "show_connected_to_slack",
-                "show_connected_to_salesforce",
-                "show_connected_to_mailchimp",
-                "send_receipt_email_via_nre",
-            ]
-        )
-        read_only_fields = fields
-
-    def get_plan(self, obj):
-        return asdict(obj.plan)

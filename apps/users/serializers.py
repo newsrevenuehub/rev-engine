@@ -4,7 +4,6 @@ from typing import Any, Dict, TypedDict
 from django.conf import settings
 from django.contrib.auth import get_user_model
 from django.db import transaction
-from django.db.models import Q
 
 import reversion
 from rest_framework import serializers
@@ -22,9 +21,7 @@ from apps.organizations.models import (
 )
 from apps.organizations.serializers import (
     OrganizationInlineSerializer,
-    OrganizationSerializerForSpaUseUser,
     RevenueProgramInlineSerializer,
-    RevenueProgramInlineSerializerForAuthedUserSerializer,
 )
 from apps.users.choices import Roles
 from apps.users.constants import PASSWORD_MAX_LENGTH
@@ -47,108 +44,71 @@ FISCAL_SPONSOR_NAME_NOT_PERMITTED_ERROR_MESSAGE = (
 
 
 # TODO: [DEV-4031] Harmonize user serialization in /api/v1/users vs. /api/v1/token
-class UserSerializerForSpaUseUser(serializers.Serializer):
-    """Expected use is for representing the user when SPA (specifically its useUser hook) makes a GET
-    request to /api/v1/users/ (which we've configured to return a single user, the one making the request)
-    """
+class FlagSerializer(serializers.ModelSerializer):
+    """Serializer for waffle.Flag"""
 
-    id = serializers.IntegerField()
-    accepted_terms_of_service = serializers.DateTimeField()
-    role_type = serializers.ListField(child=serializers.CharField())
-    email = serializers.EmailField()
-    email_verified = serializers.BooleanField()
-    flags = serializers.ListField()
-    organizations = OrganizationSerializerForSpaUseUser(many=True)
-    revenue_programs = RevenueProgramInlineSerializer(many=True)
+    class Meta:
+        model = get_waffle_flag_model()
+        fields = (
+            fields := (
+                "id",
+                "name",
+            )
+        )
+        read_only_fields = fields
 
 
-class AuthedUserSerializer(serializers.Serializer):
+_AUTHED_USER_FIELDS = (
+    "accepted_terms_of_service",
+    "email",
+    "email_verified",
+    "flags",
+    "id",
+    "organizations",
+    "revenue_programs",
+    "role_type",
+)
+
+
+class AuthedUserSerializer(serializers.ModelSerializer):
     """Expected use is for representing user in part of data returned in response to POST api/v1/token"""
 
-    # determine if this can be retired? Does front end not care about flags here and instead only from useUser?
-    flags = serializers.SerializerMethodField(method_name="get_active_flags_for_user")
-    email = serializers.EmailField()
-    id = serializers.CharField()
     accepted_terms_of_service = serializers.DateTimeField()
+    email = serializers.EmailField()
     email_verified = serializers.BooleanField()
-    # TODO: [DEV-3913] Remove this once no longer on model
-    organizations = OrganizationInlineSerializer(many=True, source="_organizations")
-    revenue_programs = RevenueProgramInlineSerializerForAuthedUserSerializer(many=True)
+    flags = FlagSerializer(many=True, source="active_flags")
+    id = serializers.CharField()
+    organizations = serializers.SerializerMethodField("get_orgs", default=[])
+    revenue_programs = serializers.SerializerMethodField("get_revenue_programs", default=[])
     role_type = serializers.ChoiceField(choices=Roles.choices, default=None, allow_null=True)
 
-    def get_active_flags_for_user(self, obj) -> list[get_waffle_flag_model]:
-        Flag = get_waffle_flag_model()
-        if obj.is_superuser:
-            qs = Flag.objects.filter(Q(superusers=True) | Q(everyone=True) | Q(users__in=[obj]))
-        else:
-            qs = Flag.objects.filter(Q(everyone=True) | Q(users__in=[obj]))
-        return list(qs.only("name", "id").distinct().values("name", "id"))
+    class Meta:
+        model = get_user_model()
+        fields = _AUTHED_USER_FIELDS
+        read_only_fields = _AUTHED_USER_FIELDS
+
+    def get_orgs(self, obj):
+        return OrganizationInlineSerializer(
+            obj.permitted_organizations,
+            many=True,
+        ).data
+
+    def get_revenue_programs(self, obj):
+        return RevenueProgramInlineSerializer(
+            obj.permitted_revenue_programs.prefetch_related("payment_provider"), many=True
+        ).data
 
 
-class UserSerializer(serializers.ModelSerializer):
+class MutableUserSerializer(AuthedUserSerializer, serializers.ModelSerializer):
     """
     This serializer is used for creating and updating users.
     """
 
-    role_type = serializers.SerializerMethodField(method_name="get_role_type")
-    organizations = serializers.SerializerMethodField(method_name="get_permitted_organizations")
-    revenue_programs = serializers.SerializerMethodField(method_name="get_permitted_revenue_programs")
-    flags = serializers.SerializerMethodField(method_name="get_active_flags_for_user")
     password = serializers.CharField(write_only=True, max_length=PASSWORD_MAX_LENGTH, required=True)
     email = serializers.EmailField(
         validators=[UniqueValidator(queryset=get_user_model().objects.all(), lookup="icontains")], required=True
     )
     accepted_terms_of_service = serializers.DateTimeField(required=True)
-
-    def get_role_type(self, obj):
-        # `obj` will be a dict of data when serializer being used in create view
-        if not isinstance(obj, get_user_model()):
-            return None
-        return obj.get_role_type()
-
-    def get_permitted_organizations(self, obj):
-        # `obj` will be a dict of data when serializer being used in create view
-        if not isinstance(obj, get_user_model()):
-            return []
-        qs = Organization.objects.all()
-        role_assignment = obj.get_role_assignment()
-        if not role_assignment and not obj.is_superuser:
-            qs = qs.none()
-        elif role_assignment and role_assignment.role_type != Roles.HUB_ADMIN:
-            org = getattr(role_assignment, "organization", None)
-            if org is None:
-                qs = qs.none()
-            else:
-                qs = qs.filter(pk=org.pk)
-        serializer = OrganizationInlineSerializer(qs, many=True)
-        return serializer.data
-
-    def get_permitted_revenue_programs(self, obj):
-        # `obj` will be a dict of data when serializer being used in create view
-        if not isinstance(obj, get_user_model()):
-            return []
-        qs = RevenueProgram.objects.all()
-        role_assignment = obj.get_role_assignment()
-        if not role_assignment and not obj.is_superuser:
-            qs = qs.none()
-        elif not obj.is_superuser and role_assignment.role_type != Roles.HUB_ADMIN:
-            if role_assignment.role_type == Roles.ORG_ADMIN:
-                qs = role_assignment.organization.revenueprogram_set.all()
-            elif role_assignment.role_type == Roles.RP_ADMIN:
-                qs = role_assignment.revenue_programs
-        serializer = RevenueProgramInlineSerializer(qs, many=True)
-        return serializer.data
-
-    def get_active_flags_for_user(self, obj):
-        # `obj` will be a dict of data when serializer being used in create view
-        if not isinstance(obj, get_user_model()):
-            return []
-        Flag = get_waffle_flag_model()
-        if obj.is_superuser:
-            qs = Flag.objects.filter(Q(superusers=True) | Q(everyone=True) | Q(users__in=[obj]))
-        else:
-            qs = Flag.objects.filter(Q(everyone=True) | Q(users__in=[obj]))
-        return list(qs.values("name", "id"))
 
     def create(self, validated_data):
         """We manually handle create step because password needs to be set with `set_password`"""
@@ -189,25 +149,7 @@ class UserSerializer(serializers.ModelSerializer):
 
     class Meta:
         model = get_user_model()
-        fields = [
-            "id",
-            "accepted_terms_of_service",
-            "email",
-            "email_verified",
-            "flags",
-            "organizations",
-            "revenue_programs",
-            "role_type",
-            "password",
-        ]
-        read_only_fields = [
-            "id",
-            "email_verified",
-            "flags",
-            "organizations",
-            "revenue_programs",
-            "role_type",
-        ]
+        fields = _AUTHED_USER_FIELDS + ("password",)
 
 
 class CustomizeAccountSerializerReturnValue(TypedDict):

@@ -1,10 +1,13 @@
 import logging
+from enum import Enum
 
 from django.conf import settings
 from django.contrib.auth.models import AbstractBaseUser, PermissionsMixin
 from django.core.exceptions import ValidationError
 from django.db import models
 from django.utils.translation import ugettext_lazy as _
+
+from waffle import get_waffle_flag_model
 
 from apps.common.models import IndexedTimeStampedModel
 from apps.users.managers import UserManager
@@ -14,6 +17,16 @@ from .constants import FIRST_NAME_MAX_LENGTH, JOB_TITLE_MAX_LENGTH, LAST_NAME_MA
 
 
 logger = logging.getLogger(f"{settings.DEFAULT_LOGGER}.{__name__}")
+
+
+# note on this duplication
+class RoleTypeReturnValues(Enum):
+    """Return values for `RoleAssignment.role_type`"""
+
+    HUB_ADMIN = "hub_admin", "Hub Admin"
+    ORG_ADMIN = "org_admin", "Org Admin"
+    RP_ADMIN = "rp_admin", "RP Admin"
+    SUPERUSER = "superuser", "Superuser"
 
 
 class User(AbstractBaseUser, PermissionsMixin, IndexedTimeStampedModel):
@@ -52,11 +65,12 @@ class User(AbstractBaseUser, PermissionsMixin, IndexedTimeStampedModel):
         except self.__class__.roleassignment.RelatedObjectDoesNotExist:
             return None
 
-    def get_role_type(self):
+    @property
+    def role_type(self) -> RoleTypeReturnValues:
         if self.is_superuser:
             return ("superuser", "Superuser")
-        role_assignment = self.get_role_assignment()
-        return (role_assignment.role_type, role_assignment.get_role_type_display()) if role_assignment else None
+        ra = self.get_role_assignment()
+        return (ra.role_type, ra.get_role_type_display()) if ra else None
 
     def validate_unique(self, exclude) -> None:
         # we sidestep default unique validation for the email field
@@ -77,33 +91,47 @@ class User(AbstractBaseUser, PermissionsMixin, IndexedTimeStampedModel):
             )
             raise ValidationError("User with this Email already exists.", code="unique_together")
 
-    @classmethod
-    def get_permitted_organizations_and_revenue_programs(
-        cls, user, org_onlies: list[str] = None, rp_onlies: list[str] = None
-    ) -> (models.QuerySet, models.QuerySet):
-        from apps.organizations.models import Organization, RevenueProgram  # avoid circular import
-
-        ra_org_onlies = [f"organization__{x}" for x in org_onlies] if org_onlies else None
-        ra_rp_onlies = [f"revenue_programs__{x}" for x in rp_onlies] if rp_onlies else None
-        try:
-            ra = (
-                RoleAssignment.objects.only(*(ra_org_onlies + ra_rp_onlies)).get(user=user)
-                if ra_org_onlies or ra_rp_onlies
-                else RoleAssignment.objects.get(user=user)
-            )
-        except RoleAssignment.DoesNotExist:
-            ra = None
-
-        if user.is_superuser or (ra and ra.role_type == Roles.HUB_ADMIN):
-            orgs = Organization.objects.all() if org_onlies is None else Organization.objects.only(*org_onlies)
-            rps = RevenueProgram.objects.all() if rp_onlies is None else RevenueProgram.objects.only(*rp_onlies)
-            return orgs, rps
-        if not ra:
-            return Organization.objects.none(), RevenueProgram.objects.none()
+    @property
+    def active_flags(self) -> models.QuerySet:
+        """ """
+        Flag = get_waffle_flag_model()
         return (
-            [ra.organization],
-            ra.revenue_programs.all(),
+            Flag.objects.filter(models.Q(superusers=True) | models.Q(everyone=True) | models.Q(users__in=[self]))
+            if self.is_superuser
+            else Flag.objects.filter(models.Q(everyone=True) | models.Q(users__in=[self]))
         )
+
+    @property
+    def permitted_organizations(
+        self,
+    ) -> models.QuerySet["organizations.Organization"]:
+        from apps.organizations.models import Organization
+
+        if self.is_superuser:
+            return Organization.objects.all()
+        try:
+            ra = self.roleassignment
+        except RoleAssignment.DoesNotExist:
+            return Organization.objects.none()
+
+        if ra.role_type == Roles.HUB_ADMIN:
+            return Organization.objects.all()
+
+        return Organization.objects.filter(id=ra.organization.id)
+
+    @property
+    def permitted_revenue_programs(self) -> models.QuerySet["organizations.RevenueProgram"]:
+        from apps.organizations.models import RevenueProgram
+
+        if self.is_superuser:
+            return RevenueProgram.objects.all()
+        try:
+            ra = self.roleassignment
+        except RoleAssignment.DoesNotExist:
+            return RevenueProgram.objects.none()
+        if ra.role_type == Roles.HUB_ADMIN:
+            return RevenueProgram.objects.all()
+        return ra.revenue_programs.all()
 
     def __str__(self):
         return self.email

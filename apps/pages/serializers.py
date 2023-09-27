@@ -280,7 +280,7 @@ class DonationPageFullDetailSerializer(serializers.ModelSerializer):
             )
         return value
 
-    def valiate_locale(self, value):
+    def validate_locale(self, value):
         if value not in LOCALE_MAP:
             raise serializers.ValidationError({"locale": f"Invalid locale: {value}"})
         return value

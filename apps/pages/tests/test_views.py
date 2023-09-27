@@ -76,6 +76,11 @@ def page_creation_data_valid_no_name(page_creation_data_valid):
 
 
 @pytest.fixture
+def page_creation_data_invalid_untracked_locale(page_creation_data_valid):
+    return page_creation_data_valid | {"locale": "fr"}
+
+
+@pytest.fixture
 def page_creation_invalid_non_unique_slug_for_rp(page_creation_data_valid, live_donation_page):
     live_donation_page.revenue_program_id = page_creation_data_valid["revenue_program"]
     live_donation_page.save()
@@ -134,6 +139,11 @@ def page_update_data_invalid_non_unique_slug_for_rp(live_donation_page):
 )
 def page_update_data_with_invalid_slug(request):
     return request.getfixturevalue(request.param)
+
+
+@pytest.fixture
+def page_update_data_with_invalid_locale():
+    return {"locale": "fr"}
 
 
 @pytest.fixture
@@ -563,6 +573,16 @@ class TestPageViewSet:
         assert response.status_code == status.HTTP_400_BAD_REQUEST
         assert "slug" in response.json()
 
+    def test_create_page_when_invalid_locale(
+        self, hub_admin_user, page_creation_data_invalid_untracked_locale, api_client
+    ):
+        api_client.force_authenticate(hub_admin_user)
+        response = api_client.post(
+            reverse("donationpage-list"), data=page_creation_data_invalid_untracked_locale, format="json"
+        )
+        assert response.status_code == status.HTTP_400_BAD_REQUEST
+        assert "locale" in response.json()
+
     def assert_retrieved_page_detail_looks_right(self, serialized_data, page):
         """"""
         assert serialized_data == json.loads(json.dumps(DonationPageFullDetailSerializer(page).data))
@@ -984,6 +1004,18 @@ class TestPageViewSet:
         )
         assert response.status_code == status.HTTP_400_BAD_REQUEST
         assert "slug" in response.json()
+
+    def test_patch_when_invalid_locale(
+        self, superuser, api_client, live_donation_page, page_update_data_with_invalid_locale
+    ):
+        api_client.force_authenticate(superuser)
+        response = api_client.patch(
+            reverse("donationpage-detail", args=(live_donation_page.id,)),
+            data=page_update_data_with_invalid_locale,
+            format="json",
+        )
+        assert response.status_code == status.HTTP_400_BAD_REQUEST
+        assert "locale" in response.json()
 
     def test_patch_when_already_sidebar_elements_edge_case(
         self,

@@ -15,6 +15,20 @@ export function SwagEditor({ elementContent, onChangeElementContent, setUpdateDi
   const [editableSwagName, setEditableSwagName] = useState(elementContent.swags[0]?.swagName ?? '');
   const [swagNameError, setSwagNameError] = useState<string>();
 
+  // If the user has entered swag options but not a label, flag that.
+
+  useEffect(() => {
+    if (
+      elementContent.swags.length > 0 &&
+      elementContent.swags[0].swagName.trim() === '' &&
+      elementContent.swags[0].swagOptions.length > 0
+    ) {
+      setSwagNameError('You must enter a selection label.');
+    }
+  }, [elementContent.swags]);
+
+  // If there are any validation errors, disable the Update button.
+
   useEffect(() => {
     setUpdateDisabled(!!thresholdError || !!swagNameError);
   }, [setUpdateDisabled, swagNameError, thresholdError]);

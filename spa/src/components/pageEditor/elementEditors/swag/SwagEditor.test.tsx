@@ -169,6 +169,34 @@ describe('SwagEditor', () => {
       });
     });
 
+    describe('When the swag name is empty', () => {
+      it('shows an error message and disables updates if there are swag choices defined', () => {
+        const setUpdateDisabled = jest.fn();
+
+        tree({
+          setUpdateDisabled,
+          elementContent: { ...mockElementContent, swags: [{ swagName: '', swagOptions: ['one'] }] }
+        });
+
+        expect(screen.getByTestId('mock-swag-options').dataset.swagNameError).toBe('You must enter a selection label.');
+
+        // First false is the initial render.
+        expect(setUpdateDisabled.mock.calls).toEqual([[false], [true]]);
+      });
+
+      it("doesn't show an error message and enables updates if there are no swag choices defined", () => {
+        const setUpdateDisabled = jest.fn();
+
+        tree({
+          setUpdateDisabled,
+          elementContent: { ...mockElementContent, swags: [{ swagName: '', swagOptions: [] }] }
+        });
+
+        expect(screen.getByTestId('mock-swag-options').dataset.swagNameError).toBeUndefined();
+        expect(setUpdateDisabled.mock.calls).toEqual([[false]]);
+      });
+    });
+
     it('adds an option to the first swag when added by the user', () => {
       const onChangeElementContent = jest.fn();
 

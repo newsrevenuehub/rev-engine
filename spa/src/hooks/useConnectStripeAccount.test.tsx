@@ -6,7 +6,8 @@ import axios from 'ajax/axios';
 import { getStripeAccountLinkStatusPath } from 'ajax/endpoints';
 import useUser from 'hooks/useUser';
 import useConnectStripeAccount, { StripeAccountLinkStatusResponse } from './useConnectStripeAccount';
-import { User, UserRevenueProgram } from './useUser.types';
+import { User } from './useUser.types';
+import { RevenueProgram } from './useContributionPage';
 import { useHistory } from 'react-router-dom';
 import { SIGN_IN } from 'routes';
 
@@ -42,7 +43,7 @@ const mockUser: User = {
       slug: 'mock-org-slug'
     }
   ],
-  revenue_programs: [mockRp as UserRevenueProgram],
+  revenue_programs: [mockRp as RevenueProgram],
   role_type: ['org_admin', 'Org Admin']
 } as any;
 
@@ -95,7 +96,7 @@ describe('useConnectStripeAccount hook', () => {
         refetch: jest.fn(),
         user: {
           ...mockUser,
-          revenue_programs: [{ ...mockRp, payment_provider_stripe_verified: false } as UserRevenueProgram]
+          revenue_programs: [{ ...mockRp, payment_provider_stripe_verified: false } as RevenueProgram]
         }
       });
     });
@@ -198,7 +199,7 @@ describe('useConnectStripeAccount hook', () => {
         refetch: jest.fn(),
         user: {
           ...mockUser,
-          revenue_programs: [{ ...mockRp, payment_provider_stripe_verified: true } as UserRevenueProgram]
+          revenue_programs: [{ ...mockRp, payment_provider_stripe_verified: true } as RevenueProgram]
         }
       });
     });

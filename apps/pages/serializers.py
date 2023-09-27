@@ -301,6 +301,13 @@ class DonationPageFullDetailSerializer(serializers.ModelSerializer):
             revenue_program__organization=(org := data["revenue_program"].organization),
             locale=(locale.code),
         ).count() + 1 > (pl := org.plan.page_limit):
+            logger.debug(
+                "DonationPageFullDetailSerializer.validate_page_limit raising ValidationError because org (%s) has reached limit of %s %s page{%s}",
+                org.id,
+                pl,
+                locale.adjective,
+                "s" if pl > 1 else "",
+            )
             raise serializers.ValidationError(
                 {
                     "non_field_errors": [

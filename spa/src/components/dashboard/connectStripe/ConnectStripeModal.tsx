@@ -18,11 +18,11 @@ export interface ConnectStripeModalProps extends InferProps<typeof ConnectStripe
 
 export function ConnectStripeModal({ onClose, onConnectStripe, open }: ConnectStripeModalProps) {
   return (
-    <Modal open={open} aria-labelledby="Connect Stripe Modal">
+    <Modal open={open} aria-labelledby="connect-stripe-modal-header">
       <Root data-testid="connect-stripe-modal">
         <OffscreenText>Step 2 of 2</OffscreenText>
         <img src={StripeLogo} alt="Stripe" />
-        <Heading>Set Up Payment Processor</Heading>
+        <Heading id="connect-stripe-modal-header">Set Up Payment Processor</Heading>
         <Description>
           To accept contributions, you'll need to set up a payment processor. We use Stripe because it's speedy and
           secure. Create and connect to a Stripe account in one easy step.

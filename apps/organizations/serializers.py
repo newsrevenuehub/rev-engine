@@ -95,6 +95,8 @@ class RevenueProgramForDonationPageListSerializer(serializers.ModelSerializer):
 class RevenueProgramForPageDetailSerializer(serializers.ModelSerializer):
     """Expected use case is as presentation serializer for the revenue_program field on DonationPageFullDetailSerializer"""
 
+    organization = OrganizationInlineSerializer()
+
     class Meta:
         model = RevenueProgram
         fields = (

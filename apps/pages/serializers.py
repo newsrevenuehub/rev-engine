@@ -344,10 +344,11 @@ class DonationPageFullDetailSerializer(serializers.ModelSerializer):
             revenue_program__organization=org,
             locale=locale.code,
         ).count() + offset > (pl := org.plan.publish_limit):
-            logger.info(
-                "DonationPageFullDetailSerializer.validate_publish_limit raising ValidationError because org (%s) has reached its publish limit for %s",
+            logger.debug(
+                "DonationPageFullDetailSerializer.validate_publish_limit raising ValidationError because org (%s) has reached its publish limit for %s page{%s}}",
                 org.id,
                 locale.adjective,
+                "s" if pl > 1 else "",
             )
             raise serializers.ValidationError(
                 {

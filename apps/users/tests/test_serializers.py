@@ -1,8 +1,13 @@
+import datetime
+
 from django.contrib.auth import get_user_model
 
+import dateparser
 import pytest
 import pytest_cases
+import pytz
 from rest_framework.serializers import ValidationError
+from rest_framework.test import APIRequestFactory
 
 from apps.organizations.models import (
     FISCAL_SPONSOR_NAME_MAX_LENGTH,
@@ -91,9 +96,12 @@ class TestCustomizeAccountSerializer:
         assert serializer.validated_data["organization_name"] == new_name
         mock_super_save.assert_called_once()
 
-    def test_create_override(self, valid_customize_account_data, user_no_role_assignment, mocker):
-        mocker.patch("apps.users.serializers.CustomizeAccountSerializer.context", {"user": user_no_role_assignment})
-        user_save_spy = mocker.spy(user_no_role_assignment, "save")
+    def test_create_override(self, valid_customize_account_data, user_with_verified_email_and_tos_accepted, mocker):
+        mocker.patch(
+            "apps.users.serializers.CustomizeAccountSerializer.context",
+            {"user": user_with_verified_email_and_tos_accepted},
+        )
+        user_save_spy = mocker.spy(user_with_verified_email_and_tos_accepted, "save")
         mock_set_comment = mocker.patch("reversion.set_comment")
         serializer = serializers.CustomizeAccountSerializer()
         result = serializer.create(
@@ -172,7 +180,7 @@ class TestAuthedUserSerializer:
             pytest_cases.fixture_ref("hub_admin_user"),
             pytest_cases.fixture_ref("org_user_free_plan"),
             pytest_cases.fixture_ref("rp_user"),
-            pytest_cases.fixture_ref("user_no_role_assignment"),
+            pytest_cases.fixture_ref("user_with_verified_email_and_tos_accepted"),
         ),
     )
     def test_has_expected_fields_and_values(self, user):
@@ -187,7 +195,10 @@ class TestAuthedUserSerializer:
             "revenue_programs",
             "role_type",
         }
-        assert data["accepted_terms_of_service"] == user.accepted_terms_of_service
+        if user.accepted_terms_of_service:
+            assert dateparser.parse(data["accepted_terms_of_service"]) == pytz.utc.localize(
+                user.accepted_terms_of_service
+            )
         assert data["email"] == user.email
         assert data["email_verified"] == user.email_verified
         assert data["id"] == str(user.id)
@@ -213,34 +224,276 @@ def valid_create_data_for_muteable_user_serializer():
     return {
         "email": "foo@bar.com",
         "password": "supersecurepassword199719997!!!",
-        "accepted_terms_of_service": True,
+        "accepted_terms_of_service": datetime.datetime.utcnow(),
     }
 
 
 @pytest.fixture
-def invalid_create_data_for_muteable_user_serializer():
-    # do trick where this refers to earlier more specific serializers
-    pass
+def invalid_create_data_for_muteable_user_serializer_no_password(valid_create_data_for_muteable_user_serializer):
+    data = {**valid_create_data_for_muteable_user_serializer}
+    del data["password"]
+    return data
+
+
+@pytest.fixture
+def invalid_create_data_for_muteable_user_serializer_password_null(valid_create_data_for_muteable_user_serializer):
+    return {**valid_create_data_for_muteable_user_serializer, "password": None}
+
+
+@pytest.fixture
+def invalid_create_data_for_muteable_user_serializer_password_empty_string(
+    valid_create_data_for_muteable_user_serializer,
+):
+    return {**valid_create_data_for_muteable_user_serializer, "password": ""}
+
+
+@pytest.fixture
+def invalid_create_data_for_muteable_user_serializer_password_too_short(
+    valid_create_data_for_muteable_user_serializer,
+):
+    return {**valid_create_data_for_muteable_user_serializer, "password": "a" * 7}
+
+
+@pytest.fixture(
+    params=[
+        "invalid_create_data_for_muteable_user_serializer_no_password",
+        "invalid_create_data_for_muteable_user_serializer_password_null",
+        "invalid_create_data_for_muteable_user_serializer_password_empty_string",
+        "invalid_create_data_for_muteable_user_serializer_password_too_short",
+    ]
+)
+def invalid_create_data_for_muteable_user_serializer_because_of_password(request):
+    return request.getfixturevalue(request.param)
+
+
+@pytest.fixture
+def invalid_create_data_for_muteable_user_serializer_no_email_field(valid_create_data_for_muteable_user_serializer):
+    data = {**valid_create_data_for_muteable_user_serializer}
+    del data["email"]
+    return data
+
+
+@pytest.fixture
+def invalid_create_data_for_muteable_user_serializer_email_null(valid_create_data_for_muteable_user_serializer):
+    return {**valid_create_data_for_muteable_user_serializer, "email": None}
+
+
+@pytest.fixture
+def invalid_create_data_for_muteable_user_serializer_email_empty_string(
+    valid_create_data_for_muteable_user_serializer,
+):
+    return {**valid_create_data_for_muteable_user_serializer, "email": ""}
+
+
+@pytest.fixture
+def invalid_create_data_for_muteable_user_serializer_email_invalid(valid_create_data_for_muteable_user_serializer):
+    return {**valid_create_data_for_muteable_user_serializer, "email": "not-email-address1111"}
+
+
+@pytest.fixture
+def invalid_create_data_for_muteable_user_serializer_email_taken(
+    valid_create_data_for_muteable_user_serializer, user_with_verified_email_and_tos_accepted
+):
+    return {**valid_create_data_for_muteable_user_serializer, "email": user_with_verified_email_and_tos_accepted.email}
+
+
+@pytest.fixture(
+    params=[
+        "invalid_create_data_for_muteable_user_serializer_no_email_field",
+        "invalid_create_data_for_muteable_user_serializer_email_null",
+        "invalid_create_data_for_muteable_user_serializer_email_empty_string",
+        "invalid_create_data_for_muteable_user_serializer_email_invalid",
+        "invalid_create_data_for_muteable_user_serializer_email_taken",
+    ],
+)
+def invalid_create_data_for_muteable_user_serializer_because_of_email(request):
+    return request.getfixturevalue(request.param)
+
+
+@pytest.fixture(
+    params=[
+        "invalid_create_data_for_muteable_user_serializer_email_null",
+        "invalid_create_data_for_muteable_user_serializer_email_empty_string",
+        "invalid_create_data_for_muteable_user_serializer_email_invalid",
+        "invalid_create_data_for_muteable_user_serializer_email_taken",
+    ]
+)
+def invalid_update_data_for_muteable_user_serializer_because_of_email(request):
+    return {"email": request.getfixturevalue(request.param)["email"]}
+
+
+@pytest.fixture(
+    params=[
+        "invalid_create_data_for_muteable_user_serializer_password_null",
+        "invalid_create_data_for_muteable_user_serializer_password_empty_string",
+        "invalid_create_data_for_muteable_user_serializer_password_too_short",
+    ]
+)
+def invalid_update_data_for_muteable_user_serializer_because_of_password(request):
+    return {"password": request.getfixturevalue(request.param)["password"]}
+
+
+@pytest.fixture
+def invalid_update_data_for_muteable_user_serializer_because_of_accepted_tos():
+    return {"accepted_terms_of_service": None}
+
+
+@pytest.fixture
+def invalid_create_data_for_muteable_user_serializer_accepted_tos_missing(
+    valid_create_data_for_muteable_user_serializer,
+):
+    data = {**valid_create_data_for_muteable_user_serializer}
+    del data["accepted_terms_of_service"]
+    return data
+
+
+@pytest.fixture
+def valid_update_data_for_muteable_user_serializer_email_field(valid_create_data_for_muteable_user_serializer):
+    assert valid_create_data_for_muteable_user_serializer["email"] != (email := "bizz@bang.com")
+    return {
+        "email": email,
+    }
+
+
+@pytest.fixture
+def valid_update_data_for_muteable_user_serializer_password_field(valid_create_data_for_muteable_user_serializer):
+    return {"password": valid_create_data_for_muteable_user_serializer["password"][::-1]}
+
+
+@pytest.fixture
+def valid_update_data_for_muteable_user_serializer_accepted_tos_field(valid_create_data_for_muteable_user_serializer):
+    return {
+        "accepted_terms_of_service": valid_create_data_for_muteable_user_serializer["accepted_terms_of_service"]
+        + datetime.timedelta(days=1)
+    }
+
+
+@pytest.fixture
+def valid_update_data_all_fields(
+    valid_update_data_for_muteable_user_serializer_email_field,
+    valid_update_data_for_muteable_user_serializer_password_field,
+    valid_update_data_for_muteable_user_serializer_accepted_tos_field,
+):
+    return (
+        valid_update_data_for_muteable_user_serializer_email_field
+        | valid_update_data_for_muteable_user_serializer_password_field
+        | valid_update_data_for_muteable_user_serializer_accepted_tos_field
+    )
+
+
+@pytest.fixture(
+    params=[
+        "valid_update_data_for_muteable_user_serializer_email_field",
+        "valid_update_data_for_muteable_user_serializer_password_field",
+        "valid_update_data_for_muteable_user_serializer_accepted_tos_field",
+        "valid_update_data_all_fields",
+    ]
+)
+def valid_update_data(request):
+    return request.getfixturevalue(request.param)
 
 
 @pytest.mark.django_db
 class TestMutableUserSerializer:
-    @pytest_cases.parametrize(
-        "user",
-        (
-            pytest_cases.fixture_ref("superuser"),
-            pytest_cases.fixture_ref("hub_admin_user"),
-            pytest_cases.fixture_ref("org_user_free_plan"),
-            pytest_cases.fixture_ref("rp_user"),
-            pytest_cases.fixture_ref("user_no_role_assignment"),
-        ),
-    )
-    def test_create(self):
-        # result looks as expected
-        pass
+    def test_create_when_valid_data(self, valid_create_data_for_muteable_user_serializer):
+        serializer = serializers.MutableUserSerializer(data=valid_create_data_for_muteable_user_serializer)
+        assert serializer.is_valid()
+        # we ** the dict here because the value here appears gets passed by reference and mutated by serializer in create
+        # and we want to be able to assert vs. its initial state
+        user = serializer.create({**valid_create_data_for_muteable_user_serializer})
+        assert user.email == valid_create_data_for_muteable_user_serializer["email"]
+        assert user.check_password(valid_create_data_for_muteable_user_serializer["password"])
+        assert (
+            user.accepted_terms_of_service
+            == valid_create_data_for_muteable_user_serializer["accepted_terms_of_service"]
+        )
 
-    def test_update(self):
-        pass
+    def test_create_when_invalid_password_data(self, invalid_create_data_for_muteable_user_serializer):
+        serializer = serializers.MutableUserSerializer(data=invalid_create_data_for_muteable_user_serializer)
+        assert not serializer.is_valid()
+        assert "password" in serializer.errors
+
+    def test_create_when_invalid_email_data(self, invalid_create_data_for_muteable_user_serializer_because_of_email):
+        serializer = serializers.MutableUserSerializer(
+            data=invalid_create_data_for_muteable_user_serializer_because_of_email
+        )
+        assert not serializer.is_valid()
+        assert "email" in serializer.errors
+
+    def test_create_when_missing_accepted_tos(self, invalid_create_data_for_muteable_user_serializer_no_accepted_tos):
+        serializer = serializers.MutableUserSerializer(
+            data=invalid_create_data_for_muteable_user_serializer_no_accepted_tos
+        )
+        assert not serializer.is_valid()
+        assert "accepted_terms_of_service" in serializer.errors
+
+    def test_update_when_valid(self, valid_update_data, user_with_verified_email_and_tos_accepted):
+        assert user_with_verified_email_and_tos_accepted.email_verified is True
+        request = APIRequestFactory().patch("/")
+        serializer = serializers.MutableUserSerializer(
+            instance=user_with_verified_email_and_tos_accepted, data=valid_update_data, context={"request": request}
+        )
+        assert serializer.is_valid()
+        # this calls serializer.update since we passed instance on serializer init
+        user = serializer.save()
+        if "email" in valid_update_data:
+            assert user.email_verified is False
+            assert user.email == valid_update_data["email"]
+        if "password" in valid_update_data:
+            assert user.check_password(valid_update_data["password"])
+        if "accepted_terms_of_service" in valid_update_data:
+            assert user.accepted_terms_of_service == valid_update_data["accepted_terms_of_service"]
+
+    def test_update_when_invalid_because_of_password(
+        self,
+        invalid_update_data_for_muteable_user_serializer_because_of_password,
+        user_with_verified_email_and_tos_accepted,
+    ):
+        request = APIRequestFactory().patch("/")
+        serializer = serializers.MutableUserSerializer(
+            instance=user_with_verified_email_and_tos_accepted,
+            data=invalid_update_data_for_muteable_user_serializer_because_of_password,
+            context={"request": request},
+        )
+        assert not serializer.is_valid()
+        assert set(serializer.errors.keys()) == {"password"}
+
+    def test_update_when_invalid_because_of_accepted_tos(
+        self,
+        invalid_update_data_for_muteable_user_serializer_because_of_accepted_tos,
+        user_with_verified_email_and_tos_accepted,
+    ):
+        request = APIRequestFactory().patch("/")
+        serializer = serializers.MutableUserSerializer(
+            instance=user_with_verified_email_and_tos_accepted,
+            data=invalid_update_data_for_muteable_user_serializer_because_of_accepted_tos,
+            context={"request": request},
+        )
+        assert not serializer.is_valid()
+        assert set(serializer.errors.keys()) == {"accepted_terms_of_service"}
+
+    def test_update_when_invalid_because_of_email(
+        self,
+        invalid_update_data_for_muteable_user_serializer_because_of_email,
+        user_with_verified_email_and_tos_accepted,
+    ):
+        request = APIRequestFactory().patch("/")
+        serializer = serializers.MutableUserSerializer(
+            instance=user_with_verified_email_and_tos_accepted,
+            data=invalid_update_data_for_muteable_user_serializer_because_of_email,
+            context={"request": request},
+        )
+        assert not serializer.is_valid()
+        assert set(serializer.errors.keys()) == {"email"}
 
     def test_has_expected_readable_and_writable_fields(self):
-        pass
+        expected_read_only_fields = set(serializers._AUTHED_USER_FIELDS).difference(
+            {"accepted_terms_of_service", "email"}
+        )
+        expected_writable_fields = {"email", "password", "accepted_terms_of_service"}
+        actual_writable_fields = set(serializers.MutableUserSerializer.Meta.fields).difference(
+            set(serializers.MutableUserSerializer.Meta.read_only_fields)
+        )
+        actual_read_only_fields = set(serializers.MutableUserSerializer.Meta.read_only_fields)
+        assert actual_writable_fields == expected_writable_fields
+        assert actual_read_only_fields == expected_read_only_fields

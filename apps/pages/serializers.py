@@ -431,7 +431,7 @@ class DonationPageFullDetailSerializer(serializers.ModelSerializer):
         return data
 
 
-DONATION_PAGE_LIST_FIELDS = (
+_DONATION_PAGE_LIST_FIELDS = (
     "id",
     "name",
     "page_screenshot",
@@ -455,12 +455,12 @@ class DonationPageListSerializer(serializers.ModelSerializer):
     revenue_program = RevenueProgramForDonationPageListSerializer()
 
     # These are used in view layer db queries to reduce footprint.
-    _ONLIES = DONATION_PAGE_LIST_FIELDS
+    _ONLIES = _DONATION_PAGE_LIST_FIELDS
 
     class Meta:
         model = DonationPage
-        fields = DONATION_PAGE_LIST_FIELDS
-        read_only_fields = DONATION_PAGE_LIST_FIELDS
+        fields = _DONATION_PAGE_LIST_FIELDS
+        read_only_fields = _DONATION_PAGE_LIST_FIELDS
 
 
 class FontSerializer(serializers.ModelSerializer):

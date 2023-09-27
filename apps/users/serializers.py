@@ -35,7 +35,7 @@ logger = logging.getLogger(f"{settings.DEFAULT_LOGGER}.{__name__}")
 
 # We subtract 3 from the max length to account for the "-XY" that can be appended to the end of the name
 # in the case of duplicate names. See not in CustomizeAccountSerializer.save() below for more info.
-CUSTOMIZE_ACCOUNT_ORG_NAME_MAX_LENGTH = ORG_NAME_MAX_LENGTH
+CUSTOMIZE_ACCOUNT_ORG_NAME_MAX_LENGTH = ORG_NAME_MAX_LENGTH - 3
 
 FISCAL_SPONSOR_NAME_REQUIRED_ERROR_MESSAGE = "Please enter the fiscal sponsor name."
 FISCAL_SPONSOR_NAME_NOT_PERMITTED_ERROR_MESSAGE = (
@@ -76,11 +76,11 @@ class AuthedUserSerializer(serializers.ModelSerializer):
     accepted_terms_of_service = serializers.DateTimeField()
     email = serializers.EmailField()
     email_verified = serializers.BooleanField()
-    flags = FlagSerializer(many=True, source="active_flags")
+    flags = FlagSerializer(many=True, source="active_flags", default=[], read_only=True)
     id = serializers.CharField()
     organizations = serializers.SerializerMethodField("get_orgs", default=[])
     revenue_programs = serializers.SerializerMethodField("get_revenue_programs", default=[])
-    role_type = serializers.ChoiceField(choices=Roles.choices, default=None, allow_null=True)
+    role_type = serializers.ChoiceField(choices=Roles.choices, default=None, allow_null=True, read_only=True)
 
     class Meta:
         model = get_user_model()
@@ -104,11 +104,16 @@ class MutableUserSerializer(AuthedUserSerializer, serializers.ModelSerializer):
     This serializer is used for creating and updating users.
     """
 
-    password = serializers.CharField(write_only=True, max_length=PASSWORD_MAX_LENGTH, required=True)
+    password = serializers.CharField(write_only=True, max_length=PASSWORD_MAX_LENGTH)
     email = serializers.EmailField(
-        validators=[UniqueValidator(queryset=get_user_model().objects.all(), lookup="icontains")], required=True
+        validators=[UniqueValidator(queryset=get_user_model().objects.all(), lookup="icontains")],
     )
-    accepted_terms_of_service = serializers.DateTimeField(required=True)
+    accepted_terms_of_service = serializers.DateTimeField()
+
+    # these are defined in parent but we need email verified required to be False...
+    email_verified = serializers.BooleanField(required=False)
+    # and need id to be unrequired because in case of creation, it's not known yet
+    id = serializers.CharField(required=False)
 
     def create(self, validated_data):
         """We manually handle create step because password needs to be set with `set_password`"""
@@ -144,12 +149,15 @@ class MutableUserSerializer(AuthedUserSerializer, serializers.ModelSerializer):
             fields["accepted_terms_of_service"].required = False
             fields["accepted_terms_of_service"].read_only = True  # Is only read_only for PATCH, not POST.
             fields["password"].required = False
-            fields["email"].required = False
+        fields["email"].required = False
         return fields
 
     class Meta:
         model = get_user_model()
         fields = _AUTHED_USER_FIELDS + ("password",)
+        read_only_fields = [
+            x for x in _AUTHED_USER_FIELDS if x not in ("password", "email", "accepted_terms_of_service")
+        ]
 
 
 class CustomizeAccountSerializerReturnValue(TypedDict):

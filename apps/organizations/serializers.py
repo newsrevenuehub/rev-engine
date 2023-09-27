@@ -41,26 +41,25 @@ class OrganizationSerializer(serializers.ModelSerializer):
         return representation
 
 
-_ORGANIZATION_INLINE_SERIALIZER_FIELDS = (
-    "id",
-    "name",
-    "plan",
-    "send_receipt_email_via_nre",
-    "show_connected_to_mailchimp",
-    "show_connected_to_salesforce",
-    "show_connected_to_slack",
-    "slug",
-    "uuid",
-)
-
-
 class OrganizationInlineSerializer(serializers.ModelSerializer):
     plan = serializers.SerializerMethodField()
 
     class Meta:
         model = Organization
-        fields = _ORGANIZATION_INLINE_SERIALIZER_FIELDS
-        read_only_fields = _ORGANIZATION_INLINE_SERIALIZER_FIELDS
+        fields = (
+            fields := (
+                "id",
+                "name",
+                "plan",
+                "send_receipt_email_via_nre",
+                "show_connected_to_mailchimp",
+                "show_connected_to_salesforce",
+                "show_connected_to_slack",
+                "slug",
+                "uuid",
+            )
+        )
+        read_only_fields = fields
 
     def get_plan(self, obj):
         return asdict(obj.plan)

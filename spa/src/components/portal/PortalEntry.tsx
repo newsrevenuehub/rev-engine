@@ -3,6 +3,7 @@ import { TextField } from 'components/base';
 import usePortal from 'hooks/usePortal';
 import { Controller, useForm } from 'react-hook-form';
 import { Button, Confirmation, Content, Form, Subtitle, Title, Wrapper } from './PortalEntry.styled';
+import { PLAN_NAMES } from 'constants/orgPlanConstants';
 
 export type PortalFormValues = {
   email: string;
@@ -22,6 +23,11 @@ function PortalEntry() {
 
   const watchEmail = watch('email', '');
   const disabled = magicLinkIsLoading || !watchEmail;
+
+  const isFreeOrg = page?.revenue_program?.organization?.plan?.name === PLAN_NAMES.FREE;
+  const hasDefaultDonationPage = !!page?.revenue_program?.default_donation_page;
+  // If Donation page belongs to a paid org (not Free) and RP has a Default Donation Page, use custom styles
+  const renderCustomStyles = !isFreeOrg && hasDefaultDonationPage;
 
   const onSubmit = (formData: PortalFormValues) => {
     sendMagicLink(formData);
@@ -68,7 +74,7 @@ function PortalEntry() {
                   />
                 )}
               />
-              <Button type="submit" disabled={disabled} color="primaryDark" $customPage={!!page}>
+              <Button type="submit" disabled={disabled} color="primaryDark" $renderCustomStyles={renderCustomStyles}>
                 Send Magic Link
               </Button>
             </Form>

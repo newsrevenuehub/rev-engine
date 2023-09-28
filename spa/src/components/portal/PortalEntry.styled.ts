@@ -10,9 +10,9 @@ export const Wrapper = styled.main`
   background: ${(props) => props.theme.basePalette.greyscale.grey4};
 `;
 
-export const Button = styled(BaseButton)<{ $customPage: boolean }>`
+export const Button = styled(BaseButton)<{ $renderCustomStyles: boolean }>`
   ${(props) =>
-    props.$customPage &&
+    props.$renderCustomStyles &&
     `
   && {
     background-color: ${props.theme.colors.cstm_CTAs};

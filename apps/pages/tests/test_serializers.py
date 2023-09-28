@@ -579,6 +579,11 @@ class TestDonationPageFullDetailSerializer:
             with pytest.raises(serializers.ValidationError):
                 serializer.validate_page_limit(data)
 
+    def test_validate_locale_when_unexpected_value(self):
+        serializer = DonationPageFullDetailSerializer()
+        with pytest.raises(serializers.ValidationError):
+            serializer.validate_locale("foo")
+
 
 @pytest.mark.django_db
 class TestStyleListSerializer:

@@ -14,14 +14,14 @@ logger = logging.getLogger(f"{settings.DEFAULT_LOGGER}.{__name__}")
 
 class StripeWebhookProcessor:
     def __init__(self, event):
-        # TODO: [DEV-3350] change to debug and/or just log the event ID
-        logger.info("StripeWebhookProcessor initialized with event data: %s", event)
+        logger.info("StripeWebhookProcessor initialized with Stripe event ID %s", event.id)
+        logger.debug("StripeWebhookProcessor initialized with event data: %s", event)
         self.event = event
         self.obj_data = self.event.data["object"]
 
     def get_contribution_from_event(self):
-        # TODO: [DEV-3350] change to debug and/or just log the event ID
-        logger.info("StripeWebhookProcessor.get_contribution_from_event called with event data: %s", self.event)
+        logger.info("StripeWebhookProcessor.get_contribution_from_event called with event ID %s", self.event.id)
+        logger.debug("StripeWebhookProcessor.get_contribution_from_event called with event data: %s", self.event)
         if (event_type := self.obj_data["object"]) == "subscription":
             # TODO: [DEV-2467] this will generate lots of spurious errors for events from Stripe that we don't care about. See ticket.
             return Contribution.objects.get(provider_subscription_id=self.obj_data["id"])

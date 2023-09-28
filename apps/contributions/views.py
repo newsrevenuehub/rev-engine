@@ -229,7 +229,8 @@ def payment_success(request, uuid=None):
     and use this view to trigger a thank you email to the contributor if the org has configured the contribution page
     accordingly.
     """
-    logger.info("payment_success called with request data: %s, uuid %s", request.data, uuid)
+    logger.info("payment_success called with uuid %s", uuid)
+    logger.debug("payment_success called with request data: %s, uuid %s", request.data, uuid)
     try:
         contribution = Contribution.objects.get(uuid=uuid)
     except Contribution.DoesNotExist:
@@ -336,6 +337,10 @@ class ContributionsViewSet(viewsets.ReadOnlyModelViewSet):
         as contributors will be able to access only Contributor Portal via magic link.
         """
         logger.info(
+            "[ContributionViewSet.email_contributions] enqueueing email_contribution_csv_export_to_user task for user %s",
+            request.user,
+        )
+        logger.debug(
             "[ContributionViewSet.email_contributions] enqueueing email_contribution_csv_export_to_user task for request: %s",
             request,
         )

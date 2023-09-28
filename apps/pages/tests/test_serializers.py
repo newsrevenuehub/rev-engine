@@ -450,6 +450,27 @@ class TestDonationPageFullDetailSerializer:
             == f"Your organization has reached its limit of {org.plan.publish_limit} published {locale.adjective} page{'' if org.plan.publish_limit == 1 else 's'}"
         )
 
+    @pytest_cases.parametrize("plan", (Plans.FREE.value, Plans.CORE.value))
+    @pytest.mark.parametrize("locale", LOCALE_MAP.values())
+    def test_validate_publish_limit_when_valid(self, plan, locale, hub_admin_user):
+        org = OrganizationFactory(plan_name=plan)
+        rp = RevenueProgramFactory(organization=org)
+        DonationPageFactory.create_batch(
+            org.plan.publish_limit - 1, revenue_program=rp, published_date=timezone.now(), locale=locale.code
+        )
+        request = APIRequestFactory().post("/")
+        request.user = hub_admin_user
+        serializer = DonationPageFullDetailSerializer(
+            data={
+                "slug": "my-new-page",
+                "revenue_program": rp.pk,
+                "published_date": timezone.now(),
+                "locale": locale.code,
+            },
+            context={"request": request},
+        )
+        assert serializer.is_valid() is True
+
     @pytest_cases.parametrize(
         "instance,expect",
         (

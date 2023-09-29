@@ -249,6 +249,8 @@ class CustomizeAccountSerializer(serializers.Serializer):
             reversion.set_comment("CustomizeAccountSerializer.create updated user")
 
         ra = RoleAssignment.objects.create(user=user, role_type=Roles.ORG_ADMIN, organization=organization)
+        ra.revenue_programs.set(ra.organization.revenueprogram_set.all())
+        ra.save()
 
         return {
             "organization": organization,

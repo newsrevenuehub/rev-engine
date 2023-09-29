@@ -538,6 +538,8 @@ class TestUserViewSet:
         assert ra.user == user_with_verified_email_and_tos_accepted
         assert ra.role_type == Roles.ORG_ADMIN
         assert ra.organization == org
+        assert ra.revenue_programs.count() == 1
+        assert ra.revenue_programs.first() == rp
 
     def test_customize_account_happy_path_when_org_with_name_already_exists(
         self,
@@ -554,12 +556,15 @@ class TestUserViewSet:
         )
         assert response.status_code == status.HTTP_204_NO_CONTENT
         user_with_verified_email_and_tos_accepted.refresh_from_db()
-        org = user_with_verified_email_and_tos_accepted.roleassignment.organization
+        ra = user_with_verified_email_and_tos_accepted.roleassignment
+        org = ra.organization
         rp = org.revenueprogram_set.first()
         assert org.name == expected_name
         assert org.slug == slugify(expected_name)
         assert rp.name == expected_name
         assert rp.slug == slugify(expected_name)
+        assert ra.revenue_programs.count() == 1
+        assert ra.revenue_programs.first() == rp
 
     def test_customize_account_when_serializer_errors(
         self,

@@ -98,7 +98,8 @@ export function DSwag(props: DSwagProps) {
               defaultValue=""
               disabled={optOut}
               id="dswag-swag-choices"
-              name="swag_choices"
+              // We remove the name of the field if opting out so it isn't sent in form data.
+              name={optOut ? undefined : 'swag_choices'}
               label={swagName}
               onChange={(event) => handleSwagChoicesChange(event, index)}
               required={!optOut}

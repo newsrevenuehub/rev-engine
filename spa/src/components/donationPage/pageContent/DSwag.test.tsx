@@ -128,16 +128,19 @@ describe('DSwag', () => {
       expect(screen.getByRole('combobox', { name: 'mock-swag-name' })).toBeEnabled();
     });
 
-    it('disables the option menu and clears its value if the opt-out checkbox is checked', () => {
+    it('disables the option menu, clears its value, and removes its name if the opt-out checkbox is checked', () => {
       tree(undefined, { amount: 124 });
 
       const select = screen.getByRole('combobox', { name: 'mock-swag-name' });
 
       fireEvent.change(select, { target: { value: 'mock_swag_name:mock_option_1' } });
+      expect(select).toBeEnabled();
       expect(select).toHaveValue('mock_swag_name:mock_option_1');
+      expect(select).toHaveAttribute('name');
       fireEvent.click(getOptOutCheckbox());
       expect(select).toBeDisabled();
       expect(select).toHaveValue(undefined);
+      expect(select).not.toHaveAttribute('name');
     });
 
     describe('When the element content asks for the opt-out checkbox to be checked by default', () => {
@@ -149,12 +152,17 @@ describe('DSwag', () => {
         expect(getOptOutCheckbox()).toBeChecked();
       });
 
-      it('disables the option menu', () => {
+      it('disables the option menu, clears its value, and gives it no name', () => {
         tree(
           { element: { ...defaultElement, content: { ...defaultElement.content, optOutDefault: true } } },
           { amount: 124 }
         );
-        expect(screen.getByRole('combobox', { name: 'mock-swag-name' })).toBeDisabled();
+
+        const select = screen.getByRole('combobox', { name: 'mock-swag-name' });
+
+        expect(select).toBeDisabled();
+        expect(select).toHaveValue(undefined);
+        expect(select).not.toHaveAttribute('name');
       });
     });
   });

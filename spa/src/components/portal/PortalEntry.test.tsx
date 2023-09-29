@@ -34,7 +34,6 @@ describe('PortalEntry', () => {
   it('should have expected default appearance and initial state', async () => {
     tree();
 
-    // await screen.findByRole('heading', { name: /Welcome to the Test Portal Contributor Portal/i });
     expect(screen.getByRole('heading', { name: /Welcome to the RevEngine Contributor Portal/i })).toBeVisible();
 
     expect(

@@ -107,13 +107,14 @@ class MutableUserSerializer(AuthedUserSerializer, serializers.ModelSerializer):
     password = serializers.CharField(write_only=True, max_length=PASSWORD_MAX_LENGTH)
     email = serializers.EmailField(
         validators=[UniqueValidator(queryset=get_user_model().objects.all(), lookup="icontains")],
+        required=True,
     )
     accepted_terms_of_service = serializers.DateTimeField()
 
     # these are defined in parent but we need email verified required to be False...
-    email_verified = serializers.BooleanField(required=False)
+    email_verified = serializers.BooleanField(required=False, read_only=True)
     # and need id to be unrequired because in case of creation, it's not known yet
-    id = serializers.CharField(required=False)
+    id = serializers.CharField(required=False, read_only=True)
 
     def create(self, validated_data):
         """We manually handle create step because password needs to be set with `set_password`"""
@@ -140,17 +141,6 @@ class MutableUserSerializer(AuthedUserSerializer, serializers.ModelSerializer):
             instance.set_password(password)
         instance.save()
         return instance
-
-    def get_fields(self, *args, **kwargs):
-        """Some fields that are required for creation are not required for update"""
-        fields = super().get_fields(*args, **kwargs)
-        request = self.context.get("request", None)
-        if request and getattr(request, "method", None) == "PATCH":
-            fields["accepted_terms_of_service"].required = False
-            fields["accepted_terms_of_service"].read_only = True  # Is only read_only for PATCH, not POST.
-            fields["password"].required = False
-        fields["email"].required = False
-        return fields
 
     class Meta:
         model = get_user_model()

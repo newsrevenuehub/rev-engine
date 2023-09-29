@@ -193,6 +193,14 @@ class UserViewset(
     # added, the custom logic in UserSerializer.get_fields will have to be addressed.
     http_method_names = ["get", "post", "patch"]
 
+    def get_serializer(self, *args, **kwargs):
+        serializer = super().get_serializer(*args, **kwargs)
+        if self.request.method == "PATCH":
+            serializer.fields["accepted_terms_of_service"].required = False
+            serializer.fields["accepted_terms_of_service"].read_only = True
+            serializer.fields["password"].required = False
+        return serializer
+
     def get_serializer_class(self):
         if self.action == "list":
             return AuthedUserSerializer
@@ -207,14 +215,9 @@ class UserViewset(
                 IsAuthenticated,
             ],
             "partial_update": [UserOwnsUser, UserIsAllowedToUpdate],
-            "request_account_verification": [
-                IsAuthenticated,
-            ],
+            "request_account_verification": [IsAuthenticated],
+            "customize_account": [UserOwnsUser, IsAuthenticated, UserIsAllowedToUpdate, UserHasAcceptedTermsOfService],
         }.get(self.action, [])
-        if self.action == "partial_update":
-            permission_classes = [UserOwnsUser, UserIsAllowedToUpdate]
-        if self.action == "customize_account":
-            permission_classes = [UserOwnsUser, IsAuthenticated, UserIsAllowedToUpdate, UserHasAcceptedTermsOfService]
 
         return [permission() for permission in permission_classes]
 
@@ -260,7 +263,10 @@ class UserViewset(
             raise ValidationError(detail={"password": safe_messages})
 
     def validate_bad_actor(self, data):
-        """Determine if user is a bad actor or not."""
+        """Determine if user is a bad actor or not.
+
+        NB: This assumes org users and may do unexpected things if applied to contributor users or others (though that is not exposed)
+        """
         try:
             response = make_bad_actor_request(
                 {
@@ -293,12 +299,11 @@ class UserViewset(
         if password := serializer.validated_data.get("password"):
             self.validate_password(serializer.validated_data.get("email", self.get_object().email), password)
         serializer.save()
-        # TODO: If email ch
-        # anged, unset email_verified and resend verification email.
+        # TODO: If email changed, unset email_verified and resend verification email.
 
-    # def list(self, request, *args, **kwargs):
-    #     """Returns the requesting user's serialized user instance, not a list."""
-    #     return Response(self.get_serializer_class()(instance=request.user).data)
+    def list(self, request, *args, **kwargs):
+        """Returns the requesting user's serialized user instance, not a list."""
+        return Response(self.get_serializer_class()(instance=request.user).data)
 
     @action(detail=True, methods=["patch"])
     def customize_account(self, request, pk=None):

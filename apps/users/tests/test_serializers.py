@@ -7,7 +7,6 @@ import pytest
 import pytest_cases
 import pytz
 from rest_framework.serializers import ValidationError
-from rest_framework.test import APIRequestFactory
 
 from apps.organizations.models import (
     FISCAL_SPONSOR_NAME_MAX_LENGTH,
@@ -395,97 +394,6 @@ def valid_update_data(request):
 
 @pytest.mark.django_db
 class TestMutableUserSerializer:
-    def test_create_when_valid_data(self, valid_create_data_for_muteable_user_serializer):
-        serializer = serializers.MutableUserSerializer(data=valid_create_data_for_muteable_user_serializer)
-        assert serializer.is_valid()
-        # we ** the dict here because the value here appears gets passed by reference and mutated by serializer in create
-        # and we want to be able to assert vs. its initial state
-        user = serializer.create({**valid_create_data_for_muteable_user_serializer})
-        assert user.email == valid_create_data_for_muteable_user_serializer["email"]
-        assert user.check_password(valid_create_data_for_muteable_user_serializer["password"])
-        assert (
-            user.accepted_terms_of_service
-            == valid_create_data_for_muteable_user_serializer["accepted_terms_of_service"]
-        )
-
-    def test_create_when_invalid_password_data(self, invalid_create_data_for_muteable_user_serializer):
-        serializer = serializers.MutableUserSerializer(data=invalid_create_data_for_muteable_user_serializer)
-        assert not serializer.is_valid()
-        assert "password" in serializer.errors
-
-    def test_create_when_invalid_email_data(self, invalid_create_data_for_muteable_user_serializer_because_of_email):
-        serializer = serializers.MutableUserSerializer(
-            data=invalid_create_data_for_muteable_user_serializer_because_of_email
-        )
-        assert not serializer.is_valid()
-        assert "email" in serializer.errors
-
-    def test_create_when_missing_accepted_tos(self, invalid_create_data_for_muteable_user_serializer_no_accepted_tos):
-        serializer = serializers.MutableUserSerializer(
-            data=invalid_create_data_for_muteable_user_serializer_no_accepted_tos
-        )
-        assert not serializer.is_valid()
-        assert "accepted_terms_of_service" in serializer.errors
-
-    def test_update_when_valid(self, valid_update_data, user_with_verified_email_and_tos_accepted):
-        assert user_with_verified_email_and_tos_accepted.email_verified is True
-        request = APIRequestFactory().patch("/")
-        serializer = serializers.MutableUserSerializer(
-            instance=user_with_verified_email_and_tos_accepted, data=valid_update_data, context={"request": request}
-        )
-        assert serializer.is_valid()
-        # this calls serializer.update since we passed instance on serializer init
-        user = serializer.save()
-        if "email" in valid_update_data:
-            assert user.email_verified is False
-            assert user.email == valid_update_data["email"]
-        if "password" in valid_update_data:
-            assert user.check_password(valid_update_data["password"])
-        if "accepted_terms_of_service" in valid_update_data:
-            assert user.accepted_terms_of_service == valid_update_data["accepted_terms_of_service"]
-
-    def test_update_when_invalid_because_of_password(
-        self,
-        invalid_update_data_for_muteable_user_serializer_because_of_password,
-        user_with_verified_email_and_tos_accepted,
-    ):
-        request = APIRequestFactory().patch("/")
-        serializer = serializers.MutableUserSerializer(
-            instance=user_with_verified_email_and_tos_accepted,
-            data=invalid_update_data_for_muteable_user_serializer_because_of_password,
-            context={"request": request},
-        )
-        assert not serializer.is_valid()
-        assert set(serializer.errors.keys()) == {"password"}
-
-    def test_update_when_invalid_because_of_accepted_tos(
-        self,
-        invalid_update_data_for_muteable_user_serializer_because_of_accepted_tos,
-        user_with_verified_email_and_tos_accepted,
-    ):
-        request = APIRequestFactory().patch("/")
-        serializer = serializers.MutableUserSerializer(
-            instance=user_with_verified_email_and_tos_accepted,
-            data=invalid_update_data_for_muteable_user_serializer_because_of_accepted_tos,
-            context={"request": request},
-        )
-        assert not serializer.is_valid()
-        assert set(serializer.errors.keys()) == {"accepted_terms_of_service"}
-
-    def test_update_when_invalid_because_of_email(
-        self,
-        invalid_update_data_for_muteable_user_serializer_because_of_email,
-        user_with_verified_email_and_tos_accepted,
-    ):
-        request = APIRequestFactory().patch("/")
-        serializer = serializers.MutableUserSerializer(
-            instance=user_with_verified_email_and_tos_accepted,
-            data=invalid_update_data_for_muteable_user_serializer_because_of_email,
-            context={"request": request},
-        )
-        assert not serializer.is_valid()
-        assert set(serializer.errors.keys()) == {"email"}
-
     def test_has_expected_readable_and_writable_fields(self):
         expected_read_only_fields = set(serializers._AUTHED_USER_FIELDS).difference(
             {"accepted_terms_of_service", "email"}

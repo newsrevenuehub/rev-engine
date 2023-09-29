@@ -68,7 +68,7 @@ class Plan:
     page_elements: list[str] = field(default_factory=lambda: DEFAULT_PERMITTED_PAGE_ELEMENTS)
     page_limit: int = 2
     publish_limit: int = 1
-    style_limit: int = 2
+    style_limit: int = UNLIMITED_CEILING
     custom_thank_you_page_enabled: bool = False
 
 

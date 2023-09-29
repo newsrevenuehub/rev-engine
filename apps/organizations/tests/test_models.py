@@ -80,7 +80,7 @@ class TestPlans:
             "name": "FREE",
             "label": "Free",
             "page_limit": 2,
-            "style_limit": 2,
+            "style_limit": UNLIMITED_CEILING,
             "custom_thank_you_page_enabled": False,
             "sidebar_elements": DEFAULT_PERMITTED_SIDEBAR_ELEMENTS,
             "page_elements": DEFAULT_PERMITTED_PAGE_ELEMENTS,

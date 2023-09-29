@@ -26,6 +26,7 @@ from apps.organizations.tests.factories import OrganizationFactory
 from apps.users.choices import Roles
 from apps.users.constants import (
     BAD_ACTOR_CLIENT_FACING_VALIDATION_MESSAGE,
+    EMAIL_VERIFICATION_EMAIL_SUBJECT,
     INVALID_TOKEN,
     PASSWORD_MAX_LENGTH,
     PASSWORD_MIN_LENGTH,
@@ -61,11 +62,6 @@ class MockResponseObject:
 
     def json(self):
         return self.json_data
-
-
-@pytest.fixture(params=["contributor_user", "user_with_no_email"])
-def send_verification_email_user(request):
-    return request.getfixturevalue(request.param)
 
 
 @pytest.fixture
@@ -457,9 +453,21 @@ class TestUserViewSet:
         settings.CELERY_ALWAYS_EAGER = True
         yield
 
-    def test_send_verification_email(self):
-        # assert about contents of email
-        pass
+    def test_send_verification_email(self, org_user_free_plan, mocker):
+        org_user_free_plan.email_verified = False
+        org_user_free_plan.save()
+        assert len(mail.outbox) == 0
+        viewset = UserViewset()
+
+        mock_request = mocker.Mock()
+        mock_request.build_absolute_uri.return_value = "http://example.com"
+        viewset.request = mock_request
+        assert viewset.send_verification_email(org_user_free_plan) is None
+
+        assert len(mail.outbox) == 1
+        assert mail.outbox[0].to[0] == org_user_free_plan.email
+        assert mail.outbox[0].subject == EMAIL_VERIFICATION_EMAIL_SUBJECT
+        assert mock_request.build_absolute_uri.return_value in mail.outbox[0].body
 
     @pytest.mark.parametrize(
         "action, expected_permissions",

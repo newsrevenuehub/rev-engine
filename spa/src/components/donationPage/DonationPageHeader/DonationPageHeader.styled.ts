@@ -1,6 +1,6 @@
 import styled from 'styled-components';
 
-export const Root = styled.header<{ $bgImage?: string | null; $isNRE?: boolean }>`
+export const Root = styled.header<{ $bgImage?: string | null }>`
   background: ${(props) => {
     return props.$bgImage
       ? `url(${props.$bgImage})`

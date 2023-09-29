@@ -93,7 +93,7 @@ class User(AbstractBaseUser, PermissionsMixin, IndexedTimeStampedModel):
 
     @property
     def active_flags(self) -> models.QuerySet:
-        """ """
+        """Return set of distinct flags this user gets by virtue of their role, role assignment, or lack thereof"""
         Flag = get_waffle_flag_model()
         return (
             Flag.objects.filter(models.Q(superusers=True) | models.Q(everyone=True) | models.Q(users__in=[self]))
@@ -105,6 +105,7 @@ class User(AbstractBaseUser, PermissionsMixin, IndexedTimeStampedModel):
     def permitted_organizations(
         self,
     ) -> models.QuerySet["organizations.Organization"]:
+        """All the orgs a user is permitted to see based on being a superuser or else on their role assignment, if any"""
         from apps.organizations.models import Organization
 
         if self.is_superuser:
@@ -121,6 +122,8 @@ class User(AbstractBaseUser, PermissionsMixin, IndexedTimeStampedModel):
 
     @property
     def permitted_revenue_programs(self) -> models.QuerySet["organizations.RevenueProgram"]:
+        """All the revenue programs a user is permitted to see based on being a superuser or else on their role assignment, if any"""
+
         from apps.organizations.models import RevenueProgram
 
         if self.is_superuser:

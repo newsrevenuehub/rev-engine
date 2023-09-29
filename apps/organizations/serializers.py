@@ -116,7 +116,7 @@ class RevenueProgramInlineSerializerForAuthedUserSerializer(serializers.ModelSer
 
 class RevenueProgramInlineSerializer(RevenueProgramInlineSerializerForAuthedUserSerializer):
     # TODO: [DEV-2738]: This is likely the cause of at least part of the N+1 and poor performance
-    # of api/v1/users. That endpoint serializers orgs using organizaioninline serializer, then seriales
+    # of api/v1/users. That endpoint serializes orgs using OrganizationInlineSerializer, then serializes
     # revenue programs using this serializer, which redundantly serializes the orgs.
     organization = OrganizationInlineSerializer()
 

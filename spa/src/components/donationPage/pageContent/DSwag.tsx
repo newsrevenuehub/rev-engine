@@ -1,5 +1,5 @@
 import PropTypes, { InferProps } from 'prop-types';
-import { useMemo, useState } from 'react';
+import { ChangeEvent, useMemo, useState } from 'react';
 import { Checkbox, FormControlLabel, MenuItem } from 'components/base';
 import { CONTRIBUTION_INTERVALS } from 'constants/contributionIntervals';
 import { SwagElement } from 'hooks/useContributionPage';
@@ -30,6 +30,7 @@ export function DSwag(props: DSwagProps) {
       : element.content.swagThreshold;
 
   const [optOut, setOptOut] = useState(element.content.optOutDefault ?? false);
+  const [swagChoices, setSwagChoices] = useState<string[]>([]);
   const meetsThreshold = useMemo(() => {
     // Avoiding ! here because it would be true for 0.
 
@@ -47,6 +48,25 @@ export function DSwag(props: DSwagProps) {
 
     return annualAmount >= numericThreshold;
   }, [amount, frequency, numericThreshold]);
+
+  function handleSwagOptOutChange(event: ChangeEvent<HTMLInputElement>) {
+    setOptOut(event.target.checked);
+
+    // If we just opted out of swag, clear previous choices.
+
+    if (event.target.checked) {
+      setSwagChoices([]);
+    }
+  }
+
+  function handleSwagChoicesChange(event: ChangeEvent<HTMLInputElement | HTMLTextAreaElement>, index: number) {
+    setSwagChoices((existing) => {
+      const changed = [...existing];
+
+      changed[index] = event.target.value;
+      return changed;
+    });
+  }
 
   // If there are no swag choices configured and we're on a live page, show
   // nothing. This should only happen if the user didn't configure any.
@@ -70,20 +90,20 @@ export function DSwag(props: DSwagProps) {
       {meetsThreshold && (
         <Controls data-testid="swag-content">
           <FormControlLabel
-            control={
-              <Checkbox checked={optOut} name="swag_opt_out" onChange={(event) => setOptOut(event.target.checked)} />
-            }
+            control={<Checkbox checked={optOut} name="swag_opt_out" onChange={handleSwagOptOutChange} />}
             label="Maximize my contribution–I'd rather not receive member merchandise."
           />
-          {element.content.swags?.map(({ swagName, swagOptions }) => (
+          {element.content.swags?.map(({ swagName, swagOptions }, index) => (
             <TextField
               defaultValue=""
               disabled={optOut}
               id="dswag-swag-choices"
               name="swag_choices"
               label={swagName}
+              onChange={(event) => handleSwagChoicesChange(event, index)}
               required={!optOut}
               select
+              value={swagChoices[index] ?? ''}
               key={swagName}
             >
               {swagOptions.map((value) => (

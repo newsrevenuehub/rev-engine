@@ -11,6 +11,10 @@ export const TextField = styled(BaseTextField)`
   .NreTextFieldInputLabelAsterisk {
     color: #ff476c;
   }
+
+  .NreTextFieldSelectSelect {
+    background-color: ${({ theme }) => theme.basePalette.greyscale.white};
+  }
 `;
 
 export const ThresholdDescription = styled.p`

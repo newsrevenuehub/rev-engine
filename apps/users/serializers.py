@@ -43,7 +43,6 @@ FISCAL_SPONSOR_NAME_NOT_PERMITTED_ERROR_MESSAGE = (
 )
 
 
-# TODO: [DEV-4031] Harmonize user serialization in /api/v1/users vs. /api/v1/token
 class FlagSerializer(serializers.ModelSerializer):
     """Serializer for waffle.Flag"""
 

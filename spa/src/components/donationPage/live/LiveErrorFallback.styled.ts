@@ -1,13 +1,13 @@
 import styled from 'styled-components';
 
-export const LiveErrorFallback = styled.div`
+export const Wrapper = styled.div`
   flex: 1;
   display: flex;
   justify-content: center;
   background: ${(props) => props.theme.colors.fieldBackground};
 `;
 
-export const Wrapper = styled.div`
+export const Content = styled.div`
   margin-top: 10%;
 `;
 

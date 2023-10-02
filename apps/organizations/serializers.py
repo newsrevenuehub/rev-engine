@@ -94,12 +94,11 @@ class RevenueProgramListInlineSerializer(serializers.ModelSerializer):
         ]
 
 
-class RevenueProgramInlineSerializer(serializers.ModelSerializer):
-    """
-    Used by the UserSerializer when users log in.
-    """
+class RevenueProgramInlineSerializerForAuthedUserSerializer(serializers.ModelSerializer):
+    """Serializer used for representing revenue programs inline in AuthedUserSerializer...
 
-    organization = OrganizationInlineSerializer()
+    which is used to represent users in the api/v1/token authentication endpoint.
+    """
 
     class Meta:
         model = RevenueProgram
@@ -113,6 +112,13 @@ class RevenueProgramInlineSerializer(serializers.ModelSerializer):
             "fiscal_status",
             "fiscal_sponsor_name",
         ]
+
+
+class RevenueProgramInlineSerializer(RevenueProgramInlineSerializerForAuthedUserSerializer):
+    # TODO: [DEV-2738]: This is likely the cause of at least part of the N+1 and poor performance
+    # of api/v1/users. That endpoint serializes orgs using OrganizationInlineSerializer, then serializes
+    # revenue programs using this serializer, which redundantly serializes the orgs.
+    organization = OrganizationInlineSerializer()
 
 
 class MailchimpRevenueProgramForSpaConfiguration(serializers.ModelSerializer):

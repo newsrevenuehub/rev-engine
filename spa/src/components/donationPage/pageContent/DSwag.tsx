@@ -125,7 +125,7 @@ export function DSwag(props: DSwagProps) {
 
 DSwag.propTypes = DSwagPropTypes;
 DSwag.type = 'DSwag';
-DSwag.displayName = 'Contributor Benefits';
+DSwag.displayName = 'Swag';
 DSwag.description = 'Allow contributors to make choices about optional swag';
 DSwag.required = false;
 DSwag.unique = true;

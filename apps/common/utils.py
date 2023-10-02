@@ -76,7 +76,9 @@ def upsert_cloudflare_cnames(slugs: list = None):
                 record_id = cloudflare_record_ids[fqdn]
                 cloudflare_conn.zones.dns_records.patch(zone_id, record_id, data=dns_record)
         except CloudFlare.exceptions.CloudFlareAPIError as error:
-            logger.warning("Something went wrong with Cloudflare", exc_info=error)
+            # NB: adding `str(error)` because this function gets run in bootstrap-review-app management command
+            # which when run doesn't lead to logs appearing in Sentry
+            logger.warning("Something went wrong with Cloudflare %s", str(error), exc_info=error)  # noqa G200
 
 
 def extract_ticket_id_from_branch_name(branch_name: str) -> str | None:
@@ -135,17 +137,3 @@ def get_original_ip_from_request(request):
 
 def google_cloud_pub_sub_is_configured() -> bool:
     return all([settings.ENABLE_PUBSUB and settings.GOOGLE_CLOUD_PROJECT])
-
-
-# class AttrDict(dict):
-#     def __init__(self, *args, **kwargs):
-#         super().__init__(*args, **kwargs)
-#         self.__dict__ = self
-
-#     @classmethod
-#     def construct_from_dict(cls, data):
-#         if isinstance(data, dict):
-#             return cls({key: cls.construct_from_dict(data[key]) for key in data})
-#         if isinstance(data, list):
-#             return [cls.construct_from_dict(i) for i in data]
-#        return data

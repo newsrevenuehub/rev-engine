@@ -63,12 +63,11 @@ describe('Donation page displays dynamic page elements', () => {
     cy.getByTestId('d-amount');
 
     for (const freq of frequency.content) {
-      const adjective = freqUtils.getFrequencyAdjective(freq.value);
       const rate = freqUtils.getFrequencyRate(freq.value);
 
       cy.contains(freq.displayName).click();
-      cy.getByTestId('d-amount').find('h2').contains(adjective);
-      cy.getByTestId('pay-fees').scrollIntoView().find('label').contains(adjective, { matchCase: false });
+      cy.getByTestId('d-amount').find('h2').contains(freq.displayName);
+      cy.getByTestId('pay-fees').scrollIntoView().find('label').contains(freq.displayName, { matchCase: false });
 
       if (rate) {
         cy.getByTestId('custom-amount-rate').contains(rate);

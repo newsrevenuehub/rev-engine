@@ -35,7 +35,7 @@ describe('FinishPaymentModal', () => {
 
       tree({ onCancel });
       expect(onCancel).not.toBeCalled();
-      fireEvent.click(screen.getByRole('button', { name: 'Back' }));
+      fireEvent.click(screen.getByRole('button', { name: 'common.actions.back' }));
       expect(onCancel).toBeCalledTimes(1);
     });
 

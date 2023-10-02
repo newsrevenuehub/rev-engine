@@ -1,7 +1,64 @@
 {
+  "common": {
+    "actions": {
+      "back": "Back"
+    },
+    "conjunctions": {
+      "and": "and"
+    },
+    "frequency": {
+      "adjectives": {
+        "oneTime": "One time",
+        "monthly": "Monthly",
+        "yearly": "Yearly"
+      },
+      "adverbs": {
+        "oneTime": "once",
+        "monthly": "monthly",
+        "yearly": "yearly"
+      },
+      "rates": {
+        "monthly": "/month",
+        "yearly": "/year"
+      },
+      "thankYous": {
+        "oneTime": "one-time",
+        "monthly": "monthly",
+        "yearly": "yearly"
+      }
+    },
+    "urls": {
+      "homePage": "https://fundjournalism.org/",
+      "coreUpgradeUrl": "https://fundjournalism.org/i-want-revengine-core/",
+      "faq": "https://news-revenue-hub.atlassian.net/servicedesk/customer/portal/11/article/2195423496",
+      "help": "https://fundjournalism.org/news-revenue-engine-help/",
+      "plusUpgrade": "https://fundjournalism.org/i-want-revengine-plus/",
+      "pricing": "https://fundjournalism.org/pricing/",
+      "privacyPolicy": "https://fundjournalism.org/faq/privacy-policy/",
+      "tsAndCs": "https://fundjournalism.org/faq/terms-of-service/"
+    },
+    "urlLabels": {
+      "privacyPolicy": "Privacy policy",
+      "tsAndCs": "Terms & conditions"
+    }
+  },
   "donationPage": {
     "donationPageFooter": {
       "whatIsFundJournalismOrg": "What is fundjournalism.org?"
+    },
+    "contributionDisclaimer": {
+      "alongWithFutureRecurringPayments": "along with all future recurring payments",
+      "byProceedingWithThisTransactionYouAgreeToOur": "By proceeding with this transaction, you agree to our",
+      "additionallyYouAuthorizePayment": "Additionally, by proceeding with this transaction, you're authorizing today's payment{{frequencySuffix}} of",
+      "toBeProcessedOnOrAdjacentTo": "to be processed on or adjacent to",
+      "contributionIntervals": {
+        "monthly": "the {{date}} of the month until you cancel",
+        "annually": "{{date}} yearly until you cancel"
+      }
     }
+  },
+  "stripeFns": {
+    "missingArgumentError": "Missing argument for: {{error}}",
+    "paymentElementButtonText": "Give {{amount}} {{frequency}}"
   }
 }

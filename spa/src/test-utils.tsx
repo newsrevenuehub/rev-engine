@@ -16,6 +16,17 @@ import { AnalyticsContextProvider } from './components/analytics/AnalyticsContex
 // Routing
 import { BrowserRouter } from 'react-router-dom';
 import { ReactChild } from 'react';
+import { I18nextProvider } from 'react-i18next';
+import i18n from 'i18next';
+import { initReactI18next } from 'react-i18next';
+
+i18n.use(initReactI18next).init({
+  lng: 'en',
+  fallbackLng: 'en',
+  ns: ['translationsNS'],
+  defaultNS: 'translationsNS',
+  resources: { en: { translationsNS: {} } }
+});
 
 export * from '@testing-library/react';
 export * as user from '@testing-library/user-event';
@@ -26,12 +37,14 @@ function TestProviders({ children }: { children?: React.ReactNode }) {
   return (
     <QueryClientProvider client={queryClient}>
       <ThemeProvider theme={revEngineTheme}>
-        <AlertProvider template={Alert} {...alertOptions}>
-          <BrowserRouter>
-            <GlobalStyle />
-            <AnalyticsContextProvider>{children}</AnalyticsContextProvider>
-          </BrowserRouter>
-        </AlertProvider>
+        <I18nextProvider i18n={i18n}>
+          <AlertProvider template={Alert} {...alertOptions}>
+            <BrowserRouter>
+              <GlobalStyle />
+              <AnalyticsContextProvider>{children}</AnalyticsContextProvider>
+            </BrowserRouter>
+          </AlertProvider>
+        </I18nextProvider>
       </ThemeProvider>
     </QueryClientProvider>
   );

@@ -8,6 +8,7 @@ import { Payment } from 'hooks/usePayment';
 import ContributionDisclaimer from './ContributionDisclaimer';
 import StripePaymentForm from './StripePaymentForm';
 import { BackButton, Root } from './FinishPaymentModal.styled';
+import { useTranslation } from 'react-i18next';
 
 const FinishPaymentModalPropTypes = {
   onCancel: PropTypes.func.isRequired,
@@ -29,6 +30,8 @@ export interface FinishPaymentModalProps extends InferProps<typeof FinishPayment
  * @see https://stripe.com/docs/payments/payment-element
  */
 export function FinishPaymentModal({ onCancel, onError, open, payment }: FinishPaymentModalProps) {
+  const { t } = useTranslation();
+
   return (
     <Modal open={open}>
       <AlertProvider template={Alert} {...alertOptions}>
@@ -40,7 +43,7 @@ export function FinishPaymentModal({ onCancel, onError, open, payment }: FinishP
           <Root>
             <BackButton onClick={onCancel}>
               <ChevronLeft />
-              Back
+              {t('common.actions.back')}
             </BackButton>
             <StripePaymentForm payment={payment} />
             <ContributionDisclaimer

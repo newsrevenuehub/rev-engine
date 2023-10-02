@@ -1,8 +1,8 @@
 import PropTypes, { InferProps } from 'prop-types';
 import { format } from 'date-fns';
 import { useMemo } from 'react';
+import { useTranslation } from 'react-i18next';
 import { CONTRIBUTION_INTERVALS, ContributionInterval } from 'constants/contributionIntervals';
-import { PRIVACY_POLICY_URL, TS_AND_CS_URL } from 'constants/helperUrls';
 import { Link, Root } from './ContributionDisclaimer.styled';
 
 const ContributionDisclaimerPropTypes = {
@@ -15,16 +15,18 @@ export interface ContributionDisclaimerProps extends InferProps<typeof Contribut
 }
 
 function ContributionDisclaimer({ formattedAmount, interval }: ContributionDisclaimerProps) {
+  const { t } = useTranslation();
+
   const frequencySuffix = useMemo(
     () =>
       interval === CONTRIBUTION_INTERVALS.ONE_TIME ? (
         ''
       ) : (
         <span>
-          , <strong>along with all future recurring payments</strong>
+          , <strong>{t('donationPage.contributionDisclaimer.alongWithFutureRecurringPayments')}</strong>
         </span>
       ),
-    [interval]
+    [interval, t]
   );
 
   const processingDate = useMemo(() => {
@@ -32,30 +34,35 @@ function ContributionDisclaimer({ formattedAmount, interval }: ContributionDiscl
       case CONTRIBUTION_INTERVALS.ONE_TIME:
         return format(new Date(), 'MMM do, y');
       case CONTRIBUTION_INTERVALS.MONTHLY:
-        return `the ${format(new Date(), 'do')} of the month until you cancel`;
+        return t('donationPage.contributionDisclaimer.contributionIntervals.monthly', {
+          date: format(new Date(), 'do')
+        });
       case CONTRIBUTION_INTERVALS.ANNUAL:
-        return `${format(new Date(), 'L/d')} yearly until you cancel`;
+        return t('donationPage.contributionDisclaimer.contributionIntervals.annually', {
+          date: format(new Date(), 'L/d')
+        });
       default:
         throw new Error(`Don't know how to format a processing data for ${interval} interval`);
     }
-  }, [interval]);
+  }, [interval, t]);
 
   const amountText = `${formattedAmount}${interval === CONTRIBUTION_INTERVALS.ONE_TIME ? '' : ','}`;
 
   return (
     <Root data-testid="donation-page-disclaimer">
       <p>
-        By proceeding with this transaction, you agree to our{' '}
-        <Link href={PRIVACY_POLICY_URL} target="_blank">
-          privacy policy
+        {t('donationPage.contributionDisclaimer.byProceedingWithThisTransactionYouAgreeToOur')}{' '}
+        <Link href={t('common.urls.privacyPolicy')} target="_blank">
+          {t('common.urlLabels.privacyPolicy')}
         </Link>{' '}
-        and{' '}
-        <Link href={TS_AND_CS_URL} target="_blank">
-          terms & conditions
+        {t('common.conjunctions.and')}{' '}
+        <Link href={t('common.urls.tsAndCs')} target="_blank">
+          {t('common.urlLabels.tsAndCs')}
         </Link>
-        . Additionally, by proceeding with this transaction, you're authorizing today's payment{frequencySuffix} of{' '}
+        . {t('donationPage.contributionDisclaimer.additionallyYouAuthorizePayment', { frequencySuffix })}{' '}
         <strong>
-          <span data-testid="amount">{amountText}</span> to be processed on or adjacent to{' '}
+          <span data-testid="amount">{amountText}</span>{' '}
+          {t('donationPage.contributionDisclaimer.toBeProcessedOnOrAdjacentTo')}{' '}
           <span data-testid="processingDate">{processingDate}</span>.
         </strong>
       </p>

@@ -4,6 +4,7 @@ import { PAYMENT_SUCCESS } from 'routes';
 import calculateStripeFee from 'utilities/calculateStripeFee';
 import formatStringAmountForDisplay from 'utilities/formatStringAmountForDisplay';
 import { getFrequencyAdverb } from 'utilities/parseFrequency';
+import i18n from 'i18next';
 
 /**
  * getTotalAmount takes an amount in dollars and an optional fee in dollars and adds them up.
@@ -189,7 +190,7 @@ export function getPaymentSuccessUrl({
     }).filter(([, v]) => [undefined, null].includes(v as any))
   );
   if (Object.entries(missingParams).length) {
-    throw new Error(`Missing argument for: ${Object.keys(missingParams).join(', ')}`);
+    throw new Error(i18n.t('stripeFns.missingArgumentError', { error: Object.keys(missingParams).join(', ') }));
   }
   const paymentSuccessUrl = new URL(PAYMENT_SUCCESS, baseUrl);
   // Some notes on parameters for URL search generation below:
@@ -248,7 +249,8 @@ export function getPaymentElementButtonText({
   amount,
   frequency
 }: GetPaymentElementButtonTextArgs) {
-  return `Give ${currencySymbol}${formatStringAmountForDisplay(amount)}${
-    currencyCode ? ' ' + currencyCode : ''
-  } ${getFrequencyAdverb(frequency)}`;
+  return i18n.t('stripeFns.paymentElementButtonText', {
+    amount: `${currencySymbol}${formatStringAmountForDisplay(amount)}${currencyCode ? ' ' + currencyCode : ''}`,
+    frequency: getFrequencyAdverb(frequency)
+  });
 }

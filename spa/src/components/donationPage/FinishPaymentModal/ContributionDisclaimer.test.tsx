@@ -1,31 +1,45 @@
 import { axe } from 'jest-axe';
 import { render, screen } from 'test-utils';
 import ContributionDisclaimer, { ContributionDisclaimerProps } from './ContributionDisclaimer';
-import { PRIVACY_POLICY_URL, TS_AND_CS_URL } from 'constants/helperUrls';
 import { format } from 'date-fns';
+import { useTranslation } from 'react-i18next';
+
+jest.mock('react-i18next', () => ({
+  ...jest.requireActual('react-i18next'),
+  useTranslation: jest.fn()
+}));
 
 function tree(props?: Partial<ContributionDisclaimerProps>) {
   return render(<ContributionDisclaimer formattedAmount="mock-formatted-amount" interval="one_time" {...props} />);
 }
 
 describe('ContributionDisclaimer', () => {
+  const useTranslationMock = jest.mocked(useTranslation);
+
+  beforeEach(() => {
+    useTranslationMock.mockReturnValue({
+      t: (key: string, options?: Record<string, any>) =>
+        `${key}${options?.frequencySuffix?.type ? 'span' : options ? JSON.stringify(options) : ''}`
+    } as any);
+  });
+
   it('shows a link to the privacy policy', () => {
     tree();
 
-    const link = screen.getByRole('link', { name: 'privacy policy' });
+    const link = screen.getByRole('link', { name: 'common.urlLabels.privacyPolicy' });
 
     expect(link).toBeVisible();
-    expect(link).toHaveAttribute('href', PRIVACY_POLICY_URL);
+    expect(link).toHaveAttribute('href', 'common.urls.privacyPolicy');
     expect(link).toHaveAttribute('target', '_blank');
   });
 
   it('shows a link to terms & conditions', () => {
     tree();
 
-    const link = screen.getByRole('link', { name: 'terms & conditions' });
+    const link = screen.getByRole('link', { name: 'common.urlLabels.tsAndCs' });
 
     expect(link).toBeVisible();
-    expect(link).toHaveAttribute('href', TS_AND_CS_URL);
+    expect(link).toHaveAttribute('href', 'common.urls.tsAndCs');
     expect(link).toHaveAttribute('target', '_blank');
   });
 
@@ -39,7 +53,9 @@ describe('ContributionDisclaimer', () => {
     tree({ interval: 'month' });
     expect(screen.getByTestId('amount')).toHaveTextContent('mock-formatted-amount');
     expect(screen.getByTestId('processingDate')).toHaveTextContent(
-      `the ${format(new Date(), 'do')} of the month until you cancel`
+      `donationPage.contributionDisclaimer.contributionIntervals.monthly${JSON.stringify({
+        date: format(new Date(), 'do')
+      })}`
     );
   });
 
@@ -47,7 +63,9 @@ describe('ContributionDisclaimer', () => {
     tree({ interval: 'year' });
     expect(screen.getByTestId('amount')).toHaveTextContent('mock-formatted-amount');
     expect(screen.getByTestId('processingDate')).toHaveTextContent(
-      `${format(new Date(), 'L/d')} yearly until you cancel`
+      `donationPage.contributionDisclaimer.contributionIntervals.annually${JSON.stringify({
+        date: format(new Date(), 'L/d')
+      })}`
     );
   });
 

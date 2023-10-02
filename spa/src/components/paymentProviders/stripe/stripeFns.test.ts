@@ -8,7 +8,9 @@ import {
 } from './stripeFns';
 import { PAYMENT_SUCCESS } from 'routes';
 import { CONTRIBUTION_INTERVALS } from 'constants/contributionIntervals';
+import i18n from 'i18next';
 
+jest.mock('i18next');
 jest.mock('utilities/calculateStripeFee', () => () => 9000.99);
 
 const fromPageSlugParams = {
@@ -279,13 +281,21 @@ describe('serializeData', () => {
 });
 
 describe('getPaymentElementButtonText', () => {
+  const i18nMock = i18n as jest.Mocked<any>;
+
+  beforeEach(() => {
+    i18nMock.t.mockImplementation(
+      (key: string, options?: Record<string, any>) => `${key}${options ? JSON.stringify(options) : ''}`
+    );
+  });
+
   it.each`
     amount | frequency                          | currencyCode | currencySymbol | expectation
-    ${100} | ${CONTRIBUTION_INTERVALS.ONE_TIME} | ${'USD'}     | ${'$'}         | ${'Give $100.00 USD once'}
-    ${200} | ${CONTRIBUTION_INTERVALS.ONE_TIME} | ${'USD'}     | ${'$'}         | ${'Give $200.00 USD once'}
-    ${200} | ${CONTRIBUTION_INTERVALS.ONE_TIME} | ${''}        | ${'£'}         | ${'Give £200.00 once'}
-    ${100} | ${CONTRIBUTION_INTERVALS.ANNUAL}   | ${'CAD'}     | ${'$'}         | ${'Give $100.00 CAD yearly'}
-    ${100} | ${CONTRIBUTION_INTERVALS.MONTHLY}  | ${'CAD'}     | ${'$'}         | ${'Give $100.00 CAD monthly'}
+    ${100} | ${CONTRIBUTION_INTERVALS.ONE_TIME} | ${'USD'}     | ${'$'}         | ${'stripeFns.paymentElementButtonText{"amount":"$100.00 USD","frequency":"common.frequency.adverbs.oneTime"}'}
+    ${200} | ${CONTRIBUTION_INTERVALS.ONE_TIME} | ${'USD'}     | ${'$'}         | ${'stripeFns.paymentElementButtonText{"amount":"$200.00 USD","frequency":"common.frequency.adverbs.oneTime"}'}
+    ${200} | ${CONTRIBUTION_INTERVALS.ONE_TIME} | ${''}        | ${'£'}         | ${'stripeFns.paymentElementButtonText{"amount":"£200.00","frequency":"common.frequency.adverbs.oneTime"}'}
+    ${100} | ${CONTRIBUTION_INTERVALS.ANNUAL}   | ${'CAD'}     | ${'$'}         | ${'stripeFns.paymentElementButtonText{"amount":"$100.00 CAD","frequency":"common.frequency.adverbs.yearly"}'}
+    ${100} | ${CONTRIBUTION_INTERVALS.MONTHLY}  | ${'CAD'}     | ${'$'}         | ${'stripeFns.paymentElementButtonText{"amount":"$100.00 CAD","frequency":"common.frequency.adverbs.monthly"}'}
   `('produces expected result', ({ amount, frequency, currencyCode, currencySymbol, expectation }) => {
     expect(getPaymentElementButtonText({ amount, currencyCode, frequency, currencySymbol })).toBe(expectation);
   });

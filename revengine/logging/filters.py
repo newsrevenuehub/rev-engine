@@ -6,7 +6,7 @@ class ClassNameFilter(logging.Filter):
     def filter(self, record):
         classname = None
         frames = inspect.stack()
-        for fr in frames:
+        for fr in frames:  # pragma: no cover loop is never expected to complete
             if fr.filename == record.pathname and fr.lineno == record.lineno:
                 local_self = fr.frame.f_locals.get("self", None)
                 if local_self:

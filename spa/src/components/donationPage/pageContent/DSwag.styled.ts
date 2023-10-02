@@ -8,12 +8,15 @@ export const Controls = styled.div`
 `;
 
 export const TextField = styled(BaseTextField)`
-  .NreTextFieldInputLabelAsterisk {
-    color: #ff476c;
-  }
+  && {
+    .NreTextFieldInputLabelAsterisk {
+      color: #ff476c;
+    }
 
-  .NreTextFieldSelectSelect {
-    background-color: ${({ theme }) => theme.basePalette.greyscale.white};
+    .NreTextFieldSelectSelect,
+    .NreTextFieldSelectSelect:focus {
+      background-color: ${({ theme }) => theme.basePalette.greyscale.white};
+    }
   }
 `;
 

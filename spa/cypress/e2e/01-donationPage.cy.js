@@ -431,7 +431,7 @@ describe('User flow: happy path', () => {
       cy.get('form #stripe-payment-element');
       cy.get('[data-testid="donation-page-disclaimer"]');
       cy.findByRole('button', {
-        name: payFees ? 'Give 🍁123.01 CAD once' : 'Give 🍁120.0 CAD once'
+        name: payFees ? 'Give 🍁123.01 CAD once' : 'Give 🍁120.00 CAD once'
       }).click();
       cy.get('@stripe-confirm-payment').should((x) => {
         expect(x).to.be.calledOnce;
@@ -564,7 +564,7 @@ describe('User flow: happy path', () => {
       cy.get('form #stripe-payment-element');
       cy.get('[data-testid="donation-page-disclaimer"]');
       cy.findByRole('button', {
-        name: payFees ? 'Give 🍁10.53 CAD monthly' : 'Give 🍁10.0 CAD monthly'
+        name: payFees ? 'Give 🍁10.53 CAD monthly' : 'Give 🍁10.00 CAD monthly'
       }).click();
       cy.get('@stripe-confirm-payment').should((x) => {
         expect(x).to.be.calledOnce;

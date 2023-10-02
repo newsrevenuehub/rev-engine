@@ -31,11 +31,3 @@ export const DashboardContent = styled.main`
   flex-direction: column;
   position: relative;
 `;
-
-export const StripeConnectNotification = styled.div`
-  position: fixed;
-  bottom: 10px;
-  right: 0;
-  margin-right: 20px;
-  z-index: 100;
-`;

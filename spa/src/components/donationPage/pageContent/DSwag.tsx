@@ -80,7 +80,7 @@ export function DSwag(props: DSwagProps) {
   // that the value matches what our Stripe metadata spec.
 
   return (
-    <DElement label="Member benefits" {...props} data-testid="d-swag">
+    <DElement label="Swag" {...props} data-testid="d-swag">
       {numericThreshold > 0 && (
         <ThresholdDescription>
           Give a total of {page.currency?.symbol ?? ''}
@@ -122,7 +122,7 @@ export function DSwag(props: DSwagProps) {
 
 DSwag.propTypes = DSwagPropTypes;
 DSwag.type = 'DSwag';
-DSwag.displayName = 'Contributor Benefits';
+DSwag.displayName = 'Swag';
 DSwag.description = 'Allow contributors to make choices about optional swag';
 DSwag.required = false;
 DSwag.unique = true;

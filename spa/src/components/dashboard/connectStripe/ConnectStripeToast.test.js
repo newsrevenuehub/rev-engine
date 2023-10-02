@@ -1,5 +1,5 @@
 import { render, screen, fireEvent } from 'test-utils';
-import { CONNECT_TO_STRIPE_BUTTON_CTA } from './ConnectStripeElements';
+import { CONNECT_TO_STRIPE_BUTTON_CTA } from './ConnectStripe';
 import ConnectStripeToast, {
   USER_ACTION_REQUIRED_MESSAGE,
   PENDING_VERIFICATION_MESSAGE,

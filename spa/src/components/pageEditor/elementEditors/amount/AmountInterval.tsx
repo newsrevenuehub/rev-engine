@@ -2,9 +2,9 @@ import { Add } from '@material-ui/icons';
 import PropTypes, { InferProps } from 'prop-types';
 import { ChangeEvent, FormEvent, useEffect, useMemo, useState } from 'react';
 import { ContributionInterval } from 'constants/contributionIntervals';
+import { parseFloatStrictly } from 'utilities/parseFloatStrictly';
 import { Header, Items, OtherAmountButton, OtherAmountContainer, OtherAmountField } from './AmountInterval.styled';
 import AmountItem from './AmountItem';
-import validateInputPositiveFloat from 'utilities/validateInputPositiveFloat';
 
 const AmountIntervalPropTypes = {
   defaultOption: PropTypes.number,
@@ -47,11 +47,13 @@ export function AmountInterval({
       return;
     }
 
-    if (!validateInputPositiveFloat(newAmount, 2)) {
+    const parsedAmount = parseFloatStrictly(newAmount);
+
+    if (isNaN(parsedAmount) || parsedAmount <= 0) {
       return 'Please enter a positive number with at most two decimal places.';
     }
 
-    if (options.includes(parseFloat(newAmount))) {
+    if (options.includes(parsedAmount)) {
       return 'This amount has already been added.';
     }
   }, [newAmount, options]);

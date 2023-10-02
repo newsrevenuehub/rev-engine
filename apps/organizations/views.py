@@ -309,7 +309,7 @@ def handle_stripe_account_link(request, rp_pk):
     This endpoint is designed to support polling from the front end.
     """
     revenue_program = get_object_or_404(RevenueProgram, pk=rp_pk)
-    if not request.user.roleassignment.can_access_rp(revenue_program):
+    if revenue_program.id not in request.user.roleassignment.revenue_programs.values_list("id", flat=True):
         logger.warning(
             (
                 "[handle_stripe_account_link] was asked to report on status of account link for RP with ID %s by user with id %s who does "
@@ -418,7 +418,7 @@ def send_test_email(request):
 
     revenue_program = get_object_or_404(RevenueProgram, pk=rp_pk)
     if not request.user.is_superuser:
-        if not request.user.roleassignment.can_access_rp(revenue_program):
+        if revenue_program.id not in request.user.roleassignment.revenue_programs.values_list("id", flat=True):
             logger.warning(
                 (
                     "[send_test_email] was asked to send a test email link for RP with ID %s by user with id %s who does "

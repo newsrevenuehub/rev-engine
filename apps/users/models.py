@@ -169,22 +169,6 @@ class RoleAssignment(models.Model):
             return f"{Roles.RP_ADMIN.label} for these revenue programs: {', '.join(owned_rps_as_strings)}"
         return f"Unspecified RoleAssignment ({self.pk})"
 
-    def can_access_rp(self, revenue_program):
-        """Determine if role assignment grants basic acess to a given revenue program
-
-        Note that this is a "dumb" notion of having access. It doesn't distinguish between
-        read and write. It's used to show that a user should be able to
-        have access to an rp by virtue of their role type, orgnaization, and revenue_programs.
-        """
-        return any(
-            [
-                self.user.is_superuser,
-                self.role_type == Roles.HUB_ADMIN,
-                self.role_type == Roles.ORG_ADMIN and self.organization == revenue_program.organization,
-                self.role_type == Roles.RP_ADMIN and revenue_program in self.revenue_programs.all(),
-            ]
-        )
-
 
 class UnexpectedRoleType(Exception):
     """For signalling an unexpected value for `role_assignment.role_type`"""

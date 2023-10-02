@@ -19,10 +19,7 @@ from .constants import FIRST_NAME_MAX_LENGTH, JOB_TITLE_MAX_LENGTH, LAST_NAME_MA
 logger = logging.getLogger(f"{settings.DEFAULT_LOGGER}.{__name__}")
 
 
-# note on this duplication
 class RoleTypeReturnValues(Enum):
-    """Return values for `RoleAssignment.role_type`"""
-
     HUB_ADMIN = "hub_admin", "Hub Admin"
     ORG_ADMIN = "org_admin", "Org Admin"
     RP_ADMIN = "rp_admin", "RP Admin"

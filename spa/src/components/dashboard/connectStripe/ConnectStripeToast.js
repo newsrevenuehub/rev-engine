@@ -19,7 +19,6 @@ import StripeLogo from 'assets/icons/stripeLogo.svg';
 import Triangle6Dots from 'assets/icons/triangle6Dots.svg';
 import RemoveIcon from '@material-ui/icons/Remove';
 import { Tooltip } from 'components/base';
-import { CONNECT_TO_STRIPE_BUTTON_CTA } from './ConnectStripeElements';
 import ConnectStripeNeedHelpCta from './ConnectStripeNeedHelpCTA';
 
 export const PENDING_VERIFICATION_MESSAGE =
@@ -107,7 +106,7 @@ const ConnectStripeToast = () => {
         disabled={isLoading || unverifiedReason !== 'past_due'}
         onClick={sendUserToStripe}
       >
-        {CONNECT_TO_STRIPE_BUTTON_CTA}
+        Connect Now
       </Button>
     </ConnectStripeToastWrapper>
   );

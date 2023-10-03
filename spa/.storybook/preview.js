@@ -5,6 +5,7 @@ import { SnackbarProvider } from 'notistack';
 import { Provider as AlertProvider } from 'react-alert';
 import { BrowserRouter } from 'react-router-dom';
 import { ThemeProvider } from 'styled-components';
+import { mockDateDecorator } from 'storybook-mock-date-decorator';
 
 import Alert, { alertOptions } from 'elements/alert/Alert';
 import { revEngineTheme, muiThemeOverrides } from 'styles/themes';
@@ -35,7 +36,7 @@ const providerFn = ({ children }) => (
   </BrowserRouter>
 );
 
-export const decorators = [withThemes(null, [revEngineTheme], { providerFn })];
+export const decorators = [withThemes(null, [revEngineTheme], { providerFn }), mockDateDecorator];
 
 export const parameters = {
   actions: { argTypesRegex: '^on[A-Z].*' },

@@ -86,14 +86,29 @@ function ContributorRouter() {
       <RouterSetup>
         <ProtectedRoute
           path={ROUTES.CONTRIBUTOR_DASHBOARD}
-          render={() => <TrackPageView component={ContributorDashboard} />}
+          render={() => (
+            <TrackPageView>
+              <ContributorDashboard />
+            </TrackPageView>
+          )}
           contributor
         />
         <SentryRoute
           path={ROUTES.CONTRIBUTOR_ENTRY}
-          render={() => <TrackPageView component={ContributorEntry} page={pageData} />}
+          render={() => (
+            <TrackPageView>
+              <ContributorEntry page={pageData} />
+            </TrackPageView>
+          )}
         />
-        <SentryRoute path={ROUTES.CONTRIBUTOR_VERIFY} render={() => <TrackPageView component={ContributorVerify} />} />
+        <SentryRoute
+          path={ROUTES.CONTRIBUTOR_VERIFY}
+          render={() => (
+            <TrackPageView>
+              <ContributorVerify />
+            </TrackPageView>
+          )}
+        />
       </RouterSetup>
     </SegregatedStyles>
   );

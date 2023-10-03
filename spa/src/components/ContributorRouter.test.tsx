@@ -23,14 +23,8 @@ jest.mock('react-router-dom', () => ({
 }));
 
 // Mock TrackPageView as a passthrough.
-jest.mock('components/analytics/TrackPageView', () => ({ component }: { component: ComponentType }) => {
-  const Component = component;
-
-  return (
-    <div data-testid="mock-track-page-view">
-      <Component />
-    </div>
-  );
+jest.mock('components/analytics/TrackPageView', () => ({ children }: { children: React.ReactNode }) => {
+  return <div data-testid="mock-track-page-view">{children}</div>;
 });
 
 // Mock SegregatedStyles as a passthrough.

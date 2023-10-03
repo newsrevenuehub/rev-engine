@@ -1,12 +1,14 @@
 import styled from 'styled-components';
 
 export const Root = styled.header<{ $bgImage?: string | null }>`
-  background: ${(props) =>
-    props.$bgImage
+  background: ${(props) => {
+    return props.$bgImage
       ? `url(${props.$bgImage})`
-      : props.theme.colors.cstm_mainHeader ?? props.theme.basePalette.greyscale.white};
+      : props.theme.colors.cstm_mainHeader ?? props.theme.basePalette.greyscale.white;
+  }};
   background-size: cover;
   height: 60px;
+  min-height: 60px;
   display: flex;
   justify-content: center;
   align-items: center;
@@ -17,7 +19,7 @@ export const Root = styled.header<{ $bgImage?: string | null }>`
 
 export const Logo = styled.img`
   display: block;
-  max-height: 50px;
+  max-height: 44px;
   width: auto;
   max-width: 100%;
   margin: 0 auto;

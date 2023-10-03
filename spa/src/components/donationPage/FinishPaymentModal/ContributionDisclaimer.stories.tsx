@@ -3,7 +3,10 @@ import ContributionDisclaimer from './ContributionDisclaimer';
 
 export default {
   component: ContributionDisclaimer,
-  title: 'Donation Page/ContributionDisclaimer'
+  title: 'Donation Page/ContributionDisclaimer',
+  parameters: {
+    date: new Date('March 10, 2021 10:00:00')
+  }
 } as ComponentMeta<typeof ContributionDisclaimer>;
 
 const Template: ComponentStory<typeof ContributionDisclaimer> = (props) => <ContributionDisclaimer {...props} />;

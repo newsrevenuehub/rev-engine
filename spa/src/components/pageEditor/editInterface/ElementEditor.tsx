@@ -4,20 +4,12 @@ import {
   DonorInfoElement,
   FrequencyElement,
   PaymentElement,
-  ReasonElement,
-  SwagElement
+  ReasonElement
 } from 'hooks/useContributionPage';
 import { useEditablePageBatch } from 'hooks/useEditablePageBatch';
 import { useMemo, useState } from 'react';
 import { getPageContributionIntervals } from 'utilities/getPageContributionIntervals';
-import {
-  AmountEditor,
-  DonorAddressEditor,
-  FrequencyEditor,
-  PaymentEditor,
-  ReasonEditor,
-  SwagEditor
-} from '../elementEditors';
+import { AmountEditor, DonorAddressEditor, FrequencyEditor, PaymentEditor, ReasonEditor } from '../elementEditors';
 import { Content, ContentDetail, Header, Root } from './ElementEditor.styled';
 import EditSaveControls from './EditSaveControls';
 import ElementProperties from './pageElements/ElementProperties';
@@ -35,8 +27,7 @@ const editorComponents = {
   DDonorInfo: ContributorInfoEditor,
   DFrequency: FrequencyEditor,
   DPayment: PaymentEditor,
-  DReason: ReasonEditor,
-  DSwag: SwagEditor
+  DReason: ReasonEditor
 };
 
 /**
@@ -51,8 +42,7 @@ const editorHeaders = {
   DDonorInfo: 'Contributor Info',
   DFrequency: 'Contribution Frequency',
   DPayment: 'Agree to Pay Fees',
-  DReason: 'Reason for Giving',
-  DSwag: 'Contributor Benefits'
+  DReason: 'Reason for Giving'
 };
 
 export interface ElementEditorProps {
@@ -71,8 +61,7 @@ type ElementContent =
   | DonorInfoElement['content']
   | FrequencyElement['content']
   | PaymentElement['content']
-  | ReasonElement['content']
-  | SwagElement['content'];
+  | ReasonElement['content'];
 
 export function ElementEditor({ elementUuid, location, onClose }: ElementEditorProps) {
   const { addBatchChange, batchPreview, commitBatch, resetBatch } = useEditablePageBatch();

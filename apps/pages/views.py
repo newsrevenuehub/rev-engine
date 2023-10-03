@@ -222,15 +222,13 @@ class PageViewSet(FilterForSuperUserOrRoleAssignmentUserMixin, RevisionMixin, vi
         """List all available pages for the current user.
 
         NB: This method assumes that any queryset filtering vis-a-vis user role and identity has
-        already done upstream in get_queryset.
+        already been done upstream in get_queryset.
 
 
-        We prefetch_related on revenue program because that makes the queries required for DonationPageListSerializer
-        to run much faster.
-
+        In order to optimize for query performance, we limit returned fields with .only (which we configure the serializer to define, as that's the place
+        where these field references are maintained)
         """
         serializer = serializers.DonationPageListSerializer
-        # serializer defines its own fields that can be passed to .only() in order to make queries mroe performant
         qs = self.get_queryset().only(*serializer._ONLIES)
         serialized = serializer(qs, many=True)
         return Response(serialized.data)

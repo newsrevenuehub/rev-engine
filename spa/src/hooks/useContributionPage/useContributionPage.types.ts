@@ -366,7 +366,7 @@ export interface RevenueProgram {
   tax_id?: string | null;
 }
 
-export interface ContributionPageRevenueProgram extends Omit<RevenueProgram, 'organization'> {
+export interface RevenueProgramWithFullOrganization extends Omit<RevenueProgram, 'organization'> {
   organization: Organization;
 }
 /**
@@ -511,7 +511,7 @@ export interface ContributionPage {
   /**
    * Revenue program this page belongs to.
    */
-  revenue_program: ContributionPageRevenueProgram;
+  revenue_program: RevenueProgramWithFullOrganization;
   /**
    * ISO-3166 code of the country that the revenue program belongs to.
    */

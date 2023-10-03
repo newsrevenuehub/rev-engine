@@ -13,5 +13,4 @@ export const Root = styled.div`
 
 export const Link = styled(BaseLink)`
   font-weight: 700;
-  text-transform: lowercase;
 `;

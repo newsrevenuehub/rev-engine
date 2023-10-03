@@ -5,9 +5,6 @@ import {
   getFrequencyRate,
   getFrequencyThankYouText
 } from './parseFrequency';
-import i18n from 'i18next';
-
-jest.mock('i18next');
 
 type TestList = [ContributionInterval, string][];
 
@@ -38,12 +35,6 @@ const thankYouTests: TestList = [
 const badFrequencies = [undefined, null, '', 'bad', 1, true];
 
 describe('parseFrequency', () => {
-  const i18nMock = i18n as jest.Mocked<any>;
-
-  beforeEach(() => {
-    i18nMock.t.mockImplementation((key: string) => key);
-  });
-
   describe('getFrequencyAdjective', () => {
     it.each(adjectiveTests)('returns the relevant adjective for the %s frequency', (freq, result) =>
       expect(getFrequencyAdjective(freq)).toBe(result)

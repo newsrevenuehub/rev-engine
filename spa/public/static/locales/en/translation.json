@@ -47,10 +47,8 @@
       "whatIsFundJournalismOrg": "What is fundjournalism.org?"
     },
     "contributionDisclaimer": {
-      "alongWithFutureRecurringPayments": "along with all future recurring payments",
-      "byProceedingWithThisTransactionYouAgreeToOur": "By proceeding with this transaction, you agree to our",
-      "additionallyYouAuthorizePayment": "Additionally, by proceeding with this transaction, you're authorizing today's payment{{frequencySuffix}} of",
-      "toBeProcessedOnOrAdjacentTo": "to be processed on or adjacent to",
+      "disclaimer": "By proceeding with this transaction, you agree to our <privacy>privacy policy</privacy> and <terms>terms & conditions</terms>. Additionally, by proceeding with this transaction, you're authorizing today's payment{{frequencySuffix}} of <strong>{{amountText}} to be processed on or adjacent to {{date}}.</strong>",
+      "alongWithFutureRecurringPayments": ", <strong>along with all future recurring payments</strong>",
       "contributionIntervals": {
         "monthly": "the {{date}} of the month until you cancel",
         "annually": "{{date}} yearly until you cancel"
@@ -59,6 +57,10 @@
   },
   "stripeFns": {
     "missingArgumentError": "Missing argument for: {{error}}",
-    "paymentElementButtonText": "Give {{amount}} {{frequency}}"
+    "paymentElementButtonText": {
+      "one_time": "Give {{amount}} once",
+      "month": "Give {{amount}} monthly",
+      "year": "Give {{amount}} yearly"
+    }
   }
 }

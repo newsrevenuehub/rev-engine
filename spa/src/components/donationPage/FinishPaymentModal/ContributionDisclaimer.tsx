@@ -1,7 +1,7 @@
 import PropTypes, { InferProps } from 'prop-types';
 import { format } from 'date-fns';
 import { useMemo } from 'react';
-import { useTranslation } from 'react-i18next';
+import { Trans, useTranslation } from 'react-i18next';
 import { CONTRIBUTION_INTERVALS, ContributionInterval } from 'constants/contributionIntervals';
 import { Link, Root } from './ContributionDisclaimer.styled';
 
@@ -16,18 +16,6 @@ export interface ContributionDisclaimerProps extends InferProps<typeof Contribut
 
 function ContributionDisclaimer({ formattedAmount, interval }: ContributionDisclaimerProps) {
   const { t } = useTranslation();
-
-  const frequencySuffix = useMemo(
-    () =>
-      interval === CONTRIBUTION_INTERVALS.ONE_TIME ? (
-        ''
-      ) : (
-        <span>
-          , <strong>{t('donationPage.contributionDisclaimer.alongWithFutureRecurringPayments')}</strong>
-        </span>
-      ),
-    [interval, t]
-  );
 
   const processingDate = useMemo(() => {
     switch (interval) {
@@ -51,20 +39,21 @@ function ContributionDisclaimer({ formattedAmount, interval }: ContributionDiscl
   return (
     <Root data-testid="donation-page-disclaimer">
       <p>
-        {t('donationPage.contributionDisclaimer.byProceedingWithThisTransactionYouAgreeToOur')}{' '}
-        <Link href={t('common.urls.privacyPolicy')} target="_blank">
-          {t('common.urlLabels.privacyPolicy')}
-        </Link>{' '}
-        {t('common.conjunctions.and')}{' '}
-        <Link href={t('common.urls.tsAndCs')} target="_blank">
-          {t('common.urlLabels.tsAndCs')}
-        </Link>
-        . {t('donationPage.contributionDisclaimer.additionallyYouAuthorizePayment', { frequencySuffix })}{' '}
-        <strong>
-          <span data-testid="amount">{amountText}</span>{' '}
-          {t('donationPage.contributionDisclaimer.toBeProcessedOnOrAdjacentTo')}{' '}
-          <span data-testid="processingDate">{processingDate}</span>.
-        </strong>
+        <Trans
+          i18nKey="donationPage.contributionDisclaimer.disclaimer"
+          components={{
+            privacy: <Link href={t('common.urls.privacyPolicy')} target="_blank" />,
+            terms: <Link href={t('common.urls.tsAndCs')} target="_blank" />
+          }}
+          values={{
+            amountText,
+            date: processingDate,
+            frequencySuffix:
+              interval === CONTRIBUTION_INTERVALS.ONE_TIME
+                ? ''
+                : t('donationPage.contributionDisclaimer.alongWithFutureRecurringPayments')
+          }}
+        />
       </p>
     </Root>
   );

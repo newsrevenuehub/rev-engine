@@ -6,12 +6,7 @@ import { Payment } from 'hooks/usePayment';
 import StripePaymentForm, { STRIPE_ERROR_MESSAGE, StripePaymentFormProps } from './StripePaymentForm';
 import { getPaymentSuccessUrl } from 'components/paymentProviders/stripe/stripeFns';
 import { getFrequencyThankYouText } from 'utilities/parseFrequency';
-import i18n from 'i18next';
 
-jest.mock('i18next', () => ({
-  ...jest.requireActual('i18next'),
-  t: jest.fn()
-}));
 jest.mock('@stripe/react-stripe-js', () => ({
   PaymentElement: ({ options }: any) => (
     <div data-testid="mock-payment-element" data-options={JSON.stringify(options)} />
@@ -67,12 +62,8 @@ describe('StripePaymentForm', () => {
   const useAlertMock = jest.mocked(useAlert);
   const useElementsMock = jest.mocked(useElements);
   const useStripeMock = jest.mocked(useStripe);
-  const i18nMock = i18n as jest.Mocked<any>;
 
   beforeEach(() => {
-    i18nMock.t.mockImplementation(
-      (key: string, options?: Record<string, any>) => `${key}${options ? JSON.stringify(options) : ''}`
-    );
     useAlertMock.mockReturnValue({
       error: jest.fn()
     } as any);
@@ -114,7 +105,7 @@ describe('StripePaymentForm', () => {
     tree();
     expect(
       screen.getByRole('button', {
-        name: 'stripeFns.paymentElementButtonText{"amount":"mock-currency-symbol123.45 mock-currency-code","frequency":"common.frequency.adverbs.oneTime"}'
+        name: 'stripeFns.paymentElementButtonText.one_time{"amount":"mock-currency-symbol123.45 mock-currency-code"}'
       })
     ).toBeVisible();
   });
@@ -123,7 +114,7 @@ describe('StripePaymentForm', () => {
     tree({ payment: { ...mockPayment, interval: 'month' } });
     expect(
       screen.getByRole('button', {
-        name: 'stripeFns.paymentElementButtonText{"amount":"mock-currency-symbol123.45 mock-currency-code","frequency":"common.frequency.adverbs.monthly"}'
+        name: 'stripeFns.paymentElementButtonText.month{"amount":"mock-currency-symbol123.45 mock-currency-code"}'
       })
     ).toBeVisible();
   });
@@ -132,7 +123,7 @@ describe('StripePaymentForm', () => {
     tree({ payment: { ...mockPayment, interval: 'year' } });
     expect(
       screen.getByRole('button', {
-        name: 'stripeFns.paymentElementButtonText{"amount":"mock-currency-symbol123.45 mock-currency-code","frequency":"common.frequency.adverbs.yearly"}'
+        name: 'stripeFns.paymentElementButtonText.year{"amount":"mock-currency-symbol123.45 mock-currency-code"}'
       })
     ).toBeVisible();
   });

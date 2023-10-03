@@ -1,5 +1,5 @@
 import { ContributionInterval } from 'constants/contributionIntervals';
-import i18n from 'i18next';
+import i18n from '../i18n';
 
 type FrequencyLookup = Record<ContributionInterval, string>;
 

@@ -3,8 +3,7 @@ import { ContributionInterval } from 'constants/contributionIntervals';
 import { PAYMENT_SUCCESS } from 'routes';
 import calculateStripeFee from 'utilities/calculateStripeFee';
 import formatStringAmountForDisplay from 'utilities/formatStringAmountForDisplay';
-import { getFrequencyAdverb } from 'utilities/parseFrequency';
-import i18n from 'i18next';
+import i18n from '../../../i18n';
 
 /**
  * getTotalAmount takes an amount in dollars and an optional fee in dollars and adds them up.
@@ -249,8 +248,7 @@ export function getPaymentElementButtonText({
   amount,
   frequency
 }: GetPaymentElementButtonTextArgs) {
-  return i18n.t('stripeFns.paymentElementButtonText', {
-    amount: `${currencySymbol}${formatStringAmountForDisplay(amount)}${currencyCode ? ' ' + currencyCode : ''}`,
-    frequency: getFrequencyAdverb(frequency)
+  return i18n.t(`stripeFns.paymentElementButtonText.${frequency}`, {
+    amount: `${currencySymbol}${formatStringAmountForDisplay(amount)}${currencyCode ? ' ' + currencyCode : ''}`
   });
 }

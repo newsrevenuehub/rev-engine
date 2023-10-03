@@ -221,7 +221,7 @@ class UserViewset(
 
         return [permission() for permission in permission_classes]
 
-    def send_verification_email(self, user):
+    def send_verification_email(self, user: user_model):
         """Send email to user asking them to click verify their email address link.
 
         NB: this method assumes that the user sent as `user` has already been saved to the database.

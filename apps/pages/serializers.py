@@ -492,7 +492,7 @@ class DonationPageListSerializer(serializers.ModelSerializer):
     The primary consumer of this page at time of this comment is the SPA, and specifically
     the pages list view in the org dashboard.
 
-    Note that at present, pagiation is not enabled for this serializer, and superusers and hub
+    Note that at present, pagination is not enabled for this serializer, and superusers and hub
     admins get all pages as currently configured. See [DEV-4030](https://news-revenue-hub.atlassian.net/browse/DEV-4030) for
     further discussion.
     """

@@ -1382,7 +1382,23 @@ def hub_admin_user_with_rps_in_ra(hub_admin_user, request):
     return hub_admin_user
 
 
-@pytest.fixture(params=["superuser", "org_user_free_plan", "rp_user", "hub_admin_user"])
+@pytest.fixture
+def org_user_for_email_test(org_user_free_plan, revenue_program):
+    org_user_free_plan.roleassignment.organization = revenue_program.organization
+    org_user_free_plan.roleassignment.revenue_programs.add(revenue_program)
+    org_user_free_plan.roleassignment.save()
+    return org_user_free_plan
+
+
+@pytest.fixture
+def rp_user_for_email_test(rp_user, revenue_program):
+    rp_user.roleassignment.organization = revenue_program.organization
+    rp_user.roleassignment.revenue_programs.add(revenue_program)
+    rp_user.roleassignment.save()
+    return rp_user
+
+
+@pytest.fixture(params=["superuser", "org_user_for_email_test", "rp_user_for_email_test", "hub_admin_user"])
 def test_email_user(request, revenue_program):
     user = request.getfixturevalue(request.param)
     if user.roleassignment:

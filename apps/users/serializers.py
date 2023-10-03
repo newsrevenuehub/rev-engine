@@ -49,10 +49,8 @@ class FlagSerializer(serializers.ModelSerializer):
     class Meta:
         model = get_waffle_flag_model()
         fields = (
-            fields := (
-                "id",
-                "name",
-            )
+            "id",
+            "name",
         )
         read_only_fields = fields
 

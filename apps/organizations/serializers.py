@@ -47,17 +47,15 @@ class OrganizationInlineSerializer(serializers.ModelSerializer):
     class Meta:
         model = Organization
         fields = (
-            fields := (
-                "id",
-                "name",
-                "plan",
-                "send_receipt_email_via_nre",
-                "show_connected_to_mailchimp",
-                "show_connected_to_salesforce",
-                "show_connected_to_slack",
-                "slug",
-                "uuid",
-            )
+            "id",
+            "name",
+            "plan",
+            "send_receipt_email_via_nre",
+            "show_connected_to_mailchimp",
+            "show_connected_to_salesforce",
+            "show_connected_to_slack",
+            "slug",
+            "uuid",
         )
         read_only_fields = fields
 
@@ -98,18 +96,15 @@ class RevenueProgramForPageDetailSerializer(serializers.ModelSerializer):
 
     class Meta:
         model = RevenueProgram
-        fields = (
-            fields := _RP_FOR_DONATION_PAGE_LIST_SERIALIZER_FIELDS
-            + (
-                "contact_email",
-                "facebook_pixel_id",
-                "google_analytics_v3_domain",
-                "google_analytics_v3_id",
-                "google_analytics_v4_id",
-                "organization",
-                "twitter_handle",
-                "website_url",
-            )
+        fields = _RP_FOR_DONATION_PAGE_LIST_SERIALIZER_FIELDS + (
+            "contact_email",
+            "facebook_pixel_id",
+            "google_analytics_v3_domain",
+            "google_analytics_v3_id",
+            "google_analytics_v4_id",
+            "organization",
+            "twitter_handle",
+            "website_url",
         )
         read_only_fields = fields
 
@@ -123,17 +118,12 @@ class RevenueProgramInlineSerializer(serializers.ModelSerializer):
 
     class Meta:
         model = RevenueProgram
-        fields = (
-            fields := (
-                _RP_FOR_DONATION_PAGE_LIST_SERIALIZER_FIELDS
-                + (
-                    "fiscal_sponsor_name",
-                    "fiscal_status",
-                    "organization",
-                    "payment_provider_stripe_verified",
-                    "tax_id",
-                )
-            )
+        fields = _RP_FOR_DONATION_PAGE_LIST_SERIALIZER_FIELDS + (
+            "fiscal_sponsor_name",
+            "fiscal_status",
+            "organization",
+            "payment_provider_stripe_verified",
+            "tax_id",
         )
         read_only_fields = fields
 

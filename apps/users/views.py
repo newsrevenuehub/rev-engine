@@ -222,7 +222,11 @@ class UserViewset(
         return [permission() for permission in permission_classes]
 
     def send_verification_email(self, user):
-        """Send email to user asking them to click verify their email address link."""
+        """Send email to user asking them to click verify their email address link.
+
+        NB: this method assumes that the user sent as `user` has already been saved to the database.
+        In this caes, it will be guaranteed to have a .email property.
+        """
         encoded_email, token = AccountVerification().generate_token(user.email)
         url = self.request.build_absolute_uri(
             reverse("account_verification", kwargs={"email": encoded_email, "token": token})

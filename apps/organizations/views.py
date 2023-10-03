@@ -309,7 +309,8 @@ def handle_stripe_account_link(request, rp_pk):
     This endpoint is designed to support polling from the front end.
     """
     revenue_program = get_object_or_404(RevenueProgram, pk=rp_pk)
-    if revenue_program.id not in request.user.permitted_revenue_programs.values_list("id", flat=True):
+    # TODO: [DEV-4082] Use user.permitted_organizations, user.permitted_revenue_programs, user.active_flags wherever possible
+    if not request.user.roleassignment.can_access_rp(revenue_program):
         logger.warning(
             (
                 "[handle_stripe_account_link] was asked to report on status of account link for RP with ID %s by user with id %s who does "
@@ -418,7 +419,7 @@ def send_test_email(request):
 
     revenue_program = get_object_or_404(RevenueProgram, pk=rp_pk)
     if not request.user.is_superuser:
-        if revenue_program.id not in request.user.permitted_revenue_programs.values_list("id", flat=True):
+        if not request.user.roleassignment.can_access_rp(revenue_program):
             logger.warning(
                 (
                     "[send_test_email] was asked to send a test email link for RP with ID %s by user with id %s who does "
@@ -467,7 +468,9 @@ def handle_mailchimp_oauth_success(request):
     serializer.is_valid(raise_exception=True)
     if (
         rp_id := serializer.validated_data["revenue_program"]
-    ) not in request.user.permitted_revenue_programs.values_list("id", flat=True):
+    ) not in RevenueProgram.objects.filtered_by_role_assignment(request.user.roleassignment).values_list(
+        "id", flat=True
+    ):
         logger.warning(
             (
                 "`handle_mailchimp_oauth_success` called with request data referencing a non-existent or unowned revenue program "

@@ -136,6 +136,23 @@ class User(AbstractBaseUser, PermissionsMixin, IndexedTimeStampedModel):
     def __str__(self):
         return self.email
 
+    # TODO: [DEV-4082] Use user.permitted_organizations, user.permitted_revenue_programs, user.active_flags wherever possible
+    def can_access_rp(self, revenue_program):
+        """Determine if role assignment grants basic acess to a given revenue program
+
+        Note that this is a "dumb" notion of having access. It doesn't distinguish between
+        read and write. It's used to show that a user should be able to
+        have access to an rp by virtue of their role type, orgnaization, and revenue_programs.
+        """
+        return any(
+            [
+                self.user.is_superuser,
+                self.role_type == Roles.HUB_ADMIN,
+                self.role_type == Roles.ORG_ADMIN and self.organization == revenue_program.organization,
+                self.role_type == Roles.RP_ADMIN and revenue_program in self.revenue_programs.all(),
+            ]
+        )
+
 
 class OrganizationUser(models.Model):
     user = models.ForeignKey(User, on_delete=models.CASCADE)

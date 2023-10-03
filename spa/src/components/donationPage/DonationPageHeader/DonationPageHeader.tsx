@@ -56,7 +56,7 @@ export function DonationPageHeader({ page }: DonationPageHeaderProps) {
 
     if (page.header_link) {
       logo = (
-        <a href={page?.header_link} target="_blank" rel="noreferrer noopener">
+        <a href={page.header_link} target="_blank" rel="noreferrer noopener">
           <Logo src={logoSource} alt={altTextWithFallback} />
         </a>
       );

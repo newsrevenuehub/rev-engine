@@ -22,7 +22,6 @@ import RouterSetup from './routes/RouterSetup';
 const Main = lazy(() => componentLoader(() => import('components/Main')));
 
 // Account Screens
-
 const SignIn = lazy(() => componentLoader(() => import('components/account/SignIn')));
 const SignUp = lazy(() => componentLoader(() => import('components/account/SignUp')));
 const ForgotPassword = lazy(() => componentLoader(() => import('components/account/ForgotPassword')));
@@ -37,10 +36,42 @@ function DashboardRouter() {
     <RouterSetup>
       {/* Login URL */}
 
-      <SentryRoute exact path={ROUTES.SIGN_IN} render={() => <TrackPageView component={SignIn} />} />
-      <SentryRoute exact path={ROUTES.SIGN_UP} render={() => <TrackPageView component={SignUp} />} />
-      <SentryRoute exact path={ROUTES.FORGOT_PASSWORD} render={() => <TrackPageView component={ForgotPassword} />} />
-      <SentryRoute exact path={ROUTES.RESET_PASSWORD} render={() => <TrackPageView component={ResetPassword} />} />
+      <SentryRoute
+        exact
+        path={ROUTES.SIGN_IN}
+        render={() => (
+          <TrackPageView>
+            <SignIn />
+          </TrackPageView>
+        )}
+      />
+      <SentryRoute
+        exact
+        path={ROUTES.SIGN_UP}
+        render={() => (
+          <TrackPageView>
+            <SignUp />
+          </TrackPageView>
+        )}
+      />
+      <SentryRoute
+        exact
+        path={ROUTES.FORGOT_PASSWORD}
+        render={() => (
+          <TrackPageView>
+            <ForgotPassword />
+          </TrackPageView>
+        )}
+      />
+      <SentryRoute
+        exact
+        path={ROUTES.RESET_PASSWORD}
+        render={() => (
+          <TrackPageView>
+            <ResetPassword />
+          </TrackPageView>
+        )}
+      />
 
       <Redirect from="/verified/:slug" to="/verify-email-success?result=:slug" />
       <Redirect from={ROUTES.VERIFIED} to={ROUTES.VERIFY_EMAIL_SUCCESS} />
@@ -60,7 +91,11 @@ function DashboardRouter() {
           ROUTES.MAILCHIMP_OAUTH_SUCCESS_ROUTE,
           ROUTES.SETTINGS.SUBSCRIPTION
         ]}
-        render={() => <TrackPageView component={Main} />}
+        render={() => (
+          <TrackPageView>
+            <Main />
+          </TrackPageView>
+        )}
       />
 
       <Redirect to={ROUTES.CONTENT_SLUG} />

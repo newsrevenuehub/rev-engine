@@ -80,6 +80,10 @@ class User(AbstractBaseUser, PermissionsMixin, IndexedTimeStampedModel):
     def __str__(self):
         return self.email
 
+    @property
+    def permitted_contributions(self):
+        pass
+
 
 class OrganizationUser(models.Model):
     user = models.ForeignKey(User, on_delete=models.CASCADE)

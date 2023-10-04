@@ -132,7 +132,7 @@ class User(AbstractBaseUser, PermissionsMixin, IndexedTimeStampedModel):
         if ra.role_type == Roles.HUB_ADMIN:
             return RevenueProgram.objects.all()
         if ra.role_type == Roles.ORG_ADMIN:
-            return ra.organization.revenue_programs.all()
+            return ra.organization.revenueprogram_set.all()
         return ra.revenue_programs.all()
 
     def __str__(self):

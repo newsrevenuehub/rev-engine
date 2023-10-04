@@ -26,6 +26,7 @@ def test_permitted_organizations_setup(rp_user, org_user_free_plan):
 @pytest.fixture
 def test_permitted_revenue_programs_setup(rp_user, org_user_free_plan):
     org2 = OrganizationFactory()
+    RevenueProgramFactory.create_batch(2, organization=org2)
     org1_rps = RevenueProgramFactory.create_batch(2, organization=org_user_free_plan.roleassignment.organization)
     RevenueProgramFactory(organization=org2)
     rp_user.roleassignment.organization = org_user_free_plan.roleassignment.organization
@@ -114,9 +115,17 @@ class TestUser:
             assert rps.count() == RevenueProgram.objects.count()
             assert set(rps.values_list("id", flat=True)) == set(RevenueProgram.objects.values_list("id", flat=True))
         else:
-            assert rps.count() == expected_user.roleassignment.revenue_programs.count()
+            role_type = (ra := expected_user.roleassignment).role_type
+            assert (
+                rps.count() == ra.revenue_programs.count()
+                if role_type == Roles.RP_ADMIN
+                # org admin
+                else ra.organization.revenueprogram_set.count()
+            )
             assert set(rps.values_list("id", flat=True)) == set(
-                expected_user.roleassignment.revenue_programs.values_list("id", flat=True)
+                (
+                    ra.revenue_programs if role_type == Roles.RP_ADMIN else ra.organization.revenueprogram_set
+                ).values_list("id", flat=True)
             )
 
     def test_active_flags(self, test_active_flags_expectation):

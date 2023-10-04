@@ -46,17 +46,18 @@ class OrganizationInlineSerializer(serializers.ModelSerializer):
 
     class Meta:
         model = Organization
-        fields = [
+        fields = (
             "id",
-            "uuid",
             "name",
-            "slug",
             "plan",
-            "show_connected_to_slack",
-            "show_connected_to_salesforce",
-            "show_connected_to_mailchimp",
             "send_receipt_email_via_nre",
-        ]
+            "show_connected_to_mailchimp",
+            "show_connected_to_salesforce",
+            "show_connected_to_slack",
+            "slug",
+            "uuid",
+        )
+        read_only_fields = fields
 
     def get_plan(self, obj):
         return asdict(obj.plan)
@@ -68,57 +69,63 @@ class OrganizationPatchSerializer(serializers.ModelSerializer):
         fields = ["name"]
 
 
-class RevenueProgramListInlineSerializer(serializers.ModelSerializer):
+_RP_FOR_DONATION_PAGE_LIST_SERIALIZER_FIELDS = (
+    "id",
+    "name",
+    "slug",
+    "default_donation_page",
+)
+
+
+class RevenueProgramForDonationPageListSerializer(serializers.ModelSerializer):
+    """Narrowly used to serialize a revenue program in the DonationPageListSerializer
+
+    The field requirements here are determined by what the SPA needs
     """
-    I am needed for Page creation. In particular, if "slug" is not provided,
-    the user is redirected to `/edit/undefined/page-slug` after page creation.
-    """
+
+    class Meta:
+        model = RevenueProgram
+        fields = _RP_FOR_DONATION_PAGE_LIST_SERIALIZER_FIELDS
+        read_only_fields = _RP_FOR_DONATION_PAGE_LIST_SERIALIZER_FIELDS
+
+
+class RevenueProgramForPageDetailSerializer(serializers.ModelSerializer):
+    """Expected use case is as presentation serializer for the revenue_program field on DonationPageFullDetailSerializer"""
 
     organization = OrganizationInlineSerializer()
 
     class Meta:
         model = RevenueProgram
-        fields = [
-            "id",
-            "name",
-            "slug",
-            "twitter_handle",
-            "website_url",
+        fields = _RP_FOR_DONATION_PAGE_LIST_SERIALIZER_FIELDS + (
             "contact_email",
+            "facebook_pixel_id",
             "google_analytics_v3_domain",
             "google_analytics_v3_id",
             "google_analytics_v4_id",
-            "facebook_pixel_id",
             "organization",
-            "default_donation_page",
-        ]
+            "twitter_handle",
+            "website_url",
+        )
+        read_only_fields = fields
 
 
-class RevenueProgramInlineSerializerForAuthedUserSerializer(serializers.ModelSerializer):
-    """Serializer used for representing revenue programs inline in AuthedUserSerializer...
+class RevenueProgramInlineSerializer(serializers.ModelSerializer):
+    """Relatively lightweight reprsentation of an RP
 
-    which is used to represent users in the api/v1/token authentication endpoint.
+    Used for for representing revenue programs inline in AuthedUserSerializer and
+    used in StyleListSerializer.
     """
 
     class Meta:
         model = RevenueProgram
-        fields = [
-            "id",
-            "name",
-            "slug",
+        fields = _RP_FOR_DONATION_PAGE_LIST_SERIALIZER_FIELDS + (
+            "fiscal_sponsor_name",
+            "fiscal_status",
             "organization",
             "payment_provider_stripe_verified",
             "tax_id",
-            "fiscal_status",
-            "fiscal_sponsor_name",
-        ]
-
-
-class RevenueProgramInlineSerializer(RevenueProgramInlineSerializerForAuthedUserSerializer):
-    # TODO: [DEV-2738]: This is likely the cause of at least part of the N+1 and poor performance
-    # of api/v1/users. That endpoint serializes orgs using OrganizationInlineSerializer, then serializes
-    # revenue programs using this serializer, which redundantly serializes the orgs.
-    organization = OrganizationInlineSerializer()
+        )
+        read_only_fields = fields
 
 
 class MailchimpRevenueProgramForSpaConfiguration(serializers.ModelSerializer):

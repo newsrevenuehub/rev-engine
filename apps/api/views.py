@@ -4,8 +4,6 @@ from datetime import datetime
 from urllib.parse import quote_plus, urlparse
 
 from django.conf import settings
-from django.contrib.auth import get_user_model
-from django.db.models import QuerySet
 from django.middleware import csrf
 from django.shortcuts import get_object_or_404
 from django.template.loader import render_to_string
@@ -26,9 +24,7 @@ from apps.contributions.models import Contributor
 from apps.contributions.serializers import ContributorSerializer
 from apps.contributions.tasks import task_pull_serialized_stripe_contributions_to_cache
 from apps.emails.tasks import send_templated_email
-from apps.organizations.models import Organization, RevenueProgram
-from apps.users.choices import Roles
-from apps.users.models import RoleAssignment
+from apps.organizations.models import RevenueProgram
 from apps.users.serializers import AuthedUserSerializer
 
 
@@ -99,97 +95,6 @@ class TokenObtainPairCookieView(simplejwt_views.TokenObtainPairView):
 
     permission_classes = []
 
-    # These fields are used in calls to .only below to optimize queries.
-    # They are required by OrganizationInlineSerializer, which AuthedUserSerializer uses
-    # """
-    org_onlies: tuple[str] = (
-        "id",
-        "name",
-        "plan_name",
-        "send_receipt_email_via_nre",
-        "show_connected_to_mailchimp",
-        "show_connected_to_salesforce",
-        "show_connected_to_slack",
-        "slug",
-        "uuid",
-    )
-
-    # These fields are used in calls to .only below to optimize queries.
-    # They are required by RevenueProgramInlineSerializerForAuthedUserSerializer, which AuthedUserSerializer uses
-    rp_onlies: tuple[str] = (
-        "fiscal_sponsor_name",
-        "fiscal_status",
-        "id",
-        "name",
-        "organization",
-        "payment_provider__stripe_verified",
-        "slug",
-        "tax_id",
-    )
-
-    # These fields are used in calls to .only below to optimize queries.
-    # They are required by RevenueProgramInlineSerializerForAuthedUserSerializer and OrganizationInlineSerializer,
-    # which AuthedUserSerializer uses
-    ra_onlies: tuple[str] = tuple(
-        [f"organization__{x}" for x in org_onlies] + [f"revenue_programs__{x}" for x in rp_onlies]
-    )
-
-    def get_role_type(self, val: str = None) -> tuple[str, str]:
-        return (str(Roles(val)), Roles(val).label)
-
-    def get_all_orgs_and_rps(self) -> tuple[QuerySet, QuerySet]:
-        """Convenience method to dry up repeated logic used for superusers and hub admins."""
-        return (
-            Organization.objects.only(*self.org_onlies).all(),
-            RevenueProgram.objects.select_related("payment_provider").only(*self.rp_onlies).all(),
-        )
-
-    def get_user(self, user: get_user_model()) -> get_user_model():
-        """Return a user object as required by the AuthedUserSerializer.
-
-        This method is somewhat convoluted but this is in the service of fully optimizing the queries
-        and handling complexity around superusers and hub admins requiring different queries than
-        org admins and rp admins.
-        """
-
-        if user.is_superuser:
-            # TODO: [DEV-3913] Change this to .organizations once that's no longer on user model
-            user._organizations, user.revenue_programs = self.get_all_orgs_and_rps()
-            user.role_type = ("superuser", "Superuser")
-            return user
-
-        try:
-            role_type = RoleAssignment.objects.only("role_type").get(user=user).role_type
-        except RoleAssignment.DoesNotExist:
-            role_type = None
-
-        if role_type == Roles.HUB_ADMIN:
-            # TODO: [DEV-3913] Change this to .organizations once that's no longer on user model
-            user._organizations, user.revenue_programs = self.get_all_orgs_and_rps()
-            user.role_type = self.get_role_type(val=role_type)
-            return user
-
-        if role_type not in [Roles.ORG_ADMIN, Roles.RP_ADMIN, Roles.HUB_ADMIN]:
-            # TODO: [DEV-3913] Change this to .organizations once that's no longer on user model
-            user._organizations = []
-            user.revenue_programs = []
-            user.role_type = None
-            return user
-
-        # default case for rp_admin and org_admin
-        user.role_type = self.get_role_type(val=role_type)
-        ra = (
-            RoleAssignment.objects.filter(user=user)
-            .prefetch_related("revenue_programs", "revenue_programs__payment_provider")
-            .select_related("organization")
-            .only(*self.ra_onlies)
-            .first()
-        )
-        # TODO: [DEV-3913] Change this to .organizations once that's no longer on user model
-        user._organizations = [ra.organization]
-        user.revenue_programs = ra.revenue_programs
-        return user
-
     def post(self, request, *args, **kwargs):
         jwt_serializer = TokenObtainPairSerializer(data=request.data)
         try:
@@ -201,7 +106,7 @@ class TokenObtainPairCookieView(simplejwt_views.TokenObtainPairView):
             {
                 "detail": "success",
                 "csrftoken": csrf.get_token(self.request),
-                "user": AuthedUserSerializer(self.get_user(jwt_serializer.user)).data,
+                "user": AuthedUserSerializer(jwt_serializer.user).data,
             },
             status=status.HTTP_200_OK,
         )

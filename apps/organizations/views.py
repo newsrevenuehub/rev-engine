@@ -309,6 +309,7 @@ def handle_stripe_account_link(request, rp_pk):
     This endpoint is designed to support polling from the front end.
     """
     revenue_program = get_object_or_404(RevenueProgram, pk=rp_pk)
+    # TODO: [DEV-4082] Use user.permitted_organizations, user.permitted_revenue_programs, user.active_flags wherever possible
     if not request.user.roleassignment.can_access_rp(revenue_program):
         logger.warning(
             (

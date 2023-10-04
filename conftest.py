@@ -110,10 +110,12 @@ def mock_stripe_retrieve_payment_method(monkeypatch):
 
 
 @pytest.fixture
-def default_feature_flags():
+def default_feature_flags() -> list[get_waffle_flag_model()]:
     Flag = get_waffle_flag_model()
+    created = []
     for x in DEFAULT_FLAGS_CONFIG_MAPPING.values():
-        Flag.objects.get_or_create(name=x["name"], defaults={k: v for k, v in x.items() if k != "name"})
+        created.append(Flag.objects.get_or_create(name=x["name"], defaults={k: v for k, v in x.items() if k != "name"}))
+    return created
 
 
 @pytest.fixture

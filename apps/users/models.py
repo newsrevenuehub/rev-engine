@@ -1,10 +1,13 @@
 import logging
+from enum import Enum
 
 from django.conf import settings
 from django.contrib.auth.models import AbstractBaseUser, PermissionsMixin
 from django.core.exceptions import ValidationError
 from django.db import models
 from django.utils.translation import ugettext_lazy as _
+
+from waffle import get_waffle_flag_model
 
 from apps.common.models import IndexedTimeStampedModel
 from apps.users.managers import UserManager
@@ -14,6 +17,13 @@ from .constants import FIRST_NAME_MAX_LENGTH, JOB_TITLE_MAX_LENGTH, LAST_NAME_MA
 
 
 logger = logging.getLogger(f"{settings.DEFAULT_LOGGER}.{__name__}")
+
+
+class RoleTypeReturnValues(Enum):
+    HUB_ADMIN = "hub_admin", "Hub Admin"
+    ORG_ADMIN = "org_admin", "Org Admin"
+    RP_ADMIN = "rp_admin", "RP Admin"
+    SUPERUSER = "superuser", "Superuser"
 
 
 class User(AbstractBaseUser, PermissionsMixin, IndexedTimeStampedModel):
@@ -52,11 +62,12 @@ class User(AbstractBaseUser, PermissionsMixin, IndexedTimeStampedModel):
         except self.__class__.roleassignment.RelatedObjectDoesNotExist:
             return None
 
-    def get_role_type(self):
+    @property
+    def role_type(self) -> RoleTypeReturnValues:
         if self.is_superuser:
             return ("superuser", "Superuser")
-        role_assignment = self.get_role_assignment()
-        return (role_assignment.role_type, role_assignment.get_role_type_display()) if role_assignment else None
+        ra = self.get_role_assignment()
+        return (ra.role_type, ra.get_role_type_display()) if ra else None
 
     def validate_unique(self, exclude) -> None:
         # we sidestep default unique validation for the email field
@@ -76,6 +87,53 @@ class User(AbstractBaseUser, PermissionsMixin, IndexedTimeStampedModel):
                 "User.validate_unique found a duplicate user with ID %s for %s %s", _user.pk, self.USERNAME_FIELD, val
             )
             raise ValidationError("User with this Email already exists.", code="unique_together")
+
+    @property
+    def active_flags(self) -> models.QuerySet:
+        """Return set of distinct flags this user gets by virtue of their role, role assignment, or lack thereof"""
+        Flag = get_waffle_flag_model()
+        return (
+            Flag.objects.filter(models.Q(superusers=True) | models.Q(everyone=True) | models.Q(users__in=[self]))
+            if self.is_superuser
+            else Flag.objects.filter(models.Q(everyone=True) | models.Q(users__in=[self]))
+        )
+
+    @property
+    def permitted_organizations(
+        self,
+    ) -> models.QuerySet["organizations.Organization"]:
+        """All the orgs a user is permitted to see based on being a superuser or else on their role assignment, if any"""
+        from apps.organizations.models import Organization
+
+        if self.is_superuser:
+            return Organization.objects.all()
+        try:
+            ra = self.roleassignment
+        except RoleAssignment.DoesNotExist:
+            return Organization.objects.none()
+
+        if ra.role_type == Roles.HUB_ADMIN:
+            return Organization.objects.all()
+
+        return Organization.objects.filter(id=ra.organization.id)
+
+    @property
+    def permitted_revenue_programs(self) -> models.QuerySet["organizations.RevenueProgram"]:
+        """All the revenue programs a user is permitted to see based on being a superuser or else on their role assignment, if any"""
+
+        from apps.organizations.models import RevenueProgram
+
+        if self.is_superuser:
+            return RevenueProgram.objects.all()
+        try:
+            ra = self.roleassignment
+        except RoleAssignment.DoesNotExist:
+            return RevenueProgram.objects.none()
+        if ra.role_type == Roles.HUB_ADMIN:
+            return RevenueProgram.objects.all()
+        if ra.role_type == Roles.ORG_ADMIN:
+            return ra.organization.revenueprogram_set.all()
+        return ra.revenue_programs.all()
 
     def __str__(self):
         return self.email
@@ -114,6 +172,7 @@ class RoleAssignment(models.Model):
             return f"{Roles.RP_ADMIN.label} for these revenue programs: {', '.join(owned_rps_as_strings)}"
         return f"Unspecified RoleAssignment ({self.pk})"
 
+    # TODO: [DEV-4082] Use user.permitted_organizations, user.permitted_revenue_programs, user.active_flags wherever possible
     def can_access_rp(self, revenue_program):
         """Determine if role assignment grants basic acess to a given revenue program
 

@@ -77,6 +77,27 @@ export function DSwag(props: DSwagProps) {
     return null;
   }
 
+  const optOutCheckbox = (
+    <FormControlLabel
+      control={<Checkbox checked={optOut} name="swag_opt_out" onChange={handleSwagOptOutChange} value="true" />}
+      label="Maximize my contribution–I'd rather not receive member merchandise."
+    />
+  );
+
+  // If we are only showing the opt-out checkbox, skip other kinds of logic as
+  // below and just show the checkbox. We don't need to consider the threshold.
+
+  if (element.content.showOptOutOnly) {
+    return (
+      <DElement label="Swag" {...props} data-testid="d-swag">
+        {optOutCheckbox}
+      </DElement>
+    );
+  }
+
+  // We are showing swag choices, only available if the total contribution meets
+  // the threshold.
+  //
   // We assume we are the only swag element on the page (hopefully guaranteed by
   // setting unique below to true), and set the field name to swag_choices so
   // that the value matches what our Stripe metadata spec.
@@ -95,7 +116,7 @@ export function DSwag(props: DSwagProps) {
           <FormControlLabel
             control={<Checkbox checked={optOut} name="swag_opt_out" onChange={handleSwagOptOutChange} />}
             label={t('donationPage.dSwag.maximizeContribution')}
-            />
+          />
           {element.content.swags?.map(({ swagName, swagOptions }, index) => (
             <TextField
               defaultValue=""

@@ -76,152 +76,205 @@ function tree(props?: Partial<DSwagProps>, pageContext?: Partial<UsePageProps>) 
 describe('DSwag', () => {
   const getOptOutCheckbox = () => screen.getByRole('checkbox', { name: 'donationPage.dSwag.maximizeContribution' });
 
-  it('displays the contribution threshold', () => {
-    tree();
+  describe('When showOptOutOnly is undefined in element content', () => {
+    it('displays the contribution threshold', () => {
+      tree();
 
-    // Have to select by text because the checkbox itself is not visible.
+      // Have to select by text because the checkbox itself is not visible.
 
-    expect(
-      screen.getByText('donationPage.dSwag.giveXToBeEligible{"amount":"mock-currency-symbol123.45 mock-currency-code"}')
-    ).toBeVisible();
-  });
-
-  describe('When the threshold has been met', () => {
-    it('shows an opt-out checkbox with name swag_opt_out', () => {
-      tree(undefined, { amount: 124 });
-      expect(getOptOutCheckbox()).toBeInTheDocument();
+      expect(
+        screen.getByText(
+          'donationPage.dSwag.giveXToBeEligible{"amount":"mock-currency-symbol123.45 mock-currency-code"}'
+        )
+      ).toBeVisible();
     });
 
-    it('unchecks the opt-out checkbox by default', () => {
-      tree(undefined, { amount: 124 });
-      expect(getOptOutCheckbox()).not.toBeChecked();
-    });
-
-    it('shows a required menu named swag_choices with appropriate options', () => {
-      tree(undefined, { amount: 124 });
-
-      const menu = screen.getByRole('combobox', { name: 'mock-swag-name' });
-
-      expect(menu).toBeVisible();
-      expect(menu).toBeRequired();
-
-      const options = within(menu).getAllByRole('option');
-
-      expect(options.length).toBe(defaultElement.content.swags[0].swagOptions.length);
-      options.forEach((option, index) => {
-        const optionText = defaultElement.content.swags[0].swagOptions[index];
-
-        // Underscores in mock_swag_name are because it needs to be cleaned for
-        // the API.
-
-        expect(option).toHaveAttribute('value', `mock_swag_name:${cleanSwagValue(optionText)}`);
-        expect(option).toHaveTextContent(optionText);
-      });
-    });
-
-    it('enables the option menu by default', () => {
-      tree(undefined, { amount: 124 });
-      expect(screen.getByRole('combobox', { name: 'mock-swag-name' })).toBeEnabled();
-    });
-
-    it('disables the option menu, clears its value, and removes its name if the opt-out checkbox is checked', () => {
-      tree(undefined, { amount: 124 });
-
-      const select = screen.getByRole('combobox', { name: 'mock-swag-name' });
-
-      fireEvent.change(select, { target: { value: 'mock_swag_name:mock_option_1' } });
-      expect(select).toBeEnabled();
-      expect(select).toHaveValue('mock_swag_name:mock_option_1');
-      expect(select).toHaveAttribute('name');
-      fireEvent.click(getOptOutCheckbox());
-      expect(select).toBeDisabled();
-      expect(select).toHaveValue(undefined);
-      expect(select).not.toHaveAttribute('name');
-    });
-
-    describe('When the element content asks for the opt-out checkbox to be checked by default', () => {
-      it('checks the opt-out checkbox if element content asks for it to default checked', () => {
-        tree(
-          { element: { ...defaultElement, content: { ...defaultElement.content, optOutDefault: true } } },
-          { amount: 124 }
-        );
-        expect(getOptOutCheckbox()).toBeChecked();
+    describe('When the threshold has been met', () => {
+      it('shows an opt-out checkbox with name swag_opt_out', () => {
+        tree(undefined, { amount: 124 });
+        expect(getOptOutCheckbox()).toBeInTheDocument();
       });
 
-      it('disables the option menu, clears its value, and gives it no name', () => {
-        tree(
-          { element: { ...defaultElement, content: { ...defaultElement.content, optOutDefault: true } } },
-          { amount: 124 }
-        );
+      it('unchecks the opt-out checkbox by default', () => {
+        tree(undefined, { amount: 124 });
+        expect(getOptOutCheckbox()).not.toBeChecked();
+      });
+
+      it('shows a required menu named swag_choices with appropriate options', () => {
+        tree(undefined, { amount: 124 });
+
+        const menu = screen.getByRole('combobox', { name: 'mock-swag-name' });
+
+        expect(menu).toBeVisible();
+        expect(menu).toBeRequired();
+
+        const options = within(menu).getAllByRole('option');
+
+        expect(options.length).toBe(defaultElement.content.swags[0].swagOptions.length);
+        options.forEach((option, index) => {
+          const optionText = defaultElement.content.swags[0].swagOptions[index];
+
+          // Underscores in mock_swag_name are because it needs to be cleaned for
+          // the API.
+
+          expect(option).toHaveAttribute('value', `mock_swag_name:${cleanSwagValue(optionText)}`);
+          expect(option).toHaveTextContent(optionText);
+        });
+      });
+
+      it('enables the option menu by default', () => {
+        tree(undefined, { amount: 124 });
+        expect(screen.getByRole('combobox', { name: 'mock-swag-name' })).toBeEnabled();
+      });
+
+      it('disables the option menu, clears its value, and removes its name if the opt-out checkbox is checked', () => {
+        tree(undefined, { amount: 124 });
 
         const select = screen.getByRole('combobox', { name: 'mock-swag-name' });
 
+        fireEvent.change(select, { target: { value: 'mock_swag_name:mock_option_1' } });
+        expect(select).toBeEnabled();
+        expect(select).toHaveValue('mock_swag_name:mock_option_1');
+        expect(select).toHaveAttribute('name');
+        fireEvent.click(getOptOutCheckbox());
         expect(select).toBeDisabled();
         expect(select).toHaveValue(undefined);
         expect(select).not.toHaveAttribute('name');
       });
-    });
-  });
 
-  describe('When the threshold has not been met', () => {
-    it("doesn't show the opt-out checkbox", () => {
-      tree(undefined, { amount: 0 });
-      expect(
-        screen.queryByRole('checkbox', { name: "Maximize my contribution–I'd rather not receive member merchandise." })
-      ).not.toBeInTheDocument();
-    });
+      describe('When the element content asks for the opt-out checkbox to be checked by default', () => {
+        it('checks the opt-out checkbox if element content asks for it to default checked', () => {
+          tree(
+            { element: { ...defaultElement, content: { ...defaultElement.content, optOutDefault: true } } },
+            { amount: 124 }
+          );
+          expect(getOptOutCheckbox()).toBeChecked();
+        });
 
-    it("doesn't show the menu of swag choices", () => {
-      tree(undefined, { amount: 0 });
-      expect(screen.queryByRole('menu', { name: 'mock-swag-name' })).not.toBeInTheDocument();
-    });
-  });
+        it('disables the option menu, clears its value, and gives it no name', () => {
+          tree(
+            { element: { ...defaultElement, content: { ...defaultElement.content, optOutDefault: true } } },
+            { amount: 124 }
+          );
 
-  describe('When no swag choices have been configured', () => {
-    it('displays nothing if the page is live', () => {
-      tree({
-        element: {
-          ...defaultElement,
-          content: {
-            swags: [
-              {
-                swagName: 'mock-swag-name',
-                swagOptions: []
-              }
-            ],
-            swagThreshold: 123.45
-          }
-        },
-        live: true
+          const select = screen.getByRole('combobox', { name: 'mock-swag-name' });
+
+          expect(select).toBeDisabled();
+          expect(select).toHaveValue(undefined);
+          expect(select).not.toHaveAttribute('name');
+        });
       });
-      expect(document.body).toHaveTextContent('');
     });
 
-    it("displays the threshold if the page isn't live", () => {
-      tree({
-        element: {
-          ...defaultElement,
-          content: {
-            swags: [
-              {
-                swagName: 'mock-swag-name',
-                swagOptions: []
-              }
-            ],
-            swagThreshold: 123.45
-          }
-        },
-        live: false
+    describe('When the threshold has not been met', () => {
+      it("doesn't show the opt-out checkbox", () => {
+        tree(undefined, { amount: 0 });
+        expect(
+          screen.queryByRole('checkbox', {
+            name: "Maximize my contribution–I'd rather not receive member merchandise."
+          })
+        ).not.toBeInTheDocument();
       });
-      expect(
-        screen.getByText('donationPage.dSwag.giveXToBeEligible{"amount":"mock-currency-symbol123.45 mock-currency-code"}')
-      ).toBeVisible();
+
+      it("doesn't show the menu of swag choices", () => {
+        tree(undefined, { amount: 0 });
+        expect(screen.queryByRole('menu', { name: 'mock-swag-name' })).not.toBeInTheDocument();
+      });
+    });
+
+    describe('When no swag choices have been configured', () => {
+      it('displays nothing if the page is live', () => {
+        tree({
+          element: {
+            ...defaultElement,
+            content: {
+              swags: [
+                {
+                  swagName: 'mock-swag-name',
+                  swagOptions: []
+                }
+              ],
+              swagThreshold: 123.45
+            }
+          },
+          live: true
+        });
+        expect(document.body).toHaveTextContent('');
+      });
+
+      it("displays the threshold if the page isn't live", () => {
+        tree({
+          element: {
+            ...defaultElement,
+            content: {
+              swags: [
+                {
+                  swagName: 'mock-swag-name',
+                  swagOptions: []
+                }
+              ],
+              swagThreshold: 123.45
+            }
+          },
+          live: false
+        });
+        expect(
+          screen.getByText(
+            'Give a total of mock-currency-symbol123.45 mock-currency-code / year or more to be eligible'
+          )
+        ).toBeVisible();
+      });
+    });
+
+    it('is accessible', async () => {
+      const { container } = tree();
+
+      expect(await axe(container)).toHaveNoViolations();
     });
   });
 
-  it('is accessible', async () => {
-    const { container } = tree();
+  describe('When showOptOutOnly is set in element content', () => {
+    function treeWithOptOutOnly() {
+      return tree({ element: { ...defaultElement, content: { ...defaultElement.content, showOptOutOnly: true } } });
+    }
 
-    expect(await axe(container)).toHaveNoViolations();
+    it('shows the opt-out checkbox with the correct name even if the contribution is below the threshold', () => {
+      treeWithOptOutOnly();
+
+      const checkbox = getOptOutCheckbox();
+
+      expect(checkbox).toBeInTheDocument();
+      expect(checkbox).toHaveAttribute('name', 'swag_opt_out');
+    });
+
+    it('gives the opt-out checkbox the correct value when checked', () => {
+      treeWithOptOutOnly();
+
+      const checkbox = getOptOutCheckbox();
+
+      fireEvent.change(checkbox, { target: { checked: true } });
+      expect(checkbox).toHaveAttribute('value', 'true');
+    });
+
+    it('unchecks the opt-out checkbox by default', () => {
+      treeWithOptOutOnly();
+      expect(getOptOutCheckbox()).not.toBeChecked();
+    });
+
+    it("doesn't show the threshold amount", () => {
+      treeWithOptOutOnly();
+      expect(screen.queryByText('Give a total', { exact: false })).not.toBeInTheDocument();
+    });
+
+    it("doesn't show the swag options menu", () => {
+      treeWithOptOutOnly();
+      expect(screen.queryByRole('combobox')).not.toBeInTheDocument();
+    });
+
+    it('is accessible', async () => {
+      const { container } = treeWithOptOutOnly();
+
+      expect(await axe(container)).toHaveNoViolations();
+    });
   });
 });

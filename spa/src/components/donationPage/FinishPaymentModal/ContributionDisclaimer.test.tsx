@@ -31,11 +31,10 @@ describe('ContributionDisclaimer', () => {
   it('shows the correct amount and current date for a one-time contribution', () => {
     tree({ interval: 'one_time' });
 
-    expect(screen.getByTestId('i18n-mock-trans').dataset.values).toBe(
+    expect(screen.getByTestId('donationPage.contributionDisclaimer.authorizePayment.one_time').dataset.values).toBe(
       JSON.stringify({
         amountText: 'mock-formatted-amount',
-        date: format(new Date(), 'MMM do, y'),
-        frequencySuffix: ''
+        date: format(new Date(), 'MMM do, y')
       })
     );
   });
@@ -43,13 +42,10 @@ describe('ContributionDisclaimer', () => {
   it('shows the correct amount and current date for a monthly contribution', () => {
     tree({ interval: 'month' });
 
-    expect(screen.getByTestId('i18n-mock-trans').dataset.values).toBe(
+    expect(screen.getByTestId('donationPage.contributionDisclaimer.authorizePayment.month').dataset.values).toBe(
       JSON.stringify({
         amountText: 'mock-formatted-amount,',
-        date: `donationPage.contributionDisclaimer.contributionIntervals.monthly${JSON.stringify({
-          date: format(new Date(), 'do')
-        })}`,
-        frequencySuffix: 'donationPage.contributionDisclaimer.alongWithFutureRecurringPayments'
+        date: format(new Date(), 'do')
       })
     );
   });
@@ -57,13 +53,10 @@ describe('ContributionDisclaimer', () => {
   it('shows the correct amount and current date for a yearly contribution', () => {
     tree({ interval: 'year' });
 
-    expect(screen.getByTestId('i18n-mock-trans').dataset.values).toBe(
+    expect(screen.getByTestId('donationPage.contributionDisclaimer.authorizePayment.year').dataset.values).toBe(
       JSON.stringify({
         amountText: 'mock-formatted-amount,',
-        date: `donationPage.contributionDisclaimer.contributionIntervals.annually${JSON.stringify({
-          date: format(new Date(), 'L/d')
-        })}`,
-        frequencySuffix: 'donationPage.contributionDisclaimer.alongWithFutureRecurringPayments'
+        date: format(new Date(), 'L/d')
       })
     );
   });

@@ -3,7 +3,7 @@ import { ContributionInterval } from 'constants/contributionIntervals';
 import { PAYMENT_SUCCESS } from 'routes';
 import calculateStripeFee from 'utilities/calculateStripeFee';
 import formatStringAmountForDisplay from 'utilities/formatStringAmountForDisplay';
-import i18n from '../../../i18n';
+import i18n from 'i18n';
 
 /**
  * getTotalAmount takes an amount in dollars and an optional fee in dollars and adds them up.

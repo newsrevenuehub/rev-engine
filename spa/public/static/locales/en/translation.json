@@ -3,9 +3,6 @@
     "actions": {
       "back": "Back"
     },
-    "conjunctions": {
-      "and": "and"
-    },
     "frequency": {
       "adjectives": {
         "oneTime": "One time",
@@ -36,10 +33,6 @@
       "pricing": "https://fundjournalism.org/pricing/",
       "privacyPolicy": "https://fundjournalism.org/faq/privacy-policy/",
       "tsAndCs": "https://fundjournalism.org/faq/terms-of-service/"
-    },
-    "urlLabels": {
-      "privacyPolicy": "Privacy policy",
-      "tsAndCs": "Terms & conditions"
     }
   },
   "donationPage": {
@@ -47,11 +40,11 @@
       "whatIsFundJournalismOrg": "What is fundjournalism.org?"
     },
     "contributionDisclaimer": {
-      "disclaimer": "By proceeding with this transaction, you agree to our <privacy>privacy policy</privacy> and <terms>terms & conditions</terms>. Additionally, by proceeding with this transaction, you're authorizing today's payment{{frequencySuffix}} of <strong>{{amountText}} to be processed on or adjacent to {{date}}.</strong>",
-      "alongWithFutureRecurringPayments": ", <strong>along with all future recurring payments</strong>",
-      "contributionIntervals": {
-        "monthly": "the {{date}} of the month until you cancel",
-        "annually": "{{date}} yearly until you cancel"
+      "policyAgreement": "By proceeding with this transaction, you agree to our <privacy>privacy policy</privacy> and <terms>terms & conditions</terms>.",
+      "authorizePayment": {
+        "one_time": "Additionally, by proceeding with this transaction, you're authorizing today's payment of <strong>{{amountText}} to be processed on or adjacent to {{date}}.</strong>",
+        "month": "Additionally, by proceeding with this transaction, you're authorizing today's payment, <strong>along with all future recurring payments</strong> of <strong>{{amountText}} to be processed on or adjacent to the {{date}} of the month until you cancel.</strong>",
+        "year": "Additionally, by proceeding with this transaction, you're authorizing today's payment, <strong>along with all future recurring payments</strong> of <strong>{{amountText}} to be processed on or adjacent to {{date}} yearly until you cancel.</strong>"
       }
     }
   },

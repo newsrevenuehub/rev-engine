@@ -15,12 +15,11 @@ jest.mock('react-i18next', () => ({
     t: (key, options) => `${key}${options ? JSON.stringify(options) : ''}`
   }),
   Trans: ({ children, i18nKey, components, values, ...rest }) => {
-    const componentsFinal = Array.isArray(components) ? components : Object.values(components);
+    const componentsFinal = Array.isArray(components) ? components : Object.values(components || {});
 
     return (
       <span
-        data-testid="i18n-mock-trans"
-        data-key={i18nKey}
+        data-testid={i18nKey}
         data-values={values && JSON.stringify(values)}
         data-rest={rest && JSON.stringify(rest)}
       >

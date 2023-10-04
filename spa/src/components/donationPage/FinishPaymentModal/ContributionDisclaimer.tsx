@@ -19,20 +19,18 @@ function ContributionDisclaimer({ formattedAmount, interval }: ContributionDiscl
 
   const processingDate = useMemo(() => {
     switch (interval) {
+      // TODO: Add locale to "format" when we have translations
+      // (non-US use DD/MM/YYYY instead of MM/DD/YYYY)
       case CONTRIBUTION_INTERVALS.ONE_TIME:
         return format(new Date(), 'MMM do, y');
       case CONTRIBUTION_INTERVALS.MONTHLY:
-        return t('donationPage.contributionDisclaimer.contributionIntervals.monthly', {
-          date: format(new Date(), 'do')
-        });
+        return format(new Date(), 'do');
       case CONTRIBUTION_INTERVALS.ANNUAL:
-        return t('donationPage.contributionDisclaimer.contributionIntervals.annually', {
-          date: format(new Date(), 'L/d')
-        });
+        return format(new Date(), 'L/d');
       default:
         throw new Error(`Don't know how to format a processing data for ${interval} interval`);
     }
-  }, [interval, t]);
+  }, [interval]);
 
   const amountText = `${formattedAmount}${interval === CONTRIBUTION_INTERVALS.ONE_TIME ? '' : ','}`;
 
@@ -40,19 +38,15 @@ function ContributionDisclaimer({ formattedAmount, interval }: ContributionDiscl
     <Root data-testid="donation-page-disclaimer">
       <p>
         <Trans
-          i18nKey="donationPage.contributionDisclaimer.disclaimer"
+          i18nKey="donationPage.contributionDisclaimer.policyAgreement"
           components={{
             privacy: <Link href={t('common.urls.privacyPolicy')} target="_blank" />,
             terms: <Link href={t('common.urls.tsAndCs')} target="_blank" />
           }}
-          values={{
-            amountText,
-            date: processingDate,
-            frequencySuffix:
-              interval === CONTRIBUTION_INTERVALS.ONE_TIME
-                ? ''
-                : t('donationPage.contributionDisclaimer.alongWithFutureRecurringPayments')
-          }}
+        />
+        <Trans
+          i18nKey={`donationPage.contributionDisclaimer.authorizePayment.${interval}`}
+          values={{ amountText, date: processingDate }}
         />
       </p>
     </Root>

@@ -221,43 +221,6 @@ export interface ReasonElement extends ContributionPageElement {
   };
 }
 
-export interface SwagElement extends ContributionPageElement {
-  content: {
-    /**
-     * Should the page offer a complimentary New York Times subscription? Not
-     * currently implemented.
-     */
-    offerNytComp?: boolean;
-    /**
-     * Should the opt-out checkbox be selected by default?
-     */
-    optOutDefault?: boolean;
-    /**
-     * Swag options to offer. Each *item* in this array corresponds to a single
-     * dropdown menu. However, we only implement a single item currently.
-     */
-    swags: {
-      /**
-       * Name of the type of swag, like "T-Shirt" or "Tote Bag". Semicolons and
-       * colons are forbidden in these values because of how the value is
-       * serialized on form submission.
-       */
-      swagName: string;
-      /**
-       * Possible choices for the swag, like "XL" or "Blue". Semicolons and
-       * colons are forbidden in these values because of how the value is
-       * serialized on form submission.
-       */
-      swagOptions: string[];
-    }[];
-    /**
-     * Minimum contribution to be eligible for swag. Legacy data might have this
-     * saved as a number converted to a string, but we should use numbers going forward.
-     */
-    swagThreshold: number | string;
-  };
-}
-
 /**
  * A configured payment provider for a revenue program.
  */

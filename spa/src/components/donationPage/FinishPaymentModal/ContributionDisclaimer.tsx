@@ -19,7 +19,7 @@ function ContributionDisclaimer({ formattedAmount, interval }: ContributionDiscl
 
   const processingDate = useMemo(() => {
     switch (interval) {
-      // TODO: Add locale to "format" when we have translations
+      // TODO: DEV-4105: Add locale to "format" when we have translations
       // (non-US use DD/MM/YYYY instead of MM/DD/YYYY)
       case CONTRIBUTION_INTERVALS.ONE_TIME:
         return format(new Date(), 'MMM do, y');

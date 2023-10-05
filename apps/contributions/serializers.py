@@ -52,6 +52,25 @@ STRIPE_MAX_AMOUNT = 99999999
 REVENGINE_MIN_AMOUNT = 100
 
 
+class ContributionAgreementSerializer(serializers.Serializer):
+    # Expected to be a Stripe payment intent ID or subscription ID
+    id = serializers.CharField(max_length=255)
+    amount = serializers.IntegerField()
+    card_brand = serializers.ChoiceField(choices=CardBrand.choices)
+    created = serializers.DateTimeField(format="%Y-%m-%dT%H =%M =%S")
+    credit_card_expiration_date = serializers.CharField(max_length=7)
+    interval = str
+    is_cancelable = bool
+    is_modifiable = bool
+    last_payment_date = datetime.datetime
+    last4 = str
+    next_payment_date = datetime.datetime
+    payment_type = str
+    provider_customer_id = str
+    revenue_program = int
+    status = str
+
+
 class ContributionSerializer(serializers.ModelSerializer):
     """
     Used when organizations are viewing a Contribution

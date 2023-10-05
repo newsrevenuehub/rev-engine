@@ -43,7 +43,7 @@ function ContributionDisclaimer({ formattedAmount, interval }: ContributionDiscl
             privacy: <Link href={t('common.urls.privacyPolicy')} target="_blank" />,
             terms: <Link href={t('common.urls.tsAndCs')} target="_blank" />
           }}
-        />
+        />{' '}
         <Trans
           i18nKey={`donationPage.contributionDisclaimer.authorizePayment.${interval}`}
           values={{ amountText, date: processingDate }}

@@ -10,9 +10,9 @@ router = routers.DefaultRouter()
 router.register(r"contributions", views.ContributionsViewSet, basename="contribution")
 router.register(r"payments", views.PaymentViewset, basename="payment")
 router.register(r"subscriptions", views.SubscriptionsViewSet, basename="subscription")
-
 urlpatterns = [
     path("stripe/oauth/", views.stripe_oauth, name="stripe-oauth"),
+    path("contributors/<int:id>/contributions/", views.contributor_contributions, name="contributor_contributions"),
     re_path(
         settings.WEBHOOK_URL,
         views.process_stripe_webhook,

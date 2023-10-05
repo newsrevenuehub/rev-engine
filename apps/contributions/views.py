@@ -5,7 +5,6 @@ from django.conf import settings
 from django.contrib.auth import get_user_model
 from django.db.models import QuerySet
 from django.http import Http404
-from django.shortcuts import get_object_or_404
 from django.utils.decorators import method_decorator
 from django.views.decorators.csrf import csrf_protect
 
@@ -13,7 +12,7 @@ import stripe
 from django_filters.rest_framework import DjangoFilterBackend
 from rest_framework import mixins, status, viewsets
 from rest_framework.decorators import action, api_view, authentication_classes, permission_classes
-from rest_framework.exceptions import ParseError
+from rest_framework.pagination import PageNumberPagination
 from rest_framework.permissions import IsAdminUser, IsAuthenticated
 from rest_framework.request import Request
 from rest_framework.response import Response
@@ -58,6 +57,39 @@ from apps.public.permissions import IsActiveSuperUser
 logger = logging.getLogger(f"{settings.DEFAULT_LOGGER}.{__name__}")
 
 UserModel = get_user_model()
+
+
+class Paginator(PageNumberPagination):
+    page_size_query_param = "page_size"  # Customize this to change the query parameter
+    page_size = 10
+    max_page_size = 100
+
+    def get_page_size(self, request):
+        if self.page_size_query_param:
+            # limit page size to max
+            return request.query_params.get(self.page_size_query_param, self.page_size)
+        return None
+
+
+@api_view(["GET"])
+@permission_classes([IsAuthenticated, IsContributor])
+def contributor_contributions(request, id):
+    # Your logic here to fetch contributions by the contributor with the given ID
+    contributions = []
+
+    class Page:
+        pass
+
+    page = Page()
+
+    return Response(
+        {
+            "results": serializers.ContributorContributionSerializer(contributions, many=True).data,
+            "count": page.paginator.count,
+            "next": page.next_page_number() if page.has_next() else None,
+            "previous": page.previous_page_number() if page.has_previous() else None,
+        }
+    )
 
 
 @create_revision()
@@ -261,6 +293,7 @@ class ContributionsViewSet(viewsets.ReadOnlyModelViewSet):
     model = Contribution
     filterset_class = ContributionFilter
     filter_backends = [DjangoFilterBackend]
+    serializer_class = serializers.ContributionSerializer
 
     def filter_queryset_for_user(self, user: UserModel | Contributor) -> QuerySet | List[StripePiAsPortalContribution]:
         """Return the right results to the right user
@@ -281,15 +314,18 @@ class ContributionsViewSet(viewsets.ReadOnlyModelViewSet):
             logger.warning("Encountered unexpected user")
             raise ApiConfigurationError
 
-    def get_queryset(self):
-        return self.filter_queryset_for_user(self.request.user)
+    def get_queryset(self) -> QuerySet[Contribution]:
+        user = self.request.user
+        if user.is_anonymous:
+            return self.model.objects.none()
+        return user.permitted_contributions
 
-    def filter_queryset_for_contributor(self, contributor) -> List[StripePiAsPortalContribution]:
-        """ """
-        if (rp_slug := self.request.GET.get("rp", None)) is None:
-            raise ParseError("rp not supplied")
-        rp = get_object_or_404(RevenueProgram, slug=rp_slug)
-        return self.model.objects.filter_queryset_for_contributor(contributor, rp)
+    # def filter_queryset_for_contributor(self, contributor) -> List[StripePiAsPortalContribution]:
+    #     """ """
+    #     if (rp_slug := self.request.GET.get("rp", None)) is None:
+    #         raise ParseError("rp not supplied")
+    #     rp = get_object_or_404(RevenueProgram, slug=rp_slug)
+    #     return self.model.objects.filter_queryset_for_contributor(contributor, rp)
 
     def filter_queryset(self, queryset):
         """Remove filter backend if user is a contributor
@@ -300,11 +336,6 @@ class ContributionsViewSet(viewsets.ReadOnlyModelViewSet):
         if isinstance(self.request.user, Contributor):
             return queryset
         return super().filter_queryset(queryset)
-
-    def get_serializer_class(self):
-        if isinstance(self.request.user, Contributor):
-            return serializers.PaymentProviderContributionSerializer
-        return serializers.ContributionSerializer
 
     # only superusers and hub admins have permission
     @action(methods=["post"], detail=True, permission_classes=[IsAuthenticated, IsActiveSuperUser | IsHubAdmin])
@@ -352,6 +383,11 @@ class ContributionsViewSet(viewsets.ReadOnlyModelViewSet):
             show_upgrade_prompt,
         )
         return Response(data={"detail": "success"}, status=status.HTTP_200_OK)
+
+    def list(self, request, *args, **kwargs):
+        if request.user.is_authenticated and request.user.is_contributor:
+            return self.list_for_contributors(request, *args, **kwargs)
+        return super().list(request, *args, **kwargs)
 
 
 class SubscriptionsViewSet(viewsets.ViewSet):

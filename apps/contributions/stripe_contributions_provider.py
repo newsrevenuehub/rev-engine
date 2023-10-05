@@ -7,7 +7,6 @@ from django.conf import settings
 from django.core.cache import caches
 from django.core.serializers.json import DjangoJSONEncoder
 
-import pydantic
 import stripe
 from addict import Dict as AttrDict
 from rest_framework import exceptions
@@ -26,58 +25,6 @@ MAX_STRIPE_RESPONSE_LIMIT = 100
 MAX_STRIPE_CUSTOMERS_LIMIT = 10
 
 logger = logging.getLogger(f"{settings.DEFAULT_LOGGER}.{__name__}")
-
-
-# card brand enum
-
-
-class ContributionAgreement(pydantic.BaseModel):
-    # Expected to be a Stripe payment intent ID or subscription ID
-    id: str
-    amount: int
-    card_brand: str
-    created: datetime.datetime
-    credit_card_expiration_date: str
-    interval: str
-    is_cancelable: bool
-    is_modifiable: bool
-    last_payment_date: datetime.datetime
-    last4: str
-    next_payment_date: datetime.datetime
-    payment_type: str
-    provider_customer_id: str
-    revenue_program: int
-    status: str
-
-
-class RevenueProgramContributorContributionResult(pydantic.BaseModel):
-    results: pydantic.List[ContributionAgreement] = []
-    count: int
-    next: str = ""
-    previous: str = ""
-
-
-class RevenueProgramContributor(pydantic.BaseModel):
-    email: pydantic.EmailStr
-    stripe_customer_ids: pydantic.List[str]
-    revenue_program_id: int
-    nre_contributor_id: pydantic.Optional[int] = None
-
-    DEFAULT_PAGE_SIZE = 10
-    MAX_PAGE_SIZE = 100
-
-    # @trigger_lookup_in_cache()
-    # def _transactions_cache(
-    #     self, page_size: int = DEFAULT_PAGE_SIZE, page: pydantic.Optional[int] = None, bust_cache: bool = False
-    # ):
-    #     pass
-
-    # @paginate_rp_contributor_contributions()
-    # there's global ttl etc. logic to this with follow up task to intro cache busting or else in method
-    # with request param
-    def get_contributions(self, page=1, page_size=10) -> RevenueProgramContributorContributionResult:
-        # get from _transactions_cache
-        return self._transactions_cache(page_size=page_size, page=page)
 
 
 class ContributionIgnorableError(Exception):

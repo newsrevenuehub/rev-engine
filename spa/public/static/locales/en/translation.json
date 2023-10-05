@@ -42,9 +42,12 @@
     "contributionDisclaimer": {
       "policyAgreement": "By proceeding with this transaction, you agree to our <privacy>privacy policy</privacy> and <terms>terms & conditions</terms>.",
       "authorizePayment": {
-        "one_time": "Additionally, by proceeding with this transaction, you're authorizing today's payment of <strong>{{amountText}} to be processed on or adjacent to {{date}}.</strong>",
-        "month": "Additionally, by proceeding with this transaction, you're authorizing today's payment, <strong>along with all future recurring payments</strong> of <strong>{{amountText}} to be processed on or adjacent to the {{date}} of the month until you cancel.</strong>",
-        "year": "Additionally, by proceeding with this transaction, you're authorizing today's payment, <strong>along with all future recurring payments</strong> of <strong>{{amountText}} to be processed on or adjacent to {{date}} yearly until you cancel.</strong>"
+        "one_time": "Additionally, by proceeding with this transaction, you're authorizing today's payment of <strong>{{amount}} to be processed on or adjacent to {{date}}.</strong>",
+        "month_one": "Additionally, by proceeding with this transaction, you're authorizing today's payment, <strong>along with all future recurring payments</strong> of <strong>{{amount}} to be processed on or adjacent to the {{count}}st of the month until you cancel.</strong>",
+        "month_two": "Additionally, by proceeding with this transaction, you're authorizing today's payment, <strong>along with all future recurring payments</strong> of <strong>{{amount}} to be processed on or adjacent to the {{count}}nd of the month until you cancel.</strong>",
+        "month_few": "Additionally, by proceeding with this transaction, you're authorizing today's payment, <strong>along with all future recurring payments</strong> of <strong>{{amount}} to be processed on or adjacent to the {{count}}rd of the month until you cancel.</strong>",
+        "month_other": "Additionally, by proceeding with this transaction, you're authorizing today's payment, <strong>along with all future recurring payments</strong> of <strong>{{amount}} to be processed on or adjacent to the {{count}}th of the month until you cancel.</strong>",
+        "year": "Additionally, by proceeding with this transaction, you're authorizing today's payment, <strong>along with all future recurring payments</strong> of <strong>{{amount}} to be processed on or adjacent to {{date}} yearly until you cancel.</strong>"
       }
     }
   },

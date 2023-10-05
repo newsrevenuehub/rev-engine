@@ -49,6 +49,7 @@ export function FinishPaymentModal({ onCancel, onError, open, payment }: FinishP
             <ContributionDisclaimer
               formattedAmount={`${payment.currency.symbol}${payment.amount} ${payment.currency.code}`}
               interval={payment.interval}
+              processingDate={new Date()}
             />
           </Root>
         </StripePaymentWrapper>

@@ -1,10 +1,18 @@
 import { axe } from 'jest-axe';
 import { render, screen } from 'test-utils';
 import ContributionDisclaimer, { ContributionDisclaimerProps } from './ContributionDisclaimer';
-import { format } from 'date-fns';
 
 function tree(props?: Partial<ContributionDisclaimerProps>) {
-  return render(<ContributionDisclaimer formattedAmount="mock-formatted-amount" interval="one_time" {...props} />);
+  // We use a stable processing date to ensure format strings are correct.
+
+  return render(
+    <ContributionDisclaimer
+      formattedAmount="mock-formatted-amount"
+      interval="one_time"
+      processingDate={new Date(2001, 0, 15)}
+      {...props}
+    />
+  );
 }
 
 describe('ContributionDisclaimer', () => {
@@ -28,37 +36,62 @@ describe('ContributionDisclaimer', () => {
     expect(link).toHaveAttribute('target', '_blank');
   });
 
-  it('shows the correct amount and current date for a one-time contribution', () => {
-    tree({ interval: 'one_time' });
+  describe('In the default English locale', () => {
+    it('shows the correct amount and current date for a one-time contribution', () => {
+      tree({ interval: 'one_time' });
 
-    expect(screen.getByTestId('donationPage.contributionDisclaimer.authorizePayment.one_time').dataset.values).toBe(
-      JSON.stringify({
-        amountText: 'mock-formatted-amount',
-        date: format(new Date(), 'MMM do, y')
-      })
-    );
+      expect(screen.getByTestId('donationPage.contributionDisclaimer.authorizePayment.one_time').dataset.values).toBe(
+        JSON.stringify({ amount: 'mock-formatted-amount', date: 'Jan 15, 2001' })
+      );
+    });
+
+    it('shows the correct amount and current date for a monthly contribution', () => {
+      tree({ interval: 'month' });
+
+      // Date is handled through variations on the translation key done by
+      // i18next.
+
+      expect(screen.getByTestId('donationPage.contributionDisclaimer.authorizePayment.month').dataset.values).toBe(
+        JSON.stringify({ amount: 'mock-formatted-amount' })
+      );
+    });
+
+    it('shows the correct amount and current date for a yearly contribution', () => {
+      tree({ interval: 'year' });
+
+      expect(screen.getByTestId('donationPage.contributionDisclaimer.authorizePayment.year').dataset.values).toBe(
+        JSON.stringify({ amount: 'mock-formatted-amount', date: '1/15' })
+      );
+    });
   });
 
-  it('shows the correct amount and current date for a monthly contribution', () => {
-    tree({ interval: 'month' });
+  describe('In the Spanish locale', () => {
+    it('shows the correct amount and current date for a one-time contribution', () => {
+      tree({ interval: 'one_time', locale: 'es' });
 
-    expect(screen.getByTestId('donationPage.contributionDisclaimer.authorizePayment.month').dataset.values).toBe(
-      JSON.stringify({
-        amountText: 'mock-formatted-amount,',
-        date: format(new Date(), 'do')
-      })
-    );
-  });
+      expect(screen.getByTestId('donationPage.contributionDisclaimer.authorizePayment.one_time').dataset.values).toBe(
+        JSON.stringify({ amount: 'mock-formatted-amount', date: '15 ene 2001' })
+      );
+    });
 
-  it('shows the correct amount and current date for a yearly contribution', () => {
-    tree({ interval: 'year' });
+    it('shows the correct amount and current date for a monthly contribution', () => {
+      tree({ interval: 'month', locale: 'es' });
 
-    expect(screen.getByTestId('donationPage.contributionDisclaimer.authorizePayment.year').dataset.values).toBe(
-      JSON.stringify({
-        amountText: 'mock-formatted-amount,',
-        date: format(new Date(), 'L/d')
-      })
-    );
+      // Date is handled through variations on the translation key done by
+      // i18next.
+
+      expect(screen.getByTestId('donationPage.contributionDisclaimer.authorizePayment.month').dataset.values).toBe(
+        JSON.stringify({ amount: 'mock-formatted-amount' })
+      );
+    });
+
+    it('shows the correct amount and current date for a yearly contribution', () => {
+      tree({ interval: 'year', locale: 'es' });
+
+      expect(screen.getByTestId('donationPage.contributionDisclaimer.authorizePayment.year').dataset.values).toBe(
+        JSON.stringify({ amount: 'mock-formatted-amount', date: '15/1' })
+      );
+    });
   });
 
   it('throws an error if given an invalid contribution interval', () => {

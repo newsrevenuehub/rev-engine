@@ -1,3 +1,4 @@
+import datetime
 import logging
 
 from django.conf import settings
@@ -8,7 +9,6 @@ from solo.models import SingletonModel
 from sorl.thumbnail import ImageField as SorlImageField
 
 from apps.common.models import IndexedTimeStampedModel
-from apps.common.utils import normalize_slug
 from apps.config.validators import validate_slug_against_denylist
 from apps.pages import defaults, signals
 from apps.pages.validators import style_validator
@@ -23,7 +23,8 @@ logger = logging.getLogger(f"{settings.DEFAULT_LOGGER}.{__name__}")
 
 
 def _get_screenshot_upload_path(instance, filename):
-    return f"{instance.organization.name}/page_screenshots/{instance.name}_latest.png"
+    timestamp = datetime.datetime.utcnow().strftime("%Y%m%d%H%M%S")
+    return f"{instance.organization.name}/page_screenshots/{instance.name}_{timestamp}.png"
 
 
 class PagesAppQuerySet(models.QuerySet):
@@ -48,46 +49,45 @@ class DonationPage(IndexedTimeStampedModel):
     A DonationPage represents a single instance of a Donation Page.
     """
 
-    name = models.CharField(max_length=PAGE_NAME_MAX_LENGTH)
-    heading = models.CharField(max_length=PAGE_HEADING_MAX_LENGTH, blank=True)
+    elements = models.JSONField(null=True, blank=True, default=defaults.get_default_page_elements)
     graphic = SorlImageField(null=True, blank=True)
     header_bg_image = SorlImageField(null=True, blank=True)
+    header_link = models.URLField(blank=True)
     header_logo = SorlImageField(null=True, blank=True, default=None)
     header_logo_alt_text = models.CharField(max_length=255, blank=True, default="")
-    header_link = models.URLField(blank=True)
-
-    sidebar_elements = models.JSONField(default=list, blank=True)
-
-    styles = models.ForeignKey("pages.Style", null=True, blank=True, on_delete=models.SET_NULL)
-    thank_you_redirect = models.URLField(
-        blank=True, help_text="If not using default Thank You page, add link to orgs Thank You page here"
-    )
+    heading = models.CharField(max_length=PAGE_HEADING_MAX_LENGTH, blank=True)
+    name = models.CharField(max_length=PAGE_NAME_MAX_LENGTH)
+    locale = models.CharField(max_length=20, default="en")
+    page_screenshot = SorlImageField(null=True, blank=True, upload_to=_get_screenshot_upload_path)
     post_thank_you_redirect = models.URLField(
         blank=True,
         help_text='Contributors can click a link to go "back to the news" after viewing the default thank you page',
     )
+    published_date = models.DateTimeField(null=True, blank=True)
     revenue_program = models.ForeignKey(
         "organizations.RevenueProgram",
         null=True,
         on_delete=models.CASCADE,
     )
-    elements = models.JSONField(null=True, blank=True, default=defaults.get_default_page_elements)
-
+    sidebar_elements = models.JSONField(default=list, blank=True)
     slug = models.SlugField(
         blank=True,
-        help_text="If not entered, it will be built from the Page name",
         validators=[validate_slug_against_denylist],
+        null=True,
     )
-
-    published_date = models.DateTimeField(null=True, blank=True)
-    page_screenshot = SorlImageField(null=True, blank=True, upload_to=_get_screenshot_upload_path)
+    styles = models.ForeignKey("pages.Style", null=True, blank=True, on_delete=models.SET_NULL)
+    thank_you_redirect = models.URLField(
+        blank=True, help_text="If not using default Thank You page, add link to orgs Thank You page here"
+    )
 
     objects = PagesAppManager.from_queryset(PagesAppQuerySet)()
 
     class Meta:
         constraints = [
             models.UniqueConstraint(fields=["revenue_program", "name"], name="unique_name"),
-            models.UniqueConstraint(fields=["revenue_program", "slug"], name="unique_slug"),
+            models.UniqueConstraint(
+                fields=["revenue_program", "slug"], name="unique_slug", condition=models.Q(slug__isnull=False)
+            ),
         ]
 
     def __str__(self):
@@ -120,10 +120,6 @@ class DonationPage(IndexedTimeStampedModel):
         default_logo = DefaultPageLogo.get_solo()
         if not self.pk and not self.header_logo and default_logo.logo:
             self.header_logo = default_logo.logo
-
-    def clean_fields(self, **kwargs):
-        self.slug = normalize_slug(self.name, self.slug)
-        super().clean_fields(**kwargs)
 
     def save(self, *args, **kwargs):
         # should_send_first_publication_signal has to be called prior to saving the record

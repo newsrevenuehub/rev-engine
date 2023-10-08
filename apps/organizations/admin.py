@@ -103,14 +103,29 @@ class OrganizationAdmin(RevEngineBaseAdmin, CompareVersionAdmin):
                 )
             },
         ),
-        (None, {"fields": ("salesforce_id",)}),
+        (
+            None,
+            {
+                "fields": (
+                    "salesforce_id",
+                    "stripe_subscription_id",
+                    "uuid",
+                )
+            },
+        ),
         (
             "Email Templates",
             {"fields": ("send_receipt_email_via_nre",)},
         ),
         (
             "Integrations",
-            {"fields": ("show_connected_to_slack", "show_connected_to_salesforce", "show_connected_to_mailchimp")},
+            {
+                "fields": (
+                    "show_connected_to_slack",
+                    "show_connected_to_salesforce",
+                    "show_connected_to_mailchimp",
+                )
+            },
         ),
     )
 
@@ -127,12 +142,11 @@ class OrganizationAdmin(RevEngineBaseAdmin, CompareVersionAdmin):
 
     inline_type = "stacked"
 
-    readonly_fields = ["name"]
+    readonly_fields = ["uuid"]
 
     def get_readonly_fields(self, request, obj=None):
-        if Path(request.path).parts[-1] == "add":
-            return []
-        return ["name"]
+        # TODO: [DEV-3905] Use urllib to parse instead of Path
+        return self.readonly_fields if Path(request.path).parts[-1] == "add" else self.readonly_fields + ["name"]
 
     def save_model(self, request, obj, form, change):
         """Override save_model so we pass update_fields to obj.save()
@@ -224,7 +238,7 @@ class RevenueProgramAdmin(RevEngineBaseAdmin, CompareVersionAdmin, AdminImageMix
                 "fields": ("stripe_statement_descriptor_suffix", "domain_apple_verified_date", "payment_provider"),
             },
         ),
-        ("Mailchimp", {"fields": ("mailchimp_server_prefix",)}),
+        ("Mailchimp", {"fields": ("mailchimp_server_prefix", "mailchimp_list_id")}),
         (
             "Analytics",
             {
@@ -271,15 +285,19 @@ class RevenueProgramAdmin(RevEngineBaseAdmin, CompareVersionAdmin, AdminImageMix
     # Overriding this template to add the `admin_limited_select` inclusion tag
     change_form_template = "organizations/revenueprogram_changeform.html"
 
+    readonly_fields = ["name", "slug", "organization", "mailchimp_server_prefix", "mailchimp_list_id"]
+
     def get_readonly_fields(self, request, obj=None):
-        # If it's a changeform
-        if obj:
-            return ["name", "slug", "organization", "mailchimp_server_prefix"]
-        # If it's an addform
-        # We can't allow setting default_donation_page until the RevenueProgram has been defined
+        # If it's an addform, we can't allow setting default_donation_page until the RevenueProgram has been defined
         # because we need to limit the donation_page choices based on this instance.
-        if not obj:
-            return ["default_donation_page"]
+        return (
+            self.readonly_fields
+            if obj
+            else self.readonly_fields
+            + [
+                "default_donation_page",
+            ]
+        )
 
     def get_form(self, request, obj=None, **kwargs):
         # This bit of trickery uses a pattern used by Django's modelform_factory. Django uses

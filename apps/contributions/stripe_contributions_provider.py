@@ -10,6 +10,7 @@ from django.core.serializers.json import DjangoJSONEncoder
 import stripe
 from addict import Dict as AttrDict
 from rest_framework import exceptions
+from stripe.stripe_object import StripeObject
 
 from apps.contributions.models import ContributionInterval, ContributionStatus
 from apps.contributions.serializers import (
@@ -53,17 +54,46 @@ class StripePaymentIntent:
     CANCELABLE_STATUSES = ["trialing", "active", "past_due"]
     MODIFIABLE_STATUSES = ["incomplete", "trialing", "active", "past_due"]
 
+    DUMMY_CARD = AttrDict(**{"brand": None, "last4": None, "exp_month": None, "exp_year": None})
+
     def __init__(self, payment_intent):
         self.payment_intent = payment_intent
 
     @property
+    def payment_method(self) -> StripeObject | None:
+        # this is the most commonly expected path for NRE-generated PMs where the checkout process goes through the Stripe PaymentElement workflow
+        # in the spa, after having gone through the initial page that collects contribution data. In this scenario, the user's contribution has
+        # been approved by our system, and we have already created a payment intent. When the user completes the PaymentElement form, they are immediately
+        # charged. Our implementation of the PaymentElement will cause the payment method to appear on the payment intent.
+        if self.payment_intent.payment_method and isinstance(self.payment_intent.payment_method, StripeObject):
+            return self.payment_intent.payment_method
+        # However, some NRE payment intents intents will not have a payment method attached directly to the PaymentIntent. There may be other ways to end
+        # up in this state, but one is when instead of creating a payment intent we create a setup intent (which is case when a contribution exceeds threshold
+        # to be marked as "bad" by bad actor API when signing up for a recurring contribution). In this case, a payment intent only later gets created when
+        # the setup intent is completed, and that does not result in the payment method automatically being attached to the pi.
+        elif (invoice := self.payment_intent.invoice) and isinstance(
+            invoice, StripeObject
+        ):  # could be a string so that's why type check
+            return (invoice.get("subscription", {}) or {}).get("default_payment_method", None)
+        # in the case of imported legacy subscriptions, it seems that the payment method is not directly on the
+        # payment intent, though it is available through this route. This probably has to do with how the original PI
+        # was created. PIs are not guaranteed to have a payment method attached, even if they're associated with a subscription.
+        # In general, NRE-generated PIs will have a payment method attached, but for these legacy PIs this is not necessarily (or even usually
+        # the case)
+        elif getattr(self.payment_intent, "charges", None) and self.payment_intent.charges.total_count > 0:
+            most_recent = max(self.payment_intent.charges.data, key=lambda x: x.created)
+            return most_recent.payment_method_details
+
+        return None
+
+    @property
     def invoice_line_item(self):
+        default = AttrDict({})
         if not self.payment_intent.invoice:
-            return [{}]
-        line_item = self.payment_intent.invoice.lines.data
-        if not line_item:
-            line_item = [{}]
-        return line_item[0]
+            return default
+        if lines_data := self.payment_intent.invoice.lines.data:
+            return lines_data[0]
+        return default
 
     @property
     def is_cancelable(self):
@@ -94,7 +124,7 @@ class StripePaymentIntent:
     def revenue_program(self):
         metadata = self.payment_intent.get("metadata") or self.invoice_line_item.get("metadata") or {}
         if not metadata or "revenue_program_slug" not in metadata:
-            raise InvalidMetadataError(f"Metadata is invalid for payment_intent : {self.id}")
+            raise InvalidMetadataError(f"Metadata is invalid for payment_intent : {self.id}, {metadata}")
         return metadata["revenue_program_slug"]
 
     @property
@@ -105,9 +135,10 @@ class StripePaymentIntent:
 
     @property
     def card(self):
-        return getattr(self.payment_intent.payment_method, "card", None) or AttrDict(
-            **{"brand": None, "last4": None, "exp_month": None}
-        )
+        card = self.DUMMY_CARD
+        if self.payment_method and self.payment_method.card:
+            card = self.payment_method.card
+        return card
 
     @property
     def card_brand(self):
@@ -140,8 +171,12 @@ class StripePaymentIntent:
 
     @property
     def status(self):
+        # NB: There is a bug with our .refunded property to be addressed in DEV-3987 which means
+        # that .refunded will never be True.
         if self.refunded:
             return ContributionStatus.REFUNDED
+        if self.canceled:
+            return ContributionStatus.CANCELED
         if self.payment_intent.status == "succeeded":
             return ContributionStatus.PAID
         if self.payment_intent.status == "pending":
@@ -153,18 +188,29 @@ class StripePaymentIntent:
         return f"{self.card.exp_month}/{self.card.exp_year}" if self.card.exp_month else None
 
     @property
-    def payment_type(self):
-        return self.payment_intent.payment_method.type
+    def payment_type(self) -> str | None:
+        return None if self.payment_method is None else self.payment_method.type
 
     @property
+    def canceled(self):
+        if not self.payment_intent.invoice:  # it's not a subscription
+            return False
+        return self.payment_intent.invoice.subscription.status == "canceled"
+
+    # TODO: [DEV-3987] Fix StripePaymentIntent.refunded property
+    @property
     def refunded(self):
-        """For a contribution to consider it as refunded either refunded flag will be set for full refunds
-        or acount_refunded will be > 0 (will be useful in case of partial refund and we still want to set
+        """For a contribution to be considered as refunded either refunded flag will be set for full refunds
+        or amount_refunded will be > 0 (will be useful in case of partial refund and we still want to set
         the status as refunded)
         https://stripe.com/docs/api/charges/object#charge_object-refunded
         https://stripe.com/docs/api/charges/object#charge_object-amount_refunded
         """
-        return self.payment_intent.get("refunded", False) or self.payment_intent.get("amount_refunded", 0) > 0
+        if "refunded" in self.payment_intent:
+            return self.payment_intent.refunded
+        if "amount_refunded" in self.payment_intent:
+            return self.payment_intent.amount_refunded > 0
+        return False
 
     @property
     def id(self):
@@ -317,8 +363,9 @@ class ContributionsCacheProvider:
     converter = StripePaymentIntent
 
     def __init__(self, email_id, stripe_account_id) -> None:
+        self.email_id = email_id
         self.stripe_account_id = stripe_account_id
-        self.key = f"{email_id}-payment-intents-{self.stripe_account_id}"
+        self.key = f"{email_id}-payment-intents-{self.stripe_account_id}".lower()
 
     def serialize(self, payment_intents: list[stripe.PaymentIntent]) -> dict[str, dict]:
         """Serializes the stripe.PaymentIntent object into json."""
@@ -331,6 +378,26 @@ class ContributionsCacheProvider:
                 logger.warning("Unable to process Contribution [%s]", pi.id, exc_info=ex)
         return data
 
+    def convert_uninvoiced_subs_into_contributions(
+        self, subscriptions: list[stripe.Subscription]
+    ) -> list[StripePiAsPortalContribution]:
+        """ """
+        logger.debug("Converting %s subscriptions to portal contributions", len(subscriptions))
+        converted = []
+        provider = StripeContributionsProvider(self.email_id, self.stripe_account_id)
+        for x in subscriptions:
+            try:
+                converted.append(provider.cast_subscription_to_pi_for_portal(x))
+            # if there's a problem converting one, we don't let it effect the rest
+            except ContributionIgnorableError as exc:
+                logger.warning("Unable to cast subscription %s to a portal contribution", x.id, exc_info=exc)
+        logger.info(
+            "Converted %s subscriptions to portal contributions. %s could not be converted",
+            len(converted),
+            len(subscriptions) - len(converted),
+        )
+        return converted
+
     def upsert_uninvoiced_subscriptions(self, subscriptions: list[StripePiAsPortalContribution]) -> None:
         """Upsert uninvoiced subscriptions into the cache as though they were "normal" contributions (that always have a payment intent
         associated with them).
@@ -339,7 +406,9 @@ class ContributionsCacheProvider:
         cached_data = json.loads(self.cache.get(self.key) or "{}")
         cached_data.update(data)
         logger.info(
-            "Inserting %s stripe subscriptions cast as portal contributions into cache with key %s", len(data), self.key
+            "Inserting %s stripe subscriptions cast as portal contributions into cache with key %s",
+            len(data),
+            self.key,
         )
         self.cache.set(self.key, json.dumps(cached_data, cls=DjangoJSONEncoder), timeout=CONTRIBUTION_CACHE_TTL.seconds)
 
@@ -374,7 +443,7 @@ class SubscriptionsCacheProvider:
 
     def __init__(self, email_id, stripe_account_id) -> None:
         self.stripe_account_id = stripe_account_id
-        self.key = f"{email_id}-subscriptions-{self.stripe_account_id}"
+        self.key = f"{email_id}-subscriptions-{self.stripe_account_id}".lower()
 
     def serialize(self, subscriptions):
         """Serializes the stripe.Subscription object into json."""

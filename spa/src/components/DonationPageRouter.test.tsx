@@ -16,17 +16,13 @@ jest.mock('react-router-dom', () => ({
 
 // Mock TrackPageView as a passthrough.
 
-jest.mock('components/analytics/TrackPageView', () => ({ component }: { component: ComponentType }) => {
-  const Component = component;
-
-  return (
-    <div data-testid="mock-track-page-view">
-      <Component />
-    </div>
-  );
+jest.mock('components/analytics/TrackPageView', () => ({ children }: { children: React.ReactNode }) => {
+  return <div data-testid="mock-track-page-view">{children}</div>;
 });
 
 // Mock routes. We programmatically mock GenericThankYou so we can have it throw an error to test that.
+
+jest.mock('components/donationPage/ExtraneousURLRedirect');
 
 jest.mock('components/donationPage/live/GenericThankYou/GenericThankYou');
 
@@ -88,6 +84,15 @@ describe('DonationPageRouter', () => {
     expect(
       within(screen.getByTestId('mock-track-page-view')).getByTestId('mock-live-donation-page-container')
     ).toBeInTheDocument();
+  });
+
+  it.each([
+    ['/:pageSlug/extra/', '/donate/extra/'],
+    ['/:pageSlug/extra/extra/', '/donate/extra/extra/']
+  ])('displays a tracked ExtraneousURLRedirect at %s', async (_, path) => {
+    tree(path);
+    await screen.findByTestId('mock-extraneous-url-redirect');
+    expect(screen.getByTestId('mock-extraneous-url-redirect')).toBeInTheDocument();
   });
 
   it('displays a tracked LiveDonationPageContainer at /', async () => {

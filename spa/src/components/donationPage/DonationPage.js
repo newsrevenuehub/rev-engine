@@ -1,4 +1,4 @@
-import { useRef, useState, useEffect, createContext, useContext } from 'react';
+import { useRef, useState, useEffect, createContext, useContext, forwardRef } from 'react';
 import { useAlert } from 'react-alert';
 
 import * as S from './DonationPage.styled';
@@ -27,6 +27,7 @@ import { CONTRIBUTION_INTERVALS } from 'constants/contributionIntervals';
 import { GENERIC_ERROR } from 'constants/textConstants';
 import { usePayment } from 'hooks/usePayment';
 import FinishPaymentModal from './FinishPaymentModal/FinishPaymentModal';
+import { useAmountAuditing } from './useAmountAuditing';
 
 export const DonationPageContext = createContext({});
 
@@ -40,7 +41,7 @@ class DonationPageUnrecoverableError extends Error {
   }
 }
 
-function DonationPage({ page, live = false }) {
+function DonationPage({ page, live = false }, ref) {
   const alert = useAlert();
   const formRef = useRef();
   const salesforceCampaignId = useQueryString(SALESFORCE_CAMPAIGN_ID_QUERYPARAM);
@@ -56,6 +57,12 @@ function DonationPage({ page, live = false }) {
   const [displayErrorFallback, setDisplayErrorFallback] = useState(false);
   const [mailingCountry, setMailingCountry] = useState();
   const { createPayment, deletePayment, isLoading: paymentIsLoading, payment } = usePayment();
+  const { auditAmountChange, auditFrequencyChange, auditPayFeesChange, auditPaymentCreation } = useAmountAuditing();
+
+  // Whenever amount, frequency, or fees changes, track it.
+  useEffect(() => auditAmountChange(amount), [amount, auditAmountChange]);
+  useEffect(() => auditFrequencyChange(frequency), [auditFrequencyChange, frequency]);
+  useEffect(() => auditPayFeesChange(userAgreesToPayFees), [auditPayFeesChange, userAgreesToPayFees]);
 
   /*
   If window.grecaptcha is defined-- which should be done in useReCAPTCHAScript hook--
@@ -139,6 +146,7 @@ function DonationPage({ page, live = false }) {
     }
 
     try {
+      auditPaymentCreation(amount);
       await createPayment(
         serializeData(formRef.current, {
           amount,
@@ -213,7 +221,7 @@ function DonationPage({ page, live = false }) {
         setMailingCountry
       }}
     >
-      <S.DonationPage data-testid="donation-page">
+      <S.DonationPage data-testid="donation-page" ref={ref}>
         <DonationPageHeader page={page} />
         <S.PageMain>
           <S.SideOuter>
@@ -270,7 +278,7 @@ function DonationPage({ page, live = false }) {
 
 export const usePage = () => useContext(DonationPageContext);
 
-export default DonationPage;
+export default forwardRef(DonationPage);
 
 // Keys are the strings expected as querys params, values are our version.
 const mapQSFreqToProperFreq = {

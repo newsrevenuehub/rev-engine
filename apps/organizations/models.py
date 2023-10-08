@@ -42,6 +42,10 @@ logger = logging.getLogger(f"{settings.DEFAULT_LOGGER}.{__name__}")
 UNLIMITED_CEILING = 200
 
 
+ORG_NAME_MAX_LENGTH = 63
+ORG_SLUG_MAX_LENGTH = ORG_NAME_MAX_LENGTH
+RP_NAME_MAX_LENGTH = 255
+
 # RFC-1035 limits domain labels to 63 characters, and RP slugs are used for subdomains,
 # so we limit to 63 chars
 RP_SLUG_MAX_LENGTH = 63
@@ -50,6 +54,8 @@ FISCAL_SPONSOR_NAME_MAX_LENGTH = 100
 CURRENCY_CHOICES = [(k, k) for k in settings.CURRENCIES.keys()]
 
 TAX_ID_MAX_LENGTH = TAX_ID_MIN_LENGTH = 9
+
+MAX_APPEND_ORG_NAME_ATTEMPTS = 99
 
 
 @dataclass(frozen=True)
@@ -62,7 +68,7 @@ class Plan:
     page_elements: list[str] = field(default_factory=lambda: DEFAULT_PERMITTED_PAGE_ELEMENTS)
     page_limit: int = 2
     publish_limit: int = 1
-    style_limit: int = 1
+    style_limit: int = UNLIMITED_CEILING
     custom_thank_you_page_enabled: bool = False
 
 
@@ -121,12 +127,18 @@ class OrganizationManager(models.Manager):
     pass
 
 
+class OrgNameNonUniqueError(Exception):
+    """Used when a unique name cannot be generated for an organization based on provided name"""
+
+    pass
+
+
 class Organization(IndexedTimeStampedModel):
     # used in self-upgrade flow. Stripe checkouts can have associated client-reference-id, and we set that
     # to the value of an org.uuid so that we can look up the org in the self-upgrade flow, which is triggered
     # by stripe webhooks.
     uuid = models.UUIDField(default=uuid.uuid4, editable=False, unique=True)
-    name = models.CharField(max_length=255, unique=True)
+    name = models.CharField(max_length=ORG_NAME_MAX_LENGTH, unique=True)
     plan_name = models.CharField(choices=Plans.choices, max_length=10, default=Plans.FREE)
     salesforce_id = models.CharField(max_length=255, blank=True, verbose_name="Salesforce ID")
     show_connected_to_slack = models.BooleanField(
@@ -145,15 +157,11 @@ class Organization(IndexedTimeStampedModel):
         help_text="Indicates Mailchimp integration status, designed for manual operation by staff members",
     )
 
-    # TODO: [DEV-2035] Remove Organization.slug field entirely
     slug = models.SlugField(
-        # 63 here is somewhat arbitrary. This used to be set to `RP_SLUG_MAX_LENGTH` (which used to have a different name),
-        # which is the maximum length a domain can be according to RFC-1035. We're retaining that value
-        # but without a reference to the constant, because using the constant would imply there
-        # are business requirements related to sub-domain length around this field which there are not
-        # (and given TODO above, it would appear that the business requirements that originally
-        # led to org slug being a field are no longer around)
-        max_length=63,
+        # This is currently set to 63. It's also the same limit that is set on org name. This is because we
+        # have code that attempts to derive the slug from the name, and we want to ensure that the derived
+        # slug is not longer than the slug field.
+        max_length=ORG_SLUG_MAX_LENGTH,
         unique=True,
         validators=[validate_slug_against_denylist],
     )
@@ -195,6 +203,47 @@ class Organization(IndexedTimeStampedModel):
 
     def user_is_owner(self, user):
         return user in [through.user for through in self.user_set.through.objects.filter(is_owner=True)]
+
+    @classmethod
+    def generate_unique_name(cls, name: str) -> str:
+        """Generate a unique organization name based on input name
+
+        Note that this does not guarantee that the name will be otherwise valid in terms of max length.
+        """
+        logger.info("Called with name %s", name)
+        if not cls.objects.filter(name=name).exists():
+            return name
+        # we limit to 99 because we don't want to have to deal with 3-digit numbers.
+        # also, note that we would never expect to reach this limit and if we do, there's probably something
+        # untoward going on.
+        for counter in range(1, MAX_APPEND_ORG_NAME_ATTEMPTS):
+            appended = f"{name}-{counter}"
+            if not cls.objects.filter(name=appended).exists():
+                return appended
+        logger.warning("Unable to generate unique organization name based on input %s", name)
+        raise OrgNameNonUniqueError("Unable to generate unique organization name because already taken")
+
+    @staticmethod
+    def generate_slug_from_name(name):
+        return normalize_slug(name=name, max_length=ORG_SLUG_MAX_LENGTH)
+
+    def downgrade_to_free_plan(self):
+        """Downgrade an org to the free plan
+
+        We set `stripe_subscription_id` to None, change plan_name to FreePlan.name, and iterate over any RPs, calling
+        `disable_mailchimp_integration` on each one.
+        """
+        logger.info("Downgrading org %s to free plan", self.id)
+        if not any([self.stripe_subscription_id, self.plan_name != FreePlan.name]):
+            logger.info("Org %s already downgraded to free plan", self.id)
+            return
+        self.stripe_subscription_id = None
+        self.plan_name = FreePlan.name
+        for rp in self.revenueprogram_set.all():
+            rp.disable_mailchimp_integration()
+        with reversion.create_revision():
+            self.save(update_fields={"stripe_subscription_id", "plan_name", "modified"})
+            reversion.set_comment("`handle_customer_subscription_deleted_event` downgraded this org")
 
 
 class Benefit(IndexedTimeStampedModel):
@@ -463,7 +512,7 @@ class RevenueProgramManager(models.Manager):
 
 
 class RevenueProgram(IndexedTimeStampedModel):
-    name = models.CharField(max_length=255)
+    name = models.CharField(max_length=RP_NAME_MAX_LENGTH)
     slug = models.SlugField(
         max_length=RP_SLUG_MAX_LENGTH,
         blank=True,
@@ -1077,6 +1126,28 @@ class RevenueProgram(IndexedTimeStampedModel):
                     self.name,
                 )
                 raise ex
+
+    def disable_mailchimp_integration(self):
+        """Disable mailchimp integration for this revenue program.
+
+        We do this by deleting the mailchimp_access_token and setting mailchimp_server_prefix and mailchimp_list_id to None.
+
+        This has the effect of disabling Mailchimp integration downstream in switchboard.
+        """
+        logger.info("Disabling mailchimp integration for rp_id=[%s]", self.id)
+        logger.info(
+            "Attempting to delete mailchimp_access_token_secret_name=[%s] for RP %s",
+            self.mailchimp_access_token_secret_name,
+            self.id,
+        )
+        # Note, we should confirm DEV-3581 doesn't cause any issues with this line if we end up doing that ticket.
+        del self.mailchimp_access_token  # This will delete the secret from Google Cloud Secrets Manager if it exists
+        logger.info("Setting mailchimp_server_prefix to None for rp_id=[%s]", self.id)
+        with reversion.create_revision():
+            self.mailchimp_server_prefix = None
+            self.mailchimp_list_id = None
+            self.save(update_fields={"mailchimp_server_prefix", "modified", "mailchimp_list_id"})
+            reversion.set_comment("disable_mailchimp_integration updated this RP")
 
 
 class PaymentProvider(IndexedTimeStampedModel):

@@ -11,7 +11,7 @@ import {
   InfoTooltip,
   StyledTextField
 } from './ProfileForm.styled';
-import { Message, MessageSpacer } from 'components/account/Account.styled';
+import { Message } from 'components/account/Account.styled';
 import { TAX_STATUS } from 'constants/fiscalStatus';
 
 export const defaultValues = {
@@ -55,25 +55,50 @@ function ProfileForm({ disabled: disabledProp, onProfileSubmit, error }: Profile
     onProfileSubmit(formData);
   };
 
-  const errorMessage = Object.values(errors) ? Object.values(errors)[0]?.message : error;
-
   return (
     <>
       <Form onSubmit={handleSubmit(onSubmit)} data-testid="finalize-profile-form">
         <Controller
           name="firstName"
           control={control}
-          render={({ field }) => <TextField id="profile-first" label="First Name" {...field} />}
+          rules={{
+            required: 'First Name is required',
+            maxLength: { value: 50, message: 'First Name must have a maximum of 50 characters.' }
+          }}
+          render={({ field }) => (
+            <TextField
+              id="profile-first"
+              label="First Name"
+              {...field}
+              helperText={errors?.firstName?.message || error?.first_name?.[0]}
+              error={!!errors?.firstName || !!error?.first_name}
+            />
+          )}
         />
         <Controller
           name="lastName"
           control={control}
-          render={({ field }) => <TextField id="profile-last" label="Last Name" {...field} />}
+          rules={{
+            required: 'Last Name is required',
+            maxLength: { value: 50, message: 'Last Name must have a maximum of 50 characters.' }
+          }}
+          render={({ field }) => (
+            <TextField
+              id="profile-last"
+              label="Last Name"
+              {...field}
+              helperText={errors?.lastName?.message || error?.last_name?.[0]}
+              error={!!errors?.lastName || !!error?.last_name}
+            />
+          )}
         />
         <FillRow>
           <Controller
             name="jobTitle"
             control={control}
+            rules={{
+              maxLength: { value: 50, message: 'Job Title must have a maximum of 50 characters.' }
+            }}
             render={({ field }) => (
               <TextField
                 id="profile-job-title"
@@ -84,6 +109,8 @@ function ProfileForm({ disabled: disabledProp, onProfileSubmit, error }: Profile
                   </>
                 }
                 {...field}
+                helperText={errors?.jobTitle?.message || error?.job_title?.[0]}
+                error={!!errors?.jobTitle || !!error?.job_title}
               />
             )}
           />
@@ -92,7 +119,20 @@ function ProfileForm({ disabled: disabledProp, onProfileSubmit, error }: Profile
           <Controller
             name="companyName"
             control={control}
-            render={({ field }) => <TextField fullWidth id="profile-company-name" label="Organization" {...field} />}
+            rules={{
+              required: 'Organization is required',
+              maxLength: { value: 60, message: 'Organization must have a maximum of 60 characters.' }
+            }}
+            render={({ field }) => (
+              <TextField
+                fullWidth
+                id="profile-company-name"
+                label="Organization"
+                {...field}
+                helperText={errors?.companyName?.message || error?.organization_name?.[0]}
+                error={!!errors?.companyName || !!error?.organization_name}
+              />
+            )}
           />
         </FillRow>
         <TooltipContainer>
@@ -152,12 +192,19 @@ function ProfileForm({ disabled: disabledProp, onProfileSubmit, error }: Profile
               control={control}
               rules={{
                 maxLength: {
-                  value: 63,
-                  message: 'Fiscal Sponsor Name must have a maximum of 63 characters.'
+                  value: 100,
+                  message: 'Fiscal Sponsor Name must have a maximum of 100 characters.'
                 }
               }}
               render={({ field }) => (
-                <TextField fullWidth id="profile-fiscal-sponsor-name" label="Fiscal Sponsor Name" {...field} />
+                <TextField
+                  fullWidth
+                  id="profile-fiscal-sponsor-name"
+                  label="Fiscal Sponsor Name"
+                  {...field}
+                  helperText={errors?.fiscalSponsorName?.message || error?.fiscal_sponsor_name?.[0]}
+                  error={!!errors?.fiscalSponsorName || !!error?.fiscal_sponsor_name}
+                />
               )}
             />
           </FillRow>
@@ -166,9 +213,9 @@ function ProfileForm({ disabled: disabledProp, onProfileSubmit, error }: Profile
           <Button disabled={disabled} fullWidth size="extraLarge" type="submit">
             Finalize Account
           </Button>
+          {error?.detail && <Message data-testid="profile-modal-error">{error?.detail}</Message>}
         </FillRow>
       </Form>
-      {errorMessage ? <Message data-testid="profile-modal-error">{errorMessage}</Message> : <MessageSpacer />}
     </>
   );
 }
@@ -183,7 +230,14 @@ const ProfileFormPropTypes = {
    * Should the form be disabled?
    */
   disabled: PropTypes.bool,
-  error: PropTypes.string
+  error: PropTypes.shape({
+    first_name: PropTypes.arrayOf(PropTypes.string),
+    last_name: PropTypes.arrayOf(PropTypes.string),
+    job_title: PropTypes.arrayOf(PropTypes.string),
+    organization_name: PropTypes.arrayOf(PropTypes.string),
+    fiscal_sponsor_name: PropTypes.arrayOf(PropTypes.string),
+    detail: PropTypes.string
+  })
 };
 
 ProfileForm.propTypes = ProfileFormPropTypes;

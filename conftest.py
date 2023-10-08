@@ -156,6 +156,11 @@ def org_user_free_plan(default_feature_flags) -> User:
 
 
 @pytest.fixture
+def user_with_verified_email_and_tos_accepted():
+    return UserFactory(accepted_terms_of_service=datetime.datetime.utcnow(), email_verified=True)
+
+
+@pytest.fixture
 def org_user_multiple_rps(org_user_free_plan, default_feature_flags) -> User:
     """A user instance for an org admin administering multiple RPs
 
@@ -232,6 +237,16 @@ def contributor_user(default_feature_flags) -> ContributorFactory:
 @pytest.fixture
 def organization():
     return OrganizationFactory()
+
+
+@pytest.fixture
+def organization_on_core_plan_with_mailchimp_set_up():
+    org = OrganizationFactory(core_plan=True)
+    # note that an RP in this state will also have a `mailchimp_access_token` set, but that's not stored
+    # in db layer and needs to be handled on case by case basis in test
+    RevenueProgramFactory(organization=org, onboarded=True, mailchimp_server_prefix="us1")
+    org.refresh_from_db()
+    return org
 
 
 @pytest.fixture
@@ -500,6 +515,27 @@ def mailchimp_recurring_contributor_segment_from_api():
 
 
 @pytest.fixture
+def minimally_valid_contribution_form_data(donation_page):
+    return {
+        "agreed_to_pay_fees": True,
+        "amount": "120",
+        "captcha_token": "12345",
+        "donor_selected_amount": 120.0,
+        "email": "bill@smith.com",
+        "first_name": "Bill",
+        "interval": "one_time",
+        "last_name": "Smith",
+        "mailing_city": "Raleigh",
+        "mailing_complement": "Ap 1",
+        "mailing_country": "United States",
+        "mailing_postal_code": "27603",
+        "mailing_state": "North Carolina",
+        "mailing_street": "123 Glenwood Avenue",
+        "page": donation_page.id,
+    }
+
+
+@pytest.fixture
 def pi_as_portal_contribution_factory(faker):
     class Factory:
         def get(self, *args, **kwargs):
@@ -539,8 +575,6 @@ def valid_metadata_factory(faker):
         "revenue_program_id": faker.uuid4(),
         "revenue_program_slug": f"rp-{faker.word()}",
         "sf_campaign_id": None,
-        "marketing_consent": None,
-        "occupation": None,
         "comp_subscription": None,
         "honoree": None,
         "in_memory_of": None,
@@ -660,6 +694,10 @@ def invoice_line_item_data_factory(faker):
         "period": {
             "end": faker.unix_time(),
             "start": faker.unix_time(),
+        },
+        "plan": {
+            "interval": "month",
+            "interval_count": 1,
         },
         "price": {
             "id": faker.pystr_format(string_format="price_??????"),
@@ -896,6 +934,15 @@ def pi_for_valid_one_time_factory(default_paid_pi_data_factory):
             return stripe.PaymentIntent.construct_from(default_paid_pi_data_factory.get() | kwargs, key="test")
 
     return Factory()
+
+
+@pytest.fixture
+def pi_for_accepted_flagged_recurring_contribution(pi_for_active_subscription_factory):
+    pm = stripe.PaymentMethod.construct_from({}, key="test")
+    return pi_for_active_subscription_factory.get(
+        payment_method=None,
+        invoice=stripe.Invoice.construct_from({"subscription": {"default_payment_method": pm}}, key="test"),
+    )
 
 
 @pytest.fixture

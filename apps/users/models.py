@@ -10,6 +10,7 @@ from apps.common.models import IndexedTimeStampedModel
 from apps.users.managers import UserManager
 
 from .choices import Roles
+from .constants import FIRST_NAME_MAX_LENGTH, JOB_TITLE_MAX_LENGTH, LAST_NAME_MAX_LENGTH
 
 
 logger = logging.getLogger(f"{settings.DEFAULT_LOGGER}.{__name__}")
@@ -27,12 +28,13 @@ class User(AbstractBaseUser, PermissionsMixin, IndexedTimeStampedModel):
             "Designates whether this user should be treated as active. Unselect this instead of deleting accounts."
         ),
     )
+    # TODO: [DEV-3913] Remove this field as part of the DEV-3913 ticket
     organizations = models.ManyToManyField("organizations.Organization", through="users.OrganizationUser")
     accepted_terms_of_service = models.DateTimeField(null=True, blank=True)
     email_verified = models.BooleanField(default=False)
-    first_name = models.CharField(max_length=50, blank=True, null=True)
-    last_name = models.CharField(max_length=50, blank=True, null=True)
-    job_title = models.CharField(max_length=50, blank=True, null=True)
+    first_name = models.CharField(max_length=FIRST_NAME_MAX_LENGTH, blank=True, null=True)
+    last_name = models.CharField(max_length=LAST_NAME_MAX_LENGTH, blank=True, null=True)
+    job_title = models.CharField(max_length=JOB_TITLE_MAX_LENGTH, blank=True, null=True)
 
     objects = UserManager()
 
@@ -93,7 +95,7 @@ class RoleAssignment(models.Model):
     a user's organization (for instance).
     """
 
-    user = models.OneToOneField(User, on_delete=models.CASCADE)
+    user = models.OneToOneField(User, on_delete=models.CASCADE, related_name="roleassignment")
     role_type = models.CharField(max_length=50, choices=Roles.choices)
     organization = models.ForeignKey("organizations.Organization", null=True, blank=True, on_delete=models.CASCADE)
     revenue_programs = models.ManyToManyField("organizations.RevenueProgram", blank=True)

@@ -28,6 +28,8 @@ from apps.pages.models import (
 from apps.pages.serializers import (
     DonationPageFullDetailSerializer,
     DonationPageListSerializer,
+    EnglishLocale,
+    SpanishLocale,
     StyleListSerializer,
 )
 from apps.pages.tests.factories import DonationPageFactory, FontFactory, StyleFactory
@@ -49,8 +51,8 @@ def page_creation_data_valid():
     """
     return {
         "revenue_program": RevenueProgramFactory(onboarded=True).id,
-        "name": "some-name",
-        "slug": "some-slug",
+        "name": "some name",
+        "locale": EnglishLocale.code,
     }
 
 
@@ -74,10 +76,74 @@ def page_creation_data_valid_no_name(page_creation_data_valid):
 
 
 @pytest.fixture
+def page_creation_data_invalid_untracked_locale(page_creation_data_valid):
+    return page_creation_data_valid | {"locale": "fr"}
+
+
+@pytest.fixture
 def page_creation_invalid_non_unique_slug_for_rp(page_creation_data_valid, live_donation_page):
     live_donation_page.revenue_program_id = page_creation_data_valid["revenue_program"]
     live_donation_page.save()
     return page_creation_data_valid | {"slug": live_donation_page.slug}
+
+
+@pytest.fixture
+def page_data_with_invalid_slug_spaces():
+    return {"slug": "some invalid slug"}
+
+
+@pytest.fixture
+def page_data_with_invalid_slug_invalid_chars():
+    return {"slug": "!"}
+
+
+@pytest.fixture
+def page_data_with_invalid_slug_empty_string():
+    return {"slug": ""}
+
+
+@pytest.fixture
+def page_data_with_invalid_slug_too_long():
+    return {"slug": "x" * (DonationPage._meta.get_field("slug").max_length + 1)}
+
+
+@pytest.fixture(
+    params=[
+        "page_data_with_invalid_slug_invalid_chars",
+        "page_data_with_invalid_slug_spaces",
+        "page_data_with_invalid_slug_too_long",
+        "page_creation_invalid_non_unique_slug_for_rp",
+        "page_data_with_invalid_slug_empty_string",
+    ]
+)
+def page_creation_data_with_invalid_slug(page_creation_data_valid, request):
+    return page_creation_data_valid | request.getfixturevalue(request.param)
+
+
+@pytest.fixture
+def page_update_data_invalid_non_unique_slug_for_rp(live_donation_page):
+    data = {"slug": (slug := live_donation_page.slug)}
+    live_donation_page.slug = live_donation_page.slug[::-1]
+    live_donation_page.save()
+    DonationPageFactory(revenue_program=live_donation_page.revenue_program, slug=slug)
+    return data
+
+
+@pytest.fixture(
+    params=[
+        "page_data_with_invalid_slug_invalid_chars",
+        "page_data_with_invalid_slug_spaces",
+        "page_data_with_invalid_slug_too_long",
+        "page_update_data_invalid_non_unique_slug_for_rp",
+    ]
+)
+def page_update_data_with_invalid_slug(request):
+    return request.getfixturevalue(request.param)
+
+
+@pytest.fixture
+def page_update_data_with_invalid_locale():
+    return {"locale": "fr"}
 
 
 @pytest.fixture
@@ -115,6 +181,33 @@ def page_creation_invalid_blank_rp(page_creation_data_valid):
 def page_creation_invalid_non_existent_rp(page_creation_data_valid):
     RevenueProgram.objects.filter(pk=page_creation_data_valid["revenue_program"]).delete()
     return page_creation_data_valid
+
+
+@pytest.fixture
+def page_creation_invalid_with_published_but_slug_empty(page_creation_data_valid):
+    data = {**page_creation_data_valid | {"published_date": "2020-09-17T00:00:00", "slug": ""}}
+    return data
+
+
+@pytest.fixture
+def page_creation_invalid_with_published_but_no_slug_field(page_creation_data_valid):
+    assert "slug" not in page_creation_data_valid
+    data = {**page_creation_data_valid | {"published_date": "2020-09-17T00:00:00"}}
+    return data
+
+
+@pytest.fixture
+def page_creation_data_with_unpermitted_sidebar_elements(page_creation_data_valid):
+    org = RevenueProgram.objects.get(pk=page_creation_data_valid["revenue_program"]).organization
+    assert org.plan_name == Plans.FREE
+    return page_creation_data_valid | {"sidebar_elements": [{"type": x} for x in PlusPlan.sidebar_elements]}
+
+
+@pytest.fixture
+def page_creation_data_with_unpermitted_elements(page_creation_data_valid):
+    org = RevenueProgram.objects.get(pk=page_creation_data_valid["revenue_program"]).organization
+    assert org.plan_name == Plans.FREE
+    return page_creation_data_valid | {"elements": [{"type": x} for x in PlusPlan.page_elements]}
 
 
 @pytest.fixture
@@ -221,6 +314,23 @@ def patch_page_unpermitted_sidebar_elements(patch_page_valid_data, live_donation
 
 
 @pytest.fixture
+def patch_page_when_publishing_and_no_slug_param(patch_page_valid_data, live_donation_page):
+    live_donation_page.published_date = None
+    live_donation_page.slug = None
+    live_donation_page.save()
+    assert "slug" not in patch_page_valid_data
+    return patch_page_valid_data | {"published_date": "2020-09-17T00:00:00"}
+
+
+@pytest.fixture
+def patch_page_when_publishing_and_empty_slug_param(patch_page_valid_data, live_donation_page):
+    live_donation_page.published_date = None
+    live_donation_page.slug = None
+    live_donation_page.save()
+    return patch_page_valid_data | {"published_date": "2020-09-17T00:00:00", "slug": ""}
+
+
+@pytest.fixture
 def live_donation_page_with_styles(live_donation_page):
     styles = StyleFactory(revenue_program=live_donation_page.revenue_program)
     live_donation_page.styles = styles
@@ -294,10 +404,6 @@ class TestPageViewSet:
                 {"name": [f"Ensure this field has no more than {PAGE_NAME_MAX_LENGTH} characters."]},
             ),
             (
-                pytest_cases.fixture_ref("page_creation_invalid_non_unique_slug_for_rp"),
-                {"non_field_errors": ["The fields revenue_program, slug must make a unique set."]},
-            ),
-            (
                 pytest_cases.fixture_ref("page_creation_invalid_heading_too_long"),
                 {"heading": [f"Ensure this field has no more than {PAGE_HEADING_MAX_LENGTH} characters."]},
             ),
@@ -308,6 +414,22 @@ class TestPageViewSet:
             (
                 pytest_cases.fixture_ref("page_creation_invalid_blank_rp"),
                 {"revenue_program": ["This field may not be null."]},
+            ),
+            (
+                pytest_cases.fixture_ref("page_creation_invalid_with_published_but_slug_empty"),
+                {"slug": ["This field may not be blank."]},
+            ),
+            (
+                pytest_cases.fixture_ref("page_creation_invalid_with_published_but_no_slug_field"),
+                {"slug": ["This field is required."]},
+            ),
+            (
+                pytest_cases.fixture_ref("page_creation_data_with_unpermitted_elements"),
+                {"page_elements": ["You're not allowed to use the following elements: DSwag"]},
+            ),
+            (
+                pytest_cases.fixture_ref("page_creation_data_with_unpermitted_sidebar_elements"),
+                {"sidebar_elements": ["You're not allowed to use the following elements: DBenefits"]},
             ),
         ),
     )
@@ -323,6 +445,7 @@ class TestPageViewSet:
         """
         api_client.force_authenticate(hub_admin_user)
         response = api_client.post(reverse("donationpage-list"), data=data, format="json")
+
         assert response.status_code == status.HTTP_400_BAD_REQUEST
         assert response.json() == expected_response
 
@@ -395,40 +518,70 @@ class TestPageViewSet:
         assert response.json() == {"styles": [f'Invalid pk "{style_id}" - object does not exist.']}
 
     @pytest_cases.parametrize("plan", (Plans.FREE.value, Plans.CORE.value, Plans.PLUS.value))
-    def test_create_when_already_at_page_limit(self, plan, hub_admin_user, api_client):
+    @pytest.mark.parametrize("locale", (SpanishLocale, EnglishLocale))
+    def test_create_when_already_at_page_limit(self, plan, locale, hub_admin_user, api_client):
         rp = RevenueProgramFactory(organization=OrganizationFactory(plan_name=plan))
         data = {
             "revenue_program": rp.id,
             "slug": rp.slug,
+            "locale": locale.code,
         }
         api_client.force_authenticate(hub_admin_user)
         remaining = (limit := rp.organization.plan.page_limit)
         if remaining:
-            DonationPageFactory.create_batch(remaining, revenue_program=rp, published_date=None)
+            DonationPageFactory.create_batch(remaining, revenue_program=rp, published_date=None, locale=locale.code)
         response = api_client.post(reverse("donationpage-list"), data=data, format="json")
         assert response.status_code == status.HTTP_400_BAD_REQUEST
         assert response.json() == {
-            "non_field_errors": [f"Your organization has reached its limit of {limit} page{'' if limit == 1 else 's'}"]
+            "non_field_errors": [
+                f"Your organization has reached its limit of {limit} {locale.adjective} page{'' if limit == 1 else 's'}"
+            ]
         }
 
-    @pytest_cases.parametrize("plan", (Plans.FREE.value, Plans.CORE.value, Plans.PLUS.value))
-    def test_create_when_already_at_publish_limit(self, plan, hub_admin_user, api_client):
+    # NB we don't test on plus plan because it is meant to have unlimited pages (published or otherwise)
+    @pytest_cases.parametrize("plan", (Plans.FREE.value, Plans.CORE.value))
+    @pytest_cases.parametrize("locale", (SpanishLocale, EnglishLocale))
+    def test_create_when_already_at_publish_limit(self, plan, locale, hub_admin_user, api_client):
         rp = RevenueProgramFactory(organization=OrganizationFactory(plan_name=plan))
-        for i in range((limit := rp.organization.plan.page_limit)):
+        for i in range((limit := rp.organization.plan.publish_limit)):
             DonationPageFactory(
+                locale=locale.code,
                 revenue_program=rp,
-                published_date=timezone.now() if i + 1 < rp.organization.plan.publish_limit else None,
+                published_date=timezone.now() if i + 1 <= rp.organization.plan.publish_limit else None,
             )
         data = {
             "revenue_program": rp.id,
             "slug": rp.slug,
+            "published_date": timezone.now(),
+            "locale": locale.code,
         }
         api_client.force_authenticate(hub_admin_user)
         response = api_client.post(reverse("donationpage-list"), data=data, format="json")
         assert response.status_code == status.HTTP_400_BAD_REQUEST
         assert response.json() == {
-            "non_field_errors": [f"Your organization has reached its limit of {limit} page{'' if limit == 1 else 's'}"]
+            "non_field_errors": [
+                f"Your organization has reached its limit of {limit} published {locale.adjective} page{'' if limit == 1 else 's'}"
+            ]
         }
+
+    def test_create_page_when_invalid_slug(self, hub_admin_user, page_creation_data_with_invalid_slug, api_client):
+        """Show the behavior when a user tries to create a page with an invalid slug"""
+        api_client.force_authenticate(hub_admin_user)
+        response = api_client.post(
+            reverse("donationpage-list"), data=page_creation_data_with_invalid_slug, format="json"
+        )
+        assert response.status_code == status.HTTP_400_BAD_REQUEST
+        assert "slug" in response.json()
+
+    def test_create_page_when_invalid_locale(
+        self, hub_admin_user, page_creation_data_invalid_untracked_locale, api_client
+    ):
+        api_client.force_authenticate(hub_admin_user)
+        response = api_client.post(
+            reverse("donationpage-list"), data=page_creation_data_invalid_untracked_locale, format="json"
+        )
+        assert response.status_code == status.HTTP_400_BAD_REQUEST
+        assert "locale" in response.json()
 
     def assert_retrieved_page_detail_looks_right(self, serialized_data, page):
         """"""
@@ -637,7 +790,10 @@ class TestPageViewSet:
         rp = RevenueProgramFactory(organization=org)
         page = DonationPageFactory(revenue_program=rp, published_date=None)
         api_client.force_authenticate(hub_admin_user)
-        response = api_client.patch(reverse("donationpage-detail", args=(page.id,)), patch_page_valid_data)
+        response = api_client.patch(
+            reverse("donationpage-detail", args=(page.id,)),
+            patch_page_valid_data,
+        )
         assert response.status_code == status.HTTP_200_OK
         page.refresh_from_db()
         serialized_from_db = json.loads(json.dumps(DonationPageFullDetailSerializer(page).data))
@@ -751,6 +907,8 @@ class TestPageViewSet:
             (pytest_cases.fixture_ref("patch_page_unpermitted_sidebar_elements"), "sidebar_elements"),
             (pytest_cases.fixture_ref("patch_page_poorly_formed_elements"), "elements"),
             (pytest_cases.fixture_ref("patch_page_poorly_formed_sidebar_elements"), "sidebar_elements"),
+            (pytest_cases.fixture_ref("patch_page_when_publishing_and_empty_slug_param"), "slug"),
+            (pytest_cases.fixture_ref("patch_page_when_publishing_and_no_slug_param"), "slug"),
         ),
     )
     def test_patch_when_expected_user_with_invalid_data(self, user, data, error_key, api_client, live_donation_page):
@@ -803,8 +961,9 @@ class TestPageViewSet:
         }
 
     @pytest.mark.parametrize("plan", (Plans.FREE.value, Plans.CORE.value, Plans.PLUS.value))
+    @pytest.mark.parametrize("locale", (SpanishLocale, EnglishLocale))
     def test_patch_when_at_published_limit_and_try_to_publish(
-        self, plan, live_donation_page, hub_admin_user, api_client
+        self, plan, locale, live_donation_page, hub_admin_user, api_client
     ):
         if plan == Plans.PLUS.value:
             # there's not a path to test updating an existing page such that would push over publish_limit
@@ -812,6 +971,7 @@ class TestPageViewSet:
             # we're not errantly leaving out this plan from the other test path.
             assert PlusPlan.publish_limit == PlusPlan.page_limit
         else:
+            live_donation_page.locale = locale.code
             live_donation_page.revenue_program.organization.plan_name = plan
             live_donation_page.revenue_program.organization.save()
             live_donation_page.refresh_from_db()
@@ -819,8 +979,9 @@ class TestPageViewSet:
                 DonationPageFactory(
                     revenue_program=rp,
                     published_date=timezone.now() if i < rp.organization.plan.publish_limit else None,
+                    locale=locale.code,
                 )
-            unpublished = DonationPageFactory(revenue_program=rp, published_date=None)
+            unpublished = DonationPageFactory(revenue_program=rp, published_date=None, locale=locale.code)
             data = {"published_date": timezone.now()}
             api_client.force_authenticate(user=hub_admin_user)
             response = api_client.patch(
@@ -829,10 +990,34 @@ class TestPageViewSet:
             )
             assert response.status_code == status.HTTP_400_BAD_REQUEST
             assert response.json()["non_field_errors"] == [
-                f"Your organization has reached its limit of {rp.organization.plan.publish_limit} published page{'' if rp.organization.plan.publish_limit == 1 else 's'}"
+                f"Your organization has reached its limit of {rp.organization.plan.publish_limit} published {locale.adjective} page{'' if rp.organization.plan.publish_limit == 1 else 's'}"
             ]
 
-    def test_update_when_already_sidebar_elements_edge_case(
+    def test_patch_when_invalid_slug_data(
+        self, superuser, api_client, live_donation_page, page_update_data_with_invalid_slug
+    ):
+        api_client.force_authenticate(superuser)
+        response = api_client.patch(
+            reverse("donationpage-detail", args=(live_donation_page.id,)),
+            data=page_update_data_with_invalid_slug,
+            format="json",
+        )
+        assert response.status_code == status.HTTP_400_BAD_REQUEST
+        assert "slug" in response.json()
+
+    def test_patch_when_invalid_locale(
+        self, superuser, api_client, live_donation_page, page_update_data_with_invalid_locale
+    ):
+        api_client.force_authenticate(superuser)
+        response = api_client.patch(
+            reverse("donationpage-detail", args=(live_donation_page.id,)),
+            data=page_update_data_with_invalid_locale,
+            format="json",
+        )
+        assert response.status_code == status.HTTP_400_BAD_REQUEST
+        assert "locale" in response.json()
+
+    def test_patch_when_already_sidebar_elements_edge_case(
         self,
         superuser,
         api_client,

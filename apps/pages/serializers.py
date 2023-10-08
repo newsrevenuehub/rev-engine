@@ -1,16 +1,20 @@
 import itertools
 import logging
 from dataclasses import asdict
+from typing import Literal
 
 from django.conf import settings
+from django.core.exceptions import ValidationError as DjangoValidationError
 from django.utils import timezone
 
+import pydantic
 from drf_extra_fields.relations import PresentablePrimaryKeyRelatedField
 from rest_framework import serializers
 from rest_framework.validators import UniqueTogetherValidator
 from sorl_thumbnail_serializer.fields import HyperlinkedSorlImageField
 
 from apps.common.validators import ValidateFkReferenceOwnership
+from apps.config.validators import GENERIC_SLUG_DENIED_MSG, validate_slug_against_denylist
 from apps.organizations.models import Organization, RevenueProgram
 from apps.organizations.serializers import (
     BenefitLevelDetailSerializer,
@@ -116,9 +120,26 @@ class StyleListSerializer(StyleInlineSerializer):
         return data
 
 
+class LocaleMapping(pydantic.BaseModel):
+    model_config = pydantic.ConfigDict(frozen=True)
+
+    adjective: str
+    code: Literal["en", "es"]
+
+
+EnglishLocale = LocaleMapping(adjective="English", code="en")
+SpanishLocale = LocaleMapping(adjective="Spanish", code="es")
+
+LOCALE_MAP = {
+    EnglishLocale.code: EnglishLocale,
+    SpanishLocale.code: SpanishLocale,
+}
+
+
 class DonationPageFullDetailSerializer(serializers.ModelSerializer):
     # these settings enable auto-generation for name
     name = serializers.CharField(max_length=PAGE_NAME_MAX_LENGTH, allow_blank=True, allow_null=True, required=False)
+    locale = serializers.ChoiceField(choices=list(LOCALE_MAP.keys()), default=EnglishLocale.code)
     styles = PresentablePrimaryKeyRelatedField(
         queryset=Style.objects.all(),
         presentation_serializer=StyleInlineSerializer,
@@ -163,7 +184,6 @@ class DonationPageFullDetailSerializer(serializers.ModelSerializer):
         validators = [
             ValidateFkReferenceOwnership(fk_attribute="styles", model=DonationPage),
             ValidateFkReferenceOwnership(fk_attribute="revenue_program", model=DonationPage),
-            UniqueTogetherValidator(queryset=DonationPage.objects.all(), fields=["revenue_program", "slug"]),
         ]
 
     def get_plan(self, obj):
@@ -220,6 +240,35 @@ class DonationPageFullDetailSerializer(serializers.ModelSerializer):
             serializer = BenefitLevelDetailSerializer(benefit_levels, many=True)
             return serializer.data
 
+    def validate_slug(self, value):
+        """If value is string, ensure slug is not empty string and not in deny list
+
+        NB: There are some oddities around the validation flow for the slug field here to note.
+
+        First, this only validates the slug in isolation of other fields, but in the overridden validate method below, we
+        do some additional validation based on the presence of other fields (after those fields have gone through their own
+        field-level validation.
+
+        Second, we don't get the benefit of the validators kwarg on the SlugField here, which means that we don't get the denylist
+        validation that is defined on the model field.
+
+        Third, to make matters somewhat confusing, we DO get the benefit of the max_length validation that is defined internally in
+        the models.SlugField. In other words, if a slug is sent in request data that exceeds max length of 50 from models.SlugField,
+        that will raise a validation error before this method is ever called. This is evidenced in our `page_creation_data_with_invalid_slug`
+        test fixture in apps/pages/tests_views.py where among othercases, we test that a slug that exceeds 50 chars will raise a validation
+        error.
+        """
+        logger.debug("Validating slug with value %s", value)
+        if isinstance(value, str):
+            if not value.strip():
+                raise serializers.ValidationError("This field may not be blank.")
+            try:
+                validate_slug_against_denylist(value)
+            except DjangoValidationError:
+                # we do this so can consistently have DRF validation errors coming from this serializer
+                raise serializers.ValidationError(GENERIC_SLUG_DENIED_MSG)
+        return value
+
     def validate_thank_you_redirect(self, value):
         if self.instance and self.instance.id:
             org = self.instance.revenue_program.organization
@@ -231,19 +280,40 @@ class DonationPageFullDetailSerializer(serializers.ModelSerializer):
             )
         return value
 
+    def validate_locale(self, value):
+        if value not in LOCALE_MAP:
+            raise serializers.ValidationError({"locale": f"Invalid locale: {value}"})
+        return value
+
+    def _get_locale(self, data) -> str:
+        return LOCALE_MAP[self.instance.locale if self.instance and "locale" not in data else data["locale"]]
+
     def validate_page_limit(self, data):
         """Ensure that adding a page would not push parent org over its page limit
 
         NB: page_limit is not a serializer field, so we have to explicitly call this method from
         .validate() below.
         """
+        locale = self._get_locale(data)
         if self.context["request"].method != "POST":
             return
         if DonationPage.objects.filter(
-            revenue_program__organization=(org := data["revenue_program"].organization)
+            revenue_program__organization=(org := data["revenue_program"].organization),
+            locale=(locale.code),
         ).count() + 1 > (pl := org.plan.page_limit):
+            logger.debug(
+                "DonationPageFullDetailSerializer.validate_page_limit raising ValidationError because org (%s) has reached limit of %s %s page{%s}",
+                org.id,
+                pl,
+                locale.adjective,
+                "s" if pl > 1 else "",
+            )
             raise serializers.ValidationError(
-                {"non_field_errors": [f"Your organization has reached its limit of {pl} page{'s' if pl > 1 else ''}"]}
+                {
+                    "non_field_errors": [
+                        f"Your organization has reached its limit of {pl} {locale.adjective} page{'s' if pl > 1 else ''}"
+                    ]
+                }
             )
 
     def validate_publish_limit(self, data):
@@ -253,6 +323,7 @@ class DonationPageFullDetailSerializer(serializers.ModelSerializer):
         .validate() below.
         """
         logger.debug("DonationPageFullDetailSerializer.validate_publish_limit called with data: %s", data)
+        locale = self._get_locale(data)
         org = self.instance.revenue_program.organization if self.instance else data["revenue_program"].organization
         # this method gets run both in create and update contexts, so we need to account for the fact that with an offset.
         # What we're trying to compute is the total number of published pages for the org if the current request was processed
@@ -269,16 +340,20 @@ class DonationPageFullDetailSerializer(serializers.ModelSerializer):
             else 0
         )
         if DonationPage.objects.filter(
-            published_date__isnull=False, revenue_program__organization=org
+            published_date__isnull=False,
+            revenue_program__organization=org,
+            locale=locale.code,
         ).count() + offset > (pl := org.plan.publish_limit):
-            logger.info(
-                "DonationPageFullDetailSerializer.validate_publish_limit raising ValidationError because org (%s) has reached its publish limit",
+            logger.debug(
+                "DonationPageFullDetailSerializer.validate_publish_limit raising ValidationError because org (%s) has reached its publish limit for %s page{%s}}",
                 org.id,
+                locale.adjective,
+                "s" if pl > 1 else "",
             )
             raise serializers.ValidationError(
                 {
                     "non_field_errors": [
-                        f"Your organization has reached its limit of {pl} published page{'' if pl == 1 else 's'}"
+                        f"Your organization has reached its limit of {pl} published {locale.adjective} page{'' if pl == 1 else 's'}"
                     ]
                 }
             )
@@ -305,9 +380,69 @@ class DonationPageFullDetailSerializer(serializers.ModelSerializer):
                 {"sidebar_elements": f"You're not allowed to use the following elements: {', '.join(prohibited)}"}
             )
 
+    @property
+    def is_new(self):
+        return not self.instance or not self.instance.id
+
+    def ensure_slug_for_publication(self, data) -> None:
+        """Ensure that a page will have a slug"""
+        logger.debug("Ensuring slug for data: %s", data)
+        in_data = "slug" in data
+        sent_slug = data.get("slug", None)
+        is_new = self.is_new
+        validation_error = serializers.ValidationError({"slug": "This field is required."})
+        # if it's new and no slug is provided or the sent slug is Falsy
+        if is_new and not sent_slug:
+            raise validation_error
+        # if it's not new and no slug was sent in data and the instance has no slug
+        if not is_new and not in_data and not self.instance.slug:
+            raise validation_error
+        # if it's not new and slug value was sent in data but the sent value is Falsy
+        if not is_new and in_data and not sent_slug:
+            raise validation_error
+
+    def ensure_slug_is_unique_for_rp(self, data) -> None:
+        """Ensure that a slug is unique for a given revenue program
+
+        NB: We are not using a UniqueTogetherValidator for this because that validator
+        requires that the fields are truthy, and we allow nulls for slug. A given RP can
+        have > 1 page with a null slug.
+
+        NB: We assume rp is already validated at this point, so we can safely access it in case of
+        new page creation. This should be guaranteed because field level validation will have run for revenue_program
+        before this method is called (insofar as this method is called from `validate` method, which is called after field level
+        validations in natural DRF validation lifecycle).
+
+        Also, at point that this method runs, `validate_slug` will have already run, which means if the slug is in data and is a string,
+        it will have a min-length of 1 and will not violate the denylist.
+
+        For not entirely understood reasons, we get the field-level validations that are inherent to the models.SlugField for free here, which
+        means that max length (default of 50) will also have been enforced at this point (the reason this is somewhat mysterious is that we
+        don't get the field level validations specified with the `validators=[...]` argument on the SlugField) There's more context for this
+        in doc string for `validate_slug` above.
+        """
+        logger.debug("Ensuring slug is unique for rp for data: %s", data)
+        if "slug" not in data:
+            logger.debug("Slug not in data, so skipping uniqueness check")
+            return
+        if (slug := data["slug"]) is None:
+            logger.debug("Slug is null, so skipping uniqueness check")
+            return
+        rp = data["revenue_program"] if self.is_new else self.instance.revenue_program
+        query = DonationPage.objects.filter(revenue_program=rp, slug=slug)
+        already_exists = (
+            query.exclude(id=self.instance.id).exists() if self.instance and self.instance.id else query.exists()
+        )
+        if already_exists:
+            raise serializers.ValidationError({"slug": f"Value must be unique and '{slug}' is already in use"})
+
     def validate(self, data):
+        data = super().validate(data)
         self.validate_page_limit(data)
+        if "slug" in data:
+            self.ensure_slug_is_unique_for_rp(data)
         if "published_date" in data:
+            self.ensure_slug_for_publication(data)
             self.validate_publish_limit(data)
         # TODO: [DEV-2741] Add granular validation for page and sidebar elements
         self.validate_page_element_permissions(data)

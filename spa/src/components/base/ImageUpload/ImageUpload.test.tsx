@@ -1,12 +1,8 @@
 import { axe } from 'jest-axe';
-import { fireEvent, render, screen, waitFor } from 'test-utils';
+import { fireEvent, render, screen, waitFor, within } from 'test-utils';
 import ImageUpload, { ImageUploadProps } from './ImageUpload';
 
 const mockFile = new File([], 'test.jpeg');
-
-function tree(props?: Partial<ImageUploadProps>) {
-  return render(<ImageUpload id="mock-id" label="mock-label" onChange={jest.fn()} prompt="mock-prompt" {...props} />);
-}
 
 describe('ImageUpload', () => {
   function changeFile() {
@@ -15,10 +11,19 @@ describe('ImageUpload', () => {
     fireEvent.change(document.querySelector('input[type="file"]')!, { target: { files: [mockFile] } });
   }
 
+  function tree(props?: Partial<ImageUploadProps>) {
+    return render(<ImageUpload id="mock-id" label="mock-label" onChange={jest.fn()} prompt="mock-prompt" {...props} />);
+  }
+
   describe('When no image or thumbnail is set', () => {
     it('displays the prompt prop', () => {
       tree({ prompt: 'test-prompt' });
       expect(screen.getByText('test-prompt')).toBeVisible();
+    });
+
+    it('displays the label', () => {
+      tree();
+      expect(screen.getByText('mock-label')).toBeVisible();
     });
 
     it('sets the accept property of the file input based on the accept prop', () => {
@@ -41,14 +46,8 @@ describe('ImageUpload', () => {
       expect(onChange.mock.calls).toEqual([[mockFile, expect.any(String)]]);
     });
 
-    it('disables the remove button', () => {
-      tree({});
-      expect(screen.getByRole('button', { name: 'Remove' })).toBeDisabled();
-    });
-
     it('is accessible', async () => {
       const { container } = tree();
-
       expect(await axe(container)).toHaveNoViolations();
     });
   });
@@ -127,8 +126,14 @@ describe('ImageUpload', () => {
 
     it('is accessible', async () => {
       const { container } = tree({ thumbnailUrl: 'mock-thumbnail', value: mockFile });
-
-      expect(await axe(container)).toHaveNoViolations();
+      expect(
+        await axe(container, {
+          rules: {
+            // We are adding File.name to the alt attribute, which is redundant in this scenario.
+            'image-redundant-alt': { enabled: false }
+          }
+        })
+      ).toHaveNoViolations();
     });
   });
 });

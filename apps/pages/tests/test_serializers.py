@@ -8,7 +8,9 @@ import pytest_cases
 from rest_framework import serializers
 from rest_framework.test import APIRequestFactory
 
-from apps.organizations.models import FiscalStatusChoices, FreePlan, Plans
+from apps.config.tests.factories import DenyListWordFactory
+from apps.config.validators import GENERIC_SLUG_DENIED_MSG
+from apps.organizations.models import CorePlan, FiscalStatusChoices, FreePlan, Plans, PlusPlan
 from apps.organizations.serializers import PaymentProviderSerializer
 from apps.organizations.tests.factories import (
     BenefitLevelFactory,
@@ -17,7 +19,7 @@ from apps.organizations.tests.factories import (
 )
 from apps.pages.defaults import BENEFITS, SWAG, get_default_page_elements
 from apps.pages.models import DonationPage, Style
-from apps.pages.serializers import DonationPageFullDetailSerializer, StyleListSerializer
+from apps.pages.serializers import LOCALE_MAP, DonationPageFullDetailSerializer, StyleListSerializer
 from apps.pages.tests.factories import DonationPageFactory, StyleFactory
 from apps.users.models import Roles
 from apps.users.tests.factories import create_test_user
@@ -43,6 +45,7 @@ class TestDonationPageFullDetailSerializer:
             "header_logo_alt_text",
             "heading",
             "id",
+            "locale",
             "modified",
             "name",
             "page_screenshot",
@@ -304,14 +307,16 @@ class TestDonationPageFullDetailSerializer:
         assert serializer.is_valid() is True
 
     @pytest_cases.parametrize("plan", (Plans.FREE.value, Plans.PLUS.value, Plans.CORE.value))
-    def test_plan_page_limits_are_respected(self, plan, hub_admin_user):
+    @pytest.mark.parametrize("locale", LOCALE_MAP.values())
+    def test_plan_page_limits_are_respected(self, plan, locale, hub_admin_user):
         org = OrganizationFactory(plan_name=plan)
         rp = RevenueProgramFactory(organization=org)
-        DonationPageFactory.create_batch(org.plan.page_limit, revenue_program=rp)
+        DonationPageFactory.create_batch(org.plan.page_limit, revenue_program=rp, locale=locale.code)
         serializer = DonationPageFullDetailSerializer(
             data={
                 "slug": "my-new-page",
                 "revenue_program": rp.pk,
+                "locale": locale.code,
             }
         )
         request = APIRequestFactory().post("/")
@@ -319,7 +324,7 @@ class TestDonationPageFullDetailSerializer:
         serializer.context["request"] = request
         assert serializer.is_valid() is False
         assert str(serializer.errors["non_field_errors"][0]) == (
-            f"Your organization has reached its limit of {org.plan.page_limit} pages"
+            f"Your organization has reached its limit of {org.plan.page_limit} {locale.adjective} pages"
         )
 
     def test_cannot_set_thank_you_redirect_when_plan_not_enabled(self, live_donation_page, hub_admin_user):
@@ -386,11 +391,17 @@ class TestDonationPageFullDetailSerializer:
         assert len(serialized.data["sidebar_elements"]) == len(live_donation_page.sidebar_elements) - 1
 
     @pytest_cases.parametrize("plan", (Plans.FREE.value, Plans.CORE.value))
-    def test_validate_publish_limit(self, plan, hub_admin_user):
+    @pytest.mark.parametrize(
+        "locale",
+        LOCALE_MAP.values(),
+    )
+    def test_validate_publish_limit(self, plan, locale, hub_admin_user):
         org = OrganizationFactory(plan_name=plan)
         rp = RevenueProgramFactory(organization=org)
-        DonationPageFactory.create_batch(org.plan.page_limit - 1, revenue_program=rp, published_date=timezone.now())
-        for dp in DonationPage.objects.filter(revenue_program=rp).all()[: org.plan.page_limit]:
+        DonationPageFactory.create_batch(
+            org.plan.page_limit - 1, revenue_program=rp, published_date=timezone.now(), locale=locale.code
+        )
+        for dp in DonationPage.objects.filter(revenue_program=rp, locale=locale.code).all()[: org.plan.page_limit]:
             dp.published_date = timezone.now()
             dp.save()
         request = APIRequestFactory().post("/")
@@ -400,35 +411,199 @@ class TestDonationPageFullDetailSerializer:
                 "slug": "my-new-page",
                 "revenue_program": rp.pk,
                 "published_date": timezone.now(),
+                "locale": locale.code,
             },
             context={"request": request},
         )
         assert serializer.is_valid() is False
         assert (
             str(serializer.errors["non_field_errors"][0])
-            == f"Your organization has reached its limit of {org.plan.publish_limit} published page{'' if org.plan.publish_limit == 1 else 's'}"
+            == f"Your organization has reached its limit of {org.plan.publish_limit} published {locale.adjective} page{'' if org.plan.publish_limit == 1 else 's'}"
         )
 
     @pytest_cases.parametrize("plan", (Plans.FREE.value, Plans.CORE.value))
-    def test_validate_publish_limit_when_patching(self, plan, hub_admin_user):
+    @pytest.mark.parametrize("locale", LOCALE_MAP.values())
+    def test_validate_publish_limit_when_patching(self, plan, locale, hub_admin_user):
         org = OrganizationFactory(plan_name=plan)
         rp = RevenueProgramFactory(organization=org)
-        DonationPageFactory.create_batch(org.plan.page_limit - 1, revenue_program=rp, published_date=timezone.now())
-        for dp in DonationPage.objects.filter(revenue_program=rp).all()[: org.plan.publish_limit]:
+        DonationPageFactory.create_batch(
+            org.plan.page_limit - 1, revenue_program=rp, published_date=timezone.now(), locale=locale.code
+        )
+        for dp in DonationPage.objects.filter(revenue_program=rp, locale=locale.code).all()[: org.plan.publish_limit]:
             dp.published_date = timezone.now()
             dp.save()
         request = APIRequestFactory().patch("/")
         request.user = hub_admin_user
         serializer = DonationPageFullDetailSerializer(
-            data={"published_date": timezone.now(), "revenue_program": rp.pk, "slug": "my-new-page"},
+            data={
+                "published_date": timezone.now(),
+                "revenue_program": rp.pk,
+                "slug": "my-new-page",
+                "locale": locale.code,
+            },
             context={"request": request},
-            instance=DonationPage.objects.filter(published_date__isnull=True).first(),
+            instance=DonationPage.objects.filter(published_date__isnull=True, locale=locale.code).first(),
         )
         assert serializer.is_valid() is False
         assert (
             str(serializer.errors["non_field_errors"][0])
-            == f"Your organization has reached its limit of {org.plan.publish_limit} published page{'' if org.plan.publish_limit == 1 else 's'}"
+            == f"Your organization has reached its limit of {org.plan.publish_limit} published {locale.adjective} page{'' if org.plan.publish_limit == 1 else 's'}"
         )
+
+    @pytest_cases.parametrize("plan", (Plans.FREE.value, Plans.CORE.value))
+    @pytest.mark.parametrize("locale", LOCALE_MAP.values())
+    def test_validate_publish_limit_when_valid(self, plan, locale, hub_admin_user):
+        org = OrganizationFactory(plan_name=plan)
+        rp = RevenueProgramFactory(organization=org)
+        DonationPageFactory.create_batch(
+            org.plan.publish_limit - 1, revenue_program=rp, published_date=timezone.now(), locale=locale.code
+        )
+        request = APIRequestFactory().post("/")
+        request.user = hub_admin_user
+        serializer = DonationPageFullDetailSerializer(
+            data={
+                "slug": "my-new-page",
+                "revenue_program": rp.pk,
+                "published_date": timezone.now(),
+                "locale": locale.code,
+            },
+            context={"request": request},
+        )
+        assert serializer.is_valid() is True
+
+    @pytest_cases.parametrize(
+        "instance,expect",
+        (
+            # has instance and id
+            (pytest_cases.fixture_ref("live_donation_page"), False),
+            # has instance but no id
+            (DonationPage(), True),
+            (None, True),
+        ),
+    )
+    def test_is_new(self, instance, expect):
+        serializer = DonationPageFullDetailSerializer(instance=instance)
+        assert serializer.is_new is expect
+
+    @pytest.mark.parametrize(
+        "val,expect_valid",
+        (
+            ({"slug": "my-new-page"}, True),
+            ({"slug": ""}, False),
+            ({"slug": None}, False),
+            ({}, False),
+        ),
+    )
+    def test_ensure_slug_for_publication_when_new(self, val, expect_valid):
+        serializer = DonationPageFullDetailSerializer()
+        if expect_valid:
+            assert serializer.ensure_slug_for_publication(val) is None
+        else:
+            with pytest.raises(serializers.ValidationError):
+                serializer.ensure_slug_for_publication(val)
+
+    @pytest.mark.parametrize(
+        ("slug_on_instance", "data", "expect_valid"),
+        (
+            ("my-new-page", {}, True),
+            ("my-old-slug", {"slug": "my-new-slug"}, True),
+            ("my-new-page", {"slug": None}, False),
+            ("my-new-page", {"slug": ""}, False),
+            (None, {"slug": "my-new-page"}, True),
+            (None, {"slug": None}, False),
+            (None, {"slug": ""}, False),
+            (None, {}, False),
+        ),
+    )
+    def test_ensure_slug_for_publication_when_instance_no_slug_in_data(
+        self, slug_on_instance, data, expect_valid, live_donation_page
+    ):
+        live_donation_page.slug = slug_on_instance
+        serializer = DonationPageFullDetailSerializer(instance=live_donation_page)
+        if expect_valid:
+            assert serializer.ensure_slug_for_publication(data) is None
+        else:
+            with pytest.raises(serializers.ValidationError):
+                serializer.ensure_slug_for_publication(data)
+
+    @pytest.mark.parametrize(
+        "val",
+        # NB: the only expect types that would make it to this validator are None or str
+        # but we add the additional cases here to be thorough
+        (1, 1.0, True, False, [], {}, set(), tuple(), object()),
+    )
+    def test_validate_slug_when_not_string(self, val, mocker):
+        mock_deny_list_validator = mocker.patch("apps.config.validators.validate_slug_against_denylist")
+        assert DonationPageFullDetailSerializer().validate_slug(val) == val
+        mock_deny_list_validator.assert_not_called()
+
+    def test_validate_slug_when_invalid_because_empty_string(self):
+        serializer = DonationPageFullDetailSerializer()
+        with pytest.raises(serializers.ValidationError) as exc:
+            serializer.validate_slug("")
+        assert str(exc.value.detail[0]) == "This field may not be blank."
+
+    def test_validate_slug_when_invalid_because_denied_word(self):
+        DenyListWordFactory(word=(word := "foo"))
+        serializer = DonationPageFullDetailSerializer()
+        with pytest.raises(serializers.ValidationError) as exc:
+            serializer.validate_slug(word)
+        assert str(exc.value.detail[0]) == GENERIC_SLUG_DENIED_MSG
+
+    def test_ensure_slug_is_unique_for_rp_when_data_not_have_slug_field(self):
+        serializer = DonationPageFullDetailSerializer()
+        assert serializer.ensure_slug_is_unique_for_rp({}) is None
+
+    def test_ensure_slug_when_sent_value_is_none(self):
+        serializer = DonationPageFullDetailSerializer()
+        assert serializer.ensure_slug_is_unique_for_rp({"slug": None}) is None
+
+    def test_ensure_slug_when_new_and_non_unique(self, live_donation_page):
+        serializer = DonationPageFullDetailSerializer()
+        with pytest.raises(serializers.ValidationError) as exc:
+            serializer.ensure_slug_is_unique_for_rp(
+                {"slug": live_donation_page.slug, "revenue_program": live_donation_page.revenue_program}
+            )
+        assert (
+            str(exc.value.detail["slug"]) == f"Value must be unique and '{live_donation_page.slug}' is already in use"
+        )
+
+    def test_ensure_slug_when_not_new_and_non_unique(self, live_donation_page):
+        page = DonationPageFactory(revenue_program=live_donation_page.revenue_program)
+        serializer = DonationPageFullDetailSerializer(instance=page)
+        with pytest.raises(serializers.ValidationError) as exc:
+            serializer.ensure_slug_is_unique_for_rp({"slug": live_donation_page.slug})
+        assert (
+            str(exc.value.detail["slug"]) == f"Value must be unique and '{live_donation_page.slug}' is already in use"
+        )
+
+    @pytest.mark.parametrize(
+        "locale_code",
+        LOCALE_MAP.keys(),
+    )
+    @pytest.mark.parametrize("plan", (FreePlan, CorePlan, PlusPlan))
+    @pytest.mark.parametrize("request_method", ("POST", "PATCH"))
+    def test_validate_page_limit(self, locale_code, plan, request_method, revenue_program):
+        revenue_program.organization.plan_name = plan.name
+        revenue_program.organization.save()
+        DonationPageFactory.create_batch(
+            plan.page_limit,
+            revenue_program=revenue_program,
+            locale=locale_code,
+        )
+        data = {"revenue_program": revenue_program, "locale": locale_code}
+        request = getattr(APIRequestFactory(), request_method.lower())("/")
+        serializer = DonationPageFullDetailSerializer(context={"request": request})
+        if request_method != "POST":
+            assert serializer.validate_page_limit(data) is None
+        else:
+            with pytest.raises(serializers.ValidationError):
+                serializer.validate_page_limit(data)
+
+    def test_validate_locale_when_unexpected_value(self):
+        serializer = DonationPageFullDetailSerializer()
+        with pytest.raises(serializers.ValidationError):
+            serializer.validate_locale("foo")
 
 
 @pytest.mark.django_db
@@ -466,3 +641,9 @@ class TestStyleListSerializer:
         page.styles = StyleFactory(revenue_program=page.revenue_program)
         page.save()
         assert StyleListSerializer(page.styles).data["used_live"] is published
+
+    def test_validate_revenue_program(self):
+        serializer = StyleListSerializer()
+        with pytest.raises(serializers.ValidationError) as exc:
+            serializer.validate_revenue_program(None)
+        assert str(exc.value.detail[0]) == "This field is required."

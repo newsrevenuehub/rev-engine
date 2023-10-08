@@ -22,7 +22,7 @@ const page = {
 
 function tree() {
   return render(
-    <PageEditorContext.Provider value={{ errors: {} }}>
+    <PageEditorContext.Provider value={{ errors: [] }}>
       <PageSetup />
     </PageEditorContext.Provider>
   );
@@ -57,7 +57,6 @@ describe('PageSetup', () => {
 
   describe.each([
     ['Main header background', 'header_bg_image'],
-    ['Main header logo', 'header_logo'],
     ['Graphic', 'graphic']
   ])('%s', (label, fieldName) => {
     it('displays the image and thumbnail URL as set in the batch preview', () => {
@@ -70,7 +69,7 @@ describe('PageSetup', () => {
       });
       tree();
 
-      const input = screen.getByText(label);
+      const input = screen.getByRole('button', { name: label });
 
       expect(input).toBeVisible();
       expect(input.dataset.value).toBe(`test-${fieldName}`);
@@ -96,7 +95,6 @@ describe('PageSetup', () => {
   });
 
   describe.each([
-    ['Logo link', 'header_link'],
     ['Form panel heading', 'heading'],
     ['Thank You page link', 'thank_you_redirect'],
     ['Post Thank You redirect', 'post_thank_you_redirect']

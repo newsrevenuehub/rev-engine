@@ -453,6 +453,7 @@ STRIPE_TEST_SECRET_KEY_UPGRADES = os.getenv("STRIPE_TEST_SECRET_KEY_UPGRADES", "
 STRIPE_WEBHOOK_SECRET_UPGRADES = os.getenv("STRIPE_WEBHOOK_SECRET_UPGRADES", "")
 STRIPE_WEBHOOK_EVENTS_FOR_UPGRADES = [
     "checkout.session.completed",
+    "customer.subscription.deleted",
 ]
 # Applied in email template sent to confirm successful upgrade from free to core. We advise the recipient
 # that max expected wait time is UPGRADE_DAYS_WAIT days.
@@ -491,10 +492,14 @@ DOMAIN_APEX = os.getenv("DOMAIN_APEX")
 # Application subdomains (that are NOT revenue program slugs)
 DASHBOARD_SUBDOMAINS = os.getenv("DASHBOARD_SUBDOMAINS", "www:dashboard:").split(":")
 
-# These values are part of metadata sent to Stripe.
-METADATA_SOURCE = os.getenv("METADATA_SOURCE", "rev-engine")
-METADATA_SCHEMA_VERSION = os.getenv("METADATA_SCHEMA_VERSION", "1.1")
 
+# These values are used in the generation of Stripe metadata for contribution payments. These values must be coordinated
+# with their counterparts in switchboard.
+METADATA_SOURCE_REVENGINE = "rev-engine"
+METADATA_SCHEMA_VERSION_1_4 = "1.4"
+METADATA_SCHEMA_VERSION_CURRENT = METADATA_SCHEMA_VERSION_1_4
+# this value eventually makes its way to Salesforce, and this is a restriction coming from that platform
+METADATA_MAX_SWAG_CHOICES_LENGTH = 255
 
 # This is the interval at which flagged payments will be automatically captured.
 # NOTE: Stripe automatically REJECTS flagged payments every 7 days. Make sure

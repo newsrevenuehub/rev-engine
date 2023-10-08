@@ -3,24 +3,24 @@ from unittest import mock
 
 from django.conf import settings
 from django.core.serializers.json import DjangoJSONEncoder
-from django.test import override_settings
+from django.http import Http404
+from django.test import RequestFactory, override_settings
 
 import pytest
 import pytest_cases
 import stripe
 from addict import Dict as AttrDict
 from rest_framework import status
+from rest_framework.request import Request
 from rest_framework.reverse import reverse
 from rest_framework.test import APIClient, APITestCase
 from reversion.models import Version
-from stripe.error import StripeError
 from stripe.oauth_error import InvalidGrantError as StripeInvalidGrantError
 from stripe.stripe_object import StripeObject
 from waffle import get_waffle_flag_model
 
 from apps.common.constants import CONTRIBUTIONS_API_ENDPOINT_ACCESS_FLAG_NAME
 from apps.common.tests.test_resources import AbstractTestCase
-from apps.contributions import tasks
 from apps.contributions import views as contributions_views
 from apps.contributions.models import (
     Contribution,
@@ -30,16 +30,13 @@ from apps.contributions.models import (
     Contributor,
 )
 from apps.contributions.payment_managers import PaymentProviderError
-from apps.contributions.serializers import ContributionSerializer
+from apps.contributions.serializers import ContributionSerializer, SubscriptionsSerializer
 from apps.contributions.tasks import (
     email_contribution_csv_export_to_user,
     task_pull_serialized_stripe_contributions_to_cache,
 )
-from apps.contributions.tests.factories import (
-    ContributionFactory,
-    ContributorFactory,
-    StripeSubscriptionFactory,
-)
+from apps.contributions.tests import RedisMock
+from apps.contributions.tests.factories import ContributionFactory, ContributorFactory
 from apps.contributions.tests.test_serializers import (
     mock_get_bad_actor,
     mock_stripe_call_with_error,
@@ -582,87 +579,541 @@ class TestContributionsViewSetExportCSV:
         assert api_client.get(reverse("contribution-email-contributions")).status_code == expected_status
 
 
+@pytest.fixture
+def loaded_cached_subscription_factory(revenue_program, subscription_factory, subscription_data_factory):
+    class Factory:
+        def get(self, rp_slug=None) -> AttrDict:
+            subscription_data = subscription_data_factory.get()
+            subscription_data["metadata"]["revenue_program_slug"] = rp_slug or revenue_program.slug
+            subscription = subscription_factory.get(**subscription_data)
+            serialized = SubscriptionsSerializer(instance=subscription).data
+            serialized["stripe_account_id"] = revenue_program.payment_provider.stripe_account_id
+            return AttrDict(**serialized)
+
+    return Factory()
+
+
 @pytest.mark.django_db
 class TestSubscriptionViewSet:
-    def test_contributor_list_when_subscriptions_in_cache(
-        self, api_client, contributor_user, revenue_program, monkeypatch, mocker
-    ):
-        monkeypatch.setattr(
-            "apps.contributions.stripe_contributions_provider.SubscriptionsCacheProvider.load",
-            lambda *args, **kwargs: [
-                {"revenue_program_slug": revenue_program.slug, "id": 1},
-                {"revenue_program_slug": revenue_program.slug, "id": 2},
-                {"revenue_program_slug": RevenueProgramFactory().slug, "id": 3},
-            ],
-        )
-        spy = mocker.spy(tasks, "task_pull_serialized_stripe_contributions_to_cache")
-        api_client.force_authenticate(contributor_user)
-        response = api_client.get(reverse("subscription-list"), {"revenue_program_slug": revenue_program.slug})
-        assert response.status_code == status.HTTP_200_OK
-        assert spy.call_count == 0
-        # one for each the mocked items where `revenue_program_slug`'s value is `revenue_program.slug`
-        assert len(response.json()) == 2
-        assert set([x["id"] for x in response.json()]) == set([1, 2])
+    def test__fetch_subscriptions_when_rp_not_found(self, revenue_program, mocker):
+        rp_slug = revenue_program.slug
+        revenue_program.delete()
+        factory = RequestFactory()
+        request = factory.get(reverse("subscription-list"), data={"revenue_program_slug": rp_slug})
+        request = Request(request)
+        request.user = mocker.Mock(email="foo@bar.com")
+        logger_spy = mocker.spy(contributions_views.logger, "warning")
+        with pytest.raises(Http404):
+            contributions_views.SubscriptionsViewSet._fetch_subscriptions(request)
+        logger_spy.assert_called_once_with("Revenue program not found for slug %s", rp_slug)
 
-    def test_contributor_list_when_subscription_not_in_cache(
-        self, monkeypatch, mocker, api_client, contributor_user, revenue_program
+    def test__fetch_subscriptions_when_subscriptions_in_cache(
+        self, loaded_cached_subscription_factory, revenue_program, mocker
     ):
-        monkeypatch.setattr(
-            "apps.contributions.stripe_contributions_provider.SubscriptionsCacheProvider.load",
-            lambda *args, **kwargs: [],
-        )
-        monkeypatch.setattr(
-            "apps.contributions.views.task_pull_serialized_stripe_contributions_to_cache", lambda *args, **kwargs: None
-        )
-        spy = mocker.spy(contributions_views, "task_pull_serialized_stripe_contributions_to_cache")
-        api_client.force_authenticate(contributor_user)
-        response = api_client.get(reverse("subscription-list"), {"revenue_program_slug": revenue_program.slug})
-        assert response.status_code == status.HTTP_200_OK
-        assert spy.call_count == 1
-        assert len(response.json()) == 0
+        this_rp = RevenueProgramFactory()
+        assert this_rp.slug != revenue_program.slug
+        my_sub_for_this_rp = loaded_cached_subscription_factory.get(rp_slug=this_rp.slug)
+        my_sub_for_other_rp = loaded_cached_subscription_factory.get(rp_slug=revenue_program.slug)
 
-    def test_retrieve_when_subscription_not_in_cache(
-        self, monkeypatch, mocker, api_client, contributor_user, revenue_program
+        factory = RequestFactory()
+        request = factory.get(reverse("subscription-list"), data={"revenue_program_slug": this_rp.slug})
+        request = Request(request)
+        request.user = mocker.Mock(email=(email := "foo@bar.com"))
+        mock_sub_cache = mocker.patch("apps.contributions.views.SubscriptionsCacheProvider")
+        mock_sub_cache.return_value.load.return_value = [my_sub_for_this_rp, my_sub_for_other_rp]
+
+        subscriptions = contributions_views.SubscriptionsViewSet._fetch_subscriptions(request)
+        assert len(subscriptions) == 1
+        assert subscriptions[0].id == my_sub_for_other_rp.id
+        mock_sub_cache.return_value.load.assert_called_once()
+        assert mock_sub_cache.called_once_with(email, this_rp.payment_provider.stripe_account_id)
+
+    def test__fetch_subscriptions_when_no_subscriptions_in_cache(
+        self, loaded_cached_subscription_factory, revenue_program, mocker
     ):
-        """Show behavior when attempt to retrieve a subscription that's not in cache
+        subscription = loaded_cached_subscription_factory.get()
+        factory = RequestFactory()
+        request = factory.get(reverse("subscription-list"), data={"revenue_program_slug": revenue_program.slug})
+        request = Request(request)
+        request.user = mocker.Mock(email=(email := "foo@bar.com"))
+        mock_sub_cache = mocker.patch("apps.contributions.views.SubscriptionsCacheProvider")
+        # if cache is empty, `_fetch_subscriptions` makes synchronous call to load cache adn returns results
+        mock_sub_cache.return_value.load.side_effect = [[], [subscription]]
+        mock_pull_to_cache = mocker.patch("apps.contributions.views.task_pull_serialized_stripe_contributions_to_cache")
 
-        TODO: [DEV-3227] Here...
-        """
-        monkeypatch.setattr(
-            "apps.contributions.stripe_contributions_provider.SubscriptionsCacheProvider.load",
-            lambda *args, **kwargs: [],
-        )
-        monkeypatch.setattr(
-            "apps.contributions.views.task_pull_serialized_stripe_contributions_to_cache",
-            lambda *args, **kwargs: None,
-        )
-        spy = mocker.spy(contributions_views, "task_pull_serialized_stripe_contributions_to_cache")
-        api_client.force_authenticate(contributor_user)
-        response = api_client.get(
-            reverse("subscription-detail", args=(1,)), {"revenue_program_slug": revenue_program.slug}
-        )
-        assert response.status_code == status.HTTP_404_NOT_FOUND
-        assert spy.call_count == 1
+        subscriptions = contributions_views.SubscriptionsViewSet._fetch_subscriptions(request)
+
+        assert len(subscriptions) == 1
+        assert subscriptions[0].id == subscription.id
+        assert mock_sub_cache.return_value.load.call_count == 2
+        assert mock_sub_cache.called_once_with(email, revenue_program.payment_provider.stripe_account_id)
+        mock_pull_to_cache.assert_called_once_with(email, revenue_program.payment_provider.stripe_account_id)
 
     def test_retrieve_when_subscription_in_cache(
-        self, api_client, contributor_user, revenue_program, monkeypatch, mocker
+        self, mocker, api_client, contributor_user, loaded_cached_subscription_factory
     ):
-        """ """
-        monkeypatch.setattr(
-            "apps.contributions.stripe_contributions_provider.SubscriptionsCacheProvider.load",
-            lambda *args, **kwargs: [
-                {"revenue_program_slug": revenue_program.slug, "id": str(revenue_program.id)},
-            ],
+        subscription = loaded_cached_subscription_factory.get()
+        mock_fetch_subs = mocker.patch(
+            "apps.contributions.views.SubscriptionsViewSet._fetch_subscriptions", return_value=[subscription]
         )
-        spy = mocker.spy(tasks, "task_pull_serialized_stripe_contributions_to_cache")
         api_client.force_authenticate(contributor_user)
         response = api_client.get(
-            reverse("subscription-detail", args=(revenue_program.id,)),
-            {"revenue_program_slug": revenue_program.slug},
+            reverse("subscription-detail", args=(subscription.id,)),
+            {"revenue_program_slug": subscription.revenue_program_slug},
         )
         assert response.status_code == status.HTTP_200_OK
-        assert spy.call_count == 0
-        assert response.json()["id"] == str(revenue_program.id)
+        assert response.json()["id"] == str(subscription.id)
+        mock_fetch_subs.assert_called_once()
+
+    def test_retrieve_when_subscription_not_in_cache(self, api_client, contributor_user, revenue_program, mocker):
+        mock_fetch_subs = mocker.patch(
+            "apps.contributions.views.SubscriptionsViewSet._fetch_subscriptions", return_value=[]
+        )
+        api_client.force_authenticate(contributor_user)
+        response = api_client.get(
+            reverse("subscription-detail", args=("some-id",)),
+            {"revenue_program_slug": revenue_program.slug},
+        )
+        assert response.status_code == status.HTTP_404_NOT_FOUND
+        mock_fetch_subs.assert_called_once()
+
+    def test_list(self, api_client, contributor_user, revenue_program, mocker, loaded_cached_subscription_factory):
+        mocker.patch(
+            "apps.contributions.views.SubscriptionsViewSet._fetch_subscriptions",
+            return_value=[(subscription := loaded_cached_subscription_factory.get())],
+        )
+        api_client.force_authenticate(contributor_user)
+        response = api_client.get(reverse("subscription-list"), {"revenue_program_slug": revenue_program.slug})
+        assert response.status_code == status.HTTP_200_OK
+        assert response.json() == [json.loads(json.dumps(subscription, cls=DjangoJSONEncoder))]
+
+    def test_partial_update_when_unsupported_field(self, api_client, contributor_user, revenue_program):
+        api_client.force_authenticate(contributor_user)
+        response = api_client.patch(
+            reverse("subscription-detail", args=("some-id",)),
+            {"revenue_program_slug": revenue_program.slug, "payment_method_id": "something", "foo": "bar"},
+        )
+        assert response.status_code == status.HTTP_400_BAD_REQUEST
+        assert response.json() == {"detail": "Request contains unsupported fields"}
+
+    def test_partial_update_when_not_own_subscription(
+        self, api_client, contributor_user, revenue_program, mocker, subscription_factory
+    ):
+        customer = stripe.Customer.construct_from({"email": "not-my-email@hacker.com"}, "some-id")
+        subscription = subscription_factory.get(customer=customer)
+        assert contributor_user.email != customer.email
+        mocker.patch("stripe.Subscription.retrieve", return_value=subscription)
+        logger_spy = mocker.spy(contributions_views.logger, "warning")
+        api_client.force_authenticate(contributor_user)
+        response = api_client.patch(
+            reverse("subscription-detail", args=(subscription.id,)),
+            {"revenue_program_slug": revenue_program.slug, "payment_method_id": "something"},
+        )
+        assert response.status_code == status.HTTP_404_NOT_FOUND
+        logger_spy.assert_called_once_with(
+            "User %s attempted to update unowned subscription %s", contributor_user.email, subscription.id
+        )
+
+    def test_partial_update_happy_path(
+        self, mocker, api_client, contributor_user, subscription_factory, revenue_program
+    ):
+        subscription = subscription_factory.get()
+        subscription.metadata["revenue_program_slug"] = revenue_program.slug
+        subscription.customer = stripe.Customer.construct_from(
+            {"email": contributor_user.email, "id": "cust_XXX"}, "some-id"
+        )
+        payment_method_id = "some-new-id"
+        mock_sub_retrieve = mocker.patch("stripe.Subscription.retrieve", return_value=subscription)
+        mock_payment_method_attach = mocker.patch("stripe.PaymentMethod.attach")
+        mock_subscription_modify = mocker.patch(
+            "stripe.Subscription.modify", return_value=(mock_modified_sub := mocker.Mock())
+        )
+        mock_modified_sub.latest_invoice.payment_intent = "pi_XXX"
+        mock_re_retrieve_and_update_cache = mocker.patch(
+            "apps.contributions.views.SubscriptionsViewSet._re_retrieve_pi_and_insert_pi_and_sub_into_cache"
+        )
+        api_client.force_authenticate(contributor_user)
+        response = api_client.patch(
+            reverse("subscription-detail", args=(subscription.id,)),
+            {"revenue_program_slug": revenue_program.slug, "payment_method_id": payment_method_id},
+        )
+        assert response.status_code == status.HTTP_204_NO_CONTENT
+        mock_sub_retrieve.assert_called_once_with(
+            subscription.id, stripe_account=revenue_program.payment_provider.stripe_account_id, expand=["customer"]
+        )
+        mock_payment_method_attach.assert_called_once_with(
+            payment_method_id,
+            customer=subscription.customer.id,
+            stripe_account=revenue_program.payment_provider.stripe_account_id,
+        )
+        mock_subscription_modify.assert_called_once_with(
+            subscription.id,
+            default_payment_method=payment_method_id,
+            stripe_account=revenue_program.payment_provider.stripe_account_id,
+            expand=["default_payment_method", "latest_invoice"],
+        )
+        mock_re_retrieve_and_update_cache.assert_called_once_with(
+            subscription=mock_modified_sub,
+            email=contributor_user.email,
+            stripe_account_id=revenue_program.payment_provider.stripe_account_id,
+        )
+
+    def test_partial_update_when_error_retrieving_subscription(
+        self, revenue_program, mocker, api_client, contributor_user
+    ):
+        mock_sub_retrieve = mocker.patch(
+            "stripe.Subscription.retrieve", side_effect=stripe.error.StripeError("ruh roh")
+        )
+        logger_spy = mocker.spy(contributions_views.logger, "exception")
+        api_client.force_authenticate(contributor_user)
+        response = api_client.patch(
+            reverse("subscription-detail", args=((sub_id := "some-id"),)),
+            {"revenue_program_slug": revenue_program.slug, "payment_method_id": "some-id"},
+        )
+        assert response.status_code == status.HTTP_404_NOT_FOUND
+        mock_sub_retrieve.assert_called_once_with(
+            sub_id, stripe_account=revenue_program.payment_provider.stripe_account_id, expand=["customer"]
+        )
+        logger_spy.assert_called_once_with("stripe.Subscription.retrieve returned a StripeError")
+
+    def test_partial_update_when_error_attaching_payment_method(
+        self, revenue_program, mocker, api_client, contributor_user, subscription_factory
+    ):
+        subscription = subscription_factory.get()
+        subscription.metadata["revenue_program_slug"] = revenue_program.slug
+        subscription.customer = stripe.Customer.construct_from(
+            {"email": contributor_user.email, "id": "cust_XXX"}, "some-id"
+        )
+        payment_method_id = "some-new-id"
+        mocker.patch("stripe.Subscription.retrieve", return_value=subscription)
+        mock_payment_method_attach = mocker.patch(
+            "stripe.PaymentMethod.attach", side_effect=stripe.error.StripeError("ruh roh")
+        )
+        logger_spy = mocker.spy(contributions_views.logger, "exception")
+        api_client.force_authenticate(contributor_user)
+        response = api_client.patch(
+            reverse("subscription-detail", args=(subscription.id,)),
+            {"revenue_program_slug": revenue_program.slug, "payment_method_id": payment_method_id},
+        )
+        assert response.status_code == status.HTTP_500_INTERNAL_SERVER_ERROR
+        mock_payment_method_attach.assert_called_once_with(
+            payment_method_id,
+            customer=subscription.customer.id,
+            stripe_account=revenue_program.payment_provider.stripe_account_id,
+        )
+        logger_spy.assert_called_once_with("stripe.PaymentMethod.attach returned a StripeError")
+
+    def test_partial_update_when_error_modifying_subscription(
+        self, revenue_program, mocker, api_client, contributor_user, subscription_factory
+    ):
+        subscription = subscription_factory.get()
+        subscription.metadata["revenue_program_slug"] = revenue_program.slug
+        subscription.customer = stripe.Customer.construct_from(
+            {"email": contributor_user.email, "id": "cust_XXX"}, "some-id"
+        )
+        payment_method_id = "some-new-id"
+        mocker.patch("stripe.Subscription.retrieve", return_value=subscription)
+        mocker.patch("stripe.PaymentMethod.attach")
+        logger_spy = mocker.spy(contributions_views.logger, "exception")
+        mock_sub_modify = mocker.patch("stripe.Subscription.modify", side_effect=stripe.error.StripeError("ruh roh"))
+        api_client.force_authenticate(contributor_user)
+        response = api_client.patch(
+            reverse("subscription-detail", args=(subscription.id,)),
+            {"revenue_program_slug": revenue_program.slug, "payment_method_id": payment_method_id},
+        )
+        assert response.status_code == status.HTTP_500_INTERNAL_SERVER_ERROR
+        mock_sub_modify.assert_called_once()
+        logger_spy.assert_called_once_with(
+            "stripe.Subscription.modify returned a StripeError when modifying subscription %s", subscription.id
+        )
+
+    def test_partial_update_when_error_on__re_retrieve_pi_and_insert_pi_and_sub_into_cache(
+        self, mocker, api_client, contributor_user, subscription_factory, revenue_program
+    ):
+        subscription = subscription_factory.get()
+        subscription.metadata["revenue_program_slug"] = revenue_program.slug
+        subscription.customer = stripe.Customer.construct_from(
+            {"email": contributor_user.email, "id": "cust_XXX"}, "some-id"
+        )
+        payment_method_id = "some-new-id"
+        mocker.patch("stripe.Subscription.retrieve", return_value=subscription)
+        mocker.patch("stripe.PaymentMethod.attach")
+        mocker.patch("stripe.Subscription.modify", return_value=(mock_modified_sub := mocker.Mock()))
+        mock_modified_sub.latest_invoice.payment_intent = "pi_XXX"
+        mock_re_retrieve_and_update_cache = mocker.patch(
+            "apps.contributions.views.SubscriptionsViewSet._re_retrieve_pi_and_insert_pi_and_sub_into_cache",
+            side_effect=stripe.error.StripeError("ruh roh"),
+        )
+        logger_spy = mocker.spy(contributions_views.logger, "exception")
+        api_client.force_authenticate(contributor_user)
+        response = api_client.patch(
+            reverse("subscription-detail", args=(subscription.id,)),
+            {"revenue_program_slug": revenue_program.slug, "payment_method_id": payment_method_id},
+        )
+        assert response.status_code == status.HTTP_204_NO_CONTENT
+        mock_re_retrieve_and_update_cache.assert_called_once()
+        logger_spy.assert_called_once_with(
+            "stripe.PaymentIntent.retrieve returned a StripeError when re-retrieving pi related to subscription %s after update",
+            mock_modified_sub.id,
+        )
+
+    def test_update_subscription_and_pi_in_cache(
+        self,
+        pi_for_active_subscription_factory,
+        subscription_factory,
+        mocker,
+    ):
+        pi_cache_init_spy = mocker.spy((con_cache := contributions_views.ContributionsCacheProvider), "__init__")
+        sub_cache_init_spy = mocker.spy((sub_cache := contributions_views.SubscriptionsCacheProvider), "__init__")
+        mocker.patch.object(
+            con_cache,
+            "cache",
+            new_callable=mocker.PropertyMock,
+        )
+        mocker.patch.object(
+            sub_cache,
+            "cache",
+            new_callable=mocker.PropertyMock,
+        )
+        mock_pi_upsert = mocker.patch.object(con_cache, "upsert")
+        mock_sub_upsert = mocker.patch.object(sub_cache, "upsert")
+        payment_intent = pi_for_active_subscription_factory.get()
+        subscription = subscription_factory.get()
+        contributions_views.SubscriptionsViewSet.update_subscription_and_pi_in_cache(
+            (email := "foo@bar.com"), (stripe_account_id := "some-id"), subscription, payment_intent
+        )
+        pi_cache_init_spy.assert_called_once_with(mocker.ANY, email, stripe_account_id)
+        sub_cache_init_spy.assert_called_once_with(mocker.ANY, email, stripe_account_id)
+        mock_pi_upsert.assert_called_once_with([payment_intent])
+        mock_sub_upsert.assert_called_once_with([subscription])
+
+    def test_destroy_when_subscription_not_found(self, mocker, contributor_user, api_client, revenue_program):
+        mocker.patch("stripe.Subscription.retrieve", side_effect=stripe.error.StripeError("ruh roh"))
+        logger_spy = mocker.spy(contributions_views.logger, "exception")
+        api_client.force_authenticate(contributor_user)
+        response = api_client.delete(
+            reverse("subscription-detail", args=("some-id",)),
+            {"revenue_program_slug": revenue_program.slug},
+        )
+        assert response.status_code == status.HTTP_404_NOT_FOUND
+        logger_spy.assert_called_once_with("stripe.Subscription.retrieve returned a StripeError")
+
+    def test_destroy_when_subscription_not_mine(
+        self, mocker, contributor_user, api_client, revenue_program, subscription_factory
+    ):
+        subscription = subscription_factory.get()
+        subscription.customer = stripe.Customer.construct_from(
+            {"email": (other_email := "someone@else.com")}, "some-id"
+        )
+        mocker.patch("stripe.Subscription.retrieve", return_value=subscription)
+        assert other_email != contributor_user.email
+        logger_spy = mocker.spy(contributions_views.logger, "warning")
+        api_client.force_authenticate(contributor_user)
+        response = api_client.delete(
+            reverse("subscription-detail", args=(subscription.id,)),
+            data={"revenue_program_slug": revenue_program.slug},
+        )
+        assert response.status_code == status.HTTP_404_NOT_FOUND
+        logger_spy.assert_called_once_with(
+            "User %s attempted to delete unowned subscription %s", contributor_user.email, subscription.id
+        )
+
+    def test_destroy_when_error_deleting_subscription(
+        self, mocker, contributor_user, api_client, revenue_program, subscription_factory
+    ):
+        subscription = subscription_factory.get()
+        subscription.customer = stripe.Customer.construct_from(
+            {"email": contributor_user.email, "id": "cus_XXXX"}, "some-id"
+        )
+        mocker.patch("stripe.Subscription.retrieve", return_value=subscription)
+        mock_sub_delete = mocker.patch("stripe.Subscription.delete", side_effect=stripe.error.StripeError("ruh roh"))
+        logger_spy = mocker.spy(contributions_views.logger, "exception")
+        api_client.force_authenticate(contributor_user)
+        response = api_client.delete(
+            reverse("subscription-detail", args=(subscription.id,)), data={"revenue_program_slug": revenue_program.slug}
+        )
+        assert response.status_code == status.HTTP_500_INTERNAL_SERVER_ERROR
+        mock_sub_delete.assert_called_once_with(
+            subscription.id, stripe_account=revenue_program.payment_provider.stripe_account_id
+        )
+        logger_spy.assert_called_once_with("stripe.Subscription.delete returned a StripeError")
+
+    def test_destroy_when_error_re_retrieving_subscription(
+        self, mocker, contributor_user, api_client, revenue_program, subscription_factory
+    ):
+        subscription = subscription_factory.get()
+        subscription.customer = stripe.Customer.construct_from(
+            {"email": contributor_user.email, "id": "cus_XXXX"}, "some-id"
+        )
+        # subscription.Retrieve gets called twice in this method, once to check if subscription is owned by requester, second time
+        # to retrieve updated state in order to update cache
+        mock_sub_retrieve = mocker.patch(
+            "stripe.Subscription.retrieve",
+            side_effect=[
+                subscription,
+                stripe.error.StripeError("ruh roh"),
+            ],
+        )
+        mocker.patch("stripe.Subscription.delete")
+        logger_spy = mocker.spy(contributions_views.logger, "exception")
+        api_client.force_authenticate(contributor_user)
+        response = api_client.delete(
+            reverse("subscription-detail", args=(subscription.id,)), data={"revenue_program_slug": revenue_program.slug}
+        )
+        assert response.status_code == status.HTTP_204_NO_CONTENT
+        assert mock_sub_retrieve.call_count == 2
+        logger_spy.assert_called_once_with(
+            "stripe.Subscription.retrieve returned a StripeError after canceling subscription %s",
+            subscription.id,
+        )
+
+    def test_destroy_when_error_on__re_retrieve_pi_and_insert_pi_and_sub_into_cache(
+        self, mocker, contributor_user, api_client, revenue_program, subscription_factory
+    ):
+        subscription = subscription_factory.get()
+        subscription.customer = stripe.Customer.construct_from(
+            {"email": contributor_user.email, "id": "cus_XXXX"}, "some-id"
+        )
+        # subscription.Retrieve gets called twice in this method, once to check if subscription is owned by requester, second time
+        # to retrieve updated state in order to update cache
+        mocker.patch(
+            "stripe.Subscription.retrieve",
+            side_effect=[
+                subscription,
+                (modified_sub := mocker.Mock()),
+            ],
+        )
+        modified_sub.latest_invoice.payment_intent.id = "pi_XXX"
+        mocker.patch("stripe.Subscription.delete")
+        mock_re_retrieve_pi_and_update_cache = mocker.patch(
+            "apps.contributions.views.SubscriptionsViewSet._re_retrieve_pi_and_insert_pi_and_sub_into_cache",
+            side_effect=stripe.error.StripeError("ruh roh"),
+        )
+        logger_spy = mocker.spy(contributions_views.logger, "exception")
+        api_client.force_authenticate(contributor_user)
+        response = api_client.delete(
+            reverse("subscription-detail", args=(subscription.id,)), data={"revenue_program_slug": revenue_program.slug}
+        )
+        assert response.status_code == status.HTTP_204_NO_CONTENT
+        mock_re_retrieve_pi_and_update_cache.assert_called_once()
+        logger_spy.assert_called_once_with(
+            "stripe.PaymentIntent.retrieve returned a StripeError after canceling subscription when working on subscription %s",
+            subscription.id,
+        )
+
+    def test_destroy_happy_path(self, mocker, contributor_user, api_client, revenue_program, subscription_factory):
+        subscription = subscription_factory.get()
+        subscription.customer = stripe.Customer.construct_from(
+            {"email": contributor_user.email, "id": "cus_XXXX"}, "some-id"
+        )
+        # subscription.Retrieve gets called twice in this method, once to check if subscription is owned by requester, second time
+        # to retrieve updated state in order to update cache
+        mock_sub_retrieve = mocker.patch(
+            "stripe.Subscription.retrieve",
+            side_effect=[
+                subscription,
+                (modified_sub := mocker.Mock()),
+            ],
+        )
+        modified_sub.latest_invoice.payment_intent.id = "pi_XXX"
+        mock_sub_delete = mocker.patch("stripe.Subscription.delete")
+        mock_re_retrieve_pi_and_update_cache = mocker.patch(
+            "apps.contributions.views.SubscriptionsViewSet._re_retrieve_pi_and_insert_pi_and_sub_into_cache",
+        )
+        api_client.force_authenticate(contributor_user)
+        response = api_client.delete(
+            reverse("subscription-detail", args=(subscription.id,)), data={"revenue_program_slug": revenue_program.slug}
+        )
+        assert response.status_code == status.HTTP_204_NO_CONTENT
+        assert mock_sub_retrieve.call_count == 2
+        mock_sub_retrieve.assert_has_calls(
+            [
+                mocker.call(
+                    subscription.id,
+                    stripe_account=revenue_program.payment_provider.stripe_account_id,
+                    expand=["customer"],
+                ),
+                mocker.call(
+                    subscription.id,
+                    stripe_account=revenue_program.payment_provider.stripe_account_id,
+                    expand=[
+                        "default_payment_method",
+                        "latest_invoice.payment_intent",
+                    ],
+                ),
+            ]
+        )
+        mock_sub_delete.assert_called_once_with(
+            subscription.id, stripe_account=revenue_program.payment_provider.stripe_account_id
+        )
+        mock_re_retrieve_pi_and_update_cache.assert_called_once_with(
+            subscription=modified_sub,
+            email=contributor_user.email,
+            stripe_account_id=revenue_program.payment_provider.stripe_account_id,
+        )
+
+    @pytest.mark.parametrize(
+        "has_pi",
+        (True, False),
+    )
+    def test__re_retrieve_pi_and_insert_pi_and_sub_into_cache(
+        self,
+        has_pi,
+        subscription_factory,
+        pi_for_active_subscription_factory,
+        mocker,
+        revenue_program,
+    ):
+        pi_id = "pi_XXX"
+        email_id = "foo@bar.com"
+        subscription = subscription_factory.get(latest_invoice={"payment_intent": pi_id} if has_pi else None)
+        mock_pi_retrieve = mocker.patch(
+            "stripe.PaymentIntent.retrieve",
+            return_value=(pi_for_active_subscription_factory.get(id=pi_id)),
+        )
+        mock_redis_pis = RedisMock()
+        mocker.patch(
+            "apps.contributions.stripe_contributions_provider.ContributionsCacheProvider.cache",
+            mock_redis_pis,
+        )
+        mock_redis_subs = RedisMock()
+        mocker.patch(
+            "apps.contributions.stripe_contributions_provider.SubscriptionsCacheProvider.cache",
+            mock_redis_subs,
+        )
+        contributions_views.SubscriptionsViewSet._re_retrieve_pi_and_insert_pi_and_sub_into_cache(
+            subscription, email_id, revenue_program.payment_provider.stripe_account_id
+        )
+        cached_pis = json.loads(
+            mock_redis_pis._data.get(f"{email_id}-payment-intents-{revenue_program.payment_provider.stripe_account_id}")
+        )
+        cached_subs = json.loads(
+            mock_redis_subs._data.get(f"{email_id}-subscriptions-{revenue_program.payment_provider.stripe_account_id}")
+        )
+        assert len(cached_pis) == 1
+        assert len(cached_subs) == 1
+        assert cached_subs[subscription.id]["id"] == subscription.id
+        if has_pi:
+            mock_pi_retrieve.assert_called_once_with(
+                pi_id,
+                stripe_account=revenue_program.payment_provider.stripe_account_id,
+                expand=["payment_method", "invoice.subscription.default_payment_method"],
+            )
+            assert cached_pis[pi_id]["id"] == pi_id if has_pi else None
+        else:
+            assert mock_pi_retrieve.called is False
+            # because gets inserted in cache as a pi
+            assert cached_pis.get(subscription.id)["id"] == subscription.id
+
+    def test_update_uninvoiced_subscription_in_cache(self, mocker):
+        mock_cache_provider = mocker.patch.object(contributions_views, "SubscriptionsCacheProvider", autospec=True)
+        contributions_views.SubscriptionsViewSet.update_uninvoiced_subscription_in_cache(
+            email=(email := "foo@bar.com"),
+            stripe_account_id=(stripe_account_id := "some-id"),
+            subscription=(subscription := mocker.Mock()),
+        )
+        mock_cache_provider.assert_called_once_with(email, stripe_account_id)
+        mock_cache_provider.return_value.upsert.assert_called_once_with([subscription])
 
 
 @pytest.mark.parametrize(
@@ -750,239 +1201,6 @@ def test_feature_flagging_when_flag_not_found():
     assert response.json().get("detail", None) == "There was a problem with the API"
 
 
-TEST_STRIPE_API_KEY = "test_stripe_api_key"
-
-
-@override_settings(STRIPE_TEST_SECRET_KEY_CONTRIBUTIONS=TEST_STRIPE_API_KEY)
-class UpdatePaymentMethodTest(APITestCase):
-    def setUp(self):
-        self.subscription_id = "test-subscription-id"
-        self.stripe_account_id = "testing-stripe-account-id"
-        self.customer_id = "testing-customer-id"
-        self.org = OrganizationFactory()
-        self.contributor = ContributorFactory()
-        self.subscription = StripeSubscriptionFactory()
-
-        payment_provider = PaymentProviderFactory(stripe_account_id=self.stripe_account_id)
-        self.revenue_program = RevenueProgramFactory(organization=self.org, payment_provider=payment_provider)
-        self.payment_method_id = "testing-payment-method-id"
-        self.contributor.email = self.subscription.customer.email = "foo@bar.baz"
-
-    def _make_request(self, subscription_id, data):
-        self.client.force_authenticate(user=self.contributor)
-        return self.client.patch(reverse("subscription-detail", kwargs={"pk": subscription_id}), data=data)
-
-    @mock.patch("stripe.PaymentMethod.attach")
-    @mock.patch("stripe.Subscription.modify")
-    def test_failure_when_missing_payment_method_id(self, mock_modify, mock_attach):
-        response = self._make_request(self.subscription_id, data={"foo": "bar"})
-        self.assertEqual(response.status_code, 400)
-        self.assertEqual(response.data["detail"], "Request contains unsupported fields")
-        mock_modify.assert_not_called()
-        mock_attach.assert_not_called()
-
-    @mock.patch("stripe.Subscription.retrieve")
-    @mock.patch("stripe.PaymentMethod.attach")
-    @mock.patch("stripe.Subscription.modify")
-    def test_failure_when_any_parameter_other_than_pm_id(self, mock_modify, mock_attach, mock_retrieve):
-        response = self._make_request(
-            subscription_id=self.subscription_id,
-            data={
-                "test_unknown_parameter": self.payment_method_id,
-                "revenue_program_slug": self.revenue_program.slug,
-            },
-        )
-        self.assertEqual(response.status_code, 400)
-        self.assertEqual(response.data["detail"], "Request contains unsupported fields")
-        mock_modify.assert_not_called()
-        mock_attach.assert_not_called()
-
-    @mock.patch("stripe.Subscription.retrieve")
-    @mock.patch("stripe.PaymentMethod.attach")
-    @mock.patch("stripe.Subscription.modify")
-    def test_failure_when_emails_dont_match(self, mock_modify, mock_attach, mock_retrieve):
-        self.contributor.email = "quux@baz.foo"
-        response = self._make_request(
-            subscription_id=self.subscription_id,
-            data={
-                "payment_method_id": self.payment_method_id,
-                "revenue_program_slug": self.revenue_program.slug,
-            },
-        )
-        assert response.status_code == 403
-        assert response.data["detail"] == "Forbidden"
-        assert not mock_modify.called
-        assert not mock_attach.called
-
-    @mock.patch("stripe.Subscription.retrieve")
-    @mock.patch("stripe.PaymentMethod.attach", side_effect=StripeError)
-    @mock.patch("stripe.Subscription.modify")
-    def test_error_when_attach_payment_method(self, mock_modify, mock_attach, mock_retrieve):
-        mock_retrieve.return_value = self.subscription
-        response = self._make_request(
-            subscription_id=self.subscription_id,
-            data={
-                "payment_method_id": self.payment_method_id,
-                "revenue_program_slug": self.revenue_program.slug,
-            },
-        )
-        self.assertEqual(response.status_code, 500)
-        self.assertEqual(response.data["detail"], "Error attaching payment method")
-
-        mock_attach.assert_called_once_with(
-            self.payment_method_id,
-            customer=self.subscription.customer.id,
-            stripe_account=self.stripe_account_id,
-        )
-        mock_modify.assert_not_called()
-
-    @mock.patch("stripe.Subscription.retrieve")
-    @mock.patch("stripe.PaymentMethod.attach")
-    @mock.patch("stripe.Subscription.modify", side_effect=StripeError)
-    def test_error_when_update_payment_method(self, mock_modify, mock_attach, mock_retrieve):
-        mock_retrieve.return_value = self.subscription
-        response = self._make_request(
-            subscription_id=self.subscription_id,
-            data={
-                "payment_method_id": self.payment_method_id,
-                "revenue_program_slug": self.revenue_program.slug,
-            },
-        )
-        self.assertEqual(response.status_code, 500)
-        self.assertEqual(response.data["detail"], "Error updating Subscription")
-
-        mock_attach.assert_called_once_with(
-            self.payment_method_id,
-            customer=self.subscription.customer.id,
-            stripe_account=self.stripe_account_id,
-        )
-
-        mock_modify.assert_called_once_with(
-            self.subscription_id,
-            default_payment_method=self.payment_method_id,
-            stripe_account=self.stripe_account_id,
-        )
-
-    @mock.patch("stripe.Subscription.retrieve")
-    @mock.patch("stripe.PaymentMethod.attach")
-    @mock.patch("stripe.Subscription.modify")
-    def test_update_payment_method_success(self, mock_modify, mock_attach, mock_retrieve):
-        mock_retrieve.return_value = self.subscription
-        response = self._make_request(
-            subscription_id=self.subscription_id,
-            data={
-                "payment_method_id": self.payment_method_id,
-                "revenue_program_slug": self.revenue_program.slug,
-            },
-        )
-        assert response.status_code == 204
-        assert response.data["detail"] == "Success"
-
-        mock_attach.assert_called_once_with(
-            self.payment_method_id,
-            customer=self.subscription.customer.id,
-            stripe_account=self.stripe_account_id,
-        )
-
-        mock_modify.assert_called_once_with(
-            self.subscription_id,
-            default_payment_method=self.payment_method_id,
-            stripe_account=self.stripe_account_id,
-        )
-        # assert about update fields and revision creation
-
-
-@override_settings(STRIPE_TEST_SECRET_KEY_CONTRIBUTIONS=TEST_STRIPE_API_KEY)
-class CancelRecurringPaymentTest(APITestCase):
-    def setUp(self):
-        self.subscription_id = "test-subscription-id"
-        self.stripe_account_id = "testing-stripe-account-id"
-        self.org = OrganizationFactory()
-        self.revenue_program = RevenueProgramFactory(organization=self.org)
-        self.payment_method_id = "testing-payment-method-id"
-        self.subscription = StripeSubscriptionFactory()
-        self.contributor = ContributorFactory()
-        self.contributor.email = self.subscription.customer.email = "foo@bar.baz"
-
-    def _make_request(self, subscription_id, revenue_program_slug):
-        self.client.force_authenticate(user=self.contributor)
-        return self.client.delete(
-            reverse("subscription-detail", kwargs={"pk": subscription_id}),
-            data={"revenue_program_slug": revenue_program_slug},
-        )
-
-    @mock.patch("stripe.Subscription.delete", side_effect=StripeError)
-    @mock.patch("stripe.Subscription.retrieve")
-    def test_error_when_subscription_delete(self, mock_retrieve, mock_delete):
-        mock_retrieve.return_value = self.subscription
-        response = self._make_request(self.subscription_id, self.revenue_program.slug)
-        self.assertEqual(response.status_code, 500)
-        self.assertEqual(response.data["detail"], "Error")
-
-    @mock.patch("stripe.Subscription.delete")
-    @mock.patch("stripe.Subscription.retrieve")
-    def test_delete_recurring_success(self, mock_retrieve, mock_delete):
-        mock_retrieve.return_value = self.subscription
-        response = self._make_request(self.subscription.id, self.revenue_program.slug)
-        self.assertEqual(response.status_code, 204)
-        self.assertEqual(response.data["detail"], "Success")
-
-        # test update fields and revision creation
-
-    @mock.patch("stripe.Subscription.retrieve")
-    def test_delete_recurring_wrong_email(self, mock_retrieve):
-        self.contributor.email = "wrong@email.com"
-        response = self._make_request(self.subscription.id, self.revenue_program.slug)
-        self.assertEqual(response.status_code, 403)
-        self.assertEqual(response.data["detail"], "Forbidden")
-        mock_retrieve.assert_called_once()
-
-
-@override_settings(STRIPE_TEST_SECRET_KEY_CONTRIBUTIONS=TEST_STRIPE_API_KEY)
-class DeleteSubscriptionsTest(APITestCase):
-    def setUp(self):
-        self.stripe_account_id = "testing-stripe-account-id"
-        self.org = OrganizationFactory()
-        self.revenue_program = RevenueProgramFactory(organization=self.org)
-        self.subscription_1 = StripeSubscriptionFactory()
-        self.subscription_2 = StripeSubscriptionFactory()
-        self.contributor = ContributorFactory()
-        self.contributor.email = self.subscription_1.customer.email = "foo@bar.baz"
-
-    def _make_request(self, subscription_id, revenue_program_slug):
-        self.client.force_authenticate(user=self.contributor)
-        return self.client.delete(
-            reverse("subscription-detail", kwargs={"pk": subscription_id}),
-            data={"revenue_program_slug": revenue_program_slug},
-        )
-
-    @mock.patch("stripe.Subscription.delete", side_effect=StripeError)
-    @mock.patch("stripe.Subscription.retrieve")
-    def test_error_when_subscription_delete(self, mock_retrieve, mock_delete):
-        mock_retrieve.return_value = self.subscription_1
-        response = self._make_request(self.subscription_1.id, self.revenue_program.slug)
-        self.assertEqual(response.status_code, 500)
-        self.assertEqual(response.data["detail"], "Error")
-
-    @mock.patch("stripe.Subscription.delete")
-    @mock.patch("stripe.Subscription.retrieve")
-    def test_delete_recurring_success(self, mock_retrieve, mock_delete):
-        mock_retrieve.return_value = self.subscription_1
-        response = self._make_request(self.subscription_1.id, self.revenue_program.slug)
-        self.assertEqual(response.status_code, 204)
-        self.assertEqual(response.data["detail"], "Success")
-
-        # test update fields and revision creation
-
-    @mock.patch("stripe.Subscription.retrieve")
-    def test_delete_recurring_wrong_email(self, mock_retrieve):
-        self.contributor.email = "wrong@email.com"
-        response = self._make_request(self.subscription_1.id, self.revenue_program.slug)
-        self.assertEqual(response.status_code, 403)
-        self.assertEqual(response.data["detail"], "Forbidden")
-        mock_retrieve.assert_called_once()
-
-
 @mock.patch("apps.contributions.models.Contribution.process_flagged_payment")
 class ProcessFlaggedContributionTest(APITestCase):
     def setUp(self):
@@ -1046,31 +1264,6 @@ class ProcessFlaggedContributionTest(APITestCase):
 
 
 @pytest.fixture
-def valid_data(donation_page):
-    return {
-        "donor_selected_amount": 123.01,
-        "amount": 120.0,
-        "agreed_to_Pay_fees": True,
-        "interval": "one_time",
-        "first_name": "Bill",
-        "last_name": "Smith",
-        "email": "bill@smith.com",
-        "phone": "123",
-        "mailing_street": "123 Glenwood Avenue",
-        "mailing_complement": "Ap 1",
-        "mailing_city": "Raleigh",
-        "mailing_state": "North Carolina",
-        "mailing_postal_code": "27603",
-        "mailing_country": "United States",
-        "reason_for_giving": "Other",
-        "reason_other": "None of ya...",
-        "tribute_type": "",
-        "page": donation_page.id,
-        "captcha_token": "HFbTRmfk1CPXUxMwRTQx5CQlV",
-    }
-
-
-@pytest.fixture
 def stripe_create_customer_response():
     return {"id": "customer-id"}
 
@@ -1119,7 +1312,7 @@ class TestPaymentViewset:
     )
     def test_create_happy_path(
         self,
-        valid_data,
+        minimally_valid_contribution_form_data,
         monkeypatch,
         stripe_create_subscription_response,
         stripe_create_payment_intent_response,
@@ -1143,10 +1336,9 @@ class TestPaymentViewset:
         mock_create_payment_intent = mock.Mock()
         mock_create_payment_intent.return_value = AttrDict(stripe_create_payment_intent_response)
         monkeypatch.setattr("stripe.PaymentIntent.create", mock_create_payment_intent)
-
-        contributor_count = Contributor.objects.count()
         contribution_count = Contribution.objects.count()
-        data = valid_data | {"interval": interval}
+        contributor_count = Contributor.objects.count()
+        data = minimally_valid_contribution_form_data | {"interval": interval}
         url = reverse("payment-list")
 
         save_spy = mocker.spy(Contribution, "save")
@@ -1158,13 +1350,13 @@ class TestPaymentViewset:
         contribution = Contribution.objects.get(uuid=response.json()["uuid"])
         assert contribution.interval == interval
         assert contribution.provider_subscription_id == subscription_id
-        assert contribution.amount == int(data["amount"] * 100)
+        assert contribution.amount == int(data["amount"]) * 100
         save_spy.assert_called_once()
 
-    def test_when_called_with_unexpected_interval(self, valid_data):
+    def test_when_called_with_unexpected_interval(self, minimally_valid_contribution_form_data):
         invalid_interval = "this-is-not-legit"
         assert invalid_interval not in ContributionInterval.choices
-        data = valid_data | {"interval": invalid_interval}
+        data = minimally_valid_contribution_form_data | {"interval": invalid_interval}
         url = reverse("payment-list")
         response = self.client.post(url, data, format="json")
         assert response.status_code == status.HTTP_400_BAD_REQUEST

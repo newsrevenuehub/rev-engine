@@ -51,7 +51,7 @@ describe('Customize Styles', () => {
         ({
           isLoading: false,
           user: { ...orgAdminUser, organizations: [{ ...orgPlan('CORE'), send_receipt_email_via_nre: false }] }
-        } as any)
+        }) as any
     );
     tree();
     expect(

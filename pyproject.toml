@@ -81,6 +81,7 @@ pydantic = "^2.2.0"
 [tool.poetry.dev-dependencies]
 appnope = "*"
 beautifulsoup4 = "*"
+bandit = "1.7.5"
 black = "23.9.1"
 colorama = "*"
 coverage = "*"

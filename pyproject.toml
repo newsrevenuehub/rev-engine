@@ -1,3 +1,7 @@
+[tool.bandit]
+targets = ["./apps", "./revengine", "./scripts"]
+exclude_dirs = ["tests",]
+
 [tool.black]
 line-length = 120
 target-version = ["py310"]
@@ -104,6 +108,9 @@ pytest-mock = "*"
 pytest-xdist = "*"
 pyyaml = "*"
 responses = "*"
+
+[tool.poetry.extras]
+bandit = ["toml"]
 
 [tool.poetry.group.dev.dependencies]
 pytest-celery = "^0"

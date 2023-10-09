@@ -25,7 +25,8 @@ repos:
     rev: 1.7.5
     hooks:
       - id: bandit
-        args: [-r, ./webhookreceiver/]
+        args: ["--severity-level=high", "--confidence-level=medium", "-c", "pyproject.toml", "-r", "."]
+        additional_dependencies: ["bandit[toml]"]
         types: [python]
   # Black code formatter.
   - repo: https://github.com/psf/black

@@ -119,9 +119,12 @@ def stripe_oauth(request):
             revenue_program.slug,
         )
         task_verify_apple_domain.delay(revenue_program_slug=revenue_program.slug)
-        logger.info("[stripe_oauth] Started Apple Pay domain verification background task for revenue program slug: %s")
+        logger.info(
+            "[stripe_oauth] Started Apple Pay domain verification background task for revenue program slug: %s",
+            revenue_program.slug,
+        )
     except stripe.oauth_error.InvalidGrantError:
-        logger.error("[stripe_oauth] stripe.OAuth.token failed due to an invalid code")
+        logger.exception("[stripe_oauth] stripe.OAuth.token failed due to an invalid code")
         return Response({"invalid_code": "stripe_oauth received an invalid code"}, status=status.HTTP_400_BAD_REQUEST)
 
     return Response({"detail": "success"}, status=status.HTTP_200_OK)

@@ -217,10 +217,14 @@ class StripeWebhookProcessor:
         contribution = Contribution.objects.get(provider_subscription_id=self.obj_data["subscription"])
         if contribution.interval == ContributionInterval.YEARLY:
             logger.info(
-                "StripeWebhookProcessor.process_invoice called for contribution %s which is yearly. Triggering a reminder email."
+                "StripeWebhookProcessor.process_invoice called for contribution %s which is yearly. Triggering a reminder email.",
+                contribution,
             )
             contribution.send_recurring_contribution_email_reminder(
                 make_aware(datetime.datetime.fromtimestamp(self.obj_data["next_payment_attempt"])).date()
             )
         else:
-            logger.info("StripeWebhookProcessor.process_invoice called for contribution %s which is not yearly. Noop.")
+            logger.info(
+                "StripeWebhookProcessor.process_invoice called for contribution %s which is not yearly. Noop.",
+                contribution,
+            )

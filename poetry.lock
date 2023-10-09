@@ -1148,18 +1148,18 @@ pycodestyle = ">=2.11.0,<2.12.0"
 pyflakes = ">=3.1.0,<3.2.0"
 
 [[package]]
-name = "flake8-logging-format"
-version = "0.9.0"
-description = ""
+name = "flake8-logging"
+version = "1.3.1"
+description = "A Flake8 plugin that checks for issues using the standard library logging module."
 optional = false
-python-versions = "*"
+python-versions = ">=3.8"
 files = [
-    {file = "flake8-logging-format-0.9.0.tar.gz", hash = "sha256:e830cc49091e4b8ab9ea3da69a3da074bd631ce9a7db300e5c89fb48ba4a6986"},
+    {file = "flake8_logging-1.3.1-py3-none-any.whl", hash = "sha256:e4abe960f63aa0c4977254bac493484cc78dfc86a59d594eef2b19b21222423e"},
+    {file = "flake8_logging-1.3.1.tar.gz", hash = "sha256:823b07ba865076b92e9805df60302477530a4530519299acb4ab25a178e36808"},
 ]
 
-[package.extras]
-lint = ["flake8"]
-test = ["PyHamcrest", "pytest", "pytest-cov"]
+[package.dependencies]
+flake8 = ">=3.0,<3.2.0 || >3.2.0"
 
 [[package]]
 name = "future"
@@ -3049,4 +3049,4 @@ testing = ["big-O", "jaraco.functools", "jaraco.itertools", "more-itertools", "p
 [metadata]
 lock-version = "2.0"
 python-versions = "^3.10"
-content-hash = "d78f81640f4d652cce9955f3f5bed83bbd85feca08553bc3b06a75192cd155b9"
+content-hash = "a378706c020ecff1213acf03b2bdcc1c3aaeb2c87963bc27edf1df6ed5d6e268"

@@ -56,7 +56,6 @@ def exchange_mc_oauth_code_for_mc_access_token(oauth_code: str) -> str:
         "code": oauth_code,
     }
 
-    logger.info("making a request to Mailchimp")
     logger.debug(
         "making a request to Mailchimp with the following data: %s",
         request_data | {"code": "REDACTED", "client_secret": "REDACTED"},

@@ -28,6 +28,7 @@ class User(AbstractBaseUser, PermissionsMixin, IndexedTimeStampedModel):
             "Designates whether this user should be treated as active. Unselect this instead of deleting accounts."
         ),
     )
+    # TODO: [DEV-3913] Remove this field as part of the DEV-3913 ticket
     organizations = models.ManyToManyField("organizations.Organization", through="users.OrganizationUser")
     accepted_terms_of_service = models.DateTimeField(null=True, blank=True)
     email_verified = models.BooleanField(default=False)
@@ -94,7 +95,7 @@ class RoleAssignment(models.Model):
     a user's organization (for instance).
     """
 
-    user = models.OneToOneField(User, on_delete=models.CASCADE)
+    user = models.OneToOneField(User, on_delete=models.CASCADE, related_name="roleassignment")
     role_type = models.CharField(max_length=50, choices=Roles.choices)
     organization = models.ForeignKey("organizations.Organization", null=True, blank=True, on_delete=models.CASCADE)
     revenue_programs = models.ManyToManyField("organizations.RevenueProgram", blank=True)

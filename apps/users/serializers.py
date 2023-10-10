@@ -23,6 +23,7 @@ from apps.organizations.models import (
 from apps.organizations.serializers import (
     OrganizationInlineSerializer,
     RevenueProgramInlineSerializer,
+    RevenueProgramInlineSerializerForAuthedUserSerializer,
 )
 from apps.users.choices import Roles
 from apps.users.constants import PASSWORD_MAX_LENGTH
@@ -44,11 +45,31 @@ FISCAL_SPONSOR_NAME_NOT_PERMITTED_ERROR_MESSAGE = (
 )
 
 
+class AuthedUserSerializer(serializers.Serializer):
+    """This serializer is used to represent user data after users log in in api/v1/token."""
+
+    flags = serializers.SerializerMethodField(method_name="get_active_flags_for_user")
+    email = serializers.EmailField()
+    id = serializers.CharField()
+    accepted_terms_of_service = serializers.DateTimeField()
+    email_verified = serializers.BooleanField()
+    # TODO: [DEV-3913] Remove this once no longer on model
+    organizations = OrganizationInlineSerializer(many=True, source="_organizations")
+    revenue_programs = RevenueProgramInlineSerializerForAuthedUserSerializer(many=True)
+    role_type = serializers.ChoiceField(choices=Roles.choices, default=None, allow_null=True)
+
+    def get_active_flags_for_user(self, obj) -> list[get_waffle_flag_model]:
+        Flag = get_waffle_flag_model()
+        if obj.is_superuser:
+            qs = Flag.objects.filter(Q(superusers=True) | Q(everyone=True) | Q(users__in=[obj]))
+        else:
+            qs = Flag.objects.filter(Q(everyone=True) | Q(users__in=[obj]))
+        return list(qs.only("name", "id").distinct().values("name", "id"))
+
+
 class UserSerializer(serializers.ModelSerializer):
     """
-    This is the serializer that is used to return user data back after successful login.
-    It returns a complete list of (pared-down) available Organizations and RevenuePrograms based on the user's
-    super_user status and RoleAssignment.
+    This serializer is used for creating and updating users.
     """
 
     role_type = serializers.SerializerMethodField(method_name="get_role_type")

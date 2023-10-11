@@ -115,4 +115,11 @@ describe('PortalPage', () => {
       expect(screen.getByRole('graphics-document', { name: 'News Revenue Engine logo' })).toBeVisible();
     });
   });
+
+  it('NRE logo should link to Home page', () => {
+    tree();
+    const link = screen.getByRole('link', { name: 'News Revenue Engine home page' });
+    expect(link).toHaveAttribute('href', 'https://fundjournalism.org/');
+    expect(link).toHaveAttribute('target', '_blank');
+  });
 });

@@ -54,9 +54,11 @@ export const TextField = styled(BaseTextField)`
     margin-right: 14px;
     width: 400px;
 
-    input[type='text'] {
+    .NreTextFieldInput {
+      background-color: #3d2947;
+      border: none;
       color: ${({ theme }) => theme.basePalette.greyscale.white};
-      height: 9px; /* works out to 34px total with padding */
+      height: 0; /* works out to 34px total with padding */
 
       &::selection {
         background-color: rgba(255, 255, 255, 0.8);

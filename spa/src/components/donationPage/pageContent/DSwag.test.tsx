@@ -235,8 +235,20 @@ describe('DSwag', () => {
 
   describe('When showOptOutOnly is set in element content', () => {
     function treeWithOptOutOnly() {
-      return tree({ element: { ...defaultElement, content: { ...defaultElement.content, showOptOutOnly: true } } });
+      return tree({
+        element: { ...defaultElement, content: { ...defaultElement.content, showOptOutOnly: true } },
+        live: true
+      });
     }
+
+    it('shows the opt-out checkbox with the correct name even if no swag choices are defined', () => {
+      tree({ element: { ...defaultElement, content: { showOptOutOnly: true } }, live: true });
+
+      const checkbox = getOptOutCheckbox();
+
+      expect(checkbox).toBeInTheDocument();
+      expect(checkbox).toHaveAttribute('name', 'swag_opt_out');
+    });
 
     it('shows the opt-out checkbox with the correct name even if the contribution is below the threshold', () => {
       treeWithOptOutOnly();

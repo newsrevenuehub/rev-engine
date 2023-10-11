@@ -70,13 +70,6 @@ export function DSwag(props: DSwagProps) {
     });
   }
 
-  // If there are no swag choices configured and we're on a live page, show
-  // nothing. This should only happen if the user didn't configure any.
-
-  if (live && (element.content.swags[0]?.swagOptions ?? []).length === 0) {
-    return null;
-  }
-
   const optOutCheckbox = (
     <FormControlLabel
       control={<Checkbox checked={optOut} name="swag_opt_out" onChange={handleSwagOptOutChange} value="true" />}
@@ -85,7 +78,8 @@ export function DSwag(props: DSwagProps) {
   );
 
   // If we are only showing the opt-out checkbox, skip other kinds of logic as
-  // below and just show the checkbox. We don't need to consider the threshold.
+  // below and just show the checkbox. We don't need to consider the threshold
+  // or choices.
 
   if (element.content.showOptOutOnly) {
     return (
@@ -93,6 +87,13 @@ export function DSwag(props: DSwagProps) {
         {optOutCheckbox}
       </DElement>
     );
+  }
+
+  // If there are no swag choices configured and we're on a live page, show
+  // nothing. This should only happen if the user didn't configure any.
+
+  if (live && (element.content.swags[0]?.swagOptions ?? []).length === 0) {
+    return null;
   }
 
   // We are showing swag choices, only available if the total contribution meets

@@ -259,6 +259,7 @@ function DonationPage({ page, live = false }, ref) {
                 )}
                 {payment && !displayErrorFallback && (
                   <FinishPaymentModal
+                    locale={page.locale}
                     onCancel={handleCompleteContributionCancel}
                     onError={handleCompleteContributionError}
                     open

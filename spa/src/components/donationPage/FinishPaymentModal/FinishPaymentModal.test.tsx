@@ -20,7 +20,16 @@ const mockPayment: any = {
 };
 
 function tree(props?: Partial<FinishPaymentModalProps>) {
-  return render(<FinishPaymentModal onCancel={jest.fn()} onError={jest.fn()} open payment={mockPayment} {...props} />);
+  return render(
+    <FinishPaymentModal
+      onCancel={jest.fn()}
+      onError={jest.fn()}
+      open
+      payment={mockPayment}
+      locale={'mock-locale' as any}
+      {...props}
+    />
+  );
 }
 
 describe('FinishPaymentModal', () => {
@@ -49,6 +58,7 @@ describe('FinishPaymentModal', () => {
       expect(wrapper).toBeInTheDocument();
       expect(wrapper.dataset.stripeAccountId).toBe(mockPayment.stripe.accountId);
       expect(wrapper.dataset.stripeClientSecret).toBe(mockPayment.stripe.clientSecret);
+      expect(wrapper.dataset.stripeLocale).toBe('mock-locale');
       expect(onError).not.toBeCalled();
       fireEvent.click(screen.getByRole('button', { name: 'onError' }));
       expect(onError).toBeCalledTimes(1);

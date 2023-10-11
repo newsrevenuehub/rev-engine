@@ -9,6 +9,7 @@ import ContributionDisclaimer from './ContributionDisclaimer';
 import StripePaymentForm from './StripePaymentForm';
 import { BackButton, Root } from './FinishPaymentModal.styled';
 import { useTranslation } from 'react-i18next';
+import { StripeElementLocale } from '@stripe/stripe-js';
 
 const FinishPaymentModalPropTypes = {
   onCancel: PropTypes.func.isRequired,
@@ -21,6 +22,7 @@ export interface FinishPaymentModalProps extends InferProps<typeof FinishPayment
   onCancel: () => void;
   onError: (error: Error) => void;
   payment: Payment;
+  locale: StripeElementLocale;
 }
 
 /**
@@ -29,7 +31,7 @@ export interface FinishPaymentModalProps extends InferProps<typeof FinishPayment
  * appropriate thank you page.
  * @see https://stripe.com/docs/payments/payment-element
  */
-export function FinishPaymentModal({ onCancel, onError, open, payment }: FinishPaymentModalProps) {
+export function FinishPaymentModal({ onCancel, onError, open, payment, locale }: FinishPaymentModalProps) {
   const { t } = useTranslation();
 
   return (
@@ -39,6 +41,7 @@ export function FinishPaymentModal({ onCancel, onError, open, payment }: FinishP
           onError={onError}
           stripeClientSecret={payment.stripe.clientSecret}
           stripeAccountId={payment.stripe.accountId}
+          stripeLocale={locale}
         >
           <Root>
             <BackButton onClick={onCancel}>

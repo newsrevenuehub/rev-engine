@@ -25,6 +25,13 @@ export const CONTRIBUTOR_ENTRY = '/contributor/';
 export const CONTRIBUTOR_VERIFY = '/contributor-verify/';
 export const CONTRIBUTOR_DASHBOARD = join([CONTRIBUTOR_ENTRY, 'contributions/']);
 
+// New Portal
+export const PORTAL = {
+  ENTRY: '/portal/',
+  VERIFY: '/portal/verification/',
+  DASHBOARD: '/portal/my-contributions/'
+};
+
 // Account
 export const SIGN_IN = '/sign-in/';
 export const FORGOT_PASSWORD = '/forgot-password/';

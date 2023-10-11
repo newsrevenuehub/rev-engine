@@ -49,39 +49,36 @@ class DonationPage(IndexedTimeStampedModel):
     A DonationPage represents a single instance of a Donation Page.
     """
 
-    name = models.CharField(max_length=PAGE_NAME_MAX_LENGTH)
-    heading = models.CharField(max_length=PAGE_HEADING_MAX_LENGTH, blank=True)
+    elements = models.JSONField(null=True, blank=True, default=defaults.get_default_page_elements)
     graphic = SorlImageField(null=True, blank=True)
     header_bg_image = SorlImageField(null=True, blank=True)
+    header_link = models.URLField(blank=True)
     header_logo = SorlImageField(null=True, blank=True, default=None)
     header_logo_alt_text = models.CharField(max_length=255, blank=True, default="")
-    header_link = models.URLField(blank=True)
-
-    sidebar_elements = models.JSONField(default=list, blank=True)
-
-    styles = models.ForeignKey("pages.Style", null=True, blank=True, on_delete=models.SET_NULL)
-    thank_you_redirect = models.URLField(
-        blank=True, help_text="If not using default Thank You page, add link to orgs Thank You page here"
-    )
+    heading = models.CharField(max_length=PAGE_HEADING_MAX_LENGTH, blank=True)
+    name = models.CharField(max_length=PAGE_NAME_MAX_LENGTH)
+    locale = models.CharField(max_length=20, default="en")
+    page_screenshot = SorlImageField(null=True, blank=True, upload_to=_get_screenshot_upload_path)
     post_thank_you_redirect = models.URLField(
         blank=True,
         help_text='Contributors can click a link to go "back to the news" after viewing the default thank you page',
     )
+    published_date = models.DateTimeField(null=True, blank=True)
     revenue_program = models.ForeignKey(
         "organizations.RevenueProgram",
         null=True,
         on_delete=models.CASCADE,
     )
-    elements = models.JSONField(null=True, blank=True, default=defaults.get_default_page_elements)
-
+    sidebar_elements = models.JSONField(default=list, blank=True)
     slug = models.SlugField(
         blank=True,
         validators=[validate_slug_against_denylist],
         null=True,
     )
-
-    published_date = models.DateTimeField(null=True, blank=True)
-    page_screenshot = SorlImageField(null=True, blank=True, upload_to=_get_screenshot_upload_path)
+    styles = models.ForeignKey("pages.Style", null=True, blank=True, on_delete=models.SET_NULL)
+    thank_you_redirect = models.URLField(
+        blank=True, help_text="If not using default Thank You page, add link to orgs Thank You page here"
+    )
 
     objects = PagesAppManager.from_queryset(PagesAppQuerySet)()
 

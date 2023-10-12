@@ -10,7 +10,9 @@ const planColors = {
 export const PlanName = styled.span<{ $plan: EnginePlan['name'] }>`
   background-color: ${({ $plan }) => planColors[$plan as keyof typeof planColors]};
   color: ${({ theme }) => theme.colors.muiGrey[900]};
-  font: 400 ${({ theme }) => theme.fontSizesUpdated.lg} 'DM Mono', monospace;
+  font:
+    400 ${({ theme }) => theme.fontSizesUpdated.lg} 'DM Mono',
+    monospace;
 `;
 
 export const Root = styled.div`

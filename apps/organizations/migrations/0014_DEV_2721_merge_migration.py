@@ -4,7 +4,6 @@ from django.db import migrations
 
 
 class Migration(migrations.Migration):
-
     dependencies = [
         ("organizations", "0012_DEV_2519_merge_migration"),
         ("organizations", "0013_DEV-2722_organization_show_connected_to_mailchimp"),

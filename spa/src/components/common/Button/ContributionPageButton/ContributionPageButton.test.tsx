@@ -1,5 +1,5 @@
 import { axe } from 'jest-axe';
-import { fireEvent, render, screen } from 'test-utils';
+import { fireEvent, render, screen, within } from 'test-utils';
 import ContributionPageButton, { ContributionPageButtonProps } from './ContributionPageButton';
 
 jest.mock('./DefaultPageButton');
@@ -25,7 +25,7 @@ describe('ContributionPageButton', () => {
   it('displays the page screenshot', () => {
     tree();
     expect(screen.queryByText('No preview')).not.toBeInTheDocument();
-    expect(screen.getByTestId('preview-image').style.backgroundImage).toBe('url(mock-page-screenshot)');
+    expect(within(screen.getByTestId('preview-image')).getByRole('img')).toHaveAttribute('src', 'mock-page-screenshot');
   });
 
   it('displays "No Preview" when the page has no screenshot', () => {

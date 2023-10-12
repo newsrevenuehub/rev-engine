@@ -85,6 +85,9 @@ function useContributionPageList(): UseContributionPageListResult {
     retry: (failureCount, error) => {
       return (error as Error).name !== 'AuthenticationError' && failureCount < 1;
     },
+    // Retain data for 2 minutes, same as useUser. Mutations will invalidate
+    // the cache immediately.
+    staleTime: 120000,
     onError: (error) => {
       if ((error as Error).name === 'AuthenticationError') {
         history.push(SIGN_IN);

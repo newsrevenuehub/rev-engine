@@ -59,7 +59,7 @@ describe('PayFeesControl', () => {
     });
     expect(
       screen.getByLabelText(
-        "I agree to pay a monthly transaction fee of $$$9,999.00 USD to direct more support to test-rp's mission."
+        "I agree to pay a common.frequency.adjectives.monthly transaction fee of $$$9,999.00 USD to direct more support to test-rp's mission."
       )
     ).toBeInTheDocument();
   });

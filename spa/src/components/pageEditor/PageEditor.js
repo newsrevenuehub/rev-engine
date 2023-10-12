@@ -8,9 +8,6 @@ import { AnimatePresence } from 'framer-motion';
 import { useAlert } from 'react-alert';
 import { pageIsPublished } from 'utilities/editPageGetSuccessMessage';
 
-// CSS files for libraries that ARE ONLY needed for page edit
-import 'react-datepicker/dist/react-datepicker.css';
-
 // AJAX
 import useRequest from 'hooks/useRequest';
 import { LIST_STYLES } from 'ajax/endpoints';

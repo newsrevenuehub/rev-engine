@@ -69,9 +69,9 @@ describe('ContributionTableRow', () => {
   });
 
   it.each([
-    ['one_time', 'One time'],
-    ['month', 'Monthly'],
-    ['year', 'Yearly']
+    ['one_time', 'common.frequency.adjectives.oneTime'],
+    ['month', 'common.frequency.adjectives.monthly'],
+    ['year', 'common.frequency.adjectives.yearly']
   ])('displays a cell showing the contribution interval for %s', (interval, displayValue) => {
     tree({ contribution: { ...mockContribution, interval: interval as ContributionInterval } });
     expect(screen.getByTestId('interval-cell')).toHaveTextContent(displayValue);

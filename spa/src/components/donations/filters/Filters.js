@@ -1,14 +1,11 @@
 import * as S from './Filters.styled';
 
 // Children
-import CreatedFilter from 'components/donations/filters/CreatedFilter';
 import GenericErrorBoundary from 'components/errors/GenericErrorBoundary';
 import StatusFilter from 'components/common/Filters/StatusFilter';
 import AmountFilter from 'components/common/Filters/AmountFilter';
 
 function Filters({ filters, handleFilterChange, donationsCount, excludeStatusFilters = [] }) {
-  // whenever we need to enable this, toggle this switch to true
-  let dateFilterEnabled = false;
   return (
     <S.Filters layout>
       <GenericErrorBoundary>
@@ -28,11 +25,6 @@ function Filters({ filters, handleFilterChange, donationsCount, excludeStatusFil
           }
         />
       </GenericErrorBoundary>
-      {dateFilterEnabled ? (
-        <GenericErrorBoundary>
-          <CreatedFilter filter={filters.created} handleFilterChange={handleFilterChange} />
-        </GenericErrorBoundary>
-      ) : null}
       <GenericErrorBoundary>
         <S.ResultsCount>
           <span data-testid="filter-results-count">{donationsCount}</span> results

@@ -18,4 +18,4 @@ fi
 
 /bin/sh ./google_sa.sh
 
-exec uwsgi --http=0.0.0.0:$PORT --show-config
+exec uwsgi --ini ./uwsgi.conf --http=0.0.0.0:$PORT --show-config

@@ -653,6 +653,8 @@ def contributor_contributions(request, id):
     params = {}
     for param, val in {"page": 1, "page_size": 10, "ordering": "-created", "interval": "all"}.items():
         sent = request.GET.get(param, None)
+        if val in ("page", "page_size"):
+            sent = int(sent) if sent else val
         params[param] = sent if sent else val
         logger.debug("Sent value for %s is %s", param, sent)
     mock_url = f"{request.scheme}://{request.get_host()}{request.path}?page="

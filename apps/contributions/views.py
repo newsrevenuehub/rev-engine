@@ -1,4 +1,7 @@
+import datetime
 import logging
+import random
+from dataclasses import dataclass
 from typing import List
 
 from django.conf import settings
@@ -11,6 +14,7 @@ from django.views.decorators.csrf import csrf_protect
 
 import stripe
 from django_filters.rest_framework import DjangoFilterBackend
+from faker import Faker
 from rest_framework import mixins, status, viewsets
 from rest_framework.decorators import action, api_view, authentication_classes, permission_classes
 from rest_framework.exceptions import ParseError
@@ -30,6 +34,7 @@ from apps.api.permissions import (
     IsHubAdmin,
 )
 from apps.contributions import serializers
+from apps.contributions.choices import CardBrand
 from apps.contributions.filters import ContributionFilter
 from apps.contributions.models import (
     Contribution,
@@ -567,3 +572,97 @@ class SubscriptionsViewSet(viewsets.ViewSet):
             subscription=subscription,
             payment_intent=pi,
         )
+
+
+@dataclass
+class MockContributorContribution:
+    payment_provider_id: str
+    amount: int
+    card_brand: str
+    created: str
+    credit_card_expiration_date: str
+    interval: str
+    is_cancelable: bool
+    is_modifiable: bool
+    last_payment_date: str
+    last4: str
+    next_payment_date: str
+    payment_type: str
+    provider_customer_id: str
+    revenue_program: int
+    status: str
+
+
+fake = Faker()
+
+
+def get_mock_contributor_contributions_results(
+    page=1, page_size=10, ordering=None, interval=None
+) -> List[MockContributorContribution]:
+    logger.debug("generating %s mock contribution results", page_size)
+    results = []
+    for _ in range(page_size):
+        interval = random.choice(
+            [ContributionInterval.ONE_TIME, ContributionInterval.MONTHLY, ContributionInterval.YEARLY]
+        )
+        status = (
+            random.choice([ContributionStatus.PAID, ContributionStatus.PROCESSING])
+            if interval == ContributionInterval.ONE_TIME
+            else random.choice([ContributionStatus.PAID, ContributionStatus.CANCELED])
+        )
+        results.append(
+            MockContributorContribution(
+                status=status.value,
+                interval=interval.value,
+                payment_provider_id=f"{'pi' if interval == ContributionInterval.ONE_TIME else 'sub'}_{fake.uuid4()}",
+                amount=random.randint(100, 10000),
+                card_brand=random.choice([CardBrand.VISA.value, CardBrand.MASTERCARD.value]),
+                credit_card_expiration_date=f"{fake.future_date(end_date='+10y').strftime('%m/%Y')}",
+                is_cancelable=(
+                    is_cancelable := interval.value != ContributionInterval.ONE_TIME
+                    and status == ContributionStatus.PAID
+                ),
+                is_modifiable=is_cancelable,
+                last_payment_date=(last_payment := fake.date_time_this_year()).strftime("%Y-%m-%dT%H:%M:%SZ"),
+                created=last_payment.strftime("%Y-%m-%dT%H:%M:%SZ"),
+                last4=fake.credit_card_number(
+                    card_type="visa" if interval == ContributionInterval.ONE_TIME else "mastercard"
+                )[-4:],
+                next_payment_date=(
+                    last_payment + datetime.timedelta(days=30 if interval == ContributionInterval.MONTHLY else 365)
+                ).strftime("%Y-%m-%dT%H:%M:%SZ")
+                if is_cancelable
+                else None,
+                payment_type="credit_card",
+                provider_customer_id=f"cus_{fake.uuid4()}",
+                revenue_program=1,
+            )
+        )
+    return results
+
+
+@api_view(["GET"])
+@permission_classes([])
+def contributor_contributions(request, id):
+    """Provisional mock implementation of the `contributor_contributions` view function
+
+    The real endpoint will use `IsContributor` permission class, but that requires hooking into magic email link flow, so
+    in short term we'll not enforce permits, and send back our fake data.
+    """
+    logger.debug("Called for contributor ID %s", id)
+    params = {}
+    for param, val in {"page": 1, "page_size": 10, "ordering": "-created", "interval": "all"}.items():
+        sent = request.GET.get(param, None)
+        params[param] = sent if sent else val
+        logger.debug("Sent value for %s is %s", param, sent)
+    mock_url = f"{request.scheme}://{request.get_host()}{request.path}?page="
+    # this mocks DRF's default behavior for pagination in case of out of range page request
+    results = [] if params["page"] > 2 else get_mock_contributor_contributions_results(**params)
+    return Response(
+        {
+            "results": serializers.ContributionAgreementSerializer(results, many=True).data,
+            "count": 20,
+            "next": f"{mock_url}2" if params["page"] else None,
+            "previous": f"{mock_url}1" if params["page"] > 1 else None,
+        }
+    )

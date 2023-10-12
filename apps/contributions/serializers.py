@@ -929,3 +929,29 @@ class SubscriptionsSerializer(serializers.Serializer):
 
     def get_payment_type(self, instance):
         return instance.default_payment_method.type
+
+
+class ContributionAgreementSerializer(serializers.Serializer):
+    """This serializer captures a contributor's agreement to make a contribution.
+
+    In the case of a one time contribution, the agreement is captured in the form of a Stripe PaymentIntent.
+
+    In the case of a recurring contribution, the agreement is captured in the form of a Stripe Subscription.
+    """
+
+    # either the PI or subscription id
+    payment_provider_id = serializers.CharField(max_length=255)
+    amount = serializers.IntegerField()
+    card_brand = serializers.ChoiceField(choices=CardBrand.choices)
+    created = serializers.DateTimeField(format="%Y-%m-%dT%H =%M =%S")
+    credit_card_expiration_date = serializers.CharField(max_length=7)
+    interval = serializers.ChoiceField(choices=ContributionInterval.choices)
+    is_cancelable = serializers.BooleanField()
+    is_modifiable = serializers.BooleanField()
+    last_payment_date = serializers.DateTimeField(format="%Y-%m-%dT%H =%M =%S")
+    last4 = serializers.CharField(max_length=4)
+    next_payment_date = serializers.DateTimeField(format="%Y-%m-%dT%H =%M =%S")
+    payment_type = serializers.ChoiceField(choices=PaymentType.choices)
+    provider_customer_id = serializers.CharField(max_length=255)
+    revenue_program = serializers.IntegerField()
+    status = serializers.ChoiceField(choices=ContributionStatus.choices)

@@ -1501,3 +1501,11 @@ class TestStripeWebhooksView:
         response = client.post(reverse("stripe-webhooks-contributions"), payment_method_attached_request_data, **header)
         assert response.status_code == status.HTTP_200_OK
         assert Contribution.objects.count() == count
+
+
+def test_contributor_contributions_mocked_endpoint(api_client):
+    """In this test, we narrowly show that the mocked endpoint stands up. Real tests will come with real implementation"""
+    response = api_client.get(reverse("contributor-contributions", args=(1,)))
+    assert response.status_code == status.HTTP_200_OK
+    assert set(response.json().keys()) == {"results", "count", "next", "previous"}
+    assert len(response.json()["results"]) == 10

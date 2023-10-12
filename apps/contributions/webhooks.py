@@ -14,7 +14,6 @@ logger = logging.getLogger(f"{settings.DEFAULT_LOGGER}.{__name__}")
 
 class StripeWebhookProcessor:
     def __init__(self, event):
-        logger.info("initialized with Stripe event ID %s", event.id)
         logger.debug("initialized with event data: %s", event)
         self.event = event
         self.obj_data = self.event.data["object"]
@@ -23,7 +22,6 @@ class StripeWebhookProcessor:
         logger.info("called with event ID %s", self.event.id)
         logger.debug("called with event data: %s", self.event)
         if (event_type := self.obj_data["object"]) == "subscription":
-            # TODO: [DEV-2467] this will generate lots of spurious errors for events from Stripe that we don't care about. See ticket.
             return Contribution.objects.get(provider_subscription_id=self.obj_data["id"])
         elif event_type == "payment_intent":
             try:
@@ -69,17 +67,16 @@ class StripeWebhookProcessor:
         else:
             logger.warning('Received un-handled Stripe object of type "%s"', object_type)
 
-    # PaymentIntent processing
     def process_payment_intent(self):
-        logger.info("StripeWebhookProcessor.process_payment_intent called")
-        if self.event.type == "payment_intent.canceled":
-            self.handle_payment_intent_canceled()
-
-        if self.event.type == "payment_intent.payment_failed":
-            self.handle_payment_intent_failed()
-
-        if self.event.type == "payment_intent.succeeded":
-            self.handle_payment_intent_succeeded()
+        match self.event_type:
+            case "payment_intent.canceled":
+                self.handle_payment_intent_canceled()
+            case "payment_intent.payment_failed":
+                self.handle_payment_intent_failed()
+            case "payment_intent.succeeded":
+                self.handle_payment_intent_succeeded()
+            case _:
+                return
 
     def handle_payment_intent_canceled(self):
         logger.info("StripeWebhookProcessor.handle_payment_intent_canceled called")
@@ -143,7 +140,6 @@ class StripeWebhookProcessor:
     def _cancellation_was_rejection(self):
         return self.obj_data.get("cancellation_reason") == "fraudulent"
 
-    # Subscription Processing
     def process_subscription(self):
         logger.info("StripeWebhookProcessor.process_subscription called")
         if self.event.type == "customer.subscription.updated":
@@ -178,10 +174,6 @@ class StripeWebhookProcessor:
             )
 
     def handle_subscription_canceled(self):
-        """
-        Somebody has manually canceled this subscription.
-        NOTE: Might be a good place to send a slack notification?
-        """
         logger.info("StripeWebhookProcessor.handle_subscription_canceled Contribution canceled event")
         contribution = self.get_contribution_from_event()
         contribution.payment_provider_data = self.event

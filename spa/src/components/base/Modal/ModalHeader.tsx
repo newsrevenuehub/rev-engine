@@ -37,7 +37,9 @@ const Root = styled('div')`
   align-items: center;
   border-bottom: 1px solid ${({ theme }) => theme.basePalette.greyscale.grey3};
   display: flex;
-  font: 18px Roboto, sans-serif;
+  font:
+    18px Roboto,
+    sans-serif;
   gap: 10px;
   margin: 0 10px;
   padding: 14px 0;

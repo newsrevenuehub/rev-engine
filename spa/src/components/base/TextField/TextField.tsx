@@ -19,7 +19,9 @@ const StyledMuiTextField = styled(MuiTextField)`
 
     .NreTextFieldInputLabelRoot {
       color: rgb(40, 40, 40);
-      font: 600 16px Roboto, sans-serif;
+      font:
+        600 16px Roboto,
+        sans-serif;
       /*
       MUI applies an absolute position and transform to shrink the label, but we
       want it to look normal.

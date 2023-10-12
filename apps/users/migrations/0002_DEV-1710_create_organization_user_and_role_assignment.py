@@ -6,7 +6,6 @@ import django.db.models.deletion
 
 
 class Migration(migrations.Migration):
-
     # manually added this after renaming this migration file to be semantic, based on
     # error raised by django-test-migrations, which we're using to prohibit default
     # migration names

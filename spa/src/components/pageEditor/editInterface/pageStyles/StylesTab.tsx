@@ -66,7 +66,7 @@ function StylesTab({
     setStyles({ ...styles, colors: { ...styles.colors, [colorName]: value } });
   };
 
-  const setSelectedFonts = (fontType: string, selectedFont: typeof fonts[number]) => {
+  const setSelectedFonts = (fontType: string, selectedFont: (typeof fonts)[number]) => {
     setStyles({ ...styles, font: { ...styles.font, [fontType]: selectedFont } });
   };
 

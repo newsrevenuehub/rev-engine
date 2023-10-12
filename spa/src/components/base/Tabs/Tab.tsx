@@ -4,7 +4,9 @@ import styled from 'styled-components';
 export const Tab = styled(MuiTab)`
   && {
     color: ${({ theme }) => theme.basePalette.greyscale.grey1};
-    font: 14px Roboto, sans-serif;
+    font:
+      14px Roboto,
+      sans-serif;
     min-width: 0;
     text-transform: none;
 

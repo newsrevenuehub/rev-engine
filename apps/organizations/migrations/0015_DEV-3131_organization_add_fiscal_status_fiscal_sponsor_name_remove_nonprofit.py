@@ -11,7 +11,6 @@ def populate_fiscal_status(apps, _):
 
 
 class Migration(migrations.Migration):
-
     dependencies = [
         ("organizations", "0014_DEV_2721_merge_migration"),
     ]

@@ -4,7 +4,6 @@ from django.db import migrations, models
 
 
 class Migration(migrations.Migration):
-
     dependencies = [
         ("users", "0004_DEV-2037_add_email_verified_and_accepted_tos"),
     ]

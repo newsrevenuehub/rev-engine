@@ -6,7 +6,6 @@ from apps.common.models import SocialMeta
 
 
 class SocialMetaInlineSerializer(serializers.ModelSerializer):
-
     title = serializers.SerializerMethodField()
     description = serializers.SerializerMethodField()
     url = serializers.SerializerMethodField()

@@ -23,7 +23,9 @@ export const ConnectStripeToastCollapsed = styled.div`
   right: 10px;
   background: ${(props) => props.theme.colors.white};
   border: 0.5px solid ${(props) => props.theme.colors.muiGrey[100]};
-  box-shadow: 0px 0.3px 0.5px rgba(0, 0, 0, 0.1), 0px 2px 4px rgba(0, 0, 0, 0.2);
+  box-shadow:
+    0px 0.3px 0.5px rgba(0, 0, 0, 0.1),
+    0px 2px 4px rgba(0, 0, 0, 0.2);
   border-radius: ${(props) => props.theme.muiBorderRadius.lg};
   max-width: 96px;
   z-index: 100;

@@ -20,7 +20,16 @@ const mockPayment: any = {
 };
 
 function tree(props?: Partial<FinishPaymentModalProps>) {
-  return render(<FinishPaymentModal onCancel={jest.fn()} onError={jest.fn()} open payment={mockPayment} {...props} />);
+  return render(
+    <FinishPaymentModal
+      onCancel={jest.fn()}
+      onError={jest.fn()}
+      open
+      payment={mockPayment}
+      locale={'mock-locale' as any}
+      {...props}
+    />
+  );
 }
 
 describe('FinishPaymentModal', () => {
@@ -35,7 +44,7 @@ describe('FinishPaymentModal', () => {
 
       tree({ onCancel });
       expect(onCancel).not.toBeCalled();
-      fireEvent.click(screen.getByRole('button', { name: 'Back' }));
+      fireEvent.click(screen.getByRole('button', { name: 'common.actions.back' }));
       expect(onCancel).toBeCalledTimes(1);
     });
 
@@ -49,6 +58,7 @@ describe('FinishPaymentModal', () => {
       expect(wrapper).toBeInTheDocument();
       expect(wrapper.dataset.stripeAccountId).toBe(mockPayment.stripe.accountId);
       expect(wrapper.dataset.stripeClientSecret).toBe(mockPayment.stripe.clientSecret);
+      expect(wrapper.dataset.stripeLocale).toBe('mock-locale');
       expect(onError).not.toBeCalled();
       fireEvent.click(screen.getByRole('button', { name: 'onError' }));
       expect(onError).toBeCalledTimes(1);
@@ -63,7 +73,7 @@ describe('FinishPaymentModal', () => {
       expect(paymentForm.dataset.payment).toBe(JSON.stringify(mockPayment));
     });
 
-    it('shows a disclaimer with interval and amount props based on the payment prop', () => {
+    it('shows a disclaimer with interval and amount props based on the payment prop, and date based on the current one', () => {
       tree();
 
       const disclaimer = screen.getByTestId('mock-contribution-disclaimer');
@@ -71,6 +81,7 @@ describe('FinishPaymentModal', () => {
       expect(disclaimer).toBeInTheDocument();
       expect(disclaimer.dataset.formattedAmount).toBe('mock-currency-symbolmock-amount mock-currency-code');
       expect(disclaimer.dataset.interval).toBe(mockPayment.interval);
+      expect(disclaimer.dataset.processingDate).toBe(new Date().toString());
     });
 
     it('is accessible', async () => {

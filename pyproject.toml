@@ -1,3 +1,7 @@
+[tool.bandit]
+targets = ["./apps", "./revengine", "./scripts"]
+exclude_dirs = ["tests",]
+
 [tool.black]
 line-length = 120
 target-version = ["py310"]
@@ -82,19 +86,20 @@ uwsgitop = "^0.11"
 [tool.poetry.dev-dependencies]
 appnope = "*"
 beautifulsoup4 = "*"
-black = "*"
+bandit = "1.7.5"
+black = "23.9.1"
 colorama = "*"
 coverage = "*"
 django-debug-toolbar = "*"
 drf-yasg = "*"
 factory_boy = "*"
 Faker = "*"
-flake8 = "*"
+flake8 = "6.1.0"
 flake8-logging-format = "*"
 importlib-metadata = "*"
 invoke = "*"
 ipython = "*"
-isort = "*"
+isort = "5.12.0"
 pre-commit = "*"
 pytest = "*"
 pytest-cases = "*"
@@ -104,6 +109,9 @@ pytest-mock = "*"
 pytest-xdist = "*"
 pyyaml = "*"
 responses = "*"
+
+[tool.poetry.extras]
+bandit = ["toml"]
 
 [tool.poetry.group.dev.dependencies]
 pytest-celery = "^0"

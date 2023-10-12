@@ -63,7 +63,7 @@ RUN mkdir /code/
 WORKDIR /code/
 ADD . /code/
 
-FROM base  AS deploy
+FROM base AS deploy
 
 # Copy React SPA build into final image
 COPY --from=static_files /code/spa/build /code/build

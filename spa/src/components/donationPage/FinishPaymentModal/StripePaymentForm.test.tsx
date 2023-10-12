@@ -104,21 +104,27 @@ describe('StripePaymentForm', () => {
   it('shows a submit button with an appropriate label for a one-time payment', () => {
     tree();
     expect(
-      screen.getByRole('button', { name: 'Give mock-currency-symbol123.45 mock-currency-code once' })
+      screen.getByRole('button', {
+        name: 'stripeFns.paymentElementButtonText.one_time{"amount":"mock-currency-symbol123.45 mock-currency-code"}'
+      })
     ).toBeVisible();
   });
 
   it('shows a submit button with an appropriate label for a monthly payment', () => {
     tree({ payment: { ...mockPayment, interval: 'month' } });
     expect(
-      screen.getByRole('button', { name: 'Give mock-currency-symbol123.45 mock-currency-code monthly' })
+      screen.getByRole('button', {
+        name: 'stripeFns.paymentElementButtonText.month{"amount":"mock-currency-symbol123.45 mock-currency-code"}'
+      })
     ).toBeVisible();
   });
 
   it('shows a submit button with an appropriate label for a yearly payment', () => {
     tree({ payment: { ...mockPayment, interval: 'year' } });
     expect(
-      screen.getByRole('button', { name: 'Give mock-currency-symbol123.45 mock-currency-code yearly' })
+      screen.getByRole('button', {
+        name: 'stripeFns.paymentElementButtonText.year{"amount":"mock-currency-symbol123.45 mock-currency-code"}'
+      })
     ).toBeVisible();
   });
 

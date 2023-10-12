@@ -23,7 +23,9 @@ export const Tooltip = styled(WrappedTooltip)`
     background: rgb(50, 50, 50);
     border-radius: 4px;
     color: white;
-    font: 12px Roboto, sans-serif;
+    font:
+      12px Roboto,
+      sans-serif;
     margin: 0;
     padding: 8px;
     width: ${({ tooltipWidth }) => (tooltipWidth ? `${tooltipWidth}px` : 'auto')};

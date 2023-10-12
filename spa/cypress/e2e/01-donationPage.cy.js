@@ -3,7 +3,7 @@
 
 import { LIVE_PAGE_DETAIL, AUTHORIZE_STRIPE_PAYMENT_ROUTE } from 'ajax/endpoints';
 import { PAYMENT_SUCCESS } from 'routes';
-import { getPaymentSuccessUrl, getPaymentElementButtonText } from 'components/paymentProviders/stripe/stripeFns';
+import { getPaymentSuccessUrl } from 'components/paymentProviders/stripe/stripeFns';
 import { getEndpoint, getPageElementByType, getTestingDonationPageUrl, EXPECTED_RP_SLUG } from '../support/util';
 import livePageOne from '../fixtures/pages/live-page-1.json';
 
@@ -63,12 +63,11 @@ describe('Donation page displays dynamic page elements', () => {
     cy.getByTestId('d-amount');
 
     for (const freq of frequency.content) {
-      const adjective = freqUtils.getFrequencyAdjective(freq.value);
       const rate = freqUtils.getFrequencyRate(freq.value);
 
       cy.contains(freq.displayName).click();
-      cy.getByTestId('d-amount').find('h2').contains(adjective);
-      cy.getByTestId('pay-fees').scrollIntoView().find('label').contains(adjective, { matchCase: false });
+      cy.getByTestId('d-amount').find('h2').contains(freq.displayName);
+      cy.getByTestId('pay-fees').scrollIntoView().find('label').contains(freq.displayName, { matchCase: false });
 
       if (rate) {
         cy.getByTestId('custom-amount-rate').contains(rate);
@@ -479,12 +478,7 @@ describe('User flow: happy path', () => {
       cy.get('form #stripe-payment-element');
       cy.get('[data-testid="donation-page-disclaimer"]');
       cy.findByRole('button', {
-        name: getPaymentElementButtonText({
-          amount: payFees ? 123.01 : 120.0,
-          currencyCode: livePageOne.currency.code,
-          currencySymbol: livePageOne.currency.symbol,
-          frequency: CONTRIBUTION_INTERVALS.ONE_TIME
-        })
+        name: payFees ? 'Give 🍁123.01 CAD once' : 'Give 🍁120.00 CAD once'
       }).click();
       cy.get('@stripe-confirm-payment').should((x) => {
         expect(x).to.be.calledOnce;
@@ -540,12 +534,7 @@ describe('User flow: happy path', () => {
         });
 
       cy.findByRole('button', {
-        name: getPaymentElementButtonText({
-          amount: 10.53,
-          currencyCode: livePageOne.currency.code,
-          currencySymbol: livePageOne.currency.symbol,
-          frequency: CONTRIBUTION_INTERVALS.MONTHLY
-        })
+        name: 'Give 🍁10.53 CAD monthly'
       }).click();
 
       cy.get('@stripe-confirm').should((x) => {
@@ -622,12 +611,7 @@ describe('User flow: happy path', () => {
       cy.get('form #stripe-payment-element');
       cy.get('[data-testid="donation-page-disclaimer"]');
       cy.findByRole('button', {
-        name: getPaymentElementButtonText({
-          amount: payFees ? 10.53 : 10.0,
-          currencyCode: livePageOne.currency.code,
-          currencySymbol: livePageOne.currency.symbol,
-          frequency: CONTRIBUTION_INTERVALS.MONTHLY
-        })
+        name: payFees ? 'Give 🍁10.53 CAD monthly' : 'Give 🍁10.00 CAD monthly'
       }).click();
       cy.get('@stripe-confirm-payment').should((x) => {
         expect(x).to.be.calledOnce;
@@ -688,12 +672,7 @@ describe('User flow: happy path', () => {
     cy.get('[data-testid="donation-page-disclaimer"]');
 
     cy.findByRole('button', {
-      name: getPaymentElementButtonText({
-        amount: 10.53,
-        currencyCode: livePageOne.currency.code,
-        currencySymbol: livePageOne.currency.symbol,
-        frequency: CONTRIBUTION_INTERVALS.MONTHLY
-      })
+      name: 'Give 🍁10.53 CAD monthly'
     }).click();
 
     cy.get('@stripe-confirm-payment').should((x) => {
@@ -936,12 +915,7 @@ describe('StripePaymentForm unhappy paths', () => {
           cy.stub(stripe, 'confirmPayment').resolves({ error: { type: errorType, message: errorMessage } });
         });
       cy.findByRole('button', {
-        name: getPaymentElementButtonText({
-          amount: 123.01,
-          currencyCode: livePageOne.currency.code,
-          currencySymbol: livePageOne.currency.symbol,
-          frequency: CONTRIBUTION_INTERVALS.ONE_TIME
-        })
+        name: 'Give 🍁123.01 CAD once'
       }).click();
       cy.findByRole('alert').within(() => {
         cy.contains(errorMessage).should('be.visible');
@@ -957,12 +931,7 @@ describe('StripePaymentForm unhappy paths', () => {
           cy.stub(stripe, 'confirmPayment').resolves({ error: { type: 'unexpected' } });
         });
       cy.findByRole('button', {
-        name: getPaymentElementButtonText({
-          amount: 123.01,
-          currencyCode: livePageOne.currency.code,
-          currencySymbol: livePageOne.currency.symbol,
-          frequency: CONTRIBUTION_INTERVALS.ONE_TIME
-        })
+        name: 'Give 🍁123.01 CAD once'
       }).click();
       cy.findByRole('alert').within(() => {
         cy.contains('Something went wrong processing your payment').should('be.visible');
@@ -976,12 +945,7 @@ describe('StripePaymentForm unhappy paths', () => {
         cy.stub(stripe, 'confirmPayment').rejects(new Error('Unexpected'));
       });
     cy.findByRole('button', {
-      name: getPaymentElementButtonText({
-        amount: 123.01,
-        currencyCode: livePageOne.currency.code,
-        currencySymbol: livePageOne.currency.symbol,
-        frequency: CONTRIBUTION_INTERVALS.ONE_TIME
-      })
+      name: 'Give 🍁123.01 CAD once'
     }).click();
     cy.findByRole('alert').within(() => {
       cy.contains('Something went wrong processing your payment').should('be.visible');

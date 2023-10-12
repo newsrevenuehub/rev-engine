@@ -592,9 +592,8 @@ def contributor_contributions(request, id):
             sent = int(sent) if sent else v
         params[k] = sent if sent else v
         logger.debug("Sent value for %s is %s", k, sent)
-    with open(
-        f"apps/contributions/tests/fixtures/contributor-contributions-page-{'2' if params['page'] else '1'}.json"
-    ) as fl:
+    results_page = params["page"] if params["page"] in (1, 2) else 1
+    with open(f"apps/contributions/tests/fixtures/contributor-contributions-page-{results_page}.json") as fl:
         response_data = json.load(fl)
     # we do this both to handle out of range page case and also to ensure the data we're returning to SPA which will
     # develop vs. looks way it does by virtue of our serializer which is meant to updhold contract with SPA

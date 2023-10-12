@@ -1957,8 +1957,16 @@ socks = ["PySocks (>=1.5.6,!=1.5.7,<2.0)"]
 
 [[package]]
 name = "uwsgi"
-version = "2.0.21"
+version = "2.0.22"
 description = "The uWSGI server"
+category = "main"
+optional = false
+python-versions = "*"
+
+[[package]]
+name = "uwsgitop"
+version = "0.11"
+description = "uWSGI top-like interface"
 category = "main"
 optional = false
 python-versions = "*"
@@ -2022,7 +2030,7 @@ testing = ["big-O", "jaraco.functools", "jaraco.itertools", "more-itertools", "p
 [metadata]
 lock-version = "1.1"
 python-versions = "^3.10"
-content-hash = "051a9e6b9a5bfdcfdf0d42122466713454b4ae12bca2d0d55b04546cbdee5616"
+content-hash = "103b564886ab78310185c9d09cd28b35e8dd4f326e0509d5a94b3a7ad34c1e0f"
 
 [metadata.files]
 addict = [
@@ -3188,7 +3196,10 @@ urllib3 = [
     {file = "urllib3-1.26.16.tar.gz", hash = "sha256:8f135f6502756bde6b2a9b28989df5fbe87c9970cecaa69041edcce7f0589b14"},
 ]
 uwsgi = [
-    {file = "uwsgi-2.0.21.tar.gz", hash = "sha256:35a30d83791329429bc04fe44183ce4ab512fcf6968070a7bfba42fc5a0552a9"},
+    {file = "uwsgi-2.0.22.tar.gz", hash = "sha256:4cc4727258671ac5fa17ab422155e9aaef8a2008ebb86e4404b66deaae965db2"},
+]
+uwsgitop = [
+    {file = "uwsgitop-0.11.tar.gz", hash = "sha256:99ca245119e4a0600840a62b7b4e020c9870fe90952b24eecfff0c9090c75d14"},
 ]
 vine = [
     {file = "vine-5.0.0-py2.py3-none-any.whl", hash = "sha256:4c9dceab6f76ed92105027c49c823800dd33cacce13bdedc5b914e3514b7fb30"},

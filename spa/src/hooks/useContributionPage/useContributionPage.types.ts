@@ -346,6 +346,10 @@ export interface ContributionPage {
    */
   id: number;
   /**
+   * Locale of the page (used to determine language for translation).
+   */
+  locale: string;
+  /**
    * Timestamp when the page was last changed.
    */
   modified: string;

@@ -30,6 +30,10 @@ from apps.organizations.models import RevenueProgram
 logger = get_task_logger(f"{settings.DEFAULT_LOGGER}.{__name__}")
 
 
+class StripeReportableError(Exception):
+    pass
+
+
 def ping_healthchecks(check_name, healthcheck_url):
     """Attempt to ping a healthchecks.io to enable monitoring of tasks"""
     if not healthcheck_url:
@@ -179,3 +183,18 @@ def task_verify_apple_domain(self, revenue_program_slug: str):
             "[task_verify_apple_domain] task failed for slug %s due to exception: %s", revenue_program_slug, ex.error
         )
         raise ex
+
+
+@shared_task(bind=True, autoretry_for=(RateLimitError,), retry_backoff=True, retry_kwargs={"max_retries": 3})
+def process_stripe_webhook_task(self, event: stripe.Event) -> None:
+    pass
+    # try:
+    #     processor = StripeWebhookProcessor(event)
+    #     processor.process()
+    # except ValueError:
+    #     logger.exception("Something went wrong processing webhook")
+    # except Contribution.DoesNotExist:
+    #     # there's an entire class of customer subscriptions for which we do not expect to have a Contribution object.
+    #     # Specifically, we expect this to be the case for import legacy recurring contributions, which may have a future
+    #     # first/next(in NRE platform) payment date.
+    #     logger.info("Could not find contribution", exc_info=True)

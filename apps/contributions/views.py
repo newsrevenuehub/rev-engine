@@ -47,10 +47,10 @@ from apps.contributions.stripe_contributions_provider import (
 )
 from apps.contributions.tasks import (
     email_contribution_csv_export_to_user,
+    process_stripe_webhook_task,
     task_pull_serialized_stripe_contributions_to_cache,
     task_verify_apple_domain,
 )
-from apps.contributions.webhooks import StripeWebhookProcessor
 from apps.organizations.models import PaymentProvider, RevenueProgram
 from apps.public.permissions import IsActiveSuperUser
 
@@ -132,10 +132,9 @@ def stripe_oauth(request):
 @authentication_classes([])
 @permission_classes([])
 def process_stripe_webhook(request):
+    logger.debug("Processing stripe webhook: %s", request.data)
     payload = request.body
     sig_header = request.META["HTTP_STRIPE_SIGNATURE"]
-    event = None
-    logger.debug("Processing stripe webhook")
     try:
         event = stripe.Webhook.construct_event(payload, sig_header, settings.STRIPE_WEBHOOK_SECRET_CONTRIBUTIONS)
     except ValueError:
@@ -146,18 +145,7 @@ def process_stripe_webhook(request):
             "Invalid signature on Stripe webhook request. Is STRIPE_WEBHOOK_SECRET_CONTRIBUTIONS set correctly?"
         )
         return Response(data={"error": "Invalid signature"}, status=status.HTTP_400_BAD_REQUEST)
-
-    try:
-        processor = StripeWebhookProcessor(event)
-        processor.process()
-    except ValueError:
-        logger.exception("Something went wrong processing webhook")
-    except Contribution.DoesNotExist:
-        # there's an entire class of customer subscriptions for which we do not expect to have a Contribution object.
-        # Specifically, we expect this to be the case for import legacy recurring contributions, which may have a future
-        # first/next(in NRE platform) payment date.
-        logger.info("Could not find contribution", exc_info=True)
-
+    process_stripe_webhook_task.delay(event)
     return Response(status=status.HTTP_200_OK)
 
 

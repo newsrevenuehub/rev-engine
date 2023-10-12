@@ -23,6 +23,7 @@ from apps.contributions.stripe_contributions_provider import (
     SubscriptionsCacheProvider,
 )
 from apps.contributions.utils import export_contributions_to_csv
+from apps.contributions.webhooks import StripeWebhookProcessor
 from apps.emails.tasks import send_templated_email_with_attachment
 from apps.organizations.models import RevenueProgram
 
@@ -187,14 +188,11 @@ def task_verify_apple_domain(self, revenue_program_slug: str):
 
 @shared_task(bind=True, autoretry_for=(RateLimitError,), retry_backoff=True, retry_kwargs={"max_retries": 3})
 def process_stripe_webhook_task(self, event: stripe.Event) -> None:
-    pass
-    # try:
-    #     processor = StripeWebhookProcessor(event)
-    #     processor.process()
-    # except ValueError:
-    #     logger.exception("Something went wrong processing webhook")
-    # except Contribution.DoesNotExist:
-    #     # there's an entire class of customer subscriptions for which we do not expect to have a Contribution object.
-    #     # Specifically, we expect this to be the case for import legacy recurring contributions, which may have a future
-    #     # first/next(in NRE platform) payment date.
-    #     logger.info("Could not find contribution", exc_info=True)
+    logger.debug("Processing Stripe webhook event with ID %s", event.id)
+    try:
+        StripeWebhookProcessor(event).process()
+    except Contribution.DoesNotExist:
+        # there's an entire class of customer subscriptions for which we do not expect to have a Contribution object.
+        # Specifically, we expect this to be the case for import legacy recurring contributions, which may have a future
+        # first/next(in NRE platform) payment date.
+        logger.info("Could not find contribution", exc_info=True)

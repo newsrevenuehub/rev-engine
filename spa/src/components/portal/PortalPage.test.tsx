@@ -58,7 +58,7 @@ describe('PortalPage', () => {
     expect(screen.getByTestId('mock-donation-page-header')).toBeInTheDocument();
     expect(screen.getByTestId('mock-content-component')).toBeInTheDocument();
     expect(screen.getByText('Powered by')).toBeVisible();
-    expect(screen.getByRole('graphics-document', { name: 'News Revenue Engine logo' })).toBeVisible();
+    expect(screen.getByRole('link', { name: 'News Revenue Engine' })).toBeVisible();
   };
 
   it('should have expected default appearance and initial state', async () => {
@@ -83,7 +83,7 @@ describe('PortalPage', () => {
     it('when page is undefined', () => {
       axiosMock.onGet(LIVE_PAGE_DETAIL).reply(200, null);
       tree();
-      expect(screen.getByRole('graphics-document', { name: 'News Revenue Engine logo' })).toBeVisible();
+      expect(screen.getByRole('link', { name: 'News Revenue Engine' })).toBeVisible();
     });
 
     it('when no default donation page', () => {
@@ -95,7 +95,7 @@ describe('PortalPage', () => {
         }
       });
       tree();
-      expect(screen.getByRole('graphics-document', { name: 'News Revenue Engine logo' })).toBeVisible();
+      expect(screen.getByRole('link', { name: 'News Revenue Engine' })).toBeVisible();
     });
 
     it('when org plan is FREE', () => {
@@ -112,13 +112,13 @@ describe('PortalPage', () => {
         }
       });
       tree();
-      expect(screen.getByRole('graphics-document', { name: 'News Revenue Engine logo' })).toBeVisible();
+      expect(screen.getByRole('link', { name: 'News Revenue Engine' })).toBeVisible();
     });
   });
 
   it('NRE logo should link to Home page', () => {
     tree();
-    const link = screen.getByRole('link', { name: 'News Revenue Engine home page' });
+    const link = screen.getByRole('link', { name: 'News Revenue Engine' });
     expect(link).toHaveAttribute('href', 'https://fundjournalism.org/');
     expect(link).toHaveAttribute('target', '_blank');
   });

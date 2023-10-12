@@ -4,10 +4,17 @@
 [flake8]
 max-complexity = 18
 select = B,C,E,F,W,T4,B9
-exclude=docs,migrations,node_modules,revengine/settings
+exclude=docs,migrations,node_modules
 enable-extensions=G
+per-file-ignores =
+    # Ignore "may be undefined" because we from basesettings import *
+    revengine/settings/*:F405
 ignore =
-    E2,     # Missing whitespace after ','
-    W503,   # Line break before binary operator
-    E501,   # Line too long (handled by black)
-    E731,   # Do not assign a lambda expression
+    # Missing whitespace after ','
+    E2,
+    # Line break before binary operator
+    W503,
+    # Line too long (handled by black)
+    E501,
+    # Do not assign a lambda expression
+    E731,

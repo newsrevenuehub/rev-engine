@@ -40,7 +40,7 @@ describe('Customize Styles', () => {
   });
 
   it('should render loading is user is loading', () => {
-    useUserMock.mockImplementation(() => ({ isLoading: true } as any));
+    useUserMock.mockImplementation(() => ({ isLoading: true }) as any);
     tree();
     expect(screen.getByTestId('mock-global-loading')).toBeInTheDocument();
   });
@@ -51,7 +51,7 @@ describe('Customize Styles', () => {
         ({
           isLoading: false,
           user: { ...orgAdminUser, organizations: [{ ...orgPlan('CORE'), send_receipt_email_via_nre: false }] }
-        } as any)
+        }) as any
     );
     tree();
     expect(

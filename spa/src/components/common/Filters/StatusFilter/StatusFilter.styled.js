@@ -24,7 +24,9 @@ export const Button = styled.button`
   font-size: ${(props) => props.theme.fontSizesUpdated.sm};
   border-radius: ${(props) => props.theme.muiBorderRadius['2xl']};
   border: 1px solid ${(props) => props.theme.colors.muiGrey[50]};
-  box-shadow: 0px 0.3px 0.5px rgba(0, 0, 0, 0.1), 0px 2px 4px rgba(0, 0, 0, 0.2);
+  box-shadow:
+    0px 0.3px 0.5px rgba(0, 0, 0, 0.1),
+    0px 2px 4px rgba(0, 0, 0, 0.2);
   background-color: ${(props) => props.theme.colors.white};
   cursor: pointer;
   text-transform: capitalize;

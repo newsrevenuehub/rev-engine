@@ -15,7 +15,9 @@ const StyledMuiFormControlLabel = styled(MuiFormControlLabel)`
 
     .NreFormControlLabelLabel {
       color: ${({ theme }) => theme.basePalette.greyscale.black};
-      font: 16px Roboto, sans-serif;
+      font:
+        16px Roboto,
+        sans-serif;
       line-height: 24px;
 
       &.Mui-disabled {

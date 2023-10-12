@@ -6,7 +6,7 @@
 (function ($) {
   // Grab configuration JSON from script tag.
   var config = JSON.parse(
-    document.getElementById("admin-limited-select-config").textContent
+    document.getElementById("admin-limited-select-config").textContent,
   );
 
   var parentSelected = false;
@@ -90,7 +90,7 @@
         // Then for each option, add an <option>
         $.each(options, function (_, option) {
           $select.append(
-            $("<option></option>").attr("value", option[1]).text(option[0])
+            $("<option></option>").attr("value", option[1]).text(option[0]),
           );
         });
       }

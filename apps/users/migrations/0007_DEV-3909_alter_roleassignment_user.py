@@ -6,7 +6,6 @@ import django.db.models.deletion
 
 
 class Migration(migrations.Migration):
-
     dependencies = [
         ("users", "0006_DEV-2644_alter_user_accepted_terms_of_service"),
     ]

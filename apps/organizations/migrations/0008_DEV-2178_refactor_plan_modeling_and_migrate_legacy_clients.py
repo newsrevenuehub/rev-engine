@@ -3,7 +3,6 @@ from django.db import migrations, models
 
 
 class Migration(migrations.Migration):
-
     dependencies = [
         ("organizations", "0007_DEV-2129_remove_revenueprogram_social_meta"),
     ]

@@ -11,7 +11,6 @@ from django.db import migrations
 
 
 class Migration(migrations.Migration):
-
     dependencies = [
         ("organizations", "0006_DEV-2031_refactor_socialmeta"),
     ]

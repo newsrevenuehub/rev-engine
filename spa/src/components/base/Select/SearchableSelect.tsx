@@ -63,7 +63,9 @@ const StyledAutocomplete = styled(MuiAutocomplete)`
     .NreAutocompleteInputLabelRoot {
       /* Override the autocomplete default styling and force labels to be static. */
       color: rgb(40, 40, 40);
-      font: 600 16px Roboto, sans-serif;
+      font:
+        600 16px Roboto,
+        sans-serif;
       position: static;
       transform: none;
 

@@ -5,7 +5,6 @@ import django.db.models.deletion
 
 
 class Migration(migrations.Migration):
-
     dependencies = [
         ("organizations", "0005_DEV-2030_alter_organization_plan"),
         ("common", "0002_DEV-2049_delete_address"),

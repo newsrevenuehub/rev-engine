@@ -73,7 +73,7 @@ describe('FinishPaymentModal', () => {
       expect(paymentForm.dataset.payment).toBe(JSON.stringify(mockPayment));
     });
 
-    it('shows a disclaimer with interval and amount props based on the payment prop', () => {
+    it('shows a disclaimer with interval and amount props based on the payment prop, and date based on the current one', () => {
       tree();
 
       const disclaimer = screen.getByTestId('mock-contribution-disclaimer');
@@ -81,6 +81,7 @@ describe('FinishPaymentModal', () => {
       expect(disclaimer).toBeInTheDocument();
       expect(disclaimer.dataset.formattedAmount).toBe('mock-currency-symbolmock-amount mock-currency-code');
       expect(disclaimer.dataset.interval).toBe(mockPayment.interval);
+      expect(disclaimer.dataset.processingDate).toBe(new Date().toString());
     });
 
     it('is accessible', async () => {

@@ -23,6 +23,7 @@ function tree(props?: Partial<StripePaymentWrapperProps>) {
       onError={jest.fn()}
       stripeAccountId="mock-stripe-account-id"
       stripeClientSecret="mock-stripe-client-secret"
+      stripeLocale={'mock-stripe-locale' as any}
       {...props}
     >
       children
@@ -63,7 +64,10 @@ describe('StripePaymentWrapper', () => {
       const elements = screen.getByTestId('mock-stripe-elements');
 
       expect(elements).toBeInTheDocument();
-      expect(JSON.parse(elements.dataset.options!)).toEqual({ clientSecret: 'mock-stripe-client-secret' });
+      expect(JSON.parse(elements.dataset.options!)).toEqual({
+        clientSecret: 'mock-stripe-client-secret',
+        locale: 'mock-stripe-locale'
+      });
       await waitFor(() => expect(elements.dataset.stripe).not.toEqual('undefined'));
       expect(elements.dataset.stripe).toEqual('"mock-stripe-loaded"');
     });

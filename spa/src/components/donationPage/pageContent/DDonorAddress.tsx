@@ -47,7 +47,7 @@ export interface DDonorAddressProps extends InferProps<typeof DDonorAddressPropT
 }
 
 function DDonorAddress({ element }: DDonorAddressProps) {
-  const { errors, mailingCountry, setMailingCountry } = usePage();
+  const { errors, mailingCountry, setMailingCountry, page } = usePage();
   const [address, setAddress] = useState('');
   const [showComplement, setShowComplement] = useState(false);
   const [complement, setComplement] = useState('');
@@ -76,6 +76,7 @@ function DDonorAddress({ element }: DDonorAddressProps) {
     // it when the field is focused.
     inputAutocompleteValue: '',
     options: { types: ['address'] },
+    language: page.locale,
     onPlaceSelected: ({ address_components }) => {
       // The API will not return this property in all cases; if so, do nothing.
 

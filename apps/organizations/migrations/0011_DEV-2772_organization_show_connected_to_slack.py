@@ -4,7 +4,6 @@ from django.db import migrations, models
 
 
 class Migration(migrations.Migration):
-
     dependencies = [
         ("organizations", "0010_DEV-1867_rename_plan_organization_plan_name"),
     ]

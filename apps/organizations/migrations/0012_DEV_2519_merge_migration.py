@@ -4,7 +4,6 @@ from django.db import migrations
 
 
 class Migration(migrations.Migration):
-
     dependencies = [
         ("organizations", "0011_DEV-2733_revenueprogram_tax_id"),
         ("organizations", "0011_DEV-2772_organization_show_connected_to_slack"),

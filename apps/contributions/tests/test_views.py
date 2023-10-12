@@ -1503,9 +1503,23 @@ class TestStripeWebhooksView:
         assert Contribution.objects.count() == count
 
 
-def test_contributor_contributions_mocked_endpoint(api_client):
+@pytest.mark.parametrize(
+    "query_params",
+    (
+        # base case
+        "",
+        # "supported" by the mock implementation (there are 2 pages with ten results)
+        "?page=1&page_size=10",
+        # full expected query params
+        "?page=1&page_size=10&interval=monthly&ordering=-amount",
+        # just documenting fact that arbitrary query params don't block the endpoint
+        "?foo=bar",
+    ),
+)
+def test_contributor_contributions_mocked_endpoint(api_client, query_params):
     """In this test, we narrowly show that the mocked endpoint stands up. Real tests will come with real implementation"""
-    response = api_client.get(reverse("contributor-contributions", args=(1,)))
+    url = f'{reverse("contributor-contributions", args=(1,))}{query_params}'
+    response = api_client.get(url)
     assert response.status_code == status.HTTP_200_OK
     assert set(response.json().keys()) == {"results", "count", "next", "previous"}
     assert len(response.json()["results"]) == 10

@@ -651,12 +651,12 @@ def contributor_contributions(request, id):
     """
     logger.debug("Called for contributor ID %s", id)
     params = {}
-    for param, val in {"page": 1, "page_size": 10, "ordering": "-created", "interval": "all"}.items():
-        sent = request.GET.get(param, None)
-        if val in ("page", "page_size"):
-            sent = int(sent) if sent else val
-        params[param] = sent if sent else val
-        logger.debug("Sent value for %s is %s", param, sent)
+    for k, v in {"page": 1, "page_size": 10, "ordering": "-created", "interval": "all"}.items():
+        sent = request.GET.get(k, None)
+        if k in ("page", "page_size"):
+            sent = int(sent) if sent else v
+        params[k] = sent if sent else v
+        logger.debug("Sent value for %s is %s", k, sent)
     mock_url = f"{request.scheme}://{request.get_host()}{request.path}?page="
     # this mocks DRF's default behavior for pagination in case of out of range page request
     results = [] if params["page"] > 2 else get_mock_contributor_contributions_results(**params)

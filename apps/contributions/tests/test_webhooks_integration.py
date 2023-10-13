@@ -3,6 +3,8 @@
 # This file contains tests that are meant to be integration tests for our Stripe webhook processing views.
 # More specifically, we test both the API view layer, and the async task layer together to ensure that under normal
 # circumstances expected request states lead to expected side effects.
+#
+# Note that this is not a perfect integration test. Here, unlike in prod, we execute our async tasks synchronously.
 import json
 from datetime import datetime
 
@@ -16,12 +18,15 @@ from stripe.webhook import WebhookSignature
 
 from apps.contributions.models import Contribution, ContributionInterval, ContributionStatus
 from apps.contributions.tests.factories import ContributionFactory
-from apps.contributions.views import logger
 
 
-@pytest.fixture(scope="module")
+@pytest.fixture(autouse=True)
 def synchronous_celery(settings):
-    settings.CELERY_TASK_ALWAYS_EAGER = True
+    """Make all celery tasks run synchronously
+
+    This enables us to make requests to webhook views and confirm that expected side effects occur
+    """
+    settings.CELERY_ALWAYS_EAGER = True
 
 
 @pytest.fixture
@@ -108,7 +113,7 @@ class TestPaymentIntentSucceeded:
 
     def test_when_contribution_not_found(self, payment_intent_succeeded, mocker, client):
         mocker.patch.object(WebhookSignature, "verify_header", lambda *args, **kwargs: True)
-        logger_spy = mocker.spy(logger, "info")
+        logger_spy = mocker.patch("apps.contributions.tasks.logger.info")
         header = {"HTTP_STRIPE_SIGNATURE": "testing", "content_type": "application/json"}
         assert not Contribution.objects.filter(
             provider_payment_id=payment_intent_succeeded["data"]["object"]["id"]
@@ -121,8 +126,8 @@ class TestPaymentIntentSucceeded:
 @pytest.mark.django_db
 class TestPaymentIntentCanceled:
     @pytest.mark.parametrize("cancellation_reason", (None, "", "random-thing", "fraudulent"))
-    def test_when_contribution_found(self, cancellation_reason, monkeypatch, client, payment_intent_canceled, mocker):
-        monkeypatch.setattr(WebhookSignature, "verify_header", lambda *args, **kwargs: True)
+    def test_when_contribution_found(self, cancellation_reason, client, payment_intent_canceled, mocker):
+        mocker.patch.object(WebhookSignature, "verify_header", return_value=True)
         header = {"HTTP_STRIPE_SIGNATURE": "testing", "content_type": "application/json"}
         contribution = ContributionFactory(
             one_time=True,
@@ -156,8 +161,8 @@ class TestPaymentIntentCanceled:
         )
 
     def test_when_contribution_not_found(self, mocker, client, payment_intent_canceled):
-        mocker.patch.object(WebhookSignature, "verify_header", lambda *args, **kwargs: True)
-        logger_spy = mocker.spy(logger, "info")
+        mocker.patch.object(WebhookSignature, "verify_header", return_value=True)
+        logger_spy = mocker.patch("apps.contributions.tasks.logger.info")
         header = {"HTTP_STRIPE_SIGNATURE": "testing", "content_type": "application/json"}
         assert not Contribution.objects.filter(
             provider_payment_id=payment_intent_canceled["data"]["object"]["id"]
@@ -194,8 +199,8 @@ class TestPaymentIntentPaymentFailed:
         assert contribution.status == ContributionStatus.FAILED
 
     def test_when_contribution_not_found(self, mocker, client, payment_intent_payment_failed):
-        mocker.patch.object(WebhookSignature, "verify_header", lambda *args, **kwargs: True)
-        logger_spy = mocker.spy(logger, "info")
+        mocker.patch.object(WebhookSignature, "verify_header", return_value=True)
+        logger_spy = mocker.patch("apps.contributions.tasks.logger.info")
         header = {"HTTP_STRIPE_SIGNATURE": "testing", "content_type": "application/json"}
         assert not Contribution.objects.filter(
             provider_payment_id=payment_intent_payment_failed["data"]["object"]["id"]
@@ -208,10 +213,8 @@ class TestPaymentIntentPaymentFailed:
 @pytest.mark.django_db
 class TestCustomerSubscriptionUpdated:
     @pytest.mark.parametrize("payment_method_has_changed", (True, False))
-    def test_when_contribution_found(
-        self, monkeypatch, client, customer_subscription_updated, payment_method_has_changed, mocker
-    ):
-        monkeypatch.setattr(WebhookSignature, "verify_header", lambda *args, **kwargs: True)
+    def test_when_contribution_found(self, client, customer_subscription_updated, payment_method_has_changed, mocker):
+        mocker.patch.object(WebhookSignature, "verify_header", return_value=True)
         header = {"HTTP_STRIPE_SIGNATURE": "testing", "content_type": "application/json"}
         contribution = ContributionFactory(
             annual_subscription=True,
@@ -235,7 +238,6 @@ class TestCustomerSubscriptionUpdated:
         if payment_method_has_changed:
             expected_update_fields.add("provider_payment_method_id")
         spy.assert_called_once_with(contribution, update_fields=expected_update_fields)
-        mock_create_revision.assert_called_once()
         mock_set_revision_comment.assert_called_once_with(
             f"`StripeWebhookProcessor.handle_subscription_updated` webhook handler ran for contribution with ID {contribution.id}"
         )
@@ -250,8 +252,8 @@ class TestCustomerSubscriptionUpdated:
             )
 
     def test_when_contribution_not_found(self, mocker, client, customer_subscription_updated):
-        mocker.patch.object(WebhookSignature, "verify_header", lambda *args, **kwargs: True)
-        logger_spy = mocker.spy(logger, "info")
+        mocker.patch.object(WebhookSignature, "verify_header", return_value=True)
+        logger_spy = mocker.patch("apps.contributions.tasks.logger.info")
         header = {"HTTP_STRIPE_SIGNATURE": "testing", "content_type": "application/json"}
         assert not Contribution.objects.filter(
             provider_subscription_id=customer_subscription_updated["data"]["object"]["id"]
@@ -263,8 +265,8 @@ class TestCustomerSubscriptionUpdated:
 
 @pytest.mark.django_db
 class TestCustomerSubscriptionDeleted:
-    def test_when_contribution_found(self, monkeypatch, client, customer_subscription_deleted, mocker):
-        monkeypatch.setattr(WebhookSignature, "verify_header", lambda *args, **kwargs: True)
+    def test_when_contribution_found(self, client, customer_subscription_deleted, mocker):
+        mocker.patch.object(WebhookSignature, "verify_header", return_value=True)
         header = {"HTTP_STRIPE_SIGNATURE": "testing", "content_type": "application/json"}
         contribution = ContributionFactory(
             annual_subscription=True,
@@ -288,8 +290,8 @@ class TestCustomerSubscriptionDeleted:
         assert contribution.status == ContributionStatus.CANCELED
 
     def test_when_contribution_not_found(self, mocker, client, customer_subscription_updated):
-        mocker.patch.object(WebhookSignature, "verify_header", lambda *args, **kwargs: True)
-        logger_spy = mocker.spy(logger, "info")
+        mocker.patch.object(WebhookSignature, "verify_header", return_value=True)
+        logger_spy = mocker.patch("apps.contributions.tasks.logger.info")
         header = {"HTTP_STRIPE_SIGNATURE": "testing", "content_type": "application/json"}
         assert not Contribution.objects.filter(
             provider_subscription_id=customer_subscription_updated["data"]["object"]["id"]

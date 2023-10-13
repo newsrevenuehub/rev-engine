@@ -1,7 +1,7 @@
 import os
 import time
 from datetime import timedelta
-from typing import List
+from typing import Any, List, TypedDict
 
 from django.conf import settings
 from django.template.loader import render_to_string
@@ -186,9 +186,21 @@ def task_verify_apple_domain(self, revenue_program_slug: str):
         raise ex
 
 
+class StripeEventData(TypedDict):
+    id: str
+    object: str
+    account: str
+    api_version: str
+    created: int
+    data: Any
+    livemode: bool
+    pending_webhooks: int
+    type: str
+
+
 @shared_task(bind=True, autoretry_for=(RateLimitError,), retry_backoff=True, retry_kwargs={"max_retries": 3})
-def process_stripe_webhook_task(self, event: stripe.Event) -> None:
-    logger.debug("Processing Stripe webhook event with ID %s", event.id)
+def process_stripe_webhook_task(self, event: StripeEventData) -> None:
+    logger.debug("Processing Stripe webhook event with ID %s", event["id"])
     try:
         StripeWebhookProcessor(event).process()
     except Contribution.DoesNotExist:

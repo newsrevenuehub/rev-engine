@@ -16,10 +16,10 @@ class StripeWebhookProcessor:
     def __init__(self, event):
         logger.debug("initialized with event data: %s", event)
         self.event = event
-        self.obj_data = self.event.data["object"]
+        self.obj_data = self.event["data"]["object"]
 
     def get_contribution_from_event(self):
-        logger.info("called with event ID %s", self.event.id)
+        logger.info("called with event ID %s", self.event["id"])
         logger.debug("called with event data: %s", self.event)
         if (event_type := self.obj_data["object"]) == "subscription":
             return Contribution.objects.get(provider_subscription_id=self.obj_data["id"])
@@ -34,25 +34,25 @@ class StripeWebhookProcessor:
                     raise
 
     def process(self):
-        logger.info('StripeWebhookProcessor.process processing Stripe Event of type "%s"', self.event.type)
+        logger.info('StripeWebhookProcessor.process processing Stripe Event of type "%s"', self.event["type"])
         logger.debug(
             "StripeWebhookProcessor event received in live mode: %s; stripe live mode on: %s",
-            self.event.livemode,
+            self.event["livemode"],
             settings.STRIPE_LIVE_MODE,
         )
         object_type = self.obj_data["object"]
-        if settings.STRIPE_LIVE_MODE and not self.event.livemode:
+        if settings.STRIPE_LIVE_MODE and not self.event["livemode"]:
             logger.debug(
                 "StripeWebhookProcessor.process test mode event %s for account %s received while in live mode; ignoring",
-                self.event.id,
-                self.event.account,
+                self.event["id"],
+                self.event["account"],
             )
             return
-        if not settings.STRIPE_LIVE_MODE and self.event.livemode:
+        if not settings.STRIPE_LIVE_MODE and self.event["livemode"]:
             logger.debug(
                 "StripeWebhookProcessor.process live mode event %s for account %s received while in test mode; ignoring",
-                self.event.id,
-                self.event.account,
+                self.event["id"],
+                self.event["account"],
             )
             return
 
@@ -68,7 +68,7 @@ class StripeWebhookProcessor:
             logger.warning('Received un-handled Stripe object of type "%s"', object_type)
 
     def process_payment_intent(self):
-        match self.event_type:
+        match self.event["type"]:
             case "payment_intent.canceled":
                 self.handle_payment_intent_canceled()
             case "payment_intent.payment_failed":
@@ -142,13 +142,14 @@ class StripeWebhookProcessor:
 
     def process_subscription(self):
         logger.info("StripeWebhookProcessor.process_subscription called")
-        if self.event.type == "customer.subscription.updated":
+        if self.event["type"] == "customer.subscription.updated":
             self.handle_subscription_updated()
-        elif self.event.type == "customer.subscription.deleted":
+        elif self.event["type"] == "customer.subscription.deleted":
             self.handle_subscription_canceled()
         else:
             logger.warning(
-                "`StripeWebhookProcessor.process_subscription` called with unexpected event type: %s", self.event.type
+                "`StripeWebhookProcessor.process_subscription` called with unexpected event type: %s",
+                self.event["type"],
             )
 
     def handle_subscription_updated(self):
@@ -162,7 +163,7 @@ class StripeWebhookProcessor:
         contribution.provider_subscription_id = self.obj_data["id"]
         update_fields = {"modified", "payment_provider_data", "provider_subscription_id"}
         if (
-            "default_payment_method" in self.event.data["previous_attributes"]
+            "default_payment_method" in self.event["data"]["previous_attributes"]
             and self.obj_data["default_payment_method"]
         ):
             contribution.provider_payment_method_id = self.obj_data["default_payment_method"]
@@ -186,7 +187,7 @@ class StripeWebhookProcessor:
 
     def process_payment_method(self):
         logger.info("StripeWebhookProcessor.process_payment_method called")
-        if self.event.type == "payment_method.attached":
+        if self.event["type"] == "payment_method.attached":
             contribution = Contribution.objects.get(provider_customer_id=self.obj_data["customer"])
             contribution.provider_payment_method_id = self.obj_data["id"]
             with reversion.create_revision():
@@ -203,8 +204,10 @@ class StripeWebhookProcessor:
         can be set to 3, 7, 15, 30, or 45 days.
         """
         logger.info("StripeWebhookProcessor.process_invoice called")
-        if self.event.type != "invoice.upcoming":
-            logger.info("StripeWebhookProcessor.process_invoice called with event %s which is a noop", self.event.type)
+        if self.event["type"] != "invoice.upcoming":
+            logger.info(
+                "StripeWebhookProcessor.process_invoice called with event %s which is a noop", self.event["type"]
+            )
             return
         contribution = Contribution.objects.get(provider_subscription_id=self.obj_data["subscription"])
         if contribution.interval == ContributionInterval.YEARLY:

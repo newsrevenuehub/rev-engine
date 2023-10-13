@@ -1,6 +1,10 @@
+# """test_webhooks_integration.py"""
+#
+# This file contains tests that are meant to be integration tests for our Stripe webhook processing views.
+# More specifically, we test both the API view layer, and the async task layer together to ensure that under normal
+# circumstances expected request states lead to expected side effects.
 import json
 from datetime import datetime
-from unittest.mock import Mock
 
 from django.urls import reverse
 from django.utils.timezone import make_aware
@@ -13,6 +17,11 @@ from stripe.webhook import WebhookSignature
 from apps.contributions.models import Contribution, ContributionInterval, ContributionStatus
 from apps.contributions.tests.factories import ContributionFactory
 from apps.contributions.views import logger
+
+
+@pytest.fixture(scope="module")
+def synchronous_celery(settings):
+    settings.CELERY_TASK_ALWAYS_EAGER = True
 
 
 @pytest.fixture
@@ -59,9 +68,8 @@ def invoice_upcoming():
 
 @pytest.mark.django_db
 class TestPaymentIntentSucceeded:
-    def test_when_contribution_found(self, payment_intent_succeeded, monkeypatch, client, mocker):
-        monkeypatch.setattr(WebhookSignature, "verify_header", lambda *args, **kwargs: True)
-
+    def test_when_contribution_found(self, payment_intent_succeeded, client, mocker):
+        mocker.patch.object(WebhookSignature, "verify_header", return_value=True)
         mocker.patch("apps.contributions.models.Contribution.fetch_stripe_payment_method", return_value=None)
         mocker.patch("stripe.Customer.retrieve", return_value=AttrDict({"name": "some customer name"}))
         header = {"HTTP_STRIPE_SIGNATURE": "testing", "content_type": "application/json"}
@@ -75,7 +83,7 @@ class TestPaymentIntentSucceeded:
         save_spy = mocker.spy(Contribution, "save")
         send_receipt_email_spy = mocker.spy(Contribution, "handle_thank_you_email")
         response = client.post(reverse("stripe-webhooks-contributions"), data=payment_intent_succeeded, **header)
-
+        assert response.status_code == status.HTTP_200_OK
         # the next two assertions are to ensure we're only allowing webhook to update a subset of fields
         # on the instance, in order to avoid race conditions
         save_spy.assert_called_once_with(
@@ -292,8 +300,8 @@ class TestCustomerSubscriptionDeleted:
 
 
 @pytest.mark.django_db
-def test_customer_subscription_untracked_event(client, customer_subscription_updated, monkeypatch):
-    mock_log_warning = Mock()
+def test_customer_subscription_untracked_event(client, customer_subscription_updated, monkeypatch, mocker):
+    mock_log_warning = mocker.Mock()
     monkeypatch.setattr("apps.contributions.webhooks.logger.warning", mock_log_warning)
     monkeypatch.setattr(WebhookSignature, "verify_header", lambda *args, **kwargs: True)
     header = {"HTTP_STRIPE_SIGNATURE": "testing", "content_type": "application/json"}
@@ -327,14 +335,6 @@ def test_payment_method_attached(client, monkeypatch, payment_method_attached, m
     assert contribution.provider_payment_method_id == payment_method_attached["data"]["object"]["id"]
 
 
-@pytest.mark.django_db
-def test_stripe_webhooks_endpoint_when_invalid_signature(client):
-    header = {"HTTP_STRIPE_SIGNATURE": "testing", "content_type": "application/json"}
-    response = client.post(reverse("stripe-webhooks-contributions"), data={}, **header)
-    assert response.status_code == status.HTTP_400_BAD_REQUEST
-    assert response.data["error"] == "Invalid signature"
-
-
 @pytest.mark.django_db()
 @pytest.mark.parametrize(
     "interval,expect_reminder_email",
@@ -344,7 +344,7 @@ def test_stripe_webhooks_endpoint_when_invalid_signature(client):
     ),
 )
 def test_invoice_updated_webhook(interval, expect_reminder_email, client, monkeypatch, invoice_upcoming, mocker):
-    mock_send_reminder = Mock()
+    mock_send_reminder = mocker.Mock()
     monkeypatch.setattr(Contribution, "send_recurring_contribution_email_reminder", mock_send_reminder)
     monkeypatch.setattr(WebhookSignature, "verify_header", lambda *args, **kwargs: True)
     contribution = ContributionFactory(

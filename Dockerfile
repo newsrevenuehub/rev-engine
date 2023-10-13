@@ -83,18 +83,6 @@ ENV DJANGO_SETTINGS_MODULE=revengine.settings.deploy
 RUN touch /code/.env
 RUN DATABASE_URL='' ENVIRONMENT='' DJANGO_SECRET_KEY='dummy' DOMAIN='' python manage.py collectstatic --noinput -i *.scss --no-default-ignore
 
-# Tell uWSGI where to find your wsgi file (change this):
-ENV UWSGI_WSGI_FILE=revengine/wsgi.py
-
-# Base uWSGI configuration (you shouldn't need to change these):
-ENV UWSGI_MASTER=1 UWSGI_HTTP_AUTO_CHUNKED=1 UWSGI_HTTP_KEEPALIVE=1 UWSGI_LAZY_APPS=1 UWSGI_WSGI_ENV_BEHAVIOR=holy UWSGI_IGNORE_SIGPIPE=true UWSGI_IGNORE_WRITE_ERRORS=true UWSGI_DISABLE_WRITE_EXCEPTION=true UWSGI_BUFFER_SIZE=8192
-
-# Number of uWSGI workers and threads per worker (customize as needed):
-ENV UWSGI_WORKERS=2 UWSGI_THREADS=4
-
-# uWSGI static file serving configuration (customize or comment out if not needed):
-ENV UWSGI_STATIC_MAP="/static/=/code/public/static/" UWSGI_STATIC_EXPIRES_URI="/static/.*\.[a-f0-9]{12,}\.(css|js|png|jpg|jpeg|gif|ico|woff|ttf|otf|svg|scss|map|txt) 315360000"
-
 RUN mkdir google-sa && chown ${APP_USER}:${APP_USER} google-sa
 
 # Change to a non-root user

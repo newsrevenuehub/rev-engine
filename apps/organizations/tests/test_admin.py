@@ -177,6 +177,7 @@ class TestOrganizationAdmin:
             "name": previous_name,
             # this is the only field changing
             "plan_name": CorePlan.name,
+            "send_receipt_email_via_nre": org.send_receipt_email_via_nre,
             "slug": org.slug,
         }
         post_request = rf.post("/admin/", data)
@@ -187,5 +188,48 @@ class TestOrganizationAdmin:
         org.refresh_from_db()
         assert org.name == previous_name
         assert org.plan_name == data["plan_name"]
-        assert "plan_name" in save_spy.call_args[1]["update_fields"]
-        assert "modified" in save_spy.call_args[1]["update_fields"]
+        assert len(save_spy.call_args.kwargs["update_fields"]) == 2
+        assert "plan_name" in save_spy.call_args.kwargs["update_fields"]
+        assert "modified" in save_spy.call_args.kwargs["update_fields"]
+
+    def test_save_model_doesnt_set_update_fields_if_not_change(self, rf, model_admin, superuser, mocker):
+        org = OrganizationFactory(plan_name=FreePlan.name, name=(previous_name := "something"))
+        save_spy = mocker.spy(org, "save")
+        data = {
+            "name": previous_name,
+            # this is the only field changing
+            "plan_name": CorePlan.name,
+            "send_receipt_email_via_nre": org.send_receipt_email_via_nre,
+            "slug": org.slug,
+        }
+        post_request = rf.post("/admin/", data)
+        post_request.user = superuser
+        form = model_admin.get_form(post_request)(data, instance=org)
+        assert form.is_valid()
+        model_admin.save_model(request=post_request, obj=form.instance, form=form, change=False)
+        org.refresh_from_db()
+        assert org.name == previous_name
+        assert org.plan_name == data["plan_name"]
+        assert save_spy.call_args.args == ()
+        assert save_spy.call_args.kwargs == {}
+
+    def test_save_model_doesnt_set_update_fields_if_not_needed(self, rf, model_admin, superuser, mocker):
+        org = OrganizationFactory(plan_name=FreePlan.name, name=(previous_name := "something"))
+        save_spy = mocker.spy(org, "save")
+        data = {
+            # No changes
+            "name": previous_name,
+            "plan_name": org.plan_name,
+            "send_receipt_email_via_nre": org.send_receipt_email_via_nre,
+            "slug": org.slug,
+        }
+        post_request = rf.post("/admin/", data)
+        post_request.user = superuser
+        form = model_admin.get_form(post_request)(data, instance=org)
+        assert form.is_valid()
+        model_admin.save_model(request=post_request, obj=form.instance, form=form, change=True)
+        org.refresh_from_db()
+        assert org.name == previous_name
+        assert org.plan_name == data["plan_name"]
+        assert save_spy.call_args.args == ()
+        assert save_spy.call_args.kwargs == {}

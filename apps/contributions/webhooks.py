@@ -1,221 +1,203 @@
 import datetime
 import logging
+import operator
+from dataclasses import dataclass
+from functools import cached_property, reduce
 
 from django.conf import settings
+from django.db.models import Q
 from django.utils.timezone import make_aware
 
 import reversion
 
 from apps.contributions.models import Contribution, ContributionInterval, ContributionStatus
+from apps.contributions.types import StripeEventData
 
 
 logger = logging.getLogger(f"{settings.DEFAULT_LOGGER}.{__name__}")
 
 
+@dataclass
 class StripeWebhookProcessor:
-    def __init__(self, event):
-        logger.debug("initialized with event data: %s", event)
-        self.event = event
-        self.obj_data = self.event["data"]["object"]
+    event: StripeEventData
 
-    def get_contribution_from_event(self):
-        logger.info("called with event ID %s", self.event["id"])
-        logger.debug("called with event data: %s", self.event)
-        if (event_type := self.obj_data["object"]) == "subscription":
-            return Contribution.objects.get(provider_subscription_id=self.obj_data["id"])
-        elif event_type == "payment_intent":
-            try:
-                return Contribution.objects.get(provider_payment_id=self.obj_data["id"])
-            except Contribution.DoesNotExist:
-                if customer_id := self.obj_data.get("customer"):
-                    # This is fine as long as we continue to generate a unique customer per charge.
-                    return Contribution.objects.get(provider_customer_id=customer_id)
-                else:
-                    raise
+    @property
+    def obj_data(self) -> dict:
+        return self.event["data"]["object"]
 
-    def process(self):
-        logger.info('StripeWebhookProcessor.process processing Stripe Event of type "%s"', self.event["type"])
-        logger.debug(
-            "StripeWebhookProcessor event received in live mode: %s; stripe live mode on: %s",
-            self.event["livemode"],
-            settings.STRIPE_LIVE_MODE,
-        )
-        object_type = self.obj_data["object"]
-        if settings.STRIPE_LIVE_MODE and not self.event["livemode"]:
-            logger.debug(
-                "StripeWebhookProcessor.process test mode event %s for account %s received while in live mode; ignoring",
-                self.event["id"],
-                self.event["account"],
-            )
-            return
-        if not settings.STRIPE_LIVE_MODE and self.event["livemode"]:
-            logger.debug(
-                "StripeWebhookProcessor.process live mode event %s for account %s received while in test mode; ignoring",
-                self.event["id"],
-                self.event["account"],
-            )
-            return
+    @property
+    def object_type(self) -> str:
+        return self.obj_data["object"]
 
-        if object_type == "payment_intent":
-            self.process_payment_intent()
-        elif object_type == "subscription":
-            self.process_subscription()
-        elif object_type == "payment_method":
-            self.process_payment_method()
-        elif object_type == "invoice":
-            self.process_invoice()
-        else:
-            logger.warning('Received un-handled Stripe object of type "%s"', object_type)
+    @property
+    def id(self) -> str:
+        return self.obj_data["id"]
 
-    def process_payment_intent(self):
-        match self.event["type"]:
-            case "payment_intent.canceled":
-                self.handle_payment_intent_canceled()
-            case "payment_intent.payment_failed":
-                self.handle_payment_intent_failed()
-            case "payment_intent.succeeded":
-                self.handle_payment_intent_succeeded()
-            case _:
-                return
+    @property
+    def event_type(self) -> str:
+        return self.event["type"]
 
-    def handle_payment_intent_canceled(self):
-        logger.info("StripeWebhookProcessor.handle_payment_intent_canceled called")
-        contribution = self.get_contribution_from_event()
-        if self._cancellation_was_rejection():
-            contribution.status = ContributionStatus.REJECTED
-            contribution.payment_provider_data = self.event
-            logger.info("StripeWebhookProcessor.handle_payment_intent_canceled Contribution %s rejected.", contribution)
-        else:
-            contribution.status = ContributionStatus.CANCELED
-            contribution.payment_provider_data = self.event
-            logger.info("Contribution %s canceled.", contribution)
-        with reversion.create_revision():
-            contribution.save(update_fields={"status", "payment_provider_data", "modified"})
-            logger.info("Contribution %s canceled.", contribution)
-            reversion.set_comment(
-                f"`StripeWebhookProcessor.handle_payment_intent_canceled` webhook handler ran for contribution with ID {contribution.id}"
-            )
+    @property
+    def live_mode(self) -> bool:
+        return self.event["livemode"]
 
-    def handle_payment_intent_failed(self):
-        logger.info("StripeWebhookProcessor.handle_payment_intent_failed called")
-        contribution = self.get_contribution_from_event()
-        contribution.status = ContributionStatus.FAILED
-        contribution.payment_provider_data = self.event
-        with reversion.create_revision():
-            contribution.save(update_fields={"status", "payment_provider_data", "modified"})
-            logger.info("Contribution %s failed.", contribution)
-            reversion.set_comment(
-                f"StripeWebhookProcessor.handle_payment_intent_failed webhook handler updated payment provider data for contribution with ID {contribution.id}."
-            )
+    @property
+    def customer_id(self) -> str:
+        return self.obj_data["customer"]
 
-    def handle_payment_intent_succeeded(self):
-        logger.info("StripeWebhookProcessor.handle_payment_intent_succeeded called")
-        contribution = self.get_contribution_from_event()
-        contribution.payment_provider_data = self.event
-        contribution.provider_payment_id = self.obj_data["id"]
-        contribution.provider_payment_method_id = self.obj_data.get("payment_method")
-        contribution.provider_payment_method_details = contribution.fetch_stripe_payment_method()
-        contribution.last_payment_date = datetime.datetime.fromtimestamp(
-            self.obj_data["created"], tz=datetime.timezone.utc
-        )
-        contribution.status = ContributionStatus.PAID
-        with reversion.create_revision():
-            contribution.save(
-                update_fields={
-                    "status",
-                    "last_payment_date",
-                    "provider_payment_id",
-                    "provider_payment_method_id",
-                    "provider_payment_method_details",
-                    "payment_provider_data",
-                    "modified",
-                }
-            )
-            reversion.set_comment(
-                f"StripeWebhookProcessor.handle_payment_intent_succeeded webhook handler updated contribution with ID {contribution.id}"
-            )
-        contribution.handle_thank_you_email()
-        logger.info("StripeWebhookProcessor.handle_payment_intent_succeeded Contribution %s succeeded.", contribution)
+    @cached_property
+    def contribution(self) -> Contribution:
+        match self.object_type:
+            case "subscription":
+                return Contribution.objects.get(provider_subscription_id=self.id)
+            case "payment_intent":
+                conditions = [Q(provider_payment_id=self.id)]
+                if self.customer_id:
+                    conditions.append(Q(provider_customer_id=self.customer_id))
+                return Contribution.objects.get(reduce(operator.or_, conditions))
+            case "payment_method":
+                return Contribution.objects.get(provider_customer_id=self.customer_id)
+            case "invoice":
+                return Contribution.objects.get(provider_subscription_id=self.obj_data["subscription"])
 
-    def _cancellation_was_rejection(self):
+    @property
+    def rejected(self):
         return self.obj_data.get("cancellation_reason") == "fraudulent"
 
-    def process_subscription(self):
-        logger.info("StripeWebhookProcessor.process_subscription called")
-        if self.event["type"] == "customer.subscription.updated":
-            self.handle_subscription_updated()
-        elif self.event["type"] == "customer.subscription.deleted":
-            self.handle_subscription_canceled()
-        else:
-            logger.warning(
-                "`StripeWebhookProcessor.process_subscription` called with unexpected event type: %s",
-                self.event["type"],
+    def route_request(self):
+        logger.debug("Routing request for event type %s", self.event_type)
+        match self.event_type:
+            case "payment_intent.canceled":
+                return self.handle_payment_intent_canceled()
+            case "payment_intent.payment_failed":
+                return self.handle_payment_intent_failed()
+            case "payment_intent.succeeded":
+                return self.handle_payment_intent_succeeded()
+            case "customer.subscription.updated":
+                return self.handle_subscription_updated()
+            case "customer.subscription.deleted":
+                return self.handle_subscription_canceled()
+            case "payment_method.attached":
+                return self.handle_payment_method_attached()
+            case "invoice.upcoming":
+                return self.handle_invoice_upcoming()
+            case _:
+                logger.warning(
+                    "StripeWebhookProcessor.route_request received unexpected event type %s", self.event_type
+                )
+                return
+
+    @property
+    def webhook_live_mode_agrees_with_environment(self) -> bool:
+        logger.debug(
+            "Event in live mode: %s; settings stripe live mode on: %s",
+            self.live_mode,
+            settings.STRIPE_LIVE_MODE,
+        )
+        if settings.STRIPE_LIVE_MODE and not self.live_mode:
+            logger.debug(
+                "Test mode event %s for account %s received while in live mode",
+                self.event["id"],
+                self.event["account"],
             )
+            return False
+        if not settings.STRIPE_LIVE_MODE and self.live_mode:
+            logger.debug(
+                "Live mode event %s for account %s received while in test mode",
+                self.event["id"],
+                self.event["account"],
+            )
+            return False
+        return True
+
+    def process(self):
+        if not self.webhook_live_mode_agrees_with_environment:
+            logger.warning("Received webhook in wrong mode; ignoring")
+            return
+        return self.route_request()
+
+    def _handle_contribution_update(self, update_data: dict, revision_comment: str):
+        for k, v in update_data.items():
+            setattr(self.contribution, k, v)
+        with reversion.create_revision():
+            self.contribution.save(update_fields=set(list(update_data.keys()) + ["modified"]))
+            reversion.set_comment(revision_comment)
+
+    def handle_payment_intent_canceled(self):
+        self._handle_contribution_update(
+            {
+                "status": ContributionStatus.REJECTED if self.rejected else ContributionStatus.CANCELED,
+                "payment_provider_data": self.event,
+            },
+            "`StripeWebhookProcessor.handle_payment_intent_canceled` updated contribution",
+        )
+
+    def handle_payment_intent_failed(self):
+        self._handle_contribution_update(
+            {"status": ContributionStatus.FAILED, "payment_provider_data": self.event},
+            "`StripeWebhookProcessor.handle_payment_intent_failed` updated contribution",
+        )
+
+    def handle_payment_intent_succeeded(self):
+        self._handle_contribution_update(
+            {
+                "payment_provider_data": self.event,
+                "provider_payment_id": self.id,
+                "provider_payment_method_id": self.obj_data.get("payment_method"),
+                "provider_payment_method_details": self.contribution.fetch_stripe_payment_method(),
+                "last_payment_date": datetime.datetime.fromtimestamp(
+                    self.obj_data["created"], tz=datetime.timezone.utc
+                ),
+                "status": ContributionStatus.PAID,
+            },
+            "`StripeWebhookProcessor.handle_payment_intent_succeeded` updated contribution",
+        )
+        self.contribution.handle_thank_you_email()
 
     def handle_subscription_updated(self):
-        """
-        It looks like Stripe gives us event.data.previous_attributes, which is a dict of updated attributes previous values.
-        """
-        logger.info("StripeWebhookProcessor.handle_subscription_updated called")
         # If stripe reports 'default_payment_method' as a previous attribute, then we've updated 'default_payment_method'
-        contribution = self.get_contribution_from_event()
-        contribution.payment_provider_data = self.event
-        contribution.provider_subscription_id = self.obj_data["id"]
-        update_fields = {"modified", "payment_provider_data", "provider_subscription_id"}
+        update_data = {
+            "payment_provider_data": self.event,
+            "provider_subscription_id": self.id,
+        }
         if (
             "default_payment_method" in self.event["data"]["previous_attributes"]
             and self.obj_data["default_payment_method"]
         ):
-            contribution.provider_payment_method_id = self.obj_data["default_payment_method"]
-            update_fields.add("provider_payment_method_id")
-        with reversion.create_revision():
-            contribution.save(update_fields=update_fields)
-            reversion.set_comment(
-                f"`StripeWebhookProcessor.handle_subscription_updated` webhook handler ran for contribution with ID {contribution.id}"
-            )
+            update_data["provider_payment_method_id"] = self.obj_data["default_payment_method"]
+
+        self._handle_contribution_update(
+            update_data, "`StripeWebhookProcessor.handle_subscription_updated` updated contribution"
+        )
 
     def handle_subscription_canceled(self):
-        logger.info("StripeWebhookProcessor.handle_subscription_canceled Contribution canceled event")
-        contribution = self.get_contribution_from_event()
-        contribution.payment_provider_data = self.event
-        contribution.status = ContributionStatus.CANCELED
-        with reversion.create_revision():
-            contribution.save(update_fields={"status", "payment_provider_data", "modified"})
-            reversion.set_comment(
-                f"`StripeWebhookProcessor.handle_subscription_canceled` webhook handler updated contribution with ID {contribution.id}"
-            )
+        self._handle_contribution_update(
+            {
+                "payment_provider_data": self.event,
+                "status": ContributionStatus.CANCELED,
+            },
+            "`StripeWebhookProcessor.handle_subscription_canceled` updated contribution",
+        )
 
-    def process_payment_method(self):
-        logger.info("StripeWebhookProcessor.process_payment_method called")
-        if self.event["type"] == "payment_method.attached":
-            contribution = Contribution.objects.get(provider_customer_id=self.obj_data["customer"])
-            contribution.provider_payment_method_id = self.obj_data["id"]
-            with reversion.create_revision():
-                reversion.set_comment(
-                    f"StripeWebhookProcessor.process_payment_method webhook handler processed contribution with ID {contribution.id}"
-                )
-                contribution.save(update_fields={"provider_payment_method_id", "modified"})
+    def handle_payment_method_attached(self):
+        self._handle_contribution_update(
+            {"provider_payment_method_id": self.id},
+            "`StripeWebhookProcessor.process_payment_method_attached` updated contribution",
+        )
 
-    def process_invoice(self):
+    def handle_invoice_upcoming(self):
         """When Stripe sends a webhook about an upcoming subscription charge, we send an email reminder
 
         NB: You can configure how many days before a new charge this webhook should fire in the Stripe dashboard
         at https://dashboard.stripe.com/settings/billing/automatic under the `Upcoming renewal events` setting, which
         can be set to 3, 7, 15, 30, or 45 days.
         """
-        logger.info("StripeWebhookProcessor.process_invoice called")
-        if self.event["type"] != "invoice.upcoming":
-            logger.info(
-                "StripeWebhookProcessor.process_invoice called with event %s which is a noop", self.event["type"]
-            )
-            return
-        contribution = Contribution.objects.get(provider_subscription_id=self.obj_data["subscription"])
-        if contribution.interval == ContributionInterval.YEARLY:
+        if self.contribution.interval == ContributionInterval.YEARLY:
             logger.info(
                 "StripeWebhookProcessor.process_invoice called for contribution %s which is yearly. Triggering a reminder email."
             )
-            contribution.send_recurring_contribution_email_reminder(
+            self.contribution.send_recurring_contribution_email_reminder(
                 make_aware(datetime.datetime.fromtimestamp(self.obj_data["next_payment_attempt"])).date()
             )
         else:
-            logger.info("StripeWebhookProcessor.process_invoice called for contribution %s which is not yearly. Noop.")
+            logger.debug("StripeWebhookProcessor.process_invoice called for contribution %s which is not yearly. Noop.")

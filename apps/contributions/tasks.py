@@ -1,7 +1,7 @@
 import os
 import time
 from datetime import timedelta
-from typing import Any, List, TypedDict
+from typing import List
 
 from django.conf import settings
 from django.template.loader import render_to_string
@@ -22,6 +22,7 @@ from apps.contributions.stripe_contributions_provider import (
     StripeContributionsProvider,
     SubscriptionsCacheProvider,
 )
+from apps.contributions.types import StripeEventData
 from apps.contributions.utils import export_contributions_to_csv
 from apps.contributions.webhooks import StripeWebhookProcessor
 from apps.emails.tasks import send_templated_email_with_attachment
@@ -184,18 +185,6 @@ def task_verify_apple_domain(self, revenue_program_slug: str):
             "[task_verify_apple_domain] task failed for slug %s due to exception: %s", revenue_program_slug, ex.error
         )
         raise ex
-
-
-class StripeEventData(TypedDict):
-    id: str
-    object: str
-    account: str
-    api_version: str
-    created: int
-    data: Any
-    livemode: bool
-    pending_webhooks: int
-    type: str
 
 
 @shared_task(bind=True, autoretry_for=(RateLimitError,), retry_backoff=True, retry_kwargs={"max_retries": 3})

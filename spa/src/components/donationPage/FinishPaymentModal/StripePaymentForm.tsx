@@ -10,6 +10,7 @@ import { Payment } from 'hooks/usePayment';
 import { getFrequencyThankYouText } from 'utilities/parseFrequency';
 import { Icon, IconWrapper, SubmitButton, Form } from './StripePaymentForm.styled';
 import i18n from 'i18n';
+import { useTranslation } from 'react-i18next';
 
 const StripePaymentFormPropTypes = {
   payment: PropTypes.object.isRequired
@@ -19,9 +20,8 @@ export interface StripePaymentFormProps extends InferProps<typeof StripePaymentF
   payment: Payment;
 }
 
-export const STRIPE_ERROR_MESSAGE = i18n.t('donationPage.stripePaymentForm.errorProcessingPayment');
-
 export function StripePaymentForm({ payment }: StripePaymentFormProps) {
+  const { t } = useTranslation();
   const alert = useAlert();
   const elements = useElements();
   const { pathname } = useLocation();
@@ -113,7 +113,7 @@ export function StripePaymentForm({ payment }: StripePaymentFormProps) {
       if (error) {
         const errorMessage = ['card_error', 'validation_error'].includes(error.type)
           ? error.message
-          : STRIPE_ERROR_MESSAGE;
+          : t('donationPage.stripePaymentForm.errorProcessingPayment');
 
         alert.error(errorMessage);
       }
@@ -125,7 +125,7 @@ export function StripePaymentForm({ payment }: StripePaymentFormProps) {
       //
       // TODO: [DEV-2921] update this console.error copy after DEV-2342 has landed to account for setup intent
       console.error('Something unexpected happened finalizing Stripe payment', error);
-      alert.error(STRIPE_ERROR_MESSAGE);
+      alert.error(t('donationPage.stripePaymentForm.errorProcessingPayment'));
     } finally {
       setIsLoading(false);
     }

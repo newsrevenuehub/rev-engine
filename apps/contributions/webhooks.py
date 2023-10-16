@@ -121,7 +121,8 @@ class StripeWebhookProcessor:
         if not self.webhook_live_mode_agrees_with_environment:
             logger.warning("Received webhook in wrong mode; ignoring")
             return
-        return self.route_request()
+        self.route_request()
+        logger.info("Successfully processed webhook event %s", self.event_id)
 
     def _handle_contribution_update(self, update_data: dict, revision_comment: str):
         for k, v in update_data.items():

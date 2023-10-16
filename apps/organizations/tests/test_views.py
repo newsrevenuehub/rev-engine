@@ -1532,6 +1532,7 @@ class TestSendTestEmail:
         send_email_spy = mocker.spy(send_templated_email, "delay")
         mocker.patch("apps.emails.tasks.get_test_magic_link", return_value="fake_magic_link")
         expected_data = make_send_test_magic_link_email_data(user, rp)
+        expected_data["style"]["logo_url"] = os.path.join(settings.SITE_URL, "static", "nre-logo-white.png")
 
         api_client.post(
             reverse("send-test-email"),

@@ -43,7 +43,7 @@ export const Content = styled.section`
 
 export const Title = styled.h1`
   text-align: center;
-  font-family: ${(props) => props.theme.font.heading};
+  font-family: ${(props) => props.theme.systemFont};
   font-weight: 600;
   font-size: ${(props) => props.theme.fontSizesUpdated.h1};
   color: ${(props) => props.theme.basePalette.primary.indigo};
@@ -51,7 +51,7 @@ export const Title = styled.h1`
 
 export const Subtitle = styled.p`
   text-align: center;
-  font-family: ${(props) => props.theme.font.body};
+  font-family: ${(props) => props.theme.systemFont};
   font-weight: 400;
   font-size: ${(props) => props.theme.fontSizesUpdated.lg};
   color: ${(props) => props.theme.basePalette.greyscale.grey1};

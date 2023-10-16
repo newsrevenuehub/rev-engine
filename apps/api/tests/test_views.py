@@ -271,7 +271,7 @@ def test_magic_link_custom_email_template(rf, mocker, revenue_program, has_defau
     assert to_email_list[0] == email
     assert len(to_email_list) == 1
 
-    default_logo = os.path.join(settings.SITE_URL, "static", "nre-logo-yellow.png")
+    default_logo = os.path.join(settings.SITE_URL, "static", "nre-logo-white.png")
     default_alt_text = "News Revenue Hub"
     custom_logo = 'src="/media/mock-logo"'
     custom_alt_text = 'alt="Mock-Alt-Text"'

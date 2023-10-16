@@ -18,7 +18,8 @@ function ComponentDemo(errors: Record<string, string> = {}) {
           {
             errors,
             mailingCountry,
-            setMailingCountry
+            setMailingCountry,
+            page: { locale: 'en' }
           } as any
         }
       >

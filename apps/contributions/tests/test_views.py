@@ -1465,14 +1465,34 @@ def payment_method_attached_request_data():
 
 
 class TestProcessStripeWebhook:
-    def test_happy_path(self, api_client):
-        pass
-
-    def test_when_value_error_on_construct_event(self, api_client, mocker):
-        pass
-
-    def test_when_signature_verification_error(self, api_client):
+    def test_happy_path(self, api_client, mocker):
+        mocker.patch("stripe.Webhook.construct_event", return_value=(event := mocker.Mock()))
+        mock_process_task = mocker.patch("apps.contributions.views.process_stripe_webhook_task.delay")
         header = {"HTTP_STRIPE_SIGNATURE": "testing", "content_type": "application/json"}
         response = api_client.post(reverse("stripe-webhooks-contributions"), data={}, **header)
+        assert response.status_code == status.HTTP_200_OK
+        mock_process_task.assert_called_once_with(event)
+
+    def test_when_value_error_on_construct_event(self, api_client, mocker):
+        logger_spy = mocker.patch("apps.contributions.views.logger.warning")
+        mocker.patch("stripe.Webhook.construct_event", side_effect=ValueError("ruh roh"))
+        mock_process_task = mocker.patch("apps.contributions.views.process_stripe_webhook_task.delay")
+        header = {"HTTP_STRIPE_SIGNATURE": "testing", "content_type": "application/json"}
+        response = api_client.post(reverse("stripe-webhooks-contributions"), data={"foo": "bar"}, **header)
         assert response.status_code == status.HTTP_400_BAD_REQUEST
-        assert response.data["error"] == "Invalid signature"
+        mock_process_task.assert_not_called()
+        logger_spy.assert_called_once_with("Invalid payload from Stripe webhook request")
+
+    def test_when_signature_verification_error(self, api_client, mocker):
+        logger_spy = mocker.patch("apps.contributions.views.logger.exception")
+        mocker.patch(
+            "stripe.Webhook.construct_event", side_effect=stripe.error.SignatureVerificationError("ruh roh", "sig")
+        )
+        mock_process_task = mocker.patch("apps.contributions.views.process_stripe_webhook_task.delay")
+        header = {"HTTP_STRIPE_SIGNATURE": "testing", "content_type": "application/json"}
+        response = api_client.post(reverse("stripe-webhooks-contributions"), data={"foo": "bar"}, **header)
+        assert response.status_code == status.HTTP_400_BAD_REQUEST
+        mock_process_task.assert_not_called()
+        logger_spy.assert_called_once_with(
+            "Invalid signature on Stripe webhook request. Is STRIPE_WEBHOOK_SECRET_CONTRIBUTIONS set correctly?"
+        )

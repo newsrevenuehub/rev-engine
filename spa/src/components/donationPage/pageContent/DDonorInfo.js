@@ -1,4 +1,6 @@
 import { useState } from 'react';
+import i18n from 'i18n';
+import { useTranslation } from 'react-i18next';
 
 import Grid from '@material-ui/core/Grid';
 
@@ -10,6 +12,7 @@ import DElement from 'components/donationPage/pageContent/DElement';
 import Input from 'elements/inputs/Input';
 
 function DDonorInfo({ element, ...props }) {
+  const { t } = useTranslation();
   const { errors } = usePage();
   const [firstName, setFirstName] = useState('');
   const [lastName, setLastName] = useState('');
@@ -23,7 +26,7 @@ function DDonorInfo({ element, ...props }) {
           <Input
             type="text"
             name="first_name"
-            label="First name"
+            label={t('donationPage.dDonorInfo.firstName')}
             value={firstName}
             onChange={(e) => setFirstName(e.target.value)}
             errors={errors.first_name}
@@ -35,7 +38,7 @@ function DDonorInfo({ element, ...props }) {
           <Input
             type="text"
             name="last_name"
-            label="Last name"
+            label={t('donationPage.dDonorInfo.lastName')}
             value={lastName}
             onChange={(e) => setLastName(e.target.value)}
             errors={errors.last_name}
@@ -47,7 +50,7 @@ function DDonorInfo({ element, ...props }) {
           <Input
             type="email"
             name="email"
-            label="Email"
+            label={t('donationPage.dDonorInfo.email')}
             value={email}
             testid="email"
             onChange={(e) => setEmail(e.target.value)}
@@ -60,7 +63,7 @@ function DDonorInfo({ element, ...props }) {
             <Input
               type="tel"
               name="phone"
-              label="Phone"
+              label={t('donationPage.dDonorInfo.phone')}
               value={phone}
               onChange={(e) => setPhone(e.target.value)}
               maxLength={40}
@@ -76,8 +79,8 @@ function DDonorInfo({ element, ...props }) {
 }
 
 DDonorInfo.type = 'DDonorInfo';
-DDonorInfo.displayName = 'Contributor Info';
-DDonorInfo.description = 'Collect contributor name and email';
+DDonorInfo.displayName = i18n.t('donationPage.dDonorInfo.contributorInfo');
+DDonorInfo.description = i18n.t('donationPage.dDonorInfo.collectNameAndEmail');
 DDonorInfo.required = true;
 DDonorInfo.unique = true;
 

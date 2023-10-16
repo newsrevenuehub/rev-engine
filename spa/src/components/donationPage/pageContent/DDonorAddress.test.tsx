@@ -103,15 +103,15 @@ describe('DDonorAddress', () => {
   // in stripeFns.ts.
 
   describe.each([
-    ['Address', 'mailing_street', false, false],
-    ['City', 'mailing_city', false, false],
-    ['State', 'mailing_state', false, false],
-    ['Zip/Postal code', 'mailing_postal_code', true, true]
-  ])('The %s text field', (visibleName, internalName, showZipAndCountryOnly, alwaysRequired) => {
+    ['Address', 'mailing_street', false, false, 'donationPage.dDonorAddress.address'],
+    ['City', 'mailing_city', false, false, 'donationPage.dDonorAddress.city'],
+    ['State', 'mailing_state', false, false, 'donationPage.dDonorAddress.stateLabel.state'],
+    ['Zip/Postal code', 'mailing_postal_code', true, true, 'donationPage.dDonorAddress.zip']
+  ])('The %s text field', (visibleName, internalName, showZipAndCountryOnly, alwaysRequired, translationKey) => {
     it(`has the form name ${internalName}`, () => {
       tree();
 
-      const field = screen.getByRole('textbox', { name: visibleName });
+      const field = screen.getByRole('textbox', { name: translationKey });
 
       expect(field).toBeVisible();
       expect(field).toHaveAttribute('name', internalName);
@@ -119,7 +119,7 @@ describe('DDonorAddress', () => {
 
     it('is required by default', () => {
       tree();
-      expect(screen.getByRole('textbox', { name: visibleName })).toBeRequired();
+      expect(screen.getByRole('textbox', { name: translationKey })).toBeRequired();
     });
 
     it(`${alwaysRequired ? 'is required even' : 'is not required'} if addressOptional is true`, () => {
@@ -127,10 +127,10 @@ describe('DDonorAddress', () => {
       expect.assertions(1);
       if (alwaysRequired) {
         // eslint-disable-next-line jest/no-conditional-expect
-        expect(screen.getByRole('textbox', { name: visibleName })).toBeRequired();
+        expect(screen.getByRole('textbox', { name: translationKey })).toBeRequired();
       } else {
         // eslint-disable-next-line jest/no-conditional-expect
-        expect(screen.getByRole('textbox', { name: visibleName })).not.toBeRequired();
+        expect(screen.getByRole('textbox', { name: translationKey })).not.toBeRequired();
       }
     });
 
@@ -139,17 +139,17 @@ describe('DDonorAddress', () => {
       expect.assertions(1);
       if (showZipAndCountryOnly) {
         // eslint-disable-next-line jest/no-conditional-expect
-        expect(screen.getByRole('textbox', { name: visibleName })).toBeVisible();
+        expect(screen.getByRole('textbox', { name: translationKey })).toBeVisible();
       } else {
         // eslint-disable-next-line jest/no-conditional-expect
-        expect(screen.queryByRole('textbox', { name: visibleName })).not.toBeInTheDocument();
+        expect(screen.queryByRole('textbox', { name: translationKey })).not.toBeInTheDocument();
       }
     });
 
     it('updates when the user types into it', () => {
       tree();
-      userEvent.type(screen.getByRole('textbox', { name: visibleName }), `test-${visibleName}`);
-      expect(screen.getByRole('textbox', { name: visibleName })).toHaveValue(`test-${visibleName}`);
+      userEvent.type(screen.getByRole('textbox', { name: translationKey }), `test-${visibleName}`);
+      expect(screen.getByRole('textbox', { name: translationKey })).toHaveValue(`test-${visibleName}`);
     });
 
     it(`displays errors keyed on ${internalName}`, () => {
@@ -163,23 +163,23 @@ describe('DDonorAddress', () => {
 
   it(`has the show Address line 2 button`, () => {
     tree();
-    expect(screen.getByRole('button', { name: '+ Address line 2 (Apt, suite, etc.)' })).toBeEnabled();
+    expect(screen.getByRole('button', { name: 'donationPage.dDonorAddress.showLine2{"sign":"+"}' })).toBeEnabled();
   });
 
   describe('The Line 2 address field', () => {
     function openLine2() {
-      userEvent.click(screen.getByRole('button', { name: '+ Address line 2 (Apt, suite, etc.)' }));
+      userEvent.click(screen.getByRole('button', { name: 'donationPage.dDonorAddress.showLine2{"sign":"+"}' }));
     }
 
     it(`is hidden by default`, () => {
       tree();
-      expect(screen.queryByRole('textbox', { name: 'Apt, suite, etc.' })).not.toBeInTheDocument();
+      expect(screen.queryByRole('textbox', { name: 'donationPage.dDonorAddress.line2' })).not.toBeInTheDocument();
     });
 
     it(`has the form name mailing_complement`, () => {
       tree();
       openLine2();
-      const field = screen.getByRole('textbox', { name: 'Apt, suite, etc.' });
+      const field = screen.getByRole('textbox', { name: 'donationPage.dDonorAddress.line2' });
 
       expect(field).toBeVisible();
       expect(field).toHaveAttribute('name', 'mailing_complement');
@@ -188,14 +188,16 @@ describe('DDonorAddress', () => {
     it('is not required', () => {
       tree();
       openLine2();
-      expect(screen.getByRole('textbox', { name: 'Apt, suite, etc.' })).not.toBeRequired();
+      expect(screen.getByRole('textbox', { name: 'donationPage.dDonorAddress.line2' })).not.toBeRequired();
     });
 
     it('updates when the user types into it', () => {
       tree();
       openLine2();
-      userEvent.type(screen.getByRole('textbox', { name: 'Apt, suite, etc.' }), `mock-address-line-2`);
-      expect(screen.getByRole('textbox', { name: 'Apt, suite, etc.' })).toHaveValue(`mock-address-line-2`);
+      userEvent.type(screen.getByRole('textbox', { name: 'donationPage.dDonorAddress.line2' }), `mock-address-line-2`);
+      expect(screen.getByRole('textbox', { name: 'donationPage.dDonorAddress.line2' })).toHaveValue(
+        `mock-address-line-2`
+      );
     });
 
     it(`displays errors keyed on mailing_complement`, () => {
@@ -210,17 +212,29 @@ describe('DDonorAddress', () => {
   describe('The State field label', () => {
     it('is State by default', () => {
       tree();
-      expect(screen.getByRole('textbox', { name: 'State' })).toBeVisible();
+      expect(screen.getByRole('textbox', { name: 'donationPage.dDonorAddress.stateLabel.state' })).toBeVisible();
     });
 
     it.each([
-      ['State/Province', ['province']],
-      ['State/Region', ['region']],
-      ['State/Province/Region', ['region', 'province']]
-    ])('is %s if configured', (name, additionalStateFieldLabels) => {
+      [
+        'State/Province',
+        ['province'],
+        'donationPage.dDonorAddress.stateLabel.statedonationPage.dDonorAddress.stateLabel.addProvince'
+      ],
+      [
+        'State/Region',
+        ['region'],
+        'donationPage.dDonorAddress.stateLabel.statedonationPage.dDonorAddress.stateLabel.addRegion'
+      ],
+      [
+        'State/Province/Region',
+        ['region', 'province'],
+        'donationPage.dDonorAddress.stateLabel.statedonationPage.dDonorAddress.stateLabel.addProvincedonationPage.dDonorAddress.stateLabel.addRegion'
+      ]
+    ])('is %s if configured', (_, additionalStateFieldLabels, translationKey) => {
       tree({}, { element: { content: { additionalStateFieldLabels } } } as any);
 
-      const field = screen.getByRole('textbox', { name });
+      const field = screen.getByRole('textbox', { name: translationKey });
 
       expect(field).toBeVisible();
       expect(field).toHaveAttribute('name', 'mailing_state');
@@ -230,22 +244,22 @@ describe('DDonorAddress', () => {
   describe('The Country select', () => {
     it('displays a country select that shows the mailingCountry ISO code set in context', () => {
       tree({ mailingCountry: 'aa' });
-      expect(screen.getByRole('textbox', { name: 'Country' })).toHaveValue('AAA');
+      expect(screen.getByRole('textbox', { name: 'donationPage.dDonorAddress.country' })).toHaveValue('AAA');
     });
 
     it('if zipAndCountryOnly = true -> show', () => {
       tree({}, { element: { ...element, content: { zipAndCountryOnly: true } } });
-      expect(screen.getByRole('textbox', { name: 'Country' })).toBeInTheDocument();
+      expect(screen.getByRole('textbox', { name: 'donationPage.dDonorAddress.country' })).toBeInTheDocument();
     });
 
     it('is required by default', () => {
       tree();
-      expect(screen.getByRole('textbox', { name: 'Country' })).toBeRequired();
+      expect(screen.getByRole('textbox', { name: 'donationPage.dDonorAddress.country' })).toBeRequired();
     });
 
     it('is required even if addressOptional is true', () => {
       tree({}, { element: { ...element, content: { addressOptional: true } } });
-      expect(screen.getByRole('textbox', { name: 'Country' })).toBeRequired();
+      expect(screen.getByRole('textbox', { name: 'donationPage.dDonorAddress.country' })).toBeRequired();
     });
 
     it('updates the country ISO code in context when the user selects a country', () => {
@@ -276,20 +290,22 @@ describe('DDonorAddress', () => {
 
       tree();
       act(() => usePlacesWidgetMock.mock.calls[0][0].onPlaceSelected({ address_components: mockAddressComponents }));
-      expect(screen.getByRole('textbox', { name: 'Address' })).toHaveValue(`${streetNumber} ${street}`);
-      expect(screen.getByRole('textbox', { name: 'City' })).toHaveValue(city);
-      expect(screen.getByRole('textbox', { name: 'State' })).toHaveValue(state);
-      expect(screen.getByRole('textbox', { name: 'Zip/Postal code' })).toHaveValue(zip);
+      expect(screen.getByRole('textbox', { name: 'donationPage.dDonorAddress.address' })).toHaveValue(
+        `${streetNumber} ${street}`
+      );
+      expect(screen.getByRole('textbox', { name: 'donationPage.dDonorAddress.city' })).toHaveValue(city);
+      expect(screen.getByRole('textbox', { name: 'donationPage.dDonorAddress.stateLabel.state' })).toHaveValue(state);
+      expect(screen.getByRole('textbox', { name: 'donationPage.dDonorAddress.zip' })).toHaveValue(zip);
       // TODO: country field in DEV-2691
     });
 
     it("does nothing if the address can't be autocompleted", () => {
       tree();
       usePlacesWidgetMock.mock.calls[0][0].onPlaceSelected({ address_components: undefined });
-      expect(screen.getByRole('textbox', { name: 'Address' })).toHaveValue('');
-      expect(screen.getByRole('textbox', { name: 'City' })).toHaveValue('');
-      expect(screen.getByRole('textbox', { name: 'State' })).toHaveValue('');
-      expect(screen.getByRole('textbox', { name: 'Zip/Postal code' })).toHaveValue('');
+      expect(screen.getByRole('textbox', { name: 'donationPage.dDonorAddress.address' })).toHaveValue('');
+      expect(screen.getByRole('textbox', { name: 'donationPage.dDonorAddress.city' })).toHaveValue('');
+      expect(screen.getByRole('textbox', { name: 'donationPage.dDonorAddress.stateLabel.state' })).toHaveValue('');
+      expect(screen.getByRole('textbox', { name: 'donationPage.dDonorAddress.zip' })).toHaveValue('');
       // TODO: country field in DEV-2691
     });
 
@@ -306,10 +322,10 @@ describe('DDonorAddress', () => {
           ]
         })
       );
-      expect(screen.getByRole('textbox', { name: 'Address' })).toHaveValue('');
-      expect(screen.getByRole('textbox', { name: 'City' })).toHaveValue('');
-      expect(screen.getByRole('textbox', { name: 'State' })).toHaveValue('');
-      expect(screen.getByRole('textbox', { name: 'Zip/Postal code' })).toHaveValue('12345');
+      expect(screen.getByRole('textbox', { name: 'donationPage.dDonorAddress.address' })).toHaveValue('');
+      expect(screen.getByRole('textbox', { name: 'donationPage.dDonorAddress.city' })).toHaveValue('');
+      expect(screen.getByRole('textbox', { name: 'donationPage.dDonorAddress.stateLabel.state' })).toHaveValue('');
+      expect(screen.getByRole('textbox', { name: 'donationPage.dDonorAddress.zip' })).toHaveValue('12345');
       // TODO: country field in DEV-2691
     });
   });

@@ -1,5 +1,7 @@
 import { useState, useEffect } from 'react';
 import PropTypes from 'prop-types';
+import i18n from 'i18n';
+import { useTranslation } from 'react-i18next';
 
 // Styles
 import * as S from './DSwag.styled';
@@ -48,6 +50,7 @@ function DSwag({ element, ...props }) {
   // TODO: Re-enable in DEV-3735
   return null;
 
+  const { t } = useTranslation();
   const theme = useTheme();
   const { page, frequency, amount } = usePage();
 
@@ -62,11 +65,12 @@ function DSwag({ element, ...props }) {
   }, [frequency, amount, element.content?.swagThreshold]);
 
   return (
-    <DElement label="Member benefits" {...props} data-testid="d-swag">
+    <DElement label={t('donationPage.dSwag.memberBenefits.label')} {...props} data-testid="d-swag">
       {element?.content?.swagThreshold > 0 && (
         <S.ThresholdMessage>
-          Give a total of {page.currency.symbol}
-          {element.content?.swagThreshold} {page.currency.code} /year or more to be eligible
+          {t('donationPage.dSwag.giveXToBeEligible', {
+            amount: `${page.currency.symbol}${element.content?.swagThreshold} ${page.currency.code}`
+          })}
         </S.ThresholdMessage>
       )}
       <AnimatePresence>
@@ -82,7 +86,7 @@ function DSwag({ element, ...props }) {
                 checked={optOut}
                 inputProps={{ 'aria-label': 'controlled' }}
                 onChange={() => setOptOut(!optOut)}
-                label="Maximize my contribution – I'd rather not receive member merchandise."
+                label={t('donationPage.dSwag.maximizeContribution')}
               />
             </motion.div>
             <AnimatePresence>
@@ -99,7 +103,7 @@ function DSwag({ element, ...props }) {
                         checked={nytCompSub}
                         inputProps={{ 'aria-label': 'controlled' }}
                         onChange={() => setNytCompSub(!nytCompSub)}
-                        label="I'd like to include a New York Times subscription"
+                        label={t('donationPage.dSwag.nytSubscription')}
                         value="nyt"
                       />
                     </motion.div>
@@ -131,16 +135,17 @@ DSwag.propTypes = {
 };
 
 DSwag.type = 'DSwag';
-DSwag.displayName = 'Member Benefits';
-DSwag.description = 'Allow contributors to make choices about optional swag';
+DSwag.displayName = i18n.t('donationPage.dSwag.memberBenefits.title');
+DSwag.description = i18n.t('donationPage.dSwag.allowSwagChoices');
 DSwag.required = false;
 DSwag.unique = true;
 
 export default DSwag;
 
-const NO_SWAG_OPT = '--No, thank you--';
+const NO_SWAG_OPT = i18n.t('donationPage.dSwag.noThanksOption');
 
 function SwagItem({ swag, isOnlySwag, ...props }) {
+  const { t } = useTranslation();
   // If it's the only swag item, don't show the "No swag" option, since that's covered by the "optOut" option.
   const swagOptions = isOnlySwag ? swag.swagOptions : [NO_SWAG_OPT].concat(swag.swagOptions);
 
@@ -156,7 +161,7 @@ function SwagItem({ swag, isOnlySwag, ...props }) {
           selectedItem={selectedSwagOption}
           onSelectedItemChange={({ selectedItem }) => setSelectedSwagOption(selectedItem)}
           items={swagOptions}
-          helpText="Your contribution comes with member merchandise. Please choose an option."
+          helpText={t('donationPage.dSwag.chooseMerchandise')}
           maxWidth="300px"
         />
       </S.SwagOptions>

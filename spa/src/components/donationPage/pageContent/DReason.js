@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import PropTypes from 'prop-types';
 import { motion } from 'framer-motion';
+import i18n from 'i18n';
 
 // Styles
 import * as S from './DReason.styled';
@@ -14,6 +15,7 @@ import DElement, { DynamicElementPropTypes } from 'components/donationPage/pageC
 import GroupedLabel from 'elements/inputs/GroupedLabel';
 import { InputGroup, GroupedWrapper } from 'elements/inputs/inputElements.styled';
 import Select from 'elements/inputs/Select';
+import { useTranslation } from 'react-i18next';
 
 const defaultTributeState = {
   isHonoree: false,
@@ -21,10 +23,11 @@ const defaultTributeState = {
 };
 
 export const REASON_OPTION_MAX_LENGTH = 255;
-const NO_REASON_OPT = '-- Select one --';
-const REASON_OTHER = 'Other';
+const NO_REASON_OPT = i18n.t('donationPage.dReason.selectOnePlaceholder');
+const REASON_OTHER = i18n.t('donationPage.dReason.other');
 
 function DReason({ element, ...props }) {
+  const { t } = useTranslation();
   const { errors } = usePage();
 
   // Form state
@@ -55,12 +58,12 @@ function DReason({ element, ...props }) {
   const elementContent = element?.content || {};
 
   return (
-    <DElement label="Reason for giving" {...props} data-testid="d-reason">
+    <DElement label={t('donationPage.dReason.reasonForGiving.label')} {...props} data-testid="d-reason">
       <S.ReasonGroup>
         {elementContent.askReason && (
           <InputGroup>
             <GroupedLabel required={element?.requiredFields?.includes('reason_for_giving')}>
-              I support your work because...
+              {t('donationPage.dReason.supportWork')}
             </GroupedLabel>
             <S.SupportOptions>
               {elementContent.reasons.length > 0 && (
@@ -77,7 +80,7 @@ function DReason({ element, ...props }) {
                 {(elementContent.reasons?.length === 0 || selectedReason === REASON_OTHER) && (
                   <motion.div {...S.inputAnimations}>
                     <S.ReasonOtherInput
-                      placeholder="Tell us why you support our work"
+                      placeholder={t('donationPage.dReason.tellUsWhy')}
                       value={reasonOther}
                       name="reason_other"
                       onChange={(e) => setReasonOther(e.target.value)}
@@ -112,8 +115,8 @@ DReason.propTypes = {
 };
 
 DReason.type = 'DReason';
-DReason.displayName = 'Reason for Giving';
-DReason.description = 'Collect information about the contributors reason for giving';
+DReason.displayName = i18n.t('donationPage.dReason.reasonForGiving.title');
+DReason.description = i18n.t('donationPage.dReason.collectInformationAboutReasonForGiving');
 DReason.required = false;
 DReason.unique = true;
 
@@ -127,16 +130,17 @@ function TributeSelector({
   handleInputChange,
   errors
 }) {
+  const { t } = useTranslation();
   const showTributeInput = tributeState.isHonoree || tributeState.isInMemoryOf;
 
   return (
     <InputGroup>
-      <GroupedLabel>Is this gift a tribute?</GroupedLabel>
+      <GroupedLabel>{t('donationPage.dReason.tributeSelector.isTribute')}</GroupedLabel>
       {elementContent.askHonoree && elementContent.askInMemoryOf && (
         <GroupedWrapper>
           <TributeCheckbox
             asRadio
-            label="No"
+            label={t('donationPage.dReason.tributeSelector.no')}
             name="tribute_type"
             checked={!tributeState.isHonoree && !tributeState.isInMemoryOf}
             handleChange={(e) => handleSelection('', e.target.value)}
@@ -144,7 +148,7 @@ function TributeSelector({
           />
           <TributeCheckbox
             asRadio
-            label="Yes, in honor of..."
+            label={t('donationPage.dReason.tributeSelector.yes.inHonorOf')}
             name="tribute_type"
             checked={tributeState.isHonoree}
             handleChange={(e) => handleSelection('isHonoree', e.target.value)}
@@ -152,7 +156,7 @@ function TributeSelector({
           />
           <TributeCheckbox
             asRadio
-            label="Yes, in memory of..."
+            label={t('donationPage.dReason.tributeSelector.yes.inMemoryOf')}
             name="tribute_type"
             checked={tributeState.isInMemoryOf}
             handleChange={(e) => handleSelection('isInMemoryOf', e.target.value)}
@@ -163,7 +167,7 @@ function TributeSelector({
       {elementContent.askHonoree && !elementContent.askInMemoryOf && (
         <S.SingleOption>
           <TributeCheckbox
-            label="Give in honor of..."
+            label={t('donationPage.dReason.tributeSelector.giveInHonorOf')}
             name="tribute_type_honoree"
             checked={tributeState.isHonoree}
             handleChange={(e) => handleSelection('isHonoree', e.target.value)}
@@ -173,7 +177,7 @@ function TributeSelector({
       {elementContent.askInMemoryOf && !elementContent.askHonoree && (
         <S.SingleOption>
           <TributeCheckbox
-            label="Give in memory of..."
+            label={t('donationPage.dReason.tributeSelector.giveInMemoryOf')}
             name="tribute_type_in_memory_of"
             checked={tributeState.isInMemoryOf}
             handleChange={(e) => handleSelection('isInMemoryOf', e.target.value)}
@@ -186,7 +190,11 @@ function TributeSelector({
             <S.TributeInput
               testid="tribute-input"
               name={tributeState.isInMemoryOf ? 'in_memory_of' : 'honoree'}
-              placeholder={tributeState.isInMemoryOf ? 'In memory of...' : 'In honor of...'}
+              placeholder={
+                tributeState.isInMemoryOf
+                  ? t('donationPage.dReason.tributeSelector.inMemoryOf')
+                  : t('donationPage.dReason.tributeSelector.inHonorOf')
+              }
               value={inputValue}
               onChange={handleInputChange}
               errors={errors[tributeState.isInMemoryOf ? 'in_memory_of' : 'honoree']}

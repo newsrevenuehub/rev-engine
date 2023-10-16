@@ -9,6 +9,7 @@ import { getPaymentElementButtonText, getPaymentSuccessUrl } from 'components/pa
 import { Payment } from 'hooks/usePayment';
 import { getFrequencyThankYouText } from 'utilities/parseFrequency';
 import { Icon, IconWrapper, SubmitButton, Form } from './StripePaymentForm.styled';
+import i18n from 'i18n';
 
 const StripePaymentFormPropTypes = {
   payment: PropTypes.object.isRequired
@@ -18,7 +19,7 @@ export interface StripePaymentFormProps extends InferProps<typeof StripePaymentF
   payment: Payment;
 }
 
-export const STRIPE_ERROR_MESSAGE = 'Something went wrong processing your payment';
+export const STRIPE_ERROR_MESSAGE = i18n.t('donationPage.stripePaymentForm.errorProcessingPayment');
 
 export function StripePaymentForm({ payment }: StripePaymentFormProps) {
   const alert = useAlert();
@@ -39,7 +40,8 @@ export function StripePaymentForm({ payment }: StripePaymentFormProps) {
         currencyCode: payment.currency.code,
         currencySymbol: payment.currency.symbol,
         frequency: payment.interval,
-        amount: parseFloat(payment.amount)
+        amount: parseFloat(payment.amount),
+        locale: i18n.language
       }),
     [payment.amount, payment.currency.code, payment.currency.symbol, payment.interval]
   );

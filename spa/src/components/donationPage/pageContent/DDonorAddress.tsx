@@ -12,6 +12,8 @@ import DElement from 'components/donationPage/pageContent/DElement';
 import { CountrySelect, TextField, Button, CollapseChild } from './DDonorAddress.styled';
 import { DonorAddressElement } from 'hooks/useContributionPage';
 import { Collapse } from '@material-ui/core';
+import { useTranslation } from 'react-i18next';
+import i18n from 'i18n';
 
 const mapAddrFieldToComponentTypes = {
   address: ['street_number', 'street_address', 'route'],
@@ -47,6 +49,7 @@ export interface DDonorAddressProps extends InferProps<typeof DDonorAddressPropT
 }
 
 function DDonorAddress({ element }: DDonorAddressProps) {
+  const { t } = useTranslation();
   const { errors, mailingCountry, setMailingCountry, page } = usePage();
   const [address, setAddress] = useState('');
   const [showComplement, setShowComplement] = useState(false);
@@ -57,18 +60,18 @@ function DDonorAddress({ element }: DDonorAddressProps) {
   const isOptional = element.content?.addressOptional === true;
   const zipAndCountryOnly = !!element.content?.zipAndCountryOnly;
   const stateLabel = useMemo(() => {
-    let result = 'State';
+    let result = t('donationPage.dDonorAddress.stateLabel.state');
 
     if (element.content?.additionalStateFieldLabels?.includes('province')) {
-      result += '/Province';
+      result += t('donationPage.dDonorAddress.stateLabel.addProvince');
     }
 
     if (element.content?.additionalStateFieldLabels?.includes('region')) {
-      result += '/Region';
+      result += t('donationPage.dDonorAddress.stateLabel.addRegion');
     }
 
     return result;
-  }, [element.content?.additionalStateFieldLabels]);
+  }, [element.content?.additionalStateFieldLabels, t]);
 
   const { ref: addressInputRef } = usePlacesWidget<HTMLInputElement>({
     apiKey: HUB_GOOGLE_MAPS_API_KEY,
@@ -135,7 +138,7 @@ function DDonorAddress({ element }: DDonorAddressProps) {
                 fullWidth
                 id="mailing_street"
                 name="mailing_street"
-                label="Address"
+                label={t('donationPage.dDonorAddress.address')}
                 value={address}
                 onBlur={enableBrowserAutofillOnAddress}
                 onChange={(e) => setAddress(e.target.value)}
@@ -146,7 +149,9 @@ function DDonorAddress({ element }: DDonorAddressProps) {
                 data-testid="mailing_street"
               />
               <Button $showComplement={showComplement} onClick={toggleComplement}>
-                {showComplement ? '-' : '+'} Address line 2 (Apt, suite, etc.)
+                {t('donationPage.dDonorAddress.showLine2', {
+                  sign: showComplement ? '-' : '+'
+                })}
               </Button>
             </Grid>
             <Collapse in={showComplement} style={{ width: '100%' }}>
@@ -157,7 +162,7 @@ function DDonorAddress({ element }: DDonorAddressProps) {
                     fullWidth
                     id="mailing_complement"
                     name="mailing_complement"
-                    label="Apt, suite, etc."
+                    label={t('donationPage.dDonorAddress.line2')}
                     value={complement}
                     onChange={(e) => setComplement(e.target.value)}
                     helperText={errors.mailing_complement}
@@ -172,7 +177,7 @@ function DDonorAddress({ element }: DDonorAddressProps) {
                 fullWidth
                 id="mailing_city"
                 name="mailing_city"
-                label="City"
+                label={t('donationPage.dDonorAddress.city')}
                 value={city}
                 onChange={(e) => setCity(e.target.value)}
                 helperText={errors.mailing_city}
@@ -202,7 +207,7 @@ function DDonorAddress({ element }: DDonorAddressProps) {
             fullWidth
             id="mailing_postal_code"
             name="mailing_postal_code"
-            label="Zip/Postal code"
+            label={t('donationPage.dDonorAddress.zip')}
             value={zip}
             onChange={(e) => setZip(e.target.value)}
             helperText={errors.mailing_postal_code}
@@ -215,7 +220,7 @@ function DDonorAddress({ element }: DDonorAddressProps) {
             error={!!errors.mailing_country}
             helperText={errors.mailing_country}
             id="country"
-            label="Country"
+            label={t('donationPage.dDonorAddress.country')}
             name="mailing_country"
             onChange={handleChangeCountry}
             value={mailingCountry ?? ''}
@@ -230,8 +235,8 @@ function DDonorAddress({ element }: DDonorAddressProps) {
 DDonorAddress.propTypes = DDonorAddressPropTypes;
 
 DDonorAddress.type = 'DDonorAddress';
-DDonorAddress.displayName = 'Contributor Address';
-DDonorAddress.description = 'Collect contributor address';
+DDonorAddress.displayName = i18n.t('donationPage.dDonorAddress.contributorAddress');
+DDonorAddress.description = i18n.t('donationPage.dDonorAddress.collectAddress');
 DDonorAddress.required = true;
 DDonorAddress.unique = true;
 

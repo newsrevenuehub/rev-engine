@@ -32,10 +32,6 @@ from apps.organizations.models import RevenueProgram
 logger = get_task_logger(f"{settings.DEFAULT_LOGGER}.{__name__}")
 
 
-class StripeReportableError(Exception):
-    pass
-
-
 def ping_healthchecks(check_name, healthcheck_url):
     """Attempt to ping a healthchecks.io to enable monitoring of tasks"""
     if not healthcheck_url:

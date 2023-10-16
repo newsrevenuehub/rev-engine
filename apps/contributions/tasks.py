@@ -185,11 +185,12 @@ def task_verify_apple_domain(self, revenue_program_slug: str):
 
 @shared_task(bind=True, autoretry_for=(RateLimitError,), retry_backoff=True, retry_kwargs={"max_retries": 3})
 def process_stripe_webhook_task(self, event: StripeEventData) -> None:
-    logger.debug("Processing Stripe webhook event with ID %s", event["id"])
+    logger.info("Processing Stripe webhook event with ID %s", event["id"])
     try:
         StripeWebhookProcessor(event).process()
     except Contribution.DoesNotExist:
         # there's an entire class of customer subscriptions for which we do not expect to have a Contribution object.
         # Specifically, we expect this to be the case for import legacy recurring contributions, which may have a future
         # first/next(in NRE platform) payment date.
+        # TODO: [DEV-4151] Add some sort of analytics / telemetry to track how often this happens
         logger.debug("Could not find contribution", exc_info=True)

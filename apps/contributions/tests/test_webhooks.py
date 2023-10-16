@@ -16,6 +16,7 @@ from apps.contributions.webhooks import StripeWebhookProcessor
 def subscription_event():
     return {
         "id": "evt_1J4X2n2eZvKYlo2C0QYQXZ0K",
+        "type": "customer.subscription.updated",
         "data": {
             "object": {
                 "object": "subscription",
@@ -29,6 +30,7 @@ def subscription_event():
 def payment_method_event():
     return {
         "id": "evt_1J4X2n2eZvKYlo2C0QYQXZ0K",
+        "type": "payment_method.attached",
         "data": {
             "object": {
                 "object": "payment_method",
@@ -43,6 +45,8 @@ def payment_method_event():
 def payment_intent_event():
     return {
         "id": "evt_1J4X2n2eZvKYlo2C0QYQXZ0K",
+        "type": "payment_intent.succeeded",
+        "account": "some-account-id",
         "data": {
             "object": {
                 "id": "pi_1J4X2n2eZvKYlo2C0QYQXZ0K",
@@ -57,8 +61,10 @@ def payment_intent_event():
 def invoice_event():
     return {
         "id": "evt_1J4X2n2eZvKYlo2C0QYQXZ0K",
+        "type": "invoice",
         "data": {
             "object": {
+                "id": "in_1J4X2n2eZvKYlo2C0QYQXZ0K",
                 "object": "invoice",
                 "subscription": "sub_1J4X2n2eZvKYlo2C0QYQXZ0K",
             }
@@ -142,13 +148,15 @@ class TestStripeWebhookProcessor:
             (False, True, False),
         ),
     )
-    def test_webhook_live_mode_agrees_with_environment(self, event_live_mode, settings_live_mode, expected, settings):
+    def test_webhook_live_mode_agrees_with_environment(
+        self, event_live_mode, payment_intent_event, settings_live_mode, expected, settings
+    ):
         settings.STRIPE_LIVE_MODE = settings_live_mode
-        processor = StripeWebhookProcessor({"livemode": event_live_mode, "id": "test_id", "account": "test_account"})
+        processor = StripeWebhookProcessor(payment_intent_event | {"livemode": event_live_mode})
         assert processor.webhook_live_mode_agrees_with_environment == expected
 
     @pytest.mark.parametrize("agrees", [True, False])
-    def test_process(self, agrees, mocker):
+    def test_process(self, agrees, mocker, subscription_event):
         mocker.patch.object(
             StripeWebhookProcessor,
             "webhook_live_mode_agrees_with_environment",
@@ -157,7 +165,7 @@ class TestStripeWebhookProcessor:
         )
         mock_route_request = mocker.patch.object(StripeWebhookProcessor, "route_request")
         logger_spy = mocker.patch("apps.contributions.webhooks.logger.warning")
-        StripeWebhookProcessor({}).process()
+        StripeWebhookProcessor(subscription_event).process()
         if agrees:
             mock_route_request.assert_called_once()
             logger_spy.assert_not_called()

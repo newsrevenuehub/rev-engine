@@ -5,6 +5,7 @@
   "created": 1668536545,
   "data": {
     "object": {
+      "id": "in_fakefakefakefake",
       "object": "invoice",
       "account_country": "US",
       "account_name": "News Revenue Hub",
@@ -16,7 +17,10 @@
       "application_fee_amount": null,
       "attempt_count": 0,
       "attempted": false,
-      "automatic_tax": { "enabled": false, "status": null },
+      "automatic_tax": {
+        "enabled": false,
+        "status": null
+      },
       "billing_reason": "upcoming",
       "charge": null,
       "collection_method": "charge_automatically",
@@ -48,7 +52,12 @@
         "phone": ""
       },
       "customer_tax_exempt": "null",
-      "customer_tax_ids": [{ "type": "us_ein", "value": "12-3456789" }],
+      "customer_tax_ids": [
+        {
+          "type": "us_ein",
+          "value": "12-3456789"
+        }
+      ],
       "default_payment_method": null,
       "default_source": null,
       "default_tax_rates": [],
@@ -76,7 +85,10 @@
             "discounts": [],
             "livemode": false,
             "metadata": {},
-            "period": { "end": 1676478546, "start": 1673800146 },
+            "period": {
+              "end": 1676478546,
+              "start": 1673800146
+            },
             "plan": {
               "id": "plan_JyZTNA4Eukw6jP",
               "object": "plan",
@@ -126,7 +138,9 @@
               "unit_amount_decimal": "2000"
             },
             "proration": false,
-            "proration_details": { "credited_items": null },
+            "proration_details": {
+              "credited_items": null
+            },
             "quantity": 1,
             "subscription": "sub_1M4S3sBMAMOLTEaksmP0WZSs",
             "subscription_item": "si_Mo4CfetvUX5TmU",
@@ -184,6 +198,9 @@
   },
   "livemode": false,
   "pending_webhooks": 2,
-  "request": { "id": null, "idempotency_key": null },
+  "request": {
+    "id": null,
+    "idempotency_key": null
+  },
   "type": "invoice.upcoming"
 }

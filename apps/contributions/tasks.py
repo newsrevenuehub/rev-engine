@@ -192,4 +192,4 @@ def process_stripe_webhook_task(self, event: StripeEventData) -> None:
         # there's an entire class of customer subscriptions for which we do not expect to have a Contribution object.
         # Specifically, we expect this to be the case for import legacy recurring contributions, which may have a future
         # first/next(in NRE platform) payment date.
-        logger.info("Could not find contribution", exc_info=True)
+        logger.debug("Could not find contribution", exc_info=True)

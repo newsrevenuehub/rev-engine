@@ -1465,6 +1465,14 @@ def payment_method_attached_request_data():
 
 
 class TestProcessStripeWebhook:
+    """We primarily test contributions-related webhook endpoints in
+    `apps.contributions.tests.test_webhooks_integration`, which spans both the view layer and the task layer.
+
+    There are a handful of paths through the process stripe webhook view that are best tested in isolation, so we
+    do that here. But in general, let's strive to test at integration level for business logic around contributions-related
+    webhooks.
+    """
+
     def test_happy_path(self, api_client, mocker):
         mocker.patch("stripe.Webhook.construct_event", return_value=(event := mocker.Mock()))
         mock_process_task = mocker.patch("apps.contributions.views.process_stripe_webhook_task.delay")

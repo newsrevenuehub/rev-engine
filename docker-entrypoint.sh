@@ -16,6 +16,4 @@ if [ "x$DJANGO_MANAGEPY_MIGRATE" = 'xon' ]; then
     python manage.py migrate --noinput
 fi
 
-/bin/sh ./google_sa.sh
-
 exec uwsgi --http=0.0.0.0:$PORT --show-config

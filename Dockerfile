@@ -97,6 +97,12 @@ ENV UWSGI_STATIC_MAP="/static/=/code/public/static/" UWSGI_STATIC_EXPIRES_URI="/
 
 RUN mkdir google-sa && chown ${APP_USER}:${APP_USER} google-sa
 
+# This copies over credentials that are required to use Google Cloud Storage
+COPY ./google_sa.sh /google_sa/google_sa.sh
+RUN chmod +x /google_sa/google_sa.sh
+RUN /google_sa/google_sa.sh
+RUN chown -R ${APP_USER}:${APP_USER} /google_sa
+
 # Change to a non-root user
 USER ${APP_USER}:${APP_USER}
 

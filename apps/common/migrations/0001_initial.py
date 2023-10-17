@@ -5,7 +5,6 @@ import sorl.thumbnail.fields
 
 
 class Migration(migrations.Migration):
-
     initial = True
 
     dependencies = []

@@ -54,7 +54,7 @@ export const Dot = styled.div<{ $position: Position }>`
         bottom: 0;
         right: 0;
       `
-    }[props.$position])}
+    })[props.$position]}
 `;
 
 export const Button = styled.div<{ $borderRadius: number }>`

@@ -12,7 +12,6 @@ def migrate_relationship_to_socialmeta_model(apps, schema_editor):
 
 
 class Migration(migrations.Migration):
-
     dependencies = [
         ("organizations", "0005_DEV-2030_alter_organization_plan"),
         ("common", "0003_DEV-2031_socialmeta_revenue_program"),

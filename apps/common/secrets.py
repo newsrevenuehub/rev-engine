@@ -38,9 +38,9 @@ def get_secret_manager_client() -> SecretManagerServiceClient | None:
     # NB: This is defined in module scope and not in GoogleCloudSecretProvider even though it's only
     # caller because it facilitates mocking in tests across unit tests of secrets narrowly,
     # as well as their use in other contexts.
-    if not settings.GS_SERVICE_ACCOUNT:
+    if not settings.GS_CREDENTIALS:
         return None
-    credentials = service_account.Credentials.from_service_account_info(settings.GS_SERVICE_ACCOUNT)
+    credentials = service_account.Credentials.from_service_account_info(settings.GS_CREDENTIALS)
     return SecretManagerServiceClient(credentials=credentials)
 
 

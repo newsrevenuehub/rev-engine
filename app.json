@@ -13,6 +13,9 @@
     },
     {
       "url": "heroku/nodejs"
+    },
+    {
+      "url": "https://github.com/gerywahyunugraha/heroku-google-application-credentials-buildpack.git"
     }
   ],
   "env": {

@@ -4,7 +4,9 @@ import styled from 'styled-components';
 
 export const Card = styled.div`
   border-radius: ${({ theme }) => theme.muiBorderRadius.xl};
-  box-shadow: 0px -1px 4px rgba(0, 0, 0, 0.03), 0px 3px 4px rgba(0, 0, 0, 0.12);
+  box-shadow:
+    0px -1px 4px rgba(0, 0, 0, 0.03),
+    0px 3px 4px rgba(0, 0, 0, 0.12);
   padding: 13px 16px;
   width: 240px;
 `;

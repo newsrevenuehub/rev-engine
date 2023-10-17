@@ -39,6 +39,8 @@ GS_DEFAULT_ACL = None
 # Media files are stored in a 'media' directory
 GS_MEDIA_LOCATION = "media"
 
+GS_CREDENTIALS = json.loads(os.getenv("GS_SERVICE_ACCOUNT")) if os.getenv("GS_SERVICE_ACCOUNT") else None
+
 ### React SPA index.html
 FRONTEND_BUILD_DIR = Path(BASE_DIR) / "build"
 TEMPLATES[0]["DIRS"] = [FRONTEND_BUILD_DIR, os.path.join(PROJECT_DIR, "templates")]

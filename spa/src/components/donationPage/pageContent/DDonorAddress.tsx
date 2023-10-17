@@ -13,7 +13,6 @@ import { CountrySelect, TextField, Button, CollapseChild } from './DDonorAddress
 import { DonorAddressElement } from 'hooks/useContributionPage';
 import { Collapse } from '@material-ui/core';
 import { useTranslation } from 'react-i18next';
-import i18n from 'i18n';
 
 const mapAddrFieldToComponentTypes = {
   address: ['street_number', 'street_address', 'route'],
@@ -60,17 +59,22 @@ function DDonorAddress({ element }: DDonorAddressProps) {
   const isOptional = element.content?.addressOptional === true;
   const zipAndCountryOnly = !!element.content?.zipAndCountryOnly;
   const stateLabel = useMemo(() => {
-    let result = t('donationPage.dDonorAddress.stateLabel.state');
+    const includeProvince = element.content?.additionalStateFieldLabels?.includes('province');
+    const includeRegion = element.content?.additionalStateFieldLabels?.includes('region');
 
-    if (element.content?.additionalStateFieldLabels?.includes('province')) {
-      result += t('donationPage.dDonorAddress.stateLabel.addProvince');
+    if (includeProvince && includeRegion) {
+      return t('donationPage.dDonorAddress.stateLabel.stateProvinceAndRegion');
     }
 
-    if (element.content?.additionalStateFieldLabels?.includes('region')) {
-      result += t('donationPage.dDonorAddress.stateLabel.addRegion');
+    if (includeProvince) {
+      return t('donationPage.dDonorAddress.stateLabel.stateAndProvince');
     }
 
-    return result;
+    if (includeRegion) {
+      return t('donationPage.dDonorAddress.stateLabel.stateAndRegion');
+    }
+
+    return t('donationPage.dDonorAddress.stateLabel.state');
   }, [element.content?.additionalStateFieldLabels, t]);
 
   const { ref: addressInputRef } = usePlacesWidget<HTMLInputElement>({
@@ -235,8 +239,8 @@ function DDonorAddress({ element }: DDonorAddressProps) {
 DDonorAddress.propTypes = DDonorAddressPropTypes;
 
 DDonorAddress.type = 'DDonorAddress';
-DDonorAddress.displayName = i18n.t('donationPage.dDonorAddress.contributorAddress');
-DDonorAddress.description = i18n.t('donationPage.dDonorAddress.collectAddress');
+DDonorAddress.displayName = 'Contributor Address';
+DDonorAddress.description = 'Collect contributor address';
 DDonorAddress.required = true;
 DDonorAddress.unique = true;
 

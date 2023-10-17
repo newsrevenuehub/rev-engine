@@ -216,21 +216,9 @@ describe('DDonorAddress', () => {
     });
 
     it.each([
-      [
-        'State/Province',
-        ['province'],
-        'donationPage.dDonorAddress.stateLabel.statedonationPage.dDonorAddress.stateLabel.addProvince'
-      ],
-      [
-        'State/Region',
-        ['region'],
-        'donationPage.dDonorAddress.stateLabel.statedonationPage.dDonorAddress.stateLabel.addRegion'
-      ],
-      [
-        'State/Province/Region',
-        ['region', 'province'],
-        'donationPage.dDonorAddress.stateLabel.statedonationPage.dDonorAddress.stateLabel.addProvincedonationPage.dDonorAddress.stateLabel.addRegion'
-      ]
+      ['State/Province', ['province'], 'donationPage.dDonorAddress.stateLabel.stateAndProvince'],
+      ['State/Region', ['region'], 'donationPage.dDonorAddress.stateLabel.stateAndRegion'],
+      ['State/Province/Region', ['region', 'province'], 'donationPage.dDonorAddress.stateLabel.stateProvinceAndRegion']
     ])('is %s if configured', (_, additionalStateFieldLabels, translationKey) => {
       tree({}, { element: { content: { additionalStateFieldLabels } } } as any);
 

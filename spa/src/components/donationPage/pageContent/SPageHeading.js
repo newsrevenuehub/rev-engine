@@ -1,5 +1,4 @@
 import { SPageHeadingWrapper, Heading } from './SPageHeading.styled';
-import i18n from 'i18n';
 
 // Context
 import { usePage } from 'components/donationPage/DonationPage';
@@ -17,7 +16,7 @@ function SPageHeading() {
 }
 
 SPageHeading.type = 'SPageHeading';
-SPageHeading.displayName = i18n.t('donationPage.sPageHeading.pageHeading');
-SPageHeading.description = i18n.t('donationPage.sPageHeading.headingDescription');
+SPageHeading.displayName = 'Page Heading';
+SPageHeading.description = 'This is a static element at the top of the contribution section of your page';
 
 export default SPageHeading;

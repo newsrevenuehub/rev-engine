@@ -1,6 +1,5 @@
 import { useState, useEffect } from 'react';
 import PropTypes from 'prop-types';
-import i18n from 'i18n';
 import { useTranslation } from 'react-i18next';
 
 // Styles
@@ -65,7 +64,7 @@ function DSwag({ element, ...props }) {
   }, [frequency, amount, element.content?.swagThreshold]);
 
   return (
-    <DElement label={t('donationPage.dSwag.memberBenefits.label')} {...props} data-testid="d-swag">
+    <DElement label={t('donationPage.dSwag.memberBenefits')} {...props} data-testid="d-swag">
       {element?.content?.swagThreshold > 0 && (
         <S.ThresholdMessage>
           {t('donationPage.dSwag.giveXToBeEligible', {
@@ -135,19 +134,17 @@ DSwag.propTypes = {
 };
 
 DSwag.type = 'DSwag';
-DSwag.displayName = i18n.t('donationPage.dSwag.memberBenefits.title');
-DSwag.description = i18n.t('donationPage.dSwag.allowSwagChoices');
+DSwag.displayName = 'Member Benefits';
+DSwag.description = 'Allow contributors to make choices about optional swag';
 DSwag.required = false;
 DSwag.unique = true;
 
 export default DSwag;
 
-const NO_SWAG_OPT = i18n.t('donationPage.dSwag.noThanksOption');
-
 function SwagItem({ swag, isOnlySwag, ...props }) {
   const { t } = useTranslation();
   // If it's the only swag item, don't show the "No swag" option, since that's covered by the "optOut" option.
-  const swagOptions = isOnlySwag ? swag.swagOptions : [NO_SWAG_OPT].concat(swag.swagOptions);
+  const swagOptions = isOnlySwag ? swag.swagOptions : [t('donationPage.dSwag.noThanksOption')].concat(swag.swagOptions);
 
   const [selectedSwagOption, setSelectedSwagOption] = useState(swagOptions[0]);
 

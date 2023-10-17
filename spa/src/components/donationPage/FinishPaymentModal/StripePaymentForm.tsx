@@ -9,7 +9,6 @@ import { getPaymentElementButtonText, getPaymentSuccessUrl } from 'components/pa
 import { Payment } from 'hooks/usePayment';
 import { getFrequencyThankYouText } from 'utilities/parseFrequency';
 import { Icon, IconWrapper, SubmitButton, Form } from './StripePaymentForm.styled';
-import i18n from 'i18n';
 import { useTranslation } from 'react-i18next';
 
 const StripePaymentFormPropTypes = {
@@ -18,9 +17,10 @@ const StripePaymentFormPropTypes = {
 
 export interface StripePaymentFormProps extends InferProps<typeof StripePaymentFormPropTypes> {
   payment: Payment;
+  locale: string;
 }
 
-export function StripePaymentForm({ payment }: StripePaymentFormProps) {
+export function StripePaymentForm({ payment, locale }: StripePaymentFormProps) {
   const { t } = useTranslation();
   const alert = useAlert();
   const elements = useElements();
@@ -41,9 +41,9 @@ export function StripePaymentForm({ payment }: StripePaymentFormProps) {
         currencySymbol: payment.currency.symbol,
         frequency: payment.interval,
         amount: parseFloat(payment.amount),
-        locale: i18n.language
+        locale
       }),
-    [payment.amount, payment.currency.code, payment.currency.symbol, payment.interval]
+    [locale, payment.amount, payment.currency.code, payment.currency.symbol, payment.interval]
   );
 
   const [isLoading, setIsLoading] = useState(false);

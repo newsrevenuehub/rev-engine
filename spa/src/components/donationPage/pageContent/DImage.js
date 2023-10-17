@@ -1,6 +1,5 @@
 import { Image } from './DImage.styled';
 import PropTypes from 'prop-types';
-import i18n from 'i18n';
 
 // Util
 import getSrcForImg from 'utilities/getSrcForImg';
@@ -11,7 +10,7 @@ import DElement, { DynamicElementPropTypes } from 'components/donationPage/pageC
 function DImage({ element, ...props }) {
   return (
     <DElement data-testid="d-image" {...props}>
-      <Image src={getSrcForImg(element?.content?.url || element?.content)} />
+      <Image src={getSrcForImg(element?.content?.url ?? element?.content)} />
     </DElement>
   );
 }
@@ -23,8 +22,8 @@ DImage.propTypes = {
 };
 
 DImage.type = 'DImage';
-DImage.displayName = i18n.t('donationPage.dImage.image');
-DImage.description = i18n.t('donationPage.dImage.displayImage');
+DImage.displayName = 'Image';
+DImage.description = 'Display an image on the page';
 DImage.required = false;
 DImage.unique = false;
 

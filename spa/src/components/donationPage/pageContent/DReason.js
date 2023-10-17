@@ -1,7 +1,6 @@
 import { useState } from 'react';
 import PropTypes from 'prop-types';
 import { motion } from 'framer-motion';
-import i18n from 'i18n';
 
 // Styles
 import * as S from './DReason.styled';
@@ -23,11 +22,10 @@ const defaultTributeState = {
 };
 
 export const REASON_OPTION_MAX_LENGTH = 255;
-const NO_REASON_OPT = i18n.t('donationPage.dReason.selectOnePlaceholder');
-const REASON_OTHER = i18n.t('donationPage.dReason.other');
 
 function DReason({ element, ...props }) {
   const { t } = useTranslation();
+  const REASON_OTHER = t('donationPage.dReason.other');
   const { errors } = usePage();
 
   // Form state
@@ -50,7 +48,8 @@ function DReason({ element, ...props }) {
 
   const getReasons = () => {
     const reasons = [...element.content.reasons];
-    if (!element?.requiredFields?.includes('reason_for_giving')) reasons.unshift(NO_REASON_OPT);
+    if (!element?.requiredFields?.includes('reason_for_giving'))
+      reasons.unshift(t('donationPage.dReason.selectOnePlaceholder'));
     reasons.push(REASON_OTHER);
     return reasons;
   };
@@ -58,7 +57,7 @@ function DReason({ element, ...props }) {
   const elementContent = element?.content || {};
 
   return (
-    <DElement label={t('donationPage.dReason.reasonForGiving.label')} {...props} data-testid="d-reason">
+    <DElement label={t('donationPage.dReason.reasonForGiving')} {...props} data-testid="d-reason">
       <S.ReasonGroup>
         {elementContent.askReason && (
           <InputGroup>
@@ -115,8 +114,8 @@ DReason.propTypes = {
 };
 
 DReason.type = 'DReason';
-DReason.displayName = i18n.t('donationPage.dReason.reasonForGiving.title');
-DReason.description = i18n.t('donationPage.dReason.collectInformationAboutReasonForGiving');
+DReason.displayName = 'Reason for Giving';
+DReason.description = 'Collect information about the contributors reason for giving';
 DReason.required = false;
 DReason.unique = true;
 
@@ -140,7 +139,7 @@ function TributeSelector({
         <GroupedWrapper>
           <TributeCheckbox
             asRadio
-            label={t('donationPage.dReason.tributeSelector.no')}
+            label={t('common.no')}
             name="tribute_type"
             checked={!tributeState.isHonoree && !tributeState.isInMemoryOf}
             handleChange={(e) => handleSelection('', e.target.value)}

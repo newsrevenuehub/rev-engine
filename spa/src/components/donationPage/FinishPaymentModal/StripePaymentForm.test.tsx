@@ -55,7 +55,7 @@ function successUrl(payment: Payment) {
 }
 
 function tree(props?: Partial<StripePaymentFormProps>) {
-  return render(<StripePaymentForm payment={mockPayment} {...props} />);
+  return render(<StripePaymentForm payment={mockPayment} locale="en" {...props} />);
 }
 
 describe('StripePaymentForm', () => {

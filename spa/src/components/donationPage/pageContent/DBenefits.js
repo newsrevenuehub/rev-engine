@@ -1,7 +1,6 @@
 import * as S from './DBenefits.styled';
 import PropTypes from 'prop-types';
 import { useTranslation } from 'react-i18next';
-import i18n from 'i18n';
 
 // Assets
 import { ICONS } from 'assets/icons/SvgIcon';
@@ -85,8 +84,8 @@ DBenefits.propTypes = {
 };
 
 DBenefits.type = 'DBenefits';
-DBenefits.displayName = i18n.t('donationPage.dBenefits.contributorBenefits');
-DBenefits.description = i18n.t('donationPage.dBenefits.displayBenefits');
+DBenefits.displayName = 'Contributor Benefits';
+DBenefits.description = 'Display contributor benefits';
 DBenefits.required = false;
 DBenefits.unique = true;
 

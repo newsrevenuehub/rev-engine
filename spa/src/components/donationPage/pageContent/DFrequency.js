@@ -1,6 +1,5 @@
 import PropTypes from 'prop-types';
 import { CheckBoxField, Radio, CheckboxLabel } from './DFrequency.styled';
-import i18n from 'i18n';
 import { useTranslation } from 'react-i18next';
 
 // Context
@@ -64,8 +63,8 @@ DFrequency.propTypes = {
 };
 
 DFrequency.type = 'DFrequency';
-DFrequency.displayName = i18n.t('donationPage.dFrequency.contributionFrequency');
-DFrequency.description = i18n.t('donationPage.dFrequency.allowContributorsToSelectFrequency');
+DFrequency.displayName = 'Contribution Frequency';
+DFrequency.description = 'Allow contributors to select a frequency at which to contribute';
 DFrequency.required = true;
 DFrequency.unique = true;
 

@@ -1,7 +1,6 @@
 import RichTextDisplay from 'components/base/RichTextEditor/RichTextDisplay';
 import PropTypes, { InferProps } from 'prop-types';
 import DElement from './DElement';
-import i18n from 'i18n';
 
 const DRichTextPropTypes = {
   element: PropTypes.shape({
@@ -29,8 +28,8 @@ export function DRichText({ element }: DRichTextProps) {
 
 DRichText.propTypes = DRichTextPropTypes;
 DRichText.type = 'DRichText';
-DRichText.displayName = i18n.t('donationPage.dRichText.richText');
-DRichText.description = i18n.t('donationPage.dRichText.addRichTextToPage');
+DRichText.displayName = 'Rich Text';
+DRichText.description = 'Add arbitrary rich text to your contribution page';
 DRichText.required = false;
 DRichText.unique = false;
 

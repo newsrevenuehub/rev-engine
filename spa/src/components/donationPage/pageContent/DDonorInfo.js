@@ -1,5 +1,4 @@
 import { useState } from 'react';
-import i18n from 'i18n';
 import { useTranslation } from 'react-i18next';
 
 import Grid from '@material-ui/core/Grid';
@@ -79,8 +78,8 @@ function DDonorInfo({ element, ...props }) {
 }
 
 DDonorInfo.type = 'DDonorInfo';
-DDonorInfo.displayName = i18n.t('donationPage.dDonorInfo.contributorInfo');
-DDonorInfo.description = i18n.t('donationPage.dDonorInfo.collectNameAndEmail');
+DDonorInfo.displayName = 'Contributor Info';
+DDonorInfo.description = 'Collect contributor name and email';
 DDonorInfo.required = true;
 DDonorInfo.unique = true;
 

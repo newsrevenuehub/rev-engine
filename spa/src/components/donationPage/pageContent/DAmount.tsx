@@ -16,7 +16,6 @@ import usePreviousState from 'hooks/usePreviousState';
 import FormErrors from 'elements/inputs/FormErrors';
 import PayFeesControl from './PayFeesControl';
 import { useTranslation } from 'react-i18next';
-import i18n from 'i18n';
 
 export type DAmountProps = InferProps<typeof DAmountPropTypes>;
 
@@ -203,8 +202,8 @@ const DAmountPropTypes = {
 DAmount.propTypes = DAmountPropTypes;
 
 DAmount.type = 'DAmount';
-DAmount.displayName = i18n.t('donationPage.dAmount.contributionAmount');
-DAmount.description = i18n.t('donationPage.dAmount.allowsContributorSelection');
+DAmount.displayName = 'Contribution Amount';
+DAmount.description = 'Allows a contributor to select an amount to contribute';
 DAmount.required = true;
 DAmount.unique = true;
 

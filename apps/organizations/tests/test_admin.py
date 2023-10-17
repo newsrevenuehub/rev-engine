@@ -9,7 +9,7 @@ from bs4 import BeautifulSoup
 from bs4 import BeautifulSoup as bs4
 
 from apps.organizations.admin import OrganizationAdmin, PaymentProviderAdmin
-from apps.organizations.models import CorePlan, FreePlan, Organization
+from apps.organizations.models import FreePlan, Organization
 from apps.organizations.tests.factories import (
     BenefitLevelFactory,
     OrganizationFactory,
@@ -170,66 +170,64 @@ class TestOrganizationAdmin:
     def model_admin(self):
         return OrganizationAdmin(Organization, AdminSite())
 
-    def test_save_model_sets_update_fields(self, rf, model_admin, superuser, mocker):
-        org = OrganizationFactory(plan_name=FreePlan.name, name=(previous_name := "something"))
-        save_spy = mocker.spy(org, "save")
-        data = {
-            "name": previous_name,
-            # this is the only field changing
-            "plan_name": CorePlan.name,
-            "send_receipt_email_via_nre": org.send_receipt_email_via_nre,
-            "slug": org.slug,
+    @pytest.fixture
+    def slug_change_for_existing(self, organization_on_core_plan_with_mailchimp_set_up):
+        return {
+            "name": organization_on_core_plan_with_mailchimp_set_up.name,
+            "plan_name": organization_on_core_plan_with_mailchimp_set_up.plan_name,
+            "send_receipt_email_via_nre": organization_on_core_plan_with_mailchimp_set_up.send_receipt_email_via_nre,
+            "slug": "new-slug",
         }
-        post_request = rf.post("/admin/", data)
-        post_request.user = superuser
-        form = model_admin.get_form(post_request)(data, instance=org)
-        assert form.is_valid()
-        model_admin.save_model(request=post_request, obj=form.instance, form=form, change=True)
-        org.refresh_from_db()
-        assert org.name == previous_name
-        assert org.plan_name == data["plan_name"]
-        assert len(save_spy.call_args.kwargs["update_fields"]) == 2
-        assert "plan_name" in save_spy.call_args.kwargs["update_fields"]
-        assert "modified" in save_spy.call_args.kwargs["update_fields"]
 
-    def test_save_model_doesnt_set_update_fields_if_not_change(self, rf, model_admin, superuser, mocker):
-        org = OrganizationFactory(plan_name=FreePlan.name, name=(previous_name := "something"))
-        save_spy = mocker.spy(org, "save")
-        data = {
-            "name": previous_name,
-            # this is the only field changing
-            "plan_name": CorePlan.name,
-            "send_receipt_email_via_nre": org.send_receipt_email_via_nre,
-            "slug": org.slug,
+    @pytest.fixture
+    def no_changes_for_existing(self, organization_on_core_plan_with_mailchimp_set_up):
+        return {
+            "name": organization_on_core_plan_with_mailchimp_set_up.name,
+            "plan_name": organization_on_core_plan_with_mailchimp_set_up.plan_name,
+            "send_receipt_email_via_nre": organization_on_core_plan_with_mailchimp_set_up.send_receipt_email_via_nre,
+            "slug": organization_on_core_plan_with_mailchimp_set_up.slug,
         }
-        post_request = rf.post("/admin/", data)
-        post_request.user = superuser
-        form = model_admin.get_form(post_request)(data, instance=org)
-        assert form.is_valid()
-        model_admin.save_model(request=post_request, obj=form.instance, form=form, change=False)
-        org.refresh_from_db()
-        assert org.name == previous_name
-        assert org.plan_name == data["plan_name"]
-        assert save_spy.call_args.args == ()
-        assert save_spy.call_args.kwargs == {}
 
-    def test_save_model_doesnt_set_update_fields_if_not_needed(self, rf, model_admin, superuser, mocker):
-        org = OrganizationFactory(plan_name=FreePlan.name, name=(previous_name := "something"))
-        save_spy = mocker.spy(org, "save")
-        data = {
-            # No changes
-            "name": previous_name,
-            "plan_name": org.plan_name,
-            "send_receipt_email_via_nre": org.send_receipt_email_via_nre,
-            "slug": org.slug,
+    @pytest.fixture
+    def new_data(self):
+        return {
+            "name": "some name",
+            "plan_name": FreePlan.name,
+            "send_receipt_email_via_nre": True,
+            "slug": "some-slug",
         }
-        post_request = rf.post("/admin/", data)
-        post_request.user = superuser
-        form = model_admin.get_form(post_request)(data, instance=org)
-        assert form.is_valid()
-        model_admin.save_model(request=post_request, obj=form.instance, form=form, change=True)
-        org.refresh_from_db()
-        assert org.name == previous_name
-        assert org.plan_name == data["plan_name"]
-        assert save_spy.call_args.args == ()
-        assert save_spy.call_args.kwargs == {}
+
+    @pytest.fixture(
+        params=[
+            ("new_data", False, None),
+            ("slug_change_for_existing", True, {"slug", "modified"}),
+            ("no_changes_for_existing", True, None),
+        ]
+    )
+    def test_save_model_cases(self, request):
+        return request.getfixturevalue(request.param[0]), request.param[1], request.param[2]
+
+    def test_save_model(
+        self,
+        superuser,
+        client,
+        test_save_model_cases,
+        organization_on_core_plan_with_mailchimp_set_up,
+        mocker,
+    ):
+        data, change_existing, expected_update_fields = test_save_model_cases
+        save_spy = mocker.patch("apps.organizations.models.Organization.save")
+        client.force_login(superuser)
+        url = (
+            reverse(
+                "admin:organizations_organization_change", args=(organization_on_core_plan_with_mailchimp_set_up.id,)
+            )
+            if change_existing
+            else reverse("admin:organizations_organization_add")
+        )
+        response = client.post(url, data=data, follow=True)
+        assert response.status_code == 200
+        if change_existing and expected_update_fields:
+            save_spy.assert_called_once_with(update_fields=expected_update_fields)
+        else:
+            save_spy.assert_called_once_with()

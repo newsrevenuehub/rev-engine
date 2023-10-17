@@ -13,6 +13,8 @@ import { CountrySelect, TextField, Button, CollapseChild } from './DDonorAddress
 import { DonorAddressElement } from 'hooks/useContributionPage';
 import { Collapse } from '@material-ui/core';
 import { useTranslation } from 'react-i18next';
+import { ReactComponent as AddIcon } from '@material-design-icons/svg/filled/add.svg';
+import { ReactComponent as MinusIcon } from '@material-design-icons/svg/filled/horizontal_rule.svg';
 
 const mapAddrFieldToComponentTypes = {
   address: ['street_number', 'street_address', 'route'],
@@ -152,10 +154,18 @@ function DDonorAddress({ element }: DDonorAddressProps) {
                 required={!isOptional}
                 data-testid="mailing_street"
               />
-              <Button $showComplement={showComplement} onClick={toggleComplement}>
-                {t('donationPage.dDonorAddress.showLine2', {
-                  sign: showComplement ? '-' : '+'
-                })}
+              <Button
+                startIcon={
+                  showComplement ? (
+                    <MinusIcon width={15} height={16} style={{ marginRight: -8 }} />
+                  ) : (
+                    <AddIcon width={16} height={16} style={{ marginRight: -8 }} />
+                  )
+                }
+                $showComplement={showComplement}
+                onClick={toggleComplement}
+              >
+                {t('donationPage.dDonorAddress.showLine2')}
               </Button>
             </Grid>
             <Collapse in={showComplement} style={{ width: '100%' }}>

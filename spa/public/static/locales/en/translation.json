@@ -80,7 +80,7 @@
     },
     "dDonorAddress": {
       "address": "Address",
-      "showLine2": "{{ sign }} Address line 2 (Apt, suite, etc.)",
+      "showLine2": "Address line 2 (Apt, suite, etc.)",
       "line2": "Apt, suite, etc.",
       "city": "City",
       "stateLabel": {

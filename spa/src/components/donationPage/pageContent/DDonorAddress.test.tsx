@@ -163,12 +163,12 @@ describe('DDonorAddress', () => {
 
   it(`has the show Address line 2 button`, () => {
     tree();
-    expect(screen.getByRole('button', { name: 'donationPage.dDonorAddress.showLine2{"sign":"+"}' })).toBeEnabled();
+    expect(screen.getByRole('button', { name: 'donationPage.dDonorAddress.showLine2' })).toBeEnabled();
   });
 
   describe('The Line 2 address field', () => {
     function openLine2() {
-      userEvent.click(screen.getByRole('button', { name: 'donationPage.dDonorAddress.showLine2{"sign":"+"}' }));
+      userEvent.click(screen.getByRole('button', { name: 'donationPage.dDonorAddress.showLine2' }));
     }
 
     it(`is hidden by default`, () => {

@@ -4,7 +4,6 @@ from typing import Any, Dict, TypedDict
 from django.conf import settings
 from django.contrib.auth import get_user_model
 from django.db import transaction
-from django.db.models import Q
 
 import reversion
 from rest_framework import serializers
@@ -23,7 +22,6 @@ from apps.organizations.models import (
 from apps.organizations.serializers import (
     OrganizationInlineSerializer,
     RevenueProgramInlineSerializer,
-    RevenueProgramInlineSerializerForAuthedUserSerializer,
 )
 from apps.users.choices import Roles
 from apps.users.constants import PASSWORD_MAX_LENGTH
@@ -45,92 +43,75 @@ FISCAL_SPONSOR_NAME_NOT_PERMITTED_ERROR_MESSAGE = (
 )
 
 
-class AuthedUserSerializer(serializers.Serializer):
-    """This serializer is used to represent user data after users log in in api/v1/token."""
+class FlagSerializer(serializers.ModelSerializer):
+    """Serializer for waffle.Flag"""
 
-    flags = serializers.SerializerMethodField(method_name="get_active_flags_for_user")
-    email = serializers.EmailField()
-    id = serializers.CharField()
+    class Meta:
+        model = get_waffle_flag_model()
+        fields = (
+            "id",
+            "name",
+        )
+        read_only_fields = fields
+
+
+_AUTHED_USER_FIELDS = (
+    "accepted_terms_of_service",
+    "email",
+    "email_verified",
+    "flags",
+    "id",
+    "organizations",
+    "revenue_programs",
+    "role_type",
+)
+
+
+class AuthedUserSerializer(serializers.ModelSerializer):
+    """Expected use is for representing user in part of data returned in response to POST api/v1/token"""
+
     accepted_terms_of_service = serializers.DateTimeField()
+    email = serializers.EmailField()
     email_verified = serializers.BooleanField()
-    # TODO: [DEV-3913] Remove this once no longer on model
-    organizations = OrganizationInlineSerializer(many=True, source="_organizations")
-    revenue_programs = RevenueProgramInlineSerializerForAuthedUserSerializer(many=True)
-    role_type = serializers.ChoiceField(choices=Roles.choices, default=None, allow_null=True)
+    flags = FlagSerializer(many=True, source="active_flags", default=[], read_only=True)
+    id = serializers.CharField()
+    organizations = serializers.SerializerMethodField("get_orgs", default=[])
+    revenue_programs = serializers.SerializerMethodField("get_revenue_programs", default=[])
+    role_type = serializers.ChoiceField(choices=Roles.choices, default=None, allow_null=True, read_only=True)
 
-    def get_active_flags_for_user(self, obj) -> list[get_waffle_flag_model]:
-        Flag = get_waffle_flag_model()
-        if obj.is_superuser:
-            qs = Flag.objects.filter(Q(superusers=True) | Q(everyone=True) | Q(users__in=[obj]))
-        else:
-            qs = Flag.objects.filter(Q(everyone=True) | Q(users__in=[obj]))
-        return list(qs.only("name", "id").distinct().values("name", "id"))
+    class Meta:
+        model = get_user_model()
+        fields = _AUTHED_USER_FIELDS
+        read_only_fields = _AUTHED_USER_FIELDS
+
+    def get_orgs(self, obj):
+        return OrganizationInlineSerializer(
+            obj.permitted_organizations,
+            many=True,
+        ).data
+
+    def get_revenue_programs(self, obj):
+        return RevenueProgramInlineSerializer(
+            obj.permitted_revenue_programs.prefetch_related("payment_provider"), many=True
+        ).data
 
 
-class UserSerializer(serializers.ModelSerializer):
+class MutableUserSerializer(AuthedUserSerializer, serializers.ModelSerializer):
     """
     This serializer is used for creating and updating users.
     """
 
-    role_type = serializers.SerializerMethodField(method_name="get_role_type")
-    organizations = serializers.SerializerMethodField(method_name="get_permitted_organizations")
-    revenue_programs = serializers.SerializerMethodField(method_name="get_permitted_revenue_programs")
-    flags = serializers.SerializerMethodField(method_name="get_active_flags_for_user")
-    password = serializers.CharField(write_only=True, max_length=PASSWORD_MAX_LENGTH, required=True)
+    password = serializers.CharField(write_only=True, max_length=PASSWORD_MAX_LENGTH)
     email = serializers.EmailField(
-        validators=[UniqueValidator(queryset=get_user_model().objects.all(), lookup="icontains")], required=True
+        validators=[UniqueValidator(queryset=get_user_model().objects.all(), lookup="icontains")],
+        required=True,
     )
-    accepted_terms_of_service = serializers.DateTimeField(required=True)
+    accepted_terms_of_service = serializers.DateTimeField()
 
-    def get_role_type(self, obj):
-        # `obj` will be a dict of data when serializer being used in create view
-        if not isinstance(obj, get_user_model()):
-            return None
-        return obj.get_role_type()
-
-    def get_permitted_organizations(self, obj):
-        # `obj` will be a dict of data when serializer being used in create view
-        if not isinstance(obj, get_user_model()):
-            return []
-        qs = Organization.objects.all()
-        role_assignment = obj.get_role_assignment()
-        if not role_assignment and not obj.is_superuser:
-            qs = qs.none()
-        elif role_assignment and role_assignment.role_type != Roles.HUB_ADMIN:
-            org = getattr(role_assignment, "organization", None)
-            if org is None:
-                qs = qs.none()
-            else:
-                qs = qs.filter(pk=org.pk)
-        serializer = OrganizationInlineSerializer(qs, many=True)
-        return serializer.data
-
-    def get_permitted_revenue_programs(self, obj):
-        # `obj` will be a dict of data when serializer being used in create view
-        if not isinstance(obj, get_user_model()):
-            return []
-        qs = RevenueProgram.objects.all()
-        role_assignment = obj.get_role_assignment()
-        if not role_assignment and not obj.is_superuser:
-            qs = qs.none()
-        elif not obj.is_superuser and role_assignment.role_type != Roles.HUB_ADMIN:
-            if role_assignment.role_type == Roles.ORG_ADMIN:
-                qs = role_assignment.organization.revenueprogram_set.all()
-            elif role_assignment.role_type == Roles.RP_ADMIN:
-                qs = role_assignment.revenue_programs
-        serializer = RevenueProgramInlineSerializer(qs, many=True)
-        return serializer.data
-
-    def get_active_flags_for_user(self, obj):
-        # `obj` will be a dict of data when serializer being used in create view
-        if not isinstance(obj, get_user_model()):
-            return []
-        Flag = get_waffle_flag_model()
-        if obj.is_superuser:
-            qs = Flag.objects.filter(Q(superusers=True) | Q(everyone=True) | Q(users__in=[obj]))
-        else:
-            qs = Flag.objects.filter(Q(everyone=True) | Q(users__in=[obj]))
-        return list(qs.values("name", "id"))
+    # these are defined in parent but we need email verified required to be False...
+    email_verified = serializers.BooleanField(required=False, read_only=True)
+    # and need id to be unrequired because in case of creation, it's not known yet
+    id = serializers.CharField(required=False, read_only=True)
 
     def create(self, validated_data):
         """We manually handle create step because password needs to be set with `set_password`"""
@@ -158,37 +139,11 @@ class UserSerializer(serializers.ModelSerializer):
         instance.save()
         return instance
 
-    def get_fields(self, *args, **kwargs):
-        """Some fields that are required for creation are not required for update"""
-        fields = super().get_fields(*args, **kwargs)
-        request = self.context.get("request", None)
-        if request and getattr(request, "method", None) == "PATCH":
-            fields["accepted_terms_of_service"].required = False
-            fields["accepted_terms_of_service"].read_only = True  # Is only read_only for PATCH, not POST.
-            fields["password"].required = False
-            fields["email"].required = False
-        return fields
-
     class Meta:
         model = get_user_model()
-        fields = [
-            "id",
-            "accepted_terms_of_service",
-            "email",
-            "email_verified",
-            "flags",
-            "organizations",
-            "revenue_programs",
-            "role_type",
-            "password",
-        ]
+        fields = _AUTHED_USER_FIELDS + ("password",)
         read_only_fields = [
-            "id",
-            "email_verified",
-            "flags",
-            "organizations",
-            "revenue_programs",
-            "role_type",
+            x for x in _AUTHED_USER_FIELDS if x not in ("password", "email", "accepted_terms_of_service")
         ]
 
 
@@ -292,6 +247,8 @@ class CustomizeAccountSerializer(serializers.Serializer):
             reversion.set_comment("CustomizeAccountSerializer.create updated user")
 
         ra = RoleAssignment.objects.create(user=user, role_type=Roles.ORG_ADMIN, organization=organization)
+        ra.revenue_programs.set(ra.organization.revenueprogram_set.all())
+        ra.save()
 
         return {
             "organization": organization,

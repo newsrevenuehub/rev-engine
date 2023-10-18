@@ -143,8 +143,6 @@ class PageViewSet(FilterForSuperUserOrRoleAssignmentUserMixin, RevisionMixin, vi
     def get_serializer_class(self):
         if self.action in ("partial_update", "create", "retrieve"):
             return serializers.DonationPageFullDetailSerializer
-        else:
-            return serializers.DonationPageListSerializer
 
     @method_decorator(ensure_csrf_cookie)
     @action(detail=False, methods=["get"], permission_classes=[], authentication_classes=[], url_path="live-detail")
@@ -219,6 +217,21 @@ class PageViewSet(FilterForSuperUserOrRoleAssignmentUserMixin, RevisionMixin, vi
             return Response({"detail": "Could not find page with that ID"}, status=status.HTTP_404_NOT_FOUND)
         page.delete()
         return Response(status=status.HTTP_204_NO_CONTENT)
+
+    def list(self, request):
+        """List all available pages for the current user.
+
+        NB: This method assumes that any queryset filtering vis-a-vis user role and identity has
+        already been done upstream in get_queryset.
+
+
+        In order to optimize for query performance, we limit returned fields with .only (which we configure the serializer to define, as that's the place
+        where these field references are maintained)
+        """
+        serializer = serializers.DonationPageListSerializer
+        qs = self.get_queryset().only(*serializer._ONLIES)
+        serialized = serializer(qs, many=True)
+        return Response(serialized.data)
 
 
 class StyleViewSet(FilterForSuperUserOrRoleAssignmentUserMixin, RevisionMixin, viewsets.ModelViewSet):

@@ -308,9 +308,9 @@ export interface RevenueProgram {
    */
   website_url: string;
   /**
-   * Organization object from which the Revenue Program belongs.
+   * ID of parent organization
    */
-  organization: Organization;
+  organization: number;
   /**
    * ID of the default donation page of this revenue program, if it exists.
    */
@@ -329,6 +329,9 @@ export interface RevenueProgram {
   tax_id?: string | null;
 }
 
+export interface RevenueProgramWithFullOrganization extends Omit<RevenueProgram, 'organization'> {
+  organization: Organization;
+}
 /**
  * A page where visitors can make contributions to a revenue program.
  */
@@ -475,7 +478,7 @@ export interface ContributionPage {
   /**
    * Revenue program this page belongs to.
    */
-  revenue_program: RevenueProgram;
+  revenue_program: RevenueProgramWithFullOrganization;
   /**
    * ISO-3166 code of the country that the revenue program belongs to.
    */

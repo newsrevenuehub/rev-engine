@@ -19,8 +19,9 @@ from apps.organizations.models import Organization, RevenueProgram
 from apps.organizations.serializers import (
     BenefitLevelDetailSerializer,
     PaymentProviderSerializer,
+    RevenueProgramForDonationPageListSerializer,
+    RevenueProgramForPageDetailSerializer,
     RevenueProgramInlineSerializer,
-    RevenueProgramListInlineSerializer,
 )
 from apps.pages.models import PAGE_NAME_MAX_LENGTH, DonationPage, Font, Style
 
@@ -149,7 +150,7 @@ class DonationPageFullDetailSerializer(serializers.ModelSerializer):
     )
     revenue_program = PresentablePrimaryKeyRelatedField(
         queryset=RevenueProgram.objects.all(),
-        presentation_serializer=RevenueProgramListInlineSerializer,
+        presentation_serializer=RevenueProgramForPageDetailSerializer,
         read_source=None,
         allow_null=False,
         required=True,
@@ -475,20 +476,36 @@ class DonationPageFullDetailSerializer(serializers.ModelSerializer):
         return data
 
 
+_DONATION_PAGE_LIST_FIELDS = (
+    "id",
+    "name",
+    "page_screenshot",
+    "slug",
+    "revenue_program",
+    "published_date",
+)
+
+
 class DonationPageListSerializer(serializers.ModelSerializer):
-    revenue_program = RevenueProgramListInlineSerializer(read_only=True)
+    """Expected usage is representing lists of donation pages in api/v1/pages/
+
+    The primary consumer of this page at time of this comment is the SPA, and specifically
+    the pages list view in the org dashboard.
+
+    Note that at present, pagination is not enabled for this serializer, and superusers and hub
+    admins get all pages as currently configured. See [DEV-4030](https://news-revenue-hub.atlassian.net/browse/DEV-4030) for
+    further discussion.
+    """
+
+    revenue_program = RevenueProgramForDonationPageListSerializer()
+
+    # These are used in view layer db queries to reduce footprint.
+    _ONLIES = _DONATION_PAGE_LIST_FIELDS
 
     class Meta:
         model = DonationPage
-        fields = [
-            "id",
-            "name",
-            "page_screenshot",
-            "slug",
-            "revenue_program",
-            "published_date",
-            "is_live",
-        ]
+        fields = _DONATION_PAGE_LIST_FIELDS
+        read_only_fields = _DONATION_PAGE_LIST_FIELDS
 
 
 class FontSerializer(serializers.ModelSerializer):

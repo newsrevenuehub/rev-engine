@@ -5,7 +5,6 @@ import uuid
 
 
 class Migration(migrations.Migration):
-
     dependencies = [
         ("contributions", "0005_DEV-2183_contribution_provider_client_secret_id"),
     ]

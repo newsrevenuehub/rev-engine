@@ -151,7 +151,8 @@ class MailchimpRevenueProgramForSpaConfiguration(serializers.ModelSerializer):
     def update(self, instance, validated_data):
         """We override `.update` so we can pass update_fields to `instance.save()`. We have code that creates mailchimp entities
         if mailchimp_list_id is being updated. Beyond that, `update_fields` guards against race conditions."""
-        logger.info("Updating RP %s with data %s", instance, validated_data)
+        logger.info("Updating RP %s", instance)
+        logger.debug("Updating RP %s with data %s", instance, validated_data)
         update_fields = [field for field in validated_data if field in self.fields]
         for attr, value in validated_data.items():
             if attr in update_fields:
@@ -230,7 +231,8 @@ class RevenueProgramSerializer(serializers.ModelSerializer):
 
     def update(self, instance, validated_data):
         """We override `.update` so we can pass update_fields to `instance.save()`"""
-        logger.info("Updating RP %s with data %s", instance, validated_data)
+        logger.info("Updating RP %s", instance)
+        logger.debug("Updating RP %s with data %s", instance, validated_data)
         update_fields = [field for field in validated_data if field in self.fields]
         for attr, value in validated_data.items():
             if attr in update_fields:

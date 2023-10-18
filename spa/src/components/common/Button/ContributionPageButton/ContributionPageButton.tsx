@@ -26,11 +26,13 @@ export function ContributionPageButton({ page, ...other }: ContributionPageButto
       <Label>{page.name}</Label>
     );
 
+  // Lazy load images so that if in a long list of previews, we only load the
+  // ones visible to the user (or nearly visible)/
+
   const preview = page.page_screenshot ? (
-    <PreviewImage
-      data-testid="preview-image"
-      style={{ backgroundImage: `url(${page.page_screenshot})` }}
-    ></PreviewImage>
+    <PreviewImage data-testid="preview-image">
+      <img src={page.page_screenshot} alt="" loading="lazy" />
+    </PreviewImage>
   ) : (
     <PreviewPlaceholder>No preview</PreviewPlaceholder>
   );

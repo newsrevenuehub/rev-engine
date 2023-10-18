@@ -5,7 +5,6 @@ from django.db import migrations, models
 
 
 class Migration(migrations.Migration):
-
     dependencies = [
         ("pages", "0009_DEV_3689_donationpage_header_logo_alt_text"),
     ]

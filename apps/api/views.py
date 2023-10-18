@@ -1,4 +1,5 @@
 import logging
+import os
 from dataclasses import asdict
 from datetime import datetime
 from urllib.parse import quote_plus, urlparse
@@ -185,6 +186,10 @@ class RequestContributorTokenEmailView(APIView):
             "style": asdict(revenue_program.transactional_email_style),
             "rp_name": revenue_program.name,
         }
+
+        if data["style"]["is_default_logo"]:
+            data["style"]["logo_url"] = os.path.join(settings.SITE_URL, "static", "nre-logo-white.png")
+
         send_templated_email.delay(
             serializer.validated_data["email"],
             "Manage your contributions",

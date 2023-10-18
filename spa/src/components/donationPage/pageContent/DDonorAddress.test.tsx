@@ -10,6 +10,16 @@ import { DonationPageContext, UsePageProps } from '../DonationPage';
 import DDonorAddress, { DDonorAddressProps } from './DDonorAddress';
 import { DonorAddressElement } from 'hooks/useContributionPage';
 
+jest.mock('components/donationPage/DonationPage', () => ({
+  ...jest.requireActual('components/donationPage/DonationPage'),
+  usePage: () => ({
+    ...jest.requireActual('components/donationPage/DonationPage').usePage(),
+    page: {
+      locale: 'mock-locale'
+    }
+  })
+}));
+
 jest.mock('country-code-lookup', () => ({
   countries: [
     { country: 'AAA', iso2: 'aa' },
@@ -250,9 +260,11 @@ describe('DDonorAddress', () => {
   });
 
   describe('Google location autocomplete', () => {
-    it('initializes autocomplete with the API key in config', () => {
+    it('initializes autocomplete with the API key and language in config', () => {
       tree();
-      expect(usePlacesWidget).toBeCalledWith(expect.objectContaining({ apiKey: HUB_GOOGLE_MAPS_API_KEY }));
+      expect(usePlacesWidget).toBeCalledWith(
+        expect.objectContaining({ apiKey: HUB_GOOGLE_MAPS_API_KEY, language: 'mock-locale' })
+      );
     });
 
     it('updates fields when a place is selected', () => {

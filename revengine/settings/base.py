@@ -15,6 +15,8 @@ from datetime import timedelta
 from pathlib import Path
 from typing import Literal, TypedDict
 
+from google.oauth2 import service_account
+
 
 DEBUG = os.getenv("DJANGO_DEBUG", "False") == "True"
 # Set USE_DEBUG_INTERVALS to True if you want recurring payment intervals to
@@ -100,8 +102,12 @@ NEW_USER_TOPIC = os.getenv("NEW_USER_TOPIC", None)
 #   Secret Manager
 ENABLE_GOOGLE_CLOUD_SECRET_MANAGER = os.getenv("ENABLE_GOOGLE_CLOUD_SECRET_MANAGER", "false").lower() == "true"
 
-GS_CREDENTIALS = (
+GS_SERVICE_ACCOUNT = (
     json.loads(base64.b64decode(os.environ["GS_SERVICE_ACCOUNT"])) if os.environ.get("GS_SERVICE_ACCOUNT", None) else {}
+)
+
+GS_CREDENTIALS = (
+    service_account.Credentials.from_service_account_info(GS_SERVICE_ACCOUNT) if GS_SERVICE_ACCOUNT else None
 )
 
 

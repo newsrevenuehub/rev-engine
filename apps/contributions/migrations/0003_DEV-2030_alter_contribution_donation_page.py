@@ -5,7 +5,6 @@ import django.db.models.deletion
 
 
 class Migration(migrations.Migration):
-
     dependencies = [
         ("pages", "0002_DEV-2030_rp_deletion_cascades_to_template_and_page"),
         ("contributions", "0002_contribution_donation_page"),

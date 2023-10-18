@@ -4,7 +4,6 @@ from django.db import migrations, models
 
 
 class Migration(migrations.Migration):
-
     dependencies = [
         ("organizations", "0012_DEV-2721_organization_show_connected_to_salesforce"),
     ]

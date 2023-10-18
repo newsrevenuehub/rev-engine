@@ -11,7 +11,6 @@ def populate_rp_country_from_old_related_addresses(apps, schema_editor):
 
 
 class Migration(migrations.Migration):
-
     dependencies = [
         ("organizations", "0003_DEV-1757_uses_email_templates"),
     ]

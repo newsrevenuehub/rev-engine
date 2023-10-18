@@ -4,7 +4,6 @@ from django.db import migrations
 
 
 class Migration(migrations.Migration):
-
     dependencies = [
         ("organizations", "0018_DEV-3297_alter_revenueprogram_mailchimp_server_prefix"),
     ]

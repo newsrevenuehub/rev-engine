@@ -5,7 +5,9 @@ import styled from 'styled-components';
 export const Root = styled.div<{ $isDefault: boolean }>`
   align-items: center;
   border-radius: ${({ theme }) => theme.muiBorderRadius.lg};
-  box-shadow: 0 0.3px 0.5px rgba(0, 0, 0, 0.02), 0px 2px 4px rgba(0, 0, 0, 0.08);
+  box-shadow:
+    0 0.3px 0.5px rgba(0, 0, 0, 0.02),
+    0px 2px 4px rgba(0, 0, 0, 0.08);
   color: ${({ theme }) => theme.colors.muiGrey[900]};
   display: inline-flex;
   font-size: ${({ theme }) => theme.fontSizesUpdated.md};

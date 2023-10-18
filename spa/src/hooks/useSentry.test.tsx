@@ -9,12 +9,11 @@ import useSentry, { SentryRoute } from './useSentry';
 jest.mock('@sentry/react', () => ({
   ...jest.requireActual('@sentry/react'),
   init: jest.fn(),
-  withSentryRouting: (Component: ComponentType) => () =>
-    (
-      <div data-testid="with-sentry-routing">
-        <Component />
-      </div>
-    )
+  withSentryRouting: (Component: ComponentType) => () => (
+    <div data-testid="with-sentry-routing">
+      <Component />
+    </div>
+  )
 }));
 
 jest.mock('react-router-dom', () => ({

@@ -1,4 +1,4 @@
-import { loadStripe, Stripe } from '@stripe/stripe-js';
+import { loadStripe, Stripe, StripeElementLocale } from '@stripe/stripe-js';
 import { Elements } from '@stripe/react-stripe-js';
 import PropTypes, { InferProps } from 'prop-types';
 import { useEffect, useState } from 'react';
@@ -9,11 +9,13 @@ const StripePaymentWrapperPropTypes = {
   children: PropTypes.node,
   onError: PropTypes.func,
   stripeAccountId: PropTypes.string.isRequired,
-  stripeClientSecret: PropTypes.string.isRequired
+  stripeClientSecret: PropTypes.string.isRequired,
+  stripeLocale: PropTypes.string.isRequired
 };
 
 export interface StripePaymentWrapperProps extends InferProps<typeof StripePaymentWrapperPropTypes> {
   onError?: (error: Error) => void;
+  stripeLocale: StripeElementLocale;
 }
 
 /**
@@ -25,7 +27,8 @@ export function StripePaymentWrapper({
   children,
   onError,
   stripeAccountId,
-  stripeClientSecret
+  stripeClientSecret,
+  stripeLocale
 }: StripePaymentWrapperProps) {
   const [inited, setInited] = useState(false);
   const [stripe, setStripe] = useState<Stripe | null>(null);
@@ -62,7 +65,7 @@ export function StripePaymentWrapper({
   }, [inited, onError, stripeAccountId]);
 
   return stripe ? (
-    <Elements stripe={stripe} options={{ clientSecret: stripeClientSecret }}>
+    <Elements stripe={stripe} options={{ clientSecret: stripeClientSecret, locale: stripeLocale }}>
       {children}
     </Elements>
   ) : (

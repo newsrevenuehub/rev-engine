@@ -448,6 +448,10 @@ def send_test_email(request):
             )
         case "magic_link":
             data = make_send_test_magic_link_email_data(request.user, revenue_program)
+
+            if data["style"]["is_default_logo"]:
+                data["style"]["logo_url"] = os.path.join(settings.SITE_URL, "static", "nre-logo-white.png")
+
             send_templated_email.delay(
                 request.user.email,
                 "Manage your contributions",

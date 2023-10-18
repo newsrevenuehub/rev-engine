@@ -281,11 +281,11 @@ describe('serializeData', () => {
 describe('getPaymentElementButtonText', () => {
   it.each`
     amount | frequency                          | currencyCode | currencySymbol | expectation
-    ${100} | ${CONTRIBUTION_INTERVALS.ONE_TIME} | ${'USD'}     | ${'$'}         | ${'Give $100.00 USD once'}
-    ${200} | ${CONTRIBUTION_INTERVALS.ONE_TIME} | ${'USD'}     | ${'$'}         | ${'Give $200.00 USD once'}
-    ${200} | ${CONTRIBUTION_INTERVALS.ONE_TIME} | ${''}        | ${'£'}         | ${'Give £200.00 once'}
-    ${100} | ${CONTRIBUTION_INTERVALS.ANNUAL}   | ${'CAD'}     | ${'$'}         | ${'Give $100.00 CAD yearly'}
-    ${100} | ${CONTRIBUTION_INTERVALS.MONTHLY}  | ${'CAD'}     | ${'$'}         | ${'Give $100.00 CAD monthly'}
+    ${100} | ${CONTRIBUTION_INTERVALS.ONE_TIME} | ${'USD'}     | ${'$'}         | ${'stripeFns.paymentElementButtonText.one_time{"amount":"$100.00 USD"}'}
+    ${200} | ${CONTRIBUTION_INTERVALS.ONE_TIME} | ${'USD'}     | ${'$'}         | ${'stripeFns.paymentElementButtonText.one_time{"amount":"$200.00 USD"}'}
+    ${200} | ${CONTRIBUTION_INTERVALS.ONE_TIME} | ${''}        | ${'£'}         | ${'stripeFns.paymentElementButtonText.one_time{"amount":"£200.00"}'}
+    ${100} | ${CONTRIBUTION_INTERVALS.ANNUAL}   | ${'CAD'}     | ${'$'}         | ${'stripeFns.paymentElementButtonText.year{"amount":"$100.00 CAD"}'}
+    ${100} | ${CONTRIBUTION_INTERVALS.MONTHLY}  | ${'CAD'}     | ${'$'}         | ${'stripeFns.paymentElementButtonText.month{"amount":"$100.00 CAD"}'}
   `('produces expected result', ({ amount, frequency, currencyCode, currencySymbol, expectation }) => {
     expect(getPaymentElementButtonText({ amount, currencyCode, frequency, currencySymbol })).toBe(expectation);
   });

@@ -2,7 +2,7 @@
 repos:
   # Potpourri of hooks provided by github.
   - repo: https://github.com/pre-commit/pre-commit-hooks
-    rev: v4.3.0
+    rev: v4.5.0
     hooks:
       - id: check-docstring-first
       - id: check-json
@@ -19,11 +19,18 @@ repos:
       - id: detect-private-key
       - id: end-of-file-fixer
         exclude: revengine/static/apple-developer-merchantid-domain-association
-      #      - id: no-commit-to-branch
       - id: trailing-whitespace
+  # Python security checks
+  - repo: https://github.com/PyCQA/bandit
+    rev: 1.7.5
+    hooks:
+      - id: bandit
+        args: ["--severity-level=high", "--confidence-level=medium", "-c", "pyproject.toml", "-r", "."]
+        additional_dependencies: ["bandit[toml]"]
+        types: [python]
   # Black code formatter.
   - repo: https://github.com/psf/black
-    rev: 22.6.0
+    rev: 23.9.1
     hooks:
       - id: black
         language_version: python3.10
@@ -36,10 +43,10 @@ repos:
         exclude: ^.*\b(migrations)\b.*$
   # Pythonic checks.
   - repo: https://github.com/PyCQA/flake8
-    rev: 4.0.1
+    rev: 6.1.0
     hooks:
       - id: flake8
-        exclude: docs|migrations|node_modules|revengine/settings
+        exclude: docs|migrations|node_modules
         additional_dependencies:
           - "flake8-logging-format"
   # # Pylint code checks.
@@ -52,35 +59,28 @@ repos:
   #       language: system
   #       types: [python]
   #       require_serial: true
-
   # Check Python dependencies against p0wned package database.
   - repo: https://github.com/Lucas-C/pre-commit-hooks-safety
-    rev: v1.3.0
+    rev: v1.3.2
     hooks:
       - id: python-safety-dependencies-check
         files: pyproject.toml
-  # Python security checks
-  - repo: https://github.com/Lucas-C/pre-commit-hooks-bandit
-    rev: v1.0.6
+        args: ["--ignore=60956"]  # Django upgrade >=3.2.21 https://pyup.io/v/60956/f17
+  # Checks no secrets in code.
+  - repo: https://github.com/thoughtworks/talisman
+    rev: v1.31.0
     hooks:
-      - id: python-bandit-vulnerability-check
-        args: [-r, ./webhookreceiver/]
-        types: [python]
-  # Temp commented out in DEV-1745 because talisman is binary, not apt installable, maybe requires golang.
-  # # Checks for secrets.
-  # - repo: https://github.com/thoughtworks/talisman
-  #   rev: v1.26.0
-  #   hooks:
-  #     - id: talisman-commit
+      - id: talisman-commit
+        entry: bash -c 'if [ -n "${TALISMAN_HOME:-}" ]; then ${TALISMAN_HOME}/talisman_hook_script pre-commit; else echo "TALISMAN does not exist. Consider installing from https://github.com/thoughtworks/talisman . If you already have talisman installed, please ensure TALISMAN_HOME variable is set to where talisman_hook_script resides, for example, TALISMAN_HOME=${HOME}/.talisman/bin"; fi'
   # JS formater.
   - repo: https://github.com/pre-commit/mirrors-prettier
-    rev: v2.7.1
+    rev: v3.0.3
     hooks:
       - id: prettier
         types_or: [javascript, ts, tsx]
   # JS code linter.
   - repo: https://github.com/pre-commit/mirrors-eslint
-    rev: v8.18.0
+    rev: v8.51.0
     hooks:
       - id: eslint
         files: \.[jt]sx?$ # *.js, *.jsx, *.ts and *.tsx
@@ -96,8 +96,7 @@ repos:
           - eslint-plugin-cypress@^2.13.3
           - eslint-plugin-react-hooks@^4.0.8
           - eslint-plugin-testing-library@^5.5.1
-  # Disabled as it complains that `FROM base AS depploy needs to specific tag, but opinions vary.
-  # DEV-1763
+  # TODO: DEV-1763 Disabled as it complains that `FROM base AS deploy needs to specific tag, but opinions vary.
   # # Docker file formatter/checker.
   # - repo: https://github.com/pryorda/dockerfilelint-precommit-hooks
   #   rev: v0.1.0

@@ -38,7 +38,9 @@ class StripeWebhookProcessor:
 
     @property
     def id(self) -> str:
-        return self.obj_data["id"]
+        # This is the Stripe ID of the object in the event. While subscription and payment intent have an ID in the payload,
+        # invoice-related events do not, so we have to return None.
+        return self.obj_data.get("id", None)
 
     @property
     def event_type(self) -> str:
@@ -69,7 +71,8 @@ class StripeWebhookProcessor:
 
     @property
     def rejected(self):
-        return self.obj_data.get("cancellation_reason") == "fraudulent"
+        # Not all Stripe entities in webhooks will have a cancellation_reason (for instance, invoice-related events do not).
+        return self.obj_data.get("cancellation_reason", None) == "fraudulent"
 
     def route_request(self):
         logger.debug("Routing request for event type %s", self.event_type)
@@ -104,14 +107,14 @@ class StripeWebhookProcessor:
         if settings.STRIPE_LIVE_MODE and not self.live_mode:
             logger.debug(
                 "Test mode event %s for account %s received while in live mode",
-                self.event["id"],
+                self.event_id,
                 self.event["account"],
             )
             return False
         if not settings.STRIPE_LIVE_MODE and self.live_mode:
             logger.debug(
                 "Live mode event %s for account %s received while in test mode",
-                self.event["id"],
+                self.event_id,
                 self.event["account"],
             )
             return False
@@ -202,10 +205,14 @@ class StripeWebhookProcessor:
         """
         if self.contribution.interval == ContributionInterval.YEARLY:
             logger.info(
-                "StripeWebhookProcessor.process_invoice called for contribution %s which is yearly. Triggering a reminder email."
+                "StripeWebhookProcessor.process_invoice called for contribution %s which is yearly. Triggering a reminder email.",
+                self.contribution.id,
             )
             self.contribution.send_recurring_contribution_email_reminder(
                 make_aware(datetime.datetime.fromtimestamp(self.obj_data["next_payment_attempt"])).date()
             )
         else:
-            logger.debug("StripeWebhookProcessor.process_invoice called for contribution %s which is not yearly. Noop.")
+            logger.debug(
+                "StripeWebhookProcessor.process_invoice called for contribution %s which is not yearly. Noop.",
+                self.contribution.id,
+            )

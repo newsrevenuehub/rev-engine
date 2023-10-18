@@ -58,13 +58,12 @@ def payment_intent_event():
 
 
 @pytest.fixture
-def invoice_event():
+def invoice_upcoming_event():
     return {
         "id": "evt_1J4X2n2eZvKYlo2C0QYQXZ0K",
         "type": "invoice",
         "data": {
             "object": {
-                "id": "in_1J4X2n2eZvKYlo2C0QYQXZ0K",
                 "object": "invoice",
                 "subscription": "sub_1J4X2n2eZvKYlo2C0QYQXZ0K",
             }
@@ -126,13 +125,13 @@ class TestStripeWebhookProcessor:
                 processor.contribution
 
     @pytest.mark.parametrize("found", [True, False])
-    def test_contribution_when_invoice(self, found, invoice_event):
+    def test_contribution_when_invoice(self, found, invoice_upcoming_event):
         contribution = (
-            ContributionFactory(provider_subscription_id=invoice_event["data"]["object"]["subscription"])
+            ContributionFactory(provider_subscription_id=invoice_upcoming_event["data"]["object"]["subscription"])
             if found
             else None
         )
-        processor = StripeWebhookProcessor(invoice_event)
+        processor = StripeWebhookProcessor(invoice_upcoming_event)
         if found:
             assert processor.contribution == contribution
         else:

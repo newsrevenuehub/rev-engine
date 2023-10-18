@@ -7,9 +7,9 @@ import { getStripeAccountLinkStatusPath } from 'ajax/endpoints';
 import useUser from 'hooks/useUser';
 import useConnectStripeAccount, { StripeAccountLinkStatusResponse } from './useConnectStripeAccount';
 import { User } from './useUser.types';
+import { RevenueProgram } from './useContributionPage';
 import { useHistory } from 'react-router-dom';
 import { SIGN_IN } from 'routes';
-import { RevenueProgram } from './useContributionPage';
 
 jest.mock('hooks/useUser');
 jest.mock('react-router-dom', () => ({

@@ -1,5 +1,6 @@
 import { UseQueryResult } from '@tanstack/react-query';
-import { EnginePlan, RevenueProgram } from './useContributionPage';
+import { EnginePlan } from './useContributionPage';
+import { RevenueProgram } from 'hooks/useContributionPage/useContributionPage.types';
 import { Dispatch, SetStateAction } from 'react';
 
 /**

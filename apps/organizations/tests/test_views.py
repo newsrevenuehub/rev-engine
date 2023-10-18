@@ -1368,6 +1368,45 @@ class TestHandleMailchimpOauthSuccessView:
         assert response.json() == {"detail": "You do not have permission to perform this action."}
 
 
+@pytest.fixture(
+    params=[
+        "free_plan_revenue_program",
+        "core_plan_revenue_program",
+        "plus_plan_revenue_program",
+    ]
+)
+def hub_admin_user_with_rps_in_ra(hub_admin_user, request):
+    hub_admin_user.roleassignment.revenue_programs.add((rp := request.getfixturevalue(request.param)))
+    hub_admin_user.roleassignment.organization = rp.organization
+    hub_admin_user.roleassignment.save()
+    return hub_admin_user
+
+
+@pytest.fixture
+def org_user_for_email_test(org_user_free_plan, revenue_program):
+    org_user_free_plan.roleassignment.organization = revenue_program.organization
+    org_user_free_plan.roleassignment.revenue_programs.add(revenue_program)
+    org_user_free_plan.roleassignment.save()
+    return org_user_free_plan
+
+
+@pytest.fixture
+def rp_user_for_email_test(rp_user, revenue_program):
+    rp_user.roleassignment.organization = revenue_program.organization
+    rp_user.roleassignment.revenue_programs.add(revenue_program)
+    rp_user.roleassignment.save()
+    return rp_user
+
+
+@pytest.fixture(params=["superuser", "org_user_for_email_test", "rp_user_for_email_test", "hub_admin_user"])
+def test_email_user(request, revenue_program):
+    user = request.getfixturevalue(request.param)
+    if user.roleassignment:
+        user.roleassignment.revenue_programs.add(revenue_program)
+        user.roleassignment.save()
+    return user
+
+
 @pytest.mark.django_db
 class TestSendTestEmail:
     def test_when_dont_own_revenue_program(self, org_user_free_plan, revenue_program, api_client):
@@ -1393,32 +1432,26 @@ class TestSendTestEmail:
         assert response.status_code == status.HTTP_400_BAD_REQUEST
         assert response.json() == expected_response
 
-    @pytest_cases.parametrize(
-        "revenue_program",
-        (
-            pytest_cases.fixture_ref("free_plan_revenue_program"),
-            pytest_cases.fixture_ref("core_plan_revenue_program"),
-            pytest_cases.fixture_ref("plus_plan_revenue_program"),
-        ),
-    )
     def test_show_upgrade_prompt_conditionality_around_org_plan(
-        self, revenue_program, hub_admin_user, api_client, mocker
+        self, hub_admin_user_with_rps_in_ra, api_client, mocker
     ):
-        api_client.force_authenticate(hub_admin_user)
-
+        rp = hub_admin_user_with_rps_in_ra.roleassignment.revenue_programs.first()
+        api_client.force_authenticate(hub_admin_user_with_rps_in_ra)
         mocker.patch("apps.emails.tasks.get_test_magic_link", return_value="fake_magic_link")
         send_email_spy = mocker.spy(send_templated_email, "delay")
 
         api_client.post(
             reverse("send-test-email"),
-            data={"revenue_program": revenue_program.id, "email_name": "reminder"},
+            data={"revenue_program": rp.id, "email_name": "reminder"},
         )
 
         title_prompt = "Can I brand my email receipts?"
         description_prompt = "Yes! Upgrade to Core to use your logo and branding for all email receipts."
         link_prompt = "https://fundjournalism.org/pricing/"
 
-        if revenue_program.organization.plan.name == FreePlan.name:
+        send_email_spy.assert_called_once()
+
+        if rp.organization.plan.name == FreePlan.name:
             expect_present = (title_prompt, description_prompt, link_prompt)
             expect_missing = ()
         else:
@@ -1431,19 +1464,11 @@ class TestSendTestEmail:
         for x in expect_missing:
             assert x not in send_email_spy.call_args[0][3]
 
-    @pytest_cases.parametrize(
-        "user",
-        (
-            pytest_cases.fixture_ref("hub_admin_user"),
-            pytest_cases.fixture_ref("superuser"),
-            pytest_cases.fixture_ref("rp_user"),
-        ),
-    )
-    def test_invalid_email_name_independent_of_user_role(self, user, revenue_program, api_client):
-        api_client.force_authenticate(user)
+    def test_invalid_email_name_independent_of_user_role(self, test_email_user, revenue_program, api_client):
+        api_client.force_authenticate(test_email_user)
         rp_pk = (
-            user.roleassignment.revenue_programs.first().id
-            if user.roleassignment.revenue_programs.first()
+            test_email_user.roleassignment.revenue_programs.first().id
+            if test_email_user.roleassignment.revenue_programs.first()
             else revenue_program.id
         )
         response = api_client.post(
@@ -1453,26 +1478,18 @@ class TestSendTestEmail:
         assert response.status_code == status.HTTP_400_BAD_REQUEST
         assert response.json() == {"email_name": ["Invalid email name: something"]}
 
-    @pytest_cases.parametrize(
-        "user",
-        (
-            pytest_cases.fixture_ref("hub_admin_user"),
-            pytest_cases.fixture_ref("superuser"),
-            pytest_cases.fixture_ref("rp_user"),
-        ),
-    )
-    def test_send_test_receipt_email(self, user, revenue_program, mocker, api_client, settings):
+    def test_send_test_receipt_email(self, test_email_user, revenue_program, mocker, api_client, settings):
         settings.CELERY_TASK_ALWAYS_EAGER = True
-        api_client.force_authenticate(user)
+        api_client.force_authenticate(test_email_user)
         rp = (
-            user.roleassignment.revenue_programs.first()
-            if user.roleassignment.revenue_programs.first()
+            test_email_user.roleassignment.revenue_programs.first()
+            if test_email_user.roleassignment.revenue_programs.first()
             else revenue_program
         )
 
         mocker.patch("apps.emails.tasks.get_test_magic_link", return_value="fake_magic_link")
         send_thank_you_email_spy = mocker.spy(send_thank_you_email, "delay")
-        expected_data = make_send_test_contribution_email_data(user, rp)
+        expected_data = make_send_test_contribution_email_data(test_email_user, rp)
 
         api_client.post(
             reverse("send-test-email"),
@@ -1480,66 +1497,49 @@ class TestSendTestEmail:
         )
         send_thank_you_email_spy.assert_called_once_with(expected_data)
 
-    @pytest_cases.parametrize(
-        "user",
-        (
-            pytest_cases.fixture_ref("hub_admin_user"),
-            pytest_cases.fixture_ref("superuser"),
-            pytest_cases.fixture_ref("rp_user"),
-        ),
-    )
-    def test_send_test_reminder_email(self, user, revenue_program, mocker, api_client, settings):
+    def test_send_test_reminder_email(self, test_email_user, revenue_program, mocker, api_client, settings):
         settings.CELERY_ALWAYS_EAGER = True
-        api_client.force_authenticate(user)
+        api_client.force_authenticate(test_email_user)
         rp = (
-            user.roleassignment.revenue_programs.first()
-            if user.roleassignment.revenue_programs.first()
+            test_email_user.roleassignment.revenue_programs.first()
+            if test_email_user.roleassignment.revenue_programs.first()
             else revenue_program
         )
 
         send_email_spy = mocker.spy(send_templated_email, "delay")
         mocker.patch("apps.emails.tasks.get_test_magic_link", return_value="fake_magic_link")
-        expected_data = make_send_test_contribution_email_data(user, rp)
+        expected_data = make_send_test_contribution_email_data(test_email_user, rp)
 
         api_client.post(
             reverse("send-test-email"),
             data={"revenue_program": rp.id, "email_name": "reminder"},
         )
         send_email_spy.assert_called_once_with(
-            user.email,
+            test_email_user.email,
             f"Reminder: {rp.name} scheduled contribution",
             render_to_string("recurring-contribution-email-reminder.txt", expected_data),
             render_to_string("recurring-contribution-email-reminder.html", expected_data),
         )
 
-    @pytest_cases.parametrize(
-        "user",
-        (
-            pytest_cases.fixture_ref("hub_admin_user"),
-            pytest_cases.fixture_ref("superuser"),
-            pytest_cases.fixture_ref("rp_user"),
-        ),
-    )
-    def test_send_test_magic_link_email(self, user, revenue_program, mocker, api_client, settings):
+    def test_send_test_magic_link_email(self, test_email_user, revenue_program, mocker, api_client, settings):
         settings.CELERY_ALWAYS_EAGER = True
-        api_client.force_authenticate(user)
+        api_client.force_authenticate(test_email_user)
         rp = (
-            user.roleassignment.revenue_programs.first()
-            if user.roleassignment.revenue_programs.first()
+            test_email_user.roleassignment.revenue_programs.first()
+            if test_email_user.roleassignment.revenue_programs.first()
             else revenue_program
         )
 
         send_email_spy = mocker.spy(send_templated_email, "delay")
         mocker.patch("apps.emails.tasks.get_test_magic_link", return_value="fake_magic_link")
-        expected_data = make_send_test_magic_link_email_data(user, rp)
+        expected_data = make_send_test_magic_link_email_data(test_email_user, rp)
         expected_data["style"]["logo_url"] = os.path.join(settings.SITE_URL, "static", "nre-logo-white.png")
-
         api_client.post(
             reverse("send-test-email"),
             data={"revenue_program": rp.id, "email_name": "magic_link"},
         )
         send_email_spy.assert_called_once_with(
-            user.email,
+            test_email_user.email,
             "Manage your contributions",
             render_to_string("nrh-manage-contributions-magic-link.txt", expected_data),
             render_to_string("nrh-manage-contributions-magic-link.html", expected_data),

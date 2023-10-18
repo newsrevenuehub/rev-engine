@@ -50,7 +50,11 @@ from apps.users.permissions import (
     UserIsAllowedToUpdate,
     UserOwnsUser,
 )
-from apps.users.serializers import CustomizeAccountSerializer, UserSerializer
+from apps.users.serializers import (
+    AuthedUserSerializer,
+    CustomizeAccountSerializer,
+    MutableUserSerializer,
+)
 
 
 logger = logging.getLogger(__name__)
@@ -185,10 +189,22 @@ class UserViewset(
 
     model = User
     queryset = User.objects.all()
-    serializer_class = UserSerializer
     # We're explicitly setting allowed methods in order to prohibit PUT updates. If PUT
     # added, the custom logic in UserSerializer.get_fields will have to be addressed.
     http_method_names = ["get", "post", "patch"]
+
+    def get_serializer(self, *args, **kwargs):
+        serializer = super().get_serializer(*args, **kwargs)
+        if self.request.method == "PATCH":
+            serializer.fields["accepted_terms_of_service"].required = False
+            serializer.fields["accepted_terms_of_service"].read_only = True
+            serializer.fields["password"].required = False
+        return serializer
+
+    def get_serializer_class(self):
+        if self.action == "list":
+            return AuthedUserSerializer
+        return MutableUserSerializer
 
     def get_permissions(self):
         permission_classes = {
@@ -199,22 +215,18 @@ class UserViewset(
                 IsAuthenticated,
             ],
             "partial_update": [UserOwnsUser, UserIsAllowedToUpdate],
-            "request_account_verification": [
-                IsAuthenticated,
-            ],
+            "request_account_verification": [IsAuthenticated],
+            "customize_account": [UserOwnsUser, IsAuthenticated, UserIsAllowedToUpdate, UserHasAcceptedTermsOfService],
         }.get(self.action, [])
-        if self.action == "partial_update":
-            permission_classes = [UserOwnsUser, UserIsAllowedToUpdate]
-        if self.action == "customize_account":
-            permission_classes = [UserOwnsUser, IsAuthenticated, UserIsAllowedToUpdate, UserHasAcceptedTermsOfService]
 
         return [permission() for permission in permission_classes]
 
-    def send_verification_email(self, user):
-        """Send email to user asking them to click verify their email address link."""
-        if not user.email:
-            logger.warning("Account Verification: No email for user: %s", user.id)
-            return
+    def send_verification_email(self, user: user_model):
+        """Send email to user asking them to click verify their email address link.
+
+        NB: this method assumes that the user sent as `user` has already been saved to the database.
+        In this caes, it will be guaranteed to have a .email property.
+        """
         encoded_email, token = AccountVerification().generate_token(user.email)
         url = self.request.build_absolute_uri(
             reverse("account_verification", kwargs={"email": encoded_email, "token": token})
@@ -252,7 +264,10 @@ class UserViewset(
             raise ValidationError(detail={"password": safe_messages})
 
     def validate_bad_actor(self, data):
-        """Determine if user is a bad actor or not."""
+        """Determine if user is a bad actor or not.
+
+        NB: This assumes org users and may do unexpected things if applied to contributor users or others (though that is not exposed)
+        """
         try:
             response = make_bad_actor_request(
                 {
@@ -289,7 +304,7 @@ class UserViewset(
 
     def list(self, request, *args, **kwargs):
         """Returns the requesting user's serialized user instance, not a list."""
-        return Response(self.get_serializer(request.user).data)
+        return Response(self.get_serializer_class()(instance=request.user).data)
 
     @action(detail=True, methods=["patch"])
     def customize_account(self, request, pk=None):

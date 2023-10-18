@@ -1,4 +1,3 @@
-import datetime
 import json
 import os
 import re
@@ -9,90 +8,256 @@ from urllib.parse import urlparse
 from django.conf import settings
 from django.contrib.auth import get_user_model
 from django.core import mail
-from django.test import Client, TestCase
-from django.test.utils import override_settings
+from django.core.exceptions import ValidationError as DjangoValidationError
 from django.urls import reverse
 from django.utils import timezone
 from django.utils.text import slugify
 
 import pytest
-import pytest_cases
 from bs4 import BeautifulSoup
 from django_rest_passwordreset.models import ResetPasswordToken
-from faker import Faker
 from rest_framework import status
-from rest_framework.permissions import IsAuthenticated
-from rest_framework.test import APITestCase
+from rest_framework.permissions import AllowAny, IsAuthenticated
+from rest_framework.serializers import ValidationError as DRFValidationError
 
+from apps.contributions.bad_actor import BadActorAPIError
 from apps.organizations.models import FiscalStatusChoices
 from apps.organizations.tests.factories import OrganizationFactory
-from apps.users import serializers
 from apps.users.choices import Roles
 from apps.users.constants import (
     BAD_ACTOR_CLIENT_FACING_VALIDATION_MESSAGE,
+    EMAIL_VERIFICATION_EMAIL_SUBJECT,
     INVALID_TOKEN,
     PASSWORD_MAX_LENGTH,
     PASSWORD_MIN_LENGTH,
-    PASSWORD_NUMERIC_VALIDATION_MESSAGE,
-    PASSWORD_TOO_COMMON_VALIDATION_MESSAGE,
-    PASSWORD_TOO_LONG_VALIDATION_MESSAGE,
-    PASSWORD_TOO_SHORT_VALIDATION_MESSAGE,
-    PASSWORD_TOO_SIMILAR_TO_EMAIL_VALIDATION_MESSAGE,
+    PASSWORD_UNEXPECTED_VALIDATION_MESSAGE_SUBSTITUTE,
+    PASSWORD_VALIDATION_EXPECTED_MESSAGES,
 )
-from apps.users.models import User
 from apps.users.permissions import (
     UserHasAcceptedTermsOfService,
     UserIsAllowedToUpdate,
     UserOwnsUser,
 )
+from apps.users.serializers import AuthedUserSerializer
 from apps.users.tests.factories import create_test_user
 from apps.users.views import AccountVerification, UserViewset
 
 
-user_model = get_user_model()
-fake = Faker()
+@pytest.fixture
+def valid_customize_account_request_data():
+    return {
+        "first_name": "Test",
+        "last_name": "User",
+        "organization_name": "Test Organization",
+        "organization_tax_id": "123456789",
+        "job_title": "Test Title",
+        "fiscal_status": FiscalStatusChoices.FOR_PROFIT,
+    }
 
 
-class TestAccountVerificationEndpoint(TestCase):
-    @override_settings(ACCOUNT_VERIFICATION_LINK_EXPIRY=None)
-    def test_happy_path_no_expiry(self):
-        user = create_test_user(is_active=True, email_verified=False)
-        email, token = AccountVerification().generate_token(user.email)
-        response = self.client.get(reverse("account_verification", kwargs={"email": email, "token": token}))
-        self.assertRedirects(response, reverse("spa_account_verification"))
-        assert get_user_model().objects.get(pk=user.id).email_verified
+class MockResponseObject:
+    def __init__(self, json_data, status_code=200):
+        self.status_code = status_code
+        self.json_data = json_data
 
-    @override_settings(ACCOUNT_VERIFICATION_LINK_EXPIRY=1)
-    def test_happy_path_with_expiry(self):
-        user = create_test_user(is_active=True, email_verified=False)
-        email, token = AccountVerification().generate_token(user.email)
-        response = self.client.get(reverse("account_verification", kwargs={"email": email, "token": token}))
-        self.assertRedirects(response, reverse("spa_account_verification"))
-        assert get_user_model().objects.get(pk=user.id).email_verified
-
-    # Expiry is tested below in TestAccountVerification, is hard to replicate here, and adds no coverage.
-    # def test_expired_token(self):
-
-    def test_failed_bad_token(self):
-        user = create_test_user(is_active=False, email_verified=False)
-        email, _ = AccountVerification().generate_token(user.email)
-        _, token = AccountVerification().generate_token("thewrongtoken@example.com")
-        response = self.client.get(reverse("account_verification", kwargs={"email": email, "token": token}))
-        self.assertRedirects(response, reverse("spa_account_verification_fail", kwargs={"failure": "failed"}))
-
-    def test_inactive_user(self):
-        user = create_test_user(is_active=False, email_verified=False)
-        email, token = AccountVerification().generate_token(user.email)
-        response = self.client.get(reverse("account_verification", kwargs={"email": email, "token": token}))
-        self.assertRedirects(response, reverse("spa_account_verification_fail", kwargs={"failure": "inactive"}))
-
-    def test_unknown_user(self):
-        email, token = AccountVerification().generate_token("bobjohnny@example.com")
-        response = self.client.get(reverse("account_verification", kwargs={"email": email, "token": token}))
-        self.assertRedirects(response, reverse("spa_account_verification_fail", kwargs={"failure": "unknown"}))
+    def json(self):
+        return self.json_data
 
 
-class TestAccountVerification:
+@pytest.fixture
+def valid_create_request_data(valid_password, valid_email, faker):
+    return {
+        "email": valid_email,
+        "password": valid_password,
+        "accepted_terms_of_service": timezone.now(),
+    }
+
+
+@pytest.fixture
+def valid_email():
+    return "foo@bar.com"
+
+
+@pytest.fixture
+def password_too_long(faker):
+    return faker.password(length=PASSWORD_MAX_LENGTH + 1)
+
+
+@pytest.fixture
+def password_too_short(faker):
+    return faker.password(length=PASSWORD_MIN_LENGTH - 1)
+
+
+@pytest.fixture
+def password_too_common():
+    return "passWord!"
+
+
+@pytest.fixture
+def password_too_similar_to_email(valid_email):
+    return valid_email
+
+
+@pytest.fixture
+def password_is_numeric():
+    return "19283746501234568686"
+
+
+@pytest.fixture
+def valid_password(faker):
+    return faker.password(length=PASSWORD_MIN_LENGTH + 1)
+
+
+@pytest.fixture(
+    params=[
+        "user_with_verified_email_and_tos_accepted",
+    ]
+)
+def user(request):
+    return request.getfixturevalue(request.param)
+
+
+@pytest.fixture
+def create_data_invalid_for_email(valid_create_request_data, valid_password):
+    existing = create_test_user(email="bizz@bang.com", password=valid_password, email_verified=True)
+    return valid_create_request_data | {"email": existing.email}
+
+
+@pytest.fixture(
+    params=[
+        "password_too_long",
+        "password_too_short",
+        "password_too_common",
+        "password_too_similar_to_email",
+        "password_is_numeric",
+    ]
+)
+def create_data_invalid_for_password(request, valid_create_request_data):
+    return valid_create_request_data | {"password": request.getfixturevalue(request.param)}
+
+
+@pytest.fixture
+def create_data_invalid_tos_empty(valid_create_request_data):
+    return valid_create_request_data | {"accepted_terms_of_service": ""}
+
+
+@pytest.fixture
+def create_data_invalid_tos_missing(valid_create_request_data):
+    return {k: v for k, v in valid_create_request_data.items() if k != "accepted_terms_of_service"}
+
+
+@pytest.fixture(params=["create_data_invalid_tos_empty", "create_data_invalid_tos_missing"])
+def create_data_invalid_for_tos(request):
+    return request.getfixturevalue(request.param)
+
+
+@pytest.fixture()
+def create_data_invalid_no_email_field(valid_create_request_data):
+    return {k: v for k, v in valid_create_request_data.items() if k != "email"}
+
+
+@pytest.fixture
+def create_data_invalid_email_random_string(valid_create_request_data):
+    return valid_create_request_data | {"email": "cats"}
+
+
+@pytest.fixture
+def create_data_invalid_empty_string(valid_create_request_data):
+    return valid_create_request_data | {"email": ""}
+
+
+@pytest.fixture
+def create_data_invalid_email_case_insensitive_same(valid_create_request_data):
+    create_test_user(email=(email := valid_create_request_data["email"].lower()))
+    return valid_create_request_data | {"email": email.upper()}
+
+
+@pytest.fixture(
+    params=[
+        "create_data_invalid_no_email_field",
+        "create_data_invalid_empty_string",
+        "create_data_invalid_email_random_string",
+        "create_data_invalid_email_case_insensitive_same",
+    ]
+)
+def invalid_create_data_for_email(request):
+    return request.getfixturevalue(request.param)
+
+
+@pytest.fixture
+def valid_update_data(faker):
+    return {
+        "email": faker.email(),
+        "password": faker.password(),
+    }
+
+
+@pytest.fixture(
+    params=[
+        "password_too_long",
+        "password_too_short",
+        "password_too_common",
+        "password_too_similar_to_email",
+        "password_is_numeric",
+    ]
+)
+def invalid_update_data_for_password(request):
+    return {"password": request.getfixturevalue(request.param)}
+
+
+@pytest.fixture
+def invalid_email_already_taken(faker):
+    email = faker.email()
+    create_test_user(email=email, email_verified=True)
+    return {"email": email}
+
+
+@pytest.fixture
+def invalid_email_none():
+    return {"email": None}
+
+
+@pytest.fixture
+def invalid_email_random_string():
+    return {"email": "cats"}
+
+
+@pytest.fixture(
+    params=[
+        "invalid_email_already_taken",
+        "invalid_email_random_string",
+    ]
+)
+def invalid_update_data_for_email(request):
+    return request.getfixturevalue(request.param)
+
+
+@pytest.fixture()
+def org_user(org_user_free_plan, valid_password):
+    org_user_free_plan.email_verified = True
+    org_user_free_plan.accepted_terms_of_service = timezone.now()
+    org_user_free_plan.set_password(valid_password)
+    org_user_free_plan.save()
+    return org_user_free_plan
+
+
+@pytest.fixture()
+def staff_user(hub_admin_user, valid_password):
+    hub_admin_user.is_staff = True
+    hub_admin_user.email_verified = True
+    hub_admin_user.accepted_terms_of_service = timezone.now()
+    hub_admin_user.set_password(valid_password)
+    hub_admin_user.save()
+    return hub_admin_user
+
+
+@pytest.fixture(params=["org_user", "staff_user"])
+def custom_password_reset_view_user(request):
+    return request.getfixturevalue(request.param)
+
+
+@pytest.mark.django_db
+class TestAccountVerificationClass:
     @pytest.mark.django_db
     def test_validation_happy_path(self):
         user = create_test_user(is_active=True, email_verified=False)
@@ -189,594 +354,156 @@ class TestAccountVerification:
         )  # Ensure encoded string contains only RFC-3986 URL Safe characters plus equalsign, "=". Because base64 lib uses equalsigns inviolation of RFC.
 
 
-@override_settings(EMAIL_BACKEND="django.core.mail.backends.locmem.EmailBackend")
-class TestCustomPasswordResetView(TestCase):
-    def setUp(self):
-        self.client = Client()
-        self.mailbox = mail.outbox
-        self.staff_user = user_model.objects.create_superuser(email="test_superuser@test.com", password="testing")
-        organization = OrganizationFactory()
-        self.org_admin_user = create_test_user()
-        self.org_admin_user.organizations.add(organization)
+@pytest.mark.django_db
+@pytest.mark.parametrize("is_valid", (True, False))
+def test_account_verification(is_valid, api_client, mocker, valid_email):
+    """This is for testing apps.users.views.account_verification, not to be confused with
 
-    def test_password_reset_email_when_org_admin_user(self):
+    apps.users.views.AccountVerification or apps.users.UserViewSet.request_account_verification
+
+    """
+    mocker.patch("apps.users.views.AccountVerification.validate", return_value=is_valid)
+    encoded_email, token = AccountVerification().generate_token("bobjohnny@example.com")
+
+    user = create_test_user(email=valid_email, email_verified=False)
+    mock_verifier = mocker.Mock()
+    mock_verifier.validate.return_value = False if not is_valid else user
+    mock_verifier.fail_reason = "some-reason"
+    mocker.patch("apps.users.views.AccountVerification", return_value=mock_verifier)
+    response = api_client.get(reverse("account_verification", args=(encoded_email, token)))
+    assert response.status_code == status.HTTP_302_FOUND
+    if is_valid:
+        assert response.url == reverse("spa_account_verification")
+        user.refresh_from_db()
+        assert user.email_verified is True
+    else:
+        assert response.url == reverse("spa_account_verification_fail", args=(mock_verifier.fail_reason,))
+
+
+@pytest.mark.django_db
+class TestCustomPasswordResetView:
+    def test_password_reset_email(self, settings, custom_password_reset_view_user, client):
         """When org admin trigger p/w reset via custom org admin password reset, the email is
 
         with p/w reset instructions contains link to custom org admin pw reset flow
         """
-        self.client.post(reverse("orgadmin_password_reset"), {"email": self.org_admin_user.email})
-        self.assertEqual(len(self.mailbox), 1)
-        uidb64, token = self.mailbox[0].body.split("reset/")[1].split("/")[0:2]
-        self.assertIn(
-            reverse("orgadmin_password_reset_confirm", kwargs=dict(uidb64=uidb64, token=token)), self.mailbox[0].body
+        settings.EMAIL_BACKEND = "django.core.mail.backends.locmem.EmailBackend"
+        settings.CELERY_ALWAYS_EAGER = True
+        assert len(mail.outbox) == 0
+        client.post(reverse("orgadmin_password_reset"), {"email": custom_password_reset_view_user.email})
+        assert len(mail.outbox) == 1
+        uidb64, token = mail.outbox[0].body.split("reset/")[1].split("/")[0:2]
+        url = (
+            "password_reset_confirm" if custom_password_reset_view_user.is_staff else "orgadmin_password_reset_confirm"
         )
-
-    def test_password_reset_email_when_is_staff(self):
-        """
-        When staff trigger p/w reset via custom org admin password reset, the email is
-
-        with p/w reset instructions contains link to default pw reset flow
-        """
-        self.client.post(reverse("orgadmin_password_reset"), {"email": self.staff_user.email})
-        self.assertEqual(len(self.mailbox), 1)
-        uidb64, token = self.mailbox[0].body.split("reset/")[1].split("/")[0:2]
-        self.assertIn(reverse("password_reset_confirm", kwargs=dict(uidb64=uidb64, token=token)), self.mailbox[0].body)
+        expect = reverse(url, kwargs=dict(uidb64=uidb64, token=token))
+        assert expect in mail.outbox[0].body
 
 
-@override_settings(EMAIL_BACKEND="django.core.mail.backends.locmem.EmailBackend")
-class TestCustomPasswordResetConfirm(TestCase):
-    def setUp(self):
-        self.client = Client()
-        self.mailbox = mail.outbox
-        self.old_password = "tHiSiSaNoLdPw1337"
-        self.new_password = "tHiSiSaNnEwPw1337"
-        self.user = create_test_user()
-        self.assertNotEqual(self.old_password, self.new_password)
-        organization = OrganizationFactory()
-        self.user.organizations.add(organization)
-
-    def request_password_reset(self):
-        self.client.post(reverse("orgadmin_password_reset"), {"email": self.user.email}, follow=True)
-        self.assertEqual(len(self.mailbox), 1)
-        uidb64, token = self.mailbox[0].body.split("reset/")[1].split("/")[0:2]
-        return uidb64, token
-
-    def test_happy_path(self):
-        """Show that when OrgAdmin successfully resets p/w, they get a special view/URL
-
-        Additionally, the Auth cookie token should be set to a non-sense value, to force
-        login back at SPA
-        """
-        assert self.user.organizations.count() >= 1
-        uidb64, token = self.request_password_reset()
-        url = reverse("orgadmin_password_reset_confirm", kwargs=dict(uidb64=uidb64, token=token))
-        data = dict(new_password1=self.new_password, new_password2=self.new_password)
-        # We have to go to this link twice because of how PasswordResetConfirmView is
-        # set up. See https://stackoverflow.com/a/67591447/1264950 and
-        # https://github.com/django/django/blob/a24fed399ced6be2e9dce4cf28db00c3ee21a21c/django/contrib/auth/views.py#L284
-        response = self.client.post(url, data, follow=True)
-        self.assertEqual(response.status_code, 200)
-        response = self.client.post(response.request["PATH_INFO"], data, follow=True)
-
-        self.assertEqual(response.client.cookies["Authorization"].value, INVALID_TOKEN)
-        self.assertEqual(response.status_code, 200)
-        self.assertEqual(reverse("orgadmin_password_reset_complete"), response.request["PATH_INFO"])
-        self.user.refresh_from_db()
-        self.assertTrue(self.user.check_password(self.new_password))
+@pytest.mark.django_db
+class TestCustomPasswordResetConfirm:
+    def test_happy_path(self, org_user, client, valid_password, settings):
+        settings.EMAIL_BACKEND = "django.core.mail.backends.locmem.EmailBackend"
+        client.post(reverse("orgadmin_password_reset"), {"email": org_user.email}, follow=True)
+        uidb64, token = mail.outbox[0].body.split("reset/")[1].split("/")[0:2]
+        data = {
+            "new_password1": valid_password,
+            "new_password2": valid_password,
+        }
+        response = client.post(
+            reverse("orgadmin_password_reset_confirm", kwargs=dict(uidb64=uidb64, token=token)), follow=True
+        )
+        assert response.status_code == 200
+        response = client.post(response.request["PATH_INFO"], data, follow=True)
+        assert response.status_code == 200
+        assert response.client.cookies["Authorization"].value == INVALID_TOKEN
+        assert response.request["PATH_INFO"] == reverse("orgadmin_password_reset_complete")
+        org_user.refresh_from_db()
+        assert org_user.check_password(valid_password)
 
 
-@override_settings(EMAIL_BACKEND="django.core.mail.backends.locmem.EmailBackend")
-class TestAPIRequestPasswordResetEmail(APITestCase):
-    """Minimally test our API-based password reset flow
-
-    We rely on a third-party library for implementing our password reset flow, so we only
-    minimally test. We show that the initial password reset request causes an email to be sent,
-    but we don't test the flow beyond that, since that's already tested in django-rest-passwordreset
-    """
-
-    def setUp(self):
-        self.mailbox = mail.outbox
-        self.url = reverse("password_reset:reset-password-request")
-
-    def test_happy_path(self):
+@pytest.mark.django_db
+class TestAPIRequestPasswordResetEmail:
+    def test_happy_path(self, org_user, api_client, settings):
         """Show that we get a 200, and that email containing link with reset token gets sent"""
-        user = create_test_user()
-        response = self.client.post(self.url, {"email": user.email})
-        self.assertEqual(response.status_code, 200)
-        self.assertEqual(len(self.mailbox), 1)
-        token = ResetPasswordToken.objects.get(user=user)
+        settings.EMAIL_BACKEND = "django.core.mail.backends.locmem.EmailBackend"
+        assert len(mail.outbox) == 0
+        response = api_client.post(reverse("password_reset:reset-password-request"), {"email": org_user.email})
+        assert response.status_code == status.HTTP_200_OK
+        assert len(mail.outbox) == 1
+        token = ResetPasswordToken.objects.get(user=org_user)
         # we get the html version of the email
-        link = BeautifulSoup(self.mailbox[0].alternatives[0][0], "html.parser").a
-        self.assertIsNotNone(link)
-        self.assertIn(token.key, link.attrs["href"])
+        assert (link := BeautifulSoup(mail.outbox[0].alternatives[0][0], "html.parser").a) is not None
+        assert token.key in link.attrs["href"]
 
-    def test_when_user_not_exist(self):
+    def test_when_user_not_exist(self, api_client):
         """Show that when no user with email, still get 200, but no email sent"""
-        non_existent_user_email = "foo@bar.com"
-        self.assertFalse(User.objects.filter(email=non_existent_user_email).exists())
-        response = self.client.post(self.url, {"email": non_existent_user_email})
-        self.assertEqual(response.status_code, 200)
-        self.assertEqual(len(self.mailbox), 0)
-
-
-class MockResponseObject:
-    def __init__(self, json_data, status_code=200):
-        self.status_code = status_code
-        self.json_data = json_data
-
-    def json(self):
-        return self.json_data
-
-
-@override_settings(EMAIL_BACKEND="django.core.mail.backends.locmem.EmailBackend")
-class TestUserViewSet(APITestCase):
-    def setUp(self):
-        self.url = reverse("user-list")
-        self.create_data = {
-            "email": fake.email(),
-            "password": fake.password(length=PASSWORD_MIN_LENGTH),
-            "accepted_terms_of_service": timezone.now(),
-            "email_verified": True,
-        }
-        self.customize_account_request = {
-            "first_name": "Test",
-            "last_name": "Test",
-            "job_title": "Test",
-            "organization_name": "Test",
-            "organization_tax_id": "987654321",
-            "fiscal_sponsor_name": "",
-            "fiscal_status": FiscalStatusChoices.NONPROFIT,
-        }
-
-    def get_too_short_password(self):
-        return fake.password(length=PASSWORD_MIN_LENGTH - 1)
-
-    def get_too_long_password(self):
-        return fake.password(length=PASSWORD_MAX_LENGTH + 1)
-
-    def get_too_common_password(self):
-        return "passWord!"
-
-    def get_too_similar_to_email_password(self, email):
-        return f"{email}!123456"
-
-    def get_numeric_password(self):
-        return "8788838383123898798723982"
-
-    def assert_password_too_short_validation(self, response):
-        return self.assert_password_validation(response, PASSWORD_TOO_SHORT_VALIDATION_MESSAGE)
-
-    def assert_password_too_long_validation(self, response):
-        return self.assert_password_validation(response, PASSWORD_TOO_LONG_VALIDATION_MESSAGE)
-
-    def assert_password_too_similar_to_email_validation(self, response):
-        return self.assert_password_validation(response, PASSWORD_TOO_SIMILAR_TO_EMAIL_VALIDATION_MESSAGE)
-
-    def assert_password_too_common_validation(self, response):
-        return self.assert_password_validation(response, PASSWORD_TOO_COMMON_VALIDATION_MESSAGE)
-
-    def assert_password_numeric_validation(self, response):
-        return self.assert_password_validation(response, PASSWORD_NUMERIC_VALIDATION_MESSAGE)
-
-    def assert_password_validation(
-        self, response, expected_validation_message, expected_status_code=status.HTTP_400_BAD_REQUEST
-    ):
-        self.assertEqual(response.status_code, expected_status_code)
-        self.assertEqual(
-            response.json(),
-            {"password": [expected_validation_message]},
-        )
-
-    def assert_serialized_data(self, response, instance):
-        keys_by_instance_lookup = {
-            "email": lambda instance: instance.email,
-            "id": lambda instance: instance.id,
-            "email_verified": lambda instance: instance.email_verified,
-            "accepted_terms_of_service": lambda instance: instance.accepted_terms_of_service.strftime(
-                "%Y-%m-%dT%H:%M:%S.%fZ"
-            )
-            if instance.accepted_terms_of_service
-            else None,
-            "flags": lambda instance: (instance.get_role_assignment() or {}).get("flags", []),
-            "organizations": lambda instance: (instance.get_role_assignment() or {}).get("organizations", []),
-            "revenue_programs": lambda instance: (instance.get_role_assignment() or {}).get("revenue_programs", []),
-            "role_type": lambda instance: instance.get_role_type(),
-        }
-        self.assertEqual(set(keys_by_instance_lookup.keys()), set(response.json().keys()))
-        for key, fn in keys_by_instance_lookup.items():
-            self.assertEqual(fn(instance), response.json()[key])
-
-    def test_unauthenticated_user_cannot_list(self):
-        response = self.client.get(self.url)
-        self.assertEqual(response.status_code, 401)
-
-    @patch.object(UserViewset, "validate_password")
-    @patch.object(UserViewset, "validate_bad_actor")
-    @patch.object(UserViewset, "send_verification_email")
-    def test_create_happy_path(self, mock_send_verification_email, mock_validate_bad_actor, mock_validate_password):
-        user_count = get_user_model().objects.count()
-        response = self.client.post(self.url, data=self.create_data)
-        assert user_count + 1 == get_user_model().objects.count()
-        assert status.HTTP_201_CREATED == response.status_code
-        result = response.json()
-        user = get_user_model().objects.filter(id=result["id"]).first()
-        assert user
-        assert user.is_active
-        assert not user.email_verified
-        assert user.email == self.create_data["email"]
-        assert user.check_password(self.create_data["password"])
-        assert user.accepted_terms_of_service == self.create_data["accepted_terms_of_service"]
-        assert user.accepted_terms_of_service
-        assert not result["email_verified"]
-        assert not result["flags"]
-        assert not result["organizations"]
-        assert not result["revenue_programs"]
-        assert result["role_type"] is None
-        self.assert_serialized_data(response, user)
-        mock_validate_bad_actor.assert_called_once()
-        mock_validate_password.assert_called_once()
-        mock_send_verification_email.assert_called_once_with(user)
-
-    def test_create_when_not_include_accepted_terms_of_service(self):
-        data = {**self.create_data}
-        del data["accepted_terms_of_service"]
-        response = self.client.post(self.url, data=data)
-        self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
-        self.assertEqual(response.json(), {"accepted_terms_of_service": ["This field is required."]})
-
-    def test_create_when_not_accepted_terms_of_service_is_empty(self):
-        data = {**self.create_data}
-        data["accepted_terms_of_service"] = ""
-        response = self.client.post(self.url, data=data)
-        self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
-        self.assertIn("accepted_terms_of_service", response.json().keys())
-        self.assertIn("Datetime has wrong format", response.json()["accepted_terms_of_service"][0])
-
-    def test_create_when_no_password(self):
-        data = {**self.create_data}
-        del data["password"]
-        response = self.client.post(self.url, data=data)
-        self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
-        self.assertEqual(response.json(), {"password": ["This field is required."]})
-
-    def test_create_when_password_not_long_enough(self):
-        data = {**self.create_data}
-        data["password"] = self.get_too_short_password()
-        response = self.client.post(self.url, data=data)
-        self.assert_password_too_short_validation(response)
-
-    def test_create_when_password_too_long(self):
-        data = {**self.create_data}
-        data["password"] = self.get_too_long_password()
-        response = self.client.post(self.url, data=data)
-        self.assert_password_too_long_validation(response)
-
-    def test_create_when_password_too_similar_to_user_attributes(self):
-        data = {**self.create_data}
-        data["password"] = self.get_too_similar_to_email_password(data["email"])
-        response = self.client.post(self.url, data=data)
-        self.assert_password_too_similar_to_email_validation(response)
-
-    def test_create_when_password_is_numeric(self):
-        data = {**self.create_data}
-        data["password"] = self.get_numeric_password()
-        response = self.client.post(self.url, data=data)
-        self.assert_password_numeric_validation(response)
-
-    def test_create_when_password_is_too_common(self):
-        data = {**self.create_data}
-        data["password"] = self.get_too_common_password()
-        response = self.client.post(self.url, data=data)
-        self.assert_password_too_common_validation(response)
-
-    @patch(
-        "apps.users.views.make_bad_actor_request",
-        return_value=MockResponseObject(json_data={"overall_judgment": settings.BAD_ACTOR_REJECT_SCORE_FOR_ORG_USERS}),
-    )
-    def test_create_when_bad_actor_threshold_met(self, mock_bad_actor_request):
-        response = self.client.post(self.url, data=self.create_data)
-        mock_bad_actor_request.assert_called_once()
-        self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
-        self.assertEqual(response.json(), [BAD_ACTOR_CLIENT_FACING_VALIDATION_MESSAGE])
-
-    @patch.object(UserViewset, "send_verification_email")
-    @patch("apps.users.views.logger.warning")
-    @override_settings(BAD_ACTOR_API_KEY=None, BAD_ACTOR_API_URL=None)
-    def test_create_when_bad_actor_api_not_configured(self, mock_logger_warning, mock_send_verification_email):
-        user_count = get_user_model().objects.count()
-        response = self.client.post(self.url, data=self.create_data)
-        self.assertEqual(response.status_code, status.HTTP_201_CREATED)
-        self.assertEqual(get_user_model().objects.count(), user_count + 1)
-        self.assert_serialized_data(response, get_user_model().objects.get(pk=response.json()["id"]))
-        mock_logger_warning.assert_called_once_with("Something went wrong with BadActorAPI", exc_info=True)
-        mock_send_verification_email.assert_called_once()
-
-    @patch.object(UserViewset, "send_verification_email")
-    @patch(
-        "apps.contributions.bad_actor.requests.post",
-        return_value=MockResponseObject(json_data={"message": "Something went wrong"}, status_code=500),
-    )
-    @patch("apps.users.views.logger.warning")
-    def test_create_when_bad_actor_api_not_2xx_code(
-        self, mock_logger_warning, mock_bad_actor_response, mock_send_verification_email
-    ):
-        user_count = get_user_model().objects.count()
-        response = self.client.post(self.url, data=self.create_data)
-        self.assertEqual(response.status_code, status.HTTP_201_CREATED)
-        self.assertEqual(get_user_model().objects.count(), user_count + 1)
-        self.assert_serialized_data(response, get_user_model().objects.get(pk=response.json()["id"]))
-        mock_logger_warning.assert_called_once_with("Something went wrong with BadActorAPI", exc_info=True)
-        mock_send_verification_email.assert_called_once()
-
-    def test_create_when_email_already_taken(self):
-        get_user_model().objects.create(**self.create_data)
-        user_count = get_user_model().objects.count()
-        response = self.client.post(self.url, data=self.create_data)
-        self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
-        self.assertEqual(response.json(), {"email": ["This field must be unique."]})
-        self.assertEqual(get_user_model().objects.count(), user_count)
-
-    def test_create_when_taken_email_with_different_case(self):
-        get_user_model().objects.create(**self.create_data | {"email": "case_insensitive@test.com"})
-        user_count = get_user_model().objects.count()
-        response = self.client.post(self.url, data=self.create_data | {"email": "CASE_INSENSITIVE@test.com"})
-        self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
-        self.assertEqual(response.json(), {"email": ["This field must be unique."]})
-        self.assertEqual(get_user_model().objects.count(), user_count)
-
-    def test_partial_update_happy_path(self):
-        user = get_user_model()(email=self.create_data["email"], email_verified=True)
-        user.set_password(self.create_data["password"])
-        user.save()
-        new_email = fake.email()
-        self.assertNotEqual(new_email, user.email)
-        raw_updated_password = self.create_data["password"][::-1]
-        update_data = {"password": raw_updated_password, "email": new_email}
-        self.client.force_authenticate(user=user)
-        response = self.client.patch(reverse("user-detail", args=(user.pk,)), data=update_data)
-        self.assertEqual(response.status_code, status.HTTP_200_OK)
-        self.assertEqual(response.json()["email"], new_email)
-        user.refresh_from_db()
-        self.assertEqual(user.email, new_email)
-        self.assertTrue(user.check_password(raw_updated_password))
-        self.assert_serialized_data(response, user)
-
-    def test_partial_update_accepted_terms_of_service_is_readonly(self):
-        now = datetime.datetime.now(datetime.timezone.utc)
-        user = get_user_model()(email=self.create_data["email"], email_verified=True, accepted_terms_of_service=now)
-        user.set_password(self.create_data["password"])
-        user.save()
-        self.client.force_authenticate(user=user)
-        # DRF APITest and pytest.paramtize do not work together...
-        for date in [
-            (now),  # Submitting, but not actually attempting to change, works.
-            (now - datetime.timedelta(days=1),),
-            (now + datetime.timedelta(days=1),),
-        ]:
-            response = self.client.patch(
-                reverse("user-detail", args=(user.pk,)),
-                data={"accepted_terms_of_service": date, "email_verified": False, "flags": "[1,2]"},
-            )
-            # DRF ignores read_only fields instead of failing validatation.
-            assert status.HTTP_200_OK == response.status_code, response.json()
-            user.refresh_from_db()
-            assert now == user.accepted_terms_of_service
-
-    def test_update_email_when_email_already_taken(self):
-        User = get_user_model()
-        my_user = User.objects.create(**(self.create_data | {"email_verified": True}))
-        taken_email = User.objects.create(**(self.create_data | {"email": fake.email()})).email
-        self.client.force_authenticate(user=my_user)
-        response = self.client.patch(reverse("user-detail", args=(my_user.pk,)), data={"email": taken_email})
-        self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
-        self.assertEqual(response.json(), {"email": ["This field must be unique."]})
-
-    def test_update_when_taken_email_with_different_case(self):
-        User = get_user_model()
-        my_user = User.objects.create(**(self.create_data | {"email_verified": True}))
-        taken_email = User.objects.create(**(self.create_data | {"email": fake.email()})).email
-        self.client.force_authenticate(user=my_user)
-        response = self.client.patch(reverse("user-detail", args=(my_user.pk,)), data={"email": taken_email.upper()})
-        self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
-        self.assertEqual(response.json(), {"email": ["This field must be unique."]})
-
-    def test_update_password_when_pw_too_short(self):
-        User = get_user_model()
-        my_user = User.objects.create(**(self.create_data | {"email_verified": True}))
-        self.client.force_authenticate(user=my_user)
-        response = self.client.patch(
-            reverse("user-detail", args=(my_user.pk,)), data={"password": self.get_too_short_password()}
-        )
-        self.assert_password_too_short_validation(response)
-
-    def test_update_password_when_pw_too_long(self):
-        User = get_user_model()
-        my_user = User.objects.create(**(self.create_data | {"email_verified": True}))
-        self.client.force_authenticate(user=my_user)
-        response = self.client.patch(
-            reverse("user-detail", args=(my_user.pk,)), data={"password": self.get_too_long_password()}
-        )
-        self.assert_password_too_long_validation(response)
-
-    def test_update_password_when_pw_too_common(self):
-        User = get_user_model()
-        my_user = User.objects.create(**(self.create_data | {"email_verified": True}))
-        self.client.force_authenticate(user=my_user)
-        response = self.client.patch(
-            reverse("user-detail", args=(my_user.pk,)), data={"password": self.get_too_common_password()}
-        )
-        self.assert_password_too_common_validation(response)
-
-    def test_update_password_when_pw_too_similar_to_email(self):
-        User = get_user_model()
-        my_user = User.objects.create(**(self.create_data | {"email_verified": True}))
-        self.client.force_authenticate(user=my_user)
-        response = self.client.patch(
-            reverse("user-detail", args=(my_user.pk,)),
-            data={"password": self.get_too_similar_to_email_password(my_user.email)},
-        )
-        self.assert_password_too_similar_to_email_validation(response)
-
-    def test_update_password_when_numeric(self):
-        User = get_user_model()
-        my_user = User.objects.create(**(self.create_data | {"email_verified": True}))
-        self.client.force_authenticate(user=my_user)
-        response = self.client.patch(
-            reverse("user-detail", args=(my_user.pk,)), data={"password": self.get_numeric_password()}
-        )
-        self.assert_password_numeric_validation(response)
-
-    def test_partial_update_when_not_my_user(self):
-        my_user = get_user_model().objects.create(email="my_user@example.com", email_verified=True)
-        another_user = get_user_model().objects.create(email="another_user@example.com")
-        self.client.force_authenticate(user=my_user)
-        update_email = "updated@example.com"
-        response = self.client.patch(reverse("user-detail", args=(another_user.pk,)), data={"email": update_email})
-        assert response.status_code == status.HTTP_403_FORBIDDEN
-        assert response.json() == {"detail": UserOwnsUser.message}
-        another_user.refresh_from_db()
-        assert another_user.email != update_email
-
-    def test_cannot_partial_update_when_email_not_verified(self):
-        user = get_user_model().objects.create(email=self.create_data["email"], email_verified=False)
-        update_data = {"email": fake.email()}
-        self.client.force_authenticate(user=user)
-        response = self.client.patch(reverse("user-detail", args=(user.pk,)), data=update_data)
-        assert response.status_code == status.HTTP_403_FORBIDDEN
-        assert response.json() == {"detail": UserIsAllowedToUpdate.message}
-
-    def test_can_update_password_when_email_not_verified(self):
-        user = get_user_model().objects.create(email=self.create_data["email"], email_verified=False)
-        update_data = {"password": "thisIstheNewPassword3939393!"}
-        self.client.force_authenticate(user=user)
-        response = self.client.patch(reverse("user-detail", args=(user.pk,)), data=update_data)
+        email = "yo@yo.com"
+        assert not get_user_model().objects.filter(email=email).exists()
+        response = api_client.post(reverse("password_reset:reset-password-request"), {"email": email})
         assert response.status_code == status.HTTP_200_OK
-        user.refresh_from_db()
-        assert user.check_password(update_data["password"])
-        self.assert_serialized_data(response, user)
-
-    def test_sets_email_verified_to_false_when_email_updated(self):
-        user = get_user_model().objects.create(email=self.create_data["email"], email_verified=True)
-        update_data = {"email": "new@email.com"}
-        self.client.force_authenticate(user=user)
-        response = self.client.patch(reverse("user-detail", args=(user.pk,)), data=update_data)
-        assert response.status_code == status.HTTP_200_OK
-        user.refresh_from_db()
-        assert not user.email_verified
-        self.assert_serialized_data(response, user)
-
-    def test_put_not_implemented(self):
-        my_user = get_user_model().objects.create_user(**self.create_data)
-        self.client.force_authenticate(user=my_user)
-        response = self.client.put(reverse("user-detail", args=(my_user.pk,)), data={})
-        assert response.status_code == status.HTTP_405_METHOD_NOT_ALLOWED
-
-    def test_delete_not_implemented(self):
-        my_user = get_user_model().objects.create_user(**self.create_data)
-        self.client.force_authenticate(user=my_user)
-        response = self.client.delete(reverse("user-detail", args=(my_user.pk,)))
-        assert response.status_code == status.HTTP_405_METHOD_NOT_ALLOWED
-
-    def __create_authenticated_user(self, email_verified=True, accepted_terms_of_service=timezone.now()) -> User:
-        user = get_user_model().objects.create(
-            email=self.create_data["email"],
-            email_verified=email_verified,
-            accepted_terms_of_service=accepted_terms_of_service,
-        )
-        self.client.force_authenticate(user=user)
-        return user
-
-    @override_settings(CELERY_ALWAYS_EAGER=True, CELERY_TASK_EAGER_PROPOGATES=True, BROKER_BACKEND="memory")
-    def test_request_account_verification_happy_path(self):
-        user = create_test_user(email_verified=False)
-        self.client.force_authenticate(user=user)
-        response = self.client.get(reverse("user-request-account-verification"))
-        assert status.HTTP_200_OK == response.status_code
-        assert {"detail": "Success"} == response.json()
-        # Good email is sent.
-        assert 1 == len(mail.outbox)
-        email = mail.outbox[0]
-        assert user.email in email.to
-        assert not any(x in email.body for x in "{}")
-        # Email includes logo url
-        logo_url = BeautifulSoup(email.alternatives[0][0], "html.parser").img.attrs["src"]
-        assert logo_url == os.path.join(settings.SITE_URL, "static", "nre_logo_black_yellow.png")
-        # Email includes valid link, Bug DEV-2340.
-        verification_link = BeautifulSoup(email.alternatives[0][0], "html.parser").a.attrs["href"]
-        parsed = urlparse(verification_link)
-        email, token = parsed.path.rstrip("/").split("/")[-2:]  # Are last two elements of path.
-        response = self.client.get(reverse("account_verification", kwargs={"email": email, "token": token}))
-        self.assertRedirects(response, reverse("spa_account_verification"))
-        # self.client is always from https://testserver, in production this
-        # should match URL that request is made to, i.e. SITE_URL.
-        assert "testserver" == parsed.netloc
-        assert "http" == parsed.scheme
-
-    def test_request_account_verification_already_verified(self):
-        user = create_test_user(email_verified=True)
-        self.client.force_authenticate(user=user)
-        response = self.client.get(reverse("user-request-account-verification"))
-        assert status.HTTP_404_NOT_FOUND == response.status_code
-        assert {"detail": "Account already verified"} == response.json()
-
-    def test_request_account_verification_inactive(self):
-        user = create_test_user(email_verified=False, is_active=False)
-        self.client.force_authenticate(user=user)
-        response = self.client.get(reverse("user-request-account-verification"))
-        assert status.HTTP_404_NOT_FOUND == response.status_code
-        assert {"detail": "Account inactive"} == response.json()
-
-    def test_request_account_verification_requires_auth(self):
-        response = self.client.get(reverse("user-request-account-verification"))
-        self.assertEqual(response.status_code, 401)
-
-    def test_send_verification_email_no_address(self):
-        user = create_test_user(is_active=True, email_verified=False, email="")
-        UserViewset().send_verification_email(user)
-        assert 0 == len(mail.outbox)
+        assert len(mail.outbox) == 0
 
 
 @pytest.mark.django_db
-@pytest_cases.parametrize(
-    "user,serializer",
-    (
-        (pytest_cases.fixture_ref("hub_admin_user"), serializers.UserSerializer),
-        (pytest_cases.fixture_ref("org_user_free_plan"), serializers.UserSerializer),
-        (pytest_cases.fixture_ref("superuser"), serializers.UserSerializer),
-        (pytest_cases.fixture_ref("user_no_role_assignment"), serializers.UserSerializer),
-        (pytest_cases.fixture_ref("user_with_unexpected_role"), serializers.UserSerializer),
-        (pytest_cases.fixture_ref("rp_user"), serializers.UserSerializer),
-        (pytest_cases.fixture_ref("org_user_multiple_rps"), serializers.UserSerializer),
-    ),
-)
-def test_retrieve_user_endpoint(user, serializer, api_client):
-    api_client.force_authenticate(user)
-    response = api_client.get(reverse("user-list"))
-    user = serializer.Meta.model.objects.get(pk=response.json()["id"])
-    assert response.status_code == status.HTTP_200_OK
-    serialized = serializer(user)
-    assert response.json() == json.loads(json.dumps(serialized.data))
+class TestUserViewSet:
+    @pytest.fixture(autouse=True)
+    def setup_and_teardown(self, settings):
+        settings.EMAIL_BACKEND = "django.core.mail.backends.locmem.EmailBackend"
+        settings.CELERY_ALWAYS_EAGER = True
+        yield
 
+    def test_send_verification_email(self, org_user_free_plan, mocker):
+        org_user_free_plan.email_verified = False
+        org_user_free_plan.save()
+        assert len(mail.outbox) == 0
+        viewset = UserViewset()
 
-@pytest.fixture
-def valid_customize_account_request_data():
-    return {
-        "first_name": "Test",
-        "last_name": "User",
-        "organization_name": "Test Organization",
-        "organization_tax_id": "123456789",
-        "job_title": "Test Title",
-        "fiscal_status": FiscalStatusChoices.FOR_PROFIT,
-    }
+        mock_request = mocker.Mock()
+        mock_request.build_absolute_uri.return_value = "http://example.com"
+        viewset.request = mock_request
+        assert viewset.send_verification_email(org_user_free_plan) is None
 
+        assert len(mail.outbox) == 1
+        assert mail.outbox[0].to[0] == org_user_free_plan.email
+        assert mail.outbox[0].subject == EMAIL_VERIFICATION_EMAIL_SUBJECT
+        assert mock_request.build_absolute_uri.return_value in mail.outbox[0].body
 
-@pytest.mark.django_db
-class TestUserViewSetViaPytest:
-    """NB:
+    @pytest.mark.parametrize(
+        "action, expected_permissions",
+        (
+            ("list", [IsAuthenticated]),
+            ("create", [AllowAny]),
+            (
+                "partial_update",
+                [
+                    UserOwnsUser,
+                    UserIsAllowedToUpdate,
+                ],
+            ),
+            (
+                "customize_account",
+                [UserOwnsUser, IsAuthenticated, UserIsAllowedToUpdate, UserHasAcceptedTermsOfService],
+            ),
+            ("request_account_verification", [IsAuthenticated]),
+        ),
+    )
+    def test_has_expected_permissions(self, action, expected_permissions):
+        viewset = UserViewset()
+        viewset.action = action
+        actual_permissions = viewset.get_permissions()
+        for i, permission in enumerate(actual_permissions):
+            assert isinstance(permission, expected_permissions[i])
 
-    This test class is where we incrementally start moving our tests for the UserViewSet
-    over to pytest.
-    """
+    def test_list(self, hub_admin_user, api_client):
+        api_client.force_authenticate(hub_admin_user)
+        response = api_client.get(reverse("user-list"))
+        assert response.status_code == status.HTTP_200_OK
+        assert response.json() == json.loads(json.dumps(AuthedUserSerializer(hub_admin_user).data))
+
+    def test_list_when_unauthenticated(self, api_client):
+        response = api_client.get(reverse("user-list"))
+        assert response.status_code == status.HTTP_401_UNAUTHORIZED
 
     def test_customize_account_happy_path_when_org_with_name_not_exist(
         self,
@@ -811,6 +538,8 @@ class TestUserViewSetViaPytest:
         assert ra.user == user_with_verified_email_and_tos_accepted
         assert ra.role_type == Roles.ORG_ADMIN
         assert ra.organization == org
+        assert ra.revenue_programs.count() == 1
+        assert ra.revenue_programs.first() == rp
 
     def test_customize_account_happy_path_when_org_with_name_already_exists(
         self,
@@ -827,12 +556,15 @@ class TestUserViewSetViaPytest:
         )
         assert response.status_code == status.HTTP_204_NO_CONTENT
         user_with_verified_email_and_tos_accepted.refresh_from_db()
-        org = user_with_verified_email_and_tos_accepted.roleassignment.organization
+        ra = user_with_verified_email_and_tos_accepted.roleassignment
+        org = ra.organization
         rp = org.revenueprogram_set.first()
         assert org.name == expected_name
         assert org.slug == slugify(expected_name)
         assert rp.name == expected_name
         assert rp.slug == slugify(expected_name)
+        assert ra.revenue_programs.count() == 1
+        assert ra.revenue_programs.first() == rp
 
     def test_customize_account_when_serializer_errors(
         self,
@@ -912,3 +644,243 @@ class TestUserViewSetViaPytest:
         assert response.status_code == status.HTTP_204_NO_CONTENT
         user_with_verified_email_and_tos_accepted.refresh_from_db()
         assert user_with_verified_email_and_tos_accepted.roleassignment.organization.name == f"{organization.name}-1"
+
+    def test_create_happy_path(self, mocker, api_client, valid_create_request_data):
+        mock_bad_actor_request = mocker.patch(
+            "apps.users.views.make_bad_actor_request", return_value=MockResponseObject({"overall_judgment": 0})
+        )
+        mock_send_verification_email = mocker.patch("apps.users.views.UserViewset.send_verification_email")
+        user_count = (User := get_user_model()).objects.count()
+        response = api_client.post(reverse("user-list"), data=valid_create_request_data)
+        assert response.status_code == status.HTTP_201_CREATED
+        assert User.objects.count() == user_count + 1
+        result = response.json()
+        user = User.objects.get(id=result["id"])
+        assert user.is_active
+        assert user.email_verified is False
+        assert user.email == result["email"] == valid_create_request_data["email"]
+        assert user.check_password(valid_create_request_data["password"])
+        assert user.accepted_terms_of_service == valid_create_request_data["accepted_terms_of_service"]
+        assert not result["email_verified"]
+        assert not result["flags"]
+        assert not result["organizations"]
+        assert not result["revenue_programs"]
+        assert result["role_type"] is None
+
+        mock_send_verification_email.assert_called_once_with(user)
+
+        mock_bad_actor_request.assert_called_once()
+
+    def test_create_when_invalid_data_for_email(self, invalid_create_data_for_email, api_client):
+        response = api_client.post(reverse("user-list"), data=invalid_create_data_for_email)
+        assert response.status_code == status.HTTP_400_BAD_REQUEST
+        assert "email" in response.json()
+
+    def test_create_when_invalid_data_for_password(self, create_data_invalid_for_password, api_client):
+        response = api_client.post(reverse("user-list"), data=create_data_invalid_for_password)
+        assert response.status_code == status.HTTP_400_BAD_REQUEST
+        assert "password" in response.json()
+
+    def test_create_when_invalid_data_for_tos(self, create_data_invalid_for_tos, api_client):
+        response = api_client.post(reverse("user-list"), data=create_data_invalid_for_tos)
+        assert response.status_code == status.HTTP_400_BAD_REQUEST
+        assert "accepted_terms_of_service" in response.json()
+
+    def test_create_when_bad_actor_threshold_met(self, mocker, api_client, valid_create_request_data):
+        mocker.patch(
+            "apps.users.views.make_bad_actor_request",
+            return_value=MockResponseObject({"overall_judgment": settings.BAD_ACTOR_REJECT_SCORE_FOR_ORG_USERS}),
+        )
+        response = api_client.post(reverse("user-list"), data=valid_create_request_data)
+        assert response.status_code == status.HTTP_400_BAD_REQUEST
+        assert response.json() == [BAD_ACTOR_CLIENT_FACING_VALIDATION_MESSAGE]
+
+    def test_create_when_bad_actor_api_not_configured(self, mocker, api_client, valid_create_request_data, settings):
+        settings.BAD_ACTOR_API_KEY = None
+        settings.BAD_ACTOR_API_URL = None
+        response = api_client.post(reverse("user-list"), data=valid_create_request_data)
+        assert response.status_code == status.HTTP_201_CREATED
+
+    def test_create_when_bad_actor_request_has_error(self, mocker, api_client, valid_create_request_data):
+        logger_spy = mocker.patch("apps.users.views.logger.warning")
+        mocker.patch("apps.contributions.bad_actor.make_bad_actor_request", side_effect=BadActorAPIError("error"))
+        response = api_client.post(reverse("user-list"), data=valid_create_request_data)
+        assert response.status_code == status.HTTP_201_CREATED
+        logger_spy.assert_called_once_with("Something went wrong with BadActorAPI", exc_info=True)
+
+    def test_update_happy_path(self, org_user_free_plan, api_client, valid_update_data):
+        org_user_free_plan.email_verified = True
+        org_user_free_plan.accepted_terms_of_service = timezone.now()
+        org_user_free_plan.save()
+        api_client.force_authenticate(user=org_user_free_plan)
+        response = api_client.patch(reverse("user-detail", args=(org_user_free_plan.pk,)), data=valid_update_data)
+        assert response.status_code == status.HTTP_200_OK
+        assert response.json()["email"] == valid_update_data["email"]
+        org_user_free_plan.refresh_from_db()
+        assert org_user_free_plan.email == valid_update_data["email"]
+        assert org_user_free_plan.check_password(valid_update_data["password"])
+        assert org_user_free_plan.email_verified is False
+
+    def test_cant_update_accepted_terms_of_service(self, api_client, hub_admin_user):
+        hub_admin_user.email_verified = True
+        hub_admin_user.accepted_terms_of_service = (old_tos := timezone.now())
+        hub_admin_user.save()
+        api_client.force_authenticate(user=hub_admin_user)
+        response = api_client.patch(
+            reverse("user-detail", args=(hub_admin_user.pk,)), data={"accepted_terms_of_service": timezone.now()}
+        )
+        assert response.status_code == status.HTTP_200_OK
+        hub_admin_user.refresh_from_db()
+        assert hub_admin_user.accepted_terms_of_service == old_tos
+
+    def test_update_when_invalid_data_for_password(
+        self, api_client, org_user_free_plan, invalid_update_data_for_password, valid_email
+    ):
+        org_user_free_plan.email = valid_email
+        org_user_free_plan.email_verified = True
+        org_user_free_plan.accepted_terms_of_service = timezone.now()
+        org_user_free_plan.save()
+        api_client.force_authenticate(user=org_user_free_plan)
+        response = api_client.patch(
+            reverse("user-detail", args=(org_user_free_plan.pk,)), data=invalid_update_data_for_password
+        )
+        assert response.status_code == status.HTTP_400_BAD_REQUEST
+        assert "password" in response.json()
+
+    def test_update_when_invalid_data_for_email(self, api_client, org_user_free_plan, invalid_update_data_for_email):
+        org_user_free_plan.email_verified = True
+        org_user_free_plan.accepted_terms_of_service = timezone.now()
+        org_user_free_plan.save()
+        api_client.force_authenticate(user=org_user_free_plan)
+        response = api_client.patch(
+            reverse("user-detail", args=(org_user_free_plan.pk,)),
+            data=invalid_update_data_for_email,
+        )
+        assert response.status_code == status.HTTP_400_BAD_REQUEST
+        assert "email" in response.json()
+
+    def test_update_when_not_my_user(self, user, api_client, faker):
+        another_user = create_test_user(email=faker.email(), email_verified=True)
+        api_client.force_authenticate(user=user)
+        response = api_client.patch(reverse("user-detail", args=(another_user.pk,)), data={"email": user.email})
+        assert response.status_code == status.HTTP_403_FORBIDDEN
+
+    def test_update_if_email_unverified(self, user, api_client, faker):
+        user.email_verified = False
+        user.save()
+        api_client.force_authenticate(user=user)
+        response = api_client.patch(reverse("user-detail", args=(user.pk,)), data={"email": faker.email()})
+        assert response.status_code == status.HTTP_403_FORBIDDEN
+        assert response.json() == {"detail": UserIsAllowedToUpdate.message}
+
+    def test_can_update_password_when_email_not_verified(self, org_user_free_plan, api_client, faker):
+        org_user_free_plan.email_verified = False
+        org_user_free_plan.save()
+        api_client.force_authenticate(user=org_user_free_plan)
+        response = api_client.patch(
+            reverse("user-detail", args=(org_user_free_plan.pk,)), data={"password": (password := faker.password())}
+        )
+        assert response.status_code == status.HTTP_200_OK
+        org_user_free_plan.refresh_from_db()
+        assert org_user_free_plan.check_password(password)
+
+    def test_put_not_implemented(self, api_client, hub_admin_user):
+        api_client.force_authenticate(hub_admin_user)
+        response = api_client.put(reverse("user-detail", args=(hub_admin_user.pk,)), data={})
+        assert response.status_code == status.HTTP_405_METHOD_NOT_ALLOWED
+
+    def test_delete_not_implemented(self, hub_admin_user, api_client):
+        api_client.force_authenticate(hub_admin_user)
+        response = api_client.delete(reverse("user-detail", args=(hub_admin_user.pk,)))
+        assert response.status_code == status.HTTP_405_METHOD_NOT_ALLOWED
+
+    def test_request_account_verification_happy_path(self, api_client, mocker):
+        mock_send_verification_email = mocker.patch("apps.users.views.UserViewset.send_verification_email")
+        user = create_test_user(email_verified=False)
+        api_client.force_authenticate(user=user)
+        response = api_client.get(reverse("user-request-account-verification"))
+        assert response.status_code == status.HTTP_200_OK
+        assert response.json() == {"detail": "Success"}
+        mock_send_verification_email.assert_called_once_with(user)
+
+    def test_request_account_verification_when_already_verified(self, api_client):
+        user = create_test_user(email_verified=True)
+        api_client.force_authenticate(user=user)
+        response = api_client.get(reverse("user-request-account-verification"))
+        assert status.HTTP_404_NOT_FOUND == response.status_code
+        assert {"detail": "Account already verified"} == response.json()
+
+    def test_request_account_verification_when_user_inactive(self, api_client):
+        user = create_test_user(email_verified=False, is_active=False)
+        api_client.force_authenticate(user=user)
+        response = api_client.get(reverse("user-request-account-verification"))
+        assert status.HTTP_404_NOT_FOUND == response.status_code
+        assert {"detail": "Account inactive"} == response.json()
+
+    def test_request_acccount_verification_when_unauthed(self, api_client):
+        response = api_client.get(reverse("user-request-account-verification"))
+        assert response.status_code == status.HTTP_401_UNAUTHORIZED
+
+    @pytest.mark.parametrize(
+        "initial_message, expected_message",
+        (
+            [(x, x) for x in PASSWORD_VALIDATION_EXPECTED_MESSAGES]
+            + [("uh-oh", PASSWORD_UNEXPECTED_VALIDATION_MESSAGE_SUBSTITUTE)]
+        ),
+    )
+    def test_validate_password_sanitizes_some_errors(
+        self,
+        initial_message,
+        expected_message,
+        mocker,
+        valid_email,
+        valid_password,
+    ):
+        mocker.patch(
+            "apps.users.views.validate_password",
+            side_effect=DjangoValidationError(initial_message),
+        )
+        with pytest.raises(DRFValidationError) as e:
+            UserViewset().validate_password(valid_email, valid_password)
+        assert expected_message in str(e.value)
+
+
+@pytest.mark.django_db
+class TestAccountVerificationFlow:
+    """This test is meant to span the full user flow from GET request to .request_account_verification,
+    to sent verification email, to clicking link in email, to GET request to .verify_account.
+    """
+
+    @pytest.fixture(autouse=True)
+    def setup_and_teardown(self, settings):
+        settings.EMAIL_BACKEND = "django.core.mail.backends.locmem.EmailBackend"
+        settings.CELERY_ALWAYS_EAGER = True
+        yield
+
+    def test_happy_path(self, api_client):
+        user = create_test_user(email_verified=False)
+        api_client.force_authenticate(user=user)
+        # Request verification email.
+        response = api_client.get(reverse("user-request-account-verification"))
+        assert status.HTTP_200_OK == response.status_code
+        assert {"detail": "Success"} == response.json()
+        # Email sent.
+        assert 1 == len(mail.outbox)
+        email = mail.outbox[0]
+        assert user.email in email.to
+        # no curly braces in email body, which may be evidence of template string not being rendered.
+        assert not any(x in email.body for x in "{}")
+        # Email includes logo url
+        logo_url = BeautifulSoup(email.alternatives[0][0], "html.parser").img.attrs["src"]
+        assert logo_url == os.path.join(settings.SITE_URL, "static", "nre_logo_black_yellow.png")
+        # Email includes valid link, Bug DEV-2340.
+        verification_link = BeautifulSoup(email.alternatives[0][0], "html.parser").a.attrs["href"]
+        parsed = urlparse(verification_link)
+        email, _ = parsed.path.rstrip("/").split("/")[-2:]  # Are last two elements of path.
+        # Go to link in email.
+        response = api_client.get(parsed.path)
+        assert response.status_code == status.HTTP_302_FOUND
+        assert response.url == reverse("spa_account_verification")
+        # in production this should match URL that request is made to, i.e. SITE_URL.
+        assert "testserver" == parsed.netloc
+        assert "http" == parsed.scheme

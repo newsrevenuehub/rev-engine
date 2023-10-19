@@ -22,7 +22,7 @@ export function SlackIntegrationCard() {
       toggleTooltipMessage="Coming Soon"
       toggleConnectedTooltipMessage={
         <>
-          Connected to Slack. Contact
+          Connected to Slack. Contact{' '}
           <a href={HELP_URL} style={{ textDecoration: 'underline' }} target="_blank" rel="noreferrer">
             Support
           </a>{' '}

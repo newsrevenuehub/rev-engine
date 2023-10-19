@@ -6,9 +6,7 @@ describe('LiveErrorFallback', () => {
   it('should display the correct error message', () => {
     render(<LiveErrorFallback />);
 
-    expect(
-      screen.getByText("Something went really wrong. Use your browser's back button and try again.")
-    ).toBeInTheDocument();
+    expect(screen.getByText('common.error.internalServerError')).toBeInTheDocument();
   });
 
   it('should display the correct error code', () => {

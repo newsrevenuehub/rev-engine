@@ -12,6 +12,7 @@ router.register(r"payments", views.PaymentViewset, basename="payment")
 router.register(r"subscriptions", views.SubscriptionsViewSet, basename="subscription")
 
 urlpatterns = [
+    path("contributors/<int:id>/contributions/", views.contributor_contributions, name="contributor-contributions"),
     path("stripe/oauth/", views.stripe_oauth, name="stripe-oauth"),
     re_path(
         settings.WEBHOOK_URL,

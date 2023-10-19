@@ -20,7 +20,6 @@ from rest_framework.reverse import reverse
 from rest_framework.test import APITestCase
 from rest_framework_simplejwt.exceptions import TokenError
 from rest_framework_simplejwt.tokens import AccessToken
-from waffle import get_waffle_flag_model
 
 from apps.api.error_messages import GENERIC_BLANK
 from apps.api.tests import RevEngineApiAbstractTestCase
@@ -35,7 +34,6 @@ from apps.organizations.tests.factories import (
     RevenueProgramFactory,
 )
 from apps.pages.tests.factories import DonationPageFactory, StyleFactory
-from apps.users.choices import Roles
 
 
 user_model = get_user_model()
@@ -159,10 +157,8 @@ class TestTokenObtainPairCookieView:
                 assert len(orgs) == 0
                 assert len(rps) == 0
 
-        Flag = get_waffle_flag_model()
-        expected_flags = set([x.id for x in user.flag_set.all()] + [x.id for x in Flag.objects.filter(everyone=True)])
-        assert len(_user["flags"]) == len(expected_flags)
-        assert set([x["id"] for x in _user["flags"]]) == expected_flags
+        assert len(_user["flags"]) == user.active_flags.count()
+        assert set([x["id"] for x in _user["flags"]]) == set(user.active_flags.values_list("id", flat=True))
 
         assert _user["email"] == user.email
         assert _user["id"] == str(user.id)
@@ -171,10 +167,8 @@ class TestTokenObtainPairCookieView:
         else:
             assert _user["accepted_terms_of_service"] is None
         assert _user["email_verified"] == user.email_verified
-        role_type = user.get_role_type()
-        if role_type and (
-            role_type[0] == "superuser" or role_type[0] in [Roles.HUB_ADMIN, Roles.ORG_ADMIN, Roles.RP_ADMIN]
-        ):
+        role_type = user.role_type
+        if role_type:
             assert _user["role_type"] == list(role_type)
         else:
             assert _user["role_type"] is None
@@ -271,7 +265,7 @@ def test_magic_link_custom_email_template(rf, mocker, revenue_program, has_defau
     assert to_email_list[0] == email
     assert len(to_email_list) == 1
 
-    default_logo = os.path.join(settings.SITE_URL, "static", "nre-logo-yellow.png")
+    default_logo = os.path.join(settings.SITE_URL, "static", "nre-logo-white.png")
     default_alt_text = "News Revenue Hub"
     custom_logo = 'src="/media/mock-logo"'
     custom_alt_text = 'alt="Mock-Alt-Text"'

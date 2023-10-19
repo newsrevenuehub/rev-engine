@@ -8,6 +8,7 @@ import useWebFonts from 'hooks/useWebFonts';
 import React from 'react';
 import NRELogo from 'assets/images/nre-logo-blue.svg';
 import { PoweredBy, Header, Logo } from './PortalPage.styled';
+import { HOME_PAGE_URL } from 'constants/helperUrls';
 
 function PortalPage({ children }: { children: React.ReactNode }) {
   const { page, pageIsFetched, enablePageFetch } = usePortal();
@@ -35,7 +36,10 @@ function PortalPage({ children }: { children: React.ReactNode }) {
         {children}
         <PoweredBy>
           <span>Powered by</span>
-          <PoweredByNRELogo aria-label="News Revenue Engine logo" style={{ width: 145 }} />
+          {/* eslint-disable-next-line react/jsx-no-target-blank */}
+          <a href={HOME_PAGE_URL} target="_blank" aria-label="News Revenue Engine">
+            <PoweredByNRELogo style={{ width: 145 }} />
+          </a>
         </PoweredBy>
       </SegregatedStyles>
     </TrackPageView>

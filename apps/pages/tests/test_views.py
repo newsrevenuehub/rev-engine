@@ -15,7 +15,7 @@ from rest_framework import status
 from rest_framework.reverse import reverse
 
 from apps.organizations.models import FreePlan, PaymentProvider, Plans, PlusPlan, RevenueProgram
-from apps.organizations.serializers import RevenueProgramListInlineSerializer
+from apps.organizations.serializers import RevenueProgramForPageDetailSerializer
 from apps.organizations.tests.factories import OrganizationFactory, RevenueProgramFactory
 from apps.pages.models import (
     PAGE_HEADING_MAX_LENGTH,
@@ -371,7 +371,7 @@ class TestPageViewSet:
             assert response.json()[key] == val
         assert (
             response.json()["revenue_program"]
-            == RevenueProgramListInlineSerializer(RevenueProgram.objects.get(pk=page.revenue_program.pk)).data
+            == RevenueProgramForPageDetailSerializer(RevenueProgram.objects.get(pk=page.revenue_program.pk)).data
         )
 
     @pytest_cases.parametrize(

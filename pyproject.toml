@@ -1,6 +1,6 @@
 [tool.bandit]
 targets = ["./apps", "./revengine", "./scripts"]
-exclude_dirs = ["tests", ".direnv"]
+exclude_dirs = ["tests", ".*"]
 
 [tool.black]
 line-length = 120
@@ -90,6 +90,7 @@ bandit = "1.7.5"
 black = "23.9.1"
 colorama = "*"
 coverage = "*"
+dateparser = "^1.1.8"
 django-debug-toolbar = "*"
 drf-yasg = "*"
 factory_boy = "*"

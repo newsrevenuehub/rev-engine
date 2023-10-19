@@ -3,7 +3,7 @@ import { axe } from 'jest-axe';
 import { useAlert } from 'react-alert';
 import { act, fireEvent, render, screen } from 'test-utils';
 import { Payment } from 'hooks/usePayment';
-import StripePaymentForm, { STRIPE_ERROR_MESSAGE, StripePaymentFormProps } from './StripePaymentForm';
+import StripePaymentForm, { StripePaymentFormProps } from './StripePaymentForm';
 import { getPaymentSuccessUrl } from 'components/paymentProviders/stripe/stripeFns';
 import { getFrequencyThankYouText } from 'utilities/parseFrequency';
 
@@ -55,7 +55,7 @@ function successUrl(payment: Payment) {
 }
 
 function tree(props?: Partial<StripePaymentFormProps>) {
-  return render(<StripePaymentForm payment={mockPayment} {...props} />);
+  return render(<StripePaymentForm payment={mockPayment} locale="en" {...props} />);
 }
 
 describe('StripePaymentForm', () => {
@@ -180,7 +180,7 @@ describe('StripePaymentForm', () => {
       describe.each([
         ['card_error', 'message in the error object', 'message in the error object'],
         ['validation_error', 'message in the error object', 'message in the error object'],
-        ['generic', '', STRIPE_ERROR_MESSAGE]
+        ['generic', '', 'donationPage.stripePaymentForm.errorProcessingPayment']
       ])('But finalizing the payment fails immediately with a %s error type', (type, message, expectedError) => {
         let finalizer: jest.Mock;
 
@@ -227,7 +227,7 @@ describe('StripePaymentForm', () => {
           expect(error).not.toBeCalled();
           fireEvent.click(screen.getByRole('button'));
           await act(() => Promise.resolve());
-          expect(error.mock.calls).toEqual([[STRIPE_ERROR_MESSAGE]]);
+          expect(error.mock.calls).toEqual([['donationPage.stripePaymentForm.errorProcessingPayment']]);
         });
 
         it('re-enables the submit button', async () => {

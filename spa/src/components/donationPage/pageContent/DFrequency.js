@@ -1,5 +1,6 @@
 import PropTypes from 'prop-types';
-import * as S from './DFrequency.styled';
+import { CheckBoxField, Radio, CheckboxLabel } from './DFrequency.styled';
+import { useTranslation } from 'react-i18next';
 
 // Context
 import { usePage } from '../DonationPage';
@@ -15,6 +16,7 @@ import FormErrors from 'elements/inputs/FormErrors';
 import { CONTRIBUTION_INTERVALS } from 'constants/contributionIntervals';
 
 function DFrequency({ element, ...props }) {
+  const { t } = useTranslation();
   const { page, frequency, setFrequency, setAmount, errors, setOverrideAmount } = usePage();
 
   const handleFrequencySelected = (e, checked) => {
@@ -27,13 +29,13 @@ function DFrequency({ element, ...props }) {
   };
 
   return (
-    <DElement label="Frequency" {...props} data-testid="d-frequency">
+    <DElement label={t('donationPage.dFrequency.frequency')} {...props} data-testid="d-frequency">
       <InputGroup>
-        <GroupedLabel>Choose a contribution type</GroupedLabel>
+        <GroupedLabel>{t('donationPage.dFrequency.chooseContributionType')}</GroupedLabel>
         <GroupedWrapper>
           {element?.content?.sort(frequencySort).map((freq) => (
-            <S.CheckBoxField key={freq.value}>
-              <S.Radio
+            <CheckBoxField key={freq.value}>
+              <Radio
                 id={freq.value}
                 name="interval"
                 value={freq.value}
@@ -41,8 +43,8 @@ function DFrequency({ element, ...props }) {
                 onChange={handleFrequencySelected}
                 data-testid={`frequency-${freq.value}${frequency === freq.value ? '-selected' : ''}`}
               />
-              <S.CheckboxLabel htmlFor={freq.value}>{freq.displayName}</S.CheckboxLabel>
-            </S.CheckBoxField>
+              <CheckboxLabel htmlFor={freq.value}>{t(`common.frequency.adjectives.${freq.value}`)}</CheckboxLabel>
+            </CheckBoxField>
           ))}
         </GroupedWrapper>
         <FormErrors errors={errors.interval} />

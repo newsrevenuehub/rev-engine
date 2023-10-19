@@ -1,27 +1,33 @@
 {
   "common": {
+    "joinRevenueProgram": "Join | {{ name }}",
+    "logo": "Logo",
+    "no": "No",
+    "error": {
+      "generic": "We encountered an issue and have been notified. Please try again."
+    },
     "actions": {
       "back": "Back"
     },
     "frequency": {
       "adjectives": {
-        "oneTime": "One time",
-        "monthly": "Monthly",
-        "yearly": "Yearly"
+        "one_time": "One time",
+        "month": "Monthly",
+        "year": "Yearly"
       },
       "adverbs": {
-        "oneTime": "once",
-        "monthly": "monthly",
-        "yearly": "yearly"
+        "one_time": "once",
+        "month": "monthly",
+        "year": "yearly"
       },
       "rates": {
-        "monthly": "/month",
-        "yearly": "/year"
+        "month": "/month",
+        "year": "/year"
       },
       "thankYous": {
-        "oneTime": "one-time",
-        "monthly": "monthly",
-        "yearly": "yearly"
+        "one_time": "one-time",
+        "month": "monthly",
+        "year": "yearly"
       }
     },
     "urls": {
@@ -36,8 +42,17 @@
     }
   },
   "donationPage": {
+    "mainPage": {
+      "cancelPaymentFailureMessage": "Something went wrong, but don't worry, you haven't been charged. Try refreshing.",
+      "emptyPageElements": "Open the edit interface to start adding content",
+      "continueToPayment": "Continue to Payment",
+      "enterValidAmount": "Enter a valid amount"
+    },
     "donationPageFooter": {
       "whatIsFundJournalismOrg": "What is fundjournalism.org?"
+    },
+    "stripePaymentForm": {
+      "errorProcessingPayment": "Something went wrong processing your payment"
     },
     "contributionDisclaimer": {
       "policyAgreement": "By proceeding with this transaction, you agree to our <privacy>privacy policy</privacy> and <terms>terms & conditions</terms>.",
@@ -49,6 +64,83 @@
         "month_other": "Additionally, by proceeding with this transaction, you're authorizing today's payment, <strong>along with all future recurring payments</strong> of <strong>{{amount}}, to be processed on or adjacent to the {{count}}th of the month until you cancel.</strong>",
         "year": "Additionally, by proceeding with this transaction, you're authorizing today's payment, <strong>along with all future recurring payments</strong> of <strong>{{amount}}, to be processed on or adjacent to {{date}} yearly until you cancel.</strong>"
       }
+    },
+    "dAmount": {
+      "label": {
+        "one_time": "One time amount",
+        "month": "Monthly amount",
+        "year": "Yearly amount"
+      },
+      "selectContribution": "Select how much you'd like to contribute"
+    },
+    "dBenefits": {
+      "emptyError": "No Contributor Benefits configured for this page",
+      "perYear": "{{ donation }} per year",
+      "everythingPlus": "Everything from {{ name }}, plus"
+    },
+    "dDonorAddress": {
+      "address": "Address",
+      "showLine2": "Address line 2 (Apt, suite, etc.)",
+      "line2": "Apt, suite, etc.",
+      "city": "City",
+      "stateLabel": {
+        "state": "State",
+        "stateAndRegion": "State/Region",
+        "stateAndProvince": "State/Province",
+        "stateProvinceAndRegion": "State/Province/Region"
+      },
+      "zip": "Zip/Postal code",
+      "country": "Country"
+    },
+    "dDonorInfo": {
+      "firstName": "First name",
+      "lastName": "Last name",
+      "email": "Email",
+      "phone": "Phone"
+    },
+    "dFrequency": {
+      "frequency": "Frequency",
+      "chooseContributionType": "Choose a contribution type"
+    },
+    "dReason": {
+      "reasonForGiving": "Reason for giving",
+      "supportWork": "I support your work because...",
+      "tellUsWhy": "Tell us why you support our work",
+      "selectOnePlaceholder": "-- Select one --",
+      "other": "Other",
+      "tributeSelector": {
+        "isTribute": "Is this gift a tribute?",
+        "giveInHonorOf": "Give in honor of...",
+        "giveInMemoryOf": "Give in memory of...",
+        "yes": {
+          "inHonorOf": "Yes, in honor of...",
+          "inMemoryOf": "Yes, in memory of..."
+        },
+        "inMemoryOf": "In memory of...",
+        "inHonorOf": "In honor of..."
+      }
+    },
+    "dSwag": {
+      "memberBenefits": "Member benefits",
+      "giveXToBeEligible": "Give a total of {{ amount }} /year or more to be eligible",
+      "maximizeContribution": "Maximize my contribution – I'd rather not receive member merchandise.",
+      "nytSubscription": "I'd like to include a New York Times subscription",
+      "noThanksOption": "--No, thank you--",
+      "chooseMerchandise": "Your contribution comes with member merchandise. Please choose an option."
+    },
+    "payFeesControl": {
+      "agreeToPayFees": "Agree to pay fees?",
+      "payFeesConsent": {
+        "one_time": "I agree to pay a one time transaction fee of {{ amount }} to direct more support to {{ revenueProgramName }}'s mission.",
+        "month": "I agree to pay a monthly transaction fee of {{ amount }} to direct more support to {{ revenueProgramName }}'s mission.",
+        "year": "I agree to pay a yearly transaction fee of {{ amount }} to direct more support to {{ revenueProgramName }}'s mission."
+      }
+    },
+    "extraneousURLRedirect": {
+      "error": "Asked to redirect away from extraneous URL elements, but couldn't find stem in path \"{{ pathname }}\""
+    },
+    "pageGetter": {
+      "missingComponent": "Missing component definition for \"{{ name }}\""
     }
   },
   "stripeFns": {

@@ -1,4 +1,5 @@
 import { useEffect, useCallback, useState } from 'react';
+import { useTranslation } from 'react-i18next';
 
 // AJAX
 import useRequest from 'hooks/useRequest';
@@ -25,6 +26,7 @@ import PageTitle from 'elements/PageTitle';
 const STRIPE_IFRAME_SELECTOR = "iframe[title='Secure card payment input frame']";
 
 function LiveDonationPageContainer() {
+  const { t } = useTranslation();
   const [pageData, setPageData] = useState(null);
   const [display404, setDisplay404] = useState(false);
 
@@ -71,7 +73,12 @@ function LiveDonationPageContainer() {
 
   return (
     <SegregatedStyles page={pageData}>
-      <PageTitle title={pageData?.revenue_program?.name && `Join | ${pageData?.revenue_program?.name}`} hideRevEngine />
+      <PageTitle
+        title={
+          pageData?.revenue_program?.name && t('common.joinRevenueProgram', { name: pageData?.revenue_program?.name })
+        }
+        hideRevEngine
+      />
       {display404 ? <LivePage404 /> : pageData ? <DonationPage live page={pageData} /> : <LiveLoading />}
     </SegregatedStyles>
   );

@@ -3,6 +3,7 @@ import { useEffect, useState } from 'react';
 import { ContributionPage } from 'hooks/useContributionPage';
 import fileToDataUrl from 'utilities/fileToDataUrl';
 import { Logo, Root } from './DonationPageHeader.styled';
+import { useTranslation } from 'react-i18next';
 
 const DonationPageHeaderPropTypes = {
   page: PropTypes.object.isRequired
@@ -13,6 +14,7 @@ export interface DonationPageHeaderProps extends InferProps<typeof DonationPageH
 }
 
 export function DonationPageHeader({ page }: DonationPageHeaderProps) {
+  const { t } = useTranslation();
   const [logoSource, setLogoSource] = useState<string | null>();
   const [backgroundSource, setBackgroundSource] = useState<string | null>();
 
@@ -20,7 +22,7 @@ export function DonationPageHeader({ page }: DonationPageHeaderProps) {
   // be interactible. As a fallback, we set it to "Logo" (though this is far
   // from ideal). If the image is unlinked, it's fine for it to have blank alt text.
 
-  const altTextWithFallback = page.header_logo_alt_text === '' ? 'Logo' : page.header_logo_alt_text;
+  const altTextWithFallback = page.header_logo_alt_text === '' ? t('common.logo') : page.header_logo_alt_text;
 
   // If the user has set new images on either of these properties in the page,
   // they will exist there as files, not string URLs.

@@ -20,5 +20,6 @@ Default.args = {
   currencyCode: 'CAD',
   currencySymbol: '🍁',
   feeAmount: 123,
+  frequency: 'month',
   revenueProgramName: 'A News Organization'
 };

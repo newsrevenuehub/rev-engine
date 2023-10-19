@@ -4,7 +4,7 @@ import { DAmountStyled, FeesContainer, FreqSubtext, OtherAmount, OtherAmountInpu
 
 // Util
 import validateInputPositiveFloat from 'utilities/validateInputPositiveFloat';
-import { getFrequencyAdjective, getFrequencyRate } from 'utilities/parseFrequency';
+import { getFrequencyRate } from 'utilities/parseFrequency';
 
 // Context
 import { usePage } from '../DonationPage';
@@ -15,6 +15,7 @@ import SelectableButton from 'elements/buttons/SelectableButton';
 import usePreviousState from 'hooks/usePreviousState';
 import FormErrors from 'elements/inputs/FormErrors';
 import PayFeesControl from './PayFeesControl';
+import { useTranslation } from 'react-i18next';
 
 export type DAmountProps = InferProps<typeof DAmountPropTypes>;
 
@@ -30,7 +31,7 @@ function DAmount({ element, ...props }: DAmountProps) {
     errors,
     userAgreesToPayFees
   } = usePage();
-
+  const { t } = useTranslation();
   const prevFrequency = usePreviousState(frequency);
   const currencyCode = page?.currency?.code;
   const currencySymbol = page?.currency?.symbol;
@@ -121,10 +122,10 @@ function DAmount({ element, ...props }: DAmountProps) {
 
   return (
     <DElement
-      label={`${getFrequencyAdjective(frequency)} amount`}
-      description="Select how much you'd like to contribute"
-      {...props}
       data-testid="d-amount"
+      label={t(`donationPage.dAmount.label.${frequency}`)}
+      description={t('donationPage.dAmount.selectContribution')}
+      {...props}
     >
       <DAmountStyled data-testid="d-amount-amounts">
         {amountOptions.map((amountOption, index) => {
@@ -167,6 +168,7 @@ function DAmount({ element, ...props }: DAmountProps) {
               agreedToPayFees={userAgreesToPayFees}
               currencyCode={page.currency!.code}
               currencySymbol={page.currency!.symbol}
+              locale={page.locale}
               feeAmount={feeAmount}
               frequency={frequency}
               onChange={(event) =>

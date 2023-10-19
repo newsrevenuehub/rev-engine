@@ -97,7 +97,7 @@ describe('DonationPageHeader', () => {
         it('forces alt text of "Logo"', () => {
           tree({ page: { ...mockPage, header_logo_alt_text: '' } });
 
-          const link = screen.getByRole('link', { name: 'Logo' });
+          const link = screen.getByRole('link', { name: 'common.logo' });
 
           expect(link).toBeVisible();
           expect(link).toHaveAttribute('href', 'mock-header-link');

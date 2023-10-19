@@ -240,15 +240,17 @@ interface GetPaymentElementButtonTextArgs {
   currencySymbol: string;
   amount: number;
   frequency: ContributionInterval;
+  locale?: string;
 }
 
 export function getPaymentElementButtonText({
   currencyCode,
   currencySymbol,
   amount,
-  frequency
+  frequency,
+  locale
 }: GetPaymentElementButtonTextArgs) {
   return i18n.t(`stripeFns.paymentElementButtonText.${frequency}`, {
-    amount: `${currencySymbol}${formatStringAmountForDisplay(amount)}${currencyCode ? ' ' + currencyCode : ''}`
+    amount: `${currencySymbol}${formatStringAmountForDisplay(amount, locale)}${currencyCode ? ' ' + currencyCode : ''}`
   });
 }

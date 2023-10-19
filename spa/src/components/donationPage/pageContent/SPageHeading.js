@@ -1,4 +1,4 @@
-import * as S from './SPageHeading.styled';
+import { SPageHeadingWrapper, Heading } from './SPageHeading.styled';
 
 // Context
 import { usePage } from 'components/donationPage/DonationPage';
@@ -9,9 +9,9 @@ function SPageHeading() {
   if (!page?.heading) return null;
 
   return (
-    <S.SPageHeading data-testid="s-page-heading">
-      <S.Heading>{page.heading}</S.Heading>
-    </S.SPageHeading>
+    <SPageHeadingWrapper data-testid="s-page-heading">
+      <Heading>{page.heading}</Heading>
+    </SPageHeadingWrapper>
   );
 }
 

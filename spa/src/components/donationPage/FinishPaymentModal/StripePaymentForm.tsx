@@ -9,6 +9,7 @@ import { getPaymentElementButtonText, getPaymentSuccessUrl } from 'components/pa
 import { Payment } from 'hooks/usePayment';
 import { getFrequencyThankYouText } from 'utilities/parseFrequency';
 import { Icon, IconWrapper, SubmitButton, Form } from './StripePaymentForm.styled';
+import { useTranslation } from 'react-i18next';
 
 const StripePaymentFormPropTypes = {
   payment: PropTypes.object.isRequired
@@ -16,11 +17,11 @@ const StripePaymentFormPropTypes = {
 
 export interface StripePaymentFormProps extends InferProps<typeof StripePaymentFormPropTypes> {
   payment: Payment;
+  locale: string;
 }
 
-export const STRIPE_ERROR_MESSAGE = 'Something went wrong processing your payment';
-
-export function StripePaymentForm({ payment }: StripePaymentFormProps) {
+export function StripePaymentForm({ payment, locale }: StripePaymentFormProps) {
+  const { t } = useTranslation();
   const alert = useAlert();
   const elements = useElements();
   const { pathname } = useLocation();
@@ -39,9 +40,10 @@ export function StripePaymentForm({ payment }: StripePaymentFormProps) {
         currencyCode: payment.currency.code,
         currencySymbol: payment.currency.symbol,
         frequency: payment.interval,
-        amount: parseFloat(payment.amount)
+        amount: parseFloat(payment.amount),
+        locale
       }),
-    [payment.amount, payment.currency.code, payment.currency.symbol, payment.interval]
+    [locale, payment.amount, payment.currency.code, payment.currency.symbol, payment.interval]
   );
 
   const [isLoading, setIsLoading] = useState(false);
@@ -111,7 +113,7 @@ export function StripePaymentForm({ payment }: StripePaymentFormProps) {
       if (error) {
         const errorMessage = ['card_error', 'validation_error'].includes(error.type)
           ? error.message
-          : STRIPE_ERROR_MESSAGE;
+          : t('donationPage.stripePaymentForm.errorProcessingPayment');
 
         alert.error(errorMessage);
       }
@@ -123,7 +125,7 @@ export function StripePaymentForm({ payment }: StripePaymentFormProps) {
       //
       // TODO: [DEV-2921] update this console.error copy after DEV-2342 has landed to account for setup intent
       console.error('Something unexpected happened finalizing Stripe payment', error);
-      alert.error(STRIPE_ERROR_MESSAGE);
+      alert.error(t('donationPage.stripePaymentForm.errorProcessingPayment'));
     } finally {
       setIsLoading(false);
     }

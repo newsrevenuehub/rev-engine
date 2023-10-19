@@ -75,8 +75,8 @@ describe('LiveDonationPageContainer', () => {
     );
     tree();
     const helmet = Helmet.peek();
-    expect(helmet.title).toBe(`Join | ${mockData.revenue_program.name}`);
-    await waitFor(() => expect(document.title).toBe(`Join | ${mockData.revenue_program.name}`));
+    expect(helmet.title).toBe('common.joinRevenueProgram{"name":"mock-rv-name"}');
+    await waitFor(() => expect(document.title).toBe('common.joinRevenueProgram{"name":"mock-rv-name"}'));
   });
 
   it('should render LivePage404', async () => {

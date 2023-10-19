@@ -711,6 +711,19 @@ class TestContributionsCacheProvider:
             "Unable to cast subscription %s to a portal contribution", sub1.id, exc_info=mocker.ANY
         )
 
+    def test_serialize_when_invalid_metadata_on_a_pi(self, pi_for_active_subscription, mocker):
+        logger_spy = mocker.patch("apps.contributions.stripe_contributions_provider.logger.warning")
+        pi_for_active_subscription.metadata = {"foo": "bar"}
+        provider = ContributionsCacheProvider(email_id="foo@bar.com", stripe_account_id="test")
+        serialized = provider.serialize([pi_for_active_subscription])
+        logger_spy.assert_called_once_with(
+            "Unable to process Contribution [%s]",
+            pi_for_active_subscription.id,
+            exc_info=mocker.ANY,
+        )
+        assert isinstance(logger_spy.call_args[1]["exc_info"], InvalidMetadataError)
+        assert serialized == {}
+
 
 class TestSubscriptionsCacheProvider:
     EMAIL_ID = "foo@BAR.com"

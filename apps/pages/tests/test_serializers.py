@@ -307,13 +307,16 @@ class TestDonationPageFullDetailSerializer:
         assert serializer.is_valid() is True
 
     @pytest_cases.parametrize("plan", (Plans.FREE.value, Plans.PLUS.value, Plans.CORE.value))
-    def test_plan_page_limits_are_respected(self, plan, hub_admin_user):
+    @pytest_cases.parametrize("existing_locale", ("en", "es"))
+    @pytest_cases.parametrize("attempted_locale", ("en", "es"))
+    def test_plan_page_limits_are_respected(self, plan, existing_locale, attempted_locale, hub_admin_user):
         org = OrganizationFactory(plan_name=plan)
         rp = RevenueProgramFactory(organization=org)
-        DonationPageFactory.create_batch(org.plan.page_limit, revenue_program=rp)
+        DonationPageFactory.create_batch(org.plan.page_limit, locale=existing_locale, revenue_program=rp)
         serializer = DonationPageFullDetailSerializer(
             data={
                 "slug": "my-new-page",
+                "locale": attempted_locale,
                 "revenue_program": rp.pk,
             }
         )
@@ -389,10 +392,14 @@ class TestDonationPageFullDetailSerializer:
         assert len(serialized.data["sidebar_elements"]) == len(live_donation_page.sidebar_elements) - 1
 
     @pytest_cases.parametrize("plan", (Plans.FREE.value, Plans.CORE.value))
-    def test_validate_publish_limit(self, plan, hub_admin_user):
+    @pytest_cases.parametrize("existing_locale", ("en", "es"))
+    @pytest_cases.parametrize("attempted_locale", ("en", "es"))
+    def test_validate_publish_limit(self, plan, existing_locale, attempted_locale, hub_admin_user):
         org = OrganizationFactory(plan_name=plan)
         rp = RevenueProgramFactory(organization=org)
-        DonationPageFactory.create_batch(org.plan.page_limit - 1, revenue_program=rp, published_date=timezone.now())
+        DonationPageFactory.create_batch(
+            org.plan.page_limit - 1, locale=existing_locale, revenue_program=rp, published_date=timezone.now()
+        )
         for dp in DonationPage.objects.filter(revenue_program=rp).all()[: org.plan.page_limit]:
             dp.published_date = timezone.now()
             dp.save()
@@ -401,6 +408,7 @@ class TestDonationPageFullDetailSerializer:
         serializer = DonationPageFullDetailSerializer(
             data={
                 "slug": "my-new-page",
+                "locale": attempted_locale,
                 "revenue_program": rp.pk,
                 "published_date": timezone.now(),
             },

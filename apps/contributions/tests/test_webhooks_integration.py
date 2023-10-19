@@ -40,12 +40,6 @@ def payment_intent_canceled():
 
 
 @pytest.fixture
-def payment_intent_succeeded():
-    with open("apps/contributions/tests/fixtures/payment-intent-succeeded-webhook.json") as fl:
-        return json.load(fl)
-
-
-@pytest.fixture
 def payment_intent_payment_failed():
     with open("apps/contributions/tests/fixtures/payment-intent-payment-failed-webhook.json") as fl:
         return json.load(fl)

@@ -354,3 +354,53 @@ class TestPingHealthChecks:
         contribution_tasks.ping_healthchecks(check_name=(check_name := "foo"), healthcheck_url="https://foo")
         for i, x in enumerate(logger_spy.call_args_list):
             assert x == mocker.call("Request %s for %s healthcheck failed", i + 1, check_name)
+
+
+class TestProcessStripeWebhookTask:
+    """This a minimal and admittedly suboptimal test class for our process_stripe_webhook_task
+
+    The critical thing we'd like to test about this task is that when max retries is hit, we call
+    on_process_stripe_webhook_task_final_failure to ensure we get a Sentry notification (this should happen
+    because we've configured the task with that task function as the link_error handler). To test this, we need
+    Redis running in our test environment so that we can do a true integration test.
+
+    In short term, we have an implementation-focused test that shows that our task is configured with
+    expected link_error callback (and in turn, we unit test that function).
+
+    TODO: [DEV-4173] Run redis in test environment and refactor TestProcessStripeWebhookTask to be a true integration test.
+    """
+
+    def test_config(self):
+        """Test that our task is configured properly -- especially that its link_error parameter is set as expected"""
+        assert contribution_tasks.process_stripe_webhook_task.max_retries == 3
+        assert contribution_tasks.process_stripe_webhook_task.retry_backoff is True
+        assert contribution_tasks.process_stripe_webhook_task.autoretry_for == (stripe.error.RateLimitError,)
+        assert (
+            contribution_tasks.process_stripe_webhook_task.link_error.task
+            == "apps.contributions.tasks.on_process_stripe_webhook_task_final_failure"
+        )
+
+    @pytest.mark.parametrize("contribution_found", (True, False))
+    def test_synchronously(self, contribution_found, payment_intent_succeeded, mocker):
+        mock_process = mocker.patch("apps.contributions.webhooks.StripeWebhookProcessor.process")
+        mock_logger = mocker.patch("apps.contributions.tasks.logger.debug")
+        if not contribution_found:
+            mock_process.side_effect = Contribution.DoesNotExist
+        contribution_tasks.process_stripe_webhook_task(event=payment_intent_succeeded)
+        mock_process.assert_called_once()
+        if contribution_found:
+            mock_logger.assert_not_called()
+        else:
+            mock_logger.assert_called_once_with("Could not find contribution", exc_info=True)
+
+
+def test_on_process_stripe_webhook_task_final_failure(mocker):
+    mock_logger = mocker.patch("apps.contributions.tasks.logger.error")
+    contribution_tasks.on_process_stripe_webhook_task_final_failure(
+        err=(err := "Uh oh"),
+        task_id=(task_id := "task-id"),
+        args=None,
+        kwargs=None,
+        einfo=None,
+    )
+    mock_logger.assert_called_once_with(f"process_stripe_webhook_task {task_id} failed after all retries. Error: {err}")

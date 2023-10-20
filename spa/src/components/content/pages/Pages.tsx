@@ -1,3 +1,4 @@
+import orderBy from 'lodash.orderby';
 import { useMemo, useState } from 'react';
 import { useHistory } from 'react-router-dom';
 import join from 'url-join';
@@ -12,30 +13,6 @@ import { isStringInStringCaseInsensitive } from 'utilities/isStringInString';
 import AddPage from './AddPage';
 import { Content, PageUsage } from './Pages.styled';
 
-/**
- * Custom sort function for contribution pages. Sorts by revenue program name,
- * then page name.
- */
-function comparePages(a: ContributionPage, b: ContributionPage) {
-  if (a.revenue_program.name < b.revenue_program.name) {
-    return -1;
-  }
-
-  if (a.revenue_program.name > b.revenue_program.name) {
-    return 1;
-  }
-
-  if (a.name < b.name) {
-    return -1;
-  }
-
-  if (a.name > b.name) {
-    return 1;
-  }
-
-  return 0;
-}
-
 function Pages() {
   const history = useHistory();
   const [pageSearchQuery, setPageSearchQuery] = useState('');
@@ -48,18 +25,19 @@ function Pages() {
     // Filter by search query, then sort. A page might not have a slug.
 
     if (pageSearchQuery === '') {
-      return [...pages].sort(comparePages);
+      return orderBy(pages, ['revenue_program.name', 'name']);
     }
 
-    return pages
-      .filter(
+    return orderBy(
+      pages.filter(
         (page) =>
           (page.slug && isStringInStringCaseInsensitive(page.slug, pageSearchQuery)) ||
           isStringInStringCaseInsensitive(page.name, pageSearchQuery) ||
           isStringInStringCaseInsensitive(page.revenue_program.name, pageSearchQuery) ||
           isStringInStringCaseInsensitive(page.revenue_program.slug, pageSearchQuery)
-      )
-      .sort(comparePages);
+      ),
+      ['revenue_program.name', 'name']
+    );
   }, [pageSearchQuery, pages]);
 
   const handleEditPage = (page: ContributionPage) =>

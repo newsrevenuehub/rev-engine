@@ -21,7 +21,7 @@ import DonationPageRouter from 'components/DonationPageRouter';
 import DashboardRouter from 'components/DashboardRouter';
 import PortalRouter from 'components/PortalRouter';
 
-export const GlobalContext = createContext(null);
+export const GlobalContext = createContext<{ getReauth: (callbackFunction: () => void) => void } | null>(null);
 
 function MainLayout() {
   useSentry();
@@ -33,9 +33,9 @@ function MainLayout() {
   const subdomain = useSubdomain();
 
   // Store reauth callbacks in ref to persist between renders
-  const reauthCallbacks = useRef([]);
+  const reauthCallbacks = useRef<(() => void)[]>([]);
 
-  const getReauth = (cb) => {
+  const getReauth = (cb: () => void) => {
     /*
       getReauth can be called multiple times per-load. Because of this,
       store references to the callbacks provided each time and call them

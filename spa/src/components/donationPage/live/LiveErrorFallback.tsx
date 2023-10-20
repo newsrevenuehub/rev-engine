@@ -8,7 +8,7 @@ function LiveErrorFallback() {
     <Wrapper data-testid="500-something-wrong">
       <Content>
         <FiveHundred>500</FiveHundred>
-        <Description>{t('common.error.internalServerError')}</Description>
+        <Description>{t('common.error.internalError')}</Description>
       </Content>
     </Wrapper>
   );

@@ -6,7 +6,7 @@ describe('LiveErrorFallback', () => {
   it('should display the correct error message', () => {
     render(<LiveErrorFallback />);
 
-    expect(screen.getByText('common.error.internalServerError')).toBeInTheDocument();
+    expect(screen.getByText('common.error.internalError')).toBeInTheDocument();
   });
 
   it('should display the correct error code', () => {

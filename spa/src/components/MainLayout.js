@@ -1,5 +1,5 @@
-import { createContext, useState, useContext, useRef } from 'react';
-import * as S from './MainLayout.styled';
+import { createContext, useState, useContext, useRef, Suspense } from 'react';
+import { MainLayoutWrapper } from './MainLayout.styled';
 
 // Hooks
 import useSentry from 'hooks/useSentry';
@@ -14,6 +14,7 @@ import { DASHBOARD_SUBDOMAINS } from 'appSettings';
 import { AnalyticsContextProvider } from './analytics/AnalyticsContext';
 
 // Children
+import GlobalLoading from 'elements/GlobalLoading';
 import GlobalConfirmationModal from 'elements/modal/GlobalConfirmationModal';
 import ReauthModal from 'components/authentication/ReauthModal';
 import DonationPageRouter from 'components/DonationPageRouter';
@@ -67,10 +68,11 @@ function MainLayout() {
     <GlobalContext.Provider value={{ getReauth }}>
       <AnalyticsContextProvider>
         <GlobalConfirmationModal>
-          {/* Route to donation page if subdomain exists */}
-          <S.MainLayout>
-            <Router />
-          </S.MainLayout>
+          <MainLayoutWrapper>
+            <Suspense fallback={<GlobalLoading />}>
+              <Router />
+            </Suspense>
+          </MainLayoutWrapper>
         </GlobalConfirmationModal>
         <ReauthModal isOpen={reauthModalOpen} callbacks={reauthCallbacks.current} closeModal={closeReauthModal} />
       </AnalyticsContextProvider>

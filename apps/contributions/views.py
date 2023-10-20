@@ -143,7 +143,6 @@ def process_stripe_webhook(request):
             "Invalid signature on Stripe webhook request. Is STRIPE_WEBHOOK_SECRET_CONTRIBUTIONS set correctly?"
         )
         return Response(data={"error": "Invalid signature"}, status=status.HTTP_400_BAD_REQUEST)
-    # NB: the stripe event is itself an object, but it is serialized into a dict when called here
     process_stripe_webhook_task.delay(event.to_dict())
     return Response(status=status.HTTP_200_OK)
 

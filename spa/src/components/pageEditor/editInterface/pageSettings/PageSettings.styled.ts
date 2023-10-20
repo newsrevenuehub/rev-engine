@@ -33,7 +33,7 @@ export const LocaleSelect = styled(TextField)`
 
 export const Title = styled.h1`
   font-family: ${({ theme }) => theme.systemFont};
-  color: ${({ theme }) => theme.basePalette.greyscale.grey1};
+  color: ${({ theme }) => theme.basePalette.greyscale.black};
   font-size: ${({ theme }) => theme.fontSizesUpdated.lg};
   font-weight: 400;
   margin: 0 0 12px 0;
@@ -41,4 +41,5 @@ export const Title = styled.h1`
 
 export const Explanation = styled.p`
   color: ${({ theme }) => theme.basePalette.greyscale.grey1};
+  font-size: ${({ theme }) => theme.fontSizesUpdated.md};
 `;

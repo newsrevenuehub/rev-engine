@@ -1,6 +1,6 @@
 [tool.bandit]
 targets = ["./apps", "./revengine", "./scripts"]
-exclude_dirs = ["tests", ".direnv", ".venv"]
+exclude_dirs = ["tests", ".*"]
 
 [tool.black]
 line-length = 120

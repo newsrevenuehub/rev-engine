@@ -1709,3 +1709,24 @@ class TestContributionQuerySetMethods:
         results = Contribution.objects.filter_queryset_for_contributor(contributor_user, revenue_program)
         assert len(results) == 1
         assert results[0].id == paid.id
+
+
+@pytest.mark.django_db
+class TestPayment:
+    def test__str__(self):
+        pass
+
+    def test_from_stripe_charge_success(self):
+        pass
+
+    def test_from_stripe_charge_refund(self):
+        pass
+
+    def test_from_stripe_charge(self):
+        pass
+
+    def test_get_contribution_id_for_charge(self):
+        pass
+
+    def test_contribution(self):
+        pass

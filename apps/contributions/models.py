@@ -1,3 +1,5 @@
+from __future__ import annotations
+
 import datetime
 import logging
 import uuid
@@ -6,6 +8,7 @@ from typing import List
 from urllib.parse import quote_plus
 
 from django.conf import settings
+from django.core.exceptions import ValidationError
 from django.db import models
 from django.template.loader import render_to_string
 from django.utils.safestring import SafeString, mark_safe
@@ -926,3 +929,56 @@ class Contribution(IndexedTimeStampedModel):
             "would update" if dry_run else "updated",
             updated_count,
         )
+
+
+class Payment(IndexedTimeStampedModel):
+    """Represents a single payment event for a contribution. This could be a refund or a successful charge."""
+
+    contribution_id = models.ForeignKey("contributions.Contributor", on_delete=models.CASCADE)
+    net_amount_paid = models.IntegerField()
+    gross_amount_paid = models.IntegerField()
+    amount_refunded = models.IntegerField()
+    stripe_event_id = models.CharField(max_length=255)
+    stripe_charge_id = models.CharField(max_length=255)
+    stripe_balance_transaction_id = models.CharField(max_length=255)
+
+    class Meta:
+        indexes = [
+            models.Index(fields=["contribution_id"]),
+        ]
+
+    def __str__(self):
+        return f"Payment for contribution {self.contribution_id}"
+
+    @property
+    def contribution(self):
+        return Contribution.objects.get(pk=self.contribution_id)
+
+    @classmethod
+    def from_stripe_charge_success(charge: stripe.Charge, contribution_id: int):
+        pass
+
+    @classmethod
+    def from_stripe_charge_refund(charge: stripe.Charge, contribution_id: int):
+        pass
+
+    @classmethod
+    def from_stripe_charge(cls, charge: stripe.Charge, is_refund: bool = False) -> "Payment":
+        try:
+            contribution_id = cls.get_contribution_for_charge(charge).only("id").get().id
+        except Contribution.DoesNotExist:
+            logger.exception(
+                "`Payment.from_stripe_charge` called with a charge whose contribution could not be found. Charge ID: %s",
+                charge.id,
+            )
+            raise ValidationError("Could not find contribution for charge")
+        return getattr(cls, "from_stripe_charge_refund" if is_refund else "from_stripe_charge_success")(
+            charge, contribution_id
+        )
+
+    @classmethod
+    def get_contribution_id_for_charge(cls, charge: stripe.Charge) -> int:
+        query = Contribution.objects.only("id")
+        if charge.invoice.subscription:
+            return query.get(provider_subscription_id=charge.invoice.subscription.id).id
+        return query.get(provider_payment_id=charge.payment_intent).id

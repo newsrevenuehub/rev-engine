@@ -48,7 +48,7 @@ export function FinishPaymentModal({ onCancel, onError, open, payment, locale }:
               <ChevronLeft />
               {t('common.actions.back')}
             </BackButton>
-            <StripePaymentForm payment={payment} />
+            <StripePaymentForm payment={payment} locale={locale} />
             <ContributionDisclaimer
               formattedAmount={`${payment.currency.symbol}${payment.amount} ${payment.currency.code}`}
               interval={payment.interval}

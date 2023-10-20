@@ -9,27 +9,27 @@ import {
 type TestList = [ContributionInterval, string][];
 
 const adjectiveTests: TestList = [
-  ['one_time', 'common.frequency.adjectives.oneTime'],
-  ['month', 'common.frequency.adjectives.monthly'],
-  ['year', 'common.frequency.adjectives.yearly']
+  ['one_time', 'common.frequency.adjectives.one_time'],
+  ['month', 'common.frequency.adjectives.month'],
+  ['year', 'common.frequency.adjectives.year']
 ];
 
 const adverbTests: TestList = [
-  ['one_time', 'common.frequency.adverbs.oneTime'],
-  ['month', 'common.frequency.adverbs.monthly'],
-  ['year', 'common.frequency.adverbs.yearly']
+  ['one_time', 'common.frequency.adverbs.one_time'],
+  ['month', 'common.frequency.adverbs.month'],
+  ['year', 'common.frequency.adverbs.year']
 ];
 
 const rateTests: TestList = [
   ['one_time', ''],
-  ['month', 'common.frequency.rates.monthly'],
-  ['year', 'common.frequency.rates.yearly']
+  ['month', 'common.frequency.rates.month'],
+  ['year', 'common.frequency.rates.year']
 ];
 
 const thankYouTests: TestList = [
-  ['one_time', 'common.frequency.thankYous.oneTime'],
-  ['month', 'common.frequency.thankYous.monthly'],
-  ['year', 'common.frequency.thankYous.yearly']
+  ['one_time', 'common.frequency.thankYous.one_time'],
+  ['month', 'common.frequency.thankYous.month'],
+  ['year', 'common.frequency.thankYous.year']
 ];
 
 const badFrequencies = [undefined, null, '', 'bad', 1, true];

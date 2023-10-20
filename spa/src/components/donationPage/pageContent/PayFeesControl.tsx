@@ -3,8 +3,8 @@ import { ChangeEvent } from 'react';
 import { FormControlLabel } from 'components/base';
 import { ContributionInterval } from 'constants/contributionIntervals';
 import formatStringAmountForDisplay from 'utilities/formatStringAmountForDisplay';
-import { getFrequencyAdjective } from 'utilities/parseFrequency';
 import { Header, ThemedCheckbox } from './PayFeesControl.styled';
+import { useTranslation } from 'react-i18next';
 
 const PayFeesControlPropTypes = {
   agreedToPayFees: PropTypes.bool.isRequired,
@@ -13,7 +13,8 @@ const PayFeesControlPropTypes = {
   feeAmount: PropTypes.number.isRequired,
   frequency: PropTypes.string.isRequired,
   onChange: PropTypes.func.isRequired,
-  revenueProgramName: PropTypes.string.isRequired
+  revenueProgramName: PropTypes.string.isRequired,
+  locale: PropTypes.string.isRequired
 };
 
 export interface PayFeesControlProps extends InferProps<typeof PayFeesControlPropTypes> {
@@ -28,17 +29,21 @@ export function PayFeesControl({
   feeAmount,
   frequency,
   onChange,
-  revenueProgramName
+  revenueProgramName,
+  locale
 }: PayFeesControlProps) {
-  const formattedAmount = `${currencySymbol}${formatStringAmountForDisplay(feeAmount)} ${currencyCode}`;
-  const formattedFrequency = getFrequencyAdjective(frequency).toLocaleLowerCase();
+  const { t } = useTranslation();
+  const formattedAmount = `${currencySymbol}${formatStringAmountForDisplay(feeAmount, locale)} ${currencyCode}`;
 
   return (
     <div data-testid="pay-fees">
-      <Header>Agree to pay fees?</Header>
+      <Header>{t('donationPage.payFeesControl.agreeToPayFees')}</Header>
       <FormControlLabel
         control={<ThemedCheckbox checked={agreedToPayFees} onChange={onChange} />}
-        label={`I agree to pay a ${formattedFrequency} transaction fee of ${formattedAmount} to direct more support to ${revenueProgramName}'s mission.`}
+        label={t(`donationPage.payFeesControl.payFeesConsent.${frequency}`, {
+          amount: formattedAmount,
+          revenueProgramName
+        })}
       />
     </div>
   );

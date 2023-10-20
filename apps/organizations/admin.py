@@ -144,10 +144,6 @@ class OrganizationAdmin(RevEngineBaseAdmin, CompareVersionAdmin):
 
     readonly_fields = ["uuid"]
 
-    def get_readonly_fields(self, request, obj=None):
-        # TODO: [DEV-3905] Use urllib to parse instead of Path
-        return self.readonly_fields if Path(request.path).parts[-1] == "add" else self.readonly_fields + ["name"]
-
     def save_model(self, request, obj, form, change):
         """Override save_model so we pass update_fields to obj.save()
 
@@ -285,7 +281,7 @@ class RevenueProgramAdmin(RevEngineBaseAdmin, CompareVersionAdmin, AdminImageMix
     # Overriding this template to add the `admin_limited_select` inclusion tag
     change_form_template = "organizations/revenueprogram_changeform.html"
 
-    readonly_fields = ["name", "slug", "organization", "mailchimp_server_prefix", "mailchimp_list_id"]
+    readonly_fields = ["mailchimp_server_prefix", "mailchimp_list_id"]
 
     def get_readonly_fields(self, request, obj=None):
         # If it's an addform, we can't allow setting default_donation_page until the RevenueProgram has been defined

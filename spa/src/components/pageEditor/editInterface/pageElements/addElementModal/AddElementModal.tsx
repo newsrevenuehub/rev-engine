@@ -23,10 +23,7 @@ import { ContributionPageElement, PageElementType } from 'hooks/useContributionP
 export const defaultContent: Partial<Record<PageElementType, unknown>> = {
   // Default reason blocks to ask for a reason at least, and have an empty list
   // of pre-supplied reasons.
-  DReason: { askReason: true, reasons: [] },
-  // Have an empty list of pre-supplied swags and set the threshold to $240/year
-  // initially. This is a bit of a magic number.
-  DSwag: { swagThreshold: 240, swags: [] }
+  DReason: { askReason: true, reasons: [] }
 };
 
 export const defaultRequiredFields: Partial<Record<PageElementType, string[]>> = {
@@ -52,15 +49,29 @@ function AddElementModal({ addElementModalOpen, setAddElementModalOpen, destinat
   const [permittedPageElements, setPermittedPageElements] = useState<EditContributionPageElement[]>([]);
   const [permittedSidebarElements, setPermittedSidebarElements] = useState<EditContributionPageElement[]>([]);
 
+  // Temp disabling DSwag elements in DEV-3733
+  // TODO: Re-enable in DEV-3735
+  // useEffect(() => {
+  //   setPermittedPageElements(
+  //     Object.values(dynamicLayoutElements as ElementRecord).filter(({ type }) =>
+  //       (page?.plan?.page_elements ?? []).includes(type)
+  //     )
+  //   );
+  //   setPermittedSidebarElements(
+  //     Object.values({ ...dynamicSidebarElements } as SidebarElementRecord).filter(({ type }) =>
+  //       (page?.plan?.sidebar_elements ?? []).includes(type)
+  //     )
+  //   );
+  // }, [page?.plan?.page_elements, page?.plan?.sidebar_elements]);
   useEffect(() => {
     setPermittedPageElements(
-      Object.values(dynamicLayoutElements as ElementRecord).filter(({ type }) =>
-        (page?.plan?.page_elements ?? []).includes(type)
+      Object.values(dynamicLayoutElements as ElementRecord).filter(
+        ({ type }) => (page?.plan?.page_elements ?? []).includes(type) && type !== 'DSwag'
       )
     );
     setPermittedSidebarElements(
-      Object.values({ ...dynamicSidebarElements } as SidebarElementRecord).filter(({ type }) =>
-        (page?.plan?.sidebar_elements ?? []).includes(type)
+      Object.values({ ...dynamicSidebarElements } as SidebarElementRecord).filter(
+        ({ type }) => (page?.plan?.sidebar_elements ?? []).includes(type) && type !== 'DSwag'
       )
     );
   }, [page?.plan?.page_elements, page?.plan?.sidebar_elements]);

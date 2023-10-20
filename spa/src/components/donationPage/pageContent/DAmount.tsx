@@ -3,8 +3,8 @@ import PropTypes, { InferProps } from 'prop-types';
 import { DAmountStyled, FeesContainer, FreqSubtext, OtherAmount, OtherAmountInput } from './DAmount.styled';
 
 // Util
-import { getFrequencyAdjective, getFrequencyRate } from 'utilities/parseFrequency';
-import { parseFloatStrictly } from 'utilities/parseFloatStrictly';
+import validateInputPositiveFloat from 'utilities/validateInputPositiveFloat';
+import { getFrequencyRate } from 'utilities/parseFrequency';
 
 // Context
 import { usePage } from '../DonationPage';
@@ -15,6 +15,7 @@ import SelectableButton from 'elements/buttons/SelectableButton';
 import usePreviousState from 'hooks/usePreviousState';
 import FormErrors from 'elements/inputs/FormErrors';
 import PayFeesControl from './PayFeesControl';
+import { useTranslation } from 'react-i18next';
 
 export type DAmountProps = InferProps<typeof DAmountPropTypes>;
 
@@ -30,7 +31,7 @@ function DAmount({ element, ...props }: DAmountProps) {
     errors,
     userAgreesToPayFees
   } = usePage();
-
+  const { t } = useTranslation();
   const prevFrequency = usePreviousState(frequency);
   const currencyCode = page?.currency?.code;
   const currencySymbol = page?.currency?.symbol;
@@ -105,10 +106,8 @@ function DAmount({ element, ...props }: DAmountProps) {
       setAmount(undefined);
     }
 
-    const parsedValue = parseFloatStrictly(value);
-
-    if (!isNaN(parsedValue) && parsedValue > 0) {
-      setAmount(parsedValue);
+    if (validateInputPositiveFloat(value)) {
+      setAmount(parseFloat(value));
     }
   };
 
@@ -123,10 +122,10 @@ function DAmount({ element, ...props }: DAmountProps) {
 
   return (
     <DElement
-      label={`${getFrequencyAdjective(frequency)} amount`}
-      description="Select how much you'd like to contribute"
-      {...props}
       data-testid="d-amount"
+      label={t(`donationPage.dAmount.label.${frequency}`)}
+      description={t('donationPage.dAmount.selectContribution')}
+      {...props}
     >
       <DAmountStyled data-testid="d-amount-amounts">
         {amountOptions.map((amountOption, index) => {
@@ -169,6 +168,7 @@ function DAmount({ element, ...props }: DAmountProps) {
               agreedToPayFees={userAgreesToPayFees}
               currencyCode={page.currency!.code}
               currencySymbol={page.currency!.symbol}
+              locale={page.locale}
               feeAmount={feeAmount}
               frequency={frequency}
               onChange={(event) =>

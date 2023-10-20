@@ -10,6 +10,7 @@ function tree(props?: Partial<PayFeesControlProps>) {
       currencyCode="mock-currency-code"
       currencySymbol="mock-currency-symbol"
       feeAmount={123}
+      locale="en"
       frequency="one_time"
       onChange={jest.fn()}
       revenueProgramName="mock-rp-name"
@@ -21,7 +22,7 @@ function tree(props?: Partial<PayFeesControlProps>) {
 describe('PayFeesControl', () => {
   it('shows a header', () => {
     tree();
-    expect(screen.getByRole('heading', { name: 'Agree to pay fees?' })).toBeVisible();
+    expect(screen.getByRole('heading', { name: 'donationPage.payFeesControl.agreeToPayFees' })).toBeVisible();
   });
 
   it.each([[true], [false]])('shows a checkbox with correct state when agreedToPayFees is %p', (value) => {
@@ -59,7 +60,7 @@ describe('PayFeesControl', () => {
     });
     expect(
       screen.getByLabelText(
-        "I agree to pay a common.frequency.adjectives.monthly transaction fee of $$$9,999.00 USD to direct more support to test-rp's mission."
+        `donationPage.payFeesControl.payFeesConsent.month{"amount":"$$$9,999.00 USD","revenueProgramName":"test-rp"}`
       )
     ).toBeInTheDocument();
   });

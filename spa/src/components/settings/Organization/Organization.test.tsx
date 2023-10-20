@@ -37,10 +37,7 @@ describe('Settings Organization Page', () => {
             fiscal_status: 'nonprofit',
             tax_id: '123456789',
             fiscal_sponsor_name: '',
-            organization: {
-              id: 1,
-              name: 'mock-org-1'
-            }
+            organization: 1
           }
         ]
       }
@@ -102,10 +99,7 @@ describe('Settings Organization Page', () => {
         revenue_programs: [
           {
             id: 1,
-            organization: {
-              id: 1,
-              name: 'mock-org-1'
-            },
+            organization: 1,
             fiscal_status: 'fiscally sponsored',
             tax_id: '123456789',
             fiscal_sponsor_name: ''
@@ -163,10 +157,7 @@ describe('Settings Organization Page', () => {
           revenue_programs: [
             {
               id: 1,
-              organization: {
-                id: 1,
-                name: 'mock-org-1'
-              },
+              organization: 1,
               fiscal_status: 'fiscally sponsored',
               tax_id: '123456789',
               fiscal_sponsor_name: ''
@@ -201,10 +192,7 @@ describe('Settings Organization Page', () => {
           revenue_programs: [
             {
               id: 1,
-              organization: {
-                id: 1,
-                name: 'mock-org-1'
-              },
+              organization: 1,
               fiscal_status: 'fiscally sponsored',
               tax_id: '123456789',
               fiscal_sponsor_name: ''
@@ -264,19 +252,13 @@ describe('Settings Organization Page', () => {
             id: 1,
             fiscal_status: 'nonprofit',
             tax_id: '123456789',
-            organization: {
-              id: 1,
-              name: 'mock-org-1'
-            }
+            organization: 1
           },
           {
             id: 2,
             fiscal_status: 'for-profit',
             tax_id: '000000000',
-            organization: {
-              id: 1,
-              name: 'mock-org-1'
-            }
+            organization: 1
           }
         ]
       }
@@ -366,10 +348,7 @@ describe('Settings Organization Page', () => {
             id: 1,
             fiscal_status: 'nonprofit',
             tax_id: undefined,
-            organization: {
-              id: 1,
-              name: 'mock-org-1'
-            }
+            organization: 1
           }
         ]
       }

@@ -1,4 +1,4 @@
-import * as S from './DImage.styled';
+import { Image } from './DImage.styled';
 import PropTypes from 'prop-types';
 
 // Util
@@ -10,7 +10,7 @@ import DElement, { DynamicElementPropTypes } from 'components/donationPage/pageC
 function DImage({ element, ...props }) {
   return (
     <DElement data-testid="d-image" {...props}>
-      <S.Image src={getSrcForImg(element?.content?.url || element?.content)} />
+      <Image src={getSrcForImg(element?.content?.url ?? element?.content)} />
     </DElement>
   );
 }

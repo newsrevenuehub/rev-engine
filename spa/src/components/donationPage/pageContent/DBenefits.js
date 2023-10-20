@@ -1,5 +1,6 @@
 import * as S from './DBenefits.styled';
 import PropTypes from 'prop-types';
+import { useTranslation } from 'react-i18next';
 
 // Assets
 import { ICONS } from 'assets/icons/SvgIcon';
@@ -12,13 +13,14 @@ import DElement, { DynamicElementPropTypes } from 'components/donationPage/pageC
 import ElementError from 'components/donationPage/pageContent/ElementError';
 
 function DBenefits({ live }) {
+  const { t } = useTranslation();
   const {
     page: { benefit_levels }
   } = usePage();
 
   if (!benefit_levels) {
     if (live) return null;
-    return <ElementError>No Contributor Benefits configured for this page</ElementError>;
+    return <ElementError>{t('donationPage.dBenefits.emptyError')}</ElementError>;
   }
 
   return (
@@ -31,9 +33,19 @@ function DBenefits({ live }) {
               <S.Level key={level.name + i} data-testid="level">
                 <S.BenefitLevelDetails>
                   <S.LevelName>{level.name}</S.LevelName>
-                  <S.LevelRange data-testid="level-range">{level.donation_range} per year</S.LevelRange>
+                  <S.LevelRange data-testid="level-range">
+                    {t('donationPage.dBenefits.perYear', {
+                      donation: level.donation_range
+                    })}
+                  </S.LevelRange>
                 </S.BenefitLevelDetails>
-                {i !== 0 && <S.LevelInclusion>Everything from {prevLevel.name}, plus</S.LevelInclusion>}
+                {i !== 0 && (
+                  <S.LevelInclusion>
+                    {t('donationPage.dBenefits.everythingPlus', {
+                      name: prevLevel.name
+                    })}
+                  </S.LevelInclusion>
+                )}
                 <S.LevelBenefitList data-testid="level-benefit-list">
                   {level.benefits?.map((benefit, i) => {
                     return (

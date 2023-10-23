@@ -938,7 +938,7 @@ class Payment(IndexedTimeStampedModel):
     net_amount_paid = models.IntegerField()
     gross_amount_paid = models.IntegerField()
     amount_refunded = models.IntegerField()
-    stripe_event_id = models.CharField(max_length=255)
+    stripe_event_id = models.CharField(max_length=255, unique=True)
     stripe_charge_id = models.CharField(max_length=255)
     stripe_balance_transaction_id = models.CharField(max_length=255)
 

@@ -1,6 +1,7 @@
 import os
 import time
 from datetime import timedelta
+from types import TracebackType
 from typing import List
 
 from django.conf import settings
@@ -9,7 +10,7 @@ from django.utils import timezone
 
 import requests
 import stripe
-from celery import Signature, shared_task
+from celery import Task, shared_task
 from celery.utils.log import get_task_logger
 from requests.exceptions import RequestException
 from sentry_sdk import configure_scope
@@ -184,10 +185,10 @@ def task_verify_apple_domain(self, revenue_program_slug: str):
 
 
 @shared_task
-def on_process_stripe_webhook_task_final_failure(err: Signature, task_id: str, args, kwargs, einfo) -> None:
+def on_process_stripe_webhook_task_final_failure(task: Task, exc: Exception, traceback: TracebackType) -> None:
     """When max retries reached on process_stripe_webhook_task we call this task to ensure we get an error
     notification in Sentry."""
-    logger.error(f"process_stripe_webhook_task {task_id} failed after all retries. Error: {err}")
+    logger.error(f"process_stripe_webhook_task {task.id} failed after all retries. Error: {exc}")
 
 
 @shared_task(

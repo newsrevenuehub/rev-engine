@@ -396,11 +396,8 @@ class TestProcessStripeWebhookTask:
 
 def test_on_process_stripe_webhook_task_final_failure(mocker):
     mock_logger = mocker.patch("apps.contributions.tasks.logger.error")
-    contribution_tasks.on_process_stripe_webhook_task_final_failure(
-        err=(err := "Uh oh"),
-        task_id=(task_id := "task-id"),
-        args=None,
-        kwargs=None,
-        einfo=None,
-    )
-    mock_logger.assert_called_once_with(f"process_stripe_webhook_task {task_id} failed after all retries. Error: {err}")
+    task = mocker.Mock(id=(my_id := "some-task-id"))
+    exc = Exception("foo")
+    tb = mocker.Mock()
+    contribution_tasks.on_process_stripe_webhook_task_final_failure(task, exc, tb)
+    mock_logger.assert_called_once_with(f"process_stripe_webhook_task {my_id} failed after all retries. Error: {exc}")

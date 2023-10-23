@@ -4,6 +4,7 @@ import datetime
 import logging
 import uuid
 from dataclasses import asdict
+from functools import cached_property
 from typing import List
 from urllib.parse import quote_plus
 
@@ -934,7 +935,7 @@ class Contribution(IndexedTimeStampedModel):
 class Payment(IndexedTimeStampedModel):
     """Represents a single payment event for a contribution. This could be a refund or a successful charge."""
 
-    contribution_id = models.ForeignKey("contributions.Contributor", on_delete=models.CASCADE)
+    contribution_id = models.ForeignKey("contributions.Contribution", on_delete=models.CASCADE)
     net_amount_paid = models.IntegerField()
     gross_amount_paid = models.IntegerField()
     amount_refunded = models.IntegerField()
@@ -948,37 +949,54 @@ class Payment(IndexedTimeStampedModel):
         ]
 
     def __str__(self):
-        return f"Payment for contribution {self.contribution_id}"
+        return f"Stripe charge {self.stripe_charge_id} for contribution {self.contribution_id}"
 
     @property
     def contribution(self):
         return Contribution.objects.get(pk=self.contribution_id)
 
-    @classmethod
-    def from_stripe_charge_success(charge: stripe.Charge, contribution_id: int):
-        pass
+    @property
+    def stripe_account_id(self):
+        return self.contribution.donation_page.revenue_program.payment_provider.stripe_account_id
+
+    @cached_property
+    def stripe_event(self):
+        return stripe.Event.retrieve(self.stripe_event_id, stripe_account=self.stripe_account_id)
+
+    @cached_property
+    def stripe_charge(self):
+        return stripe.Charge.retrieve(self.stripe_charge_id, stripe_account=self.stripe_account_id)
 
     @classmethod
-    def from_stripe_charge_refund(charge: stripe.Charge, contribution_id: int):
-        pass
+    def _get_stripe_balance_transaction(cls, balance_transaction_id, account_id):
+        return stripe.BalanceTransaction.retrieve(balance_transaction_id, account=account_id)
+
+    @cached_property
+    def stripe_balance_transaction(self):
+        self._get_stripe_balance_transaction(self.stripe_balance_transaction_id, self.stripe_account_id)
 
     @classmethod
-    def from_stripe_charge(cls, charge: stripe.Charge, is_refund: bool = False) -> "Payment":
+    def from_stripe_charge_event(cls, event: stripe.Event) -> "Payment":
+        charge = event.charge
         try:
-            contribution_id = cls.get_contribution_for_charge(charge).only("id").get().id
+            contribution = (
+                Contribution.objects.get(provider_subscription_id=charge.invoice.subscription.id)
+                if charge.invoice and charge.invoice.subscription
+                else Contribution.objects.get(provider_payment_id=charge.payment_intent)
+            )
         except Contribution.DoesNotExist:
             logger.exception(
                 "`Payment.from_stripe_charge` called with a charge whose contribution could not be found. Charge ID: %s",
                 charge.id,
             )
             raise ValidationError("Could not find contribution for charge")
-        return getattr(cls, "from_stripe_charge_refund" if is_refund else "from_stripe_charge_success")(
-            charge, contribution_id
+        balance_transaction = cls._get_stripe_balance_transaction(charge.balance_transaction, charge.stripe_account_id)
+        return Payment(
+            contribution_id=contribution.id,
+            net_amount_paid=balance_transaction.net,
+            gross_amount_paid=balance_transaction.amount,
+            amount_refunded=charge.amount_refunded,
+            stripe_event_id=event.id,
+            stripe_balance_transaction_id=balance_transaction.id,
+            stripe_charge_id=charge.id,
         )
-
-    @classmethod
-    def get_contribution_id_for_charge(cls, charge: stripe.Charge) -> int:
-        query = Contribution.objects.only("id")
-        if charge.invoice.subscription:
-            return query.get(provider_subscription_id=charge.invoice.subscription.id).id
-        return query.get(provider_payment_id=charge.payment_intent).id

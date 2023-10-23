@@ -61,13 +61,15 @@ class StripeWebhookProcessor:
                 return Contribution.objects.get(provider_subscription_id=self.id)
             case "payment_intent":
                 conditions = [Q(provider_payment_id=self.id)]
-                if self.customer_id:
+                if self.customer_id:  # pragma: no branch
                     conditions.append(Q(provider_customer_id=self.customer_id))
                 return Contribution.objects.get(reduce(operator.or_, conditions))
             case "payment_method":
                 return Contribution.objects.get(provider_customer_id=self.customer_id)
             case "invoice":
                 return Contribution.objects.get(provider_subscription_id=self.obj_data["subscription"])
+            case _:
+                raise Contribution.DoesNotExist("No contribution found for event")
 
     @property
     def rejected(self):

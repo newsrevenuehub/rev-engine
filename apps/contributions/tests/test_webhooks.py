@@ -138,6 +138,24 @@ class TestStripeWebhookProcessor:
             with pytest.raises(Contribution.DoesNotExist):
                 processor.contribution
 
+    @pytest.fixture
+    def unexpected_event(self):
+        return {
+            "id": "evt_1J4X2n2eZvKYlo2C0QYQXZ0K",
+            "type": "unexpected",
+            "data": {
+                "object": {
+                    "object": "unexpected",
+                    "id": "sub_1J4X2n2eZvKYlo2C0QYQXZ0K",
+                }
+            },
+        }
+
+    def test_contribution_when_unexpected_object_type(self, unexpected_event, mocker):
+        processor = StripeWebhookProcessor(unexpected_event)
+        with pytest.raises(Contribution.DoesNotExist):
+            processor.contribution
+
     @pytest.mark.parametrize(
         "event_live_mode,settings_live_mode,expected",
         (

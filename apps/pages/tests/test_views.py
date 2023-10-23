@@ -29,7 +29,6 @@ from apps.pages.serializers import (
     DonationPageFullDetailSerializer,
     DonationPageListSerializer,
     EnglishLocale,
-    SpanishLocale,
     StyleListSerializer,
 )
 from apps.pages.tests.factories import DonationPageFactory, FontFactory, StyleFactory
@@ -518,34 +517,28 @@ class TestPageViewSet:
         assert response.json() == {"styles": [f'Invalid pk "{style_id}" - object does not exist.']}
 
     @pytest_cases.parametrize("plan", (Plans.FREE.value, Plans.CORE.value, Plans.PLUS.value))
-    @pytest.mark.parametrize("locale", (SpanishLocale, EnglishLocale))
-    def test_create_when_already_at_page_limit(self, plan, locale, hub_admin_user, api_client):
+    def test_create_when_already_at_page_limit(self, plan, hub_admin_user, api_client):
         rp = RevenueProgramFactory(organization=OrganizationFactory(plan_name=plan))
         data = {
             "revenue_program": rp.id,
             "slug": rp.slug,
-            "locale": locale.code,
         }
         api_client.force_authenticate(hub_admin_user)
         remaining = (limit := rp.organization.plan.page_limit)
         if remaining:
-            DonationPageFactory.create_batch(remaining, revenue_program=rp, published_date=None, locale=locale.code)
+            DonationPageFactory.create_batch(remaining, revenue_program=rp, published_date=None)
         response = api_client.post(reverse("donationpage-list"), data=data, format="json")
         assert response.status_code == status.HTTP_400_BAD_REQUEST
         assert response.json() == {
-            "non_field_errors": [
-                f"Your organization has reached its limit of {limit} {locale.adjective} page{'' if limit == 1 else 's'}"
-            ]
+            "non_field_errors": [f"Your organization has reached its limit of {limit} page{'' if limit == 1 else 's'}"]
         }
 
     # NB we don't test on plus plan because it is meant to have unlimited pages (published or otherwise)
     @pytest_cases.parametrize("plan", (Plans.FREE.value, Plans.CORE.value))
-    @pytest_cases.parametrize("locale", (SpanishLocale, EnglishLocale))
-    def test_create_when_already_at_publish_limit(self, plan, locale, hub_admin_user, api_client):
+    def test_create_when_already_at_publish_limit(self, plan, hub_admin_user, api_client):
         rp = RevenueProgramFactory(organization=OrganizationFactory(plan_name=plan))
         for i in range((limit := rp.organization.plan.publish_limit)):
             DonationPageFactory(
-                locale=locale.code,
                 revenue_program=rp,
                 published_date=timezone.now() if i + 1 <= rp.organization.plan.publish_limit else None,
             )
@@ -553,14 +546,13 @@ class TestPageViewSet:
             "revenue_program": rp.id,
             "slug": rp.slug,
             "published_date": timezone.now(),
-            "locale": locale.code,
         }
         api_client.force_authenticate(hub_admin_user)
         response = api_client.post(reverse("donationpage-list"), data=data, format="json")
         assert response.status_code == status.HTTP_400_BAD_REQUEST
         assert response.json() == {
             "non_field_errors": [
-                f"Your organization has reached its limit of {limit} published {locale.adjective} page{'' if limit == 1 else 's'}"
+                f"Your organization has reached its limit of {limit} published page{'' if limit == 1 else 's'}"
             ]
         }
 
@@ -961,9 +953,8 @@ class TestPageViewSet:
         }
 
     @pytest.mark.parametrize("plan", (Plans.FREE.value, Plans.CORE.value, Plans.PLUS.value))
-    @pytest.mark.parametrize("locale", (SpanishLocale, EnglishLocale))
     def test_patch_when_at_published_limit_and_try_to_publish(
-        self, plan, locale, live_donation_page, hub_admin_user, api_client
+        self, plan, live_donation_page, hub_admin_user, api_client
     ):
         if plan == Plans.PLUS.value:
             # there's not a path to test updating an existing page such that would push over publish_limit
@@ -971,7 +962,6 @@ class TestPageViewSet:
             # we're not errantly leaving out this plan from the other test path.
             assert PlusPlan.publish_limit == PlusPlan.page_limit
         else:
-            live_donation_page.locale = locale.code
             live_donation_page.revenue_program.organization.plan_name = plan
             live_donation_page.revenue_program.organization.save()
             live_donation_page.refresh_from_db()
@@ -979,9 +969,8 @@ class TestPageViewSet:
                 DonationPageFactory(
                     revenue_program=rp,
                     published_date=timezone.now() if i < rp.organization.plan.publish_limit else None,
-                    locale=locale.code,
                 )
-            unpublished = DonationPageFactory(revenue_program=rp, published_date=None, locale=locale.code)
+            unpublished = DonationPageFactory(revenue_program=rp, published_date=None)
             data = {"published_date": timezone.now()}
             api_client.force_authenticate(user=hub_admin_user)
             response = api_client.patch(
@@ -990,7 +979,7 @@ class TestPageViewSet:
             )
             assert response.status_code == status.HTTP_400_BAD_REQUEST
             assert response.json()["non_field_errors"] == [
-                f"Your organization has reached its limit of {rp.organization.plan.publish_limit} published {locale.adjective} page{'' if rp.organization.plan.publish_limit == 1 else 's'}"
+                f"Your organization has reached its limit of {rp.organization.plan.publish_limit} published page{'' if rp.organization.plan.publish_limit == 1 else 's'}"
             ]
 
     def test_patch_when_invalid_slug_data(

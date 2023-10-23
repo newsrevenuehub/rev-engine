@@ -359,10 +359,12 @@ class TestPingHealthChecks:
 class TestProcessStripeWebhookTask:
     """This a minimal and admittedly suboptimal test class for our process_stripe_webhook_task
 
-    The critical thing we'd like to test about this task is that when max retries is hit, we call
-    on_process_stripe_webhook_task_final_failure to ensure we get a Sentry notification (this should happen
-    because we've configured the task with that task function as the link_error handler). To test this, we need
-    Redis running in our test environment so that we can do a true integration test.
+    The critical thing we'd like to test about this task is that when the task fails, the
+    on_process_stripe_webhook_task_failure gets called (which gives us a notification in Sentry).
+
+    Ideally, we'd do that in such a way as to "naturally" (i.e., without mocking) the callback to
+    get called with signature it will get called with in real life. In practice, BW could not get this working
+    as expected using pytest celery_app and celery_worker (though with further effort, that may be possible)
 
     In short term, we have an implementation-focused test that shows that our task is configured with
     expected link_error callback (and in turn, we unit test that function).
@@ -372,12 +374,9 @@ class TestProcessStripeWebhookTask:
 
     def test_config(self):
         """Test that our task is configured properly -- especially that its link_error parameter is set as expected"""
-        assert contribution_tasks.process_stripe_webhook_task.max_retries == 3
-        assert contribution_tasks.process_stripe_webhook_task.retry_backoff is True
-        assert contribution_tasks.process_stripe_webhook_task.autoretry_for == (stripe.error.RateLimitError,)
         assert (
             contribution_tasks.process_stripe_webhook_task.link_error.task
-            == "apps.contributions.tasks.on_process_stripe_webhook_task_final_failure"
+            == "apps.contributions.tasks.on_process_stripe_webhook_task_failure"
         )
 
     @pytest.mark.parametrize("contribution_found", (True, False))
@@ -394,10 +393,10 @@ class TestProcessStripeWebhookTask:
             mock_logger.assert_called_once_with("Could not find contribution", exc_info=True)
 
 
-def test_on_process_stripe_webhook_task_final_failure(mocker):
+def test_on_process_stripe_webhook_task_failure(mocker):
     mock_logger = mocker.patch("apps.contributions.tasks.logger.error")
     task = mocker.Mock(id=(my_id := "some-task-id"))
     exc = Exception("foo")
     tb = mocker.Mock()
-    contribution_tasks.on_process_stripe_webhook_task_final_failure(task, exc, tb)
-    mock_logger.assert_called_once_with(f"process_stripe_webhook_task {my_id} failed after all retries. Error: {exc}")
+    contribution_tasks.on_process_stripe_webhook_task_failure(task, exc, tb)
+    mock_logger.assert_called_once_with(f"process_stripe_webhook_task {my_id} failed. Error: {exc}")

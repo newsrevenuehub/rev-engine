@@ -184,19 +184,15 @@ def task_verify_apple_domain(self, revenue_program_slug: str):
         raise ex
 
 
-@shared_task
-def on_process_stripe_webhook_task_final_failure(task: Task, exc: Exception, traceback: TracebackType) -> None:
-    """When max retries reached on process_stripe_webhook_task we call this task to ensure we get an error
-    notification in Sentry."""
-    logger.error(f"process_stripe_webhook_task {task.id} failed after all retries. Error: {exc}")
+@shared_task(bind=True)
+def on_process_stripe_webhook_task_failure(self, task: Task, exc: Exception, traceback: TracebackType) -> None:
+    """Ensure we get an error notification in Sentry if the task fails"""
+    logger.error(f"process_stripe_webhook_task {task.id} failed. Error: {exc}")
 
 
 @shared_task(
     bind=True,
-    autoretry_for=(RateLimitError,),
-    retry_backoff=True,
-    retry_kwargs={"max_retries": 3},
-    link_error=on_process_stripe_webhook_task_final_failure.s(),
+    link_error=on_process_stripe_webhook_task_failure.s(),
 )
 def process_stripe_webhook_task(self, event: StripeEventData) -> None:
     logger.info("Processing Stripe webhook event with ID %s", event["id"])

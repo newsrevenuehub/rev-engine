@@ -1,0 +1,24 @@
+{
+    "id": "txn_1XXXXXXXXXXXXXXXXXXXXXXXX",
+    "object": "balance_transaction",
+    "amount": 2000,
+    "available_on": 1635086400,
+    "created": 1635000000,
+    "currency": "usd",
+    "description": "My Description",
+    "exchange_rate": null,
+    "fee": 58,
+    "fee_details": [
+        {
+            "amount": 58,
+            "application": null,
+            "currency": "usd",
+            "description": "Stripe processing fees",
+            "type": "stripe_fee"
+        }
+    ],
+    "net": 1942,
+    "source": "ch_1XXXXXXXXXXXXXXXXXXXXXXXX",
+    "status": "available",
+    "type": "charge"
+}

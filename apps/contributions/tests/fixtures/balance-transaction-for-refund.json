@@ -1,0 +1,24 @@
+{
+    "id": "txn_1YYYYYYYYYYYYYYYYYYYYYYYYY",
+    "object": "balance_transaction",
+    "amount": -2000,
+    "available_on": 1635172800,
+    "created": 1635086400,
+    "currency": "usd",
+    "description": "Refund for charge ch_1XXXXXXXXXXXXXXXXXXXXXXXX",
+    "exchange_rate": null,
+    "fee": -58,
+    "fee_details": [
+        {
+            "amount": -58,
+            "application": null,
+            "currency": "usd",
+            "description": "Stripe refund processing fees",
+            "type": "stripe_fee"
+        }
+    ],
+    "net": -1942,
+    "source": "re_1ZZZZZZZZZZZZZZZZZZZZZZZZZ",
+    "status": "available",
+    "type": "refund"
+}

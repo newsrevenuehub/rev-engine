@@ -37,7 +37,7 @@ describe('ReauthContext', () => {
     expect(screen.getByRole('button', { name: /reauth-button/i })).toBeInTheDocument();
   });
 
-  it('opens ReauthModal when getReauth is clicked', async () => {
+  it('opens ReauthModal when getReauth is called', async () => {
     tree();
     screen.getByRole('button', { name: /reauth-button/i }).click();
 

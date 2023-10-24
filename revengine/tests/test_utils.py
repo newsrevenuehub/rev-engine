@@ -6,7 +6,7 @@ from revengine.settings.base import ensure_gs_credentials
 
 
 @pytest.fixture
-def mnimally_valid_gs_service_account():
+def minimally_valid_gs_service_account():
     """This is a subset of the service account JSON. If any of these key/vals are missing,
     `service_account.Credentials.from_service_account_info`
     """
@@ -21,21 +21,32 @@ def mnimally_valid_gs_service_account():
 
 @pytest.fixture(
     params=[
-        (lambda x: None, True),
-        (lambda x: {}, True),
-        (lambda x: {"foo": "bar"}, True),
-        (lambda x: "", True),
-        (lambda x: x.getfixturevalue("mnimally_valid_gs_service_account"), False),
+        {"get_value": lambda x: None, "raise_on_unset": True, "expect_error": True},
+        {"get_value": lambda x: {}, "raise_on_unset": False, "expect_error": False},
+        {"get_value": lambda x: {"foo": "bar"}, "raise_on_unset": False, "expect_error": True},
+        {"get_value": lambda x: {"foo": "bar"}, "raise_on_unset": True, "expect_error": True},
+        {"get_value": lambda x: "", "raise_on_unset": True, "expect_error": True},
+        {"get_value": lambda x: "", "raise_on_unset": False, "expect_error": False},
+        {
+            "get_value": lambda x: x.getfixturevalue("minimally_valid_gs_service_account"),
+            "raise_on_unset": True,
+            "expect_error": False,
+        },
+        {
+            "get_value": lambda x: x.getfixturevalue("minimally_valid_gs_service_account"),
+            "raise_on_unset": False,
+            "expect_error": False,
+        },
     ]
 )
-def ensure_gs_credentials_case(request):
-    return request.param[0](request), request.param[1]
+def ensure_gs_credentials_case(request, settings):
+    return request.param["get_value"](request), request.param["raise_on_unset"], request.param["expect_error"]
 
 
 def test_ensure_gs_credentials(ensure_gs_credentials_case):
-    val, expect_error = ensure_gs_credentials_case
+    val, settings_raise_on_unset, expect_error = ensure_gs_credentials_case
     if expect_error:
         with pytest.raises(ImproperlyConfigured):
-            ensure_gs_credentials(val)
+            ensure_gs_credentials(val, raise_error_on_gs_service_account_unset=settings_raise_on_unset)
     else:
-        ensure_gs_credentials(val)
+        ensure_gs_credentials(val, raise_error_on_gs_service_account_unset=settings_raise_on_unset)

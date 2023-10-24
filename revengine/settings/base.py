@@ -106,7 +106,10 @@ ENABLE_GOOGLE_CLOUD_SECRET_MANAGER = os.getenv("ENABLE_GOOGLE_CLOUD_SECRET_MANAG
 GS_SERVICE_ACCOUNT = (
     json.loads(base64.b64decode(os.environ["GS_SERVICE_ACCOUNT"])) if os.environ.get("GS_SERVICE_ACCOUNT", None) else {}
 )
-GS_CREDENTIALS = ensure_gs_credentials(GS_SERVICE_ACCOUNT)
+GS_SERVICE_ACCOUNT_RAISE_ERROR_IF_UNSET = os.getenv("GS_SERVICE_ACCOUNT_RAISE_ERROR_IF_UNSET", "true").lower() == "true"
+GS_CREDENTIALS = ensure_gs_credentials(
+    GS_SERVICE_ACCOUNT, raise_error_on_gs_service_account_unset=GS_SERVICE_ACCOUNT_RAISE_ERROR_IF_UNSET
+)
 
 
 # Application definition

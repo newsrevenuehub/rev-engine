@@ -373,9 +373,9 @@ export interface ContributionPage {
    */
   plan: EnginePlan;
   /**
-   * Slug of the page that's used in URLs.
+   * Slug of the page that's used in URLs. This is null when the page is unpublished.
    */
-  slug: string;
+  slug: string | null;
   /**
    * ID of the template used to create the page initially.
    */

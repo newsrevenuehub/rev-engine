@@ -133,6 +133,13 @@ describe('usePayment', () => {
         expect(axiosMock.history.post[0].headers['X-CSRFTOKEN']).toBe('mock-csrf-token');
       });
 
+      it("rejects and doesn't do a POST if the page has no slug", async () => {
+        const { result } = hook();
+
+        await expect(result.current.createPayment!(mockFormData, { ...mockPage, slug: null })).rejects.toThrow();
+        expect(axiosMock.history.post.length).toBe(0);
+      });
+
       it("rejects and doesn't do a POST if mailing country is undefined or an empty string", async () => {
         const { result } = hook();
 

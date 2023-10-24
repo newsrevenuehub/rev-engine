@@ -15,6 +15,8 @@ from datetime import timedelta
 from pathlib import Path
 from typing import Literal, TypedDict
 
+from django.core.exceptions import ImproperlyConfigured
+
 from google.oauth2 import service_account
 
 
@@ -109,6 +111,9 @@ GS_SERVICE_ACCOUNT = (
 GS_CREDENTIALS = (
     service_account.Credentials.from_service_account_info(GS_SERVICE_ACCOUNT) if GS_SERVICE_ACCOUNT else None
 )
+
+if GS_CREDENTIALS is None:
+    raise ImproperlyConfigured("GS_CREDENTIALS is None")
 
 
 # Application definition

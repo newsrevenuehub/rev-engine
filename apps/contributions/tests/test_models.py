@@ -32,7 +32,11 @@ from apps.contributions.models import (
     send_thank_you_email,
 )
 from apps.contributions.tasks import task_pull_serialized_stripe_contributions_to_cache
-from apps.contributions.tests.factories import ContributionFactory, ContributorFactory
+from apps.contributions.tests.factories import (
+    ContributionFactory,
+    ContributorFactory,
+    PaymentFactory,
+)
 from apps.emails.tasks import make_send_thank_you_email_data, send_templated_email
 from apps.organizations.models import FiscalStatusChoices, FreePlan
 from apps.organizations.tests.factories import OrganizationFactory, RevenueProgramFactory
@@ -1768,57 +1772,78 @@ def balance_transaction_for_refund():
 
 @pytest.mark.django_db
 class TestPayment:
-    def test__str__(self):
+    @pytest.fixture
+    def payment(self):
+        return PaymentFactory()
+
+    def test__str__(self, payment):
+        assert str(payment) == f"Stripe charge {payment.stripe_charge_id} for contribution {payment.contribution.id}"
+
+    def test_stripe_account_id(self, payment):
         assert (
-            str(Payment(contribution_id=(contribution_id := 37), stripe_charge_id=(charge_id := "ch_123")))
-            == f"Stripe charge {charge_id} for contribution {contribution_id}"
+            payment.stripe_account_id
+            == payment.contribution.donation_page.revenue_program.payment_provider.stripe_account_id
         )
 
-    def test_stripe_account_id(self):
-        contribution = ContributionFactory()
-        assert (
-            Payment(contribution_id=contribution.id).stripe_account_id
-            == contribution.donation_page.revenue_program.payment_provider.stripe_account_id
-        )
-
-    def test_stripe_event(self, mocker):
-        mock_retrieve = mocker.patch("stripe.Event.retrieve")
-        payment = Payment(stripe_event_id="evt_123")
+    def test_stripe_event(self, payment, mocker):
+        mock_retrieve = mocker.patch("stripe.Event.retrieve", return_value=mocker.Mock())
         assert payment.stripe_event == mock_retrieve.return_value
-        mock_retrieve.assert_called_once_with(payment.stripe_event_id)
+        mock_retrieve.assert_called_once_with(
+            payment.stripe_event_id,
+            stripe_account=payment.contribution.donation_page.revenue_program.payment_provider.stripe_account_id,
+        )
 
-    def test_stripe_charge(self, mocker):
-        mock_retrieve = mocker.patch("stripe.Charge.retrieve")
-        payment = Payment(stripe_charge_id="ch_123")
+    def test_stripe_charge(self, mocker, payment):
+        mock_retrieve = mocker.patch("stripe.Charge.retrieve", return_value=mocker.Mock())
         assert payment.stripe_charge == mock_retrieve.return_value
-        mock_retrieve.assert_called_once_with(payment.stripe_charge_id)
+        mock_retrieve.assert_called_once_with(
+            payment.stripe_charge_id,
+            stripe_account=payment.contribution.donation_page.revenue_program.payment_provider.stripe_account_id,
+        )
 
-    def test_stripe_balance_transaction(self, mocker):
-        mock_retrieve = mocker.patch("stripe.BalanceTransaction.retrieve")
-        payment = Payment(stripe_balance_transaction_id="bt_123")
+    def test_stripe_balance_transaction(self, mocker, payment):
+        mock_retrieve = mocker.patch("stripe.BalanceTransaction.retrieve", return_value=mocker.Mock())
         assert payment.stripe_balance_transaction == mock_retrieve.return_value
-        mock_retrieve.assert_called_once_with(payment.stripe_balance_transaction_id)
+        mock_retrieve.assert_called_once_with(
+            payment.stripe_balance_transaction_id,
+            stripe_account=payment.contribution.donation_page.revenue_program.payment_provider.stripe_account_id,
+        )
 
     @pytest.fixture(
         params=(
-            ("charge_succeeded_event", "balance_transaction_for_charge"),
-            ("charge_refunded_event", "balance_transaction_for_refund"),
+            ("charge_succeeded_for_one_time_event", "balance_transaction_for_charge"),
+            ("charge_succeeded_for_subscription_event", "balance_transaction_for_charge"),
+            ("charge_refunded_for_one_time_event", "balance_transaction_for_refund"),
+            ("charge_refunded_for_subscription_event", "balance_transaction_for_refund"),
         )
     )
     def stripe_charge_event_case(self, request, mocker):
-        mocker.patch("stripe.BalanceTransaction.retrieve", return_value=request.getfixturevalue(request.param[1]))
-        return request.getfixturevalue(request.param[0]), request.getfixturevalue(request.param[1])
+        mocker.patch(
+            "stripe.BalanceTransaction.retrieve",
+            return_value=(balance_transaction := request.getfixturevalue(request.param[1])),
+        )
+        mocker.patch("stripe.Invoice.retrieve", return_value=(invoice := mocker.Mock()))
+        mocker.patch("stripe.Event.retrieve", return_value=(event := request.getfixturevalue(request.param[0])))
 
-    def test_from_stripe_charge_event_when_contribution_found(self, stripe_charge_event_case):
-        event, balance_transaction = stripe_charge_event_case
-        payment = Payment.from_stripe_charge_event(event)
-        assert payment.contribution_id == Contribution.objects.get(provider_payment_id=event["data"]["object"]["id"]).id
-        assert payment.net_amount_paid == balance_transaction["net"]
-        assert payment.gross_amount_paid == balance_transaction["amount"]
-        assert payment.amount_refunded == event["data"]["object"]["amount_refunded"]
-        assert payment.stripe_event_id == event["id"]
-        assert payment.stripe_balance_transaction_id == balance_transaction["id"]
-        assert payment.stripe_charge_id == event["data"]["object"]["id"]
+        return {
+            "balance_transaction": balance_transaction,
+            "invoice": invoice,
+            "event": event,
+        }
+
+    def test_from_stripe_charge_event_when_contribution_found(self, stripe_charge_event_case, payment):
+        mock_event = stripe_charge_event_case["event"]
+        mock_balance_transaction = stripe_charge_event_case["balance_transaction"]
+        mock_invoice = stripe_charge_event_case["invoice"]
+        my_payment = Payment.from_stripe_charge_event(mock_event)
+        assert my_payment.contribution == payment.contribution
+        assert my_payment.net_amount_paid == mock_balance_transaction.net
+        assert my_payment.gross_amount_paid == mock_balance_transaction.amount
+        assert my_payment.amount_refunded == mock_balance_transaction.amount_refunded
+        assert my_payment.stripe_event_id == mock_event.id
+        assert my_payment.stripe_balance_transaction_id == mock_balance_transaction.id
+        assert my_payment.stripe_charge_id == mock_event.data.object.id
+        assert mock_invoice
 
     def test_from_stripe_charge_event_when_contribution_not_found(self, charge_succeeded_event, mocker):
         Contribution.objects.delete()

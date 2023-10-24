@@ -3,7 +3,7 @@ import { cleanup, fireEvent, render, screen } from 'test-utils';
 import { UsePageProps, DonationPageContext } from '../DonationPage';
 import DAmount, { DAmountProps } from './DAmount';
 import { CONTRIBUTION_INTERVALS } from 'constants/contributionIntervals';
-import { getFrequencyAdjective, getFrequencyRate } from 'utilities/parseFrequency';
+import { getFrequencyRate } from 'utilities/parseFrequency';
 import userEvent from '@testing-library/user-event';
 import { within } from '@testing-library/react';
 
@@ -67,14 +67,14 @@ describe('DAmount', () => {
   it('displays a heading based on the frequency selected', () => {
     Object.values(CONTRIBUTION_INTERVALS).forEach((frequency) => {
       tree(undefined, { frequency });
-      expect(screen.getByText(`${getFrequencyAdjective(frequency)} amount`)).toBeVisible();
+      expect(screen.getByText(`donationPage.dAmount.label.${frequency}`)).toBeVisible();
       cleanup();
     });
   });
 
   it('displays a prompt', () => {
     tree();
-    expect(screen.getByText("Select how much you'd like to contribute")).toBeVisible();
+    expect(screen.getByText('donationPage.dAmount.selectContribution')).toBeVisible();
   });
 
   it('displays page errors related to amount', () => {

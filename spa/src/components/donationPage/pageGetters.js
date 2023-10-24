@@ -2,6 +2,7 @@ import * as dynamicLayoutElements from 'components/donationPage/pageContent/dyna
 import * as dynamicSidebarElements from 'components/donationPage/pageContent/dynamicSidebarElements';
 import * as staticElements from 'components/donationPage/pageContent/staticElements';
 import ElementError from 'components/donationPage/pageContent/ElementError';
+import { useTranslation } from 'react-i18next';
 
 export const getPageHeadingElement = () => {
   return <staticElements.SPageHeading />;
@@ -25,5 +26,6 @@ function getComponentForElement(element, live) {
 }
 
 export function NoComponentError({ name }) {
-  return <ElementError>Missing component defintion for "{name}"</ElementError>;
+  const { t } = useTranslation();
+  return <ElementError>{t('donationPage.pageGetter.missingComponent', { name })}</ElementError>;
 }

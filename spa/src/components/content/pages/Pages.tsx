@@ -1,66 +1,47 @@
 import orderBy from 'lodash.orderby';
-import { Fragment, useState } from 'react';
-import join from 'url-join';
-import { Content, PageUsage } from './Pages.styled';
-
-// Router
+import { useMemo, useState } from 'react';
 import { useHistory } from 'react-router-dom';
-import { EDITOR_ROUTE } from 'routes';
-
-// Children
-import Hero from 'components/common/Hero';
+import join from 'url-join';
 import { ContributionPageButton } from 'components/common/Button/ContributionPageButton';
+import Hero from 'components/common/Hero';
 import GenericErrorBoundary from 'components/errors/GenericErrorBoundary';
-import { isStringInStringCaseInsensitive } from 'utilities/isStringInString';
 import GlobalLoading from 'elements/GlobalLoading';
 import { ContributionPage } from 'hooks/useContributionPage';
-
-import AddPage from './AddPage';
 import useContributionPageList from 'hooks/useContributionPageList';
-
-export const pagesbyRP = (pgsRaw: ContributionPage[], qry?: string) => {
-  const pagesByRevProgram: { name: string; pages: ContributionPage[] }[] = [];
-  const pgs = qry
-    ? pgsRaw?.filter((page) => {
-        return (
-          page?.revenue_program &&
-          (isStringInStringCaseInsensitive(page.slug, qry) ||
-            isStringInStringCaseInsensitive(page.name, qry) ||
-            isStringInStringCaseInsensitive(page.revenue_program.slug, qry) ||
-            isStringInStringCaseInsensitive(page.revenue_program.name, qry))
-        );
-      })
-    : pgsRaw;
-
-  const revPrograms = new Set(pgs?.map((p) => p?.revenue_program?.id));
-
-  revPrograms.forEach((rpId) => {
-    if (rpId) {
-      const pagesForRp = pgs?.filter((p) => p?.revenue_program?.id === rpId);
-      pagesByRevProgram.push({
-        name: pagesForRp[0].revenue_program.name,
-        pages: pagesForRp
-      });
-    }
-  });
-  return orderBy(pagesByRevProgram, 'name');
-};
+import { EDITOR_ROUTE } from 'routes';
+import { isStringInStringCaseInsensitive } from 'utilities/isStringInString';
+import AddPage from './AddPage';
+import { Content, PageUsage } from './Pages.styled';
 
 function Pages() {
   const history = useHistory();
   const [pageSearchQuery, setPageSearchQuery] = useState('');
   const { pages, isLoading } = useContributionPageList();
+  const visiblePages = useMemo(() => {
+    if (!pages) {
+      return [];
+    }
+
+    // Filter by search query, then sort. A page might not have a slug.
+
+    if (pageSearchQuery === '') {
+      return orderBy(pages, ['revenue_program.name', 'name']);
+    }
+
+    return orderBy(
+      pages.filter(
+        (page) =>
+          (page.slug && isStringInStringCaseInsensitive(page.slug, pageSearchQuery)) ||
+          isStringInStringCaseInsensitive(page.name, pageSearchQuery) ||
+          isStringInStringCaseInsensitive(page.revenue_program.name, pageSearchQuery) ||
+          isStringInStringCaseInsensitive(page.revenue_program.slug, pageSearchQuery)
+      ),
+      ['revenue_program.name', 'name']
+    );
+  }, [pageSearchQuery, pages]);
+
   const handleEditPage = (page: ContributionPage) =>
     history.push(join([EDITOR_ROUTE, 'pages', page.id.toString(), '/']));
-  const pagesByRevenueProgram = pagesbyRP(pages ?? [], pageSearchQuery);
-
-  if (isLoading) {
-    return (
-      <div data-testid="pages-loading">
-        <GlobalLoading />
-      </div>
-    );
-  }
 
   return (
     <GenericErrorBoundary>
@@ -70,22 +51,21 @@ function Pages() {
         placeholder="Pages"
         onChange={setPageSearchQuery}
       />
-      <Content data-testid="pages-list">
-        <AddPage />
-        {!!pagesByRevenueProgram.length &&
-          pagesByRevenueProgram.map((revenueProgram) => (
-            <Fragment key={revenueProgram.name}>
-              {revenueProgram.pages.map((donationPage) => (
-                <ContributionPageButton
-                  key={donationPage.id}
-                  page={donationPage}
-                  onClick={() => handleEditPage(donationPage)}
-                />
-              ))}
-            </Fragment>
-          ))}
-      </Content>
-      <PageUsage />
+      {isLoading ? (
+        <div data-testid="pages-loading">
+          <GlobalLoading />
+        </div>
+      ) : (
+        <>
+          <Content data-testid="pages-list">
+            <AddPage />
+            {visiblePages.map((page) => (
+              <ContributionPageButton key={page.id} page={page} onClick={() => handleEditPage(page)} />
+            ))}
+          </Content>
+          <PageUsage />
+        </>
+      )}
     </GenericErrorBoundary>
   );
 }

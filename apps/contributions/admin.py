@@ -33,6 +33,16 @@ class AbstractStripeLinkedAdmin:
             )
         return "-"
 
+    def _generate_stripe_as_connected_account_link(self, slug, provider_id, stripe_account_id):
+        if provider_id:
+            test_mode = "test/" if not settings.STRIPE_LIVE_MODE else ""
+            return format_html(
+                f"<a href='%s' target='_blank'>{provider_id}</a>"
+                % f"https://dashboard.stripe.com/{stripe_account_id}/{test_mode}{slug}/{provider_id}"
+            )
+        # This is not an expected state to get into because provider_id is expected to be a required field
+        return "-"  # pragma: no cover
+
 
 @admin.register(Payment)
 class PaymentAdmin(RevEngineBaseAdmin, AbstractStripeLinkedAdmin):
@@ -54,26 +64,20 @@ class PaymentAdmin(RevEngineBaseAdmin, AbstractStripeLinkedAdmin):
             "net_amount_paid",
             "gross_amount_paid",
             "amount_refunded",
-            "provider_balance_transaction_link",
+            "stripe_balance_transaction_id",
             "provider_charge_link",
             "provider_event_link",
         )
     )
     readonly_fields = fields
 
-    def provider_balance_transaction_link(self, obj: Payment) -> str:
-        """Link to the balance transaction in Stripe"""
-        return self._generate_stripe_connect_link(
-            "balance/history", obj.stripe_balance_transaction_id, obj.stripe_account_id
-        )
-
     def provider_charge_link(self, obj: Payment) -> str:
         """Link to the charge in Stripe"""
-        return self._generate_stripe_connect_link("charges", obj.stripe_charge_id, obj.stripe_account_id)
+        return self._generate_stripe_as_connected_account_link("payments", obj.stripe_charge_id, obj.stripe_account_id)
 
     def provider_event_link(self, obj: Payment) -> str:
         """Link to the event in Stripe"""
-        return self._generate_stripe_connect_link("events", obj.stripe_event_id, obj.stripe_account_id)
+        return self._generate_stripe_as_connected_account_link("events", obj.stripe_event_id, obj.stripe_account_id)
 
 
 @admin.register(Contribution)

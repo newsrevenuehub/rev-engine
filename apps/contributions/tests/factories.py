@@ -170,7 +170,7 @@ class PaymentFactory(DjangoModelFactory):
         model = models.Payment
 
     created = factory.LazyFunction(lambda: generate_random_datetime(THEN, NOW))
-    contribution_id = factory.SubFactory(ContributionFactory)
+    contribution = factory.SubFactory(ContributionFactory)
     net_amount_paid = 1980
     gross_amount_paid = 2000
     amount_refunded = 0

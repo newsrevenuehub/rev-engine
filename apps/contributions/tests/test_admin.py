@@ -10,6 +10,7 @@ from django.test import RequestFactory, TestCase
 from django.urls import reverse
 
 import pytest
+from bs4 import BeautifulSoup as bs4
 from reversion_compare.admin import CompareVersionAdmin
 
 import apps
@@ -53,37 +54,32 @@ class TestPaymentAdmin:
     def payment(self):
         return PaymentFactory()
 
-    def test_list_view(self):
-        pass
+    def test_list_view(self, payment, client, admin_user):
+        response = client.get(reverse("admin:contributions_payment_changelist"), follow=True)
+        assert response.status_code == 200
 
-    def test_detail_view(self):
-        pass
-
-    def test_provider_balance_transaction_link(self, payment, client, admin_user):
-        client.force_login(admin_user)
+    def test_detail_view(self, payment, client, admin_user):
         response = client.get(reverse("admin:contributions_payment_change", args=[payment.pk]), follow=True)
         assert response.status_code == 200
-        assert (
-            f"<a href='https://dashboard.stripe.com/test/balance/history/{payment.stripe_balance_transaction_id}' target='_blank'>{payment.stripe_balance_transaction_id}</a>"
-            in str(response.content)
-        )
 
     def test_provider_charge_link(self, payment, client, admin_user):
         client.force_login(admin_user)
         response = client.get(reverse("admin:contributions_payment_change", args=[payment.pk]), follow=True)
         assert response.status_code == 200
+        link = bs4(response.content, "html.parser").find("a", string=payment.stripe_charge_id)
         assert (
-            f"<a href='https://dashboard.stripe.com/test/payments/{payment.stripe_charge_id}' target='_blank'>{payment.stripe_charge_id}</a>"
-            in str(response.content)
+            link["href"]
+            == f"https://dashboard.stripe.com/{payment.contribution.donation_page.revenue_program.payment_provider.stripe_account_id}/test/payments/{payment.stripe_charge_id}"
         )
 
     def test_provider_event_link(self, payment, client, admin_user):
         client.force_login(admin_user)
         response = client.get(reverse("admin:contributions_payment_change", args=[payment.pk]), follow=True)
         assert response.status_code == 200
+        link = bs4(response.content, "html.parser").find("a", string=payment.stripe_event_id)
         assert (
-            f"<a href='https://dashboard.stripe.com/test/events/{payment.stripe_event_id}' target='_blank'>{payment.stripe_event_id}</a>"
-            in str(response.content)
+            link["href"]
+            == f"https://dashboard.stripe.com/{payment.contribution.donation_page.revenue_program.payment_provider.stripe_account_id}/test/events/{payment.stripe_event_id}"
         )
 
 

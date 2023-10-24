@@ -278,6 +278,16 @@ describe('PageSettings', () => {
           expect(commitBatch).not.toBeCalled();
         });
 
+        it('shows the modal again if the user cancels out of the warning modal and tries to save after that', () => {
+          tree();
+          userEvent.click(screen.getByRole('button', { name: 'Update' }));
+          expect(screen.getByText('Live Page Language')).toBeVisible();
+          userEvent.click(screen.getByRole('button', { name: 'Cancel' }));
+          expect(screen.queryByText('Live Page Language')).not.toBeInTheDocument();
+          userEvent.click(screen.getByRole('button', { name: 'Update' }));
+          expect(screen.getByText('Live Page Language')).toBeVisible();
+        });
+
         it('closes the modal and commits changes if the user confirms in the warning modal', () => {
           tree();
           userEvent.click(screen.getByRole('button', { name: 'Update' }));
@@ -285,6 +295,16 @@ describe('PageSettings', () => {
           userEvent.click(screen.getByRole('button', { name: 'Change' }));
           expect(screen.queryByText('Live Page Language')).not.toBeInTheDocument();
           expect(commitBatch).toBeCalledTimes(1);
+        });
+
+        it("doesn't show the modal again if the Update button is clicked again without any other changes", () => {
+          tree();
+          userEvent.click(screen.getByRole('button', { name: 'Update' }));
+          expect(screen.queryByText('Live Page Language')).toBeVisible();
+          userEvent.click(screen.getByRole('button', { name: 'Change' }));
+          expect(screen.queryByText('Live Page Language')).not.toBeInTheDocument();
+          userEvent.click(screen.getByRole('button', { name: 'Update' }));
+          expect(screen.queryByText('Live Page Language')).not.toBeInTheDocument();
         });
       });
 

@@ -12,6 +12,7 @@ import { isValidWebUrl } from 'utilities/isValidWebUrl';
 import EditSaveControls from '../EditSaveControls';
 import EditTabHeader from '../EditTabHeader';
 import { Controls, Explanation, ImageSelectorHelpText, Label, LocaleSelect, Root, Title } from './PageSettings.styled';
+import { useState } from 'react';
 
 const INVALID_URL_MESSAGE = 'Please enter a valid URL.';
 
@@ -39,12 +40,14 @@ function PageSettings() {
     handleOpen: handleLocaleChangeModalOpen,
     open: localeChangeModalOpen
   } = useModal();
+  const [confirmedLocaleChange, setConfirmedLocaleChange] = useState<string>();
 
   function handleImageChange(type: string, file?: File, thumbnailUrl?: string) {
     addBatchChange({ [type]: file, [`${type}_thumbnail`]: thumbnailUrl });
   }
 
   function handleLocaleModalConfirm() {
+    setConfirmedLocaleChange(batchPreview!.locale);
     commitBatch();
     handleLocaleChangeModalClose();
   }
@@ -63,7 +66,11 @@ function PageSettings() {
     // If we are changing the locale of a live page, warn the user.
     // Otherwise, commit changes immediately.
 
-    if (batchPreview.published_date && page.locale !== batchPreview.locale) {
+    if (
+      batchPreview.published_date &&
+      batchPreview.locale !== page.locale &&
+      batchPreview.locale !== confirmedLocaleChange
+    ) {
       handleLocaleChangeModalOpen();
     } else {
       commitBatch();

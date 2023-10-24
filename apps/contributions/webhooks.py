@@ -39,7 +39,7 @@ class StripeWebhookProcessor:
     @property
     def id(self) -> str:
         # This is the Stripe ID of the object in the event. While subscription and payment intent have an ID in the payload,
-        # invoice-related events do not, so we have to return None.
+        # invoice.upcoming and payment_method.attached events do not, so we have to return None.
         return self.obj_data.get("id", None)
 
     @property

@@ -1,77 +1,14 @@
 import { fireEvent, render, screen } from 'test-utils';
-import { pagesbyRP, default as Pages } from './Pages';
 import { axe } from 'jest-axe';
-import useContributionPageList from 'hooks/useContributionPageList';
 import { useHistory } from 'react-router-dom';
+import useContributionPageList from 'hooks/useContributionPageList';
+import Pages from './Pages';
 
 jest.mock('react-router-dom', () => ({ ...jest.requireActual('react-router-dom'), useHistory: jest.fn() }));
 jest.mock('./AddPage');
 jest.mock('./PageUsage');
+jest.mock('components/common/Button/ContributionPageButton/ContributionPageButton');
 jest.mock('hooks/useContributionPageList');
-
-describe('pagesbyRP', () => {
-  describe('Given pages list', () => {
-    const inp = [
-      {
-        id: 1,
-        name: 'mock-name-1',
-        slug: 'mock-slug-1',
-        revenue_program: { id: '1', name: 'rp1', slug: 'mock-slug-1' }
-      },
-      {
-        id: 2,
-        name: 'mock-name-2',
-        slug: 'mock-slug-2',
-        revenue_program: { id: '2', name: 'rp2', slug: 'mock-slug-2' }
-      },
-      {
-        id: 3,
-        name: 'mock-name-3',
-        slug: 'mock-slug-3',
-        revenue_program: { id: '2', name: 'rp2', slug: 'mock-slug-2' }
-      }
-    ];
-
-    it('should group pages by RevenueProgram in pagesByRevProgram', () => {
-      const result = pagesbyRP(inp as any);
-      expect(result.length).toEqual(2);
-    });
-
-    it('should filter pages agnostic of capitalization, spacing and punctuation', () => {
-      const filteredResult = pagesbyRP(inp as any, 'MOCK   _name -.()/1');
-      expect(filteredResult).toEqual([
-        {
-          name: 'rp1',
-          pages: [
-            {
-              id: 1,
-              name: 'mock-name-1',
-              slug: 'mock-slug-1',
-              revenue_program: { id: '1', name: 'rp1', slug: 'mock-slug-1' }
-            }
-          ]
-        }
-      ]);
-    });
-  });
-
-  describe('Given pages list having a page with a null rp', () => {
-    let result;
-
-    beforeEach(async () => {
-      const inp = [
-        { id: 1, revenue_program: { id: '1', name: 'rp1' } },
-        { id: 2, revenue_program: { id: '2', name: 'rp2' } },
-        { id: 3, revenue_program: null }
-      ];
-      result = pagesbyRP(inp as any);
-    });
-
-    it('should not throw an error and exclude the page with null rp from pagesByRevProgram', () => {
-      expect(result.length).toEqual(2);
-    });
-  });
-});
 
 function tree() {
   return render(<Pages />);
@@ -100,6 +37,219 @@ describe('Pages', () => {
     tree();
     expect(screen.getByRole('button', { name: 'Mock Page 1' })).toBeVisible();
     expect(screen.getByRole('button', { name: 'Mock Page 2' })).toBeVisible();
+  });
+
+  it('sorts edit buttons by revenue program name, then page name', () => {
+    useContributionPageListMock.mockReturnValue({
+      pages: [
+        { name: 'Mock Page 2', id: 200, revenue_program: { id: 'mock-rp-id-2', name: 'Mock RP 2' } },
+        { name: 'Mock Page 1', id: 201, revenue_program: { id: 'mock-rp-id-2', name: 'Mock RP 2' } },
+        { name: 'Mock Page 2', id: 101, revenue_program: { id: 'mock-rp-id-1', name: 'Mock RP 1' } },
+        { name: 'Mock Page 1', id: 100, revenue_program: { id: 'mock-rp-id-1', name: 'Mock RP 1' } }
+      ]
+    });
+    tree();
+
+    // See https://stackoverflow.com/a/74260431
+
+    const buttons = screen.getAllByRole('button');
+
+    expect(buttons.length).toBe(4);
+    expect(
+      screen
+        .getByTestId('mock-contribution-page-button-100')
+        .compareDocumentPosition(screen.getByTestId('mock-contribution-page-button-101'))
+    ).toBe(Node.DOCUMENT_POSITION_FOLLOWING);
+    expect(
+      screen
+        .getByTestId('mock-contribution-page-button-101')
+        .compareDocumentPosition(screen.getByTestId('mock-contribution-page-button-201'))
+    ).toBe(Node.DOCUMENT_POSITION_FOLLOWING);
+    expect(
+      screen
+        .getByTestId('mock-contribution-page-button-201')
+        .compareDocumentPosition(screen.getByTestId('mock-contribution-page-button-200'))
+    ).toBe(Node.DOCUMENT_POSITION_FOLLOWING);
+  });
+
+  it('filters pages by page name while maintaining sort', () => {
+    useContributionPageListMock.mockReturnValue({
+      pages: [
+        {
+          name: 'Mock Page search 2',
+          id: 200,
+          revenue_program: { id: 'mock-rp-id-2', name: 'Mock RP 2', slug: 'mock-rp-2' },
+          slug: 'mock-page-2'
+        },
+        {
+          name: 'Mock Page search 1',
+          id: 201,
+          revenue_program: { id: 'mock-rp-id-2', name: 'Mock RP 2', slug: 'mock-rp-2' },
+          slug: 'mock-page-1'
+        },
+        {
+          name: 'Mock Page 1',
+          id: 202,
+          revenue_program: { id: 'mock-rp-id-2', name: 'Mock RP 2', slug: 'mock-rp-2' },
+          slug: 'mock-page-unrelated'
+        }
+      ]
+    });
+    tree();
+    fireEvent.change(screen.getByRole('textbox', { name: 'Search for Pages' }), { target: { value: 'SEARCH' } });
+
+    const buttons = screen.getAllByRole('button');
+
+    expect(buttons.length).toBe(2);
+    expect(
+      screen
+        .getByTestId('mock-contribution-page-button-201')
+        .compareDocumentPosition(screen.getByTestId('mock-contribution-page-button-200'))
+    ).toBe(Node.DOCUMENT_POSITION_FOLLOWING);
+  });
+
+  it('filters pages by page slug while maintaining sort', () => {
+    useContributionPageListMock.mockReturnValue({
+      pages: [
+        {
+          name: 'Mock Page 1',
+          id: 200,
+          revenue_program: { id: 'mock-rp-id-2', name: 'Mock RP 2', slug: 'mock-rp-2' },
+          slug: 'search'
+        },
+        {
+          name: 'Mock Page 2',
+          id: 201,
+          revenue_program: { id: 'mock-rp-id-2', name: 'Mock RP 2', slug: 'mock-rp-2' },
+          slug: 'search'
+        },
+        {
+          name: 'Mock Page 3',
+          id: 202,
+          revenue_program: { id: 'mock-rp-id-2', name: 'Mock RP 2', slug: 'mock-rp-2' },
+          slug: 'ignore'
+        }
+      ]
+    });
+    tree();
+    fireEvent.change(screen.getByRole('textbox', { name: 'Search for Pages' }), { target: { value: 'SEARCH' } });
+
+    const buttons = screen.getAllByRole('button');
+
+    expect(buttons.length).toBe(2);
+    expect(
+      screen
+        .getByTestId('mock-contribution-page-button-200')
+        .compareDocumentPosition(screen.getByTestId('mock-contribution-page-button-201'))
+    ).toBe(Node.DOCUMENT_POSITION_FOLLOWING);
+  });
+
+  it('gracefully handles pages with null slugs', () => {
+    useContributionPageListMock.mockReturnValue({
+      pages: [
+        {
+          name: 'Mock Page search 2',
+          id: 200,
+          revenue_program: { id: 'mock-rp-id-2', name: 'Mock RP 2', slug: 'mock-rp-2' },
+          slug: null
+        },
+        {
+          name: 'Mock Page search 1',
+          id: 201,
+          revenue_program: { id: 'mock-rp-id-2', name: 'Mock RP 2', slug: 'mock-rp-2' },
+          slug: null
+        },
+        {
+          name: 'Mock Page 1',
+          id: 202,
+          revenue_program: { id: 'mock-rp-id-2', name: 'Mock RP 2', slug: 'mock-rp-2' },
+          slug: null
+        }
+      ]
+    });
+    tree();
+    fireEvent.change(screen.getByRole('textbox', { name: 'Search for Pages' }), { target: { value: 'SEARCH' } });
+
+    const buttons = screen.getAllByRole('button');
+
+    expect(buttons.length).toBe(2);
+    expect(
+      screen
+        .getByTestId('mock-contribution-page-button-201')
+        .compareDocumentPosition(screen.getByTestId('mock-contribution-page-button-200'))
+    ).toBe(Node.DOCUMENT_POSITION_FOLLOWING);
+  });
+
+  it('filters pages by revenue program name while maintaining sort', () => {
+    useContributionPageListMock.mockReturnValue({
+      pages: [
+        {
+          name: 'Mock Page 1',
+          id: 200,
+          revenue_program: { id: 'mock-rp-id-2', name: 'Mock RP 2 search', slug: 'mock-rp-2' },
+          slug: ''
+        },
+        {
+          name: 'Mock Page 2',
+          id: 201,
+          revenue_program: { id: 'mock-rp-id-2', name: 'Mock RP 2 search', slug: 'mock-rp-2' },
+          slug: ''
+        },
+        {
+          name: 'Mock Page 3',
+          id: 202,
+          revenue_program: { id: 'mock-rp-id-2', name: 'Mock RP 2', slug: 'mock-rp-2' },
+          slug: ''
+        }
+      ]
+    });
+    tree();
+    fireEvent.change(screen.getByRole('textbox', { name: 'Search for Pages' }), { target: { value: 'SEARCH' } });
+
+    const buttons = screen.getAllByRole('button');
+
+    expect(buttons.length).toBe(2);
+    expect(
+      screen
+        .getByTestId('mock-contribution-page-button-200')
+        .compareDocumentPosition(screen.getByTestId('mock-contribution-page-button-201'))
+    ).toBe(Node.DOCUMENT_POSITION_FOLLOWING);
+  });
+
+  it('filters pages by revenue program slug while maintaining sort', () => {
+    useContributionPageListMock.mockReturnValue({
+      pages: [
+        {
+          name: 'Mock Page 1',
+          id: 200,
+          revenue_program: { id: 'mock-rp-id-2', name: 'Mock RP 2', slug: 'mock-rp-2-search' },
+          slug: ''
+        },
+        {
+          name: 'Mock Page 2',
+          id: 201,
+          revenue_program: { id: 'mock-rp-id-2', name: 'Mock RP 2', slug: 'mock-rp-2-search' },
+          slug: ''
+        },
+        {
+          name: 'Mock Page 3',
+          id: 202,
+          revenue_program: { id: 'mock-rp-id-2', name: 'Mock RP 2', slug: 'mock-rp-2' },
+          slug: ''
+        }
+      ]
+    });
+    tree();
+    fireEvent.change(screen.getByRole('textbox', { name: 'Search for Pages' }), { target: { value: 'SEARCH' } });
+
+    const buttons = screen.getAllByRole('button');
+
+    expect(buttons.length).toBe(2);
+    expect(
+      screen
+        .getByTestId('mock-contribution-page-button-200')
+        .compareDocumentPosition(screen.getByTestId('mock-contribution-page-button-201'))
+    ).toBe(Node.DOCUMENT_POSITION_FOLLOWING);
   });
 
   it('goes to the page editor route when an edit page is clicked', () => {

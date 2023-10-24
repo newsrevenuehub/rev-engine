@@ -10,8 +10,8 @@ def ensure_gs_credentials(gs_service_account, raise_error_on_gs_service_account_
     and that will be accessible from worker tasks.
 
 
-    NB: We have parametrized `raise_error_on_gs_service_account_unset` because we don't want to have to store dummy crednetials
-    JSON blob ahead of testing mgirations. In CI, when our migrations test code runs we need to be able to not
+    NB: We have parametrized `raise_error_on_gs_service_account_unset` because we don't want to have to store dummy credentials
+    JSON blob ahead of testing migrations. In CI, when our migrations test code runs we need to be able to not
     raise an error when the env var is not set. But in production, we want to raise an error if the env var is not set.
     """
     if not gs_service_account:

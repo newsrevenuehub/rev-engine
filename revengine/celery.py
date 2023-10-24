@@ -31,7 +31,7 @@ def debug_task(self):
 
 ### Setup Request Id in Celery Logs
 
-LOGGING_FORMAT = "%(levelname)s %(request_id)s %(module)s:%(lineno)d - %(message)s"
+LOGGING_FORMAT = "%(levelname)s %(request_id)s %(module)s:%(lineno)d - [%(funcName)s] %(message)s"
 
 request_id = contextvars.ContextVar("request_id", default=str(uuid.uuid4())[:8])
 

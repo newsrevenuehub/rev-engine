@@ -25,5 +25,5 @@ class TestLoggingConfiguration:
         log_output = mock_stderr.write.call_args[0][0].strip()
 
         # Assert if the log output matches the expected format
-        expected_output = f"WARNING [{request_id.get()}]  test_celery:25 - {message}"
+        expected_output = f"WARNING [{request_id.get()}]  test_celery:22 - [test_log_format] {message}"
         assert expected_output in log_output

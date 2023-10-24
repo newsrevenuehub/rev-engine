@@ -1,4 +1,5 @@
 import datetime
+import json
 import os
 from dataclasses import asdict
 from unittest.mock import Mock, patch
@@ -6,6 +7,7 @@ from urllib.parse import parse_qs, quote_plus, urlparse
 
 from django.conf import settings
 from django.core import mail
+from django.core.exceptions import ValidationError
 from django.template.loader import render_to_string
 from django.utils.safestring import mark_safe
 
@@ -25,6 +27,7 @@ from apps.contributions.models import (
     ContributionStatusError,
     Contributor,
     ContributorRefreshToken,
+    Payment,
     logger,
     send_thank_you_email,
 )
@@ -1711,22 +1714,123 @@ class TestContributionQuerySetMethods:
         assert results[0].id == paid.id
 
 
+@pytest.fixture
+def charge_succeeded_one_time_event():
+    with open("apps/contributions/tests/fixtures/charge-succeeded-one-time.json") as f:
+        return json.load(f)
+
+
+@pytest.fixture
+def charge_succeeded_subscription_event():
+    with open("apps/contributions/tests/fixtures/charge-succeeded-subscription.json") as f:
+        return json.load(f)
+
+
+@pytest.fixture
+def charge_refunded_event():
+    with open("apps/contributions/tests/fixtures/charge-refunded.json") as f:
+        return json.load(f)
+
+
+@pytest.fixture
+def charge_succeeded_for_one_time(charge_succeeded_one_time_event):
+    contribution = ContributionFactory(provider_payment_id=charge_succeeded_one_time_event["data"]["object"]["id"])
+    contribution.donation_page.revenue_program.payment_provider.stripe_account_id = charge_succeeded_one_time_event[
+        "account"
+    ]
+    contribution.donation_page.revenue_program.payment_provider.save()
+    return charge_succeeded_one_time_event
+
+
+@pytest.fixture
+def charge_succeeded_for_subscription(charge_succeeded_subscription_event):
+    contribution = ContributionFactory(
+        provider_subscription_id=charge_succeeded_subscription_event["data"]["object"]["id"]
+    )
+    contribution.donation_page.revenue_program.payment_provider.stripe_account_id = charge_succeeded_subscription_event[
+        "account"
+    ]
+    contribution.donation_page.revenue_program.payment_provider.save()
+    return charge_succeeded_subscription_event
+
+
+@pytest.fixture
+def balance_transaction_for_charge():
+    with open("apps/contributions/tests/fixtures/balance-transaction-for-charge.json") as f:
+        return json.load(f)
+
+
+@pytest.fixture
+def balance_transaction_for_refund():
+    with open("apps/contributions/tests/fixtures/balance-transaction-for-refund.json") as f:
+        return json.load(f)
+
+
 @pytest.mark.django_db
 class TestPayment:
     def test__str__(self):
-        pass
+        assert (
+            str(Payment(contribution_id=(contribution_id := 37), stripe_charge_id=(charge_id := "ch_123")))
+            == f"Stripe charge {charge_id} for contribution {contribution_id}"
+        )
 
-    def test_from_stripe_charge_success(self):
-        pass
+    def test_stripe_account_id(self):
+        contribution = ContributionFactory()
+        assert (
+            Payment(contribution_id=contribution.id).stripe_account_id
+            == contribution.donation_page.revenue_program.payment_provider.stripe_account_id
+        )
 
-    def test_from_stripe_charge_refund(self):
-        pass
+    def test_stripe_event(self, mocker):
+        mock_retrieve = mocker.patch("stripe.Event.retrieve")
+        payment = Payment(stripe_event_id="evt_123")
+        assert payment.stripe_event == mock_retrieve.return_value
+        mock_retrieve.assert_called_once_with(payment.stripe_event_id)
 
-    def test_from_stripe_charge(self):
-        pass
+    def test_stripe_charge(self, mocker):
+        mock_retrieve = mocker.patch("stripe.Charge.retrieve")
+        payment = Payment(stripe_charge_id="ch_123")
+        assert payment.stripe_charge == mock_retrieve.return_value
+        mock_retrieve.assert_called_once_with(payment.stripe_charge_id)
 
-    def test_get_contribution_id_for_charge(self):
-        pass
+    def test_stripe_balance_transaction(self, mocker):
+        mock_retrieve = mocker.patch("stripe.BalanceTransaction.retrieve")
+        payment = Payment(stripe_balance_transaction_id="bt_123")
+        assert payment.stripe_balance_transaction == mock_retrieve.return_value
+        mock_retrieve.assert_called_once_with(payment.stripe_balance_transaction_id)
 
-    def test_contribution(self):
+    @pytest.fixture(
+        params=(
+            ("charge_succeeded_event", "balance_transaction_for_charge"),
+            ("charge_refunded_event", "balance_transaction_for_refund"),
+        )
+    )
+    def stripe_charge_event_case(self, request, mocker):
+        mocker.patch("stripe.BalanceTransaction.retrieve", return_value=request.getfixturevalue(request.param[1]))
+        return request.getfixturevalue(request.param[0]), request.getfixturevalue(request.param[1])
+
+    def test_from_stripe_charge_event_when_contribution_found(self, stripe_charge_event_case):
+        event, balance_transaction = stripe_charge_event_case
+        payment = Payment.from_stripe_charge_event(event)
+        assert payment.contribution_id == Contribution.objects.get(provider_payment_id=event["data"]["object"]["id"]).id
+        assert payment.net_amount_paid == balance_transaction["net"]
+        assert payment.gross_amount_paid == balance_transaction["amount"]
+        assert payment.amount_refunded == event["data"]["object"]["amount_refunded"]
+        assert payment.stripe_event_id == event["id"]
+        assert payment.stripe_balance_transaction_id == balance_transaction["id"]
+        assert payment.stripe_charge_id == event["data"]["object"]["id"]
+
+    def test_from_stripe_charge_event_when_contribution_not_found(self, charge_succeeded_event, mocker):
+        Contribution.objects.delete()
+        with pytest.raises(ValidationError):
+            Payment.from_stripe_charge_event(charge_succeeded_event)
+
+    @pytest.fixture(
+        params=(("charge_succeeded_for_one_time")),
+    )
+    def charge_event_case(self, mocker, request):
+        mocker.patch("stripe.BalanceTransaction.retrieve", return_value=balance_transaction_for_charge)
+        return charge_succeeded_one_time_event, balance_transaction_for_charge
+
+    def test_get_contribution_for_charge_event(self, charge_event_case, mocker):
         pass

@@ -1,0 +1,67 @@
+{
+    "id": "evt_1XXXXX",
+    "object": "event",
+    "api_version": "2020-08-27",
+    "account": "acct_XXXXX",
+    "created": 1632442000,
+    "data": {
+        "object": {
+            "id": "ch_1XXXXX",
+            "object": "charge,",
+            "amount": 2000,
+            "amount_refunded": 2000,
+            "application": null,
+            "application_fee": null,
+            "application_fee_amount": null,
+            "balance_transaction": "txn_1XXXXX",
+            "billing_details": {
+                "address": {},
+                "email": "email@example.com",
+                "name": "John Doe",
+                "phone": null
+            },
+            "captured": true,
+            "created": 1632442000,
+            "currency": "usd",
+            "customer": "cus_XXXXX",
+            "description": "One-time charge example",
+            "destination": null,
+            "dispute": null,
+            "failure_code": null,
+            "failure_message": null,
+            "invoice": null,
+            "livemode": false,
+            "metadata": {},
+            "on_behalf_of": null,
+            "order": null,
+            "outcome": {},
+            "paid": true,
+            "payment_intent": "pi_1XXXXX",
+            "payment_method": "pm_card_XXXX",
+            "payment_method_details": {},
+            "receipt_email": "email@example.com",
+            "receipt_number": null,
+            "receipt_url": "https://pay.stripe.com/receipts/XXX",
+            "refunded": true,
+            "refunds": {
+                "object": "list",
+                "data": [
+                    {
+                        "id": "re_1XXXXX",
+                        "object": "refund",
+                        "amount": 2000,
+                        "balance_transaction": "txn_2XXXXX"
+                    }
+                ]
+            },
+            "review": null,
+            "shipping": null,
+            "source_transfer": null,
+            "status": "refunded",
+            "transfer_data": null,
+            "transfer_group": null
+        }
+    },
+    "livemode": false,
+    "type": "charge.refunded"
+}

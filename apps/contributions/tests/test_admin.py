@@ -16,7 +16,11 @@ import apps
 from apps.common.tests.test_utils import setup_request
 from apps.contributions.admin import ContributionAdmin
 from apps.contributions.models import Contribution, ContributionStatus
-from apps.contributions.tests.factories import ContributionFactory, ContributorFactory
+from apps.contributions.tests.factories import (
+    ContributionFactory,
+    ContributorFactory,
+    PaymentFactory,
+)
 from apps.organizations.tests.factories import (
     OrganizationFactory,
     PaymentProviderFactory,
@@ -40,6 +44,46 @@ class TestContributorAdmin:
                 reverse("admin:contributions_contributor_change", args=[contributor.pk]), follow=True
             ).status_code
             == 200
+        )
+
+
+@pytest.mark.django_db
+class TestPaymentAdmin:
+    @pytest.fixture()
+    def payment(self):
+        return PaymentFactory()
+
+    def test_list_view(self):
+        pass
+
+    def test_detail_view(self):
+        pass
+
+    def test_provider_balance_transaction_link(self, payment, client, admin_user):
+        client.force_login(admin_user)
+        response = client.get(reverse("admin:contributions_payment_change", args=[payment.pk]), follow=True)
+        assert response.status_code == 200
+        assert (
+            f"<a href='https://dashboard.stripe.com/test/balance/history/{payment.stripe_balance_transaction_id}' target='_blank'>{payment.stripe_balance_transaction_id}</a>"
+            in str(response.content)
+        )
+
+    def test_provider_charge_link(self, payment, client, admin_user):
+        client.force_login(admin_user)
+        response = client.get(reverse("admin:contributions_payment_change", args=[payment.pk]), follow=True)
+        assert response.status_code == 200
+        assert (
+            f"<a href='https://dashboard.stripe.com/test/payments/{payment.stripe_charge_id}' target='_blank'>{payment.stripe_charge_id}</a>"
+            in str(response.content)
+        )
+
+    def test_provider_event_link(self, payment, client, admin_user):
+        client.force_login(admin_user)
+        response = client.get(reverse("admin:contributions_payment_change", args=[payment.pk]), follow=True)
+        assert response.status_code == 200
+        assert (
+            f"<a href='https://dashboard.stripe.com/test/events/{payment.stripe_event_id}' target='_blank'>{payment.stripe_event_id}</a>"
+            in str(response.content)
         )
 
 

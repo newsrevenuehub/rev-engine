@@ -173,7 +173,6 @@ class PaymentFactory(DjangoModelFactory):
     contribution_id = factory.SubFactory(ContributionFactory)
     net_amount_paid = 1980
     gross_amount_paid = 2000
-    balance_transaction_id = factory.LazyFunction(lambda: f"txn_{_random_stripe_str()}")
     amount_refunded = 0
     stripe_event_id = factory.LazyFunction(lambda: f"evt_{_random_stripe_str()}")
     stripe_charge_id = factory.LazyFunction(lambda: f"ch_{_random_stripe_str()}")

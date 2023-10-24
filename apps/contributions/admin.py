@@ -7,7 +7,7 @@ from django.utils.html import format_html
 from reversion_compare.admin import CompareVersionAdmin
 
 from apps.common.admin import RevEngineBaseAdmin, prettify_json_field
-from apps.contributions.models import Contribution, ContributionStatus, Contributor
+from apps.contributions.models import Contribution, ContributionStatus, Contributor, Payment
 from apps.contributions.payment_managers import PaymentProviderError
 
 
@@ -23,8 +23,61 @@ class ContributorAdmin(RevEngineBaseAdmin, CompareVersionAdmin):
     readonly_fields = ("email",)
 
 
+class AbstractStripeLinkedAdmin:
+    def _generate_stripe_connect_link(self, slug, provider_id, stripe_account_id):
+        if provider_id:
+            test_mode = "test/" if not settings.STRIPE_LIVE_MODE else ""
+            return format_html(
+                f"<a href='%s' target='_blank'>{provider_id}</a>"
+                % f"https://dashboard.stripe.com/{test_mode}connect/accounts/{stripe_account_id}/{slug}/{provider_id}"
+            )
+        return "-"
+
+
+@admin.register(Payment)
+class PaymentAdmin(RevEngineBaseAdmin, AbstractStripeLinkedAdmin):
+    list_display = ("contribution", "net_amount_paid", "gross_amount_paid", "amount_refunded")
+    order = (
+        "modified",
+        "created",
+        "contribution",
+        "net_amount_paid",
+        "gross_amount_paid",
+        "amount_refunded",
+    )
+    fields = (
+        fields := (
+            "id",
+            "created",
+            "modified",
+            "contribution",
+            "net_amount_paid",
+            "gross_amount_paid",
+            "amount_refunded",
+            "provider_balance_transaction_link",
+            "provider_charge_link",
+            "provider_event_link",
+        )
+    )
+    readonly_fields = fields
+
+    def provider_balance_transaction_link(self, obj: Payment) -> str:
+        """Link to the balance transaction in Stripe"""
+        return self._generate_stripe_connect_link(
+            "balance/history", obj.stripe_balance_transaction_id, obj.stripe_account_id
+        )
+
+    def provider_charge_link(self, obj: Payment) -> str:
+        """Link to the charge in Stripe"""
+        return self._generate_stripe_connect_link("charges", obj.stripe_charge_id, obj.stripe_account_id)
+
+    def provider_event_link(self, obj: Payment) -> str:
+        """Link to the event in Stripe"""
+        return self._generate_stripe_connect_link("events", obj.stripe_event_id, obj.stripe_account_id)
+
+
 @admin.register(Contribution)
-class ContributionAdmin(RevEngineBaseAdmin, CompareVersionAdmin):
+class ContributionAdmin(RevEngineBaseAdmin, CompareVersionAdmin, AbstractStripeLinkedAdmin):
     fieldsets = (
         (
             "Payment",
@@ -183,15 +236,6 @@ class ContributionAdmin(RevEngineBaseAdmin, CompareVersionAdmin):
 
     def provider_customer_link(self, request):
         return self._generate_stripe_connect_link("customers", request.provider_customer_id, request.stripe_account_id)
-
-    def _generate_stripe_connect_link(self, slug, provider_id, stripe_account_id):
-        if provider_id:
-            test_mode = "test/" if not settings.STRIPE_LIVE_MODE else ""
-            return format_html(
-                f"<a href='%s' target='_blank'>{provider_id}</a>"
-                % f"https://dashboard.stripe.com/{test_mode}connect/accounts/{stripe_account_id}/{slug}/{provider_id}"
-            )
-        return "-"
 
     def bad_actor_response_pretty(self, instance):
         """Render bad_actor_response field with pretty formatting"""

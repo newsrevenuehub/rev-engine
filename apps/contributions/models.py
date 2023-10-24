@@ -4,7 +4,8 @@ import datetime
 import logging
 import uuid
 from dataclasses import asdict
-from functools import cached_property
+from functools import cached_property, reduce
+from operator import or_
 from typing import List
 from urllib.parse import quote_plus
 
@@ -935,7 +936,7 @@ class Contribution(IndexedTimeStampedModel):
 class Payment(IndexedTimeStampedModel):
     """Represents a single payment event for a contribution. This could be a refund or a successful charge."""
 
-    contribution_id = models.ForeignKey("contributions.Contribution", on_delete=models.CASCADE)
+    contribution = models.ForeignKey("contributions.Contribution", on_delete=models.CASCADE)
     net_amount_paid = models.IntegerField()
     gross_amount_paid = models.IntegerField()
     amount_refunded = models.IntegerField()
@@ -945,15 +946,11 @@ class Payment(IndexedTimeStampedModel):
 
     class Meta:
         indexes = [
-            models.Index(fields=["contribution_id"]),
+            models.Index(fields=["contribution"]),
         ]
 
     def __str__(self):
-        return f"Stripe charge {self.stripe_charge_id} for contribution {self.contribution_id}"
-
-    @property
-    def contribution(self):
-        return Contribution.objects.get(pk=self.contribution_id)
+        return f"Stripe charge {self.stripe_charge_id} for contribution {self.contribution.id}"
 
     @property
     def stripe_account_id(self):
@@ -976,19 +973,36 @@ class Payment(IndexedTimeStampedModel):
         self._get_stripe_balance_transaction(self.stripe_balance_transaction_id, self.stripe_account_id)
 
     @classmethod
+    def _get_stripe_invoice(cls, invoice_id, account_id) -> stripe.Invoice | None:
+        return stripe.Invoice.retrieve(invoice_id, stripe_account=account_id)
+
+    @cached_property
+    def stripe_invoice(self) -> stripe.Invoice | None:
+        return self._get_stripe_invoice(self.stripe_charge.invoice, self.stripe_account_id)
+
+    @classmethod
+    def get_contribution_for_charge_event(cls, event: stripe.Event) -> Contribution | None:
+        invoice = cls._get_stripe_invoice(event.charge.invoice, event.account)
+        conditions = [models.Q(provider_payment_id=event.charge.payment_intent)]
+        if invoice and invoice.subscription:
+            conditions.append(models.Q(provider_subscription_id=invoice.subscription))
+        query = Contribution.objects.filter(reduce(or_, conditions))
+        match query.count():
+            case 0:
+                logger.warning("No matching contribution could be found for charge event with ID %s", event.id)
+                return None
+            case 1:
+                logger.debug("Found 1 matching contribution with ID %s for event %s", query.first().id, event.id)
+                return query.first()
+            case _:
+                logger.warning("Found more than one matching contribution for event with ID %s", event.id)
+                return None
+
+    @classmethod
     def from_stripe_charge_event(cls, event: stripe.Event) -> "Payment":
         charge = event.charge
-        try:
-            contribution = (
-                Contribution.objects.get(provider_subscription_id=charge.invoice.subscription.id)
-                if charge.invoice and charge.invoice.subscription
-                else Contribution.objects.get(provider_payment_id=charge.payment_intent)
-            )
-        except Contribution.DoesNotExist:
-            logger.exception(
-                "`Payment.from_stripe_charge` called with a charge whose contribution could not be found. Charge ID: %s",
-                charge.id,
-            )
+        contribution = cls.get_contribution_for_charge_event(event)
+        if not contribution:
             raise ValidationError("Could not find contribution for charge")
         balance_transaction = cls._get_stripe_balance_transaction(charge.balance_transaction, charge.stripe_account_id)
         return Payment(

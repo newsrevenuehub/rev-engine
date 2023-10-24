@@ -10,6 +10,7 @@ https://docs.djangoproject.com/en/3.2/ref/settings/
 """
 import base64
 import json
+import logging
 import os
 from datetime import timedelta
 from pathlib import Path
@@ -17,6 +18,7 @@ from typing import Literal, TypedDict
 
 from django.core.exceptions import ImproperlyConfigured
 
+from google.auth.exceptions import MalformedError
 from google.oauth2 import service_account
 
 
@@ -104,16 +106,10 @@ NEW_USER_TOPIC = os.getenv("NEW_USER_TOPIC", None)
 #   Secret Manager
 ENABLE_GOOGLE_CLOUD_SECRET_MANAGER = os.getenv("ENABLE_GOOGLE_CLOUD_SECRET_MANAGER", "false").lower() == "true"
 
+
 GS_SERVICE_ACCOUNT = (
     json.loads(base64.b64decode(os.environ["GS_SERVICE_ACCOUNT"])) if os.environ.get("GS_SERVICE_ACCOUNT", None) else {}
 )
-
-GS_CREDENTIALS = (
-    service_account.Credentials.from_service_account_info(GS_SERVICE_ACCOUNT) if GS_SERVICE_ACCOUNT else None
-)
-
-if GS_CREDENTIALS is None:
-    raise ImproperlyConfigured("GS_CREDENTIALS is None")
 
 
 # Application definition
@@ -625,3 +621,21 @@ SPA_ENV_VARS = {
 
 
 RP_MAILCHIMP_LIST_CONFIGURATION_COMPLETE_TOPIC = os.getenv("RP_MAILCHIMP_LIST_CONFIGURATION_COMPLETE_TOPIC")
+
+
+def ensure_gs_credentials(gs_service_account):
+    """Google cloud storage needs application default credentials to be set. By default it will look in particular
+    file location, but that cannot be guaranteed on Heroku in worker tasks. It can also get credentials from a GS_CREDENTIALS env var,
+    and that will be accessible from worker tasks."""
+    if not gs_service_account:
+        raise ImproperlyConfigured("GS_SERVICE_ACCOUNT is not set")
+    try:
+        return service_account.Credentials.from_service_account_info(gs_service_account)
+    except MalformedError:
+        logging.getLogger(f"{DEFAULT_LOGGER}.{__name__}").exception(
+            "Cannot load Google Storage service account credentials"
+        )
+        raise ImproperlyConfigured("Cannot load Google Storage service account credentials")
+
+
+GS_CREDENTIALS = ensure_gs_credentials(GS_SERVICE_ACCOUNT)

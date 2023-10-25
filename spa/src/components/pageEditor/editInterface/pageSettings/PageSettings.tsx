@@ -52,6 +52,11 @@ function PageSettings() {
     handleLocaleChangeModalClose();
   }
 
+  function handleCancel() {
+    setConfirmedLocaleChange(undefined);
+    resetBatch();
+  }
+
   function handleUpdate() {
     // Should never happen.
 
@@ -176,7 +181,7 @@ function PageSettings() {
       </Controls>
       <EditSaveControls
         cancelDisabled={!batchHasChanges}
-        onCancel={resetBatch}
+        onCancel={handleCancel}
         onUpdate={handleUpdate}
         updateDisabled={updateDisabled}
         variant="undo"

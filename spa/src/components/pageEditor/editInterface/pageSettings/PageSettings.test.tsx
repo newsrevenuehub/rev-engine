@@ -1,12 +1,13 @@
 import userEvent from '@testing-library/user-event';
 import { axe } from 'jest-axe';
+import { useState } from 'react';
 import { PageEditorContext } from 'components/pageEditor/PageEditor';
+import { PAGE_EDITOR_LOCALE_ACCESS_FLAG_NAME } from 'constants/featureFlagConstants';
 import { useEditablePageContext } from 'hooks/useEditablePage';
 import { UseEditablePageBatchResult, useEditablePageBatch } from 'hooks/useEditablePageBatch';
 import useUser from 'hooks/useUser';
 import { fireEvent, render, screen } from 'test-utils';
 import PageSettings from './PageSettings';
-import { PAGE_EDITOR_LOCALE_ACCESS_FLAG_NAME } from 'constants/featureFlagConstants';
 
 jest.mock('components/base/ImageUpload/ImageUpload');
 jest.mock('hooks/useEditablePage');
@@ -241,7 +242,7 @@ describe('PageSettings', () => {
       expect(addBatchChange.mock.calls).toEqual([[{ locale: 'es' }]]);
     });
 
-    describe('When the page is published and locale has changed', () => {
+    describe('When the page is published', () => {
       describe('And locale has changed', () => {
         let commitBatch: jest.Mock;
 
@@ -323,7 +324,7 @@ describe('PageSettings', () => {
     });
 
     describe("When the page isn't published", () => {
-      it("commits the edit batch immediately when the Update button is clicked but locale hasn't changed", () => {
+      it("commits the edit batch immediately when the Update button is clicked and locale hasn't changed", () => {
         const commitBatch = jest.fn();
 
         mockBatch({ commitBatch });
@@ -333,29 +334,92 @@ describe('PageSettings', () => {
         fireEvent.click(screen.getByRole('button', { name: 'Update' }));
         expect(commitBatch).toBeCalledTimes(1);
       });
+
+      it('commits the edit batch immediately when the Update button is clicked and locale has changed', () => {
+        const commitBatch = jest.fn();
+
+        mockBatch({
+          commitBatch,
+          batchPreview: {
+            ...page,
+            locale: 'en'
+          }
+        });
+        useEditablePageContextMock.mockReturnValue({
+          isError: false,
+          isLoading: false,
+          page: { ...page, locale: 'es' }
+        } as any);
+        tree();
+        expect(commitBatch).not.toBeCalled();
+        expect(screen.getByRole('button', { name: 'Update' })).toBeEnabled();
+        fireEvent.click(screen.getByRole('button', { name: 'Update' }));
+        expect(commitBatch).toBeCalledTimes(1);
+      });
     });
   });
 
-  it('resets the edit batch when the Undo button is clicked', () => {
-    const resetBatch = jest.fn();
+  describe('The Undo button', () => {
+    it('resets the edit batch when clicked', () => {
+      const resetBatch = jest.fn();
 
-    mockBatch({ resetBatch });
-    tree();
-    expect(resetBatch).not.toBeCalled();
-    fireEvent.click(screen.getByRole('button', { name: 'Undo' }));
-    expect(resetBatch).toBeCalledTimes(1);
-  });
+      mockBatch({ resetBatch });
+      tree();
+      expect(resetBatch).not.toBeCalled();
+      fireEvent.click(screen.getByRole('button', { name: 'Undo' }));
+      expect(resetBatch).toBeCalledTimes(1);
+    });
 
-  it('enables the Undo button if there are changes to commit', () => {
-    mockBatch({ batchHasChanges: true });
-    tree();
-    expect(screen.getByRole('button', { name: 'Undo' })).toBeEnabled();
-  });
+    it('is enabled if there are changes to commit', () => {
+      mockBatch({ batchHasChanges: true });
+      tree();
+      expect(screen.getByRole('button', { name: 'Undo' })).toBeEnabled();
+    });
 
-  it('disables the Undo button if there are no changes to commit', () => {
-    mockBatch({ batchHasChanges: false });
-    tree();
-    expect(screen.getByRole('button', { name: 'Undo' })).toBeDisabled();
+    it('is disabled if there are no changes to commit', () => {
+      mockBatch({ batchHasChanges: false });
+      tree();
+      expect(screen.getByRole('button', { name: 'Undo' })).toBeDisabled();
+    });
+
+    it('resets tracking of whether page locale has changed on a published page', () => {
+      const published_date = new Date();
+
+      useUserMock.mockReturnValue({
+        isError: false,
+        isLoading: false,
+        refetch: jest.fn(),
+        user: { flags: [{ name: PAGE_EDITOR_LOCALE_ACCESS_FLAG_NAME }] } as any
+      });
+      useEditablePageBatchMock.mockImplementation(() => {
+        // We need to use React state to trigger a re-render after making changes.
+
+        const [batchHasChanges, setBatchHasChanges] = useState(false);
+
+        return {
+          batchHasChanges,
+          addBatchChange: () => setBatchHasChanges(true),
+          batchPreview: { ...page, published_date, locale: batchHasChanges ? 'es' : 'en' },
+          commitBatch: jest.fn(),
+          resetBatch: () => setBatchHasChanges(false)
+        };
+      });
+      useEditablePageContextMock.mockReturnValue({ isError: false, isLoading: false, page } as any);
+      tree();
+
+      // Test that the modal doesn't show up after changes are undone.
+
+      userEvent.click(screen.getByRole('button', { name: 'Undo' }));
+      userEvent.click(screen.getByRole('button', { name: 'Update' }));
+      expect(screen.queryByText('Live Page Language')).not.toBeInTheDocument();
+
+      // Test that the modal shows up after a change is made after undo.
+
+      userEvent.click(screen.getByRole('button', { name: /Page Language/ }));
+      userEvent.click(screen.getByRole('option', { name: 'Spanish' }));
+      userEvent.click(screen.getByRole('button', { name: 'Update' }));
+      expect(screen.getByText('Live Page Language')).toBeVisible();
+    });
   });
 
   it('hides the thank you page URL field if disabled by plan', () => {

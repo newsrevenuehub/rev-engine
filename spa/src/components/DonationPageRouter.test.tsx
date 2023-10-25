@@ -1,11 +1,11 @@
-import { cleanup, render, screen, within } from '@testing-library/react';
+import { cleanup, render, screen, within } from 'test-utils';
 import { createMemoryHistory } from 'history';
-import { ComponentType } from 'react';
 import { Router } from 'react-router-dom';
 import { ThemeProvider } from 'styled-components';
 import { revEngineTheme } from 'styles/themes';
 import DonationPageRouter from './DonationPageRouter';
 import GenericThankYou from 'components/donationPage/live/GenericThankYou';
+import { Suspense } from 'react';
 
 // Turn <BrowserRouter> into a no-op component so we can use our own router.
 
@@ -39,7 +39,9 @@ function tree(path: string) {
     ...render(
       <Router history={history}>
         <ThemeProvider theme={revEngineTheme}>
-          <DonationPageRouter />
+          <Suspense fallback="loading">
+            <DonationPageRouter />
+          </Suspense>
         </ThemeProvider>
       </Router>
     ),

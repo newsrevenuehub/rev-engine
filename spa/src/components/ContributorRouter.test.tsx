@@ -1,5 +1,4 @@
 import { createMemoryHistory } from 'history';
-import { ComponentType } from 'react';
 import { Router } from 'react-router-dom';
 import { ThemeProvider } from 'styled-components';
 import { revEngineTheme } from 'styles/themes';
@@ -10,6 +9,7 @@ import useRequest from 'hooks/useRequest';
 import isAuthenticated from 'utilities/isAuthenticated';
 import useSubdomain from 'hooks/useSubdomain';
 import { ContributionPage } from 'hooks/useContributionPage';
+import { Suspense } from 'react';
 
 jest.mock('utilities/isAuthenticated');
 jest.mock('hooks/useWebFonts');
@@ -55,7 +55,9 @@ function tree(path?: string) {
     ...render(
       <Router history={history}>
         <ThemeProvider theme={revEngineTheme}>
-          <ContributorRouter />
+          <Suspense fallback="loading">
+            <ContributorRouter />
+          </Suspense>
         </ThemeProvider>
       </Router>
     ),

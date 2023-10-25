@@ -11,7 +11,7 @@ import { mockDateDecorator } from 'storybook-mock-date-decorator';
 import Alert, { alertOptions } from 'elements/alert/Alert';
 import { revEngineTheme, muiThemeOverrides } from 'styles/themes';
 import AdminGlobalStyles from 'styles/AdminGlobalStyles.js';
-import { GlobalContext } from 'components/MainLayout';
+import { ReauthContext } from 'components/ReauthContext';
 
 const queryClient = new QueryClient();
 
@@ -28,7 +28,7 @@ const providerFn = ({ children }) => (
               <AlertProvider template={Alert} {...alertOptions}>
                 <SnackbarProvider anchorOrigin={{ horizontal: 'right', vertical: 'bottom' }}>
                   <AdminGlobalStyles />
-                  <GlobalContext.Provider value={{ getReauth: () => {} }}>{children}</GlobalContext.Provider>
+                  <ReauthContext.Provider value={{ getReauth: () => {} }}>{children}</ReauthContext.Provider>
                 </SnackbarProvider>
               </AlertProvider>
             </MuiThemeProvider>

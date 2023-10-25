@@ -148,8 +148,10 @@ function DAmount({ element, ...props }: DAmountProps) {
           <OtherAmount data-testid={`amount-other${otherIsSelected ? '-selected' : ''}`} selected={otherIsSelected}>
             <span>{currencySymbol}</span>
             <OtherAmountInput
-              type="number"
+              inputMode="numeric"
+              type="text"
               min="0"
+              pattern="\d+"
               value={otherValue}
               name="amount"
               onChange={handleOtherAmountChange}

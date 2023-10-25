@@ -14,9 +14,9 @@ jest.mock('notistack', () => ({
   useSnackbar: jest.fn()
 }));
 
-jest.mock('components/MainLayout', () => ({
-  ...jest.requireActual('components/MainLayout'),
-  useGlobalContext: () => ({ getReauth: jest.fn() })
+jest.mock('components/ReauthContext', () => ({
+  ...jest.requireActual('components/ReauthContext'),
+  useReauthContext: () => ({ getReauth: jest.fn() })
 }));
 
 describe('ExportButton', () => {

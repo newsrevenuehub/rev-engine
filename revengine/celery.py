@@ -38,10 +38,8 @@ request_id = contextvars.ContextVar("request_id", default=str(uuid.uuid4())[:8])
 
 class RequestIdFilter(logging.Filter):
     def filter(self, record):
-        record.request_id = ""
         req_id = request_id.get()
-        if req_id:
-            record.request_id = f"[{req_id}] "
+        record.request_id = f"[{req_id}]" if req_id else ""
         return True
 
 

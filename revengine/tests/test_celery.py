@@ -22,7 +22,7 @@ class TestLoggingConfiguration:
         logger.warning(message)
 
         assert (
-            f"WARNING [{request_id.get()}]  test_celery:22 - [test_log_format] {message}"
+            f"WARNING [{request_id.get()}] test_celery:22 - [test_log_format] {message}"
             in mock_stderr.write.call_args[0][0]
         )
 

@@ -1,10 +1,10 @@
 import { render, screen, within } from '@testing-library/react';
 import { createMemoryHistory } from 'history';
-import { ComponentType } from 'react';
 import { Router } from 'react-router-dom';
 import { ThemeProvider } from 'styled-components';
 import { revEngineTheme } from 'styles/themes';
 import PortalRouter from './PortalRouter';
+import { Suspense } from 'react';
 
 // Turn <BrowserRouter> into a no-op component so we can use our own router.
 
@@ -36,7 +36,9 @@ function tree(path: string) {
     ...render(
       <Router history={history}>
         <ThemeProvider theme={revEngineTheme}>
-          <PortalRouter />
+          <Suspense fallback={'loading'}>
+            <PortalRouter />
+          </Suspense>
         </ThemeProvider>
       </Router>
     ),

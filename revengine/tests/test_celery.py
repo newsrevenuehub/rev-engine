@@ -1,13 +1,9 @@
 from celery.utils.log import get_task_logger
 
-from revengine.celery import debug_task, request_id, setup_celery_logs
+from revengine.celery import request_id, setup_celery_logs
 
 
 logger = get_task_logger("CELERY_TEST_LOGGER")
-
-
-def test_debug_task():
-    debug_task()
 
 
 class TestLoggingConfiguration:

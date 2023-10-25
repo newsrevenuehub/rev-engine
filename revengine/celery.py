@@ -24,11 +24,6 @@ app.config_from_object("django.conf:settings")
 app.autodiscover_tasks(lambda: settings.INSTALLED_APPS)
 
 
-@app.task(bind=True)
-def debug_task(self):
-    print(f"Request: {self.request!r}")
-
-
 ### Setup Request Id in Celery Logs
 
 LOGGING_FORMAT = "%(levelname)s %(request_id)s %(module)s:%(lineno)d - [%(funcName)s] %(message)s"

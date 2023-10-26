@@ -242,7 +242,12 @@ AUTH_PASSWORD_VALIDATORS = [
 CONTRIBUTION_CACHE_TTL = timedelta(minutes=30)
 DEFAULT_CACHE = "default"
 
-REDIS_URL = os.getenv("REDIS_URL", "redis://redis:6379")
+REDIS_USE_SSL = os.getenv("REDIS_USE_SSL", "false").lower() == "true"
+REDIS_URL = os.getenv(
+    "REDIS_URL" if not REDIS_USE_SSL else "REDIS_TLS_URL", f"redis{'s' if REDIS_USE_SSL else ''}://redis:6379"
+)
+
+
 CACHE_HOST = REDIS_URL
 CONNECTION_POOL_KWARGS = {}
 if CACHE_HOST.startswith("rediss"):

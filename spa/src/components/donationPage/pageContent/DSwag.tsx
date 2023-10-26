@@ -73,7 +73,7 @@ export function DSwag(props: DSwagProps) {
   const optOutCheckbox = (
     <FormControlLabel
       control={<Checkbox checked={optOut} name="swag_opt_out" onChange={handleSwagOptOutChange} value="true" />}
-      label="Maximize my contribution–I'd rather not receive member merchandise."
+      label={t('donationPage.dSwag.maximizeContribution')}
     />
   );
 
@@ -114,10 +114,7 @@ export function DSwag(props: DSwagProps) {
       )}
       {meetsThreshold && (
         <Controls data-testid="swag-content">
-          <FormControlLabel
-            control={<Checkbox checked={optOut} name="swag_opt_out" onChange={handleSwagOptOutChange} />}
-            label={t('donationPage.dSwag.maximizeContribution')}
-          />
+          {optOutCheckbox}
           {element.content.swags?.map(({ swagName, swagOptions }, index) => (
             <TextField
               defaultValue=""

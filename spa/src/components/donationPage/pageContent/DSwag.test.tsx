@@ -1,9 +1,9 @@
 import { axe } from 'jest-axe';
 import { fireEvent, render, screen, within } from 'test-utils';
-import { DonationPageContext, UsePageProps } from '../DonationPage';
-import DSwag, { DSwagProps } from './DSwag';
 import { CONTRIBUTION_INTERVALS } from 'constants/contributionIntervals';
 import { cleanSwagValue } from 'utilities/swagValue';
+import { DonationPageContext, UsePageProps } from '../DonationPage';
+import DSwag, { DSwagProps } from './DSwag';
 
 // Mock the MUI select into a native <select>. We only use the select form of it
 // in DSwag, so we don't need to mock the editable version.
@@ -220,7 +220,7 @@ describe('DSwag', () => {
         });
         expect(
           screen.getByText(
-            'Give a total of mock-currency-symbol123.45 mock-currency-code / year or more to be eligible'
+            'donationPage.dSwag.giveXToBeEligible{"amount":"mock-currency-symbol123.45 mock-currency-code"}'
           )
         ).toBeVisible();
       });

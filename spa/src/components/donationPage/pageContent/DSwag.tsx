@@ -95,7 +95,7 @@ export function DSwag(props: DSwagProps) {
           <FormControlLabel
             control={<Checkbox checked={optOut} name="swag_opt_out" onChange={handleSwagOptOutChange} />}
             label={t('donationPage.dSwag.maximizeContribution')}
-            />
+          />
           {element.content.swags?.map(({ swagName, swagOptions }, index) => (
             <TextField
               defaultValue=""
@@ -125,7 +125,7 @@ export function DSwag(props: DSwagProps) {
 
 DSwag.propTypes = DSwagPropTypes;
 DSwag.type = 'DSwag';
-DSwag.displayName = 'Swag';
+DSwag.displayName = 'Contributor Benefits';
 DSwag.description = 'Allow contributors to make choices about optional swag';
 DSwag.required = false;
 DSwag.unique = true;

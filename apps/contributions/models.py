@@ -938,7 +938,16 @@ class Contribution(IndexedTimeStampedModel):
 
 
 def ensure_stripe_event(event_types: List[str] = None) -> Callable:
-    """ """
+    """This is a decorator that's used to ensure that the `event` keyword...
+
+    argument passed to a function is a Stripe event in minimally expected state
+
+    You can optionally send a list of event types to ensure that the event is of a certain type.
+
+    This decorator allows us to avoid validating assumptions about method arguments without
+    cluttering up the method body with validation logic, which is shared across methods
+    dealing with Stripe events.
+    """
 
     def decorator(func: Callable) -> Callable:
         @wraps(func)
@@ -967,6 +976,9 @@ class Payment(IndexedTimeStampedModel):
 
     class Meta:
         indexes = [
+            # We index on contribution because we'll often want to query payments by contribution.
+            # Specifically, this will be used to provide individual transactions appearing in
+            # SPA side representation of a single contribution.
             models.Index(fields=["contribution"]),
         ]
 
@@ -975,13 +987,19 @@ class Payment(IndexedTimeStampedModel):
 
     @property
     def stripe_account_id(self):
+        """Convenience method for referencing the Stripe account ID associated with the payment provider for this payment"""
         return self.contribution.donation_page.revenue_program.payment_provider.stripe_account_id
 
     @classmethod
     def _get_stripe_balance_transaction(
         cls, balance_transaction_id: str, account_id: str, expand_fields: List[str] = None
     ):
-        """Cached call to retrieve balance transaction. This makes sense to do because balance t"""
+        """Cached call to retrieve balance transaction.
+
+        Normal paths through this class' methods will call this method, typically in quick succession.
+        The balance transaction is unlikely to change during this period, and we need not
+        incur the network call (which also risks being rate limited) to fetch it from Stripe.
+        """
         kwargs = {"account": account_id}
         if expand_fields:
             kwargs["expand"] = expand_fields

@@ -100,14 +100,16 @@ function DAmount({ element, ...props }: DAmountProps) {
   const handleOtherAmountChange = ({
     target: { value }
   }: React.ChangeEvent<HTMLInputElement> | { target: { value: string } }) => {
-    setOtherValue(value);
+    const filteredValue = value.replace(/\D/g, '');
 
-    if (value === '') {
+    setOtherValue(filteredValue);
+
+    if (filteredValue === '') {
       setAmount(undefined);
     }
 
-    if (validateInputPositiveFloat(value)) {
-      setAmount(parseFloat(value));
+    if (validateInputPositiveFloat(filteredValue)) {
+      setAmount(parseFloat(filteredValue));
     }
   };
 

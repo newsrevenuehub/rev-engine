@@ -7,7 +7,6 @@ from urllib.parse import parse_qs, quote_plus, urlparse
 
 from django.conf import settings
 from django.core import mail
-from django.core.exceptions import ValidationError
 from django.template.loader import render_to_string
 from django.utils.safestring import mark_safe
 
@@ -28,6 +27,7 @@ from apps.contributions.models import (
     Contributor,
     ContributorRefreshToken,
     Payment,
+    ensure_stripe_event,
     logger,
     send_thank_you_email,
 )
@@ -37,6 +37,7 @@ from apps.contributions.tests.factories import (
     ContributorFactory,
     PaymentFactory,
 )
+from apps.contributions.types import StripePaymentMetadataSchemaV1_4
 from apps.emails.tasks import make_send_thank_you_email_data, send_templated_email
 from apps.organizations.models import FiscalStatusChoices, FreePlan
 from apps.organizations.tests.factories import OrganizationFactory, RevenueProgramFactory
@@ -1719,43 +1720,53 @@ class TestContributionQuerySetMethods:
 
 
 @pytest.fixture
-def charge_succeeded_one_time_event():
-    with open("apps/contributions/tests/fixtures/charge-succeeded-one-time.json") as f:
-        return json.load(f)
+def suppress_stripe_webhook_sig_verification(mocker):
+    mocker.patch("stripe.webhook.WebhookSignature.verify_header", return_value=True)
 
 
 @pytest.fixture
-def charge_succeeded_subscription_event():
-    with open("apps/contributions/tests/fixtures/charge-succeeded-subscription.json") as f:
-        return json.load(f)
+def payment_intent_succeeded_one_time_event(suppress_stripe_webhook_sig_verification):
+    with open("apps/contributions/tests/fixtures/payment-intent-succeeded-one-time-event.json") as f:
+        event = stripe.Webhook.construct_event(f.read(), None, stripe.api_key)
+        return event
 
 
 @pytest.fixture
-def charge_refunded_event():
-    with open("apps/contributions/tests/fixtures/charge-refunded.json") as f:
-        return json.load(f)
+@pytest.mark.usefixtures("suppress_stripe_webhook_sig_verification")
+def payment_intent_succeeded_subscription_creation_event():
+    with open("apps/contributions/tests/fixtures/payment-intent-succeeded-subscription-creation-event.json") as f:
+        return stripe.Event.construct_from(f.read(), stripe.api_key)
 
 
 @pytest.fixture
-def charge_succeeded_for_one_time(charge_succeeded_one_time_event):
-    contribution = ContributionFactory(provider_payment_id=charge_succeeded_one_time_event["data"]["object"]["id"])
-    contribution.donation_page.revenue_program.payment_provider.stripe_account_id = charge_succeeded_one_time_event[
-        "account"
-    ]
-    contribution.donation_page.revenue_program.payment_provider.save()
-    return charge_succeeded_one_time_event
+@pytest.mark.usefixtures("suppress_stripe_webhook_sig_verification")
+def payment_intent_succeeded_for_subscription_recurring_charge_event():
+    with open(
+        "apps/contributions/tests/fixtures/payment-intent-succeeded-susbscription-recurring-charge-event.json"
+    ) as f:
+        data = json.load(f)
+    return stripe.Event.construct_from(data, stripe.api_key)
 
 
 @pytest.fixture
-def charge_succeeded_for_subscription(charge_succeeded_subscription_event):
-    contribution = ContributionFactory(
-        provider_subscription_id=charge_succeeded_subscription_event["data"]["object"]["id"]
-    )
-    contribution.donation_page.revenue_program.payment_provider.stripe_account_id = charge_succeeded_subscription_event[
-        "account"
-    ]
-    contribution.donation_page.revenue_program.payment_provider.save()
-    return charge_succeeded_subscription_event
+@pytest.mark.usefixtures("suppress_stripe_webhook_sig_verification")
+def charge_refunded_one_time_event():
+    with open("apps/contributions/tests/fixtures/charge-refunded-one-time-event.json") as f:
+        return stripe.Event.construct_from(f.read(), stripe.api_key)
+
+
+@pytest.fixture
+@pytest.mark.usefixtures("suppress_stripe_webhook_sig_verification")
+def charge_refunded_recurring_charge_event():
+    with open("apps/contributions/tests/fixtures/charge-refunded-recurring-charge-event.json") as f:
+        return stripe.Event.construct_from(f.read(), stripe.api_key)
+
+
+@pytest.fixture
+@pytest.mark.usefixtures("suppress_stripe_webhook_sig_verification")
+def charge_refunded_recurring_first_charge_event():
+    with open("apps/contributions/tests/fixtures/charge-refunded-recurring-first-charge-event.json") as f:
+        return stripe.Event.construct_from(f.read(), stripe.api_key)
 
 
 @pytest.fixture
@@ -1770,6 +1781,69 @@ def balance_transaction_for_refund():
         return json.load(f)
 
 
+@pytest.fixture(
+    params=[
+        (True, "payment_intent_succeeded_one_time_event", lambda x: None, []),
+        (True, "payment_intent_succeeded_subscription_creation_event", lambda x: None, []),
+        (True, "payment_intent_succeeded_subscription_recurring_charge_event", lambda x: None, []),
+        (True, "charge_refunded_one_time_event", lambda x: None, []),
+        (True, "charge_refunded_recurring_charge_event", lambda x: None, []),
+        (True, "charge_refunded_recurring_first_charge_event", lambda x: None, []),
+        (True, "payment_intent_succeeded_one_time_event", lambda x: None, ["payment_intent.succeeded"]),
+        (True, "payment_intent_succeeded_subscription_creation_event", lambda x: None, ["payment_intent.succeeded"]),
+        (
+            True,
+            "payment_intent_succeeded_subscription_recurring_charge_event",
+            lambda x: None,
+            ["payment_intent.succeeded"],
+        ),
+        (True, "charge_refunded_one_time_event", lambda x: None, ["charge.refunded"]),
+        (True, "charge_refunded_recurring_charge_event", lambda x: None, ["charge.refunded"]),
+        (True, "charge_refunded_recurring_first_charge_event", lambda x: None, ["charge.refunded"]),
+        (True, "payment_intent_succeeded_one_time_event", lambda x: "foo", ["foo.bar"]),
+        (True, "payment_intent_succeeded_subscription_creation_event", lambda x: "foo", ["foo.bar"]),
+        (True, "payment_intent_succeeded_subscription_recurring_charge_event", lambda x: "foo", ["foo.bar"]),
+        (True, "charge_refunded_one_time_event", lambda x: "fp", ["foo.bar"]),
+        (True, "charge_refunded_recurring_charge_event", lambda x: "fo", ["foo.bar"]),
+        (True, "charge_refunded_recurring_first_charge_event", lambda x: "fo", ["foo.bar"]),
+        (False, None, lambda x: Payment.MISSING_EVENT_KW_ERROR_MSG, []),
+    ]
+)
+def ensure_stripe_event_case(request):
+    return (
+        # include event kwarg
+        request.param[0],
+        # event
+        request.getfixturevalue(request.param[1]) if request.param[1] else None,
+        # fn to generated expected error message
+        request.param[2],
+        # event types to pass to decorator
+        request.param[3],
+    )
+
+
+@pytest.mark.usefixtures("suppress_stripe_webhook_sig_verification")
+def test_ensure_stripe_event(ensure_stripe_event_case):
+    """Show that the decorator works as expected
+
+    We wrap an internal function with decorator from class
+    """
+    include_event_kwarg, event, expected_error_msg_fn, event_types = ensure_stripe_event_case
+    expected_error_msg = expected_error_msg_fn(event)
+
+    @ensure_stripe_event(event_types)
+    def my_func(event):
+        return event
+
+    kwargs = {"event": event} if include_event_kwarg else {}
+    if expected_error_msg:
+        with pytest.raises(ValueError, match=expected_error_msg) as exc_info:
+            my_func(**kwargs)
+        assert str(exc_info.value) == expected_error_msg
+    else:
+        assert my_func(**kwargs) == event
+
+
 @pytest.mark.django_db
 class TestPayment:
     @pytest.fixture
@@ -1777,7 +1851,10 @@ class TestPayment:
         return PaymentFactory()
 
     def test__str__(self, payment):
-        assert str(payment) == f"Stripe charge {payment.stripe_charge_id} for contribution {payment.contribution.id}"
+        assert (
+            str(payment)
+            == f"Payment {payment.id} for contribution {payment.contribution.id} and balance transaction {payment.stripe_balance_transaction_id}"
+        )
 
     def test_stripe_account_id(self, payment):
         assert (
@@ -1785,77 +1862,99 @@ class TestPayment:
             == payment.contribution.donation_page.revenue_program.payment_provider.stripe_account_id
         )
 
-    def test_stripe_event(self, payment, mocker):
-        mock_retrieve = mocker.patch("stripe.Event.retrieve", return_value=mocker.Mock())
-        assert payment.stripe_event == mock_retrieve.return_value
-        mock_retrieve.assert_called_once_with(
-            payment.stripe_event_id,
-            stripe_account=payment.contribution.donation_page.revenue_program.payment_provider.stripe_account_id,
-        )
-
-    def test_stripe_charge(self, mocker, payment):
-        mock_retrieve = mocker.patch("stripe.Charge.retrieve", return_value=mocker.Mock())
-        assert payment.stripe_charge == mock_retrieve.return_value
-        mock_retrieve.assert_called_once_with(
-            payment.stripe_charge_id,
-            stripe_account=payment.contribution.donation_page.revenue_program.payment_provider.stripe_account_id,
-        )
-
     def test_stripe_balance_transaction(self, mocker, payment):
+        """Show that we memoize the balance transaction"""
         mock_retrieve = mocker.patch("stripe.BalanceTransaction.retrieve", return_value=mocker.Mock())
         assert payment.stripe_balance_transaction == mock_retrieve.return_value
         mock_retrieve.assert_called_once_with(
             payment.stripe_balance_transaction_id,
             stripe_account=payment.contribution.donation_page.revenue_program.payment_provider.stripe_account_id,
         )
+        count = mock_retrieve.call_count
+        payment.stripe_balance_transaction
+        assert mock_retrieve.call_count == count
+
+    @pytest.mark.parametrize(
+        "stripe_metadata, get_expected",
+        (({}, lambda x: StripePaymentMetadataSchemaV1_4(x)), ({}, lambda x: None), ({}, lambda x: None)),
+    )
+    def test_get_valid_metadata(self, stripe_metadata, get_expected):
+        assert Payment.get_valid_metadata(stripe_metadata) == get_expected(stripe_metadata)
+
+    def test_get_subscription_for_balance_transaction(self, mocker, balance_transaction_for_charge_expanded):
+        """Show that we memoize the subscription"""
+        mock_balance_transaction_retrieve = mocker.patch(
+            "stripe.BalanceTransaction.retrieve", return_value=balance_transaction_for_charge_expanded
+        )
+        subscription = Payment.get_subscription_for_balance_transaction(
+            balance_transaction_for_charge_expanded, (account_id := "some-id")
+        )
+        assert subscription == balance_transaction_for_charge_expanded.source.subscription
+        mock_balance_transaction_retrieve.assert_called_once_with(
+            balance_transaction_for_charge_expanded.id,
+            account_id,
+            expand_fields=["source.invoice.subscription"],
+        )
+        count = mock_balance_transaction_retrieve.call_count
+        Payment.get_subscription_for_balance_transaction(balance_transaction_for_charge_expanded, account_id)
+        assert mock_balance_transaction_retrieve.call_count == count
 
     @pytest.fixture(
         params=(
-            ("charge_succeeded_for_one_time_event", "balance_transaction_for_charge"),
-            ("charge_succeeded_for_subscription_event", "balance_transaction_for_charge"),
-            ("charge_refunded_for_one_time_event", "balance_transaction_for_refund"),
-            ("charge_refunded_for_subscription_event", "balance_transaction_for_refund"),
+            ("payment_intent_succeeded_one_time", "balance_transaction_for_charge", True),
+            ("payment_intent_succeeded_subscription_creation", "balance_transaction_for_charge", True),
+            ("payment_intent_succeeded_subscription_recurring_charge", "balance_transaction_for_charge", True),
         )
     )
-    def stripe_charge_event_case(self, request, mocker):
+    def payment_from_pi_succeeded_test_case(self, request, mocker):
         mocker.patch(
             "stripe.BalanceTransaction.retrieve",
             return_value=(balance_transaction := request.getfixturevalue(request.param[1])),
         )
-        mocker.patch("stripe.Invoice.retrieve", return_value=(invoice := mocker.Mock()))
-        mocker.patch("stripe.Event.retrieve", return_value=(event := request.getfixturevalue(request.param[0])))
+        mocker.patch("stripe.Invoice.retrieve")
+        contribution = None
+        return request.getfixturevalue(request.param[0]), contribution, balance_transaction
 
-        return {
-            "balance_transaction": balance_transaction,
-            "invoice": invoice,
-            "event": event,
-        }
-
-    def test_from_stripe_charge_event_when_contribution_found(self, stripe_charge_event_case, payment):
-        mock_event = stripe_charge_event_case["event"]
-        mock_balance_transaction = stripe_charge_event_case["balance_transaction"]
-        mock_invoice = stripe_charge_event_case["invoice"]
-        my_payment = Payment.from_stripe_charge_event(mock_event)
-        assert my_payment.contribution == payment.contribution
-        assert my_payment.net_amount_paid == mock_balance_transaction.net
-        assert my_payment.gross_amount_paid == mock_balance_transaction.amount
-        assert my_payment.amount_refunded == mock_balance_transaction.amount_refunded
-        assert my_payment.stripe_event_id == mock_event.id
-        assert my_payment.stripe_balance_transaction_id == mock_balance_transaction.id
-        assert my_payment.stripe_charge_id == mock_event.data.object.id
-        assert mock_invoice
-
-    def test_from_stripe_charge_event_when_contribution_not_found(self, charge_succeeded_event, mocker):
-        Contribution.objects.delete()
-        with pytest.raises(ValidationError):
-            Payment.from_stripe_charge_event(charge_succeeded_event)
+    def test_from_stripe_payment_intent_succeeded_event(self, payment_from_pi_succeeded_test_case):
+        event, contribution, balance_transaction = payment_from_pi_succeeded_test_case
+        if contribution is None:
+            with pytest.raises(ValueError) as exc_info:
+                Payment.from_stripe_payment_intent_succeeded_event(event)
+            assert str(exc_info.value) == "Could not find a contribution for this event"
+        else:
+            payment = Payment.from_stripe_payment_intent_succeeded_event(event)
+            assert payment.contribution == contribution
+            assert payment.net_amount_paid == balance_transaction.net
+            assert payment.gross_amount_paid == balance_transaction.amount
+            assert payment.amount_refunded == 0
+            assert payment.stripe_balance_transaction_id == balance_transaction.id
 
     @pytest.fixture(
-        params=(("charge_succeeded_for_one_time")),
+        params=(
+            ("charge_refunded_one_time_event", "balance_transaction_for_charge", True),
+            ("charge_refunded_recurring_charge_event", "balance_transaction_for_charge", True),
+            ("charge_refunded_recurring_first_charge_event", "balance_transaction_for_charge", True),
+        )
     )
-    def charge_event_case(self, mocker, request):
-        mocker.patch("stripe.BalanceTransaction.retrieve", return_value=balance_transaction_for_charge)
-        return charge_succeeded_one_time_event, balance_transaction_for_charge
+    def payment_from_charge_refunded_test_case(self, request, mocker):
+        mocker.patch(
+            "stripe.BalanceTransaction.retrieve",
+            return_value=(balance_transaction := request.getfixturevalue(request.param[1])),
+        )
+        mocker.patch("stripe.Invoice.retrieve")
+        contribution = None
+        return request.getfixturevalue(request.param[0]), contribution, balance_transaction
 
-    def test_get_contribution_for_charge_event(self, charge_event_case, mocker):
-        pass
+    def test_from_stripe_charge_refunded_event(self, payment_from_charge_refunded_test_case):
+        event, contribution, balance_transaction = payment_from_charge_refunded_test_case
+        if contribution is None:
+            with pytest.raises(ValueError) as exc_info:
+                Payment.from_stripe_charge_refunded_event(event)
+            assert str(exc_info.value) == "Could not find a contribution for this event"
+        else:
+            payment = Payment.from_stripe_charge_refunded_event(event)
+            assert payment.contribution == contribution
+            assert payment.net_amount_paid == balance_transaction.net
+            assert payment.gross_amount_paid == balance_transaction.amount
+            assert payment.amount_refunded == balance_transaction.amount
+            assert payment.stripe_balance_transaction_id == balance_transaction.id

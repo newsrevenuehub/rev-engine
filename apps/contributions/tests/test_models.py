@@ -1721,11 +1721,6 @@ class TestContributionQuerySetMethods:
 
 
 @pytest.fixture
-def suppress_stripe_webhook_sig_verification(mocker):
-    mocker.patch("stripe.webhook.WebhookSignature.verify_header", return_value=True)
-
-
-@pytest.fixture
 def payment_intent_succeeded_one_time_event(suppress_stripe_webhook_sig_verification):
     with open("apps/contributions/tests/fixtures/payment-intent-succeeded-one-time-event.json") as f:
         event = stripe.Webhook.construct_event(f.read(), None, stripe.api_key)
@@ -1870,6 +1865,16 @@ class TestPayment:
     def payment(self):
         return PaymentFactory()
 
+    @pytest.fixture
+    def balance_transaction_for_one_time_charge(self):
+        with open("apps/contributions/tests/fixtures/balance-transaction-for-charge-expanded.json") as f:
+            return stripe.BalanceTransaction.construct_from(json.load(f), stripe.api_key)
+
+    @pytest.fixture
+    def balance_transaction_for_subscription_creation_charge(self):
+        with open("apps/contributions/tests/fixtures/balance-transaction-for-subscription-creation.json") as f:
+            return stripe.BalanceTransaction.construct_from(json.load(f), stripe.api_key)
+
     def test___str__(self, payment):
         assert (
             str(payment)
@@ -1882,9 +1887,17 @@ class TestPayment:
             == payment.contribution.donation_page.revenue_program.payment_provider.stripe_account_id
         )
 
-    def test_stripe_balance_transaction(self, mocker, payment):
+    @pytest.fixture(autouse=True)
+    def use_mem_cache(self, settings):
+        settings.CACHES = {
+            "default": {
+                "BACKEND": "django.core.cache.backends.locmem.LocMemCache",
+            }
+        }
+
+    def test_stripe_balance_transaction(self, mocker, payment, balance_transaction_for_charge):
         """Show that we memoize the balance transaction"""
-        mock_retrieve = mocker.patch("stripe.BalanceTransaction.retrieve", return_value=mocker.Mock())
+        mock_retrieve = mocker.patch("stripe.BalanceTransaction.retrieve", return_value=balance_transaction_for_charge)
         assert payment.stripe_balance_transaction == mock_retrieve.return_value
         mock_retrieve.assert_called_once_with(
             payment.stripe_balance_transaction_id,
@@ -1894,35 +1907,66 @@ class TestPayment:
         payment.stripe_balance_transaction
         assert mock_retrieve.call_count == count
 
-    @pytest.mark.parametrize(
-        "stripe_metadata, get_expected",
-        (({}, lambda x: StripePaymentMetadataSchemaV1_4(x)), ({}, lambda x: None), ({}, lambda x: None)),
-    )
-    def test_get_valid_metadata(self, stripe_metadata, get_expected):
-        assert Payment.get_valid_metadata(stripe_metadata) == get_expected(stripe_metadata)
+    @pytest.fixture
+    def invalid_metadata(self):
+        return {"foo": "bar"}
 
-    def test_get_subscription_for_balance_transaction(self, mocker, balance_transaction_for_charge_expanded):
-        """Show that we memoize the subscription"""
+    @pytest.fixture
+    def valid_metadata(self, valid_metadata_factory):
+        data = valid_metadata_factory.get() | {"schema_version": settings.METADATA_SCHEMA_VERSION_CURRENT}
+        del data["t_shirt_size"]
+        return data
+
+    @pytest.fixture(
+        params=[
+            ("valid_metadata", lambda x: StripePaymentMetadataSchemaV1_4(**x)),
+            ("invalid_metadata", lambda x: None),
+        ]
+    )
+    def get_valid_metadata_test_case(self, request):
+        return request.getfixturevalue(request.param[0]), request.param[1]
+
+    def test_get_valid_metadata(self, get_valid_metadata_test_case):
+        metadata, expected_fn = get_valid_metadata_test_case
+        assert Payment.get_valid_metadata(metadata) == expected_fn(metadata)
+
+    @pytest.fixture(
+        params=[
+            ("balance_transaction_for_one_time_charge", lambda x: None),
+            ("balance_transaction_for_subscription_creation_charge", lambda x: x.source.invoice.subscription),
+            # ("balance_transaction_for_subscription_recurring_charge", None),
+        ]
+    )
+    def get_subscription_id_for_balance_transaction_test_case(self, request, mocker):
+        return request.getfixturevalue(request.param[0]), request.param[1]
+
+    def test_get_subscription_id_for_balance_transaction(
+        self, mocker, get_subscription_id_for_balance_transaction_test_case
+    ):
+        """Show that we memoize the subscription id"""
+        balance_transaction, expected_fn = get_subscription_id_for_balance_transaction_test_case
         mock_balance_transaction_retrieve = mocker.patch(
-            "stripe.BalanceTransaction.retrieve", return_value=balance_transaction_for_charge_expanded
+            "stripe.BalanceTransaction.retrieve", return_value=balance_transaction
         )
-        subscription = Payment.get_subscription_for_balance_transaction(
-            balance_transaction_for_charge_expanded, (account_id := "some-id")
-        )
-        assert subscription == balance_transaction_for_charge_expanded.source.subscription
+        assert Payment.get_subscription_id_for_balance_transaction(
+            balance_transaction.id, (account_id := "some-id")
+        ) == expected_fn(balance_transaction)
         mock_balance_transaction_retrieve.assert_called_once_with(
-            balance_transaction_for_charge_expanded.id,
-            account_id,
-            expand_fields=["source.invoice.subscription"],
+            balance_transaction.id,
+            stripe_account=account_id,
         )
         count = mock_balance_transaction_retrieve.call_count
-        Payment.get_subscription_for_balance_transaction(balance_transaction_for_charge_expanded, account_id)
+        Payment.get_subscription_id_for_balance_transaction(balance_transaction.id, account_id)
         assert mock_balance_transaction_retrieve.call_count == count
 
     @pytest.fixture(
         params=(
-            ("payment_intent_succeeded_one_time_event", "balance_transaction_for_charge", True),
-            ("payment_intent_succeeded_subscription_creation_event", "balance_transaction_for_charge", True),
+            ("payment_intent_succeeded_one_time_event", "balance_transaction_for_one_time_charge", True),
+            (
+                "payment_intent_succeeded_subscription_creation_event",
+                "balance_transaction_for_subscription_creation_charge",
+                True,
+            ),
             # ("payment_intent_succeeded_subscription_recurring_charge", "balance_transaction_for_charge", True),
         )
     )
@@ -1931,9 +1975,16 @@ class TestPayment:
             "stripe.BalanceTransaction.retrieve",
             return_value=(balance_transaction := request.getfixturevalue(request.param[1])),
         )
-        mocker.patch("stripe.Invoice.retrieve")
-        contribution = None
-        return request.getfixturevalue(request.param[0]), contribution, balance_transaction
+        kwargs = {
+            "interval": ContributionInterval.ONE_TIME
+            if balance_transaction.source.invoice.subscription is None
+            else ContributionInterval.MONTHLY
+        }
+        if Payment.is_for_recurrence_on_subscription(event := request.getfixturevalue(request.param[0])):
+            kwargs["provider_subscription_id"] = (balance_transaction.source.invoice.subscription,)
+        else:
+            kwargs = {"provider_payment_id": event.data.object.id}
+        return event, ContributionFactory(**kwargs), balance_transaction
 
     def test_from_stripe_payment_intent_succeeded_event(self, payment_from_pi_succeeded_test_case):
         event, contribution, balance_transaction = payment_from_pi_succeeded_test_case

@@ -1,5 +1,5 @@
 {
-  "account": "acct_1JhHQsPbhdfvD1kV",
+  "account": "acct_fakefakefake",
   "api_version": "2020-08-27",
   "created": 1670912464,
   "data": {
@@ -10,7 +10,7 @@
         "tip": {}
       },
       "amount_received": 36500,
-      "application": "ca_JGxDCnO08VRFiIKWUuBfOmOx70wFiBW0",
+      "application": "ca_fakefakefake",
       "application_fee_amount": null,
       "automatic_payment_methods": null,
       "canceled_at": null,
@@ -22,7 +22,7 @@
             "amount": 36500,
             "amount_captured": 36500,
             "amount_refunded": 0,
-            "application": "ca_JGxDCnO08VRFiIKWUuBfOmOx70wFiBW0",
+            "application": "ca_fakefakefake",
             "application_fee": null,
             "application_fee_amount": null,
             "balance_transaction": "txn_3MERrPPbhdfvD1kV0tzPWzvW",
@@ -39,7 +39,7 @@
               "name": "Leo Alves",
               "phone": "4444444"
             },
-            "calculated_statement_descriptor": "WWW.WLRN.ORG",
+            "calculated_statement_descriptor": "WWW.FOO.ORG",
             "captured": true,
             "created": 1670912464,
             "currency": "usd",
@@ -81,7 +81,7 @@
                 "country": "US",
                 "exp_month": 4,
                 "exp_year": 2024,
-                "fingerprint": "t3Nk1zg9IfbJoyRi",
+                "fingerprint": "fakefakefake",
                 "funding": "credit",
                 "installments": null,
                 "last4": "4242",
@@ -142,7 +142,9 @@
           "request_three_d_secure": "automatic"
         }
       },
-      "payment_method_types": ["card"],
+      "payment_method_types": [
+        "card"
+      ],
       "processing": null,
       "receipt_email": null,
       "review": null,

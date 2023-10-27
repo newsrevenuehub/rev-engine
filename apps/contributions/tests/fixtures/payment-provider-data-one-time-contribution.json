@@ -91,7 +91,7 @@
                 "country": "US",
                 "exp_month": 4,
                 "exp_year": 2024,
-                "fingerprint": "t3Nk1zg9IfbJoyRi",
+                "fingerprint": "fakefakefake",
                 "funding": "credit",
                 "installments": null,
                 "last4": "4242",
@@ -165,7 +165,9 @@
           "request_three_d_secure": "automatic"
         }
       },
-      "payment_method_types": ["card"],
+      "payment_method_types": [
+        "card"
+      ],
       "processing": null,
       "receipt_email": "bing@booooooooom.dev",
       "review": null,

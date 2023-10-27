@@ -1,20 +1,20 @@
 {
-    "id": "evt_3O5Xr1PbhdfvD1kV1p9iGLT1",
+    "id": "evt_fakefake",
     "object": "event",
-    "account": "acct_1JhHQsPbhdfvD1kV",
+    "account": "acct_fakefakefake",
     "api_version": "2020-08-27",
     "created": 1698422154,
     "data": {
         "object": {
-            "id": "ch_3O5Xr1PbhdfvD1kV1sQggtKL",
+            "id": "ch_fakefake",
             "object": "charge",
             "amount": 36500,
             "amount_captured": 36500,
             "amount_refunded": 36500,
-            "application": "ca_JGxDCnO08VRFiIKWUuBfOmOx70wFiBW0",
+            "application": "ca_fakefakefake",
             "application_fee": null,
             "application_fee_amount": null,
-            "balance_transaction": "txn_3O5Xr1PbhdfvD1kV1uH7RMrI",
+            "balance_transaction": "txn_fakefakefake",
             "billing_details": {
                 "address": {
                     "city": "Warszawa",
@@ -24,15 +24,15 @@
                     "postal_code": "01-460",
                     "state": "Mazowieckie"
                 },
-                "email": "ben.white+approved@fundjournalism.org",
+                "email": "foo@bar.org",
                 "name": "ben white",
                 "phone": "234"
             },
-            "calculated_statement_descriptor": "WWW.WLRN.ORG",
+            "calculated_statement_descriptor": "WWW.FOO.ORG",
             "captured": true,
             "created": 1698343236,
             "currency": "usd",
-            "customer": "cus_OtKWAQ0I1QPKmQ",
+            "customer": "cus_fakefake",
             "description": "Subscription creation",
             "destination": null,
             "dispute": null,
@@ -41,7 +41,7 @@
             "failure_code": null,
             "failure_message": null,
             "fraud_details": {},
-            "invoice": "in_1O5Xr1PbhdfvD1kV3Be7zDvZ",
+            "invoice": "in_fakefakefakefake",
             "livemode": false,
             "metadata": {},
             "on_behalf_of": null,
@@ -55,8 +55,8 @@
                 "type": "authorized"
             },
             "paid": true,
-            "payment_intent": "pi_3O5Xr1PbhdfvD1kV17sb3B1K",
-            "payment_method": "pm_1O5XrEPbhdfvD1kVexmmV7b1",
+            "payment_intent": "pi_fakefakefake",
+            "payment_method": "pm_fakefakefake",
             "payment_method_details": {
                 "card": {
                     "amount_authorized": 36500,
@@ -72,7 +72,7 @@
                     "extended_authorization": {
                         "status": "disabled"
                     },
-                    "fingerprint": "t3Nk1zg9IfbJoyRi",
+                    "fingerprint": "fakefakefake",
                     "funding": "credit",
                     "incremental_authorization": {
                         "status": "unavailable"
@@ -98,21 +98,21 @@
             },
             "receipt_email": null,
             "receipt_number": null,
-            "receipt_url": "https://pay.stripe.com/receipts/invoices/CAcaFwoVYWNjdF8xSmhIUXNQYmhkZnZEMWtWKIq776kGMgauommw7Ow6LBY0-FBH6Wp2cxI_0sUg80RacWSiiHC72o3wx3n6Wrcj9tBQGuMahmJ5sfZD?s=ap",
+            "receipt_url": "https://pay.stripe.com/receipts/invoices/fake",
             "refunded": true,
             "refunds": {
                 "object": "list",
                 "data": [
                     {
-                        "id": "re_3O5Xr1PbhdfvD1kV1qbXKznS",
+                        "id": "re_fakefakefake",
                         "object": "refund",
                         "amount": 36500,
-                        "balance_transaction": "txn_3O5Xr1PbhdfvD1kV1zQqBP1l",
-                        "charge": "ch_3O5Xr1PbhdfvD1kV1sQggtKL",
+                        "balance_transaction": "txn_fakefakefake",
+                        "charge": "ch_fakefake",
                         "created": 1698422153,
                         "currency": "usd",
                         "metadata": {},
-                        "payment_intent": "pi_3O5Xr1PbhdfvD1kV17sb3B1K",
+                        "payment_intent": "pi_fakefakefake",
                         "reason": "requested_by_customer",
                         "receipt_number": null,
                         "source_transfer_reversal": null,
@@ -122,7 +122,7 @@
                 ],
                 "has_more": false,
                 "total_count": 1,
-                "url": "/v1/charges/ch_3O5Xr1PbhdfvD1kV1sQggtKL/refunds"
+                "url": "/v1/charges/ch_fakefake/refunds"
             },
             "review": null,
             "shipping": null,
@@ -136,7 +136,7 @@
         },
         "previous_attributes": {
             "amount_refunded": 0,
-            "receipt_url": "https://pay.stripe.com/receipts/invoices/CAcaFwoVYWNjdF8xSmhIUXNQYmhkZnZEMWtWKIm776kGMgZ_thnrVQ86LBYv0lsnhVySSYkWpTk_qiCycUuoBgWs3DuwyDoUak4Gaha-zajNr66wyWt0?s=ap",
+            "receipt_url": "https://pay.stripe.com/receipts/invoices/fake",
             "refunded": false,
             "refunds": {
                 "data": [],
@@ -147,7 +147,7 @@
     "livemode": false,
     "pending_webhooks": 2,
     "request": {
-        "id": "req_9RgtYo8WgnWgNk",
+        "id": "req_fakefake",
         "idempotency_key": "5a51cba8-d3e9-4abe-9420-f93ad136792c"
     },
     "type": "charge.refunded"

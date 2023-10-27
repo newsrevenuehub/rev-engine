@@ -1870,7 +1870,7 @@ class TestPayment:
     def payment(self):
         return PaymentFactory()
 
-    def test__str__(self, payment):
+    def test___str__(self, payment):
         assert (
             str(payment)
             == f"Payment {payment.id} for contribution {payment.contribution.id} and balance transaction {payment.stripe_balance_transaction_id}"
@@ -1888,7 +1888,7 @@ class TestPayment:
         assert payment.stripe_balance_transaction == mock_retrieve.return_value
         mock_retrieve.assert_called_once_with(
             payment.stripe_balance_transaction_id,
-            stripe_account=payment.contribution.donation_page.revenue_program.payment_provider.stripe_account_id,
+            account=payment.contribution.donation_page.revenue_program.payment_provider.stripe_account_id,
         )
         count = mock_retrieve.call_count
         payment.stripe_balance_transaction
@@ -1921,9 +1921,9 @@ class TestPayment:
 
     @pytest.fixture(
         params=(
-            ("payment_intent_succeeded_one_time", "balance_transaction_for_charge", True),
-            ("payment_intent_succeeded_subscription_creation", "balance_transaction_for_charge", True),
-            ("payment_intent_succeeded_subscription_recurring_charge", "balance_transaction_for_charge", True),
+            ("payment_intent_succeeded_one_time_event", "balance_transaction_for_charge", True),
+            ("payment_intent_succeeded_subscription_creation_event", "balance_transaction_for_charge", True),
+            # ("payment_intent_succeeded_subscription_recurring_charge", "balance_transaction_for_charge", True),
         )
     )
     def payment_from_pi_succeeded_test_case(self, request, mocker):

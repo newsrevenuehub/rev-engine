@@ -1033,7 +1033,7 @@ class Payment(IndexedTimeStampedModel):
         if not metadata:
             return None
         try:
-            return schema(metadata)
+            return schema(**metadata)
         except ValidationError:
             return None
 

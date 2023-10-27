@@ -46,7 +46,13 @@ class AbstractStripeLinkedAdmin:
 
 @admin.register(Payment)
 class PaymentAdmin(RevEngineBaseAdmin, AbstractStripeLinkedAdmin):
-    list_display = ("contribution", "net_amount_paid", "gross_amount_paid", "amount_refunded")
+    list_display = (
+        "contribution",
+        "net_amount_paid",
+        "gross_amount_paid",
+        "amount_refunded",
+        "stripe_balance_transaction_id",
+    )
     order = (
         "modified",
         "created",
@@ -65,19 +71,9 @@ class PaymentAdmin(RevEngineBaseAdmin, AbstractStripeLinkedAdmin):
             "gross_amount_paid",
             "amount_refunded",
             "stripe_balance_transaction_id",
-            "provider_charge_link",
-            "provider_event_link",
         )
     )
     readonly_fields = fields
-
-    def provider_charge_link(self, obj: Payment) -> str:
-        """Link to the charge in Stripe"""
-        return self._generate_stripe_as_connected_account_link("payments", obj.stripe_charge_id, obj.stripe_account_id)
-
-    def provider_event_link(self, obj: Payment) -> str:
-        """Link to the event in Stripe"""
-        return self._generate_stripe_as_connected_account_link("events", obj.stripe_event_id, obj.stripe_account_id)
 
 
 @admin.register(Contribution)

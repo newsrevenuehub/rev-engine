@@ -4,7 +4,6 @@ import { DAmountStyled, FeesContainer, FreqSubtext, OtherAmount, OtherAmountInpu
 
 // Util
 import { getFrequencyRate } from 'utilities/parseFrequency';
-import { parseFloatStrictly } from 'utilities/parseFloatStrictly';
 
 // Context
 import { usePage } from '../DonationPage';
@@ -16,6 +15,7 @@ import usePreviousState from 'hooks/usePreviousState';
 import FormErrors from 'elements/inputs/FormErrors';
 import PayFeesControl from './PayFeesControl';
 import { useTranslation } from 'react-i18next';
+import validateInputPositiveFloat from 'utilities/validateInputPositiveFloat';
 
 export type DAmountProps = InferProps<typeof DAmountPropTypes>;
 
@@ -100,16 +100,16 @@ function DAmount({ element, ...props }: DAmountProps) {
   const handleOtherAmountChange = ({
     target: { value }
   }: React.ChangeEvent<HTMLInputElement> | { target: { value: string } }) => {
-    setOtherValue(value);
+    const filteredValue = value.replace(/\D/g, '');
 
-    if (value === '') {
+    setOtherValue(filteredValue);
+
+    if (filteredValue === '') {
       setAmount(undefined);
     }
 
-    const parsedValue = parseFloatStrictly(value);
-
-    if (!isNaN(parsedValue) && parsedValue > 0) {
-      setAmount(parsedValue);
+    if (validateInputPositiveFloat(filteredValue)) {
+      setAmount(parseFloat(filteredValue));
     }
   };
 
@@ -150,8 +150,10 @@ function DAmount({ element, ...props }: DAmountProps) {
           <OtherAmount data-testid={`amount-other${otherIsSelected ? '-selected' : ''}`} selected={otherIsSelected}>
             <span>{currencySymbol}</span>
             <OtherAmountInput
-              type="number"
+              inputMode="numeric"
+              type="text"
               min="0"
+              pattern="\d+"
               value={otherValue}
               name="amount"
               onChange={handleOtherAmountChange}

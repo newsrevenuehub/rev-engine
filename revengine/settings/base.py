@@ -308,8 +308,8 @@ LOGGING = {
 
 ### Request ID Settings
 # Ref: https://django-request-id.readthedocs.io/en/latest/
-# For non-Heroku deployments, REQUEST_ID_HEADER will probably have to be None
-REQUEST_ID_HEADER = os.getenv("REQUEST_ID_HEADER", "X-Request-ID")
+# For Heroku environments, REQUEST_ID_HEADER will have to be set to "X-Request-ID"
+REQUEST_ID_HEADER = os.getenv("REQUEST_ID_HEADER", None)
 
 ### Sentry Settings
 SENTRY_ENABLE_FRONTEND = os.getenv("SENTRY_ENABLE_FRONTEND", "false").lower() == "true"

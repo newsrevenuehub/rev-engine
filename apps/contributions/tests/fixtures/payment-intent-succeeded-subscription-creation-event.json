@@ -32,7 +32,7 @@
                         "application": "ca_fakefakefake",
                         "application_fee": null,
                         "application_fee_amount": null,
-                        "balance_transaction": "txn_fakefakefake",
+                        "balance_transaction": "txn_fakefakefake888888",
                         "billing_details": {
                             "address": {
                                 "city": "Warszawa",

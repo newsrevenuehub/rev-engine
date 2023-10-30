@@ -1,5 +1,5 @@
 {
-    "id": "txn_fakefakefake",
+    "id": "txn_fakefakefake22222",
     "object": "balance_transaction",
     "amount": 36500,
     "available_on": 1698883200,
@@ -28,7 +28,7 @@
         "application": "ca_fakefakefake",
         "application_fee": null,
         "application_fee_amount": null,
-        "balance_transaction": "txn_fakefakefake",
+        "balance_transaction": "txn_fakefakefake22222",
         "billing_details": {
             "address": {
                 "city": "Warszawa",

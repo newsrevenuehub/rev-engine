@@ -14,7 +14,7 @@
             "application": "ca_fakefakefake",
             "application_fee": null,
             "application_fee_amount": null,
-            "balance_transaction": "txn_fakefakefake",
+            "balance_transaction": "txn_fakefakefake555555",
             "billing_details": {
                 "address": {
                     "city": "Warszawa",
@@ -107,7 +107,7 @@
                         "id": "re_fakefakefake",
                         "object": "refund",
                         "amount": 36500,
-                        "balance_transaction": "txn_fakefakefake",
+                        "balance_transaction": "txn_fakefakefake555555",
                         "charge": "ch_fakefake",
                         "created": 1698422153,
                         "currency": "usd",

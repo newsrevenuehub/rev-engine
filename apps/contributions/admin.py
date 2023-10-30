@@ -23,29 +23,8 @@ class ContributorAdmin(RevEngineBaseAdmin, CompareVersionAdmin):
     readonly_fields = ("email",)
 
 
-class AbstractStripeLinkedAdmin:
-    def _generate_stripe_connect_link(self, slug, provider_id, stripe_account_id):
-        if provider_id:
-            test_mode = "test/" if not settings.STRIPE_LIVE_MODE else ""
-            return format_html(
-                f"<a href='%s' target='_blank'>{provider_id}</a>"
-                % f"https://dashboard.stripe.com/{test_mode}connect/accounts/{stripe_account_id}/{slug}/{provider_id}"
-            )
-        return "-"
-
-    def _generate_stripe_as_connected_account_link(self, slug, provider_id, stripe_account_id):
-        if provider_id:
-            test_mode = "test/" if not settings.STRIPE_LIVE_MODE else ""
-            return format_html(
-                f"<a href='%s' target='_blank'>{provider_id}</a>"
-                % f"https://dashboard.stripe.com/{stripe_account_id}/{test_mode}{slug}/{provider_id}"
-            )
-        # This is not an expected state to get into because provider_id is expected to be a required field
-        return "-"  # pragma: no cover
-
-
 @admin.register(Payment)
-class PaymentAdmin(RevEngineBaseAdmin, AbstractStripeLinkedAdmin):
+class PaymentAdmin(RevEngineBaseAdmin):
     list_display = (
         "contribution",
         "net_amount_paid",
@@ -77,7 +56,7 @@ class PaymentAdmin(RevEngineBaseAdmin, AbstractStripeLinkedAdmin):
 
 
 @admin.register(Contribution)
-class ContributionAdmin(RevEngineBaseAdmin, CompareVersionAdmin, AbstractStripeLinkedAdmin):
+class ContributionAdmin(RevEngineBaseAdmin, CompareVersionAdmin):
     fieldsets = (
         (
             "Payment",
@@ -176,6 +155,15 @@ class ContributionAdmin(RevEngineBaseAdmin, CompareVersionAdmin, AbstractStripeL
         "accept_flagged_contribution",
         "reject_flagged_contribution",
     )
+
+    def _generate_stripe_connect_link(self, slug, provider_id, stripe_account_id):
+        if provider_id:
+            test_mode = "test/" if not settings.STRIPE_LIVE_MODE else ""
+            return format_html(
+                f"<a href='%s' target='_blank'>{provider_id}</a>"
+                % f"https://dashboard.stripe.com/{test_mode}connect/accounts/{stripe_account_id}/{slug}/{provider_id}"
+            )
+        return "-"
 
     @admin.action(description="Accept flagged contributions")
     def accept_flagged_contribution(self, request, queryset):

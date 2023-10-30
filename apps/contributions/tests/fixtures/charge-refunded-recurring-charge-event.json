@@ -1,1 +1,179 @@
-{}
+{
+    "id": "evt_fakefakefake",
+    "object": "event",
+    "account": "acct_fakefakefake",
+    "api_version": "2020-08-27",
+    "created": 1698696052,
+    "data": {
+        "object": {
+            "id": "ch_fakefakefake",
+            "object": "charge",
+            "amount": 2000,
+            "amount_captured": 2000,
+            "amount_refunded": 2000,
+            "application": "ca_fakefakefakefake",
+            "application_fee": null,
+            "application_fee_amount": null,
+            "balance_transaction": "txn_fakefakefakefake",
+            "billing_details": {
+                "address": {
+                    "city": null,
+                    "country": null,
+                    "line1": null,
+                    "line2": null,
+                    "postal_code": null,
+                    "state": null
+                },
+                "email": null,
+                "name": null,
+                "phone": null
+            },
+            "calculated_statement_descriptor": "WWW.FOO.ORG",
+            "captured": true,
+            "created": 1698691252,
+            "currency": "usd",
+            "customer": "cus_fakefakefake",
+            "description": "Subscription update",
+            "destination": null,
+            "dispute": null,
+            "disputed": false,
+            "failure_balance_transaction": null,
+            "failure_code": null,
+            "failure_message": null,
+            "fraud_details": {},
+            "invoice": "in_fakefakefake",
+            "livemode": false,
+            "metadata": {},
+            "on_behalf_of": null,
+            "order": null,
+            "outcome": {
+                "network_status": "approved_by_network",
+                "reason": null,
+                "risk_level": "normal",
+                "risk_score": 36,
+                "seller_message": "Payment complete.",
+                "type": "authorized"
+            },
+            "paid": true,
+            "payment_intent": "pi_fakefakefake",
+            "payment_method": "card_fakefakefake",
+            "payment_method_details": {
+                "card": {
+                    "amount_authorized": 2000,
+                    "brand": "visa",
+                    "checks": {
+                        "address_line1_check": null,
+                        "address_postal_code_check": null,
+                        "cvc_check": null
+                    },
+                    "country": "US",
+                    "exp_month": 4,
+                    "exp_year": 2024,
+                    "extended_authorization": {
+                        "status": "disabled"
+                    },
+                    "fingerprint": "fakefakefake",
+                    "funding": "credit",
+                    "incremental_authorization": {
+                        "status": "unavailable"
+                    },
+                    "installments": null,
+                    "last4": "4242",
+                    "mandate": null,
+                    "multicapture": {
+                        "status": "unavailable"
+                    },
+                    "network": "visa",
+                    "network_token": {
+                        "used": false
+                    },
+                    "overcapture": {
+                        "maximum_amount_capturable": 2000,
+                        "status": "unavailable"
+                    },
+                    "three_d_secure": null,
+                    "wallet": null
+                },
+                "type": "card"
+            },
+            "receipt_email": null,
+            "receipt_number": null,
+            "receipt_url": "https://pay.stripe.com/receipts/invoices/fakefakefake",
+            "refunded": true,
+            "refunds": {
+                "object": "list",
+                "data": [
+                    {
+                        "id": "re_fakefakefake",
+                        "object": "refund",
+                        "amount": 2000,
+                        "balance_transaction": "txn_fakefakefake",
+                        "charge": "ch_fakefakefake",
+                        "created": 1698696052,
+                        "currency": "usd",
+                        "metadata": {},
+                        "payment_intent": "pi_fakefakefake",
+                        "reason": "requested_by_customer",
+                        "receipt_number": null,
+                        "source_transfer_reversal": null,
+                        "status": "succeeded",
+                        "transfer_reversal": null
+                    }
+                ],
+                "has_more": false,
+                "total_count": 1,
+                "url": "/v1/charges/ch_fakefakefake/refunds"
+            },
+            "review": null,
+            "shipping": null,
+            "source": {
+                "id": "card_fakefakefake",
+                "object": "card",
+                "address_city": null,
+                "address_country": null,
+                "address_line1": null,
+                "address_line1_check": null,
+                "address_line2": null,
+                "address_state": null,
+                "address_zip": null,
+                "address_zip_check": null,
+                "brand": "Visa",
+                "country": "US",
+                "customer": "cus_fakefakefake",
+                "cvc_check": null,
+                "dynamic_last4": null,
+                "exp_month": 4,
+                "exp_year": 2024,
+                "fingerprint": "fakefakefake",
+                "funding": "credit",
+                "last4": "4242",
+                "metadata": {},
+                "name": null,
+                "tokenization_method": null,
+                "wallet": null
+            },
+            "source_transfer": null,
+            "statement_descriptor": null,
+            "statement_descriptor_suffix": null,
+            "status": "succeeded",
+            "transfer_data": null,
+            "transfer_group": null
+        },
+        "previous_attributes": {
+            "amount_refunded": 0,
+            "receipt_url": "https://pay.stripe.com/receipts/invoices/fakefakefake",
+            "refunded": false,
+            "refunds": {
+                "data": [],
+                "total_count": 0
+            }
+        }
+    },
+    "livemode": false,
+    "pending_webhooks": 2,
+    "request": {
+        "id": "req_fakefakefake",
+        "idempotency_key": "e64333e6-db77-40a8-a02f-eb8aa2781c3d"
+    },
+    "type": "charge.refunded"
+}

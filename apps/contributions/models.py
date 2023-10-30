@@ -5,7 +5,8 @@ import json
 import logging
 import uuid
 from dataclasses import asdict
-from functools import wraps
+from functools import reduce, wraps
+from operator import or_
 from typing import Any, Callable, List
 from urllib.parse import quote_plus
 
@@ -941,7 +942,8 @@ class Contribution(IndexedTimeStampedModel):
 def ensure_stripe_event(event_types: List[str] = None) -> Callable:
     """This is a decorator that's used to ensure that the `event` keyword...
 
-    argument passed to a function is a Stripe event in minimally expected state
+    argument passed to a function is a Stripe event in minimally expected state — specifically,
+    that it is an instance of `stripe.Event`.
 
     You can optionally send a list of event types to ensure that the event is of a certain type.
 
@@ -1004,9 +1006,7 @@ class Payment(IndexedTimeStampedModel):
         kwargs = {"account": account_id}
         if expand:
             kwargs["expand"] = expand
-        cache_key = (
-            f"_get_stripe_balance_transaction_{balance_transaction_id}_{account_id}_{'_'.join(expand) or 'no_expand'}"
-        )
+        cache_key = f"_get_stripe_balance_transaction_{balance_transaction_id}_{account_id}_{'_'.join(expand) if expand else 'no_expand'}"
         cached_result = cache.get(cache_key)
         if cached_result is not None:
             logger.debug("Found cached result for %s", cache_key)
@@ -1036,7 +1036,7 @@ class Payment(IndexedTimeStampedModel):
         if not metadata:
             return None
         try:
-            return schema(**metadata)
+            return schema(**metadata) if metadata else None
         except PydanticValidationError:
             return None
 
@@ -1047,23 +1047,18 @@ class Payment(IndexedTimeStampedModel):
         bt = cls._get_stripe_balance_transaction(balance_transaction_id, stripe_account_id, expand=["source.invoice"])
         return getattr(bt.source.invoice, "subscription", None) if bt.source.invoice else None
 
-    @ensure_stripe_event(["payment_intent.succeeded"])
     @classmethod
-    def is_for_recurrence_on_subscription(cls, event: StripeEventData) -> bool:
-        subscription_id = cls.get_subscription_id_for_balance_transaction(
-            event.data.object.balance_transaction, event.account
+    def is_for_recurrence_on_subscription(cls, balance_transaction_id: str, stripe_account_id: str) -> bool:
+        subscription_id = cls.get_subscription_id_for_balance_transaction(balance_transaction_id, stripe_account_id)
+        return (
+            Contribution.objects.filter(provider_subscription_id=subscription_id).exists() if subscription_id else False
         )
-        return Contribution.objects.filter(provider_subscription_id=subscription_id).exists()
 
-    @ensure_stripe_event(["payment_intent.succeeded"])
     @classmethod
-    def get_recurring_contribution_for_payment_intent_succeeded_event(
-        cls, event: StripeEventData
+    def get_recurring_contribution_for_payment_intent(
+        cls, balance_transaction_id: str, stripe_account_id: str
     ) -> Contribution | None:
-        subscription_id = cls.get_subscription_id_for_balance_transaction(
-            event.data.object.balance_transaction,
-            event.account,
-        )
+        subscription_id = cls.get_subscription_id_for_balance_transaction(balance_transaction_id, stripe_account_id)
         return (
             Contribution.objects.get(
                 provider_subscription_id=subscription_id,
@@ -1073,20 +1068,34 @@ class Payment(IndexedTimeStampedModel):
             else None
         )
 
-    @ensure_stripe_event(["payment_intent.succeeded"])
     @classmethod
-    def get_contribution_for_recurrence(cls, event: StripeEventData) -> Contribution | None:
-        subscription = cls.get_subscription_id_for_balance_transaction(
-            event.data.object.balance_transaction,
-            event.account,
+    def get_contribution_for_recurrence(
+        cls, balance_transaction_id: str, stripe_account_id: str
+    ) -> Contribution | None:
+        subscription_id = cls.get_subscription_id_for_balance_transaction(
+            balance_transaction_id,
+            stripe_account_id,
         )
-        return Contribution.objects.get(provider_subscription_id=subscription.id) if subscription else None
+        try:
+            return Contribution.objects.get(provider_subscription_id=subscription_id) if subscription_id else None
+        except Contribution.DoesNotExist:
+            logger.warning(
+                "Could not find a contribution for balance transaction %s for subscription %s for account %s",
+                balance_transaction_id,
+                subscription_id,
+                stripe_account_id,
+            )
+            return None
 
-    @ensure_stripe_event(["payment_intent.succeeded"])
     @classmethod
-    def get_contribution_via_valid_metadata(cls, event: StripeEventData) -> Contribution | None:
-        logger.debug("Called with event %s", event.id)
-        valid_metadata = cls.get_valid_metadata(event.data.object.metadata)
+    def get_contribution_via_valid_metadata(cls, pi: stripe.PaymentIntent) -> Contribution | None:
+        """Link a PI to an NRE contribution via validated Stripe metadata.
+
+        Expected use: for payment intent succeeded events that are for a one-time or the initial first charge on
+        subscription creation, we can use the metadata to find the contribution.
+        """
+        logger.debug("Called with pi %s", pi.id)
+        valid_metadata = cls.get_valid_metadata(pi.metadata)
         if any(
             [
                 # it was a one-time contribution
@@ -1096,94 +1105,143 @@ class Payment(IndexedTimeStampedModel):
                     [
                         valid_metadata,
                         valid_metadata.interval in [ContributionInterval.MONTHLY, ContributionInterval.YEARLY],
-                        event.data.description == "Subscription creation",
+                        pi.description == "Subscription creation",
                     ]
                 ),
             ]
         ):
             logger.debug(
-                "Event %s appears to be for a one-time or recurring contribution on initial creation. Locating contribution."
+                "PI %s appears to be for a one-time or recurring contribution on initial creation. Locating contribution.",
+                pi.id,
             )
             try:
-                return Contribution.objects.get(provider_payment_id=event.data.object.id)
+                return Contribution.objects.get(provider_payment_id=pi.id)
             except Contribution.DoesNotExist:
-                logger.warning(
-                    "Could not find a contribution for event %s with PI id %s", event.id, event.data.object.id
-                )
+                logger.warning("Could not find a contribution for PI %s", pi.id)
                 return None
         return None
 
+    @staticmethod
+    def _ensure_pi_has_single_charge(pi: stripe.PaymentIntent, event_id: str) -> None:
+        if len(pi.charges.data) > 1:
+            logger.warning("More than one charge associated with PI %s for event %s", pi.id, event_id)
+            raise ValueError("Cannot link payment intent to a single balance transaction", pi.id)
+
     @ensure_stripe_event(["payment_intent.succeeded"])
     @classmethod
-    def get_contribution_for_payment_intent_succeeded_event(cls, event: StripeEventData) -> Contribution | None:
-        logger.debug("Called with event %s", event.id)
-        if contribution_via_metadata := cls.get_contribution_via_valid_metadata(event):
-            logger.debug("Found contribution %s for event %s", contribution_via_metadata.id, event.id)
-            return contribution_via_metadata
-        if cls.is_for_recurrence_on_subscription(event) and (
-            contribution := cls.get_contribution_for_recurrence(event)
+    def get_contribution_and_balance_transaction_for_payment_intent_succeeded_event(
+        cls, event: StripeEventData
+    ) -> (Contribution | None, stripe.BalanceTransaction | None):
+        """Attempt to pair a Stripe event with an NRE contribution and balance transaction.
+
+        Returns a tuple of contribution, balance_transaction. Either or both may be None.
+
+        If there is more than one possible balance transaction (because > 1 charge on PI), we raise an exception. This is not
+        expected, but the data model would allow for it.
+        """
+        # we re-retrieve the PI because its state could have changed between the time the event was received and now
+        pi = stripe.PaymentIntent.retrieve(event.data.object.id, stripe_account=event.account)
+
+        if not all(
+            [
+                pi.charges,
+                pi.charges.data,
+                (balance_transaction_id := pi.charges.data[0].balance_transaction),
+            ]
         ):
-            logger.debug("Found contribution %s for event %s", contribution.id, event.id)
-            return contribution
-        logger.warning("No relevant NRE contribution can be found for event %s", event.id)
-        return None
+            logger.warning("Could not find a balance transaction for PI %s associated with event %s", pi.id, event.id)
+            balance_transaction = None
+        else:
+            balance_transaction = cls._get_stripe_balance_transaction(
+                balance_transaction_id,
+                account_id=event.account,
+            )
+
+        cls._ensure_pi_has_single_charge(pi, event.id)
+
+        if contribution := cls.get_contribution_via_valid_metadata(pi):
+            logger.debug("Found contribution %s for event %s and payment intent %s", contribution.id, event.id, pi.id)
+            return contribution, balance_transaction
+        return cls.get_contribution_for_recurrence(balance_transaction_id, event.account), balance_transaction
 
     @ensure_stripe_event(["charge.refunded"])
     @classmethod
-    def get_contribution_for_charge_refunded_event(cls, event: stripe.Event):
-        logger.debug("Called with event %s", event.id)
-        try:
-            # we expect this to happen if it's a refund related to a one-time contribution or the initial payment associated with
-            # a new Stripe subscription in case of recurring contribution.
-            return Contribution.objects.get(provider_payment_id=event.data.object.id)
-        except Contribution.DoesNotExist:
-            logger.debug("Could not find a contribution for event %s with PI id %s", event.id, event.data.object.id)
+    def get_contribution_and_balance_transaction_for_charge_refunded_event(
+        cls, event: StripeEventData
+    ) -> (Contribution | None, stripe.BalanceTransaction | None):
         balance_transaction = cls._get_stripe_balance_transaction(
-            event.data.object.balance_transaction,
-            account_id=event.account,
-            expand=["source.invoice"],
+            event.data.object.balance_transaction, event.account, expand=["source.invoice"]
         )
+        conditions = []
+        # we expect this to happen if it's a refund related to a one-time contribution or the initial payment associated with
+        # a new Stripe subscription in case of recurring contribution.
+        if pi_id := event.data.object.payment_intent:
+            conditions.append(models.Q(provider_payment_id=pi_id))
         # We expect this to happen when it's a refund related to a recurrence on a subscription
         if balance_transaction.source.invoice and (sub_id := balance_transaction.source.invoice.subscription):
-            try:
-                return Contribution.objects.get(provider_subscription_id=sub_id)
-            except Contribution.DoesNotExist:
-                logger.debug("Could not find a contribution for event %s with sub id %s", event.id, sub_id)
-        logger.warning("Could not find a contribution for event %s", event.id)
-        return None
+            conditions.append(models.Q(provider_subscription_id=sub_id))
+        try:
+            # NB: these are inclusive OR conditions
+            contribution = Contribution.objects.get(reduce(or_, conditions)) if conditions else None
+        except Contribution.DoesNotExist:
+            logger.debug("Could not find a contribution for event %s with PI id %s", event.id, event.data.object.id)
+            contribution = None
+        return contribution, balance_transaction
 
-    @ensure_stripe_event(["payment_intent.succeeded"])
+    @ensure_stripe_event(["invoice.payment_succeeded"])
     @classmethod
-    def from_stripe_payment_intent_succeeded_event(cls, event: stripe.Event) -> Payment:
-        contribution = cls.get_contribution_for_payment_intent_succeeded_event(event)
+    def get_contribution_and_balance_transaction_for_invoice_payment_succeeded_event(
+        cls, event: StripeEventData
+    ) -> (Contribution | None, stripe.BalanceTransaction | None):
+        # expand both PI and subscription...
+        pi = stripe.PaymentIntent.retrieve(
+            event.data.object.payment_intent, stripe_account=event.account, expand=["charges.data.balance_transaction"]
+        )
+        try:
+            contribution = Contribution.objects.get(provider_subscription_id=pi.subscription)
+        except Contribution.DoesNotExist:
+            logger.debug("Could not find a contribution for event %s with PI id %s", event.id, event.data.object.id)
+            contribution = None
+        cls._ensure_pi_has_single_charge(pi, event.id)
+        return contribution, pi.charges.data[0].balance_transaction
+
+    @classmethod
+    def _handle_create_payment(
+        cls,
+        contribution: Contribution | None,
+        balance_transaction: stripe.BalanceTransaction | None,
+        amount_refunded: int = 0,
+    ) -> Payment:
         if not contribution:
             raise ValueError("Could not find a contribution for this event")
-        balance_transaction = cls._get_stripe_balance_transaction(
-            event.data.object.balance_transaction,
-            account_id=event.account,
-        )
+        if not balance_transaction:
+            raise ValueError("Could not find a balance transaction for this event")
         return Payment(
             contribution=contribution,
             stripe_balance_transaction_id=balance_transaction.id,
             net_amount_paid=balance_transaction.net,
             gross_amount_paid=balance_transaction.amount,
-            amount_refunded=0,
+            amount_refunded=amount_refunded,
+        )
+
+    @ensure_stripe_event(["payment_intent.succeeded"])
+    @classmethod
+    def from_stripe_payment_intent_succeeded_event(cls, event: StripeEventData) -> Payment:
+        return cls._handle_create_payment(
+            *cls.get_contribution_and_balance_transaction_for_payment_intent_succeeded_event(event)
         )
 
     @ensure_stripe_event(["charge.refunded"])
     @classmethod
-    def from_stripe_charge_refunded_event(cls, event: stripe.Event) -> Payment:
-        contribution = cls.get_contribution_for_charge_refunded_event(event)
-        if not contribution:
-            raise ValueError("Could not find a contribution for this event")
-        balance_transaction = cls._get_stripe_balance_transaction(
-            event.data.object.balance_transaction,
-            account_id=event.account,
+    def from_stripe_charge_refunded_event(cls, event: StripeEventData) -> Payment:
+        return cls._handle_create_payment(
+            *cls.get_contribution_and_balance_transaction_for_charge_refunded_event(event),
+            amount_refunded=event.data.object.amount,
         )
-        return Payment(
-            contribution=contribution,
-            stripe_balance_transaction_id=balance_transaction.id,
-            net_amount_paid=balance_transaction.net,
-            gross_amount_paid=balance_transaction.amount,
-            amount_refunded=event.data.object.amount,  # double check this!
+
+    @ensure_stripe_event(["invoice.payment_succeeded"])
+    @classmethod
+    def from_stripe_invoice_payment_succeeded_event(cls, event: StripeEventData) -> Payment:
+        return cls._handle_create_payment(
+            *cls.get_contribution_and_balance_transaction_for_invoice_payment_succeeded_event(event)
         )

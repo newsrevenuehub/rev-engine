@@ -303,9 +303,7 @@ describe('Contribution page edit', () => {
     });
   });
 
-  // Temp disabled in DEV-3733
-  // TODO: Re-enable in DEV-3735
-  describe.skip('Swag editor', () => {
+  describe('Swag editor', () => {
     const pageSwagElement = livePage.elements.filter((el) => el.type === 'DSwag')[0];
 
     beforeEach(() => {
@@ -319,41 +317,8 @@ describe('Contribution page edit', () => {
 
     it('should show existing swags', () => {
       const swagName = pageSwagElement.content.swags[0].swagName;
-      cy.getByTestId('swag-editor').getByTestId('existing-swag').contains(swagName);
-    });
 
-    // Update me when we increase this limit!
-    it('should only show add-option if there is fewer than 1 existing swag', () => {
-      const swagName = pageSwagElement.content.swags[0].swagName;
-      cy.getByTestId('swag-name-input').should('not.exist');
-      cy.getByTestId(`remove-existing-swag-${swagName}`).click();
-      cy.getByTestId('swag-editor').getByTestId('existing-swag').should('not.exist');
-      cy.getByTestId('swag-name-input').should('exist');
-    });
-
-    it('should not show option to enable NYT sub if RP has not enabled it', () => {
-      expect(livePage.allow_offer_nyt_comp).to.be.null;
-      cy.getByTestId('offer-nyt-comp').should('not.exist');
-    });
-
-    it('should show option to enable NYT sub if RP has enabled it', () => {
-      const page = { ...livePage };
-      page.allow_offer_nyt_comp = true;
-
-      cy.forceLogin(orgAdminUser);
-      cy.intercept({ method: 'GET', pathname: getEndpoint(USER) }, { body: orgAdminWithContentFlag });
-      cy.intercept({ method: 'GET', pathname: `${getEndpoint(LIST_PAGES)}**` }, { body: page, statusCode: 200 }).as(
-        'getPage'
-      );
-      cy.intercept(`**/${LIST_STYLES}**`, {});
-
-      cy.visit(testEditPageUrl);
-      cy.url().should('include', testEditPageUrl);
-      cy.wait('@getPage');
-
-      cy.getByTestId('edit-page-button').click();
-      cy.editElement('DSwag');
-      cy.getByTestId('offer-nyt-comp').should('exist');
+      cy.findByRole('textbox', { name: 'Swag Selection Label' }).should('have.value', swagName);
     });
   });
 

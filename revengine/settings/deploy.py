@@ -50,9 +50,6 @@ CSRF_COOKIE_SECURE = os.getenv("CSRF_COOKIE_SECURE", "True") == "True"
 SESSION_COOKIE_SECURE = os.getenv("SESSION_COOKIE_SECURE", "True") == "True"
 
 ### Performance optimizations
-
-REDIS_URL = os.getenv("REDIS_TLS_URL", os.getenv("REDIS_URL", "redis://redis:6379"))
-
 CACHE_HOST = REDIS_URL
 CONNECTION_POOL_KWARGS = {}
 if CACHE_HOST.startswith("rediss"):

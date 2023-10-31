@@ -57,6 +57,16 @@ describe('Donation page displays dynamic page elements', () => {
     });
   });
 
+  it("doesn't change the other amount field if the user uses arrow keys when it's focused", () => {
+    cy.getByTestId(`amount-other`).within(() => {
+      cy.get('input').type('123');
+      cy.get('input').type('{upArrow}');
+      cy.get('input').should('have.value', '123');
+      cy.get('input').type('{downArrow}');
+      cy.get('input').should('have.value', '123');
+    });
+  });
+
   it('should render text indicating expected frequencies', () => {
     const frequency = getPageElementByType(livePageOne, 'DFrequency');
 

@@ -214,7 +214,9 @@ describe('DSwag', () => {
         live: false
       });
       expect(
-        screen.getByText('donationPage.dSwag.giveXToBeEligible{"amount":"mock-currency-symbol123.45 mock-currency-code"}')
+        screen.getByText(
+          'donationPage.dSwag.giveXToBeEligible{"amount":"mock-currency-symbol123.45 mock-currency-code"}'
+        )
       ).toBeVisible();
     });
   });

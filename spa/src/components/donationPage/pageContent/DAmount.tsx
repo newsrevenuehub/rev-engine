@@ -4,6 +4,7 @@ import { DAmountStyled, FeesContainer, FreqSubtext, OtherAmount, OtherAmountInpu
 
 // Util
 import { getFrequencyRate } from 'utilities/parseFrequency';
+import { parseFloatStrictly } from 'utilities/parseFloatStrictly';
 
 // Context
 import { usePage } from '../DonationPage';
@@ -15,7 +16,6 @@ import usePreviousState from 'hooks/usePreviousState';
 import FormErrors from 'elements/inputs/FormErrors';
 import PayFeesControl from './PayFeesControl';
 import { useTranslation } from 'react-i18next';
-import validateInputPositiveFloat from 'utilities/validateInputPositiveFloat';
 
 export type DAmountProps = InferProps<typeof DAmountPropTypes>;
 
@@ -108,8 +108,10 @@ function DAmount({ element, ...props }: DAmountProps) {
       setAmount(undefined);
     }
 
-    if (validateInputPositiveFloat(filteredValue)) {
-      setAmount(parseFloat(filteredValue));
+    const parsedValue = parseFloatStrictly(value);
+
+    if (!isNaN(parsedValue) && parsedValue > 0) {
+      setAmount(parsedValue);
     }
   };
 

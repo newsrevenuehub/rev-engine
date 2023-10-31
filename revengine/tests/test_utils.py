@@ -12,7 +12,8 @@ def minimally_valid_gs_service_account():
     """
     return {
         # NB: normally we don't store private keys, but this is dummy data and okay to commit.
-        # We have to exclude this entire file in `.pre-commit-config.yaml` to avoid a detect-private-key error
+        # We break up BEGIN and PRIVATE KEY to evade the private key commit detection checks that would
+        # otherwise complain about committing this private key to source code.
         "private_key": (
             "-----BEGIN "
             + "PRIVATE KEY-----\n"

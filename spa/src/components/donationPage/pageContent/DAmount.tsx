@@ -3,8 +3,8 @@ import PropTypes, { InferProps } from 'prop-types';
 import { DAmountStyled, FeesContainer, FreqSubtext, OtherAmount, OtherAmountInput } from './DAmount.styled';
 
 // Util
-import validateInputPositiveFloat from 'utilities/validateInputPositiveFloat';
 import { getFrequencyRate } from 'utilities/parseFrequency';
+import { parseFloatStrictly } from 'utilities/parseFloatStrictly';
 
 // Context
 import { usePage } from '../DonationPage';
@@ -108,8 +108,10 @@ function DAmount({ element, ...props }: DAmountProps) {
       setAmount(undefined);
     }
 
-    if (validateInputPositiveFloat(filteredValue)) {
-      setAmount(parseFloat(filteredValue));
+    const parsedValue = parseFloatStrictly(value);
+
+    if (!isNaN(parsedValue) && parsedValue > 0) {
+      setAmount(parsedValue);
     }
   };
 

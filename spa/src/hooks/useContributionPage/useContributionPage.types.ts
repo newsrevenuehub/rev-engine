@@ -233,6 +233,13 @@ export interface SwagElement extends ContributionPageElement {
      */
     optOutDefault?: boolean;
     /**
+     * Should only the opt-out checkbox be shown? If true, this ignores the
+     * threshold and shows the checkbox in all cases. It also hides the
+     * threshold message ("Give $x to be eligible") and the swag dropdown menu.
+     * This field is not editable through the UI.
+     */
+    showOptOutOnly?: boolean;
+    /**
      * Swag options to offer. Each *item* in this array corresponds to a single
      * dropdown menu. However, we only implement a single item currently.
      */

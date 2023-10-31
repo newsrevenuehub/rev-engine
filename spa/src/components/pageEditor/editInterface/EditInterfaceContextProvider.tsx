@@ -129,12 +129,8 @@ export function EditInterfaceContextProvider({ children }: EditInterfaceContextP
         setSelectedElement,
         setSidebarElements,
         setElements,
-        // Temp filtering out DSwag elements in DEV-3733
-        // TODO: Re-enable in DEV-3735
-        // elements: updatedPagePreview?.elements,
-        // sidebarElements: updatedPagePreview?.sidebar_elements
-        elements: updatedPagePreview?.elements?.filter(({ type }) => type !== 'DSwag'),
-        sidebarElements: updatedPagePreview?.sidebar_elements?.filter(({ type }) => type !== 'DSwag')
+        elements: updatedPagePreview?.elements,
+        sidebarElements: updatedPagePreview?.sidebar_elements
       }}
     >
       {children}

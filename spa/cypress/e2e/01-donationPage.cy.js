@@ -117,17 +117,14 @@ describe('Donation page displays dynamic page elements', () => {
     getFeesCheckbox().should('not.be.checked');
   });
 
-  // Temp disabled in DEV-3733
-  // TODO: Re-enable in DEV-3735
-  it.skip('should render DSwag', () => {
+  it('should render DSwag', () => {
     cy.getByTestId('d-swag').should('exist');
   });
 
-  // Temp disabled in DEV-3733
-  // TODO: Re-enable in DEV-3735
-  it.skip('should render swag options if swagThreshold is met', () => {
+  it('should render swag options if swagThreshold is met', () => {
     const swagElement = livePageOne.elements.find((el) => el.type === 'DSwag');
     const swagThreshold = swagElement.content.swagThreshold;
+
     cy.contains(
       `Give a total of ${livePageOne.currency.symbol}${swagThreshold} ${livePageOne.currency.code} /year or more to be eligible`
     );
@@ -136,57 +133,13 @@ describe('Donation page displays dynamic page elements', () => {
     cy.getByTestId('swag-content').should('exist');
   });
 
-  // Temp disabled in DEV-3733
-  // TODO: Re-enable in DEV-3735
-  it.skip('should render a dropdown of swagOptions for each swag in the list', () => {
-    cy.setUpDonation('Yearly', '365');
+  it('should render a dropdown of swagOptions for each swag in the list', () => {
     const swagElement = livePageOne.elements.find((el) => el.type === 'DSwag');
-    const swagName = swagElement.content.swags[0].swagName;
-    const optionsNum = swagElement.content.swags[0].swagOptions.length;
+
+    cy.setUpDonation('Yearly', '365');
     cy.contains('Totes Dope Tote').should('exist');
-    cy.getByTestId(`swag-item-${swagName}`).should('exist');
-    cy.getByTestId(`swag-choices-${swagName}`).should('exist');
-    cy.getByTestId(`swag-choices-${swagName}`).click();
-    const dropdownName = `swag_choice_${swagName}`;
-    cy.getByTestId(`select-dropdown-${dropdownName}`).find('li').its('length').should('eq', optionsNum);
-  });
-
-  it('should not show nyt comp subscription option if not enabled', () => {
-    const page = { ...livePageOne };
-    const swagIndex = page.elements.findIndex((el) => el.type === 'DSwag');
-    page.elements[swagIndex].content.offerNytComp = false;
-    cy.intercept({ method: 'GET', pathname: getEndpoint(LIVE_PAGE_DETAIL) }, { body: page, statusCode: 200 }).as(
-      'getPage'
-    );
-    cy.visit(getTestingDonationPageUrl(expectedPageSlug));
-    cy.url().should('include', EXPECTED_RP_SLUG);
-    cy.url().should('include', expectedPageSlug);
-    cy.wait('@getPage');
-
-    cy.setUpDonation('One time', '365');
-    cy.getByTestId('nyt-comp-sub').should('not.exist');
-  });
-
-  // Temp disabled in DEV-3733
-  // TODO: Re-enable in DEV-3735
-  it.skip('should display nyt comp subscription option if enabled', () => {
-    const page = { ...livePageOne };
-    const swagIndex = page.elements.findIndex((el) => el.type === 'DSwag');
-    page.elements[swagIndex].content.offerNytComp = true;
-    cy.intercept({ method: 'GET', pathname: getEndpoint(LIVE_PAGE_DETAIL) }, { body: page, statusCode: 200 }).as(
-      'getPage'
-    );
-    cy.visit(getTestingDonationPageUrl(expectedPageSlug));
-    cy.url().should('include', EXPECTED_RP_SLUG);
-    cy.url().should('include', expectedPageSlug);
-    cy.wait('@getPage');
-
-    cy.setUpDonation('One time', '365');
-    cy.getByTestId('nyt-comp-sub').should('exist');
-    cy.getByTestId('nyt-comp-sub').click();
-    cy.getByTestId('nyt-comp-sub').within(() => {
-      cy.findByRole('checkbox').should('have.value', 'nyt');
-    });
+    cy.findByRole('button', { name: /Totes Dope Tote/ }).click();
+    cy.findAllByRole('option').its('length').should('eq', swagElement.content.swags[0].swagOptions.length);
   });
 });
 

@@ -5,7 +5,7 @@ import AdminGlobalStyles from 'styles/AdminGlobalStyles.js';
 import { SnackbarProvider } from 'notistack';
 
 // Styles
-import * as S from './App.styled';
+import { AppWrapper } from './App.styled';
 import { ThemeProvider } from 'styled-components';
 import { ThemeProvider as MuiThemeProvider } from '@material-ui/core';
 import { revEngineTheme, muiThemeOverrides } from 'styles/themes';
@@ -36,9 +36,9 @@ function App() {
                   </Helmet>
                   <AdminGlobalStyles />
                   <SvgIcons />
-                  <S.App>
+                  <AppWrapper>
                     <MainLayout />
-                  </S.App>
+                  </AppWrapper>
                 </AlertProvider>
               </SnackbarProvider>
             </BrowserRouter>

@@ -4,7 +4,7 @@ import { useAlert } from 'react-alert';
 import {
   AMOUNT_QUERYPARAM,
   FREQUENCY_QUERYPARAM,
-  GRECAPTCHA_SITE_KEY,
+  TURSNTILE_SITE_KEY,
   SALESFORCE_CAMPAIGN_ID_QUERYPARAM
 } from 'appSettings';
 import DonationPageFooter from 'components/donationPage/DonationPageFooter';
@@ -19,7 +19,7 @@ import useClearbit from 'hooks/useClearbit';
 import useErrorFocus from 'hooks/useErrorFocus';
 import { usePayment } from 'hooks/usePayment';
 import useQueryString from 'hooks/useQueryString';
-import useReCAPTCHAScript from 'hooks/useReCAPTCHAScript';
+import useTurnstileCAPTCHAScript from 'hooks/useTurnstileCAPTCHAScript';
 import { useTranslation } from 'react-i18next';
 import calculateStripeFee from 'utilities/calculateStripeFee';
 import * as S from './DonationPage.styled';
@@ -42,6 +42,7 @@ function DonationPage({ page, live = false }, ref) {
   const { t } = useTranslation();
   const alert = useAlert();
   const formRef = useRef();
+  const [token, setToken] = useState('');
   const salesforceCampaignId = useQueryString(SALESFORCE_CAMPAIGN_ID_QUERYPARAM);
   const freqQs = useQueryString(FREQUENCY_QUERYPARAM);
   const amountQs = useQueryString(AMOUNT_QUERYPARAM);
@@ -62,29 +63,21 @@ function DonationPage({ page, live = false }, ref) {
   useEffect(() => auditFrequencyChange(frequency), [auditFrequencyChange, frequency]);
   useEffect(() => auditPayFeesChange(userAgreesToPayFees), [auditPayFeesChange, userAgreesToPayFees]);
 
-  /*
-  If window.grecaptcha is defined-- which should be done in useReCAPTCHAScript hook--
-  listen for readiness and resolve promise with resulting reCAPTCHA token.
-  @returns {Promise} - resolves to token or error
-  */
-  const getReCAPTCHAToken = () =>
-    new Promise((resolve, reject) => {
-      if (window.grecaptcha) {
-        window.grecaptcha.ready(async function () {
-          try {
-            const token = window.grecaptcha.execute(GRECAPTCHA_SITE_KEY, { action: 'submit' });
-            resolve(token);
-          } catch (error) {
-            reject(error);
-          }
-        });
-      } else {
-        // TODO: [DEV-2372] Make Google Recaptcha integration less brittle
-        reject(new Error('window.grecaptcha not defined at getReCAPTCHAToken call time'));
-      }
-    });
+  useTurnstileCAPTCHAScript();
 
-  useReCAPTCHAScript();
+  // This function also refreshes token when it expires automatically
+  useEffect(() => {
+    window.onloadTurnstileCallback = function () {
+      window.grecaptcha.render('#turnstile-container', {
+        sitekey: TURSNTILE_SITE_KEY,
+        callback: function (token) {
+          console.log('success token', token);
+          setToken(token);
+        },
+        appearance: 'interaction-only'
+      });
+    };
+  }, []);
 
   // overrideAmount causes only the custom amount to show (initially)
   const [overrideAmount, setOverrideAmount] = useState(false);
@@ -128,7 +121,6 @@ function DonationPage({ page, live = false }, ref) {
 
   async function handleCheckoutSubmit(event) {
     event.preventDefault();
-    let reCAPTCHAToken = '';
 
     // getReCAPTCHAToken returns rejected promise if window.grecaptcha is not
     // defined when function runs. In tests, and quite possibly in deployed
@@ -137,9 +129,7 @@ function DonationPage({ page, live = false }, ref) {
     // contribution just because this script hasn't loaded, so if error occurs,
     // we just go with default empty string value for token, and log.
 
-    try {
-      reCAPTCHAToken = await getReCAPTCHAToken();
-    } catch (error) {
+    if (!window.grecaptcha || token === '') {
       console.error('No recaptcha token, defaulting to empty string');
     }
 
@@ -150,7 +140,7 @@ function DonationPage({ page, live = false }, ref) {
           amount,
           frequency,
           mailingCountry,
-          reCAPTCHAToken,
+          turnstileCAPTCHA: token,
           pageId: page.id,
           payFee: userAgreesToPayFees,
           rpIsNonProfit: page.revenue_program_is_nonprofit,
@@ -246,6 +236,7 @@ function DonationPage({ page, live = false }, ref) {
                           </GenericErrorBoundary>
                         ))}
                     </S.PageElements>
+                    <div id="turnstile-container" style={{ marginTop: '16px', marginBottom: '16px' }} />
                     <SubmitButton
                       disabled={!isValidTotalAmount || paymentIsLoading || payment}
                       loading={paymentIsLoading}

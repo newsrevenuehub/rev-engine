@@ -175,6 +175,7 @@ describe('serializeData', () => {
     pageSlug: 'mock-page-slug',
     payFee: false,
     reCAPTCHAToken: 'mock-captcha',
+    turnstileCAPTCHA: 'mock-turnstile',
     revProgramSlug: 'mock-rp-slug',
     rpCountry: 'mock-rp-country',
     rpIsNonProfit: false

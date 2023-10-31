@@ -3,7 +3,6 @@ import Button from 'elements/buttons/Button';
 
 export const SubmitButton = styled(Button)`
   font-family: ${(props) => props.theme.systemFont};
-  margin-top: 3rem;
 `;
 
 export const DonationPage = styled.div`

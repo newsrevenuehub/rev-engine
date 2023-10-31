@@ -161,6 +161,7 @@ class BadActorSerializer(serializers.Serializer):
 
     # Third-party risk assessment
     captcha_token = serializers.CharField(max_length=2550, required=False, allow_blank=True)
+    turnstile_token = serializers.CharField(max_length=2550, required=False, allow_blank=True)
 
     # Request metadata
     ip = serializers.IPAddressField()
@@ -392,6 +393,7 @@ class BaseCreatePaymentSerializer(serializers.Serializer):
         max_length=255, required=False, allow_blank=True, write_only=True, default=""
     )
     captcha_token = serializers.CharField(max_length=2550, allow_blank=True, write_only=True)
+    turnstile_token = serializers.CharField(max_length=2550, allow_blank=True, write_only=True)
     email_hash = serializers.CharField(read_only=True)
     donor_selected_amount = serializers.FloatField(write_only=True)
     client_secret = serializers.CharField(max_length=255, read_only=True, required=False)

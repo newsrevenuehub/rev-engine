@@ -38,6 +38,16 @@ export const PASSWORD_RESET_URL = '/users/password-reset/';
 export const GRECAPTCHA_SCRIPT_URL = 'https://www.google.com/recaptcha/api.js';
 export const GRECAPTCHA_SITE_KEY = '6Lfuse8UAAAAAD9E6tCxKYrxO1IbnXp8IBa4u5Ri';
 
+// Turnstile CAPTCHA
+// Migrating from reCAPTCHA https://developers.cloudflare.com/turnstile/migration/migrating-from-recaptcha/
+export const TURSNTILE_SCRIPT_URL =
+  'https://challenges.cloudflare.com/turnstile/v0/api.js?compat=recaptcha&onload=onloadTurnstileCallback';
+export const TURSNTILE_SITE_KEY = resolveConstantFromEnv('TURSNTILE_SITE_KEY', '0x4AAAAAAAMSJEjWJ-vVppbS');
+export const TURSNTILE_SECRET_KEY = resolveConstantFromEnv(
+  'TURSNTILE_SECRET_KEY',
+  '0x4AAAAAAAMSJGMCrD7pwkuFz2rGlH5dLps'
+);
+
 // Google Maps
 export const HUB_GOOGLE_MAPS_API_KEY = resolveConstantFromEnv('HUB_GOOGLE_MAPS_API_KEY');
 

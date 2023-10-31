@@ -75,6 +75,7 @@ export interface ContributionFormExtraData {
   pageSlug: string;
   payFee: boolean;
   reCAPTCHAToken: string;
+  turnstileCAPTCHA: string;
   revProgramSlug: string;
   rpCountry: string;
   rpIsNonProfit: boolean;
@@ -85,6 +86,7 @@ export interface SerializedContributionForm extends ReturnType<typeof serializeF
   agreed_to_pay_fees: boolean;
   amount: string;
   captcha_token: string;
+  turnstile_token: string;
   currency: string;
   donation_page_slug: string;
   donor_selected_amount: string;
@@ -114,6 +116,7 @@ export function serializeData(formRef: HTMLFormElement, state: ContributionFormE
   serializedData.currency = state.currency;
   serializedData.page = state.pageId;
   serializedData.captcha_token = state.reCAPTCHAToken;
+  serializedData.turnstile_token = state.turnstileCAPTCHA;
 
   if (state.salesforceCampaignId) {
     serializedData.sf_campaign_id = state.salesforceCampaignId;

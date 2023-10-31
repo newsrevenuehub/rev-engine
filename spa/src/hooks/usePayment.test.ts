@@ -12,6 +12,7 @@ const mockFormData: PaymentData = {
   agreed_to_pay_fees: true,
   amount: '123.45',
   captcha_token: 'mock-captcha-token',
+  turnstile_token: 'mock-turnstile-token',
   currency: 'usd',
   donation_page_slug: 'mock-page-slug',
   donor_selected_amount: '6.78',

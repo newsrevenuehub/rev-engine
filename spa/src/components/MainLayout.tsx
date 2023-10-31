@@ -1,4 +1,4 @@
-import { createContext, useState, useContext, useRef, Suspense } from 'react';
+import { Suspense } from 'react';
 import { MainLayoutWrapper } from './MainLayout.styled';
 
 // Hooks
@@ -14,11 +14,11 @@ import { DASHBOARD_SUBDOMAINS } from 'appSettings';
 import { AnalyticsContextProvider } from './analytics/AnalyticsContext';
 
 // Children
+import DashboardRouter from 'components/DashboardRouter';
+import DonationPageRouter from 'components/DonationPageRouter';
+import PortalRouter from 'components/PortalRouter';
 import GlobalLoading from 'elements/GlobalLoading';
 import GlobalConfirmationModal from 'elements/modal/GlobalConfirmationModal';
-import DonationPageRouter from 'components/DonationPageRouter';
-import DashboardRouter from 'components/DashboardRouter';
-import PortalRouter from 'components/PortalRouter';
 import ReauthContextProvider from './ReauthContext';
 
 function MainLayout() {

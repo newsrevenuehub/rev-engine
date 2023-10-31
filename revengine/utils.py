@@ -1,25 +1,33 @@
+import base64
+import json
+
 from django.core.exceptions import ImproperlyConfigured
 
 from google.auth.exceptions import MalformedError
 from google.oauth2 import service_account
 
 
-def ensure_gs_credentials(gs_service_account, raise_error_on_gs_service_account_unset=True):
-    """Google cloud storage needs application default credentials to be set. By default it will look in particular
-    file location, but that cannot be guaranteed on Heroku in worker tasks. It can also get credentials from a GS_CREDENTIALS env var,
-    and that will be accessible from worker tasks.
+def __ensure_gs_credentials(
+    gs_service_account_raw: str = None,
+    raise_on_unset: bool = False,
+) -> service_account.Credentials | None:
+    """Ensure that Google Storage service account credentials are available
 
+    This is a convenience function narrowly intended for use in settings file.
 
-    NB: We have parametrized `raise_error_on_gs_service_account_unset` because we don't want to have to store dummy credentials
-    JSON blob ahead of testing migrations. In CI, when our migrations test code runs we need to be able to not
-    raise an error when the env var is not set. But in production, we want to raise an error if the env var is not set.
+    There's enough complexity around how we're handling GS_CREDENTIALS in settings
+    that it's worthwhile to put into a named function that we can test.
     """
-    if not gs_service_account:
-        if raise_error_on_gs_service_account_unset:
-            raise ImproperlyConfigured("GS_SERVICE_ACCOUNT is not set")
-        else:
-            return None
     try:
-        return service_account.Credentials.from_service_account_info(gs_service_account)
-    except MalformedError:
+        credentials = (
+            service_account.Credentials.from_service_account_info(json.loads(base64.b64decode(gs_service_account_raw)))
+            if gs_service_account_raw
+            else None
+        )
+    except (json.decoder.JSONDecodeError, MalformedError):
+        credentials = None
+
+    if raise_on_unset and not credentials:
         raise ImproperlyConfigured("Cannot load Google Storage service account credentials")
+
+    return credentials

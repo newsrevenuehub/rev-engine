@@ -9,7 +9,7 @@ export const ImageUploadWrapper = styled.div`
 
 export const Label = styled.label`
   font-size: ${({ theme }) => theme.fontSizesUpdated.md};
-  font-weight: 500;
+  font-weight: 600;
 `;
 
 export const Root = styled.div`

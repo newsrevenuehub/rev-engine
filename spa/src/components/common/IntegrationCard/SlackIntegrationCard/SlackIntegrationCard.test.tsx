@@ -1,6 +1,6 @@
+import useUser from 'hooks/useUser';
 import { render, screen } from 'test-utils';
 import SlackIntegrationCard from './SlackIntegrationCard';
-import useUser from 'hooks/useUser';
 
 jest.mock('../IntegrationCard');
 jest.mock('hooks/useUser');
@@ -56,5 +56,13 @@ describe('SlackIntegrationCard', () => {
     expect(screen.getByTestId('cornerMessage')).toHaveTextContent('');
     expect(screen.getByTestId('isActive')).toHaveTextContent('false');
     expect(screen.getByRole('button', { name: 'connect' })).toBeDisabled();
+  });
+
+  it('should have correct connected tooltip message', async () => {
+    tree();
+
+    expect(screen.getByTestId('toggleConnectedTooltipMessage')).toHaveTextContent(
+      'Connected to Slack. Contact Support to disconnect.'
+    );
   });
 });

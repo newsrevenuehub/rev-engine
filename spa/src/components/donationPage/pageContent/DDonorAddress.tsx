@@ -12,6 +12,9 @@ import DElement from 'components/donationPage/pageContent/DElement';
 import { CountrySelect, TextField, Button, CollapseChild } from './DDonorAddress.styled';
 import { DonorAddressElement } from 'hooks/useContributionPage';
 import { Collapse } from '@material-ui/core';
+import { useTranslation } from 'react-i18next';
+import { ReactComponent as AddIcon } from '@material-design-icons/svg/filled/add.svg';
+import { ReactComponent as MinusIcon } from '@material-design-icons/svg/filled/horizontal_rule.svg';
 
 const mapAddrFieldToComponentTypes = {
   address: ['street_number', 'street_address', 'route'],
@@ -47,7 +50,8 @@ export interface DDonorAddressProps extends InferProps<typeof DDonorAddressPropT
 }
 
 function DDonorAddress({ element }: DDonorAddressProps) {
-  const { errors, mailingCountry, setMailingCountry } = usePage();
+  const { t } = useTranslation();
+  const { errors, mailingCountry, setMailingCountry, page } = usePage();
   const [address, setAddress] = useState('');
   const [showComplement, setShowComplement] = useState(false);
   const [complement, setComplement] = useState('');
@@ -57,18 +61,23 @@ function DDonorAddress({ element }: DDonorAddressProps) {
   const isOptional = element.content?.addressOptional === true;
   const zipAndCountryOnly = !!element.content?.zipAndCountryOnly;
   const stateLabel = useMemo(() => {
-    let result = 'State';
+    const includeProvince = element.content?.additionalStateFieldLabels?.includes('province');
+    const includeRegion = element.content?.additionalStateFieldLabels?.includes('region');
 
-    if (element.content?.additionalStateFieldLabels?.includes('province')) {
-      result += '/Province';
+    if (includeProvince && includeRegion) {
+      return t('donationPage.dDonorAddress.stateLabel.stateProvinceAndRegion');
     }
 
-    if (element.content?.additionalStateFieldLabels?.includes('region')) {
-      result += '/Region';
+    if (includeProvince) {
+      return t('donationPage.dDonorAddress.stateLabel.stateAndProvince');
     }
 
-    return result;
-  }, [element.content?.additionalStateFieldLabels]);
+    if (includeRegion) {
+      return t('donationPage.dDonorAddress.stateLabel.stateAndRegion');
+    }
+
+    return t('donationPage.dDonorAddress.stateLabel.state');
+  }, [element.content?.additionalStateFieldLabels, t]);
 
   const { ref: addressInputRef } = usePlacesWidget<HTMLInputElement>({
     apiKey: HUB_GOOGLE_MAPS_API_KEY,
@@ -76,6 +85,7 @@ function DDonorAddress({ element }: DDonorAddressProps) {
     // it when the field is focused.
     inputAutocompleteValue: '',
     options: { types: ['address'] },
+    language: page.locale,
     onPlaceSelected: ({ address_components }) => {
       // The API will not return this property in all cases; if so, do nothing.
 
@@ -134,7 +144,7 @@ function DDonorAddress({ element }: DDonorAddressProps) {
                 fullWidth
                 id="mailing_street"
                 name="mailing_street"
-                label="Address"
+                label={t('donationPage.dDonorAddress.address')}
                 value={address}
                 onBlur={enableBrowserAutofillOnAddress}
                 onChange={(e) => setAddress(e.target.value)}
@@ -144,8 +154,18 @@ function DDonorAddress({ element }: DDonorAddressProps) {
                 required={!isOptional}
                 data-testid="mailing_street"
               />
-              <Button $showComplement={showComplement} onClick={toggleComplement}>
-                {showComplement ? '-' : '+'} Address line 2 (Apt, suite, etc.)
+              <Button
+                startIcon={
+                  showComplement ? (
+                    <MinusIcon width={15} height={16} style={{ marginRight: -8 }} />
+                  ) : (
+                    <AddIcon width={16} height={16} style={{ marginRight: -8 }} />
+                  )
+                }
+                $showComplement={showComplement}
+                onClick={toggleComplement}
+              >
+                {t('donationPage.dDonorAddress.showLine2')}
               </Button>
             </Grid>
             <Collapse in={showComplement} style={{ width: '100%' }}>
@@ -156,7 +176,7 @@ function DDonorAddress({ element }: DDonorAddressProps) {
                     fullWidth
                     id="mailing_complement"
                     name="mailing_complement"
-                    label="Apt, suite, etc."
+                    label={t('donationPage.dDonorAddress.line2')}
                     value={complement}
                     onChange={(e) => setComplement(e.target.value)}
                     helperText={errors.mailing_complement}
@@ -171,7 +191,7 @@ function DDonorAddress({ element }: DDonorAddressProps) {
                 fullWidth
                 id="mailing_city"
                 name="mailing_city"
-                label="City"
+                label={t('donationPage.dDonorAddress.city')}
                 value={city}
                 onChange={(e) => setCity(e.target.value)}
                 helperText={errors.mailing_city}
@@ -201,7 +221,7 @@ function DDonorAddress({ element }: DDonorAddressProps) {
             fullWidth
             id="mailing_postal_code"
             name="mailing_postal_code"
-            label="Zip/Postal code"
+            label={t('donationPage.dDonorAddress.zip')}
             value={zip}
             onChange={(e) => setZip(e.target.value)}
             helperText={errors.mailing_postal_code}
@@ -214,7 +234,7 @@ function DDonorAddress({ element }: DDonorAddressProps) {
             error={!!errors.mailing_country}
             helperText={errors.mailing_country}
             id="country"
-            label="Country"
+            label={t('donationPage.dDonorAddress.country')}
             name="mailing_country"
             onChange={handleChangeCountry}
             value={mailingCountry ?? ''}

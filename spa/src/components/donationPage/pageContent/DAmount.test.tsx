@@ -3,7 +3,7 @@ import { cleanup, fireEvent, render, screen } from 'test-utils';
 import { UsePageProps, DonationPageContext } from '../DonationPage';
 import DAmount, { DAmountProps } from './DAmount';
 import { CONTRIBUTION_INTERVALS } from 'constants/contributionIntervals';
-import { getFrequencyAdjective, getFrequencyRate } from 'utilities/parseFrequency';
+import { getFrequencyRate } from 'utilities/parseFrequency';
 import userEvent from '@testing-library/user-event';
 import { within } from '@testing-library/react';
 
@@ -67,14 +67,14 @@ describe('DAmount', () => {
   it('displays a heading based on the frequency selected', () => {
     Object.values(CONTRIBUTION_INTERVALS).forEach((frequency) => {
       tree(undefined, { frequency });
-      expect(screen.getByText(`${getFrequencyAdjective(frequency)} amount`)).toBeVisible();
+      expect(screen.getByText(`donationPage.dAmount.label.${frequency}`)).toBeVisible();
       cleanup();
     });
   });
 
   it('displays a prompt', () => {
     tree();
-    expect(screen.getByText("Select how much you'd like to contribute")).toBeVisible();
+    expect(screen.getByText('donationPage.dAmount.selectContribution')).toBeVisible();
   });
 
   it('displays page errors related to amount', () => {
@@ -234,8 +234,7 @@ describe('DAmount', () => {
   describe('when the element has the allowOther option set', () => {
     it('displays a field where the user can enter another amount', () => {
       tree(propsWithOtherAmount);
-      // The role "spinbutton" relates to <input type="number" />
-      expect(screen.getByRole('spinbutton')).toBeInTheDocument();
+      expect(screen.getByRole('textbox')).toBeInTheDocument();
     });
 
     it("selects the field if the amount set in the page doesn't match any payment options", () => {
@@ -282,9 +281,9 @@ describe('DAmount', () => {
       // Fire a change instead of typing because we're not simulating `amount`
       // changing in context.
 
-      fireEvent.change(screen.getByRole('spinbutton'), { target: { value: '123' } });
+      fireEvent.change(screen.getByRole('textbox'), { target: { value: '123' } });
       expect(setAmount.mock.calls).toEqual([[123]]);
-      expect(screen.getByRole('spinbutton')).toHaveValue(123);
+      expect(screen.getByRole('textbox')).toHaveValue('123');
     });
 
     it("doesn't select an amount option if the user enters a number corresponding to that option", () => {
@@ -300,8 +299,8 @@ describe('DAmount', () => {
       };
 
       tree(propsWithOtherAmount, pageContext);
-      fireEvent.change(screen.getByRole('spinbutton'), { target: { value: '1' } });
-      expect(screen.getByRole('spinbutton')).toHaveValue(1);
+      fireEvent.change(screen.getByRole('textbox'), { target: { value: '1' } });
+      expect(screen.getByRole('textbox')).toHaveValue('1');
       expect(screen.queryByTestId('amount-1-selected')).not.toBeInTheDocument();
     });
 
@@ -309,9 +308,9 @@ describe('DAmount', () => {
       const setAmount = jest.fn();
 
       tree(propsWithOtherAmount, { page: defaultPage, setAmount });
-      userEvent.type(screen.getByRole('spinbutton'), '123');
+      userEvent.type(screen.getByRole('textbox'), '123');
       setAmount.mockClear();
-      userEvent.clear(screen.getByRole('spinbutton'));
+      userEvent.clear(screen.getByRole('textbox'));
       expect(setAmount).lastCalledWith(undefined);
     });
 
@@ -319,10 +318,10 @@ describe('DAmount', () => {
       const setAmount = jest.fn();
 
       tree(propsWithOtherAmount, { page: defaultPage, setAmount });
-      userEvent.type(screen.getByRole('spinbutton'), '123');
+      userEvent.type(screen.getByRole('textbox'), '123');
       userEvent.click(document.body);
-      userEvent.click(screen.getByRole('spinbutton'));
-      expect(screen.getByRole('spinbutton')).toHaveValue(123);
+      userEvent.click(screen.getByRole('textbox'));
+      expect(screen.getByRole('textbox')).toHaveValue('123');
     });
 
     it('sets the amount to an empty string if the user selects a button, then focuses the field', () => {
@@ -336,8 +335,8 @@ describe('DAmount', () => {
       });
       userEvent.click(screen.getByText('mock-currency-symbol1 mock-currency-code'));
       setAmount.mockClear();
-      userEvent.click(screen.getByRole('spinbutton'));
-      expect(screen.getByRole('spinbutton')).toHaveValue(null);
+      userEvent.click(screen.getByRole('textbox'));
+      expect(screen.getByRole('textbox')).toHaveValue('');
       expect(setAmount).toBeCalledWith(undefined);
     });
 
@@ -345,7 +344,7 @@ describe('DAmount', () => {
       const setAmount = jest.fn();
 
       tree(propsWithOtherAmount, { setAmount, page: { ...defaultPage } });
-      userEvent.type(screen.getByRole('spinbutton'), 'abc');
+      userEvent.type(screen.getByRole('textbox'), 'abc');
       expect(setAmount).toHaveBeenLastCalledWith(undefined);
     });
 
@@ -373,7 +372,7 @@ describe('DAmount', () => {
         },
         { frequency: CONTRIBUTION_INTERVALS.ONE_TIME, overrideAmount: true }
       );
-      expect(screen.getByRole('spinbutton')).toBeVisible();
+      expect(screen.getByRole('textbox')).toBeVisible();
     });
 
     it('prepopulates the other amount field with the page amount', () => {
@@ -386,7 +385,7 @@ describe('DAmount', () => {
         },
         { amount: 99, frequency: CONTRIBUTION_INTERVALS.ONE_TIME, overrideAmount: true }
       );
-      expect(screen.getByRole('spinbutton')).toHaveValue(99);
+      expect(screen.getByRole('textbox')).toHaveValue('99');
     });
 
     it('allows editing the amount in the text box', () => {
@@ -406,9 +405,9 @@ describe('DAmount', () => {
       // Fire a change instead of typing because we're not simulating `amount`
       // changing in context.
 
-      fireEvent.change(screen.getByRole('spinbutton'), { target: { value: '123' } });
+      fireEvent.change(screen.getByRole('textbox'), { target: { value: '123' } });
       expect(setAmount.mock.calls).toEqual([[123]]);
-      expect(screen.getByRole('spinbutton')).toHaveValue(123);
+      expect(screen.getByRole('textbox')).toHaveValue('123');
     });
 
     it('allows choosing a preset amount', () => {

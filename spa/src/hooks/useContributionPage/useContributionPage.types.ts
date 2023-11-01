@@ -221,6 +221,43 @@ export interface ReasonElement extends ContributionPageElement {
   };
 }
 
+export interface SwagElement extends ContributionPageElement {
+  content: {
+    /**
+     * Should the page offer a complimentary New York Times subscription? Not
+     * currently implemented.
+     */
+    offerNytComp?: boolean;
+    /**
+     * Should the opt-out checkbox be selected by default?
+     */
+    optOutDefault?: boolean;
+    /**
+     * Swag options to offer. Each *item* in this array corresponds to a single
+     * dropdown menu. However, we only implement a single item currently.
+     */
+    swags: {
+      /**
+       * Name of the type of swag, like "T-Shirt" or "Tote Bag". Semicolons and
+       * colons are forbidden in these values because of how the value is
+       * serialized on form submission.
+       */
+      swagName: string;
+      /**
+       * Possible choices for the swag, like "XL" or "Blue". Semicolons and
+       * colons are forbidden in these values because of how the value is
+       * serialized on form submission.
+       */
+      swagOptions: string[];
+    }[];
+    /**
+     * Minimum contribution to be eligible for swag. Legacy data might have this
+     * saved as a number converted to a string, but we should use numbers going forward.
+     */
+    swagThreshold: number | string;
+  };
+}
+
 /**
  * A configured payment provider for a revenue program.
  */
@@ -308,9 +345,9 @@ export interface RevenueProgram {
    */
   website_url: string;
   /**
-   * Organization object from which the Revenue Program belongs.
+   * ID of parent organization
    */
-  organization: Organization;
+  organization: number;
   /**
    * ID of the default donation page of this revenue program, if it exists.
    */
@@ -329,6 +366,9 @@ export interface RevenueProgram {
   tax_id?: string | null;
 }
 
+export interface RevenueProgramWithFullOrganization extends Omit<RevenueProgram, 'organization'> {
+  organization: Organization;
+}
 /**
  * A page where visitors can make contributions to a revenue program.
  */
@@ -345,6 +385,10 @@ export interface ContributionPage {
    * Internal ID of the page.
    */
   id: number;
+  /**
+   * Locale of the page (used to determine language for translation).
+   */
+  locale: string;
   /**
    * Timestamp when the page was last changed.
    */
@@ -366,9 +410,9 @@ export interface ContributionPage {
    */
   plan: EnginePlan;
   /**
-   * Slug of the page that's used in URLs.
+   * Slug of the page that's used in URLs. This is null when the page is unpublished.
    */
-  slug: string;
+  slug: string | null;
   /**
    * ID of the template used to create the page initially.
    */
@@ -471,7 +515,7 @@ export interface ContributionPage {
   /**
    * Revenue program this page belongs to.
    */
-  revenue_program: RevenueProgram;
+  revenue_program: RevenueProgramWithFullOrganization;
   /**
    * ISO-3166 code of the country that the revenue program belongs to.
    */

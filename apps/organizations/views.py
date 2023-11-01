@@ -309,6 +309,7 @@ def handle_stripe_account_link(request, rp_pk):
     This endpoint is designed to support polling from the front end.
     """
     revenue_program = get_object_or_404(RevenueProgram, pk=rp_pk)
+    # TODO: [DEV-4082] Use user.permitted_organizations, user.permitted_revenue_programs, user.active_flags wherever possible
     if not request.user.roleassignment.can_access_rp(revenue_program):
         logger.warning(
             (
@@ -448,6 +449,10 @@ def send_test_email(request):
             )
         case "magic_link":
             data = make_send_test_magic_link_email_data(request.user, revenue_program)
+
+            if data["style"]["is_default_logo"]:
+                data["style"]["logo_url"] = os.path.join(settings.SITE_URL, "static", "nre-logo-white.png")
+
             send_templated_email.delay(
                 request.user.email,
                 "Manage your contributions",

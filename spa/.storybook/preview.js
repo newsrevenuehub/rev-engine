@@ -2,6 +2,7 @@ import { withThemes } from '@react-theming/storybook-addon';
 import { ThemeProvider as MuiThemeProvider } from '@material-ui/core';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { SnackbarProvider } from 'notistack';
+import { Suspense } from 'react';
 import { Provider as AlertProvider } from 'react-alert';
 import { BrowserRouter } from 'react-router-dom';
 import { ThemeProvider } from 'styled-components';
@@ -10,7 +11,7 @@ import { mockDateDecorator } from 'storybook-mock-date-decorator';
 import Alert, { alertOptions } from 'elements/alert/Alert';
 import { revEngineTheme, muiThemeOverrides } from 'styles/themes';
 import AdminGlobalStyles from 'styles/AdminGlobalStyles.js';
-import { GlobalContext } from 'components/MainLayout';
+import { ReauthContext } from 'components/ReauthContext';
 
 const queryClient = new QueryClient();
 
@@ -19,20 +20,22 @@ const queryClient = new QueryClient();
 // styling mistakes in Storybook as opposed to the app.
 const providerFn = ({ children }) => (
   <BrowserRouter>
-    <QueryClientProvider client={queryClient}>
-      <ThemeProvider theme={revEngineTheme}>
-        <MuiThemeProvider theme={muiThemeOverrides}>
-          <MuiThemeProvider>
-            <AlertProvider template={Alert} {...alertOptions}>
-              <SnackbarProvider anchorOrigin={{ horizontal: 'right', vertical: 'bottom' }}>
-                <AdminGlobalStyles />
-                <GlobalContext.Provider value={{ getReauth: () => {} }}>{children}</GlobalContext.Provider>
-              </SnackbarProvider>
-            </AlertProvider>
+    <Suspense fallback={<p>Loading...</p>}>
+      <QueryClientProvider client={queryClient}>
+        <ThemeProvider theme={revEngineTheme}>
+          <MuiThemeProvider theme={muiThemeOverrides}>
+            <MuiThemeProvider>
+              <AlertProvider template={Alert} {...alertOptions}>
+                <SnackbarProvider anchorOrigin={{ horizontal: 'right', vertical: 'bottom' }}>
+                  <AdminGlobalStyles />
+                  <ReauthContext.Provider value={{ getReauth: () => {} }}>{children}</ReauthContext.Provider>
+                </SnackbarProvider>
+              </AlertProvider>
+            </MuiThemeProvider>
           </MuiThemeProvider>
-        </MuiThemeProvider>
-      </ThemeProvider>
-    </QueryClientProvider>
+        </ThemeProvider>
+      </QueryClientProvider>
+    </Suspense>
   </BrowserRouter>
 );
 

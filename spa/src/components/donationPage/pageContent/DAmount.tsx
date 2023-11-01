@@ -3,8 +3,8 @@ import PropTypes, { InferProps } from 'prop-types';
 import { DAmountStyled, FeesContainer, FreqSubtext, OtherAmount, OtherAmountInput } from './DAmount.styled';
 
 // Util
-import validateInputPositiveFloat from 'utilities/validateInputPositiveFloat';
-import { getFrequencyAdjective, getFrequencyRate } from 'utilities/parseFrequency';
+import { getFrequencyRate } from 'utilities/parseFrequency';
+import { parseFloatStrictly } from 'utilities/parseFloatStrictly';
 
 // Context
 import { usePage } from '../DonationPage';
@@ -15,6 +15,7 @@ import SelectableButton from 'elements/buttons/SelectableButton';
 import usePreviousState from 'hooks/usePreviousState';
 import FormErrors from 'elements/inputs/FormErrors';
 import PayFeesControl from './PayFeesControl';
+import { useTranslation } from 'react-i18next';
 
 export type DAmountProps = InferProps<typeof DAmountPropTypes>;
 
@@ -30,7 +31,7 @@ function DAmount({ element, ...props }: DAmountProps) {
     errors,
     userAgreesToPayFees
   } = usePage();
-
+  const { t } = useTranslation();
   const prevFrequency = usePreviousState(frequency);
   const currencyCode = page?.currency?.code;
   const currencySymbol = page?.currency?.symbol;
@@ -99,14 +100,18 @@ function DAmount({ element, ...props }: DAmountProps) {
   const handleOtherAmountChange = ({
     target: { value }
   }: React.ChangeEvent<HTMLInputElement> | { target: { value: string } }) => {
-    setOtherValue(value);
+    const filteredValue = value.replace(/\D/g, '');
 
-    if (value === '') {
+    setOtherValue(filteredValue);
+
+    if (filteredValue === '') {
       setAmount(undefined);
     }
 
-    if (validateInputPositiveFloat(value)) {
-      setAmount(parseFloat(value));
+    const parsedValue = parseFloatStrictly(value);
+
+    if (!isNaN(parsedValue) && parsedValue > 0) {
+      setAmount(parsedValue);
     }
   };
 
@@ -121,10 +126,10 @@ function DAmount({ element, ...props }: DAmountProps) {
 
   return (
     <DElement
-      label={`${getFrequencyAdjective(frequency)} amount`}
-      description="Select how much you'd like to contribute"
-      {...props}
       data-testid="d-amount"
+      label={t(`donationPage.dAmount.label.${frequency}`)}
+      description={t('donationPage.dAmount.selectContribution')}
+      {...props}
     >
       <DAmountStyled data-testid="d-amount-amounts">
         {amountOptions.map((amountOption, index) => {
@@ -147,8 +152,10 @@ function DAmount({ element, ...props }: DAmountProps) {
           <OtherAmount data-testid={`amount-other${otherIsSelected ? '-selected' : ''}`} selected={otherIsSelected}>
             <span>{currencySymbol}</span>
             <OtherAmountInput
-              type="number"
+              inputMode="numeric"
+              type="text"
               min="0"
+              pattern="\d+"
               value={otherValue}
               name="amount"
               onChange={handleOtherAmountChange}
@@ -167,6 +174,7 @@ function DAmount({ element, ...props }: DAmountProps) {
               agreedToPayFees={userAgreesToPayFees}
               currencyCode={page.currency!.code}
               currencySymbol={page.currency!.symbol}
+              locale={page.locale}
               feeAmount={feeAmount}
               frequency={frequency}
               onChange={(event) =>

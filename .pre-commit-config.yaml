@@ -20,6 +20,14 @@ repos:
       - id: end-of-file-fixer
         exclude: revengine/static/apple-developer-merchantid-domain-association
       - id: trailing-whitespace
+  # Python security checks
+  - repo: https://github.com/PyCQA/bandit
+    rev: 1.7.5
+    hooks:
+      - id: bandit
+        args: ["--severity-level=high", "--confidence-level=medium", "-c", "pyproject.toml", "-r", "."]
+        additional_dependencies: ["bandit[toml]"]
+        types: [python]
   # Black code formatter.
   - repo: https://github.com/psf/black
     rev: 23.9.1
@@ -58,13 +66,6 @@ repos:
       - id: python-safety-dependencies-check
         files: pyproject.toml
         args: ["--ignore=60956"]  # Django upgrade >=3.2.21 https://pyup.io/v/60956/f17
-  # Python security checks
-  - repo: https://github.com/Lucas-C/pre-commit-hooks-bandit
-    rev: v1.0.6
-    hooks:
-      - id: python-bandit-vulnerability-check
-        args: [-r, ./webhookreceiver/]
-        types: [python]
   # Checks no secrets in code.
   - repo: https://github.com/thoughtworks/talisman
     rev: v1.31.0

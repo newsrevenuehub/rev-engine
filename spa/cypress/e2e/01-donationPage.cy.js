@@ -3,7 +3,7 @@
 
 import { LIVE_PAGE_DETAIL, AUTHORIZE_STRIPE_PAYMENT_ROUTE } from 'ajax/endpoints';
 import { PAYMENT_SUCCESS } from 'routes';
-import { getPaymentSuccessUrl, getPaymentElementButtonText } from 'components/paymentProviders/stripe/stripeFns';
+import { getPaymentSuccessUrl } from 'components/paymentProviders/stripe/stripeFns';
 import { getEndpoint, getPageElementByType, getTestingDonationPageUrl, EXPECTED_RP_SLUG } from '../support/util';
 import livePageOne from '../fixtures/pages/live-page-1.json';
 
@@ -57,18 +57,27 @@ describe('Donation page displays dynamic page elements', () => {
     });
   });
 
+  it("doesn't change the other amount field if the user uses arrow keys when it's focused", () => {
+    cy.getByTestId(`amount-other`).within(() => {
+      cy.get('input').type('123');
+      cy.get('input').type('{upArrow}');
+      cy.get('input').should('have.value', '123');
+      cy.get('input').type('{downArrow}');
+      cy.get('input').should('have.value', '123');
+    });
+  });
+
   it('should render text indicating expected frequencies', () => {
     const frequency = getPageElementByType(livePageOne, 'DFrequency');
 
     cy.getByTestId('d-amount');
 
     for (const freq of frequency.content) {
-      const adjective = freqUtils.getFrequencyAdjective(freq.value);
       const rate = freqUtils.getFrequencyRate(freq.value);
 
       cy.contains(freq.displayName).click();
-      cy.getByTestId('d-amount').find('h2').contains(adjective);
-      cy.getByTestId('pay-fees').scrollIntoView().find('label').contains(adjective, { matchCase: false });
+      cy.getByTestId('d-amount').find('h2').contains(freq.displayName);
+      cy.getByTestId('pay-fees').scrollIntoView().find('label').contains(freq.displayName, { matchCase: false });
 
       if (rate) {
         cy.getByTestId('custom-amount-rate').contains(rate);
@@ -118,17 +127,14 @@ describe('Donation page displays dynamic page elements', () => {
     getFeesCheckbox().should('not.be.checked');
   });
 
-  // Temp disabled in DEV-3733
-  // TODO: Re-enable in DEV-3735
-  it.skip('should render DSwag', () => {
+  it('should render DSwag', () => {
     cy.getByTestId('d-swag').should('exist');
   });
 
-  // Temp disabled in DEV-3733
-  // TODO: Re-enable in DEV-3735
-  it.skip('should render swag options if swagThreshold is met', () => {
+  it('should render swag options if swagThreshold is met', () => {
     const swagElement = livePageOne.elements.find((el) => el.type === 'DSwag');
     const swagThreshold = swagElement.content.swagThreshold;
+
     cy.contains(
       `Give a total of ${livePageOne.currency.symbol}${swagThreshold} ${livePageOne.currency.code} /year or more to be eligible`
     );
@@ -137,57 +143,13 @@ describe('Donation page displays dynamic page elements', () => {
     cy.getByTestId('swag-content').should('exist');
   });
 
-  // Temp disabled in DEV-3733
-  // TODO: Re-enable in DEV-3735
-  it.skip('should render a dropdown of swagOptions for each swag in the list', () => {
-    cy.setUpDonation('Yearly', '365');
+  it('should render a dropdown of swagOptions for each swag in the list', () => {
     const swagElement = livePageOne.elements.find((el) => el.type === 'DSwag');
-    const swagName = swagElement.content.swags[0].swagName;
-    const optionsNum = swagElement.content.swags[0].swagOptions.length;
+
+    cy.setUpDonation('Yearly', '365');
     cy.contains('Totes Dope Tote').should('exist');
-    cy.getByTestId(`swag-item-${swagName}`).should('exist');
-    cy.getByTestId(`swag-choices-${swagName}`).should('exist');
-    cy.getByTestId(`swag-choices-${swagName}`).click();
-    const dropdownName = `swag_choice_${swagName}`;
-    cy.getByTestId(`select-dropdown-${dropdownName}`).find('li').its('length').should('eq', optionsNum);
-  });
-
-  it('should not show nyt comp subscription option if not enabled', () => {
-    const page = { ...livePageOne };
-    const swagIndex = page.elements.findIndex((el) => el.type === 'DSwag');
-    page.elements[swagIndex].content.offerNytComp = false;
-    cy.intercept({ method: 'GET', pathname: getEndpoint(LIVE_PAGE_DETAIL) }, { body: page, statusCode: 200 }).as(
-      'getPage'
-    );
-    cy.visit(getTestingDonationPageUrl(expectedPageSlug));
-    cy.url().should('include', EXPECTED_RP_SLUG);
-    cy.url().should('include', expectedPageSlug);
-    cy.wait('@getPage');
-
-    cy.setUpDonation('One time', '365');
-    cy.getByTestId('nyt-comp-sub').should('not.exist');
-  });
-
-  // Temp disabled in DEV-3733
-  // TODO: Re-enable in DEV-3735
-  it.skip('should display nyt comp subscription option if enabled', () => {
-    const page = { ...livePageOne };
-    const swagIndex = page.elements.findIndex((el) => el.type === 'DSwag');
-    page.elements[swagIndex].content.offerNytComp = true;
-    cy.intercept({ method: 'GET', pathname: getEndpoint(LIVE_PAGE_DETAIL) }, { body: page, statusCode: 200 }).as(
-      'getPage'
-    );
-    cy.visit(getTestingDonationPageUrl(expectedPageSlug));
-    cy.url().should('include', EXPECTED_RP_SLUG);
-    cy.url().should('include', expectedPageSlug);
-    cy.wait('@getPage');
-
-    cy.setUpDonation('One time', '365');
-    cy.getByTestId('nyt-comp-sub').should('exist');
-    cy.getByTestId('nyt-comp-sub').click();
-    cy.getByTestId('nyt-comp-sub').within(() => {
-      cy.findByRole('checkbox').should('have.value', 'nyt');
-    });
+    cy.findByRole('button', { name: /Totes Dope Tote/ }).click();
+    cy.findAllByRole('option').its('length').should('eq', swagElement.content.swags[0].swagOptions.length);
   });
 });
 
@@ -384,7 +346,7 @@ describe('Footer-like content', () => {
 
 function fillOutAddressSection() {
   cy.get('[data-testid*="mailing_street"]').type('123 Main St');
-  cy.findByRole('button', { name: '+ Address line 2 (Apt, suite, etc.)' }).click();
+  cy.findByRole('button', { name: 'Address line 2 (Apt, suite, etc.)' }).click();
   cy.get('[data-testid*="mailing_complement"]').type('Ap 1');
   cy.get('[data-testid*="mailing_city"]').type('Big City');
   cy.get('[data-testid*="mailing_state"]').type('NY');
@@ -479,12 +441,7 @@ describe('User flow: happy path', () => {
       cy.get('form #stripe-payment-element');
       cy.get('[data-testid="donation-page-disclaimer"]');
       cy.findByRole('button', {
-        name: getPaymentElementButtonText({
-          amount: payFees ? 123.01 : 120.0,
-          currencyCode: livePageOne.currency.code,
-          currencySymbol: livePageOne.currency.symbol,
-          frequency: CONTRIBUTION_INTERVALS.ONE_TIME
-        })
+        name: payFees ? 'Give 🍁123.01 CAD once' : 'Give 🍁120.00 CAD once'
       }).click();
       cy.get('@stripe-confirm-payment').should((x) => {
         expect(x).to.be.calledOnce;
@@ -540,12 +497,7 @@ describe('User flow: happy path', () => {
         });
 
       cy.findByRole('button', {
-        name: getPaymentElementButtonText({
-          amount: 10.53,
-          currencyCode: livePageOne.currency.code,
-          currencySymbol: livePageOne.currency.symbol,
-          frequency: CONTRIBUTION_INTERVALS.MONTHLY
-        })
+        name: 'Give 🍁10.53 CAD monthly'
       }).click();
 
       cy.get('@stripe-confirm').should((x) => {
@@ -622,12 +574,7 @@ describe('User flow: happy path', () => {
       cy.get('form #stripe-payment-element');
       cy.get('[data-testid="donation-page-disclaimer"]');
       cy.findByRole('button', {
-        name: getPaymentElementButtonText({
-          amount: payFees ? 10.53 : 10.0,
-          currencyCode: livePageOne.currency.code,
-          currencySymbol: livePageOne.currency.symbol,
-          frequency: CONTRIBUTION_INTERVALS.MONTHLY
-        })
+        name: payFees ? 'Give 🍁10.53 CAD monthly' : 'Give 🍁10.00 CAD monthly'
       }).click();
       cy.get('@stripe-confirm-payment').should((x) => {
         expect(x).to.be.calledOnce;
@@ -688,12 +635,7 @@ describe('User flow: happy path', () => {
     cy.get('[data-testid="donation-page-disclaimer"]');
 
     cy.findByRole('button', {
-      name: getPaymentElementButtonText({
-        amount: 10.53,
-        currencyCode: livePageOne.currency.code,
-        currencySymbol: livePageOne.currency.symbol,
-        frequency: CONTRIBUTION_INTERVALS.MONTHLY
-      })
+      name: 'Give 🍁10.53 CAD monthly'
     }).click();
 
     cy.get('@stripe-confirm-payment').should((x) => {
@@ -936,12 +878,7 @@ describe('StripePaymentForm unhappy paths', () => {
           cy.stub(stripe, 'confirmPayment').resolves({ error: { type: errorType, message: errorMessage } });
         });
       cy.findByRole('button', {
-        name: getPaymentElementButtonText({
-          amount: 123.01,
-          currencyCode: livePageOne.currency.code,
-          currencySymbol: livePageOne.currency.symbol,
-          frequency: CONTRIBUTION_INTERVALS.ONE_TIME
-        })
+        name: 'Give 🍁123.01 CAD once'
       }).click();
       cy.findByRole('alert').within(() => {
         cy.contains(errorMessage).should('be.visible');
@@ -957,12 +894,7 @@ describe('StripePaymentForm unhappy paths', () => {
           cy.stub(stripe, 'confirmPayment').resolves({ error: { type: 'unexpected' } });
         });
       cy.findByRole('button', {
-        name: getPaymentElementButtonText({
-          amount: 123.01,
-          currencyCode: livePageOne.currency.code,
-          currencySymbol: livePageOne.currency.symbol,
-          frequency: CONTRIBUTION_INTERVALS.ONE_TIME
-        })
+        name: 'Give 🍁123.01 CAD once'
       }).click();
       cy.findByRole('alert').within(() => {
         cy.contains('Something went wrong processing your payment').should('be.visible');
@@ -976,12 +908,7 @@ describe('StripePaymentForm unhappy paths', () => {
         cy.stub(stripe, 'confirmPayment').rejects(new Error('Unexpected'));
       });
     cy.findByRole('button', {
-      name: getPaymentElementButtonText({
-        amount: 123.01,
-        currencyCode: livePageOne.currency.code,
-        currencySymbol: livePageOne.currency.symbol,
-        frequency: CONTRIBUTION_INTERVALS.ONE_TIME
-      })
+      name: 'Give 🍁123.01 CAD once'
     }).click();
     cy.findByRole('alert').within(() => {
       cy.contains('Something went wrong processing your payment').should('be.visible');

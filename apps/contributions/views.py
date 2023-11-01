@@ -1,4 +1,6 @@
+import json
 import logging
+from types import SimpleNamespace
 from typing import List
 
 from django.conf import settings
@@ -232,7 +234,8 @@ def payment_success(request, uuid=None):
     and use this view to trigger a thank you email to the contributor if the org has configured the contribution page
     accordingly.
     """
-    logger.info("payment_success called with request data: %s, uuid %s", request.data, uuid)
+    logger.info("called with uuid %s", uuid)
+    logger.debug("called with request data: %s, uuid %s", request.data, uuid)
     try:
         contribution = Contribution.objects.get(uuid=uuid)
     except Contribution.DoesNotExist:
@@ -339,7 +342,11 @@ class ContributionsViewSet(viewsets.ReadOnlyModelViewSet):
         as contributors will be able to access only Contributor Portal via magic link.
         """
         logger.info(
-            "[ContributionViewSet.email_contributions] enqueueing email_contribution_csv_export_to_user task for request: %s",
+            "enqueueing email_contribution_csv_export_to_user task for user %s",
+            request.user,
+        )
+        logger.debug(
+            "enqueueing email_contribution_csv_export_to_user task for request: %s",
             request,
         )
         ra = request.user.get_role_assignment()
@@ -570,3 +577,32 @@ class SubscriptionsViewSet(viewsets.ViewSet):
             subscription=subscription,
             payment_intent=pi,
         )
+
+
+@api_view(["GET"])
+@permission_classes([])
+def contributor_contributions(request, id):
+    """Provisional mock implementation of the `contributor_contributions` view function
+
+    The real endpoint will use `IsContributor` permission class, but that requires hooking into magic email link flow, so
+    in short term we'll not enforce permits, and send back our fake data.
+    """
+    logger.debug("Called for contributor ID %s", id)
+    params = {}
+    for k, v in {"page": 1, "page_size": 10, "ordering": "-created", "interval": "all"}.items():
+        sent = request.GET.get(k, None)
+        if k in ("page", "page_size"):
+            sent = int(sent) if sent else v
+        params[k] = sent if sent else v
+        logger.debug("Sent value for %s is %s", k, sent)
+    results_page = params["page"] if params["page"] in (1, 2) else 1
+    with open(f"apps/contributions/tests/fixtures/contributor-contributions-page-{results_page}.json") as fl:
+        response_data = json.load(fl)
+    # we do this both to handle out of range page case and also to ensure the data we're returning to SPA which will
+    # develop vs. looks way it does by virtue of our serializer which is meant to updhold contract with SPA
+    response_data["results"] = (
+        [serializers.ContributionAgreementSerializer(SimpleNamespace(**x)).data for x in response_data["results"]]
+        if params["page"] <= 2
+        else []
+    )
+    return Response(response_data, status=status.HTTP_200_OK)

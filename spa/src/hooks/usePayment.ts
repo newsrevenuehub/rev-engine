@@ -104,6 +104,13 @@ export function usePayment() {
   );
   const createPayment = useCallback(
     async (paymentData: PaymentData, page: ContributionPage) => {
+      // A published page should always have a slug, so this shouldn't happen in
+      // practice.
+
+      if (page.slug === null) {
+        throw new Error('Page has no slug set');
+      }
+
       if (!paymentData.mailing_country || paymentData.mailing_country === '') {
         throw new Error('Country must be set');
       }
@@ -127,7 +134,7 @@ export function usePayment() {
             currency: page.currency ?? { code: 'USD', symbol: '$' },
             emailHash: data.email_hash,
             interval: paymentData.interval as ContributionInterval,
-            pageSlug: page.slug,
+            pageSlug: page.slug!,
             revenueProgramSlug: page.revenue_program.slug,
             stripe: {
               // Checked before the mutation runs.

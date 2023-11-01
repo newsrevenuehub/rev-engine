@@ -8,6 +8,8 @@ import { Payment } from 'hooks/usePayment';
 import ContributionDisclaimer from './ContributionDisclaimer';
 import StripePaymentForm from './StripePaymentForm';
 import { BackButton, Root } from './FinishPaymentModal.styled';
+import { useTranslation } from 'react-i18next';
+import { StripeElementLocale } from '@stripe/stripe-js';
 
 const FinishPaymentModalPropTypes = {
   onCancel: PropTypes.func.isRequired,
@@ -20,6 +22,7 @@ export interface FinishPaymentModalProps extends InferProps<typeof FinishPayment
   onCancel: () => void;
   onError: (error: Error) => void;
   payment: Payment;
+  locale: StripeElementLocale;
 }
 
 /**
@@ -28,7 +31,9 @@ export interface FinishPaymentModalProps extends InferProps<typeof FinishPayment
  * appropriate thank you page.
  * @see https://stripe.com/docs/payments/payment-element
  */
-export function FinishPaymentModal({ onCancel, onError, open, payment }: FinishPaymentModalProps) {
+export function FinishPaymentModal({ onCancel, onError, open, payment, locale }: FinishPaymentModalProps) {
+  const { t } = useTranslation();
+
   return (
     <Modal open={open}>
       <AlertProvider template={Alert} {...alertOptions}>
@@ -36,16 +41,18 @@ export function FinishPaymentModal({ onCancel, onError, open, payment }: FinishP
           onError={onError}
           stripeClientSecret={payment.stripe.clientSecret}
           stripeAccountId={payment.stripe.accountId}
+          stripeLocale={locale}
         >
           <Root>
             <BackButton onClick={onCancel}>
               <ChevronLeft />
-              Back
+              {t('common.actions.back')}
             </BackButton>
-            <StripePaymentForm payment={payment} />
+            <StripePaymentForm payment={payment} locale={locale} />
             <ContributionDisclaimer
               formattedAmount={`${payment.currency.symbol}${payment.amount} ${payment.currency.code}`}
               interval={payment.interval}
+              processingDate={new Date()}
             />
           </Root>
         </StripePaymentWrapper>

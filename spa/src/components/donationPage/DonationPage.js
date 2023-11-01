@@ -1,38 +1,35 @@
-import { useRef, useState, useEffect, createContext, useContext, forwardRef } from 'react';
+import { createContext, forwardRef, useContext, useEffect, useRef, useState } from 'react';
 import { useAlert } from 'react-alert';
 
-import * as S from './DonationPage.styled';
-import useReCAPTCHAScript from 'hooks/useReCAPTCHAScript';
-import useQueryString from 'hooks/useQueryString';
-import useErrorFocus from 'hooks/useErrorFocus';
-import useClearbit from 'hooks/useClearbit';
-import * as getters from 'components/donationPage/pageGetters';
-import { getDefaultAmountForFreq } from './amountUtils';
-import { frequencySort } from 'components/donationPage/pageContent/DFrequency';
 import {
-  GRECAPTCHA_SITE_KEY,
-  SALESFORCE_CAMPAIGN_ID_QUERYPARAM,
+  AMOUNT_QUERYPARAM,
   FREQUENCY_QUERYPARAM,
-  AMOUNT_QUERYPARAM
+  GRECAPTCHA_SITE_KEY,
+  SALESFORCE_CAMPAIGN_ID_QUERYPARAM
 } from 'appSettings';
-import DonationPageSidebar from 'components/donationPage/DonationPageSidebar';
 import DonationPageFooter from 'components/donationPage/DonationPageFooter';
 import DonationPageHeader from 'components/donationPage/DonationPageHeader';
-import LiveErrorFallback from './live/LiveErrorFallback';
-import { SubmitButton } from './DonationPage.styled';
+import DonationPageSidebar from 'components/donationPage/DonationPageSidebar';
+import { frequencySort } from 'components/donationPage/pageContent/DFrequency';
+import * as getters from 'components/donationPage/pageGetters';
 import GenericErrorBoundary from 'components/errors/GenericErrorBoundary';
 import { serializeData } from 'components/paymentProviders/stripe/stripeFns';
-import calculateStripeFee from 'utilities/calculateStripeFee';
 import { CONTRIBUTION_INTERVALS } from 'constants/contributionIntervals';
-import { GENERIC_ERROR } from 'constants/textConstants';
+import useClearbit from 'hooks/useClearbit';
+import useErrorFocus from 'hooks/useErrorFocus';
 import { usePayment } from 'hooks/usePayment';
+import useQueryString from 'hooks/useQueryString';
+import useReCAPTCHAScript from 'hooks/useReCAPTCHAScript';
+import { useTranslation } from 'react-i18next';
+import calculateStripeFee from 'utilities/calculateStripeFee';
+import * as S from './DonationPage.styled';
+import { SubmitButton } from './DonationPage.styled';
 import FinishPaymentModal from './FinishPaymentModal/FinishPaymentModal';
+import { getDefaultAmountForFreq } from './amountUtils';
+import LiveErrorFallback from './live/LiveErrorFallback';
 import { useAmountAuditing } from './useAmountAuditing';
 
 export const DonationPageContext = createContext({});
-
-export const CANCEL_PAYMENT_FAILURE_MESSAGE =
-  "Something went wrong, but don't worry, you haven't been charged. Try refreshing.";
 
 class DonationPageUnrecoverableError extends Error {
   constructor(message) {
@@ -42,6 +39,7 @@ class DonationPageUnrecoverableError extends Error {
 }
 
 function DonationPage({ page, live = false }, ref) {
+  const { t } = useTranslation();
   const alert = useAlert();
   const formRef = useRef();
   const salesforceCampaignId = useQueryString(SALESFORCE_CAMPAIGN_ID_QUERYPARAM);
@@ -186,7 +184,7 @@ function DonationPage({ page, live = false }, ref) {
       } catch (error) {
         // calling console.error will create a Sentry error.
         console.error(error);
-        alert.error(CANCEL_PAYMENT_FAILURE_MESSAGE);
+        alert.error(t('donationPage.mainPage.cancelPaymentFailureMessage'));
       }
     }
   }
@@ -197,7 +195,7 @@ function DonationPage({ page, live = false }, ref) {
     }
 
     setDisplayErrorFallback(true);
-    alert.error(GENERIC_ERROR);
+    alert.error(t('common.error.generic'));
   }
 
   return (
@@ -236,7 +234,7 @@ function DonationPage({ page, live = false }, ref) {
                     <S.PageElements>
                       {(!live && !page?.elements) ||
                         (page?.elements?.length === 0 && (
-                          <S.NoElements>Open the edit interface to start adding content</S.NoElements>
+                          <S.NoElements>{t('donationPage.mainPage.emptyPageElements')}</S.NoElements>
                         ))}
                       {page?.elements
                         // The DPayment element in page data has some data we need to configure subsequent form
@@ -253,12 +251,15 @@ function DonationPage({ page, live = false }, ref) {
                       loading={paymentIsLoading}
                       type="submit"
                     >
-                      {isValidTotalAmount ? 'Continue to Payment' : 'Enter a valid amount'}
+                      {isValidTotalAmount
+                        ? t('donationPage.mainPage.continueToPayment')
+                        : t('donationPage.mainPage.enterValidAmount')}
                     </SubmitButton>
                   </form>
                 )}
                 {payment && !displayErrorFallback && (
                   <FinishPaymentModal
+                    locale={page.locale}
                     onCancel={handleCompleteContributionCancel}
                     onError={handleCompleteContributionError}
                     open
@@ -280,7 +281,7 @@ export const usePage = () => useContext(DonationPageContext);
 
 export default forwardRef(DonationPage);
 
-// Keys are the strings expected as querys params, values are our version.
+// Keys are the strings expected as query params, values are our version.
 const mapQSFreqToProperFreq = {
   once: CONTRIBUTION_INTERVALS.ONE_TIME,
   monthly: CONTRIBUTION_INTERVALS.MONTHLY,

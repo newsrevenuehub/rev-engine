@@ -1,4 +1,5 @@
 import { Redirect, useLocation } from 'react-router-dom';
+import { useTranslation } from 'react-i18next';
 
 /**
  * This component redirects users who arrived at a contribution page with extra
@@ -6,6 +7,7 @@ import { Redirect, useLocation } from 'react-router-dom';
  * regardless of what it is.
  */
 export function ExtraneousURLRedirect() {
+  const { t } = useTranslation();
   const { pathname, search } = useLocation();
 
   // Strip all but the first part of the path, and retain search params.
@@ -16,7 +18,7 @@ export function ExtraneousURLRedirect() {
     return <Redirect to={redirectPath + search} />;
   }
 
-  throw new Error(`Asked to redirect away from extraneous URL elements, but couldn't find stem in path "${pathname}"`);
+  throw new Error(t('donationPage.extraneousURLRedirect.error', { pathname }));
 }
 
 export default ExtraneousURLRedirect;

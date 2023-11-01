@@ -46,9 +46,12 @@ export const PublishedBadge = styled.div`
 `;
 
 export const PreviewImage = styled.div`
-  background-position: top center;
-  background-repeat: no-repeat;
-  background-size: cover;
+  img {
+    height: 100%;
+    object-fit: cover;
+    object-position: top center;
+    width: 100%;
+  }
 `;
 
 export const PreviewPlaceholder = styled.div`

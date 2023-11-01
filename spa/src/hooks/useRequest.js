@@ -1,10 +1,10 @@
 import axios, { AuthenticationError } from 'ajax/axios';
 import { useCallback } from 'react';
 
-import { useGlobalContext } from 'components/MainLayout';
+import { useReauthContext } from 'components/ReauthContext';
 
 function useRequest() {
-  const { getReauth } = useGlobalContext();
+  const { getReauth } = useReauthContext();
   const makeRequest = useCallback(
     (config, callbacks) => {
       const { onSuccess, onFailure } = callbacks;

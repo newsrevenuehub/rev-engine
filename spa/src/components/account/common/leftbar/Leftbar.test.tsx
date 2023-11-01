@@ -24,11 +24,6 @@ describe('Leftbar', () => {
     expect(screen.getByText(/We’ve helped raise millions for our clients/i)).toBeInTheDocument();
   });
 
-  it('should render advantages', () => {
-    tree();
-    expect(screen.getByTestId('advantages')).toBeInTheDocument();
-  });
-
   it.each([
     'Save time, money, and democracy',
     'For newsrooms, by newsrooms',

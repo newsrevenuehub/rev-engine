@@ -1,6 +1,6 @@
 import styled from 'styled-components';
 
-export const LeftbarWrapper = styled.div<{ isCreateAccountPage?: boolean }>`
+export const LeftbarWrapper = styled.div<{ isCreateAccountPage?: boolean | null }>`
   width: 85%;
   max-width: 506px;
   margin-bottom: 50px;
@@ -55,7 +55,7 @@ export const AdvantagesWrapper = styled.div`
   }
 `;
 
-export const Divider = styled.div<{ isCreateAccountPage?: boolean }>`
+export const Divider = styled.div<{ isCreateAccountPage?: boolean | null }>`
   border-top: ${(props) => props.theme.muiBorderRadius.sm} solid
     ${(props) =>
       props.isCreateAccountPage ? props.theme.colors.account.yellow[0] : props.theme.colors.account.purple[0]};

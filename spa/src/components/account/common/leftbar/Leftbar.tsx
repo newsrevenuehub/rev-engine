@@ -1,9 +1,10 @@
-import PropTypes from 'prop-types';
+import PropTypes, { InferProps } from 'prop-types';
 
 import SvgIcon from 'assets/icons/SvgIcon';
 import logo from 'assets/images/nre-logo-blue.svg';
 import logo2 from 'assets/images/nre-logo-yellow.svg';
 
+import Content from './Content';
 import {
   LeftbarWrapper,
   Logo,
@@ -15,45 +16,42 @@ import {
   AdvHeading,
   AdvSubHeading
 } from './Leftbar.styled';
-import Content from './Content';
 
-function Advantages() {
-  return (
-    <AdvantagesWrapper data-testid="advantages">
-      {Content.advantages.map((advantage, key) => {
-        return (
-          <Advantage key={key}>
-            <span>
-              <SvgIcon icon={advantage.svg} />
-            </span>
-            <AdvContent>
-              <AdvHeading>{advantage.heading}</AdvHeading>
-              <AdvSubHeading dangerouslySetInnerHTML={{ __html: advantage.subheading }} />
-            </AdvContent>
-          </Advantage>
-        );
-      })}
-    </AdvantagesWrapper>
-  );
-}
+export type LeftbarProps = InferProps<typeof LeftbarPropTypes>;
 
-function Leftbar({ isCreateAccountPage }: { isCreateAccountPage?: boolean }) {
+function Leftbar({ isCreateAccountPage }: LeftbarProps) {
   return (
     <LeftbarWrapper isCreateAccountPage={isCreateAccountPage}>
       <Logo
         data-testid={isCreateAccountPage ? 'logo' : 'logo2'}
         src={isCreateAccountPage ? logo : logo2}
-        alt="News Revenue Engine logo"
+        alt="News Revenue Engine"
       />
       <Heading>{Content.heading}</Heading>
       <Divider isCreateAccountPage={isCreateAccountPage} />
-      <Advantages />
+      <AdvantagesWrapper>
+        {Content.advantages.map((advantage) => {
+          return (
+            <Advantage key={advantage.heading}>
+              <span>
+                <SvgIcon icon={advantage.svg} />
+              </span>
+              <AdvContent>
+                <AdvHeading>{advantage.heading}</AdvHeading>
+                <AdvSubHeading>{advantage.subheading}</AdvSubHeading>
+              </AdvContent>
+            </Advantage>
+          );
+        })}
+      </AdvantagesWrapper>
     </LeftbarWrapper>
   );
 }
 
-Leftbar.propTypes = {
+const LeftbarPropTypes = {
   isCreateAccountPage: PropTypes.bool
 };
+
+Leftbar.propTypes = LeftbarPropTypes;
 
 export default Leftbar;

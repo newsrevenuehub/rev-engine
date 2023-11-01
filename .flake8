@@ -3,7 +3,7 @@
 # https://github.com/psf/black/issues/429
 [flake8]
 max-complexity = 18
-select = B,C,E,F,G,L,W,T4,B9
+select = B,C,E,F,L,W,T4,B9
 exclude=docs,migrations,node_modules
 enable-extensions=G
 per-file-ignores =

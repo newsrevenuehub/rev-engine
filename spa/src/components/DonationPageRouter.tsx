@@ -16,8 +16,8 @@ import RouterSetup from './routes/RouterSetup';
  * Split Bundles
  */
 const GenericThankYou = lazy(() => componentLoader(() => import('components/donationPage/live/GenericThankYou')));
-const LiveDonationPageContainer = lazy(() =>
-  componentLoader(() => import(`components/donationPage/LiveDonationPageContainer`))
+const PublishedDonationPage = lazy(() =>
+  componentLoader(() => import(`components/donationPage/PublishedDonationPage`))
 );
 
 // TODO: [DEV-2374] Determine if this `componentLoader` function can be removed
@@ -46,7 +46,7 @@ function DonationPageRouter() {
         path={[DONATION_PAGE_SLUG, '/']}
         render={() => (
           <TrackPageView>
-            <LiveDonationPageContainer />
+            <PublishedDonationPage />
           </TrackPageView>
         )}
       />

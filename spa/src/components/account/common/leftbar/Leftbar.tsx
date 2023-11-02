@@ -70,7 +70,7 @@ function Leftbar({ isCreateAccountPage }: LeftbarProps) {
       />
       <Heading>{content.heading}</Heading>
       <Divider isCreateAccountPage={isCreateAccountPage} />
-      <AdvantagesWrapper>
+      <AdvantagesWrapper data-testid="advantages">
         {content.advantages.map((advantage) => {
           return (
             <Advantage key={advantage.heading}>

@@ -1172,15 +1172,22 @@ class Payment(IndexedTimeStampedModel):
         cls, event: StripeEventData
     ) -> (Contribution | None, stripe.BalanceTransaction | None):
         pi = stripe.PaymentIntent.retrieve(
-            event.data.object.payment_intent, stripe_account=event.account, expand=["charges.data.balance_transaction"]
+            event.data.object.payment_intent,
+            stripe_account=event.account,
+            expand=["invoice"],
+        )
+        bt = cls._get_stripe_balance_transaction(
+            pi.charges.data[0].balance_transaction,
+            account_id=event.account,
+            expand=["source.invoice"],
         )
         try:
-            contribution = Contribution.objects.get(provider_subscription_id=pi.subscription)
+            contribution = Contribution.objects.get(provider_subscription_id=pi.invoice.subscription)
         except Contribution.DoesNotExist:
             logger.debug("Could not find a contribution for event %s with PI id %s", event.id, event.data.object.id)
             contribution = None
         cls._ensure_pi_has_single_charge(pi, event.id)
-        return contribution, pi.charges.data[0].balance_transaction
+        return contribution, bt
 
     @classmethod
     def _handle_create_payment(

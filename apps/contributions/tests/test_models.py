@@ -1976,6 +1976,11 @@ class TestPayment:
             return stripe.PaymentIntent.construct_from(json.load(f), stripe.api_key)
 
     @pytest.fixture
+    def payment_intent_for_recurring_charge_expanded(self):
+        with open("apps/contributions/tests/fixtures/payment-intent-for-recurring-charge-expanded.json") as f:
+            return stripe.PaymentIntent.construct_from(json.load(f), stripe.api_key)
+
+    @pytest.fixture
     def balance_transaction_for_refund_of_recurring_charge(self):
         with open("apps/contributions/tests/fixtures/balance-transaction-for-refund-of-recurring-charge.json") as f:
             return stripe.BalanceTransaction.construct_from(json.load(f), stripe.api_key)
@@ -2119,7 +2124,7 @@ class TestPayment:
         event, contribution, balance_transaction = payment_from_charge_refunded_test_case_factory(
             contribution_found=contribution_found
         )
-        if contribution is None:
+        if not contribution_found:
             with pytest.raises(ValueError) as exc_info:
                 Payment.from_stripe_charge_refunded_event(event=event)
             assert str(exc_info.value) == "Could not find a contribution for this event"
@@ -2131,23 +2136,77 @@ class TestPayment:
             assert payment.amount_refunded == balance_transaction.source.amount_refunded
             assert payment.stripe_balance_transaction_id == balance_transaction.id
 
-    # @pytest.mark.parametrize("contribution_found", (True, False))
-    # def test_from_stripe_invoice_payment_succeeded_event(
-    #     self, invoice_payment_succeeded_event, pi_for_recurring_charge, balance_transaction_for_recurring_charge
-    # ):
-    #     # do mocking etc.
+    @pytest.fixture
+    def invoice_payment_succeeded_recurring_charge_event(self):
+        with open("apps/contributions/tests/fixtures/invoice-payment-succeeded-event.json") as f:
+            return stripe.Webhook.construct_event(f.read(), None, None)
 
-    #     if not contribution_found:
-    #         with pytest.raises(ValueError) as exc_info:
-    #             Payment.from_stripe_invoice_payment_succeeded_event(event)
-    #     if balance_transaction is None:
-    #         with pytest.raises(ValueError) as exc_info:
-    #             Payment.from_stripe_invoice_payment_succeeded_event(event)
-    #         assert str(exc_info.value) == "Could not find a balance transaction for this event"
-    #     if contribution and balance_transaction:
-    #         payment = Payment.from_stripe_invoice_payment_succeeded_event(event)
-    #         assert payment.contribution == contribution
-    #         assert payment.net_amount_paid == balance_transaction.net
-    #         assert payment.gross_amount_paid == balance_transaction.amount
-    #         assert payment.amount_refunded == 0
-    #         assert payment.stripe_balance_transaction_id == balance_transaction.id
+    @pytest.fixture
+    def balance_transaction_for_recurring_charge(self):
+        with open("apps/contributions/tests/fixtures/balance-transaction-for-recurring-charge.json") as f:
+            return stripe.BalanceTransaction.construct_from(json.load(f), stripe.api_key)
+
+    @pytest.fixture(
+        params=[
+            (
+                "invoice_payment_succeeded_recurring_charge_event",
+                "payment_intent_for_recurring_charge",
+                "balance_transaction_for_recurring_charge",
+            ),
+        ]
+    )
+    def payment_from_invoice_payment_succeeded_test_case_factory(self, request, mocker):
+        def implementation(contribution_found: bool, balance_transaction_found: bool):
+            event = request.getfixturevalue(request.param[0])
+            payment_intent = request.getfixturevalue(request.param[1])
+            balance_transaction = request.getfixturevalue(request.param[2]) if balance_transaction_found else None
+            if balance_transaction:
+                balance_transaction.amount = payment_intent.amount
+                balance_transaction.source.amount_refunded = payment_intent.amount
+                balance_transaction.source.payment_intent = payment_intent.id
+            mocker.patch(
+                "stripe.BalanceTransaction.retrieve",
+                return_value=balance_transaction,
+            )
+            mocker.patch(
+                "stripe.PaymentIntent.retrieve",
+                return_value=payment_intent,
+            )
+            kwargs = {
+                "interval": ContributionInterval.MONTHLY,
+                "provider_payment_id": event.data.object.payment_intent,
+                "provider_subscription_id": payment_intent.invoice.subscription,
+            }
+            contribution = ContributionFactory(**kwargs) if contribution_found else None
+            return (
+                event,
+                contribution,
+                balance_transaction if balance_transaction_found else None,
+            )
+
+        return implementation
+
+    @pytest.mark.parametrize("contribution_found", (True, False))
+    @pytest.mark.parametrize("balance_transaction_found", (True, False))
+    def test_from_stripe_invoice_payment_succeeded_event(
+        self, contribution_found, balance_transaction_found, payment_from_invoice_payment_succeeded_test_case_factory
+    ):
+        event, contribution, balance_transaction = payment_from_invoice_payment_succeeded_test_case_factory(
+            contribution_found=contribution_found, balance_transaction_found=balance_transaction_found
+        )
+        if not contribution_found:
+            with pytest.raises(ValueError) as exc_info:
+                Payment.from_stripe_invoice_payment_succeeded_event(event=event)
+            assert str(exc_info.value) == "Could not find a contribution for this event"
+        if balance_transaction is None:
+            if contribution_found:
+                with pytest.raises(ValueError) as exc_info:
+                    Payment.from_stripe_invoice_payment_succeeded_event(event=event)
+                assert str(exc_info.value) == "Could not find a balance transaction for this event"
+        if contribution and balance_transaction:
+            payment = Payment.from_stripe_invoice_payment_succeeded_event(event=event)
+            assert payment.contribution == contribution
+            assert payment.net_amount_paid == balance_transaction.net
+            assert payment.gross_amount_paid == balance_transaction.amount
+            assert payment.amount_refunded == 0
+            assert payment.stripe_balance_transaction_id == balance_transaction.id

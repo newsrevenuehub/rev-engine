@@ -287,9 +287,16 @@ To test production email settings, set `export TEST_EMAIL=True`, otherwise email
 ### 12. Run Django tests
 
 revengine uses [pytest](https://docs.pytest.org/en/7.1.x/) as a test runner.
+This command loads test_migrations and then runs pytest.
 
 ```sh
 make run-tests
+```
+
+To pass additional arguments to pytest:
+
+```sh
+make run-tests EXTRA_PYTEST=-vvv
 ```
 
 ### 13. Run Jest tests

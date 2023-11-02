@@ -52,6 +52,7 @@ def make_my_object(secret_provider: GoogleCloudSecretProvider):
 
 
 @pytest.mark.django_db
+@pytest.mark.usefixtures("valid_gs_credentials")
 class TestGoogleCloudSecretProvider:
     @pytest.mark.parametrize("enabled", [True, False])
     def test_get_happy_path(self, enabled, settings, mocker):
@@ -80,15 +81,6 @@ class TestGoogleCloudSecretProvider:
             secret_name,
             secret_version_path,
         )
-
-    def test_get_when_not_enabled(self, settings, mocker):
-        logger_spy = mocker.spy(logger, "info")
-        mock_get_client = mocker.patch("apps.common.secrets.get_secret_manager_client")
-        settings.ENABLE_GOOGLE_CLOUD_SECRET_MANAGER = False
-        MyObject = make_my_object(GoogleCloudSecretProvider)
-        assert MyObject(**{MODEL_ATTR: "something"}).val is None
-        mock_get_client.return_value.access_secret_version.assert_not_called()
-        assert logger_spy.call_args == mocker.call("GoogleCloudSecretProvider not enabled")
 
     def test_get_when_no_client(self, settings, mocker):
         logger_spy = mocker.spy(logger, "warning")

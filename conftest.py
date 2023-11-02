@@ -1020,5 +1020,5 @@ def invalid_google_service_account_credentials():
 
 
 @pytest.fixture
-def valid_gs_credentials(minimally_valid_google_service_account_credentials):
-    return __ensure_gs_credentials(minimally_valid_google_service_account_credentials)
+def valid_gs_credentials(minimally_valid_google_service_account_credentials, settings):
+    settings.GS_CREDENTIALS = __ensure_gs_credentials(minimally_valid_google_service_account_credentials)

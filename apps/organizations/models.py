@@ -85,7 +85,7 @@ CorePlan = Plan(
     publish_limit=2,
     style_limit=UNLIMITED_CEILING,
     sidebar_elements=DEFAULT_PERMITTED_SIDEBAR_ELEMENTS + [BENEFITS],
-    page_elements=DEFAULT_PERMITTED_PAGE_ELEMENTS + [SWAG],
+    page_elements=DEFAULT_PERMITTED_PAGE_ELEMENTS,
     custom_thank_you_page_enabled=True,
 )
 

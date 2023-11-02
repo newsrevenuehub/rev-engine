@@ -46,18 +46,6 @@ export const OtherAmountInput = styled.input`
   padding: 0 1rem;
   min-width: 50px;
   width: 100%;
-
-  /* Remove arrow from input type="number" in Chrome, Safari, Edge, Opera */
-  &::-webkit-outer-spin-button,
-  &::-webkit-inner-spin-button {
-    -webkit-appearance: none;
-    margin: 0;
-  }
-
-  /* Remove arrow from input type="number" in Firefox */
-  &[type='number'] {
-    -moz-appearance: textfield;
-  }
 `;
 
 export const FreqSubtext = styled.span<{ selected?: boolean }>`

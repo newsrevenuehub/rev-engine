@@ -12,7 +12,7 @@ import EditInterfaceTabs, { EDIT_INTERFACE_TAB_NAMES } from 'components/pageEdit
 import AddElementModal from 'components/pageEditor/editInterface/pageElements/addElementModal/AddElementModal';
 
 import PageElements from 'components/pageEditor/editInterface/pageElements/PageElements';
-import PageSetup, { PAGE_SETUP_FIELDS } from 'components/pageEditor/editInterface/pageSetup/PageSetup';
+import PageSettings, { PAGE_SETUP_FIELDS } from 'components/pageEditor/editInterface/pageSettings/PageSettings';
 import PageSidebarElements from 'components/pageEditor/editInterface/pageSidebarElements/PageSidebarElements';
 import PageStyles from 'components/pageEditor/editInterface/pageStyles/PageStyles';
 import { ElementEditor } from './ElementEditor';
@@ -107,7 +107,7 @@ function InnerEditInterface() {
               />
             </TabPanel>
             <TabPanel active={tab === 2} id="edit-settings-tab-panel" tabId="edit-settings-tab">
-              <PageSetup />
+              <PageSettings />
             </TabPanel>
             <TabPanel active={tab === 3} id="edit-styles-tab-panel" tabId="edit-styles-tab">
               <PageStyles />

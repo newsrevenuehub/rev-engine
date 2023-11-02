@@ -1,16 +1,8 @@
-import base64
-import json
-
 from django.core.exceptions import ImproperlyConfigured
 
 import pytest
 
 from revengine.settings.base import __ensure_gs_credentials
-
-
-@pytest.fixture
-def invalid_google_service_account_credentials():
-    return base64.b64encode(json.dumps({}).encode("utf-8"))
 
 
 @pytest.fixture(

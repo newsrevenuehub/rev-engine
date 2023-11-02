@@ -78,6 +78,7 @@ from apps.organizations.tests.factories import OrganizationFactory, RevenueProgr
 from apps.pages.tests.factories import DonationPageFactory, StyleFactory
 from apps.users.models import Roles, User
 from apps.users.tests.factories import RoleAssignmentFactory, UserFactory
+from revengine.utils import __ensure_gs_credentials
 
 
 fake = Faker()
@@ -1011,3 +1012,13 @@ def minimally_valid_google_service_account_credentials():
             }
         ).encode("utf-8")
     )
+
+
+@pytest.fixture
+def invalid_google_service_account_credentials():
+    return base64.b64encode(json.dumps({}).encode("utf-8"))
+
+
+@pytest.fixture
+def valid_gs_credentials(minimally_valid_google_service_account_credentials):
+    return __ensure_gs_credentials(minimally_valid_google_service_account_credentials)

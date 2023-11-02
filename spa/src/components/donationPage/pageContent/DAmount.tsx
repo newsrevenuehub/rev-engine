@@ -3,8 +3,8 @@ import PropTypes, { InferProps } from 'prop-types';
 import { DAmountStyled, FeesContainer, FreqSubtext, OtherAmount, OtherAmountInput } from './DAmount.styled';
 
 // Util
-import validateInputPositiveFloat from 'utilities/validateInputPositiveFloat';
 import { getFrequencyRate } from 'utilities/parseFrequency';
+import { parseFloatStrictly } from 'utilities/parseFloatStrictly';
 
 // Context
 import { usePage } from '../DonationPage';
@@ -100,14 +100,18 @@ function DAmount({ element, ...props }: DAmountProps) {
   const handleOtherAmountChange = ({
     target: { value }
   }: React.ChangeEvent<HTMLInputElement> | { target: { value: string } }) => {
-    setOtherValue(value);
+    const filteredValue = value.replace(/\D/g, '');
 
-    if (value === '') {
+    setOtherValue(filteredValue);
+
+    if (filteredValue === '') {
       setAmount(undefined);
     }
 
-    if (validateInputPositiveFloat(value)) {
-      setAmount(parseFloat(value));
+    const parsedValue = parseFloatStrictly(value);
+
+    if (!isNaN(parsedValue) && parsedValue > 0) {
+      setAmount(parsedValue);
     }
   };
 
@@ -148,8 +152,10 @@ function DAmount({ element, ...props }: DAmountProps) {
           <OtherAmount data-testid={`amount-other${otherIsSelected ? '-selected' : ''}`} selected={otherIsSelected}>
             <span>{currencySymbol}</span>
             <OtherAmountInput
-              type="number"
+              inputMode="numeric"
+              type="text"
               min="0"
+              pattern="\d+"
               value={otherValue}
               name="amount"
               onChange={handleOtherAmountChange}

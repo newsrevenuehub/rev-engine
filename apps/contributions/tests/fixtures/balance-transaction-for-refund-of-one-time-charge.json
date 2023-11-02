@@ -1,24 +1,164 @@
 {
-    "id": "txn_1YYYYYYYYYYYYYYYYYYYYYYYYY",
+    "id": "txn_fakefakefake",
     "object": "balance_transaction",
-    "amount": -2000,
-    "available_on": 1635172800,
-    "created": 1635086400,
+    "amount": 11176,
+    "available_on": 1682294400,
+    "created": 1681743738,
     "currency": "usd",
-    "description": "Refund for charge ch_1XXXXXXXXXXXXXXXXXXXXXXXX",
+    "description": null,
     "exchange_rate": null,
-    "fee": -58,
+    "fee": 354,
     "fee_details": [
         {
-            "amount": -58,
+            "amount": 354,
             "application": null,
             "currency": "usd",
-            "description": "Stripe refund processing fees",
+            "description": "Stripe processing fees",
             "type": "stripe_fee"
         }
     ],
-    "net": -1942,
-    "source": "re_1ZZZZZZZZZZZZZZZZZZZZZZZZZ",
+    "net": 10822,
+    "reporting_category": "charge",
+    "source": {
+        "id": "ch_fakefakefake",
+        "object": "charge",
+        "amount": 11176,
+        "amount_captured": 11176,
+        "amount_refunded": 11176,
+        "application": "ca_fakefakefake",
+        "application_fee": null,
+        "application_fee_amount": null,
+        "balance_transaction": "txn_fakefakefake",
+        "billing_details": {
+            "address": {
+                "city": "New York",
+                "country": "US",
+                "line1": "234 West 42nd Street",
+                "line2": "",
+                "postal_code": "10036",
+                "state": "New York"
+            },
+            "email": "foo@bar.org",
+            "name": "foo bar",
+            "phone": "234"
+        },
+        "calculated_statement_descriptor": "WWW.FOO.ORG",
+        "captured": true,
+        "created": 1681743738,
+        "currency": "usd",
+        "customer": "cus_fakefakefake",
+        "description": null,
+        "destination": null,
+        "dispute": null,
+        "disputed": false,
+        "failure_balance_transaction": null,
+        "failure_code": null,
+        "failure_message": null,
+        "fraud_details": {},
+        "invoice": null,
+        "livemode": false,
+        "metadata": {
+            "agreed_to_pay_fees": "True",
+            "contributor_id": "89",
+            "donor_selected_amount": "109.0",
+            "reason_for_giving": "asdf",
+            "referer": "https://foo.bar.org/",
+            "revenue_program_id": "3",
+            "revenue_program_slug": "foo-bar",
+            "schema_version": "1.1",
+            "source": "rev-engine",
+            "swag_opt_out": "False"
+        },
+        "on_behalf_of": null,
+        "order": null,
+        "outcome": {
+            "network_status": "approved_by_network",
+            "reason": null,
+            "risk_level": "normal",
+            "risk_score": 33,
+            "seller_message": "Payment complete.",
+            "type": "authorized"
+        },
+        "paid": true,
+        "payment_intent": "pi_fakefakefake",
+        "payment_method": "pm_fakefakefake",
+        "payment_method_details": {
+            "card": {
+                "amount_authorized": 11176,
+                "brand": "visa",
+                "checks": {
+                    "address_line1_check": "pass",
+                    "address_postal_code_check": "pass",
+                    "cvc_check": "pass"
+                },
+                "country": "US",
+                "exp_month": 12,
+                "exp_year": 2023,
+                "extended_authorization": {
+                    "status": "disabled"
+                },
+                "fingerprint": "fakefakefake",
+                "funding": "credit",
+                "incremental_authorization": {
+                    "status": "unavailable"
+                },
+                "installments": null,
+                "last4": "4242",
+                "mandate": null,
+                "multicapture": {
+                    "status": "unavailable"
+                },
+                "network": "visa",
+                "network_token": {
+                    "used": false
+                },
+                "overcapture": {
+                    "maximum_amount_capturable": 11176,
+                    "status": "unavailable"
+                },
+                "three_d_secure": null,
+                "wallet": null
+            },
+            "type": "card"
+        },
+        "receipt_email": "foo@bar.org",
+        "receipt_number": null,
+        "receipt_url": "https://pay.stripe.com/receipts/payment/fake",
+        "refunded": true,
+        "refunds": {
+            "object": "list",
+            "data": [
+                {
+                    "id": "re_fakefakefake",
+                    "object": "refund",
+                    "amount": 11176,
+                    "balance_transaction": "txn_fakefakefake",
+                    "charge": "ch_fakefakefake",
+                    "created": 1698950381,
+                    "currency": "usd",
+                    "metadata": {},
+                    "payment_intent": "pi_fakefakefake",
+                    "reason": "requested_by_customer",
+                    "receipt_number": null,
+                    "source_transfer_reversal": null,
+                    "status": "succeeded",
+                    "transfer_reversal": null
+                }
+            ],
+            "has_more": false,
+            "total_count": 1,
+            "url": "/v1/charges/ch_fakefakefake/refunds"
+        },
+        "review": null,
+        "shipping": null,
+        "source": null,
+        "source_transfer": null,
+        "statement_descriptor": null,
+        "statement_descriptor_suffix": null,
+        "status": "succeeded",
+        "transfer_data": null,
+        "transfer_group": null
+    },
     "status": "available",
-    "type": "refund"
+    "type": "charge"
 }

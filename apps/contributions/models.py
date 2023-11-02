@@ -1139,22 +1139,25 @@ class Payment(IndexedTimeStampedModel):
     def get_contribution_and_balance_transaction_for_charge_refunded_event(
         cls, event: StripeEventData
     ) -> (Contribution | None, stripe.BalanceTransaction | None):
+        pi = (
+            stripe.PaymentIntent.retrieve(
+                event.data.object.payment_intent, stripe_account=event.account, expand=["invoice"]
+            )
+            if event.data.object.payment_intent
+            else None
+        )
         balance_transaction = cls._get_stripe_balance_transaction(
             event.data.object.balance_transaction, event.account, expand=["source.invoice"]
         )
         conditions = []
         # we expect this to happen if it's a refund related to a one-time contribution or the initial payment associated with
         # a new Stripe subscription in case of recurring contribution.
-        if pi_id := event.data.object.payment_intent:
-            conditions.append(models.Q(provider_payment_id=pi_id))
+        if pi:
+            conditions.append(models.Q(provider_payment_id=pi.id))
         # We expect this to happen when it's a refund related to a recurrence on a subscription
-        if balance_transaction.source.invoice and (
-            sub_id := stripe.PaymentIntent.retrieve(
-                event.data.object.payment_intent, stripe_account=event.account
-            ).subscription
-        ):
+        if getattr(balance_transaction.source, "invoice", None) and (sub_id := pi.invoice.subscription):
             conditions.append(models.Q(provider_subscription_id=sub_id))
-        if conditions:
+        if not conditions:
             return None, balance_transaction
         try:
             # NB: these are inclusive OR conditions
@@ -1208,9 +1211,14 @@ class Payment(IndexedTimeStampedModel):
     @classmethod
     @ensure_stripe_event(["charge.refunded"])
     def from_stripe_charge_refunded_event(cls, event: StripeEventData) -> Payment:
+        contribution, balance_transaction = cls.get_contribution_and_balance_transaction_for_charge_refunded_event(
+            event=event
+        )
+
         return cls._handle_create_payment(
-            *cls.get_contribution_and_balance_transaction_for_charge_refunded_event(event=event),
-            amount_refunded=event.data.object.amount,
+            contribution=contribution,
+            balance_transaction=balance_transaction,
+            amount_refunded=balance_transaction.source.amount_refunded,
         )
 
     @classmethod

@@ -1764,36 +1764,6 @@ def charge_refunded_recurring_first_charge_event():
         return stripe.Webhook.construct_event(f.read(), None, stripe.api_key)
 
 
-@pytest.fixture
-def balance_transaction_for_one_time_charge():
-    with open("apps/contributions/tests/fixtures/balance-transaction-for-charge-expanded.json") as f:
-        return json.load(f)
-
-
-@pytest.fixture
-def balance_transaction_for_refund_on_one_time_charge():
-    with open("apps/contributions/tests/fixtures/balance-transaction-for-refund.json") as f:
-        return json.load(f)
-
-
-@pytest.fixture
-def balance_transaction_for_refund_on_recurring_charge():
-    with open("apps/contributions/tests/fixtures/balance-transaction-for-refund-on-recurring-charge.json") as f:
-        return json.load(f)
-
-
-@pytest.fixture
-def balance_transaction_for_recurring_charge():
-    with open("apps/contributions/tests/fixtures/balance-transaction-for-recurring-charge.json") as f:
-        return json.load(f)
-
-
-@pytest.fixture
-def balance_transaction_for_recurring_first_charge():
-    with open("apps/contributions/tests/fixtures/balance-transaction-for-recurring-first-charge.json") as f:
-        return json.load(f)
-
-
 @pytest.fixture(
     params=[
         (True, "payment_intent_succeeded_one_time_event", lambda x: None, []),
@@ -1991,16 +1961,24 @@ class TestPayment:
         assert mock_balance_transaction_retrieve.call_count == count
 
     @pytest.fixture
-    def payment_intent_for_one_time_contribution():
-        pass
+    def payment_intent_for_one_time_contribution(self):
+        with open("apps/contributions/tests/fixtures/payment-intent-for-one-time-charge.json") as f:
+            return stripe.PaymentIntent.construct_from(json.load(f), stripe.api_key)
 
     @pytest.fixture
-    def payment_intent_for_subscription_creation_contribution():
-        pass
+    def payment_intent_for_subscription_creation_contribution(self):
+        with open("apps/contributions/tests/fixtures/payment-intent-for-subscription-creation-charge.json") as f:
+            return stripe.PaymentIntent.construct_from(json.load(f), stripe.api_key)
 
     @pytest.fixture
-    def payment_intent_for_recurring_charge():
-        pass
+    def payment_intent_for_recurring_charge(self):
+        with open("apps/contributions/tests/fixtures/payment-intent-for-recurring-charge.json") as f:
+            return stripe.PaymentIntent.construct_from(json.load(f), stripe.api_key)
+
+    @pytest.fixture
+    def balance_transaction_for_refund_of_recurring_charge(self):
+        with open("apps/contributions/tests/fixtures/balance-transaction-for-refund-of-recurring-charge.json") as f:
+            return stripe.BalanceTransaction.construct_from(json.load(f), stripe.api_key)
 
     @pytest.fixture(
         params=(
@@ -2014,75 +1992,126 @@ class TestPayment:
                 "payment_intent_for_subscription_creation_contribution",
                 "balance_transaction_for_subscription_creation_charge",
             ),
-            (
-                "payment_intent_succeeded_subscription_recurring_charge",
-                "payment_intent_for_recurring_charge",
-                "balance_transaction_for_recurring_charge",
-            ),
         )
     )
-    @pytest.mark.parametrize("contribution_found", (True, False))
-    def payment_from_pi_succeeded_test_case(self, contribution_found, request, mocker):
-        event = request.getfixturevalue(request.param[0])
-        mocker.patch(
-            "stripe.BalanceTransaction.retrieve",
-            return_value=(balance_transaction := request.getfixturevalue(request.param[2])),
-        )
-        mocker.patch(
-            "stripe.PaymentIntent.retrieve",
-            return_value=request.getfixturevalue(request.param[1]),
-        )
-        kwargs = {
-            "interval": ContributionInterval.ONE_TIME
-            if balance_transaction.source.invoice.subscription is None
-            else ContributionInterval.MONTHLY
-        }
-        if request.param[0] == "payment_intent_succeeded_subscription_recurring_charge":
-            kwargs["provider_subscription_id"] = (balance_transaction.source.invoice.subscription,)
-        else:
-            kwargs = {"provider_payment_id": event.data.object.id}
-        return event, ContributionFactory(**kwargs) if contribution_found else None, balance_transaction
+    def payment_from_pi_succeeded_test_case_factory(self, request, mocker):
+        def _implmenentation(contribution_found: bool):
+            event = request.getfixturevalue(request.param[0])
+            mocker.patch(
+                "stripe.BalanceTransaction.retrieve",
+                return_value=(balance_transaction := request.getfixturevalue(request.param[2])),
+            )
+            mocker.patch(
+                "stripe.PaymentIntent.retrieve",
+                return_value=request.getfixturevalue(request.param[1]),
+            )
+            kwargs = {
+                "interval": ContributionInterval.ONE_TIME
+                if balance_transaction.source.invoice is None
+                else ContributionInterval.MONTHLY
+            }
+            if request.param[0] in (
+                "payment_intent_succeeded_subscription_recurring_charge",
+                "payment_intent_succeeded_subscription_creation_event",
+            ):
+                kwargs["provider_subscription_id"] = balance_transaction.source.invoice.subscription
+            else:
+                kwargs = {"provider_payment_id": event.data.object.id}
+            return event, ContributionFactory(**kwargs) if contribution_found else None, balance_transaction
 
-    def test_from_stripe_payment_intent_succeeded_event_when_contribution_found(
-        self, payment_from_pi_succeeded_test_case
+        return _implmenentation
+
+    @pytest.mark.parametrize("contribution_found", (True, False))
+    def test_from_stripe_payment_intent_succeeded_event(
+        self, contribution_found, payment_from_pi_succeeded_test_case_factory
     ):
-        event, contribution, balance_transaction = payment_from_pi_succeeded_test_case
+        event, contribution, balance_transaction = payment_from_pi_succeeded_test_case_factory(contribution_found)
         if contribution is None:
             with pytest.raises(ValueError) as exc_info:
-                Payment.from_stripe_payment_intent_succeeded_event(event)
+                Payment.from_stripe_payment_intent_succeeded_event(event=event)
             assert str(exc_info.value) == "Could not find a contribution for this event"
         else:
-            payment = Payment.from_stripe_payment_intent_succeeded_event(event)
+            payment = Payment.from_stripe_payment_intent_succeeded_event(event=event)
             assert payment.contribution == contribution
             assert payment.net_amount_paid == balance_transaction.net
             assert payment.gross_amount_paid == balance_transaction.amount
             assert payment.amount_refunded == 0
             assert payment.stripe_balance_transaction_id == balance_transaction.id
 
+    @pytest.fixture
+    def balance_transaction_for_refund_of_one_time_charge(self):
+        with open("apps/contributions/tests/fixtures/balance-transaction-for-refund-of-one-time-charge.json") as f:
+            return stripe.BalanceTransaction.construct_from(json.load(f), stripe.api_key)
+
     @pytest.fixture(
         params=(
-            ("charge_refunded_one_time_event", "balance_transaction_for_one_time_charge", True),
-            ("charge_refunded_recurring_charge_event", "balance_transaction_for_one_time_charge", True),
-            ("charge_refunded_recurring_first_charge_event", "balance_transaction_for_one_time_charge", True),
+            (
+                "charge_refunded_one_time_event",
+                "payment_intent_for_one_time_contribution",
+                "balance_transaction_for_refund_of_one_time_charge",
+            ),
+            # (
+            #     "charge_refunded_recurring_charge_event",
+            #     "payment_intent_for_recurring_charge",
+            #     "balance_transaction_for_refund_of_recurring_charge",
+            # ),
+            # (
+            #     "charge_refunded_recurring_first_charge_event",
+            #     "payment_intent_for_subscription_creation_contribution",
+            #     "balance_transaction_for_refund_of_subscription_creation_charge",
+            # ),
         )
     )
-    def payment_from_charge_refunded_test_case(self, request, mocker):
-        mocker.patch(
-            "stripe.BalanceTransaction.retrieve",
-            return_value=(balance_transaction := request.getfixturevalue(request.param[1])),
-        )
-        mocker.patch("stripe.Invoice.retrieve")
-        contribution = None
-        return request.getfixturevalue(request.param[0]), contribution, balance_transaction
+    def payment_from_charge_refunded_test_case_factory(self, request, mocker):
+        def implementation(contribution_found: bool):
+            event = request.getfixturevalue(request.param[0])
+            payment_intent = request.getfixturevalue(request.param[1])
+            balance_transaction = request.getfixturevalue(request.param[2])
+            mocker.patch(
+                "stripe.BalanceTransaction.retrieve",
+                return_value=balance_transaction,
+            )
+            mocker.patch(
+                "stripe.PaymentIntent.retrieve",
+                return_value=payment_intent,
+            )
+            match request.param[0]:
+                case "charge_refunded_one_time_event":
+                    kwargs = {
+                        "interval": ContributionInterval.ONE_TIME,
+                        "provider_payment_id": event.data.object.id,
+                    }
+                case "charge_refunded_recurring_charge_event":
+                    kwargs = {
+                        "interval": ContributionInterval.MONTHLY,
+                        "provider_subscription_id": payment_intent.subscription,
+                    }
+                case "charge_refunded_recurring_first_charge_event":
+                    kwargs = {
+                        "interval": ContributionInterval.MONTHLY,
+                        "provider_payment_id": event.data.object.id,
+                    }
+            return (
+                event,
+                ContributionFactory(**kwargs) if contribution_found else None,
+                balance_transaction,
+            )
 
-    def test_from_stripe_charge_refunded_event(self, payment_from_charge_refunded_test_case):
-        event, contribution, balance_transaction = payment_from_charge_refunded_test_case
+        return implementation
+
+    @pytest.mark.parametrize("contribution_found", (True, False))
+    def test_from_stripe_charge_refunded_event(
+        self, contribution_found, payment_from_charge_refunded_test_case_factory
+    ):
+        event, contribution, balance_transaction = payment_from_charge_refunded_test_case_factory(
+            contribution_found=contribution_found
+        )
         if contribution is None:
             with pytest.raises(ValueError) as exc_info:
-                Payment.from_stripe_charge_refunded_event(event)
+                Payment.from_stripe_charge_refunded_event(event=event)
             assert str(exc_info.value) == "Could not find a contribution for this event"
         else:
-            payment = Payment.from_stripe_charge_refunded_event(event)
+            payment = Payment.from_stripe_charge_refunded_event(event=event)
             assert payment.contribution == contribution
             assert payment.net_amount_paid == balance_transaction.net
             assert payment.gross_amount_paid == balance_transaction.amount

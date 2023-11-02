@@ -1,0 +1,32 @@
+{
+    "id": "txn_fakefakefake",
+    "object": "balance_transaction",
+    "amount": -2000,
+    "available_on": 1699228800,
+    "created": 1698696052,
+    "currency": "usd",
+    "description": "REFUND FOR CHARGE (Subscription update)",
+    "exchange_rate": null,
+    "fee": 0,
+    "fee_details": [],
+    "net": -2000,
+    "reporting_category": "refund",
+    "source": {
+        "id": "re_fakefakefake",
+        "object": "refund",
+        "amount": 2000,
+        "balance_transaction": "txn_fakefakefake",
+        "charge": "ch_faekfakefake",
+        "created": 1698696052,
+        "currency": "usd",
+        "metadata": {},
+        "payment_intent": "pi_fakefakefake",
+        "reason": "requested_by_customer",
+        "receipt_number": null,
+        "source_transfer_reversal": null,
+        "status": "succeeded",
+        "transfer_reversal": null
+    },
+    "status": "pending",
+    "type": "refund"
+}

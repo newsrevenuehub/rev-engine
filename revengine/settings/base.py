@@ -248,12 +248,12 @@ if CACHE_HOST.startswith("rediss"):
 
 CACHES = {
     "default": {
-        "BACKEND": "django_redis.cache.RedisCache",
-        "LOCATION": f"{CACHE_HOST}/0",
-        "OPTIONS": {
-            "CLIENT_CLASS": "django_redis.client.DefaultClient",
-            "CONNECTION_POOL_KWARGS": CONNECTION_POOL_KWARGS,
-        },
+        "BACKEND": "django.core.cache.backends.locmem.LocMemCache",
+        # "LOCATION": f"{CACHE_HOST}/0",
+        # "OPTIONS": {
+        #     "CLIENT_CLASS": "django_redis.client.DefaultClient",
+        #     "CONNECTION_POOL_KWARGS": CONNECTION_POOL_KWARGS,
+        # },
     },
 }
 
@@ -444,6 +444,7 @@ STRIPE_WEBHOOK_EVENTS_CONTRIBUTIONS = [
     "customer.subscription.updated",
     "customer.subscription.deleted",
     "payment_method.attached",
+    "invoice.payment_succeeded",
     "invoice.upcoming",
 ]
 

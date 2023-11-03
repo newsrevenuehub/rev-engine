@@ -1924,42 +1924,6 @@ class TestPayment:
         metadata, expected_fn = get_valid_metadata_test_case
         assert Payment.get_valid_metadata(metadata) == expected_fn(metadata)
 
-    # @pytest.fixture(
-    #     params=[
-    #         # "balance_transaction_for_one_time_charge",
-    #         # "balance_transaction_for_subscription_creation_charge",
-    #         "balance_transaction_for_recurring_charge",
-    #     ]
-    # )
-    # def get_subscription_id_for_balance_transaction_test_case(self, request, mocker):
-    #     return (
-    #         (fixture := request.getfixturevalue(request.param)),
-    #         fixture.source.invoice.subscription
-    #         if request.param == "balance_transaction_for_subscription_creation_charge"
-    #         else None,
-    #     )
-
-    # def test_get_subscription_id_for_balance_transaction(
-    #     self, mocker, get_subscription_id_for_balance_transaction_test_case
-    # ):
-    #     """Show that we memoize the subscription id"""
-    #     balance_transaction, expected = get_subscription_id_for_balance_transaction_test_case
-    #     mock_balance_transaction_retrieve = mocker.patch(
-    #         "stripe.BalanceTransaction.retrieve", return_value=balance_transaction
-    #     )
-    #     breakpoint()
-    #     assert (
-    #         Payment.get_subscription_id_for_balance_transaction(balance_transaction.id, (account_id := "some-id"))
-    #         == expected
-    #     )
-    #     mock_balance_transaction_retrieve.assert_called_once_with(
-    #         balance_transaction.id,
-    #         stripe_account=account_id,
-    #     )
-    #     count = mock_balance_transaction_retrieve.call_count
-    #     Payment.get_subscription_id_for_balance_transaction(balance_transaction.id, account_id)
-    #     assert mock_balance_transaction_retrieve.call_count == count
-
     @pytest.fixture
     def payment_intent_for_one_time_contribution(self):
         with open("apps/contributions/tests/fixtures/payment-intent-for-one-time-charge.json") as f:

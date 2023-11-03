@@ -2009,19 +2009,18 @@ class TestPayment:
     def payment_from_pi_succeeded_test_case_factory(self, request, mocker):
         def _implmenentation(contribution_found: bool):
             event = request.getfixturevalue(request.param[0])
-            mocker.patch(
-                "stripe.BalanceTransaction.retrieve",
-                return_value=(balance_transaction := request.getfixturevalue(request.param[2])),
-            )
-            mocker.patch(
-                "stripe.PaymentIntent.retrieve",
-                return_value=request.getfixturevalue(request.param[1]),
-            )
+            pi = request.getfixturevalue(request.param[1])
+            balance_transaction = request.getfixturevalue(request.param[2])
+            pi.charges = event.data.object.charges
+
+            mocker.patch("stripe.BalanceTransaction.retrieve", return_value=balance_transaction)
+            mocker.patch("stripe.PaymentIntent.retrieve", return_value=pi)
             kwargs = {
                 "interval": ContributionInterval.ONE_TIME
                 if balance_transaction.source.invoice is None
                 else ContributionInterval.MONTHLY
             }
+
             if request.param[0] in (
                 "payment_intent_succeeded_subscription_recurring_charge",
                 "payment_intent_succeeded_subscription_creation_event",

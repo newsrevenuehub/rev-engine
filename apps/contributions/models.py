@@ -1109,13 +1109,12 @@ class Payment(IndexedTimeStampedModel):
         """
         # we re-retrieve the PI because its state could have changed between the time the event was received and now
         pi = stripe.PaymentIntent.retrieve(event.data.object.id, stripe_account=event.account)
-        if not all(
-            [
-                pi.charges,
-                pi.charges.data,
-                (balance_transaction_id := pi.charges.data[0].balance_transaction),
-            ]
-        ):
+        balance_transaction_id = None
+        if pi.charges and pi.charges.data and len(pi.charges.data) == 1:
+            balance_transaction_id = pi.charges.data[0].balance_transaction
+        else:  # we expect this to happen when it's a recurrence on a subscription
+            event.data.object.balance_transaction
+        if not balance_transaction_id:
             logger.warning("Could not find a balance transaction for PI %s associated with event %s", pi.id, event.id)
             balance_transaction = None
         else:

@@ -60,8 +60,7 @@ class ReactAppView(TemplateView):
 
 # Proxies the single page app in local development, parsing any HTML responses
 # using Django's template parser. If this is used, the single page app must have
-# its own dev proxying turned off for this to work. See spa/src/setupProxy.js
-# for how that's done.
+# its own dev proxying turned off for this to work.
 #
 # This was cribbed from
 # https://fractalideas.com/blog/making-react-and-django-play-well-together-hybrid-app-model/
@@ -71,6 +70,10 @@ def proxy_spa_dev_server(request, upstream="http://localhost:3000"):
     upstream_url = upstream + request.path
     upstream_response = requests.get(upstream_url)
     content = upstream_response.text
+
+    if upstream_response.status_code != 200:
+        return HttpResponse(status=upstream_response.status_code)
+
     content_type = upstream_response.headers["content-type"]
 
     if content_type == "text/html; charset=utf-8":

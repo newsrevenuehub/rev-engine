@@ -11,7 +11,7 @@ const webpackPreprocessor = require('@cypress/webpack-preprocessor');
 // https://github.com/cypress-io/cypress/tree/master/npm/webpack-preprocessor#options
 
 // CRA expects a NODE_ENV to be set.
-process.env.NODE_ENV = 'development';
+import.meta.env.NODE_ENV = 'development';
 const craWebpackConfig = require('react-scripts/config/webpack.config');
 
 module.exports = defineConfig({

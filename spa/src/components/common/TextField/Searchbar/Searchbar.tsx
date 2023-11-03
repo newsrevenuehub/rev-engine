@@ -3,7 +3,7 @@ import PropTypes, { InferProps } from 'prop-types';
 
 import { Input } from './Searchbar.styled';
 
-import SearchIcon from 'assets/icons/search.svg';
+import SearchIcon from 'assets/icons/search.svg?react';
 
 export interface SearchbarProps extends InferProps<typeof SearchbarPropTypes> {
   onChange?: (value: string) => void;

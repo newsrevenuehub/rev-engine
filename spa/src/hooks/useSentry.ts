@@ -17,7 +17,7 @@ function useSentry() {
   const history = useHistory();
 
   useEffect(() => {
-    if (process.env.NODE_ENV !== 'development' && SENTRY_ENABLE_FRONTEND) {
+    if (import.meta.env.NODE_ENV !== 'development' && SENTRY_ENABLE_FRONTEND) {
       Sentry.init({
         dsn: SENTRY_DSN_FRONTEND,
         integrations: [

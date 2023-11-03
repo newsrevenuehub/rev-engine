@@ -1,7 +1,7 @@
 import userEvent from '@testing-library/user-event';
 import { axe } from 'jest-axe';
 import { act, render, screen, waitFor } from 'test-utils';
-import { AxiosError, AxiosResponse } from 'axios';
+import { AxiosError } from 'axios';
 import { GENERIC_ERROR } from 'constants/textConstants';
 import useContributionPageList from 'hooks/useContributionPageList';
 import { useEditablePageContext } from 'hooks/useEditablePage';

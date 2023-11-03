@@ -1089,10 +1089,14 @@ class Payment(IndexedTimeStampedModel):
         # we re-retrieve the PI because its state could have changed between the time the event was received and now
         pi = stripe.PaymentIntent.retrieve(event.data.object.id, stripe_account=event.account)
         balance_transaction_id = None
-        if pi.charges and pi.charges.data and len(pi.charges.data) == 1:
+        if pi and pi.charges and pi.charges.data and len(pi.charges.data) == 1:
             balance_transaction_id = pi.charges.data[0].balance_transaction
         if not balance_transaction_id:
-            logger.warning("Could not find a balance transaction for PI %s associated with event %s", pi.id, event.id)
+            logger.warning(
+                "Could not find a balance transaction for PI %s associated with event %s",
+                getattr(pi, "id", "<no-pi>"),
+                event.id,
+            )
             balance_transaction = None
         else:
             balance_transaction = cls._get_stripe_balance_transaction(
@@ -1105,7 +1109,11 @@ class Payment(IndexedTimeStampedModel):
             contribution = Contribution.objects.get(provider_payment_id=pi.id)
         except Contribution.DoesNotExist:
             try:
-                contribution = cls.get_contribution_for_recurrence(balance_transaction_id, event.account)
+                contribution = (
+                    cls.get_contribution_for_recurrence(balance_transaction_id, event.account)
+                    if balance_transaction
+                    else None
+                )
             except Contribution.DoesNotExist:
                 contribution = None
         return contribution, balance_transaction
@@ -1131,7 +1139,11 @@ class Payment(IndexedTimeStampedModel):
         if pi:
             conditions.append(models.Q(provider_payment_id=pi.id))
         # We expect this to happen when it's a refund related to a recurrence on a subscription
-        if getattr(balance_transaction.source, "invoice", None) and (sub_id := pi.invoice.subscription):
+        if (
+            balance_transaction
+            and getattr(balance_transaction.source, "invoice", None)
+            and (sub_id := pi.invoice.subscription)
+        ):
             conditions.append(models.Q(provider_subscription_id=sub_id))
         if not conditions:
             return None, balance_transaction

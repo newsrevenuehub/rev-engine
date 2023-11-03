@@ -947,10 +947,8 @@ def ensure_stripe_event(event_types: List[str] = None) -> Callable:
 
     You can optionally send a list of event types to ensure that the event is of a certain type.
 
-    This decorator allows us to avoid validating assumptions about method arguments without
-    cluttering up the method body with validation logic, which is shared across methods
-    dealing with Stripe events.
-
+    This decorator allows us to validate assumptions about method arguments without
+    cluttering up the method body.
     """
 
     def decorator(func: Callable) -> Callable:

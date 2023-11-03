@@ -8,6 +8,7 @@ from urllib.parse import parse_qs, quote_plus, urlparse
 
 from django.conf import settings
 from django.core import mail
+from django.core.cache import cache
 from django.template.loader import render_to_string
 from django.utils.safestring import mark_safe
 
@@ -2188,8 +2189,12 @@ class TestPayment:
     @pytest.mark.parametrize("contribution_found", (True, False))
     @pytest.mark.parametrize("balance_transaction_found", (True, False))
     def test_from_stripe_invoice_payment_succeeded_event(
-        self, contribution_found, balance_transaction_found, payment_from_invoice_payment_succeeded_test_case_factory
+        self,
+        contribution_found,
+        balance_transaction_found,
+        payment_from_invoice_payment_succeeded_test_case_factory,
     ):
+        cache.clear()
         event, contribution, balance_transaction = payment_from_invoice_payment_succeeded_test_case_factory(
             contribution_found=contribution_found, balance_transaction_found=balance_transaction_found
         )
@@ -2197,11 +2202,10 @@ class TestPayment:
             with pytest.raises(ValueError) as exc_info:
                 Payment.from_stripe_invoice_payment_succeeded_event(event=event)
             assert str(exc_info.value) == "Could not find a contribution for this event"
-        if balance_transaction is None:
-            if contribution_found:
-                with pytest.raises(ValueError) as exc_info:
-                    Payment.from_stripe_invoice_payment_succeeded_event(event=event)
-                assert str(exc_info.value) == "Could not find a balance transaction for this event"
+        if contribution_found and not balance_transaction_found:
+            with pytest.raises(ValueError) as exc_info:
+                payment = Payment.from_stripe_invoice_payment_succeeded_event(event=event)
+            assert str(exc_info.value) == "Could not find a balance transaction for this event"
         if contribution and balance_transaction:
             payment = Payment.from_stripe_invoice_payment_succeeded_event(event=event)
             assert payment.contribution == contribution

@@ -156,15 +156,6 @@ class ContributionAdmin(RevEngineBaseAdmin, CompareVersionAdmin):
         "reject_flagged_contribution",
     )
 
-    def _generate_stripe_connect_link(self, slug, provider_id, stripe_account_id):
-        if provider_id:
-            test_mode = "test/" if not settings.STRIPE_LIVE_MODE else ""
-            return format_html(
-                f"<a href='%s' target='_blank'>{provider_id}</a>"
-                % f"https://dashboard.stripe.com/{test_mode}connect/accounts/{stripe_account_id}/{slug}/{provider_id}"
-            )
-        return "-"
-
     @admin.action(description="Accept flagged contributions")
     def accept_flagged_contribution(self, request, queryset):
         self._process_flagged_payment(request, queryset, reject=False)
@@ -224,6 +215,15 @@ class ContributionAdmin(RevEngineBaseAdmin, CompareVersionAdmin):
 
     def provider_customer_link(self, request):
         return self._generate_stripe_connect_link("customers", request.provider_customer_id, request.stripe_account_id)
+
+    def _generate_stripe_connect_link(self, slug, provider_id, stripe_account_id):
+        if provider_id:
+            test_mode = "test/" if not settings.STRIPE_LIVE_MODE else ""
+            return format_html(
+                f"<a href='%s' target='_blank'>{provider_id}</a>"
+                % f"https://dashboard.stripe.com/{test_mode}connect/accounts/{stripe_account_id}/{slug}/{provider_id}"
+            )
+        return "-"
 
     def bad_actor_response_pretty(self, instance):
         """Render bad_actor_response field with pretty formatting"""

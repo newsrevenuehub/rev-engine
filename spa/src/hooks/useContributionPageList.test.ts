@@ -249,35 +249,4 @@ describe('useContributionPageList', () => {
       ).toBe(false);
     });
   });
-
-  describe('orgHasPublishPageLimit', () => {
-    it('returns false while pages are loading', () => {
-      const { result } = hook();
-
-      expect(result.current.orgHasPublishPageLimit({ id: '1', plan: { page_limit: 0 } } as any)).toBe(false);
-    });
-
-    // There's one published and one unpublished page in mock data.
-
-    it('returns true if the current organization is under their page limit', async () => {
-      const { result, waitFor } = hook();
-
-      await waitFor(() => expect(result.current.pages?.length).toBe(2));
-      expect(result.current.orgHasPublishPageLimit({ id: '1', plan: { publish_limit: 2 } } as any)).toBe(true);
-    });
-
-    it('returns false if the current organization is at their page limit', async () => {
-      const { result, waitFor } = hook();
-
-      await waitFor(() => expect(result.current.pages?.length).toBe(2));
-      expect(result.current.orgHasPublishPageLimit({ id: '1', plan: { publish_limit: 1 } } as any)).toBe(false);
-    });
-
-    it('returns false if the current organization is above their page limit', async () => {
-      const { result, waitFor } = hook();
-
-      await waitFor(() => expect(result.current.pages?.length).toBe(2));
-      expect(result.current.orgHasPublishPageLimit({ id: '1', plan: { publish_limit: 0 } } as any)).toBe(false);
-    });
-  });
 });

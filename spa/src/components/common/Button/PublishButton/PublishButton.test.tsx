@@ -3,18 +3,21 @@ import { axe } from 'jest-axe';
 import { act, render, screen, waitFor } from 'test-utils';
 import { AxiosError } from 'axios';
 import { GENERIC_ERROR } from 'constants/textConstants';
-import useContributionPageList from 'hooks/useContributionPageList';
 import { useEditablePageContext } from 'hooks/useEditablePage';
 import useUser from 'hooks/useUser';
 import PublishButton from './PublishButton';
 import { PLAN_NAMES } from 'constants/orgPlanConstants';
 import { useAlert } from 'react-alert';
+import { orgHasPublishPageLimit } from 'utilities/organizationPageLimit';
 
 jest.mock('react-alert', () => ({
   ...jest.requireActual('react-alert'),
   useAlert: jest.fn()
 }));
-jest.mock('hooks/useContributionPageList');
+jest.mock('utilities/organizationPageLimit');
+jest.mock('hooks/useContributionPageList', () => () => ({
+  useContributionPageList: jest.fn()
+}));
 jest.mock('hooks/useEditablePage');
 jest.mock('hooks/useUser');
 jest.mock('components/common/Modal/MaxPagesPublishedModal/MaxPagesPublishedModal');
@@ -51,7 +54,7 @@ const user = {
 describe('PublishButton', () => {
   const useAlertMock = useAlert as jest.Mock;
   const useEditablePageContextMock = useEditablePageContext as jest.Mock;
-  const useContributionPageListMock = useContributionPageList as jest.Mock;
+  const orgHasPublishPageLimitMock = orgHasPublishPageLimit as jest.Mock;
   const useUserMock = useUser as jest.Mock;
 
   function tree() {
@@ -61,7 +64,7 @@ describe('PublishButton', () => {
   beforeEach(() => {
     useAlertMock.mockReturnValue({ error: jest.fn() });
     useEditablePageContextMock.mockReturnValue({ isLoading: false, page: unpublishedPage });
-    useContributionPageListMock.mockReturnValue({ orgHasPublishPageLimit: () => true });
+    orgHasPublishPageLimitMock.mockReturnValue(true);
     useUserMock.mockReturnValue({ user });
   });
 
@@ -198,7 +201,7 @@ describe('PublishButton', () => {
 
       describe('And the user can publish a new page', () => {
         beforeEach(() => {
-          useContributionPageListMock.mockReturnValue({ orgHasPublishPageLimit: () => true });
+          orgHasPublishPageLimitMock.mockReturnValue(true);
         });
 
         it('shows an enabled button with label "Publish"', () => {
@@ -301,7 +304,7 @@ describe('PublishButton', () => {
       });
 
       describe("But the user can't publish new pages", () => {
-        beforeEach(() => useContributionPageListMock.mockReturnValue({ orgHasPublishPageLimit: () => false }));
+        beforeEach(() => orgHasPublishPageLimitMock.mockReturnValue(false));
 
         it('shows an enabled button with label "Publish"', () => {
           tree();

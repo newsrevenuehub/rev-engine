@@ -133,8 +133,7 @@ describe('EditablePageContextProvider', () => {
       isLoading: true,
       createPage: jest.fn(),
       newPageProperties: jest.fn(),
-      userCanCreatePage: jest.fn(),
-      orgHasPublishPageLimit: jest.fn()
+      userCanCreatePage: jest.fn()
     });
     tree();
     expect(screen.getByTestId('is-loading')).toBeInTheDocument();

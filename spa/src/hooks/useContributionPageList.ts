@@ -8,7 +8,7 @@ import axios from 'ajax/axios';
 import { GENERIC_ERROR } from 'constants/textConstants';
 import { SIGN_IN } from 'routes';
 import { ContributionPage } from './useContributionPage';
-import { Organization, User } from './useUser.types';
+import { User } from './useUser.types';
 import { USER_ROLE_HUB_ADMIN_TYPE, USER_SUPERUSER_TYPE } from 'constants/authConstants';
 
 export interface CreatePageProperties extends Partial<Omit<ContributionPage, 'revenue_program'>> {
@@ -53,11 +53,6 @@ export interface UseContributionPageListResult {
    * page limit of their organization. If pages are being fetched, this returns `false`.
    */
   userCanCreatePage: (user: User) => boolean;
-  /**
-   * Returns whether an Organization can have a new page published (limit hasn't been reached).
-   * If pages are being fetched, this returns `false`.
-   */
-  orgHasPublishPageLimit: (org: Organization) => boolean;
 }
 
 async function fetchPages() {
@@ -147,31 +142,8 @@ function useContributionPageList(): UseContributionPageListResult {
     },
     [pages]
   );
-  const orgHasPublishPageLimit = useCallback(
-    (org: Organization) => {
-      // If we don't know how many pages exist, assume no.
-      if (!pages) {
-        return false;
-      }
 
-      // Filter pages by the organization and then filter by published date.
-      // Compare the currently published pages with the organization's plan limit
-      // We don't consider dates here; e.g. if a page has a publish date a year away,
-      // it still counts as published.
-      return (
-        pages.filter(
-          (page) =>
-            // Filter pages by organization
-            page.revenue_program.organization.id === org?.id &&
-            // Filter pages that have been published
-            !!page.published_date
-        ).length < org.plan.publish_limit
-      );
-    },
-    [pages]
-  );
-
-  return { createPage, error, isError, isLoading, newPageProperties, pages, userCanCreatePage, orgHasPublishPageLimit };
+  return { createPage, error, isError, isLoading, newPageProperties, pages, userCanCreatePage };
 }
 
 export default useContributionPageList;

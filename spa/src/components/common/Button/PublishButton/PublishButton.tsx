@@ -18,6 +18,7 @@ import PublishedPopover from './PublishedPopover';
 import SuccessfulPublishModal from './SuccessfulPublishModal';
 import UnpublishModal from './UnpublishModal';
 import { Root, RootButton } from './PublishButton.styled';
+import { orgHasPublishPageLimit } from 'utilities/organizationPageLimit';
 
 const PublishButtonPropTypes = {
   className: PropTypes.string
@@ -47,7 +48,7 @@ function DisabledTooltip({ children, disabled }: { children: ReactElement; disab
 function PublishButton({ className }: PublishButtonProps) {
   const alert = useAlert();
   const { isLoading, page, savePageChanges } = useEditablePageContext();
-  const { orgHasPublishPageLimit } = useContributionPageList();
+  const { pages } = useContributionPageList();
   const { user } = useUser();
   const {
     open: openMaxPagesPublishedModal,
@@ -105,7 +106,7 @@ function PublishButton({ className }: PublishButtonProps) {
     }
 
     // If the user's hit their org's plan limit, stop them here.
-    if (!orgHasPublishPageLimit(page.revenue_program.organization)) {
+    if (!orgHasPublishPageLimit(page.revenue_program.organization, pages)) {
       handleOpenMaxPagesPublishedModal();
       return;
     }

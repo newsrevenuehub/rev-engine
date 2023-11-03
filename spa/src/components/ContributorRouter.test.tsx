@@ -212,7 +212,9 @@ describe('ContributorRouter', () => {
     );
     tree();
     expect(useWebFonts).toHaveBeenCalledWith(undefined);
-    act(() => jest.runOnlyPendingTimers());
+    act(() => {
+      jest.runOnlyPendingTimers();
+    });
     expect(useWebFonts).toHaveBeenLastCalledWith(mockData.styles.font);
   });
 });

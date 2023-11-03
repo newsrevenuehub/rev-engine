@@ -1,6 +1,6 @@
 {
   "compilerOptions": {
-    "baseUrl": "src",
+    "baseUrl": "../src/",
     "target": "ESNext",
     "lib": ["dom", "dom.iterable", "esnext"],
     "allowJs": true,
@@ -22,5 +22,5 @@
       "vite-plugin-svgr/client"
     ]
   },
-  "include": ["src"]
+  "include": ["."]
 }

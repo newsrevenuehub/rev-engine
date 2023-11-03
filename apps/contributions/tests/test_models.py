@@ -1767,20 +1767,14 @@ def charge_refunded_recurring_first_charge_event():
 
 @pytest.fixture(
     params=[
+        # need invoice.payment_intent_succeeded
         (True, "payment_intent_succeeded_one_time_event", lambda x: None, []),
         (True, "payment_intent_succeeded_subscription_creation_event", lambda x: None, []),
-        (True, "payment_intent_succeeded_subscription_recurring_charge_event", lambda x: None, []),
         (True, "charge_refunded_one_time_event", lambda x: None, []),
         (True, "charge_refunded_recurring_charge_event", lambda x: None, []),
         (True, "charge_refunded_recurring_first_charge_event", lambda x: None, []),
         (True, "payment_intent_succeeded_one_time_event", lambda x: None, ["payment_intent.succeeded"]),
         (True, "payment_intent_succeeded_subscription_creation_event", lambda x: None, ["payment_intent.succeeded"]),
-        (
-            True,
-            "payment_intent_succeeded_subscription_recurring_charge_event",
-            lambda x: None,
-            ["payment_intent.succeeded"],
-        ),
         (True, "charge_refunded_one_time_event", lambda x: None, ["charge.refunded"]),
         (True, "charge_refunded_recurring_charge_event", lambda x: None, ["charge.refunded"]),
         (True, "charge_refunded_recurring_first_charge_event", lambda x: None, ["charge.refunded"]),
@@ -1796,17 +1790,11 @@ def charge_refunded_recurring_first_charge_event():
             lambda x: Payment.EVENT_IS_UNEXPECTED_TYPE_ERROR_MSG_TEMPLATE.format(event_types=x),
             ["foo.bar"],
         ),
-        (True, "payment_intent_succeeded_subscription_recurring_charge_event", lambda x: "foo", ["foo.bar"]),
         (
             True,
             "charge_refunded_one_time_event",
             lambda x: Payment.EVENT_IS_UNEXPECTED_TYPE_ERROR_MSG_TEMPLATE.format(event_types=x),
             ["foo.bar"],
-        ),
-        (
-            True,
-            "charge_refunded_recurring_charge_event",
-            lambda x: Payment.MISSING_EVENT_KW_ERROR_MSG.format(event_types=["foo.bar"]),
         ),
         (
             True,
@@ -1913,10 +1901,15 @@ class TestPayment:
         del data["t_shirt_size"]
         return data
 
+    @pytest.fixture
+    def no_metadata(self):
+        return None
+
     @pytest.fixture(
         params=[
             ("valid_metadata", lambda x: StripePaymentMetadataSchemaV1_4(**x)),
             ("invalid_metadata", lambda x: None),
+            ("no_metadata", lambda x: None),
         ]
     )
     def get_valid_metadata_test_case(self, request):
@@ -1930,7 +1923,7 @@ class TestPayment:
         params=[
             "balance_transaction_for_one_time_charge",
             "balance_transaction_for_subscription_creation_charge",
-            # "balance_transaction_for_subscription_recurring_charge",
+            "balance_transaction_for_subscription_recurring_charge",
         ]
     )
     def get_subscription_id_for_balance_transaction_test_case(self, request, mocker):
@@ -2213,3 +2206,27 @@ class TestPayment:
             assert payment.gross_amount_paid == balance_transaction.amount
             assert payment.amount_refunded == 0
             assert payment.stripe_balance_transaction_id == balance_transaction.id
+
+    @pytest.mark.parametrize(
+        "charges,expect_error",
+        (
+            ([], True),
+            ([stripe.Charge.construct_from({"id": "foo"}, stripe.api_key)], False),
+            (
+                [
+                    stripe.Charge.construct_from({"id": "foo"}, stripe.api_key),
+                    stripe.Charge.construct_from({"id": "bar"}, stripe.api_key),
+                ],
+                True,
+            ),
+        ),
+    )
+    def test__ensure_pi_has_single_charge(
+        self, charges, expect_error, payment_intent_for_one_time_contribution, mocker
+    ):
+        payment_intent_for_one_time_contribution.charges.data = charges
+        if expect_error:
+            with pytest.raises(ValueError):
+                Payment._ensure_pi_has_single_charge(payment_intent_for_one_time_contribution, "some-id")
+        else:
+            assert Payment._ensure_pi_has_single_charge(payment_intent_for_one_time_contribution, "some-id") is None

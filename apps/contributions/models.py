@@ -1050,27 +1050,6 @@ class Payment(IndexedTimeStampedModel):
         return getattr(bt.source.invoice, "subscription", None) if bt.source.invoice else None
 
     @classmethod
-    def is_for_recurrence_on_subscription(cls, balance_transaction_id: str, stripe_account_id: str) -> bool:
-        subscription_id = cls.get_subscription_id_for_balance_transaction(balance_transaction_id, stripe_account_id)
-        return (
-            Contribution.objects.filter(provider_subscription_id=subscription_id).exists() if subscription_id else False
-        )
-
-    @classmethod
-    def get_recurring_contribution_for_payment_intent(
-        cls, balance_transaction_id: str, stripe_account_id: str
-    ) -> Contribution | None:
-        subscription_id = cls.get_subscription_id_for_balance_transaction(balance_transaction_id, stripe_account_id)
-        return (
-            Contribution.objects.get(
-                provider_subscription_id=subscription_id,
-                interval__in=[ContributionInterval.MONTHLY, ContributionInterval.YEARLY],
-            )
-            if subscription_id
-            else None
-        )
-
-    @classmethod
     def get_contribution_for_recurrence(
         cls, balance_transaction_id: str, stripe_account_id: str
     ) -> Contribution | None:
@@ -1091,9 +1070,9 @@ class Payment(IndexedTimeStampedModel):
 
     @staticmethod
     def _ensure_pi_has_single_charge(pi: stripe.PaymentIntent, event_id: str) -> None:
-        if len(pi.charges.data) > 1:
-            logger.warning("More than one charge associated with PI %s for event %s", pi.id, event_id)
-            raise ValueError("Cannot link payment intent to a single balance transaction", pi.id)
+        if len(pi.charges.data) != 1:
+            logger.warning("Cannot link pi with ID %s for event %s to a single balance transaction", pi.id, event_id)
+            raise ValueError("Cannot link payment intent to a single balance transaction")
 
     @classmethod
     @ensure_stripe_event(["payment_intent.succeeded"])
@@ -1112,8 +1091,6 @@ class Payment(IndexedTimeStampedModel):
         balance_transaction_id = None
         if pi.charges and pi.charges.data and len(pi.charges.data) == 1:
             balance_transaction_id = pi.charges.data[0].balance_transaction
-        else:  # we expect this to happen when it's a recurrence on a subscription
-            event.data.object.balance_transaction
         if not balance_transaction_id:
             logger.warning("Could not find a balance transaction for PI %s associated with event %s", pi.id, event.id)
             balance_transaction = None

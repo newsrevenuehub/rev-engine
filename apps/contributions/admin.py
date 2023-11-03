@@ -54,6 +54,9 @@ class PaymentAdmin(RevEngineBaseAdmin):
     )
     readonly_fields = fields
 
+    def has_add_permission(self, request, obj=None):
+        return False
+
 
 @admin.register(Contribution)
 class ContributionAdmin(RevEngineBaseAdmin, CompareVersionAdmin):

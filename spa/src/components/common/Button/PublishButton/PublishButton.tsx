@@ -47,7 +47,7 @@ function DisabledTooltip({ children, disabled }: { children: ReactElement; disab
 function PublishButton({ className }: PublishButtonProps) {
   const alert = useAlert();
   const { isLoading, page, savePageChanges } = useEditablePageContext();
-  const { userCanPublishPage } = useContributionPageList();
+  const { orgHasPublishPageLimit } = useContributionPageList();
   const { user } = useUser();
   const {
     open: openMaxPagesPublishedModal,
@@ -90,7 +90,6 @@ function PublishButton({ className }: PublishButtonProps) {
 
   const handleClick = (event: MouseEvent<HTMLElement>) => {
     // These should never happen, but TypeScript doesn't know that.
-
     if (!page) {
       throw new Error('page is not defined');
     }
@@ -100,15 +99,13 @@ function PublishButton({ className }: PublishButtonProps) {
     }
 
     // If the page has been published, show the popover.
-
     if (pageIsPublished(page)) {
       setAnchorEl(event.currentTarget);
       return;
     }
 
-    // If the user's hit their plan limit, stop them here.
-
-    if (!userCanPublishPage(user)) {
+    // If the user's hit their org's plan limit, stop them here.
+    if (!orgHasPublishPageLimit(page.revenue_program.organization)) {
       handleOpenMaxPagesPublishedModal();
       return;
     }
@@ -207,7 +204,7 @@ function PublishButton({ className }: PublishButtonProps) {
       <MaxPagesPublishedModal
         onClose={handleCloseMaxPagesPublishedModal}
         open={openMaxPagesPublishedModal}
-        currentPlan={user.organizations[0].plan.name}
+        currentPlan={page.revenue_program.organization.plan.name}
       />
       <PublishModal
         slugError={slugError}

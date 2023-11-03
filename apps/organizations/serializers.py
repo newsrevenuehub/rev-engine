@@ -83,10 +83,12 @@ class RevenueProgramForDonationPageListSerializer(serializers.ModelSerializer):
     The field requirements here are determined by what the SPA needs
     """
 
+    organization = OrganizationInlineSerializer()
+
     class Meta:
         model = RevenueProgram
-        fields = _RP_FOR_DONATION_PAGE_LIST_SERIALIZER_FIELDS
-        read_only_fields = _RP_FOR_DONATION_PAGE_LIST_SERIALIZER_FIELDS
+        fields = _RP_FOR_DONATION_PAGE_LIST_SERIALIZER_FIELDS + ("organization",)
+        read_only_fields = fields
 
 
 class RevenueProgramForPageDetailSerializer(serializers.ModelSerializer):

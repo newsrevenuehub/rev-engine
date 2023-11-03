@@ -41,7 +41,7 @@ describe('DonationUpgradePrompts', () => {
       isLoading: false,
       newPageProperties: jest.fn(),
       userCanCreatePage: jest.fn(),
-      userCanPublishPage: jest.fn()
+      orgHasPublishPageLimit: jest.fn()
     });
     useUserMock.mockReturnValue({ user: mockUser } as any);
     window.sessionStorage.clear();
@@ -132,7 +132,7 @@ describe('DonationUpgradePrompts', () => {
       isLoading: true,
       newPageProperties: jest.fn(),
       userCanCreatePage: jest.fn(),
-      userCanPublishPage: jest.fn()
+      orgHasPublishPageLimit: jest.fn()
     });
     tree();
     expect(screen.queryByTestId('mock-donation-core-upgrade-prompt')).not.toBeInTheDocument();
@@ -146,7 +146,7 @@ describe('DonationUpgradePrompts', () => {
       isLoading: false,
       newPageProperties: jest.fn(),
       userCanCreatePage: jest.fn(),
-      userCanPublishPage: jest.fn()
+      orgHasPublishPageLimit: jest.fn()
     });
     tree();
     expect(screen.queryByTestId('mock-donation-core-upgrade-prompt')).not.toBeInTheDocument();
@@ -165,7 +165,7 @@ describe('DonationUpgradePrompts', () => {
       isLoading: false,
       newPageProperties: jest.fn(),
       userCanCreatePage: jest.fn(),
-      userCanPublishPage: jest.fn()
+      orgHasPublishPageLimit: jest.fn()
     });
     tree();
     expect(screen.queryByTestId('mock-donation-core-upgrade-prompt')).not.toBeInTheDocument();

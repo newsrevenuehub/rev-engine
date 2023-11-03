@@ -11,12 +11,17 @@ jest.mock('react-router-dom', () => ({ useHistory: jest.fn() }));
 jest.mock('react-alert');
 
 const mockPages = [
-  { id: 'mock-page-id-1', name: 'Page 1', revenue_program: { name: 'mock-rp' }, slug: 'mock-rp-page-1' },
+  {
+    id: 'mock-page-id-1',
+    name: 'Page 1',
+    revenue_program: { name: 'mock-rp', organization: { id: '1' } },
+    slug: 'mock-rp-page-1'
+  },
   {
     id: 'mock-page-id-2',
     name: 'Page 2',
     published_date: new Date().toString(),
-    revenue_program: { name: 'mock-rp' },
+    revenue_program: { name: 'mock-rp', organization: { id: '1' } },
     slug: 'mock-rp-page-2'
   }
 ];
@@ -245,66 +250,34 @@ describe('useContributionPageList', () => {
     });
   });
 
-  describe('userCanPublishPage', () => {
-    it('always returns true if the user is a Hub admin', () => {
-      const { result } = hook();
-
-      expect(result.current.userCanPublishPage({ role_type: [USER_ROLE_HUB_ADMIN_TYPE] } as any)).toBe(true);
-    });
-
-    it('always returns true if the user is a superuser', () => {
-      const { result } = hook();
-
-      expect(result.current.userCanPublishPage({ role_type: [USER_SUPERUSER_TYPE] } as any)).toBe(true);
-    });
-
+  describe('orgHasPublishPageLimit', () => {
     it('returns false while pages are loading', () => {
       const { result } = hook();
 
-      expect(
-        result.current.userCanPublishPage({
-          organizations: [{ plan: { page_limit: 0 } }],
-          role_type: [USER_ROLE_ORG_ADMIN_TYPE]
-        } as any)
-      ).toBe(false);
+      expect(result.current.orgHasPublishPageLimit({ id: '1', plan: { page_limit: 0 } } as any)).toBe(false);
     });
 
     // There's one published and one unpublished page in mock data.
 
-    it("returns true if the user is under their first organization's page limit", async () => {
+    it('returns true if the current organization is under their page limit', async () => {
       const { result, waitFor } = hook();
 
       await waitFor(() => expect(result.current.pages?.length).toBe(2));
-      expect(
-        result.current.userCanPublishPage({
-          organizations: [{ plan: { publish_limit: 2 } }, { plan: { publish_limit: 0 } }],
-          role_type: [USER_ROLE_ORG_ADMIN_TYPE]
-        } as any)
-      ).toBe(true);
+      expect(result.current.orgHasPublishPageLimit({ id: '1', plan: { publish_limit: 2 } } as any)).toBe(true);
     });
 
-    it("returns false if the user is at their first organization's page limit", async () => {
+    it('returns false if the current organization is at their page limit', async () => {
       const { result, waitFor } = hook();
 
       await waitFor(() => expect(result.current.pages?.length).toBe(2));
-      expect(
-        result.current.userCanCreatePage({
-          organizations: [{ plan: { publish_limit: 1 } }, { plan: { publish_limit: 0 } }],
-          role_type: [USER_ROLE_ORG_ADMIN_TYPE]
-        } as any)
-      ).toBe(false);
+      expect(result.current.orgHasPublishPageLimit({ id: '1', plan: { publish_limit: 1 } } as any)).toBe(false);
     });
 
-    it("returns false if the user is above their first organization's page limit", async () => {
+    it('returns false if the current organization is above their page limit', async () => {
       const { result, waitFor } = hook();
 
       await waitFor(() => expect(result.current.pages?.length).toBe(2));
-      expect(
-        result.current.userCanCreatePage({
-          organizations: [{ plan: { publish_limit: 0 } }, { plan: { publish_limit: 1 } }],
-          role_type: [USER_ROLE_ORG_ADMIN_TYPE]
-        } as any)
-      ).toBe(false);
+      expect(result.current.orgHasPublishPageLimit({ id: '1', plan: { publish_limit: 0 } } as any)).toBe(false);
     });
   });
 });

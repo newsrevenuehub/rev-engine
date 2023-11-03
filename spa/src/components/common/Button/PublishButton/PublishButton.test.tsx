@@ -1,7 +1,7 @@
 import userEvent from '@testing-library/user-event';
 import { axe } from 'jest-axe';
 import { act, render, screen, waitFor } from 'test-utils';
-import { AxiosError, AxiosResponse } from 'axios';
+import { AxiosError } from 'axios';
 import { GENERIC_ERROR } from 'constants/textConstants';
 import useContributionPageList from 'hooks/useContributionPageList';
 import { useEditablePageContext } from 'hooks/useEditablePage';
@@ -25,7 +25,8 @@ jest.mock('./UnpublishModal/UnpublishModal');
 const unpublishedPage = {
   name: 'Contribution page',
   revenue_program: {
-    slug: 'news-revenue-hub'
+    slug: 'news-revenue-hub',
+    organization: { plan: { name: PLAN_NAMES.FREE } }
   },
   payment_provider: {
     stripe_verified: true
@@ -60,7 +61,7 @@ describe('PublishButton', () => {
   beforeEach(() => {
     useAlertMock.mockReturnValue({ error: jest.fn() });
     useEditablePageContextMock.mockReturnValue({ isLoading: false, page: unpublishedPage });
-    useContributionPageListMock.mockReturnValue({ userCanPublishPage: () => true });
+    useContributionPageListMock.mockReturnValue({ orgHasPublishPageLimit: () => true });
     useUserMock.mockReturnValue({ user });
   });
 
@@ -197,7 +198,7 @@ describe('PublishButton', () => {
 
       describe('And the user can publish a new page', () => {
         beforeEach(() => {
-          useContributionPageListMock.mockReturnValue({ userCanPublishPage: () => true });
+          useContributionPageListMock.mockReturnValue({ orgHasPublishPageLimit: () => true });
         });
 
         it('shows an enabled button with label "Publish"', () => {
@@ -300,7 +301,7 @@ describe('PublishButton', () => {
       });
 
       describe("But the user can't publish new pages", () => {
-        beforeEach(() => useContributionPageListMock.mockReturnValue({ userCanPublishPage: () => false }));
+        beforeEach(() => useContributionPageListMock.mockReturnValue({ orgHasPublishPageLimit: () => false }));
 
         it('shows an enabled button with label "Publish"', () => {
           tree();

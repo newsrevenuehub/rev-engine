@@ -52,7 +52,7 @@ const editorHeaders = {
   DFrequency: 'Contribution Frequency',
   DPayment: 'Agree to Pay Fees',
   DReason: 'Reason for Giving',
-  DSwag: 'Contributor Benefits'
+  DSwag: 'Swag'
 };
 
 export interface ElementEditorProps {

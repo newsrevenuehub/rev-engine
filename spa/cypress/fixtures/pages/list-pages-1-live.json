@@ -1,33 +1,47 @@
 [
   {
-      "id": 29,
-      "name": "Aspen Journalism",
-      "published_date": "2020-09-17T00:00:00",
-      "page_screenshot": null,
-      "slug": "donate",
-      "revenue_program": {
-          "id": 10,
-          "name": "Aspen Journalism RP",
-          "slug": "aspenjournalism",
-          "twitter_handle": "",
-          "website_url": "",
-          "contact_email": "",
-          "address": ", , "
+    "id": 29,
+    "name": "Aspen Journalism",
+    "published_date": "2020-09-17T00:00:00",
+    "page_screenshot": null,
+    "slug": "donate",
+    "revenue_program": {
+      "id": 10,
+      "name": "Aspen Journalism RP",
+      "slug": "aspenjournalism",
+      "twitter_handle": "",
+      "website_url": "",
+      "contact_email": "",
+      "address": ", , ",
+      "organization": {
+        "id": 10,
+        "plan": {
+          "name": "Free",
+          "publish_limit": 1
+        }
       }
+    }
   },
   {
-      "id": 483,
-      "name": "Another",
-      "page_screenshot": null,
-      "slug": "my-other-page",
-      "revenue_program": {
-          "id": 11,
-          "name": "Another RP",
-          "slug": "aspenjournalism-part-deux",
-          "twitter_handle": "",
-          "website_url": "",
-          "contact_email": "",
-          "address": ", , "
+    "id": 483,
+    "name": "Another",
+    "page_screenshot": null,
+    "slug": "my-other-page",
+    "revenue_program": {
+      "id": 11,
+      "name": "Another RP",
+      "slug": "aspenjournalism-part-deux",
+      "twitter_handle": "",
+      "website_url": "",
+      "contact_email": "",
+      "address": ", , ",
+      "organization": {
+        "id": 10,
+        "plan": {
+          "name": "Free",
+          "publish_limit": 1
+        }
       }
+    }
   }
 ]

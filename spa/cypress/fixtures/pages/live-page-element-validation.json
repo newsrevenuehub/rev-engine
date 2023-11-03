@@ -15,7 +15,14 @@
     "google_analytics_v3_domain": null,
     "google_analytics_v3_id": null,
     "google_analytics_v4_id": null,
-    "facebook_pixel_id": null
+    "facebook_pixel_id": null,
+    "organization": {
+      "id": 10,
+      "plan": {
+        "name": "Free",
+        "publish_limit": 1
+      }
+    }
   },
   "payment_provider": {
     "id": 2,

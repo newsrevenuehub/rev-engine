@@ -10,7 +10,13 @@
     "created": "2021-07-20T16:39:40.559524Z",
     "modified": "2021-07-20T16:39:40.559524Z",
     "name": "MyProgram",
-    "organization": 14,
+    "organization": {
+      "id": 10,
+      "plan": {
+        "name": "Free",
+        "publish_limit": 1
+      }
+    },
     "default_donation_page": null,
     "google_analytics_v3_id": "UA-2222222",
     "google_analytics_v3_domain": "www.google.com",
@@ -42,19 +48,8 @@
   "plan": {
     "name": "FREE",
     "label": "Free",
-    "sidebar_elements": [
-      "DRichText",
-      "DImage"
-    ],
-    "page_elements": [
-      "DAmount",
-      "DDonorAddress",
-      "DDonorInfo",
-      "DFrequency",
-      "DPayment",
-      "DReason",
-      "DRichText"
-    ],
+    "sidebar_elements": ["DRichText", "DImage"],
+    "page_elements": ["DAmount", "DDonorAddress", "DDonorInfo", "DFrequency", "DPayment", "DReason", "DRichText"],
     "page_limit": 1,
     "custom_thank_you_page_enabled": false
   }

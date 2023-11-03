@@ -134,7 +134,8 @@
     "id": 123,
     "fontSizes": ["12px", "16px", "24px", "32px", "48px", "84px", "96px"],
     "font": {
-      "body": "'Roboto', sans-serif", "heading": "'Roboto', sans-serif"
+      "body": "'Roboto', sans-serif",
+      "heading": "'Roboto', sans-serif"
     },
     "radii": ["20px", "40px", "80px"],
     "colors": {
@@ -157,7 +158,13 @@
     "name": "MyRevProgram",
     "contact_email": "myrevprogram@mycompany.com",
     "address": "123 Fake Street, Durham, NC 27701",
-    "organization": 14,
+    "organization": {
+      "id": 10,
+      "plan": {
+        "name": "Free",
+        "publish_limit": 1
+      }
+    },
     "default_donation_page": null,
     "google_analytics_v3_id": "UA-2222222",
     "google_analytics_v3_domain": "www.google.com",

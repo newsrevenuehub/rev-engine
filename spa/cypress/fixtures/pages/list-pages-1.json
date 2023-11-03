@@ -11,7 +11,14 @@
       "twitter_handle": "",
       "website_url": "",
       "contact_email": "",
-      "address": ", , "
+      "address": ", , ",
+      "organization": {
+        "id": 10,
+        "plan": {
+          "name": "Free",
+          "publish_limit": 1
+        }
+      }
     }
   },
   {
@@ -26,7 +33,14 @@
       "twitter_handle": "",
       "website_url": "",
       "contact_email": "",
-      "address": ", , "
+      "address": ", , ",
+      "organization": {
+        "id": 10,
+        "plan": {
+          "name": "Free",
+          "publish_limit": 1
+        }
+      }
     }
   }
 ]

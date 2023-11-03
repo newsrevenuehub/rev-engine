@@ -70,6 +70,25 @@ export function DSwag(props: DSwagProps) {
     });
   }
 
+  const optOutCheckbox = (
+    <FormControlLabel
+      control={<Checkbox checked={optOut} name="swag_opt_out" onChange={handleSwagOptOutChange} value="true" />}
+      label={t('donationPage.dSwag.maximizeContribution')}
+    />
+  );
+
+  // If we are only showing the opt-out checkbox, skip other kinds of logic as
+  // below and just show the checkbox. We don't need to consider the threshold
+  // or choices.
+
+  if (element.content.showOptOutOnly) {
+    return (
+      <DElement label="Swag" {...props} data-testid="d-swag">
+        {optOutCheckbox}
+      </DElement>
+    );
+  }
+
   // If there are no swag choices configured and we're on a live page, show
   // nothing. This should only happen if the user didn't configure any.
 
@@ -77,6 +96,9 @@ export function DSwag(props: DSwagProps) {
     return null;
   }
 
+  // We are showing swag choices, only available if the total contribution meets
+  // the threshold.
+  //
   // We assume we are the only swag element on the page (hopefully guaranteed by
   // setting unique below to true), and set the field name to swag_choices so
   // that the value matches what our Stripe metadata spec.
@@ -92,10 +114,7 @@ export function DSwag(props: DSwagProps) {
       )}
       {meetsThreshold && (
         <Controls data-testid="swag-content">
-          <FormControlLabel
-            control={<Checkbox checked={optOut} name="swag_opt_out" onChange={handleSwagOptOutChange} />}
-            label={t('donationPage.dSwag.maximizeContribution')}
-          />
+          {optOutCheckbox}
           {element.content.swags?.map(({ swagName, swagOptions }, index) => (
             <TextField
               defaultValue=""
@@ -125,7 +144,7 @@ export function DSwag(props: DSwagProps) {
 
 DSwag.propTypes = DSwagPropTypes;
 DSwag.type = 'DSwag';
-DSwag.displayName = 'Contributor Benefits';
+DSwag.displayName = 'Swag';
 DSwag.description = 'Allow contributors to make choices about optional swag';
 DSwag.required = false;
 DSwag.unique = true;

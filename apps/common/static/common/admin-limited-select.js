@@ -76,6 +76,10 @@
 
   function setSelectOptions($select) {
     if (parentReadable) {
+      // Remember the originally-selected value so we can preserve it.
+
+      const value = $select.val();
+
       $select.empty();
       if (options.length === 0 && parentReadable) {
         var text = "";
@@ -94,6 +98,10 @@
           );
         });
       }
+
+      // And set the value again.
+
+      $select.val(value);
     }
     // If parentReadable is false, this indicates that the parent field isn't in the state we expect it to be.
     // This includes things like the field being in a readonly state.

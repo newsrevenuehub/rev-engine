@@ -297,6 +297,7 @@ To pass additional arguments to pytest:
 
 ```sh
 make run-tests EXTRA_PYTEST=-vvv
+make run-tests EXTRA_PYTEST="-x --numprocesses=3"
 ```
 
 ### 13. Run Jest tests

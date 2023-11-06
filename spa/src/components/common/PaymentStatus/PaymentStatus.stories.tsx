@@ -16,3 +16,6 @@ export default {
 const Template: ComponentStory<typeof PaymentStatus> = (props) => <PaymentStatus {...props} />;
 
 export const Default = Template.bind({});
+Default.args = {
+  status: 'paid'
+};

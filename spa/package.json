@@ -76,7 +76,7 @@
     "test:coverage": "CI=true jest --coverage",
     "test:ci": "CI=true jest",
     "storybook": "storybook dev -p 6006 -s ../public",
-    "build-storybook": "storybook build -s ../public"
+    "build-storybook": "storybook build -s public"
   },
   "browserslist": [
     ">0.2%",

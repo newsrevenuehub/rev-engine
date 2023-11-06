@@ -17,7 +17,7 @@ i18n
       loadPath: '/static/locales/{{lng}}/{{ns}}.json'
     },
     fallbackLng: 'en',
-    debug: import.meta.env.NODE_ENV === 'development',
+    debug: process.env.NODE_ENV === 'development',
     interpolation: {
       escapeValue: false // not needed for react as it escapes by default
     },

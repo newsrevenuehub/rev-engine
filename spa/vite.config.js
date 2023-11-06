@@ -8,6 +8,11 @@ const config = defineConfig({
   build: {
     outDir: 'build'
   },
+  define: {
+    // Needed because we reference this in code. Using import.meta.MODE causes
+    // problems in Jest.
+    'process.env.NODE_ENV': process.env.NODE_ENV
+  },
   plugins: [
     checker({
       eslint: { lintCommand: 'eslint src' },

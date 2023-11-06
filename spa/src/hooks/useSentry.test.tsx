@@ -39,11 +39,11 @@ describe('useSentry', () => {
   const initMock = Sentry.init as jest.Mock;
   let oldEnv: string | undefined;
 
-  beforeEach(() => (oldEnv = import.meta.env.NODE_ENV));
-  afterEach(() => (import.meta.env.NODE_ENV = oldEnv));
+  beforeEach(() => (oldEnv = process.env.NODE_ENV));
+  afterEach(() => (process.env.NODE_ENV = oldEnv));
 
   it('initializes Sentry in a non-development environment and when SENTRY_ENABLE_FRONTEND is true', () => {
-    import.meta.env.NODE_ENV = 'production';
+    process.env.NODE_ENV = 'production';
     mockSentryEnableFrontEndGetter.mockReturnValue(true);
     renderHook(() => useSentry());
     expect(initMock.mock.calls).toEqual([
@@ -59,14 +59,14 @@ describe('useSentry', () => {
   });
 
   it("doesn't initialize Sentry in a development environment", () => {
-    import.meta.env.NODE_ENV = 'development';
+    process.env.NODE_ENV = 'development';
     mockSentryEnableFrontEndGetter.mockReturnValue(true);
     renderHook(() => useSentry());
     expect(initMock).not.toBeCalled();
   });
 
   it("doesn't initialize Sentry if SENTRY_ENABLE_FRONTEND is false", () => {
-    import.meta.env.NODE_ENV = 'production';
+    process.env.NODE_ENV = 'production';
     mockSentryEnableFrontEndGetter.mockReturnValue(false);
     renderHook(() => useSentry());
     expect(initMock).not.toBeCalled();

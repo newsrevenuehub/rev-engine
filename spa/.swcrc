@@ -1,0 +1,17 @@
+{
+  // SWC is *only* used with Jest. Changes here will not affect app compilation.
+  // See jest.config.js where this is configured.
+  "$schema": "https://json.schemastore.org/swcrc",
+  "jsc": {
+    "parser": {
+      "syntax": "typescript",
+      "tsx": true
+    },
+    "transform": {
+      "react": {
+        "runtime": "automatic"
+      }
+    }
+  },
+  "minify": false
+}

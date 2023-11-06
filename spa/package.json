@@ -74,7 +74,7 @@
     "lint": "eslint src",
     "test": "jest --watch",
     "test:coverage": "CI=true jest --coverage",
-    "test:ci": "CI=true npm test",
+    "test:ci": "CI=true jest",
     "storybook": "storybook dev -p 6006 -s ../public",
     "build-storybook": "storybook build -s ../public"
   },

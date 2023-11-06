@@ -1,18 +1,8 @@
 const { defineConfig } = require('cypress');
-const webpackPreprocessor = require('@cypress/webpack-preprocessor');
-
-// Our Cypress tests import code from src/. To make this work, we need Cypress
-// to use the Webpack config that create-react-app uses.
-//
-// When we live in a TypeScript world, these kinds of hacks should be unnecessary.
-//
-// See:
-// https://docs.cypress.io/api/plugins/preprocessors-api
-// https://github.com/cypress-io/cypress/tree/master/npm/webpack-preprocessor#options
-
-// CRA expects a NODE_ENV to be set.
-process.env.NODE_ENV = 'development';
-const craWebpackConfig = require('react-scripts/config/webpack.config');
+const vitePreprocessor = require('cypress-vite');
+import react from '@vitejs/plugin-react';
+import svgr from 'vite-plugin-svgr';
+import tsconfigPaths from 'vite-tsconfig-paths';
 
 module.exports = defineConfig({
   // Don't save video files of runs.
@@ -23,9 +13,15 @@ module.exports = defineConfig({
   chromeWebSecurity: false,
   e2e: {
     setupNodeEvents(on, config) {
-      const webpackOptions = craWebpackConfig('development');
-
-      on('file:preprocessor', webpackPreprocessor({ webpackOptions, watchOptions: {} }));
+      on(
+        'file:preprocessor',
+        vitePreprocessor({
+          define: {
+            'process.env.NODE_ENV': '"cypress"'
+          },
+          plugins: [react(), svgr(), tsconfigPaths()]
+        })
+      );
     },
     baseUrl: 'http://localhost:3000',
     specPattern: 'cypress/e2e/**/*cy.js'

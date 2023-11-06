@@ -69,6 +69,10 @@ export const PENDO_VISITOR_PREFIX = resolveConstantFromEnv('PENDO_VISITOR_PREFIX
 export const ENVIRONMENT = resolveConstantFromEnv('ENVIRONMENT');
 
 function resolveConstantFromEnv(constantName: string, defaultValue?: boolean | string | string[]) {
+  if (process.env.NODE_ENV === 'cypress') {
+    return defaultValue;
+  }
+
   // If we're in development, use webpack's process.env string replace. If not,
   // use window.ENV vars. Oddly enough, this dynamically read
   // process.env[ENV_VAR_NAME] seems to work here, despite the fact that webpack
@@ -78,9 +82,10 @@ function resolveConstantFromEnv(constantName: string, defaultValue?: boolean | s
   // ||s for compares here are to maintain existing functionality as ?? has
   // different behavior with null values.
 
-  if (process.env.NODE_ENV === 'development') {
-    return process.env[`REACT_APP_${constantName}`] || defaultValue;
-  }
+  // FIXME This doesn't work in Vite
+  // if (process.env.NODE_ENV === 'development') {
+  //   return process.env[`REACT_APP_${constantName}`] || defaultValue;
+  // }
 
   if ((window as any).ENV) {
     return (window as any).ENV[constantName] || defaultValue;

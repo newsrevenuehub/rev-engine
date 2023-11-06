@@ -91,7 +91,7 @@ jobs:
         with:
           working-directory: spa
           build: npx cypress info
-          start: npm run start:subdomains
+          start: npm run start
           wait-on: http://localhost:3000
           wait-on-timeout: 120
           # because of "record" and "parallel" parameters

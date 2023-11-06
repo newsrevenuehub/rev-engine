@@ -847,6 +847,19 @@ describe('User flow: unhappy paths', () => {
       .findByRole('button', { name: /Enter a valid amount/ })
       .should('have.attr', 'disabled');
   });
+
+  specify('User enters single character into country field, then hits enter', () => {
+    cy.visitDonationPage();
+    fillOutDonorInfoSection();
+    cy.get('[data-testid*="mailing_street"]').type('123 Main St');
+    cy.findByRole('button', { name: 'Address line 2 (Apt, suite, etc.)' }).click();
+    cy.get('[data-testid*="mailing_complement"]').type('Ap 1');
+    cy.get('[data-testid*="mailing_city"]').type('Big City');
+    cy.get('[data-testid*="mailing_state"]').type('NY');
+    cy.get('[data-testid*="mailing_postal_code"]').type('100738');
+    cy.get('#country').type('a{enter}');
+    cy.get('[data-testid="500-something-wrong"]').should('not.exist');
+  });
 });
 
 describe('StripePaymentForm unhappy paths', () => {

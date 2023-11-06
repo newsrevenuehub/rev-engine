@@ -84,8 +84,8 @@ DBenefits.propTypes = {
 };
 
 DBenefits.type = 'DBenefits';
-DBenefits.displayName = 'Contributor Benefits';
-DBenefits.description = 'Display contributor benefits';
+DBenefits.displayName = 'Member Benefits';
+DBenefits.description = 'Display member benefits';
 DBenefits.required = false;
 DBenefits.unique = true;
 

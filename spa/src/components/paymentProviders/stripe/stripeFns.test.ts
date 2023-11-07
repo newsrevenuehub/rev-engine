@@ -8,6 +8,7 @@ import {
 } from './stripeFns';
 import { PAYMENT_SUCCESS } from 'routes';
 import { CONTRIBUTION_INTERVALS } from 'constants/contributionIntervals';
+import { mocki18n } from 'test-utils';
 
 jest.mock('utilities/calculateStripeFee', () => () => 9000.99);
 
@@ -136,7 +137,7 @@ describe('createPaymentMethod', () => {
 
 describe('getPaymentSuccessUrl', () => {
   it.each([[fromPageSlugParams], [fromDefaultPageParams]])('generates the expected payment success URL', (args) => {
-    const url = getPaymentSuccessUrl(args);
+    const url = getPaymentSuccessUrl(mocki18n, args);
     const parsed = new URL(url);
 
     expect(`${parsed.protocol}//${parsed.hostname}`).toEqual(args.baseUrl);
@@ -156,11 +157,11 @@ describe('getPaymentSuccessUrl', () => {
   // this test is here syntax in original implementation was flawed and caused `amount: 1` to
   // raise the missing args error.
   it('accepts an amount of 1', () => {
-    getPaymentSuccessUrl({ ...fromDefaultPageParams, amount: 1 } as any);
+    getPaymentSuccessUrl(mocki18n, { ...fromDefaultPageParams, amount: 1 } as any);
   });
 
   it('throws if a necessary param is missing', () =>
-    expect(() => getPaymentSuccessUrl({ ...fromDefaultPageParams, baseUrl: undefined } as any)).toThrow());
+    expect(() => getPaymentSuccessUrl(mocki18n, { ...fromDefaultPageParams, baseUrl: undefined } as any)).toThrow());
 });
 
 describe('serializeData', () => {
@@ -287,6 +288,8 @@ describe('getPaymentElementButtonText', () => {
     ${100} | ${CONTRIBUTION_INTERVALS.ANNUAL}   | ${'CAD'}     | ${'$'}         | ${'stripeFns.paymentElementButtonText.year{"amount":"$100.00 CAD"}'}
     ${100} | ${CONTRIBUTION_INTERVALS.MONTHLY}  | ${'CAD'}     | ${'$'}         | ${'stripeFns.paymentElementButtonText.month{"amount":"$100.00 CAD"}'}
   `('produces expected result', ({ amount, frequency, currencyCode, currencySymbol, expectation }) => {
-    expect(getPaymentElementButtonText({ amount, currencyCode, frequency, currencySymbol })).toBe(expectation);
+    expect(getPaymentElementButtonText(mocki18n, { amount, currencyCode, frequency, currencySymbol })).toBe(
+      expectation
+    );
   });
 });

@@ -78,11 +78,6 @@
     "storybook": "storybook dev -p 6006",
     "build-storybook": "storybook build"
   },
-  "browserslist": [
-    ">0.2%",
-    "not dead",
-    "not op_mini all"
-  ],
   "devDependencies": {
     "@storybook/addon-essentials": "^7.5.3",
     "@storybook/addon-interactions": "^6.5.10",
@@ -122,6 +117,7 @@
     "@vitejs/plugin-react": "^4.1.1",
     "axios-mock-adapter": "^1.21.2",
     "babel-plugin-named-exports-order": "^0.0.2",
+    "browserslist-to-esbuild": "^1.2.0",
     "chromatic": "^6.10.2",
     "cypress": "^10.9.0",
     "cypress-localstorage-commands": "^1.7.0",

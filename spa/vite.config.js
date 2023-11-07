@@ -1,3 +1,4 @@
+import browserslistToEsbuild from 'browserslist-to-esbuild';
 import { defineConfig } from 'vite';
 import react from '@vitejs/plugin-react';
 import checker from 'vite-plugin-checker';
@@ -9,6 +10,9 @@ const config = defineConfig({
   base: '/static/',
   build: {
     manifest: true,
+    // Dockerfile looks for this directory when assembling files. We can't copy
+    // files directly into Django paths because those aren't available at that
+    // stage of the Dockerfile.
     outDir: 'build',
     rollupOptions: {
       // We intentionally don't have an index.html here. Django serves it
@@ -17,7 +21,8 @@ const config = defineConfig({
       input: {
         main: 'src/index.jsx'
       }
-    }
+    },
+    target: browserslistToEsbuild(['>0.2%', 'not dead', 'not op_mini all'])
   },
   define: {
     // Needed because we reference this in code. Using import.meta.MODE causes
@@ -35,6 +40,7 @@ const config = defineConfig({
     tsconfigPaths()
   ],
   server: {
+    // Accept connections on any hostname.
     host: true,
     // Need this because Django dev server doesn't proxy web sockets.
     hmr: { port: 3001 },

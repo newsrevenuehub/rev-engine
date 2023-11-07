@@ -1,9 +1,9 @@
 import { PaymentMethodCreateParams, Stripe, StripeCardElement } from '@stripe/stripe-js';
+import { i18n } from 'i18next';
 import { ContributionInterval } from 'constants/contributionIntervals';
 import { PAYMENT_SUCCESS } from 'routes';
 import calculateStripeFee from 'utilities/calculateStripeFee';
 import formatStringAmountForDisplay from 'utilities/formatStringAmountForDisplay';
-import i18n from 'i18n';
 
 /**
  * getTotalAmount takes an amount in dollars and an optional fee in dollars and adds them up.
@@ -165,17 +165,20 @@ export interface GetPaymentSuccessUrlArgs {
   thankYouRedirectUrl: string;
 }
 
-export function getPaymentSuccessUrl({
-  baseUrl,
-  thankYouRedirectUrl,
-  amount,
-  emailHash,
-  frequencyDisplayValue,
-  contributorEmail,
-  pageSlug,
-  rpSlug,
-  pathName
-}: GetPaymentSuccessUrlArgs) {
+export function getPaymentSuccessUrl(
+  i18n: i18n,
+  {
+    baseUrl,
+    thankYouRedirectUrl,
+    amount,
+    emailHash,
+    frequencyDisplayValue,
+    contributorEmail,
+    pageSlug,
+    rpSlug,
+    pathName
+  }: GetPaymentSuccessUrlArgs
+) {
   const missingParams = Object.fromEntries(
     Object.entries({
       baseUrl,
@@ -243,13 +246,10 @@ interface GetPaymentElementButtonTextArgs {
   locale?: string;
 }
 
-export function getPaymentElementButtonText({
-  currencyCode,
-  currencySymbol,
-  amount,
-  frequency,
-  locale
-}: GetPaymentElementButtonTextArgs) {
+export function getPaymentElementButtonText(
+  i18n: i18n,
+  { currencyCode, currencySymbol, amount, frequency, locale }: GetPaymentElementButtonTextArgs
+) {
   return i18n.t(`stripeFns.paymentElementButtonText.${frequency}`, {
     amount: `${currencySymbol}${formatStringAmountForDisplay(amount, locale)}${currencyCode ? ' ' + currencyCode : ''}`
   });

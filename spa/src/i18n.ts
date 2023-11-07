@@ -20,7 +20,14 @@ i18n
     debug: process.env.NODE_ENV === 'development',
     interpolation: {
       escapeValue: false // not needed for react as it escapes by default
-    }
+    },
+    lng: 'en'
   });
 
+/**
+ * This global instance of i18next is a fallback that currently only ever uses
+ * English. It's here for any localized components outside of a donation page.
+ * If you want to work with the i18n instance on a published contribution page,
+ * you must use `useTranslation()` instead of importing this.
+ */
 export default i18n;

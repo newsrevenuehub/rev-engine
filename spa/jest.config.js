@@ -1,6 +1,7 @@
 const { compilerOptions } = require('./tsconfig.json');
 
 module.exports = {
+  collectCoverageFrom: ['**/*.[jt]s?(x)', '!**/node_modules/**', '!**/*.stories.[jt]sx', '!**/*.styled.js'],
   resetMocks: true,
   setupFilesAfterEnv: ['./src/setupTests.jsx'],
   testEnvironment: 'jsdom',

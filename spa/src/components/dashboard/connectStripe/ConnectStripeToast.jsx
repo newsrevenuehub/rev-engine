@@ -15,8 +15,8 @@ import {
 import useConnectStripeAccount from 'hooks/useConnectStripeAccount';
 
 // Assets
-import StripeLogo from 'assets/icons/stripeLogo.svg?react';
-import Triangle6Dots from 'assets/icons/triangle6Dots.svg?react';
+import StripeLogo from 'assets/icons/stripeLogo.svg';
+import Triangle6Dots from 'assets/icons/triangle6Dots.svg';
 import RemoveIcon from '@material-ui/icons/Remove';
 import { Tooltip } from 'components/base';
 import ConnectStripeNeedHelpCta from './ConnectStripeNeedHelpCTA';

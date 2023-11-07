@@ -16,6 +16,7 @@ import { AnalyticsContextProvider } from './components/analytics/AnalyticsContex
 // Routing
 import { BrowserRouter } from 'react-router-dom';
 import { ReactChild } from 'react';
+import { i18n } from 'i18next';
 
 export * from '@testing-library/react';
 export * as user from '@testing-library/user-event';
@@ -73,3 +74,9 @@ export const render = (ui: React.ReactElement, options?: Omit<rtl.RenderOptions,
     wrapper: (props) => <TestProviders {...props} {...options} />
   });
 };
+
+// Mock instance of i18next that returns the key and params sent to it. Use this
+// only when you need to test using the i18n instance outside of React.
+// Otherwise, use the useTranslation global mock.
+
+export const mocki18n = { t: (key: string, options: any) => `${key}${options ? JSON.stringify(options) : ''}` } as i18n;

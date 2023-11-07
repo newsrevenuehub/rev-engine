@@ -7,7 +7,6 @@ import { useLocation } from 'react-router-dom';
 import { ICONS } from 'assets/icons/SvgIcon';
 import { getPaymentElementButtonText, getPaymentSuccessUrl } from 'components/paymentProviders/stripe/stripeFns';
 import { Payment } from 'hooks/usePayment';
-import { getFrequencyThankYouText } from 'utilities/parseFrequency';
 import { Icon, IconWrapper, SubmitButton, Form } from './StripePaymentForm.styled';
 import { useTranslation } from 'react-i18next';
 
@@ -21,7 +20,7 @@ export interface StripePaymentFormProps extends InferProps<typeof StripePaymentF
 }
 
 export function StripePaymentForm({ payment, locale }: StripePaymentFormProps) {
-  const { t } = useTranslation();
+  const { i18n, t } = useTranslation();
   const alert = useAlert();
   const elements = useElements();
   const { pathname } = useLocation();
@@ -36,14 +35,14 @@ export function StripePaymentForm({ payment, locale }: StripePaymentFormProps) {
 
   const paymentSubmitButtonText = useMemo(
     () =>
-      getPaymentElementButtonText({
+      getPaymentElementButtonText(i18n, {
         currencyCode: payment.currency.code,
         currencySymbol: payment.currency.symbol,
         frequency: payment.interval,
         amount: parseFloat(payment.amount),
         locale
       }),
-    [locale, payment.amount, payment.currency.code, payment.currency.symbol, payment.interval]
+    [i18n, locale, payment.amount, payment.currency.code, payment.currency.symbol, payment.interval]
   );
 
   const [isLoading, setIsLoading] = useState(false);
@@ -67,12 +66,12 @@ export function StripePaymentForm({ payment, locale }: StripePaymentFormProps) {
     // track successful conversion in analytics, before forwarding them on to the default
     // thank you page.
 
-    const return_url = getPaymentSuccessUrl({
+    const return_url = getPaymentSuccessUrl(i18n, {
       amount: payment.amount,
       baseUrl: window.location.origin,
       contributorEmail: payment.stripe.billingDetails.email ?? '',
       emailHash: payment.emailHash ?? '',
-      frequencyDisplayValue: getFrequencyThankYouText(payment.interval),
+      frequencyDisplayValue: i18n.t(`common.frequency.thankYous.${payment.interval}`),
       pageSlug: payment.pageSlug,
       pathName: pathname,
       rpSlug: payment.revenueProgramSlug,

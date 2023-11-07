@@ -1,11 +1,9 @@
-import { axe } from 'jest-axe';
-import { cleanup, fireEvent, render, screen } from 'test-utils';
-import { UsePageProps, DonationPageContext } from '../DonationPage';
-import DAmount, { DAmountProps } from './DAmount';
-import { CONTRIBUTION_INTERVALS } from 'constants/contributionIntervals';
-import { getFrequencyRate } from 'utilities/parseFrequency';
 import userEvent from '@testing-library/user-event';
-import { within } from '@testing-library/react';
+import { axe } from 'jest-axe';
+import { CONTRIBUTION_INTERVALS } from 'constants/contributionIntervals';
+import { cleanup, fireEvent, render, screen, within } from 'test-utils';
+import { DonationPageContext, UsePageProps } from '../DonationPage';
+import DAmount, { DAmountProps } from './DAmount';
 
 jest.mock('./PayFeesControl');
 
@@ -252,24 +250,26 @@ describe('DAmount', () => {
       expect(within(screen.getByTestId('amount-other')).getByText('mock-currency-symbol')).toBeVisible();
     });
 
-    it('shows the correct label for the frequency in the page', () => {
-      Object.values(CONTRIBUTION_INTERVALS).forEach((frequency) => {
-        tree(propsWithOtherAmount, { frequency });
+    it('shows the correct label for one-time contributions', () => {
+      // One-time contributions show no label, just the currency symbol.
 
-        // One-time contributions show no label, just the currency symbol.
+      tree(propsWithOtherAmount, { frequency: 'one_time' });
+      expect(screen.getByTestId('amount-other')).toHaveTextContent('mock-currency-symbol');
+    });
 
-        if (frequency === CONTRIBUTION_INTERVALS.ONE_TIME) {
-          // eslint-disable-next-line jest/no-conditional-expect
-          expect(screen.getByTestId('amount-other')).toHaveTextContent('mock-currency-symbol');
-        } else {
-          // eslint-disable-next-line jest/no-conditional-expect
-          expect(
-            within(screen.getByTestId('amount-other-selected')).getByText(getFrequencyRate(frequency))
-          ).toBeVisible();
-        }
+    // Gist of the below is: filter out one-time frequencies since we test that
+    // above, then turn each one into a separate test. Jest wants a structure
+    // like this [[test arg 1, arg 2], [test arg 1, arg 2]].
 
-        cleanup();
-      });
+    it.each(
+      Object.values(CONTRIBUTION_INTERVALS)
+        .filter((value) => value !== 'one_time')
+        .map((value) => [value])
+    )('shows the correct label for %s contributions', (frequency) => {
+      tree(propsWithOtherAmount, { frequency });
+      expect(
+        within(screen.getByTestId('amount-other-selected')).getByText(`common.frequency.rates.${frequency}`)
+      ).toBeVisible();
     });
 
     it('sets the amount when a user enters a numeric value into the field', () => {

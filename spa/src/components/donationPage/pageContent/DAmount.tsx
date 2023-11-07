@@ -1,9 +1,9 @@
+import { i18n } from 'i18next';
 import React, { useState, useMemo, useEffect } from 'react';
 import PropTypes, { InferProps } from 'prop-types';
 import { DAmountStyled, FeesContainer, FreqSubtext, OtherAmount, OtherAmountInput } from './DAmount.styled';
 
 // Util
-import { getFrequencyRate } from 'utilities/parseFrequency';
 import { parseFloatStrictly } from 'utilities/parseFloatStrictly';
 
 // Context
@@ -16,8 +16,23 @@ import usePreviousState from 'hooks/usePreviousState';
 import FormErrors from 'elements/inputs/FormErrors';
 import PayFeesControl from './PayFeesControl';
 import { useTranslation } from 'react-i18next';
+import { ContributionInterval } from 'constants/contributionIntervals';
 
 export type DAmountProps = InferProps<typeof DAmountPropTypes>;
+
+/**
+ * Returns label text for after an amount, like `/year` or `/month`.
+ */
+function rateText(i18n: i18n, interval: ContributionInterval) {
+  switch (interval) {
+    case 'month':
+    case 'year':
+      return i18n.t(`common.frequency.rates.${interval}`);
+
+    default:
+      return '';
+  }
+}
 
 function DAmount({ element, ...props }: DAmountProps) {
   const {
@@ -31,7 +46,7 @@ function DAmount({ element, ...props }: DAmountProps) {
     errors,
     userAgreesToPayFees
   } = usePage();
-  const { t } = useTranslation();
+  const { i18n, t } = useTranslation();
   const prevFrequency = usePreviousState(frequency);
   const currencyCode = page?.currency?.code;
   const currencySymbol = page?.currency?.symbol;
@@ -143,7 +158,7 @@ function DAmount({ element, ...props }: DAmountProps) {
                 data-testid={`amount-${amountOption}${selected ? '-selected' : ''}`}
               >
                 {`${currencySymbol}${amountOption} ${currencyCode}`}{' '}
-                <FreqSubtext selected={selected}>{getFrequencyRate(frequency)}</FreqSubtext>
+                <FreqSubtext selected={selected}>{rateText(i18n, frequency)}</FreqSubtext>
               </SelectableButton>
             </li>
           );
@@ -165,7 +180,7 @@ function DAmount({ element, ...props }: DAmountProps) {
               // weird numbers after calculating fees and fixing decimals
               maxLength={9}
             />
-            <FreqSubtext data-testid="custom-amount-rate">{getFrequencyRate(frequency)}</FreqSubtext>
+            <FreqSubtext data-testid="custom-amount-rate">{rateText(i18n, frequency)}</FreqSubtext>
           </OtherAmount>
         )}
         {displayPayFeesControl && (

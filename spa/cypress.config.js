@@ -1,8 +1,6 @@
 const { defineConfig } = require('cypress');
+const path = require('path');
 const vitePreprocessor = require('cypress-vite');
-import react from '@vitejs/plugin-react';
-import svgr from 'vite-plugin-svgr';
-import tsconfigPaths from 'vite-tsconfig-paths';
 
 module.exports = defineConfig({
   // Don't save video files of runs.
@@ -13,17 +11,9 @@ module.exports = defineConfig({
   chromeWebSecurity: false,
   e2e: {
     setupNodeEvents(on, config) {
-      on(
-        'file:preprocessor',
-        vitePreprocessor({
-          define: {
-            'process.env.NODE_ENV': '"cypress"'
-          },
-          plugins: [react(), svgr(), tsconfigPaths()]
-        })
-      );
+      on('file:preprocessor', vitePreprocessor({ configFile: path.resolve(__dirname, './vite.cypress.config.js') }));
     },
-    baseUrl: 'http://localhost:3000',
+    baseUrl: 'http://localhost:8000',
     specPattern: 'cypress/e2e/**/*cy.js'
   }
 });

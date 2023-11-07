@@ -49,13 +49,6 @@ run-gcloud-pub-sub:
 	cd spa; npm start &
 	ENABLE_PUBSUB=true python manage.py runserver
 
-run-hybrid:
-	@echo 'Running local development as hybrid app (with Django serving SPA)'
-	docker-compose -f docker-compose.yml -f docker-compose-dev.yml up -d --remove-orphans redis db
-	cd spa; export BROWSER=none; export REACT_APP_NO_PROXY=y; npm start &
-	sleep 3 && python -m webbrowser http://localhost:8000 &
-	python manage.py runserver
-
 run-redis:
 	@echo 'Running local development with redis'
 	docker-compose -f docker-compose.yml -f docker-compose-dev.yml up -d --remove-orphans redis db

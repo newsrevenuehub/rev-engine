@@ -1,7 +1,10 @@
+{% load django_vite %}
 {% load revengine_tags %}
 <!DOCTYPE html>
 <html lang="en">
   <head>
+    {% vite_hmr_client %}
+    {% vite_react_refresh %}
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
 
@@ -79,5 +82,5 @@
     <div id="root"></div>
     <div id="modal-root"></div>
   </body>
-  <script src="./src/index.jsx" type="module"></script>
+  {% vite_asset 'src/index.jsx' %}
 </html>

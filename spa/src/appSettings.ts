@@ -1,11 +1,9 @@
 // These constants may be static values, or read from the "environment".
-// Constants read from the "environment" locally are analyzed by webpack and
-// converted to static values at build time using the built-in
-// .env -> "REACT_APP_ENV_VAR" -> string
+// Constants read from the "environment"  are actually added to the window
+// object when the initial index.html is requested in Django and are available
+// as properties of window.ENV.
 //
-// Constants read from the "environment" in a deployed environment are actually
-// added to the window object when the initial index.html is requested and are
-// available as properties of window.ENV.
+// See apps/common/templates/spa_env.html for where these are set.
 
 // These subdomain labels will redirect to the org portal.
 export const DASHBOARD_SUBDOMAINS = resolveConstantFromEnv('DASHBOARD_SUBDOMAINS', ['', 'www', 'support']);
@@ -69,24 +67,6 @@ export const PENDO_VISITOR_PREFIX = resolveConstantFromEnv('PENDO_VISITOR_PREFIX
 export const ENVIRONMENT = resolveConstantFromEnv('ENVIRONMENT');
 
 function resolveConstantFromEnv(constantName: string, defaultValue?: boolean | string | string[]) {
-  if (process.env.NODE_ENV === 'cypress') {
-    return defaultValue;
-  }
-
-  // If we're in development, use webpack's process.env string replace. If not,
-  // use window.ENV vars. Oddly enough, this dynamically read
-  // process.env[ENV_VAR_NAME] seems to work here, despite the fact that webpack
-  // seems to do a relatively simple string replace on "process.env.ENV_VAR" at
-  // build time.
-
-  // ||s for compares here are to maintain existing functionality as ?? has
-  // different behavior with null values.
-
-  // FIXME This doesn't work in Vite
-  // if (process.env.NODE_ENV === 'development') {
-  //   return process.env[`REACT_APP_${constantName}`] || defaultValue;
-  // }
-
   if ((window as any).ENV) {
     return (window as any).ENV[constantName] || defaultValue;
   }

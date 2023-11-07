@@ -468,7 +468,7 @@ describe('User flow: happy path', () => {
 
         expect(return_url).to.equal(
           expectedPaymentSuccessUrl({
-            baseUrl: 'http://revenueprogram.revengine-testabc123.com:3000/',
+            baseUrl: 'http://revenueprogram.revengine-testabc123.com:8000/',
             thankYouRedirectUrl: '',
             amount: payFees ? '123.01' : '120',
             emailHash: fakeEmailHash,
@@ -601,7 +601,7 @@ describe('User flow: happy path', () => {
 
         expect(return_url).to.equal(
           expectedPaymentSuccessUrl({
-            baseUrl: 'http://revenueprogram.revengine-testabc123.com:3000/',
+            baseUrl: 'http://revenueprogram.revengine-testabc123.com:8000/',
             thankYouRedirectUrl: '',
             amount: payFees ? '10.53' : '10',
             emailHash: fakeEmailHash,
@@ -662,7 +662,7 @@ describe('User flow: happy path', () => {
       } = x.getCalls()[0].args[0];
       expect(return_url).to.equal(
         expectedPaymentSuccessUrl({
-          baseUrl: 'http://revenueprogram.revengine-testabc123.com:3000/',
+          baseUrl: 'http://revenueprogram.revengine-testabc123.com:8000/',
           thankYouRedirectUrl: '',
           amount: '10.53',
           emailHash: fakeEmailHash,
@@ -946,7 +946,7 @@ describe('StripePaymentForm unhappy paths', () => {
   });
 });
 
-const paymentSuccessRoute = `http://revenueprogram.revengine-testabc123.com:3000${PAYMENT_SUCCESS}`;
+const paymentSuccessRoute = `http://revenueprogram.revengine-testabc123.com:8000${PAYMENT_SUCCESS}`;
 
 const successPageQueryParams = {
   amount: '120.00',
@@ -981,7 +981,7 @@ describe('Payment success page', () => {
       expect(params.get('cd[value]')).to.equal('120.00');
     });
     // get forwarded to right destination
-    cy.url().should('equal', `http://revenueprogram.revengine-testabc123.com:3000/${livePageOne.slug}/thank-you/`);
+    cy.url().should('equal', `http://revenueprogram.revengine-testabc123.com:8000/${livePageOne.slug}/thank-you/`);
   });
 
   specify('Using off-site thank you page', () => {
@@ -1010,6 +1010,6 @@ describe('Payment success page', () => {
     // default donation page path (which will just be `/`), it sets `fromPath` to empty.
     cy.visit(paymentSuccessRoute, { qs: { ...successPageQueryParams, fromPath: '' } });
     // get forwarded to right destination
-    cy.url().should('equal', `http://revenueprogram.revengine-testabc123.com:3000/thank-you/`);
+    cy.url().should('equal', `http://revenueprogram.revengine-testabc123.com:8000/thank-you/`);
   });
 });

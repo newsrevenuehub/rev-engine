@@ -82,6 +82,7 @@ describe('Donation detail', () => {
   describe('Previously but no-longer-flagged donation', () => {
     beforeEach(() => {
       cy.forceLogin(hubAdminWithFlags);
+      cy.intercept(getEndpoint(LIST_PAGES), { fixture: 'pages/list-pages-1' }).as('listPages');
       cy.intercept({ method: 'GET', pathname: getEndpoint(USER) }, { body: hubAdminWithFlags });
       cy.intercept('GET', getEndpoint(CONTRIBUTIONS + CONTRIBUTION_PK), {
         body: prevFlaggedContributionDetailData

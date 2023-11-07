@@ -11,6 +11,7 @@ https://docs.djangoproject.com/en/3.2/ref/settings/
 import base64
 import json
 import os
+import re
 from datetime import timedelta
 from pathlib import Path
 from typing import Literal, TypedDict
@@ -85,6 +86,22 @@ STATICFILES_DIRS = [
 MEDIA_ROOT = os.path.join(BASE_DIR, "public/media")
 MEDIA_URL = "/media/"
 
+# django-vite settings
+DJANGO_VITE_ASSETS_PATH = "/static/spa/"
+DJANGO_VITE_DEV_MODE = DEBUG
+
+
+# Vite generates files with 8 hash digits
+# http://whitenoise.evans.io/en/stable/django.html#WHITENOISE_IMMUTABLE_FILE_TEST
+# and https://github.com/MrBin99/django-vite
+def immutable_file_test(path, url):
+    # Match filename with 12 hex digits before the extension
+    # e.g. app.db8f2edc0c8a.js
+    return re.match(r"^.+\.[0-9a-f]{8,12}\..+$", url)
+
+
+WHITENOISE_IMMUTABLE_FILE_TEST = immutable_file_test
+
 # django-storages Settings
 MEDIA_STORAGE_BUCKET_NAME = os.getenv("MEDIA_STORAGE_BUCKET_NAME", "")
 MEDIA_LOCATION = os.getenv("MEDIA_LOCATION", "")
@@ -142,6 +159,7 @@ INSTALLED_APPS = [
     "reversion",  # Provides undelete and rollback for models' data.
     "reversion_compare",
     "django_test_migrations.contrib.django_checks.AutoNames",
+    "django_vite",
 ]
 
 if ENABLE_API_BROWSER:

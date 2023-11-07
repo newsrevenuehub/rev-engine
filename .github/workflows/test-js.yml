@@ -80,19 +80,45 @@ jobs:
     steps:
       - name: Checkout
         uses: actions/checkout@v3
+      - uses: actions/setup-python@v4
+        with:
+          python-version: "3.10"
+      - name: Install Poetry
+        uses: snok/install-poetry@v1.3.1
+        with:
+          virtualenvs-create: true
+          virtualenvs-in-project: true
+      - name: Load cached venv
+        id: cached-poetry-dependencies
+        uses: actions/cache@v3
+        with:
+          path: .venv
+          key: venv-${{ runner.os }}-${{ hashFiles('**/poetry.lock') }}
+      - name: Install dependencies
+        if: steps.cached-poetry-dependencies.outputs.cache-hit != 'true'
+        run: poetry install --no-interaction --no-root
+      - name: Install library
+        run: poetry install --no-interaction
+      - name: Activate Python venv
+        run: |
+          source .venv/bin/activate
+          touch .env
+        env:
+          DJANGO_SETTINGS_MODULE: revengine.settings.dev
+          DATABASE_URL: postgres://postgres:postgres@127.0.0.1:5432/postgres
       - name: Setup custom hosts for subdomain testing
         run: |
           echo "127.0.0.1 revengine-testabc123.com" | sudo tee -a /etc/hosts
           echo "127.0.0.1 revenueprogram.revengine-testabc123.com" | sudo tee -a /etc/hosts
       - name: Debug hosts
         run: cat /etc/hosts
+      - name: Start dev server
+        run: python manage.py runserver &
       - name: Cypress tests
         uses: cypress-io/github-action@v4
         with:
           working-directory: spa
-          build: npx cypress info
-          start: npm run start
-          wait-on: http://localhost:3000
+          wait-on: http://localhost:8000
           wait-on-timeout: 120
           # because of "record" and "parallel" parameters
           # these containers will load balance all found tests among themselves

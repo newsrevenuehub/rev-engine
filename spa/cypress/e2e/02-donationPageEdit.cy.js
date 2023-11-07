@@ -332,7 +332,7 @@ describe('Contribution page edit', () => {
       cy.intercept({ method: 'GET', pathname: `${getEndpoint(LIST_PAGES)}**` }, { body: page, statusCode: 200 }).as(
         'getPageDetail'
       );
-      cy.intercept(`**/${LIST_STYLES}**`, {});
+      cy.intercept(`${getEndpoint(LIST_STYLES)}**`, {});
 
       cy.forceLogin(orgAdminUser);
       cy.intercept({ method: 'GET', pathname: getEndpoint(USER) }, { body: orgAdminWithContentFlag });
@@ -357,7 +357,7 @@ describe('Contribution page edit', () => {
       const fixture = { ...unpublishedPage, plan: { ...unpublishedPage.plan, custom_thank_you_page_enabled: true } };
       cy.intercept({ method: 'GET', pathname: `${getEndpoint(LIST_PAGES)}**` }, { body: fixture }).as('getPageDetail');
       cy.forceLogin(orgAdminUser);
-      cy.intercept(`**/${LIST_STYLES}**`, {});
+      cy.intercept(`${getEndpoint(LIST_STYLES)}**`, {});
 
       cy.intercept({ method: 'GET', pathname: getEndpoint(USER) }, { body: orgAdminWithContentFlag });
       cy.visit(testEditPageUrl);

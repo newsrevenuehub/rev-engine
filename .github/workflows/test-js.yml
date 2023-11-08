@@ -65,6 +65,21 @@ jobs:
     needs: check-changes
     if: ${{ needs['check-changes'].outputs.spa == 'true' }}
     runs-on: ubuntu-latest
+    services:
+      postgres:
+        # From:
+        # https://docs.github.com/en/actions/guides/creating-postgresql-service-containers
+        image: postgres
+        env:
+          POSTGRES_PASSWORD: postgres
+        # Set health checks to wait until postgres has started
+        options: >-
+          --health-cmd pg_isready
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+        ports:
+          - 5432:5432
     strategy:
       # when one test fails, DO NOT cancel the other
       # containers, because this will kill Cypress processes
@@ -99,26 +114,29 @@ jobs:
         run: poetry install --no-interaction --no-root
       - name: Install library
         run: poetry install --no-interaction
-      - name: Activate Python venv
-        run: |
-          source .venv/bin/activate
-          touch .env
-        env:
-          DJANGO_SETTINGS_MODULE: revengine.settings.dev
-          DATABASE_URL: postgres://postgres:postgres@127.0.0.1:5432/postgres
       - name: Setup custom hosts for subdomain testing
         run: |
           echo "127.0.0.1 revengine-testabc123.com" | sudo tee -a /etc/hosts
           echo "127.0.0.1 revenueprogram.revengine-testabc123.com" | sudo tee -a /etc/hosts
       - name: Debug hosts
         run: cat /etc/hosts
-      - name: Start dev server
-        run: python manage.py runserver &
+      - name: Create settings and dev server start script
+        run: |
+          cp revengine/settings/local.example.py revengine/settings/local.py
+          echo 'ALLOWED_HOSTS = ["*"]' >> revengine/settings/local.py
+          cat revengine/settings/local.py
+          echo "source ../.venv/bin/activate" > spa/start_django.sh
+          echo "touch ../.env" >> spa/start_django.sh
+          echo "python ../manage.py migrate" >> spa/start_django.sh
+          echo "python ../manage.py runserver &" >> spa/start_django.sh
+          echo "npm start &" >> spa/start_django.sh
+          cat spa/start_django.sh
       - name: Cypress tests
-        uses: cypress-io/github-action@v4
+        uses: cypress-io/github-action@v6
         with:
+          start: bash start_django.sh
           working-directory: spa
-          wait-on: http://localhost:8000
+          wait-on: http://localhost:8000/
           wait-on-timeout: 120
           # because of "record" and "parallel" parameters
           # these containers will load balance all found tests among themselves
@@ -127,5 +145,8 @@ jobs:
           group: "Cypress integration tests"
         env:
           CYPRESS_RECORD_KEY: ${{ secrets.CYPRESS_RECORD_KEY }}
+          DEBUG: "@cypress/github-action"
+          DJANGO_SETTINGS_MODULE: revengine.settings.local
+          DATABASE_URL: postgres://postgres:postgres@127.0.0.1:5432/postgres
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           CYPRESS_PROJECT_ID: ${{ secrets.PROJECT_ID }}

@@ -39,6 +39,9 @@ GS_DEFAULT_ACL = None
 # Media files are stored in a 'media' directory
 GS_MEDIA_LOCATION = "media"
 
+### django-vite settings
+DJANGO_VITE_DEV_MODE = False
+
 ### React SPA index.html
 FRONTEND_BUILD_DIR = Path(BASE_DIR) / "build"
 TEMPLATES[0]["DIRS"] = [FRONTEND_BUILD_DIR, os.path.join(PROJECT_DIR, "templates")]

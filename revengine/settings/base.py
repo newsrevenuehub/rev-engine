@@ -88,7 +88,8 @@ MEDIA_URL = "/media/"
 
 # django-vite settings
 DJANGO_VITE_ASSETS_PATH = "/static/spa/"
-DJANGO_VITE_DEV_MODE = DEBUG
+# This will be overwritten in deploy.py.
+DJANGO_VITE_DEV_MODE = True
 
 
 # Vite generates files with 8 hash digits

@@ -29,6 +29,7 @@ import { SentryRoute } from 'hooks/useSentry';
 import componentLoader from 'utilities/componentLoader';
 import RouterSetup from './routes/RouterSetup';
 import { ContributionPage } from 'hooks/useContributionPage';
+import { GlobalConfirmationModal } from 'elements/modal/GlobalConfirmationModal.styled';
 
 // Split bundles
 const ContributorEntry = lazy(() => componentLoader(() => import('components/contributor/ContributorEntry')));
@@ -81,36 +82,38 @@ function ContributorRouter() {
   if (!DASHBOARD_SUBDOMAINS.includes(subdomain) && !pageData && !fetchedPageData) return null;
 
   return (
-    <SegregatedStyles page={renderCustomStyles && pageData}>
-      {renderCustomStyles && <DonationPageHeader page={pageData} />}
-      <RouterSetup>
-        <ProtectedRoute
-          path={ROUTES.CONTRIBUTOR_DASHBOARD}
-          render={() => (
-            <TrackPageView>
-              <ContributorDashboard />
-            </TrackPageView>
-          )}
-          contributor
-        />
-        <SentryRoute
-          path={ROUTES.CONTRIBUTOR_ENTRY}
-          render={() => (
-            <TrackPageView>
-              <ContributorEntry page={pageData} />
-            </TrackPageView>
-          )}
-        />
-        <SentryRoute
-          path={ROUTES.CONTRIBUTOR_VERIFY}
-          render={() => (
-            <TrackPageView>
-              <ContributorVerify />
-            </TrackPageView>
-          )}
-        />
-      </RouterSetup>
-    </SegregatedStyles>
+    <GlobalConfirmationModal>
+      <SegregatedStyles page={renderCustomStyles && pageData}>
+        {renderCustomStyles && <DonationPageHeader page={pageData} />}
+        <RouterSetup>
+          <ProtectedRoute
+            path={ROUTES.CONTRIBUTOR_DASHBOARD}
+            render={() => (
+              <TrackPageView>
+                <ContributorDashboard />
+              </TrackPageView>
+            )}
+            contributor
+          />
+          <SentryRoute
+            path={ROUTES.CONTRIBUTOR_ENTRY}
+            render={() => (
+              <TrackPageView>
+                <ContributorEntry page={pageData} />
+              </TrackPageView>
+            )}
+          />
+          <SentryRoute
+            path={ROUTES.CONTRIBUTOR_VERIFY}
+            render={() => (
+              <TrackPageView>
+                <ContributorVerify />
+              </TrackPageView>
+            )}
+          />
+        </RouterSetup>
+      </SegregatedStyles>
+    </GlobalConfirmationModal>
   );
 }
 

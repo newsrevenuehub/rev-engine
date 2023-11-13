@@ -1,4 +1,4 @@
-import { createContext, useState, useContext, useRef, Suspense } from 'react';
+import { lazy, Suspense } from 'react';
 import { MainLayoutWrapper } from './MainLayout.styled';
 
 // Hooks
@@ -14,12 +14,11 @@ import { DASHBOARD_SUBDOMAINS } from 'appSettings';
 import { AnalyticsContextProvider } from './analytics/AnalyticsContext';
 
 // Children
+import componentLoader from 'utilities/componentLoader';
 import GlobalLoading from 'elements/GlobalLoading';
-import GlobalConfirmationModal from 'elements/modal/GlobalConfirmationModal';
-import DonationPageRouter from 'components/DonationPageRouter';
-import DashboardRouter from 'components/DashboardRouter';
-import PortalRouter from 'components/PortalRouter';
-import ReauthContextProvider from './ReauthContext';
+const DonationPageRouter = lazy(() => componentLoader(() => import('components/DonationPageRouter')));
+const DashboardRouter = lazy(() => componentLoader(() => import('components/DashboardRouter')));
+const PortalRouter = lazy(() => componentLoader(() => import('components/PortalRouter')));
 
 function MainLayout() {
   useSentry();
@@ -41,17 +40,13 @@ function MainLayout() {
   }
 
   return (
-    <ReauthContextProvider>
-      <AnalyticsContextProvider>
-        <GlobalConfirmationModal>
-          <MainLayoutWrapper>
-            <Suspense fallback={<GlobalLoading />}>
-              <Router />
-            </Suspense>
-          </MainLayoutWrapper>
-        </GlobalConfirmationModal>
-      </AnalyticsContextProvider>
-    </ReauthContextProvider>
+    <AnalyticsContextProvider>
+      <MainLayoutWrapper>
+        <Suspense fallback={<GlobalLoading />}>
+          <Router />
+        </Suspense>
+      </MainLayoutWrapper>
+    </AnalyticsContextProvider>
   );
 }
 

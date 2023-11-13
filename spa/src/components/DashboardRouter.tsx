@@ -17,6 +17,8 @@ import TrackPageView from 'components/analytics/TrackPageView';
 import { SentryRoute } from 'hooks/useSentry';
 import componentLoader from 'utilities/componentLoader';
 import RouterSetup from './routes/RouterSetup';
+import ReauthContextProvider from './ReauthContext';
+import { GlobalConfirmationModal } from 'elements/modal/GlobalConfirmationModal.styled';
 
 // Split bundles
 const Main = lazy(() => componentLoader(() => import('components/Main')));
@@ -33,73 +35,77 @@ function DashboardRouter() {
   if (isContributorApp) return <ContributorRouter />;
 
   return (
-    <RouterSetup>
-      {/* Login URL */}
+    <ReauthContextProvider>
+      <GlobalConfirmationModal>
+        <RouterSetup>
+          {/* Login URL */}
 
-      <SentryRoute
-        exact
-        path={ROUTES.SIGN_IN}
-        render={() => (
-          <TrackPageView>
-            <SignIn />
-          </TrackPageView>
-        )}
-      />
-      <SentryRoute
-        exact
-        path={ROUTES.SIGN_UP}
-        render={() => (
-          <TrackPageView>
-            <SignUp />
-          </TrackPageView>
-        )}
-      />
-      <SentryRoute
-        exact
-        path={ROUTES.FORGOT_PASSWORD}
-        render={() => (
-          <TrackPageView>
-            <ForgotPassword />
-          </TrackPageView>
-        )}
-      />
-      <SentryRoute
-        exact
-        path={ROUTES.RESET_PASSWORD}
-        render={() => (
-          <TrackPageView>
-            <ResetPassword />
-          </TrackPageView>
-        )}
-      />
+          <SentryRoute
+            exact
+            path={ROUTES.SIGN_IN}
+            render={() => (
+              <TrackPageView>
+                <SignIn />
+              </TrackPageView>
+            )}
+          />
+          <SentryRoute
+            exact
+            path={ROUTES.SIGN_UP}
+            render={() => (
+              <TrackPageView>
+                <SignUp />
+              </TrackPageView>
+            )}
+          />
+          <SentryRoute
+            exact
+            path={ROUTES.FORGOT_PASSWORD}
+            render={() => (
+              <TrackPageView>
+                <ForgotPassword />
+              </TrackPageView>
+            )}
+          />
+          <SentryRoute
+            exact
+            path={ROUTES.RESET_PASSWORD}
+            render={() => (
+              <TrackPageView>
+                <ResetPassword />
+              </TrackPageView>
+            )}
+          />
 
-      <Redirect from="/verified/:slug" to="/verify-email-success?result=:slug" />
-      <Redirect from={ROUTES.VERIFIED} to={ROUTES.VERIFY_EMAIL_SUCCESS} />
+          <Redirect from="/verified/:slug" to="/verify-email-success?result=:slug" />
+          <Redirect from={ROUTES.VERIFIED} to={ROUTES.VERIFY_EMAIL_SUCCESS} />
 
-      {/* Organization Dashboard */}
-      <ProtectedRoute
-        path={[
-          ROUTES.DASHBOARD_SLUG,
-          ROUTES.DONATIONS_SLUG,
-          ROUTES.CONTENT_SLUG,
-          ROUTES.CUSTOMIZE_SLUG,
-          ROUTES.EDITOR_ROUTE,
-          ROUTES.VERIFY_EMAIL_SUCCESS,
-          ROUTES.PROFILE,
-          ROUTES.SETTINGS.INTEGRATIONS,
-          ROUTES.SETTINGS.ORGANIZATION,
-          ROUTES.MAILCHIMP_OAUTH_SUCCESS_ROUTE,
-          ROUTES.SETTINGS.SUBSCRIPTION
-        ]}
-        render={() => (
-          <TrackPageView>
-            <Main />
-          </TrackPageView>
-        )}
-      />
+          {/* Organization Dashboard */}
+          <ProtectedRoute
+            path={[
+              ROUTES.DASHBOARD_SLUG,
+              ROUTES.DONATIONS_SLUG,
+              ROUTES.CONTENT_SLUG,
+              ROUTES.CUSTOMIZE_SLUG,
+              ROUTES.EDITOR_ROUTE,
+              ROUTES.VERIFY_EMAIL_SUCCESS,
+              ROUTES.PROFILE,
+              ROUTES.SETTINGS.INTEGRATIONS,
+              ROUTES.SETTINGS.ORGANIZATION,
+              ROUTES.MAILCHIMP_OAUTH_SUCCESS_ROUTE,
+              ROUTES.SETTINGS.SUBSCRIPTION
+            ]}
+            render={() => (
+              <TrackPageView>
+                <Main />
+              </TrackPageView>
+            )}
+          />
 
-      <Redirect to={ROUTES.CONTENT_SLUG} />
-    </RouterSetup>
+          <Redirect to={ROUTES.CONTENT_SLUG} />
+        </RouterSetup>
+      </GlobalConfirmationModal>
+    </ReauthContextProvider>
   );
 }
 

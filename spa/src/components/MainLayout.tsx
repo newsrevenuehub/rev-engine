@@ -17,8 +17,8 @@ import { AnalyticsContextProvider } from './analytics/AnalyticsContext';
 import componentLoader from 'utilities/componentLoader';
 import GlobalLoading from 'elements/GlobalLoading';
 const DonationPageRouter = lazy(() => componentLoader(() => import('components/DonationPageRouter')));
-const DashboardRouter = lazy(() => componentLoader(() => import('components/DashboardRouter')));
-const PortalRouter = lazy(() => componentLoader(() => import('components/PortalRouter')));
+// const DashboardRouter = lazy(() => componentLoader(() => import('components/DashboardRouter')));
+// const PortalRouter = lazy(() => componentLoader(() => import('components/PortalRouter')));
 
 function MainLayout() {
   useSentry();
@@ -29,15 +29,17 @@ function MainLayout() {
   const isContributorApp = isContributorAppPath();
   const isPortalApp = isPortalAppPath();
 
-  let Router = DashboardRouter;
+  // let Router = DashboardRouter;
 
-  if (!DASHBOARD_SUBDOMAINS.includes(subdomain) && !isContributorApp && !isPortalApp) {
-    Router = DonationPageRouter;
-  }
+  // if (!DASHBOARD_SUBDOMAINS.includes(subdomain) && !isContributorApp && !isPortalApp) {
+  //   Router = DonationPageRouter;
+  // }
 
-  if (isPortalApp) {
-    Router = PortalRouter;
-  }
+  // if (isPortalApp) {
+  //   Router = PortalRouter;
+  // }
+
+  const Router = DonationPageRouter;
 
   return (
     <AnalyticsContextProvider>

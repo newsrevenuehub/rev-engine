@@ -1,5 +1,6 @@
 export * from './Button/Button';
 export * from './Checkbox/Checkbox';
+export * from './CircularProgress/CircularProgress';
 export * from './ColorPicker/ColorPicker';
 export * from './EditableList/EditableList';
 export * from './FormControlLabel/FormControlLabel';

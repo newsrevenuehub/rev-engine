@@ -1,5 +1,6 @@
 import styled from 'styled-components';
 import { Loader } from 'semantic-ui-react';
+import 'semantic-ui-css/semantic.min.css';
 
 function Spinner() {
   return (

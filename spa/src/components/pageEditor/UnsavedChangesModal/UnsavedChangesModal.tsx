@@ -2,6 +2,7 @@ import PropTypes, { InferProps } from 'prop-types';
 import { ModalContent } from 'semantic-ui-react';
 import { Button, Modal, ModalFooter } from 'components/base';
 import { Content, HeaderIcon, ModalHeader } from './UnsavedChangesModal.styled';
+import 'semantic-ui-css/semantic.min.css';
 
 const UnsavedChangesModalPropTypes = {
   onCancel: PropTypes.func.isRequired,

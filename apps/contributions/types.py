@@ -1,5 +1,5 @@
 import datetime
-from typing import Literal
+from typing import Any, Literal, TypedDict
 
 import stripe
 from pydantic import BaseModel
@@ -51,3 +51,15 @@ class StripePiSearchResponse(BaseModel):
         # we do this to enable using `stripe.PaymentIntent` in data field type hint. Without this, pydantic will
         # raise an error because it expects stripe.PaymentIntent to be JSON serializable, which it is not.
         arbitrary_types_allowed = True
+
+
+class StripeEventData(TypedDict):
+    id: str
+    object: str
+    account: str
+    api_version: str
+    created: int
+    data: Any
+    livemode: bool
+    pending_webhooks: int
+    type: str

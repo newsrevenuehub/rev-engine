@@ -6,22 +6,30 @@ from google.cloud.secretmanager import SecretManagerServiceClient
 
 from apps.common.secrets import SecretProviderException, get_secret_manager_client, logger
 from apps.organizations.models import GoogleCloudSecretProvider
+from revengine.utils import __ensure_gs_credentials
 
 
 MODEL_ATTR = "some_attr"
 
 
-class TestGetSecretManagerClient:
-    def test_when_no_service_account(self, settings):
-        settings.GS_SERVICE_ACCOUNT = None
-        assert get_secret_manager_client() is None
-
-    def test_when_service_account(self, settings, mocker):
-        settings.GS_SERVICE_ACCOUNT = {"something": "truthy"}
-        mocker.patch("apps.common.secrets.service_account.Credentials.from_service_account_info", return_value=None)
-        mocker.patch("apps.common.secrets.SecretManagerServiceClient.__init__", return_value=None)
-        client = get_secret_manager_client()
+@pytest.mark.parametrize("valid", [True, False])
+def test_get_secret_manager_client(
+    valid,
+    settings,
+    mocker,
+    minimally_valid_google_service_account_credentials,
+    invalid_google_service_account_credentials,
+):
+    settings.GS_CREDENTIALS = __ensure_gs_credentials(
+        minimally_valid_google_service_account_credentials if valid else invalid_google_service_account_credentials,
+        raise_on_unset=False,
+    )
+    mocker.patch("apps.common.secrets.SecretManagerServiceClient.__init__", return_value=None)
+    client = get_secret_manager_client()
+    if valid:
         assert isinstance(client, SecretManagerServiceClient)
+    else:
+        assert client is None
 
 
 def make_my_object(secret_provider: GoogleCloudSecretProvider):
@@ -44,12 +52,11 @@ def make_my_object(secret_provider: GoogleCloudSecretProvider):
 
 
 @pytest.mark.django_db
+@pytest.mark.usefixtures("valid_gs_credentials")
 class TestGoogleCloudSecretProvider:
     @pytest.mark.parametrize("enabled", [True, False])
     def test_get_happy_path(self, enabled, settings, mocker):
         settings.ENABLE_GOOGLE_CLOUD_SECRET_MANAGER = enabled
-        settings.GS_SERVICE_ACCOUNT = {"something": "truthy"}
-        mocker.patch("google.oauth2.service_account.Credentials.from_service_account_info", return_value=None)
         mock_client = mocker.patch("apps.common.secrets.SecretManagerServiceClient")
         mock_client.return_value.access_secret_version.return_value.payload.data = (val := b"something")
         MyObject = make_my_object(GoogleCloudSecretProvider)
@@ -58,14 +65,13 @@ class TestGoogleCloudSecretProvider:
     def test_get_when_not_found(self, settings, mocker):
         logger_spy = mocker.spy(logger, "info")
         settings.ENABLE_GOOGLE_CLOUD_SECRET_MANAGER = True
-        settings.GS_SERVICE_ACCOUNT = {"something": "truthy"}
         mocker.patch.object(GoogleCloudSecretProvider, "get_secret_name", return_value=(secret_name := "secret-name"))
         mocker.patch.object(
             GoogleCloudSecretProvider,
             "get_secret_version_path",
             return_value=(secret_version_path := "secret-version-path"),
         )
-        mocker.patch("google.oauth2.service_account.Credentials.from_service_account_info", return_value=None)
+
         mock_client = mocker.patch("apps.common.secrets.SecretManagerServiceClient")
         mock_client.return_value.access_secret_version.side_effect = NotFound("Not found")
         MyObject = make_my_object(GoogleCloudSecretProvider)
@@ -75,15 +81,6 @@ class TestGoogleCloudSecretProvider:
             secret_name,
             secret_version_path,
         )
-
-    def test_get_when_not_enabled(self, settings, mocker):
-        logger_spy = mocker.spy(logger, "info")
-        mock_get_client = mocker.patch("apps.common.secrets.get_secret_manager_client")
-        settings.ENABLE_GOOGLE_CLOUD_SECRET_MANAGER = False
-        MyObject = make_my_object(GoogleCloudSecretProvider)
-        assert MyObject(**{MODEL_ATTR: "something"}).val is None
-        mock_get_client.return_value.access_secret_version.assert_not_called()
-        assert logger_spy.call_args == mocker.call("GoogleCloudSecretProvider not enabled")
 
     def test_get_when_no_client(self, settings, mocker):
         logger_spy = mocker.spy(logger, "warning")
@@ -100,14 +97,13 @@ class TestGoogleCloudSecretProvider:
     def test_get_when_permission_denied(self, settings, mocker):
         logger_spy = mocker.spy(logger, "exception")
         settings.ENABLE_GOOGLE_CLOUD_SECRET_MANAGER = True
-        settings.GS_SERVICE_ACCOUNT = {"something": "truthy"}
         mocker.patch.object(GoogleCloudSecretProvider, "get_secret_name", return_value=(secret_name := "secret-name"))
         mocker.patch.object(
             GoogleCloudSecretProvider,
             "get_secret_version_path",
             return_value=(secret_version_path := "secret-version-path"),
         )
-        mocker.patch("google.oauth2.service_account.Credentials.from_service_account_info", return_value=None)
+
         mock_client = mocker.patch("apps.common.secrets.SecretManagerServiceClient")
         mock_client.return_value.access_secret_version.side_effect = PermissionDenied("No way.")
         MyObject = make_my_object(GoogleCloudSecretProvider)
@@ -122,7 +118,6 @@ class TestGoogleCloudSecretProvider:
     def test_set_when_not_enabled(self, settings, mocker):
         logger_spy = mocker.spy(logger, "warning")
         settings.ENABLE_GOOGLE_CLOUD_SECRET_MANAGER = False
-        settings.GS_SERVICE_ACCOUNT = {"something": "truthy"}
         mocker.patch.object(GoogleCloudSecretProvider, "get_secret_name", return_value=(secret_name := "secret-name"))
         mock_client = mocker.patch("apps.common.secrets.SecretManagerServiceClient")
         MyObject = make_my_object(GoogleCloudSecretProvider)
@@ -139,7 +134,6 @@ class TestGoogleCloudSecretProvider:
     def test_set_when_no_client(self, settings, mocker):
         logger_spy = mocker.spy(logger, "warning")
         settings.ENABLE_GOOGLE_CLOUD_SECRET_MANAGER = True
-        settings.GS_SERVICE_ACCOUNT = {"something": "truthy"}
         mocker.patch.object(GoogleCloudSecretProvider, "get_secret_name", return_value=(secret_name := "secret-name"))
         mock_client = mocker.patch("apps.common.secrets.get_secret_manager_client", return_value=None)
         MyObject = make_my_object(GoogleCloudSecretProvider)
@@ -152,8 +146,7 @@ class TestGoogleCloudSecretProvider:
 
     def test_set_when_no_previous_secret(self, mocker, settings):
         settings.ENABLE_GOOGLE_CLOUD_SECRET_MANAGER = True
-        settings.GS_SERVICE_ACCOUNT = {"something": "truthy"}
-        mocker.patch("google.oauth2.service_account.Credentials.from_service_account_info", return_value=None)
+
         mock_client = mocker.patch("apps.common.secrets.SecretManagerServiceClient")
         mock_client.return_value.get_secret.side_effect = NotFound("Not found")
         mock_client.return_value.create_secret.return_value = "something-truthy"
@@ -167,8 +160,7 @@ class TestGoogleCloudSecretProvider:
 
     def test_set_when_previous_secret(self, mocker, settings):
         settings.ENABLE_GOOGLE_CLOUD_SECRET_MANAGER = True
-        settings.GS_SERVICE_ACCOUNT = {"something": "truthy"}
-        mocker.patch("google.oauth2.service_account.Credentials.from_service_account_info", return_value=None)
+
         mock_client = mocker.patch("apps.common.secrets.SecretManagerServiceClient")
         mock_client.return_value.get_secret.return_value = "somthing-truthy"
         MyObject = make_my_object(GoogleCloudSecretProvider)
@@ -180,8 +172,7 @@ class TestGoogleCloudSecretProvider:
 
     def test_set_when_permission_denied_on_retrieving_previous_secret(self, mocker, settings):
         settings.ENABLE_GOOGLE_CLOUD_SECRET_MANAGER = True
-        settings.GS_SERVICE_ACCOUNT = {"something": "truthy"}
-        mocker.patch("google.oauth2.service_account.Credentials.from_service_account_info", return_value=None)
+
         mock_client = mocker.patch("apps.common.secrets.SecretManagerServiceClient")
         mock_client.return_value.get_secret.return_value = "somthing-truthy"
         mock_client.return_value.get_secret.side_effect = PermissionDenied("Nah-uh!")
@@ -195,8 +186,7 @@ class TestGoogleCloudSecretProvider:
 
     def test_set_when_permission_denied_on_creating_new_secret(self, mocker, settings):
         settings.ENABLE_GOOGLE_CLOUD_SECRET_MANAGER = True
-        settings.GS_SERVICE_ACCOUNT = {"something": "truthy"}
-        mocker.patch("google.oauth2.service_account.Credentials.from_service_account_info", return_value=None)
+
         mock_client = mocker.patch("apps.common.secrets.SecretManagerServiceClient")
         mock_client.return_value.get_secret.side_effect = NotFound("unfound")
         mock_client.return_value.create_secret.side_effect = PermissionDenied("Nah-uh!")
@@ -210,8 +200,7 @@ class TestGoogleCloudSecretProvider:
 
     def test_set_when_permission_denied_on_adding_secret_version(self, mocker, settings):
         settings.ENABLE_GOOGLE_CLOUD_SECRET_MANAGER = True
-        settings.GS_SERVICE_ACCOUNT = {"something": "truthy"}
-        mocker.patch("google.oauth2.service_account.Credentials.from_service_account_info", return_value=None)
+
         mock_client = mocker.patch("apps.common.secrets.SecretManagerServiceClient")
         mock_client.return_value.get_secret.return_value.payload.data = (old_val := b"something")
         mock_client.return_value.add_secret_version.side_effect = PermissionDenied("Nah-uh!")
@@ -225,9 +214,8 @@ class TestGoogleCloudSecretProvider:
     def test_delete_when_not_enabled(self, mocker, settings):
         logger_spy = mocker.spy(logger, "warning")
         settings.ENABLE_GOOGLE_CLOUD_SECRET_MANAGER = False
-        settings.GS_SERVICE_ACCOUNT = {"something": "truthy"}
         mocker.patch.object(GoogleCloudSecretProvider, "get_secret_name", return_value=(secret_name := "secret-name"))
-        mocker.patch("google.oauth2.service_account.Credentials.from_service_account_info", return_value=None)
+
         mock_client = mocker.patch("apps.common.secrets.SecretManagerServiceClient")
         MyObject = make_my_object(GoogleCloudSecretProvider)
         instance = MyObject(**{MODEL_ATTR: "something"})
@@ -241,7 +229,6 @@ class TestGoogleCloudSecretProvider:
     def test_delete_when_no_client(self, mocker, settings):
         logger_spy = mocker.spy(logger, "warning")
         settings.ENABLE_GOOGLE_CLOUD_SECRET_MANAGER = True
-        settings.GS_SERVICE_ACCOUNT = {"something": "truthy"}
         mocker.patch.object(GoogleCloudSecretProvider, "get_secret_name", return_value=(secret_name := "secret-name"))
         mocker.patch("apps.common.secrets.get_secret_manager_client", return_value=None)
         MyObject = make_my_object(GoogleCloudSecretProvider)
@@ -253,8 +240,7 @@ class TestGoogleCloudSecretProvider:
 
     def test_delete_when_enabled(self, mocker, settings):
         settings.ENABLE_GOOGLE_CLOUD_SECRET_MANAGER = True
-        settings.GS_SERVICE_ACCOUNT = {"something": "truthy"}
-        mocker.patch("google.oauth2.service_account.Credentials.from_service_account_info", return_value=None)
+
         mock_client = mocker.patch("apps.common.secrets.SecretManagerServiceClient")
         MyObject = make_my_object(GoogleCloudSecretProvider)
         instance = MyObject(**{MODEL_ATTR: "something"})
@@ -264,9 +250,8 @@ class TestGoogleCloudSecretProvider:
     def test_delete_when_permission_denied(self, mocker, settings):
         logger_spy = mocker.spy(logger, "exception")
         settings.ENABLE_GOOGLE_CLOUD_SECRET_MANAGER = True
-        settings.GS_SERVICE_ACCOUNT = {"something": "truthy"}
         mocker.patch.object(GoogleCloudSecretProvider, "get_secret_name", return_value=(secret_name := "secret-name"))
-        mocker.patch("google.oauth2.service_account.Credentials.from_service_account_info", return_value=None)
+
         mock_client = mocker.patch("apps.common.secrets.SecretManagerServiceClient")
         mock_client.return_value.delete_secret.side_effect = PermissionDenied("Nah-uh!")
         MyObject = make_my_object(GoogleCloudSecretProvider)
@@ -281,10 +266,9 @@ class TestGoogleCloudSecretProvider:
     def test_delete_when_not_found(self, mocker, settings):
         logger_spy = mocker.spy(logger, "info")
         settings.ENABLE_GOOGLE_CLOUD_SECRET_MANAGER = True
-        settings.GS_SERVICE_ACCOUNT = {"something": "truthy"}
         mocker.patch.object(GoogleCloudSecretProvider, "get_secret_name", return_value=(secret_name := "secret-name"))
         mocker.patch.object(GoogleCloudSecretProvider, "get_secret_path", return_value=(secret_path := "secret-path"))
-        mocker.patch("google.oauth2.service_account.Credentials.from_service_account_info", return_value=None)
+
         mock_client = mocker.patch("apps.common.secrets.SecretManagerServiceClient")
         mock_client.return_value.delete_secret.side_effect = NotFound("Not found")
         MyObject = make_my_object(GoogleCloudSecretProvider)

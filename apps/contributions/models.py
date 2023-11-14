@@ -308,9 +308,7 @@ class Contribution(IndexedTimeStampedModel):
 
     @property
     def expanded_bad_actor_score(self):
-        if not self.bad_actor_score:
-            return None
-        return self.BAD_ACTOR_SCORES[self.bad_actor_score][1]
+        return None if self.bad_actor_score is None else self.BAD_ACTOR_SCORES[self.bad_actor_score][1]
 
     def get_currency_dict(self) -> CurrencyDict:
         """

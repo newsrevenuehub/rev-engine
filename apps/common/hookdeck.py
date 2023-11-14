@@ -23,6 +23,9 @@ class HookDeckIntegrationError(Exception):
 
 HEADERS = {"Authorization": f"Bearer {settings.HOOKDECK_API_KEY}"}
 
+# TODO: [DEV-4205] Configure Hookdeck retry for failed webhooks to be within Stripe signature verification tolerance.
+#  https://hookdeck.com/docs/configure-connection-rules
+
 
 def upsert(entity_type: Literal["connection", "destination"], data: dict, auto_unarchive: bool = True) -> dict:
     """Upsert given entity type to Hookdeck

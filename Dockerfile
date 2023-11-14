@@ -81,7 +81,7 @@ ENV DJANGO_SETTINGS_MODULE=revengine.settings.deploy
 
 # Call collectstatic (customize the following line with the minimal environment variables needed for manage.py to run):
 RUN touch /code/.env
-RUN DATABASE_URL='' ENVIRONMENT='' DJANGO_SECRET_KEY='dummy' DOMAIN='' python manage.py collectstatic --noinput -i *.scss --no-default-ignore
+RUN DATABASE_URL='' ENVIRONMENT='' DJANGO_SECRET_KEY='dummy' DOMAIN='' GS_CREDENTIALS_RAISE_ERROR_IF_UNSET="false" python manage.py collectstatic --noinput -i *.scss --no-default-ignore
 
 RUN mkdir google-sa && chown ${APP_USER}:${APP_USER} google-sa
 

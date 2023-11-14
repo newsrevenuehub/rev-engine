@@ -2258,3 +2258,8 @@ class TestPayment:
         assert Payment.get_contribution_and_balance_transaction_for_payment_intent_succeeded_event(
             event=payment_intent_succeeded_one_time_event
         ) == (None, None)
+
+    def test_multiple_payments_for_recurring_contribution_behavior(self, monthly_contribution):
+        for x in range(2):
+            PaymentFactory(contribution=monthly_contribution)
+        assert monthly_contribution.payment_set.count() == 2

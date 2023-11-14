@@ -1087,6 +1087,7 @@ class Payment(IndexedTimeStampedModel):
         balance_transaction_id = None
         if pi and pi.charges and pi.charges.data and len(pi.charges.data) == 1:
             balance_transaction_id = pi.charges.data[0].balance_transaction
+        cls._ensure_pi_has_single_charge(pi, event.id)
         if not balance_transaction_id:
             logger.warning(
                 "Could not find a balance transaction for PI %s associated with event %s",
@@ -1100,7 +1101,6 @@ class Payment(IndexedTimeStampedModel):
                 account_id=event.account,
             )
 
-        cls._ensure_pi_has_single_charge(pi, event.id)
         try:
             contribution = Contribution.objects.get(provider_payment_id=pi.id)
         except Contribution.DoesNotExist:

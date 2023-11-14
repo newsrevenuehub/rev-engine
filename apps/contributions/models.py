@@ -1013,7 +1013,7 @@ class Payment(IndexedTimeStampedModel):
         logger.debug("No cached result found for %s", cache_key)
         result = stripe.BalanceTransaction.retrieve(balance_transaction_id, stripe_account=account_id)
         # load/dump gets us fully serializable data suited for caching
-        cache.set(cache_key, json.loads(json.dumps(result)), 60 * 3)
+        cache.set(cache_key, json.loads(json.dumps(result)), settings.RETRIEVED_STRIPE_ENTITY_CACHE_TTL)
         return result
 
     @property

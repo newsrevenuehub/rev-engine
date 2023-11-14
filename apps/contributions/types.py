@@ -70,6 +70,7 @@ class StripeEventData(TypedDict):
     data: Any
     livemode: bool
     pending_webhooks: int
+    type: str
 
 
 class StripeMetadataSchemaBase(pydantic.BaseModel):

@@ -1145,7 +1145,7 @@ class Payment(IndexedTimeStampedModel):
             return None, balance_transaction
         try:
             # NB: these are inclusive OR conditions
-            contribution = Contribution.objects.get(reduce(or_, conditions)) if conditions else None
+            contribution = Contribution.objects.get(reduce(or_, conditions))
         except Contribution.DoesNotExist:
             contribution = None
         return contribution, balance_transaction

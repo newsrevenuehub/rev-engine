@@ -975,6 +975,12 @@ class Payment(IndexedTimeStampedModel):
     amount_refunded = models.IntegerField()
     stripe_balance_transaction_id = models.CharField(max_length=255, unique=True)
 
+    MISSING_EVENT_KW_ERROR_MSG = "Expected a keyword argument called `event` called `event`"
+    ARG_IS_NOT_EVENT_TYPE_ERROR_MSG = "Expected `event` to be an instance of `stripe.Event`"
+    EVENT_IS_UNEXPECTED_TYPE_ERROR_MSG_TEMPLATE = (
+        "Expected `event` to be in the following list of event types: {event_types}"
+    )
+
     class Meta:
         indexes = [
             # We index on contribution because we'll often want to query payments by contribution.
@@ -990,6 +996,13 @@ class Payment(IndexedTimeStampedModel):
     def stripe_account_id(self):
         """Convenience method for referencing the Stripe account ID associated with the payment provider for this payment"""
         return self.contribution.donation_page.revenue_program.payment_provider.stripe_account_id
+
+    @property
+    def stripe_balance_transaction(self):
+        return self._get_stripe_balance_transaction(
+            self.stripe_balance_transaction_id,
+            account_id=self.stripe_account_id,
+        )
 
     @classmethod
     def _get_stripe_balance_transaction(
@@ -1015,19 +1028,6 @@ class Payment(IndexedTimeStampedModel):
         # load/dump gets us fully serializable data suited for caching
         cache.set(cache_key, json.loads(json.dumps(result)), settings.RETRIEVED_STRIPE_ENTITY_CACHE_TTL)
         return result
-
-    @property
-    def stripe_balance_transaction(self):
-        return self._get_stripe_balance_transaction(
-            self.stripe_balance_transaction_id,
-            account_id=self.stripe_account_id,
-        )
-
-    MISSING_EVENT_KW_ERROR_MSG = "Expected a keyword argument called `event` called `event`"
-    ARG_IS_NOT_EVENT_TYPE_ERROR_MSG = "Expected `event` to be an instance of `stripe.Event`"
-    EVENT_IS_UNEXPECTED_TYPE_ERROR_MSG_TEMPLATE = (
-        "Expected `event` to be in the following list of event types: {event_types}"
-    )
 
     @classmethod
     def get_valid_metadata(cls, metadata: dict | None, schema=StripePaymentMetadataSchemaV1_4) -> bool | None:

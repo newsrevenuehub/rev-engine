@@ -1066,7 +1066,7 @@ class Payment(IndexedTimeStampedModel):
 
     @staticmethod
     def _ensure_pi_has_single_charge(pi: stripe.PaymentIntent, event_id: str) -> None:
-        if len(pi.charges.data) != 1:
+        if not (pi and pi.charges and pi.charges.data and len(pi.charges.data) == 1):
             logger.warning("Cannot link pi with ID %s for event %s to a single balance transaction", pi.id, event_id)
             raise ValueError("Cannot link payment intent to a single balance transaction")
 

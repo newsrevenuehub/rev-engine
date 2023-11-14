@@ -3,7 +3,6 @@
 
 import { LIVE_PAGE_DETAIL, AUTHORIZE_STRIPE_PAYMENT_ROUTE } from 'ajax/endpoints';
 import { PAYMENT_SUCCESS } from 'routes';
-import { getPaymentSuccessUrl } from 'components/paymentProviders/stripe/stripeFns';
 import { getEndpoint, getPageElementByType, getTestingDonationPageUrl, EXPECTED_RP_SLUG } from '../support/util';
 import livePageOne from '../fixtures/pages/live-page-1.json';
 
@@ -11,7 +10,6 @@ import livePageOne from '../fixtures/pages/live-page-1.json';
 import { CLEARBIT_SCRIPT_SRC } from '../../src/hooks/useClearbit';
 import { CONTRIBUTION_INTERVALS } from '../../src/constants/contributionIntervals';
 
-import * as freqUtils from 'utilities/parseFrequency';
 import calculateStripeFee from 'utilities/calculateStripeFee';
 import { DEFAULT_BACK_BUTTON_TEXT } from 'components/common/Button/BackButton/BackButton';
 
@@ -20,6 +18,23 @@ const expectedPageSlug = `${pageSlug}/`;
 
 function getFeesCheckbox() {
   return cy.get('[data-testid="pay-fees"] input[type="checkbox"]');
+}
+
+function expectedPaymentSuccessUrl(props) {
+  const url = new URL('/payment/success/', props.baseUrl);
+
+  url.search = new URLSearchParams({
+    pageSlug: props.pageSlug,
+    rpSlug: props.rpSlug,
+    amount: props.amount.toString(),
+    email: props.contributorEmail,
+    frequency: props.frequencyDisplayValue,
+    fromPath: props.pathName === '/' ? '' : props.pathName,
+    next: props.thankYouRedirectUrl,
+    uid: props.emailHash
+  }).toString();
+
+  return url.href;
 }
 
 describe('Clearbit', () => {
@@ -68,19 +83,21 @@ describe('Donation page displays dynamic page elements', () => {
   });
 
   it('should render text indicating expected frequencies', () => {
+    const expectedSuffixes = {
+      month: '/month',
+      year: '/year'
+    };
     const frequency = getPageElementByType(livePageOne, 'DFrequency');
 
     cy.getByTestId('d-amount');
 
     for (const freq of frequency.content) {
-      const rate = freqUtils.getFrequencyRate(freq.value);
-
       cy.contains(freq.displayName).click();
       cy.getByTestId('d-amount').find('h2').contains(freq.displayName);
       cy.getByTestId('pay-fees').scrollIntoView().find('label').contains(freq.displayName, { matchCase: false });
 
-      if (rate) {
-        cy.getByTestId('custom-amount-rate').contains(rate);
+      if (freq in expectedSuffixes) {
+        cy.getByTestId('custom-amount-rate').contains(expectedSuffixes[freq]);
       }
     }
   });
@@ -450,7 +467,7 @@ describe('User flow: happy path', () => {
         } = x.getCalls()[0].args[0];
 
         expect(return_url).to.equal(
-          getPaymentSuccessUrl({
+          expectedPaymentSuccessUrl({
             baseUrl: 'http://revenueprogram.revengine-testabc123.com:3000/',
             thankYouRedirectUrl: '',
             amount: payFees ? '123.01' : '120',
@@ -583,7 +600,7 @@ describe('User flow: happy path', () => {
         } = x.getCalls()[0].args[0];
 
         expect(return_url).to.equal(
-          getPaymentSuccessUrl({
+          expectedPaymentSuccessUrl({
             baseUrl: 'http://revenueprogram.revengine-testabc123.com:3000/',
             thankYouRedirectUrl: '',
             amount: payFees ? '10.53' : '10',
@@ -644,7 +661,7 @@ describe('User flow: happy path', () => {
         confirmParams: { return_url }
       } = x.getCalls()[0].args[0];
       expect(return_url).to.equal(
-        getPaymentSuccessUrl({
+        expectedPaymentSuccessUrl({
           baseUrl: 'http://revenueprogram.revengine-testabc123.com:3000/',
           thankYouRedirectUrl: '',
           amount: '10.53',
@@ -846,6 +863,19 @@ describe('User flow: unhappy paths', () => {
     cy.get('form')
       .findByRole('button', { name: /Enter a valid amount/ })
       .should('have.attr', 'disabled');
+  });
+
+  specify('User enters single character into country field, then hits enter', () => {
+    cy.visitDonationPage();
+    fillOutDonorInfoSection();
+    cy.get('[data-testid*="mailing_street"]').type('123 Main St');
+    cy.findByRole('button', { name: 'Address line 2 (Apt, suite, etc.)' }).click();
+    cy.get('[data-testid*="mailing_complement"]').type('Ap 1');
+    cy.get('[data-testid*="mailing_city"]').type('Big City');
+    cy.get('[data-testid*="mailing_state"]').type('NY');
+    cy.get('[data-testid*="mailing_postal_code"]').type('100738');
+    cy.get('#country').type('a{enter}');
+    cy.get('[data-testid="500-something-wrong"]').should('not.exist');
   });
 });
 

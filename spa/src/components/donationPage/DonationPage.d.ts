@@ -59,3 +59,5 @@ export interface UsePageProps {
 export declare const DonationPageContext: Context<UsePageProps>;
 
 export declare function usePage(): UsePageProps;
+
+export default function DonationPage(props: { live?: boolean; page: ContributionPage18nProvider }): JSX.Element;

@@ -1,4 +1,4 @@
-import { render, screen, waitFor } from 'test-utils';
+import { render, screen, waitFor, within } from 'test-utils';
 import { useEditablePageContext } from 'hooks/useEditablePage';
 import userEvent from '@testing-library/user-event';
 import PageEditor from './PageEditor';
@@ -11,10 +11,10 @@ jest.mock('hooks/useRequest');
 jest.mock('elements/GlobalLoading');
 jest.mock('hooks/useEditablePage');
 jest.mock('components/donationPage/DonationPage');
-jest.mock('components/pageEditor/editInterface/EditInterface', () => ({
-  __esModule: true,
-  default: () => <div data-testid="mock-edit-interface"></div>
-}));
+jest.mock('components/donationPage/ContributionPageI18nProvider');
+jest.mock('components/pageEditor/editInterface/EditInterface', () => () => (
+  <div data-testid="mock-edit-interface"></div>
+));
 jest.mock('elements/modal/GlobalConfirmationModal');
 
 describe('PageEditor', () => {
@@ -38,9 +38,13 @@ describe('PageEditor', () => {
     });
   });
 
-  it('should render DonationPage if updatedPagePreview is defined', () => {
+  it('should render DonationPage wrapped in ContributionPage18nProvider if updatedPagePreview is defined', () => {
     tree();
-    expect(screen.getByTestId('mock-donation-page')).toBeInTheDocument();
+
+    const i18nProvider = screen.getByTestId('mock-contribution-page-i18n-provider');
+
+    expect(i18nProvider).toBeInTheDocument();
+    expect(within(i18nProvider).getByTestId('mock-donation-page')).toBeInTheDocument();
   });
 
   it('should not render DonationPage if updatedPagePreview is undefined', () => {

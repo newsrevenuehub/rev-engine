@@ -26,8 +26,8 @@ jest.mock('components/donationPage/ExtraneousURLRedirect');
 
 jest.mock('components/donationPage/live/GenericThankYou/GenericThankYou');
 
-jest.mock('components/donationPage/LiveDonationPageContainer', () => () => (
-  <div data-testid="mock-live-donation-page-container" />
+jest.mock('components/donationPage/PublishedDonationPage', () => () => (
+  <div data-testid="mock-published-donation-page" />
 ));
 
 jest.mock('components/donationPage/live/PaymentSuccess', () => () => <div data-testid="mock-payment-success" />);
@@ -80,11 +80,11 @@ describe('DonationPageRouter', () => {
     expect(screen.getByTestId('mock-payment-success')).toBeInTheDocument();
   });
 
-  it('displays a tracked LiveDonationPageContainer at /:pageSlug', async () => {
+  it('displays a tracked PublishedDonationPage at /:pageSlug', async () => {
     tree('/donate/');
-    await screen.findByTestId('mock-live-donation-page-container');
+    await screen.findByTestId('mock-published-donation-page');
     expect(
-      within(screen.getByTestId('mock-track-page-view')).getByTestId('mock-live-donation-page-container')
+      within(screen.getByTestId('mock-track-page-view')).getByTestId('mock-published-donation-page')
     ).toBeInTheDocument();
   });
 
@@ -97,11 +97,11 @@ describe('DonationPageRouter', () => {
     expect(screen.getByTestId('mock-extraneous-url-redirect')).toBeInTheDocument();
   });
 
-  it('displays a tracked LiveDonationPageContainer at /', async () => {
+  it('displays a tracked PublishedDonationPage at /', async () => {
     tree('/');
-    await screen.findByTestId('mock-live-donation-page-container');
+    await screen.findByTestId('mock-published-donation-page');
     expect(
-      within(screen.getByTestId('mock-track-page-view')).getByTestId('mock-live-donation-page-container')
+      within(screen.getByTestId('mock-track-page-view')).getByTestId('mock-published-donation-page')
     ).toBeInTheDocument();
   });
 

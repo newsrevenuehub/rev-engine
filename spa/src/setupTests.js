@@ -4,15 +4,13 @@ import { Cookies } from 'react-cookie';
 
 expect.extend(toHaveNoViolations);
 
-jest.mock('i18next', () => ({
-  ...jest.requireActual('i18next'),
-  t: (key, options) => `${key}${options ? JSON.stringify(options) : ''}`
-}));
+const mocki18n = { t: (key, options) => `${key}${options ? JSON.stringify(options) : ''}` };
 
 jest.mock('react-i18next', () => ({
   ...jest.requireActual('react-i18next'),
   useTranslation: () => ({
-    t: (key, options) => `${key}${options ? JSON.stringify(options) : ''}`
+    i18n: mocki18n,
+    t: mocki18n.t
   }),
   Trans: ({ children, i18nKey, components, values, ...rest }) => {
     const componentsFinal = Array.isArray(components) ? components : Object.values(components || {});

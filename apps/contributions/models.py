@@ -1182,6 +1182,7 @@ class Payment(IndexedTimeStampedModel):
         event_id: str = None,
     ) -> Payment:
         if not contribution:
+            logger.warning("Cannot find contribution for event %s", event_id)
             raise ValueError("Could not find a contribution for this event")
         if not balance_transaction:
             logger.warning("Cannot find balance transaction for event %s", event_id)

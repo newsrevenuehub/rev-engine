@@ -248,9 +248,11 @@ if CACHE_HOST.startswith("rediss"):
         "ssl_cert_reqs": ssl.CERT_NONE,
     }
 
+    # "django_redis.cache.RedisCache",
+
 CACHES = {
     "default": {
-        "BACKEND": "django.core.cache.backends.locmem.LocMemCache",
+        "BACKEND": "django_redis.cache.RedisCache",
         "LOCATION": f"{CACHE_HOST}/0",
         "OPTIONS": {
             "CLIENT_CLASS": "django_redis.client.DefaultClient",

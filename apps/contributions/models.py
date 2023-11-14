@@ -981,14 +981,6 @@ class Payment(IndexedTimeStampedModel):
         "Expected `event` to be in the following list of event types: {event_types}"
     )
 
-    class Meta:
-        indexes = [
-            # We index on contribution because we'll often want to query payments by contribution.
-            # Specifically, this will be used to provide individual transactions appearing in
-            # SPA side representation of a single contribution.
-            models.Index(fields=["contribution"]),
-        ]
-
     def __str__(self):
         return f"Payment {self.id} for contribution {self.contribution.id} and balance transaction {self.stripe_balance_transaction_id}"
 

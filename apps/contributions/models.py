@@ -1106,7 +1106,7 @@ class Payment(IndexedTimeStampedModel):
         except Contribution.DoesNotExist:
             try:
                 contribution = (
-                    cls.get_contribution_for_recurrence(balance_transaction_id, event.account)
+                    cls.get_contribution_for_recurrence(balance_transaction.id, event.account)
                     if balance_transaction
                     else None
                 )

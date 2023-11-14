@@ -1034,7 +1034,7 @@ class Payment(IndexedTimeStampedModel):
         if not metadata:
             return None
         try:
-            return schema(**metadata) if metadata else None
+            return schema(**metadata)
         except PydanticValidationError:
             return None
 

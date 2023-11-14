@@ -1179,10 +1179,12 @@ class Payment(IndexedTimeStampedModel):
         contribution: Contribution | None,
         balance_transaction: stripe.BalanceTransaction | None,
         amount_refunded: int = 0,
+        event_id: str = None,
     ) -> Payment:
         if not contribution:
             raise ValueError("Could not find a contribution for this event")
         if not balance_transaction:
+            logger.warning("Cannot find balance transaction for event %s", event_id)
             raise ValueError("Could not find a balance transaction for this event")
         return Payment(
             contribution=contribution,
@@ -1196,7 +1198,8 @@ class Payment(IndexedTimeStampedModel):
     @ensure_stripe_event(["payment_intent.succeeded"])
     def from_stripe_payment_intent_succeeded_event(cls, event: StripeEventData) -> Payment:
         return cls._handle_create_payment(
-            *cls.get_contribution_and_balance_transaction_for_payment_intent_succeeded_event(event=event)
+            *cls.get_contribution_and_balance_transaction_for_payment_intent_succeeded_event(event=event),
+            event_id=event.id,
         )
 
     @classmethod
@@ -1210,11 +1213,13 @@ class Payment(IndexedTimeStampedModel):
             contribution=contribution,
             balance_transaction=balance_transaction,
             amount_refunded=balance_transaction.source.amount_refunded,
+            event_id=event.id,
         )
 
     @classmethod
     @ensure_stripe_event(["invoice.payment_succeeded"])
     def from_stripe_invoice_payment_succeeded_event(cls, event: StripeEventData) -> Payment:
         return cls._handle_create_payment(
-            *cls.get_contribution_and_balance_transaction_for_invoice_payment_succeeded_event(event=event)
+            *cls.get_contribution_and_balance_transaction_for_invoice_payment_succeeded_event(event=event),
+            event_id=event.id,
         )

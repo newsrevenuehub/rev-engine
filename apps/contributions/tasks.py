@@ -1,6 +1,7 @@
 import os
 import time
 from datetime import timedelta
+from types import TracebackType
 from typing import List
 
 from django.conf import settings
@@ -9,7 +10,7 @@ from django.utils import timezone
 
 import requests
 import stripe
-from celery import shared_task
+from celery import Task, shared_task
 from celery.utils.log import get_task_logger
 from requests.exceptions import RequestException
 from sentry_sdk import configure_scope
@@ -22,7 +23,9 @@ from apps.contributions.stripe_contributions_provider import (
     StripeContributionsProvider,
     SubscriptionsCacheProvider,
 )
+from apps.contributions.types import StripeEventData
 from apps.contributions.utils import export_contributions_to_csv
+from apps.contributions.webhooks import StripeWebhookProcessor
 from apps.emails.tasks import send_templated_email_with_attachment
 from apps.organizations.models import RevenueProgram
 
@@ -179,3 +182,25 @@ def task_verify_apple_domain(self, revenue_program_slug: str):
             "[task_verify_apple_domain] task failed for slug %s due to exception: %s", revenue_program_slug, ex.error
         )
         raise ex
+
+
+@shared_task(bind=True)
+def on_process_stripe_webhook_task_failure(self, task: Task, exc: Exception, traceback: TracebackType) -> None:
+    """Ensure we get an error notification in Sentry if the task fails"""
+    logger.error(f"process_stripe_webhook_task {task.id} failed. Error: {exc}")
+
+
+@shared_task(
+    bind=True,
+    link_error=on_process_stripe_webhook_task_failure.s(),
+)
+def process_stripe_webhook_task(self, event: StripeEventData) -> None:
+    logger.info("Processing Stripe webhook event with ID %s", event["id"])
+    try:
+        StripeWebhookProcessor(event).process()
+    except Contribution.DoesNotExist:
+        # there's an entire class of customer subscriptions for which we do not expect to have a Contribution object.
+        # Specifically, we expect this to be the case for import legacy recurring contributions, which may have a future
+        # first/next(in NRE platform) payment date.
+        # TODO: [DEV-4151] Add some sort of analytics / telemetry to track how often this happens
+        logger.debug("Could not find contribution", exc_info=True)

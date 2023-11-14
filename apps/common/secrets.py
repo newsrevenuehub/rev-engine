@@ -4,7 +4,6 @@ from django.conf import settings
 
 from google.api_core.exceptions import NotFound, PermissionDenied
 from google.cloud.secretmanager import SecretManagerServiceClient
-from google.oauth2 import service_account
 
 
 logger = logging.getLogger(f"{settings.DEFAULT_LOGGER}.{__name__}")
@@ -38,10 +37,7 @@ def get_secret_manager_client() -> SecretManagerServiceClient | None:
     # NB: This is defined in module scope and not in GoogleCloudSecretProvider even though it's only
     # caller because it facilitates mocking in tests across unit tests of secrets narrowly,
     # as well as their use in other contexts.
-    if not settings.GS_SERVICE_ACCOUNT:
-        return None
-    credentials = service_account.Credentials.from_service_account_info(settings.GS_SERVICE_ACCOUNT)
-    return SecretManagerServiceClient(credentials=credentials)
+    return SecretManagerServiceClient(credentials=settings.GS_CREDENTIALS) if settings.GS_CREDENTIALS else None
 
 
 class GoogleCloudSecretProvider(SecretProvider):

@@ -1600,6 +1600,10 @@ class TestContributionModel:
         )
         # assert about revision and update fields
 
+    @pytest.mark.parametrize("score,expected", [(x, y) for x, y in Contribution.BAD_ACTOR_SCORES])
+    def test_expanded_bad_actor_score(self, score, expected):
+        assert ContributionFactory(bad_actor_score=score).expanded_bad_actor_score == expected
+
 
 @pytest.mark.django_db
 class TestContributionQuerySetMethods:

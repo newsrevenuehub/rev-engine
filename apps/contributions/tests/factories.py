@@ -62,7 +62,7 @@ def _get_status(bad_actor_score):
 
 
 def _get_last_payment_date(created_date, bad_actor_score):
-    if bad_actor_score >= settings.BAD_ACTOR_FLAG_SCORE:
+    if bad_actor_score is not None and bad_actor_score >= settings.BAD_ACTOR_FLAG_SCORE:
         return None
     return created_date + datetime.timedelta(hours=1)
 

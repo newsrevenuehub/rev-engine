@@ -354,3 +354,49 @@ class TestPingHealthChecks:
         contribution_tasks.ping_healthchecks(check_name=(check_name := "foo"), healthcheck_url="https://foo")
         for i, x in enumerate(logger_spy.call_args_list):
             assert x == mocker.call("Request %s for %s healthcheck failed", i + 1, check_name)
+
+
+class TestProcessStripeWebhookTask:
+    """This a minimal and admittedly suboptimal test class for our process_stripe_webhook_task
+
+    The critical thing we'd like to test about this task is that when the task fails, the
+    on_process_stripe_webhook_task_failure gets called (which gives us a notification in Sentry).
+
+    Ideally, we'd do that in such a way as to "naturally" (i.e., without mocking) the callback to
+    get called with signature it will get called with in real life. In practice, BW could not get this working
+    as expected using pytest celery_app and celery_worker (though with further effort, that may be possible)
+
+    In short term, we have an implementation-focused test that shows that our task is configured with
+    expected link_error callback (and in turn, we unit test that function).
+
+    TODO: [DEV-4173] Run redis in test environment and refactor TestProcessStripeWebhookTask to be a true integration test.
+    """
+
+    def test_config(self):
+        """Test that our task is configured properly -- especially that its link_error parameter is set as expected"""
+        assert (
+            contribution_tasks.process_stripe_webhook_task.link_error.task
+            == "apps.contributions.tasks.on_process_stripe_webhook_task_failure"
+        )
+
+    @pytest.mark.parametrize("contribution_found", (True, False))
+    def test_synchronously(self, contribution_found, payment_intent_succeeded, mocker):
+        mock_process = mocker.patch("apps.contributions.webhooks.StripeWebhookProcessor.process")
+        mock_logger = mocker.patch("apps.contributions.tasks.logger.debug")
+        if not contribution_found:
+            mock_process.side_effect = Contribution.DoesNotExist
+        contribution_tasks.process_stripe_webhook_task(event=payment_intent_succeeded)
+        mock_process.assert_called_once()
+        if contribution_found:
+            mock_logger.assert_not_called()
+        else:
+            mock_logger.assert_called_once_with("Could not find contribution", exc_info=True)
+
+
+def test_on_process_stripe_webhook_task_failure(mocker):
+    mock_logger = mocker.patch("apps.contributions.tasks.logger.error")
+    task = mocker.Mock(id=(my_id := "some-task-id"))
+    exc = Exception("foo")
+    tb = mocker.Mock()
+    contribution_tasks.on_process_stripe_webhook_task_failure(task, exc, tb)
+    mock_logger.assert_called_once_with(f"process_stripe_webhook_task {my_id} failed. Error: {exc}")

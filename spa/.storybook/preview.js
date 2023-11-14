@@ -12,6 +12,7 @@ import Alert, { alertOptions } from 'elements/alert/Alert';
 import { revEngineTheme, muiThemeOverrides } from 'styles/themes';
 import AdminGlobalStyles from 'styles/AdminGlobalStyles.js';
 import { ReauthContext } from 'components/ReauthContext';
+import 'i18n';
 
 const queryClient = new QueryClient();
 

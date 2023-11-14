@@ -231,6 +231,7 @@ function DDonorAddress({ element }: DDonorAddressProps) {
         </Grid>
         <Grid item xs={12} md={zipAndCountryOnly ? 6 : 4}>
           <CountrySelect
+            autoHighlight
             error={!!errors.mailing_country}
             helperText={errors.mailing_country}
             id="country"

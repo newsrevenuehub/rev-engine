@@ -1852,6 +1852,14 @@ def test_ensure_stripe_event(ensure_stripe_event_case):
 @pytest.mark.django_db
 @pytest.mark.usefixtures("suppress_stripe_webhook_sig_verification")
 class TestPayment:
+    @pytest.fixture(autouse=True)
+    def use_mem_cache(self, settings):
+        settings.CACHES = {
+            "default": {
+                "BACKEND": "django.core.cache.backends.locmem.LocMemCache",
+            }
+        }
+
     @pytest.fixture
     def payment(self):
         return PaymentFactory()
@@ -1877,14 +1885,6 @@ class TestPayment:
             payment.stripe_account_id
             == payment.contribution.donation_page.revenue_program.payment_provider.stripe_account_id
         )
-
-    @pytest.fixture(autouse=True)
-    def use_mem_cache(self, settings):
-        settings.CACHES = {
-            "default": {
-                "BACKEND": "django.core.cache.backends.locmem.LocMemCache",
-            }
-        }
 
     def test_stripe_balance_transaction(self, mocker, payment, balance_transaction_for_one_time_charge):
         """Show that we memoize the balance transaction"""

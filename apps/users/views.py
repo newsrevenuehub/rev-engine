@@ -227,6 +227,7 @@ class UserViewset(
         NB: this method assumes that the user sent as `user` has already been saved to the database.
         In this caes, it will be guaranteed to have a .email property.
         """
+        logger.info("Sending verification email to %s", user.email)
         encoded_email, token = AccountVerification().generate_token(user.email)
         url = self.request.build_absolute_uri(
             reverse("account_verification", kwargs={"email": encoded_email, "token": token})
@@ -235,12 +236,16 @@ class UserViewset(
             "verification_url": django.utils.safestring.mark_safe(url),
             "logo_url": os.path.join(settings.SITE_URL, "static", "nre_logo_black_yellow.png"),
         }
+        # temp log to diagnose
+        logger.info("calling async task to send verification email to %s", user.email)
         send_templated_email.delay(
             user.email,
             EMAIL_VERIFICATION_EMAIL_SUBJECT,
             render_to_string("nrh-org-account-creation-verification-email.txt", data),
             render_to_string("nrh-org-account-creation-verification-email.html", data),
         )
+        # temp log to diagnose
+        logger.info("just called async task to send verification email to %s", user.email)
 
     def validate_password(self, email, password):
         """Validate the password

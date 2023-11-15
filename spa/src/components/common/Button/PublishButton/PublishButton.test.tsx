@@ -258,17 +258,18 @@ describe('PublishButton', () => {
 
         describe('if publishing fails because the org has reached its limit', () => {
           const limitError = new Error();
+          const errorMessage = 'Your organization has reached its limit of 1 published page';
 
           (limitError as any).response = {
             data: {
-              non_field_errors: ['Your organization has reached its limit of 1 published page']
+              non_field_errors: [errorMessage]
             }
           };
 
           it.each([
             [GENERIC_ERROR, USER_ROLE_ORG_ADMIN_TYPE],
-            ['This organization has reached its limit of published pages.', USER_ROLE_HUB_ADMIN_TYPE],
-            ['This organization has reached its limit of published pages.', USER_SUPERUSER_TYPE]
+            [errorMessage, USER_ROLE_HUB_ADMIN_TYPE],
+            [errorMessage, USER_SUPERUSER_TYPE]
           ])('shows an "%s" alert if the user is a %s', async (errorMessage, role_type) => {
             const error = jest.fn();
             const savePageChanges = jest.fn();

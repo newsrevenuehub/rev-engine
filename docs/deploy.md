@@ -2,12 +2,12 @@
 
 ## Requirements
 
-* [Heroku command line installed](https://devcenter.heroku.com/categories/command-line)
-* Docker
-* Access to the Git repository that will be used for Heroku deploys
-* Inclusion on a team that has billing access rights to the Heroku account
-* [pwgen](https://github.com/jbernard/pwgen) or something like it
-* A previously-created Heroku app
+- [Heroku command line installed](https://devcenter.heroku.com/categories/command-line)
+- Docker
+- Access to the Git repository that will be used for Heroku deploys
+- Inclusion on a team that has billing access rights to the Heroku account
+- [pwgen](https://github.com/jbernard/pwgen) or something like it
+- A previously-created Heroku app
 
 ## Steps
 
@@ -60,15 +60,13 @@ This project uses Google Cloud and a GC service account to manage its static res
 
 At the moment this is the media uploaded to the project. Django static files are managed through WhiteNoise.
 
-Four config vars are required:
+3 config vars are required:
 
-1. `GOOGLE_APPLICATION_CREDENTIALS`: This config var should be set to the name of the file that will contain Google's JSON key, currently `google-sa/google-service-account.json`.
-2. `GS_SERVICE_ACCOUNT`: A base64 encoded JSON blob provided by Google for the service account. This value should *never* be checked in or exposed in CI.
-3. `GS_BUCKET_NAME`: Currently `rev-engine-media`
-4. `GS_PROJECT_ID`: Currently `revenue-engine`
+1. `GS_SERVICE_ACCOUNT`: A base64 encoded JSON blob provided by Google for the service account. This value should _never_ be checked in or exposed in CI.
+2. `GS_BUCKET_NAME`: Currently `rev-engine-media`
+3. `GS_PROJECT_ID`: Currently `revenue-engine`
 
 ```shell
-heroku config:set -a rev-engine-test GOOGLE_APPLICATION_CREDENTIALS=google-sa/google-service-account.json
 heroku config:set -a rev-engine-test GS_SERVICE_ACCOUNT=<ENCODED_JSON_BLOB>
 heroku config:set -a rev-engine-test GS_BUCKET_NAME=rev-engine-media
 heroku config:set -a rev-engine-test GS_PROJECT_ID=revenue-engine

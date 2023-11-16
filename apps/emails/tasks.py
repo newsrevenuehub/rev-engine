@@ -49,6 +49,7 @@ def send_templated_email(
             ],
             html_message=message_as_html,
         )
+        logger.info("Email sent to recipient `%s` with subject `%s`", to, subject)
 
 
 class FiscalStatuses(Enum):

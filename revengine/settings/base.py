@@ -248,8 +248,6 @@ if CACHE_HOST.startswith("rediss"):
         "ssl_cert_reqs": ssl.CERT_NONE,
     }
 
-    # "django_redis.cache.RedisCache",
-
 CACHES = {
     "default": {
         "BACKEND": "django_redis.cache.RedisCache",

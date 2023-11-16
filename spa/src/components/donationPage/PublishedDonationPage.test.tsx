@@ -141,12 +141,14 @@ describe('PublishedDonationPage', () => {
     describe('But the page has no revenue_program property', () => {
       it('shows a 404 message', () => {
         const errorSpy = jest.spyOn(console, 'error').mockImplementation(() => {});
+        const noRpPage = { ...mockPage };
 
+        delete noRpPage.revenue_program;
         usePublishedPageMock.mockReturnValue({
           error: undefined,
           isError: false,
           isLoading: false,
-          page: { ...mockPage, revenue_program: undefined }
+          page: noRpPage
         });
         tree();
         expect(screen.getByTestId('mock-live-page-404')).toBeInTheDocument();

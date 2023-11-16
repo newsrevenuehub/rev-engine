@@ -1,11 +1,10 @@
 import { useElements, useStripe } from '@stripe/react-stripe-js';
 import { axe } from 'jest-axe';
 import { useAlert } from 'react-alert';
-import { act, fireEvent, render, screen } from 'test-utils';
+import { act, fireEvent, mocki18n, render, screen } from 'test-utils';
 import { Payment } from 'hooks/usePayment';
 import StripePaymentForm, { StripePaymentFormProps } from './StripePaymentForm';
 import { getPaymentSuccessUrl } from 'components/paymentProviders/stripe/stripeFns';
-import { getFrequencyThankYouText } from 'utilities/parseFrequency';
 
 jest.mock('@stripe/react-stripe-js', () => ({
   PaymentElement: ({ options }: any) => (
@@ -41,12 +40,12 @@ const mockPayment: Payment = {
 };
 
 function successUrl(payment: Payment) {
-  return getPaymentSuccessUrl({
+  return getPaymentSuccessUrl(mocki18n, {
     amount: payment.amount,
     baseUrl: window.location.origin,
     contributorEmail: payment.stripe.billingDetails.email as string,
     emailHash: payment.emailHash as string,
-    frequencyDisplayValue: getFrequencyThankYouText(payment.interval),
+    frequencyDisplayValue: `common.frequency.thankYous.${payment.interval}`,
     pageSlug: payment.pageSlug,
     pathName: '',
     rpSlug: payment.revenueProgramSlug,

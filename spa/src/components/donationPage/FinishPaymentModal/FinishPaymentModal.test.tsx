@@ -74,6 +74,7 @@ describe('FinishPaymentModal', () => {
     });
 
     it('shows a disclaimer with interval and amount props based on the payment prop, and date based on the current one', () => {
+      jest.useFakeTimers().setSystemTime(new Date('2020-01-01'));
       tree();
 
       const disclaimer = screen.getByTestId('mock-contribution-disclaimer');
@@ -82,6 +83,7 @@ describe('FinishPaymentModal', () => {
       expect(disclaimer.dataset.formattedAmount).toBe('mock-currency-symbolmock-amount mock-currency-code');
       expect(disclaimer.dataset.interval).toBe(mockPayment.interval);
       expect(disclaimer.dataset.processingDate).toBe(new Date().toString());
+      jest.useRealTimers();
     });
 
     it('is accessible', async () => {

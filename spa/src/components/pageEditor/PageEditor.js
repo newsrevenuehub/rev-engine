@@ -36,6 +36,7 @@ import { useConfigureAnalytics } from 'components/analytics';
 // Children
 import CircleButton from 'elements/buttons/CircleButton';
 import SegregatedStyles from 'components/donationPage/SegregatedStyles';
+import ContributionPage18nProvider from 'components/donationPage/ContributionPageI18nProvider';
 import DonationPage from 'components/donationPage/DonationPage';
 import GlobalLoading from 'elements/GlobalLoading';
 import InnerEditInterface from 'components/pageEditor/editInterface/EditInterface';
@@ -246,13 +247,15 @@ function PageEditor() {
           )}
           {updatedPagePreview && (
             <SegregatedStyles page={updatedPagePreview}>
-              {/* set stringified page as key to guarantee that ALL page changes will re-render the page in edit mode */}
-              <DonationPage
-                key={JSON.stringify(updatedPagePreview ?? '')}
-                live={false}
-                page={updatedPagePreview}
-                ref={donationPageRef}
-              />
+              <ContributionPage18nProvider page={updatedPagePreview}>
+                {/* set stringified page as key to guarantee that ALL page changes will re-render the page in edit mode */}
+                <DonationPage
+                  key={JSON.stringify(updatedPagePreview ?? '')}
+                  live={false}
+                  page={updatedPagePreview}
+                  ref={donationPageRef}
+                />
+              </ContributionPage18nProvider>
             </SegregatedStyles>
           )}
 

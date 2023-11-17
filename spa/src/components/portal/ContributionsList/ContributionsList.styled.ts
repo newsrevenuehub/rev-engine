@@ -18,6 +18,12 @@ export const Columns = styled.div`
   max-width: 1600px;
 `;
 
+export const Loading = styled.div`
+  align-items: center;
+  display: flex;
+  justify-content: center;
+`;
+
 export const MainContent = styled.div``;
 
 export const Subhead = styled.h2`

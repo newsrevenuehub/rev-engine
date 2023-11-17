@@ -1,11 +1,12 @@
 import { axe } from 'jest-axe';
-import { render, screen } from 'test-utils';
+import { fireEvent, render, screen } from 'test-utils';
 import ContributionsList from './ContributionsList';
 import { PortalAuthContext, PortalAuthContextResult } from 'hooks/usePortalAuth';
 import { usePortalContributionList } from 'hooks/usePortalContributionList';
 
 jest.mock('hooks/usePortalContributionList');
 jest.mock('./ContributionItem');
+jest.mock('./ContributionFetchError');
 
 function tree(context?: Partial<PortalAuthContextResult>) {
   return render(
@@ -23,7 +24,8 @@ describe('ContributionsList', () => {
       contributions: [],
       isError: false,
       isFetching: false,
-      isLoading: false
+      isLoading: false,
+      refetch: jest.fn()
     });
   });
 
@@ -42,7 +44,8 @@ describe('ContributionsList', () => {
       contributions: [],
       isError: false,
       isFetching: true,
-      isLoading: true
+      isLoading: true,
+      refetch: jest.fn()
     });
     tree();
     expect(screen.getByRole('progressbar')).toBeInTheDocument();
@@ -54,7 +57,8 @@ describe('ContributionsList', () => {
         contributions: [{ payment_provider_id: 'mock-id-1 ' }, { payment_provider_id: 'mock-id-2' }] as any,
         isError: false,
         isLoading: false,
-        isFetching: false
+        isFetching: false,
+        refetch: jest.fn()
       });
       tree();
       expect(screen.getByTestId('mock-contribution-item-mock-id-1')).toBeInTheDocument();
@@ -66,7 +70,8 @@ describe('ContributionsList', () => {
         contributions: [],
         isError: false,
         isLoading: false,
-        isFetching: false
+        isFetching: false,
+        refetch: jest.fn()
       });
       tree();
       expect(screen.getByText('0 contributions to show')).toBeInTheDocument();
@@ -75,6 +80,33 @@ describe('ContributionsList', () => {
     it("doesn't show a spinner", () => {
       tree();
       expect(screen.queryByRole('progressbar')).not.toBeInTheDocument();
+    });
+  });
+
+  describe('When contributions fail to load', () => {
+    let refetch: jest.Mock;
+
+    beforeEach(() => {
+      refetch = jest.fn();
+      usePortalContributionsListMock.mockReturnValue({
+        refetch,
+        contributions: [],
+        isError: true,
+        isLoading: false,
+        isFetching: false
+      });
+    });
+
+    it('shows an error message', () => {
+      tree();
+      expect(screen.getByTestId('mock-contribution-fetch-error')).toBeInTheDocument();
+    });
+
+    it('refetches contributions when the retry button is clicked', () => {
+      tree();
+      expect(refetch).not.toBeCalled();
+      fireEvent.click(screen.getByTestId('mock-contribution-fetch-error'));
+      expect(refetch).toBeCalledTimes(1);
     });
   });
 

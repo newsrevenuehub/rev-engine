@@ -88,11 +88,11 @@ async function fetchContributions(contributorId: number) {
  * into the portal.
  */
 export function usePortalContributionList(contributorId?: number) {
-  const { data, isError, isFetching, isLoading } = useQuery(
+  const { data, isError, isFetching, isLoading, refetch } = useQuery(
     ['portalContributionList'],
     () => fetchContributions(contributorId!),
     { enabled: !!contributorId, keepPreviousData: true }
   );
 
-  return { contributions: data?.results ?? [], isError, isFetching, isLoading };
+  return { contributions: data?.results ?? [], isError, isFetching, isLoading, refetch };
 }

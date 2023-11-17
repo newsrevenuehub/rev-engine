@@ -1,7 +1,7 @@
 import userEvent from '@testing-library/user-event';
 import { axe } from 'jest-axe';
 import { act, render, screen, waitFor } from 'test-utils';
-import { AxiosError, AxiosResponse } from 'axios';
+import { AxiosError } from 'axios';
 import { GENERIC_ERROR } from 'constants/textConstants';
 import useContributionPageList from 'hooks/useContributionPageList';
 import { useEditablePageContext } from 'hooks/useEditablePage';
@@ -9,6 +9,7 @@ import useUser from 'hooks/useUser';
 import PublishButton from './PublishButton';
 import { PLAN_NAMES } from 'constants/orgPlanConstants';
 import { useAlert } from 'react-alert';
+import { USER_ROLE_HUB_ADMIN_TYPE, USER_ROLE_ORG_ADMIN_TYPE, USER_SUPERUSER_TYPE } from 'constants/authConstants';
 
 jest.mock('react-alert', () => ({
   ...jest.requireActual('react-alert'),
@@ -241,7 +242,7 @@ describe('PublishButton', () => {
           await act(() => Promise.resolve());
         });
 
-        it('shows an alert if publishing fails', async () => {
+        it('shows an alert if publishing fails with a generic error', async () => {
           const error = jest.fn();
           const savePageChanges = jest.fn();
 
@@ -253,6 +254,36 @@ describe('PublishButton', () => {
           userEvent.click(screen.getByText('onPublish'));
           await waitFor(() => expect(error).toBeCalled());
           expect(error.mock.calls).toEqual([[GENERIC_ERROR]]);
+        });
+
+        describe('if publishing fails because the org has reached its limit', () => {
+          const limitError = new Error();
+          const errorMessage = 'Your organization has reached its limit of 1 published page';
+
+          (limitError as any).response = {
+            data: {
+              non_field_errors: [errorMessage]
+            }
+          };
+
+          it.each([
+            [GENERIC_ERROR, USER_ROLE_ORG_ADMIN_TYPE],
+            [errorMessage, USER_ROLE_HUB_ADMIN_TYPE],
+            [errorMessage, USER_SUPERUSER_TYPE]
+          ])('shows an "%s" alert if the user is a %s', async (errorMessage, role_type) => {
+            const error = jest.fn();
+            const savePageChanges = jest.fn();
+
+            useAlertMock.mockReturnValue({ error });
+            savePageChanges.mockRejectedValue(limitError);
+            useEditablePageContextMock.mockReturnValue({ savePageChanges, isLoading: false, page: unpublishedPage });
+            useUserMock.mockReturnValue({ user: { ...user, role_type } });
+            tree();
+            userEvent.click(screen.getByRole('button', { name: `Publish page ${publishedPage.name}` }));
+            userEvent.click(screen.getByText('onPublish'));
+            await waitFor(() => expect(error).toBeCalled());
+            expect(error.mock.calls).toEqual([[errorMessage]]);
+          });
         });
 
         it('causes publish modal to display field-level error message when slug error after publish attempt', async () => {

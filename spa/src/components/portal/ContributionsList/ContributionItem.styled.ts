@@ -12,12 +12,13 @@ export const Root = styled.div<{ $dimmed: boolean }>`
   color: ${(props) =>
     props.$dimmed ? props.theme.basePalette.greyscale.grey1 : props.theme.basePalette.greyscale.black};
   display: grid;
-  gap: 12px;
+  gap: 0 12px;
   grid-template-columns: [icon] 35px [date] minmax(200px, 1fr) [card] 150px [status] 100px [amount] minmax(100px, 1fr);
   font-family: Roboto, sans-serif;
   padding: 28px 12px;
 
   @media (${({ theme }) => theme.breakpoints.phoneOnly}) {
+    gap: 12px;
     grid-template-columns: [icon] 35px [date] 1fr [amount] minmax(100px, 1fr);
     grid-template:
       'status status status'
@@ -41,7 +42,7 @@ export const CardInfo = styled.div`
   font-size: ${({ theme }) => theme.fontSizesUpdated.md};
   font-weight: 500;
   grid-area: card;
-  padding-right: 8px; /* 20px total with gap */
+  padding-right: 18px; /* 30px total with gap */
   text-align: right;
 
   @media (${({ theme }) => theme.breakpoints.phoneOnly}) {

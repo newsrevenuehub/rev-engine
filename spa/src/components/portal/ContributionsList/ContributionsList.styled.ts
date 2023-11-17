@@ -22,6 +22,7 @@ export const MainContent = styled.div``;
 
 export const Subhead = styled.h2`
   font-size: ${({ theme }) => theme.fontSizesUpdated.lg};
+  margin-bottom: 12px;
 `;
 
 export const Description = styled.p`

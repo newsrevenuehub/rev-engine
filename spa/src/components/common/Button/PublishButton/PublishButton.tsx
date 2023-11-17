@@ -18,6 +18,7 @@ import PublishedPopover from './PublishedPopover';
 import SuccessfulPublishModal from './SuccessfulPublishModal';
 import UnpublishModal from './UnpublishModal';
 import { Root, RootButton } from './PublishButton.styled';
+import { getUserRole } from 'utilities/getUserRole';
 
 const PublishButtonPropTypes = {
   className: PropTypes.string
@@ -151,9 +152,16 @@ function PublishButton({ className }: PublishButtonProps) {
 
       handleOpenSuccessfulPublishModal();
     } catch (error) {
-      // If there is a slug error, we pass it to the modal.
+      const { isHubAdmin, isSuperUser } = getUserRole(user);
+
       if ((error as AxiosError).response?.data?.slug) {
+        // If there is a slug error, we pass it to the modal.
+
         setSlugError((error as AxiosError).response?.data?.slug);
+      } else if ((isHubAdmin || isSuperUser) && (error as AxiosError).response?.data?.non_field_errors?.[0]) {
+        // Hub admins can see errors directly.
+
+        alert.error((error as AxiosError).response?.data?.non_field_errors?.[0]);
       } else {
         alert.error(GENERIC_ERROR);
       }

@@ -1076,10 +1076,11 @@ class Payment(IndexedTimeStampedModel):
         """
         # we re-retrieve the PI because its state could have changed between the time the event was received and now
         pi = stripe.PaymentIntent.retrieve(event.data.object.id, stripe_account=event.account)
-        balance_transaction_id = None
-        if pi and pi.charges and pi.charges.data and len(pi.charges.data) == 1:
+        try:
+            cls._ensure_pi_has_single_charge(pi, event.id)
             balance_transaction_id = pi.charges.data[0].balance_transaction
-        cls._ensure_pi_has_single_charge(pi, event.id)
+        except ValueError:
+            balance_transaction_id = None
         if not balance_transaction_id:
             logger.warning(
                 "Could not find a balance transaction for PI %s associated with event %s",

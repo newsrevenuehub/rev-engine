@@ -39,7 +39,6 @@ from apps.contributions.tests.factories import (
     ContributorFactory,
     PaymentFactory,
 )
-from apps.contributions.types import StripePaymentMetadataSchemaV1_4
 from apps.emails.tasks import make_send_thank_you_email_data, send_templated_email
 from apps.organizations.models import FiscalStatusChoices, FreePlan
 from apps.organizations.tests.factories import OrganizationFactory, RevenueProgramFactory
@@ -1909,20 +1908,6 @@ class TestPayment:
     @pytest.fixture
     def no_metadata(self):
         return None
-
-    @pytest.fixture(
-        params=[
-            ("valid_metadata", lambda x: StripePaymentMetadataSchemaV1_4(**x)),
-            ("invalid_metadata", lambda x: None),
-            ("no_metadata", lambda x: None),
-        ]
-    )
-    def get_valid_metadata_test_case(self, request):
-        return request.getfixturevalue(request.param[0]), request.param[1]
-
-    def test_get_valid_metadata(self, get_valid_metadata_test_case):
-        metadata, expected_fn = get_valid_metadata_test_case
-        assert Payment.get_valid_metadata(metadata) == expected_fn(metadata)
 
     @pytest.fixture
     def payment_intent_for_one_time_contribution(self):

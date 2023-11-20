@@ -19,17 +19,12 @@ from django.utils.safestring import SafeString, mark_safe
 import reversion
 import stripe
 from addict import Dict as AttrDict
-from pydantic import ValidationError as PydanticValidationError
 from stripe.error import StripeError
 
 from apps.api.tokens import ContributorRefreshToken
 from apps.common.models import IndexedTimeStampedModel
 from apps.contributions.choices import BadActorScores, ContributionInterval, ContributionStatus
-from apps.contributions.types import (
-    StripeEventData,
-    StripePaymentMetadataSchemaV1_4,
-    StripePiAsPortalContribution,
-)
+from apps.contributions.types import StripeEventData, StripePiAsPortalContribution
 from apps.emails.tasks import make_send_thank_you_email_data, send_thank_you_email
 from apps.organizations.models import RevenueProgram
 from apps.users.choices import Roles
@@ -1020,15 +1015,6 @@ class Payment(IndexedTimeStampedModel):
         # load/dump gets us fully serializable data suited for caching
         cache.set(cache_key, json.loads(json.dumps(result)), settings.RETRIEVED_STRIPE_ENTITY_CACHE_TTL)
         return result
-
-    @classmethod
-    def get_valid_metadata(cls, metadata: dict | None, schema=StripePaymentMetadataSchemaV1_4) -> bool | None:
-        if not metadata:
-            return None
-        try:
-            return schema(**metadata)
-        except PydanticValidationError:
-            return None
 
     @classmethod
     def get_subscription_id_for_balance_transaction(

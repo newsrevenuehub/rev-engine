@@ -1853,12 +1853,8 @@ def test_ensure_stripe_event(ensure_stripe_event_case):
 @pytest.mark.usefixtures("suppress_stripe_webhook_sig_verification")
 class TestPayment:
     @pytest.fixture(autouse=True)
-    def use_mem_cache(self, settings):
-        settings.CACHES = {
-            "default": {
-                "BACKEND": "django.core.cache.backends.locmem.LocMemCache",
-            }
-        }
+    def clear_cache(self):
+        cache.clear()
 
     @pytest.fixture
     def payment(self):
@@ -2161,7 +2157,6 @@ class TestPayment:
         balance_transaction_found,
         payment_from_invoice_payment_succeeded_test_case_factory,
     ):
-        cache.clear()
         event, contribution, balance_transaction = payment_from_invoice_payment_succeeded_test_case_factory(
             contribution_found=contribution_found, balance_transaction_found=balance_transaction_found
         )

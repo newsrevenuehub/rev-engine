@@ -1033,7 +1033,7 @@ class Payment(IndexedTimeStampedModel):
     @classmethod
     def get_subscription_id_for_balance_transaction(
         cls, balance_transaction_id: str, stripe_account_id: str
-    ) -> stripe.Subscription | None:
+    ) -> str | None:
         bt = cls._get_stripe_balance_transaction(balance_transaction_id, stripe_account_id, expand=["source.invoice"])
         return getattr(bt.source.invoice, "subscription", None) if bt.source.invoice else None
 

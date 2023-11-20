@@ -6,6 +6,16 @@ expect.extend(toHaveNoViolations);
 
 const mocki18n = { t: (key, options) => `${key}${options ? JSON.stringify(options) : ''}` };
 
+// appSettings reads from import.meta, which Jest can't handle. This is a basic
+// mock that provides common values, but it's better to specify needed values in
+// a unit test instead.
+
+jest.mock('appSettings', () => ({
+  CSRF_HEADER: 'X-CSRFTOKEN',
+  DASHBOARD_SUBDOMAINS: ['', 'www', 'support'],
+  HUB_GA_V3_ID: 'UA-37373737yesyesyes'
+}));
+
 jest.mock('react-i18next', () => ({
   ...jest.requireActual('react-i18next'),
   useTranslation: () => ({

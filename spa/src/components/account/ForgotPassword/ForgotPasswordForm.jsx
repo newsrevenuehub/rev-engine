@@ -18,6 +18,8 @@ function ForgotPasswordForm({ onForgotPasswordSubmit, loading }) {
   const watchEmail = watch('email', '');
   const disabled = loading || !watchEmail;
 
+  /* eslint-disable jsx-a11y/aria-role */
+
   return (
     <form onSubmit={disabled ? () => {} : handleSubmit(onSubmit)}>
       <S.InputLabel hasError={errors.email}>Email</S.InputLabel>
@@ -42,6 +44,7 @@ function ForgotPasswordForm({ onForgotPasswordSubmit, loading }) {
       </S.Submit>
     </form>
   );
+  /* eslint-enable jsx-a11y/aria-role */
 }
 
 ForgotPasswordForm.propTypes = {

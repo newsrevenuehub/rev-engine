@@ -29,7 +29,7 @@ export interface AnalyticsConfig {
   orgGaV4Id?: string | null;
 }
 
-export interface UseEditInterfaceContextResult {
+export interface UseAnalyticsContextResult {
   // Maintaining null types here for existing code.
 
   /**
@@ -49,7 +49,7 @@ export interface UseEditInterfaceContextResult {
   trackConversion: (amount: number | string) => void;
 }
 
-const AnalyticsContext = createContext<UseEditInterfaceContextResult>({
+export const AnalyticsContext = createContext<UseAnalyticsContextResult>({
   analyticsInstance: null,
   setAnalyticsConfig() {
     throw new Error('AnalyticsContext must be used inside a AnalyticsContextProvider.');

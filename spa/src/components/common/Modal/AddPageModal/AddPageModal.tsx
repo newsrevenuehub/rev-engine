@@ -76,7 +76,7 @@ const AddPageModal = ({ open, onClose, loading, revenuePrograms, onAddPage, oute
           )}
         />
         {errorMessage && !loading && (
-          <ErrorMessage role="error" data-testid="email-error">
+          <ErrorMessage role="alert" data-testid="email-error">
             {errorMessage}
           </ErrorMessage>
         )}

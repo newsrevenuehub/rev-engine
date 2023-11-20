@@ -1,4 +1,4 @@
-import { ReactComponent as PoweredByNRELogo } from 'assets/images/nre-logo-yellow.svg';
+import PoweredByNRELogo from 'assets/images/nre-logo-yellow.svg?react';
 import TrackPageView from 'components/analytics/TrackPageView';
 import DonationPageHeader from 'components/donationPage/DonationPageHeader';
 import SegregatedStyles from 'components/donationPage/SegregatedStyles';

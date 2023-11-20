@@ -4,10 +4,12 @@ import EnginePlanBadge from './EnginePlanBadge';
 export default {
   component: EnginePlanBadge,
   title: 'Common/Badge/EnginePlanBadge',
+  args: {
+    plan: 'FREE'
+  },
   argTypes: {
     plan: {
       control: { type: 'select' },
-      defaultValue: 'FREE',
       options: ['FREE', 'CORE', 'PLUS']
     }
   }

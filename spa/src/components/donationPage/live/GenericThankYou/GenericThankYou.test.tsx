@@ -2,8 +2,8 @@ import { axe } from 'jest-axe';
 import { render, screen } from 'test-utils';
 import GenericThankYou from './GenericThankYou';
 import { useLocation } from 'react-router-dom';
-import * as AnalyticsContext from 'components/analytics/AnalyticsContext';
 import { HUB_GA_V3_ID } from 'appSettings';
+import { AnalyticsContext, UseAnalyticsContextResult } from 'components/analytics/AnalyticsContext';
 
 jest.mock('react-router-dom', () => ({
   ...jest.requireActual('react-router-dom'),
@@ -16,8 +16,19 @@ jest.mock('../../DonationPageFooter/DonationPageFooter');
 jest.mock('../../DonationPageHeader/DonationPageHeader');
 jest.mock('../PostContributionSharing/PostContributionSharing');
 
-function tree() {
-  return render(<GenericThankYou />);
+function tree(analyticsContext: Partial<UseAnalyticsContextResult> = {}) {
+  return render(
+    <AnalyticsContext.Provider
+      value={{
+        analyticsInstance: null,
+        setAnalyticsConfig: jest.fn(),
+        trackConversion: jest.fn(),
+        ...analyticsContext
+      }}
+    >
+      <GenericThankYou />
+    </AnalyticsContext.Provider>
+  );
 }
 
 const mockState = {
@@ -64,19 +75,9 @@ describe('GenericThankYou', () => {
         }
       });
 
-      // This spy approach is needed because of problems mocking this context.
-      // When we do this, GenericThankYou sees the mock but this test file
-      // doesn't, possibly because we're using the component in test-utils.
-
       const setAnalyticsConfig = jest.fn();
 
-      const contextSpy = jest.spyOn(AnalyticsContext, 'useAnalyticsContext').mockReturnValue({
-        analyticsInstance: null,
-        setAnalyticsConfig,
-        trackConversion: jest.fn()
-      });
-
-      tree();
+      tree({ setAnalyticsConfig });
       expect(setAnalyticsConfig.mock.calls).toEqual([
         [
           {
@@ -88,7 +89,6 @@ describe('GenericThankYou', () => {
           }
         ]
       ]);
-      contextSpy.mockRestore();
     });
 
     it('shows the donation page header', () => {

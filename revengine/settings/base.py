@@ -169,7 +169,7 @@ TEMPLATES = [
     {
         "BACKEND": "django.template.backends.django.DjangoTemplates",
         "DIRS": [
-            Path(BASE_DIR) / "spa/public",  # Serve SPA via django.
+            Path(BASE_DIR) / "spa",  # Serve SPA via django.
             os.path.join(PROJECT_DIR, "templates"),
         ],
         "APP_DIRS": True,

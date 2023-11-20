@@ -26,7 +26,7 @@ function PublishedDonationPage() {
 
   useWebFonts(page?.styles?.font);
   useEffect(() => {
-    if (page) {
+    if (page?.revenue_program) {
       const {
         google_analytics_v3_id: orgGaV3Id,
         google_analytics_v3_domain: orgGaV3Domain,
@@ -36,7 +36,7 @@ function PublishedDonationPage() {
 
       setAnalyticsConfig({ hubGaV3Id: HUB_GA_V3_ID, orgGaV3Id, orgGaV3Domain, orgGaV4Id, orgFbPixelId });
     }
-  }, [page, setAnalyticsConfig]);
+  }, [page?.revenue_program, setAnalyticsConfig]);
 
   if (isError) {
     return <LivePage404 dashboard={false} />;
@@ -44,6 +44,16 @@ function PublishedDonationPage() {
 
   if (isLoading || !page) {
     return <GlobalLoading />;
+  }
+
+  // Added in DEV-4225; we see some browsers getting an undefined
+  // revenue_program on the page, but trying to make the same API request
+  // ourselves shows a normal revenue_program property. Adding logging around
+  // this to try to understand what's going on.
+
+  if (!page.revenue_program) {
+    console.error(`Page object has no revenue_program.name property: ${JSON.stringify(page)}`);
+    return <LivePage404 dashboard={false} />;
   }
 
   return (

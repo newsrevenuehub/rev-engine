@@ -12,7 +12,7 @@ export interface PortalContribution {
    */
   amount: number;
   /**
-   * What payment card was used on the contribution.
+   * The type of card on the contribution's current payment.
    */
   card_brand: CardBrand;
   /**
@@ -20,7 +20,8 @@ export interface PortalContribution {
    */
   created: string;
   /**
-   * When the credit card used for the contribution will expire.
+   * When the credit card used for the contribution's current payment will
+   * expire.
    * @example "4/2024"
    */
   credit_card_expiration_date: string;
@@ -37,17 +38,19 @@ export interface PortalContribution {
    */
   is_modifiable: boolean;
   /**
-   * Last four digits of the payment card used on the contribution.
+   * Last four digits of the payment card used on the current payment method of
+   * the contribution.
    */
   last4: string;
   /**
-   * Timestamp of when the last related payment occurred.
+   * Timestamp of when the last related payment occurred. This may be null in
+   * recurring contributions that have been migrated from legacy subscriptions.
    */
-  last_payment_date: string;
+  last_payment_date: null | string;
   /**
-   * Timestamp of when the next related payment will occur.
+   * Timestamp of when the next related payment will occur, if any.
    */
-  next_payment_date: string;
+  next_payment_date: null | string;
   /**
    * Internal ID of the payment in the payment processor, e.g. Stripe.
    */

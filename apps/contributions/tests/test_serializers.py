@@ -1195,7 +1195,6 @@ class TestCreateOneTimePaymentSerializer:
             "amount": contribution.amount,
             "currency": contribution.currency,
             "customer": contribution.provider_customer_id,
-            "receipt_email": contribution.contributor.email,
             "statement_descriptor_suffix": None,
             "stripe_account": contribution.donation_page.revenue_program.payment_provider.stripe_account_id,
             "capture_method": "manual",

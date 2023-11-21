@@ -394,7 +394,6 @@ class TestContributionModel:
             amount=one_time_contribution.amount,
             currency=one_time_contribution.currency,
             customer=one_time_contribution.provider_customer_id,
-            receipt_email=one_time_contribution.contributor.email,
             metadata=metadata,
             statement_descriptor_suffix=(
                 (rp := one_time_contribution.donation_page.revenue_program).stripe_statement_descriptor_suffix

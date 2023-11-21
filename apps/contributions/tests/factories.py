@@ -163,3 +163,18 @@ class StripeSubscriptionFactory:
 
     def delete(*args, **kwargs):
         pass
+
+
+class PaymentFactory(DjangoModelFactory):
+    class Meta:
+        model = models.Payment
+
+    created = factory.LazyFunction(lambda: generate_random_datetime(THEN, NOW))
+    contribution = factory.SubFactory(ContributionFactory)
+    net_amount_paid = 1980
+    gross_amount_paid = 2000
+    amount_refunded = 0
+    stripe_balance_transaction_id = factory.LazyFunction(lambda: f"txn_{_random_stripe_str()}")
+
+    class Params:
+        refund = factory.Trait(amount_refunded=1000)

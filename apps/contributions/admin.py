@@ -7,7 +7,7 @@ from django.utils.html import format_html
 from reversion_compare.admin import CompareVersionAdmin
 
 from apps.common.admin import RevEngineBaseAdmin, prettify_json_field
-from apps.contributions.models import Contribution, ContributionStatus, Contributor
+from apps.contributions.models import Contribution, ContributionStatus, Contributor, Payment
 from apps.contributions.payment_managers import PaymentProviderError
 
 
@@ -21,6 +21,41 @@ class ContributorAdmin(RevEngineBaseAdmin, CompareVersionAdmin):
     ordering = ("email",)
     search_fields = ("email",)
     readonly_fields = ("email",)
+
+
+@admin.register(Payment)
+class PaymentAdmin(RevEngineBaseAdmin):
+    list_display = (
+        "contribution",
+        "net_amount_paid",
+        "gross_amount_paid",
+        "amount_refunded",
+        "stripe_balance_transaction_id",
+    )
+    order = (
+        "modified",
+        "created",
+        "contribution",
+        "net_amount_paid",
+        "gross_amount_paid",
+        "amount_refunded",
+    )
+    fields = (
+        fields := (
+            "id",
+            "created",
+            "modified",
+            "contribution",
+            "net_amount_paid",
+            "gross_amount_paid",
+            "amount_refunded",
+            "stripe_balance_transaction_id",
+        )
+    )
+    readonly_fields = fields
+
+    def has_add_permission(self, request, obj=None):
+        return False
 
 
 @admin.register(Contribution)

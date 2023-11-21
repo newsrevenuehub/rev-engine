@@ -431,7 +431,6 @@ class Contribution(IndexedTimeStampedModel):
             currency=self.currency,
             customer=self.provider_customer_id,
             metadata=metadata,
-            receipt_email=self.contributor.email,
             statement_descriptor_suffix=self.donation_page.revenue_program.stripe_statement_descriptor_suffix,
             stripe_account=self.donation_page.revenue_program.stripe_account_id,
             capture_method="manual" if self.status == ContributionStatus.FLAGGED else "automatic",

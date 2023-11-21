@@ -24,14 +24,9 @@ from apps.contributions.models import (
     ContributionStatus,
     Contributor,
 )
-from apps.contributions.serializers import (
-    SWAG_CHOICES_DELIMITER,
-    SWAG_SUB_CHOICE_DELIMITER,
-    ContributionSerializer,
-    StripeMetadataSchemaBase,
-    StripePaymentMetadataSchemaV1_4,
-)
+from apps.contributions.serializers import ContributionSerializer
 from apps.contributions.tests.factories import ContributionFactory, ContributorFactory
+from apps.contributions.types import StripeMetadataSchemaBase, StripePaymentMetadataSchemaV1_4
 from apps.contributions.utils import get_sha256_hash
 from apps.pages.tests.factories import DonationPageFactory
 
@@ -382,9 +377,9 @@ def mock_create_stripe_customer_with_exception(*args, **kwargs):
 
 @pytest.fixture
 def valid_swag_choices_string():
-    choice_1_raw = f"t-shirt{SWAG_SUB_CHOICE_DELIMITER}small"
-    choice_2_raw = f"hat{SWAG_SUB_CHOICE_DELIMITER}huge"
-    choices_raw = f"{choice_1_raw}{SWAG_CHOICES_DELIMITER}{choice_2_raw}"
+    choice_1_raw = f"t-shirt{StripePaymentMetadataSchemaV1_4.SWAG_SUB_CHOICE_DELIMITER}small"
+    choice_2_raw = f"hat{StripePaymentMetadataSchemaV1_4.SWAG_SUB_CHOICE_DELIMITER}huge"
+    choices_raw = f"{choice_1_raw}{StripePaymentMetadataSchemaV1_4.SWAG_CHOICES_DELIMITER}{choice_2_raw}"
     return choices_raw
 
 

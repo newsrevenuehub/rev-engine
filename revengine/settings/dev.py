@@ -44,9 +44,5 @@ CELERY_RESULT_BACKEND = os.getenv("CELERY_RESULT_BACKEND", "cache")
 CELERY_CACHE_BACKEND = BROKER_URL
 CELERY_IMPORTS = ("apps.emails.tasks",)
 
-if BROKER_URL.startswith("memory"):
-    CACHES = {
-        "default": {
-            "BACKEND": "django.core.cache.backends.dummy.DummyCache",
-        }
-    }
+
+CACHES["default"]["BACKEND"] = "django.core.cache.backends.locmem.LocMemCache"

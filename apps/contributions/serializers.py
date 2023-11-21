@@ -1,13 +1,10 @@
 import logging
-import re
 from datetime import datetime, timedelta
-from typing import Any, Literal, Optional
 
 from django.conf import settings
 from django.db.models import TextChoices
 from django.utils import timezone
 
-import pydantic
 from rest_framework import serializers
 from rest_framework.exceptions import APIException, PermissionDenied
 from stripe.error import StripeError
@@ -21,16 +18,13 @@ from apps.contributions.models import (
     ContributionStatus,
     Contributor,
 )
+from apps.contributions.types import StripePaymentMetadataSchemaV1_4
 from apps.contributions.utils import format_ambiguous_currency, get_sha256_hash
 from apps.organizations.serializers import RevenueProgramSerializer
 from apps.pages.models import DonationPage
 
 from .bad_actor import BadActorAPIError, make_bad_actor_request
 from .fields import StripeAmountField
-
-
-SWAG_CHOICES_DELIMITER = ";"
-SWAG_SUB_CHOICE_DELIMITER = ":"
 
 
 class GenericPaymentError(APIException):
@@ -224,103 +218,6 @@ class AbstractPaymentSerializer(serializers.Serializer):
         if isinstance(amount, str):
             data["amount"] = self.convert_amount_to_cents(data["amount"])
         return super().to_internal_value(data)
-
-
-class StripeMetadataSchemaBase(pydantic.BaseModel):
-    """
-
-    This schema:
-    - validates that all required fields are present
-    - validates that extra fields are not present
-    - provides default values for some optional fields
-    - normalizes boolean values
-    """
-
-    class Config:
-        extra = pydantic.Extra.forbid  # don't allow extra fields
-
-    schema_version: Literal["1.4"]
-    source: Literal["rev-engine"]
-
-    @classmethod
-    def normalize_boolean(cls, v: Any) -> bool | None:
-        """Normalize boolean values
-
-        Convert some known values to their boolean counterpart, while still allowing
-        for a `None` value which indicates that the value was not provided.
-        """
-        logger.debug("Normalizing boolean value %s", v)
-        if any([isinstance(v, bool), v is None]):
-            return v
-        if isinstance(v, str):
-            if v.lower().strip() in ["false", "none", "no", "n"]:
-                return False
-            if v.lower().strip() in ["true", "yes", "y"]:
-                return True
-        raise ValueError("Value must be a boolean, None, or castable string")
-
-
-class StripePaymentMetadataSchemaV1_4(StripeMetadataSchemaBase):
-    """Schema used for generating metadata on Stripe payment intents and subscriptions"""
-
-    agreed_to_pay_fees: bool
-    donor_selected_amount: float
-    referer: pydantic.HttpUrl
-    revenue_program_id: str
-    revenue_program_slug: str
-
-    contributor_id: Optional[str] = None
-    comp_subscription: Optional[str] = None
-    company_name: Optional[str] = None
-    honoree: Optional[str] = None
-    in_memory_of: Optional[str] = None
-    reason_for_giving: Optional[str] = None
-    sf_campaign_id: Optional[str] = None
-    swag_choices: Optional[str] = None
-    swag_opt_out: Optional[bool] = False
-    schema_version: Literal["1.4"]
-
-    @pydantic.validator("contributor_id", "revenue_program_id", pre=True)
-    @classmethod
-    def convert_id_to_string(cls, v: Any) -> str | None:
-        """Convert id to string
-
-        This validator is responsible for ensuring that the field is a string. These fields are naturally
-        integers on their way in, but the metadata schema in Switchboard calls for them to be strings.
-        """
-        if v is None:
-            return v
-        return str(v)
-
-    @pydantic.validator("agreed_to_pay_fees", "swag_opt_out")
-    @classmethod
-    def validate_booleans(cls, v: Any) -> bool | None:
-        """Validate booleans
-
-        This validator is responsible for ensuring that the agreed_to_pay_fees and swag_opt_out fields are valid.
-        """
-        return cls.normalize_boolean(v)
-
-    @pydantic.validator("swag_choices")
-    @classmethod
-    def validate_swag_choices(cls, v: Any) -> str | None:
-        """Validate swag_choices
-
-        This validator is responsible for ensuring that the swag_choices field is valid.
-        """
-        # if empty or none, return
-        if not v:
-            return v
-        if len(v) > settings.METADATA_MAX_SWAG_CHOICES_LENGTH:
-            raise ValueError("swag_choices is too long")
-        choices = v.split(SWAG_CHOICES_DELIMITER)
-        # for instance, "tshirt" or "tshirt:hoodie"
-        choice_pattern = rf"[\w-]+({SWAG_SUB_CHOICE_DELIMITER}[\w]+)?"
-        for choice in choices:
-            # we check if choice is truthy to allow for case of a hanging `;` leading to an empty choice
-            if choice and not re.fullmatch(choice_pattern, choice):
-                raise ValueError("swag_choices is not valid")
-        return v
 
 
 class BaseCreatePaymentSerializer(serializers.Serializer):

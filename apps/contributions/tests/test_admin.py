@@ -16,7 +16,11 @@ import apps
 from apps.common.tests.test_utils import setup_request
 from apps.contributions.admin import ContributionAdmin
 from apps.contributions.models import Contribution, ContributionStatus
-from apps.contributions.tests.factories import ContributionFactory, ContributorFactory
+from apps.contributions.tests.factories import (
+    ContributionFactory,
+    ContributorFactory,
+    PaymentFactory,
+)
 from apps.organizations.tests.factories import (
     OrganizationFactory,
     PaymentProviderFactory,
@@ -41,6 +45,21 @@ class TestContributorAdmin:
             ).status_code
             == 200
         )
+
+
+@pytest.mark.django_db
+class TestPaymentAdmin:
+    @pytest.fixture()
+    def payment(self):
+        return PaymentFactory()
+
+    def test_list_view(self, payment, client, admin_user):
+        response = client.get(reverse("admin:contributions_payment_changelist"), follow=True)
+        assert response.status_code == 200
+
+    def test_detail_view(self, payment, client, admin_user):
+        response = client.get(reverse("admin:contributions_payment_change", args=[payment.pk]), follow=True)
+        assert response.status_code == 200
 
 
 @mock.patch("apps.contributions.models.Contribution.fetch_stripe_payment_method", return_value=None)

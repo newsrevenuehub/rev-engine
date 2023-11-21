@@ -101,6 +101,12 @@ def suppress_google_cloud_secret_manager(settings):
     settings.ENABLE_GOOGLE_CLOUD_SECRET_MANAGER = False
 
 
+@pytest.fixture
+def suppress_stripe_webhook_sig_verification(mocker):
+    """Makes it so stripe webhook signature verification always succeeds"""
+    mocker.patch("stripe.webhook.WebhookSignature.verify_header", return_value=True)
+
+
 @pytest.fixture()
 def mock_stripe_retrieve_payment_method(monkeypatch):
     with open("apps/contributions/tests/fixtures/provider-payment-method-details.json") as f:

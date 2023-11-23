@@ -89,6 +89,8 @@ class StripeMetadataSchemaBase(pydantic.BaseModel):
     schema_version: Literal["1.4"]
     source: Literal["rev-engine"]
 
+    METADATA_TEXT_MAX_LENGTH: ClassVar[int] = 500
+
     @classmethod
     def normalize_boolean(cls, v: Any) -> bool | None:
         """Normalize boolean values
@@ -105,6 +107,17 @@ class StripeMetadataSchemaBase(pydantic.BaseModel):
             if v.lower().strip() in ["true", "yes", "y"]:
                 return True
         raise ValueError("Value must be a boolean, None, or castable string")
+
+    @pydantic.validator("*", pre=True, always=True)
+    def truncate_strings(cls, v: Any) -> str | None:
+        """Truncate strings
+
+        This validator is responsible for ensuring that all string fields are no longer than
+        METADATA_TEXT_MAX_LENGTH characters.
+        """
+        if isinstance(v, str):
+            return v[: cls.METADATA_TEXT_MAX_LENGTH]
+        return v
 
 
 class StripePaymentMetadataSchemaV1_4(StripeMetadataSchemaBase):

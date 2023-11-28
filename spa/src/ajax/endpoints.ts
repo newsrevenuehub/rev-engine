@@ -38,6 +38,10 @@ export function getRevenueProgramMailchimpStatusEndpoint(revenueProgramId: Reven
 }
 
 // Contributions
+export function getContributionsEndpoint(contributorId: number) {
+  return `/contributors/${contributorId}/contributions/`;
+}
+
 export const CONTRIBUTIONS = 'contributions/';
 export const EMAIL_CONTRIBUTIONS = 'email-contributions/';
 export const PROCESS_FLAGGED = 'process-flagged/';

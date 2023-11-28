@@ -1,0 +1,164 @@
+{
+    "id": "evt_fakefakefake",
+    "object": "event",
+    "account": "acct_fakefake",
+    "api_version": "2020-08-27",
+    "created": 1698422385,
+    "data": {
+        "object": {
+            "id": "ch_fakefakef",
+            "object": "charge",
+            "amount": 12000,
+            "amount_captured": 12000,
+            "amount_refunded": 12000,
+            "application": "ca_fakefakefake",
+            "application_fee": null,
+            "application_fee_amount": null,
+            "balance_transaction": "txn_fakefakefake333333",
+            "billing_details": {
+                "address": {
+                    "city": "New York",
+                    "country": "US",
+                    "line1": "123 William Street",
+                    "line2": "",
+                    "postal_code": "10038",
+                    "state": "New York"
+                },
+                "email": "foo@bar.org",
+                "name": "foo bar",
+                "phone": "234"
+            },
+            "calculated_statement_descriptor": "WWW.FOO.ORG",
+            "captured": true,
+            "created": 1698342704,
+            "currency": "usd",
+            "customer": "cus_fakefakefake",
+            "description": null,
+            "destination": null,
+            "dispute": null,
+            "disputed": false,
+            "failure_balance_transaction": null,
+            "failure_code": null,
+            "failure_message": null,
+            "fraud_details": {},
+            "invoice": null,
+            "livemode": false,
+            "metadata": {
+                "referer": "https://foo.bar.org/",
+                "source": "rev-engine",
+                "revenue_program_id": "3",
+                "donor_selected_amount": "120.0",
+                "swag_opt_out": "False",
+                "agreed_to_pay_fees": "False",
+                "contributor_id": "184",
+                "revenue_program_slug": "foo-bar",
+                "schema_version": "1.4"
+            },
+            "on_behalf_of": null,
+            "order": null,
+            "outcome": {
+                "network_status": "approved_by_network",
+                "reason": null,
+                "risk_level": "normal",
+                "risk_score": 17,
+                "seller_message": "Payment complete.",
+                "type": "authorized"
+            },
+            "paid": true,
+            "payment_intent": "pi_fakefakefake",
+            "payment_method": "pm_fakefakefake",
+            "payment_method_details": {
+                "card": {
+                    "amount_authorized": 12000,
+                    "brand": "visa",
+                    "checks": {
+                        "address_line1_check": "pass",
+                        "address_postal_code_check": "pass",
+                        "cvc_check": "pass"
+                    },
+                    "country": "US",
+                    "exp_month": 12,
+                    "exp_year": 2023,
+                    "extended_authorization": {
+                        "status": "disabled"
+                    },
+                    "fingerprint": "fakefakefake",
+                    "funding": "credit",
+                    "incremental_authorization": {
+                        "status": "unavailable"
+                    },
+                    "installments": null,
+                    "last4": "4242",
+                    "mandate": null,
+                    "multicapture": {
+                        "status": "unavailable"
+                    },
+                    "network": "visa",
+                    "network_token": {
+                        "used": false
+                    },
+                    "overcapture": {
+                        "maximum_amount_capturable": 12000,
+                        "status": "unavailable"
+                    },
+                    "three_d_secure": null,
+                    "wallet": null
+                },
+                "type": "card"
+            },
+            "receipt_email": "foo@bar.org",
+            "receipt_number": null,
+            "receipt_url": "https://pay.stripe.com/receipts/payment/fake",
+            "refunded": true,
+            "refunds": {
+                "object": "list",
+                "data": [
+                    {
+                        "id": "re_fakefake",
+                        "object": "refund",
+                        "amount": 12000,
+                        "balance_transaction": "txn_fakefakefake333333",
+                        "charge": "ch_fakefakef",
+                        "created": 1698422385,
+                        "currency": "usd",
+                        "metadata": {},
+                        "payment_intent": "pi_fakefakefake",
+                        "reason": "requested_by_customer",
+                        "receipt_number": null,
+                        "source_transfer_reversal": null,
+                        "status": "succeeded",
+                        "transfer_reversal": null
+                    }
+                ],
+                "has_more": false,
+                "total_count": 1,
+                "url": "/v1/charges/ch_fakefakef/refunds"
+            },
+            "review": null,
+            "shipping": null,
+            "source": null,
+            "source_transfer": null,
+            "statement_descriptor": null,
+            "statement_descriptor_suffix": null,
+            "status": "succeeded",
+            "transfer_data": null,
+            "transfer_group": null
+        },
+        "previous_attributes": {
+            "amount_refunded": 0,
+            "receipt_url": "https://pay.stripe.com/receipts/payment/fake",
+            "refunded": false,
+            "refunds": {
+                "data": [],
+                "total_count": 0
+            }
+        }
+    },
+    "livemode": false,
+    "pending_webhooks": 2,
+    "request": {
+        "id": "req_fakefake",
+        "idempotency_key": "c5f2cb14-0f1c-4ae8-926c-6354433c0297"
+    },
+    "type": "charge.refunded"
+}

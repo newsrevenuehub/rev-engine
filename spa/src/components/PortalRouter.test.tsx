@@ -23,10 +23,12 @@ jest.mock('components/portal/PortalPage', () => ({ children }: { children: React
 jest.mock('components/authentication/ProtectedRoute', () => ({ render }: { render: () => React.ReactNode }) => (
   <div data-testid="mock-protected-router">{render()}</div>
 ));
+jest.mock('components/portal/ContributionsList/ContributionsList', () => () => (
+  <div data-testid="mock-contributions-list" />
+));
 jest.mock('components/portal/PortalEntry', () => () => <div data-testid="mock-portal-entry" />);
-jest.mock('components/contributor/ContributorVerify', () => () => <div data-testid="mock-contributor-verify" />);
-jest.mock('components/contributor/contributorDashboard/ContributorDashboard', () => () => (
-  <div data-testid="mock-contributor-dashboard" />
+jest.mock('components/portal/TokenVerification/TokenVerification', () => () => (
+  <div data-testid="mock-token-verification" />
 ));
 
 function tree(path: string) {
@@ -57,19 +59,19 @@ describe('PortalRouter', () => {
     expect(within(screen.getByTestId('mock-portal-page')).getByTestId('mock-portal-entry')).toBeInTheDocument();
   });
 
-  it('displays a PortalPage with ContributorDashboard at /portal/my-contributions/', async () => {
+  it('displays a PortalPage with ContributionsList at /portal/my-contributions/', async () => {
     tree('/portal/my-contributions/');
-    await screen.findByTestId('mock-contributor-dashboard');
-    expect(within(screen.getByTestId('mock-protected-router')).getByTestId('mock-portal-page')).toBeInTheDocument();
+    await screen.findByTestId('mock-contributions-list');
     expect(
-      within(screen.getByTestId('mock-portal-page')).getByTestId('mock-contributor-dashboard')
+      within(screen.getByTestId('mock-protected-router')).getByTestId('mock-contributions-list')
     ).toBeInTheDocument();
+    expect(within(screen.getByTestId('mock-portal-page')).getByTestId('mock-contributions-list')).toBeInTheDocument();
   });
 
-  it('displays a PortalPage with ContributorVerify at /portal/verification/', async () => {
+  it('displays a PortalPage with TokenVerification at /portal/verification/', async () => {
     tree('/portal/verification/');
-    await screen.findByTestId('mock-contributor-verify');
-    expect(within(screen.getByTestId('mock-portal-page')).getByTestId('mock-contributor-verify')).toBeInTheDocument();
+    await screen.findByTestId('mock-token-verification');
+    expect(within(screen.getByTestId('mock-portal-page')).getByTestId('mock-token-verification')).toBeInTheDocument();
   });
 
   it('redirects to /portal/ when no route matches', () => {

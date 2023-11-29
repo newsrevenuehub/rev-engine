@@ -1,8 +1,8 @@
 import { ComponentMeta, ComponentStory } from '@storybook/react';
 
-import { ReactComponent as Mail } from '@material-design-icons/svg/filled/mail.svg';
-import { ReactComponent as GroupAdd } from '@material-design-icons/svg/filled/group_add.svg';
-import { ReactComponent as Diversity } from '@material-design-icons/svg/filled/diversity_2.svg';
+import Mail from '@material-design-icons/svg/filled/mail.svg?react';
+import GroupAdd from '@material-design-icons/svg/filled/group_add.svg?react';
+import Diversity from '@material-design-icons/svg/filled/diversity_2.svg?react';
 
 import IconList, { IconListProps } from './IconList';
 

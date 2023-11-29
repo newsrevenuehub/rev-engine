@@ -35,7 +35,7 @@ setup:
 run-dev:
 	@echo 'Running local development'
 	docker-compose up -d --remove-orphans
-	cd spa; export PORT=3000; npm run start:subdomains &
+	cd spa; npm start &
 	python manage.py runserver
 
 run-gcloud-pub-sub:
@@ -46,20 +46,20 @@ run-gcloud-pub-sub:
  		 && curl -s -X PUT 'http://localhost:8085/v1/projects/revenue-engine/topics/new-nre-customer-test' && \
 	 sleep 10 \
  		 && curl -s -X PUT 'http://localhost:8085/v1/projects/revenue-engine/topics/contribution-page-published'
-	cd spa; export PORT=3000; npm run start:subdomains &
+	cd spa; npm start &
 	ENABLE_PUBSUB=true python manage.py runserver
 
 run-hybrid:
 	@echo 'Running local development as hybrid app (with Django serving SPA)'
 	docker-compose -f docker-compose.yml -f docker-compose-dev.yml up -d --remove-orphans redis db
-	cd spa; export BROWSER=none; export PORT=3000; export REACT_APP_NO_PROXY=y; npm run start:subdomains &
+	cd spa; export BROWSER=none; export REACT_APP_NO_PROXY=y; npm start &
 	sleep 3 && python -m webbrowser http://localhost:8000 &
 	python manage.py runserver
 
 run-redis:
 	@echo 'Running local development with redis'
 	docker-compose -f docker-compose.yml -f docker-compose-dev.yml up -d --remove-orphans redis db
-	cd spa; export PORT=3000; npm run start:subdomains &
+	cd spa; npm start &
 	python manage.py runserver
 
 run-tests:

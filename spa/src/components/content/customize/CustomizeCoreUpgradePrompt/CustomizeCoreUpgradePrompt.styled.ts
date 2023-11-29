@@ -1,4 +1,4 @@
-import { ReactComponent as KeyIcon } from '@material-design-icons/svg/outlined/vpn_key.svg';
+import KeyIcon from '@material-design-icons/svg/outlined/vpn_key.svg?react';
 import { LinkButton } from 'components/base';
 import styled from 'styled-components';
 

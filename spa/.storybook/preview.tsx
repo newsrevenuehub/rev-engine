@@ -1,25 +1,20 @@
-import { withThemes } from '@react-theming/storybook-addon';
 import { ThemeProvider as MuiThemeProvider } from '@material-ui/core';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
-import { SnackbarProvider } from 'notistack';
 import { Suspense } from 'react';
 import { Provider as AlertProvider } from 'react-alert';
 import { BrowserRouter } from 'react-router-dom';
-import { ThemeProvider } from 'styled-components';
 import { mockDateDecorator } from 'storybook-mock-date-decorator';
-
-import Alert, { alertOptions } from 'elements/alert/Alert';
-import { revEngineTheme, muiThemeOverrides } from 'styles/themes';
-import AdminGlobalStyles from 'styles/AdminGlobalStyles.js';
-import { ReauthContext } from 'components/ReauthContext';
-import 'i18n';
+import { ThemeProvider } from 'styled-components';
+import { ReauthContext } from '../src/components/ReauthContext';
+import Alert, { alertOptions } from '../src/elements/alert/Alert';
+import { muiThemeOverrides, revEngineTheme } from '../src/styles/themes';
+import AdminGlobalStyles from '../src/styles/AdminGlobalStyles';
+import { SnackbarProvider } from 'notistack';
+import '../src/i18n';
 
 const queryClient = new QueryClient();
 
-// The two MuiThemeProviders here are to force JSS scoping, e.g. so that MUI
-// uses classes like MuiButton-5 instead of MuiButton. This helps us catch
-// styling mistakes in Storybook as opposed to the app.
-const providerFn = ({ children }) => (
+const wrapper = (Story) => (
   <BrowserRouter>
     <Suspense fallback={<p>Loading...</p>}>
       <QueryClientProvider client={queryClient}>
@@ -29,7 +24,9 @@ const providerFn = ({ children }) => (
               <AlertProvider template={Alert} {...alertOptions}>
                 <SnackbarProvider anchorOrigin={{ horizontal: 'right', vertical: 'bottom' }}>
                   <AdminGlobalStyles />
-                  <ReauthContext.Provider value={{ getReauth: () => {} }}>{children}</ReauthContext.Provider>
+                  <ReauthContext.Provider value={{ getReauth: () => {} }}>
+                    <Story />
+                  </ReauthContext.Provider>
                 </SnackbarProvider>
               </AlertProvider>
             </MuiThemeProvider>
@@ -40,7 +37,7 @@ const providerFn = ({ children }) => (
   </BrowserRouter>
 );
 
-export const decorators = [withThemes(null, [revEngineTheme], { providerFn }), mockDateDecorator];
+export const decorators = [wrapper, mockDateDecorator];
 
 export const parameters = {
   actions: { argTypesRegex: '^on[A-Z].*' },

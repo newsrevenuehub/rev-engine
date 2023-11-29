@@ -86,7 +86,7 @@ const AudienceListModal = ({ open, loading, outerError }: AudienceListModalProps
           )}
         />
         {errorMessage && !loading && (
-          <ErrorMessage role="error" data-testid="audience-error">
+          <ErrorMessage role="alert" data-testid="audience-error">
             {errorMessage}
           </ErrorMessage>
         )}

@@ -1,5 +1,5 @@
-import { ReactComponent as CheckIcon } from '@material-design-icons/svg/outlined/check.svg';
-import { ReactComponent as InfoIcon } from '@material-design-icons/svg/outlined/info.svg';
+import CheckIcon from '@material-design-icons/svg/outlined/check.svg?react';
+import InfoIcon from '@material-design-icons/svg/outlined/info.svg?react';
 import { useCallback, useMemo } from 'react';
 import { Controller, useForm } from 'react-hook-form';
 import MaskedInput from 'react-input-mask';

@@ -1,7 +1,5 @@
 // These constants may be static values, or read from the "environment".
-// Constants read from the "environment" locally are analyzed by webpack and
-// converted to static values at build time using the built-in
-// .env -> "REACT_APP_ENV_VAR" -> string
+// Constants read from the "environment" locally are provided by Vite.
 //
 // Constants read from the "environment" in a deployed environment are actually
 // added to the window object when the initial index.html is requested and are
@@ -46,7 +44,7 @@ export const SENTRY_ENABLE_FRONTEND = resolveConstantFromEnv('SENTRY_ENABLE_FRON
 export const SENTRY_DSN_FRONTEND = resolveConstantFromEnv('SENTRY_DSN_FRONTEND');
 
 // Stripe
-export const HUB_STRIPE_API_PUB_KEY = resolveConstantFromEnv('HUB_STRIPE_API_PUB_KEY');
+export const HUB_STRIPE_API_PUB_KEY = resolveConstantFromEnv('HUB_STRIPE_API_PUB_KEY', 'test_api_key');
 export const STRIPE_API_VERSION = resolveConstantFromEnv('STRIPE_API_VERSION', '2020-08-27');
 export const STRIPE_CLIENT_ID = resolveConstantFromEnv('STRIPE_CLIENT_ID', 'test_1234');
 export const STRIPE_OAUTH_SCOPE = resolveConstantFromEnv('STRIPE_OAUTH_SCOPE', 'read_write');
@@ -69,17 +67,12 @@ export const PENDO_VISITOR_PREFIX = resolveConstantFromEnv('PENDO_VISITOR_PREFIX
 export const ENVIRONMENT = resolveConstantFromEnv('ENVIRONMENT');
 
 function resolveConstantFromEnv(constantName: string, defaultValue?: boolean | string | string[]) {
-  // If we're in development, use webpack's process.env string replace. If not,
-  // use window.ENV vars. Oddly enough, this dynamically read
-  // process.env[ENV_VAR_NAME] seems to work here, despite the fact that webpack
-  // seems to do a relatively simple string replace on "process.env.ENV_VAR" at
-  // build time.
-
-  // ||s for compares here are to maintain existing functionality as ?? has
-  // different behavior with null values.
+  // If we're in development, use Vite environment variables. If not, use
+  // window.ENV vars set by Django. ||s for compares here are to maintain
+  // existing functionality as ?? has different behavior with null values.
 
   if (process.env.NODE_ENV === 'development') {
-    return process.env[`REACT_APP_${constantName}`] || defaultValue;
+    return import.meta.env[`VITE_${constantName}`] || defaultValue;
   }
 
   if ((window as any).ENV) {

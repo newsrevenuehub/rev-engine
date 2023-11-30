@@ -1,0 +1,18 @@
+{
+  // SWC is *only* used with dev mode and Jest. Changes here will not affect
+  // final app compilation. See jest.config.js and vite.config.js where this is
+  // configured.
+  "$schema": "https://json.schemastore.org/swcrc",
+  "jsc": {
+    "parser": {
+      "syntax": "typescript",
+      "tsx": true
+    },
+    "transform": {
+      "react": {
+        "runtime": "automatic"
+      }
+    }
+  },
+  "minify": false
+}

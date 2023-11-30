@@ -29,6 +29,8 @@ function SignInForm({ onSubmitSignIn, loading }) {
     onSubmitSignIn(fdata);
   };
 
+  /* eslint-disable jsx-a11y/aria-role */
+
   return (
     <form onSubmit={handleSubmit(onSubmit)}>
       <S.InputLabel hasError={errors.email}>Email</S.InputLabel>
@@ -82,6 +84,8 @@ function SignInForm({ onSubmitSignIn, loading }) {
       </S.Submit>
     </form>
   );
+
+  /* eslint-enable jsx-a11y/aria-role */
 }
 
 SignInForm.propTypes = {

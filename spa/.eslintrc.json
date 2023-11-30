@@ -2,35 +2,55 @@
   "env": {
     "cypress/globals": true
   },
-  "extends": ["react-app", "react-app/jest", "plugin:chai-friendly/recommended", "plugin:cypress/recommended"],
+  "extends": [
+    "plugin:chai-friendly/recommended",
+    "plugin:cypress/recommended",
+    "plugin:jest/recommended",
+    "plugin:jsx-a11y/recommended",
+    "plugin:react/jsx-runtime",
+    "plugin:react-hooks/recommended",
+    "plugin:testing-library/react"
+  ],
+  "ignorePatterns": ["cypress/**"],
   "overrides": [
     {
       "files": ["**/*.{ts,tsx}"],
       "extends": "plugin:@typescript-eslint/recommended",
       "rules": {
         "@typescript-eslint/no-explicit-any": 0,
-        "@typescript-eslint/no-non-null-assertion": 0
+        "@typescript-eslint/no-non-null-assertion": 0,
+        "jsx-a11y/no-autofocus": 1
       }
     },
     {
       "files": ["**/*.stories.*"],
       "rules": {
         "import/no-anonymous-default-export": 0,
-        "@typescript-eslint/no-empty-function": 0
+        "@typescript-eslint/no-empty-function": 0,
+        "jsx-a11y/label-has-associated-control": 1
       }
     },
     {
       "files": ["**/*.test.*"],
       "rules": {
-        "@typescript-eslint/no-empty-function": 0
+        "@typescript-eslint/no-empty-function": 0,
+        "testing-library/no-manual-cleanup": 0,
+        "testing-library/await-async-events": 0,
+        "testing-library/no-await-sync-events": 0
       }
     }
   ],
   "parser": "@typescript-eslint/parser",
-  "plugins": ["@typescript-eslint", "cypress"],
+  "plugins": ["@typescript-eslint", "cypress", "jest", "jsx-a11y", "react", "react-hooks"],
   "rules": {
     "jest/no-focused-tests": "error",
+    "jest/no-alias-methods": 0,
     "cypress/no-async-tests": 1
   },
-  "root": true
+  "root": true,
+  "settings": {
+    "jest": {
+      "version": 27
+    }
+  }
 }

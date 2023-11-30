@@ -113,6 +113,8 @@ export interface UseContributorContributionListResult {
 /**
  * Manages contribution data for the logged-in contributor user. **This returns
  * different data than what what an org or Hub admin would receive.**
+ *
+ * @deprecated
  */
 export function useContributorContributionList(
   queryParams?: UseContributionListQueryParams

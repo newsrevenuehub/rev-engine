@@ -11,7 +11,7 @@ export const PoweredBy = styled.div`
   font-size: ${(props) => props.theme.fontSizesUpdated.sm};
   color: ${(props) => props.theme.basePalette.greyscale.black};
   background: ${(props) => props.theme.basePalette.greyscale.grey4};
-  padding-bottom: 45px;
+  padding: 45px 0;
 
   & > span {
     font-family: ${(props) => props.theme.systemFont};
@@ -21,8 +21,6 @@ export const PoweredBy = styled.div`
 export const Header = styled.header`
   background: ${(props) => props.theme.basePalette.primary.indigo};
   background-size: cover;
-  height: 60px;
-  min-height: 60px;
   display: flex;
   justify-content: center;
   align-items: center;
@@ -37,4 +35,10 @@ export const Logo = styled.img`
   width: auto;
   max-width: 100%;
   margin: 0 auto;
+`;
+
+export const Root = styled.div`
+  display: grid;
+  grid-template-rows: 60px 1fr 145px;
+  min-height: 100vh;
 `;

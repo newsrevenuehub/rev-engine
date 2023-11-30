@@ -24,6 +24,7 @@ jest.mock('./PublishModal/PublishModal');
 jest.mock('./UnpublishModal/UnpublishModal');
 
 const unpublishedPage = {
+  id: 'mock-id',
   name: 'Contribution page',
   revenue_program: {
     slug: 'news-revenue-hub'
@@ -194,7 +195,13 @@ describe('PublishButton', () => {
     });
 
     describe('When the page has not been published yet', () => {
-      beforeEach(() => useEditablePageContextMock.mockReturnValue({ isLoading: false, page: unpublishedPage }));
+      let track: jest.Mock;
+
+      beforeEach(() => {
+        useEditablePageContextMock.mockReturnValue({ isLoading: false, page: unpublishedPage });
+        track = jest.fn();
+        (window as any).pendo = { track };
+      });
 
       describe('And the user can publish a new page', () => {
         beforeEach(() => {
@@ -298,6 +305,50 @@ describe('PublishButton', () => {
           userEvent.click(screen.getByText('onPublish'));
           expect(screen.getByTestId('mock-publish-modal')).toBeVisible();
           await waitFor(() => expect(screen.getByText(errorMsg, { exact: false })).toBeVisible());
+        });
+
+        it('tracks a Pendo event if publishing succeeds', async () => {
+          const savePageChanges = jest.fn();
+
+          useEditablePageContextMock.mockReturnValue({ savePageChanges, isLoading: false, page: unpublishedPage });
+          tree();
+          userEvent.click(screen.getByRole('button', { name: `Publish page ${publishedPage.name}` }));
+          expect(screen.getByTestId('mock-publish-modal')).toBeInTheDocument();
+
+          userEvent.click(screen.getByText('onPublish'));
+          await waitFor(() => expect(savePageChanges).toBeCalled());
+          expect(track.mock.calls).toEqual([
+            ['contribution-page-publish', { id: unpublishedPage.id, name: unpublishedPage.name }]
+          ]);
+        });
+
+        it('logs an error if tracking the Pendo event fails', async () => {
+          const errorSpy = jest.spyOn(console, 'error').mockImplementation(() => {});
+          const savePageChanges = jest.fn();
+
+          track.mockImplementation(() => {
+            throw new Error('mock error');
+          });
+          useEditablePageContextMock.mockReturnValue({ savePageChanges, isLoading: false, page: unpublishedPage });
+          tree();
+          userEvent.click(screen.getByRole('button', { name: `Publish page ${publishedPage.name}` }));
+          expect(screen.getByTestId('mock-publish-modal')).toBeInTheDocument();
+          userEvent.click(screen.getByText('onPublish'));
+          await waitFor(() => expect(track).toBeCalled());
+          expect(errorSpy).toBeCalledTimes(1);
+          errorSpy.mockRestore();
+        });
+
+        it("doesn't track a Pendo event if publishing fails", async () => {
+          const savePageChanges = jest.fn().mockRejectedValue(new Error());
+
+          useEditablePageContextMock.mockReturnValue({ savePageChanges, isLoading: false, page: unpublishedPage });
+          tree();
+          userEvent.click(screen.getByRole('button', { name: `Publish page ${publishedPage.name}` }));
+          expect(screen.getByTestId('mock-publish-modal')).toBeInTheDocument();
+          userEvent.click(screen.getByText('onPublish'));
+          await waitFor(() => expect(savePageChanges).toBeCalled());
+          expect(track).not.toBeCalled();
         });
 
         it('is accessible', async () => {

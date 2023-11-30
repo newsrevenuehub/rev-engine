@@ -3,14 +3,16 @@ import { FormControlLabel } from '../FormControlLabel';
 import { Radio } from './Radio';
 
 export default {
+  args: {
+    checked: true,
+    disabled: false
+  },
   argTypes: {
     checked: {
-      control: 'boolean',
-      defaultValue: true
+      control: 'boolean'
     },
     disabled: {
-      control: 'boolean',
-      defaultValue: false
+      control: 'boolean'
     }
   },
   component: Radio,

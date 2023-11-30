@@ -1,4 +1,4 @@
-import { createContext, useState, useContext, useRef, Suspense } from 'react';
+import { Suspense } from 'react';
 import { MainLayoutWrapper } from './MainLayout.styled';
 
 // Hooks

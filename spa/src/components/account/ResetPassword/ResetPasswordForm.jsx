@@ -27,6 +27,8 @@ function ResetPasswordForm({ onResetPasswordSubmit, loading }) {
   const confirmPassword = watch('confirmPassword', '');
   const disabled = !confirmPassword || !password || loading;
 
+  /* eslint-disable jsx-a11y/aria-role */
+
   return (
     <form onSubmit={disabled ? () => {} : handleSubmit(onSubmit)}>
       <S.InputLabel hasError={errors.password}>New Password</S.InputLabel>
@@ -93,6 +95,8 @@ function ResetPasswordForm({ onResetPasswordSubmit, loading }) {
       </S.Submit>
     </form>
   );
+
+  /* eslint-enable jsx-a11y/aria-role */
 }
 
 ResetPasswordForm.propTypes = {

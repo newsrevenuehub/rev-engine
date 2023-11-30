@@ -60,8 +60,7 @@ class ReactAppView(TemplateView):
 
 # Proxies the single page app in local development, parsing any HTML responses
 # using Django's template parser. If this is used, the single page app must have
-# its own dev proxying turned off for this to work. See spa/src/setupProxy.js
-# for how that's done.
+# its own dev proxying turned off for this to work.
 #
 # This was cribbed from
 # https://fractalideas.com/blog/making-react-and-django-play-well-together-hybrid-app-model/

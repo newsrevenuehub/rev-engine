@@ -7,10 +7,12 @@ import { ModalFooter } from './ModalFooter';
 import { ModalHeader } from './ModalHeader';
 
 export default {
+  args: {
+    open: true
+  },
   argTypes: {
     open: {
-      control: 'boolean',
-      defaultValue: true
+      control: 'boolean'
     }
   },
   component: Modal,

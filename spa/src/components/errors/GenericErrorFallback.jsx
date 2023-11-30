@@ -4,6 +4,9 @@ function GenericErrorFallback() {
   const handleReload = () => {
     window.location.reload();
   };
+
+  /* eslint-disable jsx-a11y/no-static-element-interactions  */
+  /* eslint-disable jsx-a11y/click-events-have-key-events */
   return (
     <S.GenericErrorFallback>
       <p>

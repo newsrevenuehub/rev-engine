@@ -55,41 +55,43 @@ const GenericThankYouDemo = ({
 export default {
   component: GenericThankYou,
   title: 'Donation Page/GenericThankYou',
+  args: {
+    amount: 123.45,
+    currencySymbol: '$',
+    donationPageUrl: 'https://newsrevenuehub.fundjournalism.org/donate/',
+    email: 'contributor@fundjournalism.org',
+    frequency: 'one-time',
+    nonprofit: true,
+    redirect: 'https://fundjournalism.org',
+    rpName: 'Revenue Program Name',
+    rpUrl: 'https://fundjournalism.org'
+  },
   argTypes: {
     amount: {
-      defaultValue: 123.45,
       type: 'number'
     },
     currencySymbol: {
-      defaultValue: '$',
       type: 'string'
     },
     donationPageUrl: {
-      defaultValue: 'https://newsrevenuehub.fundjournalism.org/donate/',
       type: 'string'
     },
     email: {
-      defaultValue: 'contributor@fundjournalism.org',
       type: 'string'
     },
     frequency: {
-      defaultValue: 'one-time',
       type: 'string'
     },
     nonprofit: {
-      defaultValue: true,
       type: 'boolean'
     },
     redirect: {
-      defaultValue: 'https://fundjournalism.org',
       type: 'string'
     },
     rpName: {
-      defaultValue: 'Revenue Program Name',
       type: 'string'
     },
     rpUrl: {
-      defaultValue: 'https://fundjournalism.org',
       type: 'string'
     }
   }

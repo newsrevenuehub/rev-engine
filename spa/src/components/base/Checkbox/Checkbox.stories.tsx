@@ -3,18 +3,18 @@ import { FormControlLabel } from '../FormControlLabel';
 import { Checkbox } from './Checkbox';
 
 export default {
+  args: {
+    checked: true
+  },
   argTypes: {
     checked: {
-      control: 'boolean',
-      defaultValue: true
+      control: 'boolean'
     },
     disabled: {
-      control: 'boolean',
-      defaultValue: false
+      control: 'boolean'
     },
     indeterminate: {
-      control: 'boolean',
-      defaultValue: false
+      control: 'boolean'
     }
   },
   component: Checkbox,

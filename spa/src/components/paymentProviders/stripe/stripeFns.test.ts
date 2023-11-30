@@ -199,7 +199,7 @@ describe('serializeData', () => {
 
       // Need some special handling for the undefined scenario.
 
-      const result = expect(serializeData(mockForm, {} as any));
+      const result = serializeData(mockForm, {} as any);
 
       expect(result[fieldName]).toBeUndefined();
     }

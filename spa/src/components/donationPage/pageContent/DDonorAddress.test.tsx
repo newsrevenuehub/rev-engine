@@ -10,16 +10,6 @@ import { DonationPageContext, UsePageProps } from '../DonationPage';
 import DDonorAddress, { DDonorAddressProps } from './DDonorAddress';
 import { DonorAddressElement } from 'hooks/useContributionPage';
 
-jest.mock('components/donationPage/DonationPage', () => ({
-  ...jest.requireActual('components/donationPage/DonationPage'),
-  usePage: () => ({
-    ...jest.requireActual('components/donationPage/DonationPage').usePage(),
-    page: {
-      locale: 'mock-locale'
-    }
-  })
-}));
-
 jest.mock('country-code-lookup', () => ({
   countries: [
     { country: 'AAA', iso2: 'aa' },
@@ -80,6 +70,7 @@ function tree(pageContext?: Partial<UsePageProps>, props?: Partial<DDonorAddress
         {
           errors: {},
           mailingCountry: '',
+          page: { locale: 'mock-locale' },
           setMailingCountry: jest.fn(),
           ...pageContext
         } as any

@@ -3,7 +3,7 @@ import { axe } from 'jest-axe';
 import { render, screen, waitFor } from 'test-utils';
 import Axios from 'ajax/axios';
 import PaymentSuccess from './PaymentSuccess';
-import * as AnalyticsContext from 'components/analytics/AnalyticsContext';
+import { AnalyticsContext, UseAnalyticsContextResult } from 'components/analytics/AnalyticsContext';
 import { useHistory, useLocation } from 'react-router-dom';
 import { HUB_GA_V3_ID } from 'appSettings';
 
@@ -24,15 +24,25 @@ const page = {
   slug: 'mock-page-slug'
 };
 
-function tree() {
-  return render(<PaymentSuccess />);
+function tree(analyticsContext: Partial<UseAnalyticsContextResult> = {}) {
+  return render(
+    <AnalyticsContext.Provider
+      value={{
+        analyticsInstance: null,
+        setAnalyticsConfig: jest.fn(),
+        trackConversion: jest.fn(),
+        ...analyticsContext
+      }}
+    >
+      <PaymentSuccess />
+    </AnalyticsContext.Provider>
+  );
 }
 
 describe('PaymentSuccess', () => {
   const axiosMock = new MockAdapter(Axios);
   const useHistoryMock = jest.mocked(useHistory);
   const useLocationMock = jest.mocked(useLocation);
-  let useAnalyticsContextSpy: jest.SpyInstance;
   let search: URL;
 
   beforeEach(() => {
@@ -46,16 +56,10 @@ describe('PaymentSuccess', () => {
     search.searchParams.append('uid', 'mock-uid');
     useHistoryMock.mockReturnValue({ push: jest.fn(), replace: jest.fn() });
     useLocationMock.mockReturnValue({ search: '?pageSlug=mock-page-slug&rpSlug=mock-rp-slug' });
-    useAnalyticsContextSpy = jest.spyOn(AnalyticsContext, 'useAnalyticsContext').mockReturnValue({
-      analyticsInstance: null,
-      setAnalyticsConfig: jest.fn(),
-      trackConversion: jest.fn()
-    });
   });
 
   afterEach(() => {
     axiosMock.reset();
-    useAnalyticsContextSpy.mockRestore();
   });
 
   afterAll(() => axiosMock.restore());
@@ -104,13 +108,7 @@ describe('PaymentSuccess', () => {
     it('configures analytics with the Hub and revenue program config', async () => {
       const setAnalyticsConfig = jest.fn();
 
-      useAnalyticsContextSpy.mockRestore();
-      useAnalyticsContextSpy = jest.spyOn(AnalyticsContext, 'useAnalyticsContext').mockReturnValue({
-        setAnalyticsConfig,
-        analyticsInstance: null,
-        trackConversion: jest.fn()
-      });
-      tree();
+      tree({ setAnalyticsConfig });
       await waitFor(() => expect(setAnalyticsConfig).toBeCalled());
       expect(setAnalyticsConfig.mock.calls).toEqual([
         [
@@ -130,14 +128,8 @@ describe('PaymentSuccess', () => {
       const on = jest.fn();
 
       useLocationMock.mockReturnValue({ search: '?amount=123.45&pageSlug=mock-page-slug&rpSlug=mock-rp-slug' });
-      useAnalyticsContextSpy.mockRestore();
-      useAnalyticsContextSpy = jest.spyOn(AnalyticsContext, 'useAnalyticsContext').mockReturnValue({
-        analyticsInstance: { on } as any,
-        setAnalyticsConfig: jest.fn(),
-        trackConversion
-      });
 
-      tree();
+      tree({ trackConversion, analyticsInstance: { on } } as any);
       await waitFor(() => expect(on).toBeCalled());
       expect(on.mock.calls[0][0]).toBe('ready');
       on.mock.calls[0][1]();
@@ -152,15 +144,9 @@ describe('PaymentSuccess', () => {
       const replace = jest.fn();
 
       search.searchParams.append('next', 'https://mock-next-url.org/somewhere');
-      useAnalyticsContextSpy.mockRestore();
-      useAnalyticsContextSpy = jest.spyOn(AnalyticsContext, 'useAnalyticsContext').mockReturnValue({
-        analyticsInstance: { on } as any,
-        setAnalyticsConfig: jest.fn(),
-        trackConversion: jest.fn()
-      });
       useHistoryMock.mockReturnValue({ replace });
       useLocationMock.mockReturnValue({ search: search.search });
-      tree();
+      tree({ analyticsInstance: { on } } as any);
       await waitFor(() => expect(on).toBeCalled());
       expect(assignSpy).not.toBeCalled();
       on.mock.calls[0][1]();
@@ -173,16 +159,9 @@ describe('PaymentSuccess', () => {
       const on = jest.fn();
       const push = jest.fn();
 
-      useAnalyticsContextSpy.mockRestore();
-      useAnalyticsContextSpy = jest.spyOn(AnalyticsContext, 'useAnalyticsContext').mockReturnValue({
-        analyticsInstance: { on } as any,
-        setAnalyticsConfig: jest.fn(),
-        trackConversion: jest.fn()
-      });
       useHistoryMock.mockReturnValue({ push });
       useLocationMock.mockReturnValue({ search: search.search });
-
-      tree();
+      tree({ analyticsInstance: { on } as any });
       await waitFor(() => expect(on).toBeCalled());
       on.mock.calls[0][1]();
       expect(push.mock.calls).toEqual([

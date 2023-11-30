@@ -1,4 +1,4 @@
-import { ReactComponent as CloseIcon } from '@material-design-icons/svg/filled/close.svg';
+import CloseIcon from '@material-design-icons/svg/filled/close.svg?react';
 import PropTypes, { InferProps } from 'prop-types';
 import { ChangeEvent, useRef } from 'react';
 import addMiddleEllipsis from 'utilities/addMiddleEllipsis';

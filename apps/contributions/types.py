@@ -68,6 +68,7 @@ class StripeEventData(TypedDict):
     api_version: str
     created: int
     data: Any
+    request: Any
     livemode: bool
     pending_webhooks: int
     type: str

@@ -1946,11 +1946,13 @@ class TestPayment:
                 "payment_intent_succeeded_one_time_event",
                 "payment_intent_for_one_time_contribution",
                 "balance_transaction_for_one_time_charge",
+                True,
             ),
             (
                 "payment_intent_succeeded_subscription_creation_event",
                 "payment_intent_for_subscription_creation_contribution",
                 "balance_transaction_for_subscription_creation_charge",
+                False,
             ),
         )
     )
@@ -1959,6 +1961,7 @@ class TestPayment:
             event = request.getfixturevalue(request.param[0])
             pi = request.getfixturevalue(request.param[1])
             balance_transaction = request.getfixturevalue(request.param[2])
+            expect_payment_creation = request.param[3]
             pi.charges = event.data.object.charges
 
             mocker.patch("stripe.BalanceTransaction.retrieve", return_value=balance_transaction)
@@ -1976,7 +1979,12 @@ class TestPayment:
                 kwargs["provider_subscription_id"] = balance_transaction.source.invoice.subscription
             else:
                 kwargs = {"provider_payment_id": event.data.object.id}
-            return event, ContributionFactory(**kwargs) if contribution_found else None, balance_transaction
+            return (
+                event,
+                ContributionFactory(**kwargs) if contribution_found else None,
+                balance_transaction,
+                expect_payment_creation,
+            )
 
         return _implmenentation
 
@@ -1984,18 +1992,26 @@ class TestPayment:
     def test_from_stripe_payment_intent_succeeded_event(
         self, contribution_found, payment_from_pi_succeeded_test_case_factory
     ):
-        event, contribution, balance_transaction = payment_from_pi_succeeded_test_case_factory(contribution_found)
+        """Crucially, show that we do not create a payment in context of a subscription creation event"""
+        event, contribution, balance_transaction, expect_payment = payment_from_pi_succeeded_test_case_factory(
+            contribution_found
+        )
+        count = Payment.objects.count()
         if contribution is None:
             with pytest.raises(ValueError) as exc_info:
                 Payment.from_stripe_payment_intent_succeeded_event(event=event)
             assert str(exc_info.value) == "Could not find a contribution for this event"
         else:
             payment = Payment.from_stripe_payment_intent_succeeded_event(event=event)
-            assert payment.contribution == contribution
-            assert payment.net_amount_paid == balance_transaction.net
-            assert payment.gross_amount_paid == balance_transaction.amount
-            assert payment.amount_refunded == 0
-            assert payment.stripe_balance_transaction_id == balance_transaction.id
+            if expect_payment:
+                assert payment.contribution == contribution
+                assert payment.net_amount_paid == balance_transaction.net
+                assert payment.gross_amount_paid == balance_transaction.amount
+                assert payment.amount_refunded == 0
+                assert payment.stripe_balance_transaction_id == balance_transaction.id
+            else:
+                assert payment is None
+                assert Payment.objects.count() == count
 
     @pytest.fixture
     def balance_transaction_for_refund_of_one_time_charge(self):
@@ -2242,3 +2258,25 @@ class TestPayment:
         for x in range(2):
             PaymentFactory(contribution=monthly_contribution)
         assert monthly_contribution.payment_set.count() == 2
+
+    @pytest.mark.parametrize(
+        "interval,event_fixture",
+        (
+            (ContributionInterval.ONE_TIME, "payment_intent_succeeded_one_time_event"),
+            (ContributionInterval.MONTHLY, "payment_intent_succeeded_subscription_creation_event"),
+            (ContributionInterval.YEARLY, "payment_intent_succeeded_subscription_creation_event"),
+        ),
+    )
+    def contribution(self, request):
+        return ContributionFactory(
+            interval=request.param[0], provider_payment_id=request.getfixturevalue(request.param[1]).data.object.id
+        )
+
+    def test_from_payment_intent_succceeded_conditionality(self, contribution, mocker):
+        """Show that for payment_intent.succeeded webhook, we...
+
+        1. Do create payment for one-time contribution
+        2. Do not create payment for recurring contribution
+        """
+        mocker.patch("stripe.BalanceTransaction.retrieve")
+        mocker.patch("stripe.PaymentIntent.retrieve")

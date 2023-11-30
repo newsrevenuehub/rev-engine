@@ -16,11 +16,17 @@ from django.urls import reverse
 from django.utils.timezone import make_aware
 
 import pytest
+import stripe
 from addict import Dict as AttrDict
 from rest_framework import status
 from stripe.webhook import WebhookSignature
 
-from apps.contributions.models import Contribution, ContributionInterval, ContributionStatus
+from apps.contributions.models import (
+    Contribution,
+    ContributionInterval,
+    ContributionStatus,
+    Payment,
+)
 from apps.contributions.tests.factories import ContributionFactory
 
 
@@ -69,19 +75,50 @@ def invoice_upcoming():
         return json.load(fl)
 
 
+@pytest.fixture
+def invoice_payment_succeeded():
+    # also set up the coresponding contribution in revengine
+    with open("apps/contributions/tests/fixtures/invoice-payment-succeeded-event.json") as fl:
+        return json.load(fl)
+
+
+@pytest.fixture
+def charge_refunded():
+    # also set up the corresponding contribution in revengine
+    with open("apps/contributions/tests/fixtures/stripe-charge-refunded.json") as fl:
+        return json.load(fl)
+
+
 @pytest.mark.django_db
+@pytest.mark.usefixtures("suppress_stripe_webhook_sig_verification")
 class TestPaymentIntentSucceeded:
     def test_when_contribution_found(self, payment_intent_succeeded, client, mocker):
-        mocker.patch.object(WebhookSignature, "verify_header", return_value=True)
         mocker.patch("apps.contributions.models.Contribution.fetch_stripe_payment_method", return_value=None)
         mocker.patch("stripe.Customer.retrieve", return_value=AttrDict({"name": "some customer name"}))
+        mocker.patch(
+            "stripe.PaymentIntent.retrieve",
+            return_value=(
+                pi := stripe.PaymentIntent.construct_from(payment_intent_succeeded["data"]["object"], "some_key")
+            ),
+        )
+        mocker.patch(
+            "stripe.BalanceTransaction.retrieve",
+            return_value=stripe.BalanceTransaction.construct_from(
+                {
+                    "id": "txn_1J5j1n2eZvKYlo2C0XZQ8Q8Q",
+                    "amount": pi.amount,
+                    "net": pi.amount,
+                },
+                key="test",
+            ),
+        )
         header = {"HTTP_STRIPE_SIGNATURE": "testing", "content_type": "application/json"}
         contribution = ContributionFactory(
             one_time=True,
             status=ContributionStatus.PROCESSING,
             last_payment_date=None,
             payment_provider_data=None,
-            provider_payment_id=payment_intent_succeeded["data"]["object"]["id"],
+            provider_payment_id=pi.id,
         )
         save_spy = mocker.spy(Contribution, "save")
         send_receipt_email_spy = mocker.spy(Contribution, "handle_thank_you_email")
@@ -108,9 +145,11 @@ class TestPaymentIntentSucceeded:
         assert contribution.provider_payment_id == payment_intent_succeeded["data"]["object"]["id"]
         assert contribution.last_payment_date is not None
         assert contribution.status == ContributionStatus.PAID
+        assert Payment.objects.filter(contribution=contribution).exists()
 
     def test_when_contribution_not_found(self, payment_intent_succeeded, mocker, client):
         mocker.patch.object(WebhookSignature, "verify_header", lambda *args, **kwargs: True)
+
         logger_spy = mocker.patch("apps.contributions.tasks.logger.debug")
         header = {"HTTP_STRIPE_SIGNATURE": "testing", "content_type": "application/json"}
         assert not Contribution.objects.filter(
@@ -348,3 +387,31 @@ def test_process_stripe_webhook_when_value_error_raised(mocker, client):
     assert response.status_code == status.HTTP_400_BAD_REQUEST
     assert response.json() == {"error": "Invalid payload"}
     logger_spy.assert_called_once_with("Invalid payload from Stripe webhook request")
+
+
+@pytest.mark.django_db
+@pytest.mark.usefixtures("suppress_stripe_webhook_sig_verification")
+class TestChargeRefunded:
+    def test_happy_path(self, mocker, charge_refunded, client):
+        count = Payment.objects.count()
+        mocker.spy(Payment, "from_stripe_charge_refunded_event")
+        mocker.patch("stripe.PaymentIntent.retrieve", return_value=AttrDict({"amount": 1000}))
+        mocker.patch("stripe.BalanceTransaction.retrieve", return_value=AttrDict({"amount": 1000}))
+        client.post(reverse("stripe-webhooks-contributions"), data=charge_refunded)
+        Payment.from_stripe_charge_refunded_event.assert_called_once_with(event=charge_refunded)
+        assert Payment.objects.count() == count + 1
+
+
+@pytest.mark.django_db
+@pytest.mark.usefixtures("suppress_stripe_webhook_sig_verification")
+class TestInvoicePaymentSucceeded:
+    def test_happy_path(self, mocker, invoice_payment_succeeded, client):
+        count = Payment.objects.count()
+        mocker.spy(Payment, "from_stripe_invoice_payment_succeeded_event")
+        mocker.patch("stripe.PaymentIntent.retrieve", return_value=AttrDict({"amount": 1000}))
+        mocker.patch("stripe.BalanceTransaction.retrieve", return_value=AttrDict({"amount": 1000}))
+
+        header = {"HTTP_STRIPE_SIGNATURE": "testing", "content_type": "application/json"}
+        client.post(reverse("stripe-webhooks-contributions"), data=invoice_payment_succeeded, **header)
+        Payment.from_stripe_invoice_payment_succeeded_event.assert_called_once_with(event=invoice_payment_succeeded)
+        assert Payment.objects.count() == count + 1

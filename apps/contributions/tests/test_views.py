@@ -1541,6 +1541,11 @@ def test_contributor_contribution_mocked_endpoint(api_client):
     response_json = response.json()
     assert isinstance(response_json["credit_card_owner_name"], str)
     assert isinstance(response_json["paid_fees"], bool)
+    assert len(response_json["payments"]) == 1
+    assert response_json["payments"][0]["amount_refunded"] == 0
+    assert response_json["payments"][0]["created"] == response_json["created"]
+    assert response_json["payments"][0]["gross_amount_paid"] == response_json["amount"]
+    assert response_json["payments"][0]["net_amount_paid"] == response_json["amount"]
     for key in fixture_data:
         assert response_json[key] == fixture_data[key]
 

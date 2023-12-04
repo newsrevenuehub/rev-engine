@@ -608,5 +608,14 @@ def contributor_contribution(request, contributor_id: int, contribution_id: str)
                     # There are a few extra properties in the detail view we need to mock.
                     result["credit_card_owner_name"] = "Jane Doe"
                     result["paid_fees"] = True
+                    # Mock the payments list to match the contribution itself.
+                    result["payments"] = [
+                        {
+                            "amount_refunded": 0,
+                            "created": result["created"],
+                            "gross_amount_paid": result["amount"],
+                            "net_amount_paid": result["amount"],
+                        }
+                    ]
                     return Response(result, status=status.HTTP_200_OK)
     return Response({"detail": f"No contribution exists with ID {contribution_id}"}, status=status.HTTP_404_NOT_FOUND)

@@ -1,8 +1,7 @@
 import { ComponentMeta, ComponentStory } from '@storybook/react';
-import { PortalContribution } from 'hooks/usePortalContributionList';
 import ContributionItem from './ContributionItem';
 
-const ContributionItemDemo = (contribution: PortalContribution) => <ContributionItem contribution={contribution} />;
+const ContributionItemDemo = (contribution: any) => <ContributionItem contribution={contribution} />;
 
 export default {
   args: {

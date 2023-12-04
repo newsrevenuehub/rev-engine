@@ -4,8 +4,8 @@ import userEvent from '@testing-library/user-event';
 import PageEditor from './PageEditor';
 
 jest.mock('appSettings', () => ({
-  ...jest.requireActual('appSettings'),
-  CAPTURE_PAGE_SCREENSHOT: 'mock-capture-page-screenshot'
+  CAPTURE_PAGE_SCREENSHOT: 'mock-capture-page-screenshot',
+  HUB_GA_V3_ID: 'UA-37373737yesyesyes'
 }));
 jest.mock('hooks/useRequest');
 jest.mock('elements/GlobalLoading');

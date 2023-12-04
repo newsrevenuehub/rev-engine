@@ -50,7 +50,7 @@ To begin you should have the following applications installed on your local deve
 - Python >= 3.10
 - NodeJS == 14.x
 - npm == 6.14.x (comes with node 14)
-- [nvm](https://github.com/nvm-sh/nvm/blob/master/README.md) is not strictly _required_, but will almost certainly be necessary unless you just happen to have Node.js 12.x installed on your machine.
+- [nvm](https://github.com/nvm-sh/nvm/blob/master/README.md) is not strictly _required_, but will almost certainly be necessary unless you just happen to have Node.js 14.x installed on your machine.
 - [pip](http://www.pip-installer.org/) >= 20
 - Postgres >= 12
 - git >= 2.26
@@ -150,7 +150,7 @@ Assuming you're using [direnv](https://direnv.net/) (see [setting up environment
 
 ```sh
 echo "export STRIPE_TEST_SECRET_KEY_CONTRIBUTIONS=sk_test_???" >> .envrc
-echo "export REACT_APP_HUB_STRIPE_API_PUB_KEY=pk_test_???" >> .envrc
+echo "export VITE_HUB_STRIPE_API_PUB_KEY=pk_test_???" >> .envrc
 echo "export STRIPE_WEBHOOK_SECRET_CONTRIBUTIONS=whsec_???" >> .envrc
 echo "export STRIPE_WEBHOOK_SECRET_UPGRADES=whsec_???*" >> .envrc
 echo "export STRIPE_CORE_PRODUCT_ID=prod_???" >> .envrc
@@ -217,14 +217,14 @@ echo "export DJANGO_SETTINGS_MODULE=revengine.settings.local" >> .envrc
 Next, we need to set up a fake test Stripe ID so that stripe functionality will work when running tests locally:
 
 ```sh
-echo "export REACT_APP_HUB_STRIPE_API_PUB_KEY=pk_test_3737373" >> .envrc
+echo "export VITE_HUB_STRIPE_API_PUB_KEY=pk_test_3737373" >> .envrc
 ```
 
 The following environment variables will also need to be set for self-upgrade features to function in the SPA:
 
-- `REACT_APP_STRIPE_SELF_UPGRADE_CUSTOMER_PORTAL_URL`: the URL to direct users to to access the customer portal.
-- `REACT_APP_STRIPE_SELF_UPGRADE_PRICING_TABLE_ID`: ID of the Stripe pricing table to embed in the SPA.
-- `REACT_APP_STRIPE_SELF_UPGRADE_PRICING_TABLE_PUBLISHABLE_KEY`: publishable key for the pricing table set above. This is different from the public API key (`REACT_APP_HUB_STRIPE_API_PUB_KEY`).
+- `VITE_STRIPE_SELF_UPGRADE_CUSTOMER_PORTAL_URL`: the URL to direct users to to access the customer portal.
+- `VITE_STRIPE_SELF_UPGRADE_PRICING_TABLE_ID`: ID of the Stripe pricing table to embed in the SPA.
+- `VITE_STRIPE_SELF_UPGRADE_PRICING_TABLE_PUBLISHABLE_KEY`: publishable key for the pricing table set above. This is different from the public API key (`REACT_APP_HUB_STRIPE_API_PUB_KEY`).
 
 To use a local Web browsable version of the API add `export ENABLE_API_BROWSER=True` to your `.envrc`. (Then visit /api/swagger/ or /api/redoc/.)
 
@@ -317,7 +317,7 @@ Terminal 1:
 
 ```sh
 cd spa/
-npm run start:subdomains
+npm start
 ```
 
 Terminal 2:
@@ -453,7 +453,7 @@ Routes that currently exist:
 
 Check `.envrc.example` for all environment variables that are needed to run locally. Note: some of them you will have to get the value from the respective resource (example: Stripe -> get secret key from stripe dashboard)
 
-See [spa/src/appSettings.js](./spa/src/appSettings.js) for more details on how env vars are configured on the front end. For setup, certain features of the app will require certain env vars define.
+See [spa/src/appSettings.ts](./spa/src/appSettings.ts) for more details on how env vars are configured on the front end. For setup, certain features of the app will require certain env vars define.
 
 First:
 
@@ -464,7 +464,7 @@ touch ./spa/.env
 To enable Stripe-related features such as payments on contribution pages or changing payment methods, set:
 
 ```sh
-REACT_APP_HUB_STRIPE_API_PUB_KEY=pk_test_therealvaluehere
+VITE_HUB_STRIPE_API_PUB_KEY=pk_test_therealvaluehere
 ```
 
 You can get this value from the Hub Stripe dashboard.
@@ -472,7 +472,7 @@ You can get this value from the Hub Stripe dashboard.
 To enable Stripe onboarding, set:
 
 ```sh
-REACT_APP_STRIPE_CLIENT_ID=therealvalue
+VITE_STRIPE_CLIENT_ID=therealvalue
 ```
 
 You can get this value from the Hub stripe dashboard
@@ -480,13 +480,13 @@ You can get this value from the Hub stripe dashboard
 To enable google address autocomplete in the contribution page form, set:
 
 ```sh
-REACT_APP_HUB_GOOGLE_MAPS_API_KEY=therealvalueere
+VITE_HUB_GOOGLE_MAPS_API_KEY=therealvalueere
 ```
 
 To enable Google Analytics, set:
 
 ```sh
-REACT_APP_HUB_V3_GOOGLE_ANALYTICS_ID=therealvaluehere
+VITE_HUB_V3_GOOGLE_ANALYTICS_ID=therealvaluehere
 ```
 
 Any value in `settings.js` that uses the `resolveConstantFromEnv` method can be overridden by adding it to .env prepended by `REACT_APP_`

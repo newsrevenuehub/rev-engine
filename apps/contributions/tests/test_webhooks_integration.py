@@ -10,7 +10,7 @@ Tests are grouped by the type of webhook they are testing. For example, all test
 are grouped together in the `TestPaymentIntentSucceeded` class.
 """
 import json
-from datetime import datetime
+from datetime import datetime, timedelta
 
 from django.urls import reverse
 from django.utils.timezone import make_aware
@@ -27,7 +27,7 @@ from apps.contributions.models import (
     ContributionStatus,
     Payment,
 )
-from apps.contributions.tests.factories import ContributionFactory
+from apps.contributions.tests.factories import ContributionFactory, PaymentFactory
 
 
 @pytest.fixture(autouse=True)
@@ -58,8 +58,8 @@ def payment_method_attached():
 
 
 @pytest.fixture
-def customer_subscription_updated():
-    with open("apps/contributions/tests/fixtures/customer-subscription-updated-webhook.json") as fl:
+def customer_subscription_updated_event():
+    with open("apps/contributions/tests/fixtures/customer-subscription-updated-webhook-event.json") as fl:
         return json.load(fl)
 
 
@@ -79,85 +79,103 @@ def invoice_upcoming():
 def invoice_payment_succeeded():
     # also set up the coresponding contribution in revengine
     with open("apps/contributions/tests/fixtures/invoice-payment-succeeded-event.json") as fl:
+        event_data = json.load(fl)
+        ContributionFactory(
+            interval=ContributionInterval.YEARLY, provider_subscription_id=event_data["data"]["object"]["subscription"]
+        )
+
+
+@pytest.fixture
+def charge_refunded(suppress_stripe_webhook_sig_verification):
+    # also set up the corresponding contribution in revengine
+    with open("apps/contributions/tests/fixtures/charge-refunded-recurring-first-charge-event.json") as fl:
         return json.load(fl)
 
 
 @pytest.fixture
-def charge_refunded():
-    # also set up the corresponding contribution in revengine
-    with open("apps/contributions/tests/fixtures/stripe-charge-refunded.json") as fl:
-        return json.load(fl)
+def payment_method(payment_method_data_factory):
+    return stripe.PaymentMethod.construct_from(
+        payment_method_data_factory.get(), key="test", stripe_account="acct_fake_01"
+    )
 
 
 @pytest.mark.django_db
 @pytest.mark.usefixtures("suppress_stripe_webhook_sig_verification")
 class TestPaymentIntentSucceeded:
-    def test_when_contribution_found(self, payment_intent_succeeded, client, mocker):
-        mocker.patch("apps.contributions.models.Contribution.fetch_stripe_payment_method", return_value=None)
+    def test_when_when_one_time_and_contribution_found(
+        self,
+        payment_intent_succeeded_one_time_event,
+        payment_intent_for_one_time_contribution,
+        balance_transaction_for_one_time_charge,
+        payment_method,
+        client,
+        mocker,
+    ):
+        payment_intent_succeeded_one_time_event["data"]["object"]["payment_method"] = payment_method.id
         mocker.patch("stripe.Customer.retrieve", return_value=AttrDict({"name": "some customer name"}))
-        mocker.patch(
-            "stripe.PaymentIntent.retrieve",
-            return_value=(
-                pi := stripe.PaymentIntent.construct_from(payment_intent_succeeded["data"]["object"], "some_key")
-            ),
-        )
-        mocker.patch(
-            "stripe.BalanceTransaction.retrieve",
-            return_value=stripe.BalanceTransaction.construct_from(
-                {
-                    "id": "txn_1J5j1n2eZvKYlo2C0XZQ8Q8Q",
-                    "amount": pi.amount,
-                    "net": pi.amount,
-                },
-                key="test",
-            ),
-        )
-        header = {"HTTP_STRIPE_SIGNATURE": "testing", "content_type": "application/json"}
+        mocker.patch("stripe.PaymentIntent.retrieve", return_value=payment_intent_for_one_time_contribution)
+        mocker.patch("stripe.BalanceTransaction.retrieve", return_value=balance_transaction_for_one_time_charge)
+        mocker.patch("stripe.PaymentMethod.retrieve", return_value=payment_method)
         contribution = ContributionFactory(
             one_time=True,
             status=ContributionStatus.PROCESSING,
             last_payment_date=None,
             payment_provider_data=None,
-            provider_payment_id=pi.id,
+            provider_payment_id=payment_intent_for_one_time_contribution.id,
         )
-        save_spy = mocker.spy(Contribution, "save")
-        send_receipt_email_spy = mocker.spy(Contribution, "handle_thank_you_email")
-        response = client.post(reverse("stripe-webhooks-contributions"), data=payment_intent_succeeded, **header)
-        assert response.status_code == status.HTTP_200_OK
-        # the next two assertions are to ensure we're only allowing webhook to update a subset of fields
-        # on the instance, in order to avoid race conditions
-        save_spy.assert_called_once_with(
-            contribution,
-            update_fields={
-                "status",
-                "last_payment_date",
-                "provider_payment_id",
-                "provider_payment_method_id",
-                "provider_payment_method_details",
-                "payment_provider_data",
-                "modified",
-            },
+        mock_send_thank_you = mocker.patch("apps.contributions.models.Contribution.handle_thank_you_email")
+        header = {"HTTP_STRIPE_SIGNATURE": "testing", "content_type": "application/json"}
+        response = client.post(
+            reverse("stripe-webhooks-contributions"), data=payment_intent_succeeded_one_time_event, **header
         )
-        send_receipt_email_spy.assert_called_once_with(contribution)
         assert response.status_code == status.HTTP_200_OK
         contribution.refresh_from_db()
-        assert contribution.payment_provider_data == payment_intent_succeeded
-        assert contribution.provider_payment_id == payment_intent_succeeded["data"]["object"]["id"]
-        assert contribution.last_payment_date is not None
+        assert contribution.payment_provider_data == payment_intent_succeeded_one_time_event
+        assert contribution.last_payment_date == contribution.payment_set.order_by("-created").first().created
         assert contribution.status == ContributionStatus.PAID
-        assert Payment.objects.filter(contribution=contribution).exists()
+        assert (
+            contribution.provider_payment_method_id
+            == payment_intent_succeeded_one_time_event["data"]["object"]["payment_method"]
+        )
+        assert contribution.provider_payment_method_details == payment_method
+        assert Payment.objects.filter(
+            contribution=contribution, stripe_balance_transaction_id=balance_transaction_for_one_time_charge.id
+        ).exists()
+        mock_send_thank_you.assert_called_once()
 
-    def test_when_contribution_not_found(self, payment_intent_succeeded, mocker, client):
-        mocker.patch.object(WebhookSignature, "verify_header", lambda *args, **kwargs: True)
-
+    def test_when_one_time_contribution_not_found(self, payment_intent_succeeded_one_time_event, mocker, client):
         logger_spy = mocker.patch("apps.contributions.tasks.logger.debug")
         header = {"HTTP_STRIPE_SIGNATURE": "testing", "content_type": "application/json"}
-        assert not Contribution.objects.filter(
-            provider_payment_id=payment_intent_succeeded["data"]["object"]["id"]
-        ).exists()
-        response = client.post(reverse("stripe-webhooks-contributions"), data=payment_intent_succeeded, **header)
+        Contribution.objects.all().delete()
+        response = client.post(
+            reverse("stripe-webhooks-contributions"), data=payment_intent_succeeded_one_time_event, **header
+        )
         assert response.status_code == status.HTTP_200_OK
-        logger_spy.assert_has_calls([mocker.call("Could not find contribution", exc_info=True)])
+        logger_spy.assert_called_once_with("Could not find contribution", exc_info=True)
+
+    @pytest.fixture(
+        params=[
+            "payment_intent_succeeded_subscription_creation_event",
+            "payment_intent_succeeded_subscription_recurring_charge_event",
+        ]
+    )
+    def when_not_one_time_payment_event(self, request):
+        return request.getfixturevalue(request.param)
+
+    def test_when_not_one_time_payment(self, when_not_one_time_payment_event, mocker, client):
+        logger_spy = mocker.patch("apps.contributions.webhooks.logger.info")
+        header = {"HTTP_STRIPE_SIGNATURE": "testing", "content_type": "application/json"}
+        response = client.post(reverse("stripe-webhooks-contributions"), data=when_not_one_time_payment_event, **header)
+        assert response.status_code == status.HTTP_200_OK
+        logger_spy.assert_has_calls(
+            [
+                mocker.call(
+                    "Payment intent %s in event %s appears to be for a subscription, which are handled in different webhook receiver",
+                    when_not_one_time_payment_event["data"]["object"]["id"],
+                    when_not_one_time_payment_event["id"],
+                )
+            ]
+        )
 
 
 @pytest.mark.django_db
@@ -235,22 +253,27 @@ class TestPaymentIntentPaymentFailed:
         logger_spy.assert_called_once_with("Could not find contribution", exc_info=True)
 
 
+@pytest.mark.usefixtures("suppress_stripe_webhook_sig_verification")
 @pytest.mark.django_db
 class TestCustomerSubscriptionUpdated:
     @pytest.mark.parametrize("payment_method_has_changed", (True, False))
-    def test_when_contribution_found(self, client, customer_subscription_updated, payment_method_has_changed, mocker):
+    def test_when_contribution_found(
+        self, client, customer_subscription_updated_event, payment_method_has_changed, mocker
+    ):
         mocker.patch.object(WebhookSignature, "verify_header", return_value=True)
         header = {"HTTP_STRIPE_SIGNATURE": "testing", "content_type": "application/json"}
         contribution = ContributionFactory(
             annual_subscription=True,
-            provider_subscription_id=customer_subscription_updated["data"]["object"]["id"],
+            provider_subscription_id=customer_subscription_updated_event["data"]["object"]["id"],
         )
         if payment_method_has_changed:
-            customer_subscription_updated["data"]["previous_attributes"] = {"default_payment_method": "something"}
-            customer_subscription_updated["data"]["object"]["default_payment_method"] = "something else"
+            customer_subscription_updated_event["data"]["previous_attributes"] = {"default_payment_method": "something"}
+            customer_subscription_updated_event["data"]["object"]["default_payment_method"] = "something else"
         spy = mocker.spy(Contribution, "save")
         mock_set_revision_comment = mocker.patch("reversion.set_comment")
-        response = client.post(reverse("stripe-webhooks-contributions"), data=customer_subscription_updated, **header)
+        response = client.post(
+            reverse("stripe-webhooks-contributions"), data=customer_subscription_updated_event, **header
+        )
         expected_update_fields = {
             "modified",
             "payment_provider_data",
@@ -264,22 +287,23 @@ class TestCustomerSubscriptionUpdated:
         )
         assert response.status_code == status.HTTP_200_OK
         contribution.refresh_from_db()
-        assert contribution.payment_provider_data == customer_subscription_updated
-        assert contribution.provider_subscription_id == customer_subscription_updated["data"]["object"]["id"]
+        assert contribution.payment_provider_data == customer_subscription_updated_event
+        assert contribution.provider_subscription_id == customer_subscription_updated_event["data"]["object"]["id"]
         if payment_method_has_changed:
             assert (
                 contribution.provider_payment_method_id
-                == customer_subscription_updated["data"]["object"]["default_payment_method"]
+                == customer_subscription_updated_event["data"]["object"]["default_payment_method"]
             )
 
-    def test_when_contribution_not_found(self, mocker, client, customer_subscription_updated):
-        mocker.patch.object(WebhookSignature, "verify_header", return_value=True)
+    def test_when_contribution_not_found(self, mocker, client, customer_subscription_updated_event):
         logger_spy = mocker.patch("apps.contributions.tasks.logger.debug")
         header = {"HTTP_STRIPE_SIGNATURE": "testing", "content_type": "application/json"}
         assert not Contribution.objects.filter(
-            provider_subscription_id=customer_subscription_updated["data"]["object"]["id"]
+            provider_subscription_id=customer_subscription_updated_event["data"]["object"]["id"]
         ).exists()
-        response = client.post(reverse("stripe-webhooks-contributions"), data=customer_subscription_updated, **header)
+        response = client.post(
+            reverse("stripe-webhooks-contributions"), data=customer_subscription_updated_event, **header
+        )
         assert response.status_code == status.HTTP_200_OK
         logger_spy.assert_called_once_with("Could not find contribution", exc_info=True)
 
@@ -306,32 +330,35 @@ class TestCustomerSubscriptionDeleted:
         assert contribution.provider_subscription_id == customer_subscription_deleted["data"]["object"]["id"]
         assert contribution.status == ContributionStatus.CANCELED
 
-    def test_when_contribution_not_found(self, mocker, client, customer_subscription_updated):
+    def test_when_contribution_not_found(self, mocker, client, customer_subscription_updated_event):
         mocker.patch.object(WebhookSignature, "verify_header", return_value=True)
         logger_spy = mocker.patch("apps.contributions.tasks.logger.debug")
         header = {"HTTP_STRIPE_SIGNATURE": "testing", "content_type": "application/json"}
         assert not Contribution.objects.filter(
-            provider_subscription_id=customer_subscription_updated["data"]["object"]["id"]
+            provider_subscription_id=customer_subscription_updated_event["data"]["object"]["id"]
         ).exists()
-        response = client.post(reverse("stripe-webhooks-contributions"), data=customer_subscription_updated, **header)
+        response = client.post(
+            reverse("stripe-webhooks-contributions"), data=customer_subscription_updated_event, **header
+        )
         assert response.status_code == status.HTTP_200_OK
         logger_spy.assert_called_once_with("Could not find contribution", exc_info=True)
 
 
 @pytest.mark.django_db
-def test_customer_subscription_untracked_event(client, customer_subscription_updated, mocker):
+def test_customer_subscription_untracked_event(client, customer_subscription_updated_event, mocker):
     mock_log_warning = mocker.patch("apps.contributions.webhooks.logger.warning")
     mocker.patch.object(WebhookSignature, "verify_header", return_value=True)
     header = {"HTTP_STRIPE_SIGNATURE": "testing", "content_type": "application/json"}
     ContributionFactory(
         annual_subscription=True,
-        provider_subscription_id=customer_subscription_updated["data"]["object"]["id"],
+        provider_subscription_id=customer_subscription_updated_event["data"]["object"]["id"],
     )
-    customer_subscription_updated["type"] = "untracked-event"
-    response = client.post(reverse("stripe-webhooks-contributions"), data=customer_subscription_updated, **header)
+    customer_subscription_updated_event["type"] = "untracked-event"
+    response = client.post(reverse("stripe-webhooks-contributions"), data=customer_subscription_updated_event, **header)
     assert response.status_code == status.HTTP_200_OK
     mock_log_warning.assert_called_once_with(
-        "StripeWebhookProcessor.route_request received unexpected event type %s", customer_subscription_updated["type"]
+        "StripeWebhookProcessor.route_request received unexpected event type %s",
+        customer_subscription_updated_event["type"],
     )
 
 
@@ -392,12 +419,28 @@ def test_process_stripe_webhook_when_value_error_raised(mocker, client):
 @pytest.mark.django_db
 @pytest.mark.usefixtures("suppress_stripe_webhook_sig_verification")
 class TestChargeRefunded:
-    def test_happy_path(self, mocker, charge_refunded, client):
+    def test_happy_path(
+        self,
+        mocker,
+        charge_refunded,
+        balance_transaction_for_one_time_charge,
+        payment_intent_for_one_time_contribution,
+        client,
+    ):
         count = Payment.objects.count()
+        balance_transaction_for_one_time_charge["source"]["payment_intent"] = (
+            pi_id := payment_intent_for_one_time_contribution.id
+        )
+        ContributionFactory(
+            interval=ContributionInterval.ONE_TIME,
+            status=ContributionStatus.PAID,
+            provider_payment_id=pi_id,
+        )
         mocker.spy(Payment, "from_stripe_charge_refunded_event")
-        mocker.patch("stripe.PaymentIntent.retrieve", return_value=AttrDict({"amount": 1000}))
-        mocker.patch("stripe.BalanceTransaction.retrieve", return_value=AttrDict({"amount": 1000}))
-        client.post(reverse("stripe-webhooks-contributions"), data=charge_refunded)
+        mocker.patch("stripe.PaymentIntent.retrieve", return_value=payment_intent_for_one_time_contribution)
+        mocker.patch("stripe.BalanceTransaction.retrieve", return_value=balance_transaction_for_one_time_charge)
+        header = {"HTTP_STRIPE_SIGNATURE": "testing", "content_type": "application/json"}
+        client.post(reverse("stripe-webhooks-contributions"), data=charge_refunded, **header)
         Payment.from_stripe_charge_refunded_event.assert_called_once_with(event=charge_refunded)
         assert Payment.objects.count() == count + 1
 
@@ -405,13 +448,98 @@ class TestChargeRefunded:
 @pytest.mark.django_db
 @pytest.mark.usefixtures("suppress_stripe_webhook_sig_verification")
 class TestInvoicePaymentSucceeded:
-    def test_happy_path(self, mocker, invoice_payment_succeeded, client):
+    @pytest.fixture
+    def invoice_payment_succeeded_for_first_payment_event(self):
+        with open("apps/contributions/tests/fixtures/invoice-payment-succeeded-event.json") as fl:
+            return json.load(fl)
+
+    @pytest.fixture
+    def invoice_payment_succeeded_for_recurring_payment_event(self):
+        with open("apps/contributions/tests/fixtures/invoice-payment-succeeded-for-recurring-event.json") as fl:
+            return json.load(fl)
+
+    @pytest.fixture
+    def payment_intent_for_recurring_charge_expanded(self):
+        with open(
+            "apps/contributions/tests/fixtures/payment-intent-for-first-charge-on-subscription-invoice-expanded.json"
+        ) as fl:
+            return stripe.PaymentIntent.construct_from(json.load(fl), key="test")
+
+    @pytest.fixture
+    def payment_intent_for_subscription_creation_charge_expanded(self):
+        with open(
+            "apps/contributions/tests/fixtures/payment-intent-for-first-charge-on-subscription-invoice-expanded.json"
+        ) as fl:
+            return stripe.PaymentIntent.construct_from(json.load(fl), key="test")
+
+    @pytest.fixture(
+        params=[
+            (
+                "invoice_payment_succeeded_for_first_payment_event",
+                "payment_intent_for_subscription_creation_charge_expanded",
+                "balance_transaction_for_subscription_creation_charge",
+                True,
+            ),
+            (
+                "invoice_payment_succeeded_for_recurring_payment_event",
+                "payment_intent_for_recurring_charge_expanded",
+                "balance_transaction_for_recurring_charge",
+                False,
+            ),
+        ]
+    )
+    def happy_path_test_case(self, payment_method, request, mocker):
+        event = request.getfixturevalue(request.param[0])
+        pi = request.getfixturevalue(request.param[1])
+        pi.payment_method = payment_method.id
+        balance_transaction = request.getfixturevalue(request.param[2])
+        is_first_payment = request.param[3]
+        event["data"]["object"]["payment_intent"] = pi.id
+        event["data"]["object"]["payment_method"] = payment_method.id
+        event["data"]["object"]["subscription"] = pi.invoice.subscription
+        contribution = ContributionFactory(
+            **{
+                "interval": ContributionInterval.YEARLY,
+                "status": ContributionStatus.PROCESSING if is_first_payment else ContributionStatus.PAID,
+                "provider_subscription_id": pi.invoice.subscription,
+                "last_payment_date": None
+                if is_first_payment
+                else datetime.fromtimestamp(balance_transaction.created) - timedelta(days=365),
+                "provider_payment_id": pi.id if is_first_payment else "some-other-id",
+                "provider_payment_method_id": None,
+                "provider_payment_method_details": None,
+            }
+        )
+        if not is_first_payment:
+            PaymentFactory(
+                contribution=contribution,
+                stripe_balance_transaction_id="bt_fake_01",
+                net_amount_paid=contribution.amount,
+                gross_amount_paid=contribution.amount,
+                amount_refunded=0,
+            )
+        mocker.patch("stripe.PaymentIntent.retrieve", return_value=pi)
+        mocker.patch("stripe.BalanceTransaction.retrieve", return_value=balance_transaction)
+        mocker.patch("stripe.PaymentMethod.retrieve", return_value=payment_method)
+        return event, contribution, is_first_payment, payment_method
+
+    def test_happy_path(self, happy_path_test_case, mocker, client):
+        event, contribution, is_first_payment, payment_method = happy_path_test_case
         count = Payment.objects.count()
         mocker.spy(Payment, "from_stripe_invoice_payment_succeeded_event")
-        mocker.patch("stripe.PaymentIntent.retrieve", return_value=AttrDict({"amount": 1000}))
-        mocker.patch("stripe.BalanceTransaction.retrieve", return_value=AttrDict({"amount": 1000}))
-
+        mock_send_receipt = mocker.patch("apps.contributions.models.Contribution.handle_thank_you_email")
         header = {"HTTP_STRIPE_SIGNATURE": "testing", "content_type": "application/json"}
-        client.post(reverse("stripe-webhooks-contributions"), data=invoice_payment_succeeded, **header)
-        Payment.from_stripe_invoice_payment_succeeded_event.assert_called_once_with(event=invoice_payment_succeeded)
+        response = client.post(reverse("stripe-webhooks-contributions"), data=event, **header)
+        assert response.status_code == status.HTTP_200_OK
+        Payment.from_stripe_invoice_payment_succeeded_event.assert_called_once_with(event=event)
         assert Payment.objects.count() == count + 1
+        contribution.refresh_from_db()
+        assert contribution.status == ContributionStatus.PAID
+        assert contribution.last_payment_date == contribution.payment_set.order_by("-created").first().created
+        assert contribution.payment_provider_data == event
+        assert contribution.provider_payment_method_id == payment_method.id
+        assert contribution.provider_payment_method_details == payment_method
+        if is_first_payment:
+            mock_send_receipt.assert_called_once()
+        else:
+            mock_send_receipt.assert_not_called()

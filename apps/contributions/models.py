@@ -1121,6 +1121,7 @@ class Payment(IndexedTimeStampedModel):
             conditions.append(models.Q(provider_subscription_id=sub_id))
         if not conditions:
             return None, balance_transaction
+
         try:
             # NB: these are inclusive OR conditions
             contribution = Contribution.objects.get(reduce(or_, conditions))
@@ -1148,7 +1149,7 @@ class Payment(IndexedTimeStampedModel):
         except Contribution.DoesNotExist:
             logger.debug("Could not find a contribution for event %s with PI id %s", event.id, event.data.object.id)
             contribution = None
-        cls._ensure_pi_has_single_charge(pi, event.id)
+        cls._ensure_pi_has_single_charge(pi, event["id"])
         return contribution, bt
 
     @classmethod
@@ -1165,13 +1166,14 @@ class Payment(IndexedTimeStampedModel):
         if not balance_transaction:
             logger.warning("Cannot find balance transaction for event %s", event_id)
             raise ValueError("Could not find a balance transaction for this event")
-        return Payment.objects.create(
+        payment = Payment.objects.create(
             contribution=contribution,
             stripe_balance_transaction_id=balance_transaction.id,
             net_amount_paid=balance_transaction.net,
             gross_amount_paid=balance_transaction.amount,
             amount_refunded=amount_refunded,
         )
+        return payment
 
     @classmethod
     @ensure_stripe_event(["payment_intent.succeeded"])
@@ -1189,7 +1191,7 @@ class Payment(IndexedTimeStampedModel):
                 "Will not create a payment instance because it will be created in `from_stripe_invoice_payment_succeeded_event`",
                 contribution.id,
             )
-            return Payment.objects.none()
+            return None
         return cls._handle_create_payment(
             contribution=contribution,
             balance_transaction=balance_transaction,
@@ -1213,7 +1215,13 @@ class Payment(IndexedTimeStampedModel):
     @classmethod
     @ensure_stripe_event(["invoice.payment_succeeded"])
     def from_stripe_invoice_payment_succeeded_event(cls, event: StripeEventData) -> Payment:
-        return cls._handle_create_payment(
-            *cls.get_contribution_and_balance_transaction_for_invoice_payment_succeeded_event(event=event),
+        (
+            contribution,
+            balance_transaction,
+        ) = cls.get_contribution_and_balance_transaction_for_invoice_payment_succeeded_event(event=event)
+        payment = cls._handle_create_payment(
+            contribution=contribution,
+            balance_transaction=balance_transaction,
             event_id=event["id"],
         )
+        return payment

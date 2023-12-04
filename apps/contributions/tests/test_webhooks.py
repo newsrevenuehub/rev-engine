@@ -7,7 +7,6 @@ processor class that are worth unit testing in isolation.
 """
 import pytest
 
-from apps.contributions.models import Contribution
 from apps.contributions.tests.factories import ContributionFactory
 from apps.contributions.webhooks import StripeWebhookProcessor
 
@@ -79,11 +78,8 @@ class TestStripeWebhookProcessor:
             ContributionFactory(provider_subscription_id=subscription_event["data"]["object"]["id"]) if found else None
         )
         processor = StripeWebhookProcessor(subscription_event)
-        if found:
-            assert processor.contribution == contribution
-        else:
-            with pytest.raises(Contribution.DoesNotExist):
-                processor.contribution
+
+        assert processor.contribution == contribution if found else processor.contribution is None
 
     @pytest.mark.parametrize(
         "found_by_customer_id, found_by_provider_payment_id, expect_found",
@@ -107,8 +103,7 @@ class TestStripeWebhookProcessor:
         if expect_found:
             assert processor.contribution == contribution
         else:
-            with pytest.raises(Contribution.DoesNotExist):
-                processor.contribution
+            assert processor.contribution is None
 
     @pytest.mark.parametrize("found", [True, False])
     def test_contribution_when_payment_method(self, found, payment_method_event):
@@ -118,11 +113,7 @@ class TestStripeWebhookProcessor:
             else None
         )
         processor = StripeWebhookProcessor(payment_method_event)
-        if found:
-            assert processor.contribution == contribution
-        else:
-            with pytest.raises(Contribution.DoesNotExist):
-                processor.contribution
+        assert processor.contribution == contribution if found else processor.contribution is None
 
     @pytest.mark.parametrize("found", [True, False])
     def test_contribution_when_invoice(self, found, invoice_upcoming_event):
@@ -135,8 +126,7 @@ class TestStripeWebhookProcessor:
         if found:
             assert processor.contribution == contribution
         else:
-            with pytest.raises(Contribution.DoesNotExist):
-                processor.contribution
+            processor.contribution is None
 
     @pytest.fixture
     def unexpected_event(self):
@@ -153,8 +143,7 @@ class TestStripeWebhookProcessor:
 
     def test_contribution_when_unexpected_object_type(self, unexpected_event, mocker):
         processor = StripeWebhookProcessor(unexpected_event)
-        with pytest.raises(Contribution.DoesNotExist):
-            processor.contribution
+        assert processor.contribution is None
 
     @pytest.mark.parametrize(
         "event_live_mode,settings_live_mode,expected",

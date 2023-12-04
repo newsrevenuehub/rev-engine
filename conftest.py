@@ -1028,3 +1028,68 @@ def invalid_google_service_account_credentials():
 @pytest.fixture
 def valid_gs_credentials(minimally_valid_google_service_account_credentials, settings):
     settings.GS_CREDENTIALS = __ensure_gs_credentials(minimally_valid_google_service_account_credentials)
+
+
+@pytest.fixture
+def payment_intent_for_recurring_charge_expanded():
+    with open("apps/contributions/tests/fixtures/payment-intent-for-recurring-charge-expanded.json") as f:
+        return stripe.PaymentIntent.construct_from(json.load(f), stripe.api_key)
+
+
+@pytest.fixture
+def balance_transaction_for_recurring_charge():
+    with open("apps/contributions/tests/fixtures/balance-transaction-for-recurring-charge.json") as f:
+        return stripe.BalanceTransaction.construct_from(json.load(f), stripe.api_key)
+
+
+@pytest.fixture
+def balance_transaction_for_subscription_creation_charge():
+    with open("apps/contributions/tests/fixtures/balance-transaction-for-subscription-creation.json") as f:
+        return stripe.BalanceTransaction.construct_from(json.load(f), stripe.api_key)
+
+
+@pytest.fixture
+def payment_intent_for_subscription_creation_charge():
+    with open("apps/contributions/tests/fixtures/payment-intent-for-subscription-creation-charge.json") as f:
+        return stripe.PaymentIntent.construct_from(json.load(f), stripe.api_key)
+
+
+@pytest.fixture
+def payment_intent_succeeded_one_time_event(suppress_stripe_webhook_sig_verification):
+    with open("apps/contributions/tests/fixtures/payment-intent-succeeded-one-time-event.json") as f:
+        event = stripe.Webhook.construct_event(f.read(), None, stripe.api_key)
+        return event
+
+
+@pytest.fixture
+@pytest.mark.usefixtures("suppress_stripe_webhook_sig_verification")
+def payment_intent_succeeded_subscription_creation_event():
+    with open("apps/contributions/tests/fixtures/payment-intent-succeeded-subscription-creation-event.json") as f:
+        return stripe.Webhook.construct_event(f.read(), None, stripe.api_key)
+
+
+@pytest.fixture
+@pytest.mark.usefixtures("suppress_stripe_webhook_sig_verification")
+def payment_intent_succeeded_subscription_recurring_charge_event():
+    with open(
+        "apps/contributions/tests/fixtures/payment-intent-succeeded-susbscription-recurring-charge-event.json"
+    ) as f:
+        return stripe.Webhook.construct_event(f.read(), None, stripe.api_key)
+
+
+@pytest.fixture
+def payment_intent_for_one_time_contribution():
+    with open("apps/contributions/tests/fixtures/payment-intent-for-one-time-charge.json") as f:
+        return stripe.PaymentIntent.construct_from(json.load(f), stripe.api_key)
+
+
+@pytest.fixture
+def payment_intent_for_recurring_charge():
+    with open("apps/contributions/tests/fixtures/payment-intent-for-recurring-charge.json") as f:
+        return stripe.PaymentIntent.construct_from(json.load(f), stripe.api_key)
+
+
+@pytest.fixture
+def balance_transaction_for_one_time_charge():
+    with open("apps/contributions/tests/fixtures/balance-transaction-for-one-time-charge-expanded.json") as f:
+        return stripe.BalanceTransaction.construct_from(json.load(f), stripe.api_key)

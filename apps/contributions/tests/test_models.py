@@ -1724,29 +1724,6 @@ class TestContributionQuerySetMethods:
 
 
 @pytest.fixture
-def payment_intent_succeeded_one_time_event(suppress_stripe_webhook_sig_verification):
-    with open("apps/contributions/tests/fixtures/payment-intent-succeeded-one-time-event.json") as f:
-        event = stripe.Webhook.construct_event(f.read(), None, stripe.api_key)
-        return event
-
-
-@pytest.fixture
-@pytest.mark.usefixtures("suppress_stripe_webhook_sig_verification")
-def payment_intent_succeeded_subscription_creation_event():
-    with open("apps/contributions/tests/fixtures/payment-intent-succeeded-subscription-creation-event.json") as f:
-        return stripe.Webhook.construct_event(f.read(), None, stripe.api_key)
-
-
-@pytest.fixture
-@pytest.mark.usefixtures("suppress_stripe_webhook_sig_verification")
-def payment_intent_succeeded_subscription_recurring_charge_event():
-    with open(
-        "apps/contributions/tests/fixtures/payment-intent-succeeded-susbscription-recurring-charge-event.json"
-    ) as f:
-        return stripe.Webhook.construct_event(f.read(), None, stripe.api_key)
-
-
-@pytest.fixture
 @pytest.mark.usefixtures("suppress_stripe_webhook_sig_verification")
 def charge_refunded_one_time_event():
     with open("apps/contributions/tests/fixtures/charge-refunded-one-time-event.json") as f:
@@ -1858,16 +1835,6 @@ class TestPayment:
     def payment(self):
         return PaymentFactory()
 
-    @pytest.fixture
-    def balance_transaction_for_one_time_charge(self):
-        with open("apps/contributions/tests/fixtures/balance-transaction-for-one-time-charge-expanded.json") as f:
-            return stripe.BalanceTransaction.construct_from(json.load(f), stripe.api_key)
-
-    @pytest.fixture
-    def balance_transaction_for_subscription_creation_charge(self):
-        with open("apps/contributions/tests/fixtures/balance-transaction-for-subscription-creation.json") as f:
-            return stripe.BalanceTransaction.construct_from(json.load(f), stripe.api_key)
-
     def test___str__(self, payment):
         assert (
             str(payment)
@@ -1909,26 +1876,6 @@ class TestPayment:
         return None
 
     @pytest.fixture
-    def payment_intent_for_one_time_contribution(self):
-        with open("apps/contributions/tests/fixtures/payment-intent-for-one-time-charge.json") as f:
-            return stripe.PaymentIntent.construct_from(json.load(f), stripe.api_key)
-
-    @pytest.fixture
-    def payment_intent_for_subscription_creation_contribution(self):
-        with open("apps/contributions/tests/fixtures/payment-intent-for-subscription-creation-charge.json") as f:
-            return stripe.PaymentIntent.construct_from(json.load(f), stripe.api_key)
-
-    @pytest.fixture
-    def payment_intent_for_recurring_charge(self):
-        with open("apps/contributions/tests/fixtures/payment-intent-for-recurring-charge.json") as f:
-            return stripe.PaymentIntent.construct_from(json.load(f), stripe.api_key)
-
-    @pytest.fixture
-    def payment_intent_for_recurring_charge_expanded(self):
-        with open("apps/contributions/tests/fixtures/payment-intent-for-recurring-charge-expanded.json") as f:
-            return stripe.PaymentIntent.construct_from(json.load(f), stripe.api_key)
-
-    @pytest.fixture
     def balance_transaction_for_refund_of_recurring_charge(self):
         with open("apps/contributions/tests/fixtures/balance-transaction-for-refund-of-recurring-charge.json") as f:
             return stripe.BalanceTransaction.construct_from(json.load(f), stripe.api_key)
@@ -1947,11 +1894,20 @@ class TestPayment:
                 "payment_intent_for_one_time_contribution",
                 "balance_transaction_for_one_time_charge",
                 True,
+                True,
             ),
             (
                 "payment_intent_succeeded_subscription_creation_event",
-                "payment_intent_for_subscription_creation_contribution",
+                "payment_intent_for_subscription_creation_charge",
                 "balance_transaction_for_subscription_creation_charge",
+                False,
+                True,
+            ),
+            (
+                "payment_intent_succeeded_subscription_recurring_charge_event",
+                "payment_intent_for_recurring_charge",
+                "balance_transaction_for_recurring_charge",
+                False,
                 False,
             ),
         )
@@ -1960,8 +1916,10 @@ class TestPayment:
         def _implmenentation(contribution_found: bool):
             event = request.getfixturevalue(request.param[0])
             pi = request.getfixturevalue(request.param[1])
+            pi.id = event.data.object.id
             balance_transaction = request.getfixturevalue(request.param[2])
             expect_payment_creation = request.param[3]
+            pi_id_on_contribution = request.param[4]
             pi.charges = event.data.object.charges
 
             mocker.patch("stripe.BalanceTransaction.retrieve", return_value=balance_transaction)
@@ -1969,16 +1927,15 @@ class TestPayment:
             kwargs = {
                 "interval": ContributionInterval.ONE_TIME
                 if balance_transaction.source.invoice is None
-                else ContributionInterval.MONTHLY
+                else ContributionInterval.MONTHLY,
+                "provider_payment_id": pi.id if pi_id_on_contribution else None,
             }
 
             if request.param[0] in (
-                "payment_intent_succeeded_subscription_recurring_charge",
+                "payment_intent_succeeded_subscription_recurring_charge_event",
                 "payment_intent_succeeded_subscription_creation_event",
             ):
                 kwargs["provider_subscription_id"] = balance_transaction.source.invoice.subscription
-            else:
-                kwargs = {"provider_payment_id": event.data.object.id}
             return (
                 event,
                 ContributionFactory(**kwargs) if contribution_found else None,
@@ -2032,7 +1989,7 @@ class TestPayment:
             ),
             (
                 "charge_refunded_recurring_first_charge_event",
-                "payment_intent_for_subscription_creation_contribution",
+                "payment_intent_for_subscription_creation_charge",
                 "balance_transaction_for_refund_of_subscription_creation_charge",
             ),
         )
@@ -2045,6 +2002,7 @@ class TestPayment:
             balance_transaction.source.amount_refunded = payment_intent.amount
             balance_transaction.source.payment_intent = payment_intent.id
             event = request.getfixturevalue(request.param[0])
+            event.data.object.payment_intent = payment_intent.id
             event.data.object.amount_refunded = balance_transaction.source.amount_refunded
             mocker.patch(
                 "stripe.BalanceTransaction.retrieve",
@@ -2070,7 +2028,9 @@ class TestPayment:
                     kwargs = {
                         "interval": ContributionInterval.MONTHLY,
                         "provider_payment_id": event.data.object.payment_intent,
+                        "provider_subscription_id": payment_intent.invoice.subscription,
                     }
+
             contribution = ContributionFactory(**kwargs) if contribution_found else None
             return (
                 event,
@@ -2103,11 +2063,6 @@ class TestPayment:
     def invoice_payment_succeeded_recurring_charge_event(self):
         with open("apps/contributions/tests/fixtures/invoice-payment-succeeded-event.json") as f:
             return stripe.Webhook.construct_event(f.read(), None, None)
-
-    @pytest.fixture
-    def balance_transaction_for_recurring_charge(self):
-        with open("apps/contributions/tests/fixtures/balance-transaction-for-recurring-charge.json") as f:
-            return stripe.BalanceTransaction.construct_from(json.load(f), stripe.api_key)
 
     @pytest.fixture(
         params=[
@@ -2271,12 +2226,3 @@ class TestPayment:
         return ContributionFactory(
             interval=request.param[0], provider_payment_id=request.getfixturevalue(request.param[1]).data.object.id
         )
-
-    def test_from_payment_intent_succceeded_conditionality(self, contribution, mocker):
-        """Show that for payment_intent.succeeded webhook, we...
-
-        1. Do create payment for one-time contribution
-        2. Do not create payment for recurring contribution
-        """
-        mocker.patch("stripe.BalanceTransaction.retrieve")
-        mocker.patch("stripe.PaymentIntent.retrieve")

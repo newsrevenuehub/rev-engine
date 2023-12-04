@@ -1,5 +1,5 @@
 import { IconButton } from '@material-ui/core';
-import { ReactComponent as CoreUpgradeIcon } from 'assets/icons/upgrade-core.svg';
+import CoreUpgradeIcon from 'assets/icons/upgrade-core.svg?react';
 import { LinkButton } from 'components/base';
 import styled from 'styled-components';
 

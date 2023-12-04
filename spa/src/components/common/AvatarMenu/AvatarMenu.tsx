@@ -2,12 +2,12 @@ import PropTypes, { InferProps } from 'prop-types';
 import { MouseEvent, useMemo, useState } from 'react';
 import { useHistory } from 'react-router-dom';
 
-import { ReactComponent as LogoutIcon } from '@material-design-icons/svg/filled/logout.svg';
-import { ReactComponent as MoreVertIcon } from '@material-design-icons/svg/filled/more_vert.svg';
-import { ReactComponent as SyncIcon } from '@material-design-icons/svg/filled/sync.svg';
-import { ReactComponent as ContactSupportOutlinedIcon } from '@material-design-icons/svg/outlined/contact_support.svg';
-import { ReactComponent as Lan } from '@material-design-icons/svg/outlined/lan.svg';
-import { ReactComponent as PersonIcon } from '@material-design-icons/svg/filled/person.svg';
+import LogoutIcon from '@material-design-icons/svg/filled/logout.svg?react';
+import MoreVertIcon from '@material-design-icons/svg/filled/more_vert.svg?react';
+import SyncIcon from '@material-design-icons/svg/filled/sync.svg?react';
+import ContactSupportOutlinedIcon from '@material-design-icons/svg/outlined/contact_support.svg?react';
+import Lan from '@material-design-icons/svg/outlined/lan.svg?react';
+import PersonIcon from '@material-design-icons/svg/filled/person.svg?react';
 
 import onLogout from 'components/authentication/logout';
 import { USER_ROLE_HUB_ADMIN_TYPE } from 'constants/authConstants';

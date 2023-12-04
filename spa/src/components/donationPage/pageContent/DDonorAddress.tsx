@@ -13,8 +13,8 @@ import { CountrySelect, TextField, Button, CollapseChild } from './DDonorAddress
 import { DonorAddressElement } from 'hooks/useContributionPage';
 import { Collapse } from '@material-ui/core';
 import { useTranslation } from 'react-i18next';
-import { ReactComponent as AddIcon } from '@material-design-icons/svg/filled/add.svg';
-import { ReactComponent as MinusIcon } from '@material-design-icons/svg/filled/horizontal_rule.svg';
+import AddIcon from '@material-design-icons/svg/filled/add.svg?react';
+import MinusIcon from '@material-design-icons/svg/filled/horizontal_rule.svg?react';
 
 const mapAddrFieldToComponentTypes = {
   address: ['street_number', 'street_address', 'route'],

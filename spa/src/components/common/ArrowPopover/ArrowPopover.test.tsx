@@ -1,5 +1,5 @@
 import { axe } from 'jest-axe';
-import { fireEvent, render, screen, waitFor } from 'test-utils';
+import { fireEvent, render, screen } from 'test-utils';
 import ArrowPopover, { ArrowPopoverProps } from './ArrowPopover';
 
 function tree(props?: Partial<ArrowPopoverProps>) {

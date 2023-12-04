@@ -1,0 +1,121 @@
+import MockAdapter from 'axios-mock-adapter';
+import Axios from 'ajax/axios';
+import { TestQueryClientProvider } from 'test-utils';
+import { ContributionListResponse, usePortalContributionList } from './usePortalContributionList';
+import { renderHook } from '@testing-library/react-hooks';
+
+const mockContributionResponse: ContributionListResponse = {
+  count: 2,
+  results: [
+    {
+      amount: 123,
+      card_brand: 'amex',
+      created: 'mock-created-1',
+      credit_card_expiration_date: 'mock-cc-expiration-1',
+      interval: 'month',
+      is_cancelable: true,
+      is_modifiable: true,
+      last4: '1234',
+      last_payment_date: 'mock-last-payment-1',
+      next_payment_date: '',
+      payment_provider_id: 'mock-payment-provider-1',
+      payment_type: 'mock-payment-type-1',
+      provider_customer_id: 'mock-customer-1',
+      revenue_program: 1,
+      status: 'paid'
+    },
+    {
+      amount: 456,
+      card_brand: 'visa',
+      created: 'mock-created-2',
+      credit_card_expiration_date: 'mock-cc-expiration-2',
+      interval: 'month',
+      is_cancelable: true,
+      is_modifiable: true,
+      last4: '5678',
+      last_payment_date: 'mock-last-payment-2',
+      next_payment_date: 'mock-next-payment-2',
+      payment_provider_id: 'mock-payment-provider-1',
+      payment_type: 'mock-payment-type-2',
+      provider_customer_id: 'mock-customer-2',
+      revenue_program: 2,
+      status: 'paid'
+    }
+  ]
+};
+
+function hook(contributorId?: number) {
+  return renderHook(() => usePortalContributionList(contributorId), {
+    wrapper: TestQueryClientProvider
+  });
+}
+
+describe('usePortalContributionList', () => {
+  const axiosMock = new MockAdapter(Axios);
+
+  beforeEach(() => {
+    axiosMock.onGet('contributors/123/contributions/').reply(200, mockContributionResponse);
+  });
+  afterEach(() => axiosMock.reset());
+  afterAll(() => axiosMock.restore());
+
+  it("doesn't fetch contributions if contributor ID is undefined", async () => {
+    hook();
+    await Promise.resolve();
+    expect(axiosMock.history.get.length).toBe(0);
+  });
+
+  describe('When contributor ID is defined', () => {
+    describe('While fetching contributions', () => {
+      // These wait for the next update to allow component updates to happen after
+      // the fetch completes.
+
+      it('returns a loading status', async () => {
+        const { result, waitForNextUpdate } = hook(123);
+
+        expect(result.current.isFetching).toBe(true);
+        expect(result.current.isLoading).toBe(true);
+        await waitForNextUpdate();
+      });
+
+      it('returns an empty array of contributions', async () => {
+        const { result, waitForNextUpdate } = hook(123);
+
+        expect(result.current.contributions).toEqual([]);
+        await waitForNextUpdate();
+      });
+    });
+
+    it('returns contributions and appropriate status after fetching contributions', async () => {
+      const { result, waitFor } = hook(123);
+
+      await waitFor(() => expect(axiosMock.history.get.length).toBe(1));
+      expect(result.current.contributions).toEqual(mockContributionResponse.results);
+      expect(axiosMock.history.get[0].url).toBe('/contributors/123/contributions/');
+    });
+
+    describe('When fetching contributions fails', () => {
+      let errorSpy: jest.SpyInstance;
+
+      beforeEach(() => {
+        axiosMock.onGet('contributors/123/contributions/').networkError();
+        errorSpy = jest.spyOn(console, 'error').mockImplementation(() => {});
+      });
+      afterEach(() => errorSpy.mockRestore());
+
+      it('returns an error status', async () => {
+        const { result, waitFor } = hook(123);
+
+        await waitFor(() => expect(axiosMock.history.get.length).toBe(1));
+        expect(result.current.isError).toBe(true);
+      });
+
+      it('returns an empty array of contributions', async () => {
+        const { result, waitFor } = hook(123);
+
+        await waitFor(() => expect(axiosMock.history.get.length).toBe(1));
+        expect(result.current.contributions).toEqual([]);
+      });
+    });
+  });
+});

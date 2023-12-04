@@ -1,4 +1,4 @@
-import { ReactComponent as CoreUpgradeIcon } from 'assets/icons/upgrade-core.svg';
+import CoreUpgradeIcon from 'assets/icons/upgrade-core.svg?react';
 import styled from 'styled-components';
 
 export const Root = styled.div`

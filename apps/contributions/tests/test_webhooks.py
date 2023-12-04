@@ -7,6 +7,7 @@ processor class that are worth unit testing in isolation.
 """
 import pytest
 
+from apps.contributions.models import Contribution
 from apps.contributions.tests.factories import ContributionFactory
 from apps.contributions.webhooks import StripeWebhookProcessor
 
@@ -162,7 +163,8 @@ class TestStripeWebhookProcessor:
         assert processor.webhook_live_mode_agrees_with_environment == expected
 
     @pytest.mark.parametrize("agrees", [True, False])
-    def test_process(self, agrees, mocker, subscription_event):
+    @pytest.mark.parametrize("contribution_found", [True, False])
+    def test_process(self, agrees, contribution_found, mocker, payment_intent_succeeded_one_time_event):
         mocker.patch.object(
             StripeWebhookProcessor,
             "webhook_live_mode_agrees_with_environment",
@@ -171,10 +173,19 @@ class TestStripeWebhookProcessor:
         )
         mock_route_request = mocker.patch.object(StripeWebhookProcessor, "route_request")
         logger_spy = mocker.patch("apps.contributions.webhooks.logger.warning")
-        StripeWebhookProcessor(subscription_event).process()
-        if agrees:
-            mock_route_request.assert_called_once()
-            logger_spy.assert_not_called()
+        if contribution_found:
+            mocker.patch("apps.contributions.webhooks.StripeWebhookProcessor.contribution")
         else:
-            mock_route_request.assert_not_called()
-            logger_spy.assert_called_once()
+            Contribution.objects.all().delete()
+
+        if contribution_found:
+            StripeWebhookProcessor(payment_intent_succeeded_one_time_event).process()
+            if agrees:
+                mock_route_request.assert_called_once()
+                logger_spy.assert_not_called()
+            else:
+                logger_spy.assert_called_once()
+                mock_route_request.assert_not_called()
+        elif agrees:
+            with pytest.raises(Contribution.DoesNotExist):
+                StripeWebhookProcessor(payment_intent_succeeded_one_time_event).process()

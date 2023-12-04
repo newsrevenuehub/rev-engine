@@ -77,6 +77,8 @@ class StripeWebhookProcessor:
                     return Contribution.objects.get(provider_customer_id=self.customer_id)
                 case "invoice":
                     return Contribution.objects.get(provider_subscription_id=self.obj_data["subscription"])
+                case "charge":
+                    return Contribution.objects.get(provider_payment_id=self.obj_data["payment_intent"])
                 case _:
                     return None
         except Contribution.DoesNotExist:
@@ -141,6 +143,8 @@ class StripeWebhookProcessor:
         if not self.webhook_live_mode_agrees_with_environment:
             logger.warning("Received webhook in wrong mode; ignoring")
             return
+        if not self.contribution:
+            raise Contribution.DoesNotExist("No contribution found")
         self.route_request()
         logger.info("Successfully processed webhook event %s", self.event_id)
 
@@ -152,8 +156,6 @@ class StripeWebhookProcessor:
             reversion.set_comment(revision_comment)
 
     def handle_payment_intent_canceled(self):
-        if not self.contribution:
-            raise Contribution.DoesNotExist("No contribution found")
         self._handle_contribution_update(
             {
                 "status": ContributionStatus.REJECTED if self.rejected else ContributionStatus.CANCELED,
@@ -163,8 +165,6 @@ class StripeWebhookProcessor:
         )
 
     def handle_payment_intent_failed(self):
-        if not self.contribution:
-            raise Contribution.DoesNotExist("No contribution found")
         self._handle_contribution_update(
             {"status": ContributionStatus.FAILED, "payment_provider_data": self.event},
             "`StripeWebhookProcessor.handle_payment_intent_failed` updated contribution",
@@ -189,8 +189,6 @@ class StripeWebhookProcessor:
                 self.event_id,
             )
             return
-        if not self.contribution:
-            raise Contribution.DoesNotExist("No contribution found")
 
         with transaction.atomic():
             payment = Payment.from_stripe_payment_intent_succeeded_event(event=self.event)
@@ -210,8 +208,6 @@ class StripeWebhookProcessor:
             self.contribution.handle_thank_you_email()
 
     def handle_subscription_updated(self):
-        if not self.contribution:
-            raise Contribution.DoesNotExist("No contribution found")
         # If stripe reports 'default_payment_method' as a previous attribute, then we've updated 'default_payment_method'
         update_data = {
             "payment_provider_data": self.event,
@@ -228,25 +224,19 @@ class StripeWebhookProcessor:
         )
 
     def handle_subscription_canceled(self):
-        if self.contribution:
-            self._handle_contribution_update(
-                {
-                    "payment_provider_data": self.event,
-                    "status": ContributionStatus.CANCELED,
-                },
-                "`StripeWebhookProcessor.handle_subscription_canceled` updated contribution",
-            )
-        else:
-            logger.warning("No contribution found for subscription %s", self.id)
+        self._handle_contribution_update(
+            {
+                "payment_provider_data": self.event,
+                "status": ContributionStatus.CANCELED,
+            },
+            "`StripeWebhookProcessor.handle_subscription_canceled` updated contribution",
+        )
 
     def handle_payment_method_attached(self):
-        if self.contribution:
-            self._handle_contribution_update(
-                {"provider_payment_method_id": self.id},
-                "`StripeWebhookProcessor.process_payment_method_attached` updated contribution",
-            )
-        else:
-            logger.warning("No contribution found for payment method %s", self.id)
+        self._handle_contribution_update(
+            {"provider_payment_method_id": self.id},
+            "`StripeWebhookProcessor.process_payment_method_attached` updated contribution",
+        )
 
     def handle_invoice_upcoming(self):
         """When Stripe sends a webhook about an upcoming subscription charge, we send an email reminder
@@ -255,43 +245,37 @@ class StripeWebhookProcessor:
         at https://dashboard.stripe.com/settings/billing/automatic under the `Upcoming renewal events` setting, which
         can be set to 3, 7, 15, 30, or 45 days.
         """
-        if self.contribution:
-            if self.contribution.interval == ContributionInterval.YEARLY:
-                logger.info(
-                    "StripeWebhookProcessor.process_invoice called for contribution %s which is yearly. Triggering a reminder email.",
-                    self.contribution.id,
-                )
-                self.contribution.send_recurring_contribution_email_reminder(
-                    make_aware(datetime.datetime.fromtimestamp(self.obj_data["next_payment_attempt"])).date()
-                )
-            else:
-                logger.debug(
-                    "StripeWebhookProcessor.process_invoice called for contribution %s which is not yearly. Noop.",
-                    self.contribution.id,
-                )
+        if self.contribution.interval == ContributionInterval.YEARLY:
+            logger.info(
+                "StripeWebhookProcessor.process_invoice called for contribution %s which is yearly. Triggering a reminder email.",
+                self.contribution.id,
+            )
+            self.contribution.send_recurring_contribution_email_reminder(
+                make_aware(datetime.datetime.fromtimestamp(self.obj_data["next_payment_attempt"])).date()
+            )
         else:
-            logger.warning("No contribution found for invoice %s", self.id)
+            logger.debug(
+                "StripeWebhookProcessor.process_invoice called for contribution %s which is not yearly. Noop.",
+                self.contribution.id,
+            )
 
     def handle_invoice_payment_succeeded(self):
-        if self.contribution:
-            with transaction.atomic():
-                payment = Payment.from_stripe_invoice_payment_succeeded_event(event=self.event)
-                pi = stripe.PaymentIntent.retrieve(
-                    self.obj_data["payment_intent"],
-                    stripe_account=self.event["account"],
-                )
-                self._handle_contribution_update(
-                    {
-                        "last_payment_date": payment.created,
-                        "status": ContributionStatus.PAID,
-                        # TODO: [DEV-4295] Get rid of payment_provider_data as it's an inconistent reference to whichever event happened to cause creation
-                        "payment_provider_data": self.event,
-                        "provider_payment_method_id": pi.payment_method,
-                        "provider_payment_method_details": self.contribution.fetch_stripe_payment_method(),
-                    },
-                    "`StripeWebhookProcessor.handle_payment_intent_succeeded` updated contribution",
-                )
-                if payment.contribution.payment_set.count() == 1:
-                    self.contribution.handle_thank_you_email()
-        else:
-            logger.warning("No contribution found for invoice %s on account %s", self.id, self.event["account"])
+        with transaction.atomic():
+            payment = Payment.from_stripe_invoice_payment_succeeded_event(event=self.event)
+            pi = stripe.PaymentIntent.retrieve(
+                self.obj_data["payment_intent"],
+                stripe_account=self.event["account"],
+            )
+            self._handle_contribution_update(
+                {
+                    "last_payment_date": payment.created,
+                    "status": ContributionStatus.PAID,
+                    # TODO: [DEV-4295] Get rid of payment_provider_data as it's an inconistent reference to whichever event happened to cause creation
+                    "payment_provider_data": self.event,
+                    "provider_payment_method_id": pi.payment_method,
+                    "provider_payment_method_details": self.contribution.fetch_stripe_payment_method(),
+                },
+                "`StripeWebhookProcessor.handle_payment_intent_succeeded` updated contribution",
+            )
+        if payment.contribution.payment_set.count() == 1:
+            self.contribution.handle_thank_you_email()

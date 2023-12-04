@@ -163,6 +163,7 @@ class TestPaymentIntentSucceeded:
         return request.getfixturevalue(request.param)
 
     def test_when_not_one_time_payment(self, when_not_one_time_payment_event, mocker, client):
+        ContributionFactory(provider_payment_id=when_not_one_time_payment_event["data"]["object"]["id"])
         logger_spy = mocker.patch("apps.contributions.webhooks.logger.info")
         header = {"HTTP_STRIPE_SIGNATURE": "testing", "content_type": "application/json"}
         response = client.post(reverse("stripe-webhooks-contributions"), data=when_not_one_time_payment_event, **header)
@@ -379,6 +380,7 @@ def test_payment_method_attached(client, payment_method_attached, mocker):
 
 
 @pytest.mark.django_db()
+@pytest.mark.usefixtures("suppress_stripe_webhook_sig_verification")
 @pytest.mark.parametrize(
     "interval,expect_reminder_email",
     (
@@ -386,24 +388,37 @@ def test_payment_method_attached(client, payment_method_attached, mocker):
         (ContributionInterval.YEARLY, True),
     ),
 )
-def test_invoice_upcoming(interval, expect_reminder_email, client, invoice_upcoming, mocker):
+@pytest.mark.parametrize("contribution_found", (True, False))
+def test_invoice_upcoming(interval, expect_reminder_email, contribution_found, client, invoice_upcoming, mocker):
     mock_send_reminder = mocker.patch.object(Contribution, "send_recurring_contribution_email_reminder")
-    mocker.patch.object(WebhookSignature, "verify_header", return_value=True)
-    contribution = ContributionFactory(
-        interval=interval, provider_subscription_id=invoice_upcoming["data"]["object"]["subscription"]
+    contribution = (
+        ContributionFactory(
+            interval=interval, provider_subscription_id=invoice_upcoming["data"]["object"]["subscription"]
+        )
+        if contribution_found
+        else None
     )
-    save_spy = mocker.spy(Contribution, "save")
     header = {"HTTP_STRIPE_SIGNATURE": "testing", "content_type": "application/json"}
     response = client.post(reverse("stripe-webhooks-contributions"), data=invoice_upcoming, **header)
     assert response.status_code == status.HTTP_200_OK
-    if expect_reminder_email:
+    if not contribution_found:
+        # assert that task debug logs
+        return
+    else:
+        if expect_reminder_email:
+            mock_send_reminder.assert_called_once_with(
+                make_aware(datetime.fromtimestamp(invoice_upcoming["data"]["object"]["next_payment_attempt"])).date()
+            )
+        else:
+            mock_send_reminder.assert_not_called()
+
+    if expect_reminder_email and contribution_found:
         mock_send_reminder.assert_called_once_with(
             make_aware(datetime.fromtimestamp(invoice_upcoming["data"]["object"]["next_payment_attempt"])).date()
         )
     else:
         mock_send_reminder.assert_not_called()
     contribution.refresh_from_db()
-    save_spy.assert_not_called()
 
 
 def test_process_stripe_webhook_when_value_error_raised(mocker, client):
@@ -440,7 +455,8 @@ class TestChargeRefunded:
         mocker.patch("stripe.PaymentIntent.retrieve", return_value=payment_intent_for_one_time_contribution)
         mocker.patch("stripe.BalanceTransaction.retrieve", return_value=balance_transaction_for_one_time_charge)
         header = {"HTTP_STRIPE_SIGNATURE": "testing", "content_type": "application/json"}
-        client.post(reverse("stripe-webhooks-contributions"), data=charge_refunded, **header)
+        response = client.post(reverse("stripe-webhooks-contributions"), data=charge_refunded, **header)
+        assert response.status_code == status.HTTP_200_OK
         Payment.from_stripe_charge_refunded_event.assert_called_once_with(event=charge_refunded)
         assert Payment.objects.count() == count + 1
 

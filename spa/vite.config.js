@@ -10,6 +10,7 @@ const config = defineConfig({
     // This must match the static asset path used by Django.
     assetsDir: 'static',
     outDir: 'build',
+    sourcemap: true,
     target: browserslistToEsbuild(['>0.2%', 'not dead', 'not op_mini all'])
   },
   define: {

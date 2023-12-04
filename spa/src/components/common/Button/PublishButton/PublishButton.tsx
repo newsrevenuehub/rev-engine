@@ -72,7 +72,6 @@ function PublishButton({ className }: PublishButtonProps) {
   } = useModal();
   const [anchorEl, setAnchorEl] = useState<HTMLElement | null>(null);
   const [slugError, setSlugError] = useState<string[]>();
-
   const showPopover = Boolean(anchorEl);
   const disabled = !page?.payment_provider?.stripe_verified;
   const isPublished = page && pageIsPublished(page);
@@ -151,6 +150,21 @@ function PublishButton({ className }: PublishButtonProps) {
       // Notify the user of success.
 
       handleOpenSuccessfulPublishModal();
+
+      // Track an event in Pendo if available. It will only be available when
+      // the user is an org admin. If it fails, log the problem but don't show
+      // an error to the user.
+
+      if ((window as any).pendo) {
+        try {
+          (window as any).pendo.track('contribution-page-publish', {
+            id: page.id,
+            name: page.name
+          });
+        } catch (error) {
+          console.error(`Couldn't track a page publish event in Pendo: ${(error as Error).message}`);
+        }
+      }
     } catch (error) {
       const { isHubAdmin, isSuperUser } = getUserRole(user);
 

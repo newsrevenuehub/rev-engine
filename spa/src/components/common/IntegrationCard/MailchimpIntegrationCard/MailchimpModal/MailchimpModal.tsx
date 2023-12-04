@@ -1,9 +1,9 @@
-import { ReactComponent as Diversity } from '@material-design-icons/svg/filled/diversity_2.svg';
-import { ReactComponent as BarChart } from '@material-design-icons/svg/outlined/bar_chart.svg';
-import { ReactComponent as Group } from '@material-design-icons/svg/outlined/group.svg';
-import { ReactComponent as GroupAdd } from '@material-design-icons/svg/outlined/group_add.svg';
-import { ReactComponent as Mail } from '@material-design-icons/svg/outlined/mail.svg';
-import { ReactComponent as MailCheck } from '@material-design-icons/svg/outlined/mark_email_read.svg';
+import Diversity from '@material-design-icons/svg/filled/diversity_2.svg?react';
+import BarChart from '@material-design-icons/svg/outlined/bar_chart.svg?react';
+import Group from '@material-design-icons/svg/outlined/group.svg?react';
+import GroupAdd from '@material-design-icons/svg/outlined/group_add.svg?react';
+import Mail from '@material-design-icons/svg/outlined/mail.svg?react';
+import MailCheck from '@material-design-icons/svg/outlined/mark_email_read.svg?react';
 import InfoOutlinedIcon from '@material-ui/icons/InfoOutlined';
 import {
   ButtonProps,

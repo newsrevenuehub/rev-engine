@@ -2050,7 +2050,6 @@ class TestPayment:
             assert payment.gross_amount_paid == 0
             assert payment.amount_refunded == event.data.object.refunds.data[0].amount
             assert payment.stripe_balance_transaction_id == event.data.object.refunds.data[0].balance_transaction
-            assert payment.stripe_refund_id == event.data.object.refunds.data[0].id
 
     @pytest.fixture
     def invoice_payment_succeeded_recurring_charge_event(self):

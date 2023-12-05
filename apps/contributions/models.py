@@ -967,7 +967,6 @@ class Payment(IndexedTimeStampedModel):
     gross_amount_paid = models.IntegerField()
     amount_refunded = models.IntegerField()
     stripe_balance_transaction_id = models.CharField(max_length=255, unique=True)
-    stripe_refund_id = models.CharField(max_length=255, blank=True, null=True)
 
     MISSING_EVENT_KW_ERROR_MSG = "Expected a keyword argument called `event` called `event`"
     ARG_IS_NOT_EVENT_TYPE_ERROR_MSG = "Expected `event` to be an instance of `StripeEventData`"
@@ -1089,7 +1088,6 @@ class Payment(IndexedTimeStampedModel):
         cls,
         contribution: Contribution | None,
         balance_transaction: stripe.BalanceTransaction | None,
-        stripe_refund_id: str = None,
         amount_refunded: int = 0,
         event_id: str = None,
     ) -> Payment:
@@ -1102,7 +1100,6 @@ class Payment(IndexedTimeStampedModel):
         payment, _ = Payment.objects.get_or_create(
             contribution=contribution,
             stripe_balance_transaction_id=balance_transaction.id,
-            stripe_refund_id=stripe_refund_id,
             defaults={
                 "net_amount_paid": balance_transaction.net,
                 "amount_refunded": amount_refunded,
@@ -1178,7 +1175,6 @@ class Payment(IndexedTimeStampedModel):
         return Payment.objects.create(
             contribution=contribution,
             stripe_balance_transaction_id=refund["balance_transaction"],
-            stripe_refund_id=refund["id"],
             net_amount_paid=0,
             gross_amount_paid=0,
             amount_refunded=refund["amount"],

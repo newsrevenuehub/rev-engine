@@ -2194,3 +2194,19 @@ class TestPayment:
         return ContributionFactory(
             interval=request.param[0], provider_payment_id=request.getfixturevalue(request.param[1]).data.object.id
         )
+
+    def test_get_contribution_and_balance_transaction_for_payment_intent_succeeded_event_when_value_error(
+        self, mocker, payment_intent_succeeded_one_time_event, payment_intent_for_one_time_contribution
+    ):
+        mocker.patch("apps.contributions.models.Payment._ensure_pi_has_single_charge", side_effect=ValueError("roo"))
+        mocker.patch("stripe.PaymentIntent.retrieve", return_value=payment_intent_for_one_time_contribution)
+        logger_spy = mocker.spy(logger, "warning")
+        assert Payment.get_contribution_and_balance_transaction_for_payment_intent_succeeded_event(
+            event=payment_intent_succeeded_one_time_event
+        ) == (
+            None,
+            None,
+        )
+        logger_spy.assert_called_once_with(
+            "Could not find a balance transaction for PI %s associated with event %s", mocker.ANY, mocker.ANY
+        )

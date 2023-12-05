@@ -1,18 +1,18 @@
 [run]
 source =
-apps
-revengine
+  apps
+  revengine
 omit =
-*/tests/*
-*/migrations/*
-*/settings/*.py
-*/wsgi.py
+    */tests/*
+    */migrations/*
+    */settings/*.py
+    */wsgi.py
 branch = True
 
 [report]
 show_missing = True
 skip_empty = True
 exclude_lines =
-pragma: no cover
-<!--no cover-->
+    pragma: no cover
+    <!--no cover-->
 fail_under = 97

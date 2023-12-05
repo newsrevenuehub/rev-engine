@@ -1168,12 +1168,12 @@ class Payment(IndexedTimeStampedModel):
             conditions.add(models.Q(provider_subscription_id=sub_id))
         if not conditions:
             logger.warning("Cannot find contribution for event (no conditions) %s", event["id"])
-            raise ValueError("Could not find a contribution for this event")
+            raise ValueError("Could not find a contribution for this event (no conditions)")
         try:
             contribution = Contribution.objects.get(reduce(or_, conditions))
         except (Contribution.MultipleObjectsReturned, Contribution.DoesNotExist):
-            logger.exception("Cannot find contribution for event %s", event["id"])
-            raise ValueError("Could not find a contribution for this event")
+            logger.exception("Cannot find contribution for event (no match) %s", event["id"])
+            raise ValueError("Could not find a contribution for this event (no match)")
 
         return Payment.objects.create(
             contribution=contribution,

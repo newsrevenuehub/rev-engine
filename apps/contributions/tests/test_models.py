@@ -2210,3 +2210,33 @@ class TestPayment:
         logger_spy.assert_called_once_with(
             "Could not find a balance transaction for PI %s associated with event %s", mocker.ANY, mocker.ANY
         )
+
+    def test_from_stripe_charge_refunded_event_when_more_than_one_refund(self, mocker, charge_refunded_one_time_event):
+        charge_refunded_one_time_event.data.object.refunds.data.append(
+            stripe.Refund.construct_from({"id": "foo", "amount": 500}, stripe.api_key)
+        )
+        mocker.patch("stripe.PaymentIntent.retrieve")
+        with pytest.raises(ValueError) as exc_info:
+            Payment.from_stripe_charge_refunded_event(event=charge_refunded_one_time_event)
+        assert str(exc_info.value) == "Too many refunds"
+
+    def test_from_stripe_charge_refunded_event_when_no_search_conditions(self, mocker, charge_refunded_one_time_event):
+        mocker.patch("stripe.PaymentIntent.retrieve", return_value=None)
+        mocker.patch("stripe.BalanceTransaction.retrieve", return_value=mocker.Mock(source="foo"))
+        with pytest.raises(ValueError) as exc_info:
+            Payment.from_stripe_charge_refunded_event(event=charge_refunded_one_time_event)
+        assert str(exc_info.value) == "Could not find a contribution for this event (no conditions)"
+
+    def test_from_stripe_charge_refunded_event_when_contribution_not_found_on_search(
+        self,
+        mocker,
+        charge_refunded_one_time_event,
+        payment_intent_for_one_time_contribution,
+        balance_transaction_for_one_time_charge,
+    ):
+        mocker.patch("stripe.PaymentIntent.retrieve", return_value=payment_intent_for_one_time_contribution)
+        mocker.patch("stripe.BalanceTransaction.retrieve", return_value=balance_transaction_for_one_time_charge)
+        Contribution.objects.all().delete()
+        with pytest.raises(ValueError) as exc_info:
+            Payment.from_stripe_charge_refunded_event(event=charge_refunded_one_time_event)
+        assert str(exc_info.value) == "Could not find a contribution for this event (no match)"

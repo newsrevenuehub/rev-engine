@@ -1847,20 +1847,6 @@ class TestPayment:
             == payment.contribution.donation_page.revenue_program.payment_provider.stripe_account_id
         )
 
-    def test_stripe_balance_transaction(self, mocker, payment, balance_transaction_for_one_time_charge):
-        """Show that we memoize the balance transaction"""
-        mock_retrieve = mocker.patch(
-            "stripe.BalanceTransaction.retrieve", return_value=balance_transaction_for_one_time_charge
-        )
-        assert payment.stripe_balance_transaction == mock_retrieve.return_value
-        mock_retrieve.assert_called_once_with(
-            payment.stripe_balance_transaction_id,
-            stripe_account=payment.contribution.donation_page.revenue_program.payment_provider.stripe_account_id,
-        )
-        count = mock_retrieve.call_count
-        payment.stripe_balance_transaction
-        assert mock_retrieve.call_count == count
-
     @pytest.fixture
     def invalid_metadata(self):
         return {"foo": "bar"}

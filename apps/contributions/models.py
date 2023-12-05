@@ -1,7 +1,6 @@
 from __future__ import annotations
 
 import datetime
-import json
 import logging
 import uuid
 from dataclasses import asdict
@@ -11,7 +10,6 @@ from typing import Any, Callable, List
 from urllib.parse import quote_plus
 
 from django.conf import settings
-from django.core.cache import cache
 from django.db import models
 from django.template.loader import render_to_string
 from django.utils.safestring import SafeString, mark_safe
@@ -984,43 +982,13 @@ class Payment(IndexedTimeStampedModel):
         """Convenience method for referencing the Stripe account ID associated with the payment provider for this payment"""
         return self.contribution.donation_page.revenue_program.payment_provider.stripe_account_id
 
-    @property
-    def stripe_balance_transaction(self):
-        return self._get_stripe_balance_transaction(
-            self.stripe_balance_transaction_id,
-            account_id=self.stripe_account_id,
-        )
-
-    @classmethod
-    def _get_stripe_balance_transaction(
-        cls, balance_transaction_id: str, account_id: str, expand: List[str] = None
-    ) -> stripe.BalanceTransaction | None:
-        """Cached call to retrieve balance transaction.
-
-        Normal paths through this class' methods will call this method, typically in quick succession.
-        The balance transaction is unlikely to change during this period, and we need not
-        incur the network call (which also risks being rate limited) to fetch it from Stripe.
-        """
-        kwargs = {"account": account_id}
-        if expand:
-            kwargs["expand"] = expand
-        cache_key = f"_get_stripe_balance_transaction_{balance_transaction_id}_{account_id}_{'_'.join(expand) if expand else 'no_expand'}"
-        cached_result = cache.get(cache_key)
-        if cached_result is not None:
-            logger.info("Found cached result for %s", cache_key)
-            return stripe.BalanceTransaction.construct_from(cached_result, key=stripe.api_key)
-
-        logger.info("No cached result found for %s", cache_key)
-        result = stripe.BalanceTransaction.retrieve(balance_transaction_id, stripe_account=account_id)
-        # load/dump gets us fully serializable data suited for caching
-        cache.set(cache_key, json.loads(json.dumps(result)), settings.RETRIEVED_STRIPE_ENTITY_CACHE_TTL)
-        return result
-
     @classmethod
     def get_subscription_id_for_balance_transaction(
         cls, balance_transaction_id: str, stripe_account_id: str
     ) -> str | None:
-        bt = cls._get_stripe_balance_transaction(balance_transaction_id, stripe_account_id, expand=["source.invoice"])
+        bt = stripe.BalanceTransaction.retrieve(
+            balance_transaction_id, stripe_account=stripe_account_id, expand=["source.invoice"]
+        )
         return getattr(bt.source.invoice, "subscription", None) if bt.source.invoice else None
 
     @classmethod
@@ -1077,9 +1045,9 @@ class Payment(IndexedTimeStampedModel):
             )
             balance_transaction = None
         else:
-            balance_transaction = cls._get_stripe_balance_transaction(
+            balance_transaction = stripe.BalanceTransaction.retrieve(
                 balance_transaction_id,
-                account_id=event["account"],
+                stripe_account=event["account"],
             )
         try:
             contribution = (
@@ -1104,8 +1072,8 @@ class Payment(IndexedTimeStampedModel):
             if event["data"]["object"]["payment_intent"]
             else None
         )
-        balance_transaction = cls._get_stripe_balance_transaction(
-            event["data"]["object"]["balance_transaction"], event["account"], expand=["source.invoice"]
+        balance_transaction = stripe.BalanceTransaction.retrieve(
+            event["data"]["object"]["balance_transaction"], stripe_account=event["account"], expand=["source.invoice"]
         )
         conditions = []
         # we expect this to happen if it's a refund related to a one-time contribution or the initial payment associated with
@@ -1139,9 +1107,9 @@ class Payment(IndexedTimeStampedModel):
             stripe_account=event["account"],
             expand=["invoice"],
         )
-        bt = cls._get_stripe_balance_transaction(
+        bt = stripe.BalanceTransaction.retrieve(
             pi.charges.data[0].balance_transaction,
-            account_id=event["account"],
+            stripe_account=event["account"],
             expand=["source.invoice"],
         )
         try:

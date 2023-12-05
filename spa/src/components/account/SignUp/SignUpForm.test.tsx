@@ -26,7 +26,7 @@ describe('SignUpForm Tests', () => {
   it('should show password helper text', async () => {
     getScreen();
     expect(screen.getByText('Password must be at least 8 characters long.')).toBeInTheDocument();
-    expect(screen.queryByRole('error')).not.toBeInTheDocument();
+    expect(screen.queryByRole('alert')).not.toBeInTheDocument();
   });
 
   it('should show password error message if password is smaller than 8 chars', async () => {
@@ -44,14 +44,14 @@ describe('SignUpForm Tests', () => {
     fireEvent.click(screen.getByRole('checkbox'));
     fireEvent.submit(screen.getByRole('button', { name: 'Create Account' }));
     await waitFor(() =>
-      expect(screen.getByRole('error')).toHaveTextContent('Password must be at least 8 characters long.')
+      expect(screen.getByRole('alert')).toHaveTextContent('Password must be at least 8 characters long.')
     );
   });
 
   it('should not submit if email and password are blank', async () => {
     getScreen();
     fireEvent.submit(screen.getByRole('button', { name: 'Create Account' }));
-    await waitFor(() => expect(screen.queryAllByRole('error')).toHaveLength(0));
+    await waitFor(() => expect(screen.queryAllByRole('alert')).toHaveLength(0));
     expect(mockSubmit).not.toBeCalled();
   });
 
@@ -63,7 +63,7 @@ describe('SignUpForm Tests', () => {
       }
     });
     fireEvent.submit(screen.getByRole('button', { name: 'Create Account' }));
-    await waitFor(() => expect(screen.queryAllByRole('error')).toHaveLength(0));
+    await waitFor(() => expect(screen.queryAllByRole('alert')).toHaveLength(0));
     expect(mockSubmit).not.toBeCalled();
   });
 
@@ -83,7 +83,7 @@ describe('SignUpForm Tests', () => {
     expect(screen.getByRole('checkbox')).toBeChecked();
 
     fireEvent.submit(screen.getByRole('button', { name: 'Create Account' }));
-    expect(await screen.findAllByRole('error')).toHaveLength(1);
+    expect(await screen.findAllByRole('alert')).toHaveLength(1);
     expect(mockSubmit).not.toBeCalled();
   });
 
@@ -104,7 +104,7 @@ describe('SignUpForm Tests', () => {
     expect(screen.getByRole('checkbox')).toBeChecked();
 
     fireEvent.submit(screen.getByRole('button', { name: 'Create Account' }));
-    expect(await screen.findAllByRole('error')).toHaveLength(2);
+    expect(await screen.findAllByRole('alert')).toHaveLength(2);
     expect(mockSubmit).not.toBeCalled();
   });
 
@@ -123,7 +123,7 @@ describe('SignUpForm Tests', () => {
 
     expect(screen.getByRole('checkbox')).not.toBeChecked();
     fireEvent.submit(screen.getByRole('button', { name: 'Create Account' }));
-    await waitFor(() => expect(screen.queryAllByRole('error')).toHaveLength(0));
+    await waitFor(() => expect(screen.queryAllByRole('alert')).toHaveLength(0));
     expect(mockSubmit).not.toBeCalled();
   });
 
@@ -145,7 +145,7 @@ describe('SignUpForm Tests', () => {
     expect(screen.getByRole('checkbox')).toBeChecked();
 
     fireEvent.submit(screen.getByRole('button', { name: 'Create Account' }));
-    await waitFor(() => expect(screen.queryAllByRole('error')).toHaveLength(0));
+    await waitFor(() => expect(screen.queryAllByRole('alert')).toHaveLength(0));
     expect(mockSubmit).toBeCalled();
   });
 

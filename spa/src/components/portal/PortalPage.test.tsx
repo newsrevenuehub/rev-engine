@@ -61,6 +61,9 @@ describe('PortalPage', () => {
     expect(screen.getByRole('link', { name: 'News Revenue Engine' })).toBeVisible();
   };
 
+  // expects() are in function above.
+  /* eslint-disable jest/expect-expect */
+
   it('should have expected default appearance and initial state', async () => {
     tree();
     await assertContentIsRendered();
@@ -72,6 +75,8 @@ describe('PortalPage', () => {
     tree();
     await assertContentIsRendered();
   });
+
+  /* eslint-enable jest/expect-expect */
 
   it('should call useWebFonts with page styles font', async () => {
     tree();

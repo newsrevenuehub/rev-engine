@@ -15,7 +15,6 @@ window.global ||= window;
 fontawesomeConfig.autoAddCss = false;
 
 // webpack CSP nonce concession
-/* eslint-disable-next-line */
 __webpack_nonce__ = window.csp_nonce;
 
 ReactDOM.render(

@@ -53,6 +53,7 @@ class PaymentAdmin(RevEngineBaseAdmin):
         )
     )
     readonly_fields = fields
+    search_fields = ("contribution__id",)
 
     def has_add_permission(self, request, obj=None):
         return False

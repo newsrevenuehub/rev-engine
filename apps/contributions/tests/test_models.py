@@ -1982,6 +1982,9 @@ class TestPayment:
     )
     def payment_from_charge_refunded_test_case_factory(self, request, mocker):
         def implementation(contribution_found: bool):
+            # get these all linked up correctly
+            # how charge relate to bt to ? re: amoutn on refund for fixture
+
             payment_intent = request.getfixturevalue(request.param[1])
             balance_transaction = request.getfixturevalue(request.param[2])
             balance_transaction.amount = payment_intent.amount
@@ -1990,6 +1993,9 @@ class TestPayment:
             event = request.getfixturevalue(request.param[0])
             event.data.object.payment_intent = payment_intent.id
             event.data.object.amount_refunded = balance_transaction.source.amount_refunded
+            event.data.object.refunds.data[0].balance_transaction = balance_transaction.id
+            event.data.object.refunds.data[0].amount = balance_transaction.source.amount_refunded
+
             mocker.patch(
                 "stripe.BalanceTransaction.retrieve",
                 return_value=balance_transaction,
@@ -2040,10 +2046,11 @@ class TestPayment:
         else:
             payment = Payment.from_stripe_charge_refunded_event(event=event)
             assert payment.contribution == contribution
-            assert payment.net_amount_paid == balance_transaction.net
-            assert payment.gross_amount_paid == balance_transaction.amount
-            assert payment.amount_refunded == balance_transaction.source.refunds.data[0].amount
-            assert payment.stripe_balance_transaction_id == balance_transaction.id
+            assert payment.net_amount_paid == 0
+            assert payment.gross_amount_paid == 0
+            assert payment.amount_refunded == event.data.object.refunds.data[0].amount
+            assert payment.stripe_balance_transaction_id == event.data.object.refunds.data[0].balance_transaction
+            assert payment.stripe_refund_id == event.data.object.refunds.data[0].id
 
     @pytest.fixture
     def invoice_payment_succeeded_recurring_charge_event(self):
@@ -2146,31 +2153,6 @@ class TestPayment:
                 Payment._ensure_pi_has_single_charge(payment_intent_for_one_time_contribution, "some-id")
         else:
             assert Payment._ensure_pi_has_single_charge(payment_intent_for_one_time_contribution, "some-id") is None
-
-    def test_get_contribution_and_balance_transaction_for_charge_refunded_event_when_nothing_to_match(
-        self, charge_refunded_one_time_event, mocker
-    ):
-        """Edge case that we narrowly test for in this function to get to 100% on the model"""
-        mocker.patch("stripe.BalanceTransaction.retrieve", return_value=None)
-        mocker.patch("stripe.PaymentIntent.retrieve", return_value=None)
-        assert Payment.get_contribution_and_balance_transaction_for_charge_refunded_event(
-            event=charge_refunded_one_time_event
-        ) == (None, None)
-
-    def test_get_contribution_and_balance_transaction_for_charge_refunded_event_when_no_contribution_found(
-        self,
-        charge_refunded_one_time_event,
-        balance_transaction_for_one_time_charge,
-        payment_intent_for_one_time_contribution,
-        mocker,
-    ):
-        """Edge case that we narrowly test for in this function to get to 100% on the model"""
-        mocker.patch("stripe.BalanceTransaction.retrieve", return_value=balance_transaction_for_one_time_charge)
-        mocker.patch("stripe.PaymentIntent.retrieve", return_value=payment_intent_for_one_time_contribution)
-        Contribution.objects.all().delete()
-        assert Payment.get_contribution_and_balance_transaction_for_charge_refunded_event(
-            event=charge_refunded_one_time_event
-        ) == (None, balance_transaction_for_one_time_charge)
 
     def test_get_contribution_and_balance_transaction_for_payment_intent_succeeded_event_edge_case(
         self, payment_intent_succeeded_one_time_event, payment_intent_for_one_time_contribution, mocker

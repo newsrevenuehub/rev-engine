@@ -967,6 +967,7 @@ class Payment(IndexedTimeStampedModel):
     gross_amount_paid = models.IntegerField()
     amount_refunded = models.IntegerField()
     stripe_balance_transaction_id = models.CharField(max_length=255, unique=True)
+    stripe_refund_id = models.CharField(max_length=255, blank=True, null=True)
 
     MISSING_EVENT_KW_ERROR_MSG = "Expected a keyword argument called `event` called `event`"
     ARG_IS_NOT_EVENT_TYPE_ERROR_MSG = "Expected `event` to be an instance of `StripeEventData`"
@@ -1061,43 +1062,6 @@ class Payment(IndexedTimeStampedModel):
         return contribution, balance_transaction
 
     @classmethod
-    @ensure_stripe_event(["charge.refunded"])
-    def get_contribution_and_balance_transaction_for_charge_refunded_event(
-        cls, event: StripeEventData
-    ) -> (Contribution | None, stripe.BalanceTransaction | None):
-        pi = (
-            stripe.PaymentIntent.retrieve(
-                event["data"]["object"]["payment_intent"], stripe_account=event["account"], expand=["invoice"]
-            )
-            if event["data"]["object"]["payment_intent"]
-            else None
-        )
-        balance_transaction = stripe.BalanceTransaction.retrieve(
-            event["data"]["object"]["balance_transaction"], stripe_account=event["account"], expand=["source.invoice"]
-        )
-        conditions = []
-        # we expect this to happen if it's a refund related to a one-time contribution or the initial payment associated with
-        # a new Stripe subscription in case of recurring contribution.
-        if pi:
-            conditions.append(models.Q(provider_payment_id=pi.id))
-        # We expect this to happen when it's a refund related to a recurrence on a subscription
-        if (
-            balance_transaction
-            and getattr(balance_transaction.source, "invoice", None)
-            and (sub_id := pi.invoice.subscription)
-        ):
-            conditions.append(models.Q(provider_subscription_id=sub_id))
-        if not conditions:
-            return None, balance_transaction
-
-        try:
-            # NB: these are inclusive OR conditions
-            contribution = Contribution.objects.get(reduce(or_, conditions))
-        except Contribution.DoesNotExist:
-            contribution = None
-        return contribution, balance_transaction
-
-    @classmethod
     @ensure_stripe_event(["invoice.payment_succeeded"])
     def get_contribution_and_balance_transaction_for_invoice_payment_succeeded_event(
         cls, event: StripeEventData
@@ -1125,6 +1089,7 @@ class Payment(IndexedTimeStampedModel):
         cls,
         contribution: Contribution | None,
         balance_transaction: stripe.BalanceTransaction | None,
+        stripe_refund_id: str = None,
         amount_refunded: int = 0,
         event_id: str = None,
     ) -> Payment:
@@ -1134,12 +1099,15 @@ class Payment(IndexedTimeStampedModel):
         if not balance_transaction:
             logger.warning("Cannot find balance transaction for event %s", event_id)
             raise ValueError("Could not find a balance transaction for this event")
-        payment = Payment.objects.create(
+        payment, _ = Payment.objects.get_or_create(
             contribution=contribution,
             stripe_balance_transaction_id=balance_transaction.id,
-            net_amount_paid=balance_transaction.net,
-            gross_amount_paid=balance_transaction.amount,
-            amount_refunded=amount_refunded,
+            stripe_refund_id=stripe_refund_id,
+            defaults={
+                "net_amount_paid": balance_transaction.net,
+                "amount_refunded": amount_refunded,
+                "gross_amount_paid": balance_transaction.amount,
+            },
         )
         return payment
 
@@ -1169,20 +1137,51 @@ class Payment(IndexedTimeStampedModel):
     @classmethod
     @ensure_stripe_event(["charge.refunded"])
     def from_stripe_charge_refunded_event(cls, event: StripeEventData) -> Payment:
-        contribution, balance_transaction = cls.get_contribution_and_balance_transaction_for_charge_refunded_event(
-            event=event
+        pi = (
+            stripe.PaymentIntent.retrieve(
+                event["data"]["object"]["payment_intent"], stripe_account=event["account"], expand=["invoice"]
+            )
+            if event["data"]["object"]["payment_intent"]
+            else None
         )
-        logger.info(
-            "balance transaction source is : %s whose type is %s",
-            balance_transaction.source,
-            type(balance_transaction.source),
+        conditions = set()
+        # we expect this to happen if it's a refund related to a one-time contribution or the initial payment associated with
+        # a new Stripe subscription in case of recurring contribution.
+        if pi:
+            conditions.add(models.Q(provider_payment_id=pi.id))
+        new_refunds = [
+            x
+            for x in event["data"]["object"]["refunds"]["data"]
+            if x["id"] not in [y["id"] for y in event["data"]["previous_attributes"]["refunds"]["data"]]
+        ]
+        if len(new_refunds) > 1:
+            logger.warning(
+                "Event contains more than 1 new refund, and can only process single for event %s", event["id"]
+            )
+            raise ValueError("Too many refunds")
+        refund = new_refunds[0]
+        bt = stripe.BalanceTransaction.retrieve(
+            refund["balance_transaction"], stripe_account=event["account"], expand=["source.invoice"]
         )
+        # We expect this to happen when it's a refund related to a recurrence on a subscription
+        if getattr(bt.source, "invoice", None) and (sub_id := pi.invoice.subscription):
+            conditions.add(models.Q(provider_subscription_id=sub_id))
+        if not conditions:
+            logger.warning("Cannot find contribution for event (no conditions) %s", event["id"])
+            raise ValueError("Could not find a contribution for this event")
+        try:
+            contribution = Contribution.objects.get(reduce(or_, conditions))
+        except (Contribution.MultipleObjectsReturned, Contribution.DoesNotExist):
+            logger.exception("Cannot find contribution for event %s", event["id"])
+            raise ValueError("Could not find a contribution for this event")
 
-        return cls._handle_create_payment(
+        return Payment.objects.create(
             contribution=contribution,
-            balance_transaction=balance_transaction,
-            amount_refunded=balance_transaction.source.refunds.data[0].amount,
-            event_id=event["id"],
+            stripe_balance_transaction_id=refund["balance_transaction"],
+            stripe_refund_id=refund["id"],
+            net_amount_paid=0,
+            gross_amount_paid=0,
+            amount_refunded=refund["amount"],
         )
 
     @classmethod

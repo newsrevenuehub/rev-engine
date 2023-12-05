@@ -160,7 +160,7 @@ export function useContributionPage(revenueProgramSlugOrPageId?: number | string
       let styles: Style | undefined;
       if (data.styles) {
         if (data.styles?.id) {
-          const { data: response } = await updateStyle(data.styles);
+          const { data: response } = await updateStyle(data.styles, page);
           styles = response;
         } else {
           const { data: response } = await createStyle(data.styles, page);

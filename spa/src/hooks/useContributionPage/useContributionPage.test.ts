@@ -361,7 +361,7 @@ describe('useContributionPage', () => {
       expect(axiosMock.history.patch[0].url).toBe(`pages/${mockPage.id}/`);
 
       expect(useStyleListMock().updateStyle).toHaveBeenCalledTimes(1);
-      expect(useStyleListMock().updateStyle).toBeCalledWith(mockStyles);
+      expect(useStyleListMock().updateStyle).toBeCalledWith(mockStyles, mockPage);
       expect(formDataToObject(axiosMock.history.patch[0].data as FormData)).toEqual({ styles: mockStyles.id });
       await waitForNextUpdate();
     });

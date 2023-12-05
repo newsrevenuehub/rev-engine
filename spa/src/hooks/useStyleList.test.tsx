@@ -144,13 +144,16 @@ describe('useStyleList hook', () => {
 
     expect(axiosMock.history.patch.length).toBe(0);
 
-    await result.current.updateStyle({ id: stylesList[0].id, fontSizes: ['size-1', 'size-2'] });
+    await result.current.updateStyle({ id: stylesList[0].id, fontSizes: ['size-1', 'size-2'] }, {
+      name: 'update-mock-page-name'
+    } as any);
 
     expect(axiosMock.history.patch.length).toBe(1);
     expect(axiosMock.history.patch[0].url).toBe(`styles/${stylesList[0].id}/`);
     expect(JSON.parse(axiosMock.history.patch[0].data)).toEqual({
       id: stylesList[0].id,
-      fontSizes: ['size-1', 'size-2']
+      fontSizes: ['size-1', 'size-2'],
+      name: 'update-mock-page-name'
     });
   });
 
@@ -196,7 +199,12 @@ describe('useStyleList hook', () => {
               revenue_program: { id: 'mock-rev-prog' }
             }
           ]
-        : [mockStyles, undefined];
+        : [
+            mockStyles,
+            {
+              name: 'mock-page-name'
+            }
+          ];
 
     await expect(() => selectedFunction!(...inputs)).rejects.toThrowError();
 

@@ -1208,7 +1208,7 @@ class Payment(IndexedTimeStampedModel):
         return cls._handle_create_payment(
             contribution=contribution,
             balance_transaction=balance_transaction,
-            amount_refunded=balance_transaction.source.amount_refunded,
+            amount_refunded=balance_transaction.source.refunds.data[0].amount,
             event_id=event["id"],
         )
 

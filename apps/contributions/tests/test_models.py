@@ -2056,7 +2056,7 @@ class TestPayment:
             assert payment.contribution == contribution
             assert payment.net_amount_paid == balance_transaction.net
             assert payment.gross_amount_paid == balance_transaction.amount
-            assert payment.amount_refunded == balance_transaction.source.amount_refunded
+            assert payment.amount_refunded == balance_transaction.source.refunds.data[0].amount
             assert payment.stripe_balance_transaction_id == balance_transaction.id
 
     @pytest.fixture

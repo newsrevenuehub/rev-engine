@@ -1204,7 +1204,7 @@ class Payment(IndexedTimeStampedModel):
         contribution, balance_transaction = cls.get_contribution_and_balance_transaction_for_charge_refunded_event(
             event=event
         )
-
+        logger.info(balance_transaction.source)
         return cls._handle_create_payment(
             contribution=contribution,
             balance_transaction=balance_transaction,

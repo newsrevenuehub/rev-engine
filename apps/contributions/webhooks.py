@@ -90,7 +90,7 @@ class StripeWebhookProcessor:
         return self.obj_data.get("cancellation_reason", None) == "fraudulent"
 
     def route_request(self):
-        logger.debug("Routing request for event type %s", self.event_type)
+        logger.info("Routing request for event type %s", self.event_type)
         match self.event_type:
             case "payment_intent.canceled":
                 return self.handle_payment_intent_canceled()

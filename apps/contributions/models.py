@@ -1007,10 +1007,10 @@ class Payment(IndexedTimeStampedModel):
         cache_key = f"_get_stripe_balance_transaction_{balance_transaction_id}_{account_id}_{'_'.join(expand) if expand else 'no_expand'}"
         cached_result = cache.get(cache_key)
         if cached_result is not None:
-            logger.debug("Found cached result for %s", cache_key)
+            logger.info("Found cached result for %s", cache_key)
             return stripe.BalanceTransaction.construct_from(cached_result, key=stripe.api_key)
 
-        logger.debug("No cached result found for %s", cache_key)
+        logger.info("No cached result found for %s", cache_key)
         result = stripe.BalanceTransaction.retrieve(balance_transaction_id, stripe_account=account_id)
         # load/dump gets us fully serializable data suited for caching
         cache.set(cache_key, json.loads(json.dumps(result)), settings.RETRIEVED_STRIPE_ENTITY_CACHE_TTL)
@@ -1204,7 +1204,7 @@ class Payment(IndexedTimeStampedModel):
         contribution, balance_transaction = cls.get_contribution_and_balance_transaction_for_charge_refunded_event(
             event=event
         )
-        logger.info(balance_transaction.source)
+        logger.info("balance transaction source is : %s", balance_transaction.source)
         return cls._handle_create_payment(
             contribution=contribution,
             balance_transaction=balance_transaction,

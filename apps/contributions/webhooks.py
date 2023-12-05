@@ -195,7 +195,6 @@ class StripeWebhookProcessor:
             contribution_update_data = {
                 # TODO: [DEV-4295] Get rid of payment_provider_data as it's an inconistent reference to whichever event happened to cause creation
                 "payment_provider_data": self.event,
-                # "provider_payment_id": self.id,
                 "provider_payment_method_id": self.obj_data.get("payment_method"),
                 "provider_payment_method_details": self.contribution.fetch_stripe_payment_method(),
                 "last_payment_date": payment.created,

@@ -219,6 +219,17 @@ describe('usePayment', () => {
         await expect(result.current.createPayment!(mockFormData, mockPage)).rejects.toThrow();
         errorSpy.mockRestore();
       });
+
+      it('logs the error response if the POST fails', async () => {
+        const errorSpy = jest.spyOn(console, 'error').mockImplementation(() => {});
+        const { result } = hook();
+
+        axiosMock.reset();
+        axiosMock.onPost().reply(500, { detail: 'mock-detail' });
+        await expect(result.current.createPayment!(mockFormData, mockPage)).rejects.toThrow();
+        expect(errorSpy).toBeCalledWith('Error creating payment: {"detail":"mock-detail"}');
+        errorSpy.mockRestore();
+      });
     });
 
     it("doesn't return a payment", async () => {

@@ -9,6 +9,7 @@ import { CSRF_HEADER } from 'appSettings';
 import { serializeData } from 'components/paymentProviders/stripe/stripeFns';
 import { CONTRIBUTION_INTERVALS, ContributionInterval } from 'constants/contributionIntervals';
 import { ContributionPage } from './useContributionPage';
+import { AxiosError } from 'axios';
 
 export type PaymentData = ReturnType<typeof serializeData>;
 
@@ -139,6 +140,13 @@ export function usePayment() {
       }
 
       return createPaymentMutation.mutateAsync(paymentData, {
+        onError(error) {
+          // Log the response (if any) in Sentry.
+
+          if ((error as AxiosError).response?.data) {
+            console.error(`Error creating payment: ${JSON.stringify((error as AxiosError).response!.data)}`);
+          }
+        },
         onSuccess({ data }) {
           setPayment({
             amount: paymentData.amount,

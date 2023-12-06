@@ -1526,3 +1526,35 @@ def test_contributor_contributions_mocked_endpoint(api_client, query_params):
     assert response.status_code == status.HTTP_200_OK
     assert set(response.json().keys()) == {"results", "count", "next", "previous"}
     assert len(response.json()["results"]) == 10
+
+
+def test_contributor_contribution_mocked_endpoint(api_client):
+    with open("apps/contributions/tests/fixtures/contributor-contributions-page-1.json") as fl:
+        fixture_data = json.load(fl)["results"][0]
+    response = api_client.get(
+        reverse(
+            "contributor-contribution",
+            kwargs={"contributor_id": "123", "contribution_id": fixture_data["payment_provider_id"]},
+        )
+    )
+    assert response.status_code == status.HTTP_200_OK
+    response_json = response.json()
+    assert isinstance(response_json["credit_card_owner_name"], str)
+    assert isinstance(response_json["paid_fees"], bool)
+    assert len(response_json["payments"]) == 1
+    assert response_json["payments"][0]["amount_refunded"] == 0
+    assert response_json["payments"][0]["created"] == response_json["created"]
+    assert response_json["payments"][0]["gross_amount_paid"] == response_json["amount"]
+    assert response_json["payments"][0]["net_amount_paid"] == response_json["amount"]
+    for key in fixture_data:
+        assert response_json[key] == fixture_data[key]
+
+
+def test_contributor_contribution_mocked_endpoint_404(api_client):
+    response = api_client.get(
+        reverse(
+            "contributor-contribution",
+            kwargs={"contributor_id": "123", "contribution_id": "nonexistent"},
+        )
+    )
+    assert response.status_code == status.HTTP_404_NOT_FOUND

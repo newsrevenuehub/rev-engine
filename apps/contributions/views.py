@@ -589,3 +589,33 @@ def contributor_contributions(request, id):
         else []
     )
     return Response(response_data, status=status.HTTP_200_OK)
+
+
+@api_view(["GET"])
+@permission_classes([])
+def contributor_contribution(request, contributor_id: int, contribution_id: str):
+    """Provisional mock implementation of the `contributor_contribution` view function
+
+    The real endpoint will use `IsContributor` permission class, but that requires hooking into magic email link flow, so
+    in short term we'll not enforce permits, and send back our fake data.
+    """
+    logger.debug("Called for contributor ID %s, contribution ID %s", contributor_id, contribution_id)
+    for i in range(1, 3):
+        with open(f"apps/contributions/tests/fixtures/contributor-contributions-page-{i}.json") as fl:
+            fixture_data = json.load(fl)
+            for result in fixture_data["results"]:
+                if result["payment_provider_id"] == contribution_id:
+                    # There are a few extra properties in the detail view we need to mock.
+                    result["credit_card_owner_name"] = "Jane Doe"
+                    result["paid_fees"] = True
+                    # Mock the payments list to match the contribution itself.
+                    result["payments"] = [
+                        {
+                            "amount_refunded": 0,
+                            "created": result["created"],
+                            "gross_amount_paid": result["amount"],
+                            "net_amount_paid": result["amount"],
+                        }
+                    ]
+                    return Response(result, status=status.HTTP_200_OK)
+    return Response({"detail": f"No contribution exists with ID {contribution_id}"}, status=status.HTTP_404_NOT_FOUND)

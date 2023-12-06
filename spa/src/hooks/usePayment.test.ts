@@ -1,3 +1,4 @@
+import * as Sentry from '@sentry/react';
 import { act, renderHook } from '@testing-library/react-hooks';
 import MockAdapter from 'axios-mock-adapter';
 import Axios from 'ajax/axios';
@@ -6,6 +7,7 @@ import { ContributionPage } from './useContributionPage';
 import { PaymentData, usePayment } from './usePayment';
 import { useCookies } from 'react-cookie';
 
+jest.mock('@sentry/react');
 jest.mock('react-cookie');
 
 const mockFormData: PaymentData = {
@@ -50,7 +52,9 @@ function hook() {
 
 describe('usePayment', () => {
   const axiosMock = new MockAdapter(Axios);
+  const SentryMock = jest.mocked(Sentry);
   const useCookiesMock = jest.mocked(useCookies);
+  let setUserMock: jest.Mock;
 
   beforeEach(() => {
     axiosMock.reset();
@@ -60,6 +64,8 @@ describe('usePayment', () => {
       uuid: 'mock-payment-uuid'
     });
     axiosMock.onDelete('payments/mock-payment-uuid/').reply(204);
+    setUserMock = jest.fn();
+    SentryMock.setUser = setUserMock;
     useCookiesMock.mockImplementation((names?: string[]) =>
       names?.[0] === 'csrftoken' ? ([{ csrftoken: 'mock-csrf-token' }] as any) : []
     );
@@ -67,6 +73,30 @@ describe('usePayment', () => {
 
   describe('Initially', () => {
     describe('The createPayment function it returns', () => {
+      it('sets the user in Sentry based on form data', async () => {
+        const { result, waitFor } = hook();
+
+        await act(async () => {
+          await result.current.createPayment!(mockFormData, mockPage);
+        });
+        await waitFor(() => expect(axiosMock.history.post.length).toBe(1));
+        expect(setUserMock.mock.calls).toEqual([
+          [{ email: 'mock-email', firstName: 'mock-first-name', lastName: 'mock-last-name' }]
+        ]);
+      });
+
+      it('sets the email address in Sentry to "<unset>" if it\'s not in form data', async () => {
+        const { result, waitFor } = hook();
+
+        await act(async () => {
+          await result.current.createPayment!({ ...mockFormData, email: undefined } as any, mockPage);
+        });
+        await waitFor(() => expect(axiosMock.history.post.length).toBe(1));
+        expect(setUserMock.mock.calls).toEqual([
+          [{ email: '<unset>', firstName: 'mock-first-name', lastName: 'mock-last-name' }]
+        ]);
+      });
+
       it('POSTs the payment data to /payments', async () => {
         const { result, waitFor } = hook();
 

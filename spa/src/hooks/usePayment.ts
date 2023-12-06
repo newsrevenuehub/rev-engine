@@ -1,3 +1,4 @@
+import * as Sentry from '@sentry/react';
 import { PaymentMethodCreateParams } from '@stripe/stripe-js';
 import { useMutation } from '@tanstack/react-query';
 import { useCallback, useState } from 'react';
@@ -104,6 +105,16 @@ export function usePayment() {
   );
   const createPayment = useCallback(
     async (paymentData: PaymentData, page: ContributionPage) => {
+      // Set the user in Sentry so if there are any problems, we have work
+      // backwards to find them in Sentry. This needs to happen immediately so
+      // that if anything goes wrong here, the user is identified.
+
+      Sentry.setUser({
+        email: (paymentData.email as string | null) ?? '<unset>',
+        firstName: paymentData.first_name,
+        lastName: paymentData.last_name
+      });
+
       // A published page should always have a slug, so this shouldn't happen in
       // practice.
 

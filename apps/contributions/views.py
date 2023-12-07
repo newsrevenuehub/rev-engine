@@ -1,6 +1,4 @@
-import json
 import logging
-from types import SimpleNamespace
 from typing import List
 
 from django.conf import settings
@@ -30,6 +28,7 @@ from apps.api.permissions import (
     IsContributor,
     IsContributorOwningContribution,
     IsHubAdmin,
+    UserIsContributor,
 )
 from apps.contributions import serializers
 from apps.contributions.filters import ContributionFilter
@@ -562,60 +561,59 @@ class SubscriptionsViewSet(viewsets.ViewSet):
         )
 
 
-@api_view(["GET"])
-@permission_classes([])
-def contributor_contributions(request, id):
-    """Provisional mock implementation of the `contributor_contributions` view function
+class PortalContributorsViewSet(viewsets.GenericViewSet):
+    """ """
 
-    The real endpoint will use `IsContributor` permission class, but that requires hooking into magic email link flow, so
-    in short term we'll not enforce permits, and send back our fake data.
-    """
-    logger.debug("Called for contributor ID %s", id)
-    params = {}
-    for k, v in {"page": 1, "page_size": 10, "ordering": "-created", "interval": "all"}.items():
-        sent = request.GET.get(k, None)
-        if k in ("page", "page_size"):
-            sent = int(sent) if sent else v
-        params[k] = sent if sent else v
-        logger.debug("Sent value for %s is %s", k, sent)
-    results_page = params["page"] if params["page"] in (1, 2) else 1
-    with open(f"apps/contributions/tests/fixtures/contributor-contributions-page-{results_page}.json") as fl:
-        response_data = json.load(fl)
-    # we do this both to handle out of range page case and also to ensure the data we're returning to SPA which will
-    # develop vs. looks way it does by virtue of our serializer which is meant to updhold contract with SPA
-    response_data["results"] = (
-        [serializers.ContributionAgreementSerializer(SimpleNamespace(**x)).data for x in response_data["results"]]
-        if params["page"] <= 2
-        else []
+    permission_classes = [IsAuthenticated, UserIsContributor]
+
+    ALLOWED_ORDERING_FIELDS = ["created", "amount"]
+    ALLOWED_FILTER_FIELDS = [
+        "status",
+    ]
+    CONTRIBUTIONS_LIST_SERIALIZER_CLASS = serializers.PortalContributionListSerializer
+    CONTRIBUTIONS_DETAIL_SERIALIZER_CLASS = serializers.PortalContributionDetailSerializer
+
+    def _get_and_check_contributor_permissions(self, request, contributor_id, prefetch_related: List[str] = None):
+        contributor = get_object_or_404(Contributor.objects.prefetch_related(prefetch_related), pk=contributor_id)
+        self.check_object_permissions(request, contributor)
+        return contributor
+
+    @action(methods=["get"], url_path="(?<contributor_id>/contributions/)", url_name="portal-contributions-list")
+    def contributions_list(self, request, contributor_id=None):
+        """Endpoint to get all contributions for a given contributor"""
+        # verify that the user has permission to view the contributor
+        contributor = self._get_and_check_contributor_permissions(self, request, contributor_id, ["foobar"])
+        ordering = self.request.query_params.get("ordering", ["-created"])
+        # get filter params
+        return Response(
+            self.CONTRIBUTIONS_LIST_SERIALIZER_CLASS(contributor.contribution_set.order_by(ordering), many=True).data
+        )
+
+    @action(
+        methods=["get", "patch", "delete"],
+        url_path="(?<contributor_id>/contributions/(?<contribution_id>)/)",
+        url_name="portal-contributions-detail",
     )
-    return Response(response_data, status=status.HTTP_200_OK)
-
-
-@api_view(["GET"])
-@permission_classes([])
-def contributor_contribution(request, contributor_id: int, contribution_id: str):
-    """Provisional mock implementation of the `contributor_contribution` view function
-
-    The real endpoint will use `IsContributor` permission class, but that requires hooking into magic email link flow, so
-    in short term we'll not enforce permits, and send back our fake data.
-    """
-    logger.debug("Called for contributor ID %s, contribution ID %s", contributor_id, contribution_id)
-    for i in range(1, 3):
-        with open(f"apps/contributions/tests/fixtures/contributor-contributions-page-{i}.json") as fl:
-            fixture_data = json.load(fl)
-            for result in fixture_data["results"]:
-                if result["payment_provider_id"] == contribution_id:
-                    # There are a few extra properties in the detail view we need to mock.
-                    result["credit_card_owner_name"] = "Jane Doe"
-                    result["paid_fees"] = True
-                    # Mock the payments list to match the contribution itself.
-                    result["payments"] = [
-                        {
-                            "amount_refunded": 0,
-                            "created": result["created"],
-                            "gross_amount_paid": result["amount"],
-                            "net_amount_paid": result["amount"],
-                        }
-                    ]
-                    return Response(result, status=status.HTTP_200_OK)
-    return Response({"detail": f"No contribution exists with ID {contribution_id}"}, status=status.HTTP_404_NOT_FOUND)
+    def contribution_detail(self, request, contributor_id=None, contribution_id=None):
+        """Endpoint to get or update a contribution for a given contributor"""
+        # verify that the user has permission to view the contributor
+        contributor = self._get_and_check_contributor_permissions(self, request, contributor_id, ["foobar"])
+        try:
+            contribution = contributor.contribution_set.get(pk=contribution_id)
+        except Contribution.DoesNotExist:
+            return Response({"detail": "Contribution not found"}, status=status.HTTP_404_NOT_FOUND)
+        serializer = self.CONTRIBUTIONS_DETAIL_SERIALIZER_CLASS(
+            contribution, **{} if request.method == "GET" else {"data": request.data}
+        )
+        match request.method:
+            case "GET":
+                pass
+            case "PATCH":
+                serializer.is_valid(raise_exception=True)
+                serializer.save()
+            case "DELETE":
+                contribution.delete()
+                return Response(status=status.HTTP_204_NO_CONTENT)
+            case _:
+                raise NotImplementedError
+        return Response(serializer.data, status=status.HTTP_200_OK)

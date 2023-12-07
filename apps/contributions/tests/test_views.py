@@ -1558,3 +1558,57 @@ def test_contributor_contribution_mocked_endpoint_404(api_client):
         )
     )
     assert response.status_code == status.HTTP_404_NOT_FOUND
+
+
+@pytest.mark.django_db
+class TestPortalContributorsViewSet:
+    def test_contributions_list_happy_path(self, api_client, mocker):
+        pass
+
+    def test_contributions_list_filter_behavior(self, api_client, mocker):
+        pass
+
+    def test_contributions_list_ordering_behavior(self, api_client, mocker):
+        pass
+
+    def test_contributions_list_pagination_behavior(self, api_client, mocker):
+        pass
+
+    def test_contributions_list_when_im_not_contributor(self, api_client, mocker):
+        pass
+
+    def test_contribution_detail_get_happy_path(self, api_client, mocker):
+        pass
+
+    def test_contribution_detail_get_when_im_not_contributor(self, api_client, mocker):
+        pass
+
+    def test_contribution_detail_get_when_contribution_not_found(self, api_client, mocker):
+        pass
+
+    def test_contribution_detail_get_when_not_own_contribution(self, api_client, mocker):
+        pass
+
+    def test_contribution_detail_patch_happy_path(self, api_client, mocker):
+        pass
+
+    def test_contribution_detail_patch_when_im_not_contributor(self, api_client, mocker):
+        pass
+
+    def test_contribution_detail_patch_when_contribution_not_found(self, api_client, mocker):
+        pass
+
+    def test_contribution_detail_patch_when_not_own_contribution(self, api_client, mocker):
+        pass
+
+    def test_contribution_delete_happy_path(self, api_client, mocker):
+        pass
+
+    def test_contribution_delete_when_not_contributor(self, api_client, mocker):
+        pass
+
+    def test_contribution_delete_when_not_my_contribution(self, api_client, mocker):
+        pass
+
+    def test_contribution_delete_when_contribution_not_found(self, api_client, mocker):
+        pass

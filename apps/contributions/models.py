@@ -192,6 +192,8 @@ class Contribution(IndexedTimeStampedModel):
     provider_payment_method_id = models.CharField(max_length=255, blank=True, null=True)
     provider_payment_method_details = models.JSONField(null=True)
 
+    # TODO: remove this field as we will derive from payment set
+    # deprecated
     last_payment_date = models.DateTimeField(null=True)
 
     contributor = models.ForeignKey("contributions.Contributor", on_delete=models.SET_NULL, null=True)
@@ -222,6 +224,15 @@ class Contribution(IndexedTimeStampedModel):
 
     def __str__(self):
         return f"{self.formatted_amount}, {self.created.strftime('%Y-%m-%d %H:%M:%S')}"
+
+    @property
+    def _last_payment_date(self) -> datetime.datetime | None:
+        pass
+        # return (
+        #     (self._last_payment_date)
+        #     if contribution_level
+        #     else self.payment_set.filter("").order_by("-created").first().created()
+        # )
 
     @property
     def formatted_amount(self) -> str:

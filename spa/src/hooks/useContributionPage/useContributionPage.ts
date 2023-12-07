@@ -159,7 +159,7 @@ export function useContributionPage(revenueProgramSlugOrPageId?: number | string
 
       let styles: Style | undefined;
       // Always pass in the updated page name
-      const latestPageName = { ...page, name: data?.name || page.name };
+      const latestPageName = { ...page, name: data.name ?? page.name };
 
       if (page.styles?.id && !data.styles && latestPageName.name !== page.styles?.name) {
         // If a page is updated and the name is different from the style name, update the style name

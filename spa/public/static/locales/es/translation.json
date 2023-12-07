@@ -1,7 +1,155 @@
 {
+  "common": {
+    "joinRevenueProgram": "Únase | {{ name }}",
+    "logo": "Logotipo",
+    "no": "No",
+    "error": {
+      "generic": "Encontramos un problema y se nos ha notificado. Por favor, intente nuevamente.",
+      "internalError": "Hemos encontrado un error. Por favor, actualice la página e intente nuevamente."
+    },
+    "actions": {
+      "back": "Regrese"
+    },
+    "frequency": {
+      "adjectives": {
+        "one_time": "Una sola vez",
+        "month": "Mensual",
+        "year": "Anual"
+      },
+      "adverbs": {
+        "one_time": "una sola vez",
+        "month": "mensual",
+        "year": "anual"
+      },
+      "rates": {
+        "month": "/mes",
+        "year": "/año"
+      },
+      "thankYous": {
+        "one_time": "única",
+        "month": "mensual",
+        "year": "anual"
+      }
+    },
+    "urls": {
+      "homePage": "https://fundjournalism.org/",
+      "coreUpgradeUrl": "https://fundjournalism.org/i-want-revengine-core/",
+      "faq": "https://news-revenue-hub.atlassian.net/servicedesk/customer/portal/11/article/2195423496",
+      "help": "https://fundjournalism.org/news-revenue-engine-help/",
+      "plusUpgrade": "https://fundjournalism.org/i-want-revengine-plus/",
+      "pricing": "https://fundjournalism.org/pricing/",
+      "privacyPolicy": "https://fundjournalism.org/faq/privacy-policy/",
+      "tsAndCs": "https://fundjournalism.org/faq/terms-of-service/"
+    }
+  },
   "donationPage": {
+    "mainPage": {
+      "cancelPaymentFailureMessage": "Algo salió mal, pero no se preocupe, no se le ha cobrado nada. Por favor, intente actualizar la página.",
+      "emptyPageElements": "Abra la interfaz de edición para comenzar a agregar contenido",
+      "continueToPayment": "Continuar con el pago",
+      "enterValidAmount": "Ingrese un monto válido"
+    },
     "donationPageFooter": {
       "whatIsFundJournalismOrg": "¿Qué es fundjournalism.org?"
+    },
+    "stripePaymentForm": {
+      "errorProcessingPayment": "Algo salió mal al procesar su pago"
+    },
+    "contributionDisclaimer": {
+      "policyAgreement": "Al continuar con esta transacción, usted acepta nuestra <privacy>política de privacidad</privacy> y <terms>términos y condiciones</terms>.",
+      "authorizePayment": {
+        "one_time": "Además, al continuar con esta transacción, usted autoriza el pago de hoy de {{amount}}, a ser procesado el {{date}} o al día siguiente.",
+        "month_one": "Además, al continuar con esta transacción, usted autoriza el pago de hoy, <strong>junto con los futuros pagos recurrentes</strong> de <strong>{{amount}}, a ser procesados el día {{count}} de cada mes, o al día siguiente, hasta que usted lo cancele.</strong>",
+        "month_two": "Además, al continuar con esta transacción, usted autoriza el pago de hoy, <strong>junto con los futuros pagos recurrentes</strong> de <strong>{{amount}}, a ser procesados el día {{count}} de cada mes, o al día siguiente, hasta que usted lo cancele.</strong>",
+        "month_few": "Además, al continuar con esta transacción, usted autoriza el pago de hoy, <strong>junto con los futuros pagos recurrentes</strong> de <strong>{{amount}}, a ser procesados el día {{count}} de cada mes, o al día siguiente, hasta que usted lo cancele.</strong>",
+        "month_other": "Además, al continuar con esta transacción, usted autoriza el pago de hoy, <strong>junto con los futuros pagos recurrentes</strong> de <strong>{{amount}}, a ser procesados anualmente el día {{count}}, o al día siguiente, hasta que usted lo cancele.</strong>",
+        "year": "Además, al continuar con esta transacción, usted autoriza el pago de hoy, <strong>junto con los futuros pagos recurrentes</strong> de <strong>{{amount}}, a ser procesados anualmente el día {{count}}, o al día siguiente, hasta que usted lo cancele.</strong>"
+      }
+    },
+    "dAmount": {
+      "label": {
+        "one_time": "Monto por única vez",
+        "month": "Monto mensual",
+        "year": "Monto anual"
+      },
+      "selectContribution": "Seleccione cuánto le gustaría contribuir"
+    },
+    "dBenefits": {
+      "emptyError": "No se configuraron beneficios de contribuidor en esta página",
+      "perYear": "{{ donation }} por año",
+      "everythingPlus": "Todos los beneficios desde {{ name }}, y además"
+    },
+    "dDonorAddress": {
+      "address": "Dirección",
+      "showLine2": "Domicilio - línea 2 (apt, oficina, etc.)",
+      "line2": "Apartamento, oficina, etc.",
+      "city": "Ciudad",
+      "stateLabel": {
+        "state": "Estado",
+        "stateAndRegion": "Estado/Región",
+        "stateAndProvince": "Estado/Provincia",
+        "stateProvinceAndRegion": "Estado/Provincia/Región"
+      },
+      "zip": "Código Postal",
+      "country": "País"
+    },
+    "dDonorInfo": {
+      "firstName": "Primer nombre",
+      "lastName": "Apellido",
+      "email": "Correo",
+      "phone": "Teléfono"
+    },
+    "dFrequency": {
+      "frequency": "Frecuencia",
+      "chooseContributionType": "Elija un tipo de contribución"
+    },
+    "dReason": {
+      "reasonForGiving": "Motivo de la donación",
+      "supportWork": "Estoy contribuyendo porque...",
+      "tellUsWhy": "Cuéntenos por qué apoya nuestro trabajo",
+      "selectOnePlaceholder": "-- Elija una opción --",
+      "other": "Otro motivo",
+      "tributeSelector": {
+        "isTribute": "¿Esta donación es en honor a alguien?",
+        "giveInHonorOf": "Donar en honor de...",
+        "giveInMemoryOf": "Donar en memoria de...",
+        "yes": {
+          "inHonorOf": "Sí, en honor de...",
+          "inMemoryOf": "Sí, en memoria de..."
+        },
+        "inMemoryOf": "En memoria de...",
+        "inHonorOf": "En honor de..."
+      }
+    },
+    "dSwag": {
+      "memberBenefits": "Beneficios de la membresía",
+      "giveXToBeEligible": "Done un total de {{ amount }} o más por año para ser elegible",
+      "maximizeContribution": "Maximice mi contribución - Prefiero no recibir productos para miembros.",
+      "nytSubscription": "Quisiera incluir una suscripción al New York Times",
+      "noThanksOption": "--No, gracias--",
+      "chooseMerchandise": "Su contribución incluye productos para miembros. Por favor, elija una opción."
+    },
+    "payFeesControl": {
+      "agreeToPayFees": "¿Estás de acuerdo con pagar los cargos administrativos?",
+      "payFeesConsent": {
+        "one_time": "Acepto realizar el pago de una transacción por única vez de {{ amount }} para enviar más apoyo a la misión de {{ revenueProgramName }}.",
+        "month": "Acepto realizar el pago de una transacción mensual de {{ amount }} para enviar más apoyo a la misión de {{ revenueProgramName }}.",
+        "year": "Acepto realizar el pago de una transacción anual de {{ amount }} para enviar más apoyo a la misión de {{ revenueProgramName }}."
+      }
+    },
+    "extraneousURLRedirect": {
+      "error": "Asked to redirect away from extraneous URL elements, but couldn't find stem in path \"{{ pathname }}\""
+    },
+    "pageGetter": {
+      "missingComponent": "Missing component definition for \"{{ name }}\""
+    }
+  },
+  "stripeFns": {
+    "missingArgumentError": "Missing argument for: {{error}}",
+    "paymentElementButtonText": {
+      "one_time": "Donar {{amount}} una sola vez",
+      "month": "Donar {{amount}} mensualmente",
+      "year": "Donar {{amount}} anualmente"
     }
   }
 }

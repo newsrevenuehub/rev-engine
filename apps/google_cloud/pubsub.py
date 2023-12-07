@@ -4,7 +4,6 @@ from dataclasses import dataclass
 from django.conf import settings
 
 from google.cloud import pubsub_v1
-from google.oauth2 import service_account
 
 
 logger = logging.getLogger(f"{settings.DEFAULT_LOGGER}.{__name__}")
@@ -22,9 +21,7 @@ class Publisher:
     __instance = None
 
     def __init__(self):
-        self.client = pubsub_v1.PublisherClient(
-            credentials=service_account.Credentials.from_service_account_info(settings.GS_SERVICE_ACCOUNT)
-        )
+        self.client = pubsub_v1.PublisherClient(credentials=settings.GS_CREDENTIALS)
         self.project_id = settings.GOOGLE_CLOUD_PROJECT
 
     def publish(self, topic, message: Message):

@@ -49,10 +49,10 @@ from apps.contributions.stripe_contributions_provider import (
 )
 from apps.contributions.tasks import (
     email_contribution_csv_export_to_user,
+    process_stripe_webhook_task,
     task_pull_serialized_stripe_contributions_to_cache,
     task_verify_apple_domain,
 )
-from apps.contributions.webhooks import StripeWebhookProcessor
 from apps.organizations.models import PaymentProvider, RevenueProgram
 from apps.public.permissions import IsActiveSuperUser
 
@@ -129,17 +129,14 @@ def stripe_oauth(request):
     return Response({"detail": "success"}, status=status.HTTP_200_OK)
 
 
-@create_revision()
 @api_view(["POST"])
 @authentication_classes([])
 @permission_classes([])
 def process_stripe_webhook(request):
-    payload = request.body
+    logger.debug("Processing stripe webhook: %s", request.body)
     sig_header = request.META["HTTP_STRIPE_SIGNATURE"]
-    event = None
-    logger.debug("Processing stripe webhook")
     try:
-        event = stripe.Webhook.construct_event(payload, sig_header, settings.STRIPE_WEBHOOK_SECRET_CONTRIBUTIONS)
+        event = stripe.Webhook.construct_event(request.body, sig_header, settings.STRIPE_WEBHOOK_SECRET_CONTRIBUTIONS)
     except ValueError:
         logger.warning("Invalid payload from Stripe webhook request")
         return Response(data={"error": "Invalid payload"}, status=status.HTTP_400_BAD_REQUEST)
@@ -148,18 +145,7 @@ def process_stripe_webhook(request):
             "Invalid signature on Stripe webhook request. Is STRIPE_WEBHOOK_SECRET_CONTRIBUTIONS set correctly?"
         )
         return Response(data={"error": "Invalid signature"}, status=status.HTTP_400_BAD_REQUEST)
-
-    try:
-        processor = StripeWebhookProcessor(event)
-        processor.process()
-    except ValueError:
-        logger.exception("Something went wrong processing webhook")
-    except Contribution.DoesNotExist:
-        # there's an entire class of customer subscriptions for which we do not expect to have a Contribution object.
-        # Specifically, we expect this to be the case for import legacy recurring contributions, which may have a future
-        # first/next(in NRE platform) payment date.
-        logger.info("Could not find contribution", exc_info=True)
-
+    process_stripe_webhook_task.delay(event.to_dict())
     return Response(status=status.HTTP_200_OK)
 
 
@@ -603,3 +589,33 @@ def contributor_contributions(request, id):
         else []
     )
     return Response(response_data, status=status.HTTP_200_OK)
+
+
+@api_view(["GET"])
+@permission_classes([])
+def contributor_contribution(request, contributor_id: int, contribution_id: str):
+    """Provisional mock implementation of the `contributor_contribution` view function
+
+    The real endpoint will use `IsContributor` permission class, but that requires hooking into magic email link flow, so
+    in short term we'll not enforce permits, and send back our fake data.
+    """
+    logger.debug("Called for contributor ID %s, contribution ID %s", contributor_id, contribution_id)
+    for i in range(1, 3):
+        with open(f"apps/contributions/tests/fixtures/contributor-contributions-page-{i}.json") as fl:
+            fixture_data = json.load(fl)
+            for result in fixture_data["results"]:
+                if result["payment_provider_id"] == contribution_id:
+                    # There are a few extra properties in the detail view we need to mock.
+                    result["credit_card_owner_name"] = "Jane Doe"
+                    result["paid_fees"] = True
+                    # Mock the payments list to match the contribution itself.
+                    result["payments"] = [
+                        {
+                            "amount_refunded": 0,
+                            "created": result["created"],
+                            "gross_amount_paid": result["amount"],
+                            "net_amount_paid": result["amount"],
+                        }
+                    ]
+                    return Response(result, status=status.HTTP_200_OK)
+    return Response({"detail": f"No contribution exists with ID {contribution_id}"}, status=status.HTTP_404_NOT_FOUND)

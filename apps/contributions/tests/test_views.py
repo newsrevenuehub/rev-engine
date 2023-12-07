@@ -1464,43 +1464,46 @@ def payment_method_attached_request_data():
         return json.load(fl)
 
 
-@pytest.mark.django_db
-class TestStripeWebhooksView:
-    def test_payment_method_attached_happy_path(self, client, monkeypatch, payment_method_attached_request_data):
-        monkeypatch.setattr(
-            stripe.Webhook, "construct_event", lambda *args, **kwargs: AttrDict(payment_method_attached_request_data)
-        )
-        monkeypatch.setattr(
-            Contribution,
-            "fetch_stripe_payment_method",
-            lambda *args, **kwargs: payment_method_attached_request_data,
-        )
-        contribution = ContributionFactory(
-            status=ContributionStatus.PROCESSING,
-            interval=ContributionInterval.MONTHLY,
-            provider_customer_id=payment_method_attached_request_data["data"]["object"]["customer"],
-            provider_payment_method_id=None,
-        )
-        header = {"HTTP_STRIPE_SIGNATURE": "testing"}
-        response = client.post(reverse("stripe-webhooks-contributions"), payment_method_attached_request_data, **header)
-        assert response.status_code == status.HTTP_200_OK
-        contribution.refresh_from_db()
-        assert contribution.provider_payment_method_id == payment_method_attached_request_data["data"]["object"]["id"]
+class TestProcessStripeWebhook:
+    """We primarily test contributions-related webhook endpoints in
+    `apps.contributions.tests.test_webhooks_integration`, which spans both the view layer and the task layer.
 
-    def test_payment_method_attached_when_contribution_not_found(
-        self, client, monkeypatch, payment_method_attached_request_data
-    ):
-        count = Contribution.objects.count()
-        assert not Contribution.objects.filter(
-            provider_customer_id=payment_method_attached_request_data["data"]["object"]["customer"]
-        )
-        monkeypatch.setattr(
-            stripe.Webhook, "construct_event", lambda *args, **kwargs: AttrDict(payment_method_attached_request_data)
-        )
-        header = {"HTTP_STRIPE_SIGNATURE": "testing"}
-        response = client.post(reverse("stripe-webhooks-contributions"), payment_method_attached_request_data, **header)
+    There are a handful of paths through the process stripe webhook view that are best tested in isolation, so we
+    do that here. But in general, let's strive to test at integration level for business logic around contributions-related
+    webhooks.
+    """
+
+    def test_happy_path(self, api_client, mocker):
+        mocker.patch("stripe.Webhook.construct_event", return_value=(event := mocker.Mock()))
+        mock_process_task = mocker.patch("apps.contributions.views.process_stripe_webhook_task.delay")
+        header = {"HTTP_STRIPE_SIGNATURE": "testing", "content_type": "application/json"}
+        response = api_client.post(reverse("stripe-webhooks-contributions"), data={}, **header)
         assert response.status_code == status.HTTP_200_OK
-        assert Contribution.objects.count() == count
+        mock_process_task.assert_called_once_with(event.to_dict())
+
+    def test_when_value_error_on_construct_event(self, api_client, mocker):
+        logger_spy = mocker.patch("apps.contributions.views.logger.warning")
+        mocker.patch("stripe.Webhook.construct_event", side_effect=ValueError("ruh roh"))
+        mock_process_task = mocker.patch("apps.contributions.views.process_stripe_webhook_task.delay")
+        header = {"HTTP_STRIPE_SIGNATURE": "testing", "content_type": "application/json"}
+        response = api_client.post(reverse("stripe-webhooks-contributions"), data={"foo": "bar"}, **header)
+        assert response.status_code == status.HTTP_400_BAD_REQUEST
+        mock_process_task.assert_not_called()
+        logger_spy.assert_called_once_with("Invalid payload from Stripe webhook request")
+
+    def test_when_signature_verification_error(self, api_client, mocker):
+        logger_spy = mocker.patch("apps.contributions.views.logger.exception")
+        mocker.patch(
+            "stripe.Webhook.construct_event", side_effect=stripe.error.SignatureVerificationError("ruh roh", "sig")
+        )
+        mock_process_task = mocker.patch("apps.contributions.views.process_stripe_webhook_task.delay")
+        header = {"HTTP_STRIPE_SIGNATURE": "testing", "content_type": "application/json"}
+        response = api_client.post(reverse("stripe-webhooks-contributions"), data={"foo": "bar"}, **header)
+        assert response.status_code == status.HTTP_400_BAD_REQUEST
+        mock_process_task.assert_not_called()
+        logger_spy.assert_called_once_with(
+            "Invalid signature on Stripe webhook request. Is STRIPE_WEBHOOK_SECRET_CONTRIBUTIONS set correctly?"
+        )
 
 
 @pytest.mark.parametrize(
@@ -1523,3 +1526,35 @@ def test_contributor_contributions_mocked_endpoint(api_client, query_params):
     assert response.status_code == status.HTTP_200_OK
     assert set(response.json().keys()) == {"results", "count", "next", "previous"}
     assert len(response.json()["results"]) == 10
+
+
+def test_contributor_contribution_mocked_endpoint(api_client):
+    with open("apps/contributions/tests/fixtures/contributor-contributions-page-1.json") as fl:
+        fixture_data = json.load(fl)["results"][0]
+    response = api_client.get(
+        reverse(
+            "contributor-contribution",
+            kwargs={"contributor_id": "123", "contribution_id": fixture_data["payment_provider_id"]},
+        )
+    )
+    assert response.status_code == status.HTTP_200_OK
+    response_json = response.json()
+    assert isinstance(response_json["credit_card_owner_name"], str)
+    assert isinstance(response_json["paid_fees"], bool)
+    assert len(response_json["payments"]) == 1
+    assert response_json["payments"][0]["amount_refunded"] == 0
+    assert response_json["payments"][0]["created"] == response_json["created"]
+    assert response_json["payments"][0]["gross_amount_paid"] == response_json["amount"]
+    assert response_json["payments"][0]["net_amount_paid"] == response_json["amount"]
+    for key in fixture_data:
+        assert response_json[key] == fixture_data[key]
+
+
+def test_contributor_contribution_mocked_endpoint_404(api_client):
+    response = api_client.get(
+        reverse(
+            "contributor-contribution",
+            kwargs={"contributor_id": "123", "contribution_id": "nonexistent"},
+        )
+    )
+    assert response.status_code == status.HTTP_404_NOT_FOUND

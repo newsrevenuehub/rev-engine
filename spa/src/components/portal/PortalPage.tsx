@@ -1,4 +1,4 @@
-import { ReactComponent as PoweredByNRELogo } from 'assets/images/nre-logo-yellow.svg';
+import PoweredByNRELogo from 'assets/images/nre-logo-yellow.svg?react';
 import TrackPageView from 'components/analytics/TrackPageView';
 import DonationPageHeader from 'components/donationPage/DonationPageHeader';
 import SegregatedStyles from 'components/donationPage/SegregatedStyles';
@@ -7,7 +7,7 @@ import usePortal from 'hooks/usePortal';
 import useWebFonts from 'hooks/useWebFonts';
 import React from 'react';
 import NRELogo from 'assets/images/nre-logo-blue.svg';
-import { PoweredBy, Header, Logo } from './PortalPage.styled';
+import { PoweredBy, Header, Logo, Root } from './PortalPage.styled';
 import { HOME_PAGE_URL } from 'constants/helperUrls';
 
 function PortalPage({ children }: { children: React.ReactNode }) {
@@ -26,21 +26,23 @@ function PortalPage({ children }: { children: React.ReactNode }) {
   return (
     <TrackPageView>
       <SegregatedStyles page={renderCustomStyles && page}>
-        {renderCustomStyles ? (
-          <DonationPageHeader page={page} />
-        ) : (
-          <Header>
-            <Logo src={NRELogo} alt="News Revenue Engine" />
-          </Header>
-        )}
-        {children}
-        <PoweredBy>
-          <span>Powered by</span>
-          {/* eslint-disable-next-line react/jsx-no-target-blank */}
-          <a href={HOME_PAGE_URL} target="_blank" aria-label="News Revenue Engine">
-            <PoweredByNRELogo style={{ width: 145 }} />
-          </a>
-        </PoweredBy>
+        <Root>
+          {renderCustomStyles ? (
+            <DonationPageHeader page={page} />
+          ) : (
+            <Header>
+              <Logo src={NRELogo} alt="News Revenue Engine" />
+            </Header>
+          )}
+          {children}
+          <PoweredBy>
+            <span>Powered by</span>
+            {/* eslint-disable-next-line react/jsx-no-target-blank */}
+            <a href={HOME_PAGE_URL} target="_blank" aria-label="News Revenue Engine">
+              <PoweredByNRELogo style={{ width: 145 }} />
+            </a>
+          </PoweredBy>
+        </Root>
       </SegregatedStyles>
     </TrackPageView>
   );

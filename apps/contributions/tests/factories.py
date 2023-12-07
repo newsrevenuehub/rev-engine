@@ -62,7 +62,7 @@ def _get_status(bad_actor_score):
 
 
 def _get_last_payment_date(created_date, bad_actor_score):
-    if bad_actor_score >= settings.BAD_ACTOR_FLAG_SCORE:
+    if bad_actor_score is not None and bad_actor_score >= settings.BAD_ACTOR_FLAG_SCORE:
         return None
     return created_date + datetime.timedelta(hours=1)
 
@@ -163,3 +163,18 @@ class StripeSubscriptionFactory:
 
     def delete(*args, **kwargs):
         pass
+
+
+class PaymentFactory(DjangoModelFactory):
+    class Meta:
+        model = models.Payment
+
+    created = factory.LazyFunction(lambda: generate_random_datetime(THEN, NOW))
+    contribution = factory.SubFactory(ContributionFactory)
+    net_amount_paid = 1980
+    gross_amount_paid = 2000
+    amount_refunded = 0
+    stripe_balance_transaction_id = factory.LazyFunction(lambda: f"txn_{_random_stripe_str()}")
+
+    class Params:
+        refund = factory.Trait(amount_refunded=1000)

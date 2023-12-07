@@ -1,6 +1,6 @@
 import { Check, EditOutlined } from '@material-ui/icons';
 import { ChangeEvent, FormEvent, KeyboardEvent, useRef, useState } from 'react';
-import { ReactComponent as BookmarkIcon } from '@material-design-icons/svg/outlined/bookmark_border.svg';
+import BookmarkIcon from '@material-design-icons/svg/outlined/bookmark_border.svg?react';
 import { IconButton, OffscreenText, Tooltip } from 'components/base';
 import { useEditablePageContext } from 'hooks/useEditablePage';
 import { Button, Label, TextField, InputAdornment, IconWrapper, Form } from './PageName.styled';

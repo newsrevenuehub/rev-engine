@@ -303,9 +303,7 @@ describe('Contribution page edit', () => {
     });
   });
 
-  // Temp disabled in DEV-3733
-  // TODO: Re-enable in DEV-3735
-  describe.skip('Swag editor', () => {
+  describe('Swag editor', () => {
     const pageSwagElement = livePage.elements.filter((el) => el.type === 'DSwag')[0];
 
     beforeEach(() => {
@@ -319,41 +317,8 @@ describe('Contribution page edit', () => {
 
     it('should show existing swags', () => {
       const swagName = pageSwagElement.content.swags[0].swagName;
-      cy.getByTestId('swag-editor').getByTestId('existing-swag').contains(swagName);
-    });
 
-    // Update me when we increase this limit!
-    it('should only show add-option if there is fewer than 1 existing swag', () => {
-      const swagName = pageSwagElement.content.swags[0].swagName;
-      cy.getByTestId('swag-name-input').should('not.exist');
-      cy.getByTestId(`remove-existing-swag-${swagName}`).click();
-      cy.getByTestId('swag-editor').getByTestId('existing-swag').should('not.exist');
-      cy.getByTestId('swag-name-input').should('exist');
-    });
-
-    it('should not show option to enable NYT sub if RP has not enabled it', () => {
-      expect(livePage.allow_offer_nyt_comp).to.be.null;
-      cy.getByTestId('offer-nyt-comp').should('not.exist');
-    });
-
-    it('should show option to enable NYT sub if RP has enabled it', () => {
-      const page = { ...livePage };
-      page.allow_offer_nyt_comp = true;
-
-      cy.forceLogin(orgAdminUser);
-      cy.intercept({ method: 'GET', pathname: getEndpoint(USER) }, { body: orgAdminWithContentFlag });
-      cy.intercept({ method: 'GET', pathname: `${getEndpoint(LIST_PAGES)}**` }, { body: page, statusCode: 200 }).as(
-        'getPage'
-      );
-      cy.intercept(`**/${LIST_STYLES}**`, {});
-
-      cy.visit(testEditPageUrl);
-      cy.url().should('include', testEditPageUrl);
-      cy.wait('@getPage');
-
-      cy.getByTestId('edit-page-button').click();
-      cy.editElement('DSwag');
-      cy.getByTestId('offer-nyt-comp').should('exist');
+      cy.findByRole('textbox', { name: 'Swag Selection Label' }).should('have.value', swagName);
     });
   });
 
@@ -367,7 +332,7 @@ describe('Contribution page edit', () => {
       cy.intercept({ method: 'GET', pathname: `${getEndpoint(LIST_PAGES)}**` }, { body: page, statusCode: 200 }).as(
         'getPageDetail'
       );
-      cy.intercept(`**/${LIST_STYLES}**`, {});
+      cy.intercept(`${getEndpoint(LIST_STYLES)}**`, {});
 
       cy.forceLogin(orgAdminUser);
       cy.intercept({ method: 'GET', pathname: getEndpoint(USER) }, { body: orgAdminWithContentFlag });
@@ -392,14 +357,16 @@ describe('Contribution page edit', () => {
       const fixture = { ...unpublishedPage, plan: { ...unpublishedPage.plan, custom_thank_you_page_enabled: true } };
       cy.intercept({ method: 'GET', pathname: `${getEndpoint(LIST_PAGES)}**` }, { body: fixture }).as('getPageDetail');
       cy.forceLogin(orgAdminUser);
-      cy.intercept(`**/${LIST_STYLES}**`, {});
+      cy.intercept(`${getEndpoint(LIST_STYLES)}**`, {});
 
       cy.intercept({ method: 'GET', pathname: getEndpoint(USER) }, { body: orgAdminWithContentFlag });
       cy.visit(testEditPageUrl);
       cy.wait('@getPageDetail');
       cy.getByTestId('edit-page-button').click();
       cy.getByTestId('edit-settings-tab').click({ force: true });
-      cy.getByTestId('thank-you-redirect-link-input').type('https://valid-url-but-intercept-will-dislikeit.org');
+      cy.findByRole('textbox', { name: 'Thank You page link' }).type(
+        'https://valid-url-but-intercept-will-dislikeit.org'
+      );
       cy.get('#edit-settings-tab-panel').within(() =>
         cy.findByRole('button', { name: 'Update' }).click({ force: true })
       );
@@ -420,7 +387,7 @@ describe('Contribution page edit', () => {
 
       // Now we should see the Settings tab and our error message
       cy.getByTestId('edit-interface').should('exist');
-      cy.getByTestId('errors-Thank You page link').contains(expectedErrorMessage);
+      cy.get('#page-setup-thank_you_redirect-helper-text').contains(expectedErrorMessage);
     });
   });
 
@@ -537,7 +504,7 @@ describe('Edit interface: Settings', () => {
 
   it('should pre-fill incoming data', () => {
     const expectedHeading = livePage.heading;
-    cy.getByTestId('setup-heading-input').should('have.value', expectedHeading);
+    cy.findByRole('textbox', { name: 'Form panel heading' }).should('have.value', expectedHeading);
   });
 
   it('should update contribution page view with new content and display it in preview mode', () => {
@@ -547,8 +514,8 @@ describe('Edit interface: Settings', () => {
     cy.intercept({ method: 'GET', pathname: getEndpoint(TEMPLATES) }, {});
 
     cy.getByTestId('s-page-heading').contains(previousHeading);
-    cy.getByTestId('setup-heading-input').clear();
-    cy.getByTestId('setup-heading-input').type(newHeading, { force: true });
+    cy.findByRole('textbox', { name: 'Form panel heading' }).clear();
+    cy.findByRole('textbox', { name: 'Form panel heading' }).type(newHeading, { force: true });
     cy.get('#edit-settings-tab-panel').within(() =>
       cy.findByRole('button', { name: 'Update' }).scrollIntoView().click()
     );
@@ -805,7 +772,7 @@ describe('Contribution page delete', () => {
       { method: 'GET', pathname: `${getEndpoint(LIST_PAGES)}**` },
       { fixture: 'pages/live-page-1', statusCode: 200 }
     ).as('getPage');
-    cy.intercept(`**/${LIST_STYLES}**`, {});
+    cy.intercept(`${getEndpoint(LIST_STYLES)}**`, {});
 
     cy.visit(testEditPageUrl);
     cy.wait(['@getPage']);
@@ -830,7 +797,7 @@ describe('Page load side effects', () => {
       { method: 'GET', pathname: `${getEndpoint(LIST_PAGES)}**` },
       { fixture: 'pages/live-page-1', statusCode: 200 }
     ).as('getPageDetail');
-    cy.intercept(`**/${LIST_STYLES}**`, {});
+    cy.intercept(`${getEndpoint(LIST_STYLES)}**`, {});
 
     cy.visit(testEditPageUrl);
     cy.url().should('include', testEditPageUrl);
@@ -851,7 +818,7 @@ describe('ReasonEditor', () => {
       { method: 'GET', pathname: `${getEndpoint(LIST_PAGES)}**` },
       { fixture: 'pages/live-page-1', statusCode: 200 }
     ).as('getPageDetail');
-    cy.intercept(`**/${LIST_STYLES}**`, {});
+    cy.intercept(`${getEndpoint(LIST_STYLES)}**`, {});
 
     cy.visit(testEditPageUrl);
     cy.url().should('include', testEditPageUrl);

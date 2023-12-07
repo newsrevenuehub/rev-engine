@@ -374,7 +374,7 @@ class ContributionsCacheProvider:
             try:
                 serialized_obj = self.serializer(instance=self.converter(pi))
                 data[pi.id] = serialized_obj.data
-            except ContributionIgnorableError as ex:
+            except (ContributionIgnorableError, InvalidMetadataError) as ex:
                 logger.warning("Unable to process Contribution [%s]", pi.id, exc_info=ex)
         return data
 

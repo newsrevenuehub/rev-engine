@@ -8,9 +8,7 @@ COPY ./spa/package.json ./spa/package-lock.json /code/
 RUN CYPRESS_INSTALL_BINARY=0 npm ci --no-audit --no-fund --silent
 COPY ./spa /code/spa/
 WORKDIR /code/spa/
-
-# Limit memory usage to avoid Heroku deploy issues.
-RUN npm run build:low-memory
+RUN npm run build
 
 FROM python:3.10-slim as base
 
@@ -81,7 +79,7 @@ ENV DJANGO_SETTINGS_MODULE=revengine.settings.deploy
 
 # Call collectstatic (customize the following line with the minimal environment variables needed for manage.py to run):
 RUN touch /code/.env
-RUN DATABASE_URL='' ENVIRONMENT='' DJANGO_SECRET_KEY='dummy' DOMAIN='' python manage.py collectstatic --noinput -i *.scss --no-default-ignore
+RUN DATABASE_URL='' ENVIRONMENT='' DJANGO_SECRET_KEY='dummy' DOMAIN='' GS_CREDENTIALS_RAISE_ERROR_IF_UNSET="false" python manage.py collectstatic --noinput -i *.scss --no-default-ignore
 
 RUN mkdir google-sa && chown ${APP_USER}:${APP_USER} google-sa
 

@@ -3,7 +3,6 @@
 
 import { LIVE_PAGE_DETAIL, AUTHORIZE_STRIPE_PAYMENT_ROUTE } from 'ajax/endpoints';
 import { PAYMENT_SUCCESS } from 'routes';
-import { getPaymentSuccessUrl } from 'components/paymentProviders/stripe/stripeFns';
 import { getEndpoint, getPageElementByType, getTestingDonationPageUrl, EXPECTED_RP_SLUG } from '../support/util';
 import livePageOne from '../fixtures/pages/live-page-1.json';
 
@@ -11,7 +10,6 @@ import livePageOne from '../fixtures/pages/live-page-1.json';
 import { CLEARBIT_SCRIPT_SRC } from '../../src/hooks/useClearbit';
 import { CONTRIBUTION_INTERVALS } from '../../src/constants/contributionIntervals';
 
-import * as freqUtils from 'utilities/parseFrequency';
 import calculateStripeFee from 'utilities/calculateStripeFee';
 import { DEFAULT_BACK_BUTTON_TEXT } from 'components/common/Button/BackButton/BackButton';
 
@@ -20,6 +18,23 @@ const expectedPageSlug = `${pageSlug}/`;
 
 function getFeesCheckbox() {
   return cy.get('[data-testid="pay-fees"] input[type="checkbox"]');
+}
+
+function expectedPaymentSuccessUrl(props) {
+  const url = new URL('/payment/success/', props.baseUrl);
+
+  url.search = new URLSearchParams({
+    pageSlug: props.pageSlug,
+    rpSlug: props.rpSlug,
+    amount: props.amount.toString(),
+    email: props.contributorEmail,
+    frequency: props.frequencyDisplayValue,
+    fromPath: props.pathName === '/' ? '' : props.pathName,
+    next: props.thankYouRedirectUrl,
+    uid: props.emailHash
+  }).toString();
+
+  return url.href;
 }
 
 describe('Clearbit', () => {
@@ -57,20 +72,32 @@ describe('Donation page displays dynamic page elements', () => {
     });
   });
 
+  it("doesn't change the other amount field if the user uses arrow keys when it's focused", () => {
+    cy.getByTestId(`amount-other`).within(() => {
+      cy.get('input').type('123');
+      cy.get('input').type('{upArrow}');
+      cy.get('input').should('have.value', '123');
+      cy.get('input').type('{downArrow}');
+      cy.get('input').should('have.value', '123');
+    });
+  });
+
   it('should render text indicating expected frequencies', () => {
+    const expectedSuffixes = {
+      month: '/month',
+      year: '/year'
+    };
     const frequency = getPageElementByType(livePageOne, 'DFrequency');
 
     cy.getByTestId('d-amount');
 
     for (const freq of frequency.content) {
-      const rate = freqUtils.getFrequencyRate(freq.value);
-
       cy.contains(freq.displayName).click();
       cy.getByTestId('d-amount').find('h2').contains(freq.displayName);
       cy.getByTestId('pay-fees').scrollIntoView().find('label').contains(freq.displayName, { matchCase: false });
 
-      if (rate) {
-        cy.getByTestId('custom-amount-rate').contains(rate);
+      if (freq in expectedSuffixes) {
+        cy.getByTestId('custom-amount-rate').contains(expectedSuffixes[freq]);
       }
     }
   });
@@ -117,17 +144,14 @@ describe('Donation page displays dynamic page elements', () => {
     getFeesCheckbox().should('not.be.checked');
   });
 
-  // Temp disabled in DEV-3733
-  // TODO: Re-enable in DEV-3735
-  it.skip('should render DSwag', () => {
+  it('should render DSwag', () => {
     cy.getByTestId('d-swag').should('exist');
   });
 
-  // Temp disabled in DEV-3733
-  // TODO: Re-enable in DEV-3735
-  it.skip('should render swag options if swagThreshold is met', () => {
+  it('should render swag options if swagThreshold is met', () => {
     const swagElement = livePageOne.elements.find((el) => el.type === 'DSwag');
     const swagThreshold = swagElement.content.swagThreshold;
+
     cy.contains(
       `Give a total of ${livePageOne.currency.symbol}${swagThreshold} ${livePageOne.currency.code} /year or more to be eligible`
     );
@@ -136,57 +160,13 @@ describe('Donation page displays dynamic page elements', () => {
     cy.getByTestId('swag-content').should('exist');
   });
 
-  // Temp disabled in DEV-3733
-  // TODO: Re-enable in DEV-3735
-  it.skip('should render a dropdown of swagOptions for each swag in the list', () => {
-    cy.setUpDonation('Yearly', '365');
+  it('should render a dropdown of swagOptions for each swag in the list', () => {
     const swagElement = livePageOne.elements.find((el) => el.type === 'DSwag');
-    const swagName = swagElement.content.swags[0].swagName;
-    const optionsNum = swagElement.content.swags[0].swagOptions.length;
+
+    cy.setUpDonation('Yearly', '365');
     cy.contains('Totes Dope Tote').should('exist');
-    cy.getByTestId(`swag-item-${swagName}`).should('exist');
-    cy.getByTestId(`swag-choices-${swagName}`).should('exist');
-    cy.getByTestId(`swag-choices-${swagName}`).click();
-    const dropdownName = `swag_choice_${swagName}`;
-    cy.getByTestId(`select-dropdown-${dropdownName}`).find('li').its('length').should('eq', optionsNum);
-  });
-
-  it('should not show nyt comp subscription option if not enabled', () => {
-    const page = { ...livePageOne };
-    const swagIndex = page.elements.findIndex((el) => el.type === 'DSwag');
-    page.elements[swagIndex].content.offerNytComp = false;
-    cy.intercept({ method: 'GET', pathname: getEndpoint(LIVE_PAGE_DETAIL) }, { body: page, statusCode: 200 }).as(
-      'getPage'
-    );
-    cy.visit(getTestingDonationPageUrl(expectedPageSlug));
-    cy.url().should('include', EXPECTED_RP_SLUG);
-    cy.url().should('include', expectedPageSlug);
-    cy.wait('@getPage');
-
-    cy.setUpDonation('One time', '365');
-    cy.getByTestId('nyt-comp-sub').should('not.exist');
-  });
-
-  // Temp disabled in DEV-3733
-  // TODO: Re-enable in DEV-3735
-  it.skip('should display nyt comp subscription option if enabled', () => {
-    const page = { ...livePageOne };
-    const swagIndex = page.elements.findIndex((el) => el.type === 'DSwag');
-    page.elements[swagIndex].content.offerNytComp = true;
-    cy.intercept({ method: 'GET', pathname: getEndpoint(LIVE_PAGE_DETAIL) }, { body: page, statusCode: 200 }).as(
-      'getPage'
-    );
-    cy.visit(getTestingDonationPageUrl(expectedPageSlug));
-    cy.url().should('include', EXPECTED_RP_SLUG);
-    cy.url().should('include', expectedPageSlug);
-    cy.wait('@getPage');
-
-    cy.setUpDonation('One time', '365');
-    cy.getByTestId('nyt-comp-sub').should('exist');
-    cy.getByTestId('nyt-comp-sub').click();
-    cy.getByTestId('nyt-comp-sub').within(() => {
-      cy.findByRole('checkbox').should('have.value', 'nyt');
-    });
+    cy.findByRole('button', { name: /Totes Dope Tote/ }).click();
+    cy.findAllByRole('option').its('length').should('eq', swagElement.content.swags[0].swagOptions.length);
   });
 });
 
@@ -487,7 +467,7 @@ describe('User flow: happy path', () => {
         } = x.getCalls()[0].args[0];
 
         expect(return_url).to.equal(
-          getPaymentSuccessUrl({
+          expectedPaymentSuccessUrl({
             baseUrl: 'http://revenueprogram.revengine-testabc123.com:3000/',
             thankYouRedirectUrl: '',
             amount: payFees ? '123.01' : '120',
@@ -620,7 +600,7 @@ describe('User flow: happy path', () => {
         } = x.getCalls()[0].args[0];
 
         expect(return_url).to.equal(
-          getPaymentSuccessUrl({
+          expectedPaymentSuccessUrl({
             baseUrl: 'http://revenueprogram.revengine-testabc123.com:3000/',
             thankYouRedirectUrl: '',
             amount: payFees ? '10.53' : '10',
@@ -681,7 +661,7 @@ describe('User flow: happy path', () => {
         confirmParams: { return_url }
       } = x.getCalls()[0].args[0];
       expect(return_url).to.equal(
-        getPaymentSuccessUrl({
+        expectedPaymentSuccessUrl({
           baseUrl: 'http://revenueprogram.revengine-testabc123.com:3000/',
           thankYouRedirectUrl: '',
           amount: '10.53',
@@ -883,6 +863,19 @@ describe('User flow: unhappy paths', () => {
     cy.get('form')
       .findByRole('button', { name: /Enter a valid amount/ })
       .should('have.attr', 'disabled');
+  });
+
+  specify('User enters single character into country field, then hits enter', () => {
+    cy.visitDonationPage();
+    fillOutDonorInfoSection();
+    cy.get('[data-testid*="mailing_street"]').type('123 Main St');
+    cy.findByRole('button', { name: 'Address line 2 (Apt, suite, etc.)' }).click();
+    cy.get('[data-testid*="mailing_complement"]').type('Ap 1');
+    cy.get('[data-testid*="mailing_city"]').type('Big City');
+    cy.get('[data-testid*="mailing_state"]').type('NY');
+    cy.get('[data-testid*="mailing_postal_code"]').type('100738');
+    cy.get('#country').type('a{enter}');
+    cy.get('[data-testid="500-something-wrong"]').should('not.exist');
   });
 });
 

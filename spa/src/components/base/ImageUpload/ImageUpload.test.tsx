@@ -1,5 +1,5 @@
 import { axe } from 'jest-axe';
-import { fireEvent, render, screen, waitFor, within } from 'test-utils';
+import { fireEvent, render, screen, waitFor } from 'test-utils';
 import ImageUpload, { ImageUploadProps } from './ImageUpload';
 
 const mockFile = new File([], 'test.jpeg');

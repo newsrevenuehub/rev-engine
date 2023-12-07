@@ -1,10 +1,18 @@
 import datetime
-from typing import Literal
+import logging
+import re
+from typing import Any, ClassVar, Literal, Optional, TypedDict
 
+from django.conf import settings
+
+import pydantic
 import stripe
 from pydantic import BaseModel
 
 from apps.contributions.choices import ContributionInterval, ContributionStatus
+
+
+logger = logging.getLogger(f"{settings.DEFAULT_LOGGER}.{__name__}")
 
 
 class StripePiAsPortalContribution(BaseModel):
@@ -51,3 +59,128 @@ class StripePiSearchResponse(BaseModel):
         # we do this to enable using `stripe.PaymentIntent` in data field type hint. Without this, pydantic will
         # raise an error because it expects stripe.PaymentIntent to be JSON serializable, which it is not.
         arbitrary_types_allowed = True
+
+
+class StripeEventData(TypedDict):
+    id: str
+    object: str
+    account: str
+    api_version: str
+    created: int
+    data: Any
+    livemode: bool
+    pending_webhooks: int
+    type: str
+
+
+class StripeMetadataSchemaBase(pydantic.BaseModel):
+    """
+
+    This schema:
+    - validates that all required fields are present
+    - validates that extra fields are not present
+    - provides default values for some optional fields
+    - normalizes boolean values
+    """
+
+    class Config:
+        extra = pydantic.Extra.forbid  # don't allow extra fields
+
+    schema_version: Literal["1.4"]
+    source: Literal["rev-engine"]
+
+    METADATA_TEXT_MAX_LENGTH: ClassVar[int] = 500
+
+    @classmethod
+    def normalize_boolean(cls, v: Any) -> bool | None:
+        """Normalize boolean values
+
+        Convert some known values to their boolean counterpart, while still allowing
+        for a `None` value which indicates that the value was not provided.
+        """
+        logger.debug("Normalizing boolean value %s", v)
+        if any([isinstance(v, bool), v is None]):
+            return v
+        if isinstance(v, str):
+            if v.lower().strip() in ["false", "none", "no", "n"]:
+                return False
+            if v.lower().strip() in ["true", "yes", "y"]:
+                return True
+        raise ValueError("Value must be a boolean, None, or castable string")
+
+    @pydantic.validator("*", pre=True, always=True)
+    def truncate_strings(cls, v: Any) -> str | None:
+        """Truncate strings
+
+        This validator is responsible for ensuring that all string fields are no longer than
+        METADATA_TEXT_MAX_LENGTH characters.
+        """
+        if isinstance(v, str):
+            return v[: cls.METADATA_TEXT_MAX_LENGTH]
+        return v
+
+
+class StripePaymentMetadataSchemaV1_4(StripeMetadataSchemaBase):
+    """Schema used for generating metadata on Stripe payment intents and subscriptions"""
+
+    agreed_to_pay_fees: bool
+    donor_selected_amount: float
+    referer: pydantic.HttpUrl
+    revenue_program_id: str
+    revenue_program_slug: str
+
+    contributor_id: Optional[str] = None
+    comp_subscription: Optional[str] = None
+    company_name: Optional[str] = None
+    honoree: Optional[str] = None
+    in_memory_of: Optional[str] = None
+    reason_for_giving: Optional[str] = None
+    sf_campaign_id: Optional[str] = None
+    swag_choices: Optional[str] = None
+    swag_opt_out: Optional[bool] = False
+    schema_version: Literal["1.4"]
+
+    SWAG_CHOICES_DELIMITER: ClassVar[str] = ";"
+    SWAG_SUB_CHOICE_DELIMITER: ClassVar[str] = ":"
+
+    @pydantic.validator("contributor_id", "revenue_program_id", pre=True)
+    @classmethod
+    def convert_id_to_string(cls, v: Any) -> str | None:
+        """Convert id to string
+
+        This validator is responsible for ensuring that the field is a string. These fields are naturally
+        integers on their way in, but the metadata schema in Switchboard calls for them to be strings.
+        """
+        if v is None:
+            return v
+        return str(v)
+
+    @pydantic.validator("agreed_to_pay_fees", "swag_opt_out")
+    @classmethod
+    def validate_booleans(cls, v: Any) -> bool | None:
+        """Validate booleans
+
+        This validator is responsible for ensuring that the agreed_to_pay_fees and swag_opt_out fields are valid.
+        """
+        return cls.normalize_boolean(v)
+
+    @pydantic.validator("swag_choices")
+    @classmethod
+    def validate_swag_choices(cls, v: Any) -> str | None:
+        """Validate swag_choices
+
+        This validator is responsible for ensuring that the swag_choices field is valid.
+        """
+        # if empty or none, return
+        if not v:
+            return v
+        if len(v) > settings.METADATA_MAX_SWAG_CHOICES_LENGTH:
+            raise ValueError("swag_choices is too long")
+        choices = v.split(cls.SWAG_CHOICES_DELIMITER)
+        # for instance, "tshirt" or "tshirt:hoodie"
+        choice_pattern = rf"[\w-]+({cls.SWAG_SUB_CHOICE_DELIMITER}[\w]+)?"
+        for choice in choices:
+            # we check if choice is truthy to allow for case of a hanging `;` leading to an empty choice
+            if choice and not re.fullmatch(choice_pattern, choice):
+                raise ValueError("swag_choices is not valid")
+        return v

@@ -97,9 +97,7 @@ describe('useFontList hook', () => {
     const errorSpy = jest.spyOn(console, 'error').mockImplementation(() => {});
 
     axiosMock.reset();
-    axiosMock.onGet('fonts/').reply(function (config) {
-      return Promise.reject({ name: 'AuthenticationError' });
-    });
+    axiosMock.onGet('fonts/').reply(() => Promise.reject({ name: 'AuthenticationError' }));
     const { waitForValueToChange, result } = renderHook(() => useFontList(), { wrapper });
     await waitForValueToChange(() => result.current.isError);
     expect(mockHistoryPush).toHaveBeenCalledTimes(1);

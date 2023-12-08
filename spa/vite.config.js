@@ -44,7 +44,11 @@ const config = defineConfig({
 if (!process.env.REACT_APP_NO_PROXY) {
   config.server.proxy = {
     '/api': {
-      target: 'http://localhost:8000',
+      target: 'http://127.0.0.1:8000',
+      changeOrigin: true
+    },
+    '/media': {
+      target: 'http://127.0.0.1:8000',
       changeOrigin: true
     }
   };

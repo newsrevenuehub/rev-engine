@@ -1,8 +1,8 @@
 import { axe } from 'jest-axe';
 import { render, screen } from 'test-utils';
-import { FormControlLabel, FormControlLabelProps } from '../FormControlLabel';
+import { FormControlLabel } from '../FormControlLabel';
 
-function tree(props?: Partial<FormControlLabelProps>) {
+function tree() {
   return render(<FormControlLabel control={<div data-testid="mock-control" />} label="test" />);
 }
 

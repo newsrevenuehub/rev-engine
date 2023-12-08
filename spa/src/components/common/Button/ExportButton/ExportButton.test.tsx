@@ -53,6 +53,7 @@ describe('ExportButton', () => {
   it('should open export modal when the export button is clicked', async () => {
     tree();
     await openModal();
+    expect(screen.getByRole('dialog')).toBeInTheDocument();
   });
 
   it('should disable the export button if export is confirmed in modal', async () => {

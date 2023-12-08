@@ -5,7 +5,7 @@ import json
 import logging
 import uuid
 from dataclasses import asdict
-from functools import reduce, wraps
+from functools import cached_property, reduce, wraps
 from operator import or_
 from typing import Any, Callable, List
 from urllib.parse import quote_plus
@@ -16,6 +16,7 @@ from django.db import models
 from django.template.loader import render_to_string
 from django.utils.safestring import SafeString, mark_safe
 
+import pytz
 import reversion
 import stripe
 from addict import Dict as AttrDict
@@ -196,6 +197,8 @@ class Contribution(IndexedTimeStampedModel):
     # deprecated
     last_payment_date = models.DateTimeField(null=True)
 
+    # to do -- decide if contributor should map to RP or page or across all, part etc.
+    # if we don't solve now it means we need to carry over filtering logic
     contributor = models.ForeignKey("contributions.Contributor", on_delete=models.SET_NULL, null=True)
     donation_page = models.ForeignKey("pages.DonationPage", on_delete=models.PROTECT, null=True)
 
@@ -226,13 +229,13 @@ class Contribution(IndexedTimeStampedModel):
         return f"{self.formatted_amount}, {self.created.strftime('%Y-%m-%d %H:%M:%S')}"
 
     @property
-    def _last_payment_date(self) -> datetime.datetime | None:
-        pass
-        # return (
-        #     (self._last_payment_date)
-        #     if contribution_level
-        #     else self.payment_set.filter("").order_by("-created").first().created()
-        # )
+    def next_payment_date(self) -> datetime.datetime | None:
+        if self.interval == ContributionInterval.ONE_TIME:
+            return None
+        if not self.stripe_subscription:
+            logger.warning("something here")
+            return None
+        return datetime.datetime.fromtimestamp(self.stripe_subscription.current_period_end, tz=pytz.UTC)
 
     @property
     def formatted_amount(self) -> str:
@@ -620,7 +623,65 @@ class Contribution(IndexedTimeStampedModel):
             )
             return None
 
+    @cached_property
+    def card(self) -> stripe.Card | None:
+        if not (cust_id := self.provider_customer_id):
+            return None
+        customer = stripe.Customer.retrieve(
+            cust_id,
+            account=self.donation_page.revenue_program.payment_provider.stripe_account_id,
+            expand=["invoice_settings.default_payment_method.card"],
+        )
+        return (
+            customer.invoice_settings.default_payment_method.card
+            if customer.invoice_settings.default_payment_method
+            else None
+        )
+
     @property
+    def card_brand(self) -> str | None:
+        return self.card.brand if self.card else None
+
+    @property
+    def card_expiration_date(self) -> str | None:
+        return f"{self.card.exp_month}/{self.card.exp_year}" if self.card else None
+
+    @property
+    def card_owner_name(self) -> str | None:
+        return self.card.name if self.card else None
+
+    @property
+    def card_last_4(self) -> str | None:
+        return self.card.last4 if self.card else None
+
+    @property
+    def is_cancelable(self) -> bool:
+        return self.status in (ContributionStatus.PROCESSING, ContributionStatus.FLAGGED)
+
+    @property
+    def is_modifiable(self) -> bool:
+        return self.status in (ContributionStatus.PROCESSING, ContributionStatus.FLAGGED)
+
+    @property
+    def _last_payment_date(self) -> datetime.datetime | None:
+        last_payment = self.payment_set.order_by("-transaction_time").first()
+        return last_payment.transaction_time if last_payment else None
+
+    @property
+    def paid_fees(self) -> bool:
+        return self.contribution_metadata.get("agreed_to_pay_fees", False)
+
+    @cached_property
+    def stripe_payment_method(self) -> stripe.PaymentMethod | None:
+        if not (p_id := self.provider_payment_id):
+            return None
+        return stripe.PaymentMethod.retrieve(p_id, stripe_account=self.stripe_account_id)
+
+    @property
+    def payment_type(self) -> str | None:
+        return self.stripe_payment_method.type if self.stripe_payment_method else None
+
+    @cached_property
     def stripe_subscription(self) -> stripe.Subscription | None:
         if not all(
             [
@@ -979,6 +1040,8 @@ class Payment(IndexedTimeStampedModel):
     gross_amount_paid = models.IntegerField()
     amount_refunded = models.IntegerField()
     stripe_balance_transaction_id = models.CharField(max_length=255, unique=True)
+    # add index on transaction time since wwill need to sort by for last pasyment
+    transaction_time = models.DateTimeField()
 
     MISSING_EVENT_KW_ERROR_MSG = "Expected a keyword argument called `event` called `event`"
     ARG_IS_NOT_EVENT_TYPE_ERROR_MSG = "Expected `event` to be an instance of `stripe.Event`"
@@ -1181,6 +1244,7 @@ class Payment(IndexedTimeStampedModel):
             net_amount_paid=balance_transaction.net,
             gross_amount_paid=balance_transaction.amount,
             amount_refunded=amount_refunded,
+            transaction_time=balance_transaction.created,
         )
 
     @classmethod

@@ -1,4 +1,5 @@
 import json
+from datetime import datetime, timedelta
 from unittest import mock
 
 from django.conf import settings
@@ -6,8 +7,10 @@ from django.core.serializers.json import DjangoJSONEncoder
 from django.http import Http404
 from django.test import RequestFactory, override_settings
 
+import dateparser
 import pytest
 import pytest_cases
+import pytz
 import stripe
 from addict import Dict as AttrDict
 from rest_framework import status
@@ -28,15 +31,24 @@ from apps.contributions.models import (
     ContributionQuerySet,
     ContributionStatus,
     Contributor,
+    Payment,
 )
 from apps.contributions.payment_managers import PaymentProviderError
-from apps.contributions.serializers import ContributionSerializer, SubscriptionsSerializer
+from apps.contributions.serializers import (
+    PORTAL_CONTRIBUTION_DETAIL_SERIALIZER_DB_FIELDS,
+    ContributionSerializer,
+    SubscriptionsSerializer,
+)
 from apps.contributions.tasks import (
     email_contribution_csv_export_to_user,
     task_pull_serialized_stripe_contributions_to_cache,
 )
 from apps.contributions.tests import RedisMock
-from apps.contributions.tests.factories import ContributionFactory, ContributorFactory
+from apps.contributions.tests.factories import (
+    ContributionFactory,
+    ContributorFactory,
+    PaymentFactory,
+)
 from apps.contributions.tests.test_serializers import (
     mock_get_bad_actor,
     mock_stripe_call_with_error,
@@ -293,9 +305,9 @@ class TestContributionsViewSet:
     @pytest_cases.parametrize(
         "user",
         (
-            # pytest_cases.fixture_ref("org_user_free_plan"),
-            # pytest_cases.fixture_ref("rp_user"),
-            # pytest_cases.fixture_ref("hub_admin_user"),
+            pytest_cases.fixture_ref("org_user_free_plan"),
+            pytest_cases.fixture_ref("rp_user"),
+            pytest_cases.fixture_ref("hub_admin_user"),
             pytest_cases.fixture_ref("superuser"),
         ),
     )
@@ -1505,89 +1517,290 @@ class TestProcessStripeWebhook:
             "Invalid signature on Stripe webhook request. Is STRIPE_WEBHOOK_SECRET_CONTRIBUTIONS set correctly?"
         )
 
-
-@pytest.mark.parametrize(
-    "query_params",
-    (
-        # base case
-        "",
         # "supported" by the mock implementation (there are 2 pages with ten results)
-        "?page=1&page_size=10",
+        # "?page=1&page_size=10",
         # full expected query params
-        "?page=1&page_size=10&interval=monthly&ordering=-amount",
+        # "?page=1&page_size=10&interval=monthly&ordering=-amount",
         # just documenting fact that arbitrary query params don't block the endpoint
-        "?foo=bar",
-    ),
-)
-def test_contributor_contributions_mocked_endpoint(api_client, query_params):
-    """In this test, we narrowly show that the mocked endpoint stands up. Real tests will come with real implementation"""
-    url = f'{reverse("contributor-contributions", args=(1,))}{query_params}'
-    response = api_client.get(url)
-    assert response.status_code == status.HTTP_200_OK
-    assert set(response.json().keys()) == {"results", "count", "next", "previous"}
-    assert len(response.json()["results"]) == 10
-
-
-def test_contributor_contribution_mocked_endpoint(api_client):
-    with open("apps/contributions/tests/fixtures/contributor-contributions-page-1.json") as fl:
-        fixture_data = json.load(fl)["results"][0]
-    response = api_client.get(
-        reverse(
-            "contributor-contribution",
-            kwargs={"contributor_id": "123", "contribution_id": fixture_data["payment_provider_id"]},
-        )
-    )
-    assert response.status_code == status.HTTP_200_OK
-    response_json = response.json()
-    assert isinstance(response_json["credit_card_owner_name"], str)
-    assert isinstance(response_json["paid_fees"], bool)
-    assert len(response_json["payments"]) == 1
-    assert response_json["payments"][0]["amount_refunded"] == 0
-    assert response_json["payments"][0]["created"] == response_json["created"]
-    assert response_json["payments"][0]["gross_amount_paid"] == response_json["amount"]
-    assert response_json["payments"][0]["net_amount_paid"] == response_json["amount"]
-    for key in fixture_data:
-        assert response_json[key] == fixture_data[key]
-
-
-def test_contributor_contribution_mocked_endpoint_404(api_client):
-    response = api_client.get(
-        reverse(
-            "contributor-contribution",
-            kwargs={"contributor_id": "123", "contribution_id": "nonexistent"},
-        )
-    )
-    assert response.status_code == status.HTTP_404_NOT_FOUND
+        # "?foo=bar",
 
 
 @pytest.mark.django_db
 class TestPortalContributorsViewSet:
-    def test_contributions_list_happy_path(self, api_client, mocker):
-        pass
+    @pytest.fixture
+    def one_time_contribution(self, revenue_program, portal_contributor, mocker, faker):
+        contribution = ContributionFactory(
+            interval=ContributionInterval.ONE_TIME,
+            status=ContributionStatus.PAID,
+            donation_page__revenue_program=revenue_program,
+            contributor=portal_contributor,
+            provider_payment_id=faker.pystr_format(string_format="pi_??????"),
+            provider_customer_id=faker.pystr_format(string_format="cus_??????"),
+            provider_payment_method_id=faker.pystr_format(string_format="pm_??????"),
+        )
+        PaymentFactory(
+            contribution=contribution,
+            amount_refunded=0,
+            gross_amount_paid=contribution.amount,
+            net_amount_paid=contribution.amount - 100,
+        )
+        return contribution
 
-    def test_contributions_list_filter_behavior(self, api_client, mocker):
-        pass
+    @pytest.fixture
+    def stripe_customer_factory(self, faker):
+        def _stripe_customer_expanded_factory(customer_id, customer_email):
+            return stripe.Customer.construct_from(
+                {
+                    "id": customer_id,
+                    "email": customer_email,
+                    "invoice_settings": {
+                        "default_payment_method": stripe.PaymentMethod.construct_from(
+                            {
+                                "id": faker.pystr_format(string_format="pm_????"),
+                                "object": "payment_method",
+                                "type": "card",
+                                "card": {
+                                    "brand": "visa",
+                                    "exp_month": 12,
+                                    "exp_year": 2023,
+                                    "last4": "4242",
+                                },
+                            },
+                            "some-id",
+                        )
+                    },
+                },
+                "some-id",
+            )
 
-    def test_contributions_list_ordering_behavior(self, api_client, mocker):
-        pass
+        return _stripe_customer_expanded_factory
+
+    @pytest.fixture
+    def monthly_contribution(
+        self,
+        revenue_program,
+        portal_contributor,
+        faker,
+        stripe_subscription,
+    ):
+        then = datetime.now() - timedelta(days=30)
+        contribution = ContributionFactory(
+            interval=ContributionInterval.MONTHLY,
+            status=ContributionStatus.PAID,
+            created=then,
+            donation_page__revenue_program=revenue_program,
+            contributor=portal_contributor,
+            provider_payment_id=faker.pystr_format(string_format="pi_??????"),
+            provider_customer_id=faker.pystr_format(string_format="cus_??????"),
+            provider_subscription_id=stripe_subscription.id,
+            provider_payment_method_id=faker.pystr_format(string_format="pm_??????"),
+        )
+        for x in (then, then + timedelta(days=30)):
+            PaymentFactory(
+                created=x,
+                contribution=contribution,
+                amount_refunded=0,
+                gross_amount_paid=contribution.amount,
+                net_amount_paid=contribution.amount - 100,
+            )
+        return contribution
+
+    @pytest.fixture
+    def portal_contributor(self):
+        return ContributorFactory()
+
+    @pytest.fixture
+    def portal_contributor_with_multiple_contributions(
+        self,
+        portal_contributor,
+        monthly_contribution,
+        one_time_contribution,
+        mock_stripe_retrieve_payment_method,
+        stripe_customer_factory,
+        mocker,
+        stripe_subscription,
+    ):
+        cust_id = monthly_contribution.provider_customer_id
+        one_time_contribution.provider_customer_id = cust_id
+        one_time_contribution.save()
+
+        mocker.patch("stripe.PaymentMethod.retrieve", return_value=mock_stripe_retrieve_payment_method)
+        mocker.patch(
+            "stripe.Customer.retrieve",
+            return_value=stripe_customer_factory(customer_id=cust_id, customer_email=portal_contributor.email),
+        )
+        mocker.patch("stripe.Subscription.retrieve", return_value=stripe_subscription)
+        return monthly_contribution.contributor
+
+    def test_contributions_list_happy_path(self, portal_contributor_with_multiple_contributions, api_client, mocker):
+        api_client.force_authenticate(self.portal_contributor)
+        response = api_client.get(reverse("portal-contributions-list"))
+        assert response.status_code == status.HTTP_200_OK
+        assert len(response.json()) == 2
+        # assert each is instance right serializer with right value
+
+    def test_contributions_list_filter_behavior(self, api_client, portal_contributor_with_multiple_contributions):
+        api_client.force_authenticate(self.portal_contributor)
+        (
+            excluded := portal_contributor_with_multiple_contributions.contribution_set.first()
+        ).status = ContributionStatus.FAILED
+        excluded.save()
+        response = api_client.get(reverse("portal-contributions-list") + f"?status={ContributionStatus.PAID}")
+        assert response.status_code == status.HTTP_200_OK
+        assert len(response.json()) == 1
+        assert (
+            response.json()[0]["uuid"]
+            == portal_contributor_with_multiple_contributions.contribution_set.filter(status=ContributionStatus.PAID)
+            .first()
+            .uuid
+        )
+
+    @pytest.mark.parametrize("ordering", ("amount", "-amount", "created", "-created"))
+    @pytest.mark.paramettrize("descending", (True, False))
+    def test_contributions_list_ordering_behavior(
+        self, portal_contributor_with_multiple_contributions, descending, ordering, api_client
+    ):
+        amount = 1000
+        # gaurantee we have orderable values on amount
+        for x in Contribution.objects.all():
+            x.amount = amount
+            amount += 1000
+            x.payment_set.all().update(gross_amount_paid=x.amount, net_amount_paid=x.amount - 100)
+            x.save()
+        api_client.force_authenticate(portal_contributor_with_multiple_contributions)
+        response = api_client.get(
+            reverse("portal-contributions-list") + f"?ordering={'-' if descending else ''}{ordering}"
+        )
+        assert response.status_code == status.HTTP_200_OK
+        assert len(response.json()) == 2
+        if descending:
+            assert response.json()[0][ordering] > response.json()[1][ordering]
+        else:
+            assert response.json()[0][ordering] < response.json()[1][ordering]
 
     def test_contributions_list_pagination_behavior(self, api_client, mocker):
         pass
 
-    def test_contributions_list_when_im_not_contributor(self, api_client, mocker):
-        pass
+    @pytest.fixture(params=["superuser", "hub_admin_user", "org_user_free_plan", "rp_user"])
+    def non_contributor_user(self, request):
+        return request.getfixturevalue(request.param)
 
-    def test_contribution_detail_get_happy_path(self, api_client, mocker):
-        pass
+    def test_contributions_list_when_im_not_contributor_user_type(
+        self, api_client, non_contributor_user, portal_contributor_with_multiple_contributions, superuser
+    ):
+        api_client.force_authenticate(non_contributor_user)
+        response = api_client.get(reverse("portal-contributions-list"))
+        assert response.status_code == status.HTTP_403_FORBIDDEN
 
-    def test_contribution_detail_get_when_im_not_contributor(self, api_client, mocker):
-        pass
+    def test_contributions_list_when_im_not_owning_contributor(
+        self, api_client, portal_contributor_with_multiple_contributions, superuser
+    ):
+        other_contributor = ContributorFactory()
+        api_client.force_authenticate(other_contributor)
+        response = api_client.get(reverse("portal-contributions-list"))
+        assert response
 
-    def test_contribution_detail_get_when_contribution_not_found(self, api_client, mocker):
-        pass
+    def test_contribution_detail_get_happy_path(
+        self, api_client, portal_contributor_with_multiple_contributions, mocker
+    ):
+        api_client.force_authenticate(portal_contributor_with_multiple_contributions)
+        for x in portal_contributor_with_multiple_contributions.contribution_set.all():
+            response = api_client.get(
+                reverse(
+                    "portal-contributor-contribution-detail",
+                    args=(
+                        portal_contributor_with_multiple_contributions.id,
+                        x.id,
+                    ),
+                )
+            )
+            assert response.status_code == status.HTTP_200_OK
+            for k in PORTAL_CONTRIBUTION_DETAIL_SERIALIZER_DB_FIELDS:
+                match k:
+                    case "payments":
+                        assert len(response.json()[k]) == x.payment_set.count()
+                        for y in response.json()[k]:
+                            payment = Payment.objects.get(id=y["id"])
+                            for z in (
+                                "gross_amount_paid",
+                                "net_amount_paid",
+                                "created",
+                                "transaction_time",
+                                "amount_refunded",
+                            ):
+                                compared_val = y[z]
+                                if z in ("created", "transaction_time"):
+                                    compared_val = dateparser.parse(compared_val).replace(tzinfo=pytz.UTC)
+                                assert getattr(payment, z) == compared_val
 
-    def test_contribution_detail_get_when_not_own_contribution(self, api_client, mocker):
-        pass
+                    case "revenue_program":
+                        assert response.json()[k] == x.donation_page.revenue_program.id
+
+                    case "created" | "last_payment_date":
+                        compare_val = dateparser.parse(response.json()[k]).replace(tzinfo=pytz.UTC)
+                        assert compare_val == getattr(x, k if k == "created" else "_last_payment_date")
+
+                    case "next_payment_date":
+                        compare_val = (
+                            dateparser.parse(response.json()[k]).replace(tzinfo=pytz.UTC)
+                            if x.interval != ContributionInterval.ONE_TIME
+                            else None
+                        )
+                        assert compare_val == getattr(x, k)
+
+                    case _:
+                        assert response.json()[k] == getattr(x, k)
+
+    def test_contribution_detail_get_when_im_not_contributor(
+        self, portal_contributor_with_multiple_contributions, non_contributor_user, api_client, mocker
+    ):
+        api_client.force_authenticate(non_contributor_user)
+        response = api_client.get(
+            reverse(
+                "portal-contributor-contribution-detail",
+                args=(
+                    portal_contributor_with_multiple_contributions.id,
+                    portal_contributor_with_multiple_contributions.contribution_set.first().id,
+                ),
+            ),
+        )
+        assert response.status_code == status.HTTP_403_FORBIDDEN
+
+    def test_contribution_detail_get_when_contribution_not_found(
+        self, api_client, portal_contributor_with_multiple_contributions
+    ):
+        deleted = portal_contributor_with_multiple_contributions.contribution_set.first()
+        deleted_id = deleted.id
+        deleted.delete()
+        api_client.force_authenticate(portal_contributor_with_multiple_contributions)
+        response = api_client.get(
+            reverse(
+                "portal-contributor-contribution-detail",
+                args=(
+                    portal_contributor_with_multiple_contributions.id,
+                    deleted_id,
+                ),
+            )
+        )
+        assert response.status_code == status.HTTP_404_NOT_FOUND
+        assert response.json() == {"detail": "Contribution not found"}
+
+    def test_contribution_detail_get_when_not_own_contribution(
+        self, api_client, portal_contributor_with_multiple_contributions
+    ):
+        not_mine = ContributionFactory()
+        api_client.force_authenticate(portal_contributor_with_multiple_contributions)
+        response = api_client.get(
+            reverse(
+                "portal-contributor-contribution-detail",
+                args=(
+                    portal_contributor_with_multiple_contributions.id,
+                    not_mine.id,
+                ),
+            )
+        )
+        assert response.status_code == status.HTTP_404_NOT_FOUND
+        assert response.json() == {"detail": "Contribution not found"}
 
     def test_contribution_detail_patch_happy_path(self, api_client, mocker):
         pass

@@ -17,6 +17,7 @@ from apps.contributions.models import (
     ContributionInterval,
     ContributionStatus,
     Contributor,
+    Payment,
 )
 from apps.contributions.types import StripePaymentMetadataSchemaV1_4
 from apps.contributions.utils import format_ambiguous_currency, get_sha256_hash
@@ -828,105 +829,38 @@ class SubscriptionsSerializer(serializers.Serializer):
         return instance.default_payment_method.type
 
 
-PORTAL_CONTRIBUTION_SERIALIZER_DB_FIELDS = (
+PORTAL_CONTRIBUTION_BASE_SERIALIAZER_FIELDS = [
+    # new -- makes testing much easier and is basically
+    "id",
     "amount",
+    # standardizing field names on card_*
+    "card_brand",
+    "card_expiration_date",
+    "card_last_4",
     "created",
     "interval",
+    "is_cancelable",
+    "is_modifiable",
+    "last_payment_date",
+    "next_payment_date",
+    "payment_type",
     "provider_customer_id",
     # name was messed up in earlier, need to update in spa
     "provider_payment_id",
     "revenue_program",
     "status",
-)
+]
 
 
-class PortalContributionDetailSerializer(serializers.ModelSerializer):
-    card_brand = serializers.SerializerMethodField()
-    credit_card_expiration_date = serializers.SerializerMethodField()
-    credit_card_owner_name = serializers.SerializerMethodField()
-    is_cancelable = serializers.SerializerMethodField()
-    is_modifiable = serializers.SerializerMethodField()
-    # get from .last_payment_date property on the model
-    last_payment_date = serializers.SerializerMethodField()
-    last4 = serializers.SerializerMethodField()
-    next_payment_date = serializers.SerializerMethodField()
-    paid_fees = serializers.SerializerMethodField()
-    payment_type = serializers.SerializerMethodField()
-    payments = serializers.ManyRelatedField(
-        # child_relation=serializers.PrimaryKeyRelatedField(queryset=Payment.objects.all())
-    )
-    # update only fields
+class PortalContributionBaseSerializer(serializers.ModelSerializer):
+    revenue_program = serializers.PrimaryKeyRelatedField(read_only=True)
+    # next_payment_date = serializers.DateTimeField(read_only=True)
+    last_payment_date = serializers.DateTimeField(source="_last_payment_date")
 
     class Meta:
         model = Contribution
-        fields = PORTAL_CONTRIBUTION_SERIALIZER_DB_FIELDS + (
-            "card_brand",
-            "credit_card_expiration_date",
-            "credit_card_owner_name",
-            "is_cancelable",
-            "is_modifiable",
-            "last_payment_date",
-            "last4",
-            "next_payment_date",
-            "paid_fees",
-            "payment_type",
-            "payments",
-        )
-        read_only_fields = PORTAL_CONTRIBUTION_SERIALIZER_DB_FIELDS
-
-    @property
-    def _card(self, instance) -> any | None:
-        return instance.default_payment_method.card if instance.default_payment_method else None
-
-    def get_card_brand(self, instance) -> CardBrand | None:
-        return self._card.brand if self._card else None
-
-    def get_credit_card_expiration_date(self, instance) -> str | None:
-        return (
-            (f"{self._card.exp_month}/{self._card.exp_year}" if self._card.exp_month else None) if self._card else None
-        )
-
-    def get_credit_card_owner_name(self, instance) -> str | None:
-        return self._card.name if self._card else None
-
-    def get_is_cancelable(self, instance):
-        return instance.status not in ["incomplete", "incomplete_expired", "canceled", "unpaid"]
-
-    def get_is_modifiable(self, instance):
-        return instance.status not in ["incomplete_expired", "canceled", "unpaid"]
-
-    def get_last_payment_date(self, instance):
-        # get via payments
-        return datetime.fromtimestamp(int(instance.current_period_start), tz=timezone.utc)
-
-    def get_next_payment_date(self, instance) -> datetime | None:
-        return datetime.fromtimestamp(int(instance.current_period_end), tz=timezone.utc)
-
-    def get_created(self, instance):
-        return datetime.fromtimestamp(int(instance.created), tz=timezone.utc)
-
-    def get_last4(self, instance):
-        return instance.card.last4 if instance.card else None
-
-    # def get_credit_card_expiration_date(self, instance):
-    #     return (
-    #         f"{self._card(instance).exp_month}/{self._card(instance).exp_year}"
-    #         if self._card(instance).exp_month
-    #         else None
-    #     )
-
-    def get_interval(self, instance):
-        plan = instance.get("plan")
-        interval = plan.get("interval")
-        interval_count = plan.get("interval_count")
-        if interval == "year" and interval_count == 1:
-            return ContributionInterval.YEARLY
-        if interval == "month" and interval_count == 1:
-            return ContributionInterval.MONTHLY
-        raise serializers.ValidationError(f"Invalid interval: {plan.id}{interval}/{interval_count}")
-
-    def get_payment_type(self, instance):
-        return instance.default_payment_method.type
+        fields = PORTAL_CONTRIBUTION_BASE_SERIALIAZER_FIELDS
+        read_only_fields = PORTAL_CONTRIBUTION_BASE_SERIALIAZER_FIELDS
 
     def create(self, validated_data):
         logger.info("create called but not supported. this will be a no-op")
@@ -936,3 +870,51 @@ class PortalContributionDetailSerializer(serializers.ModelSerializer):
         # or do we want to just set status to canceled and take care of that now
         logger.info("delete called but not supported. this will be a no-op")
         raise NotImplementedError("delete is not supported on this serializer")
+
+    def update(self, instance, validated_data):
+        logger.info("update called but not supported. this will be a no-op")
+        raise NotImplementedError("update is not supported on this serializer")
+
+
+PORTAL_CONTRIBIBUTION_PAYMENT_SERIALIZER_DB_FIELDS = [
+    "id",
+    "amount_refunded",
+    "created",
+    "transaction_time",
+    "gross_amount_paid",
+    "net_amount_paid",
+]
+
+
+class PortalContributionPaymentSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = Payment
+        fields = PORTAL_CONTRIBIBUTION_PAYMENT_SERIALIZER_DB_FIELDS
+        read_only_fields = PORTAL_CONTRIBIBUTION_PAYMENT_SERIALIZER_DB_FIELDS
+
+
+PORTAL_CONTRIBUTION_DETAIL_SERIALIZER_DB_FIELDS = PORTAL_CONTRIBUTION_BASE_SERIALIAZER_FIELDS + [
+    "payments",
+    "paid_fees",
+]
+
+
+class PortalContributionDetailSerializer(PortalContributionBaseSerializer):
+    payments = PortalContributionPaymentSerializer(many=True, read_only=True, source="payment_set")
+
+    class Meta:
+        model = Contribution
+        fields = PORTAL_CONTRIBUTION_DETAIL_SERIALIZER_DB_FIELDS
+        read_only_fields = PORTAL_CONTRIBUTION_DETAIL_SERIALIZER_DB_FIELDS
+
+
+PORTAL_CONTRIBUTION_LIST_SERIALIZER_DB_FIELDS = PORTAL_CONTRIBUTION_BASE_SERIALIAZER_FIELDS + [
+    "id",
+]
+
+
+class PortalContributionListSerializer(PortalContributionBaseSerializer):
+    class Meta:
+        model = Contribution
+        fields = PORTAL_CONTRIBUTION_LIST_SERIALIZER_DB_FIELDS
+        read_only_fields = PORTAL_CONTRIBUTION_LIST_SERIALIZER_DB_FIELDS

@@ -573,47 +573,113 @@ class PortalContributorsViewSet(viewsets.GenericViewSet):
     CONTRIBUTIONS_LIST_SERIALIZER_CLASS = serializers.PortalContributionListSerializer
     CONTRIBUTIONS_DETAIL_SERIALIZER_CLASS = serializers.PortalContributionDetailSerializer
 
-    def _get_and_check_contributor_permissions(self, request, contributor_id, prefetch_related: List[str] = None):
-        contributor = get_object_or_404(Contributor.objects.prefetch_related(prefetch_related), pk=contributor_id)
+    def _get_contributor_and_check_permissions(self, request, contributor_id):
+        contributor = get_object_or_404(Contributor, pk=contributor_id)
         self.check_object_permissions(request, contributor)
         return contributor
 
-    @action(methods=["get"], url_path="(?<contributor_id>/contributions/)", url_name="portal-contributions-list")
+    @action(
+        methods=["get"],
+        url_path="contributions/",
+        url_name="contributions-list",
+        detail=True,
+    )
     def contributions_list(self, request, contributor_id=None):
         """Endpoint to get all contributions for a given contributor"""
         # verify that the user has permission to view the contributor
-        contributor = self._get_and_check_contributor_permissions(self, request, contributor_id, ["foobar"])
+        contributor = self._get_contributor_and_check_permissions(request, contributor_id, ["foobar"])
         ordering = self.request.query_params.get("ordering", ["-created"])
-        # get filter params
+        filters = {}
+        for k in self.ALLOWED_FILTER_FIELDS:
+            if (v := self.request.query_params.get(k)) is not None:
+                filters[k] = v
         return Response(
-            self.CONTRIBUTIONS_LIST_SERIALIZER_CLASS(contributor.contribution_set.order_by(ordering), many=True).data
+            self.CONTRIBUTIONS_LIST_SERIALIZER_CLASS(
+                contributor.contribution_set.filter(**filters).order_by(ordering), many=True
+            ).data
         )
 
     @action(
         methods=["get", "patch", "delete"],
-        url_path="(?<contributor_id>/contributions/(?<contribution_id>)/)",
-        url_name="portal-contributions-detail",
+        url_path="contributions/(?P<contribution_id>[^/.]+)",
+        url_name="contribution-detail",
+        detail=True,
     )
-    def contribution_detail(self, request, contributor_id=None, contribution_id=None):
+    def contribution_detail(self, request, pk=None, contribution_id=None) -> Response:
         """Endpoint to get or update a contribution for a given contributor"""
-        # verify that the user has permission to view the contributor
-        contributor = self._get_and_check_contributor_permissions(self, request, contributor_id, ["foobar"])
+        contributor = self._get_contributor_and_check_permissions(request, pk)
         try:
             contribution = contributor.contribution_set.get(pk=contribution_id)
         except Contribution.DoesNotExist:
             return Response({"detail": "Contribution not found"}, status=status.HTTP_404_NOT_FOUND)
+
         serializer = self.CONTRIBUTIONS_DETAIL_SERIALIZER_CLASS(
             contribution, **{} if request.method == "GET" else {"data": request.data}
         )
+
         match request.method:
             case "GET":
+                # nothing additional to do
                 pass
             case "PATCH":
                 serializer.is_valid(raise_exception=True)
                 serializer.save()
             case "DELETE":
-                contribution.delete()
-                return Response(status=status.HTTP_204_NO_CONTENT)
+                return self.handle_delete(contribution)
             case _:
                 raise NotImplementedError
+
         return Response(serializer.data, status=status.HTTP_200_OK)
+
+    def handle_patch(self, serializer, request):
+        pass
+        # can payment_method_id instead be from serializer?
+        # logger.info("Updating subscription %s", pk)
+        # payment_method_id = request.data.get("payment_method_id")
+        # try:
+        #     stripe.PaymentMethod.attach(
+        #         payment_method_id,
+        #         customer=serializer.contribution.subscription.customer.id,
+        #         stripe_account=contribution.donation_page.revenue_program.payment_provider.stripe_account_id,
+        #     )
+        # except stripe.error.StripeError:
+        #     logger.exception("stripe.PaymentMethod.attach returned a StripeError")
+        #     return Response({"detail": "Error attaching payment method"}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+
+        # try:
+        #     subscription = stripe.Subscription.modify(
+        #         pk,
+        #         default_payment_method=payment_method_id,
+        #         stripe_account=revenue_program.payment_provider.stripe_account_id,
+        #         expand=[
+        #             # this is expanded so can properly serialize sub and upsert in cache
+        #             "default_payment_method",
+        #             # this is expanded so can re-retrieve PI below
+        #             "latest_invoice",
+        #         ],
+        #     )
+        # except stripe.error.StripeError:
+        #     logger.exception("stripe.Subscription.modify returned a StripeError when modifying subscription %s", pk)
+        #     return Response({"detail": "Error updating Subscription"}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+
+    def handle_delete(self, contribution):
+        # nb presumes ownership validated
+        # if one time
+        # if not have right status
+
+        # try:
+        #     stripe.Subscription.delete(
+        #         (pk := contribution.provider_subscription_id),
+        #         stripe_account=(
+        #             acct_id := contribution.donation_page.revenue_program.payment_provider.stripe_account_id
+        #         ),
+        #     )
+        # except stripe.error.StripeError:
+        #     logger.exception("stripe.Subscription.delete returned a StripeError")
+        #     # is this what we want?
+        #     return Response({"detail": "Error"}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+        # # update contributions tatus already here? happens in a webhook now too but that would be idempotent even if redundant
+        # # also allows filter behavior in spa to be intuitive right after action if webhooks are delayed for some reason, and at this point
+        # # we know that subscription is in fact deleted.  maybe just add note in duplciative place
+        # return Response()
+        pass

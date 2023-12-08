@@ -1028,3 +1028,9 @@ def invalid_google_service_account_credentials():
 @pytest.fixture
 def valid_gs_credentials(minimally_valid_google_service_account_credentials, settings):
     settings.GS_CREDENTIALS = __ensure_gs_credentials(minimally_valid_google_service_account_credentials)
+
+
+@pytest.fixture
+def stripe_subscription():
+    with open("apps/contributions/tests/fixtures/subscription.json") as fl:
+        return stripe.Subscription.construct_from(json.load(fl), key="test")

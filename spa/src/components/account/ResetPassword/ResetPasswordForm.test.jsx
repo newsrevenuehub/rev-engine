@@ -46,7 +46,7 @@ describe('ResetPasswordForm Tests', () => {
   it('should not submit if both passwords are blank', async () => {
     getScreen();
     fireEvent.submit(screen.getByRole('button'));
-    await waitFor(() => expect(screen.queryAllByRole('error')).toHaveLength(0));
+    await waitFor(() => expect(screen.queryAllByRole('alert')).toHaveLength(0));
     expect(mockSubmit).not.toBeCalled();
   });
 
@@ -58,7 +58,7 @@ describe('ResetPasswordForm Tests', () => {
       }
     });
     fireEvent.submit(screen.getByRole('button'));
-    await waitFor(() => expect(screen.queryAllByRole('error')).toHaveLength(0));
+    await waitFor(() => expect(screen.queryAllByRole('alert')).toHaveLength(0));
     expect(mockSubmit).not.toBeCalled();
   });
 
@@ -77,7 +77,7 @@ describe('ResetPasswordForm Tests', () => {
     });
 
     fireEvent.submit(screen.getByRole('button'));
-    await waitFor(() => expect(screen.queryAllByRole('error')).toHaveLength(1));
+    await waitFor(() => expect(screen.queryAllByRole('alert')).toHaveLength(1));
     expect(mockSubmit).not.toBeCalled();
   });
 
@@ -96,7 +96,7 @@ describe('ResetPasswordForm Tests', () => {
     });
 
     fireEvent.submit(screen.getByRole('button'));
-    await waitFor(() => expect(screen.queryAllByRole('error')).toHaveLength(2));
+    await waitFor(() => expect(screen.queryAllByRole('alert')).toHaveLength(2));
     expect(mockSubmit).not.toBeCalled();
   });
 
@@ -115,7 +115,7 @@ describe('ResetPasswordForm Tests', () => {
     });
 
     fireEvent.submit(screen.getByRole('button'));
-    await waitFor(() => expect(screen.queryAllByRole('error')).toHaveLength(0));
+    await waitFor(() => expect(screen.queryAllByRole('alert')).toHaveLength(0));
     expect(mockSubmit).toBeCalled();
   });
 });

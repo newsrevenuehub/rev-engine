@@ -8,7 +8,7 @@ export default {
   title: 'Base/RadioGroup'
 } as ComponentMeta<typeof RadioGroup>;
 
-const Template: ComponentStory<typeof RadioGroup> = (props) => (
+const Template: ComponentStory<typeof RadioGroup> = () => (
   <RadioGroup aria-label="Color">
     <FormControlLabel label="Red" value="red" control={<Radio />}></FormControlLabel>
     <FormControlLabel label="Green" value="green" control={<Radio />}></FormControlLabel>

@@ -104,9 +104,7 @@ describe('useStyleList hook', () => {
     const errorSpy = jest.spyOn(console, 'error').mockImplementation(() => {});
 
     axiosMock.reset();
-    axiosMock.onGet(LIST_STYLES).reply(function (config) {
-      return Promise.reject({ name: 'AuthenticationError' });
-    });
+    axiosMock.onGet(LIST_STYLES).reply(() => Promise.reject({ name: 'AuthenticationError' }));
     const { waitForValueToChange, result } = renderHook(() => useStyleList(), { wrapper });
     await waitForValueToChange(() => result.current.isError);
     expect(mockHistoryPush).toHaveBeenCalledTimes(1);

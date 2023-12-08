@@ -6,6 +6,6 @@ export default {
   title: 'Contributor/NoContributions'
 } as ComponentMeta<typeof NoContributions>;
 
-const Template: ComponentStory<typeof NoContributions> = (props) => <NoContributions />;
+const Template: ComponentStory<typeof NoContributions> = () => <NoContributions />;
 
 export const Default = Template.bind({});

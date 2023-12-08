@@ -2,9 +2,9 @@ import { axe } from 'jest-axe';
 import { render, screen } from 'test-utils';
 import { FormControlLabel } from '../FormControlLabel';
 import Radio from '../Radio/Radio';
-import RadioGroup, { RadioGroupProps } from './RadioGroup';
+import RadioGroup from './RadioGroup';
 
-function tree(props?: Partial<RadioGroupProps>) {
+function tree() {
   return render(
     <RadioGroup aria-label="Color">
       <FormControlLabel label="Red" value="red" control={<Radio />}></FormControlLabel>

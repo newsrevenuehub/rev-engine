@@ -584,11 +584,11 @@ class PortalContributorsViewSet(viewsets.GenericViewSet):
         url_name="contributions-list",
         detail=True,
     )
-    def contributions_list(self, request, contributor_id=None):
+    def contributions_list(self, request, pk=None):
         """Endpoint to get all contributions for a given contributor"""
         # verify that the user has permission to view the contributor
-        contributor = self._get_contributor_and_check_permissions(request, contributor_id, ["foobar"])
-        ordering = self.request.query_params.get("ordering", ["-created"])
+        contributor = self._get_contributor_and_check_permissions(request, pk)
+        ordering = self.request.query_params.get("ordering", "-created")
         filters = {}
         for k in self.ALLOWED_FILTER_FIELDS:
             if (v := self.request.query_params.get(k)) is not None:

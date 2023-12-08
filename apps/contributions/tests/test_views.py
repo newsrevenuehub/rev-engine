@@ -1633,35 +1633,46 @@ class TestPortalContributorsViewSet:
         return monthly_contribution.contributor
 
     def test_contributions_list_happy_path(self, portal_contributor_with_multiple_contributions, api_client, mocker):
-        api_client.force_authenticate(self.portal_contributor)
-        response = api_client.get(reverse("portal-contributions-list"))
+        api_client.force_authenticate(portal_contributor_with_multiple_contributions)
+        response = api_client.get(
+            reverse("portal-contributor-contributions-list", args=(portal_contributor_with_multiple_contributions.id,))
+        )
         assert response.status_code == status.HTTP_200_OK
         assert len(response.json()) == 2
         # assert each is instance right serializer with right value
 
     def test_contributions_list_filter_behavior(self, api_client, portal_contributor_with_multiple_contributions):
-        api_client.force_authenticate(self.portal_contributor)
+        api_client.force_authenticate(portal_contributor_with_multiple_contributions)
         (
             excluded := portal_contributor_with_multiple_contributions.contribution_set.first()
         ).status = ContributionStatus.FAILED
         excluded.save()
-        response = api_client.get(reverse("portal-contributions-list") + f"?status={ContributionStatus.PAID}")
+        response = api_client.get(
+            reverse("portal-contributor-contributions-list", args=(portal_contributor_with_multiple_contributions.id,))
+            + f"?status={ContributionStatus.PAID}"
+        )
         assert response.status_code == status.HTTP_200_OK
         assert len(response.json()) == 1
         assert (
-            response.json()[0]["uuid"]
+            response.json()[0]["id"]
             == portal_contributor_with_multiple_contributions.contribution_set.filter(status=ContributionStatus.PAID)
             .first()
-            .uuid
+            .id
         )
 
-    @pytest.mark.parametrize("ordering", ("amount", "-amount", "created", "-created"))
-    @pytest.mark.paramettrize("descending", (True, False))
+    @pytest.mark.parametrize(
+        "ordering",
+        (
+            "amount",
+            "created",
+        ),
+    )
+    @pytest.mark.parametrize("descending", (True, False))
     def test_contributions_list_ordering_behavior(
         self, portal_contributor_with_multiple_contributions, descending, ordering, api_client
     ):
         amount = 1000
-        # gaurantee we have orderable values on amount
+        # guarantee we have orderable values on amount
         for x in Contribution.objects.all():
             x.amount = amount
             amount += 1000
@@ -1669,10 +1680,10 @@ class TestPortalContributorsViewSet:
             x.save()
         api_client.force_authenticate(portal_contributor_with_multiple_contributions)
         response = api_client.get(
-            reverse("portal-contributions-list") + f"?ordering={'-' if descending else ''}{ordering}"
+            reverse("portal-contributor-contributions-list", args=(portal_contributor_with_multiple_contributions.id,))
+            + f"?ordering={'-' if descending else ''}{ordering}"
         )
         assert response.status_code == status.HTTP_200_OK
-        assert len(response.json()) == 2
         if descending:
             assert response.json()[0][ordering] > response.json()[1][ordering]
         else:
@@ -1686,19 +1697,23 @@ class TestPortalContributorsViewSet:
         return request.getfixturevalue(request.param)
 
     def test_contributions_list_when_im_not_contributor_user_type(
-        self, api_client, non_contributor_user, portal_contributor_with_multiple_contributions, superuser
+        self, api_client, non_contributor_user, portal_contributor_with_multiple_contributions
     ):
         api_client.force_authenticate(non_contributor_user)
-        response = api_client.get(reverse("portal-contributions-list"))
+        response = api_client.get(
+            reverse("portal-contributor-contributions-list", args=(portal_contributor_with_multiple_contributions.id,))
+        )
         assert response.status_code == status.HTTP_403_FORBIDDEN
 
     def test_contributions_list_when_im_not_owning_contributor(
-        self, api_client, portal_contributor_with_multiple_contributions, superuser
+        self, api_client, portal_contributor_with_multiple_contributions
     ):
         other_contributor = ContributorFactory()
         api_client.force_authenticate(other_contributor)
-        response = api_client.get(reverse("portal-contributions-list"))
-        assert response
+        response = api_client.get(
+            reverse("portal-contributor-contributions-list", args=(portal_contributor_with_multiple_contributions.id,))
+        )
+        assert response.status_code == status.HTTP_403_FORBIDDEN
 
     def test_contribution_detail_get_happy_path(
         self, api_client, portal_contributor_with_multiple_contributions, mocker

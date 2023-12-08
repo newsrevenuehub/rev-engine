@@ -81,6 +81,8 @@ export function PageName() {
               },
               inputProps: {}
             })}
+            // We think this is OK right now, but may need to change this.
+            // eslint-disable-next-line jsx-a11y/no-autofocus
             autoFocus
             id="page-name"
             label={<OffscreenText>Page Name</OffscreenText>}

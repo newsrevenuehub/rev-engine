@@ -27,8 +27,6 @@ function ResetPasswordForm({ onResetPasswordSubmit, loading }) {
   const confirmPassword = watch('confirmPassword', '');
   const disabled = !confirmPassword || !password || loading;
 
-  /* eslint-disable jsx-a11y/aria-role */
-
   return (
     <form onSubmit={disabled ? () => {} : handleSubmit(onSubmit)}>
       <S.InputLabel hasError={errors.password}>New Password</S.InputLabel>
@@ -57,7 +55,7 @@ function ResetPasswordForm({ onResetPasswordSubmit, loading }) {
         </Tooltip>
       </S.InputOuter>
       <S.Instructions>Password must be 8 characters long and alphanumerical.</S.Instructions>
-      {errors.password ? <S.Message role="error">{errors.password.message}</S.Message> : <S.MessageSpacer />}
+      {errors.password ? <S.Message role="alert">{errors.password.message}</S.Message> : <S.MessageSpacer />}
 
       <S.InputLabel hasError={errors.confirmPassword}>Confirm Password</S.InputLabel>
       <S.InputOuter hasError={errors.confirmPassword}>
@@ -85,7 +83,7 @@ function ResetPasswordForm({ onResetPasswordSubmit, loading }) {
       </S.InputOuter>
       <S.Instructions>Password must be 8 characters long and alphanumerical.</S.Instructions>
       {errors.confirmPassword ? (
-        <S.Message role="error">{errors.confirmPassword.message}</S.Message>
+        <S.Message role="alert">{errors.confirmPassword.message}</S.Message>
       ) : (
         <S.MessageSpacer />
       )}
@@ -95,8 +93,6 @@ function ResetPasswordForm({ onResetPasswordSubmit, loading }) {
       </S.Submit>
     </form>
   );
-
-  /* eslint-enable jsx-a11y/aria-role */
 }
 
 ResetPasswordForm.propTypes = {

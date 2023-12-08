@@ -24,34 +24,37 @@ const Template: ComponentStory<typeof ImageUpload> = (props) => <ImageUpload {..
 
 export const Empty = Template.bind({});
 Empty.args = {
+  id: 'empty',
   prompt: 'Choose an image',
   label: (
     <OffscreenText>
-      <label>Main image</label>
+      <label htmlFor="empty">Main image</label>
     </OffscreenText>
   )
 };
 
 export const WithLabel = Template.bind({});
-WithLabel.args = { prompt: 'Choose an image', label: <label>Main image</label> };
+WithLabel.args = { id: 'with-label', prompt: 'Choose an image', label: <label htmlFor="withLabel">Main image</label> };
 
 export const WithThumbnailOnly = Template.bind({});
 WithThumbnailOnly.args = {
+  id: 'with-thumbnail-only',
   thumbnailUrl: sampleImageUri,
   label: (
     <OffscreenText>
-      <label>Main image</label>
+      <label htmlFor="with-thumbnail-only">Main image</label>
     </OffscreenText>
   )
 };
 
 export const WithImage = Template.bind({});
 WithImage.args = {
+  id: 'with-image',
   thumbnailUrl: sampleImageUri,
   value: sampleImage,
   label: (
     <OffscreenText>
-      <label>Main image</label>
+      <label htmlFor="with-image">Main image</label>
     </OffscreenText>
   )
 };

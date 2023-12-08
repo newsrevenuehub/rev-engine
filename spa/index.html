@@ -10,6 +10,9 @@
 
     <meta property="csp-nonce" content="{{ request.csp_nonce }}" />
 
+    <!-- Shim for Node modules -->
+    <script>window.global ||= window</script>
+
     <!-- Google Tag Manager -->
     {% if gtm_id %}
     <script nonce="{{ request.csp_nonce }}">

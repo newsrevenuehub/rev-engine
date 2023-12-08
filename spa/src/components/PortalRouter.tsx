@@ -27,6 +27,16 @@ function PortalRouter() {
             </PortalPage>
           )}
           contributor
+          exact
+        />
+        <ProtectedRoute
+          path={ROUTES.PORTAL.CONTRIBUTION_DETAIL}
+          render={() => (
+            <PortalPage>
+              <TransactionsList />
+            </PortalPage>
+          )}
+          contributor
         />
         <SentryRoute
           exact

@@ -1,7 +1,19 @@
 import { axe } from 'jest-axe';
 import { PortalContribution } from 'hooks/usePortalContributionList';
 import { render, screen } from 'test-utils';
-import ContributionItem, { ContributionItemProps, formattedCardBrands, formattedStatuses } from './ContributionItem';
+import ContributionItem, { ContributionItemProps, formattedStatuses } from './ContributionItem';
+import { formattedCardBrands } from 'constants/creditCard';
+import { LinkProps } from 'react-router-dom';
+
+jest.mock('react-router-dom', () => ({
+  ...jest.requireActual('react-router-dom'),
+  Link: ({ 'aria-selected': ariaSelected, children, replace, to }: LinkProps) => (
+    // eslint-disable-next-line jsx-a11y/role-supports-aria-props
+    <a aria-selected={ariaSelected} href={to} data-mock-replace={replace}>
+      {children}
+    </a>
+  )
+}));
 
 const mockContribution: PortalContribution = {
   amount: 12345,
@@ -26,6 +38,33 @@ function tree(props?: Partial<ContributionItemProps>) {
 }
 
 describe('ContributionItem', () => {
+  describe('The link it displays', () => {
+    it('goes to the contribution detail route', () => {
+      tree();
+      expect(screen.getByRole('link')).toHaveAttribute('href', '/portal/my-contributions/mock-payment-provider-id/');
+    });
+
+    it("doesn't replace history by default", () => {
+      tree();
+      expect(screen.getByRole('link')).toHaveAttribute('data-mock-replace', 'false');
+    });
+
+    it('replaces history if the replaceHistory prop is true', () => {
+      tree({ replaceHistory: true });
+      expect(screen.getByRole('link')).toHaveAttribute('data-mock-replace', 'true');
+    });
+
+    it('is unselected by default', () => {
+      tree();
+      expect(screen.getByRole('link')).not.toHaveAttribute('aria-selected');
+    });
+
+    it('is selected if the selected prop is true', () => {
+      tree({ selected: true });
+      expect(screen.getByRole('link')).toHaveAttribute('aria-selected', 'true');
+    });
+  });
+
   it.each([
     ['one_time', 'One time'],
     ['month', 'Monthly'],

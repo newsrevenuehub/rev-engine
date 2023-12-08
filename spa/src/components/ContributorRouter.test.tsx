@@ -127,7 +127,7 @@ describe('ContributorRouter', () => {
   });
 
   it('renders nothing when: subdomain is not set and page data has not been fetched yet', () => {
-    useRequestMock.mockImplementation(() => (_: any) => {});
+    useRequestMock.mockImplementation(() => () => {});
     tree();
     expect(screen.queryByTestId('mock-segregated-styles')).not.toBeInTheDocument();
   });

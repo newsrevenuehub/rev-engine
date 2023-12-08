@@ -154,10 +154,12 @@ describe('getPaymentSuccessUrl', () => {
     expect(search.get('rpSlug')).toBe(args.rpSlug);
     expect(search.get('fromPath')).toBe(args.pathName === '/' ? '' : args.pathName);
   });
-  // this test is here syntax in original implementation was flawed and caused `amount: 1` to
-  // raise the missing args error.
+
   it('accepts an amount of 1', () => {
-    getPaymentSuccessUrl(mocki18n, { ...fromDefaultPageParams, amount: 1 } as any);
+    // this test is here syntax in original implementation was flawed and caused `amount: 1` to
+    // raise the missing args error.
+
+    expect(() => getPaymentSuccessUrl(mocki18n, { ...fromDefaultPageParams, amount: 1 } as any)).not.toThrow();
   });
 
   it('throws if a necessary param is missing', () =>

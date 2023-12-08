@@ -161,21 +161,17 @@ export function useContributionPage(revenueProgramSlugOrPageId?: number | string
       // Always pass in the updated page name
       const latestPageName = { ...page, name: data.name ?? page.name };
 
-      if (page.styles?.id && !data.styles && latestPageName.name !== page.styles?.name) {
+      if (data.styles) {
+        // Page style has changed. Either create a new one or update the existing.
+
+        const mutator = data.styles?.id ? updateStyle : createStyle;
+        const { data: response } = await mutator(data.styles, latestPageName);
+        styles = response;
+      } else if (page.styles?.id && !data.styles && latestPageName.name !== page.styles?.name) {
         // If a page is updated and the name is different from the style name, update the style name
         // so that style and page names are always in sync
         const { data: response } = await updateStyle(page.styles, latestPageName);
         styles = response;
-      }
-
-      if (data.styles) {
-        if (data.styles?.id) {
-          const { data: response } = await updateStyle(data.styles, latestPageName);
-          styles = response;
-        } else {
-          const { data: response } = await createStyle(data.styles, latestPageName);
-          styles = response;
-        }
       }
 
       const formData = await pageUpdateToFormData(

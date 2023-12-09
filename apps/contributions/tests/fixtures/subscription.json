@@ -21,7 +21,54 @@
     "currency": "usd",
     "current_period_end": 1704495247,
     "current_period_start": 1701816847,
-    "customer": "cus_fake",
+    "customer": {
+        "id": "cus_fake",
+        "object": "customer",
+        "address": {
+            "city": "Toronto",
+            "country": "CA",
+            "line1": "123 Queen Street West",
+            "line2": "",
+            "postal_code": "M5H 3M9",
+            "state": "Ontario"
+        },
+        "balance": 0,
+        "created": 1701816847,
+        "currency": "usd",
+        "default_currency": "usd",
+        "default_source": null,
+        "delinquent": false,
+        "description": null,
+        "discount": null,
+        "email": "foo@bar.org",
+        "invoice_prefix": "3491EEF9",
+        "invoice_settings": {
+            "custom_fields": null,
+            "default_payment_method": null,
+            "footer": null,
+            "rendering_options": null
+        },
+        "livemode": false,
+        "metadata": {},
+        "name": "Foo Bar",
+        "next_invoice_sequence": 2,
+        "phone": "3333",
+        "preferred_locales": [],
+        "shipping": {
+            "address": {
+                "city": "Toronto",
+                "country": "CA",
+                "line1": "123 Queen Street West",
+                "line2": "",
+                "postal_code": "M5H 3M9",
+                "state": "Ontario"
+            },
+            "name": "ben white",
+            "phone": null
+        },
+        "tax_exempt": "none",
+        "test_clock": null
+    },
     "days_until_due": null,
     "default_payment_method": "pm_fake",
     "default_source": null,

@@ -614,7 +614,7 @@ class PortalContributorsViewSet(viewsets.GenericViewSet):
             return Response({"detail": "Contribution not found"}, status=status.HTTP_404_NOT_FOUND)
 
         serializer = self.CONTRIBUTIONS_DETAIL_SERIALIZER_CLASS(
-            contribution, **{} if request.method == "GET" else {"data": request.data}
+            instance=contribution, **{} if request.method == "GET" else {"data": request.data}
         )
 
         match request.method:
@@ -623,7 +623,7 @@ class PortalContributorsViewSet(viewsets.GenericViewSet):
                 pass
             case "PATCH":
                 serializer.is_valid(raise_exception=True)
-                serializer.save()
+                return self.handle_patch(serializer=serializer, request=request)
             case "DELETE":
                 return self.handle_delete(contribution)
             case _:
@@ -632,54 +632,59 @@ class PortalContributorsViewSet(viewsets.GenericViewSet):
         return Response(serializer.data, status=status.HTTP_200_OK)
 
     def handle_patch(self, serializer, request):
-        pass
-        # can payment_method_id instead be from serializer?
-        # logger.info("Updating subscription %s", pk)
-        # payment_method_id = request.data.get("payment_method_id")
-        # try:
-        #     stripe.PaymentMethod.attach(
-        #         payment_method_id,
-        #         customer=serializer.contribution.subscription.customer.id,
-        #         stripe_account=contribution.donation_page.revenue_program.payment_provider.stripe_account_id,
-        #     )
-        # except stripe.error.StripeError:
-        #     logger.exception("stripe.PaymentMethod.attach returned a StripeError")
-        #     return Response({"detail": "Error attaching payment method"}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+        # TODO: [DEV-2286] should we look in the cache first for the Subscription (and related) objects to avoid extra API calls?
+        try:
+            subscription = stripe.Subscription.retrieve(
+                serializer.instance.provider_subscription_id,
+                stripe_account=serializer.instance.revenue_program.payment_provider.stripe_account_id,
+                expand=["customer"],
+            )
+        except stripe.error.StripeError:
+            logger.exception("stripe.Subscription.retrieve returned a StripeError")
+            return Response({"detail": "subscription not found"}, status=status.HTTP_404_NOT_FOUND)
+        # dont love this
+        if (email := request.user.email.lower()) != subscription.customer.email.lower():
+            # TODO: [DEV-2287] should we find a way to user DRF's permissioning scheme here instead?
+            # treat as not found so as to not leak info about subscription
+            logger.warning("User %s attempted to update unowned subscription %s", email, subscription.id)
+            return Response({"detail": "subscription not found"}, status=status.HTTP_404_NOT_FOUND)
 
-        # try:
-        #     subscription = stripe.Subscription.modify(
-        #         pk,
-        #         default_payment_method=payment_method_id,
-        #         stripe_account=revenue_program.payment_provider.stripe_account_id,
-        #         expand=[
-        #             # this is expanded so can properly serialize sub and upsert in cache
-        #             "default_payment_method",
-        #             # this is expanded so can re-retrieve PI below
-        #             "latest_invoice",
-        #         ],
-        #     )
-        # except stripe.error.StripeError:
-        #     logger.exception("stripe.Subscription.modify returned a StripeError when modifying subscription %s", pk)
-        #     return Response({"detail": "Error updating Subscription"}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+        # presumes the client is entitled to this pm id
+        payment_method_id = request.data.get("provider_payment_method_id")
+
+        try:
+            stripe.PaymentMethod.attach(
+                payment_method_id,
+                customer=subscription.customer.id,
+                stripe_account=serializer.instance.revenue_program.payment_provider.stripe_account_id,
+            )
+        except stripe.error.StripeError:
+            logger.exception("stripe.PaymentMethod.attach returned a StripeError")
+            return Response({"detail": "Error attaching payment method"}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+        try:
+            stripe.Subscription.modify(
+                subscription.id,
+                default_payment_method=payment_method_id,
+                stripe_account=serializer.instance.revenue_program.payment_provider.stripe_account_id,
+            )
+        except stripe.error.StripeError:
+            logger.exception(
+                "stripe.Subscription.modify returned a StripeError when modifying subscription %s", subscription.id
+            )
+            return Response({"detail": "Error updating Subscription"}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+        return Response(serializer.data, status=status.HTTP_200_OK)
 
     def handle_delete(self, contribution):
         # nb presumes ownership validated
         # if one time
         # if not have right status
-
-        # try:
-        #     stripe.Subscription.delete(
-        #         (pk := contribution.provider_subscription_id),
-        #         stripe_account=(
-        #             acct_id := contribution.donation_page.revenue_program.payment_provider.stripe_account_id
-        #         ),
-        #     )
-        # except stripe.error.StripeError:
-        #     logger.exception("stripe.Subscription.delete returned a StripeError")
-        #     # is this what we want?
-        #     return Response({"detail": "Error"}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
-        # # update contributions tatus already here? happens in a webhook now too but that would be idempotent even if redundant
-        # # also allows filter behavior in spa to be intuitive right after action if webhooks are delayed for some reason, and at this point
-        # # we know that subscription is in fact deleted.  maybe just add note in duplciative place
-        # return Response()
-        pass
+        try:
+            stripe.Subscription.delete(
+                contribution.provider_subscription_id,
+                stripe_account=contribution.donation_page.revenue_program.payment_provider.stripe_account_id,
+            )
+        except stripe.error.StripeError:
+            logger.exception("stripe.Subscription.delete returned a StripeError")
+            # is this what we want?
+            return Response({"detail": "Error"}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+        return Response(status=status.HTTP_204_NO_CONTENT)

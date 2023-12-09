@@ -829,7 +829,7 @@ class SubscriptionsSerializer(serializers.Serializer):
         return instance.default_payment_method.type
 
 
-PORTAL_CONTRIBUTION_BASE_SERIALIAZER_FIELDS = [
+PORTAL_CONTRIBUTION_BASE_SERIALIZER_FIELDS = [
     # new -- makes testing much easier and is basically
     "id",
     "amount",
@@ -854,13 +854,12 @@ PORTAL_CONTRIBUTION_BASE_SERIALIAZER_FIELDS = [
 
 class PortalContributionBaseSerializer(serializers.ModelSerializer):
     revenue_program = serializers.PrimaryKeyRelatedField(read_only=True)
-    # next_payment_date = serializers.DateTimeField(read_only=True)
-    last_payment_date = serializers.DateTimeField(source="_last_payment_date")
+    last_payment_date = serializers.DateTimeField(source="_last_payment_date", read_only=True)
 
     class Meta:
         model = Contribution
-        fields = PORTAL_CONTRIBUTION_BASE_SERIALIAZER_FIELDS
-        read_only_fields = PORTAL_CONTRIBUTION_BASE_SERIALIAZER_FIELDS
+        fields = PORTAL_CONTRIBUTION_BASE_SERIALIZER_FIELDS
+        read_only_fields = PORTAL_CONTRIBUTION_BASE_SERIALIZER_FIELDS
 
     def create(self, validated_data):
         logger.info("create called but not supported. this will be a no-op")
@@ -893,7 +892,7 @@ class PortalContributionPaymentSerializer(serializers.ModelSerializer):
         read_only_fields = PORTAL_CONTRIBIBUTION_PAYMENT_SERIALIZER_DB_FIELDS
 
 
-PORTAL_CONTRIBUTION_DETAIL_SERIALIZER_DB_FIELDS = PORTAL_CONTRIBUTION_BASE_SERIALIAZER_FIELDS + [
+PORTAL_CONTRIBUTION_DETAIL_SERIALIZER_DB_FIELDS = PORTAL_CONTRIBUTION_BASE_SERIALIZER_FIELDS + [
     "payments",
     "paid_fees",
 ]
@@ -905,10 +904,12 @@ class PortalContributionDetailSerializer(PortalContributionBaseSerializer):
     class Meta:
         model = Contribution
         fields = PORTAL_CONTRIBUTION_DETAIL_SERIALIZER_DB_FIELDS
-        read_only_fields = PORTAL_CONTRIBUTION_DETAIL_SERIALIZER_DB_FIELDS
+        read_only_fields = [
+            K for K in PORTAL_CONTRIBUTION_DETAIL_SERIALIZER_DB_FIELDS if K != "provider_payment_method_id"
+        ]
 
 
-PORTAL_CONTRIBUTION_LIST_SERIALIZER_DB_FIELDS = PORTAL_CONTRIBUTION_BASE_SERIALIAZER_FIELDS + [
+PORTAL_CONTRIBUTION_LIST_SERIALIZER_DB_FIELDS = PORTAL_CONTRIBUTION_BASE_SERIALIZER_FIELDS + [
     "id",
 ]
 

@@ -830,7 +830,7 @@ describe('User flow: unhappy paths', () => {
       .findByRole('button', { name: /Continue to Payment/ })
       .click();
     cy.wait('@create-one-time-payment__unauthorized');
-    cy.get('[data-testid="500-something-wrong"]');
+    cy.get('[data-testid="live-error-fallback"]');
   });
 
   specify("Users indicates they want to specify an amount, but doesn't specify an actual number", () => {
@@ -875,7 +875,7 @@ describe('User flow: unhappy paths', () => {
     cy.get('[data-testid*="mailing_state"]').type('NY');
     cy.get('[data-testid*="mailing_postal_code"]').type('100738');
     cy.get('#country').type('a{enter}');
-    cy.get('[data-testid="500-something-wrong"]').should('not.exist');
+    cy.get('[data-testid="live-error-fallback"]').should('not.exist');
   });
 });
 

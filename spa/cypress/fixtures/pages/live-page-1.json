@@ -134,7 +134,8 @@
     "id": 123,
     "fontSizes": ["12px", "16px", "24px", "32px", "48px", "84px", "96px"],
     "font": {
-      "body": "'Roboto', sans-serif", "heading": "'Roboto', sans-serif"
+      "body": "'Roboto', sans-serif",
+      "heading": "'Roboto', sans-serif"
     },
     "radii": ["20px", "40px", "80px"],
     "colors": {
@@ -146,7 +147,7 @@
       "cstm_inputBackground": "#c3c3c3",
       "cstm_inputBorder": "#080708"
     },
-    "name": "mock-style",
+    "name": "Test Page 1",
     "ruleStyle": "dotted"
   },
   "revenue_program": {

@@ -5,7 +5,10 @@
     "no": "No",
     "error": {
       "generic": "Encontramos un problema y se nos ha notificado. Por favor, intente nuevamente.",
-      "internalError": "Hemos encontrado un error. Por favor, actualice la página e intente nuevamente."
+      "internalError": {
+        "heading": "Hemos encontrado un error.",
+        "message": "Por favor, actualice la página e intente nuevamente."
+      }
     },
     "actions": {
       "back": "Regrese"

@@ -1,30 +1,20 @@
 import styled from 'styled-components';
 
-export const Wrapper = styled.div`
+export const Root = styled.div`
+  align-items: center;
   flex: 1;
   display: flex;
+  flex-direction: column;
+  gap: 12px;
   justify-content: center;
-  background: ${(props) => props.theme.colors.fieldBackground};
+  padding: 24px;
+  background-color: #fee6eb;
 `;
 
-export const Content = styled.div`
-  margin-top: 10%;
+export const Heading = styled.p`
+  font-size: ${({ theme }) => theme.fontSizesUpdated.lg};
 `;
 
-export const FiveHundred = styled.h2`
-  display: block;
-  font-size: ${(props) => props.theme.fontSizes[6]};
-  font-weight: 900;
-  text-transform: uppercase;
-  text-align: center;
-  color: ${(props) => props.theme.colors.grey[4]};
-  margin: 0;
-  padding: 0;
-  margin-bottom: 1rem;
-
-  @media (${(props) => props.theme.breakpoints.tabletLandscapeDown}) {
-    font-size: ${(props) => props.theme.fontSizes[5]};
-  }
+export const Message = styled.p`
+  font-size: ${({ theme }) => theme.fontSizesUpdated.md};
 `;
-
-export const Description = styled.p``;

@@ -36,17 +36,17 @@ describe('SystemNotification', () => {
     const { container } = tree({ type: notificationType });
     expect(await axe(container)).toHaveNoViolations();
   });
-  it.each(notificationTypeValues)("should call 'handleClose' callback when type is %p", async (notificationType) => {
+  it.each(notificationTypeValues)("should call 'handleClose' callback when type is %p", async () => {
     tree();
     fireEvent.click(screen.getByRole('button', { name: 'close notification' }));
     expect(closeSnackbar).toBeCalledWith('mock-id');
   });
-  it.each(notificationTypeValues)('should render "header" text when type is %p', async (notificationType) => {
+  it.each(notificationTypeValues)('should render "header" text when type is %p', async () => {
     const header = 'Notification header!';
     tree({ header });
     expect(screen.getByRole('heading', { level: 2, name: header })).toBeVisible();
   });
-  it.each(notificationTypeValues)('should render "body" text when type is %p', async (notificationType) => {
+  it.each(notificationTypeValues)('should render "body" text when type is %p', async () => {
     const message = 'Notwithstanding Descartes, you are because of me.';
     tree({ message });
     expect(screen.getByText(message)).toBeVisible();

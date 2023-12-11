@@ -18,6 +18,11 @@ const config = defineConfig({
     // problems in Jest.
     'process.env.NODE_ENV': `"${process.env.NODE_ENV}"`
   },
+  optimizeDeps: {
+    // Needed because Storybook was showing a "504 Outdated Optimize Dep" error.
+    // See https://github.com/vitejs/vite/issues/12434
+    exclude: ['sb-vite']
+  },
   plugins: [
     checker({
       eslint: { lintCommand: 'eslint src' },
@@ -44,7 +49,11 @@ const config = defineConfig({
 if (!process.env.REACT_APP_NO_PROXY) {
   config.server.proxy = {
     '/api': {
-      target: 'http://localhost:8000',
+      target: 'http://127.0.0.1:8000',
+      changeOrigin: true
+    },
+    '/media': {
+      target: 'http://127.0.0.1:8000',
       changeOrigin: true
     }
   };

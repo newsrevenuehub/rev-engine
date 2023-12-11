@@ -253,13 +253,6 @@ describe('DDonorAddress', () => {
   });
 
   describe('Google location autocomplete', () => {
-    it('initializes autocomplete with the API key and language in config', () => {
-      tree();
-      expect(usePlacesWidget).toBeCalledWith(
-        expect.objectContaining({ apiKey: HUB_GOOGLE_MAPS_API_KEY, language: 'mock-locale' })
-      );
-    });
-
     it('updates fields when a place is selected', () => {
       const city = mockAddressComponents.find(({ types }) => types.includes('locality'))!.long_name;
       const state = mockAddressComponents.find(({ types }) => types.includes('administrative_area_level_1'))!.long_name;

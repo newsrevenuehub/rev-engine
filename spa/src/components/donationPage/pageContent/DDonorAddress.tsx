@@ -5,7 +5,6 @@ import Grid from '@material-ui/core/Grid';
 import PropTypes, { InferProps } from 'prop-types';
 import { ChangeEvent, useMemo, useState } from 'react';
 import { usePlacesWidget } from 'react-google-autocomplete';
-import { HUB_GOOGLE_MAPS_API_KEY } from 'appSettings';
 import { CountryOption } from 'components/base';
 import { usePage } from 'components/donationPage/DonationPage';
 import DElement from 'components/donationPage/pageContent/DElement';
@@ -51,7 +50,7 @@ export interface DDonorAddressProps extends InferProps<typeof DDonorAddressPropT
 
 function DDonorAddress({ element }: DDonorAddressProps) {
   const { t } = useTranslation();
-  const { errors, mailingCountry, setMailingCountry, page } = usePage();
+  const { errors, mailingCountry, setMailingCountry } = usePage();
   const [address, setAddress] = useState('');
   const [showComplement, setShowComplement] = useState(false);
   const [complement, setComplement] = useState('');
@@ -80,12 +79,10 @@ function DDonorAddress({ element }: DDonorAddressProps) {
   }, [element.content?.additionalStateFieldLabels, t]);
 
   const { ref: addressInputRef } = usePlacesWidget<HTMLInputElement>({
-    apiKey: HUB_GOOGLE_MAPS_API_KEY,
     // Allow browser autofill on the address field at pageload. We will disable
     // it when the field is focused.
     inputAutocompleteValue: '',
     options: { types: ['address'] },
-    language: page.locale,
     onPlaceSelected: ({ address_components }) => {
       // The API will not return this property in all cases; if so, do nothing.
 

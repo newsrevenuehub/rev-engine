@@ -1,16 +1,14 @@
 import { useTranslation } from 'react-i18next';
-import { Wrapper, FiveHundred, Description, Content } from './LiveErrorFallback.styled';
+import { Heading, Message, Root } from './LiveErrorFallback.styled';
 
 function LiveErrorFallback() {
   const { t } = useTranslation();
 
   return (
-    <Wrapper data-testid="500-something-wrong">
-      <Content>
-        <FiveHundred>500</FiveHundred>
-        <Description>{t('common.error.internalError')}</Description>
-      </Content>
-    </Wrapper>
+    <Root data-testid="live-error-fallback">
+      <Heading>{t('common.error.internalError.heading')}</Heading>
+      <Message>{t('common.error.internalError.message')}</Message>
+    </Root>
   );
 }
 

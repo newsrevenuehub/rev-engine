@@ -361,8 +361,57 @@ describe('useContributionPage', () => {
       expect(axiosMock.history.patch[0].url).toBe(`pages/${mockPage.id}/`);
 
       expect(useStyleListMock().updateStyle).toHaveBeenCalledTimes(1);
-      expect(useStyleListMock().updateStyle).toBeCalledWith(mockStyles);
+      expect(useStyleListMock().updateStyle).toBeCalledWith(mockStyles, mockPage);
       expect(formDataToObject(axiosMock.history.patch[0].data as FormData)).toEqual({ styles: mockStyles.id });
+      await waitForNextUpdate();
+    });
+
+    it('should call updateStyle if latest page name is different than current style name', async () => {
+      const mockStyles = { id: 'mock-style-id', name: 'old-name' };
+      const mockNewPage = { ...mockPage, name: 'new-name', styles: mockStyles };
+
+      axiosMock
+        .onGet('pages/draft-detail/', { revenue_program: 'mock-rp-slug', page: 'mock-page-slug' })
+        .reply(200, mockNewPage);
+      axiosMock.onPatch(`pages/${mockPage.id}/`).reply(200, mockNewPage);
+
+      const { result, waitForNextUpdate } = renderHook(testHookWithSlugs, { wrapper: TestQueryClientProvider });
+
+      await waitForNextUpdate();
+      expect(useStyleListMock().updateStyle).not.toBeCalled();
+      expect(axiosMock.history.patch.length).toBe(0);
+      await result.current.updatePage!({ published_date: '10-10-2020' });
+      expect(axiosMock.history.patch.length).toBe(1);
+      expect(axiosMock.history.patch[0].url).toBe(`pages/${mockPage.id}/`);
+
+      expect(useStyleListMock().updateStyle).toHaveBeenCalledTimes(1);
+      expect(useStyleListMock().updateStyle).toBeCalledWith(mockStyles, mockNewPage);
+      expect(formDataToObject(axiosMock.history.patch[0].data as FormData)).toEqual({
+        published_date: '10-10-2020',
+        styles: mockStyles.id
+      });
+      await waitForNextUpdate();
+    });
+
+    it('should call updateStyle with latest page name', async () => {
+      const mockStyles = { id: 'mock-style-id' };
+      axiosMock.onPatch(`pages/${mockPage.id}/`).reply(200, mockPage);
+
+      const { result, waitForNextUpdate } = renderHook(testHookWithSlugs, { wrapper: TestQueryClientProvider });
+
+      await waitForNextUpdate();
+      expect(useStyleListMock().updateStyle).not.toBeCalled();
+      expect(axiosMock.history.patch.length).toBe(0);
+      await result.current.updatePage!({ styles: mockStyles, name: 'mock-new-page-name' } as any);
+      expect(axiosMock.history.patch.length).toBe(1);
+      expect(axiosMock.history.patch[0].url).toBe(`pages/${mockPage.id}/`);
+
+      expect(useStyleListMock().updateStyle).toHaveBeenCalledTimes(1);
+      expect(useStyleListMock().updateStyle).toBeCalledWith(mockStyles, { ...mockPage, name: 'mock-new-page-name' });
+      expect(formDataToObject(axiosMock.history.patch[0].data as FormData)).toEqual({
+        styles: mockStyles.id,
+        name: 'mock-new-page-name'
+      });
       await waitForNextUpdate();
     });
 

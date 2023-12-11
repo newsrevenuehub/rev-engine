@@ -86,8 +86,7 @@ function SignUpForm({ onSubmitSignUp, loading, errorMessage }: SignUpFormProps) 
   const renderEmailError = useMemo(() => {
     if (errors.email) {
       return (
-        // eslint-disable-next-line jsx-a11y/aria-role
-        <Message role="error" data-testid="email-error">
+        <Message role="alert" data-testid="email-error">
           {errors.email.message}
         </Message>
       );
@@ -141,8 +140,7 @@ function SignUpForm({ onSubmitSignUp, loading, errorMessage }: SignUpFormProps) 
         </Tooltip>
       </InputOuter>
       {errors.password || errorMessage?.password ? (
-        // eslint-disable-next-line jsx-a11y/aria-role
-        <Message role="error">{errors?.password?.message || errorMessage?.password}</Message>
+        <Message role="alert">{errors?.password?.message || errorMessage?.password}</Message>
       ) : (
         <Message info="true">Password must be at least 8 characters long.</Message>
       )}

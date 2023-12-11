@@ -40,8 +40,8 @@ export interface UseStyleListResult {
   styles: Style[];
   refetch: () => void;
   deleteStyle: (styles: Partial<Style>) => Promise<AxiosResponse>;
-  updateStyle: (styles: Partial<Style>) => Promise<AxiosResponse<Style>>;
-  createStyle: (styles: Partial<Style>, page?: ContributionPage) => Promise<AxiosResponse<Style>>;
+  updateStyle: (styles: Partial<Style>, page: ContributionPage) => Promise<AxiosResponse<Style>>;
+  createStyle: (styles: Partial<Style>, page: ContributionPage) => Promise<AxiosResponse<Style>>;
 }
 
 function useStyleList(): UseStyleListResult {
@@ -76,28 +76,28 @@ function useStyleList(): UseStyleListResult {
   };
 
   const updateStyleMutation = useMutation(
-    (styles: Partial<Style>) => {
+    ({ styles, page }: { styles: Partial<Style>; page: ContributionPage }) => {
       if (!styles || !styles.id) {
         // Should never happen
         throw new Error('Style is not yet defined');
       }
 
-      return axios.patch<Style>(`${LIST_STYLES}${styles.id}/`, styles);
+      return axios.patch<Style>(`${LIST_STYLES}${styles.id}/`, {
+        ...styles,
+        name: page.name
+      });
     },
     {
       onError: onSaveStylesError
     }
   );
 
-  const updateStyle = async (styles: Partial<Style>) => {
-    return await updateStyleMutation.mutateAsync(styles);
+  const updateStyle = async (styles: Partial<Style>, page: ContributionPage) => {
+    return await updateStyleMutation.mutateAsync({ styles, page });
   };
 
   const createStyleMutation = useMutation(
-    ({ styles, page }: { styles: Partial<Style>; page?: ContributionPage }) => {
-      if (!page) {
-        throw new Error('Page is not yet defined');
-      }
+    ({ styles, page }: { styles: Partial<Style>; page: ContributionPage }) => {
       if (!styles) {
         // Should never happen
         throw new Error('Style is not yet defined');
@@ -113,7 +113,7 @@ function useStyleList(): UseStyleListResult {
     }
   );
 
-  const createStyle = async (styles: Partial<Style>, page?: ContributionPage) => {
+  const createStyle = async (styles: Partial<Style>, page: ContributionPage) => {
     return await createStyleMutation.mutateAsync({ styles, page });
   };
 

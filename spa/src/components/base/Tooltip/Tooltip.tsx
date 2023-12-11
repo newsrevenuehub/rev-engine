@@ -11,6 +11,8 @@ export interface TooltipProps extends MuiTooltipProps {
 
 // See https://v4.mui.com/guides/interoperability/#portals
 
+// tooltipWidth is used in styled component below.
+// eslint-disable-next-line @typescript-eslint/no-unused-vars
 const WrappedTooltip = ({ className, tooltipWidth, ...other }: TooltipProps) => (
   <MuiTooltip classes={{ tooltip: className }} PopperProps={{ modifiers: { offset: { offset: '0,6' } } }} {...other} />
 );

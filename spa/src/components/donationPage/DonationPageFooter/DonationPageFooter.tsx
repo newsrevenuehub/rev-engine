@@ -18,7 +18,6 @@ function DonationPageFooter({ page }: DonationPageFooterProps) {
   return (
     <Root data-testid="donation-page-footer">
       <Content>
-        {/* eslint-disable-next-line react/jsx-no-target-blank */}
         <a href={HOME_PAGE_URL} target="_blank">
           {t('donationPage.donationPageFooter.whatIsFundJournalismOrg')}
         </a>

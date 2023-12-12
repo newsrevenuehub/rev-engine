@@ -5,7 +5,10 @@
     "no": "No",
     "error": {
       "generic": "We encountered an issue and have been notified. Please try again.",
-      "internalError": "We've encountered an error. Please refresh and try again."
+      "internalError": {
+        "heading": "We've encountered an error.",
+        "message": "Please refresh and try again."
+      }
     },
     "actions": {
       "back": "Back"

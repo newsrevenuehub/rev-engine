@@ -24,7 +24,7 @@ from apps.contributions.models import (
     ContributionStatus,
     Contributor,
 )
-from apps.contributions.serializers import ContributionSerializer
+from apps.contributions.serializers import ContributionSerializer, PortalContributionBaseSerializer
 from apps.contributions.tests.factories import ContributionFactory, ContributorFactory
 from apps.contributions.types import StripeMetadataSchemaBase, StripePaymentMetadataSchemaV1_4
 from apps.contributions.utils import get_sha256_hash
@@ -1671,3 +1671,26 @@ class TestStripeMetadataSchemaBase:
     def test_normalize_boolean_when_value_is_not_valid_type(self, value):
         with pytest.raises(ValueError):
             StripeMetadataSchemaBase.normalize_boolean(value)
+
+
+class TestPortalContributionBaseSerializer:
+    @pytest.mark.parametrize(
+        "method, args",
+        (
+            ("create", (None,)),
+            (
+                "update",
+                (
+                    None,
+                    None,
+                ),
+            ),
+            (
+                "delete",
+                (None,),
+            ),
+        ),
+    )
+    def test_unsupported_methods(self, method, args):
+        with pytest.raises(NotImplementedError):
+            getattr(PortalContributionBaseSerializer(), method)(*args)

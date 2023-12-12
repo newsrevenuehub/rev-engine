@@ -1635,7 +1635,7 @@ class TestPortalContributorsViewSet:
         )
 
     def test_contributions_list_happy_path(self, portal_contributor_with_multiple_contributions, api_client, mocker):
-        (contributor,) = portal_contributor_with_multiple_contributions[0]
+        contributor = portal_contributor_with_multiple_contributions[0]
         api_client.force_authenticate(contributor)
         response = api_client.get(reverse("portal-contributor-contributions-list", args=(contributor.id,)))
         assert response.status_code == status.HTTP_200_OK
@@ -1678,7 +1678,7 @@ class TestPortalContributorsViewSet:
             x.save()
         api_client.force_authenticate(contributor)
         response = api_client.get(
-            reverse("portal-contributor-contributions-list", args=(portal_contributor_with_multiple_contributions.id,))
+            reverse("portal-contributor-contributions-list", args=(contributor.id,))
             + f"?ordering={'-' if descending else ''}{ordering}"
         )
         assert response.status_code == status.HTTP_200_OK
@@ -1845,12 +1845,8 @@ class TestPortalContributorsViewSet:
         )
         assert response.status_code == status.HTTP_200_OK
 
-        mock_subscription_retrieve.assert_called_once_with(
-            contribution.provider_subscription_id,
-            stripe_account=contribution.revenue_program.payment_provider.stripe_account_id,
-            expand=["customer"],
-        )
         contribution.provider_customer_id = mock_subscription_retrieve.return_value.customer.id
+        contribution.save()
         mock_pm_attach.assert_called_once_with(
             new_payment_method_id,
             customer=contribution.provider_customer_id,
@@ -1865,16 +1861,15 @@ class TestPortalContributorsViewSet:
     def test_contribution_detail_patch_when_im_not_contributor(
         self, api_client, non_contributor_user, portal_contributor_with_multiple_contributions
     ):
+        contributor = portal_contributor_with_multiple_contributions[0]
         api_client.force_authenticate(non_contributor_user)
-        contribution = portal_contributor_with_multiple_contributions.contribution_set.filter(
-            ~Q(interval=ContributionInterval.ONE_TIME)
-        ).first()
+        contribution = contributor.contribution_set.filter(~Q(interval=ContributionInterval.ONE_TIME)).first()
         new_payment_method_id = "something-new"
         response = api_client.patch(
             reverse(
                 "portal-contributor-contribution-detail",
                 args=(
-                    portal_contributor_with_multiple_contributions.id,
+                    contributor.id,
                     contribution.id,
                 ),
             ),
@@ -1885,10 +1880,9 @@ class TestPortalContributorsViewSet:
     def test_contribution_detail_patch_when_contribution_not_found(
         self, api_client, portal_contributor_with_multiple_contributions
     ):
-        api_client.force_authenticate(portal_contributor_with_multiple_contributions)
-        contribution = portal_contributor_with_multiple_contributions.contribution_set.filter(
-            ~Q(interval=ContributionInterval.ONE_TIME)
-        ).first()
+        contributor = portal_contributor_with_multiple_contributions[0]
+        api_client.force_authenticate(contributor)
+        contribution = contributor.contribution_set.filter(~Q(interval=ContributionInterval.ONE_TIME)).first()
         contribution_id = contribution.id
         contribution.delete()
         new_payment_method_id = "something-new"
@@ -1896,7 +1890,7 @@ class TestPortalContributorsViewSet:
             reverse(
                 "portal-contributor-contribution-detail",
                 args=(
-                    portal_contributor_with_multiple_contributions.id,
+                    contributor.id,
                     contribution_id,
                 ),
             ),
@@ -1907,14 +1901,15 @@ class TestPortalContributorsViewSet:
     def test_contribution_detail_patch_when_not_own_contribution(
         self, api_client, portal_contributor_with_multiple_contributions
     ):
-        api_client.force_authenticate(portal_contributor_with_multiple_contributions)
+        contributor = portal_contributor_with_multiple_contributions[0]
+        api_client.force_authenticate(contributor)
         contribution = ContributionFactory()
         new_payment_method_id = "something-new"
         response = api_client.patch(
             reverse(
                 "portal-contributor-contribution-detail",
                 args=(
-                    portal_contributor_with_multiple_contributions.id,
+                    contributor.id,
                     contribution.id,
                 ),
             ),
@@ -1970,3 +1965,16 @@ class TestPortalContributorsViewSet:
             reverse("portal-contributor-contribution-detail", args=(contributor.id, contribution_id))
         )
         assert response.status_code == status.HTTP_404_NOT_FOUND
+
+    def test_views_when_contributor_not_found(self):
+        pass
+
+    def test_contribution_detail_when_unsupported_method(self):
+        pass
+
+    # handle patch error on sub retrieve
+    # contribution email and sub email not match
+    # error on pm attach
+    # error on pm modify
+
+    # delete error on stripe

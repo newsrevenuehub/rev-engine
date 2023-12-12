@@ -5,7 +5,6 @@ import userEvent from '@testing-library/user-event';
 import { axe } from 'jest-axe';
 import { usePlacesWidget } from 'react-google-autocomplete';
 import { act, render, screen } from 'test-utils';
-import { HUB_GOOGLE_MAPS_API_KEY } from 'appSettings';
 import { DonationPageContext, UsePageProps } from '../DonationPage';
 import DDonorAddress, { DDonorAddressProps } from './DDonorAddress';
 import { DonorAddressElement } from 'hooks/useContributionPage';

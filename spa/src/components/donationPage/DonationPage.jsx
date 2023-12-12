@@ -29,7 +29,7 @@ import { getDefaultAmountForFreq } from './amountUtils';
 import LiveErrorFallback from './live/LiveErrorFallback';
 import { useAmountAuditing } from './useAmountAuditing';
 import useGoogleMaps from 'hooks/useGoogleMaps';
-import Spinner from 'elements/Spinner';
+import { CircularProgress } from 'components/base';
 
 export const DonationPageContext = createContext({});
 
@@ -246,7 +246,7 @@ function DonationPage({ page, live = false }, ref) {
                         .map((element, idx) => (
                           <GenericErrorBoundary key={idx}>
                             {element.type === 'DDonorAddress' && isGoogleMapsLoading ? (
-                              <Spinner />
+                              <CircularProgress />
                             ) : (
                               getters.getDynamicElement(element, live)
                             )}

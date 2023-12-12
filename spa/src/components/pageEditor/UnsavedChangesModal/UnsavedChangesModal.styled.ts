@@ -4,8 +4,8 @@ import { ModalHeader as BaseModalHeader } from 'components/base';
 
 export const Content = styled.p`
   font-size: ${({ theme }) => theme.fontSizesUpdated.md};
-  padding: 16px;
-  width: 290px;
+  margin: 0;
+  width: 260px;
 `;
 
 export const HeaderIcon = styled(ReportOutlined)`

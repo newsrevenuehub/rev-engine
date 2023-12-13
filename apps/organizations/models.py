@@ -599,7 +599,7 @@ class RevenueProgram(IndexedTimeStampedModel):
                 # in case of rate limit error we will want to retry
                 raise MailchimpRateLimitError("Mailchimp rate limit exceeded")
             case _:
-                logger.exception("Unexpected error from Mailchimp API. The error text is %s", exc.text)
+                logger.error("Unexpected error from Mailchimp API. The error text is %s", exc.text, exc_info=exc)
         return None
 
     @cached_property
@@ -752,7 +752,7 @@ class RevenueProgram(IndexedTimeStampedModel):
     def get_mailchimp_client(self) -> MailchimpMarketing.Client:
         logger.info("Called for rp %s", self.id)
         if not self.mailchimp_integration_connected:
-            logger.warning("Called for rp %s which is not connected to Mailchimp")
+            logger.warning("Called for rp %s which is not connected to Mailchimp", self.id)
             raise ValueError("Mailchimp integration not connected for this revenue program")
         client = MailchimpMarketing.Client()
         client.set_config(
@@ -772,7 +772,9 @@ class RevenueProgram(IndexedTimeStampedModel):
                 # in case of rate limit error we will want to retry
                 raise MailchimpRateLimitError("Mailchimp rate limit exceeded")
             case _:
-                logger.exception("Error creating %s for RP %s. The error text is %s", entity, self.id, exc.text)
+                logger.error(
+                    "Error creating %s for RP %s. The error text is %s", entity, self.id, exc.text, exc_info=exc
+                )
                 raise MailchimpIntegrationError(f"Error creating {entity}")
 
     def make_mailchimp_store(self) -> MailchimpStore:
@@ -1193,7 +1195,7 @@ class PaymentProvider(IndexedTimeStampedModel):
         try:
             return {"code": self.currency, "symbol": settings.CURRENCIES[self.currency]}
         except KeyError:
-            logger.error(
+            logger.exception(
                 'Currency settings for stripe account/product "%s"/"%s" misconfigured. Tried to access "%s", but valid options are: %s',
                 self.stripe_account_id,
                 self.stripe_product_id,

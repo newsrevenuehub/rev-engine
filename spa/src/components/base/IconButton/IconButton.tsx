@@ -9,6 +9,8 @@ export interface IconButtonProps extends Omit<MuiIconButtonProps, 'color' | 'siz
 }
 
 const IconButtonWrapper = forwardRef<HTMLButtonElement, IconButtonProps>((props, ref) => {
+  // Destructuring to only pass expected props to the MUI component.
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
   const { color, size, ...rest } = props;
 
   return <MuiIconButton ref={ref} {...rest} />;

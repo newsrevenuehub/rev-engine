@@ -37,7 +37,6 @@ function PortalPage({ children }: { children: React.ReactNode }) {
           {children}
           <PoweredBy>
             <span>Powered by</span>
-            {/* eslint-disable-next-line react/jsx-no-target-blank */}
             <a href={HOME_PAGE_URL} target="_blank" aria-label="News Revenue Engine">
               <PoweredByNRELogo style={{ width: 145 }} />
             </a>

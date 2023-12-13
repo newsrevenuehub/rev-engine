@@ -42,7 +42,7 @@ def upsert(entity_type: Literal["connection", "destination"], data: dict, auto_u
         headers=HEADERS,
     )
     if response.status_code != status.HTTP_200_OK:
-        logger.exception("Unexpected response from Hookdeck API: %s", response.content)
+        logger.error("Unexpected response from Hookdeck API: %s", response.content)
         raise HookDeckIntegrationError("Something went wrong. It's been logged.")
     if (resp_data := response.json()).get("archived_at", None) is not None and auto_unarchive:
         logger.info("Unarchiving Hookdeck %s with id %s", entity_type, resp_data["id"])
@@ -124,7 +124,7 @@ def retrieve(entity_type: Literal["connection", "destination", "source"], id: st
         headers=HEADERS,
     )
     if response.status_code != status.HTTP_200_OK:
-        logger.exception("Unexpected response from Hookdeck API")
+        logger.error("Unexpected response from Hookdeck API")
         raise HookDeckIntegrationError("Something went wrong retrieving destination. It's been logged.")
     return response.json()
 
@@ -139,7 +139,7 @@ def search(entity_type: Literal["connection", "destination", "source"], params: 
         params=dict(params),
     )
     if response.status_code != status.HTTP_200_OK:
-        logger.exception(
+        logger.error(
             "Unexpected response from Hookdeck API retrieving %s: status %s", entity_type, response.status_code
         )
         raise HookDeckIntegrationError(f"Something went wrong retrieving {entity_type}. It's been logged.")
@@ -212,7 +212,7 @@ def archive(entity_type: Literal["connection", "destination", "source"], id: str
         headers=HEADERS,
     )
     if response.status_code != status.HTTP_200_OK:
-        logger.exception("Unexpected response from Hookdeck API archiving %s with id %s", entity_type, id)
+        logger.error("Unexpected response from Hookdeck API archiving %s with id %s", entity_type, id)
         raise HookDeckIntegrationError(f"Something went wrong archiving {entity_type} with id {id}. It's been logged.")
     else:
         return response.json()
@@ -230,7 +230,7 @@ def unarchive(entity_type: Literal["connection", "destination", "source"], id: s
         headers=HEADERS,
     )
     if response.status_code != status.HTTP_200_OK:
-        logger.exception("Unexpected response from Hookdeck API archiving %s with id %s", entity_type, id)
+        logger.error("Unexpected response from Hookdeck API archiving %s with id %s", entity_type, id)
         raise HookDeckIntegrationError(f"Something went wrong archiving {entity_type} with id {id}. It's been logged.")
     else:
         return response.json()

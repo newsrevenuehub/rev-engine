@@ -136,7 +136,9 @@ def process_stripe_webhook(request):
     logger.debug("Processing stripe webhook: %s", request.body)
     sig_header = request.META["HTTP_STRIPE_SIGNATURE"]
     try:
-        event = stripe.Webhook.construct_event(request.body, sig_header, settings.STRIPE_WEBHOOK_SECRET_CONTRIBUTIONS)
+        raw_data = stripe.Webhook.construct_event(
+            request.body, sig_header, settings.STRIPE_WEBHOOK_SECRET_CONTRIBUTIONS
+        )
     except ValueError:
         logger.warning("Invalid payload from Stripe webhook request")
         return Response(data={"error": "Invalid payload"}, status=status.HTTP_400_BAD_REQUEST)
@@ -145,7 +147,8 @@ def process_stripe_webhook(request):
             "Invalid signature on Stripe webhook request. Is STRIPE_WEBHOOK_SECRET_CONTRIBUTIONS set correctly?"
         )
         return Response(data={"error": "Invalid signature"}, status=status.HTTP_400_BAD_REQUEST)
-    process_stripe_webhook_task.delay(event.to_dict())
+
+    process_stripe_webhook_task.delay(raw_event_data=raw_data)
     return Response(status=status.HTTP_200_OK)
 
 

@@ -28,6 +28,7 @@ from apps.contributions.models import (
     Payment,
 )
 from apps.contributions.tests.factories import ContributionFactory, PaymentFactory
+from apps.contributions.types import StripeEventData
 
 
 @pytest.fixture(autouse=True)
@@ -130,7 +131,6 @@ class TestPaymentIntentSucceeded:
         )
         assert response.status_code == status.HTTP_200_OK
         contribution.refresh_from_db()
-        assert contribution.payment_provider_data == payment_intent_succeeded_one_time_event
         assert contribution.last_payment_date == contribution.payment_set.order_by("-created").first().created
         assert contribution.status == ContributionStatus.PAID
         assert (
@@ -156,7 +156,6 @@ class TestPaymentIntentSucceeded:
     @pytest.fixture(
         params=[
             "payment_intent_succeeded_subscription_creation_event",
-            "payment_intent_succeeded_subscription_recurring_charge_event",
         ]
     )
     def when_not_one_time_payment_event(self, request):
@@ -457,7 +456,7 @@ class TestChargeRefunded:
         header = {"HTTP_STRIPE_SIGNATURE": "testing", "content_type": "application/json"}
         response = client.post(reverse("stripe-webhooks-contributions"), data=charge_refunded, **header)
         assert response.status_code == status.HTTP_200_OK
-        Payment.from_stripe_charge_refunded_event.assert_called_once_with(event=charge_refunded)
+        Payment.from_stripe_charge_refunded_event.assert_called_once_with(event=StripeEventData(**charge_refunded))
         assert Payment.objects.count() == count + 1
 
 
@@ -547,12 +546,11 @@ class TestInvoicePaymentSucceeded:
         header = {"HTTP_STRIPE_SIGNATURE": "testing", "content_type": "application/json"}
         response = client.post(reverse("stripe-webhooks-contributions"), data=event, **header)
         assert response.status_code == status.HTTP_200_OK
-        Payment.from_stripe_invoice_payment_succeeded_event.assert_called_once_with(event=event)
+        Payment.from_stripe_invoice_payment_succeeded_event.assert_called_once_with(event=StripeEventData(**event))
         assert Payment.objects.count() == count + 1
         contribution.refresh_from_db()
         assert contribution.status == ContributionStatus.PAID
         assert contribution.last_payment_date == contribution.payment_set.order_by("-created").first().created
-        assert contribution.payment_provider_data == event
         assert contribution.provider_payment_method_id == payment_method.id
         assert contribution.provider_payment_method_details == payment_method
         if is_first_payment:

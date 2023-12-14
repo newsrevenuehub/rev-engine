@@ -1,7 +1,7 @@
 import datetime
 import logging
 import re
-from typing import Any, ClassVar, Literal, Optional, TypedDict
+from typing import Any, ClassVar, Literal, NamedTuple, Optional
 
 from django.conf import settings
 
@@ -61,7 +61,7 @@ class StripePiSearchResponse(BaseModel):
         arbitrary_types_allowed = True
 
 
-class StripeEventData(TypedDict):
+class StripeEventData(NamedTuple):
     id: str
     object: str
     account: str

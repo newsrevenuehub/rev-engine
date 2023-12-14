@@ -194,10 +194,10 @@ def on_process_stripe_webhook_task_failure(self, task: Task, exc: Exception, tra
     bind=True,
     link_error=on_process_stripe_webhook_task_failure.s(),
 )
-def process_stripe_webhook_task(self, event: StripeEventData) -> None:
-    logger.info("Processing Stripe webhook event with ID %s", event["id"])
+def process_stripe_webhook_task(self, raw_event_data: dict) -> None:
+    logger.info("Processing Stripe webhook event with ID %s", raw_event_data["id"])
     try:
-        StripeWebhookProcessor(event).process()
+        StripeWebhookProcessor(event=StripeEventData(**raw_event_data)).process()
     except Contribution.DoesNotExist:
         # there's an entire class of customer subscriptions for which we do not expect to have a Contribution object.
         # Specifically, we expect this to be the case for import legacy recurring contributions, which may have a future

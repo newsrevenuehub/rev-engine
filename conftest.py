@@ -1093,3 +1093,26 @@ def payment_intent_for_recurring_charge():
 def balance_transaction_for_one_time_charge():
     with open("apps/contributions/tests/fixtures/balance-transaction-for-one-time-charge-expanded.json") as f:
         return stripe.BalanceTransaction.construct_from(json.load(f), stripe.api_key)
+
+
+@pytest.fixture
+def invoice_upcoming_event():
+    return json.load(open("apps/contributions/tests/fixtures/invoice-upcoming-event.json"))
+
+
+@pytest.fixture
+def customer_subscription_updated_event():
+    with open("apps/contributions/tests/fixtures/customer-subscription-updated-webhook-event.json") as fl:
+        return json.load(fl)
+
+
+@pytest.fixture
+def charge_refunded_recurring_charge_event():
+    with open("apps/contributions/tests/fixtures/charge-refunded-recurring-charge-event.json") as f:
+        return stripe.Webhook.construct_event(f.read(), None, stripe.api_key)
+
+
+@pytest.fixture
+def payment_method_attached_event():
+    with open("apps/contributions/tests/fixtures/payment-method-attached-webhook.json") as fl:
+        return json.load(fl)

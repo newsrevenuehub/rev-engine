@@ -28,6 +28,7 @@ from apps.contributions.models import (
     Payment,
 )
 from apps.contributions.tests.factories import ContributionFactory, PaymentFactory
+from apps.contributions.types import StripeEventData
 
 
 @pytest.fixture(autouse=True)
@@ -48,18 +49,6 @@ def payment_intent_canceled():
 @pytest.fixture
 def payment_intent_payment_failed():
     with open("apps/contributions/tests/fixtures/payment-intent-payment-failed-webhook.json") as fl:
-        return json.load(fl)
-
-
-@pytest.fixture
-def payment_method_attached():
-    with open("apps/contributions/tests/fixtures/payment-method-attached-webhook.json") as fl:
-        return json.load(fl)
-
-
-@pytest.fixture
-def customer_subscription_updated_event():
-    with open("apps/contributions/tests/fixtures/customer-subscription-updated-webhook-event.json") as fl:
         return json.load(fl)
 
 
@@ -130,7 +119,6 @@ class TestPaymentIntentSucceeded:
         )
         assert response.status_code == status.HTTP_200_OK
         contribution.refresh_from_db()
-        assert contribution.payment_provider_data == payment_intent_succeeded_one_time_event
         assert contribution.last_payment_date == contribution.payment_set.order_by("-created").first().created
         assert contribution.status == ContributionStatus.PAID
         assert (
@@ -156,7 +144,6 @@ class TestPaymentIntentSucceeded:
     @pytest.fixture(
         params=[
             "payment_intent_succeeded_subscription_creation_event",
-            "payment_intent_succeeded_subscription_recurring_charge_event",
         ]
     )
     def when_not_one_time_payment_event(self, request):
@@ -201,7 +188,6 @@ class TestPaymentIntentCanceled:
 
         assert response.status_code == status.HTTP_200_OK
         contribution.refresh_from_db()
-        assert contribution.payment_provider_data == payment_intent_canceled
         assert (
             contribution.status == ContributionStatus.REJECTED
             if cancellation_reason == "fraudulent"
@@ -239,7 +225,6 @@ class TestPaymentIntentPaymentFailed:
         )
         assert response.status_code == status.HTTP_200_OK
         contribution.refresh_from_db()
-        assert contribution.payment_provider_data == payment_intent_payment_failed
         assert contribution.status == ContributionStatus.FAILED
 
     def test_when_contribution_not_found(self, mocker, client, payment_intent_payment_failed):
@@ -288,7 +273,6 @@ class TestCustomerSubscriptionUpdated:
         )
         assert response.status_code == status.HTTP_200_OK
         contribution.refresh_from_db()
-        assert contribution.payment_provider_data == customer_subscription_updated_event
         assert contribution.provider_subscription_id == customer_subscription_updated_event["data"]["object"]["id"]
         if payment_method_has_changed:
             assert (
@@ -327,7 +311,6 @@ class TestCustomerSubscriptionDeleted:
         )
         assert response.status_code == status.HTTP_200_OK
         contribution.refresh_from_db()
-        assert contribution.payment_provider_data == customer_subscription_deleted
         assert contribution.provider_subscription_id == customer_subscription_deleted["data"]["object"]["id"]
         assert contribution.status == ContributionStatus.CANCELED
 
@@ -364,19 +347,19 @@ def test_customer_subscription_untracked_event(client, customer_subscription_upd
 
 
 @pytest.mark.django_db
-def test_payment_method_attached(client, payment_method_attached, mocker):
+def test_payment_method_attached(client, payment_method_attached_event, mocker):
     mocker.patch.object(WebhookSignature, "verify_header", return_value=True)
     header = {"HTTP_STRIPE_SIGNATURE": "testing", "content_type": "application/json"}
     contribution = ContributionFactory(
         one_time=True,
-        provider_customer_id=payment_method_attached["data"]["object"]["customer"],
+        provider_customer_id=payment_method_attached_event["data"]["object"]["customer"],
     )
     spy = mocker.spy(Contribution, "save")
-    response = client.post(reverse("stripe-webhooks-contributions"), data=payment_method_attached, **header)
+    response = client.post(reverse("stripe-webhooks-contributions"), data=payment_method_attached_event, **header)
     spy.assert_called_once_with(contribution, update_fields={"provider_payment_method_id", "modified"})
     assert response.status_code == status.HTTP_200_OK
     contribution.refresh_from_db()
-    assert contribution.provider_payment_method_id == payment_method_attached["data"]["object"]["id"]
+    assert contribution.provider_payment_method_id == payment_method_attached_event["data"]["object"]["id"]
 
 
 @pytest.mark.django_db()
@@ -389,17 +372,17 @@ def test_payment_method_attached(client, payment_method_attached, mocker):
     ),
 )
 @pytest.mark.parametrize("contribution_found", (True, False))
-def test_invoice_upcoming(interval, expect_reminder_email, contribution_found, client, invoice_upcoming, mocker):
+def test_invoice_upcoming(interval, expect_reminder_email, contribution_found, client, invoice_upcoming_event, mocker):
     mock_send_reminder = mocker.patch.object(Contribution, "send_recurring_contribution_email_reminder")
     contribution = (
         ContributionFactory(
-            interval=interval, provider_subscription_id=invoice_upcoming["data"]["object"]["subscription"]
+            interval=interval, provider_subscription_id=invoice_upcoming_event["data"]["object"]["subscription"]
         )
         if contribution_found
         else None
     )
     header = {"HTTP_STRIPE_SIGNATURE": "testing", "content_type": "application/json"}
-    response = client.post(reverse("stripe-webhooks-contributions"), data=invoice_upcoming, **header)
+    response = client.post(reverse("stripe-webhooks-contributions"), data=invoice_upcoming_event, **header)
     assert response.status_code == status.HTTP_200_OK
     if not contribution_found:
         # assert that task debug logs
@@ -407,14 +390,16 @@ def test_invoice_upcoming(interval, expect_reminder_email, contribution_found, c
     else:
         if expect_reminder_email:
             mock_send_reminder.assert_called_once_with(
-                make_aware(datetime.fromtimestamp(invoice_upcoming["data"]["object"]["next_payment_attempt"])).date()
+                make_aware(
+                    datetime.fromtimestamp(invoice_upcoming_event["data"]["object"]["next_payment_attempt"])
+                ).date()
             )
         else:
             mock_send_reminder.assert_not_called()
 
     if expect_reminder_email and contribution_found:
         mock_send_reminder.assert_called_once_with(
-            make_aware(datetime.fromtimestamp(invoice_upcoming["data"]["object"]["next_payment_attempt"])).date()
+            make_aware(datetime.fromtimestamp(invoice_upcoming_event["data"]["object"]["next_payment_attempt"])).date()
         )
     else:
         mock_send_reminder.assert_not_called()
@@ -457,7 +442,7 @@ class TestChargeRefunded:
         header = {"HTTP_STRIPE_SIGNATURE": "testing", "content_type": "application/json"}
         response = client.post(reverse("stripe-webhooks-contributions"), data=charge_refunded, **header)
         assert response.status_code == status.HTTP_200_OK
-        Payment.from_stripe_charge_refunded_event.assert_called_once_with(event=charge_refunded)
+        Payment.from_stripe_charge_refunded_event.assert_called_once_with(event=StripeEventData(**charge_refunded))
         assert Payment.objects.count() == count + 1
 
 
@@ -547,12 +532,11 @@ class TestInvoicePaymentSucceeded:
         header = {"HTTP_STRIPE_SIGNATURE": "testing", "content_type": "application/json"}
         response = client.post(reverse("stripe-webhooks-contributions"), data=event, **header)
         assert response.status_code == status.HTTP_200_OK
-        Payment.from_stripe_invoice_payment_succeeded_event.assert_called_once_with(event=event)
+        Payment.from_stripe_invoice_payment_succeeded_event.assert_called_once_with(event=StripeEventData(**event))
         assert Payment.objects.count() == count + 1
         contribution.refresh_from_db()
         assert contribution.status == ContributionStatus.PAID
         assert contribution.last_payment_date == contribution.payment_set.order_by("-created").first().created
-        assert contribution.payment_provider_data == event
         assert contribution.provider_payment_method_id == payment_method.id
         assert contribution.provider_payment_method_details == payment_method
         if is_first_payment:

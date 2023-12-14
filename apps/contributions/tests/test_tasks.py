@@ -385,7 +385,7 @@ class TestProcessStripeWebhookTask:
         mock_logger = mocker.patch("apps.contributions.tasks.logger.debug")
         if not contribution_found:
             mock_process.side_effect = Contribution.DoesNotExist
-        contribution_tasks.process_stripe_webhook_task(event=payment_intent_succeeded)
+        contribution_tasks.process_stripe_webhook_task(raw_event_data=payment_intent_succeeded)
         mock_process.assert_called_once()
         if contribution_found:
             mock_logger.assert_not_called()

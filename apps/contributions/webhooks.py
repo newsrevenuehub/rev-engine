@@ -33,7 +33,7 @@ class StripeWebhookProcessor:
 
     @property
     def obj_data(self) -> dict:
-        return self.event["data"]["object"]
+        return self.event.data["object"]
 
     @property
     def object_type(self) -> str:
@@ -41,7 +41,7 @@ class StripeWebhookProcessor:
 
     @property
     def event_id(self) -> str:
-        return self.event["id"]
+        return self.event.id
 
     @property
     def id(self) -> str:
@@ -51,11 +51,11 @@ class StripeWebhookProcessor:
 
     @property
     def event_type(self) -> str:
-        return self.event["type"]
+        return self.event.type
 
     @property
     def live_mode(self) -> bool:
-        return self.event["livemode"]
+        return self.event.livemode
 
     @property
     def customer_id(self) -> str:
@@ -71,7 +71,6 @@ class StripeWebhookProcessor:
                     conditions = [Q(provider_payment_id=self.id)]
                     if self.customer_id:  # pragma: no branch
                         conditions.append(Q(provider_customer_id=self.customer_id))
-
                     return Contribution.objects.get(reduce(operator.or_, conditions))
                 case "payment_method":
                     return Contribution.objects.get(provider_customer_id=self.customer_id)
@@ -127,14 +126,14 @@ class StripeWebhookProcessor:
             logger.debug(
                 "Test mode event %s for account %s received while in live mode",
                 self.event_id,
-                self.event["account"],
+                self.event.account,
             )
             return False
         if not settings.STRIPE_LIVE_MODE and self.live_mode:
             logger.debug(
                 "Live mode event %s for account %s received while in test mode",
                 self.event_id,
-                self.event["account"],
+                self.event.account,
             )
             return False
         return True
@@ -149,6 +148,8 @@ class StripeWebhookProcessor:
         logger.info("Successfully processed webhook event %s", self.event_id)
 
     def _handle_contribution_update(self, update_data: dict, revision_comment: str):
+        if not self.contribution:
+            raise Contribution.DoesNotExist("No contribution found")
         for k, v in update_data.items():
             setattr(self.contribution, k, v)
         with reversion.create_revision():
@@ -213,7 +214,7 @@ class StripeWebhookProcessor:
             "provider_subscription_id": self.id,
         }
         if (
-            "default_payment_method" in self.event["data"]["previous_attributes"]
+            "default_payment_method" in self.event.data["previous_attributes"]
             and self.obj_data["default_payment_method"]
         ):
             update_data["provider_payment_method_id"] = self.obj_data["default_payment_method"]
@@ -263,7 +264,7 @@ class StripeWebhookProcessor:
             payment = Payment.from_stripe_invoice_payment_succeeded_event(event=self.event)
             pi = stripe.PaymentIntent.retrieve(
                 self.obj_data["payment_intent"],
-                stripe_account=self.event["account"],
+                stripe_account=self.event.account,
             )
             self._handle_contribution_update(
                 {

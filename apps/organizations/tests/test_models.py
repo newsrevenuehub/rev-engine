@@ -673,14 +673,12 @@ class TestRevenueProgram:
         )
 
     def test_handle_mailchimp_api_client_read_error_when_unexpected(self, revenue_program, mocker):
-        logger_spy = mocker.spy(logger, "exception")
-        assert (
-            revenue_program.handle_mailchimp_api_client_read_error(
-                "entity", ApiClientError(error_text := "Slow down!", status_code=500)
-            )
-            is None
+        logger_spy = mocker.spy(logger, "error")
+        exc = ApiClientError(error_text := "Slow down!", status_code=500)
+        assert revenue_program.handle_mailchimp_api_client_read_error("entity", exc) is None
+        logger_spy.assert_called_once_with(
+            "Unexpected error from Mailchimp API. The error text is %s", error_text, exc_info=exc
         )
-        logger_spy.assert_called_once_with("Unexpected error from Mailchimp API. The error text is %s", error_text)
 
     def test_mailchimp_store_when_api_client_error(self, mc_connected_rp, mocker):
         mock_get_client = mocker.patch("apps.organizations.models.RevenueProgram.get_mailchimp_client")
@@ -730,13 +728,12 @@ class TestRevenueProgram:
         )
 
     def test_handle_mailchimp_api_client_write_error_when_unexpected(self, revenue_program, mocker):
-        logger_spy = mocker.spy(logger, "exception")
+        logger_spy = mocker.spy(logger, "error")
+        exc = ApiClientError(error_text := "Slow down!", status_code=500)
         with pytest.raises(MailchimpIntegrationError):
-            revenue_program.handle_mailchimp_api_client_write_error(
-                entity := "entity", ApiClientError(error_text := "Slow down!", status_code=500)
-            )
+            revenue_program.handle_mailchimp_api_client_write_error(entity := "entity", exc)
         logger_spy.assert_called_once_with(
-            "Error creating %s for RP %s. The error text is %s", entity, revenue_program.id, error_text
+            "Error creating %s for RP %s. The error text is %s", entity, revenue_program.id, error_text, exc_info=exc
         )
 
     def test_make_mailchimp_store_when_api_client_error(self, mc_connected_rp, mocker):

@@ -922,12 +922,11 @@ class TestContributionModel:
         contribution = ContributionFactory(currency=name, provider_payment_method_id=None)
         assert {"code": name, "symbol": symbol} == contribution.get_currency_dict()
 
-    def test_get_currency_dict_bad_value(self, monkeypatch):
-        mock_log_error = Mock()
-        monkeypatch.setattr(logger, "error", mock_log_error)
+    def test_get_currency_dict_bad_value(self, mocker):
+        logger_spy = mocker.spy(logger, "exception")
         contribution = ContributionFactory(currency="???", provider_payment_method_id=None)
         assert {"code": "", "symbol": ""} == contribution.get_currency_dict()
-        mock_log_error.assert_called_once_with(
+        logger_spy.assert_called_once_with(
             'Currency settings for stripe account "%s" misconfigured. Tried to access "%s", but valid options are: %s',
             contribution.stripe_account_id,
             "???",

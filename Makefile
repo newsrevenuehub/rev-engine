@@ -64,7 +64,7 @@ run-redis:
 
 run-tests:
 	make test_migrations
-	pytest --reuse-db -vvv --cov-config=.coveragerc --cov-report=html --cov=apps --cov=revengine
+	pytest --reuse-db --cov-config=.coveragerc --cov-report=html --cov=apps --cov=revengine $(EXTRA_PYTEST)
 
 check-dc:
 	docker-compose -f docker-compose.yml -f docker-compose-dev.yml ps

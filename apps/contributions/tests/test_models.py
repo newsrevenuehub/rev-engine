@@ -1823,7 +1823,6 @@ def test_ensure_stripe_event(ensure_stripe_event_case):
     "value",
     [
         "foo",
-        None,
         True,
         False,
         "",

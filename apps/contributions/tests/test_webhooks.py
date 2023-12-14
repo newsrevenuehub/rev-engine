@@ -75,6 +75,11 @@ class TestStripeWebhookProcessor:
         else:
             assert processor.contribution is None
 
+    def test_contribution_property_when_unexpected_object_type(self, mocker, payment_intent_succeeded_one_time_event):
+        mocker.patch("apps.contributions.webhooks.StripeWebhookProcessor.object_type", return_value="unexpected")
+        processor = StripeWebhookProcessor(event=StripeEventData(**payment_intent_succeeded_one_time_event))
+        assert processor.contribution is None
+
     @pytest.fixture
     def unexpected_event(self, payment_intent_succeeded_one_time_event):
         return StripeEventData(**payment_intent_succeeded_one_time_event | {"type": "unexpected"})
@@ -128,3 +133,13 @@ class TestStripeWebhookProcessor:
         elif agrees:
             with pytest.raises(Contribution.DoesNotExist):
                 StripeWebhookProcessor(payment_intent_succeeded_one_time_event).process()
+
+    def test__handle_contribution_update_when_no_contribution(self, mocker, payment_intent_succeeded_one_time_event):
+        mocker.patch(
+            "apps.contributions.webhooks.StripeWebhookProcessor.contribution",
+            return_value=None,
+            new_callable=mocker.PropertyMock,
+        )
+        processor = StripeWebhookProcessor(event=StripeEventData(**payment_intent_succeeded_one_time_event))
+        with pytest.raises(Contribution.DoesNotExist):
+            processor._handle_contribution_update(dict(), "")

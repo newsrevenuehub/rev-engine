@@ -1798,7 +1798,7 @@ def ensure_stripe_event_case(request):
 
 
 @pytest.mark.usefixtures("suppress_stripe_webhook_sig_verification")
-def test_ensure_stripe_event(ensure_stripe_event_case, payment_intent_succeeded_one_time_event):
+def test_ensure_stripe_event(ensure_stripe_event_case):
     """Show that the decorator works as expected
 
     We wrap an internal function with decorator from class
@@ -1817,6 +1817,29 @@ def test_ensure_stripe_event(ensure_stripe_event_case, payment_intent_succeeded_
         assert str(exc_info.value) == expected_error_msg
     else:
         assert my_func(**kwargs) == kwargs["event"]
+
+
+@pytest.mark.parametrize(
+    "value",
+    [
+        "foo",
+        None,
+        True,
+        False,
+        "",
+        {},
+        {"foo": "bar"},
+    ],
+)  # ...etc., but let's not be pedantic
+def test_ensure_stripe_event_when_wrong_type(value):
+    @ensure_stripe_event()
+    def my_func(value):
+        return value
+
+    with pytest.raises(ValueError) as exc_info:
+        my_func(event=value)
+
+    assert str(exc_info.value) == Payment.ARG_IS_NOT_EVENT_TYPE_ERROR_MSG
 
 
 @pytest.mark.django_db

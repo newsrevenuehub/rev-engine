@@ -944,8 +944,8 @@ def ensure_stripe_event(event_types: List[str] = None) -> Callable:
     def decorator(func: Callable) -> Callable:
         @wraps(func)
         def wrapper(*args, **kwargs) -> Any:
-            event = kwargs.get("event", None)
-            if not event:
+            event = kwargs.get("event", (no_arg := "no_arg"))
+            if event == no_arg:
                 raise ValueError(Payment.MISSING_EVENT_KW_ERROR_MSG)
             if not isinstance(event, StripeEventData):
                 raise ValueError(Payment.ARG_IS_NOT_EVENT_TYPE_ERROR_MSG)
@@ -967,7 +967,7 @@ class Payment(IndexedTimeStampedModel):
     amount_refunded = models.IntegerField()
     stripe_balance_transaction_id = models.CharField(max_length=255, unique=True)
 
-    MISSING_EVENT_KW_ERROR_MSG = "Expected a keyword argument called `event` called `event`"
+    MISSING_EVENT_KW_ERROR_MSG = "Expected a keyword argument called `event`"
     ARG_IS_NOT_EVENT_TYPE_ERROR_MSG = "Expected `event` to be an instance of `StripeEventData`"
     EVENT_IS_UNEXPECTED_TYPE_ERROR_MSG_TEMPLATE = (
         "Expected `event` to be in the following list of event types: {event_types}"

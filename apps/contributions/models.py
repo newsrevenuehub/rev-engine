@@ -233,7 +233,7 @@ class Contribution(IndexedTimeStampedModel):
         if self.interval == ContributionInterval.ONE_TIME:
             return None
         if not self.stripe_subscription:
-            logger.warning("something here")
+            logger.warning("Expected a retrievable stripe subscription on contribution %s but none was found", self.id)
             return None
         return datetime.datetime.fromtimestamp(self.stripe_subscription.current_period_end, tz=pytz.UTC)
 
@@ -1134,11 +1134,8 @@ class Payment(IndexedTimeStampedModel):
         """
         # we re-retrieve the PI because its state could have changed between the time the event was received and now
         pi = stripe.PaymentIntent.retrieve(event.data.object.id, stripe_account=event.account)
-        try:
-            cls._ensure_pi_has_single_charge(pi, event.id)
-            balance_transaction_id = pi.charges.data[0].balance_transaction
-        except ValueError:
-            balance_transaction_id = None
+        cls._ensure_pi_has_single_charge(pi, event.id)
+        balance_transaction_id = pi.charges.data[0].balance_transaction
         if not balance_transaction_id:
             logger.warning(
                 "Could not find a balance transaction for PI %s associated with event %s",

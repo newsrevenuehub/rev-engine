@@ -1979,6 +1979,19 @@ class TestPortalContributorsViewSet:
             stripe_account=contribution.donation_page.revenue_program.payment_provider.stripe_account_id,
         )
 
+    def test_contribution_delete_when_stripe_error(
+        self, api_client, portal_contributor_with_multiple_contributions, mocker
+    ):
+        contributor = portal_contributor_with_multiple_contributions[0]
+        mocker.patch("stripe.Subscription.delete", side_effect=stripe.error.StripeError("ruh roh"))
+        api_client.force_authenticate(contributor)
+        contribution = contributor.contribution_set.filter(~Q(interval=ContributionInterval.ONE_TIME)).first()
+        response = api_client.delete(
+            reverse("portal-contributor-contribution-detail", args=(contributor.id, contribution.id))
+        )
+        assert response.status_code == status.HTTP_500_INTERNAL_SERVER_ERROR
+        assert response.json() == {"detail": "Cannot cancel subscription"}
+
     def test_contribution_delete_when_not_contributor(
         self, api_client, portal_contributor_with_multiple_contributions, non_contributor_user
     ):

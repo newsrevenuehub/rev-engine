@@ -689,5 +689,5 @@ class PortalContributorsViewSet(viewsets.GenericViewSet):
         except stripe.error.StripeError:
             logger.exception("stripe.Subscription.delete returned a StripeError")
             # is this what we want?
-            return Response({"detail": "Error"}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+            return Response({"detail": "Cannot cancel subscription"}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
         return Response(status=status.HTTP_204_NO_CONTENT)

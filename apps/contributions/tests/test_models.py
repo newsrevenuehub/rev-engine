@@ -1612,6 +1612,24 @@ class TestContributionModel:
     def test_expanded_bad_actor_score(self, score, expected):
         assert ContributionFactory(bad_actor_score=score).expanded_bad_actor_score == expected
 
+    def test_next_payment_date_when_no_subscription(self):
+        contribution = ContributionFactory(interval=ContributionInterval.MONTHLY)
+        assert contribution.stripe_subscription is None
+        assert contribution.next_payment_date is None
+
+    def test_card_when_no_customer_id(self):
+        contribution = ContributionFactory(provider_customer_id=None)
+        assert contribution.card is None
+
+    def test_card_owner_name_when_no_card(self, mocker):
+        mocker.patch("apps.contributions.models.Contribution.card", new_callable=mocker.PropertyMock, return_value=None)
+        contribution = ContributionFactory()
+        assert contribution.card_owner_name is None
+
+    def test_stripe_payment_method_when_no_pm_id(self):
+        contribution = ContributionFactory(provider_payment_method_id=None)
+        assert contribution.stripe_payment_method is None
+
 
 @pytest.mark.django_db
 class TestContributionQuerySetMethods:
@@ -1856,11 +1874,6 @@ class TestPayment:
     @pytest.fixture
     def payment(self):
         return PaymentFactory()
-
-    @pytest.fixture
-    def balance_transaction_for_one_time_charge(self):
-        with open("apps/contributions/tests/fixtures/balance-transaction-for-one-time-charge-expanded.json") as f:
-            return stripe.BalanceTransaction.construct_from(json.load(f), stripe.api_key)
 
     @pytest.fixture
     def balance_transaction_for_subscription_creation_charge(self):
@@ -2241,3 +2254,25 @@ class TestPayment:
         for x in range(2):
             PaymentFactory(contribution=monthly_contribution)
         assert monthly_contribution.payment_set.count() == 2
+
+    # def test_get_contribution_and_balance_transaction_for_payment_intent_succeeded_event_when_no_contribution(
+    #     self,
+    #     payment_intent_succeeded_one_time_event,
+    #     stripe_payment_intent_retrieve_response,
+    #     mocker,
+    # ):
+    #     mock_pi = AttrDict({"charges": {"data": [AttrDict({"balance_transaction": None})]}})
+    #     mocker.patch("stripe.PaymentIntent.retrieve", return_value=mock_pi)
+    #     mocker.patch("apps.contributions.models.Payment._ensure_pi_has_single_charge")
+    #     mocker.patch("apps.contributions.models.Payment._get_stripe_balance_transaction")
+    #     mocker.patch(
+    #         "apps.contributions.models.ensure_stripe_event",
+    #     )
+    #     assert Contribution.objects.count() == 0
+    #     (
+    #         contribution,
+    #         _,
+    #     ) = Payment.get_contribution_and_balance_transaction_for_payment_intent_succeeded_event(
+    #         event=payment_intent_succeeded_one_time_event
+    #     )
+    #     assert contribution is None

@@ -1034,3 +1034,9 @@ def valid_gs_credentials(minimally_valid_google_service_account_credentials, set
 def stripe_subscription():
     with open("apps/contributions/tests/fixtures/subscription.json") as fl:
         return stripe.Subscription.construct_from(json.load(fl), key="test")
+
+
+@pytest.fixture
+def balance_transaction_for_one_time_charge(self):
+    with open("apps/contributions/tests/fixtures/balance-transaction-for-one-time-charge-expanded.json") as f:
+        return stripe.BalanceTransaction.construct_from(json.load(f), stripe.api_key)

@@ -1917,6 +1917,54 @@ class TestPortalContributorsViewSet:
         )
         assert response.status_code == status.HTTP_404_NOT_FOUND
 
+    def test_contribution_detail_patch_when_stripe_error_on_retrieve(
+        self, mocker, portal_contributor_with_multiple_contributions, api_client
+    ):
+        contributor = portal_contributor_with_multiple_contributions[0]
+        mocker.patch("stripe.Subscription.retrieve", side_effect=stripe.error.StripeError("ruh roh"))
+        api_client.force_authenticate(contributor)
+        new_payment_method_id = "something-new"
+        response = api_client.patch(
+            reverse(
+                "portal-contributor-contribution-detail", args=(contributor.id, contributor.contribution_set.first().id)
+            ),
+            data={"provider_payment_method_id": new_payment_method_id},
+        )
+        assert response.status_code == status.HTTP_404_NOT_FOUND
+        assert response.json() == {"detail": "subscription not found"}
+
+    def test_contribution_detail_patch_when_stripe_error_on_pm_attach(
+        self, mocker, portal_contributor_with_multiple_contributions, api_client
+    ):
+        contributor = portal_contributor_with_multiple_contributions[0]
+        mocker.patch("stripe.PaymentMethod.attach", side_effect=stripe.error.StripeError("ruh roh"))
+        api_client.force_authenticate(contributor)
+        new_payment_method_id = "something-new"
+        response = api_client.patch(
+            reverse(
+                "portal-contributor-contribution-detail", args=(contributor.id, contributor.contribution_set.first().id)
+            ),
+            data={"provider_payment_method_id": new_payment_method_id},
+        )
+        assert response.status_code == status.HTTP_500_INTERNAL_SERVER_ERROR
+        assert response.json() == {"detail": "Error attaching payment method"}
+
+    def test_contribution_detail_patch_when_stripe_error_on_subscription_modify(
+        self, mocker, portal_contributor_with_multiple_contributions, api_client
+    ):
+        contributor = portal_contributor_with_multiple_contributions[0]
+        mocker.patch("stripe.Subscription.modify", side_effect=stripe.error.StripeError("ruh roh"))
+        api_client.force_authenticate(contributor)
+        new_payment_method_id = "something-new"
+        response = api_client.patch(
+            reverse(
+                "portal-contributor-contribution-detail", args=(contributor.id, contributor.contribution_set.first().id)
+            ),
+            data={"provider_payment_method_id": new_payment_method_id},
+        )
+        assert response.status_code == status.HTTP_500_INTERNAL_SERVER_ERROR
+        assert response.json() == {"detail": "Error updating Subscription"}
+
     def test_contribution_delete_happy_path(self, api_client, portal_contributor_with_multiple_contributions, mocker):
         contributor = portal_contributor_with_multiple_contributions[0]
         mock_delete_sub = mocker.patch("stripe.Subscription.delete")
@@ -1969,8 +2017,22 @@ class TestPortalContributorsViewSet:
     def test_views_when_contributor_not_found(self):
         pass
 
-    def test_contribution_detail_when_unsupported_method(self):
-        pass
+    def test_contribution_detail_when_unsupported_method(
+        self, api_client, portal_contributor_with_multiple_contributions
+    ):
+        contributor = portal_contributor_with_multiple_contributions[0]
+        api_client.force_authenticate(contributor)
+        response = api_client.put(
+            reverse(
+                "portal-contributor-contribution-detail",
+                args=(
+                    contributor.id,
+                    contributor.contribution_set.first().id,
+                ),
+            ),
+            data={},
+        )
+        assert response.status_code == status.HTTP_405_METHOD_NOT_ALLOWED
 
     # handle patch error on sub retrieve
     # contribution email and sub email not match

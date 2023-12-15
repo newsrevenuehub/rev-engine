@@ -664,7 +664,9 @@ class CreateRecurringPaymentSerializer(BaseCreatePaymentSerializer):
                 client_secret = subscription.latest_invoice.payment_intent.client_secret
 
                 logger.info(
-                    "`CreateRecurringPaymentSerializer.create` successfully created a Stripe subscription with ID %s for contribution with ID %s"
+                    "`CreateRecurringPaymentSerializer.create` successfully created a Stripe subscription with ID %s for contribution with ID %s",
+                    subscription.id,
+                    contribution.id,
                 )
 
         except StripeError:

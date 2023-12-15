@@ -66,7 +66,7 @@ function ContributorRouter() {
           setPageData(data);
           setFetchedPageData(true);
         },
-        onFailure: (e: unknown) => {
+        onFailure: () => {
           setFetchedPageData(true);
         }
       }

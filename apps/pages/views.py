@@ -213,7 +213,7 @@ class PageViewSet(FilterForSuperUserOrRoleAssignmentUserMixin, RevisionMixin, vi
         try:
             page = self.get_queryset().get(pk=pk)
         except DonationPage.DoesNotExist:
-            logger.error('Request for non-existent page with ID "%s"', pk)
+            logger.exception('Request for non-existent page with ID "%s"', pk)
             return Response({"detail": "Could not find page with that ID"}, status=status.HTTP_404_NOT_FOUND)
         page.delete()
         return Response(status=status.HTTP_204_NO_CONTENT)

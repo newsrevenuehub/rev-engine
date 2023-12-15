@@ -621,15 +621,12 @@ class PortalContributorsViewSet(viewsets.GenericViewSet):
 
         match request.method:
             case "GET":
-                # nothing additional to do
                 pass
             case "PATCH":
                 serializer.is_valid(raise_exception=True)
                 return self.handle_patch(serializer=serializer, request=request)
             case "DELETE":
                 return self.handle_delete(contribution)
-            case _:
-                raise NotImplementedError
 
         return Response(serializer.data, status=status.HTTP_200_OK)
 
@@ -692,6 +689,7 @@ class PortalContributorsViewSet(viewsets.GenericViewSet):
         if contribution.interval == ContributionInterval.ONE_TIME:
             logger.warning("Request was made to cancel one-time contribution %s", contribution.id)
             return Response({"detail": "Cannot cancel one-time contribution"}, status=status.HTTP_400_BAD_REQUEST)
+
         if not contribution.is_cancelable:
             logger.warning(
                 "Request was made to cancel and uncancelable contribution %s whose status is %s",

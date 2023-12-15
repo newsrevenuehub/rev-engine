@@ -659,7 +659,13 @@ class Contribution(IndexedTimeStampedModel):
         return self.status in (ContributionStatus.PROCESSING, ContributionStatus.FLAGGED)
 
     @property
+    # TODO: [DEV-4333] Update this to be ._last_payment_date when no longer in conflict with db model field
     def _last_payment_date(self) -> datetime.datetime | None:
+        """In short term while last payment date is still tracked on db level and is required by API consumers, we create this `_`
+        prefixed property to avoid conflict with db field name. This will be removed once db field is removed.
+
+        This is used as a source for serializer fields elsewhere.
+        """
         last_payment = self.payment_set.order_by("-transaction_time").first()
         return last_payment.transaction_time if last_payment else None
 

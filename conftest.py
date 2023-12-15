@@ -1037,6 +1037,6 @@ def stripe_subscription():
 
 
 @pytest.fixture
-def balance_transaction_for_one_time_charge(self):
+def balance_transaction_for_one_time_charge():
     with open("apps/contributions/tests/fixtures/balance-transaction-for-one-time-charge-expanded.json") as f:
         return stripe.BalanceTransaction.construct_from(json.load(f), stripe.api_key)

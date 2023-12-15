@@ -656,7 +656,10 @@ class Contribution(IndexedTimeStampedModel):
 
     @property
     def is_modifiable(self) -> bool:
-        return self.status in (ContributionStatus.PROCESSING, ContributionStatus.FLAGGED)
+        return self.interval != ContributionInterval.ONE_TIME and self.status in (
+            ContributionStatus.PAID,
+            ContributionStatus.FAILED,
+        )
 
     @property
     # TODO: [DEV-4333] Update this to be ._last_payment_date when no longer in conflict with db model field

@@ -130,6 +130,7 @@ class TestStripeWebhookProcessor:
             else:
                 logger_spy.assert_called_once()
                 mock_route_request.assert_not_called()
+
         elif agrees:
             with pytest.raises(Contribution.DoesNotExist):
                 StripeWebhookProcessor(payment_intent_succeeded_one_time_event).process()

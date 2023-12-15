@@ -196,11 +196,13 @@ def on_process_stripe_webhook_task_failure(self, task: Task, exc: Exception, tra
 )
 def process_stripe_webhook_task(self, raw_event_data: dict) -> None:
     logger.info("Processing Stripe webhook event with ID %s", raw_event_data["id"])
+
+    processor = StripeWebhookProcessor(event=(event := StripeEventData(**raw_event_data)))
     try:
-        StripeWebhookProcessor(event=StripeEventData(**raw_event_data)).process()
+        processor.process()
     except Contribution.DoesNotExist:
         # there's an entire class of customer subscriptions for which we do not expect to have a Contribution object.
         # Specifically, we expect this to be the case for import legacy recurring contributions, which may have a future
         # first/next(in NRE platform) payment date.
         # TODO: [DEV-4151] Add some sort of analytics / telemetry to track how often this happens
-        logger.debug("Could not find contribution", exc_info=True)
+        logger.warning("Could not find contribution. Here's the event data: %s", event, exc_info=True)

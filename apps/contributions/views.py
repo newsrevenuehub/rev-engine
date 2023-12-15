@@ -565,7 +565,7 @@ class SubscriptionsViewSet(viewsets.ViewSet):
 
 
 class PortalContributorsViewSet(viewsets.GenericViewSet):
-    """ """
+    """This viewset is meant to furnish contributions data to the (new) contributor portal"""
 
     permission_classes = [IsAuthenticated, UserIsContributor]
 

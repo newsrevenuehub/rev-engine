@@ -589,7 +589,6 @@ class PortalContributorsViewSet(viewsets.GenericViewSet):
     )
     def contributions_list(self, request, pk=None):
         """Endpoint to get all contributions for a given contributor"""
-        # verify that the user has permission to view the contributor
         contributor = self._get_contributor_and_check_permissions(request, pk)
         ordering = self.request.query_params.get("ordering", "-created")
         filters = {}
@@ -635,7 +634,16 @@ class PortalContributorsViewSet(viewsets.GenericViewSet):
         return Response(serializer.data, status=status.HTTP_200_OK)
 
     def handle_patch(self, serializer, request):
-        # TODO: [DEV-2286] should we look in the cache first for the Subscription (and related) objects to avoid extra API calls?
+        if serializer.instance.interval == ContributionInterval.ONE_TIME:
+            logger.warning("Request was made to update one-time contribution %s", serializer.instance.id)
+            return Response({"detail": "Cannot update one-time contribution"}, status=status.HTTP_400_BAD_REQUEST)
+        if not serializer.instance.is_modifiable:
+            logger.warning(
+                "Request was made to update unmodifiable contribution %s whose status is %s",
+                serializer.instance.id,
+                serializer.instance.status,
+            )
+            return Response({"detail": "Problem updating contribution"}, status=status.HTTP_400_BAD_REQUEST)
         try:
             subscription = stripe.Subscription.retrieve(
                 serializer.instance.provider_subscription_id,

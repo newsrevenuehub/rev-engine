@@ -645,14 +645,13 @@ class PortalContributorsViewSet(viewsets.GenericViewSet):
         except stripe.error.StripeError:
             logger.exception("stripe.Subscription.retrieve returned a StripeError")
             return Response({"detail": "subscription not found"}, status=status.HTTP_404_NOT_FOUND)
-        # dont love this
         if (email := request.user.email.lower()) != subscription.customer.email.lower():
             # TODO: [DEV-2287] should we find a way to user DRF's permissioning scheme here instead?
             # treat as not found so as to not leak info about subscription
             logger.warning("User %s attempted to update unowned subscription %s", email, subscription.id)
             return Response({"detail": "subscription not found"}, status=status.HTTP_404_NOT_FOUND)
 
-        # presumes the client is entitled to this pm id
+        # TODO: [DEV-4334] Determine if Stripe will block referencing an unowned payment method id here
         payment_method_id = request.data.get("provider_payment_method_id")
 
         try:
@@ -678,16 +677,30 @@ class PortalContributorsViewSet(viewsets.GenericViewSet):
         return Response(serializer.data, status=status.HTTP_200_OK)
 
     def handle_delete(self, contribution):
-        # nb presumes ownership validated
-        # if one time
-        # if not have right status
+        """If subscription found, cancel it in Stripe.
+
+        NB: we don't do anything to update NRE contribution status here and instead rely on ensuing webhooks to do that.
+        """
+        if contribution.interval == ContributionInterval.ONE_TIME:
+            logger.warning("Request was made to cancel one-time contribution %s", contribution.id)
+            return Response({"detail": "Cannot cancel one-time contribution"}, status=status.HTTP_400_BAD_REQUEST)
+        if not contribution.is_cancelable:
+            logger.warning(
+                "Request was made to cancel and uncancelable contribution %s whose status is %s",
+                contribution.id,
+                contribution.status,
+            )
+            return Response({"detail": "Problem canceling contribution"}, status=status.HTTP_400_BAD_REQUEST)
         try:
             stripe.Subscription.delete(
                 contribution.provider_subscription_id,
                 stripe_account=contribution.donation_page.revenue_program.payment_provider.stripe_account_id,
             )
         except stripe.error.StripeError:
-            logger.exception("stripe.Subscription.delete returned a StripeError")
-            # is this what we want?
-            return Response({"detail": "Cannot cancel subscription"}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+            logger.exception(
+                "stripe.Subscription.delete returned a StripeError trying to cancel subscription %s associated with contribution %s",
+                contribution.provider_subscription_id,
+                contribution.id,
+            )
+            return Response({"detail": "Problem canceling contribution"}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
         return Response(status=status.HTTP_204_NO_CONTENT)

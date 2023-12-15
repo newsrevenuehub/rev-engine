@@ -28,8 +28,6 @@ import FinishPaymentModal from './FinishPaymentModal/FinishPaymentModal';
 import { getDefaultAmountForFreq } from './amountUtils';
 import LiveErrorFallback from './live/LiveErrorFallback';
 import { useAmountAuditing } from './useAmountAuditing';
-import useGoogleMaps from 'hooks/useGoogleMaps';
-import { CircularProgress } from 'components/base';
 
 export const DonationPageContext = createContext({});
 

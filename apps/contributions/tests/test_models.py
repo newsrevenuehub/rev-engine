@@ -1892,20 +1892,6 @@ class TestPayment:
             == payment.contribution.donation_page.revenue_program.payment_provider.stripe_account_id
         )
 
-    def test_stripe_balance_transaction(self, mocker, payment, balance_transaction_for_one_time_charge):
-        """Show that we memoize the balance transaction"""
-        mock_retrieve = mocker.patch(
-            "stripe.BalanceTransaction.retrieve", return_value=balance_transaction_for_one_time_charge
-        )
-        assert payment.stripe_balance_transaction == mock_retrieve.return_value
-        mock_retrieve.assert_called_once_with(
-            payment.stripe_balance_transaction_id,
-            stripe_account=payment.contribution.donation_page.revenue_program.payment_provider.stripe_account_id,
-        )
-        count = mock_retrieve.call_count
-        payment.stripe_balance_transaction
-        assert mock_retrieve.call_count == count
-
     @pytest.fixture
     def invalid_metadata(self):
         return {"foo": "bar"}
@@ -2255,24 +2241,15 @@ class TestPayment:
             PaymentFactory(contribution=monthly_contribution)
         assert monthly_contribution.payment_set.count() == 2
 
-    # def test_get_contribution_and_balance_transaction_for_payment_intent_succeeded_event_when_no_contribution(
-    #     self,
-    #     payment_intent_succeeded_one_time_event,
-    #     stripe_payment_intent_retrieve_response,
-    #     mocker,
-    # ):
-    #     mock_pi = AttrDict({"charges": {"data": [AttrDict({"balance_transaction": None})]}})
-    #     mocker.patch("stripe.PaymentIntent.retrieve", return_value=mock_pi)
-    #     mocker.patch("apps.contributions.models.Payment._ensure_pi_has_single_charge")
-    #     mocker.patch("apps.contributions.models.Payment._get_stripe_balance_transaction")
-    #     mocker.patch(
-    #         "apps.contributions.models.ensure_stripe_event",
-    #     )
-    #     assert Contribution.objects.count() == 0
-    #     (
-    #         contribution,
-    #         _,
-    #     ) = Payment.get_contribution_and_balance_transaction_for_payment_intent_succeeded_event(
-    #         event=payment_intent_succeeded_one_time_event
-    #     )
-    #     assert contribution is None
+    def test_stripe_balance_transaction(self, mocker, balance_transaction_for_one_time_charge):
+        mock_retrieve = mocker.patch(
+            "stripe.BalanceTransaction.retrieve", return_value=balance_transaction_for_one_time_charge
+        )
+        payment = PaymentFactory(stripe_balance_transaction_id=balance_transaction_for_one_time_charge.id)
+        assert payment.stripe_balance_transaction == balance_transaction_for_one_time_charge
+        # we do this twice to prove caching works
+        assert payment.stripe_balance_transaction == balance_transaction_for_one_time_charge
+        mock_retrieve.assert_called_once_with(
+            balance_transaction_for_one_time_charge.id,
+            stripe_account=payment.contribution.donation_page.revenue_program.payment_provider.stripe_account_id,
+        )

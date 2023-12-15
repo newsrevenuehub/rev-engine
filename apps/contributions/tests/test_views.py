@@ -1640,7 +1640,30 @@ class TestPortalContributorsViewSet:
         response = api_client.get(reverse("portal-contributor-contributions-list", args=(contributor.id,)))
         assert response.status_code == status.HTTP_200_OK
         assert len(response.json()) == 2
-        # assert each is instance right serializer with right value
+        assert set(x["id"] for x in response.json()) == set(
+            contributor.contribution_set.all().values_list("id", flat=True)
+        )
+        for x in response.json():
+            contribution = Contribution.objects.get(id=x["id"])
+            assert x["amount"] == contribution.amount
+            assert x["card_brand"] == contribution.card_brand
+            assert x["card_last_4"] == contribution.card_last_4
+            assert x["card_expiration_date"] == contribution.card_expiration_date
+            parsed = dateparser.parse(x["created"]).replace(tzinfo=pytz.UTC)
+            assert parsed == contribution.created
+            assert x["is_cancelable"] == contribution.is_cancelable
+            assert x["is_modifiable"] == contribution.is_modifiable
+            assert dateparser.parse(x["last_payment_date"]).replace(tzinfo=pytz.UTC) == contribution._last_payment_date
+            if contribution.interval == ContributionInterval.ONE_TIME:
+                assert x["next_payment_date"] is None
+            else:
+                assert (
+                    dateparser.parse(x["next_payment_date"]).replace(tzinfo=pytz.UTC) == contribution.next_payment_date
+                )
+            assert x["payment_type"] == contribution.payment_type
+            assert x["provider_customer_id"] == contribution.provider_customer_id
+            assert x["revenue_program"] == contribution.donation_page.revenue_program.id
+            assert x["status"] == contribution.status
 
     def test_contributions_list_filter_behavior(self, api_client, portal_contributor_with_multiple_contributions):
         contributor = portal_contributor_with_multiple_contributions[0]
@@ -1965,7 +1988,57 @@ class TestPortalContributorsViewSet:
         assert response.status_code == status.HTTP_500_INTERNAL_SERVER_ERROR
         assert response.json() == {"detail": "Error updating Subscription"}
 
-    def test_contribution_delete_happy_path(self, api_client, portal_contributor_with_multiple_contributions, mocker):
+    def test_contribution_detail_patch_when_for_one_time(
+        self, api_client, portal_contributor_with_multiple_contributions
+    ):
+        contributor = portal_contributor_with_multiple_contributions[0]
+        api_client.force_authenticate(contributor)
+        new_payment_method_id = "something-new"
+        response = api_client.patch(
+            reverse(
+                "portal-contributor-contribution-detail",
+                args=(
+                    contributor.id,
+                    contributor.contribution_set.filter(interval=ContributionInterval.ONE_TIME).first().id,
+                ),
+            ),
+            data={"provider_payment_method_id": new_payment_method_id},
+        )
+        assert response.status_code == status.HTTP_400_BAD_REQUEST
+        assert response.json() == {"detail": "Cannot update one-time contribution"}
+
+    def test_contribution_detail_patch_when_not_modifiable(
+        self, api_client, portal_contributor_with_multiple_contributions, mocker
+    ):
+        contributor = portal_contributor_with_multiple_contributions[0]
+        api_client.force_authenticate(contributor)
+        mocker.patch(
+            "apps.contributions.models.Contribution.is_modifiable",
+            return_value=False,
+            new_callable=mocker.PropertyMock,
+        )
+        new_payment_method_id = "something-new"
+        response = api_client.patch(
+            reverse(
+                "portal-contributor-contribution-detail",
+                args=(
+                    contributor.id,
+                    contributor.contribution_set.exclude(interval=ContributionInterval.ONE_TIME).first().id,
+                ),
+            ),
+            data={"provider_payment_method_id": new_payment_method_id},
+        )
+        assert response.status_code == status.HTTP_400_BAD_REQUEST
+        assert response.json() == {"detail": "Problem updating contribution"}
+
+    def contribution_detail_patch_when_requesting_user_email_not_match_stripe_sub_email(
+        self, api_client, portal_contributor_with_multiple_contributions, mocker
+    ):
+        pass
+
+    def test_contribution_detail_delete_happy_path(
+        self, api_client, portal_contributor_with_multiple_contributions, mocker
+    ):
         contributor = portal_contributor_with_multiple_contributions[0]
         mock_delete_sub = mocker.patch("stripe.Subscription.delete")
         api_client.force_authenticate(contributor)
@@ -1979,7 +2052,7 @@ class TestPortalContributorsViewSet:
             stripe_account=contribution.donation_page.revenue_program.payment_provider.stripe_account_id,
         )
 
-    def test_contribution_delete_when_stripe_error(
+    def test_contribution_detail_delete_when_stripe_error(
         self, api_client, portal_contributor_with_multiple_contributions, mocker
     ):
         contributor = portal_contributor_with_multiple_contributions[0]
@@ -1992,7 +2065,7 @@ class TestPortalContributorsViewSet:
         assert response.status_code == status.HTTP_500_INTERNAL_SERVER_ERROR
         assert response.json() == {"detail": "Cannot cancel subscription"}
 
-    def test_contribution_delete_when_not_contributor(
+    def test_contribution_detail_delete_when_not_contributor(
         self, api_client, portal_contributor_with_multiple_contributions, non_contributor_user
     ):
         contributor = portal_contributor_with_multiple_contributions[0]
@@ -2003,7 +2076,7 @@ class TestPortalContributorsViewSet:
         )
         assert response.status_code == status.HTTP_403_FORBIDDEN
 
-    def test_contribution_delete_when_not_my_contribution(
+    def test_contribution_detail_delete_when_not_my_contribution(
         self, api_client, portal_contributor_with_multiple_contributions
     ):
         contributor = portal_contributor_with_multiple_contributions[0]
@@ -2014,7 +2087,7 @@ class TestPortalContributorsViewSet:
         )
         assert response.status_code == status.HTTP_404_NOT_FOUND
 
-    def test_contribution_delete_when_contribution_not_found(
+    def test_contribution_detail_delete_when_contribution_not_found(
         self, api_client, portal_contributor_with_multiple_contributions
     ):
         contributor = portal_contributor_with_multiple_contributions[0]
@@ -2026,6 +2099,33 @@ class TestPortalContributorsViewSet:
             reverse("portal-contributor-contribution-detail", args=(contributor.id, contribution_id))
         )
         assert response.status_code == status.HTTP_404_NOT_FOUND
+
+    def test_contribution_detail_delete_when_one_time(self, api_client, portal_contributor_with_multiple_contributions):
+        contributor = portal_contributor_with_multiple_contributions[0]
+        api_client.force_authenticate(contributor)
+        contribution = contributor.contribution_set.filter(interval=ContributionInterval.ONE_TIME).first()
+        response = api_client.delete(
+            reverse("portal-contributor-contribution-detail", args=(contributor.id, contribution.id))
+        )
+        assert response.status_code == status.HTTP_400_BAD_REQUEST
+        assert response.json() == {"detail": "Cannot cancel one-time contribution"}
+
+    def test_contribution_detail_delete_when_not_cancelable(
+        self, api_client, portal_contributor_with_multiple_contributions, mocker
+    ):
+        contributor = portal_contributor_with_multiple_contributions[0]
+        api_client.force_authenticate(contributor)
+        contribution = contributor.contribution_set.filter(~Q(interval=ContributionInterval.ONE_TIME)).first()
+        mocker.patch(
+            "apps.contributions.models.Contribution.is_cancelable",
+            return_value=False,
+            new_callable=mocker.PropertyMock,
+        )
+        response = api_client.delete(
+            reverse("portal-contributor-contribution-detail", args=(contributor.id, contribution.id))
+        )
+        assert response.status_code == status.HTTP_400_BAD_REQUEST
+        assert response.json() == {"detail": "Problem canceling contribution"}
 
     def test_views_when_contributor_not_found(self):
         pass

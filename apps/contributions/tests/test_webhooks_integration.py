@@ -132,14 +132,16 @@ class TestPaymentIntentSucceeded:
         mock_send_thank_you.assert_called_once()
 
     def test_when_one_time_contribution_not_found(self, payment_intent_succeeded_one_time_event, mocker, client):
-        logger_spy = mocker.patch("apps.contributions.tasks.logger.debug")
+        logger_spy = mocker.patch("apps.contributions.tasks.logger.warning")
         header = {"HTTP_STRIPE_SIGNATURE": "testing", "content_type": "application/json"}
         Contribution.objects.all().delete()
         response = client.post(
             reverse("stripe-webhooks-contributions"), data=payment_intent_succeeded_one_time_event, **header
         )
         assert response.status_code == status.HTTP_200_OK
-        logger_spy.assert_called_once_with("Could not find contribution", exc_info=True)
+        logger_spy.assert_called_once_with(
+            "Could not find contribution. Here's the event data: %s", mocker.ANY, exc_info=True
+        )
 
     @pytest.fixture(
         params=[
@@ -196,14 +198,16 @@ class TestPaymentIntentCanceled:
 
     def test_when_contribution_not_found(self, mocker, client, payment_intent_canceled):
         mocker.patch.object(WebhookSignature, "verify_header", return_value=True)
-        logger_spy = mocker.patch("apps.contributions.tasks.logger.debug")
+        logger_spy = mocker.patch("apps.contributions.tasks.logger.warning")
         header = {"HTTP_STRIPE_SIGNATURE": "testing", "content_type": "application/json"}
         assert not Contribution.objects.filter(
             provider_payment_id=payment_intent_canceled["data"]["object"]["id"]
         ).exists()
         response = client.post(reverse("stripe-webhooks-contributions"), data=payment_intent_canceled, **header)
         assert response.status_code == status.HTTP_200_OK
-        logger_spy.assert_called_once_with("Could not find contribution", exc_info=True)
+        logger_spy.assert_called_once_with(
+            "Could not find contribution. Here's the event data: %s", mocker.ANY, exc_info=True
+        )
 
 
 @pytest.mark.django_db
@@ -229,14 +233,17 @@ class TestPaymentIntentPaymentFailed:
 
     def test_when_contribution_not_found(self, mocker, client, payment_intent_payment_failed):
         mocker.patch.object(WebhookSignature, "verify_header", return_value=True)
-        logger_spy = mocker.patch("apps.contributions.tasks.logger.debug")
+        logger_spy = mocker.patch("apps.contributions.tasks.logger.warning")
         header = {"HTTP_STRIPE_SIGNATURE": "testing", "content_type": "application/json"}
         assert not Contribution.objects.filter(
             provider_payment_id=payment_intent_payment_failed["data"]["object"]["id"]
         ).exists()
         response = client.post(reverse("stripe-webhooks-contributions"), data=payment_intent_payment_failed, **header)
         assert response.status_code == status.HTTP_200_OK
-        logger_spy.assert_called_once_with("Could not find contribution", exc_info=True)
+
+        logger_spy.assert_called_once_with(
+            "Could not find contribution. Here's the event data: %s", mocker.ANY, exc_info=True
+        )
 
 
 @pytest.mark.usefixtures("suppress_stripe_webhook_sig_verification")
@@ -281,7 +288,7 @@ class TestCustomerSubscriptionUpdated:
             )
 
     def test_when_contribution_not_found(self, mocker, client, customer_subscription_updated_event):
-        logger_spy = mocker.patch("apps.contributions.tasks.logger.debug")
+        logger_spy = mocker.patch("apps.contributions.tasks.logger.warning")
         header = {"HTTP_STRIPE_SIGNATURE": "testing", "content_type": "application/json"}
         assert not Contribution.objects.filter(
             provider_subscription_id=customer_subscription_updated_event["data"]["object"]["id"]
@@ -290,7 +297,9 @@ class TestCustomerSubscriptionUpdated:
             reverse("stripe-webhooks-contributions"), data=customer_subscription_updated_event, **header
         )
         assert response.status_code == status.HTTP_200_OK
-        logger_spy.assert_called_once_with("Could not find contribution", exc_info=True)
+        logger_spy.assert_called_once_with(
+            "Could not find contribution. Here's the event data: %s", mocker.ANY, exc_info=True
+        )
 
 
 @pytest.mark.django_db
@@ -316,7 +325,7 @@ class TestCustomerSubscriptionDeleted:
 
     def test_when_contribution_not_found(self, mocker, client, customer_subscription_updated_event):
         mocker.patch.object(WebhookSignature, "verify_header", return_value=True)
-        logger_spy = mocker.patch("apps.contributions.tasks.logger.debug")
+        logger_spy = mocker.patch("apps.contributions.tasks.logger.warning")
         header = {"HTTP_STRIPE_SIGNATURE": "testing", "content_type": "application/json"}
         assert not Contribution.objects.filter(
             provider_subscription_id=customer_subscription_updated_event["data"]["object"]["id"]
@@ -325,7 +334,9 @@ class TestCustomerSubscriptionDeleted:
             reverse("stripe-webhooks-contributions"), data=customer_subscription_updated_event, **header
         )
         assert response.status_code == status.HTTP_200_OK
-        logger_spy.assert_called_once_with("Could not find contribution", exc_info=True)
+        logger_spy.assert_called_once_with(
+            "Could not find contribution. Here's the event data: %s", mocker.ANY, exc_info=True
+        )
 
 
 @pytest.mark.django_db

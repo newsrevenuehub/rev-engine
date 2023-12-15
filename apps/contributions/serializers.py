@@ -832,10 +832,8 @@ class SubscriptionsSerializer(serializers.Serializer):
 
 
 PORTAL_CONTRIBUTION_BASE_SERIALIZER_FIELDS = [
-    # new -- makes testing much easier and is basically
     "id",
     "amount",
-    # standardizing field names on card_*
     "card_brand",
     "card_expiration_date",
     "card_last_4",
@@ -847,8 +845,6 @@ PORTAL_CONTRIBUTION_BASE_SERIALIZER_FIELDS = [
     "next_payment_date",
     "payment_type",
     "provider_customer_id",
-    # name was messed up in earlier, need to update in spa
-    "provider_payment_id",
     "revenue_program",
     "status",
 ]

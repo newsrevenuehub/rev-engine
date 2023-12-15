@@ -193,12 +193,8 @@ class Contribution(IndexedTimeStampedModel):
     provider_payment_method_id = models.CharField(max_length=255, blank=True, null=True)
     provider_payment_method_details = models.JSONField(null=True)
 
-    # TODO: remove this field as we will derive from payment set
-    # deprecated
+    # TODO: [DEV-4333] Remove Contribution.last_payment_date in favor of derivation from payments
     last_payment_date = models.DateTimeField(null=True)
-
-    # to do -- decide if contributor should map to RP or page or across all, part etc.
-    # if we don't solve now it means we need to carry over filtering logic
     contributor = models.ForeignKey("contributions.Contributor", on_delete=models.SET_NULL, null=True)
     donation_page = models.ForeignKey("pages.DonationPage", on_delete=models.PROTECT, null=True)
 

@@ -58,7 +58,6 @@ function DonationPage({ page, live = false }, ref) {
   const [mailingCountry, setMailingCountry] = useState();
   const { createPayment, deletePayment, isLoading: paymentIsLoading, payment } = usePayment();
   const { auditAmountChange, auditFrequencyChange, auditPayFeesChange, auditPaymentCreation } = useAmountAuditing();
-  const { isGoogleMapsLoading } = useGoogleMaps(page.locale);
 
   // Whenever amount, frequency, or fees changes, track it.
   useEffect(() => auditAmountChange(amount), [amount, auditAmountChange]);
@@ -245,11 +244,7 @@ function DonationPage({ page, live = false }, ref) {
                         ?.filter((element) => element.type !== 'DPayment')
                         .map((element, idx) => (
                           <GenericErrorBoundary key={idx}>
-                            {element.type === 'DDonorAddress' && isGoogleMapsLoading ? (
-                              <CircularProgress />
-                            ) : (
-                              getters.getDynamicElement(element, live)
-                            )}
+                            {getters.getDynamicElement(element, live)}
                           </GenericErrorBoundary>
                         ))}
                     </S.PageElements>

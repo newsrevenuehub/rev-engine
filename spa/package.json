@@ -45,7 +45,6 @@
     "react-dom": "^17.0.2",
     "react-draft-wysiwyg": "^1.14.7",
     "react-focus-lock": "^2.9.5",
-    "react-google-autocomplete": "^2.7.1",
     "react-helmet": "^6.1.0",
     "react-hook-form": "^7.34.2",
     "react-i18next": "^13.2.2",
@@ -80,6 +79,7 @@
     "build-storybook": "storybook build -s public"
   },
   "devDependencies": {
+    "@googlemaps/jest-mocks": "^2.21.4",
     "@storybook/addon-essentials": "^7.5.3",
     "@storybook/addon-interactions": "^6.5.10",
     "@storybook/addon-links": "^7.5.3",

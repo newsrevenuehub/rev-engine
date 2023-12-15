@@ -1,9 +1,9 @@
 // Needed to type mockAddressComponents
 /// <reference types="google.maps" />
 
+import { initialize, mockInstances, Autocomplete } from '@googlemaps/jest-mocks';
 import userEvent from '@testing-library/user-event';
 import { axe } from 'jest-axe';
-import { usePlacesWidget } from 'react-google-autocomplete';
 import { act, render, screen } from 'test-utils';
 import { DonationPageContext, UsePageProps } from '../DonationPage';
 import DDonorAddress, { DDonorAddressProps } from './DDonorAddress';
@@ -15,7 +15,17 @@ jest.mock('country-code-lookup', () => ({
     { country: 'BBB', iso2: 'bb' }
   ]
 }));
-jest.mock('react-google-autocomplete');
+jest.mock('hooks/useGoogleMaps', () => () => ({ error: undefined, loading: false }));
+
+function mockPlaceAutocomplete(address_components?: google.maps.GeocoderAddressComponent[]) {
+  const mockAutocomplete = mockInstances.get(Autocomplete);
+
+  expect(mockAutocomplete).toHaveLength(1);
+  expect(mockAutocomplete[0].addListener).toBeCalledTimes(1);
+  expect(mockAutocomplete[0].addListener.mock.calls[0][0]).toBe('place_changed');
+  mockAutocomplete[0].getPlace.mockReturnValue({ address_components });
+  act(() => mockAutocomplete[0].addListener.mock.calls[0][1]());
+}
 
 // See
 // https://developers.google.com/maps/documentation/javascript/geocoding#GeocodingResults
@@ -83,10 +93,10 @@ function tree(pageContext?: Partial<UsePageProps>, props?: Partial<DDonorAddress
 }
 
 describe('DDonorAddress', () => {
-  const usePlacesWidgetMock = usePlacesWidget as jest.Mock;
-
-  beforeEach(() => usePlacesWidgetMock.mockReturnValue({}));
-  afterEach(() => usePlacesWidgetMock.mockReset());
+  beforeAll(initialize);
+  beforeEach(() => {
+    mockInstances.clearAll();
+  });
 
   // Assertions here related to form names are key because the donation page
   // component uses them to assemble the data. See the serializeForm() function
@@ -260,7 +270,7 @@ describe('DDonorAddress', () => {
       const zip = mockAddressComponents.find(({ types }) => types.includes('postal_code'))!.long_name;
 
       tree();
-      act(() => usePlacesWidgetMock.mock.calls[0][0].onPlaceSelected({ address_components: mockAddressComponents }));
+      mockPlaceAutocomplete(mockAddressComponents);
       expect(screen.getByRole('textbox', { name: 'donationPage.dDonorAddress.address' })).toHaveValue(
         `${streetNumber} ${street}`
       );
@@ -272,7 +282,7 @@ describe('DDonorAddress', () => {
 
     it("does nothing if the address can't be autocompleted", () => {
       tree();
-      usePlacesWidgetMock.mock.calls[0][0].onPlaceSelected({ address_components: undefined });
+      mockPlaceAutocomplete();
       expect(screen.getByRole('textbox', { name: 'donationPage.dDonorAddress.address' })).toHaveValue('');
       expect(screen.getByRole('textbox', { name: 'donationPage.dDonorAddress.city' })).toHaveValue('');
       expect(screen.getByRole('textbox', { name: 'donationPage.dDonorAddress.stateLabel.state' })).toHaveValue('');
@@ -282,17 +292,13 @@ describe('DDonorAddress', () => {
 
     it("defaults fields that don't appear in the API response to empty strings", async () => {
       tree();
-      act(() =>
-        usePlacesWidgetMock.mock.calls[0][0].onPlaceSelected({
-          address_components: [
-            {
-              long_name: '12345',
-              short_name: '12345',
-              types: ['postal_code']
-            }
-          ]
-        })
-      );
+      mockPlaceAutocomplete([
+        {
+          long_name: '12345',
+          short_name: '12345',
+          types: ['postal_code']
+        }
+      ]);
       expect(screen.getByRole('textbox', { name: 'donationPage.dDonorAddress.address' })).toHaveValue('');
       expect(screen.getByRole('textbox', { name: 'donationPage.dDonorAddress.city' })).toHaveValue('');
       expect(screen.getByRole('textbox', { name: 'donationPage.dDonorAddress.stateLabel.state' })).toHaveValue('');

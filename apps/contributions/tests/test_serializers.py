@@ -1675,22 +1675,13 @@ class TestStripeMetadataSchemaBase:
 
 class TestPortalContributionBaseSerializer:
     @pytest.mark.parametrize(
-        "method, args",
+        "method, kwargs",
         (
-            ("create", (None,)),
-            (
-                "update",
-                (
-                    None,
-                    None,
-                ),
-            ),
-            (
-                "delete",
-                (None,),
-            ),
+            ("create", {"validated_data": {}}),
+            ("delete", {"instance": None}),
+            ("update", {"instance": None, "validated_data": {}}),
         ),
     )
-    def test_unsupported_methods(self, method, args):
+    def test_unsupported_methods(self, method, kwargs):
         with pytest.raises(NotImplementedError):
-            getattr(PortalContributionBaseSerializer(), method)(*args)
+            getattr(PortalContributionBaseSerializer(), method)(**kwargs)

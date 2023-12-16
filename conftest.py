@@ -58,6 +58,8 @@ from dataclasses import asdict
 from random import choice, randint, uniform
 from unittest.mock import patch
 
+from django.core.cache import cache
+
 import pytest
 import stripe
 from faker import Faker
@@ -1040,3 +1042,8 @@ def stripe_subscription():
 def balance_transaction_for_one_time_charge():
     with open("apps/contributions/tests/fixtures/balance-transaction-for-one-time-charge-expanded.json") as f:
         return stripe.BalanceTransaction.construct_from(json.load(f), stripe.api_key)
+
+
+@pytest.fixture()
+def clear_cache():
+    cache.clear()

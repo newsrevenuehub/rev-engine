@@ -8,7 +8,6 @@ from urllib.parse import parse_qs, quote_plus, urlparse
 
 from django.conf import settings
 from django.core import mail
-from django.core.cache import cache
 from django.template.loader import render_to_string
 from django.utils.safestring import mark_safe
 
@@ -1865,12 +1864,8 @@ def test_ensure_stripe_event(ensure_stripe_event_case):
 
 
 @pytest.mark.django_db
-@pytest.mark.usefixtures("suppress_stripe_webhook_sig_verification")
+@pytest.mark.usefixtures("suppress_stripe_webhook_sig_verification", "clear_cache")
 class TestPayment:
-    @pytest.fixture(autouse=True)
-    def clear_cache(self):
-        cache.clear()
-
     @pytest.fixture
     def payment(self):
         return PaymentFactory()

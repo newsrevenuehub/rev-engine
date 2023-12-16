@@ -864,7 +864,6 @@ class PortalContributionBaseSerializer(serializers.ModelSerializer):
         raise NotImplementedError("create is not supported on this serializer")
 
     def delete(self, instance):
-        # or do we want to just set status to canceled and take care of that now
         logger.info("delete called but not supported. this will be a no-op")
         raise NotImplementedError("delete is not supported on this serializer")
 

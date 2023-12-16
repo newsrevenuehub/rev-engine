@@ -13,7 +13,7 @@ import stripe
 from django_filters.rest_framework import DjangoFilterBackend
 from rest_framework import mixins, status, viewsets
 from rest_framework.decorators import action, api_view, authentication_classes, permission_classes
-from rest_framework.exceptions import ParseError
+from rest_framework.exceptions import NotFound, ParseError
 from rest_framework.permissions import IsAdminUser, IsAuthenticated
 from rest_framework.request import Request
 from rest_framework.response import Response
@@ -577,7 +577,10 @@ class PortalContributorsViewSet(viewsets.GenericViewSet):
     CONTRIBUTIONS_DETAIL_SERIALIZER_CLASS = serializers.PortalContributionDetailSerializer
 
     def _get_contributor_and_check_permissions(self, request, contributor_id):
-        contributor = get_object_or_404(Contributor, pk=contributor_id)
+        try:
+            contributor = Contributor.objects.get(pk=contributor_id)
+        except Contributor.DoesNotExist:
+            raise NotFound(detail="Contributor not found", code=status.HTTP_404_NOT_FOUND)
         self.check_object_permissions(request, contributor)
         return contributor
 
@@ -689,14 +692,6 @@ class PortalContributorsViewSet(viewsets.GenericViewSet):
         if contribution.interval == ContributionInterval.ONE_TIME:
             logger.warning("Request was made to cancel one-time contribution %s", contribution.id)
             return Response({"detail": "Cannot cancel one-time contribution"}, status=status.HTTP_400_BAD_REQUEST)
-
-        if not contribution.is_cancelable:
-            logger.warning(
-                "Request was made to cancel and uncancelable contribution %s whose status is %s",
-                contribution.id,
-                contribution.status,
-            )
-            return Response({"detail": "Problem canceling contribution"}, status=status.HTTP_400_BAD_REQUEST)
         try:
             stripe.Subscription.delete(
                 contribution.provider_subscription_id,

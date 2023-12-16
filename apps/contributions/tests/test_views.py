@@ -192,6 +192,7 @@ class StripeOAuthTest(AbstractTestCase):
 
 
 @pytest.mark.django_db
+@pytest.mark.usefixtures("clear_cache")
 class TestContributionsViewSet:
     @pytest_cases.parametrize(
         "user,expected_status",
@@ -1520,6 +1521,7 @@ class TestProcessStripeWebhook:
 
 
 @pytest.mark.django_db
+@pytest.mark.usefixtures("clear_cache")
 class TestPortalContributorsViewSet:
     @pytest.fixture
     def one_time_contribution(self, revenue_program, portal_contributor, mocker, faker):
@@ -2063,7 +2065,7 @@ class TestPortalContributorsViewSet:
             reverse("portal-contributor-contribution-detail", args=(contributor.id, contribution.id))
         )
         assert response.status_code == status.HTTP_500_INTERNAL_SERVER_ERROR
-        assert response.json() == {"detail": "Cannot cancel subscription"}
+        assert response.json() == {"detail": "Problem canceling contribution"}
 
     def test_contribution_detail_delete_when_not_contributor(
         self, api_client, portal_contributor_with_multiple_contributions, non_contributor_user
@@ -2110,25 +2112,44 @@ class TestPortalContributorsViewSet:
         assert response.status_code == status.HTTP_400_BAD_REQUEST
         assert response.json() == {"detail": "Cannot cancel one-time contribution"}
 
-    def test_contribution_detail_delete_when_not_cancelable(
-        self, api_client, portal_contributor_with_multiple_contributions, mocker
+    @pytest.mark.parametrize(
+        "method, kwargs",
+        (("get", {}), ("patch", {"data": {"payment_method_id": "something"}}), ("delete", {})),
+    )
+    def test_views_when_contributor_not_found(
+        self, method, kwargs, api_client, portal_contributor_with_multiple_contributions
     ):
         contributor = portal_contributor_with_multiple_contributions[0]
+        contribution_id = contributor.contribution_set.filter(interval=ContributionInterval.ONE_TIME).first().id
+        contributor_id = contributor.id
         api_client.force_authenticate(contributor)
-        contribution = contributor.contribution_set.filter(~Q(interval=ContributionInterval.ONE_TIME)).first()
-        mocker.patch(
-            "apps.contributions.models.Contribution.is_cancelable",
-            return_value=False,
-            new_callable=mocker.PropertyMock,
+        contributor.delete()
+        response = getattr(api_client, method)(
+            reverse("portal-contributor-contribution-detail", args=(contributor_id, contribution_id)),
+            **kwargs,
         )
-        response = api_client.delete(
-            reverse("portal-contributor-contribution-detail", args=(contributor.id, contribution.id))
-        )
-        assert response.status_code == status.HTTP_400_BAD_REQUEST
-        assert response.json() == {"detail": "Problem canceling contribution"}
+        assert response.status_code == status.HTTP_404_NOT_FOUND
+        assert response.json() == {"detail": "Contributor not found"}
 
-    def test_views_when_contributor_not_found(self):
-        pass
+    @pytest.mark.parametrize(
+        "method, kwargs",
+        (("get", {}), ("patch", {"data": {"payment_method_id": "something"}}), ("delete", {})),
+    )
+    def test_views_when_contribution_not_found(
+        self, method, kwargs, api_client, portal_contributor_with_multiple_contributions
+    ):
+        contributor = portal_contributor_with_multiple_contributions[0]
+        contribution = contributor.contribution_set.filter(interval=ContributionInterval.ONE_TIME).first()
+        contribution_id = contribution.id
+        contribution.delete()
+        contributor_id = contributor.id
+        api_client.force_authenticate(contributor)
+        response = getattr(api_client, method)(
+            reverse("portal-contributor-contribution-detail", args=(contributor_id, contribution_id)),
+            **kwargs,
+        )
+        assert response.status_code == status.HTTP_404_NOT_FOUND
+        assert response.json() == {"detail": "Contribution not found"}
 
     def test_contribution_detail_when_unsupported_method(
         self, api_client, portal_contributor_with_multiple_contributions
@@ -2146,10 +2167,3 @@ class TestPortalContributorsViewSet:
             data={},
         )
         assert response.status_code == status.HTTP_405_METHOD_NOT_ALLOWED
-
-    # handle patch error on sub retrieve
-    # contribution email and sub email not match
-    # error on pm attach
-    # error on pm modify
-
-    # delete error on stripe

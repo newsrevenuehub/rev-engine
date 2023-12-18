@@ -576,6 +576,8 @@ class PortalContributorsViewSet(viewsets.GenericViewSet):
     CONTRIBUTIONS_LIST_SERIALIZER_CLASS = serializers.PortalContributionListSerializer
     CONTRIBUTIONS_DETAIL_SERIALIZER_CLASS = serializers.PortalContributionDetailSerializer
 
+    queryset = Contributor.objects.all()
+
     def _get_contributor_and_check_permissions(self, request, contributor_id):
         try:
             contributor = Contributor.objects.get(pk=contributor_id)

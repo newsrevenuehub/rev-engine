@@ -492,6 +492,9 @@ class Contribution(IndexedTimeStampedModel):
         return subscription
 
     def cancel(self):
+        # this is specifically used when a user clicks "back" on the second payment form in checkout flow. it's not
+        # necessarily intended to be a general-purpose cancellation method (i.e., it is not appropriate for the `.destroy` method
+        # on the API endpoint)
         if self.status not in (ContributionStatus.PROCESSING, ContributionStatus.FLAGGED):
             logger.warning(
                 "`Contribution.cancel` called on contribution (ID: %s) with unexpected status %s",
@@ -625,7 +628,7 @@ class Contribution(IndexedTimeStampedModel):
             return None
         customer = stripe.Customer.retrieve(
             cust_id,
-            account=self.donation_page.revenue_program.payment_provider.stripe_account_id,
+            stripe_account=self.donation_page.revenue_program.payment_provider.stripe_account_id,
             expand=["invoice_settings.default_payment_method.card"],
         )
         return (
@@ -678,9 +681,9 @@ class Contribution(IndexedTimeStampedModel):
 
     @cached_property
     def stripe_payment_method(self) -> stripe.PaymentMethod | None:
-        if not (p_id := self.provider_payment_id):
+        if not (pm_id := self.provider_payment_method_id):
             return None
-        return stripe.PaymentMethod.retrieve(p_id, stripe_account=self.stripe_account_id)
+        return stripe.PaymentMethod.retrieve(pm_id, stripe_account=self.stripe_account_id)
 
     @property
     def payment_type(self) -> str | None:

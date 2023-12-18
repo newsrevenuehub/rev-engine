@@ -567,7 +567,7 @@ class SubscriptionsViewSet(viewsets.ViewSet):
 class PortalContributorsViewSet(viewsets.GenericViewSet):
     """This viewset is meant to furnish contributions data to the (new) contributor portal"""
 
-    permission_classes = [IsAuthenticated, UserIsContributor]
+    permission_classes = [IsAuthenticated, IsContributor, UserIsContributor]
 
     ALLOWED_ORDERING_FIELDS = ["created", "amount"]
     ALLOWED_FILTER_FIELDS = [
@@ -586,7 +586,7 @@ class PortalContributorsViewSet(viewsets.GenericViewSet):
 
     @action(
         methods=["get"],
-        url_path="contributions/",
+        url_path="contributions",
         url_name="contributions-list",
         detail=True,
     )

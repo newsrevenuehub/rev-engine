@@ -90,7 +90,10 @@ class IsPatchRequest(permissions.BasePermission):
 
 class UserIsContributor(permissions.BasePermission):
     def has_object_permission(self, request, view, obj):
-        return obj == request.user and isinstance(obj, Contributor)
+        has_permission = obj == request.user and isinstance(obj, Contributor)
+        logger.info("Temp log showing object permission in UserIsContributor: %s", has_permission)
+        logger.info("Data: %s, %s, %s", obj, request.user, isinstance(obj, Contributor))
+        return has_permission
 
 
 class ContributorOwnsContribution(permissions.BasePermission):

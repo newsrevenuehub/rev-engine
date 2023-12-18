@@ -67,6 +67,7 @@ function PaginatedTable({
                     data-testid={`donation-header-${column.id}`}
                     disableSortBy={column.disableSortBy}
                     {...column.getHeaderProps(column.getSortByToggleProps())}
+                    aria-label={column.canSort ? `Sort by ${column.Header}` : ''}
                     title={column.canSort ? `Sort by ${column.Header}` : ''}
                   >
                     <div>

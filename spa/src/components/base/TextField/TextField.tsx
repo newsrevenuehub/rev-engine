@@ -89,7 +89,9 @@ export const TextField = forwardRef<HTMLDivElement, TextFieldProps>((props, ref)
   <StyledMuiTextField
     FormHelperTextProps={{ classes: { root: 'NreTextFieldFormHelperTextRoot' } }}
     inputProps={{ className: 'NreTextFieldInput' }}
-    InputProps={{ classes: { root: 'NreTextFieldInputRoot', underline: 'NreTextFieldInputUnderline' } }}
+    // any cast here is because MuiTextFieldProps doesn't like the `underline` class, as it is only applicable
+    // to certain variants of the component.
+    InputProps={{ classes: { root: 'NreTextFieldInputRoot', underline: 'NreTextFieldInputUnderline' } as any }}
     InputLabelProps={{
       classes: {
         asterisk: 'NreTextFieldInputLabelAsterisk',

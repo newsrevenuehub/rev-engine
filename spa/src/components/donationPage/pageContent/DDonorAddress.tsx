@@ -3,9 +3,7 @@
 
 import Grid from '@material-ui/core/Grid';
 import PropTypes, { InferProps } from 'prop-types';
-import { ChangeEvent, useMemo, useState } from 'react';
-import { usePlacesWidget } from 'react-google-autocomplete';
-import { HUB_GOOGLE_MAPS_API_KEY } from 'appSettings';
+import { ChangeEvent, useEffect, useMemo, useRef, useState } from 'react';
 import { CountryOption } from 'components/base';
 import { usePage } from 'components/donationPage/DonationPage';
 import DElement from 'components/donationPage/pageContent/DElement';
@@ -15,6 +13,7 @@ import { Collapse } from '@material-ui/core';
 import { useTranslation } from 'react-i18next';
 import AddIcon from '@material-design-icons/svg/filled/add.svg?react';
 import MinusIcon from '@material-design-icons/svg/filled/horizontal_rule.svg?react';
+import useGoogleMaps from 'hooks/useGoogleMaps';
 
 const mapAddrFieldToComponentTypes = {
   address: ['street_number', 'street_address', 'route'],
@@ -51,7 +50,7 @@ export interface DDonorAddressProps extends InferProps<typeof DDonorAddressPropT
 
 function DDonorAddress({ element }: DDonorAddressProps) {
   const { t } = useTranslation();
-  const { errors, mailingCountry, setMailingCountry, page } = usePage();
+  const { errors, mailingCountry, setMailingCountry } = usePage();
   const [address, setAddress] = useState('');
   const [showComplement, setShowComplement] = useState(false);
   const [complement, setComplement] = useState('');
@@ -78,31 +77,36 @@ function DDonorAddress({ element }: DDonorAddressProps) {
 
     return t('donationPage.dDonorAddress.stateLabel.state');
   }, [element.content?.additionalStateFieldLabels, t]);
+  const { error: googleMapsError, loading: googleMapsLoading } = useGoogleMaps();
+  const addressInputRef = useRef<HTMLInputElement>(null);
 
-  const { ref: addressInputRef } = usePlacesWidget<HTMLInputElement>({
-    apiKey: HUB_GOOGLE_MAPS_API_KEY,
-    // Allow browser autofill on the address field at pageload. We will disable
-    // it when the field is focused.
-    inputAutocompleteValue: '',
-    options: { types: ['address'] },
-    language: page.locale,
-    onPlaceSelected: ({ address_components }) => {
-      // The API will not return this property in all cases; if so, do nothing.
+  useEffect(() => {
+    if (!googleMapsLoading && !googleMapsError && addressInputRef.current) {
+      // https://developers.google.com/maps/documentation/javascript/reference/places-widget#Autocomplete
 
-      if (typeof address_components === 'undefined') {
-        return;
-      }
+      const autocomplete = new google.maps.places.Autocomplete(addressInputRef.current, { types: ['address'] });
+      const listener = autocomplete.addListener('place_changed', () => {
+        const { address_components } = autocomplete.getPlace();
 
-      const addrFields = mapAddressComponentsToAddressFields(address_components);
-      const isoCountry = address_components.find(({ types }) => types.includes('country'))?.short_name ?? '';
+        // The API will not return this property in all cases; if so, do nothing.
 
-      setAddress(addrFields.address ?? '');
-      setCity(addrFields.city ?? '');
-      setState(addrFields.state ?? '');
-      setZip(addrFields.zip ?? '');
-      setMailingCountry(isoCountry);
+        if (typeof address_components === 'undefined') {
+          return;
+        }
+
+        const addrFields = mapAddressComponentsToAddressFields(address_components);
+        const isoCountry = address_components.find(({ types }) => types.includes('country'))?.short_name ?? '';
+
+        setAddress(addrFields.address ?? '');
+        setCity(addrFields.city ?? '');
+        setState(addrFields.state ?? '');
+        setZip(addrFields.zip ?? '');
+        setMailingCountry(isoCountry);
+      });
+
+      return () => listener.remove();
     }
-  });
+  }, [googleMapsError, googleMapsLoading, setMailingCountry]);
 
   const toggleComplement = () => {
     setShowComplement((prev) => !prev);

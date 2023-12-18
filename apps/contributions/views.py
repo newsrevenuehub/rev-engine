@@ -600,11 +600,11 @@ class PortalContributorsViewSet(viewsets.GenericViewSet):
         for k in self.ALLOWED_FILTER_FIELDS:
             if (v := self.request.query_params.get(k)) is not None:
                 filters[k] = v
-        return Response(
-            self.CONTRIBUTIONS_LIST_SERIALIZER_CLASS(
-                contributor.contribution_set.filter(**filters).order_by(ordering), many=True
-            ).data
-        )
+        queryset = contributor.contribution_set.filter(**filters).order_by(ordering)
+        paginator = self.pagination_class()
+        page = paginator.paginate_queryset(queryset, request)
+        serializer = self.CONTRIBUTIONS_LIST_SERIALIZER_CLASS(page, many=True)
+        return paginator.get_paginated_response(serializer.data)
 
     @action(
         methods=["get", "patch", "delete"],

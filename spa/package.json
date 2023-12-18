@@ -7,6 +7,7 @@
     "@fortawesome/fontawesome-svg-core": "^1.2.35",
     "@fortawesome/free-solid-svg-icons": "^5.15.3",
     "@fortawesome/react-fontawesome": "^0.1.14",
+    "@googlemaps/js-api-loader": "^1.16.2",
     "@material-design-icons/svg": "^0.14.2",
     "@material-ui/core": "^4.11.4",
     "@material-ui/icons": "^4.11.3",
@@ -44,7 +45,6 @@
     "react-dom": "^17.0.2",
     "react-draft-wysiwyg": "^1.14.7",
     "react-focus-lock": "^2.9.5",
-    "react-google-autocomplete": "^2.7.1",
     "react-helmet": "^6.1.0",
     "react-hook-form": "^7.34.2",
     "react-i18next": "^13.2.2",
@@ -79,6 +79,7 @@
     "build-storybook": "storybook build -s public"
   },
   "devDependencies": {
+    "@googlemaps/jest-mocks": "^2.21.4",
     "@storybook/addon-essentials": "^7.5.3",
     "@storybook/addon-interactions": "^6.5.10",
     "@storybook/addon-links": "^7.5.3",

@@ -167,6 +167,7 @@ function DAmount({ element, ...props }: DAmountProps) {
           <OtherAmount data-testid={`amount-other${otherIsSelected ? '-selected' : ''}`} selected={otherIsSelected}>
             <span>{currencySymbol}</span>
             <OtherAmountInput
+              aria-label="Other Amount"
               inputMode="numeric"
               type="text"
               min="0"

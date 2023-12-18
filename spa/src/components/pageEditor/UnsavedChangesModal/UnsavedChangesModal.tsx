@@ -1,6 +1,5 @@
 import PropTypes, { InferProps } from 'prop-types';
-import { ModalContent } from 'semantic-ui-react';
-import { Button, Modal, ModalFooter } from 'components/base';
+import { Button, Modal, ModalContent, ModalFooter } from 'components/base';
 import { Content, HeaderIcon, ModalHeader } from './UnsavedChangesModal.styled';
 
 const UnsavedChangesModalPropTypes = {

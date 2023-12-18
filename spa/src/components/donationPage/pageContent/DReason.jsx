@@ -206,12 +206,20 @@ function TributeSelector({
 }
 
 function TributeCheckbox({ value, label, name, checked, handleChange, asRadio }) {
+  // Value is blank on the "no" radio button. For AX, we set an ID on it even so.
+
+  let idOverride;
+
+  if (value === '') {
+    idOverride = 'tribute_checkbox_no_value';
+  }
+
   return (
     <S.CheckBoxField>
       {asRadio ? (
         <S.Radio
           data-testid={`tribute-${value}`}
-          id={value}
+          id={idOverride ?? value}
           checked={checked}
           onChange={handleChange}
           value={value}
@@ -227,7 +235,7 @@ function TributeCheckbox({ value, label, name, checked, handleChange, asRadio })
           onChange={handleChange}
         />
       )}
-      <S.CheckboxLabel htmlFor={asRadio ? value : name}>{label}</S.CheckboxLabel>
+      <S.CheckboxLabel htmlFor={asRadio ? (idOverride ?? value) : name}>{label}</S.CheckboxLabel>
     </S.CheckBoxField>
   );
 }

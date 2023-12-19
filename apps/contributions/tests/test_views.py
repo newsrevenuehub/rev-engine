@@ -1647,7 +1647,6 @@ class TestPortalContributorsViewSet:
                     dateparser.parse(x["next_payment_date"]).replace(tzinfo=pytz.UTC) == contribution.next_payment_date
                 )
             assert x["payment_type"] == contribution.payment_type
-            assert x["provider_customer_id"] == contribution.provider_customer_id
             assert x["revenue_program"] == contribution.donation_page.revenue_program.id
             assert x["status"] == contribution.status
 

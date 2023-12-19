@@ -836,6 +836,7 @@ PORTAL_CONTRIBUTION_BASE_SERIALIZER_FIELDS = [
     "amount",
     "card_brand",
     "card_expiration_date",
+    "card_owner_name",
     "card_last_4",
     "created",
     "interval",

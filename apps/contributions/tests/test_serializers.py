@@ -136,6 +136,19 @@ class TestContributionSerializer:
 
         assert ContributionSerializer().get_provider_customer_url(make_serializer_object) == expected
 
+    def test__get_base_provider_url_when_payment_provider_used_not_stripe(self, mocker):
+        """Here to get otherwise un-run object code running in tests"""
+
+        class Klass:
+            payment_provider_used = "not-stripe"
+
+        assert ContributionSerializer()._get_base_provider_url(Klass()) is None
+
+    def test__get_resource_url_when_no_provider_url(self, mocker):
+        """Here to get otherwise un-run object code running in tests"""
+        mocker.patch("apps.contributions.serializers.ContributionSerializer._get_base_provider_url", return_value=None)
+        assert ContributionSerializer()._get_resource_url(None, None) == ""
+
 
 class TestAbstractPaymentSerializer:
     def test_convert_amount_to_cents(self):

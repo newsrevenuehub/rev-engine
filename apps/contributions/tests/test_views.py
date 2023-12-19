@@ -2036,10 +2036,35 @@ class TestPortalContributorsViewSet:
         assert response.status_code == status.HTTP_400_BAD_REQUEST
         assert response.json() == {"detail": "Problem updating contribution"}
 
-    def contribution_detail_patch_when_requesting_user_email_not_match_stripe_sub_email(
-        self, api_client, portal_contributor_with_multiple_contributions, mocker
+    def test_contribution_detail_patch_when_requesting_user_email_not_match_stripe_sub_email(
+        self, api_client, portal_contributor_with_multiple_contributions
     ):
-        pass
+        (
+            contributor,
+            _,
+            mock_subscription_retrieve,
+            _,
+        ) = portal_contributor_with_multiple_contributions
+        api_client.force_authenticate(contributor)
+        contribution = contributor.contribution_set.filter(~Q(interval=ContributionInterval.ONE_TIME)).first()
+
+        new_payment_method_id = "something-new"
+        contributor.email = "something@new.com"
+        contributor.save()
+
+        response = api_client.patch(
+            reverse(
+                "portal-contributor-contribution-detail",
+                args=(
+                    contributor.id,
+                    contribution.id,
+                ),
+            ),
+            data={"provider_payment_method_id": new_payment_method_id},
+        )
+        mock_subscription_retrieve.assert_called_once()
+        assert response.status_code == status.HTTP_404_NOT_FOUND
+        assert response.json() == {"detail": "subscription not found"}
 
     def test_contribution_detail_delete_happy_path(
         self, api_client, portal_contributor_with_multiple_contributions, mocker

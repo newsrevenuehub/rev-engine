@@ -1543,28 +1543,13 @@ class TestPortalContributorsViewSet:
         return contribution
 
     @pytest.fixture
-    def stripe_customer_factory(self, faker):
+    def stripe_customer_factory(self, stripe_customer_default_source_expanded):
         def _stripe_customer_expanded_factory(customer_id, customer_email):
             return stripe.Customer.construct_from(
-                {
+                stripe_customer_default_source_expanded
+                | {
                     "id": customer_id,
                     "email": customer_email,
-                    "invoice_settings": {
-                        "default_payment_method": stripe.PaymentMethod.construct_from(
-                            {
-                                "id": faker.pystr_format(string_format="pm_????"),
-                                "object": "payment_method",
-                                "type": "card",
-                                "card": {
-                                    "brand": "visa",
-                                    "exp_month": 12,
-                                    "exp_year": 2023,
-                                    "last4": "4242",
-                                },
-                            },
-                            "some-id",
-                        )
-                    },
                 },
                 "some-id",
             )
@@ -1619,7 +1604,6 @@ class TestPortalContributorsViewSet:
         one_time_contribution.provider_customer_id = cust_id
         one_time_contribution.save()
 
-        mock_pm_attach = mocker.patch("stripe.PaymentMethod.attach")
         mock_customer_retrieve = mocker.patch(
             "stripe.Customer.retrieve",
             return_value=stripe_customer_factory(customer_id=cust_id, customer_email=portal_contributor.email),
@@ -1630,22 +1614,22 @@ class TestPortalContributorsViewSet:
         mocker.patch("stripe.PaymentMethod.retrieve", return_value=stripe.PaymentMethod.construct_from({}, "some-id"))
         return (
             monthly_contribution.contributor,
-            mock_pm_attach,
             mock_customer_retrieve,
             mock_subscription_retrieve,
             mock_subscription_modify,
         )
 
-    def test_contributions_list_happy_path(self, portal_contributor_with_multiple_contributions, api_client, mocker):
+    def test_contributions_list_happy_path(self, portal_contributor_with_multiple_contributions, api_client):
         contributor = portal_contributor_with_multiple_contributions[0]
         api_client.force_authenticate(contributor)
         response = api_client.get(reverse("portal-contributor-contributions-list", args=(contributor.id,)))
         assert response.status_code == status.HTTP_200_OK
-        assert len(response.json()) == 2
-        assert set(x["id"] for x in response.json()) == set(
+        assert set(response.json().keys()) == {"count", "next", "previous", "results"}
+        assert len(response.json()["results"]) == 2
+        assert set(x["id"] for x in response.json()["results"]) == set(
             contributor.contribution_set.all().values_list("id", flat=True)
         )
-        for x in response.json():
+        for x in response.json()["results"]:
             contribution = Contribution.objects.get(id=x["id"])
             assert x["amount"] == contribution.amount
             assert x["card_brand"] == contribution.card_brand
@@ -1677,9 +1661,10 @@ class TestPortalContributorsViewSet:
             + f"?status={ContributionStatus.PAID}"
         )
         assert response.status_code == status.HTTP_200_OK
-        assert len(response.json()) == 1
+        assert len(response.json()["results"]) == 1
         assert (
-            response.json()[0]["id"] == contributor.contribution_set.filter(status=ContributionStatus.PAID).first().id
+            response.json()["results"][0]["id"]
+            == contributor.contribution_set.filter(status=ContributionStatus.PAID).first().id
         )
 
     @pytest.mark.parametrize(
@@ -1708,12 +1693,29 @@ class TestPortalContributorsViewSet:
         )
         assert response.status_code == status.HTTP_200_OK
         if descending:
-            assert response.json()[0][ordering] > response.json()[1][ordering]
+            assert response.json()["results"][0][ordering] > response.json()["results"][1][ordering]
         else:
-            assert response.json()[0][ordering] < response.json()[1][ordering]
+            assert response.json()["results"][0][ordering] < response.json()["results"][1][ordering]
 
-    def test_contributions_list_pagination_behavior(self, api_client, mocker):
-        pass
+    def test_contributions_list_pagination_behavior(
+        self, api_client, mocker, stripe_customer_default_source_expanded, stripe_payment_method
+    ):
+        mocker.patch(
+            "stripe.Customer.retrieve",
+            stripe.Customer.construct_from(stripe_customer_default_source_expanded, "some-id"),
+        )
+        mocker.patch(
+            "stripe.PaymentMethod.retrieve",
+            return_value=stripe.PaymentMethod.construct_from(stripe_payment_method, "some-id"),
+        )
+        contributor = ContributorFactory()
+        page = DonationPageFactory()
+        ContributionFactory.create_batch(20, contributor=contributor, donation_page=page)
+        api_client.force_authenticate(contributor)
+        response = api_client.get(reverse("portal-contributor-contributions-list", args=(contributor.id,)))
+        assert response.status_code == status.HTTP_200_OK
+        assert response.json().keys() == {"count", "next", "previous", "results"}
+        assert api_client.get(response.json()["next"]).status_code == status.HTTP_200_OK
 
     @pytest.fixture(params=["superuser", "hub_admin_user", "org_user_free_plan", "rp_user"])
     def non_contributor_user(self, request):
@@ -1849,13 +1851,13 @@ class TestPortalContributorsViewSet:
     ):
         (
             contributor,
-            mock_pm_attach,
             _,
             mock_subscription_retrieve,
             mock_subscription_modify,
         ) = portal_contributor_with_multiple_contributions
         api_client.force_authenticate(contributor)
         contribution = contributor.contribution_set.filter(~Q(interval=ContributionInterval.ONE_TIME)).first()
+        mock_pm_attach = mocker.patch("stripe.PaymentMethod.attach")
         new_payment_method_id = "something-new"
 
         response = api_client.patch(
@@ -1979,6 +1981,7 @@ class TestPortalContributorsViewSet:
     ):
         contributor = portal_contributor_with_multiple_contributions[0]
         mocker.patch("stripe.Subscription.modify", side_effect=stripe.error.StripeError("ruh roh"))
+        mocker.patch("stripe.PaymentMethod.attach")
         api_client.force_authenticate(contributor)
         new_payment_method_id = "something-new"
         response = api_client.patch(

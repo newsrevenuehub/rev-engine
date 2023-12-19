@@ -629,29 +629,25 @@ class Contribution(IndexedTimeStampedModel):
         customer = stripe.Customer.retrieve(
             cust_id,
             stripe_account=self.donation_page.revenue_program.payment_provider.stripe_account_id,
-            expand=["invoice_settings.default_payment_method.card"],
+            expand=["default_source"],
         )
-        return (
-            customer.invoice_settings.default_payment_method.card
-            if customer.invoice_settings.default_payment_method
-            else None
-        )
+        return customer.default_source if customer.default_source and customer.default_source.object == "card" else None
 
     @property
-    def card_brand(self) -> str | None:
-        return self.card.brand if self.card else None
+    def card_brand(self) -> str:
+        return self.card.brand if self.card else ""
 
     @property
-    def card_expiration_date(self) -> str | None:
-        return f"{self.card.exp_month}/{self.card.exp_year}" if self.card else None
+    def card_expiration_date(self) -> str:
+        return f"{self.card.exp_month}/{self.card.exp_year}" if self.card else ""
 
     @property
-    def card_owner_name(self) -> str | None:
-        return self.card.name if self.card else None
+    def card_owner_name(self) -> str:
+        return self.card.name if self.card else ""
 
     @property
-    def card_last_4(self) -> str | None:
-        return self.card.last4 if self.card else None
+    def card_last_4(self) -> str:
+        return self.card.last4 if self.card else ""
 
     @property
     def is_cancelable(self) -> bool:
@@ -686,8 +682,8 @@ class Contribution(IndexedTimeStampedModel):
         return stripe.PaymentMethod.retrieve(pm_id, stripe_account=self.stripe_account_id)
 
     @property
-    def payment_type(self) -> str | None:
-        return self.stripe_payment_method.type if self.stripe_payment_method else None
+    def payment_type(self) -> str:
+        return self.stripe_payment_method.type if self.stripe_payment_method else ""
 
     @cached_property
     def stripe_subscription(self) -> stripe.Subscription | None:

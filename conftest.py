@@ -1047,3 +1047,15 @@ def balance_transaction_for_one_time_charge():
 @pytest.fixture()
 def clear_cache():
     cache.clear()
+
+
+@pytest.fixture
+def stripe_customer_default_source_expanded():
+    with open("apps/contributions/tests/fixtures/stripe-customer-default-source-expanded.json") as fl:
+        return stripe.Customer.construct_from(json.load(fl), key="test")
+
+
+@pytest.fixture
+def stripe_payment_method():
+    with open("apps/contributions/tests/fixtures/stripe-payment-method.json") as fl:
+        return stripe.PaymentMethod.construct_from(json.load(fl), key="test")

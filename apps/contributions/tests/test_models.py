@@ -1623,7 +1623,7 @@ class TestContributionModel:
     def test_card_owner_name_when_no_card(self, mocker):
         mocker.patch("apps.contributions.models.Contribution.card", new_callable=mocker.PropertyMock, return_value=None)
         contribution = ContributionFactory()
-        assert contribution.card_owner_name is None
+        assert contribution.card_owner_name == ""
 
     def test_stripe_payment_method_when_no_pm_id(self):
         contribution = ContributionFactory(provider_payment_method_id=None)

@@ -9,7 +9,7 @@ from apps.config.admin import DenyListWordAdmin
 from apps.config.models import DenyListWord
 from apps.config.tests.factories import DenyListWordFactory
 from apps.contributions.admin import ContributionAdmin, ContributorAdmin
-from apps.contributions.models import Contribution, Contributor
+from apps.contributions.models import Contribution, Contributor, Payment
 from apps.contributions.tests.factories import ContributionFactory, ContributorFactory
 from apps.organizations.admin import (
     BenefitAdmin,
@@ -61,6 +61,7 @@ def test_expected_models_are_registered_with_django_reversion():
         Style,
         User,
         RoleAssignment,
+        Payment,
     ]
     assert set(expected_registered_models) == set(reversion.get_registered_models())
 

@@ -1,0 +1,128 @@
+openapi: 3.0.0
+info:
+  version: 1.0.0
+  title: New contribution summary endpoint
+paths:
+  /contributions:
+    get:
+      description: >
+        Returns a list of summarized contributions for the logged-in
+        contributor.
+      parameters:
+        - name: page
+          in: query
+          description: Page index
+          schema:
+            type: integer
+        - name: page_size
+          in: query
+          description: Number of items per page
+          schema:
+            type: integer
+        - name: status
+          in: query
+          description: >
+            Filter contributions by status. Valid values are `active`,
+            `canceled`, `failed`, `past_due`, and `unpaid`.
+          schema:
+            type: string
+        - name: ordering
+          in: query
+          description: >
+            Ordering of contributions. Valid values are `created` and
+            `amount`
+          schema:
+            type: string
+
+      responses:
+        '200':
+          description: Successful response
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  results:
+                    type: array
+                    description: >
+                        Each item in this array is either a one-time
+                        contribution or a recurring one. In other words, a
+                        recurring contribution will be returned as a single item
+                        regardless of how many payments have been made.
+                    items:
+                      $ref: "#/components/schemas/Contribution"
+                  count:
+                    type: integer
+                    description: Total number of contributions
+                    example: 25
+                  next:
+                    type: string
+                    description: URL to retrieve next page of results
+                    example: https://foo.bar.org/contributor/<some-id>/contributions/?page=5
+                  previous:
+                    type: string
+                    description: URL to retrieve previous page of results
+                    example: https://foo.bar.org/contributor/<some-id>/contributions/?page=3
+components:
+  schemas:
+    Contribution:
+      properties:
+        amount:
+          type: number
+          description: Amount of the contribution in US cents.
+          example: 12300
+        card_brand:
+          type: string
+          description: Stripe-provided card type used for this contribution, if any.
+          example: visa
+        card_expiration_date:
+          type: string
+          description: Human-readable expiration date of the credit card used, if any.
+          example: 4/2024
+        card_last_4:
+          type: string
+          description: Last 4 digits of the card used for this contribution, if any.
+          example: 1234
+        created:
+          type: string
+          description: Timestamp when the contribution was created.
+          example: 2023-06-29T16:57:09Z
+        id:
+          type: string
+          description: Either a Stripe payment intent ID or subscription ID.
+          example: pi_abc123
+        interval:
+          type: string
+          description: Interval of the contribution.
+          example: one_time
+        is_modifiable:
+          type: boolean
+          description: Can the payment method of this be changed?
+        is_cancelable:
+          type: boolean
+          description: Can this contribution be cancelled?
+        last_payment_date:
+          type: string
+          description: Timestamp when the most recent payment for this
+          example: 2023-08-29T16:57:09Z
+        next_payment_date:
+          type: string
+          description: >
+            Timestamp when the next payment on a recurring
+            contribution will occur. If this is a one-time
+            contribution, then it is null.
+          example: 2023-12-29T16:57:09Z
+        payment_type:
+          type: string
+          description: Type of payment used.
+          example: card
+        revenue_program:
+          type: number
+          description: Numeric ID of the revenue program this contribution is associated with.
+          example: 12
+        status:
+          type: string
+          description: >
+            For one-time contributions, the status of the
+            payment. For recurring contributions, the status of
+            the most recent payment.

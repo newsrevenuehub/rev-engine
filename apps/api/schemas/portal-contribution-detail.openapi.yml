@@ -1,0 +1,127 @@
+openapi: 3.0.0
+info:
+  version: 1.0.0
+  title: New contribution detail endpoint
+paths:
+  /contributors/:contributor_id/contributions/:contribution_id/:
+    get:
+      description: >
+        Returns a list of summarized contributions for the logged-in
+        contributor.
+      parameters:
+        - name: contributor_id
+          in: path
+          description: >
+            ID of the contributor. This needs to be same as requesting user
+          required: true
+          schema:
+            type: string
+        - name: contribution_id
+          in: path
+          description: >
+            ID of the contribution. This needs to be owned by the requesting contributor
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Successful response
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  amount:
+                    type: number
+                    description: Amount of the contribution in US cents.
+                    example: 12300
+                  card_brand:
+                    type: string
+                    description: Stripe-provided card type used for this contribution, if any.
+                    example: visa
+                  card_expiration_date:
+                    type: string
+                    description: Human-readable expiration date of the credit card used, if any.
+                    example: 4/2024
+                  card_last_4:
+                    type: string
+                    description: Last 4 digits of the card used for this contribution, if any.
+                    example: 1234
+                  card_owner_name:
+                    type: string
+                    description: Name on credit card used, if any.
+                    example: Jane Doe
+                  created:
+                    type: string
+                    description: Timestamp when the contribution was created.
+                    example: 2023-06-29T16:57:09Z
+                  id:
+                    type: number
+                    description: ID of the NRE contribution
+                    example: 123
+                  interval:
+                    type: string
+                    description: Interval of the contribution.
+                    example: one_time
+                  is_modifiable:
+                    type: boolean
+                    description: Can the payment method of this be changed?
+                  is_cancellable:
+                    type: boolean
+                    description: Can this contribution be cancelled?
+                  last_payment_date:
+                    type: string
+                    description: Timestamp when the most recent payment for this occurred.
+                    example: 2023-08-29T16:57:09Z
+                  next_payment_date:
+                    type: string
+                    description: >
+                      Timestamp when the next payment on a recurring
+                      contribution will occur. If this is a one-time
+                      contribution, then it is null.
+                    example: 2023-12-29T16:57:09Z
+                  paid_fees:
+                    type: boolean
+                    description: Whether the contributor opted to pay processing fees.
+                  payments:
+                    type: array
+                    description: >
+                      List of all payments associated with this contribution. If
+                      none are available, this is an empty list.
+                    items:
+                      type: object
+                      properties:
+                        amount_refunded:
+                          type: number
+                          description: Amount refunded from this payment in cents, if any.
+                          example: 0
+                        gross_amount_paid:
+                          type: number
+                          description: Total amount paid in cents.
+                          example: 12000
+                        id:
+                          type: number
+                          description: ID of the payment
+                          example: 123
+                        net_amount_paid:
+                          type: number
+                          description: Amount paid in cents, minus fees.
+                          example: 11000
+                        transaction_time:
+                          type: string
+                          description: Timestamp when the payment was created.
+                          example: 2023-08-29T16:57:09Z
+                  payment_type:
+                    type: string
+                    description: Type of payment used.
+                    example: card
+                  revenue_program:
+                    type: number
+                    description: Numeric ID of the revenue program this contribution is associated with.
+                    example: 12
+                  status:
+                    type: string
+                    description: >
+                      For one-time contributions, the status of the
+                      payment. For recurring contributions, the status of
+                      the most recent payment.

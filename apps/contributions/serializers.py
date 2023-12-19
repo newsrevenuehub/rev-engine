@@ -836,7 +836,6 @@ PORTAL_CONTRIBUTION_BASE_SERIALIZER_FIELDS = [
     "amount",
     "card_brand",
     "card_expiration_date",
-    "card_owner_name",
     "card_last_4",
     "created",
     "interval",
@@ -845,7 +844,6 @@ PORTAL_CONTRIBUTION_BASE_SERIALIZER_FIELDS = [
     "last_payment_date",
     "next_payment_date",
     "payment_type",
-    "provider_customer_id",
     "revenue_program",
     "status",
 ]
@@ -893,6 +891,7 @@ class PortalContributionPaymentSerializer(serializers.ModelSerializer):
 PORTAL_CONTRIBUTION_DETAIL_SERIALIZER_DB_FIELDS = PORTAL_CONTRIBUTION_BASE_SERIALIZER_FIELDS + [
     "payments",
     "paid_fees",
+    "card_owner_name",
 ]
 
 

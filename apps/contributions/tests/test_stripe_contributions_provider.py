@@ -243,7 +243,7 @@ class TestStripePaymentIntent:
         assert (paid_at := pi_for_active_subscription.invoice.status_transitions.paid_at)
         assert StripePaymentIntent(pi_for_active_subscription).last_payment_date == datetime.datetime.fromtimestamp(
             paid_at, tz=datetime.timezone.utc
-        )
+        ).replace(microsecond=0)
 
     def test_credit_card_expiration_date_when_card_has_month(self, pi_for_valid_one_time):
         assert pi_for_valid_one_time.payment_method.card.exp_month
@@ -517,7 +517,9 @@ class TestStripeContributionsProvider:
         result = provider.cast_subscription_to_pi_for_portal(sub)
         assert isinstance(result, StripePiAsPortalContribution)
         assert result.amount == sub.plan.amount
-        assert result.created == datetime.datetime.fromtimestamp(sub.created, tz=datetime.timezone.utc)
+        assert result.created == datetime.datetime.fromtimestamp(sub.created, tz=datetime.timezone.utc).replace(
+            microsecond=0
+        )
         assert result.credit_card_expiration_date == f"{month}/{year}"
         assert result.id == sub.id
         assert result.interval == ContributionInterval.MONTHLY

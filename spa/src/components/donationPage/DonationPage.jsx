@@ -173,7 +173,7 @@ function DonationPage({ page, live = false }, ref) {
         // 403s happen if csrf token expired, or if user not authorized by api. We do want
         // to display fallback, but don't want to report to sentry.
         if (error.response?.status !== 403) {
-          console.error('Something unexpected happened', error.name, error.message);
+          console.error('Something unexpected happened', error.name, error.message, error.response?.status);
         }
         setDisplayErrorFallback(true);
       }

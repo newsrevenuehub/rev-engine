@@ -144,7 +144,7 @@ export function usePayment() {
           const { response } = error as AxiosError;
           // Log the response (if any) in Sentry, but not for 403, which are normal/expected
           if (response?.data && response?.status !== 403) {
-            console.error(`Error creating payment: ${JSON.stringify((error as AxiosError).response!.data)}`);
+            console.error(`Error creating payment: ${JSON.stringify(response!.data)}`);
           }
         },
         onSuccess({ data }) {

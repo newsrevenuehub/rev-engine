@@ -13,6 +13,7 @@ from rest_framework.response import Response
 from reversion.views import RevisionMixin
 
 from apps.api.permissions import HasRoleAssignment
+from apps.common.models import SocialMeta
 from apps.common.views import FilterForSuperUserOrRoleAssignmentUserMixin
 from apps.element_media.models import MediaImage
 from apps.organizations.models import RevenueProgram
@@ -175,6 +176,24 @@ class PageViewSet(FilterForSuperUserOrRoleAssignmentUserMixin, RevisionMixin, vi
         except PageDetailError as e:
             return Response({"detail": e.message}, status=e.status)
 
+    def __create_default_social_meta(self, rp_id):
+        rp = RevenueProgram.objects.get(pk=rp_id)
+        # Find if page was the first page created for the RP and SocialMeta is not set
+        if not hasattr(rp, "socialmeta"):
+            # If yes, create default SocialMeta
+            try:
+                SocialMeta.objects.create(revenue_program=rp)
+            except Exception as e:
+                logger.exception("Failed to create SocialMeta for RP %s", rp)
+                raise e
+
+    def create(self, request, *args, **kwargs):
+        response = super().create(request, *args, **kwargs)
+
+        self.__create_default_social_meta(request.data["revenue_program"])
+
+        return response
+
     def partial_update(self, request, *args, **kwargs):
         response = super().partial_update(request, *args, **kwargs)
         # The `all` condtion below is quirky, but necessary for now because this view is dealing with
@@ -207,6 +226,9 @@ class PageViewSet(FilterForSuperUserOrRoleAssignmentUserMixin, RevisionMixin, vi
             page = DonationPage.objects.get(pk=kwargs["pk"])
             page.sidebar_elements = response.data["sidebar_elements"]
             page.save()
+
+        self.__create_default_social_meta(response.data["revenue_program"]["id"])
+
         return response
 
     def destroy(self, request, pk):

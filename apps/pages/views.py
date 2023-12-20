@@ -182,7 +182,11 @@ class PageViewSet(FilterForSuperUserOrRoleAssignmentUserMixin, RevisionMixin, vi
         if not hasattr(rp, "socialmeta"):
             # If yes, create default SocialMeta
             try:
-                SocialMeta.objects.create(revenue_program=rp)
+                logger.info('[__create_default_social_meta] Creating Social Meta for RP id "%s"', rp_id)
+                social = SocialMeta.objects.create(revenue_program=rp)
+                logger.info(
+                    '[__create_default_social_meta] Social Meta with id "%s" created for RP id "%s"', social.id, rp_id
+                )
             except Exception as e:
                 logger.exception("Failed to create SocialMeta for RP %s", rp)
                 raise e

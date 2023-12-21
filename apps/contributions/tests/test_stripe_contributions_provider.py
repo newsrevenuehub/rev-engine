@@ -231,15 +231,19 @@ class TestStripePaymentIntent:
         assert StripePaymentIntent(None).card == expected
 
     def test_last_payment_date_when_no_invoice(self, pi_without_invoice):
+        # StripePaymentIntent(pi_without_invoice).last_payment_date generates dates with microseconds
+        # whilst datetime.datetime.fromtimestamp doesn't. Setting the microseconds to 0 so tests pass
         assert StripePaymentIntent(pi_without_invoice).last_payment_date == datetime.datetime.fromtimestamp(
             int(pi_without_invoice.created), tz=datetime.timezone.utc
-        )
+        ).replace(microsecond=0)
 
     def test_last_payment_date_when_status_transitions_no_paid_at(self, pi_for_active_subscription):
         pi_for_active_subscription.invoice.status_transitions.paid_at = None
         assert StripePaymentIntent(pi_for_active_subscription).last_payment_date is None
 
     def test_last_payment_date_when_status_transitions_paid_at(self, pi_for_active_subscription):
+        # StripePaymentIntent(pi_without_invoice).last_payment_date generates dates with microseconds
+        # whilst datetime.datetime.fromtimestamp doesn't. Setting the microseconds to 0 so tests pass
         assert (paid_at := pi_for_active_subscription.invoice.status_transitions.paid_at)
         assert StripePaymentIntent(pi_for_active_subscription).last_payment_date == datetime.datetime.fromtimestamp(
             paid_at, tz=datetime.timezone.utc

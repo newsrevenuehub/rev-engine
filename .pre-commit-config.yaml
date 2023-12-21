@@ -80,7 +80,7 @@ repos:
         types_or: [javascript, ts, tsx]
   # JS code linter.
   - repo: https://github.com/pre-commit/mirrors-eslint
-    rev: v8.51.0
+    rev: v8.55.0
     hooks:
       - id: eslint
         files: \.[jt]sx?$ # *.js, *.jsx, *.ts and *.tsx

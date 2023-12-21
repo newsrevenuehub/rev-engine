@@ -178,34 +178,60 @@ def test_upsert_cloudflare_cnames(cloudflare_class_mock):
     mock_cloudflare = mock.MagicMock()
     cloudflare_class_mock.return_value = mock_cloudflare
 
-    mock_cloudflare.zones.get.return_value = [{"id": "foo"}]
+    mock_cloudflare.zones.get.return_value = {"result": [{"id": "foo"}], "result_info": {"total_count": 1}}
 
     # DNS record is already there; shouldn't do anything:
-    mock_cloudflare.zones.dns_records.get.return_value = [
-        {"name": "quux.bar", "id": "123", "content": "foo.herokuapp.com"}
-    ]
+    mock_cloudflare.zones.dns_records.get.return_value = {
+        "result": [{"name": "quux.bar", "id": "123", "content": "foo.herokuapp.com"}],
+        "result_info": {"total_count": 1},
+    }
     upsert_cloudflare_cnames(["quux"])
     assert not mock_cloudflare.zones.dns_records.post.called
     assert not mock_cloudflare.zones.dns_records.patch.called
+    mock_cloudflare.reset_mock()
 
     # DNS records aren't there; should create it:
-    mock_cloudflare.zones.dns_records.get.return_value = [{"name": "abc", "id": "123", "content": "xyz"}]
+    mock_cloudflare.zones.dns_records.get.return_value = {
+        "result": [{"name": "abc", "id": "123", "content": "xyz"}],
+        "result_info": {"total_count": 1},
+    }
     upsert_cloudflare_cnames(["quux", "frob"])
-    assert mock_cloudflare.zones.get.called_once_with(params={"name": "bar"})
-    assert mock_cloudflare.zones.dns_records.get.called_once_with("foo", params={"per_page": 300})
-    assert mock_cloudflare.zones.dns_records.post.called_once_with(
-        "foo", data={"type": "CNAME", "name": "quux", "content": "quux.herokuapp.com", "proxied": True}
+    mock_cloudflare.zones.get.assert_called_once_with(params={"name": "bar"})
+    mock_cloudflare.zones.dns_records.get.assert_called_once_with("foo", params={"per_page": 300, "page": 1})
+    assert mock_cloudflare.zones.dns_records.post.call_count == 2
+    mock_cloudflare.zones.dns_records.post.assert_any_call(
+        "foo", data={"type": "CNAME", "name": "quux", "content": "foo.herokuapp.com", "proxied": True}
     )
-    assert mock_cloudflare.zones.dns_records.post.called_once_with(
-        "foo", data={"type": "CNAME", "name": "frob", "content": "frob.herokuapp.com", "proxied": True}
+    mock_cloudflare.zones.dns_records.post.assert_called_with(
+        "foo", data={"type": "CNAME", "name": "frob", "content": "foo.herokuapp.com", "proxied": True}
     )
     assert not mock_cloudflare.zones.dns_records.patch.called
+    mock_cloudflare.reset_mock()
 
-    # DNS records is there, but content is wrong; should update it:
-    mock_cloudflare.zones.dns_records.get.return_value = [{"name": "quux.bar", "id": "123", "content": "foo.x.com"}]
+    # DNS records is there, but content is wrong; should update it - test with one page
+    mock_cloudflare.zones.dns_records.get.return_value = {
+        "result": [{"name": "quux.bar", "id": "123", "content": "foo.x.com"}],
+        "result_info": {"total_count": 1},
+    }
     upsert_cloudflare_cnames(["quux"])
-    assert mock_cloudflare.zones.dns_records.patch.called_once_with(
-        "foo", data={"type": "CNAME", "name": "quux", "content": "quux.herokuapp.com", "proxied": True}
+    mock_cloudflare.zones.dns_records.patch.assert_called_once_with(
+        "foo", "123", data={"type": "CNAME", "name": "quux", "content": "foo.herokuapp.com", "proxied": True}
+    )
+    mock_cloudflare.reset_mock()
+
+    # DNS records is there, but content is wrong; should update it - Test with pagination (multiple pages)
+    mock_cloudflare.zones.dns_records.get.side_effect = [
+        {"result": [{"name": "quux.bar", "id": "123", "content": "foo.x.com"}], "result_info": {"total_count": 2}},
+        {"result": [{"name": "foo.bar", "id": "456", "content": "foo.x.com"}], "result_info": {"total_count": 2}},
+    ]
+
+    upsert_cloudflare_cnames(["quux"], 1)
+    mock_cloudflare.zones.get.assert_called_once_with(params={"name": "bar"})
+    assert mock_cloudflare.zones.dns_records.get.call_count == 2
+    mock_cloudflare.zones.dns_records.get.assert_any_call("foo", params={"per_page": 1, "page": 1})
+    mock_cloudflare.zones.dns_records.get.assert_called_with("foo", params={"per_page": 1, "page": 2})
+    mock_cloudflare.zones.dns_records.patch.assert_called_once_with(
+        "foo", "123", data={"type": "CNAME", "name": "quux", "content": "foo.herokuapp.com", "proxied": True}
     )
 
 
@@ -239,19 +265,42 @@ def test_create_stripe_webhook(create_mock, list_mock):
 def test_delete_cloudflare_cnames(cloudflare_class_mock):
     mock_cloudflare = mock.MagicMock()
     cloudflare_class_mock.return_value = mock_cloudflare
-    mock_cloudflare.zones.get.return_value = [{"id": "foo"}]
-    mock_cloudflare.zones.dns_records.get.return_value = [
-        {"name": "quux.bar", "id": "123", "content": "foo.herokuapp.com"}
-    ]
+    mock_cloudflare.zones.get.return_value = {"result": [{"id": "foo"}]}
+    mock_cloudflare.zones.dns_records.get.return_value = {
+        "result": [{"name": "quux.bar", "id": "123", "content": "foo.herokuapp.com"}],
+        "result_info": {"total_count": 1},
+    }
     # no record there: shouldn't do anything
     delete_cloudflare_cnames("baz")
     assert not mock_cloudflare.zones.dns_records.delete.called
+    mock_cloudflare.reset_mock()
 
-    mock_cloudflare.zones.dns_records.get.return_value = [{"name": "abc", "id": "123", "content": "xyz"}]
+    mock_cloudflare.zones.dns_records.get.return_value = {
+        "result": [{"name": "abc", "id": "123", "content": "xyz"}],
+        "result_info": {"total_count": 1},
+    }
     delete_cloudflare_cnames("abc")
-    assert mock_cloudflare.zones.get.called_once_with(params={"name": "bar"})
-    assert mock_cloudflare.zones.dns_records.get.called_once_with("foo", params={"per_page": 300})
-    assert mock_cloudflare.zones.dns_records.delet.called_once_with("foo", "123")
+    mock_cloudflare.zones.get.assert_called_once_with(params={"name": "bar"})
+    mock_cloudflare.zones.dns_records.get.assert_called_once_with("foo", params={"per_page": 300, "page": 1})
+    mock_cloudflare.zones.dns_records.delete.assert_called_once_with("foo", "123")
+
+    mock_cloudflare.reset_mock()
+    # assert delete is called with correct params when there are multiple pages
+    mock_cloudflare.zones.dns_records.get.side_effect = [
+        {
+            "result": [
+                {"name": "quux.bar", "id": "456", "content": "foo.herokuapp.com"},
+            ],
+            "result_info": {"total_count": 2},
+        },
+        {"result": [{"name": "abc", "id": "123", "content": "xyz"}], "result_info": {"total_count": 2}},
+    ]
+    delete_cloudflare_cnames("abc", 1)
+    mock_cloudflare.zones.get.assert_called_once_with(params={"name": "bar"})
+    assert mock_cloudflare.zones.dns_records.get.call_count == 2
+    mock_cloudflare.zones.dns_records.get.assert_any_call("foo", params={"per_page": 1, "page": 1})
+    mock_cloudflare.zones.dns_records.get.assert_called_with("foo", params={"per_page": 1, "page": 2})
+    mock_cloudflare.zones.dns_records.delete.assert_called_once_with("foo", "123")
 
 
 def test_ip_in_cf_connecting_header():

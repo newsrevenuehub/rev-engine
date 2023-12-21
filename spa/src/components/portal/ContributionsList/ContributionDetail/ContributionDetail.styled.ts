@@ -6,9 +6,13 @@ export const Root = styled.div`
   padding: 40px 35px;
   align-self: self-start;
 
+  /* useDetailAnchor will set this variable on us. */
+  transform: translateY(var(--two-column-vertical-offset));
+
   @media (${(props) => props.theme.breakpoints.tabletLandscapeDown}) {
     border-left: none;
     padding: 0;
+    transform: none;
   }
 `;
 

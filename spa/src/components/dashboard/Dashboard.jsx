@@ -49,8 +49,8 @@ function Dashboard() {
   const dashboardSlugRedirect = hasContentSectionAccess
     ? CONTENT_SLUG
     : hasContributionsSectionAccess(user)
-    ? DONATIONS_SLUG
-    : 'not-found';
+      ? DONATIONS_SLUG
+      : 'not-found';
 
   const { pathname } = useLocation();
   const isEditPage = pathname.includes(EDITOR_ROUTE);

@@ -27,6 +27,15 @@ export const Root = styled(Link)<{ $dimmed: boolean }>`
     padding: 28px 12px;
     position: relative;
     text-align: left;
+    transition: background-color 0.3s;
+
+    &:hover {
+      background-color: ${({ theme }) => theme.basePalette.greyscale.grey4};
+      box-shadow:
+        0px 3px 12px 0px rgba(0, 0, 0, 0.12),
+        -2px 0px 10px 0px rgba(0, 0, 0, 0.16);
+      text-decoration: none;
+    }
 
     &[aria-selected] {
       background-color: #e2e2e2;
@@ -41,10 +50,6 @@ export const Root = styled(Link)<{ $dimmed: boolean }>`
         right: -22px;
         width: 15px;
       }
-    }
-
-    &:hover {
-      text-decoration: none;
     }
 
     @media (${({ theme }) => theme.breakpoints.phoneOnly}) {

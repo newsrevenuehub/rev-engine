@@ -521,8 +521,6 @@ class TestStripeContributionsProvider:
         result = provider.cast_subscription_to_pi_for_portal(sub)
         assert isinstance(result, StripePiAsPortalContribution)
         assert result.amount == sub.plan.amount
-        # StripePaymentIntent(pi_without_invoice).last_payment_date generates dates with microseconds
-        # whilst datetime.datetime.fromtimestamp doesn't. Setting the microseconds to 0 so tests pass
         assert result.created == datetime.datetime.fromtimestamp(sub.created, tz=datetime.timezone.utc).replace(
             microsecond=0
         )

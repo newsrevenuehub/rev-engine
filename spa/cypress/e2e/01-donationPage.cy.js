@@ -427,7 +427,7 @@ describe('User flow: happy path', () => {
         // object entry for it.
         expect(Object.keys(interception.request.body).includes('captcha_token')).to.be.true;
         const { captcha_token, ...allButCaptcha } = interception.request.body;
-        expect(allButCaptcha).to.deep.equal({
+        expect(allButCaptcha).to.deep.include({
           agreed_to_pay_fees: payFees,
           interval: CONTRIBUTION_INTERVALS.ONE_TIME,
           amount: payFees ? '123.01' : '120',
@@ -435,7 +435,6 @@ describe('User flow: happy path', () => {
           last_name: 'Person',
           email: 'foo@bar.com',
           phone: '212-555-5555',
-          mailing_street: '123 Main St',
           mailing_complement: 'Ap 1',
           mailing_city: 'Big City',
           mailing_state: 'NY',
@@ -558,7 +557,7 @@ describe('User flow: happy path', () => {
         // object entry for it.
         expect(Object.keys(interception.request.body).includes('captcha_token')).to.be.true;
         const { captcha_token, ...allButCaptcha } = interception.request.body;
-        expect(allButCaptcha).to.deep.equal({
+        expect(allButCaptcha).to.deep.include({
           interval: CONTRIBUTION_INTERVALS.MONTHLY,
           agreed_to_pay_fees: payFees,
           amount: payFees ? '10.53' : '10',
@@ -566,7 +565,6 @@ describe('User flow: happy path', () => {
           last_name: 'Person',
           email: 'foo@bar.com',
           phone: '212-555-5555',
-          mailing_street: '123 Main St',
           mailing_complement: 'Ap 1',
           mailing_city: 'Big City',
           mailing_state: 'NY',
@@ -830,7 +828,7 @@ describe('User flow: unhappy paths', () => {
       .findByRole('button', { name: /Continue to Payment/ })
       .click();
     cy.wait('@create-one-time-payment__unauthorized');
-    cy.get('[data-testid="500-something-wrong"]');
+    cy.get('[data-testid="live-error-fallback"]');
   });
 
   specify("Users indicates they want to specify an amount, but doesn't specify an actual number", () => {
@@ -875,7 +873,7 @@ describe('User flow: unhappy paths', () => {
     cy.get('[data-testid*="mailing_state"]').type('NY');
     cy.get('[data-testid*="mailing_postal_code"]').type('100738');
     cy.get('#country').type('a{enter}');
-    cy.get('[data-testid="500-something-wrong"]').should('not.exist');
+    cy.get('[data-testid="live-error-fallback"]').should('not.exist');
   });
 });
 

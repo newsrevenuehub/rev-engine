@@ -121,9 +121,12 @@ def stripe_oauth(request):
             revenue_program.slug,
         )
         task_verify_apple_domain.delay(revenue_program_slug=revenue_program.slug)
-        logger.info("[stripe_oauth] Started Apple Pay domain verification background task for revenue program slug: %s")
+        logger.info(
+            "[stripe_oauth] Started Apple Pay domain verification background task for revenue program slug: %s",
+            revenue_program.slug,
+        )
     except stripe.oauth_error.InvalidGrantError:
-        logger.error("[stripe_oauth] stripe.OAuth.token failed due to an invalid code")
+        logger.exception("[stripe_oauth] stripe.OAuth.token failed due to an invalid code")
         return Response({"invalid_code": "stripe_oauth received an invalid code"}, status=status.HTTP_400_BAD_REQUEST)
 
     return Response({"detail": "success"}, status=status.HTTP_200_OK)
@@ -589,3 +592,33 @@ def contributor_contributions(request, id):
         else []
     )
     return Response(response_data, status=status.HTTP_200_OK)
+
+
+@api_view(["GET"])
+@permission_classes([])
+def contributor_contribution(request, contributor_id: int, contribution_id: str):
+    """Provisional mock implementation of the `contributor_contribution` view function
+
+    The real endpoint will use `IsContributor` permission class, but that requires hooking into magic email link flow, so
+    in short term we'll not enforce permits, and send back our fake data.
+    """
+    logger.debug("Called for contributor ID %s, contribution ID %s", contributor_id, contribution_id)
+    for i in range(1, 3):
+        with open(f"apps/contributions/tests/fixtures/contributor-contributions-page-{i}.json") as fl:
+            fixture_data = json.load(fl)
+            for result in fixture_data["results"]:
+                if result["payment_provider_id"] == contribution_id:
+                    # There are a few extra properties in the detail view we need to mock.
+                    result["credit_card_owner_name"] = "Jane Doe"
+                    result["paid_fees"] = True
+                    # Mock the payments list to match the contribution itself.
+                    result["payments"] = [
+                        {
+                            "amount_refunded": 0,
+                            "created": result["created"],
+                            "gross_amount_paid": result["amount"],
+                            "net_amount_paid": result["amount"],
+                        }
+                    ]
+                    return Response(result, status=status.HTTP_200_OK)
+    return Response({"detail": f"No contribution exists with ID {contribution_id}"}, status=status.HTTP_404_NOT_FOUND)

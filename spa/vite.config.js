@@ -10,12 +10,18 @@ const config = defineConfig({
     // This must match the static asset path used by Django.
     assetsDir: 'static',
     outDir: 'build',
+    sourcemap: true,
     target: browserslistToEsbuild(['>0.2%', 'not dead', 'not op_mini all'])
   },
   define: {
     // Needed because we reference this in code. Using import.meta.MODE causes
     // problems in Jest.
     'process.env.NODE_ENV': `"${process.env.NODE_ENV}"`
+  },
+  optimizeDeps: {
+    // Needed because Storybook was showing a "504 Outdated Optimize Dep" error.
+    // See https://github.com/vitejs/vite/issues/12434
+    exclude: ['sb-vite']
   },
   plugins: [
     checker({
@@ -43,7 +49,11 @@ const config = defineConfig({
 if (!process.env.REACT_APP_NO_PROXY) {
   config.server.proxy = {
     '/api': {
-      target: 'http://localhost:8000',
+      target: 'http://127.0.0.1:8000',
+      changeOrigin: true
+    },
+    '/media': {
+      target: 'http://127.0.0.1:8000',
       changeOrigin: true
     }
   };

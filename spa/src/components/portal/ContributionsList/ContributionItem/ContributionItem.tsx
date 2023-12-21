@@ -17,6 +17,7 @@ import {
   Status
 } from './ContributionItem.styled';
 import { forwardRef } from 'react';
+import { PORTAL } from 'routes';
 
 const ContributionItemPropTypes = {
   contribution: PropTypes.object.isRequired,
@@ -62,7 +63,7 @@ export const ContributionItem = forwardRef<HTMLAnchorElement, ContributionItemPr
         aria-selected={selected ? true : undefined}
         ref={ref}
         replace={!!replaceHistory}
-        to={`/portal/my-contributions/${contribution.payment_provider_id}/`}
+        to={selected ? PORTAL.CONTRIBUTIONS : `/portal/my-contributions/${contribution.payment_provider_id}/`}
       >
         <IntervalIconContainer $status={contribution.status}>
           <IntervalIcon aria-label={getFrequencyAdjective(contribution.interval)} />

@@ -39,9 +39,14 @@ function tree(props?: Partial<ContributionItemProps>) {
 
 describe('ContributionItem', () => {
   describe('The link it displays', () => {
-    it('goes to the contribution detail route', () => {
+    it('goes to the contribution detail route if unselected', () => {
       tree();
       expect(screen.getByRole('link')).toHaveAttribute('href', '/portal/my-contributions/mock-payment-provider-id/');
+    });
+
+    it('goes to the contribution list route if selected', () => {
+      tree({ selected: true });
+      expect(screen.getByRole('link')).toHaveAttribute('href', '/portal/my-contributions/');
     });
 
     it("doesn't replace history by default", () => {

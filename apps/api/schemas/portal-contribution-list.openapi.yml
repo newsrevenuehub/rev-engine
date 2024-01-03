@@ -88,9 +88,9 @@ components:
           description: Timestamp when the contribution was created.
           example: 2023-06-29T16:57:09Z
         id:
-          type: string
-          description: Either a Stripe payment intent ID or subscription ID.
-          example: pi_abc123
+          type: number
+          description: ID of the contribution
+          example: 23
         interval:
           type: string
           description: Interval of the contribution.

@@ -906,13 +906,8 @@ class PortalContributionDetailSerializer(PortalContributionBaseSerializer):
         ]
 
 
-PORTAL_CONTRIBUTION_LIST_SERIALIZER_DB_FIELDS = PORTAL_CONTRIBUTION_BASE_SERIALIZER_FIELDS + [
-    "id",
-]
-
-
 class PortalContributionListSerializer(PortalContributionBaseSerializer):
     class Meta:
         model = Contribution
-        fields = PORTAL_CONTRIBUTION_LIST_SERIALIZER_DB_FIELDS
-        read_only_fields = PORTAL_CONTRIBUTION_LIST_SERIALIZER_DB_FIELDS
+        fields = PORTAL_CONTRIBUTION_BASE_SERIALIZER_FIELDS
+        read_only_fields = PORTAL_CONTRIBUTION_BASE_SERIALIZER_FIELDS

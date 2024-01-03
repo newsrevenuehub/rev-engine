@@ -16,11 +16,7 @@ from rest_framework.reverse import reverse
 
 from apps.organizations.models import FreePlan, PaymentProvider, Plans, PlusPlan, RevenueProgram
 from apps.organizations.serializers import RevenueProgramForPageDetailSerializer
-from apps.organizations.tests.factories import (
-    OrganizationFactory,
-    RevenueProgramFactory,
-    SocialMetaFactory,
-)
+from apps.organizations.tests.factories import OrganizationFactory, RevenueProgramFactory
 from apps.pages.models import (
     PAGE_HEADING_MAX_LENGTH,
     PAGE_NAME_MAX_LENGTH,
@@ -57,18 +53,6 @@ def page_creation_data_valid():
         "name": "some name",
         "locale": EnglishLocale.code,
     }
-
-
-@pytest.fixture
-def page_creation_rp_no_social_meta(page_creation_data_valid):
-    return page_creation_data_valid
-
-
-@pytest.fixture
-def page_creation_rp_with_social_meta(page_creation_data_valid):
-    rp = RevenueProgramFactory()
-    SocialMetaFactory(revenue_program=rp)
-    return page_creation_data_valid | {"revenue_program": rp.id}
 
 
 @pytest.fixture
@@ -303,19 +287,6 @@ def patch_page_unfound_rp(patch_page_valid_data):
 
 
 @pytest.fixture
-def patch_rp_no_social_meta(patch_page_valid_data):
-    rp = RevenueProgramFactory()
-    return patch_page_valid_data | {"revenue_program": rp.id}
-
-
-@pytest.fixture
-def patch_rp_with_social_meta(patch_page_valid_data):
-    rp = RevenueProgramFactory()
-    SocialMetaFactory(revenue_program=rp)
-    return patch_page_valid_data | {"revenue_program": rp.id}
-
-
-@pytest.fixture
 def patch_page_poorly_formed_elements(patch_page_valid_data):
     return patch_page_valid_data | {"elements": ["foo", True, None]}
 
@@ -423,39 +394,6 @@ class TestPageViewSet:
         response = api_client.post(reverse("donationpage-list"), data=creation_data, format=data_format)
         assert response.status_code == status.HTTP_201_CREATED
         assert response.json()["name"] == RevenueProgram.objects.get(pk=creation_data["revenue_program"]).name
-
-    @pytest_cases.parametrize(
-        "creation_data",
-        (pytest_cases.fixture_ref("page_creation_rp_no_social_meta"),),
-    )
-    def test_create_page_create_social_meta_when_rp_provided_without_socialmeta_attr(
-        self, creation_data, api_client, hub_admin_user
-    ):
-        before_rp = RevenueProgram.objects.get(pk=creation_data["revenue_program"])
-        assert not hasattr(before_rp, "socialmeta")
-        api_client.force_authenticate(hub_admin_user)
-        response = api_client.post(reverse("donationpage-list"), data=creation_data)
-        assert response.status_code == status.HTTP_201_CREATED
-
-        after_rp = RevenueProgram.objects.get(pk=creation_data["revenue_program"])
-        assert hasattr(after_rp, "socialmeta")
-
-    @pytest_cases.parametrize(
-        "creation_data",
-        (pytest_cases.fixture_ref("page_creation_rp_with_social_meta"),),
-    )
-    def test_create_page_not_create_social_meta_when_rp_provided_with_socialmeta_attr(
-        self, creation_data, api_client, hub_admin_user
-    ):
-        before_rp = RevenueProgram.objects.get(pk=creation_data["revenue_program"])
-        assert hasattr(before_rp, "socialmeta")
-
-        api_client.force_authenticate(hub_admin_user)
-        response = api_client.post(reverse("donationpage-list"), data=creation_data)
-        assert response.status_code == status.HTTP_201_CREATED
-
-        after_rp = RevenueProgram.objects.get(pk=creation_data["revenue_program"])
-        assert after_rp.socialmeta == before_rp.socialmeta
 
     @pytest_cases.parametrize(
         "data,expected_response",
@@ -858,48 +796,6 @@ class TestPageViewSet:
                 case _:
                     assert serialized_from_db[k] == v
         assert response.json() == json.loads(json.dumps(DonationPageFullDetailSerializer(page).data))
-
-    @pytest_cases.parametrize(
-        "patch_data",
-        (pytest_cases.fixture_ref("patch_rp_no_social_meta"),),
-    )
-    def test_patch_create_social_meta_when_rp_provided_without_socialmeta_attr(
-        self, patch_data, api_client, hub_admin_user
-    ):
-        before_rp = RevenueProgram.objects.get(pk=patch_data["revenue_program"])
-        page = DonationPageFactory(revenue_program=before_rp, published_date=None)
-        assert not hasattr(before_rp, "socialmeta")
-
-        api_client.force_authenticate(hub_admin_user)
-        response = api_client.patch(
-            reverse("donationpage-detail", args=(page.id,)),
-            patch_data,
-        )
-        assert response.status_code == status.HTTP_200_OK
-
-        after_rp = RevenueProgram.objects.get(pk=patch_data["revenue_program"])
-        assert hasattr(after_rp, "socialmeta")
-
-    @pytest_cases.parametrize(
-        "patch_data",
-        (pytest_cases.fixture_ref("patch_rp_with_social_meta"),),
-    )
-    def test_patch_not_create_social_meta_when_rp_provided_with_socialmeta_attr(
-        self, patch_data, api_client, hub_admin_user
-    ):
-        before_rp = RevenueProgram.objects.get(pk=patch_data["revenue_program"])
-        page = DonationPageFactory(revenue_program=before_rp, published_date=None)
-        assert hasattr(before_rp, "socialmeta")
-
-        api_client.force_authenticate(hub_admin_user)
-        response = api_client.patch(
-            reverse("donationpage-detail", args=(page.id,)),
-            patch_data,
-        )
-        assert response.status_code == status.HTTP_200_OK
-
-        after_rp = RevenueProgram.objects.get(pk=patch_data["revenue_program"])
-        assert after_rp.socialmeta == before_rp.socialmeta
 
     @pytest_cases.parametrize(
         "user",

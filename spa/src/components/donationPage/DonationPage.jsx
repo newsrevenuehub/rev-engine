@@ -1,15 +1,12 @@
 import { createContext, forwardRef, useContext, useEffect, useRef, useState } from 'react';
 import { useAlert } from 'react-alert';
-
+import { useTranslation } from 'react-i18next';
 import {
   AMOUNT_QUERYPARAM,
   FREQUENCY_QUERYPARAM,
   GRECAPTCHA_SITE_KEY,
   SALESFORCE_CAMPAIGN_ID_QUERYPARAM
 } from 'appSettings';
-import DonationPageFooter from 'components/donationPage/DonationPageFooter';
-import DonationPageHeader from 'components/donationPage/DonationPageHeader';
-import DonationPageSidebar from 'components/donationPage/DonationPageSidebar';
 import { frequencySort } from 'components/donationPage/pageContent/DFrequency';
 import * as getters from 'components/donationPage/pageGetters';
 import GenericErrorBoundary from 'components/errors/GenericErrorBoundary';
@@ -20,10 +17,12 @@ import useErrorFocus from 'hooks/useErrorFocus';
 import { usePayment } from 'hooks/usePayment';
 import useQueryString from 'hooks/useQueryString';
 import useReCAPTCHAScript from 'hooks/useReCAPTCHAScript';
-import { useTranslation } from 'react-i18next';
 import calculateStripeFee from 'utilities/calculateStripeFee';
 import * as S from './DonationPage.styled';
-import { SubmitButton } from './DonationPage.styled';
+import DonationPageFooter from './DonationPageFooter';
+import DonationPageForm from './DonationPageForm';
+import DonationPageHeader from './DonationPageHeader';
+import DonationPageSidebar from './DonationPageSidebar';
 import FinishPaymentModal from './FinishPaymentModal/FinishPaymentModal';
 import { getDefaultAmountForFreq } from './amountUtils';
 import LiveErrorFallback from './live/LiveErrorFallback';
@@ -51,7 +50,6 @@ function DonationPage({ page, live = false }, ref) {
   const [userAgreesToPayFees, setUserAgreesToPayFees] = useState(() => {
     return (page?.elements?.find((el) => el.type === 'DPayment') || {})?.content?.payFeesDefault === true;
   });
-  const [totalAmount, setTotalAmount] = useState(0);
   const [displayErrorFallback, setDisplayErrorFallback] = useState(false);
   const [mailingCountry, setMailingCountry] = useState();
   const { createPayment, deletePayment, isLoading: paymentIsLoading, payment } = usePayment();
@@ -118,16 +116,7 @@ function DonationPage({ page, live = false }, ref) {
     }
   }, [amount, frequency, page.revenue_program_is_nonprofit]);
 
-  // update total amount based on amount, fee amount, and if user agrees to pay fees
-  useEffect(() => {
-    setTotalAmount(userAgreesToPayFees ? amount + feeAmount : amount);
-  }, [amount, feeAmount, userAgreesToPayFees]);
-
-  // Used for pre-submission validation below.
-  const isValidTotalAmount = Number.isFinite(totalAmount);
-
-  async function handleCheckoutSubmit(event) {
-    event.preventDefault();
+  async function handleCheckoutSubmit() {
     let reCAPTCHAToken = '';
 
     // getReCAPTCHAToken returns rejected promise if window.grecaptcha is not
@@ -170,8 +159,11 @@ function DonationPage({ page, live = false }, ref) {
       } else if (error.response?.status === 400 && error.response?.data) {
         setErrors(error.response.data);
       } else {
-        // This happens if something really unexpected happens, or if there was a 403
-        console.error('Something unexpected happened', error.name, error.message);
+        // 403s happen if csrf token expired, or if user not authorized by api. We do want
+        // to display fallback, but don't want to report to sentry.
+        if (error.response?.status !== 403) {
+          console.error('Something unexpected happened', error.name, error.message, error.response?.status);
+        }
         setDisplayErrorFallback(true);
       }
     }
@@ -214,7 +206,6 @@ function DonationPage({ page, live = false }, ref) {
         errors,
         setErrors,
         feeAmount,
-        totalAmount,
         mailingCountry,
         setMailingCountry
       }}
@@ -230,7 +221,7 @@ function DonationPage({ page, live = false }, ref) {
                 {displayErrorFallback ? (
                   <LiveErrorFallback />
                 ) : (
-                  <form onSubmit={handleCheckoutSubmit} ref={formRef}>
+                  <DonationPageForm disabled={paymentIsLoading || payment} loading={paymentIsLoading} onSubmit={handleCheckoutSubmit} ref={formRef}>
                     <S.PageElements>
                       {(!live && !page?.elements) ||
                         (page?.elements?.length === 0 && (
@@ -246,16 +237,7 @@ function DonationPage({ page, live = false }, ref) {
                           </GenericErrorBoundary>
                         ))}
                     </S.PageElements>
-                    <SubmitButton
-                      disabled={!isValidTotalAmount || paymentIsLoading || payment}
-                      loading={paymentIsLoading}
-                      type="submit"
-                    >
-                      {isValidTotalAmount
-                        ? t('donationPage.mainPage.continueToPayment')
-                        : t('donationPage.mainPage.enterValidAmount')}
-                    </SubmitButton>
-                  </form>
+                  </DonationPageForm>
                 )}
                 {payment && !displayErrorFallback && (
                   <FinishPaymentModal

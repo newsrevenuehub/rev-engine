@@ -6,6 +6,7 @@ from django.dispatch import receiver
 
 import reversion
 
+from apps.common.models import SocialMeta
 from apps.organizations.models import CorePlan, Organization, RevenueProgram
 from apps.organizations.tasks import setup_mailchimp_entities_for_rp_mailing_list
 from apps.pages.models import DonationPage
@@ -40,6 +41,25 @@ def handle_rp_mailchimp_entity_setup(sender, instance: RevenueProgram, created: 
         logger.debug(
             "Not enqueuing task to setup mailchimp entities for revenue program mailing list for RP %s", instance.id
         )
+
+
+@receiver(post_save, sender=RevenueProgram)
+def create_default_social_meta(sender, instance: RevenueProgram, created: bool, **kwargs) -> None:
+    """Create default social meta for RP"""
+    logger.debug("called on rp %s", instance.id)
+    if not created:
+        logger.debug("Not creating default social meta for RP %s because it is not new", instance.id)
+        return
+    if hasattr(instance, "socialmeta"):
+        logger.debug("Not creating default social meta for RP %s because it already exists", instance.id)
+        return
+    try:
+        logger.info("Creating default social meta for RP %s", instance.id)
+        social = SocialMeta.objects.create(revenue_program=instance)
+        logger.info('Social Meta with id "%s" created for RP id "%s"', social.id, instance.id)
+    except Exception as e:
+        logger.exception("Failed to create SocialMeta for RP %s", instance.id)
+        raise e
 
 
 @receiver(post_delete, sender=RevenueProgram)

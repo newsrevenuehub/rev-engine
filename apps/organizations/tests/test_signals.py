@@ -2,6 +2,7 @@ from unittest.mock import MagicMock
 
 import pytest
 
+from apps.common.models import SocialMeta
 from apps.organizations.models import FreePlan, Organization, RevenueProgram
 from apps.organizations.signals import (
     get_page_to_be_set_as_default,
@@ -16,6 +17,13 @@ from apps.pages.tests.factories import DonationPageFactory
 
 @pytest.mark.django_db
 class TestRevenueProgramPostSaveHandler:
+    def test_create_social_meta(self):
+        before_count = SocialMeta.objects.count()
+        rp = RevenueProgramFactory()
+
+        assert SocialMeta.objects.count() == before_count + 1
+        assert rp.socialmeta
+
     @pytest.mark.parametrize(
         "make_rp_kwargs,expect_task_called",
         (

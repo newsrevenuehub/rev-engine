@@ -5,9 +5,6 @@ from apps.organizations.tests.factories import RevenueProgramFactory
 
 class SocialMetaTest(TestCase):
     def setUp(self):
-        self.title = "My Social Title"
-        self.description = "My Social Description"
-        self.url = "https://example.com"
         rp = RevenueProgramFactory()
         self.social_meta = rp.socialmeta
 

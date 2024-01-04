@@ -8,13 +8,13 @@ from functools import cached_property, reduce, wraps
 from operator import or_
 from typing import Any, Callable, List
 from urllib.parse import quote_plus
+from zoneinfo import ZoneInfo
 
 from django.conf import settings
 from django.db import models
 from django.template.loader import render_to_string
 from django.utils.safestring import SafeString, mark_safe
 
-import pytz
 import reversion
 import stripe
 from addict import Dict as AttrDict
@@ -229,7 +229,7 @@ class Contribution(IndexedTimeStampedModel):
         if not self.stripe_subscription:
             logger.warning("Expected a retrievable stripe subscription on contribution %s but none was found", self.id)
             return None
-        return datetime.datetime.fromtimestamp(self.stripe_subscription.current_period_end, tz=pytz.UTC)
+        return datetime.datetime.fromtimestamp(self.stripe_subscription.current_period_end, tz=ZoneInfo("UTC"))
 
     @property
     def formatted_amount(self) -> str:
@@ -1042,8 +1042,8 @@ class Payment(IndexedTimeStampedModel):
     gross_amount_paid = models.IntegerField()
     amount_refunded = models.IntegerField()
     stripe_balance_transaction_id = models.CharField(max_length=255, unique=True)
-    # add index on transaction time since wwill need to sort by for last pasyment
-    transaction_time = models.DateTimeField()
+    # TODO: [DEV-4379] Make transaction_time non-nullable once we've run data migration for existing payments
+    transaction_time = models.DateTimeField(db_index=True, null=True)
 
     MISSING_EVENT_KW_ERROR_MSG = "Expected a keyword argument called `event`"
     ARG_IS_NOT_EVENT_TYPE_ERROR_MSG = "Expected `event` to be an instance of `StripeEventData`"

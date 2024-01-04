@@ -901,9 +901,7 @@ class PortalContributionDetailSerializer(PortalContributionBaseSerializer):
     class Meta:
         model = Contribution
         fields = PORTAL_CONTRIBUTION_DETAIL_SERIALIZER_DB_FIELDS
-        read_only_fields = [
-            K for K in PORTAL_CONTRIBUTION_DETAIL_SERIALIZER_DB_FIELDS if K != "provider_payment_method_id"
-        ]
+        read_only_fields = PORTAL_CONTRIBUTION_DETAIL_SERIALIZER_DB_FIELDS
 
 
 class PortalContributionListSerializer(PortalContributionBaseSerializer):

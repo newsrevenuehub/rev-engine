@@ -37,29 +37,51 @@ def create_stripe_webhook(webhook_url, api_key, enabled_events):
         return response["secret"]
 
 
-def delete_cloudflare_cnames(ticket_id):
-    cloudflare_conn = CloudFlare.CloudFlare()
-    zone_id = cloudflare_conn.zones.get(params={"name": settings.CF_ZONE_NAME})[0]["id"]
-    zone_dns_records = cloudflare_conn.zones.dns_records.get(zone_id, params={"per_page": 300})
-    cloudflare_domains = {x["name"]: x["content"] for x in zone_dns_records}
-    cloudflare_record_ids = {x["name"]: x["id"] for x in zone_dns_records}
-    for domain in cloudflare_domains:
-        record_id = cloudflare_record_ids[domain]
-        try:
-            if ticket_id.lower() in domain.lower():
-                logger.info("Deleting DNS entry for: %s", domain)
-                cloudflare_conn.zones.dns_records.delete(zone_id, record_id)
-        except CloudFlare.exceptions.CloudFlareAPIError:
-            logger.warning('CloudFlare API error when trying to delete the domain "%s"', domain, exc_info=True)
+def delete_cloudflare_cnames(ticket_id, per_page=300):
+    cloudflare_conn = CloudFlare.CloudFlare(raw=True)
+    zone_id = cloudflare_conn.zones.get(params={"name": settings.CF_ZONE_NAME})["result"][0]["id"]
+    current_page = 0
+    while True:
+        current_page += 1
+        raw_zone_dns_records = cloudflare_conn.zones.dns_records.get(
+            zone_id, params={"per_page": per_page, "page": current_page}
+        )
+        zone_dns_records = raw_zone_dns_records["result"]
+        cloudflare_domains = {x["name"]: x["content"] for x in zone_dns_records}
+        cloudflare_record_ids = {x["name"]: x["id"] for x in zone_dns_records}
+        for domain in cloudflare_domains:
+            record_id = cloudflare_record_ids[domain]
+            try:
+                if ticket_id.lower() in domain.lower():
+                    logger.info("Deleting DNS entry for: %s", domain)
+                    cloudflare_conn.zones.dns_records.delete(zone_id, record_id)
+            except CloudFlare.exceptions.CloudFlareAPIError:
+                logger.warning('CloudFlare API error when trying to delete the domain "%s"', domain, exc_info=True)
+
+        total_count = raw_zone_dns_records["result_info"]["total_count"]
+        if (current_page * per_page) >= total_count:
+            break
 
 
-def upsert_cloudflare_cnames(slugs: list = None):
+def upsert_cloudflare_cnames(slugs: list = None, per_page=300):
     # takes a list instead of a single entry so it can do one call to fetch them all
-    cloudflare_conn = CloudFlare.CloudFlare()
-    zone_id = cloudflare_conn.zones.get(params={"name": settings.CF_ZONE_NAME})[0]["id"]
-    # fetch this so we don't try adding entries that are already there
-    # TODO: if this reaches over 300 we'll need to paginate
-    zone_dns_records = cloudflare_conn.zones.dns_records.get(zone_id, params={"per_page": 300})
+    cloudflare_conn = CloudFlare.CloudFlare(raw=True)
+    zone_id = cloudflare_conn.zones.get(params={"name": settings.CF_ZONE_NAME})["result"][0]["id"]
+    current_page = 0
+    zone_dns_records = []
+    # fetch all the records from all pages and store them in "zone_dns_records" before creating/updating DNS
+    while True:
+        current_page += 1
+        # fetch this so we don't try adding entries that are already there
+        raw_zone_dns_records = cloudflare_conn.zones.dns_records.get(
+            zone_id, params={"per_page": per_page, "page": current_page}
+        )
+        zone_dns_records += raw_zone_dns_records["result"]
+
+        total_count = raw_zone_dns_records["result_info"]["total_count"]
+        if (current_page * per_page) >= total_count:
+            break
+
     cloudflare_domains = {x["name"]: x["content"] for x in zone_dns_records}
     cloudflare_record_ids = {x["name"]: x["id"] for x in zone_dns_records}
 

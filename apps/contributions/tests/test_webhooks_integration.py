@@ -262,7 +262,8 @@ class TestCustomerSubscriptionUpdated:
         if payment_method_has_changed:
             customer_subscription_updated_event["data"]["previous_attributes"] = {"default_payment_method": "something"}
             customer_subscription_updated_event["data"]["object"]["default_payment_method"] = "something else"
-        spy = mocker.spy(Contribution, "save")
+        save_spy = mocker.spy(Contribution, "save")
+        email_spy = mocker.patch.object(Contribution, "send_recurring_contribution_payment_updated_email")
         mock_set_revision_comment = mocker.patch("reversion.set_comment")
         response = client.post(
             reverse("stripe-webhooks-contributions"), data=customer_subscription_updated_event, **header
@@ -274,7 +275,7 @@ class TestCustomerSubscriptionUpdated:
         }
         if payment_method_has_changed:
             expected_update_fields.add("provider_payment_method_id")
-        spy.assert_called_once_with(contribution, update_fields=expected_update_fields)
+        save_spy.assert_called_once_with(contribution, update_fields=expected_update_fields)
         mock_set_revision_comment.assert_called_once_with(
             "`StripeWebhookProcessor.handle_subscription_updated` updated contribution"
         )
@@ -286,6 +287,9 @@ class TestCustomerSubscriptionUpdated:
                 contribution.provider_payment_method_id
                 == customer_subscription_updated_event["data"]["object"]["default_payment_method"]
             )
+            email_spy.assert_called_once()
+        else:
+            email_spy.assert_not_called()
 
     def test_when_contribution_not_found(self, mocker, client, customer_subscription_updated_event):
         logger_spy = mocker.patch("apps.contributions.tasks.logger.info")
@@ -311,10 +315,11 @@ class TestCustomerSubscriptionDeleted:
             annual_subscription=True,
             provider_subscription_id=customer_subscription_deleted["data"]["object"]["id"],
         )
-        spy = mocker.spy(Contribution, "save")
+        save_spy = mocker.spy(Contribution, "save")
+        email_spy = mocker.patch.object(Contribution, "send_recurring_contribution_canceled_email")
         mock_set_revision_comment = mocker.patch("reversion.set_comment")
         response = client.post(reverse("stripe-webhooks-contributions"), data=customer_subscription_deleted, **header)
-        spy.assert_called_once_with(contribution, update_fields={"status", "payment_provider_data", "modified"})
+        save_spy.assert_called_once_with(contribution, update_fields={"status", "payment_provider_data", "modified"})
         mock_set_revision_comment.assert_called_once_with(
             "`StripeWebhookProcessor.handle_subscription_canceled` updated contribution"
         )
@@ -322,6 +327,7 @@ class TestCustomerSubscriptionDeleted:
         contribution.refresh_from_db()
         assert contribution.provider_subscription_id == customer_subscription_deleted["data"]["object"]["id"]
         assert contribution.status == ContributionStatus.CANCELED
+        email_spy.assert_called_once()
 
     def test_when_contribution_not_found(self, mocker, client, customer_subscription_updated_event):
         mocker.patch.object(WebhookSignature, "verify_header", return_value=True)

@@ -1144,6 +1144,252 @@ class TestContributionModel:
             assert x not in mail.outbox[0].alternatives[0][0]
 
     @pytest_cases.parametrize(
+        "revenue_program",
+        (
+            pytest_cases.fixture_ref("fiscally_sponsored_revenue_program"),
+            pytest_cases.fixture_ref("nonprofit_revenue_program"),
+            pytest_cases.fixture_ref("for_profit_revenue_program"),
+        ),
+    )
+    @pytest.mark.parametrize("tax_id", (None, "123456789"))
+    def test_send_recurring_contribution_payment_updated_email_text(
+        self, revenue_program, tax_id, monkeypatch, mocker, settings
+    ):
+        contribution = ContributionFactory(
+            interval=ContributionInterval.YEARLY, provider_customer_id="test-customer-id"
+        )
+        revenue_program.tax_id = tax_id
+        revenue_program.save()
+        contribution.donation_page.revenue_program = revenue_program
+        contribution.donation_page.save()
+        mock_send_templated_email = Mock(wraps=send_templated_email.delay)
+        token = "token"
+
+        class MockForContributorReturn:
+            def __init__(self, *args, **kwargs):
+                self.short_lived_access_token = token
+
+        monkeypatch.setattr(send_templated_email, "delay", mock_send_templated_email)
+        monkeypatch.setattr(
+            ContributorRefreshToken, "for_contributor", lambda *args, **kwargs: MockForContributorReturn()
+        )
+        customer_name = "Fake Customer Name"
+        mocker.patch("stripe.Customer.retrieve", return_value=AttrDict({"name": customer_name}))
+        settings.EMAIL_BACKEND = "django.core.mail.backends.locmem.EmailBackend"
+        settings.CELERY_ALWAYS_EAGER = True
+        contribution.send_recurring_contribution_payment_updated_email()
+        magic_link = mark_safe(
+            f"https://{construct_rp_domain(contribution.donation_page.revenue_program.slug)}/{settings.CONTRIBUTOR_VERIFY_URL}"
+            f"?token={token}&email={quote_plus(contribution.contributor.email)}"
+        )
+        assert len(mail.outbox) == 1
+        email_expectations = [
+            f"Dear {customer_name},",
+            f"Date Changed: {datetime.datetime.today().strftime('%m/%d/%Y')}",
+            f"Email: {contribution.contributor.email}",
+            f"Amount Contributed: {contribution.formatted_amount}/{contribution.interval}",
+        ]
+
+        if revenue_program.fiscal_status == FiscalStatusChoices.FISCALLY_SPONSORED:
+            email_expectations.extend(
+                [
+                    "This receipt may be used for tax purposes.",
+                    f"All contributions or gifts to {contribution.donation_page.revenue_program.name} are tax deductible through our fiscal sponsor {contribution.donation_page.revenue_program.fiscal_sponsor_name}.",
+                    f"{contribution.donation_page.revenue_program.fiscal_sponsor_name}'s tax ID is {tax_id}"
+                    if tax_id
+                    else "",
+                ]
+            )
+        elif revenue_program.fiscal_status == FiscalStatusChoices.NONPROFIT:
+            email_expectations.extend(
+                [
+                    "This receipt may be used for tax purposes.",
+                    f"{contribution.donation_page.revenue_program.name} is a 501(c)(3) nonprofit organization",
+                    f"with a Federal Tax ID #{tax_id}" if tax_id else "",
+                ]
+            )
+        else:
+            email_expectations.append(
+                f"Contributions to {contribution.donation_page.revenue_program.name} are not deductible as charitable donations."
+            )
+        for x in email_expectations:
+            assert x in mail.outbox[0].body
+            soup = BeautifulSoup(mail.outbox[0].alternatives[0][0], "html.parser")
+            as_string = " ".join([x.replace("\xa0", " ").strip() for x in soup.get_text().splitlines() if x])
+            assert x in as_string
+        assert "Manage contributions here" in soup.find("a", href=magic_link).text
+        assert magic_link in mail.outbox[0].body
+
+    @pytest_cases.parametrize(
+        "revenue_program",
+        (
+            pytest_cases.fixture_ref("free_plan_revenue_program"),
+            pytest_cases.fixture_ref("core_plan_revenue_program"),
+            pytest_cases.fixture_ref("plus_plan_revenue_program"),
+        ),
+    )
+    @pytest.mark.parametrize(
+        "has_default_donation_page",
+        (False, True),
+    )
+    def test_send_recurring_contribution_payment_updated_email_styles(
+        self, revenue_program, has_default_donation_page, monkeypatch, mocker, settings
+    ):
+        with patch("apps.contributions.models.Contribution.fetch_stripe_payment_method", return_value=None):
+            contribution = ContributionFactory(
+                interval=ContributionInterval.YEARLY, provider_customer_id="test-customer-id"
+            )
+        if has_default_donation_page:
+            style = StyleFactory()
+            style.styles = style.styles | {
+                "colors": {
+                    "cstm_mainHeader": "#mock-header-background",
+                    "cstm_CTAs": "#mock-button-color",
+                },
+                "font": {"heading": "mock-header-font", "body": "mock-body-font"},
+            }
+            page = DonationPageFactory(
+                revenue_program=revenue_program,
+                styles=style,
+                header_logo="mock-logo",
+                header_logo_alt_text="Mock-Alt-Text",
+            )
+            revenue_program.default_donation_page = page
+            revenue_program.save()
+        contribution.donation_page.revenue_program = revenue_program
+        contribution.donation_page.save()
+        mock_send_templated_email = Mock(wraps=send_templated_email.delay)
+        token = "token"
+
+        class MockForContributorReturn:
+            def __init__(self, *args, **kwargs):
+                self.short_lived_access_token = token
+
+        monkeypatch.setattr(send_templated_email, "delay", mock_send_templated_email)
+        monkeypatch.setattr(
+            ContributorRefreshToken, "for_contributor", lambda *args, **kwargs: MockForContributorReturn()
+        )
+        mocker.patch("stripe.Customer.retrieve", return_value=AttrDict({"name": "Fake Customer Name"}))
+        settings.EMAIL_BACKEND = "django.core.mail.backends.locmem.EmailBackend"
+        settings.CELERY_ALWAYS_EAGER = True
+        contribution.send_recurring_contribution_payment_updated_email()
+        assert len(mail.outbox) == 1
+
+        default_logo = os.path.join(settings.SITE_URL, "static", "nre-logo-yellow.png")
+        default_alt_text = "News Revenue Hub"
+        custom_logo = 'src="/media/mock-logo"'
+        custom_alt_text = 'alt="Mock-Alt-Text"'
+        custom_header_background = "background: #mock-header-background !important"
+        custom_button_background = "background: #mock-button-color !important"
+
+        if revenue_program.organization.plan.name == FreePlan.name or not has_default_donation_page:
+            expect_present = (default_logo, default_alt_text)
+            expect_missing = (custom_logo, custom_alt_text, custom_button_background, custom_header_background)
+
+        else:
+            expect_present = (custom_logo, custom_alt_text, custom_header_background)
+            # Email template doesn't have a button to apply the custom button color to
+            expect_missing = (custom_button_background, default_logo, default_alt_text)
+
+        for x in expect_present:
+            assert x in mail.outbox[0].alternatives[0][0]
+        for x in expect_missing:
+            assert x not in mail.outbox[0].alternatives[0][0]
+
+    def test_send_recurring_contribution_canceled_email_text(self, revenue_program, monkeypatch, mocker, settings):
+        contribution = ContributionFactory(
+            interval=ContributionInterval.YEARLY, provider_customer_id="test-customer-id"
+        )
+        contribution.donation_page.revenue_program = revenue_program
+        revenue_program.default_donation_page = contribution.donation_page
+        contribution.donation_page.save()
+        mock_send_templated_email = Mock(wraps=send_templated_email.delay)
+        monkeypatch.setattr(send_templated_email, "delay", mock_send_templated_email)
+        customer_name = "Fake Customer Name"
+        mocker.patch("stripe.Customer.retrieve", return_value=AttrDict({"name": customer_name}))
+        settings.EMAIL_BACKEND = "django.core.mail.backends.locmem.EmailBackend"
+        settings.CELERY_ALWAYS_EAGER = True
+        contribution.send_recurring_contribution_canceled_email()
+        assert len(mail.outbox) == 1
+        email_expectations = [
+            f"Dear {customer_name},",
+            f"Date Canceled: {datetime.datetime.today().strftime('%m/%d/%Y')}",
+            f"Email: {contribution.contributor.email}",
+            f"Amount Contributed: {contribution.formatted_amount}/{contribution.interval}",
+        ]
+        soup = BeautifulSoup(mail.outbox[0].alternatives[0][0], "html.parser")
+        assert len(soup.find_all("a", href=revenue_program.default_donation_page.page_url)) == 1
+        for x in email_expectations:
+            assert x in mail.outbox[0].body
+            as_string = " ".join([x.replace("\xa0", " ").strip() for x in soup.get_text().splitlines() if x])
+            assert x in as_string
+
+    @pytest_cases.parametrize(
+        "revenue_program",
+        (
+            pytest_cases.fixture_ref("free_plan_revenue_program"),
+            pytest_cases.fixture_ref("core_plan_revenue_program"),
+            pytest_cases.fixture_ref("plus_plan_revenue_program"),
+        ),
+    )
+    @pytest.mark.parametrize(
+        "has_default_donation_page",
+        (False, True),
+    )
+    def test_send_recurring_contribution_canceled_email_styles(
+        self, revenue_program, has_default_donation_page, monkeypatch, mocker, settings
+    ):
+        with patch("apps.contributions.models.Contribution.fetch_stripe_payment_method", return_value=None):
+            contribution = ContributionFactory(
+                interval=ContributionInterval.YEARLY, provider_customer_id="test-customer-id"
+            )
+        if has_default_donation_page:
+            style = StyleFactory()
+            style.styles = style.styles | {
+                "colors": {
+                    "cstm_mainHeader": "#mock-header-background",
+                    "cstm_CTAs": "#mock-button-color",
+                },
+                "font": {"heading": "mock-header-font", "body": "mock-body-font"},
+            }
+            page = DonationPageFactory(
+                revenue_program=revenue_program,
+                styles=style,
+                header_logo="mock-logo",
+                header_logo_alt_text="Mock-Alt-Text",
+            )
+            revenue_program.default_donation_page = page
+            revenue_program.save()
+        contribution.donation_page.revenue_program = revenue_program
+        contribution.donation_page.save()
+        mock_send_templated_email = Mock(wraps=send_templated_email.delay)
+        monkeypatch.setattr(send_templated_email, "delay", mock_send_templated_email)
+        mocker.patch("stripe.Customer.retrieve", return_value=AttrDict({"name": "Fake Customer Name"}))
+        settings.EMAIL_BACKEND = "django.core.mail.backends.locmem.EmailBackend"
+        settings.CELERY_ALWAYS_EAGER = True
+        contribution.send_recurring_contribution_canceled_email()
+        assert len(mail.outbox) == 1
+
+        default_logo = os.path.join(settings.SITE_URL, "static", "nre-logo-yellow.png")
+        default_alt_text = "News Revenue Hub"
+        custom_logo = 'src="/media/mock-logo"'
+        custom_alt_text = 'alt="Mock-Alt-Text"'
+        custom_header_background = "background: #mock-header-background !important"
+        custom_button_background = "background: #mock-button-color !important"
+
+        if revenue_program.organization.plan.name == FreePlan.name or not has_default_donation_page:
+            expect_present = (default_logo, default_alt_text)
+            expect_missing = (custom_logo, custom_alt_text, custom_button_background, custom_header_background)
+        else:
+            expect_present = (custom_button_background, custom_logo, custom_alt_text, custom_header_background)
+            expect_missing = (default_logo, default_alt_text)
+
+        for x in expect_present:
+            assert x in mail.outbox[0].alternatives[0][0]
+        for x in expect_missing:
+            assert x not in mail.outbox[0].alternatives[0][0]
+
+    @pytest_cases.parametrize(
         "user",
         (
             pytest_cases.fixture_ref("hub_admin_user"),

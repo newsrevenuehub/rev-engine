@@ -1,0 +1,18 @@
+{% extends "nrh-default-contribution-base-template.txt" %}
+
+{% block header %}
+Canceled Contribution
+
+Dear {{ contributor_name }},
+
+You've canceled your contribution to {{ rp_name }}.
+{% endblock header %}
+
+{% block contribution_date_label %}Date Canceled{% endblock contribution_date_label %}
+
+{% block contribution_footer %}
+{% if default_contribution_page_url %}
+Your contribution has a direct impact on the work we do.
+Make a Contribution: {% autoescape off %}{{ default_contribution_page_url }}{% endautoescape %}
+{% endif %}
+{% endblock contribution_footer %}

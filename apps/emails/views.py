@@ -30,6 +30,61 @@ def preview_recurring_contribution_reminder(request):
     )
 
 
+def preview_recurring_contribution_canceled(request):
+    rp = RevenueProgram.objects.get(id=request.GET.get("rp"))
+    style = asdict(rp.transactional_email_style)
+    if request.GET.get("logo"):
+        style.logo_url = request.GET.get("logo")
+    template = loader.get_template(f"recurring-contribution-canceled.{'txt' if request.GET.get('text') else 'html'}")
+    data = {
+        "contribution_interval_display_value": "year",
+        "contribution_date": datetime.now(),
+        "contribution_amount": "$123.45",
+        "contributor_name": "Contributor Name",
+        "copyright_year": datetime.now().year,
+        "contributor_email": "nobody@fundjournalism.org",
+        "magic_link": "https://magic-link",
+        "rp_name": rp.name,
+        "style": style,
+    }
+    if rp.default_donation_page:
+        data["default_contribution_page_url"] = rp.default_donation_page.page_url
+    return HttpResponse(
+        template.render(
+            data,
+            request,
+        ),
+        content_type="text/plain" if request.GET.get("text") else "text/html",
+    )
+
+
+def preview_recurring_contribution_payment_updated(request):
+    rp = RevenueProgram.objects.get(id=request.GET.get("rp"))
+    style = asdict(rp.transactional_email_style)
+    if request.GET.get("logo"):
+        style.logo_url = request.GET.get("logo")
+    template = loader.get_template(
+        f"recurring-contribution-payment-updated.{'txt' if request.GET.get('text') else 'html'}"
+    )
+    return HttpResponse(
+        template.render(
+            {
+                "contribution_interval_display_value": "year",
+                "contribution_date": datetime.now(),
+                "contribution_amount": "$123.45",
+                "contributor_name": "Contributor Name",
+                "copyright_year": datetime.now().year,
+                "contributor_email": "nobody@fundjournalism.org",
+                "magic_link": "https://magic-link",
+                "rp_name": rp.name,
+                "style": style,
+            },
+            request,
+        ),
+        content_type="text/plain" if request.GET.get("text") else "text/html",
+    )
+
+
 def preview_contribution_confirmation(request):
     rp = RevenueProgram.objects.get(id=request.GET.get("rp"))
     style = asdict(rp.transactional_email_style)

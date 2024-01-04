@@ -140,7 +140,7 @@
                   <td>
                     <div>
                       <div class="contribution-container">
-                        <p class="contribution-header">Contribution Details</p>
+                        <p class="contribution-header">{% block contribution_header %}Contribution Details{% endblock contribution_header %}</p>
                         <p class="contribution-details">
                           <span class="contribution-details-strong">
                             {% block contribution_date_label %}{% endblock contribution_date_label %}:
@@ -172,20 +172,22 @@
             <table width="100%" cellpadding="0" cellspacing="0" border="0">
               <tr>
                 <td style="padding-right: 0px;padding-left: 0px;" align="left">
-                  <p class="disclaimer inner-center">
-                    No goods or services were provided in exchange for this contribution.
-                    {% if non_profit %}
-                    This receipt may be used for tax purposes.
-                    {% if fiscal_status == "fiscally sponsored" %}
-                    All contributions or gifts to {{ rp_name }} are tax deductible through our fiscal sponsor {{ fiscal_sponsor_name }}.
-                    {% if tax_id %} {{ fiscal_sponsor_name }}'s tax ID is {{ tax_id }}.{% endif %}
-                    {% else %}
-                    {{ rp_name }} is a 501(c)(3) nonprofit organization{% if tax_id %} with a Federal Tax ID #{{ tax_id }}{% endif %}.
-                    {% endif %}
-                    {% else %}
-                    Contributions to {{ rp_name }} are not deductible as charitable donations.
-                    {% endif %}
-                  </p>
+                  {% block contribution_footer %}
+                    <p class="disclaimer inner-center">
+                      No goods or services were provided in exchange for this contribution.
+                      {% if non_profit %}
+                        This receipt may be used for tax purposes.
+                        {% if fiscal_status == "fiscally sponsored" %}
+                          All contributions or gifts to {{ rp_name }} are tax deductible through our fiscal sponsor {{ fiscal_sponsor_name }}.
+                          {% if tax_id %} {{ fiscal_sponsor_name }}'s tax ID is {{ tax_id }}.{% endif %}
+                        {% else %}
+                          {{ rp_name }} is a 501(c)(3) nonprofit organization{% if tax_id %} with a Federal Tax ID #{{ tax_id }}{% endif %}.
+                        {% endif %}
+                        {% else %}
+                          Contributions to {{ rp_name }} are not deductible as charitable donations.
+                      {% endif %}
+                    </p>
+                  {% endblock contribution_footer %}
                 </td>
               </tr>
               <tr>

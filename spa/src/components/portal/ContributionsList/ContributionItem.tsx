@@ -83,7 +83,7 @@ export function ContributionItem({ contribution }: ContributionItemProps) {
       </DateContainer>
       <CardInfo>
         <span data-testid="card-brand">{formattedCardBrands[contribution.card_brand]}</span>{' '}
-        <LastCardDigits data-testid="card-last4">{contribution.last4}</LastCardDigits>
+        <LastCardDigits data-testid="card-last4">{contribution.card_last_4}</LastCardDigits>
       </CardInfo>
       <Status $status={contribution.status} data-testid="status">
         {formattedStatuses[contribution.status]}

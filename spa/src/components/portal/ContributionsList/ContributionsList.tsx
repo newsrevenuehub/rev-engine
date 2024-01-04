@@ -24,7 +24,7 @@ export function ContributionsList() {
     content = (
       <List>
         {contributions.map((contribution) => (
-          <ContributionItem contribution={contribution} key={contribution.payment_provider_id} />
+          <ContributionItem contribution={contribution} key={contribution.id} />
         ))}
       </List>
     );

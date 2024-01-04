@@ -7,16 +7,15 @@ const mockContribution: PortalContribution = {
   amount: 12345,
   card_brand: 'amex',
   created: new Date().toISOString(),
-  credit_card_expiration_date: new Date().toISOString(),
+  card_expiration_date: new Date().toISOString(),
+  id: 1,
   interval: 'month',
   is_cancelable: false,
   is_modifiable: false,
-  last4: '7890',
+  card_last_4: '7890',
   last_payment_date: new Date().toISOString(),
   next_payment_date: new Date().toISOString(),
-  payment_provider_id: 'mock-payment-provider-id',
   payment_type: 'card',
-  provider_customer_id: 'mock-provider-customer-id',
   revenue_program: 1,
   status: 'paid'
 };
@@ -63,7 +62,7 @@ describe('ContributionItem', () => {
   });
 
   it('shows the last four digits of the card', () => {
-    tree({ contribution: { ...mockContribution, last4: '4567' } });
+    tree({ contribution: { ...mockContribution, card_last_4: '4567' } });
     expect(screen.getByTestId('card-last4')).toHaveTextContent('4567');
   });
 

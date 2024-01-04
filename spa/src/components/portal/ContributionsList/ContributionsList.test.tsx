@@ -54,15 +54,15 @@ describe('ContributionsList', () => {
   describe('After contributions are fetched', () => {
     it('shows a contribution item for each contribution', () => {
       usePortalContributionsListMock.mockReturnValue({
-        contributions: [{ payment_provider_id: 'mock-id-1 ' }, { payment_provider_id: 'mock-id-2' }] as any,
+        contributions: [{ id: 1 }, { id: 2 }] as any,
         isError: false,
         isLoading: false,
         isFetching: false,
         refetch: jest.fn()
       });
       tree();
-      expect(screen.getByTestId('mock-contribution-item-mock-id-1')).toBeInTheDocument();
-      expect(screen.getByTestId('mock-contribution-item-mock-id-2')).toBeInTheDocument();
+      expect(screen.getByTestId('mock-contribution-item-1')).toBeInTheDocument();
+      expect(screen.getByTestId('mock-contribution-item-2')).toBeInTheDocument();
     });
 
     it('shows a message if the user has no contributions', () => {

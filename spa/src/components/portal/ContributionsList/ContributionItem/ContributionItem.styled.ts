@@ -1,6 +1,6 @@
+import ArrowLeft from '@material-design-icons/svg/round/arrow_left.svg?react';
 import { Link } from 'react-router-dom';
 import { PaymentStatus } from 'constants/paymentStatus';
-import selectedArrow from './selected-arrow.svg';
 import styled from 'styled-components';
 
 /**
@@ -40,16 +40,6 @@ export const Root = styled(Link)<{ $dimmed: boolean }>`
     &[aria-selected] {
       background-color: #e2e2e2;
       box-shadow: none;
-
-      &::after {
-        background-image: url(${selectedArrow});
-        background-repeat: no-repeat;
-        content: '';
-        height: 15px;
-        position: absolute;
-        right: -22px;
-        width: 15px;
-      }
     }
 
     @media (${({ theme }) => theme.breakpoints.phoneOnly}) {
@@ -127,6 +117,14 @@ export const NextContributionDate = styled.div<{ $status: PaymentStatus }>`
   & strong {
     font-weight: 500;
   }
+`;
+
+export const SelectedArrow = styled(ArrowLeft)`
+  fill: ${({ theme }) => theme.basePalette.primary.purple};
+  height: 48px;
+  position: absolute;
+  right: -42px;
+  width: 48px;
 `;
 
 export const Status = styled.div<{ $status: PaymentStatus }>`

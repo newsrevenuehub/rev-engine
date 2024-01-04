@@ -14,6 +14,7 @@ import {
   LastCardDigits,
   NextContributionDate,
   Root,
+  SelectedArrow,
   Status
 } from './ContributionItem.styled';
 import { forwardRef } from 'react';
@@ -90,6 +91,7 @@ export const ContributionItem = forwardRef<HTMLAnchorElement, ContributionItemPr
         <Amount $status={contribution.status} data-testid="amount">
           {formatCurrencyAmount(contribution.amount, true)}
         </Amount>
+        {selected && <SelectedArrow />}
       </Root>
     );
   }

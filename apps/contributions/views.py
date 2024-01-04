@@ -28,7 +28,7 @@ from apps.api.permissions import (
     IsContributor,
     IsContributorOwningContribution,
     IsHubAdmin,
-    UserIsContributor,
+    UserIsRequestedContributor,
 )
 from apps.contributions import serializers
 from apps.contributions.filters import ContributionFilter
@@ -570,7 +570,7 @@ class SubscriptionsViewSet(viewsets.ViewSet):
 class PortalContributorsViewSet(viewsets.GenericViewSet):
     """This viewset is meant to furnish contributions data to the (new) contributor portal"""
 
-    permission_classes = [IsAuthenticated, IsContributor, UserIsContributor]
+    permission_classes = [IsAuthenticated, IsContributor, UserIsRequestedContributor]
 
     ALLOWED_ORDERING_FIELDS = ["created", "amount"]
     ALLOWED_FILTER_FIELDS = [

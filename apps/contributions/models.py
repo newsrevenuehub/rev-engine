@@ -8,13 +8,13 @@ from functools import cached_property, reduce, wraps
 from operator import or_
 from typing import Any, Callable, List
 from urllib.parse import quote_plus
+from zoneinfo import ZoneInfo
 
 from django.conf import settings
 from django.db import models
 from django.template.loader import render_to_string
 from django.utils.safestring import SafeString, mark_safe
 
-import pytz
 import reversion
 import stripe
 from addict import Dict as AttrDict
@@ -229,7 +229,7 @@ class Contribution(IndexedTimeStampedModel):
         if not self.stripe_subscription:
             logger.warning("Expected a retrievable stripe subscription on contribution %s but none was found", self.id)
             return None
-        return datetime.datetime.fromtimestamp(self.stripe_subscription.current_period_end, tz=pytz.UTC)
+        return datetime.datetime.fromtimestamp(self.stripe_subscription.current_period_end, tz=ZoneInfo("UTC"))
 
     @property
     def formatted_amount(self) -> str:

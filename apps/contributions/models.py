@@ -1042,8 +1042,8 @@ class Payment(IndexedTimeStampedModel):
     gross_amount_paid = models.IntegerField()
     amount_refunded = models.IntegerField()
     stripe_balance_transaction_id = models.CharField(max_length=255, unique=True)
-    # TODO: [DEV-4378] add index on transaction time since we will need to sort by for last payment
-    transaction_time = models.DateTimeField()
+    # TODO: Make transaction_time non-nullable once we've run data migration for existing payments
+    transaction_time = models.DateTimeField(db_index=True, null=True)
 
     MISSING_EVENT_KW_ERROR_MSG = "Expected a keyword argument called `event`"
     ARG_IS_NOT_EVENT_TYPE_ERROR_MSG = "Expected `event` to be an instance of `StripeEventData`"

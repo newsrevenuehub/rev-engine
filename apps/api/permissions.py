@@ -89,6 +89,8 @@ class IsPatchRequest(permissions.BasePermission):
 
 
 class UserIsContributor(permissions.BasePermission):
+    """Determine if the requesting user is the same contributor as the object in question"""
+
     def has_object_permission(self, request, view, obj):
         has_permission = obj == request.user and isinstance(obj, Contributor)
         return has_permission

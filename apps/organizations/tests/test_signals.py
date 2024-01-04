@@ -5,6 +5,7 @@ import pytest
 from apps.common.models import SocialMeta
 from apps.organizations.models import FreePlan, Organization, RevenueProgram
 from apps.organizations.signals import (
+    create_default_social_meta,
     get_page_to_be_set_as_default,
     handle_delete_rp_mailchimp_access_token_secret,
     handle_rp_mailchimp_entity_setup,
@@ -22,6 +23,17 @@ class TestRevenueProgramPostSaveHandler:
         rp = RevenueProgramFactory()
 
         assert SocialMeta.objects.count() == before_count + 1
+        assert rp.socialmeta
+
+    def test_does_not_create_social_meta_if_already_exists(self):
+        rp = RevenueProgramFactory()
+
+        before_count = SocialMeta.objects.count()
+        assert rp.socialmeta
+
+        create_default_social_meta(sender=MagicMock(), instance=rp, created=True)
+
+        assert SocialMeta.objects.count() == before_count
         assert rp.socialmeta
 
     @pytest.mark.parametrize(

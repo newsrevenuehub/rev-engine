@@ -8,7 +8,7 @@ export default {
     amount: 12345,
     card_brand: 'visa',
     interval: 'one_time',
-    last4: '1234',
+    card_last_4: '1234',
     status: 'paid'
   },
   argTypes: {

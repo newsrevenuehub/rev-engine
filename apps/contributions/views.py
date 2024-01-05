@@ -627,16 +627,16 @@ class PortalContributorsViewSet(viewsets.GenericViewSet):
             instance=contribution, **{} if request.method == "GET" else {"data": request.data}
         )
 
+        # NB: we're guaranteed that request method is one of these three by @action decorator, so
+        # don't need to handle default case
         match request.method:
             case "GET":
-                pass
+                return Response(serializer.data, status=status.HTTP_200_OK)
             case "PATCH":
                 serializer.is_valid(raise_exception=True)
                 return self.handle_patch(serializer=serializer, request=request)
             case "DELETE":
                 return self.handle_delete(contribution)
-
-        return Response(serializer.data, status=status.HTTP_200_OK)
 
     def handle_patch(self, serializer, request):
         if serializer.instance.interval == ContributionInterval.ONE_TIME:

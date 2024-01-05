@@ -21,6 +21,7 @@ import { forwardRef } from 'react';
 import { PORTAL } from 'routes';
 
 const ContributionItemPropTypes = {
+  contribution: PropTypes.any.isRequired,
   replaceHistory: PropTypes.bool,
   selected: PropTypes.bool
 };

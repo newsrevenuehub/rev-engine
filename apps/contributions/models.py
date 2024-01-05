@@ -1056,8 +1056,13 @@ class Payment(IndexedTimeStampedModel):
                 else cls.get_contribution_for_recurrence(balance_transaction.id, event.account)
             )
         except Contribution.DoesNotExist:
-            # logger.something
             contribution = None
+        if not contribution:
+            logger.warning(
+                "Could not find a contribution for PI %s associated with event %s",
+                getattr(pi, "id", "<no-pi>"),
+                event.id,
+            )
         return contribution, balance_transaction
 
     @classmethod

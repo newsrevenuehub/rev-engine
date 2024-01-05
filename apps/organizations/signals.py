@@ -53,13 +53,10 @@ def create_default_social_meta(sender, instance: RevenueProgram, created: bool, 
     if hasattr(instance, "socialmeta"):
         logger.debug("Not creating default social meta for RP %s because it already exists", instance.id)
         return
-    try:
-        logger.info("Creating default social meta for RP %s", instance.id)
-        social = SocialMeta.objects.create(revenue_program=instance)
-        logger.info('Social Meta with id "%s" created for RP id "%s"', social.id, instance.id)
-    except Exception as e:
-        logger.exception("Failed to create SocialMeta for RP %s", instance.id)
-        raise e
+
+    logger.info("Creating default social meta for RP %s", instance.id)
+    social = SocialMeta.objects.create(revenue_program=instance)
+    logger.info('Social Meta with id "%s" created for RP id "%s"', social.id, instance.id)
 
 
 @receiver(post_delete, sender=RevenueProgram)

@@ -21,7 +21,6 @@ import { forwardRef } from 'react';
 import { PORTAL } from 'routes';
 
 const ContributionItemPropTypes = {
-  contribution: PropTypes.object.isRequired,
   replaceHistory: PropTypes.bool,
   selected: PropTypes.bool
 };
@@ -97,6 +96,5 @@ export const ContributionItem = forwardRef<HTMLAnchorElement, ContributionItemPr
   }
 );
 
-// FIXME
-(ContributionItem as any).propTypes = ContributionItemPropTypes;
+ContributionItem.propTypes = ContributionItemPropTypes;
 export default ContributionItem;

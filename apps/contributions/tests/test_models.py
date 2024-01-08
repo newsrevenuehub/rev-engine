@@ -1630,6 +1630,16 @@ class TestContributionModel:
         contribution = ContributionFactory(provider_payment_method_id=None)
         assert contribution.stripe_payment_method is None
 
+    def test__expanded_pi_for_cancelable_modifiable(self, mocker):
+        contribution = ContributionFactory(provider_payment_id="pi_123")
+        mock_pi_retrieve = mocker.patch("stripe.PaymentIntent.retrieve", return_value=(mock_pi := mocker.Mock()))
+        assert contribution._expanded_pi_for_cancelable_modifiable == mock_pi
+        mock_pi_retrieve.assert_called_once_with(
+            contribution.provider_payment_id,
+            expand=["invoice.subscription"],
+            stripe_account=contribution.stripe_account_id,
+        )
+
 
 @pytest.mark.django_db
 class TestContributionQuerySetMethods:

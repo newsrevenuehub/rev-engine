@@ -241,7 +241,8 @@ class Contribution(IndexedTimeStampedModel):
         if not self.stripe_subscription:
             logger.warning("Expected a retrievable stripe subscription on contribution %s but none was found", self.id)
             return None
-        return datetime.datetime.fromtimestamp(self.stripe_subscription.current_period_end, tz=ZoneInfo("UTC"))
+        next_date = self.stripe_subscription.current_period_end
+        return datetime.datetime.fromtimestamp(next_date, tz=ZoneInfo("UTC")) if next_date else None
 
     @property
     def formatted_amount(self) -> str:

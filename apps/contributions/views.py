@@ -639,9 +639,6 @@ class PortalContributorsViewSet(viewsets.GenericViewSet):
                 return self.handle_delete(contribution)
 
     def handle_patch(self, serializer, request):
-        if serializer.instance.interval == ContributionInterval.ONE_TIME:
-            logger.warning("Request was made to update one-time contribution %s", serializer.instance.id)
-            return Response({"detail": "Cannot update one-time contribution"}, status=status.HTTP_400_BAD_REQUEST)
         if not serializer.instance.is_modifiable:
             logger.warning(
                 "Request was made to update unmodifiable contribution %s whose status is %s",
@@ -694,9 +691,9 @@ class PortalContributorsViewSet(viewsets.GenericViewSet):
 
         NB: we don't do anything to update NRE contribution status here and instead rely on ensuing webhooks to do that.
         """
-        if contribution.interval == ContributionInterval.ONE_TIME:
-            logger.warning("Request was made to cancel one-time contribution %s", contribution.id)
-            return Response({"detail": "Cannot cancel one-time contribution"}, status=status.HTTP_400_BAD_REQUEST)
+        if not contribution.is_cancelable:
+            logger.warning("Request was made to cancel uncancelable contribution %s", contribution.id)
+            return Response({"detail": "Cannot cancel contribution"}, status=status.HTTP_400_BAD_REQUEST)
         try:
             stripe.Subscription.delete(
                 contribution.provider_subscription_id,

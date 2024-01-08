@@ -576,15 +576,8 @@ class PortalContributorsViewSet(viewsets.GenericViewSet):
     ALLOWED_FILTER_FIELDS = [
         "status",
     ]
-    CONTRIBUTIONS_LIST_SERIALIZER_CLASS = serializers.PortalContributionListSerializer
-    CONTRIBUTIONS_DETAIL_SERIALIZER_CLASS = serializers.PortalContributionDetailSerializer
 
     queryset = Contributor.objects.all()
-
-    def get_serializer_class(self):
-        if self.action == "contribution_detail":
-            return self.CONTRIBUTIONS_DETAIL_SERIALIZER_CLASS
-        return self.CONTRIBUTIONS_LIST_SERIALIZER_CLASS
 
     def _get_contributor_and_check_permissions(self, request, contributor_id):
         try:
@@ -599,6 +592,7 @@ class PortalContributorsViewSet(viewsets.GenericViewSet):
         url_path="contributions",
         url_name="contributions-list",
         detail=True,
+        serializer_class=serializers.PortalContributionListSerializer,
     )
     def contributions_list(self, request, pk=None):
         """Endpoint to get all contributions for a given contributor"""
@@ -611,7 +605,7 @@ class PortalContributorsViewSet(viewsets.GenericViewSet):
         queryset = contributor.contribution_set.filter(**filters).order_by(ordering)
         paginator = self.pagination_class()
         page = paginator.paginate_queryset(queryset, request)
-        serializer = self.CONTRIBUTIONS_LIST_SERIALIZER_CLASS(page, many=True)
+        serializer = self.get_serializer(page, many=True)
         return paginator.get_paginated_response(serializer.data)
 
     @action(
@@ -619,6 +613,7 @@ class PortalContributorsViewSet(viewsets.GenericViewSet):
         url_path="contributions/(?P<contribution_id>[^/.]+)",
         url_name="contribution-detail",
         detail=True,
+        serializer_class=serializers.PortalContributionDetailSerializer,
     )
     def contribution_detail(self, request, pk=None, contribution_id=None) -> Response:
         """Endpoint to get or update a contribution for a given contributor"""
@@ -628,7 +623,7 @@ class PortalContributorsViewSet(viewsets.GenericViewSet):
         except Contribution.DoesNotExist:
             return Response({"detail": "Contribution not found"}, status=status.HTTP_404_NOT_FOUND)
 
-        serializer = self.CONTRIBUTIONS_DETAIL_SERIALIZER_CLASS(
+        serializer = self.get_serializer(
             instance=contribution, **{} if request.method == "GET" else {"data": request.data}
         )
 

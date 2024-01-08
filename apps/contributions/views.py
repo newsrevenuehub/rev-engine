@@ -581,6 +581,11 @@ class PortalContributorsViewSet(viewsets.GenericViewSet):
 
     queryset = Contributor.objects.all()
 
+    def get_serializer_class(self):
+        if self.action == "contribution_detail":
+            return self.CONTRIBUTIONS_DETAIL_SERIALIZER_CLASS
+        return self.CONTRIBUTIONS_LIST_SERIALIZER_CLASS
+
     def _get_contributor_and_check_permissions(self, request, contributor_id):
         try:
             contributor = Contributor.objects.get(pk=contributor_id)

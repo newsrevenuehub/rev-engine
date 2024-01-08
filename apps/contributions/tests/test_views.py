@@ -1612,6 +1612,12 @@ class TestPortalContributorsViewSet:
         mock_subscription_retrieve = mocker.patch("stripe.Subscription.retrieve", return_value=stripe_subscription)
         mock_subscription_modify = mocker.patch("stripe.Subscription.modify")
         mocker.patch("stripe.PaymentMethod.retrieve", return_value=stripe.PaymentMethod.construct_from({}, "some-id"))
+        mocker.patch(
+            "apps.contributions.models.Contribution.is_modifiable", return_value=True, new_callable=mocker.PropertyMock
+        )
+        mocker.patch(
+            "apps.contributions.models.Contribution.is_cancelable", return_value=True, new_callable=mocker.PropertyMock
+        )
         return (
             monthly_contribution.contributor,
             mock_customer_retrieve,

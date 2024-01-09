@@ -5,9 +5,6 @@ import { useAlert } from 'react-alert';
 // Elements
 import getElementEditor, { getElementValidator } from 'components/pageEditor/elementEditors/getElementEditor';
 
-// Assets
-import { faTrash } from '@fortawesome/free-solid-svg-icons';
-
 // Context
 import { useEditInterfaceContext } from 'components/pageEditor/editInterface/EditInterfaceContextProvider';
 
@@ -96,7 +93,7 @@ function ElementProperties({ selectedElementType }) {
         <h5>{dynamicElements[selectedElement.type].displayName}</h5>
         {!dynamicElements[selectedElement.type].required && (
           <S.DeleteButton onClick={handleDeleteElement}>
-            <S.TrashIcon icon={faTrash} />
+            <S.TrashIcon />
           </S.DeleteButton>
         )}
       </S.ElementHeading>

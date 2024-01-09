@@ -1,6 +1,5 @@
 import styled, { css } from 'styled-components';
 import { Pagination as MuiPagination } from '@material-ui/lab';
-import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
 import { Typography } from '@material-ui/core';
 
 export const TableScrollWrapper = styled.div`
@@ -106,7 +105,7 @@ export const TR = styled.tr`
   }
 `;
 
-export const SortIcon = styled(FontAwesomeIcon)`
+export const SortIcon = styled.span`
   margin-left: 1rem;
 `;
 
@@ -139,8 +138,6 @@ export const ResultsSummary = styled.p`
 `;
 
 export const PaginationSection = styled.div``;
-
-export const Chevron = styled(FontAwesomeIcon)``;
 
 export const Pages = styled.p`
   display: inline-block;

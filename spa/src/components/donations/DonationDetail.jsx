@@ -16,10 +16,10 @@ import { useConfirmationModalContext } from 'elements/modal/GlobalConfirmationMo
 
 import { GENERIC_ERROR, NO_VALUE } from 'constants/textConstants';
 import Button from 'elements/buttons/Button';
-import { faBan, faCheck } from '@fortawesome/free-solid-svg-icons';
 import { getFrequencyAdjective } from 'utilities/parseFrequency';
 import { PaymentStatus } from 'components/common/PaymentStatus';
 import PageTitle from 'elements/PageTitle';
+import { Block, Check } from '@material-ui/icons';
 
 function DonationDetail() {
   // Context
@@ -179,7 +179,7 @@ function DonationDetail() {
                       onClick={handleAccept}
                       data-testid="accept-flagged-button"
                     >
-                      <S.AcceptIcon icon={faCheck} /> Accept
+                      <Check /> Accept
                     </Button>
                     <Button
                       loading={processing}
@@ -187,7 +187,7 @@ function DonationDetail() {
                       onClick={handleReject}
                       data-testid="reject-flagged-button"
                     >
-                      <S.RejectIcon icon={faBan} /> Reject
+                      <Block /> Reject
                     </Button>
                   </S.ManageFlagged>
                 )}

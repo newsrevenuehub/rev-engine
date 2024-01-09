@@ -3,8 +3,8 @@ import { createPortal } from 'react-dom';
 import * as S from './Modal.styled';
 
 import { AnimatePresence } from 'framer-motion';
-import { faTimes } from '@fortawesome/free-solid-svg-icons';
 import GenericErrorBoundary from 'components/errors/GenericErrorBoundary';
+import { Close } from '@material-ui/icons';
 
 function Modal({ children, isOpen, closeModal, ...props }) {
   useEffect(() => {
@@ -29,7 +29,7 @@ function Modal({ children, isOpen, closeModal, ...props }) {
           <S.Modal isOpen={isOpen} closeModal={closeModal} {...props}>
             {closeModal && (
               <S.CloseButton onClick={closeModal} data-testid="close-modal">
-                <S.CloseIcon icon={faTimes} />
+                <S.CloseIcon><Close /></S.CloseIcon>
               </S.CloseButton>
             )}
             <GenericErrorBoundary>{children}</GenericErrorBoundary>

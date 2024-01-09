@@ -1,5 +1,4 @@
 import styled from 'styled-components';
-import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
 
 export const DraggableListStyles = {
   padding: 0,
@@ -41,8 +40,4 @@ export const PanelItemDeleteButton = styled.button`
   &:active svg {
     color: white;
   }
-`;
-
-export const TrashIcon = styled(FontAwesomeIcon)`
-  color: red;
 `;

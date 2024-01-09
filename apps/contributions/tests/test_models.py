@@ -1630,6 +1630,16 @@ class TestContributionModel:
         contribution = ContributionFactory(provider_payment_method_id=None)
         assert contribution.stripe_payment_method is None
 
+    def test__expanded_pi_for_cancelable_modifiable(self, mocker):
+        contribution = ContributionFactory(provider_payment_id="pi_123")
+        mock_pi_retrieve = mocker.patch("stripe.PaymentIntent.retrieve", return_value=(mock_pi := mocker.Mock()))
+        assert contribution._expanded_pi_for_cancelable_modifiable == mock_pi
+        mock_pi_retrieve.assert_called_once_with(
+            contribution.provider_payment_id,
+            expand=["invoice.subscription"],
+            stripe_account=contribution.stripe_account_id,
+        )
+
 
 @pytest.mark.django_db
 class TestContributionQuerySetMethods:
@@ -2228,13 +2238,14 @@ class TestPayment:
     def test_get_contribution_and_balance_transaction_for_payment_intent_succeeded_event_when_value_error(
         self, mocker, payment_intent_succeeded_one_time_event, payment_intent_for_one_time_contribution
     ):
-        mocker.patch("apps.contributions.models.Payment._ensure_pi_has_single_charge", side_effect=ValueError("roo"))
+        mocker.patch("apps.contributions.models.Payment._ensure_pi_has_single_charge", side_effect=ValueError("foo"))
+        contribution = ContributionFactory(provider_payment_id=payment_intent_for_one_time_contribution.id)
         mocker.patch("stripe.PaymentIntent.retrieve", return_value=payment_intent_for_one_time_contribution)
         logger_spy = mocker.spy(logger, "warning")
         assert Payment.get_contribution_and_balance_transaction_for_payment_intent_succeeded_event(
             event=StripeEventData(**payment_intent_succeeded_one_time_event)
         ) == (
-            None,
+            contribution,
             None,
         )
         logger_spy.assert_called_once_with(

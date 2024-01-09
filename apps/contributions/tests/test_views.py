@@ -1612,6 +1612,12 @@ class TestPortalContributorsViewSet:
         mock_subscription_retrieve = mocker.patch("stripe.Subscription.retrieve", return_value=stripe_subscription)
         mock_subscription_modify = mocker.patch("stripe.Subscription.modify")
         mocker.patch("stripe.PaymentMethod.retrieve", return_value=stripe.PaymentMethod.construct_from({}, "some-id"))
+        mocker.patch(
+            "apps.contributions.models.Contribution.is_modifiable", return_value=True, new_callable=mocker.PropertyMock
+        )
+        mocker.patch(
+            "apps.contributions.models.Contribution.is_cancelable", return_value=True, new_callable=mocker.PropertyMock
+        )
         return (
             monthly_contribution.contributor,
             mock_customer_retrieve,
@@ -1992,9 +1998,12 @@ class TestPortalContributorsViewSet:
         assert response.status_code == status.HTTP_500_INTERNAL_SERVER_ERROR
         assert response.json() == {"detail": "Error updating Subscription"}
 
-    def test_contribution_detail_patch_when_for_one_time(
-        self, api_client, portal_contributor_with_multiple_contributions
+    def test_contribution_detail_patch_when_subscription_not_modifiable(
+        self, api_client, portal_contributor_with_multiple_contributions, mocker
     ):
+        mocker.patch(
+            "apps.contributions.models.Contribution.is_modifiable", return_value=False, new_callable=mocker.PropertyMock
+        )
         contributor = portal_contributor_with_multiple_contributions[0]
         api_client.force_authenticate(contributor)
         new_payment_method_id = "something-new"
@@ -2004,30 +2013,6 @@ class TestPortalContributorsViewSet:
                 args=(
                     contributor.id,
                     contributor.contribution_set.filter(interval=ContributionInterval.ONE_TIME).first().id,
-                ),
-            ),
-            data={"provider_payment_method_id": new_payment_method_id},
-        )
-        assert response.status_code == status.HTTP_400_BAD_REQUEST
-        assert response.json() == {"detail": "Cannot update one-time contribution"}
-
-    def test_contribution_detail_patch_when_not_modifiable(
-        self, api_client, portal_contributor_with_multiple_contributions, mocker
-    ):
-        contributor = portal_contributor_with_multiple_contributions[0]
-        api_client.force_authenticate(contributor)
-        mocker.patch(
-            "apps.contributions.models.Contribution.is_modifiable",
-            return_value=False,
-            new_callable=mocker.PropertyMock,
-        )
-        new_payment_method_id = "something-new"
-        response = api_client.patch(
-            reverse(
-                "portal-contributor-contribution-detail",
-                args=(
-                    contributor.id,
-                    contributor.contribution_set.exclude(interval=ContributionInterval.ONE_TIME).first().id,
                 ),
             ),
             data={"provider_payment_method_id": new_payment_method_id},
@@ -2129,7 +2114,12 @@ class TestPortalContributorsViewSet:
         )
         assert response.status_code == status.HTTP_404_NOT_FOUND
 
-    def test_contribution_detail_delete_when_one_time(self, api_client, portal_contributor_with_multiple_contributions):
+    def test_contribution_detail_delete_when_subscription_not_cancelable(
+        self, api_client, portal_contributor_with_multiple_contributions, mocker
+    ):
+        mocker.patch(
+            "apps.contributions.models.Contribution.is_cancelable", return_value=False, new_callable=mocker.PropertyMock
+        )
         contributor = portal_contributor_with_multiple_contributions[0]
         api_client.force_authenticate(contributor)
         contribution = contributor.contribution_set.filter(interval=ContributionInterval.ONE_TIME).first()
@@ -2137,7 +2127,7 @@ class TestPortalContributorsViewSet:
             reverse("portal-contributor-contribution-detail", args=(contributor.id, contribution.id))
         )
         assert response.status_code == status.HTTP_400_BAD_REQUEST
-        assert response.json() == {"detail": "Cannot cancel one-time contribution"}
+        assert response.json() == {"detail": "Cannot cancel contribution"}
 
     @pytest.mark.parametrize(
         "method, kwargs",

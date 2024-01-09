@@ -576,8 +576,6 @@ class PortalContributorsViewSet(viewsets.GenericViewSet):
     ALLOWED_FILTER_FIELDS = [
         "status",
     ]
-    CONTRIBUTIONS_LIST_SERIALIZER_CLASS = serializers.PortalContributionListSerializer
-    CONTRIBUTIONS_DETAIL_SERIALIZER_CLASS = serializers.PortalContributionDetailSerializer
 
     queryset = Contributor.objects.all()
 
@@ -594,6 +592,7 @@ class PortalContributorsViewSet(viewsets.GenericViewSet):
         url_path="contributions",
         url_name="contributions-list",
         detail=True,
+        serializer_class=serializers.PortalContributionListSerializer,
     )
     def contributions_list(self, request, pk=None):
         """Endpoint to get all contributions for a given contributor"""
@@ -606,7 +605,7 @@ class PortalContributorsViewSet(viewsets.GenericViewSet):
         queryset = contributor.contribution_set.filter(**filters).order_by(ordering)
         paginator = self.pagination_class()
         page = paginator.paginate_queryset(queryset, request)
-        serializer = self.CONTRIBUTIONS_LIST_SERIALIZER_CLASS(page, many=True)
+        serializer = self.get_serializer(page, many=True)
         return paginator.get_paginated_response(serializer.data)
 
     @action(
@@ -614,6 +613,7 @@ class PortalContributorsViewSet(viewsets.GenericViewSet):
         url_path="contributions/(?P<contribution_id>[^/.]+)",
         url_name="contribution-detail",
         detail=True,
+        serializer_class=serializers.PortalContributionDetailSerializer,
     )
     def contribution_detail(self, request, pk=None, contribution_id=None) -> Response:
         """Endpoint to get or update a contribution for a given contributor"""
@@ -623,25 +623,22 @@ class PortalContributorsViewSet(viewsets.GenericViewSet):
         except Contribution.DoesNotExist:
             return Response({"detail": "Contribution not found"}, status=status.HTTP_404_NOT_FOUND)
 
-        serializer = self.CONTRIBUTIONS_DETAIL_SERIALIZER_CLASS(
+        serializer = self.get_serializer(
             instance=contribution, **{} if request.method == "GET" else {"data": request.data}
         )
 
+        # NB: we're guaranteed that request method is one of these three by @action decorator, so
+        # don't need to handle default case
         match request.method:
             case "GET":
-                pass
+                return Response(serializer.data, status=status.HTTP_200_OK)
             case "PATCH":
                 serializer.is_valid(raise_exception=True)
                 return self.handle_patch(serializer=serializer, request=request)
             case "DELETE":
                 return self.handle_delete(contribution)
 
-        return Response(serializer.data, status=status.HTTP_200_OK)
-
     def handle_patch(self, serializer, request):
-        if serializer.instance.interval == ContributionInterval.ONE_TIME:
-            logger.warning("Request was made to update one-time contribution %s", serializer.instance.id)
-            return Response({"detail": "Cannot update one-time contribution"}, status=status.HTTP_400_BAD_REQUEST)
         if not serializer.instance.is_modifiable:
             logger.warning(
                 "Request was made to update unmodifiable contribution %s whose status is %s",
@@ -694,9 +691,9 @@ class PortalContributorsViewSet(viewsets.GenericViewSet):
 
         NB: we don't do anything to update NRE contribution status here and instead rely on ensuing webhooks to do that.
         """
-        if contribution.interval == ContributionInterval.ONE_TIME:
-            logger.warning("Request was made to cancel one-time contribution %s", contribution.id)
-            return Response({"detail": "Cannot cancel one-time contribution"}, status=status.HTTP_400_BAD_REQUEST)
+        if not contribution.is_cancelable:
+            logger.warning("Request was made to cancel uncancelable contribution %s", contribution.id)
+            return Response({"detail": "Cannot cancel contribution"}, status=status.HTTP_400_BAD_REQUEST)
         try:
             stripe.Subscription.delete(
                 contribution.provider_subscription_id,

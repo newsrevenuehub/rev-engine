@@ -209,6 +209,18 @@ class Contribution(IndexedTimeStampedModel):
 
     objects = ContributionManager.from_queryset(ContributionQuerySet)()
 
+    CANCELABLE_SUBSCRIPTION_STATUSES = (
+        "trialing",
+        "active",
+        "past_due",
+    )
+    MODIFIABLE_SUBSCRIPTION_STATUSES = (
+        "incomplete",
+        "trialing",
+        "active",
+        "past_due",
+    )
+
     class Meta:
         get_latest_by = "modified"
         ordering = ["-created"]
@@ -229,7 +241,8 @@ class Contribution(IndexedTimeStampedModel):
         if not self.stripe_subscription:
             logger.warning("Expected a retrievable stripe subscription on contribution %s but none was found", self.id)
             return None
-        return datetime.datetime.fromtimestamp(self.stripe_subscription.current_period_end, tz=ZoneInfo("UTC"))
+        next_date = self.stripe_subscription.current_period_end
+        return datetime.datetime.fromtimestamp(next_date, tz=ZoneInfo("UTC")) if next_date else None
 
     @property
     def formatted_amount(self) -> str:
@@ -647,15 +660,30 @@ class Contribution(IndexedTimeStampedModel):
     def card_last_4(self) -> str:
         return self.card.last4 if self.card else ""
 
+    @cached_property
+    def _expanded_pi_for_cancelable_modifiable(self) -> stripe.PaymentIntent | None:
+        if not self.provider_payment_id:
+            return None
+        return stripe.PaymentIntent.retrieve(
+            self.provider_payment_id, expand=["invoice.subscription"], stripe_account=self.stripe_account_id
+        )
+
     @property
     def is_cancelable(self) -> bool:
-        return self.status in (ContributionStatus.PROCESSING, ContributionStatus.FLAGGED)
+        pi = self._expanded_pi_for_cancelable_modifiable
+        return (
+            pi.invoice.subscription.status in self.CANCELABLE_SUBSCRIPTION_STATUSES
+            if pi and pi.invoice and pi.invoice.subscription
+            else False
+        )
 
     @property
     def is_modifiable(self) -> bool:
-        return self.interval != ContributionInterval.ONE_TIME and self.status in (
-            ContributionStatus.PAID,
-            ContributionStatus.FAILED,
+        pi = self._expanded_pi_for_cancelable_modifiable
+        return (
+            pi.invoice.subscription.status in self.MODIFIABLE_SUBSCRIPTION_STATUSES
+            if pi and pi.invoice and pi.invoice.subscription
+            else False
         )
 
     @property

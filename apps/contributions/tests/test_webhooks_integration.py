@@ -132,14 +132,14 @@ class TestPaymentIntentSucceeded:
         mock_send_thank_you.assert_called_once()
 
     def test_when_one_time_contribution_not_found(self, payment_intent_succeeded_one_time_event, mocker, client):
-        logger_spy = mocker.patch("apps.contributions.tasks.logger.warning")
+        logger_spy = mocker.patch("apps.contributions.tasks.logger.info")
         header = {"HTTP_STRIPE_SIGNATURE": "testing", "content_type": "application/json"}
         Contribution.objects.all().delete()
         response = client.post(
             reverse("stripe-webhooks-contributions"), data=payment_intent_succeeded_one_time_event, **header
         )
         assert response.status_code == status.HTTP_200_OK
-        logger_spy.assert_called_once_with(
+        assert logger_spy.call_args == mocker.call(
             "Could not find contribution. Here's the event data: %s", mocker.ANY, exc_info=True
         )
 
@@ -198,14 +198,14 @@ class TestPaymentIntentCanceled:
 
     def test_when_contribution_not_found(self, mocker, client, payment_intent_canceled):
         mocker.patch.object(WebhookSignature, "verify_header", return_value=True)
-        logger_spy = mocker.patch("apps.contributions.tasks.logger.warning")
+        logger_spy = mocker.patch("apps.contributions.tasks.logger.info")
         header = {"HTTP_STRIPE_SIGNATURE": "testing", "content_type": "application/json"}
         assert not Contribution.objects.filter(
             provider_payment_id=payment_intent_canceled["data"]["object"]["id"]
         ).exists()
         response = client.post(reverse("stripe-webhooks-contributions"), data=payment_intent_canceled, **header)
         assert response.status_code == status.HTTP_200_OK
-        logger_spy.assert_called_once_with(
+        assert logger_spy.call_args == mocker.call(
             "Could not find contribution. Here's the event data: %s", mocker.ANY, exc_info=True
         )
 
@@ -233,15 +233,14 @@ class TestPaymentIntentPaymentFailed:
 
     def test_when_contribution_not_found(self, mocker, client, payment_intent_payment_failed):
         mocker.patch.object(WebhookSignature, "verify_header", return_value=True)
-        logger_spy = mocker.patch("apps.contributions.tasks.logger.warning")
+        logger_spy = mocker.patch("apps.contributions.tasks.logger.info")
         header = {"HTTP_STRIPE_SIGNATURE": "testing", "content_type": "application/json"}
         assert not Contribution.objects.filter(
             provider_payment_id=payment_intent_payment_failed["data"]["object"]["id"]
         ).exists()
         response = client.post(reverse("stripe-webhooks-contributions"), data=payment_intent_payment_failed, **header)
         assert response.status_code == status.HTTP_200_OK
-
-        logger_spy.assert_called_once_with(
+        assert logger_spy.call_args == mocker.call(
             "Could not find contribution. Here's the event data: %s", mocker.ANY, exc_info=True
         )
 
@@ -288,7 +287,7 @@ class TestCustomerSubscriptionUpdated:
             )
 
     def test_when_contribution_not_found(self, mocker, client, customer_subscription_updated_event):
-        logger_spy = mocker.patch("apps.contributions.tasks.logger.warning")
+        logger_spy = mocker.patch("apps.contributions.tasks.logger.info")
         header = {"HTTP_STRIPE_SIGNATURE": "testing", "content_type": "application/json"}
         assert not Contribution.objects.filter(
             provider_subscription_id=customer_subscription_updated_event["data"]["object"]["id"]
@@ -297,7 +296,7 @@ class TestCustomerSubscriptionUpdated:
             reverse("stripe-webhooks-contributions"), data=customer_subscription_updated_event, **header
         )
         assert response.status_code == status.HTTP_200_OK
-        logger_spy.assert_called_once_with(
+        assert logger_spy.call_args == mocker.call(
             "Could not find contribution. Here's the event data: %s", mocker.ANY, exc_info=True
         )
 
@@ -325,7 +324,7 @@ class TestCustomerSubscriptionDeleted:
 
     def test_when_contribution_not_found(self, mocker, client, customer_subscription_updated_event):
         mocker.patch.object(WebhookSignature, "verify_header", return_value=True)
-        logger_spy = mocker.patch("apps.contributions.tasks.logger.warning")
+        logger_spy = mocker.patch("apps.contributions.tasks.logger.info")
         header = {"HTTP_STRIPE_SIGNATURE": "testing", "content_type": "application/json"}
         assert not Contribution.objects.filter(
             provider_subscription_id=customer_subscription_updated_event["data"]["object"]["id"]
@@ -334,7 +333,7 @@ class TestCustomerSubscriptionDeleted:
             reverse("stripe-webhooks-contributions"), data=customer_subscription_updated_event, **header
         )
         assert response.status_code == status.HTTP_200_OK
-        logger_spy.assert_called_once_with(
+        assert logger_spy.call_args == mocker.call(
             "Could not find contribution. Here's the event data: %s", mocker.ANY, exc_info=True
         )
 
@@ -424,7 +423,7 @@ def test_process_stripe_webhook_when_value_error_raised(mocker, client):
     response = client.post(reverse("stripe-webhooks-contributions"), data={}, **header)
     assert response.status_code == status.HTTP_400_BAD_REQUEST
     assert response.json() == {"error": "Invalid payload"}
-    logger_spy.assert_called_once_with("Invalid payload from Stripe webhook request")
+    assert logger_spy.call_args == mocker.call("Invalid payload from Stripe webhook request")
 
 
 @pytest.mark.django_db

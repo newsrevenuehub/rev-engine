@@ -42,6 +42,12 @@ export const Root = styled(Link)<{ $dimmed: boolean }>`
       box-shadow: none;
     }
 
+    @media (max-width: ${COMPRESS_COLUMNS_BREAKPOINT}) {
+      grid-template-columns: [icon] 35px [date] minmax(200px, 1fr) [status] 100px [amount] minmax(100px, 1fr);
+    }
+
+    /* Must come after the compress columns breakpoint to override it. */
+
     @media (${({ theme }) => theme.breakpoints.phoneOnly}) {
       gap: 12px;
       grid-template-columns: [icon] 35px [date] 1fr [amount] minmax(100px, 1fr);
@@ -49,10 +55,6 @@ export const Root = styled(Link)<{ $dimmed: boolean }>`
         'status status status'
         'icon date amount';
       padding: 12px;
-    }
-
-    @media (max-width: ${COMPRESS_COLUMNS_BREAKPOINT}) {
-      grid-template-columns: [icon] 35px [date] minmax(200px, 1fr) [status] 100px [amount] minmax(100px, 1fr);
     }
   }
 `;

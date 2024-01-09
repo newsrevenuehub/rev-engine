@@ -423,7 +423,7 @@ def test_process_stripe_webhook_when_value_error_raised(mocker, client):
     response = client.post(reverse("stripe-webhooks-contributions"), data={}, **header)
     assert response.status_code == status.HTTP_400_BAD_REQUEST
     assert response.json() == {"error": "Invalid payload"}
-    logger_spy.assert_called_once_with("Invalid payload from Stripe webhook request")
+    assert logger_spy.call_args == mocker.call("Invalid payload from Stripe webhook request")
 
 
 @pytest.mark.django_db

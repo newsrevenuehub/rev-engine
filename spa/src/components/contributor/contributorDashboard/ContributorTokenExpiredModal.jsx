@@ -1,10 +1,5 @@
 import * as S from './ContributorTokenExpiredModal.styled';
-
-// Icons
-import { faExclamationCircle } from '@fortawesome/free-solid-svg-icons';
-
 import { CONTRIBUTOR_ENTRY } from 'routes';
-
 import Modal from 'elements/modal/Modal';
 
 function ContributorTokenExpiredModal({ isOpen }) {
@@ -12,7 +7,7 @@ function ContributorTokenExpiredModal({ isOpen }) {
     <Modal isOpen={isOpen}>
       <S.ContributorTokenExpiredModal>
         <S.ExpiredMessage>
-          <S.Icon icon={faExclamationCircle} />
+          <S.Icon />
           <S.Message>
             Your session has expired. <a href={CONTRIBUTOR_ENTRY}>Get another magic link?</a>
           </S.Message>

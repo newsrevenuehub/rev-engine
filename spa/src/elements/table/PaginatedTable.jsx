@@ -2,8 +2,8 @@ import { useEffect, useMemo } from 'react';
 import * as S from './PaginatedTable.styled';
 
 // Deps
-import { faSort, faSortUp, faSortDown } from '@fortawesome/free-solid-svg-icons';
 import { useTable, usePagination, useSortBy } from 'react-table';
+import { KeyboardArrowDown, KeyboardArrowUp, UnfoldMore } from '@material-ui/icons';
 
 function PaginatedTable({
   columns,
@@ -136,9 +136,9 @@ export default PaginatedTable;
 function SortIcon({ isSorted, isSortedDesc, disableSortBy }) {
   if (disableSortBy) return null;
   const getIcon = () => {
-    if (!isSorted) return faSort;
+    if (!isSorted) return <UnfoldMore />;
 
-    return isSortedDesc ? faSortUp : faSortDown;
+    return isSortedDesc ? <KeyboardArrowUp /> : <KeyboardArrowDown />;
   };
-  return <S.SortIcon icon={getIcon()} />;
+  return <S.SortIcon>{getIcon()}</S.SortIcon>;
 }

@@ -54,8 +54,8 @@ describe('PageItem', () => {
     });
 
     it('renders edit icon', () => {
-      tree({ element });
-      expect(screen.getByLabelText(`Edit ${element.type} block`)).toBeEnabled();
+      tree({ element, handleItemEdit: jest.fn() });
+      expect(screen.getByRole('button', { name: `Edit ${element.type} block` })).toBeEnabled();
     });
 
     it('calls handleItemEdit when edit icon is clicked', () => {
@@ -67,14 +67,14 @@ describe('PageItem', () => {
     });
 
     it('renders delete icon only if required = False', () => {
-      tree({ element });
+      tree({ element, handleItemDelete: jest.fn() });
       expect.assertions(1);
       if (element.required) {
         // eslint-disable-next-line jest/no-conditional-expect
-        expect(screen.queryByLabelText(`Remove ${element.type} block`)).not.toBeInTheDocument();
+        expect(screen.queryByRole('button', { name: `Remove ${element.type} block` })).not.toBeInTheDocument();
       } else {
         // eslint-disable-next-line jest/no-conditional-expect
-        expect(screen.getByLabelText(`Remove ${element.type} block`)).toBeEnabled();
+        expect(screen.getByRole('button', { name: `Remove ${element.type} block` })).toBeEnabled();
       }
     });
 

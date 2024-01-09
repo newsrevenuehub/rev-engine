@@ -4,7 +4,7 @@ import BaseField from 'elements/inputs/BaseField';
 
 // Deps
 import { useSelect } from 'downshift';
-import { faAngleDown } from '@fortawesome/free-solid-svg-icons';
+import { KeyboardArrowDown } from '@material-ui/icons';
 
 export const NULL_CHOICE = '----';
 
@@ -38,7 +38,7 @@ function Select({
           inputmode="none"
         />
         <S.CaretWrapper animate={isOpen ? 'open' : 'closed'} variants={caretVariants}>
-          <S.Caret icon={faAngleDown} />
+          <S.Caret><KeyboardArrowDown /></S.Caret>
         </S.CaretWrapper>
         <S.List
           {...getMenuProps()}

@@ -1,5 +1,5 @@
+import { Delete } from '@material-ui/icons';
 import styled from 'styled-components';
-import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
 
 export const ElementProperties = styled.div`
   flex: 1;
@@ -50,7 +50,7 @@ export const DeleteButton = styled.button`
   background: transparent;
 `;
 
-export const TrashIcon = styled(FontAwesomeIcon)`
+export const TrashIcon = styled(Delete)`
   transform: translateY(-50%);
   color: ${(props) => props.theme.colors.caution};
 

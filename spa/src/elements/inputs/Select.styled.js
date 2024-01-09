@@ -1,7 +1,6 @@
 import styled, { css } from 'styled-components';
 import { baseInputStyles } from 'elements/inputs/BaseField.styled';
 import { motion } from 'framer-motion';
-import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
 
 export const SelectWrapper = styled.div`
   position: relative;
@@ -27,7 +26,7 @@ export const CaretWrapper = styled(motion.span)`
   pointer-events: none;
 `;
 
-export const Caret = styled(FontAwesomeIcon)`
+export const Caret = styled.div`
   color: ${(props) => props.theme.colors.grey[3]};
   transform: translateY(-50%);
 `;

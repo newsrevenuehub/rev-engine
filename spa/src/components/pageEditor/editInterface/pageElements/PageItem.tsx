@@ -1,32 +1,43 @@
+import PriceChange from '@material-design-icons/svg/outlined/price_change.svg?react';
+import VolunteerActivism from '@material-design-icons/svg/outlined/volunteer_activism.svg?react';
 import * as S from './PageItem.styled';
 import PropTypes, { InferProps } from 'prop-types';
-import { IconProp } from '@fortawesome/fontawesome-svg-core';
-
-// Assets
-import {
-  faParagraph,
-  faClock,
-  faHandHoldingUsd,
-  faUser,
-  faCreditCard,
-  faAddressCard,
-  faImage,
-  faGifts,
-  faShoppingBag,
-  faHands
-} from '@fortawesome/free-solid-svg-icons';
-
 import * as dynamicPageElements from 'components/donationPage/pageContent/dynamicElements';
 import * as dynamicSidebarElements from 'components/donationPage/pageContent/dynamicSidebarElements';
 import { NoComponentError } from 'components/donationPage/pageGetters';
-import PencilButton from 'elements/buttons/PencilButton';
-import TrashButton from 'elements/buttons/TrashButton';
 import { ContributionPageElement, PageElementType } from 'hooks/useContributionPage';
+import {
+  DeleteOutline,
+  EditOutlined,
+  HomeWork,
+  Image,
+  Payment,
+  Person,
+  Schedule,
+  SentimentVerySatisfied,
+  ShoppingBasket,
+  TextFields
+} from '@material-ui/icons';
+import { ComponentType } from 'react';
+import { IconButton } from 'components/base';
 
 const dynamicElements = {
   ...dynamicPageElements,
   ...dynamicSidebarElements
 } as Record<PageElementType, Partial<ContributionPageElement>>;
+
+const elementIcons: Record<PageElementType, ComponentType> = {
+  DAmount: PriceChange,
+  DBenefits: SentimentVerySatisfied,
+  DDonorInfo: Person,
+  DDonorAddress: HomeWork,
+  DFrequency: Schedule,
+  DImage: Image,
+  DPayment: Payment,
+  DReason: VolunteerActivism,
+  DRichText: TextFields,
+  DSwag: ShoppingBasket
+};
 
 export interface PageItemProps extends InferProps<typeof PageItemPropTypes> {
   element: Pick<ContributionPageElement, 'type'>;
@@ -34,12 +45,16 @@ export interface PageItemProps extends InferProps<typeof PageItemPropTypes> {
 }
 
 function PageItem({ element, disabled, isStatic, handleItemEdit, handleItemDelete, ...props }: PageItemProps) {
+  const ElementIcon = elementIcons[element.type];
+
   return (
     <S.PageItem $disabled={!!disabled} {...props} data-testid={`page-item-${element.type}`}>
       {dynamicElements[element.type] ? (
         <>
           <S.ItemIconWrapper>
-            <S.ItemIcon icon={getElementIcon(element.type)} $disabled={!!disabled} />
+            <S.ItemIcon $disabled={!!disabled}>
+              <ElementIcon />
+            </S.ItemIcon>
           </S.ItemIconWrapper>
           <S.ItemContentWrapper>
             <S.ContentLeft>
@@ -48,9 +63,25 @@ function PageItem({ element, disabled, isStatic, handleItemEdit, handleItemDelet
             </S.ContentLeft>
             {!isStatic && (
               <S.ContentRight>
-                <PencilButton aria-label={`Edit ${element.type} block`} onClick={handleItemEdit} />
-                {!dynamicElements[element.type].required && (
-                  <TrashButton aria-label={`Remove ${element.type} block`} onClick={handleItemDelete} />
+                {handleItemEdit && (
+                  <IconButton
+                    aria-label={`Edit ${element.type} block`}
+                    color="text"
+                    onClick={handleItemEdit}
+                    data-testid="pencil-button"
+                  >
+                    <EditOutlined />
+                  </IconButton>
+                )}
+                {handleItemDelete && !dynamicElements[element.type].required && (
+                  <IconButton
+                    aria-label={`Remove ${element.type} block`}
+                    color="text"
+                    onClick={handleItemDelete}
+                    data-testid="trash-button"
+                  >
+                    <DeleteOutline />
+                  </IconButton>
                 )}
               </S.ContentRight>
             )}
@@ -61,44 +92,6 @@ function PageItem({ element, disabled, isStatic, handleItemEdit, handleItemDelet
       )}
     </S.PageItem>
   );
-}
-
-function getElementIcon(elementType: PageElementType): IconProp {
-  switch (elementType) {
-    case 'DRichText':
-      return faParagraph;
-
-    case 'DFrequency':
-      return faClock;
-
-    case 'DAmount':
-      return faHandHoldingUsd;
-
-    case 'DDonorInfo':
-      return faUser;
-
-    case 'DDonorAddress':
-      return faAddressCard;
-
-    case 'DPayment':
-      return faCreditCard;
-
-    case 'DImage':
-      return faImage;
-
-    case 'DBenefits':
-      return faGifts;
-
-    case 'DSwag':
-      return faShoppingBag;
-
-    case 'DReason':
-      return faHands;
-
-    default:
-      // Should never happen
-      return undefined as any;
-  }
 }
 
 const PageItemPropTypes = {

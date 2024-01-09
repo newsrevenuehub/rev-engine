@@ -407,10 +407,10 @@ def test_on_process_stripe_webhook_task_failure(mocker):
 
 @pytest.mark.django_db
 def test_process_stripe_webhook_task_when_contribution_not_exist_error(payment_intent_succeeded_one_time_event, mocker):
-    logger_spy = mocker.spy(contribution_tasks.logger, "warning")
+    logger_spy = mocker.spy(contribution_tasks.logger, "info")
     Contribution.objects.all().delete()
     contribution_tasks.process_stripe_webhook_task(raw_event_data=payment_intent_succeeded_one_time_event)
-    logger_spy.assert_called_once_with(
+    assert logger_spy.call_args == mocker.call(
         "Could not find contribution. Here's the event data: %s",
         StripeEventData(**payment_intent_succeeded_one_time_event),
         exc_info=True,

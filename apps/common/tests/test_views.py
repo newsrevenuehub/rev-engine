@@ -6,7 +6,6 @@ from django.urls import reverse
 
 import pytest_cases
 
-from apps.common.models import SocialMeta
 from apps.common.views import FilterForSuperUserOrRoleAssignmentUserMixin
 from apps.organizations.tests.factories import OrganizationFactory, RevenueProgramFactory
 from apps.pages.tests.factories import StyleFactory
@@ -20,9 +19,6 @@ user_model = get_user_model()
 class ReactAppViewTestCase(TestCase):
     def setUp(self):
         self.revenue_program = RevenueProgramFactory(name="My Test", slug="my-test")
-        SocialMeta.objects.create(
-            title="title", description="description", url="https://example.com", revenue_program=self.revenue_program
-        )
 
     def test_page_title_includes_rev_program_name_when_subdomain(self):
         response = self.client.get(reverse("index"), HTTP_HOST=f"{self.revenue_program.slug}.test-domain.com")

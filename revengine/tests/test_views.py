@@ -58,10 +58,11 @@ def test_cloudflare_500_page(client):
 
 
 @pytest.mark.django_db()
-def test_react_app_view_get_context_data_when_no_social_meta(mocker):
-    """Show that react app view works even if no social meta"""
+def test_react_app_view_get_context_data_with_social_meta(mocker):
+    """Show that react app view works with social meta"""
+    """ - RP without Social Meta is no longer possible as Social Meta is created automatically in RP's post_save - """
     rp_sans_socialmeta = RevenueProgramFactory()
-    assert not SocialMeta.objects.filter(revenue_program=rp_sans_socialmeta).exists()
+    assert SocialMeta.objects.filter(revenue_program=rp_sans_socialmeta).exists()
     factory = RequestFactory()
     request = factory.get("/")
     mocker.patch.object(ReactAppView, "_get_revenue_program_from_subdomain", return_value=rp_sans_socialmeta)

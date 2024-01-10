@@ -1,29 +1,61 @@
+import ArrowLeft from '@material-design-icons/svg/round/arrow_left.svg?react';
+import { Link } from 'react-router-dom';
 import { PaymentStatus } from 'constants/paymentStatus';
 import styled from 'styled-components';
 
-export const Root = styled.div<{ $dimmed: boolean }>`
-  align-items: center;
-  background-color: ${(props) =>
-    props.$dimmed ? props.theme.basePalette.greyscale.grey4 : props.theme.basePalette.greyscale.white};
-  border-radius: ${({ theme }) => theme.muiBorderRadius.lg};
-  box-shadow:
-    0px 3px 4px 0px rgba(0, 0, 0, 0.12),
-    -2px 0px 2px 0px rgba(0, 0, 0, 0.08);
-  color: ${(props) =>
-    props.$dimmed ? props.theme.basePalette.greyscale.grey1 : props.theme.basePalette.greyscale.black};
-  display: grid;
-  gap: 0 12px;
-  grid-template-columns: [icon] 35px [date] minmax(200px, 1fr) [card] 150px [status] 100px [amount] minmax(100px, 1fr);
-  font-family: Roboto, sans-serif;
-  padding: 28px 12px;
+/**
+ * Before the mobile breakpoint, we need to hide one column to maintain the
+ * layout. This is the breakpoint where this occurs.
+ */
+const COMPRESS_COLUMNS_BREAKPOINT = '1200px';
 
-  @media (${({ theme }) => theme.breakpoints.phoneOnly}) {
-    gap: 12px;
-    grid-template-columns: [icon] 35px [date] 1fr [amount] minmax(100px, 1fr);
-    grid-template:
-      'status status status'
-      'icon date amount';
-    padding: 12px;
+export const Root = styled(Link)<{ $dimmed: boolean }>`
+  && {
+    align-items: center;
+    background-color: ${(props) =>
+      props.$dimmed ? props.theme.basePalette.greyscale.grey4 : props.theme.basePalette.greyscale.white};
+    border-radius: ${({ theme }) => theme.muiBorderRadius.lg};
+    box-shadow:
+      0px 3px 4px 0px rgba(0, 0, 0, 0.12),
+      -2px 0px 2px 0px rgba(0, 0, 0, 0.08);
+    color: ${(props) =>
+      props.$dimmed ? props.theme.basePalette.greyscale.grey1 : props.theme.basePalette.greyscale.black};
+    display: grid;
+    gap: 0 12px;
+    grid-template-columns: [icon] 35px [date] minmax(200px, 1fr) [card] 150px [status] 100px [amount] minmax(100px, 1fr);
+    font-family: Roboto, sans-serif;
+    padding: 28px 12px;
+    position: relative;
+    text-align: left;
+    transition: background-color 0.3s;
+
+    &:hover {
+      background-color: ${({ theme }) => theme.basePalette.greyscale.grey4};
+      box-shadow:
+        0px 3px 12px 0px rgba(0, 0, 0, 0.12),
+        -2px 0px 10px 0px rgba(0, 0, 0, 0.16);
+      text-decoration: none;
+    }
+
+    &[aria-selected] {
+      background-color: #e2e2e2;
+      box-shadow: none;
+    }
+
+    @media (max-width: ${COMPRESS_COLUMNS_BREAKPOINT}) {
+      grid-template-columns: [icon] 35px [date] minmax(200px, 1fr) [status] 100px [amount] minmax(100px, 1fr);
+    }
+
+    /* Must come after the compress columns breakpoint to override it. */
+
+    @media (${({ theme }) => theme.breakpoints.phoneOnly}) {
+      gap: 12px;
+      grid-template-columns: [icon] 35px [date] 1fr [amount] minmax(100px, 1fr);
+      grid-template:
+        'status status status'
+        'icon date amount';
+      padding: 12px;
+    }
   }
 `;
 
@@ -45,7 +77,7 @@ export const CardInfo = styled.div`
   padding-right: 18px; /* 30px total with gap */
   text-align: right;
 
-  @media (${({ theme }) => theme.breakpoints.phoneOnly}) {
+  @media (max-width: ${COMPRESS_COLUMNS_BREAKPOINT}) {
     display: none;
   }
 `;
@@ -87,6 +119,14 @@ export const NextContributionDate = styled.div<{ $status: PaymentStatus }>`
   & strong {
     font-weight: 500;
   }
+`;
+
+export const SelectedArrow = styled(ArrowLeft)`
+  fill: ${({ theme }) => theme.basePalette.primary.purple};
+  height: 48px;
+  position: absolute;
+  right: -42px;
+  width: 48px;
 `;
 
 export const Status = styled.div<{ $status: PaymentStatus }>`

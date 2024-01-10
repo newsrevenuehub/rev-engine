@@ -5,6 +5,7 @@ import factory.fuzzy
 from factory.django import DjangoModelFactory
 from faker import Faker
 
+from apps.common.models import SocialMeta
 from apps.common.utils import normalize_slug
 from apps.contributions.choices import CardBrand, PaymentType
 from apps.contributions.models import ContributionInterval, ContributionStatus
@@ -54,6 +55,13 @@ class RevenueProgramFactory(DjangoModelFactory):
         fiscally_sponsored = factory.Trait(fiscal_status=models.FiscalStatusChoices.FISCALLY_SPONSORED)
         non_profit = factory.Trait(fiscal_status=models.FiscalStatusChoices.NONPROFIT)
         for_profit = factory.Trait(fiscal_status=models.FiscalStatusChoices.FOR_PROFIT)
+
+
+class SocialMetaFactory(DjangoModelFactory):
+    class Meta:
+        model = SocialMeta
+
+    revenue_program = factory.SubFactory(RevenueProgramFactory)
 
 
 class BenefitFactory(DjangoModelFactory):

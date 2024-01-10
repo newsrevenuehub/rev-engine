@@ -533,9 +533,7 @@ class TestRevenueProgram:
         assert not RevenueProgram.objects.filter(pk=rp_id).exists()
 
     def test_deleting_cascades_to_socialmeta(self, revenue_program):
-        sm_id = SocialMeta.objects.create(
-            title="title", description="description", url="https://example.com", revenue_program=revenue_program
-        ).id
+        sm_id = revenue_program.socialmeta.id
         revenue_program.delete()
         assert not SocialMeta.objects.filter(id=sm_id).exists()
 

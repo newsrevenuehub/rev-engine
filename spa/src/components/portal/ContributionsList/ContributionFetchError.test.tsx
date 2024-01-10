@@ -3,13 +3,13 @@ import { fireEvent, render, screen } from 'test-utils';
 import ContributionFetchError, { ContributionFetchErrorProps } from './ContributionFetchError';
 
 function tree(props?: Partial<ContributionFetchErrorProps>) {
-  return render(<ContributionFetchError onRetry={jest.fn()} {...props} />);
+  return render(<ContributionFetchError message="mock-message" onRetry={jest.fn()} {...props} />);
 }
 
 describe('ContributionFetchError', () => {
   it('shows an error message', () => {
     tree();
-    expect(screen.getByText('Error loading contributions.')).toBeInTheDocument();
+    expect(screen.getByText('mock-message')).toBeInTheDocument();
   });
 
   it('shows a button that calls onRetry when clicked', () => {

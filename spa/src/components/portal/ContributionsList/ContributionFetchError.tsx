@@ -3,6 +3,7 @@ import PropTypes, { InferProps } from 'prop-types';
 import { Root } from './ContributionFetchError.styled';
 
 const ContributionFetchErrorPropTypes = {
+  message: PropTypes.string.isRequired,
   onRetry: PropTypes.func.isRequired
 };
 
@@ -10,10 +11,10 @@ export interface ContributionFetchErrorProps extends InferProps<typeof Contribut
   onRetry: () => void;
 }
 
-export function ContributionFetchError({ onRetry }: ContributionFetchErrorProps) {
+export function ContributionFetchError({ message, onRetry }: ContributionFetchErrorProps) {
   return (
     <Root>
-      <p>Error loading contributions.</p>
+      <p>{message}</p>
       <Button onClick={onRetry} color="error">
         Try Again
       </Button>

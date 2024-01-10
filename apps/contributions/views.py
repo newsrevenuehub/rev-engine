@@ -618,6 +618,7 @@ def contributor_contribution(request, contributor_id: int, contribution_id: str)
                             "created": result["created"],
                             "gross_amount_paid": result["amount"],
                             "net_amount_paid": result["amount"],
+                            "status": "paid",
                         }
                     ]
                     return Response(result, status=status.HTTP_200_OK)

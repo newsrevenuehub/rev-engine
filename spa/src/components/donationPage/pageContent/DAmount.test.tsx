@@ -286,6 +286,20 @@ describe('DAmount', () => {
       expect(screen.getByRole('textbox')).toHaveValue('123');
     });
 
+    it('sets the amount with decimal values when a user enters a numeric value into the field', () => {
+      const setAmount = jest.fn();
+
+      tree(propsWithOtherAmount, { page: defaultPage, setAmount });
+      expect(setAmount).not.toBeCalled();
+
+      // Fire a change instead of typing because we're not simulating `amount`
+      // changing in context.
+
+      fireEvent.change(screen.getByRole('textbox'), { target: { value: '123.45' } });
+      expect(setAmount.mock.calls).toEqual([[123.45]]);
+      expect(screen.getByRole('textbox')).toHaveValue('123.45');
+    });
+
     it("doesn't select an amount option if the user enters a number corresponding to that option", () => {
       const setAmount = jest.fn();
 
@@ -346,6 +360,14 @@ describe('DAmount', () => {
       tree(propsWithOtherAmount, { setAmount, page: { ...defaultPage } });
       userEvent.type(screen.getByRole('textbox'), 'abc');
       expect(setAmount).toHaveBeenLastCalledWith(undefined);
+    });
+
+    it('sets the amount to a valid dollar amount if the user types non-numeric characters or multiple decimal point', () => {
+      const setAmount = jest.fn();
+
+      tree(propsWithOtherAmount, { page: defaultPage, setAmount });
+      userEvent.type(screen.getByRole('textbox'), '123.45c.67');
+      expect(screen.getByRole('textbox')).toHaveValue('123.45');
     });
 
     it('is accessible', async () => {

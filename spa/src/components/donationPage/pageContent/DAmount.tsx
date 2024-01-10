@@ -111,15 +111,23 @@ function DAmount({ element, ...props }: DAmountProps) {
   };
 
   // Called when the user types into the text field.
-
   const handleOtherAmountChange = ({
     target: { value }
   }: React.ChangeEvent<HTMLInputElement> | { target: { value: string } }) => {
-    const filteredValue = value.replace(/\D/g, '');
+    const filteredValue = value
+      // Only keep numbers and decimal points
+      .replace(/[^0-9.]/g, '')
+      // Remove numbers after the 2nd decimal point
+      .replace(/(\.\d{2})\d*$/, '$1');
 
-    setOtherValue(filteredValue);
+    // Remove the last decimal point if there is more than 1
+    const finalValue = filteredValue.match(/(?:.*?\.){2}([^.]*)/)
+      ? filteredValue.replace(/\.(?=[^.]*$)/, '')
+      : filteredValue;
 
-    if (filteredValue === '') {
+    setOtherValue(finalValue);
+
+    if (finalValue === '') {
       setAmount(undefined);
     }
 
@@ -168,10 +176,10 @@ function DAmount({ element, ...props }: DAmountProps) {
             <span>{currencySymbol}</span>
             <OtherAmountInput
               aria-label="Other Amount"
-              inputMode="numeric"
+              inputMode="decimal"
               type="text"
               min="0"
-              pattern="\d+"
+              pattern="^\d+(\.\d{1,2})?$"
               value={otherValue}
               name="amount"
               onChange={handleOtherAmountChange}

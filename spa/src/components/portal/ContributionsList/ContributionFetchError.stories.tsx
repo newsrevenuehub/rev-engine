@@ -1,11 +1,16 @@
-import { ComponentMeta, ComponentStory } from '@storybook/react';
+import { Meta, StoryObj } from '@storybook/react';
 import ContributionFetchError from './ContributionFetchError';
 
-export default {
+const meta: Meta<typeof ContributionFetchError> = {
   component: ContributionFetchError,
   title: 'Contributor/ContributionFetchError'
-} as ComponentMeta<typeof ContributionFetchError>;
+};
 
-const Template: ComponentStory<typeof ContributionFetchError> = (props) => <ContributionFetchError {...props} />;
+export default meta;
 
-export const Default = Template.bind({});
+type Story = StoryObj<typeof ContributionFetchError>;
+
+export const Default: Story = {};
+Default.args = {
+  message: 'Error message here.'
+};

@@ -14,7 +14,7 @@ router.register(r"subscriptions", views.SubscriptionsViewSet, basename="subscrip
 urlpatterns = [
     path("contributors/<int:id>/contributions/", views.contributor_contributions, name="contributor-contributions"),
     path(
-        "contributors/<int:contributor_id>/contributions/<str:contribution_id>",
+        "contributors/<int:contributor_id>/contributions/<str:contribution_id>/",
         views.contributor_contribution,
         name="contributor-contribution",
     ),

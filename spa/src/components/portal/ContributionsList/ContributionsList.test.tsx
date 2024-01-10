@@ -1,11 +1,17 @@
 import { axe } from 'jest-axe';
+import { useParams } from 'react-router-dom';
 import { fireEvent, render, screen } from 'test-utils';
 import ContributionsList from './ContributionsList';
 import { PortalAuthContext, PortalAuthContextResult } from 'hooks/usePortalAuth';
 import { usePortalContributionList } from 'hooks/usePortalContributionList';
 
+jest.mock('react-router-dom', () => ({
+  ...jest.requireActual('react-router-dom'),
+  useParams: jest.fn()
+}));
 jest.mock('hooks/usePortalContributionList');
-jest.mock('./ContributionItem');
+jest.mock('./ContributionDetail/ContributionDetail');
+jest.mock('./ContributionItem/ContributionItem');
 jest.mock('./ContributionFetchError');
 
 function tree(context?: Partial<PortalAuthContextResult>) {
@@ -17,9 +23,11 @@ function tree(context?: Partial<PortalAuthContextResult>) {
 }
 
 describe('ContributionsList', () => {
+  const useParamsMock = jest.mocked(useParams);
   const usePortalContributionsListMock = jest.mocked(usePortalContributionList);
 
   beforeEach(() => {
+    useParamsMock.mockReturnValue({});
     usePortalContributionsListMock.mockReturnValue({
       contributions: [],
       isError: false,
@@ -54,7 +62,7 @@ describe('ContributionsList', () => {
   describe('After contributions are fetched', () => {
     it('shows a contribution item for each contribution', () => {
       usePortalContributionsListMock.mockReturnValue({
-        contributions: [{ payment_provider_id: 'mock-id-1 ' }, { payment_provider_id: 'mock-id-2' }] as any,
+        contributions: [{ payment_provider_id: 'mock-id-1' }, { payment_provider_id: 'mock-id-2' }] as any,
         isError: false,
         isLoading: false,
         isFetching: false,
@@ -80,6 +88,36 @@ describe('ContributionsList', () => {
     it("doesn't show a spinner", () => {
       tree();
       expect(screen.queryByRole('progressbar')).not.toBeInTheDocument();
+    });
+
+    it("doesn't show contribution detail if not present in the route", () => {
+      usePortalContributionsListMock.mockReturnValue({
+        contributions: [{ payment_provider_id: 'mock-id-1' }, { payment_provider_id: 'mock-id-2' }] as any,
+        isError: false,
+        isLoading: false,
+        isFetching: false,
+        refetch: jest.fn()
+      });
+      useParamsMock.mockReturnValue({});
+      tree();
+      expect(screen.queryByTestId('mock-contribution-detail')).not.toBeInTheDocument();
+    });
+
+    it('shows contribution detail if present in the route', () => {
+      useParamsMock.mockReturnValue({ contributionId: 'mock-id-1' });
+      usePortalContributionsListMock.mockReturnValue({
+        contributions: [{ payment_provider_id: 'mock-id-1' }, { payment_provider_id: 'mock-id-2' }] as any,
+        isError: false,
+        isLoading: false,
+        isFetching: false,
+        refetch: jest.fn()
+      });
+      tree();
+
+      const detail = screen.getByTestId('mock-contribution-detail');
+
+      expect(detail.dataset.contributorId).toBe('mock-contributor-id');
+      expect(detail.dataset.contributionId).toBe('mock-id-1');
     });
   });
 

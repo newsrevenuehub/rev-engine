@@ -68,6 +68,15 @@ describe('PortalRouter', () => {
     expect(within(screen.getByTestId('mock-portal-page')).getByTestId('mock-contributions-list')).toBeInTheDocument();
   });
 
+  it('displays a PortalPage with ContributionsList at /portal/my-contributions/:contributionId/', async () => {
+    tree('/portal/my-contributions/contribution-id/');
+    await screen.findByTestId('mock-contributions-list');
+    expect(
+      within(screen.getByTestId('mock-protected-router')).getByTestId('mock-contributions-list')
+    ).toBeInTheDocument();
+    expect(within(screen.getByTestId('mock-portal-page')).getByTestId('mock-contributions-list')).toBeInTheDocument();
+  });
+
   it('displays a PortalPage with TokenVerification at /portal/verification/', async () => {
     tree('/portal/verification/');
     await screen.findByTestId('mock-token-verification');

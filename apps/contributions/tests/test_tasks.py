@@ -383,15 +383,13 @@ class TestProcessStripeWebhookTask:
     @pytest.mark.parametrize("contribution_found", (True, False))
     def test_synchronously(self, contribution_found, payment_intent_succeeded, mocker):
         mock_process = mocker.patch("apps.contributions.webhooks.StripeWebhookProcessor.process")
-        mock_logger = mocker.patch("apps.contributions.tasks.logger.warning")
+        mock_logger = mocker.patch("apps.contributions.tasks.logger.info")
         if not contribution_found:
             mock_process.side_effect = Contribution.DoesNotExist
         contribution_tasks.process_stripe_webhook_task(raw_event_data=payment_intent_succeeded)
         mock_process.assert_called_once()
-        if contribution_found:
-            mock_logger.assert_not_called()
-        else:
-            mock_logger.assert_called_once_with(
+        if not contribution_found:
+            assert mock_logger.call_args == mocker.call(
                 "Could not find contribution. Here's the event data: %s", mocker.ANY, exc_info=True
             )
 

@@ -2217,13 +2217,14 @@ class TestPayment:
     def test_get_contribution_and_balance_transaction_for_payment_intent_succeeded_event_when_value_error(
         self, mocker, payment_intent_succeeded_one_time_event, payment_intent_for_one_time_contribution
     ):
+        contribution = ContributionFactory(provider_payment_id=payment_intent_for_one_time_contribution.id)
         mocker.patch("apps.contributions.models.Payment._ensure_pi_has_single_charge", side_effect=ValueError("roo"))
         mocker.patch("stripe.PaymentIntent.retrieve", return_value=payment_intent_for_one_time_contribution)
         logger_spy = mocker.spy(logger, "warning")
         assert Payment.get_contribution_and_balance_transaction_for_payment_intent_succeeded_event(
             event=StripeEventData(**payment_intent_succeeded_one_time_event)
         ) == (
-            None,
+            contribution,
             None,
         )
         logger_spy.assert_called_once_with(

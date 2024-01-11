@@ -362,12 +362,23 @@ describe('DAmount', () => {
       expect(setAmount).toHaveBeenLastCalledWith(undefined);
     });
 
-    it('sets the amount to a valid dollar amount if the user types non-numeric characters or multiple decimal point', () => {
-      const setAmount = jest.fn();
+    describe('Other amount field validation', () => {
+      it.each([
+        ['1.2345', '1.23'],
+        ['1a.2,3', '1.23'],
+        ['1a.2', '1.2'],
+        ['0.99', '0.99'],
+        ['abc', ''],
+        ['abc12.34c', '12.34'],
+        ['12..34.56', '12.34'],
+        ['+-=e123', '123']
+      ])('when typing %s in "other" field, it should be converted to %s', (type, value) => {
+        const setAmount = jest.fn();
 
-      tree(propsWithOtherAmount, { page: defaultPage, setAmount });
-      userEvent.type(screen.getByRole('textbox'), '123.45c.67');
-      expect(screen.getByRole('textbox')).toHaveValue('123.45');
+        tree(propsWithOtherAmount, { page: defaultPage, setAmount });
+        userEvent.type(screen.getByRole('textbox'), type);
+        expect(screen.getByRole('textbox')).toHaveValue(value);
+      });
     });
 
     it('is accessible', async () => {

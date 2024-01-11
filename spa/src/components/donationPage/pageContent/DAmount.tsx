@@ -116,18 +116,13 @@ function DAmount({ element, ...props }: DAmountProps) {
   }: React.ChangeEvent<HTMLInputElement> | { target: { value: string } }) => {
     const filteredValue = value
       // Only keep numbers and decimal points
-      .replace(/[^0-9.]/g, '')
-      // Remove numbers after the 2nd decimal point
-      .replace(/(\.\d{2})\d*$/, '$1');
+      .replace(/[^\d\.]/g, '')
+      // Remove anything after first decimal point and two digits
+      .replace(/^(.*?\.\d?\d?).*/, '$1');
 
-    // Remove the last decimal point if there is more than 1
-    const finalValue = filteredValue.match(/(?:.*?\.){2}([^.]*)/)
-      ? filteredValue.replace(/\.(?=[^.]*$)/, '')
-      : filteredValue;
+    setOtherValue(filteredValue);
 
-    setOtherValue(finalValue);
-
-    if (finalValue === '') {
+    if (filteredValue === '') {
       setAmount(undefined);
     }
 

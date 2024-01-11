@@ -635,14 +635,31 @@ class Contribution(IndexedTimeStampedModel):
 
     @cached_property
     def card(self) -> stripe.Card | None:
+        """Card may come from more than one source in Stripe...
+
+        For NRE-generated contributions, we expect card will be available at
+        customer.default_source.
+
+        For imported contributions (esp. those with metadata v1.3 and v1.5),
+        we expect card will be available at customer.invoice_settings.default_payment_method.
+        """
         if not (cust_id := self.provider_customer_id):
             return None
         customer = stripe.Customer.retrieve(
             cust_id,
             stripe_account=self.donation_page.revenue_program.payment_provider.stripe_account_id,
-            expand=["default_source"],
+            expand=["default_source", "invoice_settings.default_payment_method"],
         )
-        return customer.default_source if customer.default_source and customer.default_source.object == "card" else None
+        card = None
+        if customer.default_source and customer.default_source.object == "card":
+            card = customer.default_source
+        elif (
+            customer.invoice_settings
+            and customer.invoice_settings.default_payment_method
+            and customer.invoice_settings.default_payment_method.object == "card"
+        ):
+            card = customer.invoice_settings.default_payment_method
+        return card
 
     @property
     def card_brand(self) -> str:

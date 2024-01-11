@@ -1296,6 +1296,45 @@ class TestContributionModel:
         for x in expect_missing:
             assert x not in mail.outbox[0].alternatives[0][0]
 
+    def test_send_recurring_contribution_payment_updated_email_skips_onetime(self, monkeypatch):
+        contribution = ContributionFactory(interval=ContributionInterval.ONE_TIME)
+        mock_log_error = Mock()
+        monkeypatch.setattr(logger, "error", mock_log_error)
+        mock_send_templated_email = Mock(wraps=send_templated_email.delay)
+        contribution.send_recurring_contribution_payment_updated_email()
+        mock_log_error.assert_called_once_with(
+            "Called on an instance (ID: %s) whose interval is one-time",
+            contribution.id,
+        )
+        mock_send_templated_email.assert_not_called()
+
+    def test_send_recurring_contribution_payment_updated_email_skips_missing_customer_id(self, monkeypatch):
+        contribution = ContributionFactory(interval=ContributionInterval.MONTHLY, provider_customer_id=None)
+        mock_log_error = Mock()
+        monkeypatch.setattr(logger, "error", mock_log_error)
+        mock_send_templated_email = Mock(wraps=send_templated_email.delay)
+        contribution.send_recurring_contribution_payment_updated_email()
+        mock_log_error.assert_called_once_with(
+            "No Stripe customer ID for contribution with ID %s",
+            contribution.id,
+        )
+        mock_send_templated_email.assert_not_called()
+
+    def test_send_recurring_contribution_payment_updated_email_skips_stripe_error(self, monkeypatch, mocker):
+        contribution = ContributionFactory(
+            interval=ContributionInterval.MONTHLY, provider_customer_id="test-provider-id"
+        )
+        mocker.patch("stripe.Customer.retrieve", side_effect=stripe.error.StripeError())
+        mock_log_exception = Mock()
+        monkeypatch.setattr(logger, "exception", mock_log_exception)
+        mock_send_templated_email = Mock(wraps=send_templated_email.delay)
+        contribution.send_recurring_contribution_payment_updated_email()
+        mock_log_exception.assert_called_once_with(
+            "Something went wrong retrieving Stripe customer for contribution with ID %s",
+            contribution.id,
+        )
+        mock_send_templated_email.assert_not_called()
+
     def test_send_recurring_contribution_canceled_email_text(self, revenue_program, monkeypatch, mocker, settings):
         contribution = ContributionFactory(
             interval=ContributionInterval.YEARLY, provider_customer_id="test-customer-id"
@@ -1388,6 +1427,45 @@ class TestContributionModel:
             assert x in mail.outbox[0].alternatives[0][0]
         for x in expect_missing:
             assert x not in mail.outbox[0].alternatives[0][0]
+
+    def test_send_recurring_contribution_canceled_email_skips_onetime(self, monkeypatch):
+        contribution = ContributionFactory(interval=ContributionInterval.ONE_TIME)
+        mock_log_error = Mock()
+        monkeypatch.setattr(logger, "error", mock_log_error)
+        mock_send_templated_email = Mock(wraps=send_templated_email.delay)
+        contribution.send_recurring_contribution_canceled_email()
+        mock_log_error.assert_called_once_with(
+            "Called on an instance (ID: %s) whose interval is one-time",
+            contribution.id,
+        )
+        mock_send_templated_email.assert_not_called()
+
+    def test_send_recurring_contribution_canceled_email_skips_missing_customer_id(self, monkeypatch):
+        contribution = ContributionFactory(interval=ContributionInterval.MONTHLY, provider_customer_id=None)
+        mock_log_error = Mock()
+        monkeypatch.setattr(logger, "error", mock_log_error)
+        mock_send_templated_email = Mock(wraps=send_templated_email.delay)
+        contribution.send_recurring_contribution_canceled_email()
+        mock_log_error.assert_called_once_with(
+            "No Stripe customer ID for contribution with ID %s",
+            contribution.id,
+        )
+        mock_send_templated_email.assert_not_called()
+
+    def test_send_recurring_contribution_canceled_email_skips_stripe_error(self, monkeypatch, mocker):
+        contribution = ContributionFactory(
+            interval=ContributionInterval.MONTHLY, provider_customer_id="test-provider-id"
+        )
+        mocker.patch("stripe.Customer.retrieve", side_effect=stripe.error.StripeError())
+        mock_log_exception = Mock()
+        monkeypatch.setattr(logger, "exception", mock_log_exception)
+        mock_send_templated_email = Mock(wraps=send_templated_email.delay)
+        contribution.send_recurring_contribution_canceled_email()
+        mock_log_exception.assert_called_once_with(
+            "Something went wrong retrieving Stripe customer for contribution with ID %s",
+            contribution.id,
+        )
+        mock_send_templated_email.assert_not_called()
 
     @pytest_cases.parametrize(
         "user",

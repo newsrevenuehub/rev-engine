@@ -533,8 +533,8 @@ class Contribution(IndexedTimeStampedModel):
         from apps.emails.tasks import send_templated_email
 
         if self.interval == ContributionInterval.ONE_TIME:
-            logger.warning(
-                "`Contribution.send_recurring_contribution_canceled_email` was called on an instance (ID: %s) whose interval is one-time",
+            logger.error(
+                "Called on an instance (ID: %s) whose interval is one-time",
                 self.id,
             )
             return
@@ -592,8 +592,8 @@ class Contribution(IndexedTimeStampedModel):
         from apps.emails.tasks import send_templated_email
 
         if self.interval == ContributionInterval.ONE_TIME:
-            logger.warning(
-                "`Contribution.send_recurring_contribution_payment_updated_email` was called on an instance (ID: %s) whose interval is one-time",
+            logger.error(
+                "Called on an instance (ID: %s) whose interval is one-time",
                 self.id,
             )
             return

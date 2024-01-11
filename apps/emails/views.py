@@ -8,10 +8,14 @@ from apps.organizations.models import RevenueProgram
 
 
 def preview_recurring_contribution_reminder(request):
+    """
+    Previews a recurring contribution reminder in the browser. Only accessible
+    if DEBUG is set (see revengine/urls.py).
+    """
     rp = RevenueProgram.objects.get(id=request.GET.get("rp"))
     style = asdict(rp.transactional_email_style)
     if request.GET.get("logo"):
-        style.logo_url = request.GET.get("logo")
+        style["logo_url"] = request.GET.get("logo")
     template = loader.get_template("recurring-contribution-email-reminder.html")
     return HttpResponse(
         template.render(
@@ -31,10 +35,15 @@ def preview_recurring_contribution_reminder(request):
 
 
 def preview_recurring_contribution_canceled(request):
+    """
+    Previews a recurring contribution cancellation notification in the browser.
+    To view the plain text version, use a `text` querystring param. Only
+    accessible if DEBUG is set (see revengine/urls.py).
+    """
     rp = RevenueProgram.objects.get(id=request.GET.get("rp"))
     style = asdict(rp.transactional_email_style)
     if request.GET.get("logo"):
-        style.logo_url = request.GET.get("logo")
+        style["logo_url"] = request.GET.get("logo")
     template = loader.get_template(f"recurring-contribution-canceled.{'txt' if request.GET.get('text') else 'html'}")
     data = {
         "contribution_interval_display_value": "year",
@@ -59,10 +68,15 @@ def preview_recurring_contribution_canceled(request):
 
 
 def preview_recurring_contribution_payment_updated(request):
+    """
+    Previews a recurring contribution payment method notification in the
+    browser. To view the plain text version, use a `text` querystring param.
+    Only accessible if DEBUG is set (see revengine/urls.py).
+    """
     rp = RevenueProgram.objects.get(id=request.GET.get("rp"))
     style = asdict(rp.transactional_email_style)
     if request.GET.get("logo"):
-        style.logo_url = request.GET.get("logo")
+        style["logo_url"] = request.GET.get("logo")
     template = loader.get_template(
         f"recurring-contribution-payment-updated.{'txt' if request.GET.get('text') else 'html'}"
     )
@@ -86,10 +100,14 @@ def preview_recurring_contribution_payment_updated(request):
 
 
 def preview_contribution_confirmation(request):
+    """
+    Previews a contribution confirmation in the browser. Only accessible if
+    DEBUG is set (see revengine/urls.py).
+    """
     rp = RevenueProgram.objects.get(id=request.GET.get("rp"))
     style = asdict(rp.transactional_email_style)
     if request.GET.get("logo"):
-        style.logo_url = request.GET.get("logo")
+        style["logo_url"] = request.GET.get("logo")
     template = loader.get_template("nrh-default-contribution-confirmation-email.html")
     return HttpResponse(
         template.render(

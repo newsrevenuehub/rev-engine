@@ -655,12 +655,6 @@ class PortalContributorsViewSet(viewsets.GenericViewSet):
         except stripe.error.StripeError:
             logger.exception("stripe.Subscription.retrieve returned a StripeError")
             return Response({"detail": "subscription not found"}, status=status.HTTP_404_NOT_FOUND)
-        if (email := request.user.email.lower()) != subscription.customer.email.lower():
-            # TODO: [DEV-2287] should we find a way to user DRF's permissioning scheme here instead?
-            # treat as not found so as to not leak info about subscription
-            logger.warning("User %s attempted to update unowned subscription %s", email, subscription.id)
-            return Response({"detail": "subscription not found"}, status=status.HTTP_404_NOT_FOUND)
-
         # TODO: [DEV-4334] Determine if Stripe will block referencing an unowned payment method id here
         payment_method_id = request.data.get("provider_payment_method_id")
 

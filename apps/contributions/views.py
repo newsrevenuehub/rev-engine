@@ -587,6 +587,12 @@ class PortalContributorsViewSet(viewsets.GenericViewSet):
         self.check_object_permissions(request, contributor)
         return contributor
 
+    def get_serializer_class(self):
+        if self.action == "contributions_list":
+            return serializers.PortalContributionListSerializer
+        elif self.action == "contribution_detail":
+            return serializers.PortalContributionDetailSerializer
+
     @action(
         methods=["get"],
         url_path="contributions",

@@ -1088,6 +1088,11 @@ class Payment(IndexedTimeStampedModel):
     amount_refunded = models.IntegerField()
     stripe_balance_transaction_id = models.CharField(max_length=255, unique=True)
     # TODO: [DEV-4379] Make transaction_time non-nullable once we've run data migration for existing payments
+    # NB: this is the time the payment was created in Stripe, not the time it was created in NRE. Additionally, note that we
+    # source this from the .created property on the balance transaction associated with the payment. There is also a
+    # Stripe payment intent, invoice, or charge associated with the balance transaction that has a .created property. We look
+    # to balance transaction since it is common to each of: one-time payment, recurring payment, and refund.
+    # Ultimately, this field gives us a way to sort by recency.
     transaction_time = models.DateTimeField(db_index=True, null=True)
 
     MISSING_EVENT_KW_ERROR_MSG = "Expected a keyword argument called `event`"

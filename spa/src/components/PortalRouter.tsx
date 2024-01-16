@@ -19,16 +19,8 @@ function PortalRouter() {
   return (
     <PortalAuthContextProvider>
       <RouterSetup>
-        <ProtectedRoute
-          path={ROUTES.PORTAL.CONTRIBUTIONS}
-          render={() => (
-            <PortalPage>
-              <TransactionsList />
-            </PortalPage>
-          )}
-          contributor
-          exact
-        />
+        {/* This doesn't get wrapped in <PortalPage> because the component styles it. */}
+        <ProtectedRoute path={ROUTES.PORTAL.CONTRIBUTIONS} render={() => <TransactionsList />} contributor exact />
         <ProtectedRoute
           path={ROUTES.PORTAL.CONTRIBUTION_DETAIL}
           render={() => (

@@ -16,10 +16,7 @@ jest.mock('react-router-dom', () => ({
 
 // Mock TrackPageView as a passthrough.
 
-jest.mock('components/portal/PortalPage', () => ({ children }: { children: React.ReactNode }) => (
-  <div data-testid="mock-portal-page">{children}</div>
-));
-
+jest.mock('components/portal/PortalPage');
 jest.mock('components/authentication/ProtectedRoute', () => ({ render }: { render: () => React.ReactNode }) => (
   <div data-testid="mock-protected-router">{render()}</div>
 ));
@@ -59,13 +56,12 @@ describe('PortalRouter', () => {
     expect(within(screen.getByTestId('mock-portal-page')).getByTestId('mock-portal-entry')).toBeInTheDocument();
   });
 
-  it('displays a PortalPage with ContributionsList at /portal/my-contributions/', async () => {
+  it('displays ContributionsList at /portal/my-contributions/', async () => {
     tree('/portal/my-contributions/');
     await screen.findByTestId('mock-contributions-list');
     expect(
       within(screen.getByTestId('mock-protected-router')).getByTestId('mock-contributions-list')
     ).toBeInTheDocument();
-    expect(within(screen.getByTestId('mock-portal-page')).getByTestId('mock-contributions-list')).toBeInTheDocument();
   });
 
   it('displays a PortalPage with ContributionsList at /portal/my-contributions/:contributionId/', async () => {

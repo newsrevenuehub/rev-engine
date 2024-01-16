@@ -175,7 +175,6 @@ class PaymentFactory(DjangoModelFactory):
     gross_amount_paid = 2000
     amount_refunded = 0
     stripe_balance_transaction_id = factory.LazyFunction(lambda: f"txn_{_random_stripe_str()}")
-    transaction_time = factory.LazyFunction(lambda: generate_random_datetime(THEN, NOW))
 
     class Params:
         refund = factory.Trait(amount_refunded=1000)

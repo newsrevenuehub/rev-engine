@@ -633,33 +633,103 @@ class Contribution(IndexedTimeStampedModel):
             )
             return None
 
-    @cached_property
-    def card(self) -> stripe.Card | None:
-        """Card may come from more than one source in Stripe...
+    def get_card_from_stripe_customer(self) -> stripe.Card | None:
+        """Return the default card (if any) from a Stripe customer
 
         For NRE-generated contributions, we expect card will be available at
         customer.default_source.
 
         For imported contributions (esp. those with metadata v1.3 and v1.5),
         we expect card will be available at customer.invoice_settings.default_payment_method.
+
         """
-        if not (cust_id := self.provider_customer_id):
+        if not self.provider_customer_id:
             return None
-        customer = stripe.Customer.retrieve(
-            cust_id,
-            stripe_account=self.donation_page.revenue_program.payment_provider.stripe_account_id,
-            expand=["default_source", "invoice_settings.default_payment_method"],
-        )
-        card = None
+        try:
+            customer = stripe.Customer.retrieve(
+                self.provider_customer_id,
+                stripe_account=self.donation_page.revenue_program.payment_provider.stripe_account_id,
+                expand=["default_source", "invoice_settings.default_payment_method"],
+            )
+        except StripeError:
+            logger.exception(
+                (
+                    "`Contribution.get_card_from_stripe_customer` encountered a Stripe error trying to retrieve stripe customer "
+                    "with ID %s and stripe account ID %s for contribution with ID %s"
+                ),
+                self.provider_customer_id,
+                self.donation_page.revenue_program.payment_provider.stripe_account_id,
+                self.id,
+            )
+            return None
         if customer.default_source and customer.default_source.object == "card":
-            card = customer.default_source
+            return customer.default_source
         elif (
             customer.invoice_settings
             and customer.invoice_settings.default_payment_method
             and customer.invoice_settings.default_payment_method.object == "card"
         ):
-            card = customer.invoice_settings.default_payment_method
-        return card
+            return customer.invoice_settings.default_payment_method
+        return None
+
+    def get_card_from_stripe_payment_intent(self) -> stripe.Card | None:
+        """Return the card (if any) from a Stripe PaymentIntent"""
+        if not self.provider_payment_id:
+            return None
+        try:
+            pi = stripe.PaymentIntent.retrieve(
+                self.provider_payment_id,
+                stripe_account=self.stripe_account_id,
+                expand=[
+                    "payment_method",
+                    "invoice.subscription.default_payment_method",
+                    "charges.data.payment_method_details",
+                ],
+            )
+        except StripeError:
+            logger.exception(
+                (
+                    "`Contribution.get_card_from_stripe_payment_intent` encountered a Stripe error trying to retrieve stripe payment intent "
+                    "with ID %s and stripe account ID %s for contribution with ID %s"
+                ),
+                self.provider_payment_id,
+                self.stripe_account_id,
+                self.id,
+            )
+            return None
+
+        # this is the most commonly expected path for NRE-generated PMs where the checkout process goes through the Stripe PaymentElement workflow
+        # in the spa, after having gone through the initial page that collects contribution data. In this scenario, the user's contribution has
+        # been approved by our system, and we have already created a payment intent. When the user completes the PaymentElement form, they are immediately
+        # charged. Our implementation of the PaymentElement will cause the payment method to appear on the payment intent.
+        if pi.payment_method and pi.payment_method.type == "card":
+            return pi.payment_method
+        # However, some NRE payment intents intents will not have a payment method attached directly to the PaymentIntent. There may be other ways to end
+        # up in this state, but one is when instead of creating a payment intent we create a setup intent (which is case when a contribution exceeds threshold
+        # to be marked as "bad" by bad actor API when signing up for a recurring contribution). In this case, a payment intent only later gets created when
+        # the setup intent is completed, and that does not result in the payment method automatically being attached to the pi.
+        elif (
+            (invoice := pi.invoice)
+            and (subscription := invoice.get("subscription"))
+            and (default_pm := subscription.get("default_payment_method", None))
+            and (default_pm.type == "card")
+        ):
+            return default_pm
+        # in the case of imported legacy subscriptions, it seems that the payment method is not directly on the
+        # payment intent, though it is available through this route. This probably has to do with how the original PI
+        # was created. PIs are not guaranteed to have a payment method attached, even if they're associated with a subscription.
+        # In general, NRE-generated PIs will have a payment method attached, but for these legacy PIs this is not necessarily (or even usually
+        # the case)
+        elif (charges := getattr(pi, "charges", [])) and charges.total_count > 0:
+            most_recent = max(charges.data, key=lambda x: x.created)
+            if most_recent.payment_method_details.type == "card":
+                return most_recent.payment_method_details
+        return None
+
+    @cached_property
+    def card(self) -> stripe.Card | None:
+        """Card may come from more than one source in Stripe"""
+        return self.get_card_from_stripe_payment_intent() or self.get_card_from_stripe_customer()
 
     @property
     def card_brand(self) -> str:

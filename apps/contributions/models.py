@@ -729,6 +729,7 @@ class Contribution(IndexedTimeStampedModel):
     @cached_property
     def card(self) -> stripe.Card | None:
         """Card may come from more than one source in Stripe"""
+        # TODO: [DEV-4405] Determine why card not available on customer when thought it would be.
         return self.get_card_from_stripe_payment_intent() or self.get_card_from_stripe_customer()
 
     @property

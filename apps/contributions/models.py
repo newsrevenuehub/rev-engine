@@ -758,21 +758,11 @@ class Contribution(IndexedTimeStampedModel):
 
     @property
     def is_cancelable(self) -> bool:
-        pi = self._expanded_pi_for_cancelable_modifiable
-        return (
-            pi.invoice.subscription.status in self.CANCELABLE_SUBSCRIPTION_STATUSES
-            if pi and pi.invoice and pi.invoice.subscription
-            else False
-        )
+        return getattr(self.stripe_subscription, "status", None) in self.CANCELABLE_SUBSCRIPTION_STATUSES
 
     @property
     def is_modifiable(self) -> bool:
-        pi = self._expanded_pi_for_cancelable_modifiable
-        return (
-            pi.invoice.subscription.status in self.MODIFIABLE_SUBSCRIPTION_STATUSES
-            if pi and pi.invoice and pi.invoice.subscription
-            else False
-        )
+        return getattr(self.stripe_subscription, "status", None) in self.CANCELABLE_SUBSCRIPTION_STATUSES
 
     @property
     # TODO: [DEV-4333] Update this to be .last_payment_date when no longer in conflict with db model field

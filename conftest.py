@@ -58,6 +58,8 @@ from dataclasses import asdict
 from random import choice, randint, uniform
 from unittest.mock import patch
 
+from django.core.cache import cache
+
 import pytest
 import stripe
 from faker import Faker
@@ -1028,3 +1030,113 @@ def invalid_google_service_account_credentials():
 @pytest.fixture
 def valid_gs_credentials(minimally_valid_google_service_account_credentials, settings):
     settings.GS_CREDENTIALS = __ensure_gs_credentials(minimally_valid_google_service_account_credentials)
+
+
+@pytest.fixture
+def stripe_subscription():
+    with open("apps/contributions/tests/fixtures/subscription.json") as fl:
+        return stripe.Subscription.construct_from(json.load(fl), key="test")
+
+
+def payment_intent_for_recurring_charge_expanded():
+    with open("apps/contributions/tests/fixtures/payment-intent-for-recurring-charge-expanded.json") as f:
+        return stripe.PaymentIntent.construct_from(json.load(f), stripe.api_key)
+
+
+@pytest.fixture
+def balance_transaction_for_recurring_charge():
+    with open("apps/contributions/tests/fixtures/balance-transaction-for-recurring-charge.json") as f:
+        return stripe.BalanceTransaction.construct_from(json.load(f), stripe.api_key)
+
+
+@pytest.fixture
+def balance_transaction_for_subscription_creation_charge():
+    with open("apps/contributions/tests/fixtures/balance-transaction-for-subscription-creation.json") as f:
+        return stripe.BalanceTransaction.construct_from(json.load(f), stripe.api_key)
+
+
+@pytest.fixture
+def payment_intent_for_subscription_creation_charge():
+    with open("apps/contributions/tests/fixtures/payment-intent-for-subscription-creation-charge.json") as f:
+        return stripe.PaymentIntent.construct_from(json.load(f), stripe.api_key)
+
+
+@pytest.fixture
+def payment_intent_succeeded_one_time_event(suppress_stripe_webhook_sig_verification):
+    with open("apps/contributions/tests/fixtures/payment-intent-succeeded-one-time-event.json") as f:
+        event = stripe.Webhook.construct_event(f.read(), None, stripe.api_key)
+        return event
+
+
+@pytest.fixture
+@pytest.mark.usefixtures("suppress_stripe_webhook_sig_verification")
+def payment_intent_succeeded_subscription_creation_event():
+    with open("apps/contributions/tests/fixtures/payment-intent-succeeded-subscription-creation-event.json") as f:
+        return stripe.Webhook.construct_event(f.read(), None, stripe.api_key)
+
+
+@pytest.fixture
+@pytest.mark.usefixtures("suppress_stripe_webhook_sig_verification")
+def payment_intent_succeeded_subscription_recurring_charge_event():
+    with open(
+        "apps/contributions/tests/fixtures/payment-intent-succeeded-susbscription-recurring-charge-event.json"
+    ) as f:
+        return stripe.Webhook.construct_event(f.read(), None, stripe.api_key)
+
+
+@pytest.fixture
+def payment_intent_for_one_time_contribution():
+    with open("apps/contributions/tests/fixtures/payment-intent-for-one-time-charge.json") as f:
+        return stripe.PaymentIntent.construct_from(json.load(f), stripe.api_key)
+
+
+@pytest.fixture
+def payment_intent_for_recurring_charge():
+    with open("apps/contributions/tests/fixtures/payment-intent-for-recurring-charge.json") as f:
+        return stripe.PaymentIntent.construct_from(json.load(f), stripe.api_key)
+
+
+@pytest.fixture
+def balance_transaction_for_one_time_charge():
+    with open("apps/contributions/tests/fixtures/balance-transaction-for-one-time-charge-expanded.json") as f:
+        return stripe.BalanceTransaction.construct_from(json.load(f), stripe.api_key)
+
+
+@pytest.fixture()
+def clear_cache():
+    cache.clear()
+
+
+@pytest.fixture
+def stripe_customer_default_source_expanded():
+    with open("apps/contributions/tests/fixtures/stripe-customer-default-source-expanded.json") as fl:
+        return stripe.Customer.construct_from(json.load(fl), key="test")
+
+
+@pytest.fixture
+def stripe_payment_method():
+    with open("apps/contributions/tests/fixtures/stripe-payment-method.json") as fl:
+        return stripe.PaymentMethod.construct_from(json.load(fl), key="test")
+
+
+@pytest.fixture
+def invoice_upcoming_event():
+    return json.load(open("apps/contributions/tests/fixtures/invoice-upcoming-event.json"))
+
+
+@pytest.fixture
+def customer_subscription_updated_event():
+    with open("apps/contributions/tests/fixtures/customer-subscription-updated-webhook-event.json") as fl:
+        return json.load(fl)
+
+
+@pytest.fixture
+def charge_refunded_recurring_charge_event():
+    with open("apps/contributions/tests/fixtures/charge-refunded-recurring-charge-event.json") as f:
+        return stripe.Webhook.construct_event(f.read(), None, stripe.api_key)
+
+
+@pytest.fixture
+def payment_method_attached_event():
+    with open("apps/contributions/tests/fixtures/payment-method-attached-webhook.json") as fl:
+        return json.load(fl)

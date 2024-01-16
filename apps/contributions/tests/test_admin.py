@@ -213,3 +213,25 @@ class ContributionAdminTest(TestCase):
         CompareVersionAdmin to do the right thing.
         """
         assert isinstance(self.contribution_admin, CompareVersionAdmin)
+
+
+# eventually we should move all tests from ContributionAdminTest above to this pytest-based test,
+# but initially we're adding so we get minimal test coverage for inline payment admin on contribution model
+@pytest.mark.django_db
+class TestContributionAdmin:
+    def test_views_stand_up(self, client, admin_user):
+        contribution = ContributionFactory()
+        # we want to ensure the inlined payment admin works
+        PaymentFactory(contribution=contribution)
+        client.force_login(admin_user)
+        for x in [
+            reverse("admin:contributions_contribution_changelist"),
+            reverse("admin:contributions_contribution_add"),
+        ]:
+            assert client.get(x, follow=True).status_code == 200
+        assert (
+            client.get(
+                reverse("admin:contributions_contribution_change", args=[contribution.pk]), follow=True
+            ).status_code
+            == 200
+        )

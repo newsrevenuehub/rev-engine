@@ -5,12 +5,19 @@ from dataclasses import dataclass
 from functools import cached_property, reduce
 
 from django.conf import settings
+from django.db import transaction
 from django.db.models import Q
 from django.utils.timezone import make_aware
 
 import reversion
+import stripe
 
-from apps.contributions.models import Contribution, ContributionInterval, ContributionStatus
+from apps.contributions.models import (
+    Contribution,
+    ContributionInterval,
+    ContributionStatus,
+    Payment,
+)
 from apps.contributions.types import StripeEventData
 
 
@@ -26,7 +33,7 @@ class StripeWebhookProcessor:
 
     @property
     def obj_data(self) -> dict:
-        return self.event["data"]["object"]
+        return self.event.data["object"]
 
     @property
     def object_type(self) -> str:
@@ -34,7 +41,7 @@ class StripeWebhookProcessor:
 
     @property
     def event_id(self) -> str:
-        return self.event["id"]
+        return self.event.id
 
     @property
     def id(self) -> str:
@@ -44,32 +51,37 @@ class StripeWebhookProcessor:
 
     @property
     def event_type(self) -> str:
-        return self.event["type"]
+        return self.event.type
 
     @property
     def live_mode(self) -> bool:
-        return self.event["livemode"]
+        return self.event.livemode
 
     @property
     def customer_id(self) -> str:
         return self.obj_data["customer"]
 
     @cached_property
-    def contribution(self) -> Contribution:
-        match self.object_type:
-            case "subscription":
-                return Contribution.objects.get(provider_subscription_id=self.id)
-            case "payment_intent":
-                conditions = [Q(provider_payment_id=self.id)]
-                if self.customer_id:  # pragma: no branch
-                    conditions.append(Q(provider_customer_id=self.customer_id))
-                return Contribution.objects.get(reduce(operator.or_, conditions))
-            case "payment_method":
-                return Contribution.objects.get(provider_customer_id=self.customer_id)
-            case "invoice":
-                return Contribution.objects.get(provider_subscription_id=self.obj_data["subscription"])
-            case _:
-                raise Contribution.DoesNotExist("No contribution found for event")
+    def contribution(self) -> Contribution | None:
+        try:
+            match self.object_type:
+                case "subscription":
+                    return Contribution.objects.get(provider_subscription_id=self.id)
+                case "payment_intent":
+                    conditions = [Q(provider_payment_id=self.id)]
+                    if self.customer_id:  # pragma: no branch
+                        conditions.append(Q(provider_customer_id=self.customer_id))
+                    return Contribution.objects.get(reduce(operator.or_, conditions))
+                case "payment_method":
+                    return Contribution.objects.get(provider_customer_id=self.customer_id)
+                case "invoice":
+                    return Contribution.objects.get(provider_subscription_id=self.obj_data["subscription"])
+                case "charge":
+                    return Contribution.objects.get(provider_payment_id=self.obj_data["payment_intent"])
+                case _:
+                    return None
+        except Contribution.DoesNotExist:
+            return None
 
     @property
     def rejected(self):
@@ -77,7 +89,7 @@ class StripeWebhookProcessor:
         return self.obj_data.get("cancellation_reason", None) == "fraudulent"
 
     def route_request(self):
-        logger.debug("Routing request for event type %s", self.event_type)
+        logger.info("Routing request for event type %s", self.event_type)
         match self.event_type:
             case "payment_intent.canceled":
                 return self.handle_payment_intent_canceled()
@@ -93,6 +105,10 @@ class StripeWebhookProcessor:
                 return self.handle_payment_method_attached()
             case "invoice.upcoming":
                 return self.handle_invoice_upcoming()
+            case "invoice.payment_succeeded":
+                self.handle_invoice_payment_succeeded()
+            case "charge.refunded":
+                return Payment.from_stripe_charge_refunded_event(event=self.event)
             case _:
                 logger.warning(
                     "StripeWebhookProcessor.route_request received unexpected event type %s", self.event_type
@@ -110,14 +126,14 @@ class StripeWebhookProcessor:
             logger.debug(
                 "Test mode event %s for account %s received while in live mode",
                 self.event_id,
-                self.event["account"],
+                self.event.account,
             )
             return False
         if not settings.STRIPE_LIVE_MODE and self.live_mode:
             logger.debug(
                 "Live mode event %s for account %s received while in test mode",
                 self.event_id,
-                self.event["account"],
+                self.event.account,
             )
             return False
         return True
@@ -126,10 +142,14 @@ class StripeWebhookProcessor:
         if not self.webhook_live_mode_agrees_with_environment:
             logger.warning("Received webhook in wrong mode; ignoring")
             return
+        if not self.contribution:
+            raise Contribution.DoesNotExist("No contribution found")
         self.route_request()
         logger.info("Successfully processed webhook event %s", self.event_id)
 
     def _handle_contribution_update(self, update_data: dict, revision_comment: str):
+        if not self.contribution:
+            raise Contribution.DoesNotExist("No contribution found")
         for k, v in update_data.items():
             setattr(self.contribution, k, v)
         with reversion.create_revision():
@@ -152,20 +172,40 @@ class StripeWebhookProcessor:
         )
 
     def handle_payment_intent_succeeded(self):
-        self._handle_contribution_update(
-            {
+        """Handle a payment intent succeeded event if it's for a one time.
+
+        If it's for a recurring contribution, we expect to handle that in the
+        invoice.payment_succeeded event handler.
+
+        This method does the following when payment intent is for a one time contribution:
+
+        - Update contribution with payment provider data, also update status
+        - Create a payment instance
+        - Send thank you email
+        """
+        if self.obj_data.get("invoice", None):
+            logger.info(
+                "Payment intent %s in event %s appears to be for a subscription, which are handled in different webhook receiver",
+                self.id,
+                self.event_id,
+            )
+            return
+
+        with transaction.atomic():
+            payment = Payment.from_stripe_payment_intent_succeeded_event(event=self.event)
+            contribution_update_data = {
+                # TODO: [DEV-4295] Get rid of payment_provider_data as it's an inconistent reference to whichever event happened to cause creation
                 "payment_provider_data": self.event,
-                "provider_payment_id": self.id,
                 "provider_payment_method_id": self.obj_data.get("payment_method"),
                 "provider_payment_method_details": self.contribution.fetch_stripe_payment_method(),
-                "last_payment_date": datetime.datetime.fromtimestamp(
-                    self.obj_data["created"], tz=datetime.timezone.utc
-                ),
+                "last_payment_date": payment.created,
                 "status": ContributionStatus.PAID,
-            },
-            "`StripeWebhookProcessor.handle_payment_intent_succeeded` updated contribution",
-        )
-        self.contribution.handle_thank_you_email()
+            }
+            self._handle_contribution_update(
+                contribution_update_data,
+                "`StripeWebhookProcessor.handle_payment_intent_succeeded` updated contribution",
+            )
+            self.contribution.handle_thank_you_email()
 
     def handle_subscription_updated(self):
         # If stripe reports 'default_payment_method' as a previous attribute, then we've updated 'default_payment_method'
@@ -174,7 +214,7 @@ class StripeWebhookProcessor:
             "provider_subscription_id": self.id,
         }
         if (
-            "default_payment_method" in self.event["data"]["previous_attributes"]
+            "default_payment_method" in self.event.data["previous_attributes"]
             and self.obj_data["default_payment_method"]
         ):
             update_data["provider_payment_method_id"] = self.obj_data["default_payment_method"]
@@ -218,3 +258,24 @@ class StripeWebhookProcessor:
                 "StripeWebhookProcessor.process_invoice called for contribution %s which is not yearly. Noop.",
                 self.contribution.id,
             )
+
+    def handle_invoice_payment_succeeded(self):
+        with transaction.atomic():
+            payment = Payment.from_stripe_invoice_payment_succeeded_event(event=self.event)
+            pi = stripe.PaymentIntent.retrieve(
+                self.obj_data["payment_intent"],
+                stripe_account=self.event.account,
+            )
+            self._handle_contribution_update(
+                {
+                    "last_payment_date": payment.created,
+                    "status": ContributionStatus.PAID,
+                    # TODO: [DEV-4295] Get rid of payment_provider_data as it's an inconistent reference to whichever event happened to cause creation
+                    "payment_provider_data": self.event,
+                    "provider_payment_method_id": pi.payment_method,
+                    "provider_payment_method_details": self.contribution.fetch_stripe_payment_method(),
+                },
+                "`StripeWebhookProcessor.handle_payment_intent_succeeded` updated contribution",
+            )
+        if payment.contribution.payment_set.count() == 1:
+            self.contribution.handle_thank_you_email()

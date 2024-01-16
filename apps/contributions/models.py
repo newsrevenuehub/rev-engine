@@ -703,7 +703,7 @@ class Contribution(IndexedTimeStampedModel):
         # been approved by our system, and we have already created a payment intent. When the user completes the PaymentElement form, they are immediately
         # charged. Our implementation of the PaymentElement will cause the payment method to appear on the payment intent.
         if pi.payment_method and pi.payment_method.type == "card":
-            return pi.payment_method
+            return pi.payment_method.card
         # However, some NRE payment intents intents will not have a payment method attached directly to the PaymentIntent. There may be other ways to end
         # up in this state, but one is when instead of creating a payment intent we create a setup intent (which is case when a contribution exceeds threshold
         # to be marked as "bad" by bad actor API when signing up for a recurring contribution). In this case, a payment intent only later gets created when
@@ -714,7 +714,7 @@ class Contribution(IndexedTimeStampedModel):
             and (default_pm := subscription.get("default_payment_method", None))
             and (default_pm.type == "card")
         ):
-            return default_pm
+            return default_pm.card
         # in the case of imported legacy subscriptions, it seems that the payment method is not directly on the
         # payment intent, though it is available through this route. This probably has to do with how the original PI
         # was created. PIs are not guaranteed to have a payment method attached, even if they're associated with a subscription.
@@ -723,7 +723,7 @@ class Contribution(IndexedTimeStampedModel):
         elif (charges := getattr(pi, "charges", [])) and charges.total_count > 0:
             most_recent = max(charges.data, key=lambda x: x.created)
             if most_recent.payment_method_details.type == "card":
-                return most_recent.payment_method_details
+                return most_recent.payment_method_details.card
         return None
 
     @cached_property

@@ -1082,10 +1082,10 @@ class TestContributionModel:
         (False, True),
     )
     def test_send_recurring_contribution_reminder_email_styles(
-        self, revenue_program, has_default_donation_page, monkeypatch, settings
+        self, revenue_program, has_default_donation_page, mocker, monkeypatch, settings
     ):
-        with patch("apps.contributions.models.Contribution.fetch_stripe_payment_method", return_value=None):
-            contribution = ContributionFactory(interval=ContributionInterval.YEARLY)
+        mocker.patch("apps.contributions.models.Contribution.fetch_stripe_payment_method", return_value=None)
+        contribution = ContributionFactory(interval=ContributionInterval.YEARLY)
         if has_default_donation_page:
             style = StyleFactory()
             style.styles = style.styles | {
@@ -1190,28 +1190,29 @@ class TestContributionModel:
             f"Amount Contributed: {contribution.formatted_amount}/{contribution.interval}",
         ]
 
-        if revenue_program.fiscal_status == FiscalStatusChoices.FISCALLY_SPONSORED:
-            email_expectations.extend(
-                [
-                    "This receipt may be used for tax purposes.",
-                    f"All contributions or gifts to {contribution.donation_page.revenue_program.name} are tax deductible through our fiscal sponsor {contribution.donation_page.revenue_program.fiscal_sponsor_name}.",
-                    f"{contribution.donation_page.revenue_program.fiscal_sponsor_name}'s tax ID is {tax_id}"
-                    if tax_id
-                    else "",
-                ]
-            )
-        elif revenue_program.fiscal_status == FiscalStatusChoices.NONPROFIT:
-            email_expectations.extend(
-                [
-                    "This receipt may be used for tax purposes.",
-                    f"{contribution.donation_page.revenue_program.name} is a 501(c)(3) nonprofit organization",
-                    f"with a Federal Tax ID #{tax_id}" if tax_id else "",
-                ]
-            )
-        else:
-            email_expectations.append(
-                f"Contributions to {contribution.donation_page.revenue_program.name} are not deductible as charitable donations."
-            )
+        match revenue_program.fiscal_status:
+            case FiscalStatusChoices.FISCALLY_SPONSORED:
+                email_expectations.extend(
+                    [
+                        "This receipt may be used for tax purposes.",
+                        f"All contributions or gifts to {contribution.donation_page.revenue_program.name} are tax deductible through our fiscal sponsor {contribution.donation_page.revenue_program.fiscal_sponsor_name}.",
+                        f"{contribution.donation_page.revenue_program.fiscal_sponsor_name}'s tax ID is {tax_id}"
+                        if tax_id
+                        else "",
+                    ]
+                )
+            case FiscalStatusChoices.NONPROFIT:
+                email_expectations.extend(
+                    [
+                        "This receipt may be used for tax purposes.",
+                        f"{contribution.donation_page.revenue_program.name} is a 501(c)(3) nonprofit organization",
+                        f"with a Federal Tax ID #{tax_id}" if tax_id else "",
+                    ]
+                )
+            case _:
+                email_expectations.append(
+                    f"Contributions to {contribution.donation_page.revenue_program.name} are not deductible as charitable donations."
+                )
         for x in email_expectations:
             assert x in mail.outbox[0].body
             soup = BeautifulSoup(mail.outbox[0].alternatives[0][0], "html.parser")
@@ -1235,10 +1236,10 @@ class TestContributionModel:
     def test_send_recurring_contribution_payment_updated_email_styles(
         self, revenue_program, has_default_donation_page, monkeypatch, mocker, settings
     ):
-        with patch("apps.contributions.models.Contribution.fetch_stripe_payment_method", return_value=None):
-            contribution = ContributionFactory(
-                interval=ContributionInterval.YEARLY, provider_customer_id="test-customer-id"
-            )
+        mocker.patch("apps.contributions.models.Contribution.fetch_stripe_payment_method", return_value=None)
+        contribution = ContributionFactory(
+            interval=ContributionInterval.YEARLY, provider_customer_id="test-customer-id"
+        )
         if has_default_donation_page:
             style = StyleFactory()
             style.styles = style.styles | {
@@ -1378,10 +1379,10 @@ class TestContributionModel:
     def test_send_recurring_contribution_canceled_email_styles(
         self, revenue_program, has_default_donation_page, monkeypatch, mocker, settings
     ):
-        with patch("apps.contributions.models.Contribution.fetch_stripe_payment_method", return_value=None):
-            contribution = ContributionFactory(
-                interval=ContributionInterval.YEARLY, provider_customer_id="test-customer-id"
-            )
+        mocker.patch("apps.contributions.models.Contribution.fetch_stripe_payment_method", return_value=None)
+        contribution = ContributionFactory(
+            interval=ContributionInterval.YEARLY, provider_customer_id="test-customer-id"
+        )
         if has_default_donation_page:
             style = StyleFactory()
             style.styles = style.styles | {

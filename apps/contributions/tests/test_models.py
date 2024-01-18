@@ -1028,10 +1028,6 @@ class TestContributionModel:
         settings.EMAIL_BACKEND = "django.core.mail.backends.locmem.EmailBackend"
         settings.CELERY_ALWAYS_EAGER = True
         contribution.send_recurring_contribution_email_reminder(next_charge_date)
-        magic_link = mark_safe(
-            f"https://{construct_rp_domain(contribution.donation_page.revenue_program.slug)}/{settings.CONTRIBUTOR_VERIFY_URL}"
-            f"?token={token}&email={quote_plus(contribution.contributor.email)}"
-        )
         assert len(mail.outbox) == 1
         email_expectations = [
             f"Scheduled: {next_charge_date.strftime('%m/%d/%Y')}",
@@ -1066,8 +1062,11 @@ class TestContributionModel:
             soup = BeautifulSoup(mail.outbox[0].alternatives[0][0], "html.parser")
             as_string = " ".join([x.replace("\xa0", " ").strip() for x in soup.get_text().splitlines() if x])
             assert x in as_string
-        assert "Manage contributions here" in soup.find("a", href=magic_link).text
-        assert magic_link in mail.outbox[0].body
+        assert (
+            "Manage contributions here"
+            in soup.find("a", href=contribution.contributor.create_magic_link(contribution)).text
+        )
+        assert contribution.contributor.create_magic_link(contribution) in mail.outbox[0].body
 
     @pytest_cases.parametrize(
         "revenue_program",
@@ -1178,10 +1177,6 @@ class TestContributionModel:
         settings.EMAIL_BACKEND = "django.core.mail.backends.locmem.EmailBackend"
         settings.CELERY_ALWAYS_EAGER = True
         contribution.send_recurring_contribution_payment_updated_email()
-        magic_link = mark_safe(
-            f"https://{construct_rp_domain(contribution.donation_page.revenue_program.slug)}/{settings.CONTRIBUTOR_VERIFY_URL}"
-            f"?token={token}&email={quote_plus(contribution.contributor.email)}"
-        )
         assert len(mail.outbox) == 1
         email_expectations = [
             f"Dear {customer_name},",
@@ -1218,8 +1213,11 @@ class TestContributionModel:
             soup = BeautifulSoup(mail.outbox[0].alternatives[0][0], "html.parser")
             as_string = " ".join([x.replace("\xa0", " ").strip() for x in soup.get_text().splitlines() if x])
             assert x in as_string
-        assert "Manage contributions here" in soup.find("a", href=magic_link).text
-        assert magic_link in mail.outbox[0].body
+        assert (
+            "Manage contributions here"
+            in soup.find("a", href=contribution.contributor.create_magic_link(contribution)).text
+        )
+        assert contribution.contributor.create_magic_link(contribution) in mail.outbox[0].body
 
     @pytest_cases.parametrize(
         "revenue_program",

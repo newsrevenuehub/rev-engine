@@ -730,7 +730,8 @@ class Contribution(IndexedTimeStampedModel):
     def card(self) -> stripe.Card | None:
         """Card may come from more than one source in Stripe"""
         # TODO: [DEV-4405] Determine why card not available on customer when thought it would be.
-        return self.get_card_from_stripe_payment_intent() or self.get_card_from_stripe_customer()
+        # Seems like it ends up on Stripe customer for updated payment method, but not for initial, where it's only on PI?
+        return self.get_card_from_stripe_customer() or self.get_card_from_stripe_payment_intent()
 
     @property
     def card_brand(self) -> str:

@@ -4,9 +4,13 @@ from datetime import datetime
 from django.http import HttpResponse
 from django.template import loader
 
+from rest_framework.decorators import permission_classes
+
 from apps.organizations.models import RevenueProgram
+from apps.public.permissions import IsActiveSuperUser
 
 
+@permission_classes([IsActiveSuperUser])
 def preview_recurring_contribution_reminder(request):
     """
     Previews a recurring contribution reminder in the browser. Only accessible
@@ -34,6 +38,7 @@ def preview_recurring_contribution_reminder(request):
     )
 
 
+@permission_classes([IsActiveSuperUser])
 def preview_recurring_contribution_canceled(request):
     """
     Previews a recurring contribution cancellation notification in the browser.
@@ -67,6 +72,7 @@ def preview_recurring_contribution_canceled(request):
     )
 
 
+@permission_classes([IsActiveSuperUser])
 def preview_recurring_contribution_payment_updated(request):
     """
     Previews a recurring contribution payment method notification in the
@@ -99,6 +105,7 @@ def preview_recurring_contribution_payment_updated(request):
     )
 
 
+@permission_classes([IsActiveSuperUser])
 def preview_contribution_confirmation(request):
     """
     Previews a contribution confirmation in the browser. Only accessible if

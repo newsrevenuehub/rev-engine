@@ -2,6 +2,7 @@ import pytest
 from rest_framework.test import APIRequestFactory
 
 from apps.organizations.tests.factories import RevenueProgramFactory
+from apps.pages.tests.factories import DonationPageFactory
 
 from ..views import (
     preview_contribution_confirmation,
@@ -51,6 +52,15 @@ class TestRecurringContributionCanceled:
         assert (
             preview_recurring_contribution_canceled(APIRequestFactory().get(f"/?rp={rp.id}&logo=test")).status_code
             == 200
+        )
+
+    def test_sets_default_page_url(self):
+        rp = RevenueProgramFactory()
+        rp.default_donation_page = DonationPageFactory()
+        rp.save()
+        assert (
+            rp.default_donation_page.page_url
+            in preview_recurring_contribution_canceled(APIRequestFactory().get(f"/?rp={rp.id}")).content.decode()
         )
 
     def test_text_sends_plaintext(self):

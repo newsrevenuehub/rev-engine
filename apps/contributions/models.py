@@ -23,7 +23,11 @@ from apps.api.tokens import ContributorRefreshToken
 from apps.common.models import IndexedTimeStampedModel
 from apps.contributions.choices import BadActorScores, ContributionInterval, ContributionStatus
 from apps.contributions.types import StripeEventData, StripePiAsPortalContribution
-from apps.emails.tasks import make_send_thank_you_email_data, send_thank_you_email
+from apps.emails.tasks import (
+    make_send_thank_you_email_data,
+    send_templated_email,
+    send_thank_you_email,
+)
 from apps.organizations.models import RevenueProgram
 from apps.users.choices import Roles
 from apps.users.models import RoleAssignment
@@ -529,9 +533,6 @@ class Contribution(IndexedTimeStampedModel):
             )
 
     def send_recurring_contribution_canceled_email(self) -> None:
-        from apps.api.views import construct_rp_domain
-        from apps.emails.tasks import send_templated_email
-
         if self.interval == ContributionInterval.ONE_TIME:
             logger.error(
                 "Called on an instance (ID: %s) whose interval is one-time",
@@ -555,7 +556,6 @@ class Contribution(IndexedTimeStampedModel):
             )
             return
 
-        token = str(ContributorRefreshToken.for_contributor(self.contributor.uuid).short_lived_access_token)
         data = {
             # Wedging the date into the template--it's now, not the date of the contribution.
             "contribution_date": datetime.datetime.today().strftime("%m/%d/%Y"),
@@ -567,10 +567,7 @@ class Contribution(IndexedTimeStampedModel):
             "tax_id": self.donation_page.revenue_program.tax_id,
             "fiscal_status": self.donation_page.revenue_program.fiscal_status,
             "fiscal_sponsor_name": self.donation_page.revenue_program.fiscal_sponsor_name,
-            "magic_link": mark_safe(
-                f"https://{construct_rp_domain(self.donation_page.revenue_program.slug)}/{settings.CONTRIBUTOR_VERIFY_URL}"
-                f"?token={token}&email={quote_plus(self.contributor.email)}"
-            ),
+            "magic_link": self.contributor.create_magic_link(self),
             "rp_name": self.donation_page.revenue_program.name,
             "style": asdict(self.donation_page.revenue_program.transactional_email_style),
         }
@@ -588,9 +585,6 @@ class Contribution(IndexedTimeStampedModel):
         )
 
     def send_recurring_contribution_payment_updated_email(self) -> None:
-        from apps.api.views import construct_rp_domain
-        from apps.emails.tasks import send_templated_email
-
         if self.interval == ContributionInterval.ONE_TIME:
             logger.error(
                 "Called on an instance (ID: %s) whose interval is one-time",
@@ -614,7 +608,6 @@ class Contribution(IndexedTimeStampedModel):
             )
             return
 
-        token = str(ContributorRefreshToken.for_contributor(self.contributor.uuid).short_lived_access_token)
         data = {
             # Wedging the date into the template--it's now, not the date of the contribution.
             "contribution_date": datetime.datetime.today().strftime("%m/%d/%Y"),
@@ -626,10 +619,7 @@ class Contribution(IndexedTimeStampedModel):
             "tax_id": self.donation_page.revenue_program.tax_id,
             "fiscal_status": self.donation_page.revenue_program.fiscal_status,
             "fiscal_sponsor_name": self.donation_page.revenue_program.fiscal_sponsor_name,
-            "magic_link": mark_safe(
-                f"https://{construct_rp_domain(self.donation_page.revenue_program.slug)}/{settings.CONTRIBUTOR_VERIFY_URL}"
-                f"?token={token}&email={quote_plus(self.contributor.email)}"
-            ),
+            "magic_link": self.contributor.create_magic_link(self),
             "rp_name": self.donation_page.revenue_program.name,
             "style": asdict(self.donation_page.revenue_program.transactional_email_style),
         }

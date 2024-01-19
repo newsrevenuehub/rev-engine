@@ -53,8 +53,23 @@ class PaymentAdmin(RevEngineBaseAdmin):
         )
     )
     readonly_fields = fields
+    search_fields = ("contribution__id",)
 
     def has_add_permission(self, request, obj=None):
+        return False
+
+
+class PaymentInline(admin.TabularInline):
+    model = Payment
+    extra = 0
+
+    def get_readonly_fields(self, request, obj=None):
+        return [f.name for f in self.model._meta.fields]
+
+    def has_add_permission(self, request, obj):
+        return False
+
+    def has_delete_permission(self, request, obj, parent_obj=None):
         return False
 
 
@@ -158,6 +173,8 @@ class ContributionAdmin(RevEngineBaseAdmin, CompareVersionAdmin):
         "accept_flagged_contribution",
         "reject_flagged_contribution",
     )
+
+    inlines = [PaymentInline]
 
     @admin.action(description="Accept flagged contributions")
     def accept_flagged_contribution(self, request, queryset):

@@ -1,0 +1,95 @@
+{
+    "id": "pi_secondpaymentexample",
+    "object": "payment_intent",
+    "amount": 2000,
+    "amount_capturable": 0,
+    "amount_received": 2000,
+    "capture_method": "automatic",
+    "charges": {
+        "object": "list",
+        "data": [
+            {
+                "id": "ch_secondpaymentexample",
+                "object": "charge",
+                "amount": 2000,
+                "amount_captured": 2000,
+                "amount_refunded": 0,
+                "captured": true,
+                "created": 1704000000,
+                "currency": "usd",
+                "customer": "cus_examplecustomer",
+                "description": "Monthly subscription fee",
+                "invoice": "in_secondpaymentexample",
+                "livemode": false,
+                "paid": true,
+                "payment_intent": "pi_secondpaymentexample",
+                "payment_method": "pm_examplepaymentmethod",
+                "refunded": false,
+                "status": "succeeded"
+            }
+        ]
+    },
+    "created": 1704000000,
+    "currency": "usd",
+    "customer": "cus_examplecustomer",
+    "description": "Monthly subscription fee",
+    "invoice": {
+        "id": "in_secondpaymentexample",
+        "object": "invoice",
+        "amount_due": 2000,
+        "amount_paid": 2000,
+        "amount_remaining": 0,
+        "billing_reason": "subscription_cycle",
+        "charge": "ch_secondpaymentexample",
+        "created": 1704000000,
+        "currency": "usd",
+        "customer": "cus_examplecustomer",
+        "lines": {
+            "object": "list",
+            "data": [
+                {
+                    "id": "sub_lineitemexample",
+                    "object": "line_item",
+                    "amount": 2000,
+                    "currency": "usd",
+                    "description": "Monthly subscription fee",
+                    "period": {
+                        "start": 1704000000,
+                        "end": 1706592000
+                    },
+                    "plan": {
+                        "id": "plan_example",
+                        "object": "plan",
+                        "amount": 2000,
+                        "currency": "usd",
+                        "interval": "month",
+                        "product": "prod_example"
+                    },
+                    "proration": false,
+                    "quantity": 1,
+                    "subscription": "sub_example",
+                    "type": "subscription"
+                }
+            ],
+            "has_more": false,
+            "total_count": 1
+        },
+        "livemode": false,
+        "number": "INV0002",
+        "paid": true,
+        "status": "paid",
+        "subtotal": 2000,
+        "total": 2000
+    },
+    "livemode": false,
+    "payment_method": "pm_examplepaymentmethod",
+    "payment_method_options": {
+        "card": {
+            "request_three_d_secure": "automatic"
+        }
+    },
+    "payment_method_types": [
+        "card"
+    ],
+    "status": "succeeded"
+}

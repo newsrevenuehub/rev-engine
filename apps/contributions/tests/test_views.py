@@ -1479,7 +1479,7 @@ class TestProcessStripeWebhook:
         header = {"HTTP_STRIPE_SIGNATURE": "testing", "content_type": "application/json"}
         response = api_client.post(reverse("stripe-webhooks-contributions"), data={}, **header)
         assert response.status_code == status.HTTP_200_OK
-        mock_process_task.assert_called_once_with(event.to_dict())
+        mock_process_task.assert_called_once_with(raw_event_data=event)
 
     def test_when_value_error_on_construct_event(self, api_client, mocker):
         logger_spy = mocker.patch("apps.contributions.views.logger.warning")

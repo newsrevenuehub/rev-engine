@@ -588,10 +588,11 @@ class PortalContributorsViewSet(viewsets.GenericViewSet):
         return contributor
 
     def get_serializer_class(self):
-        if self.action == "contributions_list":
-            return serializers.PortalContributionListSerializer
-        elif self.action == "contribution_detail":
-            return serializers.PortalContributionDetailSerializer
+        return (
+            serializers.PortalContributionDetailSerializer
+            if self.action == "contribution_detail"
+            else serializers.PortalContributionListSerializer
+        )
 
     @action(
         methods=["get"],
@@ -639,52 +640,9 @@ class PortalContributorsViewSet(viewsets.GenericViewSet):
             case "GET":
                 return Response(serializer.data, status=status.HTTP_200_OK)
             case "PATCH":
-                serializer.is_valid(raise_exception=True)
-                return self.handle_patch(serializer=serializer, request=request)
-            case "DELETE":
+                return Response("Not yet implemented", status=status.HTTP_501_NOT_IMPLEMENTED)
+            case "DELETE":  # NB: this path does in fact get tested, but shows up as partially covered in coverage report
                 return self.handle_delete(contribution)
-
-    def handle_patch(self, serializer, request):
-        if not serializer.instance.is_modifiable:
-            logger.warning(
-                "Request was made to update unmodifiable contribution %s whose status is %s",
-                serializer.instance.id,
-                serializer.instance.status,
-            )
-            return Response({"detail": "Problem updating contribution"}, status=status.HTTP_400_BAD_REQUEST)
-        try:
-            subscription = stripe.Subscription.retrieve(
-                serializer.instance.provider_subscription_id,
-                stripe_account=serializer.instance.revenue_program.payment_provider.stripe_account_id,
-                expand=["customer"],
-            )
-        except stripe.error.StripeError:
-            logger.exception("stripe.Subscription.retrieve returned a StripeError")
-            return Response({"detail": "subscription not found"}, status=status.HTTP_404_NOT_FOUND)
-        # TODO: [DEV-4334] Determine if Stripe will block referencing an unowned payment method id here
-        payment_method_id = request.data.get("provider_payment_method_id")
-
-        try:
-            stripe.PaymentMethod.attach(
-                payment_method_id,
-                customer=subscription.customer.id,
-                stripe_account=serializer.instance.revenue_program.payment_provider.stripe_account_id,
-            )
-        except stripe.error.StripeError:
-            logger.exception("stripe.PaymentMethod.attach returned a StripeError")
-            return Response({"detail": "Error attaching payment method"}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
-        try:
-            stripe.Subscription.modify(
-                subscription.id,
-                default_payment_method=payment_method_id,
-                stripe_account=serializer.instance.revenue_program.payment_provider.stripe_account_id,
-            )
-        except stripe.error.StripeError:
-            logger.exception(
-                "stripe.Subscription.modify returned a StripeError when modifying subscription %s", subscription.id
-            )
-            return Response({"detail": "Error updating Subscription"}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
-        return Response(serializer.data, status=status.HTTP_200_OK)
 
     def handle_delete(self, contribution):
         """If subscription found, cancel it in Stripe.

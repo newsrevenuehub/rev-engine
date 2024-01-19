@@ -1,9 +1,10 @@
 import { axe } from 'jest-axe';
 import { useParams } from 'react-router-dom';
-import { fireEvent, render, screen } from 'test-utils';
+import { fireEvent, render, screen, waitFor } from 'test-utils';
 import ContributionsList from './ContributionsList';
 import { PortalAuthContext, PortalAuthContextResult } from 'hooks/usePortalAuth';
 import { usePortalContributionList } from 'hooks/usePortalContributionList';
+import userEvent from '@testing-library/user-event';
 
 jest.mock('react-router-dom', () => ({
   ...jest.requireActual('react-router-dom'),
@@ -13,6 +14,8 @@ jest.mock('hooks/usePortalContributionList');
 jest.mock('./ContributionDetail/ContributionDetail');
 jest.mock('./ContributionItem/ContributionItem');
 jest.mock('./ContributionFetchError');
+
+const refetch = jest.fn();
 
 function tree(context?: Partial<PortalAuthContextResult>) {
   return render(
@@ -33,7 +36,7 @@ describe('ContributionsList', () => {
       isError: false,
       isFetching: false,
       isLoading: false,
-      refetch: jest.fn()
+      refetch
     });
   });
 
@@ -44,7 +47,7 @@ describe('ContributionsList', () => {
 
   it('fetches contributions for the current user', () => {
     tree();
-    expect(usePortalContributionsListMock).toBeCalledWith('mock-contributor-id');
+    expect(usePortalContributionsListMock).toBeCalledWith('mock-contributor-id', expect.anything());
   });
 
   it('shows a spinner', () => {
@@ -122,10 +125,7 @@ describe('ContributionsList', () => {
   });
 
   describe('When contributions fail to load', () => {
-    let refetch: jest.Mock;
-
     beforeEach(() => {
-      refetch = jest.fn();
       usePortalContributionsListMock.mockReturnValue({
         refetch,
         contributions: [],
@@ -144,6 +144,33 @@ describe('ContributionsList', () => {
       tree();
       expect(refetch).not.toBeCalled();
       fireEvent.click(screen.getByTestId('mock-contribution-fetch-error'));
+      expect(refetch).toBeCalledTimes(1);
+    });
+  });
+
+  describe('Sorting contributions', () => {
+    it('should sort contributions by date by default', () => {
+      tree();
+      expect(usePortalContributionsListMock).toBeCalledWith(expect.anything(), '?ordering=created');
+    });
+
+    it.each([
+      ['status', 'Status'],
+      ['amount', 'Amount (high to low)']
+    ])('should sort contributions by %s when selected', async (ordering, option) => {
+      tree();
+      userEvent.click(screen.getByRole('button', { name: 'Date' }));
+
+      await waitFor(() => {
+        expect(screen.getByRole('option', { name: option })).toBeVisible();
+      });
+
+      userEvent.click(screen.getByRole('option', { name: option }));
+
+      await waitFor(() => {
+        expect(usePortalContributionsListMock).toBeCalledWith('mock-contributor-id', `?ordering=${ordering}`);
+      });
+
       expect(refetch).toBeCalledTimes(1);
     });
   });

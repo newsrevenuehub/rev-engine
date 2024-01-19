@@ -2,7 +2,7 @@ import { axe } from 'jest-axe';
 import { render, screen, waitFor } from 'test-utils';
 import userEvent from '@testing-library/user-event';
 
-import Sort, { SortProps } from './Sort';
+import Sort, { SortProps, CONTRIBUTION_SORT_OPTIONS } from './Sort';
 
 const onChange = jest.fn();
 
@@ -44,8 +44,8 @@ describe('Sort', () => {
     expect(screen.queryByText('option1 selected')).not.toBeInTheDocument();
   });
 
-  it('should render Sort with default options', () => {
-    tree({ options: undefined });
+  it('should render Sort with contribution sort options', () => {
+    tree({ options: CONTRIBUTION_SORT_OPTIONS });
 
     const selectedDate = screen.getAllByText('Date').find((el) => el.id === 'selected-label');
     expect(selectedDate).toBeVisible();

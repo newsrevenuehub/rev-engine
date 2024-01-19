@@ -10,30 +10,30 @@ export interface SortProps extends InferProps<typeof SortPropTypes> {
   onChange?: (value: string) => void;
 }
 
-const Sort = ({ options, onChange, className = '' }: SortProps) => {
-  const selectOptions = options || [
-    {
-      label: (
-        <p style={{ margin: 0 }}>
-          Date <i>(most recent)</i>
-        </p>
-      ),
-      selectedLabel: 'Date',
-      value: 'date'
-    },
-    { label: 'Status', value: 'status' },
-    {
-      label: (
-        <p style={{ margin: 0 }}>
-          Amount <em>(high to low)</em>
-        </p>
-      ),
-      selectedLabel: 'Amount',
-      value: 'amount'
-    }
-  ];
+export const CONTRIBUTION_SORT_OPTIONS = [
+  {
+    label: (
+      <p style={{ margin: 0 }}>
+        Date <i>(most recent)</i>
+      </p>
+    ),
+    selectedLabel: 'Date',
+    value: 'created'
+  },
+  { label: 'Status', value: 'status' },
+  {
+    label: (
+      <p style={{ margin: 0 }}>
+        Amount <em>(high to low)</em>
+      </p>
+    ),
+    selectedLabel: 'Amount',
+    value: 'amount'
+  }
+];
 
-  const [value, setValue] = useState(selectOptions[0].value);
+const Sort = ({ options, onChange, className = '' }: SortProps) => {
+  const [value, setValue] = useState(options[0].value);
 
   const handleChange = (event: ChangeEvent<{ value: unknown }>) => {
     setValue(event.target.value as string);
@@ -45,7 +45,7 @@ const Sort = ({ options, onChange, className = '' }: SortProps) => {
       <Typography variant="body2" color="textSecondary">
         Sort:
       </Typography>
-      <Select options={selectOptions} value={value} onChange={handleChange} />
+      <Select options={options} value={value} onChange={handleChange} />
     </SortWrapper>
   );
 };
@@ -57,7 +57,7 @@ const SortPropTypes = {
       value: PropTypes.string.isRequired,
       selectedLabel: PropTypes.string
     }).isRequired
-  ),
+  ).isRequired,
   className: PropTypes.string,
   onChange: PropTypes.func
 };

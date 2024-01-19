@@ -80,8 +80,8 @@ export interface ContributionListResponse {
   results: PortalContribution[];
 }
 
-async function fetchContributions(contributorId: number) {
-  const { data } = await axios.get<ContributionListResponse>(getContributionsEndpoint(contributorId));
+async function fetchContributions(contributorId: number, queryParams?: string) {
+  const { data } = await axios.get<ContributionListResponse>(getContributionsEndpoint(contributorId, queryParams));
 
   return { count: data.count, results: data.results };
 }
@@ -90,10 +90,10 @@ async function fetchContributions(contributorId: number) {
  * Manages fetching the list of contributions a contributor sees when logging
  * into the portal.
  */
-export function usePortalContributionList(contributorId?: number) {
+export function usePortalContributionList(contributorId?: number, queryParams?: string) {
   const { data, isError, isFetching, isLoading, refetch } = useQuery(
     ['portalContributionList'],
-    () => fetchContributions(contributorId!),
+    () => fetchContributions(contributorId!, queryParams),
     { enabled: !!contributorId, keepPreviousData: true }
   );
 

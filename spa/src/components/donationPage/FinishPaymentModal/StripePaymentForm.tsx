@@ -14,6 +14,21 @@ const StripePaymentFormPropTypes = {
   payment: PropTypes.object.isRequired
 };
 
+// for full options, see: https://stripe.com/docs/js/elements_object/create_payment_element
+// notably, can control fonts
+export const paymentElementOptions: StripePaymentElementOptions = {
+  fields: {
+    // we collected name, email, etc. in previous form, so we don't need to display these
+    // inputs in Stripe's payment element which defaults to including them. This means
+    // we need to add that data when we call stripe.confirmPayment.
+    billingDetails: 'never'
+  },
+  // This removes legal agreements that Stripe may display
+  terms: {
+    card: 'never'
+  }
+};
+
 export interface StripePaymentFormProps extends InferProps<typeof StripePaymentFormPropTypes> {
   payment: Payment;
   locale: string;
@@ -127,21 +142,6 @@ export function StripePaymentForm({ payment, locale }: StripePaymentFormProps) {
       alert.error(t('donationPage.stripePaymentForm.errorProcessingPayment'));
     } finally {
       setIsLoading(false);
-    }
-  };
-
-  // for full options, see: https://stripe.com/docs/js/elements_object/create_payment_element
-  // notably, can control fonts
-  const paymentElementOptions: StripePaymentElementOptions = {
-    fields: {
-      // we collected name, email, etc. in previous form, so we don't need to display these
-      // inputs in Stripe's payment element which defaults to including them. This means
-      // we need to add that data when we call stripe.confirmPayment.
-      billingDetails: 'never'
-    },
-    // This removes legal agreements that Stripe may display
-    terms: {
-      card: 'never'
     }
   };
 

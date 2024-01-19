@@ -1,15 +1,13 @@
-import { useElements, useStripe } from '@stripe/react-stripe-js';
+import { useElements, useStripe, PaymentElement } from '@stripe/react-stripe-js';
 import { axe } from 'jest-axe';
 import { useAlert } from 'react-alert';
 import { act, fireEvent, mocki18n, render, screen } from 'test-utils';
 import { Payment } from 'hooks/usePayment';
-import StripePaymentForm, { StripePaymentFormProps } from './StripePaymentForm';
+import StripePaymentForm, { StripePaymentFormProps, paymentElementOptions } from './StripePaymentForm';
 import { getPaymentSuccessUrl } from 'components/paymentProviders/stripe/stripeFns';
 
 jest.mock('@stripe/react-stripe-js', () => ({
-  PaymentElement: ({ options }: any) => (
-    <div data-testid="mock-payment-element" data-options={JSON.stringify(options)} />
-  ),
+  PaymentElement: jest.fn(),
   useElements: jest.fn(),
   useStripe: jest.fn()
 }));
@@ -61,8 +59,12 @@ describe('StripePaymentForm', () => {
   const useAlertMock = jest.mocked(useAlert);
   const useElementsMock = jest.mocked(useElements);
   const useStripeMock = jest.mocked(useStripe);
+  const PaymentElementMock = jest.mocked(PaymentElement);
 
   beforeEach(() => {
+    PaymentElementMock.mockImplementation(({ options }) => (
+      <div data-testid="mock-payment-element" data-options={JSON.stringify(options)} />
+    ));
     useAlertMock.mockReturnValue({
       error: jest.fn()
     } as any);
@@ -125,6 +127,18 @@ describe('StripePaymentForm', () => {
         name: 'stripeFns.paymentElementButtonText.year{"amount":"mock-currency-symbol123.45 mock-currency-code"}'
       })
     ).toBeVisible();
+  });
+
+  it('should only render PaymentElement once with the same options', () => {
+    const { rerender } = tree();
+
+    expect(PaymentElementMock).toHaveBeenCalledTimes(1);
+
+    rerender(<StripePaymentForm payment={mockPayment} locale="pt" />);
+
+    expect(PaymentElementMock).toHaveBeenCalledTimes(2);
+    expect(PaymentElementMock.mock.calls[0][0].options).toBe(PaymentElementMock.mock.calls[1][0].options);
+    expect(PaymentElementMock.mock.calls[0][0].options).toBe(paymentElementOptions);
   });
 
   describe('After submitting the form', () => {

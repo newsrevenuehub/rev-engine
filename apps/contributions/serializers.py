@@ -17,7 +17,6 @@ from apps.contributions.models import (
     ContributionInterval,
     ContributionStatus,
     Contributor,
-    Payment,
 )
 from apps.contributions.types import StripePaymentMetadataSchemaV1_4
 from apps.contributions.utils import format_ambiguous_currency, get_sha256_hash
@@ -831,81 +830,27 @@ class SubscriptionsSerializer(serializers.Serializer):
         return instance.default_payment_method.type
 
 
-PORTAL_CONTRIBUTION_BASE_SERIALIZER_FIELDS = [
-    "id",
-    "amount",
-    "card_brand",
-    "card_expiration_date",
-    "card_last_4",
-    "created",
-    "interval",
-    "is_cancelable",
-    "is_modifiable",
-    "last_payment_date",
-    "next_payment_date",
-    "payment_type",
-    "revenue_program",
-    "status",
-]
+class ContributionAgreementSerializer(serializers.Serializer):
+    """This serializer captures a contributor's agreement to make a contribution.
 
+    In the case of a one time contribution, the agreement is captured in the form of a Stripe PaymentIntent.
 
-class PortalContributionBaseSerializer(serializers.ModelSerializer):
-    revenue_program = serializers.PrimaryKeyRelatedField(read_only=True)
-    last_payment_date = serializers.DateTimeField(source="_last_payment_date", read_only=True)
+    In the case of a recurring contribution, the agreement is captured in the form of a Stripe Subscription.
+    """
 
-    class Meta:
-        model = Contribution
-        fields = PORTAL_CONTRIBUTION_BASE_SERIALIZER_FIELDS
-        read_only_fields = PORTAL_CONTRIBUTION_BASE_SERIALIZER_FIELDS
-
-    def create(self, validated_data):
-        logger.info("create called but not supported. this will be a no-op")
-        raise NotImplementedError("create is not supported on this serializer")
-
-    def delete(self, instance):
-        logger.info("delete called but not supported. this will be a no-op")
-        raise NotImplementedError("delete is not supported on this serializer")
-
-    def update(self, instance, validated_data):
-        logger.info("update called but not supported. this will be a no-op")
-        raise NotImplementedError("update is not supported on this serializer")
-
-
-PORTAL_CONTRIBIBUTION_PAYMENT_SERIALIZER_DB_FIELDS = [
-    "id",
-    "amount_refunded",
-    "created",
-    "transaction_time",
-    "gross_amount_paid",
-    "net_amount_paid",
-]
-
-
-class PortalContributionPaymentSerializer(serializers.ModelSerializer):
-    class Meta:
-        model = Payment
-        fields = PORTAL_CONTRIBIBUTION_PAYMENT_SERIALIZER_DB_FIELDS
-        read_only_fields = PORTAL_CONTRIBIBUTION_PAYMENT_SERIALIZER_DB_FIELDS
-
-
-PORTAL_CONTRIBUTION_DETAIL_SERIALIZER_DB_FIELDS = PORTAL_CONTRIBUTION_BASE_SERIALIZER_FIELDS + [
-    "payments",
-    "paid_fees",
-    "card_owner_name",
-]
-
-
-class PortalContributionDetailSerializer(PortalContributionBaseSerializer):
-    payments = PortalContributionPaymentSerializer(many=True, read_only=True, source="payment_set")
-
-    class Meta:
-        model = Contribution
-        fields = PORTAL_CONTRIBUTION_DETAIL_SERIALIZER_DB_FIELDS
-        read_only_fields = PORTAL_CONTRIBUTION_DETAIL_SERIALIZER_DB_FIELDS
-
-
-class PortalContributionListSerializer(PortalContributionBaseSerializer):
-    class Meta:
-        model = Contribution
-        fields = PORTAL_CONTRIBUTION_BASE_SERIALIZER_FIELDS
-        read_only_fields = PORTAL_CONTRIBUTION_BASE_SERIALIZER_FIELDS
+    # either the PI or subscription id
+    payment_provider_id = serializers.CharField(max_length=255)
+    amount = serializers.IntegerField()
+    card_brand = serializers.ChoiceField(choices=CardBrand.choices)
+    created = serializers.DateTimeField(format="%Y-%m-%dT%H =%M =%S")
+    credit_card_expiration_date = serializers.CharField(max_length=7)
+    interval = serializers.ChoiceField(choices=ContributionInterval.choices)
+    is_cancelable = serializers.BooleanField()
+    is_modifiable = serializers.BooleanField()
+    last_payment_date = serializers.DateTimeField(format="%Y-%m-%dT%H =%M =%S")
+    last4 = serializers.CharField(max_length=4)
+    next_payment_date = serializers.DateTimeField(format="%Y-%m-%dT%H =%M =%S")
+    payment_type = serializers.ChoiceField(choices=PaymentType.choices)
+    provider_customer_id = serializers.CharField(max_length=255)
+    revenue_program = serializers.IntegerField()
+    status = serializers.ChoiceField(choices=ContributionStatus.choices)

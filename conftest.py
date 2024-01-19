@@ -58,8 +58,6 @@ from dataclasses import asdict
 from random import choice, randint, uniform
 from unittest.mock import patch
 
-from django.core.cache import cache
-
 import pytest
 import stripe
 from faker import Faker
@@ -1033,11 +1031,6 @@ def valid_gs_credentials(minimally_valid_google_service_account_credentials, set
 
 
 @pytest.fixture
-def stripe_subscription():
-    with open("apps/contributions/tests/fixtures/subscription.json") as fl:
-        return stripe.Subscription.construct_from(json.load(fl), key="test")
-
-
 def payment_intent_for_recurring_charge_expanded():
     with open("apps/contributions/tests/fixtures/payment-intent-for-recurring-charge-expanded.json") as f:
         return stripe.PaymentIntent.construct_from(json.load(f), stripe.api_key)
@@ -1100,23 +1093,6 @@ def payment_intent_for_recurring_charge():
 def balance_transaction_for_one_time_charge():
     with open("apps/contributions/tests/fixtures/balance-transaction-for-one-time-charge-expanded.json") as f:
         return stripe.BalanceTransaction.construct_from(json.load(f), stripe.api_key)
-
-
-@pytest.fixture()
-def clear_cache():
-    cache.clear()
-
-
-@pytest.fixture
-def stripe_customer_default_source_expanded():
-    with open("apps/contributions/tests/fixtures/stripe-customer-default-source-expanded.json") as fl:
-        return stripe.Customer.construct_from(json.load(fl), key="test")
-
-
-@pytest.fixture
-def stripe_payment_method():
-    with open("apps/contributions/tests/fixtures/stripe-payment-method.json") as fl:
-        return stripe.PaymentMethod.construct_from(json.load(fl), key="test")
 
 
 @pytest.fixture

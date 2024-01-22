@@ -3,7 +3,7 @@ import { LIVE_PAGE_DETAIL } from 'ajax/endpoints';
 import MockAdapter from 'axios-mock-adapter';
 import useWebFonts from 'hooks/useWebFonts';
 import { render, screen, waitFor } from 'test-utils';
-import PortalPage from './PortalPage';
+import PortalPage, { PortalPageProps } from './PortalPage';
 
 jest.mock('components/analytics/TrackPageView', () => ({ children }: { children: React.ReactNode }) => (
   <div data-testid="mock-track-page-view">{children}</div>
@@ -44,13 +44,19 @@ describe('PortalPage', () => {
 
   afterAll(() => axiosMock.restore());
 
-  function tree() {
+  function tree(props?: PortalPageProps) {
     return render(
-      <PortalPage>
+      <PortalPage {...props}>
         <div data-testid="mock-content-component" />
       </PortalPage>
     );
   }
+
+  it('puts the className prop on its container', async () => {
+    tree({ className: 'test-class-name' });
+    await screen.findByTestId('mock-track-page-view');
+    expect(document.body.querySelector('.test-class-name')).toBeInTheDocument();
+  });
 
   const assertContentIsRendered = async () => {
     await screen.findByTestId('mock-track-page-view');

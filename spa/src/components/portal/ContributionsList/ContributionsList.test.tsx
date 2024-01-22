@@ -13,6 +13,7 @@ jest.mock('hooks/usePortalContributionList');
 jest.mock('./ContributionDetail/ContributionDetail');
 jest.mock('./ContributionItem/ContributionItem');
 jest.mock('./ContributionFetchError');
+jest.mock('../PortalPage');
 
 function tree(context?: Partial<PortalAuthContextResult>) {
   return render(

@@ -5,6 +5,7 @@ import styled from 'styled-components';
  */
 export const Columns = styled.div`
   display: grid;
+  font-size: 16px;
   gap: 35px;
   grid-template-columns: 1fr 1fr;
 
@@ -17,6 +18,8 @@ export const Columns = styled.div`
  * Values in the column layout.
  */
 export const Detail = styled.div`
+  font-family: ${({ theme }) => theme.systemFont};
+  font-size: 16px;
   padding-left: 12px;
 `;
 
@@ -38,6 +41,9 @@ export const Heading = styled.h4`
  * Headings in the column layout.
  */
 export const Subheading = styled.h5`
+  font-family: ${({ theme }) => theme.systemFont};
+  font-size: 16px;
+
   &:first-of-type {
     margin-top: 0;
   }

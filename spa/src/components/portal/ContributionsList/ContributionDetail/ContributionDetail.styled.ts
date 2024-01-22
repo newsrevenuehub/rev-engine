@@ -16,6 +16,13 @@ export const Root = styled.div`
   }
 `;
 
+export const Controls = styled.div`
+  display: flex;
+  gap: 12px;
+  justify-content: flex-end;
+  margin-top: 60px;
+`;
+
 export const Loading = styled.div`
   align-items: center;
   display: grid;

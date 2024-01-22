@@ -2,7 +2,7 @@ import { Meta, StoryObj } from '@storybook/react';
 import PaymentMethod from './PaymentMethod';
 import { formattedCardBrands } from 'constants/creditCard';
 
-const PaymentMethodDemo = (contribution: any) => <PaymentMethod contribution={contribution} />;
+const PaymentMethodDemo = (contribution: any) => <PaymentMethod contribution={contribution} editable={false} />;
 
 const meta: Meta<typeof PaymentMethodDemo> = {
   argTypes: {

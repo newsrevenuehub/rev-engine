@@ -26,7 +26,7 @@ const mockContribution: PortalContributionDetail = {
 };
 
 function tree(props?: Partial<PaymentMethodProps>) {
-  return render(<PaymentMethod contribution={mockContribution} {...props} />);
+  return render(<PaymentMethod contribution={mockContribution} editable={false} {...props} />);
 }
 
 describe('PaymentMethod', () => {

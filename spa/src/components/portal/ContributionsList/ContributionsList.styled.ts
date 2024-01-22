@@ -1,4 +1,5 @@
 import styled from 'styled-components';
+import PortalPage from '../PortalPage';
 
 export const List = styled.div<{ $detailVisible: boolean }>`
   align-self: self-start;
@@ -8,6 +9,12 @@ export const List = styled.div<{ $detailVisible: boolean }>`
 
   @media (${(props) => props.theme.breakpoints.tabletLandscapeDown}) {
     ${(props) => props.$detailVisible && 'display: none;'}
+  }
+`;
+
+export const StyledPortalPage = styled(PortalPage)`
+  @media (${(props) => props.theme.breakpoints.tabletLandscapeDown}) {
+    background-color: ${({ theme }) => theme.basePalette.greyscale.white};
   }
 `;
 

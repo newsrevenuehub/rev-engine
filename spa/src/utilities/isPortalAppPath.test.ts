@@ -15,7 +15,7 @@ describe('isPortalAppPath', () => {
     window.location = realLocation;
   });
 
-  it.each(['/portal/', '/portal/verification/', '/portal/my-contributions'])(
+  it.each(['/portal/', '/portal/verification/', '/portal/my-contributions/', '/portal/my-contributions/abcd/'])(
     'should return true if path is: %s',
     (route) => {
       delete (window as any).location;

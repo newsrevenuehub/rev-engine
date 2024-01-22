@@ -7,7 +7,7 @@ import ContributionItem from './ContributionItem/ContributionItem';
 import NoContributions from './NoContributions';
 import ContributionFetchError from './ContributionFetchError';
 import ContributionDetail from './ContributionDetail/ContributionDetail';
-import { List, Root, Subhead, Columns, Loading, Legend, Detail } from './ContributionsList.styled';
+import { List, Root, Subhead, Columns, Loading, Legend, Detail, StyledPortalPage } from './ContributionsList.styled';
 
 export function ContributionsList() {
   const { contributionId } = useParams<{ contributionId?: string }>();
@@ -51,24 +51,26 @@ export function ContributionsList() {
   }
 
   return (
-    <Root>
-      <Columns>
-        <Legend $detailVisible={!!selectedContribution}>
-          <Subhead>Transactions</Subhead>
-          <p>View billing history, update payment details, and resend receipts.</p>
-        </Legend>
-        {content}
-        {contributor && selectedContribution && (
-          <Detail>
-            <ContributionDetail
-              domAnchor={selectedContributionEl}
-              contributionId={selectedContribution.payment_provider_id}
-              contributorId={contributor.id}
-            />
-          </Detail>
-        )}
-      </Columns>
-    </Root>
+    <StyledPortalPage>
+      <Root>
+        <Columns>
+          <Legend $detailVisible={!!selectedContribution}>
+            <Subhead>Transactions</Subhead>
+            <p>View billing history, update payment details, and resend receipts.</p>
+          </Legend>
+          {content}
+          {contributor && selectedContribution && (
+            <Detail>
+              <ContributionDetail
+                domAnchor={selectedContributionEl}
+                contributionId={selectedContribution.payment_provider_id}
+                contributorId={contributor.id}
+              />
+            </Detail>
+          )}
+        </Columns>
+      </Root>
+    </StyledPortalPage>
   );
 }
 

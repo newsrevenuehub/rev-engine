@@ -1,16 +1,27 @@
+import PropTypes, { InferProps } from 'prop-types';
+import { ReactNode } from 'react';
+import NRELogo from 'assets/images/nre-logo-blue.svg';
 import PoweredByNRELogo from 'assets/images/nre-logo-yellow.svg?react';
 import TrackPageView from 'components/analytics/TrackPageView';
 import DonationPageHeader from 'components/donationPage/DonationPageHeader';
 import SegregatedStyles from 'components/donationPage/SegregatedStyles';
+import { HOME_PAGE_URL } from 'constants/helperUrls';
 import { PLAN_NAMES } from 'constants/orgPlanConstants';
 import usePortal from 'hooks/usePortal';
 import useWebFonts from 'hooks/useWebFonts';
-import React from 'react';
-import NRELogo from 'assets/images/nre-logo-blue.svg';
 import { PoweredBy, Header, Logo, Root } from './PortalPage.styled';
-import { HOME_PAGE_URL } from 'constants/helperUrls';
 
-function PortalPage({ children }: { children: React.ReactNode }) {
+const PortalPagePropTypes = {
+  children: PropTypes.any,
+  className: PropTypes.string
+};
+
+export interface PortalPageProps extends InferProps<typeof PortalPagePropTypes> {
+  children?: ReactNode;
+  className?: string;
+}
+
+function PortalPage({ children, className }: PortalPageProps) {
   const { page, pageIsFetched, enablePageFetch } = usePortal();
 
   const isFreeOrg = page?.revenue_program?.organization?.plan?.name === PLAN_NAMES.FREE;
@@ -26,7 +37,7 @@ function PortalPage({ children }: { children: React.ReactNode }) {
   return (
     <TrackPageView>
       <SegregatedStyles page={renderCustomStyles && page}>
-        <Root>
+        <Root className={className}>
           {renderCustomStyles ? (
             <DonationPageHeader page={page} />
           ) : (
@@ -46,5 +57,7 @@ function PortalPage({ children }: { children: React.ReactNode }) {
     </TrackPageView>
   );
 }
+
+PortalPage.propTypes = PortalPagePropTypes;
 
 export default PortalPage;

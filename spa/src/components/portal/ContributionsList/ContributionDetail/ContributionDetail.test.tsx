@@ -77,7 +77,7 @@ describe('ContributionDetail', () => {
 
   describe('When the contribution has loaded', () => {
     const mockContribution = {
-      payment_provider_id: 'mock-id',
+      id: 1,
       payments: [{ mock: true }]
     };
 
@@ -97,7 +97,7 @@ describe('ContributionDetail', () => {
       const component = screen.getByTestId(`mock-${name.replace(' ', '-')}`);
 
       expect(component).toBeInTheDocument();
-      expect(component.dataset.contribution).toBe(mockContribution.payment_provider_id);
+      expect(component.dataset.contribution).toBe(`${mockContribution.id}`);
     });
 
     it('shows the billing history', () => {

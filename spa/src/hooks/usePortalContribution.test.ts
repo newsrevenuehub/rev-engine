@@ -7,17 +7,16 @@ import { usePortalContribution } from './usePortalContribution';
 const mockContributionResponse = {
   amount: 123,
   card_brand: 'amex',
+  card_expiration_date: 'mock-cc-expiration-1',
+  card_last_4: '1234',
   created: 'mock-created-1',
-  credit_card_expiration_date: 'mock-cc-expiration-1',
+  id: 1,
   interval: 'month',
   is_cancelable: true,
   is_modifiable: true,
-  last4: '1234',
   last_payment_date: 'mock-last-payment-1',
   next_payment_date: '',
-  payment_provider_id: 'mock-payment-provider-1',
   payment_type: 'mock-payment-type-1',
-  provider_customer_id: 'mock-customer-1',
   revenue_program: 1,
   status: 'paid'
 };
@@ -32,7 +31,7 @@ describe('usePortalContribution', () => {
   const axiosMock = new MockAdapter(Axios);
 
   beforeEach(() => {
-    axiosMock.onGet('contributors/123/contributions/mock-id/').reply(200, mockContributionResponse);
+    axiosMock.onGet('contributors/123/contributions/1/').reply(200, mockContributionResponse);
   });
   afterEach(() => axiosMock.reset());
   afterAll(() => axiosMock.restore());
@@ -62,14 +61,14 @@ describe('usePortalContribution', () => {
 
     await waitFor(() => expect(axiosMock.history.get.length).toBe(1));
     expect(result.current.contribution).toEqual(mockContributionResponse);
-    expect(axiosMock.history.get[0].url).toBe('/contributors/123/contributions/mock-id/');
+    expect(axiosMock.history.get[0].url).toBe('/contributors/123/contributions/1/');
   });
 
   describe('When fetching the contribution fails', () => {
     let errorSpy: jest.SpyInstance;
 
     beforeEach(() => {
-      axiosMock.onGet('contributors/123/contributions/mock-id/').networkError();
+      axiosMock.onGet('contributors/123/contributions/1/').networkError();
       errorSpy = jest.spyOn(console, 'error').mockImplementation(() => {});
     });
     afterEach(() => errorSpy.mockRestore());

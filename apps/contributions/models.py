@@ -532,7 +532,7 @@ class Contribution(IndexedTimeStampedModel):
                 self.id,
             )
 
-    def send_recurring_contribution_canceled_email(self) -> None:
+    def send_recurring_contribution_change_email(self, subject_line: str, template_name: str) -> None:
         if self.interval == ContributionInterval.ONE_TIME:
             logger.error(
                 "Called on an instance (ID: %s) whose interval is one-time",
@@ -579,55 +579,17 @@ class Contribution(IndexedTimeStampedModel):
 
         send_templated_email.delay(
             self.contributor.email,
-            "Canceled contribution",
-            render_to_string("recurring-contribution-canceled.txt", data),
-            render_to_string("recurring-contribution-canceled.html", data),
+            subject_line,
+            render_to_string(f"{template_name}.txt", data),
+            render_to_string(f"{template_name}.html", data),
         )
 
+    def send_recurring_contribution_canceled_email(self) -> None:
+        self.send_recurring_contribution_change_email("Canceled contribution", "recurring-contribution-canceled")
+
     def send_recurring_contribution_payment_updated_email(self) -> None:
-        if self.interval == ContributionInterval.ONE_TIME:
-            logger.error(
-                "Called on an instance (ID: %s) whose interval is one-time",
-                self.id,
-            )
-            return
-
-        if not self.provider_customer_id:
-            logger.error("No Stripe customer ID for contribution with ID %s", self.id)
-            return
-
-        try:
-            customer = stripe.Customer.retrieve(
-                self.provider_customer_id,
-                stripe_account=self.donation_page.revenue_program.payment_provider.stripe_account_id,
-            )
-        except StripeError:
-            logger.exception(
-                "Something went wrong retrieving Stripe customer for contribution with ID %s",
-                self.id,
-            )
-            return
-
-        data = {
-            # Wedging the date into the template--it's now, not the date of the contribution.
-            "contribution_date": datetime.datetime.today().strftime("%m/%d/%Y"),
-            "contribution_amount": self.formatted_amount,
-            "contribution_interval_display_value": self.interval,
-            "non_profit": self.donation_page.revenue_program.non_profit,
-            "contributor_email": self.contributor.email,
-            "contributor_name": customer.name,
-            "tax_id": self.donation_page.revenue_program.tax_id,
-            "fiscal_status": self.donation_page.revenue_program.fiscal_status,
-            "fiscal_sponsor_name": self.donation_page.revenue_program.fiscal_sponsor_name,
-            "magic_link": self.contributor.create_magic_link(self),
-            "rp_name": self.donation_page.revenue_program.name,
-            "style": asdict(self.donation_page.revenue_program.transactional_email_style),
-        }
-        send_templated_email.delay(
-            self.contributor.email,
-            "New change to your contribution",
-            render_to_string("recurring-contribution-payment-updated.txt", data),
-            render_to_string("recurring-contribution-payment-updated.html", data),
+        self.send_recurring_contribution_change_email(
+            "New change to your contribution", "recurring-contribution-payment-updated"
         )
 
     def send_recurring_contribution_email_reminder(self, next_charge_date: datetime.date) -> None:

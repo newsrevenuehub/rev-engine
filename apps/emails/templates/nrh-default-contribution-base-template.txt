@@ -5,7 +5,7 @@
 ------------------------
 Contribution Details:
 
-{% block contribution_date_label %}{% endblock contribution_date_label %}: {{ contribution_date }}
+{% block timestamp_label %}{% endblock timestamp_label %}: {{ timestamp }}
 Email: {{ contributor_email }}
 {% if contribution_interval == "one_time" %}
 Amount Contributed: {{ contribution_amount }}

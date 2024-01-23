@@ -8,4 +8,4 @@ Dear {{ contributor_name }},
 You've recently changed your payment method for a contribution to {{ rp_name }}.
 {% endblock header %}
 
-{% block contribution_date_label %}Date Changed{% endblock contribution_date_label %}
+{% block timestamp_label %}Date Changed{% endblock timestamp_label %}

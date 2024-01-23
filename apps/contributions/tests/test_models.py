@@ -974,7 +974,6 @@ class TestContributionModel:
                     (
                         data := {
                             "rp_name": contribution.donation_page.revenue_program.name,
-                            "contribution_date": next_charge_date.strftime("%m/%d/%Y"),
                             "contribution_amount": contribution.formatted_amount,
                             "contribution_interval_display_value": contribution.interval,
                             "non_profit": contribution.donation_page.revenue_program.non_profit,
@@ -984,6 +983,7 @@ class TestContributionModel:
                             "fiscal_status": contribution.donation_page.revenue_program.fiscal_status,
                             "fiscal_sponsor_name": contribution.donation_page.revenue_program.fiscal_sponsor_name,
                             "style": asdict(contribution.donation_page.revenue_program.transactional_email_style),
+                            "timestamp": next_charge_date.strftime("%m/%d/%Y"),
                         }
                     ),
                 ),

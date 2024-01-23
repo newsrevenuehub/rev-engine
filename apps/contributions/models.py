@@ -557,8 +557,6 @@ class Contribution(IndexedTimeStampedModel):
             return
 
         data = {
-            # Wedging the date into the template--it's now, not the date of the contribution.
-            "contribution_date": datetime.datetime.today().strftime("%m/%d/%Y"),
             "contribution_amount": self.formatted_amount,
             "contribution_interval_display_value": self.interval,
             "contributor_name": customer.name,
@@ -570,6 +568,7 @@ class Contribution(IndexedTimeStampedModel):
             "magic_link": self.contributor.create_magic_link(self),
             "rp_name": self.donation_page.revenue_program.name,
             "style": asdict(self.donation_page.revenue_program.transactional_email_style),
+            "timestamp": datetime.datetime.today().strftime("%m/%d/%Y"),
         }
 
         # Almost all RPs should have a default page set, but it's possible one isn't.
@@ -608,7 +607,7 @@ class Contribution(IndexedTimeStampedModel):
             "rp_name": self.donation_page.revenue_program.name,
             # nb, we have to send this as pre-formatted because this data will be serialized
             # when sent to the Celery worker.
-            "contribution_date": next_charge_date.strftime("%m/%d/%Y"),
+            "timestamp": next_charge_date.strftime("%m/%d/%Y"),
             "contribution_amount": self.formatted_amount,
             "contribution_interval_display_value": self.interval,
             "non_profit": self.donation_page.revenue_program.non_profit,

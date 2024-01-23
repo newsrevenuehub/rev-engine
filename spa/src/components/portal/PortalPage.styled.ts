@@ -10,7 +10,6 @@ export const PoweredBy = styled.div`
   font-weight: 400;
   font-size: ${(props) => props.theme.fontSizesUpdated.sm};
   color: ${(props) => props.theme.basePalette.greyscale.black};
-  background: ${(props) => props.theme.basePalette.greyscale.grey4};
   padding: 45px 0;
 
   & > span {
@@ -38,6 +37,7 @@ export const Logo = styled.img`
 `;
 
 export const Root = styled.div`
+  background: ${(props) => props.theme.basePalette.greyscale.grey4};
   display: grid;
   grid-template-rows: 60px 1fr 145px;
   min-height: 100vh;

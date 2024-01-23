@@ -26,7 +26,7 @@ update_requirements:
 
 install_requirements:
 	@echo 'Installing project requirements...'
-	poetry install
+	poetry install --no-root
 
 setup:
 	@echo 'Setting up the environment...'

@@ -22,7 +22,7 @@ const mockContributionResponse = {
   status: 'paid'
 };
 
-function hook(contributorId: number, contributionId: string) {
+function hook(contributorId: number, contributionId: number) {
   return renderHook(() => usePortalContribution(contributorId, contributionId), {
     wrapper: TestQueryClientProvider
   });
@@ -42,7 +42,7 @@ describe('usePortalContribution', () => {
     // the fetch completes.
 
     it('returns a loading status', async () => {
-      const { result, waitForNextUpdate } = hook(123, 'mock-id');
+      const { result, waitForNextUpdate } = hook(123, 1);
 
       expect(result.current.isFetching).toBe(true);
       expect(result.current.isLoading).toBe(true);
@@ -50,7 +50,7 @@ describe('usePortalContribution', () => {
     });
 
     it('returns undefined data', async () => {
-      const { result, waitForNextUpdate } = hook(123, 'mock-id');
+      const { result, waitForNextUpdate } = hook(123, 1);
 
       expect(result.current.contribution).toBeUndefined();
       await waitForNextUpdate();
@@ -58,7 +58,7 @@ describe('usePortalContribution', () => {
   });
 
   it('returns the contribution and appropriate status after fetching', async () => {
-    const { result, waitFor } = hook(123, 'mock-id');
+    const { result, waitFor } = hook(123, 1);
 
     await waitFor(() => expect(axiosMock.history.get.length).toBe(1));
     expect(result.current.contribution).toEqual(mockContributionResponse);
@@ -75,14 +75,14 @@ describe('usePortalContribution', () => {
     afterEach(() => errorSpy.mockRestore());
 
     it('returns an error status', async () => {
-      const { result, waitFor } = hook(123, 'mock-id');
+      const { result, waitFor } = hook(123, 1);
 
       await waitFor(() => expect(axiosMock.history.get.length).toBe(1));
       expect(result.current.isError).toBe(true);
     });
 
     it('returns an undefined contribution', async () => {
-      const { result, waitFor } = hook(123, 'mock-id');
+      const { result, waitFor } = hook(123, 1);
 
       await waitFor(() => expect(axiosMock.history.get.length).toBe(1));
       expect(result.current.contribution).toBeUndefined();

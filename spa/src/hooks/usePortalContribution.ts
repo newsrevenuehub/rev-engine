@@ -30,7 +30,7 @@ export interface PortalContributionDetail extends PortalContribution {
   /**
    * Name on the credit card used in the contribution.
    */
-  credit_card_owner_name: string;
+  card_owner_name: string;
   /**
    * Were fees paid by the contributor?
    */

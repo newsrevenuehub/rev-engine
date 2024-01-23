@@ -29,7 +29,8 @@ export const CONTRIBUTOR_DASHBOARD = join([CONTRIBUTOR_ENTRY, 'contributions/'])
 export const PORTAL = {
   ENTRY: '/portal/',
   VERIFY: '/portal/verification/',
-  CONTRIBUTIONS: '/portal/my-contributions/'
+  CONTRIBUTIONS: '/portal/my-contributions/',
+  CONTRIBUTION_DETAIL: '/portal/my-contributions/:contributionId/'
 };
 
 // Account

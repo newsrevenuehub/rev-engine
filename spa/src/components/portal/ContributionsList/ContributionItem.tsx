@@ -14,7 +14,7 @@ import {
   NextContributionDate,
   Root,
   Status
-} from './ContributionItem.styled';
+} from './ContributionItem/ContributionItem.styled';
 
 const TransactionItemPropTypes = {
   contribution: PropTypes.object.isRequired

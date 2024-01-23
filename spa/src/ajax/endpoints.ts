@@ -42,6 +42,10 @@ export function getContributionsEndpoint(contributorId: number) {
   return `/contributors/${contributorId}/contributions/`;
 }
 
+export function getContributionDetailEndpoint(contributorId: number, contributionId: number) {
+  return `/contributors/${contributorId}/contributions/${contributionId}/`;
+}
+
 export const CONTRIBUTIONS = 'contributions/';
 export const EMAIL_CONTRIBUTIONS = 'email-contributions/';
 export const PROCESS_FLAGGED = 'process-flagged/';

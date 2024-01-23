@@ -670,24 +670,14 @@ class Contribution(IndexedTimeStampedModel):
 
     @property
     def is_cancelable(self) -> bool:
-        pi = self._expanded_pi_for_cancelable_modifiable
-        return (
-            pi.invoice.subscription.status in self.CANCELABLE_SUBSCRIPTION_STATUSES
-            if pi and pi.invoice and pi.invoice.subscription
-            else False
-        )
+        return getattr(self.stripe_subscription, "status", None) in self.CANCELABLE_SUBSCRIPTION_STATUSES
 
     @property
     def is_modifiable(self) -> bool:
-        pi = self._expanded_pi_for_cancelable_modifiable
-        return (
-            pi.invoice.subscription.status in self.MODIFIABLE_SUBSCRIPTION_STATUSES
-            if pi and pi.invoice and pi.invoice.subscription
-            else False
-        )
+        return getattr(self.stripe_subscription, "status", None) in self.CANCELABLE_SUBSCRIPTION_STATUSES
 
     @property
-    # TODO: [DEV-4333] Update this to be ._last_payment_date when no longer in conflict with db model field
+    # TODO: [DEV-4333] Update this to be .last_payment_date when no longer in conflict with db model field
     def _last_payment_date(self) -> datetime.datetime | None:
         """In short term while last payment date is still tracked on db level and is required by API consumers, we create this `_`
         prefixed property to avoid conflict with db field name. This will be removed once db field is removed.
@@ -1071,6 +1061,11 @@ class Payment(IndexedTimeStampedModel):
     amount_refunded = models.IntegerField()
     stripe_balance_transaction_id = models.CharField(max_length=255, unique=True)
     # TODO: [DEV-4379] Make transaction_time non-nullable once we've run data migration for existing payments
+    # NB: this is the time the payment was created in Stripe, not the time it was created in NRE. Additionally, note that we
+    # source this from the .created property on the balance transaction associated with the payment. There is also a
+    # Stripe payment intent, invoice, or charge associated with the balance transaction that has a .created property. We look
+    # to balance transaction since it is common to each of: one-time payment, recurring payment, and refund.
+    # Ultimately, this field gives us a way to sort by recency.
     transaction_time = models.DateTimeField(db_index=True, null=True)
 
     MISSING_EVENT_KW_ERROR_MSG = "Expected a keyword argument called `event`"

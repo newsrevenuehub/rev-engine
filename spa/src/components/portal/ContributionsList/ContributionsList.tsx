@@ -1,15 +1,24 @@
-import { ReactChild } from 'react';
+import { ReactChild, useState } from 'react';
+import { useParams } from 'react-router-dom';
+import { CircularProgress } from 'components/base';
 import { usePortalAuthContext } from 'hooks/usePortalAuth';
 import { usePortalContributionList } from 'hooks/usePortalContributionList';
-import ContributionItem from './ContributionItem';
+import ContributionItem from './ContributionItem/ContributionItem';
 import NoContributions from './NoContributions';
 import ContributionFetchError from './ContributionFetchError';
-import { MainContent, List, Root, Subhead, Columns, Loading } from './ContributionsList.styled';
-import { CircularProgress } from 'components/base';
+import ContributionDetail from './ContributionDetail/ContributionDetail';
+import { List, Root, Subhead, Columns, Loading, Legend, Detail, StyledPortalPage } from './ContributionsList.styled';
 
 export function ContributionsList() {
+  const { contributionId } = useParams<{ contributionId?: string }>();
   const { contributor } = usePortalAuthContext();
   const { contributions, isError, isLoading, refetch } = usePortalContributionList(contributor?.id);
+  const selectedContribution = contributionId
+    ? contributions.find((contribution) => contribution.id === parseInt(contributionId))
+    : null;
+  // This needs to be state instead of a ref to trigger effects in
+  // ContributionDetail when an item is selected.
+  const [selectedContributionEl, setSelectedContributionEl] = useState<HTMLAnchorElement | null>(null);
   let content: ReactChild;
 
   if (isLoading) {
@@ -19,12 +28,21 @@ export function ContributionsList() {
       </Loading>
     );
   } else if (isError) {
-    content = <ContributionFetchError onRetry={() => refetch()} />;
-  } else if (contributions?.length > 0) {
+    content = <ContributionFetchError message="Error loading contributions." onRetry={() => refetch()} />;
+  } else if (contributor && contributions?.length > 0) {
     content = (
-      <List>
+      <List $detailVisible={!!selectedContribution}>
         {contributions.map((contribution) => (
-          <ContributionItem contribution={contribution} key={contribution.id} />
+          <ContributionItem
+            contribution={contribution}
+            key={contribution.id}
+            // If a contribution is currently selected, selecting another one
+            // should replace it in history so that the back button always goes
+            // back to the list without detail.
+            replaceHistory={!!contributionId}
+            ref={selectedContribution === contribution ? setSelectedContributionEl : undefined}
+            selected={selectedContribution === contribution}
+          />
         ))}
       </List>
     );
@@ -33,15 +51,26 @@ export function ContributionsList() {
   }
 
   return (
-    <Root>
-      <Columns>
-        <MainContent>
-          <Subhead>Transactions</Subhead>
-          <p>View billing history, update payment details, and resend receipts.</p>
+    <StyledPortalPage>
+      <Root>
+        <Columns>
+          <Legend $detailVisible={!!selectedContribution}>
+            <Subhead>Transactions</Subhead>
+            <p>View billing history, update payment details, and resend receipts.</p>
+          </Legend>
           {content}
-        </MainContent>
-      </Columns>
-    </Root>
+          {contributor && selectedContribution && (
+            <Detail>
+              <ContributionDetail
+                domAnchor={selectedContributionEl}
+                contributionId={selectedContribution.id}
+                contributorId={contributor.id}
+              />
+            </Detail>
+          )}
+        </Columns>
+      </Root>
+    </StyledPortalPage>
   );
 }
 

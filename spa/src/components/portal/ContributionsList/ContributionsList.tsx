@@ -13,9 +13,8 @@ export function ContributionsList() {
   const { contributionId } = useParams<{ contributionId?: string }>();
   const { contributor } = usePortalAuthContext();
   const { contributions, isError, isLoading, refetch } = usePortalContributionList(contributor?.id);
-  const selectedContribution = contributionId
-    ? contributions.find((contribution) => contribution.id === parseInt(contributionId))
-    : null;
+  const selectedContribution =
+    contributionId && contributions.find((contribution) => contribution.id === parseInt(contributionId));
   // This needs to be state instead of a ref to trigger effects in
   // ContributionDetail when an item is selected.
   const [selectedContributionEl, setSelectedContributionEl] = useState<HTMLAnchorElement | null>(null);

@@ -30,7 +30,7 @@ export interface PortalContributionDetail extends PortalContribution {
   /**
    * Name on the credit card used in the contribution.
    */
-  credit_card_owner_name: string;
+  card_owner_name: string;
   /**
    * Were fees paid by the contributor?
    */
@@ -41,7 +41,7 @@ export interface PortalContributionDetail extends PortalContribution {
   payments: PortalContributionPayment[];
 }
 
-async function fetchContribution(contributorId: number, contributionId: string) {
+async function fetchContribution(contributorId: number, contributionId: number) {
   const { data } = await axios.get<PortalContributionDetail>(
     getContributionDetailEndpoint(contributorId, contributionId)
   );
@@ -52,7 +52,7 @@ async function fetchContribution(contributorId: number, contributionId: string) 
 /**
  * Manages a single contribution the user has made.
  */
-export function usePortalContribution(contributorId: number, contributionId: string) {
+export function usePortalContribution(contributorId: number, contributionId: number) {
   const { data, isError, isFetching, isLoading, refetch } = useQuery(
     [`portalContribution-${contributorId}-${contributionId}`],
     () => fetchContribution(contributorId, contributionId),

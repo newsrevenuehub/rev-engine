@@ -25,7 +25,7 @@ from apps.contributions.models import (
     ContributionStatus,
     Contributor,
 )
-from apps.contributions.serializers import ContributionSerializer
+from apps.contributions.serializers import ContributionSerializer, PortalContributionBaseSerializer
 from apps.contributions.tests.factories import ContributionFactory, ContributorFactory
 from apps.contributions.types import StripeMetadataSchemaBase, StripePaymentMetadataSchemaV1_4
 from apps.contributions.utils import get_sha256_hash
@@ -136,6 +136,19 @@ class TestContributionSerializer:
         )
 
         assert ContributionSerializer().get_provider_customer_url(make_serializer_object) == expected
+
+    def test__get_base_provider_url_when_payment_provider_used_not_stripe(self, mocker):
+        """Here to get otherwise un-run object code running in tests"""
+
+        class Klass:
+            payment_provider_used = "not-stripe"
+
+        assert ContributionSerializer()._get_base_provider_url(Klass()) is None
+
+    def test__get_resource_url_when_no_provider_url(self, mocker):
+        """Here to get otherwise un-run object code running in tests"""
+        mocker.patch("apps.contributions.serializers.ContributionSerializer._get_base_provider_url", return_value=None)
+        assert ContributionSerializer()._get_resource_url(None, None) == ""
 
 
 class TestAbstractPaymentSerializer:
@@ -1672,3 +1685,17 @@ class TestStripeMetadataSchemaBase:
     def test_normalize_boolean_when_value_is_not_valid_type(self, value):
         with pytest.raises(ValueError):
             StripeMetadataSchemaBase.normalize_boolean(value)
+
+
+class TestPortalContributionBaseSerializer:
+    @pytest.mark.parametrize(
+        "method, kwargs",
+        (
+            ("create", {"validated_data": {}}),
+            ("delete", {"instance": None}),
+            ("update", {"instance": None, "validated_data": {}}),
+        ),
+    )
+    def test_unsupported_methods(self, method, kwargs):
+        with pytest.raises(NotImplementedError):
+            getattr(PortalContributionBaseSerializer(), method)(**kwargs)

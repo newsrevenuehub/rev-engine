@@ -388,7 +388,10 @@ class TestProcessStripeWebhookTask:
             mock_process.side_effect = Contribution.DoesNotExist
         contribution_tasks.process_stripe_webhook_task(raw_event_data=payment_intent_succeeded)
         mock_process.assert_called_once()
-        if not contribution_found:
+        if contribution_found:
+            assert mock_logger.call_count == 1
+            assert mock_logger.call_args == mocker.call("Processing Stripe webhook event with ID %s", mocker.ANY)
+        else:
             assert mock_logger.call_args == mocker.call(
                 "Could not find contribution. Here's the event data: %s", mocker.ANY, exc_info=True
             )

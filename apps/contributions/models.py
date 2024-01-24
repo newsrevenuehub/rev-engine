@@ -4,10 +4,11 @@ import datetime
 import logging
 import uuid
 from dataclasses import asdict
-from functools import reduce, wraps
+from functools import cached_property, reduce, wraps
 from operator import or_
 from typing import Any, Callable, List
 from urllib.parse import quote_plus
+from zoneinfo import ZoneInfo
 
 from django.conf import settings
 from django.db import models
@@ -190,8 +191,8 @@ class Contribution(IndexedTimeStampedModel):
     provider_payment_method_id = models.CharField(max_length=255, blank=True, null=True)
     provider_payment_method_details = models.JSONField(null=True)
 
+    # TODO: [DEV-4333] Remove Contribution.last_payment_date in favor of derivation from payments
     last_payment_date = models.DateTimeField(null=True)
-
     contributor = models.ForeignKey("contributions.Contributor", on_delete=models.SET_NULL, null=True)
     donation_page = models.ForeignKey("pages.DonationPage", on_delete=models.PROTECT, null=True)
 
@@ -208,6 +209,18 @@ class Contribution(IndexedTimeStampedModel):
 
     objects = ContributionManager.from_queryset(ContributionQuerySet)()
 
+    CANCELABLE_SUBSCRIPTION_STATUSES = (
+        "trialing",
+        "active",
+        "past_due",
+    )
+    MODIFIABLE_SUBSCRIPTION_STATUSES = (
+        "incomplete",
+        "trialing",
+        "active",
+        "past_due",
+    )
+
     class Meta:
         get_latest_by = "modified"
         ordering = ["-created"]
@@ -220,6 +233,16 @@ class Contribution(IndexedTimeStampedModel):
 
     def __str__(self):
         return f"{self.formatted_amount}, {self.created.strftime('%Y-%m-%d %H:%M:%S')}"
+
+    @property
+    def next_payment_date(self) -> datetime.datetime | None:
+        if self.interval == ContributionInterval.ONE_TIME:
+            return None
+        if not self.stripe_subscription:
+            logger.warning("Expected a retrievable stripe subscription on contribution %s but none was found", self.id)
+            return None
+        next_date = self.stripe_subscription.current_period_end
+        return datetime.datetime.fromtimestamp(next_date, tz=ZoneInfo("UTC")) if next_date else None
 
     @property
     def formatted_amount(self) -> str:
@@ -480,6 +503,9 @@ class Contribution(IndexedTimeStampedModel):
         return subscription
 
     def cancel(self):
+        # this is specifically used when a user clicks "back" on the second payment form in checkout flow. it's not
+        # necessarily intended to be a general-purpose cancellation method (i.e., it is not appropriate for the `.destroy` method
+        # on the API endpoint)
         if self.status not in (ContributionStatus.PROCESSING, ContributionStatus.FLAGGED):
             logger.warning(
                 "`Contribution.cancel` called on contribution (ID: %s) with unexpected status %s",
@@ -607,7 +633,75 @@ class Contribution(IndexedTimeStampedModel):
             )
             return None
 
+    @cached_property
+    def card(self) -> stripe.Card | None:
+        if not (cust_id := self.provider_customer_id):
+            return None
+        customer = stripe.Customer.retrieve(
+            cust_id,
+            stripe_account=self.donation_page.revenue_program.payment_provider.stripe_account_id,
+            expand=["default_source"],
+        )
+        return customer.default_source if customer.default_source and customer.default_source.object == "card" else None
+
     @property
+    def card_brand(self) -> str:
+        return self.card.brand if self.card else ""
+
+    @property
+    def card_expiration_date(self) -> str:
+        return f"{self.card.exp_month}/{self.card.exp_year}" if self.card else ""
+
+    @property
+    def card_owner_name(self) -> str:
+        return self.card.name if self.card else ""
+
+    @property
+    def card_last_4(self) -> str:
+        return self.card.last4 if self.card else ""
+
+    @cached_property
+    def _expanded_pi_for_cancelable_modifiable(self) -> stripe.PaymentIntent | None:
+        if not self.provider_payment_id:
+            return None
+        return stripe.PaymentIntent.retrieve(
+            self.provider_payment_id, expand=["invoice.subscription"], stripe_account=self.stripe_account_id
+        )
+
+    @property
+    def is_cancelable(self) -> bool:
+        return getattr(self.stripe_subscription, "status", None) in self.CANCELABLE_SUBSCRIPTION_STATUSES
+
+    @property
+    def is_modifiable(self) -> bool:
+        return getattr(self.stripe_subscription, "status", None) in self.CANCELABLE_SUBSCRIPTION_STATUSES
+
+    @property
+    # TODO: [DEV-4333] Update this to be .last_payment_date when no longer in conflict with db model field
+    def _last_payment_date(self) -> datetime.datetime | None:
+        """In short term while last payment date is still tracked on db level and is required by API consumers, we create this `_`
+        prefixed property to avoid conflict with db field name. This will be removed once db field is removed.
+
+        This is used as a source for serializer fields elsewhere.
+        """
+        last_payment = self.payment_set.order_by("-transaction_time").first()
+        return last_payment.transaction_time if last_payment else None
+
+    @property
+    def paid_fees(self) -> bool:
+        return self.contribution_metadata.get("agreed_to_pay_fees", False)
+
+    @cached_property
+    def stripe_payment_method(self) -> stripe.PaymentMethod | None:
+        if not (pm_id := self.provider_payment_method_id):
+            return None
+        return stripe.PaymentMethod.retrieve(pm_id, stripe_account=self.stripe_account_id)
+
+    @property
+    def payment_type(self) -> str:
+        return self.stripe_payment_method.type if self.stripe_payment_method else ""
+
+    @cached_property
     def stripe_subscription(self) -> stripe.Subscription | None:
         if not all(
             [
@@ -966,6 +1060,13 @@ class Payment(IndexedTimeStampedModel):
     gross_amount_paid = models.IntegerField()
     amount_refunded = models.IntegerField()
     stripe_balance_transaction_id = models.CharField(max_length=255, unique=True)
+    # TODO: [DEV-4379] Make transaction_time non-nullable once we've run data migration for existing payments
+    # NB: this is the time the payment was created in Stripe, not the time it was created in NRE. Additionally, note that we
+    # source this from the .created property on the balance transaction associated with the payment. There is also a
+    # Stripe payment intent, invoice, or charge associated with the balance transaction that has a .created property. We look
+    # to balance transaction since it is common to each of: one-time payment, recurring payment, and refund.
+    # Ultimately, this field gives us a way to sort by recency.
+    transaction_time = models.DateTimeField(db_index=True, null=True)
 
     MISSING_EVENT_KW_ERROR_MSG = "Expected a keyword argument called `event`"
     ARG_IS_NOT_EVENT_TYPE_ERROR_MSG = "Expected `event` to be an instance of `StripeEventData`"
@@ -1109,6 +1210,9 @@ class Payment(IndexedTimeStampedModel):
                 "net_amount_paid": balance_transaction.net,
                 "amount_refunded": amount_refunded,
                 "gross_amount_paid": balance_transaction.amount,
+                "transaction_time": datetime.datetime.fromtimestamp(
+                    balance_transaction.created, tz=datetime.timezone.utc
+                ),
             },
         )
         return payment
@@ -1178,10 +1282,11 @@ class Payment(IndexedTimeStampedModel):
 
         return Payment.objects.create(
             contribution=contribution,
-            stripe_balance_transaction_id=refund["balance_transaction"],
+            stripe_balance_transaction_id=bt.id,
             net_amount_paid=0,
             gross_amount_paid=0,
             amount_refunded=refund["amount"],
+            transaction_time=datetime.datetime.fromtimestamp(bt.created, tz=datetime.timezone.utc),
         )
 
     @classmethod

@@ -1,6 +1,10 @@
+import datetime
+
 from django.core.management import call_command
 
 import pytest
+
+from apps.contributions.tests.factories import PaymentFactory
 
 
 @pytest.mark.parametrize("dry_run", (False, True))
@@ -28,3 +32,17 @@ def test_sync_missing_contribution_data_from_stripe(dry_run, monkeypatch, mocker
     mock_fix_pm_id.assert_called_once_with(dry_run=dry_run)
     mock_fix_pm_details.assert_called_once_with(dry_run=dry_run)
     mock_fix_missing_contribution_metadata.assert_called_once_with(dry_run=dry_run)
+
+
+@pytest.mark.django_db
+def test_sync_payment_transaction_time(mocker, balance_transaction_for_one_time_charge):
+    payment = PaymentFactory(transaction_time=None)
+    mocker.patch(
+        "stripe.BalanceTransaction.retrieve",
+        return_value=balance_transaction_for_one_time_charge,
+    )
+    call_command("sync_payment_transaction_time")
+    payment.refresh_from_db()
+    assert payment.transaction_time == datetime.datetime.fromtimestamp(
+        balance_transaction_for_one_time_charge.created, tz=datetime.timezone.utc
+    )

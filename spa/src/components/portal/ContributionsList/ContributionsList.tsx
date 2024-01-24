@@ -13,9 +13,8 @@ export function ContributionsList() {
   const { contributionId } = useParams<{ contributionId?: string }>();
   const { contributor } = usePortalAuthContext();
   const { contributions, isError, isLoading, refetch } = usePortalContributionList(contributor?.id);
-  const selectedContribution = contributions.find(
-    (contribution) => contribution.payment_provider_id === contributionId
-  );
+  const selectedContribution =
+    contributionId && contributions.find((contribution) => contribution.id === parseInt(contributionId));
   // This needs to be state instead of a ref to trigger effects in
   // ContributionDetail when an item is selected.
   const [selectedContributionEl, setSelectedContributionEl] = useState<HTMLAnchorElement | null>(null);
@@ -35,7 +34,7 @@ export function ContributionsList() {
         {contributions.map((contribution) => (
           <ContributionItem
             contribution={contribution}
-            key={contribution.payment_provider_id}
+            key={contribution.id}
             // If a contribution is currently selected, selecting another one
             // should replace it in history so that the back button always goes
             // back to the list without detail.
@@ -63,7 +62,7 @@ export function ContributionsList() {
             <Detail>
               <ContributionDetail
                 domAnchor={selectedContributionEl}
-                contributionId={selectedContribution.payment_provider_id}
+                contributionId={selectedContribution.id}
                 contributorId={contributor.id}
               />
             </Detail>

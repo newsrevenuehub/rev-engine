@@ -22,7 +22,7 @@ type Story = StoryObj<typeof PaymentMethodDemo>;
 export const Default: Story = {};
 Default.args = {
   card_brand: 'visa',
-  credit_card_expiration_date: '1/2001',
-  credit_card_owner_name: 'Jane Doe',
+  card_expiration_date: '1/2001',
+  card_owner_name: 'Jane Doe',
   interval: 'one_time'
 };

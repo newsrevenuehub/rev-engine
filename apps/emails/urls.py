@@ -6,8 +6,5 @@ from apps.emails import views
 # These allow viewing templated emails in isolation.
 
 debug_urlpatterns = [
-    path("contribution-confirmation/", views.preview_contribution_confirmation),
-    path("recurring-contribution/", views.preview_recurring_contribution_reminder),
-    path("recurring-contribution-canceled/", views.preview_recurring_contribution_canceled),
-    path("recurring-contribution-payment-updated/", views.preview_recurring_contribution_payment_updated),
+    path("contribution/<str:template_name>", views.preview_contribution_email_template),
 ]

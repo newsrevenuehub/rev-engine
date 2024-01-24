@@ -1,100 +1,81 @@
+from django.template import TemplateDoesNotExist
+
 import pytest
+import pytest_cases
 from rest_framework.test import APIRequestFactory
 
 from apps.organizations.tests.factories import RevenueProgramFactory
-from apps.pages.tests.factories import DonationPageFactory
 
-from ..views import (
-    preview_contribution_confirmation,
-    preview_recurring_contribution_canceled,
-    preview_recurring_contribution_payment_updated,
-    preview_recurring_contribution_reminder,
+from ..views import preview_contribution_email_template
+
+
+@pytest.mark.django_db()
+@pytest_cases.parametrize(
+    "template_name",
+    (
+        "recurring-contribution-email-reminder.html",
+        "recurring-contribution-email-reminder.txt",
+        "recurring-contribution-canceled.html",
+        "recurring-contribution-canceled.txt",
+        "recurring-contribution-payment-updated.html",
+        "recurring-contribution-payment-updated.txt",
+        "nrh-default-contribution-confirmation-email.html",
+        "nrh-default-contribution-confirmation-email.txt",
+    ),
 )
-
-
-# These are basic smoke tests of the methods. Testing that content is correct
-# happens in tests of methods that use these templates with real data.
-
-
-@pytest.mark.django_db()
-class TestContributionConfirmation:
-    def test_responds_200(self):
-        rp = RevenueProgramFactory()
-        assert preview_contribution_confirmation(APIRequestFactory().get(f"/?rp={rp.id}")).status_code == 200
-
-    def test_logo_override_responds_200(self):
-        rp = RevenueProgramFactory()
-        assert preview_contribution_confirmation(APIRequestFactory().get(f"/?rp={rp.id}&logo=test")).status_code == 200
-
-
-@pytest.mark.django_db()
-class TestRecurringContributionReminder:
-    def test_responds_200(self):
-        rp = RevenueProgramFactory()
-        assert preview_recurring_contribution_reminder(APIRequestFactory().get(f"/?rp={rp.id}")).status_code == 200
-
-    def test_logo_override_responds_200(self):
+class TestPreviewContributionEmailHappyPath:
+    def test_responds_200(self, template_name):
         rp = RevenueProgramFactory()
         assert (
-            preview_recurring_contribution_reminder(APIRequestFactory().get(f"/?rp={rp.id}&logo=test")).status_code
-            == 200
-        )
-
-
-@pytest.mark.django_db()
-class TestRecurringContributionCanceled:
-    def test_responds_200(self):
-        rp = RevenueProgramFactory()
-        assert preview_recurring_contribution_canceled(APIRequestFactory().get(f"/?rp={rp.id}")).status_code == 200
-
-    def test_logo_override_responds_200(self):
-        rp = RevenueProgramFactory()
-        assert (
-            preview_recurring_contribution_canceled(APIRequestFactory().get(f"/?rp={rp.id}&logo=test")).status_code
-            == 200
-        )
-
-    def test_sets_default_page_url(self):
-        rp = RevenueProgramFactory()
-        rp.default_donation_page = DonationPageFactory()
-        rp.save()
-        assert (
-            rp.default_donation_page.page_url
-            in preview_recurring_contribution_canceled(APIRequestFactory().get(f"/?rp={rp.id}")).content.decode()
-        )
-
-    def test_text_sends_plaintext(self):
-        rp = RevenueProgramFactory()
-        assert (
-            preview_recurring_contribution_canceled(APIRequestFactory().get(f"/?rp={rp.id}&text=y")).headers[
-                "Content-Type"
-            ]
-            == "text/plain"
-        )
-
-
-@pytest.mark.django_db()
-class TestRecurringContributionPaymentUpdated:
-    def test_responds_200(self):
-        rp = RevenueProgramFactory()
-        assert (
-            preview_recurring_contribution_payment_updated(APIRequestFactory().get(f"/?rp={rp.id}")).status_code == 200
-        )
-
-    def test_logo_override_responds_200(self):
-        rp = RevenueProgramFactory()
-        assert (
-            preview_recurring_contribution_payment_updated(
-                APIRequestFactory().get(f"/?rp={rp.id}&logo=test")
+            preview_contribution_email_template(
+                APIRequestFactory().get(f"/?rp_id={rp.id}"), template_name=template_name
             ).status_code
             == 200
         )
 
-    def test_text_sends_plaintext(self):
+    def test_logo_override_responds_200(self, template_name):
         rp = RevenueProgramFactory()
         assert (
-            preview_recurring_contribution_payment_updated(APIRequestFactory().get(f"/?rp={rp.id}&text=y")).headers[
-                "Content-Type"
-            ]
-            == "text/plain"
+            preview_contribution_email_template(
+                APIRequestFactory().get(f"/?rp_id={rp.id}&logo_url=logo"), template_name=template_name
+            ).status_code
+            == 200
+        )
+
+
+@pytest.mark.django_db()
+class TestPreviewContributionEmailUnhappyPath:
+    def test_responds_400_when_nonpermitted_template(self):
+        rp = RevenueProgramFactory()
+        assert (
+            preview_contribution_email_template(
+                APIRequestFactory().get(f"/?rp_id={rp.id}"), template_name="bad"
+            ).status_code
+            == 400
+        )
+
+    def test_responds_404_when_template_not_found(self, mocker):
+        mocker.patch("apps.emails.views.get_template", side_effect=TemplateDoesNotExist(""))
+        rp = RevenueProgramFactory()
+        assert (
+            preview_contribution_email_template(
+                APIRequestFactory().get(f"/?rp_id={rp.id}"), template_name="recurring-contribution-email-reminder.html"
+            ).status_code
+            == 404
+        )
+
+    def test_responds_400_when_rp_id_omitted(self):
+        assert (
+            preview_contribution_email_template(
+                APIRequestFactory().get(""), template_name="recurring-contribution-email-reminder.html"
+            ).status_code
+            == 400
+        )
+
+    def test_responds_404_when_rp_doesnt_exist(self):
+        assert (
+            preview_contribution_email_template(
+                APIRequestFactory().get("/?rp_id=1"), template_name="recurring-contribution-email-reminder.html"
+            ).status_code
+            == 404
         )

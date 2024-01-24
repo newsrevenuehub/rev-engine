@@ -15,8 +15,6 @@ jest.mock('./ContributionDetail/ContributionDetail');
 jest.mock('./ContributionItem/ContributionItem');
 jest.mock('./ContributionFetchError');
 
-const refetch = jest.fn();
-
 function tree(context?: Partial<PortalAuthContextResult>) {
   return render(
     <PortalAuthContext.Provider value={{ contributor: { id: 'mock-contributor-id' } as any, ...context }}>
@@ -36,7 +34,7 @@ describe('ContributionsList', () => {
       isError: false,
       isFetching: false,
       isLoading: false,
-      refetch
+      refetch: jest.fn()
     });
   });
 
@@ -125,6 +123,8 @@ describe('ContributionsList', () => {
   });
 
   describe('When contributions fail to load', () => {
+    const refetch = jest.fn();
+
     beforeEach(() => {
       usePortalContributionsListMock.mockReturnValue({
         refetch,
@@ -151,7 +151,7 @@ describe('ContributionsList', () => {
   describe('Sorting contributions', () => {
     it('should sort contributions by date by default', () => {
       tree();
-      expect(usePortalContributionsListMock).toBeCalledWith(expect.anything(), '?ordering=created');
+      expect(usePortalContributionsListMock).toBeCalledWith(expect.anything(), { ordering: 'created' });
     });
 
     it.each([
@@ -168,10 +168,8 @@ describe('ContributionsList', () => {
       userEvent.click(screen.getByRole('option', { name: option }));
 
       await waitFor(() => {
-        expect(usePortalContributionsListMock).toBeCalledWith('mock-contributor-id', `?ordering=${ordering}`);
+        expect(usePortalContributionsListMock).toBeCalledWith('mock-contributor-id', { ordering });
       });
-
-      expect(refetch).toBeCalledTimes(1);
     });
   });
 

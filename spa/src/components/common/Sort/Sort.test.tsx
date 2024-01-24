@@ -2,7 +2,7 @@ import { axe } from 'jest-axe';
 import { render, screen, waitFor } from 'test-utils';
 import userEvent from '@testing-library/user-event';
 
-import Sort, { SortProps, CONTRIBUTION_SORT_OPTIONS } from './Sort';
+import Sort, { SortProps } from './Sort';
 
 const onChange = jest.fn();
 
@@ -12,7 +12,7 @@ describe('Sort', () => {
       <Sort
         onChange={onChange}
         options={[
-          { label: 'option1', value: '1', selectedLabel: 'option1 selected' },
+          { label: 'option1 label', value: '1', selectedLabel: 'option1 selected' },
           { label: 'option2', value: '2', selectedLabel: 'option2 selected' }
         ]}
         {...props}
@@ -26,6 +26,7 @@ describe('Sort', () => {
     expect(screen.getByText('Sort:')).toBeVisible();
     expect(screen.getByRole('button')).toBeInTheDocument();
     expect(screen.getByText('option1 selected')).toBeVisible();
+    expect(screen.getByText('option1 label')).not.toBeVisible();
   });
 
   it('should update Sort value', async () => {
@@ -42,17 +43,6 @@ describe('Sort', () => {
 
     await waitFor(() => expect(screen.getByText('option2 selected')).toBeVisible());
     expect(screen.queryByText('option1 selected')).not.toBeInTheDocument();
-  });
-
-  it('should render Sort with contribution sort options', () => {
-    tree({ options: CONTRIBUTION_SORT_OPTIONS });
-
-    const selectedDate = screen.getAllByText('Date').find((el) => el.id === 'selected-label');
-    expect(selectedDate).toBeVisible();
-    userEvent.click(screen.getByRole('button'));
-    expect(screen.getByRole('option', { name: 'Date (most recent)' })).toBeVisible();
-    expect(screen.getByRole('option', { name: 'Status' })).toBeVisible();
-    expect(screen.getByRole('option', { name: 'Amount (high to low)' })).toBeVisible();
   });
 
   it('should be accessible', async () => {

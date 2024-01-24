@@ -1,4 +1,4 @@
-import { ReactChild, useEffect, useState } from 'react';
+import { ReactChild, useState } from 'react';
 import { useParams } from 'react-router-dom';
 import { CircularProgress } from 'components/base';
 import { usePortalAuthContext } from 'hooks/usePortalAuth';
@@ -8,18 +8,37 @@ import NoContributions from './NoContributions';
 import ContributionFetchError from './ContributionFetchError';
 import ContributionDetail from './ContributionDetail/ContributionDetail';
 import { List, Root, Subhead, Columns, Loading, Legend, Detail } from './ContributionsList.styled';
-import Sort, { CONTRIBUTION_SORT_OPTIONS } from 'components/common/Sort';
-import usePreviousState from 'hooks/usePreviousState';
+import Sort from 'components/common/Sort';
+
+const CONTRIBUTION_SORT_OPTIONS = [
+  {
+    label: (
+      <span>
+        Date <i>(most recent)</i>
+      </span>
+    ),
+    selectedLabel: 'Date',
+    value: 'created'
+  },
+  { label: 'Status', value: 'status' },
+  {
+    label: (
+      <span>
+        Amount <i>(high to low)</i>
+      </span>
+    ),
+    selectedLabel: 'Amount',
+    value: 'amount'
+  }
+];
 
 export function ContributionsList() {
   const { contributionId } = useParams<{ contributionId?: string }>();
   const { contributor } = usePortalAuthContext();
-  const [order, setOrder] = useState(CONTRIBUTION_SORT_OPTIONS[0].value);
-  const prevOrder = usePreviousState(order);
-  const { contributions, isError, isLoading, refetch } = usePortalContributionList(
-    contributor?.id,
-    `?ordering=${order}`
-  );
+  const [ordering, setOrdering] = useState(CONTRIBUTION_SORT_OPTIONS[0].value);
+  const { contributions, isError, isLoading, refetch } = usePortalContributionList(contributor?.id, {
+    ordering
+  });
 
   const selectedContribution = contributions.find(
     (contribution) => contribution.payment_provider_id === contributionId
@@ -28,12 +47,6 @@ export function ContributionsList() {
   // ContributionDetail when an item is selected.
   const [selectedContributionEl, setSelectedContributionEl] = useState<HTMLAnchorElement | null>(null);
   let content: ReactChild;
-
-  useEffect(() => {
-    if (prevOrder !== order && prevOrder !== undefined) {
-      refetch();
-    }
-  }, [order, prevOrder, refetch]);
 
   if (isLoading) {
     content = (
@@ -70,7 +83,7 @@ export function ContributionsList() {
         <Legend $detailVisible={!!selectedContribution}>
           <Subhead>Transactions</Subhead>
           <p>View billing history, update payment details, and resend receipts.</p>
-          <Sort options={CONTRIBUTION_SORT_OPTIONS} onChange={setOrder} />
+          <Sort options={CONTRIBUTION_SORT_OPTIONS} onChange={setOrdering} />
         </Legend>
         {content}
         {contributor && selectedContribution && (

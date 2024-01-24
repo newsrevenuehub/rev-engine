@@ -10,42 +10,20 @@ export interface SortProps extends InferProps<typeof SortPropTypes> {
   onChange?: (value: string) => void;
 }
 
-export const CONTRIBUTION_SORT_OPTIONS = [
-  {
-    label: (
-      <p style={{ margin: 0 }}>
-        Date <i>(most recent)</i>
-      </p>
-    ),
-    selectedLabel: 'Date',
-    value: 'created'
-  },
-  { label: 'Status', value: 'status' },
-  {
-    label: (
-      <p style={{ margin: 0 }}>
-        Amount <em>(high to low)</em>
-      </p>
-    ),
-    selectedLabel: 'Amount',
-    value: 'amount'
-  }
-];
-
 const Sort = ({ options, onChange, className = '' }: SortProps) => {
   const [value, setValue] = useState(options[0].value);
 
   const handleChange = (event: ChangeEvent<{ value: unknown }>) => {
     setValue(event.target.value as string);
-    if (typeof onChange === 'function') onChange(event.target.value as string);
+    onChange?.(event.target.value as string);
   };
 
   return (
     <SortWrapper className={className!}>
-      <Typography variant="body2" color="textSecondary">
+      <Typography variant="body2" color="textSecondary" id="sort">
         Sort:
       </Typography>
-      <Select options={options} value={value} onChange={handleChange} />
+      <Select aria-labelledby="sort" options={options} value={value} onChange={handleChange} />
     </SortWrapper>
   );
 };

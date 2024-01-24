@@ -1,4 +1,5 @@
 import { useQuery } from '@tanstack/react-query';
+import queryString from 'query-string';
 import axios from 'ajax/axios';
 import { getContributionsEndpoint } from 'ajax/endpoints';
 import { ContributionInterval } from 'constants/contributionIntervals';
@@ -90,10 +91,10 @@ async function fetchContributions(contributorId: number, queryParams?: string) {
  * Manages fetching the list of contributions a contributor sees when logging
  * into the portal.
  */
-export function usePortalContributionList(contributorId?: number, queryParams?: string) {
+export function usePortalContributionList(contributorId?: number, queryParams?: { ordering: string }) {
   const { data, isError, isFetching, isLoading, refetch } = useQuery(
-    ['portalContributionList'],
-    () => fetchContributions(contributorId!, queryParams),
+    ['portalContributionList', queryParams?.ordering],
+    () => fetchContributions(contributorId!, queryString.stringify(queryParams || {})),
     { enabled: !!contributorId, keepPreviousData: true }
   );
 

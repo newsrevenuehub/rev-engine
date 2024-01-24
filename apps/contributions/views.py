@@ -586,6 +586,19 @@ def contributor_contributions(request, id):
         response_data = json.load(fl)
     # we do this both to handle out of range page case and also to ensure the data we're returning to SPA which will
     # develop vs. looks way it does by virtue of our serializer which is meant to updhold contract with SPA
+
+    # Mock handling of ordering param
+    query_param = request.query_params.get("ordering")
+    if query_param:
+        if query_param == "created":
+            response_data["results"].sort(key=lambda x: x["created"], reverse=True)
+        elif query_param == "status":
+            response_data["results"].sort(key=lambda x: x["status"])
+        elif query_param == "amount":
+            response_data["results"].sort(key=lambda x: x["amount"], reverse=True)
+        else:
+            raise ParseError("Invalid ordering parameter")
+
     response_data["results"] = (
         [serializers.ContributionAgreementSerializer(SimpleNamespace(**x)).data for x in response_data["results"]]
         if params["page"] <= 2

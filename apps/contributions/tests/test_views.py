@@ -1,13 +1,17 @@
 import json
+from datetime import datetime, timedelta
 from unittest import mock
 
 from django.conf import settings
 from django.core.serializers.json import DjangoJSONEncoder
+from django.db.models import Q
 from django.http import Http404
 from django.test import RequestFactory, override_settings
 
+import dateparser
 import pytest
 import pytest_cases
+import pytz
 import stripe
 from addict import Dict as AttrDict
 from rest_framework import status
@@ -28,15 +32,24 @@ from apps.contributions.models import (
     ContributionQuerySet,
     ContributionStatus,
     Contributor,
+    Payment,
 )
 from apps.contributions.payment_managers import PaymentProviderError
-from apps.contributions.serializers import ContributionSerializer, SubscriptionsSerializer
+from apps.contributions.serializers import (
+    PORTAL_CONTRIBUTION_DETAIL_SERIALIZER_DB_FIELDS,
+    ContributionSerializer,
+    SubscriptionsSerializer,
+)
 from apps.contributions.tasks import (
     email_contribution_csv_export_to_user,
     task_pull_serialized_stripe_contributions_to_cache,
 )
 from apps.contributions.tests import RedisMock
-from apps.contributions.tests.factories import ContributionFactory, ContributorFactory
+from apps.contributions.tests.factories import (
+    ContributionFactory,
+    ContributorFactory,
+    PaymentFactory,
+)
 from apps.contributions.tests.test_serializers import (
     mock_get_bad_actor,
     mock_stripe_call_with_error,
@@ -179,6 +192,7 @@ class StripeOAuthTest(AbstractTestCase):
 
 
 @pytest.mark.django_db
+@pytest.mark.usefixtures("clear_cache")
 class TestContributionsViewSet:
     @pytest_cases.parametrize(
         "user,expected_status",
@@ -293,9 +307,9 @@ class TestContributionsViewSet:
     @pytest_cases.parametrize(
         "user",
         (
-            # pytest_cases.fixture_ref("org_user_free_plan"),
-            # pytest_cases.fixture_ref("rp_user"),
-            # pytest_cases.fixture_ref("hub_admin_user"),
+            pytest_cases.fixture_ref("org_user_free_plan"),
+            pytest_cases.fixture_ref("rp_user"),
+            pytest_cases.fixture_ref("hub_admin_user"),
             pytest_cases.fixture_ref("superuser"),
         ),
     )
@@ -1506,55 +1520,468 @@ class TestProcessStripeWebhook:
         )
 
 
-@pytest.mark.parametrize(
-    "query_params",
-    (
-        # base case
-        "",
-        # "supported" by the mock implementation (there are 2 pages with ten results)
-        "?page=1&page_size=10",
-        # full expected query params
-        "?page=1&page_size=10&interval=monthly&ordering=-amount",
-        # just documenting fact that arbitrary query params don't block the endpoint
-        "?foo=bar",
-    ),
-)
-def test_contributor_contributions_mocked_endpoint(api_client, query_params):
-    """In this test, we narrowly show that the mocked endpoint stands up. Real tests will come with real implementation"""
-    url = f'{reverse("contributor-contributions", args=(1,))}{query_params}'
-    response = api_client.get(url)
-    assert response.status_code == status.HTTP_200_OK
-    assert set(response.json().keys()) == {"results", "count", "next", "previous"}
-    assert len(response.json()["results"]) == 10
-
-
-def test_contributor_contribution_mocked_endpoint(api_client):
-    with open("apps/contributions/tests/fixtures/contributor-contributions-page-1.json") as fl:
-        fixture_data = json.load(fl)["results"][0]
-    response = api_client.get(
-        reverse(
-            "contributor-contribution",
-            kwargs={"contributor_id": "123", "contribution_id": fixture_data["payment_provider_id"]},
+@pytest.mark.django_db
+@pytest.mark.usefixtures("clear_cache")
+class TestPortalContributorsViewSet:
+    @pytest.fixture
+    def one_time_contribution(self, revenue_program, portal_contributor, mocker, faker):
+        contribution = ContributionFactory(
+            interval=ContributionInterval.ONE_TIME,
+            status=ContributionStatus.PAID,
+            donation_page__revenue_program=revenue_program,
+            contributor=portal_contributor,
+            provider_payment_id=faker.pystr_format(string_format="pi_??????"),
+            provider_customer_id=faker.pystr_format(string_format="cus_??????"),
+            provider_payment_method_id=faker.pystr_format(string_format="pm_??????"),
         )
-    )
-    assert response.status_code == status.HTTP_200_OK
-    response_json = response.json()
-    assert isinstance(response_json["credit_card_owner_name"], str)
-    assert isinstance(response_json["paid_fees"], bool)
-    assert len(response_json["payments"]) == 1
-    assert response_json["payments"][0]["amount_refunded"] == 0
-    assert response_json["payments"][0]["created"] == response_json["created"]
-    assert response_json["payments"][0]["gross_amount_paid"] == response_json["amount"]
-    assert response_json["payments"][0]["net_amount_paid"] == response_json["amount"]
-    for key in fixture_data:
-        assert response_json[key] == fixture_data[key]
-
-
-def test_contributor_contribution_mocked_endpoint_404(api_client):
-    response = api_client.get(
-        reverse(
-            "contributor-contribution",
-            kwargs={"contributor_id": "123", "contribution_id": "nonexistent"},
+        PaymentFactory(
+            contribution=contribution,
+            amount_refunded=0,
+            gross_amount_paid=contribution.amount,
+            net_amount_paid=contribution.amount - 100,
         )
+        return contribution
+
+    @pytest.fixture
+    def stripe_customer_factory(self, stripe_customer_default_source_expanded):
+        def _stripe_customer_expanded_factory(customer_id, customer_email):
+            return stripe.Customer.construct_from(
+                stripe_customer_default_source_expanded
+                | {
+                    "id": customer_id,
+                    "email": customer_email,
+                },
+                "some-id",
+            )
+
+        return _stripe_customer_expanded_factory
+
+    @pytest.fixture
+    def monthly_contribution(
+        self,
+        revenue_program,
+        portal_contributor,
+        faker,
+        stripe_subscription,
+    ):
+        then = datetime.now() - timedelta(days=30)
+        contribution = ContributionFactory(
+            interval=ContributionInterval.MONTHLY,
+            status=ContributionStatus.PAID,
+            created=then,
+            donation_page__revenue_program=revenue_program,
+            contributor=portal_contributor,
+            provider_payment_id=faker.pystr_format(string_format="pi_??????"),
+            provider_customer_id=faker.pystr_format(string_format="cus_??????"),
+            provider_subscription_id=stripe_subscription.id,
+            provider_payment_method_id=faker.pystr_format(string_format="pm_??????"),
+        )
+        for x in (then, then + timedelta(days=30)):
+            PaymentFactory(
+                created=x,
+                contribution=contribution,
+                amount_refunded=0,
+                gross_amount_paid=contribution.amount,
+                net_amount_paid=contribution.amount - 100,
+            )
+        return contribution
+
+    @pytest.fixture
+    def portal_contributor(self):
+        return ContributorFactory()
+
+    @pytest.fixture
+    def portal_contributor_with_multiple_contributions(
+        self,
+        portal_contributor,
+        monthly_contribution,
+        one_time_contribution,
+        stripe_customer_factory,
+        mocker,
+        stripe_subscription,
+    ):
+        cust_id = monthly_contribution.provider_customer_id
+        one_time_contribution.provider_customer_id = cust_id
+        one_time_contribution.save()
+
+        mock_customer_retrieve = mocker.patch(
+            "stripe.Customer.retrieve",
+            return_value=stripe_customer_factory(customer_id=cust_id, customer_email=portal_contributor.email),
+        )
+        stripe_subscription.customer.email = portal_contributor.email
+        mock_subscription_retrieve = mocker.patch("stripe.Subscription.retrieve", return_value=stripe_subscription)
+        mock_subscription_modify = mocker.patch("stripe.Subscription.modify")
+        mocker.patch("stripe.PaymentMethod.retrieve", return_value=stripe.PaymentMethod.construct_from({}, "some-id"))
+        mocker.patch(
+            "apps.contributions.models.Contribution.is_modifiable", return_value=True, new_callable=mocker.PropertyMock
+        )
+        mocker.patch(
+            "apps.contributions.models.Contribution.is_cancelable", return_value=True, new_callable=mocker.PropertyMock
+        )
+        return (
+            monthly_contribution.contributor,
+            mock_customer_retrieve,
+            mock_subscription_retrieve,
+            mock_subscription_modify,
+        )
+
+    def test_contributions_list_happy_path(self, portal_contributor_with_multiple_contributions, api_client):
+        contributor = portal_contributor_with_multiple_contributions[0]
+        api_client.force_authenticate(contributor)
+        response = api_client.get(reverse("portal-contributor-contributions-list", args=(contributor.id,)))
+        assert response.status_code == status.HTTP_200_OK
+        assert set(response.json().keys()) == {"count", "next", "previous", "results"}
+        assert len(response.json()["results"]) == 2
+        assert set(x["id"] for x in response.json()["results"]) == set(
+            contributor.contribution_set.all().values_list("id", flat=True)
+        )
+        for x in response.json()["results"]:
+            contribution = Contribution.objects.get(id=x["id"])
+            assert x["amount"] == contribution.amount
+            assert x["card_brand"] == contribution.card_brand
+            assert x["card_last_4"] == contribution.card_last_4
+            assert x["card_expiration_date"] == contribution.card_expiration_date
+            parsed = dateparser.parse(x["created"]).replace(tzinfo=pytz.UTC)
+            assert parsed == contribution.created
+            assert x["is_cancelable"] == contribution.is_cancelable
+            assert x["is_modifiable"] == contribution.is_modifiable
+            assert dateparser.parse(x["last_payment_date"]).replace(tzinfo=pytz.UTC) == contribution._last_payment_date
+            if contribution.interval == ContributionInterval.ONE_TIME:
+                assert x["next_payment_date"] is None
+            else:
+                assert (
+                    dateparser.parse(x["next_payment_date"]).replace(tzinfo=pytz.UTC) == contribution.next_payment_date
+                )
+            assert x["payment_type"] == contribution.payment_type
+            assert x["revenue_program"] == contribution.donation_page.revenue_program.id
+            assert x["status"] == contribution.status
+
+    def test_contributions_list_filter_behavior(self, api_client, portal_contributor_with_multiple_contributions):
+        contributor = portal_contributor_with_multiple_contributions[0]
+        api_client.force_authenticate(contributor)
+        (excluded := contributor.contribution_set.first()).status = ContributionStatus.FAILED
+        excluded.save()
+        response = api_client.get(
+            reverse("portal-contributor-contributions-list", args=(contributor.id,))
+            + f"?status={ContributionStatus.PAID}"
+        )
+        assert response.status_code == status.HTTP_200_OK
+        assert len(response.json()["results"]) == 1
+        assert (
+            response.json()["results"][0]["id"]
+            == contributor.contribution_set.filter(status=ContributionStatus.PAID).first().id
+        )
+
+    @pytest.mark.parametrize(
+        "ordering",
+        (
+            "amount",
+            "created",
+        ),
     )
-    assert response.status_code == status.HTTP_404_NOT_FOUND
+    @pytest.mark.parametrize("descending", (True, False))
+    def test_contributions_list_ordering_behavior(
+        self, portal_contributor_with_multiple_contributions, descending, ordering, api_client
+    ):
+        contributor = portal_contributor_with_multiple_contributions[0]
+        amount = 1000
+        # guarantee we have orderable values on amount
+        for x in Contribution.objects.all():
+            x.amount = amount
+            amount += 1000
+            x.payment_set.all().update(gross_amount_paid=x.amount, net_amount_paid=x.amount - 100)
+            x.save()
+        api_client.force_authenticate(contributor)
+        response = api_client.get(
+            reverse("portal-contributor-contributions-list", args=(contributor.id,))
+            + f"?ordering={'-' if descending else ''}{ordering}"
+        )
+        assert response.status_code == status.HTTP_200_OK
+        if descending:
+            assert response.json()["results"][0][ordering] > response.json()["results"][1][ordering]
+        else:
+            assert response.json()["results"][0][ordering] < response.json()["results"][1][ordering]
+
+    def test_contributions_list_pagination_behavior(
+        self, api_client, mocker, stripe_customer_default_source_expanded, stripe_payment_method
+    ):
+        mocker.patch(
+            "stripe.Customer.retrieve",
+            stripe.Customer.construct_from(stripe_customer_default_source_expanded, "some-id"),
+        )
+        mocker.patch(
+            "stripe.PaymentMethod.retrieve",
+            return_value=stripe.PaymentMethod.construct_from(stripe_payment_method, "some-id"),
+        )
+        contributor = ContributorFactory()
+        page = DonationPageFactory()
+        ContributionFactory.create_batch(20, contributor=contributor, donation_page=page)
+        api_client.force_authenticate(contributor)
+        response = api_client.get(reverse("portal-contributor-contributions-list", args=(contributor.id,)))
+        assert response.status_code == status.HTTP_200_OK
+        assert response.json().keys() == {"count", "next", "previous", "results"}
+        assert api_client.get(response.json()["next"]).status_code == status.HTTP_200_OK
+
+    @pytest.fixture(params=["superuser", "hub_admin_user", "org_user_free_plan", "rp_user"])
+    def non_contributor_user(self, request):
+        return request.getfixturevalue(request.param)
+
+    def test_contributions_list_when_im_not_contributor_user_type(
+        self, api_client, non_contributor_user, portal_contributor_with_multiple_contributions
+    ):
+        contributor = portal_contributor_with_multiple_contributions[0]
+        api_client.force_authenticate(non_contributor_user)
+        response = api_client.get(reverse("portal-contributor-contributions-list", args=(contributor.id,)))
+        assert response.status_code == status.HTTP_403_FORBIDDEN
+
+    def test_contributions_list_when_im_not_owning_contributor(
+        self, api_client, portal_contributor_with_multiple_contributions
+    ):
+        contributor = portal_contributor_with_multiple_contributions[0]
+        other_contributor = ContributorFactory()
+        api_client.force_authenticate(other_contributor)
+        response = api_client.get(reverse("portal-contributor-contributions-list", args=(contributor.id,)))
+        assert response.status_code == status.HTTP_403_FORBIDDEN
+
+    def test_contribution_detail_get_happy_path(
+        self,
+        api_client,
+        portal_contributor_with_multiple_contributions,
+    ):
+        contributor = portal_contributor_with_multiple_contributions[0]
+        api_client.force_authenticate(contributor)
+        for x in contributor.contribution_set.all():
+            response = api_client.get(
+                reverse(
+                    "portal-contributor-contribution-detail",
+                    args=(
+                        contributor.id,
+                        x.id,
+                    ),
+                )
+            )
+            assert response.status_code == status.HTTP_200_OK
+            for k in PORTAL_CONTRIBUTION_DETAIL_SERIALIZER_DB_FIELDS:
+                match k:
+                    case "payments":
+                        assert len(response.json()[k]) == x.payment_set.count()
+                        for y in response.json()[k]:
+                            payment = Payment.objects.get(id=y["id"])
+                            for z in (
+                                "gross_amount_paid",
+                                "net_amount_paid",
+                                "created",
+                                "transaction_time",
+                                "amount_refunded",
+                            ):
+                                compared_val = y[z]
+                                if z in ("created", "transaction_time"):
+                                    compared_val = dateparser.parse(compared_val).replace(tzinfo=pytz.UTC)
+                                assert getattr(payment, z) == compared_val
+
+                    case "revenue_program":
+                        assert response.json()[k] == x.donation_page.revenue_program.id
+
+                    case "created" | "last_payment_date":
+                        compare_val = dateparser.parse(response.json()[k]).replace(tzinfo=pytz.UTC)
+                        assert compare_val == getattr(x, k if k == "created" else "_last_payment_date")
+
+                    case "next_payment_date":
+                        compare_val = (
+                            dateparser.parse(response.json()[k]).replace(tzinfo=pytz.UTC)
+                            if x.interval != ContributionInterval.ONE_TIME
+                            else None
+                        )
+                        assert compare_val == getattr(x, k)
+
+                    case _:
+                        assert response.json()[k] == getattr(x, k)
+
+    def test_contribution_detail_get_when_im_not_contributor(
+        self, portal_contributor_with_multiple_contributions, non_contributor_user, api_client, mocker
+    ):
+        contributor = portal_contributor_with_multiple_contributions[0]
+        api_client.force_authenticate(non_contributor_user)
+        response = api_client.get(
+            reverse(
+                "portal-contributor-contribution-detail",
+                args=(
+                    contributor.id,
+                    contributor.contribution_set.first().id,
+                ),
+            ),
+        )
+        assert response.status_code == status.HTTP_403_FORBIDDEN
+
+    def test_contribution_detail_get_when_contribution_not_found(
+        self, api_client, portal_contributor_with_multiple_contributions
+    ):
+        contributor = portal_contributor_with_multiple_contributions[0]
+        deleted = contributor.contribution_set.first()
+        deleted_id = deleted.id
+        deleted.delete()
+        api_client.force_authenticate(contributor)
+        response = api_client.get(
+            reverse(
+                "portal-contributor-contribution-detail",
+                args=(
+                    contributor.id,
+                    deleted_id,
+                ),
+            )
+        )
+        assert response.status_code == status.HTTP_404_NOT_FOUND
+        assert response.json() == {"detail": "Contribution not found"}
+
+    def test_contribution_detail_get_when_not_own_contribution(
+        self, api_client, portal_contributor_with_multiple_contributions
+    ):
+        contributor = portal_contributor_with_multiple_contributions[0]
+        not_mine = ContributionFactory()
+        api_client.force_authenticate(contributor)
+        response = api_client.get(
+            reverse(
+                "portal-contributor-contribution-detail",
+                args=(
+                    contributor.id,
+                    not_mine.id,
+                ),
+            )
+        )
+        assert response.status_code == status.HTTP_404_NOT_FOUND
+        assert response.json() == {"detail": "Contribution not found"}
+
+    def test_contribution_detail_delete_happy_path(
+        self, api_client, portal_contributor_with_multiple_contributions, mocker
+    ):
+        contributor = portal_contributor_with_multiple_contributions[0]
+        mock_delete_sub = mocker.patch("stripe.Subscription.delete")
+        api_client.force_authenticate(contributor)
+        contribution = contributor.contribution_set.filter(~Q(interval=ContributionInterval.ONE_TIME)).first()
+        response = api_client.delete(
+            reverse("portal-contributor-contribution-detail", args=(contributor.id, contribution.id))
+        )
+        assert response.status_code == status.HTTP_204_NO_CONTENT
+        mock_delete_sub.assert_called_once_with(
+            contribution.provider_subscription_id,
+            stripe_account=contribution.donation_page.revenue_program.payment_provider.stripe_account_id,
+        )
+
+    def test_contribution_detail_delete_when_stripe_error(
+        self, api_client, portal_contributor_with_multiple_contributions, mocker
+    ):
+        contributor = portal_contributor_with_multiple_contributions[0]
+        mocker.patch("stripe.Subscription.delete", side_effect=stripe.error.StripeError("ruh roh"))
+        api_client.force_authenticate(contributor)
+        contribution = contributor.contribution_set.filter(~Q(interval=ContributionInterval.ONE_TIME)).first()
+        response = api_client.delete(
+            reverse("portal-contributor-contribution-detail", args=(contributor.id, contribution.id))
+        )
+        assert response.status_code == status.HTTP_500_INTERNAL_SERVER_ERROR
+        assert response.json() == {"detail": "Problem canceling contribution"}
+
+    def test_contribution_detail_delete_when_not_contributor(
+        self, api_client, portal_contributor_with_multiple_contributions, non_contributor_user
+    ):
+        contributor = portal_contributor_with_multiple_contributions[0]
+        contribution = contributor.contribution_set.filter(~Q(interval=ContributionInterval.ONE_TIME)).first()
+        api_client.force_authenticate(non_contributor_user)
+        response = api_client.delete(
+            reverse("portal-contributor-contribution-detail", args=(contributor.id, contribution.id))
+        )
+        assert response.status_code == status.HTTP_403_FORBIDDEN
+
+    def test_contribution_detail_delete_when_not_my_contribution(
+        self, api_client, portal_contributor_with_multiple_contributions
+    ):
+        contributor = portal_contributor_with_multiple_contributions[0]
+        contribution = ContributionFactory()
+        api_client.force_authenticate(contributor)
+        response = api_client.delete(
+            reverse("portal-contributor-contribution-detail", args=(contributor.id, contribution.id))
+        )
+        assert response.status_code == status.HTTP_404_NOT_FOUND
+
+    def test_contribution_detail_delete_when_contribution_not_found(
+        self, api_client, portal_contributor_with_multiple_contributions
+    ):
+        contributor = portal_contributor_with_multiple_contributions[0]
+        api_client.force_authenticate(contributor)
+        contribution = contributor.contribution_set.filter(~Q(interval=ContributionInterval.ONE_TIME)).first()
+        contribution_id = contribution.id
+        contribution.delete()
+        response = api_client.delete(
+            reverse("portal-contributor-contribution-detail", args=(contributor.id, contribution_id))
+        )
+        assert response.status_code == status.HTTP_404_NOT_FOUND
+
+    def test_contribution_detail_delete_when_subscription_not_cancelable(
+        self, api_client, portal_contributor_with_multiple_contributions, mocker
+    ):
+        mocker.patch(
+            "apps.contributions.models.Contribution.is_cancelable", return_value=False, new_callable=mocker.PropertyMock
+        )
+        contributor = portal_contributor_with_multiple_contributions[0]
+        api_client.force_authenticate(contributor)
+        contribution = contributor.contribution_set.filter(interval=ContributionInterval.ONE_TIME).first()
+        response = api_client.delete(
+            reverse("portal-contributor-contribution-detail", args=(contributor.id, contribution.id))
+        )
+        assert response.status_code == status.HTTP_400_BAD_REQUEST
+        assert response.json() == {"detail": "Cannot cancel contribution"}
+
+    @pytest.mark.parametrize(
+        "method, kwargs",
+        (("get", {}), ("patch", {"data": {"payment_method_id": "something"}}), ("delete", {})),
+    )
+    def test_views_when_contributor_not_found(
+        self, method, kwargs, api_client, portal_contributor_with_multiple_contributions
+    ):
+        contributor = portal_contributor_with_multiple_contributions[0]
+        contribution_id = contributor.contribution_set.filter(interval=ContributionInterval.ONE_TIME).first().id
+        contributor_id = contributor.id
+        api_client.force_authenticate(contributor)
+        contributor.delete()
+        response = getattr(api_client, method)(
+            reverse("portal-contributor-contribution-detail", args=(contributor_id, contribution_id)),
+            **kwargs,
+        )
+        assert response.status_code == status.HTTP_404_NOT_FOUND
+        assert response.json() == {"detail": "Contributor not found"}
+
+    @pytest.mark.parametrize(
+        "method, kwargs",
+        (("get", {}), ("patch", {"data": {"payment_method_id": "something"}}), ("delete", {})),
+    )
+    def test_views_when_contribution_not_found(
+        self, method, kwargs, api_client, portal_contributor_with_multiple_contributions
+    ):
+        contributor = portal_contributor_with_multiple_contributions[0]
+        contribution = contributor.contribution_set.filter(interval=ContributionInterval.ONE_TIME).first()
+        contribution_id = contribution.id
+        contribution.delete()
+        contributor_id = contributor.id
+        api_client.force_authenticate(contributor)
+        response = getattr(api_client, method)(
+            reverse("portal-contributor-contribution-detail", args=(contributor_id, contribution_id)),
+            **kwargs,
+        )
+        assert response.status_code == status.HTTP_404_NOT_FOUND
+        assert response.json() == {"detail": "Contribution not found"}
+
+    def test_contribution_detail_when_unsupported_method(
+        self, api_client, portal_contributor_with_multiple_contributions
+    ):
+        contributor = portal_contributor_with_multiple_contributions[0]
+        api_client.force_authenticate(contributor)
+        response = api_client.put(
+            reverse(
+                "portal-contributor-contribution-detail",
+                args=(
+                    contributor.id,
+                    contributor.contribution_set.first().id,
+                ),
+            ),
+            data={},
+        )
+        assert response.status_code == status.HTTP_405_METHOD_NOT_ALLOWED

@@ -240,7 +240,6 @@ class TestPaymentIntentPaymentFailed:
         ).exists()
         response = client.post(reverse("stripe-webhooks-contributions"), data=payment_intent_payment_failed, **header)
         assert response.status_code == status.HTTP_200_OK
-
         assert logger_spy.call_args == mocker.call(
             "Could not find contribution. Here's the event data: %s", mocker.ANY, exc_info=True
         )

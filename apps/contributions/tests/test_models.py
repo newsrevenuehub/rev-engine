@@ -947,63 +947,6 @@ class TestContributionModel:
             side_effect=lambda *args, **kwargs: MockForContributorReturn(),
         )
 
-    @pytest.fixture(
-        params=[("one_time_contribution", False), ("monthly_contribution", True), ("annual_contribution", True)]
-    )
-    def send_recurring_contribution_email_reminder_test_case(self, request):
-        return (
-            request.getfixturevalue(request.param[0]),
-            request.param[1],
-        )
-
-    # def test_send_recurring_contribution_email_reminder(
-    #     self,
-    #     send_recurring_contribution_email_reminder_test_case,
-    #     mocker,
-    #     settings,
-    #     synchronous_email_send_task,
-    #     mock_contributor_refresh_token,
-    # ):
-    #     contribution, expect_success = send_recurring_contribution_email_reminder_test_case
-    #     logger_spy = mocker.spy(logger, "warning")
-    #     mock_send_templated_email = mocker.spy(send_templated_email, "delay")
-    #     contribution.send_recurring_contribution_email_reminder(next_charge_date := datetime.datetime.now())
-    #     if expect_success:
-    #         magic_link = mark_safe(
-    #             f"https://{construct_rp_domain(contribution.donation_page.revenue_program.slug)}/{settings.CONTRIBUTOR_VERIFY_URL}"
-    #             f"?token={SHORT_LIVED_ACCESS_TOKEN}&email={quote_plus(contribution.contributor.email)}"
-    #         )
-    #         logger_spy.assert_not_called()
-    #         mock_send_templated_email.assert_called_once_with(
-    #             contribution.contributor.email,
-    #             f"Reminder: {contribution.donation_page.revenue_program.name} scheduled contribution",
-    #             render_to_string(
-    #                 "recurring-contribution-email-reminder.txt",
-    #                 (
-    #                     data := {
-    #                         "rp_name": contribution.donation_page.revenue_program.name,
-    #                         "contribution_amount": contribution.formatted_amount,
-    #                         "contribution_interval_display_value": contribution.interval,
-    #                         "non_profit": contribution.donation_page.revenue_program.non_profit,
-    #                         "contributor_email": contribution.contributor.email,
-    #                         "tax_id": contribution.donation_page.revenue_program.tax_id,
-    #                         "magic_link": magic_link,
-    #                         "fiscal_status": contribution.donation_page.revenue_program.fiscal_status,
-    #                         "fiscal_sponsor_name": contribution.donation_page.revenue_program.fiscal_sponsor_name,
-    #                         "style": asdict(contribution.donation_page.revenue_program.transactional_email_style),
-    #                         "timestamp": next_charge_date.strftime("%m/%d/%Y"),
-    #                     }
-    #                 ),
-    #             ),
-    #             render_to_string("recurring-contribution-email-reminder.html", data),
-    #         )
-    #         assert len(mail.outbox) == 1
-    #     else:
-    #         logger_spy.assert_called_once_with(
-    #             "`Contribution.send_recurring_contribution_email_reminder` was called on an instance (ID: %s) whose interval is one-time",
-    #             contribution.id,
-    #         )
-
     @pytest_cases.parametrize(
         "revenue_program",
         (

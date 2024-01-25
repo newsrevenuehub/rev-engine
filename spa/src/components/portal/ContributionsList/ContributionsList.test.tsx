@@ -152,7 +152,7 @@ describe('ContributionsList', () => {
   describe('Sorting contributions', () => {
     it('should sort contributions by date by default', () => {
       tree();
-      expect(usePortalContributionsListMock).toBeCalledWith(expect.anything(), { ordering: 'created' });
+      expect(usePortalContributionsListMock).toBeCalledWith(expect.anything(), { ordering: '-created' });
     });
 
     it.each([
@@ -169,7 +169,7 @@ describe('ContributionsList', () => {
       userEvent.click(screen.getByRole('option', { name: option }));
 
       await waitFor(() => {
-        expect(usePortalContributionsListMock).toBeCalledWith(expect.anything(), { ordering });
+        expect(usePortalContributionsListMock).toBeCalledWith(expect.anything(), { ordering: `-${ordering}` });
       });
     });
   });

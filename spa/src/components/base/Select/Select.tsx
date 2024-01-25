@@ -1,7 +1,6 @@
 import styled from 'styled-components';
-// import { Select as MuiSelect, SelectProps as MuiSelectProps } from '@material-ui/core';
 import MenuItem from '../MenuItem/MenuItem';
-import { ReactNode } from 'react';
+import { ReactNode, forwardRef } from 'react';
 import TextField, { TextFieldProps } from '../TextField/TextField';
 
 export type SelectProps = TextFieldProps & {
@@ -40,11 +39,19 @@ const StyledMenuItem = styled(MenuItem)`
   }
 `;
 
-export function Select(props: SelectProps) {
+export const Select = forwardRef<HTMLDivElement, SelectProps>((props, ref) => {
   const { options, ...other } = props;
 
   return (
-    <StyledSelect select variant="outlined" SelectProps={{ classes: { selectMenu: 'NreSelectMenu' } }} {...other}>
+    <StyledSelect
+      select
+      variant="outlined"
+      // As a select no InputProps are needed, so we override TextField's default to avoid console errors
+      InputProps={{}}
+      SelectProps={{ classes: { selectMenu: 'NreSelectMenu' } }}
+      ref={ref}
+      {...other}
+    >
       {options.map((item) => (
         <StyledMenuItem key={item.value} value={item.value}>
           <span id="menu-label">{item.label}</span>
@@ -53,6 +60,6 @@ export function Select(props: SelectProps) {
       ))}
     </StyledSelect>
   );
-}
+});
 
 export default Select;

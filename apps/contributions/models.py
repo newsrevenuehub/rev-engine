@@ -569,7 +569,6 @@ class Contribution(IndexedTimeStampedModel):
         if not self.provider_customer_id:
             logger.error("No Stripe customer ID for contribution with ID %s", self.id)
             return
-
         try:
             customer = stripe.Customer.retrieve(
                 self.provider_customer_id,
@@ -585,15 +584,15 @@ class Contribution(IndexedTimeStampedModel):
         data = {
             "contribution_amount": self.formatted_amount,
             "contribution_interval_display_value": self.interval,
-            "contributor_name": customer.name,
-            "non_profit": self.donation_page.revenue_program.non_profit,
             "contributor_email": self.contributor.email,
-            "tax_id": self.donation_page.revenue_program.tax_id,
-            "fiscal_status": self.donation_page.revenue_program.fiscal_status,
+            "contributor_name": customer.name,
             "fiscal_sponsor_name": self.donation_page.revenue_program.fiscal_sponsor_name,
-            "magic_link": self.contributor.create_magic_link(self),
+            "fiscal_status": self.donation_page.revenue_program.fiscal_status,
+            "magic_link": Contributor.create_magic_link(self),
+            "non_profit": self.donation_page.revenue_program.non_profit,
             "rp_name": self.donation_page.revenue_program.name,
             "style": asdict(self.donation_page.revenue_program.transactional_email_style),
+            "tax_id": self.donation_page.revenue_program.tax_id,
             "timestamp": datetime.datetime.today().strftime("%m/%d/%Y"),
         }
 
@@ -617,41 +616,10 @@ class Contribution(IndexedTimeStampedModel):
             "New change to your contribution", "recurring-contribution-payment-updated"
         )
 
-    def send_recurring_contribution_email_reminder(self, next_charge_date: datetime.date) -> None:
-        # vs. circular import
-        from apps.api.views import construct_rp_domain
-        from apps.emails.tasks import send_templated_email
-
-        if self.interval == ContributionInterval.ONE_TIME:
-            logger.warning(
-                "`Contribution.send_recurring_contribution_email_reminder` was called on an instance (ID: %s) whose interval is one-time",
-                self.id,
-            )
-            return
-        token = str(ContributorRefreshToken.for_contributor(self.contributor.uuid).short_lived_access_token)
-        data = {
-            "rp_name": self.donation_page.revenue_program.name,
-            # nb, we have to send this as pre-formatted because this data will be serialized
-            # when sent to the Celery worker.
-            "timestamp": next_charge_date.strftime("%m/%d/%Y"),
-            "contribution_amount": self.formatted_amount,
-            "contribution_interval_display_value": self.interval,
-            "non_profit": self.donation_page.revenue_program.non_profit,
-            "contributor_email": self.contributor.email,
-            "tax_id": self.donation_page.revenue_program.tax_id,
-            "fiscal_status": self.donation_page.revenue_program.fiscal_status,
-            "fiscal_sponsor_name": self.donation_page.revenue_program.fiscal_sponsor_name,
-            "magic_link": mark_safe(
-                f"https://{construct_rp_domain(self.donation_page.revenue_program.slug)}/{settings.CONTRIBUTOR_VERIFY_URL}"
-                f"?token={token}&email={quote_plus(self.contributor.email)}"
-            ),
-            "style": asdict(self.donation_page.revenue_program.transactional_email_style),
-        }
-        send_templated_email.delay(
-            self.contributor.email,
+    def send_recurring_contribution_email_reminder(self) -> None:
+        self.send_recurring_contribution_change_email(
             f"Reminder: {self.donation_page.revenue_program.name} scheduled contribution",
-            render_to_string("recurring-contribution-email-reminder.txt", data),
-            render_to_string("recurring-contribution-email-reminder.html", data),
+            "recurring-contribution-email-reminder",
         )
 
     @property

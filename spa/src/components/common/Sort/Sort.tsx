@@ -10,20 +10,20 @@ export interface SortProps extends InferProps<typeof SortPropTypes> {
   onChange?: (value: string) => void;
 }
 
-const Sort = ({ options, onChange, className = '' }: SortProps) => {
+const Sort = ({ id, options, onChange, className = '' }: SortProps) => {
   const [value, setValue] = useState(options[0].value);
 
-  const handleChange = (event: ChangeEvent<{ value: unknown }>) => {
-    setValue(event.target.value as string);
-    onChange?.(event.target.value as string);
+  const handleChange = (event: ChangeEvent<{ value: string }>) => {
+    setValue(event.target.value);
+    onChange?.(event.target.value);
   };
 
   return (
     <SortWrapper className={className!}>
-      <Typography variant="body2" color="textSecondary" id="sort">
+      <Typography variant="body2" color="textSecondary" id={id}>
         Sort:
       </Typography>
-      <Select aria-labelledby="sort" options={options} value={value} onChange={handleChange} />
+      <Select aria-labelledby={id} options={options} value={value} onChange={handleChange} />
     </SortWrapper>
   );
 };
@@ -37,7 +37,8 @@ const SortPropTypes = {
     }).isRequired
   ).isRequired,
   className: PropTypes.string,
-  onChange: PropTypes.func
+  onChange: PropTypes.func,
+  id: PropTypes.string.isRequired
 };
 
 Sort.propTypes = SortPropTypes;

@@ -10,6 +10,7 @@ describe('Sort', () => {
   function tree(props?: Partial<SortProps>) {
     return render(
       <Sort
+        id="sort"
         onChange={onChange}
         options={[
           { label: 'option1 label', value: '1', selectedLabel: 'option1 selected' },

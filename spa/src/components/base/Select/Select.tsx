@@ -1,22 +1,21 @@
 import styled from 'styled-components';
-import { Select as MuiSelect, SelectProps as MuiSelectProps } from '@material-ui/core';
+// import { Select as MuiSelect, SelectProps as MuiSelectProps } from '@material-ui/core';
 import MenuItem from '../MenuItem/MenuItem';
 import { ReactNode } from 'react';
+import TextField, { TextFieldProps } from '../TextField/TextField';
 
-export interface SelectProps extends MuiSelectProps {
+export type SelectProps = TextFieldProps & {
   options: Array<{ label: ReactNode; value: string | number; selectedLabel?: string | null }>;
-}
+};
 
-const StyledSelect = styled(MuiSelect)`
+const StyledSelect = styled(TextField)`
   && {
-    .NreSelect {
+    .NreSelectMenu {
       padding: 9px 32px 9px 12px;
       min-width: 92px;
       box-sizing: border-box;
-    }
-
-    .NreSelectMenu {
       color: #707070;
+      background-color: #f9f9f9;
 
       #menu-label {
         display: none;
@@ -45,7 +44,7 @@ export function Select(props: SelectProps) {
   const { options, ...other } = props;
 
   return (
-    <StyledSelect variant="outlined" classes={{ root: 'NreSelect', selectMenu: 'NreSelectMenu' }} {...other}>
+    <StyledSelect select variant="outlined" SelectProps={{ classes: { selectMenu: 'NreSelectMenu' } }} {...other}>
       {options.map((item) => (
         <StyledMenuItem key={item.value} value={item.value}>
           <span id="menu-label">{item.label}</span>

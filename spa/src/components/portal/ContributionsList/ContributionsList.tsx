@@ -83,7 +83,7 @@ export function ContributionsList() {
         <Legend $detailVisible={!!selectedContribution}>
           <Subhead>Transactions</Subhead>
           <p>View billing history, update payment details, and resend receipts.</p>
-          <Sort options={CONTRIBUTION_SORT_OPTIONS} onChange={setOrdering} />
+          <Sort options={CONTRIBUTION_SORT_OPTIONS} onChange={setOrdering} id="contributions-sort" />
         </Legend>
         {content}
         {contributor && selectedContribution && (

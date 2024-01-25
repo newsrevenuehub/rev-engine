@@ -3,6 +3,8 @@ import { render, screen } from 'test-utils';
 import { PortalContributionDetail } from 'hooks/usePortalContribution';
 import BillingDetails, { BillingDetailsProps, INTERVAL_NAMES } from './BillingDetails';
 
+jest.mock('../DetailSection/DetailSection');
+
 const mockContribution: PortalContributionDetail = {
   amount: 12345,
   card_brand: 'amex',
@@ -32,6 +34,21 @@ describe('BillingDetails', () => {
   it('shows a header', () => {
     tree();
     expect(screen.getByText('Billing Details')).toBeInTheDocument();
+  });
+
+  it("doesn't highlight its section", () => {
+    tree();
+    expect(screen.getByTestId('mock-detail-section').dataset.highlighted).toBeUndefined();
+  });
+
+  it('enables its section if not passed a disabled prop', () => {
+    tree();
+    expect(screen.getByTestId('mock-detail-section').dataset.disabled).toBeUndefined();
+  });
+
+  it('disables its section if passed a disabled prop', () => {
+    tree({ disabled: true });
+    expect(screen.getByTestId('mock-detail-section').dataset.disabled).toBe('true');
   });
 
   it('shows the formatted amount of the contribution', () => {

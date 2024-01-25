@@ -18,7 +18,7 @@
     "@stripe/stripe-js": "^1.14.0",
     "@tanstack/react-query": "^4.3.4",
     "analytics": "^0.7.11",
-    "axios": "^0.21.1",
+    "axios": "^1.6.6",
     "country-code-lookup": "^0.0.20",
     "date-fns": "^2.22.1",
     "dompurify": "^2.4.1",

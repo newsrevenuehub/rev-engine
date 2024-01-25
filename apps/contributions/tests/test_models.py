@@ -495,7 +495,9 @@ class TestContributionModel:
         ),
     )
     @pytest.mark.parametrize("send_receipt_email_via_nre", (True, False))
-    def test_handle_thank_you_email(self, contribution, send_receipt_email_via_nre, mocker, settings):
+    def test_handle_thank_you_email(
+        self, contribution, send_receipt_email_via_nre, mocker, settings, mock_stripe_customer
+    ):
         """Show that when org configured to have NRE send thank you emails, send_templated_email
         gets called with expected args.
         """
@@ -505,8 +507,7 @@ class TestContributionModel:
         ).send_receipt_email_via_nre = send_receipt_email_via_nre
         org.save()
         send_thank_you_email_spy = mocker.spy(send_thank_you_email, "delay")
-        customer_name = "Fake Customer Name"
-        mocker.patch("stripe.Customer.retrieve", return_value=AttrDict({"name": customer_name}))
+
         mocker.patch("apps.contributions.models.Contributor.create_magic_link", return_value="fake_magic_link")
         contribution.handle_thank_you_email()
         expected_data = make_send_thank_you_email_data(contribution)
@@ -947,6 +948,10 @@ class TestContributionModel:
             side_effect=lambda *args, **kwargs: MockForContributorReturn(),
         )
 
+    @pytest.fixture
+    def mock_stripe_customer(self, mocker):
+        mocker.patch("stripe.Customer.retrieve", return_value=AttrDict({"name": "Fake Customer Name"}))
+
     @pytest_cases.parametrize(
         "revenue_program",
         (
@@ -972,13 +977,13 @@ class TestContributionModel:
         annual_contribution,
         mock_contributor_refresh_token,
         synchronous_email_send_task,
+        mock_stripe_customer,
         mocker,
     ):
         revenue_program.tax_id = tax_id
         revenue_program.save()
         annual_contribution.donation_page.revenue_program = revenue_program
         annual_contribution.donation_page.save()
-        mocker.patch("stripe.Customer.retrieve", return_value=AttrDict({"name": "Fake Customer Name"}))
         mocker.spy(send_templated_email, "delay")
         now = datetime.datetime.now()
 
@@ -1063,12 +1068,10 @@ class TestContributionModel:
         email_method_name,
         synchronous_email_send_task,
         mock_contributor_refresh_token,
+        mock_stripe_customer,
         annual_contribution,
         settings,
-        mocker,
     ):
-        mocker.patch("stripe.Customer.retrieve", return_value=AttrDict({"name": "Fake Customer Name"}))
-
         if has_default_donation_page:
             style = StyleFactory()
             style.styles = style.styles | {

@@ -21,19 +21,19 @@ export function PaymentMethod({ contribution }: PaymentMethodProps) {
       <Columns>
         <div>
           <Subheading>Name on Card</Subheading>
-          <Detail data-testid="cc_owner_name">{contribution.credit_card_owner_name}</Detail>
+          <Detail data-testid="cc_owner_name">{contribution.card_owner_name}</Detail>
         </div>
         <div></div>
         <div>
           <Subheading>Credit Card</Subheading>
           <Detail>
             <span data-testid="card_brand">{formattedCardBrands[contribution.card_brand]}</span>{' '}
-            <LastCardDigits data-testid="last4">{contribution.last4}</LastCardDigits>
+            <LastCardDigits data-testid="last4">{contribution.card_last_4}</LastCardDigits>
           </Detail>
         </div>
         <div>
           <Subheading>Expiration</Subheading>
-          <Detail data-testid="expiration">{contribution.credit_card_expiration_date}</Detail>
+          <Detail data-testid="expiration">{contribution.card_expiration_date}</Detail>
         </div>
       </Columns>
     </>

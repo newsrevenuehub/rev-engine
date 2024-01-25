@@ -10,7 +10,7 @@ jest.mock('./MobileHeader');
 jest.mock('./PaymentMethod');
 
 function tree(props?: Partial<ContributionDetailProps>) {
-  return render(<ContributionDetail contributionId="mock-contribution-id" contributorId={123} {...props} />);
+  return render(<ContributionDetail contributionId={1} contributorId={123} {...props} />);
 }
 
 describe('ContributionDetail', () => {
@@ -26,7 +26,7 @@ describe('ContributionDetail', () => {
     });
 
     tree();
-    expect(usePortalContributionMock).toBeCalledWith(123, 'mock-contribution-id');
+    expect(usePortalContributionMock).toBeCalledWith(123, 1);
   });
 
   describe('While the contribution is loading', () => {
@@ -77,7 +77,7 @@ describe('ContributionDetail', () => {
 
   describe('When the contribution has loaded', () => {
     const mockContribution = {
-      payment_provider_id: 'mock-id',
+      id: 1,
       payments: [{ mock: true }]
     };
 
@@ -97,7 +97,7 @@ describe('ContributionDetail', () => {
       const component = screen.getByTestId(`mock-${name.replace(' ', '-')}`);
 
       expect(component).toBeInTheDocument();
-      expect(component.dataset.contribution).toBe(mockContribution.payment_provider_id);
+      expect(component.dataset.contribution).toBe(`${mockContribution.id}`);
     });
 
     it('shows the billing history', () => {

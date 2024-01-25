@@ -9,152 +9,84 @@ import pytest
 
 from apps.contributions.models import Contribution
 from apps.contributions.tests.factories import ContributionFactory
+from apps.contributions.types import StripeEventData
 from apps.contributions.webhooks import StripeWebhookProcessor
 
 
-@pytest.fixture
-def subscription_event():
-    return {
-        "id": "evt_1J4X2n2eZvKYlo2C0QYQXZ0K",
-        "type": "customer.subscription.updated",
-        "data": {
-            "object": {
-                "object": "subscription",
-                "id": "sub_1J4X2n2eZvKYlo2C0QYQXZ0K",
-            }
-        },
-    }
-
-
-@pytest.fixture
-def payment_method_event():
-    return {
-        "id": "evt_1J4X2n2eZvKYlo2C0QYQXZ0K",
-        "type": "payment_method.attached",
-        "data": {
-            "object": {
-                "object": "payment_method",
-                "id": "pm_1J4X2n2eZvKYlo2C0QYQXZ0K",
-                "customer": "cus_1J4X2n2eZvKYlo2C0QYQXZ0K",
-            }
-        },
-    }
-
-
-@pytest.fixture()
-def payment_intent_event():
-    return {
-        "id": "evt_1J4X2n2eZvKYlo2C0QYQXZ0K",
-        "type": "payment_intent.succeeded",
-        "account": "some-account-id",
-        "data": {
-            "object": {
-                "id": "pi_1J4X2n2eZvKYlo2C0QYQXZ0K",
-                "object": "payment_intent",
-                "customer": "cus_1J4X2n2eZvKYlo2C0QYQXZ0K",
-            }
-        },
-    }
-
-
-@pytest.fixture
-def invoice_upcoming_event():
-    return {
-        "id": "evt_1J4X2n2eZvKYlo2C0QYQXZ0K",
-        "type": "invoice",
-        "data": {
-            "object": {
-                "object": "invoice",
-                "subscription": "sub_1J4X2n2eZvKYlo2C0QYQXZ0K",
-            }
-        },
-    }
-
-
 @pytest.mark.django_db
+@pytest.mark.usefixtures("suppress_stripe_webhook_sig_verification")
 class TestStripeWebhookProcessor:
-    @pytest.mark.parametrize("found", [True, False])
-    def test_contribution_when_subscription(self, found, subscription_event):
-        contribution = (
-            ContributionFactory(provider_subscription_id=subscription_event["data"]["object"]["id"]) if found else None
+    @pytest.fixture
+    def payment_intent_test_case(self, payment_intent_succeeded_one_time_event):
+        contribution = ContributionFactory(
+            provider_payment_id=payment_intent_succeeded_one_time_event["data"]["object"]["id"]
         )
-        processor = StripeWebhookProcessor(subscription_event)
-        if found:
-            assert processor.contribution == contribution
-        else:
-            with pytest.raises(Contribution.DoesNotExist):
-                processor.contribution
-
-    @pytest.mark.parametrize(
-        "found_by_customer_id, found_by_provider_payment_id, expect_found",
-        [
-            (True, True, True),
-            (True, False, True),
-            (False, True, True),
-            (False, False, False),
-        ],
-    )
-    def test_contribution_when_payment_intent(
-        self, found_by_customer_id, found_by_provider_payment_id, expect_found, payment_intent_event
-    ):
-        data = {}
-        if found_by_customer_id:
-            data["provider_customer_id"] = payment_intent_event["data"]["object"]["customer"]
-        if found_by_provider_payment_id:
-            data["provider_payment_id"] = payment_intent_event["data"]["object"]["id"]
-        contribution = ContributionFactory(**data)
-        processor = StripeWebhookProcessor(payment_intent_event)
-        if expect_found:
-            assert processor.contribution == contribution
-        else:
-            with pytest.raises(Contribution.DoesNotExist):
-                processor.contribution
-
-    @pytest.mark.parametrize("found", [True, False])
-    def test_contribution_when_payment_method(self, found, payment_method_event):
-        contribution = (
-            ContributionFactory(provider_customer_id=payment_method_event["data"]["object"]["customer"])
-            if found
-            else None
-        )
-        processor = StripeWebhookProcessor(payment_method_event)
-        if found:
-            assert processor.contribution == contribution
-        else:
-            with pytest.raises(Contribution.DoesNotExist):
-                processor.contribution
-
-    @pytest.mark.parametrize("found", [True, False])
-    def test_contribution_when_invoice(self, found, invoice_upcoming_event):
-        contribution = (
-            ContributionFactory(provider_subscription_id=invoice_upcoming_event["data"]["object"]["subscription"])
-            if found
-            else None
-        )
-        processor = StripeWebhookProcessor(invoice_upcoming_event)
-        if found:
-            assert processor.contribution == contribution
-        else:
-            with pytest.raises(Contribution.DoesNotExist):
-                processor.contribution
+        return payment_intent_succeeded_one_time_event, contribution
 
     @pytest.fixture
-    def unexpected_event(self):
-        return {
-            "id": "evt_1J4X2n2eZvKYlo2C0QYQXZ0K",
-            "type": "unexpected",
-            "data": {
-                "object": {
-                    "object": "unexpected",
-                    "id": "sub_1J4X2n2eZvKYlo2C0QYQXZ0K",
-                }
-            },
-        }
+    def payment_method_test_case(self, payment_method_attached_event):
+        contribution = ContributionFactory(
+            provider_customer_id=payment_method_attached_event["data"]["object"]["customer"]
+        )
+        return payment_method_attached_event, contribution
+
+    @pytest.fixture
+    def invoice_test_case(self, invoice_upcoming_event):
+        contribution = ContributionFactory(
+            provider_subscription_id=invoice_upcoming_event["data"]["object"]["subscription"]
+        )
+        return invoice_upcoming_event, contribution
+
+    @pytest.fixture
+    def charge_test_case(self, charge_refunded_recurring_charge_event):
+        contribution = ContributionFactory(
+            provider_payment_id=charge_refunded_recurring_charge_event["data"]["object"]["payment_intent"]
+        )
+        return charge_refunded_recurring_charge_event, contribution
+
+    @pytest.fixture
+    def subscription_test_case(self, customer_subscription_updated_event):
+        contribution = ContributionFactory(
+            provider_subscription_id=customer_subscription_updated_event["data"]["object"]["id"]
+        )
+        return customer_subscription_updated_event, contribution
+
+    @pytest.fixture(
+        params=[
+            "payment_intent_test_case",
+            "payment_method_test_case",
+            "invoice_test_case",
+            "charge_test_case",
+            "subscription_test_case",
+        ]
+    )
+    def contribution_test_case(self, request):
+        event, contribution = request.getfixturevalue(request.param)
+        return StripeEventData(**event), contribution
+
+    @pytest.mark.parametrize("contribution_found", [True, False])
+    def test_contribution_property(self, contribution_test_case, contribution_found):
+        event, contribution = contribution_test_case
+        if not contribution_found:
+            Contribution.objects.all().delete()
+        processor = StripeWebhookProcessor(event=event)
+        if contribution_found:
+            assert processor.contribution == contribution
+        else:
+            assert processor.contribution is None
+
+    def test_contribution_property_when_unexpected_object_type(self, mocker, payment_intent_succeeded_one_time_event):
+        mocker.patch("apps.contributions.webhooks.StripeWebhookProcessor.object_type", return_value="unexpected")
+        processor = StripeWebhookProcessor(event=StripeEventData(**payment_intent_succeeded_one_time_event))
+        assert processor.contribution is None
+
+    @pytest.fixture
+    def unexpected_event(self, payment_intent_succeeded_one_time_event):
+        return StripeEventData(**payment_intent_succeeded_one_time_event | {"type": "unexpected"})
 
     def test_contribution_when_unexpected_object_type(self, unexpected_event, mocker):
         processor = StripeWebhookProcessor(unexpected_event)
-        with pytest.raises(Contribution.DoesNotExist):
-            processor.contribution
+        assert processor.contribution is None
 
     @pytest.mark.parametrize(
         "event_live_mode,settings_live_mode,expected",
@@ -166,14 +98,17 @@ class TestStripeWebhookProcessor:
         ),
     )
     def test_webhook_live_mode_agrees_with_environment(
-        self, event_live_mode, payment_intent_event, settings_live_mode, expected, settings
+        self, event_live_mode, payment_intent_succeeded_one_time_event, settings_live_mode, expected, settings
     ):
         settings.STRIPE_LIVE_MODE = settings_live_mode
-        processor = StripeWebhookProcessor(payment_intent_event | {"livemode": event_live_mode})
+        processor = StripeWebhookProcessor(
+            event=StripeEventData(**payment_intent_succeeded_one_time_event | {"livemode": event_live_mode})
+        )
         assert processor.webhook_live_mode_agrees_with_environment == expected
 
     @pytest.mark.parametrize("agrees", [True, False])
-    def test_process(self, agrees, mocker, subscription_event):
+    @pytest.mark.parametrize("contribution_found", [True, False])
+    def test_process(self, agrees, contribution_found, mocker, payment_intent_succeeded_one_time_event):
         mocker.patch.object(
             StripeWebhookProcessor,
             "webhook_live_mode_agrees_with_environment",
@@ -182,10 +117,30 @@ class TestStripeWebhookProcessor:
         )
         mock_route_request = mocker.patch.object(StripeWebhookProcessor, "route_request")
         logger_spy = mocker.patch("apps.contributions.webhooks.logger.warning")
-        StripeWebhookProcessor(subscription_event).process()
-        if agrees:
-            mock_route_request.assert_called_once()
-            logger_spy.assert_not_called()
+        if contribution_found:
+            mocker.patch("apps.contributions.webhooks.StripeWebhookProcessor.contribution")
         else:
-            mock_route_request.assert_not_called()
-            logger_spy.assert_called_once()
+            Contribution.objects.all().delete()
+
+        if contribution_found:
+            StripeWebhookProcessor(payment_intent_succeeded_one_time_event).process()
+            if agrees:
+                mock_route_request.assert_called_once()
+                logger_spy.assert_not_called()
+            else:
+                logger_spy.assert_called_once()
+                mock_route_request.assert_not_called()
+
+        elif agrees:
+            with pytest.raises(Contribution.DoesNotExist):
+                StripeWebhookProcessor(payment_intent_succeeded_one_time_event).process()
+
+    def test__handle_contribution_update_when_no_contribution(self, mocker, payment_intent_succeeded_one_time_event):
+        mocker.patch(
+            "apps.contributions.webhooks.StripeWebhookProcessor.contribution",
+            return_value=None,
+            new_callable=mocker.PropertyMock,
+        )
+        processor = StripeWebhookProcessor(event=StripeEventData(**payment_intent_succeeded_one_time_event))
+        with pytest.raises(Contribution.DoesNotExist):
+            processor._handle_contribution_update(dict(), "")

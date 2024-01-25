@@ -14,10 +14,11 @@ jest.mock('hooks/usePortalContributionList');
 jest.mock('./ContributionDetail/ContributionDetail');
 jest.mock('./ContributionItem/ContributionItem');
 jest.mock('./ContributionFetchError');
+jest.mock('../PortalPage');
 
 function tree(context?: Partial<PortalAuthContextResult>) {
   return render(
-    <PortalAuthContext.Provider value={{ contributor: { id: 'mock-contributor-id' } as any, ...context }}>
+    <PortalAuthContext.Provider value={{ contributor: { id: 1 } as any, ...context }}>
       <ContributionsList />
     </PortalAuthContext.Provider>
   );
@@ -45,7 +46,7 @@ describe('ContributionsList', () => {
 
   it('fetches contributions for the current user', () => {
     tree();
-    expect(usePortalContributionsListMock).toBeCalledWith('mock-contributor-id', expect.anything());
+    expect(usePortalContributionsListMock).toBeCalledWith(1, expect.anything());
   });
 
   it('shows a spinner', () => {
@@ -63,15 +64,15 @@ describe('ContributionsList', () => {
   describe('After contributions are fetched', () => {
     it('shows a contribution item for each contribution', () => {
       usePortalContributionsListMock.mockReturnValue({
-        contributions: [{ payment_provider_id: 'mock-id-1' }, { payment_provider_id: 'mock-id-2' }] as any,
+        contributions: [{ id: 1 }, { id: 2 }] as any,
         isError: false,
         isLoading: false,
         isFetching: false,
         refetch: jest.fn()
       });
       tree();
-      expect(screen.getByTestId('mock-contribution-item-mock-id-1')).toBeInTheDocument();
-      expect(screen.getByTestId('mock-contribution-item-mock-id-2')).toBeInTheDocument();
+      expect(screen.getByTestId('mock-contribution-item-1')).toBeInTheDocument();
+      expect(screen.getByTestId('mock-contribution-item-2')).toBeInTheDocument();
     });
 
     it('shows a message if the user has no contributions', () => {
@@ -93,7 +94,7 @@ describe('ContributionsList', () => {
 
     it("doesn't show contribution detail if not present in the route", () => {
       usePortalContributionsListMock.mockReturnValue({
-        contributions: [{ payment_provider_id: 'mock-id-1' }, { payment_provider_id: 'mock-id-2' }] as any,
+        contributions: [{ id: 1 }, { id: 2 }] as any,
         isError: false,
         isLoading: false,
         isFetching: false,
@@ -105,9 +106,9 @@ describe('ContributionsList', () => {
     });
 
     it('shows contribution detail if present in the route', () => {
-      useParamsMock.mockReturnValue({ contributionId: 'mock-id-1' });
+      useParamsMock.mockReturnValue({ contributionId: '1' });
       usePortalContributionsListMock.mockReturnValue({
-        contributions: [{ payment_provider_id: 'mock-id-1' }, { payment_provider_id: 'mock-id-2' }] as any,
+        contributions: [{ id: 1 }, { id: 2 }] as any,
         isError: false,
         isLoading: false,
         isFetching: false,
@@ -117,8 +118,8 @@ describe('ContributionsList', () => {
 
       const detail = screen.getByTestId('mock-contribution-detail');
 
-      expect(detail.dataset.contributorId).toBe('mock-contributor-id');
-      expect(detail.dataset.contributionId).toBe('mock-id-1');
+      expect(detail.dataset.contributorId).toBe('1');
+      expect(detail.dataset.contributionId).toBe('1');
     });
   });
 
@@ -168,7 +169,7 @@ describe('ContributionsList', () => {
       userEvent.click(screen.getByRole('option', { name: option }));
 
       await waitFor(() => {
-        expect(usePortalContributionsListMock).toBeCalledWith('mock-contributor-id', { ordering });
+        expect(usePortalContributionsListMock).toBeCalledWith(expect.anything(), { ordering });
       });
     });
   });

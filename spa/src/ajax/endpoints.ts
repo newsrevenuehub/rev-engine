@@ -42,7 +42,7 @@ export function getContributionsEndpoint(contributorId: number, queryParams?: st
   return `/contributors/${contributorId}/contributions/${queryParams ? `?${queryParams}` : ''}`;
 }
 
-export function getContributionDetailEndpoint(contributorId: number, contributionId: string) {
+export function getContributionDetailEndpoint(contributorId: number, contributionId: number) {
   return `/contributors/${contributorId}/contributions/${contributionId}/`;
 }
 

@@ -11,7 +11,7 @@ import MobileHeader from './MobileHeader';
 import { Root, Loading } from './ContributionDetail.styled';
 
 const ContributionDetailPropTypes = {
-  contributionId: PropTypes.string.isRequired,
+  contributionId: PropTypes.number.isRequired,
   contributorId: PropTypes.number.isRequired,
   domAnchor: PropTypes.instanceOf(HTMLElement)
 };

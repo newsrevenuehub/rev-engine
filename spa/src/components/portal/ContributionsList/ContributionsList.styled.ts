@@ -28,7 +28,7 @@ export const Root = styled.div`
 
 export const Columns = styled.div`
   display: grid;
-  gap: 40px 20px;
+  gap: 25px 20px;
   grid-template-areas:
     'legend _'
     'list detail';

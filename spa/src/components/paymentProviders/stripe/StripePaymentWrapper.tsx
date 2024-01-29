@@ -9,7 +9,11 @@ const StripePaymentWrapperPropTypes = {
   children: PropTypes.node,
   onError: PropTypes.func,
   stripeAccountId: PropTypes.string.isRequired,
-  stripeClientSecret: PropTypes.string.isRequired,
+  /**
+   * The client secret used when completing a Stripe payment intent or setup
+   * intent. This can be omitted if Stripe is being used for other purposes.
+   */
+  stripeClientSecret: PropTypes.string,
   stripeLocale: PropTypes.string.isRequired
 };
 
@@ -65,7 +69,7 @@ export function StripePaymentWrapper({
   }, [inited, onError, stripeAccountId]);
 
   return stripe ? (
-    <Elements stripe={stripe} options={{ clientSecret: stripeClientSecret, locale: stripeLocale }}>
+    <Elements stripe={stripe} options={{ clientSecret: stripeClientSecret ?? undefined, locale: stripeLocale }}>
       {children}
     </Elements>
   ) : (

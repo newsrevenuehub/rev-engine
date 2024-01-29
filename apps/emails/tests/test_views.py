@@ -1,7 +1,6 @@
 from django.template import TemplateDoesNotExist
 
 import pytest
-import pytest_cases
 from rest_framework.test import APIRequestFactory
 
 from apps.organizations.tests.factories import RevenueProgramFactory
@@ -10,35 +9,28 @@ from ..views import preview_contribution_email_template
 
 
 @pytest.mark.django_db()
-@pytest_cases.parametrize(
-    "template_name",
-    (
-        "recurring-contribution-email-reminder.html",
-        "recurring-contribution-email-reminder.txt",
-        "recurring-contribution-canceled.html",
-        "recurring-contribution-canceled.txt",
-        "recurring-contribution-payment-updated.html",
-        "recurring-contribution-payment-updated.txt",
-        "nrh-default-contribution-confirmation-email.html",
-        "nrh-default-contribution-confirmation-email.txt",
-    ),
-)
 class TestPreviewContributionEmailHappyPath:
-    def test_responds_200(self, template_name):
+    @pytest.mark.parametrize(
+        "template_name",
+        (
+            "recurring-contribution-email-reminder.html",
+            "recurring-contribution-email-reminder.txt",
+            "recurring-contribution-canceled.html",
+            "recurring-contribution-canceled.txt",
+            "recurring-contribution-payment-updated.html",
+            "recurring-contribution-payment-updated.txt",
+            "nrh-default-contribution-confirmation-email.html",
+            "nrh-default-contribution-confirmation-email.txt",
+        ),
+    )
+    @pytest.mark.parametrize("logo_url", ("truthy", None))
+    def test_responds_200(self, template_name, logo_url):
         rp = RevenueProgramFactory()
+        query = f"/?rp_id={rp.id}"
+        if logo_url:
+            query += f"&logo_url={logo_url}"
         assert (
-            preview_contribution_email_template(
-                APIRequestFactory().get(f"/?rp_id={rp.id}"), template_name=template_name
-            ).status_code
-            == 200
-        )
-
-    def test_logo_override_responds_200(self, template_name):
-        rp = RevenueProgramFactory()
-        assert (
-            preview_contribution_email_template(
-                APIRequestFactory().get(f"/?rp_id={rp.id}&logo_url=logo"), template_name=template_name
-            ).status_code
+            preview_contribution_email_template(APIRequestFactory().get(query), template_name=template_name).status_code
             == 200
         )
 

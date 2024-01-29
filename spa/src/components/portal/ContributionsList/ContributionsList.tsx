@@ -8,11 +8,37 @@ import NoContributions from './NoContributions';
 import ContributionFetchError from './ContributionFetchError';
 import ContributionDetail from './ContributionDetail/ContributionDetail';
 import { List, Root, Subhead, Columns, Loading, Legend, Detail, StyledPortalPage } from './ContributionsList.styled';
+import Sort from 'components/common/Sort';
+
+const CONTRIBUTION_SORT_OPTIONS = [
+  {
+    label: (
+      <span>
+        Date <i>(most recent)</i>
+      </span>
+    ),
+    selectedLabel: 'Date',
+    value: 'created'
+  },
+  { label: 'Status', value: 'status' },
+  {
+    label: (
+      <span>
+        Amount <i>(high to low)</i>
+      </span>
+    ),
+    selectedLabel: 'Amount',
+    value: 'amount'
+  }
+];
 
 export function ContributionsList() {
   const { contributionId } = useParams<{ contributionId?: string }>();
   const { contributor } = usePortalAuthContext();
-  const { contributions, isError, isLoading, refetch } = usePortalContributionList(contributor?.id);
+  const [ordering, setOrdering] = useState(CONTRIBUTION_SORT_OPTIONS[0].value);
+  const { contributions, isError, isLoading, refetch } = usePortalContributionList(contributor?.id, {
+    ordering: `-${ordering}`
+  });
   const selectedContribution =
     contributionId && contributions.find((contribution) => contribution.id === parseInt(contributionId));
   // This needs to be state instead of a ref to trigger effects in
@@ -56,6 +82,7 @@ export function ContributionsList() {
           <Legend $detailVisible={!!selectedContribution}>
             <Subhead>Transactions</Subhead>
             <p>View billing history, update payment details, and resend receipts.</p>
+            <Sort options={CONTRIBUTION_SORT_OPTIONS} onChange={setOrdering} id="contributions-sort" />
           </Legend>
           {content}
           {contributor && selectedContribution && (

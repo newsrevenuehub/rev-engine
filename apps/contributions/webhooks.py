@@ -89,6 +89,9 @@ class StripeWebhookProcessor:
     def route_request(self):
         logger.info("Routing request for event type %s", self.event_type)
         match self.event_type:
+            # TODO: [DEV-4450] Create a new webhook receiver to correctly handle payment_method.attached event
+            case "payment_method.attached":
+                return
             case "payment_intent.canceled":
                 return self.handle_payment_intent_canceled()
             case "payment_intent.payment_failed":

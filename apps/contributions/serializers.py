@@ -902,8 +902,6 @@ PORTAL_CONTRIBUTION_DETAIL_SERIALIZER_DB_FIELDS = PORTAL_CONTRIBUTION_BASE_SERIA
 
 class PortalContributionDetailSerializer(PortalContributionBaseSerializer):
     card_owner_name = serializers.CharField(read_only=True, allow_blank=True)
-    last_payment_date = serializers.DateTimeField(source="_last_payment_date", allow_null=True)
-    next_payment_date = serializers.DateTimeField(read_only=True, allow_null=True)
     payments = PortalContributionPaymentSerializer(many=True, read_only=True, source="payment_set")
     provider_payment_method_id = serializers.CharField(write_only=True, required=False)
 

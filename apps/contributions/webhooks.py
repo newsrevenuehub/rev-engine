@@ -258,7 +258,7 @@ class StripeWebhookProcessor:
                     "last_payment_date": payment.created,
                     "status": ContributionStatus.PAID,
                     "payment_provider_data": self.event,
-                    # TODO: Determine if we really want to update this from here and not from subscription updated only
+                    # TODO: [DEV-4445] Determine if we should actually update provider_payment_method_id on invoice.payment_succeeded event
                     "provider_payment_method_id": pi.payment_method,
                     "provider_payment_method_details": self.contribution.fetch_stripe_payment_method(),
                 },

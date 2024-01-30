@@ -262,6 +262,27 @@ class Contribution(IndexedTimeStampedModel):
         return None
 
     @property
+    def billing_details(self) -> AttrDict:
+        return AttrDict(self.provider_payment_method_details).billing_details
+
+    @property
+    def billing_name(self) -> str:
+        return self.billing_details.name or ""
+
+    @property
+    def billing_email(self) -> str:
+        return self.contributor.email if self.contributor else ""
+
+    @property
+    def billing_phone(self) -> str:
+        return self.billing_details.phone or ""
+
+    @property
+    def billing_address(self) -> str:
+        order = ("line1", "line2", "city", "state", "postal_code", "country")
+        return ",".join([self.billing_details.address[x] or "" for x in order])
+
+    @property
     def formatted_donor_selected_amount(self) -> str:
         if not (amt := (self.contribution_metadata or {}).get("donor_selected_amount", None)):
             logger.warning(

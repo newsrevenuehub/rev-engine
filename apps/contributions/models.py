@@ -262,27 +262,6 @@ class Contribution(IndexedTimeStampedModel):
         return None
 
     @property
-    def billing_details(self) -> AttrDict:
-        return AttrDict(self.provider_payment_method_details).billing_details
-
-    @property
-    def billing_name(self) -> str:
-        return self.billing_details.name or ""
-
-    @property
-    def billing_email(self) -> str:
-        return self.contributor.email if self.contributor else ""
-
-    @property
-    def billing_phone(self) -> str:
-        return self.billing_details.phone or ""
-
-    @property
-    def billing_address(self) -> str:
-        order = ("line1", "line2", "city", "state", "postal_code", "country")
-        return ",".join([self.billing_details.address[x] or "" for x in order])
-
-    @property
     def formatted_donor_selected_amount(self) -> str:
         if not (amt := (self.contribution_metadata or {}).get("donor_selected_amount", None)):
             logger.warning(
@@ -399,6 +378,7 @@ class Contribution(IndexedTimeStampedModel):
             getattr(previous, "provider_payment_method_id", None),
             self.provider_payment_method_id,
         )
+        # TODO: remove this conditionality
         if (
             (
                 previous
@@ -633,33 +613,33 @@ class Contribution(IndexedTimeStampedModel):
             )
             return None
 
-    @cached_property
-    def card(self) -> stripe.Card | None:
-        """Return card object for contribution, if one exists"""
-        if not (pm := self.stripe_payment_method):
-            logger.warning(
-                "`Contribution.card` called on contribution with ID %s that can't be linked to a stripe payment method",
-                self.id,
-            )
-            return None
-        return pm.card if pm.type == "card" else None
-
     @property
     def card_brand(self) -> str:
-        return self.card.brand if self.card else ""
+        card_brand = ""
+        if (details := self.provider_payment_method_details) and details.get("type") == "card":
+            card_brand = details["card"]["brand"]
+        return card_brand
 
     @property
     def card_expiration_date(self) -> str:
-        return f"{self.card.exp_month}/{self.card.exp_year}" if self.card else ""
+        expiry = ""
+        if (details := self.provider_payment_method_details) and details.get("type") == "card":
+            expiry = f"{details['card']['exp_month']}/{details['card']['exp_year']}"
+        return expiry
 
     @property
     def card_owner_name(self) -> str:
-        pm = self.stripe_payment_method
-        return pm.billing_details.name if pm and pm.billing_details and pm.type == "card" else ""
+        name = ""
+        if (details := self.provider_payment_method_details) and details.get("type") == "card":
+            name = details["billing_details"]["name"]
+        return name
 
     @property
     def card_last_4(self) -> str:
-        return self.card.last4 if self.card else ""
+        last_4 = ""
+        if (details := self.provider_payment_method_details) and details.get("type") == "card":
+            last_4 = details["card"]["last4"]
+        return last_4
 
     @cached_property
     def _expanded_pi_for_cancelable_modifiable(self) -> stripe.PaymentIntent | None:
@@ -1036,11 +1016,11 @@ class Contribution(IndexedTimeStampedModel):
             raise ValueError("Cannot update payment method for contribution without a subscription ID")
 
         try:
-            task = "attaching payment method to customer"
+            logger.info(task := "attaching payment method to customer")
             stripe.PaymentMethod.attach(
                 provider_payment_method_id, customer=cust_id, stripe_account=self.stripe_account_id
             )
-            task = "updating subscription with new payment method"
+            logger.info(task := "updating subscription with new payment method")
             stripe.Subscription.modify(
                 sub_id, default_payment_method=provider_payment_method_id, stripe_account=self.stripe_account_id
             )

@@ -399,7 +399,7 @@ class Contribution(IndexedTimeStampedModel):
             getattr(previous, "provider_payment_method_id", None),
             self.provider_payment_method_id,
         )
-        # TODO: remove this conditionality
+        # TODO: [DEV-4447] If possible, remove conditional payment method update fetch from contribution.save
         if (
             (
                 previous

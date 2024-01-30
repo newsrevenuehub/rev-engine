@@ -8,6 +8,7 @@ jest.mock('./BillingDetails');
 jest.mock('./BillingHistory');
 jest.mock('./MobileHeader');
 jest.mock('./PaymentMethod');
+jest.mock('./Actions');
 
 function tree(props?: Partial<ContributionDetailProps>) {
   return render(<ContributionDetail contributionId={1} contributorId={123} {...props} />);
@@ -22,7 +23,8 @@ describe('ContributionDetail', () => {
       contribution: undefined,
       isError: false,
       isFetching: false,
-      refetch: jest.fn()
+      refetch: jest.fn(),
+      cancelContribution: jest.fn()
     });
 
     tree();
@@ -36,7 +38,8 @@ describe('ContributionDetail', () => {
         contribution: undefined,
         isError: false,
         isFetching: false,
-        refetch: jest.fn()
+        refetch: jest.fn(),
+        cancelContribution: jest.fn()
       });
     });
 
@@ -59,7 +62,8 @@ describe('ContributionDetail', () => {
         contribution: undefined,
         isError: true,
         isFetching: false,
-        refetch: jest.fn()
+        refetch: jest.fn(),
+        cancelContribution: jest.fn()
       });
     });
 
@@ -87,11 +91,12 @@ describe('ContributionDetail', () => {
         contribution: mockContribution as any,
         isError: false,
         isFetching: false,
-        refetch: jest.fn()
+        refetch: jest.fn(),
+        cancelContribution: jest.fn()
       });
     });
 
-    it.each([['mobile header'], ['billing details'], ['payment method']])('shows the %s', (name) => {
+    it.each([['mobile header'], ['billing details'], ['payment method'], ['actions']])('shows the %s', (name) => {
       tree();
 
       const component = screen.getByTestId(`mock-${name.replace(' ', '-')}`);
@@ -106,6 +111,24 @@ describe('ContributionDetail', () => {
       const history = screen.getByTestId('mock-billing-history');
 
       expect(history.dataset.payments).toBe(JSON.stringify(mockContribution.payments));
+    });
+
+    it('calls cancelContribution when the cancel button is clicked', () => {
+      const cancelContribution = jest.fn();
+      usePortalContributionMock.mockReturnValue({
+        isLoading: false,
+        contribution: mockContribution as any,
+        isError: false,
+        isFetching: false,
+        refetch: jest.fn(),
+        cancelContribution
+      });
+
+      tree();
+      const cancelButton = screen.getByText('Cancel Contribution');
+      cancelButton.click();
+
+      expect(cancelContribution).toBeCalledWith(mockContribution.id);
     });
 
     it('is accessible', async () => {

@@ -6,6 +6,7 @@ import styled from 'styled-components';
 const StyledPaper = styled(Paper)`
   && {
     border-radius: 10px;
+    max-width: calc(100vw - 40px);
   }
 `;
 

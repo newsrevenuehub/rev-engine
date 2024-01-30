@@ -636,8 +636,6 @@ class Contribution(IndexedTimeStampedModel):
     @cached_property
     def card(self) -> stripe.Card | None:
         """Return card object for contribution, if one exists"""
-        # TODO: wed this to metadata version, and also determine conditions under which updates would occur for contributions where this is only available on the customer
-        # potentially adding a "can be updated" property or something like that.
         if not (pm := self.stripe_payment_method):
             logger.warning(
                 "`Contribution.card` called on contribution with ID %s that can't be linked to a stripe payment method",

@@ -559,6 +559,7 @@ class Contribution(IndexedTimeStampedModel):
             )
 
     def send_recurring_contribution_change_email(self, subject_line: str, template_name: str) -> None:
+        """Send an email related to a change to a recurring contribution (cancellation, payment method update, etc.) Logic here is shared among several email templates."""
         if self.interval == ContributionInterval.ONE_TIME:
             logger.error(
                 "Called on an instance (ID: %s) whose interval is one-time",

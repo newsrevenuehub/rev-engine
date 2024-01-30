@@ -1023,7 +1023,7 @@ class Contribution(IndexedTimeStampedModel):
             updated_count,
         )
 
-    def update_payment_method_for_subscription(self, payment_method_id: str) -> None:
+    def update_payment_method_for_subscription(self, provider_payment_method_id: str) -> None:
         """If it's a recurring subscription, attach the payment method to the customer, and  set the subscription's
 
         default payment method to the new payment method.
@@ -1036,25 +1036,18 @@ class Contribution(IndexedTimeStampedModel):
             raise ValueError("Cannot update payment method for contribution without a subscription ID")
 
         try:
-            stripe.PaymentMethod.attach(payment_method_id, customer=cust_id, stripe_account=self.stripe_account_id)
+            task = "attaching payment method to customer"
+            stripe.PaymentMethod.attach(
+                provider_payment_method_id, customer=cust_id, stripe_account=self.stripe_account_id
+            )
+            task = "updating subscription with new payment method"
+            stripe.Subscription.modify(
+                sub_id, default_payment_method=provider_payment_method_id, stripe_account=self.stripe_account_id
+            )
         except StripeError:
             logger.exception(
-                "Encountered a Stripe error trying to attach payment method %s to customer %s for contribution with ID %s",
-                payment_method_id,
-                cust_id,
-                self.id,
-            )
-            raise
-
-        try:
-            stripe.Subscription.modify(
-                sub_id, default_payment_method=payment_method_id, stripe_account=self.stripe_account_id
-            )
-        except stripe.error.StripeError:
-            logger.exception(
-                "`Contribution.update_payment_method_for_subscription` encountered a Stripe error trying to update subscription %s with payment method %s for contribution with ID %s",
-                sub_id,
-                payment_method_id,
+                "Encountered a Stripe error while %s for contribution with ID %s",
+                task,
                 self.id,
             )
             raise

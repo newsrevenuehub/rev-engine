@@ -643,13 +643,19 @@ class PortalContributorsViewSet(viewsets.GenericViewSet):
             case "GET":
                 return Response(serializer.data, status=status.HTTP_200_OK)
             case "PATCH":
-                serializer.is_valid(raise_exception=True)
-                serializer.save()
-                return Response(serializer.data, status=status.HTTP_200_OK)
+                return self.handle_patch(serializer)
             case "DELETE":  # NB: this path does in fact get tested, but shows up as partially covered in coverage report
                 return self.handle_delete(contribution)
 
-    def handle_delete(self, contribution):
+    def handle_patch(self, serializer: serializers.PortalContributionDetailSerializer) -> Response:
+        serializer.is_valid(raise_exception=True)
+        try:
+            serializer.save()
+        except stripe.error.StripeError:
+            return Response({"detail": "Problem updating contribution"}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+        return Response(serializer.data, status=status.HTTP_200_OK)
+
+    def handle_delete(self, contribution: Contribution) -> Response:
         """If subscription found, cancel it in Stripe.
 
         NB: we don't do anything to update NRE contribution status here and instead rely on ensuing webhooks to do that.

@@ -5,6 +5,7 @@ from django.conf import settings
 from django.db.models import TextChoices
 from django.utils import timezone
 
+import reversion
 from rest_framework import serializers
 from rest_framework.exceptions import APIException, PermissionDenied
 from stripe.error import StripeError
@@ -904,23 +905,24 @@ class PortalContributionDetailSerializer(PortalContributionBaseSerializer):
     last_payment_date = serializers.DateTimeField(source="_last_payment_date", allow_null=True)
     next_payment_date = serializers.DateTimeField(read_only=True, allow_null=True)
     payments = PortalContributionPaymentSerializer(many=True, read_only=True, source="payment_set")
-    stripe_payment_method_id = serializers.CharField(write_only=True, allow_blank=True, required=False)
+    provider_payment_method_id = serializers.CharField(write_only=True, required=False)
 
     class Meta:
         model = Contribution
-        fields = PORTAL_CONTRIBUTION_DETAIL_SERIALIZER_DB_FIELDS + ["stripe_payment_method_id"]
+        fields = PORTAL_CONTRIBUTION_DETAIL_SERIALIZER_DB_FIELDS + ["provider_payment_method_id"]
         read_only_fields = PORTAL_CONTRIBUTION_DETAIL_SERIALIZER_DB_FIELDS
 
-    def update_payment_method_for_subscription(self, instance, stripe_payment_method_id):
-        try:
-            instance.update_payment_method_for_subscription(stripe_payment_method_id)
-        except (ValueError, StripeError):
-            logger.exception("Error updating payment method for contribution %s", instance.id)
-            raise serializers.ValidationError({"stripe_payment_method_id": "Cannot update payment method at this time"})
-
-    def update(self, instance, validated_data):
-        if stripe_payment_method_id := validated_data.pop("stripe_payment_method_id", None):
-            self.update_payment_method_for_subscription(instance, stripe_payment_method_id)
+    def update(self, instance, validated_data) -> Contribution:
+        provider_payment_method_id = validated_data.get("provider_payment_method_id")
+        if provider_payment_method_id:
+            instance.update_payment_method_for_subscription(
+                provider_payment_method_id=provider_payment_method_id,
+            )
+        for key, value in validated_data.items():
+            setattr(instance, key, value)
+        with reversion.create_revision():
+            instance.save(update_fields=set(list(validated_data.keys()) + ["modified"]))
+            reversion.set_comment("Updated by PortalContributionDetailSerializer.update")
         return instance
 
 

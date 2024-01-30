@@ -1852,15 +1852,16 @@ class TestPortalContributorsViewSet:
         assert response.status_code == status.HTTP_404_NOT_FOUND
         assert response.json() == {"detail": "Contribution not found"}
 
-    @pytest.mark.parametrize("include_stripe_payment_method", (True, False))
     def test_contribution_detail_patch_happy_path(
-        self, include_stripe_payment_method, api_client, portal_contributor_with_multiple_contributions, mocker
+        self,
+        api_client,
+        portal_contributor_with_multiple_contributions,
+        mocker,
     ):
-        mock_pm_attach = mocker.patch("stripe.PaymentMethod.attach")
-        mock_sub_modify = mocker.patch("stripe.Subscription.modify")
-
         contributor = portal_contributor_with_multiple_contributions[0]
         contribution = contributor.contribution_set.exclude(interval=ContributionInterval.ONE_TIME).last()
+        mock_pm_attach = mocker.patch("stripe.PaymentMethod.attach")
+        mock_update_sub = mocker.patch("stripe.Subscription.modify")
         api_client.force_authenticate(contributor)
         response = api_client.patch(
             reverse(
@@ -1870,32 +1871,27 @@ class TestPortalContributorsViewSet:
                     contribution.id,
                 ),
             ),
-            data={"stripe_payment_method_id": (pm_id := "card_123")} if include_stripe_payment_method else {},
+            data={"provider_payment_method_id": (pm_id := "pm_888")},
         )
         assert response.status_code == status.HTTP_200_OK
-        if include_stripe_payment_method:
-            mock_pm_attach.assert_called_once_with(
-                pm_id, customer=contribution.provider_customer_id, stripe_account=contribution.stripe_account_id
-            )
-            mock_sub_modify.assert_called_once_with(
-                contribution.provider_subscription_id,
-                default_payment_method=pm_id,
-                stripe_account=contribution.stripe_account_id,
-            )
-        else:
-            mock_pm_attach.assert_not_called()
-            mock_sub_modify.assert_not_called()
+        contribution.refresh_from_db()
+        assert contribution.provider_payment_method_id == pm_id
+        mock_pm_attach.assert_called_once_with(
+            pm_id, customer=contribution.provider_customer_id, stripe_account=contribution.stripe_account_id
+        )
+        mock_update_sub.assert_called_once_with(
+            contribution.provider_subscription_id,
+            default_payment_method=pm_id,
+            stripe_account=contribution.stripe_account_id,
+        )
 
-    @pytest.mark.parametrize("side_effect", (stripe.error.StripeError("ruh roh"), ValueError("ruh roh")))
-    def test_contribution_detail_patch_stripe_payment_method_id_when_error(
-        self, side_effect, mocker, api_client, portal_contributor_with_multiple_contributions
+    def test_contribution_detail_patch_when_stripe_error(
+        self, api_client, portal_contributor_with_multiple_contributions, mocker
     ):
         contributor = portal_contributor_with_multiple_contributions[0]
         contribution = contributor.contribution_set.exclude(interval=ContributionInterval.ONE_TIME).last()
+        mock_pm_attach = mocker.patch("stripe.PaymentMethod.attach", side_effect=stripe.error.StripeError("ruh roh"))
         api_client.force_authenticate(contributor)
-        mocker.patch(
-            "apps.contributions.models.Contribution.update_payment_method_for_subscription", side_effect=side_effect
-        )
         response = api_client.patch(
             reverse(
                 "portal-contributor-contribution-detail",
@@ -1904,10 +1900,11 @@ class TestPortalContributorsViewSet:
                     contribution.id,
                 ),
             ),
-            data={"stripe_payment_method_id": "card_123"},
+            data={"provider_payment_method_id": "pm_888"},
         )
-        assert response.status_code == status.HTTP_400_BAD_REQUEST
-        assert response.json() == {"stripe_payment_method_id": "Cannot update payment method at this time"}
+        assert response.status_code == status.HTTP_500_INTERNAL_SERVER_ERROR
+        assert response.json() == {"detail": "Problem updating contribution"}
+        mock_pm_attach.assert_called_once()
 
     def test_contribution_detail_delete_happy_path(
         self, api_client, portal_contributor_with_multiple_contributions, mocker
@@ -2009,7 +2006,7 @@ class TestPortalContributorsViewSet:
 
     @pytest.mark.parametrize(
         "method, kwargs",
-        (("get", {}), ("patch", {"data": {"payment_method_id": "something"}}), ("delete", {})),
+        (("get", {}), ("patch", {"data": {"provider_payment_method_id": "something"}}), ("delete", {})),
     )
     def test_views_when_contribution_not_found(
         self, method, kwargs, api_client, portal_contributor_with_multiple_contributions
@@ -2019,6 +2016,7 @@ class TestPortalContributorsViewSet:
         contribution_id = contribution.id
         contribution.delete()
         contributor_id = contributor.id
+
         api_client.force_authenticate(contributor)
         response = getattr(api_client, method)(
             reverse("portal-contributor-contribution-detail", args=(contributor_id, contribution_id)),

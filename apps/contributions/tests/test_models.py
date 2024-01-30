@@ -740,7 +740,8 @@ class TestContributionModel:
         pi = contribution.stripe_payment_intent
         if expect_retrieve:
             spy.assert_called_once_with(
-                payment_intent_id, stripe_account=stripe_account_id, expand=["charges.data", "payment_method"]
+                payment_intent_id,
+                stripe_account=stripe_account_id,
             )
         else:
             spy.assert_not_called()

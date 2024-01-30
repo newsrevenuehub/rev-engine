@@ -1026,7 +1026,10 @@ class Contribution(IndexedTimeStampedModel):
         )
 
     def update_payment_method_for_subscription(self, payment_method_id: str) -> None:
-        """"""
+        """If it's a recurring subscription, attach the payment method to the customer, and  set the subscription's
+
+        default payment method to the new payment method.
+        """
         if self.interval == ContributionInterval.ONE_TIME:
             raise ValueError("Cannot update payment method for one-time contribution")
         if not (cust_id := self.provider_customer_id):

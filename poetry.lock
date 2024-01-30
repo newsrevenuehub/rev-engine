@@ -125,42 +125,45 @@ tests-no-zope = ["attrs[tests-mypy]", "cloudpickle", "hypothesis", "pympler", "p
 
 [[package]]
 name = "bandit"
-version = "1.7.6"
+version = "1.7.7"
 description = "Security oriented static analyser for python code."
 optional = false
 python-versions = ">=3.8"
 files = [
-    {file = "bandit-1.7.6-py3-none-any.whl", hash = "sha256:36da17c67fc87579a5d20c323c8d0b1643a890a2b93f00b3d1229966624694ff"},
-    {file = "bandit-1.7.6.tar.gz", hash = "sha256:72ce7bc9741374d96fb2f1c9a8960829885f1243ffde743de70a19cee353e8f3"},
+    {file = "bandit-1.7.7-py3-none-any.whl", hash = "sha256:17e60786a7ea3c9ec84569fd5aee09936d116cb0cb43151023258340dbffb7ed"},
+    {file = "bandit-1.7.7.tar.gz", hash = "sha256:527906bec6088cb499aae31bc962864b4e77569e9d529ee51df3a93b4b8ab28a"},
 ]
 
 [package.dependencies]
 colorama = {version = ">=0.3.9", markers = "platform_system == \"Windows\""}
-GitPython = ">=3.1.30"
 PyYAML = ">=5.3.1"
 rich = "*"
 stevedore = ">=1.20.0"
 
 [package.extras]
-test = ["beautifulsoup4 (>=4.8.0)", "coverage (>=4.5.4)", "fixtures (>=3.0.0)", "flake8 (>=4.0.0)", "pylint (==1.9.4)", "stestr (>=2.5.0)", "testscenarios (>=0.5.0)", "testtools (>=2.3.0)", "tomli (>=1.1.0)"]
+baseline = ["GitPython (>=3.1.30)"]
+test = ["beautifulsoup4 (>=4.8.0)", "coverage (>=4.5.4)", "fixtures (>=3.0.0)", "flake8 (>=4.0.0)", "pylint (==1.9.4)", "stestr (>=2.5.0)", "testscenarios (>=0.5.0)", "testtools (>=2.3.0)"]
 toml = ["tomli (>=1.1.0)"]
 yaml = ["PyYAML"]
 
 [[package]]
 name = "beautifulsoup4"
-version = "4.12.2"
+version = "4.12.3"
 description = "Screen-scraping library"
 optional = false
 python-versions = ">=3.6.0"
 files = [
-    {file = "beautifulsoup4-4.12.2-py3-none-any.whl", hash = "sha256:bd2520ca0d9d7d12694a53d44ac482d181b4ec1888909b035a3dbf40d0f57d4a"},
-    {file = "beautifulsoup4-4.12.2.tar.gz", hash = "sha256:492bbc69dca35d12daac71c4db1bfff0c876c00ef4a2ffacce226d4638eb72da"},
+    {file = "beautifulsoup4-4.12.3-py3-none-any.whl", hash = "sha256:b80878c9f40111313e55da8ba20bdba06d8fa3969fc68304167741bbf9e082ed"},
+    {file = "beautifulsoup4-4.12.3.tar.gz", hash = "sha256:74e3d1928edc070d21748185c46e3fb33490f22f52a3addee9aee0f4f7781051"},
 ]
 
 [package.dependencies]
 soupsieve = ">1.2"
 
 [package.extras]
+cchardet = ["cchardet"]
+chardet = ["chardet"]
+charset-normalizer = ["charset-normalizer"]
 html5lib = ["html5lib"]
 lxml = ["lxml"]
 
@@ -473,12 +476,12 @@ testing = ["pytest (>=7.2.1)", "pytest-cov (>=4.0.0)", "tox (>=4.4.3)"]
 
 [[package]]
 name = "cloudflare"
-version = "2.16.0"
+version = "2.17.0"
 description = "Python wrapper for the Cloudflare v4 API"
 optional = false
 python-versions = "*"
 files = [
-    {file = "cloudflare-2.16.0.tar.gz", hash = "sha256:42ddf55d15152696ff1b6f99ef84f68fa3dd5aac2d94b6ccb365d860e651977d"},
+    {file = "cloudflare-2.17.0.tar.gz", hash = "sha256:0768d321844aaccbbe3d77f7ce27f15b9356dffac81ea94fae012b39bb8ee83e"},
 ]
 
 [package.dependencies]
@@ -935,13 +938,13 @@ django-reversion = "*"
 
 [[package]]
 name = "django-solo"
-version = "2.1.0"
+version = "2.2.0"
 description = "Django Solo helps working with singletons"
 optional = false
-python-versions = ">=3.7"
+python-versions = ">=3.8"
 files = [
-    {file = "django-solo-2.1.0.tar.gz", hash = "sha256:02a5689aaff95af3e741ef99b229600ec63a4d0ca48bb731aec48d9ba4a1a5cc"},
-    {file = "django_solo-2.1.0-py3-none-any.whl", hash = "sha256:7a43282e6f9b5fa37fc8c682963e1c0cea3681daa518a9b5283d79a5b76c1045"},
+    {file = "django-solo-2.2.0.tar.gz", hash = "sha256:056a280816097b144c24129125b6d98a568e8e48c30402a16ce324ce2eb61237"},
+    {file = "django_solo-2.2.0-py3-none-any.whl", hash = "sha256:81ad30a412d36f8bdbe5622df06d6051e4264344222858c919e990d339e677e8"},
 ]
 
 [package.dependencies]
@@ -1153,13 +1156,13 @@ doc = ["Sphinx", "sphinx-rtd-theme", "sphinxcontrib-spelling"]
 
 [[package]]
 name = "faker"
-version = "22.1.0"
+version = "22.5.1"
 description = "Faker is a Python package that generates fake data for you."
 optional = false
 python-versions = ">=3.8"
 files = [
-    {file = "Faker-22.1.0-py3-none-any.whl", hash = "sha256:d1b8fe8e8fc96d816294a301741940c2229dcf1f5dd1231805666e4005cc6353"},
-    {file = "Faker-22.1.0.tar.gz", hash = "sha256:3cd0e04ed7da1bb8037afc40d1127d19e0ac4afac247a1fe1d8dde9b5c6d6e5b"},
+    {file = "Faker-22.5.1-py3-none-any.whl", hash = "sha256:4e7bb19c1955bb978bf1d4cb0cf25930e37de0e7dfbc6abd768fd4784d9a9653"},
+    {file = "Faker-22.5.1.tar.gz", hash = "sha256:79cbe3be786789efa05b8c75d7e0ec4efa6ecb786b8fe90eae49c2f8f9cbe31a"},
 ]
 
 [package.dependencies]
@@ -1210,17 +1213,17 @@ pyflakes = ">=3.2.0,<3.3.0"
 
 [[package]]
 name = "flake8-logging"
-version = "1.4.0"
+version = "1.5.0"
 description = "A Flake8 plugin that checks for issues using the standard library logging module."
 optional = false
 python-versions = ">=3.8"
 files = [
-    {file = "flake8_logging-1.4.0-py3-none-any.whl", hash = "sha256:a2346ad104c7123bb6631a4bef23632049703d2ddd1411746199577f554ba2e5"},
-    {file = "flake8_logging-1.4.0.tar.gz", hash = "sha256:255fe41b0fc4276d7e9cabea7969a6a0b4d85720409ab5a6dc71ff0be66fd4fd"},
+    {file = "flake8-logging-1.5.0.tar.gz", hash = "sha256:6be28892c0464959a509e0cf37d3f2a9f1b092d82a98b42594c95d7ffd980b94"},
+    {file = "flake8_logging-1.5.0-py3-none-any.whl", hash = "sha256:0e2b2b12dfc298d4b66ce1cf9d91d3ce2fd5052d8906b6afc46173fd77d40c35"},
 ]
 
 [package.dependencies]
-flake8 = ">=3.0,<3.2.0 || >3.2.0"
+flake8 = ">=3,<3.2.0 || >3.2.0"
 
 [[package]]
 name = "future"
@@ -1231,37 +1234,6 @@ python-versions = ">=2.6, !=3.0.*, !=3.1.*, !=3.2.*"
 files = [
     {file = "future-0.18.3.tar.gz", hash = "sha256:34a17436ed1e96697a86f9de3d15a3b0be01d8bc8de9c1dffd59fb8234ed5307"},
 ]
-
-[[package]]
-name = "gitdb"
-version = "4.0.11"
-description = "Git Object Database"
-optional = false
-python-versions = ">=3.7"
-files = [
-    {file = "gitdb-4.0.11-py3-none-any.whl", hash = "sha256:81a3407ddd2ee8df444cbacea00e2d038e40150acfa3001696fe0dcf1d3adfa4"},
-    {file = "gitdb-4.0.11.tar.gz", hash = "sha256:bf5421126136d6d0af55bc1e7c1af1c397a34f5b7bd79e776cd3e89785c2b04b"},
-]
-
-[package.dependencies]
-smmap = ">=3.0.1,<6"
-
-[[package]]
-name = "gitpython"
-version = "3.1.41"
-description = "GitPython is a Python library used to interact with Git repositories"
-optional = false
-python-versions = ">=3.7"
-files = [
-    {file = "GitPython-3.1.41-py3-none-any.whl", hash = "sha256:c36b6634d069b3f719610175020a9aed919421c87552185b085e04fbbdb10b7c"},
-    {file = "GitPython-3.1.41.tar.gz", hash = "sha256:ed66e624884f76df22c8e16066d567aaa5a37d5b5fa19db2c6df6f7156db9048"},
-]
-
-[package.dependencies]
-gitdb = ">=4.0.1,<5"
-
-[package.extras]
-test = ["black", "coverage[toml]", "ddt (>=1.1.1,!=1.4.3)", "mock", "mypy", "pre-commit", "pytest (>=7.3.1)", "pytest-cov", "pytest-instafail", "pytest-mock", "pytest-sugar", "sumtypes"]
 
 [[package]]
 name = "google-api-core"
@@ -1295,13 +1267,13 @@ grpcio-gcp = ["grpcio-gcp (>=0.2.2,<1.0.dev0)"]
 
 [[package]]
 name = "google-auth"
-version = "2.26.1"
+version = "2.26.2"
 description = "Google Authentication Library"
 optional = false
 python-versions = ">=3.7"
 files = [
-    {file = "google-auth-2.26.1.tar.gz", hash = "sha256:54385acca5c0fbdda510cd8585ba6f3fcb06eeecf8a6ecca39d3ee148b092590"},
-    {file = "google_auth-2.26.1-py2.py3-none-any.whl", hash = "sha256:2c8b55e3e564f298122a02ab7b97458ccfcc5617840beb5d0ac757ada92c9780"},
+    {file = "google-auth-2.26.2.tar.gz", hash = "sha256:97327dbbf58cccb58fc5a1712bba403ae76668e64814eb30f7316f7e27126b81"},
+    {file = "google_auth-2.26.2-py2.py3-none-any.whl", hash = "sha256:3f445c8ce9b61ed6459aad86d8ccdba4a9afed841b2d1451a11ef4db08957424"},
 ]
 
 [package.dependencies]
@@ -1789,13 +1761,13 @@ attrs = ">=19.2.0"
 
 [[package]]
 name = "kombu"
-version = "5.3.4"
+version = "5.3.5"
 description = "Messaging library for Python."
 optional = false
 python-versions = ">=3.8"
 files = [
-    {file = "kombu-5.3.4-py3-none-any.whl", hash = "sha256:63bb093fc9bb80cfb3a0972336a5cec1fa7ac5f9ef7e8237c6bf8dda9469313e"},
-    {file = "kombu-5.3.4.tar.gz", hash = "sha256:0bb2e278644d11dea6272c17974a3dbb9688a949f3bb60aeb5b791329c44fadc"},
+    {file = "kombu-5.3.5-py3-none-any.whl", hash = "sha256:0eac1bbb464afe6fb0924b21bf79460416d25d8abc52546d4f16cad94f789488"},
+    {file = "kombu-5.3.5.tar.gz", hash = "sha256:30e470f1a6b49c70dc6f6d13c3e4cc4e178aa6c469ceb6bcd55645385fc84b93"},
 ]
 
 [package.dependencies]
@@ -2123,13 +2095,13 @@ test = ["appdirs (==1.4.4)", "covdefaults (>=2.3)", "pytest (>=7.4)", "pytest-co
 
 [[package]]
 name = "pluggy"
-version = "1.3.0"
+version = "1.4.0"
 description = "plugin and hook calling mechanisms for python"
 optional = false
 python-versions = ">=3.8"
 files = [
-    {file = "pluggy-1.3.0-py3-none-any.whl", hash = "sha256:d89c696a773f8bd377d18e5ecda92b7a3793cbe66c87060a6fb58c7b6e1061f7"},
-    {file = "pluggy-1.3.0.tar.gz", hash = "sha256:cf61ae8f126ac6f7c451172cf30e3e43d3ca77615509771b3a984a0730651e12"},
+    {file = "pluggy-1.4.0-py3-none-any.whl", hash = "sha256:7db9f7b503d67d1c5b95f59773ebb58a8c1c288129a88665838012cfb07b8981"},
+    {file = "pluggy-1.4.0.tar.gz", hash = "sha256:8c85c2876142a764e5b7548e7d9a0e0ddb46f5185161049a79b7e974454223be"},
 ]
 
 [package.extras]
@@ -2187,22 +2159,22 @@ testing = ["google-api-core[grpc] (>=1.31.5)"]
 
 [[package]]
 name = "protobuf"
-version = "4.25.1"
+version = "4.25.2"
 description = ""
 optional = false
 python-versions = ">=3.8"
 files = [
-    {file = "protobuf-4.25.1-cp310-abi3-win32.whl", hash = "sha256:193f50a6ab78a970c9b4f148e7c750cfde64f59815e86f686c22e26b4fe01ce7"},
-    {file = "protobuf-4.25.1-cp310-abi3-win_amd64.whl", hash = "sha256:3497c1af9f2526962f09329fd61a36566305e6c72da2590ae0d7d1322818843b"},
-    {file = "protobuf-4.25.1-cp37-abi3-macosx_10_9_universal2.whl", hash = "sha256:0bf384e75b92c42830c0a679b0cd4d6e2b36ae0cf3dbb1e1dfdda48a244f4bcd"},
-    {file = "protobuf-4.25.1-cp37-abi3-manylinux2014_aarch64.whl", hash = "sha256:0f881b589ff449bf0b931a711926e9ddaad3b35089cc039ce1af50b21a4ae8cb"},
-    {file = "protobuf-4.25.1-cp37-abi3-manylinux2014_x86_64.whl", hash = "sha256:ca37bf6a6d0046272c152eea90d2e4ef34593aaa32e8873fc14c16440f22d4b7"},
-    {file = "protobuf-4.25.1-cp38-cp38-win32.whl", hash = "sha256:abc0525ae2689a8000837729eef7883b9391cd6aa7950249dcf5a4ede230d5dd"},
-    {file = "protobuf-4.25.1-cp38-cp38-win_amd64.whl", hash = "sha256:1484f9e692091450e7edf418c939e15bfc8fc68856e36ce399aed6889dae8bb0"},
-    {file = "protobuf-4.25.1-cp39-cp39-win32.whl", hash = "sha256:8bdbeaddaac52d15c6dce38c71b03038ef7772b977847eb6d374fc86636fa510"},
-    {file = "protobuf-4.25.1-cp39-cp39-win_amd64.whl", hash = "sha256:becc576b7e6b553d22cbdf418686ee4daa443d7217999125c045ad56322dda10"},
-    {file = "protobuf-4.25.1-py3-none-any.whl", hash = "sha256:a19731d5e83ae4737bb2a089605e636077ac001d18781b3cf489b9546c7c80d6"},
-    {file = "protobuf-4.25.1.tar.gz", hash = "sha256:57d65074b4f5baa4ab5da1605c02be90ac20c8b40fb137d6a8df9f416b0d0ce2"},
+    {file = "protobuf-4.25.2-cp310-abi3-win32.whl", hash = "sha256:b50c949608682b12efb0b2717f53256f03636af5f60ac0c1d900df6213910fd6"},
+    {file = "protobuf-4.25.2-cp310-abi3-win_amd64.whl", hash = "sha256:8f62574857ee1de9f770baf04dde4165e30b15ad97ba03ceac65f760ff018ac9"},
+    {file = "protobuf-4.25.2-cp37-abi3-macosx_10_9_universal2.whl", hash = "sha256:2db9f8fa64fbdcdc93767d3cf81e0f2aef176284071507e3ede160811502fd3d"},
+    {file = "protobuf-4.25.2-cp37-abi3-manylinux2014_aarch64.whl", hash = "sha256:10894a2885b7175d3984f2be8d9850712c57d5e7587a2410720af8be56cdaf62"},
+    {file = "protobuf-4.25.2-cp37-abi3-manylinux2014_x86_64.whl", hash = "sha256:fc381d1dd0516343f1440019cedf08a7405f791cd49eef4ae1ea06520bc1c020"},
+    {file = "protobuf-4.25.2-cp38-cp38-win32.whl", hash = "sha256:33a1aeef4b1927431d1be780e87b641e322b88d654203a9e9d93f218ee359e61"},
+    {file = "protobuf-4.25.2-cp38-cp38-win_amd64.whl", hash = "sha256:47f3de503fe7c1245f6f03bea7e8d3ec11c6c4a2ea9ef910e3221c8a15516d62"},
+    {file = "protobuf-4.25.2-cp39-cp39-win32.whl", hash = "sha256:5e5c933b4c30a988b52e0b7c02641760a5ba046edc5e43d3b94a74c9fc57c1b3"},
+    {file = "protobuf-4.25.2-cp39-cp39-win_amd64.whl", hash = "sha256:d66a769b8d687df9024f2985d5137a337f957a0916cf5464d1513eee96a63ff0"},
+    {file = "protobuf-4.25.2-py3-none-any.whl", hash = "sha256:a8b7a98d4ce823303145bf3c1a8bdb0f2f4642a414b196f04ad9853ed0c8f830"},
+    {file = "protobuf-4.25.2.tar.gz", hash = "sha256:fe599e175cb347efc8ee524bcd4b902d11f7262c0e569ececcb89995c15f0a5e"},
 ]
 
 [[package]]
@@ -2560,13 +2532,13 @@ testing = ["argcomplete", "attrs (>=19.2.0)", "hypothesis (>=3.56)", "mock", "no
 
 [[package]]
 name = "pytest-cases"
-version = "3.8.1"
+version = "3.8.2"
 description = "Separate test code from test cases in pytest."
 optional = false
 python-versions = "*"
 files = [
-    {file = "pytest-cases-3.8.1.tar.gz", hash = "sha256:49d7f6f8ad534e5a6e73fb8f5fd38986606f17b46ee55f7ebee07a55c677ca01"},
-    {file = "pytest_cases-3.8.1-py2.py3-none-any.whl", hash = "sha256:595553f5a522ad6525778a35e0fcb4a46f8eb069e0abe108de02e1d4fb136b85"},
+    {file = "pytest-cases-3.8.2.tar.gz", hash = "sha256:24cec0128c822f51b5f402face09e7049954d9675db2ca675fce1ef7f8f749e8"},
+    {file = "pytest_cases-3.8.2-py2.py3-none-any.whl", hash = "sha256:1ad5ee85e580433caff42f59398d2812d9b8de470f593393c02e4249ddff3996"},
 ]
 
 [package.dependencies]
@@ -3036,17 +3008,6 @@ python-versions = ">=3.6"
 files = [
     {file = "slack_sdk-3.26.2-py2.py3-none-any.whl", hash = "sha256:a10e8ee69ca17d274989d0c2bbecb875f19898da3052d8d57de0898a00b1ab52"},
     {file = "slack_sdk-3.26.2.tar.gz", hash = "sha256:bcdac5e688fa50e9357ecd00b803b6a8bad766aa614d35d8dc0636f40adc48bf"},
-]
-
-[[package]]
-name = "smmap"
-version = "5.0.1"
-description = "A pure Python implementation of a sliding window memory map manager"
-optional = false
-python-versions = ">=3.7"
-files = [
-    {file = "smmap-5.0.1-py3-none-any.whl", hash = "sha256:e6d8668fa5f93e706934a62d7b4db19c8d9eb8cf2adbb75ef1b675aa332b69da"},
-    {file = "smmap-5.0.1.tar.gz", hash = "sha256:dceeb6c0028fdb6734471eb07c0cd2aae706ccaecab45965ee83f11c8d3b1f62"},
 ]
 
 [[package]]

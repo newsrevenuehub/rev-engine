@@ -57,7 +57,7 @@ describe('StripePaymentWrapper', () => {
       expect(screen.queryByTestId('mock-global-loading')).not.toBeInTheDocument();
     });
 
-    it('shows a configured Stripe <Elements> component', async () => {
+    it('shows a configured Stripe <Elements> component with client secret if set', async () => {
       tree();
       await waitFor(() => expect(loadStripeMock).toBeCalled());
 
@@ -66,6 +66,21 @@ describe('StripePaymentWrapper', () => {
       expect(elements).toBeInTheDocument();
       expect(JSON.parse(elements.dataset.options!)).toEqual({
         clientSecret: 'mock-stripe-client-secret',
+        locale: 'mock-stripe-locale'
+      });
+      await waitFor(() => expect(elements.dataset.stripe).not.toEqual('undefined'));
+      expect(elements.dataset.stripe).toEqual('"mock-stripe-loaded"');
+    });
+
+    it('shows a configured Stripe <Elements> component without client secret if not set', async () => {
+      tree({ stripeClientSecret: undefined });
+      await waitFor(() => expect(loadStripeMock).toBeCalled());
+
+      const elements = screen.getByTestId('mock-stripe-elements');
+
+      expect(elements).toBeInTheDocument();
+      expect(JSON.parse(elements.dataset.options!)).toEqual({
+        clientSecret: undefined,
         locale: 'mock-stripe-locale'
       });
       await waitFor(() => expect(elements.dataset.stripe).not.toEqual('undefined'));

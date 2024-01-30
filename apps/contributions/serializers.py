@@ -850,8 +850,12 @@ PORTAL_CONTRIBUTION_BASE_SERIALIZER_FIELDS = [
 
 
 class PortalContributionBaseSerializer(serializers.ModelSerializer):
+    card_brand = serializers.CharField(read_only=True, allow_blank=True)
+    card_expiration_date = serializers.CharField(read_only=True, allow_blank=True)
+    card_last_4 = serializers.CharField(read_only=True, allow_blank=True)
+    last_payment_date = serializers.DateTimeField(source="_last_payment_date", read_only=True, allow_null=True)
+    next_payment_date = serializers.DateTimeField(read_only=True, allow_null=True)
     revenue_program = serializers.PrimaryKeyRelatedField(read_only=True)
-    last_payment_date = serializers.DateTimeField(source="_last_payment_date", read_only=True)
 
     class Meta:
         model = Contribution
@@ -896,12 +900,28 @@ PORTAL_CONTRIBUTION_DETAIL_SERIALIZER_DB_FIELDS = PORTAL_CONTRIBUTION_BASE_SERIA
 
 
 class PortalContributionDetailSerializer(PortalContributionBaseSerializer):
+    card_owner_name = serializers.CharField(read_only=True, allow_blank=True)
+    last_payment_date = serializers.DateTimeField(source="_last_payment_date", allow_null=True)
+    next_payment_date = serializers.DateTimeField(read_only=True, allow_null=True)
     payments = PortalContributionPaymentSerializer(many=True, read_only=True, source="payment_set")
+    stripe_payment_method_id = serializers.CharField(write_only=True, allow_blank=True, required=False)
 
     class Meta:
         model = Contribution
-        fields = PORTAL_CONTRIBUTION_DETAIL_SERIALIZER_DB_FIELDS
+        fields = PORTAL_CONTRIBUTION_DETAIL_SERIALIZER_DB_FIELDS + ["stripe_payment_method_id"]
         read_only_fields = PORTAL_CONTRIBUTION_DETAIL_SERIALIZER_DB_FIELDS
+
+    def update_payment_method_for_subscription(self, instance, stripe_payment_method_id):
+        try:
+            instance.update_payment_method_for_subscription(stripe_payment_method_id)
+        except (ValueError, StripeError):
+            logger.exception("Error updating payment method for contribution %s", instance.id)
+            raise serializers.ValidationError({"stripe_payment_method_id": "Cannot update payment method at this time"})
+
+    def update(self, instance, validated_data):
+        if stripe_payment_method_id := validated_data.pop("stripe_payment_method_id", None):
+            self.update_payment_method_for_subscription(instance, stripe_payment_method_id)
+        return instance
 
 
 class PortalContributionListSerializer(PortalContributionBaseSerializer):

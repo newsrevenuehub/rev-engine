@@ -739,7 +739,9 @@ class TestContributionModel:
         spy = mocker.spy(stripe.PaymentIntent, "retrieve")
         pi = contribution.stripe_payment_intent
         if expect_retrieve:
-            spy.assert_called_once_with(payment_intent_id, stripe_account=stripe_account_id)
+            spy.assert_called_once_with(
+                payment_intent_id, stripe_account=stripe_account_id, expand=["charges.data", "payment_method"]
+            )
         else:
             spy.assert_not_called()
         assert pi == (return_val if expect_retrieve else None)
@@ -1606,7 +1608,6 @@ class TestContributionModel:
             ),
             monthly_contribution.id,
         )
-        # assert about revision and update fields
 
     @pytest.mark.parametrize("score,expected", [(x, y) for x, y in Contribution.BAD_ACTOR_SCORES])
     def test_expanded_bad_actor_score(self, score, expected):
@@ -1617,9 +1618,14 @@ class TestContributionModel:
         assert contribution.stripe_subscription is None
         assert contribution.next_payment_date is None
 
-    def test_card_when_no_customer_id(self):
-        contribution = ContributionFactory(provider_customer_id=None)
+    def test_card_when_no_provider_payment_method_id(self, mocker):
+        logger_spy = mocker.spy(logger, "warning")
+        contribution = ContributionFactory(provider_payment_method_id=None)
         assert contribution.card is None
+        logger_spy.assert_called_once_with(
+            "`Contribution.card` called on contribution with ID %s that can't be linked to a stripe payment method",
+            contribution.id,
+        )
 
     @pytest.fixture
     def customer_card_from_invoice_settings(self, stripe_customer_default_source_expanded):
@@ -1635,14 +1641,58 @@ class TestContributionModel:
         stripe_customer_default_source_expanded["default_source"] = None
         return stripe.Customer.construct_from(stripe_customer_default_source_expanded.to_dict(), key="test")
 
-    def test_card_owner_name_when_no_card(self, mocker):
-        mocker.patch("apps.contributions.models.Contribution.card", new_callable=mocker.PropertyMock, return_value=None)
-        contribution = ContributionFactory()
+    def test_card_owner_name_when_no_payment_method(self, mocker):
+        mock_retrieve = mocker.patch("stripe.PaymentMethod.retrieve", return_value=None)
+        contribution = ContributionFactory(provider_payment_method_id="something")
         assert contribution.card_owner_name == ""
+        mock_retrieve.assert_called_once_with(
+            contribution.provider_payment_method_id, stripe_account=contribution.stripe_account_id
+        )
 
-    def test_stripe_payment_method_when_no_pm_id(self):
+    def test_stripe_payment_method_when_no_pm_id(self, mocker):
+        mock_retrieve = mocker.patch("stripe.PaymentMethod.retrieve")
         contribution = ContributionFactory(provider_payment_method_id=None)
         assert contribution.stripe_payment_method is None
+        mock_retrieve.assert_not_called()
+
+    def test_update_payment_method_for_subscription_when_one_time(self, one_time_contribution):
+        with pytest.raises(ValueError):
+            one_time_contribution.update_payment_method_for_subscription("something")
+
+    def test_update_payment_method_for_subscription_when_no_customer_id(self, monthly_contribution):
+        monthly_contribution.provider_customer_id = None
+        monthly_contribution.provider_subscription_id = "something"
+        with pytest.raises(ValueError):
+            monthly_contribution.update_payment_method_for_subscription("something")
+
+    def test_update_payment_method_for_subscription_when_no_subscription_id(self, monthly_contribution):
+        monthly_contribution.provider_customer_id = "something"
+        monthly_contribution.provider_subscription_id = None
+        with pytest.raises(ValueError):
+            monthly_contribution.update_payment_method_for_subscription("something")
+
+    def test_update_payment_method_for_subscription_when_error_on_pm_attach(self, monthly_contribution, mocker):
+        mock_pm_attach = mocker.patch("stripe.PaymentMethod.attach", side_effect=stripe.error.StripeError("something"))
+        monthly_contribution.provider_customer_id = (cus_id := "cus_123")
+        monthly_contribution.provider_subscription_id = "sub_123"
+        with pytest.raises(stripe.error.StripeError):
+            monthly_contribution.update_payment_method_for_subscription((pm_id := "pm_123"))
+        mock_pm_attach.assert_called_once_with(
+            pm_id, customer=cus_id, stripe_account=monthly_contribution.stripe_account_id
+        )
+
+    def test_update_payment_method_for_subscription_when_error_on_subscription_modify(
+        self, monthly_contribution, mocker
+    ):
+        mocker.patch("stripe.PaymentMethod.attach")
+        mock_sub_modify = mocker.patch("stripe.Subscription.modify", side_effect=stripe.error.StripeError("something"))
+        monthly_contribution.provider_customer_id = "cus_123"
+        monthly_contribution.provider_subscription_id = (sub_id := "sub_123")
+        with pytest.raises(stripe.error.StripeError):
+            monthly_contribution.update_payment_method_for_subscription((pm_id := "pm_123"))
+        mock_sub_modify.assert_called_once_with(
+            sub_id, default_payment_method=pm_id, stripe_account=monthly_contribution.stripe_account_id
+        )
 
     @pytest.mark.parametrize("provider_payment_id", ("pi_123", None))
     def test__expanded_pi_for_cancelable_modifiable(self, provider_payment_id, mocker):

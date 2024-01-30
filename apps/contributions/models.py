@@ -635,14 +635,16 @@ class Contribution(IndexedTimeStampedModel):
 
     @cached_property
     def card(self) -> stripe.Card | None:
-        if not (cust_id := self.provider_customer_id):
+        """Return card object for contribution, if one exists"""
+        # TODO: wed this to metadata version, and also determine conditions under which updates would occur for contributions where this is only available on the customer
+        # potentially adding a "can be updated" property or something like that.
+        if not (pm := self.stripe_payment_method):
+            logger.warning(
+                "`Contribution.card` called on contribution with ID %s that can't be linked to a stripe payment method",
+                self.id,
+            )
             return None
-        customer = stripe.Customer.retrieve(
-            cust_id,
-            stripe_account=self.donation_page.revenue_program.payment_provider.stripe_account_id,
-            expand=["default_source"],
-        )
-        return customer.default_source if customer.default_source and customer.default_source.object == "card" else None
+        return pm.card if pm.type == "card" else None
 
     @property
     def card_brand(self) -> str:
@@ -654,7 +656,8 @@ class Contribution(IndexedTimeStampedModel):
 
     @property
     def card_owner_name(self) -> str:
-        return self.card.name if self.card else ""
+        pm = self.stripe_payment_method
+        return pm.billing_details.name if pm and pm.billing_details and pm.type == "card" else ""
 
     @property
     def card_last_4(self) -> str:
@@ -1021,6 +1024,39 @@ class Contribution(IndexedTimeStampedModel):
             "would update" if dry_run else "updated",
             updated_count,
         )
+
+    def update_payment_method_for_subscription(self, payment_method_id: str) -> None:
+        """"""
+        if self.interval == ContributionInterval.ONE_TIME:
+            raise ValueError("Cannot update payment method for one-time contribution")
+        if not (cust_id := self.provider_customer_id):
+            raise ValueError("Cannot update payment method for contribution without a customer ID")
+        if not (sub_id := self.provider_subscription_id):
+            raise ValueError("Cannot update payment method for contribution without a subscription ID")
+
+        try:
+            stripe.PaymentMethod.attach(payment_method_id, customer=cust_id, stripe_account=self.stripe_account_id)
+        except StripeError:
+            logger.exception(
+                "Encountered a Stripe error trying to attach payment method %s to customer %s for contribution with ID %s",
+                payment_method_id,
+                cust_id,
+                self.id,
+            )
+            raise
+
+        try:
+            stripe.Subscription.modify(
+                sub_id, default_payment_method=payment_method_id, stripe_account=self.stripe_account_id
+            )
+        except stripe.error.StripeError:
+            logger.exception(
+                "`Contribution.update_payment_method_for_subscription` encountered a Stripe error trying to update subscription %s with payment method %s for contribution with ID %s",
+                sub_id,
+                payment_method_id,
+                self.id,
+            )
+            raise
 
 
 def ensure_stripe_event(event_types: List[str] = None) -> Callable:

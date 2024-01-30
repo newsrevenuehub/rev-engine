@@ -630,9 +630,12 @@ class PortalContributorsViewSet(viewsets.GenericViewSet):
         except Contribution.DoesNotExist:
             return Response({"detail": "Contribution not found"}, status=status.HTTP_404_NOT_FOUND)
 
-        serializer = self.get_serializer(
-            instance=contribution, **{} if request.method == "GET" else {"data": request.data}
-        )
+        kwargs = {"instance": contribution}
+        if request.method == "PATCH":
+            kwargs["data"] = request.data
+            kwargs["partial"] = True
+
+        serializer = self.get_serializer(**kwargs)
 
         # NB: we're guaranteed that request method is one of these three by @action decorator, so
         # don't need to handle default case
@@ -640,7 +643,9 @@ class PortalContributorsViewSet(viewsets.GenericViewSet):
             case "GET":
                 return Response(serializer.data, status=status.HTTP_200_OK)
             case "PATCH":
-                return Response("Not yet implemented", status=status.HTTP_501_NOT_IMPLEMENTED)
+                serializer.is_valid(raise_exception=True)
+                serializer.save()
+                return Response(serializer.data, status=status.HTTP_200_OK)
             case "DELETE":  # NB: this path does in fact get tested, but shows up as partially covered in coverage report
                 return self.handle_delete(contribution)
 

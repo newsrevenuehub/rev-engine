@@ -1683,6 +1683,29 @@ class TestContributionModel:
             assert contribution._expanded_pi_for_cancelable_modifiable is None
             mock_pi_retrieve.assert_not_called()
 
+    @pytest.mark.parametrize(
+        "payment_data,expected",
+        (
+            (None, ""),
+            ({}, ""),
+            ({"type": "card", "card": {"brand": (brand := "my-brand")}}, brand),
+        ),
+    )
+    def test_card_brand(self, payment_data, expected):
+        assert ContributionFactory(provider_payment_method_details=payment_data).card_brand == expected
+
+    @pytest.mark.parametrize("payment_data,expected", ((None, ""),))
+    def test_card_expiration_date(self, payment_data, expected):
+        pass
+
+    @pytest.mark.parametrize("payment_data,expected", ((None, ""),))
+    def test_card_owner_name(self, payment_data, expected):
+        pass
+
+    @pytest.mark.parametrize("payment_data,expected", ((None, ""),))
+    def test_card_last_4(self, payment_data, expected):
+        pass
+
 
 @pytest.mark.django_db
 class TestContributionQuerySetMethods:

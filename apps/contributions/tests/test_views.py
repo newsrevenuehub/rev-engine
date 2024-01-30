@@ -1852,8 +1852,10 @@ class TestPortalContributorsViewSet:
         assert response.status_code == status.HTTP_404_NOT_FOUND
         assert response.json() == {"detail": "Contribution not found"}
 
+    @pytest.mark.parametrize("request_data", ({}, {"provider_payment_method_id": "pm_123"}))
     def test_contribution_detail_patch_happy_path(
         self,
+        request_data,
         api_client,
         portal_contributor_with_multiple_contributions,
         mocker,
@@ -1871,19 +1873,23 @@ class TestPortalContributorsViewSet:
                     contribution.id,
                 ),
             ),
-            data={"provider_payment_method_id": (pm_id := "pm_888")},
+            data=request_data,
         )
         assert response.status_code == status.HTTP_200_OK
         contribution.refresh_from_db()
-        assert contribution.provider_payment_method_id == pm_id
-        mock_pm_attach.assert_called_once_with(
-            pm_id, customer=contribution.provider_customer_id, stripe_account=contribution.stripe_account_id
-        )
-        mock_update_sub.assert_called_once_with(
-            contribution.provider_subscription_id,
-            default_payment_method=pm_id,
-            stripe_account=contribution.stripe_account_id,
-        )
+        if pm_id := request_data.get("provider_payment_method_id"):
+            assert contribution.provider_payment_method_id == pm_id
+            mock_pm_attach.assert_called_once_with(
+                pm_id, customer=contribution.provider_customer_id, stripe_account=contribution.stripe_account_id
+            )
+            mock_update_sub.assert_called_once_with(
+                contribution.provider_subscription_id,
+                default_payment_method=pm_id,
+                stripe_account=contribution.stripe_account_id,
+            )
+        else:
+            mock_pm_attach.assert_not_called()
+            mock_update_sub.assert_not_called()
 
     def test_contribution_detail_patch_when_stripe_error(
         self, api_client, portal_contributor_with_multiple_contributions, mocker

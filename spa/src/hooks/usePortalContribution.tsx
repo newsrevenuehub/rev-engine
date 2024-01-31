@@ -78,7 +78,7 @@ export function usePortalContribution(contributorId: number, contributionId: num
         enqueueSnackbar('Your contribution has been successfully cancelled.', {
           persist: true,
           content: (key: string, message: string) => (
-            <SystemNotification id={key} message={message} header="Contribution cancelled" type="success" />
+            <SystemNotification id={key} message={message} header="Contribution canceled" type="success" />
           )
         });
       },
@@ -86,7 +86,7 @@ export function usePortalContribution(contributorId: number, contributionId: num
         enqueueSnackbar(error?.response?.data?.detail || 'Something went wrong. Please, try again later.', {
           persist: true,
           content: (key: string, message: string) => (
-            <SystemNotification id={key} message={message} header="Error cancelling contribution" type="error" />
+            <SystemNotification id={key} message={message} header="Error canceling contribution" type="error" />
           )
         });
       }

@@ -1,8 +1,11 @@
-import MockAdapter from 'axios-mock-adapter';
 import { renderHook } from '@testing-library/react-hooks';
+import MockAdapter from 'axios-mock-adapter';
+import { useSnackbar } from 'notistack';
 import Axios from 'ajax/axios';
 import { TestQueryClientProvider } from 'test-utils';
 import { usePortalContribution } from './usePortalContribution';
+
+jest.mock('notistack');
 
 const mockContributionResponse = {
   amount: 123,
@@ -29,10 +32,19 @@ function hook(contributorId: number, contributionId: number) {
 
 describe('usePortalContribution', () => {
   const axiosMock = new MockAdapter(Axios);
+  const useSnackbarMock = jest.mocked(useSnackbar);
+  let enqueueSnackbar: jest.Mock;
 
   beforeEach(() => {
     axiosMock.onGet('contributors/123/contributions/1/').reply(200, mockContributionResponse);
+    axiosMock.onPatch('contributors/123/contributions/1/').reply(200);
   });
+
+  beforeEach(() => {
+    enqueueSnackbar = jest.fn();
+    useSnackbarMock.mockReturnValue({ enqueueSnackbar } as any);
+  });
+
   afterEach(() => axiosMock.reset());
   afterAll(() => axiosMock.restore());
 
@@ -85,6 +97,52 @@ describe('usePortalContribution', () => {
 
       await waitFor(() => expect(axiosMock.history.get.length).toBe(1));
       expect(result.current.contribution).toBeUndefined();
+    });
+  });
+
+  describe('The updateContribution function', () => {
+    // These wait for the next update to allow component updates to happen after
+    // the fetch completes.
+
+    it('is returned even when a contribution is loading', async () => {
+      const { result, waitForNextUpdate } = hook(123, 1);
+
+      expect(typeof result.current.updateContribution).toBe('function');
+      await waitForNextUpdate();
+    });
+
+    it('makes a PATCH to /api/v1/contributions/', async () => {
+      const { result, waitFor } = hook(123, 1);
+
+      result.current.updateContribution({ provider_payment_method_id: 'new-id' });
+      await waitFor(() => expect(axiosMock.history.patch.length).toBe(1));
+      expect(axiosMock.history.patch[0]).toEqual(
+        expect.objectContaining({
+          data: JSON.stringify({ provider_payment_method_id: 'new-id' }),
+          url: '/contributors/123/contributions/1/'
+        })
+      );
+    });
+
+    it('resolves with the request if the PATCH succeeds', async () => {
+      const { result } = hook(123, 1);
+
+      expect(await result.current.updateContribution({ provider_payment_method_id: 'new-id' })).not.toBe(undefined);
+    });
+
+    it('rejects and shows an error notification if the PATCH fails', async () => {
+      const errorSpy = jest.spyOn(console, 'error').mockImplementation(() => {});
+      const { result } = hook(123, 1);
+
+      axiosMock.onPatch('contributors/123/contributions/1/').networkError();
+      await expect(result.current.updateContribution({ provider_payment_method_id: 'new-id' })).rejects.toThrow();
+      expect(enqueueSnackbar.mock.calls).toEqual([
+        [
+          'A problem occurred while updating your contribution. Please try again.',
+          expect.objectContaining({ persist: true })
+        ]
+      ]);
+      errorSpy.mockRestore();
     });
   });
 });

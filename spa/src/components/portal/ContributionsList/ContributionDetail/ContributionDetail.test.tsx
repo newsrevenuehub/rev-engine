@@ -128,7 +128,8 @@ describe('ContributionDetail', () => {
       const cancelButton = screen.getByText('Cancel Contribution');
       cancelButton.click();
 
-      expect(cancelContribution).toBeCalledWith(mockContribution.id);
+      expect(cancelContribution).toBeCalledWith();
+      expect(cancelContribution).toBeCalledTimes(1);
     });
 
     it('is accessible', async () => {

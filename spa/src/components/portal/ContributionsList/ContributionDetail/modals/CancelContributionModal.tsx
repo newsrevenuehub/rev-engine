@@ -1,6 +1,6 @@
 import { Button, Modal, ModalContent, ModalFooter, ModalHeader } from 'components/base';
 import PropTypes, { InferProps } from 'prop-types';
-import ErrorIcon from '@material-design-icons/svg/outlined/error_outline.svg';
+import ErrorIcon from '@material-design-icons/svg/outlined/error_outline.svg?react';
 
 const CancelContributionModalPropTypes = {
   open: PropTypes.bool.isRequired,

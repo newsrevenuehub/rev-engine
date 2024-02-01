@@ -6,10 +6,11 @@ import ContributionFetchError from '../ContributionFetchError';
 import Actions from './Actions';
 import BillingDetails from './BillingDetails';
 import BillingHistory from './BillingHistory';
-import { Loading, Root } from './ContributionDetail.styled';
+import { Desktop, Loading, Root } from './ContributionDetail.styled';
 import MobileHeader from './MobileHeader';
 import PaymentMethod from './PaymentMethod';
 import { useDetailAnchor } from './useDetailAnchor';
+import Banner from './Banner';
 
 const ContributionDetailPropTypes = {
   contributionId: PropTypes.number.isRequired,
@@ -54,11 +55,14 @@ export function ContributionDetail({ domAnchor, contributionId, contributorId }:
 
   return (
     <Root key="loaded" ref={setRootEl}>
+      <Desktop>
+        <Banner contribution={contribution} />
+      </Desktop>
       <MobileHeader contribution={contribution} />
       <BillingDetails contribution={contribution} />
       <PaymentMethod contribution={contribution} />
       <BillingHistory payments={contribution.payments} />
-      <Actions contribution={contribution} cancelContribution={cancelContribution} />
+      <Actions contribution={contribution} onCancelContribution={cancelContribution} />
     </Root>
   );
 }

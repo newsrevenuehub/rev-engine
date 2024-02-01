@@ -23,10 +23,10 @@ const mockContribution: PortalContributionDetail = {
   status: 'paid'
 };
 
-const cancelContribution = jest.fn();
+const onCancelContribution = jest.fn();
 
 function tree(props?: Partial<ActionsProps>) {
-  return render(<Actions contribution={mockContribution} cancelContribution={cancelContribution} {...props} />);
+  return render(<Actions contribution={mockContribution} onCancelContribution={onCancelContribution} {...props} />);
 }
 
 describe('Actions', () => {
@@ -52,7 +52,7 @@ describe('Actions', () => {
       });
     });
 
-    it('should call cancelContribution when cancel confirmation is clicked', async () => {
+    it('should call onCancelContribution when cancel confirmation is clicked', async () => {
       tree({ contribution: { ...mockContribution, is_cancelable: true } });
       expect(screen.queryByTestId('cancel-contribution-modal')).not.toBeInTheDocument();
 
@@ -62,16 +62,22 @@ describe('Actions', () => {
         expect(screen.getByTestId('cancel-contribution-modal')).toBeVisible();
       });
 
-      expect(cancelContribution).not.toHaveBeenCalled();
+      expect(onCancelContribution).not.toHaveBeenCalled();
 
       await act(async () => {
         await screen.getByRole('button', { name: 'Yes, cancel' }).click();
       });
 
-      expect(cancelContribution).toHaveBeenCalledWith(mockContribution.id);
-      expect(cancelContribution).toHaveBeenCalledTimes(1);
+      expect(onCancelContribution).toHaveBeenCalledWith();
+      expect(onCancelContribution).toHaveBeenCalledTimes(1);
 
       expect(screen.queryByTestId('cancel-contribution-modal')).not.toBeInTheDocument();
+    });
+
+    it('is accessible', async () => {
+      const { container } = tree({ contribution: { ...mockContribution, is_cancelable: true } });
+
+      expect(await axe(container)).toHaveNoViolations();
     });
   });
 

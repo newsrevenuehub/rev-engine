@@ -5,35 +5,27 @@ import { PortalContributionDetail } from 'hooks/usePortalContribution';
 import PropTypes, { InferProps } from 'prop-types';
 import { useCallback } from 'react';
 import { Root } from './Actions.styled';
-import CancelContributionModal from './Modals/CancelContributionModal';
+import CancelContributionModal from './modals/CancelContributionModal';
 
 const ActionsPropTypes = {
   contribution: PropTypes.object.isRequired,
-  cancelContribution: PropTypes.func.isRequired
+  onCancelContribution: PropTypes.func.isRequired
 };
 
 export interface ActionsProps extends InferProps<typeof ActionsPropTypes> {
   contribution: PortalContributionDetail;
-  cancelContribution: (id: number) => void;
+  onCancelContribution: () => void;
 }
 
-export function Actions({ contribution, cancelContribution }: ActionsProps) {
+export function Actions({ contribution, onCancelContribution }: ActionsProps) {
   const { open, handleOpen, handleClose } = useModal();
 
-  const onCancelContribution = useCallback(
-    async (id: number) => {
-      try {
-        await cancelContribution(id);
-      } catch (error) {
-        console.error(error);
-      } finally {
-        handleClose();
-      }
-    },
-    [cancelContribution, handleClose]
-  );
+  const onCancel = useCallback(() => {
+    onCancelContribution();
+    handleClose();
+  }, [onCancelContribution, handleClose]);
 
-  if (contribution.is_cancelable) {
+  if (contribution.is_cancelable || true) {
     return (
       <>
         <Root>
@@ -41,13 +33,7 @@ export function Actions({ contribution, cancelContribution }: ActionsProps) {
             Cancel Contribution
           </Button>
         </Root>
-        {open && (
-          <CancelContributionModal
-            open={open}
-            onClose={handleClose}
-            onSubmit={() => onCancelContribution(contribution.id)}
-          />
-        )}
+        {open && <CancelContributionModal open={open} onClose={handleClose} onSubmit={onCancel} />}
       </>
     );
   }

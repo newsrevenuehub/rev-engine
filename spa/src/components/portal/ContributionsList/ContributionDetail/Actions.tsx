@@ -25,7 +25,7 @@ export function Actions({ contribution, onCancelContribution }: ActionsProps) {
     handleClose();
   }, [onCancelContribution, handleClose]);
 
-  if (contribution.is_cancelable || true) {
+  if (contribution.is_cancelable) {
     return (
       <>
         <Root>

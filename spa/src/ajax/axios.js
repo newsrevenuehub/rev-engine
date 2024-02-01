@@ -24,14 +24,13 @@ function getCsrfTokenFromCookie() {
   if (parts.length === 2) return parts.pop().split(';').shift();
 }
 
-Axios.interceptors.request.use(
-  (request) => {
-    const csrfToken = getCsrfTokenFromCookie();
-    if (csrfToken) request.headers[CSRF_HEADER] = csrfToken;
-    return request;
-  },
-  (error) => Promise.reject(error)
-);
+const sendCookieCsrfAsHeader = (request) => {
+  const csrfToken = getCsrfTokenFromCookie();
+  if (csrfToken) request.headers[CSRF_HEADER] = csrfToken;
+  return request;
+};
+
+Axios.interceptors.request.use(sendCookieCsrfAsHeader, (error) => Promise.reject(error));
 
 /**
  * A Response interceptor.

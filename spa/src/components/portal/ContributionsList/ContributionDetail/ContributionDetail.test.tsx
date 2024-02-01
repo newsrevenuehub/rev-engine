@@ -22,7 +22,8 @@ describe('ContributionDetail', () => {
       contribution: undefined,
       isError: false,
       isFetching: false,
-      refetch: jest.fn()
+      refetch: jest.fn(),
+      updateContribution: jest.fn()
     });
 
     tree();
@@ -36,7 +37,8 @@ describe('ContributionDetail', () => {
         contribution: undefined,
         isError: false,
         isFetching: false,
-        refetch: jest.fn()
+        refetch: jest.fn(),
+        updateContribution: jest.fn()
       });
     });
 
@@ -59,7 +61,8 @@ describe('ContributionDetail', () => {
         contribution: undefined,
         isError: true,
         isFetching: false,
-        refetch: jest.fn()
+        refetch: jest.fn(),
+        updateContribution: jest.fn()
       });
     });
 
@@ -87,7 +90,8 @@ describe('ContributionDetail', () => {
         contribution: mockContribution as any,
         isError: false,
         isFetching: false,
-        refetch: jest.fn()
+        refetch: jest.fn(),
+        updateContribution: jest.fn()
       });
     });
 

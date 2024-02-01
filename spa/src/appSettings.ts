@@ -28,9 +28,8 @@ export const ORG_GA_V3_PLUGIN_NAME = 'ga-v3-org';
 // Auth
 export const LS_USER = 'REVENGINE_USER';
 export const LS_CONTRIBUTOR = 'REVENGINE_CONTRIBUTOR';
-export const LS_CSRF_TOKEN = 'CSRF_TOKEN';
 export const CSRF_HEADER = 'X-CSRFTOKEN';
-export const CSRF_TOKEN_COOIE_NAME = 'csrftoken';
+export const CSRF_TOKEN_COOKIE_NAME = 'csrftoken';
 export const PASSWORD_RESET_URL = '/users/password-reset/';
 
 // Google reCAPTCHA

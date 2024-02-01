@@ -1,7 +1,7 @@
 import MockAdapter from 'axios-mock-adapter';
 import { useState } from 'react';
 import Axios from 'ajax/axios';
-import { LS_CONTRIBUTOR, LS_CSRF_TOKEN } from 'appSettings';
+import { LS_CONTRIBUTOR } from 'appSettings';
 import { fireEvent, render, screen, waitFor } from 'test-utils';
 import { PortalAuthContextProvider, usePortalAuthContext } from './usePortalAuth';
 
@@ -117,14 +117,6 @@ describe('PortalAuthContextProvider', () => {
         fireEvent.click(screen.getByText('verifyToken'));
         await waitFor(() => expect(axiosMock.history.post.length).toBe(1));
         expect(window.localStorage.getItem(LS_CONTRIBUTOR)).toBe(JSON.stringify(testContributor));
-      });
-
-      it('saves the CSRF token to local storage', async () => {
-        tree();
-        expect(window.localStorage.getItem(LS_CSRF_TOKEN)).toBe(null);
-        fireEvent.click(screen.getByText('verifyToken'));
-        await waitFor(() => expect(axiosMock.history.post.length).toBe(1));
-        expect(window.localStorage.getItem(LS_CSRF_TOKEN)).toBe('mock-csrf-token');
       });
     });
 

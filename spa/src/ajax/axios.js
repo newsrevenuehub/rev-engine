@@ -1,5 +1,5 @@
 import axios from 'axios';
-import { CSRF_TOKEN_COOIE_NAME, CSRF_HEADER, REVENGINE_API_VERSION } from 'appSettings';
+import { CSRF_TOKEN_COOKIE_NAME, CSRF_HEADER, REVENGINE_API_VERSION } from 'appSettings';
 import { TOKEN } from './endpoints';
 
 export const apiBaseUrl = `/api/${REVENGINE_API_VERSION}/`;
@@ -20,7 +20,7 @@ export default Axios;
 
 function getCsrfTokenFromCookie() {
   const value = `; ${document.cookie}`;
-  const parts = value.split(`; ${CSRF_TOKEN_COOIE_NAME}=`);
+  const parts = value.split(`; ${CSRF_TOKEN_COOKIE_NAME}=`);
   if (parts.length === 2) return parts.pop().split(';').shift();
 }
 

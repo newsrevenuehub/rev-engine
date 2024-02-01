@@ -14,7 +14,6 @@ jest.mock('appSettings', () => ({
   CSRF_HEADER: 'X-CSRFTOKEN',
   DASHBOARD_SUBDOMAINS: ['', 'www', 'support'],
   LS_CONTRIBUTOR: 'REVENGINE_CONTRIBUTOR',
-  LS_CSRF_TOKEN: 'CSRF_TOKEN',
   LS_USER: 'REVENGINE_USER',
   HUB_GA_V3_ID: 'UA-37373737yesyesyes'
 }));

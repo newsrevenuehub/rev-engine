@@ -1,6 +1,6 @@
 import { Button, Modal, ModalContent, ModalFooter, ModalHeader } from 'components/base';
 import PropTypes, { InferProps } from 'prop-types';
-import { ExclamationIcon } from './CancelContributionModal.styled';
+import ErrorIcon from '@material-design-icons/svg/outlined/error_outline.svg';
 
 const CancelContributionModalPropTypes = {
   open: PropTypes.bool.isRequired,
@@ -13,7 +13,7 @@ export type CancelContributionModalProps = InferProps<typeof CancelContributionM
 export function CancelContributionModal({ open, onClose, onSubmit }: CancelContributionModalProps) {
   return (
     <Modal open={open} width={660} data-testid="cancel-contribution-modal">
-      <ModalHeader icon={<ExclamationIcon />} onClose={onClose}>
+      <ModalHeader icon={<ErrorIcon />} onClose={onClose}>
         <strong>Cancel Payment</strong>
       </ModalHeader>
       <ModalContent>

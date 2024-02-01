@@ -106,7 +106,6 @@ class TokenObtainPairCookieView(simplejwt_views.TokenObtainPairView):
         response = Response(
             {
                 "detail": "success",
-                "csrftoken": csrf.get_token(self.request),
                 "user": AuthedUserSerializer(jwt_serializer.user).data,
             },
             status=status.HTTP_200_OK,

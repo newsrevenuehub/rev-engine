@@ -49,6 +49,14 @@ describe('Banner', () => {
     });
   });
 
+  describe('Status = Failed', () => {
+    // TODO: update test when "Failed" banner is implemented
+    it('should not render', () => {
+      tree({ contribution: { ...mockContribution, status: 'paid' } });
+      expect(document.body.textContent).toBe('');
+    });
+  });
+
   describe('Status = Paid', () => {
     it('should not render', () => {
       tree({ contribution: { ...mockContribution, status: 'paid' } });

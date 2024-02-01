@@ -36,6 +36,8 @@ export function Banner({ contribution }: BannerProps) {
     }
     // TODO: Add additional banner options (ex: Failed)
     case 'failed': {
+      // TODO: remove "showBanner = false;" when the "Failed" banner is implemented
+      showBanner = false;
       bannerInfo.title = 'Failed';
       bannerInfo.description =
         'This contribution failed. Help our community and continue your support of our mission by creating a new contribution.';

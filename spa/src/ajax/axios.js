@@ -1,5 +1,5 @@
 import axios from 'axios';
-import { LS_CSRF_TOKEN, CSRF_HEADER, REVENGINE_API_VERSION } from 'appSettings';
+import { CSRF_TOKEN_COOIE_NAME, CSRF_HEADER, REVENGINE_API_VERSION } from 'appSettings';
 import { TOKEN } from './endpoints';
 
 export const apiBaseUrl = `/api/${REVENGINE_API_VERSION}/`;
@@ -17,9 +17,16 @@ export default Axios;
  * first callback intercepts successfully formed requests
  * second callback handles errors, so pass through
  */
+
+function getCsrfTokenFromCookie() {
+  const value = `; ${document.cookie}`;
+  const parts = value.split(`; ${CSRF_TOKEN_COOIE_NAME}=`);
+  if (parts.length === 2) return parts.pop().split(';').shift();
+}
+
 Axios.interceptors.request.use(
   (request) => {
-    const csrfToken = localStorage.getItem(LS_CSRF_TOKEN);
+    const csrfToken = getCsrfTokenFromCookie();
     if (csrfToken) request.headers[CSRF_HEADER] = csrfToken;
     return request;
   },

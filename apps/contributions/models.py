@@ -587,6 +587,7 @@ class Contribution(IndexedTimeStampedModel):
             "contribution_interval_display_value": self.interval,
             "contributor_email": self.contributor.email,
             "contributor_name": customer.name,
+            "copyright_year": datetime.datetime.now().year,
             "fiscal_sponsor_name": self.donation_page.revenue_program.fiscal_sponsor_name,
             "fiscal_status": self.donation_page.revenue_program.fiscal_status,
             "magic_link": Contributor.create_magic_link(self),

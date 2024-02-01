@@ -892,6 +892,7 @@ PORTAL_CONTRIBUTION_DETAIL_SERIALIZER_DB_FIELDS = PORTAL_CONTRIBUTION_BASE_SERIA
     "payments",
     "paid_fees",
     "card_owner_name",
+    "stripe_account_id",
 ]
 
 

@@ -20,7 +20,8 @@ const mockContribution: PortalContributionDetail = {
   payments: [],
   payment_type: 'card',
   revenue_program: 1,
-  status: 'paid'
+  status: 'paid',
+  stripe_account_id: 'mock-stripe-account-id'
 };
 
 function tree(props?: Partial<MobileHeaderProps>) {

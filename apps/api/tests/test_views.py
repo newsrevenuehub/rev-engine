@@ -124,7 +124,7 @@ class TestTokenObtainPairCookieView:
         response = api_client.post(reverse("token-obtain-pair"), {"email": user.email, "password": KNOWN_PASSWORD})
         assert response.status_code == status.HTTP_200_OK
 
-        assert set(response.json().keys()) == {"detail", "user", "csrftoken"}
+        assert set(response.json().keys()) == {"detail", "user"}
 
         _user = response.json()["user"]
 
@@ -173,8 +173,6 @@ class TestTokenObtainPairCookieView:
         else:
             assert _user["role_type"] is None
 
-        assert response.json()["csrftoken"]
-        assert response.cookies[settings.CSRF_COOKIE_NAME]
         assert response.cookies["Authorization"]
 
     def test_post_when_invalid_password(self, org_user_with_pw, api_client):
@@ -474,14 +472,12 @@ class VerifyContributorTokenViewTest(APITestCase):
     def test_response_with_valid_token(self):
         response = self.client.post(self.url, {"email": self.contributor.email, "token": self.valid_token})
         self.assertEqual(response.status_code, 200)
-        self.assertIn("csrftoken", response.data)
         self.assertEqual(response.data["detail"], "success")
         self.assertEqual(response.data["contributor"]["id"], self.contributor.pk)
 
-    def test_response_sets_token_and_csrf_cookies(self):
+    def test_response_sets_auth_token(self):
         response = self.client.post(self.url, {"email": self.contributor.email, "token": self.valid_token})
         self.assertIn("Authorization", response.client.cookies)
-        self.assertIn("csrftoken", response.client.cookies)
 
     def test_no_such_contributor(self):
         """

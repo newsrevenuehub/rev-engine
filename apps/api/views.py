@@ -5,7 +5,6 @@ from datetime import datetime
 from urllib.parse import quote_plus, urlparse
 
 from django.conf import settings
-from django.middleware import csrf
 from django.shortcuts import get_object_or_404
 from django.template.loader import render_to_string
 from django.utils.safestring import mark_safe
@@ -222,9 +221,6 @@ class VerifyContributorTokenView(APIView):
         # Generate long-lived token
         long_lived_token = str(refresh.long_lived_access_token)
 
-        # Get anti-CSRF token
-        csrf_token = csrf.get_token(self.request)
-
         # Set  access token using create_cookie directive
         response = set_token_cookie(
             response, long_lived_token, datetime.now() + settings.CONTRIBUTOR_LONG_TOKEN_LIFETIME
@@ -234,7 +230,6 @@ class VerifyContributorTokenView(APIView):
         response.data = {
             "detail": "success",
             "contributor": contributor_serializer.data,
-            "csrftoken": csrf_token,
         }
 
         return response

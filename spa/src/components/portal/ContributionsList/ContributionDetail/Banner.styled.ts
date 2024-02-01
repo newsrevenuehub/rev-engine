@@ -10,6 +10,7 @@ export const Root = styled.div`
   padding: 12px;
   border-radius: 6px;
   background: ${(props) => props.theme.basePalette.greyscale.grey3};
+  margin-top: -10px;
   margin-bottom: 30px;
 
   @media (${(props) => props.theme.breakpoints.tabletLandscapeDown}) {

@@ -348,7 +348,9 @@ class TestPageViewSet:
             pytest_cases.fixture_ref("rp_user"),
         ),
     )
-    def test_create_page_when_expected_user_and_valid_data(self, user, page_creation_data_valid, api_client):
+    def test_create_page_when_expected_user_and_valid_data(
+        self, user, page_creation_data_valid, api_client_with_double_csrf
+    ):
         """Show that permitted users providing valid data can create a page
 
         Note that in the parametrization setup above, we provide a lambda function that gets called with user fixture and a revenue program pk. This is used
@@ -361,8 +363,10 @@ class TestPageViewSet:
             user.roleassignment.revenue_programs.add(rp)
 
         before_count = DonationPage.objects.count()
-        api_client.force_authenticate(user)
-        response = api_client.post(reverse("donationpage-list"), data=page_creation_data_valid, format="json")
+        api_client_with_double_csrf.force_authenticate(user)
+        response = api_client_with_double_csrf.post(
+            reverse("donationpage-list"), data=page_creation_data_valid, format="json"
+        )
         assert response.status_code == status.HTTP_201_CREATED
         assert DonationPage.objects.count() == before_count + 1
         page = DonationPage.objects.get(pk=response.json()["id"])
@@ -383,15 +387,17 @@ class TestPageViewSet:
     )
     @pytest.mark.parametrize("data_format", ("json", "multipart"))
     def test_create_page_when_valid_data_no_page_name_provided(
-        self, creation_data, data_format, api_client, hub_admin_user
+        self, creation_data, data_format, api_client_with_double_csrf, hub_admin_user
     ):
         """Show behavior of page creation with falsy page name
 
         We expect the page to be named after the rp.
         """
-        api_client.force_authenticate(hub_admin_user)
+        api_client_with_double_csrf.force_authenticate(hub_admin_user)
         assert not creation_data.get("name", None)
-        response = api_client.post(reverse("donationpage-list"), data=creation_data, format=data_format)
+        response = api_client_with_double_csrf.post(
+            reverse("donationpage-list"), data=creation_data, format=data_format
+        )
         assert response.status_code == status.HTTP_201_CREATED
         assert response.json()["name"] == RevenueProgram.objects.get(pk=creation_data["revenue_program"]).name
 
@@ -432,7 +438,7 @@ class TestPageViewSet:
             ),
         ),
     )
-    def test_create_page_when_invalid_data(self, data, expected_response, hub_admin_user, api_client):
+    def test_create_page_when_invalid_data(self, data, expected_response, hub_admin_user, api_client_with_double_csrf):
         """Show the behavior of a variety of similarly scoped validation behaviors
 
         Ideally, we'd also include tests like `test_create_page_when_invalid_because_org_not_own_rp` as a parametrized case above,
@@ -442,8 +448,8 @@ class TestPageViewSet:
         In practice, it's much easier to have "simple" validation cases parametrized as above, and then handle the unique complexity
         around ownership of referred-to data in separate test functions.
         """
-        api_client.force_authenticate(hub_admin_user)
-        response = api_client.post(reverse("donationpage-list"), data=data, format="json")
+        api_client_with_double_csrf.force_authenticate(hub_admin_user)
+        response = api_client_with_double_csrf.post(reverse("donationpage-list"), data=data, format="json")
 
         assert response.status_code == status.HTTP_400_BAD_REQUEST
         assert response.json() == expected_response
@@ -455,24 +461,28 @@ class TestPageViewSet:
             pytest_cases.fixture_ref("rp_user"),
         ),
     )
-    def test_create_page_when_invalid_because_org_not_own_rp(self, user, page_creation_data_valid, api_client):
+    def test_create_page_when_invalid_because_org_not_own_rp(
+        self, user, page_creation_data_valid, api_client_with_double_csrf
+    ):
         """Show the behavior when a user tries to create a page for a revenue program that doesn't belong to them"""
-        api_client.force_authenticate(user)
+        api_client_with_double_csrf.force_authenticate(user)
         rp = RevenueProgram.objects.get(pk=page_creation_data_valid["revenue_program"])
         rp.organization = OrganizationFactory()
         rp.save()
         assert rp.organization != user.roleassignment.organization
-        response = api_client.post(reverse("donationpage-list"), data=page_creation_data_valid, format="json")
+        response = api_client_with_double_csrf.post(
+            reverse("donationpage-list"), data=page_creation_data_valid, format="json"
+        )
         assert response.status_code == status.HTTP_400_BAD_REQUEST
         assert response.json() == {"revenue_program": ["Not found"]}
 
     def test_create_page_when_invalid_because_rp_not_exist(
-        self, hub_admin_user, page_creation_invalid_non_existent_rp, api_client
+        self, hub_admin_user, page_creation_invalid_non_existent_rp, api_client_with_double_csrf
     ):
         """Show the behavior when a user tries to create a page refering to a missing revenue program"""
-        api_client.force_authenticate(hub_admin_user)
+        api_client_with_double_csrf.force_authenticate(hub_admin_user)
         assert not RevenueProgram.objects.filter(pk=page_creation_invalid_non_existent_rp["revenue_program"]).exists()
-        response = api_client.post(
+        response = api_client_with_double_csrf.post(
             reverse("donationpage-list"), data=page_creation_invalid_non_existent_rp, format="json"
         )
         assert response.status_code == status.HTTP_400_BAD_REQUEST
@@ -490,13 +500,13 @@ class TestPageViewSet:
         ),
     )
     def test_create_page_when_invalid_because_org_not_own_style(
-        self, user, style, page_creation_data_valid, api_client
+        self, user, style, page_creation_data_valid, api_client_with_double_csrf
     ):
         """Show the behavior when a user tries to create a page refering to an unowned style"""
         assert style.revenue_program not in user.roleassignment.revenue_programs.all()
         data = page_creation_data_valid | {"styles": style.id}
-        api_client.force_authenticate(user)
-        response = api_client.post(reverse("donationpage-list"), data=data, format="json")
+        api_client_with_double_csrf.force_authenticate(user)
+        response = api_client_with_double_csrf.post(reverse("donationpage-list"), data=data, format="json")
         assert response.json() == {"styles": ["Not found"]}
 
     @pytest_cases.parametrize(
@@ -506,28 +516,30 @@ class TestPageViewSet:
             pytest_cases.fixture_ref("rp_user"),
         ),
     )
-    def test_create_page_when_invalid_because_style_not_exist(self, user, style, page_creation_data_valid, api_client):
+    def test_create_page_when_invalid_because_style_not_exist(
+        self, user, style, page_creation_data_valid, api_client_with_double_csrf
+    ):
         """Show the behavior when a user tries to create a page refering to a non-existent style"""
         style_id = style.id
         style.delete()
-        api_client.force_authenticate(user)
-        response = api_client.post(
+        api_client_with_double_csrf.force_authenticate(user)
+        response = api_client_with_double_csrf.post(
             reverse("donationpage-list"), data=page_creation_data_valid | {"styles": style_id}, format="json"
         )
         assert response.json() == {"styles": [f'Invalid pk "{style_id}" - object does not exist.']}
 
     @pytest_cases.parametrize("plan", (Plans.FREE.value, Plans.CORE.value, Plans.PLUS.value))
-    def test_create_when_already_at_page_limit(self, plan, hub_admin_user, api_client):
+    def test_create_when_already_at_page_limit(self, plan, hub_admin_user, api_client_with_double_csrf):
         rp = RevenueProgramFactory(organization=OrganizationFactory(plan_name=plan))
         data = {
             "revenue_program": rp.id,
             "slug": rp.slug,
         }
-        api_client.force_authenticate(hub_admin_user)
+        api_client_with_double_csrf.force_authenticate(hub_admin_user)
         remaining = (limit := rp.organization.plan.page_limit)
         if remaining:
             DonationPageFactory.create_batch(remaining, revenue_program=rp, published_date=None)
-        response = api_client.post(reverse("donationpage-list"), data=data, format="json")
+        response = api_client_with_double_csrf.post(reverse("donationpage-list"), data=data, format="json")
         assert response.status_code == status.HTTP_400_BAD_REQUEST
         assert response.json() == {
             "non_field_errors": [f"Your organization has reached its limit of {limit} page{'' if limit == 1 else 's'}"]
@@ -535,7 +547,7 @@ class TestPageViewSet:
 
     # NB we don't test on plus plan because it is meant to have unlimited pages (published or otherwise)
     @pytest_cases.parametrize("plan", (Plans.FREE.value, Plans.CORE.value))
-    def test_create_when_already_at_publish_limit(self, plan, hub_admin_user, api_client):
+    def test_create_when_already_at_publish_limit(self, plan, hub_admin_user, api_client_with_double_csrf):
         rp = RevenueProgramFactory(organization=OrganizationFactory(plan_name=plan))
         for i in range((limit := rp.organization.plan.publish_limit)):
             DonationPageFactory(
@@ -547,8 +559,8 @@ class TestPageViewSet:
             "slug": rp.slug,
             "published_date": timezone.now(),
         }
-        api_client.force_authenticate(hub_admin_user)
-        response = api_client.post(reverse("donationpage-list"), data=data, format="json")
+        api_client_with_double_csrf.force_authenticate(hub_admin_user)
+        response = api_client_with_double_csrf.post(reverse("donationpage-list"), data=data, format="json")
         assert response.status_code == status.HTTP_400_BAD_REQUEST
         assert response.json() == {
             "non_field_errors": [
@@ -556,20 +568,22 @@ class TestPageViewSet:
             ]
         }
 
-    def test_create_page_when_invalid_slug(self, hub_admin_user, page_creation_data_with_invalid_slug, api_client):
+    def test_create_page_when_invalid_slug(
+        self, hub_admin_user, page_creation_data_with_invalid_slug, api_client_with_double_csrf
+    ):
         """Show the behavior when a user tries to create a page with an invalid slug"""
-        api_client.force_authenticate(hub_admin_user)
-        response = api_client.post(
+        api_client_with_double_csrf.force_authenticate(hub_admin_user)
+        response = api_client_with_double_csrf.post(
             reverse("donationpage-list"), data=page_creation_data_with_invalid_slug, format="json"
         )
         assert response.status_code == status.HTTP_400_BAD_REQUEST
         assert "slug" in response.json()
 
     def test_create_page_when_invalid_locale(
-        self, hub_admin_user, page_creation_data_invalid_untracked_locale, api_client
+        self, hub_admin_user, page_creation_data_invalid_untracked_locale, api_client_with_double_csrf
     ):
-        api_client.force_authenticate(hub_admin_user)
-        response = api_client.post(
+        api_client_with_double_csrf.force_authenticate(hub_admin_user)
+        response = api_client_with_double_csrf.post(
             reverse("donationpage-list"), data=page_creation_data_invalid_untracked_locale, format="json"
         )
         assert response.status_code == status.HTTP_400_BAD_REQUEST
@@ -587,16 +601,16 @@ class TestPageViewSet:
             pytest_cases.fixture_ref("superuser"),
         ),
     )
-    def test_retrieve_when_expected_user(self, user, api_client, mocker):
+    def test_retrieve_when_expected_user(self, user, api_client_with_double_csrf, mocker):
         """Expected users should be able to retrieve what they're permitted to, and not what they're not."""
         # ensure there will be page that org admin and rp admin won't be able to access, but that superuser should be able to.
-        api_client.force_authenticate(user)
+        api_client_with_double_csrf.force_authenticate(user)
         if user.is_superuser:
             DonationPageFactory()
             query = DonationPage.objects.all()
             assert query.count()
             for id in query.values_list("id", flat=True):
-                response = api_client.get(reverse("donationpage-detail", args=(id,)))
+                response = api_client_with_double_csrf.get(reverse("donationpage-detail", args=(id,)))
                 assert response.status_code == status.HTTP_200_OK
                 assert response.json() == json.loads(
                     json.dumps(
@@ -614,7 +628,7 @@ class TestPageViewSet:
             assert query.count()
             assert unpermitted.count()
             for id in query.values_list("id", flat=True):
-                response = api_client.get(reverse("donationpage-detail", args=(id,)))
+                response = api_client_with_double_csrf.get(reverse("donationpage-detail", args=(id,)))
                 assert response.status_code == status.HTTP_200_OK
                 assert response.json() == json.loads(
                     json.dumps(
@@ -627,7 +641,8 @@ class TestPageViewSet:
                 )
             for id in unpermitted.values_list("id", flat=True):
                 assert (
-                    api_client.get(reverse("donationpage-detail", args=(id,))).status_code == status.HTTP_404_NOT_FOUND
+                    api_client_with_double_csrf.get(reverse("donationpage-detail", args=(id,))).status_code
+                    == status.HTTP_404_NOT_FOUND
                 )
             # this test is valid insofar as the spyed on method `filtered_by_role_assignment` is called, and has been
             # tested elsewhere and proven to be valid. Here, we just need to show that it gets called for each time we tried to retrieve
@@ -643,15 +658,17 @@ class TestPageViewSet:
             (None, status.HTTP_401_UNAUTHORIZED),
         ),
     )
-    def test_retrieve_when_unauthorized_user(self, user, expected_status, live_donation_page, api_client):
+    def test_retrieve_when_unauthorized_user(
+        self, user, expected_status, live_donation_page, api_client_with_double_csrf
+    ):
         """Show behavior when an unauthorized user tries to access
 
         By "unauthorized" we mean both unauthenticated users and authenticated users
         that don't have the right user type
         """
         if user:
-            api_client.force_authenticate(user)
-        response = api_client.get(reverse("donationpage-detail", args=(live_donation_page.pk,)))
+            api_client_with_double_csrf.force_authenticate(user)
+        response = api_client_with_double_csrf.get(reverse("donationpage-detail", args=(live_donation_page.pk,)))
         assert response.status_code == expected_status
 
     @pytest_cases.parametrize(
@@ -662,13 +679,15 @@ class TestPageViewSet:
             pytest_cases.fixture_ref("superuser"),
         ),
     )
-    def test_can_retrieve_when_expected_user_and_no_payment_provider(self, user, live_donation_page, api_client):
-        api_client.force_authenticate(user)
+    def test_can_retrieve_when_expected_user_and_no_payment_provider(
+        self, user, live_donation_page, api_client_with_double_csrf
+    ):
+        api_client_with_double_csrf.force_authenticate(user)
         if not user.is_superuser:
             live_donation_page.revenue_program = user.roleassignment.revenue_programs.first()
             live_donation_page.save()
         live_donation_page.revenue_program.payment_provider.delete()
-        response = api_client.get(reverse("donationpage-detail", args=(live_donation_page.pk,)))
+        response = api_client_with_double_csrf.get(reverse("donationpage-detail", args=(live_donation_page.pk,)))
         assert response.status_code == status.HTTP_200_OK
 
     def assert_page_list_item_looks_right(self, serialized_data):
@@ -684,18 +703,18 @@ class TestPageViewSet:
             pytest_cases.fixture_ref("superuser"),
         ),
     )
-    def test_list_when_expected_user(self, user, api_client, live_donation_page, mocker):
+    def test_list_when_expected_user(self, user, api_client_with_double_csrf, live_donation_page, mocker):
         """Show that expected users see all the pages they should see and none they shouldn't when listing"""
         # ensure there will be pages that org admin and rp admin won't be able to access, but that superuser should be able to
         # access
         DonationPageFactory.create_batch(size=2)
-        api_client.force_authenticate(user)
+        api_client_with_double_csrf.force_authenticate(user)
 
         # superuser can retrieve all
         if user.is_superuser:
             query = DonationPage.objects.all()
             assert query.count()
-            response = api_client.get(reverse("donationpage-list"))
+            response = api_client_with_double_csrf.get(reverse("donationpage-list"))
             assert response.status_code == status.HTTP_200_OK
             assert len(pages := response.json()) == query.count()
             assert set([x["id"] for x in pages]) == set(list(query.values_list("id", flat=True)))
@@ -709,7 +728,7 @@ class TestPageViewSet:
             unpermitted = DonationPage.objects.exclude(id__in=query.values_list("id", flat=True))
             assert query.count()
             assert unpermitted.count()
-            response = api_client.get(reverse("donationpage-list"))
+            response = api_client_with_double_csrf.get(reverse("donationpage-list"))
             assert len(pages := response.json()) == query.count()
             assert set([x["id"] for x in pages]) == set(list(query.values_list("id", flat=True)))
             for x in response.json():
@@ -727,20 +746,20 @@ class TestPageViewSet:
             (None, status.HTTP_401_UNAUTHORIZED),
         ),
     )
-    def test_list_when_unauthorized_user(self, user, expected_status, api_client):
+    def test_list_when_unauthorized_user(self, user, expected_status, api_client_with_double_csrf):
         """Show behavior when unauthorized users try to list pages
 
         By "unauthorized" we mean both unauthenticated users and authenticated users that don't have the right user type
         """
         if user:
-            api_client.force_authenticate(user)
-        assert api_client.get(reverse("donationpage-list")).status_code == expected_status
+            api_client_with_double_csrf.force_authenticate(user)
+        assert api_client_with_double_csrf.get(reverse("donationpage-list")).status_code == expected_status
 
-    def test_page_list_when_no_provider(self, api_client, superuser):
+    def test_page_list_when_no_provider(self, api_client_with_double_csrf, superuser):
         DonationPageFactory.create_batch(size=3)
         PaymentProvider.objects.all().delete()
-        api_client.force_authenticate(superuser)
-        response = api_client.get(reverse("donationpage-list"))
+        api_client_with_double_csrf.force_authenticate(superuser)
+        response = api_client_with_double_csrf.get(reverse("donationpage-list"))
         assert response.status_code == status.HTTP_200_OK
         assert isinstance(response.json(), list)
         assert len(response.json()) == DonationPage.objects.count()
@@ -758,12 +777,14 @@ class TestPageViewSet:
             (None, status.HTTP_401_UNAUTHORIZED),
         ),
     )
-    def test_put_not_allowed(self, user, expected_status, api_client, live_donation_page):
+    def test_put_not_allowed(self, user, expected_status, api_client_with_double_csrf, live_donation_page):
         """Nobody puts pages"""
         if user:
-            api_client.force_authenticate(user)
+            api_client_with_double_csrf.force_authenticate(user)
         assert (
-            api_client.put(reverse("donationpage-detail", args=(live_donation_page.pk,)), data={}).status_code
+            api_client_with_double_csrf.put(
+                reverse("donationpage-detail", args=(live_donation_page.pk,)), data={}
+            ).status_code
             == expected_status
         )
 
@@ -776,13 +797,13 @@ class TestPageViewSet:
         ),
     )
     def test_patch_when_expected_user_with_valid_data(
-        self, plan, patch_page_valid_data, hub_admin_user, api_client, mocker
+        self, plan, patch_page_valid_data, hub_admin_user, api_client_with_double_csrf, mocker
     ):
         org = OrganizationFactory(plan_name=plan)
         rp = RevenueProgramFactory(organization=org)
         page = DonationPageFactory(revenue_program=rp, published_date=None)
-        api_client.force_authenticate(hub_admin_user)
-        response = api_client.patch(
+        api_client_with_double_csrf.force_authenticate(hub_admin_user)
+        response = api_client_with_double_csrf.patch(
             reverse("donationpage-detail", args=(page.id,)),
             patch_page_valid_data,
         )
@@ -806,14 +827,14 @@ class TestPageViewSet:
         ),
     )
     def test_patch_when_expected_user_with_valid_image_data(
-        self, user, live_donation_page, api_client, patch_page_data_with_image_fields
+        self, user, live_donation_page, api_client_with_double_csrf, patch_page_data_with_image_fields
     ):
         """Show expected users can..."""
-        api_client.force_authenticate(user)
+        api_client_with_double_csrf.force_authenticate(user)
         if not user.is_superuser:
             live_donation_page.revenue_program = user.roleassignment.revenue_programs.first()
             live_donation_page.save()
-        response = api_client.patch(
+        response = api_client_with_double_csrf.patch(
             reverse("donationpage-detail", args=(live_donation_page.id,)),
             data=patch_page_data_with_image_fields,
             format="multipart",
@@ -835,18 +856,18 @@ class TestPageViewSet:
         ),
     )
     def test_patch_when_expected_user_with_valid_data_with_extra_keys(
-        self, user, patch_page_valid_data_extra_keys, live_donation_page, api_client
+        self, user, patch_page_valid_data_extra_keys, live_donation_page, api_client_with_double_csrf
     ):
         """Show behavior when extra fields are provided in otherwise valid data
 
         In this case, the request can succeed, but the problematic fields are disregarded.
         """
-        api_client.force_authenticate(user)
+        api_client_with_double_csrf.force_authenticate(user)
         if not user.is_superuser:
             live_donation_page.revenue_program = user.roleassignment.revenue_programs.first()
             live_donation_page.save()
         last_modified = live_donation_page.modified
-        response = api_client.patch(
+        response = api_client_with_double_csrf.patch(
             reverse("donationpage-detail", args=(live_donation_page.id,)),
             data=patch_page_valid_data_extra_keys,
             format="multipart",
@@ -863,15 +884,15 @@ class TestPageViewSet:
         ),
     )
     def test_patch_when_expected_user_unowned_page(
-        self, user, patch_page_valid_data, live_donation_page, api_client, mocker
+        self, user, patch_page_valid_data, live_donation_page, api_client_with_double_csrf, mocker
     ):
         """Show behavior when an expected user tries to patch an unowned page"""
         assert live_donation_page not in user.roleassignment.revenue_programs.all()
         assert live_donation_page.revenue_program.organization != user.roleassignment.organization
         last_modified = live_donation_page.modified
-        api_client.force_authenticate(user)
+        api_client_with_double_csrf.force_authenticate(user)
         spy = mocker.spy(PagesAppQuerySet, "filtered_by_role_assignment")
-        response = api_client.patch(
+        response = api_client_with_double_csrf.patch(
             reverse("donationpage-detail", args=(live_donation_page.id,)), data=patch_page_valid_data, format="json"
         )
         assert response.status_code == status.HTTP_404_NOT_FOUND
@@ -903,13 +924,17 @@ class TestPageViewSet:
             (pytest_cases.fixture_ref("patch_page_when_publishing_and_no_slug_param"), "slug"),
         ),
     )
-    def test_patch_when_expected_user_with_invalid_data(self, user, data, error_key, api_client, live_donation_page):
+    def test_patch_when_expected_user_with_invalid_data(
+        self, user, data, error_key, api_client_with_double_csrf, live_donation_page
+    ):
         """Show expected users can patch"""
-        api_client.force_authenticate(user)
+        api_client_with_double_csrf.force_authenticate(user)
         if not user.is_superuser:
             live_donation_page.revenue_program = user.roleassignment.revenue_programs.first()
             live_donation_page.save()
-        response = api_client.patch(reverse("donationpage-detail", args=(live_donation_page.pk,)), data=data)
+        response = api_client_with_double_csrf.patch(
+            reverse("donationpage-detail", args=(live_donation_page.pk,)), data=data
+        )
         assert response.status_code == status.HTTP_400_BAD_REQUEST
         assert list(response.json().keys()) == [error_key]
 
@@ -923,13 +948,13 @@ class TestPageViewSet:
         ),
     )
     def test_patch_when_unauthorized_user(
-        self, user, expected_status, live_donation_page, patch_page_valid_data, api_client
+        self, user, expected_status, live_donation_page, patch_page_valid_data, api_client_with_double_csrf
     ):
         """Show behavior when an unauthorized user tries to patch a donation page"""
-        api_client.force_authenticate(user)
+        api_client_with_double_csrf.force_authenticate(user)
         last_modified = live_donation_page.modified
         assert (
-            api_client.patch(
+            api_client_with_double_csrf.patch(
                 reverse("donationpage-detail", args=(live_donation_page.id,)), data=patch_page_valid_data, format="json"
             ).status_code
             == expected_status
@@ -938,12 +963,12 @@ class TestPageViewSet:
         assert live_donation_page.modified == last_modified
 
     def test_patch_when_invalid_because_unpermitted_thank_you_redirect(
-        self, patch_page_valid_data, superuser, live_donation_page, api_client
+        self, patch_page_valid_data, superuser, live_donation_page, api_client_with_double_csrf
     ):
         """ """
-        api_client.force_authenticate(superuser)
+        api_client_with_double_csrf.force_authenticate(superuser)
         assert live_donation_page.revenue_program.organization.plan_name == Plans.FREE
-        response = api_client.patch(
+        response = api_client_with_double_csrf.patch(
             reverse("donationpage-detail", args=(live_donation_page.id,)),
             patch_page_valid_data | {"thank_you_redirect": "https://somewhere.com"},
         )
@@ -954,7 +979,7 @@ class TestPageViewSet:
 
     @pytest.mark.parametrize("plan", (Plans.FREE.value, Plans.CORE.value, Plans.PLUS.value))
     def test_patch_when_at_published_limit_and_try_to_publish(
-        self, plan, live_donation_page, hub_admin_user, api_client
+        self, plan, live_donation_page, hub_admin_user, api_client_with_double_csrf
     ):
         if plan == Plans.PLUS.value:
             # there's not a path to test updating an existing page such that would push over publish_limit
@@ -972,8 +997,8 @@ class TestPageViewSet:
                 )
             unpublished = DonationPageFactory(revenue_program=rp, published_date=None)
             data = {"published_date": timezone.now()}
-            api_client.force_authenticate(user=hub_admin_user)
-            response = api_client.patch(
+            api_client_with_double_csrf.force_authenticate(user=hub_admin_user)
+            response = api_client_with_double_csrf.patch(
                 reverse("donationpage-detail", args=(unpublished.id,)),
                 data,
             )
@@ -983,10 +1008,10 @@ class TestPageViewSet:
             ]
 
     def test_patch_when_invalid_slug_data(
-        self, superuser, api_client, live_donation_page, page_update_data_with_invalid_slug
+        self, superuser, api_client_with_double_csrf, live_donation_page, page_update_data_with_invalid_slug
     ):
-        api_client.force_authenticate(superuser)
-        response = api_client.patch(
+        api_client_with_double_csrf.force_authenticate(superuser)
+        response = api_client_with_double_csrf.patch(
             reverse("donationpage-detail", args=(live_donation_page.id,)),
             data=page_update_data_with_invalid_slug,
             format="json",
@@ -995,10 +1020,10 @@ class TestPageViewSet:
         assert "slug" in response.json()
 
     def test_patch_when_invalid_locale(
-        self, superuser, api_client, live_donation_page, page_update_data_with_invalid_locale
+        self, superuser, api_client_with_double_csrf, live_donation_page, page_update_data_with_invalid_locale
     ):
-        api_client.force_authenticate(superuser)
-        response = api_client.patch(
+        api_client_with_double_csrf.force_authenticate(superuser)
+        response = api_client_with_double_csrf.patch(
             reverse("donationpage-detail", args=(live_donation_page.id,)),
             data=page_update_data_with_invalid_locale,
             format="json",
@@ -1009,7 +1034,7 @@ class TestPageViewSet:
     def test_patch_when_already_sidebar_elements_edge_case(
         self,
         superuser,
-        api_client,
+        api_client_with_double_csrf,
         live_donation_page,
         page_screenshot,
     ):
@@ -1036,8 +1061,10 @@ class TestPageViewSet:
             "elements": json.dumps(elements),
             "page_screenshot": page_screenshot,
         }
-        api_client.force_authenticate(user=superuser)
-        response = api_client.patch(reverse("donationpage-detail", args=(live_donation_page.id,)), patch_data)
+        api_client_with_double_csrf.force_authenticate(user=superuser)
+        response = api_client_with_double_csrf.patch(
+            reverse("donationpage-detail", args=(live_donation_page.id,)), patch_data
+        )
         assert response.status_code == status.HTTP_200_OK
         live_donation_page.refresh_from_db()
         assert live_donation_page.heading == old_page_heading
@@ -1050,13 +1077,13 @@ class TestPageViewSet:
             pytest_cases.fixture_ref("superuser"),
         ),
     )
-    def test_delete_when_expected_user(self, user, live_donation_page, api_client, mocker):
-        api_client.force_authenticate(user)
+    def test_delete_when_expected_user(self, user, live_donation_page, api_client_with_double_csrf, mocker):
+        api_client_with_double_csrf.force_authenticate(user)
         spy = mocker.spy(PagesAppQuerySet, "filtered_by_role_assignment")
         if not user.is_superuser:
             live_donation_page.revenue_program = user.roleassignment.revenue_programs.first()
             live_donation_page.save()
-        response = api_client.delete(reverse("donationpage-detail", args=(live_donation_page.id,)))
+        response = api_client_with_double_csrf.delete(reverse("donationpage-detail", args=(live_donation_page.id,)))
         assert response.status_code == status.HTTP_204_NO_CONTENT
         assert not DonationPage.objects.filter(pk=live_donation_page.id).exists()
         if not user.is_superuser:
@@ -1071,10 +1098,12 @@ class TestPageViewSet:
             (None, status.HTTP_401_UNAUTHORIZED),
         ),
     )
-    def test_delete_when_unauthorized_user(self, user, expected_status, live_donation_page, api_client):
+    def test_delete_when_unauthorized_user(
+        self, user, expected_status, live_donation_page, api_client_with_double_csrf
+    ):
         if user:
-            api_client.force_authenticate(user)
-        response = api_client.delete(reverse("donationpage-detail", args=(live_donation_page.id,)))
+            api_client_with_double_csrf.force_authenticate(user)
+        response = api_client_with_double_csrf.delete(reverse("donationpage-detail", args=(live_donation_page.id,)))
         assert response.status_code == expected_status
         assert DonationPage.objects.filter(pk=live_donation_page.id).exists()
 
@@ -1085,10 +1114,10 @@ class TestPageViewSet:
             pytest_cases.fixture_ref("rp_user"),
         ),
     )
-    def test_delete_when_unowned(self, user, live_donation_page, api_client):
-        api_client.force_authenticate(user)
+    def test_delete_when_unowned(self, user, live_donation_page, api_client_with_double_csrf):
+        api_client_with_double_csrf.force_authenticate(user)
         assert live_donation_page.revenue_program not in user.roleassignment.revenue_programs.all()
-        response = api_client.delete(reverse("donationpage-detail", args=(live_donation_page.id,)))
+        response = api_client_with_double_csrf.delete(reverse("donationpage-detail", args=(live_donation_page.id,)))
         assert response.status_code == status.HTTP_404_NOT_FOUND
         assert DonationPage.objects.filter(pk=live_donation_page.id).exists()
 
@@ -1100,11 +1129,11 @@ class TestPageViewSet:
             pytest_cases.fixture_ref("superuser"),
         ),
     )
-    def test_delete_when_not_exist(self, user, live_donation_page, api_client):
-        api_client.force_authenticate(user)
+    def test_delete_when_not_exist(self, user, live_donation_page, api_client_with_double_csrf):
+        api_client_with_double_csrf.force_authenticate(user)
         page_id = live_donation_page.id
         live_donation_page.delete()
-        response = api_client.delete(reverse("donationpage-detail", args=(page_id,)))
+        response = api_client_with_double_csrf.delete(reverse("donationpage-detail", args=(page_id,)))
         assert response.status_code == status.HTTP_404_NOT_FOUND
 
     @pytest_cases.parametrize(
@@ -1118,8 +1147,8 @@ class TestPageViewSet:
             None,
         ),
     )
-    def test_live_detail_page_happy_path(self, user, live_donation_page, api_client):
-        response = api_client.get(
+    def test_live_detail_page_happy_path(self, user, live_donation_page, api_client_with_double_csrf):
+        response = api_client_with_double_csrf.get(
             reverse("donationpage-live-detail"),
             {"revenue_program": live_donation_page.revenue_program.slug, "page": live_donation_page.slug},
         )
@@ -1128,8 +1157,8 @@ class TestPageViewSet:
             json.dumps(DonationPageFullDetailSerializer(instance=live_donation_page, context={"live": True}).data)
         )
 
-    def test_live_detail_page_with_styles(self, api_client, live_donation_page_with_styles):
-        response = api_client.get(
+    def test_live_detail_page_with_styles(self, api_client_with_double_csrf, live_donation_page_with_styles):
+        response = api_client_with_double_csrf.get(
             reverse("donationpage-live-detail"),
             {
                 "revenue_program": live_donation_page_with_styles.revenue_program.slug,
@@ -1144,9 +1173,9 @@ class TestPageViewSet:
         )
 
     @pytest.mark.parametrize("make_query", (lambda page: {}, lambda page: {"page": page.slug}))
-    def test_live_detail_page_missing_rp_query_param(self, make_query, live_donation_page, api_client):
+    def test_live_detail_page_missing_rp_query_param(self, make_query, live_donation_page, api_client_with_double_csrf):
         url = reverse("donationpage-live-detail")
-        response = api_client.get(url, make_query(live_donation_page), format="json")
+        response = api_client_with_double_csrf.get(url, make_query(live_donation_page), format="json")
         assert response.status_code == status.HTTP_400_BAD_REQUEST
         assert response.json() == {"detail": "Missing required parameter"}
 
@@ -1157,51 +1186,55 @@ class TestPageViewSet:
             {"revenue_program": "nothing-has-this-name"},
         ),
     )
-    def test_live_detail_page_not_found_because_rp_not_found(self, query_params, api_client, live_donation_page):
+    def test_live_detail_page_not_found_because_rp_not_found(
+        self, query_params, api_client_with_double_csrf, live_donation_page
+    ):
         assert not DonationPage.objects.filter(
             **{
                 "revenue_program__slug": query_params.get("revenue_program", None),
                 "slug": query_params.get("page", None),
             }
         ).exists()
-        response = api_client.get(reverse("donationpage-live-detail"), query_params)
+        response = api_client_with_double_csrf.get(reverse("donationpage-live-detail"), query_params)
         assert response.status_code == status.HTTP_404_NOT_FOUND
         assert response.json() == {"detail": "Could not find revenue program matching those parameters"}
 
-    def test_live_detail_page_not_found_because_page_not_found(self, api_client, live_donation_page):
+    def test_live_detail_page_not_found_because_page_not_found(self, api_client_with_double_csrf, live_donation_page):
         unfound_page_slug = "unfound"
         assert not DonationPage.objects.filter(
             revenue_program__slug=live_donation_page.revenue_program.slug, slug=unfound_page_slug
         )
-        response = api_client.get(
+        response = api_client_with_double_csrf.get(
             reverse("donationpage-live-detail"),
             {"revenue_program": live_donation_page.revenue_program.slug, "page": unfound_page_slug},
         )
         assert response.status_code == status.HTTP_404_NOT_FOUND
         assert response.json() == {"detail": "Could not find page matching those parameters"}
 
-    def test_live_detail_page_missing_default_donation_page(self, api_client, revenue_program):
+    def test_live_detail_page_missing_default_donation_page(self, api_client_with_double_csrf, revenue_program):
         assert revenue_program.default_donation_page is None
-        response = api_client.get(reverse("donationpage-live-detail"), {"revenue_program": revenue_program.slug})
+        response = api_client_with_double_csrf.get(
+            reverse("donationpage-live-detail"), {"revenue_program": revenue_program.slug}
+        )
         assert response.status_code == status.HTTP_404_NOT_FOUND
         assert response.json() == {"detail": "Could not find page matching those parameters"}
 
-    def test_live_detail_page_when_not_published(self, live_donation_page, api_client):
+    def test_live_detail_page_when_not_published(self, live_donation_page, api_client_with_double_csrf):
         live_donation_page.published_date = None
         live_donation_page.save()
         assert live_donation_page.is_live is False
-        response = api_client.get(
+        response = api_client_with_double_csrf.get(
             reverse("donationpage-live-detail"),
             {"revenue_program": live_donation_page.revenue_program.slug, "page": live_donation_page.slug},
         )
         assert response.status_code == status.HTTP_404_NOT_FOUND
         assert response.json() == {"detail": "This page has not been published"}
 
-    def test_live_detail_page_when_payment_provider_unverified(self, live_donation_page, api_client):
+    def test_live_detail_page_when_payment_provider_unverified(self, live_donation_page, api_client_with_double_csrf):
         live_donation_page.revenue_program.payment_provider.stripe_verified = False
         live_donation_page.revenue_program.payment_provider.save()
         assert live_donation_page.revenue_program.payment_provider.is_verified_with_default_provider() is False
-        response = api_client.get(
+        response = api_client_with_double_csrf.get(
             reverse("donationpage-live-detail"),
             {"revenue_program": live_donation_page.revenue_program.slug, "page": live_donation_page.slug},
         )
@@ -1209,9 +1242,9 @@ class TestPageViewSet:
         # TODO: [DEV-3189] Don't leak info about revenue program payment provider verification publicly
         assert response.json() == {"detail": "RevenueProgram does not have a fully verified payment provider"}
 
-    def test_live_detail_page_when_no_payment_provider(self, live_donation_page, api_client):
+    def test_live_detail_page_when_no_payment_provider(self, live_donation_page, api_client_with_double_csrf):
         live_donation_page.revenue_program.payment_provider.delete()
-        response = api_client.get(
+        response = api_client_with_double_csrf.get(
             reverse("donationpage-live-detail"),
             {"revenue_program": live_donation_page.revenue_program.slug, "page": live_donation_page.slug},
         )
@@ -1227,13 +1260,13 @@ class TestPageViewSet:
             pytest_cases.fixture_ref("superuser"),
         ),
     )
-    def test_draft_detail_page_when_expected_user(self, user, api_client, live_donation_page):
-        api_client.force_authenticate(user)
+    def test_draft_detail_page_when_expected_user(self, user, api_client_with_double_csrf, live_donation_page):
+        api_client_with_double_csrf.force_authenticate(user)
         other_page = DonationPageFactory()
         if user.is_superuser:
             for page in [live_donation_page, other_page]:
                 assert (
-                    api_client.get(
+                    api_client_with_double_csrf.get(
                         reverse("donationpage-draft-detail"),
                         {"revenue_program": page.revenue_program.slug, "page": page.slug},
                     ).status_code
@@ -1249,32 +1282,38 @@ class TestPageViewSet:
             (None, status.HTTP_401_UNAUTHORIZED),
         ),
     )
-    def test_draft_detail_page_when_unauthorized_user(self, user, expected_status, api_client, live_donation_page):
+    def test_draft_detail_page_when_unauthorized_user(
+        self, user, expected_status, api_client_with_double_csrf, live_donation_page
+    ):
         if user:
-            api_client.force_authenticate(user)
+            api_client_with_double_csrf.force_authenticate(user)
         assert (
-            api_client.get(
+            api_client_with_double_csrf.get(
                 reverse("donationpage-draft-detail"),
                 {"revenue_program": live_donation_page.revenue_program, "page": live_donation_page.slug},
             ).status_code
             == expected_status
         )
 
-    def test_draft_detail_page_revenue_program_not_found(self, superuser, api_client):
+    def test_draft_detail_page_revenue_program_not_found(self, superuser, api_client_with_double_csrf):
         unfound_slug = "unexpected"
         assert not RevenueProgram.objects.filter(slug=unfound_slug).exists()
-        api_client.force_authenticate(superuser)
-        response = api_client.get(reverse("donationpage-draft-detail"), {"revenue_program": unfound_slug})
+        api_client_with_double_csrf.force_authenticate(superuser)
+        response = api_client_with_double_csrf.get(
+            reverse("donationpage-draft-detail"), {"revenue_program": unfound_slug}
+        )
         assert response.status_code == status.HTTP_404_NOT_FOUND
         assert response.json() == {"detail": "Could not find revenue program matching those parameters"}
 
-    def test_draft_detail_page_donation_page_not_found(self, superuser, api_client, live_donation_page):
-        api_client.force_authenticate(superuser)
+    def test_draft_detail_page_donation_page_not_found(
+        self, superuser, api_client_with_double_csrf, live_donation_page
+    ):
+        api_client_with_double_csrf.force_authenticate(superuser)
         made_up_page = "made-up-page"
         assert not DonationPage.objects.filter(
             revenue_program=live_donation_page.revenue_program, slug=made_up_page
         ).exists()
-        response = api_client.get(
+        response = api_client_with_double_csrf.get(
             reverse("donationpage-draft-detail"),
             {"revenue_program": live_donation_page.revenue_program.slug, "page": made_up_page},
         )
@@ -1282,23 +1321,25 @@ class TestPageViewSet:
         assert response.json() == {"detail": "Could not find page matching those parameters"}
 
     def test_draft_detail_page_no_default_donation_page_return_first_available(
-        self, superuser, api_client, live_donation_page
+        self, superuser, api_client_with_double_csrf, live_donation_page
     ):
-        api_client.force_authenticate(superuser)
+        api_client_with_double_csrf.force_authenticate(superuser)
         assert live_donation_page.revenue_program.default_donation_page is None
-        response = api_client.get(
+        response = api_client_with_double_csrf.get(
             reverse("donationpage-draft-detail"), {"revenue_program": live_donation_page.revenue_program.slug}
         )
         assert response.status_code == status.HTTP_200_OK
         assert response.json() == DonationPageFullDetailSerializer(live_donation_page).data
 
     def test_thank_you_redirect_cannot_be_set_on_existing_page_when_not_enabled(
-        self, superuser, api_client, live_donation_page
+        self, superuser, api_client_with_double_csrf, live_donation_page
     ):
-        api_client.force_authenticate(superuser)
+        api_client_with_double_csrf.force_authenticate(superuser)
         assert live_donation_page.revenue_program.organization.plan_name == Plans.FREE
         patch_data = {"thank_you_redirect": "https://www.somewhere.com"}
-        response = api_client.patch(reverse("donationpage-detail", args=(live_donation_page.id,)), patch_data)
+        response = api_client_with_double_csrf.patch(
+            reverse("donationpage-detail", args=(live_donation_page.id,)), patch_data
+        )
         assert response.status_code == status.HTTP_400_BAD_REQUEST
         assert response.json() == {
             "thank_you_redirect": ["This organization's plan does not enable assigning a custom thank you URL"]
@@ -1470,7 +1511,9 @@ class TestStyleViewSet:
             pytest_cases.fixture_ref("rp_user"),
         ),
     )
-    def test_create_style_when_expected_user_with_valid_data(self, user, api_client, create_style_valid_data):
+    def test_create_style_when_expected_user_with_valid_data(
+        self, user, api_client_with_double_csrf, create_style_valid_data
+    ):
         """Show that expected users can create a style when provid valid data"""
         before_count = Style.objects.count()
         if not user.is_superuser:
@@ -1480,8 +1523,8 @@ class TestStyleViewSet:
             user.roleassignment.save()
             rp.organization = user.roleassignment.organization
             rp.save()
-        api_client.force_authenticate(user)
-        response = api_client.post(reverse("style-list"), data=create_style_valid_data, format="json")
+        api_client_with_double_csrf.force_authenticate(user)
+        response = api_client_with_double_csrf.post(reverse("style-list"), data=create_style_valid_data, format="json")
         assert response.status_code == status.HTTP_201_CREATED
         assert Style.objects.count() == before_count + 1
         style = Style.objects.get(pk=response.json()["id"])
@@ -1503,14 +1546,16 @@ class TestStyleViewSet:
             pytest_cases.fixture_ref("rp_user"),
         ),
     )
-    def test_create_style_when_expected_user_but_not_own_rp(self, user, create_style_valid_data, api_client):
+    def test_create_style_when_expected_user_but_not_own_rp(
+        self, user, create_style_valid_data, api_client_with_double_csrf
+    ):
         """Show behavior when expected user tries to create a style pointing to an unowned RP"""
-        api_client.force_authenticate(user)
+        api_client_with_double_csrf.force_authenticate(user)
         assert (
             not RevenueProgram.objects.get(pk=create_style_valid_data["revenue_program"])
             in user.roleassignment.revenue_programs.all()
         )
-        response = api_client.post(reverse("style-list"), data=create_style_valid_data, format="json")
+        response = api_client_with_double_csrf.post(reverse("style-list"), data=create_style_valid_data, format="json")
         assert response.status_code == status.HTTP_400_BAD_REQUEST
         assert response.json() == {"revenue_program": ["Not found"]}
 
@@ -1523,11 +1568,13 @@ class TestStyleViewSet:
             (None, status.HTTP_401_UNAUTHORIZED),
         ),
     )
-    def test_create_style_when_unauthorized_user(self, user, create_style_valid_data, expected_status, api_client):
+    def test_create_style_when_unauthorized_user(
+        self, user, create_style_valid_data, expected_status, api_client_with_double_csrf
+    ):
         """Show behavior when an unauthorized user tries to create a style"""
         if user:
-            api_client.force_authenticate(user)
-        response = api_client.post(reverse("style-list"), data=create_style_valid_data, format="json")
+            api_client_with_double_csrf.force_authenticate(user)
+        response = api_client_with_double_csrf.post(reverse("style-list"), data=create_style_valid_data, format="json")
         assert response.status_code == expected_status
 
     @pytest_cases.parametrize(
@@ -1569,15 +1616,15 @@ class TestStyleViewSet:
             pytest_cases.fixture_ref("rp_user"),
         ),
     )
-    def test_create_when_invalid_data(self, data, expected_response, user, api_client):
+    def test_create_when_invalid_data(self, data, expected_response, user, api_client_with_double_csrf):
         """Show behavior when an expected user tries to create a style, with various sorts of invalid data"""
-        api_client.force_authenticate(user)
+        api_client_with_double_csrf.force_authenticate(user)
         if not user.is_superuser and data.get("revenue_program"):
             user.roleassignment.revenue_programs.add(rp := RevenueProgram.objects.get(pk=data["revenue_program"]))
             user.roleassignment.save()
             rp.organization = user.roleassignment.organization
             rp.save()
-        response = api_client.post(reverse("style-list"), data=data, format="json")
+        response = api_client_with_double_csrf.post(reverse("style-list"), data=data, format="json")
         assert response.status_code == status.HTTP_400_BAD_REQUEST
         assert response.json() == expected_response
 
@@ -1590,9 +1637,9 @@ class TestStyleViewSet:
             pytest_cases.fixture_ref("rp_user"),
         ),
     )
-    def test_retrieve_when_expected_user(self, user, api_client, style, mocker):
+    def test_retrieve_when_expected_user(self, user, api_client_with_double_csrf, style, mocker):
         """Show that expected users can retrieve styles they own and cannot those they don't"""
-        api_client.force_authenticate(user)
+        api_client_with_double_csrf.force_authenticate(user)
         # ensure some styles non-superusers can't retrieve
         StyleFactory.create_batch(size=3)
         spy = mocker.spy(PagesAppQuerySet, "filtered_by_role_assignment")
@@ -1600,7 +1647,7 @@ class TestStyleViewSet:
             query = Style.objects.all()
             assert query.count()
             for x in query.all():
-                response = api_client.get(reverse("style-detail", args=(x.id,)))
+                response = api_client_with_double_csrf.get(reverse("style-detail", args=(x.id,)))
                 assert response.status_code == status.HTTP_200_OK
                 assert response.json() == json.loads(json.dumps(StyleListSerializer(x).data))
             assert spy.call_count == 0 if user.is_superuser else 1
@@ -1616,11 +1663,11 @@ class TestStyleViewSet:
             # the extra one is for call to `filtered_by_role_assignment` just above here
             expect_spy_call_count = query.count() + unpermitted.count() + 1
             for x in query.all():
-                response = api_client.get(reverse("style-detail", args=(x.id,)))
+                response = api_client_with_double_csrf.get(reverse("style-detail", args=(x.id,)))
                 assert response.status_code == status.HTTP_200_OK
                 assert response.json() == json.loads(json.dumps(StyleListSerializer(x).data))
             for x in unpermitted.all():
-                response = api_client.get(reverse("style-detail", args=(x.id,)))
+                response = api_client_with_double_csrf.get(reverse("style-detail", args=(x.id,)))
                 assert response.status_code == status.HTTP_404_NOT_FOUND
             assert spy.call_count == expect_spy_call_count
 
@@ -1632,11 +1679,11 @@ class TestStyleViewSet:
             (None, status.HTTP_401_UNAUTHORIZED),
         ),
     )
-    def test_retrieve_when_unauthorized_user(self, user, expected_status, style, api_client):
+    def test_retrieve_when_unauthorized_user(self, user, expected_status, style, api_client_with_double_csrf):
         """Show retrieve behavior when unauthorized user attempts"""
         if user:
-            api_client.force_authenticate(user)
-        response = api_client.get(reverse("style-detail", args=(style.id,)))
+            api_client_with_double_csrf.force_authenticate(user)
+        response = api_client_with_double_csrf.get(reverse("style-detail", args=(style.id,)))
         assert response.status_code == expected_status
 
     @pytest_cases.parametrize(
@@ -1648,16 +1695,16 @@ class TestStyleViewSet:
             pytest_cases.fixture_ref("rp_user"),
         ),
     )
-    def test_list_when_expected_user(self, user, api_client, style, mocker):
+    def test_list_when_expected_user(self, user, api_client_with_double_csrf, style, mocker):
         """Test that expected users see styles they should and not see those they shouldn't when listing"""
-        api_client.force_authenticate(user)
+        api_client_with_double_csrf.force_authenticate(user)
         # ensure some styles non-superusers can't retrieve
         StyleFactory.create_batch(size=3)
         spy = mocker.spy(PagesAppQuerySet, "filtered_by_role_assignment")
         if user.is_superuser or user.roleassignment.role_type == Roles.HUB_ADMIN:
             query = Style.objects.all()
             assert query.count()
-            response = api_client.get(reverse("style-list"))
+            response = api_client_with_double_csrf.get(reverse("style-list"))
             assert response.status_code == status.HTTP_200_OK
             assert len(response.json()) == query.count()
             for x in response.json():
@@ -1670,7 +1717,7 @@ class TestStyleViewSet:
             unpermitted = Style.objects.exclude(id__in=query.values_list("id", flat=True))
             assert query.count()
             assert unpermitted.count()
-            response = api_client.get(reverse("style-list"))
+            response = api_client_with_double_csrf.get(reverse("style-list"))
             assert response.status_code == status.HTTP_200_OK
             assert len(response.json()) == query.count()
             for x in response.json():
@@ -1687,12 +1734,12 @@ class TestStyleViewSet:
             (None, status.HTTP_401_UNAUTHORIZED),
         ),
     )
-    def test_list_when_unauthorized_user(self, user, expected_status, api_client):
+    def test_list_when_unauthorized_user(self, user, expected_status, api_client_with_double_csrf):
         """Show list behavior when an unauthorized user tries to access"""
         StyleFactory.create_batch(size=2)
         if user:
-            api_client.force_authenticate(user)
-        response = api_client.get(reverse("style-list"))
+            api_client_with_double_csrf.force_authenticate(user)
+        response = api_client_with_double_csrf.get(reverse("style-list"))
         assert response.status_code == expected_status
 
     @pytest_cases.parametrize(
@@ -1707,11 +1754,11 @@ class TestStyleViewSet:
             (None, status.HTTP_401_UNAUTHORIZED),
         ),
     )
-    def test_cannot_put(self, user, expected_status, api_client, style):
+    def test_cannot_put(self, user, expected_status, api_client_with_double_csrf, style):
         """Show how nobody puts styles"""
         if user:
-            api_client.force_authenticate(user)
-        response = api_client.put(reverse("style-detail", args=(style.id,)), data={}, format="json")
+            api_client_with_double_csrf.force_authenticate(user)
+        response = api_client_with_double_csrf.put(reverse("style-detail", args=(style.id,)), data={}, format="json")
         assert response.status_code == expected_status
 
     @pytest_cases.parametrize(
@@ -1734,15 +1781,19 @@ class TestStyleViewSet:
             pytest_cases.fixture_ref("patch_style_valid_styles_data_only"),
         ),
     )
-    def test_update_style_when_expected_user_with_valid_data(self, user, data, api_client, style, mocker):
+    def test_update_style_when_expected_user_with_valid_data(
+        self, user, data, api_client_with_double_csrf, style, mocker
+    ):
         """Show that expected users can update a style when providing valid data"""
         spy = mocker.spy(PagesAppQuerySet, "filtered_by_role_assignment")
         if not user.is_superuser and not user.roleassignment.role_type == Roles.HUB_ADMIN:
             style.revenue_program = user.roleassignment.revenue_programs.first()
             style.save()
         last_modified = style.modified
-        api_client.force_authenticate(user)
-        response = api_client.patch(reverse("style-detail", args=(style.pk,)), data=data, format="json")
+        api_client_with_double_csrf.force_authenticate(user)
+        response = api_client_with_double_csrf.patch(
+            reverse("style-detail", args=(style.pk,)), data=data, format="json"
+        )
         assert response.status_code == status.HTTP_200_OK
         style.refresh_from_db()
         assert style.modified > last_modified
@@ -1766,7 +1817,9 @@ class TestStyleViewSet:
             pytest_cases.fixture_ref("patch_style_valid_data_rp_only"),
         ),
     )
-    def test_update_style_when_expected_user_updating_owned_rp(self, user, data, api_client, style, mocker):
+    def test_update_style_when_expected_user_updating_owned_rp(
+        self, user, data, api_client_with_double_csrf, style, mocker
+    ):
         """Show that expected users can update a style when providing valid data"""
         spy = mocker.spy(PagesAppQuerySet, "filtered_by_role_assignment")
         to_update_rp = RevenueProgram.objects.get(id=data["revenue_program"])
@@ -1777,8 +1830,10 @@ class TestStyleViewSet:
             to_update_rp.save()
             user.roleassignment.revenue_programs.add(to_update_rp)
         last_modified = style.modified
-        api_client.force_authenticate(user)
-        response = api_client.patch(reverse("style-detail", args=(style.pk,)), data=data, format="json")
+        api_client_with_double_csrf.force_authenticate(user)
+        response = api_client_with_double_csrf.patch(
+            reverse("style-detail", args=(style.pk,)), data=data, format="json"
+        )
         assert response.status_code == status.HTTP_200_OK
         style.refresh_from_db()
         assert style.modified > last_modified
@@ -1795,15 +1850,17 @@ class TestStyleViewSet:
         ),
     )
     def test_update_style_when_expected_user_but_not_own_rp(
-        self, user, api_client, style, revenue_program, patch_style_valid_data_all_keys
+        self, user, api_client_with_double_csrf, style, revenue_program, patch_style_valid_data_all_keys
     ):
-        api_client.force_authenticate(user)
+        api_client_with_double_csrf.force_authenticate(user)
         style.revenue_program = user.roleassignment.revenue_programs.first()
         style.save()
         assert style.revenue_program != revenue_program
         assert revenue_program not in user.roleassignment.revenue_programs.all()
         data = patch_style_valid_data_all_keys | {"revenue_program": revenue_program.id}
-        response = api_client.patch(reverse("style-detail", args=(style.id,)), data=data, format="json")
+        response = api_client_with_double_csrf.patch(
+            reverse("style-detail", args=(style.id,)), data=data, format="json"
+        )
         assert response.status_code == status.HTTP_400_BAD_REQUEST
         assert response.json() == {"revenue_program": ["Not found"]}
 
@@ -1817,7 +1874,7 @@ class TestStyleViewSet:
         ),
     )
     def test_update_style_when_expected_rp_not_exist(
-        self, user, api_client, style, revenue_program, patch_style_valid_data_all_keys
+        self, user, api_client_with_double_csrf, style, revenue_program, patch_style_valid_data_all_keys
     ):
         rp_id = revenue_program.id
         assert style.revenue_program.id != rp_id
@@ -1825,9 +1882,11 @@ class TestStyleViewSet:
         if not (user.is_superuser or user.roleassignment.role_type == Roles.HUB_ADMIN):
             style.revenue_program = user.roleassignment.revenue_programs.first()
             style.save()
-        api_client.force_authenticate(user)
+        api_client_with_double_csrf.force_authenticate(user)
         data = patch_style_valid_data_all_keys | {"revenue_program": rp_id}
-        response = api_client.patch(reverse("style-detail", args=(style.id,)), data=data, format="json")
+        response = api_client_with_double_csrf.patch(
+            reverse("style-detail", args=(style.id,)), data=data, format="json"
+        )
         assert response.status_code == status.HTTP_400_BAD_REQUEST
         assert response.json() == {"revenue_program": [f'Invalid pk "{rp_id}" - object does not exist.']}
 
@@ -1839,12 +1898,12 @@ class TestStyleViewSet:
         ),
     )
     def test_update_style_when_expected_user_but_not_own_style(
-        self, user, style, patch_style_valid_data_all_keys, api_client, mocker
+        self, user, style, patch_style_valid_data_all_keys, api_client_with_double_csrf, mocker
     ):
         spy = mocker.spy(PagesAppQuerySet, "filtered_by_role_assignment")
         assert style.revenue_program not in user.roleassignment.revenue_programs.all()
-        api_client.force_authenticate(user)
-        response = api_client.patch(
+        api_client_with_double_csrf.force_authenticate(user)
+        response = api_client_with_double_csrf.patch(
             reverse("style-detail", args=(style.id,)), data=patch_style_valid_data_all_keys, format="json"
         )
         assert response.status_code == status.HTTP_404_NOT_FOUND
@@ -1859,11 +1918,11 @@ class TestStyleViewSet:
         ),
     )
     def test_update_style_when_unexpected_user(
-        self, user, expected_status, patch_style_valid_data_all_keys, style, api_client
+        self, user, expected_status, patch_style_valid_data_all_keys, style, api_client_with_double_csrf
     ):
         if user:
-            api_client.force_authenticate(user)
-        response = api_client.patch(
+            api_client_with_double_csrf.force_authenticate(user)
+        response = api_client_with_double_csrf.patch(
             reverse("style-detail", args=(style.pk,)), data=patch_style_valid_data_all_keys, format="json"
         )
         assert response.status_code == expected_status
@@ -1930,12 +1989,14 @@ class TestStyleViewSet:
             ),
         ),
     )
-    def test_update_when_invalid_data(self, user, data, expected_response, style, api_client):
-        api_client.force_authenticate(user)
+    def test_update_when_invalid_data(self, user, data, expected_response, style, api_client_with_double_csrf):
+        api_client_with_double_csrf.force_authenticate(user)
         if not (user.is_superuser or user.roleassignment.role_type == Roles.HUB_ADMIN):
             style.revenue_program = user.roleassignment.revenue_programs.first()
             style.save()
-        response = api_client.patch(reverse("style-detail", args=(style.id,)), data=data, format="json")
+        response = api_client_with_double_csrf.patch(
+            reverse("style-detail", args=(style.id,)), data=data, format="json"
+        )
         assert response.status_code == status.HTTP_400_BAD_REQUEST
         assert response.json() == expected_response
 
@@ -1948,14 +2009,14 @@ class TestStyleViewSet:
             pytest_cases.fixture_ref("rp_user"),
         ),
     )
-    def test_delete_when_expected_user_and_own_style(self, user, style, api_client, mocker):
+    def test_delete_when_expected_user_and_own_style(self, user, style, api_client_with_double_csrf, mocker):
         spy = mocker.spy(PagesAppQuerySet, "filtered_by_role_assignment")
-        api_client.force_authenticate(user)
+        api_client_with_double_csrf.force_authenticate(user)
         style_id = style.id
         if not (user.is_superuser or user.roleassignment.role_type == Roles.HUB_ADMIN):
             style.revenue_program = user.roleassignment.revenue_programs.first()
             style.save()
-        response = api_client.delete(reverse("style-detail", args=(style.id,)))
+        response = api_client_with_double_csrf.delete(reverse("style-detail", args=(style.id,)))
         assert response.status_code == status.HTTP_204_NO_CONTENT
         assert not Style.objects.filter(pk=style_id).exists()
         assert spy.call_count == 0 if user.is_superuser else 1
@@ -1967,11 +2028,11 @@ class TestStyleViewSet:
             pytest_cases.fixture_ref("rp_user"),
         ),
     )
-    def test_delete_when_expected_user_and_not_own_style(self, user, api_client, style, mocker):
+    def test_delete_when_expected_user_and_not_own_style(self, user, api_client_with_double_csrf, style, mocker):
         spy = mocker.spy(PagesAppQuerySet, "filtered_by_role_assignment")
-        api_client.force_authenticate(user)
+        api_client_with_double_csrf.force_authenticate(user)
         assert style.revenue_program not in user.roleassignment.revenue_programs.all()
-        response = api_client.delete(reverse("style-detail", args=(style.id,)))
+        response = api_client_with_double_csrf.delete(reverse("style-detail", args=(style.id,)))
         assert response.status_code == status.HTTP_404_NOT_FOUND
         assert spy.call_count == 1
 
@@ -1984,11 +2045,14 @@ class TestStyleViewSet:
             pytest_cases.fixture_ref("rp_user"),
         ),
     )
-    def test_delete_when_expected_user_and_not_found(self, user, style, api_client):
-        api_client.force_authenticate(user)
+    def test_delete_when_expected_user_and_not_found(self, user, style, api_client_with_double_csrf):
+        api_client_with_double_csrf.force_authenticate(user)
         style_pk = style.id
         style.delete()
-        assert api_client.delete(reverse("style-detail", args=(style_pk,))).status_code == status.HTTP_404_NOT_FOUND
+        assert (
+            api_client_with_double_csrf.delete(reverse("style-detail", args=(style_pk,))).status_code
+            == status.HTTP_404_NOT_FOUND
+        )
 
     @pytest_cases.parametrize(
         "user,expected_status",
@@ -1998,14 +2062,16 @@ class TestStyleViewSet:
             (None, status.HTTP_401_UNAUTHORIZED),
         ),
     )
-    def test_delete_when_unexpected_user(self, user, expected_status, style, api_client):
+    def test_delete_when_unexpected_user(self, user, expected_status, style, api_client_with_double_csrf):
         if user:
-            api_client.force_authenticate(user)
-        assert api_client.delete(reverse("style-detail", args=(style.pk,))).status_code == expected_status
+            api_client_with_double_csrf.force_authenticate(user)
+        assert (
+            api_client_with_double_csrf.delete(reverse("style-detail", args=(style.pk,))).status_code == expected_status
+        )
 
-    def test_unexpected_role_type_cant_list(self, user_with_unexpected_role, api_client):
-        api_client.force_authenticate(user_with_unexpected_role)
-        response = api_client.get(reverse("style-list"))
+    def test_unexpected_role_type_cant_list(self, user_with_unexpected_role, api_client_with_double_csrf):
+        api_client_with_double_csrf.force_authenticate(user_with_unexpected_role)
+        response = api_client_with_double_csrf.get(reverse("style-list"))
         assert response.status_code == status.HTTP_403_FORBIDDEN
 
 
@@ -2028,10 +2094,10 @@ class TestFontViewSet:
             (None, status.HTTP_401_UNAUTHORIZED),
         ),
     )
-    def test_retrieve(self, user, expect_status, font, api_client):
+    def test_retrieve(self, user, expect_status, font, api_client_with_double_csrf):
         if user:
-            api_client.force_authenticate(user)
-        assert api_client.get(reverse("font-detail", args=(font.id,))).status_code == expect_status
+            api_client_with_double_csrf.force_authenticate(user)
+        assert api_client_with_double_csrf.get(reverse("font-detail", args=(font.id,))).status_code == expect_status
 
     @pytest_cases.parametrize(
         "user,expect_status",
@@ -2045,11 +2111,11 @@ class TestFontViewSet:
             (None, status.HTTP_401_UNAUTHORIZED),
         ),
     )
-    def test_list(self, user, expect_status, api_client):
+    def test_list(self, user, expect_status, api_client_with_double_csrf):
         FontFactory.create_batch(size=3)
         if user:
-            api_client.force_authenticate(user)
-        response = api_client.get(reverse("font-list"))
+            api_client_with_double_csrf.force_authenticate(user)
+        response = api_client_with_double_csrf.get(reverse("font-list"))
         assert response.status_code == expect_status
         if expect_status == status.HTTP_200_OK:
             assert len(response.json()) == Font.objects.count()
@@ -2067,7 +2133,10 @@ class TestFontViewSet:
         ),
     )
     @pytest_cases.parametrize("method", ("delete", "put", "patch", "post"))
-    def test_unpermitted_methods(self, user, expected_status, method, font, api_client):
+    def test_unpermitted_methods(self, user, expected_status, method, font, api_client_with_double_csrf):
         if user:
-            api_client.force_authenticate(user)
-        assert getattr(api_client, method)(reverse("font-detail", args=(font.id,))).status_code == expected_status
+            api_client_with_double_csrf.force_authenticate(user)
+        assert (
+            getattr(api_client_with_double_csrf, method)(reverse("font-detail", args=(font.id,))).status_code
+            == expected_status
+        )

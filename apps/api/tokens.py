@@ -37,7 +37,7 @@ class ContributorRefreshToken(RefreshToken):
     def short_lived_access_token(self):
         """
         Returns a short-lived access token from a refresh token that will be provided as a
-        paramter in a magic link. This token has a short TTL-- it is exchanged with a more secure, slightly
+        parameter in a magic link. This token has a short TTL-- it is exchanged with a more secure, slightly
         longer-lived token when it is redeemed.
         """
         logger.info("[ContributorRefreshToken][short_lived_access_token] called")

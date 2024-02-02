@@ -167,16 +167,14 @@ class HasFlaggedAccessToContributionsApiResource(BaseFlaggedResourceAccess):
 
 class DoubleSubmitCsrfPermission(permissions.BasePermission):
     """
-    Permission to ensure that CSRF token in request headers is same as one in cookies (which is HTTP only in our case).
+    Permission to ensure that CSRF token in request headers is same as one in cookies.
 
-    Note that this permission alone does not ensure that the CSRF tokens themselves are valid, only that they match. That logic
-    is assumed to have happened elsewhere in the request pipeline.
+    Note that this permission alone does not ensure that the CSRF tokens themselves are valid
+    only that they match. That logic is assumed to have happened elsewhere in the request pipeline.
     """
 
     def has_permission(self, request, view):
         csrf_cookie_token = request.COOKIES.get(settings.CSRF_COOKIE_NAME)
-        # note that by default the value for CSRF_HEADER_NAME is 'HTTP_X_CSRFTOKEN'. The client actually sends the header "X-CSrftoken", which
-        # django casts to "HTTP_X_CSRFTOKEN" in the request.META object.
         csrf_header_token = request.headers.get("X-CSRFToken", None)
         return all([csrf_cookie_token, csrf_header_token, csrf_cookie_token == csrf_header_token])
 

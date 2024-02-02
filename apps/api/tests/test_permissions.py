@@ -1,3 +1,5 @@
+from django.middleware import csrf
+
 import pytest
 import pytest_cases
 from rest_framework.test import APIRequestFactory
@@ -5,6 +7,7 @@ from waffle import get_waffle_flag_model
 
 from apps.api.exceptions import ApiConfigurationError
 from apps.api.permissions import (
+    DoubleSubmitCsrfPermission,
     HasFlaggedAccessToContributionsApiResource,
     HasFlaggedAccessToMailchimp,
 )
@@ -48,3 +51,32 @@ class TestHasFlaggedAccessToMailchimp:
             str(HasFlaggedAccessToMailchimp())
             == f"`HasFlaggedAccessToMailchimp` via {MAILCHIMP_INTEGRATION_ACCESS_FLAG_NAME}"
         )
+
+
+CSRF_TOKEN_1 = csrf._get_new_csrf_token()
+CSRF_TOKEN_2 = csrf._get_new_csrf_token()
+
+
+class TestDoubleSubmitCsrfPermission:
+    @pytest.mark.parametrize(
+        "cookie_token, header_token, expected",
+        (
+            (CSRF_TOKEN_1, CSRF_TOKEN_1, True),
+            (CSRF_TOKEN_1, CSRF_TOKEN_2, False),
+            (CSRF_TOKEN_1, None, False),
+            (CSRF_TOKEN_1, "", False),
+            (CSRF_TOKEN_1, 0, False),
+            (CSRF_TOKEN_1, None, False),
+            (None, None, False),
+            ("", "", False),
+            (False, False, False),
+            # etc. -- no need to be pedantic here
+        ),
+    )
+    def test_has_permission(self, cookie_token, header_token, expected, settings):
+        factory = APIRequestFactory()
+        request = factory.get("/")
+        request.COOKIES[settings.CSRF_COOKIE_NAME] = cookie_token
+        request.META["HTTP_X_CSRFTOKEN"] = header_token
+
+        assert DoubleSubmitCsrfPermission().has_permission(request, None) == expected

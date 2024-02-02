@@ -283,7 +283,6 @@ def get_stripe_account_link_return_url(request):
 
 @reversion.create_revision()
 @api_view(["POST"])
-@permission_classes([IsAuthenticatedWithDoubleSubmitCsrf, HasRoleAssignment])
 def handle_stripe_account_link(request, rp_pk):
     """This endpoint facilitates multiple round trips between the SPA and Stripe's Account Link configuration which happens
     off-site.

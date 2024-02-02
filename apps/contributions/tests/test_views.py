@@ -17,7 +17,7 @@ from addict import Dict as AttrDict
 from rest_framework import status
 from rest_framework.request import Request
 from rest_framework.reverse import reverse
-from rest_framework.test import APIClient, APITestCase
+from rest_framework.test import APIClient
 
 # from reversion.models import Version
 # from stripe.oauth_error import InvalidGrantError as StripeInvalidGrantError
@@ -52,15 +52,10 @@ from apps.contributions.tests.test_serializers import (
     mock_get_bad_actor,
     mock_stripe_call_with_error,
 )
-from apps.organizations.tests.factories import (
-    OrganizationFactory,
-    PaymentProviderFactory,
-    RevenueProgramFactory,
-)
+from apps.organizations.tests.factories import OrganizationFactory, RevenueProgramFactory
 from apps.pages.models import DonationPage
 from apps.pages.tests.factories import DonationPageFactory
 from apps.users.choices import Roles
-from apps.users.tests.factories import create_test_user
 
 
 TEST_STRIPE_ACCOUNT_ID = "testing_123"
@@ -1218,66 +1213,50 @@ class TestSubscriptionViewSet:
 #     assert response.json().get("detail", None) == "There was a problem with the API"
 
 
-@mock.patch("apps.contributions.models.Contribution.process_flagged_payment")
-class ProcessFlaggedContributionTest(APITestCase):
-    def setUp(self):
-        self.user = create_test_user(role_assignment_data={"role_type": Roles.HUB_ADMIN})
-        self.subscription_id = "test-subscription-id"
-        self.stripe_account_id = "testing-stripe-account-id"
-        self.org = OrganizationFactory()
+@pytest.mark.django_db
+class TestProcessFlaggedContribution:
+    @pytest.fixture
+    def contribution(self, one_time_contribution):
+        return one_time_contribution
 
-        self.contributor = ContributorFactory()
+    @pytest.fixture
+    def url(self, contribution):
+        return reverse("contribution-process-flagged", args=[contribution.pk])
 
-        payment_provider = PaymentProviderFactory(stripe_account_id=self.stripe_account_id)
-        revenue_program = RevenueProgramFactory(organization=self.org, payment_provider=payment_provider)
-        # TODO: DEV-3026
-        with mock.patch("apps.contributions.models.Contribution.fetch_stripe_payment_method", return_value=None):
-            self.contribution = ContributionFactory(
-                contributor=self.contributor,
-                donation_page=DonationPageFactory(revenue_program=revenue_program),
-                provider_subscription_id=self.subscription_id,
-            )
-            self.other_contribution = ContributionFactory()
+    @pytest.mark.parametrize("reject", (True, False))
+    def test_happy_path(self, reject, url, api_client_with_double_csrf, hub_admin_user, mocker):
+        mock_process_payment_method = mocker.patch("apps.contributions.models.Contribution.process_flagged_payment")
+        api_client_with_double_csrf.force_authenticate(hub_admin_user)
+        response = api_client_with_double_csrf.post(url, data={"reject": reject}, format="json")
+        assert response.status_code == status.HTTP_200_OK
+        mock_process_payment_method.assert_called_once_with(reject=reject)
 
-    def _make_request(self, contribution_pk=None, request_args={}):
-        url = reverse("contribution-process-flagged", args=[contribution_pk])
-        self.client.force_authenticate(user=self.user)
-        return self.client.post(url, request_args)
+    def test_when_missing_required_param(self, url, api_client_with_double_csrf, hub_admin_user, mocker):
+        mock_process_payment_method = mocker.patch("apps.contributions.models.Contribution.process_flagged_payment")
+        api_client_with_double_csrf.force_authenticate(hub_admin_user)
+        response = api_client_with_double_csrf.post(url, {}, format="json")
+        assert response.status_code == status.HTTP_400_BAD_REQUEST
+        mock_process_payment_method.assert_not_called()
+        assert response.json()["detail"] == "Missing required data"
 
-    def test_response_when_missing_required_param(self, mock_process_flagged):
-        response = self._make_request(contribution_pk=self.contribution.pk)
-        self.assertEqual(response.status_code, 400)
-        self.assertEqual(response.data["detail"], "Missing required data")
-        mock_process_flagged.assert_not_called()
+    def test_when_contribution_not_found(self, url, api_client_with_double_csrf, hub_admin_user, mocker, contribution):
+        contribution.delete()
+        mock_process_payment_method = mocker.patch("apps.contributions.models.Contribution.process_flagged_payment")
+        api_client_with_double_csrf.force_authenticate(hub_admin_user)
+        response = api_client_with_double_csrf.post(url, {"reject": True}, format="json")
+        assert response.status_code == status.HTTP_404_NOT_FOUND
+        mock_process_payment_method.assert_not_called()
+        assert response.json()["detail"] == "Could not find contribution"
 
-    def test_response_when_no_such_contribution(self, mock_process_flagged):
-        nonexistent_pk = 10000001
-        # First, let's make sure there isn't a contributoin with this pk.
-        self.assertIsNone(Contribution.objects.filter(pk=nonexistent_pk).first())
-        response = self._make_request(contribution_pk=nonexistent_pk, request_args={"reject": True})
-        self.assertEqual(response.status_code, 404)
-        self.assertEqual(response.data["detail"], "Could not find contribution")
-        mock_process_flagged.assert_not_called()
-
-    def test_response_when_payment_provider_error(self, mock_process_flagged):
-        error_message = "my error message"
-        mock_process_flagged.side_effect = PaymentProviderError(error_message)
-        response = self._make_request(contribution_pk=self.contribution.pk, request_args={"reject": True})
-        self.assertEqual(response.status_code, 500)
-        self.assertEqual(response.data["detail"], error_message)
-
-    def test_response_when_successful_reject(self, mock_process_flagged):
-        response = self._make_request(contribution_pk=self.contribution.pk, request_args={"reject": True})
-        self.assertEqual(response.status_code, 200)
-        mock_process_flagged.assert_called_with(reject="True")
-
-        # assert about revision and update fields
-
-    def test_response_when_successful_accept(self, mock_process_flagged):
-        response = self._make_request(contribution_pk=self.contribution.pk, request_args={"reject": False})
-        self.assertEqual(response.status_code, 200)
-        mock_process_flagged.assert_called_with(reject="False")
-        # assert about revision and update fields
+    def test_response_when_payment_provider_error(self, url, api_client_with_double_csrf, hub_admin_user, mocker):
+        mocker.patch(
+            "apps.contributions.models.Contribution.process_flagged_payment",
+            side_effect=PaymentProviderError((msg := "my error message")),
+        )
+        api_client_with_double_csrf.force_authenticate(hub_admin_user)
+        response = api_client_with_double_csrf.post(url, {"reject": True}, format="json")
+        assert response.status_code == status.HTTP_500_INTERNAL_SERVER_ERROR
+        assert response.json()["detail"] == msg
 
 
 @pytest.fixture

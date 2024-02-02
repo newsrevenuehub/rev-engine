@@ -136,7 +136,7 @@ class BaseFlaggedResourceAccess(permissions.BasePermission):
         criteria. This is a known issue with Django Waffle
         (https://github.com/django-waffle/django-waffle/issues/401).
         """
-        return request.user and (self.flag.is_active_for_user(request.user) or self.flag.everyone)
+        return self.flag.is_active_for_user(request.user) or self.flag.everyone
 
     def __str__(self):
         return f"`{self.__class__.__name__}` via {self.flag.name if self.flag else '<not configured>'}"

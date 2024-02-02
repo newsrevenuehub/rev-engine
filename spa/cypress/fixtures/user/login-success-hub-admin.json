@@ -4,10 +4,12 @@
         "id": 1,
         "email_verified": true,
         "email": "hub-admin@fundjournalism.org",
-        "role_type": ["hub_admin","Hub Admin"],
+        "role_type": [
+            "hub_admin",
+            "Hub Admin"
+        ],
         "organizations": [],
         "revenue_programs": [],
         "flags": []
-    },
-    "csrftoken": "ZgynND503GQ3Dkyy3xMBHoExWftlTIjDe5znbDLACDH55g49FYrbFKuOJFBA9W6Y"
+    }
 }

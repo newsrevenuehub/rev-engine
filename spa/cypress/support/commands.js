@@ -6,7 +6,7 @@ import { LIVE_PAGE_DETAIL, STRIPE_PAYMENT, CONTRIBUTIONS } from 'ajax/endpoints'
 import { DEFAULT_RESULTS_ORDERING } from 'components/donations/DonationsTable';
 import { ApiResourceList } from '../support/restApi';
 import donationsData from '../fixtures/donations/18-results.json';
-import { LS_CSRF_TOKEN, LS_USER } from 'appSettings';
+import { LS_USER } from 'appSettings';
 
 Cypress.Commands.add('getByTestId', (testId, options, partialMatch = false) => {
   return cy.get(`[data-testid${partialMatch ? '*' : ''}="${testId}"]`, options);
@@ -14,7 +14,6 @@ Cypress.Commands.add('getByTestId', (testId, options, partialMatch = false) => {
 
 Cypress.Commands.add('forceLogin', (userFixture) => {
   cy.clearLocalStorage();
-  cy.setLocalStorage(LS_CSRF_TOKEN, userFixture.csrf_token);
   cy.setLocalStorage(LS_USER, JSON.stringify(userFixture.user));
 });
 

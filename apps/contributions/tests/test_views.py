@@ -18,8 +18,9 @@ from rest_framework import status
 from rest_framework.request import Request
 from rest_framework.reverse import reverse
 from rest_framework.test import APIClient, APITestCase
-from reversion.models import Version
-from stripe.oauth_error import InvalidGrantError as StripeInvalidGrantError
+
+# from reversion.models import Version
+# from stripe.oauth_error import InvalidGrantError as StripeInvalidGrantError
 from stripe.stripe_object import StripeObject
 
 from apps.contributions import views as contributions_views
@@ -124,26 +125,27 @@ class TestStripeOAuth:
         assert not mock_stripe_oauth_token.called
         assert not mock_verify_apple.called
 
-    # @mock.patch("apps.contributions.views.task_verify_apple_domain")
-    # @mock.patch("stripe.OAuth.token")
-    # def test_response_when_invalid_code(self, stripe_oauth_token, task_verify_apple_domain):
-    #     stripe_oauth_token.side_effect = StripeInvalidGrantError(code="error_code", description="error_description")
-    #     response = self._make_request(code="1234", scope=expected_oauth_scope, revenue_program_id=self.org1_rp1.id)
-    #     self.assertEqual(response.status_code, 400)
-    #     self.assertIn("invalid_code", response.data)
-    #     stripe_oauth_token.assert_called_with(code="1234", grant_type="authorization_code")
-    #     assert not task_verify_apple_domain.delay.called
+        # @mock.patch("apps.contributions.views.task_verify_apple_domain")
+        # @mock.patch("stripe.OAuth.token")
+        # def test_response_when_invalid_code(self, stripe_oauth_token, task_verify_apple_domain):
+        #     stripe_oauth_token.side_effect = StripeInvalidGrantError(code="error_code", description="error_description")
+        #     response = self._make_request(code="1234", scope=expected_oauth_scope, revenue_program_id=self.org1_rp1.id)
+        #     self.assertEqual(response.status_code, 400)
+        #     self.assertIn("invalid_code", response.data)
+        #     stripe_oauth_token.assert_called_with(code="1234", grant_type="authorization_code")
+        #     assert not task_verify_apple_domain.delay.called
 
-    # # @mock.patch("apps.contributions.views.task_verify_apple_domain")
-    # # @mock.patch("stripe.OAuth.token")
-    # def test_happy_path(self, stripe_oauth_token, task_verify_apple_domain):
-    #     expected_stripe_account_id = "my_test_account_id"
-    #     expected_refresh_token = "my_test_refresh_token"
-    #     stripe_oauth_token.return_value = MockOAuthResponse(
-    #         stripe_user_id=expected_stripe_account_id, refresh_token=expected_refresh_token
-    #     )
-    #     assert Version.objects.get_for_object(self.org1_rp1.payment_provider).count() == 0
-    #     response = self._make_request(code="1234", scope=expected_oauth_scope, revenue_program_id=self.org1_rp1.id)
+        # # @mock.patch("apps.contributions.views.task_verify_apple_domain")
+        # # @mock.patch("stripe.OAuth.token")
+        # def test_happy_path(self, stripe_oauth_token, task_verify_apple_domain):
+        #     expected_stripe_account_id = "my_test_account_id"
+        #     expected_refresh_token = "my_test_refresh_token"
+        #     stripe_oauth_token.return_value = MockOAuthResponse(
+        #         stripe_user_id=expected_stripe_account_id, refresh_token=expected_refresh_token
+        #     )
+        # assert Version.objects.get_for_object(self.org1_rp1.payment_provider).count() == 0
+        # response = self._make_request(code="1234", scope=expected_oauth_scope, revenue_program_id=self.org1_rp1.id)
+
     #     self.assertEqual(response.status_code, 200)
     #     self.assertEqual(response.data["detail"], "success")
     #     stripe_oauth_token.assert_called_with(code="1234", grant_type="authorization_code")
@@ -346,7 +348,7 @@ class TestContributionsViewSet:
             (None, status.HTTP_401_UNAUTHORIZED),
         ),
     )
-    def test_list_when_unauthorized_user(self, user, expected_status, api_client):
+    def test_list_when_unauthorized_user(self, user, expected_status, api_client_with_double_csrf):
         """Show behavior when unauthorized user tries to list contributions"""
         if user:
             api_client_with_double_csrf.force_authenticate(user)
@@ -573,7 +575,7 @@ class TestContributionsViewSetExportCSV:
             (None, status.HTTP_401_UNAUTHORIZED),
         ),
     )
-    def test_when_unauthorized_user(self, user, expected_status, api_client):
+    def test_when_unauthorized_user(self, user, expected_status, api_client_with_double_csrf):
         """Show behavior when unauthorized users attempt to access"""
         if user:
             api_client_with_double_csrf.force_authenticate(user)

@@ -179,6 +179,4 @@ class DoubleSubmitCsrfPermission(permissions.BasePermission):
         return all([csrf_cookie_token, csrf_header_token, csrf_cookie_token == csrf_header_token])
 
 
-class IsAuthenticatedWithDoubleSubmitCsrf(permissions.IsAuthenticated):
-    def has_permission(self, request, view):
-        return super().has_permission(request, view) and DoubleSubmitCsrfPermission().has_permission(request, view)
+IsAuthenticatedWithDoubleSubmitCsrf = permissions.IsAuthenticated & DoubleSubmitCsrfPermission

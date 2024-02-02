@@ -17,9 +17,10 @@ import pytest
 from bs4 import BeautifulSoup
 from django_rest_passwordreset.models import ResetPasswordToken
 from rest_framework import status
-from rest_framework.permissions import AllowAny, IsAuthenticated
+from rest_framework.permissions import AllowAny
 from rest_framework.serializers import ValidationError as DRFValidationError
 
+from apps.api.permissions import IsAuthenticatedWithDoubleSubmitCsrf
 from apps.contributions.bad_actor import BadActorAPIError
 from apps.organizations.models import FiscalStatusChoices
 from apps.organizations.tests.factories import OrganizationFactory
@@ -472,7 +473,7 @@ class TestUserViewSet:
     @pytest.mark.parametrize(
         "action, expected_permissions",
         (
-            ("list", [IsAuthenticated]),
+            ("list", [IsAuthenticatedWithDoubleSubmitCsrf]),
             ("create", [AllowAny]),
             (
                 "partial_update",
@@ -483,9 +484,14 @@ class TestUserViewSet:
             ),
             (
                 "customize_account",
-                [UserOwnsUser, IsAuthenticated, UserIsAllowedToUpdate, UserHasAcceptedTermsOfService],
+                [
+                    UserOwnsUser,
+                    IsAuthenticatedWithDoubleSubmitCsrf,
+                    UserIsAllowedToUpdate,
+                    UserHasAcceptedTermsOfService,
+                ],
             ),
-            ("request_account_verification", [IsAuthenticated]),
+            ("request_account_verification", [IsAuthenticatedWithDoubleSubmitCsrf]),
         ),
     )
     def test_has_expected_permissions(self, action, expected_permissions):
@@ -591,7 +597,7 @@ class TestUserViewSet:
         view.action = "customize_account"
         permissions = view.get_permissions()
         assert isinstance(permissions[0], UserOwnsUser)
-        assert isinstance(permissions[1], IsAuthenticated)
+        assert isinstance(permissions[1], IsAuthenticatedWithDoubleSubmitCsrf)
         assert isinstance(permissions[2], UserIsAllowedToUpdate)
         assert isinstance(permissions[3], UserHasAcceptedTermsOfService)
 

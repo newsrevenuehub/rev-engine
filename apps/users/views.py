@@ -26,12 +26,13 @@ import reversion
 from django_rest_passwordreset.signals import reset_password_token_created
 from rest_framework import mixins, status
 from rest_framework.decorators import action
-from rest_framework.permissions import AllowAny, IsAuthenticated
+from rest_framework.permissions import AllowAny
 from rest_framework.response import Response
 from rest_framework.serializers import ValidationError
 from rest_framework.viewsets import GenericViewSet
 from reversion.views import RevisionMixin
 
+from apps.api.permissions import IsAuthenticatedWithDoubleSubmitCsrf
 from apps.common.utils import get_original_ip_from_request
 from apps.contributions.bad_actor import BadActorAPIError, make_bad_actor_request
 from apps.contributions.utils import get_sha256_hash
@@ -212,11 +213,16 @@ class UserViewset(
                 AllowAny,
             ],
             "list": [
-                IsAuthenticated,
+                IsAuthenticatedWithDoubleSubmitCsrf,
             ],
             "partial_update": [UserOwnsUser, UserIsAllowedToUpdate],
-            "request_account_verification": [IsAuthenticated],
-            "customize_account": [UserOwnsUser, IsAuthenticated, UserIsAllowedToUpdate, UserHasAcceptedTermsOfService],
+            "request_account_verification": [IsAuthenticatedWithDoubleSubmitCsrf],
+            "customize_account": [
+                UserOwnsUser,
+                IsAuthenticatedWithDoubleSubmitCsrf,
+                UserIsAllowedToUpdate,
+                UserHasAcceptedTermsOfService,
+            ],
         }.get(self.action, [])
 
         return [permission() for permission in permission_classes]

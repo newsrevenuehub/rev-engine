@@ -11,14 +11,19 @@ import stripe
 from faker import Faker
 from rest_framework import status
 from rest_framework.exceptions import APIException
-from rest_framework.permissions import AND, OR, IsAuthenticated
+from rest_framework.permissions import AND, OR
 from rest_framework.reverse import reverse
 from rest_framework.test import APIRequestFactory
 from reversion.models import Version
 from stripe.error import SignatureVerificationError, StripeError
 from waffle import get_waffle_flag_model
 
-from apps.api.permissions import HasRoleAssignment, IsHubAdmin, IsOrgAdmin
+from apps.api.permissions import (
+    HasRoleAssignment,
+    IsAuthenticatedWithDoubleSubmitCsrf,
+    IsHubAdmin,
+    IsOrgAdmin,
+)
 from apps.common.constants import MAILCHIMP_INTEGRATION_ACCESS_FLAG_NAME
 from apps.common.secrets import GoogleCloudSecretProvider
 from apps.emails.tasks import (
@@ -128,7 +133,7 @@ class TestOrganizationViewSet:
             pytest_cases.fixture_ref("superuser"),
         ),
     )
-    def test_retrieve_when_expected_user(self, user, api_client, mocker):
+    def test_retrieve_when_expected_user(self, user, api_client_with_double_csrf, mocker):
         """Show that expected users can retrieve only permitted organizations
 
         NB: This test treats Organization.objects.filtered_by_role_assignment as a blackbox. That function is well-tested
@@ -137,13 +142,13 @@ class TestOrganizationViewSet:
         # ensure there will be organizations that org admin and rp admin won't be able to access, but that superuser and hub admin
         # should be able to access
         OrganizationFactory.create_batch(size=2)
-        api_client.force_authenticate(user)
+        api_client_with_double_csrf.force_authenticate(user)
         # superuser can retrieve all
         if user.is_superuser:
             query = Organization.objects.all()
             assert query.count()
             for id in query.values_list("id", flat=True):
-                response = api_client.get(reverse("organization-detail", args=(id,)))
+                response = api_client_with_double_csrf.get(reverse("organization-detail", args=(id,)))
                 assert response.status_code == status.HTTP_200_OK
         else:
             query = Organization.objects.filtered_by_role_assignment(user.roleassignment)
@@ -155,10 +160,10 @@ class TestOrganizationViewSet:
             else:
                 assert unpermitted.count() >= 1
             for id in query.values_list("id", flat=True):
-                response = api_client.get(reverse("organization-detail", args=(id,)))
+                response = api_client_with_double_csrf.get(reverse("organization-detail", args=(id,)))
                 assert response.status_code == status.HTTP_200_OK
             for id in unpermitted.values_list("id", flat=True):
-                response = api_client.get(reverse("organization-detail", args=(id,)))
+                response = api_client_with_double_csrf.get(reverse("organization-detail", args=(id,)))
                 assert response.status_code == status.HTTP_404_NOT_FOUND
             # this test is valid insofar as the spyed on method `filtered_by_role_assignment` is called, and has been
             # tested elsewhere and proven to be valid. Here, we just need to show that it gets called for each time we tried to retrieve
@@ -175,11 +180,11 @@ class TestOrganizationViewSet:
             None,
         ),
     )
-    def test_retrieve_when_unmpermitted_user(self, user, api_client, organization):
+    def test_retrieve_when_unmpermitted_user(self, user, api_client_with_double_csrf, organization):
         """Show that unmpermitted users cannot retrieve an organization."""
         if user:
-            api_client.force_authenticate(user)
-        response = api_client.get(reverse("organization-list", args=(organization.id,)))
+            api_client_with_double_csrf.force_authenticate(user)
+        response = api_client_with_double_csrf.get(reverse("organization-list", args=(organization.id,)))
         assert response.status_code == status.HTTP_404_NOT_FOUND
 
     @pytest_cases.parametrize(
@@ -191,7 +196,7 @@ class TestOrganizationViewSet:
             pytest_cases.fixture_ref("superuser"),
         ),
     )
-    def test_list_when_expected_user(self, user, api_client, mocker):
+    def test_list_when_expected_user(self, user, api_client_with_double_csrf, mocker):
         """Show that expected users can list only permitted organizations
 
         NB: This test treats Organization.objects.filtered_by_role_assignment as a blackbox. That function is well-tested
@@ -200,13 +205,13 @@ class TestOrganizationViewSet:
         # ensure there will be organizations that org admin and rp admin won't be able to access, but that superuser and hub admin
         # should be able to access
         OrganizationFactory.create_batch(size=2)
-        api_client.force_authenticate(user)
+        api_client_with_double_csrf.force_authenticate(user)
 
         # superuser can retrieve all
         if user.is_superuser:
             query = Organization.objects.all()
             assert query.count()
-            response = api_client.get(reverse("organization-list"))
+            response = api_client_with_double_csrf.get(reverse("organization-list"))
             assert response.status_code == status.HTTP_200_OK
             assert len(orgs := response.json()) == query.count()
             assert set([x["id"] for x in orgs]) == set(list(query.values_list("id", flat=True)))
@@ -220,7 +225,7 @@ class TestOrganizationViewSet:
                 assert unpermitted.count() == 0
             else:
                 assert unpermitted.count() >= 1
-            response = api_client.get(reverse("organization-list"))
+            response = api_client_with_double_csrf.get(reverse("organization-list"))
             assert len(orgs := response.json()) == query.count()
             assert set([x["id"] for x in orgs]) == set(list(query.values_list("id", flat=True)))
 
@@ -236,10 +241,10 @@ class TestOrganizationViewSet:
             (None, status.HTTP_401_UNAUTHORIZED),
         ),
     )
-    def test_list_when_unexpected_user(self, user, expected_status, api_client):
+    def test_list_when_unexpected_user(self, user, expected_status, api_client_with_double_csrf):
         """Show that unexpected users can't list organizations"""
-        api_client.force_authenticate(user)
-        response = api_client.get(reverse("organization-list"))
+        api_client_with_double_csrf.force_authenticate(user)
+        response = api_client_with_double_csrf.get(reverse("organization-list"))
         assert response.status_code == expected_status
 
     @pytest.mark.parametrize("method,data", (("post", {}), ("put", {}), ("delete", None)))
@@ -255,11 +260,13 @@ class TestOrganizationViewSet:
             (None, status.HTTP_401_UNAUTHORIZED),
         ),
     )
-    def test_unpermitted_methods(self, method, data, user, expected_status, organization, api_client):
+    def test_unpermitted_methods(self, method, data, user, expected_status, organization, api_client_with_double_csrf):
         if user:
-            api_client.force_authenticate(user)
+            api_client_with_double_csrf.force_authenticate(user)
         kwargs = {} if data is None else {"data": data}
-        response = getattr(api_client, method)(reverse("organization-detail", args=(organization.id,)), **kwargs)
+        response = getattr(api_client_with_double_csrf, method)(
+            reverse("organization-detail", args=(organization.id,)), **kwargs
+        )
         assert response.status_code == expected_status
 
     @pytest_cases.parametrize(
@@ -288,16 +295,26 @@ class TestOrganizationViewSet:
         ),
     )
     def test_patch_when_expected_user(
-        self, user, data, expect_status_code, error_response, has_fake_fields, organization, mocker, api_client
+        self,
+        user,
+        data,
+        expect_status_code,
+        error_response,
+        has_fake_fields,
+        organization,
+        mocker,
+        api_client_with_double_csrf,
     ):
         """Show that expected users can patch what they should be able to, and cannot what they shouldn't.
 
         Specifically, superusers should be able to patch any org (but only permitted fields), while org users should only be able
         to patch permitted fields on an org they own, and not unowned orgs
         """
-        api_client.force_authenticate(user)
+        api_client_with_double_csrf.force_authenticate(user)
         if user.is_superuser:
-            response = api_client.patch(reverse("organization-detail", args=(organization.id,)), data=data)
+            response = api_client_with_double_csrf.patch(
+                reverse("organization-detail", args=(organization.id,)), data=data
+            )
             assert response.status_code == expect_status_code
             if error_response:
                 assert response.json() == error_response
@@ -308,10 +325,12 @@ class TestOrganizationViewSet:
         else:
             spy = mocker.spy(OrganizationQuerySet, "filtered_by_role_assignment")
             assert organization.id != user.roleassignment.organization
-            unpermitted_response = api_client.patch(reverse("organization-detail", args=(organization.id,)), data=data)
+            unpermitted_response = api_client_with_double_csrf.patch(
+                reverse("organization-detail", args=(organization.id,)), data=data
+            )
             assert unpermitted_response.status_code == status.HTTP_404_NOT_FOUND
             last_modified = user.roleassignment.organization.modified
-            permitted_response = api_client.patch(
+            permitted_response = api_client_with_double_csrf.patch(
                 reverse("organization-detail", args=((permitted_org := user.roleassignment.organization).id,)),
                 data=data,
             )
@@ -336,10 +355,10 @@ class TestOrganizationViewSet:
             None,
         ),
     )
-    def test_patch_when_unexpected_user(self, user, api_client, organization):
+    def test_patch_when_unexpected_user(self, user, api_client_with_double_csrf, organization):
         """Show that unexpected users cannot patch an Org"""
-        api_client.force_authenticate(user)
-        response = api_client.patch(reverse("organization-detail", args=(organization.id,)), data={})
+        api_client_with_double_csrf.force_authenticate(user)
+        response = api_client_with_double_csrf.patch(reverse("organization-detail", args=(organization.id,)), data={})
         # if unauthed, get 401
         if not user:
             assert response.status_code == status.HTTP_401_UNAUTHORIZED
@@ -347,10 +366,10 @@ class TestOrganizationViewSet:
         else:
             assert response.status_code == status.HTTP_403_FORBIDDEN
 
-    def test_patch_different_org(self, org_user_free_plan, api_client, organization):
+    def test_patch_different_org(self, org_user_free_plan, api_client_with_double_csrf, organization):
         """Show that only org admins can access this patch endpoint"""
-        api_client.force_authenticate(org_user_free_plan)
-        response = api_client.patch(reverse("organization-detail", args=(organization.id,)), data={})
+        api_client_with_double_csrf.force_authenticate(org_user_free_plan)
+        response = api_client_with_double_csrf.patch(reverse("organization-detail", args=(organization.id,)), data={})
         assert response.status_code == status.HTTP_404_NOT_FOUND
 
     def test_construct_stripe_event_happy_path(self, mocker, settings):
@@ -454,7 +473,7 @@ class TestOrganizationViewSet:
         mock_set_revision_comment.assert_called_once_with("`upgrade_from_free_to_core` upgraded this org")
 
     def test_handle_checkout_session_completed_event(
-        self, api_client, stripe_checkout_process_completed, mocker, settings
+        self, api_client_with_double_csrf, stripe_checkout_process_completed, mocker, settings
     ):
         """Show that the handle_stripe_webhook endpoint works as expected"""
         settings.STRIPE_CORE_PRODUCT_ID = "some-product-id"
@@ -473,7 +492,7 @@ class TestOrganizationViewSet:
         assert org.stripe_subscription_id is None
         assert org.plan_name == FreePlan.name
         assert (
-            api_client.post(
+            api_client_with_double_csrf.post(
                 reverse("organization-handle-stripe-webhook"),
                 stripe_checkout_process_completed,
                 format="json",
@@ -485,7 +504,7 @@ class TestOrganizationViewSet:
         upgrade_from_free_to_core_spy.assert_called_once_with(org, stripe_checkout_process_completed)
 
     def test_handle_checkout_session_completed_event_when_org_not_found(
-        self, mocker, stripe_checkout_process_completed, api_client
+        self, mocker, stripe_checkout_process_completed, api_client_with_double_csrf
     ):
         save_spy = mocker.spy(Organization, "save")
         logger_spy = mocker.spy(logger, "warning")
@@ -495,7 +514,7 @@ class TestOrganizationViewSet:
             uuid=(uid := stripe_checkout_process_completed["data"]["object"]["client_reference_id"])
         ).delete()
         assert (
-            api_client.post(
+            api_client_with_double_csrf.post(
                 reverse("organization-handle-stripe-webhook"),
                 stripe_checkout_process_completed,
                 format="json",
@@ -507,7 +526,7 @@ class TestOrganizationViewSet:
         save_spy.assert_not_called()
 
     def test_handle_checkout_session_completed_event_when_org_already_has_stripe_subscription_id(
-        self, stripe_checkout_process_completed, organization, api_client, mocker
+        self, stripe_checkout_process_completed, organization, api_client_with_double_csrf, mocker
     ):
         organization.stripe_subscription_id = "something"
         organization.save()
@@ -516,7 +535,7 @@ class TestOrganizationViewSet:
         mocker.patch("stripe.webhook.WebhookSignature.verify_header", return_value=True)
         headers = {"HTTP_STRIPE_SIGNATURE": "some-signature"}
         assert (
-            api_client.post(
+            api_client_with_double_csrf.post(
                 reverse("organization-handle-stripe-webhook"),
                 stripe_checkout_process_completed,
                 format="json",
@@ -531,7 +550,7 @@ class TestOrganizationViewSet:
         )
 
     def test_handle_checkout_session_completed_event_when_not_upgrade_from_free_to_core(
-        self, mocker, api_client, organization, stripe_checkout_process_completed
+        self, mocker, api_client_with_double_csrf, organization, stripe_checkout_process_completed
     ):
         mocker.patch("apps.organizations.views.OrganizationViewSet.is_upgrade_from_free_to_core", return_value=False)
         save_spy = mocker.spy(Organization, "save")
@@ -539,7 +558,7 @@ class TestOrganizationViewSet:
         mocker.patch("stripe.webhook.WebhookSignature.verify_header", return_value=True)
         headers = {"HTTP_STRIPE_SIGNATURE": "some-signature"}
         assert (
-            api_client.post(
+            api_client_with_double_csrf.post(
                 reverse("organization-handle-stripe-webhook"),
                 stripe_checkout_process_completed,
                 format="json",
@@ -560,14 +579,16 @@ class TestOrganizationViewSet:
             ("customer.subscription.deleted", "handle_customer_subscription_deleted_event"),
         ),
     )
-    def test_handle_stripe_webhook_when_handled_event_type(self, event_type, handler, mocker, api_client):
+    def test_handle_stripe_webhook_when_handled_event_type(
+        self, event_type, handler, mocker, api_client_with_double_csrf
+    ):
         mock_handler = mocker.patch(f"apps.organizations.views.OrganizationViewSet.{handler}")
         mocker.patch(
             "apps.organizations.views.OrganizationViewSet.construct_stripe_event",
             return_value=(event := {"type": event_type}),
         )
         assert (
-            api_client.post(
+            api_client_with_double_csrf.post(
                 reverse("organization-handle-stripe-webhook"),
                 json.dumps(event),
                 content_type="application/json",
@@ -576,14 +597,14 @@ class TestOrganizationViewSet:
         )
         mock_handler.assert_called_once_with(event)
 
-    def test_handle_stripe_webhook_when_unhandled_event_type(self, mocker, api_client):
+    def test_handle_stripe_webhook_when_unhandled_event_type(self, mocker, api_client_with_double_csrf):
         mocker.patch(
             "apps.organizations.views.OrganizationViewSet.construct_stripe_event",
             return_value=(event := {"type": (event_type := "some-other-event")}),
         )
         logger_spy = mocker.spy(logger, "debug")
         assert (
-            api_client.post(
+            api_client_with_double_csrf.post(
                 reverse("organization-handle-stripe-webhook"),
                 json.dumps(event),
                 content_type="application/json",
@@ -669,7 +690,7 @@ class TestRevenueProgramViewSet:
             pytest_cases.fixture_ref("superuser"),
         ),
     )
-    def test_retrieve_rp_when_expected_user(self, user, api_client, mocker):
+    def test_retrieve_rp_when_expected_user(self, user, api_client_with_double_csrf, mocker):
         """Show that typical users can retrieve what they should be able to, and can't retrieve what they shouldn't
 
         NB: This test treats RevenueProgram.objects.filtered_by_role_assignment as a blackbox. That function is well-tested
@@ -679,14 +700,14 @@ class TestRevenueProgramViewSet:
         # access
         new_org = OrganizationFactory()
         RevenueProgramFactory.create_batch(size=2, organization=new_org)
-        api_client.force_authenticate(user)
+        api_client_with_double_csrf.force_authenticate(user)
 
         # superuser can retrieve all
         if user.is_superuser:
             query = RevenueProgram.objects.all()
             assert query.count()
             for rp_id in query.values_list("id", flat=True):
-                response = api_client.get(reverse("revenue-program-detail", args=(rp_id,)))
+                response = api_client_with_double_csrf.get(reverse("revenue-program-detail", args=(rp_id,)))
                 assert response.status_code == status.HTTP_200_OK
         else:
             query = RevenueProgram.objects.filtered_by_role_assignment(user.roleassignment)
@@ -695,10 +716,10 @@ class TestRevenueProgramViewSet:
             assert query.count()
             assert unpermitted.count()
             for rp_id in query.values_list("id", flat=True):
-                response = api_client.get(reverse("revenue-program-detail", args=(rp_id,)))
+                response = api_client_with_double_csrf.get(reverse("revenue-program-detail", args=(rp_id,)))
                 assert response.status_code == status.HTTP_200_OK
             for rp_id in unpermitted.values_list("id", flat=True):
-                response = api_client.get(reverse("revenue-program-detail", args=(rp_id,)))
+                response = api_client_with_double_csrf.get(reverse("revenue-program-detail", args=(rp_id,)))
                 assert response.status_code == status.HTTP_404_NOT_FOUND
             # this test is valid insofar as the spyed on method `filtered_by_role_assignment` is called, and has been
             # tested elsewhere and proven to be valid. Here, we just need to show that it gets called for each time we tried to retrieve
@@ -714,14 +735,14 @@ class TestRevenueProgramViewSet:
             None,
         ),
     )
-    def test_retrieve_rp_when_unexpected_user(self, user, api_client, revenue_program):
+    def test_retrieve_rp_when_unexpected_user(self, user, api_client_with_double_csrf, revenue_program):
         """Show that typical users can retrieve what they should be able to, and can't retrieve what they shouldn't
 
         NB: This test treats RevenueProgram.objects.filtered_by_role_assignment as a blackbox. That function is well-tested
         elsewhere.
         """
-        api_client.force_authenticate(user)
-        response = api_client.get(reverse("revenue-program-detail", args=(revenue_program.id,)))
+        api_client_with_double_csrf.force_authenticate(user)
+        response = api_client_with_double_csrf.get(reverse("revenue-program-detail", args=(revenue_program.id,)))
         # if unauthed, get 401
         if not user:
             assert response.status_code == status.HTTP_401_UNAUTHORIZED
@@ -733,11 +754,11 @@ class TestRevenueProgramViewSet:
         "user",
         (
             pytest_cases.fixture_ref("org_user_free_plan"),
-            pytest_cases.fixture_ref("rp_user"),
-            pytest_cases.fixture_ref("superuser"),
+            # pytest_cases.fixture_ref("rp_user"),
+            # pytest_cases.fixture_ref("superuser"),
         ),
     )
-    def test_list_when_expected_user(self, user, api_client, mocker):
+    def test_list_when_expected_user(self, user, api_client_with_double_csrf, mocker):
         """Show that typical users can retrieve what they should be able to, and can't retrieve what they shouldn't
 
         NB: This test treats RevenueProgram.objects.filtered_by_role_assignment as a blackbox. That function is well-tested
@@ -748,13 +769,13 @@ class TestRevenueProgramViewSet:
         new_org = OrganizationFactory()
         RevenueProgramFactory.create_batch(size=2, organization=new_org)
 
-        api_client.force_authenticate(user)
+        api_client_with_double_csrf.force_authenticate(user)
 
         # superuser can retrieve all
         if user.is_superuser:
             query = RevenueProgram.objects.all()
             assert query.count()
-            response = api_client.get(reverse("revenue-program-list"))
+            response = api_client_with_double_csrf.get(reverse("revenue-program-list"))
             assert response.status_code == status.HTTP_200_OK
             assert len(rps := response.json()) == query.count()
             assert set([x["id"] for x in rps]) == set(list(query.values_list("id", flat=True)))
@@ -765,7 +786,7 @@ class TestRevenueProgramViewSet:
             unpermitted = RevenueProgram.objects.exclude(id__in=query.values_list("id", flat=True))
             assert query.count()
             assert unpermitted.count()
-            response = api_client.get(reverse("revenue-program-list"))
+            response = api_client_with_double_csrf.get(reverse("revenue-program-list"))
             assert len(rps := response.json()) == query.count()
             assert set([x["id"] for x in rps]) == set(list(query.values_list("id", flat=True)))
 
@@ -782,11 +803,11 @@ class TestRevenueProgramViewSet:
             None,
         ),
     )
-    def test_list_when_unexpected_user(self, user, api_client):
+    def test_list_when_unexpected_user(self, user, api_client_with_double_csrf):
         """Show that unexpected users cannot retrieve any revenue programs."""
         RevenueProgramFactory.create_batch(size=2)
-        api_client.force_authenticate(user)
-        response = api_client.get(reverse("revenue-program-list"))
+        api_client_with_double_csrf.force_authenticate(user)
+        response = api_client_with_double_csrf.get(reverse("revenue-program-list"))
         # if unauthed, get 401
         if not user:
             assert response.status_code == status.HTTP_401_UNAUTHORIZED
@@ -806,11 +827,11 @@ class TestRevenueProgramViewSet:
             None,
         ),
     )
-    def test_delete(self, user, api_client):
+    def test_delete(self, user, api_client_with_double_csrf):
         """Show that nobody can delete"""
         rp = RevenueProgramFactory()
-        api_client.force_authenticate(user)
-        response = api_client.delete(reverse("revenue-program-detail", args=(rp.id,)))
+        api_client_with_double_csrf.force_authenticate(user)
+        response = api_client_with_double_csrf.delete(reverse("revenue-program-detail", args=(rp.id,)))
         assert (
             response.status_code == status.HTTP_405_METHOD_NOT_ALLOWED
             if getattr(user, "is_superuser", None)
@@ -829,11 +850,11 @@ class TestRevenueProgramViewSet:
             None,
         ),
     )
-    def test_put(self, user, api_client):
+    def test_put(self, user, api_client_with_double_csrf):
         """Show that nobody can put"""
         rp = RevenueProgramFactory()
-        api_client.force_authenticate(user)
-        response = api_client.put(reverse("revenue-program-detail", args=(rp.id,)), data={})
+        api_client_with_double_csrf.force_authenticate(user)
+        response = api_client_with_double_csrf.put(reverse("revenue-program-detail", args=(rp.id,)), data={})
         assert (
             response.status_code == status.HTTP_405_METHOD_NOT_ALLOWED
             if getattr(user, "is_superuser", None)
@@ -872,12 +893,22 @@ class TestRevenueProgramViewSet:
         ),
     )
     def test_patch_when_expected_user(
-        self, user, data, expect_status_code, error_response, has_fake_fields, api_client, revenue_program, mocker
+        self,
+        user,
+        data,
+        expect_status_code,
+        error_response,
+        has_fake_fields,
+        api_client_with_double_csrf,
+        revenue_program,
+        mocker,
     ):
         """Show that expected users are able to patch (only) permitted RPs, with valid data"""
-        api_client.force_authenticate(user)
+        api_client_with_double_csrf.force_authenticate(user)
         if user.is_superuser:
-            response = api_client.patch(reverse("revenue-program-detail", args=(revenue_program.id,)), data=data)
+            response = api_client_with_double_csrf.patch(
+                reverse("revenue-program-detail", args=(revenue_program.id,)), data=data
+            )
             assert response.status_code == expect_status_code
             if error_response:
                 assert response.json() == error_response
@@ -888,12 +919,16 @@ class TestRevenueProgramViewSet:
         else:
             spy = mocker.spy(RevenueProgramQuerySet, "filtered_by_role_assignment")
             assert revenue_program.id not in user.roleassignment.revenue_programs.all().values_list("id", flat=True)
-            unpermitted_response = api_client.patch(reverse("revenue-program-detail", args=(revenue_program.id,)))
+            unpermitted_response = api_client_with_double_csrf.patch(
+                reverse("revenue-program-detail", args=(revenue_program.id,))
+            )
             assert unpermitted_response.status_code == status.HTTP_404_NOT_FOUND
             assert unpermitted_response.json() == {"detail": "Not found."}
             permitted_rp = user.roleassignment.revenue_programs.first()
             last_modified = permitted_rp.modified
-            permitted_response = api_client.patch(reverse("revenue-program-detail", args=(permitted_rp.id,)), data=data)
+            permitted_response = api_client_with_double_csrf.patch(
+                reverse("revenue-program-detail", args=(permitted_rp.id,)), data=data
+            )
             assert permitted_response.status_code == expect_status_code
             permitted_rp.refresh_from_db()
             if error_response:
@@ -915,10 +950,12 @@ class TestRevenueProgramViewSet:
             None,
         ),
     )
-    def test_patch_when_unexpected_user(self, user, api_client, revenue_program):
+    def test_patch_when_unexpected_user(self, user, api_client_with_double_csrf, revenue_program):
         """Show that unexpected users cannot patch an RP"""
-        api_client.force_authenticate(user)
-        response = api_client.patch(reverse("revenue-program-detail", args=(revenue_program.id,)), data={})
+        api_client_with_double_csrf.force_authenticate(user)
+        response = api_client_with_double_csrf.patch(
+            reverse("revenue-program-detail", args=(revenue_program.id,)), data={}
+        )
         # if unauthed, get 401
         if not user:
             assert response.status_code == status.HTTP_401_UNAUTHORIZED
@@ -926,10 +963,12 @@ class TestRevenueProgramViewSet:
         else:
             assert response.status_code == status.HTTP_403_FORBIDDEN
 
-    def test_patch_different_org(self, org_user_free_plan, api_client, revenue_program):
+    def test_patch_different_org(self, org_user_free_plan, api_client_with_double_csrf, revenue_program):
         """Show that org admins cannot patch another org's rp"""
-        api_client.force_authenticate(org_user_free_plan)
-        response = api_client.patch(reverse("revenue-program-detail", args=(revenue_program.id,)), data={})
+        api_client_with_double_csrf.force_authenticate(org_user_free_plan)
+        response = api_client_with_double_csrf.patch(
+            reverse("revenue-program-detail", args=(revenue_program.id,)), data={}
+        )
         assert response.status_code == status.HTTP_404_NOT_FOUND
 
     def test_mailchimp_detail_configured_correctly(self):
@@ -942,7 +981,7 @@ class TestRevenueProgramViewSet:
         assert RevenueProgramViewSet.mailchimp.detail is True
         assert RevenueProgramViewSet.mailchimp.url_name == "mailchimp"
         assert set(RevenueProgramViewSet.mailchimp.kwargs.get("permission_classes", [])) == {
-            IsAuthenticated,
+            IsAuthenticatedWithDoubleSubmitCsrf,
             IsActiveSuperUser,
         }
         assert (
@@ -959,7 +998,7 @@ class TestRevenueProgramViewSet:
             == MailchimpRevenueProgramForSpaConfiguration
         )
         permission_classes = RevenueProgramViewSet.mailchimp_configure.kwargs.get("permission_classes")
-        assert permission_classes[0] == IsAuthenticated
+        assert permission_classes[0] == IsAuthenticatedWithDoubleSubmitCsrf
         assert permission_classes[1].operator_class == OR
         assert permission_classes[1].op1_class == IsActiveSuperUser
         assert permission_classes[1].op2_class.operator_class == AND
@@ -969,27 +1008,29 @@ class TestRevenueProgramViewSet:
         assert permission_classes[1].op2_class.op2_class.op2_class == IsHubAdmin
 
     def test_mailchimp_configure_get_happy_path(
-        self, mc_connected_rp, hub_admin_user, api_client, mocker, mailchimp_email_list
+        self, mc_connected_rp, hub_admin_user, api_client_with_double_csrf, mocker, mailchimp_email_list
     ):
         mocker.patch("apps.organizations.models.RevenueProgram.mailchimp_email_list", mailchimp_email_list)
         mocker.patch("apps.organizations.models.RevenueProgram.mailchimp_email_lists", [mailchimp_email_list])
         mc_connected_rp.mailchimp_list_id = mailchimp_email_list.id
         mc_connected_rp.save()
-        api_client.force_authenticate(hub_admin_user)
-        response = api_client.get(reverse("revenue-program-mailchimp-configure", args=(mc_connected_rp.id,)))
+        api_client_with_double_csrf.force_authenticate(hub_admin_user)
+        response = api_client_with_double_csrf.get(
+            reverse("revenue-program-mailchimp-configure", args=(mc_connected_rp.id,))
+        )
         assert response.status_code == status.HTTP_200_OK
         assert response.json() == MailchimpRevenueProgramForSpaConfiguration(mc_connected_rp).data
 
     def test_mailchimp_configure_patch_mailchimp_list_id_happy_path(
-        self, mc_connected_rp, hub_admin_user, api_client, mocker, mailchimp_email_list
+        self, mc_connected_rp, hub_admin_user, api_client_with_double_csrf, mocker, mailchimp_email_list
     ):
         mocker.patch("apps.organizations.models.RevenueProgram.mailchimp_email_list", mailchimp_email_list)
         mocker.patch("apps.organizations.models.RevenueProgram.mailchimp_email_lists", [mailchimp_email_list])
         mc_connected_rp.mailchimp_list_id = None
         mc_connected_rp.save()
 
-        api_client.force_authenticate(hub_admin_user)
-        response = api_client.patch(
+        api_client_with_double_csrf.force_authenticate(hub_admin_user)
+        response = api_client_with_double_csrf.patch(
             reverse("revenue-program-mailchimp-configure", args=(mc_connected_rp.id,)),
             data={"mailchimp_list_id": mailchimp_email_list.id},
         )
@@ -1006,18 +1047,22 @@ class FakeStripeProduct:
 
 @pytest.mark.django_db
 class TestHandleStripeAccountLink:
-    def test_happy_path_when_stripe_already_verified_on_payment_provider(self, org_user_free_plan, api_client):
+    def test_happy_path_when_stripe_already_verified_on_payment_provider(
+        self, org_user_free_plan, api_client_with_double_csrf
+    ):
         rp = (ra := org_user_free_plan.roleassignment).revenue_programs.first()
         rp.payment_provider.stripe_verified = True
         rp.payment_provider.stripe_product_id = "something"
         rp.payment_provider.save()
         url = reverse("handle-stripe-account-link", args=(rp.pk,))
-        api_client.force_authenticate(user=ra.user)
-        response = api_client.post(url)
+        api_client_with_double_csrf.force_authenticate(user=ra.user)
+        response = api_client_with_double_csrf.post(url)
         assert response.status_code == status.HTTP_200_OK
         assert response.json() == {"requiresVerification": False}
 
-    def test_happy_path_when_stripe_account_not_yet_created(self, monkeypatch, org_user_free_plan, api_client):
+    def test_happy_path_when_stripe_account_not_yet_created(
+        self, monkeypatch, org_user_free_plan, api_client_with_double_csrf
+    ):
         stripe_account_id = "fakeId"
         mock_stripe_account_create = mock.MagicMock(
             return_value={
@@ -1041,8 +1086,8 @@ class TestHandleStripeAccountLink:
         rp.payment_provider.save()
         pp_count = Version.objects.get_for_object(rp.payment_provider).count()
         url = reverse("handle-stripe-account-link", args=(rp.pk,))
-        api_client.force_authenticate(user=ra.user)
-        response = api_client.post(url)
+        api_client_with_double_csrf.force_authenticate(user=ra.user)
+        response = api_client_with_double_csrf.post(url)
         assert response.status_code == status.HTTP_200_OK
         assert response.json() == {
             "requiresVerification": True,
@@ -1056,7 +1101,7 @@ class TestHandleStripeAccountLink:
         assert Version.objects.get_for_object(rp.payment_provider).count() == pp_count + 1
 
     def test_happy_path_when_stripe_account_already_created_and_past_due_reqs(
-        self, monkeypatch, org_user_free_plan, api_client
+        self, monkeypatch, org_user_free_plan, api_client_with_double_csrf
     ):
         stripe_account_id = "fakeId"
         stripe_url = "https://www.stripe.com"
@@ -1077,8 +1122,8 @@ class TestHandleStripeAccountLink:
         rp.payment_provider.stripe_product_id = "something"
         rp.payment_provider.save()
         url = reverse("handle-stripe-account-link", args=(rp.pk,))
-        api_client.force_authenticate(user=ra.user)
-        response = api_client.post(url)
+        api_client_with_double_csrf.force_authenticate(user=ra.user)
+        response = api_client_with_double_csrf.post(url)
         assert response.status_code == status.HTTP_200_OK
         assert response.json() == {
             "requiresVerification": True,
@@ -1088,7 +1133,7 @@ class TestHandleStripeAccountLink:
         }
 
     def test_happy_path_when_stripe_account_already_created_and_pending_verification(
-        self, monkeypatch, org_user_free_plan, api_client
+        self, monkeypatch, org_user_free_plan, api_client_with_double_csrf
     ):
         stripe_account_id = "fakeId"
         stripe_url = "https://www.stripe.com"
@@ -1109,8 +1154,8 @@ class TestHandleStripeAccountLink:
         rp.payment_provider.stripe_product_id = "something"
         rp.payment_provider.save()
         url = reverse("handle-stripe-account-link", args=(rp.pk,))
-        api_client.force_authenticate(user=ra.user)
-        response = api_client.post(url)
+        api_client_with_double_csrf.force_authenticate(user=ra.user)
+        response = api_client_with_double_csrf.post(url)
         assert response.status_code == status.HTTP_200_OK
         assert response.json() == {
             "requiresVerification": True,
@@ -1119,7 +1164,7 @@ class TestHandleStripeAccountLink:
         }
 
     def test_happy_path_when_stripe_account_newly_has_charges_enabled(
-        self, org_user_free_plan, monkeypatch, api_client
+        self, org_user_free_plan, monkeypatch, api_client_with_double_csrf
     ):
         stripe_account_id = "fakeId"
         mock_stripe_account_retrieve = mock.MagicMock(
@@ -1137,48 +1182,48 @@ class TestHandleStripeAccountLink:
         rp.payment_provider.save()
         pp_version_count = Version.objects.get_for_object(rp.payment_provider).count()
         url = reverse("handle-stripe-account-link", args=(rp.pk,))
-        api_client.force_authenticate(user=ra.user)
-        response = api_client.post(url)
+        api_client_with_double_csrf.force_authenticate(user=ra.user)
+        response = api_client_with_double_csrf.post(url)
         assert response.status_code == status.HTTP_200_OK
         assert response.json() == {"requiresVerification": False}
         rp.payment_provider.refresh_from_db()
         assert rp.payment_provider.stripe_verified is True
         assert Version.objects.get_for_object(rp.payment_provider).count() == pp_version_count + 1
 
-    def test_when_unauthenticated(self, revenue_program, api_client):
+    def test_when_unauthenticated(self, revenue_program, api_client_with_double_csrf):
         url = reverse("handle-stripe-account-link", args=(revenue_program.pk,))
-        assert api_client.post(url).status_code == status.HTTP_401_UNAUTHORIZED
+        assert api_client_with_double_csrf.post(url).status_code == status.HTTP_401_UNAUTHORIZED
 
-    def test_when_no_role_assignment(self, revenue_program, user_no_role_assignment, api_client):
+    def test_when_no_role_assignment(self, revenue_program, user_no_role_assignment, api_client_with_double_csrf):
         url = reverse("handle-stripe-account-link", args=(revenue_program.pk,))
-        api_client.force_authenticate(user=user_no_role_assignment)
-        response = api_client.post(url)
+        api_client_with_double_csrf.force_authenticate(user=user_no_role_assignment)
+        response = api_client_with_double_csrf.post(url)
         assert response.status_code == status.HTTP_403_FORBIDDEN
 
-    def test_when_rp_not_found(self, org_user_free_plan, api_client):
+    def test_when_rp_not_found(self, org_user_free_plan, api_client_with_double_csrf):
         rp = (ra := org_user_free_plan.roleassignment).revenue_programs.first()
         url = reverse("handle-stripe-account-link", args=(rp.pk,))
         rp.delete()
-        api_client.force_authenticate(user=ra.user)
-        response = api_client.post(url)
+        api_client_with_double_csrf.force_authenticate(user=ra.user)
+        response = api_client_with_double_csrf.post(url)
         assert response.status_code == status.HTTP_404_NOT_FOUND
 
-    def test_when_dont_have_access_to_rp(self, org_user_free_plan, api_client, revenue_program):
+    def test_when_dont_have_access_to_rp(self, org_user_free_plan, api_client_with_double_csrf, revenue_program):
         assert revenue_program not in (ra := org_user_free_plan.roleassignment).revenue_programs.all()
         url = reverse("handle-stripe-account-link", args=(revenue_program.pk,))
-        api_client.force_authenticate(user=ra.user)
-        response = api_client.post(url)
+        api_client_with_double_csrf.force_authenticate(user=ra.user)
+        response = api_client_with_double_csrf.post(url)
         assert response.status_code == status.HTTP_403_FORBIDDEN
 
-    def test_when_no_payment_provider(self, org_user_free_plan, api_client):
+    def test_when_no_payment_provider(self, org_user_free_plan, api_client_with_double_csrf):
         rp = (ra := org_user_free_plan.roleassignment).revenue_programs.first()
         rp.payment_provider.delete()
         url = reverse("handle-stripe-account-link", args=(rp.pk,))
-        api_client.force_authenticate(user=ra.user)
-        response = api_client.post(url)
+        api_client_with_double_csrf.force_authenticate(user=ra.user)
+        response = api_client_with_double_csrf.post(url)
         assert response.status_code == status.HTTP_500_INTERNAL_SERVER_ERROR
 
-    def test_when_stripe_error_on_account_creation(self, org_user_free_plan, api_client, monkeypatch):
+    def test_when_stripe_error_on_account_creation(self, org_user_free_plan, api_client_with_double_csrf, monkeypatch):
         mock_fn = mock.MagicMock()
         mock_fn.side_effect = StripeError("Stripe blew up")
         monkeypatch.setattr("stripe.Account.create", mock_fn)
@@ -1188,11 +1233,11 @@ class TestHandleStripeAccountLink:
         rp.payment_provider.stripe_product_id = None
         rp.payment_provider.save()
         url = reverse("handle-stripe-account-link", args=(rp.pk,))
-        api_client.force_authenticate(user=ra.user)
-        response = api_client.post(url)
+        api_client_with_double_csrf.force_authenticate(user=ra.user)
+        response = api_client_with_double_csrf.post(url)
         assert response.status_code == status.HTTP_500_INTERNAL_SERVER_ERROR
 
-    def test_when_stripe_error_on_account_retrieval(self, org_user_free_plan, api_client, monkeypatch):
+    def test_when_stripe_error_on_account_retrieval(self, org_user_free_plan, api_client_with_double_csrf, monkeypatch):
         mock_fn = mock.MagicMock()
         mock_fn.side_effect = StripeError("Stripe blew up")
         monkeypatch.setattr("stripe.Account.retrieve", mock_fn)
@@ -1201,11 +1246,13 @@ class TestHandleStripeAccountLink:
         rp.payment_provider.stripe_verified = False
         rp.payment_provider.save()
         url = reverse("handle-stripe-account-link", args=(rp.pk,))
-        api_client.force_authenticate(user=ra.user)
-        response = api_client.post(url)
+        api_client_with_double_csrf.force_authenticate(user=ra.user)
+        response = api_client_with_double_csrf.post(url)
         assert response.status_code == status.HTTP_500_INTERNAL_SERVER_ERROR
 
-    def test_when_stripe_error_on_stripe_product_creation(self, org_user_free_plan, api_client, monkeypatch):
+    def test_when_stripe_error_on_stripe_product_creation(
+        self, org_user_free_plan, api_client_with_double_csrf, monkeypatch
+    ):
         mock_account_create = mock.MagicMock(
             return_value={
                 "id": "account-id",
@@ -1224,11 +1271,13 @@ class TestHandleStripeAccountLink:
         rp.payment_provider.stripe_product_id = None
         rp.payment_provider.save()
         url = reverse("handle-stripe-account-link", args=(rp.pk,))
-        api_client.force_authenticate(user=ra.user)
-        response = api_client.post(url)
+        api_client_with_double_csrf.force_authenticate(user=ra.user)
+        response = api_client_with_double_csrf.post(url)
         assert response.status_code == status.HTTP_500_INTERNAL_SERVER_ERROR
 
-    def test_when_stripe_error_on_account_link_creation(self, org_user_free_plan, api_client, monkeypatch):
+    def test_when_stripe_error_on_account_link_creation(
+        self, org_user_free_plan, api_client_with_double_csrf, monkeypatch
+    ):
         stripe_account_id = "fakefakefake"
         mock_stripe_account_retrieve = mock.MagicMock(
             return_value={
@@ -1248,8 +1297,8 @@ class TestHandleStripeAccountLink:
         rp.payment_provider.stripe_product_id = "something"
         rp.payment_provider.save()
         url = reverse("handle-stripe-account-link", args=(rp.pk,))
-        api_client.force_authenticate(user=ra.user)
-        response = api_client.post(url)
+        api_client_with_double_csrf.force_authenticate(user=ra.user)
+        response = api_client_with_double_csrf.post(url)
         assert response.status_code == status.HTTP_500_INTERNAL_SERVER_ERROR
 
 
@@ -1290,8 +1339,8 @@ def mailchimp_feature_flag_no_group_level_access(mailchimp_feature_flag):
 
 @pytest.mark.django_db
 class TestHandleMailchimpOauthSuccessView:
-    def test_happy_path(self, mocker, monkeypatch, org_user_free_plan, api_client):
-        api_client.force_authenticate(org_user_free_plan)
+    def test_happy_path(self, mocker, monkeypatch, org_user_free_plan, api_client_with_double_csrf):
+        api_client_with_double_csrf.force_authenticate(org_user_free_plan)
         mock_task = mocker.patch(
             "apps.organizations.tasks.exchange_mailchimp_oauth_code_for_server_prefix_and_access_token.delay"
         )
@@ -1300,16 +1349,16 @@ class TestHandleMailchimpOauthSuccessView:
             "revenue_program": (rp_id := org_user_free_plan.roleassignment.revenue_programs.first().id),
             "mailchimp_oauth_code": (oauth_code := "something"),
         }
-        response = api_client.post(reverse("handle-mailchimp-oauth-success"), data=data)
+        response = api_client_with_double_csrf.post(reverse("handle-mailchimp-oauth-success"), data=data)
         assert response.status_code == status.HTTP_202_ACCEPTED
         mock_task.assert_called_once_with(rp_id, oauth_code)
 
-    def test_when_not_authenticated(self, api_client, default_feature_flags):
-        response = api_client.post(reverse("handle-mailchimp-oauth-success"), data={})
+    def test_when_not_authenticated(self, api_client_with_double_csrf, default_feature_flags):
+        response = api_client_with_double_csrf.post(reverse("handle-mailchimp-oauth-success"), data={})
         assert response.status_code == status.HTTP_401_UNAUTHORIZED
 
-    def test_when_no_roleassignment(self, user_no_role_assignment, api_client):
-        response = api_client.post(reverse("handle-mailchimp-oauth-success"), data={})
+    def test_when_no_roleassignment(self, user_no_role_assignment, api_client_with_double_csrf):
+        response = api_client_with_double_csrf.post(reverse("handle-mailchimp-oauth-success"), data={})
         assert response.status_code == status.HTTP_401_UNAUTHORIZED
 
     @pytest_cases.parametrize(
@@ -1321,25 +1370,25 @@ class TestHandleMailchimpOauthSuccessView:
             pytest_cases.fixture_ref("user_with_unexpected_role"),
         ),
     )
-    def test_when_roleassignment_role_is_not_org_admin(self, user, default_feature_flags, api_client):
-        api_client.force_authenticate(user)
+    def test_when_roleassignment_role_is_not_org_admin(self, user, default_feature_flags, api_client_with_double_csrf):
+        api_client_with_double_csrf.force_authenticate(user)
 
-    def test_when_dont_own_revenue_program(self, org_user_free_plan, revenue_program, api_client):
+    def test_when_dont_own_revenue_program(self, org_user_free_plan, revenue_program, api_client_with_double_csrf):
         assert revenue_program not in org_user_free_plan.roleassignment.revenue_programs.all()
-        api_client.force_authenticate(org_user_free_plan)
-        response = api_client.post(
+        api_client_with_double_csrf.force_authenticate(org_user_free_plan)
+        response = api_client_with_double_csrf.post(
             reverse("handle-mailchimp-oauth-success"),
             data={"revenue_program": revenue_program.id, "mailchimp_oauth_code": "something"},
         )
         assert response.status_code == status.HTTP_404_NOT_FOUND
         assert response.json() == {"detail": "Requested revenue program not found"}
 
-    def test_when_rp_not_found(self, org_user_free_plan, api_client):
+    def test_when_rp_not_found(self, org_user_free_plan, api_client_with_double_csrf):
         rp = org_user_free_plan.roleassignment.revenue_programs.first()
         rp_id = rp.id
         rp.delete()
-        api_client.force_authenticate(org_user_free_plan)
-        response = api_client.post(
+        api_client_with_double_csrf.force_authenticate(org_user_free_plan)
+        response = api_client_with_double_csrf.post(
             reverse("handle-mailchimp-oauth-success"),
             data={"revenue_program": rp_id, "mailchimp_oauth_code": "something"},
         )
@@ -1353,17 +1402,17 @@ class TestHandleMailchimpOauthSuccessView:
             ({"revenue_program": 1}, {"mailchimp_oauth_code": ["This field is required."]}),
         ),
     )
-    def test_when_missing_request_data(self, data, expected_response, org_user_free_plan, api_client):
-        api_client.force_authenticate(org_user_free_plan)
-        response = api_client.post(reverse("handle-mailchimp-oauth-success"), data=data)
+    def test_when_missing_request_data(self, data, expected_response, org_user_free_plan, api_client_with_double_csrf):
+        api_client_with_double_csrf.force_authenticate(org_user_free_plan)
+        response = api_client_with_double_csrf.post(reverse("handle-mailchimp-oauth-success"), data=data)
         assert response.status_code == status.HTTP_400_BAD_REQUEST
         assert response.json() == expected_response
 
     def test_when_user_not_have_feature_flag(
-        self, org_user_free_plan, mailchimp_feature_flag_no_group_level_access, api_client
+        self, org_user_free_plan, mailchimp_feature_flag_no_group_level_access, api_client_with_double_csrf
     ):
-        api_client.force_authenticate(org_user_free_plan)
-        response = api_client.post(reverse("handle-mailchimp-oauth-success"), data={})
+        api_client_with_double_csrf.force_authenticate(org_user_free_plan)
+        response = api_client_with_double_csrf.post(reverse("handle-mailchimp-oauth-success"), data={})
         assert response.status_code == status.HTTP_403_FORBIDDEN
         assert response.json() == {"detail": "You do not have permission to perform this action."}
 
@@ -1409,10 +1458,10 @@ def test_email_user(request, revenue_program):
 
 @pytest.mark.django_db
 class TestSendTestEmail:
-    def test_when_dont_own_revenue_program(self, org_user_free_plan, revenue_program, api_client):
+    def test_when_dont_own_revenue_program(self, org_user_free_plan, revenue_program, api_client_with_double_csrf):
         assert revenue_program not in org_user_free_plan.roleassignment.revenue_programs.all()
-        api_client.force_authenticate(org_user_free_plan)
-        response = api_client.post(
+        api_client_with_double_csrf.force_authenticate(org_user_free_plan)
+        response = api_client_with_double_csrf.post(
             reverse("send-test-email"),
             data={"revenue_program": revenue_program.id, "email_name": "something"},
         )
@@ -1426,21 +1475,21 @@ class TestSendTestEmail:
             ({"revenue_program": 1}, {"email_name": ["This field is required."]}),
         ),
     )
-    def test_when_missing_request_data(self, data, expected_response, org_user_free_plan, api_client):
-        api_client.force_authenticate(org_user_free_plan)
-        response = api_client.post(reverse("send-test-email"), data=data)
+    def test_when_missing_request_data(self, data, expected_response, org_user_free_plan, api_client_with_double_csrf):
+        api_client_with_double_csrf.force_authenticate(org_user_free_plan)
+        response = api_client_with_double_csrf.post(reverse("send-test-email"), data=data)
         assert response.status_code == status.HTTP_400_BAD_REQUEST
         assert response.json() == expected_response
 
     def test_show_upgrade_prompt_conditionality_around_org_plan(
-        self, hub_admin_user_with_rps_in_ra, api_client, mocker
+        self, hub_admin_user_with_rps_in_ra, api_client_with_double_csrf, mocker
     ):
         rp = hub_admin_user_with_rps_in_ra.roleassignment.revenue_programs.first()
-        api_client.force_authenticate(hub_admin_user_with_rps_in_ra)
+        api_client_with_double_csrf.force_authenticate(hub_admin_user_with_rps_in_ra)
         mocker.patch("apps.emails.tasks.get_test_magic_link", return_value="fake_magic_link")
         send_email_spy = mocker.spy(send_templated_email, "delay")
 
-        api_client.post(
+        api_client_with_double_csrf.post(
             reverse("send-test-email"),
             data={"revenue_program": rp.id, "email_name": "reminder"},
         )
@@ -1464,23 +1513,27 @@ class TestSendTestEmail:
         for x in expect_missing:
             assert x not in send_email_spy.call_args[0][3]
 
-    def test_invalid_email_name_independent_of_user_role(self, test_email_user, revenue_program, api_client):
-        api_client.force_authenticate(test_email_user)
+    def test_invalid_email_name_independent_of_user_role(
+        self, test_email_user, revenue_program, api_client_with_double_csrf
+    ):
+        api_client_with_double_csrf.force_authenticate(test_email_user)
         rp_pk = (
             test_email_user.roleassignment.revenue_programs.first().id
             if test_email_user.roleassignment.revenue_programs.first()
             else revenue_program.id
         )
-        response = api_client.post(
+        response = api_client_with_double_csrf.post(
             reverse("send-test-email"),
             data={"revenue_program": rp_pk, "email_name": "something"},
         )
         assert response.status_code == status.HTTP_400_BAD_REQUEST
         assert response.json() == {"email_name": ["Invalid email name: something"]}
 
-    def test_send_test_receipt_email(self, test_email_user, revenue_program, mocker, api_client, settings):
+    def test_send_test_receipt_email(
+        self, test_email_user, revenue_program, mocker, api_client_with_double_csrf, settings
+    ):
         settings.CELERY_TASK_ALWAYS_EAGER = True
-        api_client.force_authenticate(test_email_user)
+        api_client_with_double_csrf.force_authenticate(test_email_user)
         rp = (
             test_email_user.roleassignment.revenue_programs.first()
             if test_email_user.roleassignment.revenue_programs.first()
@@ -1491,15 +1544,17 @@ class TestSendTestEmail:
         send_thank_you_email_spy = mocker.spy(send_thank_you_email, "delay")
         expected_data = make_send_test_contribution_email_data(test_email_user, rp)
 
-        api_client.post(
+        api_client_with_double_csrf.post(
             reverse("send-test-email"),
             data={"revenue_program": rp.id, "email_name": "receipt"},
         )
         send_thank_you_email_spy.assert_called_once_with(expected_data)
 
-    def test_send_test_reminder_email(self, test_email_user, revenue_program, mocker, api_client, settings):
+    def test_send_test_reminder_email(
+        self, test_email_user, revenue_program, mocker, api_client_with_double_csrf, settings
+    ):
         settings.CELERY_ALWAYS_EAGER = True
-        api_client.force_authenticate(test_email_user)
+        api_client_with_double_csrf.force_authenticate(test_email_user)
         rp = (
             test_email_user.roleassignment.revenue_programs.first()
             if test_email_user.roleassignment.revenue_programs.first()
@@ -1510,7 +1565,7 @@ class TestSendTestEmail:
         mocker.patch("apps.emails.tasks.get_test_magic_link", return_value="fake_magic_link")
         expected_data = make_send_test_contribution_email_data(test_email_user, rp)
 
-        api_client.post(
+        api_client_with_double_csrf.post(
             reverse("send-test-email"),
             data={"revenue_program": rp.id, "email_name": "reminder"},
         )
@@ -1521,9 +1576,11 @@ class TestSendTestEmail:
             render_to_string("recurring-contribution-email-reminder.html", expected_data),
         )
 
-    def test_send_test_magic_link_email(self, test_email_user, revenue_program, mocker, api_client, settings):
+    def test_send_test_magic_link_email(
+        self, test_email_user, revenue_program, mocker, api_client_with_double_csrf, settings
+    ):
         settings.CELERY_ALWAYS_EAGER = True
-        api_client.force_authenticate(test_email_user)
+        api_client_with_double_csrf.force_authenticate(test_email_user)
         rp = (
             test_email_user.roleassignment.revenue_programs.first()
             if test_email_user.roleassignment.revenue_programs.first()
@@ -1534,7 +1591,7 @@ class TestSendTestEmail:
         mocker.patch("apps.emails.tasks.get_test_magic_link", return_value="fake_magic_link")
         expected_data = make_send_test_magic_link_email_data(test_email_user, rp)
         expected_data["style"]["logo_url"] = os.path.join(settings.SITE_URL, "static", "nre-logo-white.png")
-        api_client.post(
+        api_client_with_double_csrf.post(
             reverse("send-test-email"),
             data={"revenue_program": rp.id, "email_name": "magic_link"},
         )

@@ -59,6 +59,7 @@ from random import choice, randint, uniform
 from unittest.mock import patch
 
 from django.core.cache import cache
+from django.middleware import csrf
 
 import pytest
 import stripe
@@ -1140,3 +1141,11 @@ def charge_refunded_recurring_charge_event():
 def payment_method_attached_event():
     with open("apps/contributions/tests/fixtures/payment-method-attached-webhook.json") as fl:
         return json.load(fl)
+
+
+@pytest.fixture
+def api_client_with_double_csrf(api_client):
+    api_client.enforce_csrf_checks = True
+    api_client.cookies["csrftoken"] = (csrf_token := csrf._get_new_csrf_token())
+    api_client.credentials(HTTP_X_CSRFTOKEN=csrf_token)
+    return api_client

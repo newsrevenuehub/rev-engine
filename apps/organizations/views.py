@@ -13,7 +13,6 @@ import stripe
 from rest_framework import mixins, status, viewsets
 from rest_framework.decorators import action, api_view, permission_classes
 from rest_framework.exceptions import APIException, PermissionDenied, ValidationError
-from rest_framework.permissions import IsAuthenticated
 from rest_framework.response import Response
 from rest_framework.reverse import reverse
 from stripe.error import StripeError
@@ -21,6 +20,7 @@ from stripe.error import StripeError
 from apps.api.permissions import (
     HasFlaggedAccessToMailchimp,
     HasRoleAssignment,
+    IsAuthenticatedWithDoubleSubmitCsrf,
     IsGetRequest,
     IsHubAdmin,
     IsOrgAdmin,
@@ -65,7 +65,7 @@ class OrganizationViewSet(
 
     model = Organization
     permission_classes = [
-        IsAuthenticated,
+        IsAuthenticatedWithDoubleSubmitCsrf,
         IsActiveSuperUser | (HasRoleAssignment & IsOrgAdmin & IsPatchRequest) | (HasRoleAssignment & IsGetRequest),
     ]
     serializer_class = serializers.OrganizationSerializer
@@ -220,7 +220,7 @@ class OrganizationViewSet(
 class RevenueProgramViewSet(FilterForSuperUserOrRoleAssignmentUserMixin, viewsets.ModelViewSet):
     model = RevenueProgram
     permission_classes = [
-        IsAuthenticated,
+        IsAuthenticatedWithDoubleSubmitCsrf,
         IsActiveSuperUser
         | (HasRoleAssignment & IsOrgAdmin & (IsPatchRequest | IsGetRequest))
         | (HasRoleAssignment & IsRpAdmin & IsGetRequest),
@@ -235,7 +235,7 @@ class RevenueProgramViewSet(FilterForSuperUserOrRoleAssignmentUserMixin, viewset
     @action(
         methods=["GET"],
         detail=True,
-        permission_classes=[IsAuthenticated, IsActiveSuperUser],
+        permission_classes=[IsAuthenticatedWithDoubleSubmitCsrf, IsActiveSuperUser],
         serializer_class=serializers.MailchimpRevenueProgramForSwitchboard,
     )
     def mailchimp(self, request, pk=None):
@@ -249,7 +249,10 @@ class RevenueProgramViewSet(FilterForSuperUserOrRoleAssignmentUserMixin, viewset
     @action(
         methods=["GET", "PATCH"],
         detail=True,
-        permission_classes=[IsAuthenticated, IsActiveSuperUser | (HasRoleAssignment & (IsOrgAdmin | IsHubAdmin))],
+        permission_classes=[
+            IsAuthenticatedWithDoubleSubmitCsrf,
+            IsActiveSuperUser | (HasRoleAssignment & (IsOrgAdmin | IsHubAdmin)),
+        ],
         serializer_class=serializers.MailchimpRevenueProgramForSpaConfiguration,
     )
     def mailchimp_configure(self, request, pk=None):
@@ -280,7 +283,7 @@ def get_stripe_account_link_return_url(request):
 
 @reversion.create_revision()
 @api_view(["POST"])
-@permission_classes([IsAuthenticated, HasRoleAssignment])
+@permission_classes([IsAuthenticatedWithDoubleSubmitCsrf, HasRoleAssignment])
 def handle_stripe_account_link(request, rp_pk):
     """This endpoint facilitates multiple round trips between the SPA and Stripe's Account Link configuration which happens
     off-site.
@@ -403,7 +406,7 @@ def handle_stripe_account_link(request, rp_pk):
 
 
 @api_view(["POST"])
-@permission_classes([IsAuthenticated])
+@permission_classes([IsAuthenticatedWithDoubleSubmitCsrf])
 def send_test_email(request):
     """This endpoint sends test emails to the user so that they can see what it looks like.
     Available email types are:
@@ -464,7 +467,7 @@ def send_test_email(request):
 
 
 @api_view(["POST"])
-@permission_classes([IsAuthenticated, HasFlaggedAccessToMailchimp, IsOrgAdmin])
+@permission_classes([IsAuthenticatedWithDoubleSubmitCsrf, HasFlaggedAccessToMailchimp, IsOrgAdmin])
 def handle_mailchimp_oauth_success(request):
     """"""
     logger.info("handle_mailchimp_oauth_success called with request data %s", request.data)

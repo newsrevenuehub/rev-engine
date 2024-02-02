@@ -1,6 +1,6 @@
-from rest_framework.permissions import IsAuthenticated
 from rest_framework.viewsets import ReadOnlyModelViewSet
 
+from apps.api.permissions import IsAuthenticatedWithDoubleSubmitCsrf
 from apps.organizations.models import RevenueProgram
 from apps.public.permissions import IsActiveSuperUser
 from apps.public.serializers import RevenueProgramDetailSerializer, RevenueProgramListSerializer
@@ -8,7 +8,7 @@ from apps.public.serializers import RevenueProgramDetailSerializer, RevenueProgr
 
 class RevenueProgramViewset(ReadOnlyModelViewSet):
     model = RevenueProgram
-    permission_classes = [IsAuthenticated, IsActiveSuperUser]
+    permission_classes = [IsAuthenticatedWithDoubleSubmitCsrf, IsActiveSuperUser]
 
     def get_queryset(self):
         queryset = RevenueProgram.objects.all()

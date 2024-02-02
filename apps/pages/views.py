@@ -8,11 +8,10 @@ from django.views.decorators.csrf import ensure_csrf_cookie
 import django_filters
 from rest_framework import filters, status, viewsets
 from rest_framework.decorators import action
-from rest_framework.permissions import IsAuthenticated
 from rest_framework.response import Response
 from reversion.views import RevisionMixin
 
-from apps.api.permissions import HasRoleAssignment
+from apps.api.permissions import HasRoleAssignment, IsAuthenticatedWithDoubleSubmitCsrf
 from apps.common.views import FilterForSuperUserOrRoleAssignmentUserMixin
 from apps.element_media.models import MediaImage
 from apps.organizations.models import RevenueProgram
@@ -124,7 +123,7 @@ class PageViewSet(FilterForSuperUserOrRoleAssignmentUserMixin, RevisionMixin, vi
         filters.OrderingFilter,
     ]
     permission_classes = [
-        IsAuthenticated,
+        IsAuthenticatedWithDoubleSubmitCsrf,
         IsActiveSuperUser | HasRoleAssignment,
     ]
     ordering_fields = ["username", "email"]
@@ -245,7 +244,7 @@ class StyleViewSet(FilterForSuperUserOrRoleAssignmentUserMixin, RevisionMixin, v
     queryset = Style.objects.all()
     serializer_class = serializers.StyleListSerializer
     pagination_class = None
-    permission_classes = [IsAuthenticated, IsActiveSuperUser | HasRoleAssignment]
+    permission_classes = [IsAuthenticatedWithDoubleSubmitCsrf, IsActiveSuperUser | HasRoleAssignment]
     filter_backends = [django_filters.rest_framework.DjangoFilterBackend]
     filterset_class = StyleFilter
 
@@ -259,6 +258,6 @@ class StyleViewSet(FilterForSuperUserOrRoleAssignmentUserMixin, RevisionMixin, v
 class FontViewSet(viewsets.ReadOnlyModelViewSet):
     model = Font
     queryset = Font.objects.all()
-    permission_classes = [IsAuthenticated]  # anyone who is authenticated read
+    permission_classes = [IsAuthenticatedWithDoubleSubmitCsrf]  # anyone who is authenticated read
     serializer_class = serializers.FontSerializer
     pagination_class = None

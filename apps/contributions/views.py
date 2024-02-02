@@ -14,7 +14,7 @@ from django_filters.rest_framework import DjangoFilterBackend
 from rest_framework import mixins, status, viewsets
 from rest_framework.decorators import action, api_view, authentication_classes, permission_classes
 from rest_framework.exceptions import NotFound, ParseError
-from rest_framework.permissions import IsAdminUser, IsAuthenticated
+from rest_framework.permissions import IsAdminUser
 from rest_framework.request import Request
 from rest_framework.response import Response
 from rest_framework.serializers import ValidationError
@@ -25,6 +25,7 @@ from apps.api.exceptions import ApiConfigurationError
 from apps.api.permissions import (
     HasFlaggedAccessToContributionsApiResource,
     HasRoleAssignment,
+    IsAuthenticatedWithDoubleSubmitCsrf,
     IsContributor,
     IsContributorOwningContribution,
     IsHubAdmin,
@@ -63,7 +64,7 @@ UserModel = get_user_model()
 
 @create_revision()
 @api_view(["POST"])
-@permission_classes([IsAuthenticated, HasRoleAssignment | IsActiveSuperUser])
+@permission_classes([IsAuthenticatedWithDoubleSubmitCsrf, HasRoleAssignment | IsActiveSuperUser])
 def stripe_oauth(request):
     scope = request.data.get("scope")
     code = request.data.get("code")
@@ -242,14 +243,14 @@ class ContributionsViewSet(viewsets.ReadOnlyModelViewSet):
     # only superusers, users with roles, and contributors owning contributions
     # are permitted
     permission_classes = [
-        IsAuthenticated,
+        IsAuthenticatedWithDoubleSubmitCsrf,
         (
             # `IsContributorOwningContribution` needs to come before
             # any role-assignment based permission, as those assume that contributor users have had
             # their permission validated (in case of valid permission) upstream -- the role assignment
             # based permissions will not give permission to a contributor user.
             IsContributorOwningContribution
-            | (HasFlaggedAccessToContributionsApiResource & (HasRoleAssignment | IsActiveSuperUser))
+            | (HasFlaggedAccessToContributionsApiResource)
         ),
     ]
     model = Contribution
@@ -301,7 +302,11 @@ class ContributionsViewSet(viewsets.ReadOnlyModelViewSet):
         return serializers.ContributionSerializer
 
     # only superusers and hub admins have permission
-    @action(methods=["post"], detail=True, permission_classes=[IsAuthenticated, IsActiveSuperUser | IsHubAdmin])
+    @action(
+        methods=["post"],
+        detail=True,
+        permission_classes=[IsAuthenticatedWithDoubleSubmitCsrf, IsActiveSuperUser | IsHubAdmin],
+    )
     def process_flagged(self, request, pk=None):
         reject = request.data.get("reject", None)
         if reject is None:
@@ -321,7 +326,7 @@ class ContributionsViewSet(viewsets.ReadOnlyModelViewSet):
         methods=["post"],
         url_path="email-contributions",
         detail=False,
-        permission_classes=[~IsContributor, IsAuthenticated, IsAdminUser | HasRoleAssignment],
+        permission_classes=[~IsContributor, IsAuthenticatedWithDoubleSubmitCsrf, IsAdminUser | HasRoleAssignment],
     )
     def email_contributions(self, request):
         """Endpoint to send contributions as a csv file to the user request.
@@ -354,7 +359,7 @@ class ContributionsViewSet(viewsets.ReadOnlyModelViewSet):
 
 class SubscriptionsViewSet(viewsets.ViewSet):
     permission_classes = [
-        IsAuthenticated,
+        IsAuthenticatedWithDoubleSubmitCsrf,
     ]
     serializer_class = serializers.SubscriptionsSerializer
 
@@ -570,7 +575,11 @@ class SubscriptionsViewSet(viewsets.ViewSet):
 class PortalContributorsViewSet(viewsets.GenericViewSet):
     """This viewset is meant to furnish contributions data to the (new) contributor portal"""
 
-    permission_classes = [IsAuthenticated, IsContributor, UserIsRequestedContributor]
+    permission_classes = [
+        IsAuthenticatedWithDoubleSubmitCsrf,
+        IsContributor,
+        UserIsRequestedContributor,
+    ]
 
     ALLOWED_ORDERING_FIELDS = ["created", "amount"]
     ALLOWED_FILTER_FIELDS = [

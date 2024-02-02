@@ -327,7 +327,7 @@ REST_FRAMEWORK = {
         "apps.api.authentication.JWTHttpOnlyCookieAuthentication",
     ],
     "DEFAULT_PERMISSION_CLASSES": [
-        "rest_framework.permissions.IsAuthenticated",
+        "apps.api.permissions.IsAuthenticatedWithDoubleSubmitCsrf",
         "apps.api.permissions.HasRoleAssignment",
     ],
     "DEFAULT_PAGINATION_CLASS": "apps.api.pagination.ApiStandardPagination",

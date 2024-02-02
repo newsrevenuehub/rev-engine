@@ -7,7 +7,6 @@ from urllib.parse import parse_qs, urlparse
 from django.conf import settings
 from django.contrib.auth import get_user_model
 from django.core import mail
-from django.middleware import csrf
 from django.test import override_settings
 from django.utils.timezone import timedelta
 
@@ -22,7 +21,6 @@ from rest_framework_simplejwt.exceptions import TokenError
 from rest_framework_simplejwt.tokens import AccessToken
 
 from apps.api.error_messages import GENERIC_BLANK
-from apps.api.tests import RevEngineApiAbstractTestCase
 from apps.api.tokens import LONG_TOKEN, ContributorRefreshToken
 from apps.api.views import RequestContributorTokenEmailView, construct_rp_domain
 from apps.contributions.models import Contributor
@@ -505,49 +503,47 @@ class VerifyContributorTokenViewTest(APITestCase):
         self.assertEqual(response.data["detail"].code, "missing_claim")
 
 
-class AuthorizedContributorRequestsTest(RevEngineApiAbstractTestCase):
-    def setUp(self):
-        # NB: among other things, this call ensures that required feature flags are in place for
-        # the endpoint tested
-        self.set_up_domain_model()
-        self.contributions_url = reverse("contribution-list")
+@pytest.mark.django_db
+@pytest.mark.usefixtures("default_feature_flags")
+class TestAuthorizedContributorRequests:
+    url = reverse("contribution-list")
 
-    def _get_token(self, valid=True):
-        refresh = ContributorRefreshToken.for_contributor(self.contributor_user.uuid)
-        if valid:
-            return str(refresh.long_lived_access_token)
-        return str(refresh.short_lived_access_token)
+    @pytest.fixture
+    def valid_token(self, contributor_user):
+        return str(ContributorRefreshToken.for_contributor(contributor_user.uuid).long_lived_access_token)
 
-    def _make_request(self, token_present=True, type_valid=True, token_valid=True):
-        if token_present:
-            self.client.cookies["Authorization"] = (
-                self._get_token(valid=type_valid) if token_valid else "not-valid-token"
-            )
+    @pytest.fixture
+    def invalid_token(self):
+        return "not-valid-token"
 
-        self.client.cookies["csrftoken"] = csrf._get_new_csrf_token()
-        return self.client.get(self.contributions_url, data={"rp": self.org1_rp1.slug})
+    @pytest.fixture
+    def expired_token(self, contributor_user, mocker):
+        mocker.patch("apps.api.tokens.settings.CONTRIBUTOR_LONG_TOKEN_LIFETIME", timedelta(seconds=0))
+        return str(ContributorRefreshToken.for_contributor(contributor_user.uuid).long_lived_access_token)
 
-    def test_contributor_request_when_token_valid(self):
-        response = self._make_request()
-        self.assertEqual(response.status_code, 200)
+    def test_contributor_request_when_token_valid(self, api_client_with_double_csrf, annual_contribution, valid_token):
+        api_client_with_double_csrf.cookies["Authorization"] = valid_token
+        response = api_client_with_double_csrf.get(self.url, data={"rp": annual_contribution.revenue_program.slug})
+        assert response.status_code == 200
+        assert "results" in response.data
 
-    def test_contributor_request_when_token_missing(self):
-        response = self._make_request(token_present=False)
-        self.assertEqual(response.status_code, 401)
-        self.assertEqual(str(response.data["detail"]), "Authentication credentials were not provided.")
+    def test_contributor_request_when_token_missing(self, api_client_with_double_csrf, annual_contribution):
+        response = api_client_with_double_csrf.get(self.url, data={"rp": annual_contribution.revenue_program.slug})
+        assert response.status_code == 401
+        assert str(response.data["detail"]) == "Authentication credentials were not provided."
 
-    def test_contributor_request_when_token_invalid(self):
-        response = self._make_request(token_valid=False)
-        self.assertEqual(response.status_code, 401)
-        self.assertEqual(str(response.data["detail"]), "Given token not valid for any token type")
+    def test_contributor_request_when_token_invalid(
+        self, api_client_with_double_csrf, annual_contribution, invalid_token
+    ):
+        api_client_with_double_csrf.cookies["Authorization"] = invalid_token
+        response = api_client_with_double_csrf.get(self.url, data={"rp": annual_contribution.revenue_program.slug})
+        assert response.status_code == 401
+        assert response.json()["detail"] == "Given token not valid for any token type"
 
-    def test_contributor_request_when_token_invalid_type(self):
-        response = self._make_request(type_valid=False)
-        self.assertEqual(response.status_code, 401)
-        self.assertEqual(str(response.data["detail"]), "Authentication credentials were not provided.")
-
-    @override_settings(CONTRIBUTOR_LONG_TOKEN_LIFETIME=timedelta(seconds=0))
-    def test_contributor_request_when_token_expired(self):
-        response = self._make_request()
-        self.assertEqual(response.status_code, 401)
-        self.assertEqual(str(response.data["detail"]), "Given token not valid for any token type")
+    def test_contributor_request_when_token_expired(
+        self, api_client_with_double_csrf, annual_contribution, expired_token
+    ):
+        api_client_with_double_csrf.cookies["Authorization"] = expired_token
+        response = api_client_with_double_csrf.get(self.url, data={"rp": annual_contribution.revenue_program.slug})
+        assert response.status_code == 401
+        assert response.data["detail"] == "Given token not valid for any token type"

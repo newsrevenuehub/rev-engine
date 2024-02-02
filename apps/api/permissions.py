@@ -136,7 +136,7 @@ class BaseFlaggedResourceAccess(permissions.BasePermission):
         criteria. This is a known issue with Django Waffle
         (https://github.com/django-waffle/django-waffle/issues/401).
         """
-        return self.flag.is_active_for_user(request.user) or self.flag.everyone
+        return request.user and (self.flag.is_active_for_user(request.user) or self.flag.everyone)
 
     def __str__(self):
         return f"`{self.__class__.__name__}` via {self.flag.name if self.flag else '<not configured>'}"
@@ -163,3 +163,24 @@ class HasFlaggedAccessToContributionsApiResource(BaseFlaggedResourceAccess):
         self.flag = Flag.objects.filter(name=CONTRIBUTIONS_API_ENDPOINT_ACCESS_FLAG_NAME).first()
         if not self.flag:
             raise ApiConfigurationError()
+
+
+class DoubleSubmitCsrfPermission(permissions.BasePermission):
+    """
+    Permission to ensure that CSRF token in request headers is same as one in cookies (which is HTTP only in our case).
+
+    Note that this permission alone does not ensure that the CSRF tokens themselves are valid, only that they match. That logic
+    is assumed to have happened elsewhere in the request pipeline.
+    """
+
+    def has_permission(self, request, view):
+        csrf_cookie_token = request.COOKIES.get(settings.CSRF_COOKIE_NAME)
+        # note that by default the value for CSRF_HEADER_NAME is 'HTTP_X_CSRFTOKEN'. The client actually sends the header "X-CSrftoken", which
+        # django casts to "HTTP_X_CSRFTOKEN" in the request.META object.
+        csrf_header_token = request.headers.get("X-CSRFToken", None)
+        return all([csrf_cookie_token, csrf_header_token, csrf_cookie_token == csrf_header_token])
+
+
+class IsAuthenticatedWithDoubleSubmitCsrf(permissions.IsAuthenticated):
+    def has_permission(self, request, view):
+        return super().has_permission(request, view) and DoubleSubmitCsrfPermission().has_permission(request, view)

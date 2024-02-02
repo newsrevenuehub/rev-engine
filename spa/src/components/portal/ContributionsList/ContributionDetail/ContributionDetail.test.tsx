@@ -24,7 +24,8 @@ describe('ContributionDetail', () => {
       isError: false,
       isFetching: false,
       refetch: jest.fn(),
-      cancelContribution: jest.fn()
+      cancelContribution: jest.fn(),
+      updateContribution: jest.fn()
     });
 
     tree();
@@ -39,7 +40,8 @@ describe('ContributionDetail', () => {
         isError: false,
         isFetching: false,
         refetch: jest.fn(),
-        cancelContribution: jest.fn()
+        cancelContribution: jest.fn(),
+        updateContribution: jest.fn()
       });
     });
 
@@ -63,7 +65,8 @@ describe('ContributionDetail', () => {
         isError: true,
         isFetching: false,
         refetch: jest.fn(),
-        cancelContribution: jest.fn()
+        cancelContribution: jest.fn(),
+        updateContribution: jest.fn()
       });
     });
 
@@ -92,7 +95,8 @@ describe('ContributionDetail', () => {
         isError: false,
         isFetching: false,
         refetch: jest.fn(),
-        cancelContribution: jest.fn()
+        cancelContribution: jest.fn(),
+        updateContribution: jest.fn()
       });
     });
 
@@ -121,6 +125,7 @@ describe('ContributionDetail', () => {
         isError: false,
         isFetching: false,
         refetch: jest.fn(),
+        updateContribution: jest.fn(),
         cancelContribution
       });
 

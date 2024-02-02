@@ -172,6 +172,7 @@ class TestTokenObtainPairCookieView:
             assert _user["role_type"] is None
 
         assert response.cookies["Authorization"]
+        assert response.cookies["Authorization"]["httponly"]
 
     def test_post_when_invalid_password(self, org_user_with_pw, api_client):
         password = "different"
@@ -213,7 +214,7 @@ class TestTokenObtainPairCookieView:
 )
 @pytest.mark.django_db()
 @override_settings(CELERY_ALWAYS_EAGER=True)
-def test_magic_link_custom_email_template(rf, mocker, revenue_program, has_default_donation_page, client):
+def test_magic_link_custom_email_template(rf, mocker, revenue_program, has_default_donation_page):
     email = "vanilla@email.com"
 
     """This test spans two requests, first requesting magic link, then using data in the magic link to verify contributor token

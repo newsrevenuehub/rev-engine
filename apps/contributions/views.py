@@ -250,7 +250,7 @@ class ContributionsViewSet(viewsets.ReadOnlyModelViewSet):
             # their permission validated (in case of valid permission) upstream -- the role assignment
             # based permissions will not give permission to a contributor user.
             IsContributorOwningContribution
-            | (HasFlaggedAccessToContributionsApiResource)
+            | (HasFlaggedAccessToContributionsApiResource & (HasRoleAssignment | IsActiveSuperUser))
         ),
     ]
     model = Contribution

@@ -1042,6 +1042,16 @@ class TestContributionModel:
         )
         assert magic_link in text_email
 
+    def test_send_recurring_contribution_email_reminder_timestamp_override(
+        self,
+        annual_contribution,
+        mock_contributor_refresh_token,
+        synchronous_email_send_task,
+        mock_stripe_customer,
+    ):
+        annual_contribution.send_recurring_contribution_email_reminder("test-timestamp")
+        assert "Scheduled: test-timestamp" in mail.outbox[0].body
+
     @pytest_cases.parametrize(
         "revenue_program",
         (

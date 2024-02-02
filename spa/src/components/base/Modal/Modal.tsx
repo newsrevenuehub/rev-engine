@@ -6,6 +6,7 @@ import styled from 'styled-components';
 const StyledPaper = styled(Paper)`
   && {
     border-radius: 10px;
+    /* Needed to limit the modal width on smaller screens so it doesn't overflow */
     max-width: calc(100vw - 40px);
   }
 `;

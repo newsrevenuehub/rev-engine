@@ -88,6 +88,7 @@ export function usePortalContribution(contributorId: number, contributionId: num
         });
       },
       onError: (error: AxiosError) => {
+        console.error('[usePortalContribution:cancelContribution] ', error);
         enqueueSnackbar(error?.response?.data?.detail ?? 'Something went wrong. Please, try again later.', {
           persist: true,
           content: (key: string, message: string) => (

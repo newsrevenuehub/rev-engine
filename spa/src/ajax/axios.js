@@ -18,11 +18,11 @@ export default Axios;
  * second callback handles errors, so pass through
  */
 
-function getCsrfTokenFromCookie() {
+const getCsrfTokenFromCookie = () => {
   const value = `; ${document.cookie}`;
   const parts = value.split(`; ${CSRF_TOKEN_COOKIE_NAME}=`);
   if (parts.length === 2) return parts.pop().split(';').shift();
-}
+};
 
 const sendCookieCsrfAsHeader = (request) => {
   const csrfToken = getCsrfTokenFromCookie();

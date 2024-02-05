@@ -15,6 +15,7 @@ const mockContribution: PortalContributionDetail = {
   is_modifiable: false,
   last_payment_date: new Date().toISOString(),
   next_payment_date: new Date().toISOString(),
+  stripe_account_id: 'mock-stripe-account-id',
   paid_fees: false,
   payments: [],
   id: 1,

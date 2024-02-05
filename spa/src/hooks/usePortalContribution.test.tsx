@@ -196,29 +196,22 @@ describe('usePortalContribution', () => {
       );
     });
 
-    // TODO: Issue with FakeTimers
-    // eslint-disable-next-line jest/no-disabled-tests
-    it.skip('invalidates the contribution list and detail query', async () => {
-      jest.useFakeTimers();
+    it('invalidates the contribution list and detail query', async () => {
       const { result, waitFor } = hook(123, 1);
 
-      await waitFor(() => expect(axiosMock.history.get.length).toBe(1), { timeout: 15000 });
-
+      await waitFor(() => expect(axiosMock.history.get.length).toBe(1));
       expect(invalidateQueries).not.toHaveBeenCalled();
-
+      jest.useFakeTimers();
       await result.current.cancelContribution();
       await waitFor(() => expect(axiosMock.history.delete.length).toBe(1));
-      expect(invalidateQueries).toHaveBeenCalledWith(['portalContribution-123-1']);
+      expect(invalidateQueries).toHaveBeenCalledWith(['portalContribution', 123, 1]);
       expect(invalidateQueries).toHaveBeenCalledTimes(1);
-
       act(() => {
         jest.runAllTimers();
       });
-
-      await waitFor(() => expect(invalidateQueries).toHaveBeenCalledTimes(3), { timeout: 15000 });
+      await waitFor(() => expect(invalidateQueries).toHaveBeenCalledTimes(3));
       expect(invalidateQueries).toHaveBeenCalledWith(['portalContributionList']);
-      expect(invalidateQueries).toHaveBeenLastCalledWith(['portalContribution-123-1']);
-
+      expect(invalidateQueries).toHaveBeenLastCalledWith(['portalContribution', 123, 1]);
       jest.useRealTimers();
     });
   });

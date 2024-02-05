@@ -85,7 +85,7 @@ export function usePortalContribution(contributorId: number, contributionId: num
     {
       onSuccess: () => {
         // Invalidate contribution details for `is_cancelable` to be updated.
-        queryClient.invalidateQueries([`portalContribution-${contributorId}-${contributionId}`]);
+        queryClient.invalidateQueries(['portalContribution', contributorId, contributionId]);
 
         setTimeout(() => {
           // Refresh the contribution details and list after 15 seconds to allow the backend / stripe to process the cancellation.

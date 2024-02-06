@@ -2,14 +2,11 @@ import datetime
 import json
 import os
 import re
-from dataclasses import asdict
 from unittest.mock import Mock, patch
-from urllib.parse import parse_qs, quote_plus, urlparse
+from urllib.parse import parse_qs, urlparse
 
 from django.conf import settings
 from django.core import mail
-from django.template.loader import render_to_string
-from django.utils.safestring import mark_safe
 
 import pytest
 import pytest_cases
@@ -17,7 +14,6 @@ import stripe
 from addict import Dict as AttrDict
 from bs4 import BeautifulSoup
 
-from apps.api.views import construct_rp_domain
 from apps.common.models import IndexedTimeStampedModel
 from apps.contributions.models import (
     Contribution,
@@ -26,7 +22,6 @@ from apps.contributions.models import (
     ContributionStatus,
     ContributionStatusError,
     Contributor,
-    ContributorRefreshToken,
     Payment,
     ensure_stripe_event,
     logger,
@@ -136,6 +131,14 @@ def contribution_with_provider_payment_method_id(one_time_contribution):
     one_time_contribution.provider_payment_method_id = "something"
     one_time_contribution.save()
     return one_time_contribution
+
+
+SHORT_LIVED_ACCESS_TOKEN = "short-lived"
+
+
+class MockForContributorReturn:
+    def __init__(self, *args, **kwargs):
+        self.short_lived_access_token = SHORT_LIVED_ACCESS_TOKEN
 
 
 @pytest.mark.django_db
@@ -492,7 +495,9 @@ class TestContributionModel:
         ),
     )
     @pytest.mark.parametrize("send_receipt_email_via_nre", (True, False))
-    def test_handle_thank_you_email(self, contribution, send_receipt_email_via_nre, mocker, settings):
+    def test_handle_thank_you_email(
+        self, contribution, send_receipt_email_via_nre, mocker, settings, mock_stripe_customer
+    ):
         """Show that when org configured to have NRE send thank you emails, send_templated_email
         gets called with expected args.
         """
@@ -502,8 +507,7 @@ class TestContributionModel:
         ).send_receipt_email_via_nre = send_receipt_email_via_nre
         org.save()
         send_thank_you_email_spy = mocker.spy(send_thank_you_email, "delay")
-        customer_name = "Fake Customer Name"
-        mocker.patch("stripe.Customer.retrieve", return_value=AttrDict({"name": customer_name}))
+
         mocker.patch("apps.contributions.models.Contributor.create_magic_link", return_value="fake_magic_link")
         contribution.handle_thank_you_email()
         expected_data = make_send_thank_you_email_data(contribution)
@@ -932,68 +936,21 @@ class TestContributionModel:
             settings.CURRENCIES,
         )
 
-    @pytest.mark.parametrize(
-        "interval,expect_success",
-        (
-            (ContributionInterval.ONE_TIME, False),
-            (ContributionInterval.MONTHLY, True),
-            (ContributionInterval.YEARLY, True),
-        ),
-    )
-    def test_send_recurring_contribution_email_reminder(self, interval, expect_success, monkeypatch, settings):
-        contribution = ContributionFactory(interval=interval)
-        next_charge_date = datetime.datetime.now()
-        mock_log_warning = Mock()
-        mock_send_templated_email = Mock(wraps=send_templated_email.delay)
-        token = "token"
-
-        class MockForContributorReturn:
-            def __init__(self, *args, **kwargs):
-                self.short_lived_access_token = token
-
-        monkeypatch.setattr(logger, "warning", mock_log_warning)
-        monkeypatch.setattr(send_templated_email, "delay", mock_send_templated_email)
-        monkeypatch.setattr(
-            ContributorRefreshToken, "for_contributor", lambda *args, **kwargs: MockForContributorReturn()
-        )
+    @pytest.fixture
+    def synchronous_email_send_task(self, settings):
         settings.EMAIL_BACKEND = "django.core.mail.backends.locmem.EmailBackend"
         settings.CELERY_ALWAYS_EAGER = True
-        contribution.send_recurring_contribution_email_reminder(next_charge_date)
-        if expect_success:
-            magic_link = mark_safe(
-                f"https://{construct_rp_domain(contribution.donation_page.revenue_program.slug)}/{settings.CONTRIBUTOR_VERIFY_URL}"
-                f"?token={token}&email={quote_plus(contribution.contributor.email)}"
-            )
-            mock_log_warning.assert_not_called()
-            mock_send_templated_email.assert_called_once_with(
-                contribution.contributor.email,
-                f"Reminder: {contribution.donation_page.revenue_program.name} scheduled contribution",
-                render_to_string(
-                    "recurring-contribution-email-reminder.txt",
-                    (
-                        data := {
-                            "rp_name": contribution.donation_page.revenue_program.name,
-                            "contribution_date": next_charge_date.strftime("%m/%d/%Y"),
-                            "contribution_amount": contribution.formatted_amount,
-                            "contribution_interval_display_value": contribution.interval,
-                            "non_profit": contribution.donation_page.revenue_program.non_profit,
-                            "contributor_email": contribution.contributor.email,
-                            "tax_id": contribution.donation_page.revenue_program.tax_id,
-                            "magic_link": magic_link,
-                            "fiscal_status": contribution.donation_page.revenue_program.fiscal_status,
-                            "fiscal_sponsor_name": contribution.donation_page.revenue_program.fiscal_sponsor_name,
-                            "style": asdict(contribution.donation_page.revenue_program.transactional_email_style),
-                        }
-                    ),
-                ),
-                render_to_string("recurring-contribution-email-reminder.html", data),
-            )
-            assert len(mail.outbox) == 1
-        else:
-            mock_log_warning.assert_called_once_with(
-                "`Contribution.send_recurring_contribution_email_reminder` was called on an instance (ID: %s) whose interval is one-time",
-                contribution.id,
-            )
+
+    @pytest.fixture
+    def mock_contributor_refresh_token(self, mocker):
+        mocker.patch(
+            "apps.api.tokens.ContributorRefreshToken.for_contributor",
+            side_effect=lambda *args, **kwargs: MockForContributorReturn(),
+        )
+
+    @pytest.fixture
+    def mock_stripe_customer(self, mocker):
+        mocker.patch("stripe.Customer.retrieve", return_value=AttrDict({"name": "Fake Customer Name"}))
 
     @pytest_cases.parametrize(
         "revenue_program",
@@ -1004,69 +961,96 @@ class TestContributionModel:
         ),
     )
     @pytest.mark.parametrize("tax_id", (None, "123456789"))
-    def test_send_recurring_contribution_email_reminder_email_text(
-        self, revenue_program, tax_id, monkeypatch, settings
+    @pytest.mark.parametrize(
+        "email_method_name",
+        (
+            "send_recurring_contribution_email_reminder",
+            "send_recurring_contribution_canceled_email",
+            "send_recurring_contribution_payment_updated_email",
+        ),
+    )
+    def test_send_recurring_contribution_emails_rendered_text(
+        self,
+        revenue_program,
+        tax_id,
+        email_method_name,
+        annual_contribution,
+        mock_contributor_refresh_token,
+        synchronous_email_send_task,
+        mock_stripe_customer,
+        mocker,
     ):
-        contribution = ContributionFactory(interval=ContributionInterval.YEARLY)
         revenue_program.tax_id = tax_id
         revenue_program.save()
-        contribution.donation_page.revenue_program = revenue_program
-        contribution.donation_page.save()
-        next_charge_date = datetime.datetime.now()
-        mock_send_templated_email = Mock(wraps=send_templated_email.delay)
-        token = "token"
+        annual_contribution.donation_page.revenue_program = revenue_program
+        annual_contribution.donation_page.save()
+        mocker.spy(send_templated_email, "delay")
+        now = datetime.datetime.now()
 
-        class MockForContributorReturn:
-            def __init__(self, *args, **kwargs):
-                self.short_lived_access_token = token
-
-        monkeypatch.setattr(send_templated_email, "delay", mock_send_templated_email)
-        monkeypatch.setattr(
-            ContributorRefreshToken, "for_contributor", lambda *args, **kwargs: MockForContributorReturn()
-        )
-        settings.EMAIL_BACKEND = "django.core.mail.backends.locmem.EmailBackend"
-        settings.CELERY_ALWAYS_EAGER = True
-        contribution.send_recurring_contribution_email_reminder(next_charge_date)
-        magic_link = mark_safe(
-            f"https://{construct_rp_domain(contribution.donation_page.revenue_program.slug)}/{settings.CONTRIBUTOR_VERIFY_URL}"
-            f"?token={token}&email={quote_plus(contribution.contributor.email)}"
-        )
-        assert len(mail.outbox) == 1
         email_expectations = [
-            f"Scheduled: {next_charge_date.strftime('%m/%d/%Y')}",
-            f"Email: {contribution.contributor.email}",
-            f"Amount Contributed: {contribution.formatted_amount}/{contribution.interval}",
+            f"Email: {annual_contribution.contributor.email}",
+            f"Amount Contributed: {annual_contribution.formatted_amount}/{annual_contribution.interval}",
         ]
 
-        if revenue_program.fiscal_status == FiscalStatusChoices.FISCALLY_SPONSORED:
-            email_expectations.extend(
-                [
-                    "This receipt may be used for tax purposes.",
-                    f"All contributions or gifts to {contribution.donation_page.revenue_program.name} are tax deductible through our fiscal sponsor {contribution.donation_page.revenue_program.fiscal_sponsor_name}.",
-                    f"{contribution.donation_page.revenue_program.fiscal_sponsor_name}'s tax ID is {tax_id}"
-                    if tax_id
-                    else "",
-                ]
-            )
-        elif revenue_program.fiscal_status == FiscalStatusChoices.NONPROFIT:
-            email_expectations.extend(
-                [
-                    "This receipt may be used for tax purposes.",
-                    f"{contribution.donation_page.revenue_program.name} is a 501(c)(3) nonprofit organization",
-                    f"with a Federal Tax ID #{tax_id}" if tax_id else "",
-                ]
-            )
-        else:
+        if email_method_name == "send_recurring_contribution_email_reminder":
             email_expectations.append(
-                f"Contributions to {contribution.donation_page.revenue_program.name} are not deductible as charitable donations."
+                f"Scheduled: {now.strftime('%m/%d/%Y')}",
             )
+        if email_method_name == "send_recurring_contribution_canceled_email":
+            email_expectations.append(
+                f"Date Canceled: {now.strftime('%m/%d/%Y')}",
+            )
+
+        if revenue_program.non_profit:
+            if email_method_name != "send_recurring_contribution_canceled_email":
+                email_expectations.append("This receipt may be used for tax purposes.")
+
+                if revenue_program.fiscal_status == FiscalStatusChoices.FISCALLY_SPONSORED:
+                    email_expectations.append(
+                        f"All contributions or gifts to { revenue_program.name } are tax deductible through our fiscal sponsor {revenue_program.fiscal_sponsor_name}."
+                    )
+                    if tax_id:
+                        email_expectations.append(f"{revenue_program.fiscal_sponsor_name}'s tax ID is {tax_id}")
+
+                if revenue_program.fiscal_status == FiscalStatusChoices.NONPROFIT:
+                    email_expectations.append(
+                        f"{annual_contribution.donation_page.revenue_program.name} is a 501(c)(3) nonprofit organization"
+                    )
+                    if tax_id:
+                        email_expectations.append(f"with a Federal Tax ID #{tax_id}")
+
+        if not revenue_program.non_profit and email_method_name != "send_recurring_contribution_canceled_email":
+            email_expectations.append(
+                f"Contributions to {annual_contribution.donation_page.revenue_program.name} are not deductible as charitable donations."
+            )
+
+        getattr(annual_contribution, email_method_name)()
+
+        assert len(mail.outbox) == 1
+        soup_text = (soup := BeautifulSoup(mail.outbox[0].alternatives[0][0], "html.parser")).get_text(
+            separator=" ", strip=True
+        )
+        text_email = mail.outbox[0].body
         for x in email_expectations:
-            assert x in mail.outbox[0].body
-            soup = BeautifulSoup(mail.outbox[0].alternatives[0][0], "html.parser")
-            as_string = " ".join([x.replace("\xa0", " ").strip() for x in soup.get_text().splitlines() if x])
-            assert x in as_string
-        assert "Manage contributions here" in soup.find("a", href=magic_link).text
-        assert magic_link in mail.outbox[0].body
+            assert x in text_email
+            assert x in soup_text
+
+        assert soup.find(
+            "a",
+            href=(magic_link := Contributor.create_magic_link(annual_contribution)),
+            text=re.compile("Manage contributions here"),
+        )
+        assert magic_link in text_email
+
+    def test_send_recurring_contribution_email_reminder_timestamp_override(
+        self,
+        annual_contribution,
+        mock_contributor_refresh_token,
+        synchronous_email_send_task,
+        mock_stripe_customer,
+    ):
+        annual_contribution.send_recurring_contribution_email_reminder("test-timestamp")
+        assert "Scheduled: test-timestamp" in mail.outbox[0].body
 
     @pytest_cases.parametrize(
         "revenue_program",
@@ -1080,11 +1064,24 @@ class TestContributionModel:
         "has_default_donation_page",
         (False, True),
     )
-    def test_send_recurring_contribution_reminder_email_styles(
-        self, revenue_program, has_default_donation_page, monkeypatch, settings
+    @pytest.mark.parametrize(
+        "email_method_name",
+        (
+            "send_recurring_contribution_email_reminder",
+            "send_recurring_contribution_payment_updated_email",
+        ),
+    )
+    def test_send_recurring_contribution_emails_rendered_styles(
+        self,
+        has_default_donation_page,
+        revenue_program,
+        email_method_name,
+        synchronous_email_send_task,
+        mock_contributor_refresh_token,
+        mock_stripe_customer,
+        annual_contribution,
+        settings,
     ):
-        with patch("apps.contributions.models.Contribution.fetch_stripe_payment_method", return_value=None):
-            contribution = ContributionFactory(interval=ContributionInterval.YEARLY)
         if has_default_donation_page:
             style = StyleFactory()
             style.styles = style.styles | {
@@ -1094,31 +1091,16 @@ class TestContributionModel:
                 },
                 "font": {"heading": "mock-header-font", "body": "mock-body-font"},
             }
-            page = DonationPageFactory(
-                revenue_program=revenue_program,
-                styles=style,
-                header_logo="mock-logo",
-                header_logo_alt_text="Mock-Alt-Text",
-            )
-            revenue_program.default_donation_page = page
-            revenue_program.save()
-        contribution.donation_page.revenue_program = revenue_program
-        contribution.donation_page.save()
-        next_charge_date = datetime.datetime.now()
-        mock_send_templated_email = Mock(wraps=send_templated_email.delay)
-        token = "token"
+            annual_contribution.donation_page.styles = style
+            annual_contribution.donation_page.header_logo = "mock-logo"
+            annual_contribution.donation_page.header_logo_alt_text = "Mock-Alt-Text"
+            annual_contribution.donation_page.revenue_program = revenue_program
+            annual_contribution.donation_page.save()
+            annual_contribution.donation_page.revenue_program.default_donation_page = annual_contribution.donation_page
+            annual_contribution.donation_page.revenue_program.save()
 
-        class MockForContributorReturn:
-            def __init__(self, *args, **kwargs):
-                self.short_lived_access_token = token
+        getattr(annual_contribution, email_method_name)()
 
-        monkeypatch.setattr(send_templated_email, "delay", mock_send_templated_email)
-        monkeypatch.setattr(
-            ContributorRefreshToken, "for_contributor", lambda *args, **kwargs: MockForContributorReturn()
-        )
-        settings.EMAIL_BACKEND = "django.core.mail.backends.locmem.EmailBackend"
-        settings.CELERY_ALWAYS_EAGER = True
-        contribution.send_recurring_contribution_email_reminder(next_charge_date)
         assert len(mail.outbox) == 1
 
         default_logo = os.path.join(settings.SITE_URL, "static", "nre-logo-yellow.png")
@@ -1128,7 +1110,10 @@ class TestContributionModel:
         custom_header_background = "background: #mock-header-background !important"
         custom_button_background = "background: #mock-button-color !important"
 
-        if revenue_program.organization.plan.name == FreePlan.name or not has_default_donation_page:
+        if (
+            annual_contribution.donation_page.revenue_program.organization.plan.name == FreePlan.name
+            or not has_default_donation_page
+        ):
             expect_present = (default_logo, default_alt_text)
             expect_missing = (custom_logo, custom_alt_text, custom_button_background, custom_header_background)
 
@@ -1141,6 +1126,72 @@ class TestContributionModel:
             assert x in mail.outbox[0].alternatives[0][0]
         for x in expect_missing:
             assert x not in mail.outbox[0].alternatives[0][0]
+
+    @pytest.mark.parametrize(
+        "email_method_name",
+        (
+            "send_recurring_contribution_email_reminder",
+            "send_recurring_contribution_payment_updated_email",
+            "send_recurring_contribution_canceled_email",
+        ),
+    )
+    def test_send_recurring_contribution_emails_skip_onetime(self, email_method_name, one_time_contribution, mocker):
+        logger_spy = mocker.spy(logger, "error")
+        send_email_spy = mocker.spy(send_templated_email, "delay")
+
+        getattr(one_time_contribution, email_method_name)()
+
+        logger_spy.assert_called_once_with(
+            "Called on an instance (ID: %s) whose interval is one-time",
+            one_time_contribution.id,
+        )
+        send_email_spy.assert_not_called()
+
+    @pytest.mark.parametrize(
+        "email_method_name",
+        (
+            "send_recurring_contribution_email_reminder",
+            "send_recurring_contribution_payment_updated_email",
+            "send_recurring_contribution_canceled_email",
+        ),
+    )
+    def test_send_recurring_contribution_emails_skip_when_no_provider_customer_id(
+        self, email_method_name, annual_contribution, mocker
+    ):
+        annual_contribution.provider_customer_id = None
+        annual_contribution.save()
+        logger_spy = mocker.spy(logger, "error")
+        send_email_spy = mocker.spy(send_templated_email, "delay")
+        mock_stripe = mocker.patch("stripe.Customer.retrieve", side_effect=stripe.error.StripeError())
+        getattr(annual_contribution, email_method_name)()
+        logger_spy.assert_called_once_with(
+            "No Stripe customer ID for contribution with ID %s",
+            annual_contribution.id,
+        )
+        mock_stripe.assert_not_called()
+        send_email_spy.assert_not_called()
+
+    @pytest.mark.parametrize(
+        "email_method_name",
+        (
+            "send_recurring_contribution_email_reminder",
+            "send_recurring_contribution_payment_updated_email",
+            "send_recurring_contribution_canceled_email",
+        ),
+    )
+    def test_send_recurring_contribution_emails_when_error_retrieving_stripe_customer(
+        self, email_method_name, annual_contribution, mocker
+    ):
+        mocker.patch("stripe.Customer.retrieve", side_effect=stripe.error.StripeError())
+        logger_spy = mocker.spy(logger, "exception")
+        send_email_spy = mocker.spy(send_templated_email, "delay")
+
+        getattr(annual_contribution, email_method_name)()
+        logger_spy.assert_called_once_with(
+            "Something went wrong retrieving Stripe customer for contribution with ID %s",
+            annual_contribution.id,
+        )
+        send_email_spy.assert_not_called()
 
     @pytest_cases.parametrize(
         "user",

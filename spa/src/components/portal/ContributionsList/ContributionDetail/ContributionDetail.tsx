@@ -42,12 +42,15 @@ export function ContributionDetail({ domAnchor, contributionId, contributorId }:
   async function handlePaymentMethodUpdate(method: StripePaymentMethod) {
     try {
       await updateContribution({ provider_payment_method_id: method.id });
-      enqueueSnackbar('Your billing details have been successfully updated. Changes may not appear here immediately.', {
-        persist: true,
-        content: (key: string, message: string) => (
-          <SystemNotification id={key} message={message} header="Billing Updated!" type="success" />
-        )
-      });
+      enqueueSnackbar(
+        'Your billing details have been successfully updated. Changes may not be reflected in portal immediately.',
+        {
+          persist: true,
+          content: (key: string, message: string) => (
+            <SystemNotification id={key} message={message} header="Billing Updated!" type="success" />
+          )
+        }
+      );
     } catch {
       // Do nothing-- usePortalContribution will show an error message.
     }

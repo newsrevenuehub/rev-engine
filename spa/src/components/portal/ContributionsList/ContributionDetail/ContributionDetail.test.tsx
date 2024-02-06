@@ -204,7 +204,7 @@ describe('ContributionDetail', () => {
           await waitFor(() => expect(enqueueSnackbar).toBeCalled());
           expect(enqueueSnackbar.mock.calls).toEqual([
             [
-              'Your billing details have been successfully updated. Changes may not appear here immediately.',
+              'Your billing details have been successfully updated. Changes may not be reflected in portal immediately.',
               expect.objectContaining({ persist: true })
             ]
           ]);

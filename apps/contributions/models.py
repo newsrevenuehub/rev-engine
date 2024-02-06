@@ -558,7 +558,9 @@ class Contribution(IndexedTimeStampedModel):
                 self.id,
             )
 
-    def send_recurring_contribution_change_email(self, subject_line: str, template_name: str) -> None:
+    def send_recurring_contribution_change_email(
+        self, subject_line: str, template_name: str, timestamp: str = None
+    ) -> None:
         """Send an email related to a change to a recurring contribution (cancellation, payment method update, etc.) Logic here is shared among several email templates."""
         if self.interval == ContributionInterval.ONE_TIME:
             logger.error(
@@ -595,7 +597,7 @@ class Contribution(IndexedTimeStampedModel):
             "rp_name": self.donation_page.revenue_program.name,
             "style": asdict(self.donation_page.revenue_program.transactional_email_style),
             "tax_id": self.donation_page.revenue_program.tax_id,
-            "timestamp": datetime.datetime.today().strftime("%m/%d/%Y"),
+            "timestamp": timestamp if timestamp else datetime.datetime.today().strftime("%m/%d/%Y"),
         }
 
         # Almost all RPs should have a default page set, but it's possible one isn't.
@@ -618,10 +620,11 @@ class Contribution(IndexedTimeStampedModel):
             "New change to your contribution", "recurring-contribution-payment-updated"
         )
 
-    def send_recurring_contribution_email_reminder(self) -> None:
+    def send_recurring_contribution_email_reminder(self, next_charge_date: datetime.date = None) -> None:
         self.send_recurring_contribution_change_email(
             f"Reminder: {self.donation_page.revenue_program.name} scheduled contribution",
             "recurring-contribution-email-reminder",
+            next_charge_date,
         )
 
     @property

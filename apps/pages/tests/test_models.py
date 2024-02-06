@@ -142,10 +142,24 @@ class TestDonationPage:
             "foreign keys: 'Contribution.donation_page'."
         )
 
-    def test_page_url(self):
+    @pytest.mark.parametrize(
+        "site_url,root",
+        [
+            # Real-life examples
+            ("https://engine.fundjournalism.org", "fundjournalism.org"),
+            ("https://engine.revengine-staging.org", "revengine-staging.org"),
+            ("https://dev-4220.revengine-review.org", "revengine-review.org"),
+            # Edge cases
+            ("https://fundjournalism.org", "fundjournalism.org"),
+            ("engine.fundjournalism.org", "fundjournalism.org"),
+            ("fundjournalism.org", "fundjournalism.org"),
+        ],
+    )
+    def test_page_url(self, site_url, root, settings):
+        settings.SITE_URL = site_url
         revenue_program = RevenueProgramFactory()
         page = DonationPageFactory(revenue_program=revenue_program)
-        assert page.page_url == f"https://{revenue_program.slug}.example.com/{page.slug}"
+        assert page.page_url == f"https://{revenue_program.slug}.{root}/{page.slug}"
 
     @pytest_cases.parametrize(
         "page,value_from_db,expected",

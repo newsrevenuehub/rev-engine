@@ -1721,7 +1721,7 @@ class TestContributionModel:
         (
             (None, ""),
             ({}, ""),
-            ({"type": "card", "card": {"exp_month": 12, "exp_year": 2022}}, "12/2022"),
+            ({"type": "card", "card": {"last4": (last_4 := "1234")}}, last_4),
         ),
     )
     def test_card_last_4(self, payment_data, expected):

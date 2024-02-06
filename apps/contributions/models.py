@@ -24,7 +24,11 @@ from apps.api.tokens import ContributorRefreshToken
 from apps.common.models import IndexedTimeStampedModel
 from apps.contributions.choices import BadActorScores, ContributionInterval, ContributionStatus
 from apps.contributions.types import StripeEventData, StripePiAsPortalContribution
-from apps.emails.tasks import make_send_thank_you_email_data, send_thank_you_email
+from apps.emails.tasks import (
+    make_send_thank_you_email_data,
+    send_templated_email,
+    send_thank_you_email,
+)
 from apps.organizations.models import RevenueProgram
 from apps.users.choices import Roles
 from apps.users.models import RoleAssignment
@@ -554,41 +558,73 @@ class Contribution(IndexedTimeStampedModel):
                 self.id,
             )
 
-    def send_recurring_contribution_email_reminder(self, next_charge_date: datetime.date) -> None:
-        # vs. circular import
-        from apps.api.views import construct_rp_domain
-        from apps.emails.tasks import send_templated_email
-
+    def send_recurring_contribution_change_email(
+        self, subject_line: str, template_name: str, timestamp: str = None
+    ) -> None:
+        """Send an email related to a change to a recurring contribution (cancellation, payment method update, etc.) Logic here is shared among several email templates."""
         if self.interval == ContributionInterval.ONE_TIME:
-            logger.warning(
-                "`Contribution.send_recurring_contribution_email_reminder` was called on an instance (ID: %s) whose interval is one-time",
+            logger.error(
+                "Called on an instance (ID: %s) whose interval is one-time",
                 self.id,
             )
             return
-        token = str(ContributorRefreshToken.for_contributor(self.contributor.uuid).short_lived_access_token)
+
+        if not self.provider_customer_id:
+            logger.error("No Stripe customer ID for contribution with ID %s", self.id)
+            return
+        try:
+            customer = stripe.Customer.retrieve(
+                self.provider_customer_id,
+                stripe_account=self.donation_page.revenue_program.payment_provider.stripe_account_id,
+            )
+        except StripeError:
+            logger.exception(
+                "Something went wrong retrieving Stripe customer for contribution with ID %s",
+                self.id,
+            )
+            return
+
         data = {
-            "rp_name": self.donation_page.revenue_program.name,
-            # nb, we have to send this as pre-formatted because this data will be serialized
-            # when sent to the Celery worker.
-            "contribution_date": next_charge_date.strftime("%m/%d/%Y"),
             "contribution_amount": self.formatted_amount,
             "contribution_interval_display_value": self.interval,
-            "non_profit": self.donation_page.revenue_program.non_profit,
             "contributor_email": self.contributor.email,
-            "tax_id": self.donation_page.revenue_program.tax_id,
-            "fiscal_status": self.donation_page.revenue_program.fiscal_status,
+            "contributor_name": customer.name,
+            "copyright_year": datetime.datetime.now().year,
             "fiscal_sponsor_name": self.donation_page.revenue_program.fiscal_sponsor_name,
-            "magic_link": mark_safe(
-                f"https://{construct_rp_domain(self.donation_page.revenue_program.slug)}/{settings.CONTRIBUTOR_VERIFY_URL}"
-                f"?token={token}&email={quote_plus(self.contributor.email)}"
-            ),
+            "fiscal_status": self.donation_page.revenue_program.fiscal_status,
+            "magic_link": Contributor.create_magic_link(self),
+            "non_profit": self.donation_page.revenue_program.non_profit,
+            "rp_name": self.donation_page.revenue_program.name,
             "style": asdict(self.donation_page.revenue_program.transactional_email_style),
+            "tax_id": self.donation_page.revenue_program.tax_id,
+            "timestamp": timestamp if timestamp else datetime.datetime.today().strftime("%m/%d/%Y"),
         }
+
+        # Almost all RPs should have a default page set, but it's possible one isn't.
+
+        if self.donation_page.revenue_program.default_donation_page:
+            data["default_contribution_page_url"] = self.donation_page.revenue_program.default_donation_page.page_url
+
         send_templated_email.delay(
             self.contributor.email,
+            subject_line,
+            render_to_string(f"{template_name}.txt", data),
+            render_to_string(f"{template_name}.html", data),
+        )
+
+    def send_recurring_contribution_canceled_email(self) -> None:
+        self.send_recurring_contribution_change_email("Canceled contribution", "recurring-contribution-canceled")
+
+    def send_recurring_contribution_payment_updated_email(self) -> None:
+        self.send_recurring_contribution_change_email(
+            "New change to your contribution", "recurring-contribution-payment-updated"
+        )
+
+    def send_recurring_contribution_email_reminder(self, next_charge_date: datetime.date = None) -> None:
+        self.send_recurring_contribution_change_email(
             f"Reminder: {self.donation_page.revenue_program.name} scheduled contribution",
-            render_to_string("recurring-contribution-email-reminder.txt", data),
-            render_to_string("recurring-contribution-email-reminder.html", data),
+            "recurring-contribution-email-reminder",
+            next_charge_date,
         )
 
     @property

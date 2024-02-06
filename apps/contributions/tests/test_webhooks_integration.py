@@ -9,6 +9,7 @@ Note that this is not a perfect integration test. Here, unlike in prod, we execu
 Tests are grouped by the type of webhook they are testing. For example, all tests for the `payment_intent_succeeded` webhooks
 are grouped together in the `TestPaymentIntentSucceeded` class.
 """
+
 import json
 from datetime import datetime, timedelta
 
@@ -519,9 +520,11 @@ class TestInvoicePaymentSucceeded:
                 "interval": ContributionInterval.YEARLY,
                 "status": ContributionStatus.PROCESSING if is_first_payment else ContributionStatus.PAID,
                 "provider_subscription_id": pi.invoice.subscription,
-                "last_payment_date": None
-                if is_first_payment
-                else datetime.fromtimestamp(balance_transaction.created) - timedelta(days=365),
+                "last_payment_date": (
+                    None
+                    if is_first_payment
+                    else datetime.fromtimestamp(balance_transaction.created) - timedelta(days=365)
+                ),
                 "provider_payment_id": pi.id if is_first_payment else "some-other-id",
                 "provider_payment_method_id": None,
                 "provider_payment_method_details": None,

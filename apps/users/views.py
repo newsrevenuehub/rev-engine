@@ -261,9 +261,11 @@ class UserViewset(
             validate_password(password, temp_user)
         except DjangoValidationError as exc:
             safe_messages = [
-                message
-                if message in PASSWORD_VALIDATION_EXPECTED_MESSAGES
-                else PASSWORD_UNEXPECTED_VALIDATION_MESSAGE_SUBSTITUTE
+                (
+                    message
+                    if message in PASSWORD_VALIDATION_EXPECTED_MESSAGES
+                    else PASSWORD_UNEXPECTED_VALIDATION_MESSAGE_SUBSTITUTE
+                )
                 for message in exc.messages
             ]
             raise ValidationError(detail={"password": safe_messages})

@@ -72,9 +72,9 @@ class TestMakeSendThankYouEmailData:
         expected = SendContributionEmailData(
             contribution_amount=contribution.formatted_amount,
             timestamp=convert_to_timezone_formatted(contribution.created, "America/New_York"),
-            contribution_interval_display_value=contribution.interval
-            if contribution.interval != ContributionInterval.ONE_TIME
-            else "",
+            contribution_interval_display_value=(
+                contribution.interval if contribution.interval != ContributionInterval.ONE_TIME else ""
+            ),
             contribution_interval=contribution.interval,
             contributor_email=contribution.contributor.email,
             contributor_name=mock_fetch_customer.return_value.name,

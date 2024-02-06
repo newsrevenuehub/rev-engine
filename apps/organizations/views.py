@@ -376,9 +376,7 @@ def handle_stripe_account_link(request, rp_pk):
     reason = (
         "past_due"
         if "past_due" in raw_reason
-        else "pending_verification"
-        if "pending_verification" in raw_reason
-        else "unknown"
+        else "pending_verification" if "pending_verification" in raw_reason else "unknown"
     )
     data = {"requiresVerification": True, "reason": reason, "stripeConnectStarted": account["details_submitted"]}
     if reason == "past_due":

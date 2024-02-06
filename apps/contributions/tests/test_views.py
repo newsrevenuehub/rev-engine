@@ -1891,6 +1891,24 @@ class TestPortalContributorsViewSet:
             mock_pm_attach.assert_not_called()
             mock_update_sub.assert_not_called()
 
+    def test_contribution_detail_patch_when_not_own_contribution(
+        self, api_client, portal_contributor_with_multiple_contributions
+    ):
+        contributor = portal_contributor_with_multiple_contributions[0]
+        not_mine = ContributionFactory()
+        api_client.force_authenticate(contributor)
+        response = api_client.patch(
+            reverse(
+                "portal-contributor-contribution-detail",
+                args=(
+                    contributor.id,
+                    not_mine.id,
+                ),
+            )
+        )
+        assert response.status_code == status.HTTP_404_NOT_FOUND
+        assert response.json() == {"detail": "Contribution not found"}
+
     @pytest.fixture
     def patch_data_setting_pm_id_to_empty_string(self):
         return {"provider_payment_method_id": ""}

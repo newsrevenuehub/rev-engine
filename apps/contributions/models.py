@@ -1037,18 +1037,26 @@ class Contribution(IndexedTimeStampedModel):
             raise ValueError("Cannot update payment method for contribution without a subscription ID")
 
         try:
-            logger.info(task := "attaching payment method to customer")
+            logger.info(
+                "attaching payment method %s to customer %s",
+                provider_payment_method_id,
+                cust_id,
+            )
             stripe.PaymentMethod.attach(
                 provider_payment_method_id, customer=cust_id, stripe_account=self.stripe_account_id
             )
-            logger.info(task := "updating subscription with new payment method")
+
+            logger.info(
+                "updating Stripe subscription %s's default payment method to %s",
+                sub_id,
+                provider_payment_method_id,
+            )
             stripe.Subscription.modify(
                 sub_id, default_payment_method=provider_payment_method_id, stripe_account=self.stripe_account_id
             )
         except StripeError:
             logger.exception(
-                "Encountered a Stripe error while %s for contribution with ID %s",
-                task,
+                "Encountered a Stripe error while trying to update payment method for subscription on contribution %s",
                 self.id,
             )
             raise

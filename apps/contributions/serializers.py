@@ -912,16 +912,17 @@ class PortalContributionDetailSerializer(PortalContributionBaseSerializer):
         read_only_fields = PORTAL_CONTRIBUTION_DETAIL_SERIALIZER_DB_FIELDS
 
     def update(self, instance, validated_data) -> Contribution:
-        provider_payment_method_id = validated_data.get("provider_payment_method_id")
-        if provider_payment_method_id:
-            instance.update_payment_method_for_subscription(
-                provider_payment_method_id=provider_payment_method_id,
-            )
-        for key, value in validated_data.items():
-            setattr(instance, key, value)
-        with reversion.create_revision():
-            instance.save(update_fields=set(list(validated_data.keys()) + ["modified"]))
-            reversion.set_comment("Updated by PortalContributionDetailSerializer.update")
+        """ """
+        if validated_data:
+            if provider_payment_method_id := validated_data.get("provider_payment_method_id", None):
+                instance.update_payment_method_for_subscription(
+                    provider_payment_method_id=provider_payment_method_id,
+                )
+            for key, value in validated_data.items():
+                setattr(instance, key, value)
+            with reversion.create_revision():
+                instance.save(update_fields=set(list(validated_data.keys()) + ["modified"]))
+                reversion.set_comment("Updated by PortalContributionDetailSerializer.update")
         return instance
 
 

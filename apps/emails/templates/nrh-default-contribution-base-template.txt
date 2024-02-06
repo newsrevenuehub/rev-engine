@@ -3,16 +3,16 @@
 {% endblock header %}
 
 ------------------------
-Contributions Details:
+Contribution Details:
 
-{% block contribution_date_label %}{% endblock contribution_date_label %}: {{ contribution_date }}
+{% block timestamp_label %}{% endblock timestamp_label %}: {{ timestamp }}
 Email: {{ contributor_email }}
 {% if contribution_interval == "one_time" %}
 Amount Contributed: {{ contribution_amount }}
 {% else %}
 Amount Contributed: {{ contribution_amount }}/{{ contribution_interval_display_value }}
 {% endif %}
-
+{% block contribution_footer %}
 No goods or services were provided in exchange for this contribution.
 {% if non_profit %}
 This receipt may be used for tax purposes.
@@ -24,6 +24,6 @@ All contributions or gifts to {{ rp_name }} are tax deductible through our fisca
 {% endif %}
 {% else %}
 Contributions to {{ rp_name }} are not deductible as charitable donations.
-{% endif %}
+{% endif %}{% endblock contribution_footer %}
 
 Need to make changes to your contribution? {% autoescape off %}{{ magic_link }}{% endautoescape %}

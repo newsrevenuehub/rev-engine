@@ -283,7 +283,7 @@ def plus_plan_revenue_program():
 
 @pytest.fixture
 def fiscally_sponsored_revenue_program():
-    return RevenueProgramFactory(onboarded=True, fiscally_sponsored=True)
+    return RevenueProgramFactory(onboarded=True, fiscally_sponsored=True, fiscal_sponsor_name="Sponsor")
 
 
 @pytest.fixture

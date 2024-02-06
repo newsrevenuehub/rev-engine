@@ -109,7 +109,8 @@ class DonationPage(IndexedTimeStampedModel):
     @property
     def page_url(self) -> str:
         http_scheme = "https://"
-        return f"{http_scheme}{self.revenue_program.slug}.{settings.SITE_URL.partition(http_scheme)[2]}/{self.slug}"
+        hostname = ".".join(settings.SITE_URL.replace(http_scheme, "").split(".")[-2:])
+        return f"{http_scheme}{self.revenue_program.slug}.{hostname}/{self.slug}"
 
     def set_default_logo(self):
         """

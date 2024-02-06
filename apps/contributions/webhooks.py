@@ -223,6 +223,18 @@ class StripeWebhookProcessor:
             update_data, "`StripeWebhookProcessor.handle_subscription_updated` updated contribution"
         )
 
+        # If the payment method has changed, send an appropriate email. We need
+        # to do a none check here because an update event also is emitted when
+        # the initial contribution occurs. See
+        # https://stripe.com/docs/api/events/object#event_object-data-previous_attributes
+
+        if (
+            isinstance(self.event.data["previous_attributes"], dict)
+            and "default_payment_method" in self.event.data["previous_attributes"]
+            and self.event.data["previous_attributes"]["default_payment_method"] is not None
+        ):
+            self.contribution.send_recurring_contribution_payment_updated_email()
+
     def handle_subscription_canceled(self):
         self._handle_contribution_update(
             {
@@ -231,6 +243,7 @@ class StripeWebhookProcessor:
             },
             "`StripeWebhookProcessor.handle_subscription_canceled` updated contribution",
         )
+        self.contribution.send_recurring_contribution_canceled_email()
 
     def handle_payment_method_attached(self):
         self._handle_contribution_update(

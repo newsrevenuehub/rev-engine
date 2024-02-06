@@ -24,19 +24,20 @@ export function ManageSubscription({ organization, user }: ManageSubscriptionPro
     organization.plan.name === PLAN_NAMES.FREE || !flagIsActiveForUser(SELF_UPGRADE_ACCESS_FLAG_NAME, user);
 
   useEffect(() => {
-    if (!hideManageSubscription) {
-      if (typeof STRIPE_SELF_UPGRADE_CUSTOMER_PORTAL_URL !== 'string') {
-        Sentry.addBreadcrumb({
-          category: 'rev-engine',
-          level: 'debug',
-          message: `Manage my plan URL: "${STRIPE_SELF_UPGRADE_CUSTOMER_PORTAL_URL}"`
-        });
-        console.error('STRIPE_SELF_UPGRADE_CUSTOMER_PORTAL_URL is not a string');
-      } else {
-        if (STRIPE_SELF_UPGRADE_CUSTOMER_PORTAL_URL === '') {
-          console.warn('STRIPE_SELF_UPGRADE_CUSTOMER_PORTAL_URL is an empty string');
-        }
-      }
+    if (hideManageSubscription) {
+      return;
+    }
+
+    if (
+      typeof STRIPE_SELF_UPGRADE_CUSTOMER_PORTAL_URL !== 'string' ||
+      STRIPE_SELF_UPGRADE_CUSTOMER_PORTAL_URL?.length === 0
+    ) {
+      Sentry.addBreadcrumb({
+        category: 'rev-engine',
+        level: 'debug',
+        message: `Manage my plan URL: "${STRIPE_SELF_UPGRADE_CUSTOMER_PORTAL_URL}"`
+      });
+      console.error('STRIPE_SELF_UPGRADE_CUSTOMER_PORTAL_URL is not valid.');
     }
   }, [hideManageSubscription]);
 

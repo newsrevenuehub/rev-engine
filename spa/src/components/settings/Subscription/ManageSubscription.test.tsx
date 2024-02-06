@@ -61,20 +61,18 @@ describe('ManageSubscription', () => {
     });
   });
 
-  it('when STRIPE_SELF_UPGRADE_CUSTOMER_PORTAL_URL is non-empty string', () => {
-    const consoleWarnSpy = jest.spyOn(console, 'warn').mockImplementation(() => {});
+  it('when STRIPE_SELF_UPGRADE_CUSTOMER_PORTAL_URL is non-empty string, no errors are triggered', () => {
     const consoleErrorSpy = jest.spyOn(console, 'error').mockImplementation(() => {});
 
     tree();
 
     expect(addBreadcrumbMock).not.toHaveBeenCalled();
-    expect(consoleWarnSpy).not.toHaveBeenCalled();
     expect(consoleErrorSpy).not.toHaveBeenCalled();
   });
 
   describe('Error handling', () => {
-    describe('when STRIPE_SELF_UPGRADE_CUSTOMER_PORTAL_URL is not a string', () => {
-      describe.each([null, undefined, 123, true, false, {}])('url is: %p', (url) => {
+    describe('when STRIPE_SELF_UPGRADE_CUSTOMER_PORTAL_URL is not valid', () => {
+      describe.each([null, undefined, 123, true, false, {}, ''])('url is: %p', (url) => {
         let consoleErrorSpy: jest.SpyInstance;
         beforeEach(() => {
           mockURL.mockReturnValue(url);
@@ -100,24 +98,8 @@ describe('ManageSubscription', () => {
           const error = jest.fn();
           consoleErrorSpy = jest.spyOn(console, 'error').mockImplementation(error);
           tree();
-          expect(error).toHaveBeenCalledWith('STRIPE_SELF_UPGRADE_CUSTOMER_PORTAL_URL is not a string');
+          expect(error).toHaveBeenCalledWith('STRIPE_SELF_UPGRADE_CUSTOMER_PORTAL_URL is not valid.');
         });
-      });
-    });
-    describe('when STRIPE_SELF_UPGRADE_CUSTOMER_PORTAL_URL is an empty string', () => {
-      let consoleWarnSpy: jest.SpyInstance;
-      beforeEach(() => {
-        mockURL.mockReturnValue('');
-        consoleWarnSpy = jest.spyOn(console, 'warn').mockImplementation(() => {});
-      });
-
-      afterEach(() => {
-        consoleWarnSpy.mockRestore();
-      });
-
-      it('logs a console warning', () => {
-        tree();
-        expect(consoleWarnSpy).toHaveBeenCalledWith('STRIPE_SELF_UPGRADE_CUSTOMER_PORTAL_URL is an empty string');
       });
     });
   });

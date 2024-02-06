@@ -1694,17 +1694,38 @@ class TestContributionModel:
     def test_card_brand(self, payment_data, expected):
         assert ContributionFactory(provider_payment_method_details=payment_data).card_brand == expected
 
-    @pytest.mark.parametrize("payment_data,expected", ((None, ""),))
+    @pytest.mark.parametrize(
+        "payment_data,expected",
+        (
+            (None, ""),
+            ({}, ""),
+            ({"type": "card", "card": {"exp_month": 12, "exp_year": 2022}}, "12/2022"),
+        ),
+    )
     def test_card_expiration_date(self, payment_data, expected):
-        pass
+        assert ContributionFactory(provider_payment_method_details=payment_data).card_expiration_date == expected
 
-    @pytest.mark.parametrize("payment_data,expected", ((None, ""),))
+    @pytest.mark.parametrize(
+        "payment_data,expected",
+        (
+            (None, ""),
+            ({}, ""),
+            ({"type": "card", "billing_details": {"name": (name := "Foo Bar")}}, name),
+        ),
+    )
     def test_card_owner_name(self, payment_data, expected):
-        pass
+        assert ContributionFactory(provider_payment_method_details=payment_data).card_owner_name == expected
 
-    @pytest.mark.parametrize("payment_data,expected", ((None, ""),))
+    @pytest.mark.parametrize(
+        "payment_data,expected",
+        (
+            (None, ""),
+            ({}, ""),
+            ({"type": "card", "card": {"exp_month": 12, "exp_year": 2022}}, "12/2022"),
+        ),
+    )
     def test_card_last_4(self, payment_data, expected):
-        pass
+        assert ContributionFactory(provider_payment_method_details=payment_data).card_last_4 == expected
 
 
 @pytest.mark.django_db

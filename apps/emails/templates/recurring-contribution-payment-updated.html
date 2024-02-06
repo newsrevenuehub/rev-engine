@@ -1,0 +1,90 @@
+{% extends "nrh-default-contribution-base-template.html" %}
+
+{% block custom_style %}
+  <style type="text/css">
+    .cta-button {
+      background: #523a5e;
+      box-shadow: 0px 2px 4px 0px rgba(0, 0, 0, 0.2), 0px 0.30000001192092896px 0.5px 0px rgba(0, 0, 0, 0.1);
+      border-radius: 6px;
+      color: white;
+      display: inline-block;
+      font-family: Roboto, sans-serif;
+      padding: 16px 0;
+      text-align: center;
+      text-decoration: none;
+      text-transform: uppercase;
+      width: 270px;
+    }
+
+    .header-background {
+      width: 600px;
+      height: 80px;
+      text-align: center;
+      vertical-align: middle;
+      background: #ffffff;
+      {% if style.header_color %}
+      background: {{ style.header_color }} !important;
+      {% endif %}
+    }
+
+    .header-background.default {
+      background: none !important;
+      text-align: left;
+    }
+
+    .header-logo {
+      height: 56px;
+      margin-top: 17px;
+      margin-bottom: 17px;
+      max-width: 100%;
+      width: auto;
+    }
+
+    .header-logo.default {
+      height: 50px;
+      width: auto;
+    }
+
+    .title {
+      font-family: Roboto, sans-serif;
+      color: #25192B;
+      font-size: 30px;
+      margin-bottom: 25px;
+    }
+  </style>
+{% endblock custom_style %}
+
+{% block header %}
+{% if style.is_default_logo == True and style.logo_url %}
+<tr>
+  <td class="header-background default">
+    <img class="header-logo inner-center default" src="{{ style.logo_url }}" alt="{{ style.logo_alt_text }}" />
+  </td>
+</tr>
+{% elif style.logo_url %}
+<tr>
+  <td class="header-background">
+    <img class="header-logo" src="{{ style.logo_url }}" alt="{{ style.logo_alt_text }}" />
+  </td>
+</tr>
+{% endif %}
+<tr>
+  <td>
+    <h1 class="inner-center title">New Change to Your Contribution</h1>
+
+    <p class="inner-center" style="font-family: Roboto, sans-serif; font-size: 16px; margin-bottom: 1em">
+      Dear {{ contributor_name }},
+    </p>
+
+    <p class="inner-center" style="font-family: Roboto, sans-serif; font-size: 16px; margin-bottom: 1em">
+      You've recently changed your payment method for a contribution to {{ rp_name }}.
+    </p>
+  </td>
+<tr>
+{% endblock header %}
+
+{% block timestamp_label %}Date Changed{% endblock timestamp_label %}
+
+{% block contribution_header %}
+  Contribution Changed
+{% endblock contribution_header %}

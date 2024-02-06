@@ -7,6 +7,6 @@ Dear {{ contributor_name }},
 Thank you for supporting {{ rp_name }}.
 {% endblock header %}
 
-{% block contribution_date_label %}
+{% block timestamp_label %}
 Received
-{% endblock contribution_date_label %}
+{% endblock timestamp_label %}

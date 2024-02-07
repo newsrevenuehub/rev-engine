@@ -1,9 +1,7 @@
 import { PaymentMethod as StripePaymentMethod } from '@stripe/stripe-js';
-import { useSnackbar } from 'notistack';
 import PropTypes, { InferProps } from 'prop-types';
 import { useState } from 'react';
 import { CircularProgress } from 'components/base';
-import SystemNotification from 'components/common/SystemNotification';
 import { usePortalContribution } from 'hooks/usePortalContribution';
 import ContributionFetchError from '../ContributionFetchError';
 import { useDetailAnchor } from './useDetailAnchor';
@@ -23,7 +21,6 @@ const ContributionDetailPropTypes = {
 export type ContributionDetailProps = InferProps<typeof ContributionDetailPropTypes>;
 
 export function ContributionDetail({ domAnchor, contributionId, contributorId }: ContributionDetailProps) {
-  const { enqueueSnackbar } = useSnackbar();
   const { contribution, isError, isLoading, refetch, updateContribution } = usePortalContribution(
     contributorId,
     contributionId
@@ -39,21 +36,8 @@ export function ContributionDetail({ domAnchor, contributionId, contributorId }:
 
   useDetailAnchor(domAnchor ?? null, rootEl);
 
-  async function handlePaymentMethodUpdate(method: StripePaymentMethod) {
-    try {
-      await updateContribution({ provider_payment_method_id: method.id });
-      enqueueSnackbar(
-        'Your billing details have been successfully updated. Changes may not be reflected in portal immediately.',
-        {
-          persist: true,
-          content: (key: string, message: string) => (
-            <SystemNotification id={key} message={message} header="Billing Updated!" type="success" />
-          )
-        }
-      );
-    } catch {
-      // Do nothing-- usePortalContribution will show an error message.
-    }
+  function handlePaymentMethodUpdate(method: StripePaymentMethod) {
+    updateContribution({ provider_payment_method_id: method.id }, 'paymentMethod');
   }
 
   if (isError) {

@@ -189,36 +189,14 @@ describe('ContributionDetail', () => {
           } as any);
         });
 
-        it("calls updateContribution with the payment method's ID", () => {
+        it("calls updateContribution with the payment method's ID and appropriate change type", () => {
           tree();
           fireEvent.click(screen.getByRole('button', { name: 'onEdit' }));
           expect(updateContribution).not.toBeCalled();
           fireEvent.click(screen.getByRole('button', { name: 'onUpdatePaymentMethod' }));
-          expect(updateContribution.mock.calls).toEqual([[{ provider_payment_method_id: 'mock-payment-method-id' }]]);
-        });
-
-        it('shows a success notification if updateContribution resolves', async () => {
-          tree();
-          fireEvent.click(screen.getByRole('button', { name: 'onEdit' }));
-          fireEvent.click(screen.getByRole('button', { name: 'onUpdatePaymentMethod' }));
-          await waitFor(() => expect(enqueueSnackbar).toBeCalled());
-          expect(enqueueSnackbar.mock.calls).toEqual([
-            [
-              'Your billing details have been successfully updated. Changes may not be reflected in portal immediately.',
-              expect.objectContaining({ persist: true })
-            ]
+          expect(updateContribution.mock.calls).toEqual([
+            [{ provider_payment_method_id: 'mock-payment-method-id' }, 'paymentMethod']
           ]);
-        });
-
-        it('does nothing if updateContribution rejects', async () => {
-          expect(enqueueSnackbar).not.toBeCalled();
-          updateContribution.mockReset();
-          updateContribution.mockRejectedValue(new Error());
-          tree();
-          fireEvent.click(screen.getByRole('button', { name: 'onEdit' }));
-          fireEvent.click(screen.getByRole('button', { name: 'onUpdatePaymentMethod' }));
-          await Promise.resolve();
-          expect(enqueueSnackbar).not.toBeCalled();
         });
       });
     });

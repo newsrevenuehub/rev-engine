@@ -403,6 +403,7 @@ class Contribution(IndexedTimeStampedModel):
             getattr(previous, "provider_payment_method_id", None),
             self.provider_payment_method_id,
         )
+        # TODO: [DEV-4447] If possible, remove conditional payment method update fetch from contribution.save
         if (
             (
                 previous
@@ -669,32 +670,33 @@ class Contribution(IndexedTimeStampedModel):
             )
             return None
 
-    @cached_property
-    def card(self) -> stripe.Card | None:
-        if not (cust_id := self.provider_customer_id):
-            return None
-        customer = stripe.Customer.retrieve(
-            cust_id,
-            stripe_account=self.donation_page.revenue_program.payment_provider.stripe_account_id,
-            expand=["default_source"],
-        )
-        return customer.default_source if customer.default_source and customer.default_source.object == "card" else None
-
     @property
     def card_brand(self) -> str:
-        return self.card.brand if self.card else ""
+        card_brand = ""
+        if (details := self.provider_payment_method_details) and details.get("type") == "card":
+            card_brand = details["card"]["brand"]
+        return card_brand
 
     @property
     def card_expiration_date(self) -> str:
-        return f"{self.card.exp_month}/{self.card.exp_year}" if self.card else ""
+        expiry = ""
+        if (details := self.provider_payment_method_details) and details.get("type") == "card":
+            expiry = f"{details['card']['exp_month']}/{details['card']['exp_year']}"
+        return expiry
 
     @property
     def card_owner_name(self) -> str:
-        return self.card.name if self.card else ""
+        name = ""
+        if (details := self.provider_payment_method_details) and details.get("type") == "card":
+            name = details["billing_details"]["name"]
+        return name
 
     @property
     def card_last_4(self) -> str:
-        return self.card.last4 if self.card else ""
+        last_4 = ""
+        if (details := self.provider_payment_method_details) and details.get("type") == "card":
+            last_4 = details["card"]["last4"]
+        return last_4
 
     @cached_property
     def _expanded_pi_for_cancelable_modifiable(self) -> stripe.PaymentIntent | None:
@@ -1057,6 +1059,43 @@ class Contribution(IndexedTimeStampedModel):
             "would update" if dry_run else "updated",
             updated_count,
         )
+
+    def update_payment_method_for_subscription(self, provider_payment_method_id: str) -> None:
+        """If it's a recurring subscription, attach the payment method to the customer, and  set the subscription's
+
+        default payment method to the new payment method.
+        """
+        if self.interval == ContributionInterval.ONE_TIME:
+            raise ValueError("Cannot update payment method for one-time contribution")
+        if not (cust_id := self.provider_customer_id):
+            raise ValueError("Cannot update payment method for contribution without a customer ID")
+        if not (sub_id := self.provider_subscription_id):
+            raise ValueError("Cannot update payment method for contribution without a subscription ID")
+
+        try:
+            logger.info(
+                "attaching payment method %s to customer %s",
+                provider_payment_method_id,
+                cust_id,
+            )
+            stripe.PaymentMethod.attach(
+                provider_payment_method_id, customer=cust_id, stripe_account=self.stripe_account_id
+            )
+
+            logger.info(
+                "updating Stripe subscription %s's default payment method to %s",
+                sub_id,
+                provider_payment_method_id,
+            )
+            stripe.Subscription.modify(
+                sub_id, default_payment_method=provider_payment_method_id, stripe_account=self.stripe_account_id
+            )
+        except StripeError:
+            logger.exception(
+                "Encountered a Stripe error while trying to update payment method for subscription on contribution %s",
+                self.id,
+            )
+            raise
 
 
 def ensure_stripe_event(event_types: List[str] = None) -> Callable:

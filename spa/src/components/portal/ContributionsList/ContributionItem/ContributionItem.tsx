@@ -62,6 +62,7 @@ export const ContributionItem = forwardRef<HTMLAnchorElement, ContributionItemPr
       <Root
         $dimmed={contribution.status === 'canceled'}
         aria-selected={selected ? true : undefined}
+        data-testid="contribution-item"
         ref={ref}
         replace={!!replaceHistory}
         to={selected ? PORTAL.CONTRIBUTIONS : `/portal/my-contributions/${contribution.id}/`}

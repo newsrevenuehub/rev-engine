@@ -61,7 +61,7 @@ export function ContributionDetail({ domAnchor, contributionId, contributorId }:
 
   return (
     <StripePaymentWrapper stripeAccountId={contribution.stripe_account_id} stripeLocale="en">
-      <Root key="loaded" ref={setRootEl}>
+      <Root data-testid="contribution-detail" key="loaded" ref={setRootEl}>
         <MobileHeader contribution={contribution} />
         <BillingDetails contribution={contribution} disabled={!!editableSection} />
         <PaymentMethod

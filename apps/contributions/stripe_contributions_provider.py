@@ -1,8 +1,11 @@
+from dataclasses import dataclass
 import datetime
 import json
 import logging
 from functools import cached_property
 
+from celery import shared_task
+import pydantic
 from django.conf import settings
 from django.core.cache import caches
 from django.core.serializers.json import DjangoJSONEncoder
@@ -12,13 +15,18 @@ from addict import Dict as AttrDict
 from rest_framework import exceptions
 from stripe.stripe_object import StripeObject
 
-from apps.contributions.models import ContributionInterval, ContributionStatus
+from apps.common.utils import rate_limiter
+from apps.contributions.models import ContributionInterval, ContributionStatus, Contribution
 from apps.contributions.serializers import (
     PaymentProviderContributionSerializer,
     SubscriptionsSerializer,
 )
-from apps.contributions.types import StripePiAsPortalContribution, StripePiSearchResponse
+from apps.contributions.types import (
+    StripePiAsPortalContribution,
+    StripePiSearchResponse,
+)
 from revengine.settings.base import CONTRIBUTION_CACHE_TTL, DEFAULT_CACHE
+from apps.organizations.models import PaymentProvider
 
 
 MAX_STRIPE_RESPONSE_LIMIT = 100
@@ -46,7 +54,8 @@ class InvalidMetadataError(ContributionIgnorableError):
 class StripePaymentIntent:
     """
     Wrapper on stripe payment_intent object to extract the required details in
-    apps.contributions.serializers.PaymentProviderContributionSerializer and serializable.
+    _apps.contributions.serializers.PaymentProviderContributionSerializer and serializable.
+
 
     If there's no Invoice associated with a Payment Intent then it's a one-time payment.
     """
@@ -359,7 +368,8 @@ class StripeContributionsProvider:
 
 class ContributionsCacheProvider:
     cache = caches[DEFAULT_CACHE]
-    serializer = PaymentProviderContributionSerializer
+    _serializer = PaymentProviderContributionSerializer
+
     converter = StripePaymentIntent
 
     def __init__(self, email_id, stripe_account_id) -> None:
@@ -479,3 +489,204 @@ class SubscriptionsCacheProvider:
         data = [AttrDict(**x) for x in json.loads(data).values()]
         logger.info("Retrieved %s contributions from cache with key %s", len(data), self.key)
         return data
+
+
+    
+@dataclass(frozen=True)
+class StripeClientForConnectedAccount:
+    """A wrapper around Stripe library for a connected account.
+    
+    Gets initialized with an account id, and when making requests to stripe, that account ID is included as the
+    stripe_account parameter.
+    """
+    account_id: str
+    lte: datetime.datetime = None
+    gte: datetime.datetime = None
+
+    ALL_METADATA_SCHEMA_VERSIONS = ("1.0", "1.1", "1.2", "1.3", "1.4", "1.5")
+    SUPPORTED_METADATA_SCHEMA_VERSIONS = ("1.4", "1.5")
+    # https://stripe.com/docs/rate-limits
+    STRIPE_SEARCH_MAX_REQUESTS_PER_SECOND = 20
+    # make this dynamic based on django settings -- it's 25 in test, and 100 in live
+    STRIPE_DEFAULT_MAX_REQUESTS_PER_SECOND = 100
+
+
+    def __post_init__(self):
+        logger.info("Initializing StripeClientForConnectedAccount with account_id %s", self.account_id)
+
+    @rate_limiter(max_requests=STRIPE_SEARCH_MAX_REQUESTS_PER_SECOND)
+    def _search(self, stripe_object: stripe.Invoice | stripe.PaymentIntent | stripe.Subscription, query: str, **kwargs) -> stripe.Invoice | stripe.PaymentIntent | stripe.Subscription:
+        logger.info("Searching for %s with query %s for account %s", stripe_object, query, self.account_id)
+        return stripe_object.search(query, **(self._default_stripe_kwargs | kwargs))
+    
+    def _do_paginated_search(self, stripe_object, query: str) -> list[stripe.Invoice] | list[stripe.PaymentIntent] | list[stripe.Subscription]:
+        """Does a paginated search for a given stripe object and query.
+        
+        Note that we have opted to use search API instead of list in this class because search allows us to filter
+        by created date range (among other criteria), which is relevant for our immediate use case. The tradeoff
+        here is that Stripe's search function in Python library does not provide a convenience method around
+        iterating over paginated results. We have to do that ourselves in this method.
+        """
+        logger.info("Doing paginated search for %s with query %s for account %s", stripe_object, query, self.account_id)
+        results = []
+        last_id = None
+        has_more = True
+        while has_more:
+            response = self._search(stripe_object=stripe_object, query=query, starting_after=last_id) 
+            results.extend(response.data)
+            has_more = response.has_more
+            last_id = response.data[-1].id
+        return results
+
+
+    @property
+    def created_query(self) -> str:
+        """Generate a string to limit query to entities that have been created within a given date range"""
+        query_parts = []
+        if self.gte:
+            query_parts.append(f"created >= {self.gte.timestamp()}")
+        if self.lte:
+            query_parts.append(f"created <= {self.lte.timestamp()}")
+        return "AND ".join(query_parts)
+
+    def get_invoices(self) -> list[stripe.Invoice]:
+        """Gets invoices for a given stripe account"""
+        # need a query for search, if none, then we just do invoices list to retrieve all invoices
+        if not (query := self.created_query):
+            return [x for x in stripe.Invoice.list(**self._default_stripe_kwargs).auto_paging_iter()]
+        return self._do_paginated_search(stripe_object=stripe.Invoice, query=query)
+    
+    @rate_limiter(max_requests=STRIPE_DEFAULT_MAX_REQUESTS_PER_SECOND)
+    def get_subscription(self, subscription_id: str, **kwargs) -> stripe.Subscription | None:
+        logger.info("Getting subscription %s for account %s", subscription_id, self.account_id)
+        return stripe.Subscription.retrieve(subscription_id, **(self._default_stripe_kwargs | kwargs))
+    
+    def get_payment_intents(self, metadata_query: str = None) -> list[stripe.PaymentIntent]:
+        """Gets payment intents for a given stripe account
+        """
+        query_parts = []
+        # each subquery can have ANDs or ORs so we surround with parens so we can logically group the results
+        if metadata_query:
+            query_parts.append(f"({metadata_query})")
+        if (created_query := self.created_query):
+            query_parts.append(f"({created_query})")
+        if not query_parts:
+            return [x for x in stripe.PaymentIntent.list(**self._default_stripe_kwargs).auto_paging_iter()]
+        return self._do_paginated_search(stripe_object=stripe.PaymentIntent, query=" AND ".join(query_parts))
+
+
+    @property
+    def _default_stripe_kwargs(self):
+        return {"limit": MAX_STRIPE_RESPONSE_LIMIT, "stripe_account": self._account_id}
+
+    @property
+    def revengine_metadata_query(self) -> str:
+        """"String to limit query to entities that have known revengine metadata version
+
+        See https://stripe.com/docs/search#search-syntax for more details on search syntax for metadata
+        """
+        return " OR ".join([f'metadtata["schema_version"]:"{x}"' for x in self.ALL_METADATA_SCHEMA_VERSIONS])
+        
+
+    def get_revengine_one_time_payment_intents(self) -> list[stripe.PaymentIntent]:
+        all_pis = self.get_payment_intents(metadata_query=self.revengine_metadata_query)
+        suported_pis = []
+        unsupported_pis = []
+        for pi in all_pis:
+            (suported_pis if pi.metadata.get("schema_version") in self.SUPPORTED_METADATA_SCHEMA_VERSIONS else unsupported_pis).append(pi)
+        logger.info("Found %s revengine payment intents and %s unsupported revengine payment intents", len(suported_pis), len(unsupported_pis))
+        return suported_pis
+
+    def get_revengine_subscriptions(self) -> list[stripe.Subscription]:
+        invoices = self.get_invoices()
+        sub_ids = [x.subscription for x in invoices if x.subscription]
+        revengine_subscriptions = []
+        _unsupported_revengine_subscriptions = []
+        for x in sub_ids:
+            if (sub := self.get_subscription(x)):
+                (revengine_subscriptions if sub.metadata.get("schema_version") in self.SUPPORTED_METADATA_SCHEMA_VERSIONS else _unsupported_revengine_subscriptions).append(sub)
+        logger.info("Found %s revengine subscriptions and %s unsupported revengine subscriptions", len(revengine_subscriptions), len(_unsupported_revengine_subscriptions))
+        return revengine_subscriptions
+        
+    
+    
+    
+    
+
+@dataclass(frozen=True)
+class StripeToRevengineTransformer:
+    """Docstring - expected can be called in sync/async context
+    """
+    # sync/async shall be determined in calling context. Should be a single method that can be called from both
+
+    _STRIPE_ACCOUNTS_QUERY = PaymentProvider.objects.filter(
+        provider=PaymentProvider.STRIP, stripe_account_id__isnull=False
+    )
+
+    for_orgs: list[str] = None
+    for_stripe_accounts: list[str] = None
+    # make these timestamps instead so serializable cause may be async
+    from_date: datetime.datetime = None
+    to_date: datetime.datetime = None
+
+    def __post_init__(self):
+        logger.info("Initializing StripeToRevengineTransformer with for_orgs %s and for_stripe_accounts %s", self.for_orgs, self.for_stripe_accounts)
+        kwargs = {}
+        if self.for_orgs:
+            kwargs["organization__id__in"] = self.for_orgs
+        if self.for_stripe_accounts:
+            kwargs["stripe_account_id__in"] = self.for_stripe_accounts
+        if kwargs:
+            self._STRIPE_ACCOUNTS_QUERY = self._STRIPE_ACCOUNTS_QUERY.filter(**kwargs)
+        
+
+    @property
+    def stripe_account_ids(self):
+        return list(self._STRIPE_ACCOUNTS_QUERY.values_list("stripe_account_id", flat=True))
+
+    
+    # def stripe_metadata_validates_against_known_schema(self, metadata: dict | None) -> bool:
+    #     try:
+    #         ValidStripePaymentMetadataSchema(**metadata)
+    #     except pydantic.ValidationError as exc:
+    #         logger.warning("Invalid metadata %s", metadata, exc_info=exc)
+    #         return False
+
+    # def _get_untracked_subscriptions(self, subs: list[stripe.Subscription]) -> list[stripe.Subscription]:
+    #     # fully validate the metadata and return only those that are valid
+    #     - iterate over invoices
+    #     # date range
+    #     # not already in set of tracked subs
+    #     return subs
+    
+    # @shared_task(bind=True, autoretry_for=(RateLimitError,), retry_backoff=True, retry_kwargs={"max_retries": 3})
+    def backfill_contributions_and_payments_for_stripe_account(self, account_id: str, gte_timestamp: int = None, lte_timestamp: int = None) -> None:
+        logger.info("Backfilling stripe account %s", account_id)
+        client = StripeClientForConnectedAccount(
+            account_id=account_id,
+            gte=datetime.datetime.fromtimestamp(gte_timestamp) if gte_timestamp else None,
+            lte=datetime.datetime.fromtimestamp(lte_timestamp) if lte_timestamp else None,
+        )
+        subs = client.revengine_subscriptions
+        untracked_sub_ids = (found_sub_id_set := set(x.id for x in subs)).difference(set(Contribution.objects.filter(provider_subscription_id__in=[x.id for x in subs]).values_list("provider_subscription_id", flat=True)))
+        logger.info("Found %s possibly relevant subscriptions for stripe account %s, of which %s are currently untracked", len(found_sub_id_set), account_id, len(untracked_sub_ids))
+        for sub in untracked_sub_ids:
+            self.sync_subscription(sub)
+        pis = client.revengine_payment_intents
+        untracked_pi_ids = (found_pi_id_set := set(x.id for x in pis)).difference(set(Contribution.objects.filter(provider_payment_intent_id__in=[x.id for x in pis]).values_list("provider_payment_intent_id", flat=True)))        
+        for pi in untracked_pi_ids:
+            self.sync_payment_intent(pi)
+
+    
+    def backfill_contributions_and_payments_from_stripe(self):
+        """""""
+        logger.info("Backfilling %s stripe accounts %s", len(self.stripe_account_ids))
+        for account_id in self.stripe_account_ids:
+
+            logger.info
+            self.sync_stripe_account(account_id)
+        logger.info("Syncing complete")
+
+
+
+

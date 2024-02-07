@@ -1,7 +1,7 @@
 import datetime
 import logging
 import re
-from typing import Any, ClassVar, Literal, NamedTuple, Optional
+from typing import Any, ClassVar, Literal, NamedTuple, Optional, Union
 
 from django.conf import settings
 
@@ -84,9 +84,6 @@ class StripeMetadataSchemaBase(pydantic.BaseModel):
     - normalizes boolean values
     """
 
-    class Config:
-        extra = pydantic.Extra.forbid  # don't allow extra fields
-
     schema_version: Literal["1.4"]
     source: Literal["rev-engine"]
 
@@ -121,6 +118,46 @@ class StripeMetadataSchemaBase(pydantic.BaseModel):
         return v
 
 
+class StripePaymentMetadataSchemaV1_0(StripeMetadataSchemaBase):
+    """NB: This is only a partial representation of the 1.0 schema as described in Google sheet that tracks schemas.
+
+    In short term, we don't have code that processes this schema, so we don't need to implement it fully.
+    """
+
+    schema_version: Literal["1.0"]
+    source: Literal["rev-engine", "newspack"]
+
+
+class StripePaymentMetadataSchemaV1_1(StripeMetadataSchemaBase):
+    """NB: This is only a partial representation of the 1.1 schema as described in Google sheet that tracks schemas.
+
+    In short term, we don't have code that processes this schema, so we don't need to implement it fully.
+    """
+
+    schema_version: Literal["1.1"]
+    source: Literal["rev-engine"]
+
+
+class StripePaymentMetadataSchemaV1_2(StripeMetadataSchemaBase):
+    """NB: This is only a partial representation of the 1.2 schema as described in Google sheet that tracks schemas.
+
+    In short term, we don't have code that processes this schema, so we don't need to implement it fully.
+    """
+
+    schema_version: Literal["1.2"]
+    source: Literal["newspack"]
+
+
+class StripePaymentMetadataSchemaV1_3(StripeMetadataSchemaBase):
+    """NB: This is only a partial representation of the 1.3 schema as described in Google sheet that tracks schemas.
+
+    In short term, we don't have code that processes this schema, so we don't need to implement it fully.
+    """
+
+    schema_version: Literal["1.3"]
+    source: Literal["legacy-migration"]
+
+
 class StripePaymentMetadataSchemaV1_4(StripeMetadataSchemaBase):
     """Schema used for generating metadata on Stripe payment intents and subscriptions"""
 
@@ -143,6 +180,9 @@ class StripePaymentMetadataSchemaV1_4(StripeMetadataSchemaBase):
 
     SWAG_CHOICES_DELIMITER: ClassVar[str] = ";"
     SWAG_SUB_CHOICE_DELIMITER: ClassVar[str] = ":"
+
+    class Config:
+        extra = "forbid"
 
     @pydantic.validator("contributor_id", "revenue_program_id", pre=True)
     @classmethod
@@ -167,10 +207,11 @@ class StripePaymentMetadataSchemaV1_4(StripeMetadataSchemaBase):
 
     @pydantic.validator("swag_choices")
     @classmethod
-    def validate_swag_choices(cls, v: Any) -> str | None:
+    def _validate_swag_choices(cls, v: Any) -> str | None:
         """Validate swag_choices
 
         This validator is responsible for ensuring that the swag_choices field is valid.
+
         """
         # if empty or none, return
         if not v:
@@ -185,3 +226,22 @@ class StripePaymentMetadataSchemaV1_4(StripeMetadataSchemaBase):
             if choice and not re.fullmatch(choice_pattern, choice):
                 raise ValueError("swag_choices is not valid")
         return v
+
+
+class StripePaymentMetadataSchemaV1_5(StripePaymentMetadataSchemaV1_4):
+    schema_version: Literal["1.5"]
+    source: Literal["external-migration"]
+
+    # 1.5 omits this field from 1.4, with which it otherwise shares a schema
+    contributor_id: None = None
+    # ID of the payment/subscription in the originating/external system
+    external_id: Optional[str] = None
+    # Only would be on subscription, not payment intent. The Salesforce Recurring Donation ID, if any.
+    recurring_donation_id: Optional[str] = None
+    # 1.4 has this field, but it's required
+    referer: Optional[pydantic.HttpUrl] = None
+
+    class Config:
+        # 1.5 omits this field from 1.4, with which it otherwise shares a schema. We default value to None above,
+        # but here we need to also exclude so it doesn't show up when converting to dict
+        exclude = {"contributor_id"}

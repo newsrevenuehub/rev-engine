@@ -449,7 +449,6 @@ STRIPE_WEBHOOK_EVENTS_CONTRIBUTIONS = [
     "payment_intent.succeeded",
     "customer.subscription.updated",
     "customer.subscription.deleted",
-    "payment_method.attached",
     "invoice.upcoming",
     "invoice.payment_succeeded",
     "charge.refunded",

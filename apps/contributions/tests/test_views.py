@@ -1609,6 +1609,7 @@ class TestPortalContributorsViewSet:
             return_value=stripe_customer_factory(customer_id=cust_id, customer_email=portal_contributor.email),
         )
         stripe_subscription.customer.email = portal_contributor.email
+
         mock_subscription_retrieve = mocker.patch("stripe.Subscription.retrieve", return_value=stripe_subscription)
         mock_subscription_modify = mocker.patch("stripe.Subscription.modify")
         mocker.patch("stripe.PaymentMethod.retrieve", return_value=stripe.PaymentMethod.construct_from({}, "some-id"))
@@ -1851,6 +1852,109 @@ class TestPortalContributorsViewSet:
         assert response.status_code == status.HTTP_404_NOT_FOUND
         assert response.json() == {"detail": "Contribution not found"}
 
+    @pytest.mark.parametrize("request_data", ({}, {"provider_payment_method_id": "pm_123"}))
+    def test_contribution_detail_patch_happy_path(
+        self,
+        request_data,
+        api_client,
+        portal_contributor_with_multiple_contributions,
+        mocker,
+    ):
+        contributor = portal_contributor_with_multiple_contributions[0]
+        contribution = contributor.contribution_set.exclude(interval=ContributionInterval.ONE_TIME).last()
+        mock_pm_attach = mocker.patch("stripe.PaymentMethod.attach")
+        mock_update_sub = mocker.patch("stripe.Subscription.modify")
+        api_client.force_authenticate(contributor)
+        response = api_client.patch(
+            reverse(
+                "portal-contributor-contribution-detail",
+                args=(
+                    contributor.id,
+                    contribution.id,
+                ),
+            ),
+            data=request_data,
+        )
+        assert response.status_code == status.HTTP_200_OK
+        contribution.refresh_from_db()
+        if pm_id := request_data.get("provider_payment_method_id"):
+            assert contribution.provider_payment_method_id == pm_id
+            mock_pm_attach.assert_called_once_with(
+                pm_id, customer=contribution.provider_customer_id, stripe_account=contribution.stripe_account_id
+            )
+            mock_update_sub.assert_called_once_with(
+                contribution.provider_subscription_id,
+                default_payment_method=pm_id,
+                stripe_account=contribution.stripe_account_id,
+            )
+        else:
+            mock_pm_attach.assert_not_called()
+            mock_update_sub.assert_not_called()
+
+    def test_contribution_detail_patch_when_not_own_contribution(
+        self, api_client, portal_contributor_with_multiple_contributions
+    ):
+        contributor = portal_contributor_with_multiple_contributions[0]
+        not_mine = ContributionFactory()
+        api_client.force_authenticate(contributor)
+        response = api_client.patch(
+            reverse(
+                "portal-contributor-contribution-detail",
+                args=(
+                    contributor.id,
+                    not_mine.id,
+                ),
+            )
+        )
+        assert response.status_code == status.HTTP_404_NOT_FOUND
+        assert response.json() == {"detail": "Contribution not found"}
+
+    @pytest.fixture
+    def patch_data_setting_pm_id_to_empty_string(self):
+        return {"provider_payment_method_id": ""}
+
+    def test_contribution_detail_patch_when_try_to_set_pm_id_to_empty_string(
+        self, api_client, portal_contributor_with_multiple_contributions, patch_data_setting_pm_id_to_empty_string
+    ):
+        contributor = portal_contributor_with_multiple_contributions[0]
+        contribution = contributor.contribution_set.exclude(interval=ContributionInterval.ONE_TIME).last()
+        last_modified = contribution.modified
+        api_client.force_authenticate(contributor)
+        response = api_client.patch(
+            reverse(
+                "portal-contributor-contribution-detail",
+                args=(
+                    contributor.id,
+                    contribution.id,
+                ),
+            ),
+            data=patch_data_setting_pm_id_to_empty_string,
+        )
+        assert response.status_code == status.HTTP_200_OK
+        contribution.refresh_from_db()
+        assert contribution.modified == last_modified
+
+    def test_contribution_detail_patch_when_stripe_error(
+        self, api_client, portal_contributor_with_multiple_contributions, mocker
+    ):
+        contributor = portal_contributor_with_multiple_contributions[0]
+        contribution = contributor.contribution_set.exclude(interval=ContributionInterval.ONE_TIME).last()
+        mock_pm_attach = mocker.patch("stripe.PaymentMethod.attach", side_effect=stripe.error.StripeError("ruh roh"))
+        api_client.force_authenticate(contributor)
+        response = api_client.patch(
+            reverse(
+                "portal-contributor-contribution-detail",
+                args=(
+                    contributor.id,
+                    contribution.id,
+                ),
+            ),
+            data={"provider_payment_method_id": "pm_888"},
+        )
+        assert response.status_code == status.HTTP_500_INTERNAL_SERVER_ERROR
+        assert response.json() == {"detail": "Problem updating contribution"}
+        mock_pm_attach.assert_called_once()
+
     def test_contribution_detail_delete_happy_path(
         self, api_client, portal_contributor_with_multiple_contributions, mocker
     ):
@@ -1951,7 +2055,7 @@ class TestPortalContributorsViewSet:
 
     @pytest.mark.parametrize(
         "method, kwargs",
-        (("get", {}), ("patch", {"data": {"payment_method_id": "something"}}), ("delete", {})),
+        (("get", {}), ("patch", {"data": {"provider_payment_method_id": "something"}}), ("delete", {})),
     )
     def test_views_when_contribution_not_found(
         self, method, kwargs, api_client, portal_contributor_with_multiple_contributions
@@ -1961,6 +2065,7 @@ class TestPortalContributorsViewSet:
         contribution_id = contribution.id
         contribution.delete()
         contributor_id = contributor.id
+
         api_client.force_authenticate(contributor)
         response = getattr(api_client, method)(
             reverse("portal-contributor-contribution-detail", args=(contributor_id, contribution_id)),

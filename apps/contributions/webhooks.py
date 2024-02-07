@@ -46,7 +46,7 @@ class StripeWebhookProcessor:
     @property
     def id(self) -> str:
         # This is the Stripe ID of the object in the event. While subscription and payment intent have an ID in the payload,
-        # invoice.upcoming and payment_method.attached events do not, so we have to return None.
+        # invoice.upcoming events do not, so we have to return None.
         return self.obj_data.get("id", None)
 
     @property
@@ -72,8 +72,6 @@ class StripeWebhookProcessor:
                     if self.customer_id:  # pragma: no branch
                         conditions.append(Q(provider_customer_id=self.customer_id))
                     return Contribution.objects.get(reduce(operator.or_, conditions))
-                case "payment_method":
-                    return Contribution.objects.get(provider_customer_id=self.customer_id)
                 case "invoice":
                     return Contribution.objects.get(provider_subscription_id=self.obj_data["subscription"])
                 case "charge":
@@ -91,6 +89,9 @@ class StripeWebhookProcessor:
     def route_request(self):
         logger.info("Routing request for event type %s", self.event_type)
         match self.event_type:
+            # TODO: [DEV-4450] Create a new webhook receiver to correctly handle payment_method.attached event
+            case "payment_method.attached":
+                return
             case "payment_intent.canceled":
                 return self.handle_payment_intent_canceled()
             case "payment_intent.payment_failed":
@@ -101,8 +102,6 @@ class StripeWebhookProcessor:
                 return self.handle_subscription_updated()
             case "customer.subscription.deleted":
                 return self.handle_subscription_canceled()
-            case "payment_method.attached":
-                return self.handle_payment_method_attached()
             case "invoice.upcoming":
                 return self.handle_invoice_upcoming()
             case "invoice.payment_succeeded":
@@ -208,17 +207,14 @@ class StripeWebhookProcessor:
             self.contribution.handle_thank_you_email()
 
     def handle_subscription_updated(self):
-        # If stripe reports 'default_payment_method' as a previous attribute, then we've updated 'default_payment_method'
         update_data = {
             "payment_provider_data": self.event,
             "provider_subscription_id": self.id,
+            "provider_payment_method_id": (pm_id := self.obj_data["default_payment_method"]),
+            "provider_payment_method_details": self.contribution.fetch_stripe_payment_method(
+                provider_payment_method_id=pm_id
+            ),
         }
-        if (
-            "default_payment_method" in self.event.data["previous_attributes"]
-            and self.obj_data["default_payment_method"]
-        ):
-            update_data["provider_payment_method_id"] = self.obj_data["default_payment_method"]
-
         self._handle_contribution_update(
             update_data, "`StripeWebhookProcessor.handle_subscription_updated` updated contribution"
         )
@@ -244,12 +240,6 @@ class StripeWebhookProcessor:
             "`StripeWebhookProcessor.handle_subscription_canceled` updated contribution",
         )
         self.contribution.send_recurring_contribution_canceled_email()
-
-    def handle_payment_method_attached(self):
-        self._handle_contribution_update(
-            {"provider_payment_method_id": self.id},
-            "`StripeWebhookProcessor.process_payment_method_attached` updated contribution",
-        )
 
     def handle_invoice_upcoming(self):
         """When Stripe sends a webhook about an upcoming subscription charge, we send an email reminder
@@ -283,8 +273,8 @@ class StripeWebhookProcessor:
                 {
                     "last_payment_date": payment.created,
                     "status": ContributionStatus.PAID,
-                    # TODO: [DEV-4295] Get rid of payment_provider_data as it's an inconistent reference to whichever event happened to cause creation
                     "payment_provider_data": self.event,
+                    # TODO: [DEV-4445] Determine if we should actually update provider_payment_method_id on invoice.payment_succeeded event
                     "provider_payment_method_id": pi.payment_method,
                     "provider_payment_method_details": self.contribution.fetch_stripe_payment_method(),
                 },

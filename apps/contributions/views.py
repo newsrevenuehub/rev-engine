@@ -630,9 +630,12 @@ class PortalContributorsViewSet(viewsets.GenericViewSet):
         except Contribution.DoesNotExist:
             return Response({"detail": "Contribution not found"}, status=status.HTTP_404_NOT_FOUND)
 
-        serializer = self.get_serializer(
-            instance=contribution, **{} if request.method == "GET" else {"data": request.data}
-        )
+        kwargs = {"instance": contribution}
+        if request.method == "PATCH":
+            kwargs["data"] = request.data
+            kwargs["partial"] = True
+
+        serializer = self.get_serializer(**kwargs)
 
         # NB: we're guaranteed that request method is one of these three by @action decorator, so
         # don't need to handle default case
@@ -640,11 +643,19 @@ class PortalContributorsViewSet(viewsets.GenericViewSet):
             case "GET":
                 return Response(serializer.data, status=status.HTTP_200_OK)
             case "PATCH":
-                return Response("Not yet implemented", status=status.HTTP_501_NOT_IMPLEMENTED)
+                return self.handle_patch(serializer)
             case "DELETE":  # NB: this path does in fact get tested, but shows up as partially covered in coverage report
                 return self.handle_delete(contribution)
 
-    def handle_delete(self, contribution):
+    def handle_patch(self, serializer: serializers.PortalContributionDetailSerializer) -> Response:
+        serializer.is_valid(raise_exception=True)
+        try:
+            serializer.save()
+        except stripe.error.StripeError:
+            return Response({"detail": "Problem updating contribution"}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+        return Response(serializer.data, status=status.HTTP_200_OK)
+
+    def handle_delete(self, contribution: Contribution) -> Response:
         """If subscription found, cancel it in Stripe.
 
         NB: we don't do anything to update NRE contribution status here and instead rely on ensuing webhooks to do that.

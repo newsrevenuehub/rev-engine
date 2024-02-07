@@ -250,9 +250,12 @@ class TestPaymentIntentPaymentFailed:
 class TestCustomerSubscriptionUpdated:
     @pytest.mark.parametrize("payment_method_has_changed", (True, False))
     def test_when_contribution_found(
-        self, client, customer_subscription_updated_event, payment_method_has_changed, mocker
+        self, payment_method_has_changed, client, customer_subscription_updated_event, mocker
     ):
         mocker.patch.object(WebhookSignature, "verify_header", return_value=True)
+
+        mocker.patch("stripe.PaymentMethod.retrieve", return_value=stripe.PaymentMethod.construct_from({}, key="test"))
+
         header = {"HTTP_STRIPE_SIGNATURE": "testing", "content_type": "application/json"}
         contribution = ContributionFactory(
             annual_subscription=True,
@@ -271,6 +274,8 @@ class TestCustomerSubscriptionUpdated:
             "modified",
             "payment_provider_data",
             "provider_subscription_id",
+            "provider_payment_method_id",
+            "provider_payment_method_details",
         }
         if payment_method_has_changed:
             expected_update_fields.add("provider_payment_method_id")
@@ -360,22 +365,6 @@ def test_customer_subscription_untracked_event(client, customer_subscription_upd
         "StripeWebhookProcessor.route_request received unexpected event type %s",
         customer_subscription_updated_event["type"],
     )
-
-
-@pytest.mark.django_db
-def test_payment_method_attached(client, payment_method_attached_event, mocker):
-    mocker.patch.object(WebhookSignature, "verify_header", return_value=True)
-    header = {"HTTP_STRIPE_SIGNATURE": "testing", "content_type": "application/json"}
-    contribution = ContributionFactory(
-        one_time=True,
-        provider_customer_id=payment_method_attached_event["data"]["object"]["customer"],
-    )
-    spy = mocker.spy(Contribution, "save")
-    response = client.post(reverse("stripe-webhooks-contributions"), data=payment_method_attached_event, **header)
-    spy.assert_called_once_with(contribution, update_fields={"provider_payment_method_id", "modified"})
-    assert response.status_code == status.HTTP_200_OK
-    contribution.refresh_from_db()
-    assert contribution.provider_payment_method_id == payment_method_attached_event["data"]["object"]["id"]
 
 
 @pytest.mark.django_db()

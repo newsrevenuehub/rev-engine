@@ -24,13 +24,6 @@ class TestStripeWebhookProcessor:
         return payment_intent_succeeded_one_time_event, contribution
 
     @pytest.fixture
-    def payment_method_test_case(self, payment_method_attached_event):
-        contribution = ContributionFactory(
-            provider_customer_id=payment_method_attached_event["data"]["object"]["customer"]
-        )
-        return payment_method_attached_event, contribution
-
-    @pytest.fixture
     def invoice_test_case(self, invoice_upcoming_event):
         contribution = ContributionFactory(
             provider_subscription_id=invoice_upcoming_event["data"]["object"]["subscription"]
@@ -54,7 +47,6 @@ class TestStripeWebhookProcessor:
     @pytest.fixture(
         params=[
             "payment_intent_test_case",
-            "payment_method_test_case",
             "invoice_test_case",
             "charge_test_case",
             "subscription_test_case",

@@ -245,3 +245,7 @@ class StripePaymentMetadataSchemaV1_5(StripePaymentMetadataSchemaV1_4):
         # 1.5 omits this field from 1.4, with which it otherwise shares a schema. We default value to None above,
         # but here we need to also exclude so it doesn't show up when converting to dict
         exclude = {"contributor_id"}
+
+
+class SupportedStripePaymentMetadataSchema(Union(StripePaymentMetadataSchemaV1_4, StripePaymentMetadataSchemaV1_5)):
+    """This is a union of all supported metadata schemas"""

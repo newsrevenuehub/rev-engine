@@ -206,10 +206,3 @@ def process_stripe_webhook_task(self, raw_event_data: dict) -> None:
         # first/next(in NRE platform) payment date.
         # TODO: [DEV-4151] Add some sort of analytics / telemetry to track how often this happens
         logger.info("Could not find contribution. Here's the event data: %s", event, exc_info=True)
-
-
-@shared_task
-def sync_missing_contributions_and_payments_from_stripe():
-    logger.info("Running `sync_missing_contributions_from_stripe`")
-    
-    logger.info("`sync_missing_contributions_from_stripe` is done")

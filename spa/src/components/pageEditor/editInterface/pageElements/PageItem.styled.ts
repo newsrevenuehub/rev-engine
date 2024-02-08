@@ -1,4 +1,11 @@
+import { IconButton } from 'components/base';
 import styled from 'styled-components';
+
+export const DeleteIconButton = styled(IconButton)`
+  &&:hover svg {
+    color: ${({ theme }) => theme.basePalette.secondary.error};
+  }
+`;
 
 export const PageItem = styled.div<{ $disabled: boolean }>`
   cursor: ${(props) => (props.$disabled ? 'not-allowed' : 'pointer')};

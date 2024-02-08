@@ -1,4 +1,7 @@
-import PriceChange from '@material-design-icons/svg/outlined/price_change.svg?react';
+import AttachMoney from '@material-design-icons/svg/outlined/attach_money.svg?react';
+import HomeWork from '@material-design-icons/svg/outlined/home_work.svg?react';
+import Image from '@material-design-icons/svg/outlined/image.svg?react';
+import ShoppingBasket from '@material-design-icons/svg/outlined/shopping_basket.svg?react';
 import VolunteerActivism from '@material-design-icons/svg/outlined/volunteer_activism.svg?react';
 import * as S from './PageItem.styled';
 import PropTypes, { InferProps } from 'prop-types';
@@ -9,13 +12,10 @@ import { ContributionPageElement, PageElementType } from 'hooks/useContributionP
 import {
   DeleteOutline,
   EditOutlined,
-  HomeWork,
-  Image,
   Payment,
   Person,
   Schedule,
   SentimentVerySatisfied,
-  ShoppingBasket,
   TextFields
 } from '@material-ui/icons';
 import { ComponentType } from 'react';
@@ -27,7 +27,7 @@ const dynamicElements = {
 } as Record<PageElementType, Partial<ContributionPageElement>>;
 
 const elementIcons: Record<PageElementType, ComponentType> = {
-  DAmount: PriceChange,
+  DAmount: AttachMoney,
   DBenefits: SentimentVerySatisfied,
   DDonorInfo: Person,
   DDonorAddress: HomeWork,
@@ -74,14 +74,14 @@ function PageItem({ element, disabled, isStatic, handleItemEdit, handleItemDelet
                   </IconButton>
                 )}
                 {handleItemDelete && !dynamicElements[element.type].required && (
-                  <IconButton
+                  <S.DeleteIconButton
                     aria-label={`Remove ${element.type} block`}
                     color="text"
                     onClick={handleItemDelete}
                     data-testid="trash-button"
                   >
                     <DeleteOutline />
-                  </IconButton>
+                  </S.DeleteIconButton>
                 )}
               </S.ContentRight>
             )}

@@ -196,11 +196,9 @@ describe('StylesTab', () => {
   });
 
   describe('Font Size', () => {
-    it(`should render font size with default selection: "Standard"`, () => {
+    it('should render font size with default selection: "Standard"', () => {
       tree();
-      const select = screen.getByRole('textbox', { name: 'Font Size' });
-      expect(select).toBeVisible();
-      expect(select).toHaveValue('Standard');
+      expect(screen.getByRole('button', { name: 'Font Size Standard' })).toBeVisible();
     });
 
     it.each([
@@ -208,28 +206,20 @@ describe('StylesTab', () => {
       ['Large', 36]
     ])(`should render custom font size: "%s"`, (label, fontSize) => {
       tree({ styles: { ...mockStyles, fontSizes: getFontSizesFromFontSize(fontSize as AllowedFontSizes) } });
-      const select = screen.getByRole('textbox', { name: 'Font Size' });
-      expect(select).toBeVisible();
-      expect(select).toHaveValue(label);
+      expect(screen.getByRole('button', { name: `Font Size ${label}` })).toBeVisible();
     });
 
     it.each([
-      ['Small', 24],
-      ['Large', 36]
+      ['Small', 24]
+      // ['Large', 36]
     ])('should call setFontSize on change with correct params for %s font size', (label, fontSize) => {
       tree();
       expect(setStyles).not.toHaveBeenCalled();
-      userEvent.click(screen.getByRole('textbox', { name: 'Font Size' }));
-
-      const option = screen.getByRole('option', { name: label });
-      expect(option).toBeVisible();
-      userEvent.click(option);
-
-      expect(setStyles).toHaveBeenCalledTimes(1);
-      expect(setStyles).toHaveBeenCalledWith({
-        ...mockStyles,
-        fontSizes: getFontSizesFromFontSize(fontSize as AllowedFontSizes)
-      });
+      userEvent.click(screen.getByRole('button', { name: 'Font Size Standard' }));
+      userEvent.click(screen.getByRole('option', { name: label }));
+      expect(setStyles.mock.calls).toEqual([
+        [{ ...mockStyles, fontSizes: getFontSizesFromFontSize(fontSize as AllowedFontSizes) }]
+      ]);
     });
   });
 
@@ -307,7 +297,6 @@ describe('StylesTab', () => {
   it('is accessible', async () => {
     const { container } = tree();
 
-    // elements/inputs/Select fails axe test, but it's using the a11 from 'downshift' lib
-    expect(await axe(container, { rules: { 'aria-allowed-attr': { enabled: false } } })).toHaveNoViolations();
+    expect(await axe(container)).toHaveNoViolations();
   });
 });

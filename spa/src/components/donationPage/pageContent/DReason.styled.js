@@ -1,3 +1,4 @@
+import { TextField } from 'components/base';
 import styled from 'styled-components';
 import { motion } from 'framer-motion';
 import Input from 'elements/inputs/Input';
@@ -5,6 +6,13 @@ import Input from 'elements/inputs/Input';
 // Deps
 import MaterialCheckbox from '@material-ui/core/Checkbox';
 import MaterialRadio from '@material-ui/core/Radio';
+
+export const ReasonSelect = styled(TextField)`
+  && .NreTextFieldInput {
+    background: ${({ theme }) => theme.colors.cstm_inputBackground};
+    border-color: ${({ theme }) => theme.colors.cstm_inputBorder};
+  }
+`;
 
 export const ReasonGroup = styled.div`
   margin-bottom: 2rem;

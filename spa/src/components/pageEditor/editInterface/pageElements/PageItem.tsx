@@ -3,12 +3,6 @@ import HomeWork from '@material-design-icons/svg/outlined/home_work.svg?react';
 import Image from '@material-design-icons/svg/outlined/image.svg?react';
 import ShoppingBasket from '@material-design-icons/svg/outlined/shopping_basket.svg?react';
 import VolunteerActivism from '@material-design-icons/svg/outlined/volunteer_activism.svg?react';
-import * as S from './PageItem.styled';
-import PropTypes, { InferProps } from 'prop-types';
-import * as dynamicPageElements from 'components/donationPage/pageContent/dynamicElements';
-import * as dynamicSidebarElements from 'components/donationPage/pageContent/dynamicSidebarElements';
-import { NoComponentError } from 'components/donationPage/pageGetters';
-import { ContributionPageElement, PageElementType } from 'hooks/useContributionPage';
 import {
   DeleteOutline,
   EditOutlined,
@@ -18,8 +12,22 @@ import {
   SentimentVerySatisfied,
   TextFields
 } from '@material-ui/icons';
+import PropTypes, { InferProps } from 'prop-types';
 import { ComponentType } from 'react';
-import { IconButton } from 'components/base';
+import { Tooltip } from 'components/base';
+import * as dynamicPageElements from 'components/donationPage/pageContent/dynamicElements';
+import * as dynamicSidebarElements from 'components/donationPage/pageContent/dynamicSidebarElements';
+import { NoComponentError } from 'components/donationPage/pageGetters';
+import { ContributionPageElement, PageElementType } from 'hooks/useContributionPage';
+import {
+  ControlIconButton,
+  Controls,
+  Header,
+  HeaderDescription,
+  HeaderIcon,
+  HeaderTitle,
+  Root
+} from './PageItem.styled';
 
 const dynamicElements = {
   ...dynamicPageElements,
@@ -48,49 +56,51 @@ function PageItem({ element, disabled, isStatic, handleItemEdit, handleItemDelet
   const ElementIcon = elementIcons[element.type];
 
   return (
-    <S.PageItem $disabled={!!disabled} {...props} data-testid={`page-item-${element.type}`}>
+    <Root $disabled={!!disabled} $isStatic={!!isStatic} {...props} data-testid={`page-item-${element.type}`}>
       {dynamicElements[element.type] ? (
         <>
-          <S.ItemIconWrapper>
-            <S.ItemIcon $disabled={!!disabled}>
-              <ElementIcon />
-            </S.ItemIcon>
-          </S.ItemIconWrapper>
-          <S.ItemContentWrapper>
-            <S.ContentLeft>
-              <S.ItemName>{dynamicElements[element.type].displayName}</S.ItemName>
-              <S.ItemDescription>{dynamicElements[element.type].description}</S.ItemDescription>
-            </S.ContentLeft>
-            {!isStatic && (
-              <S.ContentRight>
-                {handleItemEdit && (
-                  <IconButton
-                    aria-label={`Edit ${element.type} block`}
-                    color="text"
-                    onClick={handleItemEdit}
-                    data-testid="pencil-button"
-                  >
-                    <EditOutlined />
-                  </IconButton>
-                )}
-                {handleItemDelete && !dynamicElements[element.type].required && (
-                  <S.DeleteIconButton
-                    aria-label={`Remove ${element.type} block`}
+          <div>
+            <Header>
+              <HeaderIcon $disabled={!!disabled}>
+                <ElementIcon />
+              </HeaderIcon>
+              <HeaderTitle $disabled={!!disabled}>{dynamicElements[element.type].displayName}</HeaderTitle>
+            </Header>
+            <HeaderDescription>{dynamicElements[element.type].description}</HeaderDescription>
+          </div>
+          {!isStatic && (
+            <Controls>
+              {handleItemDelete && !dynamicElements[element.type].required && (
+                <Tooltip title={`Remove ${dynamicElements[element.type].displayName}`}>
+                  <ControlIconButton
+                    aria-label={`Remove ${dynamicElements[element.type].displayName}`}
                     color="text"
                     onClick={handleItemDelete}
                     data-testid="trash-button"
                   >
                     <DeleteOutline />
-                  </S.DeleteIconButton>
-                )}
-              </S.ContentRight>
-            )}
-          </S.ItemContentWrapper>
+                  </ControlIconButton>
+                </Tooltip>
+              )}
+              {handleItemEdit && (
+                <Tooltip title={`Edit ${dynamicElements[element.type].displayName}`}>
+                  <ControlIconButton
+                    aria-label={`Edit ${dynamicElements[element.type].displayName}`}
+                    color="text"
+                    onClick={handleItemEdit}
+                    data-testid="pencil-button"
+                  >
+                    <EditOutlined />
+                  </ControlIconButton>
+                </Tooltip>
+              )}
+            </Controls>
+          )}
         </>
       ) : (
         <NoComponentError name={element.type} />
       )}
-    </S.PageItem>
+    </Root>
   );
 }
 

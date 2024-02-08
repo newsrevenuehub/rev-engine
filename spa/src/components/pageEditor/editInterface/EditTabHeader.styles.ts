@@ -12,5 +12,5 @@ export const Root = styled.div`
   margin: 0 auto;
   min-height: 56px; /* force height to be consistent even if button is not present */
   padding-top: 20px;
-  width: 90%; /* mimicking content container */
+  width: 450px; /* mimicking content container */
 `;

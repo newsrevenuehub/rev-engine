@@ -2,18 +2,18 @@ import styled from 'styled-components';
 
 export const DraggableListStyles = {
   padding: 0,
-  width: '90%',
+  width: '450px',
   margin: '0 auto'
 };
 
 export const DraggableListItemStyles = {
   width: '100%',
   listStyle: 'none',
-  margin: '2rem 0'
+  margin: '16px 0'
 };
 
 export const ItemActiveStyles = {
-  whileHover: {
+  whileDrag: {
     scale: 1.03
   }
 };

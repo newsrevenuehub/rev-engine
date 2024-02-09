@@ -279,6 +279,12 @@ describe('serializeData', () => {
     expect(serializeData(mockForm, { ...mockState, salesforceCampaignId: 'test-id' })).toEqual(
       expect.objectContaining({ sf_campaign_id: 'test-id' })
     ));
+
+  it('throws an error if not given a form element', () => {
+    expect(() => serializeData(document.createElement('div') as any, mockState)).toThrow();
+    expect(() => serializeData(null as any, mockState)).toThrow();
+    expect(() => serializeData(undefined as any, mockState)).toThrow();
+  });
 });
 
 describe('getPaymentElementButtonText', () => {

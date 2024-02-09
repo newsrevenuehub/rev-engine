@@ -4,7 +4,7 @@ import { PortalContributionDetail } from 'hooks/usePortalContribution';
 import { PORTAL } from 'routes';
 import formatCurrencyAmount from 'utilities/formatCurrencyAmount';
 import { BackButton, Heading, Amount, PaymentDate, NextPaymentDate, Root } from './MobileHeader.styled';
-import Banner from './Banner';
+import Banner from '../Banner/Banner';
 
 const MobileHeaderPropTypes = {
   contribution: PropTypes.object.isRequired

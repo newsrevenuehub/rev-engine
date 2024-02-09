@@ -57,6 +57,12 @@ export interface PortalContributionUpdate {
   provider_payment_method_id: string;
 }
 
+/**
+ * Possible types of updates: used to display a success message to the user.
+ * For now, only payment method is possible.
+ */
+export type PortalContributionUpdateType = 'paymentMethod';
+
 async function fetchContribution(contributorId: number, contributionId: number) {
   const { data } = await axios.get<PortalContributionDetail>(
     getContributionDetailEndpoint(contributorId, contributionId)
@@ -113,8 +119,8 @@ export function usePortalContribution(contributorId: number, contributionId: num
   );
 
   const updateContributionMutation = useMutation(
-    (data: PortalContributionUpdate) => {
-      return axios.patch(getContributionDetailEndpoint(contributorId, contributionId), data);
+    (update: { data: PortalContributionUpdate; type: PortalContributionUpdateType }) => {
+      return axios.patch(getContributionDetailEndpoint(contributorId, contributionId), update.data);
     },
     {
       onError: () => {
@@ -125,15 +131,33 @@ export function usePortalContribution(contributorId: number, contributionId: num
           )
         });
       },
-      onSuccess: () => {
-        // Don't show a snackbar because the consumer will show a customized message
-        // depending on what changed.
+      onSuccess: (_, { type }) => {
+        switch (type) {
+          case 'paymentMethod':
+            enqueueSnackbar(
+              'Your billing details have been successfully updated. Changes may not be reflected in portal immediately.',
+              {
+                persist: true,
+                content: (key: string, message: string) => (
+                  <SystemNotification id={key} message={message} header="Billing Updated!" type="success" />
+                )
+              }
+            );
+            break;
+
+          default:
+            // Should never happen. Since we're just showing a notification,
+            // let the user proceed, log an error and keep going.
+            console.error(`Don't know how to show success notification for update type "${type}"`);
+        }
+
         queryClient.invalidateQueries(['portalContribution', contributorId, contributionId]);
       }
     }
   );
   const updateContribution = useCallback(
-    (data: PortalContributionUpdate) => updateContributionMutation.mutateAsync(data),
+    (data: PortalContributionUpdate, type: PortalContributionUpdateType) =>
+      updateContributionMutation.mutateAsync({ data, type }),
     [updateContributionMutation]
   );
 

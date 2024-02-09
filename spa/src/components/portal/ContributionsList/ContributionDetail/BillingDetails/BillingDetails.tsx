@@ -4,10 +4,12 @@ import { ContributionInterval } from 'constants/contributionIntervals';
 import { PortalContributionDetail } from 'hooks/usePortalContribution';
 import formatCurrencyAmount from 'utilities/formatCurrencyAmount';
 import { CheckboxLabel } from './BillingDetails.styled';
-import { Columns, Detail, Heading, Subheading } from './common.styled';
+import { Columns, Detail, Subheading } from '../common.styled';
+import { DetailSection } from '../DetailSection';
 
 const BillingDetailsPropTypes = {
-  contribution: PropTypes.object.isRequired
+  contribution: PropTypes.object.isRequired,
+  disabled: PropTypes.bool
 };
 
 export interface BillingDetailsProps extends InferProps<typeof BillingDetailsPropTypes> {
@@ -25,14 +27,13 @@ export const INTERVAL_NAMES: Record<ContributionInterval, string> = {
 
 // This will eventually have an editable state.
 
-export function BillingDetails({ contribution }: BillingDetailsProps) {
+export function BillingDetails({ contribution, disabled }: BillingDetailsProps) {
   const formattedDate = Intl.DateTimeFormat(undefined, { day: 'numeric', month: 'long', year: 'numeric' }).format(
     new Date(contribution.created)
   );
 
   return (
-    <>
-      <Heading>Billing Details</Heading>
+    <DetailSection disabled={disabled} title="Billing Details">
       <Columns>
         <div>
           <Subheading>Amount</Subheading>
@@ -53,7 +54,7 @@ export function BillingDetails({ contribution }: BillingDetailsProps) {
           <Detail data-testid="frequency">{INTERVAL_NAMES[contribution.interval]}</Detail>
         </div>
       </Columns>
-    </>
+    </DetailSection>
   );
 }
 

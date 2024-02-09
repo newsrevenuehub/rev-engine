@@ -3,9 +3,10 @@ import { Table, TableBody } from 'components/base';
 import { PortalContributionPayment } from 'hooks/usePortalContribution';
 import formatCurrencyAmount from 'utilities/formatCurrencyAmount';
 import { TableCell, TableHead, TableRow } from './BillingHistory.styled';
-import { Heading } from './common.styled';
+import { DetailSection } from '../DetailSection';
 
 const BillingHistoryPropTypes = {
+  disabled: PropTypes.bool,
   payments: PropTypes.array.isRequired
 };
 
@@ -20,10 +21,9 @@ const PAYMENT_STATUS_NAMES: Record<PortalContributionPayment['status'], string> 
 
 const dateFormatter = Intl.DateTimeFormat(undefined, { day: 'numeric', month: 'numeric', year: 'numeric' });
 
-export function BillingHistory({ payments }: BillingHistoryProps) {
+export function BillingHistory({ disabled, payments }: BillingHistoryProps) {
   return (
-    <>
-      <Heading>Billing History</Heading>
+    <DetailSection disabled={disabled} title="Billing History">
       <Table>
         <TableHead>
           <TableRow>
@@ -42,7 +42,7 @@ export function BillingHistory({ payments }: BillingHistoryProps) {
           ))}
         </TableBody>
       </Table>
-    </>
+    </DetailSection>
   );
 }
 

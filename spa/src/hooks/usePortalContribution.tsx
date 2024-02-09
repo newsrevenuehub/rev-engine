@@ -4,8 +4,10 @@ import { getContributionDetailEndpoint } from 'ajax/endpoints';
 import { AxiosError } from 'axios';
 import SystemNotification from 'components/common/SystemNotification';
 import { useSnackbar } from 'notistack';
-import { useCallback } from 'react';
+import { useCallback, useEffect } from 'react';
 import { PortalContribution } from './usePortalContributionList';
+import { useHistory } from 'react-router-dom';
+import { PORTAL } from 'routes';
 
 export interface PortalContributionPayment {
   /**
@@ -63,6 +65,8 @@ export interface PortalContributionUpdate {
  */
 export type PortalContributionUpdateType = 'paymentMethod';
 
+const isAuthenticationError = (error: AxiosError) => error?.name === 'AuthenticationError';
+
 async function fetchContribution(contributorId: number, contributionId: number) {
   const { data } = await axios.get<PortalContributionDetail>(
     getContributionDetailEndpoint(contributorId, contributionId)
@@ -75,14 +79,43 @@ async function fetchContribution(contributorId: number, contributionId: number) 
  * Manages a single contribution the user has made.
  */
 export function usePortalContribution(contributorId: number, contributionId: number) {
+  const history = useHistory();
   const { enqueueSnackbar } = useSnackbar();
   const queryClient = useQueryClient();
 
-  const { data, isError, isFetching, isLoading, refetch } = useQuery(
+  const {
+    data,
+    isError,
+    isFetching,
+    isLoading,
+    refetch,
+    error: fetchError
+  } = useQuery(
     ['portalContribution', contributorId, contributionId],
     () => fetchContribution(contributorId, contributionId),
     { keepPreviousData: true }
   );
+
+  const redirectToLogin = useCallback(() => {
+    history.push(PORTAL.ENTRY);
+  }, [history]);
+
+  // Refresh the contribution details and list after 15 seconds to allow the backend / stripe to process the cancellation.
+  const refreshAfterTimeout = useCallback(
+    (timeout = 15000) => {
+      setTimeout(() => {
+        queryClient.invalidateQueries(['portalContributionList']);
+        queryClient.invalidateQueries(['portalContribution', contributorId, contributionId]);
+      }, timeout);
+    },
+    [contributionId, contributorId, queryClient]
+  );
+
+  useEffect(() => {
+    if (isAuthenticationError(fetchError as AxiosError)) {
+      redirectToLogin();
+    }
+  }, [fetchError, redirectToLogin]);
 
   const { mutateAsync: cancelContribution } = useMutation(
     async () => {
@@ -93,11 +126,7 @@ export function usePortalContribution(contributorId: number, contributionId: num
         // Invalidate contribution details for `is_cancelable` to be updated.
         queryClient.invalidateQueries(['portalContribution', contributorId, contributionId]);
 
-        setTimeout(() => {
-          // Refresh the contribution details and list after 15 seconds to allow the backend / stripe to process the cancellation.
-          queryClient.invalidateQueries(['portalContributionList']);
-          queryClient.invalidateQueries(['portalContribution', contributorId, contributionId]);
-        }, 15000);
+        refreshAfterTimeout();
 
         enqueueSnackbar('Your contribution has been successfully canceled.', {
           persist: true,
@@ -107,6 +136,10 @@ export function usePortalContribution(contributorId: number, contributionId: num
         });
       },
       onError: (error: AxiosError) => {
+        if (isAuthenticationError(error as AxiosError)) {
+          redirectToLogin();
+          return;
+        }
         console.error('[usePortalContribution:cancelContribution] ', error);
         enqueueSnackbar(error?.response?.data?.detail ?? 'Something went wrong. Please, try again later.', {
           persist: true,
@@ -123,7 +156,11 @@ export function usePortalContribution(contributorId: number, contributionId: num
       return axios.patch(getContributionDetailEndpoint(contributorId, contributionId), update.data);
     },
     {
-      onError: () => {
+      onError: (err: AxiosError) => {
+        if (isAuthenticationError(err)) {
+          redirectToLogin();
+          return;
+        }
         enqueueSnackbar('A problem occurred while updating your contribution. Please try again.', {
           persist: true,
           content: (key: string, message: string) => (
@@ -152,6 +189,8 @@ export function usePortalContribution(contributorId: number, contributionId: num
         }
 
         queryClient.invalidateQueries(['portalContribution', contributorId, contributionId]);
+
+        refreshAfterTimeout();
       }
     }
   );

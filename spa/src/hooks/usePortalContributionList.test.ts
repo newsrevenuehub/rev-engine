@@ -3,6 +3,11 @@ import Axios from 'ajax/axios';
 import { TestQueryClientProvider } from 'test-utils';
 import { ContributionListResponse, usePortalContributionList } from './usePortalContributionList';
 import { renderHook } from '@testing-library/react-hooks';
+import { useHistory } from 'react-router-dom';
+
+jest.mock('react-router-dom', () => ({
+  useHistory: jest.fn()
+}));
 
 const mockContributionResponse: ContributionListResponse = {
   count: 2,
@@ -50,8 +55,10 @@ function hook(contributorId?: number) {
 
 describe('usePortalContributionList', () => {
   const axiosMock = new MockAdapter(Axios);
+  const useHistoryMock = jest.mocked(useHistory);
 
   beforeEach(() => {
+    useHistoryMock.mockReturnValue({ push: jest.fn() });
     axiosMock.onGet('contributors/123/contributions/').reply(200, mockContributionResponse);
   });
   afterEach(() => axiosMock.reset());
@@ -92,10 +99,23 @@ describe('usePortalContributionList', () => {
       expect(axiosMock.history.get[0].url).toBe('/contributors/123/contributions/');
     });
 
+    it('does not redirect if fetching succeeds', async () => {
+      const push = jest.fn();
+      useHistoryMock.mockReturnValue({ push });
+
+      const { result, waitFor } = hook(123);
+
+      await waitFor(() => expect(axiosMock.history.get.length).toBe(1));
+      expect(push).not.toHaveBeenCalled();
+      expect(result.error).toBeUndefined();
+    });
+
     describe('When fetching contributions fails', () => {
       let errorSpy: jest.SpyInstance;
+      const push = jest.fn();
 
       beforeEach(() => {
+        useHistoryMock.mockReturnValue({ push });
         axiosMock.onGet('contributors/123/contributions/').networkError();
         errorSpy = jest.spyOn(console, 'error').mockImplementation(() => {});
       });
@@ -112,6 +132,26 @@ describe('usePortalContributionList', () => {
         const { result, waitFor } = hook(123);
 
         await waitFor(() => expect(axiosMock.history.get.length).toBe(1));
+        expect(result.current.contributions).toEqual([]);
+      });
+
+      it('does not redirect if error is not an Authentication Error', async () => {
+        const { waitFor } = hook(123);
+
+        await waitFor(() => expect(axiosMock.history.get.length).toBe(1));
+        expect(push).not.toHaveBeenCalled();
+      });
+
+      it('redirects user to magic link (login) page if error = Authentication Error', async () => {
+        axiosMock.onGet('contributors/123/contributions/').reply(401);
+
+        expect(push).not.toHaveBeenCalled();
+
+        const { result, waitFor } = hook(123);
+
+        await waitFor(() => expect(axiosMock.history.get.length).toBe(1));
+        expect(push).toHaveBeenCalledWith('/portal/');
+        expect(result.current.isError).toBe(true);
         expect(result.current.contributions).toEqual([]);
       });
     });

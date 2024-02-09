@@ -5,7 +5,11 @@ import MockAdapter from 'axios-mock-adapter';
 import { useSnackbar } from 'notistack';
 import { TestQueryClientProvider } from 'test-utils';
 import { usePortalContribution } from './usePortalContribution';
+import { useHistory } from 'react-router-dom';
 
+jest.mock('react-router-dom', () => ({
+  useHistory: jest.fn()
+}));
 jest.mock('@tanstack/react-query', () => ({
   ...jest.requireActual('@tanstack/react-query'),
   useQueryClient: jest.fn()
@@ -40,17 +44,17 @@ function hook(contributorId: number, contributionId: number) {
 }
 
 describe('usePortalContribution', () => {
+  const useHistoryMock = jest.mocked(useHistory);
   const useQueryClientMock = useQueryClient as jest.Mock;
   const useSnackbarMock = useSnackbar as jest.Mock;
   const axiosMock = new MockAdapter(Axios);
   let enqueueSnackbar: jest.Mock;
+  const push = jest.fn();
 
   beforeEach(() => {
+    useHistoryMock.mockReturnValue({ push });
     axiosMock.onGet('contributors/123/contributions/1/').reply(200, mockContributionResponse);
     axiosMock.onPatch('contributors/123/contributions/1/').reply(200);
-  });
-
-  beforeEach(() => {
     enqueueSnackbar = jest.fn();
     useSnackbarMock.mockReturnValue({ enqueueSnackbar } as any);
     useQueryClientMock.mockReturnValue({
@@ -110,6 +114,17 @@ describe('usePortalContribution', () => {
 
       await waitFor(() => expect(axiosMock.history.get.length).toBe(1));
       expect(result.current.contribution).toBeUndefined();
+    });
+
+    it('redirects user to magic link (login) page if GET error = Authentication Error', async () => {
+      axiosMock.onGet('contributors/123/contributions/1/').reply(401);
+
+      expect(push).not.toHaveBeenCalled();
+
+      const { waitFor } = hook(123, 1);
+
+      await waitFor(() => expect(axiosMock.history.get.length).toBe(1));
+      expect(push).toHaveBeenCalledWith('/portal/');
     });
   });
 
@@ -196,6 +211,24 @@ describe('usePortalContribution', () => {
       );
     });
 
+    it('redirects user to magic link (login) page if DELETE error = Authentication Error', async () => {
+      axiosMock.onDelete('contributors/123/contributions/1/').reply(401);
+
+      expect(push).not.toHaveBeenCalled();
+
+      const { result, waitFor } = hook(123, 1);
+
+      await waitFor(() => expect(axiosMock.history.get.length).toBe(1));
+
+      try {
+        await result.current.cancelContribution();
+      } catch {}
+
+      await waitFor(() => expect(axiosMock.history.delete.length).toBe(1));
+
+      expect(push).toHaveBeenCalledWith('/portal/');
+    });
+
     it('invalidates the contribution list and detail query', async () => {
       const { result, waitFor } = hook(123, 1);
 
@@ -240,6 +273,30 @@ describe('usePortalContribution', () => {
       );
     });
 
+    it('invalidates the contribution list and detail query after 15s', async () => {
+      const invalidateQueries = jest.fn();
+      useQueryClientMock.mockReturnValue({
+        invalidateQueries
+      });
+      const { result, waitFor } = hook(123, 1);
+
+      await waitFor(() => expect(axiosMock.history.get.length).toBe(1));
+      expect(invalidateQueries).not.toHaveBeenCalled();
+      jest.useFakeTimers();
+      await result.current.updateContribution({ provider_payment_method_id: 'new-id' }, 'paymentMethod');
+      await waitFor(() => expect(axiosMock.history.patch.length).toBe(1));
+
+      expect(invalidateQueries).toHaveBeenCalledWith(['portalContribution', 123, 1]);
+      expect(invalidateQueries).toHaveBeenCalledTimes(1);
+      act(() => {
+        jest.runAllTimers();
+      });
+      await waitFor(() => expect(invalidateQueries).toHaveBeenCalledTimes(3));
+      expect(invalidateQueries).toHaveBeenCalledWith(['portalContributionList']);
+      expect(invalidateQueries).toHaveBeenLastCalledWith(['portalContribution', 123, 1]);
+      jest.useRealTimers();
+    });
+
     it('resolves with the request and shows a notification if the PATCH succeeds', async () => {
       const { result } = hook(123, 1);
 
@@ -269,6 +326,24 @@ describe('usePortalContribution', () => {
         ]
       ]);
       errorSpy.mockRestore();
+    });
+
+    it('redirects user to magic link (login) page if PATCH error = Authentication Error', async () => {
+      axiosMock.onPatch('contributors/123/contributions/1/').reply(401);
+
+      expect(push).not.toHaveBeenCalled();
+
+      const { result, waitFor } = hook(123, 1);
+
+      await waitFor(() => expect(axiosMock.history.get.length).toBe(1));
+
+      try {
+        await result.current.updateContribution({ provider_payment_method_id: 'new-id' }, 'paymentMethod');
+      } catch {}
+
+      await waitFor(() => expect(axiosMock.history.patch.length).toBe(1));
+
+      expect(push).toHaveBeenCalledWith('/portal/');
     });
   });
 });

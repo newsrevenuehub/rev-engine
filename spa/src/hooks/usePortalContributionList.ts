@@ -1,9 +1,13 @@
 import { useQuery } from '@tanstack/react-query';
+import { useHistory } from 'react-router-dom';
 import queryString from 'query-string';
 import axios from 'ajax/axios';
 import { getContributionsEndpoint } from 'ajax/endpoints';
 import { ContributionInterval } from 'constants/contributionIntervals';
 import { PaymentStatus } from 'constants/paymentStatus';
+import { PORTAL } from 'routes';
+import { AxiosError } from 'axios';
+import { useEffect } from 'react';
 
 export type CardBrand = 'amex' | 'diners' | 'discover' | 'jcb' | 'mastercard' | 'unionpay' | 'visa' | 'unknown';
 
@@ -90,11 +94,28 @@ async function fetchContributions(contributorId: number, queryParams?: string) {
  * into the portal.
  */
 export function usePortalContributionList(contributorId?: number, queryParams?: { ordering: string }) {
-  const { data, isError, isFetching, isLoading, refetch } = useQuery(
+  const history = useHistory();
+
+  const { data, isError, isFetching, isLoading, refetch, error } = useQuery(
     ['portalContributionList', queryParams?.ordering],
     () => fetchContributions(contributorId!, queryString.stringify(queryParams || {})),
     { enabled: !!contributorId, keepPreviousData: true }
   );
+
+  useEffect(() => {
+    if ((error as AxiosError)?.name === 'AuthenticationError') {
+      // Redirect to portal login page
+      history.push(PORTAL.ENTRY);
+
+      // TODO: waiting on Rachel's approval
+      // enqueueSnackbar('Please request another magic link to see your contributions.', {
+      //   persist: true,
+      //   content: (key: string, message: string) => (
+      //     <SystemNotification id={key} message={message} header="Authentication failed" type="error" />
+      //   )
+      // });
+    }
+  }, [error, history]);
 
   return { contributions: data?.results ?? [], isError, isFetching, isLoading, refetch };
 }

@@ -1,6 +1,6 @@
 import { axe } from 'jest-axe';
 import { useSnackbar } from 'notistack';
-import { fireEvent, render, screen, waitFor } from 'test-utils';
+import { fireEvent, render, screen } from 'test-utils';
 import ContributionDetail, { ContributionDetailProps } from './ContributionDetail';
 import { usePortalContribution } from 'hooks/usePortalContribution';
 
@@ -8,7 +8,7 @@ jest.mock('notistack');
 jest.mock('components/paymentProviders/stripe/StripePaymentWrapper');
 jest.mock('hooks/usePortalContribution');
 jest.mock('./useDetailAnchor');
-jest.mock('./Actions');
+jest.mock('./Actions/Actions');
 jest.mock('./BillingDetails/BillingDetails');
 jest.mock('./BillingHistory/BillingHistory');
 jest.mock('./MobileHeader/MobileHeader');

@@ -5,7 +5,7 @@ import { PortalContributionDetail } from 'hooks/usePortalContribution';
 import PropTypes, { InferProps } from 'prop-types';
 import { useCallback } from 'react';
 import { Root } from './Actions.styled';
-import CancelContributionModal from './modals/CancelContributionModal';
+import CancelContributionModal from '../modals/CancelContributionModal';
 
 const ActionsPropTypes = {
   contribution: PropTypes.object.isRequired,

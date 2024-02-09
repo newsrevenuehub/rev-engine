@@ -6,7 +6,7 @@ import { StripePaymentWrapper } from 'components/paymentProviders/stripe';
 import { usePortalContribution } from 'hooks/usePortalContribution';
 import ContributionFetchError from '../ContributionFetchError';
 import { useDetailAnchor } from './useDetailAnchor';
-import Actions from './Actions';
+import Actions from './Actions/Actions';
 import { BillingDetails } from './BillingDetails';
 import { BillingHistory } from './BillingHistory';
 import { PaymentMethod } from './PaymentMethod';

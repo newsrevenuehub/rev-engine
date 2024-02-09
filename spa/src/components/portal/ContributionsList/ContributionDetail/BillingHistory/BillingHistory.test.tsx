@@ -3,6 +3,8 @@ import { render, screen, within } from 'test-utils';
 import BillingHistory, { BillingHistoryProps } from './BillingHistory';
 import { PortalContributionPayment } from 'hooks/usePortalContribution';
 
+jest.mock('../DetailSection/DetailSection');
+
 const mockPayments: PortalContributionPayment[] = [
   {
     amount_refunded: 0,
@@ -28,6 +30,21 @@ describe('BillingHistory', () => {
   it('shows a header', () => {
     tree();
     expect(screen.getByText('Billing History')).toBeInTheDocument();
+  });
+
+  it("doesn't highlight its section", () => {
+    tree();
+    expect(screen.getByTestId('mock-detail-section').dataset.highlighted).toBeUndefined();
+  });
+
+  it('enables its section if not passed a disabled prop', () => {
+    tree();
+    expect(screen.getByTestId('mock-detail-section').dataset.disabled).toBeUndefined();
+  });
+
+  it('disables its section if passed a disabled prop', () => {
+    tree({ disabled: true });
+    expect(screen.getByTestId('mock-detail-section').dataset.disabled).toBe('true');
   });
 
   it('shows a row for each payment', () => {

@@ -230,7 +230,7 @@ describe('usePortalContribution', () => {
     it('makes a PATCH to /api/v1/contributions/', async () => {
       const { result, waitFor } = hook(123, 1);
 
-      result.current.updateContribution({ provider_payment_method_id: 'new-id' });
+      result.current.updateContribution({ provider_payment_method_id: 'new-id' }, 'paymentMethod');
       await waitFor(() => expect(axiosMock.history.patch.length).toBe(1));
       expect(axiosMock.history.patch[0]).toEqual(
         expect.objectContaining({
@@ -240,10 +240,18 @@ describe('usePortalContribution', () => {
       );
     });
 
-    it('resolves with the request if the PATCH succeeds', async () => {
+    it('resolves with the request and shows a notification if the PATCH succeeds', async () => {
       const { result } = hook(123, 1);
 
-      expect(await result.current.updateContribution({ provider_payment_method_id: 'new-id' })).not.toBe(undefined);
+      expect(
+        await result.current.updateContribution({ provider_payment_method_id: 'new-id' }, 'paymentMethod')
+      ).not.toBe(undefined);
+      expect(enqueueSnackbar.mock.calls).toEqual([
+        [
+          'Your billing details have been successfully updated. Changes may not be reflected in portal immediately.',
+          expect.objectContaining({ persist: true })
+        ]
+      ]);
     });
 
     it('rejects and shows an error notification if the PATCH fails', async () => {
@@ -251,7 +259,9 @@ describe('usePortalContribution', () => {
       const { result } = hook(123, 1);
 
       axiosMock.onPatch('contributors/123/contributions/1/').networkError();
-      await expect(result.current.updateContribution({ provider_payment_method_id: 'new-id' })).rejects.toThrow();
+      await expect(
+        result.current.updateContribution({ provider_payment_method_id: 'new-id' }, 'paymentMethod')
+      ).rejects.toThrow();
       expect(enqueueSnackbar.mock.calls).toEqual([
         [
           'A problem occurred while updating your contribution. Please try again.',

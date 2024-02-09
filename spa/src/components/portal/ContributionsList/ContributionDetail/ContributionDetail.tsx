@@ -1,14 +1,16 @@
-import PropTypes, { InferProps } from 'prop-types';
-import { useState } from 'react';
 import { CircularProgress } from 'components/base';
 import { usePortalContribution } from 'hooks/usePortalContribution';
+import PropTypes, { InferProps } from 'prop-types';
+import { useState } from 'react';
 import ContributionFetchError from '../ContributionFetchError';
-import { useDetailAnchor } from './useDetailAnchor';
+import Actions from './Actions';
 import BillingDetails from './BillingDetails';
 import BillingHistory from './BillingHistory';
-import PaymentMethod from './PaymentMethod';
+import { Desktop, Loading, Root } from './ContributionDetail.styled';
 import MobileHeader from './MobileHeader';
-import { Root, Loading } from './ContributionDetail.styled';
+import PaymentMethod from './PaymentMethod';
+import { useDetailAnchor } from './useDetailAnchor';
+import Banner from './Banner';
 
 const ContributionDetailPropTypes = {
   contributionId: PropTypes.number.isRequired,
@@ -19,7 +21,10 @@ const ContributionDetailPropTypes = {
 export type ContributionDetailProps = InferProps<typeof ContributionDetailPropTypes>;
 
 export function ContributionDetail({ domAnchor, contributionId, contributorId }: ContributionDetailProps) {
-  const { contribution, isError, isLoading, refetch } = usePortalContribution(contributorId, contributionId);
+  const { contribution, isError, isLoading, refetch, cancelContribution } = usePortalContribution(
+    contributorId,
+    contributionId
+  );
 
   // We need to store the root element in state so that changes to it trigger
   // the useDetailAnchor hook. We also assign different keys to the root element
@@ -50,10 +55,14 @@ export function ContributionDetail({ domAnchor, contributionId, contributorId }:
 
   return (
     <Root key="loaded" ref={setRootEl}>
+      <Desktop>
+        <Banner contribution={contribution} />
+      </Desktop>
       <MobileHeader contribution={contribution} />
       <BillingDetails contribution={contribution} />
       <PaymentMethod contribution={contribution} />
       <BillingHistory payments={contribution.payments} />
+      <Actions contribution={contribution} onCancelContribution={cancelContribution} />
     </Root>
   );
 }

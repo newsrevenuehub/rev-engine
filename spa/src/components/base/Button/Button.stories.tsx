@@ -1,4 +1,5 @@
 import { ComponentMeta, ComponentStory } from '@storybook/react';
+import Icon from '@material-design-icons/svg/filled/block.svg?react';
 import Button, { ButtonProps } from './Button';
 
 export default {
@@ -26,6 +27,10 @@ const Template: ComponentStory<typeof Button> = (args) => {
           <Button {...args} color={color as ButtonProps['color']} disabled />
         </>
       ))}
+      <Button startIcon={<Icon />} {...args} color="primaryDark" />
+      <Button endIcon={<Icon />} {...args} color="primaryDark" />
+      <Button startIcon={<Icon />} {...args} color="primaryLight" />
+      <Button endIcon={<Icon />} {...args} color="primaryLight" />
       <div style={{ alignItems: 'center', background: 'blue', display: 'grid', padding: 20 }}>
         <Button {...args} variant="outlined" />
       </div>

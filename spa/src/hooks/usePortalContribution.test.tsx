@@ -1,11 +1,20 @@
-import { renderHook } from '@testing-library/react-hooks';
+import { useQueryClient } from '@tanstack/react-query';
+import { act, renderHook } from '@testing-library/react-hooks';
+import Axios from 'ajax/axios';
 import MockAdapter from 'axios-mock-adapter';
 import { useSnackbar } from 'notistack';
-import Axios from 'ajax/axios';
 import { TestQueryClientProvider } from 'test-utils';
 import { usePortalContribution } from './usePortalContribution';
 
-jest.mock('notistack');
+jest.mock('@tanstack/react-query', () => ({
+  ...jest.requireActual('@tanstack/react-query'),
+  useQueryClient: jest.fn()
+}));
+
+jest.mock('notistack', () => ({
+  ...jest.requireActual('notistack'),
+  useSnackbar: jest.fn()
+}));
 
 const mockContributionResponse = {
   amount: 123,
@@ -31,8 +40,9 @@ function hook(contributorId: number, contributionId: number) {
 }
 
 describe('usePortalContribution', () => {
+  const useQueryClientMock = useQueryClient as jest.Mock;
+  const useSnackbarMock = useSnackbar as jest.Mock;
   const axiosMock = new MockAdapter(Axios);
-  const useSnackbarMock = jest.mocked(useSnackbar);
   let enqueueSnackbar: jest.Mock;
 
   beforeEach(() => {
@@ -43,6 +53,9 @@ describe('usePortalContribution', () => {
   beforeEach(() => {
     enqueueSnackbar = jest.fn();
     useSnackbarMock.mockReturnValue({ enqueueSnackbar } as any);
+    useQueryClientMock.mockReturnValue({
+      invalidateQueries: jest.fn()
+    });
   });
 
   afterEach(() => axiosMock.reset());
@@ -97,6 +110,109 @@ describe('usePortalContribution', () => {
 
       await waitFor(() => expect(axiosMock.history.get.length).toBe(1));
       expect(result.current.contribution).toBeUndefined();
+    });
+  });
+
+  describe('The cancelContribution function', () => {
+    let errorSpy: jest.SpyInstance;
+    const invalidateQueries = jest.fn();
+
+    beforeEach(() => {
+      errorSpy = jest.spyOn(console, 'error').mockImplementation(() => {});
+      useQueryClientMock.mockReturnValue({
+        invalidateQueries
+      });
+      axiosMock.onDelete('contributors/123/contributions/1/').reply(200);
+    });
+
+    afterEach(() => errorSpy.mockRestore());
+
+    it('calls the cancel endpoint', async () => {
+      const { result, waitFor } = hook(123, 1);
+
+      await waitFor(() => expect(axiosMock.history.get.length).toBe(1));
+
+      expect(axiosMock.history.delete.length).toBe(0);
+      await result.current.cancelContribution();
+      await waitFor(() => expect(axiosMock.history.delete.length).toBe(1));
+      expect(axiosMock.history.delete[0].url).toBe('/contributors/123/contributions/1/');
+    });
+
+    it('shows a success notification if cancel succeeds', async () => {
+      const { result, waitFor } = hook(123, 1);
+
+      await waitFor(() => expect(axiosMock.history.get.length).toBe(1));
+
+      expect(enqueueSnackbar).not.toHaveBeenCalled();
+      await result.current.cancelContribution();
+      await waitFor(() => expect(axiosMock.history.delete.length).toBe(1));
+
+      expect(enqueueSnackbar).toHaveBeenCalledWith(
+        'Your contribution has been successfully canceled.',
+        expect.objectContaining({ persist: true })
+      );
+    });
+
+    it('shows the default error notification if cancel fails', async () => {
+      axiosMock.onDelete('contributors/123/contributions/1/').networkError();
+
+      const { result, waitFor } = hook(123, 1);
+
+      await waitFor(() => expect(axiosMock.history.get.length).toBe(1));
+
+      expect(enqueueSnackbar).not.toHaveBeenCalled();
+      try {
+        await result.current.cancelContribution();
+      } catch {}
+
+      await waitFor(() => expect(axiosMock.history.delete.length).toBe(1));
+
+      await waitFor(() =>
+        expect(enqueueSnackbar).toHaveBeenCalledWith(
+          'Something went wrong. Please, try again later.',
+          expect.objectContaining({ persist: true })
+        )
+      );
+    });
+
+    it('shows the custom error message notification if cancel fails', async () => {
+      axiosMock.onDelete('contributors/123/contributions/1/').reply(400, {
+        detail: 'custom error message'
+      });
+
+      const { result, waitFor } = hook(123, 1);
+
+      await waitFor(() => expect(axiosMock.history.get.length).toBe(1));
+
+      expect(enqueueSnackbar).not.toHaveBeenCalled();
+      try {
+        await result.current.cancelContribution();
+      } catch {}
+
+      await waitFor(() => expect(axiosMock.history.delete.length).toBe(1));
+
+      await waitFor(() =>
+        expect(enqueueSnackbar).toHaveBeenCalledWith('custom error message', expect.objectContaining({ persist: true }))
+      );
+    });
+
+    it('invalidates the contribution list and detail query', async () => {
+      const { result, waitFor } = hook(123, 1);
+
+      await waitFor(() => expect(axiosMock.history.get.length).toBe(1));
+      expect(invalidateQueries).not.toHaveBeenCalled();
+      jest.useFakeTimers();
+      await result.current.cancelContribution();
+      await waitFor(() => expect(axiosMock.history.delete.length).toBe(1));
+      expect(invalidateQueries).toHaveBeenCalledWith(['portalContribution', 123, 1]);
+      expect(invalidateQueries).toHaveBeenCalledTimes(1);
+      act(() => {
+        jest.runAllTimers();
+      });
+      await waitFor(() => expect(invalidateQueries).toHaveBeenCalledTimes(3));
+      expect(invalidateQueries).toHaveBeenCalledWith(['portalContributionList']);
+      expect(invalidateQueries).toHaveBeenLastCalledWith(['portalContribution', 123, 1]);
+      jest.useRealTimers();
     });
   });
 

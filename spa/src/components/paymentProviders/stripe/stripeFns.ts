@@ -42,6 +42,15 @@ export function getTotalAmount(
 }
 
 function serializeForm(form: HTMLFormElement) {
+  // This function gets indirectly called by <DonationPage>, which is JSX
+  // currently, and in very limited circumstances seems to call us with an
+  // argument that isn't a form element. This extra check is to provide
+  // additional troubleshooting info.
+
+  if (!(form instanceof HTMLFormElement)) {
+    throw new Error(`Asked to serialize something not a form element: ${form}, ${JSON.stringify(form)}`);
+  }
+
   const booleans = ['swag_opt_out', 'tribute_type_honoree', 'tribute_type_in_memory_of'];
   const tributesToConvert = { tribute_type_honoree: 'type_honoree', tribute_type_in_memory_of: 'type_in_memory_of' };
   const obj: Record<string, File | boolean | null | string> = {};

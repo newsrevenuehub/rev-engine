@@ -2,15 +2,16 @@ import { PaymentMethod as StripePaymentMethod } from '@stripe/stripe-js';
 import PropTypes, { InferProps } from 'prop-types';
 import { useState } from 'react';
 import { CircularProgress } from 'components/base';
+import { StripePaymentWrapper } from 'components/paymentProviders/stripe';
 import { usePortalContribution } from 'hooks/usePortalContribution';
 import ContributionFetchError from '../ContributionFetchError';
 import { useDetailAnchor } from './useDetailAnchor';
+import Actions from './Actions';
 import { BillingDetails } from './BillingDetails';
 import { BillingHistory } from './BillingHistory';
 import { PaymentMethod } from './PaymentMethod';
 import { MobileHeader } from './MobileHeader';
 import { Root, Loading } from './ContributionDetail.styled';
-import { StripePaymentWrapper } from 'components/paymentProviders/stripe';
 
 const ContributionDetailPropTypes = {
   contributionId: PropTypes.number.isRequired,
@@ -21,7 +22,7 @@ const ContributionDetailPropTypes = {
 export type ContributionDetailProps = InferProps<typeof ContributionDetailPropTypes>;
 
 export function ContributionDetail({ domAnchor, contributionId, contributorId }: ContributionDetailProps) {
-  const { contribution, isError, isLoading, refetch, updateContribution } = usePortalContribution(
+  const { cancelContribution, contribution, isError, isLoading, refetch, updateContribution } = usePortalContribution(
     contributorId,
     contributionId
   );
@@ -72,6 +73,7 @@ export function ContributionDetail({ domAnchor, contributionId, contributorId }:
           onUpdatePaymentMethod={handlePaymentMethodUpdate}
         />
         <BillingHistory disabled={!!editableSection} payments={contribution.payments} />
+        <Actions contribution={contribution} onCancelContribution={cancelContribution} />
       </Root>
     </StripePaymentWrapper>
   );

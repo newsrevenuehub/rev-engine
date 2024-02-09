@@ -4,6 +4,7 @@ import { PortalContributionDetail } from 'hooks/usePortalContribution';
 import { PORTAL } from 'routes';
 import formatCurrencyAmount from 'utilities/formatCurrencyAmount';
 import { BackButton, Heading, Amount, PaymentDate, NextPaymentDate, Root } from './MobileHeader.styled';
+import Banner from '../Banner';
 
 const MobileHeaderPropTypes = {
   contribution: PropTypes.object.isRequired
@@ -24,6 +25,7 @@ export function MobileHeader({ contribution }: MobileHeaderProps) {
         <ChevronLeft />
         Back
       </BackButton>
+      <Banner contribution={contribution} />
       <Heading>
         <div>
           <PaymentDate data-testid="created">{formatDate(contribution.created)}</PaymentDate>

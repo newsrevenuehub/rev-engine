@@ -8,6 +8,7 @@ jest.mock('notistack');
 jest.mock('components/paymentProviders/stripe/StripePaymentWrapper');
 jest.mock('hooks/usePortalContribution');
 jest.mock('./useDetailAnchor');
+jest.mock('./Actions');
 jest.mock('./BillingDetails/BillingDetails');
 jest.mock('./BillingHistory/BillingHistory');
 jest.mock('./MobileHeader/MobileHeader');
@@ -34,6 +35,7 @@ describe('ContributionDetail', () => {
       isError: false,
       isFetching: false,
       refetch: jest.fn(),
+      cancelContribution: jest.fn(),
       updateContribution: jest.fn()
     });
 
@@ -49,6 +51,7 @@ describe('ContributionDetail', () => {
         isError: false,
         isFetching: false,
         refetch: jest.fn(),
+        cancelContribution: jest.fn(),
         updateContribution: jest.fn()
       });
     });
@@ -73,6 +76,7 @@ describe('ContributionDetail', () => {
         isError: true,
         isFetching: false,
         refetch: jest.fn(),
+        cancelContribution: jest.fn(),
         updateContribution: jest.fn()
       });
     });
@@ -103,11 +107,12 @@ describe('ContributionDetail', () => {
         isError: false,
         isFetching: false,
         refetch: jest.fn(),
+        cancelContribution: jest.fn(),
         updateContribution: jest.fn()
       });
     });
 
-    it.each([['mobile header'], ['billing details'], ['payment method']])('shows the %s', (name) => {
+    it.each([['mobile header'], ['billing details'], ['payment method'], ['actions']])('shows the %s', (name) => {
       tree();
 
       const component = screen.getByTestId(`mock-${name.replace(' ', '-')}`);
@@ -182,6 +187,7 @@ describe('ContributionDetail', () => {
           usePortalContributionMock.mockReturnValue({
             updateContribution,
             isLoading: false,
+            cancelContribution: jest.fn(),
             contribution: mockContribution as any,
             isError: false,
             isFetching: false,
@@ -199,12 +205,32 @@ describe('ContributionDetail', () => {
           ]);
         });
       });
-    });
 
-    it('is accessible', async () => {
-      const { container } = tree();
+      it('calls cancelContribution when the cancel button is clicked', () => {
+        const cancelContribution = jest.fn();
+        usePortalContributionMock.mockReturnValue({
+          isLoading: false,
+          contribution: mockContribution as any,
+          isError: false,
+          isFetching: false,
+          refetch: jest.fn(),
+          updateContribution: jest.fn(),
+          cancelContribution
+        });
 
-      expect(await axe(container)).toHaveNoViolations();
+        tree();
+        const cancelButton = screen.getByText('Cancel Contribution');
+        cancelButton.click();
+
+        expect(cancelContribution).toBeCalledWith();
+        expect(cancelContribution).toBeCalledTimes(1);
+      });
+
+      it('is accessible', async () => {
+        const { container } = tree();
+
+        expect(await axe(container)).toHaveNoViolations();
+      });
     });
   });
 });

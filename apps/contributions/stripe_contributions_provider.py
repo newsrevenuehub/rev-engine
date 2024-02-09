@@ -319,7 +319,6 @@ class StripeContributionsProvider:
         logger.info("Fetched %s uninvoiced subscriptions for contributor with email %s", len(subs), self.email_id)
         return subs
 
-    
     def get_interval_from_subscription(self, subscription: stripe.Subscription) -> ContributionInterval:
         """Gets the ContributionInterval from a stripe.Subscription object."""
         UntrackedStripeSubscription.get_interval_from_subscription(subscription)
@@ -501,21 +500,54 @@ class UntrackedOneTimePaymentIntent:
         try:
             SupportedStripePaymentMetadataSchema(**payment_intent.metadata)
         except pydantic.ValidationError as exc:
-            raise InvalidMetadataError(f"Metadata is invalid for payment_intent : {payment_intent.id}") from exc    
-    
+            raise InvalidMetadataError(f"Metadata is invalid for payment_intent : {payment_intent.id}") from exc
+
         if self.payment_intent.charges.total_count > 1:
             raise ValueError(f"Payment intent {payment_intent.id} has more than one charge")
         self.payment_intent = payment_intent
 
-
     @property
     def email_id(self) -> str:
         return self.payment_intent.customer_email
-    
+
+    @property
+    def status(self) -> ContributionStatus:
+        pass
+
+    # this can be shared by both classes (one time and sub one)
+    def upsert_payments(self, charge: stripe.Charge, contribution: Contribution) -> None:
+        """ """
+        Payment.objects.get_or_create(
+            contribution=contribution,
+            stripe_balance_transaction_id=charge.balance_transaction.id,
+            defaults={
+                "net_amount_paid": charge.balance_transaction.net,
+                "gross_amount_paid": charge.balance_transaction.gross,
+                "amount_refunded": 0,
+                "transaction_time": datetime.datetime.fromtimestamp(
+                    int(charge.balance_transaction.created), tz=datetime.timezone.utc
+                ),
+            },
+        )
+
+        for refund in charge.refunds.data:
+            Payment.objects.get_or_create(
+                contribution=contribution,
+                stripe_balance_transaction_id=refund.balance_transaction.id,
+                defaults={
+                    "net_amount_paid": 0,
+                    "gross_amount_paid": 0,
+                    "amount_refunded": refund.amount,
+                    "transaction_time": datetime.datetime.fromtimestamp(
+                        int(refund.balance_transaction.created), tz=datetime.timezone.utc
+                    ),
+                },
+            )
+
     @transaction.atomic
     def upsert(self, stripe_client: "StripeClientForConnectedAccount") -> Contribution:
         """Upsert a contribution, contributor, and payments for a given Stripe payment intent.
-        
+
         If the payment intent has a charge associated, we'll upsert a payment.
 
         If that charge has any refunds associated with it, we'll upsert those as payments as well.
@@ -531,57 +563,51 @@ class UntrackedOneTimePaymentIntent:
             "provider_payment_id": self.payment_intent.id,
             "provider_customer_id": self.payment_intent.customer,
             "provider_payment_method_id": (pm_id := self.payment_intent.payment_method),
-            "provider_payment_method_details": stripe_client.get_payment_method(self.payment_intent.payment_method) if pm_id else None,
-            "contributor": contributor
+            "provider_payment_method_details": stripe_client.get_payment_method(self.payment_intent.payment_method)
+            if pm_id
+            else None,
+            "contributor": contributor,
         }
         if existing:
-            for k,v in defaults.items():
+            for k, v in defaults.items():
                 setattr(existing, k, v)
             contribution = existing
             with reversion.create_revision():
                 contribution.save(update_fields=set(defaults.keys() + ["modified"]))
                 reversion.set_comment("UntrackedOneTimePaymentIntent.upsert updated existing contribution")
         else:
-            contribution = Contribution(**defaults | {"provider_payment_id": self.payment_intent.id})
-
-
-        if (charge := stripe_client.get_charge_expanded_refunds_balance_transactions(self.payment_intent.charges.data[0].id) if self.payment_intent.charges.total_count == 1 else None):
-            Payment.objects.get_or_create(
-                contribution = contribution,
-                net_amount_paid = charge.balance_transaction.?,
-                gross_amount_paid = charge.balance_transaction.?,
-                amount_refunded = 0,
-                stripe_balance_transaction_id = charge.balance_transaction.id,
-                transaction_time = datetime.datetime.fromtimestamp(int(charge.balance_transaction.created), tz=datetime.timezone.utc),
+            contribution = Contribution(
+                **defaults | {"provider_payment_id": self.payment_intent.id, "status": self.status}
             )
-        for refund in charge.refunds.data:
-            Payment.objects.get_or_create(
-                contribution = contribution,
-                net_amount_paid = 0,
-                gross_amount_paid = 0,
-                amount_refunded = refund.amount,
-                stripe_balance_transaction_id = refund.balance_transaction.id,
-                transaction_time = datetime.datetime.fromtimestamp(int(refund.balance_transaction.created), tz=datetime.timezone.utc),
-            )
+        if (
+            charge := stripe_client.get_expanded_charge_object(self.payment_intent.charges.data[0].id)
+            if self.payment_intent.charges.total_count == 1
+            else None
+        ):
+            self.upsert_payments(charge, contribution)
         return contribution
 
+
 class UntrackedStripeSubscription:
-    """
-    """
+    """ """
 
     def __init__(self, subscription: stripe.Subscription, invoices: list[stripe.Invoice], charges: list[stripe.Charge]):
         try:
             SupportedStripePaymentMetadataSchema(**subscription.metadata)
         except pydantic.ValidationError as exc:
             raise InvalidMetadataError(f"Metadata is invalid for subscription : {subscription.id}") from exc
-        
+
         self.subscription = subscription
         self.invoices = invoices
         self.charges = charges
-    
+
     def __str__(self) -> str:
         return f"UntrackedStripeSubscription for subscription {self.subscription.id}"
-    
+
+    @property
+    def status(self) -> ContributionStatus:
+        pass
+
     @staticmethod
     def get_interval_from_subscription(subscription: stripe.Subscription) -> ContributionInterval:
         """Explanation
@@ -600,24 +626,41 @@ class UntrackedStripeSubscription:
     def interval(self) -> ContributionInterval:
         return self.get_interval_from_subscription(self.subscription)
 
-
-    def get_or_create_contributor(self, email: str) -> Contributor:
-        with reversion.create_revision():
-            contributor, _ = Contributor.objects.get_or_create(email=email)
-        return contributor
-
-    @property
-    def payment_method_id(self) -> str | None:
-        pass
-
     @property
     def email_id(self) -> str:
         #  or?
         return self.subscription.customer_email
 
-
-    def upsert_payments_for_contribution(self, contribution_id: int) -> list[Payment]:
-        pass
+    def upsert_payments(self, contribution: Contribution) -> None:
+        """Upsert payments for a given contribution"""
+        for charge in self.charges:
+            # dry this up
+            Payment.objects.get_or_create(
+                contribution=contribution,
+                stripe_balance_transaction_id=charge.balance_transaction.id,
+                defaults={
+                    "net_amount_paid": charge.balance_transaction.net,
+                    "gross_amount_paid": charge.balance_transaction.gross,
+                    "amount_refunded": 0,
+                    "transaction_time": datetime.datetime.fromtimestamp(
+                        int(charge.balance_transaction.created), tz=datetime.timezone.utc
+                    ),
+                },
+            )
+            for refund in charge.refunds.data:
+                # dry this up
+                Payment.objects.get_or_create(
+                    contribution=contribution,
+                    stripe_balance_transaction_id=refund.balance_transaction.id,
+                    defaults={
+                        "net_amount_paid": 0,
+                        "gross_amount_paid": 0,
+                        "amount_refunded": refund.amount,
+                        "transaction_time": datetime.datetime.fromtimestamp(
+                            int(refund.balance_transaction.created), tz=datetime.timezone.utc
+                        ),
+                    },
+                )
 
     @transaction.atomic
     def upsert(self, stripe_client: "StripeClientForConnectedAccount") -> Contribution:
@@ -635,27 +678,34 @@ class UntrackedStripeSubscription:
             "payment_provider_used": "stripe",
             "provider_customer_id": self.subscription.customer,
             "provider_payment_method_id": self.payment_method_id,
-            "provider_payment_method_details": stripe_client.get_payment_method(self.payment_method_id) if self.payment_method_id else None, 
+            "provider_payment_method_details": stripe_client.get_payment_method(self.payment_method_id)
+            if self.payment_method_id
+            else None,
             "contributor": contributor,
             "contribution_metadata": self.subscription.metadata,
-            # how to set this?
-            "status": ContributionStatus.PAID,
+            "status": self.status,
         }
+
         if existing:
-            for k,v in defaults.items():
+            for k, v in defaults.items():
                 setattr(existing, k, v)
             contribution = existing
         else:
             contribution = Contribution(**defaults | {"provider_subscription_id": self.subscription.id})
-        self.upsert_payments_for_contribution(contribution_id=contribution.id)
         if existing:
             with reversion.create_revision():
                 contribution.save(update_fields=set(defaults.keys() + ["modified"]))
                 reversion.set_comment("UntrackedStripeSubscription updated existing contribution")
-            logger.info("Updated existing contribution %s for provider_subscription_id %s", contribution.id, self.subscription.id)
+            logger.info(
+                "Updated existing contribution %s for provider_subscription_id %s",
+                contribution.id,
+                self.subscription.id,
+            )
         else:
             contribution.save()
-            logger.info("Created new contribution %s for provider_subscription_id %s", contribution.id, self.subscription.id)
+            logger.info(
+                "Created new contribution %s for provider_subscription_id %s", contribution.id, self.subscription.id
+            )
         return contribution
 
 
@@ -677,6 +727,7 @@ class StripeClientForConnectedAccount:
     STRIPE_SEARCH_MAX_REQUESTS_PER_SECOND = 20
     # make this dynamic based on django settings -- it's 25 in test, and 100 in live
     STRIPE_DEFAULT_MAX_REQUESTS_PER_SECOND = 100
+    DEFAULT_GET_CHARGE_EXPAND_FIELDS = ["balance_transaction", "refunds.data.balance_transaction"]
 
     def __post_init__(self):
         logger.info("Initializing StripeClientForConnectedAccount with account_id %s", self.account_id)
@@ -781,7 +832,7 @@ class StripeClientForConnectedAccount:
         return suported_pis
 
     def get_revengine_subscriptions(self, invoices) -> list[stripe.Subscription]:
-        """Given a set of """
+        """Given a set of"""
         sub_ids = [x.subscription for x in invoices if x.subscription]
         revengine_subscriptions = []
         _unsupported_revengine_subscriptions = []
@@ -798,13 +849,18 @@ class StripeClientForConnectedAccount:
             len(_unsupported_revengine_subscriptions),
         )
         return revengine_subscriptions
-    
-    def get_charge_and_balance_transaction_for_invoice(self, invoice_id: str) -> stripe.Charge | None:
+
+    @rate_limiter(max_requests=STRIPE_DEFAULT_MAX_REQUESTS_PER_SECOND)
+    def get_expanded_charge_object(self, invoice_id: str) -> stripe.Charge | None:
         """Gets charge, expanding its balance transaction, for a given stripe invoice"""
         logger.info("Getting charge for invoice %s for account %s", invoice_id, self.account_id)
-        return stripe.Charge.retrieve(invoice=invoice_id, **self._default_stripe_kwargs |{"expand": ["balance_transaction"]})
-    
-    def get_revengine_subscriptions_data(self, subscription_ids: list[str], invoices: list[stripe.Invoice], charges: list[stripe.Charge]) -> list[UntrackedStripeSubscription]:
+        return stripe.Charge.retrieve(
+            invoice=invoice_id, **self._default_stripe_kwargs | {"expand": self.DEFAULT_GET_CHARGE_EXPAND_FIELDS}
+        )
+
+    def get_revengine_subscriptions_data(
+        self, invoices: list[stripe.Invoice], charges: list[stripe.Charge]
+    ) -> list[UntrackedStripeSubscription]:
         """Gets untracked stripe subscriptions data for a given stripe account"""
         logger.info("Getting untracked stripe subscriptions data for account %s", self.account_id)
         revengine_subscriptions = self.get_revengine_subscriptions(invoices)
@@ -812,19 +868,27 @@ class StripeClientForConnectedAccount:
         for sub in revengine_subscriptions:
             invoices = [x for x in invoices if x.subscription == sub.id]
             try:
-                data.append(UntrackedStripeSubscription(subscription=sub, invoices=invoices, charges=[x for x in charges if x.invoice in [x.id for x in invoices]]))
+                data.append(
+                    UntrackedStripeSubscription(
+                        subscription=sub,
+                        invoices=invoices,
+                        charges=[x for x in charges if x.invoice in [x.id for x in invoices]],
+                    )
+                )
             except InvalidMetadataError:
                 logger.warning("Unable to sync subscription %s for account %s", sub.id, self.account_id)
         return data
-    
+
+    @rate_limiter(max_requests=STRIPE_DEFAULT_MAX_REQUESTS_PER_SECOND)
     def get_payment_method(self, payment_method_id) -> stripe.PaymentMethod | None:
         return stripe.PaymentMethod.retrieve(payment_method_id, **self._default_stripe_kwargs)
-    
-    def get_charge_expanded_refunds_balance_transactions(self, charge_id: str) -> stripe.Charge | None:
-        """
-        """
-        return stripe.Charge.retrieve(charge_id, **self._default_stripe_kwargs, expand=["refunds.data.balance_transaction"])
 
+    @rate_limiter(max_requests=STRIPE_DEFAULT_MAX_REQUESTS_PER_SECOND)
+    def get_expanded_charge_object(self, charge_id: str) -> stripe.Charge | None:
+        """ """
+        return stripe.Charge.retrieve(
+            charge_id, **self._default_stripe_kwargs, expand=["refunds.data.balance_transaction"]
+        )
 
 
 ProcessUntrackedSubscriptionDict = dict[str, UntrackedStripeSubscription]
@@ -862,13 +926,6 @@ class StripeToRevengineTransformer:
     def stripe_account_ids(self):
         return list(self._STRIPE_ACCOUNTS_QUERY.values_list("stripe_account_id", flat=True))
 
-    def process_untracked_subscriptions(self, data: ProcessUntrackedSubscriptionDict) -> None:
-        for k, v in data.items():
-            pass
-            # logger.info("Processing untracked subscription %s", k)
-            # charge = stripe.Charge.retrieve(invoice=v["latest_invoice"], expand=["balance_transaction"])
-            # self.sync_subscription(sub)
-
     @shared_task(bind=True, autoretry_for=(StripeRateLimitError,), retry_backoff=True, retry_kwargs={"max_retries": 3})
     def backfill_contributions_and_payments_for_stripe_account(
         self, account_id: str, gte_timestamp: int = None, lte_timestamp: int = None
@@ -879,8 +936,12 @@ class StripeToRevengineTransformer:
 
         """
         logger.info("Backfilling stripe account %s", account_id)
-        recurring_contributions = self.backfill_contributions_and_payments_for_subscriptions(stripe_account_id=account_id)
-        # one_time_contributions = self.backfill_contributions_and_payments_for_payment_intents(stripe_account_id=account_id)
+        recurring_contributions = self.backfill_contributions_and_payments_for_subscriptions(
+            stripe_account_id=account_id
+        )
+        one_time_contributions = self.backfill_contributions_and_payments_for_payment_intents(
+            stripe_account_id=account_id
+        )
         logger.info(
             "Backfilled %s recurring contributions and %s one-time contributions for stripe account %s",
             len(recurring_contributions),
@@ -888,132 +949,48 @@ class StripeToRevengineTransformer:
             account_id,
         )
 
-    def get_or_create_contributor(self, email: str) -> Contributor:
-        with reversion.create_revision():
-            contributor, created = Contributor.objects.get_or_create(email=email)
-            if created:
-                reversion.set_comment("StripeToRevengineTransformer created new contributor")
-        return contributor
-
-    def get_or_create_contribution(self, defaults: dict, **kwargs) -> Contribution:
-        with reversion.create_revision():
-            contribution, created = Contribution.objects.get_or_create(**kwargs, defaults=defaults)
-            if created:
-                reversion.set_comment("StripeToRevengineTransformer created new contribution")
-                logger.info(
-                    "Created new contribution %s for provider_payment_id %s provider_subscription_id %s",
-                    contribution.provider_payment_id,
-                    contribution.provider_subscription_id,
-                )
-            else:
-                logger.info(
-                    "Found existing contribution %s for provider_payment_id %s provider_subscription_id %s",
-                    contribution.provider_payment_id,
-                    contribution.provider_subscription_id,
-                )
-        return contribution
-
-    @transaction.atomic
-    def sync_subscription(
-        self, client, subscription: stripe.Subscription, invoices: list[stripe.Invoice]
-    ) -> Contribution:
-        """Syncs a stripe.Subscription object to revengine Contribution object."""
-        try:
-            metadata = SupportedStripePaymentMetadataSchema(**subscription.metadata)
-        except pydantic.ValidationError as exc:
-            logger.warning(
-                "Metadata in subscription %s for account %s is invalid",
-                subscription.id,
-                client.account_id,
-                exc_info=exc,
-            )
-            raise InvalidMetadataError(
-                f"Metadata in subscription {subscription.id} for account {client.account_id} is invalid"
-            ) from exc
-        contributor = self.get_or_create_contributor(subscription.customer)
-        defaults = {
-            "amount": subscription.plan.amount,
-            "currency": subscription.plan.currency,
-            "reason": getattr(metadata, "reason_for_giving", None),
-            "interval": None,
-            "payment_provider_used": None,
-            "provider_payment_id": None,
-            "provider_setup_intent_id": None,
-            "provider_customer_id": subscription.customer,
-            # or it should come from most recent invoice?
-            "provider_payment_method_id": subscription.default_payment_method,
-            # fetch this from the most recent invoice
-            "provider_payment_method_details": None,
-            "last_payment_date": None,
-            "contributor": contributor,
-            "donation_page": None,
-            "contribution_metadata": metadata.dict(),
-            "status": None,
-        }
-        contribution = self.get_or_create_contribution(provider_subscription_id=subscription.id, defaults=defaults)
-        # also need to get refunds
-        balance_transactions = [client.get_balance_transaction_for_invoice(x.id) for x in invoices]
-        for bt in balance_transactions:
-            Payment.objects.get_or_create(
-                contribution=contribution,
-                stripe_balance_transaction_id=bt.id,
-                defaults={
-                    "net_amount_paid": bt.net,
-                    "gross_amount_paid": bt.gross,
-                    "amount_refunded": 0,
-                    "transaction_time": datetime.datetime.fromtimestamp(int(bt.created), tz=datetime.timezone.utc),
-                }
-            )
-        contribution.refresh_from_db()
-        return contribution
-    
-    @transaction.atomic
-    def sync_one_time_payment_intent(self, payment_intent: stripe.PaymentIntent) -> Contribution:
-        """Syncs a stripe.PaymentIntent object to revengine Contribution object."""
-        # verify payment intent metadata validates
-        # upsert contribution
-        # upsert payments (confirm not problematic)
-
-
-    def backfill_contributions_and_payments_for_subscriptions(
-        self, stripe_account_id: str
-    ) -> list[Contribution]:
-        """Upsert contributions and payments for subscriptions for a given stripe account."""
+    def backfill_contributions_and_payments_for_subscriptions(self, stripe_account_id: str) -> list[Contribution]:
+        """Upsert contributions, contributors, and payments for subscriptions for a given stripe account."""
         stripe_client = StripeClientForConnectedAccount(account_id=stripe_account_id, gte=self.gte, lte=self.lte)
         # this gets all invoices for the account (given any contraints on query around date, etc.)
         # We start by getting all invoices for the accouunt (and if so configured, results constrainted around date, etc).
         invoices = stripe_client.get_invoices()
-        # Now based on the set of all invoices, we need to determine where there are any subscriptions that are not already in revengine.
+        # Now based on the set of all invoices, we need to determine where there are any subscriptions uncaptured by revengine.
         # Subscriptions are not directly attached to invoices, but we can get them from the respective charges.
-        charges = [stripe_client.get_charge_for_invoice(x.id) for x in invoices]
+        # The returned charges have balance transaction and refunds expanded, which will allow us to generate Revengine payments
+        charges = [stripe_client.get_expanded_charge_object(x.id) for x in invoices]
 
         # Based on the set of subscriptions represented by the set of charges, we narrow down to those that are not already in revengine but should
-        # be. Calling .get_revengine_subscriptions will return a `TBD` which contains needed data for each subscription that is not already in revengine 
-        # in order to store it in revengine.
-        subscriptions_data = stripe_client.get_revengine_subscriptions_data(subscription_ids=[x.subscription for x in invoices if x.subscription], charges=charges, invoices=invoices)
+        # be. Calling .get_revengine_subscriptions_data will return a list of UntrackedStripeSubscription objects, which are used to pull together required
+        # data for contribution, contributor, and payments, and then upsert them.
+        subscriptions_data = stripe_client.get_revengine_subscriptions_data(
+            subscription_ids=[x.subscription for x in invoices if x.subscription], charges=charges, invoices=invoices
+        )
         contributions = []
         for x in subscriptions_data:
             contributions.append(x.upsert())
         return contributions
-        
-    def backfill_contributions_and_payments_for_payment_intents(
-        self, stripe_account_id: str
-    ) -> list[Contribution]:
+
+    def backfill_contributions_and_payments_for_payment_intents(self, stripe_account_id: str) -> list[Contribution]:
         """Upsert contributions and payments for one-time payment intents for a given stripe account."""
         stripe_client = StripeClientForConnectedAccount(account_id=stripe_account_id, gte=self.gte, lte=self.lte)
         pis = stripe_client.revengine_payment_intents_for_one_time_contributions()
         # get bts and refunds where relevant
         contributions = []
-        return contributions 
-        
+        return contributions
 
     def backfill_contributions_and_payments_from_stripe(self) -> None:
-        """Iterates over stripe accounts class was initialized with and attempts to backfill contributions and payments for each account
-        
+        """Iterates over stripe accounts class was initialized with and attempts to backfill contributions, contributors, and payments for each account
+
         If the class was initialized as async, then this method will call the async version of the backfill method for each account.
         """
-        logger.info("Backfilling %s stripe accounts in %s mode", len(self.stripe_account_ids), "async" if self.async_mode else "sync")
+        logger.info(
+            "Backfilling contributions and payments for %s stripe accounts in %s mode",
+            len(self.stripe_account_ids),
+            "async" if self.async_mode else "sync",
+        )
         for account_id in self.stripe_account_ids:
+            logger.info("Backfilling contributions and payments for stripe account %s", account_id)
             if self.async_mode:
                 self.backfill_contributions_and_payments_for_stripe_account.delay(account_id)
             else:

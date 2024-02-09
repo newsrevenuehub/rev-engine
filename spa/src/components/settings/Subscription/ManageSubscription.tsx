@@ -1,10 +1,12 @@
-import PropTypes, { InferProps } from 'prop-types';
+import * as Sentry from '@sentry/react';
 import { STRIPE_SELF_UPGRADE_CUSTOMER_PORTAL_URL } from 'appSettings';
 import { Link } from 'components/base';
 import SettingsSection from 'components/common/SettingsSection';
 import { SELF_UPGRADE_ACCESS_FLAG_NAME } from 'constants/featureFlagConstants';
 import { PLAN_NAMES } from 'constants/orgPlanConstants';
 import { Organization, User } from 'hooks/useUser.types';
+import PropTypes, { InferProps } from 'prop-types';
+import { useEffect } from 'react';
 import flagIsActiveForUser from 'utilities/flagIsActiveForUser';
 
 const ManageSubscriptionPropTypes = {
@@ -18,7 +20,28 @@ export interface ManageSubscriptionProps extends InferProps<typeof ManageSubscri
 }
 
 export function ManageSubscription({ organization, user }: ManageSubscriptionProps) {
-  if (organization.plan.name === PLAN_NAMES.FREE || !flagIsActiveForUser(SELF_UPGRADE_ACCESS_FLAG_NAME, user)) {
+  const hideManageSubscription =
+    organization.plan.name === PLAN_NAMES.FREE || !flagIsActiveForUser(SELF_UPGRADE_ACCESS_FLAG_NAME, user);
+
+  useEffect(() => {
+    if (hideManageSubscription) {
+      return;
+    }
+
+    if (
+      typeof STRIPE_SELF_UPGRADE_CUSTOMER_PORTAL_URL !== 'string' ||
+      STRIPE_SELF_UPGRADE_CUSTOMER_PORTAL_URL?.length === 0
+    ) {
+      Sentry.addBreadcrumb({
+        category: 'rev-engine',
+        level: 'debug',
+        message: `Manage my plan URL: "${STRIPE_SELF_UPGRADE_CUSTOMER_PORTAL_URL}"`
+      });
+      console.error('STRIPE_SELF_UPGRADE_CUSTOMER_PORTAL_URL is not valid.');
+    }
+  }, [hideManageSubscription]);
+
+  if (hideManageSubscription) {
     return null;
   }
 

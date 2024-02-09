@@ -1,3 +1,4 @@
+import { Button } from 'components/base';
 import styled from 'styled-components';
 
 /**
@@ -14,24 +15,36 @@ export const Columns = styled.div`
 `;
 
 /**
+ * Buttons that appear in the header of each section.
+ */
+export const SectionControlButton = styled(Button)`
+  && {
+    background: none;
+    box-shadow: none;
+    text-transform: none;
+
+    &:hover {
+      background: none;
+      box-shadow: none;
+    }
+
+    .NreButtonLabel {
+      color: ${({ theme }) => theme.basePalette.primary.engineBlue};
+    }
+  }
+`;
+
+export const SectionEditButton = styled(Button)`
+  && {
+    text-transform: none;
+  }
+`;
+
+/**
  * Values in the column layout.
  */
 export const Detail = styled.div`
   padding-left: 12px;
-`;
-
-/**
- * Section heading.
- */
-export const Heading = styled.h4`
-  font-size: ${({ theme }) => theme.fontSizesUpdated.lg};
-  font-weight: 600;
-  border-bottom: 1px solid ${({ theme }) => theme.basePalette.greyscale.grey2};
-  padding-bottom: 10px;
-
-  &:first-of-type {
-    margin-top: 0;
-  }
 `;
 
 /**

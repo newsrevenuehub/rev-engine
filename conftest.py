@@ -283,7 +283,7 @@ def plus_plan_revenue_program():
 
 @pytest.fixture
 def fiscally_sponsored_revenue_program():
-    return RevenueProgramFactory(onboarded=True, fiscally_sponsored=True)
+    return RevenueProgramFactory(onboarded=True, fiscally_sponsored=True, fiscal_sponsor_name="Sponsor")
 
 
 @pytest.fixture
@@ -1134,9 +1134,3 @@ def customer_subscription_updated_event():
 def charge_refunded_recurring_charge_event():
     with open("apps/contributions/tests/fixtures/charge-refunded-recurring-charge-event.json") as f:
         return stripe.Webhook.construct_event(f.read(), None, stripe.api_key)
-
-
-@pytest.fixture
-def payment_method_attached_event():
-    with open("apps/contributions/tests/fixtures/payment-method-attached-webhook.json") as fl:
-        return json.load(fl)

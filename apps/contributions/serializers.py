@@ -5,6 +5,7 @@ from django.conf import settings
 from django.db.models import TextChoices
 from django.utils import timezone
 
+import reversion
 from rest_framework import serializers
 from rest_framework.exceptions import APIException, PermissionDenied
 from stripe.error import StripeError
@@ -850,8 +851,12 @@ PORTAL_CONTRIBUTION_BASE_SERIALIZER_FIELDS = [
 
 
 class PortalContributionBaseSerializer(serializers.ModelSerializer):
+    card_brand = serializers.CharField(read_only=True, allow_blank=True)
+    card_expiration_date = serializers.CharField(read_only=True, allow_blank=True)
+    card_last_4 = serializers.CharField(read_only=True, allow_blank=True)
+    last_payment_date = serializers.DateTimeField(source="_last_payment_date", read_only=True, allow_null=True)
+    next_payment_date = serializers.DateTimeField(read_only=True, allow_null=True)
     revenue_program = serializers.PrimaryKeyRelatedField(read_only=True)
-    last_payment_date = serializers.DateTimeField(source="_last_payment_date", read_only=True)
 
     class Meta:
         model = Contribution
@@ -897,12 +902,28 @@ PORTAL_CONTRIBUTION_DETAIL_SERIALIZER_DB_FIELDS = PORTAL_CONTRIBUTION_BASE_SERIA
 
 
 class PortalContributionDetailSerializer(PortalContributionBaseSerializer):
+    card_owner_name = serializers.CharField(read_only=True, allow_blank=True)
     payments = PortalContributionPaymentSerializer(many=True, read_only=True, source="payment_set")
+    provider_payment_method_id = serializers.CharField(write_only=True, required=False)
 
     class Meta:
         model = Contribution
-        fields = PORTAL_CONTRIBUTION_DETAIL_SERIALIZER_DB_FIELDS
+        fields = PORTAL_CONTRIBUTION_DETAIL_SERIALIZER_DB_FIELDS + ["provider_payment_method_id"]
         read_only_fields = PORTAL_CONTRIBUTION_DETAIL_SERIALIZER_DB_FIELDS
+
+    def update(self, instance, validated_data) -> Contribution:
+        """ """
+        if validated_data:
+            if provider_payment_method_id := validated_data.get("provider_payment_method_id", None):
+                instance.update_payment_method_for_subscription(
+                    provider_payment_method_id=provider_payment_method_id,
+                )
+            for key, value in validated_data.items():
+                setattr(instance, key, value)
+            with reversion.create_revision():
+                instance.save(update_fields=set(list(validated_data.keys()) + ["modified"]))
+                reversion.set_comment("Updated by PortalContributionDetailSerializer.update")
+        return instance
 
 
 class PortalContributionListSerializer(PortalContributionBaseSerializer):

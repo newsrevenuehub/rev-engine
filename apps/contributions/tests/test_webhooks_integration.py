@@ -250,9 +250,12 @@ class TestPaymentIntentPaymentFailed:
 class TestCustomerSubscriptionUpdated:
     @pytest.mark.parametrize("payment_method_has_changed", (True, False))
     def test_when_contribution_found(
-        self, client, customer_subscription_updated_event, payment_method_has_changed, mocker
+        self, payment_method_has_changed, client, customer_subscription_updated_event, mocker
     ):
         mocker.patch.object(WebhookSignature, "verify_header", return_value=True)
+
+        mocker.patch("stripe.PaymentMethod.retrieve", return_value=stripe.PaymentMethod.construct_from({}, key="test"))
+
         header = {"HTTP_STRIPE_SIGNATURE": "testing", "content_type": "application/json"}
         contribution = ContributionFactory(
             annual_subscription=True,
@@ -261,7 +264,8 @@ class TestCustomerSubscriptionUpdated:
         if payment_method_has_changed:
             customer_subscription_updated_event["data"]["previous_attributes"] = {"default_payment_method": "something"}
             customer_subscription_updated_event["data"]["object"]["default_payment_method"] = "something else"
-        spy = mocker.spy(Contribution, "save")
+        save_spy = mocker.spy(Contribution, "save")
+        email_spy = mocker.patch.object(Contribution, "send_recurring_contribution_payment_updated_email")
         mock_set_revision_comment = mocker.patch("reversion.set_comment")
         response = client.post(
             reverse("stripe-webhooks-contributions"), data=customer_subscription_updated_event, **header
@@ -270,10 +274,12 @@ class TestCustomerSubscriptionUpdated:
             "modified",
             "payment_provider_data",
             "provider_subscription_id",
+            "provider_payment_method_id",
+            "provider_payment_method_details",
         }
         if payment_method_has_changed:
             expected_update_fields.add("provider_payment_method_id")
-        spy.assert_called_once_with(contribution, update_fields=expected_update_fields)
+        save_spy.assert_called_once_with(contribution, update_fields=expected_update_fields)
         mock_set_revision_comment.assert_called_once_with(
             "`StripeWebhookProcessor.handle_subscription_updated` updated contribution"
         )
@@ -285,6 +291,9 @@ class TestCustomerSubscriptionUpdated:
                 contribution.provider_payment_method_id
                 == customer_subscription_updated_event["data"]["object"]["default_payment_method"]
             )
+            email_spy.assert_called_once()
+        else:
+            email_spy.assert_not_called()
 
     def test_when_contribution_not_found(self, mocker, client, customer_subscription_updated_event):
         logger_spy = mocker.patch("apps.contributions.tasks.logger.info")
@@ -310,10 +319,11 @@ class TestCustomerSubscriptionDeleted:
             annual_subscription=True,
             provider_subscription_id=customer_subscription_deleted["data"]["object"]["id"],
         )
-        spy = mocker.spy(Contribution, "save")
+        save_spy = mocker.spy(Contribution, "save")
+        email_spy = mocker.patch.object(Contribution, "send_recurring_contribution_canceled_email")
         mock_set_revision_comment = mocker.patch("reversion.set_comment")
         response = client.post(reverse("stripe-webhooks-contributions"), data=customer_subscription_deleted, **header)
-        spy.assert_called_once_with(contribution, update_fields={"status", "payment_provider_data", "modified"})
+        save_spy.assert_called_once_with(contribution, update_fields={"status", "payment_provider_data", "modified"})
         mock_set_revision_comment.assert_called_once_with(
             "`StripeWebhookProcessor.handle_subscription_canceled` updated contribution"
         )
@@ -321,6 +331,7 @@ class TestCustomerSubscriptionDeleted:
         contribution.refresh_from_db()
         assert contribution.provider_subscription_id == customer_subscription_deleted["data"]["object"]["id"]
         assert contribution.status == ContributionStatus.CANCELED
+        email_spy.assert_called_once()
 
     def test_when_contribution_not_found(self, mocker, client, customer_subscription_updated_event):
         mocker.patch.object(WebhookSignature, "verify_header", return_value=True)
@@ -354,22 +365,6 @@ def test_customer_subscription_untracked_event(client, customer_subscription_upd
         "StripeWebhookProcessor.route_request received unexpected event type %s",
         customer_subscription_updated_event["type"],
     )
-
-
-@pytest.mark.django_db
-def test_payment_method_attached(client, payment_method_attached_event, mocker):
-    mocker.patch.object(WebhookSignature, "verify_header", return_value=True)
-    header = {"HTTP_STRIPE_SIGNATURE": "testing", "content_type": "application/json"}
-    contribution = ContributionFactory(
-        one_time=True,
-        provider_customer_id=payment_method_attached_event["data"]["object"]["customer"],
-    )
-    spy = mocker.spy(Contribution, "save")
-    response = client.post(reverse("stripe-webhooks-contributions"), data=payment_method_attached_event, **header)
-    spy.assert_called_once_with(contribution, update_fields={"provider_payment_method_id", "modified"})
-    assert response.status_code == status.HTTP_200_OK
-    contribution.refresh_from_db()
-    assert contribution.provider_payment_method_id == payment_method_attached_event["data"]["object"]["id"]
 
 
 @pytest.mark.django_db()

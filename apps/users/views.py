@@ -345,7 +345,7 @@ def password_reset_token_created(sender, instance, reset_password_token, *args, 
 
     This causes an email to be sent to user who requested pw reset.
 
-    https://.githubcom/anexia-it/django-rest-passwordreset#example-for-sending-an-e-mail
+    https://github.com/anexia-it/django-rest-passwordreset#example-for-sending-an-e-mail
     """
     if not reset_password_token or not reset_password_token.user or not reset_password_token.user.email:
         return

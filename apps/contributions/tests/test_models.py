@@ -52,42 +52,6 @@ class TestContributorModel:
     def test_is_superuser(self, contributor_user):
         assert contributor_user.is_superuser is False
 
-    def test_create_stripe_customer(self, monkeypatch, mocker, contributor_user):
-        return_val = {"foo": "bar"}
-        monkeypatch.setattr("stripe.Customer.create", lambda *args, **kwargs: return_val)
-        spy = mocker.spy(stripe.Customer, "create")
-        kwargs = {
-            "customer_name": "My Name",
-            "phone": "222222222",
-            "street": "Main St",
-            "city": "Eau Claire",
-            "state": "WI",
-            "postal_code": "54701",
-            "country": "US",
-            "metadata": {"meta": "data"},
-        }
-        rp_stripe_id = "some-id"
-        cus = contributor_user.create_stripe_customer(rp_stripe_id, **kwargs)
-        assert cus == return_val
-        spy.assert_called_once_with(
-            email=contributor_user.email,
-            address=(
-                address := {
-                    "line1": kwargs["street"],
-                    "line2": "",
-                    "city": kwargs["city"],
-                    "state": kwargs["state"],
-                    "postal_code": kwargs["postal_code"],
-                    "country": kwargs["country"],
-                }
-            ),
-            shipping={"address": address, "name": (name := kwargs["customer_name"])},
-            name=name,
-            phone=kwargs["phone"],
-            stripe_account=rp_stripe_id,
-            metadata=kwargs["metadata"],
-        )
-
     def test_create_magic_link(self, one_time_contribution):
         assert isinstance(one_time_contribution, Contribution)
         parsed = urlparse(Contributor.create_magic_link(one_time_contribution))
@@ -148,7 +112,7 @@ class TestContributionModel:
         (pytest_cases.fixture_ref("one_time_contribution"), pytest_cases.fixture_ref("monthly_contribution")),
     )
     def test_create_stripe_customer(self, contribution, mocker, monkeypatch):
-        """Show Contributor.create_stripe_customer calls Stripe with right params and returns the customer object"""
+        """Show Contributtion.create_stripe_customer calls Stripe with right params and returns the customer object"""
         customer_create_return_val = {"id": "cus_fakefakefake"}
         monkeypatch.setattr("stripe.Customer.create", lambda *args, **kwargs: customer_create_return_val)
         spy = mocker.spy(stripe.Customer, "create")
@@ -1607,9 +1571,11 @@ class TestContributionModel:
         target = (
             "stripe.PaymentIntent.retrieve"
             if contribution.interval == ContributionInterval.ONE_TIME
-            else "stripe.SetupIntent.retrieve"
-            if contribution.provider_setup_intent_id
-            else "stripe.Subscription.retrieve"
+            else (
+                "stripe.SetupIntent.retrieve"
+                if contribution.provider_setup_intent_id
+                else "stripe.Subscription.retrieve"
+            )
         )
         # It's a bit tricky to get our JSON fixture which loads to dict to play nicely
         # with AttrDict in a way that works in our code. Utlimately, we're trying to emulate
@@ -2089,9 +2055,11 @@ class TestPayment:
             mocker.patch("stripe.BalanceTransaction.retrieve", return_value=balance_transaction)
             mocker.patch("stripe.PaymentIntent.retrieve", return_value=pi)
             kwargs = {
-                "interval": ContributionInterval.ONE_TIME
-                if balance_transaction.source.invoice is None
-                else ContributionInterval.MONTHLY,
+                "interval": (
+                    ContributionInterval.ONE_TIME
+                    if balance_transaction.source.invoice is None
+                    else ContributionInterval.MONTHLY
+                ),
                 "provider_payment_id": pi.id if pi_id_on_contribution else None,
             }
 

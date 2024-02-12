@@ -71,38 +71,6 @@ class Contributor(IndexedTimeStampedModel):
     def __str__(self):
         return self.email
 
-    def create_stripe_customer(
-        self,
-        rp_stripe_account_id,
-        customer_name=None,
-        phone=None,
-        street=None,
-        complement=None,  # apt, room, aka "line2"
-        city=None,
-        state=None,
-        postal_code=None,
-        country=None,
-        metadata=None,
-    ):
-        """Create a Stripe customer using contributor email"""
-        address = {
-            "line1": street,
-            "line2": complement or "",
-            "city": city,
-            "state": state,
-            "postal_code": postal_code,
-            "country": country,
-        }
-        return stripe.Customer.create(
-            email=self.email,
-            address=address,
-            shipping={"address": address, "name": customer_name},
-            name=customer_name,
-            phone=phone,
-            stripe_account=rp_stripe_account_id,
-            metadata=metadata,
-        )
-
     @staticmethod
     def create_magic_link(contribution: "Contribution") -> SafeString:
         """Create a magic link value that can be inserted into Django templates (for instance, in contributor-facing emails)"""

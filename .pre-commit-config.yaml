@@ -30,7 +30,7 @@ repos:
         types: [python]
   # Black code formatter.
   - repo: https://github.com/psf/black
-    rev: 23.12.1
+    rev: 24.1.1
     hooks:
       - id: black
         language_version: python3.10
@@ -61,14 +61,14 @@ repos:
   #       require_serial: true
   # Check Python dependencies against p0wned package database.
   - repo: https://github.com/Lucas-C/pre-commit-hooks-safety
-    rev: v1.3.2
+    rev: v1.3.3
     hooks:
       - id: python-safety-dependencies-check
         files: pyproject.toml
         args: ["--ignore=60956"]  # Django upgrade >=3.2.21 https://pyup.io/v/60956/f17
   # Checks no secrets in code.
   - repo: https://github.com/thoughtworks/talisman
-    rev: v1.31.0
+    rev: v1.32.0
     hooks:
       - id: talisman-commit
         entry: bash -c 'if [ -n "${TALISMAN_HOME:-}" ]; then ${TALISMAN_HOME}/talisman_hook_script pre-commit; else echo "TALISMAN does not exist. Consider installing from https://github.com/thoughtworks/talisman . If you already have talisman installed, please ensure TALISMAN_HOME variable is set to where talisman_hook_script resides, for example, TALISMAN_HOME=${HOME}/.talisman/bin"; fi'

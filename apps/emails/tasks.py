@@ -118,9 +118,9 @@ def make_send_thank_you_email_data(contribution) -> SendContributionEmailData:
     return SendContributionEmailData(
         contribution_amount=contribution.formatted_amount,
         timestamp=convert_to_timezone_formatted(contribution.created, "America/New_York"),
-        contribution_interval_display_value=contribution.interval
-        if contribution.interval != ContributionInterval.ONE_TIME
-        else "",
+        contribution_interval_display_value=(
+            contribution.interval if contribution.interval != ContributionInterval.ONE_TIME else ""
+        ),
         contribution_interval=contribution.interval,
         contributor_email=contribution.contributor.email,
         contributor_name=customer.name,

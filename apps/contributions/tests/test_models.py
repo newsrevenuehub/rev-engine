@@ -502,9 +502,9 @@ class TestContributionModel:
         gets called with expected args.
         """
         settings.CELERY_TASK_ALWAYS_EAGER = True
-        (
-            org := contribution.donation_page.revenue_program.organization
-        ).send_receipt_email_via_nre = send_receipt_email_via_nre
+        (org := contribution.donation_page.revenue_program.organization).send_receipt_email_via_nre = (
+            send_receipt_email_via_nre
+        )
         org.save()
         send_thank_you_email_spy = mocker.spy(send_thank_you_email, "delay")
 
@@ -1607,9 +1607,11 @@ class TestContributionModel:
         target = (
             "stripe.PaymentIntent.retrieve"
             if contribution.interval == ContributionInterval.ONE_TIME
-            else "stripe.SetupIntent.retrieve"
-            if contribution.provider_setup_intent_id
-            else "stripe.Subscription.retrieve"
+            else (
+                "stripe.SetupIntent.retrieve"
+                if contribution.provider_setup_intent_id
+                else "stripe.Subscription.retrieve"
+            )
         )
         # It's a bit tricky to get our JSON fixture which loads to dict to play nicely
         # with AttrDict in a way that works in our code. Utlimately, we're trying to emulate
@@ -2089,9 +2091,11 @@ class TestPayment:
             mocker.patch("stripe.BalanceTransaction.retrieve", return_value=balance_transaction)
             mocker.patch("stripe.PaymentIntent.retrieve", return_value=pi)
             kwargs = {
-                "interval": ContributionInterval.ONE_TIME
-                if balance_transaction.source.invoice is None
-                else ContributionInterval.MONTHLY,
+                "interval": (
+                    ContributionInterval.ONE_TIME
+                    if balance_transaction.source.invoice is None
+                    else ContributionInterval.MONTHLY
+                ),
                 "provider_payment_id": pi.id if pi_id_on_contribution else None,
             }
 

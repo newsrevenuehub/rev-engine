@@ -644,7 +644,9 @@ class PortalContributorsViewSet(viewsets.GenericViewSet):
                 return Response(serializer.data, status=status.HTTP_200_OK)
             case "PATCH":
                 return self.handle_patch(serializer)
-            case "DELETE":  # NB: this path does in fact get tested, but shows up as partially covered in coverage report
+            case (
+                "DELETE"
+            ):  # NB: this path does in fact get tested, but shows up as partially covered in coverage report
                 return self.handle_delete(contribution)
 
     def handle_patch(self, serializer: serializers.PortalContributionDetailSerializer) -> Response:

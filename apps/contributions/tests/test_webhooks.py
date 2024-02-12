@@ -5,6 +5,7 @@ Tests for the Stripe webhook processor.
 In general, we try to test at API layer (in conjunction with synchronous task execution), but there are a few methods on the
 processor class that are worth unit testing in isolation.
 """
+
 import pytest
 
 from apps.contributions.models import Contribution

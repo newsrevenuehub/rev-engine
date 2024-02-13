@@ -1,5 +1,5 @@
 import MockAdapter from 'axios-mock-adapter';
-import Axios from 'ajax/axios';
+import Axios from 'ajax/portal-axios';
 import { TestQueryClientProvider } from 'test-utils';
 import { ContributionListResponse, usePortalContributionList } from './usePortalContributionList';
 import { renderHook } from '@testing-library/react-hooks';
@@ -132,29 +132,6 @@ describe('usePortalContributionList', () => {
         const { result, waitFor } = hook(123);
 
         await waitFor(() => expect(axiosMock.history.get.length).toBe(1));
-        expect(result.current.contributions).toEqual([]);
-      });
-
-      it('does not redirect if error is not an Authentication Error', async () => {
-        const { waitFor } = hook(123);
-
-        await waitFor(() => expect(axiosMock.history.get.length).toBe(1));
-        expect(push).not.toHaveBeenCalled();
-      });
-
-      it('redirects user to magic link (login) page if error = Authentication Error', async () => {
-        const assign = jest.fn();
-        jest.spyOn(window.location, 'assign').mockImplementation(assign);
-
-        axiosMock.onGet('contributors/123/contributions/').reply(401);
-
-        expect(push).not.toHaveBeenCalled();
-
-        const { result, waitFor } = hook(123);
-
-        await waitFor(() => expect(axiosMock.history.get.length).toBe(1));
-        expect(assign).toHaveBeenCalledWith('/portal/');
-        expect(result.current.isError).toBe(true);
         expect(result.current.contributions).toEqual([]);
       });
     });

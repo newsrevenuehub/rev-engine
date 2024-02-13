@@ -1,6 +1,6 @@
 import { useQueryClient } from '@tanstack/react-query';
 import { act, renderHook } from '@testing-library/react-hooks';
-import Axios from 'ajax/axios';
+import Axios from 'ajax/portal-axios';
 import MockAdapter from 'axios-mock-adapter';
 import { useSnackbar } from 'notistack';
 import { TestQueryClientProvider } from 'test-utils';
@@ -115,20 +115,6 @@ describe('usePortalContribution', () => {
       await waitFor(() => expect(axiosMock.history.get.length).toBe(1));
       expect(result.current.contribution).toBeUndefined();
     });
-
-    it('redirects user to magic link (login) page if GET error = Authentication Error', async () => {
-      const assign = jest.fn();
-      jest.spyOn(window.location, 'assign').mockImplementation(assign);
-
-      axiosMock.onGet('contributors/123/contributions/1/').reply(401);
-
-      expect(assign).not.toHaveBeenCalled();
-
-      const { waitFor } = hook(123, 1);
-
-      await waitFor(() => expect(axiosMock.history.get.length).toBe(1));
-      expect(assign).toHaveBeenCalledWith('/portal/');
-    });
   });
 
   describe('The cancelContribution function', () => {
@@ -212,27 +198,6 @@ describe('usePortalContribution', () => {
       await waitFor(() =>
         expect(enqueueSnackbar).toHaveBeenCalledWith('custom error message', expect.objectContaining({ persist: true }))
       );
-    });
-
-    it('redirects user to magic link (login) page if DELETE error = Authentication Error', async () => {
-      const assign = jest.fn();
-      jest.spyOn(window.location, 'assign').mockImplementation(assign);
-
-      axiosMock.onDelete('contributors/123/contributions/1/').reply(401);
-
-      expect(assign).not.toHaveBeenCalled();
-
-      const { result, waitFor } = hook(123, 1);
-
-      await waitFor(() => expect(axiosMock.history.get.length).toBe(1));
-
-      try {
-        await result.current.cancelContribution();
-      } catch {}
-
-      await waitFor(() => expect(axiosMock.history.delete.length).toBe(1));
-
-      expect(assign).toHaveBeenCalledWith('/portal/');
     });
 
     it('invalidates the contribution list and detail query', async () => {
@@ -332,27 +297,6 @@ describe('usePortalContribution', () => {
         ]
       ]);
       errorSpy.mockRestore();
-    });
-
-    it('redirects user to magic link (login) page if PATCH error = Authentication Error', async () => {
-      const assign = jest.fn();
-      jest.spyOn(window.location, 'assign').mockImplementation(assign);
-
-      axiosMock.onPatch('contributors/123/contributions/1/').reply(401);
-
-      expect(assign).not.toHaveBeenCalled();
-
-      const { result, waitFor } = hook(123, 1);
-
-      await waitFor(() => expect(axiosMock.history.get.length).toBe(1));
-
-      try {
-        await result.current.updateContribution({ provider_payment_method_id: 'new-id' }, 'paymentMethod');
-      } catch {}
-
-      await waitFor(() => expect(axiosMock.history.patch.length).toBe(1));
-
-      expect(assign).toHaveBeenCalledWith('/portal/');
     });
   });
 });

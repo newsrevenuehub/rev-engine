@@ -117,14 +117,17 @@ describe('usePortalContribution', () => {
     });
 
     it('redirects user to magic link (login) page if GET error = Authentication Error', async () => {
+      const assign = jest.fn();
+      jest.spyOn(window.location, 'assign').mockImplementation(assign);
+
       axiosMock.onGet('contributors/123/contributions/1/').reply(401);
 
-      expect(push).not.toHaveBeenCalled();
+      expect(assign).not.toHaveBeenCalled();
 
       const { waitFor } = hook(123, 1);
 
       await waitFor(() => expect(axiosMock.history.get.length).toBe(1));
-      expect(push).toHaveBeenCalledWith('/portal/');
+      expect(assign).toHaveBeenCalledWith('/portal/');
     });
   });
 
@@ -212,9 +215,12 @@ describe('usePortalContribution', () => {
     });
 
     it('redirects user to magic link (login) page if DELETE error = Authentication Error', async () => {
+      const assign = jest.fn();
+      jest.spyOn(window.location, 'assign').mockImplementation(assign);
+
       axiosMock.onDelete('contributors/123/contributions/1/').reply(401);
 
-      expect(push).not.toHaveBeenCalled();
+      expect(assign).not.toHaveBeenCalled();
 
       const { result, waitFor } = hook(123, 1);
 
@@ -226,7 +232,7 @@ describe('usePortalContribution', () => {
 
       await waitFor(() => expect(axiosMock.history.delete.length).toBe(1));
 
-      expect(push).toHaveBeenCalledWith('/portal/');
+      expect(assign).toHaveBeenCalledWith('/portal/');
     });
 
     it('invalidates the contribution list and detail query', async () => {
@@ -329,9 +335,12 @@ describe('usePortalContribution', () => {
     });
 
     it('redirects user to magic link (login) page if PATCH error = Authentication Error', async () => {
+      const assign = jest.fn();
+      jest.spyOn(window.location, 'assign').mockImplementation(assign);
+
       axiosMock.onPatch('contributors/123/contributions/1/').reply(401);
 
-      expect(push).not.toHaveBeenCalled();
+      expect(assign).not.toHaveBeenCalled();
 
       const { result, waitFor } = hook(123, 1);
 
@@ -343,7 +352,7 @@ describe('usePortalContribution', () => {
 
       await waitFor(() => expect(axiosMock.history.patch.length).toBe(1));
 
-      expect(push).toHaveBeenCalledWith('/portal/');
+      expect(assign).toHaveBeenCalledWith('/portal/');
     });
   });
 });

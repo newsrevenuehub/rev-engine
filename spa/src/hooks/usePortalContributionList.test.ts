@@ -143,6 +143,9 @@ describe('usePortalContributionList', () => {
       });
 
       it('redirects user to magic link (login) page if error = Authentication Error', async () => {
+        const assign = jest.fn();
+        jest.spyOn(window.location, 'assign').mockImplementation(assign);
+
         axiosMock.onGet('contributors/123/contributions/').reply(401);
 
         expect(push).not.toHaveBeenCalled();
@@ -150,7 +153,7 @@ describe('usePortalContributionList', () => {
         const { result, waitFor } = hook(123);
 
         await waitFor(() => expect(axiosMock.history.get.length).toBe(1));
-        expect(push).toHaveBeenCalledWith('/portal/');
+        expect(assign).toHaveBeenCalledWith('/portal/');
         expect(result.current.isError).toBe(true);
         expect(result.current.contributions).toEqual([]);
       });

@@ -1,13 +1,11 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
-import axios from 'ajax/axios';
 import { getContributionDetailEndpoint } from 'ajax/endpoints';
+import axios from 'ajax/portal-axios';
 import { AxiosError } from 'axios';
 import SystemNotification from 'components/common/SystemNotification';
 import { useSnackbar } from 'notistack';
-import { useCallback, useEffect } from 'react';
+import { useCallback } from 'react';
 import { PortalContribution } from './usePortalContributionList';
-import { useHistory } from 'react-router-dom';
-import { PORTAL } from 'routes';
 
 export interface PortalContributionPayment {
   /**
@@ -65,8 +63,6 @@ export interface PortalContributionUpdate {
  */
 export type PortalContributionUpdateType = 'paymentMethod';
 
-const isAuthenticationError = (error: AxiosError) => error?.name === 'AuthenticationError';
-
 async function fetchContribution(contributorId: number, contributionId: number) {
   const { data } = await axios.get<PortalContributionDetail>(
     getContributionDetailEndpoint(contributorId, contributionId)
@@ -79,26 +75,14 @@ async function fetchContribution(contributorId: number, contributionId: number) 
  * Manages a single contribution the user has made.
  */
 export function usePortalContribution(contributorId: number, contributionId: number) {
-  const history = useHistory();
   const { enqueueSnackbar } = useSnackbar();
   const queryClient = useQueryClient();
 
-  const {
-    data,
-    isError,
-    isFetching,
-    isLoading,
-    refetch,
-    error: fetchError
-  } = useQuery(
+  const { data, isError, isFetching, isLoading, refetch } = useQuery(
     ['portalContribution', contributorId, contributionId],
     () => fetchContribution(contributorId, contributionId),
     { keepPreviousData: true }
   );
-
-  const redirectToLogin = useCallback(() => {
-    history.push(PORTAL.ENTRY);
-  }, [history]);
 
   // Refresh the contribution details and list after 15 seconds to allow the backend / stripe to process the cancellation.
   const refreshAfterTimeout = useCallback(
@@ -110,12 +94,6 @@ export function usePortalContribution(contributorId: number, contributionId: num
     },
     [contributionId, contributorId, queryClient]
   );
-
-  useEffect(() => {
-    if (isAuthenticationError(fetchError as AxiosError)) {
-      redirectToLogin();
-    }
-  }, [fetchError, redirectToLogin]);
 
   const { mutateAsync: cancelContribution } = useMutation(
     async () => {
@@ -136,11 +114,6 @@ export function usePortalContribution(contributorId: number, contributionId: num
         });
       },
       onError: (error: AxiosError) => {
-        if (isAuthenticationError(error as AxiosError)) {
-          redirectToLogin();
-          return;
-        }
-        console.error('[usePortalContribution:cancelContribution] ', error);
         enqueueSnackbar(error?.response?.data?.detail ?? 'Something went wrong. Please, try again later.', {
           persist: true,
           content: (key: string, message: string) => (
@@ -156,11 +129,7 @@ export function usePortalContribution(contributorId: number, contributionId: num
       return axios.patch(getContributionDetailEndpoint(contributorId, contributionId), update.data);
     },
     {
-      onError: (err: AxiosError) => {
-        if (isAuthenticationError(err)) {
-          redirectToLogin();
-          return;
-        }
+      onError: () => {
         enqueueSnackbar('A problem occurred while updating your contribution. Please try again.', {
           persist: true,
           content: (key: string, message: string) => (

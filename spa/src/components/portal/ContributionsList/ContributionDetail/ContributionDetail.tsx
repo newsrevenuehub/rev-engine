@@ -12,6 +12,7 @@ import { BillingHistory } from './BillingHistory';
 import { PaymentMethod } from './PaymentMethod';
 import { MobileHeader } from './MobileHeader';
 import { Root, Loading } from './ContributionDetail.styled';
+import Banner from './Banner/Banner';
 
 const ContributionDetailPropTypes = {
   contributionId: PropTypes.number.isRequired,
@@ -63,6 +64,7 @@ export function ContributionDetail({ domAnchor, contributionId, contributorId }:
     <StripePaymentWrapper stripeAccountId={contribution.stripe_account_id} stripeLocale="en">
       <Root data-testid="contribution-detail" key="loaded" ref={setRootEl}>
         <MobileHeader contribution={contribution} />
+        <Banner contribution={contribution} />
         <BillingDetails contribution={contribution} disabled={!!editableSection} />
         <PaymentMethod
           contribution={contribution}

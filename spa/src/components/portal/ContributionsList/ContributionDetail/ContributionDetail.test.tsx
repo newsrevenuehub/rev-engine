@@ -9,6 +9,7 @@ jest.mock('components/paymentProviders/stripe/StripePaymentWrapper');
 jest.mock('hooks/usePortalContribution');
 jest.mock('./useDetailAnchor');
 jest.mock('./Actions/Actions');
+jest.mock('./Banner/Banner');
 jest.mock('./BillingDetails/BillingDetails');
 jest.mock('./BillingHistory/BillingHistory');
 jest.mock('./MobileHeader/MobileHeader');
@@ -112,14 +113,17 @@ describe('ContributionDetail', () => {
       });
     });
 
-    it.each([['mobile header'], ['billing details'], ['payment method'], ['actions']])('shows the %s', (name) => {
-      tree();
+    it.each([['mobile header'], ['banner'], ['billing details'], ['payment method'], ['actions']])(
+      'shows the %s',
+      (name) => {
+        tree();
 
-      const component = screen.getByTestId(`mock-${name.replace(' ', '-')}`);
+        const component = screen.getByTestId(`mock-${name.replace(' ', '-')}`);
 
-      expect(component).toBeInTheDocument();
-      expect(component.dataset.contribution).toBe(`${mockContribution.id}`);
-    });
+        expect(component).toBeInTheDocument();
+        expect(component.dataset.contribution).toBe(`${mockContribution.id}`);
+      }
+    );
 
     it('shows the billing history', () => {
       tree();

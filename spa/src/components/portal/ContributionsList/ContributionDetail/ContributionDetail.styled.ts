@@ -5,7 +5,7 @@ export const Root = styled.div`
   border-left: 4px solid ${({ theme }) => theme.basePalette.primary.purple};
   display: flex;
   flex-direction: column;
-  gap: 40px;
+  gap: 30px;
   padding: 20px;
   align-self: self-start;
 

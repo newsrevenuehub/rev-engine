@@ -1,19 +1,10 @@
 import { loadStripe } from '@stripe/stripe-js';
+import { Elements } from '@stripe/react-stripe-js';
 import { render, screen, waitFor } from 'test-utils';
 import StripePaymentWrapper, { StripePaymentWrapperProps } from './StripePaymentWrapper';
 
 jest.mock('@stripe/stripe-js');
-jest.mock('@stripe/react-stripe-js', () => ({
-  Elements: (props: any) => (
-    <div
-      data-testid="mock-stripe-elements"
-      data-stripe={JSON.stringify(props.stripe)}
-      data-options={JSON.stringify(props.options)}
-    >
-      {props.children}
-    </div>
-  )
-}));
+jest.mock('@stripe/react-stripe-js');
 jest.mock('appSettings', () => ({ HUB_STRIPE_API_PUB_KEY: 'mock-hub-stripe-key' }));
 jest.mock('elements/GlobalLoading');
 
@@ -32,7 +23,20 @@ function tree(props?: Partial<StripePaymentWrapperProps>) {
 }
 
 describe('StripePaymentWrapper', () => {
+  const ElementsMock = jest.mocked(Elements);
   const loadStripeMock = jest.mocked(loadStripe);
+
+  beforeEach(() => {
+    ElementsMock.mockImplementation((props: any) => (
+      <div
+        data-testid="mock-stripe-elements"
+        data-stripe={JSON.stringify(props.stripe)}
+        data-options={JSON.stringify(props.options)}
+      >
+        {props.children}
+      </div>
+    ));
+  });
 
   describe('On first render', () => {
     it("loads Stripe with the Hub public key and page's Stripe account ID", () => {
@@ -91,6 +95,25 @@ describe('StripePaymentWrapper', () => {
       tree();
       await waitFor(() => expect(loadStripeMock).toBeCalled());
       expect(screen.getByText('children')).toBeVisible();
+    });
+
+    it('renders Stripe Elements with exactly the same options object when re-rendered', async () => {
+      const { rerender } = tree();
+
+      await waitFor(() => expect(loadStripeMock).toBeCalled());
+      expect(ElementsMock).toBeCalledTimes(1);
+      rerender(
+        <StripePaymentWrapper
+          onError={jest.fn()}
+          stripeAccountId="mock-stripe-account-id"
+          stripeClientSecret="mock-stripe-client-secret"
+          stripeLocale={'mock-stripe-locale' as any}
+        >
+          different children
+        </StripePaymentWrapper>
+      );
+      expect(ElementsMock).toBeCalledTimes(2);
+      expect(ElementsMock.mock.calls[0][0].options).toBe(ElementsMock.mock.calls[1][0].options);
     });
   });
 

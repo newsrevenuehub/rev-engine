@@ -44,9 +44,9 @@ class RoleAssignmentAdminForm(forms.ModelForm):
             )
 
             if mismatched_rps.exists():
-                error_dict[
-                    "revenue_programs"
-                ] = f"The following RevenuePrograms do not belong to your chosen Org: {', '.join([rp.name for rp in mismatched_rps])}"
+                error_dict["revenue_programs"] = (
+                    f"The following RevenuePrograms do not belong to your chosen Org: {', '.join([rp.name for rp in mismatched_rps])}"
+                )
 
         if error_dict:
             raise ValidationError(error_dict)

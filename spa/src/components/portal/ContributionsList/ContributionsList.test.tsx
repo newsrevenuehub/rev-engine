@@ -27,6 +27,7 @@ function tree(context?: Partial<PortalAuthContextResult>) {
 describe('ContributionsList', () => {
   const useParamsMock = jest.mocked(useParams);
   const usePortalContributionsListMock = jest.mocked(usePortalContributionList);
+  let track: jest.SpyInstance;
 
   beforeEach(() => {
     useParamsMock.mockReturnValue({});
@@ -37,6 +38,8 @@ describe('ContributionsList', () => {
       isLoading: false,
       refetch: jest.fn()
     });
+    track = jest.fn();
+    (window as any).pendo = { track };
   });
 
   it('shows a Transactions heading', () => {
@@ -92,34 +95,54 @@ describe('ContributionsList', () => {
       expect(screen.queryByRole('progressbar')).not.toBeInTheDocument();
     });
 
-    it("doesn't show contribution detail if not present in the route", () => {
-      usePortalContributionsListMock.mockReturnValue({
-        contributions: [{ id: 1 }, { id: 2 }] as any,
-        isError: false,
-        isLoading: false,
-        isFetching: false,
-        refetch: jest.fn()
+    describe("When a contribution ID isn't in the route", () => {
+      beforeEach(() => {
+        usePortalContributionsListMock.mockReturnValue({
+          contributions: [{ id: 1 }, { id: 2 }] as any,
+          isError: false,
+          isLoading: false,
+          isFetching: false,
+          refetch: jest.fn()
+        });
+        useParamsMock.mockReturnValue({});
       });
-      useParamsMock.mockReturnValue({});
-      tree();
-      expect(screen.queryByTestId('mock-contribution-detail')).not.toBeInTheDocument();
+
+      it("doesn't show contribution detail", () => {
+        tree();
+        expect(screen.queryByTestId('mock-contribution-detail')).not.toBeInTheDocument();
+      });
+
+      it("doesn't track a Pendo event", () => {
+        tree();
+        expect(track).not.toBeCalled();
+      });
     });
 
-    it('shows contribution detail if present in the route', () => {
-      useParamsMock.mockReturnValue({ contributionId: '1' });
-      usePortalContributionsListMock.mockReturnValue({
-        contributions: [{ id: 1 }, { id: 2 }] as any,
-        isError: false,
-        isLoading: false,
-        isFetching: false,
-        refetch: jest.fn()
+    describe('When a contribution ID is in the route', () => {
+      beforeEach(() => {
+        useParamsMock.mockReturnValue({ contributionId: '1' });
+        usePortalContributionsListMock.mockReturnValue({
+          contributions: [{ id: 1, status: 'mock-status' }, { id: 2 }] as any,
+          isError: false,
+          isLoading: false,
+          isFetching: false,
+          refetch: jest.fn()
+        });
       });
-      tree();
 
-      const detail = screen.getByTestId('mock-contribution-detail');
+      it('shows contribution detail', () => {
+        tree();
 
-      expect(detail.dataset.contributorId).toBe('1');
-      expect(detail.dataset.contributionId).toBe('1');
+        const detail = screen.getByTestId('mock-contribution-detail');
+
+        expect(detail.dataset.contributorId).toBe('1');
+        expect(detail.dataset.contributionId).toBe('1');
+      });
+
+      it('tracks a Pendo event', () => {
+        tree();
+        expect(track.mock.calls).toEqual([['portal-contribution-detail-view', { status: 'mock-status' }]]);
+      });
     });
   });
 

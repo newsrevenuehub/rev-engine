@@ -15,7 +15,7 @@ export function StripePaymentWrapper({
       data-stripe-locale={stripeLocale}
     >
       {onError && <button onClick={() => onError(new Error())}>onError</button>}
-      {children}
+      <div data-testid="mock-stripe-payment-wrapper-children">{children}</div>
     </div>
   );
 }

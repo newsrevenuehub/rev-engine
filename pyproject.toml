@@ -102,8 +102,9 @@ invoke = "*"
 ipython = "*"
 isort = "*"
 pre-commit = "*"
-pytest = "*"
+pytest = "^7"  # temporarily pinned due to pytest-asyncio (which is a sub depenency) not supporting pytest 8 https://github.com/pytest-dev/pytest/issues/11868
 pytest-cases = "*"
+pytest-celery = "^0"
 pytest-cov = "*"
 pytest-django = "*"
 pytest-mock = "*"
@@ -114,8 +115,6 @@ responses = "*"
 [tool.poetry.extras]
 bandit = ["toml"]
 
-[tool.poetry.group.dev.dependencies]
-pytest-celery = "^0"
 
 [build-system]
 requires = ["poetry-core>=1.0.0"]

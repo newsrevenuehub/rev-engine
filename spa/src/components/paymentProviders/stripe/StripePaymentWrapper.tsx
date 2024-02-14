@@ -1,7 +1,7 @@
 import { loadStripe, Stripe, StripeElementLocale } from '@stripe/stripe-js';
 import { Elements } from '@stripe/react-stripe-js';
 import PropTypes, { InferProps } from 'prop-types';
-import { useEffect, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { HUB_STRIPE_API_PUB_KEY } from 'appSettings';
 import GlobalLoading from 'elements/GlobalLoading';
 
@@ -68,8 +68,13 @@ export function StripePaymentWrapper({
     }
   }, [inited, onError, stripeAccountId]);
 
+  const options = useMemo(
+    () => ({ clientSecret: stripeClientSecret ?? undefined, locale: stripeLocale }),
+    [stripeClientSecret, stripeLocale]
+  );
+
   return stripe ? (
-    <Elements stripe={stripe} options={{ clientSecret: stripeClientSecret ?? undefined, locale: stripeLocale }}>
+    <Elements stripe={stripe} options={options}>
       {children}
     </Elements>
   ) : (

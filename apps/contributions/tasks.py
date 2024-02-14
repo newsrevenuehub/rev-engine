@@ -1,6 +1,6 @@
 import os
 import time
-from datetime import timedelta
+from datetime import datetime, timedelta
 from types import TracebackType
 from typing import List
 
@@ -21,6 +21,7 @@ from apps.contributions.payment_managers import PaymentProviderError
 from apps.contributions.stripe_contributions_provider import (
     ContributionsCacheProvider,
     StripeContributionsProvider,
+    StripeToRevengineTransformer,
     SubscriptionsCacheProvider,
 )
 from apps.contributions.types import StripeEventData
@@ -206,3 +207,24 @@ def process_stripe_webhook_task(self, raw_event_data: dict) -> None:
         # first/next(in NRE platform) payment date.
         # TODO: [DEV-4151] Add some sort of analytics / telemetry to track how often this happens
         logger.info("Could not find contribution. Here's the event data: %s", event, exc_info=True)
+
+
+@shared_task(bind=True, autoretry_for=(RateLimitError,), retry_backoff=True, retry_kwargs={"max_retries": 3})
+def task_backfill_contributions_and_payments(
+    from_date: str, to_date: str, for_orgs: list[str] = None, for_stripe_accounts: list[str] = None
+):
+    logger.info(
+        "Running `task_backfill_contributions_and_payments` with params: from_date=%s, to_date=%s, for_orgs=%s, for_stripe_accounts=%s",
+        from_date,
+        to_date,
+        for_orgs,
+        for_stripe_accounts,
+    )
+
+    from_date = datetime.fromtimestamp(int(from_date)) if from_date else None
+    to_date = datetime.fromtimestamp(int(to_date)) if to_date else None
+
+    StripeToRevengineTransformer(
+        from_date=from_date, to_date=to_date, for_stripe_accounts=for_stripe_accounts, for_orgs=for_orgs
+    ).backfill_contributions_and_payments_from_stripe()
+    logger.info("`task_backfill_contributions_and_payments` is done")

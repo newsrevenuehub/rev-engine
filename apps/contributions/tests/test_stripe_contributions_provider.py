@@ -18,11 +18,13 @@ from apps.contributions.stripe_contributions_provider import (
     InvalidMetadataError,
     StripeContributionsProvider,
     StripePaymentIntent,
+    StripeToRevengineTransformer,
     SubscriptionsCacheProvider,
     logger,
 )
 from apps.contributions.tests import RedisMock
 from apps.contributions.types import StripePiAsPortalContribution, StripePiSearchResponse
+from apps.organizations.tests.factories import OrganizationFactory, RevenueProgramFactory
 
 
 @pytest.fixture
@@ -771,3 +773,19 @@ class TestSubscriptionsCacheProvider:
         cache_provider.upsert([(sub := subscription_factory.get())])
         cached = cache_provider.load()
         assert cached[0].id == sub.id
+
+
+@pytest.mark.django_db
+class TestStripeToRevengineTransformer:
+    @pytest.fixture()
+    def orgs(self):
+        orgs = []
+        for _ in range(2):
+            org = OrganizationFactory()
+            RevenueProgramFactory(organization=org)
+            orgs.append(org)
+        return orgs
+
+    def test_backfill_contributions_and_payments_from_stripe(self, orgs, mocker):
+        transformer = StripeToRevengineTransformer()
+        transformer.backfill_contributions_and_payments_from_stripe()

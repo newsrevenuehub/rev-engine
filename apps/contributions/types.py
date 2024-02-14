@@ -247,5 +247,22 @@ class StripePaymentMetadataSchemaV1_5(StripePaymentMetadataSchemaV1_4):
         exclude = {"contributor_id"}
 
 
-class SupportedStripePaymentMetadataSchema(Union(StripePaymentMetadataSchemaV1_4, StripePaymentMetadataSchemaV1_5)):
-    """This is a union of all supported metadata schemas"""
+STRIPE_PAYMENT_METADATA_SCHEMA_VERSIONS = {
+    "1.0": {"class": StripePaymentMetadataSchemaV1_0, "revengine_supported": False},
+    "1.1": {"class": StripePaymentMetadataSchemaV1_1, "revengine_supported": False},
+    "1.2": {"class": StripePaymentMetadataSchemaV1_2, "revengine_supported": False},
+    "1.3": {"class": StripePaymentMetadataSchemaV1_3, "revengine_supported": False},
+    "1.4": {"class": StripePaymentMetadataSchemaV1_4, "revengine_supported": True},
+    "1.5": {"class": StripePaymentMetadataSchemaV1_5, "revengine_supported": True},
+}
+
+
+def cast_metadata_to_stripe_payment_metadata_schema(
+    metadata: dict,
+) -> Union[StripePaymentMetadataSchemaV1_4, StripePaymentMetadataSchemaV1_5]:
+    """Cast metadata to the appropriate schema based on the schema_version field."""
+
+    if (schema_version := metadata.get("schema_version", None)) not in STRIPE_PAYMENT_METADATA_SCHEMA_VERSIONS:
+        raise ValueError(f"Unknown schema version {schema_version}")
+    schema_class = STRIPE_PAYMENT_METADATA_SCHEMA_VERSIONS[schema_version]["class"]
+    return schema_class(**metadata)

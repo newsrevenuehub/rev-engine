@@ -46,3 +46,46 @@ def test_sync_payment_transaction_time(mocker, balance_transaction_for_one_time_
     assert payment.transaction_time == datetime.datetime.fromtimestamp(
         balance_transaction_for_one_time_charge.created, tz=datetime.timezone.utc
     )
+
+
+@pytest.mark.django_db
+class TestBackfillContributionsAndPaymentsFromStripe:
+    @pytest.fixture(
+        params=[
+            # {},
+            {
+                "gte": (now := datetime.datetime.now()),
+                "lte": now,
+                "for_orgs": [1, 2, 3],
+                "for_stripe_accounts": ["acct_123", "acct_456"],
+            },
+        ]
+    )
+    def command_options(self, request):
+        return request.param
+
+    @pytest.mark.parametrize("async_mode", (False, True))
+    def test_happy_path(self, async_mode, command_options, mocker):
+        mock_async_task = mocker.patch("apps.contributions.tasks.task_backfill_contributions_and_payments.delay")
+        mock_transformer = mocker.patch(
+            "apps.contributions.management.commands.backfill_contributions_and_payments_from_stripe.StripeToRevengineTransformer"
+        )
+        if async_mode:
+            command_options["async_mode"] = True
+        call_command("backfill_contributions_and_payments_from_stripe", **command_options)
+        gte = command_options.get("gte", None)
+        lte = command_options.get("lte", None)
+
+        expected_call_args = {
+            "from_date": (gte.isoformat() if async_mode and gte else gte),
+            "to_date": (lte.isoformat() if async_mode and lte else lte),
+            "for_orgs": command_options.get("for_orgs", []),
+            "for_stripe_accounts": command_options.get("for_stripe_accounts", []),
+        }
+        if async_mode:
+            mock_async_task.assert_called_once_with(**expected_call_args)
+            mock_transformer.assert_not_called()
+        else:
+            mock_async_task.assert_not_called()
+            mock_transformer.assert_called_once_with(**expected_call_args)
+            mock_transformer.return_value.backfill_contributions_and_payments_from_stripe.assert_called_once()

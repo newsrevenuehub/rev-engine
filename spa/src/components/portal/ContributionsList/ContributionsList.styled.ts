@@ -12,6 +12,10 @@ export const List = styled.div<{ $detailVisible: boolean }>`
   }
 `;
 
+export const AlignPositionWrapper = styled.div`
+  grid-area: list;
+`;
+
 export const StyledPortalPage = styled(PortalPage)`
   @media (${(props) => props.theme.breakpoints.tabletLandscapeDown}) {
     background-color: ${({ theme }) => theme.basePalette.greyscale.white};
@@ -61,6 +65,7 @@ export const Loading = styled.div`
   align-items: center;
   display: flex;
   justify-content: center;
+  grid-area: list;
 `;
 
 export const Subhead = styled.h2`

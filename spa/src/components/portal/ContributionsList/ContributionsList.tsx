@@ -7,7 +7,17 @@ import ContributionItem from './ContributionItem/ContributionItem';
 import NoContributions from './NoContributions';
 import ContributionFetchError from './ContributionFetchError';
 import ContributionDetail from './ContributionDetail/ContributionDetail';
-import { List, Root, Subhead, Columns, Loading, Legend, Detail, StyledPortalPage } from './ContributionsList.styled';
+import {
+  List,
+  Root,
+  Subhead,
+  Columns,
+  Loading,
+  Legend,
+  Detail,
+  StyledPortalPage,
+  AlignPositionWrapper
+} from './ContributionsList.styled';
 import Sort from 'components/common/Sort';
 
 const CONTRIBUTION_SORT_OPTIONS = [
@@ -53,7 +63,11 @@ export function ContributionsList() {
       </Loading>
     );
   } else if (isError) {
-    content = <ContributionFetchError message="Error loading contributions." onRetry={() => refetch()} />;
+    content = (
+      <AlignPositionWrapper>
+        <ContributionFetchError message="Error loading contributions." onRetry={refetch} />
+      </AlignPositionWrapper>
+    );
   } else if (contributor && contributions?.length > 0) {
     content = (
       <List $detailVisible={!!selectedContribution}>
@@ -72,7 +86,11 @@ export function ContributionsList() {
       </List>
     );
   } else {
-    content = <NoContributions />;
+    content = (
+      <AlignPositionWrapper>
+        <NoContributions />
+      </AlignPositionWrapper>
+    );
   }
 
   return (

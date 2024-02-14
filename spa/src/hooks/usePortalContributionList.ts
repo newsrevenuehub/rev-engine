@@ -1,9 +1,9 @@
 import { useQuery } from '@tanstack/react-query';
-import queryString from 'query-string';
-import axios from 'ajax/axios';
 import { getContributionsEndpoint } from 'ajax/endpoints';
+import axios from 'ajax/portal-axios';
 import { ContributionInterval } from 'constants/contributionIntervals';
 import { PaymentStatus } from 'constants/paymentStatus';
+import queryString from 'query-string';
 
 export type CardBrand = 'amex' | 'diners' | 'discover' | 'jcb' | 'mastercard' | 'unionpay' | 'visa' | 'unknown';
 

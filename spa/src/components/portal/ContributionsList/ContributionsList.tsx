@@ -1,4 +1,4 @@
-import { ReactChild, useState } from 'react';
+import { ReactChild, useEffect, useState } from 'react';
 import { useParams } from 'react-router-dom';
 import { CircularProgress } from 'components/base';
 import { usePortalAuthContext } from 'hooks/usePortalAuth';
@@ -55,6 +55,21 @@ export function ContributionsList() {
   // ContributionDetail when an item is selected.
   const [selectedContributionEl, setSelectedContributionEl] = useState<HTMLAnchorElement | null>(null);
   let content: ReactChild;
+
+  useEffect(() => {
+    // Track viewing of a contribution detail in Pendo if available. If this
+    // fails, log an error but don't otherwise show an error to the user.
+
+    if (selectedContribution) {
+      try {
+        (window as any).pendo.track('portal-contribution-detail-view', {
+          status: selectedContribution.status
+        });
+      } catch (error) {
+        console.error(`Couldn't track a contribution detail view event in Pendo: ${(error as Error).message}`);
+      }
+    }
+  }, [selectedContribution]);
 
   if (isLoading) {
     content = (

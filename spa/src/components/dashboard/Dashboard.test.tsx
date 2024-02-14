@@ -6,14 +6,14 @@ import { CONTENT_SLUG } from 'routes';
 import Dashboard from './Dashboard';
 
 import useUser from 'hooks/useUser';
-import usePendo from 'hooks/usePendo';
+import useDashboardPendo from 'hooks/useDashboardPendo';
 
 jest.mock('components/common/Modal/AudienceListModal/AudienceListModal');
 jest.mock('components/common/IntegrationCard/MailchimpIntegrationCard/MailchimpModal/MailchimpModal');
 jest.mock('components/dashboard/connectStripe/ConnectStripe');
 jest.mock('./MailchimpConnectionStatus', () => () => <div data-testid="mock-mailchimp-connection-status" />);
 jest.mock('./sidebar/DashboardSidebar');
-jest.mock('hooks/usePendo');
+jest.mock('hooks/useDashboardPendo');
 jest.mock('hooks/useUser');
 jest.mock('react-router-dom', () => ({
   ...(jest.requireActual('react-router-dom') as object),
@@ -32,7 +32,7 @@ const useUserMockDefaults = {
 };
 
 describe('Dashboard', () => {
-  const usePendoMock = jest.mocked(usePendo);
+  const useDashboardPendoMock = jest.mocked(useDashboardPendo);
   const useUserMock = jest.mocked(useUser);
   const useLocationMock = jest.mocked(useLocation);
 
@@ -58,6 +58,6 @@ describe('Dashboard', () => {
 
   it('loads Pendo', () => {
     render(<Dashboard />);
-    expect(usePendoMock).toBeCalledTimes(1);
+    expect(useDashboardPendoMock).toBeCalledTimes(1);
   });
 });

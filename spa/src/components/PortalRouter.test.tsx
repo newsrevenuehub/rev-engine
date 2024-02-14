@@ -1,10 +1,13 @@
 import { render, screen, within } from '@testing-library/react';
 import { createMemoryHistory } from 'history';
+import { Suspense } from 'react';
 import { Router } from 'react-router-dom';
 import { ThemeProvider } from 'styled-components';
+import { usePortalPendo } from 'hooks/usePortalPendo';
 import { revEngineTheme } from 'styles/themes';
 import PortalRouter from './PortalRouter';
-import { Suspense } from 'react';
+
+jest.mock('hooks/usePortalPendo');
 
 // Turn <BrowserRouter> into a no-op component so we can use our own router.
 
@@ -46,6 +49,13 @@ function tree(path: string) {
 }
 
 describe('PortalRouter', () => {
+  const usePortalPendoMock = jest.mocked(usePortalPendo);
+
+  it('loads Pendo', () => {
+    tree('/portal/');
+    expect(usePortalPendoMock).toBeCalledTimes(1);
+  });
+
   // Routes in tests below are hard-coded to avoid a situation where slashes
   // change in our route config, and we accidentally route to URLs like
   // /portal//my-contributions but tests continue to pass.

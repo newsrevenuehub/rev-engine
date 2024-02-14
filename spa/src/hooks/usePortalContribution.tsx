@@ -1,6 +1,6 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
-import axios from 'ajax/axios';
 import { getContributionDetailEndpoint } from 'ajax/endpoints';
+import axios from 'ajax/portal-axios';
 import { AxiosError } from 'axios';
 import SystemNotification from 'components/common/SystemNotification';
 import { useSnackbar } from 'notistack';
@@ -84,6 +84,17 @@ export function usePortalContribution(contributorId: number, contributionId: num
     { keepPreviousData: true }
   );
 
+  // Refresh the contribution details and list after 15 seconds to allow the backend / stripe to process the cancellation.
+  const refreshAfterTimeout = useCallback(
+    (timeout = 15000) => {
+      setTimeout(() => {
+        queryClient.invalidateQueries(['portalContributionList']);
+        queryClient.invalidateQueries(['portalContribution', contributorId, contributionId]);
+      }, timeout);
+    },
+    [contributionId, contributorId, queryClient]
+  );
+
   const { mutateAsync: cancelContribution } = useMutation(
     async () => {
       return await axios.delete<PortalContributionDetail>(getContributionDetailEndpoint(contributorId, contributionId));
@@ -93,11 +104,7 @@ export function usePortalContribution(contributorId: number, contributionId: num
         // Invalidate contribution details for `is_cancelable` to be updated.
         queryClient.invalidateQueries(['portalContribution', contributorId, contributionId]);
 
-        setTimeout(() => {
-          // Refresh the contribution details and list after 15 seconds to allow the backend / stripe to process the cancellation.
-          queryClient.invalidateQueries(['portalContributionList']);
-          queryClient.invalidateQueries(['portalContribution', contributorId, contributionId]);
-        }, 15000);
+        refreshAfterTimeout();
 
         enqueueSnackbar('Your contribution has been successfully canceled.', {
           persist: true,
@@ -152,6 +159,8 @@ export function usePortalContribution(contributorId: number, contributionId: num
         }
 
         queryClient.invalidateQueries(['portalContribution', contributorId, contributionId]);
+
+        refreshAfterTimeout();
       }
     }
   );

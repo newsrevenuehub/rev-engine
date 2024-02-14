@@ -1090,11 +1090,14 @@ class Contribution(IndexedTimeStampedModel):
             stripe.Subscription.modify(
                 sub_id, default_payment_method=provider_payment_method_id, stripe_account=self.stripe_account_id
             )
-        except StripeError:
-            logger.exception(
-                "Encountered a Stripe error while trying to update payment method for subscription on contribution %s",
-                self.id,
-            )
+        except StripeError as stripe_error:
+            # Don't log/send Sentry alert if stripe error is "declined card"
+            if stripe_error.code != "card_declined":
+                logger.exception(
+                    "Encountered a Stripe error while trying to update payment method for subscription on contribution %s",
+                    self.id,
+                )
+
             raise
 
 

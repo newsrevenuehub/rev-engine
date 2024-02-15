@@ -323,7 +323,7 @@ class StripeContributionsProvider:
 
     def get_interval_from_subscription(self, subscription: stripe.Subscription) -> ContributionInterval:
         """Gets the ContributionInterval from a stripe.Subscription object."""
-        UntrackedStripeSubscription.get_interval_from_subscription(subscription)
+        return UntrackedStripeSubscription.get_interval_from_subscription(subscription)
 
     def cast_subscription_to_pi_for_portal(self, subscription: stripe.Subscription) -> StripePiAsPortalContribution:
         """Casts a Subscription object to a PaymentIntent object for use in the Stripe Customer Portal.
@@ -383,7 +383,7 @@ class ContributionsCacheProvider:
         data = {}
         for pi in payment_intents:
             try:
-                serialized_obj = self.serializer(instance=self.converter(pi))
+                serialized_obj = self._serializer(instance=self.converter(pi))
                 data[pi.id] = serialized_obj.data
             except (ContributionIgnorableError, InvalidMetadataError) as ex:
                 logger.warning("Unable to process Contribution [%s]", pi.id, exc_info=ex)
@@ -497,7 +497,8 @@ def _upsert_payments_for_charge(
 ) -> None:
     """ """
     logger.info("Upserting payment for contribution %s", contribution.id)
-    Payment.objects.get_or_create(
+
+    Payment.objects.update_or_create(
         contribution=contribution,
         stripe_balance_transaction_id=balance_transaction.id,
         defaults={
@@ -511,7 +512,7 @@ def _upsert_payments_for_charge(
     )
     for refund in charge.refunds.data:
         logger.info("Upserting payment for refund  %s for contribution %s", refund.id, contribution.id)
-        Payment.objects.get_or_create(
+        Payment.objects.update_or_create(
             contribution=contribution,
             stripe_balance_transaction_id=refund.balance_transaction.id,
             defaults={
@@ -539,17 +540,9 @@ class StripeClientForConnectedAccount:
 
     ALL_METADATA_SCHEMA_VERSIONS = ("1.0", "1.1", "1.2", "1.3", "1.4", "1.5")
     SUPPORTED_METADATA_SCHEMA_VERSIONS = ("1.4", "1.5")
-    # https://stripe.com/docs/rate-limits
-    STRIPE_SEARCH_MAX_REQUESTS_PER_SECOND = 100
-    # make this dynamic based on django settings -- it's 25 in test, and 100 in live
-    STRIPE_DEFAULT_MAX_REQUESTS_PER_SECOND = 100
-    DEFAULT_GET_CHARGE_EXPAND_FIELDS = ["balance_transaction", "refunds.data.balance_transaction", "customer"]
-    DEFAULT_GET_SUBSCRIPTION_EXPAND_FIELDS = [
-        "customer",
-    ]
-    DEFAULT_GET_CUSTOMER_EXPAND_FIELDS = [
-        "invoice_settings.default_payment_method",
-    ]
+    DEFAULT_GET_CHARGE_EXPAND_FIELDS = ("balance_transaction", "refunds.data.balance_transaction", "customer")
+    DEFAULT_GET_SUBSCRIPTION_EXPAND_FIELDS = ("customer",)
+    DEFAULT_GET_CUSTOMER_EXPAND_FIELDS = ("invoice_settings.default_payment_method",)
 
     def __post_init__(self):
         logger.debug("Initializing StripeClientForConnectedAccount with account_id %s", self.account_id)
@@ -592,7 +585,7 @@ class StripeClientForConnectedAccount:
             query_parts.append(f"created >= {self.gte.timestamp()}")
         if self.lte:
             query_parts.append(f"created <= {self.lte.timestamp()}")
-        return "AND ".join(query_parts)
+        return " AND ".join(query_parts)
 
     def get_invoices(self) -> list[stripe.Invoice]:
         """Gets invoices for a given stripe account"""
@@ -603,7 +596,7 @@ class StripeClientForConnectedAccount:
             return [x for x in stripe.Invoice.list(**self._default_stripe_list_kwargs).auto_paging_iter()]
         return self._do_paginated_search(stripe_object=stripe.Invoice, query=query, entity="invoices")
 
-    def get_subscription(self, subscription_id: str, **kwargs) -> stripe.Subscription | None:
+    def get_subscription(self, subscription_id: str) -> stripe.Subscription | None:
         logger.debug("Getting subscription %s for account %s", subscription_id, self.account_id)
         try:
             return stripe.Subscription.retrieve(
@@ -655,11 +648,10 @@ class StripeClientForConnectedAccount:
             logger.warning("Unable to retrieve invoice %s for account %s", invoice_id, self.account_id, exc_info=exc)
             return None
 
-    def is_for_one_time_contribution(self, pi: stripe.PaymentIntent, invoice: stripe.Invoice | None) -> bool:
+    @staticmethod
+    def is_for_one_time_contribution(pi: stripe.PaymentIntent, invoice: stripe.Invoice | None) -> bool:
         """Determines if a given stripe payment intent is for a one time contribution"""
-        logger.debug(
-            "Determining if payment intent %s is for a one time contribution for account %s", pi.id, self.account_id
-        )
+        logger.debug("Determining if payment intent %s is for a one time contribution", pi.id)
         if not pi.invoice:
             return True
         if invoice and invoice.subscription:
@@ -759,7 +751,6 @@ class StripeClientForConnectedAccount:
                 data.append(
                     UntrackedStripeSubscription(
                         subscription=sub,
-                        invoices=invoices,
                         charges=[x for x in charges if x.invoice in [x.id for x in invoices]],
                     )
                 )
@@ -816,6 +807,14 @@ class StripeClientForConnectedAccount:
             )
             return None
 
+    def get_stripe_event(self, event_id: str):
+        """Retrieve a stripe event for a given stripe account"""
+        try:
+            return stripe.Event.retrieve(event_id, **self._default_stripe_kwargs)
+        except stripe.error.InvalidRequestError as exc:
+            logger.warning("Unable to retrieve stripe event %s for account %s", event_id, self.account_id, exc_info=exc)
+            return None
+
 
 class UntrackedOneTimePaymentIntent:
     """Convenience class used to upsert contribution, contributor, and (optionally) payments for a given Stripe payment intent.
@@ -836,7 +835,7 @@ class UntrackedOneTimePaymentIntent:
         self.charge = charge
 
     def __str__(self) -> str:
-        return f"UntrackedOneTimePaymentIntent for payment intent {self.payment_intent.id}"
+        return f"UntrackedOneTimePaymentIntent {self.payment_intent.id}"
 
     @cached_property
     def customer(self) -> stripe.Customer | None:
@@ -845,18 +844,20 @@ class UntrackedOneTimePaymentIntent:
         The source for this could be the charge or the PI. We prefer the former when present.
         """
         if charge := self.charge:
-            if (cust := charge.customer) and isinstance(cust, stripe.Customer):
-                return cust
-            if cust and isinstance(cust, str):
+            if cust := charge.customer:
+                if isinstance(cust, str):
+                    return StripeClientForConnectedAccount.get_stripe_customer(
+                        customer_id=cust, stripe_account_id=self.payment_intent.stripe_account
+                    )
+                else:
+                    return cust
+        if cust := self.payment_intent.customer:
+            if isinstance(cust, str):
                 return StripeClientForConnectedAccount.get_stripe_customer(
                     customer_id=cust, stripe_account_id=self.payment_intent.stripe_account
                 )
-        if (cust := self.payment_intent.customer) and isinstance(cust, stripe.Customer):
-            return cust
-        if cust and isinstance(cust, str):
-            return StripeClientForConnectedAccount.get_stripe_customer(
-                customer_id=cust, stripe_account_id=self.payment_intent.stripe_account
-            )
+            else:
+                return cust
         return None
 
     @property
@@ -928,15 +929,15 @@ class UntrackedOneTimePaymentIntent:
         defaults = {
             "amount": self.payment_intent.amount,
             "currency": self.payment_intent.currency,
-            "reason": self.payment_intent.metadata.get("reason_for_giving", None),
+            "reason": self.payment_intent.metadata.get("reason_for_giving", ""),
             "interval": ContributionInterval.ONE_TIME,
             "payment_provider_used": "stripe",
-            "provider_payment_id": self.payment_intent.id,
-            "provider_customer_id": self.payment_intent.customer,
+            "provider_customer_id": self.customer.id,
             "provider_payment_method_id": pm.id if pm else None,
             "provider_payment_method_details": pm.to_dict() if pm else None,
             "status": self.status,
             "contributor": contributor,
+            "contribution_metadata": self.payment_intent.metadata,
         }
         if existing:
             for k, v in defaults.items():
@@ -947,6 +948,8 @@ class UntrackedOneTimePaymentIntent:
                 reversion.set_comment("UntrackedOneTimePaymentIntent.upsert updated existing contribution")
         else:
             contribution = Contribution(**defaults | {"provider_payment_id": self.payment_intent.id})
+
+        _upsert_payments_for_charge(contribution, self.charge, self.charge.balance_transaction)
         return contribution
 
 
@@ -956,27 +959,22 @@ class UntrackedStripeSubscription:
     Note that in the init method, we raise an exception if the metadata is invalid.
     """
 
-    def __init__(self, subscription: stripe.Subscription, invoices: list[stripe.Invoice], charges: list[stripe.Charge]):
+    def __init__(self, subscription: stripe.Subscription, charges: list[stripe.Charge]):
         try:
             cast_metadata_to_stripe_payment_metadata_schema(subscription.metadata)
         except ValueError as exc:
             raise InvalidMetadataError(f"Metadata is invalid for subscription : {subscription.id}") from exc
         self.subscription = subscription
-        self.invoices = invoices
         self.charges = charges
 
     def __str__(self) -> str:
-        return f"UntrackedStripeSubscription for subscription {self.subscription.id}"
-
-    @property
-    def most_recent_charge(self) -> stripe.Charge:
-        return max(self.charges, key=lambda x: x.created)
+        return f"UntrackedStripeSubscription {self.subscription.id}"
 
     @property
     def status(self) -> ContributionStatus:
         match self.subscription.status:
             # In revengine terms, we conflate active and past due because we don't have an internal status
-            # for past due, and paid is closest given current statuse
+            # for past due, and paid is closest given current statuses
             case "active" | "past_due":
                 return ContributionStatus.PAID
             # happens after time period for incomplete, when expired no longer can be charged
@@ -1180,3 +1178,35 @@ class StripeToRevengineTransformer:
         for account_id in self.stripe_account_ids:
             logger.info("Backfilling contributions and payments for stripe account %s", account_id)
             self.backfill_contributions_and_payments_for_stripe_account(account_id)
+
+
+@dataclass
+class StripeEventSyncer:
+    """ """
+
+    event_id: str
+    stripe_account_id: str
+    async_mode: bool = False
+
+    def __post_init__(self):
+        self.client = StripeClientForConnectedAccount(account_id=self.stripe_account_id)
+
+    def get_event(self) -> stripe.Event | None:
+        """Gets a stripe event for a given event id and stripe account id."""
+        return self.client.get_stripe_event(event_id=self.event_id)
+
+    def sync(self) -> None:
+        from .tasks import process_stripe_webhook_task
+
+        if not (event := self.get_event()):
+            logger.warning("No event found for event id %s", self.event_id)
+            return
+        if event.type not in settings.STRIPE_WEBHOOK_EVENTS_CONTRIBUTIONS:
+            logger.warning("Event type %s is not supported", event.type)
+            return
+
+        (
+            process_stripe_webhook_task.delay(raw_event_data=event)
+            if self.async_mode
+            else process_stripe_webhook_task(raw_event_data=event)
+        )

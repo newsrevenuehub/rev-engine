@@ -596,19 +596,6 @@ class StripeClientForConnectedAccount:
             return [x for x in stripe.Invoice.list(**self._default_stripe_list_kwargs).auto_paging_iter()]
         return self._do_paginated_search(stripe_object=stripe.Invoice, query=query, entity="invoices")
 
-    def get_subscription(self, subscription_id: str) -> stripe.Subscription | None:
-        logger.debug("Getting subscription %s for account %s", subscription_id, self.account_id)
-        try:
-            return stripe.Subscription.retrieve(
-                subscription_id,
-                **(self._default_stripe_kwargs | {"expand": self.DEFAULT_GET_SUBSCRIPTION_EXPAND_FIELDS}),
-            )
-        except stripe.error.InvalidRequestError as exc:
-            logger.warning(
-                "Unable to retrieve subscription %s for account %s", subscription_id, self.account_id, exc_info=exc
-            )
-            return None
-
     def get_payment_intents(self, metadata_query: str = None) -> list[stripe.PaymentIntent]:
         """Gets payment intents for a given stripe account"""
         logger.debug("Getting payment intents for account %s", self.account_id)
@@ -639,14 +626,6 @@ class StripeClientForConnectedAccount:
         See https://stripe.com/docs/search#search-syntax for more details on search syntax for metadata
         """
         return " OR ".join([f'metadata["schema_version"]:"{x}"' for x in self.ALL_METADATA_SCHEMA_VERSIONS])
-
-    def get_invoice(self, invoice_id: str) -> stripe.Invoice | None:
-        logger.debug("Getting invoice %s for account %s", invoice_id, self.account_id)
-        try:
-            return stripe.Invoice.retrieve(invoice_id, **self._default_stripe_kwargs)
-        except stripe.error.InvalidRequestError as exc:
-            logger.warning("Unable to retrieve invoice %s for account %s", invoice_id, self.account_id, exc_info=exc)
-            return None
 
     @staticmethod
     def is_for_one_time_contribution(pi: stripe.PaymentIntent, invoice: stripe.Invoice | None) -> bool:
@@ -714,25 +693,6 @@ class StripeClientForConnectedAccount:
         )
         return revengine_subscriptions
 
-    @classmethod
-    def _get_expanded_charge_object(cls, id: str, **kwargs) -> stripe.Charge | None:
-        """Retrieve a Stripe charge, given an invoice id.
-
-        Indirection here is because there's a caller that needs to get charge, but via class not instance
-        """
-        logger.info("Getting charge for invoice %s", id)
-        kwargs = kwargs | {"expand": cls.DEFAULT_GET_CHARGE_EXPAND_FIELDS}
-        try:
-            return stripe.Charge.retrieve(id, **kwargs)
-        except stripe.error.InvalidRequestError as exc:
-            logger.warning("Unable to retrieve charge %s", id, exc_info=exc)
-            return None
-
-    def get_expanded_charge_object(self, charge_id: str) -> stripe.Charge | None:
-        """Retrieve a Stripe charge, given an invoice id."""
-        logger.debug("Getting charge for invoice %s for account %s", charge_id, self.account_id)
-        return self._get_expanded_charge_object(id=charge_id, **self._default_stripe_kwargs)
-
     def get_revengine_subscriptions_data(
         self, invoices: list[stripe.Invoice], charges: list[stripe.Charge]
     ) -> list["UntrackedStripeSubscription"]:
@@ -780,42 +740,64 @@ class StripeClientForConnectedAccount:
         return data
 
     @staticmethod
-    def get_payment_method(payment_method_id: str, stripe_account_id: str) -> stripe.PaymentMethod | None:
-        """Retrieve a payment method for a given stripe account"""
-        logger.info("Getting payment method %s for account %s", payment_method_id, stripe_account_id)
+    def get_stripe_entity(entity_id: str, stripe_entity_name: str, stripe_account_id: str, **kwargs):
+        """Retrieve a stripe entity for a given stripe account"""
+        logger.debug("Getting %s %s for account %s", stripe_entity_name, entity_id, stripe_account_id)
         try:
-            return stripe.PaymentMethod.retrieve(payment_method_id, stripe_account=stripe_account_id)
+            return getattr(stripe, stripe_entity_name).retrieve(entity_id, stripe_account=stripe_account_id, **kwargs)
         except stripe.error.InvalidRequestError as exc:
             logger.warning(
-                "Unable to retrieve payment method %s for account %s",
-                payment_method_id,
+                "Unable to retrieve %s %s for account %s",
+                stripe_entity_name,
+                entity_id,
                 stripe_account_id,
                 exc_info=exc,
             )
             return None
 
-    @staticmethod
-    def get_stripe_customer(customer_id: str, stripe_account_id: str) -> stripe.Customer | None:
+    @classmethod
+    def get_payment_method(
+        cls, payment_method_id: str, stripe_account_id: str, **kwargs
+    ) -> stripe.PaymentMethod | None:
+        """Retrieve a payment method for a given stripe account"""
+        return cls.get_stripe_entity(payment_method_id, "PaymentMethod", stripe_account_id, **kwargs)
+
+    @classmethod
+    def get_stripe_customer(cls, customer_id: str, stripe_account_id: str, **kwargs) -> stripe.Customer | None:
         """Retrieve a stripe customer for a given stripe account"""
-        try:
-            return stripe.Customer.retrieve(
-                customer_id, stripe_account=stripe_account_id, limit=MAX_STRIPE_RESPONSE_LIMIT
-            )
-        except stripe.error.InvalidRequestError as exc:
-            logger.warning(
-                "Unable to retrieve stripe customer %s for account %s", customer_id, stripe_account_id, exc_info=exc
-            )
-            return None
+        return cls.get_stripe_entity(
+            customer_id, "Customer", stripe_account_id, expand=cls.DEFAULT_GET_CUSTOMER_EXPAND_FIELDS, **kwargs
+        )
 
-    def get_stripe_event(self, event_id: str):
+    @classmethod
+    def get_stripe_event(cls, event_id: str, stripe_account_id: str, **kwargs) -> stripe.Event | None:
         """Retrieve a stripe event for a given stripe account"""
-        try:
-            return stripe.Event.retrieve(event_id, **self._default_stripe_kwargs)
-        except stripe.error.InvalidRequestError as exc:
-            logger.warning("Unable to retrieve stripe event %s for account %s", event_id, self.account_id, exc_info=exc)
-            return None
+        return cls.get_stripe_entity(event_id, "Event", stripe_account_id, **kwargs)
+
+    @classmethod
+    def get_subscription(cls, subscription_id: str, stripe_account_id: str, **kwargs) -> stripe.Subscription | None:
+        """Retrieve a stripe subscription for a given stripe account"""
+        return cls.get_stripe_entity(
+            subscription_id,
+            "Subscription",
+            stripe_account_id,
+            expand=cls.DEFAULT_GET_SUBSCRIPTION_EXPAND_FIELDS,
+            **kwargs,
+        )
+
+    @classmethod
+    def get_invoice(self, invoice_id: str, stripe_account_id: str, **kwargs) -> stripe.Invoice | None:
+        """Retrieve a stripe invoice for a given stripe account"""
+        return self.get_stripe_entity(invoice_id, "Invoice", self.account_id, **kwargs)
+
+    @classmethod
+    def get_expanded_charge_object(self, charge_id: str, stripe_account_id: str, **kwargs) -> stripe.Charge | None:
+        """Retrieve a Stripe charge, given an invoice id."""
+        return self.get_stripe_entity(charge_id, "Charge", stripe_account_id=stripe_account_id, **kwargs)
 
 
+# TODO - rename this so not refelect "Untracked" as that's not really relevant -- it upserts and should be idempotent.
+# maybe StripeOneTimePaymentIntentSyncer or something like that?
 class UntrackedOneTimePaymentIntent:
     """Convenience class used to upsert contribution, contributor, and (optionally) payments for a given Stripe payment intent.
 

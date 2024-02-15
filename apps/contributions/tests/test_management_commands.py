@@ -56,7 +56,7 @@ def test_sync_stripe_event(mocker):
         event_id=(event_id := "456"),
         async_mode=(async_mode := False),
     )
-    mock_syncer.assert_called_once_with(stripe_account=stripe_id, event_id=event_id, async_mode=async_mode)
+    mock_syncer.assert_called_once_with(stripe_account_id=stripe_id, event_id=event_id, async_mode=async_mode)
     mock_syncer.return_value.sync.assert_called_once()
 
 

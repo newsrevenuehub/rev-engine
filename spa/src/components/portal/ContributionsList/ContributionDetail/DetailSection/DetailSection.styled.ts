@@ -12,9 +12,12 @@ export const Header = styled.div`
 `;
 
 export const Root = styled.div<{ $disabled?: boolean; $highlighted: boolean }>`
-  padding: 20px 15px;
   ${(props) => props.$disabled && 'opacity: 0.5'};
   ${(props) => props.$highlighted && `background-color: ${props.theme.basePalette.greyscale.grey4}`};
+
+  @media (${(props) => props.theme.breakpoints.tabletLandscapeDown}) {
+    padding: 0 20px;
+  }
 `;
 
 export const Title = styled.h4`

@@ -1,5 +1,5 @@
 import PropTypes, { InferProps } from 'prop-types';
-import { Controls, Header, Root, Title } from './DetailSection.styled';
+import { Controls, Header, MobileControls, Root, Title } from './DetailSection.styled';
 
 const DetailSectionPropTypes = {
   children: PropTypes.node,
@@ -19,6 +19,7 @@ export function DetailSection({ children, controls, disabled, highlighted, title
         <Controls>{controls}</Controls>
       </Header>
       {children}
+      <MobileControls>{controls}</MobileControls>
     </Root>
   );
 }

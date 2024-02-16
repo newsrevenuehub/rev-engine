@@ -44,7 +44,7 @@ export const Columns = styled.div`
 
   @media (${(props) => props.theme.breakpoints.tabletLandscapeDown}) {
     display: block;
-    padding: 20px;
+    padding: 20px 0;
   }
 `;
 

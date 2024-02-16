@@ -6,7 +6,7 @@ import { formattedCardBrands } from 'constants/creditCard';
 import { PortalContributionDetail } from 'hooks/usePortalContribution';
 import { DetailSection } from '../DetailSection';
 import { Columns, Detail, SectionControlButton, SectionEditButton, Subheading } from '../common.styled';
-import { LastCardDigits } from './PaymentMethod.styled';
+import { EditControls, LastCardDigits } from './PaymentMethod.styled';
 import StripeCardForm from './StripeCardForm';
 import { useSnackbar } from 'notistack';
 import SystemNotification from 'components/common/SystemNotification';
@@ -79,7 +79,7 @@ export function PaymentMethod({
   }
 
   const controls = editable ? (
-    <>
+    <EditControls>
       <SectionEditButton color="text" onClick={onEditComplete}>
         Cancel
       </SectionEditButton>
@@ -90,7 +90,7 @@ export function PaymentMethod({
       >
         Save
       </SectionEditButton>
-    </>
+    </EditControls>
   ) : (
     contribution.is_modifiable && (
       <SectionControlButton disabled={!!disabled} onClick={onEdit}>

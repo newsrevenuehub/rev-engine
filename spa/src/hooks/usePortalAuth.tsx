@@ -1,3 +1,4 @@
+import * as Sentry from '@sentry/react';
 import PropTypes, { InferProps } from 'prop-types';
 import { createContext, useCallback, useContext, useEffect, useState } from 'react';
 import axios from 'ajax/axios';
@@ -66,6 +67,10 @@ const PortalAuthContextProviderProps = {
   children: PropTypes.node.isRequired
 };
 
+function identifyUserInSentry(contributor: Contributor) {
+  Sentry.setUser({ email: contributor.email, id: contributor.id, ip_address: '{{auto}}' });
+}
+
 export function PortalAuthContextProvider({ children }: InferProps<typeof PortalAuthContextProviderProps>) {
   const [contributor, setContributor] = useState<Contributor>();
   const verifyToken = useCallback(async (email: string, token: string) => {
@@ -88,6 +93,7 @@ export function PortalAuthContextProvider({ children }: InferProps<typeof Portal
     // utilities/, used by ProtectedRoute.
 
     setContributor(data.contributor);
+    identifyUserInSentry(data.contributor);
     localStorage.setItem(LS_CONTRIBUTOR, JSON.stringify(data.contributor));
     localStorage.setItem(LS_CSRF_TOKEN, data.csrftoken);
   }, []);
@@ -112,7 +118,10 @@ export function PortalAuthContextProvider({ children }: InferProps<typeof Portal
         typeof modified === 'string' &&
         typeof uuid === 'string'
       ) {
-        setContributor({ created, email, id, modified, uuid });
+        const loadedContributor = { created, email, id, modified, uuid };
+
+        setContributor(loadedContributor);
+        identifyUserInSentry(loadedContributor);
       }
     } catch {
       // Fail silently--their local storage has become malformed, so we want

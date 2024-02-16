@@ -6,13 +6,14 @@ import { StripePaymentWrapper } from 'components/paymentProviders/stripe';
 import { usePortalContribution } from 'hooks/usePortalContribution';
 import ContributionFetchError from '../ContributionFetchError';
 import { useDetailAnchor } from './useDetailAnchor';
-import Actions from './Actions/Actions';
+import { Actions } from './Actions';
+import { Banner } from './Banner';
 import { BillingDetails } from './BillingDetails';
 import { BillingHistory } from './BillingHistory';
 import { PaymentMethod } from './PaymentMethod';
+import { MobileBackButton } from './MobileBackButton';
 import { MobileHeader } from './MobileHeader';
-import { Root, Loading } from './ContributionDetail.styled';
-import Banner from './Banner/Banner';
+import { Root, Loading, TopMatter, Content } from './ContributionDetail.styled';
 
 const ContributionDetailPropTypes = {
   contributionId: PropTypes.number.isRequired,
@@ -63,19 +64,24 @@ export function ContributionDetail({ domAnchor, contributionId, contributorId }:
   return (
     <StripePaymentWrapper stripeAccountId={contribution.stripe_account_id} stripeLocale="en">
       <Root data-testid="contribution-detail" key="loaded" ref={setRootEl}>
-        <MobileHeader contribution={contribution} />
-        <Banner contribution={contribution} />
-        <BillingDetails contribution={contribution} disabled={!!editableSection} />
-        <PaymentMethod
-          contribution={contribution}
-          disabled={editableSection && editableSection !== 'paymentMethod'}
-          editable={editableSection === 'paymentMethod'}
-          onEdit={() => setEditableSection('paymentMethod')}
-          onEditComplete={() => setEditableSection(undefined)}
-          onUpdatePaymentMethod={handlePaymentMethodUpdate}
-        />
-        <BillingHistory disabled={!!editableSection} payments={contribution.payments} />
-        <Actions contribution={contribution} onCancelContribution={cancelContribution} />
+        <TopMatter>
+          <MobileBackButton />
+          <Banner contribution={contribution} />
+          <MobileHeader contribution={contribution} />
+        </TopMatter>
+        <Content>
+          <BillingDetails contribution={contribution} disabled={!!editableSection} />
+          <PaymentMethod
+            contribution={contribution}
+            disabled={editableSection && editableSection !== 'paymentMethod'}
+            editable={editableSection === 'paymentMethod'}
+            onEdit={() => setEditableSection('paymentMethod')}
+            onEditComplete={() => setEditableSection(undefined)}
+            onUpdatePaymentMethod={handlePaymentMethodUpdate}
+          />
+          <BillingHistory disabled={!!editableSection} payments={contribution.payments} />
+          <Actions contribution={contribution} onCancelContribution={cancelContribution} />
+        </Content>
       </Root>
     </StripePaymentWrapper>
   );

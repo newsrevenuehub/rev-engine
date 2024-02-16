@@ -1,9 +1,7 @@
-import { ChevronLeft } from '@material-ui/icons';
 import PropTypes, { InferProps } from 'prop-types';
 import { PortalContributionDetail } from 'hooks/usePortalContribution';
-import { PORTAL } from 'routes';
 import formatCurrencyAmount from 'utilities/formatCurrencyAmount';
-import { BackButton, Heading, Amount, PaymentDate, NextPaymentDate, Root } from './MobileHeader.styled';
+import { Amount, PaymentDate, NextPaymentDate, Root } from './MobileHeader.styled';
 
 const MobileHeaderPropTypes = {
   contribution: PropTypes.object.isRequired
@@ -20,25 +18,19 @@ function formatDate(timestamp: string) {
 export function MobileHeader({ contribution }: MobileHeaderProps) {
   return (
     <Root>
-      <BackButton role="link" to={PORTAL.CONTRIBUTIONS} color="text">
-        <ChevronLeft />
-        Back
-      </BackButton>
-      <Heading>
-        <div>
-          <PaymentDate data-testid="created">{formatDate(contribution.created)}</PaymentDate>
-          <NextPaymentDate data-testid="next_payment_date">
-            {contribution.next_payment_date ? (
-              <>
-                Next contribution <strong>{formatDate(contribution.next_payment_date)}</strong>
-              </>
-            ) : (
-              <>No future contribution</>
-            )}
-          </NextPaymentDate>
-        </div>
-        <Amount data-testid="amount">{formatCurrencyAmount(contribution.amount)}</Amount>
-      </Heading>
+      <div>
+        <PaymentDate data-testid="created">{formatDate(contribution.created)}</PaymentDate>
+        <NextPaymentDate data-testid="next_payment_date">
+          {contribution.next_payment_date ? (
+            <>
+              Next contribution <strong>{formatDate(contribution.next_payment_date)}</strong>
+            </>
+          ) : (
+            <>No future contribution</>
+          )}
+        </NextPaymentDate>
+      </div>
+      <Amount data-testid="amount">{formatCurrencyAmount(contribution.amount)}</Amount>
     </Root>
   );
 }

@@ -5,9 +5,9 @@ export const Root = styled.div`
   align-items: center;
   justify-content: center;
 
-  margin-top: 84px;
+  margin-top: 50px;
 
   @media (${(props) => props.theme.breakpoints.tabletLandscapeDown}) {
-    margin-top: 40px;
+    margin-top: 30px;
   }
 `;

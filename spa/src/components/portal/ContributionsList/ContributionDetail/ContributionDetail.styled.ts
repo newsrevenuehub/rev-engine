@@ -1,12 +1,23 @@
 import styled from 'styled-components';
 
-export const Root = styled.div`
-  background-color: ${({ theme }) => theme.basePalette.greyscale.white};
-  border-left: 4px solid ${({ theme }) => theme.basePalette.primary.purple};
+export const TopMatter = styled.div`
+  /* This styling will only apply in mobile viewports, when more than just
+  Banner is visible. */
+  display: flex;
+  flex-direction: column;
+  gap: 24px;
+`;
+
+export const Content = styled.div`
   display: flex;
   flex-direction: column;
   gap: 30px;
-  padding: 20px;
+`;
+
+export const Root = styled.div`
+  background-color: ${({ theme }) => theme.basePalette.greyscale.white};
+  border-left: 4px solid ${({ theme }) => theme.basePalette.primary.purple};
+  padding: 20px 40px;
   align-self: self-start;
 
   /* useDetailAnchor will set this variable on us. */
@@ -24,12 +35,4 @@ export const Loading = styled.div`
   display: grid;
   height: 500px; /* Roughly match height once loaded */
   justify-content: center;
-`;
-
-export const Desktop = styled.div`
-  display: block;
-
-  @media (${(props) => props.theme.breakpoints.tabletLandscapeDown}) {
-    display: none;
-  }
 `;

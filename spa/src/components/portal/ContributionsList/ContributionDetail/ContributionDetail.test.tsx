@@ -12,6 +12,7 @@ jest.mock('./Actions/Actions');
 jest.mock('./Banner/Banner');
 jest.mock('./BillingDetails/BillingDetails');
 jest.mock('./BillingHistory/BillingHistory');
+jest.mock('./MobileBackButton/MobileBackButton');
 jest.mock('./MobileHeader/MobileHeader');
 jest.mock('./PaymentMethod/PaymentMethod');
 
@@ -124,6 +125,11 @@ describe('ContributionDetail', () => {
         expect(component.dataset.contribution).toBe(`${mockContribution.id}`);
       }
     );
+
+    it('shows a mobile back button', () => {
+      tree();
+      expect(screen.getByTestId('mock-mobile-back-button')).toBeInTheDocument();
+    });
 
     it('shows the billing history', () => {
       tree();

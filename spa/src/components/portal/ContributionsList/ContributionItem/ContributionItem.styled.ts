@@ -51,7 +51,7 @@ export const Root = styled(Link)<{ $dimmed: boolean }>`
     @media (${({ theme }) => theme.breakpoints.phoneOnly}) {
       gap: 12px;
       grid-template-columns: [icon] 35px [date] 1fr [amount] minmax(100px, 1fr);
-      grid-template:
+      grid-template-areas:
         'status status status'
         'icon date amount';
       padding: 12px;

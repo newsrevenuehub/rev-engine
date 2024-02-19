@@ -1,7 +1,6 @@
 import { PaymentMethod as StripePaymentMethod } from '@stripe/stripe-js';
 import PropTypes, { InferProps } from 'prop-types';
 import { useState } from 'react';
-import { CircularProgress } from 'components/base';
 import { StripePaymentWrapper } from 'components/paymentProviders/stripe';
 import { usePortalContribution } from 'hooks/usePortalContribution';
 import ContributionFetchError from '../ContributionFetchError';
@@ -13,7 +12,8 @@ import { BillingHistory } from './BillingHistory';
 import { PaymentMethod } from './PaymentMethod';
 import { MobileBackButton } from './MobileBackButton';
 import { MobileHeader } from './MobileHeader';
-import { Root, Loading, TopMatter, Content } from './ContributionDetail.styled';
+import { Root, TopMatter, Content } from './ContributionDetail.styled';
+import { LoadingSkeleton } from './LoadingSkeleton';
 
 const ContributionDetailPropTypes = {
   contributionId: PropTypes.number.isRequired,
@@ -51,12 +51,13 @@ export function ContributionDetail({ domAnchor, contributionId, contributorId }:
     );
   }
 
-  if (isLoading || !contribution) {
+  if (isLoading || contribution?.id !== contributionId) {
     return (
       <Root key="loading" ref={setRootEl}>
-        <Loading data-testid="loading">
-          <CircularProgress aria-label="Loading contribution" size={48} variant="indeterminate" />
-        </Loading>
+        <TopMatter>
+          <MobileBackButton />
+          <LoadingSkeleton />
+        </TopMatter>
       </Root>
     );
   }

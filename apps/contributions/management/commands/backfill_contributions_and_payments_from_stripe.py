@@ -2,18 +2,14 @@ import datetime
 
 from django.core.management.base import BaseCommand, CommandParser
 
-from apps.contributions.stripe_contributions_provider import StripeToRevengineTransformer
+from apps.contributions.stripe_sync import StripeToRevengineTransformer
 from apps.contributions.tasks import task_backfill_contributions_and_payments
-
-
-def _parse_datetime(s: str) -> datetime.datetime:
-    return datetime.datetime.fromtimestamp(int(s))
 
 
 class Command(BaseCommand):
     def add_arguments(self, parser: CommandParser) -> None:
-        parser.add_argument("--gte", type=_parse_datetime)
-        parser.add_argument("--lte", type=_parse_datetime)
+        parser.add_argument("--gte", type=lambda s: datetime.datetime.fromtimestamp(int(s)))
+        parser.add_argument("--lte", type=lambda s: datetime.datetime.fromtimestamp(int(s)))
         parser.add_argument(
             "--for_orgs",
             type=lambda s: [x.strip() for x in s.split(",")],

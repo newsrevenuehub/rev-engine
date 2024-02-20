@@ -1,15 +1,15 @@
 import { useElements, useStripe } from '@stripe/react-stripe-js';
 import { PaymentMethod as StripePaymentMethod } from '@stripe/stripe-js';
+import { useSnackbar } from 'notistack';
 import PropTypes, { InferProps } from 'prop-types';
 import { useState } from 'react';
+import SystemNotification from 'components/common/SystemNotification';
 import { formattedCardBrands } from 'constants/creditCard';
 import { PortalContributionDetail } from 'hooks/usePortalContribution';
 import { DetailSection } from '../DetailSection';
 import { Columns, Detail, SectionControlButton, SectionEditButton, Subheading } from '../common.styled';
-import { EditControls, LastCardDigits } from './PaymentMethod.styled';
+import { EmptyColumn, EditControls, LastCardDigits } from './PaymentMethod.styled';
 import StripeCardForm from './StripeCardForm';
-import { useSnackbar } from 'notistack';
-import SystemNotification from 'components/common/SystemNotification';
 
 const PaymentMethodPropTypes = {
   contribution: PropTypes.object.isRequired,
@@ -109,7 +109,7 @@ export function PaymentMethod({
             <Subheading>Name on Card</Subheading>
             <Detail data-testid="cc_owner_name">{contribution.card_owner_name}</Detail>
           </div>
-          <div></div>
+          <EmptyColumn />
           <div>
             <Subheading>Credit Card</Subheading>
             <Detail>

@@ -1,6 +1,6 @@
 from django.core.management.base import BaseCommand, CommandParser
 
-from apps.contributions.stripe_contributions_provider import StripeEventSyncer
+from apps.contributions.stripe_sync import StripeEventSyncer
 
 
 class Command(BaseCommand):
@@ -16,4 +16,4 @@ class Command(BaseCommand):
             event_id=options["event_id"],
             async_mode=options["async_mode"],
         ).sync()
-        self.stdout.write(self.style.SUCCESS("`backfill_contribution_and_payments_from_stripe` is done"))
+        self.stdout.write(self.style.SUCCESS("`sync_stripe_event` is done"))

@@ -1,13 +1,11 @@
 import logging
 import re
-import time
 
 from django.conf import settings
 from django.utils.text import slugify
 
 import CloudFlare
 import stripe
-from functools import wraps
 
 
 logger = logging.getLogger(f"{settings.DEFAULT_LOGGER}.{__name__}")
@@ -161,24 +159,3 @@ def get_original_ip_from_request(request):
 
 def google_cloud_pub_sub_is_configured() -> bool:
     return all([settings.ENABLE_PUBSUB and settings.GOOGLE_CLOUD_PROJECT])
-
-
-def rate_limiter(calls_per_second: int) -> callable:
-    """ """
-    interval = 1.0 / calls_per_second
-
-    def decorator(func):
-        last_called = [0.0]
-
-        @wraps(func)
-        def wrapper(*args, **kwargs):
-            elapsed = time.time() - last_called[0]
-            wait_time = interval - elapsed
-            if wait_time > 0:
-                time.sleep(wait_time)
-            last_called[0] = time.time()
-            return func(*args, **kwargs)
-
-        return wrapper
-
-    return decorator

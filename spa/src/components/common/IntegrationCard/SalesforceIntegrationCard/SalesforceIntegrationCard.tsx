@@ -3,6 +3,8 @@ import { HELP_URL } from 'constants/helperUrls';
 import useUser from 'hooks/useUser';
 
 import IntegrationCard from '../IntegrationCard';
+import { CornerMessage } from '../IntegrationCard.styled';
+import FeatureBadge from 'components/common/Badge/FeatureBadge/FeatureBadge';
 
 export function SalesforceIntegrationCard() {
   const { user } = useUser();
@@ -13,7 +15,11 @@ export function SalesforceIntegrationCard() {
       image={SalesforceLogo}
       title="Salesforce"
       isRequired={false}
-      cornerMessage="Contact Support"
+      cornerMessage={
+        <CornerMessage>
+          <FeatureBadge type="CUSTOM" />
+        </CornerMessage>
+      }
       site={{
         label: 'salesforce.com',
         url: 'https://www.salesforce.com'

@@ -1,13 +1,19 @@
 import MailchimpLogo from 'assets/images/mailchimp.png';
-import { HELP_URL } from 'constants/helperUrls';
+import { CORE_UPGRADE_URL, HELP_URL } from 'constants/helperUrls';
 import useConnectMailchimp from 'hooks/useConnectMailchimp';
 
 import { PLAN_NAMES } from 'constants/orgPlanConstants';
 import useModal from 'hooks/useModal';
 import IntegrationCard from '../IntegrationCard';
-import { CornerMessage } from './MailchimpIntegrationCard.styled';
 import MailchimpModal from './MailchimpModal';
 import useUser from 'hooks/useUser';
+import FeatureBadge from 'components/common/Badge/FeatureBadge/FeatureBadge';
+import flagIsActiveForUser from 'utilities/flagIsActiveForUser';
+import { CornerMessage } from '../IntegrationCard.styled';
+import { ButtonProps, RouterLinkButton, RouterLinkButtonProps } from 'components/base';
+import { ActionButton } from './MailchimpModal/MailchimpModal.styled';
+import { SELF_UPGRADE_ACCESS_FLAG_NAME } from 'constants/featureFlagConstants';
+import { SETTINGS } from 'routes';
 
 export function MailchimpIntegrationCard() {
   const { user } = useUser();
@@ -19,11 +25,22 @@ export function MailchimpIntegrationCard() {
     organizationPlan = PLAN_NAMES.FREE,
     hasMailchimpAccess
   } = useConnectMailchimp();
+  const actionButtonProps: Partial<ButtonProps & RouterLinkButtonProps> = {
+    color: 'primaryDark',
+    variant: 'contained',
+    disableElevation: true
+  };
+
+  const showUpgradePrompt = !isLoading && organizationPlan === PLAN_NAMES.FREE;
 
   const mailchimpHeaderData = {
     isActive: connectedToMailchimp,
     isRequired: false,
-    cornerMessage: !isLoading && organizationPlan === PLAN_NAMES.FREE && <CornerMessage>Upgrade to Core</CornerMessage>,
+    cornerMessage: showUpgradePrompt && (
+      <CornerMessage>
+        <FeatureBadge type="CORE" />
+      </CornerMessage>
+    ),
     title: 'Mailchimp',
     image: MailchimpLogo,
     site: {
@@ -49,6 +66,18 @@ export function MailchimpIntegrationCard() {
             to disconnect.
           </>
         }
+        {...(showUpgradePrompt &&
+          user && {
+            rightAction: flagIsActiveForUser(SELF_UPGRADE_ACCESS_FLAG_NAME, user) ? (
+              <RouterLinkButton {...actionButtonProps} to={SETTINGS.SUBSCRIPTION}>
+                Upgrade
+              </RouterLinkButton>
+            ) : (
+              <ActionButton {...actionButtonProps} href={CORE_UPGRADE_URL}>
+                Upgrade
+              </ActionButton>
+            )
+          })}
       />
       {open && user && (
         <MailchimpModal

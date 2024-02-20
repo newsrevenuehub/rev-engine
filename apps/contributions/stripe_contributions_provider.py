@@ -344,7 +344,7 @@ class StripeContributionsProvider:
 
 class ContributionsCacheProvider:
     cache = caches[DEFAULT_CACHE]
-    _serializer = PaymentProviderContributionSerializer
+    serializer = PaymentProviderContributionSerializer
 
     converter = StripePaymentIntent
 
@@ -358,7 +358,7 @@ class ContributionsCacheProvider:
         data = {}
         for pi in payment_intents:
             try:
-                serialized_obj = self._serializer(instance=self.converter(pi))
+                serialized_obj = self.serializer(instance=self.converter(pi))
                 data[pi.id] = serialized_obj.data
             except (ContributionIgnorableError, InvalidMetadataError) as ex:
                 logger.warning("Unable to process Contribution [%s]", pi.id, exc_info=ex)

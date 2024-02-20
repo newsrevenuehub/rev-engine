@@ -12,19 +12,18 @@ from addict import Dict as AttrDict
 from rest_framework import exceptions
 from stripe.stripe_object import StripeObject
 
-from apps.contributions.models import (
-    ContributionInterval,
-    ContributionStatus,
-)
+from apps.contributions.models import ContributionInterval, ContributionStatus
 from apps.contributions.serializers import (
     PaymentProviderContributionSerializer,
     SubscriptionsSerializer,
 )
-from apps.contributions.stripe_sync import UntrackedStripeSubscription
-from apps.contributions.types import (
-    StripePiAsPortalContribution,
-    StripePiSearchResponse,
+from apps.contributions.stripe_sync import (
+    ContributionIgnorableError,
+    InvalidIntervalError,
+    InvalidMetadataError,
+    UntrackedStripeSubscription,
 )
+from apps.contributions.types import StripePiAsPortalContribution, StripePiSearchResponse
 from revengine.settings.base import CONTRIBUTION_CACHE_TTL, DEFAULT_CACHE
 
 
@@ -34,26 +33,10 @@ MAX_STRIPE_CUSTOMERS_LIMIT = 10
 logger = logging.getLogger(f"{settings.DEFAULT_LOGGER}.{__name__}")
 
 
-class ContributionIgnorableError(Exception):
-    """
-    Base contribution exception where the type of exception should be ignored.
-    """
-
-    pass
-
-
-class InvalidIntervalError(ContributionIgnorableError):
-    pass
-
-
-class InvalidMetadataError(ContributionIgnorableError):
-    pass
-
-
 class StripePaymentIntent:
     """
     Wrapper on stripe payment_intent object to extract the required details in
-    _apps.contributions.serializers.PaymentProviderContributionSerializer and serializable.
+    apps.contributions.serializers.PaymentProviderContributionSerializer and serializable.
 
 
     If there's no Invoice associated with a Payment Intent then it's a one-time payment.

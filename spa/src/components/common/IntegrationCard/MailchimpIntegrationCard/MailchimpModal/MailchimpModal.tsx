@@ -35,8 +35,6 @@ import {
   SupportText,
   Title
 } from './MailchimpModal.styled';
-import flagIsActiveForUser from 'utilities/flagIsActiveForUser';
-import { SELF_UPGRADE_ACCESS_FLAG_NAME } from 'constants/featureFlagConstants';
 
 export interface MailchimpModalProps extends InferProps<typeof MailchimpModalPropTypes> {
   /**
@@ -44,7 +42,6 @@ export interface MailchimpModalProps extends InferProps<typeof MailchimpModalPro
    */
   isActive: boolean;
   organizationPlan: 'FREE' | 'CORE' | 'PLUS';
-  user: User;
 }
 
 type DisplayState = 'free' | 'paidNotConnected' | 'connected';
@@ -87,8 +84,7 @@ const MailchimpModal = ({
   site = {
     label: 'mailchimp.com',
     url: 'https://www.mailchimp.com'
-  },
-  user
+  }
 }: MailchimpModalProps) => {
   const actionButtonProps: Partial<ButtonProps & RouterLinkButtonProps> = {
     color: 'primaryDark',
@@ -173,14 +169,10 @@ const MailchimpModal = ({
         </CancelButton>
         {
           {
-            [DISPLAY_STATE.FREE]: flagIsActiveForUser(SELF_UPGRADE_ACCESS_FLAG_NAME, user) ? (
+            [DISPLAY_STATE.FREE]: (
               <RouterLinkButton {...actionButtonProps} to={SETTINGS.SUBSCRIPTION}>
                 Upgrade
               </RouterLinkButton>
-            ) : (
-              <ActionButton {...actionButtonProps} href={CORE_UPGRADE_URL}>
-                Upgrade
-              </ActionButton>
             ),
             [DISPLAY_STATE.PAID_NOT_CONNECTED]: (
               <ActionButton {...actionButtonProps} onClick={sendUserToMailchimp!}>
@@ -212,7 +204,6 @@ const MailchimpModalPropTypes = {
   }),
   isActive: PropTypes.bool,
   isRequired: PropTypes.bool,
-  user: PropTypes.object.isRequired,
   organizationPlan: PropTypes.oneOf(Object.keys(PLAN_LABELS)).isRequired
 };
 

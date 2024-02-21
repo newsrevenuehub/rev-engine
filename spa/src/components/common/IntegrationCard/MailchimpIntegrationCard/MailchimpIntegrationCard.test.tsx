@@ -1,9 +1,8 @@
-import { PLAN_LABELS } from 'constants/orgPlanConstants';
+import { PLAN_LABELS, PLAN_NAMES } from 'constants/orgPlanConstants';
 import useConnectMailchimp from 'hooks/useConnectMailchimp';
+import useUser from 'hooks/useUser';
 import { render, screen } from 'test-utils';
 import MailchimpIntegrationCard from './MailchimpIntegrationCard';
-import { PLAN_NAMES } from 'constants/orgPlanConstants';
-import useUser from 'hooks/useUser';
 
 jest.mock('../IntegrationCard');
 jest.mock('hooks/useConnectMailchimp');
@@ -96,16 +95,7 @@ describe('MailchimpIntegrationCard', () => {
 
       it('should render Upgrade button for "Free" organization plan', () => {
         tree();
-        expect(screen.getByRole('link', { name: /Upgrade/i })).toBeEnabled();
-      });
-
-      it('should link "Upgrade" button to "I want RevEngine Core" page if the user doesn\'t have the self-upgrade feature flag', () => {
-        tree();
-        expect(screen.getByRole('link', { name: /Upgrade/i })).toHaveAttribute(
-          'href',
-          // CORE_UPGRADE_URL constant. Link is hardcoded so that if constant is mistakenly changed the test will fail
-          'https://fundjournalism.org/i-want-revengine-core/'
-        );
+        expect(screen.getByRole('button', { name: /Upgrade/i })).toBeEnabled();
       });
 
       it('should link "Upgrade" button to the subscription route if the user has the self-upgrade feature flag', () => {

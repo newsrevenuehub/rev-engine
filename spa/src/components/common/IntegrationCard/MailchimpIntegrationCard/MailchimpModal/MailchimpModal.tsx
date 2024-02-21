@@ -19,9 +19,8 @@ import { useMemo } from 'react';
 
 import MailchimpLogo from 'assets/images/mailchimp.png';
 import IconList from 'components/common/IconList/IconList';
-import { CORE_UPGRADE_URL, FAQ_URL, HELP_URL } from 'constants/helperUrls';
+import { FAQ_URL, HELP_URL } from 'constants/helperUrls';
 import { PLAN_LABELS, PLAN_NAMES } from 'constants/orgPlanConstants';
-import { User } from 'hooks/useUser.types';
 import { DONATIONS_SLUG, SETTINGS } from 'routes';
 import IntegrationCardHeader from '../../IntegrationCardHeader';
 import ModalUpgradePrompt from '../../ModalUpgradePrompt/ModalUpgradePrompt';

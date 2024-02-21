@@ -21,9 +21,9 @@ from apps.contributions.payment_managers import PaymentProviderError
 from apps.contributions.stripe_contributions_provider import (
     ContributionsCacheProvider,
     StripeContributionsProvider,
-    StripeToRevengineTransformer,
     SubscriptionsCacheProvider,
 )
+from apps.contributions.stripe_sync import StripeToRevengineTransformer
 from apps.contributions.types import StripeEventData
 from apps.contributions.utils import export_contributions_to_csv
 from apps.contributions.webhooks import StripeWebhookProcessor

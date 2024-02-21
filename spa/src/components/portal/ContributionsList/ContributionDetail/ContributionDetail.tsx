@@ -51,7 +51,7 @@ export function ContributionDetail({ domAnchor, contributionId, contributorId }:
     );
   }
 
-  if (isLoading || contribution?.id !== contributionId) {
+  if (isLoading || !contribution) {
     return (
       <Root key="loading" ref={setRootEl}>
         <TopMatter>

@@ -29,11 +29,3 @@ export const Root = styled.div`
     transform: none;
   }
 `;
-
-export const Desktop = styled.div`
-  display: block;
-
-  @media (${(props) => props.theme.breakpoints.tabletLandscapeDown}) {
-    display: none;
-  }
-`;

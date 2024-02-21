@@ -1,15 +1,13 @@
 import { Meta, StoryObj } from '@storybook/react';
 import LoadingSkeleton from './LoadingSkeleton';
 
-const LoadingSkeletonDemo = () => <LoadingSkeleton />;
-
-const meta: Meta<typeof LoadingSkeletonDemo> = {
-  component: LoadingSkeletonDemo,
+const meta: Meta<typeof LoadingSkeleton> = {
+  component: LoadingSkeleton,
   title: 'Contributor/LoadingSkeleton'
 };
 
 export default meta;
 
-type Story = StoryObj<typeof LoadingSkeletonDemo>;
+type Story = StoryObj<typeof LoadingSkeleton>;
 
 export const Default: Story = {};

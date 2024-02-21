@@ -80,8 +80,7 @@ export function usePortalContribution(contributorId: number, contributionId: num
 
   const { data, isError, isFetching, isLoading, refetch } = useQuery(
     ['portalContribution', contributorId, contributionId],
-    () => fetchContribution(contributorId, contributionId),
-    { keepPreviousData: true }
+    () => fetchContribution(contributorId, contributionId)
   );
 
   // Refresh the contribution details and list after 15 seconds to allow the backend / stripe to process the cancellation.

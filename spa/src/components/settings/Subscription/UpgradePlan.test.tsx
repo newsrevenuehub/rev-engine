@@ -119,11 +119,6 @@ describe('UpgradePlan', () => {
     });
   });
 
-  it('displays nothing if the user is on the Plus plan', () => {
-    tree({ organization: { ...mockOrg, plan: { name: 'PLUS' } } as Organization, user: { ...mockUser, flags: [] } });
-    expect(document.body).toHaveTextContent('');
-  });
-
   it('displays nothing if the user is on the Plus plan, even if they have the self-upgrade feature flag', () => {
     tree({ organization: { ...mockOrg, plan: { name: 'PLUS' } } as Organization });
     expect(document.body).toHaveTextContent('');

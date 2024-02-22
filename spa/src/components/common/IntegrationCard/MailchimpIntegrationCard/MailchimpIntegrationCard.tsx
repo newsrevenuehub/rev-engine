@@ -8,7 +8,6 @@ import { PLAN_NAMES } from 'constants/orgPlanConstants';
 import useModal from 'hooks/useModal';
 import { SETTINGS } from 'routes';
 import IntegrationCard from '../IntegrationCard';
-import { CornerMessage } from '../IntegrationCard.styled';
 import MailchimpModal from './MailchimpModal';
 
 export function MailchimpIntegrationCard() {
@@ -31,11 +30,7 @@ export function MailchimpIntegrationCard() {
   const mailchimpHeaderData = {
     isActive: connectedToMailchimp,
     isRequired: false,
-    cornerMessage: showUpgradePrompt && (
-      <CornerMessage>
-        <FeatureBadge type="CORE" />
-      </CornerMessage>
-    ),
+    cornerMessage: showUpgradePrompt && <FeatureBadge type="CORE" />,
     title: 'Mailchimp',
     image: MailchimpLogo,
     site: {

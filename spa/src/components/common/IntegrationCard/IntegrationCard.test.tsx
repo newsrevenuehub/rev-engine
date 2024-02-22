@@ -131,9 +131,9 @@ describe('Integration Card', () => {
     expect(screen.getByText('mock-right-action')).toBeVisible();
   });
 
-  it('should not render right action', () => {
+  it('should not render right action if undefined', () => {
     tree({ rightAction: undefined });
-    expect(screen.queryByTestId('right-action')).toBeNull();
+    expect(screen.queryByTestId('right-action')).not.toBeInTheDocument();
   });
 
   it('should be accessible', async () => {

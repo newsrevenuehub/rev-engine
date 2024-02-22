@@ -1,26 +1,18 @@
 import { PLAN_LABELS, PLAN_NAMES } from 'constants/orgPlanConstants';
 import useConnectMailchimp from 'hooks/useConnectMailchimp';
-import useUser from 'hooks/useUser';
 import { render, screen } from 'test-utils';
 import MailchimpIntegrationCard from './MailchimpIntegrationCard';
 
 jest.mock('../IntegrationCard');
 jest.mock('hooks/useConnectMailchimp');
-jest.mock('hooks/useUser');
 
 describe('MailchimpIntegrationCard', () => {
-  const useUserMock = jest.mocked(useUser);
   const useConnectMailchimpMock = jest.mocked(useConnectMailchimp);
   function tree() {
     return render(<MailchimpIntegrationCard />);
   }
 
   beforeEach(() => {
-    useUserMock.mockReturnValue({
-      user: {
-        flags: []
-      }
-    } as any);
     useConnectMailchimpMock.mockReturnValue({
       isLoading: false,
       isError: false,
@@ -99,12 +91,6 @@ describe('MailchimpIntegrationCard', () => {
       });
 
       it('should link "Upgrade" button to the subscription route if the user has the self-upgrade feature flag', () => {
-        useUserMock.mockReturnValue({
-          user: {
-            flags: [{ name: 'spa-self-upgrade-access' }]
-          }
-        } as any);
-
         tree();
         expect(screen.getByRole('button', { name: /Upgrade/i })).toHaveAttribute('href', '/settings/subscription');
       });
@@ -133,7 +119,7 @@ describe('MailchimpIntegrationCard', () => {
       expect(screen.getByRole('button', { name: 'connect' })).toBeEnabled();
     });
 
-    it('calls "sendUserToMailchimp" mailchimp card', () => {
+    it('calls sendUserToMailchimp when the connect button is clicked', () => {
       tree();
       expect(sendUserToMailchimp).not.toBeCalled();
       screen.getByRole('button', { name: 'connect' }).click();
@@ -142,8 +128,8 @@ describe('MailchimpIntegrationCard', () => {
 
     it('should not render Upgrade button (rightAction)', () => {
       tree();
-      expect(screen.queryByText('Upgrade')).toBeNull();
-      expect(screen.queryByTestId('rightAction')).toBeNull();
+      expect(screen.queryByText('Upgrade')).not.toBeInTheDocument();
+      expect(screen.queryByTestId('rightAction')).not.toBeInTheDocument();
     });
   });
 });

@@ -1,5 +1,5 @@
 import PropTypes, { InferProps } from 'prop-types';
-import AwardIcon from 'assets/icons/award_star.svg?react';
+import AwardIcon from '@material-symbols/svg-400/outlined/award_star.svg?react';
 import { Root } from './FeatureBadge.styled';
 
 const FeatureBadgePropTypes = {

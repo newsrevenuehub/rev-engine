@@ -28,7 +28,7 @@ export const CornerMessage = styled.div`
   margin: 0;
   position: absolute;
   font-weight: 500;
-  top: 0;
+  top: -20px;
   right: 0;
   font-size: ${(props) => props.theme.fontSizesUpdated.sm};
   color: ${(props) => props.theme.colors.topbarBackground};

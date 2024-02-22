@@ -5,7 +5,7 @@ export default {
   component: FeatureBadge,
   title: 'Common/Badge/FeatureBadge',
   args: {
-    color: 'CORE'
+    type: 'CORE'
   },
   argTypes: {
     color: {

@@ -7,15 +7,15 @@ function tree(props?: Partial<FeatureBadgeProps>) {
 }
 
 describe('FeatureBadge', () => {
-  describe.each([['CORE'], ['CUSTOM']])('For the %s type', (type) => {
+  describe.each(['CORE', 'CUSTOM'] as Array<FeatureBadgeProps['type']>)('For the %s type', (type) => {
     it('displays the correct type text', () => {
-      tree({ type } as any);
+      tree({ type });
 
       expect(screen.getByText(`${type} feature`, { exact: false })).toBeVisible();
     });
 
     it('is accessible', async () => {
-      const { container } = tree({ type } as any);
+      const { container } = tree({ type });
 
       expect(await axe(container)).toHaveNoViolations();
     });

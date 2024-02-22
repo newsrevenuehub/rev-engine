@@ -19,10 +19,6 @@ export const Flex = styled.div`
   }
 `;
 
-export const CornerMessage = styled.div`
-  margin-top: -20px;
-`;
-
 export const Content = styled.div`
   flex-grow: 1;
   margin-top: 15px;

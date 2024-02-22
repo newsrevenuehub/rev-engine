@@ -31,7 +31,7 @@ describe('ManageSubscription', () => {
     expect(document.body).toHaveTextContent('');
   });
 
-  describe('When the user has a nonfree plan and the self-upgrade feature flag', () => {
+  describe('When the user has a nonfree plan', () => {
     it('shows a header', () => {
       tree();
       expect(screen.getByText('Manage Subscription')).toBeInTheDocument();

@@ -19,7 +19,6 @@ from apps.contributions.stripe_sync import (
     _upsert_payments_for_charge,
 )
 from apps.contributions.tests.factories import ContributionFactory, PaymentFactory
-from apps.contributions.types import StripePaymentMetadataSchemaV1_4
 from apps.organizations.models import PaymentProvider
 from apps.organizations.tests.factories import PaymentProviderFactory
 
@@ -87,19 +86,6 @@ def invoice_without_subscription(mocker):
 @pytest.fixture
 def mock_metadata_validator(mocker):
     return mocker.patch("apps.contributions.stripe_sync.cast_metadata_to_stripe_payment_metadata_schema")
-
-
-@pytest.fixture
-def valid_metadata():
-    return StripePaymentMetadataSchemaV1_4(
-        agreed_to_pay_fees=False,
-        donor_selected_amount=1000.0,
-        referer="https://www.google.com/",
-        revenue_program_id=1,
-        revenue_program_slug="testrp",
-        schema_version="1.4",
-        source="rev-engine",
-    ).model_dump(mode="json", exclude_none=True)
 
 
 @pytest.fixture
@@ -787,13 +773,6 @@ class TestStripeClientForConnectedAccount:
         assert len(data) == 0 if has_invalid_metadata else 1
         if not has_invalid_metadata:
             assert data[0].subscription == subscription
-
-    @pytest.fixture
-    def invalid_metadata(self):
-        # this would initially get through checks for schema version, but would fail when metadata schema is cast
-        return {
-            "schema_version": "1.4",
-        }
 
     @pytest.fixture(params=[True, False])
     def one_time_payment_intent_metadata_validity_state_space(self, request, payment_intent, invalid_metadata):

@@ -49,7 +49,7 @@ def test_sync_payment_transaction_time(mocker, balance_transaction_for_one_time_
 
 
 def test_sync_stripe_event(mocker):
-    mock_syncer = mocker.patch("apps.contributions.stripe_contributions_provider.StripeEventSyncer")
+    mock_syncer = mocker.patch("apps.contributions.stripe_sync.StripeEventSyncer")
     call_command(
         "sync_stripe_event",
         stripe_account=(stripe_id := "123"),
@@ -64,7 +64,7 @@ def test_sync_stripe_event(mocker):
 class TestBackfillContributionsAndPaymentsFromStripe:
     @pytest.fixture(
         params=[
-            # {},
+            {},
             {
                 "gte": (now := datetime.datetime.now()),
                 "lte": now,
@@ -87,7 +87,6 @@ class TestBackfillContributionsAndPaymentsFromStripe:
         call_command("backfill_contributions_and_payments_from_stripe", **command_options)
         gte = command_options.get("gte", None)
         lte = command_options.get("lte", None)
-
         expected_call_args = {
             "from_date": (gte.isoformat() if async_mode and gte else gte),
             "to_date": (lte.isoformat() if async_mode and lte else lte),

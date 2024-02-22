@@ -70,6 +70,7 @@ from apps.common.tests.test_resources import DEFAULT_FLAGS_CONFIG_MAPPING
 from apps.contributions.choices import CardBrand, ContributionInterval
 from apps.contributions.stripe_contributions_provider import StripePiAsPortalContribution
 from apps.contributions.tests.factories import ContributionFactory, ContributorFactory
+from apps.contributions.types import StripePaymentMetadataSchemaV1_4
 from apps.organizations.models import (
     MailchimpEmailList,
     MailchimpProduct,
@@ -1134,3 +1135,24 @@ def customer_subscription_updated_event():
 def charge_refunded_recurring_charge_event():
     with open("apps/contributions/tests/fixtures/charge-refunded-recurring-charge-event.json") as f:
         return stripe.Webhook.construct_event(f.read(), None, stripe.api_key)
+
+
+@pytest.fixture
+def valid_metadata():
+    return StripePaymentMetadataSchemaV1_4(
+        agreed_to_pay_fees=False,
+        donor_selected_amount=1000.0,
+        referer="https://www.google.com/",
+        revenue_program_id=1,
+        revenue_program_slug="testrp",
+        schema_version="1.4",
+        source="rev-engine",
+    ).model_dump(mode="json", exclude_none=True)
+
+
+@pytest.fixture
+def invalid_metadata():
+    # this would initially get through checks for schema version, but would fail when metadata schema is cast
+    return {
+        "schema_version": "1.4",
+    }

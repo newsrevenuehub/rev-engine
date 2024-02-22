@@ -211,7 +211,7 @@ def process_stripe_webhook_task(self, raw_event_data: dict) -> None:
 
 @shared_task(bind=True, autoretry_for=(RateLimitError,), retry_backoff=True, retry_kwargs={"max_retries": 3})
 def task_backfill_contributions_and_payments(
-    from_date: str, to_date: str, for_orgs: list[str] = None, for_stripe_accounts: list[str] = None
+    self, from_date: str, to_date: str, for_orgs: list[str] = None, for_stripe_accounts: list[str] = None
 ):
     logger.info(
         "Running `task_backfill_contributions_and_payments` with params: from_date=%s, to_date=%s, for_orgs=%s, for_stripe_accounts=%s",

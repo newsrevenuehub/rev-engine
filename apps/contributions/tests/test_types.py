@@ -1,6 +1,9 @@
 import pytest
 
-from apps.contributions.types import StripeMetadataSchemaBase
+from apps.contributions.types import (
+    StripeMetadataSchemaBase,
+    cast_metadata_to_stripe_payment_metadata_schema,
+)
 
 
 class TestStripeMetadataSchemaBase:
@@ -19,3 +22,14 @@ class TestStripeMetadataSchemaBase:
         instance = schema(foo=over_limit)
         assert len(instance.foo) == 500
         assert instance.bar is None
+
+
+@pytest.fixture
+def unknown_metadata_version(valid_metadata):
+    return valid_metadata | {"schema_version": "foo.bar"}
+
+
+def test_cast_metadata_to_stripe_payment_metadata_schema(valid_metadata, unknown_metadata_version):
+    assert cast_metadata_to_stripe_payment_metadata_schema(valid_metadata)
+    with pytest.raises(ValueError):
+        cast_metadata_to_stripe_payment_metadata_schema(unknown_metadata_version)

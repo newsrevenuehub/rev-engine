@@ -213,6 +213,7 @@ def process_stripe_webhook_task(self, raw_event_data: dict) -> None:
 def task_backfill_contributions_and_payments(
     self, from_date: str, to_date: str, for_orgs: list[str] = None, for_stripe_accounts: list[str] = None
 ):
+    """Task for syncing Stripe payment data to revengine."""
     logger.info(
         "Running `task_backfill_contributions_and_payments` with params: from_date=%s, to_date=%s, for_orgs=%s, for_stripe_accounts=%s",
         from_date,

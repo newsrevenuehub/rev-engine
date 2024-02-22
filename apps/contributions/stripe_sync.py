@@ -22,7 +22,6 @@ from apps.organizations.models import PaymentProvider
 
 
 MAX_STRIPE_RESPONSE_LIMIT = 100
-MAX_STRIPE_CUSTOMERS_LIMIT = 10
 
 logger = logging.getLogger(f"{settings.DEFAULT_LOGGER}.{__name__}")
 
@@ -46,7 +45,7 @@ class InvalidMetadataError(ContributionIgnorableError):
 def _upsert_payments_for_charge(
     contribution: Contribution, charge: stripe.Charge, balance_transaction: stripe.BalanceTransaction
 ) -> None:
-    """ """
+    """Create payments for any charge and refunds associated with a given stripe charge."""
     logger.info("Upserting payment for contribution %s", contribution.id)
 
     Payment.objects.update_or_create(
@@ -202,7 +201,7 @@ class StripeClientForConnectedAccount:
         return True
 
     def get_revengine_one_time_payment_intents_and_charges(self) -> list[Dict[str, str]]:
-        """Get a set of stripe PaymentIntent objects and their respective charges for one time payments for a given Stripe account"""
+        """Get a set of stripe PaymentIntent objects and their respective charges for one-time payments for a given Stripe account"""
         logger.info("Getting revengine one time payment intents and charges for account %s", self.account_id)
         # this gets all PIs for the account, factoring in any limits around created date and metadata
         pis = self.get_payment_intents(metadata_query=self.REVENGINE_METADATA_QUERY)
@@ -313,7 +312,7 @@ class StripeClientForConnectedAccount:
         logger.debug("Getting %s %s for account %s", stripe_entity_name, entity_id, stripe_account_id)
         try:
             return getattr(stripe, stripe_entity_name).retrieve(entity_id, stripe_account=stripe_account_id, **kwargs)
-        except stripe.error.InvalidRequestError as exc:
+        except stripe.error.StripeError as exc:
             logger.warning(
                 "Unable to retrieve %s %s for account %s",
                 stripe_entity_name,
@@ -373,7 +372,7 @@ class StripeClientForConnectedAccount:
 # TODO - rename this so not refelect "Untracked" as that's not really relevant -- it upserts and should be idempotent.
 # maybe StripeOneTimePaymentIntentSyncer or something like that?
 class UntrackedOneTimePaymentIntent:
-    """Convenience class used to upsert contribution, contributor, and (optionally) payments for a given Stripe payment intent.
+    """Convenience class used to upsert contribution, contributor, and payments for a given Stripe payment intent.
 
     Note that in the init method, we raise an exception if the metadata is invalid or if there is > 1 charge associated with the PI.
     """
@@ -441,6 +440,7 @@ class UntrackedOneTimePaymentIntent:
 
     @property
     def status(self) -> ContributionStatus:
+        """Map Stripe payment intent status to Revengine contribution status."""
         if self.refunded:
             return ContributionStatus.REFUNDED
         if self.payment_intent.status == "succeeded":
@@ -528,6 +528,7 @@ class UntrackedStripeSubscription:
 
     @property
     def status(self) -> ContributionStatus:
+        """Map Stripe subscription status to Revengine contribution status."""
         match self.subscription.status:
             # In revengine terms, we conflate active and past due because we don't have an internal status
             # for past due, and paid is closest given current statuses
@@ -544,10 +545,7 @@ class UntrackedStripeSubscription:
 
     @staticmethod
     def get_interval_from_subscription(subscription: stripe.Subscription) -> ContributionInterval:
-        """Explanation
-
-        note on how called from old code
-        """
+        """Map Stripe subscription interval to Revengine contribution interval"""
         interval = subscription.plan.interval
         interval_count = subscription.plan.interval_count
         if interval == "year" and interval_count == 1:
@@ -638,12 +636,11 @@ class UntrackedStripeSubscription:
 
 @dataclass
 class StripeToRevengineTransformer:
-    """Docstring - expected can be called in sync/async context"""
+    """Class for transforming Stripe data to Revengine data. By default will iterate over all available Stripe accounts, for all time"""
 
     _STRIPE_ACCOUNTS_QUERY = PaymentProvider.objects.filter(stripe_account_id__isnull=False)
     for_orgs: list[str] = None
     for_stripe_accounts: list[str] = None
-    # make these timestamps instead so serializable cause may be async
     from_date: datetime.datetime = None
     to_date: datetime.datetime = None
 
@@ -736,7 +733,7 @@ class StripeToRevengineTransformer:
 
 @dataclass
 class StripeEventSyncer:
-    """ """
+    """Class for sycning a stripe event to revengine. Uses existing webhook processor for this."""
 
     event_id: str
     stripe_account_id: str
@@ -750,6 +747,7 @@ class StripeEventSyncer:
         return self.client.get_stripe_event(event_id=self.event_id, stripe_account_id=self.stripe_account_id)
 
     def sync(self) -> None:
+        # vs. circular import
         from .tasks import process_stripe_webhook_task
 
         if not (event := self.get_event()):

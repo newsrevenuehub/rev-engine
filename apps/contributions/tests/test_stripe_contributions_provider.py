@@ -473,11 +473,11 @@ class TestStripeContributionsProvider:
     @pytest.mark.parametrize(
         "interval,interval_count,expected,expected_error",
         (
-            # ("year", 1, ContributionInterval.YEARLY, None),
-            # ("month", 1, ContributionInterval.MONTHLY, None),
+            ("year", 1, ContributionInterval.YEARLY, None),
+            ("month", 1, ContributionInterval.MONTHLY, None),
             ("unexpected", 1, None, InvalidIntervalError),
-            # ("year", 2, None, InvalidIntervalError),
-            # ("month", 2, None, InvalidIntervalError),
+            ("year", 2, None, InvalidIntervalError),
+            ("month", 2, None, InvalidIntervalError),
         ),
     )
     def test_get_interval_from_subscription(self, interval, interval_count, expected, expected_error, mocker):

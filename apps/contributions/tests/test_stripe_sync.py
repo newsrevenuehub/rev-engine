@@ -161,6 +161,7 @@ class Test__upsert_payments_for_charge:
 
     @pytest.fixture(params=["charge", "charge_with_refund"])
     def charge(self, request):
+        # This shadows charge fixture in module scope so we test both charge without and charge with refund
         return request.getfixturevalue(request.param)
 
     @pytest.mark.parametrize("payments_exist", (True, False))
@@ -273,11 +274,6 @@ class TestUntrackedStripeSubscription:
             assert instance.email_id == email
         else:
             assert instance.email_id is None
-
-    # subscription default pm => pm
-    # no sub default pm, but customer and customer.invoice settings pm = customer.invoicessettings.default_payment_method as retrieved
-    # no sub default pm, but customer, no customer.invoice settings pm = None
-    # no sub default pm, no customer = None
 
     @pytest.fixture(
         params=[
@@ -832,10 +828,6 @@ class TestStripeClientForConnectedAccount:
             stripe_account=account_id,
             expand=StripeClientForConnectedAccount.DEFAULT_GET_CUSTOMER_EXPAND_FIELDS,
         )
-
-    # @pytest.mark.parametrize("raise_invalid_request_error", (True, False))
-    # def test_get_stripe_event(self):
-    #     pass
 
 
 @pytest.mark.django_db

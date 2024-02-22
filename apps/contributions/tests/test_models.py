@@ -112,7 +112,7 @@ class TestContributionModel:
         (pytest_cases.fixture_ref("one_time_contribution"), pytest_cases.fixture_ref("monthly_contribution")),
     )
     def test_create_stripe_customer(self, contribution, mocker, monkeypatch):
-        """Show Contributtion.create_stripe_customer calls Stripe with right params and returns the customer object"""
+        """Show Contribution.create_stripe_customer calls Stripe with right params and returns the customer object"""
         customer_create_return_val = {"id": "cus_fakefakefake"}
         monkeypatch.setattr("stripe.Customer.create", lambda *args, **kwargs: customer_create_return_val)
         spy = mocker.spy(stripe.Customer, "create")

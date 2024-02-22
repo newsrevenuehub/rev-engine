@@ -207,7 +207,7 @@ class StripePaymentMetadataSchemaV1_4(StripeMetadataSchemaBase):
 
     @pydantic.validator("swag_choices")
     @classmethod
-    def _validate_swag_choices(cls, v: Any) -> str | None:
+    def validate_swag_choices(cls, v: Any) -> str | None:
         """Validate swag_choices
 
         This validator is responsible for ensuring that the swag_choices field is valid.

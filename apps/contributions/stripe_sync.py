@@ -46,9 +46,9 @@ def _upsert_payments_for_charge(
     contribution: Contribution, charge: stripe.Charge, balance_transaction: stripe.BalanceTransaction
 ) -> None:
     """Create payments for any charge and refunds associated with a given stripe charge."""
-    logger.info("Upserting payment for contribution %s", contribution.id)
+    logger.debug("Upserting payment for contribution %s", contribution.id)
 
-    Payment.objects.update_or_create(
+    payment, created = Payment.objects.update_or_create(
         contribution=contribution,
         stripe_balance_transaction_id=balance_transaction.id,
         defaults={
@@ -60,9 +60,13 @@ def _upsert_payments_for_charge(
             ),
         },
     )
+    if created:
+        logger.info("Created payment %s for contribution %s", payment.id, contribution.id)
+    else:
+        logger.debug("Updated payment %s for contribution %s", payment.id, contribution.id)
     for refund in charge.refunds.data:
-        logger.info("Upserting payment for refund  %s for contribution %s", refund.id, contribution.id)
-        Payment.objects.update_or_create(
+        logger.debug("Upserting payment for refund  %s for contribution %s", refund.id, contribution.id)
+        payment, created = Payment.objects.update_or_create(
             contribution=contribution,
             stripe_balance_transaction_id=refund.balance_transaction.id,
             defaults={
@@ -74,6 +78,10 @@ def _upsert_payments_for_charge(
                 ),
             },
         )
+        if created:
+            logger.info("Created payment %s for refund %s for contribution %s", payment.id, refund.id, contribution.id)
+        else:
+            logger.debug("Updated payment %s for refund %s for contribution %s", payment.id, refund.id, contribution.id)
 
 
 @dataclass(frozen=True)
@@ -123,7 +131,7 @@ class StripeClientForConnectedAccount:
         here is that Stripe's search function in Python library does not provide a convenience method around
         iterating over paginated results. We have to do that ourselves in this method.
         """
-        logger.info(
+        logger.debug(
             "Doing paginated search for %s with query %s for account %s", entity, query or "<none>", stripe_account_id
         )
         results = []
@@ -146,9 +154,9 @@ class StripeClientForConnectedAccount:
         """Generate a string to limit query to entities that have been created within a given date range"""
         query_parts = []
         if self.gte:
-            query_parts.append(f"created >= {self.gte.timestamp()}")
+            query_parts.append(f"created>={int(self.gte.timestamp())}")
         if self.lte:
-            query_parts.append(f"created <= {self.lte.timestamp()}")
+            query_parts.append(f"created<={int(self.lte.timestamp())}")
         return " AND ".join(query_parts)
 
     def get_invoices(self) -> list[stripe.Invoice]:
@@ -170,13 +178,8 @@ class StripeClientForConnectedAccount:
     def get_payment_intents(self, metadata_query: str = None) -> list[stripe.PaymentIntent]:
         """Gets payment intents for a given stripe account"""
         logger.debug("Getting payment intents for account %s", self.account_id)
-        query_parts = []
-        # each subquery can have ANDs or ORs so we surround with parens so we can logically group the results
-        if metadata_query:
-            query_parts.append(metadata_query)
-        if created_query := self.created_query:
-            query_parts.append(created_query)
-        if not query_parts:
+
+        if not metadata_query:
             return [
                 x
                 for x in stripe.PaymentIntent.list(
@@ -185,7 +188,8 @@ class StripeClientForConnectedAccount:
             ]
         return self.do_paginated_search(
             stripe_object=stripe.PaymentIntent,
-            query=" AND ".join(query_parts),
+            # query=" AND ".join(query_parts),
+            query=metadata_query,
             entity="payment intents",
             stripe_account_id=self.account_id,
         )
@@ -238,6 +242,11 @@ class StripeClientForConnectedAccount:
             len(supported),
             len(unsupported),
         )
+        if unsupported:
+            logger.info(
+                "Will not process the following payment intents because their metadata though potentially valid is not supported at this time: %s",
+                ", ".join([x["payment_intent"].id for x in unsupported]),
+            )
         return supported
 
     def get_revengine_subscriptions(self, invoices) -> list[stripe.Subscription]:
@@ -245,19 +254,24 @@ class StripeClientForConnectedAccount:
         logger.info("Getting revengine subscriptions for account %s", self.account_id)
         sub_ids = [x.subscription for x in invoices if x.subscription]
         revengine_subscriptions = []
-        _unsupported_revengine_subscriptions = []
+        unsupported_revengine_subscriptions = []
         for x in sub_ids:
             if sub := self.get_subscription(subscription_id=x, stripe_account_id=self.account_id):
                 (
                     revengine_subscriptions
                     if sub.metadata.get("schema_version") in self.SUPPORTED_METADATA_SCHEMA_VERSIONS
-                    else _unsupported_revengine_subscriptions
+                    else unsupported_revengine_subscriptions
                 ).append(sub)
         logger.info(
             "Found %s revengine subscriptions and %s unsupported revengine subscriptions",
             len(revengine_subscriptions),
-            len(_unsupported_revengine_subscriptions),
+            len(unsupported_revengine_subscriptions),
         )
+        if unsupported_revengine_subscriptions:
+            logger.info(
+                "Will not process the following subscriptions because their metadata though potentially valid is not supported at this time: %s",
+                ", ".join([x.id for x in unsupported_revengine_subscriptions]),
+            )
         return revengine_subscriptions
 
     def get_revengine_subscriptions_data(
@@ -269,7 +283,7 @@ class StripeClientForConnectedAccount:
         then whittling it down to instances representing untracked recurring contributions that adhere to a supported
         Stripe payment metadata schema version.
         """
-        logger.info("Getting untracked stripe subscriptions data for account %s", self.account_id)
+        logger.debug("Getting untracked stripe subscriptions data for account %s", self.account_id)
         revengine_subscriptions = self.get_revengine_subscriptions(invoices)
         data = []
         for sub in revengine_subscriptions:
@@ -282,7 +296,11 @@ class StripeClientForConnectedAccount:
                     )
                 )
             except InvalidMetadataError:
-                logger.warning("Unable to sync subscription %s for account %s", sub.id, self.account_id)
+                logger.warning(
+                    "Unable to sync subscription %s for account %s because metadata did not validate",
+                    sub.id,
+                    self.account_id,
+                )
         return data
 
     def get_revengine_one_time_contributions_data(self) -> list["UntrackedOneTimePaymentIntent"]:
@@ -291,7 +309,7 @@ class StripeClientForConnectedAccount:
         The list is generated by retrieving a larger set of payment intents, then whittling it down
         to the ones that are untracked and that adhere to a supported Stripe payment metadata schema version.
         """
-        logger.info("Getting untracked one time payment intents for account %s", self.account_id)
+        logger.debug("Getting untracked one time payment intents for account %s", self.account_id)
         payment_intents_and_charges = self.get_revengine_one_time_payment_intents_and_charges()
         data = []
         for x in payment_intents_and_charges:
@@ -469,15 +487,14 @@ class UntrackedOneTimePaymentIntent:
         return None
 
     @transaction.atomic
-    def upsert(self) -> Contribution:
+    def upsert(self) -> (Contribution, bool):
         """Upsert a contribution, contributor, and payments for a given Stripe payment intent.
 
         If the payment intent has a charge associated, we'll upsert a payment.
 
         If that charge has any refunds associated with it, we'll upsert those as payments as well.
         """
-        logger.info("Upserting untracked payment intent %s", self.payment_intent.id)
-        existing = Contribution.objects.filter(provider_payment_id=self.payment_intent.id).first()
+        logger.debug("Upserting untracked payment intent %s", self.payment_intent.id)
         if not (email := self.email_id):
             raise ValueError(f"Payment intent {self.payment_intent.id} has no email associated with it")
         contributor, _ = Contributor.objects.get_or_create(email=email)
@@ -495,18 +512,38 @@ class UntrackedOneTimePaymentIntent:
             "contributor": contributor,
             "contribution_metadata": self.payment_intent.metadata,
         }
-        if existing:
-            for k, v in defaults.items():
-                setattr(existing, k, v)
-            contribution = existing
-            with reversion.create_revision():
-                contribution.save(update_fields=set(list(defaults.keys()) + ["modified"]))
+        with reversion.create_revision():
+            contribution, created = Contribution.objects.update_or_create(
+                provider_payment_id=self.payment_intent.id, defaults=defaults
+            )
+            if not created:
                 reversion.set_comment("UntrackedOneTimePaymentIntent.upsert updated existing contribution")
-        else:
-            contribution = Contribution(**defaults | {"provider_payment_id": self.payment_intent.id})
+                logger.debug(
+                    "Updated existing contribution %s for payment intent %s",
+                    contribution.id,
+                    contribution.provider_payment_id,
+                )
+            else:
+                logger.info(
+                    "Created new contribution %s for payment intent %s", contribution.id, self.payment_intent.id
+                )
 
-        _upsert_payments_for_charge(contribution, self.charge, self.charge.balance_transaction)
-        return contribution
+        # Question: should we be creating a contribution for a pi that has no charge, in the first place
+        if not (charge := self.charge):
+            logger.warning(
+                "Can't upsert payments for contribution %s with payment intent %s because no charge",
+                contribution.id,
+                self.payment_intent.id,
+            )
+        elif charge.balance_transaction:
+            _upsert_payments_for_charge(contribution, charge, charge.balance_transaction)
+        else:
+            logger.warning(
+                "Can't upsert payments for contribution %s with charge %s because the charge does not have a balance transaction",
+                contribution.id,
+                charge.id,
+            )
+        return contribution, created
 
 
 class UntrackedStripeSubscription:
@@ -560,8 +597,7 @@ class UntrackedStripeSubscription:
 
     @property
     def email_id(self) -> str:
-        # subscription populating self is expected to have customer property expanded
-        return self.subscription.customer.email if self.subscription.customer else None
+        return getattr(self.subscription.customer, "email", None) if self.subscription.customer else None
 
     @cached_property
     def payment_method(self) -> stripe.PaymentMethod | None:
@@ -585,15 +621,15 @@ class UntrackedStripeSubscription:
         return None
 
     @transaction.atomic
-    def upsert(self) -> Contribution:
+    def upsert(self) -> (Contribution, bool):
         """Upsert contribution, contributor and payments for given Stripe subscription"""
-        logger.info("Upserting untracked subscription %s", self.subscription.id)
+        logger.debug("Upserting untracked subscription %s", self.subscription.id)
         if not (email := self.email_id):
             raise ValueError(f"Subscription {self.subscription.id} has no email associated with it")
 
-        # we don't use get_or_create here because of nuance around reversion comments
-        existing = Contribution.objects.filter(provider_subscription_id=self.subscription.id).first()
-        contributor, _ = Contributor.objects.get_or_create(email=email)
+        contributor, created = Contributor.objects.get_or_create(email=email)
+        if created:
+            logger.info("Created new contributor %s for subscription %s", contributor.id, self.subscription.id)
         pm = self.payment_method
         defaults = {
             "amount": self.subscription.plan.amount,
@@ -609,29 +645,33 @@ class UntrackedStripeSubscription:
             "contribution_metadata": self.subscription.metadata,
             "status": self.status,
         }
-
-        if existing:
-            for k, v in defaults.items():
-                setattr(existing, k, v)
-            contribution = existing
-            with reversion.create_revision():
-                contribution.save(update_fields=set(list(defaults.keys()) + ["modified"]))
+        with reversion.create_revision():
+            contribution, created = Contribution.objects.update_or_create(
+                provider_subscription_id=self.subscription.id, defaults=defaults
+            )
+            if not created:
                 reversion.set_comment("UntrackedStripeSubscription updated existing contribution")
-            logger.info(
-                "Updated existing contribution %s for provider_subscription_id %s",
-                contribution.id,
-                self.subscription.id,
-            )
-        else:
-            contribution = Contribution.objects.create(**defaults | {"provider_subscription_id": self.subscription.id})
-            logger.info(
-                "Created new contribution %s for provider_subscription_id %s", contribution.id, self.subscription.id
-            )
+                logger.debug(
+                    "Updated existing contribution %s for provider_subscription_id %s",
+                    contribution.id,
+                    self.subscription.id,
+                )
+            else:
+                logger.info(
+                    "Created new contribution %s for provider_subscription_id %s", contribution.id, self.subscription.id
+                )
 
         for charge in self.charges:
-            _upsert_payments_for_charge(contribution, charge, charge.balance_transaction)
+            if charge.balance_transaction:
+                _upsert_payments_for_charge(contribution, charge, charge.balance_transaction)
+            else:
+                logger.warning(
+                    "Can't upsert payments for contribution %s with charge %s because no balance transaction",
+                    contribution.id,
+                    getattr(charge, "id", None),
+                )
 
-        return contribution
+        return contribution, created
 
 
 @dataclass
@@ -645,7 +685,7 @@ class StripeToRevengineTransformer:
     to_date: datetime.datetime = None
 
     def __post_init__(self):
-        logger.info(
+        logger.debug(
             "Initializing StripeToRevengineTransformer with for_orgs %s and for_stripe_accounts %s",
             self.for_orgs,
             self.for_stripe_accounts,
@@ -663,20 +703,18 @@ class StripeToRevengineTransformer:
         return list(self._STRIPE_ACCOUNTS_QUERY.values_list("stripe_account_id", flat=True))
 
     def backfill_contributions_and_payments_for_stripe_account(self, account_id: str) -> None:
-        """This method is responsible for upserting contributions, contributions, and payments for a given stripe account."""
+        """This method is responsible for upserting contributors, contributions, and payments for a given stripe account."""
         logger.info("Backfilling stripe account %s", account_id)
         recurring_contributions = self.backfill_contributions_and_payments_for_subscriptions(
             stripe_account_id=account_id
         )
+        logger.info(
+            "Upserted %s recurring contributions for stripe account %s", len(recurring_contributions), account_id
+        )
         one_time_contributions = self.backfill_contributions_and_payments_for_payment_intents(
             stripe_account_id=account_id
         )
-        logger.info(
-            "Backfilled %s recurring contributions and %s one-time contributions for stripe account %s",
-            len(recurring_contributions),
-            len(one_time_contributions),
-            account_id,
-        )
+        logger.info("Upserted %s one time contributions for stripe account %s", len(one_time_contributions), account_id)
 
     def backfill_contributions_and_payments_for_subscriptions(self, stripe_account_id: str) -> list[Contribution]:
         """Upsert contributions, contributors, and payments for subscriptions for a given stripe account."""
@@ -689,18 +727,27 @@ class StripeToRevengineTransformer:
         # Now based on the set of all invoices, we need to determine where there are any subscriptions uncaptured by revengine.
         # Subscriptions are not directly attached to invoices, but we can get them from the respective charges.
         # The returned charges have balance transaction and refunds expanded, which will allow us to generate Revengine payments
-        charges = [stripe_client.get_expanded_charge_object(charge_id=x.charge) for x in invoices if x.charge]
+        charges = [
+            stripe_client.get_expanded_charge_object(charge_id=x.charge, stripe_account_id=stripe_account_id)
+            for x in invoices
+            if x.charge
+        ]
 
         # Based on the set of subscriptions represented by the set of charges, we narrow down to those that are not already in revengine but should
         # be. Calling .get_revengine_subscriptions_data will return a list of UntrackedStripeSubscription objects, which are used to pull together required
         # data for contribution, contributor, and payments, and then upsert them.
         subscriptions_data = stripe_client.get_revengine_subscriptions_data(charges=charges, invoices=invoices)
         contributions = []
+        created_count = 0
         for x in subscriptions_data:
             try:
-                contributions.append(x.upsert())
+                contribution, created = x.upsert()
+                contributions.append(contribution)
+                if created:
+                    created_count += 1
             except ValueError as exc:
                 logger.warning("Unable to upsert subscription %s", x.subscription.id, exc_info=exc)
+        logger.info("Created %s new recurring contributions for stripe account %s", created_count, stripe_account_id)
         return contributions
 
     def backfill_contributions_and_payments_for_payment_intents(self, stripe_account_id: str) -> list[Contribution]:
@@ -709,11 +756,19 @@ class StripeToRevengineTransformer:
             account_id=stripe_account_id, gte=self.from_date, lte=self.to_date
         )
         results = []
+        created_count = 0
         for x in stripe_client.get_revengine_one_time_contributions_data():
             try:
-                results.append(x.upsert())
+                contribution, created = x.upsert()
+                results.append(contribution)
+                if created:
+                    logger.info(
+                        "Created new contribution %s for payment intent %s", contribution.id, x.payment_intent.id
+                    )
+                    created_count += 1
             except ValueError as exc:
                 logger.warning("Unable to upsert payment intent %s", x.payment_intent.id, exc_info=exc)
+        logger.info("Created %s new one-time contributions for stripe account %s", created_count, stripe_account_id)
         return results
 
     def backfill_contributions_and_payments_from_stripe(self) -> None:
@@ -727,7 +782,6 @@ class StripeToRevengineTransformer:
             len(self.stripe_account_ids),
         )
         for account_id in self.stripe_account_ids:
-            logger.info("Backfilling contributions and payments for stripe account %s", account_id)
             self.backfill_contributions_and_payments_for_stripe_account(account_id)
 
 

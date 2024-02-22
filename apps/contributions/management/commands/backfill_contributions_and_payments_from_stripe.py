@@ -1,9 +1,15 @@
 import datetime
+import logging
 
 from django.core.management.base import BaseCommand, CommandParser
 
 from apps.contributions.stripe_sync import StripeToRevengineTransformer
 from apps.contributions.tasks import task_backfill_contributions_and_payments
+
+
+# otherwise we get thousands and thousands of info logs from stripe and hard to find our own logs
+stripe_logger = logging.getLogger("stripe")
+stripe_logger.setLevel(logging.ERROR)
 
 
 class Command(BaseCommand):

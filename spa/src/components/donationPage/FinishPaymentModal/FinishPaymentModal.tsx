@@ -35,14 +35,14 @@ export function FinishPaymentModal({ onCancel, onError, open, payment, locale }:
   const { t } = useTranslation();
 
   return (
-    <Modal open={open}>
-      <AlertProvider template={Alert} {...alertOptions}>
-        <StripePaymentWrapper
-          onError={onError}
-          stripeClientSecret={payment.stripe.clientSecret}
-          stripeAccountId={payment.stripe.accountId}
-          stripeLocale={locale}
-        >
+    <StripePaymentWrapper
+      onError={onError}
+      stripeClientSecret={payment.stripe.clientSecret}
+      stripeAccountId={payment.stripe.accountId}
+      stripeLocale={locale}
+    >
+      <Modal open={open}>
+        <AlertProvider template={Alert} {...alertOptions}>
           <Root>
             <BackButton onClick={onCancel}>
               <ChevronLeft />
@@ -55,9 +55,9 @@ export function FinishPaymentModal({ onCancel, onError, open, payment, locale }:
               processingDate={new Date()}
             />
           </Root>
-        </StripePaymentWrapper>
-      </AlertProvider>
-    </Modal>
+        </AlertProvider>
+      </Modal>
+    </StripePaymentWrapper>
   );
 }
 

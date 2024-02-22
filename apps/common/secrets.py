@@ -14,7 +14,6 @@ class SecretProviderException(Exception):
 
 
 class SecretProvider:
-
     """A descriptor that retrieves a secret from a secret manager."""
 
     def __init__(self, version_id: str = "latest", *args, **kwargs) -> None:

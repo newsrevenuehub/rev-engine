@@ -1,4 +1,4 @@
-import { ReactChild, useState } from 'react';
+import { ReactChild, useEffect, useState } from 'react';
 import { useParams } from 'react-router-dom';
 import { CircularProgress } from 'components/base';
 import { usePortalAuthContext } from 'hooks/usePortalAuth';
@@ -7,7 +7,17 @@ import ContributionItem from './ContributionItem/ContributionItem';
 import NoContributions from './NoContributions';
 import ContributionFetchError from './ContributionFetchError';
 import ContributionDetail from './ContributionDetail/ContributionDetail';
-import { List, Root, Subhead, Columns, Loading, Legend, Detail, StyledPortalPage } from './ContributionsList.styled';
+import {
+  List,
+  Root,
+  Subhead,
+  Columns,
+  Loading,
+  Legend,
+  Detail,
+  StyledPortalPage,
+  AlignPositionWrapper
+} from './ContributionsList.styled';
 import Sort from 'components/common/Sort';
 
 const CONTRIBUTION_SORT_OPTIONS = [
@@ -46,6 +56,21 @@ export function ContributionsList() {
   const [selectedContributionEl, setSelectedContributionEl] = useState<HTMLAnchorElement | null>(null);
   let content: ReactChild;
 
+  useEffect(() => {
+    // Track viewing of a contribution detail in Pendo if available. If this
+    // fails, log an error but don't otherwise show an error to the user.
+
+    if (selectedContribution) {
+      try {
+        (window as any).pendo.track('portal-contribution-detail-view', {
+          status: selectedContribution.status
+        });
+      } catch (error) {
+        console.error(`Couldn't track a contribution detail view event in Pendo: ${(error as Error).message}`);
+      }
+    }
+  }, [selectedContribution]);
+
   if (isLoading) {
     content = (
       <Loading>
@@ -53,7 +78,11 @@ export function ContributionsList() {
       </Loading>
     );
   } else if (isError) {
-    content = <ContributionFetchError message="Error loading contributions." onRetry={() => refetch()} />;
+    content = (
+      <AlignPositionWrapper>
+        <ContributionFetchError message="Error loading contributions." onRetry={refetch} />
+      </AlignPositionWrapper>
+    );
   } else if (contributor && contributions?.length > 0) {
     content = (
       <List $detailVisible={!!selectedContribution}>
@@ -72,7 +101,11 @@ export function ContributionsList() {
       </List>
     );
   } else {
-    content = <NoContributions />;
+    content = (
+      <AlignPositionWrapper>
+        <NoContributions />
+      </AlignPositionWrapper>
+    );
   }
 
   return (

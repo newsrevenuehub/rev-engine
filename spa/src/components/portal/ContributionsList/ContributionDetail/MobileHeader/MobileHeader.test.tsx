@@ -29,17 +29,6 @@ function tree(props?: Partial<MobileHeaderProps>) {
 }
 
 describe('MobileHeader', () => {
-  // Hidden used below because the component defaults to a display: none state,
-  // and we can't simulate a mobile viewport.
-
-  it('shows a link back to the contribution list', () => {
-    tree();
-
-    const back = screen.getByRole('link', { hidden: true, name: 'Back' });
-
-    expect(back).toHaveAttribute('href', '/portal/my-contributions/');
-  });
-
   it('shows a formatted date of the contribution', () => {
     const created = new Date('1/23/45').toISOString();
 

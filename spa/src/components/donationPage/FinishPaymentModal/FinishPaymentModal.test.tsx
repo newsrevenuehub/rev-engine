@@ -35,7 +35,7 @@ function tree(props?: Partial<FinishPaymentModalProps>) {
 describe('FinishPaymentModal', () => {
   it('shows nothing if not open', () => {
     tree({ open: false });
-    expect(document.body).toHaveTextContent('');
+    expect(screen.getByTestId('mock-stripe-payment-wrapper-children')).toBeEmptyDOMElement();
   });
 
   describe('When open', () => {
@@ -60,7 +60,11 @@ describe('FinishPaymentModal', () => {
       expect(wrapper.dataset.stripeClientSecret).toBe(mockPayment.stripe.clientSecret);
       expect(wrapper.dataset.stripeLocale).toBe('mock-locale');
       expect(onError).not.toBeCalled();
-      fireEvent.click(screen.getByRole('button', { name: 'onError' }));
+
+      // This is hidden by the open modal, but shouldn't matter in practice
+      // since it's a mocked button.
+
+      fireEvent.click(screen.getByRole('button', { name: 'onError', hidden: true }));
       expect(onError).toBeCalledTimes(1);
     });
 

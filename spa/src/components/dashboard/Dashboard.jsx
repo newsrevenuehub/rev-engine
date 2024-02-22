@@ -36,7 +36,7 @@ import { CONTENT_SECTION_ACCESS_FLAG_NAME } from 'constants/featureFlagConstants
 
 import { PageEditorRedirect } from 'components/pageEditor/PageEditorRedirect';
 import Subscription from 'components/settings/Subscription/Subscription';
-import { usePendo } from 'hooks/usePendo';
+import { useDashboardPendo } from 'hooks/useDashboardPendo';
 import { SentryRoute } from 'hooks/useSentry';
 import useUser from 'hooks/useUser';
 import flagIsActiveForUser from 'utilities/flagIsActiveForUser';
@@ -49,13 +49,13 @@ function Dashboard() {
   const dashboardSlugRedirect = hasContentSectionAccess
     ? CONTENT_SLUG
     : hasContributionsSectionAccess(user)
-      ? DONATIONS_SLUG
-      : 'not-found';
+    ? DONATIONS_SLUG
+    : 'not-found';
 
   const { pathname } = useLocation();
   const isEditPage = pathname.includes(EDITOR_ROUTE);
 
-  usePendo();
+  useDashboardPendo();
 
   return (
     <S.Outer>

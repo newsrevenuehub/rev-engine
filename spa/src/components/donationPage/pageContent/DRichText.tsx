@@ -1,4 +1,4 @@
-import RichTextDisplay from 'components/base/RichTextEditor/RichTextDisplay';
+import RichTextDisplay from 'components/base/RichTextDisplay/RichTextDisplay';
 import PropTypes, { InferProps } from 'prop-types';
 import DElement from './DElement';
 

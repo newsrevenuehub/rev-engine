@@ -88,8 +88,8 @@ class TestBackfillContributionsAndPaymentsFromStripe:
         gte = command_options.get("gte", None)
         lte = command_options.get("lte", None)
         expected_call_args = {
-            "from_date": (gte.isoformat() if async_mode and gte else gte),
-            "to_date": (lte.isoformat() if async_mode and lte else lte),
+            "from_date": (int(gte.timestamp()) if async_mode and gte else gte),
+            "to_date": (int(lte.timestamp()) if async_mode and lte else lte),
             "for_orgs": command_options.get("for_orgs", []),
             "for_stripe_accounts": command_options.get("for_stripe_accounts", []),
         }

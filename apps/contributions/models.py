@@ -228,9 +228,9 @@ class Contribution(IndexedTimeStampedModel):
         return None
 
     @property
-    def stripe_account_id(self):
+    def stripe_account_id(self) -> str | None:
         if self.revenue_program and self.revenue_program.payment_provider:
-            return self.revenue_program.payment_provider.stripe_account_id
+            return self.revenue_program.payment_provider.stripe_account_id or None
         return None
 
     @property
@@ -365,12 +365,6 @@ class Contribution(IndexedTimeStampedModel):
 
     def save(self, *args, **kwargs):
         previous = self.__class__.objects.filter(pk=self.pk).first()
-        logger.info(
-            "`Contribution.save` called. Existing contribution has id: %s and provider_payment_method_id: %s \n The save value for provider_payment_method_id is %s",
-            getattr(previous, "id", None),
-            getattr(previous, "provider_payment_method_id", None),
-            self.provider_payment_method_id,
-        )
         # TODO: [DEV-4447] If possible, remove conditional payment method update fetch from contribution.save
         if (
             (
@@ -418,7 +412,7 @@ class Contribution(IndexedTimeStampedModel):
             shipping={"address": address, "name": name},
             name=name,
             phone=phone,
-            stripe_account=self.donation_page.revenue_program.payment_provider.stripe_account_id,
+            stripe_account=self.stripe_account_id,
         )
 
     def create_stripe_one_time_payment_intent(self, metadata=None, save=True):
@@ -431,15 +425,15 @@ class Contribution(IndexedTimeStampedModel):
             currency=self.currency,
             customer=self.provider_customer_id,
             metadata=metadata,
-            statement_descriptor_suffix=self.donation_page.revenue_program.stripe_statement_descriptor_suffix,
-            stripe_account=self.donation_page.revenue_program.stripe_account_id,
+            statement_descriptor_suffix=self.revenue_program.stripe_statement_descriptor_suffix,
+            stripe_account=self.stripe_account_id,
             capture_method="manual" if self.status == ContributionStatus.FLAGGED else "automatic",
         )
 
     def create_stripe_setup_intent(self, metadata):
         return stripe.SetupIntent.create(
             customer=self.provider_customer_id,
-            stripe_account=self.donation_page.revenue_program.payment_provider.stripe_account_id,
+            stripe_account=self.stripe_account_id,
             metadata=metadata,
         )
 
@@ -453,7 +447,7 @@ class Contribution(IndexedTimeStampedModel):
         price_data = {
             "unit_amount": self.amount,
             "currency": self.currency,
-            "product": self.donation_page.revenue_program.payment_provider.stripe_product_id,
+            "product": self.revenue_program.payment_provider.stripe_product_id,
             "recurring": {
                 "interval": self.interval,
             },
@@ -466,7 +460,7 @@ class Contribution(IndexedTimeStampedModel):
                     "price_data": price_data,
                 }
             ],
-            stripe_account=self.donation_page.revenue_program.payment_provider.stripe_account_id,
+            stripe_account=self.stripe_account_id,
             metadata=metadata,
             payment_behavior="error_if_incomplete" if error_if_incomplete else "default_incomplete",
             payment_settings={"save_default_payment_method": "on_subscription"},
@@ -489,7 +483,7 @@ class Contribution(IndexedTimeStampedModel):
         elif self.interval == ContributionInterval.ONE_TIME:
             stripe.PaymentIntent.cancel(
                 self.provider_payment_id,
-                stripe_account=self.donation_page.revenue_program.stripe_account_id,
+                stripe_account=self.stripe_account_id,
             )
         elif self.interval not in (ContributionInterval.MONTHLY, ContributionInterval.YEARLY):
             logger.warning(
@@ -501,12 +495,12 @@ class Contribution(IndexedTimeStampedModel):
         elif self.status == ContributionStatus.PROCESSING:
             stripe.Subscription.delete(
                 self.provider_subscription_id,
-                stripe_account=self.donation_page.revenue_program.stripe_account_id,
+                stripe_account=self.stripe_account_id,
             )
         elif self.status == ContributionStatus.FLAGGED and self.provider_payment_method_id:
             stripe.PaymentMethod.retrieve(
                 self.provider_payment_method_id,
-                stripe_account=self.donation_page.revenue_program.stripe_account_id,
+                stripe_account=self.stripe_account_id,
             ).detach()
 
         self.status = ContributionStatus.CANCELED
@@ -544,7 +538,7 @@ class Contribution(IndexedTimeStampedModel):
         try:
             customer = stripe.Customer.retrieve(
                 self.provider_customer_id,
-                stripe_account=self.donation_page.revenue_program.payment_provider.stripe_account_id,
+                stripe_account=self.stripe_account_id,
             )
         except StripeError:
             logger.exception(
@@ -598,10 +592,7 @@ class Contribution(IndexedTimeStampedModel):
 
     @property
     def stripe_setup_intent(self) -> stripe.SetupIntent | None:
-        if not (
-            (si_id := self.provider_setup_intent_id)
-            and (acct_id := self.donation_page.revenue_program.payment_provider.stripe_account_id)
-        ):
+        if not ((si_id := self.provider_setup_intent_id) and (acct_id := self.stripe_account_id)):
             return None
         try:
             return stripe.SetupIntent.retrieve(si_id, stripe_account=acct_id)
@@ -619,10 +610,7 @@ class Contribution(IndexedTimeStampedModel):
 
     @property
     def stripe_payment_intent(self) -> stripe.PaymentIntent | None:
-        if not (
-            (pi_id := self.provider_payment_id)
-            and (acct_id := self.donation_page.revenue_program.payment_provider.stripe_account_id)
-        ):
+        if not ((pi_id := self.provider_payment_id) and (acct_id := self.stripe_account_id)):
             return None
         try:
             return stripe.PaymentIntent.retrieve(pi_id, stripe_account=acct_id)
@@ -712,7 +700,7 @@ class Contribution(IndexedTimeStampedModel):
         if not all(
             [
                 sub_id := self.provider_subscription_id,
-                acct_id := self.donation_page.revenue_program.payment_provider.stripe_account_id,
+                acct_id := self.stripe_account_id,
             ]
         ):
             return None
@@ -1122,11 +1110,6 @@ class Payment(IndexedTimeStampedModel):
 
     def __str__(self):
         return f"Payment {self.id} for contribution {self.contribution.id} and balance transaction {self.stripe_balance_transaction_id}"
-
-    @property
-    def stripe_account_id(self):
-        """Convenience method for referencing the Stripe account ID associated with the payment provider for this payment"""
-        return self.contribution.donation_page.revenue_program.payment_provider.stripe_account_id
 
     @classmethod
     def get_subscription_id_for_balance_transaction(

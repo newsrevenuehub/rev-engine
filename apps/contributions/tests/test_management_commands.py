@@ -80,7 +80,7 @@ class TestBackfillContributionsAndPaymentsFromStripe:
     def test_happy_path(self, async_mode, command_options, mocker):
         mock_async_task = mocker.patch("apps.contributions.tasks.task_backfill_contributions_and_payments.delay")
         mock_transformer = mocker.patch(
-            "apps.contributions.management.commands.backfill_contributions_and_payments_from_stripe.StripeToRevengineTransformer"
+            "apps.contributions.management.commands.backfill_contributions_and_payments_from_stripe.StripePaymentsSyncer"
         )
         if async_mode:
             command_options["async_mode"] = True

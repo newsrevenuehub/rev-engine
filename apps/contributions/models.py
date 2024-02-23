@@ -225,6 +225,7 @@ class Contribution(IndexedTimeStampedModel):
     def revenue_program(self):
         if self.donation_page:
             return self.donation_page.revenue_program
+        """TODO: [DEV-4503] Source contribution revenue program from contribution metadata if it's not available from donation page"""
         return None
 
     @property

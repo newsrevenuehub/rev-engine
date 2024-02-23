@@ -21,7 +21,7 @@ from apps.contributions.stripe_sync import (
     ContributionIgnorableError,
     InvalidIntervalError,
     InvalidMetadataError,
-    UntrackedStripeSubscription,
+    SubscriptionForRecurringContribution,
 )
 from apps.contributions.types import StripePiAsPortalContribution, StripePiSearchResponse
 from revengine.settings.base import CONTRIBUTION_CACHE_TTL, DEFAULT_CACHE
@@ -298,7 +298,7 @@ class StripeContributionsProvider:
 
     def get_interval_from_subscription(self, subscription: stripe.Subscription) -> ContributionInterval:
         """Gets the ContributionInterval from a stripe.Subscription object."""
-        return UntrackedStripeSubscription.get_interval_from_subscription(subscription)
+        return SubscriptionForRecurringContribution.get_interval_from_subscription(subscription)
 
     def cast_subscription_to_pi_for_portal(self, subscription: stripe.Subscription) -> StripePiAsPortalContribution:
         """Casts a Subscription object to a PaymentIntent object for use in the Stripe Customer Portal.

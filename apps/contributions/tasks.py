@@ -23,7 +23,7 @@ from apps.contributions.stripe_contributions_provider import (
     StripeContributionsProvider,
     SubscriptionsCacheProvider,
 )
-from apps.contributions.stripe_sync import StripeToRevengineTransformer
+from apps.contributions.stripe_sync import StripePaymentsSyncer
 from apps.contributions.types import StripeEventData
 from apps.contributions.utils import export_contributions_to_csv
 from apps.contributions.webhooks import StripeWebhookProcessor
@@ -225,7 +225,7 @@ def task_backfill_contributions_and_payments(
     from_date = datetime.fromtimestamp(int(from_date)) if from_date else None
     to_date = datetime.fromtimestamp(int(to_date)) if to_date else None
 
-    StripeToRevengineTransformer(
+    StripePaymentsSyncer(
         from_date=from_date, to_date=to_date, for_stripe_accounts=for_stripe_accounts, for_orgs=for_orgs
     ).backfill_contributions_and_payments_from_stripe()
     logger.info("`task_backfill_contributions_and_payments` is done")

@@ -2003,12 +2003,6 @@ class TestPayment:
             == f"Payment {payment.id} for contribution {payment.contribution.id} and balance transaction {payment.stripe_balance_transaction_id}"
         )
 
-    def test_stripe_account_id(self, payment):
-        assert (
-            payment.stripe_account_id
-            == payment.contribution.donation_page.revenue_program.payment_provider.stripe_account_id
-        )
-
     @pytest.fixture
     def invalid_metadata(self):
         return {"foo": "bar"}

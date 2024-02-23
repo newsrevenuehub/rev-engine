@@ -4,7 +4,7 @@ from django.core.management.base import BaseCommand, CommandParser
 
 import dateparser
 
-from apps.contributions.stripe_sync import StripePaymentsSyncer
+from apps.contributions.stripe_sync import StripeTransactionsSyncer
 from apps.contributions.tasks import task_backfill_contributions_and_payments
 
 
@@ -43,7 +43,7 @@ class Command(BaseCommand):
             )
             return
         else:
-            StripePaymentsSyncer(
+            StripeTransactionsSyncer(
                 from_date=options["gte"],
                 to_date=options["lte"],
                 for_orgs=options["for_orgs"],

@@ -585,8 +585,8 @@ class SubscriptionForRecurringContribution:
 
 
 @dataclass
-class StripePaymentsSyncer:
-    """Class for syncing Stripe payment data to Revengine. By default will iterate over all available Stripe accounts, for all time"""
+class StripeTransactionsSyncer:
+    """Class for syncing Stripe transactions data to Revengine. By default will iterate over all available Stripe accounts, for all time"""
 
     _STRIPE_ACCOUNTS_QUERY = PaymentProvider.objects.filter(stripe_account_id__isnull=False)
     for_orgs: list[str] = None
@@ -596,7 +596,7 @@ class StripePaymentsSyncer:
 
     def __post_init__(self):
         logger.debug(
-            "Initializing StripePaymentsSyncer with for_orgs %s and for_stripe_accounts %s",
+            "Initializing StripeTransactionsSyncer with for_orgs %s and for_stripe_accounts %s",
             self.for_orgs,
             self.for_stripe_accounts,
         )

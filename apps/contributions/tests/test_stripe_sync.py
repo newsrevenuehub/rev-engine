@@ -14,7 +14,7 @@ from apps.contributions.stripe_sync import (
     PaymentIntentForOneTimeContribution,
     StripeClientForConnectedAccount,
     StripeEventSyncer,
-    StripePaymentsSyncer,
+    StripeTransactionsSyncer,
     SubscriptionForRecurringContribution,
     upsert_payments_for_charge,
 )
@@ -877,14 +877,14 @@ class TestStripeClientForConnectedAccount:
 
 
 @pytest.mark.django_db
-class TestStripePaymentsSyncer:
+class TestStripeTransactionsSyncer:
     @pytest.mark.parametrize(
         "for_orgs,for_stripe_accounts",
         (([1, 2], ["a", "b"]), ([], [])),
     )
     def test__init__(self, for_orgs, for_stripe_accounts, mocker):
         """This is here so we get test coverage through all possible paths in __post_init__"""
-        StripePaymentsSyncer(for_orgs=for_orgs, for_stripe_accounts=for_stripe_accounts)
+        StripeTransactionsSyncer(for_orgs=for_orgs, for_stripe_accounts=for_stripe_accounts)
 
     def test_stripe_account_ids(self):
         PaymentProviderFactory.create_batch(2)
@@ -893,19 +893,19 @@ class TestStripePaymentsSyncer:
             .values_list("stripe_account_id", flat=True)
             .distinct("stripe_account_id")
         )
-        instance = StripePaymentsSyncer()
+        instance = StripeTransactionsSyncer()
         assert set(instance.stripe_account_ids) == expected
 
     def test_backfill_contributions_and_payments_for_stripe_account(self, mocker):
         mock_backfill_subs = mocker.patch(
-            "apps.contributions.stripe_sync.StripePaymentsSyncer.backfill_contributions_and_payments_for_subscriptions",
+            "apps.contributions.stripe_sync.StripeTransactionsSyncer.backfill_contributions_and_payments_for_subscriptions",
             return_value=[],
         )
         mock_backfill_one_times = mocker.patch(
-            "apps.contributions.stripe_sync.StripePaymentsSyncer.backfill_contributions_and_payments_for_payment_intents",
+            "apps.contributions.stripe_sync.StripeTransactionsSyncer.backfill_contributions_and_payments_for_payment_intents",
             return_value=[],
         )
-        StripePaymentsSyncer().backfill_contributions_and_payments_for_stripe_account((test_id := "test"))
+        StripeTransactionsSyncer().backfill_contributions_and_payments_for_stripe_account((test_id := "test"))
         mock_backfill_subs.assert_called_once_with(stripe_account_id=test_id)
         mock_backfill_one_times.assert_called_once_with(stripe_account_id=test_id)
 
@@ -927,7 +927,7 @@ class TestStripePaymentsSyncer:
         item1.upsert.side_effect = ValueError("foo")
         item2.upsert.return_value = (contribution1 := mocker.Mock()), True, False
         item3.upsert.return_value = (contribution2 := mocker.Mock()), False, True
-        contributions = StripePaymentsSyncer().backfill_contributions_and_payments_for_subscriptions("test_id")
+        contributions = StripeTransactionsSyncer().backfill_contributions_and_payments_for_subscriptions("test_id")
         mock_stripe_client.return_value.get_invoices.assert_called_once()
         mock_stripe_client.return_value.get_expanded_charge_object.assert_called_once_with(
             charge_id=expected.charge, stripe_account_id="test_id"
@@ -947,15 +947,15 @@ class TestStripePaymentsSyncer:
         item1.upsert.return_value = (contribution1 := mocker.Mock()), True, False
         item2.upsert.return_value = (contribution2 := mocker.Mock()), False, True
         item_with_error.upsert.side_effect = ValueError("foo")
-        contributions = StripePaymentsSyncer().backfill_contributions_and_payments_for_payment_intents("test_id")
+        contributions = StripeTransactionsSyncer().backfill_contributions_and_payments_for_payment_intents("test_id")
         assert contributions == [contribution1, contribution2]
 
     def test_backfill_contributions_and_payments_from_stripe(self, mocker):
         PaymentProviderFactory()
         mock_backfill_for_stripe_account = mocker.patch(
-            "apps.contributions.stripe_sync.StripePaymentsSyncer.backfill_contributions_and_payments_for_stripe_account"
+            "apps.contributions.stripe_sync.StripeTransactionsSyncer.backfill_contributions_and_payments_for_stripe_account"
         )
-        StripePaymentsSyncer().backfill_contributions_and_payments_from_stripe()
+        StripeTransactionsSyncer().backfill_contributions_and_payments_from_stripe()
         mock_backfill_for_stripe_account.assert_called_once()
 
 

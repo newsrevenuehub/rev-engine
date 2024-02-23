@@ -34,9 +34,6 @@ class StripePiAsPortalContribution(BaseModel):
     stripe_account_id: str
     subscription_id: str | None
 
-    class Config:
-        extra = "forbid"
-
 
 class StripePiSearchResponse(BaseModel):
     """

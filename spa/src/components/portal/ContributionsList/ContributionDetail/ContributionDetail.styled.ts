@@ -29,10 +29,3 @@ export const Root = styled.div`
     transform: none;
   }
 `;
-
-export const Loading = styled.div`
-  align-items: center;
-  display: grid;
-  height: 500px; /* Roughly match height once loaded */
-  justify-content: center;
-`;

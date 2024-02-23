@@ -11,13 +11,16 @@ export const TopMatter = styled.div`
 export const Content = styled.div`
   display: flex;
   flex-direction: column;
-  gap: 30px;
+  /* No gap because each DetailSection has its own padding. */
 `;
 
 export const Root = styled.div`
   background-color: ${({ theme }) => theme.basePalette.greyscale.white};
   border-left: 4px solid ${({ theme }) => theme.basePalette.primary.purple};
-  padding: 20px 40px;
+
+  /* No horizontal padding because each DetailSection has its own padding, and
+  its highlight needs to extend to the edges of this. */
+  padding: 20px 0;
   align-self: self-start;
 
   /* useDetailAnchor will set this variable on us. */

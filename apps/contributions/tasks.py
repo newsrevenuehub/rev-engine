@@ -227,5 +227,5 @@ def task_backfill_contributions_and_payments(
 
     StripeTransactionsSyncer(
         from_date=from_date, to_date=to_date, for_stripe_accounts=for_stripe_accounts, for_orgs=for_orgs
-    ).backfill_contributions_and_payments_from_stripe()
+    ).sync_stripe_transactions_data()
     logger.info("`task_backfill_contributions_and_payments` is done")

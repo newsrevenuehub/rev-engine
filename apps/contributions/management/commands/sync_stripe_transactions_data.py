@@ -48,5 +48,5 @@ class Command(BaseCommand):
                 to_date=options["lte"],
                 for_orgs=options["for_orgs"],
                 for_stripe_accounts=options["for_stripe_accounts"],
-            ).backfill_contributions_and_payments_from_stripe()
+            ).sync_stripe_transactions_data()
         self.stdout.write(self.style.SUCCESS("`backfill_contribution_and_payments_from_stripe` is done"))

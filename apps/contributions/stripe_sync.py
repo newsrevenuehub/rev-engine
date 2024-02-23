@@ -681,7 +681,7 @@ class StripeTransactionsSyncer:
         )
         return results
 
-    def backfill_contributions_and_payments_from_stripe(self) -> None:
+    def sync_stripe_transactions_data(self) -> None:
         """Iterates over stripe accounts that the class was initialized with and attempts to backfill contributions,
 
         contributors, and payments for each account. If the class was initialized as async, then this method will call

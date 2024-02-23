@@ -80,11 +80,11 @@ class TestBackfillContributionsAndPaymentsFromStripe:
     def test_happy_path(self, async_mode, command_options, mocker):
         mock_async_task = mocker.patch("apps.contributions.tasks.task_backfill_contributions_and_payments.delay")
         mock_transformer = mocker.patch(
-            "apps.contributions.management.commands.backfill_contributions_and_payments_from_stripe.StripeTransactionsSyncer"
+            "apps.contributions.management.commands.sync_stripe_transactions_data.StripeTransactionsSyncer"
         )
         if async_mode:
             command_options["async_mode"] = True
-        call_command("backfill_contributions_and_payments_from_stripe", **command_options)
+        call_command("sync_stripe_transactions_data", **command_options)
         gte = command_options.get("gte", None)
         lte = command_options.get("lte", None)
         expected_call_args = {
@@ -99,4 +99,4 @@ class TestBackfillContributionsAndPaymentsFromStripe:
         else:
             mock_async_task.assert_not_called()
             mock_transformer.assert_called_once_with(**expected_call_args)
-            mock_transformer.return_value.backfill_contributions_and_payments_from_stripe.assert_called_once()
+            mock_transformer.return_value.sync_stripe_transactions_data.assert_called_once()

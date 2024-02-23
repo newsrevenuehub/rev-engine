@@ -950,12 +950,12 @@ class TestStripeTransactionsSyncer:
         contributions = StripeTransactionsSyncer().backfill_contributions_and_payments_for_payment_intents("test_id")
         assert contributions == [contribution1, contribution2]
 
-    def test_backfill_contributions_and_payments_from_stripe(self, mocker):
+    def test_sync_stripe_transactions_data(self, mocker):
         PaymentProviderFactory()
         mock_backfill_for_stripe_account = mocker.patch(
             "apps.contributions.stripe_sync.StripeTransactionsSyncer.backfill_contributions_and_payments_for_stripe_account"
         )
-        StripeTransactionsSyncer().backfill_contributions_and_payments_from_stripe()
+        StripeTransactionsSyncer().sync_stripe_transactions_data()
         mock_backfill_for_stripe_account.assert_called_once()
 
 

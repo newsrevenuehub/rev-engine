@@ -82,6 +82,7 @@ google-cloud-secret-manager = "^2.16.0"
 django-request-id = "^1.0.0"
 pydantic = "^2.2.0"
 uwsgitop = "^0.11"
+dateparser = "^1.2.0"
 
 [tool.poetry.dev-dependencies]
 appnope = "*"

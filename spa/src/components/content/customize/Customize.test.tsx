@@ -109,6 +109,14 @@ describe('Customize Styles', () => {
         );
       });
 
+      it('should render core upgrade prompt', () => {
+        tree();
+
+        const upgradePrompt = screen.getByTestId('mock-customize-core-upgrade-prompt');
+
+        expect(upgradePrompt).toBeVisible();
+      });
+
       it('should call onClose for upgrade prompt', () => {
         tree();
         expect(setSessionState).not.toHaveBeenCalled();

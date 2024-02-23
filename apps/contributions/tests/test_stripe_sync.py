@@ -16,7 +16,7 @@ from apps.contributions.stripe_sync import (
     StripeToRevengineTransformer,
     UntrackedOneTimePaymentIntent,
     UntrackedStripeSubscription,
-    _upsert_payments_for_charge,
+    upsert_payments_for_charge,
 )
 from apps.contributions.tests.factories import ContributionFactory, PaymentFactory
 from apps.organizations.models import PaymentProvider
@@ -154,7 +154,7 @@ def customer_with_default_pm(customer, payment_method_A, mocker):
 
 
 @pytest.mark.django_db
-class Test__upsert_payments_for_charge:
+class Test_upsert_payments_for_charge:
     @pytest.fixture
     def contribution(self):
         return ContributionFactory()
@@ -179,7 +179,7 @@ class Test__upsert_payments_for_charge:
                     stripe_balance_transaction_id=refund.balance_transaction.id,
                 )
                 existing += 1
-        _upsert_payments_for_charge(contribution=contribution, charge=charge, balance_transaction=balance_transaction)
+        upsert_payments_for_charge(contribution=contribution, charge=charge, balance_transaction=balance_transaction)
         refund = charge.refunds.data[0] if charge.refunded else None
         contribution.refresh_from_db()
         if payments_exist:
@@ -325,7 +325,7 @@ class TestUntrackedStripeSubscription:
             new_callable=mocker.PropertyMock,
             return_value="foo@bar.com" if has_email_id else None,
         )
-        mock_upsert_charges = mocker.patch("apps.contributions.stripe_sync._upsert_payments_for_charge")
+        mock_upsert_charges = mocker.patch("apps.contributions.stripe_sync.upsert_payments_for_charge")
         instance = UntrackedStripeSubscription(subscription=subscription_to_upsert, charges=[charge])
         if has_email_id:
             contribution = instance.upsert()
@@ -532,7 +532,7 @@ class TestUntrackedOneTimePaymentIntent:
         return request.getfixturevalue(request.param)
 
     def test_upsert(self, pi_to_upsert, charge, mocker, mock_metadata_validator):
-        mock_upsert_charges = mocker.patch("apps.contributions.stripe_sync._upsert_payments_for_charge")
+        mock_upsert_charges = mocker.patch("apps.contributions.stripe_sync.upsert_payments_for_charge")
         contribution = UntrackedOneTimePaymentIntent(payment_intent=pi_to_upsert, charge=charge).upsert()
         assert contribution.provider_payment_id == pi_to_upsert.id
         assert contribution.amount == pi_to_upsert.amount

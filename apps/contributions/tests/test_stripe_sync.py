@@ -18,7 +18,11 @@ from apps.contributions.stripe_sync import (
     UntrackedStripeSubscription,
     upsert_payments_for_charge,
 )
-from apps.contributions.tests.factories import ContributionFactory, PaymentFactory
+from apps.contributions.tests.factories import (
+    ContributionFactory,
+    ContributorFactory,
+    PaymentFactory,
+)
 from apps.organizations.models import PaymentProvider
 from apps.organizations.tests.factories import PaymentProviderFactory
 
@@ -46,7 +50,7 @@ def refund(mocker):
 
 
 @pytest.fixture
-def payment_intent(mocker, charge, valid_metadata):
+def payment_intent(mocker, charge, customer, valid_metadata):
     charges = mocker.Mock(total_count=1, data=[charge])
     pm = mocker.Mock(id="pm_1")
     pm.to_dict.return_value = {"foo": "bar"}
@@ -60,6 +64,7 @@ def payment_intent(mocker, charge, valid_metadata):
         payment_method=pm,
         # this implies it's a one time charge
         invoice=None,
+        customer=customer,
     )
 
 
@@ -75,7 +80,7 @@ def pi_with_invoice(mocker):
 
 @pytest.fixture
 def invoice_with_subscription(mocker):
-    return mocker.Mock(subscription="sub_1")
+    return mocker.Mock(subscription="sub_1", id="inv_1")
 
 
 @pytest.fixture
@@ -325,10 +330,12 @@ class TestUntrackedStripeSubscription:
             new_callable=mocker.PropertyMock,
             return_value="foo@bar.com" if has_email_id else None,
         )
+        # this charge won't get upserted because has no balance_transaction
+        charge2 = mocker.Mock(balance_transaction=None)
         mock_upsert_charges = mocker.patch("apps.contributions.stripe_sync.upsert_payments_for_charge")
-        instance = UntrackedStripeSubscription(subscription=subscription_to_upsert, charges=[charge])
+        instance = UntrackedStripeSubscription(subscription=subscription_to_upsert, charges=[charge, charge2])
         if has_email_id:
-            contribution = instance.upsert()
+            contribution, _, _ = instance.upsert()
             assert contribution.provider_subscription_id == subscription_to_upsert.id
             assert contribution.amount == subscription_to_upsert.plan.amount
             assert contribution.currency == subscription_to_upsert.plan.currency
@@ -343,6 +350,7 @@ class TestUntrackedStripeSubscription:
             assert contribution.contributor.email == subscription_to_upsert.customer.email
             assert contribution.contribution_metadata == subscription_to_upsert.metadata
             assert contribution.status == ContributionStatus.PAID
+
             mock_upsert_charges.assert_called_once_with(contribution, charge, charge.balance_transaction)
         else:
             with pytest.raises(ValueError):
@@ -353,8 +361,9 @@ class TestUntrackedStripeSubscription:
 class TestUntrackedOneTimePaymentIntent:
     @pytest.fixture
     def payment_intent_with_existing_nre_entities(self, payment_intent):
+        pi = deepcopy(payment_intent)
         ContributionFactory(provider_payment_id=payment_intent.id)
-        return payment_intent
+        return pi
 
     @pytest.mark.parametrize("metadata_validates", (True, False))
     def test_init_with_regard_to_metadata_validity(
@@ -433,6 +442,19 @@ class TestUntrackedOneTimePaymentIntent:
     )
     def payment_intent_value(self, request):
         return request.getfixturevalue(request.param)
+
+    @pytest.mark.parametrize("customer_exists", (True, False))
+    def test_email_id(self, customer_exists, mocker, payment_intent, charge):
+        mocker.patch(
+            "apps.contributions.stripe_sync.UntrackedOneTimePaymentIntent.customer",
+            return_value=mocker.Mock(email=(email := "foo@bar.com")) if customer_exists else None,
+            new_callable=mocker.PropertyMock,
+        )
+        instance = UntrackedOneTimePaymentIntent(payment_intent=payment_intent, charge=charge)
+        if customer_exists:
+            assert instance.email_id == email
+        else:
+            assert instance.email_id is None
 
     def test_customer(self, charge_value, payment_intent_value, customer):
         instance = UntrackedOneTimePaymentIntent(payment_intent=payment_intent_value, charge=charge_value)
@@ -531,22 +553,74 @@ class TestUntrackedOneTimePaymentIntent:
     def pi_to_upsert(self, request):
         return request.getfixturevalue(request.param)
 
-    def test_upsert(self, pi_to_upsert, charge, mocker, mock_metadata_validator):
+    @pytest.fixture
+    def charge_no_balance_transaction(self, charge):
+        charge = deepcopy(charge)
+        charge.balance_transaction = None
+        return charge
+
+    @pytest.fixture(
+        params=[
+            "charge",
+            "charge_no_balance_transaction",
+            None,
+        ]
+    )
+    def charge_for_upsert(self, request):
+        return request.getfixturevalue(request.param) if request.param else None
+
+    @pytest.mark.parametrize("has_email_id", (True, False))
+    def test_upsert(self, pi_to_upsert, has_email_id, charge_for_upsert, mocker, mock_metadata_validator):
+        mocker.patch(
+            "apps.contributions.stripe_sync.UntrackedOneTimePaymentIntent.email_id",
+            new_callable=mocker.PropertyMock,
+            return_value="foo@bar.com" if has_email_id else None,
+        )
         mock_upsert_charges = mocker.patch("apps.contributions.stripe_sync.upsert_payments_for_charge")
-        contribution = UntrackedOneTimePaymentIntent(payment_intent=pi_to_upsert, charge=charge).upsert()
-        assert contribution.provider_payment_id == pi_to_upsert.id
-        assert contribution.amount == pi_to_upsert.amount
-        assert contribution.currency == pi_to_upsert.currency
-        assert not contribution.reason
-        assert contribution.interval == ContributionInterval.ONE_TIME
-        assert contribution.payment_provider_used == "stripe"
-        assert contribution.provider_customer_id == charge.customer.id
-        assert contribution.provider_payment_method_id == pi_to_upsert.payment_method.id
-        assert contribution.provider_payment_method_details == pi_to_upsert.payment_method.to_dict()
-        assert contribution.contributor.email == charge.customer.email
-        assert contribution.contribution_metadata == pi_to_upsert.metadata
-        assert contribution.status == ContributionStatus.PAID
-        mock_upsert_charges.assert_called_once_with(contribution, charge, charge.balance_transaction)
+        if has_email_id:
+            contribution, _, _ = UntrackedOneTimePaymentIntent(
+                payment_intent=pi_to_upsert, charge=charge_for_upsert
+            ).upsert()
+            assert contribution.provider_payment_id == pi_to_upsert.id
+            assert contribution.amount == pi_to_upsert.amount
+            assert contribution.currency == pi_to_upsert.currency
+            assert not contribution.reason
+            assert contribution.interval == ContributionInterval.ONE_TIME
+            assert contribution.payment_provider_used == "stripe"
+            assert (
+                contribution.provider_customer_id == charge_for_upsert.customer.id
+                if charge_for_upsert
+                else pi_to_upsert.customer.id if pi_to_upsert.customer else None
+            )
+            assert contribution.provider_payment_method_id == pi_to_upsert.payment_method.id
+            assert contribution.provider_payment_method_details == pi_to_upsert.payment_method.to_dict()
+            assert (
+                contribution.contributor.email == charge_for_upsert.customer.email
+                if charge_for_upsert
+                else pi_to_upsert.customer.email
+            )
+            assert contribution.contribution_metadata == pi_to_upsert.metadata
+            assert contribution.status == ContributionStatus.PAID
+
+            if charge_for_upsert and charge_for_upsert.balance_transaction:
+                mock_upsert_charges.assert_called_once_with(
+                    contribution, charge_for_upsert, charge_for_upsert.balance_transaction
+                )
+            else:
+                mock_upsert_charges.assert_not_called()
+        else:
+            with pytest.raises(ValueError):
+                UntrackedOneTimePaymentIntent(payment_intent=pi_to_upsert, charge=charge_for_upsert).upsert()
+
+    def test_upsert_when_contributor_exists(self, payment_intent, mocker):
+        mocker.patch(
+            "apps.contributions.stripe_sync.UntrackedOneTimePaymentIntent.email_id",
+            new_callable=mocker.PropertyMock,
+            return_value=(email := "foo@bar.com"),
+        )
+        ContributorFactory(email=email)
+        mocker.patch("apps.contributions.stripe_sync.upsert_payments_for_charge")
+        UntrackedOneTimePaymentIntent(payment_intent=payment_intent, charge=None).upsert()
 
     def test_upsert_when_no_email_id(self, payment_intent, mocker):
         mocker.patch(
@@ -570,81 +644,27 @@ class TestStripeClientForConnectedAccount:
     def init_kwargs(self, request):
         return request.param
 
-    def test_get_invoices(self, init_kwargs, mocker):
-        invoice = mocker.Mock()
+    def test_get_invoices(self, init_kwargs, mocker, invoice_with_subscription):
         mock_invoice_list = mocker.patch("stripe.Invoice.list")
-        mock_invoice_list.return_value.auto_paging_iter.return_value = [invoice]
-        search_result = mocker.Mock(
-            data=[invoice],
-            has_more=False,
-            next_page=None,
-        )
-        mock_invoice_search = mocker.patch("stripe.Invoice.search", return_value=search_result)
+        mock_invoice_list.return_value.auto_paging_iter.return_value = [invoice_with_subscription]
         client = StripeClientForConnectedAccount(**init_kwargs)
         invoices = client.get_invoices()
-
-        assert invoices == [invoice]
-
-        if any([init_kwargs.get("lte"), init_kwargs.get("gte")]):
-            mock_invoice_search.assert_called_once_with(
-                query=mocker.ANY, limit=MAX_STRIPE_RESPONSE_LIMIT, stripe_account=init_kwargs["account_id"], page=None
-            )
-            mock_invoice_list.assert_not_called()
-            query = mock_invoice_search.call_args[1]["query"]
-            if lte := init_kwargs.get("lte"):
-                assert f"created <= {lte.timestamp()}" in query
-            if gte := init_kwargs.get("gte"):
-                assert f"created >= {gte.timestamp()}" in query
-        else:
-            mock_invoice_search.assert_not_called()
-            mock_invoice_list.assert_called_once_with(
-                limit=MAX_STRIPE_RESPONSE_LIMIT,
-                stripe_account=init_kwargs["account_id"],
-            )
-
-    @pytest.mark.parametrize("metadata_query", (None, "foo:bar"))
-    def test_get_payment_intents(self, init_kwargs, metadata_query, mocker):
-        pi = mocker.Mock()
-        mock_pi_list = mocker.patch("stripe.PaymentIntent.list")
-        mock_pi_list.return_value.auto_paging_iter.return_value = [pi]
-        search_response = mocker.Mock(
-            data=[pi],
-            has_more=False,
-            next_page=None,
+        assert invoices == [invoice_with_subscription]
+        mock_invoice_list.assert_called_once_with(
+            limit=MAX_STRIPE_RESPONSE_LIMIT,
+            stripe_account=init_kwargs["account_id"],
+            created=client.created_query,
         )
-        mock_pi_search = mocker.patch("stripe.PaymentIntent.search", return_value=search_response)
 
+    def test_get_payment_intents(self, init_kwargs, payment_intent, mocker):
+        mock_pi_list = mocker.patch("stripe.PaymentIntent.list")
+        mock_pi_list.return_value.auto_paging_iter.return_value = [payment_intent]
         client = StripeClientForConnectedAccount(**init_kwargs)
-
-        expected_query_parts = []
-        if lte := init_kwargs.get("lte"):
-            expected_query_parts.append(f"created <= {lte.timestamp()}")
-        if gte := init_kwargs.get("gte"):
-            expected_query_parts.append(f"created >= {gte.timestamp()}")
-        if metadata_query:
-            expected_query_parts.append(metadata_query)
-
-        client = StripeClientForConnectedAccount(**init_kwargs)
-        pis = client.get_payment_intents(metadata_query=metadata_query)
-        assert pis == [pi]
-
-        if any([lte, gte, metadata_query]):
-            mock_pi_search.assert_called_once_with(
-                query=mocker.ANY,
-                limit=MAX_STRIPE_RESPONSE_LIMIT,
-                stripe_account=init_kwargs["account_id"],
-                page=None,
-            )
-            query = mock_pi_search.call_args[1]["query"]
-            for part in expected_query_parts:
-                assert part in query
-            mock_pi_list.assert_not_called()
-        else:
-            mock_pi_search.assert_not_called()
-            mock_pi_list.assert_called_once_with(
-                limit=MAX_STRIPE_RESPONSE_LIMIT,
-                stripe_account=init_kwargs["account_id"],
-            )
+        pis = client.get_payment_intents()
+        assert pis == [payment_intent]
+        mock_pi_list.assert_called_once_with(
+            limit=MAX_STRIPE_RESPONSE_LIMIT, stripe_account=init_kwargs["account_id"], created=client.created_query
+        )
 
     @pytest.mark.parametrize("raise_invalid_request_error", (True, False))
     def test_get_subscription(self, raise_invalid_request_error, init_kwargs, mocker):
@@ -713,6 +733,21 @@ class TestStripeClientForConnectedAccount:
         result = client.get_revengine_one_time_payment_intents_and_charges()
         assert result == [{"payment_intent": payment_intent, "charge": None}]
 
+    def test_get_revengine_one_time_payment_intents_and_charges_when_encounter_pi_not_for_one_time(
+        self, mocker, payment_intent
+    ):
+        mocker.patch(
+            "apps.contributions.stripe_sync.StripeClientForConnectedAccount.is_for_one_time_contribution",
+            return_value=False,
+        )
+        mocker.patch(
+            "apps.contributions.stripe_sync.StripeClientForConnectedAccount.get_payment_intents",
+            return_value=[payment_intent],
+        )
+        client = StripeClientForConnectedAccount(account_id="test")
+        result = client.get_revengine_one_time_payment_intents_and_charges()
+        assert result == []
+
     def test_get_revengine_subscriptions(self, invoice_with_subscription, subscription, mocker):
         mocker.patch("stripe.Subscription.retrieve", return_value=subscription)
         mocker.patch(
@@ -723,6 +758,17 @@ class TestStripeClientForConnectedAccount:
         response = client.get_revengine_subscriptions([invoice_with_subscription])
         assert len(response) == 1
         assert response[0].id == subscription.id
+
+    def test_get_revengine_subscriptions_when_no_subscription(self, invoice_with_subscription, mocker):
+        mocker.patch("stripe.Subscription.retrieve", return_value=None)
+        mocker.patch(
+            "apps.contributions.stripe_sync.StripeClientForConnectedAccount.get_invoices",
+            return_value=[invoice_with_subscription],
+        )
+        response = StripeClientForConnectedAccount(account_id="test").get_revengine_subscriptions(
+            [invoice_with_subscription]
+        )
+        assert len(response) == 0
 
     @pytest.mark.parametrize("raise_invalid_request_error", (True, False))
     def test_get_expanded_charge_object(self, raise_invalid_request_error, charge, mocker):
@@ -874,29 +920,37 @@ class TestStripeToRevengineTransformer:
         )
         mock_stripe_client.return_value.get_expanded_charge_object.return_value = (expanded_charge := mocker.Mock())
         mock_stripe_client.return_value.get_revengine_subscriptions_data.return_value = [
-            (mock_sub_data_item := mocker.Mock()),
-            mocker.Mock(),
+            (item1 := mocker.Mock()),
+            (item2 := mocker.Mock()),
+            (item3 := mocker.Mock()),
         ]
-        mock_sub_data_item.upsert.side_effect = ValueError("foo")
+        item1.upsert.side_effect = ValueError("foo")
+        item2.upsert.return_value = (contribution1 := mocker.Mock()), True, False
+        item3.upsert.return_value = (contribution2 := mocker.Mock()), False, True
         contributions = StripeToRevengineTransformer().backfill_contributions_and_payments_for_subscriptions("test_id")
         mock_stripe_client.return_value.get_invoices.assert_called_once()
-        mock_stripe_client.return_value.get_expanded_charge_object.assert_called_once_with(charge_id=expected.charge)
+        mock_stripe_client.return_value.get_expanded_charge_object.assert_called_once_with(
+            charge_id=expected.charge, stripe_account_id="test_id"
+        )
         mock_stripe_client.return_value.get_revengine_subscriptions_data.assert_called_once_with(
             invoices=invoices, charges=[expanded_charge]
         )
-        assert contributions
+        assert set(contributions) == {contribution1, contribution2}
 
     def test_backfill_contributions_and_payments_for_payment_intents(self, mocker):
         mock_stripe_client = mocker.patch("apps.contributions.stripe_sync.StripeClientForConnectedAccount")
         mock_stripe_client.return_value.get_revengine_one_time_contributions_data.return_value = [
-            mocker.Mock(),
+            (item1 := mocker.Mock()),
+            (item2 := mocker.Mock()),
             (item_with_error := mocker.Mock()),
         ]
+        item1.upsert.return_value = (contribution1 := mocker.Mock()), True, False
+        item2.upsert.return_value = (contribution2 := mocker.Mock()), False, True
         item_with_error.upsert.side_effect = ValueError("foo")
         contributions = StripeToRevengineTransformer().backfill_contributions_and_payments_for_payment_intents(
             "test_id"
         )
-        assert contributions
+        assert contributions == [contribution1, contribution2]
 
     def test_backfill_contributions_and_payments_from_stripe(self, mocker):
         PaymentProviderFactory()

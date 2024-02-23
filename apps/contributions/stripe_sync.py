@@ -17,7 +17,10 @@ from apps.contributions.models import (
     Contributor,
     Payment,
 )
-from apps.contributions.types import cast_metadata_to_stripe_payment_metadata_schema
+from apps.contributions.types import (
+    STRIPE_PAYMENT_METADATA_SCHEMA_VERSIONS,
+    cast_metadata_to_stripe_payment_metadata_schema,
+)
 from apps.organizations.models import PaymentProvider
 
 
@@ -101,11 +104,6 @@ class StripeClientForConnectedAccount:
     lte: datetime.datetime = None
     gte: datetime.datetime = None
 
-    # See https://stripe.com/docs/search#search-syntax for more details on search syntax for metadata
-    REVENGINE_METADATA_QUERY = " OR ".join(
-        [f'metadata["schema_version"]:"{x}"' for x in ("1.0", "1.1", "1.2", "1.3", "1.4", "1.5")]
-    )
-    SUPPORTED_METADATA_SCHEMA_VERSIONS = ("1.4", "1.5")
     DEFAULT_GET_CHARGE_EXPAND_FIELDS = ("balance_transaction", "refunds.data.balance_transaction", "customer")
     DEFAULT_GET_SUBSCRIPTION_EXPAND_FIELDS = ("customer",)
     DEFAULT_GET_CUSTOMER_EXPAND_FIELDS = ("invoice_settings.default_payment_method",)
@@ -113,91 +111,30 @@ class StripeClientForConnectedAccount:
     def __post_init__(self):
         logger.debug("Initializing StripeClientForConnectedAccount with account_id %s", self.account_id)
 
-    @staticmethod
-    def _search(
-        stripe_object: stripe.Invoice | stripe.PaymentIntent | stripe.Subscription,
-        query: str,
-        stripe_account_id: str,
-        page: str = None,
-    ) -> stripe.Invoice | stripe.PaymentIntent | stripe.Subscription:
-        logger.debug("Searching for %s with query %s for account %s", stripe_object, query, stripe_account_id)
-        return stripe_object.search(
-            query=query, stripe_account=stripe_account_id, limit=MAX_STRIPE_RESPONSE_LIMIT, page=page
-        )
-
-    @classmethod
-    def do_paginated_search(
-        cls, stripe_object, query: str, entity: str, stripe_account_id: str
-    ) -> list[stripe.Invoice] | list[stripe.PaymentIntent] | list[stripe.Subscription]:
-        """Does a paginated search for a given stripe object and query.
-
-        Note that we have opted to use search API instead of list in this class because search allows us to filter
-        by created date range (among other criteria), which is relevant for our immediate use case. The tradeoff
-        here is that Stripe's search function in Python library does not provide a convenience method around
-        iterating over paginated results. We have to do that ourselves in this method.
-        """
-        logger.debug(
-            "Doing paginated search for %s with query %s for account %s", entity, query or "<none>", stripe_account_id
-        )
-        results = []
-        next_page = None
-        has_more = True
-        while has_more:
-            logger.debug(
-                "Fetching next page (%s) of %s for account %s", next_page or "<none>", entity, stripe_account_id
-            )
-            response = cls._search(
-                stripe_object=stripe_object, query=query, page=next_page, stripe_account_id=stripe_account_id
-            )
-            results.extend(response.data)
-            has_more = response.has_more
-            next_page = response.next_page
-        return results
-
     @property
-    def created_query(self) -> str:
-        """Generate a string to limit query to entities that have been created within a given date range"""
-        query_parts = []
-        if self.gte:
-            query_parts.append(f"created>={int(self.gte.timestamp())}")
-        if self.lte:
-            query_parts.append(f"created<={int(self.lte.timestamp())}")
-        return " AND ".join(query_parts)
+    def created_query(self) -> dict:
+        return {k: v for k, v in {"gte": self.gte, "lte": self.lte}.items() if v}
 
     def get_invoices(self) -> list[stripe.Invoice]:
         """Gets invoices for a given stripe account"""
         logger.debug("Getting invoices for account %s", self.account_id)
-        # need a query for search, if none, then we just do invoices list to retrieve all invoices
-        if not (query := self.created_query):
-            logger.debug("No query to filter by so getting all invoices for account %s", self.account_id)
-            return [
-                x
-                for x in stripe.Invoice.list(
-                    stripe_account=self.account_id, limit=MAX_STRIPE_RESPONSE_LIMIT
-                ).auto_paging_iter()
-            ]
-        return self.do_paginated_search(
-            stripe_object=stripe.Invoice, query=query, entity="invoices", stripe_account_id=self.account_id
-        )
+        return [
+            x
+            for x in stripe.Invoice.list(
+                stripe_account=self.account_id, limit=MAX_STRIPE_RESPONSE_LIMIT, created=self.created_query
+            ).auto_paging_iter()
+        ]
 
-    def get_payment_intents(self, metadata_query: str = None) -> list[stripe.PaymentIntent]:
+    def get_payment_intents(self) -> list[stripe.PaymentIntent]:
         """Gets payment intents for a given stripe account"""
         logger.debug("Getting payment intents for account %s", self.account_id)
-
-        if not metadata_query:
-            return [
-                x
-                for x in stripe.PaymentIntent.list(
-                    stripe_account=self.account_id, limit=MAX_STRIPE_RESPONSE_LIMIT
-                ).auto_paging_iter()
-            ]
-        return self.do_paginated_search(
-            stripe_object=stripe.PaymentIntent,
-            # query=" AND ".join(query_parts),
-            query=metadata_query,
-            entity="payment intents",
-            stripe_account_id=self.account_id,
-        )
+        pis = [
+            x
+            for x in stripe.PaymentIntent.list(
+                stripe_account=self.account_id, limit=MAX_STRIPE_RESPONSE_LIMIT, created=self.created_query
+            ).auto_paging_iter()
+        ]
+        return [x for x in pis if x.metadata.get("schema_version") in STRIPE_PAYMENT_METADATA_SCHEMA_VERSIONS]
 
     @staticmethod
     def is_for_one_time_contribution(pi: stripe.PaymentIntent, invoice: stripe.Invoice | None) -> bool:
@@ -213,7 +150,7 @@ class StripeClientForConnectedAccount:
         """Get a set of stripe PaymentIntent objects and their respective charges for one-time payments for a given Stripe account"""
         logger.info("Getting revengine one time payment intents and charges for account %s", self.account_id)
         # this gets all PIs for the account, factoring in any limits around created date and metadata
-        pis = self.get_payment_intents(metadata_query=self.REVENGINE_METADATA_QUERY)
+        pis = self.get_payment_intents()
         logger.info(
             "Found %s revengine payment intents for one-time contributions for account %s", len(pis), self.account_id
         )
@@ -235,51 +172,17 @@ class StripeClientForConnectedAccount:
                         ),
                     }
                 )
-
-        supported = []
-        unsupported = []
-        for x in one_time_pis_and_charges:
-            (
-                supported
-                if x["payment_intent"].metadata.get("schema_version") in self.SUPPORTED_METADATA_SCHEMA_VERSIONS
-                else unsupported
-            ).append(x)
-        logger.info(
-            "Found %s supported and %s unsupported one-time contribution-related payment intents",
-            len(supported),
-            len(unsupported),
-        )
-        if unsupported:
-            logger.info(
-                "Will not process the following payment intents because their metadata though potentially valid is not supported at this time: %s",
-                ", ".join([x["payment_intent"].id for x in unsupported]),
-            )
-        return supported
+        return one_time_pis_and_charges
 
     def get_revengine_subscriptions(self, invoices) -> list[stripe.Subscription]:
         """Given a set of invoices, retrieve a set of subscriptions that should be synced to revengine."""
         logger.info("Getting revengine subscriptions for account %s", self.account_id)
         sub_ids = [x.subscription for x in invoices if x.subscription]
-        revengine_subscriptions = []
-        unsupported_revengine_subscriptions = []
+        results = []
         for x in sub_ids:
             if sub := self.get_subscription(subscription_id=x, stripe_account_id=self.account_id):
-                (
-                    revengine_subscriptions
-                    if sub.metadata.get("schema_version") in self.SUPPORTED_METADATA_SCHEMA_VERSIONS
-                    else unsupported_revengine_subscriptions
-                ).append(sub)
-        logger.info(
-            "Found %s revengine subscriptions and %s unsupported revengine subscriptions",
-            len(revengine_subscriptions),
-            len(unsupported_revengine_subscriptions),
-        )
-        if unsupported_revengine_subscriptions:
-            logger.info(
-                "Will not process the following subscriptions because their metadata though potentially valid is not supported at this time: %s",
-                ", ".join([x.id for x in unsupported_revengine_subscriptions]),
-            )
-        return revengine_subscriptions
+                results.append(sub)
+        return results
 
     def get_revengine_subscriptions_data(
         self, invoices: list[stripe.Invoice], charges: list[stripe.Charge]
@@ -396,6 +299,7 @@ class StripeClientForConnectedAccount:
 
 # TODO - rename this so not refelect "Untracked" as that's not really relevant -- it upserts and should be idempotent.
 # maybe StripeOneTimePaymentIntentSyncer or something like that?
+# should become PaymentIntentForOneTimeContributionSyncer
 class UntrackedOneTimePaymentIntent:
     """Convenience class used to upsert contribution, contributor, and payments for a given Stripe payment intent.
 
@@ -722,7 +626,6 @@ class StripeToRevengineTransformer:
             account_id=stripe_account_id, gte=self.from_date, lte=self.to_date
         )
         # this gets all invoices for the account (given any contraints on query around date, etc.)
-        # We start by getting all invoices for the accouunt (and if so configured, results constrainted around date, etc).
         invoices = stripe_client.get_invoices()
         # Now based on the set of all invoices, we need to determine where there are any subscriptions uncaptured by revengine.
         # Subscriptions are not directly attached to invoices, but we can get them from the respective charges.

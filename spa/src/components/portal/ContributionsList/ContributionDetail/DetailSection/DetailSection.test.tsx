@@ -14,7 +14,9 @@ describe('DetailSection', () => {
 
   it('shows controls', () => {
     tree({ controls: <div data-testid="controls" /> });
-    expect(screen.getByTestId('controls')).toBeInTheDocument();
+
+    // There are two instances: one for desktop and one for mobile.
+    expect(screen.getAllByTestId('controls').length).toBe(2);
   });
 
   it('shows children', () => {

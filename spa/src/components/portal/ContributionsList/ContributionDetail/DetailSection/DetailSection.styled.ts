@@ -1,6 +1,10 @@
 import styled from 'styled-components';
 
-export const Controls = styled.div``;
+export const Controls = styled.div`
+  @media (${(props) => props.theme.breakpoints.tabletLandscapeDown}) {
+    display: none;
+  }
+`;
 
 export const Header = styled.div`
   align-items: center;
@@ -11,12 +15,24 @@ export const Header = styled.div`
   padding-bottom: 5px;
 `;
 
+export const MobileControls = styled.div`
+  display: none;
+  padding: 20px 0 6px 0;
+
+  @media (${(props) => props.theme.breakpoints.tabletLandscapeDown}) {
+    display: block;
+  }
+`;
+
 export const Root = styled.div<{ $disabled?: boolean; $highlighted: boolean }>`
   ${(props) => props.$disabled && 'opacity: 0.5'};
   ${(props) => props.$highlighted && `background-color: ${props.theme.basePalette.greyscale.grey4}`};
 
+  /* Padding must be here so that there's padding around the highlight. */
+  padding: 14px 40px;
+
   @media (${(props) => props.theme.breakpoints.tabletLandscapeDown}) {
-    padding: 0 20px;
+    padding: 14px 20px;
   }
 `;
 

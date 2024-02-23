@@ -10,11 +10,11 @@ export const Root = styled.div`
   padding: 12px;
   border-radius: 6px;
   background: ${({ theme }) => theme.basePalette.greyscale.grey3};
-  margin-bottom: 30px;
+  margin: 0 40px 14px 40px;
 
   @media (${({ theme }) => theme.breakpoints.tabletLandscapeDown}) {
     grid-template-areas: 'icon title' 'description description';
-    margin-bottom: 0;
+    margin: 0;
     padding: 20px;
     row-gap: 15px;
     border-radius: 0;

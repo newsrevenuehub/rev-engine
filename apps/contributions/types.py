@@ -89,6 +89,9 @@ class StripeMetadataSchemaBase(pydantic.BaseModel):
 
     METADATA_TEXT_MAX_LENGTH: ClassVar[int] = 500
 
+    class Config:
+        extra = "forbid"
+
     @classmethod
     def normalize_boolean(cls, v: Any) -> bool | None:
         """Normalize boolean values
@@ -119,43 +122,76 @@ class StripeMetadataSchemaBase(pydantic.BaseModel):
 
 
 class StripePaymentMetadataSchemaV1_0(StripeMetadataSchemaBase):
-    """NB: This is only a partial representation of the 1.0 schema as described in Google sheet that tracks schemas.
-
-    In short term, we don't have code that processes this schema, so we don't need to implement it fully.
-    """
-
     schema_version: Literal["1.0"]
     source: Literal["rev-engine", "newspack"]
+    contributor_id: Optional[str] = None
+    agreed_to_pay_fees: bool
+    donor_selected_amount: float
+    reason_for_giving: Optional[str] = None
+    referer: pydantic.HttpUrl
+    revenue_program_id: str
+    revenue_program_slug: str
+    sf_campaign_id: Optional[str] = None
+    comp_subscription: Optional[str] = None
+    honoree: Optional[str] = None
+    in_memory_of: Optional[str] = None
+    swag_opt_out: Optional[bool] = False
+    t_shirt_size: Optional[str] = None
+    company_name: Optional[str] = None
+
+    class Config:
+        extra = "forbid"
+
+    @pydantic.validator("agreed_to_pay_fees", "swag_opt_out")
+    def validate_booleans(cls, v):
+        return cls.normalize_boolean(v)
 
 
-class StripePaymentMetadataSchemaV1_1(StripeMetadataSchemaBase):
-    """NB: This is only a partial representation of the 1.1 schema as described in Google sheet that tracks schemas.
-
-    In short term, we don't have code that processes this schema, so we don't need to implement it fully.
-    """
-
+class StripePaymentMetadataSchemaV1_1(StripePaymentMetadataSchemaV1_0):
+    # NB our stripe metadata schema versioning is for a schema shared by > 1 kind of
+    # stripe object. In case of 1.0 vs. 1.1 for payment data (subscriptions and payment intents),
+    # the only difference is the source field definition and the schema version.
     schema_version: Literal["1.1"]
     source: Literal["rev-engine"]
 
 
 class StripePaymentMetadataSchemaV1_2(StripeMetadataSchemaBase):
-    """NB: This is only a partial representation of the 1.2 schema as described in Google sheet that tracks schemas.
-
-    In short term, we don't have code that processes this schema, so we don't need to implement it fully.
-    """
-
     schema_version: Literal["1.2"]
     source: Literal["newspack"]
+    agreed_to_pay_fees: bool
+    donor_selected_amount: float
+    reason_for_giving: Optional[str]
+    referer: pydantic.HttpUrl
+    revenue_program_id: str
+    revenue_program_slug: str
+    sf_campaign_id: Optional[str]
+    frequency: Literal["one-time", "monthly", "yearly"]
+    amount: int
+
+    class Config:
+        extra = "forbid"
+
+    @pydantic.validator("agreed_to_pay_fees")
+    @classmethod
+    def validate_booleans(cls, v):
+        return cls.normalize_boolean(v)
 
 
 class StripePaymentMetadataSchemaV1_3(StripeMetadataSchemaBase):
-    """NB: This is only a partial representation of the 1.3 schema as described in Google sheet that tracks schemas.
-
-    In short term, we don't have code that processes this schema, so we don't need to implement it fully.
-    """
-
     schema_version: Literal["1.3"]
     source: Literal["legacy-migration"]
+    agreed_to_pay_fees: bool
+    revenue_program_id: str
+    revenue_program_slug: str
+    recurring_donation_id: str
+
+    class Config:
+        extra = "forbid"
+
+    @pydantic.validator("agreed_to_pay_fees")
+    @classmethod
+    def validate_booleans(cls, v):
+        return cls.normalize_boolean(v)
 
 
 class StripePaymentMetadataSchemaV1_4(StripeMetadataSchemaBase):
@@ -185,7 +221,6 @@ class StripePaymentMetadataSchemaV1_4(StripeMetadataSchemaBase):
         extra = "forbid"
 
     @pydantic.validator("contributor_id", "revenue_program_id", pre=True)
-    @classmethod
     def convert_id_to_string(cls, v: Any) -> str | None:
         """Convert id to string
 
@@ -206,7 +241,6 @@ class StripePaymentMetadataSchemaV1_4(StripeMetadataSchemaBase):
         return cls.normalize_boolean(v)
 
     @pydantic.validator("swag_choices")
-    @classmethod
     def validate_swag_choices(cls, v: Any) -> str | None:
         """Validate swag_choices
 
@@ -245,15 +279,16 @@ class StripePaymentMetadataSchemaV1_5(StripePaymentMetadataSchemaV1_4):
         # 1.5 omits this field from 1.4, with which it otherwise shares a schema. We default value to None above,
         # but here we need to also exclude so it doesn't show up when converting to dict
         exclude = {"contributor_id"}
+        extra = "forbid"
 
 
 STRIPE_PAYMENT_METADATA_SCHEMA_VERSIONS = {
-    "1.0": {"class": StripePaymentMetadataSchemaV1_0, "revengine_supported": False},
-    "1.1": {"class": StripePaymentMetadataSchemaV1_1, "revengine_supported": False},
-    "1.2": {"class": StripePaymentMetadataSchemaV1_2, "revengine_supported": False},
-    "1.3": {"class": StripePaymentMetadataSchemaV1_3, "revengine_supported": False},
-    "1.4": {"class": StripePaymentMetadataSchemaV1_4, "revengine_supported": True},
-    "1.5": {"class": StripePaymentMetadataSchemaV1_5, "revengine_supported": True},
+    "1.0": StripePaymentMetadataSchemaV1_0,
+    "1.1": StripePaymentMetadataSchemaV1_1,
+    "1.2": StripePaymentMetadataSchemaV1_2,
+    "1.3": StripePaymentMetadataSchemaV1_3,
+    "1.4": StripePaymentMetadataSchemaV1_4,
+    "1.5": StripePaymentMetadataSchemaV1_5,
 }
 
 
@@ -263,5 +298,5 @@ def cast_metadata_to_stripe_payment_metadata_schema(
     """Cast metadata to the appropriate schema based on the schema_version field."""
     if (schema_version := metadata.get("schema_version", None)) not in STRIPE_PAYMENT_METADATA_SCHEMA_VERSIONS:
         raise ValueError(f"Unknown schema version {schema_version}")
-    schema_class = STRIPE_PAYMENT_METADATA_SCHEMA_VERSIONS[schema_version]["class"]
+    schema_class = STRIPE_PAYMENT_METADATA_SCHEMA_VERSIONS[schema_version]
     return schema_class(**metadata)

@@ -58,9 +58,14 @@ describe('ContributionDetail', () => {
       });
     });
 
-    it('shows a spinner', () => {
+    it('shows the loading skeleton', () => {
       tree();
-      expect(screen.getByTestId('loading')).toBeInTheDocument();
+      expect(screen.getByTestId('loading-skeleton')).toBeInTheDocument();
+    });
+
+    it('shows a mobile back button', () => {
+      tree();
+      expect(screen.getByTestId('mock-mobile-back-button')).toBeInTheDocument();
     });
 
     it('is accessible', async () => {

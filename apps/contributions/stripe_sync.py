@@ -425,7 +425,6 @@ class PaymentIntentForOneTimeContribution:
                 contribution.provider_payment_id,
             )
 
-        # Question: should we be creating a contribution for a pi that has no charge, in the first place
         if not (charge := self.charge):
             logger.warning(
                 "Can't upsert payments for contribution %s with payment intent %s because no charge",

@@ -1,5 +1,6 @@
 import { PRICING_URL } from 'constants/helperUrls';
 import { axe } from 'jest-axe';
+import { SETTINGS } from 'routes';
 import { fireEvent, render, screen } from 'test-utils';
 import SidebarCoreUpgradePrompt, { SidebarCoreUpgradePromptProps } from './SidebarCoreUpgradePrompt';
 
@@ -8,14 +9,13 @@ function tree(props?: Partial<SidebarCoreUpgradePromptProps>) {
 }
 
 describe('SidebarCoreUpgradePrompt', () => {
-  it('displays a link to the pricing page', () => {
+  it('displays a link to the subscription apge', () => {
     tree();
 
-    const link = screen.getByRole('link', { name: 'Learn More' });
+    const link = screen.getByRole('button', { name: 'Upgrade' });
 
     expect(link).toBeVisible();
-    expect(link).toHaveAttribute('href', PRICING_URL);
-    expect(link).toHaveAttribute('target', '_blank');
+    expect(link).toHaveAttribute('href', SETTINGS.SUBSCRIPTION);
   });
 
   it('displays a button that calls the onClose prop when clicked', () => {

@@ -20,8 +20,8 @@ export const FeesContainer = styled.div`
 `;
 
 export const OtherAmount = styled.div<{ selected?: boolean }>`
-  display: flex;
-  justify-content: space-between;
+  display: grid;
+  grid-template-columns: auto 1fr auto;
   background: ${(props) => props.theme.colors.white};
   border: 1px solid;
   border-color: ${(props) => (props.selected ? props.theme.colors.cstm_CTAs || props.theme.colors.primary : '#c3c3c3')};

@@ -48,10 +48,10 @@ def test_sync_payment_transaction_time(mocker, balance_transaction_for_one_time_
     )
 
 
-def test_sync_stripe_event(mocker):
+def test_process_stripe_event(mocker):
     mock_syncer = mocker.patch("apps.contributions.stripe_sync.StripeEventSyncer")
     call_command(
-        "sync_stripe_event",
+        "process_stripe_event",
         stripe_account=(stripe_id := "123"),
         event_id=(event_id := "456"),
         async_mode=(async_mode := False),
@@ -61,7 +61,7 @@ def test_sync_stripe_event(mocker):
 
 
 @pytest.mark.django_db
-class TestBackfillContributionsAndPaymentsFromStripe:
+class TestSyncStripeTransactionsDataCommand:
     @pytest.fixture(
         params=[
             {},

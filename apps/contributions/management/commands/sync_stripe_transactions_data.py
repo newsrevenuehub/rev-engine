@@ -14,6 +14,13 @@ stripe_logger.setLevel(logging.ERROR)
 
 
 class Command(BaseCommand):
+    """This commands allows the admin user to sync down payments data from Stripe to revengine. It locates payment intents for one time
+    contributions and invoices for recurring contributions (plus related data entities) in order to create or update revengine contributor,
+    contribution, and payment objects. It DOES not mutate Stripe objects in any way. This command is idempotent and can be run multiple times.
+    """
+
+    help = "Sync down payments data from Stripe to revengine to create or update revengine contributor, contribution, and payment objects."
+
     def add_arguments(self, parser: CommandParser) -> None:
         parser.add_argument("--gte", type=lambda s: dateparser.parse(s, settings={"TIMEZONE": "UTC"}))
         parser.add_argument("--lte", type=lambda s: dateparser.parse(s, settings={"TIMEZONE": "UTC"}))

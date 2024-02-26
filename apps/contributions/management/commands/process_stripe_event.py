@@ -4,16 +4,20 @@ from apps.contributions.stripe_sync import StripeEventSyncer
 
 
 class Command(BaseCommand):
+    """Allows user to provide a Stripe event and acccount ID and then process that event using our webhookhandler."""
+
+    help = "Process a Stripe event using our webhook handler."
+
     def add_arguments(self, parser: CommandParser) -> None:
         parser.add_argument("--stripe_account", required=True)
         parser.add_argument("--event_id", required=True)
         parser.add_argument("--async_mode", action="store_true", default=False)
 
     def handle(self, *args, **options):
-        self.stdout.write(self.style.HTTP_INFO("Running `sync_stripe_event`"))
+        self.stdout.write(self.style.HTTP_INFO("Running `process_stripe_event`"))
         StripeEventSyncer(
             stripe_account_id=options["stripe_account"],
             event_id=options["event_id"],
             async_mode=options["async_mode"],
         ).sync()
-        self.stdout.write(self.style.SUCCESS("`sync_stripe_event` is done"))
+        self.stdout.write(self.style.SUCCESS("`process_stripe_event` is done"))

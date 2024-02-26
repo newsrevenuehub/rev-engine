@@ -222,7 +222,7 @@ class Contribution(IndexedTimeStampedModel):
         return f"{currency['symbol']}{'{:.2f}'.format(self.amount / 100)} {currency['code']}"
 
     @property
-    def revenue_program(self):
+    def revenue_program(self) -> RevenueProgram | None:
         # TODO: [DEV-4507] Remove this property and replace with a direct FK to RevenueProgram
         if self.donation_page:
             return self.donation_page.revenue_program

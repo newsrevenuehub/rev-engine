@@ -382,7 +382,6 @@ class PaymentIntentForOneTimeContribution:
             )
         if customer := self.customer:
             return customer.invoice_settings.default_payment_method if customer.invoice_settings else None
-        return None
 
     @transaction.atomic
     def upsert(self) -> (Contribution, bool, bool):

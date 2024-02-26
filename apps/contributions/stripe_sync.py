@@ -311,21 +311,24 @@ class PaymentIntentForOneTimeContribution:
 
         The source for this could be the charge or the PI. We prefer the former when present.
         """
+        cust = None
         if charge := self.charge:
-            if cust := charge.customer:
-                if isinstance(cust, str):
-                    return StripeClientForConnectedAccount.get_stripe_customer(
-                        customer_id=cust, stripe_account_id=self.payment_intent.stripe_account
-                    )
-                else:
-                    return cust
-        if cust := self.payment_intent.customer:
-            if isinstance(cust, str):
-                return StripeClientForConnectedAccount.get_stripe_customer(
-                    customer_id=cust, stripe_account_id=self.payment_intent.stripe_account
-                )
-            else:
-                return cust
+            cust = charge.customer
+        else:
+            cust = self.payment_intent.customer
+
+        if isinstance(cust, str):
+            return StripeClientForConnectedAccount.get_stripe_customer(
+                customer_id=cust, stripe_account_id=self.payment_intent.stripe_account
+            )
+        elif isinstance(cust, stripe.stripe_object.StripeObject):
+            return cust
+        else:
+            logger.warning(
+                "Unable to get customer for payment intent %s because unexpected customer type encountered %s",
+                self.payment_intent.id,
+                type(cust),
+            )
 
     @property
     def email_id(self) -> str | None:
@@ -394,7 +397,7 @@ class PaymentIntentForOneTimeContribution:
                 "reason": self.payment_intent.metadata.get("reason_for_giving", ""),
                 "interval": ContributionInterval.ONE_TIME,
                 "payment_provider_used": "stripe",
-                "provider_customer_id": self.customer.id,
+                "provider_customer_id": self.customer.id if self.customer else None,
                 "provider_payment_method_id": pm.id if pm else None,
                 "provider_payment_method_details": pm.to_dict() if pm else None,
                 "status": self.status,

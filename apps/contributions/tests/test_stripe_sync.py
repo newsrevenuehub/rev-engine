@@ -112,8 +112,9 @@ def subscription(mocker, customer, valid_metadata):
 
 
 @pytest.fixture
-def customer(mocker):
-    return mocker.Mock(email="foo@bar.com", id="cus_1", invoice_settings=None)
+def customer():
+    # we have some code that looks at type of value sent for customer, so we need to return a stripe.Customer, not a mock
+    return stripe.Customer.construct_from({"email": "foo@bar.com", "id": "cus_1", "invoice_settings": None}, key="test")
 
 
 @pytest.fixture
@@ -155,10 +156,10 @@ def payment_method_B(mocker):
 
 
 @pytest.fixture
-def customer_with_default_pm(customer, payment_method_A, mocker):
-    customer = deepcopy(customer)
-    customer.invoice_settings = mocker.Mock(default_payment_method=payment_method_A)
-    return customer
+def customer_with_default_pm(customer, payment_method_A):
+    return stripe.Customer.construct_from(
+        (customer.to_dict() | {"invoice_settings": {"default_payment_method": payment_method_A}}), key="test"
+    )
 
 
 @pytest.mark.django_db
@@ -413,6 +414,12 @@ class TestPaymentIntentForOneTimeContribution:
     def charge_is_none(self):
         return None
 
+    @pytest.fixture
+    def charge_with_customer_unexpected_type(self, charge):
+        charge = deepcopy(charge)
+        charge.customer = 1
+        return charge
+
     @pytest.fixture(params=["charge", "charge_no_customer", "charge_with_customer_string", "charge_is_none"])
     def charge_value(self, request):
         return request.getfixturevalue(request.param)
@@ -463,7 +470,7 @@ class TestPaymentIntentForOneTimeContribution:
         instance = PaymentIntentForOneTimeContribution(payment_intent=payment_intent_value, charge=charge_value)
         if any(
             [
-                charge_value and charge_value.customer,
+                charge_value and charge_value.customer and (isinstance(charge_value.customer, (str, stripe.Customer))),
                 payment_intent_value.customer,
             ]
         ):
@@ -590,11 +597,11 @@ class TestPaymentIntentForOneTimeContribution:
             assert not contribution.reason
             assert contribution.interval == ContributionInterval.ONE_TIME
             assert contribution.payment_provider_used == "stripe"
-            assert (
-                contribution.provider_customer_id == charge_for_upsert.customer.id
-                if charge_for_upsert
-                else pi_to_upsert.customer.id if pi_to_upsert.customer else None
-            )
+            if charge_for_upsert and charge_for_upsert.customer:
+                assert contribution.provider_customer_id == charge_for_upsert.customer.id
+            else:
+                assert contribution.provider_customer_id == pi_to_upsert.customer.id if pi_to_upsert.customer else None
+
             assert contribution.provider_payment_method_id == pi_to_upsert.payment_method.id
             assert contribution.provider_payment_method_details == pi_to_upsert.payment_method.to_dict()
             assert (

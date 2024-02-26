@@ -612,7 +612,7 @@ class StripeTransactionsSyncer:
     def stripe_account_ids(self):
         return list(self._STRIPE_ACCOUNTS_QUERY.values_list("stripe_account_id", flat=True))
 
-    def backfill_contributions_and_payments_for_stripe_account(self, account_id: str) -> None:
+    def sync_contributions_and_payments_for_stripe_account(self, account_id: str) -> None:
         """This method is responsible for upserting contributors, contributions, and payments for a given stripe account."""
         logger.info("Backfilling stripe account %s", account_id)
         self.backfill_contributions_and_payments_for_subscriptions(stripe_account_id=account_id)
@@ -682,17 +682,15 @@ class StripeTransactionsSyncer:
         return results
 
     def sync_stripe_transactions_data(self) -> None:
-        """Iterates over stripe accounts that the class was initialized with and attempts to backfill contributions,
-
-        contributors, and payments for each account. If the class was initialized as async, then this method will call
-        the async version of the backfill method for each account.
+        """Iterates over stripe accounts that the class was initialized with and attempts to sync transactions data from Stripe to
+        create contributions, contributors, and payments
         """
         logger.info(
             "Backfilling contributions and payments for %s stripe accounts",
             len(self.stripe_account_ids),
         )
         for account_id in self.stripe_account_ids:
-            self.backfill_contributions_and_payments_for_stripe_account(account_id)
+            self.sync_contributions_and_payments_for_stripe_account(account_id)
 
 
 @dataclass

@@ -170,15 +170,13 @@ def upsert_with_diff_check(model, defaults: dict, unique_identifier: dict, calle
     """
     with reversion.create_revision():
         instance, created = model.objects.get_or_create(defaults=defaults, **unique_identifier)
-        needs_update = False
+        fields_to_update = set()
         if not created:
-            fields_to_update = set()
             for field, value in defaults.items():
                 if getattr(instance, field) != value:
                     setattr(instance, field, value)
                     fields_to_update.add(field)
-                    needs_update = True
-            if needs_update:
+            if fields_to_update:
                 instance.save(update_fields=fields_to_update.union({"modified"}))
                 reversion.set_comment(f"{caller_name} updated {model.__name__}")
-        return instance, created, needs_update
+        return instance, created, bool(fields_to_update)

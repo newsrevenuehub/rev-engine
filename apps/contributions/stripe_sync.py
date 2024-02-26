@@ -463,6 +463,7 @@ class SubscriptionForRecurringContribution:
     def status(self) -> ContributionStatus:
         """Map Stripe subscription status to Revengine contribution status."""
         match self.subscription.status:
+            # TODO: [DEV-4506] Look into inconsistencies between Stripe subscription statuses and Revengine contribution statuses
             # In revengine terms, we conflate active and past due because we don't have an internal status
             # for past due, and paid is closest given current statuses
             case "active" | "past_due":

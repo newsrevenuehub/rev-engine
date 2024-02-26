@@ -720,9 +720,7 @@ class StripeEventSyncer:
         if event.type not in settings.STRIPE_WEBHOOK_EVENTS_CONTRIBUTIONS:
             logger.warning("Event type %s is not supported", event.type)
             return
-
-        (
+        if self.async_mode:
             process_stripe_webhook_task.delay(raw_event_data=event)
-            if self.async_mode
-            else process_stripe_webhook_task(raw_event_data=event)
-        )
+        else:
+            process_stripe_webhook_task(raw_event_data=event)

@@ -18,6 +18,7 @@ from apps.contributions.serializers import (
     SubscriptionsSerializer,
 )
 from apps.contributions.stripe_sync import (
+    MAX_STRIPE_RESPONSE_LIMIT,
     ContributionIgnorableError,
     InvalidIntervalError,
     InvalidMetadataError,
@@ -27,7 +28,6 @@ from apps.contributions.types import StripePiAsPortalContribution, StripePiSearc
 from revengine.settings.base import CONTRIBUTION_CACHE_TTL, DEFAULT_CACHE
 
 
-MAX_STRIPE_RESPONSE_LIMIT = 100
 MAX_STRIPE_CUSTOMERS_LIMIT = 10
 
 logger = logging.getLogger(f"{settings.DEFAULT_LOGGER}.{__name__}")

@@ -223,16 +223,14 @@ class Contribution(IndexedTimeStampedModel):
 
     @property
     def revenue_program(self):
+        # TODO: [DEV-4507] Remove this property and replace with a direct FK to RevenueProgram
         if self.donation_page:
             return self.donation_page.revenue_program
-        """TODO: [DEV-4503] Source contribution revenue program from contribution metadata if it's not available from donation page"""
-        return None
 
     @property
     def stripe_account_id(self) -> str | None:
         if self.revenue_program and self.revenue_program.payment_provider:
             return self.revenue_program.payment_provider.stripe_account_id or None
-        return None
 
     @property
     def billing_details(self) -> AttrDict:

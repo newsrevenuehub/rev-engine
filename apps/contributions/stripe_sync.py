@@ -352,16 +352,7 @@ class PaymentIntentForOneTimeContribution:
         https://stripe.com/docs/api/charges/object#charge_object-refunded
         https://stripe.com/docs/api/charges/object#charge_object-amount_refunded
         """
-        return bool(
-            next(
-                (
-                    charge
-                    for charge in self.payment_intent.charges.data
-                    if charge.refunded or charge.amount_refunded > 0
-                ),
-                False,
-            )
-        )
+        return any((x.refunded or x.amount_refunded > 0) for x in self.payment_intent.charges.data)
 
     @property
     def status(self) -> ContributionStatus:

@@ -649,13 +649,13 @@ class StripeTransactionsSyncer:
         stripe_client = StripeClientForConnectedAccount(
             account_id=stripe_account_id, gte=self.from_date, lte=self.to_date
         )
-        results = []
+        contributions = []
         created_count = 0
         updated_count = 0
         for x in stripe_client.get_revengine_one_time_contributions_data():
             try:
                 contribution, created, updated = x.upsert()
-                results.append(contribution)
+                contributions.append(contribution)
                 if created:
                     created_count += 1
                 if updated:
@@ -666,7 +666,7 @@ class StripeTransactionsSyncer:
         logger.info(
             "Updated %s existing one-time contributions for stripe account %s", updated_count, stripe_account_id
         )
-        return results
+        return contributions
 
     def sync_stripe_transactions_data(self) -> None:
         """Iterates over stripe accounts that the class was initialized with and attempts to sync transactions data from Stripe to

@@ -412,7 +412,13 @@ class TestContributionsViewSet:
         "user", (pytest_cases.fixture_ref("superuser"), pytest_cases.fixture_ref("hub_admin_user"))
     )
     @pytest.mark.parametrize(
-        "contribution_status", (ContributionStatus.FLAGGED, ContributionStatus.REJECTED, ContributionStatus.PROCESSING)
+        "contribution_status",
+        (
+            ContributionStatus.FAILED,
+            ContributionStatus.FLAGGED,
+            ContributionStatus.PROCESSING,
+            ContributionStatus.REJECTED,
+        ),
     )
     def test_filter_contributions_based_on_status(
         self,
@@ -1744,7 +1750,15 @@ class TestPortalContributorsViewSet:
         response = api_client.get(reverse("portal-contributor-contributions-list", args=(contributor.id,)))
         assert response.status_code == status.HTTP_403_FORBIDDEN
 
-    @pytest.mark.parametrize("status", (ContributionStatus.FAILED, ContributionStatus.PROCESSING))
+    @pytest.mark.parametrize(
+        "status",
+        (
+            ContributionStatus.FAILED,
+            ContributionStatus.FLAGGED,
+            ContributionStatus.PROCESSING,
+            ContributionStatus.REJECTED,
+        ),
+    )
     def test_contributions_list_hides_statuses(
         self,
         status,
@@ -1869,7 +1883,15 @@ class TestPortalContributorsViewSet:
         assert response.status_code == status.HTTP_404_NOT_FOUND
         assert response.json() == {"detail": "Contribution not found"}
 
-    @pytest.mark.parametrize("contribution_status", (ContributionStatus.FAILED, ContributionStatus.PROCESSING))
+    @pytest.mark.parametrize(
+        "contribution_status",
+        (
+            ContributionStatus.FAILED,
+            ContributionStatus.FLAGGED,
+            ContributionStatus.PROCESSING,
+            ContributionStatus.REJECTED,
+        ),
+    )
     def test_contributions_detail_when_hidden_status(
         self, contribution_status, api_client, one_time_contribution, portal_contributor_with_multiple_contributions
     ):
@@ -1986,7 +2008,15 @@ class TestPortalContributorsViewSet:
         assert response.json() == {"detail": "Problem updating contribution"}
         mock_pm_attach.assert_called_once()
 
-    @pytest.mark.parametrize("contribution_status", (ContributionStatus.FAILED, ContributionStatus.PROCESSING))
+    @pytest.mark.parametrize(
+        "contribution_status",
+        (
+            ContributionStatus.FAILED,
+            ContributionStatus.FLAGGED,
+            ContributionStatus.PROCESSING,
+            ContributionStatus.REJECTED,
+        ),
+    )
     def test_contributions_detail_patch_when_hidden_status(
         self, contribution_status, api_client, one_time_contribution, portal_contributor_with_multiple_contributions
     ):
@@ -2085,7 +2115,15 @@ class TestPortalContributorsViewSet:
         assert response.status_code == status.HTTP_400_BAD_REQUEST
         assert response.json() == {"detail": "Cannot cancel contribution"}
 
-    @pytest.mark.parametrize("contribution_status", (ContributionStatus.FAILED, ContributionStatus.PROCESSING))
+    @pytest.mark.parametrize(
+        "contribution_status",
+        (
+            ContributionStatus.FAILED,
+            ContributionStatus.FLAGGED,
+            ContributionStatus.PROCESSING,
+            ContributionStatus.REJECTED,
+        ),
+    )
     def test_contributions_detail_delete_when_hidden_status(
         self, contribution_status, api_client, one_time_contribution, portal_contributor_with_multiple_contributions
     ):

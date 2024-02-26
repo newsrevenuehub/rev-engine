@@ -580,7 +580,12 @@ class PortalContributorsViewSet(viewsets.GenericViewSet):
 
     # Contributors should never see contributions with these statuses, or
     # interact with them (e.g. delete or patch them).
-    HIDDEN_STATUSES = [ContributionStatus.FAILED, ContributionStatus.PROCESSING]
+    HIDDEN_STATUSES = [
+        ContributionStatus.FAILED,
+        ContributionStatus.FLAGGED,
+        ContributionStatus.PROCESSING,
+        ContributionStatus.REJECTED,
+    ]
 
     queryset = Contributor.objects.all()
 

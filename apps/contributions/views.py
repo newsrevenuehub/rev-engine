@@ -572,7 +572,7 @@ class PortalContributorsViewSet(viewsets.GenericViewSet):
 
     permission_classes = [IsAuthenticated, IsContributor, UserIsRequestedContributor]
 
-    ALLOWED_ORDERING_FIELDS = ["created", "amount"]
+    ALLOWED_ORDERING_FIELDS = ["created", "amount", "status"]
     ALLOWED_FILTER_FIELDS = [
         "status",
     ]
@@ -604,12 +604,12 @@ class PortalContributorsViewSet(viewsets.GenericViewSet):
     def contributions_list(self, request, pk=None):
         """Endpoint to get all contributions for a given contributor"""
         contributor = self._get_contributor_and_check_permissions(request, pk)
-        ordering = self.request.query_params.get("ordering", "-created")
+        ordering = self.request.query_params.get("ordering", "-created").split(",")
         filters = {}
         for k in self.ALLOWED_FILTER_FIELDS:
             if (v := self.request.query_params.get(k)) is not None:
                 filters[k] = v
-        queryset = contributor.contribution_set.filter(**filters).order_by(ordering)
+        queryset = contributor.contribution_set.filter(**filters).order_by(*ordering)
         paginator = self.pagination_class()
         page = paginator.paginate_queryset(queryset, request)
         serializer = self.get_serializer(page, many=True)

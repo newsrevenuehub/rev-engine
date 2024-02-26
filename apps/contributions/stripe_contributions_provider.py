@@ -38,7 +38,6 @@ class StripePaymentIntent:
     Wrapper on stripe payment_intent object to extract the required details in
     apps.contributions.serializers.PaymentProviderContributionSerializer and serializable.
 
-
     If there's no Invoice associated with a Payment Intent then it's a one-time payment.
     """
 

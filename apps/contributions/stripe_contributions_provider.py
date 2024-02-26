@@ -12,6 +12,11 @@ from addict import Dict as AttrDict
 from rest_framework import exceptions
 from stripe.stripe_object import StripeObject
 
+from apps.contributions.exceptions import (
+    ContributionIgnorableError,
+    InvalidIntervalError,
+    InvalidMetadataError,
+)
 from apps.contributions.models import ContributionInterval, ContributionStatus
 from apps.contributions.serializers import (
     PaymentProviderContributionSerializer,
@@ -19,9 +24,6 @@ from apps.contributions.serializers import (
 )
 from apps.contributions.stripe_sync import (
     MAX_STRIPE_RESPONSE_LIMIT,
-    ContributionIgnorableError,
-    InvalidIntervalError,
-    InvalidMetadataError,
     SubscriptionForRecurringContribution,
 )
 from apps.contributions.types import StripePiAsPortalContribution, StripePiSearchResponse

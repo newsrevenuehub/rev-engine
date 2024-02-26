@@ -10,6 +10,7 @@ import stripe
 from pydantic import BaseModel
 
 from apps.contributions.choices import ContributionInterval, ContributionStatus
+from apps.contributions.exceptions import InvalidMetadataError
 
 
 logger = logging.getLogger(f"{settings.DEFAULT_LOGGER}.{__name__}")
@@ -294,6 +295,10 @@ def cast_metadata_to_stripe_payment_metadata_schema(
 ) -> Union[StripePaymentMetadataSchemaV1_4, StripePaymentMetadataSchemaV1_5]:
     """Cast metadata to the appropriate schema based on the schema_version field."""
     if (schema_version := metadata.get("schema_version", None)) not in STRIPE_PAYMENT_METADATA_SCHEMA_VERSIONS:
-        raise ValueError(f"Unknown schema version {schema_version}")
+        raise InvalidMetadataError(f"Unknown schema version {schema_version}")
     schema_class = STRIPE_PAYMENT_METADATA_SCHEMA_VERSIONS[schema_version]
-    return schema_class(**metadata)
+    try:
+        return schema_class(**metadata)
+    except pydantic.ValidationError as e:
+        logger.debug("Metadata failed to validate against schema %s", schema_class)
+        raise InvalidMetadataError(str(e)) from e

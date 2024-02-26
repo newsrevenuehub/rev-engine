@@ -10,6 +10,11 @@ from django.db import transaction
 import stripe
 
 from apps.common.utils import upsert_with_diff_check
+from apps.contributions.exceptions import (
+    InvalidIntervalError,
+    InvalidMetadataError,
+    InvalidStripeTransactionDataError,
+)
 from apps.contributions.models import (
     Contribution,
     ContributionInterval,
@@ -27,22 +32,6 @@ from apps.organizations.models import PaymentProvider
 MAX_STRIPE_RESPONSE_LIMIT = 100
 
 logger = logging.getLogger(f"{settings.DEFAULT_LOGGER}.{__name__}")
-
-
-class ContributionIgnorableError(Exception):
-    """
-    Base contribution exception where the type of exception should be ignored.
-    """
-
-    pass
-
-
-class InvalidIntervalError(ContributionIgnorableError):
-    pass
-
-
-class InvalidMetadataError(ContributionIgnorableError):
-    pass
 
 
 def upsert_payments_for_charge(
@@ -305,13 +294,11 @@ class PaymentIntentForOneTimeContribution:
 
     def __init__(self, payment_intent: stripe.PaymentIntent, charge: stripe.Charge):
         """NB: The charge is expected to have its balance_transaction, refunds, and customer properties expanded."""
-        try:
-            cast_metadata_to_stripe_payment_metadata_schema(payment_intent.metadata)
-        except ValueError as exc:
-            raise InvalidMetadataError(f"Metadata is invalid for payment_intent : {payment_intent.id}") from exc
+        # This will raise an `InvalidMetadataError` if the metadata is invalid, which we expect calling context to manage
+        cast_metadata_to_stripe_payment_metadata_schema(payment_intent.metadata)
 
         if payment_intent.charges.total_count > 1:
-            raise ValueError(f"Payment intent {payment_intent.id} has more than one charge")
+            raise InvalidStripeTransactionDataError(f"Payment intent {payment_intent.id} has more than one charge")
         self.payment_intent = payment_intent
         self.charge = charge
 
@@ -449,10 +436,8 @@ class SubscriptionForRecurringContribution:
     """
 
     def __init__(self, subscription: stripe.Subscription, charges: list[stripe.Charge]):
-        try:
-            cast_metadata_to_stripe_payment_metadata_schema(subscription.metadata)
-        except ValueError as exc:
-            raise InvalidMetadataError(f"Metadata is invalid for subscription : {subscription.id}") from exc
+        # This will raise an `InvalidMetadataError` if the metadata is invalid, which we expect calling context to manage
+        cast_metadata_to_stripe_payment_metadata_schema(subscription.metadata)
         self.subscription = subscription
         self.charges = charges
 

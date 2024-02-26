@@ -6,11 +6,14 @@ from django.conf import settings
 import pytest
 import stripe
 
+from apps.contributions.exceptions import (
+    InvalidIntervalError,
+    InvalidMetadataError,
+    InvalidStripeTransactionDataError,
+)
 from apps.contributions.models import ContributionInterval, ContributionStatus, Payment
 from apps.contributions.stripe_sync import (
     MAX_STRIPE_RESPONSE_LIMIT,
-    InvalidIntervalError,
-    InvalidMetadataError,
     PaymentIntentForOneTimeContribution,
     StripeClientForConnectedAccount,
     StripeEventSyncer,
@@ -218,7 +221,7 @@ class TestSubscriptionForRecurringContribution:
         self, metadata_validates, mock_metadata_validator, subscription, mocker
     ):
         if not metadata_validates:
-            mock_metadata_validator.side_effect = ValueError("foo")
+            mock_metadata_validator.side_effect = InvalidMetadataError("foo")
             with pytest.raises(InvalidMetadataError):
                 SubscriptionForRecurringContribution(subscription=subscription, charges=[])
         else:
@@ -374,7 +377,7 @@ class TestPaymentIntentForOneTimeContribution:
         payment_intent,
     ):
         if not metadata_validates:
-            mock_metadata_validator.side_effect = ValueError("foo")
+            mock_metadata_validator.side_effect = InvalidMetadataError("foo")
             with pytest.raises(InvalidMetadataError):
                 PaymentIntentForOneTimeContribution(payment_intent=payment_intent, charge=charge)
         else:
@@ -385,7 +388,7 @@ class TestPaymentIntentForOneTimeContribution:
 
     def test_init_when_pi_charges_gt_1(self, payment_intent, charge):
         payment_intent.charges.total_count = 2
-        with pytest.raises(ValueError):
+        with pytest.raises(InvalidStripeTransactionDataError):
             PaymentIntentForOneTimeContribution(payment_intent=payment_intent, charge=charge)
 
     def test__str__(self, payment_intent, mock_metadata_validator, mocker):

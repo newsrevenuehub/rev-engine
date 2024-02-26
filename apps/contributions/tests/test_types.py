@@ -1,5 +1,6 @@
 import pytest
 
+from apps.contributions.exceptions import InvalidMetadataError
 from apps.contributions.types import (
     StripeMetadataSchemaBase,
     StripePaymentMetadataSchemaV1_0,
@@ -37,7 +38,7 @@ def unknown_metadata_version(valid_metadata):
 
 def test_cast_metadata_to_stripe_payment_metadata_schema(valid_metadata, unknown_metadata_version):
     assert cast_metadata_to_stripe_payment_metadata_schema(valid_metadata)
-    with pytest.raises(ValueError):
+    with pytest.raises(InvalidMetadataError):
         cast_metadata_to_stripe_payment_metadata_schema(unknown_metadata_version)
 
 

@@ -1,6 +1,6 @@
 import { IconButton } from '@material-ui/core';
 import CoreUpgradeIcon from 'assets/icons/upgrade-core.svg?react';
-import { LinkButton } from 'components/base';
+import { RouterLinkButton } from 'components/base';
 import styled from 'styled-components';
 
 export const CloseButton = styled(IconButton)`
@@ -30,7 +30,7 @@ export const Header = styled.h2`
   margin-top: 2px; /* align with icon beside it */
 `;
 
-export const LearnMoreButton = styled(LinkButton)`
+export const UpgradeButton = styled(RouterLinkButton)`
   padding: 10px 30px;
 `;
 

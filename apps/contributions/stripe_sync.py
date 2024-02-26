@@ -220,7 +220,7 @@ class StripeClientForConnectedAccount:
                         charge=x["charge"],
                     )
                 )
-            except (InvalidMetadataError, ValueError) as exc:
+            except (InvalidMetadataError, InvalidStripeTransactionDataError) as exc:
                 logger.warning("Unable to sync payment intent %s for account %s", pi.id, self.account_id, exc_info=exc)
         return data
 
@@ -382,7 +382,9 @@ class PaymentIntentForOneTimeContribution:
         """
         logger.debug("Upserting untracked payment intent %s", self.payment_intent.id)
         if not (email := self.email_id):
-            raise ValueError(f"Payment intent {self.payment_intent.id} has no email associated with it")
+            raise InvalidStripeTransactionDataError(
+                f"Payment intent {self.payment_intent.id} has no email associated with it"
+            )
         contributor, created = Contributor.objects.get_or_create(email=email)
         if created:
             logger.info("Created new contributor %s for payment intent %s", contributor.id, self.payment_intent.id)
@@ -511,7 +513,9 @@ class SubscriptionForRecurringContribution:
         """
         logger.debug("Upserting untracked subscription %s", self.subscription.id)
         if not (email := self.email_id):
-            raise ValueError(f"Subscription {self.subscription.id} has no email associated with it")
+            raise InvalidStripeTransactionDataError(
+                f"Subscription {self.subscription.id} has no email associated with it"
+            )
 
         contributor, created = Contributor.objects.get_or_create(email=email)
         if created:

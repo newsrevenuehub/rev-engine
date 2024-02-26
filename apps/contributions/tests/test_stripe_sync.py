@@ -357,7 +357,7 @@ class TestSubscriptionForRecurringContribution:
 
             mock_upsert_charges.assert_called_once_with(contribution, charge, charge.balance_transaction)
         else:
-            with pytest.raises(ValueError):
+            with pytest.raises(InvalidStripeTransactionDataError):
                 instance.upsert()
 
 
@@ -623,7 +623,7 @@ class TestPaymentIntentForOneTimeContribution:
             else:
                 assert contribution.provider_customer_id is None
         else:
-            with pytest.raises(ValueError):
+            with pytest.raises(InvalidStripeTransactionDataError):
                 PaymentIntentForOneTimeContribution(payment_intent=pi_to_upsert, charge=charge_for_upsert).upsert()
 
     def test_upsert_when_contributor_exists(self, payment_intent, mocker):
@@ -642,7 +642,7 @@ class TestPaymentIntentForOneTimeContribution:
             new_callable=mocker.PropertyMock,
             return_value=None,
         )
-        with pytest.raises(ValueError):
+        with pytest.raises(InvalidStripeTransactionDataError):
             PaymentIntentForOneTimeContribution(payment_intent=payment_intent, charge=mocker.Mock()).upsert()
 
 

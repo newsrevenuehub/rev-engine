@@ -8,12 +8,17 @@ export const List = styled.div<{ $detailVisible: boolean }>`
   grid-area: list;
 
   @media (${(props) => props.theme.breakpoints.tabletLandscapeDown}) {
+    padding: 0 20px;
     ${(props) => props.$detailVisible && 'display: none;'}
   }
 `;
 
 export const AlignPositionWrapper = styled.div`
   grid-area: list;
+
+  @media (${(props) => props.theme.breakpoints.tabletLandscapeDown}) {
+    padding: 0 20px;
+  }
 `;
 
 export const StyledPortalPage = styled(PortalPage)`
@@ -44,7 +49,7 @@ export const Columns = styled.div`
 
   @media (${(props) => props.theme.breakpoints.tabletLandscapeDown}) {
     display: block;
-    padding: 20px;
+    padding: 20px 0;
   }
 `;
 
@@ -57,6 +62,7 @@ export const Legend = styled.div<{ $detailVisible: boolean }>`
 
   @media (${(props) => props.theme.breakpoints.tabletLandscapeDown}) {
     margin-bottom: 40px;
+    padding: 0 20px;
     ${(props) => props.$detailVisible && 'display: none;'}
   }
 `;

@@ -620,7 +620,9 @@ class PortalContributorsViewSet(viewsets.GenericViewSet):
         for k in self.ALLOWED_FILTER_FIELDS:
             if (v := self.request.query_params.get(k)) is not None:
                 filters[k] = v
-        queryset = self._prune_contributions_queryset(contributor.contribution_set).filter(**filters).order_by(ordering)
+        queryset = (
+            contributor.contribution_set.exclude(status__in=self.HIDDEN_STATUSES).filter(**filters).order_by(ordering)
+        )
         paginator = self.pagination_class()
         page = paginator.paginate_queryset(queryset, request)
         serializer = self.get_serializer(page, many=True)
@@ -637,7 +639,7 @@ class PortalContributorsViewSet(viewsets.GenericViewSet):
         """Endpoint to get or update a contribution for a given contributor"""
         contributor = self._get_contributor_and_check_permissions(request, pk)
         try:
-            contribution = self._prune_contributions_queryset(contributor.contribution_set).get(pk=contribution_id)
+            contribution = contributor.contribution_set.exclude(status__in=self.HIDDEN_STATUSES).get(pk=contribution_id)
         except Contribution.DoesNotExist:
             return Response({"detail": "Contribution not found"}, status=status.HTTP_404_NOT_FOUND)
 

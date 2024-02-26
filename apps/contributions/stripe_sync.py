@@ -514,7 +514,6 @@ class SubscriptionForRecurringContribution:
                 customer_id=customer.id, stripe_account_id=self.subscription.stripe_account
             )
             return customer.invoice_settings.default_payment_method if customer and customer.invoice_settings else None
-        return None
 
     @transaction.atomic
     def upsert(self) -> (Contribution, bool, bool):

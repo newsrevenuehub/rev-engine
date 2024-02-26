@@ -249,7 +249,6 @@ class StripeClientForConnectedAccount:
                 stripe_account_id,
                 exc_info=exc,
             )
-            return None
 
     @classmethod
     def get_payment_method(

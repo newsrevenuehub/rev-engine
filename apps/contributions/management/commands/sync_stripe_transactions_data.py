@@ -42,13 +42,13 @@ class Command(BaseCommand):
         self.stdout.write(self.style.HTTP_INFO("Running `backfill_contribution_and_payments_from_stripe`"))
         if options["async_mode"]:
             self.stdout.write(self.style.HTTP_INFO("Running in async mode. Using celery task to backfill"))
-            task_backfill_contributions_and_payments.delay(
+            result = task_backfill_contributions_and_payments.delay(
                 from_date=int(options["gte"].timestamp()) if options["gte"] else None,
                 to_date=int(options["lte"].timestamp()) if options["lte"] else None,
                 for_orgs=options["for_orgs"],
                 for_stripe_accounts=options["for_stripe_accounts"],
             )
-            return
+            self.stdout.write(self.style.SUCCESS(f"Celery task {result.task_id} to backfill has been scheduled"))
         else:
             StripeTransactionsSyncer(
                 from_date=options["gte"],
@@ -56,4 +56,4 @@ class Command(BaseCommand):
                 for_orgs=options["for_orgs"],
                 for_stripe_accounts=options["for_stripe_accounts"],
             ).sync_stripe_transactions_data()
-        self.stdout.write(self.style.SUCCESS("`backfill_contribution_and_payments_from_stripe` is done"))
+            self.stdout.write(self.style.SUCCESS("`backfill_contribution_and_payments_from_stripe` is done"))

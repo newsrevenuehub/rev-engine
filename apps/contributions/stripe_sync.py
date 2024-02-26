@@ -339,7 +339,6 @@ class PaymentIntentForOneTimeContribution:
                 )
             else:
                 return cust
-        return None
 
     @property
     def email_id(self) -> str | None:

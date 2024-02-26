@@ -210,12 +210,12 @@ def process_stripe_webhook_task(self, raw_event_data: dict) -> None:
 
 
 @shared_task(bind=True, autoretry_for=(RateLimitError,), retry_backoff=True, retry_kwargs={"max_retries": 3})
-def task_backfill_contributions_and_payments(
+def task_sync_contributions_and_payments(
     self, from_date: str, to_date: str, for_orgs: list[str] = None, for_stripe_accounts: list[str] = None
 ):
     """Task for syncing Stripe payment data to revengine."""
     logger.info(
-        "Running `task_backfill_contributions_and_payments` with params: from_date=%s, to_date=%s, for_orgs=%s, for_stripe_accounts=%s",
+        "Running `task_sync_contributions_and_payments` with params: from_date=%s, to_date=%s, for_orgs=%s, for_stripe_accounts=%s",
         from_date,
         to_date,
         for_orgs,
@@ -228,4 +228,4 @@ def task_backfill_contributions_and_payments(
     StripeTransactionsSyncer(
         from_date=from_date, to_date=to_date, for_stripe_accounts=for_stripe_accounts, for_orgs=for_orgs
     ).sync_stripe_transactions_data()
-    logger.info("`task_backfill_contributions_and_payments` is done")
+    logger.info("`task_sync_contributions_and_payments` is done")

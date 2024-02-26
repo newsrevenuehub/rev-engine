@@ -897,20 +897,20 @@ class TestStripeTransactionsSyncer:
         assert set(instance.stripe_account_ids) == expected
 
     def test_sync_contributions_and_payments_for_stripe_account(self, mocker):
-        mock_backfill_subs = mocker.patch(
-            "apps.contributions.stripe_sync.StripeTransactionsSyncer.backfill_contributions_and_payments_for_subscriptions",
+        mock_sync_subs = mocker.patch(
+            "apps.contributions.stripe_sync.StripeTransactionsSyncer.sync_contributions_and_payments_for_subscriptions",
             return_value=[],
         )
-        mock_backfill_one_times = mocker.patch(
-            "apps.contributions.stripe_sync.StripeTransactionsSyncer.backfill_contributions_and_payments_for_payment_intents",
+        mock_sync_one_times = mocker.patch(
+            "apps.contributions.stripe_sync.StripeTransactionsSyncer.sync_contributions_and_payments_for_payment_intents",
             return_value=[],
         )
         StripeTransactionsSyncer().sync_contributions_and_payments_for_stripe_account((test_id := "test"))
-        mock_backfill_subs.assert_called_once_with(stripe_account_id=test_id)
-        mock_backfill_one_times.assert_called_once_with(stripe_account_id=test_id)
+        mock_sync_subs.assert_called_once_with(stripe_account_id=test_id)
+        mock_sync_one_times.assert_called_once_with(stripe_account_id=test_id)
 
     @pytest.mark.parametrize("upsert_value_error", (True, False))
-    def test_backfill_contributions_and_payments_for_subscriptions(self, upsert_value_error, mocker):
+    def test_sync_contributions_and_payments_for_subscriptions(self, upsert_value_error, mocker):
         mock_stripe_client = mocker.patch("apps.contributions.stripe_sync.StripeClientForConnectedAccount")
         mock_stripe_client.return_value.get_invoices.return_value = (
             invoices := [
@@ -927,7 +927,7 @@ class TestStripeTransactionsSyncer:
         item1.upsert.side_effect = ValueError("foo")
         item2.upsert.return_value = (contribution1 := mocker.Mock()), True, False
         item3.upsert.return_value = (contribution2 := mocker.Mock()), False, True
-        contributions = StripeTransactionsSyncer().backfill_contributions_and_payments_for_subscriptions("test_id")
+        contributions = StripeTransactionsSyncer().sync_contributions_and_payments_for_subscriptions("test_id")
         mock_stripe_client.return_value.get_invoices.assert_called_once()
         mock_stripe_client.return_value.get_expanded_charge_object.assert_called_once_with(
             charge_id=expected.charge, stripe_account_id="test_id"
@@ -937,7 +937,7 @@ class TestStripeTransactionsSyncer:
         )
         assert set(contributions) == {contribution1, contribution2}
 
-    def test_backfill_contributions_and_payments_for_payment_intents(self, mocker):
+    def test_sync_contributions_and_payments_for_payment_intents(self, mocker):
         mock_stripe_client = mocker.patch("apps.contributions.stripe_sync.StripeClientForConnectedAccount")
         mock_stripe_client.return_value.get_revengine_one_time_contributions_data.return_value = [
             (item1 := mocker.Mock()),
@@ -947,16 +947,16 @@ class TestStripeTransactionsSyncer:
         item1.upsert.return_value = (contribution1 := mocker.Mock()), True, False
         item2.upsert.return_value = (contribution2 := mocker.Mock()), False, True
         item_with_error.upsert.side_effect = ValueError("foo")
-        contributions = StripeTransactionsSyncer().backfill_contributions_and_payments_for_payment_intents("test_id")
+        contributions = StripeTransactionsSyncer().sync_contributions_and_payments_for_payment_intents("test_id")
         assert contributions == [contribution1, contribution2]
 
     def test_sync_stripe_transactions_data(self, mocker):
         PaymentProviderFactory()
-        mock_backfill_for_stripe_account = mocker.patch(
+        mock_sync_for_stripe_account = mocker.patch(
             "apps.contributions.stripe_sync.StripeTransactionsSyncer.sync_contributions_and_payments_for_stripe_account"
         )
         StripeTransactionsSyncer().sync_stripe_transactions_data()
-        mock_backfill_for_stripe_account.assert_called_once()
+        mock_sync_for_stripe_account.assert_called_once()
 
 
 class TestStripeEventSyncer:

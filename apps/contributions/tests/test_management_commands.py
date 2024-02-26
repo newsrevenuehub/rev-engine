@@ -78,7 +78,7 @@ class TestSyncStripeTransactionsDataCommand:
 
     @pytest.mark.parametrize("async_mode", (False, True))
     def test_happy_path(self, async_mode, command_options, mocker):
-        mock_async_task = mocker.patch("apps.contributions.tasks.task_backfill_contributions_and_payments.delay")
+        mock_async_task = mocker.patch("apps.contributions.tasks.task_sync_contributions_and_payments.delay")
         mock_transformer = mocker.patch(
             "apps.contributions.management.commands.sync_stripe_transactions_data.StripeTransactionsSyncer"
         )

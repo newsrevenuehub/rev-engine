@@ -614,11 +614,11 @@ class StripeTransactionsSyncer:
 
     def sync_contributions_and_payments_for_stripe_account(self, account_id: str) -> None:
         """This method is responsible for upserting contributors, contributions, and payments for a given stripe account."""
-        logger.info("Backfilling stripe account %s", account_id)
-        self.backfill_contributions_and_payments_for_subscriptions(stripe_account_id=account_id)
-        self.backfill_contributions_and_payments_for_payment_intents(stripe_account_id=account_id)
+        logger.info("Syncing transactions data for stripe account %s", account_id)
+        self.sync_contributions_and_payments_for_subscriptions(stripe_account_id=account_id)
+        self.sync_contributions_and_payments_for_payment_intents(stripe_account_id=account_id)
 
-    def backfill_contributions_and_payments_for_subscriptions(self, stripe_account_id: str) -> list[Contribution]:
+    def sync_contributions_and_payments_for_subscriptions(self, stripe_account_id: str) -> list[Contribution]:
         """Upsert contributions, contributors, and payments for subscriptions for a given stripe account."""
         stripe_client = StripeClientForConnectedAccount(
             account_id=stripe_account_id, gte=self.from_date, lte=self.to_date
@@ -657,7 +657,7 @@ class StripeTransactionsSyncer:
         )
         return contributions
 
-    def backfill_contributions_and_payments_for_payment_intents(self, stripe_account_id: str) -> list[Contribution]:
+    def sync_contributions_and_payments_for_payment_intents(self, stripe_account_id: str) -> list[Contribution]:
         """Upsert contributions and payments for one-time payment intents for a given stripe account."""
         stripe_client = StripeClientForConnectedAccount(
             account_id=stripe_account_id, gte=self.from_date, lte=self.to_date
@@ -686,7 +686,7 @@ class StripeTransactionsSyncer:
         create contributions, contributors, and payments
         """
         logger.info(
-            "Backfilling contributions and payments for %s stripe accounts",
+            "Syncing contributions and payments for %s stripe accounts",
             len(self.stripe_account_ids),
         )
         for account_id in self.stripe_account_ids:

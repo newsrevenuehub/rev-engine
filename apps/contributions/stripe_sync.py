@@ -281,9 +281,9 @@ class StripeClientForConnectedAccount:
         )
 
     @classmethod
-    def get_invoice(self, invoice_id: str, stripe_account_id: str, **kwargs) -> stripe.Invoice | None:
+    def get_invoice(cls, invoice_id: str, stripe_account_id: str, **kwargs) -> stripe.Invoice | None:
         """Retrieve a stripe invoice for a given stripe account"""
-        return self.get_stripe_entity(invoice_id, "Invoice", stripe_account_id, **kwargs)
+        return cls.get_stripe_entity(invoice_id, "Invoice", stripe_account_id, **kwargs)
 
     @classmethod
     def get_expanded_charge_object(cls, charge_id: str, stripe_account_id: str, **kwargs) -> stripe.Charge | None:

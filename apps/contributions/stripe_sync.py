@@ -66,8 +66,8 @@ def upsert_payments_for_charge(
     )
     if created:
         logger.info("Created payment %s for contribution %s", payment.id, contribution.id)
-    else:
-        logger.debug("Updated payment %s for contribution %s", payment.id, contribution.id)
+    elif updated:
+        logger.info("Updated payment %s for contribution %s", payment.id, contribution.id)
     for refund in charge.refunds.data:
         logger.debug("Upserting payment for refund  %s for contribution %s", refund.id, contribution.id)
         payment, created, updated = upsert_with_diff_check(
@@ -431,7 +431,7 @@ class PaymentIntentForOneTimeContribution:
         if created:
             logger.info("Created new contribution %s for payment intent %s", contribution.id, self.payment_intent.id)
         if updated:
-            logger.debug(
+            logger.info(
                 "Updated existing contribution %s for payment intent %s",
                 contribution.id,
                 contribution.provider_payment_id,

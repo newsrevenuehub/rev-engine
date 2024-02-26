@@ -22,8 +22,16 @@ class Command(BaseCommand):
     help = "Sync down payments data from Stripe to revengine to create or update revengine contributor, contribution, and payment objects."
 
     def add_arguments(self, parser: CommandParser) -> None:
-        parser.add_argument("--gte", type=lambda s: dateparser.parse(s, settings={"TIMEZONE": "UTC"}))
-        parser.add_argument("--lte", type=lambda s: dateparser.parse(s, settings={"TIMEZONE": "UTC"}))
+        parser.add_argument(
+            "--gte",
+            type=lambda s: dateparser.parse(s),
+            help=("Optional start date(time) for the sync (inclusive). Tries to parse whatever it's given.",),
+        ),
+        parser.add_argument(
+            "--lte",
+            type=lambda s: dateparser.parse(s),
+            help="Optional end date(time) for the sync (inclusive). Tries to parse whatever it's given.",
+        ),
         parser.add_argument(
             "--for_orgs",
             type=lambda s: [x.strip() for x in s.split(",")],

@@ -677,6 +677,12 @@ class StripeTransactionsSyncer:
             len(self.stripe_account_ids),
         )
         for account_id in self.stripe_account_ids:
+            logger.info(
+                "Syncing transactions data for stripe account %s with from_date %s to_date %s",
+                account_id,
+                self.from_date,
+                self.to_date,
+            )
             self.sync_contributions_and_payments_for_stripe_account(account_id)
 
 

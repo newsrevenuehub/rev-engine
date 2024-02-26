@@ -365,9 +365,8 @@ class TestSubscriptionForRecurringContribution:
 class TestPaymentIntentForOneTimeContribution:
     @pytest.fixture
     def payment_intent_with_existing_nre_entities(self, payment_intent):
-        pi = deepcopy(payment_intent)
         ContributionFactory(provider_payment_id=payment_intent.id)
-        return pi
+        return payment_intent
 
     @pytest.mark.parametrize("metadata_validates", (True, False))
     def test_init_with_regard_to_metadata_validity(
@@ -416,7 +415,6 @@ class TestPaymentIntentForOneTimeContribution:
 
     @pytest.fixture
     def charge_with_customer_unexpected_type(self, charge):
-        charge = deepcopy(charge)
         charge.customer = 1
         return charge
 
@@ -565,7 +563,6 @@ class TestPaymentIntentForOneTimeContribution:
 
     @pytest.fixture
     def charge_no_balance_transaction(self, charge):
-        charge = deepcopy(charge)
         charge.balance_transaction = None
         return charge
 
@@ -597,10 +594,6 @@ class TestPaymentIntentForOneTimeContribution:
             assert not contribution.reason
             assert contribution.interval == ContributionInterval.ONE_TIME
             assert contribution.payment_provider_used == "stripe"
-            if charge_for_upsert and charge_for_upsert.customer:
-                assert contribution.provider_customer_id == charge_for_upsert.customer.id
-            else:
-                assert contribution.provider_customer_id == pi_to_upsert.customer.id if pi_to_upsert.customer else None
 
             assert contribution.provider_payment_method_id == pi_to_upsert.payment_method.id
             assert contribution.provider_payment_method_details == pi_to_upsert.payment_method.to_dict()
@@ -618,6 +611,17 @@ class TestPaymentIntentForOneTimeContribution:
                 )
             else:
                 mock_upsert_charges.assert_not_called()
+
+            if (
+                charge_for_upsert
+                and charge_for_upsert.customer
+                and isinstance(charge_for_upsert.customer, (str, stripe.Customer))
+            ):
+                assert contribution.provider_customer_id == charge_for_upsert.customer.id
+            elif pi_to_upsert.customer:
+                assert contribution.provider_customer_id == pi_to_upsert.customer.id if pi_to_upsert.customer else None
+            else:
+                assert contribution.provider_customer_id is None
         else:
             with pytest.raises(ValueError):
                 PaymentIntentForOneTimeContribution(payment_intent=pi_to_upsert, charge=charge_for_upsert).upsert()

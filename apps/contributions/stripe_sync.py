@@ -314,14 +314,13 @@ class PaymentIntentForOneTimeContribution:
         cust = None
         if charge := self.charge:
             cust = charge.customer
-        else:
+        if not cust:
             cust = self.payment_intent.customer
-
         if isinstance(cust, str):
             return StripeClientForConnectedAccount.get_stripe_customer(
                 customer_id=cust, stripe_account_id=self.payment_intent.stripe_account
             )
-        elif isinstance(cust, stripe.stripe_object.StripeObject):
+        elif isinstance(cust, stripe.Customer):
             return cust
         else:
             logger.warning(

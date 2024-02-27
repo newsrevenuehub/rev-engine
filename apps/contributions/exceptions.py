@@ -8,7 +8,7 @@ class ContributionIgnorableError(Exception):
     When that file is removed, this class can be removed as well, and the inheritance in InvalidIntervalError
     and InvalidMetadataError can be removed as well, below.
 
-    TODO: [DEV-4050] This gest removed as part of that ticket.
+    TODO: [DEV-4050] This gets removed as part of that ticket.
     """
 
     pass

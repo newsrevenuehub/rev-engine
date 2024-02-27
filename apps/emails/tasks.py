@@ -78,7 +78,7 @@ class SendContributionEmailData(TypedDict):
     fiscal_sponsor_name: str | None
     magic_link: str
     style: TransactionalEmailStyle
-    contribution_date: str
+    timestamp: str
     contributor_email: str
     tax_id: str | None
     show_upgrade_prompt: bool
@@ -117,10 +117,10 @@ def make_send_thank_you_email_data(contribution) -> SendContributionEmailData:
 
     return SendContributionEmailData(
         contribution_amount=contribution.formatted_amount,
-        contribution_date=convert_to_timezone_formatted(contribution.created, "America/New_York"),
-        contribution_interval_display_value=contribution.interval
-        if contribution.interval != ContributionInterval.ONE_TIME
-        else "",
+        timestamp=convert_to_timezone_formatted(contribution.created, "America/New_York"),
+        contribution_interval_display_value=(
+            contribution.interval if contribution.interval != ContributionInterval.ONE_TIME else ""
+        ),
         contribution_interval=contribution.interval,
         contributor_email=contribution.contributor.email,
         contributor_name=customer.name,
@@ -148,7 +148,7 @@ def make_send_test_contribution_email_data(user, revenue_program) -> SendContrib
 
     return SendContributionEmailData(
         contribution_amount="$123.45",
-        contribution_date=convert_to_timezone_formatted(now, "America/New_York"),
+        timestamp=convert_to_timezone_formatted(now, "America/New_York"),
         contribution_interval_display_value=ContributionInterval.MONTHLY,
         contribution_interval=ContributionInterval.MONTHLY,
         contributor_email=user.email,

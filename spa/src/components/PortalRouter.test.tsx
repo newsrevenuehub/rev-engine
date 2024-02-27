@@ -1,10 +1,13 @@
 import { render, screen, within } from '@testing-library/react';
 import { createMemoryHistory } from 'history';
+import { Suspense } from 'react';
 import { Router } from 'react-router-dom';
 import { ThemeProvider } from 'styled-components';
+import { usePortalPendo } from 'hooks/usePortalPendo';
 import { revEngineTheme } from 'styles/themes';
 import PortalRouter from './PortalRouter';
-import { Suspense } from 'react';
+
+jest.mock('hooks/usePortalPendo');
 
 // Turn <BrowserRouter> into a no-op component so we can use our own router.
 
@@ -16,10 +19,7 @@ jest.mock('react-router-dom', () => ({
 
 // Mock TrackPageView as a passthrough.
 
-jest.mock('components/portal/PortalPage', () => ({ children }: { children: React.ReactNode }) => (
-  <div data-testid="mock-portal-page">{children}</div>
-));
-
+jest.mock('components/portal/PortalPage');
 jest.mock('components/authentication/ProtectedRoute', () => ({ render }: { render: () => React.ReactNode }) => (
   <div data-testid="mock-protected-router">{render()}</div>
 ));
@@ -49,6 +49,13 @@ function tree(path: string) {
 }
 
 describe('PortalRouter', () => {
+  const usePortalPendoMock = jest.mocked(usePortalPendo);
+
+  it('loads Pendo', () => {
+    tree('/portal/');
+    expect(usePortalPendoMock).toBeCalledTimes(1);
+  });
+
   // Routes in tests below are hard-coded to avoid a situation where slashes
   // change in our route config, and we accidentally route to URLs like
   // /portal//my-contributions but tests continue to pass.
@@ -59,22 +66,20 @@ describe('PortalRouter', () => {
     expect(within(screen.getByTestId('mock-portal-page')).getByTestId('mock-portal-entry')).toBeInTheDocument();
   });
 
-  it('displays a PortalPage with ContributionsList at /portal/my-contributions/', async () => {
+  it('displays ContributionsList at /portal/my-contributions/', async () => {
     tree('/portal/my-contributions/');
     await screen.findByTestId('mock-contributions-list');
     expect(
       within(screen.getByTestId('mock-protected-router')).getByTestId('mock-contributions-list')
     ).toBeInTheDocument();
-    expect(within(screen.getByTestId('mock-portal-page')).getByTestId('mock-contributions-list')).toBeInTheDocument();
   });
 
-  it('displays a PortalPage with ContributionsList at /portal/my-contributions/:contributionId/', async () => {
+  it('displays ContributionsList at /portal/my-contributions/:contributionId/', async () => {
     tree('/portal/my-contributions/contribution-id/');
     await screen.findByTestId('mock-contributions-list');
     expect(
       within(screen.getByTestId('mock-protected-router')).getByTestId('mock-contributions-list')
     ).toBeInTheDocument();
-    expect(within(screen.getByTestId('mock-portal-page')).getByTestId('mock-contributions-list')).toBeInTheDocument();
   });
 
   it('displays a PortalPage with TokenVerification at /portal/verification/', async () => {

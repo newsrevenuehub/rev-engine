@@ -5,6 +5,7 @@ from django.conf import settings
 from django.db.models import TextChoices
 from django.utils import timezone
 
+import reversion
 from rest_framework import serializers
 from rest_framework.exceptions import APIException, PermissionDenied
 from stripe.error import StripeError
@@ -17,6 +18,7 @@ from apps.contributions.models import (
     ContributionInterval,
     ContributionStatus,
     Contributor,
+    Payment,
 )
 from apps.contributions.types import StripePaymentMetadataSchemaV1_4
 from apps.contributions.utils import format_ambiguous_currency, get_sha256_hash
@@ -830,27 +832,102 @@ class SubscriptionsSerializer(serializers.Serializer):
         return instance.default_payment_method.type
 
 
-class ContributionAgreementSerializer(serializers.Serializer):
-    """This serializer captures a contributor's agreement to make a contribution.
+PORTAL_CONTRIBUTION_BASE_SERIALIZER_FIELDS = [
+    "id",
+    "amount",
+    "card_brand",
+    "card_expiration_date",
+    "card_last_4",
+    "created",
+    "interval",
+    "is_cancelable",
+    "is_modifiable",
+    "last_payment_date",
+    "next_payment_date",
+    "payment_type",
+    "revenue_program",
+    "status",
+]
 
-    In the case of a one time contribution, the agreement is captured in the form of a Stripe PaymentIntent.
 
-    In the case of a recurring contribution, the agreement is captured in the form of a Stripe Subscription.
-    """
+class PortalContributionBaseSerializer(serializers.ModelSerializer):
+    card_brand = serializers.CharField(read_only=True, allow_blank=True)
+    card_expiration_date = serializers.CharField(read_only=True, allow_blank=True)
+    card_last_4 = serializers.CharField(read_only=True, allow_blank=True)
+    last_payment_date = serializers.DateTimeField(source="_last_payment_date", read_only=True, allow_null=True)
+    next_payment_date = serializers.DateTimeField(read_only=True, allow_null=True)
+    revenue_program = serializers.PrimaryKeyRelatedField(read_only=True)
 
-    # either the PI or subscription id
-    payment_provider_id = serializers.CharField(max_length=255)
-    amount = serializers.IntegerField()
-    card_brand = serializers.ChoiceField(choices=CardBrand.choices)
-    created = serializers.DateTimeField(format="%Y-%m-%dT%H =%M =%S")
-    credit_card_expiration_date = serializers.CharField(max_length=7)
-    interval = serializers.ChoiceField(choices=ContributionInterval.choices)
-    is_cancelable = serializers.BooleanField()
-    is_modifiable = serializers.BooleanField()
-    last_payment_date = serializers.DateTimeField(format="%Y-%m-%dT%H =%M =%S")
-    last4 = serializers.CharField(max_length=4)
-    next_payment_date = serializers.DateTimeField(format="%Y-%m-%dT%H =%M =%S")
-    payment_type = serializers.ChoiceField(choices=PaymentType.choices)
-    provider_customer_id = serializers.CharField(max_length=255)
-    revenue_program = serializers.IntegerField()
-    status = serializers.ChoiceField(choices=ContributionStatus.choices)
+    class Meta:
+        model = Contribution
+        fields = PORTAL_CONTRIBUTION_BASE_SERIALIZER_FIELDS
+        read_only_fields = PORTAL_CONTRIBUTION_BASE_SERIALIZER_FIELDS
+
+    def create(self, validated_data):
+        logger.info("create called but not supported. this will be a no-op")
+        raise NotImplementedError("create is not supported on this serializer")
+
+    def delete(self, instance):
+        logger.info("delete called but not supported. this will be a no-op")
+        raise NotImplementedError("delete is not supported on this serializer")
+
+    def update(self, instance, validated_data):
+        logger.info("update called but not supported. this will be a no-op")
+        raise NotImplementedError("update is not supported on this serializer")
+
+
+PORTAL_CONTRIBIBUTION_PAYMENT_SERIALIZER_DB_FIELDS = [
+    "id",
+    "amount_refunded",
+    "created",
+    "transaction_time",
+    "gross_amount_paid",
+    "net_amount_paid",
+]
+
+
+class PortalContributionPaymentSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = Payment
+        fields = PORTAL_CONTRIBIBUTION_PAYMENT_SERIALIZER_DB_FIELDS
+        read_only_fields = PORTAL_CONTRIBIBUTION_PAYMENT_SERIALIZER_DB_FIELDS
+
+
+PORTAL_CONTRIBUTION_DETAIL_SERIALIZER_DB_FIELDS = PORTAL_CONTRIBUTION_BASE_SERIALIZER_FIELDS + [
+    "payments",
+    "paid_fees",
+    "card_owner_name",
+    "stripe_account_id",
+]
+
+
+class PortalContributionDetailSerializer(PortalContributionBaseSerializer):
+    card_owner_name = serializers.CharField(read_only=True, allow_blank=True)
+    payments = PortalContributionPaymentSerializer(many=True, read_only=True, source="payment_set")
+    provider_payment_method_id = serializers.CharField(write_only=True, required=False)
+
+    class Meta:
+        model = Contribution
+        fields = PORTAL_CONTRIBUTION_DETAIL_SERIALIZER_DB_FIELDS + ["provider_payment_method_id"]
+        read_only_fields = PORTAL_CONTRIBUTION_DETAIL_SERIALIZER_DB_FIELDS
+
+    def update(self, instance, validated_data) -> Contribution:
+        """ """
+        if validated_data:
+            if provider_payment_method_id := validated_data.get("provider_payment_method_id", None):
+                instance.update_payment_method_for_subscription(
+                    provider_payment_method_id=provider_payment_method_id,
+                )
+            for key, value in validated_data.items():
+                setattr(instance, key, value)
+            with reversion.create_revision():
+                instance.save(update_fields=set(list(validated_data.keys()) + ["modified"]))
+                reversion.set_comment("Updated by PortalContributionDetailSerializer.update")
+        return instance
+
+
+class PortalContributionListSerializer(PortalContributionBaseSerializer):
+    class Meta:
+        model = Contribution
+        fields = PORTAL_CONTRIBUTION_BASE_SERIALIZER_FIELDS
+        read_only_fields = PORTAL_CONTRIBUTION_BASE_SERIALIZER_FIELDS

@@ -1,4 +1,5 @@
 import styled from 'styled-components';
+import PortalPage from '../PortalPage';
 
 export const List = styled.div<{ $detailVisible: boolean }>`
   align-self: self-start;
@@ -7,7 +8,22 @@ export const List = styled.div<{ $detailVisible: boolean }>`
   grid-area: list;
 
   @media (${(props) => props.theme.breakpoints.tabletLandscapeDown}) {
+    padding: 0 20px;
     ${(props) => props.$detailVisible && 'display: none;'}
+  }
+`;
+
+export const AlignPositionWrapper = styled.div`
+  grid-area: list;
+
+  @media (${(props) => props.theme.breakpoints.tabletLandscapeDown}) {
+    padding: 0 20px;
+  }
+`;
+
+export const StyledPortalPage = styled(PortalPage)`
+  @media (${(props) => props.theme.breakpoints.tabletLandscapeDown}) {
+    background-color: ${({ theme }) => theme.basePalette.greyscale.white};
   }
 `;
 
@@ -21,7 +37,7 @@ export const Root = styled.div`
 
 export const Columns = styled.div`
   display: grid;
-  gap: 40px 20px;
+  gap: 25px 20px;
   grid-template-areas:
     'legend _'
     'list detail';
@@ -33,7 +49,7 @@ export const Columns = styled.div`
 
   @media (${(props) => props.theme.breakpoints.tabletLandscapeDown}) {
     display: block;
-    padding: 20px;
+    padding: 20px 0;
   }
 `;
 
@@ -46,6 +62,7 @@ export const Legend = styled.div<{ $detailVisible: boolean }>`
 
   @media (${(props) => props.theme.breakpoints.tabletLandscapeDown}) {
     margin-bottom: 40px;
+    padding: 0 20px;
     ${(props) => props.$detailVisible && 'display: none;'}
   }
 `;
@@ -54,6 +71,7 @@ export const Loading = styled.div`
   align-items: center;
   display: flex;
   justify-content: center;
+  grid-area: list;
 `;
 
 export const Subhead = styled.h2`

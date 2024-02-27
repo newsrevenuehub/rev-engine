@@ -1,8 +1,9 @@
 import { useQuery } from '@tanstack/react-query';
-import axios from 'ajax/axios';
 import { getContributionsEndpoint } from 'ajax/endpoints';
+import axios from 'ajax/portal-axios';
 import { ContributionInterval } from 'constants/contributionIntervals';
 import { PaymentStatus } from 'constants/paymentStatus';
+import queryString from 'query-string';
 
 export type CardBrand = 'amex' | 'diners' | 'discover' | 'jcb' | 'mastercard' | 'unionpay' | 'visa' | 'unknown';
 
@@ -16,15 +17,24 @@ export interface PortalContribution {
    */
   card_brand: CardBrand;
   /**
-   * Timestamp of when the contribution was created.
-   */
-  created: string;
-  /**
    * When the credit card used for the contribution's current payment will
    * expire.
    * @example "4/2024"
    */
-  credit_card_expiration_date: string;
+  card_expiration_date: string;
+  /**
+   * Last four digits of the payment card used on the current payment method of
+   * the contribution.
+   */
+  card_last_4: string;
+  /**
+   * Timestamp of when the contribution was created.
+   */
+  created: string;
+  /**
+   * Internal ID of the contribution.
+   */
+  id: number;
   /**
    * How often the contribution is being made.
    */
@@ -37,11 +47,7 @@ export interface PortalContribution {
    * Can the contribution be modified? (e.g. to change its payment method)
    */
   is_modifiable: boolean;
-  /**
-   * Last four digits of the payment card used on the current payment method of
-   * the contribution.
-   */
-  last4: string;
+
   /**
    * Timestamp of when the last related payment occurred. This may be null in
    * recurring contributions that have been migrated from legacy subscriptions.
@@ -51,18 +57,11 @@ export interface PortalContribution {
    * Timestamp of when the next related payment will occur, if any.
    */
   next_payment_date: null | string;
-  /**
-   * Internal ID of the payment in the payment processor, e.g. Stripe.
-   */
-  payment_provider_id: string;
+
   /**
    * How was the payment made?
    */
   payment_type: string;
-  /**
-   * Internal ID of the customer in the payment processor, e.g. Stripe.
-   */
-  provider_customer_id: string;
   /**
    * ID of the revenue program that was contributed to.
    */
@@ -80,8 +79,8 @@ export interface ContributionListResponse {
   results: PortalContribution[];
 }
 
-async function fetchContributions(contributorId: number) {
-  const { data } = await axios.get<ContributionListResponse>(getContributionsEndpoint(contributorId));
+async function fetchContributions(contributorId: number, queryParams?: string) {
+  const { data } = await axios.get<ContributionListResponse>(getContributionsEndpoint(contributorId, queryParams));
 
   return { count: data.count, results: data.results };
 }
@@ -90,10 +89,10 @@ async function fetchContributions(contributorId: number) {
  * Manages fetching the list of contributions a contributor sees when logging
  * into the portal.
  */
-export function usePortalContributionList(contributorId?: number) {
+export function usePortalContributionList(contributorId?: number, queryParams?: { ordering: string }) {
   const { data, isError, isFetching, isLoading, refetch } = useQuery(
-    ['portalContributionList'],
-    () => fetchContributions(contributorId!),
+    ['portalContributionList', queryParams?.ordering],
+    () => fetchContributions(contributorId!, queryString.stringify(queryParams || {})),
     { enabled: !!contributorId, keepPreviousData: true }
   );
 

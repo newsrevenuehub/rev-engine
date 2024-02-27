@@ -1,7 +1,7 @@
 import { Close } from '@material-ui/icons';
-import { PRICING_URL } from 'constants/helperUrls';
 import PropTypes, { InferProps } from 'prop-types';
-import { CloseButton, Header, LearnMoreButton, Root, Text, UpgradeIcon } from './SidebarCoreUpgradePrompt.styled';
+import { CloseButton, Header, UpgradeButton, Root, Text, UpgradeIcon } from './SidebarCoreUpgradePrompt.styled';
+import { SETTINGS } from 'routes';
 
 const SidebarCoreUpgradePromptPropTypes = {
   onClose: PropTypes.func.isRequired
@@ -18,9 +18,9 @@ export function SidebarCoreUpgradePrompt({ onClose }: SidebarCoreUpgradePromptPr
       </CloseButton>
       <Header>Upgrade to Core</Header>
       <Text>Boost your revenue with segmented email marketing.</Text>
-      <LearnMoreButton href={PRICING_URL} target="_blank" variant="outlined">
-        Learn More
-      </LearnMoreButton>
+      <UpgradeButton to={SETTINGS.SUBSCRIPTION} variant="outlined">
+        Upgrade
+      </UpgradeButton>
     </Root>
   );
 }

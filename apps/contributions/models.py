@@ -1,17 +1,16 @@
 from __future__ import annotations
 
 import datetime
-import json
 import logging
 import uuid
 from dataclasses import asdict
-from functools import reduce, wraps
+from functools import cached_property, reduce, wraps
 from operator import or_
 from typing import Any, Callable, List
 from urllib.parse import quote_plus
+from zoneinfo import ZoneInfo
 
 from django.conf import settings
-from django.core.cache import cache
 from django.db import models
 from django.template.loader import render_to_string
 from django.utils.safestring import SafeString, mark_safe
@@ -25,7 +24,11 @@ from apps.api.tokens import ContributorRefreshToken
 from apps.common.models import IndexedTimeStampedModel
 from apps.contributions.choices import BadActorScores, ContributionInterval, ContributionStatus
 from apps.contributions.types import StripeEventData, StripePiAsPortalContribution
-from apps.emails.tasks import make_send_thank_you_email_data, send_thank_you_email
+from apps.emails.tasks import (
+    make_send_thank_you_email_data,
+    send_templated_email,
+    send_thank_you_email,
+)
 from apps.organizations.models import RevenueProgram
 from apps.users.choices import Roles
 from apps.users.models import RoleAssignment
@@ -192,8 +195,8 @@ class Contribution(IndexedTimeStampedModel):
     provider_payment_method_id = models.CharField(max_length=255, blank=True, null=True)
     provider_payment_method_details = models.JSONField(null=True)
 
+    # TODO: [DEV-4333] Remove Contribution.last_payment_date in favor of derivation from payments
     last_payment_date = models.DateTimeField(null=True)
-
     contributor = models.ForeignKey("contributions.Contributor", on_delete=models.SET_NULL, null=True)
     donation_page = models.ForeignKey("pages.DonationPage", on_delete=models.PROTECT, null=True)
 
@@ -210,6 +213,18 @@ class Contribution(IndexedTimeStampedModel):
 
     objects = ContributionManager.from_queryset(ContributionQuerySet)()
 
+    CANCELABLE_SUBSCRIPTION_STATUSES = (
+        "trialing",
+        "active",
+        "past_due",
+    )
+    MODIFIABLE_SUBSCRIPTION_STATUSES = (
+        "incomplete",
+        "trialing",
+        "active",
+        "past_due",
+    )
+
     class Meta:
         get_latest_by = "modified"
         ordering = ["-created"]
@@ -222,6 +237,16 @@ class Contribution(IndexedTimeStampedModel):
 
     def __str__(self):
         return f"{self.formatted_amount}, {self.created.strftime('%Y-%m-%d %H:%M:%S')}"
+
+    @property
+    def next_payment_date(self) -> datetime.datetime | None:
+        if self.interval == ContributionInterval.ONE_TIME:
+            return None
+        if not self.stripe_subscription:
+            logger.warning("Expected a retrievable stripe subscription on contribution %s but none was found", self.id)
+            return None
+        next_date = self.stripe_subscription.current_period_end
+        return datetime.datetime.fromtimestamp(next_date, tz=ZoneInfo("UTC")) if next_date else None
 
     @property
     def formatted_amount(self) -> str:
@@ -378,6 +403,7 @@ class Contribution(IndexedTimeStampedModel):
             getattr(previous, "provider_payment_method_id", None),
             self.provider_payment_method_id,
         )
+        # TODO: [DEV-4447] If possible, remove conditional payment method update fetch from contribution.save
         if (
             (
                 previous
@@ -482,6 +508,9 @@ class Contribution(IndexedTimeStampedModel):
         return subscription
 
     def cancel(self):
+        # this is specifically used when a user clicks "back" on the second payment form in checkout flow. it's not
+        # necessarily intended to be a general-purpose cancellation method (i.e., it is not appropriate for the `.destroy` method
+        # on the API endpoint)
         if self.status not in (ContributionStatus.PROCESSING, ContributionStatus.FLAGGED):
             logger.warning(
                 "`Contribution.cancel` called on contribution (ID: %s) with unexpected status %s",
@@ -530,41 +559,73 @@ class Contribution(IndexedTimeStampedModel):
                 self.id,
             )
 
-    def send_recurring_contribution_email_reminder(self, next_charge_date: datetime.date) -> None:
-        # vs. circular import
-        from apps.api.views import construct_rp_domain
-        from apps.emails.tasks import send_templated_email
-
+    def send_recurring_contribution_change_email(
+        self, subject_line: str, template_name: str, timestamp: str = None
+    ) -> None:
+        """Send an email related to a change to a recurring contribution (cancellation, payment method update, etc.) Logic here is shared among several email templates."""
         if self.interval == ContributionInterval.ONE_TIME:
-            logger.warning(
-                "`Contribution.send_recurring_contribution_email_reminder` was called on an instance (ID: %s) whose interval is one-time",
+            logger.error(
+                "Called on an instance (ID: %s) whose interval is one-time",
                 self.id,
             )
             return
-        token = str(ContributorRefreshToken.for_contributor(self.contributor.uuid).short_lived_access_token)
+
+        if not self.provider_customer_id:
+            logger.error("No Stripe customer ID for contribution with ID %s", self.id)
+            return
+        try:
+            customer = stripe.Customer.retrieve(
+                self.provider_customer_id,
+                stripe_account=self.donation_page.revenue_program.payment_provider.stripe_account_id,
+            )
+        except StripeError:
+            logger.exception(
+                "Something went wrong retrieving Stripe customer for contribution with ID %s",
+                self.id,
+            )
+            return
+
         data = {
-            "rp_name": self.donation_page.revenue_program.name,
-            # nb, we have to send this as pre-formatted because this data will be serialized
-            # when sent to the Celery worker.
-            "contribution_date": next_charge_date.strftime("%m/%d/%Y"),
             "contribution_amount": self.formatted_amount,
             "contribution_interval_display_value": self.interval,
-            "non_profit": self.donation_page.revenue_program.non_profit,
             "contributor_email": self.contributor.email,
-            "tax_id": self.donation_page.revenue_program.tax_id,
-            "fiscal_status": self.donation_page.revenue_program.fiscal_status,
+            "contributor_name": customer.name,
+            "copyright_year": datetime.datetime.now().year,
             "fiscal_sponsor_name": self.donation_page.revenue_program.fiscal_sponsor_name,
-            "magic_link": mark_safe(
-                f"https://{construct_rp_domain(self.donation_page.revenue_program.slug)}/{settings.CONTRIBUTOR_VERIFY_URL}"
-                f"?token={token}&email={quote_plus(self.contributor.email)}"
-            ),
+            "fiscal_status": self.donation_page.revenue_program.fiscal_status,
+            "magic_link": Contributor.create_magic_link(self),
+            "non_profit": self.donation_page.revenue_program.non_profit,
+            "rp_name": self.donation_page.revenue_program.name,
             "style": asdict(self.donation_page.revenue_program.transactional_email_style),
+            "tax_id": self.donation_page.revenue_program.tax_id,
+            "timestamp": timestamp if timestamp else datetime.datetime.today().strftime("%m/%d/%Y"),
         }
+
+        # Almost all RPs should have a default page set, but it's possible one isn't.
+
+        if self.donation_page.revenue_program.default_donation_page:
+            data["default_contribution_page_url"] = self.donation_page.revenue_program.default_donation_page.page_url
+
         send_templated_email.delay(
             self.contributor.email,
+            subject_line,
+            render_to_string(f"{template_name}.txt", data),
+            render_to_string(f"{template_name}.html", data),
+        )
+
+    def send_recurring_contribution_canceled_email(self) -> None:
+        self.send_recurring_contribution_change_email("Canceled contribution", "recurring-contribution-canceled")
+
+    def send_recurring_contribution_payment_updated_email(self) -> None:
+        self.send_recurring_contribution_change_email(
+            "New change to your contribution", "recurring-contribution-payment-updated"
+        )
+
+    def send_recurring_contribution_email_reminder(self, next_charge_date: datetime.date = None) -> None:
+        self.send_recurring_contribution_change_email(
             f"Reminder: {self.donation_page.revenue_program.name} scheduled contribution",
-            render_to_string("recurring-contribution-email-reminder.txt", data),
-            render_to_string("recurring-contribution-email-reminder.html", data),
+            "recurring-contribution-email-reminder",
+            next_charge_date,
         )
 
     @property
@@ -610,6 +671,75 @@ class Contribution(IndexedTimeStampedModel):
             return None
 
     @property
+    def card_brand(self) -> str:
+        card_brand = ""
+        if (details := self.provider_payment_method_details) and details.get("type") == "card":
+            card_brand = details["card"]["brand"]
+        return card_brand
+
+    @property
+    def card_expiration_date(self) -> str:
+        expiry = ""
+        if (details := self.provider_payment_method_details) and details.get("type") == "card":
+            expiry = f"{details['card']['exp_month']}/{details['card']['exp_year']}"
+        return expiry
+
+    @property
+    def card_owner_name(self) -> str:
+        name = ""
+        if (details := self.provider_payment_method_details) and details.get("type") == "card":
+            name = details["billing_details"]["name"]
+        return name
+
+    @property
+    def card_last_4(self) -> str:
+        last_4 = ""
+        if (details := self.provider_payment_method_details) and details.get("type") == "card":
+            last_4 = details["card"]["last4"]
+        return last_4
+
+    @cached_property
+    def _expanded_pi_for_cancelable_modifiable(self) -> stripe.PaymentIntent | None:
+        if not self.provider_payment_id:
+            return None
+        return stripe.PaymentIntent.retrieve(
+            self.provider_payment_id, expand=["invoice.subscription"], stripe_account=self.stripe_account_id
+        )
+
+    @property
+    def is_cancelable(self) -> bool:
+        return getattr(self.stripe_subscription, "status", None) in self.CANCELABLE_SUBSCRIPTION_STATUSES
+
+    @property
+    def is_modifiable(self) -> bool:
+        return getattr(self.stripe_subscription, "status", None) in self.CANCELABLE_SUBSCRIPTION_STATUSES
+
+    @property
+    # TODO: [DEV-4333] Update this to be .last_payment_date when no longer in conflict with db model field
+    def _last_payment_date(self) -> datetime.datetime | None:
+        """In short term while last payment date is still tracked on db level and is required by API consumers, we create this `_`
+        prefixed property to avoid conflict with db field name. This will be removed once db field is removed.
+
+        This is used as a source for serializer fields elsewhere.
+        """
+        last_payment = self.payment_set.order_by("-transaction_time").first()
+        return last_payment.transaction_time if last_payment else None
+
+    @property
+    def paid_fees(self) -> bool:
+        return self.contribution_metadata.get("agreed_to_pay_fees", False)
+
+    @cached_property
+    def stripe_payment_method(self) -> stripe.PaymentMethod | None:
+        if not (pm_id := self.provider_payment_method_id):
+            return None
+        return stripe.PaymentMethod.retrieve(pm_id, stripe_account=self.stripe_account_id)
+
+    @property
+    def payment_type(self) -> str:
+        return self.stripe_payment_method.type if self.stripe_payment_method else ""
+
+    @cached_property
     def stripe_subscription(self) -> stripe.Subscription | None:
         if not all(
             [
@@ -930,12 +1060,52 @@ class Contribution(IndexedTimeStampedModel):
             updated_count,
         )
 
+    def update_payment_method_for_subscription(self, provider_payment_method_id: str) -> None:
+        """If it's a recurring subscription, attach the payment method to the customer, and  set the subscription's
+
+        default payment method to the new payment method.
+        """
+        if self.interval == ContributionInterval.ONE_TIME:
+            raise ValueError("Cannot update payment method for one-time contribution")
+        if not (cust_id := self.provider_customer_id):
+            raise ValueError("Cannot update payment method for contribution without a customer ID")
+        if not (sub_id := self.provider_subscription_id):
+            raise ValueError("Cannot update payment method for contribution without a subscription ID")
+
+        try:
+            logger.info(
+                "attaching payment method %s to customer %s",
+                provider_payment_method_id,
+                cust_id,
+            )
+            stripe.PaymentMethod.attach(
+                provider_payment_method_id, customer=cust_id, stripe_account=self.stripe_account_id
+            )
+
+            logger.info(
+                "updating Stripe subscription %s's default payment method to %s",
+                sub_id,
+                provider_payment_method_id,
+            )
+            stripe.Subscription.modify(
+                sub_id, default_payment_method=provider_payment_method_id, stripe_account=self.stripe_account_id
+            )
+        except StripeError as stripe_error:
+            # Don't log/send Sentry alert if stripe error is "declined card"
+            if stripe_error.code != "card_declined":
+                logger.exception(
+                    "Encountered a Stripe error while trying to update payment method for subscription on contribution %s",
+                    self.id,
+                )
+
+            raise
+
 
 def ensure_stripe_event(event_types: List[str] = None) -> Callable:
     """This is a decorator that's used to ensure that the `event` keyword
 
     argument passed to a function is a Stripe event in minimally expected state — specifically,
-    that it is an instance of `stripe.Event`.
+    that it is an instance of `StripeEventData`.
 
     You can optionally send a list of event types to ensure that the event is of a certain type.
 
@@ -946,10 +1116,10 @@ def ensure_stripe_event(event_types: List[str] = None) -> Callable:
     def decorator(func: Callable) -> Callable:
         @wraps(func)
         def wrapper(*args, **kwargs) -> Any:
-            event = kwargs.get("event", None)
-            if not event:
+            event = kwargs.get("event", (no_arg := "no_arg"))
+            if event == no_arg:
                 raise ValueError(Payment.MISSING_EVENT_KW_ERROR_MSG)
-            if not isinstance(event, stripe.Event):
+            if not isinstance(event, StripeEventData):
                 raise ValueError(Payment.ARG_IS_NOT_EVENT_TYPE_ERROR_MSG)
             if event_types and event.type not in event_types:
                 raise ValueError(Payment.EVENT_IS_UNEXPECTED_TYPE_ERROR_MSG_TEMPLATE.format(event_types=event_types))
@@ -968,9 +1138,16 @@ class Payment(IndexedTimeStampedModel):
     gross_amount_paid = models.IntegerField()
     amount_refunded = models.IntegerField()
     stripe_balance_transaction_id = models.CharField(max_length=255, unique=True)
+    # TODO: [DEV-4379] Make transaction_time non-nullable once we've run data migration for existing payments
+    # NB: this is the time the payment was created in Stripe, not the time it was created in NRE. Additionally, note that we
+    # source this from the .created property on the balance transaction associated with the payment. There is also a
+    # Stripe payment intent, invoice, or charge associated with the balance transaction that has a .created property. We look
+    # to balance transaction since it is common to each of: one-time payment, recurring payment, and refund.
+    # Ultimately, this field gives us a way to sort by recency.
+    transaction_time = models.DateTimeField(db_index=True, null=True)
 
-    MISSING_EVENT_KW_ERROR_MSG = "Expected a keyword argument called `event` called `event`"
-    ARG_IS_NOT_EVENT_TYPE_ERROR_MSG = "Expected `event` to be an instance of `stripe.Event`"
+    MISSING_EVENT_KW_ERROR_MSG = "Expected a keyword argument called `event`"
+    ARG_IS_NOT_EVENT_TYPE_ERROR_MSG = "Expected `event` to be an instance of `StripeEventData`"
     EVENT_IS_UNEXPECTED_TYPE_ERROR_MSG_TEMPLATE = (
         "Expected `event` to be in the following list of event types: {event_types}"
     )
@@ -983,43 +1160,13 @@ class Payment(IndexedTimeStampedModel):
         """Convenience method for referencing the Stripe account ID associated with the payment provider for this payment"""
         return self.contribution.donation_page.revenue_program.payment_provider.stripe_account_id
 
-    @property
-    def stripe_balance_transaction(self):
-        return self._get_stripe_balance_transaction(
-            self.stripe_balance_transaction_id,
-            account_id=self.stripe_account_id,
-        )
-
-    @classmethod
-    def _get_stripe_balance_transaction(
-        cls, balance_transaction_id: str, account_id: str, expand: List[str] = None
-    ) -> stripe.BalanceTransaction | None:
-        """Cached call to retrieve balance transaction.
-
-        Normal paths through this class' methods will call this method, typically in quick succession.
-        The balance transaction is unlikely to change during this period, and we need not
-        incur the network call (which also risks being rate limited) to fetch it from Stripe.
-        """
-        kwargs = {"account": account_id}
-        if expand:
-            kwargs["expand"] = expand
-        cache_key = f"_get_stripe_balance_transaction_{balance_transaction_id}_{account_id}_{'_'.join(expand) if expand else 'no_expand'}"
-        cached_result = cache.get(cache_key)
-        if cached_result is not None:
-            logger.debug("Found cached result for %s", cache_key)
-            return stripe.BalanceTransaction.construct_from(cached_result, key=stripe.api_key)
-
-        logger.debug("No cached result found for %s", cache_key)
-        result = stripe.BalanceTransaction.retrieve(balance_transaction_id, stripe_account=account_id)
-        # load/dump gets us fully serializable data suited for caching
-        cache.set(cache_key, json.loads(json.dumps(result)), settings.RETRIEVED_STRIPE_ENTITY_CACHE_TTL)
-        return result
-
     @classmethod
     def get_subscription_id_for_balance_transaction(
         cls, balance_transaction_id: str, stripe_account_id: str
     ) -> str | None:
-        bt = cls._get_stripe_balance_transaction(balance_transaction_id, stripe_account_id, expand=["source.invoice"])
+        bt = stripe.BalanceTransaction.retrieve(
+            balance_transaction_id, stripe_account=stripe_account_id, expand=["source.invoice"]
+        )
         return getattr(bt.source.invoice, "subscription", None) if bt.source.invoice else None
 
     @classmethod
@@ -1059,7 +1206,10 @@ class Payment(IndexedTimeStampedModel):
         expected, but the data model would allow for it.
         """
         # we re-retrieve the PI because its state could have changed between the time the event was received and now
-        pi = stripe.PaymentIntent.retrieve(event.data.object.id, stripe_account=event.account)
+        pi = stripe.PaymentIntent.retrieve(
+            event.data["object"]["id"],
+            stripe_account=event.account,
+        )
         try:
             cls._ensure_pi_has_single_charge(pi, event.id)
             balance_transaction_id = pi.charges.data[0].balance_transaction
@@ -1073,58 +1223,25 @@ class Payment(IndexedTimeStampedModel):
             )
             balance_transaction = None
         else:
-            balance_transaction = cls._get_stripe_balance_transaction(
+            balance_transaction = stripe.BalanceTransaction.retrieve(
                 balance_transaction_id,
-                account_id=event.account,
+                stripe_account=event.account,
             )
-
         try:
-            contribution = Contribution.objects.get(provider_payment_id=pi.id)
-        except Contribution.DoesNotExist:
-            try:
-                contribution = (
-                    cls.get_contribution_for_recurrence(balance_transaction.id, event.account)
-                    if balance_transaction
-                    else None
-                )
-            except Contribution.DoesNotExist:
-                contribution = None
-        return contribution, balance_transaction
-
-    @classmethod
-    @ensure_stripe_event(["charge.refunded"])
-    def get_contribution_and_balance_transaction_for_charge_refunded_event(
-        cls, event: StripeEventData
-    ) -> (Contribution | None, stripe.BalanceTransaction | None):
-        pi = (
-            stripe.PaymentIntent.retrieve(
-                event.data.object.payment_intent, stripe_account=event.account, expand=["invoice"]
+            contribution = (
+                Contribution.objects.get(provider_payment_id=pi.id)
+                # pi.charges.data[0].invoice -- when is it none
+                if pi.charges.data[0].description == "Subscription creation" or pi.charges.data[0].invoice is None
+                else cls.get_contribution_for_recurrence(balance_transaction.id, event.account)
             )
-            if event.data.object.payment_intent
-            else None
-        )
-        balance_transaction = cls._get_stripe_balance_transaction(
-            event.data.object.balance_transaction, event.account, expand=["source.invoice"]
-        )
-        conditions = []
-        # we expect this to happen if it's a refund related to a one-time contribution or the initial payment associated with
-        # a new Stripe subscription in case of recurring contribution.
-        if pi:
-            conditions.append(models.Q(provider_payment_id=pi.id))
-        # We expect this to happen when it's a refund related to a recurrence on a subscription
-        if (
-            balance_transaction
-            and getattr(balance_transaction.source, "invoice", None)
-            and (sub_id := pi.invoice.subscription)
-        ):
-            conditions.append(models.Q(provider_subscription_id=sub_id))
-        if not conditions:
-            return None, balance_transaction
-        try:
-            # NB: these are inclusive OR conditions
-            contribution = Contribution.objects.get(reduce(or_, conditions))
         except Contribution.DoesNotExist:
             contribution = None
+        if not contribution:
+            logger.warning(
+                "Could not find a contribution for PI %s associated with event %s",
+                getattr(pi, "id", "<no-pi>"),
+                event.id,
+            )
         return contribution, balance_transaction
 
     @classmethod
@@ -1133,13 +1250,13 @@ class Payment(IndexedTimeStampedModel):
         cls, event: StripeEventData
     ) -> (Contribution | None, stripe.BalanceTransaction | None):
         pi = stripe.PaymentIntent.retrieve(
-            event.data.object.payment_intent,
+            event.data["object"]["payment_intent"],
             stripe_account=event.account,
             expand=["invoice"],
         )
-        bt = cls._get_stripe_balance_transaction(
+        bt = stripe.BalanceTransaction.retrieve(
             pi.charges.data[0].balance_transaction,
-            account_id=event.account,
+            stripe_account=event.account,
             expand=["source.invoice"],
         )
         try:
@@ -1164,40 +1281,102 @@ class Payment(IndexedTimeStampedModel):
         if not balance_transaction:
             logger.warning("Cannot find balance transaction for event %s", event_id)
             raise ValueError("Could not find a balance transaction for this event")
-        return Payment(
+        payment, _ = Payment.objects.get_or_create(
             contribution=contribution,
             stripe_balance_transaction_id=balance_transaction.id,
-            net_amount_paid=balance_transaction.net,
-            gross_amount_paid=balance_transaction.amount,
-            amount_refunded=amount_refunded,
+            defaults={
+                "net_amount_paid": balance_transaction.net,
+                "amount_refunded": amount_refunded,
+                "gross_amount_paid": balance_transaction.amount,
+                "transaction_time": datetime.datetime.fromtimestamp(
+                    balance_transaction.created, tz=datetime.timezone.utc
+                ),
+            },
         )
+        return payment
 
     @classmethod
     @ensure_stripe_event(["payment_intent.succeeded"])
     def from_stripe_payment_intent_succeeded_event(cls, event: StripeEventData) -> Payment:
+        (
+            contribution,
+            balance_transaction,
+        ) = cls.get_contribution_and_balance_transaction_for_payment_intent_succeeded_event(event=event)
+
+        # if matching contribution is a recurring one, we will no-op because we'll create payment in
+        # `from_stripe_invoice_payment_succeeded_event` which should occur around the same time. We don't want to create
+        # duplicate payment instances for the same transaction.
+        if contribution and contribution.interval != ContributionInterval.ONE_TIME:
+            logger.debug(
+                "`Contribution.from_stripe_payment_intent_succeeded_event` called on contribution with ID %s which is a recurring contribution. "
+                "Will not create a payment instance because it will be created in `from_stripe_invoice_payment_succeeded_event`",
+                contribution.id,
+            )
+            return None
         return cls._handle_create_payment(
-            *cls.get_contribution_and_balance_transaction_for_payment_intent_succeeded_event(event=event),
+            contribution=contribution,
+            balance_transaction=balance_transaction,
             event_id=event.id,
         )
 
     @classmethod
     @ensure_stripe_event(["charge.refunded"])
     def from_stripe_charge_refunded_event(cls, event: StripeEventData) -> Payment:
-        contribution, balance_transaction = cls.get_contribution_and_balance_transaction_for_charge_refunded_event(
-            event=event
+        pi = (
+            stripe.PaymentIntent.retrieve(
+                event.data["object"]["payment_intent"], stripe_account=event.account, expand=["invoice"]
+            )
+            if event.data["object"]["payment_intent"]
+            else None
         )
+        conditions = set()
+        # we expect this to happen if it's a refund related to a one-time contribution or the initial payment associated with
+        # a new Stripe subscription in case of recurring contribution.
+        if pi:
+            conditions.add(models.Q(provider_payment_id=pi.id))
+        new_refunds = [
+            x
+            for x in event.data["object"]["refunds"]["data"]
+            if x["id"] not in [y["id"] for y in event.data["previous_attributes"]["refunds"]["data"]]
+        ]
+        if len(new_refunds) > 1:
+            logger.warning("Event contains more than 1 new refund, and can only process single for event %s", event.id)
+            raise ValueError("Too many refunds")
+        refund = new_refunds[0]
+        bt = stripe.BalanceTransaction.retrieve(
+            refund["balance_transaction"], stripe_account=event.account, expand=["source.invoice"]
+        )
+        # We expect this to happen when it's a refund related to a recurrence on a subscription
+        if getattr(bt.source, "invoice", None) and (sub_id := pi.invoice.subscription):
+            conditions.add(models.Q(provider_subscription_id=sub_id))
+        if not conditions:
+            logger.warning("Cannot find contribution for event (no conditions) %s", event.id)
+            raise ValueError("Could not find a contribution for this event (no conditions)")
+        try:
+            contribution = Contribution.objects.get(reduce(or_, conditions))
+        except (Contribution.MultipleObjectsReturned, Contribution.DoesNotExist):
+            logger.exception("Cannot find contribution for event (no match) %s", event.id)
+            raise ValueError("Could not find a contribution for this event (no match)")
 
-        return cls._handle_create_payment(
+        return Payment.objects.create(
             contribution=contribution,
-            balance_transaction=balance_transaction,
-            amount_refunded=balance_transaction.source.amount_refunded,
-            event_id=event.id,
+            stripe_balance_transaction_id=bt.id,
+            net_amount_paid=0,
+            gross_amount_paid=0,
+            amount_refunded=refund["amount"],
+            transaction_time=datetime.datetime.fromtimestamp(bt.created, tz=datetime.timezone.utc),
         )
 
     @classmethod
     @ensure_stripe_event(["invoice.payment_succeeded"])
     def from_stripe_invoice_payment_succeeded_event(cls, event: StripeEventData) -> Payment:
-        return cls._handle_create_payment(
-            *cls.get_contribution_and_balance_transaction_for_invoice_payment_succeeded_event(event=event),
+        (
+            contribution,
+            balance_transaction,
+        ) = cls.get_contribution_and_balance_transaction_for_invoice_payment_succeeded_event(event=event)
+        payment = cls._handle_create_payment(
+            contribution=contribution,
+            balance_transaction=balance_transaction,
             event_id=event.id,
         )
+        return payment

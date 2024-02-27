@@ -1,8 +1,13 @@
 import MockAdapter from 'axios-mock-adapter';
-import Axios from 'ajax/axios';
+import Axios from 'ajax/portal-axios';
 import { TestQueryClientProvider } from 'test-utils';
 import { ContributionListResponse, usePortalContributionList } from './usePortalContributionList';
 import { renderHook } from '@testing-library/react-hooks';
+import { useHistory } from 'react-router-dom';
+
+jest.mock('react-router-dom', () => ({
+  useHistory: jest.fn()
+}));
 
 const mockContributionResponse: ContributionListResponse = {
   count: 2,
@@ -11,16 +16,15 @@ const mockContributionResponse: ContributionListResponse = {
       amount: 123,
       card_brand: 'amex',
       created: 'mock-created-1',
-      credit_card_expiration_date: 'mock-cc-expiration-1',
+      card_expiration_date: 'mock-cc-expiration-1',
+      id: 1,
       interval: 'month',
       is_cancelable: true,
       is_modifiable: true,
-      last4: '1234',
+      card_last_4: '1234',
       last_payment_date: 'mock-last-payment-1',
       next_payment_date: '',
-      payment_provider_id: 'mock-payment-provider-1',
       payment_type: 'mock-payment-type-1',
-      provider_customer_id: 'mock-customer-1',
       revenue_program: 1,
       status: 'paid'
     },
@@ -28,16 +32,15 @@ const mockContributionResponse: ContributionListResponse = {
       amount: 456,
       card_brand: 'visa',
       created: 'mock-created-2',
-      credit_card_expiration_date: 'mock-cc-expiration-2',
+      card_expiration_date: 'mock-cc-expiration-2',
+      id: 2,
       interval: 'month',
       is_cancelable: true,
       is_modifiable: true,
-      last4: '5678',
+      card_last_4: '5678',
       last_payment_date: 'mock-last-payment-2',
       next_payment_date: 'mock-next-payment-2',
-      payment_provider_id: 'mock-payment-provider-1',
       payment_type: 'mock-payment-type-2',
-      provider_customer_id: 'mock-customer-2',
       revenue_program: 2,
       status: 'paid'
     }
@@ -52,8 +55,10 @@ function hook(contributorId?: number) {
 
 describe('usePortalContributionList', () => {
   const axiosMock = new MockAdapter(Axios);
+  const useHistoryMock = jest.mocked(useHistory);
 
   beforeEach(() => {
+    useHistoryMock.mockReturnValue({ push: jest.fn() });
     axiosMock.onGet('contributors/123/contributions/').reply(200, mockContributionResponse);
   });
   afterEach(() => axiosMock.reset());
@@ -94,10 +99,23 @@ describe('usePortalContributionList', () => {
       expect(axiosMock.history.get[0].url).toBe('/contributors/123/contributions/');
     });
 
+    it('does not redirect if fetching succeeds', async () => {
+      const push = jest.fn();
+      useHistoryMock.mockReturnValue({ push });
+
+      const { result, waitFor } = hook(123);
+
+      await waitFor(() => expect(axiosMock.history.get.length).toBe(1));
+      expect(push).not.toHaveBeenCalled();
+      expect(result.error).toBeUndefined();
+    });
+
     describe('When fetching contributions fails', () => {
       let errorSpy: jest.SpyInstance;
+      const push = jest.fn();
 
       beforeEach(() => {
+        useHistoryMock.mockReturnValue({ push });
         axiosMock.onGet('contributors/123/contributions/').networkError();
         errorSpy = jest.spyOn(console, 'error').mockImplementation(() => {});
       });

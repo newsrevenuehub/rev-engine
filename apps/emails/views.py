@@ -2,53 +2,58 @@ from dataclasses import asdict
 from datetime import datetime
 
 from django.http import HttpResponse
-from django.template import loader
+from django.template import TemplateDoesNotExist
+from django.template.loader import get_template
 
 from apps.organizations.models import RevenueProgram
 
 
-def preview_recurring_contribution_reminder(request):
-    rp = RevenueProgram.objects.get(id=request.GET.get("rp"))
-    style = asdict(rp.transactional_email_style)
-    if request.GET.get("logo"):
-        style.logo_url = request.GET.get("logo")
-    template = loader.get_template("recurring-contribution-email-reminder.html")
-    return HttpResponse(
-        template.render(
-            {
-                "contribution_interval_display_value": "year",
-                "contribution_date": datetime.now(),
-                "contribution_amount": "$123.45",
-                "copyright_year": datetime.now().year,
-                "contributor_email": "nobody@fundjournalism.org",
-                "magic_link": "https://magic-link",
-                "rp_name": rp.name,
-                "style": style,
-            },
-            request,
-        )
-    )
+PERMITTED_TEMPLATES = tuple(
+    [
+        f"{name}.{ext}"
+        for name in [
+            "recurring-contribution-email-reminder",
+            "recurring-contribution-canceled",
+            "recurring-contribution-payment-updated",
+            "nrh-default-contribution-confirmation-email",
+        ]
+        for ext in ["html", "txt"]
+    ]
+)
 
 
-def preview_contribution_confirmation(request):
-    rp = RevenueProgram.objects.get(id=request.GET.get("rp"))
-    style = asdict(rp.transactional_email_style)
-    if request.GET.get("logo"):
-        style.logo_url = request.GET.get("logo")
-    template = loader.get_template("nrh-default-contribution-confirmation-email.html")
+def preview_contribution_email_template(request, template_name: str):
+    if template_name not in PERMITTED_TEMPLATES:
+        return HttpResponse(f"Template {template_name} not permitted.", status=400)
+    rp_id = request.GET.get("rp_id", None)
+    if rp_id is None:
+        return HttpResponse("`rp_id` is a required field.", status=400)
+    try:
+        rp = RevenueProgram.objects.get(id=rp_id)
+    except RevenueProgram.DoesNotExist:
+        return HttpResponse("RevenueProgram does not exist.", status=404)
+    rp_style = asdict(rp.transactional_email_style)
+    rp_style["logo_url"] = request.GET.get("logo_url", rp_style["logo_url"])
+    try:
+        template = get_template(template_name)
+    except TemplateDoesNotExist:
+        return HttpResponse("Template does not exist.", status=404)
+    data = {
+        "contribution_interval_display_value": "year",
+        "timestamp": datetime.now(),
+        "contribution_amount": "$123.45",
+        "contributor_name": "Contributor Name",
+        "copyright_year": datetime.now().year,
+        "contributor_email": "nobody@fundjournalism.org",
+        "magic_link": "https://magic-link",
+        "rp_name": rp.name,
+        "style": rp_style,
+        "default_contribution_page_url": rp.default_donation_page.page_url if rp.default_donation_page else None,
+    }
     return HttpResponse(
         template.render(
-            {
-                "contribution_interval_display_value": "year",
-                "contribution_date": datetime.now(),
-                "contribution_amount": "$123.45",
-                "contributor_name": "Contributor Name",
-                "copyright_year": datetime.now().year,
-                "contributor_email": "nobody@fundjournalism.org",
-                "magic_link": "https://magic-link",
-                "rp_name": rp.name,
-                "style": style,
-            },
+            data,
             request,
-        )
+        ),
+        content_type=f"text/{'plain' if template_name.endswith('txt') else 'html'}",
     )

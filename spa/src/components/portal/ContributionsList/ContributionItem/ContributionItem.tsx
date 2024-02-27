@@ -62,9 +62,10 @@ export const ContributionItem = forwardRef<HTMLAnchorElement, ContributionItemPr
       <Root
         $dimmed={contribution.status === 'canceled'}
         aria-selected={selected ? true : undefined}
+        data-testid="contribution-item"
         ref={ref}
         replace={!!replaceHistory}
-        to={selected ? PORTAL.CONTRIBUTIONS : `/portal/my-contributions/${contribution.payment_provider_id}/`}
+        to={selected ? PORTAL.CONTRIBUTIONS : `/portal/my-contributions/${contribution.id}/`}
       >
         <IntervalIconContainer $status={contribution.status}>
           <IntervalIcon aria-label={getFrequencyAdjective(contribution.interval)} />
@@ -83,7 +84,7 @@ export const ContributionItem = forwardRef<HTMLAnchorElement, ContributionItemPr
         </DateContainer>
         <CardInfo>
           <span data-testid="card-brand">{formattedCardBrands[contribution.card_brand]}</span>{' '}
-          <LastCardDigits data-testid="card-last4">{contribution.last4}</LastCardDigits>
+          <LastCardDigits data-testid="card-last4">{contribution.card_last_4}</LastCardDigits>
         </CardInfo>
         <Status $status={contribution.status} data-testid="status">
           {formattedStatuses[contribution.status]}

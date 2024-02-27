@@ -1,9 +1,10 @@
 import { axe } from 'jest-axe';
 import { useParams } from 'react-router-dom';
-import { fireEvent, render, screen } from 'test-utils';
+import { fireEvent, render, screen, waitFor } from 'test-utils';
 import ContributionsList from './ContributionsList';
 import { PortalAuthContext, PortalAuthContextResult } from 'hooks/usePortalAuth';
 import { usePortalContributionList } from 'hooks/usePortalContributionList';
+import userEvent from '@testing-library/user-event';
 
 jest.mock('react-router-dom', () => ({
   ...jest.requireActual('react-router-dom'),
@@ -13,10 +14,11 @@ jest.mock('hooks/usePortalContributionList');
 jest.mock('./ContributionDetail/ContributionDetail');
 jest.mock('./ContributionItem/ContributionItem');
 jest.mock('./ContributionFetchError');
+jest.mock('../PortalPage');
 
 function tree(context?: Partial<PortalAuthContextResult>) {
   return render(
-    <PortalAuthContext.Provider value={{ contributor: { id: 'mock-contributor-id' } as any, ...context }}>
+    <PortalAuthContext.Provider value={{ contributor: { id: 1 } as any, ...context }}>
       <ContributionsList />
     </PortalAuthContext.Provider>
   );
@@ -25,6 +27,7 @@ function tree(context?: Partial<PortalAuthContextResult>) {
 describe('ContributionsList', () => {
   const useParamsMock = jest.mocked(useParams);
   const usePortalContributionsListMock = jest.mocked(usePortalContributionList);
+  let track: jest.SpyInstance;
 
   beforeEach(() => {
     useParamsMock.mockReturnValue({});
@@ -35,6 +38,8 @@ describe('ContributionsList', () => {
       isLoading: false,
       refetch: jest.fn()
     });
+    track = jest.fn();
+    (window as any).pendo = { track };
   });
 
   it('shows a Transactions heading', () => {
@@ -44,7 +49,7 @@ describe('ContributionsList', () => {
 
   it('fetches contributions for the current user', () => {
     tree();
-    expect(usePortalContributionsListMock).toBeCalledWith('mock-contributor-id');
+    expect(usePortalContributionsListMock).toBeCalledWith(1, expect.anything());
   });
 
   it('shows a spinner', () => {
@@ -62,15 +67,15 @@ describe('ContributionsList', () => {
   describe('After contributions are fetched', () => {
     it('shows a contribution item for each contribution', () => {
       usePortalContributionsListMock.mockReturnValue({
-        contributions: [{ payment_provider_id: 'mock-id-1' }, { payment_provider_id: 'mock-id-2' }] as any,
+        contributions: [{ id: 1 }, { id: 2 }] as any,
         isError: false,
         isLoading: false,
         isFetching: false,
         refetch: jest.fn()
       });
       tree();
-      expect(screen.getByTestId('mock-contribution-item-mock-id-1')).toBeInTheDocument();
-      expect(screen.getByTestId('mock-contribution-item-mock-id-2')).toBeInTheDocument();
+      expect(screen.getByTestId('mock-contribution-item-1')).toBeInTheDocument();
+      expect(screen.getByTestId('mock-contribution-item-2')).toBeInTheDocument();
     });
 
     it('shows a message if the user has no contributions', () => {
@@ -90,42 +95,61 @@ describe('ContributionsList', () => {
       expect(screen.queryByRole('progressbar')).not.toBeInTheDocument();
     });
 
-    it("doesn't show contribution detail if not present in the route", () => {
-      usePortalContributionsListMock.mockReturnValue({
-        contributions: [{ payment_provider_id: 'mock-id-1' }, { payment_provider_id: 'mock-id-2' }] as any,
-        isError: false,
-        isLoading: false,
-        isFetching: false,
-        refetch: jest.fn()
+    describe("When a contribution ID isn't in the route", () => {
+      beforeEach(() => {
+        usePortalContributionsListMock.mockReturnValue({
+          contributions: [{ id: 1 }, { id: 2 }] as any,
+          isError: false,
+          isLoading: false,
+          isFetching: false,
+          refetch: jest.fn()
+        });
+        useParamsMock.mockReturnValue({});
       });
-      useParamsMock.mockReturnValue({});
-      tree();
-      expect(screen.queryByTestId('mock-contribution-detail')).not.toBeInTheDocument();
+
+      it("doesn't show contribution detail", () => {
+        tree();
+        expect(screen.queryByTestId('mock-contribution-detail')).not.toBeInTheDocument();
+      });
+
+      it("doesn't track a Pendo event", () => {
+        tree();
+        expect(track).not.toBeCalled();
+      });
     });
 
-    it('shows contribution detail if present in the route', () => {
-      useParamsMock.mockReturnValue({ contributionId: 'mock-id-1' });
-      usePortalContributionsListMock.mockReturnValue({
-        contributions: [{ payment_provider_id: 'mock-id-1' }, { payment_provider_id: 'mock-id-2' }] as any,
-        isError: false,
-        isLoading: false,
-        isFetching: false,
-        refetch: jest.fn()
+    describe('When a contribution ID is in the route', () => {
+      beforeEach(() => {
+        useParamsMock.mockReturnValue({ contributionId: '1' });
+        usePortalContributionsListMock.mockReturnValue({
+          contributions: [{ id: 1, status: 'mock-status' }, { id: 2 }] as any,
+          isError: false,
+          isLoading: false,
+          isFetching: false,
+          refetch: jest.fn()
+        });
       });
-      tree();
 
-      const detail = screen.getByTestId('mock-contribution-detail');
+      it('shows contribution detail', () => {
+        tree();
 
-      expect(detail.dataset.contributorId).toBe('mock-contributor-id');
-      expect(detail.dataset.contributionId).toBe('mock-id-1');
+        const detail = screen.getByTestId('mock-contribution-detail');
+
+        expect(detail.dataset.contributorId).toBe('1');
+        expect(detail.dataset.contributionId).toBe('1');
+      });
+
+      it('tracks a Pendo event', () => {
+        tree();
+        expect(track.mock.calls).toEqual([['portal-contribution-detail-view', { status: 'mock-status' }]]);
+      });
     });
   });
 
   describe('When contributions fail to load', () => {
-    let refetch: jest.Mock;
+    const refetch = jest.fn();
 
     beforeEach(() => {
-      refetch = jest.fn();
       usePortalContributionsListMock.mockReturnValue({
         refetch,
         contributions: [],
@@ -145,6 +169,31 @@ describe('ContributionsList', () => {
       expect(refetch).not.toBeCalled();
       fireEvent.click(screen.getByTestId('mock-contribution-fetch-error'));
       expect(refetch).toBeCalledTimes(1);
+    });
+  });
+
+  describe('Sorting contributions', () => {
+    it('should sort contributions by date by default', () => {
+      tree();
+      expect(usePortalContributionsListMock).toBeCalledWith(expect.anything(), { ordering: '-created' });
+    });
+
+    it.each([
+      ['status', 'Status'],
+      ['amount', 'Amount (high to low)']
+    ])('should sort contributions by %s when selected', async (ordering, option) => {
+      tree();
+      userEvent.click(screen.getByRole('button', { name: 'Date' }));
+
+      await waitFor(() => {
+        expect(screen.getByRole('option', { name: option })).toBeVisible();
+      });
+
+      userEvent.click(screen.getByRole('option', { name: option }));
+
+      await waitFor(() => {
+        expect(usePortalContributionsListMock).toBeCalledWith(expect.anything(), { ordering: `-${ordering}` });
+      });
     });
   });
 

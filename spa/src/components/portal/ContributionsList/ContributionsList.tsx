@@ -1,4 +1,4 @@
-import { ReactChild, useState } from 'react';
+import { ReactChild, useEffect, useState } from 'react';
 import { useParams } from 'react-router-dom';
 import { CircularProgress } from 'components/base';
 import { usePortalAuthContext } from 'hooks/usePortalAuth';
@@ -7,19 +7,69 @@ import ContributionItem from './ContributionItem/ContributionItem';
 import NoContributions from './NoContributions';
 import ContributionFetchError from './ContributionFetchError';
 import ContributionDetail from './ContributionDetail/ContributionDetail';
-import { List, Root, Subhead, Columns, Loading, Legend, Detail } from './ContributionsList.styled';
+import {
+  List,
+  Root,
+  Subhead,
+  Columns,
+  Loading,
+  Legend,
+  Detail,
+  StyledPortalPage,
+  AlignPositionWrapper
+} from './ContributionsList.styled';
+import Sort from 'components/common/Sort';
+
+const CONTRIBUTION_SORT_OPTIONS = [
+  {
+    label: (
+      <span>
+        Date <i>(most recent)</i>
+      </span>
+    ),
+    selectedLabel: 'Date',
+    value: 'created'
+  },
+  { label: 'Status', value: 'status' },
+  {
+    label: (
+      <span>
+        Amount <i>(high to low)</i>
+      </span>
+    ),
+    selectedLabel: 'Amount',
+    value: 'amount'
+  }
+];
 
 export function ContributionsList() {
   const { contributionId } = useParams<{ contributionId?: string }>();
   const { contributor } = usePortalAuthContext();
-  const { contributions, isError, isLoading, refetch } = usePortalContributionList(contributor?.id);
-  const selectedContribution = contributions.find(
-    (contribution) => contribution.payment_provider_id === contributionId
-  );
+  const [ordering, setOrdering] = useState(CONTRIBUTION_SORT_OPTIONS[0].value);
+  const { contributions, isError, isLoading, refetch } = usePortalContributionList(contributor?.id, {
+    ordering: `-${ordering}`
+  });
+  const selectedContribution =
+    contributionId && contributions.find((contribution) => contribution.id === parseInt(contributionId));
   // This needs to be state instead of a ref to trigger effects in
   // ContributionDetail when an item is selected.
   const [selectedContributionEl, setSelectedContributionEl] = useState<HTMLAnchorElement | null>(null);
   let content: ReactChild;
+
+  useEffect(() => {
+    // Track viewing of a contribution detail in Pendo if available. If this
+    // fails, log an error but don't otherwise show an error to the user.
+
+    if (selectedContribution) {
+      try {
+        (window as any).pendo.track('portal-contribution-detail-view', {
+          status: selectedContribution.status
+        });
+      } catch (error) {
+        console.error(`Couldn't track a contribution detail view event in Pendo: ${(error as Error).message}`);
+      }
+    }
+  }, [selectedContribution]);
 
   if (isLoading) {
     content = (
@@ -28,14 +78,18 @@ export function ContributionsList() {
       </Loading>
     );
   } else if (isError) {
-    content = <ContributionFetchError message="Error loading contributions." onRetry={() => refetch()} />;
+    content = (
+      <AlignPositionWrapper>
+        <ContributionFetchError message="Error loading contributions." onRetry={refetch} />
+      </AlignPositionWrapper>
+    );
   } else if (contributor && contributions?.length > 0) {
     content = (
       <List $detailVisible={!!selectedContribution}>
         {contributions.map((contribution) => (
           <ContributionItem
             contribution={contribution}
-            key={contribution.payment_provider_id}
+            key={contribution.id}
             // If a contribution is currently selected, selecting another one
             // should replace it in history so that the back button always goes
             // back to the list without detail.
@@ -47,28 +101,35 @@ export function ContributionsList() {
       </List>
     );
   } else {
-    content = <NoContributions />;
+    content = (
+      <AlignPositionWrapper>
+        <NoContributions />
+      </AlignPositionWrapper>
+    );
   }
 
   return (
-    <Root>
-      <Columns>
-        <Legend $detailVisible={!!selectedContribution}>
-          <Subhead>Transactions</Subhead>
-          <p>View billing history, update payment details, and resend receipts.</p>
-        </Legend>
-        {content}
-        {contributor && selectedContribution && (
-          <Detail>
-            <ContributionDetail
-              domAnchor={selectedContributionEl}
-              contributionId={selectedContribution.payment_provider_id}
-              contributorId={contributor.id}
-            />
-          </Detail>
-        )}
-      </Columns>
-    </Root>
+    <StyledPortalPage>
+      <Root>
+        <Columns>
+          <Legend $detailVisible={!!selectedContribution}>
+            <Subhead>Transactions</Subhead>
+            <p>View billing history, update payment details, and resend receipts.</p>
+            <Sort options={CONTRIBUTION_SORT_OPTIONS} onChange={setOrdering} id="contributions-sort" />
+          </Legend>
+          {content}
+          {contributor && selectedContribution && (
+            <Detail>
+              <ContributionDetail
+                domAnchor={selectedContributionEl}
+                contributionId={selectedContribution.id}
+                contributorId={contributor.id}
+              />
+            </Detail>
+          )}
+        </Columns>
+      </Root>
+    </StyledPortalPage>
   );
 }
 

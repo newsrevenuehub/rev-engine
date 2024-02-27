@@ -23,9 +23,11 @@ class Command(BaseCommand):
 
     def handle(self, *args, **options):
         contributions_stripe_secret = create_stripe_webhook(
-            api_key=settings.STRIPE_LIVE_SECRET_KEY_CONTRIBUTIONS
-            if (live := options["live"])
-            else settings.STRIPE_TEST_SECRET_KEY_CONTRIBUTIONS,
+            api_key=(
+                settings.STRIPE_LIVE_SECRET_KEY_CONTRIBUTIONS
+                if (live := options["live"])
+                else settings.STRIPE_TEST_SECRET_KEY_CONTRIBUTIONS
+            ),
             enabled_events=settings.STRIPE_WEBHOOK_EVENTS_CONTRIBUTIONS,
             webhook_url=options["url_contributions"],
         )

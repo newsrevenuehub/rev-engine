@@ -2,15 +2,11 @@ import datetime
 import json
 import os
 import re
-from dataclasses import asdict
 from unittest.mock import Mock, patch
-from urllib.parse import parse_qs, quote_plus, urlparse
+from urllib.parse import parse_qs, urlparse
 
 from django.conf import settings
 from django.core import mail
-from django.core.cache import cache
-from django.template.loader import render_to_string
-from django.utils.safestring import mark_safe
 
 import pytest
 import pytest_cases
@@ -18,7 +14,6 @@ import stripe
 from addict import Dict as AttrDict
 from bs4 import BeautifulSoup
 
-from apps.api.views import construct_rp_domain
 from apps.common.models import IndexedTimeStampedModel
 from apps.contributions.models import (
     Contribution,
@@ -27,7 +22,6 @@ from apps.contributions.models import (
     ContributionStatus,
     ContributionStatusError,
     Contributor,
-    ContributorRefreshToken,
     Payment,
     ensure_stripe_event,
     logger,
@@ -39,6 +33,7 @@ from apps.contributions.tests.factories import (
     ContributorFactory,
     PaymentFactory,
 )
+from apps.contributions.types import StripeEventData
 from apps.emails.tasks import make_send_thank_you_email_data, send_templated_email
 from apps.organizations.models import FiscalStatusChoices, FreePlan
 from apps.organizations.tests.factories import OrganizationFactory, RevenueProgramFactory
@@ -136,6 +131,14 @@ def contribution_with_provider_payment_method_id(one_time_contribution):
     one_time_contribution.provider_payment_method_id = "something"
     one_time_contribution.save()
     return one_time_contribution
+
+
+SHORT_LIVED_ACCESS_TOKEN = "short-lived"
+
+
+class MockForContributorReturn:
+    def __init__(self, *args, **kwargs):
+        self.short_lived_access_token = SHORT_LIVED_ACCESS_TOKEN
 
 
 @pytest.mark.django_db
@@ -492,18 +495,19 @@ class TestContributionModel:
         ),
     )
     @pytest.mark.parametrize("send_receipt_email_via_nre", (True, False))
-    def test_handle_thank_you_email(self, contribution, send_receipt_email_via_nre, mocker, settings):
+    def test_handle_thank_you_email(
+        self, contribution, send_receipt_email_via_nre, mocker, settings, mock_stripe_customer
+    ):
         """Show that when org configured to have NRE send thank you emails, send_templated_email
         gets called with expected args.
         """
         settings.CELERY_TASK_ALWAYS_EAGER = True
-        (
-            org := contribution.donation_page.revenue_program.organization
-        ).send_receipt_email_via_nre = send_receipt_email_via_nre
+        (org := contribution.donation_page.revenue_program.organization).send_receipt_email_via_nre = (
+            send_receipt_email_via_nre
+        )
         org.save()
         send_thank_you_email_spy = mocker.spy(send_thank_you_email, "delay")
-        customer_name = "Fake Customer Name"
-        mocker.patch("stripe.Customer.retrieve", return_value=AttrDict({"name": customer_name}))
+
         mocker.patch("apps.contributions.models.Contributor.create_magic_link", return_value="fake_magic_link")
         contribution.handle_thank_you_email()
         expected_data = make_send_thank_you_email_data(contribution)
@@ -739,7 +743,10 @@ class TestContributionModel:
         spy = mocker.spy(stripe.PaymentIntent, "retrieve")
         pi = contribution.stripe_payment_intent
         if expect_retrieve:
-            spy.assert_called_once_with(payment_intent_id, stripe_account=stripe_account_id)
+            spy.assert_called_once_with(
+                payment_intent_id,
+                stripe_account=stripe_account_id,
+            )
         else:
             spy.assert_not_called()
         assert pi == (return_val if expect_retrieve else None)
@@ -932,68 +939,21 @@ class TestContributionModel:
             settings.CURRENCIES,
         )
 
-    @pytest.mark.parametrize(
-        "interval,expect_success",
-        (
-            (ContributionInterval.ONE_TIME, False),
-            (ContributionInterval.MONTHLY, True),
-            (ContributionInterval.YEARLY, True),
-        ),
-    )
-    def test_send_recurring_contribution_email_reminder(self, interval, expect_success, monkeypatch, settings):
-        contribution = ContributionFactory(interval=interval)
-        next_charge_date = datetime.datetime.now()
-        mock_log_warning = Mock()
-        mock_send_templated_email = Mock(wraps=send_templated_email.delay)
-        token = "token"
-
-        class MockForContributorReturn:
-            def __init__(self, *args, **kwargs):
-                self.short_lived_access_token = token
-
-        monkeypatch.setattr(logger, "warning", mock_log_warning)
-        monkeypatch.setattr(send_templated_email, "delay", mock_send_templated_email)
-        monkeypatch.setattr(
-            ContributorRefreshToken, "for_contributor", lambda *args, **kwargs: MockForContributorReturn()
-        )
+    @pytest.fixture
+    def synchronous_email_send_task(self, settings):
         settings.EMAIL_BACKEND = "django.core.mail.backends.locmem.EmailBackend"
         settings.CELERY_ALWAYS_EAGER = True
-        contribution.send_recurring_contribution_email_reminder(next_charge_date)
-        if expect_success:
-            magic_link = mark_safe(
-                f"https://{construct_rp_domain(contribution.donation_page.revenue_program.slug)}/{settings.CONTRIBUTOR_VERIFY_URL}"
-                f"?token={token}&email={quote_plus(contribution.contributor.email)}"
-            )
-            mock_log_warning.assert_not_called()
-            mock_send_templated_email.assert_called_once_with(
-                contribution.contributor.email,
-                f"Reminder: {contribution.donation_page.revenue_program.name} scheduled contribution",
-                render_to_string(
-                    "recurring-contribution-email-reminder.txt",
-                    (
-                        data := {
-                            "rp_name": contribution.donation_page.revenue_program.name,
-                            "contribution_date": next_charge_date.strftime("%m/%d/%Y"),
-                            "contribution_amount": contribution.formatted_amount,
-                            "contribution_interval_display_value": contribution.interval,
-                            "non_profit": contribution.donation_page.revenue_program.non_profit,
-                            "contributor_email": contribution.contributor.email,
-                            "tax_id": contribution.donation_page.revenue_program.tax_id,
-                            "magic_link": magic_link,
-                            "fiscal_status": contribution.donation_page.revenue_program.fiscal_status,
-                            "fiscal_sponsor_name": contribution.donation_page.revenue_program.fiscal_sponsor_name,
-                            "style": asdict(contribution.donation_page.revenue_program.transactional_email_style),
-                        }
-                    ),
-                ),
-                render_to_string("recurring-contribution-email-reminder.html", data),
-            )
-            assert len(mail.outbox) == 1
-        else:
-            mock_log_warning.assert_called_once_with(
-                "`Contribution.send_recurring_contribution_email_reminder` was called on an instance (ID: %s) whose interval is one-time",
-                contribution.id,
-            )
+
+    @pytest.fixture
+    def mock_contributor_refresh_token(self, mocker):
+        mocker.patch(
+            "apps.api.tokens.ContributorRefreshToken.for_contributor",
+            side_effect=lambda *args, **kwargs: MockForContributorReturn(),
+        )
+
+    @pytest.fixture
+    def mock_stripe_customer(self, mocker):
+        mocker.patch("stripe.Customer.retrieve", return_value=AttrDict({"name": "Fake Customer Name"}))
 
     @pytest_cases.parametrize(
         "revenue_program",
@@ -1004,69 +964,96 @@ class TestContributionModel:
         ),
     )
     @pytest.mark.parametrize("tax_id", (None, "123456789"))
-    def test_send_recurring_contribution_email_reminder_email_text(
-        self, revenue_program, tax_id, monkeypatch, settings
+    @pytest.mark.parametrize(
+        "email_method_name",
+        (
+            "send_recurring_contribution_email_reminder",
+            "send_recurring_contribution_canceled_email",
+            "send_recurring_contribution_payment_updated_email",
+        ),
+    )
+    def test_send_recurring_contribution_emails_rendered_text(
+        self,
+        revenue_program,
+        tax_id,
+        email_method_name,
+        annual_contribution,
+        mock_contributor_refresh_token,
+        synchronous_email_send_task,
+        mock_stripe_customer,
+        mocker,
     ):
-        contribution = ContributionFactory(interval=ContributionInterval.YEARLY)
         revenue_program.tax_id = tax_id
         revenue_program.save()
-        contribution.donation_page.revenue_program = revenue_program
-        contribution.donation_page.save()
-        next_charge_date = datetime.datetime.now()
-        mock_send_templated_email = Mock(wraps=send_templated_email.delay)
-        token = "token"
+        annual_contribution.donation_page.revenue_program = revenue_program
+        annual_contribution.donation_page.save()
+        mocker.spy(send_templated_email, "delay")
+        now = datetime.datetime.now()
 
-        class MockForContributorReturn:
-            def __init__(self, *args, **kwargs):
-                self.short_lived_access_token = token
-
-        monkeypatch.setattr(send_templated_email, "delay", mock_send_templated_email)
-        monkeypatch.setattr(
-            ContributorRefreshToken, "for_contributor", lambda *args, **kwargs: MockForContributorReturn()
-        )
-        settings.EMAIL_BACKEND = "django.core.mail.backends.locmem.EmailBackend"
-        settings.CELERY_ALWAYS_EAGER = True
-        contribution.send_recurring_contribution_email_reminder(next_charge_date)
-        magic_link = mark_safe(
-            f"https://{construct_rp_domain(contribution.donation_page.revenue_program.slug)}/{settings.CONTRIBUTOR_VERIFY_URL}"
-            f"?token={token}&email={quote_plus(contribution.contributor.email)}"
-        )
-        assert len(mail.outbox) == 1
         email_expectations = [
-            f"Scheduled: {next_charge_date.strftime('%m/%d/%Y')}",
-            f"Email: {contribution.contributor.email}",
-            f"Amount Contributed: {contribution.formatted_amount}/{contribution.interval}",
+            f"Email: {annual_contribution.contributor.email}",
+            f"Amount Contributed: {annual_contribution.formatted_amount}/{annual_contribution.interval}",
         ]
 
-        if revenue_program.fiscal_status == FiscalStatusChoices.FISCALLY_SPONSORED:
-            email_expectations.extend(
-                [
-                    "This receipt may be used for tax purposes.",
-                    f"All contributions or gifts to {contribution.donation_page.revenue_program.name} are tax deductible through our fiscal sponsor {contribution.donation_page.revenue_program.fiscal_sponsor_name}.",
-                    f"{contribution.donation_page.revenue_program.fiscal_sponsor_name}'s tax ID is {tax_id}"
-                    if tax_id
-                    else "",
-                ]
-            )
-        elif revenue_program.fiscal_status == FiscalStatusChoices.NONPROFIT:
-            email_expectations.extend(
-                [
-                    "This receipt may be used for tax purposes.",
-                    f"{contribution.donation_page.revenue_program.name} is a 501(c)(3) nonprofit organization",
-                    f"with a Federal Tax ID #{tax_id}" if tax_id else "",
-                ]
-            )
-        else:
+        if email_method_name == "send_recurring_contribution_email_reminder":
             email_expectations.append(
-                f"Contributions to {contribution.donation_page.revenue_program.name} are not deductible as charitable donations."
+                f"Scheduled: {now.strftime('%m/%d/%Y')}",
             )
+        if email_method_name == "send_recurring_contribution_canceled_email":
+            email_expectations.append(
+                f"Date Canceled: {now.strftime('%m/%d/%Y')}",
+            )
+
+        if revenue_program.non_profit:
+            if email_method_name != "send_recurring_contribution_canceled_email":
+                email_expectations.append("This receipt may be used for tax purposes.")
+
+                if revenue_program.fiscal_status == FiscalStatusChoices.FISCALLY_SPONSORED:
+                    email_expectations.append(
+                        f"All contributions or gifts to { revenue_program.name } are tax deductible through our fiscal sponsor {revenue_program.fiscal_sponsor_name}."
+                    )
+                    if tax_id:
+                        email_expectations.append(f"{revenue_program.fiscal_sponsor_name}'s tax ID is {tax_id}")
+
+                if revenue_program.fiscal_status == FiscalStatusChoices.NONPROFIT:
+                    email_expectations.append(
+                        f"{annual_contribution.donation_page.revenue_program.name} is a 501(c)(3) nonprofit organization"
+                    )
+                    if tax_id:
+                        email_expectations.append(f"with a Federal Tax ID #{tax_id}")
+
+        if not revenue_program.non_profit and email_method_name != "send_recurring_contribution_canceled_email":
+            email_expectations.append(
+                f"Contributions to {annual_contribution.donation_page.revenue_program.name} are not deductible as charitable donations."
+            )
+
+        getattr(annual_contribution, email_method_name)()
+
+        assert len(mail.outbox) == 1
+        soup_text = (soup := BeautifulSoup(mail.outbox[0].alternatives[0][0], "html.parser")).get_text(
+            separator=" ", strip=True
+        )
+        text_email = mail.outbox[0].body
         for x in email_expectations:
-            assert x in mail.outbox[0].body
-            soup = BeautifulSoup(mail.outbox[0].alternatives[0][0], "html.parser")
-            as_string = " ".join([x.replace("\xa0", " ").strip() for x in soup.get_text().splitlines() if x])
-            assert x in as_string
-        assert "Manage contributions here" in soup.find("a", href=magic_link).text
-        assert magic_link in mail.outbox[0].body
+            assert x in text_email
+            assert x in soup_text
+
+        assert soup.find(
+            "a",
+            href=(magic_link := Contributor.create_magic_link(annual_contribution)),
+            text=re.compile("Manage contributions here"),
+        )
+        assert magic_link in text_email
+
+    def test_send_recurring_contribution_email_reminder_timestamp_override(
+        self,
+        annual_contribution,
+        mock_contributor_refresh_token,
+        synchronous_email_send_task,
+        mock_stripe_customer,
+    ):
+        annual_contribution.send_recurring_contribution_email_reminder("test-timestamp")
+        assert "Scheduled: test-timestamp" in mail.outbox[0].body
 
     @pytest_cases.parametrize(
         "revenue_program",
@@ -1080,11 +1067,24 @@ class TestContributionModel:
         "has_default_donation_page",
         (False, True),
     )
-    def test_send_recurring_contribution_reminder_email_styles(
-        self, revenue_program, has_default_donation_page, monkeypatch, settings
+    @pytest.mark.parametrize(
+        "email_method_name",
+        (
+            "send_recurring_contribution_email_reminder",
+            "send_recurring_contribution_payment_updated_email",
+        ),
+    )
+    def test_send_recurring_contribution_emails_rendered_styles(
+        self,
+        has_default_donation_page,
+        revenue_program,
+        email_method_name,
+        synchronous_email_send_task,
+        mock_contributor_refresh_token,
+        mock_stripe_customer,
+        annual_contribution,
+        settings,
     ):
-        with patch("apps.contributions.models.Contribution.fetch_stripe_payment_method", return_value=None):
-            contribution = ContributionFactory(interval=ContributionInterval.YEARLY)
         if has_default_donation_page:
             style = StyleFactory()
             style.styles = style.styles | {
@@ -1094,31 +1094,16 @@ class TestContributionModel:
                 },
                 "font": {"heading": "mock-header-font", "body": "mock-body-font"},
             }
-            page = DonationPageFactory(
-                revenue_program=revenue_program,
-                styles=style,
-                header_logo="mock-logo",
-                header_logo_alt_text="Mock-Alt-Text",
-            )
-            revenue_program.default_donation_page = page
-            revenue_program.save()
-        contribution.donation_page.revenue_program = revenue_program
-        contribution.donation_page.save()
-        next_charge_date = datetime.datetime.now()
-        mock_send_templated_email = Mock(wraps=send_templated_email.delay)
-        token = "token"
+            annual_contribution.donation_page.styles = style
+            annual_contribution.donation_page.header_logo = "mock-logo"
+            annual_contribution.donation_page.header_logo_alt_text = "Mock-Alt-Text"
+            annual_contribution.donation_page.revenue_program = revenue_program
+            annual_contribution.donation_page.save()
+            annual_contribution.donation_page.revenue_program.default_donation_page = annual_contribution.donation_page
+            annual_contribution.donation_page.revenue_program.save()
 
-        class MockForContributorReturn:
-            def __init__(self, *args, **kwargs):
-                self.short_lived_access_token = token
+        getattr(annual_contribution, email_method_name)()
 
-        monkeypatch.setattr(send_templated_email, "delay", mock_send_templated_email)
-        monkeypatch.setattr(
-            ContributorRefreshToken, "for_contributor", lambda *args, **kwargs: MockForContributorReturn()
-        )
-        settings.EMAIL_BACKEND = "django.core.mail.backends.locmem.EmailBackend"
-        settings.CELERY_ALWAYS_EAGER = True
-        contribution.send_recurring_contribution_email_reminder(next_charge_date)
         assert len(mail.outbox) == 1
 
         default_logo = os.path.join(settings.SITE_URL, "static", "nre-logo-yellow.png")
@@ -1128,7 +1113,10 @@ class TestContributionModel:
         custom_header_background = "background: #mock-header-background !important"
         custom_button_background = "background: #mock-button-color !important"
 
-        if revenue_program.organization.plan.name == FreePlan.name or not has_default_donation_page:
+        if (
+            annual_contribution.donation_page.revenue_program.organization.plan.name == FreePlan.name
+            or not has_default_donation_page
+        ):
             expect_present = (default_logo, default_alt_text)
             expect_missing = (custom_logo, custom_alt_text, custom_button_background, custom_header_background)
 
@@ -1141,6 +1129,72 @@ class TestContributionModel:
             assert x in mail.outbox[0].alternatives[0][0]
         for x in expect_missing:
             assert x not in mail.outbox[0].alternatives[0][0]
+
+    @pytest.mark.parametrize(
+        "email_method_name",
+        (
+            "send_recurring_contribution_email_reminder",
+            "send_recurring_contribution_payment_updated_email",
+            "send_recurring_contribution_canceled_email",
+        ),
+    )
+    def test_send_recurring_contribution_emails_skip_onetime(self, email_method_name, one_time_contribution, mocker):
+        logger_spy = mocker.spy(logger, "error")
+        send_email_spy = mocker.spy(send_templated_email, "delay")
+
+        getattr(one_time_contribution, email_method_name)()
+
+        logger_spy.assert_called_once_with(
+            "Called on an instance (ID: %s) whose interval is one-time",
+            one_time_contribution.id,
+        )
+        send_email_spy.assert_not_called()
+
+    @pytest.mark.parametrize(
+        "email_method_name",
+        (
+            "send_recurring_contribution_email_reminder",
+            "send_recurring_contribution_payment_updated_email",
+            "send_recurring_contribution_canceled_email",
+        ),
+    )
+    def test_send_recurring_contribution_emails_skip_when_no_provider_customer_id(
+        self, email_method_name, annual_contribution, mocker
+    ):
+        annual_contribution.provider_customer_id = None
+        annual_contribution.save()
+        logger_spy = mocker.spy(logger, "error")
+        send_email_spy = mocker.spy(send_templated_email, "delay")
+        mock_stripe = mocker.patch("stripe.Customer.retrieve", side_effect=stripe.error.StripeError())
+        getattr(annual_contribution, email_method_name)()
+        logger_spy.assert_called_once_with(
+            "No Stripe customer ID for contribution with ID %s",
+            annual_contribution.id,
+        )
+        mock_stripe.assert_not_called()
+        send_email_spy.assert_not_called()
+
+    @pytest.mark.parametrize(
+        "email_method_name",
+        (
+            "send_recurring_contribution_email_reminder",
+            "send_recurring_contribution_payment_updated_email",
+            "send_recurring_contribution_canceled_email",
+        ),
+    )
+    def test_send_recurring_contribution_emails_when_error_retrieving_stripe_customer(
+        self, email_method_name, annual_contribution, mocker
+    ):
+        mocker.patch("stripe.Customer.retrieve", side_effect=stripe.error.StripeError())
+        logger_spy = mocker.spy(logger, "exception")
+        send_email_spy = mocker.spy(send_templated_email, "delay")
+
+        getattr(annual_contribution, email_method_name)()
+        logger_spy.assert_called_once_with(
+            "Something went wrong retrieving Stripe customer for contribution with ID %s",
+            annual_contribution.id,
+        )
+        send_email_spy.assert_not_called()
 
     @pytest_cases.parametrize(
         "user",
@@ -1553,9 +1607,11 @@ class TestContributionModel:
         target = (
             "stripe.PaymentIntent.retrieve"
             if contribution.interval == ContributionInterval.ONE_TIME
-            else "stripe.SetupIntent.retrieve"
-            if contribution.provider_setup_intent_id
-            else "stripe.Subscription.retrieve"
+            else (
+                "stripe.SetupIntent.retrieve"
+                if contribution.provider_setup_intent_id
+                else "stripe.Subscription.retrieve"
+            )
         )
         # It's a bit tricky to get our JSON fixture which loads to dict to play nicely
         # with AttrDict in a way that works in our code. Utlimately, we're trying to emulate
@@ -1606,11 +1662,141 @@ class TestContributionModel:
             ),
             monthly_contribution.id,
         )
-        # assert about revision and update fields
 
     @pytest.mark.parametrize("score,expected", [(x, y) for x, y in Contribution.BAD_ACTOR_SCORES])
     def test_expanded_bad_actor_score(self, score, expected):
         assert ContributionFactory(bad_actor_score=score).expanded_bad_actor_score == expected
+
+    def test_next_payment_date_when_no_subscription(self):
+        contribution = ContributionFactory(interval=ContributionInterval.MONTHLY)
+        assert contribution.stripe_subscription is None
+        assert contribution.next_payment_date is None
+
+    def test_card_owner_name_when_no_provider_payment_method_details(self, mocker):
+        contribution = ContributionFactory(provider_payment_method_details=None)
+        assert contribution.card_owner_name == ""
+
+    def test_stripe_payment_method_when_no_pm_id(self, mocker):
+        mock_retrieve = mocker.patch("stripe.PaymentMethod.retrieve")
+        contribution = ContributionFactory(provider_payment_method_id=None)
+        assert contribution.stripe_payment_method is None
+        mock_retrieve.assert_not_called()
+
+    def test_update_payment_method_for_subscription_when_one_time(self, one_time_contribution):
+        with pytest.raises(ValueError):
+            one_time_contribution.update_payment_method_for_subscription("something")
+
+    def test_update_payment_method_for_subscription_when_no_customer_id(self, monthly_contribution):
+        monthly_contribution.provider_customer_id = None
+        monthly_contribution.provider_subscription_id = "something"
+        with pytest.raises(ValueError):
+            monthly_contribution.update_payment_method_for_subscription("something")
+
+    def test_update_payment_method_for_subscription_when_no_subscription_id(self, monthly_contribution):
+        monthly_contribution.provider_customer_id = "something"
+        monthly_contribution.provider_subscription_id = None
+        with pytest.raises(ValueError):
+            monthly_contribution.update_payment_method_for_subscription("something")
+
+    def test_update_payment_method_for_subscription_when_error_on_pm_attach(self, monthly_contribution, mocker):
+        mock_pm_attach = mocker.patch("stripe.PaymentMethod.attach", side_effect=stripe.error.StripeError("something"))
+        monthly_contribution.provider_customer_id = (cus_id := "cus_123")
+        monthly_contribution.provider_subscription_id = "sub_123"
+        with pytest.raises(stripe.error.StripeError):
+            monthly_contribution.update_payment_method_for_subscription((pm_id := "pm_123"))
+        mock_pm_attach.assert_called_once_with(
+            pm_id, customer=cus_id, stripe_account=monthly_contribution.stripe_account_id
+        )
+
+    def test_update_payment_method_for_subscription_when_error_on_subscription_modify(
+        self, monthly_contribution, mocker
+    ):
+        mocker.patch("stripe.PaymentMethod.attach")
+        mock_sub_modify = mocker.patch("stripe.Subscription.modify", side_effect=stripe.error.StripeError("something"))
+        monthly_contribution.provider_customer_id = "cus_123"
+        monthly_contribution.provider_subscription_id = (sub_id := "sub_123")
+        with pytest.raises(stripe.error.StripeError):
+            monthly_contribution.update_payment_method_for_subscription((pm_id := "pm_123"))
+        mock_sub_modify.assert_called_once_with(
+            sub_id, default_payment_method=pm_id, stripe_account=monthly_contribution.stripe_account_id
+        )
+
+    def test_update_payment_method_for_subscription_card_declined_error_does_not_send_sentry_alert(
+        self, monthly_contribution, mocker
+    ):
+        logger_spy = mocker.spy(logger, "exception")
+        mocker.patch("stripe.PaymentMethod.attach")
+        mock_sub_modify = mocker.patch(
+            "stripe.Subscription.modify", side_effect=stripe.error.StripeError(code="card_declined")
+        )
+        monthly_contribution.provider_customer_id = "cus_123"
+        monthly_contribution.provider_subscription_id = (sub_id := "sub_123")
+        with pytest.raises(stripe.error.StripeError):
+            monthly_contribution.update_payment_method_for_subscription((pm_id := "pm_123"))
+        mock_sub_modify.assert_called_once_with(
+            sub_id, default_payment_method=pm_id, stripe_account=monthly_contribution.stripe_account_id
+        )
+        # Ensure that the exception is raised but not logged/sent to Sentry
+        assert logger_spy.call_count == 0
+
+    @pytest.mark.parametrize("provider_payment_id", ("pi_123", None))
+    def test__expanded_pi_for_cancelable_modifiable(self, provider_payment_id, mocker):
+        contribution = ContributionFactory(provider_payment_id=provider_payment_id)
+        mock_pi_retrieve = mocker.patch("stripe.PaymentIntent.retrieve", return_value=(mock_pi := mocker.Mock()))
+        if provider_payment_id:
+            assert contribution._expanded_pi_for_cancelable_modifiable == mock_pi
+            mock_pi_retrieve.assert_called_once_with(
+                contribution.provider_payment_id,
+                expand=["invoice.subscription"],
+                stripe_account=contribution.stripe_account_id,
+            )
+        else:
+            assert contribution._expanded_pi_for_cancelable_modifiable is None
+            mock_pi_retrieve.assert_not_called()
+
+    @pytest.mark.parametrize(
+        "payment_data,expected",
+        (
+            (None, ""),
+            ({}, ""),
+            ({"type": "card", "card": {"brand": (brand := "my-brand")}}, brand),
+        ),
+    )
+    def test_card_brand(self, payment_data, expected):
+        assert ContributionFactory(provider_payment_method_details=payment_data).card_brand == expected
+
+    @pytest.mark.parametrize(
+        "payment_data,expected",
+        (
+            (None, ""),
+            ({}, ""),
+            ({"type": "card", "card": {"exp_month": 12, "exp_year": 2022}}, "12/2022"),
+        ),
+    )
+    def test_card_expiration_date(self, payment_data, expected):
+        assert ContributionFactory(provider_payment_method_details=payment_data).card_expiration_date == expected
+
+    @pytest.mark.parametrize(
+        "payment_data,expected",
+        (
+            (None, ""),
+            ({}, ""),
+            ({"type": "card", "billing_details": {"name": (name := "Foo Bar")}}, name),
+        ),
+    )
+    def test_card_owner_name(self, payment_data, expected):
+        assert ContributionFactory(provider_payment_method_details=payment_data).card_owner_name == expected
+
+    @pytest.mark.parametrize(
+        "payment_data,expected",
+        (
+            (None, ""),
+            ({}, ""),
+            ({"type": "card", "card": {"last4": (last_4 := "1234")}}, last_4),
+        ),
+    )
+    def test_card_last_4(self, payment_data, expected):
+        assert ContributionFactory(provider_payment_method_details=payment_data).card_last_4 == expected
 
 
 @pytest.mark.django_db
@@ -1723,39 +1909,9 @@ class TestContributionQuerySetMethods:
 
 
 @pytest.fixture
-def payment_intent_succeeded_one_time_event(suppress_stripe_webhook_sig_verification):
-    with open("apps/contributions/tests/fixtures/payment-intent-succeeded-one-time-event.json") as f:
-        event = stripe.Webhook.construct_event(f.read(), None, stripe.api_key)
-        return event
-
-
-@pytest.fixture
-@pytest.mark.usefixtures("suppress_stripe_webhook_sig_verification")
-def payment_intent_succeeded_subscription_creation_event():
-    with open("apps/contributions/tests/fixtures/payment-intent-succeeded-subscription-creation-event.json") as f:
-        return stripe.Webhook.construct_event(f.read(), None, stripe.api_key)
-
-
-@pytest.fixture
-@pytest.mark.usefixtures("suppress_stripe_webhook_sig_verification")
-def payment_intent_succeeded_subscription_recurring_charge_event():
-    with open(
-        "apps/contributions/tests/fixtures/payment-intent-succeeded-susbscription-recurring-charge-event.json"
-    ) as f:
-        return stripe.Webhook.construct_event(f.read(), None, stripe.api_key)
-
-
-@pytest.fixture
 @pytest.mark.usefixtures("suppress_stripe_webhook_sig_verification")
 def charge_refunded_one_time_event():
     with open("apps/contributions/tests/fixtures/charge-refunded-one-time-event.json") as f:
-        return stripe.Webhook.construct_event(f.read(), None, stripe.api_key)
-
-
-@pytest.fixture
-@pytest.mark.usefixtures("suppress_stripe_webhook_sig_verification")
-def charge_refunded_recurring_charge_event():
-    with open("apps/contributions/tests/fixtures/charge-refunded-recurring-charge-event.json") as f:
         return stripe.Webhook.construct_event(f.read(), None, stripe.api_key)
 
 
@@ -1808,15 +1964,17 @@ def non_event():
             ["foo.bar"],
         ),
         (False, None, lambda x: Payment.MISSING_EVENT_KW_ERROR_MSG, []),
-        (True, "non_event", lambda x: Payment.ARG_IS_NOT_EVENT_TYPE_ERROR_MSG.format(event_types=x), []),
     ]
 )
 def ensure_stripe_event_case(request):
+    event = request.param[1]
+    if event and isinstance(event, dict):
+        event = StripeEventData(**event)
     return (
         # include event kwarg
         request.param[0],
         # event
-        request.getfixturevalue(request.param[1]) if request.param[1] else None,
+        StripeEventData(**request.getfixturevalue(request.param[1])) if request.param[1] else None,
         # fn to generated expected error message
         request.param[2],
         # event types to pass to decorator
@@ -1843,29 +2001,37 @@ def test_ensure_stripe_event(ensure_stripe_event_case):
             my_func(**kwargs)
         assert str(exc_info.value) == expected_error_msg
     else:
-        assert my_func(**kwargs) == event
+        assert my_func(**kwargs) == kwargs["event"]
+
+
+@pytest.mark.parametrize(
+    "value",
+    [
+        "foo",
+        True,
+        False,
+        "",
+        {},
+        {"foo": "bar"},
+    ],
+)  # ...etc., but let's not be pedantic
+def test_ensure_stripe_event_when_wrong_type(value):
+    @ensure_stripe_event()
+    def my_func(value):
+        return value
+
+    with pytest.raises(ValueError) as exc_info:
+        my_func(event=value)
+
+    assert str(exc_info.value) == Payment.ARG_IS_NOT_EVENT_TYPE_ERROR_MSG
 
 
 @pytest.mark.django_db
-@pytest.mark.usefixtures("suppress_stripe_webhook_sig_verification")
+@pytest.mark.usefixtures("suppress_stripe_webhook_sig_verification", "clear_cache")
 class TestPayment:
-    @pytest.fixture(autouse=True)
-    def clear_cache(self):
-        cache.clear()
-
     @pytest.fixture
     def payment(self):
         return PaymentFactory()
-
-    @pytest.fixture
-    def balance_transaction_for_one_time_charge(self):
-        with open("apps/contributions/tests/fixtures/balance-transaction-for-one-time-charge-expanded.json") as f:
-            return stripe.BalanceTransaction.construct_from(json.load(f), stripe.api_key)
-
-    @pytest.fixture
-    def balance_transaction_for_subscription_creation_charge(self):
-        with open("apps/contributions/tests/fixtures/balance-transaction-for-subscription-creation.json") as f:
-            return stripe.BalanceTransaction.construct_from(json.load(f), stripe.api_key)
 
     def test___str__(self, payment):
         assert (
@@ -1878,20 +2044,6 @@ class TestPayment:
             payment.stripe_account_id
             == payment.contribution.donation_page.revenue_program.payment_provider.stripe_account_id
         )
-
-    def test_stripe_balance_transaction(self, mocker, payment, balance_transaction_for_one_time_charge):
-        """Show that we memoize the balance transaction"""
-        mock_retrieve = mocker.patch(
-            "stripe.BalanceTransaction.retrieve", return_value=balance_transaction_for_one_time_charge
-        )
-        assert payment.stripe_balance_transaction == mock_retrieve.return_value
-        mock_retrieve.assert_called_once_with(
-            payment.stripe_balance_transaction_id,
-            stripe_account=payment.contribution.donation_page.revenue_program.payment_provider.stripe_account_id,
-        )
-        count = mock_retrieve.call_count
-        payment.stripe_balance_transaction
-        assert mock_retrieve.call_count == count
 
     @pytest.fixture
     def invalid_metadata(self):
@@ -1906,26 +2058,6 @@ class TestPayment:
     @pytest.fixture
     def no_metadata(self):
         return None
-
-    @pytest.fixture
-    def payment_intent_for_one_time_contribution(self):
-        with open("apps/contributions/tests/fixtures/payment-intent-for-one-time-charge.json") as f:
-            return stripe.PaymentIntent.construct_from(json.load(f), stripe.api_key)
-
-    @pytest.fixture
-    def payment_intent_for_subscription_creation_contribution(self):
-        with open("apps/contributions/tests/fixtures/payment-intent-for-subscription-creation-charge.json") as f:
-            return stripe.PaymentIntent.construct_from(json.load(f), stripe.api_key)
-
-    @pytest.fixture
-    def payment_intent_for_recurring_charge(self):
-        with open("apps/contributions/tests/fixtures/payment-intent-for-recurring-charge.json") as f:
-            return stripe.PaymentIntent.construct_from(json.load(f), stripe.api_key)
-
-    @pytest.fixture
-    def payment_intent_for_recurring_charge_expanded(self):
-        with open("apps/contributions/tests/fixtures/payment-intent-for-recurring-charge-expanded.json") as f:
-            return stripe.PaymentIntent.construct_from(json.load(f), stripe.api_key)
 
     @pytest.fixture
     def balance_transaction_for_refund_of_recurring_charge(self):
@@ -1945,11 +2077,22 @@ class TestPayment:
                 "payment_intent_succeeded_one_time_event",
                 "payment_intent_for_one_time_contribution",
                 "balance_transaction_for_one_time_charge",
+                True,
+                True,
             ),
             (
                 "payment_intent_succeeded_subscription_creation_event",
-                "payment_intent_for_subscription_creation_contribution",
+                "payment_intent_for_subscription_creation_charge",
                 "balance_transaction_for_subscription_creation_charge",
+                False,
+                True,
+            ),
+            (
+                "payment_intent_succeeded_subscription_recurring_charge_event",
+                "payment_intent_for_recurring_charge",
+                "balance_transaction_for_recurring_charge",
+                False,
+                False,
             ),
         )
     )
@@ -1957,25 +2100,34 @@ class TestPayment:
         def _implmenentation(contribution_found: bool):
             event = request.getfixturevalue(request.param[0])
             pi = request.getfixturevalue(request.param[1])
+            pi.id = event.data.object.id
             balance_transaction = request.getfixturevalue(request.param[2])
+            expect_payment_creation = request.param[3]
+            pi_id_on_contribution = request.param[4]
             pi.charges = event.data.object.charges
 
             mocker.patch("stripe.BalanceTransaction.retrieve", return_value=balance_transaction)
             mocker.patch("stripe.PaymentIntent.retrieve", return_value=pi)
             kwargs = {
-                "interval": ContributionInterval.ONE_TIME
-                if balance_transaction.source.invoice is None
-                else ContributionInterval.MONTHLY
+                "interval": (
+                    ContributionInterval.ONE_TIME
+                    if balance_transaction.source.invoice is None
+                    else ContributionInterval.MONTHLY
+                ),
+                "provider_payment_id": pi.id if pi_id_on_contribution else None,
             }
 
             if request.param[0] in (
-                "payment_intent_succeeded_subscription_recurring_charge",
+                "payment_intent_succeeded_subscription_recurring_charge_event",
                 "payment_intent_succeeded_subscription_creation_event",
             ):
                 kwargs["provider_subscription_id"] = balance_transaction.source.invoice.subscription
-            else:
-                kwargs = {"provider_payment_id": event.data.object.id}
-            return event, ContributionFactory(**kwargs) if contribution_found else None, balance_transaction
+            return (
+                event,
+                ContributionFactory(**kwargs) if contribution_found else None,
+                balance_transaction,
+                expect_payment_creation,
+            )
 
         return _implmenentation
 
@@ -1983,18 +2135,27 @@ class TestPayment:
     def test_from_stripe_payment_intent_succeeded_event(
         self, contribution_found, payment_from_pi_succeeded_test_case_factory
     ):
-        event, contribution, balance_transaction = payment_from_pi_succeeded_test_case_factory(contribution_found)
+        """Crucially, show that we do not create a payment in context of a subscription creation event"""
+        event, contribution, balance_transaction, expect_payment = payment_from_pi_succeeded_test_case_factory(
+            contribution_found
+        )
+        count = Payment.objects.count()
+        _kwargs = {"event": StripeEventData(**event)}
         if contribution is None:
             with pytest.raises(ValueError) as exc_info:
-                Payment.from_stripe_payment_intent_succeeded_event(event=event)
+                Payment.from_stripe_payment_intent_succeeded_event(**_kwargs)
             assert str(exc_info.value) == "Could not find a contribution for this event"
         else:
-            payment = Payment.from_stripe_payment_intent_succeeded_event(event=event)
-            assert payment.contribution == contribution
-            assert payment.net_amount_paid == balance_transaction.net
-            assert payment.gross_amount_paid == balance_transaction.amount
-            assert payment.amount_refunded == 0
-            assert payment.stripe_balance_transaction_id == balance_transaction.id
+            payment = Payment.from_stripe_payment_intent_succeeded_event(**_kwargs)
+            if expect_payment:
+                assert payment.contribution == contribution
+                assert payment.net_amount_paid == balance_transaction.net
+                assert payment.gross_amount_paid == balance_transaction.amount
+                assert payment.amount_refunded == 0
+                assert payment.stripe_balance_transaction_id == balance_transaction.id
+            else:
+                assert payment is None
+                assert Payment.objects.count() == count
 
     @pytest.fixture
     def balance_transaction_for_refund_of_one_time_charge(self):
@@ -2015,20 +2176,27 @@ class TestPayment:
             ),
             (
                 "charge_refunded_recurring_first_charge_event",
-                "payment_intent_for_subscription_creation_contribution",
+                "payment_intent_for_subscription_creation_charge",
                 "balance_transaction_for_refund_of_subscription_creation_charge",
             ),
         )
     )
     def payment_from_charge_refunded_test_case_factory(self, request, mocker):
         def implementation(contribution_found: bool):
+            # get these all linked up correctly
+            # how charge relate to bt to ? re: amoutn on refund for fixture
+
             payment_intent = request.getfixturevalue(request.param[1])
             balance_transaction = request.getfixturevalue(request.param[2])
             balance_transaction.amount = payment_intent.amount
             balance_transaction.source.amount_refunded = payment_intent.amount
             balance_transaction.source.payment_intent = payment_intent.id
             event = request.getfixturevalue(request.param[0])
+            event.data.object.payment_intent = payment_intent.id
             event.data.object.amount_refunded = balance_transaction.source.amount_refunded
+            event.data.object.refunds.data[0].balance_transaction = balance_transaction.id
+            event.data.object.refunds.data[0].amount = balance_transaction.source.amount_refunded
+
             mocker.patch(
                 "stripe.BalanceTransaction.retrieve",
                 return_value=balance_transaction,
@@ -2053,7 +2221,9 @@ class TestPayment:
                     kwargs = {
                         "interval": ContributionInterval.MONTHLY,
                         "provider_payment_id": event.data.object.payment_intent,
+                        "provider_subscription_id": payment_intent.invoice.subscription,
                     }
+
             contribution = ContributionFactory(**kwargs) if contribution_found else None
             return (
                 event,
@@ -2067,30 +2237,24 @@ class TestPayment:
     def test_from_stripe_charge_refunded_event(
         self, contribution_found, payment_from_charge_refunded_test_case_factory
     ):
-        event, contribution, balance_transaction = payment_from_charge_refunded_test_case_factory(
-            contribution_found=contribution_found
-        )
+        event, contribution, _ = payment_from_charge_refunded_test_case_factory(contribution_found=contribution_found)
+        kwargs = {"event": StripeEventData(**event)}
         if not contribution_found:
             with pytest.raises(ValueError) as exc_info:
-                Payment.from_stripe_charge_refunded_event(event=event)
+                Payment.from_stripe_charge_refunded_event(**kwargs)
             assert str(exc_info.value) == "Could not find a contribution for this event"
         else:
-            payment = Payment.from_stripe_charge_refunded_event(event=event)
+            payment = Payment.from_stripe_charge_refunded_event(**kwargs)
             assert payment.contribution == contribution
-            assert payment.net_amount_paid == balance_transaction.net
-            assert payment.gross_amount_paid == balance_transaction.amount
-            assert payment.amount_refunded == balance_transaction.source.amount_refunded
-            assert payment.stripe_balance_transaction_id == balance_transaction.id
+            assert payment.net_amount_paid == 0
+            assert payment.gross_amount_paid == 0
+            assert payment.amount_refunded == event.data.object.refunds.data[0].amount
+            assert payment.stripe_balance_transaction_id == event.data.object.refunds.data[0].balance_transaction
 
     @pytest.fixture
     def invoice_payment_succeeded_recurring_charge_event(self):
         with open("apps/contributions/tests/fixtures/invoice-payment-succeeded-event.json") as f:
             return stripe.Webhook.construct_event(f.read(), None, None)
-
-    @pytest.fixture
-    def balance_transaction_for_recurring_charge(self):
-        with open("apps/contributions/tests/fixtures/balance-transaction-for-recurring-charge.json") as f:
-            return stripe.BalanceTransaction.construct_from(json.load(f), stripe.api_key)
 
     @pytest.fixture(
         params=[
@@ -2143,16 +2307,17 @@ class TestPayment:
         event, contribution, balance_transaction = payment_from_invoice_payment_succeeded_test_case_factory(
             contribution_found=contribution_found, balance_transaction_found=balance_transaction_found
         )
+        kwargs = {"event": StripeEventData(**event)}
         if not contribution_found:
             with pytest.raises(ValueError) as exc_info:
-                Payment.from_stripe_invoice_payment_succeeded_event(event=event)
+                Payment.from_stripe_invoice_payment_succeeded_event(**kwargs)
             assert str(exc_info.value) == "Could not find a contribution for this event"
         if contribution_found and not balance_transaction_found:
             with pytest.raises(ValueError) as exc_info:
-                payment = Payment.from_stripe_invoice_payment_succeeded_event(event=event)
+                payment = Payment.from_stripe_invoice_payment_succeeded_event(**kwargs)
             assert str(exc_info.value) == "Could not find a balance transaction for this event"
         if contribution and balance_transaction:
-            payment = Payment.from_stripe_invoice_payment_succeeded_event(event=event)
+            payment = Payment.from_stripe_invoice_payment_succeeded_event(**kwargs)
             assert payment.contribution == contribution
             assert payment.net_amount_paid == balance_transaction.net
             assert payment.gross_amount_paid == balance_transaction.amount
@@ -2189,31 +2354,6 @@ class TestPayment:
         else:
             assert Payment._ensure_pi_has_single_charge(payment_intent_for_one_time_contribution, "some-id") is None
 
-    def test_get_contribution_and_balance_transaction_for_charge_refunded_event_when_nothing_to_match(
-        self, charge_refunded_one_time_event, mocker
-    ):
-        """Edge case that we narrowly test for in this function to get to 100% on the model"""
-        mocker.patch("stripe.BalanceTransaction.retrieve", return_value=None)
-        mocker.patch("stripe.PaymentIntent.retrieve", return_value=None)
-        assert Payment.get_contribution_and_balance_transaction_for_charge_refunded_event(
-            event=charge_refunded_one_time_event
-        ) == (None, None)
-
-    def test_get_contribution_and_balance_transaction_for_charge_refunded_event_when_no_contribution_found(
-        self,
-        charge_refunded_one_time_event,
-        balance_transaction_for_one_time_charge,
-        payment_intent_for_one_time_contribution,
-        mocker,
-    ):
-        """Edge case that we narrowly test for in this function to get to 100% on the model"""
-        mocker.patch("stripe.BalanceTransaction.retrieve", return_value=balance_transaction_for_one_time_charge)
-        mocker.patch("stripe.PaymentIntent.retrieve", return_value=payment_intent_for_one_time_contribution)
-        Contribution.objects.all().delete()
-        assert Payment.get_contribution_and_balance_transaction_for_charge_refunded_event(
-            event=charge_refunded_one_time_event
-        ) == (None, balance_transaction_for_one_time_charge)
-
     def test_get_contribution_and_balance_transaction_for_payment_intent_succeeded_event_edge_case(
         self, payment_intent_succeeded_one_time_event, payment_intent_for_one_time_contribution, mocker
     ):
@@ -2223,7 +2363,7 @@ class TestPayment:
         mocker.patch("stripe.PaymentIntent.retrieve", return_value=payment_intent_for_one_time_contribution)
 
         assert Payment.get_contribution_and_balance_transaction_for_payment_intent_succeeded_event(
-            event=payment_intent_succeeded_one_time_event
+            event=StripeEventData(**payment_intent_succeeded_one_time_event)
         )
 
     def test_get_contribution_and_balance_transaction_for_payment_intent_succeeded_event_when_contribution_not_found(
@@ -2234,10 +2374,70 @@ class TestPayment:
         mocker.patch("stripe.PaymentIntent.retrieve", return_value=payment_intent_for_one_time_contribution)
         mocker.patch("stripe.BalanceTransaction.retrieve", return_value=None)
         assert Payment.get_contribution_and_balance_transaction_for_payment_intent_succeeded_event(
-            event=payment_intent_succeeded_one_time_event
+            event=StripeEventData(**payment_intent_succeeded_one_time_event)
         ) == (None, None)
 
     def test_multiple_payments_for_recurring_contribution_behavior(self, monthly_contribution):
         for x in range(2):
             PaymentFactory(contribution=monthly_contribution)
         assert monthly_contribution.payment_set.count() == 2
+
+    @pytest.mark.parametrize(
+        "interval,event_fixture",
+        (
+            (ContributionInterval.ONE_TIME, "payment_intent_succeeded_one_time_event"),
+            (ContributionInterval.MONTHLY, "payment_intent_succeeded_subscription_creation_event"),
+            (ContributionInterval.YEARLY, "payment_intent_succeeded_subscription_creation_event"),
+        ),
+    )
+    def contribution(self, request):
+        return ContributionFactory(
+            interval=request.param[0], provider_payment_id=request.getfixturevalue(request.param[1]).data.object.id
+        )
+
+    def test_get_contribution_and_balance_transaction_for_payment_intent_succeeded_event_when_value_error(
+        self, mocker, payment_intent_succeeded_one_time_event, payment_intent_for_one_time_contribution
+    ):
+        mocker.patch("apps.contributions.models.Payment._ensure_pi_has_single_charge", side_effect=ValueError("foo"))
+        contribution = ContributionFactory(provider_payment_id=payment_intent_for_one_time_contribution.id)
+        mocker.patch("stripe.PaymentIntent.retrieve", return_value=payment_intent_for_one_time_contribution)
+        logger_spy = mocker.spy(logger, "warning")
+        assert Payment.get_contribution_and_balance_transaction_for_payment_intent_succeeded_event(
+            event=StripeEventData(**payment_intent_succeeded_one_time_event)
+        ) == (
+            contribution,
+            None,
+        )
+        logger_spy.assert_called_once_with(
+            "Could not find a balance transaction for PI %s associated with event %s", mocker.ANY, mocker.ANY
+        )
+
+    def test_from_stripe_charge_refunded_event_when_more_than_one_refund(self, mocker, charge_refunded_one_time_event):
+        charge_refunded_one_time_event.data.object.refunds.data.append(
+            stripe.Refund.construct_from({"id": "foo", "amount": 500}, stripe.api_key)
+        )
+        mocker.patch("stripe.PaymentIntent.retrieve")
+        with pytest.raises(ValueError) as exc_info:
+            Payment.from_stripe_charge_refunded_event(event=StripeEventData(**charge_refunded_one_time_event))
+        assert str(exc_info.value) == "Too many refunds"
+
+    def test_from_stripe_charge_refunded_event_when_no_search_conditions(self, mocker, charge_refunded_one_time_event):
+        mocker.patch("stripe.PaymentIntent.retrieve", return_value=None)
+        mocker.patch("stripe.BalanceTransaction.retrieve", return_value=mocker.Mock(source="foo"))
+        with pytest.raises(ValueError) as exc_info:
+            Payment.from_stripe_charge_refunded_event(event=StripeEventData(**charge_refunded_one_time_event))
+        assert str(exc_info.value) == "Could not find a contribution for this event (no conditions)"
+
+    def test_from_stripe_charge_refunded_event_when_contribution_not_found_on_search(
+        self,
+        mocker,
+        charge_refunded_one_time_event,
+        payment_intent_for_one_time_contribution,
+        balance_transaction_for_one_time_charge,
+    ):
+        mocker.patch("stripe.PaymentIntent.retrieve", return_value=payment_intent_for_one_time_contribution)
+        mocker.patch("stripe.BalanceTransaction.retrieve", return_value=balance_transaction_for_one_time_charge)
+        Contribution.objects.all().delete()
+        with pytest.raises(ValueError) as exc_info:
+            Payment.from_stripe_charge_refunded_event(event=StripeEventData(**charge_refunded_one_time_event))
+        assert str(exc_info.value) == "Could not find a contribution for this event (no match)"

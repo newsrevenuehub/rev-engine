@@ -20,6 +20,7 @@ from apps.contributions.stripe_contributions_provider import (
     SubscriptionsCacheProvider,
 )
 from apps.contributions.tests.factories import ContributionFactory
+from apps.contributions.types import StripeEventData
 from apps.contributions.utils import CONTRIBUTION_EXPORT_CSV_HEADERS
 
 
@@ -382,15 +383,18 @@ class TestProcessStripeWebhookTask:
     @pytest.mark.parametrize("contribution_found", (True, False))
     def test_synchronously(self, contribution_found, payment_intent_succeeded, mocker):
         mock_process = mocker.patch("apps.contributions.webhooks.StripeWebhookProcessor.process")
-        mock_logger = mocker.patch("apps.contributions.tasks.logger.debug")
+        mock_logger = mocker.patch("apps.contributions.tasks.logger.info")
         if not contribution_found:
             mock_process.side_effect = Contribution.DoesNotExist
-        contribution_tasks.process_stripe_webhook_task(event=payment_intent_succeeded)
+        contribution_tasks.process_stripe_webhook_task(raw_event_data=payment_intent_succeeded)
         mock_process.assert_called_once()
         if contribution_found:
-            mock_logger.assert_not_called()
+            assert mock_logger.call_count == 1
+            assert mock_logger.call_args == mocker.call("Processing Stripe webhook event with ID %s", mocker.ANY)
         else:
-            mock_logger.assert_called_once_with("Could not find contribution", exc_info=True)
+            assert mock_logger.call_args == mocker.call(
+                "Could not find contribution. Here's the event data: %s", mocker.ANY, exc_info=True
+            )
 
 
 def test_on_process_stripe_webhook_task_failure(mocker):
@@ -400,3 +404,15 @@ def test_on_process_stripe_webhook_task_failure(mocker):
     tb = mocker.Mock()
     contribution_tasks.on_process_stripe_webhook_task_failure(task, exc, tb)
     mock_logger.assert_called_once_with(f"process_stripe_webhook_task {my_id} failed. Error: {exc}")
+
+
+@pytest.mark.django_db
+def test_process_stripe_webhook_task_when_contribution_not_exist_error(payment_intent_succeeded_one_time_event, mocker):
+    logger_spy = mocker.spy(contribution_tasks.logger, "info")
+    Contribution.objects.all().delete()
+    contribution_tasks.process_stripe_webhook_task(raw_event_data=payment_intent_succeeded_one_time_event)
+    assert logger_spy.call_args == mocker.call(
+        "Could not find contribution. Here's the event data: %s",
+        StripeEventData(**payment_intent_succeeded_one_time_event),
+        exc_info=True,
+    )

@@ -13,7 +13,9 @@ export * from './OffscreenText/OffscreenText';
 export * from './Pagination/Pagination';
 export * from './Radio/Radio';
 export * from './RadioGroup/RadioGroup';
-export * from './RichTextEditor';
+// RichTextEditor and RichTextDisplay are intentionally not part of this barrel
+// export. Doing so triggers react-draft-js to be sent over the wire even on
+// contribution pages, which don't use it.
 export * from './RouterLinkButton/RouterLinkButton';
 export * from './Select';
 export * from './Stepper';

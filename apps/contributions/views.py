@@ -1,6 +1,4 @@
-import json
 import logging
-from types import SimpleNamespace
 from typing import List
 
 from django.conf import settings
@@ -15,7 +13,7 @@ import stripe
 from django_filters.rest_framework import DjangoFilterBackend
 from rest_framework import mixins, status, viewsets
 from rest_framework.decorators import action, api_view, authentication_classes, permission_classes
-from rest_framework.exceptions import ParseError
+from rest_framework.exceptions import NotFound, ParseError
 from rest_framework.permissions import IsAdminUser, IsAuthenticated
 from rest_framework.request import Request
 from rest_framework.response import Response
@@ -30,6 +28,7 @@ from apps.api.permissions import (
     IsContributor,
     IsContributorOwningContribution,
     IsHubAdmin,
+    UserIsRequestedContributor,
 )
 from apps.contributions import serializers
 from apps.contributions.filters import ContributionFilter
@@ -139,7 +138,9 @@ def process_stripe_webhook(request):
     logger.debug("Processing stripe webhook: %s", request.body)
     sig_header = request.META["HTTP_STRIPE_SIGNATURE"]
     try:
-        event = stripe.Webhook.construct_event(request.body, sig_header, settings.STRIPE_WEBHOOK_SECRET_CONTRIBUTIONS)
+        raw_data = stripe.Webhook.construct_event(
+            request.body, sig_header, settings.STRIPE_WEBHOOK_SECRET_CONTRIBUTIONS
+        )
     except ValueError:
         logger.warning("Invalid payload from Stripe webhook request")
         return Response(data={"error": "Invalid payload"}, status=status.HTTP_400_BAD_REQUEST)
@@ -148,7 +149,8 @@ def process_stripe_webhook(request):
             "Invalid signature on Stripe webhook request. Is STRIPE_WEBHOOK_SECRET_CONTRIBUTIONS set correctly?"
         )
         return Response(data={"error": "Invalid signature"}, status=status.HTTP_400_BAD_REQUEST)
-    process_stripe_webhook_task.delay(event.to_dict())
+
+    process_stripe_webhook_task.delay(raw_event_data=raw_data)
     return Response(status=status.HTTP_200_OK)
 
 
@@ -565,61 +567,114 @@ class SubscriptionsViewSet(viewsets.ViewSet):
         )
 
 
-@api_view(["GET"])
-@permission_classes([])
-def contributor_contributions(request, id):
-    """Provisional mock implementation of the `contributor_contributions` view function
+class PortalContributorsViewSet(viewsets.GenericViewSet):
+    """This viewset is meant to furnish contributions data to the (new) contributor portal"""
 
-    The real endpoint will use `IsContributor` permission class, but that requires hooking into magic email link flow, so
-    in short term we'll not enforce permits, and send back our fake data.
-    """
-    logger.debug("Called for contributor ID %s", id)
-    params = {}
-    for k, v in {"page": 1, "page_size": 10, "ordering": "-created", "interval": "all"}.items():
-        sent = request.GET.get(k, None)
-        if k in ("page", "page_size"):
-            sent = int(sent) if sent else v
-        params[k] = sent if sent else v
-        logger.debug("Sent value for %s is %s", k, sent)
-    results_page = params["page"] if params["page"] in (1, 2) else 1
-    with open(f"apps/contributions/tests/fixtures/contributor-contributions-page-{results_page}.json") as fl:
-        response_data = json.load(fl)
-    # we do this both to handle out of range page case and also to ensure the data we're returning to SPA which will
-    # develop vs. looks way it does by virtue of our serializer which is meant to updhold contract with SPA
-    response_data["results"] = (
-        [serializers.ContributionAgreementSerializer(SimpleNamespace(**x)).data for x in response_data["results"]]
-        if params["page"] <= 2
-        else []
+    permission_classes = [IsAuthenticated, IsContributor, UserIsRequestedContributor]
+
+    ALLOWED_ORDERING_FIELDS = ["created", "amount"]
+    ALLOWED_FILTER_FIELDS = [
+        "status",
+    ]
+
+    queryset = Contributor.objects.all()
+
+    def _get_contributor_and_check_permissions(self, request, contributor_id):
+        try:
+            contributor = Contributor.objects.get(pk=contributor_id)
+        except Contributor.DoesNotExist:
+            raise NotFound(detail="Contributor not found", code=status.HTTP_404_NOT_FOUND)
+        self.check_object_permissions(request, contributor)
+        return contributor
+
+    def get_serializer_class(self):
+        return (
+            serializers.PortalContributionDetailSerializer
+            if self.action == "contribution_detail"
+            else serializers.PortalContributionListSerializer
+        )
+
+    @action(
+        methods=["get"],
+        url_path="contributions",
+        url_name="contributions-list",
+        detail=True,
+        serializer_class=serializers.PortalContributionListSerializer,
     )
-    return Response(response_data, status=status.HTTP_200_OK)
+    def contributions_list(self, request, pk=None):
+        """Endpoint to get all contributions for a given contributor"""
+        contributor = self._get_contributor_and_check_permissions(request, pk)
+        ordering = self.request.query_params.get("ordering", "-created")
+        filters = {}
+        for k in self.ALLOWED_FILTER_FIELDS:
+            if (v := self.request.query_params.get(k)) is not None:
+                filters[k] = v
+        queryset = contributor.contribution_set.filter(**filters).order_by(ordering)
+        paginator = self.pagination_class()
+        page = paginator.paginate_queryset(queryset, request)
+        serializer = self.get_serializer(page, many=True)
+        return paginator.get_paginated_response(serializer.data)
 
+    @action(
+        methods=["get", "patch", "delete"],
+        url_path="contributions/(?P<contribution_id>[^/.]+)",
+        url_name="contribution-detail",
+        detail=True,
+        serializer_class=serializers.PortalContributionDetailSerializer,
+    )
+    def contribution_detail(self, request, pk=None, contribution_id=None) -> Response:
+        """Endpoint to get or update a contribution for a given contributor"""
+        contributor = self._get_contributor_and_check_permissions(request, pk)
+        try:
+            contribution = contributor.contribution_set.get(pk=contribution_id)
+        except Contribution.DoesNotExist:
+            return Response({"detail": "Contribution not found"}, status=status.HTTP_404_NOT_FOUND)
 
-@api_view(["GET"])
-@permission_classes([])
-def contributor_contribution(request, contributor_id: int, contribution_id: str):
-    """Provisional mock implementation of the `contributor_contribution` view function
+        kwargs = {"instance": contribution}
+        if request.method == "PATCH":
+            kwargs["data"] = request.data
+            kwargs["partial"] = True
 
-    The real endpoint will use `IsContributor` permission class, but that requires hooking into magic email link flow, so
-    in short term we'll not enforce permits, and send back our fake data.
-    """
-    logger.debug("Called for contributor ID %s, contribution ID %s", contributor_id, contribution_id)
-    for i in range(1, 3):
-        with open(f"apps/contributions/tests/fixtures/contributor-contributions-page-{i}.json") as fl:
-            fixture_data = json.load(fl)
-            for result in fixture_data["results"]:
-                if result["payment_provider_id"] == contribution_id:
-                    # There are a few extra properties in the detail view we need to mock.
-                    result["credit_card_owner_name"] = "Jane Doe"
-                    result["paid_fees"] = True
-                    # Mock the payments list to match the contribution itself.
-                    result["payments"] = [
-                        {
-                            "amount_refunded": 0,
-                            "created": result["created"],
-                            "gross_amount_paid": result["amount"],
-                            "net_amount_paid": result["amount"],
-                            "status": "paid",
-                        }
-                    ]
-                    return Response(result, status=status.HTTP_200_OK)
-    return Response({"detail": f"No contribution exists with ID {contribution_id}"}, status=status.HTTP_404_NOT_FOUND)
+        serializer = self.get_serializer(**kwargs)
+
+        # NB: we're guaranteed that request method is one of these three by @action decorator, so
+        # don't need to handle default case
+        match request.method:
+            case "GET":
+                return Response(serializer.data, status=status.HTTP_200_OK)
+            case "PATCH":
+                return self.handle_patch(serializer)
+            case (
+                "DELETE"
+            ):  # NB: this path does in fact get tested, but shows up as partially covered in coverage report
+                return self.handle_delete(contribution)
+
+    def handle_patch(self, serializer: serializers.PortalContributionDetailSerializer) -> Response:
+        serializer.is_valid(raise_exception=True)
+        try:
+            serializer.save()
+        except stripe.error.StripeError:
+            return Response({"detail": "Problem updating contribution"}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+        return Response(serializer.data, status=status.HTTP_200_OK)
+
+    def handle_delete(self, contribution: Contribution) -> Response:
+        """If subscription found, cancel it in Stripe.
+
+        NB: we don't do anything to update NRE contribution status here and instead rely on ensuing webhooks to do that.
+        """
+        if not contribution.is_cancelable:
+            logger.warning("Request was made to cancel uncancelable contribution %s", contribution.id)
+            return Response({"detail": "Cannot cancel contribution"}, status=status.HTTP_400_BAD_REQUEST)
+        try:
+            stripe.Subscription.delete(
+                contribution.provider_subscription_id,
+                stripe_account=contribution.donation_page.revenue_program.payment_provider.stripe_account_id,
+            )
+        except stripe.error.StripeError:
+            logger.exception(
+                "stripe.Subscription.delete returned a StripeError trying to cancel subscription %s associated with contribution %s",
+                contribution.provider_subscription_id,
+                contribution.id,
+            )
+            return Response({"detail": "Problem canceling contribution"}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+        return Response(status=status.HTTP_204_NO_CONTENT)

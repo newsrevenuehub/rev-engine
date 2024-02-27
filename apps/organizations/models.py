@@ -184,9 +184,11 @@ class Organization(IndexedTimeStampedModel):
             return None
         return stripe.Subscription.retrieve(
             self.stripe_subscription_id,
-            api_key=settings.LIVE_SECRET_KEY_FOR_UPGRADES
-            if settings.STRIPE_LIVE_MODE
-            else settings.STRIPE_TEST_SECRET_KEY_UPGRADES,
+            api_key=(
+                settings.LIVE_SECRET_KEY_FOR_UPGRADES
+                if settings.STRIPE_LIVE_MODE
+                else settings.STRIPE_TEST_SECRET_KEY_UPGRADES
+            ),
         )
 
     @property
@@ -420,7 +422,6 @@ class MailchimpProductLink:
 
 @dataclass(frozen=True)
 class MailchimpProduct:
-
     """An instance of a Mailchimp product link, as represented by the Mailchimp API and relayed by rev-engine"""
 
     id: str

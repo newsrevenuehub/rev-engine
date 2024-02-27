@@ -8,6 +8,7 @@ https://docs.djangoproject.com/en/3.2/topics/settings/
 For the full list of settings and their values, see
 https://docs.djangoproject.com/en/3.2/ref/settings/
 """
+
 import os
 from datetime import timedelta
 from pathlib import Path
@@ -449,8 +450,9 @@ STRIPE_WEBHOOK_EVENTS_CONTRIBUTIONS = [
     "payment_intent.succeeded",
     "customer.subscription.updated",
     "customer.subscription.deleted",
-    "payment_method.attached",
     "invoice.upcoming",
+    "invoice.payment_succeeded",
+    "charge.refunded",
 ]
 
 # The following values that end in `_UPGRADES` are for interacting with Stripe to manage org upgrades

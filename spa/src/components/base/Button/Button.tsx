@@ -30,6 +30,8 @@ const StyledMuiButton = styled(ButtonWrapper)<ButtonProps>`
 
     .NreButtonLabel {
       color: ${({ color }) => (color ? buttonColors[color].normal.fg : buttonColors.primaryLight.normal.fg)};
+      /* Used to sync icon color to label color when using (startIcon & endIcon) */
+      fill: ${({ color }) => (color ? buttonColors[color].normal.fg : buttonColors.primaryLight.normal.fg)};
       font:
         600 14px Roboto,
         sans-serif;
@@ -51,6 +53,8 @@ const StyledMuiButton = styled(ButtonWrapper)<ButtonProps>`
 
     .NreButtonLabel {
       color: ${({ color }) => (color ? buttonColors[color].hover.fg : buttonColors.primaryLight.hover.fg)};
+      /* Used to sync icon color to label color when using (startIcon & endIcon) */
+      fill: ${({ color }) => (color ? buttonColors[color].hover.fg : buttonColors.primaryLight.hover.fg)};
     }
   }
 

@@ -116,7 +116,10 @@ class StripeClientForConnectedAccount:
         ]
 
     def get_payment_intents(self) -> list[stripe.PaymentIntent]:
-        """Gets payment intents for a given stripe account"""
+        """Gets payment intents for a given stripe account
+
+        NB: This method only lets through payment intents that have a supported schema version.
+        """
         logger.debug("Getting payment intents for account %s", self.account_id)
         pis = [
             x

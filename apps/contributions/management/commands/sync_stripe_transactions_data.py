@@ -21,7 +21,7 @@ class Command(BaseCommand):
 
     help = "Sync down payments data from Stripe to revengine to create or update revengine contributor, contribution, and payment objects."
 
-    # NB: The no covers below is because HTML coverage is falsely reporting these lines as partially covered, when in fact
+    # NB: The no covers below are because HTML coverage is falsely reporting these lines as partially covered, when in fact
     # we have tests running command both with and without these options.
     def add_arguments(self, parser: CommandParser) -> None:
         parser.add_argument(  # pragma: no cover

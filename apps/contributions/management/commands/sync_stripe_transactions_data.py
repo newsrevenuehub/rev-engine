@@ -21,24 +21,26 @@ class Command(BaseCommand):
 
     help = "Sync down payments data from Stripe to revengine to create or update revengine contributor, contribution, and payment objects."
 
+    # NB: The no covers below is because HTML coverage is falsely reporting these lines as partially covered, when in fact
+    # we have tests running command both with and without these options.
     def add_arguments(self, parser: CommandParser) -> None:
-        parser.add_argument(
+        parser.add_argument(  # pragma: no cover
             "--gte",
             type=lambda s: dateparser.parse(s),
             help=("Optional start date(time) for the sync (inclusive). Tries to parse whatever it's given.",),
         ),
-        parser.add_argument(
+        parser.add_argument(  # pragma: no cover
             "--lte",
             type=lambda s: dateparser.parse(s),
             help="Optional end date(time) for the sync (inclusive). Tries to parse whatever it's given.",
         ),
-        parser.add_argument(
+        parser.add_argument(  # pragma: no cover
             "--for_orgs",
             type=lambda s: [x.strip() for x in s.split(",")],
             default=[],
             help="Optional comma-separated list of org ids to limit to",
         )
-        parser.add_argument(
+        parser.add_argument(  # pragma: no cover
             "--for_stripe_accounts",
             type=lambda s: [x.strip() for x in s.split(",")],
             default=[],

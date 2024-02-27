@@ -1,0 +1,13 @@
+name: Actions to take after deployment of a heroku app (e)
+
+on:
+  workflow_dispatch:
+jobs:
+  run-tests:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v2
+
+      - name: Run tests
+        run: cd e2e && pytest

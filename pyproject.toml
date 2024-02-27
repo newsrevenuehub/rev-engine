@@ -115,6 +115,10 @@ responses = "*"
 [tool.poetry.extras]
 bandit = ["toml"]
 
+[tool.poetry.group.dev.dependencies]
+pytest-celery = "^0"
+peewee = "^3.17.0"
+pytest-playwright = "^0.4.3"
 
 [build-system]
 requires = ["poetry-core>=1.0.0"]

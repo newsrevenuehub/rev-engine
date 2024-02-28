@@ -972,7 +972,7 @@ class TestStripeTransactionsSyncer:
             (item2 := mocker.Mock()),
             (item3 := mocker.Mock()),
         ]
-        item1.upsert.side_effect = ValueError("foo")
+        item1.upsert.side_effect = InvalidStripeTransactionDataError("foo")
         item2.upsert.return_value = (contribution1 := mocker.Mock()), True, False
         item3.upsert.return_value = (contribution2 := mocker.Mock()), False, True
         contributions = StripeTransactionsSyncer().sync_contributions_and_payments_for_subscriptions("test_id")
@@ -994,7 +994,7 @@ class TestStripeTransactionsSyncer:
         ]
         item1.upsert.return_value = (contribution1 := mocker.Mock()), True, False
         item2.upsert.return_value = (contribution2 := mocker.Mock()), False, True
-        item_with_error.upsert.side_effect = ValueError("foo")
+        item_with_error.upsert.side_effect = InvalidStripeTransactionDataError("foo")
         contributions = StripeTransactionsSyncer().sync_contributions_and_payments_for_payment_intents("test_id")
         assert contributions == [contribution1, contribution2]
 

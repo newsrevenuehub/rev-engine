@@ -636,7 +636,7 @@ class StripeTransactionsSyncer:
                     created_count += 1
                 if updated:
                     updated_count += 1
-            except ValueError as exc:
+            except InvalidStripeTransactionDataError as exc:
                 logger.warning("Unable to upsert subscription %s", x.subscription.id, exc_info=exc)
         logger.info("Created %s new recurring contributions for stripe account %s", created_count, stripe_account_id)
         logger.info(
@@ -660,7 +660,7 @@ class StripeTransactionsSyncer:
                     created_count += 1
                 if updated:
                     updated_count += 1
-            except ValueError as exc:
+            except InvalidStripeTransactionDataError as exc:
                 logger.warning("Unable to upsert payment intent %s", x.payment_intent.id, exc_info=exc)
         logger.info("Created %s new one-time contributions for stripe account %s", created_count, stripe_account_id)
         logger.info(

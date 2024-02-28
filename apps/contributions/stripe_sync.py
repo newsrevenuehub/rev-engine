@@ -420,7 +420,7 @@ class PaymentIntentForOneTimeContribution:
             )
 
         if not (charge := self.charge):
-            logger.warning(
+            logger.debug(
                 "Can't upsert payments for contribution %s with payment intent %s because no charge",
                 contribution.id,
                 self.payment_intent.id,
@@ -557,7 +557,7 @@ class SubscriptionForRecurringContribution:
             if charge.balance_transaction:
                 upsert_payments_for_charge(contribution, charge, charge.balance_transaction)
             else:
-                logger.warning(
+                logger.debug(
                     "Can't upsert payments for contribution %s with charge %s because no balance transaction",
                     contribution.id,
                     getattr(charge, "id", None),

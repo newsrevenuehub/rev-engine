@@ -157,14 +157,11 @@ class TestContributionModel:
         (pytest_cases.fixture_ref("one_time_contribution"), pytest_cases.fixture_ref("monthly_contribution")),
     )
     @pytest.mark.parametrize(
-        "has_revenue_program,has_payment_provider,expect_result",
-        ((True, False, False), (False, True, False), (True, True, True)),
+        "has_payment_provider,expect_result",
+        ((False, False), (True, True)),
     )
-    def test_stripe_account_id_property(self, contribution, has_revenue_program, has_payment_provider, expect_result):
-        if not has_revenue_program:
-            contribution.revenue_program = None
-            contribution.donation_page.save()
-        if has_revenue_program and not has_payment_provider:
+    def test_stripe_account_id_property(self, contribution, has_payment_provider, expect_result):
+        if not has_payment_provider:
             contribution.revenue_program.payment_provider = None
             contribution.revenue_program.save()
         stripe_account_id = contribution.stripe_account_id

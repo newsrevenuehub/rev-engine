@@ -29,6 +29,7 @@ from apps.common.utils import (
     upsert_cloudflare_cnames,
     upsert_with_diff_check,
 )
+from apps.organizations.tests.factories import RevenueProgramFactory
 
 
 DEFAULT_MAX_SLUG_LENGTH = 50
@@ -340,18 +341,26 @@ class Test_upsert_with_diff_check:
     model = Contribution
 
     @pytest.fixture
-    def instance(self):
+    def revenue_program(self):
+        return RevenueProgramFactory(onboarded=True)
+
+    @pytest.fixture
+    def instance(self, revenue_program):
         from apps.contributions.tests.factories import ContributionFactory
 
-        return ContributionFactory(amount=self.AMOUNT, provider_payment_id=self.PROVIDER_PAYMENT_ID)
+        return ContributionFactory(
+            amount=self.AMOUNT, provider_payment_id=self.PROVIDER_PAYMENT_ID, revenue_program=revenue_program
+        )
 
     @pytest.fixture
     def instance_is_none(self):
         return None
 
     @pytest.fixture
-    def update_data(self):
-        return {"amount": self.UPDATE_AMOUNT}
+    def update_data(self, revenue_program):
+        # we're adding revenue_program here because in the model under test, this field is non-nullable, and one of our test cases is when
+        # create from default data, so we need to provide this field
+        return {"amount": self.UPDATE_AMOUNT, "revenue_program": revenue_program}
 
     @pytest.fixture
     def unique_identifier(self):

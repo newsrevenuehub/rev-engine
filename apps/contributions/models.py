@@ -151,6 +151,7 @@ class Contribution(IndexedTimeStampedModel):
     amount = models.IntegerField(help_text="Stored in cents")
     currency = models.CharField(max_length=3, default="usd")
     reason = models.CharField(max_length=255, blank=True)
+    revenue_program = models.ForeignKey("organizations.RevenueProgram", on_delete=models.PROTECT, null=True)
 
     interval = models.CharField(max_length=8, choices=ContributionInterval.choices)
 
@@ -220,12 +221,6 @@ class Contribution(IndexedTimeStampedModel):
     def formatted_amount(self) -> str:
         currency = self.get_currency_dict()
         return f"{currency['symbol']}{'{:.2f}'.format(self.amount / 100)} {currency['code']}"
-
-    @property
-    def revenue_program(self) -> RevenueProgram | None:
-        # TODO: [DEV-4507] Remove this property and replace with a direct FK to RevenueProgram
-        if self.donation_page:
-            return self.donation_page.revenue_program
 
     @property
     def stripe_account_id(self) -> str | None:

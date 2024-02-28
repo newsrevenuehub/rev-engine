@@ -81,7 +81,7 @@ class Contributor(IndexedTimeStampedModel):
             raise ValueError("Invalid value provided for `contribution`")
         token = str(ContributorRefreshToken.for_contributor(contribution.contributor.uuid).short_lived_access_token)
         return mark_safe(
-            f"https://{construct_rp_domain(contribution.donation_page.revenue_program.slug)}/{settings.CONTRIBUTOR_VERIFY_URL}"
+            f"https://{construct_rp_domain(contribution.revenue_program.slug)}/{settings.CONTRIBUTOR_VERIFY_URL}"
             f"?token={token}&email={quote_plus(contribution.contributor.email)}"
         )
 
@@ -547,20 +547,20 @@ class Contribution(IndexedTimeStampedModel):
             "contributor_email": self.contributor.email,
             "contributor_name": customer.name,
             "copyright_year": datetime.datetime.now().year,
-            "fiscal_sponsor_name": self.donation_page.revenue_program.fiscal_sponsor_name,
-            "fiscal_status": self.donation_page.revenue_program.fiscal_status,
+            "fiscal_sponsor_name": self.revenue_program.fiscal_sponsor_name,
+            "fiscal_status": self.revenue_program.fiscal_status,
             "magic_link": Contributor.create_magic_link(self),
-            "non_profit": self.donation_page.revenue_program.non_profit,
-            "rp_name": self.donation_page.revenue_program.name,
-            "style": asdict(self.donation_page.revenue_program.transactional_email_style),
-            "tax_id": self.donation_page.revenue_program.tax_id,
+            "non_profit": self.revenue_program.non_profit,
+            "rp_name": self.revenue_program.name,
+            "style": asdict(self.revenue_program.transactional_email_style),
+            "tax_id": self.revenue_program.tax_id,
             "timestamp": timestamp if timestamp else datetime.datetime.today().strftime("%m/%d/%Y"),
         }
 
         # Almost all RPs should have a default page set, but it's possible one isn't.
 
-        if self.donation_page.revenue_program.default_donation_page:
-            data["default_contribution_page_url"] = self.donation_page.revenue_program.default_donation_page.page_url
+        if self.revenue_program.default_donation_page:
+            data["default_contribution_page_url"] = self.revenue_program.default_donation_page.page_url
 
         send_templated_email.delay(
             self.contributor.email,
@@ -579,7 +579,7 @@ class Contribution(IndexedTimeStampedModel):
 
     def send_recurring_contribution_email_reminder(self, next_charge_date: datetime.date = None) -> None:
         self.send_recurring_contribution_change_email(
-            f"Reminder: {self.donation_page.revenue_program.name} scheduled contribution",
+            f"Reminder: {self.revenue_program.name} scheduled contribution",
             "recurring-contribution-email-reminder",
             next_charge_date,
         )

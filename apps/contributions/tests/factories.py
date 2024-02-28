@@ -14,6 +14,7 @@ from faker import Faker
 from apps.common.tests.test_utils import generate_random_datetime
 from apps.contributions import models
 from apps.contributions.serializers import StripePaymentMetadataSchemaV1_4
+from apps.organizations.tests.factories import RevenueProgramFactory
 from apps.pages.tests.factories import DonationPageFactory
 
 
@@ -98,6 +99,7 @@ class ContributionFactory(DjangoModelFactory):
     provider_customer_id = None
     provider_payment_method_id = factory.LazyFunction(lambda: f"pm_{_random_stripe_str()}")
     provider_payment_method_details = factory.LazyFunction(lambda: PAYMENT_METHOD_DETAILS_DATA)
+    revenue_program = factory.SubFactory(RevenueProgramFactory, onboarded=True)
 
     @factory.lazy_attribute
     def contribution_metadata(self):
@@ -106,8 +108,8 @@ class ContributionFactory(DjangoModelFactory):
             agreed_to_pay_fees=True,
             donor_selected_amount=self.amount / 100,
             referer="https://www.google.com/",
-            revenue_program_id=self.donation_page.revenue_program_id,
-            revenue_program_slug=self.donation_page.revenue_program.slug,
+            revenue_program_id=self.revenue_program.id,
+            revenue_program_slug=self.revenue_program.slug,
             source="rev-engine",
             schema_version="1.4",
         ).model_dump(mode="json")

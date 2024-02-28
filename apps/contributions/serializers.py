@@ -427,6 +427,7 @@ class BaseCreatePaymentSerializer(serializers.Serializer):
             "donation_page": validated_data["page"],
             "contributor": contributor,
             "payment_provider_used": "Stripe",
+            "revenue_program": validated_data["page"].revenue_program,
         }
         if bad_actor_response:
             contribution_data["bad_actor_score"] = bad_actor_response["overall_judgment"]
@@ -453,8 +454,8 @@ class BaseCreatePaymentSerializer(serializers.Serializer):
             in_memory_of=self.validated_data["in_memory_of"] or None,
             reason_for_giving=self.validated_data["reason_for_giving"] or None,
             referer=self._context["request"].META["HTTP_REFERER"],
-            revenue_program_id=self.validated_data["page"].revenue_program.id,
-            revenue_program_slug=self.validated_data["page"].revenue_program.slug,
+            revenue_program_id=contribution.revenue_program.id,
+            revenue_program_slug=contribution.revenue_program.slug,
             sf_campaign_id=self.validated_data["sf_campaign_id"] or None,
             swag_choices=self.validated_data["swag_choices"] or None,
             swag_opt_out=self.validated_data["swag_opt_out"],

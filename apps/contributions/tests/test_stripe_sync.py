@@ -26,8 +26,8 @@ from apps.contributions.tests.factories import (
     ContributorFactory,
     PaymentFactory,
 )
-from apps.organizations.models import PaymentProvider
-from apps.organizations.tests.factories import PaymentProviderFactory
+from apps.organizations.models import PaymentProvider, RevenueProgram
+from apps.organizations.tests.factories import PaymentProviderFactory, RevenueProgramFactory
 
 
 @pytest.fixture
@@ -54,6 +54,8 @@ def refund(mocker):
 
 @pytest.fixture
 def payment_intent(mocker, charge, customer, valid_metadata):
+    # need this in place otherwise upsert code will fail
+    RevenueProgramFactory(id=valid_metadata["revenue_program_id"])
     charges = mocker.Mock(total_count=1, data=[charge])
     pm = mocker.Mock(id="pm_1")
     pm.to_dict.return_value = {"foo": "bar"}
@@ -98,6 +100,7 @@ def mock_metadata_validator(mocker):
 
 @pytest.fixture
 def subscription(mocker, customer, valid_metadata):
+    RevenueProgramFactory(id=valid_metadata["revenue_program_id"])
     plan = mocker.Mock(amount=1000, currency="usd", interval="month", interval_count=1)
     payment_method = mocker.Mock(id="pm_1")
     payment_method.to_dict.return_value = {"foo": "bar"}
@@ -142,7 +145,11 @@ def charge_with_refund(mocker, charge, refund):
 
 @pytest.fixture
 def subscription_with_existing_nre_entities(subscription):
-    ContributionFactory(provider_subscription_id=subscription.id, contributor__email=subscription.customer.email)
+    ContributionFactory(
+        provider_subscription_id=subscription.id,
+        contributor__email=subscription.customer.email,
+        revenue_program=RevenueProgram.objects.get(pk=subscription.metadata["revenue_program_id"]),
+    )
     return subscription
 
 
@@ -366,7 +373,10 @@ class TestSubscriptionForRecurringContribution:
 class TestPaymentIntentForOneTimeContribution:
     @pytest.fixture
     def payment_intent_with_existing_nre_entities(self, payment_intent):
-        ContributionFactory(provider_payment_id=payment_intent.id)
+        ContributionFactory(
+            provider_payment_id=payment_intent.id,
+            revenue_program=RevenueProgram.objects.get(id=payment_intent.metadata["revenue_program_id"]),
+        )
         return payment_intent
 
     @pytest.mark.parametrize("metadata_validates", (True, False))
@@ -642,6 +652,7 @@ class TestPaymentIntentForOneTimeContribution:
             PaymentIntentForOneTimeContribution(payment_intent=payment_intent, charge=mocker.Mock()).upsert()
 
 
+@pytest.mark.django_db
 class TestStripeClientForConnectedAccount:
     @pytest.fixture(
         params=[

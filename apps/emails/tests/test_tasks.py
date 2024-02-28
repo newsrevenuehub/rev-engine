@@ -84,7 +84,7 @@ class TestMakeSendThankYouEmailData:
             magic_link=mock_get_magic_link.return_value,
             non_profit=contribution.revenue_program.non_profit,
             rp_name=contribution.revenue_program.name,
-            style=asdict(contribution.donation_page.revenue_program.transactional_email_style),
+            style=asdict(contribution.revenue_program.transactional_email_style),
             tax_id=contribution.revenue_program.tax_id,
             show_upgrade_prompt=False,
         )
@@ -173,7 +173,7 @@ class TestSendThankYouEmail:
                 )
                 revenue_program.default_donation_page = page
                 revenue_program.save()
-            contribution.donation_page.revenue_program = revenue_program
+            contribution.revenue_program = revenue_program
             contribution.donation_page.save()
             data = make_send_thank_you_email_data(contribution)
             send_thank_you_email(data)
@@ -229,6 +229,7 @@ class TestSendThankYouEmail:
                     ),
                 )
             ),
+            revenue_program=rp,
         )
         data = make_send_thank_you_email_data(contribution)
         send_thank_you_email(data)

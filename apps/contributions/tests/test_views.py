@@ -1654,7 +1654,7 @@ class TestPortalContributorsViewSet:
                     dateparser.parse(x["next_payment_date"]).replace(tzinfo=pytz.UTC) == contribution.next_payment_date
                 )
             assert x["payment_type"] == contribution.payment_type
-            assert x["revenue_program"] == contribution.donation_page.revenue_program.id
+            assert x["revenue_program"] == contribution.revenue_program.id
             assert x["status"] == contribution.status
 
     def test_contributions_list_filter_behavior(self, api_client, portal_contributor_with_multiple_contributions):
@@ -1781,7 +1781,7 @@ class TestPortalContributorsViewSet:
                                 assert getattr(payment, z) == compared_val
 
                     case "revenue_program":
-                        assert response.json()[k] == x.donation_page.revenue_program.id
+                        assert response.json()[k] == x.revenue_program.id
 
                     case "created" | "last_payment_date":
                         compare_val = dateparser.parse(response.json()[k]).replace(tzinfo=pytz.UTC)
@@ -1968,7 +1968,7 @@ class TestPortalContributorsViewSet:
         assert response.status_code == status.HTTP_204_NO_CONTENT
         mock_delete_sub.assert_called_once_with(
             contribution.provider_subscription_id,
-            stripe_account=contribution.donation_page.revenue_program.payment_provider.stripe_account_id,
+            stripe_account=contribution.revenue_program.payment_provider.stripe_account_id,
         )
 
     def test_contribution_detail_delete_when_stripe_error(

@@ -26,7 +26,7 @@ from apps.contributions.types import (
     STRIPE_PAYMENT_METADATA_SCHEMA_VERSIONS,
     cast_metadata_to_stripe_payment_metadata_schema,
 )
-from apps.organizations.models import PaymentProvider
+from apps.organizations.models import PaymentProvider, RevenueProgram
 
 
 MAX_STRIPE_RESPONSE_LIMIT = 100
@@ -394,11 +394,17 @@ class PaymentIntentForOneTimeContribution:
         if created:
             logger.info("Created new contributor %s for payment intent %s", contributor.id, self.payment_intent.id)
         pm = self.payment_method
+        try:
+            rp = RevenueProgram.objects.get(pk=(rp_id := self.payment_intent.metadata["revenue_program_id"]))
+        except RevenueProgram.DoesNotExist:
+            raise InvalidStripeTransactionDataError(
+                f"Cannot find revenue program with ID of {rp_id} for payment intent {self.payment_intent.id}"
+            )
         contribution, created, updated = upsert_with_diff_check(
             model=Contribution,
             unique_identifier={"provider_payment_id": self.payment_intent.id},
             defaults={
-                "revenue_program_id": self.payment_intent.metadata["revenue_program_id"],
+                "revenue_program": rp,
                 "amount": self.payment_intent.amount,
                 "currency": self.payment_intent.currency,
                 "reason": self.payment_intent.metadata.get("reason_for_giving", ""),
@@ -527,12 +533,17 @@ class SubscriptionForRecurringContribution:
         if created:
             logger.info("Created new contributor %s for subscription %s", contributor.id, self.subscription.id)
         pm = self.payment_method
-
+        try:
+            rp = RevenueProgram.objects.get(pk=(rp_id := self.subscription.metadata["revenue_program_id"]))
+        except RevenueProgram.DoesNotExist:
+            raise InvalidStripeTransactionDataError(
+                f"Cannot find revenue program with ID of {rp_id} for subscription {self.subscription.id}"
+            )
         contribution, created, updated = upsert_with_diff_check(
             model=Contribution,
             unique_identifier={"provider_subscription_id": self.subscription.id},
             defaults={
-                "revenue_program_id": self.subscription.metadata["revenue_program_id"],
+                "revenue_program": rp,
                 "amount": self.subscription.plan.amount,
                 "currency": self.subscription.plan.currency,
                 # should be guaranteed that metadata is present at this point, given init

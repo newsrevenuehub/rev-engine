@@ -886,8 +886,8 @@ class TestBaseCreatePaymentSerializer:
         assert metadata.source == "rev-engine"
         assert metadata.contributor_id == str(contribution.contributor.id)
         assert metadata.donor_selected_amount == minimally_valid_contribution_form_data["donor_selected_amount"]
-        assert metadata.revenue_program_id == str(contribution.donation_page.revenue_program_id)
-        assert metadata.revenue_program_slug == contribution.donation_page.revenue_program.slug
+        assert metadata.revenue_program_id == str(contribution.revenue_program.id)
+        assert metadata.revenue_program_slug == contribution.revenue_program.slug
         assert (
             metadata.swag_opt_out is False
         )  # not provided in form data, this is default via default def in serializer field def
@@ -1210,7 +1210,7 @@ class TestCreateOneTimePaymentSerializer:
             "currency": contribution.currency,
             "customer": contribution.provider_customer_id,
             "statement_descriptor_suffix": None,
-            "stripe_account": contribution.donation_page.revenue_program.payment_provider.stripe_account_id,
+            "stripe_account": contribution.revenue_program.payment_provider.stripe_account_id,
             "capture_method": "manual",
         }
         save_spy.assert_called_once()

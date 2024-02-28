@@ -151,7 +151,7 @@ class Contribution(IndexedTimeStampedModel):
     amount = models.IntegerField(help_text="Stored in cents")
     currency = models.CharField(max_length=3, default="usd")
     reason = models.CharField(max_length=255, blank=True)
-    revenue_program = models.ForeignKey("organizations.RevenueProgram", on_delete=models.PROTECT, null=True)
+    revenue_program = models.ForeignKey("organizations.RevenueProgram", on_delete=models.PROTECT)
 
     interval = models.CharField(max_length=8, choices=ContributionInterval.choices)
 

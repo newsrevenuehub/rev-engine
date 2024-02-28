@@ -786,6 +786,7 @@ class TestBaseCreatePaymentSerializer:
             "bad_actor_score": bad_actor_data["overall_judgment"],
             "bad_actor_response": bad_actor_data,
             "flagged_date": None,
+            "revenue_program": serializer.validated_data["page"].revenue_program,
         }
         for key, val in expectations.items():
             assert getattr(contribution, key) == val

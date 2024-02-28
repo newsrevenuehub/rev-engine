@@ -127,6 +127,7 @@ def charge(mocker, balance_transaction, customer):
         refunded=False,
         amount_refunded=0,
         refunds=mocker.Mock(total_count=0, data=[]),
+        status="succeeded",
     )
 
 
@@ -385,11 +386,6 @@ class TestPaymentIntentForOneTimeContribution:
             assert instance.payment_intent == payment_intent
             assert instance.charge == charge
         mock_metadata_validator.assert_called_once_with(payment_intent.metadata)
-
-    def test_init_when_pi_charges_gt_1(self, payment_intent, charge):
-        payment_intent.charges.total_count = 2
-        with pytest.raises(InvalidStripeTransactionDataError):
-            PaymentIntentForOneTimeContribution(payment_intent=payment_intent, charge=charge)
 
     def test__str__(self, payment_intent, mock_metadata_validator, mocker):
         payment_intent.id = "pi_1"
@@ -746,6 +742,44 @@ class TestStripeClientForConnectedAccount:
         client = StripeClientForConnectedAccount(account_id="test")
         result = client.get_revengine_one_time_payment_intents_and_charges()
         assert result == [{"payment_intent": payment_intent, "charge": None}]
+
+    @pytest.fixture
+    def payment_intent_with_one_charge(self):
+        charge = stripe.Charge.construct_from({"id": "ch_1", "status": "succeeded"}, key="test")
+        pi = stripe.PaymentIntent.construct_from(
+            {"id": "pi_1", "charges": {"data": [charge]}, "invoice": None}, key="test"
+        )
+        return pi
+
+    @pytest.fixture
+    def payment_intent_with_two_successful_charges(self):
+        charge1 = stripe.Charge.construct_from({"id": "ch_1", "status": "succeeded"}, key="test")
+        charge2 = stripe.Charge.construct_from({"id": "ch_2", "status": "succeeded"}, key="test")
+        pi = stripe.PaymentIntent.construct_from(
+            {"id": "pi_2", "charges": {"data": [charge1, charge2]}, "invoice": None}, key="test"
+        )
+        return pi
+
+    def test_get_revengine_one_time_payment_intents_and_charges_when_gt_1_success_charge(
+        self, mocker, payment_intent, payment_intent_with_one_charge, payment_intent_with_two_successful_charges
+    ):
+        mock_logger = mocker.patch("apps.contributions.stripe_sync.logger.warning")
+        mocker.patch(
+            "apps.contributions.stripe_sync.StripeClientForConnectedAccount.get_expanded_charge_object",
+            return_value=None,
+        )
+        mocker.patch(
+            "apps.contributions.stripe_sync.StripeClientForConnectedAccount.get_payment_intents",
+            return_value=[payment_intent_with_one_charge, payment_intent_with_two_successful_charges],
+        )
+        client = StripeClientForConnectedAccount(account_id="test")
+        result = client.get_revengine_one_time_payment_intents_and_charges()
+        assert result == [{"payment_intent": payment_intent_with_one_charge, "charge": None}]
+        mock_logger.assert_called_once_with(
+            "Payment intent %s has more than one successful or pending charge so cannot be processed: %s",
+            payment_intent_with_two_successful_charges.id,
+            mocker.ANY,
+        )
 
     def test_get_revengine_one_time_payment_intents_and_charges_when_encounter_pi_not_for_one_time(
         self, mocker, payment_intent

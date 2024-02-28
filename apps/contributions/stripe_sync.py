@@ -149,9 +149,14 @@ class StripeClientForConnectedAccount:
         )
         one_time_pis_and_charges = []
         for x in pis:
-            # need to determine if it's a one-time contribution or not
-            # also will need to be able to pass balance contribution later when we upsert payments
-            charge_id = x.charges.data[0].id if x.charges.total_count == 1 else None
+            charges = [y.id for y in x.charges.data if y.status != "failed"]
+            if len(charges) > 1:
+                logger.warning(
+                    "Payment intent %s has more than one successful or pending charge so cannot be processed: %s",
+                    x.id,
+                    ", ".join(charges),
+                )
+                continue
             invoice = self.get_invoice(invoice_id=x.invoice, stripe_account_id=self.account_id) if x.invoice else None
             if self.is_for_one_time_contribution(pi=x, invoice=invoice):
                 logger.debug("Payment intent %s is for a one time contribution. Getting charge data.", x.id)
@@ -159,8 +164,8 @@ class StripeClientForConnectedAccount:
                     {
                         "payment_intent": x,
                         "charge": (
-                            self.get_expanded_charge_object(charge_id=charge_id, stripe_account_id=self.account_id)
-                            if charge_id
+                            self.get_expanded_charge_object(charge_id=charges[0], stripe_account_id=self.account_id)
+                            if len(charges) == 1
                             else None
                         ),
                     }
@@ -299,9 +304,6 @@ class PaymentIntentForOneTimeContribution:
         """NB: The charge is expected to have its balance_transaction, refunds, and customer properties expanded."""
         # This will raise an `InvalidMetadataError` if the metadata is invalid, which we expect calling context to manage
         cast_metadata_to_stripe_payment_metadata_schema(payment_intent.metadata)
-
-        if payment_intent.charges.total_count > 1:
-            raise InvalidStripeTransactionDataError(f"Payment intent {payment_intent.id} has more than one charge")
         self.payment_intent = payment_intent
         self.charge = charge
 

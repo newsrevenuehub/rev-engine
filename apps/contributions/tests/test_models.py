@@ -37,8 +37,7 @@ from apps.contributions.types import StripeEventData
 from apps.emails.tasks import make_send_thank_you_email_data, send_templated_email
 from apps.organizations.models import FiscalStatusChoices, FreePlan
 from apps.organizations.tests.factories import OrganizationFactory, RevenueProgramFactory
-from apps.pages.tests.factories import DonationPageFactory, StyleFactory
-from apps.users.choices import Roles
+from apps.pages.tests.factories import StyleFactory
 
 
 @pytest.mark.django_db
@@ -1141,73 +1140,42 @@ class TestContributionModel:
         )
         send_email_spy.assert_not_called()
 
-    @pytest.fixture
-    def filtered_by_role_assignment_test_case(self, request):
-        #     @pytest_cases.parametrize(
-        #     "user",
-        #     (
-        #         pytest_cases.fixture_ref("hub_admin_user"),
-        #         pytest_cases.fixture_ref("org_user_free_plan"),
-        #         pytest_cases.fixture_ref("rp_user"),
-        #         pytest_cases.fixture_ref("user_with_unexpected_role"),
-        #     ),
-        # )
-        # @pytest_cases.parametrize(
-        #     "_contribution",
-        #     (
-        #         pytest_cases.fixture_ref("one_time_contribution"),
-        #         pytest_cases.fixture_ref("monthly_contribution"),
-        #         pytest_cases.fixture_ref("annual_contribution"),
-        #     ),
-        # )
-        pass
-
-    def _test_filtered_by_role_assignment(self, user, _contribution):
-        Contribution.objects.exclude(id=_contribution.id).delete()
-        assert Contribution.objects.count() == 1
-        org1 = (rp1 := _contribution.revenue_program).organization
+    @pytest.fixture(params=("hub_admin_user", "org_user_free_plan", "rp_user", "user_with_unexpected_role"))
+    def filtered_by_role_assignment_test_case(
+        self, one_time_contribution, monthly_contribution, annual_contribution, request
+    ):
+        user = request.getfixturevalue(request.param)
+        org1 = (rp1 := one_time_contribution.revenue_program).organization
         rp2 = RevenueProgramFactory(name="rev-program-2", organization=org1)
-        contribution2 = ContributionFactory(
-            status=ContributionStatus.PAID, donation_page=DonationPageFactory(revenue_program=rp2), revenue_program=rp2
-        )
-        contribution3 = ContributionFactory(
-            status=ContributionStatus.PAID,
-            donation_page=DonationPageFactory(
-                revenue_program=(rp3 := RevenueProgramFactory(organization=OrganizationFactory(name="new org"))),
-            ),
-            revenue_program=rp3,
-        )
-        assert _contribution.revenue_program != contribution2.revenue_program
-        assert _contribution.revenue_program.organization == contribution2.revenue_program.organization
-        assert contribution3.revenue_program.organization != _contribution.revenue_program.organization
+        org2 = OrganizationFactory(name="new org")
+        monthly_contribution.revenue_program = rp2
+        monthly_contribution.save()
+        annual_contribution.revenue_program = RevenueProgramFactory(organization=org2)
+        annual_contribution.save()
 
-        match user.roleassignment.role_type:
-            case Roles.HUB_ADMIN:
-                expected = Contribution.objects.having_org_viewable_status()
-                assert expected.count() == 3
-            case Roles.ORG_ADMIN:
-                user.roleassignment.organization = (org := _contribution.revenue_program.organization)
-                user.roleassignment.revenue_programs.set(org.revenueprogram_set.all())
+        Contribution.objects.exclude(
+            id__in=(one_time_contribution.id, monthly_contribution.id, annual_contribution.id)
+        ).delete()
+        match request.param:
+            case "hub_admin_user":
+                expected = {one_time_contribution.id, monthly_contribution.id, annual_contribution.id}
+            case "org_user_free_plan":
+                expected = {one_time_contribution.id, monthly_contribution.id}
+                user.roleassignment.organization = org1
                 user.roleassignment.save()
-                expected = Contribution.objects.filter(donation_page__revenue_program__organization=org1).exclude(
-                    status__in=(ContributionStatus.REJECTED, ContributionStatus.FLAGGED)
-                )
-                assert expected.count() == 2
-            case Roles.RP_ADMIN:
-                user.roleassignment.organization = (org := _contribution.revenue_program.organization)
+            case "rp_user":
+                user.roleassignment.organization = org1
                 user.roleassignment.revenue_programs.set((rp1,))
                 user.roleassignment.save()
-                expected = Contribution.objects.filter(donation_page__revenue_program=rp1).exclude(
-                    status__in=(ContributionStatus.REJECTED, ContributionStatus.FLAGGED)
-                )
-                assert expected.count() == 1
+                expected = {one_time_contribution.id}
             case _:
-                expected = Contribution.objects.none()
-                assert expected.count() == 0
+                expected = set()
+        return user, expected
 
-        result = Contribution.objects.filtered_by_role_assignment(user.roleassignment)
-        assert result.count() == expected.count()
-        assert set(result) == set(expected)
+    def test_filtered_by_role_assignment(self, filtered_by_role_assignment_test_case):
+        user, expected = filtered_by_role_assignment_test_case
+        result = Contribution.objects.filtered_by_role_assignment(user.roleassignment).values_list("id", flat=True)
+        assert set(result) == expected
 
     @pytest.mark.parametrize(
         "contribution_fn,stripe_pi_return_value,stripe_subscription_return_value,expect_update_fields,expect_payment_method_update",

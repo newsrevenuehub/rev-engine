@@ -36,7 +36,6 @@ from apps.contributions.models import (
     Contribution,
     ContributionInterval,
     ContributionIntervalError,
-    ContributionStatus,
     ContributionStatusError,
     Contributor,
 )
@@ -177,20 +176,6 @@ class PaymentViewset(mixins.CreateModelMixin, mixins.DestroyModelMixin, viewsets
 
     def destroy(self, request, *args, **kwargs):
         contribution = self.get_object()
-        if contribution.status not in (ContributionStatus.PROCESSING, ContributionStatus.FLAGGED):
-            logger.warning(
-                (
-                    "`PaymentViewset.destroy` was called on a contribution with status other than %s or %s. "
-                    "contribution.id: %s, contribution.status: %s,  contributor.id: %s, donation_page.id: %s"
-                ),
-                ContributionStatus.PROCESSING.label,
-                ContributionStatus.FLAGGED.label,
-                contribution.id,
-                contribution.get_status_display(),
-                contribution.contributor.id,
-                contribution.donation_page.id,
-            )
-            return Response(status=status.HTTP_409_CONFLICT)
         try:
             contribution.cancel()
         except ContributionIntervalError:
@@ -202,7 +187,7 @@ class PaymentViewset(mixins.CreateModelMixin, mixins.DestroyModelMixin, viewsets
             logger.exception(
                 "`PaymentViewset.destroy` called for contribution with unexpected status %s", contribution.status
             )
-            return Response({"detail": "Something went wrong"}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+            return Response(status=status.HTTP_409_CONFLICT)
         except StripeError:
             logger.exception(
                 "Something went wrong with Stripe while attempting to cancel payment with UUID %s",
@@ -211,26 +196,6 @@ class PaymentViewset(mixins.CreateModelMixin, mixins.DestroyModelMixin, viewsets
             return Response({"detail": "Something went wrong"}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
 
         return Response(status=status.HTTP_204_NO_CONTENT)
-
-
-@api_view(["PATCH"])
-@permission_classes([])
-def payment_success(request, uuid=None):
-    """This view is used by the SPA after a Stripe payment has been submitted to Stripe from front end.
-
-    We provide the url for this view to `return_url` parameter we call Stripe to confirm payment on front end,
-    and use this view to trigger a thank you email to the contributor if the org has configured the contribution page
-    accordingly.
-    """
-    logger.info("called with uuid %s", uuid)
-    logger.debug("called with request data: %s, uuid %s", request.data, uuid)
-    try:
-        contribution = Contribution.objects.get(uuid=uuid)
-    except Contribution.DoesNotExist:
-        logger.warning("payment_success called with invalid uuid %s", uuid)
-        return Response(status=status.HTTP_404_NOT_FOUND)
-    contribution.handle_thank_you_email()
-    return Response(status=status.HTTP_204_NO_CONTENT)
 
 
 class ContributionsViewSet(viewsets.ReadOnlyModelViewSet):

@@ -11,7 +11,12 @@ from apps.contributions.exceptions import (
     InvalidMetadataError,
     InvalidStripeTransactionDataError,
 )
-from apps.contributions.models import ContributionInterval, ContributionStatus, Payment
+from apps.contributions.models import (
+    Contribution,
+    ContributionInterval,
+    ContributionStatus,
+    Payment,
+)
 from apps.contributions.stripe_sync import (
     MAX_STRIPE_RESPONSE_LIMIT,
     PaymentIntentForOneTimeContribution,
@@ -368,6 +373,23 @@ class TestSubscriptionForRecurringContribution:
             with pytest.raises(InvalidStripeTransactionDataError):
                 instance.upsert()
 
+    def test_upsert_when_revenue_program_not_found(self, subscription_to_upsert, mocker):
+        mocker.patch(
+            "apps.contributions.stripe_sync.SubscriptionForRecurringContribution.email_id",
+            new_callable=mocker.PropertyMock,
+            return_value="foo@bar.com",
+        )
+        instance = SubscriptionForRecurringContribution(subscription=subscription_to_upsert, charges=[])
+        # otherwise these are protected when we delete the RP
+        Contribution.objects.filter(revenue_program_id=subscription_to_upsert.metadata["revenue_program_id"]).delete()
+        RevenueProgram.objects.get(pk=subscription_to_upsert.metadata["revenue_program_id"]).delete()
+        with pytest.raises(InvalidStripeTransactionDataError) as exc:
+            instance.upsert()
+        assert (
+            str(exc.value)
+            == f"Cannot find revenue program with ID of {subscription_to_upsert.metadata['revenue_program_id']} for subscription {subscription_to_upsert.id}"
+        )
+
 
 @pytest.mark.django_db
 class TestPaymentIntentForOneTimeContribution:
@@ -650,6 +672,23 @@ class TestPaymentIntentForOneTimeContribution:
         )
         with pytest.raises(InvalidStripeTransactionDataError):
             PaymentIntentForOneTimeContribution(payment_intent=payment_intent, charge=mocker.Mock()).upsert()
+
+    def test_upsert_when_revenue_program_not_found(self, payment_intent, mocker):
+        mocker.patch(
+            "apps.contributions.stripe_sync.PaymentIntentForOneTimeContribution.email_id",
+            new_callable=mocker.PropertyMock,
+            return_value="foo@bar.com",
+        )
+        # otherwise these are protected when we delete the RP
+        Contribution.objects.filter(revenue_program_id=payment_intent.metadata["revenue_program_id"]).delete()
+        RevenueProgram.objects.get(pk=payment_intent.metadata["revenue_program_id"]).delete()
+        instance = PaymentIntentForOneTimeContribution(payment_intent=payment_intent, charge=None)
+        with pytest.raises(InvalidStripeTransactionDataError) as exc:
+            instance.upsert()
+        assert (
+            str(exc.value)
+            == f"Cannot find revenue program with ID of {payment_intent.metadata['revenue_program_id']} for payment intent {payment_intent.id}"
+        )
 
 
 @pytest.mark.django_db

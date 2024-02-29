@@ -6,7 +6,7 @@ from django.conf import settings
 from django.core.serializers.json import DjangoJSONEncoder
 from django.db.models import Q
 from django.http import Http404
-from django.test import RequestFactory, override_settings
+from django.test import RequestFactory
 
 import dateparser
 import pytest
@@ -19,9 +19,9 @@ from rest_framework.reverse import reverse
 from rest_framework.test import APIClient, APITestCase
 from reversion.models import Version
 from stripe.oauth_error import InvalidGrantError as StripeInvalidGrantError
-from stripe.stripe_object import StripeObject
 from waffle import get_waffle_flag_model
 
+from apps.api.exceptions import ApiConfigurationError
 from apps.common.constants import CONTRIBUTIONS_API_ENDPOINT_ACCESS_FLAG_NAME
 from apps.common.tests.test_resources import AbstractTestCase
 from apps.contributions import views as contributions_views
@@ -52,6 +52,7 @@ from apps.contributions.tests.test_serializers import (
     mock_get_bad_actor,
     mock_stripe_call_with_error,
 )
+from apps.contributions.views import ContributionsViewSet
 from apps.organizations.tests.factories import (
     OrganizationFactory,
     PaymentProviderFactory,
@@ -62,130 +63,97 @@ from apps.users.choices import Roles
 from apps.users.tests.factories import create_test_user
 
 
-TEST_STRIPE_ACCOUNT_ID = "testing_123"
+@pytest.mark.django_db
+class Test_stripe_oauth:
 
-
-class MockStripeAccount(StripeObject):
-    def __init__(self, *args, **kwargs):
-        self.id = TEST_STRIPE_ACCOUNT_ID
-
-
-MOCK_ACCOUNT_LINKS = {"test": "test"}
-
-
-class MockOAuthResponse(StripeObject):
-    def __init__(self, *args, **kwargs):
-        self.stripe_user_id = kwargs.get("stripe_user_id")
-        self.refresh_token = kwargs.get("refresh_token")
-
-
-expected_oauth_scope = "my_test_scope"
-
-
-@override_settings(STRIPE_OAUTH_SCOPE=expected_oauth_scope)
-class StripeOAuthTest(AbstractTestCase):
-    @classmethod
-    def setUpClass(cls):
-        super().setUpClass()
-        cls.set_up_domain_model()
-
-    def _make_request(self, code=None, scope=None, revenue_program_id=None):
-        self.client.force_authenticate(user=self.org_user)
-        url = reverse("stripe-oauth")
-        complete_url = f"{url}?{settings.ORG_SLUG_PARAM}={self.org1.slug}"
-        body = {}
-        if revenue_program_id:
-            body["revenue_program_id"] = revenue_program_id
-        if code:
-            body["code"] = code
-        if scope:
-            body["scope"] = scope
-        return self.client.post(complete_url, body)
-
-    @mock.patch("apps.contributions.views.task_verify_apple_domain")
-    @mock.patch("stripe.OAuth.token")
-    def test_response_when_missing_params(self, stripe_oauth_token, task_verify_apple_domain):
-        # Missing code
-        response = self._make_request(code=None, scope=expected_oauth_scope, revenue_program_id=self.org1_rp1.id)
-        self.assertEqual(response.status_code, 400)
-        self.assertIn("missing_params", response.data)
-        stripe_oauth_token.assert_not_called()
-
-        # Missing scope
-        response = self._make_request(code="12345", scope=None, revenue_program_id=self.org1_rp1.id)
-        self.assertEqual(response.status_code, 400)
-        self.assertIn("missing_params", response.data)
-        stripe_oauth_token.assert_not_called()
-
-        # Missing revenue_program_id
-        response = self._make_request(code="12345", scope=expected_oauth_scope, revenue_program_id=None)
-        self.assertEqual(response.status_code, 400)
-        self.assertIn("missing_params", response.data)
-        stripe_oauth_token.assert_not_called()
-
-        # Missing code, scope and revenue_program_id
-        response = self._make_request(code=None, scope=None, revenue_program_id=None)
-        self.assertEqual(response.status_code, 400)
-        self.assertIn("missing_params", response.data)
-        stripe_oauth_token.assert_not_called()
-        assert not task_verify_apple_domain.delay.called
-
-    @mock.patch("apps.contributions.views.task_verify_apple_domain")
-    @mock.patch("stripe.OAuth.token")
-    def test_response_when_scope_param_mismatch(self, stripe_oauth_token, task_verify_apple_domain):
-        """
-        We verify that the "scope" parameter provided by the frontend matches the scope we expect
-        """
-        response = self._make_request(code="1234", scope="not_expected_scope", revenue_program_id=self.org1_rp1.id)
-        self.assertEqual(response.status_code, 400)
-        self.assertIn("scope_mismatch", response.data)
-        stripe_oauth_token.assert_not_called()
-        assert not task_verify_apple_domain.delay.called
-
-    @mock.patch("apps.contributions.views.task_verify_apple_domain")
-    @mock.patch("stripe.OAuth.token")
-    def test_response_when_invalid_code(self, stripe_oauth_token, task_verify_apple_domain):
-        stripe_oauth_token.side_effect = StripeInvalidGrantError(code="error_code", description="error_description")
-        response = self._make_request(code="1234", scope=expected_oauth_scope, revenue_program_id=self.org1_rp1.id)
-        self.assertEqual(response.status_code, 400)
-        self.assertIn("invalid_code", response.data)
-        stripe_oauth_token.assert_called_with(code="1234", grant_type="authorization_code")
-        assert not task_verify_apple_domain.delay.called
-
-    @mock.patch("apps.contributions.views.task_verify_apple_domain")
-    @mock.patch("stripe.OAuth.token")
-    def test_response_success(self, stripe_oauth_token, task_verify_apple_domain):
-        expected_stripe_account_id = "my_test_account_id"
-        expected_refresh_token = "my_test_refresh_token"
-        stripe_oauth_token.return_value = MockOAuthResponse(
-            stripe_user_id=expected_stripe_account_id, refresh_token=expected_refresh_token
+    @pytest.fixture
+    def stripe_oauth_response(self):
+        return AttrDict(
+            stripe_user_id="some-id",
+            refresh_token="my_test_refresh_token",
         )
-        assert Version.objects.get_for_object(self.org1_rp1.payment_provider).count() == 0
-        response = self._make_request(code="1234", scope=expected_oauth_scope, revenue_program_id=self.org1_rp1.id)
-        self.assertEqual(response.status_code, 200)
-        self.assertEqual(response.data["detail"], "success")
-        stripe_oauth_token.assert_called_with(code="1234", grant_type="authorization_code")
-        # Org should have new values based on OAuth response
-        self.org1_rp1.payment_provider.refresh_from_db()
-        self.assertEqual(self.org1_rp1.payment_provider.stripe_account_id, expected_stripe_account_id)
-        self.assertEqual(self.org1_rp1.payment_provider.stripe_oauth_refresh_token, expected_refresh_token)
-        assert Version.objects.get_for_object(self.org1_rp1.payment_provider).count() == 1
-        task_verify_apple_domain.delay.assert_called_with(revenue_program_slug=self.org1_rp1.slug)
 
-    @mock.patch("apps.contributions.views.task_verify_apple_domain")
-    @mock.patch("stripe.OAuth.token")
-    def test_create_payment_provider_if_not_exists(self, stripe_oauth_token, task_verify_apple_domain):
-        expected_stripe_account_id = "new_stripe_account_id"
-        refresh_token = "my_test_refresh_token"
-        stripe_oauth_token.return_value = MockOAuthResponse(
-            stripe_user_id=expected_stripe_account_id, refresh_token=refresh_token
+    @pytest.fixture
+    def valid_params(self, org_user_free_plan, settings):
+        return {
+            "code": "12345",
+            "scope": settings.STRIPE_OAUTH_SCOPE,
+            "revenue_program_id": org_user_free_plan.roleassignment.organization.revenueprogram_set.first().id,
+        }
+
+    @pytest.fixture(
+        params=[
+            ("code", "stripe_oauth missing required params"),
+            ("scope", "stripe_oauth missing required params"),
+            ("revenue_program_id", "revenue_program_id missing required params"),
+        ]
+    )
+    def missing_params_case(self, valid_params, request):
+        return {k: v for k, v in valid_params.items() if k != request.param[0]}, request.param[1]
+
+    @pytest.fixture
+    def url(self, org_user_free_plan):
+        return (
+            f"{reverse('stripe-oauth')}?{settings.ORG_SLUG_PARAM}={org_user_free_plan.roleassignment.organization.slug}"
         )
-        self.org1_rp2.payment_provider = None
-        self._make_request(code="1234", scope=expected_oauth_scope, revenue_program_id=self.org1_rp2.id)
-        self.org1_rp2.refresh_from_db()
-        self.assertEqual(self.org1_rp2.payment_provider.stripe_account_id, expected_stripe_account_id)
-        assert Version.objects.get_for_object(self.org1_rp1.payment_provider).count() == 1
-        task_verify_apple_domain.delay.assert_called_with(revenue_program_slug=self.org1_rp2.slug)
+
+    def test_when_missing_params(self, missing_params_case, url, mocker, api_client, org_user_free_plan):
+        body, message = missing_params_case
+        mock_verify = mocker.patch("apps.contributions.views.task_verify_apple_domain")
+        mock_stripe = mocker.patch("stripe.OAuth.token")
+        api_client.force_authenticate(user=org_user_free_plan)
+        response = api_client.post(url, data=body)
+        assert response.status_code == status.HTTP_400_BAD_REQUEST
+        assert response.json()["missing_params"] == message
+        mock_stripe.assert_not_called()
+        mock_verify.delay.assert_not_called()
+
+    def test_when_unexpected_scope(self, valid_params, url, mocker, org_user_free_plan, api_client):
+        mock_verify = mocker.patch("apps.contributions.views.task_verify_apple_domain")
+        mock_stripe = mocker.patch("stripe.OAuth.token")
+        api_client.force_authenticate(user=org_user_free_plan)
+        response = api_client.post(url, data=valid_params | {"scope": "not_expected_scope"})
+        assert response.status_code == status.HTTP_400_BAD_REQUEST
+        assert response.json()["scope_mismatch"] == "stripe_oauth received unexpected scope"
+        mock_stripe.assert_not_called()
+        mock_verify.delay.assert_not_called()
+
+    def test_response_when_invalid_code(self, org_user_free_plan, api_client, mocker, valid_params, url):
+        mock_verify = mocker.patch("apps.contributions.views.task_verify_apple_domain")
+        mocker.patch("stripe.OAuth.token", side_effect=StripeInvalidGrantError("error_code", "error_description"))
+        api_client.force_authenticate(user=org_user_free_plan)
+        response = api_client.post(url, data=valid_params)
+        assert response.status_code == status.HTTP_400_BAD_REQUEST
+        assert response.json()["invalid_code"]
+        mock_verify.delay.assert_not_called()
+
+    @pytest.mark.parametrize("payment_provider_exists", (True, False))
+    def test_response_success(
+        self, payment_provider_exists, url, api_client, mocker, valid_params, org_user_free_plan, stripe_oauth_response
+    ):
+        mock_verify = mocker.patch("apps.contributions.views.task_verify_apple_domain")
+        mock_stripe = mocker.patch(
+            "stripe.OAuth.token",
+            return_value=stripe_oauth_response,
+        )
+        rp = org_user_free_plan.roleassignment.organization.revenueprogram_set.first()
+        api_client.force_authenticate(user=org_user_free_plan)
+        if not payment_provider_exists:
+            rp.payment_provider = None
+            rp.save()
+        else:
+            assert rp.payment_provider.stripe_account_id != stripe_oauth_response.stripe_user_id
+        response = api_client.post(url, data=valid_params)
+        assert response.status_code == status.HTTP_200_OK
+        assert response.data["detail"] == "success"
+        mock_stripe.assert_called_once_with(code=valid_params["code"], grant_type="authorization_code")
+
+        rp.refresh_from_db()
+        assert rp.payment_provider.stripe_account_id == stripe_oauth_response.stripe_user_id
+        assert rp.payment_provider.stripe_oauth_refresh_token == stripe_oauth_response.refresh_token
+        assert Version.objects.get_for_object(rp.payment_provider).count() == 1
+
+        mock_verify.delay.assert_called_once_with(revenue_program_slug=rp.slug)
 
 
 @pytest.fixture(params=("superuser", "hub_admin_user", "org_user_free_plan", "org_user_multiple_rps", "rp_user"))
@@ -358,6 +326,17 @@ class TestContributionsViewSet:
             assert response.status_code == status.HTTP_200_OK
             assert len(response.json()["results"]) == len(expected)
             assert set([x["id"] for x in response.json()["results"]]) == set([x.id for x in expected])
+
+    def test_filter_queryset_for_user_when_anonymous(self, mocker):
+        ContributionFactory.create_batch(3)
+        user = mocker.Mock(is_anonymous=True)
+        assert ContributionsViewSet().filter_queryset_for_user(user).count() == 0
+
+    def test_filter_queryset_for_user_when_unexpected(self, mocker):
+        ContributionFactory.create_batch(3)
+        user = mocker.Mock(is_anonymous=False, is_superuser=False, get_role_assignment=mock.Mock(return_value=None))
+        with pytest.raises(ApiConfigurationError):
+            ContributionsViewSet().filter_queryset_for_user(user)
 
 
 @pytest.mark.django_db

@@ -272,18 +272,10 @@ class TestContributionsViewSet:
         assert response.status_code == status.HTTP_200_OK
         assert set([x["id"] for x in response.json()["results"]]) == expected_ids
 
-    # @pytest.fixture(params=["user_no_role_assignment", None])
-    @pytest.fixture(params=["user_no_role_assignment"])
-    def list_when_unauthorized_user_case(self, request):
-        user = request.getfixturevalue(request.param) if request.param else None
-        return user, status.HTTP_403_FORBIDDEN if user else status.HTTP_401_UNAUTHORIZED
-
-    def test_list_when_unauthorized_user(self, list_when_unauthorized_user_case, api_client):
+    def test_list_when_no_ra(self, user_no_role_assignment, api_client):
         """Show behavior when unauthorized user tries to list contributions"""
-        user, expected_status = list_when_unauthorized_user_case
-        if user:
-            api_client.force_authenticate(user)
-        assert api_client.get(reverse("contribution-list")).status_code == expected_status
+        api_client.force_authenticate(user_no_role_assignment)
+        assert api_client.get(reverse("contribution-list")).status_code == status.HTTP_403_FORBIDDEN
 
     @pytest.mark.parametrize("user", ("superuser", "hub_admin_user"))
     @pytest.mark.parametrize(

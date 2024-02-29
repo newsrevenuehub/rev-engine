@@ -125,7 +125,7 @@ class ContributionAdmin(RevEngineBaseAdmin, CompareVersionAdmin):
     )
 
     list_filter = (
-        "donation_page__revenue_program",
+        "revenue_program",
         "interval",
         "donation_page__name",
         "status",
@@ -140,7 +140,7 @@ class ContributionAdmin(RevEngineBaseAdmin, CompareVersionAdmin):
     )
 
     search_fields = (
-        "donation_page__revenue_program__name",
+        "revenue_program__name",
         "contributor__email",
         "donation_page__name",
         "modified",

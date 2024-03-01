@@ -4,7 +4,6 @@ from django.contrib.auth import get_user_model
 
 import dateparser
 import pytest
-import pytest_cases
 import pytz
 from rest_framework.serializers import ValidationError
 
@@ -172,16 +171,19 @@ class TestFlagSerializer:
 
 @pytest.mark.django_db
 class TestAuthedUserSerializer:
-    @pytest_cases.parametrize(
-        "user",
-        (
-            pytest_cases.fixture_ref("superuser"),
-            pytest_cases.fixture_ref("hub_admin_user"),
-            pytest_cases.fixture_ref("org_user_free_plan"),
-            pytest_cases.fixture_ref("rp_user"),
-            pytest_cases.fixture_ref("user_with_verified_email_and_tos_accepted"),
-        ),
+
+    @pytest.fixture(
+        params=[
+            "superuser",
+            "hub_admin_user",
+            "org_user_free_plan",
+            "rp_user",
+            "user_with_verified_email_and_tos_accepted",
+        ]
     )
+    def user(self, request):
+        return request.getfixturevalue(request.param)
+
     def test_has_expected_fields_and_values(self, user):
         data = serializers.AuthedUserSerializer(user).data
         assert set(data.keys()) == {

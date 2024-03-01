@@ -10,7 +10,6 @@ from django.test import RequestFactory, override_settings
 
 import dateparser
 import pytest
-import pytest_cases
 import pytz
 import stripe
 from addict import Dict as AttrDict
@@ -194,18 +193,20 @@ class StripeOAuthTest(AbstractTestCase):
 @pytest.mark.django_db
 @pytest.mark.usefixtures("clear_cache")
 class TestContributionsViewSet:
-    @pytest_cases.parametrize(
-        "user,expected_status",
-        (
-            (pytest_cases.fixture_ref("superuser"), status.HTTP_405_METHOD_NOT_ALLOWED),
-            (pytest_cases.fixture_ref("hub_admin_user"), status.HTTP_405_METHOD_NOT_ALLOWED),
-            (pytest_cases.fixture_ref("org_user_free_plan"), status.HTTP_405_METHOD_NOT_ALLOWED),
-            (pytest_cases.fixture_ref("rp_user"), status.HTTP_405_METHOD_NOT_ALLOWED),
-            (pytest_cases.fixture_ref("contributor_user"), status.HTTP_405_METHOD_NOT_ALLOWED),
-            (pytest_cases.fixture_ref("user_no_role_assignment"), status.HTTP_403_FORBIDDEN),
-            (None, status.HTTP_401_UNAUTHORIZED),
-        ),
+
+    @pytest.fixture(
+        params=[
+            ("superuser", status.HTTP_405_METHOD_NOT_ALLOWED),
+            ("hub_admin_user", status.HTTP_405_METHOD_NOT_ALLOWED),
+            ("org_user_free_plan", status.HTTP_405_METHOD_NOT_ALLOWED),
+            ("rp_user", status.HTTP_405_METHOD_NOT_ALLOWED),
+            ("contributor_user", status.HTTP_405_METHOD_NOT_ALLOWED),
+            ("user_no_role_assignment", status.HTTP_403_FORBIDDEN),
+        ]
     )
+    def unpermitted_test_case(self, request):
+        return request.getfixturevalue(request.param[0]), request.param[1]
+
     @pytest.mark.parametrize(
         "method,generate_url_fn,data",
         (
@@ -216,9 +217,10 @@ class TestContributionsViewSet:
         ),
     )
     def test_unpermitted_methods(
-        self, user, expected_status, method, generate_url_fn, data, api_client, one_time_contribution, monkeypatch
+        self, unpermitted_test_case, method, generate_url_fn, data, api_client, one_time_contribution
     ):
         """Show that users cannot make requests to endpoint using unpermitted methods"""
+        user, expected_status = unpermitted_test_case
         if user:
             api_client.force_authenticate(user)
         kwargs = {}
@@ -228,20 +230,16 @@ class TestContributionsViewSet:
             getattr(api_client, method)(generate_url_fn(one_time_contribution), **kwargs).status_code == expected_status
         )
 
-    @pytest_cases.parametrize(
-        "user",
-        (
-            pytest_cases.fixture_ref("org_user_free_plan"),
-            pytest_cases.fixture_ref("rp_user"),
-            pytest_cases.fixture_ref("hub_admin_user"),
-            pytest_cases.fixture_ref("superuser"),
-        ),
-    )
-    def test_retrieve_when_expected_non_contributor_user(self, user, api_client, mocker):
+    @pytest.fixture(params=["superuser", "hub_admin_user", "org_user_free_plan", "rp_user"])
+    def non_contributor_user(self, request):
+        return request.getfixturevalue(request.param)
+
+    def test_retrieve_when_expected_non_contributor_user(self, non_contributor_user, api_client, mocker):
         """Show that expected users can retrieve only permitted organizations
 
         Contributor users are not handled in this test because setup is too different
         """
+        user = non_contributor_user
         spy = mocker.spy(ContributionQuerySet, "filtered_by_role_assignment")
         api_client.force_authenticate(user)
         new_rp = RevenueProgramFactory(organization=OrganizationFactory(name="new-org"), name="new rp")
@@ -282,43 +280,23 @@ class TestContributionsViewSet:
             assert response.status_code == status.HTTP_404_NOT_FOUND
         assert spy.call_count == 0 if user.is_superuser else Contribution.objects.count()
 
-    @pytest_cases.parametrize(
-        "user",
-        (
-            pytest_cases.fixture_ref("user_no_role_assignment"),
-            None,
-        ),
-    )
-    @pytest_cases.parametrize(
-        "_contribution",
-        (
-            pytest_cases.fixture_ref("one_time_contribution"),
-            pytest_cases.fixture_ref("annual_contribution"),
-            pytest_cases.fixture_ref("monthly_contribution"),
-        ),
-    )
-    def test_retrieve_when_unauthorized_user(self, user, api_client, _contribution):
-        """Show behavior when an unauthorized user trise to retrieve a contribution"""
-        if user:
-            api_client.force_authenticate(user)
-        response = api_client.get(reverse("contribution-detail", args=(_contribution.id,)))
-        assert response.status_code == status.HTTP_403_FORBIDDEN if user else status.HTTP_401_UNAUTHORIZED
+    @pytest.fixture(params=["one_time_contribution", "annual_contribution", "monthly_contribution"])
+    def contribution(self, request):
+        return request.getfixturevalue(request.param)
 
-    @pytest_cases.parametrize(
-        "user",
-        (
-            pytest_cases.fixture_ref("org_user_free_plan"),
-            pytest_cases.fixture_ref("rp_user"),
-            pytest_cases.fixture_ref("hub_admin_user"),
-            pytest_cases.fixture_ref("superuser"),
-        ),
-    )
-    def test_list_when_expected_non_contributor_user(self, user, api_client, mocker, revenue_program):
+    def test_retrieve_when_unauthorized_user(self, api_client, contribution, user_no_role_assignment):
+        """Show behavior when an unauthorized user trise to retrieve a contribution"""
+        api_client.force_authenticate(user_no_role_assignment)
+        response = api_client.get(reverse("contribution-detail", args=(contribution.id,)))
+        assert response.status_code == status.HTTP_403_FORBIDDEN
+
+    def test_list_when_expected_non_contributor_user(self, non_contributor_user, api_client, mocker, revenue_program):
         """Show that expected users can list only permitted contributions
 
         NB: We test for contributor user elsewhere, as that requires quite different setup than other
         expected users
         """
+        user = non_contributor_user
         api_client.force_authenticate(user)
         # superuser and hub admin can retrieve all:
         if user.is_superuser or user.roleassignment.role_type == Roles.HUB_ADMIN:
@@ -352,31 +330,14 @@ class TestContributionsViewSet:
         )
         assert spy.call_count == 0 if user.is_superuser else 1
 
-    @pytest_cases.parametrize(
-        "user,expected_status",
-        (
-            (pytest_cases.fixture_ref("user_no_role_assignment"), status.HTTP_403_FORBIDDEN),
-            (None, status.HTTP_401_UNAUTHORIZED),
-        ),
-    )
-    def test_list_when_unauthorized_user(self, user, expected_status, api_client):
+    def test_list_when_no_role_assignment(self, user_no_role_assignment, api_client):
         """Show behavior when unauthorized user tries to list contributions"""
-        if user:
-            api_client.force_authenticate(user)
-        assert api_client.get(reverse("contribution-list")).status_code == expected_status
+        api_client.force_authenticate(user_no_role_assignment)
+        assert api_client.get(reverse("contribution-list")).status_code == status.HTTP_403_FORBIDDEN
 
-    @pytest_cases.parametrize(
-        "user",
-        (
-            pytest_cases.fixture_ref("superuser"),
-            pytest_cases.fixture_ref("hub_admin_user"),
-            pytest_cases.fixture_ref("org_user_free_plan"),
-            pytest_cases.fixture_ref("rp_user"),
-        ),
-    )
     def test_excludes_statuses_correctly_for_expected_non_contributor_users(
         self,
-        user,
+        non_contributor_user,
         flagged_contribution,
         rejected_contribution,
         canceled_contribution,
@@ -386,6 +347,7 @@ class TestContributionsViewSet:
         api_client,
     ):
         """Only superusers and hub admins should see contributions that have status of flagged or rejected"""
+        user = non_contributor_user
         seen = [
             successful_contribution,
             canceled_contribution,
@@ -408,15 +370,12 @@ class TestContributionsViewSet:
         assert len(response.json()["results"]) == len(seen)
         assert set([x["id"] for x in response.json()["results"]]) == set([x.id for x in seen])
 
-    @pytest_cases.parametrize(
-        "user", (pytest_cases.fixture_ref("superuser"), pytest_cases.fixture_ref("hub_admin_user"))
-    )
     @pytest.mark.parametrize(
         "contribution_status", (ContributionStatus.FLAGGED, ContributionStatus.REJECTED, ContributionStatus.PROCESSING)
     )
     def test_filter_contributions_based_on_status(
         self,
-        user,
+        hub_admin_user,
         contribution_status,
         flagged_contribution,
         rejected_contribution,
@@ -427,6 +386,7 @@ class TestContributionsViewSet:
         api_client,
     ):
         """Superusers and hub admins can filter out flagged and rejected contributions"""
+        user = hub_admin_user
         api_client.force_authenticate(user)
         qp = f"status__not={contribution_status.value}"
         can_see = [
@@ -517,16 +477,18 @@ class TestContributionViewSetForContributorUser:
 class TestContributionsViewSetExportCSV:
     """Test contribution viewset functionality around triggering emailed csv exports"""
 
-    @pytest_cases.parametrize(
-        "user",
-        (
-            pytest_cases.fixture_ref("admin_user"),
-            pytest_cases.fixture_ref("hub_admin_user"),
-            pytest_cases.fixture_ref("org_user_free_plan"),
-            pytest_cases.fixture_ref("org_user_multiple_rps"),
-            pytest_cases.fixture_ref("rp_user"),
-        ),
+    @pytest.fixture(
+        params=[
+            "admin_user",
+            "hub_admin_user",
+            "org_user_free_plan",
+            "org_user_multiple_rps",
+            "rp_user",
+        ]
     )
+    def user(self, request):
+        return request.getfixturevalue(request.param)
+
     def test_when_expected_user(self, user, api_client, mocker, revenue_program, settings):
         """Show expected users get back expected results in CSV"""
         settings.CELERY_ALWAYS_EAGER = True
@@ -578,18 +540,19 @@ class TestContributionsViewSetExportCSV:
         if (ra := user.get_role_assignment()) is not None:
             filter_spy.assert_called_once_with(ra)
 
-    @pytest_cases.parametrize(
-        "user,expected_status",
-        (
-            (pytest_cases.fixture_ref("contributor_user"), status.HTTP_403_FORBIDDEN),
-            (pytest_cases.fixture_ref("superuser"), status.HTTP_405_METHOD_NOT_ALLOWED),
-            (None, status.HTTP_401_UNAUTHORIZED),
-        ),
+    @pytest.fixture(
+        params=[
+            ("contributor_user", status.HTTP_403_FORBIDDEN),
+            ("superuser", status.HTTP_405_METHOD_NOT_ALLOWED),
+        ]
     )
-    def test_when_unauthorized_user(self, user, expected_status, api_client):
+    def unauthorized_user_case(self, request):
+        return request.getfixturevalue(request.param[0]), request.param[1]
+
+    def test_when_unauthorized_user(self, unauthorized_user_case, api_client):
         """Show behavior when unauthorized users attempt to access"""
-        if user:
-            api_client.force_authenticate(user)
+        user, expected_status = unauthorized_user_case
+        api_client.force_authenticate(user)
         assert api_client.get(reverse("contribution-email-contributions")).status_code == expected_status
 
 

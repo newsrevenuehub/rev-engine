@@ -72,6 +72,7 @@ def setup_request(user, request):
     request.user = user
 
     # Annotate a request object with a session
+    #  TypeError: SessionMiddleware.__init__() missing 1 required positional argument: 'get_response'
     middleware = SessionMiddleware()
     middleware.process_request(request)
     request.session.save()

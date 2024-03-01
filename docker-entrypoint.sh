@@ -8,6 +8,7 @@ if [ "x$DATABASE_CHECK_CONNECTION" = 'xon' ]; then
         >&2 echo "Postgres is unavailable - sleeping"
         sleep 1
     done
+    psql $DATABASE_URL ci_collation.sql;
     >&2 echo "Postgres is up - continuing"
 fi
 

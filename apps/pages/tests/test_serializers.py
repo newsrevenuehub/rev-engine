@@ -4,7 +4,6 @@ from dataclasses import asdict
 from django.utils import timezone
 
 import pytest
-import pytest_cases
 from rest_framework import serializers
 from rest_framework.test import APIRequestFactory
 
@@ -272,9 +271,12 @@ class TestDonationPageFullDetailSerializer:
         serializer = DonationPageFullDetailSerializer(instance=live_donation_page, context={"live": False})
         assert serializer.data["allow_offer_nyt_comp"] == live_donation_page.revenue_program.allow_offer_nyt_comp
 
-    @pytest_cases.parametrize("plan", (Plans.FREE.value, Plans.PLUS.value, Plans.CORE.value))
-    def test_can_create_under_page_limit(self, plan, hub_admin_user):
-        org = OrganizationFactory(plan_name=plan)
+    @pytest.fixture(params=[Plans.FREE.value, Plans.PLUS.value, Plans.CORE.value])
+    def plan_value(self, request):
+        return request.param
+
+    def test_can_create_under_page_limit(self, plan_value, hub_admin_user):
+        org = OrganizationFactory(plan_name=plan_value)
         rp = RevenueProgramFactory(organization=org)
         DonationPageFactory.create_batch(org.plan.page_limit - 1, revenue_program=rp)
         serializer = DonationPageFullDetailSerializer(
@@ -288,8 +290,8 @@ class TestDonationPageFullDetailSerializer:
         serializer.context["request"] = request
         assert serializer.is_valid() is True
 
-    # Skipping Plus plan because it's meant to have unlimited published pages.
-    @pytest_cases.parametrize("plan", (Plans.CORE.value, Plans.CORE.value))
+    # Skipping Plus plan because it's meant to have unlimited published pages.)
+    @pytest.mark.parametrize("plan", (Plans.FREE.value, Plans.CORE.value))
     def test_can_create_when_at_publish_limit(self, plan, hub_admin_user):
         org = OrganizationFactory(plan_name=plan)
         rp = RevenueProgramFactory(organization=org)
@@ -306,9 +308,9 @@ class TestDonationPageFullDetailSerializer:
         serializer.context["request"] = request
         assert serializer.is_valid() is True
 
-    @pytest_cases.parametrize("plan", (Plans.FREE.value, Plans.PLUS.value, Plans.CORE.value))
-    @pytest_cases.parametrize("existing_locale", ("en", "es"))
-    @pytest_cases.parametrize("attempted_locale", ("en", "es"))
+    @pytest.mark.parametrize("plan", (Plans.FREE.value, Plans.PLUS.value, Plans.CORE.value))
+    @pytest.mark.parametrize("existing_locale", ("en", "es"))
+    @pytest.mark.parametrize("attempted_locale", ("en", "es"))
     def test_plan_page_limits_are_respected(self, plan, existing_locale, attempted_locale, hub_admin_user):
         org = OrganizationFactory(plan_name=plan)
         rp = RevenueProgramFactory(organization=org)
@@ -391,9 +393,9 @@ class TestDonationPageFullDetailSerializer:
         assert BENEFITS not in [elem["type"] for elem in serialized.data["sidebar_elements"]]
         assert len(serialized.data["sidebar_elements"]) == len(live_donation_page.sidebar_elements) - 1
 
-    @pytest_cases.parametrize("plan", (Plans.FREE.value, Plans.CORE.value))
-    @pytest_cases.parametrize("existing_locale", ("en", "es"))
-    @pytest_cases.parametrize("attempted_locale", ("en", "es"))
+    @pytest.mark.parametrize("plan", (Plans.FREE.value, Plans.CORE.value))
+    @pytest.mark.parametrize("existing_locale", ("en", "es"))
+    @pytest.mark.parametrize("attempted_locale", ("en", "es"))
     def test_validate_publish_limit(self, plan, existing_locale, attempted_locale, hub_admin_user):
         org = OrganizationFactory(plan_name=plan)
         rp = RevenueProgramFactory(organization=org)
@@ -420,7 +422,7 @@ class TestDonationPageFullDetailSerializer:
             == f"Your organization has reached its limit of {org.plan.publish_limit} published page{'' if org.plan.publish_limit == 1 else 's'}"
         )
 
-    @pytest_cases.parametrize("plan", (Plans.FREE.value, Plans.CORE.value))
+    @pytest.mark.parametrize("plan", (Plans.FREE.value, Plans.CORE.value))
     def test_validate_publish_limit_when_patching(self, plan, hub_admin_user):
         org = OrganizationFactory(plan_name=plan)
         rp = RevenueProgramFactory(organization=org)
@@ -445,7 +447,7 @@ class TestDonationPageFullDetailSerializer:
             == f"Your organization has reached its limit of {org.plan.publish_limit} published page{'' if org.plan.publish_limit == 1 else 's'}"
         )
 
-    @pytest_cases.parametrize("plan", (Plans.FREE.value, Plans.CORE.value))
+    @pytest.mark.parametrize("plan", (Plans.FREE.value, Plans.CORE.value))
     def test_validate_publish_limit_when_valid(self, plan, hub_admin_user):
         org = OrganizationFactory(plan_name=plan)
         rp = RevenueProgramFactory(organization=org)
@@ -462,17 +464,24 @@ class TestDonationPageFullDetailSerializer:
         )
         assert serializer.is_valid() is True
 
-    @pytest_cases.parametrize(
-        "instance,expect",
-        (
+    @pytest.fixture
+    def page_no_id(self):
+        return DonationPage(id=None)
+
+    @pytest.fixture(
+        params=[
             # has instance and id
-            (pytest_cases.fixture_ref("live_donation_page"), False),
+            ("live_donation_page", False),
             # has instance but no id
-            (DonationPage(), True),
+            ("page_no_id", True),
             (None, True),
-        ),
+        ]
     )
-    def test_is_new(self, instance, expect):
+    def is_new_test_case(self, request):
+        return request.getfixturevalue(request.param[0]) if request.param[0] else None, request.param[1]
+
+    def test_is_new(self, is_new_test_case):
+        instance, expect = is_new_test_case
         serializer = DonationPageFullDetailSerializer(instance=instance)
         assert serializer.is_new is expect
 
@@ -594,7 +603,7 @@ class TestDonationPageFullDetailSerializer:
 
 @pytest.mark.django_db
 class TestStyleListSerializer:
-    @pytest_cases.parametrize("plan", (Plans.FREE.value, Plans.PLUS.value, Plans.CORE.value))
+    @pytest.mark.parametrize("plan", (Plans.FREE.value, Plans.PLUS.value, Plans.CORE.value))
     def test_plan_style_limits_are_respected(self, plan):
         org = OrganizationFactory(plan_name=plan)
         rev_program = RevenueProgramFactory(organization=org)

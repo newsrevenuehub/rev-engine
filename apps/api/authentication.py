@@ -18,6 +18,9 @@ def enforce_csrf(request):
     """
     Enforce CSRF validation. From drf source, authentication.py
     """
+    # This breaks with
+    # TypeError: MiddlewareMixin.__init__() missing 1 required positional argument: 'get_response'
+    # so we should remove custom csrf middleware as already planned ahead of upgrade
     check = CSRFCheck()
     check.process_request(request)
     reason = check.process_view(request, None, (), {})

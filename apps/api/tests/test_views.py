@@ -13,7 +13,6 @@ from django.utils.timezone import timedelta
 
 import jwt
 import pytest
-import pytest_cases
 from bs4 import BeautifulSoup as bs4
 from rest_framework import status
 from rest_framework.reverse import reverse
@@ -110,17 +109,20 @@ def many_rps():
 
 @pytest.mark.django_db
 class TestTokenObtainPairCookieView:
-    @pytest_cases.parametrize(
-        "user, expected_orgs",
-        (
-            (pytest_cases.fixture_ref("superuser_with_pw"), "all"),
-            (pytest_cases.fixture_ref("hub_user_with_pw"), "all"),
-            (pytest_cases.fixture_ref("org_user_with_pw"), "one"),
-            (pytest_cases.fixture_ref("rp_user_with_pw"), "one"),
-            (pytest_cases.fixture_ref("user_no_role_assignment_with_pw"), "none"),
-        ),
+    @pytest.fixture(
+        params=[
+            ("superuser_with_pw", "all"),
+            ("hub_user_with_pw", "all"),
+            ("org_user_with_pw", "one"),
+            ("rp_user_with_pw", "one"),
+            ("user_no_role_assignment_with_pw", "none"),
+        ]
     )
-    def test_post_happy_path(self, user, expected_orgs, many_orgs, many_rps, api_client):
+    def user_case(self, request):
+        return request.getfixturevalue(request.param[0]), request.param[1]
+
+    def test_post_happy_path(self, user_case, many_orgs, many_rps, api_client):
+        user, expected_orgs = user_case
         response = api_client.post(reverse("token-obtain-pair"), {"email": user.email, "password": KNOWN_PASSWORD})
         assert response.status_code == status.HTTP_200_OK
 
@@ -203,21 +205,18 @@ class TestTokenObtainPairCookieView:
         assert response.cookies.get("Authorization")._value == ""
 
 
-@pytest_cases.parametrize(
-    "revenue_program",
-    (
-        pytest_cases.fixture_ref("free_plan_revenue_program"),
-        pytest_cases.fixture_ref("core_plan_revenue_program"),
-        pytest_cases.fixture_ref("plus_plan_revenue_program"),
-    ),
-)
+@pytest.fixture(params=["free_plan_revenue_program", "core_plan_revenue_program", "plus_plan_revenue_program"])
+def revenue_program(request):
+    return request.getfixturevalue(request.param)
+
+
 @pytest.mark.parametrize(
     "has_default_donation_page",
     (False, True),
 )
 @pytest.mark.django_db()
 @override_settings(CELERY_ALWAYS_EAGER=True)
-def test_magic_link_custom_email_template(rf, mocker, revenue_program, has_default_donation_page, client):
+def test_magic_link_custom_email_template(rf, mocker, revenue_program, has_default_donation_page):
     email = "vanilla@email.com"
 
     """This test spans two requests, first requesting magic link, then using data in the magic link to verify contributor token

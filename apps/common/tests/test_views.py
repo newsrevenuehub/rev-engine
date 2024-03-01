@@ -4,7 +4,7 @@ from django.contrib.auth import get_user_model
 from django.test import TestCase, override_settings
 from django.urls import reverse
 
-import pytest_cases
+import pytest
 
 from apps.common.views import FilterForSuperUserOrRoleAssignmentUserMixin
 from apps.organizations.tests.factories import OrganizationFactory, RevenueProgramFactory
@@ -102,14 +102,10 @@ class AdminSelectOptionsTest(TestCase):
 
 
 class TestFilterForSuperUserOrRoleAssignmentUserMixin:
-    @pytest_cases.parametrize(
-        "user",
-        (
-            (pytest_cases.fixture_ref("superuser")),
-            (pytest_cases.fixture_ref("org_user_free_plan")),
-            (pytest_cases.fixture_ref("user_no_role_assignment")),
-        ),
-    )
+    @pytest.fixture(params=["superuser", "org_user_free_plan", "user_no_role_assignment"])
+    def user(self, request):
+        return request.getfixturevalue(request.param)
+
     def test_filter_queryset_for_superuser_or_ra(self, user):
         class MyClass(FilterForSuperUserOrRoleAssignmentUserMixin):
             def __init__(self, user):

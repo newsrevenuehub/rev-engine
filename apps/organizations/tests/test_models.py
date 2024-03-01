@@ -10,7 +10,6 @@ from django.utils import timezone
 
 import faker
 import pytest
-import pytest_cases
 import stripe
 from mailchimp_marketing.api_client import ApiClientError
 from stripe import ApplePayDomain
@@ -188,14 +187,16 @@ class TestOrganization:
         assert not DonationPage.objects.filter(pk=page_id).exists()
         assert not RoleAssignment.objects.filter(pk=ra_id).exists()
 
-    @pytest_cases.parametrize(
-        "user",
-        (
-            pytest_cases.fixture_ref("hub_admin_user"),
-            pytest_cases.fixture_ref("org_user_free_plan"),
-            pytest_cases.fixture_ref("rp_user"),
-        ),
+    @pytest.fixture(
+        params=[
+            "hub_admin_user",
+            "org_user_free_plan",
+            "rp_user",
+        ]
     )
+    def user(self, request):
+        return request.getfixturevalue(request.param)
+
     def test_organization_filtered_by_role_assignment(self, user):
         # ensure there will be unowned organizations
         OrganizationFactory.create_batch(size=2)
@@ -310,7 +311,7 @@ def revenue_program_with_default_donation_page_all_transactional_email_style_val
     return rp
 
 
-@pytest_cases.fixture()
+@pytest.fixture()
 def revenue_program_with_default_donation_page_but_no_transactional_email_style_values():
     rp = RevenueProgramFactory(onboarded=True, organization=OrganizationFactory(plus_plan=True))
     style = StyleFactory(name="foo", revenue_program=rp)
@@ -452,17 +453,14 @@ class TestRevenueProgram:
             error_text,
         )
 
-    @pytest_cases.parametrize(
-        "rp,make_expected_value_fn",
-        (
+    @pytest.fixture(
+        params=[
             (
-                pytest_cases.fixture_ref("revenue_program_with_no_default_donation_page"),
+                "revenue_program_with_no_default_donation_page",
                 lambda rp: HubDefaultEmailStyle,
             ),
             (
-                pytest_cases.fixture_ref(
-                    "revenue_program_with_default_donation_page_all_transactional_email_style_values"
-                ),
+                "revenue_program_with_default_donation_page_all_transactional_email_style_values",
                 lambda rp: TransactionalEmailStyle(
                     is_default_logo=False,
                     logo_url=rp.default_donation_page.header_logo.url,
@@ -474,9 +472,7 @@ class TestRevenueProgram:
                 ),
             ),
             (
-                pytest_cases.fixture_ref(
-                    "revenue_program_with_default_donation_page_but_no_transactional_email_style_values"
-                ),
+                "revenue_program_with_default_donation_page_but_no_transactional_email_style_values",
                 lambda rp: TransactionalEmailStyle(
                     is_default_logo=True,
                     logo_url=HubDefaultEmailStyle.logo_url,
@@ -487,9 +483,13 @@ class TestRevenueProgram:
                     button_color=None,
                 ),
             ),
-        ),
+        ]
     )
-    def test_transactional_email_style_property(self, rp, make_expected_value_fn):
+    def transactional_email_style_case(self, request):
+        return request.getfixturevalue(request.param[0]), request.param[1]
+
+    def test_transactional_email_style_property(self, transactional_email_style_case):
+        rp, make_expected_value_fn = transactional_email_style_case
         expected_value = make_expected_value_fn(rp)
         assert rp.transactional_email_style == expected_value
 
@@ -604,14 +604,16 @@ class TestRevenueProgram:
         with pytest.raises(ValidationError):
             rp.clean_fiscal_sponsor_name()
 
-    @pytest_cases.parametrize(
-        "user",
-        (
-            pytest_cases.fixture_ref("hub_admin_user"),
-            pytest_cases.fixture_ref("org_user_free_plan"),
-            pytest_cases.fixture_ref("rp_user"),
-        ),
+    @pytest.fixture(
+        params=[
+            "hub_admin_user",
+            "org_user_free_plan",
+            "rp_user",
+        ]
     )
+    def user(self, request):
+        return request.getfixturevalue(request.param)
+
     def test_filtered_by_role_assignment(self, user):
         # ensure unowned RevenuePrograms in case of org and RP user
         RevenueProgramFactory.create_batch(size=2)
@@ -629,7 +631,7 @@ class TestRevenueProgram:
         assert RevenueProgram.objects.filtered_by_role_assignment(user_with_unexpected_role.roleassignment).count() == 0
         "revenue_program,expect_connected",
 
-    @pytest_cases.parametrize(
+    @pytest.mark.parametrize(
         "mailchimp_server_prefix,mailchimp_access_token,expect_connected",
         (
             ("something", "something", True),

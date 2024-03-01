@@ -53,7 +53,7 @@ describe('SalesforceIntegrationCard', () => {
   it('renders not connected integration card', () => {
     tree();
 
-    expect(screen.getByTestId('cornerMessage')).toHaveTextContent('Contact Support');
+    expect(screen.getByTestId('cornerMessage')).toHaveTextContent('Custom Feature');
     expect(screen.getByTestId('isActive')).toHaveTextContent('false');
     expect(screen.getByRole('button', { name: 'connect' })).toBeDisabled();
   });

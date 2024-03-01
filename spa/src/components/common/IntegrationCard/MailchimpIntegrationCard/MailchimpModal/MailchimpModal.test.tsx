@@ -3,7 +3,6 @@ import { useSnackbar } from 'notistack';
 import { DONATIONS_SLUG, SETTINGS } from 'routes';
 import { fireEvent, render, screen } from 'test-utils';
 import MailchimpModal, { MailchimpModalProps } from './MailchimpModal';
-import { SELF_UPGRADE_ACCESS_FLAG_NAME } from 'constants/featureFlagConstants';
 
 jest.mock('../../IntegrationCardHeader/IntegrationCardHeader');
 
@@ -64,21 +63,12 @@ describe('MailchimpModal', () => {
 
     it('should render action buttons', () => {
       tree();
-      expect(screen.getByRole('link', { name: /Upgrade/i })).toBeEnabled();
+      expect(screen.getByRole('button', { name: /Upgrade/i })).toBeEnabled();
       expect(screen.getByRole('button', { name: /Maybe later/i })).toBeEnabled();
     });
 
-    it('should link "Upgrade" button to "I want RevEngine Core" page if the user doesn\'t have the self-upgrade feature flag', () => {
+    it('should link "Upgrade" button to the subscription route', () => {
       tree();
-      expect(screen.getByRole('link', { name: /Upgrade/i })).toHaveAttribute(
-        'href',
-        // CORE_UPGRADE_URL constant. Link is hardcoded so that if constant is mistakenly changed the test will fail
-        'https://fundjournalism.org/i-want-revengine-core/'
-      );
-    });
-
-    it('should link "Upgrade" button to the subscription route if the user has the self-upgrade feature flag', () => {
-      tree({ ...defaultProps, user: { flags: [{ name: SELF_UPGRADE_ACCESS_FLAG_NAME }] } as any });
       expect(screen.getByRole('button', { name: /Upgrade/i })).toHaveAttribute('href', SETTINGS.SUBSCRIPTION);
     });
 

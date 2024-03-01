@@ -1,31 +1,17 @@
-import { PRICING_URL } from 'constants/helperUrls';
-import PropTypes, { InferProps } from 'prop-types';
-import { Header, Button, Root, Text, Icon, ButtonWrapper } from './CustomizeCoreUpgradePrompt.styled';
-import { User } from 'hooks/useUser.types';
-import flagIsActiveForUser from 'utilities/flagIsActiveForUser';
-import { SELF_UPGRADE_ACCESS_FLAG_NAME } from 'constants/featureFlagConstants';
-import { SETTINGS } from 'routes';
 import { RouterLinkButton } from 'components/base';
+import PropTypes, { InferProps } from 'prop-types';
+import { SETTINGS } from 'routes';
+import { Button, ButtonWrapper, Header, Icon, Root, Text } from './CustomizeCoreUpgradePrompt.styled';
 
 const CustomizeCoreUpgradePromptPropTypes = {
-  onClose: PropTypes.func.isRequired,
-  user: PropTypes.object.isRequired
+  onClose: PropTypes.func.isRequired
 };
 
 export interface CustomizeCoreUpgradePromptProps extends InferProps<typeof CustomizeCoreUpgradePromptPropTypes> {
   onClose: () => void;
-  user: User;
 }
 
-export function CustomizeCoreUpgradePrompt({ onClose, user }: CustomizeCoreUpgradePromptProps) {
-  const upgradeButton = flagIsActiveForUser(SELF_UPGRADE_ACCESS_FLAG_NAME, user) ? (
-    <RouterLinkButton to={SETTINGS.SUBSCRIPTION}>Upgrade</RouterLinkButton>
-  ) : (
-    <Button href={PRICING_URL} target="_blank">
-      Upgrade
-    </Button>
-  );
-
+export function CustomizeCoreUpgradePrompt({ onClose }: CustomizeCoreUpgradePromptProps) {
   return (
     <Root>
       <Icon />
@@ -40,7 +26,7 @@ export function CustomizeCoreUpgradePrompt({ onClose, user }: CustomizeCoreUpgra
         <Button onClick={onClose} color="text">
           Close
         </Button>
-        {upgradeButton}
+        <RouterLinkButton to={SETTINGS.SUBSCRIPTION}>Upgrade</RouterLinkButton>
       </ButtonWrapper>
     </Root>
   );

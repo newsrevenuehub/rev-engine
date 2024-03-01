@@ -59,7 +59,6 @@ describe('Subscription', () => {
 
     expect(manageSub).toBeInTheDocument();
     expect(manageSub?.dataset.organizationId).toBe('mock-org-id');
-    expect(manageSub?.dataset.userId).toBe('mock-user-id');
   });
 
   it('displays an UpgradePlan component', () => {

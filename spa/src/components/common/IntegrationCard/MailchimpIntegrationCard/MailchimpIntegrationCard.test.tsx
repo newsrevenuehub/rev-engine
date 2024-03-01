@@ -1,8 +1,7 @@
-import { PLAN_LABELS } from 'constants/orgPlanConstants';
+import { PLAN_LABELS, PLAN_NAMES } from 'constants/orgPlanConstants';
 import useConnectMailchimp from 'hooks/useConnectMailchimp';
 import { render, screen } from 'test-utils';
 import MailchimpIntegrationCard from './MailchimpIntegrationCard';
-import { PLAN_NAMES } from 'constants/orgPlanConstants';
 
 jest.mock('../IntegrationCard');
 jest.mock('hooks/useConnectMailchimp');
@@ -68,51 +67,69 @@ describe('MailchimpIntegrationCard', () => {
           setRefetchInterval: jest.fn()
         });
         tree();
-        expect(screen.getByTestId('cornerMessage')).toHaveTextContent('Upgrade to Core');
+        expect(screen.getByTestId('cornerMessage')).toHaveTextContent('Core Feature');
         expect(screen.getByTestId('isActive')).toHaveTextContent('false');
         expect(screen.getByRole('button', { name: 'connect' })).toBeDisabled();
       }
     );
+
+    describe('Upgrade button', () => {
+      beforeEach(() => {
+        useConnectMailchimpMock.mockReturnValue({
+          isLoading: false,
+          isError: false,
+          connectedToMailchimp: false,
+          organizationPlan: PLAN_NAMES.FREE,
+          hasMailchimpAccess: true,
+          setRefetchInterval: jest.fn()
+        });
+      });
+
+      it('should render Upgrade button for "Free" organization plan', () => {
+        tree();
+        expect(screen.getByRole('button', { name: /Upgrade/i })).toBeEnabled();
+      });
+
+      it('should link "Upgrade" button to the subscription route if the user has the self-upgrade feature flag', () => {
+        tree();
+        expect(screen.getByRole('button', { name: /Upgrade/i })).toHaveAttribute('href', '/settings/subscription');
+      });
+    });
   });
 
-  describe('Paid plan', () => {
-    it.each([[PLAN_LABELS.CORE], [PLAN_LABELS.PLUS]])(
-      'renders mailchimp card for "%s" organization plan',
-      (organizationPlan) => {
-        useConnectMailchimpMock.mockReturnValue({
-          isLoading: false,
-          isError: false,
-          connectedToMailchimp: false,
-          organizationPlan: organizationPlan as any,
-          hasMailchimpAccess: true,
-          sendUserToMailchimp: jest.fn(),
-          setRefetchInterval: jest.fn()
-        });
-        tree();
-        expect(screen.getByTestId('cornerMessage')).toBeEmptyDOMElement();
-        expect(screen.getByTestId('isActive')).toHaveTextContent('false');
-        expect(screen.getByRole('button', { name: 'connect' })).toBeEnabled();
-      }
-    );
+  describe.each([[PLAN_LABELS.CORE], [PLAN_LABELS.PLUS]])(`%s plan`, (organizationPlan) => {
+    const sendUserToMailchimp = jest.fn();
 
-    it.each([[PLAN_LABELS.CORE], [PLAN_LABELS.PLUS]])(
-      'calls "sendUserToMailchimp" mailchimp card for "%s" organization plan',
-      (organizationPlan) => {
-        const sendUserToMailchimp = jest.fn();
-        useConnectMailchimpMock.mockReturnValue({
-          isLoading: false,
-          isError: false,
-          connectedToMailchimp: false,
-          organizationPlan: organizationPlan as any,
-          sendUserToMailchimp,
-          hasMailchimpAccess: true,
-          setRefetchInterval: jest.fn()
-        });
-        tree();
-        expect(sendUserToMailchimp).not.toBeCalled();
-        screen.getByRole('button', { name: 'connect' }).click();
-        expect(sendUserToMailchimp).toBeCalledTimes(1);
-      }
-    );
+    beforeEach(() => {
+      useConnectMailchimpMock.mockReturnValue({
+        isLoading: false,
+        isError: false,
+        connectedToMailchimp: false,
+        organizationPlan: organizationPlan as any,
+        sendUserToMailchimp,
+        hasMailchimpAccess: true,
+        setRefetchInterval: jest.fn()
+      });
+    });
+
+    it('renders mailchimp card', () => {
+      tree();
+      expect(screen.getByTestId('cornerMessage')).toBeEmptyDOMElement();
+      expect(screen.getByTestId('isActive')).toHaveTextContent('false');
+      expect(screen.getByRole('button', { name: 'connect' })).toBeEnabled();
+    });
+
+    it('calls sendUserToMailchimp when the connect button is clicked', () => {
+      tree();
+      expect(sendUserToMailchimp).not.toBeCalled();
+      screen.getByRole('button', { name: 'connect' }).click();
+      expect(sendUserToMailchimp).toBeCalledTimes(1);
+    });
+
+    it('should not render Upgrade button (rightAction)', () => {
+      tree();
+      expect(screen.queryByText('Upgrade')).not.toBeInTheDocument();
+      expect(screen.queryByTestId('rightAction')).not.toBeInTheDocument();
+    });
   });
 });

@@ -76,7 +76,6 @@ export default function MailchimpConnectionStatus() {
           onClose={closeAndShowSuccessNotification}
           organizationPlan={organizationPlan}
           isActive={connectedToMailchimp}
-          user={user}
         />
       )}
     </>

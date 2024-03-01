@@ -8,6 +8,7 @@ const IntegrationCard = (props: IntegrationCardProps) => (
       connect
     </button>
     <div data-testid="toggleConnectedTooltipMessage">{props?.toggleConnectedTooltipMessage}</div>
+    {props?.rightAction && <div data-testid="rightAction">{props?.rightAction}</div>}
   </div>
 );
 

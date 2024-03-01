@@ -1,4 +1,3 @@
-import { PRICING_URL } from 'constants/helperUrls';
 import { axe } from 'jest-axe';
 import { SETTINGS } from 'routes';
 import { fireEvent, render, screen } from 'test-utils';
@@ -9,7 +8,7 @@ function tree(props?: Partial<SidebarCoreUpgradePromptProps>) {
 }
 
 describe('SidebarCoreUpgradePrompt', () => {
-  it('displays a link to the subscription apge', () => {
+  it('displays a link to the subscription page', () => {
     tree();
 
     const link = screen.getByRole('button', { name: 'Upgrade' });

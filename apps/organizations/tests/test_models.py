@@ -143,7 +143,9 @@ class TestOrganization:
         }
 
     def test_basics(self):
-        t = Organization()
+        # need this change so that the instance is saved, otherwise lookup of .admin_revenueprogram_options will fail
+        # E           ValueError: 'Organization' instance needs to have a primary key value before this relationship can be used.
+        t = OrganizationFactory()
         str(t)
         assert isinstance(t.admin_revenueprogram_options, list)
 

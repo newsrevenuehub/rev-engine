@@ -14,6 +14,7 @@ from django_filters.rest_framework import DjangoFilterBackend
 from rest_framework import mixins, status, viewsets
 from rest_framework.decorators import action, api_view, authentication_classes, permission_classes
 from rest_framework.exceptions import NotFound, ParseError
+from rest_framework.filters import OrderingFilter
 from rest_framework.permissions import IsAdminUser, IsAuthenticated
 from rest_framework.request import Request
 from rest_framework.response import Response
@@ -572,6 +573,7 @@ class PortalContributorsViewSet(viewsets.GenericViewSet):
 
     permission_classes = [IsAuthenticated, IsContributor, UserIsRequestedContributor]
 
+    DEFAULT_ORDERING_FIELDS = ["created"]
     ALLOWED_ORDERING_FIELDS = ["created", "amount", "status"]
     ALLOWED_FILTER_FIELDS = [
         "status",
@@ -604,14 +606,22 @@ class PortalContributorsViewSet(viewsets.GenericViewSet):
     def contributions_list(self, request, pk=None):
         """Endpoint to get all contributions for a given contributor"""
         contributor = self._get_contributor_and_check_permissions(request, pk)
-        ordering = self.request.query_params.get("ordering", "-created").split(",")
+
         filters = {}
         for k in self.ALLOWED_FILTER_FIELDS:
             if (v := self.request.query_params.get(k)) is not None:
                 filters[k] = v
-        queryset = contributor.contribution_set.filter(**filters).order_by(*ordering)
+
+        ordering_filter = OrderingFilter()
+        ordering_filter.ordering_fields = self.ALLOWED_ORDERING_FIELDS
+        qs = contributor.contribution_set.filter(**filters)
+        qs = (
+            ordering_filter.filter_queryset(request, qs, self)
+            if request.query_params.get("ordering")
+            else qs.order_by(*self.DEFAULT_ORDERING_FIELDS)
+        )
         paginator = self.pagination_class()
-        page = paginator.paginate_queryset(queryset, request)
+        page = paginator.paginate_queryset(qs, request)
         serializer = self.get_serializer(page, many=True)
         return paginator.get_paginated_response(serializer.data)
 

@@ -2,26 +2,21 @@ import * as Sentry from '@sentry/react';
 import { STRIPE_SELF_UPGRADE_CUSTOMER_PORTAL_URL } from 'appSettings';
 import { Link } from 'components/base';
 import SettingsSection from 'components/common/SettingsSection';
-import { SELF_UPGRADE_ACCESS_FLAG_NAME } from 'constants/featureFlagConstants';
 import { PLAN_NAMES } from 'constants/orgPlanConstants';
-import { Organization, User } from 'hooks/useUser.types';
+import { Organization } from 'hooks/useUser.types';
 import PropTypes, { InferProps } from 'prop-types';
 import { useEffect } from 'react';
-import flagIsActiveForUser from 'utilities/flagIsActiveForUser';
 
 const ManageSubscriptionPropTypes = {
-  organization: PropTypes.object.isRequired,
-  user: PropTypes.object.isRequired
+  organization: PropTypes.object.isRequired
 };
 
 export interface ManageSubscriptionProps extends InferProps<typeof ManageSubscriptionPropTypes> {
   organization: Organization;
-  user: User;
 }
 
-export function ManageSubscription({ organization, user }: ManageSubscriptionProps) {
-  const hideManageSubscription =
-    organization.plan.name === PLAN_NAMES.FREE || !flagIsActiveForUser(SELF_UPGRADE_ACCESS_FLAG_NAME, user);
+export function ManageSubscription({ organization }: ManageSubscriptionProps) {
+  const hideManageSubscription = organization.plan.name === PLAN_NAMES.FREE;
 
   useEffect(() => {
     if (hideManageSubscription) {

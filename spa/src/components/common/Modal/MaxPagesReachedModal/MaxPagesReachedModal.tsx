@@ -1,12 +1,9 @@
-import PropTypes, { InferProps } from 'prop-types';
 import { Button, LinkButton, Modal, ModalFooter, RouterLinkButton } from 'components/base';
-import { CORE_UPGRADE_URL, PRICING_URL } from 'constants/helperUrls';
-import { SELF_UPGRADE_ACCESS_FLAG_NAME } from 'constants/featureFlagConstants';
+import { PRICING_URL } from 'constants/helperUrls';
 import { PLAN_LABELS, PLAN_NAMES } from 'constants/orgPlanConstants';
 import { EnginePlan } from 'hooks/useContributionPage';
-import useUser from 'hooks/useUser';
+import PropTypes, { InferProps } from 'prop-types';
 import { SETTINGS } from 'routes';
-import flagIsActiveForUser from 'utilities/flagIsActiveForUser';
 import {
   BenefitsList,
   Card,
@@ -37,8 +34,6 @@ export interface MaxPagesReachedModalProps extends InferProps<typeof MaxPagesRea
 }
 
 export function MaxPagesReachedModal({ currentPlan, onClose, open, recommendedPlan }: MaxPagesReachedModalProps) {
-  const { user } = useUser();
-
   // The destination of the Upgrade button may be either internal or external.
 
   let upgradeButton = (
@@ -48,19 +43,11 @@ export function MaxPagesReachedModal({ currentPlan, onClose, open, recommendedPl
   );
 
   if (recommendedPlan === PLAN_NAMES.CORE) {
-    if (user && flagIsActiveForUser(SELF_UPGRADE_ACCESS_FLAG_NAME, user)) {
-      upgradeButton = (
-        <RouterLinkButton color="primaryDark" to={SETTINGS.SUBSCRIPTION}>
-          Upgrade
-        </RouterLinkButton>
-      );
-    } else {
-      upgradeButton = (
-        <LinkButton color="primaryDark" href={CORE_UPGRADE_URL} target="_blank">
-          Upgrade
-        </LinkButton>
-      );
-    }
+    upgradeButton = (
+      <RouterLinkButton color="primaryDark" to={SETTINGS.SUBSCRIPTION}>
+        Upgrade
+      </RouterLinkButton>
+    );
   }
 
   return (

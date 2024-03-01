@@ -42,7 +42,7 @@ export function Subscription() {
       <SettingsSection orientation="vertical" title="Current Plan">
         <SubscriptionPlan plan={firstOrg.plan.name} />
       </SettingsSection>
-      <ManageSubscription organization={firstOrg} user={user} />
+      <ManageSubscription organization={firstOrg} />
       <UpgradePlan organization={firstOrg} user={user} />
       <PlanChangePendingModal futurePlan="CORE" onClose={handleClose} open={open} />
     </Root>

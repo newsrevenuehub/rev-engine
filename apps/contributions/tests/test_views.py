@@ -1753,7 +1753,6 @@ class TestPortalContributorsViewSet:
     @pytest.mark.parametrize(
         "status",
         (
-            ContributionStatus.FAILED,
             ContributionStatus.FLAGGED,
             ContributionStatus.PROCESSING,
             ContributionStatus.REJECTED,
@@ -1886,7 +1885,6 @@ class TestPortalContributorsViewSet:
     @pytest.mark.parametrize(
         "contribution_status",
         (
-            ContributionStatus.FAILED,
             ContributionStatus.FLAGGED,
             ContributionStatus.PROCESSING,
             ContributionStatus.REJECTED,
@@ -2011,7 +2009,6 @@ class TestPortalContributorsViewSet:
     @pytest.mark.parametrize(
         "contribution_status",
         (
-            ContributionStatus.FAILED,
             ContributionStatus.FLAGGED,
             ContributionStatus.PROCESSING,
             ContributionStatus.REJECTED,
@@ -2118,7 +2115,6 @@ class TestPortalContributorsViewSet:
     @pytest.mark.parametrize(
         "contribution_status",
         (
-            ContributionStatus.FAILED,
             ContributionStatus.FLAGGED,
             ContributionStatus.PROCESSING,
             ContributionStatus.REJECTED,

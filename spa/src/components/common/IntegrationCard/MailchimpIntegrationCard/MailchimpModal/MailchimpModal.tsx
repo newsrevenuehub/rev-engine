@@ -19,9 +19,8 @@ import { useMemo } from 'react';
 
 import MailchimpLogo from 'assets/images/mailchimp.png';
 import IconList from 'components/common/IconList/IconList';
-import { CORE_UPGRADE_URL, FAQ_URL, HELP_URL } from 'constants/helperUrls';
+import { FAQ_URL, HELP_URL } from 'constants/helperUrls';
 import { PLAN_LABELS, PLAN_NAMES } from 'constants/orgPlanConstants';
-import { User } from 'hooks/useUser.types';
 import { DONATIONS_SLUG, SETTINGS } from 'routes';
 import IntegrationCardHeader from '../../IntegrationCardHeader';
 import ModalUpgradePrompt from '../../ModalUpgradePrompt/ModalUpgradePrompt';
@@ -35,8 +34,6 @@ import {
   SupportText,
   Title
 } from './MailchimpModal.styled';
-import flagIsActiveForUser from 'utilities/flagIsActiveForUser';
-import { SELF_UPGRADE_ACCESS_FLAG_NAME } from 'constants/featureFlagConstants';
 
 export interface MailchimpModalProps extends InferProps<typeof MailchimpModalPropTypes> {
   /**
@@ -44,7 +41,6 @@ export interface MailchimpModalProps extends InferProps<typeof MailchimpModalPro
    */
   isActive: boolean;
   organizationPlan: 'FREE' | 'CORE' | 'PLUS';
-  user: User;
 }
 
 type DisplayState = 'free' | 'paidNotConnected' | 'connected';
@@ -87,8 +83,7 @@ const MailchimpModal = ({
   site = {
     label: 'mailchimp.com',
     url: 'https://www.mailchimp.com'
-  },
-  user
+  }
 }: MailchimpModalProps) => {
   const actionButtonProps: Partial<ButtonProps & RouterLinkButtonProps> = {
     color: 'primaryDark',
@@ -173,14 +168,10 @@ const MailchimpModal = ({
         </CancelButton>
         {
           {
-            [DISPLAY_STATE.FREE]: flagIsActiveForUser(SELF_UPGRADE_ACCESS_FLAG_NAME, user) ? (
+            [DISPLAY_STATE.FREE]: (
               <RouterLinkButton {...actionButtonProps} to={SETTINGS.SUBSCRIPTION}>
                 Upgrade
               </RouterLinkButton>
-            ) : (
-              <ActionButton {...actionButtonProps} href={CORE_UPGRADE_URL}>
-                Upgrade
-              </ActionButton>
             ),
             [DISPLAY_STATE.PAID_NOT_CONNECTED]: (
               <ActionButton {...actionButtonProps} onClick={sendUserToMailchimp!}>
@@ -212,7 +203,6 @@ const MailchimpModalPropTypes = {
   }),
   isActive: PropTypes.bool,
   isRequired: PropTypes.bool,
-  user: PropTypes.object.isRequired,
   organizationPlan: PropTypes.oneOf(Object.keys(PLAN_LABELS)).isRequired
 };
 

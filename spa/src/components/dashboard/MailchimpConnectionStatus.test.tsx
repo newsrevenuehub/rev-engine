@@ -135,7 +135,6 @@ describe('MailchimpConnectionStatus', () => {
       const modal = screen.getByTestId('mock-mailchimp-modal');
 
       expect(modal).toBeInTheDocument();
-      expect(modal.dataset.user).toBe(JSON.stringify(mockUser));
     });
 
     it('should not display Mailchimp Success modal if audience not selected', () => {

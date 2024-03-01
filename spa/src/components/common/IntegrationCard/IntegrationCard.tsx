@@ -2,14 +2,21 @@ import { Switch, SwitchProps, Tooltip } from 'components/base';
 import useModal from 'hooks/useModal';
 import PropTypes, { InferProps } from 'prop-types';
 
-import { Flex, Content, Description, Footer, CustomButtonLink } from './IntegrationCard.styled';
+import { Flex, Content, Description, Footer, CustomButtonLink, RightActionWrapper } from './IntegrationCard.styled';
 import IntegrationCardHeader from './IntegrationCardHeader';
 
 export interface IntegrationCardProps extends InferProps<typeof IntegrationCardPropTypes> {
   onChange?: SwitchProps['onChange'];
 }
 
-const IntegrationCard = ({ className, isActive, onChange, onViewDetails, ...card }: IntegrationCardProps) => {
+const IntegrationCard = ({
+  className,
+  isActive,
+  onChange,
+  onViewDetails,
+  rightAction,
+  ...card
+}: IntegrationCardProps) => {
   const { open: showTooltip, handleClose: handleCloseTooltip, handleOpen: handleOpenTooltip } = useModal();
 
   return (
@@ -26,6 +33,7 @@ const IntegrationCard = ({ className, isActive, onChange, onViewDetails, ...card
       <Content>
         <Description>{card.description}</Description>
         {onViewDetails && <CustomButtonLink onClick={onViewDetails}>View Details</CustomButtonLink>}
+        {rightAction && <RightActionWrapper data-testid="right-action">{rightAction}</RightActionWrapper>}
       </Content>
       <Footer $active={isActive!}>
         <p>{isActive! ? 'Connected' : card.toggleLabel ?? 'Not Connected'}</p>
@@ -74,7 +82,8 @@ const IntegrationCardPropTypes = {
   disabled: PropTypes.bool.isRequired,
   isActive: PropTypes.bool,
   onViewDetails: PropTypes.func,
-  onChange: PropTypes.func
+  onChange: PropTypes.func,
+  rightAction: PropTypes.node
 };
 
 IntegrationCard.propTypes = IntegrationCardPropTypes;

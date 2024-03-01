@@ -1882,6 +1882,7 @@ class TestPortalContributorsViewSet:
         assert response.status_code == status.HTTP_404_NOT_FOUND
         assert response.json() == {"detail": "Contribution not found"}
 
+    @pytest.mark.parametrize("http_method", ("delete", "get", "patch"))
     @pytest.mark.parametrize(
         "contribution_status",
         (
@@ -1891,13 +1892,18 @@ class TestPortalContributorsViewSet:
         ),
     )
     def test_contributions_detail_when_hidden_status(
-        self, contribution_status, api_client, one_time_contribution, portal_contributor_with_multiple_contributions
+        self,
+        http_method,
+        contribution_status,
+        api_client,
+        one_time_contribution,
+        portal_contributor_with_multiple_contributions,
     ):
         contributor = portal_contributor_with_multiple_contributions[0]
         one_time_contribution.status = contribution_status
         one_time_contribution.save()
         api_client.force_authenticate(contributor)
-        response = api_client.get(
+        response = getattr(api_client, http_method)(
             reverse("portal-contributor-contribution-detail", args=(contributor.id, one_time_contribution.id))
         )
         assert response.status_code == status.HTTP_404_NOT_FOUND
@@ -2006,33 +2012,6 @@ class TestPortalContributorsViewSet:
         assert response.json() == {"detail": "Problem updating contribution"}
         mock_pm_attach.assert_called_once()
 
-    @pytest.mark.parametrize(
-        "contribution_status",
-        (
-            ContributionStatus.FLAGGED,
-            ContributionStatus.PROCESSING,
-            ContributionStatus.REJECTED,
-        ),
-    )
-    def test_contributions_detail_patch_when_hidden_status(
-        self, contribution_status, api_client, one_time_contribution, portal_contributor_with_multiple_contributions
-    ):
-        contributor = portal_contributor_with_multiple_contributions[0]
-        one_time_contribution.status = contribution_status
-        one_time_contribution.save()
-        api_client.force_authenticate(contributor)
-        response = api_client.patch(
-            reverse(
-                "portal-contributor-contribution-detail",
-                args=(
-                    contributor.id,
-                    one_time_contribution.id,
-                ),
-            )
-        )
-        assert response.status_code == status.HTTP_404_NOT_FOUND
-        assert response.json() == {"detail": "Contribution not found"}
-
     def test_contribution_detail_delete_happy_path(
         self, api_client, portal_contributor_with_multiple_contributions, mocker
     ):
@@ -2111,33 +2090,6 @@ class TestPortalContributorsViewSet:
         )
         assert response.status_code == status.HTTP_400_BAD_REQUEST
         assert response.json() == {"detail": "Cannot cancel contribution"}
-
-    @pytest.mark.parametrize(
-        "contribution_status",
-        (
-            ContributionStatus.FLAGGED,
-            ContributionStatus.PROCESSING,
-            ContributionStatus.REJECTED,
-        ),
-    )
-    def test_contributions_detail_delete_when_hidden_status(
-        self, contribution_status, api_client, one_time_contribution, portal_contributor_with_multiple_contributions
-    ):
-        contributor = portal_contributor_with_multiple_contributions[0]
-        one_time_contribution.status = contribution_status
-        one_time_contribution.save()
-        api_client.force_authenticate(contributor)
-        response = api_client.delete(
-            reverse(
-                "portal-contributor-contribution-detail",
-                args=(
-                    contributor.id,
-                    one_time_contribution.id,
-                ),
-            )
-        )
-        assert response.status_code == status.HTTP_404_NOT_FOUND
-        assert response.json() == {"detail": "Contribution not found"}
 
     @pytest.mark.parametrize(
         "method, kwargs",

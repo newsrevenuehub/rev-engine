@@ -64,6 +64,7 @@ class DonationPage(IndexedTimeStampedModel):
         help_text='Contributors can click a link to go "back to the news" after viewing the default thank you page',
     )
     published_date = models.DateTimeField(null=True, blank=True)
+    # TODO [DEV-4531]: Make donation_page.revenue_program a required field
     revenue_program = models.ForeignKey(
         "organizations.RevenueProgram",
         null=True,

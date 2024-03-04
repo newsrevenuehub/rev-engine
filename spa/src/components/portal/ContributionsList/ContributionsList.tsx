@@ -21,6 +21,7 @@ import {
   StyledPortalPage,
   AlignPositionWrapper
 } from './ContributionsList.styled';
+import Impact from './Impact';
 
 const CONTRIBUTION_SORT_OPTIONS = [
   {
@@ -116,6 +117,7 @@ export function ContributionsList() {
       <Root>
         <Layout>
           <ContributionsHeader defaultPage={page} revenueProgram={page?.revenue_program} />
+        <Impact contributor={contributor} />
           <Legend $detailVisible={!!selectedContribution}>
             <Subhead>Transactions</Subhead>
             <p>View billing history, update payment details, and resend receipts.</p>

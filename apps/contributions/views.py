@@ -3,7 +3,7 @@ from typing import List
 
 from django.conf import settings
 from django.contrib.auth import get_user_model
-from django.db.models import QuerySet
+from django.db.models import QuerySet, Sum
 from django.http import Http404
 from django.shortcuts import get_object_or_404
 from django.utils.decorators import method_decorator
@@ -41,6 +41,7 @@ from apps.contributions.models import (
     ContributionStatus,
     ContributionStatusError,
     Contributor,
+    Payment,
 )
 from apps.contributions.payment_managers import PaymentProviderError
 from apps.contributions.stripe_contributions_provider import (
@@ -703,3 +704,14 @@ class PortalContributorsViewSet(viewsets.GenericViewSet):
             )
             return Response({"detail": "Problem canceling contribution"}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
         return Response(status=status.HTTP_204_NO_CONTENT)
+
+    @action(
+        detail=True,
+        methods=["get"],
+        url_path="impact",
+        url_name="impact",
+    )
+    def impact(self, request, pk=None):
+        contributor = self._get_contributor_and_check_permissions(request, pk)
+        sum = Payment.objects.filter(contribution__contributor=contributor).aggregate(Sum("net_amount_paid"))
+        return Response(data={"net_amount_paid": sum["net_amount_paid__sum"]})

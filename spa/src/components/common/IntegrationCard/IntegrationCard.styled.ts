@@ -23,12 +23,20 @@ export const Content = styled.div`
   flex-grow: 1;
   margin-top: 15px;
   margin-bottom: 15px;
+  display: grid;
+  grid-template-areas: 'description description' 'view-details right-action';
+  gap: 10px;
+`;
+
+export const RightActionWrapper = styled.div`
+  grid-area: right-action;
   display: flex;
-  flex-direction: column;
-  gap: 5px;
+  align-items: center;
+  justify-content: flex-end;
 `;
 
 export const Description = styled.p`
+  grid-area: description;
   margin: 0;
   font-size: ${(props) => props.theme.fontSizesUpdated.sm};
   color: ${(props) => props.theme.colors.muiGrey[900]};
@@ -61,6 +69,7 @@ export const Footer = styled.div<{ $active: boolean }>`
 
 export const CustomButtonLink = styled(BaseButton)`
   && {
+    grid-area: view-details;
     width: fit-content;
     height: unset;
     text-transform: none;

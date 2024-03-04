@@ -1,13 +1,11 @@
-import PropTypes, { InferProps } from 'prop-types';
 import { STRIPE_SELF_UPGRADE_PRICING_TABLE_ID, STRIPE_SELF_UPGRADE_PRICING_TABLE_PUBLISHABLE_KEY } from 'appSettings';
 import { Link, LinkButton } from 'components/base';
 import SettingsSection from 'components/common/SettingsSection';
 import { StripePricingTable } from 'components/common/StripePricingTable';
-import { SELF_UPGRADE_ACCESS_FLAG_NAME } from 'constants/featureFlagConstants';
 import { PLUS_UPGRADE_URL, PRICING_URL } from 'constants/helperUrls';
 import { PLAN_NAMES } from 'constants/orgPlanConstants';
 import { Organization, User } from 'hooks/useUser.types';
-import flagIsActiveForUser from 'utilities/flagIsActiveForUser';
+import PropTypes, { InferProps } from 'prop-types';
 import {
   NewBadge,
   PlusFeatureList,
@@ -38,37 +36,33 @@ export function UpgradePlan({ organization, user }: UpgradePlanProps) {
       title="Upgrade Plan"
       subtitle="Increase your customization and insights by upgrading."
     >
-      {flagIsActiveForUser(SELF_UPGRADE_ACCESS_FLAG_NAME, user) && (
-        <>
-          {organization.plan.name === PLAN_NAMES.FREE &&
-            STRIPE_SELF_UPGRADE_PRICING_TABLE_ID &&
-            STRIPE_SELF_UPGRADE_PRICING_TABLE_PUBLISHABLE_KEY && (
-              <PricingTableContainer>
-                <StripePricingTable
-                  clientReferenceId={organization.uuid}
-                  customerEmail={user.email}
-                  pricingTableId={STRIPE_SELF_UPGRADE_PRICING_TABLE_ID}
-                  publishableKey={STRIPE_SELF_UPGRADE_PRICING_TABLE_PUBLISHABLE_KEY}
-                />
-              </PricingTableContainer>
-            )}
-          {organization.plan.name === PLAN_NAMES.CORE && (
-            <div>
-              <PlusHeader>
-                <PlusHeaderHighlight>Plus Tier</PlusHeaderHighlight> coming soon!
-                <NewBadge>New</NewBadge>
-              </PlusHeader>
-              <PlusFeatureList>
-                <li>Insight & Reporting</li>
-                <li>Custom Domains</li>
-                <li>Benchmarking</li>
-              </PlusFeatureList>
-              <LinkButton href={PLUS_UPGRADE_URL} target="_blank">
-                Join the Waitlist
-              </LinkButton>
-            </div>
-          )}
-        </>
+      {organization.plan.name === PLAN_NAMES.FREE &&
+        STRIPE_SELF_UPGRADE_PRICING_TABLE_ID &&
+        STRIPE_SELF_UPGRADE_PRICING_TABLE_PUBLISHABLE_KEY && (
+          <PricingTableContainer>
+            <StripePricingTable
+              clientReferenceId={organization.uuid}
+              customerEmail={user.email}
+              pricingTableId={STRIPE_SELF_UPGRADE_PRICING_TABLE_ID}
+              publishableKey={STRIPE_SELF_UPGRADE_PRICING_TABLE_PUBLISHABLE_KEY}
+            />
+          </PricingTableContainer>
+        )}
+      {organization.plan.name === PLAN_NAMES.CORE && (
+        <div>
+          <PlusHeader>
+            <PlusHeaderHighlight>Plus Tier</PlusHeaderHighlight> coming soon!
+            <NewBadge>New</NewBadge>
+          </PlusHeader>
+          <PlusFeatureList>
+            <li>Insight & Reporting</li>
+            <li>Custom Domains</li>
+            <li>Benchmarking</li>
+          </PlusFeatureList>
+          <LinkButton href={PLUS_UPGRADE_URL} target="_blank">
+            Join the Waitlist
+          </LinkButton>
+        </div>
       )}
       <Link href={PRICING_URL} target="_blank">
         View full pricing comparison

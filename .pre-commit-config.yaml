@@ -30,7 +30,7 @@ repos:
         types: [python]
   # Black code formatter.
   - repo: https://github.com/psf/black
-    rev: 24.1.1
+    rev: 24.2.0
     hooks:
       - id: black
         language_version: python3.10
@@ -80,7 +80,7 @@ repos:
         types_or: [javascript, ts, tsx]
   # JS code linter.
   - repo: https://github.com/pre-commit/mirrors-eslint
-    rev: v9.0.0-alpha.1
+    rev: v8.55.0
     hooks:
       - id: eslint
         files: \.[jt]sx?$ # *.js, *.jsx, *.ts and *.tsx

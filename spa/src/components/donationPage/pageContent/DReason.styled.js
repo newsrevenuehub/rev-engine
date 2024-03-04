@@ -1,3 +1,4 @@
+import { TextField } from 'components/base';
 import styled from 'styled-components';
 import { motion } from 'framer-motion';
 import Input from 'elements/inputs/Input';
@@ -8,6 +9,13 @@ import MaterialRadio from '@material-ui/core/Radio';
 
 export const ReasonGroup = styled.div`
   margin-bottom: 2rem;
+`;
+
+export const ReasonSelect = styled(TextField)`
+  && .NreTextFieldInput {
+    background: ${({ theme }) => theme.colors.cstm_inputBackground};
+    border-color: ${({ theme }) => theme.colors.cstm_inputBorder};
+  }
 `;
 
 export const SupportOptions = styled.div`

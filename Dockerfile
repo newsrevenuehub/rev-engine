@@ -36,8 +36,6 @@ RUN set -ex \
 ADD poetry.lock /poetry.lock
 ADD pyproject.toml /pyproject.toml
 
-ADD ci_collation.sql /ci_collation.sql
-
 # SETUPTOOLS_USE_DISTUTILS is here for because of the the heroku3 package. It can go away when that package
 # is no longer needed. We may also be able to remove it with the next release of setuptools (65.6.3). It will no
 # longer be supported in python 3.12 so it needs to go away or be resolved before upgrading to python 3.12.

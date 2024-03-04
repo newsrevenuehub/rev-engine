@@ -1,8 +1,7 @@
 from django.conf import settings
 
 from rest_framework import status
-from rest_framework.authentication import CSRFCheck
-from rest_framework.exceptions import AuthenticationFailed, PermissionDenied
+from rest_framework.exceptions import AuthenticationFailed
 from rest_framework_simplejwt.authentication import JWTAuthentication
 from rest_framework_simplejwt.exceptions import InvalidToken
 
@@ -12,18 +11,6 @@ from apps.contributions.models import Contributor
 
 class MagicLinkAuthenticationFailed(AuthenticationFailed):
     status_code = status.HTTP_403_FORBIDDEN
-
-
-def enforce_csrf(request):
-    """
-    Enforce CSRF validation. From drf source, authentication.py
-    """
-    check = CSRFCheck()
-    check.process_request(request)
-    reason = check.process_view(request, None, (), {})
-    if reason:
-        # CSRF failed, bail with explicit error message
-        raise PermissionDenied("CSRF validation failed: %s" % reason)
 
 
 class JWTHttpOnlyCookieAuthentication(JWTAuthentication):
@@ -48,9 +35,7 @@ class JWTHttpOnlyCookieAuthentication(JWTAuthentication):
 
     def authenticate(self, request):
         """
-        Override JWTAuthentication authenticate method to:
-            1. Pull JWT out of cookie, rather than request body.
-            2. Enforce CSRF protection.
+        Override JWTAuthentication authenticate method to pull JWT out of cookie, rather than request body.
         """
         raw_token = request.COOKIES.get(settings.AUTH_COOKIE_KEY)
         if raw_token is None:
@@ -59,8 +44,6 @@ class JWTHttpOnlyCookieAuthentication(JWTAuthentication):
 
         if not validated_user and not validated_token:
             return None
-
-        enforce_csrf(request)
 
         return validated_user, validated_token
 
@@ -75,7 +58,7 @@ class JWTHttpOnlyCookieAuthentication(JWTAuthentication):
             return super().get_user(validated_token)
 
 
-class MagicLinkTokenAuthenticationBase(JWTHttpOnlyCookieAuthentication):
+class ShortLivedTokenAuthentication(JWTHttpOnlyCookieAuthentication):
     def get_user(self, validated_token):
         try:
             contributor_uuid = validated_token[settings.CONTRIBUTOR_ID_CLAIM]
@@ -101,8 +84,6 @@ class MagicLinkTokenAuthenticationBase(JWTHttpOnlyCookieAuthentication):
         self.ensure_valid_owner(email, contributor)
         return contributor, validated_token
 
-
-class ShortLivedTokenAuthentication(MagicLinkTokenAuthenticationBase):
     def ensure_contrib_token_type(self, token):
         if "ctx" not in token:
             raise MagicLinkAuthenticationFailed("Invalid token", code="missing_claim")

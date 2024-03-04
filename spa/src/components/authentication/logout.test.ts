@@ -1,5 +1,5 @@
 import Axios from 'ajax/axios';
-import { LS_CSRF_TOKEN, LS_USER } from 'appSettings';
+import { LS_USER } from 'appSettings';
 import MockAdapter from 'axios-mock-adapter';
 import { waitFor } from 'test-utils';
 import logout from './logout';
@@ -30,13 +30,6 @@ describe('logout', () => {
     expect(window.localStorage.getItem(LS_USER)).not.toBeNull();
     await logout();
     expect(window.localStorage.getItem(LS_USER)).toBeNull();
-  });
-
-  it('removes the LS_CSRF_TOKEN key from local storage', async () => {
-    window.localStorage.setItem(LS_CSRF_TOKEN, 'test');
-    expect(window.localStorage.getItem(LS_CSRF_TOKEN)).not.toBeNull();
-    await logout();
-    expect(window.localStorage.getItem(LS_CSRF_TOKEN)).toBeNull();
   });
 
   it('clears session storage', async () => {

@@ -5,7 +5,6 @@ from datetime import datetime
 from urllib.parse import quote_plus, urlparse
 
 from django.conf import settings
-from django.middleware import csrf
 from django.shortcuts import get_object_or_404
 from django.template.loader import render_to_string
 from django.utils.safestring import mark_safe
@@ -104,12 +103,7 @@ class TokenObtainPairCookieView(simplejwt_views.TokenObtainPairView):
             raise exceptions.InvalidToken(e.args[0])
 
         response = Response(
-            {
-                "detail": "success",
-                "csrftoken": csrf.get_token(self.request),
-                "user": AuthedUserSerializer(jwt_serializer.user).data,
-            },
-            status=status.HTTP_200_OK,
+            {"detail": "success", "user": AuthedUserSerializer(jwt_serializer.user).data}, status=status.HTTP_200_OK
         )
         return set_token_cookie(
             response,
@@ -200,11 +194,11 @@ class RequestContributorTokenEmailView(APIView):
         return Response({"detail": "success"}, status=status.HTTP_200_OK)
 
 
-class VerifyContributorTokenView(APIView):
+class VerifyContributorTokenView(simplejwt_views.TokenVerifyView):
     """
     This view verifies a short-lived token using ShortLivedTokenAuthentication. Authenticated requests
     then return a simple "OK" response, but with our regular authentication scheme in place, including
-    HTTP-only, samesite, secure Cookie stored JWT and anti-CSRF token.
+    HTTP-only, samesite, secure Cookie stored JWT.
     """
 
     authentication_classes = [ShortLivedTokenAuthentication]
@@ -213,29 +207,15 @@ class VerifyContributorTokenView(APIView):
     def post(self, request, *args, **kwargs):
         logger.info("[VerifyContributorTokenView][post] Request received for user (%s)", request.user)
         response = Response(status=status.HTTP_200_OK)
-
-        # Serializer contributor for response
         contributor_serializer = ContributorSerializer(request.user)
-
-        # Generate parent token (refresh token) for contributor
         refresh = ContributorRefreshToken.for_contributor(request.user.uuid)
-
-        # Generate long-lived token
         long_lived_token = str(refresh.long_lived_access_token)
-
-        # Get anti-CSRF token
-        csrf_token = csrf.get_token(self.request)
-
-        # Set  access token using create_cookie directive
         response = set_token_cookie(
             response, long_lived_token, datetime.now() + settings.CONTRIBUTOR_LONG_TOKEN_LIFETIME
         )
-
-        # Return generic response + csrf token
         response.data = {
             "detail": "success",
             "contributor": contributor_serializer.data,
-            "csrftoken": csrf_token,
         }
 
         return response

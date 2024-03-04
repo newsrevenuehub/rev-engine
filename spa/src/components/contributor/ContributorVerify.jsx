@@ -11,7 +11,7 @@ import { useHistory, useLocation } from 'react-router-dom';
 // AJAX
 import axios from 'ajax/axios';
 import { VERIFY_TOKEN } from 'ajax/endpoints';
-import { LS_CONTRIBUTOR, LS_CSRF_TOKEN } from 'appSettings';
+import { LS_CONTRIBUTOR } from 'appSettings';
 
 // Children
 import GlobalLoading from 'elements/GlobalLoading';
@@ -31,7 +31,6 @@ function ContributorVerify() {
     (response) => {
       if (response.status !== 200) throw new Error(`Unexpected non-failure response code: ${response.status}`);
       localStorage.setItem(LS_CONTRIBUTOR, JSON.stringify(response.data.contributor));
-      localStorage.setItem(LS_CSRF_TOKEN, response.data.csrftoken);
       history.replace(CONTRIBUTOR_DASHBOARD);
     },
     [history]

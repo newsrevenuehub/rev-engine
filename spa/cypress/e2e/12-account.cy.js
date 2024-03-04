@@ -35,8 +35,7 @@ import { CONNECT_STRIPE_COOKIE_NAME } from '../../src/constants/textConstants';
 const TOKEN_API_401 = { detail: 'No active account found with the given credentials' };
 const TOKEN_API_200 = {
   detail: 'success',
-  user: { email: 'test-valid@test.com' },
-  csrftoken: 'XZcDLAbuZoerfejgknrekwjgl8ttcHGTcoEpjAHQ70'
+  user: { email: 'test-valid@test.com' }
 };
 const FORGOT_PASSWORD_API_200 = { status: 'OK' };
 const RESET_PASSWORD_ENDPOINT_200 = { status: 'OK' };

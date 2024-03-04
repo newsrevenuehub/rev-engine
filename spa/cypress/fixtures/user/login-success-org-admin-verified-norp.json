@@ -5,10 +5,11 @@
         "email": "rp-admin-unverified@some-org.com",
         "email_verified": true,
         "flags": [],
-        "role_type": ["rp_admin",
-            "RP Admin"],
+        "role_type": [
+            "rp_admin",
+            "RP Admin"
+        ],
         "organizations": [],
         "revenue_programs": []
-    },
-    "csrftoken": "ZgynND503GQ3Dkyy3xMBHoExWftlTIjDe5znbDLACDH55g49FYrbFKuOJFBA9W6Y"
+    }
 }

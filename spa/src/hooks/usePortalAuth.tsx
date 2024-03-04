@@ -3,7 +3,7 @@ import PropTypes, { InferProps } from 'prop-types';
 import { createContext, useCallback, useContext, useEffect, useState } from 'react';
 import axios from 'ajax/axios';
 import { VERIFY_TOKEN } from 'ajax/endpoints';
-import { LS_CONTRIBUTOR, LS_CSRF_TOKEN } from 'appSettings';
+import { LS_CONTRIBUTOR } from 'appSettings';
 
 /**
  * A contributor who has logged into the portal.
@@ -55,7 +55,6 @@ export interface PortalAuthContextResult {
  */
 export interface VerifyTokenResponse {
   contributor?: Contributor;
-  csrftoken?: string;
   detail: string;
 }
 
@@ -84,10 +83,6 @@ export function PortalAuthContextProvider({ children }: InferProps<typeof Portal
       throw new Error('No contributor in token verification response');
     }
 
-    if (!data.csrftoken) {
-      throw new Error('No CSRF in token verification response');
-    }
-
     // Set values in context and in local storage for later usage. The local
     // storage key is also needed for backwards compat with isAuthenticated() in
     // utilities/, used by ProtectedRoute.
@@ -95,7 +90,6 @@ export function PortalAuthContextProvider({ children }: InferProps<typeof Portal
     setContributor(data.contributor);
     identifyUserInSentry(data.contributor);
     localStorage.setItem(LS_CONTRIBUTOR, JSON.stringify(data.contributor));
-    localStorage.setItem(LS_CSRF_TOKEN, data.csrftoken);
   }, []);
 
   // Try to initally set the contributor based on local storage.

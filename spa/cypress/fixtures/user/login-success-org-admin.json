@@ -5,7 +5,10 @@
     "email": "org-admin@some-org.com",
     "email_verified": true,
     "flags": [],
-    "role_type": ["org_admin", "Org Admin"],
+    "role_type": [
+      "org_admin",
+      "Org Admin"
+    ],
     "organizations": [
       {
         "id": 11,
@@ -35,6 +38,5 @@
         "payment_provider_stripe_verified": true
       }
     ]
-  },
-  "csrftoken": "ZgynND503GQ3Dkyy3xMBHoExWftlTIjDe5znbDLACDH55g49FYrbFKuOJFBA9W6Y"
+  }
 }

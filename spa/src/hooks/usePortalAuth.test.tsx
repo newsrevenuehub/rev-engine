@@ -2,7 +2,7 @@ import * as Sentry from '@sentry/react';
 import MockAdapter from 'axios-mock-adapter';
 import { useState } from 'react';
 import Axios from 'ajax/axios';
-import { LS_CONTRIBUTOR, LS_CSRF_TOKEN } from 'appSettings';
+import { LS_CONTRIBUTOR } from 'appSettings';
 import { fireEvent, render, screen, waitFor } from 'test-utils';
 import { PortalAuthContextProvider, usePortalAuthContext } from './usePortalAuth';
 
@@ -94,7 +94,6 @@ describe('PortalAuthContextProvider', () => {
     beforeEach(() => {
       axiosMock.onPost('contrib-verify/').reply(200, {
         contributor: testContributor,
-        csrftoken: 'mock-csrf-token',
         detail: 'success'
       });
     });
@@ -144,14 +143,6 @@ describe('PortalAuthContextProvider', () => {
         await waitFor(() => expect(axiosMock.history.post.length).toBe(1));
         expect(window.localStorage.getItem(LS_CONTRIBUTOR)).toBe(JSON.stringify(testContributor));
       });
-
-      it('saves the CSRF token to local storage', async () => {
-        tree();
-        expect(window.localStorage.getItem(LS_CSRF_TOKEN)).toBe(null);
-        fireEvent.click(screen.getByText('verifyToken'));
-        await waitFor(() => expect(axiosMock.history.post.length).toBe(1));
-        expect(window.localStorage.getItem(LS_CSRF_TOKEN)).toBe('mock-csrf-token');
-      });
     });
 
     it("throws an error and doesn't set the user in Sentry if the POST itself fails", async () => {
@@ -177,29 +168,12 @@ describe('PortalAuthContextProvider', () => {
 
     it("throws an error and doesn't set the user in Sentry if contributor isn't present in the response", async () => {
       axiosMock.reset();
-      axiosMock.onPost().reply(200, {
-        csrftoken: 'mock-csrf-token',
-        detail: 'success'
-      });
+      axiosMock.onPost().reply(200, { detail: 'success' });
       tree();
       expect(screen.queryByTestId('error')).not.toBeInTheDocument();
       fireEvent.click(screen.getByText('verifyToken'));
       await screen.findByTestId('error');
       expect(screen.getByTestId('error')).toHaveTextContent('No contributor in token verification response');
-      expect(setUserMock).not.toBeCalled();
-    });
-
-    it("throws an error and doesn't set the user in Sentry if a CSRF token isn't present in the response", async () => {
-      axiosMock.reset();
-      axiosMock.onPost().reply(200, {
-        contributor: testContributor,
-        detail: 'success'
-      });
-      tree();
-      expect(screen.queryByTestId('error')).not.toBeInTheDocument();
-      fireEvent.click(screen.getByText('verifyToken'));
-      await screen.findByTestId('error');
-      expect(screen.getByTestId('error')).toHaveTextContent('No CSRF in token verification response');
       expect(setUserMock).not.toBeCalled();
     });
   });

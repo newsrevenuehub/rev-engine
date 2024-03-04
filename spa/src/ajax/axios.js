@@ -1,5 +1,5 @@
 import axios from 'axios';
-import { LS_CSRF_TOKEN, CSRF_HEADER, REVENGINE_API_VERSION } from 'appSettings';
+import { REVENGINE_API_VERSION } from 'appSettings';
 import { TOKEN } from './endpoints';
 
 export const apiBaseUrl = `/api/${REVENGINE_API_VERSION}/`;
@@ -11,20 +11,6 @@ const Axios = axios.create({
 });
 
 export default Axios;
-
-/**
- * A Request interceptor.
- * first callback intercepts successfully formed requests
- * second callback handles errors, so pass through
- */
-Axios.interceptors.request.use(
-  (request) => {
-    const csrfToken = localStorage.getItem(LS_CSRF_TOKEN);
-    if (csrfToken) request.headers[CSRF_HEADER] = csrfToken;
-    return request;
-  },
-  (error) => Promise.reject(error)
-);
 
 /**
  * A Response interceptor.

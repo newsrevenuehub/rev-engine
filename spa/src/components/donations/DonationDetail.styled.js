@@ -1,6 +1,5 @@
 import styled from 'styled-components';
 import { motion } from 'framer-motion';
-import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
 
 export const DonationDetail = styled(motion.div)``;
 
@@ -43,7 +42,3 @@ export const ManageFlagged = styled.div`
     width: 200px;
   }
 `;
-
-export const AcceptIcon = styled(FontAwesomeIcon)``;
-
-export const RejectIcon = styled(FontAwesomeIcon)``;

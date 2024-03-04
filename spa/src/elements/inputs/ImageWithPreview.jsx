@@ -2,7 +2,7 @@ import { useRef, useEffect, useState } from 'react';
 import PropTypes from 'prop-types';
 import * as S from './ImageWithPreview.styled';
 import { Label, HelpText } from 'elements/inputs/BaseField.styled';
-import { faFileUpload, faTimes } from '@fortawesome/free-solid-svg-icons';
+import { Close, CloudUpload } from '@material-ui/icons';
 
 function ImageWithPreview({ thumbnail, onChange, label, helpText }) {
   const inputRef = useRef();
@@ -47,10 +47,14 @@ function ImageWithPreview({ thumbnail, onChange, label, helpText }) {
         )}
         <S.Buttons>
           <S.Button onClick={proxyClick}>
-            <S.UploadIcon icon={faFileUpload} />
+            <S.UploadIcon>
+              <CloudUpload />
+            </S.UploadIcon>
           </S.Button>
           <S.Button onClick={handleRemoveImage}>
-            <S.RemoveIcon icon={faTimes} />
+            <S.RemoveIcon>
+              <Close />
+            </S.RemoveIcon>
           </S.Button>
         </S.Buttons>
         <input ref={inputRef} type="file" style={{ display: 'none' }} onChange={handleImageChange} />

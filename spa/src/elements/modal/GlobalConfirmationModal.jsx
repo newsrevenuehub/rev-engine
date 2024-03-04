@@ -2,10 +2,9 @@ import { createContext, useCallback, useState, useContext } from 'react';
 import PropTypes from 'prop-types';
 import * as S from './GlobalConfirmationModal.styled';
 import Modal from './Modal';
-
-import { faExclamationCircle } from '@fortawesome/free-solid-svg-icons';
 import Button from 'elements/buttons/Button';
 import useModal from 'hooks/useModal';
+import { ErrorOutline } from '@material-ui/icons';
 
 const ConfirmationModalContext = createContext(null);
 function GlobalConfirmationModal({ children }) {
@@ -45,7 +44,9 @@ function GlobalConfirmationModal({ children }) {
         <Modal isOpen={open}>
           <S.GlobalConfirmationModal data-testid="confirmation-modal">
             <S.Warning>
-              <S.Icon icon={faExclamationCircle} />
+              <S.Icon>
+                <ErrorOutline />
+              </S.Icon>
             </S.Warning>
             <S.Message>{ctaMessage}</S.Message>
             <S.Buttons>

@@ -6,7 +6,14 @@ from django.db import migrations
 def add_revenue_program(apps, schema_editor):
     Contribution = apps.get_model("contributions", "Contribution")
     for x in Contribution.objects.filter(revenue_program_id__isnull=True, donation_page__revenue_program__isnull=False):
-        x.revenue_program_id = x.donation_page.revenue_program.id
+        # This is here because at time of writing, donation_page.revenue_program is a nullable field.
+        # In practice, we don't appear to have any instances of RP-less pages in the wild, but in a later migration,
+        # we make contribution.revenue_program a requireed field, and we want to make sure we don't have any nulls.
+        if not (rp := x.donation_page.revenue_program):
+            raise ValueError(
+                f"DonationPage.revenue_program is null for page {x.donation_page.id} and contribution {x.id}"
+            )
+        x.revenue_program_id = rp.id
         x.save(update_fields={"revenue_program_id", "modified"})
 
 

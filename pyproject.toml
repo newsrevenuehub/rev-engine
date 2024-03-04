@@ -35,7 +35,7 @@ authors = ["Caktus Group, LLC <teams@caktusgroup.com>"]
 python = "^3.10"
 Pillow = "^10.1.0"
 addict = "^2.4.0"
-celery = "^5"
+celery = "^5, !=5.3.x" # skip v5.3 and go directly to v5.4 when released (~mid march 2024)
 cloudflare = "^2"
 dj-database-url = "^1.2.0"
 django = "^3.2"

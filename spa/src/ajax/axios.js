@@ -13,6 +13,16 @@ const Axios = axios.create({
 export default Axios;
 
 /**
+ * A Request interceptor.
+ * first callback intercepts successfully formed requests
+ * second callback handles errors, so pass through
+ */
+Axios.interceptors.request.use(
+  (request) => request,
+  (error) => Promise.reject(error)
+);
+
+/**
  * A Response interceptor.
  * first callback handles success, so pass through
  * second callback handles errors

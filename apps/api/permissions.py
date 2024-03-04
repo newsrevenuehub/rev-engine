@@ -148,7 +148,9 @@ class HasFlaggedAccessToMailchimp(BaseFlaggedResourceAccess):
         Flag = get_waffle_flag_model()
         self.flag = Flag.objects.filter(name=MAILCHIMP_INTEGRATION_ACCESS_FLAG_NAME).first()
         if not self.flag:
-            raise ApiConfigurationError()
+            raise ApiConfigurationError(
+                f"{MAILCHIMP_INTEGRATION_ACCESS_FLAG_NAME} flag  not found in database. Check configuration."
+            )
 
 
 class HasFlaggedAccessToContributionsApiResource(BaseFlaggedResourceAccess):
@@ -162,4 +164,6 @@ class HasFlaggedAccessToContributionsApiResource(BaseFlaggedResourceAccess):
         Flag = get_waffle_flag_model()
         self.flag = Flag.objects.filter(name=CONTRIBUTIONS_API_ENDPOINT_ACCESS_FLAG_NAME).first()
         if not self.flag:
-            raise ApiConfigurationError()
+            raise ApiConfigurationError(
+                f"{CONTRIBUTIONS_API_ENDPOINT_ACCESS_FLAG_NAME} flag not found in database. Check configuration."
+            )

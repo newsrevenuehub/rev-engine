@@ -502,24 +502,10 @@ class VerifyContributorTokenViewTest(APITestCase):
 
 
 @pytest.mark.django_db
+@pytest.mark.usefixtures("default_feature_flags")
 class TestAuthorizedContributorRequests:
 
     url = reverse("contribution-list")
-
-    def _get_token(self, valid=True):
-        refresh = ContributorRefreshToken.for_contributor(self.contributor_user.uuid)
-        if valid:
-            return str(refresh.long_lived_access_token)
-        return str(refresh.short_lived_access_token)
-
-    # def _make_request(self, token_present=True, type_valid=True, token_valid=True):
-    #     if token_present:
-    #         self.client.cookies["Authorization"] = (
-    #             self._get_token(valid=type_valid) if token_valid else "not-valid-token"
-    #         )
-
-    #     self.client.cookies["csrftoken"] = csrf._get_new_csrf_token()
-    #     return self.client.get(self.contributions_url, data={"rp": self.org1_rp1.slug})
 
     def test_contributor_request_when_token_valid(self, api_client, revenue_program, contributor_user):
         api_client.cookies["Authorization"] = str(
@@ -528,22 +514,24 @@ class TestAuthorizedContributorRequests:
         response = api_client.get(self.url, data={"rp": revenue_program.slug})
         assert response.status_code == status.HTTP_200_OK
 
-    def test_contributor_request_when_token_missing(self, api_client, revenue_program, contributor_user):
+    def test_contributor_request_when_token_missing(self, api_client, revenue_program):
         response = api_client.get(self.url, data={"rp": revenue_program.slug})
         assert response.status_code == status.HTTP_401_UNAUTHORIZED
-        assert response.data["detail"] == "Authentication credentials were not provided."
+        assert response.json()["detail"] == "Authentication credentials were not provided."
 
-    def test_contributor_request_when_token_invalid(self, api_client, revenue_program, contributor_user):
+    def test_contributor_request_when_token_invalid(self, api_client, revenue_program):
         api_client.cookies["Authorization"] = "not-valid"
         response = api_client.get(self.url, data={"rp": revenue_program.slug})
         assert response.status_code == status.HTTP_401_UNAUTHORIZED
-        assert response.data["detail"] == "Given token not valid for any token type"
+        assert response.json()["detail"] == "Given token not valid for any token type"
 
     def test_contributor_request_when_token_invalid_type(self, api_client, revenue_program, contributor_user):
-        api_client.cookies["Authorization"] = str(AccessToken().for_user(contributor_user))
+        api_client.cookies["Authorization"] = str(
+            ContributorRefreshToken.for_contributor(contributor_user.uuid).short_lived_access_token
+        )
         response = api_client.get(self.url, data={"rp": revenue_program.slug})
         assert response.status_code == status.HTTP_401_UNAUTHORIZED
-        assert response.data["detail"] == "Authentication credentials were not provided"
+        assert response.json()["detail"] == "Authentication credentials were not provided."
 
     def test_contributor_request_when_token_expired(self, api_client, revenue_program, contributor_user, settings):
         settings.CONTRIBUTOR_LONG_TOKEN_LIFETIME = timedelta(seconds=0)
@@ -552,4 +540,4 @@ class TestAuthorizedContributorRequests:
         )
         response = api_client.get(self.url, data={"rp": revenue_program.slug})
         assert response.status_code == status.HTTP_401_UNAUTHORIZED
-        assert response.data["detail"] == "Given token not valid for any token type"
+        assert response.json()["detail"] == "Given token not valid for any token type"

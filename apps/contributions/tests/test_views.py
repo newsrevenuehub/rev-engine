@@ -1212,7 +1212,7 @@ def test_feature_flagging_when_flag_not_found():
     client.force_authenticate(getattr(test_helper, "superuser"))
     response = client.get(reverse("contribution-list"))
     assert response.status_code == status.HTTP_500_INTERNAL_SERVER_ERROR
-    assert response.json().get("detail", None) == "There was a problem with the API"
+    assert CONTRIBUTIONS_API_ENDPOINT_ACCESS_FLAG_NAME in response.json()["detail"]
 
 
 @mock.patch("apps.contributions.models.Contribution.process_flagged_payment")

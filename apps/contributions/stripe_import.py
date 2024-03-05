@@ -596,8 +596,8 @@ class StripeTransactionsImporter:
         # this gets all invoices for the account (given any contraints on query around date, etc.)
         invoices = stripe_client.get_invoices()
         # Now based on the set of all invoices, we need to determine where there are any subscriptions uncaptured by revengine.
-        # The invoicesSubscriptions are not directly attached to invoices, but we can get them from the respective charges.
-        # The returned charges have balance transaction and refunds expanded, which will allow us to generate Revengine payments
+        # While the invoices have a subscription ID, they do not have an expanded object, and we ultimately need the set of all
+        # charges, which will have have balance transaction and refunds expanded, which will allow us to generate Revengine payments
         charges = [
             stripe_client.get_expanded_charge_object(charge_id=x.charge, stripe_account_id=stripe_account_id)
             for x in invoices

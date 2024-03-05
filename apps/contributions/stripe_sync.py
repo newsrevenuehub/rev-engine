@@ -357,7 +357,7 @@ class PaymentIntentForOneTimeContribution:
             return ContributionStatus.PAID
         if self.payment_intent.status == "canceled":
             return ContributionStatus.CANCELED
-        # We'll use processing as catch all. Concretrely, this would mean not refunded and one of other PI statuses of
+        # We'll use processing as catch all. Concretely, this would mean not refunded and one of other PI statuses of
         # requires_payment_method, requires_confirmation, requires_action, processing, requires_capture
         else:
             return ContributionStatus.PROCESSING
@@ -684,7 +684,7 @@ class StripeTransactionsSyncer:
 
 @dataclass
 class StripeEventSyncer:
-    """Class for sycning a stripe event to revengine. Uses existing webhook processor for this."""
+    """Class for syncing a stripe event to revengine. Uses existing webhook processor for this."""
 
     event_id: str
     stripe_account_id: str

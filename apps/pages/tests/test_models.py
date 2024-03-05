@@ -6,7 +6,6 @@ from django.db.models.deletion import ProtectedError
 from django.utils import timezone
 
 import pytest
-import pytest_cases
 
 from apps.common.tests.test_utils import get_test_image_file_jpeg
 from apps.config.tests.factories import DenyListWordFactory
@@ -50,14 +49,17 @@ def donation_with_published_date():
 
 @pytest.mark.django_db
 class TestDonationPage:
-    @pytest_cases.parametrize(
-        "user",
-        (
-            pytest_cases.fixture_ref("hub_admin_user"),
-            pytest_cases.fixture_ref("org_user_free_plan"),
-            pytest_cases.fixture_ref("rp_user"),
-        ),
+
+    @pytest.fixture(
+        params=[
+            "hub_admin_user",
+            "org_user_free_plan",
+            "rp_user",
+        ]
     )
+    def user(self, request):
+        return request.getfixturevalue(request.param)
+
     def test_filtered_by_role_assignment(self, user, revenue_program):
         # this will be viewable by all three users
         one = DonationPageFactory(revenue_program=revenue_program)
@@ -161,23 +163,22 @@ class TestDonationPage:
         page = DonationPageFactory(revenue_program=revenue_program)
         assert page.page_url == f"https://{revenue_program.slug}.{root}/{page.slug}"
 
-    @pytest_cases.parametrize(
-        "page,value_from_db,expected",
-        [
-            (pytest_cases.fixture_ref("donation_page_no_published_date"), None, False),
-            (
-                pytest_cases.fixture_ref("donation_with_published_date"),
-                pytest_cases.fixture_ref("donation_page_no_published_date"),
-                True,
-            ),
-            (
-                pytest_cases.fixture_ref("donation_with_published_date"),
-                pytest_cases.fixture_ref("donation_with_published_date"),
-                False,
-            ),
-        ],
+    @pytest.fixture(
+        params=[
+            ("donation_page_no_published_date", None, False),
+            ("donation_with_published_date", "donation_page_no_published_date", True),
+            ("donation_with_published_date", "donation_with_published_date", False),
+        ]
     )
-    def test_first_publication_signal(self, page, value_from_db, expected, mocker):
+    def first_publication_case(self, request):
+        return (
+            request.getfixturevalue(request.param[0]),
+            request.getfixturevalue(request.param[1]) if request.param[1] else None,
+            request.param[2],
+        )
+
+    def test_first_publication_signal(self, first_publication_case, mocker):
+        page, value_from_db, expected = first_publication_case
         mocker.patch("apps.pages.models.DonationPage.objects.get", return_value=value_from_db)
         assert page.should_send_first_publication_signal() == expected
 
@@ -219,14 +220,16 @@ class TestStyle:
     def test_to_string(self, style):
         assert style.name == str(style)
 
-    @pytest_cases.parametrize(
-        "user",
-        (
-            pytest_cases.fixture_ref("hub_admin_user"),
-            pytest_cases.fixture_ref("org_user_free_plan"),
-            pytest_cases.fixture_ref("rp_user"),
-        ),
+    @pytest.fixture(
+        params=[
+            "hub_admin_user",
+            "org_user_free_plan",
+            "rp_user",
+        ]
     )
+    def user(self, request):
+        return request.getfixturevalue(request.param)
+
     def test_style_filtered_by_role_assignment(self, user, revenue_program):
         # this will be viewable by all three users
         one = StyleFactory(revenue_program=revenue_program)

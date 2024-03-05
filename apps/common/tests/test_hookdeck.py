@@ -1,10 +1,8 @@
 import json
 
 from django.urls import reverse
-from django.utils import timezone
 
 import pytest
-import pytest_cases
 import responses
 from rest_framework import status
 
@@ -118,23 +116,24 @@ def unarchive_connection_response():
         return json.load(fl)
 
 
-@responses.activate
-@pytest_cases.parametrize(
-    "entity_type,data,response_data",
-    (
+@pytest.fixture(
+    params=[
         (
             "connection",
             {"name": "my-connection", "source_id": "<source-id>", "destination_id": "<destination-id>"},
-            pytest_cases.fixture_ref("upsert_connection_response"),
+            "upsert_connection_response",
         ),
-        (
-            "destination",
-            {"name": "my-destination", "url": "https://www.somewhere.com"},
-            pytest_cases.fixture_ref("upsert_destination_response"),
-        ),
-    ),
+        ("destination", {"name": "my-destination", "url": "https://www.somewhere.com"}, "upsert_destination_response"),
+    ]
 )
-def test_upsert_happy_path(entity_type, data, response_data):
+def upsert_happy_path_case(request):
+    entity_type, data, response_data = request.param
+    return entity_type, data, request.getfixturevalue(response_data)
+
+
+@responses.activate
+def test_upsert_happy_path(upsert_happy_path_case):
+    entity_type, data, response_data = upsert_happy_path_case
     responses.add(
         responses.PUT,
         CONNECTIONS_URL if entity_type == "connection" else DESTINATIONS_URL,
@@ -151,22 +150,22 @@ def test_upsert_bad_entity():
         upsert(entity_type, {})  # type: ignore
 
 
-@pytest.fixture
-def now():
-    return timezone.now()
+@pytest.fixture(
+    params=[
+        ("connection", "upsert_connection_response", CONNECTIONS_URL, False),
+        ("connection", "upsert_archived_connection_response", CONNECTIONS_URL, True),
+        ("destination", "upsert_destination_response", DESTINATIONS_URL, False),
+        ("destination", "upsert_archived_destination_response", DESTINATIONS_URL, True),
+    ]
+)
+def upsert_auto_unarchive_case(request):
+    entity_type, response_data, resource_url, auto_unarchive = request.param
+    return entity_type, request.getfixturevalue(response_data), resource_url, auto_unarchive
 
 
 @responses.activate
-@pytest_cases.parametrize(
-    "entity_type,response_data,resource_url,auto_unarchive",
-    (
-        ("connection", pytest_cases.fixture_ref("upsert_connection_response"), CONNECTIONS_URL, False),
-        ("connection", pytest_cases.fixture_ref("upsert_archived_connection_response"), CONNECTIONS_URL, True),
-        ("destination", pytest_cases.fixture_ref("upsert_destination_response"), DESTINATIONS_URL, False),
-        ("destination", pytest_cases.fixture_ref("upsert_archived_destination_response"), DESTINATIONS_URL, True),
-    ),
-)
-def test_upsert_auto_unarchive(entity_type, response_data, resource_url, auto_unarchive, now):
+def test_upsert_auto_unarchive(upsert_auto_unarchive_case):
+    entity_type, response_data, resource_url, auto_unarchive = upsert_auto_unarchive_case
     responses.add(
         responses.PUT,
         resource_url,
@@ -232,16 +231,21 @@ class TestUpsertConnection:
             assert k in logger_spy.call_args[0][1]
 
 
-@responses.activate
-@pytest_cases.parametrize(
-    "entity_type,hookdeck_url,response_data",
-    (
-        ("connection", CONNECTIONS_URL, pytest_cases.fixture_ref("retrieve_connection_response")),
-        ("destination", DESTINATIONS_URL, pytest_cases.fixture_ref("retrieve_destination_response")),
-        ("source", SOURCES_URL, pytest_cases.fixture_ref("retrieve_source_response")),
-    ),
+@pytest.fixture(
+    params=[
+        ("connection", CONNECTIONS_URL, "retrieve_connection_response"),
+        ("destination", DESTINATIONS_URL, "retrieve_destination_response"),
+        ("source", SOURCES_URL, "retrieve_source_response"),
+    ]
 )
-def test_retrieve_happy_path(entity_type, hookdeck_url, response_data):
+def retrieve_happy_path_case(request):
+    entity_type, resource_url, response_data = request.param
+    return entity_type, resource_url, request.getfixturevalue(response_data)
+
+
+@responses.activate
+def test_retrieve_happy_path(retrieve_happy_path_case):
+    entity_type, hookdeck_url, response_data = retrieve_happy_path_case
     responses.add(
         responses.GET,
         f"{hookdeck_url}/{response_data['id']}",
@@ -295,19 +299,24 @@ def test_search_connections_when_hookdeck_non_200():
         assert search_connections(name="something")
 
 
-@responses.activate
-@pytest_cases.parametrize(
-    "search_fn,resource_url,response_data",
-    (
-        (search_connections, CONNECTIONS_URL, pytest_cases.fixture_ref("search_connections_response")),
-        (search_connections, CONNECTIONS_URL, pytest_cases.fixture_ref("search_no_results_response")),
-        (search_destinations, DESTINATIONS_URL, pytest_cases.fixture_ref("search_destinations_response")),
-        (search_destinations, DESTINATIONS_URL, pytest_cases.fixture_ref("search_no_results_response")),
-        (search_sources, SOURCES_URL, pytest_cases.fixture_ref("search_sources_response")),
-        (search_sources, SOURCES_URL, pytest_cases.fixture_ref("search_no_results_response")),
-    ),
+@pytest.fixture(
+    params=[
+        (search_connections, CONNECTIONS_URL, "search_connections_response"),
+        (search_connections, CONNECTIONS_URL, "search_no_results_response"),
+        (search_destinations, DESTINATIONS_URL, "search_destinations_response"),
+        (search_destinations, DESTINATIONS_URL, "search_no_results_response"),
+        (search_sources, SOURCES_URL, "search_sources_response"),
+        (search_sources, SOURCES_URL, "search_no_results_response"),
+    ]
 )
-def test_search_functionality(search_fn, resource_url, response_data):
+def search_functionality_case(request):
+    search_fn, resource_url, response_data = request.param
+    return search_fn, resource_url, request.getfixturevalue(response_data)
+
+
+@responses.activate
+def test_search_functionality(search_functionality_case):
+    search_fn, resource_url, response_data = search_functionality_case
     responses.add(responses.GET, resource_url, json=response_data)
     result = search_fn()
     assert set(result.keys()).issuperset({"pagination", "count", "models"})
@@ -329,15 +338,20 @@ def test_search_functionality_when_hookdeck_non_200(search_fn, resource_url):
         assert search_fn(name="something")
 
 
-@responses.activate
-@pytest_cases.parametrize(
-    "entity_type,resource_url,response_data",
-    (
-        ("connection", CONNECTIONS_URL, pytest_cases.fixture_ref("archive_connection_response")),
-        ("destination", DESTINATIONS_URL, pytest_cases.fixture_ref("archive_destination_response")),
-    ),
+@pytest.fixture(
+    params=[
+        ("connection", CONNECTIONS_URL, "archive_connection_response"),
+        ("destination", DESTINATIONS_URL, "archive_destination_response"),
+    ]
 )
-def test_archive(entity_type, resource_url, response_data):
+def archive_happy_path_case(request):
+    entity_type, resource_url, response_data = request.param
+    return entity_type, resource_url, request.getfixturevalue(response_data)
+
+
+@responses.activate
+def test_archive(archive_happy_path_case):
+    entity_type, resource_url, response_data = archive_happy_path_case
     responses.add(
         responses.PUT,
         f"{resource_url}/{response_data['id']}/archive",
@@ -366,15 +380,20 @@ def test_archive_when_hookdeck_non_200(entity_type, resource_url):
         assert archive(entity_type, id)
 
 
-@responses.activate
-@pytest_cases.parametrize(
-    "entity_type,resource_url,response_data",
-    (
-        ("connection", CONNECTIONS_URL, pytest_cases.fixture_ref("unarchive_connection_response")),
-        ("destination", DESTINATIONS_URL, pytest_cases.fixture_ref("unarchive_destination_response")),
-    ),
+@pytest.fixture(
+    params=[
+        ("connection", CONNECTIONS_URL, "unarchive_connection_response"),
+        ("destination", DESTINATIONS_URL, "unarchive_destination_response"),
+    ]
 )
-def test_unarchive(entity_type, resource_url, response_data):
+def unarchive_happy_path_case(request):
+    entity_type, resource_url, response_data = request.param
+    return entity_type, resource_url, request.getfixturevalue(response_data)
+
+
+@responses.activate
+def test_unarchive(unarchive_happy_path_case):
+    entity_type, resource_url, response_data = unarchive_happy_path_case
     responses.add(
         responses.PUT,
         f"{resource_url}/{response_data['id']}/unarchive",

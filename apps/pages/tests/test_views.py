@@ -8,7 +8,6 @@ from django.core.files.uploadedfile import SimpleUploadedFile
 from django.utils import timezone
 
 import pytest
-import pytest_cases
 from faker import Faker
 from PIL import Image
 from rest_framework import status
@@ -337,17 +336,24 @@ def live_donation_page_with_styles(live_donation_page):
     return live_donation_page
 
 
+@pytest.fixture(
+    params=[
+        "user_no_role_assignment",
+        "contributor_user",
+        "user_with_unexpected_role",
+        None,
+    ]
+)
+def unexpected_user(request):
+    return request.getfixturevalue(request.param) if request.param else None
+
+
 @pytest.mark.django_db
 class TestPageViewSet:
-    @pytest_cases.parametrize(
-        "user",
-        (
-            pytest_cases.fixture_ref("hub_admin_user"),
-            pytest_cases.fixture_ref("org_user_free_plan"),
-            pytest_cases.fixture_ref("superuser"),
-            pytest_cases.fixture_ref("rp_user"),
-        ),
-    )
+    @pytest.fixture(params=["hub_admin_user", "org_user_free_plan", "superuser", "rp_user"])
+    def user(self, request):
+        return request.getfixturevalue(request.param)
+
     def test_create_page_when_expected_user_and_valid_data(self, user, page_creation_data_valid, api_client):
         """Show that permitted users providing valid data can create a page
 
@@ -374,65 +380,65 @@ class TestPageViewSet:
             == RevenueProgramForPageDetailSerializer(RevenueProgram.objects.get(pk=page.revenue_program.pk)).data
         )
 
-    @pytest_cases.parametrize(
-        "creation_data",
-        (
-            pytest_cases.fixture_ref("page_creation_data_valid_empty_name"),
-            pytest_cases.fixture_ref("page_creation_data_valid_no_name"),
-        ),
-    )
+    @pytest.fixture(params=["page_creation_data_valid_empty_name", "page_creation_data_valid_no_name"])
+    def create_page_case(self, request):
+        return request.getfixturevalue(request.param)
+
+    @pytest.fixture(params=["json", "multipart"])
     @pytest.mark.parametrize("data_format", ("json", "multipart"))
     def test_create_page_when_valid_data_no_page_name_provided(
-        self, creation_data, data_format, api_client, hub_admin_user
+        self, create_page_case, data_format, api_client, hub_admin_user
     ):
         """Show behavior of page creation with falsy page name
 
         We expect the page to be named after the rp.
         """
         api_client.force_authenticate(hub_admin_user)
-        assert not creation_data.get("name", None)
-        response = api_client.post(reverse("donationpage-list"), data=creation_data, format=data_format)
+        assert not create_page_case.get("name", None)
+        response = api_client.post(reverse("donationpage-list"), data=create_page_case, format=data_format)
         assert response.status_code == status.HTTP_201_CREATED
-        assert response.json()["name"] == RevenueProgram.objects.get(pk=creation_data["revenue_program"]).name
+        assert response.json()["name"] == RevenueProgram.objects.get(pk=create_page_case["revenue_program"]).name
 
-    @pytest_cases.parametrize(
-        "data,expected_response",
-        (
+    @pytest.fixture(
+        params=[
             (
-                pytest_cases.fixture_ref("page_creation_invalid_name_too_long"),
+                "page_creation_invalid_name_too_long",
                 {"name": [f"Ensure this field has no more than {PAGE_NAME_MAX_LENGTH} characters."]},
             ),
             (
-                pytest_cases.fixture_ref("page_creation_invalid_heading_too_long"),
+                "page_creation_invalid_heading_too_long",
                 {"heading": [f"Ensure this field has no more than {PAGE_HEADING_MAX_LENGTH} characters."]},
             ),
             (
-                pytest_cases.fixture_ref("page_creation_invalid_missing_rp"),
+                "page_creation_invalid_missing_rp",
                 {"revenue_program": ["This field is required."]},
             ),
             (
-                pytest_cases.fixture_ref("page_creation_invalid_blank_rp"),
+                "page_creation_invalid_blank_rp",
                 {"revenue_program": ["This field may not be null."]},
             ),
             (
-                pytest_cases.fixture_ref("page_creation_invalid_with_published_but_slug_empty"),
+                "page_creation_invalid_with_published_but_slug_empty",
                 {"slug": ["This field may not be blank."]},
             ),
             (
-                pytest_cases.fixture_ref("page_creation_invalid_with_published_but_no_slug_field"),
+                "page_creation_invalid_with_published_but_no_slug_field",
                 {"slug": ["This field is required."]},
             ),
             (
-                pytest_cases.fixture_ref("page_creation_data_with_unpermitted_elements"),
+                "page_creation_data_with_unpermitted_elements",
                 {"page_elements": ["You're not allowed to use the following elements: DSwag"]},
             ),
             (
-                pytest_cases.fixture_ref("page_creation_data_with_unpermitted_sidebar_elements"),
+                "page_creation_data_with_unpermitted_sidebar_elements",
                 {"sidebar_elements": ["You're not allowed to use the following elements: DBenefits"]},
             ),
-        ),
+        ]
     )
-    def test_create_page_when_invalid_data(self, data, expected_response, hub_admin_user, api_client):
+    def create_page_invalid_data_case(self, request):
+        return request.getfixturevalue(request.param[0]), request.param[1]
+
+    def test_create_page_when_invalid_data(self, create_page_invalid_data_case, hub_admin_user, api_client):
         """Show the behavior of a variety of similarly scoped validation behaviors
 
         Ideally, we'd also include tests like `test_create_page_when_invalid_because_org_not_own_rp` as a parametrized case above,
@@ -442,21 +448,22 @@ class TestPageViewSet:
         In practice, it's much easier to have "simple" validation cases parametrized as above, and then handle the unique complexity
         around ownership of referred-to data in separate test functions.
         """
+        data, expected_response = create_page_invalid_data_case
         api_client.force_authenticate(hub_admin_user)
         response = api_client.post(reverse("donationpage-list"), data=data, format="json")
 
         assert response.status_code == status.HTTP_400_BAD_REQUEST
         assert response.json() == expected_response
 
-    @pytest_cases.parametrize(
-        "user",
-        (
-            pytest_cases.fixture_ref("org_user_free_plan"),
-            pytest_cases.fixture_ref("rp_user"),
-        ),
-    )
-    def test_create_page_when_invalid_because_org_not_own_rp(self, user, page_creation_data_valid, api_client):
+    @pytest.fixture(params=["org_user_free_plan", "rp_user"])
+    def org_and_rp_user(self, request):
+        return request.getfixturevalue(request.param)
+
+    def test_create_page_when_invalid_because_org_not_own_rp(
+        self, org_and_rp_user, page_creation_data_valid, api_client
+    ):
         """Show the behavior when a user tries to create a page for a revenue program that doesn't belong to them"""
+        user = org_and_rp_user
         api_client.force_authenticate(user)
         rp = RevenueProgram.objects.get(pk=page_creation_data_valid["revenue_program"])
         rp.organization = OrganizationFactory()
@@ -482,32 +489,22 @@ class TestPageViewSet:
             ]
         }
 
-    @pytest_cases.parametrize(
-        "user",
-        (
-            pytest_cases.fixture_ref("org_user_free_plan"),
-            pytest_cases.fixture_ref("rp_user"),
-        ),
-    )
     def test_create_page_when_invalid_because_org_not_own_style(
-        self, user, style, page_creation_data_valid, api_client
+        self, org_and_rp_user, style, page_creation_data_valid, api_client
     ):
         """Show the behavior when a user tries to create a page refering to an unowned style"""
+        user = org_and_rp_user
         assert style.revenue_program not in user.roleassignment.revenue_programs.all()
         data = page_creation_data_valid | {"styles": style.id}
         api_client.force_authenticate(user)
         response = api_client.post(reverse("donationpage-list"), data=data, format="json")
         assert response.json() == {"styles": ["Not found"]}
 
-    @pytest_cases.parametrize(
-        "user",
-        (
-            pytest_cases.fixture_ref("org_user_free_plan"),
-            pytest_cases.fixture_ref("rp_user"),
-        ),
-    )
-    def test_create_page_when_invalid_because_style_not_exist(self, user, style, page_creation_data_valid, api_client):
+    def test_create_page_when_invalid_because_style_not_exist(
+        self, org_and_rp_user, style, page_creation_data_valid, api_client
+    ):
         """Show the behavior when a user tries to create a page refering to a non-existent style"""
+        user = org_and_rp_user
         style_id = style.id
         style.delete()
         api_client.force_authenticate(user)
@@ -516,7 +513,7 @@ class TestPageViewSet:
         )
         assert response.json() == {"styles": [f'Invalid pk "{style_id}" - object does not exist.']}
 
-    @pytest_cases.parametrize("plan", (Plans.FREE.value, Plans.CORE.value, Plans.PLUS.value))
+    @pytest.mark.parametrize("plan", (Plans.FREE.value, Plans.CORE.value, Plans.PLUS.value))
     def test_create_when_already_at_page_limit(self, plan, hub_admin_user, api_client):
         rp = RevenueProgramFactory(organization=OrganizationFactory(plan_name=plan))
         data = {
@@ -534,7 +531,7 @@ class TestPageViewSet:
         }
 
     # NB we don't test on plus plan because it is meant to have unlimited pages (published or otherwise)
-    @pytest_cases.parametrize("plan", (Plans.FREE.value, Plans.CORE.value))
+    @pytest.mark.parametrize("plan", (Plans.FREE.value, Plans.CORE.value))
     def test_create_when_already_at_publish_limit(self, plan, hub_admin_user, api_client):
         rp = RevenueProgramFactory(organization=OrganizationFactory(plan_name=plan))
         for i in range((limit := rp.organization.plan.publish_limit)):
@@ -579,17 +576,20 @@ class TestPageViewSet:
         """"""
         assert serialized_data == json.loads(json.dumps(DonationPageFullDetailSerializer(page).data))
 
-    @pytest_cases.parametrize(
-        "user",
-        (
-            pytest_cases.fixture_ref("org_user_free_plan"),
-            pytest_cases.fixture_ref("rp_user"),
-            pytest_cases.fixture_ref("superuser"),
-        ),
+    @pytest.fixture(
+        params=[
+            "org_user_free_plan",
+            "rp_user",
+            "superuser",
+        ]
     )
-    def test_retrieve_when_expected_user(self, user, api_client, mocker):
+    def expected_user(self, request):
+        return request.getfixturevalue(request.param)
+
+    def test_retrieve_when_expected_user(self, expected_user, api_client, mocker):
         """Expected users should be able to retrieve what they're permitted to, and not what they're not."""
         # ensure there will be page that org admin and rp admin won't be able to access, but that superuser should be able to.
+        user = expected_user
         api_client.force_authenticate(user)
         if user.is_superuser:
             DonationPageFactory()
@@ -634,38 +634,22 @@ class TestPageViewSet:
             # a page.
             assert spy.call_count == DonationPage.objects.count()
 
-    @pytest_cases.parametrize(
-        "user,expected_status",
-        (
-            (pytest_cases.fixture_ref("user_no_role_assignment"), status.HTTP_403_FORBIDDEN),
-            (pytest_cases.fixture_ref("contributor_user"), status.HTTP_403_FORBIDDEN),
-            (pytest_cases.fixture_ref("user_with_unexpected_role"), status.HTTP_403_FORBIDDEN),
-            (None, status.HTTP_401_UNAUTHORIZED),
-        ),
-    )
-    def test_retrieve_when_unauthorized_user(self, user, expected_status, live_donation_page, api_client):
+    def test_retrieve_when_unauthorized_user(self, unexpected_user, live_donation_page, api_client):
         """Show behavior when an unauthorized user tries to access
 
         By "unauthorized" we mean both unauthenticated users and authenticated users
         that don't have the right user type
         """
-        if user:
-            api_client.force_authenticate(user)
+        api_client.force_authenticate(unexpected_user)
         response = api_client.get(reverse("donationpage-detail", args=(live_donation_page.pk,)))
-        assert response.status_code == expected_status
+        assert response.status_code == (status.HTTP_403_FORBIDDEN if unexpected_user else status.HTTP_401_UNAUTHORIZED)
 
-    @pytest_cases.parametrize(
-        "user",
-        (
-            pytest_cases.fixture_ref("org_user_free_plan"),
-            pytest_cases.fixture_ref("rp_user"),
-            pytest_cases.fixture_ref("superuser"),
-        ),
-    )
-    def test_can_retrieve_when_expected_user_and_no_payment_provider(self, user, live_donation_page, api_client):
-        api_client.force_authenticate(user)
-        if not user.is_superuser:
-            live_donation_page.revenue_program = user.roleassignment.revenue_programs.first()
+    def test_can_retrieve_when_expected_user_and_no_payment_provider(
+        self, expected_user, live_donation_page, api_client
+    ):
+        api_client.force_authenticate(expected_user)
+        if not expected_user.is_superuser:
+            live_donation_page.revenue_program = expected_user.roleassignment.revenue_programs.first()
             live_donation_page.save()
         live_donation_page.revenue_program.payment_provider.delete()
         response = api_client.get(reverse("donationpage-detail", args=(live_donation_page.pk,)))
@@ -676,16 +660,9 @@ class TestPageViewSet:
             json.dumps(DonationPageListSerializer(DonationPage.objects.get(pk=serialized_data["id"])).data)
         )
 
-    @pytest_cases.parametrize(
-        "user",
-        (
-            pytest_cases.fixture_ref("org_user_free_plan"),
-            pytest_cases.fixture_ref("rp_user"),
-            pytest_cases.fixture_ref("superuser"),
-        ),
-    )
-    def test_list_when_expected_user(self, user, api_client, live_donation_page, mocker):
+    def test_list_when_expected_user(self, expected_user, api_client, live_donation_page, mocker):
         """Show that expected users see all the pages they should see and none they shouldn't when listing"""
+        user = expected_user
         # ensure there will be pages that org admin and rp admin won't be able to access, but that superuser should be able to
         # access
         DonationPageFactory.create_batch(size=2)
@@ -718,23 +695,15 @@ class TestPageViewSet:
             # tested elsewhere and proven to be valid. Here, we just need to show that it gets called.
             assert spy.call_count == 1
 
-    @pytest_cases.parametrize(
-        "user,expected_status",
-        (
-            (pytest_cases.fixture_ref("user_no_role_assignment"), status.HTTP_403_FORBIDDEN),
-            (pytest_cases.fixture_ref("contributor_user"), status.HTTP_403_FORBIDDEN),
-            (pytest_cases.fixture_ref("user_with_unexpected_role"), status.HTTP_403_FORBIDDEN),
-            (None, status.HTTP_401_UNAUTHORIZED),
-        ),
-    )
-    def test_list_when_unauthorized_user(self, user, expected_status, api_client):
+    def test_list_when_unauthorized_user(self, unexpected_user, api_client):
         """Show behavior when unauthorized users try to list pages
 
         By "unauthorized" we mean both unauthenticated users and authenticated users that don't have the right user type
         """
-        if user:
-            api_client.force_authenticate(user)
-        assert api_client.get(reverse("donationpage-list")).status_code == expected_status
+        api_client.force_authenticate(unexpected_user)
+        assert api_client.get(reverse("donationpage-list")).status_code == (
+            status.HTTP_403_FORBIDDEN if unexpected_user else status.HTTP_401_UNAUTHORIZED
+        )
 
     def test_page_list_when_no_provider(self, api_client, superuser):
         DonationPageFactory.create_batch(size=3)
@@ -745,26 +714,30 @@ class TestPageViewSet:
         assert isinstance(response.json(), list)
         assert len(response.json()) == DonationPage.objects.count()
 
-    @pytest_cases.parametrize(
-        "user,expected_status",
-        (
-            (pytest_cases.fixture_ref("org_user_free_plan"), status.HTTP_405_METHOD_NOT_ALLOWED),
-            (pytest_cases.fixture_ref("rp_user"), status.HTTP_405_METHOD_NOT_ALLOWED),
-            (pytest_cases.fixture_ref("superuser"), status.HTTP_405_METHOD_NOT_ALLOWED),
-            (pytest_cases.fixture_ref("hub_admin_user"), status.HTTP_405_METHOD_NOT_ALLOWED),
-            (pytest_cases.fixture_ref("user_no_role_assignment"), status.HTTP_403_FORBIDDEN),
-            (pytest_cases.fixture_ref("user_with_unexpected_role"), status.HTTP_403_FORBIDDEN),
-            (pytest_cases.fixture_ref("contributor_user"), status.HTTP_403_FORBIDDEN),
-            (None, status.HTTP_401_UNAUTHORIZED),
-        ),
+    @pytest.fixture(
+        params=[
+            (
+                "expected_user",
+                status.HTTP_405_METHOD_NOT_ALLOWED,
+            ),
+            (
+                "unexpected_user",
+                status.HTTP_403_FORBIDDEN,
+            ),
+        ]
     )
-    def test_put_not_allowed(self, user, expected_status, api_client, live_donation_page):
+    def put_user_case(self, request):
+        return request.getfixturevalue(request.param[0]), request.param[1]
+
+    def test_put_not_allowed(self, put_user_case, api_client, live_donation_page):
         """Nobody puts pages"""
-        if user:
-            api_client.force_authenticate(user)
+        user, expected_status = put_user_case
+        api_client.force_authenticate(user)
         assert (
             api_client.put(reverse("donationpage-detail", args=(live_donation_page.pk,)), data={}).status_code
-            == expected_status
+            # this is kind of sloppy, but makes test setup in put_user_case above easier
+            # because can reuse those two fixtures without special case for user is none
+            == (expected_status if user else status.HTTP_401_UNAUTHORIZED)
         )
 
     @pytest.mark.parametrize(
@@ -797,19 +770,12 @@ class TestPageViewSet:
                     assert serialized_from_db[k] == v
         assert response.json() == json.loads(json.dumps(DonationPageFullDetailSerializer(page).data))
 
-    @pytest_cases.parametrize(
-        "user",
-        (
-            pytest_cases.fixture_ref("org_user_free_plan"),
-            pytest_cases.fixture_ref("rp_user"),
-            pytest_cases.fixture_ref("superuser"),
-        ),
-    )
     def test_patch_when_expected_user_with_valid_image_data(
-        self, user, live_donation_page, api_client, patch_page_data_with_image_fields
+        self, expected_user, live_donation_page, api_client, patch_page_data_with_image_fields
     ):
         """Show expected users can..."""
-        api_client.force_authenticate(user)
+        user = expected_user
+        api_client.force_authenticate(expected_user)
         if not user.is_superuser:
             live_donation_page.revenue_program = user.roleassignment.revenue_programs.first()
             live_donation_page.save()
@@ -826,24 +792,16 @@ class TestPageViewSet:
         assert make_file_name_regex("header_logo").match(serialized_from_db["header_logo"]) is not None
         assert make_file_name_regex("header_bg_image").match(serialized_from_db["header_bg_image"]) is not None
 
-    @pytest_cases.parametrize(
-        "user",
-        (
-            pytest_cases.fixture_ref("org_user_free_plan"),
-            pytest_cases.fixture_ref("rp_user"),
-            pytest_cases.fixture_ref("superuser"),
-        ),
-    )
     def test_patch_when_expected_user_with_valid_data_with_extra_keys(
-        self, user, patch_page_valid_data_extra_keys, live_donation_page, api_client
+        self, expected_user, patch_page_valid_data_extra_keys, live_donation_page, api_client
     ):
         """Show behavior when extra fields are provided in otherwise valid data
 
         In this case, the request can succeed, but the problematic fields are disregarded.
         """
-        api_client.force_authenticate(user)
-        if not user.is_superuser:
-            live_donation_page.revenue_program = user.roleassignment.revenue_programs.first()
+        api_client.force_authenticate(expected_user)
+        if not expected_user.is_superuser:
+            live_donation_page.revenue_program = expected_user.roleassignment.revenue_programs.first()
             live_donation_page.save()
         last_modified = live_donation_page.modified
         response = api_client.patch(
@@ -855,21 +813,14 @@ class TestPageViewSet:
         live_donation_page.refresh_from_db()
         assert live_donation_page.modified > last_modified
 
-    @pytest_cases.parametrize(
-        "user",
-        (
-            pytest_cases.fixture_ref("org_user_free_plan"),
-            pytest_cases.fixture_ref("rp_user"),
-        ),
-    )
     def test_patch_when_expected_user_unowned_page(
-        self, user, patch_page_valid_data, live_donation_page, api_client, mocker
+        self, org_and_rp_user, patch_page_valid_data, live_donation_page, api_client, mocker
     ):
         """Show behavior when an expected user tries to patch an unowned page"""
-        assert live_donation_page not in user.roleassignment.revenue_programs.all()
-        assert live_donation_page.revenue_program.organization != user.roleassignment.organization
+        assert live_donation_page not in org_and_rp_user.roleassignment.revenue_programs.all()
+        assert live_donation_page.revenue_program.organization != org_and_rp_user.roleassignment.organization
         last_modified = live_donation_page.modified
-        api_client.force_authenticate(user)
+        api_client.force_authenticate(org_and_rp_user)
         spy = mocker.spy(PagesAppQuerySet, "filtered_by_role_assignment")
         response = api_client.patch(
             reverse("donationpage-detail", args=(live_donation_page.id,)), data=patch_page_valid_data, format="json"
@@ -879,68 +830,50 @@ class TestPageViewSet:
         assert live_donation_page.modified == last_modified
         assert spy.call_count == 1
 
-    @pytest_cases.parametrize(
-        "user",
-        (
-            pytest_cases.fixture_ref("org_user_free_plan"),
-            pytest_cases.fixture_ref("rp_user"),
-            # TODO: [DEV-3193] Fix bug where superuser can assign a style that is unowned by an RP to its donation page
-            # pytest_cases.fixture_ref("superuser"),
-        ),
+    # TODO: [DEV-3193] Fix bug where superuser can assign a style that is unowned by an RP to its donation page
+    @pytest.fixture(
+        params=[
+            ("patch_page_unowned_style", "styles"),
+            ("patch_page_unfound_style", "styles"),
+            ("patch_page_unowned_rp", "revenue_program"),
+            ("patch_page_unfound_rp", "revenue_program"),
+            ("patch_page_unpermitted_elements", "elements"),
+            ("patch_page_unpermitted_sidebar_elements", "sidebar_elements"),
+            ("patch_page_poorly_formed_elements", "elements"),
+            ("patch_page_poorly_formed_sidebar_elements", "sidebar_elements"),
+            ("patch_page_when_publishing_and_empty_slug_param", "slug"),
+            ("patch_page_when_publishing_and_no_slug_param", "slug"),
+        ]
     )
-    @pytest_cases.parametrize(
-        "data,error_key",
-        (
-            (pytest_cases.fixture_ref("patch_page_unowned_style"), "styles"),
-            (pytest_cases.fixture_ref("patch_page_unfound_style"), "styles"),
-            (pytest_cases.fixture_ref("patch_page_unowned_rp"), "revenue_program"),
-            (pytest_cases.fixture_ref("patch_page_unfound_rp"), "revenue_program"),
-            (pytest_cases.fixture_ref("patch_page_unpermitted_elements"), "elements"),
-            (pytest_cases.fixture_ref("patch_page_unpermitted_sidebar_elements"), "sidebar_elements"),
-            (pytest_cases.fixture_ref("patch_page_poorly_formed_elements"), "elements"),
-            (pytest_cases.fixture_ref("patch_page_poorly_formed_sidebar_elements"), "sidebar_elements"),
-            (pytest_cases.fixture_ref("patch_page_when_publishing_and_empty_slug_param"), "slug"),
-            (pytest_cases.fixture_ref("patch_page_when_publishing_and_no_slug_param"), "slug"),
-        ),
-    )
-    def test_patch_when_expected_user_with_invalid_data(self, user, data, error_key, api_client, live_donation_page):
+    def invalid_data_case(self, request):
+        return request.getfixturevalue(request.param[0]), request.param[1]
+
+    def test_patch_when_expected_user_with_invalid_data(
+        self, org_and_rp_user, invalid_data_case, api_client, live_donation_page
+    ):
         """Show expected users can patch"""
-        api_client.force_authenticate(user)
-        if not user.is_superuser:
-            live_donation_page.revenue_program = user.roleassignment.revenue_programs.first()
+        data, error_key = invalid_data_case
+        api_client.force_authenticate(org_and_rp_user)
+        if not org_and_rp_user.is_superuser:
+            live_donation_page.revenue_program = org_and_rp_user.roleassignment.revenue_programs.first()
             live_donation_page.save()
         response = api_client.patch(reverse("donationpage-detail", args=(live_donation_page.pk,)), data=data)
         assert response.status_code == status.HTTP_400_BAD_REQUEST
         assert list(response.json().keys()) == [error_key]
 
-    @pytest_cases.parametrize(
-        "user,expected_status",
-        (
-            (pytest_cases.fixture_ref("user_no_role_assignment"), status.HTTP_403_FORBIDDEN),
-            (pytest_cases.fixture_ref("contributor_user"), status.HTTP_403_FORBIDDEN),
-            (pytest_cases.fixture_ref("user_with_unexpected_role"), status.HTTP_403_FORBIDDEN),
-            (None, status.HTTP_401_UNAUTHORIZED),
-        ),
-    )
-    def test_patch_when_unauthorized_user(
-        self, user, expected_status, live_donation_page, patch_page_valid_data, api_client
-    ):
+    def test_patch_when_unauthorized_user(self, unexpected_user, live_donation_page, patch_page_valid_data, api_client):
         """Show behavior when an unauthorized user tries to patch a donation page"""
-        api_client.force_authenticate(user)
+        api_client.force_authenticate(unexpected_user)
         last_modified = live_donation_page.modified
-        assert (
-            api_client.patch(
-                reverse("donationpage-detail", args=(live_donation_page.id,)), data=patch_page_valid_data, format="json"
-            ).status_code
-            == expected_status
-        )
+        assert api_client.patch(
+            reverse("donationpage-detail", args=(live_donation_page.id,)), data=patch_page_valid_data, format="json"
+        ).status_code == (status.HTTP_403_FORBIDDEN if unexpected_user else status.HTTP_401_UNAUTHORIZED)
         live_donation_page.refresh_from_db()
         assert live_donation_page.modified == last_modified
 
     def test_patch_when_invalid_because_unpermitted_thank_you_redirect(
         self, patch_page_valid_data, superuser, live_donation_page, api_client
     ):
-        """ """
         api_client.force_authenticate(superuser)
         assert live_donation_page.revenue_program.organization.plan_name == Plans.FREE
         response = api_client.patch(
@@ -1042,83 +975,40 @@ class TestPageViewSet:
         live_donation_page.refresh_from_db()
         assert live_donation_page.heading == old_page_heading
 
-    @pytest_cases.parametrize(
-        "user",
-        (
-            pytest_cases.fixture_ref("org_user_free_plan"),
-            pytest_cases.fixture_ref("rp_user"),
-            pytest_cases.fixture_ref("superuser"),
-        ),
-    )
-    def test_delete_when_expected_user(self, user, live_donation_page, api_client, mocker):
-        api_client.force_authenticate(user)
+    def test_delete_when_expected_user(self, expected_user, live_donation_page, api_client, mocker):
+        api_client.force_authenticate(expected_user)
         spy = mocker.spy(PagesAppQuerySet, "filtered_by_role_assignment")
-        if not user.is_superuser:
-            live_donation_page.revenue_program = user.roleassignment.revenue_programs.first()
+        if not expected_user.is_superuser:
+            live_donation_page.revenue_program = expected_user.roleassignment.revenue_programs.first()
             live_donation_page.save()
         response = api_client.delete(reverse("donationpage-detail", args=(live_donation_page.id,)))
         assert response.status_code == status.HTTP_204_NO_CONTENT
         assert not DonationPage.objects.filter(pk=live_donation_page.id).exists()
-        if not user.is_superuser:
+        if not expected_user.is_superuser:
             assert spy.call_count == 1
 
-    @pytest_cases.parametrize(
-        "user,expected_status",
-        (
-            (pytest_cases.fixture_ref("user_no_role_assignment"), status.HTTP_403_FORBIDDEN),
-            (pytest_cases.fixture_ref("contributor_user"), status.HTTP_403_FORBIDDEN),
-            (pytest_cases.fixture_ref("user_with_unexpected_role"), status.HTTP_403_FORBIDDEN),
-            (None, status.HTTP_401_UNAUTHORIZED),
-        ),
-    )
-    def test_delete_when_unauthorized_user(self, user, expected_status, live_donation_page, api_client):
-        if user:
-            api_client.force_authenticate(user)
+    def test_delete_when_unauthorized_user(self, unexpected_user, live_donation_page, api_client):
+        api_client.force_authenticate(unexpected_user)
         response = api_client.delete(reverse("donationpage-detail", args=(live_donation_page.id,)))
-        assert response.status_code == expected_status
+        assert response.status_code == (status.HTTP_404_NOT_FOUND if unexpected_user else status.HTTP_401_UNAUTHORIZED)
         assert DonationPage.objects.filter(pk=live_donation_page.id).exists()
 
-    @pytest_cases.parametrize(
-        "user",
-        (
-            pytest_cases.fixture_ref("org_user_free_plan"),
-            pytest_cases.fixture_ref("rp_user"),
-        ),
-    )
-    def test_delete_when_unowned(self, user, live_donation_page, api_client):
-        api_client.force_authenticate(user)
-        assert live_donation_page.revenue_program not in user.roleassignment.revenue_programs.all()
+    def test_delete_when_unowned(self, org_and_rp_user, live_donation_page, api_client):
+        api_client.force_authenticate(org_and_rp_user)
+        assert live_donation_page.revenue_program not in org_and_rp_user.roleassignment.revenue_programs.all()
         response = api_client.delete(reverse("donationpage-detail", args=(live_donation_page.id,)))
         assert response.status_code == status.HTTP_404_NOT_FOUND
         assert DonationPage.objects.filter(pk=live_donation_page.id).exists()
 
-    @pytest_cases.parametrize(
-        "user",
-        (
-            pytest_cases.fixture_ref("org_user_free_plan"),
-            pytest_cases.fixture_ref("rp_user"),
-            pytest_cases.fixture_ref("superuser"),
-        ),
-    )
-    def test_delete_when_not_exist(self, user, live_donation_page, api_client):
-        api_client.force_authenticate(user)
+    def test_delete_when_not_exist(self, expected_user, live_donation_page, api_client):
+        api_client.force_authenticate(expected_user)
         page_id = live_donation_page.id
         live_donation_page.delete()
         response = api_client.delete(reverse("donationpage-detail", args=(page_id,)))
         assert response.status_code == status.HTTP_404_NOT_FOUND
 
-    @pytest_cases.parametrize(
-        "user",
-        (
-            pytest_cases.fixture_ref("org_user_free_plan"),
-            pytest_cases.fixture_ref("rp_user"),
-            pytest_cases.fixture_ref("superuser"),
-            pytest_cases.fixture_ref("contributor_user"),
-            pytest_cases.fixture_ref("user_no_role_assignment"),
-            None,
-        ),
-    )
-    def test_live_detail_page_happy_path(self, user, live_donation_page, api_client):
+    # this is an unauthed endpoint so only test with no auth
+    def test_live_detail_page_happy_path(self, live_donation_page, api_client):
         response = api_client.get(
             reverse("donationpage-live-detail"),
             {"revenue_program": live_donation_page.revenue_program.slug, "page": live_donation_page.slug},
@@ -1219,15 +1109,8 @@ class TestPageViewSet:
         # TODO: [DEV-3189] Don't leak info about revenue program payment provider verification publicly
         assert response.json() == {"detail": "RevenueProgram does not have a payment provider configured"}
 
-    @pytest_cases.parametrize(
-        "user",
-        (
-            pytest_cases.fixture_ref("org_user_free_plan"),
-            pytest_cases.fixture_ref("rp_user"),
-            pytest_cases.fixture_ref("superuser"),
-        ),
-    )
-    def test_draft_detail_page_when_expected_user(self, user, api_client, live_donation_page):
+    def test_draft_detail_page_when_expected_user(self, expected_user, api_client, live_donation_page):
+        user = expected_user
         api_client.force_authenticate(user)
         other_page = DonationPageFactory()
         if user.is_superuser:
@@ -1240,25 +1123,12 @@ class TestPageViewSet:
                     == status.HTTP_200_OK
                 )
 
-    @pytest_cases.parametrize(
-        "user,expected_status",
-        (
-            (pytest_cases.fixture_ref("user_no_role_assignment"), status.HTTP_403_FORBIDDEN),
-            (pytest_cases.fixture_ref("contributor_user"), status.HTTP_403_FORBIDDEN),
-            (pytest_cases.fixture_ref("user_with_unexpected_role"), status.HTTP_403_FORBIDDEN),
-            (None, status.HTTP_401_UNAUTHORIZED),
-        ),
-    )
-    def test_draft_detail_page_when_unauthorized_user(self, user, expected_status, api_client, live_donation_page):
-        if user:
-            api_client.force_authenticate(user)
-        assert (
-            api_client.get(
-                reverse("donationpage-draft-detail"),
-                {"revenue_program": live_donation_page.revenue_program, "page": live_donation_page.slug},
-            ).status_code
-            == expected_status
-        )
+    def test_draft_detail_page_when_unauthorized_user(self, unexpected_user, api_client, live_donation_page):
+        api_client.force_authenticate(unexpected_user)
+        assert api_client.get(
+            reverse("donationpage-draft-detail"),
+            {"revenue_program": live_donation_page.revenue_program, "page": live_donation_page.slug},
+        ).status_code == (status.HTTP_403_FORBIDDEN if unexpected_user else status.HTTP_401_UNAUTHORIZED)
 
     def test_draft_detail_page_revenue_program_not_found(self, superuser, api_client):
         unfound_slug = "unexpected"
@@ -1461,15 +1331,17 @@ def patch_style_invalid_data_bad_font_sizes_is_dict(patch_style_valid_styles_dat
 
 @pytest.mark.django_db
 class TestStyleViewSet:
-    @pytest_cases.parametrize(
-        "user",
-        (
-            pytest_cases.fixture_ref("superuser"),
-            pytest_cases.fixture_ref("org_user_free_plan"),
-            pytest_cases.fixture_ref("hub_admin_user"),
-            pytest_cases.fixture_ref("rp_user"),
-        ),
+    @pytest.fixture(
+        params=[
+            "superuser",
+            "org_user_free_plan",
+            "hub_admin_user",
+            "rp_user",
+        ]
     )
+    def user(self, request):
+        return request.getfixturevalue(request.param)
+
     def test_create_style_when_expected_user_with_valid_data(self, user, api_client, create_style_valid_data):
         """Show that expected users can create a style when provid valid data"""
         before_count = Style.objects.count()
@@ -1496,81 +1368,66 @@ class TestStyleViewSet:
         for k, v in passed_style_data.items():
             assert style.styles[k] == v
 
-    @pytest_cases.parametrize(
-        "user",
-        (
-            pytest_cases.fixture_ref("org_user_free_plan"),
-            pytest_cases.fixture_ref("rp_user"),
-        ),
+    @pytest.fixture(
+        params=["org_user_free_plan", "rp_user"],
     )
-    def test_create_style_when_expected_user_but_not_own_rp(self, user, create_style_valid_data, api_client):
+    def user_with_unowned_rp(self, request):
+        return request.getfixturevalue(request.param)
+
+    def test_create_style_when_expected_user_but_not_own_rp(
+        self, user_with_unowned_rp, create_style_valid_data, api_client
+    ):
         """Show behavior when expected user tries to create a style pointing to an unowned RP"""
-        api_client.force_authenticate(user)
+        api_client.force_authenticate(user_with_unowned_rp)
         assert (
             not RevenueProgram.objects.get(pk=create_style_valid_data["revenue_program"])
-            in user.roleassignment.revenue_programs.all()
+            in user_with_unowned_rp.roleassignment.revenue_programs.all()
         )
         response = api_client.post(reverse("style-list"), data=create_style_valid_data, format="json")
         assert response.status_code == status.HTTP_400_BAD_REQUEST
         assert response.json() == {"revenue_program": ["Not found"]}
 
-    @pytest_cases.parametrize(
-        "user,expected_status",
-        (
-            (pytest_cases.fixture_ref("user_no_role_assignment"), status.HTTP_403_FORBIDDEN),
-            (pytest_cases.fixture_ref("contributor_user"), status.HTTP_403_FORBIDDEN),
-            (pytest_cases.fixture_ref("user_with_unexpected_role"), status.HTTP_403_FORBIDDEN),
-            (None, status.HTTP_401_UNAUTHORIZED),
-        ),
-    )
-    def test_create_style_when_unauthorized_user(self, user, create_style_valid_data, expected_status, api_client):
+    def test_create_style_when_unauthorized_user(self, unexpected_user, create_style_valid_data, api_client):
         """Show behavior when an unauthorized user tries to create a style"""
-        if user:
-            api_client.force_authenticate(user)
+        api_client.force_authenticate(unexpected_user)
         response = api_client.post(reverse("style-list"), data=create_style_valid_data, format="json")
-        assert response.status_code == expected_status
+        assert response.status_code == (status.HTTP_403_FORBIDDEN if unexpected_user else status.HTTP_401_UNAUTHORIZED)
 
-    @pytest_cases.parametrize(
-        "data,expected_response",
-        (
+    @pytest.fixture(
+        params=[
             (
-                pytest_cases.fixture_ref("create_style_missing_radii"),
+                "create_style_missing_radii",
                 {"styles": ['Style objects must contain a "radii" key of type "<class \'list\'>"']},
             ),
             (
-                pytest_cases.fixture_ref("create_style_missing_font"),
+                "create_style_missing_font",
                 {"styles": ['Style objects must contain a "font" key of type "<class \'dict\'>"']},
             ),
             (
-                pytest_cases.fixture_ref("create_style_missing_font_sizes"),
+                "create_style_missing_font_sizes",
                 {"styles": ['Style objects must contain a "fontSizes" key of type "<class \'list\'>"']},
             ),
-            (pytest_cases.fixture_ref("create_style_missing_name"), {"name": ["This field may not be null."]}),
+            ("create_style_missing_name", {"name": ["This field may not be null."]}),
             (
-                pytest_cases.fixture_ref("create_style_missing_revenue_program"),
+                "create_style_missing_revenue_program",
                 {"revenue_program": ["This field may not be null."]},
             ),
             (
-                pytest_cases.fixture_ref("create_style_revenue_program_null"),
+                "create_style_revenue_program_null",
                 {"revenue_program": ["This field may not be null."]},
             ),
             (
-                pytest_cases.fixture_ref("create_style_revenue_program_blank"),
+                "create_style_revenue_program_blank",
                 {"revenue_program": ["This field may not be null."]},
             ),
-        ),
+        ]
     )
-    @pytest_cases.parametrize(
-        "user",
-        (
-            pytest_cases.fixture_ref("superuser"),
-            pytest_cases.fixture_ref("org_user_free_plan"),
-            pytest_cases.fixture_ref("hub_admin_user"),
-            pytest_cases.fixture_ref("rp_user"),
-        ),
-    )
-    def test_create_when_invalid_data(self, data, expected_response, user, api_client):
+    def invalid_data_case(self, request):
+        return request.getfixturevalue(request.param[0]), request.param[1]
+
+    def test_create_when_invalid_data(self, invalid_data_case, user, api_client):
         """Show behavior when an expected user tries to create a style, with various sorts of invalid data"""
+        data, expected_response = invalid_data_case
         api_client.force_authenticate(user)
         if not user.is_superuser and data.get("revenue_program"):
             user.roleassignment.revenue_programs.add(rp := RevenueProgram.objects.get(pk=data["revenue_program"]))
@@ -1581,15 +1438,6 @@ class TestStyleViewSet:
         assert response.status_code == status.HTTP_400_BAD_REQUEST
         assert response.json() == expected_response
 
-    @pytest_cases.parametrize(
-        "user",
-        (
-            pytest_cases.fixture_ref("superuser"),
-            pytest_cases.fixture_ref("org_user_free_plan"),
-            pytest_cases.fixture_ref("hub_admin_user"),
-            pytest_cases.fixture_ref("rp_user"),
-        ),
-    )
     def test_retrieve_when_expected_user(self, user, api_client, style, mocker):
         """Show that expected users can retrieve styles they own and cannot those they don't"""
         api_client.force_authenticate(user)
@@ -1624,30 +1472,12 @@ class TestStyleViewSet:
                 assert response.status_code == status.HTTP_404_NOT_FOUND
             assert spy.call_count == expect_spy_call_count
 
-    @pytest_cases.parametrize(
-        "user,expected_status",
-        (
-            (pytest_cases.fixture_ref("user_no_role_assignment"), status.HTTP_403_FORBIDDEN),
-            (pytest_cases.fixture_ref("contributor_user"), status.HTTP_403_FORBIDDEN),
-            (None, status.HTTP_401_UNAUTHORIZED),
-        ),
-    )
-    def test_retrieve_when_unauthorized_user(self, user, expected_status, style, api_client):
+    def test_retrieve_when_unauthorized_user(self, unexpected_user, style, api_client):
         """Show retrieve behavior when unauthorized user attempts"""
-        if user:
-            api_client.force_authenticate(user)
+        api_client.force_authenticate(unexpected_user)
         response = api_client.get(reverse("style-detail", args=(style.id,)))
-        assert response.status_code == expected_status
+        assert response.status_code == (status.HTTP_403_FORBIDDEN if unexpected_user else status.HTTP_401_UNAUTHORIZED)
 
-    @pytest_cases.parametrize(
-        "user",
-        (
-            pytest_cases.fixture_ref("superuser"),
-            pytest_cases.fixture_ref("org_user_free_plan"),
-            pytest_cases.fixture_ref("hub_admin_user"),
-            pytest_cases.fixture_ref("rp_user"),
-        ),
-    )
     def test_list_when_expected_user(self, user, api_client, style, mocker):
         """Test that expected users see styles they should and not see those they shouldn't when listing"""
         api_client.force_authenticate(user)
@@ -1679,62 +1509,24 @@ class TestStyleViewSet:
             # once for call above to create `query`, and once when called in view layer
             assert spy.call_count == 2
 
-    @pytest_cases.parametrize(
-        "user,expected_status",
-        (
-            (pytest_cases.fixture_ref("user_no_role_assignment"), status.HTTP_403_FORBIDDEN),
-            (pytest_cases.fixture_ref("contributor_user"), status.HTTP_403_FORBIDDEN),
-            (None, status.HTTP_401_UNAUTHORIZED),
-        ),
-    )
-    def test_list_when_unauthorized_user(self, user, expected_status, api_client):
+    def test_list_when_unauthorized_user(self, unexpected_user, api_client):
         """Show list behavior when an unauthorized user tries to access"""
         StyleFactory.create_batch(size=2)
-        if user:
-            api_client.force_authenticate(user)
+        api_client.force_authenticate(unexpected_user)
         response = api_client.get(reverse("style-list"))
-        assert response.status_code == expected_status
+        assert response.status_code == (status.HTTP_403_FORBIDDEN if unexpected_user else status.HTTP_401_UNAUTHORIZED)
 
-    @pytest_cases.parametrize(
-        "user,expected_status",
-        (
-            (pytest_cases.fixture_ref("superuser"), status.HTTP_405_METHOD_NOT_ALLOWED),
-            (pytest_cases.fixture_ref("org_user_free_plan"), status.HTTP_405_METHOD_NOT_ALLOWED),
-            (pytest_cases.fixture_ref("hub_admin_user"), status.HTTP_405_METHOD_NOT_ALLOWED),
-            (pytest_cases.fixture_ref("rp_user"), status.HTTP_405_METHOD_NOT_ALLOWED),
-            (pytest_cases.fixture_ref("user_no_role_assignment"), status.HTTP_403_FORBIDDEN),
-            (pytest_cases.fixture_ref("contributor_user"), status.HTTP_403_FORBIDDEN),
-            (None, status.HTTP_401_UNAUTHORIZED),
-        ),
+    @pytest.fixture(
+        params=[
+            "patch_style_valid_styles_data_with_arbitrary_keys",
+            "patch_style_valid_data_name_only",
+            "patch_style_valid_styles_data_only",
+        ]
     )
-    def test_cannot_put(self, user, expected_status, api_client, style):
-        """Show how nobody puts styles"""
-        if user:
-            api_client.force_authenticate(user)
-        response = api_client.put(reverse("style-detail", args=(style.id,)), data={}, format="json")
-        assert response.status_code == expected_status
+    def valid_update_data(self, request):
+        return request.getfixturevalue(request.param)
 
-    @pytest_cases.parametrize(
-        "user",
-        (
-            pytest_cases.fixture_ref("superuser"),
-            pytest_cases.fixture_ref("org_user_free_plan"),
-            pytest_cases.fixture_ref("hub_admin_user"),
-            pytest_cases.fixture_ref("rp_user"),
-        ),
-    )
-    @pytest_cases.parametrize(
-        "data",
-        (
-            # These are all of the relevant cases *except* for patching revenue program,
-            # which we need to handle differently because org and rp user need to be
-            # given permissions for rp.
-            pytest_cases.fixture_ref("patch_style_valid_styles_data_with_arbitrary_keys"),
-            pytest_cases.fixture_ref("patch_style_valid_data_name_only"),
-            pytest_cases.fixture_ref("patch_style_valid_styles_data_only"),
-        ),
-    )
-    def test_update_style_when_expected_user_with_valid_data(self, user, data, api_client, style, mocker):
+    def test_update_style_when_expected_user_with_valid_data(self, user, valid_update_data, api_client, style, mocker):
         """Show that expected users can update a style when providing valid data"""
         spy = mocker.spy(PagesAppQuerySet, "filtered_by_role_assignment")
         if not user.is_superuser and not user.roleassignment.role_type == Roles.HUB_ADMIN:
@@ -1742,34 +1534,24 @@ class TestStyleViewSet:
             style.save()
         last_modified = style.modified
         api_client.force_authenticate(user)
-        response = api_client.patch(reverse("style-detail", args=(style.pk,)), data=data, format="json")
+        response = api_client.patch(reverse("style-detail", args=(style.pk,)), data=valid_update_data, format="json")
         assert response.status_code == status.HTTP_200_OK
         style.refresh_from_db()
         assert style.modified > last_modified
-        for k, v in {k: v for k, v in data.items() if k not in ("name", "revenue_program")}.items():
+        for k, v in {k: v for k, v in valid_update_data.items() if k not in ("name", "revenue_program")}.items():
             assert style.styles[k] == v
         assert spy.call_count == 0 if user.is_superuser else 1
 
-    @pytest_cases.parametrize(
-        "user",
-        (
-            pytest_cases.fixture_ref("superuser"),
-            pytest_cases.fixture_ref("org_user_free_plan"),
-            pytest_cases.fixture_ref("hub_admin_user"),
-            pytest_cases.fixture_ref("rp_user"),
-        ),
-    )
-    @pytest_cases.parametrize(
-        "data",
-        (
-            pytest_cases.fixture_ref("patch_style_valid_data_all_keys"),
-            pytest_cases.fixture_ref("patch_style_valid_data_rp_only"),
-        ),
-    )
-    def test_update_style_when_expected_user_updating_owned_rp(self, user, data, api_client, style, mocker):
+    @pytest.fixture(params=["patch_style_valid_data_all_keys", "patch_style_valid_data_rp_only"])
+    def update_style_data(self, request):
+        return request.getfixturevalue(request.param)
+
+    def test_update_style_when_expected_user_updating_owned_rp(
+        self, user, update_style_data, api_client, style, mocker
+    ):
         """Show that expected users can update a style when providing valid data"""
         spy = mocker.spy(PagesAppQuerySet, "filtered_by_role_assignment")
-        to_update_rp = RevenueProgram.objects.get(id=data["revenue_program"])
+        to_update_rp = RevenueProgram.objects.get(id=update_style_data["revenue_program"])
         if not user.is_superuser and not user.roleassignment.role_type == Roles.HUB_ADMIN:
             style.revenue_program = user.roleassignment.revenue_programs.first()
             style.save()
@@ -1778,25 +1560,21 @@ class TestStyleViewSet:
             user.roleassignment.revenue_programs.add(to_update_rp)
         last_modified = style.modified
         api_client.force_authenticate(user)
-        response = api_client.patch(reverse("style-detail", args=(style.pk,)), data=data, format="json")
+        response = api_client.patch(reverse("style-detail", args=(style.pk,)), data=update_style_data, format="json")
         assert response.status_code == status.HTTP_200_OK
         style.refresh_from_db()
         assert style.modified > last_modified
-        assert style.revenue_program.id == data["revenue_program"] == response.json()["revenue_program"]["id"]
-        for k, v in {k: v for k, v in data.items() if k not in ("name", "revenue_program")}.items():
+        assert (
+            style.revenue_program.id == update_style_data["revenue_program"] == response.json()["revenue_program"]["id"]
+        )
+        for k, v in {k: v for k, v in update_style_data.items() if k not in ("name", "revenue_program")}.items():
             assert style.styles[k] == v
         assert spy.call_count == 0 if user.is_superuser else 1
 
-    @pytest_cases.parametrize(
-        "user",
-        (
-            pytest_cases.fixture_ref("org_user_free_plan"),
-            pytest_cases.fixture_ref("rp_user"),
-        ),
-    )
     def test_update_style_when_expected_user_but_not_own_rp(
-        self, user, api_client, style, revenue_program, patch_style_valid_data_all_keys
+        self, user_with_unowned_rp, api_client, style, revenue_program, patch_style_valid_data_all_keys
     ):
+        user = user_with_unowned_rp
         api_client.force_authenticate(user)
         style.revenue_program = user.roleassignment.revenue_programs.first()
         style.save()
@@ -1807,15 +1585,6 @@ class TestStyleViewSet:
         assert response.status_code == status.HTTP_400_BAD_REQUEST
         assert response.json() == {"revenue_program": ["Not found"]}
 
-    @pytest_cases.parametrize(
-        "user",
-        (
-            pytest_cases.fixture_ref("org_user_free_plan"),
-            pytest_cases.fixture_ref("rp_user"),
-            pytest_cases.fixture_ref("superuser"),
-            pytest_cases.fixture_ref("hub_admin_user"),
-        ),
-    )
     def test_update_style_when_expected_rp_not_exist(
         self, user, api_client, style, revenue_program, patch_style_valid_data_all_keys
     ):
@@ -1831,16 +1600,10 @@ class TestStyleViewSet:
         assert response.status_code == status.HTTP_400_BAD_REQUEST
         assert response.json() == {"revenue_program": [f'Invalid pk "{rp_id}" - object does not exist.']}
 
-    @pytest_cases.parametrize(
-        "user",
-        (
-            pytest_cases.fixture_ref("org_user_free_plan"),
-            pytest_cases.fixture_ref("rp_user"),
-        ),
-    )
     def test_update_style_when_expected_user_but_not_own_style(
-        self, user, style, patch_style_valid_data_all_keys, api_client, mocker
+        self, user_with_unowned_rp, style, patch_style_valid_data_all_keys, api_client, mocker
     ):
+        user = user_with_unowned_rp
         spy = mocker.spy(PagesAppQuerySet, "filtered_by_role_assignment")
         assert style.revenue_program not in user.roleassignment.revenue_programs.all()
         api_client.force_authenticate(user)
@@ -1850,87 +1613,73 @@ class TestStyleViewSet:
         assert response.status_code == status.HTTP_404_NOT_FOUND
         assert spy.call_count == 1
 
-    @pytest_cases.parametrize(
-        "user,expected_status",
-        (
-            (pytest_cases.fixture_ref("user_no_role_assignment"), status.HTTP_403_FORBIDDEN),
-            (pytest_cases.fixture_ref("contributor_user"), status.HTTP_403_FORBIDDEN),
-            (None, status.HTTP_401_UNAUTHORIZED),
-        ),
-    )
     def test_update_style_when_unexpected_user(
-        self, user, expected_status, patch_style_valid_data_all_keys, style, api_client
+        self, unexpected_user, patch_style_valid_data_all_keys, style, api_client
     ):
-        if user:
-            api_client.force_authenticate(user)
+
+        api_client.force_authenticate(unexpected_user)
         response = api_client.patch(
             reverse("style-detail", args=(style.pk,)), data=patch_style_valid_data_all_keys, format="json"
         )
-        assert response.status_code == expected_status
+        assert response.status_code == (status.HTTP_403_FORBIDDEN if unexpected_user else status.HTTP_401_UNAUTHORIZED)
 
-    @pytest_cases.parametrize(
-        "user",
-        (
-            pytest_cases.fixture_ref("org_user_free_plan"),
-            # pytest_cases.fixture_ref("rp_user"),
-            # pytest_cases.fixture_ref("superuser"),
-            # pytest_cases.fixture_ref("hub_admin_user"),
-        ),
+    @pytest.fixture(
+        params=[
+            (
+                "patch_style_invalid_data_bad_radii_is_text",
+                {"styles": ['Style objects must contain a "radii" key of type "<class \'list\'>"']},
+            ),
+            (
+                "patch_style_invalid_data_bad_radii_is_null",
+                {"styles": ['Style objects must contain a "radii" key of type "<class \'list\'>"']},
+            ),
+            (
+                "patch_style_invalid_data_bad_radii_is_number",
+                {"styles": ['Style objects must contain a "radii" key of type "<class \'list\'>"']},
+            ),
+            (
+                "patch_style_invalid_data_bad_radii_is_unexpected_dict",
+                {"styles": ['Style objects must contain a "radii" key of type "<class \'list\'>"']},
+            ),
+            (
+                "patch_style_invalid_data_bad_font_is_text",
+                {"styles": ['Style objects must contain a "font" key of type "<class \'dict\'>"']},
+            ),
+            (
+                "patch_style_invalid_data_bad_font_is_null",
+                {"styles": ['Style objects must contain a "font" key of type "<class \'dict\'>"']},
+            ),
+            (
+                "patch_style_invalid_data_bad_font_is_number",
+                {"styles": ['Style objects must contain a "font" key of type "<class \'dict\'>"']},
+            ),
+            (
+                "patch_style_invalid_data_bad_font_is_list",
+                {"styles": ['Style objects must contain a "font" key of type "<class \'dict\'>"']},
+            ),
+            (
+                "patch_style_invalid_data_bad_font_sizes_is_text",
+                {"styles": ['Style objects must contain a "fontSizes" key of type "<class \'list\'>"']},
+            ),
+            (
+                "patch_style_invalid_data_bad_font_sizes_is_null",
+                {"styles": ['Style objects must contain a "fontSizes" key of type "<class \'list\'>"']},
+            ),
+            (
+                "patch_style_invalid_data_bad_font_sizes_is_number",
+                {"styles": ['Style objects must contain a "fontSizes" key of type "<class \'list\'>"']},
+            ),
+            (
+                "patch_style_invalid_data_bad_font_sizes_is_dict",
+                {"styles": ['Style objects must contain a "fontSizes" key of type "<class \'list\'>"']},
+            ),
+        ]
     )
-    @pytest_cases.parametrize(
-        "data,expected_response",
-        (
-            (
-                pytest_cases.fixture_ref("patch_style_invalid_data_bad_radii_is_text"),
-                {"styles": ['Style objects must contain a "radii" key of type "<class \'list\'>"']},
-            ),
-            (
-                pytest_cases.fixture_ref("patch_style_invalid_data_bad_radii_is_null"),
-                {"styles": ['Style objects must contain a "radii" key of type "<class \'list\'>"']},
-            ),
-            (
-                pytest_cases.fixture_ref("patch_style_invalid_data_bad_radii_is_number"),
-                {"styles": ['Style objects must contain a "radii" key of type "<class \'list\'>"']},
-            ),
-            (
-                pytest_cases.fixture_ref("patch_style_invalid_data_bad_radii_is_unexpected_dict"),
-                {"styles": ['Style objects must contain a "radii" key of type "<class \'list\'>"']},
-            ),
-            (
-                pytest_cases.fixture_ref("patch_style_invalid_data_bad_font_is_text"),
-                {"styles": ['Style objects must contain a "font" key of type "<class \'dict\'>"']},
-            ),
-            (
-                pytest_cases.fixture_ref("patch_style_invalid_data_bad_font_is_null"),
-                {"styles": ['Style objects must contain a "font" key of type "<class \'dict\'>"']},
-            ),
-            (
-                pytest_cases.fixture_ref("patch_style_invalid_data_bad_font_is_number"),
-                {"styles": ['Style objects must contain a "font" key of type "<class \'dict\'>"']},
-            ),
-            (
-                pytest_cases.fixture_ref("patch_style_invalid_data_bad_font_is_list"),
-                {"styles": ['Style objects must contain a "font" key of type "<class \'dict\'>"']},
-            ),
-            (
-                pytest_cases.fixture_ref("patch_style_invalid_data_bad_font_sizes_is_text"),
-                {"styles": ['Style objects must contain a "fontSizes" key of type "<class \'list\'>"']},
-            ),
-            (
-                pytest_cases.fixture_ref("patch_style_invalid_data_bad_font_sizes_is_null"),
-                {"styles": ['Style objects must contain a "fontSizes" key of type "<class \'list\'>"']},
-            ),
-            (
-                pytest_cases.fixture_ref("patch_style_invalid_data_bad_font_sizes_is_number"),
-                {"styles": ['Style objects must contain a "fontSizes" key of type "<class \'list\'>"']},
-            ),
-            (
-                pytest_cases.fixture_ref("patch_style_invalid_data_bad_font_sizes_is_dict"),
-                {"styles": ['Style objects must contain a "fontSizes" key of type "<class \'list\'>"']},
-            ),
-        ),
-    )
-    def test_update_when_invalid_data(self, user, data, expected_response, style, api_client):
+    def invalid_update_data_case(self, request):
+        return request.getfixturevalue(request.param[0]), request.param[1]
+
+    def test_update_when_invalid_data(self, user, invalid_update_data_case, style, api_client):
+        data, expected_response = invalid_update_data_case
         api_client.force_authenticate(user)
         if not (user.is_superuser or user.roleassignment.role_type == Roles.HUB_ADMIN):
             style.revenue_program = user.roleassignment.revenue_programs.first()
@@ -1939,15 +1688,6 @@ class TestStyleViewSet:
         assert response.status_code == status.HTTP_400_BAD_REQUEST
         assert response.json() == expected_response
 
-    @pytest_cases.parametrize(
-        "user",
-        (
-            pytest_cases.fixture_ref("superuser"),
-            pytest_cases.fixture_ref("org_user_free_plan"),
-            pytest_cases.fixture_ref("hub_admin_user"),
-            pytest_cases.fixture_ref("rp_user"),
-        ),
-    )
     def test_delete_when_expected_user_and_own_style(self, user, style, api_client, mocker):
         spy = mocker.spy(PagesAppQuerySet, "filtered_by_role_assignment")
         api_client.force_authenticate(user)
@@ -1960,48 +1700,25 @@ class TestStyleViewSet:
         assert not Style.objects.filter(pk=style_id).exists()
         assert spy.call_count == 0 if user.is_superuser else 1
 
-    @pytest_cases.parametrize(
-        "user",
-        (
-            pytest_cases.fixture_ref("org_user_free_plan"),
-            pytest_cases.fixture_ref("rp_user"),
-        ),
-    )
-    def test_delete_when_expected_user_and_not_own_style(self, user, api_client, style, mocker):
+    def test_delete_when_expected_user_and_not_own_style(self, user_with_unowned_rp, api_client, style, mocker):
         spy = mocker.spy(PagesAppQuerySet, "filtered_by_role_assignment")
-        api_client.force_authenticate(user)
-        assert style.revenue_program not in user.roleassignment.revenue_programs.all()
+        api_client.force_authenticate(user_with_unowned_rp)
+        assert style.revenue_program not in user_with_unowned_rp.roleassignment.revenue_programs.all()
         response = api_client.delete(reverse("style-detail", args=(style.id,)))
         assert response.status_code == status.HTTP_404_NOT_FOUND
         assert spy.call_count == 1
 
-    @pytest_cases.parametrize(
-        "user",
-        (
-            pytest_cases.fixture_ref("superuser"),
-            pytest_cases.fixture_ref("org_user_free_plan"),
-            pytest_cases.fixture_ref("hub_admin_user"),
-            pytest_cases.fixture_ref("rp_user"),
-        ),
-    )
     def test_delete_when_expected_user_and_not_found(self, user, style, api_client):
         api_client.force_authenticate(user)
         style_pk = style.id
         style.delete()
         assert api_client.delete(reverse("style-detail", args=(style_pk,))).status_code == status.HTTP_404_NOT_FOUND
 
-    @pytest_cases.parametrize(
-        "user,expected_status",
-        (
-            (pytest_cases.fixture_ref("user_no_role_assignment"), status.HTTP_403_FORBIDDEN),
-            (pytest_cases.fixture_ref("contributor_user"), status.HTTP_403_FORBIDDEN),
-            (None, status.HTTP_401_UNAUTHORIZED),
-        ),
-    )
-    def test_delete_when_unexpected_user(self, user, expected_status, style, api_client):
-        if user:
-            api_client.force_authenticate(user)
-        assert api_client.delete(reverse("style-detail", args=(style.pk,))).status_code == expected_status
+    def test_delete_when_unexpected_user(self, unexpected_user, style, api_client):
+        api_client.force_authenticate(unexpected_user)
+        assert api_client.delete(reverse("style-detail", args=(style.pk,))).status_code == (
+            status.HTTP_403_FORBIDDEN if unexpected_user else status.HTTP_401_UNAUTHORIZED
+        )
 
     def test_unexpected_role_type_cant_list(self, user_with_unexpected_role, api_client):
         api_client.force_authenticate(user_with_unexpected_role)
@@ -2016,58 +1733,38 @@ def font():
 
 @pytest.mark.django_db
 class TestFontViewSet:
-    @pytest_cases.parametrize(
-        "user,expect_status",
-        (
-            (pytest_cases.fixture_ref("org_user_free_plan"), status.HTTP_200_OK),
-            (pytest_cases.fixture_ref("rp_user"), status.HTTP_200_OK),
-            (pytest_cases.fixture_ref("superuser"), status.HTTP_200_OK),
-            (pytest_cases.fixture_ref("hub_admin_user"), status.HTTP_200_OK),
-            (pytest_cases.fixture_ref("user_no_role_assignment"), status.HTTP_200_OK),
-            (pytest_cases.fixture_ref("contributor_user"), status.HTTP_200_OK),
-            (None, status.HTTP_401_UNAUTHORIZED),
-        ),
+    @pytest.fixture(
+        params=[
+            "superuser",
+            "org_user_free_plan",
+            "hub_admin_user",
+            "rp_user",
+            "hub_admin_user",
+            "contributor_user",
+            "user_no_role_assignment",
+            None,
+        ]
     )
-    def test_retrieve(self, user, expect_status, font, api_client):
-        if user:
-            api_client.force_authenticate(user)
-        assert api_client.get(reverse("font-detail", args=(font.id,))).status_code == expect_status
+    def user(self, request):
+        return request.getfixturevalue(request.param) if request.param else None
 
-    @pytest_cases.parametrize(
-        "user,expect_status",
-        (
-            (pytest_cases.fixture_ref("org_user_free_plan"), status.HTTP_200_OK),
-            (pytest_cases.fixture_ref("rp_user"), status.HTTP_200_OK),
-            (pytest_cases.fixture_ref("superuser"), status.HTTP_200_OK),
-            (pytest_cases.fixture_ref("hub_admin_user"), status.HTTP_200_OK),
-            (pytest_cases.fixture_ref("user_no_role_assignment"), status.HTTP_200_OK),
-            (pytest_cases.fixture_ref("contributor_user"), status.HTTP_200_OK),
-            (None, status.HTTP_401_UNAUTHORIZED),
-        ),
-    )
-    def test_list(self, user, expect_status, api_client):
+    def test_retrieve(self, user, font, api_client):
+        api_client.force_authenticate(user)
+        assert api_client.get(reverse("font-detail", args=(font.id,))).status_code == (
+            status.HTTP_200_OK if user else status.HTTP_401_UNAUTHORIZED
+        )
+
+    def test_list(self, user, api_client):
         FontFactory.create_batch(size=3)
-        if user:
-            api_client.force_authenticate(user)
+        api_client.force_authenticate(user)
         response = api_client.get(reverse("font-list"))
-        assert response.status_code == expect_status
-        if expect_status == status.HTTP_200_OK:
-            assert len(response.json()) == Font.objects.count()
+        assert response.status_code == (status.HTTP_200_OK if user else status.HTTP_401_UNAUTHORIZED)
+        assert len(response.json()) == (Font.objects.count() if user else 0)
 
-    @pytest_cases.parametrize(
-        "user,expected_status",
-        (
-            (pytest_cases.fixture_ref("org_user_free_plan"), status.HTTP_405_METHOD_NOT_ALLOWED),
-            (pytest_cases.fixture_ref("rp_user"), status.HTTP_405_METHOD_NOT_ALLOWED),
-            (pytest_cases.fixture_ref("superuser"), status.HTTP_405_METHOD_NOT_ALLOWED),
-            (pytest_cases.fixture_ref("hub_admin_user"), status.HTTP_405_METHOD_NOT_ALLOWED),
-            (pytest_cases.fixture_ref("user_no_role_assignment"), status.HTTP_405_METHOD_NOT_ALLOWED),
-            (pytest_cases.fixture_ref("contributor_user"), status.HTTP_405_METHOD_NOT_ALLOWED),
-            (None, status.HTTP_401_UNAUTHORIZED),
-        ),
-    )
-    @pytest_cases.parametrize("method", ("delete", "put", "patch", "post"))
-    def test_unpermitted_methods(self, user, expected_status, method, font, api_client):
-        if user:
-            api_client.force_authenticate(user)
-        assert getattr(api_client, method)(reverse("font-detail", args=(font.id,))).status_code == expected_status
+    @pytest.mark.parametrize("method", ("delete", "put", "patch", "post"))
+    def test_unpermitted_methods(self, user, method, font, api_client):
+
+        api_client.force_authenticate(user)
+        assert getattr(api_client, method)(reverse("font-detail", args=(font.id,))).status_code == (
+            status.HTTP_405_METHOD_NOT_ALLOWED if user else status.HTTP_401_UNAUTHORIZED
+        )

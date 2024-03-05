@@ -163,7 +163,7 @@ def google_cloud_pub_sub_is_configured() -> bool:
     return all([settings.ENABLE_PUBSUB and settings.GOOGLE_CLOUD_PROJECT])
 
 
-def upsert_with_diff_check(model, defaults: dict, unique_identifier: dict, caller_name: str) -> (Model, bool, bool):
+def upsert_with_diff_check(model, defaults: dict, unique_identifier: dict, caller_name: str) -> (Model, str):
     """Upsert a model instance with a reversion comment, but only update if defaults differ from existing instance.
 
     Returns instance, whether it was created, and whether it was updated
@@ -179,4 +179,4 @@ def upsert_with_diff_check(model, defaults: dict, unique_identifier: dict, calle
             if fields_to_update:
                 instance.save(update_fields=fields_to_update.union({"modified"}))
                 reversion.set_comment(f"{caller_name} updated {model.__name__}")
-        return instance, created, bool(fields_to_update)
+        return instance, "created" if created else "updated" if bool(fields_to_update) else "unchanged"

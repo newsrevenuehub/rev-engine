@@ -40,7 +40,7 @@ def upsert_payments_for_charge(
     """Create payments for any charge and refunds associated with a given stripe charge."""
     logger.debug("Upserting payment for contribution %s", contribution.id)
 
-    payment, created, updated = upsert_with_diff_check(
+    payment, action = upsert_with_diff_check(
         model=Payment,
         unique_identifier={"contribution": contribution, "stripe_balance_transaction_id": balance_transaction.id},
         defaults={
@@ -53,13 +53,11 @@ def upsert_payments_for_charge(
         },
         caller_name="upsert_payments_for_charge",
     )
-    if created:
-        logger.info("Created payment %s for contribution %s", payment.id, contribution.id)
-    elif updated:
-        logger.info("Updated payment %s for contribution %s", payment.id, contribution.id)
+    if action in ("created", "updated"):
+        logger.info("%s payment %s for contribution %s", action, payment.id, contribution.id)
     for refund in charge.refunds.data:
         logger.debug("Upserting payment for refund  %s for contribution %s", refund.id, contribution.id)
-        payment, created, updated = upsert_with_diff_check(
+        payment, action = upsert_with_diff_check(
             model=Payment,
             unique_identifier={
                 "contribution": contribution,
@@ -75,10 +73,10 @@ def upsert_payments_for_charge(
             },
             caller_name="upsert_payments_for_charge",
         )
-        if created:
-            logger.info("Created payment %s for refund %s for contribution %s", payment.id, refund.id, contribution.id)
-        if updated:
-            logger.info("Updated payment %s for refund %s for contribution %s", payment.id, refund.id, contribution.id)
+        if action in ("created", "updated"):
+            logger.info(
+                "%s payment %s for refund %s for contribution %s", action, payment.id, refund.id, contribution.id
+            )
 
 
 @dataclass(frozen=True)
@@ -378,7 +376,7 @@ class PaymentIntentForOneTimeContribution:
             return customer.invoice_settings.default_payment_method if customer.invoice_settings else None
 
     @transaction.atomic
-    def upsert(self) -> (Contribution, bool, bool):
+    def upsert(self) -> (Contribution, str):
         """Upsert a contribution, contributor, and payments for a given Stripe payment intent.
 
         If the payment intent has a charge associated, we'll upsert a payment.
@@ -394,7 +392,7 @@ class PaymentIntentForOneTimeContribution:
         if created:
             logger.info("Created new contributor %s for payment intent %s", contributor.id, self.payment_intent.id)
         pm = self.payment_method
-        contribution, created, updated = upsert_with_diff_check(
+        contribution, action = upsert_with_diff_check(
             model=Contribution,
             unique_identifier={"provider_payment_id": self.payment_intent.id},
             defaults={
@@ -412,15 +410,8 @@ class PaymentIntentForOneTimeContribution:
             },
             caller_name="PaymentIntentForOneTimeContribution.upsert",
         )
-        if created:
-            logger.info("Created new contribution %s for payment intent %s", contribution.id, self.payment_intent.id)
-        if updated:
-            logger.info(
-                "Updated existing contribution %s for payment intent %s",
-                contribution.id,
-                contribution.provider_payment_id,
-            )
-
+        if action in ("created", "updated"):
+            logger.info("%s contribution %s for payment intent %s", action, contribution.id, self.payment_intent.id)
         if not (charge := self.charge):
             logger.debug(
                 "Can't upsert payments for contribution %s with payment intent %s because no charge",
@@ -435,7 +426,7 @@ class PaymentIntentForOneTimeContribution:
                 contribution.id,
                 charge.id,
             )
-        return contribution, created, updated
+        return contribution, action
 
 
 class SubscriptionForRecurringContribution:
@@ -511,7 +502,7 @@ class SubscriptionForRecurringContribution:
             return customer.invoice_settings.default_payment_method if customer and customer.invoice_settings else None
 
     @transaction.atomic
-    def upsert(self) -> (Contribution, bool, bool):
+    def upsert(self) -> (Contribution, str):
         """Upsert contribution, contributor and payments for given Stripe subscription
 
         NB: Fields are only updated in case of existing contribution if they have changed.
@@ -526,7 +517,7 @@ class SubscriptionForRecurringContribution:
         if created:
             logger.info("Created new contributor %s for subscription %s", contributor.id, self.subscription.id)
         pm = self.payment_method
-        contribution, created, updated = upsert_with_diff_check(
+        contribution, action = upsert_with_diff_check(
             model=Contribution,
             unique_identifier={"provider_subscription_id": self.subscription.id},
             defaults={
@@ -545,15 +536,9 @@ class SubscriptionForRecurringContribution:
             },
             caller_name="SubscriptionForRecurringContribution.upsert",
         )
-        if created:
+        if action in ("created", "updated"):
             logger.info(
-                "Created new contribution %s for provider_subscription_id %s", contribution.id, self.subscription.id
-            )
-        if updated:
-            logger.info(
-                "Updated existing contribution %s for provider_subscription_id %s",
-                contribution.id,
-                self.subscription.id,
+                "%s contribution %s for provider_subscription_id %s", action, contribution.id, self.subscription.id
             )
         for charge in self.charges:
             if charge.balance_transaction:
@@ -564,7 +549,7 @@ class SubscriptionForRecurringContribution:
                     contribution.id,
                     getattr(charge, "id", None),
                 )
-        return contribution, created, updated
+        return contribution, action
 
 
 @dataclass
@@ -626,12 +611,15 @@ class StripeTransactionsSyncer:
         updated_count = 0
         for x in subscriptions_data:
             try:
-                contribution, created, updated = x.upsert()
+                contribution, action = x.upsert()
                 contributions.append(contribution)
-                if created:
-                    created_count += 1
-                if updated:
-                    updated_count += 1
+                match action:
+                    case "created":
+                        created_count += 1
+                    case "updated":
+                        updated_count += 1
+                    case _:
+                        pass
             except InvalidStripeTransactionDataError as exc:
                 logger.warning("Unable to upsert subscription %s", x.subscription.id, exc_info=exc)
         logger.info("Created %s new recurring contributions for stripe account %s", created_count, stripe_account_id)
@@ -650,12 +638,15 @@ class StripeTransactionsSyncer:
         updated_count = 0
         for x in stripe_client.get_revengine_one_time_contributions_data():
             try:
-                contribution, created, updated = x.upsert()
+                contribution, action = x.upsert()
                 contributions.append(contribution)
-                if created:
-                    created_count += 1
-                if updated:
-                    updated_count += 1
+                match action:
+                    case "created":
+                        created_count += 1
+                    case "updated":
+                        updated_count += 1
+                    case _:
+                        pass
             except InvalidStripeTransactionDataError as exc:
                 logger.warning("Unable to upsert payment intent %s", x.payment_intent.id, exc_info=exc)
         logger.info("Created %s new one-time contributions for stripe account %s", created_count, stripe_account_id)

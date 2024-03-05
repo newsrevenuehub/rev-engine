@@ -340,7 +340,7 @@ class TestSubscriptionForRecurringContribution:
         mock_upsert_charges = mocker.patch("apps.contributions.stripe_sync.upsert_payments_for_charge")
         instance = SubscriptionForRecurringContribution(subscription=subscription_to_upsert, charges=[charge, charge2])
         if has_email_id:
-            contribution, _, _ = instance.upsert()
+            contribution, _ = instance.upsert()
             assert contribution.provider_subscription_id == subscription_to_upsert.id
             assert contribution.amount == subscription_to_upsert.plan.amount
             assert contribution.currency == subscription_to_upsert.plan.currency
@@ -581,7 +581,7 @@ class TestPaymentIntentForOneTimeContribution:
         )
         mock_upsert_charges = mocker.patch("apps.contributions.stripe_sync.upsert_payments_for_charge")
         if has_email_id:
-            contribution, _, _ = PaymentIntentForOneTimeContribution(
+            contribution, _ = PaymentIntentForOneTimeContribution(
                 payment_intent=pi_to_upsert, charge=charge_for_upsert
             ).upsert()
             assert contribution.provider_payment_id == pi_to_upsert.id
@@ -957,8 +957,7 @@ class TestStripeTransactionsSyncer:
         mock_sync_subs.assert_called_once_with(stripe_account_id=test_id)
         mock_sync_one_times.assert_called_once_with(stripe_account_id=test_id)
 
-    @pytest.mark.parametrize("upsert_value_error", (True, False))
-    def test_sync_contributions_and_payments_for_subscriptions(self, upsert_value_error, mocker):
+    def test_sync_contributions_and_payments_for_subscriptions(self, mocker):
         mock_stripe_client = mocker.patch("apps.contributions.stripe_sync.StripeClientForConnectedAccount")
         mock_stripe_client.return_value.get_invoices.return_value = (
             invoices := [
@@ -973,8 +972,8 @@ class TestStripeTransactionsSyncer:
             (item3 := mocker.Mock()),
         ]
         item1.upsert.side_effect = InvalidStripeTransactionDataError("foo")
-        item2.upsert.return_value = (contribution1 := mocker.Mock()), True, False
-        item3.upsert.return_value = (contribution2 := mocker.Mock()), False, True
+        item2.upsert.return_value = (contribution1 := mocker.Mock()), "created"
+        item3.upsert.return_value = (contribution2 := mocker.Mock()), "updated"
         contributions = StripeTransactionsSyncer().sync_contributions_and_payments_for_subscriptions("test_id")
         mock_stripe_client.return_value.get_invoices.assert_called_once()
         mock_stripe_client.return_value.get_expanded_charge_object.assert_called_once_with(
@@ -992,8 +991,8 @@ class TestStripeTransactionsSyncer:
             (item2 := mocker.Mock()),
             (item_with_error := mocker.Mock()),
         ]
-        item1.upsert.return_value = (contribution1 := mocker.Mock()), True, False
-        item2.upsert.return_value = (contribution2 := mocker.Mock()), False, True
+        item1.upsert.return_value = (contribution1 := mocker.Mock()), "created"
+        item2.upsert.return_value = (contribution2 := mocker.Mock()), "updated"
         item_with_error.upsert.side_effect = InvalidStripeTransactionDataError("foo")
         contributions = StripeTransactionsSyncer().sync_contributions_and_payments_for_payment_intents("test_id")
         assert contributions == [contribution1, contribution2]

@@ -370,23 +370,22 @@ class Test_upsert_with_diff_check:
 
     @pytest.fixture(
         params=[
-            {"instance": "instance_is_none", "expected_created": True, "expected_needs_update": False},
-            {"instance": "instance_needs_update", "expected_created": False, "expected_needs_update": True},
-            {"instance": "instance_not_need_update", "expected_created": False, "expected_needs_update": False},
+            {"instance": "instance_is_none", "action": "created"},
+            {"instance": "instance_needs_update", "action": "updated"},
+            {"instance": "instance_not_need_update", "action": "unchanged"},
         ]
     )
     def upsert_with_diff_check_case(self, request):
         return (
             request.getfixturevalue(request.param["instance"]),
-            request.param["expected_created"],
-            request.param["expected_needs_update"],
+            request.param["action"],
         )
 
     def test_upsert_with_diff_check(self, upsert_with_diff_check_case, update_data, unique_identifier, mocker):
-        instance, expect_created, expect_updated = upsert_with_diff_check_case
+        instance, expected_action = upsert_with_diff_check_case
         mock_set_comment = mocker.patch("reversion.set_comment")
         with mock.patch("reversion.create_revision") as create_revision_mock:
-            result, created, updated = upsert_with_diff_check(
+            result, action = upsert_with_diff_check(
                 model=self.model,
                 unique_identifier=unique_identifier,
                 defaults=update_data,
@@ -396,11 +395,10 @@ class Test_upsert_with_diff_check:
                 assert result == instance
             else:
                 assert result
-            assert created == expect_created
-            assert updated == expect_updated
+            assert action == expected_action
             create_revision_mock.assert_called_once()
 
-            if expect_updated:
+            if action == "updated":
                 mock_set_comment.assert_called_once_with(f"{caller} updated {self.model.__name__}")
             else:
                 mock_set_comment.assert_not_called()

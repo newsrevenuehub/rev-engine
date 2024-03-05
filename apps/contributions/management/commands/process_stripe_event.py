@@ -9,9 +9,9 @@ class Command(BaseCommand):
     help = "Process a Stripe event using our webhook handler."
 
     def add_arguments(self, parser: CommandParser) -> None:
-        parser.add_argument("--stripe_account", required=True)
-        parser.add_argument("--event_id", required=True)
-        parser.add_argument("--async_mode", action="store_true", default=False)
+        parser.add_argument("--stripe-account", required=True)
+        parser.add_argument("--event-id", required=True)
+        parser.add_argument("--async-mode", action="store_true", default=False)
 
     def handle(self, *args, **options):
         self.stdout.write(self.style.HTTP_INFO("Running `process_stripe_event`"))

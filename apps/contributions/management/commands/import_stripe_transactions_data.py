@@ -35,18 +35,18 @@ class Command(BaseCommand):
             help="Optional end date(time) for the import (inclusive). Tries to parse whatever it's given.",
         ),
         parser.add_argument(  # pragma: no cover
-            "--for_orgs",
+            "--for-orgs",
             type=lambda s: [x.strip() for x in s.split(",")],
             default=[],
             help="Optional comma-separated list of org ids to limit to",
         )
         parser.add_argument(  # pragma: no cover
-            "--for_stripe_accounts",
+            "--for-stripe-accounts",
             type=lambda s: [x.strip() for x in s.split(",")],
             default=[],
             help="Optional comma-separated list of stripe accounts to limit to",
         )
-        parser.add_argument("--async_mode", action="store_true", default=False)
+        parser.add_argument("--async-mode", action="store_true", default=False)
 
     def handle(self, *args, **options):
         self.stdout.write(self.style.HTTP_INFO("Running `import_contribution_and_payments_from_stripe`"))

@@ -171,7 +171,7 @@ class StripeClientForConnectedAccount:
         return one_time_pis_and_charges
 
     def get_revengine_subscriptions(self, invoices) -> list[stripe.Subscription]:
-        """Given a set of invoices, retrieve a set of subscriptions that should be synced to revengine."""
+        """Given a set of invoices, retrieve a set of subscriptions that should be imported to revengine."""
         logger.info("Getting revengine subscriptions for account %s", self.account_id)
         sub_ids = [x.subscription for x in invoices if x.subscription]
         results = []
@@ -203,7 +203,7 @@ class StripeClientForConnectedAccount:
                 )
             except InvalidMetadataError:
                 logger.warning(
-                    "Unable to sync subscription %s for account %s because metadata did not validate",
+                    "Unable to import subscription %s for account %s because metadata did not validate",
                     sub.id,
                     self.account_id,
                 )
@@ -227,7 +227,9 @@ class StripeClientForConnectedAccount:
                     )
                 )
             except (InvalidMetadataError, InvalidStripeTransactionDataError) as exc:
-                logger.warning("Unable to sync payment intent %s for account %s", pi.id, self.account_id, exc_info=exc)
+                logger.warning(
+                    "Unable to import payment intent %s for account %s", pi.id, self.account_id, exc_info=exc
+                )
         return data
 
     @staticmethod
@@ -553,8 +555,8 @@ class SubscriptionForRecurringContribution:
 
 
 @dataclass
-class StripeTransactionsSyncer:
-    """Class for syncing Stripe transactions data to Revengine. By default will iterate over all available Stripe accounts, for all time"""
+class StripeTransactionsImporter:
+    """Class for importing Stripe transactions data to Revengine. By default will iterate over all available Stripe accounts, for all time"""
 
     _STRIPE_ACCOUNTS_QUERY = PaymentProvider.objects.filter(stripe_account_id__isnull=False)
     for_orgs: list[str] = None
@@ -564,7 +566,7 @@ class StripeTransactionsSyncer:
 
     def __post_init__(self):
         logger.debug(
-            "Initializing StripeTransactionsSyncer with for_orgs %s and for_stripe_accounts %s",
+            "Initializing StripeTransactionsImporter with for_orgs %s and for_stripe_accounts %s",
             self.for_orgs,
             self.for_stripe_accounts,
         )
@@ -580,13 +582,13 @@ class StripeTransactionsSyncer:
     def stripe_account_ids(self):
         return list(self._STRIPE_ACCOUNTS_QUERY.values_list("stripe_account_id", flat=True))
 
-    def sync_contributions_and_payments_for_stripe_account(self, account_id: str) -> None:
+    def import_contributions_and_payments_for_stripe_account(self, account_id: str) -> None:
         """This method is responsible for upserting contributors, contributions, and payments for a given stripe account."""
-        logger.info("Syncing transactions data for stripe account %s", account_id)
-        self.sync_contributions_and_payments_for_subscriptions(stripe_account_id=account_id)
-        self.sync_contributions_and_payments_for_payment_intents(stripe_account_id=account_id)
+        logger.info("Importing transactions data for stripe account %s", account_id)
+        self.import_contributions_and_payments_for_subscriptions(stripe_account_id=account_id)
+        self.import_contributions_and_payments_for_payment_intents(stripe_account_id=account_id)
 
-    def sync_contributions_and_payments_for_subscriptions(self, stripe_account_id: str) -> list[Contribution]:
+    def import_contributions_and_payments_for_subscriptions(self, stripe_account_id: str) -> list[Contribution]:
         """Upsert contributions, contributors, and payments for subscriptions for a given stripe account."""
         stripe_client = StripeClientForConnectedAccount(
             account_id=stripe_account_id, gte=self.from_date, lte=self.to_date
@@ -594,7 +596,7 @@ class StripeTransactionsSyncer:
         # this gets all invoices for the account (given any contraints on query around date, etc.)
         invoices = stripe_client.get_invoices()
         # Now based on the set of all invoices, we need to determine where there are any subscriptions uncaptured by revengine.
-        # Subscriptions are not directly attached to invoices, but we can get them from the respective charges.
+        # The invoicesSubscriptions are not directly attached to invoices, but we can get them from the respective charges.
         # The returned charges have balance transaction and refunds expanded, which will allow us to generate Revengine payments
         charges = [
             stripe_client.get_expanded_charge_object(charge_id=x.charge, stripe_account_id=stripe_account_id)
@@ -628,7 +630,7 @@ class StripeTransactionsSyncer:
         )
         return contributions
 
-    def sync_contributions_and_payments_for_payment_intents(self, stripe_account_id: str) -> list[Contribution]:
+    def import_contributions_and_payments_for_payment_intents(self, stripe_account_id: str) -> list[Contribution]:
         """Upsert contributions and payments for one-time payment intents for a given stripe account."""
         stripe_client = StripeClientForConnectedAccount(
             account_id=stripe_account_id, gte=self.from_date, lte=self.to_date
@@ -655,27 +657,27 @@ class StripeTransactionsSyncer:
         )
         return contributions
 
-    def sync_stripe_transactions_data(self) -> None:
-        """Iterates over stripe accounts that the class was initialized with and attempts to sync transactions data from Stripe to
+    def import_stripe_transactions_data(self) -> None:
+        """Iterates over stripe accounts that the class was initialized with and attempts to import transactions data from Stripe to
         create contributions, contributors, and payments
         """
         logger.info(
-            "Syncing contributions and payments for %s stripe accounts",
+            "Importing contributions and payments for %s stripe accounts",
             len(self.stripe_account_ids),
         )
         for account_id in self.stripe_account_ids:
             logger.info(
-                "Syncing transactions data for stripe account %s with from_date %s to_date %s",
+                "Importing transactions data for stripe account %s with from_date %s to_date %s",
                 account_id,
                 self.from_date,
                 self.to_date,
             )
-            self.sync_contributions_and_payments_for_stripe_account(account_id)
+            self.import_contributions_and_payments_for_stripe_account(account_id)
 
 
 @dataclass
-class StripeEventSyncer:
-    """Class for syncing a stripe event to revengine. Uses existing webhook processor for this."""
+class StripeEventProcessor:
+    """Class for processing a stripe event. Uses existing webhook processor for this."""
 
     event_id: str
     stripe_account_id: str
@@ -688,7 +690,7 @@ class StripeEventSyncer:
         """Gets a stripe event for a given event id and stripe account id."""
         return self.client.get_stripe_event(event_id=self.event_id, stripe_account_id=self.stripe_account_id)
 
-    def sync(self) -> None:
+    def process(self) -> None:
         # vs. circular import
         from .tasks import process_stripe_webhook_task
 

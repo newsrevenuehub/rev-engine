@@ -49,7 +49,7 @@ def test_sync_payment_transaction_time(mocker, balance_transaction_for_one_time_
 
 
 def test_process_stripe_event(mocker):
-    mock_syncer = mocker.patch("apps.contributions.stripe_sync.StripeEventSyncer")
+    mock_syncer = mocker.patch("apps.contributions.stripe_import.StripeEventProcessor")
     call_command(
         "process_stripe_event",
         stripe_account=(stripe_id := "123"),
@@ -61,7 +61,7 @@ def test_process_stripe_event(mocker):
 
 
 @pytest.mark.django_db
-class TestSyncStripeTransactionsDataCommand:
+class TestImportStripeTransactionsDataCommand:
     @pytest.fixture(
         params=[
             {},
@@ -78,13 +78,13 @@ class TestSyncStripeTransactionsDataCommand:
 
     @pytest.mark.parametrize("async_mode", (False, True))
     def test_happy_path(self, async_mode, command_options, mocker):
-        mock_async_task = mocker.patch("apps.contributions.tasks.task_sync_contributions_and_payments.delay")
+        mock_async_task = mocker.patch("apps.contributions.tasks.task_import_contributions_and_payments.delay")
         mock_transformer = mocker.patch(
-            "apps.contributions.management.commands.sync_stripe_transactions_data.StripeTransactionsSyncer"
+            "apps.contributions.management.commands.import_stripe_transactions_data.StripeTransactionsImporter"
         )
         if async_mode:
             command_options["async_mode"] = True
-        call_command("sync_stripe_transactions_data", **command_options)
+        call_command("import_stripe_transactions_data", **command_options)
         gte = command_options.get("gte", None)
         lte = command_options.get("lte", None)
         expected_call_args = {
@@ -99,4 +99,4 @@ class TestSyncStripeTransactionsDataCommand:
         else:
             mock_async_task.assert_not_called()
             mock_transformer.assert_called_once_with(**expected_call_args)
-            mock_transformer.return_value.sync_stripe_transactions_data.assert_called_once()
+            mock_transformer.return_value.import_stripe_transactions_data.assert_called_once()

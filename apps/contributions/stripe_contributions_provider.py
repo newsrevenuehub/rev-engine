@@ -22,7 +22,7 @@ from apps.contributions.serializers import (
     PaymentProviderContributionSerializer,
     SubscriptionsSerializer,
 )
-from apps.contributions.stripe_sync import (
+from apps.contributions.stripe_import import (
     MAX_STRIPE_RESPONSE_LIMIT,
     SubscriptionForRecurringContribution,
 )

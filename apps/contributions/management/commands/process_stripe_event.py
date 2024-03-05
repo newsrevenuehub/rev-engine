@@ -1,6 +1,6 @@
 from django.core.management.base import BaseCommand, CommandParser
 
-from apps.contributions.stripe_sync import StripeEventSyncer
+from apps.contributions.stripe_import import StripeEventProcessor
 
 
 class Command(BaseCommand):
@@ -15,7 +15,7 @@ class Command(BaseCommand):
 
     def handle(self, *args, **options):
         self.stdout.write(self.style.HTTP_INFO("Running `process_stripe_event`"))
-        StripeEventSyncer(
+        StripeEventProcessor(
             stripe_account_id=options["stripe_account"],
             event_id=options["event_id"],
             async_mode=options["async_mode"],

@@ -23,7 +23,7 @@ from apps.contributions.stripe_contributions_provider import (
     StripeContributionsProvider,
     SubscriptionsCacheProvider,
 )
-from apps.contributions.stripe_sync import StripeTransactionsSyncer
+from apps.contributions.stripe_import import StripeTransactionsImporter
 from apps.contributions.types import StripeEventData
 from apps.contributions.utils import export_contributions_to_csv
 from apps.contributions.webhooks import StripeWebhookProcessor
@@ -210,12 +210,12 @@ def process_stripe_webhook_task(self, raw_event_data: dict) -> None:
 
 
 @shared_task(bind=True, autoretry_for=(RateLimitError,), retry_backoff=True, retry_kwargs={"max_retries": 3})
-def task_sync_contributions_and_payments(
+def task_import_contributions_and_payments(
     self, from_date: str, to_date: str, for_orgs: list[str] = None, for_stripe_accounts: list[str] = None
 ):
     """Task for syncing Stripe payment data to revengine."""
     logger.info(
-        "Running `task_sync_contributions_and_payments` with params: from_date=%s, to_date=%s, for_orgs=%s, for_stripe_accounts=%s",
+        "Running `task_import_contributions_and_payments` with params: from_date=%s, to_date=%s, for_orgs=%s, for_stripe_accounts=%s",
         from_date,
         to_date,
         for_orgs,
@@ -225,7 +225,7 @@ def task_sync_contributions_and_payments(
     from_date = datetime.fromtimestamp(int(from_date)) if from_date else None
     to_date = datetime.fromtimestamp(int(to_date)) if to_date else None
 
-    StripeTransactionsSyncer(
+    StripeTransactionsImporter(
         from_date=from_date, to_date=to_date, for_stripe_accounts=for_stripe_accounts, for_orgs=for_orgs
-    ).sync_stripe_transactions_data()
-    logger.info("`task_sync_contributions_and_payments` is done")
+    ).import_stripe_transactions_data()
+    logger.info("`task_import_contributions_and_payments` is done")

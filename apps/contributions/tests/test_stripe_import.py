@@ -12,12 +12,12 @@ from apps.contributions.exceptions import (
     InvalidStripeTransactionDataError,
 )
 from apps.contributions.models import ContributionInterval, ContributionStatus, Payment
-from apps.contributions.stripe_sync import (
+from apps.contributions.stripe_import import (
     MAX_STRIPE_RESPONSE_LIMIT,
     PaymentIntentForOneTimeContribution,
     StripeClientForConnectedAccount,
-    StripeEventSyncer,
-    StripeTransactionsSyncer,
+    StripeEventProcessor,
+    StripeTransactionsImporter,
     SubscriptionForRecurringContribution,
     upsert_payments_for_charge,
 )
@@ -93,7 +93,7 @@ def invoice_without_subscription(mocker):
 
 @pytest.fixture
 def mock_metadata_validator(mocker):
-    return mocker.patch("apps.contributions.stripe_sync.cast_metadata_to_stripe_payment_metadata_schema")
+    return mocker.patch("apps.contributions.stripe_import.cast_metadata_to_stripe_payment_metadata_schema")
 
 
 @pytest.fixture
@@ -331,13 +331,13 @@ class TestSubscriptionForRecurringContribution:
     @pytest.mark.parametrize("has_email_id", (True, False))
     def test_upsert(self, has_email_id, subscription_to_upsert, mock_metadata_validator, charge, mocker):
         mocker.patch(
-            "apps.contributions.stripe_sync.SubscriptionForRecurringContribution.email_id",
+            "apps.contributions.stripe_import.SubscriptionForRecurringContribution.email_id",
             new_callable=mocker.PropertyMock,
             return_value="foo@bar.com" if has_email_id else None,
         )
         # this charge won't get upserted because has no balance_transaction
         charge2 = mocker.Mock(balance_transaction=None)
-        mock_upsert_charges = mocker.patch("apps.contributions.stripe_sync.upsert_payments_for_charge")
+        mock_upsert_charges = mocker.patch("apps.contributions.stripe_import.upsert_payments_for_charge")
         instance = SubscriptionForRecurringContribution(subscription=subscription_to_upsert, charges=[charge, charge2])
         if has_email_id:
             contribution, _ = instance.upsert()
@@ -450,7 +450,7 @@ class TestPaymentIntentForOneTimeContribution:
     @pytest.mark.parametrize("customer_exists", (True, False))
     def test_email_id(self, customer_exists, mocker, payment_intent, charge):
         mocker.patch(
-            "apps.contributions.stripe_sync.PaymentIntentForOneTimeContribution.customer",
+            "apps.contributions.stripe_import.PaymentIntentForOneTimeContribution.customer",
             return_value=mocker.Mock(email=(email := "foo@bar.com")) if customer_exists else None,
             new_callable=mocker.PropertyMock,
         )
@@ -500,7 +500,7 @@ class TestPaymentIntentForOneTimeContribution:
         ],
     )
     def test_status(self, refunded, pi_status, expected, payment_intent, mocker):
-        mocker.patch("apps.contributions.stripe_sync.PaymentIntentForOneTimeContribution.refunded", refunded)
+        mocker.patch("apps.contributions.stripe_import.PaymentIntentForOneTimeContribution.refunded", refunded)
         payment_intent.status = pi_status
         instance = PaymentIntentForOneTimeContribution(payment_intent=payment_intent, charge=mocker.Mock())
         assert instance.status == expected
@@ -541,7 +541,7 @@ class TestPaymentIntentForOneTimeContribution:
     ):
         pi = request.getfixturevalue(request.param[0])
         customer = request.getfixturevalue(request.param[1]) if request.param[1] else None
-        mocker.patch("apps.contributions.stripe_sync.PaymentIntentForOneTimeContribution.customer", customer)
+        mocker.patch("apps.contributions.stripe_import.PaymentIntentForOneTimeContribution.customer", customer)
         expected = request.getfixturevalue(request.param[2]) if request.param[2] else None
 
         return pi, customer, expected
@@ -575,11 +575,11 @@ class TestPaymentIntentForOneTimeContribution:
     @pytest.mark.parametrize("has_email_id", (True, False))
     def test_upsert(self, pi_to_upsert, has_email_id, charge_for_upsert, mocker, mock_metadata_validator):
         mocker.patch(
-            "apps.contributions.stripe_sync.PaymentIntentForOneTimeContribution.email_id",
+            "apps.contributions.stripe_import.PaymentIntentForOneTimeContribution.email_id",
             new_callable=mocker.PropertyMock,
             return_value="foo@bar.com" if has_email_id else None,
         )
-        mock_upsert_charges = mocker.patch("apps.contributions.stripe_sync.upsert_payments_for_charge")
+        mock_upsert_charges = mocker.patch("apps.contributions.stripe_import.upsert_payments_for_charge")
         if has_email_id:
             contribution, _ = PaymentIntentForOneTimeContribution(
                 payment_intent=pi_to_upsert, charge=charge_for_upsert
@@ -624,17 +624,17 @@ class TestPaymentIntentForOneTimeContribution:
 
     def test_upsert_when_contributor_exists(self, payment_intent, mocker):
         mocker.patch(
-            "apps.contributions.stripe_sync.PaymentIntentForOneTimeContribution.email_id",
+            "apps.contributions.stripe_import.PaymentIntentForOneTimeContribution.email_id",
             new_callable=mocker.PropertyMock,
             return_value=(email := "foo@bar.com"),
         )
         ContributorFactory(email=email)
-        mocker.patch("apps.contributions.stripe_sync.upsert_payments_for_charge")
+        mocker.patch("apps.contributions.stripe_import.upsert_payments_for_charge")
         PaymentIntentForOneTimeContribution(payment_intent=payment_intent, charge=None).upsert()
 
     def test_upsert_when_no_email_id(self, payment_intent, mocker):
         mocker.patch(
-            "apps.contributions.stripe_sync.PaymentIntentForOneTimeContribution.email_id",
+            "apps.contributions.stripe_import.PaymentIntentForOneTimeContribution.email_id",
             new_callable=mocker.PropertyMock,
             return_value=None,
         )
@@ -736,7 +736,7 @@ class TestStripeClientForConnectedAccount:
 
     def test_get_revengine_one_time_payment_intents_and_charges(self, mocker, payment_intent):
         mocker.patch(
-            "apps.contributions.stripe_sync.StripeClientForConnectedAccount.get_payment_intents",
+            "apps.contributions.stripe_import.StripeClientForConnectedAccount.get_payment_intents",
             return_value=[payment_intent],
         )
         client = StripeClientForConnectedAccount(account_id="test")
@@ -763,13 +763,13 @@ class TestStripeClientForConnectedAccount:
     def test_get_revengine_one_time_payment_intents_and_charges_when_gt_1_success_charge(
         self, mocker, payment_intent, payment_intent_with_one_charge, payment_intent_with_two_successful_charges
     ):
-        mock_logger = mocker.patch("apps.contributions.stripe_sync.logger.warning")
+        mock_logger = mocker.patch("apps.contributions.stripe_import.logger.warning")
         mocker.patch(
-            "apps.contributions.stripe_sync.StripeClientForConnectedAccount.get_expanded_charge_object",
+            "apps.contributions.stripe_import.StripeClientForConnectedAccount.get_expanded_charge_object",
             return_value=None,
         )
         mocker.patch(
-            "apps.contributions.stripe_sync.StripeClientForConnectedAccount.get_payment_intents",
+            "apps.contributions.stripe_import.StripeClientForConnectedAccount.get_payment_intents",
             return_value=[payment_intent_with_one_charge, payment_intent_with_two_successful_charges],
         )
         client = StripeClientForConnectedAccount(account_id="test")
@@ -785,11 +785,11 @@ class TestStripeClientForConnectedAccount:
         self, mocker, payment_intent
     ):
         mocker.patch(
-            "apps.contributions.stripe_sync.StripeClientForConnectedAccount.is_for_one_time_contribution",
+            "apps.contributions.stripe_import.StripeClientForConnectedAccount.is_for_one_time_contribution",
             return_value=False,
         )
         mocker.patch(
-            "apps.contributions.stripe_sync.StripeClientForConnectedAccount.get_payment_intents",
+            "apps.contributions.stripe_import.StripeClientForConnectedAccount.get_payment_intents",
             return_value=[payment_intent],
         )
         client = StripeClientForConnectedAccount(account_id="test")
@@ -799,7 +799,7 @@ class TestStripeClientForConnectedAccount:
     def test_get_revengine_subscriptions(self, invoice_with_subscription, subscription, mocker):
         mocker.patch("stripe.Subscription.retrieve", return_value=subscription)
         mocker.patch(
-            "apps.contributions.stripe_sync.StripeClientForConnectedAccount.get_invoices",
+            "apps.contributions.stripe_import.StripeClientForConnectedAccount.get_invoices",
             return_value=[invoice_with_subscription],
         )
         client = StripeClientForConnectedAccount(account_id="test")
@@ -810,7 +810,7 @@ class TestStripeClientForConnectedAccount:
     def test_get_revengine_subscriptions_when_no_subscription(self, invoice_with_subscription, mocker):
         mocker.patch("stripe.Subscription.retrieve", return_value=None)
         mocker.patch(
-            "apps.contributions.stripe_sync.StripeClientForConnectedAccount.get_invoices",
+            "apps.contributions.stripe_import.StripeClientForConnectedAccount.get_invoices",
             return_value=[invoice_with_subscription],
         )
         response = StripeClientForConnectedAccount(account_id="test").get_revengine_subscriptions(
@@ -852,7 +852,7 @@ class TestStripeClientForConnectedAccount:
     ):
         subscription, has_invalid_metadata = subscription_metadata_validity_state_space
         mocker.patch(
-            "apps.contributions.stripe_sync.StripeClientForConnectedAccount.get_revengine_subscriptions",
+            "apps.contributions.stripe_import.StripeClientForConnectedAccount.get_revengine_subscriptions",
             return_value=[subscription],
         )
         invoice_with_subscription.subscription = subscription.id
@@ -875,7 +875,7 @@ class TestStripeClientForConnectedAccount:
     ):
         payment_intent, has_invalid_metadata = one_time_payment_intent_metadata_validity_state_space
         mocker.patch(
-            "apps.contributions.stripe_sync.StripeClientForConnectedAccount.get_revengine_one_time_payment_intents_and_charges",
+            "apps.contributions.stripe_import.StripeClientForConnectedAccount.get_revengine_one_time_payment_intents_and_charges",
             return_value=[{"payment_intent": payment_intent, "charge": charge}],
         )
         data = StripeClientForConnectedAccount(account_id="test").get_revengine_one_time_contributions_data()
@@ -925,14 +925,14 @@ class TestStripeClientForConnectedAccount:
 
 
 @pytest.mark.django_db
-class TestStripeTransactionsSyncer:
+class TestStripeTransactionsImporter:
     @pytest.mark.parametrize(
         "for_orgs,for_stripe_accounts",
         (([1, 2], ["a", "b"]), ([], [])),
     )
     def test__init__(self, for_orgs, for_stripe_accounts, mocker):
         """This is here so we get test coverage through all possible paths in __post_init__"""
-        StripeTransactionsSyncer(for_orgs=for_orgs, for_stripe_accounts=for_stripe_accounts)
+        StripeTransactionsImporter(for_orgs=for_orgs, for_stripe_accounts=for_stripe_accounts)
 
     def test_stripe_account_ids(self):
         PaymentProviderFactory.create_batch(2)
@@ -941,24 +941,24 @@ class TestStripeTransactionsSyncer:
             .values_list("stripe_account_id", flat=True)
             .distinct("stripe_account_id")
         )
-        instance = StripeTransactionsSyncer()
+        instance = StripeTransactionsImporter()
         assert set(instance.stripe_account_ids) == expected
 
-    def test_sync_contributions_and_payments_for_stripe_account(self, mocker):
-        mock_sync_subs = mocker.patch(
-            "apps.contributions.stripe_sync.StripeTransactionsSyncer.sync_contributions_and_payments_for_subscriptions",
+    def test_import_contributions_and_payments_for_stripe_account(self, mocker):
+        mock_import_subs = mocker.patch(
+            "apps.contributions.stripe_import.StripeTransactionsImporter.import_contributions_and_payments_for_subscriptions",
             return_value=[],
         )
-        mock_sync_one_times = mocker.patch(
-            "apps.contributions.stripe_sync.StripeTransactionsSyncer.sync_contributions_and_payments_for_payment_intents",
+        mock_import_one_times = mocker.patch(
+            "apps.contributions.stripe_import.StripeTransactionsImporter.import_contributions_and_payments_for_payment_intents",
             return_value=[],
         )
-        StripeTransactionsSyncer().sync_contributions_and_payments_for_stripe_account((test_id := "test"))
-        mock_sync_subs.assert_called_once_with(stripe_account_id=test_id)
-        mock_sync_one_times.assert_called_once_with(stripe_account_id=test_id)
+        StripeTransactionsImporter().import_contributions_and_payments_for_stripe_account((test_id := "test"))
+        mock_import_subs.assert_called_once_with(stripe_account_id=test_id)
+        mock_import_one_times.assert_called_once_with(stripe_account_id=test_id)
 
-    def test_sync_contributions_and_payments_for_subscriptions(self, mocker):
-        mock_stripe_client = mocker.patch("apps.contributions.stripe_sync.StripeClientForConnectedAccount")
+    def test_import_contributions_and_payments_for_subscriptions(self, mocker):
+        mock_stripe_client = mocker.patch("apps.contributions.stripe_import.StripeClientForConnectedAccount")
         mock_stripe_client.return_value.get_invoices.return_value = (
             invoices := [
                 (expected := mocker.Mock(charge="ch_1")),
@@ -974,7 +974,7 @@ class TestStripeTransactionsSyncer:
         item1.upsert.side_effect = InvalidStripeTransactionDataError("foo")
         item2.upsert.return_value = (contribution1 := mocker.Mock()), "created"
         item3.upsert.return_value = (contribution2 := mocker.Mock()), "updated"
-        contributions = StripeTransactionsSyncer().sync_contributions_and_payments_for_subscriptions("test_id")
+        contributions = StripeTransactionsImporter().import_contributions_and_payments_for_subscriptions("test_id")
         mock_stripe_client.return_value.get_invoices.assert_called_once()
         mock_stripe_client.return_value.get_expanded_charge_object.assert_called_once_with(
             charge_id=expected.charge, stripe_account_id="test_id"
@@ -984,8 +984,8 @@ class TestStripeTransactionsSyncer:
         )
         assert set(contributions) == {contribution1, contribution2}
 
-    def test_sync_contributions_and_payments_for_payment_intents(self, mocker):
-        mock_stripe_client = mocker.patch("apps.contributions.stripe_sync.StripeClientForConnectedAccount")
+    def test_import_contributions_and_payments_for_payment_intents(self, mocker):
+        mock_stripe_client = mocker.patch("apps.contributions.stripe_import.StripeClientForConnectedAccount")
         mock_stripe_client.return_value.get_revengine_one_time_contributions_data.return_value = [
             (item1 := mocker.Mock()),
             (item2 := mocker.Mock()),
@@ -994,19 +994,19 @@ class TestStripeTransactionsSyncer:
         item1.upsert.return_value = (contribution1 := mocker.Mock()), "created"
         item2.upsert.return_value = (contribution2 := mocker.Mock()), "updated"
         item_with_error.upsert.side_effect = InvalidStripeTransactionDataError("foo")
-        contributions = StripeTransactionsSyncer().sync_contributions_and_payments_for_payment_intents("test_id")
+        contributions = StripeTransactionsImporter().import_contributions_and_payments_for_payment_intents("test_id")
         assert contributions == [contribution1, contribution2]
 
-    def test_sync_stripe_transactions_data(self, mocker):
+    def test_import_stripe_transactions_data(self, mocker):
         PaymentProviderFactory()
-        mock_sync_for_stripe_account = mocker.patch(
-            "apps.contributions.stripe_sync.StripeTransactionsSyncer.sync_contributions_and_payments_for_stripe_account"
+        mock_import_for_stripe_account = mocker.patch(
+            "apps.contributions.stripe_import.StripeTransactionsImporter.import_contributions_and_payments_for_stripe_account"
         )
-        StripeTransactionsSyncer().sync_stripe_transactions_data()
-        mock_sync_for_stripe_account.assert_called_once()
+        StripeTransactionsImporter().import_stripe_transactions_data()
+        mock_import_for_stripe_account.assert_called_once()
 
 
-class TestStripeEventSyncer:
+class TestStripeEventProcessor:
     @pytest.fixture
     def supported_event(self, mocker):
         event_type = settings.STRIPE_WEBHOOK_EVENTS_CONTRIBUTIONS[0]
@@ -1034,10 +1034,10 @@ class TestStripeEventSyncer:
     def test_sync_happy_path(self, async_mode, supported_event, mocker):
         mock_retrieve_event = mocker.patch("stripe.Event.retrieve", return_value=supported_event)
         mock_process_webhook = mocker.patch("apps.contributions.tasks.process_stripe_webhook_task")
-        syncer = StripeEventSyncer(
+        processor = StripeEventProcessor(
             stripe_account_id=(stripe_account := "test"), event_id=(event_id := "evt_1"), async_mode=async_mode
         )
-        syncer.sync()
+        processor.process()
         if async_mode:
             mock_process_webhook.assert_not_called()
             mock_process_webhook.delay.assert_called_once_with(raw_event_data=supported_event)
@@ -1047,21 +1047,19 @@ class TestStripeEventSyncer:
         mock_retrieve_event.assert_called_once_with(event_id, stripe_account=stripe_account)
 
     def test_when_event_not_supported(self, unsupported_event, mocker):
-        logger_spy = mocker.patch("apps.contributions.stripe_sync.logger.warning")
+        logger_spy = mocker.patch("apps.contributions.stripe_import.logger.warning")
         mocker.patch("stripe.Event.retrieve", return_value=unsupported_event)
         mock_process_webhook = mocker.patch("apps.contributions.tasks.process_stripe_webhook_task")
-        syncer = StripeEventSyncer(stripe_account_id="test", event_id="evt_1", async_mode=False)
-        syncer.sync()
+        StripeEventProcessor(stripe_account_id="test", event_id="evt_1", async_mode=False).process()
         logger_spy.assert_called_once_with("Event type %s is not supported", unsupported_event.type)
         mock_process_webhook.assert_not_called()
         mock_process_webhook.delay.assert_not_called()
 
     def test_when_event_not_found(self, supported_event, mocker):
-        logger_spy = mocker.patch("apps.contributions.stripe_sync.logger.warning")
+        logger_spy = mocker.patch("apps.contributions.stripe_import.logger.warning")
         mocker.patch("stripe.Event.retrieve", side_effect=stripe.error.InvalidRequestError("not found", "id", "evt_1"))
         mock_process_webhook = mocker.patch("apps.contributions.tasks.process_stripe_webhook_task")
-        syncer = StripeEventSyncer(stripe_account_id="test", event_id="evt_1", async_mode=False)
-        syncer.sync()
+        StripeEventProcessor(stripe_account_id="test", event_id="evt_1", async_mode=False).process()
         assert logger_spy.call_args == mocker.call("No event found for event id %s", supported_event.id)
         mock_process_webhook.assert_not_called()
         mock_process_webhook.delay.assert_not_called()

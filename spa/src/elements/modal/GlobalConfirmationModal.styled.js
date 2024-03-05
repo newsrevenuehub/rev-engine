@@ -1,6 +1,6 @@
 import styled from 'styled-components';
 
-export const GlobalConfirmationModal = styled.div`
+export const Root = styled.div`
   border-radius: ${(props) => props.theme.radii[0]};
   background: ${(props) => props.theme.colors.white};
   padding: 2rem;

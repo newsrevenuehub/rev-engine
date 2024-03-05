@@ -1,8 +1,17 @@
+import { Close, CloudUpload } from '@material-ui/icons';
 import { useRef, useEffect, useState } from 'react';
 import PropTypes from 'prop-types';
-import * as S from './ImageWithPreview.styled';
 import { Label, HelpText } from 'elements/inputs/BaseField.styled';
-import { Close, CloudUpload } from '@material-ui/icons';
+import {
+  Button,
+  Buttons,
+  ImageSection,
+  NoThumbnail,
+  RemoveIcon,
+  Root,
+  Thumbnail,
+  UploadIcon
+} from './ImageWithPreview.styled';
 
 function ImageWithPreview({ thumbnail, onChange, label, helpText }) {
   const inputRef = useRef();
@@ -37,30 +46,30 @@ function ImageWithPreview({ thumbnail, onChange, label, helpText }) {
   };
 
   return (
-    <S.ImageWithPreview>
+    <Root>
       {label && <Label>{label}</Label>}
-      <S.ImageSection>
+      <ImageSection>
         {thumbnailToShow ? (
-          <S.Thumbnail src={thumbnailToShow} onClick={proxyClick} />
+          <Thumbnail src={thumbnailToShow} onClick={proxyClick} />
         ) : (
-          <S.NoThumbnail onClick={proxyClick}>Choose an image</S.NoThumbnail>
+          <NoThumbnail onClick={proxyClick}>Choose an image</NoThumbnail>
         )}
-        <S.Buttons>
-          <S.Button onClick={proxyClick}>
-            <S.UploadIcon>
+        <Buttons>
+          <Button onClick={proxyClick}>
+            <UploadIcon>
               <CloudUpload />
-            </S.UploadIcon>
-          </S.Button>
-          <S.Button onClick={handleRemoveImage}>
-            <S.RemoveIcon>
+            </UploadIcon>
+          </Button>
+          <Button onClick={handleRemoveImage}>
+            <RemoveIcon>
               <Close />
-            </S.RemoveIcon>
-          </S.Button>
-        </S.Buttons>
+            </RemoveIcon>
+          </Button>
+        </Buttons>
         <input ref={inputRef} type="file" style={{ display: 'none' }} onChange={handleImageChange} />
-      </S.ImageSection>
+      </ImageSection>
       {helpText && <HelpText>{helpText}</HelpText>}
-    </S.ImageWithPreview>
+    </Root>
   );
 }
 

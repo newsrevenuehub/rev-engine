@@ -7,7 +7,7 @@ export const TableScrollWrapper = styled.div`
   overflow-x: scroll;
 `;
 
-export const PaginatedTable = styled.table`
+export const Table = styled.table`
   width: 100%;
   border-collapse: collapse;
   font-family: ${(props) => props.theme.systemFont};
@@ -105,7 +105,7 @@ export const TR = styled.tr`
   }
 `;
 
-export const SortIcon = styled.span`
+export const SortIconRoot = styled.span`
   margin-left: 1rem;
 `;
 

@@ -2,7 +2,7 @@ import { useEffect, useState, useMemo } from 'react';
 import { useAlert } from 'react-alert';
 import { useParams } from 'react-router-dom';
 
-import * as S from './DonationDetail.styled';
+import { DataGroupRoot, DataGroupHeading, DataInner, DL, Loading, ManageFlagged, Root } from './DonationDetail.styled';
 import Spinner from 'elements/Spinner';
 import formatCurrencyAmount from 'utilities/formatCurrencyAmount';
 import formatDatetimeForDisplay from 'utilities/formatDatetimeForDisplay';
@@ -129,17 +129,17 @@ function DonationDetail() {
   } = donationData || {};
 
   return (
-    <S.DonationDetail data-testid="donation-detail" layout>
+    <Root data-testid="donation-detail" layout>
       <PageTitle
         title={`${contributionId} ${revenueProgram?.name ? `| ${revenueProgram?.name} ` : ''}| Contributions`}
       />
       {isLoading ? (
-        <S.Loading layout>
+        <Loading layout>
           <Spinner />
-        </S.Loading>
+        </Loading>
       ) : (
         <>
-          <S.DL layout>
+          <DL layout>
             <DataGroup heading="Contribution details">
               <dt>Status</dt>
               <dd data-testid="status">{status && <PaymentStatus status={status} />}</dd>
@@ -172,7 +172,7 @@ function DonationDetail() {
                 <dt>Flagged date</dt>
                 <dd data-testid="flaggedDate">{flaggedDate ? formatDatetimeForDisplay(flaggedDate) : NO_VALUE}</dd>
                 {status === 'flagged' && (
-                  <S.ManageFlagged>
+                  <ManageFlagged>
                     <Button
                       loading={processing}
                       type="positive"
@@ -189,14 +189,14 @@ function DonationDetail() {
                     >
                       <Block /> Reject
                     </Button>
-                  </S.ManageFlagged>
+                  </ManageFlagged>
                 )}
               </DataGroup>
             )}
-          </S.DL>
+          </DL>
         </>
       )}
-    </S.DonationDetail>
+    </Root>
   );
 }
 
@@ -204,10 +204,10 @@ export default DonationDetail;
 
 function DataGroup({ heading, children }) {
   return (
-    <S.DataGroup>
-      <S.DataGroupHeading>{heading}</S.DataGroupHeading>
-      <S.DataInner>{children}</S.DataInner>
-    </S.DataGroup>
+    <DataGroupRoot>
+      <DataGroupHeading>{heading}</DataGroupHeading>
+      <DataInner>{children}</DataInner>
+    </DataGroupRoot>
   );
 }
 

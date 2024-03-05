@@ -1,7 +1,7 @@
 import styled from 'styled-components';
 import Error from '@material-design-icons/svg/outlined/error.svg?react';
 
-export const ContributorTokenExpiredModal = styled.div`
+export const Root = styled.div`
   background: ${(props) => props.theme.colors.white};
   border-radius: ${(props) => props.theme.radii[0]};
   padding: 2rem;

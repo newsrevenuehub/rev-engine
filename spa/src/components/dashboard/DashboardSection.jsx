@@ -1,15 +1,15 @@
-import * as S from './DashboardSection.styled';
-import { accordionAnimation } from 'components/content/pages/Pages.styled';
 import PropTypes from 'prop-types';
+import { accordionAnimation } from 'components/content/pages/Pages.styled';
+import { Root, SectionContent, SectionHeading } from './DashboardSection.styled';
 
 function DashboardSection({ children, heading, ...props }) {
   return (
-    <S.DashboardSection {...props} layout>
-      <S.SectionHeading layout>{heading && <h2>{heading}</h2>}</S.SectionHeading>
-      <S.SectionContent layout {...accordionAnimation}>
+    <Root {...props} layout>
+      <SectionHeading layout>{heading && <h2>{heading}</h2>}</SectionHeading>
+      <SectionContent layout {...accordionAnimation}>
         {children}
-      </S.SectionContent>
-    </S.DashboardSection>
+      </SectionContent>
+    </Root>
   );
 }
 

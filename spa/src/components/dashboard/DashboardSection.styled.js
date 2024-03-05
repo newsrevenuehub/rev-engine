@@ -1,7 +1,7 @@
 import styled from 'styled-components';
 import { motion } from 'framer-motion';
 
-export const DashboardSection = styled(motion.section)`
+export const Root = styled(motion.section)`
   border-radius: ${(props) => props.theme.radii[0]};
   box-shadow: ${(props) => props.theme.shadows[0]};
   background: ${(props) => props.theme.colors.paneBackground};

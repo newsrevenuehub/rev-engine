@@ -1,10 +1,10 @@
+import { ErrorOutline } from '@material-ui/icons';
 import { createContext, useCallback, useState, useContext } from 'react';
 import PropTypes from 'prop-types';
-import * as S from './GlobalConfirmationModal.styled';
-import Modal from './Modal';
 import Button from 'elements/buttons/Button';
 import useModal from 'hooks/useModal';
-import { ErrorOutline } from '@material-ui/icons';
+import Modal from './Modal';
+import { Buttons, Icon, Message, Root, Warning } from './GlobalConfirmationModal.styled';
 
 const ConfirmationModalContext = createContext(null);
 function GlobalConfirmationModal({ children }) {
@@ -42,22 +42,22 @@ function GlobalConfirmationModal({ children }) {
       {children}
       {open && (
         <Modal isOpen={open}>
-          <S.GlobalConfirmationModal data-testid="confirmation-modal">
-            <S.Warning>
-              <S.Icon>
+          <Root data-testid="confirmation-modal">
+            <Warning>
+              <Icon>
                 <ErrorOutline />
-              </S.Icon>
-            </S.Warning>
-            <S.Message>{ctaMessage}</S.Message>
-            <S.Buttons>
+              </Icon>
+            </Warning>
+            <Message>{ctaMessage}</Message>
+            <Buttons>
               <Button type="neutral" onClick={handleDecline} data-testid="cancel-button">
                 Cancel
               </Button>
               <Button onClick={handleConfirm} data-testid="continue-button">
                 Continue
               </Button>
-            </S.Buttons>
-          </S.GlobalConfirmationModal>
+            </Buttons>
+          </Root>
         </Modal>
       )}
     </ConfirmationModalContext.Provider>

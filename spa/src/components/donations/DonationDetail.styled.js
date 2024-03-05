@@ -1,7 +1,7 @@
 import styled from 'styled-components';
 import { motion } from 'framer-motion';
 
-export const DonationDetail = styled(motion.div)``;
+export const Root = styled(motion.div)``;
 
 export const Loading = styled(motion.div)`
   height: 100px;
@@ -20,7 +20,7 @@ export const DL = styled(motion.dl)`
   }
 `;
 
-export const DataGroup = styled.div`
+export const DataGroupRoot = styled.div`
   margin: 2rem 0;
 `;
 

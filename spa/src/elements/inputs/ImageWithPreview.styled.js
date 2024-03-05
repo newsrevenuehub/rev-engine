@@ -1,6 +1,6 @@
 import styled from 'styled-components';
 
-export const ImageWithPreview = styled.div`
+export const Root = styled.div`
   display: flex;
   flex-direction: column;
 `;

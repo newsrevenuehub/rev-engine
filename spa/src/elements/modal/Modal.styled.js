@@ -12,7 +12,7 @@ export const Underlay = styled.div`
   background: rgba(0, 0, 0, 0.5);
 `;
 
-export const Modal = styled.div`
+export const Root = styled.div`
   background: ${(props) => props.theme.colors.white};
   position: fixed;
   top: 50%;

@@ -1,9 +1,7 @@
-import { useEffect, useMemo } from 'react';
-import * as S from './PaginatedTable.styled';
-
-// Deps
-import { useTable, usePagination, useSortBy } from 'react-table';
 import { KeyboardArrowDown, KeyboardArrowUp, UnfoldMore } from '@material-ui/icons';
+import { useEffect, useMemo } from 'react';
+import { useTable, usePagination, useSortBy } from 'react-table';
+import { EmptyState, Pagination, SortIconRoot, Table, TableScrollWrapper, TH, TR } from './PaginatedTable.styled';
 
 function PaginatedTable({
   columns,
@@ -57,13 +55,13 @@ function PaginatedTable({
 
   return (
     <>
-      <S.TableScrollWrapper>
-        <S.PaginatedTable data-testid="donations-table" {...getTableProps()} columns={columns}>
+      <TableScrollWrapper>
+        <Table data-testid="donations-table" {...getTableProps()} columns={columns}>
           <thead>
             {headerGroups.map((headerGroup) => (
               <tr {...headerGroup.getHeaderGroupProps()}>
                 {headerGroup.headers.map((column) => (
-                  <S.TH
+                  <TH
                     data-testid={`donation-header-${column.id}`}
                     disableSortBy={column.disableSortBy}
                     {...column.getHeaderProps(column.getSortByToggleProps())}
@@ -78,7 +76,7 @@ function PaginatedTable({
                         disableSortBy={column.disableSortBy}
                       />
                     </div>
-                  </S.TH>
+                  </TH>
                 ))}
               </tr>
             ))}
@@ -88,7 +86,7 @@ function PaginatedTable({
               prepareRow(row);
               const disabled = getRowIsDisabled && getRowIsDisabled(row);
               return (
-                <S.TR
+                <TR
                   data-testid="donation-row"
                   data-donationid={row.original.id}
                   data-lastpaymentdate={row.original.last_payment_date}
@@ -112,14 +110,14 @@ function PaginatedTable({
                       </td>
                     );
                   })}
-                </S.TR>
+                </TR>
               );
             })}
           </tbody>
-        </S.PaginatedTable>
-      </S.TableScrollWrapper>
-      {!data.length && <S.EmptyState variant="body1">0 contributions to show.</S.EmptyState>}
-      <S.Pagination
+        </Table>
+      </TableScrollWrapper>
+      {!data.length && <EmptyState variant="body1">0 contributions to show.</EmptyState>}
+      <Pagination
         size="small"
         count={pageOptions.length}
         shape="rounded"
@@ -140,5 +138,5 @@ function SortIcon({ isSorted, isSortedDesc, disableSortBy }) {
 
     return isSortedDesc ? <KeyboardArrowUp /> : <KeyboardArrowDown />;
   };
-  return <S.SortIcon>{getIcon()}</S.SortIcon>;
+  return <SortIconRoot>{getIcon()}</SortIconRoot>;
 }

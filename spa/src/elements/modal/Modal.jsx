@@ -1,10 +1,9 @@
+import { Close } from '@material-ui/icons';
+import { AnimatePresence } from 'framer-motion';
 import { useEffect } from 'react';
 import { createPortal } from 'react-dom';
-import * as S from './Modal.styled';
-
-import { AnimatePresence } from 'framer-motion';
 import GenericErrorBoundary from 'components/errors/GenericErrorBoundary';
-import { Close } from '@material-ui/icons';
+import { CloseButton, CloseIcon, Root, Underlay } from './Modal.styled';
 
 function Modal({ children, isOpen, closeModal, ...props }) {
   useEffect(() => {
@@ -25,17 +24,17 @@ function Modal({ children, isOpen, closeModal, ...props }) {
     <AnimatePresence>
       {isOpen && (
         <>
-          <S.Underlay isOpen={isOpen} onClick={closeModal ? closeModal : () => {}} />
-          <S.Modal isOpen={isOpen} closeModal={closeModal} {...props}>
+          <Underlay isOpen={isOpen} onClick={closeModal ? closeModal : () => {}} />
+          <Root isOpen={isOpen} closeModal={closeModal} {...props}>
             {closeModal && (
-              <S.CloseButton onClick={closeModal} data-testid="close-modal">
-                <S.CloseIcon>
+              <CloseButton onClick={closeModal} data-testid="close-modal">
+                <CloseIcon>
                   <Close />
-                </S.CloseIcon>
-              </S.CloseButton>
+                </CloseIcon>
+              </CloseButton>
             )}
             <GenericErrorBoundary>{children}</GenericErrorBoundary>
-          </S.Modal>
+          </Root>
         </>
       )}
     </AnimatePresence>,

@@ -294,6 +294,8 @@ def cast_metadata_to_stripe_payment_metadata_schema(
     metadata: dict,
 ) -> Union[StripePaymentMetadataSchemaV1_4, StripePaymentMetadataSchemaV1_5]:
     """Cast metadata to the appropriate schema based on the schema_version field."""
+    if not metadata:
+        raise InvalidMetadataError("Metadata is empty")
     if (schema_version := metadata.get("schema_version", None)) not in STRIPE_PAYMENT_METADATA_SCHEMA_VERSIONS:
         raise InvalidMetadataError(f"Unknown schema version {schema_version}")
     schema_class = STRIPE_PAYMENT_METADATA_SCHEMA_VERSIONS[schema_version]

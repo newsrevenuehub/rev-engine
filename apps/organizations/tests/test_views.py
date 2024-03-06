@@ -183,7 +183,6 @@ class TestOrganizationViewSet:
         """Show that unmpermitted users cannot retrieve an organization."""
         api_client.force_authenticate(unsupported_user)
         response = api_client.get(reverse("organization-list", args=(organization.id,)))
-        breakpoint()
         assert response.status_code == (status.HTTP_403_FORBIDDEN if unsupported_user else status.HTTP_401_UNAUTHORIZED)
 
     def test_list_when_expected_user(self, user, api_client, mocker):

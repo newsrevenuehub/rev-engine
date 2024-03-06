@@ -88,8 +88,8 @@ export function PortalAuthContextProvider({ children }: InferProps<typeof Portal
       throw new Error('No CSRF in token verification response');
     }
 
-    // Set values in context and in local storage for later usage. The local
-    // storage key is also needed for backwards compat with isAuthenticated() in
+    // Set values in context, in local storage, and session storage for later usage. The session
+    // storage key is also needed for compatibility with isAuthenticated(contributorType) in
     // utilities/, used by ProtectedRoute.
 
     setContributor(data.contributor);
@@ -124,7 +124,7 @@ export function PortalAuthContextProvider({ children }: InferProps<typeof Portal
         identifyUserInSentry(loadedContributor);
       }
     } catch {
-      // Fail silently--their local storage has become malformed, so we want
+      // Fail silently--their session storage has become malformed, so we want
       // them to sign in again.
     }
   }, []);

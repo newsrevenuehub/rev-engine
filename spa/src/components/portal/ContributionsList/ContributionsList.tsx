@@ -1,24 +1,26 @@
 import { ReactChild, useEffect, useState } from 'react';
 import { useParams } from 'react-router-dom';
 import { CircularProgress } from 'components/base';
+import Sort from 'components/common/Sort';
+import usePortal from 'hooks/usePortal';
 import { usePortalAuthContext } from 'hooks/usePortalAuth';
 import { usePortalContributionList } from 'hooks/usePortalContributionList';
 import ContributionItem from './ContributionItem/ContributionItem';
 import NoContributions from './NoContributions';
 import ContributionFetchError from './ContributionFetchError';
 import ContributionDetail from './ContributionDetail/ContributionDetail';
+import { ContributionsHeader } from './ContributionsHeader';
 import {
   List,
   Root,
   Subhead,
-  Columns,
+  Layout,
   Loading,
   Legend,
   Detail,
   StyledPortalPage,
   AlignPositionWrapper
 } from './ContributionsList.styled';
-import Sort from 'components/common/Sort';
 
 const CONTRIBUTION_SORT_OPTIONS = [
   {
@@ -45,6 +47,7 @@ const CONTRIBUTION_SORT_OPTIONS = [
 export function ContributionsList() {
   const { contributionId } = useParams<{ contributionId?: string }>();
   const { contributor } = usePortalAuthContext();
+  const { page } = usePortal();
   const [ordering, setOrdering] = useState(CONTRIBUTION_SORT_OPTIONS[0].value);
   const { contributions, isError, isLoading, refetch } = usePortalContributionList(contributor?.id, {
     ordering: `-${ordering}`
@@ -111,7 +114,8 @@ export function ContributionsList() {
   return (
     <StyledPortalPage>
       <Root>
-        <Columns>
+        <Layout>
+          <ContributionsHeader defaultPage={page} revenueProgram={page?.revenue_program} />
           <Legend $detailVisible={!!selectedContribution}>
             <Subhead>Transactions</Subhead>
             <p>View billing history, update payment details, and resend receipts.</p>
@@ -127,7 +131,7 @@ export function ContributionsList() {
               />
             </Detail>
           )}
-        </Columns>
+        </Layout>
       </Root>
     </StyledPortalPage>
   );

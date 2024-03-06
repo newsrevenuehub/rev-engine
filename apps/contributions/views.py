@@ -37,6 +37,7 @@ from apps.contributions.models import (
     Contribution,
     ContributionInterval,
     ContributionIntervalError,
+    ContributionQuerySet,
     ContributionStatus,
     ContributionStatusError,
     Contributor,
@@ -579,6 +580,14 @@ class PortalContributorsViewSet(viewsets.GenericViewSet):
         "status",
     ]
 
+    # Contributors should never see contributions with these statuses, or
+    # interact with them (e.g. delete or patch them).
+    HIDDEN_STATUSES = [
+        ContributionStatus.FLAGGED,
+        ContributionStatus.PROCESSING,
+        ContributionStatus.REJECTED,
+    ]
+
     queryset = Contributor.objects.all()
 
     def _get_contributor_and_check_permissions(self, request, contributor_id):
@@ -588,6 +597,12 @@ class PortalContributorsViewSet(viewsets.GenericViewSet):
             raise NotFound(detail="Contributor not found", code=status.HTTP_404_NOT_FOUND)
         self.check_object_permissions(request, contributor)
         return contributor
+
+    def _prune_contributions_queryset(self, queryset: ContributionQuerySet) -> ContributionQuerySet:
+        """Removes contributions from a contribution queryset that should never be visible to a contributor."""
+        # This is needed bcecause the queryset property of this class is tied to
+        # contributors, not contributions.
+        return queryset.exclude(status__in=self.HIDDEN_STATUSES)
 
     def get_serializer_class(self):
         return (
@@ -614,7 +629,7 @@ class PortalContributorsViewSet(viewsets.GenericViewSet):
 
         ordering_filter = OrderingFilter()
         ordering_filter.ordering_fields = self.ALLOWED_ORDERING_FIELDS
-        qs = contributor.contribution_set.filter(**filters)
+        qs = contributor.contribution_set.exclude(status__in=self.HIDDEN_STATUSES).filter(**filters)
         qs = (
             ordering_filter.filter_queryset(request, qs, self)
             if request.query_params.get("ordering")
@@ -636,7 +651,7 @@ class PortalContributorsViewSet(viewsets.GenericViewSet):
         """Endpoint to get or update a contribution for a given contributor"""
         contributor = self._get_contributor_and_check_permissions(request, pk)
         try:
-            contribution = contributor.contribution_set.get(pk=contribution_id)
+            contribution = contributor.contribution_set.exclude(status__in=self.HIDDEN_STATUSES).get(pk=contribution_id)
         except Contribution.DoesNotExist:
             return Response({"detail": "Contribution not found"}, status=status.HTTP_404_NOT_FOUND)
 

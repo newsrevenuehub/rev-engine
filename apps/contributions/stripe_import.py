@@ -92,10 +92,6 @@ class PaymentIntentForOneTimeContribution:
             raise InvalidStripeTransactionDataError(
                 f"Payment intent {self.payment_intent.id} has multiple successful charges associated with it. Unable to create one-time contribution"
             )
-        if len([x for x in self.charges if x.status == "succeeded"]) != 1:
-            raise InvalidStripeTransactionDataError(
-                f"Payment intent {self.payment_intent.id} has no successful charge associated with it. Unable to create one-time contribution"
-            )
 
     @property
     def successful_charge(self) -> stripe.Charge:
@@ -169,10 +165,28 @@ class PaymentIntentForOneTimeContribution:
             caller_name="PaymentIntentForOneTimeContribution.upsert",
         )
         if charge := self.successful_charge:
-            upsert_payment_for_transaction(contribution, charge.balance_transaction, is_refund=False)
+            if charge.balance_transaction:
+                upsert_payment_for_transaction(contribution, charge.balance_transaction, is_refund=False)
+            else:
+                # NB. This is a rare case. It happened running locally with test Stripe. Seems unlikely in prod, but need to handle so command
+                # works in all cases
+                logger.warning(
+                    "Charge %s associated with payment intent %s has no balance transaction associated with it",
+                    charge.id,
+                    self.payment_intent.id,
+                )
         # Even though we only expect one successful charge, it's possible to have multiple refunds
         for x in self.refunds:
-            upsert_payment_for_transaction(contribution, x.balance_transaction, is_refund=True)
+            if x.balance_transaction:
+                upsert_payment_for_transaction(contribution, x.balance_transaction, is_refund=True)
+            else:
+                # NB. This is a rare case. It happened running locally with test Stripe. Seems unlikely in prod, but need to handle so command
+                # works in all cases
+                logger.warning(
+                    "Refund %s associated with payment intent %s has no balance transaction associated with it",
+                    x.id,
+                    self.payment_intent.id,
+                )
         return contribution, action
 
 

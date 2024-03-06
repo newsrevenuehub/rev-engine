@@ -37,6 +37,7 @@ def upsert_payment_for_transaction(
 ) -> None:
     """Upsert a payment object for a given stripe balance transaction and contribution"""
     logger.debug("Upserting payment for contribution %s and transaction %s", contribution.id, transaction.id)
+
     payment, action = upsert_with_diff_check(
         model=Payment,
         unique_identifier={"contribution": contribution, "stripe_balance_transaction_id": transaction.id},
@@ -319,7 +320,7 @@ class StripeTransactionsImporter:
                 payment_intent=payment_intent_id,
                 stripe_account=self.stripe_account_id,
                 limit=MAX_STRIPE_RESPONSE_LIMIT,
-                expand=("data.balance_transaction", "data.refunds"),
+                expand=("data.balance_transaction", "data.refunds.data.balance_transaction"),
             ).auto_paging_iter()
         ]
 
@@ -423,7 +424,7 @@ class StripeTransactionsImporter:
         charges = self.get_charges_for_payment_intent(payment_intent_id=payment_intent.id)
         refunds = []
         for charge in charges:
-            refunds.extend(charge.refunds)
+            refunds.extend([x.balance_transaction for x in charge.refunds.data])
         customer = self.get_stripe_customer(customer_id=payment_intent.customer)
         invoice = self.get_invoice(invoice_id=payment_intent.invoice) if payment_intent.invoice else None
         if self.is_for_one_time_contribution(payment_intent, invoice):
@@ -445,7 +446,7 @@ class StripeTransactionsImporter:
     def import_contributions_and_payments(self) -> None:
         """This method is responsible for upserting contributors, contributions, and payments for a given stripe account."""
         logger.info(
-            "Retrieving all revengine-related payment intents for stripe account %s. This may take a while",
+            "Retrieving all revengine-related payment intents for stripe account %s. This may take several minutes.",
             self.stripe_account_id,
         )
         pis = self.get_payment_intents()

@@ -424,7 +424,7 @@ class StripeTransactionsImporter:
         charges = self.get_charges_for_payment_intent(payment_intent_id=payment_intent.id)
         refunds = []
         for charge in charges:
-            refunds.extend([x.balance_transaction for x in charge.refunds.data])
+            refunds.extend([x for x in charge.refunds.data])
         customer = self.get_stripe_customer(customer_id=payment_intent.customer)
         invoice = self.get_invoice(invoice_id=payment_intent.invoice) if payment_intent.invoice else None
         if self.is_for_one_time_contribution(payment_intent, invoice):

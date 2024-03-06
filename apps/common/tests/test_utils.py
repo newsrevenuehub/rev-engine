@@ -372,7 +372,7 @@ class Test_upsert_with_diff_check:
         params=[
             {"instance": "instance_is_none", "action": "created"},
             {"instance": "instance_needs_update", "action": "updated"},
-            {"instance": "instance_not_need_update", "action": "unchanged"},
+            {"instance": "instance_not_need_update", "action": "left unchanged"},
         ]
     )
     def upsert_with_diff_check_case(self, request):

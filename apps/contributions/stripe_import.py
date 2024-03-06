@@ -1,8 +1,7 @@
 import datetime
 import logging
 from dataclasses import dataclass
-from functools import cached_property
-from typing import Dict, Tuple
+from typing import Tuple
 
 from django.conf import settings
 from django.db import transaction
@@ -26,7 +25,6 @@ from apps.contributions.types import (
     STRIPE_PAYMENT_METADATA_SCHEMA_VERSIONS,
     cast_metadata_to_stripe_payment_metadata_schema,
 )
-from apps.organizations.models import PaymentProvider
 
 
 MAX_STRIPE_RESPONSE_LIMIT = 100
@@ -34,250 +32,74 @@ MAX_STRIPE_RESPONSE_LIMIT = 100
 logger = logging.getLogger(f"{settings.DEFAULT_LOGGER}.{__name__}")
 
 
-def upsert_payment_for_transaction(contribution: Contribution, transaction: stripe.BalanceTransaction) -> None:
+def upsert_payment_for_transaction(
+    contribution: Contribution, transaction: stripe.BalanceTransaction, is_refund: bool = False
+) -> None:
+    """Upsert a payment object for a given stripe balance transaction and contribution"""
     logger.debug("Upserting payment for contribution %s and transaction %s", contribution.id, transaction.id)
-    # see https://docs.stripe.com/reports/reporting-categories
-    if (t_type := transaction.reporting_category) not in ("charge", "refund"):
-        logger.warning(
-            "Transaction %s for contribution %s has unexpected reporting category %s",
-            transaction.id,
-            contribution.id,
-            transaction.reporting_category,
-        )
-        return
     payment, action = upsert_with_diff_check(
         model=Payment,
         unique_identifier={"contribution": contribution, "stripe_balance_transaction_id": transaction.id},
         defaults={
-            "net_amount_paid": transaction.net if t_type == "charge" else 0,
-            "gross_amount_paid": transaction.amount if t_type == "charge" else 0,
-            "amount_refunded": transaction.amount if t_type == "refund" else 0,
+            "net_amount_paid": transaction.net if not is_refund else 0,
+            "gross_amount_paid": transaction.amount if not is_refund else 0,
+            "amount_refunded": transaction.amount if is_refund else 0,
             "transaction_time": datetime.datetime.fromtimestamp(int(transaction.created), tz=datetime.timezone.utc),
         },
         caller_name="upsert_payment_for_transaction",
     )
-    if action in ("created", "updated"):
-        logger.info("%s payment %s for contribution %s", action, payment.id, contribution.id)
+    logger.info("%s payment %s for contribution %s", action, payment.id, contribution.id)
 
 
 @dataclass(frozen=True)
-class StripeClientForConnectedAccount:
-    """A wrapper around Stripe library for a connected account.
-
-    Gets initialized with an account id, and when making requests to stripe, that account ID is included as the
-    stripe_account parameter.
-    """
-
-    account_id: str
-    lte: datetime.datetime = None
-    gte: datetime.datetime = None
-
-    DEFAULT_GET_CHARGE_EXPAND_FIELDS = ("balance_transaction", "refunds.data.balance_transaction", "customer")
-    DEFAULT_GET_SUBSCRIPTION_EXPAND_FIELDS = ("customer",)
-    DEFAULT_GET_CUSTOMER_EXPAND_FIELDS = ("invoice_settings.default_payment_method",)
-
-    def __post_init__(self):
-        logger.debug("Initializing StripeClientForConnectedAccount with account_id %s", self.account_id)
-
-    @property
-    def created_query(self) -> dict:
-        """Generates a query that can supplied for "created" param when listing stripe resources"""
-        return {k: v for k, v in {"gte": self.gte, "lte": self.lte}.items() if v}
-
-    def get_paid_invoices(self) -> list[stripe.Invoice]:
-        """Gets paid invoices for a given stripe account"""
-        logger.debug("Getting invoices for account %s", self.account_id)
-        return [
-            x
-            for x in stripe.Invoice.list(
-                stripe_account=self.account_id,
-                limit=MAX_STRIPE_RESPONSE_LIMIT,
-                created=self.created_query,
-                status="paid",
-            ).auto_paging_iter()
-        ]
-
-    def get_payment_intents(self) -> list[stripe.PaymentIntent]:
-        """Gets payment intents for a given stripe account
-
-        NB: This method only lets through payment intents that have a supported schema version.
-        """
-        logger.debug("Getting payment intents for account %s", self.account_id)
-        pis = [
-            x
-            for x in stripe.PaymentIntent.list(
-                stripe_account=self.account_id, limit=MAX_STRIPE_RESPONSE_LIMIT, created=self.created_query
-            ).auto_paging_iter()
-        ]
-        return [x for x in pis if x.metadata.get("schema_version") in STRIPE_PAYMENT_METADATA_SCHEMA_VERSIONS]
-
-    @staticmethod
-    def is_for_one_time_contribution(pi: stripe.PaymentIntent, invoice: stripe.Invoice | None) -> bool:
-        """Determines if a given stripe payment intent is for a one time contribution"""
-        logger.debug("Determining if payment intent %s is for a one time contribution", pi.id)
-        if not pi.invoice:
-            return True
-        if invoice and invoice.subscription:
-            return False
-        return True
-
-    def get_transactions_for_payment_intent(self, payment_intent_id: str) -> list[stripe.BalanceTransaction]:
-        """Gets transactions for a given payment intent"""
-        logger.debug("Getting transactions for payment intent %s for account %s", payment_intent_id, self.account_id)
-        return [
-            x
-            for x in stripe.BalanceTransaction.list(
-                source=payment_intent_id, stripe_account=self.account_id, limit=MAX_STRIPE_RESPONSE_LIMIT
-            ).auto_paging_iter()
-        ]
-
-    def get_revengine_one_time_payment_intents_and_transactions(self) -> list[Dict[str, str]]:
-        """Get a set of stripe PaymentIntent objects and their respective transactions for one-time payments for a given Stripe account"""
-        logger.info("Getting revengine one time payment intents and transactions for account %s", self.account_id)
-        # this gets all PIs for the account, factoring in any limits around created date and metadata. It uses the list method, which
-        # means we're unable to expand these fields, so we'll have to do that in a separate call
-        pis = self.get_payment_intents()
-        logger.info(
-            "Found %s revengine payment intents for one-time contributions for account %s", len(pis), self.account_id
-        )
-        results = []
-        for x in pis:
-            pi = self.get_stripe_entity(
-                x.id, "PaymentIntent", self.account_id, expand=("charges.data.balance_transaction",)
-            )
-            charges = [y.id for y in pi.charges.data if y.status != "failed"]
-            if len(charges) > 1:
-                logger.warning(
-                    "Payment intent %s has more than one successful or pending charge so cannot be processed: %s",
-                    x.id,
-                    ", ".join(charges),
-                )
-                continue
-            invoice = self.get_invoice(invoice_id=x.invoice, stripe_account_id=self.account_id) if x.invoice else None
-            if self.is_for_one_time_contribution(pi=pi, invoice=invoice):
-                logger.debug("Payment intent %s is for a one time contribution. Getting charge data.", x.id)
-                results.append(
-                    {"payment_intent": x, "tranasactions": [charge.balance_transaction for charge in charges]}
-                )
-        breakpoint()
-        return results
-
-    def get_revengine_subscriptions(self, invoices) -> list[stripe.Subscription]:
-        """Given a set of invoices, retrieve a set of subscriptions that should be imported to revengine."""
-        logger.info("Getting revengine subscriptions for account %s", self.account_id)
-        sub_ids = [x.subscription for x in invoices if x.subscription]
-        results = []
-        for x in sub_ids:
-            if sub := self.get_subscription(subscription_id=x, stripe_account_id=self.account_id):
-                results.append(sub)
-        return results
-
-    def get_revengine_one_time_contributions_data(self) -> list["PaymentIntentForOneTimeContribution"]:
-        """Generate a list of PaymentIntentForOneTimeContribution objects for a given stripe account.
-
-        The list is generated by retrieving a larger set of payment intents, then whittling it down
-        to the ones that are untracked and that adhere to a supported Stripe payment metadata schema version.
-        """
-        logger.debug("Getting untracked one time payment intents for account %s", self.account_id)
-        data = []
-        for x in self.get_revengine_one_time_payment_intents_and_transactions():
-            try:
-                data.append(PaymentIntentForOneTimeContribution(**x))
-            except (InvalidMetadataError, InvalidStripeTransactionDataError) as exc:
-                logger.warning(
-                    "Unable to import payment intent %s for account %s",
-                    x.payment_intent.id,
-                    self.account_id,
-                    exc_info=exc,
-                )
-        return data
-
-    @staticmethod
-    def get_stripe_entity(entity_id: str, stripe_entity_name: str, stripe_account_id: str, **kwargs):
-        """Retrieve a stripe entity for a given stripe account"""
-        logger.debug("Getting %s %s for account %s", stripe_entity_name, entity_id, stripe_account_id)
-        try:
-            return getattr(stripe, stripe_entity_name).retrieve(entity_id, stripe_account=stripe_account_id, **kwargs)
-        except stripe.error.StripeError as exc:
-            logger.warning(
-                "Unable to retrieve %s %s for account %s",
-                stripe_entity_name,
-                entity_id,
-                stripe_account_id,
-                exc_info=exc,
-            )
-
-    @classmethod
-    def get_payment_method(
-        cls, payment_method_id: str, stripe_account_id: str, **kwargs
-    ) -> stripe.PaymentMethod | None:
-        """Retrieve a payment method for a given stripe account"""
-        return cls.get_stripe_entity(payment_method_id, "PaymentMethod", stripe_account_id, **kwargs)
-
-    @classmethod
-    def get_stripe_customer(cls, customer_id: str, stripe_account_id: str, **kwargs) -> stripe.Customer | None:
-        """Retrieve a stripe customer for a given stripe account"""
-        return cls.get_stripe_entity(
-            customer_id, "Customer", stripe_account_id, expand=cls.DEFAULT_GET_CUSTOMER_EXPAND_FIELDS, **kwargs
-        )
-
-    @classmethod
-    def get_stripe_event(cls, event_id: str, stripe_account_id: str, **kwargs) -> stripe.Event | None:
-        """Retrieve a stripe event for a given stripe account"""
-        return cls.get_stripe_entity(event_id, "Event", stripe_account_id, **kwargs)
-
-    @classmethod
-    def get_subscription(cls, subscription_id: str, stripe_account_id: str, **kwargs) -> stripe.Subscription | None:
-        """Retrieve a stripe subscription for a given stripe account"""
-        return cls.get_stripe_entity(
-            subscription_id,
-            "Subscription",
-            stripe_account_id,
-            expand=cls.DEFAULT_GET_SUBSCRIPTION_EXPAND_FIELDS,
-            **kwargs,
-        )
-
-    @classmethod
-    def get_invoice(cls, invoice_id: str, stripe_account_id: str, **kwargs) -> stripe.Invoice | None:
-        """Retrieve a stripe invoice for a given stripe account"""
-        return cls.get_stripe_entity(invoice_id, "Invoice", stripe_account_id, **kwargs)
-
-
 class PaymentIntentForOneTimeContribution:
-    """Convenience class used to upsert contribution, contributor, and payments for a given Stripe payment intent.
+    """Convenience class used to upsert contribution, contributor, and payments for a given Stripe payment intent"""
 
-    Note that in the init method, we raise an exception if the metadata is invalid.
-    """
+    payment_intent: stripe.PaymentIntent
+    charges: list[stripe.Charge]
+    refunds: list[stripe.Refund]
+    customer: stripe.Customer | None
 
-    def __init__(self, payment_intent: stripe.PaymentIntent, transactions: list[stripe.BalanceTransaction]):
-        """NB: The charge is expected to have its balance_transaction, refunds, and customer properties expanded."""
-        # This will raise an `InvalidMetadataError` if the metadata is invalid, which we expect calling context to manage
-        cast_metadata_to_stripe_payment_metadata_schema(payment_intent.metadata)
-        self.payment_intent = payment_intent
-        self.transactions = transactions
+    def __post_init__(self) -> None:
+        self.validate()
 
     def __str__(self) -> str:
         return f"PaymentIntentForOneTimeContribution {self.payment_intent.id}"
 
-    @cached_property
-    def customer(self) -> stripe.Customer | None:
-        """Gets the customer associated with the payment intent or related charge
+    def validate(self) -> None:
+        """Does several validation checks that should ensure the data can be upserted to revengine."""
+        # This will raise an `InvalidMetadataError` if the metadata is invalid
+        cast_metadata_to_stripe_payment_metadata_schema(self.payment_intent.metadata)
+        self.validate_email_id()
+        self.validate_charges()
 
-        The source for this could be the charge or the PI. We prefer the former when present.
+    def validate_email_id(self) -> None:
+        if not self.email_id:
+            raise InvalidStripeTransactionDataError(
+                f"Payment intent {self.payment_intent.id} has no email associated with it"
+            )
+
+    def validate_charges(self) -> None:
+        """Ensure there's onlly one successful or pending charge.
+
+        This is critical for a one-time contribution. If there's more than one charge, our system
+        cannot represent this in context of a one-time contribution.
+
+        Statuses are: succeeded, pending, failed
         """
-        cust = self.payment_intent.customer
-        if isinstance(cust, str):
-            return StripeClientForConnectedAccount.get_stripe_customer(
-                customer_id=cust, stripe_account_id=self.payment_intent.stripe_account
+        if len([x for x in self.charges if x.status != "failed"]) > 1:
+            raise InvalidStripeTransactionDataError(
+                f"Payment intent {self.payment_intent.id} has multiple successful charges associated with it. Unable to create one-time contribution"
             )
-        elif isinstance(cust, stripe.Customer):
-            return cust
-        else:
-            logger.warning(
-                "Unable to get customer for payment intent %s because unexpected customer type encountered %s",
-                self.payment_intent.id,
-                type(cust),
+        if len([x for x in self.charges if x.status == "succeeded"]) != 1:
+            raise InvalidStripeTransactionDataError(
+                f"Payment intent {self.payment_intent.id} has no successful charge associated with it. Unable to create one-time contribution"
             )
+
+    @property
+    def successful_charge(self) -> stripe.Charge:
+        """Get the first successful charge associated with the payment intent"""
+        return next((x for x in self.charges if x.status == "succeeded"))
 
     @property
     def email_id(self) -> str | None:
@@ -285,13 +107,8 @@ class PaymentIntentForOneTimeContribution:
 
     @property
     def refunded(self) -> bool:
-        """For a contribution to be considered as refunded either refunded flag will be set for full refunds
-        or amount_refunded will be > 0 (will be useful in case of partial refund and we still want to set
-        the status as refunded)
-        https://stripe.com/docs/api/charges/object#charge_object-refunded
-        https://stripe.com/docs/api/charges/object#charge_object-amount_refunded
-        """
-        return any((x.refunded or x.amount_refunded > 0) for x in self.payment_intent.charges.data)
+        """In revengine if a one-time contribution has any refunds associated with it, it's considered refunded."""
+        return len(self.refunds) > 0
 
     @property
     def status(self) -> ContributionStatus:
@@ -307,18 +124,15 @@ class PaymentIntentForOneTimeContribution:
         else:
             return ContributionStatus.PROCESSING
 
-    @cached_property
+    @property
     def payment_method(self) -> stripe.PaymentMethod | None:
         """The payment method associated with the payment intent. We prefer the charge's payment method if present,
-        but if not, we try getting from Stripe customer"""
+        but if not, we try getting from Stripe customer
+
+        Assumes payment method on the pi or customer.invoice.settings.default_payment_method is expanded
+        """
         if default_pm := self.payment_intent.payment_method:
-            return (
-                StripeClientForConnectedAccount.get_payment_method(
-                    payment_method_id=default_pm, stripe_account_id=self.payment_intent.stripe_account
-                )
-                if isinstance(default_pm, str)
-                else default_pm
-            )
+            return default_pm
         if customer := self.customer:
             return customer.invoice_settings.default_payment_method if customer.invoice_settings else None
 
@@ -331,11 +145,7 @@ class PaymentIntentForOneTimeContribution:
         If that charge has any refunds associated with it, we'll upsert those as payments as well.
         """
         logger.debug("Upserting untracked payment intent %s", self.payment_intent.id)
-        if not (email := self.email_id):
-            raise InvalidStripeTransactionDataError(
-                f"Payment intent {self.payment_intent.id} has no email associated with it"
-            )
-        contributor, created = Contributor.objects.get_or_create(email=email)
+        contributor, created = Contributor.objects.get_or_create(email=self.email_id)
         if created:
             logger.info("Created new contributor %s for payment intent %s", contributor.id, self.payment_intent.id)
         pm = self.payment_method
@@ -357,25 +167,42 @@ class PaymentIntentForOneTimeContribution:
             },
             caller_name="PaymentIntentForOneTimeContribution.upsert",
         )
-        if action in ("created", "updated"):
-            logger.info("%s contribution %s for payment intent %s", action, contribution.id, self.payment_intent.id)
-        for transaction in self.transactions:
-            upsert_payment_for_transaction(contribution, transaction)
+        if charge := self.successful_charge:
+            upsert_payment_for_transaction(contribution, charge.balance_transaction, is_refund=False)
+        # Even though we only expect one successful charge, it's possible to have multiple refunds
+        for x in self.refunds:
+            upsert_payment_for_transaction(contribution, x.balance_transaction, is_refund=True)
         return contribution, action
 
 
+@dataclass(frozen=True)
 class SubscriptionForRecurringContribution:
-    """Convenience class used to upsert contribution, contributor, and (optionally) payments for a given Stripe subscription.
+    """Convenience class used to upsert contribution, contributor, and payments for a given Stripe subscription."""
 
-    Note that in the init method, we raise an exception if the metadata is invalid.
-    """
+    subscription: stripe.Subscription
+    charges: list[stripe.Charge]
+    refunds: list[stripe.Refund]
+    customer: stripe.Customer
 
-    def __init__(self, subscription: stripe.Subscription, transactions: list[stripe.BalanceTransaction]):
-        self.subscription = subscription
-        self.transactions = transactions
+    def __post_init__(self) -> None:
+        self.validate()
 
     def __str__(self) -> str:
         return f"SubscriptionForRecurringContribution {self.subscription.id}"
+
+    def validate(self) -> None:
+        """Does several validation checks that should ensure the data can be upserted to revengine."""
+        # This will raise an `InvalidMetadataError` if the metadata is invalid
+        cast_metadata_to_stripe_payment_metadata_schema(self.subscription.metadata)
+        self.validate_email_id()
+        # This will raise an `InvalidIntervalError` if the interval is invalid
+        self.get_interval_from_subscription(self.subscription)
+
+    def validate_email_id(self) -> None:
+        if not self.email_id:
+            raise InvalidStripeTransactionDataError(
+                f"Subscription {self.subscription.id} has no email associated with it"
+            )
 
     @property
     def status(self) -> ContributionStatus:
@@ -411,28 +238,25 @@ class SubscriptionForRecurringContribution:
         return self.get_interval_from_subscription(self.subscription)
 
     @property
-    def email_id(self) -> str:
-        return getattr(self.subscription.customer, "email", None) if self.subscription.customer else None
+    def email_id(self) -> str | None:
+        return getattr(self.customer, "email", None) if self.customer else None
 
-    @cached_property
+    @property
     def payment_method(self) -> stripe.PaymentMethod | None:
         """The payment method associated with the subscription. We prefer default payment method on sub if present,
 
-        but if not, we try getting from Stripe customer"""
+        but if not, we try getting from Stripe customer
+
+        NB: Assumes default payment method has been expanded on the subscription
+        """
         if default_pm := self.subscription.default_payment_method:
-            return (
-                StripeClientForConnectedAccount.get_payment_method(
-                    payment_method_id=default_pm, stripe_account_id=self.subscription.stripe_account
-                )
-                if isinstance(default_pm, str)
-                else default_pm
-            )
-        if customer := self.subscription.customer:
-            # need to re-retrieve because we don't have the expand fields on the customer object
-            customer = StripeClientForConnectedAccount.get_stripe_customer(
-                customer_id=customer.id, stripe_account_id=self.subscription.stripe_account
-            )
-            return customer.invoice_settings.default_payment_method if customer and customer.invoice_settings else None
+            return default_pm
+
+        return (
+            self.customer.invoice_settings.default_payment_method
+            if self.customer and self.customer.invoice_settings
+            else None
+        )
 
     @transaction.atomic
     def upsert(self) -> Tuple[Contribution, str]:
@@ -441,11 +265,7 @@ class SubscriptionForRecurringContribution:
         NB: Fields are only updated in case of existing contribution if they have changed.
         """
         logger.debug("Upserting untracked subscription %s", self.subscription.id)
-        if not (email := self.email_id):
-            raise InvalidStripeTransactionDataError(
-                f"Subscription {self.subscription.id} has no email associated with it"
-            )
-        contributor, created = Contributor.objects.get_or_create(email=email)
+        contributor, created = Contributor.objects.get_or_create(email=self.email_id)
         if created:
             logger.info("Created new contributor %s for subscription %s", contributor.id, self.subscription.id)
         pm = self.payment_method
@@ -455,11 +275,10 @@ class SubscriptionForRecurringContribution:
             defaults={
                 "amount": self.subscription.plan.amount,
                 "currency": self.subscription.plan.currency,
-                # should be guaranteed that metadata is present at this point, given init
                 "reason": self.subscription.metadata.get("reason_for_giving", ""),
                 "interval": self.interval,
                 "payment_provider_used": "stripe",
-                "provider_customer_id": self.subscription.customer.id,
+                "provider_customer_id": self.customer.id if self.customer else None,
                 "provider_payment_method_id": pm.id if pm else None,
                 "provider_payment_method_details": pm.to_dict() if pm else None,
                 "contributor": contributor,
@@ -468,164 +287,231 @@ class SubscriptionForRecurringContribution:
             },
             caller_name="SubscriptionForRecurringContribution.upsert",
         )
-        if action in ("created", "updated"):
-            logger.info(
-                "%s contribution %s for provider_subscription_id %s", action, contribution.id, self.subscription.id
-            )
-        for transaction in self.transactions:
-            upsert_payment_for_transaction(contribution, transaction)
+        for x in self.charges:
+            upsert_payment_for_transaction(contribution, x.balance_transaction, is_refund=False)
+        for x in self.refunds:
+            upsert_payment_for_transaction(contribution, x.balance_transaction, is_refund=True)
         return contribution, action
 
 
 @dataclass
 class StripeTransactionsImporter:
-    """Class for importing Stripe transactions data to Revengine. By default will iterate over all available Stripe accounts, for all time"""
+    """Class for importing Stripe transactions data to Revengine"""
 
-    _STRIPE_ACCOUNTS_QUERY = PaymentProvider.objects.filter(stripe_account_id__isnull=False)
-    for_orgs: list[str] = None
-    for_stripe_accounts: list[str] = None
+    stripe_account_id: str
     from_date: datetime.datetime = None
     to_date: datetime.datetime = None
 
-    def __post_init__(self):
-        logger.debug(
-            "Initializing StripeTransactionsImporter with for_orgs %s and for_stripe_accounts %s",
-            self.for_orgs,
-            self.for_stripe_accounts,
-        )
-        kwargs = {}
-        if self.for_orgs:
-            kwargs["revenueprogram__organization__id__in"] = self.for_orgs
-        if self.for_stripe_accounts:
-            kwargs["stripe_account_id__in"] = self.for_stripe_accounts
-        if kwargs:
-            self._STRIPE_ACCOUNTS_QUERY = self._STRIPE_ACCOUNTS_QUERY.filter(**kwargs)
+    _SUBSCRIPTIONS_DATA = {}
+    _ONE_TIMES_DATA = []
 
     @property
-    def stripe_account_ids(self):
-        return list(self._STRIPE_ACCOUNTS_QUERY.values_list("stripe_account_id", flat=True))
+    def created_query(self) -> dict:
+        """Generates a query that can supplied for "created" param when listing stripe resources"""
+        return {k: v for k, v in {"gte": self.from_date, "lte": self.to_date}.items() if v}
 
-    def get_transactions_for_payment_intent(
-        self, payment_intent_id: str, stripe_account_id: str
-    ) -> list[stripe.BalanceTransaction]:
-        """Gets transactions for a given payment intent"""
-        return StripeClientForConnectedAccount(
-            account_id=stripe_account_id, gte=self.from_date, lte=self.to_date
-        ).get_transactions_for_payment_intent(payment_intent_id)
+    def get_charges_for_payment_intent(self, payment_intent_id: str) -> list[stripe.Charge]:
+        """Gets charges for a given stripe payment intent"""
+        logger.debug("Getting charges for payment intent %s", payment_intent_id)
+        return [
+            x
+            for x in stripe.Charge.list(
+                payment_intent=payment_intent_id,
+                stripe_account=self.stripe_account_id,
+                limit=MAX_STRIPE_RESPONSE_LIMIT,
+                expand=("data.balance_transaction", "data.refunds"),
+            ).auto_paging_iter()
+        ]
 
-    def import_contributions_and_payments_for_stripe_account(self, account_id: str) -> None:
-        """This method is responsible for upserting contributors, contributions, and payments for a given stripe account."""
-        logger.info("Importing transactions data for stripe account %s", account_id)
-        # self.import_contributions_and_payments_for_subscriptions(stripe_account_id=account_id)
-        self.import_contributions_and_payments_for_payment_intents(stripe_account_id=account_id)
+    def get_refunds_for_charge(self, charge_id: str) -> list[stripe.Refund]:
+        """Gets refunds for a given stripe charge"""
+        logger.debug("Getting refunds for charge %s", charge_id)
+        return [
+            x
+            for x in stripe.Refund.list(
+                charge=charge_id,
+                stripe_account=self.stripe_account_id,
+                limit=MAX_STRIPE_RESPONSE_LIMIT,
+            ).auto_paging_iter()
+        ]
 
-    def import_contributions_and_payments_for_subscriptions(self, stripe_account_id: str) -> list[Contribution]:
-        """Upsert contributions, contributors, and payments for subscriptions for a given stripe account."""
-        stripe_client = StripeClientForConnectedAccount(
-            account_id=stripe_account_id, gte=self.from_date, lte=self.to_date
-        )
-        # this gets all invoices for the account (given any contraints on query around date, etc.)
-        invoices = stripe_client.get_paid_invoices()
-        revengine_invoices = []
-        for x in invoices:
-            try:
-                cast_metadata_to_stripe_payment_metadata_schema(x.subscription_details.get("metadata", {}))
-                revengine_invoices.append(x)
-            except InvalidMetadataError:
-                continue
-        revengine_invoices = [x for x in revengine_invoices if x.payment_intent]
-        subs_by_invoices = {}
-        for x in revengine_invoices:
-            if x.id in subs_by_invoices:
-                subs_by_invoices[x.subscription].append(x)
-            else:
-                subs_by_invoices[x.subscription] = [x]
-        subscriptions_data = []
-        for sub, invoices in subs_by_invoices.items():
-            data = {
-                "subscription": stripe_client.get_stripe_entity(
-                    sub, "Subscription", stripe_account_id=stripe_account_id, expand=("customer",)
-                ),
-                "transactions": [],
-            }
-            for invoice in invoices:
-                pi = stripe_client.get_stripe_entity(
-                    invoice.payment_intent,
-                    "PaymentIntent",
-                    stripe_account_id=stripe_account_id,
-                    expand=("charges.data.balance_transaction",),
-                )
-                if pi.status == "succeeded":
-                    data["transactions"].extend(x.balance_transaction for x in pi.charges.data)
-            subscriptions_data.append(SubscriptionForRecurringContribution(**data))
-        contributions = []
-        created_count = 0
-        updated_count = 0
-        for x in subscriptions_data:
-            try:
-                contribution, action = x.upsert()
-                contributions.append(contribution)
-                match action:
-                    case "created":
-                        created_count += 1
-                    case "updated":
-                        updated_count += 1
-                    case _:
-                        pass
-            except InvalidStripeTransactionDataError as exc:
-                logger.warning("Unable to upsert subscription %s", x.subscription.id, exc_info=exc)
-        logger.info("Created %s new recurring contributions for stripe account %s", created_count, stripe_account_id)
-        logger.info(
-            "Updated %s existing recurring contributions for stripe account %s", updated_count, stripe_account_id
-        )
-        return contributions
+    def get_payment_intents(self) -> list[stripe.PaymentIntent]:
+        """Gets payment intents for a given stripe account
 
-    def import_contributions_and_payments_for_payment_intents(self, stripe_account_id: str) -> list[Contribution]:
-        """Upsert contributions and payments for one-time payment intents for a given stripe account."""
-        stripe_client = StripeClientForConnectedAccount(
-            account_id=stripe_account_id, gte=self.from_date, lte=self.to_date
-        )
-        contributions = []
-        created_count = 0
-        updated_count = 0
-        for x in stripe_client.get_revengine_one_time_contributions_data():
-            try:
-                contribution, action = x.upsert()
-                contributions.append(contribution)
-                match action:
-                    case "created":
-                        created_count += 1
-                    case "updated":
-                        updated_count += 1
-                    case _:
-                        pass
-            except InvalidStripeTransactionDataError as exc:
-                logger.warning("Unable to upsert payment intent %s", x.payment_intent.id, exc_info=exc)
-        logger.info("Created %s new one-time contributions for stripe account %s", created_count, stripe_account_id)
-        logger.info(
-            "Updated %s existing one-time contributions for stripe account %s", updated_count, stripe_account_id
-        )
-        return contributions
-
-    def import_stripe_transactions_data(self) -> None:
-        """Iterates over stripe accounts that the class was initialized with and attempts to import transactions data from Stripe to
-        create contributions, contributors, and payments
+        NB: This method only lets through payment intents that have a supported schema version.
         """
-        logger.info(
-            "Importing contributions and payments for %s stripe accounts",
-            len(self.stripe_account_ids),
-        )
-        for account_id in self.stripe_account_ids:
-            logger.info(
-                "Importing transactions data for stripe account %s with from_date %s to_date %s",
-                account_id,
-                self.from_date,
-                self.to_date,
+        logger.debug("Getting payment intents for account %s", self.stripe_account_id)
+        pis = [
+            x
+            for x in stripe.PaymentIntent.list(
+                stripe_account=self.stripe_account_id, limit=MAX_STRIPE_RESPONSE_LIMIT, created=self.created_query
+            ).auto_paging_iter()
+        ]
+        return [x for x in pis if x.metadata.get("schema_version", None) in STRIPE_PAYMENT_METADATA_SCHEMA_VERSIONS]
+
+    @staticmethod
+    def is_for_one_time_contribution(pi: stripe.PaymentIntent, invoice: stripe.Invoice | None) -> bool:
+        """Determines if a given stripe payment intent is for a one time contribution"""
+        logger.debug("Determining if payment intent %s is for a one time contribution", pi.id)
+        if not pi.invoice:
+            return True
+        if invoice and invoice.subscription:
+            return False
+        return True
+
+    def get_stripe_entity(self, entity_id: str, stripe_entity_name: str, **kwargs):
+        """Retrieve a stripe entity for a given stripe account"""
+        logger.debug("Getting %s %s for account %s", stripe_entity_name, entity_id, self.stripe_account_id)
+        try:
+            return getattr(stripe, stripe_entity_name).retrieve(
+                entity_id, stripe_account=self.stripe_account_id, **kwargs
             )
-            self.import_contributions_and_payments_for_stripe_account(account_id)
+        except stripe.error.StripeError as exc:
+            logger.warning(
+                "Unable to retrieve %s %s for account %s",
+                stripe_entity_name,
+                entity_id,
+                self.stripe_account_id,
+                exc_info=exc,
+            )
+
+    def get_payment_method(self, payment_method_id: str) -> stripe.PaymentMethod | None:
+        """Retrieve a payment method for a given stripe account"""
+        return self.get_stripe_entity(payment_method_id, "PaymentMethod")
+
+    def get_stripe_customer(self, customer_id: str) -> stripe.Customer | None:
+        """Retrieve a stripe customer for a given stripe account"""
+        return self.get_stripe_entity(customer_id, "Customer", expand=("invoice_settings.default_payment_method",))
+
+    def get_stripe_event(self, event_id: str) -> stripe.Event | None:
+        """Retrieve a stripe event for a given stripe account"""
+        return self.get_stripe_entity(event_id, "Event")
+
+    def get_invoice(self, invoice_id: str) -> stripe.Invoice | None:
+        """Retrieve a stripe invoice for a given stripe account"""
+        return self.get_stripe_entity(invoice_id, "Invoice", expand=("subscription.default_payment_method",))
+
+    def get_payment_intent(self, payment_intent_id: str) -> stripe.PaymentIntent | None:
+        """Retrieve a stripe payment intent for a given stripe account"""
+        return self.get_stripe_entity(payment_intent_id, "PaymentIntent", expand=("payment_method",))
+
+    def handle_recurring_contribution_data(
+        self,
+        subscription: stripe.Subscription,
+        charges: list[stripe.Charge],
+        refunds: list[stripe.Refund],
+        customer: stripe.Customer,
+    ) -> None:
+        """Assemble upsert data for a given stripe subscription. This will utlimately get used to initialize a `SubscriptionForRecurringContribution` object."""
+        if subscription.metadata.get("schema_version", None) not in STRIPE_PAYMENT_METADATA_SCHEMA_VERSIONS:
+            logger.debug("Skipping subscription %s because it has an unsupported schema version", subscription.id)
+            return
+        if subscription.id not in self._SUBSCRIPTIONS_DATA:
+            self._SUBSCRIPTIONS_DATA[subscription.id] = {
+                "subscription": subscription,
+                "charges": [charges],
+                "refunds": [refunds],
+                "customer": customer,
+            }
+        else:
+            self._SUBSCRIPTIONS_DATA[subscription.id]["charges"].extend(charges)
+            self._SUBSCRIPTIONS_DATA[subscription.id]["refunds"].extend(refunds)
+
+    def assemble_data_for_pi(self, payment_intent: stripe.PaymentIntent) -> None:
+        """Assemble data for a given stripe payment intent"""
+        logger.debug("Assembling data for payment intent %s", payment_intent.id)
+        charges = self.get_charges_for_payment_intent(payment_intent_id=payment_intent.id)
+        refunds = []
+        for charge in charges:
+            refunds.extend(charge.refunds)
+        customer = self.get_stripe_customer(customer_id=payment_intent.customer)
+        invoice = self.get_invoice(invoice_id=payment_intent.invoice) if payment_intent.invoice else None
+        if self.is_for_one_time_contribution(payment_intent, invoice):
+            self._ONE_TIMES_DATA.append(
+                {
+                    # we re-retrieve the payment intent here in case of one-time because we need to get the payment method, and the PI
+                    # sent as arg is retrieved via list api, where it's not possible to expand payment method
+                    "payment_intent": self.get_payment_intent(payment_intent.id),
+                    "charges": charges,
+                    "refunds": refunds,
+                    "customer": customer,
+                }
+            )
+        else:
+            self.handle_recurring_contribution_data(
+                subscription=invoice.subscription, charges=charges, refunds=refunds, customer=customer
+            )
+
+    def import_contributions_and_payments(self) -> None:
+        """This method is responsible for upserting contributors, contributions, and payments for a given stripe account."""
+        logger.info(
+            "Retrieving all revengine-related payment intents for stripe account %s. This may take a while",
+            self.stripe_account_id,
+        )
+        pis = self.get_payment_intents()
+        for pi in pis:
+            self.assemble_data_for_pi(pi)
+        self.upsert_data()
+
+    def upsert_one_time_contribution(self, data: dict) -> Tuple[Contribution, str]:
+        """Upsert a one-time contribution for a given stripe payment intent and related data"""
+        contribution, action = PaymentIntentForOneTimeContribution(**data).upsert()
+        logger.info(
+            "%s contribution %s for stripe payment intent with ID %s",
+            action,
+            contribution.id,
+            data["payment_intent"].id,
+        )
+        return contribution, action
+
+    def upsert_recurring_contribution(self, data: dict) -> Tuple[Contribution, str]:
+        """Upsert a recurring contribution for a given stripe subscription and related data"""
+        contribution, action = SubscriptionForRecurringContribution(**data).upsert()
+        logger.info(
+            "%s contribution %s for stripe subscription with ID %s",
+            action,
+            contribution.id,
+            data["subscription"].id,
+        )
+        return contribution, action
+
+    def upsert_data(self) -> None:
+        """Upsert all relevant stripe transactions data to revengine for a given stripe account."""
+        total_count = len(self._ONE_TIMES_DATA) + len(self._SUBSCRIPTIONS_DATA)
+        created_count = 0
+        updated_count = 0
+        for x in [(item, "upsert_one_time_contribution") for item in self._ONE_TIMES_DATA] + [
+            (item, "upsert_recurring_contribution") for item in self._SUBSCRIPTIONS_DATA.values()
+        ]:
+            data, method = x
+            try:
+                _, action = getattr(self, method)(data)
+            except (InvalidStripeTransactionDataError, InvalidMetadataError, InvalidIntervalError) as exc:
+                logger.warning(
+                    "Unable to upsert %s contribution data for %s %s for stripe account %s",
+                    "one-time" if method == "upsert_one_time_contribution" else "recurring",
+                    "payment intent" if method == "upsert_one_time_contribution" else "subscription",
+                    data["payment_intent"].id if method == "upsert_one_time_contribution" else data["subscription"].id,
+                    self.stripe_account_id,
+                    exc_info=exc,
+                )
+                continue
+            match action:
+                case "created":
+                    created_count += 1
+                case "updated":
+                    updated_count += 1
+                case _:
+                    pass
+        logger.info(
+            "Out of %s Stripe subscriptions and one-time payment intents, %s were created and %s were updated",
+            total_count,
+            created_count,
+            updated_count,
+        )
 
 
-@dataclass
+@dataclass(frozen=True)
 class StripeEventProcessor:
     """Class for processing a stripe event. Uses existing webhook processor for this."""
 
@@ -633,12 +519,9 @@ class StripeEventProcessor:
     stripe_account_id: str
     async_mode: bool = False
 
-    def __post_init__(self):
-        self.client = StripeClientForConnectedAccount(account_id=self.stripe_account_id)
-
     def get_event(self) -> stripe.Event | None:
         """Gets a stripe event for a given event id and stripe account id."""
-        return self.client.get_stripe_event(event_id=self.event_id, stripe_account_id=self.stripe_account_id)
+        return stripe.Event.retrieve(id=self.event_id, stripe_account_id=self.stripe_account_id)
 
     def process(self) -> None:
         # vs. circular import

@@ -419,9 +419,8 @@ def test_process_stripe_webhook_task_when_contribution_not_exist_error(payment_i
 
 
 @pytest.mark.django_db
-def test_task_import_contributions_and_payments(mocker):
+def test_task_import_contributions_and_payments_for_stripe_account(mocker):
     mocker.patch("apps.contributions.stripe_import.StripeTransactionsImporter")
-    contribution_tasks.task_import_contributions_and_payments(
-        from_date="",
-        to_date="",
+    contribution_tasks.task_import_contributions_and_payments_for_stripe_account(
+        from_date="", to_date="", stripe_account_id=""
     )

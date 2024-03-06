@@ -5,7 +5,8 @@ from django.core.management.base import BaseCommand, CommandParser
 import dateparser
 
 from apps.contributions.stripe_import import StripeTransactionsImporter
-from apps.contributions.tasks import task_import_contributions_and_payments
+from apps.contributions.tasks import task_import_contributions_and_payments_for_stripe_account
+from apps.organizations.models import PaymentProvider
 
 
 # otherwise we get thousands and thousands of info logs from stripe and hard to find our own logs
@@ -48,22 +49,35 @@ class Command(BaseCommand):
         )
         parser.add_argument("--async-mode", action="store_true", default=False)
 
+    def get_stripe_account_ids(self, for_orgs: list[str], for_stripe_accounts: list[str]) -> list[str]:
+        query = PaymentProvider.objects.filter(stripe_account_id__isnull=False)
+        if for_orgs:
+            query = query.filter(revenue_program__organization__id__in=for_orgs)
+        if for_stripe_accounts:
+            query = query.filter(stripe_account_id__in=for_stripe_accounts)
+        return list(query.values_list("stripe_account_id", flat=True))
+
     def handle(self, *args, **options):
         self.stdout.write(self.style.HTTP_INFO("Running `import_contribution_and_payments_from_stripe`"))
-        if options["async_mode"]:
-            self.stdout.write(self.style.HTTP_INFO("Running in async mode. Using celery task to import"))
-            result = task_import_contributions_and_payments.delay(
-                from_date=int(options["gte"].timestamp()) if options["gte"] else None,
-                to_date=int(options["lte"].timestamp()) if options["lte"] else None,
-                for_orgs=options["for_orgs"],
-                for_stripe_accounts=options["for_stripe_accounts"],
-            )
-            self.stdout.write(self.style.SUCCESS(f"Celery task {result.task_id} to import has been scheduled"))
-        else:
-            StripeTransactionsImporter(
-                from_date=options["gte"],
-                to_date=options["lte"],
-                for_orgs=options["for_orgs"],
-                for_stripe_accounts=options["for_stripe_accounts"],
-            ).import_stripe_transactions_data()
-            self.stdout.write(self.style.SUCCESS("`import_contribution_and_payments_from_stripe` is done"))
+        account_ids = self.get_stripe_account_ids(options["for_orgs"], options["for_stripe_accounts"])
+        for account in account_ids:
+            if options["async_mode"]:
+                result = task_import_contributions_and_payments_for_stripe_account.delay(
+                    stripe_account_id=account,
+                    from_date=int(options["gte"].timestamp()) if options["gte"] else None,
+                    to_date=int(options["lte"].timestamp()) if options["lte"] else None,
+                )
+                self.stdout.write(
+                    self.style.SUCCESS(
+                        f"Celery task {result.task_id} to import transactions for account {account} has been scheduled"
+                    )
+                )
+            else:
+                StripeTransactionsImporter(
+                    from_date=options["gte"],
+                    to_date=options["lte"],
+                    stripe_account_id=account,
+                ).import_contributions_and_payments()
+                self.stdout.write(self.style.SUCCESS(f"Import transactions for account {account} is done"))
+
+        self.stdout.write(self.style.SUCCESS("`import_stripe_transactions_data` is done"))

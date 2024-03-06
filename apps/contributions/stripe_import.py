@@ -94,9 +94,9 @@ class PaymentIntentForOneTimeContribution:
             )
 
     @property
-    def successful_charge(self) -> stripe.Charge:
+    def successful_charge(self) -> stripe.Charge | None:
         """Get the first successful charge associated with the payment intent"""
-        return next((x for x in self.charges if x.status == "succeeded"))
+        return next((x for x in self.charges if x.status == "succeeded"), None)
 
     @property
     def email_id(self) -> str | None:

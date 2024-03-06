@@ -386,7 +386,13 @@ class TestContributionsViewSet:
         return request.getfixturevalue(request.param)
 
     @pytest.mark.parametrize(
-        "contribution_status", (ContributionStatus.FLAGGED, ContributionStatus.REJECTED, ContributionStatus.PROCESSING)
+        "contribution_status",
+        (
+            ContributionStatus.FAILED,
+            ContributionStatus.FLAGGED,
+            ContributionStatus.PROCESSING,
+            ContributionStatus.REJECTED,
+        ),
     )
     def test_filter_contributions_based_on_status(
         self,
@@ -1723,6 +1729,30 @@ class TestPortalContributorsViewSet:
         response = api_client.get(reverse("portal-contributor-contributions-list", args=(contributor.id,)))
         assert response.status_code == status.HTTP_403_FORBIDDEN
 
+    @pytest.mark.parametrize(
+        "status",
+        (
+            ContributionStatus.FLAGGED,
+            ContributionStatus.PROCESSING,
+            ContributionStatus.REJECTED,
+        ),
+    )
+    def test_contributions_list_hides_statuses(
+        self,
+        status,
+        api_client,
+        monthly_contribution,
+        one_time_contribution,
+        portal_contributor_with_multiple_contributions,
+    ):
+        contributor = portal_contributor_with_multiple_contributions[0]
+        one_time_contribution.status = status
+        one_time_contribution.save()
+        api_client.force_authenticate(contributor)
+        response = api_client.get(reverse("portal-contributor-contributions-list", args=(contributor.id,)))
+        assert len(response.json()["results"]) == 1
+        assert response.json()["results"][0]["id"] == monthly_contribution.id
+
     def test_contribution_detail_get_happy_path(
         self,
         api_client,
@@ -1827,6 +1857,33 @@ class TestPortalContributorsViewSet:
                     not_mine.id,
                 ),
             )
+        )
+        assert response.status_code == status.HTTP_404_NOT_FOUND
+        assert response.json() == {"detail": "Contribution not found"}
+
+    @pytest.mark.parametrize("http_method", ("delete", "get", "patch"))
+    @pytest.mark.parametrize(
+        "contribution_status",
+        (
+            ContributionStatus.FLAGGED,
+            ContributionStatus.PROCESSING,
+            ContributionStatus.REJECTED,
+        ),
+    )
+    def test_contributions_detail_when_hidden_status(
+        self,
+        http_method,
+        contribution_status,
+        api_client,
+        one_time_contribution,
+        portal_contributor_with_multiple_contributions,
+    ):
+        contributor = portal_contributor_with_multiple_contributions[0]
+        one_time_contribution.status = contribution_status
+        one_time_contribution.save()
+        api_client.force_authenticate(contributor)
+        response = getattr(api_client, http_method)(
+            reverse("portal-contributor-contribution-detail", args=(contributor.id, one_time_contribution.id))
         )
         assert response.status_code == status.HTTP_404_NOT_FOUND
         assert response.json() == {"detail": "Contribution not found"}

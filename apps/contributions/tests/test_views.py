@@ -1771,7 +1771,7 @@ class TestPortalContributorsViewSet:
         )
         contributor = ContributorFactory()
         page = DonationPageFactory()
-        ContributionFactory.create_batch(20, contributor=contributor, donation_page=page)
+        ContributionFactory.create_batch(100, contributor=contributor, donation_page=page)
         api_client.force_authenticate(contributor)
         response = api_client.get(reverse("portal-contributor-contributions-list", args=(contributor.id,)))
         assert response.status_code == status.HTTP_200_OK

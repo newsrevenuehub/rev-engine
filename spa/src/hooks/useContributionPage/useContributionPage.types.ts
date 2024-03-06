@@ -310,6 +310,7 @@ export interface RevenueProgram {
    * Point of contact for the revenue program.
    */
   contact_email: string;
+  contributor_portal_show_appeal: boolean;
   /**
    * ID used for Facebook analytics.
    */

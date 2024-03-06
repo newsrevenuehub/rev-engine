@@ -580,6 +580,12 @@ class RevenueProgram(IndexedTimeStampedModel):
     # TODO: [DEV-3581] Cache the value for mailchimp_access_token to avoid hitting the secret manager on every request (potentially multiple times per request)
     mailchimp_access_token = GoogleCloudSecretProvider(model_attr="mailchimp_access_token_secret_name")
 
+    contributor_portal_show_appeal = models.BooleanField(
+        default=True,
+        help_text="This shows predetermined text, image, and a call to action link to the revenue program's default contribution page.",
+        verbose_name="Show appeal in contributor portal",
+    )
+
     objects = RevenueProgramManager.from_queryset(RevenueProgramQuerySet)()
 
     def __str__(self):

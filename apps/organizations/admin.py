@@ -258,7 +258,7 @@ class RevenueProgramAdmin(RevEngineBaseAdmin, CompareVersionAdmin, AdminImageMix
         (
             "Other",
             {
-                "fields": ("allow_offer_nyt_comp",),
+                "fields": ("allow_offer_nyt_comp", "contributor_portal_show_appeal"),
             },
         ),
     )

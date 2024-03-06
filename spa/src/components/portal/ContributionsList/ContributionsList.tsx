@@ -22,6 +22,8 @@ import {
   AlignPositionWrapper
 } from './ContributionsList.styled';
 import Impact from './Impact';
+import usePortal from 'hooks/usePortal';
+import Appeal from './Appeal';
 
 const CONTRIBUTION_SORT_OPTIONS = [
   {
@@ -117,13 +119,13 @@ export function ContributionsList() {
       <Root>
         <Layout>
           <ContributionsHeader defaultPage={page} revenueProgram={page?.revenue_program} />
-        <Impact contributor={contributor} />
+          <Impact contributor={contributor} />
+          {page?.revenue_program.contributor_portal_show_appeal && <Appeal />}
           <Legend $detailVisible={!!selectedContribution}>
             <Subhead>Transactions</Subhead>
             <p>View billing history, update payment details, and resend receipts.</p>
             <Sort options={CONTRIBUTION_SORT_OPTIONS} onChange={setOrdering} id="contributions-sort" />
           </Legend>
-          {content}
           {contributor && selectedContribution && (
             <Detail>
               <ContributionDetail

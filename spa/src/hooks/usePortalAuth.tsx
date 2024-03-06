@@ -3,7 +3,7 @@ import PropTypes, { InferProps } from 'prop-types';
 import { createContext, useCallback, useContext, useEffect, useState } from 'react';
 import axios from 'ajax/axios';
 import { VERIFY_TOKEN } from 'ajax/endpoints';
-import { LS_CONTRIBUTOR, LS_CSRF_TOKEN } from 'appSettings';
+import { SS_CONTRIBUTOR, LS_CSRF_TOKEN } from 'appSettings';
 
 /**
  * A contributor who has logged into the portal.
@@ -94,14 +94,14 @@ export function PortalAuthContextProvider({ children }: InferProps<typeof Portal
 
     setContributor(data.contributor);
     identifyUserInSentry(data.contributor);
-    localStorage.setItem(LS_CONTRIBUTOR, JSON.stringify(data.contributor));
+    sessionStorage.setItem(SS_CONTRIBUTOR, JSON.stringify(data.contributor));
     localStorage.setItem(LS_CSRF_TOKEN, data.csrftoken);
   }, []);
 
   // Try to initally set the contributor based on local storage.
 
   useEffect(() => {
-    const lsContributor = localStorage.getItem(LS_CONTRIBUTOR);
+    const lsContributor = sessionStorage.getItem(SS_CONTRIBUTOR);
 
     if (!lsContributor) {
       // The contributor hasn't previously logged in.

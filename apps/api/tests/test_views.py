@@ -471,7 +471,7 @@ class VerifyContributorTokenViewTest(APITestCase):
         self.assertEqual(response.data["detail"], "success")
         self.assertEqual(response.data["contributor"]["id"], self.contributor.pk)
 
-    def test_response_sets_token_and_csrf_cookies(self):
+    def test_response_sets_token(self):
         response = self.client.post(self.url, {"email": self.contributor.email, "token": self.valid_token})
         self.assertIn("Authorization", response.client.cookies)
 

@@ -3,7 +3,6 @@ import { MainLayoutWrapper } from './MainLayout.styled';
 
 // Hooks
 import useSentry from 'hooks/useSentry';
-import useSubdomain from 'hooks/useSubdomain';
 import isContributorAppPath from 'utilities/isContributorAppPath';
 import isPortalAppPath from 'utilities/isPortalAppPath';
 
@@ -20,19 +19,17 @@ import DonationPageRouter from 'components/DonationPageRouter';
 import DashboardRouter from 'components/DashboardRouter';
 import PortalRouter from 'components/PortalRouter';
 import ReauthContextProvider from './ReauthContext';
+import { getRevenueProgramSlug } from 'utilities/getRevenueProgramSlug';
 
 function MainLayout() {
   useSentry();
 
-  // Get subdomain for donation-page-routing
-  const subdomain = useSubdomain();
-
+  const rpSlug = getRevenueProgramSlug();
   const isContributorApp = isContributorAppPath();
   const isPortalApp = isPortalAppPath();
-
   let Router = DashboardRouter;
 
-  if (!DASHBOARD_SUBDOMAINS.includes(subdomain) && !isContributorApp && !isPortalApp) {
+  if (!DASHBOARD_SUBDOMAINS.includes(rpSlug) && !isContributorApp && !isPortalApp) {
     Router = DonationPageRouter;
   }
 

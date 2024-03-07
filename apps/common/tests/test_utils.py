@@ -115,6 +115,26 @@ def test_get_subdomain_from_request():
     assert not no_subdomain
 
 
+@override_settings(ALLOWED_HOSTS=[test_domain])
+def test_get_subdomain_from_request_with_mapping(settings):
+    factory = RequestFactory()
+    request = factory.get("/")
+    settings.HOST_MAP = '{"custom.test.org":"test-rp-slug"}'
+    request.META["HTTP_HOST"] = "custom.test.org"
+    resultant_subdomain = get_subdomain_from_request(request)
+    assert resultant_subdomain == "test-rp-slug"
+
+
+@override_settings(ALLOWED_HOSTS=[test_domain])
+def test_get_subdomain_from_request_with_malformed_map(settings):
+    factory = RequestFactory()
+    request = factory.get("/")
+    settings.HOST_MAP = "bad"
+    request.META["HTTP_HOST"] = "custom.test.org"
+    resultant_subdomain = get_subdomain_from_request(request)
+    assert resultant_subdomain == "custom"
+
+
 class TestMigrations(TestCase):
     @property
     def app(self):

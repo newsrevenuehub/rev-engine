@@ -181,7 +181,7 @@ describe('ContributionsList', () => {
     it.each([
       ['status', 'Status'],
       ['amount', 'Amount (high to low)']
-    ])('should sort contributions by %s when selected', async (ordering, option) => {
+    ])('should sort contributions by %s (and date descending) when selected', async (ordering, option) => {
       tree();
       userEvent.click(screen.getByRole('button', { name: 'Date' }));
 
@@ -192,7 +192,7 @@ describe('ContributionsList', () => {
       userEvent.click(screen.getByRole('option', { name: option }));
 
       await waitFor(() => {
-        expect(usePortalContributionsListMock).toBeCalledWith(expect.anything(), { ordering: `-${ordering}` });
+        expect(usePortalContributionsListMock).toBeCalledWith(expect.anything(), { ordering: `-${ordering},-created` });
       });
     });
   });

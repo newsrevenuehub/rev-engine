@@ -67,6 +67,9 @@ export const PENDO_VISITOR_PREFIX = resolveConstantFromEnv('PENDO_VISITOR_PREFIX
 // Environment {production, staging, test, dev, demo}
 export const ENVIRONMENT = resolveConstantFromEnv('ENVIRONMENT');
 
+// DEV-3930
+export const HOST_MAP = resolveConstantFromEnv('HOST_MAP');
+
 function resolveConstantFromEnv(constantName: string, defaultValue?: boolean | string | string[]) {
   // If we're in development, use Vite environment variables. If not, use
   // window.ENV vars set by Django. ||s for compares here are to maintain

@@ -22,8 +22,17 @@ function InnerPortalRouter() {
   return (
     <RouterSetup>
       {/* These don't get wrapped in <PortalPage> because the component styles it. */}
-      <ProtectedRoute path={ROUTES.PORTAL.CONTRIBUTIONS} render={() => <TransactionsList />} contributor exact />
-      <ProtectedRoute path={ROUTES.PORTAL.CONTRIBUTION_DETAIL} render={() => <TransactionsList />} contributor />
+      <ProtectedRoute
+        path={ROUTES.PORTAL.CONTRIBUTIONS}
+        render={() => <TransactionsList />}
+        contributorType="PORTAL"
+        exact
+      />
+      <ProtectedRoute
+        path={ROUTES.PORTAL.CONTRIBUTION_DETAIL}
+        render={() => <TransactionsList />}
+        contributorType="PORTAL"
+      />
       <SentryRoute
         exact
         path={ROUTES.PORTAL.ENTRY}

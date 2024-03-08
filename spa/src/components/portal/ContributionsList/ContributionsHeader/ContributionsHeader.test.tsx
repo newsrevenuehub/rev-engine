@@ -53,7 +53,7 @@ describe('ContributionsHeader', () => {
     expect(link).toHaveAttribute('target', '_blank');
   });
 
-  it("doesn't show a Return to Website link if not given a default page", () => {
+  it("doesn't show a Make A New Contribution link if not given a default page", () => {
     tree({ defaultPage: undefined });
     expect(screen.queryByRole('link', { name: 'Make a New Contribution' })).not.toBeInTheDocument();
   });

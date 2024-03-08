@@ -1,6 +1,6 @@
 import styled from 'styled-components';
 
-export const ContributorVerify = styled.main`
+export const ContributorVerifyWrapper = styled.main`
   display: flex;
   flex-direction: column;
   align-items: center;
@@ -10,7 +10,3 @@ export const ContributorVerify = styled.main`
     font-family: ${(props) => props.theme.systemFont};
   }
 `;
-
-export const CouldNotVerify = styled.div``;
-
-export const LoadingVerification = styled.h1``;

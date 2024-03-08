@@ -8,15 +8,15 @@ export interface ProtectedRouteProps extends RouteProps {
    * If true, then the user must be a contributor, not an admin, to access this
    * route.
    */
-  contributor?: boolean;
+  contributorType?: 'CONTRIBUTOR' | 'PORTAL';
 }
 
 /**
  * ProtectedRoute either verifies authentication status or redirects to SIGN_IN.
  * Accepts 'contributor' prop so isAuthenticated can check for the right user type.
  */
-function ProtectedRoute({ contributor, ...props }: ProtectedRouteProps) {
-  if (isAuthenticated(contributor)) {
+function ProtectedRoute({ contributorType, ...props }: ProtectedRouteProps) {
+  if (isAuthenticated(contributorType)) {
     return <SentryRoute {...props} />;
   }
 

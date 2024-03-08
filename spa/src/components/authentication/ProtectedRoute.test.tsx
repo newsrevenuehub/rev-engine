@@ -20,46 +20,49 @@ function tree(props?: Partial<ProtectedRouteProps>) {
 }
 
 describe('ProtectedRoute', () => {
-  const isAuthenticatedMock = jest.mocked(isAuthenticated);
+  const isAuthenticatedMock = isAuthenticated as jest.Mock;
 
   beforeEach(() => isAuthenticatedMock.mockReturnValue(false));
 
-  describe('when the contributor prop is true', () => {
-    it('displays a SentryRoute if the user is authenticated as a contributor', () => {
-      isAuthenticatedMock.mockImplementation((value?: boolean) => !!value);
-      tree({ contributor: true });
-      expect(screen.getByTestId('mock-sentry-route')).toBeInTheDocument();
-    });
+  describe.each(['PORTAL', 'CONTRIBUTOR'] as Array<ProtectedRouteProps['contributorType']>)(
+    'when the contributor type prop is %s',
+    (contributorType) => {
+      it('displays a SentryRoute if the user is authenticated as a contributor', () => {
+        isAuthenticatedMock.mockImplementation((value?: boolean) => !!value);
+        tree({ contributorType });
+        expect(screen.getByTestId('mock-sentry-route')).toBeInTheDocument();
+      });
 
-    it('displays a signin redirect if the user is authenticated as an admin only', () => {
-      isAuthenticatedMock.mockImplementation((value?: boolean) => !value);
-      tree({ contributor: true });
-      expect(screen.getByTestId('mock-redirect')).toHaveTextContent(SIGN_IN);
-    });
+      it('displays a signin redirect if the user is authenticated as an admin only', () => {
+        isAuthenticatedMock.mockImplementation((value?: boolean) => !value);
+        tree({ contributorType });
+        expect(screen.getByTestId('mock-redirect')).toHaveTextContent(SIGN_IN);
+      });
 
-    it('displays a signin redirect if the user is not authenticated', () => {
-      isAuthenticatedMock.mockReturnValue(false);
-      tree({ contributor: true });
-      expect(screen.getByTestId('mock-redirect')).toHaveTextContent(SIGN_IN);
-    });
-  });
+      it('displays a signin redirect if the user is not authenticated', () => {
+        isAuthenticatedMock.mockReturnValue(false);
+        tree({ contributorType });
+        expect(screen.getByTestId('mock-redirect')).toHaveTextContent(SIGN_IN);
+      });
+    }
+  );
 
-  describe('when the contributor prop is false', () => {
+  describe('when the contributor prop is undefined', () => {
     it('displays a SentryRoute if the user is authenticated as an admin', () => {
       isAuthenticatedMock.mockImplementation((value?: boolean) => !value);
-      tree({ contributor: false });
+      tree({ contributorType: undefined });
       expect(screen.getByTestId('mock-sentry-route')).toBeInTheDocument();
     });
 
     it('displays a signin redirect if the user is authenticated as a contributor only', () => {
       isAuthenticatedMock.mockImplementation((value?: boolean) => !!value);
-      tree({ contributor: false });
+      tree({ contributorType: undefined });
       expect(screen.getByTestId('mock-redirect')).toHaveTextContent(SIGN_IN);
     });
 
     it('displays a signin redirect if the user is not authenticated', () => {
       isAuthenticatedMock.mockReturnValue(false);
-      tree({ contributor: false });
+      tree({ contributorType: undefined });
       expect(screen.getByTestId('mock-redirect')).toHaveTextContent(SIGN_IN);
     });
   });

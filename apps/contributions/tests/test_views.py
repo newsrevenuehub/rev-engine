@@ -1664,12 +1664,15 @@ class TestPortalContributorsViewSet:
         )
         contributor = ContributorFactory()
         page = DonationPageFactory()
-        ContributionFactory.create_batch(20, contributor=contributor, donation_page=page)
+        ContributionFactory.create_batch(
+            20, contributor=contributor, donation_page=page, status=ContributionStatus.PAID
+        )
         api_client.force_authenticate(contributor)
         response = api_client.get(reverse("portal-contributor-contributions-list", args=(contributor.id,)))
         assert response.status_code == status.HTTP_200_OK
         assert response.json().keys() == {"count", "next", "previous", "results"}
-        assert api_client.get(response.json()["next"]).status_code == status.HTTP_200_OK
+        response = api_client.get(response.json()["next"])
+        assert response.status_code == status.HTTP_200_OK
 
     @pytest.fixture(params=["superuser", "hub_admin_user", "org_user_free_plan", "rp_user"])
     def non_contributor_user(self, request):

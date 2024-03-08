@@ -593,7 +593,7 @@ MAILCHIMP_CLIENT_SECRET = os.getenv("MAILCHIMP_CLIENT_SECRET", None)
 MAILCHIMP_RATE_LIMIT_RETRY_WAIT_SECONDS = 60
 
 # DEV-3930
-HOST_MAP = os.getenv("HOST_MAP", None)
+HOST_MAP = os.getenv("HOST_MAP", "")
 
 ### Front End Environment Variables
 SPA_ENV_VARS = {

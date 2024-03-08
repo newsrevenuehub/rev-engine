@@ -156,6 +156,9 @@ def process_stripe_webhook(request):
     return Response(status=status.HTTP_200_OK)
 
 
+# This view allows for creation and cancelation (via destroy) of contributions. It is used in contribution checkout flow.
+# We need it to be unauthed, but we want a minimal level of protection against malicious actors, so we use csrf_protect_json
+# which will reject requests without a valid CSRF token in header, returning a JSON response instead of an HTML response.
 @method_decorator(csrf_protect_json, name="dispatch")
 class PaymentViewset(mixins.CreateModelMixin, mixins.DestroyModelMixin, viewsets.GenericViewSet):
     permission_classes = []

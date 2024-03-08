@@ -10,7 +10,7 @@ from rest_framework import status
 def csrf_protect_json(view_func):
     """Decorator that wraps a view function to enforce CSRF protection for AJAX requests.
 
-    This has nearly identicaly logic as the `csrf_protect` decorator in Django, but returns a JSON response.
+    This has nearly identical logic as the `csrf_protect` decorator in Django, but returns a JSON response.
 
     It is meant to decorate API layer views that are expected to be called via AJAX, and will return a JSON response. In those cases,
     if we were to use the default `csrf_protect` decorator, the browser would receive a 403 response but with an HTML body, which is

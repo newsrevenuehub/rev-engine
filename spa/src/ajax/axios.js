@@ -1,7 +1,7 @@
 import axios from 'axios';
 import Cookies from 'js-cookie';
 
-import { CSRF_HEADER } from 'appSettings';
+import { CSRF_HEADER, CSRF_COOKIE } from 'appSettings';
 import { REVENGINE_API_VERSION } from 'appSettings';
 import { TOKEN } from './endpoints';
 
@@ -22,7 +22,7 @@ export default Axios;
  */
 Axios.interceptors.request.use(
   (request) => {
-    const token = Cookies.get(CSRF_HEADER);
+    const token = Cookies.get(CSRF_COOKIE);
     if (token) {
       request.headers[CSRF_HEADER] = token;
     }

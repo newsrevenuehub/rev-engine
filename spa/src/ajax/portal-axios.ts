@@ -1,4 +1,4 @@
-import { REVENGINE_API_VERSION, CSRF_HEADER } from 'appSettings';
+import { REVENGINE_API_VERSION, CSRF_HEADER, CSRF_COOKIE } from 'appSettings';
 import Cookies from 'js-cookie';
 import axios, { AxiosError } from 'axios';
 import { PORTAL } from 'routes';
@@ -20,7 +20,7 @@ export default Axios;
  */
 Axios.interceptors.request.use(
   (request) => {
-    const token = Cookies.get(CSRF_HEADER);
+    const token = Cookies.get(CSRF_COOKIE);
     if (token) {
       request.headers[CSRF_HEADER] = token;
     }

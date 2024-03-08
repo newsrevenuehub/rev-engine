@@ -30,6 +30,7 @@ export const LS_USER = 'REVENGINE_USER';
 export const LS_CONTRIBUTOR = 'REVENGINE_CONTRIBUTOR';
 export const SS_CONTRIBUTOR = 'REVENGINE_CONTRIBUTOR';
 export const CSRF_HEADER = 'X-CSRFTOKEN';
+export const CSRF_COOKIE = 'csrftoken';
 export const PASSWORD_RESET_URL = '/users/password-reset/';
 
 // Google reCAPTCHA

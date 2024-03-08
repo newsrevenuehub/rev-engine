@@ -3,7 +3,7 @@ import PropTypes, { InferProps } from 'prop-types';
 import { createContext, useCallback, useContext, useEffect, useState } from 'react';
 import axios from 'ajax/axios';
 import { VERIFY_TOKEN } from 'ajax/endpoints';
-import { LS_CONTRIBUTOR } from 'appSettings';
+import { SS_CONTRIBUTOR } from 'appSettings';
 
 /**
  * A contributor who has logged into the portal.
@@ -83,19 +83,19 @@ export function PortalAuthContextProvider({ children }: InferProps<typeof Portal
       throw new Error('No contributor in token verification response');
     }
 
-    // Set values in context and in local storage for later usage. The local
-    // storage key is also needed for backwards compat with isAuthenticated() in
+    // Set values in context, in local storage, and session storage for later usage. The session
+    // storage key is also needed for compatibility with isAuthenticated(contributorType) in
     // utilities/, used by ProtectedRoute.
 
     setContributor(data.contributor);
     identifyUserInSentry(data.contributor);
-    localStorage.setItem(LS_CONTRIBUTOR, JSON.stringify(data.contributor));
+    sessionStorage.setItem(SS_CONTRIBUTOR, JSON.stringify(data.contributor));
   }, []);
 
   // Try to initally set the contributor based on local storage.
 
   useEffect(() => {
-    const lsContributor = localStorage.getItem(LS_CONTRIBUTOR);
+    const lsContributor = sessionStorage.getItem(SS_CONTRIBUTOR);
 
     if (!lsContributor) {
       // The contributor hasn't previously logged in.
@@ -118,7 +118,7 @@ export function PortalAuthContextProvider({ children }: InferProps<typeof Portal
         identifyUserInSentry(loadedContributor);
       }
     } catch {
-      // Fail silently--their local storage has become malformed, so we want
+      // Fail silently--their session storage has become malformed, so we want
       // them to sign in again.
     }
   }, []);

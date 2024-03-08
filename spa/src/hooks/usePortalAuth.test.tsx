@@ -2,7 +2,7 @@ import * as Sentry from '@sentry/react';
 import MockAdapter from 'axios-mock-adapter';
 import { useState } from 'react';
 import Axios from 'ajax/axios';
-import { LS_CONTRIBUTOR } from 'appSettings';
+import { SS_CONTRIBUTOR } from 'appSettings';
 import { fireEvent, render, screen, waitFor } from 'test-utils';
 import { PortalAuthContextProvider, usePortalAuthContext } from './usePortalAuth';
 
@@ -52,39 +52,40 @@ describe('PortalAuthContextProvider', () => {
 
   beforeEach(() => {
     window.localStorage.clear();
+    window.sessionStorage.clear();
     setUserMock = jest.fn();
     SentryMock.setUser = setUserMock;
   });
 
   afterAll(() => axiosMock.restore());
 
-  it("initially sets the contributor object to undefined if it's not in local storage", () => {
+  it("initially sets the contributor object to undefined if it's not in session storage", () => {
     tree();
     expect(screen.queryByTestId('contributor')).not.toBeInTheDocument();
   });
 
-  it('loads the contributor object from local storage if available', () => {
-    window.localStorage.setItem(LS_CONTRIBUTOR, JSON.stringify(testContributor));
+  it('loads the contributor object from session storage if available', () => {
+    window.sessionStorage.setItem(SS_CONTRIBUTOR, JSON.stringify(testContributor));
     tree();
     expect(screen.getByTestId('contributor')).toHaveTextContent(JSON.stringify(testContributor));
   });
 
-  it('sets the user in Sentry if the contributor was set in local storage', () => {
-    window.localStorage.setItem(LS_CONTRIBUTOR, JSON.stringify(testContributor));
+  it('sets the user in Sentry if the contributor was set in session storage', () => {
+    window.sessionStorage.setItem(SS_CONTRIBUTOR, JSON.stringify(testContributor));
     tree();
     expect(setUserMock.mock.calls).toEqual([
       [{ email: testContributor.email, id: testContributor.id, ip_address: '{{auto}}' }]
     ]);
   });
 
-  it("doesn't provide a verifyToken function if a contributor was loaded from local storage", () => {
-    window.localStorage.setItem(LS_CONTRIBUTOR, JSON.stringify(testContributor));
+  it("doesn't provide a verifyToken function if a contributor was loaded from session storage", () => {
+    window.sessionStorage.setItem(SS_CONTRIBUTOR, JSON.stringify(testContributor));
     tree();
     expect(screen.queryByText('verifyToken')).not.toBeInTheDocument();
   });
 
-  it('ignores a malformed object in local storage', () => {
-    window.localStorage.setItem(LS_CONTRIBUTOR, JSON.stringify({ ...testContributor, email: undefined }));
+  it('ignores a malformed object in session storage', () => {
+    window.sessionStorage.setItem(SS_CONTRIBUTOR, JSON.stringify({ ...testContributor, email: undefined }));
     tree();
     expect(screen.queryByTestId('contributor')).not.toBeInTheDocument();
     expect(setUserMock).not.toBeCalled();
@@ -136,12 +137,12 @@ describe('PortalAuthContextProvider', () => {
         expect(screen.queryByText('verifyToken')).not.toBeInTheDocument();
       });
 
-      it('saves the contributor to local storage', async () => {
+      it('saves the contributor to session storage', async () => {
         tree();
-        expect(window.localStorage.getItem(LS_CONTRIBUTOR)).toBe(null);
+        expect(window.sessionStorage.getItem(SS_CONTRIBUTOR)).toBe(null);
         fireEvent.click(screen.getByText('verifyToken'));
         await waitFor(() => expect(axiosMock.history.post.length).toBe(1));
-        expect(window.localStorage.getItem(LS_CONTRIBUTOR)).toBe(JSON.stringify(testContributor));
+        expect(window.sessionStorage.getItem(SS_CONTRIBUTOR)).toBe(JSON.stringify(testContributor));
       });
     });
 

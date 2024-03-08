@@ -91,7 +91,7 @@ function ContributorRouter() {
               <ContributorDashboard />
             </TrackPageView>
           )}
-          contributor
+          contributorType="CONTRIBUTOR"
         />
         <SentryRoute
           path={ROUTES.CONTRIBUTOR_ENTRY}

@@ -20,7 +20,7 @@ function ContributorVerify() {
   useConfigureAnalytics();
 
   const handleVerifySuccess = useCallback(
-    (response: AxiosResponse<{ contributor: Contributor; csrftoken: string }>) => {
+    (response: AxiosResponse<{ contributor: Contributor }>) => {
       if (response.status !== 200) throw new Error(`Unexpected non-failure response code: ${response.status}`);
       sessionStorage.setItem(SS_CONTRIBUTOR, JSON.stringify(response.data.contributor));
       localStorage.setItem(LS_CONTRIBUTOR, JSON.stringify(response.data.contributor));
@@ -34,7 +34,7 @@ function ContributorVerify() {
       try {
         const qs = queryString.parse(location.search);
         const { email, token } = qs;
-        const response = await axios.post<{ contributor: Contributor; csrftoken: string }>(VERIFY_TOKEN, {
+        const response = await axios.post<{ contributor: Contributor }>(VERIFY_TOKEN, {
           token,
           email
         });

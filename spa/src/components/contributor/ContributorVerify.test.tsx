@@ -1,6 +1,6 @@
 import Axios from 'ajax/axios';
 import { VERIFY_TOKEN } from 'ajax/endpoints';
-import { LS_CONTRIBUTOR, LS_CSRF_TOKEN, SS_CONTRIBUTOR } from 'appSettings';
+import { LS_CONTRIBUTOR, SS_CONTRIBUTOR } from 'appSettings';
 import MockAdapter from 'axios-mock-adapter';
 import { useHistory } from 'react-router-dom';
 import { render, screen, waitFor } from 'test-utils';
@@ -50,7 +50,7 @@ describe('ContributorVerify', () => {
 
   describe('Verify success (when response is 200)', () => {
     beforeEach(() => {
-      axiosMock.onPost(VERIFY_TOKEN).reply(200, { contributor: 'mock-contributor', csrftoken: 'mock-token' });
+      axiosMock.onPost(VERIFY_TOKEN).reply(200, { contributor: 'mock-contributor' });
     });
 
     it('should redirect to dashboard', async () => {

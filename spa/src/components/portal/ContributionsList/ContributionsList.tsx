@@ -47,7 +47,7 @@ export function ContributionsList() {
   const { contributor } = usePortalAuthContext();
   const [ordering, setOrdering] = useState(CONTRIBUTION_SORT_OPTIONS[0].value);
   const { contributions, isError, isLoading, refetch } = usePortalContributionList(contributor?.id, {
-    ordering: `-${ordering}`
+    ordering: ordering === 'created' ? `-${ordering}` : `-${ordering},-created`
   });
   const selectedContribution =
     contributionId && contributions.find((contribution) => contribution.id === parseInt(contributionId));

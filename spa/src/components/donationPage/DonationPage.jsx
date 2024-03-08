@@ -159,8 +159,9 @@ function DonationPage({ page, live = false }, ref) {
       } else if (error.response?.status === 400 && error.response?.data) {
         setErrors(error.response.data);
       } else {
-        // 403s happen if  user not authorized by api. We do want
-        // to display fallback, but don't want to report to sentry.
+        // A 403 would happen if there is a problem with CSRF token verification server-side. That is recoverable
+        // via browser refresh, and not something that Sentry needs to hear about. For non-403s, though, something
+        // unexpected would have happened, in which case we do want to report to sentry.
         if (error.response?.status !== 403) {
           console.error('Something unexpected happened', error.name, error.message, error.response?.status);
         }

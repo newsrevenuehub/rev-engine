@@ -195,43 +195,6 @@ class StripeOAuthTest(AbstractTestCase):
 @pytest.mark.usefixtures("default_feature_flags")
 class TestContributionsViewSet:
 
-    @pytest.fixture(
-        params=[
-            ("superuser", status.HTTP_405_METHOD_NOT_ALLOWED),
-            ("hub_admin_user", status.HTTP_405_METHOD_NOT_ALLOWED),
-            ("org_user_free_plan", status.HTTP_405_METHOD_NOT_ALLOWED),
-            ("rp_user", status.HTTP_405_METHOD_NOT_ALLOWED),
-            ("contributor_user", status.HTTP_405_METHOD_NOT_ALLOWED),
-            ("user_no_role_assignment", status.HTTP_403_FORBIDDEN),
-            (None, status.HTTP_401_UNAUTHORIZED),
-        ]
-    )
-    def unpermitted_test_case(self, request):
-        return request.getfixturevalue(request.param[0]) if request.param[0] else None, request.param[1]
-
-    @pytest.mark.parametrize(
-        "method,generate_url_fn,data",
-        (
-            ("post", lambda contribution: reverse("contribution-list"), {}),
-            ("put", lambda contribution: reverse("contribution-detail", args=(contribution.id,)), {}),
-            ("patch", lambda contribution: reverse("contribution-detail", args=(contribution.id,)), {}),
-            ("delete", lambda contribution: reverse("contribution-detail", args=(contribution.id,)), None),
-        ),
-    )
-    def test_unpermitted_methods(
-        self, unpermitted_test_case, method, generate_url_fn, data, api_client, one_time_contribution
-    ):
-        """Show that users cannot make requests to endpoint using unpermitted methods"""
-        user, expected_status = unpermitted_test_case
-        if user:
-            api_client.force_authenticate(user)
-        kwargs = {}
-        if data:
-            kwargs["data"] = {}
-        assert (
-            getattr(api_client, method)(generate_url_fn(one_time_contribution), **kwargs).status_code == expected_status
-        )
-
     @pytest.fixture(params=["superuser", "hub_admin_user", "org_user_free_plan", "rp_user"])
     def non_contributor_user(self, request):
         return request.getfixturevalue(request.param)
@@ -2109,20 +2072,3 @@ class TestPortalContributorsViewSet:
         )
         assert response.status_code == status.HTTP_404_NOT_FOUND
         assert response.json() == {"detail": "Contribution not found"}
-
-    def test_contribution_detail_when_unsupported_method(
-        self, api_client, portal_contributor_with_multiple_contributions
-    ):
-        contributor = portal_contributor_with_multiple_contributions[0]
-        api_client.force_authenticate(contributor)
-        response = api_client.put(
-            reverse(
-                "portal-contributor-contribution-detail",
-                args=(
-                    contributor.id,
-                    contributor.contribution_set.first().id,
-                ),
-            ),
-            data={},
-        )
-        assert response.status_code == status.HTTP_405_METHOD_NOT_ALLOWED

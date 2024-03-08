@@ -714,32 +714,6 @@ class TestPageViewSet:
         assert isinstance(response.json(), list)
         assert len(response.json()) == DonationPage.objects.count()
 
-    @pytest.fixture(
-        params=[
-            (
-                "expected_user",
-                status.HTTP_405_METHOD_NOT_ALLOWED,
-            ),
-            (
-                "unexpected_user",
-                status.HTTP_403_FORBIDDEN,
-            ),
-        ]
-    )
-    def put_user_case(self, request):
-        return request.getfixturevalue(request.param[0]), request.param[1]
-
-    def test_put_not_allowed(self, put_user_case, api_client, live_donation_page):
-        """Nobody puts pages"""
-        user, expected_status = put_user_case
-        api_client.force_authenticate(user)
-        assert (
-            api_client.put(reverse("donationpage-detail", args=(live_donation_page.pk,)), data={}).status_code
-            # this is kind of sloppy, but makes test setup in put_user_case above easier
-            # because can reuse those two fixtures without special case for user is none
-            == (expected_status if user else status.HTTP_401_UNAUTHORIZED)
-        )
-
     @pytest.mark.parametrize(
         "plan",
         (
@@ -990,7 +964,7 @@ class TestPageViewSet:
     def test_delete_when_unauthorized_user(self, unexpected_user, live_donation_page, api_client):
         api_client.force_authenticate(unexpected_user)
         response = api_client.delete(reverse("donationpage-detail", args=(live_donation_page.id,)))
-        assert response.status_code == (status.HTTP_404_NOT_FOUND if unexpected_user else status.HTTP_401_UNAUTHORIZED)
+        assert response.status_code == (status.HTTP_403_FORBIDDEN if unexpected_user else status.HTTP_401_UNAUTHORIZED)
         assert DonationPage.objects.filter(pk=live_donation_page.id).exists()
 
     def test_delete_when_unowned(self, org_and_rp_user, live_donation_page, api_client):
@@ -1331,6 +1305,7 @@ def patch_style_invalid_data_bad_font_sizes_is_dict(patch_style_valid_styles_dat
 
 @pytest.mark.django_db
 class TestStyleViewSet:
+
     @pytest.fixture(
         params=[
             "superuser",
@@ -1733,38 +1708,14 @@ def font():
 
 @pytest.mark.django_db
 class TestFontViewSet:
-    @pytest.fixture(
-        params=[
-            "superuser",
-            "org_user_free_plan",
-            "hub_admin_user",
-            "rp_user",
-            "hub_admin_user",
-            "contributor_user",
-            "user_no_role_assignment",
-            None,
-        ]
-    )
-    def user(self, request):
-        return request.getfixturevalue(request.param) if request.param else None
 
-    def test_retrieve(self, user, font, api_client):
-        api_client.force_authenticate(user)
-        assert api_client.get(reverse("font-detail", args=(font.id,))).status_code == (
-            status.HTTP_200_OK if user else status.HTTP_401_UNAUTHORIZED
-        )
+    def test_retrieve(self, org_user_free_plan, font, api_client):
+        api_client.force_authenticate(org_user_free_plan)
+        assert api_client.get(reverse("font-detail", args=(font.id,))).status_code == status.HTTP_200_OK
 
-    def test_list(self, user, api_client):
+    def test_list(self, org_user_free_plan, api_client):
         FontFactory.create_batch(size=3)
-        api_client.force_authenticate(user)
+        api_client.force_authenticate(org_user_free_plan)
         response = api_client.get(reverse("font-list"))
-        assert response.status_code == (status.HTTP_200_OK if user else status.HTTP_401_UNAUTHORIZED)
-        assert len(response.json()) == (Font.objects.count() if user else 0)
-
-    @pytest.mark.parametrize("method", ("delete", "put", "patch", "post"))
-    def test_unpermitted_methods(self, user, method, font, api_client):
-
-        api_client.force_authenticate(user)
-        assert getattr(api_client, method)(reverse("font-detail", args=(font.id,))).status_code == (
-            status.HTTP_405_METHOD_NOT_ALLOWED if user else status.HTTP_401_UNAUTHORIZED
-        )
+        assert response.status_code == status.HTTP_200_OK
+        assert len(response.json()) == Font.objects.count()

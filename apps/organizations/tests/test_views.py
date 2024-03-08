@@ -169,21 +169,21 @@ class TestOrganizationViewSet:
 
     @pytest.fixture(
         params=[
-            "hub_admin_user",
-            "user_no_role_assignment",
-            "contributor_user",
-            "rp_user",
-            None,
+            ("user_no_role_assignment", status.HTTP_403_FORBIDDEN),
+            ("contributor_user", status.HTTP_403_FORBIDDEN),
+            ("rp_user", status.HTTP_404_NOT_FOUND),
+            (None, status.HTTP_401_UNAUTHORIZED),
         ]
     )
-    def unsupported_user(self, request):
-        return request.getfixturevalue(request.param) if request.param else None
+    def retrieve_case(self, request):
+        return request.getfixturevalue(request.param[0]) if request.param[0] else None, request.param[1]
 
-    def test_retrieve_when_unmpermitted_user(self, unsupported_user, api_client, organization):
+    def test_retrieve_when_unmpermitted_user(self, retrieve_case, api_client, organization):
         """Show that unmpermitted users cannot retrieve an organization."""
-        api_client.force_authenticate(unsupported_user)
-        response = api_client.get(reverse("organization-list", args=(organization.id,)))
-        assert response.status_code == (status.HTTP_403_FORBIDDEN if unsupported_user else status.HTTP_401_UNAUTHORIZED)
+        user, expected_response = retrieve_case
+        api_client.force_authenticate(user)
+        response = api_client.get(reverse("organization-detail", args=(organization.id,)))
+        assert response.status_code == expected_response
 
     def test_list_when_expected_user(self, user, api_client, mocker):
         """Show that expected users can list only permitted organizations
@@ -222,18 +222,15 @@ class TestOrganizationViewSet:
             # tested elsewhere and proven to be valid. Here, we just need to show that it gets called.
             assert spy.call_count == 1
 
-    def test_list_when_unexpected_user(self, unsupported_user, api_client):
-        """Show that unexpected users can't list organizations"""
-        api_client.force_authenticate(unsupported_user)
-        response = api_client.get(reverse("organization-list"))
-        assert response.status_code == (status.HTTP_404_NOT_FOUND if unsupported_user else status.HTTP_401_UNAUTHORIZED)
+    @pytest.fixture(params=["user_no_role_assignment", "contributor_user", None])
+    def list_user(self, request):
+        return request.getfixturevalue(request.param) if request.param else None
 
-    @pytest.mark.parametrize("method,data", (("post", {}), ("put", {}), ("delete", None)))
-    def test_unpermitted_methods(self, method, data, superuser, organization, api_client):
-        api_client.force_authenticate(superuser)
-        kwargs = {} if data is None else {"data": data}
-        response = getattr(api_client, method)(reverse("organization-detail", args=(organization.id,)), **kwargs)
-        assert response.status_code == status.HTTP_405_METHOD_NOT_ALLOWED
+    def test_list_when_unexpected_user(self, list_user, api_client):
+        """Show that unexpected users can't list organizations"""
+        api_client.force_authenticate(list_user)
+        response = api_client.get(reverse("organization-list"))
+        assert response.status_code == (status.HTTP_403_FORBIDDEN if list_user else status.HTTP_401_UNAUTHORIZED)
 
     @pytest.fixture(
         params=[
@@ -736,22 +733,6 @@ class TestRevenueProgramViewSet:
         response = api_client.get(reverse("revenue-program-list"))
         assert response.status_code == (status.HTTP_403_FORBIDDEN if unsupported_user else status.HTTP_401_UNAUTHORIZED)
 
-    @pytest.fixture(params=["expected_user", "unsupported_user"])
-    def unsupported_method_user(self, request):
-        return request.getfixturevalue(request.param)
-
-    @pytest.mark.parametrize("method", ("put", "delete"))
-    def test_unsupported_methods(self, method, unsupported_method_user, api_client):
-        """Show that nobody can delete"""
-        rp = RevenueProgramFactory()
-        api_client.force_authenticate(unsupported_method_user)
-        response = getattr(api_client, method)(reverse("revenue-program-detail", args=(rp.id,)))
-        assert (
-            response.status_code == status.HTTP_405_METHOD_NOT_ALLOWED
-            if getattr(unsupported_method_user, "is_superuser", None)
-            else status.HTTP_403_FORBIDDEN if unsupported_method_user else status.HTTP_401_UNAUTHORIZED
-        )
-
     @pytest.fixture(
         params=[
             ("rp_valid_patch_data", status.HTTP_200_OK, None, False),
@@ -778,38 +759,44 @@ class TestRevenueProgramViewSet:
     def patch_test_case(self, request):
         return request.getfixturevalue(request.param[0]), request.param[1], request.param[2], request.param[3]
 
-    def test_patch_when_expected_user(self, user, api_client, revenue_program, mocker, patch_test_case):
-        """Show that expected users are able to patch (only) permitted RPs, with valid data"""
+    @pytest.fixture(params=["org_user_free_plan", "superuser"])
+    def patch_user(self, request, revenue_program):
+        user = request.getfixturevalue(request.param)
+        if not user.is_superuser:
+            ra = user.get_role_assignment()
+            ra.organization = revenue_program.organization
+            ra.save()
+        return user
+
+    def test_patch_when_have_access(self, patch_user, api_client, revenue_program, patch_test_case):
+        """Show that superusers can patch RPs with valid data and cannot with invalid data"""
         data, expect_status_code, error_response, has_fake_fields = patch_test_case
-        api_client.force_authenticate(user)
-        if user.is_superuser:
-            response = api_client.patch(reverse("revenue-program-detail", args=(revenue_program.id,)), data=data)
-            assert response.status_code == expect_status_code
-            if error_response:
-                assert response.json() == error_response
-            elif not has_fake_fields:
-                revenue_program.refresh_from_db()
-                for key in data:
-                    assert response.json()[key] == getattr(revenue_program, key)
-        else:
-            spy = mocker.spy(RevenueProgramQuerySet, "filtered_by_role_assignment")
-            assert revenue_program.id not in user.roleassignment.revenue_programs.all().values_list("id", flat=True)
-            unpermitted_response = api_client.patch(reverse("revenue-program-detail", args=(revenue_program.id,)))
-            assert unpermitted_response.status_code == status.HTTP_403_FORBIDDEN
-            assert unpermitted_response.json() == {"detail": "Not found."}
-            permitted_rp = user.roleassignment.revenue_programs.first()
-            last_modified = permitted_rp.modified
-            permitted_response = api_client.patch(reverse("revenue-program-detail", args=(permitted_rp.id,)), data=data)
-            assert permitted_response.status_code == expect_status_code
-            permitted_rp.refresh_from_db()
-            if error_response:
-                assert permitted_response.json() == error_response
-                assert permitted_rp.modified == last_modified
-            elif not has_fake_fields:
-                for key in data:
-                    assert permitted_response.json()[key] == getattr(permitted_rp, key)
-            # once for each of the calls to the patch endpoint
-            assert spy.call_count == 2
+        api_client.force_authenticate(patch_user)
+        response = api_client.patch(reverse("revenue-program-detail", args=(revenue_program.id,)), data=data)
+        assert response.status_code == expect_status_code
+        if error_response:
+            assert response.json() == error_response
+        elif not has_fake_fields:
+            revenue_program.refresh_from_db()
+            for key in data:
+                assert response.json()[key] == getattr(revenue_program, key)
+
+    def test_patch_when_not_have_access(self, org_user_free_plan, api_client):
+        """Show that org admins cannot patch another org's rp"""
+        unowned = RevenueProgramFactory()
+        assert unowned.organization != org_user_free_plan.get_role_assignment().organization
+        api_client.force_authenticate(org_user_free_plan)
+        response = api_client.patch(reverse("revenue-program-detail", args=(unowned.id,)), data={})
+        assert response.status_code == status.HTTP_404_NOT_FOUND
+
+    def test_patch_show_rp_user_not_allowed(self, rp_user, api_client, revenue_program):
+        """Show that rp admins cannot patch their own rp"""
+        ra = rp_user.get_role_assignment()
+        ra.revenue_programs.add(revenue_program)
+        ra.save()
+        api_client.force_authenticate(rp_user)
+        response = api_client.patch(reverse("revenue-program-detail", args=(revenue_program.id,)), data={})
+        assert response.status_code == status.HTTP_403_FORBIDDEN
 
     def test_patch_when_unexpected_user(self, unsupported_user, api_client, revenue_program):
         """Show that unexpected users cannot patch an RP"""

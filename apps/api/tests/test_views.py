@@ -299,7 +299,7 @@ def test_magic_link_custom_email_template(rf, mocker, revenue_program, has_defau
 )
 @pytest.mark.django_db()
 @override_settings(CELERY_ALWAYS_EAGER=True)
-def test_request_contributor_token_creates_usable_magic_links(rf, mocker, email, client):
+def test_request_contributor_token_creates_usable_magic_links(rf, mocker, email, api_client):
     """This test spans two requests, first requesting magic link, then using data in the magic link to verify contributor token
 
     Ultimately, it is the SPA's repsonsiblity to correctly handle the data provided in the magic link, but assuming it
@@ -330,7 +330,7 @@ def test_request_contributor_token_creates_usable_magic_links(rf, mocker, email,
     assert len(to_email_list) == 1
     assert email in html_body
     params = parse_qs(urlparse(html_magic_link).query)
-    response = client.post(
+    response = api_client.post(
         reverse("contributor-verify-token"), {"email": params["email"][0], "token": params["token"][0]}
     )
     assert response.status_code == 200

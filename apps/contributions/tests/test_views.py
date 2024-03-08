@@ -5,7 +5,7 @@ from unittest import mock
 from django.conf import settings
 from django.core.serializers.json import DjangoJSONEncoder
 from django.db.models import Q
-from django.http import Http404
+from django.http import Http404, JsonResponse
 from django.test import RequestFactory, override_settings
 
 import dateparser
@@ -1382,17 +1382,32 @@ class TestPaymentViewset:
         assert response.status_code == status.HTTP_400_BAD_REQUEST
         assert response.json() == {"interval": "The provided value for interval is not permitted"}
 
-    def test_when_no_csrf(self):
-        """Show that view is inaccessible if no CSRF token is included in request.
+    def test_payment_creation_csrf_protection(self, minimally_valid_contribution_form_data, mocker):
+        """Show that view is inaccessible if no CSRF token is included in request and accessible when included
 
         NB: DRF's APIClient disables CSRF protection by default, so here we have to explicitly
         configure the client to enforce CSRF checks.
         """
+        view_create = mocker.patch(
+            "apps.contributions.views.PaymentViewset.create",
+            return_value=JsonResponse(status=status.HTTP_201_CREATED, data={}),
+        )
         client = APIClient(enforce_csrf_checks=True)
         url = reverse("payment-list")
-        response = client.post(url, {})
+        response = client.post(url, data=minimally_valid_contribution_form_data, format="json")
         assert response.status_code == status.HTTP_403_FORBIDDEN
-        # TODO - figure out how to do csrf protection but return JSON when no token
+        assert response.json() == {"detail": "CSRF token missing or incorrect."}
+        view_create.assert_not_called()
+
+        # in normal course of events, the client requests SPA root and that causes CSRF cookie to be set,
+        # so we mimic that scenario here.
+        spa_root_response = client.get(reverse("index"))
+        assert spa_root_response.status_code == status.HTTP_200_OK
+        assert (token := spa_root_response.cookies["csrftoken"].value)
+
+        response = client.post(url, data=minimally_valid_contribution_form_data, format="json", HTTP_X_CSRFTOKEN=token)
+        assert response.status_code == status.HTTP_201_CREATED
+        view_create.assert_called_once()
 
     @pytest.mark.parametrize(
         "interval,payment_intent_id,subscription_id",
@@ -1476,6 +1491,29 @@ class TestPaymentViewset:
         response = self.client.delete(url)
         assert response.status_code == status.HTTP_500_INTERNAL_SERVER_ERROR
         assert response.json() == {"detail": "Something went wrong"}
+
+    def test_destroy_csrf_protection(self, mocker):
+        contribution = ContributionFactory(one_time=True, status=ContributionStatus.PROCESSING)
+        url = reverse("payment-detail", kwargs={"uuid": str(contribution.uuid)})
+        view_destroy = mocker.patch(
+            "apps.contributions.views.PaymentViewset.destroy",
+            return_value=JsonResponse(status=status.HTTP_204_NO_CONTENT, data={}),
+        )
+        client = APIClient(enforce_csrf_checks=True)
+        response = client.delete(url)
+        assert response.status_code == status.HTTP_403_FORBIDDEN
+        assert response.json() == {"detail": "CSRF token missing or incorrect."}
+        view_destroy.assert_not_called()
+
+        # in normal course of events, the client requests SPA root and that causes CSRF cookie to be set,
+        # so we mimic that scenario here.
+        spa_root_response = client.get(reverse("index"))
+        assert spa_root_response.status_code == status.HTTP_200_OK
+        assert (token := spa_root_response.cookies["csrftoken"].value)
+
+        response = client.delete(url, HTTP_X_CSRFTOKEN=token)
+        assert response.status_code == status.HTTP_204_NO_CONTENT
+        view_destroy.assert_called_once()
 
 
 @pytest.fixture()

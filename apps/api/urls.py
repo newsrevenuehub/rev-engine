@@ -1,6 +1,5 @@
 from django.conf import settings
 from django.urls import include, path, re_path
-from django.views.decorators.csrf import csrf_exempt
 
 from apps.api.views import (
     RequestContributorTokenEmailView,
@@ -23,7 +22,7 @@ urlpatterns = [
     path("v1/public/", include(public_urlpatterns)),
     path("v1/token/", TokenObtainPairCookieView.as_view(), name="token-obtain-pair"),
     path("v1/contrib-email/", RequestContributorTokenEmailView.as_view(), name="contributor-token-request"),
-    path("v1/contrib-verify/", csrf_exempt(VerifyContributorTokenView.as_view()), name="contributor-verify-token"),
+    path("v1/contrib-verify/", VerifyContributorTokenView.as_view(), name="contributor-verify-token"),
 ]
 
 if settings.ENABLE_API_BROWSER:  # pragma: no cover It is covered but the reimport confuses coverage.py

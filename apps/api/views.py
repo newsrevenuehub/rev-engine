@@ -16,7 +16,7 @@ from rest_framework_simplejwt import exceptions
 from rest_framework_simplejwt import views as simplejwt_views
 from rest_framework_simplejwt.serializers import TokenObtainPairSerializer
 
-from apps.api.authentication import ShortLivedTokenAuthentication
+from apps.api.authentication import ShortLivedMagicLinkTokenAuthentication
 from apps.api.serializers import ContributorObtainTokenSerializer
 from apps.api.throttling import ContributorRateThrottle
 from apps.api.tokens import ContributorRefreshToken
@@ -196,12 +196,12 @@ class RequestContributorTokenEmailView(APIView):
 
 class VerifyContributorTokenView(simplejwt_views.TokenVerifyView):
     """
-    This view verifies a short-lived token using ShortLivedTokenAuthentication. Authenticated requests
+    This view verifies a short-lived token using ShortLivedMagicLinkTokenAuthentication. Authenticated requests
     then return a simple "OK" response, but with our regular authentication scheme in place, including
     HTTP-only, samesite, secure Cookie stored JWT.
     """
 
-    authentication_classes = [ShortLivedTokenAuthentication]
+    authentication_classes = [ShortLivedMagicLinkTokenAuthentication]
     permission_classes = []
 
     def post(self, request, *args, **kwargs):

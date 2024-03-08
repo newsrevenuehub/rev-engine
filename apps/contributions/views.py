@@ -7,7 +7,6 @@ from django.db.models import QuerySet
 from django.http import Http404
 from django.shortcuts import get_object_or_404
 from django.utils.decorators import method_decorator
-from django.views.decorators.csrf import csrf_protect
 
 import stripe
 from django_filters.rest_framework import DjangoFilterBackend
@@ -30,6 +29,7 @@ from apps.api.permissions import (
     IsHubAdmin,
     UserIsRequestedContributor,
 )
+from apps.common.views import csrf_protect_json
 from apps.contributions import serializers
 from apps.contributions.filters import ContributionFilter
 from apps.contributions.models import (
@@ -155,14 +155,14 @@ def process_stripe_webhook(request):
     return Response(status=status.HTTP_200_OK)
 
 
-@method_decorator(csrf_protect, name="dispatch")
+@method_decorator(csrf_protect_json, name="dispatch")
 class PaymentViewset(mixins.CreateModelMixin, mixins.DestroyModelMixin, viewsets.GenericViewSet):
     permission_classes = []
     lookup_field = "uuid"
     queryset = Contribution.objects.all()
 
     def get_serializer_class(self):
-        if (interval := self.request.data["interval"]) == ContributionInterval.ONE_TIME:
+        if (interval := self.request.data.get("interval", None)) == ContributionInterval.ONE_TIME:
             return serializers.CreateOneTimePaymentSerializer
         elif interval in (ContributionInterval.MONTHLY.value, ContributionInterval.YEARLY.value):
             return serializers.CreateRecurringPaymentSerializer

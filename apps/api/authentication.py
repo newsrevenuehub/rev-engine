@@ -58,7 +58,7 @@ class JWTHttpOnlyCookieAuthentication(JWTAuthentication):
             return super().get_user(validated_token)
 
 
-class ShortLivedTokenAuthentication(JWTHttpOnlyCookieAuthentication):
+class ShortLivedMagicLinkTokenAuthentication(JWTHttpOnlyCookieAuthentication):
     def get_user(self, validated_token):
         try:
             contributor_uuid = validated_token[settings.CONTRIBUTOR_ID_CLAIM]
@@ -92,9 +92,7 @@ class ShortLivedTokenAuthentication(JWTHttpOnlyCookieAuthentication):
             raise MagicLinkAuthenticationFailed("Invalid token type", code="invalid_type")
 
     def authenticate(self, request):
-        """
-        Lots of repitition here, but we need to skip 'enforce_csrf' this time
-        """
+        """Custom authentication using our contributor-specific validate_token method"""
         raw_token = request.data.get("token", None)
         email = request.data.get("email", None)
 

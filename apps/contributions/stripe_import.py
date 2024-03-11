@@ -81,7 +81,7 @@ class PaymentIntentForOneTimeContribution:
             )
 
     def validate_charges(self) -> None:
-        """Ensure there's onlly one successful or pending charge.
+        """Ensure there's only one successful or pending charge.
 
         This is critical for a one-time contribution. If there's more than one charge, our system
         cannot represent this in context of a one-time contribution.

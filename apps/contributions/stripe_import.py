@@ -536,7 +536,15 @@ class StripeEventProcessor:
 
     def get_event(self) -> stripe.Event | None:
         """Gets a stripe event for a given event id and stripe account id."""
-        return stripe.Event.retrieve(id=self.event_id, stripe_account_id=self.stripe_account_id)
+        try:
+            return stripe.Event.retrieve(id=self.event_id, stripe_account=self.stripe_account_id)
+        except stripe.error.StripeError as exc:
+            logger.warning(
+                "Unable to retrieve stripe event with ID %s for stripe account %s",
+                self.event_id,
+                self.stripe_account_id,
+                exc_info=exc,
+            )
 
     def process(self) -> None:
         # vs. circular import

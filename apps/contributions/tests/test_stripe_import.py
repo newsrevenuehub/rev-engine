@@ -173,7 +173,7 @@ class Test_upsert_payment_for_transaction:
         upsert_payment_for_transaction(contribution=contribution, transaction=balance_transaction, is_refund=is_refund)
         contribution.refresh_from_db()
         assert contribution.payment_set.count() == 1
-        assert Payment.objects.filter(
+        assertPayment.objects.filter(
             contribution=contribution,
             stripe_balance_transaction_id=balance_transaction.id,
             net_amount_paid=balance_transaction.net if not is_refund else 0,
@@ -975,7 +975,7 @@ class TestStripeTransactionsImporter:
 
 class TestStripeEventProcessor:
     @pytest.fixture
-    def supported_event(self, mocker):
+    def supported_event(self):
         event_type = settings.STRIPE_WEBHOOK_EVENTS_CONTRIBUTIONS[0]
         return stripe.Event.construct_from(
             {
@@ -986,7 +986,7 @@ class TestStripeEventProcessor:
         )
 
     @pytest.fixture
-    def unsupported_event(self, mocker):
+    def unsupported_event(self):
         unsupported_event_type = "unsupported_event"
         assert unsupported_event_type not in settings.STRIPE_WEBHOOK_EVENTS_CONTRIBUTIONS
         return stripe.Event.construct_from(
@@ -1011,7 +1011,7 @@ class TestStripeEventProcessor:
         else:
             mock_process_webhook.assert_called_once_with(raw_event_data=supported_event)
             mock_process_webhook.delay.assert_not_called()
-        mock_retrieve_event.assert_called_once_with(event_id, stripe_account=stripe_account)
+        mock_retrieve_event.assert_called_once_with(id=event_id, stripe_account=stripe_account)
 
     def test_when_event_not_supported(self, unsupported_event, mocker):
         logger_spy = mocker.patch("apps.contributions.stripe_import.logger.warning")
@@ -1024,7 +1024,7 @@ class TestStripeEventProcessor:
 
     def test_when_event_not_found(self, supported_event, mocker):
         logger_spy = mocker.patch("apps.contributions.stripe_import.logger.warning")
-        mocker.patch("stripe.Event.retrieve", side_effect=stripe.error.InvalidRequestError("not found", "id", "evt_1"))
+        mocker.patch("stripe.Event.retrieve", side_effect=stripe.error.StripeError("not found", "id", "evt_1"))
         mock_process_webhook = mocker.patch("apps.contributions.tasks.process_stripe_webhook_task")
         StripeEventProcessor(stripe_account_id="test", event_id="evt_1", async_mode=False).process()
         assert logger_spy.call_args == mocker.call("No event found for event id %s", supported_event.id)

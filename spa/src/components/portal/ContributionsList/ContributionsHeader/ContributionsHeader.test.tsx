@@ -49,7 +49,7 @@ describe('ContributionsHeader', () => {
     const link = screen.getByRole('link', { name: 'Make a New Contribution' });
 
     expect(link).toBeVisible();
-    expect(link).toHaveAttribute('href', 'mock-rp-slug.localhost/mock-page-slug');
+    expect(link).toHaveAttribute('href', '//mock-rp-slug.localhost/mock-page-slug');
     expect(link).toHaveAttribute('target', '_blank');
   });
 

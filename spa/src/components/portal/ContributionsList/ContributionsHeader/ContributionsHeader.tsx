@@ -29,7 +29,7 @@ export function ContributionsHeader({ defaultPage, revenueProgram }: Contributio
           </LinkButton>
         )}
         {defaultPage && (
-          <LinkButton color="primaryDark" href={pageLink(defaultPage)} target="_blank">
+          <LinkButton color="primaryDark" href={`//${pageLink(defaultPage)}`} target="_blank">
             Make a New Contribution
           </LinkButton>
         )}

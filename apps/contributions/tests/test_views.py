@@ -1626,6 +1626,7 @@ class TestPortalContributorsViewSet:
         (
             "amount",
             "created",
+            "status",
         ),
     )
     @pytest.mark.parametrize("descending", (True, False))
@@ -1635,9 +1636,10 @@ class TestPortalContributorsViewSet:
         contributor = portal_contributor_with_multiple_contributions[0]
         amount = 1000
         # guarantee we have orderable values on amount
-        for x in Contribution.objects.all():
+        for index, x in enumerate(Contribution.objects.all()):
             x.amount = amount
             amount += 1000
+            x.status = ContributionStatus.PAID.label if index % 2 == 0 else ContributionStatus.FAILED.label
             x.payment_set.all().update(gross_amount_paid=x.amount, net_amount_paid=x.amount - 100)
             x.save()
         api_client.force_authenticate(contributor)
@@ -1650,6 +1652,53 @@ class TestPortalContributorsViewSet:
             assert response.json()["results"][0][ordering] > response.json()["results"][1][ordering]
         else:
             assert response.json()["results"][0][ordering] < response.json()["results"][1][ordering]
+
+    @pytest.mark.parametrize(
+        "ordering",
+        (
+            "status,-created",
+            "amount,-created",
+        ),
+    )
+    @pytest.mark.parametrize("descending", (True, False))
+    def test_contributions_list_ordering_multiple_fields_behavior(
+        self, portal_contributor_with_multiple_contributions, descending, ordering, api_client
+    ):
+        contributor = portal_contributor_with_multiple_contributions[0]
+        amount = 1000
+        # guarantee we have orderable values on amount
+        for index, x in enumerate(Contribution.objects.all()):
+            x.amount = amount
+            amount += 1000
+            x.status = ContributionStatus.PAID.label if index % 2 == 0 else ContributionStatus.FAILED.label
+            x.payment_set.all().update(gross_amount_paid=x.amount, net_amount_paid=x.amount - 100)
+            # Create identical contribution with different date (test second field ordering by date)
+            Contribution.objects.create(amount=x.amount, status=x.status, contributor=contributor)
+            x.save()
+        api_client.force_authenticate(contributor)
+        response = api_client.get(
+            reverse("portal-contributor-contributions-list", args=(contributor.id,))
+            + f"?ordering={'-' if descending else ''}{ordering}"
+        )
+        assert response.status_code == status.HTTP_200_OK
+        [first, second] = ordering.split(",")
+
+        if descending:
+            # First and second results have the same value
+            assert response.json()["results"][0][first] == response.json()["results"][1][first]
+            # Second must be ordered in relation to the third
+            assert response.json()["results"][1][first] > response.json()["results"][2][first]
+        else:
+            # First and second results have the same value
+            assert response.json()["results"][0][first] == response.json()["results"][1][first]
+            # Second must be ordered in relation to the third
+            assert response.json()["results"][1][first] < response.json()["results"][2][first]
+
+        if second.startswith("-"):
+            # Results are ordered based on the second ordered field
+            assert response.json()["results"][0][second[1:]] > response.json()["results"][1][second[1:]]
+        else:
+            assert response.json()["results"][0][second] < response.json()["results"][1][second]
 
     def test_contributions_list_pagination_behavior(
         self, api_client, mocker, stripe_customer_default_source_expanded, stripe_payment_method
@@ -1665,7 +1714,7 @@ class TestPortalContributorsViewSet:
         contributor = ContributorFactory()
         page = DonationPageFactory()
         ContributionFactory.create_batch(
-            20, contributor=contributor, donation_page=page, status=ContributionStatus.PAID
+            100, contributor=contributor, donation_page=page, status=ContributionStatus.PAID
         )
         api_client.force_authenticate(contributor)
         response = api_client.get(reverse("portal-contributor-contributions-list", args=(contributor.id,)))

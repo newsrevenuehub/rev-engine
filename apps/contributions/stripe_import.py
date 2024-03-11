@@ -110,16 +110,17 @@ class PaymentIntentForOneTimeContribution:
     @property
     def status(self) -> ContributionStatus:
         """Map Stripe payment intent status to Revengine contribution status."""
-        if self.refunded:
-            return ContributionStatus.REFUNDED
-        if self.payment_intent.status == "succeeded":
-            return ContributionStatus.PAID
-        if self.payment_intent.status == "canceled":
-            return ContributionStatus.CANCELED
-        # We'll use processing as catch all. Concretely, this would mean not refunded and one of other PI statuses of
-        # requires_payment_method, requires_confirmation, requires_action, processing, requires_capture
-        else:
-            return ContributionStatus.PROCESSING
+        match (self.refunded, self.payment_intent.status):
+            case (True, _):
+                return ContributionStatus.REFUNDED
+            case (False, "succeeded"):
+                return ContributionStatus.PAID
+            case (False, "canceled"):
+                return ContributionStatus.CANCELED
+            # We'll use processing as catch all. Concretely, this would mean not refunded and one of other PI statuses of
+            # requires_payment_method, requires_confirmation, requires_action, processing, requires_capture
+            case _:
+                return ContributionStatus.PROCESSING
 
     @property
     def payment_method(self) -> stripe.PaymentMethod | None:

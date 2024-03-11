@@ -15,11 +15,10 @@ from apps.contributions.models import ContributionInterval, ContributionStatus, 
 from apps.contributions.stripe_import import (
     MAX_STRIPE_RESPONSE_LIMIT,
     PaymentIntentForOneTimeContribution,
-    StripeClientForConnectedAccount,
     StripeEventProcessor,
     StripeTransactionsImporter,
     SubscriptionForRecurringContribution,
-    upsert_payments_for_charge,
+    upsert_payment_for_transaction,
 )
 from apps.contributions.tests.factories import (
     ContributionFactory,
@@ -41,14 +40,8 @@ def balance_transaction(mocker):
 
 
 @pytest.fixture
-def refund(mocker):
-    balance_transaction = mocker.Mock(
-        id="bt_2",
-        net=0,
-        amount=0,
-        created=datetime.datetime.now().timestamp(),
-    )
-    refund = mocker.Mock(amount=1000, balance_transaction=balance_transaction)
+def refund(mocker, balance_transaction_for_refund):
+    refund = mocker.Mock(amount=1000, balance_transaction=balance_transaction_for_refund)
     return refund
 
 
@@ -164,56 +157,30 @@ def customer_with_default_pm(customer, payment_method_A):
 
 
 @pytest.mark.django_db
-class Test_upsert_payments_for_charge:
+class Test_upsert_payment_for_transaction:
     @pytest.fixture
     def contribution(self):
         return ContributionFactory()
 
-    @pytest.fixture(params=["charge", "charge_with_refund"])
-    def charge(self, request):
-        # This shadows charge fixture in module scope so we test both charge without and charge with refund
-        return request.getfixturevalue(request.param)
-
-    @pytest.mark.parametrize("payments_exist", (True, False))
-    def test_happy_path(self, payments_exist, contribution, balance_transaction, charge, refund, mocker):
-        existing = 0
-        if payments_exist:
+    @pytest.mark.parametrize("payment_exists", (True, False))
+    @pytest.mark.parametrize("is_refund", [True, False])
+    def test_happy_path(self, payment_exists, is_refund, contribution, balance_transaction):
+        if payment_exists:
             PaymentFactory(
                 contribution=contribution,
                 stripe_balance_transaction_id=balance_transaction.id,
             )
-            existing += 1
-            if charge.refunded:
-                PaymentFactory(
-                    contribution=contribution,
-                    stripe_balance_transaction_id=refund.balance_transaction.id,
-                )
-                existing += 1
-        upsert_payments_for_charge(contribution=contribution, charge=charge, balance_transaction=balance_transaction)
-        refund = charge.refunds.data[0] if charge.refunded else None
+        upsert_payment_for_transaction(contribution=contribution, transaction=balance_transaction, is_refund=is_refund)
         contribution.refresh_from_db()
-        if payments_exist:
-            assert contribution.payment_set.count() == existing
-        else:
-            assert contribution.payment_set.count() == 1 + (1 if charge.refunded else 0)
-
+        assert contribution.payment_set.count() == 1
         assert Payment.objects.filter(
             contribution=contribution,
             stripe_balance_transaction_id=balance_transaction.id,
-            net_amount_paid=balance_transaction.net,
-            gross_amount_paid=balance_transaction.amount,
-            amount_refunded=0,
+            net_amount_paid=balance_transaction.net if not is_refund else 0,
+            gross_amount_paid=balance_transaction.amount if not is_refund else 0,
+            amount_refunded=balance_transaction.amount if is_refund else 0,
             transaction_time__isnull=False,
         ).exists()
-        if charge.refunded:
-            assert Payment.objects.filter(
-                contribution=contribution,
-                stripe_balance_transaction_id=refund.balance_transaction.id,
-                net_amount_paid=0,
-                gross_amount_paid=0,
-                amount_refunded=refund.amount,
-                transaction_time__isnull=False,
-            ).exists()
 
 
 @pytest.mark.django_db
@@ -337,7 +304,7 @@ class TestSubscriptionForRecurringContribution:
         )
         # this charge won't get upserted because has no balance_transaction
         charge2 = mocker.Mock(balance_transaction=None)
-        mock_upsert_charges = mocker.patch("apps.contributions.stripe_import.upsert_payments_for_charge")
+        mock_upsert_charges = mocker.patch("apps.contributions.stripe_import.upsert_payment_for_transaction")
         instance = SubscriptionForRecurringContribution(subscription=subscription_to_upsert, charges=[charge, charge2])
         if has_email_id:
             contribution, _ = instance.upsert()
@@ -579,7 +546,7 @@ class TestPaymentIntentForOneTimeContribution:
             new_callable=mocker.PropertyMock,
             return_value="foo@bar.com" if has_email_id else None,
         )
-        mock_upsert_charges = mocker.patch("apps.contributions.stripe_import.upsert_payments_for_charge")
+        mock_upsert_charges = mocker.patch("apps.contributions.stripe_import.upsert_payment_for_transaction")
         if has_email_id:
             contribution, _ = PaymentIntentForOneTimeContribution(
                 payment_intent=pi_to_upsert, charge=charge_for_upsert
@@ -629,7 +596,7 @@ class TestPaymentIntentForOneTimeContribution:
             return_value=(email := "foo@bar.com"),
         )
         ContributorFactory(email=email)
-        mocker.patch("apps.contributions.stripe_import.upsert_payments_for_charge")
+        mocker.patch("apps.contributions.stripe_import.upsert_payment_for_transaction")
         PaymentIntentForOneTimeContribution(payment_intent=payment_intent, charge=None).upsert()
 
     def test_upsert_when_no_email_id(self, payment_intent, mocker):

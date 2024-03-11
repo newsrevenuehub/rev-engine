@@ -5,6 +5,11 @@ from django.core.management import call_command
 import pytest
 
 from apps.contributions.tests.factories import PaymentFactory
+from apps.organizations.tests.factories import (
+    OrganizationFactory,
+    PaymentProviderFactory,
+    RevenueProgramFactory,
+)
 
 
 @pytest.mark.parametrize("dry_run", (False, True))
@@ -81,24 +86,49 @@ class TestImportStripeTransactionsDataCommand:
         mock_async_task = mocker.patch(
             "apps.contributions.tasks.task_import_contributions_and_payments_for_stripe_account.delay"
         )
+        mocker.patch(
+            "apps.contributions.management.commands.import_stripe_transactions_data.Command.get_stripe_account_ids",
+            return_value=(expected_accounts := command_options.get("for_stripe_accounts", ["some-other-id"])),
+        )
         mock_transformer = mocker.patch(
             "apps.contributions.management.commands.import_stripe_transactions_data.StripeTransactionsImporter"
         )
+        mock_transformer.return_value.import_contributions_and_payments = mocker.Mock()
         if async_mode:
             command_options["async_mode"] = True
         call_command("import_stripe_transactions_data", **command_options)
         gte = command_options.get("gte", None)
         lte = command_options.get("lte", None)
-        expected_call_args = {
+        partial_args = {
             "from_date": (int(gte.timestamp()) if async_mode and gte else gte),
             "to_date": (int(lte.timestamp()) if async_mode and lte else lte),
-            "for_orgs": command_options.get("for_orgs", []),
-            "for_stripe_accounts": command_options.get("for_stripe_accounts", []),
         }
         if async_mode:
-            mock_async_task.assert_called_once_with(**expected_call_args)
             mock_transformer.assert_not_called()
+            for account_id in expected_accounts:
+                expected = partial_args | {"stripe_account_id": account_id}
+                mock_async_task.assert_any_call(**expected)
         else:
             mock_async_task.assert_not_called()
-            mock_transformer.assert_called_once_with(**expected_call_args)
-            mock_transformer.return_value.import_stripe_transactions_data.assert_called_once()
+            for account_id in expected_accounts:
+                expected = partial_args | {"stripe_account_id": account_id}
+                mock_transformer.assert_any_call(**expected)
+            assert mock_transformer.return_value.import_contributions_and_payments.call_count == len(expected_accounts)
+
+    @pytest.fixture(
+        params=[{"for_orgs": [1], "for_stripe_accounts": []}, {"for_orgs": [], "for_stripe_accounts": ["acct_123"]}]
+    )
+    def get_stripe_account_ids_case(self, request):
+        data = request.param
+        stripe_account_id = (data.get("for_stripe_accounts") or ["acct_456"])[0]
+        pp = PaymentProviderFactory(stripe_account_id=stripe_account_id)
+        if data.get("for_orgs", None):
+            RevenueProgramFactory(organization=OrganizationFactory(id=data["for_orgs"][0]), payment_provider=pp)
+        return data, [stripe_account_id]
+
+    def test_get_stripe_account_ids(self, get_stripe_account_ids_case):
+        from apps.contributions.management.commands.import_stripe_transactions_data import Command
+
+        data, expected = get_stripe_account_ids_case
+        command = Command()
+        assert command.get_stripe_account_ids(**data) == expected

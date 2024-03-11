@@ -52,7 +52,7 @@ class Command(BaseCommand):
     def get_stripe_account_ids(self, for_orgs: list[str], for_stripe_accounts: list[str]) -> list[str]:
         query = PaymentProvider.objects.filter(stripe_account_id__isnull=False)
         if for_orgs:
-            query = query.filter(revenue_program__organization__id__in=for_orgs)
+            query = query.filter(revenueprogram__organization__id__in=for_orgs)
         if for_stripe_accounts:
             query = query.filter(stripe_account_id__in=for_stripe_accounts)
         return list(query.values_list("stripe_account_id", flat=True))

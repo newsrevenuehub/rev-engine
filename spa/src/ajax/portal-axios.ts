@@ -15,7 +15,7 @@ export default Axios;
 
 /**
  * A Request interceptor.
- * first callback insets CSRF token from cookie into request headersx
+ * first callback inserts CSRF token from cookie into request headersx
  * second callback handles errors, so pass through
  */
 Axios.interceptors.request.use(

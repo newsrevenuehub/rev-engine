@@ -1,12 +1,16 @@
+import json
 from unittest.mock import Mock
 
 from django.contrib.auth import get_user_model
+from django.http import JsonResponse
 from django.test import TestCase, override_settings
 from django.urls import reverse
 
+import pytest
 import pytest_cases
+from rest_framework import status
 
-from apps.common.views import FilterForSuperUserOrRoleAssignmentUserMixin
+from apps.common.views import FilterForSuperUserOrRoleAssignmentUserMixin, csrf_protect_json
 from apps.organizations.tests.factories import OrganizationFactory, RevenueProgramFactory
 from apps.pages.tests.factories import StyleFactory
 from revengine.views import SAFE_ADMIN_SELECT_ACCESSOR_METHODS, SAFE_ADMIN_SELECT_PARENTS
@@ -130,3 +134,25 @@ class TestFilterForSuperUserOrRoleAssignmentUserMixin:
         else:
             view.model.objects.filtered_by_role_assignment.assert_not_called()
             view.model.objects.none.assert_called_once()
+
+
+@pytest.mark.parametrize("process_view_return", (None, "reason"))
+def test_csrf_protect_json(process_view_return, mocker):
+    mock_process_view = mocker.patch(
+        "apps.common.views.CsrfViewMiddleware.process_view", return_value=process_view_return
+    )
+    mock_view_func = mocker.Mock()
+    mock_request = mocker.Mock()
+    mock_response = mocker.Mock()
+    mock_view_func.return_value = mock_response
+    wrapped_view = csrf_protect_json(mock_view_func)
+    result = wrapped_view(mock_request)
+    if process_view_return is None:
+        mock_view_func.assert_called_once_with(mock_request)
+        assert result == mock_response
+    else:
+        mock_view_func.assert_not_called()
+        assert isinstance(result, JsonResponse)
+        assert result.status_code == status.HTTP_403_FORBIDDEN
+        assert json.loads(result.content.decode("utf-8"))["detail"] == "CSRF token missing or incorrect."
+    mock_process_view.assert_called_once_with(mock_request, None, (), {})

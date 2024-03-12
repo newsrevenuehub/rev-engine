@@ -23,11 +23,12 @@ def csrf_protect_json(view_func):
     @wraps(view_func)
     def wrapped_view(request, *args, **kwargs):
         reason = CsrfViewMiddleware().process_view(request, None, (), {})
-        # If there's a reason returned, it indicates a CSRF failure
+        # If there's a reason returned, it indicates a CSRF failure. If no problem with CSRF, reason will be None (based
+        # on the implementation of CsrfViewMiddleware.process_view()).
         return (
-            JsonResponse({"detail": "CSRF token missing or incorrect."}, status=status.HTTP_403_FORBIDDEN)
-            if reason
-            else view_func(request, *args, **kwargs)
+            view_func(request, *args, **kwargs)
+            if reason is None
+            else JsonResponse({"detail": "CSRF token missing or incorrect."}, status=status.HTTP_403_FORBIDDEN)
         )
 
     return wrapped_view

@@ -1,17 +1,20 @@
+import userEvent from '@testing-library/user-event';
 import { axe } from 'jest-axe';
 import { useParams } from 'react-router-dom';
 import { fireEvent, render, screen, waitFor } from 'test-utils';
-import ContributionsList from './ContributionsList';
+import usePortal from 'hooks/usePortal';
 import { PortalAuthContext, PortalAuthContextResult } from 'hooks/usePortalAuth';
 import { usePortalContributionList } from 'hooks/usePortalContributionList';
-import userEvent from '@testing-library/user-event';
+import ContributionsList from './ContributionsList';
 
 jest.mock('react-router-dom', () => ({
   ...jest.requireActual('react-router-dom'),
   useParams: jest.fn()
 }));
+jest.mock('hooks/usePortal');
 jest.mock('hooks/usePortalContributionList');
 jest.mock('./ContributionDetail/ContributionDetail');
+jest.mock('./ContributionsHeader/ContributionsHeader');
 jest.mock('./ContributionItem/ContributionItem');
 jest.mock('./ContributionFetchError');
 jest.mock('../PortalPage');
@@ -25,12 +28,14 @@ function tree(context?: Partial<PortalAuthContextResult>) {
 }
 
 describe('ContributionsList', () => {
+  const usePortalMock = jest.mocked(usePortal);
   const useParamsMock = jest.mocked(useParams);
   const usePortalContributionsListMock = jest.mocked(usePortalContributionList);
   let track: jest.SpyInstance;
 
   beforeEach(() => {
     useParamsMock.mockReturnValue({});
+    usePortalMock.mockReturnValue({ page: { id: 'mock-page-id', revenue_program: { id: 'mock-rp-id' } } } as any);
     usePortalContributionsListMock.mockReturnValue({
       contributions: [],
       isError: false,
@@ -40,6 +45,16 @@ describe('ContributionsList', () => {
     });
     track = jest.fn();
     (window as any).pendo = { track };
+  });
+
+  it('shows a heading', () => {
+    tree();
+
+    const header = screen.getByTestId('mock-contributions-header');
+
+    expect(header).toBeInTheDocument();
+    expect(header.dataset.defaultPage).toBe('mock-page-id');
+    expect(header.dataset.rp).toBe('mock-rp-id');
   });
 
   it('shows a Transactions heading', () => {

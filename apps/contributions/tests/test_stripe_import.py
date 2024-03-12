@@ -185,20 +185,29 @@ class Test_upsert_payment_for_transaction:
 
 @pytest.mark.django_db
 class TestSubscriptionForRecurringContribution:
-    @pytest.mark.parametrize("metadata_validates", (True, False))
-    def test_init_with_regard_to_metadata_validity(
-        self, metadata_validates, mock_metadata_validator, subscription, mocker
-    ):
-        if not metadata_validates:
-            mock_metadata_validator.side_effect = InvalidMetadataError("foo")
-            with pytest.raises(InvalidMetadataError):
-                SubscriptionForRecurringContribution(subscription=subscription, charges=[])
-        else:
-            instance = SubscriptionForRecurringContribution(subscription=subscription, charges=[])
-            assert instance.subscription == subscription
-            assert instance.charges == []
 
+    def test_init_when_email_id_not_validate(self, subscription, mocker):
+        mocker.patch(
+            "apps.contributions.stripe_import.SubscriptionForRecurringContribution.email_id",
+            return_value=None,
+            new_callable=mocker.PropertyMock,
+        )
+        with pytest.raises(InvalidStripeTransactionDataError) as exc_info:
+            SubscriptionForRecurringContribution(subscription=subscription, charges=[], refunds=[], customer=None)
+        assert str(exc_info.value) == f"Subscription {subscription.id} has no email associated with it"
+
+    def test_init_when_metadata_not_validate(self, subscription, mocker, mock_metadata_validator):
+        mock_metadata_validator.side_effect = InvalidMetadataError("foo")
+
+        with pytest.raises(InvalidMetadataError) as exc_info:
+            SubscriptionForRecurringContribution(subscription=subscription, charges=[], refunds=[], customer=None)
         mock_metadata_validator.assert_called_once_with(subscription.metadata)
+
+    def test_init_when_subscription_interval_not_validate(self, subscription):
+        subscription.customer.email = "something"
+        subscription.plan.interval = "unexpected"
+        with pytest.raises(InvalidIntervalError):
+            SubscriptionForRecurringContribution(subscription=subscription, charges=[], refunds=[], customer=None)
 
     def test__str__(self, subscription, mock_metadata_validator):
         subscription.id = "sub_1"

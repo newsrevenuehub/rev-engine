@@ -1,8 +1,7 @@
 import styled from 'styled-components';
+import Error from '@material-design-icons/svg/outlined/error.svg?react';
 
-import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
-
-export const ContributorTokenExpiredModal = styled.div`
+export const Root = styled.div`
   background: ${(props) => props.theme.colors.white};
   border-radius: ${(props) => props.theme.radii[0]};
   padding: 2rem;
@@ -10,11 +9,12 @@ export const ContributorTokenExpiredModal = styled.div`
 
 export const ExpiredMessage = styled.div``;
 
-export const Icon = styled(FontAwesomeIcon)`
+export const Icon = styled(Error)`
+  fill: ${(props) => props.theme.colors.warning};
+  height: 48px;
   display: block;
   margin: 0 auto;
-  font-size: 48px;
-  color: ${(props) => props.theme.colors.warning};
+  width: 48px;
 `;
 
 export const Message = styled.h3`

@@ -210,9 +210,16 @@ class SubscriptionForRecurringContribution:
         """Does several validation checks that should ensure the data can be upserted to revengine."""
         # This will raise an `InvalidMetadataError` if the metadata is invalid
         cast_metadata_to_stripe_payment_metadata_schema(self.subscription.metadata)
+        self.validate_customer()
         self.validate_email_id()
         # This will raise an `InvalidIntervalError` if the interval is invalid
         self.get_interval_from_subscription(self.subscription)
+
+    def validate_customer(self) -> None:
+        if not self.customer:
+            raise InvalidStripeTransactionDataError(
+                f"Subscription {self.subscription.id} has no customer associated with it"
+            )
 
     def validate_email_id(self) -> None:
         if not self.email_id:
@@ -255,7 +262,7 @@ class SubscriptionForRecurringContribution:
 
     @property
     def email_id(self) -> str | None:
-        return getattr(self.customer, "email", None) if self.customer else None
+        return self.customer.email
 
     @property
     def payment_method(self) -> stripe.PaymentMethod | None:
@@ -268,11 +275,7 @@ class SubscriptionForRecurringContribution:
         if default_pm := self.subscription.default_payment_method:
             return default_pm
 
-        return (
-            self.customer.invoice_settings.default_payment_method
-            if self.customer and self.customer.invoice_settings
-            else None
-        )
+        return self.customer.invoice_settings.default_payment_method if self.customer.invoice_settings else None
 
     @transaction.atomic
     def upsert(self) -> Tuple[Contribution, str]:
@@ -294,7 +297,7 @@ class SubscriptionForRecurringContribution:
                 "reason": self.subscription.metadata.get("reason_for_giving", ""),
                 "interval": self.interval,
                 "payment_provider_used": "stripe",
-                "provider_customer_id": self.customer.id if self.customer else None,
+                "provider_customer_id": self.customer.id,
                 "provider_payment_method_id": pm.id if pm else None,
                 "provider_payment_method_details": pm.to_dict() if pm else None,
                 "contributor": contributor,

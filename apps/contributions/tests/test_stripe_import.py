@@ -40,6 +40,16 @@ def balance_transaction(mocker):
 
 
 @pytest.fixture
+def balance_transaction_for_refund(mocker):
+    return mocker.Mock(
+        id="bt_2",
+        net=-1000,
+        amount=-1000,
+        created=datetime.datetime.now().timestamp(),
+    )
+
+
+@pytest.fixture
 def refund(mocker, balance_transaction_for_refund):
     refund = mocker.Mock(amount=1000, balance_transaction=balance_transaction_for_refund)
     return refund
@@ -105,9 +115,8 @@ def subscription(mocker, customer, valid_metadata):
 
 
 @pytest.fixture
-def customer():
-    # we have some code that looks at type of value sent for customer, so we need to return a stripe.Customer, not a mock
-    return stripe.Customer.construct_from({"email": "foo@bar.com", "id": "cus_1", "invoice_settings": None}, key="test")
+def customer(mocker):
+    return mocker.Mock(email="foo@bar.com", id="cus_1", invoice_settings=None)
 
 
 @pytest.fixture
@@ -173,7 +182,7 @@ class Test_upsert_payment_for_transaction:
         upsert_payment_for_transaction(contribution=contribution, transaction=balance_transaction, is_refund=is_refund)
         contribution.refresh_from_db()
         assert contribution.payment_set.count() == 1
-        assertPayment.objects.filter(
+        assert Payment.objects.filter(
             contribution=contribution,
             stripe_balance_transaction_id=balance_transaction.id,
             net_amount_paid=balance_transaction.net if not is_refund else 0,
@@ -185,6 +194,11 @@ class Test_upsert_payment_for_transaction:
 
 @pytest.mark.django_db
 class TestSubscriptionForRecurringContribution:
+
+    def test_init_when_customer_not_validate(self, subscription):
+        with pytest.raises(InvalidStripeTransactionDataError) as exc_info:
+            SubscriptionForRecurringContribution(subscription=subscription, charges=[], refunds=[], customer=None)
+        assert str(exc_info.value) == f"Subscription {subscription.id} has no customer associated with it"
 
     def test_init_when_email_id_not_validate(self, subscription, mocker):
         mocker.patch(
@@ -226,9 +240,14 @@ class TestSubscriptionForRecurringContribution:
             ("anything_else_that_arrives", ContributionStatus.PROCESSING),
         ),
     )
-    def test_status(self, subscription, sub_status, con_status, mock_metadata_validator):
+    def test_status(self, subscription, sub_status, con_status, customer):
         subscription.status = sub_status
-        assert SubscriptionForRecurringContribution(subscription=subscription, charges=[]).status == con_status
+        assert (
+            SubscriptionForRecurringContribution(
+                subscription=subscription, charges=[], refunds=[], customer=customer
+            ).status
+            == con_status
+        )
 
     @pytest.mark.parametrize(
         "plan_interval,plan_interval_count,expected",
@@ -240,7 +259,7 @@ class TestSubscriptionForRecurringContribution:
             ("month", 2, None),
         ),
     )
-    def test_interval(self, subscription, plan_interval, plan_interval_count, expected):
+    def test_get_interval_from_subscription(self, subscription, plan_interval, plan_interval_count, expected):
         subscription.plan.interval = plan_interval
         subscription.plan.interval_count = plan_interval_count
         if expected is not None:
@@ -249,93 +268,80 @@ class TestSubscriptionForRecurringContribution:
             with pytest.raises(InvalidIntervalError):
                 SubscriptionForRecurringContribution.get_interval_from_subscription(subscription)
 
-    @pytest.mark.parametrize("customer_exists", (True, False))
-    def test_email_id(self, customer_exists, subscription, mocker, mock_metadata_validator):
-        if customer_exists:
-            subscription.customer = mocker.Mock(email=(email := "foo@bar.com"))
-        else:
-            subscription.customer = None
-        instance = SubscriptionForRecurringContribution(subscription=subscription, charges=[])
-        if customer_exists:
-            assert instance.email_id == email
-        else:
-            assert instance.email_id is None
+    @pytest.fixture
+    def customer_no_invoice_settings(self, customer):
+        customer = deepcopy(customer)
+        customer.invoice_settings = None
+        return customer
+
+    @pytest.fixture
+    def customer_with_invoice_settings(self, customer, mocker, payment_method_A):
+        customer = deepcopy(customer)
+        customer.invoice_settings = mocker.Mock(default_payment_method=payment_method_A)
+        return customer
 
     @pytest.fixture(
         params=[
-            {"subscription_default_pm": None, "subscription_customer": None, "expected": None},
+            {"subscription_default_pm": None, "customer": "customer_no_invoice_settings", "expected": None},
             {
                 "subscription_default_pm": None,
-                "subscription_customer": "customer_with_default_pm",
+                "customer": "customer_with_invoice_settings",
                 "expected": "payment_method_A",
             },
             {
                 "subscription_default_pm": "payment_method_B",
-                "subscription_customer": None,
+                "customer": "customer_with_invoice_settings",
                 "expected": "payment_method_B",
             },
         ]
     )
-    def payment_method_state_space(self, mocker, request, subscription):
+    def payment_method_state_space(self, request, subscription, customer):
         pm = (
             request.getfixturevalue(request.param["subscription_default_pm"])
             if request.param["subscription_default_pm"]
             else None
         )
-        customer = (
-            request.getfixturevalue(request.param["subscription_customer"])
-            if request.param["subscription_customer"]
-            else None
-        )
-        if customer:
-            mocker.patch("stripe.Customer.retrieve", return_value=customer)
+        customer = request.getfixturevalue(request.param["customer"])
         subscription = deepcopy(subscription)
         subscription.default_payment_method = pm
-        subscription.customer = customer
         expected = request.getfixturevalue(request.param["expected"]) if request.param["expected"] else None
-        return subscription, expected
+        return subscription, customer, expected
 
-    def test_payment_method(self, payment_method_state_space, mock_metadata_validator):
-        subscription, expected = payment_method_state_space
-        instance = SubscriptionForRecurringContribution(subscription=subscription, charges=[])
+    def test_payment_method(self, payment_method_state_space):
+        subscription, customer, expected = payment_method_state_space
+        instance = SubscriptionForRecurringContribution(
+            subscription=subscription, charges=[], refunds=[], customer=customer
+        )
         assert instance.payment_method == expected
 
     @pytest.fixture(params=["subscription", "subscription_with_existing_nre_entities"])
     def subscription_to_upsert(self, request):
-        return request.getfixturevalue(request.param)
-
-    @pytest.mark.parametrize("has_email_id", (True, False))
-    def test_upsert(self, has_email_id, subscription_to_upsert, mock_metadata_validator, charge, mocker):
-        mocker.patch(
-            "apps.contributions.stripe_import.SubscriptionForRecurringContribution.email_id",
-            new_callable=mocker.PropertyMock,
-            return_value="foo@bar.com" if has_email_id else None,
+        return request.getfixturevalue(request.param), (
+            True if request.param == "subscription_with_existing_nre_entities" else False
         )
-        # this charge won't get upserted because has no balance_transaction
-        charge2 = mocker.Mock(balance_transaction=None)
-        mock_upsert_charges = mocker.patch("apps.contributions.stripe_import.upsert_payment_for_transaction")
-        instance = SubscriptionForRecurringContribution(subscription=subscription_to_upsert, charges=[charge, charge2])
-        if has_email_id:
-            contribution, _ = instance.upsert()
-            assert contribution.provider_subscription_id == subscription_to_upsert.id
-            assert contribution.amount == subscription_to_upsert.plan.amount
-            assert contribution.currency == subscription_to_upsert.plan.currency
-            assert contribution.reason == ""
-            assert contribution.interval == ContributionInterval.MONTHLY
-            assert contribution.payment_provider_used == "stripe"
-            assert contribution.provider_customer_id == subscription_to_upsert.customer.id
-            assert contribution.provider_payment_method_id == subscription_to_upsert.default_payment_method.id
-            assert (
-                contribution.provider_payment_method_details == subscription_to_upsert.default_payment_method.to_dict()
-            )
-            assert contribution.contributor.email == subscription_to_upsert.customer.email
-            assert contribution.contribution_metadata == subscription_to_upsert.metadata
-            assert contribution.status == ContributionStatus.PAID
 
-            mock_upsert_charges.assert_called_once_with(contribution, charge, charge.balance_transaction)
-        else:
-            with pytest.raises(InvalidStripeTransactionDataError):
-                instance.upsert()
+    def test_upsert(self, subscription_to_upsert, charge, refund, customer, mocker):
+        subscription, existing_entities = subscription_to_upsert
+        mock_upsert_payment = mocker.patch("apps.contributions.stripe_import.upsert_payment_for_transaction")
+        instance = SubscriptionForRecurringContribution(
+            subscription=subscription, charges=[charge], refunds=[refund], customer=customer
+        )
+        contribution, action = instance.upsert()
+        assert contribution.provider_subscription_id == subscription.id
+        assert contribution.amount == subscription.plan.amount
+        assert contribution.currency == subscription.plan.currency
+        assert contribution.reason == ""
+        assert contribution.interval == ContributionInterval.MONTHLY
+        assert contribution.payment_provider_used == "stripe"
+        assert contribution.provider_customer_id == subscription.customer.id
+        assert contribution.provider_payment_method_id == subscription.default_payment_method.id
+        assert contribution.provider_payment_method_details == subscription.default_payment_method.to_dict()
+        assert contribution.contributor.email == subscription.customer.email
+        assert contribution.contribution_metadata == subscription.metadata
+        assert contribution.status == ContributionStatus.PAID
+        assert action == "created" if not existing_entities else "updated"
+        mock_upsert_payment.assert_any_call(contribution, charge.balance_transaction, is_refund=False)
+        mock_upsert_payment.assert_any_call(contribution, refund.balance_transaction, is_refund=True)
 
 
 @pytest.mark.django_db

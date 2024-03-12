@@ -35,10 +35,11 @@ export const Root = styled.div`
   }
 `;
 
-export const Columns = styled.div`
+export const Layout = styled.div`
   display: grid;
   gap: 25px 20px;
   grid-template-areas:
+    'header _'
     'legend _'
     'list detail';
   grid-template-columns: 1fr 1fr;

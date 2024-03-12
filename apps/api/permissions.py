@@ -149,7 +149,7 @@ class HasFlaggedAccessToMailchimp(BaseFlaggedResourceAccess):
         self.flag = Flag.objects.filter(name=MAILCHIMP_INTEGRATION_ACCESS_FLAG_NAME).first()
         if not self.flag:
             raise ApiConfigurationError(
-                f"{MAILCHIMP_INTEGRATION_ACCESS_FLAG_NAME} flag  not found in database. Check configuration."
+                f"{MAILCHIMP_INTEGRATION_ACCESS_FLAG_NAME} flag not found in database. Check configuration."
             )
 
 

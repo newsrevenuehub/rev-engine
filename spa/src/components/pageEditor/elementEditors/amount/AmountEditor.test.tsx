@@ -1,9 +1,10 @@
 import userEvent from '@testing-library/user-event';
 import { AmountElement } from 'hooks/useContributionPage';
 import { axe } from 'jest-axe';
-import { render, screen } from 'test-utils';
+import { render, screen, waitFor, within } from 'test-utils';
 import { ContributionIntervalList } from 'utilities/getPageContributionIntervals';
 import AmountEditor, { AmountEditorProps } from './AmountEditor';
+import { ContributionInterval } from 'constants/contributionIntervals';
 
 jest.mock('./AmountInterval');
 
@@ -15,6 +16,10 @@ const contributionIntervals: ContributionIntervalList = [
   {
     interval: 'month',
     displayName: 'Monthly'
+  },
+  {
+    interval: 'year',
+    displayName: 'Yearly'
   }
 ];
 
@@ -25,7 +30,8 @@ const elementContent: AmountElement['content'] = {
   },
   options: {
     one_time: [1, 2, 3],
-    month: [10, 20, 30]
+    month: [10, 20, 30],
+    year: []
   }
 };
 
@@ -174,25 +180,68 @@ describe('AmountEditor', () => {
     ]);
   });
 
-  describe('The allow other checkbox', () => {
-    it('is checked if the value is set in the element content', () => {
-      tree({ elementContent: { ...elementContent, allowOther: true } });
-      expect(screen.getByRole('checkbox', { name: 'Include "other" as an option for all frequencies' })).toBeChecked();
-    });
+  describe.each(['one_time', 'month', 'year'] as ContributionInterval[])('The allow other checkbox %s', (frequency) => {
+    describe.each([
+      ['Legacy', { allowOther: true }],
+      [
+        'Current',
+        {
+          options: { ...elementContent.options, [frequency]: [...(elementContent.options?.[frequency] ?? []), 'other'] }
+        }
+      ]
+    ])('other format is %s', (format, props) => {
+      if (format === 'Legacy') {
+        it('should call "onChangeElementContent" to migrate format', async () => {
+          const onChangeElementContent = jest.fn();
 
-    it('is unchecked if the value is set in the element content', () => {
-      tree({ elementContent: { ...elementContent, allowOther: false } });
-      expect(
-        screen.getByRole('checkbox', { name: 'Include "other" as an option for all frequencies' })
-      ).not.toBeChecked();
-    });
+          tree({ elementContent: { ...elementContent, ...props }, onChangeElementContent });
 
-    it('updates element content when changed', () => {
-      const onChangeElementContent = jest.fn();
+          expect(onChangeElementContent.mock.calls).toEqual([
+            [
+              {
+                ...elementContent,
+                allowOther: undefined,
+                options: {
+                  one_time: [1, 2, 3, 'other'],
+                  month: [10, 20, 30, 'other'],
+                  year: ['other']
+                }
+              }
+            ]
+          ]);
+        });
+      } else {
+        it('is checked if the value is set in the element content', async () => {
+          tree({ elementContent: { ...elementContent, ...props } });
+          await waitFor(() => {
+            expect(within(screen.getByTestId(`allow-other-${frequency}`)).getByRole('checkbox')).toBeChecked();
+          });
+        });
+      }
 
-      tree({ elementContent: { ...elementContent, allowOther: false }, onChangeElementContent });
-      userEvent.click(screen.getByRole('checkbox', { name: 'Include "other" as an option for all frequencies' }));
-      expect(onChangeElementContent.mock.calls).toEqual([[{ ...elementContent, allowOther: true }]]);
+      it('is unchecked if the value is set in the element content', () => {
+        tree({ elementContent: { ...elementContent, allowOther: false } });
+        expect(within(screen.getByTestId(`allow-other-${frequency}`)).getByRole('checkbox')).not.toBeChecked();
+      });
+
+      it('updates element content when changed', () => {
+        const onChangeElementContent = jest.fn();
+
+        tree({ elementContent: { ...elementContent, allowOther: false }, onChangeElementContent });
+        userEvent.click(within(screen.getByTestId(`allow-other-${frequency}`)).getByRole('checkbox'));
+        expect(onChangeElementContent.mock.calls).toEqual([
+          [
+            {
+              ...elementContent,
+              allowOther: false,
+              options: {
+                ...elementContent.options,
+                [frequency]: [...(elementContent.options?.[frequency] ?? []), 'other']
+              }
+            }
+          ]
+        ]);
+      });
     });
   });
 

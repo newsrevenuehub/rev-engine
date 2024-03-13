@@ -1,7 +1,6 @@
 import datetime
 
 import pytest
-import pytest_cases
 
 from apps.users.permissions import (
     UserHasAcceptedTermsOfService,
@@ -114,16 +113,15 @@ def test_update_keys_dont_require_email_verification(request_method, request_dat
     assert update_keys_dont_require_email_verification(request) is expected
 
 
+@pytest.fixture(params=[("user", True, True), ("user", False, False), (None, False, False)])
+def user_email_is_verified_case(request):
+    user = request.getfixturevalue(request.param[0]) if request.param[0] else None
+    return user, request.param[1], request.param[2]
+
+
 @pytest.mark.django_db
-@pytest_cases.parametrize(
-    "user, email_verified, expect",
-    [
-        (pytest_cases.fixture_ref("user"), True, True),
-        (pytest_cases.fixture_ref("user"), False, False),
-        (None, False, False),
-    ],
-)
-def test_user_email_is_verified(user, email_verified, expect, rf):
+def test_user_email_is_verified(rf, user_email_is_verified_case):
+    user, email_verified, expect = user_email_is_verified_case
     request = rf.get("/")
     if user is not None:
         user.email_verified = email_verified

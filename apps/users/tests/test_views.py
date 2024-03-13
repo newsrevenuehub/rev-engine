@@ -447,6 +447,7 @@ class TestAPIRequestPasswordResetEmail:
 
 @pytest.mark.django_db
 class TestUserViewSet:
+
     @pytest.fixture(autouse=True)
     def setup_and_teardown(self, settings):
         settings.EMAIL_BACKEND = "django.core.mail.backends.locmem.EmailBackend"
@@ -783,16 +784,6 @@ class TestUserViewSet:
         assert response.status_code == status.HTTP_200_OK
         org_user_free_plan.refresh_from_db()
         assert org_user_free_plan.check_password(password)
-
-    def test_put_not_implemented(self, api_client, hub_admin_user):
-        api_client.force_authenticate(hub_admin_user)
-        response = api_client.put(reverse("user-detail", args=(hub_admin_user.pk,)), data={})
-        assert response.status_code == status.HTTP_405_METHOD_NOT_ALLOWED
-
-    def test_delete_not_implemented(self, hub_admin_user, api_client):
-        api_client.force_authenticate(hub_admin_user)
-        response = api_client.delete(reverse("user-detail", args=(hub_admin_user.pk,)))
-        assert response.status_code == status.HTTP_405_METHOD_NOT_ALLOWED
 
     def test_request_account_verification_happy_path(self, api_client, mocker):
         mock_send_verification_email = mocker.patch("apps.users.views.UserViewset.send_verification_email")

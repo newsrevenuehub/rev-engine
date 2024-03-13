@@ -267,7 +267,7 @@ class TestContributionsViewSet:
         api_client.force_authenticate(non_contributor_user)
         # superuser and hub admin can retrieve all:
         if non_contributor_user.is_superuser or non_contributor_user.roleassignment.role_type == Roles.HUB_ADMIN:
-            ContributionFactory.create_batch(size=2)
+            ContributionFactory.create_batch(size=2, status=ContributionStatus.PAID)
             query = (
                 Contribution.objects.all()
                 if non_contributor_user.is_superuser
@@ -284,6 +284,7 @@ class TestContributionsViewSet:
                 donation_page=DonationPageFactory(
                     revenue_program=non_contributor_user.roleassignment.revenue_programs.first()
                 ),
+                status=ContributionStatus.PAID,
             )
             ContributionFactory(one_time=True, donation_page=DonationPageFactory(revenue_program=revenue_program))
             non_contributor_user.roleassignment.refresh_from_db()

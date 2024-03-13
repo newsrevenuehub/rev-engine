@@ -9,7 +9,6 @@ from django.utils import timezone
 import pydantic
 import pydantic_core
 import pytest
-import pytest_cases
 import stripe
 from addict import Dict as AttrDict
 from rest_framework.exceptions import APIException, PermissionDenied
@@ -72,7 +71,7 @@ class TestContributionSerializer:
             else obj.flagged_date + timedelta(settings.FLAGGED_PAYMENT_AUTO_ACCEPT_DELTA)
         )
 
-    @pytest_cases.parametrize(
+    @pytest.mark.parametrize(
         "make_serializer_object_fn,expected",
         (
             (lambda: Mock(payment_provider_used=None), ""),

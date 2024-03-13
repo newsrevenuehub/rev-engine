@@ -15,6 +15,12 @@ export const ReasonSelect = styled(TextField)`
   && .NreTextFieldInput {
     background: ${({ theme }) => theme.colors.cstm_inputBackground};
     border-color: ${({ theme }) => theme.colors.cstm_inputBorder};
+    border-width: 1px;
+  }
+
+  && .NreTextFieldSelectIcon {
+    /* Match the position of the chevron in CountrySelect. */
+    right: 13px;
   }
 `;
 

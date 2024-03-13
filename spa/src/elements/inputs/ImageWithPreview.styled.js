@@ -1,7 +1,6 @@
 import styled from 'styled-components';
-import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
 
-export const ImageWithPreview = styled.div`
+export const Root = styled.div`
   display: flex;
   flex-direction: column;
 `;
@@ -53,11 +52,11 @@ export const Button = styled.button`
   }
 `;
 
-export const UploadIcon = styled(FontAwesomeIcon)`
+export const UploadIcon = styled.div`
   color: ${(props) => props.theme.colors.primary};
   margin-bottom: 1rem;
 `;
 
-export const RemoveIcon = styled(FontAwesomeIcon)`
+export const RemoveIcon = styled.div`
   color: ${(props) => props.theme.colors.caution};
 `;

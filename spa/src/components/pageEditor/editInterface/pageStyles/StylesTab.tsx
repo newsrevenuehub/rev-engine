@@ -1,9 +1,8 @@
-import { ColorPicker, OffscreenText, SearchableSelect, TextField } from 'components/base';
+import { ColorPicker, MenuItem, OffscreenText, SearchableSelect, TextField } from 'components/base';
 import useFontList from 'hooks/useFontList';
 import { Style } from 'hooks/useStyleList';
 import PropTypes, { InferProps } from 'prop-types';
-import { Flex, Pickers, Section, Title, FullLine } from './StylesTab.styled';
-import Select from 'elements/inputs/Select';
+import { Flex, Pickers, Section, Title, FullLine, FontSizeTextField } from './StylesTab.styled';
 import { ContributionPage } from 'hooks/useContributionPage/useContributionPage.types';
 import ImageUpload from 'components/base/ImageUpload/ImageUpload';
 import { isValidWebUrl } from 'utilities/isValidWebUrl';
@@ -157,19 +156,21 @@ function StylesTab({
               value={fonts.find((font) => font.id === styles.font[field]?.id) ?? { name: 'Select a font', id: '' }}
             />
           ))}
-          <Select
+          <FontSizeTextField
+            data-testid="heading-font-select"
+            id="styles-tab-font-size"
             label="Font Size"
-            items={FONT_SIZE_OPTIONS}
-            selectedItem={FONT_SIZE_OPTIONS.find((option) => option.value === headingFontSize)}
-            onSelectedItemChange={({ selectedItem }: { selectedItem: FontSizeOption }) => {
-              setFontSize(selectedItem.value);
-            }}
-            testId="heading-font-select"
-            name="revenue_program"
-            displayAccessor="label"
             placeholder="Select font size"
-            dropdownPosition=""
-          />
+            select
+            onChange={({ target }) => setFontSize(parseInt(target.value) as AllowedFontSizes)}
+            value={headingFontSize}
+          >
+            {FONT_SIZE_OPTIONS.map(({ label, value }) => (
+              <MenuItem key={value} value={value}>
+                {label}
+              </MenuItem>
+            ))}
+          </FontSizeTextField>
         </Pickers>
       </Section>
       <Section>

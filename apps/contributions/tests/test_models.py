@@ -9,7 +9,6 @@ from django.conf import settings
 from django.core import mail
 
 import pytest
-import pytest_cases
 import stripe
 from addict import Dict as AttrDict
 from bs4 import BeautifulSoup
@@ -107,10 +106,11 @@ class MockForContributorReturn:
 
 @pytest.mark.django_db
 class TestContributionModel:
-    @pytest_cases.parametrize(
-        "contribution",
-        (pytest_cases.fixture_ref("one_time_contribution"), pytest_cases.fixture_ref("monthly_contribution")),
-    )
+
+    @pytest.fixture(params=["one_time_contribution", "monthly_contribution", "annual_contribution"])
+    def contribution(self, request):
+        return request.getfixturevalue(request.param)
+
     def test_create_stripe_customer(self, contribution, mocker, monkeypatch):
         """Show Contribution.create_stripe_customer calls Stripe with right params and returns the customer object"""
         customer_create_return_val = {"id": "cus_fakefakefake"}
@@ -152,10 +152,6 @@ class TestContributionModel:
         one_time_contribution.save()
         assert one_time_contribution.formatted_amount == "$10.00 USD"
 
-    @pytest_cases.parametrize(
-        "contribution",
-        (pytest_cases.fixture_ref("one_time_contribution"), pytest_cases.fixture_ref("monthly_contribution")),
-    )
     @pytest.mark.parametrize("has_donation_page", (True, False))
     def test_revenue_program_property(self, contribution, has_donation_page):
         if not has_donation_page:
@@ -166,10 +162,6 @@ class TestContributionModel:
             assert (rp := contribution.donation_page.revenue_program) is not None
             assert contribution.revenue_program == rp
 
-    @pytest_cases.parametrize(
-        "contribution",
-        (pytest_cases.fixture_ref("one_time_contribution"), pytest_cases.fixture_ref("monthly_contribution")),
-    )
     @pytest.mark.parametrize(
         "has_revenue_program,has_payment_provider,expect_result",
         ((True, False, False), (False, True, False), (True, True, True)),
@@ -369,23 +361,6 @@ class TestContributionModel:
             capture_method="automatic",
         )
 
-    @pytest_cases.parametrize(
-        "contribution",
-        (pytest_cases.fixture_ref("monthly_contribution"), pytest_cases.fixture_ref("annual_contribution")),
-    )
-    def test_create_stripe_one_time_payment_intent_when_not_one_time(self, contribution):
-        """Show Contribution.create_stripe_one_time_payment_intent calls Stripe with right params...
-
-        ...that it returns the created payment intent, and that it saves the payment intent ID and
-        client secret back to the contribution
-        """
-        assert contribution.interval != ContributionInterval.ONE_TIME
-        # show raises error
-
-    @pytest_cases.parametrize(
-        "contribution",
-        (pytest_cases.fixture_ref("monthly_contribution"), pytest_cases.fixture_ref("annual_contribution")),
-    )
     def test_create_stripe_subscription(self, contribution, monkeypatch, mocker):
         """Show Contribution.create_stripe_subscription calls Stripe with right params...
 
@@ -423,10 +398,6 @@ class TestContributionModel:
         )
         assert subscription == return_value
 
-    @pytest_cases.parametrize(
-        "contribution",
-        (pytest_cases.fixture_ref("monthly_contribution"), pytest_cases.fixture_ref("annual_contribution")),
-    )
     def test_create_stripe_setup_intent(self, contribution, monkeypatch, mocker):
         """Show Contribution.create_stripe_setup_intent calls Stripe with right params...
 
@@ -450,14 +421,10 @@ class TestContributionModel:
         )
         assert setup_intent == return_value
 
-    @pytest_cases.parametrize(
-        "contribution",
-        (
-            pytest_cases.fixture_ref("one_time_contribution"),
-            pytest_cases.fixture_ref("monthly_contribution"),
-            pytest_cases.fixture_ref("annual_contribution"),
-        ),
-    )
+    @pytest.fixture(params=["one_time_contribution", "monthly_contribution", "annual_contribution"])
+    def handle_thank_you_email_contribution(self, request):
+        return request.getfixturevalue(request.param)
+
     @pytest.mark.parametrize("send_receipt_email_via_nre", (True, False))
     def test_handle_thank_you_email(
         self, contribution, send_receipt_email_via_nre, mocker, settings, mock_stripe_customer
@@ -625,14 +592,6 @@ class TestContributionModel:
         assert contribution.modified == last_modified
         mock_stripe_method.assert_not_called()
 
-    @pytest_cases.parametrize(
-        "contribution",
-        (
-            pytest_cases.fixture_ref("one_time_contribution"),
-            pytest_cases.fixture_ref("monthly_contribution"),
-            pytest_cases.fixture_ref("annual_contribution"),
-        ),
-    )
     @pytest.mark.parametrize(
         "setup_intent_id,stripe_account_id,expect_retrieve",
         (
@@ -678,14 +637,6 @@ class TestContributionModel:
             contribution.id,
         )
 
-    @pytest_cases.parametrize(
-        "contribution",
-        (
-            pytest_cases.fixture_ref("one_time_contribution"),
-            pytest_cases.fixture_ref("monthly_contribution"),
-            pytest_cases.fixture_ref("annual_contribution"),
-        ),
-    )
     @pytest.mark.parametrize(
         "payment_intent_id,stripe_account_id,expect_retrieve",
         (
@@ -734,14 +685,6 @@ class TestContributionModel:
             contribution.id,
         )
 
-    @pytest_cases.parametrize(
-        "contribution",
-        (
-            pytest_cases.fixture_ref("one_time_contribution"),
-            pytest_cases.fixture_ref("monthly_contribution"),
-            pytest_cases.fixture_ref("annual_contribution"),
-        ),
-    )
     @pytest.mark.parametrize(
         "subscription_id,stripe_account_id,expect_retrieve",
         (
@@ -919,14 +862,12 @@ class TestContributionModel:
     def mock_stripe_customer(self, mocker):
         mocker.patch("stripe.Customer.retrieve", return_value=AttrDict({"name": "Fake Customer Name"}))
 
-    @pytest_cases.parametrize(
-        "revenue_program",
-        (
-            pytest_cases.fixture_ref("fiscally_sponsored_revenue_program"),
-            pytest_cases.fixture_ref("nonprofit_revenue_program"),
-            pytest_cases.fixture_ref("for_profit_revenue_program"),
-        ),
+    @pytest.fixture(
+        params=["fiscally_sponsored_revenue_program", "nonprofit_revenue_program", "for_profit_revenue_program"]
     )
+    def revenue_program(self, request):
+        return request.getfixturevalue(request.param)
+
     @pytest.mark.parametrize("tax_id", (None, "123456789"))
     @pytest.mark.parametrize(
         "email_method_name",
@@ -1019,14 +960,6 @@ class TestContributionModel:
         annual_contribution.send_recurring_contribution_email_reminder("test-timestamp")
         assert "Scheduled: test-timestamp" in mail.outbox[0].body
 
-    @pytest_cases.parametrize(
-        "revenue_program",
-        (
-            pytest_cases.fixture_ref("free_plan_revenue_program"),
-            pytest_cases.fixture_ref("core_plan_revenue_program"),
-            pytest_cases.fixture_ref("plus_plan_revenue_program"),
-        ),
-    )
     @pytest.mark.parametrize(
         "has_default_donation_page",
         (False, True),
@@ -1160,31 +1093,12 @@ class TestContributionModel:
         )
         send_email_spy.assert_not_called()
 
-    @pytest_cases.parametrize(
-        "user",
-        (
-            pytest_cases.fixture_ref("hub_admin_user"),
-            pytest_cases.fixture_ref("org_user_free_plan"),
-            pytest_cases.fixture_ref("rp_user"),
-            pytest_cases.fixture_ref("user_with_unexpected_role"),
-        ),
-    )
-    @pytest_cases.parametrize(
-        "_contribution",
-        (
-            pytest_cases.fixture_ref("one_time_contribution"),
-            pytest_cases.fixture_ref("monthly_contribution"),
-            pytest_cases.fixture_ref("annual_contribution"),
-        ),
-    )
-    def test_filtered_by_role_assignment(self, user, _contribution):
-        # Unclear if this stems from pytest_cases or pytest more generally, but on each run through of this test
-        # all three test fixtures for contribution are in db. So in order to zero out and only have the parametrized
-        # contribution being passed in as _contribution within a test run, at beginning we delete the other contributions
-        # that were created.
-        Contribution.objects.exclude(id=_contribution.id).delete()
-        assert Contribution.objects.count() == 1
-        org1 = (rp1 := _contribution.donation_page.revenue_program).organization
+    @pytest.fixture(params=["hub_admin_user", "org_user_free_plan", "rp_user", "user_with_unexpected_role"])
+    def user(self, request):
+        return request.getfixturevalue(request.param)
+
+    def test_filtered_by_role_assignment(self, user, contribution):
+        org1 = (rp1 := contribution.donation_page.revenue_program).organization
         rp2 = RevenueProgramFactory(name="rev-program-2", organization=org1)
         contribution2 = ContributionFactory(
             status=ContributionStatus.PAID, donation_page=DonationPageFactory(revenue_program=rp2)
@@ -1195,14 +1109,14 @@ class TestContributionModel:
                 revenue_program=RevenueProgramFactory(organization=OrganizationFactory(name="new org"))
             ),
         )
-        assert _contribution.donation_page.revenue_program != contribution2.donation_page.revenue_program
+        assert contribution.donation_page.revenue_program != contribution2.donation_page.revenue_program
         assert (
-            _contribution.donation_page.revenue_program.organization
+            contribution.donation_page.revenue_program.organization
             == contribution2.donation_page.revenue_program.organization
         )
         assert (
             contribution3.donation_page.revenue_program.organization
-            != _contribution.donation_page.revenue_program.organization
+            != contribution.donation_page.revenue_program.organization
         )
 
         match user.roleassignment.role_type:
@@ -1210,7 +1124,7 @@ class TestContributionModel:
                 expected = Contribution.objects.having_org_viewable_status()
                 assert expected.count() == 3
             case Roles.ORG_ADMIN:
-                user.roleassignment.organization = (org := _contribution.donation_page.revenue_program.organization)
+                user.roleassignment.organization = (org := contribution.donation_page.revenue_program.organization)
                 user.roleassignment.revenue_programs.set(org.revenueprogram_set.all())
                 user.roleassignment.save()
                 expected = Contribution.objects.filter(donation_page__revenue_program__organization=org1).exclude(
@@ -1218,7 +1132,7 @@ class TestContributionModel:
                 )
                 assert expected.count() == 2
             case Roles.RP_ADMIN:
-                user.roleassignment.organization = (org := _contribution.donation_page.revenue_program.organization)
+                user.roleassignment.organization = (org := contribution.donation_page.revenue_program.organization)
                 user.roleassignment.revenue_programs.set((rp1,))
                 user.roleassignment.save()
                 expected = Contribution.objects.filter(donation_page__revenue_program=rp1).exclude(
@@ -1484,52 +1398,55 @@ class TestContributionModel:
             mock_create_revision.assert_not_called()
             mock_set_revision_comment.assert_not_called()
 
-    @pytest_cases.parametrize(
-        "make_contribution_fn,stripe_data,expect_update",
-        (
+    @pytest.fixture
+    def empty_metadata_response(self):
+        return {"metadata": {}}
+
+    @pytest.fixture(
+        params=[
             (
                 lambda: ContributionFactory(one_time=True, contribution_metadata=None, provider_payment_id="something"),
-                pytest_cases.fixture_ref("stripe_payment_intent_retrieve_response"),
+                "stripe_payment_intent_retrieve_response",
                 True,
             ),
             (
                 lambda: ContributionFactory(
                     one_time=True, contribution_metadata={"some": "thing"}, provider_payment_id="something"
                 ),
-                pytest_cases.fixture_ref("stripe_payment_intent_retrieve_response"),
+                "stripe_payment_intent_retrieve_response",
                 False,
             ),
             (
                 lambda: ContributionFactory(one_time=True, contribution_metadata=None, provider_payment_id="something"),
-                {"metadata": {}},
+                "empty_metadata_response",
                 False,
             ),
             (
                 lambda: ContributionFactory(
                     monthly_subscription=True, contribution_metadata=None, provider_payment_id="something"
                 ),
-                pytest_cases.fixture_ref("stripe_payment_intent_retrieve_response"),
+                "stripe_payment_intent_retrieve_response",
                 True,
             ),
             (
                 lambda: ContributionFactory(
                     monthly_subscription=True, contribution_metadata={"some": "thing"}, provider_payment_id="something"
                 ),
-                pytest_cases.fixture_ref("stripe_payment_intent_retrieve_response"),
+                "stripe_payment_intent_retrieve_response",
                 False,
             ),
             (
                 lambda: ContributionFactory(
                     monthly_subscription=True, contribution_metadata=None, provider_payment_id="something"
                 ),
-                {"metadata": {}},
+                "empty_metadata_response",
                 False,
             ),
             (
                 lambda: ContributionFactory(
                     monthly_subscription=True, flagged=True, contribution_metadata=None, provider_payment_id="something"
                 ),
-                pytest_cases.fixture_ref("stripe_payment_intent_retrieve_response"),
+                "stripe_payment_intent_retrieve_response",
                 True,
             ),
             (
@@ -1539,21 +1456,25 @@ class TestContributionModel:
                     contribution_metadata={"some": "thing"},
                     provider_payment_id="something",
                 ),
-                pytest_cases.fixture_ref("stripe_payment_intent_retrieve_response"),
+                "stripe_payment_intent_retrieve_response",
                 False,
             ),
             (
                 lambda: ContributionFactory(
                     monthly_subscription=True, flagged=True, contribution_metadata=None, provider_payment_id="something"
                 ),
-                {"metadata": {}},
+                "empty_metadata_response",
                 False,
             ),
-        ),
+        ]
     )
+    def fix_missing_contribution_metadata_case(self, request):
+        make_contribution_fn, stripe_data, expect_update = request.param
+        return make_contribution_fn, request.getfixturevalue(stripe_data), expect_update
+
     @pytest.mark.parametrize("dry_run", (True, False))
     def test_fix_missing_contribution_metadata(
-        self, make_contribution_fn, stripe_data, expect_update, dry_run, monkeypatch, mocker
+        self, fix_missing_contribution_metadata_case, dry_run, monkeypatch, mocker
     ):
         """Basic happy path test showing behavior of Contribution.fix_missing_contribution_metadata
 
@@ -1564,7 +1485,7 @@ class TestContributionModel:
 
         Additionally, we show the `dry_run` functionality.
         """
-
+        make_contribution_fn, stripe_data, expect_update = fix_missing_contribution_metadata_case
         spy = mocker.spy(logger, "warning")
         contribution = make_contribution_fn()
         old_metadata = contribution.contribution_metadata

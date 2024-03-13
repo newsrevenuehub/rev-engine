@@ -32,12 +32,11 @@ from apps.api.permissions import (
     UserIsRequestedContributor,
 )
 from apps.contributions import serializers
-from apps.contributions.filters import ContributionFilter
+from apps.contributions.filters import ContributionFilter, PortalContributionFilter
 from apps.contributions.models import (
     Contribution,
     ContributionInterval,
     ContributionIntervalError,
-    ContributionQuerySet,
     ContributionStatus,
     ContributionStatusError,
     Contributor,
@@ -576,18 +575,9 @@ class PortalContributorsViewSet(viewsets.GenericViewSet):
 
     DEFAULT_ORDERING_FIELDS = ["created"]
     ALLOWED_ORDERING_FIELDS = ["created", "amount", "status"]
-    ALLOWED_FILTER_FIELDS = [
-        "status",
-    ]
 
-    # Contributors should never see contributions with these statuses, or
-    # interact with them (e.g. delete or patch them).
-    HIDDEN_STATUSES = [
-        ContributionStatus.FLAGGED,
-        ContributionStatus.PROCESSING,
-        ContributionStatus.REJECTED,
-    ]
-
+    # NB: This view is about returning contributor.contributions and never returns contributors, but
+    # we need to set a queryset to satisfy DRF's viewset machinery
     queryset = Contributor.objects.all()
 
     def _get_contributor_and_check_permissions(self, request, contributor_id):
@@ -598,17 +588,23 @@ class PortalContributorsViewSet(viewsets.GenericViewSet):
         self.check_object_permissions(request, contributor)
         return contributor
 
-    def _prune_contributions_queryset(self, queryset: ContributionQuerySet) -> ContributionQuerySet:
-        """Removes contributions from a contribution queryset that should never be visible to a contributor."""
-        # This is needed bcecause the queryset property of this class is tied to
-        # contributors, not contributions.
-        return queryset.exclude(status__in=self.HIDDEN_STATUSES)
-
     def get_serializer_class(self):
         return (
             serializers.PortalContributionDetailSerializer
             if self.action == "contribution_detail"
             else serializers.PortalContributionListSerializer
+        )
+
+    def filter_contributions_queryset(self, request, queryset):
+        return PortalContributionFilter().filter_queryset(request, queryset)
+
+    def handle_ordering(self, request, queryset):
+        ordering_filter = OrderingFilter()
+        ordering_filter.ordering_fields = self.ALLOWED_ORDERING_FIELDS
+        return (
+            ordering_filter.filter_queryset(request, queryset, self)
+            if request.query_params.get("ordering")
+            else queryset.order_by(*self.DEFAULT_ORDERING_FIELDS)
         )
 
     @action(
@@ -621,22 +617,13 @@ class PortalContributorsViewSet(viewsets.GenericViewSet):
     def contributions_list(self, request, pk=None):
         """Endpoint to get all contributions for a given contributor"""
         contributor = self._get_contributor_and_check_permissions(request, pk)
+        qs = PortalContributionFilter().filter_queryset(request, contributor.contribution_set)
+        qs = self.handle_ordering(request, qs)
+        return self.paginate_results(qs, request)
 
-        filters = {}
-        for k in self.ALLOWED_FILTER_FIELDS:
-            if (v := self.request.query_params.get(k)) is not None:
-                filters[k] = v
-
-        ordering_filter = OrderingFilter()
-        ordering_filter.ordering_fields = self.ALLOWED_ORDERING_FIELDS
-        qs = contributor.contribution_set.exclude(status__in=self.HIDDEN_STATUSES).filter(**filters)
-        qs = (
-            ordering_filter.filter_queryset(request, qs, self)
-            if request.query_params.get("ordering")
-            else qs.order_by(*self.DEFAULT_ORDERING_FIELDS)
-        )
+    def paginate_results(self, queryset, request):
         paginator = self.pagination_class()
-        page = paginator.paginate_queryset(qs, request)
+        page = paginator.paginate_queryset(queryset, request)
         serializer = self.get_serializer(page, many=True)
         return paginator.get_paginated_response(serializer.data)
 
@@ -651,7 +638,9 @@ class PortalContributorsViewSet(viewsets.GenericViewSet):
         """Endpoint to get or update a contribution for a given contributor"""
         contributor = self._get_contributor_and_check_permissions(request, pk)
         try:
-            contribution = contributor.contribution_set.exclude(status__in=self.HIDDEN_STATUSES).get(pk=contribution_id)
+            contribution = self.filter_contributions_queryset(request, contributor.contribution_set).get(
+                pk=contribution_id
+            )
         except Contribution.DoesNotExist:
             return Response({"detail": "Contribution not found"}, status=status.HTTP_404_NOT_FOUND)
 

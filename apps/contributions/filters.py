@@ -47,3 +47,28 @@ class ContributionFilter(django_filters.FilterSet):
             "flagged_date": ["lt", "gt", "lte", "gte"],
             "status": ["iexact"],
         }
+
+
+class PortalContributionFilter(django_filters.rest_framework.DjangoFilterBackend):
+    # Contributors should never see contributions with these statuses, or
+    # interact with them (e.g. delete or patch them).
+    HIDDEN_STATUSES = [
+        ContributionStatus.FLAGGED,
+        ContributionStatus.PROCESSING,
+        ContributionStatus.REJECTED,
+    ]
+    ALLOWED_FILTER_FIELDS = ["status", "revenue_program"]
+
+    def filter_queryset(self, request, queryset):
+        # Exclude hidden statuses by default
+        queryset = queryset.exclude(status__in=self.HIDDEN_STATUSES)
+        filters = {}
+        for field in self.ALLOWED_FILTER_FIELDS:
+            value = request.query_params.get(field)
+            if value is not None:
+                if field == "revenue_program":
+                    filters["donation_page__revenue_program"] = value
+                else:
+                    filters[field] = value
+
+        return queryset.filter(**filters)

@@ -11,7 +11,7 @@ from apps.contributions.exceptions import (
     InvalidMetadataError,
     InvalidStripeTransactionDataError,
 )
-from apps.contributions.models import ContributionInterval, ContributionStatus, Payment, Contributor
+from apps.contributions.models import ContributionInterval, ContributionStatus, Contributor, Payment
 from apps.contributions.stripe_import import (
     MAX_STRIPE_RESPONSE_LIMIT,
     PaymentIntentForOneTimeContribution,
@@ -20,12 +20,7 @@ from apps.contributions.stripe_import import (
     SubscriptionForRecurringContribution,
     upsert_payment_for_transaction,
 )
-from apps.contributions.tests.factories import (
-    ContributionFactory,
-    PaymentFactory,
-)
-from apps.organizations.models import PaymentProvider
-from apps.organizations.tests.factories import PaymentProviderFactory
+from apps.contributions.tests.factories import ContributionFactory, PaymentFactory
 
 
 @pytest.fixture
@@ -212,7 +207,7 @@ class TestSubscriptionForRecurringContribution:
 
     def test_init_when_metadata_not_validate(self, subscription, customer, mock_metadata_validator):
         mock_metadata_validator.side_effect = InvalidMetadataError("foo")
-        with pytest.raises(InvalidMetadataError) as exc_info:
+        with pytest.raises(InvalidMetadataError):
             SubscriptionForRecurringContribution(subscription=subscription, charges=[], refunds=[], customer=customer)
         mock_metadata_validator.assert_called_once_with(subscription.metadata)
 
@@ -462,86 +457,210 @@ class TestPaymentIntentForOneTimeContribution:
         mock_upsert_payment.assert_any_call(contribution, refund.balance_transaction, is_refund=True)
 
 
-# @pytest.mark.django_db
-# class TestStripeTransactionsImporter:
-#     @pytest.mark.parametrize(
-#         "for_orgs,for_stripe_accounts",
-#         (([1, 2], ["a", "b"]), ([], [])),
-#     )
-#     def test__init__(self, for_orgs, for_stripe_accounts, mocker):
-#         """This is here so we get test coverage through all possible paths in __post_init__"""
-#         StripeTransactionsImporter(for_orgs=for_orgs, for_stripe_accounts=for_stripe_accounts)
+class TestStripeTransactionsImporter:
 
-#     def test_stripe_account_ids(self):
-#         PaymentProviderFactory.create_batch(2)
-#         expected = set(
-#             PaymentProvider.objects.order_by("stripe_account_id")
-#             .values_list("stripe_account_id", flat=True)
-#             .distinct("stripe_account_id")
-#         )
-#         instance = StripeTransactionsImporter()
-#         assert set(instance.stripe_account_ids) == expected
+    def test_created_query(self, mocker):
+        from_date = mocker.Mock()
+        to_date = mocker.Mock()
+        assert StripeTransactionsImporter(
+            stripe_account_id="foo", from_date=from_date, to_date=to_date
+        ).created_query == {"gte": from_date, "lte": to_date}
 
-#     def test_import_contributions_and_payments_for_stripe_account(self, mocker):
-#         mock_import_subs = mocker.patch(
-#             "apps.contributions.stripe_import.StripeTransactionsImporter.import_contributions_and_payments_for_subscriptions",
-#             return_value=[],
-#         )
-#         mock_import_one_times = mocker.patch(
-#             "apps.contributions.stripe_import.StripeTransactionsImporter.import_contributions_and_payments_for_payment_intents",
-#             return_value=[],
-#         )
-#         StripeTransactionsImporter().import_contributions_and_payments_for_stripe_account((test_id := "test"))
-#         mock_import_subs.assert_called_once_with(stripe_account_id=test_id)
-#         mock_import_one_times.assert_called_once_with(stripe_account_id=test_id)
+    def test_get_charges_for_payment_intent(self, mocker):
+        mock_charge_list = mocker.patch("stripe.Charge.list")
+        mock_charge_list.return_value.auto_paging_iter.return_value = (results := ["foo", "bar"])
+        instance = StripeTransactionsImporter(stripe_account_id=(stripe_id := "test"))
+        assert instance.get_charges_for_payment_intent(payment_intent_id=(pi_id := "pi_id")) == results
+        mock_charge_list.assert_called_once_with(
+            payment_intent=pi_id,
+            stripe_account=stripe_id,
+            limit=MAX_STRIPE_RESPONSE_LIMIT,
+            expand=("data.balance_transaction", "data.refunds.data.balance_transaction"),
+        )
 
-#     def test_import_contributions_and_payments_for_subscriptions(self, mocker):
-#         mock_stripe_client = mocker.patch("apps.contributions.stripe_import.StripeClientForConnectedAccount")
-#         mock_stripe_client.return_value.get_invoices.return_value = (
-#             invoices := [
-#                 (expected := mocker.Mock(charge="ch_1")),
-#                 mocker.Mock(charge=None),
-#             ]
-#         )
-#         mock_stripe_client.return_value.get_expanded_charge_object.return_value = (expanded_charge := mocker.Mock())
-#         mock_stripe_client.return_value.get_revengine_subscriptions_data.return_value = [
-#             (item1 := mocker.Mock()),
-#             (item2 := mocker.Mock()),
-#             (item3 := mocker.Mock()),
-#         ]
-#         item1.upsert.side_effect = InvalidStripeTransactionDataError("foo")
-#         item2.upsert.return_value = (contribution1 := mocker.Mock()), "created"
-#         item3.upsert.return_value = (contribution2 := mocker.Mock()), "updated"
-#         contributions = StripeTransactionsImporter().import_contributions_and_payments_for_subscriptions("test_id")
-#         mock_stripe_client.return_value.get_invoices.assert_called_once()
-#         mock_stripe_client.return_value.get_expanded_charge_object.assert_called_once_with(
-#             charge_id=expected.charge, stripe_account_id="test_id"
-#         )
-#         mock_stripe_client.return_value.get_revengine_subscriptions_data.assert_called_once_with(
-#             invoices=invoices, charges=[expanded_charge]
-#         )
-#         assert set(contributions) == {contribution1, contribution2}
+    def test_get_refunds_for_charge(self, mocker):
+        mock_refund_list = mocker.patch("stripe.Refund.list")
+        mock_refund_list.return_value.auto_paging_iter.return_value = (results := ["foo", "bar"])
+        instance = StripeTransactionsImporter(stripe_account_id=(stripe_id := "test"))
+        assert instance.get_refunds_for_charge(charge_id=(charge_id := "ch_id")) == results
+        mock_refund_list.assert_called_once_with(
+            charge=charge_id, stripe_account=stripe_id, limit=MAX_STRIPE_RESPONSE_LIMIT
+        )
 
-#     def test_import_contributions_and_payments_for_payment_intents(self, mocker):
-#         mock_stripe_client = mocker.patch("apps.contributions.stripe_import.StripeClientForConnectedAccount")
-#         mock_stripe_client.return_value.get_revengine_one_time_contributions_data.return_value = [
-#             (item1 := mocker.Mock()),
-#             (item2 := mocker.Mock()),
-#             (item_with_error := mocker.Mock()),
-#         ]
-#         item1.upsert.return_value = (contribution1 := mocker.Mock()), "created"
-#         item2.upsert.return_value = (contribution2 := mocker.Mock()), "updated"
-#         item_with_error.upsert.side_effect = InvalidStripeTransactionDataError("foo")
-#         contributions = StripeTransactionsImporter().import_contributions_and_payments_for_payment_intents("test_id")
-#         assert contributions == [contribution1, contribution2]
+    def test_get_payment_intents(self, mocker):
+        mock_pi_list = mocker.patch("stripe.PaymentIntent.list")
+        result_1 = mocker.Mock(metadata={"schema_version": "1.0"})
+        result_2 = mocker.Mock(metadata={"schema_version": "unsupported"})
+        mock_pi_list.return_value.auto_paging_iter.return_value = [result_1, result_2]
+        instance = StripeTransactionsImporter(stripe_account_id=(stripe_id := "test"))
+        assert instance.get_payment_intents() == [result_1]
+        mock_pi_list.assert_called_once_with(
+            created=instance.created_query,
+            stripe_account=stripe_id,
+            limit=MAX_STRIPE_RESPONSE_LIMIT,
+        )
 
-#     def test_import_stripe_transactions_data(self, mocker):
-#         PaymentProviderFactory()
-#         mock_import_for_stripe_account = mocker.patch(
-#             "apps.contributions.stripe_import.StripeTransactionsImporter.import_contributions_and_payments_for_stripe_account"
-#         )
-#         StripeTransactionsImporter().import_stripe_transactions_data()
-#         mock_import_for_stripe_account.assert_called_once()
+    @pytest.fixture(
+        params=[
+            {"pi_invoice": None, "invoice": None, "expected": True},
+            {"pi_invoice": "invoice_without_subscription", "invoice": "invoice_with_subscription", "expected": False},
+            {"pi_invoice": "invoice_without_subscription", "invoice": None, "expected": True},
+        ]
+    )
+    def is_for_one_time_test_case(self, request, payment_intent):
+        pi = deepcopy(payment_intent)
+        pi.invoice = request.getfixturevalue(request.param["pi_invoice"]) if request.param["pi_invoice"] else None
+        invoice = request.getfixturevalue(request.param["invoice"]) if request.param["invoice"] else None
+        expected = request.param["expected"]
+        return pi, invoice, expected
+
+    def test_is_for_one_time_contribution(self, is_for_one_time_test_case):
+        pi, invoice, expected = is_for_one_time_test_case
+        instance = StripeTransactionsImporter(stripe_account_id="test")
+        assert instance.is_for_one_time_contribution(pi, invoice) == expected
+
+    def test_get_stripe_entity(self, mocker):
+        instance = StripeTransactionsImporter(stripe_account_id=(stripe_id := "test"))
+        mock_stripe_get_payment_intent = mocker.patch("stripe.PaymentIntent.retrieve")
+        kwargs = {
+            "entity_id": "foo",
+            "entity_name": "PaymentIntent",
+            "expand": ("foo", "bar"),
+        }
+        instance.get_stripe_entity(**kwargs)
+        mock_stripe_get_payment_intent.assert_called_once_with(
+            kwargs["entity_id"], stripe_account=stripe_id, expand=kwargs["expand"]
+        )
+
+    @pytest.mark.parametrize(
+        "method_name,entity_name,expand_fields",
+        (
+            ("get_payment_method", "PaymentMethod", None),
+            ("get_stripe_customer", "Customer", ("invoice_settings.default_payment_method",)),
+            ("get_stripe_event", "Event", None),
+            ("get_invoice", "Invoice", ("subscription.default_payment_method",)),
+            ("get_payment_intent", "PaymentIntent", ("payment_method",)),
+        ),
+    )
+    def test_get_stripe_entity_methods(self, method_name, entity_name, expand_fields, mocker):
+        mock_get_stripe_entity = mocker.patch(
+            "apps.contributions.stripe_import.StripeTransactionsImporter.get_stripe_entity"
+        )
+        instance = StripeTransactionsImporter(stripe_account_id="test")
+        getattr(instance, method_name)((id := "foo"))
+        expected_kwargs = {"entity_id": id, "entity_name": entity_name}
+        if expand_fields:
+            expected_kwargs["expand"] = expand_fields
+        mock_get_stripe_entity.assert_called_once_with(**expected_kwargs)
+
+    @pytest.mark.parametrize("sub_already_seen", (True, False))
+    def test_handle_recurring_contribution_data(self, sub_already_seen, subscription, charge, refund, customer):
+        instance = StripeTransactionsImporter(stripe_account_id="test")
+        if sub_already_seen:
+            instance._SUBSCRIPTIONS_DATA = {
+                str(subscription.id): {
+                    "subscription": subscription,
+                    "charges": [],
+                    "refunds": [],
+                    "customer": customer,
+                }
+            }
+        instance.handle_recurring_contribution_data(subscription, [charge], [refund], customer)
+        assert instance._SUBSCRIPTIONS_DATA[subscription.id] == {
+            "subscription": subscription,
+            "charges": [charge],
+            "refunds": [refund],
+            "customer": customer,
+        }
+
+    def test_handle_recurring_contribution_data_when_not_supported_metadata_version(self, subscription):
+        subscription.metadata = {"schema_version": "unsupported"}
+        StripeTransactionsImporter(
+            stripe_account_id="test",
+        ).handle_recurring_contribution_data(subscription, [], [], None)
+
+    @pytest.fixture
+    def charge_with_refund(self, mocker, charge, refund):
+        charge = deepcopy(charge)
+        charge.refunded = True
+        charge.amount_refunded = 1000
+        charge.refunds = mocker.Mock(total_count=1, data=[refund])
+        return charge
+
+    @pytest.fixture
+    def invoice_with_subscription(self, mocker):
+        return mocker.Mock(subscription="sub_1", id="inv_1")
+
+    @pytest.fixture
+    def invoice_without_subscription(self, mocker):
+        return mocker.Mock(subscription=None)
+
+    @pytest.mark.parametrize("is_for_one_time", (True, False))
+    def test_assemble_data_for_pi(
+        self,
+        is_for_one_time,
+        mocker,
+        charge,
+        charge_with_refund,
+        payment_intent,
+        invoice_with_subscription,
+        invoice_without_subscription,
+        customer,
+    ):
+        if not is_for_one_time:
+            payment_intent.invoice = invoice_with_subscription.id
+        mock_recurring_data = mocker.patch(
+            "apps.contributions.stripe_import.StripeTransactionsImporter.handle_recurring_contribution_data"
+        )
+        mocker.patch(
+            "apps.contributions.stripe_import.StripeTransactionsImporter.get_payment_intent",
+            return_value=payment_intent,
+        )
+        mocker.patch(
+            "apps.contributions.stripe_import.StripeTransactionsImporter.get_stripe_customer", return_value=customer
+        )
+        mocker.patch(
+            "apps.contributions.stripe_import.StripeTransactionsImporter.get_invoice",
+            return_value=invoice_without_subscription if is_for_one_time else invoice_with_subscription,
+        )
+        mocker.patch(
+            "apps.contributions.stripe_import.StripeTransactionsImporter.get_charges_for_payment_intent",
+            return_value=[charge, charge_with_refund],
+        )
+        mocker.patch(
+            "apps.contributions.stripe_import.StripeTransactionsImporter.is_for_one_time_contribution",
+            return_value=is_for_one_time,
+        )
+        instance = StripeTransactionsImporter(stripe_account_id="test")
+        instance.assemble_data_for_pi(payment_intent)
+        if is_for_one_time:
+            assert instance._ONE_TIMES_DATA == [
+                {
+                    "payment_intent": payment_intent,
+                    "charges": [charge, charge_with_refund],
+                    "refunds": charge_with_refund.refunds.data,
+                    "customer": customer,
+                }
+            ]
+        else:
+            mock_recurring_data.assert_called_once_with(
+                subscription=invoice_with_subscription.subscription,
+                charges=[charge, charge_with_refund],
+                refunds=charge_with_refund.refunds.data,
+                customer=customer,
+            )
+
+    def test_import_contributions_and_payments(self):
+        pass
+
+    def test_upsert_one_time_contribution(self):
+        pass
+
+    def test_upsert_recurring_contribution(self):
+        pass
+
+    def test_upsert_data(self):
+        pass
 
 
 class TestStripeEventProcessor:

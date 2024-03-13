@@ -1,6 +1,6 @@
-from abc import ABC, abstractmethod
 import datetime
 import logging
+from abc import ABC, abstractmethod
 from dataclasses import dataclass
 from typing import Tuple
 
@@ -384,41 +384,43 @@ class StripeTransactionsImporter:
             return False
         return True
 
-    def get_stripe_entity(self, entity_id: str, stripe_entity_name: str, **kwargs):
+    def get_stripe_entity(self, entity_id: str, entity_name: str, **kwargs):
         """Retrieve a stripe entity for a given stripe account"""
-        logger.debug("Getting %s %s for account %s", stripe_entity_name, entity_id, self.stripe_account_id)
+        logger.debug("Getting %s %s for account %s", entity_name, entity_id, self.stripe_account_id)
         try:
-            return getattr(stripe, stripe_entity_name).retrieve(
-                entity_id, stripe_account=self.stripe_account_id, **kwargs
-            )
+            return getattr(stripe, entity_name).retrieve(entity_id, stripe_account=self.stripe_account_id, **kwargs)
         except stripe.error.StripeError as exc:
             logger.warning(
                 "Unable to retrieve %s %s for account %s",
-                stripe_entity_name,
+                entity_name,
                 entity_id,
                 self.stripe_account_id,
                 exc_info=exc,
             )
 
-    def get_payment_method(self, payment_method_id: str) -> stripe.PaymentMethod | None:
+    def get_payment_method(self, entity_id: str) -> stripe.PaymentMethod | None:
         """Retrieve a payment method for a given stripe account"""
-        return self.get_stripe_entity(payment_method_id, "PaymentMethod")
+        return self.get_stripe_entity(entity_id=entity_id, entity_name="PaymentMethod")
 
-    def get_stripe_customer(self, customer_id: str) -> stripe.Customer | None:
+    def get_stripe_customer(self, entity_id: str) -> stripe.Customer | None:
         """Retrieve a stripe customer for a given stripe account"""
-        return self.get_stripe_entity(customer_id, "Customer", expand=("invoice_settings.default_payment_method",))
+        return self.get_stripe_entity(
+            entity_id=entity_id, entity_name="Customer", expand=("invoice_settings.default_payment_method",)
+        )
 
-    def get_stripe_event(self, event_id: str) -> stripe.Event | None:
+    def get_stripe_event(self, entity_id: str) -> stripe.Event | None:
         """Retrieve a stripe event for a given stripe account"""
-        return self.get_stripe_entity(event_id, "Event")
+        return self.get_stripe_entity(entity_id=entity_id, entity_name="Event")
 
-    def get_invoice(self, invoice_id: str) -> stripe.Invoice | None:
+    def get_invoice(self, entity_id: str) -> stripe.Invoice | None:
         """Retrieve a stripe invoice for a given stripe account"""
-        return self.get_stripe_entity(invoice_id, "Invoice", expand=("subscription.default_payment_method",))
+        return self.get_stripe_entity(
+            entity_id=entity_id, entity_name="Invoice", expand=("subscription.default_payment_method",)
+        )
 
-    def get_payment_intent(self, payment_intent_id: str) -> stripe.PaymentIntent | None:
+    def get_payment_intent(self, entity_id: str) -> stripe.PaymentIntent | None:
         """Retrieve a stripe payment intent for a given stripe account"""
-        return self.get_stripe_entity(payment_intent_id, "PaymentIntent", expand=("payment_method",))
+        return self.get_stripe_entity(entity_id=entity_id, entity_name="PaymentIntent", expand=("payment_method",))
 
     def handle_recurring_contribution_data(
         self,
@@ -434,8 +436,8 @@ class StripeTransactionsImporter:
         if subscription.id not in self._SUBSCRIPTIONS_DATA:
             self._SUBSCRIPTIONS_DATA[subscription.id] = {
                 "subscription": subscription,
-                "charges": [charges],
-                "refunds": [refunds],
+                "charges": charges,
+                "refunds": refunds,
                 "customer": customer,
             }
         else:
@@ -449,14 +451,14 @@ class StripeTransactionsImporter:
         refunds = []
         for charge in charges:
             refunds.extend([x for x in charge.refunds.data])
-        customer = self.get_stripe_customer(customer_id=payment_intent.customer)
-        invoice = self.get_invoice(invoice_id=payment_intent.invoice) if payment_intent.invoice else None
+        customer = self.get_stripe_customer(entity_id=payment_intent.customer)
+        invoice = self.get_invoice(entity_id=payment_intent.invoice) if payment_intent.invoice else None
         if self.is_for_one_time_contribution(payment_intent, invoice):
             self._ONE_TIMES_DATA.append(
                 {
                     # we re-retrieve the payment intent here in case of one-time because we need to get the payment method, and the PI
                     # sent as arg is retrieved via list api, where it's not possible to expand payment method
-                    "payment_intent": self.get_payment_intent(payment_intent.id),
+                    "payment_intent": self.get_payment_intent(entity_id=payment_intent.id),
                     "charges": charges,
                     "refunds": refunds,
                     "customer": customer,

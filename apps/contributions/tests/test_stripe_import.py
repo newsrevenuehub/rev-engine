@@ -519,9 +519,12 @@ class TestStripeTransactionsImporter:
         instance = StripeTransactionsImporter(stripe_account_id="test")
         assert instance.is_for_one_time_contribution(pi, invoice) == expected
 
-    def test_get_stripe_entity(self, mocker):
+    @pytest.mark.parametrize("has_error", (True, False))
+    def test_get_stripe_entity(self, has_error, mocker):
         instance = StripeTransactionsImporter(stripe_account_id=(stripe_id := "test"))
         mock_stripe_get_payment_intent = mocker.patch("stripe.PaymentIntent.retrieve")
+        if has_error:
+            mock_stripe_get_payment_intent.side_effect = stripe.error.StripeError("foo", "id", "foo")
         kwargs = {
             "entity_id": "foo",
             "entity_name": "PaymentIntent",
@@ -607,6 +610,7 @@ class TestStripeTransactionsImporter:
         invoice_without_subscription,
         customer,
     ):
+        payment_intent = deepcopy(payment_intent)
         if not is_for_one_time:
             payment_intent.invoice = invoice_with_subscription.id
         mock_recurring_data = mocker.patch(
@@ -650,17 +654,53 @@ class TestStripeTransactionsImporter:
                 customer=customer,
             )
 
-    def test_import_contributions_and_payments(self):
-        pass
+    def test_import_contributions_and_payments(self, mocker, payment_intent):
+        # this test is minimal just so code is covered. we don't even assert about anything
+        mocker.patch(
+            "apps.contributions.stripe_import.StripeTransactionsImporter.get_payment_intents",
+            return_value=[payment_intent],
+        )
+        mocker.patch("apps.contributions.stripe_import.StripeTransactionsImporter.assemble_data_for_pi")
+        mocker.patch("apps.contributions.stripe_import.StripeTransactionsImporter.upsert_data")
+        StripeTransactionsImporter(stripe_account_id="test").import_contributions_and_payments()
 
-    def test_upsert_one_time_contribution(self):
-        pass
+    def test_upsert_one_time_contribution(self, mocker, payment_intent):
+        mock_pi_class = mocker.patch("apps.contributions.stripe_import.PaymentIntentForOneTimeContribution")
+        mock_pi_class.return_value.upsert.return_value = (result := (mocker.Mock(id="pi_foo"), "action"))
+        instance = StripeTransactionsImporter(stripe_account_id="test")
+        assert instance.upsert_one_time_contribution({"payment_intent": payment_intent}) == result
 
-    def test_upsert_recurring_contribution(self):
-        pass
+    def test_upsert_recurring_contribution(self, mocker, subscription):
+        mock_sub_class = mocker.patch("apps.contributions.stripe_import.SubscriptionForRecurringContribution")
+        mock_sub_class.return_value.upsert.return_value = (result := (mocker.Mock(id="sub_foo"), "action"))
+        instance = StripeTransactionsImporter(stripe_account_id="test")
+        assert instance.upsert_recurring_contribution({"subscription": subscription}) == result
 
-    def test_upsert_data(self):
-        pass
+    def test_upsert_data(self, mocker, payment_intent, customer, subscription):
+        instance = StripeTransactionsImporter(stripe_account_id="test")
+        mocker.patch(
+            "apps.contributions.stripe_import.StripeTransactionsImporter.upsert_one_time_contribution",
+            side_effect=[
+                (mocker.Mock(), "created"),
+                (mocker.Mock(), "updated"),
+                (mocker.Mock(), "left unchanged"),
+                InvalidIntervalError("foo"),
+            ],
+        )
+        mocker.patch(
+            "apps.contributions.stripe_import.StripeTransactionsImporter.upsert_recurring_contribution",
+            return_value=(mocker.Mock(), "created"),
+        )
+        instance._ONE_TIMES_DATA = [
+            {"payment_intent": payment_intent, "charges": [], "refunds": [], "customer": customer},
+            {"payment_intent": payment_intent, "charges": [], "refunds": [], "customer": customer},
+            {"payment_intent": payment_intent, "charges": [], "refunds": [], "customer": customer},
+            {"payment_intent": payment_intent, "charges": [], "refunds": [], "customer": customer},
+        ]
+        instance._SUBSCRIPTIONS_DATA = {
+            "sub_1": {"subscription": subscription, "charges": [], "refunds": [], "customer": customer}
+        }
+        instance.upsert_data()
 
 
 class TestStripeEventProcessor:

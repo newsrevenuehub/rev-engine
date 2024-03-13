@@ -31,15 +31,29 @@ class TestStripeMetadataSchemaBase:
         assert instance.bar is None
 
 
-@pytest.fixture
-def unknown_metadata_version(valid_metadata):
-    return valid_metadata | {"schema_version": "foo.bar"}
+class TestCastMetadataToStripePaymentMetadataSchema:
+    @pytest.fixture
+    def unknown_metadata_version(self, valid_metadata):
+        return valid_metadata | {"schema_version": "foo.bar"}
 
+    @pytest.fixture(
+        params=[
+            ("unknown_metadata_version", True),
+            (None, True),
+            ("valid_metadata", False),
+            ("invalid_metadata", True),
+        ]
+    )
+    def test_case(self, request):
+        return request.getfixturevalue(request.param[0]) if request.param[0] else None, request.param[1]
 
-def test_cast_metadata_to_stripe_payment_metadata_schema(valid_metadata, unknown_metadata_version):
-    assert cast_metadata_to_stripe_payment_metadata_schema(valid_metadata)
-    with pytest.raises(InvalidMetadataError):
-        cast_metadata_to_stripe_payment_metadata_schema(unknown_metadata_version)
+    def test_cast_metadata_to_stripe_payment_metadata_schema(self, test_case):
+        metadata, should_raise = test_case
+        if should_raise:
+            with pytest.raises(InvalidMetadataError):
+                cast_metadata_to_stripe_payment_metadata_schema(metadata)
+        else:
+            assert cast_metadata_to_stripe_payment_metadata_schema(metadata)
 
 
 class TestStripePaymentMetadataSchemas:

@@ -80,7 +80,7 @@ class ContributionImportBaseClass(ABC):
         self.validate()
 
     @abstractmethod
-    def validate(self) -> None:
+    def validate(self) -> None:  # pragma: no cover
         pass
 
     @property

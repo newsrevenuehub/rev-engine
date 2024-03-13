@@ -1,3 +1,4 @@
+from abc import ABC, abstractmethod
 import datetime
 import logging
 from dataclasses import dataclass
@@ -36,33 +37,76 @@ def upsert_payment_for_transaction(
     contribution: Contribution, transaction: stripe.BalanceTransaction, is_refund: bool = False
 ) -> None:
     """Upsert a payment object for a given stripe balance transaction and contribution"""
-    logger.debug("Upserting payment for contribution %s and transaction %s", contribution.id, transaction.id)
-
-    payment, action = upsert_with_diff_check(
-        model=Payment,
-        unique_identifier={"contribution": contribution, "stripe_balance_transaction_id": transaction.id},
-        defaults={
-            "net_amount_paid": transaction.net if not is_refund else 0,
-            "gross_amount_paid": transaction.amount if not is_refund else 0,
-            "amount_refunded": transaction.amount if is_refund else 0,
-            "transaction_time": datetime.datetime.fromtimestamp(int(transaction.created), tz=datetime.timezone.utc),
-        },
-        caller_name="upsert_payment_for_transaction",
+    logger.debug(
+        "Upserting payment for contribution %s and transaction %s",
+        contribution.id,
+        (getattr(transaction, "id", "<no transaction>")),
     )
-    logger.info("%s payment %s for contribution %s", action, payment.id, contribution.id)
+    if transaction:
+        payment, action = upsert_with_diff_check(
+            model=Payment,
+            unique_identifier={"contribution": contribution, "stripe_balance_transaction_id": transaction.id},
+            defaults={
+                "net_amount_paid": transaction.net if not is_refund else 0,
+                "gross_amount_paid": transaction.amount if not is_refund else 0,
+                "amount_refunded": transaction.amount if is_refund else 0,
+                "transaction_time": datetime.datetime.fromtimestamp(int(transaction.created), tz=datetime.timezone.utc),
+            },
+            caller_name="upsert_payment_for_transaction",
+        )
+        logger.info("%s payment %s for contribution %s", action, payment.id, contribution.id)
+    else:
+        # NB. This is a rare case. It happened running locally with test Stripe. Seems unlikely in prod, but need to handle so command
+        # works in all cases
+        logger.warning(
+            "Data associated with contribution %s has no balance transaction associated with it. No payment will be created.",
+            contribution.id,
+        )
 
 
-@dataclass(frozen=True)
-class PaymentIntentForOneTimeContribution:
-    """Convenience class used to upsert contribution, contributor, and payments for a given Stripe payment intent"""
-
-    payment_intent: stripe.PaymentIntent
+@dataclass
+class ContributionImportBaseClass(ABC):
     charges: list[stripe.Charge]
     refunds: list[stripe.Refund]
     customer: stripe.Customer | None
 
     def __post_init__(self) -> None:
+        if getattr(self, "payment_intent", None):
+            self.entity_name = "Payment intent"
+            self.entity_id = self.payment_intent.id
+        else:
+            self.entity_name = "Subscription"
+            self.entity_id = self.subscription.id
         self.validate()
+
+    @abstractmethod
+    def validate(self) -> None:
+        pass
+
+    @property
+    def email_id(self) -> str | None:
+        return self.customer.email
+
+    def validate_customer(
+        self,
+    ) -> None:
+        if not self.customer:
+            raise InvalidStripeTransactionDataError(
+                f"{self.entity_name} {self.entity_id} has no customer associated with it"
+            )
+
+    def validate_email_id(self) -> None:
+        if not self.email_id:
+            raise InvalidStripeTransactionDataError(
+                f"{self.entity_name} {self.entity_id} has no email associated with it"
+            )
+
+
+@dataclass
+class PaymentIntentForOneTimeContribution(ContributionImportBaseClass):
+    """Convenience class used to upsert contribution, contributor, and payments for a given Stripe payment intent"""
+
+    payment_intent: stripe.PaymentIntent
 
     def __str__(self) -> str:
         return f"PaymentIntentForOneTimeContribution {self.payment_intent.id}"
@@ -71,14 +115,9 @@ class PaymentIntentForOneTimeContribution:
         """Does several validation checks that should ensure the data can be upserted to revengine."""
         # This will raise an `InvalidMetadataError` if the metadata is invalid
         cast_metadata_to_stripe_payment_metadata_schema(self.payment_intent.metadata)
+        self.validate_customer()
         self.validate_email_id()
         self.validate_charges()
-
-    def validate_email_id(self) -> None:
-        if not self.email_id:
-            raise InvalidStripeTransactionDataError(
-                f"Payment intent {self.payment_intent.id} has no email associated with it"
-            )
 
     def validate_charges(self) -> None:
         """Ensure there's only one successful or pending charge.
@@ -97,10 +136,6 @@ class PaymentIntentForOneTimeContribution:
     def successful_charge(self) -> stripe.Charge | None:
         """Get the first successful charge associated with the payment intent"""
         return next((x for x in self.charges if x.status == "succeeded"), None)
-
-    @property
-    def email_id(self) -> str | None:
-        return self.customer.email if self.customer else None
 
     @property
     def refunded(self) -> bool:
@@ -131,8 +166,7 @@ class PaymentIntentForOneTimeContribution:
         """
         if default_pm := self.payment_intent.payment_method:
             return default_pm
-        if customer := self.customer:
-            return customer.invoice_settings.default_payment_method if customer.invoice_settings else None
+        return self.customer.invoice_settings.default_payment_method if self.customer.invoice_settings else None
 
     @transaction.atomic
     def upsert(self) -> Tuple[Contribution, str]:
@@ -166,42 +200,18 @@ class PaymentIntentForOneTimeContribution:
             caller_name="PaymentIntentForOneTimeContribution.upsert",
         )
         if charge := self.successful_charge:
-            if charge.balance_transaction:
-                upsert_payment_for_transaction(contribution, charge.balance_transaction, is_refund=False)
-            else:
-                # NB. This is a rare case. It happened running locally with test Stripe. Seems unlikely in prod, but need to handle so command
-                # works in all cases
-                logger.warning(
-                    "Charge %s associated with payment intent %s has no balance transaction associated with it",
-                    charge.id,
-                    self.payment_intent.id,
-                )
+            upsert_payment_for_transaction(contribution, charge.balance_transaction, is_refund=False)
         # Even though we only expect one successful charge, it's possible to have multiple refunds
         for x in self.refunds:
-            if x.balance_transaction:
-                upsert_payment_for_transaction(contribution, x.balance_transaction, is_refund=True)
-            else:
-                # NB. This is a rare case. It happened running locally with test Stripe. Seems unlikely in prod, but need to handle so command
-                # works in all cases
-                logger.warning(
-                    "Refund %s associated with payment intent %s has no balance transaction associated with it",
-                    x.id,
-                    self.payment_intent.id,
-                )
+            upsert_payment_for_transaction(contribution, x.balance_transaction, is_refund=True)
         return contribution, action
 
 
-@dataclass(frozen=True)
-class SubscriptionForRecurringContribution:
+@dataclass
+class SubscriptionForRecurringContribution(ContributionImportBaseClass):
     """Convenience class used to upsert contribution, contributor, and payments for a given Stripe subscription."""
 
     subscription: stripe.Subscription
-    charges: list[stripe.Charge]
-    refunds: list[stripe.Refund]
-    customer: stripe.Customer
-
-    def __post_init__(self) -> None:
-        self.validate()
 
     def __str__(self) -> str:
         return f"SubscriptionForRecurringContribution {self.subscription.id}"
@@ -259,10 +269,6 @@ class SubscriptionForRecurringContribution:
     @property
     def interval(self) -> ContributionInterval:
         return self.get_interval_from_subscription(self.subscription)
-
-    @property
-    def email_id(self) -> str | None:
-        return self.customer.email
 
     @property
     def payment_method(self) -> stripe.PaymentMethod | None:

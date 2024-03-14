@@ -11,45 +11,6 @@
 # of the two parametrizations.
 
 # Concretely, this allows us to parametrize, say, a set of known users vs a set of endpoints.
-
-# Here's an example:
-
-# ```
-# @pytest_cases.parametrize(
-#     "user",
-#     (
-#         pytest_cases.fixture_ref("org_user_free_plan"),
-#         pytest_cases.fixture_ref("superuser"),
-#     ),
-# )
-# @pytest_cases.parametrize(
-#     "data,expect_status_code,error_response,has_fake_fields",
-#     (
-#         (pytest_cases.fixture_ref("rp_valid_patch_data"), status.HTTP_200_OK, None, False),
-#         (
-#             pytest_cases.fixture_ref("rp_invalid_patch_data_tax_id_too_short"),
-#             status.HTTP_400_BAD_REQUEST,
-#             {"tax_id": ["Ensure this field has at least 9 characters."]},
-#             False,
-#         ),
-#         (
-#             pytest_cases.fixture_ref("rp_invalid_patch_data_tax_id_too_long"),
-#             status.HTTP_400_BAD_REQUEST,
-#             {"tax_id": ["Ensure this field has no more than 9 characters."]},
-#             False,
-#         ),
-#         (
-#             pytest_cases.fixture_ref("rp_invalid_patch_data_unexpected_fields"),
-#             status.HTTP_200_OK,
-#             {},
-#             True,
-#         ),
-#     ),
-# )
-# def test_patch_when_expected_user(
-#     self, user, data, expect_status_code, error_response, has_fake_fields, api_client, revenue_program, mocker
-# ):
-# ```
 # """
 import base64
 import datetime

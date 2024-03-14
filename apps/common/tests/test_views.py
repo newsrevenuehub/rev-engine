@@ -7,7 +7,6 @@ from django.test import TestCase, override_settings
 from django.urls import reverse
 
 import pytest
-import pytest_cases
 from rest_framework import status
 
 from apps.common.views import FilterForSuperUserOrRoleAssignmentUserMixin, csrf_protect_json
@@ -105,15 +104,12 @@ class AdminSelectOptionsTest(TestCase):
         self.assertEqual(option2[0], style2.name)
 
 
+@pytest.mark.django_db
 class TestFilterForSuperUserOrRoleAssignmentUserMixin:
-    @pytest_cases.parametrize(
-        "user",
-        (
-            (pytest_cases.fixture_ref("superuser")),
-            (pytest_cases.fixture_ref("org_user_free_plan")),
-            (pytest_cases.fixture_ref("user_no_role_assignment")),
-        ),
-    )
+    @pytest.fixture(params=["superuser", "org_user_free_plan", "user_no_role_assignment"])
+    def user(self, request):
+        return request.getfixturevalue(request.param)
+
     def test_filter_queryset_for_superuser_or_ra(self, user):
         class MyClass(FilterForSuperUserOrRoleAssignmentUserMixin):
             def __init__(self, user):

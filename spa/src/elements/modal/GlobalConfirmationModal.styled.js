@@ -1,7 +1,6 @@
 import styled from 'styled-components';
-import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
 
-export const GlobalConfirmationModal = styled.div`
+export const Root = styled.div`
   border-radius: ${(props) => props.theme.radii[0]};
   background: ${(props) => props.theme.colors.white};
   padding: 2rem;
@@ -16,9 +15,13 @@ export const Warning = styled.div`
   align-items: center;
 `;
 
-export const Icon = styled(FontAwesomeIcon)`
+export const Icon = styled.div`
   color: ${(props) => props.theme.colors.warning};
-  font-size: ${(props) => props.theme.fontSizes[5]};
+
+  && svg {
+    height: 80px;
+    width: 80px;
+  }
 `;
 
 export const Message = styled.p`

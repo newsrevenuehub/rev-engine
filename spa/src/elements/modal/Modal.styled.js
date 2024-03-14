@@ -1,5 +1,4 @@
 import styled from 'styled-components';
-import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
 
 export const Underlay = styled.div`
   position: fixed;
@@ -13,7 +12,7 @@ export const Underlay = styled.div`
   background: rgba(0, 0, 0, 0.5);
 `;
 
-export const Modal = styled.div`
+export const Root = styled.div`
   background: ${(props) => props.theme.colors.white};
   position: fixed;
   top: 50%;
@@ -39,7 +38,7 @@ export const CloseButton = styled.button`
   }
 `;
 
-export const CloseIcon = styled(FontAwesomeIcon)`
+export const CloseIcon = styled.div`
   width: 15px;
   height: 15px;
   fill: ${(props) => props.theme.colors.black};

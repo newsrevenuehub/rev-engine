@@ -16,10 +16,10 @@ from django.contrib.auth.views import (
 from django.core import signing
 from django.core.exceptions import ValidationError as DjangoValidationError
 from django.dispatch import receiver
-from django.http import HttpResponseRedirect
+from django.http import HttpResponseRedirect, JsonResponse
+from django.middleware.csrf import CsrfViewMiddleware
 from django.template.loader import render_to_string
 from django.urls import reverse, reverse_lazy
-from django.utils.decorators import method_decorator
 from django.utils.safestring import mark_safe
 from django.views.decorators.http import require_GET
 
@@ -34,7 +34,6 @@ from rest_framework.viewsets import GenericViewSet
 from reversion.views import RevisionMixin
 
 from apps.common.utils import get_original_ip_from_request
-from apps.common.views import csrf_protect_json
 from apps.contributions.bad_actor import BadActorAPIError, make_bad_actor_request
 from apps.contributions.utils import get_sha256_hash
 from apps.emails.tasks import send_templated_email
@@ -179,7 +178,6 @@ class CustomPasswordResetCompleteView(PasswordResetCompleteView):
     template_name = "orgadmin_password_reset_complete.html"
 
 
-@method_decorator(csrf_protect_json, name="dispatch")
 class UserViewset(
     mixins.CreateModelMixin,
     mixins.RetrieveModelMixin,
@@ -195,6 +193,19 @@ class UserViewset(
     # We're explicitly setting allowed methods in order to prohibit PUT updates. If PUT
     # added, the custom logic in UserSerializer.get_fields will have to be addressed.
     http_method_names = ["get", "post", "patch"]
+
+    def dispatch(self, *args, **kwargs):
+        """Override of `dispatch` to ensure CSRF protection while exempting POST requests.
+
+        In other views with side effects, we accomplish this by using `@method_decorator(csrf_protect_json, name="dispatch")` which will
+        cause csrf protection to be enforced for the entire view (in cases of side-effecty methods).  However, this is not an option in this
+        view because we need to omit CSRF protection for POST requests since a user will not have a CSRF token when they are creating an account
+        because they won't be logged in yet, and login is when we send the CSRF token.
+        """
+        response = super().dispatch(*args, **kwargs)
+        if self.request.method != "POST" and CsrfViewMiddleware().process_view(self.request, None, (), {}):
+            return JsonResponse({"detail": "CSRF token missing or incorrect."}, status=status.HTTP_403_FORBIDDEN)
+        return response
 
     def get_serializer(self, *args, **kwargs):
         serializer = super().get_serializer(*args, **kwargs)

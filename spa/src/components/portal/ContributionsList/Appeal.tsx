@@ -1,5 +1,3 @@
-import PropTypes, { InferProps } from 'prop-types';
-
 const AppealPropTypes = {};
 
 export function Appeal() {

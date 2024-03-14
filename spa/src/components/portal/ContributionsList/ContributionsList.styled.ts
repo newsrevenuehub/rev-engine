@@ -40,6 +40,7 @@ export const Layout = styled.div`
   gap: 25px 20px;
   grid-template-areas:
     'header _'
+    'impact _'
     'legend _'
     'list detail';
   grid-template-columns: 1fr 1fr;

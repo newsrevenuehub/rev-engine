@@ -8,9 +8,7 @@ from django.contrib.auth.decorators import login_required
 from django.http import FileResponse, HttpResponse, JsonResponse
 from django.shortcuts import render
 from django.template import engines
-from django.utils.decorators import method_decorator
 from django.views.decorators.cache import never_cache
-from django.views.decorators.csrf import ensure_csrf_cookie
 from django.views.decorators.http import require_GET
 from django.views.defaults import server_error
 from django.views.generic import TemplateView
@@ -25,11 +23,6 @@ from apps.organizations.models import RevenueProgram
 logger = logging.getLogger(f"{settings.DEFAULT_LOGGER}.{__name__}")
 
 
-# NB: Many endpoints in our API rely on HTTP-only cookie-based JWT tokens for authentication. However, there
-# are some unauthenticated endpoints that we'd still like a modicum of protection on (and we use `enforce_csrf` in these cases).
-# In order for this to work out, we need to ensure that requests originating from the SPA can have a CSRF token pulled from
-# cookies and sent in the request headers. By ensuring CSRF cookie here, we guarantee that the SPA will have a CSRF token.
-@method_decorator(ensure_csrf_cookie, name="dispatch")
 class ReactAppView(TemplateView):
     template_name = "index.html"
 

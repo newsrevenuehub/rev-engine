@@ -156,13 +156,6 @@ def process_stripe_webhook(request):
     return Response(status=status.HTTP_200_OK)
 
 
-# This view allows for creation and cancelation (via destroy) of contributions. It is used in contribution checkout flow.
-# We need it to be unauthed because business logic dictates that we do not require contributors to create an account in order
-# to contribute. Even so, we want a minimal level of protection against malicious actors, so we use csrf_protect_json
-# which will reject requests without a valid CSRF token in header, returning a JSON response instead of an HTML response.
-# See https://news-revenue-hub.atlassian.net/wiki/spaces/TECH/pages/2702737433/RevEngine+Authentication+and+CSRF+Protection+Guide for
-# more details on how we handle CSRF protection in RevEngine.
-@method_decorator(csrf_protect_json, name="dispatch")
 class PaymentViewset(mixins.CreateModelMixin, mixins.DestroyModelMixin, viewsets.GenericViewSet):
     permission_classes = []
     lookup_field = "uuid"
@@ -360,6 +353,7 @@ class ContributionsViewSet(viewsets.ReadOnlyModelViewSet):
         return Response(data={"detail": "success"}, status=status.HTTP_200_OK)
 
 
+@method_decorator(csrf_protect_json, name="dispatch")
 class SubscriptionsViewSet(viewsets.ViewSet):
     permission_classes = [
         IsAuthenticated,
@@ -575,6 +569,7 @@ class SubscriptionsViewSet(viewsets.ViewSet):
         )
 
 
+@method_decorator(csrf_protect_json, name="dispatch")
 class PortalContributorsViewSet(viewsets.GenericViewSet):
     """This viewset is meant to furnish contributions data to the (new) contributor portal"""
 

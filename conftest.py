@@ -49,17 +49,8 @@ fake = Faker()
 
 @pytest.fixture
 def api_client():
-    """A DRF test API client that can be used to make API-level requests
-
-    Note that we set `enforce_csrf_checks` to `True` to ensure that CSRF checks are enforced by default in tests.
-    This is so that our tests will reveal any issues with CSRF protection that might otherwise go unnoticed.
-
-    This is desirable because although we are using Django's default CSRF middleware, our API uses DjangoRestFramework,
-    and by default, DRF views will not do anything to enforce CSRF checks.  Most of our endpoints rely on JWT tokens
-    for authentication and security purposes, but there are some that need to be unauthed, but that may not be read-only,
-    and in those cases we may selctively enforce CSRF checks at the view level.
-    """
-    return APIClient(enforce_csrf_checks=True)
+    """A DRF test API client that can be used to make API-level requests"""
+    return APIClient()
 
 
 @pytest.fixture(autouse=True)

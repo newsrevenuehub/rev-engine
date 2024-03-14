@@ -2,6 +2,7 @@ import logging
 
 from django.conf import settings
 from django.urls import reverse
+from django.utils.decorators import method_decorator
 
 import django_filters
 from rest_framework import filters, status, viewsets
@@ -11,7 +12,7 @@ from rest_framework.response import Response
 from reversion.views import RevisionMixin
 
 from apps.api.permissions import HasRoleAssignment
-from apps.common.views import FilterForSuperUserOrRoleAssignmentUserMixin
+from apps.common.views import FilterForSuperUserOrRoleAssignmentUserMixin, csrf_protect_json
 from apps.element_media.models import MediaImage
 from apps.organizations.models import RevenueProgram
 from apps.pages import serializers
@@ -110,6 +111,7 @@ class PageFullDetailHelper:
             raise PageDetailError("RevenueProgram does not have a fully verified payment provider")
 
 
+@method_decorator(csrf_protect_json, name="dispatch")
 class PageViewSet(FilterForSuperUserOrRoleAssignmentUserMixin, RevisionMixin, viewsets.ModelViewSet):
     """Contribution pages exposed through API
 
@@ -231,6 +233,7 @@ class PageViewSet(FilterForSuperUserOrRoleAssignmentUserMixin, RevisionMixin, vi
         return Response(serialized.data)
 
 
+@method_decorator(csrf_protect_json, name="dispatch")
 class StyleViewSet(FilterForSuperUserOrRoleAssignmentUserMixin, RevisionMixin, viewsets.ModelViewSet):
     """Contribution Page Template styles exposed through API
 

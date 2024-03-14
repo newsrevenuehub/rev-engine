@@ -7,7 +7,9 @@ from urllib.parse import quote_plus, urlparse
 from django.conf import settings
 from django.shortcuts import get_object_or_404
 from django.template.loader import render_to_string
+from django.utils.decorators import method_decorator
 from django.utils.safestring import mark_safe
+from django.views.decorators.csrf import ensure_csrf_cookie
 
 from rest_framework import status
 from rest_framework.response import Response
@@ -84,6 +86,7 @@ def set_token_cookie(response, token, expires):
     return response
 
 
+@method_decorator(ensure_csrf_cookie, name="dispatch")
 class TokenObtainPairCookieView(simplejwt_views.TokenObtainPairView):
     """
     Subclasses simplejwt's TokenObtainPairView to handle tokens in cookies
@@ -194,6 +197,7 @@ class RequestContributorTokenEmailView(APIView):
         return Response({"detail": "success"}, status=status.HTTP_200_OK)
 
 
+@method_decorator(ensure_csrf_cookie, name="dispatch")
 class VerifyContributorTokenView(simplejwt_views.TokenVerifyView):
     """
     This view verifies a short-lived token using ShortLivedMagicLinkTokenAuthentication. Authenticated requests

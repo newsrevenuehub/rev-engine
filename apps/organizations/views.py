@@ -7,6 +7,7 @@ from django.db import models
 from django.http import HttpRequest
 from django.shortcuts import get_object_or_404
 from django.template.loader import render_to_string
+from django.utils.decorators import method_decorator
 
 import reversion
 import stripe
@@ -27,7 +28,7 @@ from apps.api.permissions import (
     IsPatchRequest,
     IsRpAdmin,
 )
-from apps.common.views import FilterForSuperUserOrRoleAssignmentUserMixin
+from apps.common.views import FilterForSuperUserOrRoleAssignmentUserMixin, csrf_protect_json
 from apps.emails.tasks import (
     make_send_test_contribution_email_data,
     make_send_test_magic_link_email_data,
@@ -52,6 +53,7 @@ logger = logging.getLogger(f"{settings.DEFAULT_LOGGER}.{__name__}")
 FREE_TO_CORE_UPGRADE_EMAIL_SUBJECT = "You've Upgraded to Core!"
 
 
+@method_decorator(csrf_protect_json, name="dispatch")
 class OrganizationViewSet(
     mixins.ListModelMixin,
     mixins.RetrieveModelMixin,
@@ -217,6 +219,7 @@ class OrganizationViewSet(
         return Response(status=status.HTTP_200_OK)
 
 
+@method_decorator(csrf_protect_json, name="dispatch")
 class RevenueProgramViewSet(FilterForSuperUserOrRoleAssignmentUserMixin, viewsets.ModelViewSet):
     model = RevenueProgram
     permission_classes = [
@@ -279,6 +282,7 @@ def get_stripe_account_link_return_url(request):
 
 
 @reversion.create_revision()
+@csrf_protect_json
 @api_view(["POST"])
 @permission_classes([IsAuthenticated, HasRoleAssignment])
 def handle_stripe_account_link(request, rp_pk):
@@ -400,6 +404,7 @@ def handle_stripe_account_link(request, rp_pk):
     return Response(data)
 
 
+@csrf_protect_json
 @api_view(["POST"])
 @permission_classes([IsAuthenticated])
 def send_test_email(request):
@@ -461,6 +466,7 @@ def send_test_email(request):
     return Response(status=status.HTTP_202_ACCEPTED)
 
 
+@csrf_protect_json
 @api_view(["POST"])
 @permission_classes([IsAuthenticated, HasFlaggedAccessToMailchimp, IsOrgAdmin])
 def handle_mailchimp_oauth_success(request):

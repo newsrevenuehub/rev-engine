@@ -19,6 +19,7 @@ from django.dispatch import receiver
 from django.http import HttpResponseRedirect
 from django.template.loader import render_to_string
 from django.urls import reverse, reverse_lazy
+from django.utils.decorators import method_decorator
 from django.utils.safestring import mark_safe
 from django.views.decorators.http import require_GET
 
@@ -33,6 +34,7 @@ from rest_framework.viewsets import GenericViewSet
 from reversion.views import RevisionMixin
 
 from apps.common.utils import get_original_ip_from_request
+from apps.common.views import csrf_protect_json
 from apps.contributions.bad_actor import BadActorAPIError, make_bad_actor_request
 from apps.contributions.utils import get_sha256_hash
 from apps.emails.tasks import send_templated_email
@@ -177,6 +179,7 @@ class CustomPasswordResetCompleteView(PasswordResetCompleteView):
     template_name = "orgadmin_password_reset_complete.html"
 
 
+@method_decorator(csrf_protect_json, name="dispatch")
 class UserViewset(
     mixins.CreateModelMixin,
     mixins.RetrieveModelMixin,

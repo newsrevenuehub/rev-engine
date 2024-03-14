@@ -4,7 +4,8 @@ import os
 from django.conf import settings
 from django.contrib.auth import get_user_model
 from django.db import models
-from django.http import HttpRequest
+from django.http import HttpRequest, JsonResponse
+from django.middleware.csrf import CsrfViewMiddleware
 from django.shortcuts import get_object_or_404
 from django.template.loader import render_to_string
 from django.utils.decorators import method_decorator
@@ -53,7 +54,6 @@ logger = logging.getLogger(f"{settings.DEFAULT_LOGGER}.{__name__}")
 FREE_TO_CORE_UPGRADE_EMAIL_SUBJECT = "You've Upgraded to Core!"
 
 
-@method_decorator(csrf_protect_json, name="dispatch")
 class OrganizationViewSet(
     mixins.ListModelMixin,
     mixins.RetrieveModelMixin,
@@ -72,6 +72,20 @@ class OrganizationViewSet(
     ]
     serializer_class = serializers.OrganizationSerializer
     pagination_class = None
+
+    def dispatch(self, *args, **kwargs):
+        """Override of `dispatch` to ensure CSRF protection while exempting webhook requests.
+
+        In other views with side effects, we accomplish this by using `@method_decorator(csrf_protect_json, name="dispatch")` which will
+        cause csrf protection to be enforced for the entire view (in cases of side-effecty methods).  However, this is not an option in this
+        view because we need to omit CSRF protection for webhook requests as they will not have a CSRF token and are unauthenticated.
+        """
+        response = super().dispatch(*args, **kwargs)
+        if getattr(self, "action", None) != "handle_stripe_webhook" and CsrfViewMiddleware().process_view(
+            self.request, None, (), {}
+        ):
+            return JsonResponse({"detail": "CSRF token missing or incorrect."}, status=status.HTTP_403_FORBIDDEN)
+        return response
 
     def get_queryset(self) -> models.QuerySet:
         return self.filter_queryset_for_superuser_or_ra()

@@ -575,10 +575,19 @@ class PortalContributorsViewSet(viewsets.GenericViewSet):
 
     DEFAULT_ORDERING_FIELDS = ["created"]
     ALLOWED_ORDERING_FIELDS = ["created", "amount", "status"]
-
+    # Contributors should never see contributions with these statuses, or
+    # interact with them (e.g. delete or patch them).
+    HIDDEN_STATUSES = [
+        ContributionStatus.FLAGGED,
+        ContributionStatus.PROCESSING,
+        ContributionStatus.REJECTED,
+    ]
     # NB: This view is about returning contributor.contributions and never returns contributors, but
     # we need to set a queryset to satisfy DRF's viewset machinery
     queryset = Contributor.objects.all()
+
+    def exclude_hidden_statuses(self, queryset):
+        return queryset.exclude(status__in=self.HIDDEN_STATUSES)
 
     def _get_contributor_and_check_permissions(self, request, contributor_id):
         try:
@@ -617,7 +626,9 @@ class PortalContributorsViewSet(viewsets.GenericViewSet):
     def contributions_list(self, request, pk=None):
         """Endpoint to get all contributions for a given contributor"""
         contributor = self._get_contributor_and_check_permissions(request, pk)
-        qs = PortalContributionFilter().filter_queryset(request, contributor.contribution_set)
+        qs = PortalContributionFilter().filter_queryset(
+            request, self.exclude_hidden_statuses(contributor.contribution_set)
+        )
         qs = self.handle_ordering(request, qs)
         return self.paginate_results(qs, request)
 
@@ -638,9 +649,7 @@ class PortalContributorsViewSet(viewsets.GenericViewSet):
         """Endpoint to get or update a contribution for a given contributor"""
         contributor = self._get_contributor_and_check_permissions(request, pk)
         try:
-            contribution = self.filter_contributions_queryset(request, contributor.contribution_set).get(
-                pk=contribution_id
-            )
+            contribution = self.exclude_hidden_statuses(contributor.contribution_set).get(pk=contribution_id)
         except Contribution.DoesNotExist:
             return Response({"detail": "Contribution not found"}, status=status.HTTP_404_NOT_FOUND)
 

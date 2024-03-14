@@ -1,4 +1,3 @@
-import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
 import styled from 'styled-components';
 
 export const Root = styled.div`
@@ -57,11 +56,5 @@ export const Text = styled.p`
 export const SocialImg = styled.img`
   height: 30px;
   width: auto;
-  margin-right: 0.5rem;
-`;
-
-export const SocialIcon = styled(FontAwesomeIcon)`
-  font-size: 30px;
-  color: ${(props) => props.theme.colors.grey[2]};
   margin-right: 0.5rem;
 `;

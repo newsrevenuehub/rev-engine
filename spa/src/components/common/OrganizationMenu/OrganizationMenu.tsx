@@ -1,7 +1,6 @@
 import PropTypes, { InferProps } from 'prop-types';
-import { faNewspaper } from '@fortawesome/free-solid-svg-icons';
-
-import { Title, Flex, OrgWrapper, Divider, OrgIcon, IconWrapper } from './OrganizationMenu.styled';
+import Newspaper from '@material-design-icons/svg/filled/newspaper.svg?react';
+import { Title, Flex, OrgWrapper, Divider, IconWrapper } from './OrganizationMenu.styled';
 
 export type OrganizationMenuProps = InferProps<typeof OrganizationMenuPropTypes>;
 
@@ -9,7 +8,7 @@ const OrganizationMenu = ({ title, className, hideBottomDivider }: OrganizationM
   <Flex className={className!}>
     <OrgWrapper>
       <IconWrapper>
-        <OrgIcon icon={faNewspaper} />
+        <Newspaper />
       </IconWrapper>
       <Title>{title}</Title>
     </OrgWrapper>

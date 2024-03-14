@@ -1,20 +1,14 @@
-import { useState } from 'react';
+import { KeyboardArrowDown } from '@material-ui/icons';
+import { AnimatePresence, motion } from 'framer-motion';
 import PropTypes from 'prop-types';
-import { motion } from 'framer-motion';
-
-// Styles
-import * as S from './DReason.styled';
-import { AnimatePresence } from 'framer-motion';
-
-// Context
-import { usePage } from '../DonationPage';
-import DElement, { DynamicElementPropTypes } from 'components/donationPage/pageContent/DElement';
-
-// Children
-import GroupedLabel from 'elements/inputs/GroupedLabel';
-import { InputGroup, GroupedWrapper } from 'elements/inputs/inputElements.styled';
-import Select from 'elements/inputs/Select';
+import { useMemo, useState } from 'react';
 import { useTranslation } from 'react-i18next';
+import { MenuItem } from 'components/base';
+import DElement, { DynamicElementPropTypes } from 'components/donationPage/pageContent/DElement';
+import GroupedLabel from 'elements/inputs/GroupedLabel';
+import { GroupedWrapper, InputGroup } from 'elements/inputs/inputElements.styled';
+import { usePage } from '../DonationPage';
+import * as S from './DReason.styled';
 
 const defaultTributeState = {
   isHonoree: false,
@@ -46,14 +40,7 @@ function DReason({ element, ...props }) {
     }
   };
 
-  const getReasons = () => {
-    const reasons = [...element.content.reasons];
-    if (!element?.requiredFields?.includes('reason_for_giving'))
-      reasons.unshift(t('donationPage.dReason.selectOnePlaceholder'));
-    reasons.push(REASON_OTHER);
-    return reasons;
-  };
-
+  const reasons = useMemo(() => [...element.content.reasons, REASON_OTHER], [REASON_OTHER, element.content.reasons]);
   const elementContent = element?.content || {};
 
   return (
@@ -66,14 +53,33 @@ function DReason({ element, ...props }) {
             </GroupedLabel>
             <S.SupportOptions>
               {elementContent.reasons.length > 0 && (
-                <Select
-                  testId="excited-to-support-picklist"
+                <S.ReasonSelect
+                  error={!!errors.reason_for_giving}
+                  fullWidth
+                  helperText={errors.reason_for_giving}
+                  id="dreason-select"
                   name="reason_for_giving"
-                  selectedItem={selectedReason}
-                  onSelectedItemChange={({ selectedItem }) => setSelectedReason(selectedItem)}
-                  items={getReasons()}
-                  errors={errors?.reason_for_giving}
-                />
+                  data-testid="excited-to-support-picklist"
+                  onChange={({ target }) => setSelectedReason(target.value)}
+                  SelectProps={{
+                    classes: { icon: 'NreTextFieldSelectIcon', select: 'NreTextFieldSelectSelect' },
+                    displayEmpty: true,
+                    IconComponent: KeyboardArrowDown
+                  }}
+                  select
+                  value={selectedReason}
+                >
+                  {element.requiredFields.includes('reason_for_giving') && (
+                    <MenuItem disabled value="">
+                      {t('donationPage.dReason.selectOnePlaceholder')}
+                    </MenuItem>
+                  )}
+                  {reasons.map((reason) => (
+                    <MenuItem key={reason} value={reason}>
+                      {reason}
+                    </MenuItem>
+                  ))}
+                </S.ReasonSelect>
               )}
               <AnimatePresence>
                 {(elementContent.reasons?.length === 0 || selectedReason === REASON_OTHER) && (
@@ -235,7 +241,7 @@ function TributeCheckbox({ value, label, name, checked, handleChange, asRadio })
           onChange={handleChange}
         />
       )}
-      <S.CheckboxLabel htmlFor={asRadio ? (idOverride ?? value) : name}>{label}</S.CheckboxLabel>
+      <S.CheckboxLabel htmlFor={asRadio ? idOverride ?? value : name}>{label}</S.CheckboxLabel>
     </S.CheckBoxField>
   );
 }

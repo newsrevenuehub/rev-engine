@@ -98,7 +98,7 @@ class ContributionImportBaseClass(ABC):
     def __post_init__(self) -> None:
         self.validate()
 
-    def validate(self) -> None:  # pragma: no cover
+    def validate(self) -> None:
         """Does several validation checks that should ensure the data can be upserted to revengine.
 
         NB: Inheriting classes should call super validate method when adding additional validation checks.

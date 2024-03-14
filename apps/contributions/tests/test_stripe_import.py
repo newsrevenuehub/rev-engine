@@ -386,18 +386,18 @@ class TestSubscriptionForRecurringContribution:
 
     @pytest.fixture(params=["subscription", "subscription_with_existing_nre_entities"])
     def subscription_to_upsert(self, request):
-        return request.getfixturevalue(request.param), (
-            True if request.param == "subscription_with_existing_nre_entities" else False
-        )
+        page = DonationPageFactory()
+        page.revenue_program.default_donation_page = page
+        page.revenue_program.save()
+        subscription = request.getfixturevalue(request.param)
+        subscription.metadata["revenue_program_id"] = str(page.revenue_program.id)
+        subscription.metadata["referer"] = f"https://{ALLOWED_TLDS_FOR_IMPORT[0]}.com/{page.slug}/"
+        return subscription, (True if request.param == "subscription_with_existing_nre_entities" else False)
 
     def test_upsert(self, subscription_to_upsert, charge, refund, customer, mocker):
+
         subscription, existing_entities = subscription_to_upsert
         mock_upsert_payment = mocker.patch("apps.contributions.stripe_import.upsert_payment_for_transaction")
-        mocker.patch(
-            "apps.contributions.stripe_import.SubscriptionForRecurringContribution.conditionally_update_contribution_donation_page",
-            # this causes mock to return contribution value it's called with
-            side_effect=lambda *args, **kwargs: kwargs["contribution"],
-        )
         instance = SubscriptionForRecurringContribution(
             subscription=subscription, charges=[charge], refunds=[refund], customer=customer
         )
@@ -418,6 +418,19 @@ class TestSubscriptionForRecurringContribution:
         assert action == ("created" if not existing_entities else "updated")
         mock_upsert_payment.assert_any_call(contribution, charge.balance_transaction, is_refund=False)
         mock_upsert_payment.assert_any_call(contribution, refund.balance_transaction, is_refund=True)
+
+    def test_upsert_when_no_donation_page(self, subscription, customer, charge, refund, mocker):
+        mocker.patch(
+            "apps.contributions.stripe_import.SubscriptionForRecurringContribution.donation_page",
+            new_callable=mocker.PropertyMock,
+            return_value=None,
+        )
+        with pytest.raises(InvalidStripeTransactionDataError) as exc_info:
+            SubscriptionForRecurringContribution(
+                subscription=subscription, charges=[charge], customer=customer, refunds=[refund]
+            ).upsert()
+        assert "has no donation page associated with it" in str(exc_info.value)
+        assert not Contribution.objects.filter(provider_subscription_id=subscription.id).exists()
 
     def test_conditionally_update_contribution_donation_page_normal_path(
         self, subscription_with_existing_nre_entities, customer, mocker
@@ -567,20 +580,19 @@ class TestPaymentIntentForOneTimeContribution:
             == f"PaymentIntentForOneTimeContribution {payment_intent.id}"
         )
 
-    @pytest.fixture(params=["payment_intent_with_existing_nre_entities"])
+    @pytest.fixture(params=["payment_intent", "payment_intent_with_existing_nre_entities"])
     def pi_to_upsert(self, request):
-        return request.getfixturevalue(request.param), (
-            True if request.param == "payment_intent_with_existing_nre_entities" else False
-        )
+        page = DonationPageFactory()
+        page.revenue_program.default_donation_page = page
+        page.revenue_program.save()
+        pi = request.getfixturevalue(request.param)
+        pi.metadata["revenue_program_id"] = str(page.revenue_program.id)
+        pi.metadata["referer"] = f"https://{ALLOWED_TLDS_FOR_IMPORT[0]}.com/{page.slug}/"
+        return pi, (True if request.param == "payment_intent_with_existing_nre_entities" else False)
 
     def test_upsert(self, pi_to_upsert, customer, charge, refund, mocker):
         payment_intent, existing_entities = pi_to_upsert
         mock_upsert_payment = mocker.patch("apps.contributions.stripe_import.upsert_payment_for_transaction")
-        mocker.patch(
-            "apps.contributions.stripe_import.PaymentIntentForOneTimeContribution.conditionally_update_contribution_donation_page",
-            # this causes mock to return contribution value it's called with
-            side_effect=lambda *args, **kwargs: kwargs["contribution"],
-        )
         contribution, action = PaymentIntentForOneTimeContribution(
             payment_intent=payment_intent, charges=[charge], customer=customer, refunds=[refund]
         ).upsert()
@@ -601,6 +613,19 @@ class TestPaymentIntentForOneTimeContribution:
         assert Contributor.objects.filter(email=customer.email).exists
         mock_upsert_payment.assert_any_call(contribution, charge.balance_transaction, is_refund=False)
         mock_upsert_payment.assert_any_call(contribution, refund.balance_transaction, is_refund=True)
+
+    def test_upsert_when_no_donation_page(self, payment_intent, customer, charge, refund, mocker):
+        mocker.patch(
+            "apps.contributions.stripe_import.PaymentIntentForOneTimeContribution.donation_page",
+            new_callable=mocker.PropertyMock,
+            return_value=None,
+        )
+        with pytest.raises(InvalidStripeTransactionDataError) as exc_info:
+            PaymentIntentForOneTimeContribution(
+                payment_intent=payment_intent, charges=[charge], customer=customer, refunds=[refund]
+            ).upsert()
+        assert "has no donation page associated with it" in str(exc_info.value)
+        assert not Contribution.objects.filter(provider_payment_id=payment_intent.id).exists()
 
 
 class TestStripeTransactionsImporter:

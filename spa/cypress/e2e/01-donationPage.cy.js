@@ -182,7 +182,7 @@ describe('Reason for Giving element', () => {
   it('should render picklist with options', () => {
     cy.getByTestId('excited-to-support-picklist').should('exist');
     cy.getByTestId('excited-to-support-picklist').click();
-    cy.getByTestId('select-item-1').click();
+    cy.findByRole('option', { name: 'test1' }).click();
   });
 
   it('should not show "honoree/in_memory_of" input if "No" is selected', () => {
@@ -382,7 +382,7 @@ function fillOutDonorInfoSection() {
 
 function fillOutReasonForGiving() {
   cy.get('[data-testid="excited-to-support-picklist"]').click();
-  cy.get('[data-testid="select-item-1').click();
+  cy.findByRole('option', { name: 'test1' }).click();
   cy.get('[data-testid="excited-to-support-picklist"]').invoke('val').as('reasonValue');
 }
 

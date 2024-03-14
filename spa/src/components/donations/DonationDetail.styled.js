@@ -1,8 +1,7 @@
 import styled from 'styled-components';
 import { motion } from 'framer-motion';
-import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
 
-export const DonationDetail = styled(motion.div)``;
+export const Root = styled(motion.div)``;
 
 export const Loading = styled(motion.div)`
   height: 100px;
@@ -21,7 +20,7 @@ export const DL = styled(motion.dl)`
   }
 `;
 
-export const DataGroup = styled.div`
+export const DataGroupRoot = styled.div`
   margin: 2rem 0;
 `;
 
@@ -43,7 +42,3 @@ export const ManageFlagged = styled.div`
     width: 200px;
   }
 `;
-
-export const AcceptIcon = styled(FontAwesomeIcon)``;
-
-export const RejectIcon = styled(FontAwesomeIcon)``;

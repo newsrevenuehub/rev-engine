@@ -1,8 +1,7 @@
 import styled from 'styled-components';
-import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
 import { motion } from 'framer-motion';
 
-export const DashboardSection = styled(motion.section)`
+export const Root = styled(motion.section)`
   border-radius: ${(props) => props.theme.radii[0]};
   box-shadow: ${(props) => props.theme.shadows[0]};
   background: ${(props) => props.theme.colors.paneBackground};
@@ -26,14 +25,6 @@ export const SectionHeading = styled(motion.div)`
     color: ${(props) => props.theme.colors.white};
     font-family: ${(props) => props.theme.systemFont};
   }
-`;
-
-export const Chevron = styled(FontAwesomeIcon)`
-  position: absolute;
-  right: 20px;
-  color: ${(props) => props.theme.colors.white};
-  transition: transform 0.2s ease-in-out;
-  transform: rotate(${(props) => (props.collapsed ? '180deg' : '0deg')});
 `;
 
 export const SectionContent = styled(motion.div)`

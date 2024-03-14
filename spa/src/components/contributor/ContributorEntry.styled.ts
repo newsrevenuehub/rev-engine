@@ -1,6 +1,4 @@
 import styled from 'styled-components';
-
-import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
 import Button from 'elements/buttons/Button';
 
 export const ContributorEntry = styled.main`
@@ -42,11 +40,6 @@ export const NoSuchContributor = styled.div`
     flex: 1;
     margin-left: 1rem;
   }
-`;
-
-export const NoSuchIcon = styled(FontAwesomeIcon)`
-  font-size: 48px;
-  color: ${(props) => props.theme.colors.warning};
 `;
 
 export const MagicLinkButton = styled(Button)`

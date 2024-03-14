@@ -1,5 +1,4 @@
 import styled from 'styled-components';
-import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
 
 export const Flex = styled.div`
   display: flex;
@@ -42,13 +41,11 @@ export const IconWrapper = styled.div`
   background-color: ${(props) => props.theme.colors.navOrgIcon};
   border: 1px solid ${(props) => props.theme.colors.white};
   border-radius: ${(props) => props.theme.muiBorderRadius.lg};
-`;
 
-export const OrgIcon = styled(FontAwesomeIcon)`
-  color: ${(props) => props.theme.colors.white};
-  && {
+  && svg {
+    fill: ${(props) => props.theme.colors.white};
+    height: 24px;
     width: 24px;
-    height: 18px;
   }
 `;
 

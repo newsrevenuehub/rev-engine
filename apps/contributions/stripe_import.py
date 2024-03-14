@@ -261,9 +261,8 @@ class PaymentIntentForOneTimeContribution(ContributionImportBaseClass):
 
         If that charge has any refunds associated with it, we'll upsert those as payments as well.
 
-        Additionally, we'll conditionally update the contribution with donation page if it's missing. Crucially, this code
-        assumes that by the time `upsert_with_diff_check` is called, the contribution has been validated as having a valid
-        donation page (irrespective of whether or not we do in fact update when calling conditionally_update_contribution_donation_page method).
+        Additionally, we'll conditionally update the contribution with donation page if it's missing. Note that if the upsert action would result in the
+        contribution not having a value for donation page, the entire transaction is rolled back.
         """
         logger.debug("Upserting untracked payment intent %s", self.payment_intent.id)
         contributor, created = Contributor.objects.get_or_create(email=self.email_id)
@@ -289,6 +288,13 @@ class PaymentIntentForOneTimeContribution(ContributionImportBaseClass):
             caller_name="PaymentIntentForOneTimeContribution.upsert",
         )
         contribution = self.conditionally_update_contribution_donation_page(contribution=contribution)
+        if not contribution.donation_page:
+            # NB: If we get to this point and the contribution still has no donation page, we don't want it to get created/upserted in db
+            # because pageless contributions cause problems. Since this method is wrapped in @transaction.atomic, this will cause the entire
+            # transaction to be rolled back
+            raise InvalidStripeTransactionDataError(
+                f"Contribution {contribution.id} has no donation page associated with it"
+            )
         if charge := self.successful_charge:
             upsert_payment_for_transaction(contribution, charge.balance_transaction, is_refund=False)
         # Even though we only expect one successful charge, it's possible to have multiple refunds
@@ -362,9 +368,8 @@ class SubscriptionForRecurringContribution(ContributionImportBaseClass):
     def upsert(self) -> Tuple[Contribution, str]:
         """Upsert contribution, contributor and payments for given Stripe subscription
 
-        Additionally, we'll conditionally update the contribution with donation page if it's missing. Crucially, this code
-        assumes that by the time `upsert_with_diff_check` is called, the contribution has been validated as having a valid
-        donation page (irrespective of whether or not we do in fact update when calling conditionally_update_contribution_donation_page method).
+        Additionally, we'll conditionally update the contribution with donation page if it's missing. Note that if the upsert action would result in the
+        contribution not having a value for donation page, the entire transaction is rolled back.
         """
         logger.debug("Upserting untracked subscription %s", self.subscription.id)
         contributor, created = Contributor.objects.get_or_create(email=self.email_id)
@@ -390,6 +395,13 @@ class SubscriptionForRecurringContribution(ContributionImportBaseClass):
             caller_name="SubscriptionForRecurringContribution.upsert",
         )
         contribution = self.conditionally_update_contribution_donation_page(contribution=contribution)
+        if not contribution.donation_page:
+            # NB: If we get to this point and the contribution still has no donation page, we don't want it to get created/upserted in db
+            # because pageless contributions cause problems. Since this method is wrapped in @transaction.atomic, this will cause the entire
+            # transaction to be rolled back
+            raise InvalidStripeTransactionDataError(
+                f"Contribution {contribution.id} has no donation page associated with it"
+            )
         for x in self.charges:
             upsert_payment_for_transaction(contribution, x.balance_transaction, is_refund=False)
         for x in self.refunds:

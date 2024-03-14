@@ -1,13 +1,17 @@
 import datetime
 import logging
-from abc import ABC, abstractmethod
+from abc import ABC
 from dataclasses import dataclass
+from functools import cached_property
 from typing import Tuple
+from urllib.parse import urlparse
 
 from django.conf import settings
 from django.db import transaction
 
+import reversion
 import stripe
+import tldextract
 
 from apps.common.utils import upsert_with_diff_check
 from apps.contributions.exceptions import (
@@ -26,9 +30,20 @@ from apps.contributions.types import (
     STRIPE_PAYMENT_METADATA_SCHEMA_VERSIONS,
     cast_metadata_to_stripe_payment_metadata_schema,
 )
+from apps.organizations.models import RevenueProgram
+from apps.pages.models import DonationPage
 
 
 MAX_STRIPE_RESPONSE_LIMIT = 100
+
+ALLOWED_TLDS_FOR_IMPORT = [
+    "revengine-review",
+    "revengine-staging",
+    "fundjournalism",
+    "revengine-demo",
+    "revengine-test",
+    "revengine-dev",
+]
 
 logger = logging.getLogger(f"{settings.DEFAULT_LOGGER}.{__name__}")
 
@@ -64,6 +79,16 @@ def upsert_payment_for_transaction(
         )
 
 
+def parse_slug_from_url(url: str) -> str | None:
+    """Parse RP slug, if any, from a given URL"""
+    if tldextract.extract(url).domain not in ALLOWED_TLDS_FOR_IMPORT:
+        logger.warning("URL %s has a TLD that is not allowed for import", url)
+        raise InvalidStripeTransactionDataError(f"URL {url} has a TLD that is not allowed for import")
+    parsed = urlparse(url)
+    path_segments = [segment for segment in parsed.path.split("/") if segment]
+    return path_segments[0] if len(path_segments) else None
+
+
 @dataclass
 class ContributionImportBaseClass(ABC):
     charges: list[stripe.Charge]
@@ -71,21 +96,67 @@ class ContributionImportBaseClass(ABC):
     customer: stripe.Customer | None
 
     def __post_init__(self) -> None:
-        if getattr(self, "payment_intent", None):
-            self.entity_name = "Payment intent"
-            self.entity_id = self.payment_intent.id
-        else:
-            self.entity_name = "Subscription"
-            self.entity_id = self.subscription.id
         self.validate()
 
-    @abstractmethod
     def validate(self) -> None:  # pragma: no cover
-        pass
+        """Does several validation checks that should ensure the data can be upserted to revengine.
+
+        NB: Inheriting classes should call super validate method when adding additional validation checks.
+        """
+        self.validate_referer()
+        self.validate_metadata()
+        self.validate_customer()
+        self.validate_email_id()
+
+    @property
+    def entity_id(self) -> str:
+        return self.stripe_entity.id
+
+    @property
+    def entity_name(self) -> str:
+        return "Payment intent" if getattr(self, "payment_intent", None) else "Subscription"
 
     @property
     def email_id(self) -> str | None:
         return self.customer.email
+
+    @property
+    def stripe_entity(self) -> stripe.PaymentIntent | stripe.Subscription:
+        return getattr(self, "payment_intent" if self.entity_name == "Payment intent" else "subscription")
+
+    @property
+    def referer(self) -> str | None:
+        return self.stripe_entity.metadata.get("referer", None)
+
+    @cached_property
+    def donation_page(self) -> DonationPage | None:
+        """Attempt to derive a donation page from stripe metadata.
+
+        Note that this method assumes that referer has already been validated as present upstream.
+        """
+        if not (rp_id := self.stripe_entity.metadata.get("revenue_program_id", None)):
+            return None
+        revenue_program = RevenueProgram.objects.filter(id=rp_id).first()
+        if not revenue_program:
+            logger.warning("No revenue program found for id %s", rp_id)
+            return None
+        slug = parse_slug_from_url(self.referer)
+        return (
+            revenue_program.donationpage_set.filter(slug=slug).first()
+            if slug
+            else revenue_program.default_donation_page
+        )
+
+    def validate_referer(self) -> None:
+        """For now, we require a referer to be present in the metadata. This is because we need to know the donation page.
+
+        This requirement may change in the future. See [DEV-4562] in JIRA for more detail.
+        """
+        referer = self.referer
+        if (not referer) or tldextract.extract(referer).domain not in ALLOWED_TLDS_FOR_IMPORT:
+            raise InvalidStripeTransactionDataError(
+                f"{self.entity_name} {self.entity_id} has no referer associated with it"
+            )
 
     def validate_customer(
         self,
@@ -101,6 +172,24 @@ class ContributionImportBaseClass(ABC):
                 f"{self.entity_name} {self.entity_id} has no email associated with it"
             )
 
+    def validate_metadata(self) -> None:
+        """Validate the metadata associated with the stripe entity"""
+        # Callling this will raise a `InvalidMetadataError` if the metadata is invalid
+        cast_metadata_to_stripe_payment_metadata_schema(self.stripe_entity.metadata)
+
+    def conditionally_update_contribution_donation_page(self, contribution: Contribution) -> Contribution:
+        """If the contribution has no donation page, we'll update it with the donation page derived from payment metadata
+
+        NB: This method assumes that validation has already occurred and that there is a valid donation page
+        """
+        if self.donation_page and not contribution.donation_page:
+            logger.debug("Updating contribution %s with donation page %s", contribution.id, self.donation_page.id)
+            contribution.donation_page = self.donation_page
+            with reversion.create_revision():
+                contribution.save(update_fields={"donation_page"})
+                reversion.set_comment("Donation page was updated from Stripe metadata")
+        return contribution
+
 
 @dataclass
 class PaymentIntentForOneTimeContribution(ContributionImportBaseClass):
@@ -112,11 +201,7 @@ class PaymentIntentForOneTimeContribution(ContributionImportBaseClass):
         return f"PaymentIntentForOneTimeContribution {self.payment_intent.id}"
 
     def validate(self) -> None:
-        """Does several validation checks that should ensure the data can be upserted to revengine."""
-        # This will raise an `InvalidMetadataError` if the metadata is invalid
-        cast_metadata_to_stripe_payment_metadata_schema(self.payment_intent.metadata)
-        self.validate_customer()
-        self.validate_email_id()
+        super().validate()
         self.validate_charges()
 
     def validate_charges(self) -> None:
@@ -175,6 +260,10 @@ class PaymentIntentForOneTimeContribution(ContributionImportBaseClass):
         If the payment intent has a charge associated, we'll upsert a payment.
 
         If that charge has any refunds associated with it, we'll upsert those as payments as well.
+
+        Additionally, we'll conditionally update the contribution with donation page if it's missing. Crucially, this code
+        assumes that by the time `upsert_with_diff_check` is called, the contribution has been validated as having a valid
+        donation page (irrespective of whether or not we do in fact update when calling conditionally_update_contribution_donation_page method).
         """
         logger.debug("Upserting untracked payment intent %s", self.payment_intent.id)
         contributor, created = Contributor.objects.get_or_create(email=self.email_id)
@@ -199,6 +288,7 @@ class PaymentIntentForOneTimeContribution(ContributionImportBaseClass):
             },
             caller_name="PaymentIntentForOneTimeContribution.upsert",
         )
+        contribution = self.conditionally_update_contribution_donation_page(contribution=contribution)
         if charge := self.successful_charge:
             upsert_payment_for_transaction(contribution, charge.balance_transaction, is_refund=False)
         # Even though we only expect one successful charge, it's possible to have multiple refunds
@@ -218,24 +308,9 @@ class SubscriptionForRecurringContribution(ContributionImportBaseClass):
 
     def validate(self) -> None:
         """Does several validation checks that should ensure the data can be upserted to revengine."""
-        # This will raise an `InvalidMetadataError` if the metadata is invalid
-        cast_metadata_to_stripe_payment_metadata_schema(self.subscription.metadata)
-        self.validate_customer()
-        self.validate_email_id()
+        super().validate()
         # This will raise an `InvalidIntervalError` if the interval is invalid
         self.get_interval_from_subscription(self.subscription)
-
-    def validate_customer(self) -> None:
-        if not self.customer:
-            raise InvalidStripeTransactionDataError(
-                f"Subscription {self.subscription.id} has no customer associated with it"
-            )
-
-    def validate_email_id(self) -> None:
-        if not self.email_id:
-            raise InvalidStripeTransactionDataError(
-                f"Subscription {self.subscription.id} has no email associated with it"
-            )
 
     @property
     def status(self) -> ContributionStatus:
@@ -287,7 +362,9 @@ class SubscriptionForRecurringContribution(ContributionImportBaseClass):
     def upsert(self) -> Tuple[Contribution, str]:
         """Upsert contribution, contributor and payments for given Stripe subscription
 
-        NB: Fields are only updated in case of existing contribution if they have changed.
+        Additionally, we'll conditionally update the contribution with donation page if it's missing. Crucially, this code
+        assumes that by the time `upsert_with_diff_check` is called, the contribution has been validated as having a valid
+        donation page (irrespective of whether or not we do in fact update when calling conditionally_update_contribution_donation_page method).
         """
         logger.debug("Upserting untracked subscription %s", self.subscription.id)
         contributor, created = Contributor.objects.get_or_create(email=self.email_id)
@@ -312,6 +389,7 @@ class SubscriptionForRecurringContribution(ContributionImportBaseClass):
             },
             caller_name="SubscriptionForRecurringContribution.upsert",
         )
+        contribution = self.conditionally_update_contribution_donation_page(contribution=contribution)
         for x in self.charges:
             upsert_payment_for_transaction(contribution, x.balance_transaction, is_refund=False)
         for x in self.refunds:

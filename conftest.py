@@ -30,6 +30,7 @@ from waffle import get_waffle_flag_model
 from apps.common.tests.test_resources import DEFAULT_FLAGS_CONFIG_MAPPING
 from apps.contributions.choices import CardBrand, ContributionInterval
 from apps.contributions.stripe_contributions_provider import StripePiAsPortalContribution
+from apps.contributions.stripe_import import ALLOWED_TLDS_FOR_IMPORT
 from apps.contributions.tests.factories import ContributionFactory, ContributorFactory
 from apps.contributions.types import StripePaymentMetadataSchemaV1_4
 from apps.organizations.models import (
@@ -545,7 +546,7 @@ def valid_metadata_factory(faker):
         "agreed_to_pay_fees": True,
         "donor_selected_amount": uniform(100.0, 1000.0),
         "reason_for_giving": None,
-        "referer": "https://www.somewhere.com",
+        "referer": f"https://www.{ALLOWED_TLDS_FOR_IMPORT[0]}.com",
         "revenue_program_id": faker.uuid4(),
         "revenue_program_slug": f"rp-{faker.word()}",
         "sf_campaign_id": None,
@@ -1103,7 +1104,7 @@ def valid_metadata():
     return StripePaymentMetadataSchemaV1_4(
         agreed_to_pay_fees=False,
         donor_selected_amount=1000.0,
-        referer="https://www.google.com/",
+        referer=f"https://www.{ALLOWED_TLDS_FOR_IMPORT[1]}.com/",
         revenue_program_id=1,
         revenue_program_slug="testrp",
         schema_version="1.4",

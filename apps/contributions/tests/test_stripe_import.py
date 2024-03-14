@@ -1,4 +1,5 @@
 import datetime
+import random
 from copy import deepcopy
 
 from django.conf import settings
@@ -11,16 +12,26 @@ from apps.contributions.exceptions import (
     InvalidMetadataError,
     InvalidStripeTransactionDataError,
 )
-from apps.contributions.models import ContributionInterval, ContributionStatus, Contributor, Payment
+from apps.contributions.models import (
+    Contribution,
+    ContributionInterval,
+    ContributionStatus,
+    Contributor,
+    Payment,
+)
 from apps.contributions.stripe_import import (
+    ALLOWED_TLDS_FOR_IMPORT,
     MAX_STRIPE_RESPONSE_LIMIT,
     PaymentIntentForOneTimeContribution,
     StripeEventProcessor,
     StripeTransactionsImporter,
     SubscriptionForRecurringContribution,
+    parse_slug_from_url,
     upsert_payment_for_transaction,
 )
 from apps.contributions.tests.factories import ContributionFactory, PaymentFactory
+from apps.organizations.models import RevenueProgram
+from apps.pages.tests.factories import DonationPageFactory
 
 
 @pytest.fixture
@@ -157,6 +168,32 @@ def customer_with_invoice_settings(customer, mocker, payment_method_A):
     return customer
 
 
+class Test_parse_slug_from_url:
+    @pytest.mark.parametrize(
+        "url, expect",
+        (
+            (f"https://{random.choice(ALLOWED_TLDS_FOR_IMPORT)}.com/slug/", "slug"),
+            (f"https://{random.choice(ALLOWED_TLDS_FOR_IMPORT)}.com/slug", "slug"),
+            (f"https://{random.choice(ALLOWED_TLDS_FOR_IMPORT)}.com/", None),
+            (f"https://{random.choice(ALLOWED_TLDS_FOR_IMPORT)}.com", None),
+            (f"https://{random.choice(ALLOWED_TLDS_FOR_IMPORT)}.com/slug/other", "slug"),
+            (f"https://{random.choice(ALLOWED_TLDS_FOR_IMPORT)}.com/slug/other/", "slug"),
+            (f"https://{random.choice(ALLOWED_TLDS_FOR_IMPORT)}.com/slug/?foo=bar", "slug"),
+            (f"https://{random.choice(ALLOWED_TLDS_FOR_IMPORT)}.com/slug?foo=bar", "slug"),
+        ),
+    )
+    def test_parse_slug_from_url_when_allowed_tlds(self, url, expect):
+        if expect:
+            assert parse_slug_from_url(url) == expect
+        else:
+            assert parse_slug_from_url(url) is None
+
+    def test_parse_slug_from_url_when_not_allowed_tlds(self):
+        with pytest.raises(InvalidStripeTransactionDataError) as exc:
+            parse_slug_from_url((url := "https://example.com/slug/"))
+        assert str(exc.value) == f"URL {url} has a TLD that is not allowed for import"
+
+
 @pytest.mark.django_db
 class Test_upsert_payment_for_transaction:
     @pytest.fixture
@@ -194,6 +231,14 @@ class Test_upsert_payment_for_transaction:
 @pytest.mark.django_db
 class TestSubscriptionForRecurringContribution:
 
+    @pytest.mark.parametrize("has_referer", (True, False))
+    def test_init_when_referer_not_validate(self, subscription, customer, has_referer):
+        subscription.metadata["referer"] = "https://example.com" if has_referer else None
+
+        with pytest.raises(InvalidStripeTransactionDataError) as exc_info:
+            SubscriptionForRecurringContribution(subscription=subscription, charges=[], refunds=[], customer=customer)
+        assert "referer" in str(exc_info.value)
+
     def test_init_when_customer_not_validate(self, subscription):
         with pytest.raises(InvalidStripeTransactionDataError) as exc_info:
             SubscriptionForRecurringContribution(subscription=subscription, charges=[], refunds=[], customer=None)
@@ -225,6 +270,46 @@ class TestSubscriptionForRecurringContribution:
                 )
             )
             == f"SubscriptionForRecurringContribution {subscription.id}"
+        )
+
+    @pytest.mark.parametrize("referer_has_slug", (True, False))
+    def test_donation_page_property_happy_path(
+        self,
+        referer_has_slug,
+        subscription,
+        customer,
+    ):
+        page = DonationPageFactory()
+        page.revenue_program.default_donation_page = page
+        page.revenue_program.save()
+        subscription.metadata["revenue_program_id"] = str(page.revenue_program.id)
+        assert page.slug
+        referer = f"https://{ALLOWED_TLDS_FOR_IMPORT[0]}.com/{(page.slug + '/') if referer_has_slug else ''}"
+        subscription.metadata["referer"] = referer
+        assert (
+            SubscriptionForRecurringContribution(
+                subscription=subscription, customer=customer, charges=[], refunds=[]
+            ).donation_page
+            == page
+        )
+
+    def test_donation_page_property_when_metadata_rp_id_is_empty_string(self, subscription, customer):
+        subscription.metadata["revenue_program_id"] = ""
+        assert (
+            SubscriptionForRecurringContribution(
+                subscription=subscription, customer=customer, charges=[], refunds=[]
+            ).donation_page
+            is None
+        )
+
+    def test_donation_page_property_when_rp_is_not_found(self, subscription, customer):
+        subscription.metadata["revenue_program_id"] = "3737"
+        assert not RevenueProgram.objects.filter(id=3737).exists()
+        assert (
+            SubscriptionForRecurringContribution(
+                subscription=subscription, customer=customer, charges=[], refunds=[]
+            ).donation_page
+            is None
         )
 
     @pytest.mark.parametrize(
@@ -308,6 +393,11 @@ class TestSubscriptionForRecurringContribution:
     def test_upsert(self, subscription_to_upsert, charge, refund, customer, mocker):
         subscription, existing_entities = subscription_to_upsert
         mock_upsert_payment = mocker.patch("apps.contributions.stripe_import.upsert_payment_for_transaction")
+        mocker.patch(
+            "apps.contributions.stripe_import.SubscriptionForRecurringContribution.conditionally_update_contribution_donation_page",
+            # this causes mock to return contribution value it's called with
+            side_effect=lambda *args, **kwargs: kwargs["contribution"],
+        )
         instance = SubscriptionForRecurringContribution(
             subscription=subscription, charges=[charge], refunds=[refund], customer=customer
         )
@@ -329,9 +419,60 @@ class TestSubscriptionForRecurringContribution:
         mock_upsert_payment.assert_any_call(contribution, charge.balance_transaction, is_refund=False)
         mock_upsert_payment.assert_any_call(contribution, refund.balance_transaction, is_refund=True)
 
+    def test_conditionally_update_contribution_donation_page_normal_path(
+        self, subscription_with_existing_nre_entities, customer, mocker
+    ):
+        page = DonationPageFactory()
+        mocker.patch(
+            "apps.contributions.stripe_import.SubscriptionForRecurringContribution.donation_page",
+            new_callable=mocker.PropertyMock,
+            return_value=page,
+        )
+        contribution = Contribution.objects.get(provider_subscription_id=subscription_with_existing_nre_entities.id)
+        contribution.donation_page = None
+        contribution.save()
+        contribution = SubscriptionForRecurringContribution(
+            subscription=subscription_with_existing_nre_entities, charges=[], refunds=[], customer=customer
+        ).conditionally_update_contribution_donation_page(contribution)
+        assert contribution.donation_page == page
+
+    def test_conditionally_update_contribution_donation_page_when_donation_page_is_already_set(
+        self, subscription_with_existing_nre_entities, customer, mocker
+    ):
+        page = DonationPageFactory()
+        contribution = Contribution.objects.get(provider_subscription_id=subscription_with_existing_nre_entities.id)
+        contribution.donation_page = page
+        contribution.save()
+        contribution = SubscriptionForRecurringContribution(
+            subscription=subscription_with_existing_nre_entities, charges=[], refunds=[], customer=customer
+        ).conditionally_update_contribution_donation_page(contribution)
+        assert contribution.donation_page == page
+
+    def test_conditionally_update_contribution_donation_page_when_no_donation_page(
+        self, subscription_with_existing_nre_entities, customer, mocker
+    ):
+        mocker.patch(
+            "apps.contributions.stripe_import.SubscriptionForRecurringContribution.donation_page",
+            new_callable=mocker.PropertyMock,
+            return_value=None,
+        )
+        contribution = SubscriptionForRecurringContribution(
+            subscription=subscription_with_existing_nre_entities, charges=[], refunds=[], customer=customer
+        ).conditionally_update_contribution_donation_page(ContributionFactory(donation_page=None))
+        assert contribution.donation_page is None
+
 
 @pytest.mark.django_db
 class TestPaymentIntentForOneTimeContribution:
+
+    @pytest.mark.parametrize("has_referer", (True, False))
+    def test_init_when_referer_not_validate(self, has_referer, payment_intent, customer):
+        payment_intent.metadata["referer"] = "https://example.com" if has_referer else None
+        with pytest.raises(InvalidStripeTransactionDataError) as exc_info:
+            PaymentIntentForOneTimeContribution(
+                payment_intent=payment_intent, charges=[], refunds=[], customer=customer
+            )
+        assert "referer" in str(exc_info.value)
 
     def test_init_when_no_customer(self, payment_intent):
         with pytest.raises(InvalidStripeTransactionDataError) as exc_info:
@@ -435,6 +576,11 @@ class TestPaymentIntentForOneTimeContribution:
     def test_upsert(self, pi_to_upsert, customer, charge, refund, mocker):
         payment_intent, existing_entities = pi_to_upsert
         mock_upsert_payment = mocker.patch("apps.contributions.stripe_import.upsert_payment_for_transaction")
+        mocker.patch(
+            "apps.contributions.stripe_import.PaymentIntentForOneTimeContribution.conditionally_update_contribution_donation_page",
+            # this causes mock to return contribution value it's called with
+            side_effect=lambda *args, **kwargs: kwargs["contribution"],
+        )
         contribution, action = PaymentIntentForOneTimeContribution(
             payment_intent=payment_intent, charges=[charge], customer=customer, refunds=[refund]
         ).upsert()

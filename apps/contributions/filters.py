@@ -1,5 +1,3 @@
-from django.db.models import Q
-
 import django_filters
 
 from apps.contributions.models import Contribution, ContributionStatus
@@ -61,20 +59,16 @@ class PortalContributionFilter(django_filters.rest_framework.DjangoFilterBackend
     ]
     ALLOWED_FILTER_FIELDS = ["status", "revenue_program"]
 
-    def filter_queryset_by_rp(self, queryset, revenue_program_id: str):
-        return queryset.filter(
-            Q(donation_page__revenue_program__id=revenue_program_id)
-            | Q(contribution_metadata__contains={"revenue_program_id": revenue_program_id})
-        )
-
     def filter_queryset(self, request, queryset):
-        qs = queryset.exclude(status__in=self.HIDDEN_STATUSES)
+        # Exclude hidden statuses by default
+        queryset = queryset.exclude(status__in=self.HIDDEN_STATUSES)
         filters = {}
-        for field in [x for x in self.ALLOWED_FILTER_FIELDS if x != "revenue_program"]:
+        for field in self.ALLOWED_FILTER_FIELDS:
             value = request.query_params.get(field)
             if value is not None:
-                filters[field] = value
-        qs = qs.filter(**filters)
-        if (value := request.query_params.get("revenue_program", None)) is not None:
-            qs = self.filter_queryset_by_rp(qs, value)
-        return qs
+                if field == "revenue_program":
+                    filters["donation_page__revenue_program"] = value
+                else:
+                    filters[field] = value
+
+        return queryset.filter(**filters)

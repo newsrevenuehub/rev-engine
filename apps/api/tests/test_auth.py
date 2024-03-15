@@ -33,7 +33,8 @@ class JWTCookieAuthenticationTest(APITestCase):
         valid_token_obj = AccessToken().for_user(self.user)
         self.valid_jwt = jwt.encode(valid_token_obj.payload, settings.SECRET_KEY, algorithm="HS256")
         self.invalid_jwt = "notavalidhmac"
-        self.csrf_token = csrf._get_new_csrf_token()
+        #  _get_new_csrf_string() no longer exists -- and this is why you don't use private methods in tests!
+        self.csrf_token = csrf._get_new_csrf_string()
 
     def _add_jwt_to_cookie(self, valid=True):
         self.request.COOKIES[settings.AUTH_COOKIE_KEY] = self.valid_jwt if valid else self.invalid_jwt

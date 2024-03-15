@@ -71,18 +71,24 @@ def test_custom_length_enforced():
 def setup_request(user, request):
     request.user = user
 
+    # This is a dummy function that returns the request object.
+    # Django 4.2 will require a callable to be passed to the middleware.
+    def get_response(request):
+        return request
+
     # Annotate a request object with a session
-    middleware = SessionMiddleware()
+    middleware = SessionMiddleware(get_response=get_response)
     middleware.process_request(request)
     request.session.save()
 
     # Annotate a request object with a message
-    middleware = MessageMiddleware()
+    middleware = MessageMiddleware(get_response=get_response)
     middleware.process_request(request)
     request.session.save()
 
     request.session["some"] = "some"
     request.session.save()
+    return request
 
 
 def generate_random_datetime(start, end):

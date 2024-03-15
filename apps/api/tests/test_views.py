@@ -528,7 +528,7 @@ class AuthorizedContributorRequestsTest(RevEngineApiAbstractTestCase):
                 self._get_token(valid=type_valid) if token_valid else "not-valid-token"
             )
 
-        self.client.cookies["csrftoken"] = csrf._get_new_csrf_token()
+        self.client.cookies["csrftoken"] = csrf._get_new_csrf_string()
         return self.client.get(self.contributions_url, data={"rp": self.org1_rp1.slug})
 
     def test_contributor_request_when_token_valid(self):

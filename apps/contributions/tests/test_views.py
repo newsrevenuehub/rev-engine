@@ -267,7 +267,7 @@ class TestContributionsViewSet:
         api_client.force_authenticate(non_contributor_user)
         # superuser and hub admin can retrieve all:
         if non_contributor_user.is_superuser or non_contributor_user.roleassignment.role_type == Roles.HUB_ADMIN:
-            ContributionFactory.create_batch(size=2)
+            ContributionFactory.create_batch(size=2, status=ContributionStatus.PAID)
             query = (
                 Contribution.objects.all()
                 if non_contributor_user.is_superuser
@@ -284,8 +284,13 @@ class TestContributionsViewSet:
                 donation_page=DonationPageFactory(
                     revenue_program=non_contributor_user.roleassignment.revenue_programs.first()
                 ),
+                status=ContributionStatus.PAID,
             )
-            ContributionFactory(one_time=True, donation_page=DonationPageFactory(revenue_program=revenue_program))
+            ContributionFactory(
+                one_time=True,
+                donation_page=DonationPageFactory(revenue_program=revenue_program),
+                status=ContributionStatus.PAID,
+            )
             non_contributor_user.roleassignment.refresh_from_db()
             query = Contribution.objects.filtered_by_role_assignment(non_contributor_user.roleassignment)
             unpermitted = Contribution.objects.exclude(id__in=query.values_list("id", flat=True))
@@ -478,7 +483,7 @@ class TestContributionsViewSetExportCSV:
         settings.CELERY_ALWAYS_EAGER = True
         api_client.force_authenticate(user)
         if user.is_staff or user.roleassignment.role_type == Roles.HUB_ADMIN:
-            ContributionFactory(one_time=True)
+            ContributionFactory(one_time=True, status=ContributionStatus.PAID)
             ContributionFactory(one_time=True, flagged=True)
             ContributionFactory(one_time=True, rejected=True)
             ContributionFactory(one_time=True, canceled=True)
@@ -489,13 +494,13 @@ class TestContributionsViewSetExportCSV:
             assert revenue_program not in user.roleassignment.revenue_programs.all()
             unowned_page = DonationPageFactory(revenue_program=revenue_program)
             owned_page = DonationPageFactory(revenue_program=user.roleassignment.revenue_programs.first())
-            ContributionFactory(one_time=True, donation_page=owned_page)
+            ContributionFactory(one_time=True, donation_page=owned_page, status=ContributionStatus.PAID)
             ContributionFactory(one_time=True, flagged=True, donation_page=owned_page)
             ContributionFactory(one_time=True, rejected=True, donation_page=owned_page)
             ContributionFactory(one_time=True, canceled=True, donation_page=owned_page)
             ContributionFactory(one_time=True, refunded=True, donation_page=owned_page)
             ContributionFactory(one_time=True, processing=True, donation_page=owned_page)
-            ContributionFactory(one_time=True)
+            ContributionFactory(one_time=True, status=ContributionStatus.PAID)
             ContributionFactory(one_time=True, flagged=True, donation_page=unowned_page)
             ContributionFactory(one_time=True, rejected=True, donation_page=unowned_page)
             ContributionFactory(one_time=True, canceled=True, donation_page=unowned_page)

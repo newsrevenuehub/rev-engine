@@ -48,6 +48,7 @@ class Command(BaseCommand):
             contribution__donation_page__revenue_program__payment_provider__stripe_account_id__in=connected_accounts,
             transaction_time__isnull=True,
         )
+        eligible_payments_count = eligible_payments.count()
         ineligible_because_of_account = Payment.objects.filter(
             contribution__donation_page__revenue_program__payment_provider__stripe_account_id__in=disconnected_accounts,
             transaction_time__isnull=True,
@@ -89,7 +90,7 @@ class Command(BaseCommand):
             updated_ids.append(payment.id)
         self.stdout.write(
             self.style.SUCCESS(
-                f"Updated {len(updated_ids)} payment(s) out of {eligible_payments.count()} eligible payments. The following payments were updated: {', '.join(map(str, updated_ids))}"
+                f"Updated {len(updated_ids)} payment(s) out of {eligible_payments_count} eligible payments. The following payments were updated: {', '.join(map(str, updated_ids))}"
             )
         )
         self.stdout.write(self.style.SUCCESS("`sync_payment_transaction_time` is done"))

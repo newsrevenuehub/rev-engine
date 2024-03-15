@@ -394,7 +394,7 @@ class Test_upsert_with_diff_check:
             if instance:
                 assert result == instance
             else:
-                assert result
+                assert isinstance(result, self.model)
             assert action == expected_action
             create_revision_mock.assert_called_once()
 

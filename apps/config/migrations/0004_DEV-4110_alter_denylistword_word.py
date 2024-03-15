@@ -6,7 +6,7 @@ from django.db import migrations, models
 class Migration(migrations.Migration):
 
     dependencies = [
-        ("config", "0003_DEV-4131_add_case_sensitive_collation"),
+        ("config", "0003_DEV-4110_add_case_sensitive_collation"),
     ]
 
     operations = [

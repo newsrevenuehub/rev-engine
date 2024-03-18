@@ -30,7 +30,6 @@ class Command(BaseCommand):
                 accounts[account_id] = False
         return accounts
 
-    # TODO: [DEV-4403] Make sync_payment_transaction_time command resilient vs. Stripe API errors (esp. no longer-connected accounts)
     def handle(self, *args, **options):
         self.stdout.write(self.style.HTTP_INFO("Running `sync_payment_transaction_time`"))
         if not Payment.objects.filter(transaction_time__isnull=True).exists():

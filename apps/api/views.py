@@ -47,15 +47,16 @@ def construct_rp_domain(subdomain, referer=None):
 
     # Try to map it using the HOST_MAP environment variable.
 
-    try:
-        map = json.loads(settings.HOST_MAP)
-        for hostname, slug in map.items():
-            if slug == subdomain:
-                logger.info("Mapped %s to %s", subdomain, hostname)
-                return hostname
-    except json.JSONDecodeError:
-        # Continue silently. Either the variable isn't set or is malformed JSON.
-        pass
+    if settings.HOST_MAP:
+        try:
+            map = json.loads(settings.HOST_MAP)
+            for hostname, slug in map.items():
+                if slug == subdomain:
+                    logger.info("Mapped %s to %s", subdomain, hostname)
+                    return hostname
+        except json.JSONDecodeError:
+            # Continue. Either the variable isn't set or is malformed JSON.
+            logger.warning("settings.HOST_MAP couldn't be parsed as JSON; continuing")
 
     # Parse it normally.
 

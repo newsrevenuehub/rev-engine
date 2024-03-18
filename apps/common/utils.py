@@ -140,13 +140,15 @@ def get_subdomain_from_request(request) -> str | None:
     host = request.get_host()
 
     # Try to map it using the HOST_MAP environment variable.
-    try:
-        map = json.loads(settings.HOST_MAP)
-        if host in map:
-            return map[host]
-    except json.JSONDecodeError:
-        # Continue silently. Either the variable isn't set or is malformed JSON.
-        pass
+
+    if settings.HOST_MAP:
+        try:
+            map = json.loads(settings.HOST_MAP)
+            if host in map:
+                return map[host]
+        except json.JSONDecodeError:
+            # Continue. Either the variable isn't set or is malformed JSON.
+            logger.warning("settings.HOST_MAP couldn't be parsed as JSON; continuing")
 
     # Parse it normally.
     split_host = host.split(".")

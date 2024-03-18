@@ -8,7 +8,6 @@ import reversion
 import stripe
 
 from apps.contributions.models import Payment
-from apps.organizations.models import PaymentProvider
 
 
 # otherwise we get spammed by stripe info logs when running this command
@@ -19,11 +18,8 @@ stripe_logger.setLevel(logging.ERROR)
 class Command(BaseCommand):
     """Try to populate null values for payment.transaction_time in db."""
 
-    def get_stripe_accounts_and_their_connection_status(self):
+    def get_stripe_accounts_and_their_connection_status(self, account_ids: list[str] = None) -> dict[str, bool]:
         self.stdout.write(self.style.HTTP_INFO("Retrieving stripe accounts and their connection status"))
-        account_ids = PaymentProvider.objects.filter(stripe_account_id__isnull=False).values_list(
-            "stripe_account_id", flat=True
-        )
         accounts = {}
         for account_id in account_ids:
             try:
@@ -40,13 +36,20 @@ class Command(BaseCommand):
         if not Payment.objects.filter(transaction_time__isnull=True).exists():
             self.stdout.write(self.style.HTTP_INFO("No payments with missing transaction time found, exiting"))
             return
-        accounts = self.get_stripe_accounts_and_their_connection_status()
-        disconnected_accounts = [k for k, v in accounts.items() if not v]
-        connected_accounts = [k for k, v in accounts.items() if v]
         eligible_payments = Payment.objects.filter(
             contribution__donation_page__isnull=False,
-            contribution__donation_page__revenue_program__payment_provider__stripe_account_id__in=connected_accounts,
             transaction_time__isnull=True,
+        )
+        account_ids = self.get_stripe_accounts_and_their_connection_status(
+            eligible_payments.values_list(
+                "contribution__donation_page__revenue_program__payment_provider__stripe_account_id", flat=True
+            )
+        )
+        accounts = self.get_stripe_accounts_and_their_connection_status(account_ids)
+        disconnected_accounts = [k for k, v in accounts.items() if not v]
+        connected_accounts = [k for k, v in accounts.items() if v]
+        eligible_payments = eligible_payments.filter(
+            contribution__donation_page__revenue_program__payment_provider__stripe_account_id__in=connected_accounts
         )
         eligible_payments_count = eligible_payments.count()
         ineligible_because_of_account = Payment.objects.filter(

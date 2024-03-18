@@ -69,16 +69,6 @@ def payment_intent(mocker, charge, customer, valid_metadata):
 
 
 @pytest.fixture
-def pi_without_invoice(mocker):
-    return mocker.Mock(invoice=None)
-
-
-@pytest.fixture
-def pi_with_invoice(mocker):
-    return mocker.Mock(invoice="inv_1")
-
-
-@pytest.fixture
 def invoice_with_subscription(mocker):
     return mocker.Mock(subscription="sub_1", id="inv_1")
 

@@ -10,19 +10,17 @@ export type AmountEditorProps = ElementDetailEditorProps<AmountElement['content'
 
 export function AmountEditor({ contributionIntervals, elementContent, onChangeElementContent }: AmountEditorProps) {
   useEffect(() => {
-    // Migrate legacy data to the new format on first render.
+    // Migrate legacy data to the new format.
     if (elementContent.allowOther) {
       onChangeElementContent({
         ...elementContent,
-        options: {
-          ...Object.entries(elementContent.options).reduce(
-            (acc, [interval, options]) => ({
-              ...acc,
-              [interval]: options.includes('other') ? options : [...options, 'other']
-            }),
-            {}
-          )
-        },
+        options: Object.entries(elementContent.options).reduce(
+          (acc, [interval, options]) => ({
+            ...acc,
+            [interval]: options.includes('other') ? options : [...options, 'other']
+          }),
+          {}
+        ),
         allowOther: undefined
       });
     }

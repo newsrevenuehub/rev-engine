@@ -236,7 +236,31 @@ describe('AmountEditor', () => {
               allowOther: false,
               options: {
                 ...elementContent.options,
-                [frequency]: [...(elementContent.options?.[frequency] ?? []), 'other']
+                [frequency]: [...elementContent.options[frequency]!, 'other']
+              }
+            }
+          ]
+        ]);
+      });
+
+      it('removes "other"', () => {
+        const options: AmountElement['content']['options'] = {
+          one_time: [1, 2, 3, 'other'],
+          month: [10, 20, 30, 'other'],
+          year: ['other']
+        };
+        const onChangeElementContent = jest.fn();
+
+        tree({ elementContent: { ...elementContent, allowOther: false, options }, onChangeElementContent });
+        userEvent.click(within(screen.getByTestId(`allow-other-${frequency}`)).getByRole('checkbox'));
+        expect(onChangeElementContent.mock.calls).toEqual([
+          [
+            {
+              ...elementContent,
+              allowOther: false,
+              options: {
+                ...options,
+                [frequency]: [...options[frequency]!.filter((val) => val !== 'other')]
               }
             }
           ]

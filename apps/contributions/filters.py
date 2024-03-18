@@ -63,7 +63,7 @@ class PortalContributionFilter(django_filters.rest_framework.DjangoFilterBackend
     def filter_queryset(self, request, queryset):
         filters = {}
         for field in [x for x in self.ALLOWED_FILTER_FIELDS if x != "revenue_program"]:
-            value = request.query_params.get(field)
+            value = request.query_params.get(field, None)
             if value is not None:
                 filters[field] = value
         qs = queryset.filter(**filters)

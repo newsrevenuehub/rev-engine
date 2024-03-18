@@ -80,16 +80,6 @@ def payment_intent(mocker, charge, customer, valid_metadata):
 
 
 @pytest.fixture
-def pi_without_invoice(mocker):
-    return mocker.Mock(invoice=None)
-
-
-@pytest.fixture
-def pi_with_invoice(mocker):
-    return mocker.Mock(invoice="inv_1")
-
-
-@pytest.fixture
 def invoice_with_subscription(mocker):
     return mocker.Mock(subscription="sub_1", id="inv_1")
 
@@ -524,16 +514,28 @@ class TestPaymentIntentForOneTimeContribution:
             (True, "anything", ContributionStatus.REFUNDED),
             (False, "succeeded", ContributionStatus.PAID),
             (False, "canceled", ContributionStatus.CANCELED),
-            (False, "anything_else", ContributionStatus.PROCESSING),
+            (False, "processing", ContributionStatus.PROCESSING),
+            (False, "requires_action", ContributionStatus.PROCESSING),
+            (False, "requires_capture", ContributionStatus.PROCESSING),
+            (False, "requires_confirmation", ContributionStatus.PROCESSING),
+            (False, "requires_payment_method", ContributionStatus.PROCESSING),
         ),
     )
-    def test_status(self, refunded, pi_status, expected, payment_intent, mocker, customer):
+    def test_status_when_expected_status(self, refunded, pi_status, expected, payment_intent, mocker, customer):
         mocker.patch("apps.contributions.stripe_import.PaymentIntentForOneTimeContribution.refunded", refunded)
         payment_intent.status = pi_status
         instance = PaymentIntentForOneTimeContribution(
             payment_intent=payment_intent, charges=[], customer=customer, refunds=[]
         )
         assert instance.status == expected
+
+    def test_status_when_unexpected_status(self, payment_intent, customer):
+        payment_intent.status = "unexpected"
+        with pytest.raises(InvalidStripeTransactionDataError) as exc_info:
+            PaymentIntentForOneTimeContribution(
+                payment_intent=payment_intent, charges=[], customer=customer, refunds=[]
+            ).status
+        assert str(exc_info.value) == "Unknown status for payment intent"
 
     @pytest.fixture(
         params=[

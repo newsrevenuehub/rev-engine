@@ -4,7 +4,7 @@ from apps.contributions.stripe_import import StripeEventProcessor
 
 
 class Command(BaseCommand):
-    """Allows user to provide a Stripe event and acccount ID and then process that event using our webhookhandler."""
+    """Allows user to provide a Stripe event and account ID and then process that event using our webhookhandler."""
 
     help = "Process a Stripe event using our webhook handler."
 

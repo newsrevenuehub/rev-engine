@@ -1,4 +1,5 @@
 import logging
+import os
 
 from django.core.management.base import BaseCommand, CommandParser
 
@@ -58,7 +59,8 @@ class Command(BaseCommand):
         return list(query.values_list("stripe_account_id", flat=True))
 
     def handle(self, *args, **options):
-        self.stdout.write(self.style.HTTP_INFO("Running `import_contribution_and_payments_from_stripe`"))
+        command_name = os.path.basename(__file__).split(".")[0]
+        self.stdout.write(self.style.HTTP_INFO(f"Running {command_name}"))
         account_ids = self.get_stripe_account_ids(options["for_orgs"], options["for_stripe_accounts"])
         for account in account_ids:
             if options["async_mode"]:
@@ -80,4 +82,4 @@ class Command(BaseCommand):
                 ).import_contributions_and_payments()
                 self.stdout.write(self.style.SUCCESS(f"Import transactions for account {account} is done"))
 
-        self.stdout.write(self.style.SUCCESS("`import_stripe_transactions_data` is done"))
+        self.stdout.write(self.style.SUCCESS(f"{command_name} is done"))

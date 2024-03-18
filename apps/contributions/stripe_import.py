@@ -237,10 +237,21 @@ class PaymentIntentForOneTimeContribution(ContributionImportBaseClass):
                 return ContributionStatus.PAID
             case (False, "canceled"):
                 return ContributionStatus.CANCELED
-            # We'll use processing as catch all. Concretely, this would mean not refunded and one of other PI statuses of
-            # requires_payment_method, requires_confirmation, requires_action, processing, requires_capture
-            case _:
+            # We'll use processing as catch all if we receive another known Stripe status.
+            case (
+                False,
+                "processing"
+                | "requires_action"
+                | "requires_capture"
+                | "requires_confirmation"
+                | "requires_payment_method",
+            ):
                 return ContributionStatus.PROCESSING
+            case _:
+                logger.warning(
+                    "Unknown status %s for payment intent %s", self.payment_intent.status, self.payment_intent.id
+                )
+                raise InvalidStripeTransactionDataError("Unknown status for payment intent")
 
     @property
     def payment_method(self) -> stripe.PaymentMethod | None:

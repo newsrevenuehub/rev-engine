@@ -613,6 +613,12 @@ class PortalContributorsViewSet(viewsets.GenericViewSet):
             else queryset.order_by(*self.DEFAULT_ORDERING_FIELDS)
         )
 
+    def paginate_results(self, queryset, request):
+        paginator = self.pagination_class()
+        page = paginator.paginate_queryset(queryset, request)
+        serializer = self.get_serializer(page, many=True)
+        return paginator.get_paginated_response(serializer.data)
+
     @action(
         methods=["get"],
         url_path="contributions",
@@ -628,12 +634,6 @@ class PortalContributorsViewSet(viewsets.GenericViewSet):
         )
         qs = self.handle_ordering(qs, request)
         return self.paginate_results(qs, request)
-
-    def paginate_results(self, queryset, request):
-        paginator = self.pagination_class()
-        page = paginator.paginate_queryset(queryset, request)
-        serializer = self.get_serializer(page, many=True)
-        return paginator.get_paginated_response(serializer.data)
 
     @action(
         methods=["get", "patch", "delete"],

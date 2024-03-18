@@ -1579,6 +1579,20 @@ class TestPortalContributorsViewSet:
             mock_subscription_modify,
         )
 
+    @pytest.fixture
+    def portal_contributor_with_multiple_contributions_over_multiple_rps(
+        self, portal_contributor_with_multiple_contributions
+    ):
+        contributor, _, _, _ = portal_contributor_with_multiple_contributions
+        rp2 = RevenueProgramFactory()
+        ContributionFactory(
+            interval=ContributionInterval.MONTHLY,
+            status=ContributionStatus.PAID,
+            donation_page__revenue_program=rp2,
+            contributor=contributor,
+        )
+        return contributor
+
     def test_contributions_list_happy_path(self, portal_contributor_with_multiple_contributions, api_client):
         contributor = portal_contributor_with_multiple_contributions[0]
         api_client.force_authenticate(contributor)
@@ -1610,7 +1624,7 @@ class TestPortalContributorsViewSet:
             assert x["revenue_program"] == contribution.donation_page.revenue_program.id
             assert x["status"] == contribution.status
 
-    def test_contributions_list_filter_behavior(self, api_client, portal_contributor_with_multiple_contributions):
+    def test_contributions_list_filter_by_status(self, api_client, portal_contributor_with_multiple_contributions):
         contributor = portal_contributor_with_multiple_contributions[0]
         api_client.force_authenticate(contributor)
         (excluded := contributor.contribution_set.first()).status = ContributionStatus.FAILED
@@ -1625,6 +1639,28 @@ class TestPortalContributorsViewSet:
             response.json()["results"][0]["id"]
             == contributor.contribution_set.filter(status=ContributionStatus.PAID).first().id
         )
+
+    def test_contributions_list_filter_by_rp(
+        self, api_client, portal_contributor_with_multiple_contributions_over_multiple_rps
+    ):
+        contributor = portal_contributor_with_multiple_contributions_over_multiple_rps
+        rps = contributor.contribution_set.values_list("donation_page__revenue_program", flat=True).distinct()
+        assert len(rps) > 1
+        api_client.force_authenticate(contributor)
+
+        def assert_result(response, result_id):
+            assert response.status_code == status.HTTP_200_OK
+            assert len(response.json()["results"])
+            assert set(x["revenue_program"] for x in response.json()["results"]) == {result_id}
+
+        response = api_client.get(
+            reverse("portal-contributor-contributions-list", args=(contributor.id,)) + f"?revenue_program={rps[0]}"
+        )
+        assert_result(response, rps[0])
+        response = api_client.get(
+            reverse("portal-contributor-contributions-list", args=(contributor.id,)) + f"?revenue_program={rps[1]}"
+        )
+        assert_result(response, rps[1])
 
     @pytest.mark.parametrize(
         "ordering",

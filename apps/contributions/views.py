@@ -604,9 +604,6 @@ class PortalContributorsViewSet(viewsets.GenericViewSet):
             else serializers.PortalContributionListSerializer
         )
 
-    def filter_contributions_queryset(self, request, queryset):
-        return PortalContributionFilter().filter_queryset(request, queryset)
-
     def handle_ordering(self, request, queryset):
         ordering_filter = OrderingFilter()
         ordering_filter.ordering_fields = self.ALLOWED_ORDERING_FIELDS

@@ -58,7 +58,7 @@ class Command(BaseCommand):
         ineligible_because_no_donation_page = Payment.objects.filter(
             contribution__donation_page__isnull=True, transaction_time__isnull=True
         )
-        self.stdout.write(self.style.HTTP_INFO(f"Found {eligible_payments.count()} eligible payments to sync"))
+        self.stdout.write(self.style.HTTP_INFO(f"Found {eligible_payments_count} eligible payments to sync"))
         self.stdout.write(
             self.style.HTTP_INFO(
                 f"Found {ineligible_because_of_account.count()} payment(s) with null value for transaction time that cannot be updated "

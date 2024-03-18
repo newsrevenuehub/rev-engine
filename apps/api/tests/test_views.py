@@ -50,19 +50,30 @@ user_model = get_user_model()
         ("foo.example.com", "https://example.com", "foo", "https://bar.example.com"),  # Post first, header is fallback.
         ("foo.example.com", "https://example.com", "", "https://foo.bar.example.com:80"),  # From header.
         (None, "https://example.com", "", "https://example.com"),  # Header has no subdomain.
-        ("custom.example.com", "https://example.com", "test-rp-slug", ""),  # Mapped host.
     ],
 )
 def test_construct_rp_domain(expected, site_url, post, header, settings):
-    settings.HOST_MAP = '{"custom.example.com":"test-rp-slug"}'
     with override_settings(SITE_URL=site_url):
         assert expected == construct_rp_domain(post, header)
+
+
+def test_construct_rp_domain_with_hostmap(settings):
+    settings.HOST_MAP = '{"custom.example.com":"test-rp-slug"}'
+    with override_settings(SITE_URL="https://custom.example.com"):
+        assert "custom.example.com" == construct_rp_domain("test-rp-slug", "")
+
+
+def test_construct_rp_domain_with_hostmap_but_no_map(settings):
+    settings.HOST_MAP = '{"custom.example.com":"test-rp-slug"}'
+    with override_settings(SITE_URL="https://example.com"):
+        assert "foo.example.com" == construct_rp_domain("foo", "")
 
 
 def test_construct_rp_domain_with_malformed_map(settings):
     settings.HOST_MAP = "bad"
     with override_settings(SITE_URL="https://custom.example.com"):
         assert "custom.example.com" == construct_rp_domain("custom", "")
+        assert "foo.example.com" == construct_rp_domain("foo", "")
 
 
 KNOWN_PASSWORD = "myGreatAndSecurePassword7"

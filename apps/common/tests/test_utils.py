@@ -126,6 +126,16 @@ def test_get_subdomain_from_request_with_mapping(settings):
 
 
 @override_settings(ALLOWED_HOSTS=[test_domain])
+def test_get_subdomain_from_request_with_mapping_but_unmatched(settings):
+    factory = RequestFactory()
+    request = factory.get("/")
+    settings.HOST_MAP = '{"custom.test.org":"test-rp-slug"}'
+    request.META["HTTP_HOST"] = f"rp-slug.{test_domain}"
+    resultant_subdomain = get_subdomain_from_request(request)
+    assert resultant_subdomain == "rp-slug"
+
+
+@override_settings(ALLOWED_HOSTS=[test_domain])
 def test_get_subdomain_from_request_with_malformed_map(settings):
     factory = RequestFactory()
     request = factory.get("/")

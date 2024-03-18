@@ -604,7 +604,7 @@ class PortalContributorsViewSet(viewsets.GenericViewSet):
             else serializers.PortalContributionListSerializer
         )
 
-    def handle_ordering(self, request, queryset):
+    def handle_ordering(self, queryset, request):
         ordering_filter = OrderingFilter()
         ordering_filter.ordering_fields = self.ALLOWED_ORDERING_FIELDS
         return (
@@ -626,7 +626,7 @@ class PortalContributorsViewSet(viewsets.GenericViewSet):
         qs = PortalContributionFilter().filter_queryset(
             request, self.exclude_hidden_statuses(contributor.contribution_set)
         )
-        qs = self.handle_ordering(request, qs)
+        qs = self.handle_ordering(qs, request)
         return self.paginate_results(qs, request)
 
     def paginate_results(self, queryset, request):

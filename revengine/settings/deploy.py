@@ -30,21 +30,20 @@ SERVER_EMAIL = DEFAULT_FROM_EMAIL
 
 
 ### Google Cloud Storage ###
-GS_BUCKET_NAME = os.getenv("GS_BUCKET_NAME", "rev-engine-media")
 STORAGES = {
     "default": {
         "BACKEND": "storages.backends.gcloud.GoogleCloudStorage",
     },
     "staticfiles": {
         "BACKEND": "storages.backends.gcloud.GoogleCloudStorage",
+        # https://django-storages.readthedocs.io/en/latest/backends/gcloud.html#settings
+        "OPTIONS": {
+            "bucket_name": os.getenv("GS_BUCKET_NAME", "rev-engine-media"),
+            "project_id": os.getenv("GS_PROJECT_ID", "revenue-engine"),
+            "querystring_auth": False,
+        },
     },
 }
-GS_PROJECT_ID = os.getenv("GS_PROJECT_ID", "revenue-engine")
-# https://django-storages.readthedocs.io/en/latest/backends/gcloud.html#settings
-GS_QUERYSTRING_AUTH = False
-GS_DEFAULT_ACL = None
-# Media files are stored in a 'media' directory
-GS_MEDIA_LOCATION = "media"
 
 ### React SPA index.html
 FRONTEND_BUILD_DIR = Path(BASE_DIR) / "build"

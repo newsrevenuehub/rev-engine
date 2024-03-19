@@ -3,7 +3,6 @@ import logging
 from zoneinfo import ZoneInfo
 
 from django.core.management.base import BaseCommand
-from django.db.models import Q
 
 import reversion
 import stripe
@@ -24,9 +23,9 @@ class Command(BaseCommand):
         accounts = {}
         for account_id in account_ids:
             try:
-                account = stripe.Account.retrieve(account_id)
-                accounts[account_id] = account.charges_enabled
-            # if an account was once but is no longer connected, this is the error we'd expet
+                stripe.Account.retrieve(account_id)
+                accounts[account_id] = True
+            # if the account is not connected to the platform, we get a PermissionError
             except stripe.error.PermissionError as e:
                 self.stdout.write(
                     self.style.WARNING(
@@ -34,8 +33,7 @@ class Command(BaseCommand):
                     )
                 )
                 accounts[account_id] = False
-            # otherwise, we have a catch all here for other Stripe errors. This would be an unexpected error,
-            # so we stdout as error
+            # In case of an unexpected Stripe error, we stdout as error
             except stripe.error.StripeError as e:
                 self.stdout.write(self.style.ERROR(f"Error while retrieving account {account_id}: {e}"))
                 accounts[account_id] = False
@@ -63,11 +61,11 @@ class Command(BaseCommand):
             contribution__donation_page__revenue_program__payment_provider__stripe_account_id__in=connected_accounts
         )
         fixable_payments_count = fixable_payments.count()
-        ineligible_because_of_account = payments_missing_transaction_time.filter(
-            ~Q(contribution__donation_page__isnull=True),
+        ineligible_because_of_account = payments_missing_transaction_time.exclude(
+            contribution__donation_page__isnull=True
+        ).filter(
             contribution__donation_page__revenue_program__payment_provider__stripe_account_id__in=unretrievable_accounts,
         )
-
         self.stdout.write(
             self.style.HTTP_INFO(
                 f"Found {fixable_payments_count} eligible payment{'' if fixable_payments_count == 1 else 's'} to sync"

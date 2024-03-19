@@ -94,18 +94,10 @@ class Test_sync_payment_transaction_time:
         )
 
     @pytest.fixture
-    def payment_no_transaction_time_ineligible_because_of_disconnected_account(self):
-        return PaymentFactory(
-            transaction_time=None,
-            contribution__donation_page__revenue_program__payment_provider__stripe_account_id=self.DISCONNECTED_ACCOUNT_ID,
-        )
-
-    @pytest.fixture
     def payments_with_errors(
         self,
         payment_no_transaction_time_eligible_fail_with_account_retrieval_permissions_error,
         payment_no_transaction_time_eligible_fail_with_account_retrieval_other_error,
-        payment_no_transaction_time_ineligible_because_of_disconnected_account,
         payment_no_transaction_time_eligible_fail_with_bt_retrieval,
         payment_no_transaction_time_ineligible_because_no_page,
         payment_no_transaction_time_ineligible_because_of_no_account,
@@ -113,7 +105,6 @@ class Test_sync_payment_transaction_time:
         return [
             payment_no_transaction_time_eligible_fail_with_account_retrieval_permissions_error,
             payment_no_transaction_time_eligible_fail_with_account_retrieval_other_error,
-            payment_no_transaction_time_ineligible_because_of_disconnected_account,
             payment_no_transaction_time_eligible_fail_with_bt_retrieval,
             payment_no_transaction_time_ineligible_because_no_page,
             payment_no_transaction_time_ineligible_because_of_no_account,
@@ -130,7 +121,7 @@ class Test_sync_payment_transaction_time:
                 case self.ACCOUNT_ID_WITH_OTHER_ERROR:
                     raise stripe.error.StripeError("Some other error")
                 case _:
-                    return mocker.Mock(charges_enabled=(False if account_id == self.DISCONNECTED_ACCOUNT_ID else True))
+                    return mocker.Mock(id=account_id)
 
         mocker.patch("stripe.Account.retrieve", side_effect=side_effect)
 

@@ -19,6 +19,10 @@ class Command(BaseCommand):
     """Try to populate null values for payment.transaction_time in db."""
 
     def get_stripe_accounts_and_their_connection_status(self, account_ids: list[str]) -> dict[str, bool]:
+        """Given a list of stripe accounts, returns a dict with the account id as key and a boolean indicating if the account is connected and retrievable
+
+        We do this so that we can later exclude payments that we might want to update but can't because the account is not connected to the platform.
+        """
         self.stdout.write(self.style.HTTP_INFO("Retrieving stripe accounts and their connection status"))
         accounts = {}
         for account_id in account_ids:

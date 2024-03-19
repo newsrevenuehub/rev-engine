@@ -21,7 +21,7 @@ class ReactAppViewTestCase(TestCase):
         self.revenue_program = RevenueProgramFactory(name="My Test", slug="my-test")
 
     def test_page_title_includes_rev_program_name_when_subdomain(self):
-        response = self.client.get(reverse("index"), headers={"host": f"{self.revenue_program.slug}.test-domain.com"})
+        response = self.client.get(reverse("index"), HTTP_HOST=f"{self.revenue_program.slug}.test-domain.com")
         self.assertContains(response, f"<title>Join | {self.revenue_program.name}</title>")
 
     def test_page_title_is_default_when_not_subdomain(self):

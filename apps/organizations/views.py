@@ -91,7 +91,7 @@ class OrganizationViewSet(
         try:
             return stripe.Webhook.construct_event(
                 payload,
-                request.headers["stripe-signature"],
+                request.META["HTTP_STRIPE_SIGNATURE"],
                 secret=settings.STRIPE_WEBHOOK_SECRET_UPGRADES,
             )
         except stripe.error.SignatureVerificationError:

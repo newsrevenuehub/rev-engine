@@ -279,7 +279,7 @@ class UserViewset(
             response = make_bad_actor_request(
                 {
                     "email": data.validated_data["email"],
-                    "referer": self.request.headers.get("referer", ""),
+                    "referer": self.request.META.get("HTTP_REFERER", ""),
                     "ip": get_original_ip_from_request(self.request),
                     "first_name": data.validated_data.get("first_name", ""),
                     "last_name": data.validated_data.get("last_name", ""),

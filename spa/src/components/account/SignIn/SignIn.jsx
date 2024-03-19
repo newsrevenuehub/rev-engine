@@ -39,10 +39,10 @@ function SignIn({ onSuccess }) {
 
   const formSubmitErrors = signInState?.errors?.detail;
 
-  const onSubmitSignIn = async (fdata) => {
+  const onSubmitSignIn = async (email, password) => {
     dispatch({ type: FETCH_START });
     try {
-      const { data, status } = await axios.post(TOKEN, { email: fdata.email, password: fdata.password });
+      const { data, status } = await axios.post(TOKEN, { email, password });
       if (status === 200 && data.detail === 'success') {
         handleLoginSuccess(data);
         handlePostLogin();
@@ -64,7 +64,7 @@ function SignIn({ onSuccess }) {
           <S.FormElements>
             <S.Heading marginBottom={34}>Welcome Back!</S.Heading>
 
-            <SignInForm onSubmitSignIn={onSubmitSignIn} loading={signInState.loading} />
+            <SignInForm onSubmit={onSubmitSignIn} disabled={signInState.loading} />
             {formSubmitErrors ? <S.Message>{formSubmitErrors}</S.Message> : <S.MessageSpacer />}
 
             <S.NavLink>

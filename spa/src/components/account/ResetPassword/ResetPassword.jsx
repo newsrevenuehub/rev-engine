@@ -32,13 +32,11 @@ function ResetPassword() {
   const [resetPasswordState, dispatch] = useReducer(fetchReducer, initialState);
   const formSubmitErrors = resetPasswordState?.errors?.detail;
 
-  const onResetPasswordSubmit = async (fdata) => {
+  const onResetPasswordSubmit = async (password) => {
     dispatch({ type: FETCH_START });
     try {
-      const { data, status } = await axios.post(RESET_PASSWORD_ENDPOINT, {
-        token,
-        password: fdata.password
-      });
+      const { data, status } = await axios.post(RESET_PASSWORD_ENDPOINT, { token, password });
+
       if (status === 200) {
         setPasswordUpdateSuccess(true);
         dispatch({ type: FETCH_SUCCESS });
@@ -72,7 +70,7 @@ function ResetPassword() {
 
           {!passwordUpdateSuccess ? (
             <>
-              <ResetPasswordForm loading={resetPasswordState.loading} onResetPasswordSubmit={onResetPasswordSubmit} />
+              <ResetPasswordForm disabled={resetPasswordState.loading} onSubmit={onResetPasswordSubmit} />
               {formSubmissionMessage}
             </>
           ) : null}

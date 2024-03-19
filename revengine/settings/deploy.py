@@ -36,7 +36,7 @@ STORAGES = {
     "default": {
         "BACKEND": "storages.backends.gcloud.GoogleCloudStorage",
     },
-    "media": {
+    "static": {
         "BACKEND": "storages.backends.gcloud.GoogleCloudStorage",
     },
 }

@@ -32,11 +32,10 @@ SERVER_EMAIL = DEFAULT_FROM_EMAIL
 ### Google Cloud Storage ###
 GS_BUCKET_NAME = os.getenv("GS_BUCKET_NAME", "rev-engine-media")
 STORAGES = {
-    **STORAGES,
     "default": {
         "BACKEND": "storages.backends.gcloud.GoogleCloudStorage",
     },
-    "static": {
+    "staticfiles": {
         "BACKEND": "storages.backends.gcloud.GoogleCloudStorage",
     },
 }

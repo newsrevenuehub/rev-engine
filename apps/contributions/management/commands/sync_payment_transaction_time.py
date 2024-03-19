@@ -3,6 +3,7 @@ import logging
 from zoneinfo import ZoneInfo
 
 from django.core.management.base import BaseCommand
+from django.db.models import Q
 
 import reversion
 import stripe
@@ -18,13 +19,23 @@ stripe_logger.setLevel(logging.ERROR)
 class Command(BaseCommand):
     """Try to populate null values for payment.transaction_time in db."""
 
-    def get_stripe_accounts_and_their_connection_status(self, account_ids: list[str] = None) -> dict[str, bool]:
+    def get_stripe_accounts_and_their_connection_status(self, account_ids: list[str]) -> dict[str, bool]:
         self.stdout.write(self.style.HTTP_INFO("Retrieving stripe accounts and their connection status"))
         accounts = {}
         for account_id in account_ids:
             try:
                 account = stripe.Account.retrieve(account_id)
                 accounts[account_id] = account.charges_enabled
+            # if an account was once but is no longer connected, this is the error we'd expet
+            except stripe.error.PermissionError as e:
+                self.stdout.write(
+                    self.style.WARNING(
+                        f"Permission error while retrieving account {account_id}. This is likely because the account is not connected to the platform: {e}"
+                    )
+                )
+                accounts[account_id] = False
+            # otherwise, we have a catch all here for other Stripe errors. This would be an unexpected error,
+            # so we stdout as error
             except stripe.error.StripeError as e:
                 self.stdout.write(self.style.ERROR(f"Error while retrieving account {account_id}: {e}"))
                 accounts[account_id] = False
@@ -32,48 +43,54 @@ class Command(BaseCommand):
 
     def handle(self, *args, **options):
         self.stdout.write(self.style.HTTP_INFO("Running `sync_payment_transaction_time`"))
-        if not Payment.objects.filter(transaction_time__isnull=True).exists():
+        payments_missing_transaction_time = Payment.objects.filter(transaction_time__isnull=True)
+        if not payments_missing_transaction_time.exists():
             self.stdout.write(self.style.HTTP_INFO("No payments with missing transaction time found, exiting"))
             return
-        eligible_payments = Payment.objects.filter(
-            contribution__donation_page__isnull=False,
-            transaction_time__isnull=True,
+
+        ineligible_because_no_donation_page = payments_missing_transaction_time.filter(
+            contribution__donation_page__isnull=True
         )
-        account_ids = self.get_stripe_accounts_and_their_connection_status(
-            eligible_payments.values_list(
-                "contribution__donation_page__revenue_program__payment_provider__stripe_account_id", flat=True
-            )
+        accounts = self.get_stripe_accounts_and_their_connection_status(
+            payments_missing_transaction_time.exclude(id__in=ineligible_because_no_donation_page)
+            .values_list("contribution__donation_page__revenue_program__payment_provider__stripe_account_id", flat=True)
+            .distinct("contribution__donation_page__revenue_program__payment_provider__stripe_account_id")
         )
-        accounts = self.get_stripe_accounts_and_their_connection_status(account_ids)
-        disconnected_accounts = [k for k, v in accounts.items() if not v]
+        unretrievable_accounts = [k for k, v in accounts.items() if not v]
         connected_accounts = [k for k, v in accounts.items() if v]
-        eligible_payments = eligible_payments.filter(
+
+        fixable_payments = payments_missing_transaction_time.filter(
             contribution__donation_page__revenue_program__payment_provider__stripe_account_id__in=connected_accounts
         )
-        eligible_payments_count = eligible_payments.count()
-        ineligible_because_of_account = Payment.objects.filter(
-            contribution__donation_page__revenue_program__payment_provider__stripe_account_id__in=disconnected_accounts,
-            transaction_time__isnull=True,
+        fixable_payments_count = fixable_payments.count()
+        ineligible_because_of_account = payments_missing_transaction_time.filter(
+            ~Q(contribution__donation_page__isnull=True),
+            contribution__donation_page__revenue_program__payment_provider__stripe_account_id__in=unretrievable_accounts,
         )
-        ineligible_because_no_donation_page = Payment.objects.filter(
-            contribution__donation_page__isnull=True, transaction_time__isnull=True
-        )
-        self.stdout.write(self.style.HTTP_INFO(f"Found {eligible_payments_count} eligible payments to sync"))
+
         self.stdout.write(
             self.style.HTTP_INFO(
-                f"Found {ineligible_because_of_account.count()} payment(s) with null value for transaction time that cannot be updated "
-                f"because account is disconnected:{', '.join(str(x) for x in ineligible_because_of_account.values_list('id', flat=True))}"
+                f"Found {fixable_payments_count} eligible payment{'' if fixable_payments_count == 1 else 's'} to sync"
             )
         )
-        self.stdout.write(
-            self.style.HTTP_INFO(
-                f"Found {ineligible_because_no_donation_page.count()} payment(s) with null value for transaction time that cannot be updated "
-                f"because their contribution is not linked to a donation page: "
-                f"{', '.join(str(x) for x in ineligible_because_no_donation_page.values_list('id', flat=True))}"
+        if ineligible_because_no_donation_page.exists():
+            self.stdout.write(
+                self.style.HTTP_INFO(
+                    f"Found {(_inel_page:=ineligible_because_no_donation_page.count())} payment{'' if _inel_page == 1 else 's'} with "
+                    f"null value for transaction time that cannot be updated because contribution is not linked to a donation page: "
+                    f"{', '.join(str(x) for x in ineligible_because_no_donation_page.values_list('id', flat=True))}"
+                )
             )
-        )
+        if ineligible_because_of_account.exists():
+            self.stdout.write(
+                self.style.HTTP_INFO(
+                    f"Found {(_inel_account:=ineligible_because_of_account.count())} payment{'' if _inel_account == 1 else 's'} with "
+                    f"null value for transaction time that cannot be updated because account is disconnected or some other problem "
+                    f"retrieving account: {', '.join(str(x) for x in ineligible_because_of_account.values_list('id', flat=True))}"
+                )
+            )
         updated_ids = []
-        for payment in eligible_payments.all():
+        for payment in fixable_payments.all():
             try:
                 bt = stripe.BalanceTransaction.retrieve(
                     payment.stripe_balance_transaction_id, stripe_account=payment.stripe_account_id
@@ -93,7 +110,8 @@ class Command(BaseCommand):
             updated_ids.append(payment.id)
         self.stdout.write(
             self.style.SUCCESS(
-                f"Updated {len(updated_ids)} payment(s) out of {eligible_payments_count} eligible payments. The following payments were updated: {', '.join(map(str, updated_ids))}"
+                f"Updated {len(updated_ids)} payment(s) out of {fixable_payments_count} eligible payments. "
+                f"The following payments were updated: {', '.join(map(str, updated_ids))}"
             )
         )
         self.stdout.write(self.style.SUCCESS("`sync_payment_transaction_time` is done"))

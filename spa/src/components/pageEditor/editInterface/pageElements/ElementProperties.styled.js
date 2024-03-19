@@ -1,7 +1,7 @@
 import { Delete } from '@material-ui/icons';
 import styled from 'styled-components';
 
-export const ElementProperties = styled.div`
+export const Root = styled.div`
   flex: 1;
   display: flex;
   flex-direction: column;

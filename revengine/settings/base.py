@@ -52,7 +52,6 @@ SECURE_REFERRER_POLICY = "strict-origin-when-cross-origin"
 LANGUAGE_CODE = "en-us"
 TIME_ZONE = "UTC"
 USE_I18N = True
-USE_L10N = True
 USE_TZ = True
 # COUNTRIES is not Django setting, is used in model choice fields, related to I18N.
 # First in this list will be default.
@@ -89,7 +88,7 @@ MEDIA_URL = "/media/"
 # django-storages Settings
 MEDIA_STORAGE_BUCKET_NAME = os.getenv("MEDIA_STORAGE_BUCKET_NAME", "")
 MEDIA_LOCATION = os.getenv("MEDIA_LOCATION", "")
-DEFAULT_FILE_STORAGE = os.getenv("DEFAULT_FILE_STORAGE", "django.core.files.storage.FileSystemStorage")
+STORAGES = {"default": {"BACKEND": "django.core.files.storage.FileSystemStorage"}}
 
 # Google cloud
 GOOGLE_CLOUD_PROJECT = os.getenv("GOOGLE_CLOUD_PROJECT", "revenue-engine")
@@ -196,7 +195,7 @@ DEFAULT_AUTO_FIELD = "django.db.models.AutoField"
 
 DATABASES = {
     "default": {
-        "ENGINE": "django.db.backends.postgresql_psycopg2",
+        "ENGINE": "django.db.backends.postgresql",
         "NAME": "revengine",
         "USER": "",
         "PASSWORD": "",

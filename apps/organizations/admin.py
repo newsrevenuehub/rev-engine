@@ -323,13 +323,11 @@ class RevenueProgramAdmin(RevEngineBaseAdmin, CompareVersionAdmin, AdminImageMix
             formfield.limit_choices_to = Q(revenue_program=revenue_program)
         return formfield
 
+    @admin.display(description="Payment Provider")
     def payment_provider_url(self, request):
         if request.payment_provider_id:
             link = reverse("admin:organizations_paymentprovider_change", args=(request.payment_provider_id,))
             return mark_safe(f"<a href={link}>{request.payment_provider.stripe_account_id}</a>")
-
-    payment_provider_url.short_description = "Payment Provider"
-    payment_provider_url.allow_tags = True
 
 
 @admin.register(PaymentProvider)

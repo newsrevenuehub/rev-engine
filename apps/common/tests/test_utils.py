@@ -71,18 +71,15 @@ def test_custom_length_enforced():
 def setup_request(user, request):
     request.user = user
 
-    # This is a dummy function that returns the request object.
-    # Django 4.2 will require a callable to be passed to the middleware.
-    def get_response(request):
-        return request
-
-    # Annotate a request object with a session
-    middleware = SessionMiddleware(get_response=get_response)
+    # Annotate a request object with a session.
+    # Note that we need to pass a callable to the middleware in Django 4.2. Here, we just have a dummy
+    # that returns the request object.
+    middleware = SessionMiddleware(get_response=(dummy := lambda request: request))
     middleware.process_request(request)
     request.session.save()
 
     # Annotate a request object with a message
-    middleware = MessageMiddleware(get_response=get_response)
+    middleware = MessageMiddleware(get_response=dummy)
     middleware.process_request(request)
     request.session.save()
 

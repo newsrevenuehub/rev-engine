@@ -77,14 +77,12 @@ class RevenueProgramAdminForm(ModelForm):
 class RevenueProgramBenefitLevelInline(NoRelatedInlineAddEditAdminMixin, ReadOnlyOrgLimitedTabularInlineMixin):
     model = BenefitLevel
     verbose_name = "Benefit level"
-    verbose_name_plural = "Benefit levels"
     extra = 0
 
 
 class BenefitLevelBenefit(NoRelatedInlineAddEditAdminMixin, ReadOnlyOrgLimitedTabularInlineMixin):
     model = BenefitLevel.benefits.through
     verbose_name = "Benefit"
-    verbose_name_plural = "Benefits"
     extra = 0
 
     related_fieldname = "benefit"

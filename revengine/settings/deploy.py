@@ -41,6 +41,7 @@ STORAGES = {
             "bucket_name": os.getenv("GS_BUCKET_NAME", "rev-engine-media"),
             "project_id": os.getenv("GS_PROJECT_ID", "revenue-engine"),
             "querystring_auth": False,
+            "credentials": GS_CREDENTIALS,
         },
     },
 }

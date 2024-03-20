@@ -63,11 +63,9 @@ class Command(BaseCommand):
 
         fixable_payments = payments_missing_transaction_time.filter(
             contribution__donation_page__revenue_program__payment_provider__stripe_account_id__in=connected_accounts
-        )
+        ).exclude(id__in=ineligible_because_no_donation_page)
         fixable_payments_count = fixable_payments.count()
-        ineligible_because_of_account = payments_missing_transaction_time.exclude(
-            contribution__donation_page__isnull=True
-        ).filter(
+        ineligible_because_of_account = payments_missing_transaction_time.filter(
             contribution__donation_page__revenue_program__payment_provider__stripe_account_id__in=unretrievable_accounts,
         )
         self.stdout.write(

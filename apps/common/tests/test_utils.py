@@ -96,53 +96,24 @@ def get_random_jpg_filename():
 
 
 test_domain = ".test.org"
+custom_map = '{"custom.test.org":"test-rp-slug"}'
 
 
-@override_settings(ALLOWED_HOSTS=[test_domain])
-def test_get_subdomain_from_request():
-    factory = RequestFactory()
-    request = factory.get("/")
-
-    # URL with subdomain returns subdomain
-    target_subdomain = "my-subby"
-    request.META["HTTP_HOST"] = f"{target_subdomain}{test_domain}"
-    resultant_subdomain = get_subdomain_from_request(request)
-    assert resultant_subdomain == target_subdomain
-
-    # URL without subdomain returns nothing
-    request.META["HTTP_HOST"] = "test.org"
-    no_subdomain = get_subdomain_from_request(request)
-    assert not no_subdomain
-
-
-@override_settings(ALLOWED_HOSTS=[test_domain])
-def test_get_subdomain_from_request_with_mapping(settings):
-    factory = RequestFactory()
-    request = factory.get("/")
-    settings.HOST_MAP = '{"custom.test.org":"test-rp-slug"}'
-    request.META["HTTP_HOST"] = "custom.test.org"
-    resultant_subdomain = get_subdomain_from_request(request)
-    assert resultant_subdomain == "test-rp-slug"
-
-
-@override_settings(ALLOWED_HOSTS=[test_domain])
-def test_get_subdomain_from_request_with_mapping_but_unmatched(settings):
-    factory = RequestFactory()
-    request = factory.get("/")
-    settings.HOST_MAP = '{"custom.test.org":"test-rp-slug"}'
-    request.META["HTTP_HOST"] = f"rp-slug.{test_domain}"
-    resultant_subdomain = get_subdomain_from_request(request)
-    assert resultant_subdomain == "rp-slug"
-
-
-@override_settings(ALLOWED_HOSTS=[test_domain])
-def test_get_subdomain_from_request_with_malformed_map(settings):
-    factory = RequestFactory()
-    request = factory.get("/")
-    settings.HOST_MAP = "bad"
-    request.META["HTTP_HOST"] = "custom.test.org"
-    resultant_subdomain = get_subdomain_from_request(request)
-    assert resultant_subdomain == "custom"
+@pytest.mark.parametrize(
+    "hostmap,request_host,expected",
+    (
+        ("{}", f"my-subby{test_domain}", "my-subby"),
+        ("{}", "test.org", None),
+        ("bad", "custom.test.org", "custom"),
+        (custom_map, f"rp-slug.{test_domain}", "rp-slug"),
+        (custom_map, "custom.test.org", "test-rp-slug"),
+    ),
+)
+def test_get_subdomain_from_request(hostmap, request_host, expected, settings):
+    request = RequestFactory().get("/")
+    request.META["HTTP_HOST"] = request_host
+    settings.HOST_MAP = hostmap
+    assert get_subdomain_from_request(request) == expected
 
 
 class TestMigrations(TestCase):

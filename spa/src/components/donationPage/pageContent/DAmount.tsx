@@ -151,6 +151,8 @@ function DAmount({ element, ...props }: DAmountProps) {
     >
       <DAmountStyled data-testid="d-amount-amounts">
         {amountOptions.map((amountOption, index) => {
+          if (amountOption === 'other') return null;
+
           const selected = index === selectedAmountOption;
 
           return (
@@ -166,7 +168,8 @@ function DAmount({ element, ...props }: DAmountProps) {
             </li>
           );
         })}
-        {(element?.content?.allowOther || overrideAmount) && (
+        {/* Keeping allowOther for backwards compatibility */}
+        {(element?.content?.allowOther || amountOptions.includes('other') || overrideAmount) && (
           <OtherAmount data-testid={`amount-other${otherIsSelected ? '-selected' : ''}`} selected={otherIsSelected}>
             <span>{currencySymbol}</span>
             <OtherAmountInput

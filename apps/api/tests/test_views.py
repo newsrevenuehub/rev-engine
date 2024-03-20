@@ -38,42 +38,58 @@ from apps.pages.tests.factories import DonationPageFactory, StyleFactory
 user_model = get_user_model()
 
 
-@pytest.mark.parametrize(
-    "expected, site_url, post, header",
-    [
-        (None, "https://example.com", "", ""),  # Not found.
-        ("foo.example.com", "https://example.com", "foo", ""),
-        ("foo.example.com", "https://example.com", "http://foo.example.com:80", ""),  # Post full scheme://host works.
-        ("foo.example.com", "https://subdomain.example.com", "foo", ""),  # site_url subdomain is stripped.
-        ("foo.b.example.com", "https://subdomain.b.example.com", "foo", ""),  # Only leaf subdomain is stripped.
-        ("foo.example.com:80", "https://example.com:80", "foo", ""),  # site_url port is preserved.
-        ("foo.example.com", "https://example.com", "foo", "https://bar.example.com"),  # Post first, header is fallback.
-        ("foo.example.com", "https://example.com", "", "https://foo.bar.example.com:80"),  # From header.
-        (None, "https://example.com", "", "https://example.com"),  # Header has no subdomain.
-    ],
-)
-def test_construct_rp_domain(expected, site_url, post, header, settings):
-    with override_settings(SITE_URL=site_url):
-        assert expected == construct_rp_domain(post, header)
+@pytest.fixture
+def slug():
+    return "test-rp-slug"
 
 
-def test_construct_rp_domain_with_hostmap(settings):
-    settings.HOST_MAP = '{"custom.example.com":"test-rp-slug"}'
-    with override_settings(SITE_URL="https://custom.example.com"):
-        assert "custom.example.com" == construct_rp_domain("test-rp-slug", "")
+@pytest.fixture
+def host_map(settings, slug):
+    settings.HOST_MAP = f'{{"custom.example.com": "{slug}"}}'
 
 
-def test_construct_rp_domain_with_hostmap_but_no_map(settings):
-    settings.HOST_MAP = '{"custom.example.com":"test-rp-slug"}'
-    with override_settings(SITE_URL="https://example.com"):
-        assert "foo.example.com" == construct_rp_domain("foo", "")
+class Test_construct_rp_domain:
+    @pytest.mark.parametrize(
+        "expected, site_url, post, header",
+        [
+            (None, "https://example.com", "", ""),  # Not found.
+            ("foo.example.com", "https://example.com", "foo", ""),
+            (
+                "foo.example.com",
+                "https://example.com",
+                "http://foo.example.com:80",
+                "",
+            ),  # Post full scheme://host works.
+            ("foo.example.com", "https://subdomain.example.com", "foo", ""),  # site_url subdomain is stripped.
+            ("foo.b.example.com", "https://subdomain.b.example.com", "foo", ""),  # Only leaf subdomain is stripped.
+            ("foo.example.com:80", "https://example.com:80", "foo", ""),  # site_url port is preserved.
+            (
+                "foo.example.com",
+                "https://example.com",
+                "foo",
+                "https://bar.example.com",
+            ),  # Post first, header is fallback.
+            ("foo.example.com", "https://example.com", "", "https://foo.bar.example.com:80"),  # From header.
+            (None, "https://example.com", "", "https://example.com"),  # Header has no subdomain.
+        ],
+    )
+    def test_construct_rp_domain(self, expected, site_url, post, header, settings):
+        with override_settings(SITE_URL=site_url):
+            assert construct_rp_domain(post, header) == expected
 
+    def test_construct_rp_domain_with_hostmap(self, host_map, slug, settings):
+        with override_settings(SITE_URL="https://example.com"):
+            assert construct_rp_domain(slug, "") == "custom.example.com"
 
-def test_construct_rp_domain_with_malformed_map(settings):
-    settings.HOST_MAP = "bad"
-    with override_settings(SITE_URL="https://custom.example.com"):
-        assert "custom.example.com" == construct_rp_domain("custom", "")
-        assert "foo.example.com" == construct_rp_domain("foo", "")
+    def test_construct_rp_domain_with_hostmap_but_no_map(self, host_map, settings):
+        with override_settings(SITE_URL="https://example.com"):
+            assert construct_rp_domain("foo", "") == "foo.example.com"
+
+    def test_construct_rp_domain_with_malformed_map(self, settings):
+        settings.HOST_MAP = "bad"
+        with override_settings(SITE_URL="https://example.com"):
+            assert construct_rp_domain("custom", "") == "custom.example.com"
+            assert construct_rp_domain("foo", "") == "foo.example.com"
 
 
 KNOWN_PASSWORD = "myGreatAndSecurePassword7"

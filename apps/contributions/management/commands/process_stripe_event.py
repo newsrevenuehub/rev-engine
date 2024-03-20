@@ -19,5 +19,5 @@ class Command(BaseCommand):
             stripe_account_id=options["stripe_account"],
             event_id=options["event_id"],
             async_mode=options["async_mode"],
-        ).sync()
+        ).process()
         self.stdout.write(self.style.SUCCESS("`process_stripe_event` is done"))

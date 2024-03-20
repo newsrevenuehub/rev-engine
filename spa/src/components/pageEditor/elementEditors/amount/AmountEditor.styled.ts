@@ -8,8 +8,6 @@ export const Intervals = styled.div`
 `;
 
 export const AllowOtherFormControlLabel = styled(FormControlLabel)`
-  margin-top: 45px;
-
   && .NreFormControlLabelLabel {
     font-size: ${({ theme }) => theme.fontSizesUpdated.sm};
   }

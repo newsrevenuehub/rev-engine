@@ -160,14 +160,14 @@ class Test_parse_slug_from_url:
 
     @pytest.fixture(
         params=[
-            ("https://{}.com/slug/", "slug"),
-            ("https://{}.com/slug", "slug"),
-            ("https://{}.com/", None),
-            ("https://{}.com", None),
-            ("https://{}.com/slug/other", "slug"),
-            ("https://{}.com/slug/other/", "slug"),
-            ("https://{}.com/slug/?foo=bar", "slug"),
-            ("https://{}.com/slug?foo=bar", "slug"),
+            ("https://{}/slug/", "slug"),
+            ("https://{}/slug", "slug"),
+            ("https://{}/", None),
+            ("https://{}", None),
+            ("https://{}/slug/other", "slug"),
+            ("https://{}/slug/other/", "slug"),
+            ("https://{}/slug/?foo=bar", "slug"),
+            ("https://{}/slug?foo=bar", "slug"),
         ]
     )
     def url_case(self, request, domain_apex):
@@ -586,7 +586,7 @@ class TestPaymentIntentForOneTimeContribution:
         page.revenue_program.save()
         pi = request.getfixturevalue(request.param)
         pi.metadata["revenue_program_id"] = str(page.revenue_program.id)
-        pi.metadata["referer"] = f"https://{domain_apex}.com/{page.slug}/"
+        pi.metadata["referer"] = f"https://{domain_apex}/{page.slug}/"
         return pi, (True if request.param == "payment_intent_with_existing_nre_entities" else False)
 
     def test_upsert(self, pi_to_upsert, customer, charge, refund, mocker):

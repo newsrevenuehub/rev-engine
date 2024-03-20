@@ -48,7 +48,7 @@ from revengine.utils import __ensure_gs_credentials
 fake = Faker()
 
 
-@pytest.fixture
+@pytest.fixture(autouse=True)
 def domain_apex(settings):
     settings.DOMAIN_APEX = "fundjournalism.org"
     return settings.DOMAIN_APEX

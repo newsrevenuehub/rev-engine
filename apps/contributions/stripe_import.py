@@ -124,9 +124,11 @@ class ContributionImportBaseClass(ABC):
     def donation_page(self) -> DonationPage | None:
         """Attempt to derive a donation page from stripe metadata.
 
-        Note that this method assumes that referer has already been validated as present upstream.
+        Note that this method assumes that referer has already been validated as present upstream, in which
+        case it is guaranteed to have a revenue_program_id key (though it could possibly be empty string)
         """
-        if not (rp_id := self.stripe_entity.metadata.get("revenue_program_id", None)):
+        if not (rp_id := self.stripe_entity.metadata["revenue_program_id"]):
+            logger.warning("No revenue program id found in stripe metadata for %s %s", self.entity_name, self.entity_id)
             return None
         revenue_program = RevenueProgram.objects.filter(id=rp_id).first()
         if not revenue_program:

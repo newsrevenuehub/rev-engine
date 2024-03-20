@@ -55,8 +55,7 @@ def construct_rp_domain(subdomain, referer=None):
                     logger.info("Mapped %s to %s", subdomain, hostname)
                     return hostname
         except json.JSONDecodeError:
-            # Continue. Either the variable isn't set or is malformed JSON.
-            logger.warning("settings.HOST_MAP couldn't be parsed as JSON; continuing")
+            logger.exception("settings.HOST_MAP couldn't be parsed as JSON; continuing")
 
     # Parse it normally.
 

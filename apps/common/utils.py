@@ -147,8 +147,7 @@ def get_subdomain_from_request(request) -> str | None:
             if host in map:
                 return map[host]
         except json.JSONDecodeError:
-            # Continue. Either the variable isn't set or is malformed JSON.
-            logger.warning("settings.HOST_MAP couldn't be parsed as JSON; continuing")
+            logger.exception("settings.HOST_MAP couldn't be parsed as JSON; continuing")
 
     # Parse it normally.
     split_host = host.split(".")

@@ -62,7 +62,7 @@ def test_process_stripe_event(mocker):
         async_mode=(async_mode := False),
     )
     mock_syncer.assert_called_once_with(stripe_account_id=stripe_id, event_id=event_id, async_mode=async_mode)
-    mock_syncer.return_value.sync.assert_called_once()
+    mock_syncer.return_value.process.assert_called_once()
 
 
 @pytest.mark.django_db

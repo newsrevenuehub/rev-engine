@@ -24,9 +24,24 @@ const element = {
   type: 'DAmount'
 };
 
-const propsWithOtherAmount = {
+const propsWithOtherAmountLegacy = {
   element: {
     content: { allowOther: true, options: defaultOptions },
+    uuid: 'mock-uuid',
+    type: 'DAmount'
+  }
+};
+
+const propsWithOtherAmountCurrent = {
+  element: {
+    content: {
+      allowOther: undefined,
+      options: {
+        [CONTRIBUTION_INTERVALS.ONE_TIME]: [1, 2, 3, 'other'],
+        [CONTRIBUTION_INTERVALS.MONTHLY]: ['other'],
+        [CONTRIBUTION_INTERVALS.ANNUAL]: ['other']
+      }
+    },
     uuid: 'mock-uuid',
     type: 'DAmount'
   }
@@ -229,168 +244,201 @@ describe('DAmount', () => {
     expect(await axe(container)).toHaveNoViolations();
   });
 
-  describe('when the element has the allowOther option set', () => {
-    it('displays a field where the user can enter another amount', () => {
-      tree(propsWithOtherAmount);
-      expect(screen.getByRole('textbox')).toBeInTheDocument();
-    });
-
-    it("selects the field if the amount set in the page doesn't match any payment options", () => {
-      tree(propsWithOtherAmount, { amount: 999, frequency: CONTRIBUTION_INTERVALS.ONE_TIME });
-      expect(screen.getByTestId('amount-other-selected')).toBeInTheDocument();
-    });
-
-    it('does not select the field if the amount set in the page matches a payment option', () => {
-      tree(propsWithOtherAmount, { amount: 1, frequency: CONTRIBUTION_INTERVALS.ONE_TIME });
-      expect(screen.queryByTestId('amount-other-selected')).not.toBeInTheDocument();
-    });
-
-    it('shows the page currency symbol next to the text field', () => {
-      tree(propsWithOtherAmount);
-      expect(within(screen.getByTestId('amount-other')).getByText('mock-currency-symbol')).toBeVisible();
-    });
-
-    it('shows the correct label for one-time contributions', () => {
-      // One-time contributions show no label, just the currency symbol.
-
-      tree(propsWithOtherAmount, { frequency: 'one_time' });
-      expect(screen.getByTestId('amount-other')).toHaveTextContent('mock-currency-symbol');
-    });
-
-    // Gist of the below is: filter out one-time frequencies since we test that
-    // above, then turn each one into a separate test. Jest wants a structure
-    // like this [[test arg 1, arg 2], [test arg 1, arg 2]].
-
-    it.each(
-      Object.values(CONTRIBUTION_INTERVALS)
-        .filter((value) => value !== 'one_time')
-        .map((value) => [value])
-    )('shows the correct label for %s contributions', (frequency) => {
-      tree(propsWithOtherAmount, { frequency });
-      expect(
-        within(screen.getByTestId('amount-other-selected')).getByText(`common.frequency.rates.${frequency}`)
-      ).toBeVisible();
-    });
-
-    it('sets the amount when a user enters a numeric value into the field', () => {
-      const setAmount = jest.fn();
-
-      tree(propsWithOtherAmount, { page: defaultPage, setAmount });
-      expect(setAmount).not.toBeCalled();
-
-      // Fire a change instead of typing because we're not simulating `amount`
-      // changing in context.
-
-      fireEvent.change(screen.getByRole('textbox'), { target: { value: '123' } });
-      expect(setAmount.mock.calls).toEqual([[123]]);
-      expect(screen.getByRole('textbox')).toHaveValue('123');
-    });
-
-    it('sets the amount with decimal values when a user enters a numeric value into the field', () => {
-      const setAmount = jest.fn();
-
-      tree(propsWithOtherAmount, { page: defaultPage, setAmount });
-      expect(setAmount).not.toBeCalled();
-
-      // Fire a change instead of typing because we're not simulating `amount`
-      // changing in context.
-
-      fireEvent.change(screen.getByRole('textbox'), { target: { value: '123.45' } });
-      expect(setAmount.mock.calls).toEqual([[123.45]]);
-      expect(screen.getByRole('textbox')).toHaveValue('123.45');
-    });
-
-    it("doesn't select an amount option if the user enters a number corresponding to that option", () => {
-      const setAmount = jest.fn();
-
-      // We're mocking context *after* the change event below.
-
-      const pageContext = {
-        amount: 1,
-        setAmount,
-        frequency: CONTRIBUTION_INTERVALS.ONE_TIME,
-        page: defaultPage
-      };
-
-      tree(propsWithOtherAmount, pageContext);
-      fireEvent.change(screen.getByRole('textbox'), { target: { value: '1' } });
-      expect(screen.getByRole('textbox')).toHaveValue('1');
-      expect(screen.queryByTestId('amount-1-selected')).not.toBeInTheDocument();
-    });
-
-    it('sets the amount to an empty string if the user clears the field', () => {
-      const setAmount = jest.fn();
-
-      tree(propsWithOtherAmount, { page: defaultPage, setAmount });
-      userEvent.type(screen.getByRole('textbox'), '123');
-      setAmount.mockClear();
-      userEvent.clear(screen.getByRole('textbox'));
-      expect(setAmount).lastCalledWith(undefined);
-    });
-
-    it("preserves the field's value if the user clicks away from it and then re-focuses it", () => {
-      const setAmount = jest.fn();
-
-      tree(propsWithOtherAmount, { page: defaultPage, setAmount });
-      userEvent.type(screen.getByRole('textbox'), '123');
-      userEvent.click(document.body);
-      userEvent.click(screen.getByRole('textbox'));
-      expect(screen.getByRole('textbox')).toHaveValue('123');
-    });
-
-    it('sets the amount to an empty string if the user selects a button, then focuses the field', () => {
-      const setAmount = jest.fn();
-
-      tree(propsWithOtherAmount, {
-        setAmount,
-        amount: 1,
-        page: { ...defaultPage, elements: [propsWithOtherAmount.element] },
-        frequency: CONTRIBUTION_INTERVALS.ONE_TIME
+  describe.each([
+    ['Legacy', propsWithOtherAmountLegacy],
+    ['Current', propsWithOtherAmountCurrent]
+  ])(`%s "Other" field format`, (_name, propsWithOtherAmount) => {
+    describe('when the element has the allowOther option set', () => {
+      it('displays a field where the user can enter another amount', () => {
+        tree(propsWithOtherAmount);
+        expect(screen.getByRole('textbox')).toBeInTheDocument();
       });
-      userEvent.click(screen.getByText('mock-currency-symbol1 mock-currency-code'));
-      setAmount.mockClear();
-      userEvent.click(screen.getByRole('textbox'));
-      expect(screen.getByRole('textbox')).toHaveValue('');
-      expect(setAmount).toBeCalledWith(undefined);
-    });
 
-    it('sets the amount to an empty string if the user enters non-numeric text', () => {
-      const setAmount = jest.fn();
+      it("selects the field if the amount set in the page doesn't match any payment options", () => {
+        tree(propsWithOtherAmount, { amount: 999, frequency: CONTRIBUTION_INTERVALS.ONE_TIME });
+        expect(screen.getByTestId('amount-other-selected')).toBeInTheDocument();
+      });
 
-      tree(propsWithOtherAmount, { setAmount, page: { ...defaultPage } });
-      userEvent.type(screen.getByRole('textbox'), 'abc');
-      expect(setAmount).toHaveBeenLastCalledWith(undefined);
-    });
+      it('does not select the field if the amount set in the page matches a payment option', () => {
+        tree(propsWithOtherAmount, { amount: 1, frequency: CONTRIBUTION_INTERVALS.ONE_TIME });
+        expect(screen.queryByTestId('amount-other-selected')).not.toBeInTheDocument();
+      });
 
-    describe('Other amount field validation', () => {
-      it.each([
-        ['1.2345', '1.23'],
-        ['1a.2,3', '1.23'],
-        ['1a.2', '1.2'],
-        ['0.99', '0.99'],
-        ['abc', ''],
-        ['abc12.34c', '12.34'],
-        ['12..34.56', '12.34'],
-        ['+-=e123', '123']
-      ])('when typing %s in "other" field, it should be converted to %s', (type, value) => {
+      it('shows the page currency symbol next to the text field', () => {
+        tree(propsWithOtherAmount);
+        expect(within(screen.getByTestId('amount-other')).getByText('mock-currency-symbol')).toBeVisible();
+      });
+
+      it('shows the correct label for one-time contributions', () => {
+        // One-time contributions show no label, just the currency symbol.
+
+        tree(propsWithOtherAmount, { frequency: 'one_time' });
+        expect(screen.getByTestId('amount-other')).toHaveTextContent('mock-currency-symbol');
+      });
+
+      // Gist of the below is: filter out one-time frequencies since we test that
+      // above, then turn each one into a separate test. Jest wants a structure
+      // like this [[test arg 1, arg 2], [test arg 1, arg 2]].
+
+      it.each(
+        Object.values(CONTRIBUTION_INTERVALS)
+          .filter((value) => value !== 'one_time')
+          .map((value) => [value])
+      )('shows the correct label for %s contributions', (frequency) => {
+        tree(propsWithOtherAmount, { frequency });
+        expect(
+          within(screen.getByTestId('amount-other-selected')).getByText(`common.frequency.rates.${frequency}`)
+        ).toBeVisible();
+      });
+
+      if (_name === 'Current') {
+        it.each(
+          Object.values(CONTRIBUTION_INTERVALS)
+            .filter((value) => value !== 'one_time')
+            .map((value) => [value])
+        )(
+          'does not show the "Other" field label for %s contributions if "other" is not in the options list',
+          (frequency) => {
+            tree(
+              {
+                element: {
+                  content: {
+                    allowOther: undefined,
+                    options: {
+                      [CONTRIBUTION_INTERVALS.ONE_TIME]: [1, 2, 3, 'other']
+                    }
+                  },
+                  uuid: 'mock-uuid',
+                  type: 'DAmount'
+                }
+              },
+              { frequency }
+            );
+            expect(screen.queryByTestId('amount-other')).not.toBeInTheDocument();
+          }
+        );
+      }
+
+      it('sets the amount when a user enters a numeric value into the field', () => {
         const setAmount = jest.fn();
 
         tree(propsWithOtherAmount, { page: defaultPage, setAmount });
-        userEvent.type(screen.getByRole('textbox'), type);
-        expect(screen.getByRole('textbox')).toHaveValue(value);
+        expect(setAmount).not.toBeCalled();
+
+        // Fire a change instead of typing because we're not simulating `amount`
+        // changing in context.
+
+        fireEvent.change(screen.getByRole('textbox'), { target: { value: '123' } });
+        expect(setAmount.mock.calls).toEqual([[123]]);
+        expect(screen.getByRole('textbox')).toHaveValue('123');
       });
-    });
 
-    it('is accessible', async () => {
-      const { container } = tree(propsWithOtherAmount);
+      it('sets the amount with decimal values when a user enters a numeric value into the field', () => {
+        const setAmount = jest.fn();
 
-      // Disabling checks for existing violations.
+        tree(propsWithOtherAmount, { page: defaultPage, setAmount });
+        expect(setAmount).not.toBeCalled();
 
-      expect(
-        await axe(container, {
-          rules: { label: { enabled: false }, list: { enabled: false } }
-        })
-      ).toHaveNoViolations();
+        // Fire a change instead of typing because we're not simulating `amount`
+        // changing in context.
+
+        fireEvent.change(screen.getByRole('textbox'), { target: { value: '123.45' } });
+        expect(setAmount.mock.calls).toEqual([[123.45]]);
+        expect(screen.getByRole('textbox')).toHaveValue('123.45');
+      });
+
+      it("doesn't select an amount option if the user enters a number corresponding to that option", () => {
+        const setAmount = jest.fn();
+
+        // We're mocking context *after* the change event below.
+
+        const pageContext = {
+          amount: 1,
+          setAmount,
+          frequency: CONTRIBUTION_INTERVALS.ONE_TIME,
+          page: defaultPage
+        };
+
+        tree(propsWithOtherAmount, pageContext);
+        fireEvent.change(screen.getByRole('textbox'), { target: { value: '1' } });
+        expect(screen.getByRole('textbox')).toHaveValue('1');
+        expect(screen.queryByTestId('amount-1-selected')).not.toBeInTheDocument();
+      });
+
+      it('sets the amount to an empty string if the user clears the field', () => {
+        const setAmount = jest.fn();
+
+        tree(propsWithOtherAmount, { page: defaultPage, setAmount });
+        userEvent.type(screen.getByRole('textbox'), '123');
+        setAmount.mockClear();
+        userEvent.clear(screen.getByRole('textbox'));
+        expect(setAmount).lastCalledWith(undefined);
+      });
+
+      it("preserves the field's value if the user clicks away from it and then re-focuses it", () => {
+        const setAmount = jest.fn();
+
+        tree(propsWithOtherAmount, { page: defaultPage, setAmount });
+        userEvent.type(screen.getByRole('textbox'), '123');
+        userEvent.click(document.body);
+        userEvent.click(screen.getByRole('textbox'));
+        expect(screen.getByRole('textbox')).toHaveValue('123');
+      });
+
+      it('sets the amount to an empty string if the user selects a button, then focuses the field', () => {
+        const setAmount = jest.fn();
+
+        tree(propsWithOtherAmount, {
+          setAmount,
+          amount: 1,
+          page: { ...defaultPage, elements: [propsWithOtherAmount.element] },
+          frequency: CONTRIBUTION_INTERVALS.ONE_TIME
+        });
+        userEvent.click(screen.getByText('mock-currency-symbol1 mock-currency-code'));
+        setAmount.mockClear();
+        userEvent.click(screen.getByRole('textbox'));
+        expect(screen.getByRole('textbox')).toHaveValue('');
+        expect(setAmount).toBeCalledWith(undefined);
+      });
+
+      it('sets the amount to an empty string if the user enters non-numeric text', () => {
+        const setAmount = jest.fn();
+
+        tree(propsWithOtherAmount, { setAmount, page: { ...defaultPage } });
+        userEvent.type(screen.getByRole('textbox'), 'abc');
+        expect(setAmount).toHaveBeenLastCalledWith(undefined);
+      });
+
+      describe('Other amount field validation', () => {
+        it.each([
+          ['1.2345', '1.23'],
+          ['1a.2,3', '1.23'],
+          ['1a.2', '1.2'],
+          ['0.99', '0.99'],
+          ['abc', ''],
+          ['abc12.34c', '12.34'],
+          ['12..34.56', '12.34'],
+          ['+-=e123', '123']
+        ])('when typing %s in "other" field, it should be converted to %s', (type, value) => {
+          const setAmount = jest.fn();
+
+          tree(propsWithOtherAmount, { page: defaultPage, setAmount });
+          userEvent.type(screen.getByRole('textbox'), type);
+          expect(screen.getByRole('textbox')).toHaveValue(value);
+        });
+      });
+
+      it('is accessible', async () => {
+        const { container } = tree(propsWithOtherAmount);
+
+        // Disabling checks for existing violations.
+
+        expect(
+          await axe(container, {
+            rules: { label: { enabled: false }, list: { enabled: false } }
+          })
+        ).toHaveNoViolations();
+      });
     });
   });
 

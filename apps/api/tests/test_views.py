@@ -74,16 +74,16 @@ class Test_construct_rp_domain:
         ],
     )
     def test_construct_rp_domain(self, expected, site_url, post, header, settings):
-        with override_settings(SITE_URL=site_url):
-            assert construct_rp_domain(post, header) == expected
+        settings.SITE_URL = site_url
+        assert construct_rp_domain(post, header) == expected
 
     def test_construct_rp_domain_with_hostmap(self, host_map, slug, settings):
-        with override_settings(SITE_URL="https://example.com"):
-            assert construct_rp_domain(slug, "") == "custom.example.com"
+        settings.SITE_URL = "https://example.com"
+        assert construct_rp_domain(slug, "") == "custom.example.com"
 
     def test_construct_rp_domain_with_hostmap_but_no_map(self, host_map, settings):
-        with override_settings(SITE_URL="https://example.com"):
-            assert construct_rp_domain("foo", "") == "foo.example.com"
+        settings.SITE_URL = "https://example.com"
+        assert construct_rp_domain("foo", "") == "foo.example.com"
 
     def test_construct_rp_domain_with_malformed_map(self, settings):
         settings.HOST_MAP = "bad"

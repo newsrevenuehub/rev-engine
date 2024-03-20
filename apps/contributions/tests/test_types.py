@@ -5,7 +5,6 @@ from apps.contributions.types import (
     StripeMetadataSchemaBase,
     StripePaymentMetadataSchemaV1_0,
     StripePaymentMetadataSchemaV1_1,
-    StripePaymentMetadataSchemaV1_2,
     StripePaymentMetadataSchemaV1_3,
     StripePaymentMetadataSchemaV1_4,
     StripePaymentMetadataSchemaV1_5,
@@ -146,7 +145,6 @@ class TestStripePaymentMetadataSchemas:
         params=[
             ("v1_0_data", StripePaymentMetadataSchemaV1_0),
             ("v1_1_data", StripePaymentMetadataSchemaV1_1),
-            ("v1_2_data", StripePaymentMetadataSchemaV1_2),
             ("v1_3_data", StripePaymentMetadataSchemaV1_3),
             ("v1_4_data", StripePaymentMetadataSchemaV1_4),
             ("v1_5_data", StripePaymentMetadataSchemaV1_5),

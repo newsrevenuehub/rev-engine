@@ -132,7 +132,7 @@ export interface AmountElement extends ContributionPageElement {
     /**
      * Amounts the user can choose from.
      */
-    options: Partial<Record<ContributionInterval, number[]>>;
+    options: Partial<Record<ContributionInterval, Array<number | 'other'>>>;
   };
 }
 

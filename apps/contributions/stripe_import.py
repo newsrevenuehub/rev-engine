@@ -36,14 +36,6 @@ from apps.pages.models import DonationPage
 
 MAX_STRIPE_RESPONSE_LIMIT = 100
 
-ALLOWED_TLDS_FOR_IMPORT = [
-    "revengine-review",
-    "revengine-staging",
-    "fundjournalism",
-    "revengine-demo",
-    "revengine-test",
-    "revengine-dev",
-]
 
 logger = logging.getLogger(f"{settings.DEFAULT_LOGGER}.{__name__}")
 
@@ -81,7 +73,7 @@ def upsert_payment_for_transaction(
 
 def parse_slug_from_url(url: str) -> str | None:
     """Parse RP slug, if any, from a given URL"""
-    if tldextract.extract(url).domain not in ALLOWED_TLDS_FOR_IMPORT:
+    if tldextract.extract(url).domain not in settings.DOMAIN_APEX:
         logger.warning("URL %s has a TLD that is not allowed for import", url)
         raise InvalidStripeTransactionDataError(f"URL {url} has a TLD that is not allowed for import")
     parsed = urlparse(url)
@@ -153,7 +145,7 @@ class ContributionImportBaseClass(ABC):
         This requirement may change in the future. See [DEV-4562] in JIRA for more detail.
         """
         referer = self.referer
-        if (not referer) or tldextract.extract(referer).domain not in ALLOWED_TLDS_FOR_IMPORT:
+        if (not referer) or f"{(_:=tldextract.extract(referer)).domain}.{_.suffix}" != settings.DOMAIN_APEX:
             raise InvalidStripeTransactionDataError(
                 f"{self.entity_name} {self.entity_id} has no referer associated with it"
             )

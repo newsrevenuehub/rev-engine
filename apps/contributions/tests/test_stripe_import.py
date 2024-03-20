@@ -1,5 +1,4 @@
 import datetime
-import random
 from copy import deepcopy
 
 from django.conf import settings
@@ -20,7 +19,6 @@ from apps.contributions.models import (
     Payment,
 )
 from apps.contributions.stripe_import import (
-    ALLOWED_TLDS_FOR_IMPORT,
     MAX_STRIPE_RESPONSE_LIMIT,
     PaymentIntentForOneTimeContribution,
     StripeEventProcessor,
@@ -159,28 +157,32 @@ def customer_with_invoice_settings(customer, mocker, payment_method_A):
 
 
 class Test_parse_slug_from_url:
-    @pytest.mark.parametrize(
-        "url, expect",
-        (
-            (f"https://{random.choice(ALLOWED_TLDS_FOR_IMPORT)}.com/slug/", "slug"),
-            (f"https://{random.choice(ALLOWED_TLDS_FOR_IMPORT)}.com/slug", "slug"),
-            (f"https://{random.choice(ALLOWED_TLDS_FOR_IMPORT)}.com/", None),
-            (f"https://{random.choice(ALLOWED_TLDS_FOR_IMPORT)}.com", None),
-            (f"https://{random.choice(ALLOWED_TLDS_FOR_IMPORT)}.com/slug/other", "slug"),
-            (f"https://{random.choice(ALLOWED_TLDS_FOR_IMPORT)}.com/slug/other/", "slug"),
-            (f"https://{random.choice(ALLOWED_TLDS_FOR_IMPORT)}.com/slug/?foo=bar", "slug"),
-            (f"https://{random.choice(ALLOWED_TLDS_FOR_IMPORT)}.com/slug?foo=bar", "slug"),
-        ),
+
+    @pytest.fixture(
+        params=[
+            ("https://{}.com/slug/", "slug"),
+            ("https://{}.com/slug", "slug"),
+            ("https://{}.com/", None),
+            ("https://{}.com", None),
+            ("https://{}.com/slug/other", "slug"),
+            ("https://{}.com/slug/other/", "slug"),
+            ("https://{}.com/slug/?foo=bar", "slug"),
+            ("https://{}.com/slug?foo=bar", "slug"),
+        ]
     )
-    def test_parse_slug_from_url_when_allowed_tlds(self, url, expect):
+    def url_case(self, request, domain_apex):
+        return request.param[0].format(domain_apex), request.param[1]
+
+    def test_parse_slug_from_url_when_allowed_domain(self, url_case):
+        url, expect = url_case
         if expect:
             assert parse_slug_from_url(url) == expect
         else:
             assert parse_slug_from_url(url) is None
 
-    def test_parse_slug_from_url_when_not_allowed_tlds(self):
+    def test_parse_slug_from_url_when_not_allowed_domain(self):
         with pytest.raises(InvalidStripeTransactionDataError) as exc:
-            parse_slug_from_url((url := "https://example.com/slug/"))
+            parse_slug_from_url((url := "https://random-and-malicious.com/slug/"))
         assert str(exc.value) == f"URL {url} has a TLD that is not allowed for import"
 
 
@@ -263,18 +265,13 @@ class TestSubscriptionForRecurringContribution:
         )
 
     @pytest.mark.parametrize("referer_has_slug", (True, False))
-    def test_donation_page_property_happy_path(
-        self,
-        referer_has_slug,
-        subscription,
-        customer,
-    ):
+    def test_donation_page_property_happy_path(self, referer_has_slug, subscription, customer, domain_apex):
         page = DonationPageFactory()
         page.revenue_program.default_donation_page = page
         page.revenue_program.save()
         subscription.metadata["revenue_program_id"] = str(page.revenue_program.id)
         assert page.slug
-        referer = f"https://{ALLOWED_TLDS_FOR_IMPORT[0]}.com/{(page.slug + '/') if referer_has_slug else ''}"
+        referer = f"https://{domain_apex}/{(page.slug + '/') if referer_has_slug else ''}"
         subscription.metadata["referer"] = referer
         assert (
             SubscriptionForRecurringContribution(
@@ -375,13 +372,13 @@ class TestSubscriptionForRecurringContribution:
         assert instance.payment_method == expected
 
     @pytest.fixture(params=["subscription", "subscription_with_existing_nre_entities"])
-    def subscription_to_upsert(self, request):
+    def subscription_to_upsert(self, request, domain_apex):
         page = DonationPageFactory()
         page.revenue_program.default_donation_page = page
         page.revenue_program.save()
         subscription = request.getfixturevalue(request.param)
         subscription.metadata["revenue_program_id"] = str(page.revenue_program.id)
-        subscription.metadata["referer"] = f"https://{ALLOWED_TLDS_FOR_IMPORT[0]}.com/{page.slug}/"
+        subscription.metadata["referer"] = f"https://{domain_apex}/{page.slug}/"
         return subscription, (True if request.param == "subscription_with_existing_nre_entities" else False)
 
     def test_upsert(self, subscription_to_upsert, charge, refund, customer, mocker):
@@ -583,13 +580,13 @@ class TestPaymentIntentForOneTimeContribution:
         )
 
     @pytest.fixture(params=["payment_intent", "payment_intent_with_existing_nre_entities"])
-    def pi_to_upsert(self, request):
+    def pi_to_upsert(self, request, domain_apex):
         page = DonationPageFactory()
         page.revenue_program.default_donation_page = page
         page.revenue_program.save()
         pi = request.getfixturevalue(request.param)
         pi.metadata["revenue_program_id"] = str(page.revenue_program.id)
-        pi.metadata["referer"] = f"https://{ALLOWED_TLDS_FOR_IMPORT[0]}.com/{page.slug}/"
+        pi.metadata["referer"] = f"https://{domain_apex}.com/{page.slug}/"
         return pi, (True if request.param == "payment_intent_with_existing_nre_entities" else False)
 
     def test_upsert(self, pi_to_upsert, customer, charge, refund, mocker):

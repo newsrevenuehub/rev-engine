@@ -14,7 +14,6 @@ from faker import Faker
 from apps.common.tests.test_utils import generate_random_datetime
 from apps.contributions import models
 from apps.contributions.serializers import StripePaymentMetadataSchemaV1_4
-from apps.contributions.stripe_import import ALLOWED_TLDS_FOR_IMPORT
 from apps.pages.tests.factories import DonationPageFactory
 
 
@@ -106,7 +105,7 @@ class ContributionFactory(DjangoModelFactory):
             contributor_id=self.contributor.id if self.contributor else None,
             agreed_to_pay_fees=True,
             donor_selected_amount=self.amount / 100,
-            referer=f"https://www.{ALLOWED_TLDS_FOR_IMPORT[0]}.com/",
+            referer=f"https://www.{settings.DOMAIN_APEX}.com/",
             revenue_program_id=self.donation_page.revenue_program_id if self.donation_page else "3737",
             revenue_program_slug=self.donation_page.revenue_program.slug if self.donation_page else "slug",
             source="rev-engine",

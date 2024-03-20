@@ -30,7 +30,6 @@ from waffle import get_waffle_flag_model
 from apps.common.tests.test_resources import DEFAULT_FLAGS_CONFIG_MAPPING
 from apps.contributions.choices import CardBrand, ContributionInterval
 from apps.contributions.stripe_contributions_provider import StripePiAsPortalContribution
-from apps.contributions.stripe_import import ALLOWED_TLDS_FOR_IMPORT
 from apps.contributions.tests.factories import ContributionFactory, ContributorFactory
 from apps.contributions.types import StripePaymentMetadataSchemaV1_4
 from apps.organizations.models import (
@@ -47,6 +46,12 @@ from revengine.utils import __ensure_gs_credentials
 
 
 fake = Faker()
+
+
+@pytest.fixture
+def domain_apex(settings):
+    settings.DOMAIN_APEX = "fundjournalism.org"
+    return settings.DOMAIN_APEX
 
 
 @pytest.fixture
@@ -538,7 +543,7 @@ def pi_as_portal_contribution_factory(faker):
 
 
 @pytest.fixture
-def valid_metadata_factory(faker):
+def valid_metadata_factory(faker, domain_apex):
     VALID_METADTA_V1_1 = {
         "schema_version": "1.1",
         "source": "rev-engine",
@@ -546,7 +551,7 @@ def valid_metadata_factory(faker):
         "agreed_to_pay_fees": True,
         "donor_selected_amount": uniform(100.0, 1000.0),
         "reason_for_giving": None,
-        "referer": f"https://www.{ALLOWED_TLDS_FOR_IMPORT[0]}.com",
+        "referer": f"https://www.{domain_apex}",
         "revenue_program_id": faker.uuid4(),
         "revenue_program_slug": f"rp-{faker.word()}",
         "sf_campaign_id": None,
@@ -1100,11 +1105,11 @@ def charge_refunded_recurring_charge_event():
 
 
 @pytest.fixture
-def valid_metadata():
+def valid_metadata(domain_apex):
     return StripePaymentMetadataSchemaV1_4(
         agreed_to_pay_fees=False,
         donor_selected_amount=1000.0,
-        referer=f"https://www.{ALLOWED_TLDS_FOR_IMPORT[1]}.com/",
+        referer=f"https://www.{domain_apex}/",
         revenue_program_id=1,
         revenue_program_slug="testrp",
         schema_version="1.4",

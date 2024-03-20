@@ -136,6 +136,7 @@ def cleanup_keys(data_dict, unwanted_keys):
 
 
 def get_subdomain_from_request(request) -> str | None:
+    """Returns the subdomain from a request, mapping the hostname using settings.HOST_MAP if present."""
     subdomain = None
     host = request.get_host()
 

@@ -1,3 +1,5 @@
+from django.db.models import Q
+
 import django_filters
 
 from apps.contributions.models import Contribution, ContributionStatus
@@ -47,3 +49,24 @@ class ContributionFilter(django_filters.FilterSet):
             "flagged_date": ["lt", "gt", "lte", "gte"],
             "status": ["iexact"],
         }
+
+
+class PortalContributionFilter(django_filters.rest_framework.DjangoFilterBackend):
+    ALLOWED_FILTER_FIELDS = ["status", "revenue_program"]
+
+    def filter_queryset_by_rp(self, queryset, revenue_program_id: str):
+        return queryset.filter(
+            Q(donation_page__revenue_program__id=revenue_program_id)
+            | Q(contribution_metadata__contains={"revenue_program_id": revenue_program_id})
+        )
+
+    def filter_queryset(self, request, queryset):
+        filters = {}
+        for field in [x for x in self.ALLOWED_FILTER_FIELDS if x != "revenue_program"]:
+            value = request.query_params.get(field, None)
+            if value is not None:
+                filters[field] = value
+        qs = queryset.filter(**filters)
+        if (value := request.query_params.get("revenue_program", None)) is not None:
+            qs = self.filter_queryset_by_rp(qs, value)
+        return qs

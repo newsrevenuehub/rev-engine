@@ -50,12 +50,13 @@ def construct_rp_domain(subdomain, referer=None):
     if settings.HOST_MAP:
         try:
             map = json.loads(settings.HOST_MAP)
+        except json.JSONDecodeError:
+            logger.exception("settings.HOST_MAP couldn't be parsed as JSON; continuing")
+        else:
             for hostname, slug in map.items():
                 if slug == subdomain:
                     logger.info("Mapped %s to %s", subdomain, hostname)
                     return hostname
-        except json.JSONDecodeError:
-            logger.exception("settings.HOST_MAP couldn't be parsed as JSON; continuing")
 
     # Parse it normally.
 

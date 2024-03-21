@@ -145,10 +145,11 @@ def get_subdomain_from_request(request) -> str | None:
     if settings.HOST_MAP:
         try:
             map = json.loads(settings.HOST_MAP)
-            if host in map:
-                return map[host]
         except json.JSONDecodeError:
             logger.exception("settings.HOST_MAP couldn't be parsed as JSON; continuing")
+        else:
+            if host in map:
+                return map[host]
 
     # Parse it normally.
     split_host = host.split(".")

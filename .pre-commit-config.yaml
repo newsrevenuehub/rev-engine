@@ -22,15 +22,23 @@ repos:
       - id: trailing-whitespace
   # Python security checks
   - repo: https://github.com/PyCQA/bandit
-    rev: 1.7.7
+    rev: 1.7.8
     hooks:
       - id: bandit
-        args: ["--severity-level=high", "--confidence-level=medium", "-c", "pyproject.toml", "-r", "."]
+        args:
+          [
+            "--severity-level=high",
+            "--confidence-level=medium",
+            "-c",
+            "pyproject.toml",
+            "-r",
+            ".",
+          ]
         additional_dependencies: ["bandit[toml]"]
         types: [python]
   # Black code formatter.
   - repo: https://github.com/psf/black
-    rev: 24.2.0
+    rev: 24.3.0
     hooks:
       - id: black
         language_version: python3.10
@@ -65,7 +73,7 @@ repos:
     hooks:
       - id: python-safety-dependencies-check
         files: pyproject.toml
-        args: ["--ignore=60956"]  # Django upgrade >=3.2.21 https://pyup.io/v/60956/f17
+        args: ["--ignore=60956"] # Django upgrade >=3.2.21 https://pyup.io/v/60956/f17
   # Checks no secrets in code.
   - repo: https://github.com/thoughtworks/talisman
     rev: v1.32.0

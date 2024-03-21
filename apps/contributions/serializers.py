@@ -844,6 +844,7 @@ PORTAL_CONTRIBUTION_BASE_SERIALIZER_FIELDS = [
     "is_modifiable",
     "last_payment_date",
     "next_payment_date",
+    "canceled_at",
     "payment_type",
     "revenue_program",
     "status",

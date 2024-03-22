@@ -10,6 +10,7 @@ from apps.contributions.serializers import (
     StripeOneTimePaymentSerializer,
     StripeRecurringPaymentSerializer,
 )
+from apps.organizations.models import PaymentProvider
 
 
 logger = logging.getLogger(f"{settings.DEFAULT_LOGGER}.{__name__}")
@@ -65,12 +66,12 @@ class PaymentManager:
     @staticmethod
     def get_subclass(contribution):
         payment_provider_used = contribution.payment_provider_used
-        if payment_provider_used == "Stripe":
+        if payment_provider_used == PaymentProvider.STRIPE_LABEL:
             return StripePaymentManager
 
 
 class StripePaymentManager(PaymentManager):
-    payment_provider_name = "Stripe"
+    payment_provider_name = PaymentProvider.STRIPE_LABEL
 
     def get_serializer_class(self, data=None, contribution=None):
         """

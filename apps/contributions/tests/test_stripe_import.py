@@ -28,7 +28,7 @@ from apps.contributions.stripe_import import (
     upsert_payment_for_transaction,
 )
 from apps.contributions.tests.factories import ContributionFactory, PaymentFactory
-from apps.organizations.models import RevenueProgram
+from apps.organizations.models import PaymentProvider, RevenueProgram
 from apps.pages.tests.factories import DonationPageFactory
 
 
@@ -394,7 +394,7 @@ class TestSubscriptionForRecurringContribution:
         assert contribution.currency == subscription.plan.currency.lower()
         assert contribution.reason == ""
         assert contribution.interval == ContributionInterval.MONTHLY
-        assert contribution.payment_provider_used == "stripe"
+        assert contribution.payment_provider_used == PaymentProvider.STRIPE_LABEL
         assert contribution.provider_customer_id == subscription.customer.id
         assert contribution.provider_payment_method_id == subscription.default_payment_method.id
         assert contribution.provider_payment_method_details == subscription.default_payment_method.to_dict()
@@ -600,7 +600,7 @@ class TestPaymentIntentForOneTimeContribution:
         assert contribution.currency == payment_intent.currency.lower()
         assert not contribution.reason
         assert contribution.interval == ContributionInterval.ONE_TIME
-        assert contribution.payment_provider_used == "stripe"
+        assert contribution.payment_provider_used == PaymentProvider.STRIPE_LABEL
         assert contribution.provider_payment_method_id == payment_intent.payment_method.id
         assert contribution.provider_payment_method_details == payment_intent.payment_method.to_dict()
         assert contribution.contributor.email == customer.email

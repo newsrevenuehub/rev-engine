@@ -30,7 +30,7 @@ from apps.contributions.types import (
     STRIPE_PAYMENT_METADATA_SCHEMA_VERSIONS,
     cast_metadata_to_stripe_payment_metadata_schema,
 )
-from apps.organizations.models import RevenueProgram
+from apps.organizations.models import PaymentProvider, RevenueProgram
 from apps.pages.models import DonationPage
 
 
@@ -283,7 +283,7 @@ class PaymentIntentForOneTimeContribution(ContributionImportBaseClass):
                 "currency": self.payment_intent.currency.lower(),
                 "reason": self.payment_intent.metadata.get("reason_for_giving", ""),
                 "interval": ContributionInterval.ONE_TIME,
-                "payment_provider_used": "stripe",
+                "payment_provider_used": PaymentProvider.STRIPE_LABEL,
                 "provider_customer_id": self.customer.id if self.customer else None,
                 "provider_payment_method_id": pm.id if pm else None,
                 "provider_payment_method_details": pm.to_dict() if pm else None,
@@ -391,7 +391,7 @@ class SubscriptionForRecurringContribution(ContributionImportBaseClass):
                 "currency": self.subscription.plan.currency.lower(),
                 "reason": self.subscription.metadata.get("reason_for_giving", ""),
                 "interval": self.interval,
-                "payment_provider_used": "stripe",
+                "payment_provider_used": PaymentProvider.STRIPE_LABEL,
                 "provider_customer_id": self.customer.id,
                 "provider_payment_method_id": pm.id if pm else None,
                 "provider_payment_method_details": pm.to_dict() if pm else None,

@@ -1,7 +1,7 @@
 import datetime
 import logging
 import re
-from typing import Any, ClassVar, Literal, NamedTuple, Optional
+from typing import Any, ClassVar, Literal, NamedTuple, Optional, Union
 
 from django.conf import settings
 
@@ -10,6 +10,7 @@ import stripe
 from pydantic import BaseModel
 
 from apps.contributions.choices import ContributionInterval, ContributionStatus
+from apps.contributions.exceptions import InvalidMetadataError
 
 
 logger = logging.getLogger(f"{settings.DEFAULT_LOGGER}.{__name__}")
@@ -33,9 +34,6 @@ class StripePiAsPortalContribution(BaseModel):
     status: ContributionStatus
     stripe_account_id: str
     subscription_id: str | None
-
-    class Config:
-        extra = "forbid"
 
 
 class StripePiSearchResponse(BaseModel):
@@ -84,13 +82,13 @@ class StripeMetadataSchemaBase(pydantic.BaseModel):
     - normalizes boolean values
     """
 
-    class Config:
-        extra = pydantic.Extra.forbid  # don't allow extra fields
-
     schema_version: Literal["1.4"]
     source: Literal["rev-engine"]
 
     METADATA_TEXT_MAX_LENGTH: ClassVar[int] = 500
+
+    class Config:
+        extra = "forbid"
 
     @classmethod
     def normalize_boolean(cls, v: Any) -> bool | None:
@@ -121,6 +119,60 @@ class StripeMetadataSchemaBase(pydantic.BaseModel):
         return v
 
 
+class StripePaymentMetadataSchemaV1_0(StripeMetadataSchemaBase):
+    schema_version: Literal["1.0"]
+    source: Literal["rev-engine", "newspack"]
+    contributor_id: Optional[str] = None
+    agreed_to_pay_fees: bool
+    donor_selected_amount: float
+    reason_for_giving: Optional[str] = None
+    referer: pydantic.HttpUrl
+    revenue_program_id: str
+    revenue_program_slug: str
+    sf_campaign_id: Optional[str] = None
+    comp_subscription: Optional[str] = None
+    honoree: Optional[str] = None
+    in_memory_of: Optional[str] = None
+    swag_opt_out: Optional[bool] = False
+    t_shirt_size: Optional[str] = None
+    company_name: Optional[str] = None
+
+    class Config:
+        extra = "forbid"
+
+    @pydantic.validator("agreed_to_pay_fees", "swag_opt_out")
+    def validate_booleans(cls, v):
+        return cls.normalize_boolean(v)
+
+
+class StripePaymentMetadataSchemaV1_1(StripePaymentMetadataSchemaV1_0):
+    # NB our stripe metadata schema versioning is for a schema shared by > 1 kind of
+    # stripe object. In case of 1.0 vs. 1.1 for payment data (subscriptions and payment intents),
+    # the only difference is the source field definition and the schema version.
+    schema_version: Literal["1.1"]
+    source: Literal["rev-engine"]
+
+
+# NB: 1.2 is obsolete and was never used
+
+
+class StripePaymentMetadataSchemaV1_3(StripeMetadataSchemaBase):
+    schema_version: Literal["1.3"]
+    source: Literal["legacy-migration"]
+    agreed_to_pay_fees: bool
+    revenue_program_id: str
+    revenue_program_slug: str
+    recurring_donation_id: str
+
+    class Config:
+        extra = "forbid"
+
+    @pydantic.validator("agreed_to_pay_fees")
+    @classmethod
+    def validate_booleans(cls, v):
+        return cls.normalize_boolean(v)
+
+
 class StripePaymentMetadataSchemaV1_4(StripeMetadataSchemaBase):
     """Schema used for generating metadata on Stripe payment intents and subscriptions"""
 
@@ -144,8 +196,10 @@ class StripePaymentMetadataSchemaV1_4(StripeMetadataSchemaBase):
     SWAG_CHOICES_DELIMITER: ClassVar[str] = ";"
     SWAG_SUB_CHOICE_DELIMITER: ClassVar[str] = ":"
 
+    class Config:
+        extra = "forbid"
+
     @pydantic.validator("contributor_id", "revenue_program_id", pre=True)
-    @classmethod
     def convert_id_to_string(cls, v: Any) -> str | None:
         """Convert id to string
 
@@ -166,11 +220,11 @@ class StripePaymentMetadataSchemaV1_4(StripeMetadataSchemaBase):
         return cls.normalize_boolean(v)
 
     @pydantic.validator("swag_choices")
-    @classmethod
     def validate_swag_choices(cls, v: Any) -> str | None:
         """Validate swag_choices
 
         This validator is responsible for ensuring that the swag_choices field is valid.
+
         """
         # if empty or none, return
         if not v:
@@ -185,3 +239,49 @@ class StripePaymentMetadataSchemaV1_4(StripeMetadataSchemaBase):
             if choice and not re.fullmatch(choice_pattern, choice):
                 raise ValueError("swag_choices is not valid")
         return v
+
+
+class StripePaymentMetadataSchemaV1_5(StripePaymentMetadataSchemaV1_4):
+    schema_version: Literal["1.5"]
+    source: Literal["external-migration"]
+
+    # 1.5 omits this field from 1.4, with which it otherwise shares a schema
+    contributor_id: None = None
+    # ID of the payment/subscription in the originating/external system
+    external_id: Optional[str] = None
+    # Only would be on subscription, not payment intent. The Salesforce Recurring Donation ID, if any.
+    recurring_donation_id: Optional[str] = None
+    # 1.4 has this field, but it's required
+    referer: Optional[pydantic.HttpUrl] = None
+
+    class Config:
+        # 1.5 omits this field from 1.4, with which it otherwise shares a schema. We default value to None above,
+        # but here we need to also exclude so it doesn't show up when converting to dict
+        exclude = {"contributor_id"}
+        extra = "forbid"
+
+
+STRIPE_PAYMENT_METADATA_SCHEMA_VERSIONS = {
+    "1.0": StripePaymentMetadataSchemaV1_0,
+    "1.1": StripePaymentMetadataSchemaV1_1,
+    # NB: 1.2 is obsolete and was never used
+    "1.3": StripePaymentMetadataSchemaV1_3,
+    "1.4": StripePaymentMetadataSchemaV1_4,
+    "1.5": StripePaymentMetadataSchemaV1_5,
+}
+
+
+def cast_metadata_to_stripe_payment_metadata_schema(
+    metadata: dict,
+) -> Union[StripePaymentMetadataSchemaV1_4, StripePaymentMetadataSchemaV1_5]:
+    """Cast metadata to the appropriate schema based on the schema_version field."""
+    if not metadata:
+        raise InvalidMetadataError("Metadata is empty")
+    if (schema_version := metadata.get("schema_version", None)) not in STRIPE_PAYMENT_METADATA_SCHEMA_VERSIONS:
+        raise InvalidMetadataError(f"Unknown schema version {schema_version}")
+    schema_class = STRIPE_PAYMENT_METADATA_SCHEMA_VERSIONS[schema_version]
+    try:
+        return schema_class(**metadata)
+    except pydantic.ValidationError as e:
+        logger.debug("Metadata failed to validate against schema %s", schema_class)
+        raise InvalidMetadataError(str(e)) from e

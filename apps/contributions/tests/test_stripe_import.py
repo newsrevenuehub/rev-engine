@@ -392,7 +392,6 @@ class TestSubscriptionForRecurringContribution:
         assert contribution.provider_subscription_id == subscription.id
         assert contribution.amount == subscription.plan.amount
         assert contribution.currency == subscription.plan.currency.lower()
-        assert contribution.reason == ""
         assert contribution.interval == ContributionInterval.MONTHLY
         assert contribution.payment_provider_used == PaymentProvider.STRIPE_LABEL
         assert contribution.provider_customer_id == subscription.customer.id
@@ -598,7 +597,6 @@ class TestPaymentIntentForOneTimeContribution:
         assert contribution.provider_payment_id == payment_intent.id
         assert contribution.amount == payment_intent.amount
         assert contribution.currency == payment_intent.currency.lower()
-        assert not contribution.reason
         assert contribution.interval == ContributionInterval.ONE_TIME
         assert contribution.payment_provider_used == PaymentProvider.STRIPE_LABEL
         assert contribution.provider_payment_method_id == payment_intent.payment_method.id

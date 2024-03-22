@@ -281,7 +281,6 @@ class PaymentIntentForOneTimeContribution(ContributionImportBaseClass):
                 "amount": self.payment_intent.amount,
                 # NB: Stripe currency is always uppercase, but we store it in Revengine as lowercase
                 "currency": self.payment_intent.currency.lower(),
-                "reason": self.payment_intent.metadata.get("reason_for_giving", ""),
                 "interval": ContributionInterval.ONE_TIME,
                 "payment_provider_used": PaymentProvider.STRIPE_LABEL,
                 "provider_customer_id": self.customer.id if self.customer else None,
@@ -389,7 +388,6 @@ class SubscriptionForRecurringContribution(ContributionImportBaseClass):
                 "amount": self.subscription.plan.amount,
                 # NB: Stripe currency is always uppercase, but we store it in Revengine as lowercase
                 "currency": self.subscription.plan.currency.lower(),
-                "reason": self.subscription.metadata.get("reason_for_giving", ""),
                 "interval": self.interval,
                 "payment_provider_used": PaymentProvider.STRIPE_LABEL,
                 "provider_customer_id": self.customer.id,

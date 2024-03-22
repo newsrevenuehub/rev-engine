@@ -5,7 +5,7 @@ from django.conf import settings
 from django.contrib.auth.models import AbstractBaseUser, PermissionsMixin
 from django.core.exceptions import ValidationError
 from django.db import models
-from django.utils.translation import ugettext_lazy as _
+from django.utils.translation import gettext_lazy as _
 
 from waffle import get_waffle_flag_model
 
@@ -69,7 +69,7 @@ class User(AbstractBaseUser, PermissionsMixin, IndexedTimeStampedModel):
         ra = self.get_role_assignment()
         return (ra.role_type, ra.get_role_type_display()) if ra else None
 
-    def validate_unique(self, exclude) -> None:
+    def validate_unique(self, exclude: list) -> None:
         # we sidestep default unique validation for the email field
         val = getattr(self, self.USERNAME_FIELD)
         logger.info(

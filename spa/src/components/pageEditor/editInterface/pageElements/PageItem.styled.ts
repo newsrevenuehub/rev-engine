@@ -1,58 +1,101 @@
+import { DragIndicatorOutlined } from '@material-ui/icons';
+import { IconButton } from 'components/base';
 import styled from 'styled-components';
-import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
 
-export const PageItem = styled.div<{ $disabled: boolean }>`
-  cursor: ${(props) => (props.$disabled ? 'not-allowed' : 'pointer')};
-  border: 2px solid;
-  border-color: ${(props) => (props.$disabled ? props.theme.colors.disabled : props.theme.colors.primary)};
-  border-radius: ${(props) => props.theme.radii[0]};
-  background: ${(props) => props.theme.colors.paneBackground};
-  display: flex;
-  flex-direction: row;
-  opacity: ${(props) => (props.$disabled ? 0.5 : 1)};
-`;
-
-export const ItemIconWrapper = styled.div`
-  display: flex;
-  justify-content: center;
+export const Root = styled.div<{ $disabled: boolean; $isStatic: boolean }>`
   align-items: center;
-  padding: 1rem;
-`;
-
-export const ItemIcon = styled(FontAwesomeIcon)<{ $disabled: boolean }>`
-  color: ${(props) => (props.$disabled ? props.theme.colors.disabled : props.theme.colors.primary)};
-  font-size: 20px;
-`;
-
-export const ItemContentWrapper = styled.div`
+  background-color: ${(props) =>
+    props.$disabled ? props.theme.basePalette.greyscale.grey4 : props.theme.basePalette.greyscale.white};
+  border: 1px solid ${({ theme }) => theme.basePalette.primary.purple};
+  border-radius: ${({ theme }) => theme.muiBorderRadius.lg};
+  cursor: ${(props) => (props.$disabled ? 'not-allowed' : props.$isStatic ? 'pointer' : 'grab')};
   display: flex;
-  flex-direction: row;
-  padding: 1rem;
-  flex: 1;
+  position: relative;
+  transition: background-color 0.3s;
+
+  ${(props) =>
+    !props.$disabled &&
+    `&:hover {
+    box-shadow: 0px 3px 7px 0px #00000033, 0px 0.800000011920929px 3px 0px #00000014;
+  }`};
+
+  ${(props) => props.$isStatic && 'display: block; padding: 0 16px;'}
 `;
 
-export const ContentLeft = styled.div`
-  flex: 1;
+export const Description = styled.p<{ $disabled: boolean }>`
+  color: ${({ theme }) => theme.basePalette.greyscale.grey1};
+  /* Cheat the gap tighter. */
+  margin-top: -8px;
+  padding-bottom: 18px;
+  ${(props) => props.$disabled && `color: ${props.theme.basePalette.greyscale.grey2}`}
 `;
 
-export const ContentRight = styled.div`
-  display: flex;
-  flex-direction: column;
-  padding-left: 1rem;
-  justify-content: space-between;
+export const DragIndicator = styled(DragIndicatorOutlined)`
+  color: #d9d9d9;
+  margin-left: 8px;
+  visibility: hidden;
+
+  ${Root}:hover & {
+    visibility: visible;
+  }
 `;
 
-export const ItemName = styled.h5`
-  margin: 0 0 0.5rem 0;
+export const Header = styled.h5<{ $disabled: boolean }>`
+  align-self: center;
+  flex-grow: 1;
   font-family: ${(props) => props.theme.systemFont};
+  font-size: ${({ theme }) => theme.fontSizesUpdated.lg};
+  font-weight: 500;
+  margin: 0;
+  padding: 16px 16px 16px 0;
+
+  ${(props) => props.$disabled && `color: ${props.theme.basePalette.greyscale.grey2}`}
 `;
 
-export const ItemDescription = styled.p`
-  font-family: ${(props) => props.theme.systemFont};
+export const Controls = styled.div`
+  padding-right: 10px;
 `;
 
-export const TrashIcon = styled(FontAwesomeIcon)`
-  color: ${(props) => props.theme.colors.caution};
-  opacity: 0.5;
-  font-size: 20px;
+export const ControlIconButton = styled(IconButton)<{ $delete?: boolean; $rounding: 'left' | 'right' | 'both' }>`
+  && {
+    border: 1px solid ${({ theme }) => theme.basePalette.greyscale.grey2};
+    height: 38px;
+    width: 38px;
+
+    ${(props) => {
+      switch (props.$rounding) {
+        case 'left':
+          return `
+          border-top-right-radius: 0;
+          border-bottom-right-radius: 0;
+          border-right: none;
+        `;
+        case 'right':
+          return `
+          border-top-left-radius: 0;
+          border-bottom-left-radius: 0;
+        `;
+      }
+    }}
+
+    svg {
+      width: 24px;
+      height: 24px;
+    }
+
+    &:hover {
+      background-color: ${({ theme }) => theme.basePalette.greyscale.grey3};
+    }
+
+    ${(props) =>
+      props.$delete &&
+      `
+      &:hover {
+        background-color: #f6e9ec;
+
+        svg {
+          color: ${props.theme.basePalette.secondary.error};
+        }
+      }`}
+  }
 `;

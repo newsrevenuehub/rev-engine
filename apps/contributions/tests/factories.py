@@ -105,9 +105,9 @@ class ContributionFactory(DjangoModelFactory):
             contributor_id=self.contributor.id if self.contributor else None,
             agreed_to_pay_fees=True,
             donor_selected_amount=self.amount / 100,
-            referer="https://www.google.com/",
-            revenue_program_id=self.donation_page.revenue_program_id,
-            revenue_program_slug=self.donation_page.revenue_program.slug,
+            referer=f"https://www.{settings.DOMAIN_APEX}.com/",
+            revenue_program_id=self.donation_page.revenue_program_id if self.donation_page else "3737",
+            revenue_program_slug=self.donation_page.revenue_program.slug if self.donation_page else "slug",
             source="rev-engine",
             schema_version="1.4",
         ).model_dump(mode="json")

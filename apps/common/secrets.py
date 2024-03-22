@@ -48,7 +48,7 @@ class GoogleCloudSecretProvider(SecretProvider):
         *args,
         **kwargs,
     ) -> None:
-        logger.info("GoogleCloudSecretProvider initializing with model_attr %s", model_attr)
+        logger.debug("GoogleCloudSecretProvider initializing with model_attr %s", model_attr)
         super().__init__(*args, **kwargs)
         self.model_attr = model_attr
 

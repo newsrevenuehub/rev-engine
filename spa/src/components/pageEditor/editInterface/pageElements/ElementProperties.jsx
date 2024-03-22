@@ -1,22 +1,11 @@
-import * as S from './ElementProperties.styled';
-
 import { useAlert } from 'react-alert';
-
-// Elements
 import getElementEditor, { getElementValidator } from 'components/pageEditor/elementEditors/getElementEditor';
-
-// Assets
-import { faTrash } from '@fortawesome/free-solid-svg-icons';
-
-// Context
 import { useEditInterfaceContext } from 'components/pageEditor/editInterface/EditInterfaceContextProvider';
-
-// Children
 import { NoComponentError } from 'components/donationPage/pageGetters';
-
 import * as dynamicPageElements from 'components/donationPage/pageContent/dynamicElements';
 import * as dynamicSidebarElements from 'components/donationPage/pageContent/dynamicSidebarElements';
 import EditSaveControls from 'components/pageEditor/editInterface/EditSaveControls';
+import { DeleteButton, ElementHeading, ElementEditor, Root, TrashIcon } from './ElementProperties.styled';
 
 const dynamicElements = { ...dynamicPageElements, ...dynamicSidebarElements };
 
@@ -80,29 +69,29 @@ function ElementProperties({ selectedElementType }) {
   if (!dynamicElements[selectedElement.type]) {
     return (
       <>
-        <S.ElementHeading>
-          <S.DeleteButton onClick={handleDeleteElement}>
-            <S.TrashIcon icon={faTrash} />
-          </S.DeleteButton>
-        </S.ElementHeading>
+        <ElementHeading>
+          <DeleteButton onClick={handleDeleteElement}>
+            <TrashIcon icon={faTrash} />
+          </DeleteButton>
+        </ElementHeading>
         <NoComponentError name={selectedElement.type} />
       </>
     );
   }
 
   return (
-    <S.ElementProperties data-testid="element-properties">
-      <S.ElementHeading>
+    <Root data-testid="element-properties">
+      <ElementHeading>
         <h5>{dynamicElements[selectedElement.type].displayName}</h5>
         {!dynamicElements[selectedElement.type].required && (
-          <S.DeleteButton onClick={handleDeleteElement}>
-            <S.TrashIcon icon={faTrash} />
-          </S.DeleteButton>
+          <DeleteButton onClick={handleDeleteElement}>
+            <TrashIcon />
+          </DeleteButton>
         )}
-      </S.ElementHeading>
-      <S.ElementEditor>{getElementEditor(selectedElement.type)}</S.ElementEditor>
+      </ElementHeading>
+      <ElementEditor>{getElementEditor(selectedElement.type)}</ElementEditor>
       <EditSaveControls onCancel={handleDiscardChanges} onUpdate={handleKeepChanges} variant="cancel" />
-    </S.ElementProperties>
+    </Root>
   );
 }
 

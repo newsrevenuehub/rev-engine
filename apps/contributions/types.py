@@ -153,26 +153,7 @@ class StripePaymentMetadataSchemaV1_1(StripePaymentMetadataSchemaV1_0):
     source: Literal["rev-engine"]
 
 
-class StripePaymentMetadataSchemaV1_2(StripeMetadataSchemaBase):
-    schema_version: Literal["1.2"]
-    source: Literal["newspack"]
-    agreed_to_pay_fees: bool
-    donor_selected_amount: float
-    reason_for_giving: Optional[str]
-    referer: pydantic.HttpUrl
-    revenue_program_id: str
-    revenue_program_slug: str
-    sf_campaign_id: Optional[str]
-    frequency: Literal["one-time", "monthly", "yearly"]
-    amount: int
-
-    class Config:
-        extra = "forbid"
-
-    @pydantic.validator("agreed_to_pay_fees")
-    @classmethod
-    def validate_booleans(cls, v):
-        return cls.normalize_boolean(v)
+# NB: 1.2 is obsolete and was never used
 
 
 class StripePaymentMetadataSchemaV1_3(StripeMetadataSchemaBase):
@@ -283,7 +264,7 @@ class StripePaymentMetadataSchemaV1_5(StripePaymentMetadataSchemaV1_4):
 STRIPE_PAYMENT_METADATA_SCHEMA_VERSIONS = {
     "1.0": StripePaymentMetadataSchemaV1_0,
     "1.1": StripePaymentMetadataSchemaV1_1,
-    "1.2": StripePaymentMetadataSchemaV1_2,
+    # NB: 1.2 is obsolete and was never used
     "1.3": StripePaymentMetadataSchemaV1_3,
     "1.4": StripePaymentMetadataSchemaV1_4,
     "1.5": StripePaymentMetadataSchemaV1_5,

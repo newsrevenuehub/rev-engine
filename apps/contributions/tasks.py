@@ -1,6 +1,6 @@
 import os
 import time
-from datetime import timedelta
+from datetime import datetime, timedelta
 from types import TracebackType
 from typing import List
 
@@ -23,6 +23,7 @@ from apps.contributions.stripe_contributions_provider import (
     StripeContributionsProvider,
     SubscriptionsCacheProvider,
 )
+from apps.contributions.stripe_import import StripeTransactionsImporter
 from apps.contributions.types import StripeEventData
 from apps.contributions.utils import export_contributions_to_csv
 from apps.contributions.webhooks import StripeWebhookProcessor
@@ -206,3 +207,25 @@ def process_stripe_webhook_task(self, raw_event_data: dict) -> None:
         # first/next(in NRE platform) payment date.
         # TODO: [DEV-4151] Add some sort of analytics / telemetry to track how often this happens
         logger.info("Could not find contribution. Here's the event data: %s", event, exc_info=True)
+
+
+@shared_task(bind=True, autoretry_for=(RateLimitError,), retry_backoff=True, retry_kwargs={"max_retries": 3})
+def task_import_contributions_and_payments_for_stripe_account(
+    self,
+    from_date: str,
+    to_date: str,
+    stripe_account_id: str,
+):
+    """Task for syncing Stripe payment data to revengine."""
+    logger.info(
+        "Running `task_import_contributions_and_payments_for_stripe_account` with params: from_date=%s, to_date=%s, stripe_account=%s",
+        from_date,
+        to_date,
+        stripe_account_id,
+    )
+    from_date = datetime.fromtimestamp(int(from_date)) if from_date else None
+    to_date = datetime.fromtimestamp(int(to_date)) if to_date else None
+    StripeTransactionsImporter(
+        from_date=from_date, to_date=to_date, stripe_account_id=stripe_account_id
+    ).import_contributions_and_payments()
+    logger.info("`task_import_contributions_and_payments` is done")

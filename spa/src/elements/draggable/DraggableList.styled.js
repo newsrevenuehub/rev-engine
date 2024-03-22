@@ -1,20 +1,19 @@
 import styled from 'styled-components';
-import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
 
 export const DraggableListStyles = {
   padding: 0,
-  width: '90%',
+  width: '450px',
   margin: '0 auto'
 };
 
 export const DraggableListItemStyles = {
   width: '100%',
   listStyle: 'none',
-  margin: '2rem 0'
+  margin: '10px 0'
 };
 
 export const ItemActiveStyles = {
-  whileHover: {
+  whileDrag: {
     scale: 1.03
   }
 };
@@ -41,8 +40,4 @@ export const PanelItemDeleteButton = styled.button`
   &:active svg {
     color: white;
   }
-`;
-
-export const TrashIcon = styled(FontAwesomeIcon)`
-  color: red;
 `;

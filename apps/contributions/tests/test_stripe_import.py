@@ -391,7 +391,7 @@ class TestSubscriptionForRecurringContribution:
         contribution, action = instance.upsert()
         assert contribution.provider_subscription_id == subscription.id
         assert contribution.amount == subscription.plan.amount
-        assert contribution.currency == subscription.plan.currency
+        assert contribution.currency == subscription.plan.currency.lower()
         assert contribution.reason == ""
         assert contribution.interval == ContributionInterval.MONTHLY
         assert contribution.payment_provider_used == "stripe"
@@ -597,7 +597,7 @@ class TestPaymentIntentForOneTimeContribution:
         ).upsert()
         assert contribution.provider_payment_id == payment_intent.id
         assert contribution.amount == payment_intent.amount
-        assert contribution.currency == payment_intent.currency
+        assert contribution.currency == payment_intent.currency.lower()
         assert not contribution.reason
         assert contribution.interval == ContributionInterval.ONE_TIME
         assert contribution.payment_provider_used == "stripe"

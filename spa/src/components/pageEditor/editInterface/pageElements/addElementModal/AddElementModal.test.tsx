@@ -62,22 +62,19 @@ describe('AddElementModal', () => {
 
   it('renders nothing if addElementModalOpen = false', () => {
     tree({ addElementModalOpen: false });
-    expect(screen.getByTestId('modal-closed')).toBeInTheDocument();
-    expect(screen.queryByTestId('modal-open')).not.toBeInTheDocument();
+    expect(screen.queryByRole('dialog')).not.toBeInTheDocument();
   });
 
   it('renders modal & content if addElementModalOpen = true', () => {
     tree();
-    expect(screen.getByTestId('modal-open')).toBeInTheDocument();
-    expect(screen.getByTestId('add-page-modal')).toBeInTheDocument();
-    expect(screen.queryByTestId('modal-closed')).not.toBeInTheDocument();
+    expect(screen.getByRole('dialog')).toBeInTheDocument();
   });
 
   it('calls setAddElementModalOpen if modal onClose is clicked', () => {
     const setAddElementModalOpen = jest.fn();
     tree({ setAddElementModalOpen });
     expect(setAddElementModalOpen).not.toBeCalled();
-    userEvent.click(screen.getByRole('button', { name: /close modal/i }));
+    userEvent.click(screen.getByRole('button', { name: 'Close' }));
     expect(setAddElementModalOpen).toBeCalledTimes(1);
     expect(setAddElementModalOpen).toBeCalledWith(false);
   });

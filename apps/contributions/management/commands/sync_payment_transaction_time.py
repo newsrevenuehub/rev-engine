@@ -93,13 +93,13 @@ class Command(BaseCommand):
         for payment in fixable_payments.all():
             try:
                 bt = stripe.BalanceTransaction.retrieve(
-                    payment.stripe_balance_transaction_id, stripe_account=payment.stripe_account_id
+                    payment.stripe_balance_transaction_id, stripe_account=payment.contribution.stripe_account_id
                 )
             except stripe.error.StripeError as e:
                 self.stdout.write(
                     self.style.ERROR(
                         f"Error while retrieving balance transaction {payment.stripe_balance_transaction_id} for "
-                        f"payment {payment.id} and stripe account {payment.stripe_account_id}: {e}"
+                        f"payment {payment.id} and stripe account {payment.contribution.stripe_account_id}: {e}"
                     )
                 )
                 continue

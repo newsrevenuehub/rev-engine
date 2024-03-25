@@ -1,27 +1,11 @@
-import * as S from './PageItem.styled';
+import { EditOutlined, RemoveCircleOutline } from '@material-ui/icons';
 import PropTypes, { InferProps } from 'prop-types';
-import { IconProp } from '@fortawesome/fontawesome-svg-core';
-
-// Assets
-import {
-  faParagraph,
-  faClock,
-  faHandHoldingUsd,
-  faUser,
-  faCreditCard,
-  faAddressCard,
-  faImage,
-  faGifts,
-  faShoppingBag,
-  faHands
-} from '@fortawesome/free-solid-svg-icons';
-
+import { Tooltip } from 'components/base';
 import * as dynamicPageElements from 'components/donationPage/pageContent/dynamicElements';
 import * as dynamicSidebarElements from 'components/donationPage/pageContent/dynamicSidebarElements';
 import { NoComponentError } from 'components/donationPage/pageGetters';
-import PencilButton from 'elements/buttons/PencilButton';
-import TrashButton from 'elements/buttons/TrashButton';
 import { ContributionPageElement, PageElementType } from 'hooks/useContributionPage';
+import { ControlIconButton, Controls, Description, DragIndicator, Header, Root } from './PageItem.styled';
 
 const dynamicElements = {
   ...dynamicPageElements,
@@ -33,72 +17,63 @@ export interface PageItemProps extends InferProps<typeof PageItemPropTypes> {
   onClick?: () => void;
 }
 
-function PageItem({ element, disabled, isStatic, handleItemEdit, handleItemDelete, ...props }: PageItemProps) {
+function PageItem({
+  element,
+  disabled,
+  isStatic,
+  handleItemEdit,
+  handleItemDelete,
+  showDescription,
+  ...props
+}: PageItemProps) {
+  const showDelete = handleItemDelete && !dynamicElements[element.type]?.required;
+
   return (
-    <S.PageItem $disabled={!!disabled} {...props} data-testid={`page-item-${element.type}`}>
+    <Root $disabled={!!disabled} $isStatic={!!isStatic} {...props} data-testid={`page-item-${element.type}`}>
       {dynamicElements[element.type] ? (
         <>
-          <S.ItemIconWrapper>
-            <S.ItemIcon icon={getElementIcon(element.type)} $disabled={!!disabled} />
-          </S.ItemIconWrapper>
-          <S.ItemContentWrapper>
-            <S.ContentLeft>
-              <S.ItemName>{dynamicElements[element.type].displayName}</S.ItemName>
-              <S.ItemDescription>{dynamicElements[element.type].description}</S.ItemDescription>
-            </S.ContentLeft>
-            {!isStatic && (
-              <S.ContentRight>
-                <PencilButton aria-label={`Edit ${element.type} block`} onClick={handleItemEdit} />
-                {!dynamicElements[element.type].required && (
-                  <TrashButton aria-label={`Remove ${element.type} block`} onClick={handleItemDelete} />
-                )}
-              </S.ContentRight>
-            )}
-          </S.ItemContentWrapper>
+          {!isStatic && <DragIndicator />}
+          <Header $disabled={!!disabled}>{dynamicElements[element.type].displayName}</Header>
+          {showDescription && (
+            <Description $disabled={!!disabled}>{dynamicElements[element.type].description}</Description>
+          )}
+          {!isStatic && (
+            <Controls>
+              {showDelete && (
+                <Tooltip title={`Remove ${dynamicElements[element.type].displayName}`}>
+                  <ControlIconButton
+                    aria-label={`Remove ${dynamicElements[element.type].displayName}`}
+                    color="text"
+                    onClick={handleItemDelete}
+                    data-testid="trash-button"
+                    $delete
+                    $rounding={handleItemEdit ? 'left' : 'both'}
+                  >
+                    <RemoveCircleOutline />
+                  </ControlIconButton>
+                </Tooltip>
+              )}
+              {handleItemEdit && (
+                <Tooltip title={`Edit ${dynamicElements[element.type].displayName}`}>
+                  <ControlIconButton
+                    aria-label={`Edit ${dynamicElements[element.type].displayName}`}
+                    color="text"
+                    onClick={handleItemEdit}
+                    data-testid="pencil-button"
+                    $rounding={showDelete ? 'right' : 'both'}
+                  >
+                    <EditOutlined />
+                  </ControlIconButton>
+                </Tooltip>
+              )}
+            </Controls>
+          )}
         </>
       ) : (
         <NoComponentError name={element.type} />
       )}
-    </S.PageItem>
+    </Root>
   );
-}
-
-function getElementIcon(elementType: PageElementType): IconProp {
-  switch (elementType) {
-    case 'DRichText':
-      return faParagraph;
-
-    case 'DFrequency':
-      return faClock;
-
-    case 'DAmount':
-      return faHandHoldingUsd;
-
-    case 'DDonorInfo':
-      return faUser;
-
-    case 'DDonorAddress':
-      return faAddressCard;
-
-    case 'DPayment':
-      return faCreditCard;
-
-    case 'DImage':
-      return faImage;
-
-    case 'DBenefits':
-      return faGifts;
-
-    case 'DSwag':
-      return faShoppingBag;
-
-    case 'DReason':
-      return faHands;
-
-    default:
-      // Should never happen
-      return undefined as any;
-  }
 }
 
 const PageItemPropTypes = {
@@ -109,7 +84,8 @@ const PageItemPropTypes = {
   isStatic: PropTypes.bool,
   handleItemEdit: PropTypes.func,
   handleItemDelete: PropTypes.func,
-  onClick: PropTypes.func
+  onClick: PropTypes.func,
+  showDescription: PropTypes.bool
 };
 
 PageItem.propTypes = PageItemPropTypes;

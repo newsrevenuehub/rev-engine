@@ -27,6 +27,7 @@ from apps.common.utils import (
     logger,
     normalize_slug,
     upsert_cloudflare_cnames,
+    upsert_with_diff_check,
 )
 
 
@@ -327,3 +328,78 @@ def test_google_cloud_pub_sub_is_configured(enable_pubsub, gcloud_project, expec
     monkeypatch.setattr("django.conf.settings.ENABLE_PUBSUB", enable_pubsub)
     monkeypatch.setattr("django.conf.settings.GOOGLE_CLOUD_PROJECT", gcloud_project)
     assert google_cloud_pub_sub_is_configured() == expected
+
+
+@pytest.mark.django_db
+class Test_upsert_with_diff_check:
+    from apps.contributions.models import Contribution
+
+    AMOUNT = 1000
+    UPDATE_AMOUNT = 10000
+    PROVIDER_PAYMENT_ID = "pi_1234"
+
+    model = Contribution
+
+    @pytest.fixture
+    def instance(self):
+        from apps.contributions.tests.factories import ContributionFactory
+
+        return ContributionFactory(amount=self.AMOUNT, provider_payment_id=self.PROVIDER_PAYMENT_ID)
+
+    @pytest.fixture
+    def instance_is_none(self):
+        return None
+
+    @pytest.fixture
+    def update_data(self):
+        return {"amount": self.UPDATE_AMOUNT}
+
+    @pytest.fixture
+    def unique_identifier(self):
+        return {"provider_payment_id": self.PROVIDER_PAYMENT_ID}
+
+    @pytest.fixture
+    def instance_needs_update(self, instance):
+        return instance
+
+    @pytest.fixture
+    def instance_not_need_update(self, instance, update_data):
+        for field, value in update_data.items():
+            setattr(instance, field, value)
+        instance.save()
+        return instance
+
+    @pytest.fixture(
+        params=[
+            {"instance": "instance_is_none", "action": "created"},
+            {"instance": "instance_needs_update", "action": "updated"},
+            {"instance": "instance_not_need_update", "action": "left unchanged"},
+        ]
+    )
+    def upsert_with_diff_check_case(self, request):
+        return (
+            request.getfixturevalue(request.param["instance"]),
+            request.param["action"],
+        )
+
+    def test_upsert_with_diff_check(self, upsert_with_diff_check_case, update_data, unique_identifier, mocker):
+        instance, expected_action = upsert_with_diff_check_case
+        mock_set_comment = mocker.patch("reversion.set_comment")
+        with mock.patch("reversion.create_revision") as create_revision_mock:
+            result, action = upsert_with_diff_check(
+                model=self.model,
+                unique_identifier=unique_identifier,
+                defaults=update_data,
+                caller_name=(caller := "test"),
+            )
+            if instance:
+                assert result == instance
+            else:
+                assert isinstance(result, self.model)
+            assert action == expected_action
+            create_revision_mock.assert_called_once()
+
+            if action == "updated":
+                mock_set_comment.assert_called_once_with(f"{caller} updated {self.model.__name__}")
+            else:
+                mock_set_comment.assert_not_called()

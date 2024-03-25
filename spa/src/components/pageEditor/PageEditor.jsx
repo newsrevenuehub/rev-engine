@@ -21,9 +21,6 @@ import { DELETE_LIVE_PAGE_CONFIRM_TEXT, GENERIC_ERROR } from 'constants/textCons
 // Settings
 import { CAPTURE_PAGE_SCREENSHOT } from 'appSettings';
 
-// Assets
-import { faEye, faEdit, faSave, faTrash } from '@fortawesome/free-solid-svg-icons';
-
 // Context
 import { useConfirmationModalContext } from 'elements/modal/GlobalConfirmationModal';
 import validatePage from './validatePage';
@@ -34,21 +31,17 @@ import { useEditablePageContext } from 'hooks/useEditablePage';
 import { useConfigureAnalytics } from 'components/analytics';
 
 // Children
-import CircleButton from 'elements/buttons/CircleButton';
 import SegregatedStyles from 'components/donationPage/SegregatedStyles';
 import ContributionPage18nProvider from 'components/donationPage/ContributionPageI18nProvider';
 import DonationPage from 'components/donationPage/DonationPage';
 import GlobalLoading from 'elements/GlobalLoading';
 import InnerEditInterface from 'components/pageEditor/editInterface/EditInterface';
 import PageTitle from 'elements/PageTitle';
-import { Tooltip } from 'components/base';
 import ElementErrors from './ElementErrors';
+import { PageEditorToolbar } from './PageEditorToolbar';
 
 export const PageEditorContext = createContext();
 export const usePageEditorContext = () => useContext(PageEditorContext);
-
-export const EDIT = 'EDIT';
-export const PREVIEW = 'PREVIEW';
 
 /**
  * PageEditor
@@ -63,7 +56,7 @@ function PageEditor() {
   const alert = useAlert();
   const theme = useTheme();
   const getUserConfirmation = useConfirmationModalContext();
-  const [selectedButton, setSelectedButton] = useState(PREVIEW);
+  const [selectedButton, setSelectedButton] = useState(null);
   const [showEditInterface, setShowEditInterface] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
   const [stylesLoading, setStylesLoading] = useState(false);
@@ -170,12 +163,12 @@ function PageEditor() {
   };
 
   const handleEdit = () => {
-    setSelectedButton(EDIT);
+    setSelectedButton('edit');
     setShowEditInterface(true);
   };
 
   const handlePreview = () => {
-    setSelectedButton(PREVIEW);
+    setSelectedButton('preview');
     setShowEditInterface(false);
   };
 
@@ -258,49 +251,15 @@ function PageEditor() {
               </ContributionPage18nProvider>
             </SegregatedStyles>
           )}
-
           {page && (
             <S.ButtonOverlay>
-              <CircleButton
-                onClick={handlePreview}
-                selected={selectedButton === PREVIEW}
-                icon={faEye}
-                buttonType="neutral"
-                color={theme.colors.primary}
-                data-testid="preview-page-button"
-                tooltipText="View"
-              />
-              <CircleButton
-                onClick={handleEdit}
-                selected={selectedButton === EDIT}
-                icon={faEdit}
-                buttonType="neutral"
-                data-testid="edit-page-button"
-                tooltipText="Edit"
-              />
-              {Object.keys(pageChanges).length > 0 ? (
-                <CircleButton
-                  onClick={handleSave}
-                  icon={faSave}
-                  buttonType="neutral"
-                  data-testid="save-page-button"
-                  disabled={!pageChanges}
-                  tooltipText="Save"
-                />
-              ) : (
-                <Tooltip title="Save" placement="right">
-                  <S.PageEditorBackButton data-testid="save-page-button">
-                    <S.DisabledSaveIcon icon={faSave} type="neutral" disabled={isLoading || stylesLoading} />
-                  </S.PageEditorBackButton>
-                </Tooltip>
-              )}
-              <CircleButton
-                onClick={handleDelete}
-                icon={faTrash}
-                buttonType="caution"
-                data-testid="delete-page-button"
-                disabled={!deletePage}
-                tooltipText="Delete"
+              <PageEditorToolbar
+                onDelete={handleDelete}
+                onEdit={handleEdit}
+                onPreview={handlePreview}
+                onSave={handleSave}
+                saveDisabled={Object.keys(pageChanges).length === 0}
+                selected={selectedButton}
               />
             </S.ButtonOverlay>
           )}

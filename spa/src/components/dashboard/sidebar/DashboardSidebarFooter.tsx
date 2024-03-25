@@ -26,7 +26,7 @@ const DashboardSidebarFooter = () => {
 
   const showUpgradePrompt = useMemo(() => {
     // Doesn't show any prompts if plan is undefined
-    if (!user?.organizations[0].plan.name) {
+    if (!user?.organizations[0]?.plan?.name) {
       return false;
     }
 
@@ -53,6 +53,8 @@ const DashboardSidebarFooter = () => {
     user?.organizations,
     user?.revenue_programs
   ]);
+
+  console.log({ showUpgradePrompt, user });
 
   const onClosePrompt = useCallback(() => {
     if (user?.organizations[0].plan.name === PLAN_NAMES.PLUS) {

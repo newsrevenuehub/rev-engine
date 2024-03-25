@@ -51,42 +51,6 @@ class TestContributorModel:
     def test_is_superuser(self, contributor_user):
         assert contributor_user.is_superuser is False
 
-    def test_create_stripe_customer(self, monkeypatch, mocker, contributor_user):
-        return_val = {"foo": "bar"}
-        monkeypatch.setattr("stripe.Customer.create", lambda *args, **kwargs: return_val)
-        spy = mocker.spy(stripe.Customer, "create")
-        kwargs = {
-            "customer_name": "My Name",
-            "phone": "222222222",
-            "street": "Main St",
-            "city": "Eau Claire",
-            "state": "WI",
-            "postal_code": "54701",
-            "country": "US",
-            "metadata": {"meta": "data"},
-        }
-        rp_stripe_id = "some-id"
-        cus = contributor_user.create_stripe_customer(rp_stripe_id, **kwargs)
-        assert cus == return_val
-        spy.assert_called_once_with(
-            email=contributor_user.email,
-            address=(
-                address := {
-                    "line1": kwargs["street"],
-                    "line2": "",
-                    "city": kwargs["city"],
-                    "state": kwargs["state"],
-                    "postal_code": kwargs["postal_code"],
-                    "country": kwargs["country"],
-                }
-            ),
-            shipping={"address": address, "name": (name := kwargs["customer_name"])},
-            name=name,
-            phone=kwargs["phone"],
-            stripe_account=rp_stripe_id,
-            metadata=kwargs["metadata"],
-        )
-
     def test_create_magic_link(self, one_time_contribution):
         assert isinstance(one_time_contribution, Contribution)
         parsed = urlparse(Contributor.create_magic_link(one_time_contribution))
@@ -148,7 +112,7 @@ class TestContributionModel:
         return request.getfixturevalue(request.param)
 
     def test_create_stripe_customer(self, contribution, mocker, monkeypatch):
-        """Show Contributor.create_stripe_customer calls Stripe with right params and returns the customer object"""
+        """Show Contribution.create_stripe_customer calls Stripe with right params and returns the customer object"""
         customer_create_return_val = {"id": "cus_fakefakefake"}
         monkeypatch.setattr("stripe.Customer.create", lambda *args, **kwargs: customer_create_return_val)
         spy = mocker.spy(stripe.Customer, "create")
@@ -1958,12 +1922,6 @@ class TestPayment:
         assert (
             str(payment)
             == f"Payment {payment.id} for contribution {payment.contribution.id} and balance transaction {payment.stripe_balance_transaction_id}"
-        )
-
-    def test_stripe_account_id(self, payment):
-        assert (
-            payment.stripe_account_id
-            == payment.contribution.donation_page.revenue_program.payment_provider.stripe_account_id
         )
 
     @pytest.fixture

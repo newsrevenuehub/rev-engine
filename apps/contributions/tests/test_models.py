@@ -1594,28 +1594,23 @@ class TestContributionModel:
         assert contribution.stripe_subscription is None
         assert contribution.next_payment_date is None
 
-    def test_cancelled_at_date_when_no_subscription(self):
+    def test_canceled_at_date_when_no_subscription(self):
         contribution = ContributionFactory(interval=ContributionInterval.MONTHLY, status=ContributionStatus.CANCELED)
         assert contribution.stripe_subscription is None
         assert contribution.canceled_at is None
 
-    def test_cancelled_at_date_when_subscription(self, contribution, monkeypatch, mocker):
-        return_value = {
-            "id": "fake_id",
-            "latest_invoice": {"payment_intent": {"client_secret": "fake_client_secret", "id": "pi_fakefakefake"}},
-            "customer": "fake_stripe_customer_id",
-            "canceled_at": datetime.datetime.now().timestamp(),
-        }
+    def test_cancelled_at_date_when_subscription(self, contribution, subscription_factory, mocker):
         contribution.provider_subscription_id = "something"
         contribution.status = ContributionStatus.CANCELED
         contribution.save()
         (provider := contribution.donation_page.revenue_program.payment_provider).stripe_account_id = "else"
         provider.save()
-        monkeypatch.setattr("stripe.Subscription.retrieve", lambda *args, **kwargs: return_value)
-        assert contribution.stripe_subscription == return_value
-        assert contribution.canceled_at == datetime.datetime.fromtimestamp(
-            return_value["canceled_at"], tz=ZoneInfo("UTC")
+        mocker.patch(
+            "stripe.Subscription.retrieve",
+            return_value=(sub := subscription_factory.get(canceled_at=datetime.datetime.now().timestamp())),
         )
+        assert contribution.stripe_subscription == sub
+        assert contribution.canceled_at == datetime.datetime.fromtimestamp(sub.canceled_at, tz=ZoneInfo("UTC"))
 
     def test_card_owner_name_when_no_provider_payment_method_details(self, mocker):
         contribution = ContributionFactory(provider_payment_method_details=None)

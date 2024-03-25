@@ -250,12 +250,10 @@ class Contribution(IndexedTimeStampedModel):
 
     @property
     def canceled_at(self) -> datetime.datetime | None:
-        if self.status != ContributionStatus.CANCELED:
-            return None
         if not self.stripe_subscription:
             logger.warning("Expected a retrievable stripe subscription on contribution %s but none was found", self.id)
             return None
-        canceled_at = self.stripe_subscription["canceled_at"]
+        canceled_at = self.stripe_subscription.canceled_at
         return datetime.datetime.fromtimestamp(canceled_at, tz=ZoneInfo("UTC")) if canceled_at else None
 
     @property

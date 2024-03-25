@@ -45,7 +45,7 @@ def slug():
 
 @pytest.fixture
 def host_map(settings, slug):
-    settings.HOST_MAP = f'{{"custom.example.com": "{slug}"}}'
+    settings.HOST_MAP = {"custom.example.com": slug}
 
 
 class Test_construct_rp_domain:
@@ -84,12 +84,6 @@ class Test_construct_rp_domain:
     def test_construct_rp_domain_with_hostmap_but_no_map(self, host_map, settings):
         settings.SITE_URL = "https://example.com"
         assert construct_rp_domain("foo", "") == "foo.example.com"
-
-    def test_construct_rp_domain_with_malformed_map(self, settings):
-        settings.HOST_MAP = "bad"
-        with override_settings(SITE_URL="https://example.com"):
-            assert construct_rp_domain("custom", "") == "custom.example.com"
-            assert construct_rp_domain("foo", "") == "foo.example.com"
 
 
 KNOWN_PASSWORD = "myGreatAndSecurePassword7"

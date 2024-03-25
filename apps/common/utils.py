@@ -1,4 +1,3 @@
-import json
 import logging
 import re
 from typing import Tuple
@@ -145,14 +144,8 @@ def get_subdomain_from_request(request) -> str | None:
 
     # Try to map it using the HOST_MAP environment variable.
 
-    if settings.HOST_MAP:
-        try:
-            map = json.loads(settings.HOST_MAP)
-        except json.JSONDecodeError:
-            logger.exception("settings.HOST_MAP couldn't be parsed as JSON; continuing")
-        else:
-            if host in map:
-                return map[host]
+    if host in settings.HOST_MAP:
+        return settings.HOST_MAP[host]
 
     # Parse it normally.
     split_host = host.split(".")

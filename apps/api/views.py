@@ -1,4 +1,3 @@
-import json
 import logging
 import os
 from dataclasses import asdict
@@ -47,16 +46,10 @@ def construct_rp_domain(subdomain, referer=None):
 
     # Try to map it using the HOST_MAP environment variable.
 
-    if settings.HOST_MAP:
-        try:
-            map = json.loads(settings.HOST_MAP)
-        except json.JSONDecodeError:
-            logger.exception("settings.HOST_MAP couldn't be parsed as JSON; continuing")
-        else:
-            for hostname, slug in map.items():
-                if slug == subdomain:
-                    logger.info("Mapped %s to %s", subdomain, hostname)
-                    return hostname
+    for hostname, slug in settings.HOST_MAP.items():
+        if slug == subdomain:
+            logger.info("Mapped %s to %s", subdomain, hostname)
+            return hostname
 
     # Parse it normally.
 

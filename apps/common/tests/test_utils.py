@@ -97,16 +97,15 @@ def get_random_jpg_filename():
 
 
 test_domain = ".test.org"
-custom_map = '{"custom.test.org":"test-rp-slug"}'
+custom_map = {"custom.test.org": "test-rp-slug"}
 
 
 @pytest.mark.parametrize(
     "hostmap,request_host,expected",
     (
-        ("{}", f"my-subby{test_domain}", "my-subby"),
-        ("{}", "test.org", None),
-        ("bad", "custom.test.org", "custom"),
-        (custom_map, f"rp-slug.{test_domain}", "rp-slug"),
+        ({}, f"my-subby{test_domain}", "my-subby"),
+        ({}, "test.org", None),
+        (custom_map, f"rp-slug{test_domain}", "rp-slug"),
         (custom_map, "custom.test.org", "test-rp-slug"),
     ),
 )

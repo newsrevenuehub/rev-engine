@@ -1158,7 +1158,9 @@ class PaymentProvider(IndexedTimeStampedModel):
     stripe_product_id = models.CharField(max_length=255, blank=True, null=True)
 
     currency = models.CharField(max_length=3, choices=CURRENCY_CHOICES, default="USD")
-    STRIPE = ("stripe", "Stripe")
+
+    STRIPE_LABEL = "Stripe"
+    STRIPE = ("stripe", STRIPE_LABEL)
     SUPPORTED_PROVIDERS = (STRIPE,)
     default_payment_provider = models.CharField(max_length=100, choices=SUPPORTED_PROVIDERS, default=STRIPE[0])
 

@@ -24,13 +24,13 @@ describe('getPageContributionIntervals', () => {
             content: [
               { value: 'year', isDefault: false, displayName: 'Yearly' },
               { value: 'month', isDefault: true, displayName: 'Monthly' },
-              { value: 'one_time', isDefault: false, displayName: 'One time' }
+              { value: 'one_time', isDefault: false, displayName: 'One-time' }
             ]
           }
         ]
       } as any)
     ).toEqual([
-      { displayName: 'One time', interval: 'one_time' },
+      { displayName: 'One-time', interval: 'one_time' },
       { displayName: 'Monthly', interval: 'month' },
       { displayName: 'Yearly', interval: 'year' }
     ]));
@@ -43,7 +43,7 @@ describe('getPageContributionIntervals', () => {
             type: 'DFrequency',
             content: [
               { value: 'month', isDefault: true, displayName: 'Monthly' },
-              { value: 'one_time', isDefault: false, displayName: 'One time' }
+              { value: 'one_time', isDefault: false, displayName: 'One-time' }
             ]
           }
         ],
@@ -55,7 +55,7 @@ describe('getPageContributionIntervals', () => {
         ]
       } as any)
     ).toEqual([
-      { displayName: 'One time', interval: 'one_time' },
+      { displayName: 'One-time', interval: 'one_time' },
       { displayName: 'Monthly', interval: 'month' }
     ]));
 });

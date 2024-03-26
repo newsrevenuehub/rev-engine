@@ -11,7 +11,7 @@ const Template: ComponentStory<typeof AmountEditor> = (props) => <AmountEditor {
 export const Default = Template.bind({});
 Default.args = {
   contributionIntervals: [
-    { displayName: 'One Time', interval: 'one_time' },
+    { displayName: 'One-Time', interval: 'one_time' },
     { displayName: 'Monthly', interval: 'month' },
     { displayName: 'Yearly', interval: 'year' }
   ],

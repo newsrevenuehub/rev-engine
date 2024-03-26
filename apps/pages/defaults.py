@@ -36,7 +36,7 @@ def get_default_page_elements():
             "type": FREQUENCY,
             "uuid": str(uuid4()),
             "content": [
-                {"value": "one_time", "isDefault": False, "displayName": "One time"},
+                {"value": "one_time", "isDefault": False, "displayName": "One-time"},
                 {"value": "month", "isDefault": True, "displayName": "Monthly"},
                 {"value": "year", "isDefault": False, "displayName": "Yearly"},
             ],

@@ -5,7 +5,7 @@ import FrequencyEditor, { FrequencyEditorProps } from './FrequencyEditor';
 import userEvent from '@testing-library/user-event';
 
 const elementContent = [
-  { value: CONTRIBUTION_INTERVALS.ONE_TIME, displayName: 'One time' },
+  { value: CONTRIBUTION_INTERVALS.ONE_TIME, displayName: 'One-time' },
   { value: CONTRIBUTION_INTERVALS.MONTHLY, displayName: 'Monthly', isDefault: true },
   { value: CONTRIBUTION_INTERVALS.ANNUAL, displayName: 'Yearly' }
 ];
@@ -30,7 +30,7 @@ function tree(props?: Partial<FrequencyEditorProps>) {
 
 describe('FrequencyEditor', () => {
   describe.each([
-    ['one_time', 'One time payments enabled', { value: CONTRIBUTION_INTERVALS.ONE_TIME, displayName: 'One time' }],
+    ['one_time', 'One-time payments enabled', { value: CONTRIBUTION_INTERVALS.ONE_TIME, displayName: 'One-time' }],
     ['month', 'Monthly payments enabled', { value: CONTRIBUTION_INTERVALS.MONTHLY, displayName: 'Monthly' }],
     ['year', 'Yearly payments enabled', { value: CONTRIBUTION_INTERVALS.ANNUAL, displayName: 'Yearly' }]
   ])('The %s toggle', (frequencyValue, name, frequencyContent) => {
@@ -67,7 +67,7 @@ describe('FrequencyEditor', () => {
   });
 
   describe.each([
-    ['one_time', 'One time', { value: CONTRIBUTION_INTERVALS.ONE_TIME, displayName: 'One time' }],
+    ['one_time', 'One-time', { value: CONTRIBUTION_INTERVALS.ONE_TIME, displayName: 'One-time' }],
     ['month', 'Monthly', { value: CONTRIBUTION_INTERVALS.MONTHLY, displayName: 'Monthly' }],
     ['year', 'Yearly', { value: CONTRIBUTION_INTERVALS.ANNUAL, displayName: 'Yearly' }]
   ])('The %s default radio button', (frequencyValue, name, frequencyContent) => {

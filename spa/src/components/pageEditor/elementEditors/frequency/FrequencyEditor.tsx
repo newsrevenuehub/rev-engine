@@ -17,7 +17,7 @@ import {
 // interval.
 
 const intervalInserts: Record<ContributionInterval, { displayName: string; value: ContributionInterval }> = {
-  one_time: { value: CONTRIBUTION_INTERVALS.ONE_TIME, displayName: 'One time' },
+  one_time: { value: CONTRIBUTION_INTERVALS.ONE_TIME, displayName: 'One-time' },
   month: { value: CONTRIBUTION_INTERVALS.MONTHLY, displayName: 'Monthly' },
   year: { value: CONTRIBUTION_INTERVALS.ANNUAL, displayName: 'Yearly' }
 };
@@ -79,7 +79,7 @@ export function FrequencyEditor({ elementContent, onChangeElementContent, setUpd
                 onChange={(event) => handleEnabledChange('one_time', event)}
               />
             }
-            label="One time payments enabled"
+            label="One-time payments enabled"
           />
           <ToggleFormControlLabel
             control={
@@ -104,7 +104,7 @@ export function FrequencyEditor({ elementContent, onChangeElementContent, setUpd
             <RadioFormControlLabel
               value="one_time"
               control={<Radio disabled={!enabled.includes('one_time')} />}
-              label={<OffscreenText>One time</OffscreenText>}
+              label={<OffscreenText>One-time</OffscreenText>}
             />
             <RadioFormControlLabel
               value="month"

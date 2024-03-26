@@ -12,7 +12,7 @@
       {
         "value": "one_time",
         "isDefault": false,
-        "displayName": "One time"
+        "displayName": "One-time"
       },
       {
         "value": "month",

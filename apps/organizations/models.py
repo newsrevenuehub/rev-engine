@@ -910,7 +910,7 @@ class RevenueProgram(IndexedTimeStampedModel):
 
     def ensure_mailchimp_one_time_contribution_product(self) -> None:
         if not self.mailchimp_one_time_contribution_product:
-            logger.info("RP with ID %s does not have a one time contributor producxt. Attempting to create", self.id)
+            logger.info("RP with ID %s does not have a one-time contributor producxt. Attempting to create", self.id)
             self.make_mailchimp_one_time_contribution_product()
         else:
             logger.info("One-time contribution product already exists for rp_id=[%s]", self.id)

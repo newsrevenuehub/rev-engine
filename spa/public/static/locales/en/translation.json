@@ -15,7 +15,7 @@
     },
     "frequency": {
       "adjectives": {
-        "one_time": "One time",
+        "one_time": "One-time",
         "month": "Monthly",
         "year": "Yearly"
       },
@@ -71,7 +71,7 @@
     },
     "dAmount": {
       "label": {
-        "one_time": "One time amount",
+        "one_time": "One-time amount",
         "month": "Monthly amount",
         "year": "Yearly amount"
       },
@@ -135,7 +135,7 @@
     "payFeesControl": {
       "agreeToPayFees": "Agree to pay fees?",
       "payFeesConsent": {
-        "one_time": "I agree to pay a one time transaction fee of {{ amount }} to direct more support to {{ revenueProgramName }}'s mission.",
+        "one_time": "I agree to pay a one-time transaction fee of {{ amount }} to direct more support to {{ revenueProgramName }}'s mission.",
         "month": "I agree to pay a monthly transaction fee of {{ amount }} to direct more support to {{ revenueProgramName }}'s mission.",
         "year": "I agree to pay a yearly transaction fee of {{ amount }} to direct more support to {{ revenueProgramName }}'s mission."
       }

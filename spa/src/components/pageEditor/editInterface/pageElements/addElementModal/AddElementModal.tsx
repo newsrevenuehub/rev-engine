@@ -1,21 +1,14 @@
 import { useState, useEffect } from 'react';
 import PropTypes, { InferProps } from 'prop-types';
-import * as S from './AddElementModal.styled';
-
-// Deps
 import { v4 as uuidv4 } from 'uuid';
-
-import Modal from 'elements/modal/Modal';
-
-// Context
+import { Modal, ModalHeader } from 'components/base';
 import { useEditInterfaceContext } from 'components/pageEditor/editInterface/EditInterfaceContextProvider';
-import { useEditablePageContext } from 'hooks/useEditablePage';
-
-// Elements
 import * as dynamicLayoutElements from 'components/donationPage/pageContent/dynamicElements';
 import * as dynamicSidebarElements from 'components/donationPage/pageContent/dynamicSidebarElements';
 import PageItem from 'components/pageEditor/editInterface/pageElements/PageItem';
 import { ContributionPageElement, PageElementType } from 'hooks/useContributionPage';
+import { useEditablePageContext } from 'hooks/useEditablePage';
+import { AddIcon, AvailableElements, ModalContent, PageItemWrapper, Prompt } from './AddElementModal.styled';
 
 // Additional default values to put into a newly-created element. TODO in
 // DEV-3197: refactor this logic into a hook/utility function.
@@ -91,28 +84,29 @@ function AddElementModal({ addElementModalOpen, setAddElementModalOpen, destinat
       // An element is disabled if it's unique and already present.
       const disabled = element.unique && els?.some((el) => el.type === element.type);
       return (
-        <S.PageItemWrapper key={`${element.displayName}${i}`}>
+        <PageItemWrapper key={`${element.displayName}${i}`}>
           <PageItem
             disabled={disabled}
             element={element}
             isStatic
             onClick={disabled ? undefined : () => handleElementSelected(element)}
             data-testid={`add-${element.type}`}
+            showDescription
           />
-        </S.PageItemWrapper>
+        </PageItemWrapper>
       );
     });
   };
 
   return (
-    <Modal isOpen={addElementModalOpen} closeModal={() => setAddElementModalOpen(false)}>
-      {addElementModalOpen && (
-        <S.AddElementModal data-testid="add-page-modal">
-          <S.ModalContent>
-            <S.AvailableElements>{renderDynamicLayoutElements()}</S.AvailableElements>
-          </S.ModalContent>
-        </S.AddElementModal>
-      )}
+    <Modal open={addElementModalOpen} onClose={() => setAddElementModalOpen(false)} data-testid="add-page-modal">
+      <ModalHeader icon={<AddIcon />} onClose={() => setAddElementModalOpen(false)}>
+        Add Block
+      </ModalHeader>
+      <ModalContent>
+        <Prompt>Select the block you would like to add to your page.</Prompt>
+        <AvailableElements>{renderDynamicLayoutElements()}</AvailableElements>
+      </ModalContent>
     </Modal>
   );
 }

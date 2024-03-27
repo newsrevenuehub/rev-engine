@@ -10,16 +10,13 @@ jest.mock('./AmountInterval');
 
 const contributionIntervals: ContributionIntervalList = [
   {
-    interval: 'one_time',
-    displayName: 'One-Time'
+    interval: 'one_time'
   },
   {
-    interval: 'month',
-    displayName: 'Monthly'
+    interval: 'month'
   },
   {
-    interval: 'year',
-    displayName: 'Yearly'
+    interval: 'year'
   }
 ];
 
@@ -102,7 +99,7 @@ describe('AmountEditor', () => {
 
     tree({
       onChangeElementContent,
-      contributionIntervals: [{ interval: 'one_time', displayName: 'One-time' }]
+      contributionIntervals: [{ interval: 'one_time' }]
     });
     expect(onChangeElementContent).not.toBeCalled();
     userEvent.click(screen.getByText('onAddAmount'));
@@ -128,7 +125,7 @@ describe('AmountEditor', () => {
         }
       },
       onChangeElementContent,
-      contributionIntervals: [{ interval: 'one_time', displayName: 'One-time' }]
+      contributionIntervals: [{ interval: 'one_time' }]
     });
     expect(onChangeElementContent).not.toBeCalled();
     userEvent.click(screen.getByText('onAddAmount'));
@@ -147,7 +144,7 @@ describe('AmountEditor', () => {
 
     tree({
       onChangeElementContent,
-      contributionIntervals: [{ interval: 'one_time', displayName: 'One-time' }]
+      contributionIntervals: [{ interval: 'one_time' }]
     });
     expect(onChangeElementContent).not.toBeCalled();
     userEvent.click(screen.getByText('onRemoveAmount'));
@@ -166,7 +163,7 @@ describe('AmountEditor', () => {
 
     tree({
       onChangeElementContent,
-      contributionIntervals: [{ interval: 'one_time', displayName: 'One-time' }]
+      contributionIntervals: [{ interval: 'one_time' }]
     });
     expect(onChangeElementContent).not.toBeCalled();
     userEvent.click(screen.getByText('onSetDefaultAmount'));

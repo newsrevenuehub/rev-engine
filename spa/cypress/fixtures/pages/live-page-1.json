@@ -26,16 +26,13 @@
       "requiredFields": [],
       "content": [
         {
-          "value": "one_time",
-          "displayName": "One-time"
+          "value": "one_time"
         },
         {
-          "value": "month",
-          "displayName": "Monthly"
+          "value": "month"
         },
         {
-          "value": "year",
-          "displayName": "Yearly"
+          "value": "year"
         }
       ]
     },

@@ -12,7 +12,7 @@ const page = {
     { content: 'layout-element-content', type: 'DAmount', uuid: 'layout-damount-uuid' },
     { content: 'layout-element-content', type: 'DReason', uuid: 'layout-dreason-uuid' },
     {
-      content: [{ displayName: 'One-time', isDefault: true, value: 'one_time' }],
+      content: [{ isDefault: true, value: 'one_time' }],
       type: 'DFrequency',
       uuid: 'layout-dfrequency-uuid'
     }
@@ -20,7 +20,7 @@ const page = {
   sidebar_elements: [
     { content: 'sidebar-element-content', type: 'DAmount', uuid: 'sidebar-damount-uuid' },
     {
-      content: [{ displayName: 'One-time', isDefault: true, value: 'one_time' }],
+      content: [{ isDefault: true, value: 'one_time' }],
       type: 'DFrequency',
       uuid: 'sidebar-dfrequency-uuid'
     }

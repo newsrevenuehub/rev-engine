@@ -5,9 +5,9 @@ import FrequencyEditor, { FrequencyEditorProps } from './FrequencyEditor';
 import userEvent from '@testing-library/user-event';
 
 const elementContent = [
-  { value: CONTRIBUTION_INTERVALS.ONE_TIME, displayName: 'One-time' },
-  { value: CONTRIBUTION_INTERVALS.MONTHLY, displayName: 'Monthly', isDefault: true },
-  { value: CONTRIBUTION_INTERVALS.ANNUAL, displayName: 'Yearly' }
+  { value: CONTRIBUTION_INTERVALS.ONE_TIME },
+  { value: CONTRIBUTION_INTERVALS.MONTHLY, isDefault: true },
+  { value: CONTRIBUTION_INTERVALS.ANNUAL }
 ];
 
 // Cast to any to avoid typechecking.

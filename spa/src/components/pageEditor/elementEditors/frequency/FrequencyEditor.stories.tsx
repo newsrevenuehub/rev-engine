@@ -12,9 +12,9 @@ const Template: ComponentStory<typeof FrequencyEditor> = (props) => <FrequencyEd
 export const Default = Template.bind({});
 Default.args = {
   elementContent: [
-    { value: CONTRIBUTION_INTERVALS.ONE_TIME, displayName: 'One-time' },
-    { value: CONTRIBUTION_INTERVALS.MONTHLY, displayName: 'Monthly', isDefault: true },
-    { value: CONTRIBUTION_INTERVALS.ANNUAL, displayName: 'Yearly' }
+    { value: CONTRIBUTION_INTERVALS.ONE_TIME },
+    { value: CONTRIBUTION_INTERVALS.MONTHLY, isDefault: true },
+    { value: CONTRIBUTION_INTERVALS.ANNUAL }
   ],
   onChangeElementContent: () => {},
   setUpdateDisabled: () => {}
@@ -23,9 +23,9 @@ Default.args = {
 export const NoDefaultSet = Template.bind({});
 NoDefaultSet.args = {
   elementContent: [
-    { value: CONTRIBUTION_INTERVALS.ONE_TIME, displayName: 'One-time' },
-    { value: CONTRIBUTION_INTERVALS.MONTHLY, displayName: 'Monthly' },
-    { value: CONTRIBUTION_INTERVALS.ANNUAL, displayName: 'Yearly' }
+    { value: CONTRIBUTION_INTERVALS.ONE_TIME },
+    { value: CONTRIBUTION_INTERVALS.MONTHLY },
+    { value: CONTRIBUTION_INTERVALS.ANNUAL }
   ],
   onChangeElementContent: () => {},
   setUpdateDisabled: () => {}

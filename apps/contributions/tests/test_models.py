@@ -1599,7 +1599,11 @@ class TestContributionModel:
         assert contribution.stripe_subscription is None
         assert contribution.canceled_at is None
 
-    def test_cancelled_at_date_when_subscription(self, contribution, subscription_factory, mocker):
+    @pytest.mark.parametrize(
+        "canceled_at",
+        (None, datetime.datetime.now().timestamp()),
+    )
+    def test_cancelled_at_date_when_subscription(self, canceled_at, contribution, subscription_factory, mocker):
         contribution.provider_subscription_id = "something"
         contribution.status = ContributionStatus.CANCELED
         contribution.save()
@@ -1607,10 +1611,14 @@ class TestContributionModel:
         provider.save()
         mocker.patch(
             "stripe.Subscription.retrieve",
-            return_value=(sub := subscription_factory.get(canceled_at=datetime.datetime.now().timestamp())),
+            return_value=(sub := subscription_factory.get(canceled_at=canceled_at)),
         )
         assert contribution.stripe_subscription == sub
-        assert contribution.canceled_at == datetime.datetime.fromtimestamp(sub.canceled_at, tz=ZoneInfo("UTC"))
+
+        canceled_at_result = (
+            datetime.datetime.fromtimestamp(sub.canceled_at, tz=ZoneInfo("UTC")) if canceled_at else None
+        )
+        assert contribution.canceled_at == canceled_at_result
 
     def test_card_owner_name_when_no_provider_payment_method_details(self, mocker):
         contribution = ContributionFactory(provider_payment_method_details=None)

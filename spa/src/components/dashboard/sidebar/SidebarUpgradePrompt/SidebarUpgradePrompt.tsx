@@ -20,7 +20,7 @@ export type SidebarUpgradePromptProps = InferProps<typeof SidebarUpgradePromptPr
 const COPY: Record<
   EnginePlan['name'],
   {
-    icon: React.FC<React.SVGProps<SVGSVGElement>>;
+    icon: React.ComponentType;
     iconTestID?: string;
     header: string;
     text: string;

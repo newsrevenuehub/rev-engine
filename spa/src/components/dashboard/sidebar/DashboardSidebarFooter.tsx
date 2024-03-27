@@ -25,25 +25,27 @@ const DashboardSidebarFooter = () => {
   );
 
   const showUpgradePrompt = useMemo(() => {
-    // Doesn't show any prompts if plan is undefined
-    if (!user?.organizations[0]?.plan?.name) {
+    // Don't show any prompts if plan is loading, the user isn't an org admin,
+    // or they haven't verified Stripe yet.
+    if (
+      !user?.organizations[0]?.plan?.name ||
+      !isOrgAdmin ||
+      !user?.revenue_programs[0]?.payment_provider_stripe_verified
+    ) {
       return false;
     }
 
-    const isAdminAndStripeVerified = isOrgAdmin && user?.revenue_programs[0].payment_provider_stripe_verified;
-
-    if (user?.organizations[0].plan.name === PLAN_NAMES.FREE) {
-      return !coreUpgradePromptClosed && isAdminAndStripeVerified;
+    switch (user?.organizations[0].plan.name) {
+      case PLAN_NAMES.FREE:
+        return !coreUpgradePromptClosed;
+      case PLAN_NAMES.CORE:
+        return !plusUpgradePromptClosed;
+      case PLAN_NAMES.PLUS:
+        return !consultingUpgradePromptClosed;
     }
 
-    if (user?.organizations[0].plan.name === PLAN_NAMES.CORE) {
-      return !plusUpgradePromptClosed && isAdminAndStripeVerified;
-    }
-
-    if (user?.organizations[0].plan.name === PLAN_NAMES.PLUS) {
-      return !consultingUpgradePromptClosed && isAdminAndStripeVerified;
-    }
-
+    // Should never happen. Log it to Sentry but show no prompt.
+    console.warn(`Unexpected plan name: ${user?.organizations[0].plan.name}`);
     return false;
   }, [
     consultingUpgradePromptClosed,
@@ -54,18 +56,18 @@ const DashboardSidebarFooter = () => {
     user?.revenue_programs
   ]);
 
-  console.log({ showUpgradePrompt, user });
-
   const onClosePrompt = useCallback(() => {
-    if (user?.organizations[0].plan.name === PLAN_NAMES.PLUS) {
-      return setConsultingUpgradePromptClosed(true);
+    switch (user?.organizations[0].plan.name) {
+      case PLAN_NAMES.FREE:
+        return setCoreUpgradePromptClosed(true);
+      case PLAN_NAMES.CORE:
+        return setPlusUpgradePromptClosed(true);
+      case PLAN_NAMES.PLUS:
+        return setConsultingUpgradePromptClosed(true);
     }
 
-    if (user?.organizations[0].plan.name === PLAN_NAMES.CORE) {
-      return setPlusUpgradePromptClosed(true);
-    }
-
-    return setCoreUpgradePromptClosed(true);
+    // Should never happen.
+    throw new Error(`Unexpected plan name: ${user?.organizations[0].plan.name}`);
   }, [setConsultingUpgradePromptClosed, setCoreUpgradePromptClosed, setPlusUpgradePromptClosed, user?.organizations]);
 
   return (

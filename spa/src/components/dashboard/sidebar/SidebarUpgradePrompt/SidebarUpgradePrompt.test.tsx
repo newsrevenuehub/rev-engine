@@ -13,6 +13,7 @@ describe('SidebarCoreUpgradePrompt', () => {
       'FREE',
       {
         header: 'Upgrade to Core',
+        icon: 'arrow-up',
         text: 'Boost your revenue with segmented email marketing.',
         cta: 'Upgrade',
         to: SETTINGS.SUBSCRIPTION
@@ -22,6 +23,7 @@ describe('SidebarCoreUpgradePrompt', () => {
       'CORE',
       {
         header: 'Upgrade to Plus',
+        icon: 'double-arrow-up',
         text: 'Gain access to advanced analytics and contributor data.',
         cta: 'Upgrade',
         to: SETTINGS.SUBSCRIPTION
@@ -31,6 +33,7 @@ describe('SidebarCoreUpgradePrompt', () => {
       'PLUS',
       {
         header: 'Ready for Custom Consulting?',
+        icon: 'double-arrow-up',
         text: 'Learn how our team has helped newsrooms raise $100 million. Level up!',
         cta: 'Contact Us',
         to: 'https://fundjournalism.org/news-revenue-engine-help/',
@@ -51,6 +54,12 @@ describe('SidebarCoreUpgradePrompt', () => {
       tree({ currentPlan: plan });
 
       expect(screen.getByText(details.header)).toBeVisible();
+    });
+
+    it('displays the correct icon', () => {
+      tree({ currentPlan: plan });
+
+      expect(screen.getByTestId(details.icon)).toBeVisible();
     });
 
     it('displays the correct text', () => {

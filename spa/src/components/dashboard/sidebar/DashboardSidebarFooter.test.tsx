@@ -5,14 +5,18 @@ import {
   USER_SUPERUSER_TYPE
 } from 'constants/authConstants';
 import { FAQ_URL, HELP_URL } from 'constants/helperUrls';
-import { SIDEBAR_CORE_UPGRADE_CLOSED } from 'hooks/useSessionState';
+import {
+  SIDEBAR_CONSULTING_UPGRADE_CLOSED,
+  SIDEBAR_CORE_UPGRADE_CLOSED,
+  SIDEBAR_PLUS_UPGRADE_CLOSED
+} from 'hooks/useSessionState';
 import useUser from 'hooks/useUser';
 import { axe } from 'jest-axe';
 import { fireEvent, render, screen } from 'test-utils';
 import DashboardSidebarFooter from './DashboardSidebarFooter';
 
 jest.mock('hooks/useUser');
-jest.mock('./SidebarCoreUpgradePrompt/SidebarCoreUpgradePrompt');
+jest.mock('./SidebarUpgradePrompt/SidebarUpgradePrompt');
 
 const mockUser = {
   organizations: [{ plan: { name: 'FREE' } }],
@@ -38,26 +42,39 @@ describe('DashboardSidebarFooter', () => {
     );
   }
 
-  describe("When the user is an org admin, on the free plan, their organization is Stripe connected, and hasn't previously closed the prompt", () => {
-    it('shows a Core upgrade prompt', () => {
-      tree();
-      expect(screen.getByTestId('mock-sidebar-core-upgrade-prompt')).toBeInTheDocument();
-    });
+  describe.each([
+    ['FREE', 'Core', SIDEBAR_CORE_UPGRADE_CLOSED],
+    ['CORE', 'Plus', SIDEBAR_PLUS_UPGRADE_CLOSED],
+    ['PLUS', 'Consulting', SIDEBAR_CONSULTING_UPGRADE_CLOSED]
+  ])(
+    "When the user is an org admin, on the %s plan, their organization is Stripe connected, and hasn't previously closed the prompt",
+    (plan, promptType, sessionKey) => {
+      beforeEach(() => {
+        useUserMock.mockReturnValue({ user: { ...mockUser, organizations: [{ plan: { name: plan } }] } });
+      });
 
-    it('hides the prompt when closed', () => {
-      tree();
-      expect(screen.getByTestId('mock-sidebar-core-upgrade-prompt')).toBeInTheDocument();
-      fireEvent.click(screen.getByText('onClose'));
-      expect(screen.queryByTestId('mock-sidebar-core-upgrade-prompt')).not.toBeInTheDocument();
-    });
+      it(`shows a ${promptType} upgrade prompt`, () => {
+        tree();
+        const prompt = screen.getByTestId('mock-sidebar-upgrade-prompt');
+        expect(prompt).toBeInTheDocument();
+        expect(prompt.dataset.currentplan).toBe(plan);
+      });
 
-    it('sets session state to remember that the prompt has been closed', () => {
-      tree();
-      expect(window.sessionStorage.getItem(SIDEBAR_CORE_UPGRADE_CLOSED)).toBeNull();
-      fireEvent.click(screen.getByText('onClose'));
-      expect(JSON.parse(window.sessionStorage.getItem(SIDEBAR_CORE_UPGRADE_CLOSED)!)).toBe(true);
-    });
-  });
+      it('hides the prompt when closed', () => {
+        tree();
+        expect(screen.getByTestId('mock-sidebar-upgrade-prompt')).toBeInTheDocument();
+        fireEvent.click(screen.getByText('onClose'));
+        expect(screen.queryByTestId('mock-sidebar-upgrade-prompt')).not.toBeInTheDocument();
+      });
+
+      it('sets session state to remember that the prompt has been closed', () => {
+        tree();
+        expect(window.sessionStorage.getItem(sessionKey)).toBeNull();
+        fireEvent.click(screen.getByText('onClose'));
+        expect(JSON.parse(window.sessionStorage.getItem(sessionKey)!)).toBe(true);
+      });
+    }
+  );
 
   it.each([
     ['Hub admin', USER_ROLE_HUB_ADMIN_TYPE],

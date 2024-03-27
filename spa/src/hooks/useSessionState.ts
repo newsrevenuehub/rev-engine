@@ -8,6 +8,8 @@ import { useCallback, useMemo, useState } from 'react';
 
 export const DONATIONS_CORE_UPGRADE_CLOSED = 'donationsCoreUpgradeClosed';
 export const SIDEBAR_CORE_UPGRADE_CLOSED = 'sidebarCoreUpgradeClosed';
+export const SIDEBAR_PLUS_UPGRADE_CLOSED = 'sidebarPlusUpgradeClosed';
+export const SIDEBAR_CONSULTING_UPGRADE_CLOSED = 'sidebarConsultingUpgradeClosed';
 export const CUSTOMIZE_CORE_UPGRADE_CLOSED = 'customizeCoreUpgradeClosed';
 
 export type UseSessionStateResult<T> = [

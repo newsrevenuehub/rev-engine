@@ -1,6 +1,6 @@
 import logging
 import re
-from typing import Tuple
+from typing import List, Tuple
 
 from django.conf import settings
 from django.db.models import Model
@@ -164,8 +164,12 @@ def google_cloud_pub_sub_is_configured() -> bool:
     return all([settings.ENABLE_PUBSUB and settings.GOOGLE_CLOUD_PROJECT])
 
 
-def upsert_with_diff_check(model, defaults: dict, unique_identifier: dict, caller_name: str) -> Tuple[Model, str]:
+def upsert_with_diff_check(
+    model, defaults: dict, unique_identifier: dict, caller_name: str, dont_update: List[str] = []
+) -> Tuple[Model, str]:
     """Upsert a model instance with a reversion comment, but only update if defaults differ from existing instance.
+
+    Fields in the dont_update list will only be used if a new object needs to be created. They will not update an existing object.
 
     Returns instance, whether it was created, and whether it was updated
     """
@@ -174,7 +178,7 @@ def upsert_with_diff_check(model, defaults: dict, unique_identifier: dict, calle
         fields_to_update = set()
         if not created:
             for field, value in defaults.items():
-                if getattr(instance, field) != value:
+                if (field not in dont_update) and getattr(instance, field) != value:
                     setattr(instance, field, value)
                     fields_to_update.add(field)
             if fields_to_update:

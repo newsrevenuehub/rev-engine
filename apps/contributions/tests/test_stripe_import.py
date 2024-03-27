@@ -398,7 +398,15 @@ class TestSubscriptionForRecurringContribution:
         assert contribution.provider_payment_method_id == subscription.default_payment_method.id
         assert contribution.provider_payment_method_details == subscription.default_payment_method.to_dict()
         assert contribution.contributor.email == subscription.customer.email
-        assert contribution.contribution_metadata == subscription.metadata
+
+        # If the upsert is updating an existing contribution, it shouldn't touch
+        # its metadata.
+
+        if action == "created":
+            assert contribution.contribution_metadata == subscription.metadata
+        else:
+            assert contribution.contribution_metadata != subscription.metadata
+
         assert contribution.status == ContributionStatus.PAID
         assert Contributor.objects.filter(email=customer.email).exists
         assert action == ("created" if not existing_entities else "updated")
@@ -602,7 +610,15 @@ class TestPaymentIntentForOneTimeContribution:
         assert contribution.provider_payment_method_id == payment_intent.payment_method.id
         assert contribution.provider_payment_method_details == payment_intent.payment_method.to_dict()
         assert contribution.contributor.email == customer.email
-        assert contribution.contribution_metadata == payment_intent.metadata
+
+        # If the upsert is updating an existing contribution, it shouldn't touch
+        # its metadata.
+
+        if action == "created":
+            assert contribution.contribution_metadata == payment_intent.metadata
+        else:
+            assert contribution.contribution_metadata != payment_intent.metadata
+
         # because we send a refund, the status is refunded
         assert contribution.status == ContributionStatus.REFUNDED
         assert contribution.provider_customer_id == customer.id

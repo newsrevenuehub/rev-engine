@@ -291,6 +291,10 @@ class PaymentIntentForOneTimeContribution(ContributionImportBaseClass):
                 "contribution_metadata": self.payment_intent.metadata,
             },
             caller_name="PaymentIntentForOneTimeContribution.upsert",
+            # If there's contribution metadata, we want to leave it intact.
+            # Otherwise we see spurious updates because of key ordering in the
+            # metadata and conversions of null <-> None.
+            dont_update=["contribution_metadata"],
         )
         contribution = self.conditionally_update_contribution_donation_page(contribution=contribution)
         if not contribution.donation_page:
@@ -398,6 +402,10 @@ class SubscriptionForRecurringContribution(ContributionImportBaseClass):
                 "status": self.status,
             },
             caller_name="SubscriptionForRecurringContribution.upsert",
+            # If there's contribution metadata, we want to leave it intact.
+            # Otherwise we see spurious updates because of key ordering in the
+            # metadata and conversions of null <-> None.
+            dont_update=["contribution_metadata"],
         )
         contribution = self.conditionally_update_contribution_donation_page(contribution=contribution)
         if not contribution.donation_page:

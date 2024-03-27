@@ -897,6 +897,7 @@ class PortalContributionPaymentSerializer(serializers.ModelSerializer):
 PORTAL_CONTRIBUTION_DETAIL_SERIALIZER_DB_FIELDS = PORTAL_CONTRIBUTION_BASE_SERIALIZER_FIELDS + [
     "payments",
     "paid_fees",
+    "canceled_at",
     "card_owner_name",
     "stripe_account_id",
 ]

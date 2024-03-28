@@ -168,10 +168,6 @@ export interface DonorInfoElement extends ContributionPageElement {
 export interface FrequencyElement extends ContributionPageElement {
   content: {
     /**
-     * Display name for the frequency.
-     */
-    displayName: string;
-    /**
      * Is this the default frequency for the contribution page?
      */
     isDefault?: boolean;

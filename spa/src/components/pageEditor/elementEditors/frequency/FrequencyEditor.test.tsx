@@ -5,14 +5,14 @@ import FrequencyEditor, { FrequencyEditorProps } from './FrequencyEditor';
 import userEvent from '@testing-library/user-event';
 
 const elementContent = [
-  { value: CONTRIBUTION_INTERVALS.ONE_TIME, displayName: 'One time' },
-  { value: CONTRIBUTION_INTERVALS.MONTHLY, displayName: 'Monthly', isDefault: true },
-  { value: CONTRIBUTION_INTERVALS.ANNUAL, displayName: 'Yearly' }
+  { value: CONTRIBUTION_INTERVALS.ONE_TIME },
+  { value: CONTRIBUTION_INTERVALS.MONTHLY, isDefault: true },
+  { value: CONTRIBUTION_INTERVALS.ANNUAL }
 ];
 
 // Cast to any to avoid typechecking.
 
-const unrelatedContent: any = { displayName: 'unrelated', isDefault: true, value: 'unrelated' };
+const unrelatedContent: any = { isDefault: true, value: 'unrelated' };
 
 function tree(props?: Partial<FrequencyEditorProps>) {
   return render(
@@ -30,9 +30,9 @@ function tree(props?: Partial<FrequencyEditorProps>) {
 
 describe('FrequencyEditor', () => {
   describe.each([
-    ['one_time', 'One time payments enabled', { value: CONTRIBUTION_INTERVALS.ONE_TIME, displayName: 'One time' }],
-    ['month', 'Monthly payments enabled', { value: CONTRIBUTION_INTERVALS.MONTHLY, displayName: 'Monthly' }],
-    ['year', 'Yearly payments enabled', { value: CONTRIBUTION_INTERVALS.ANNUAL, displayName: 'Yearly' }]
+    ['one_time', 'One-time payments enabled', { value: CONTRIBUTION_INTERVALS.ONE_TIME }],
+    ['month', 'Monthly payments enabled', { value: CONTRIBUTION_INTERVALS.MONTHLY }],
+    ['year', 'Yearly payments enabled', { value: CONTRIBUTION_INTERVALS.ANNUAL }]
   ])('The %s toggle', (frequencyValue, name, frequencyContent) => {
     it(`is on if element content contains a '${frequencyValue}' value`, () => {
       tree({ elementContent: elementContent.filter(({ value }) => value === frequencyValue) });
@@ -67,7 +67,7 @@ describe('FrequencyEditor', () => {
   });
 
   describe.each([
-    ['one_time', 'One time', { value: CONTRIBUTION_INTERVALS.ONE_TIME, displayName: 'One time' }],
+    ['one_time', 'One-time', { value: CONTRIBUTION_INTERVALS.ONE_TIME, displayName: 'One-time' }],
     ['month', 'Monthly', { value: CONTRIBUTION_INTERVALS.MONTHLY, displayName: 'Monthly' }],
     ['year', 'Yearly', { value: CONTRIBUTION_INTERVALS.ANNUAL, displayName: 'Yearly' }]
   ])('The %s default radio button', (frequencyValue, name, frequencyContent) => {

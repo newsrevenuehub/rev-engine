@@ -69,7 +69,7 @@ describe('ContributionTableRow', () => {
   });
 
   it.each([
-    ['one_time', 'One time'],
+    ['one_time', 'One-time'],
     ['month', 'Monthly'],
     ['year', 'Yearly']
   ])('displays a cell showing the contribution interval for %s', (interval, displayValue) => {

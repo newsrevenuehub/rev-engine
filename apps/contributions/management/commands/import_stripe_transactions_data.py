@@ -16,7 +16,7 @@ stripe_logger.setLevel(logging.ERROR)
 
 
 class Command(BaseCommand):
-    """This commands allows the admin user to import transaction data from Stripe to revengine. It locates payment intents for one time
+    """This commands allows the admin user to import transaction data from Stripe to revengine. It locates payment intents for one-time
     contributions and invoices for recurring contributions (plus related data entities) in order to create or update revengine contributor,
     contribution, and payment objects. It DOES not mutate Stripe objects in any way. This command is idempotent and can be run multiple times.
     """

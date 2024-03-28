@@ -64,18 +64,15 @@
       "content": [
         {
           "value": "one_time",
-          "isDefault": false,
-          "displayName": "One time"
+          "isDefault": false
         },
         {
           "value": "month",
-          "isDefault": true,
-          "displayName": "Monthly"
+          "isDefault": true
         },
         {
           "value": "year",
-          "isDefault": false,
-          "displayName": "Yearly"
+          "isDefault": false
         }
       ],
       "requiredFields": []

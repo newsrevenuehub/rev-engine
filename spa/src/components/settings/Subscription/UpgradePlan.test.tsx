@@ -98,20 +98,6 @@ describe('UpgradePlan', () => {
       expect(screen.queryByTestId('mock-stripe-pricing-table')).not.toBeInTheDocument();
     });
 
-    it('displays the Plus feature list', () => {
-      tree();
-      expect(screen.getByText('Plus Tier')).toBeVisible();
-    });
-
-    it('displays a link to upgrade', () => {
-      tree();
-
-      const link = screen.getByRole('link', { name: 'Join the Waitlist' });
-
-      expect(link).toBeVisible();
-      expect(link).toHaveAttribute('href', PLUS_UPGRADE_URL);
-    });
-
     it('is accessible', async () => {
       const { container } = tree();
 

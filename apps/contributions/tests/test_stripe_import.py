@@ -382,8 +382,9 @@ class TestSubscriptionForRecurringContribution:
         return subscription, (True if request.param == "subscription_with_existing_nre_entities" else False)
 
     def test_upsert(self, subscription_to_upsert, charge, refund, customer, mocker):
-
         subscription, existing_entities = subscription_to_upsert
+        if existing_entities:
+            orig_metadata = Contribution.objects.get(provider_subscription_id=subscription.id).contribution_metadata
         mock_upsert_payment = mocker.patch("apps.contributions.stripe_import.upsert_payment_for_transaction")
         instance = SubscriptionForRecurringContribution(
             subscription=subscription, charges=[charge], refunds=[refund], customer=customer
@@ -405,7 +406,7 @@ class TestSubscriptionForRecurringContribution:
         if action == "created":
             assert contribution.contribution_metadata == subscription.metadata
         else:
-            assert contribution.contribution_metadata != subscription.metadata
+            assert contribution.contribution_metadata == orig_metadata
 
         assert contribution.status == ContributionStatus.PAID
         assert Contributor.objects.filter(email=customer.email).exists
@@ -598,6 +599,8 @@ class TestPaymentIntentForOneTimeContribution:
 
     def test_upsert(self, pi_to_upsert, customer, charge, refund, mocker):
         payment_intent, existing_entities = pi_to_upsert
+        if existing_entities:
+            orig_metadata = Contribution.objects.get(provider_payment_id=payment_intent.id).contribution_metadata
         mock_upsert_payment = mocker.patch("apps.contributions.stripe_import.upsert_payment_for_transaction")
         contribution, action = PaymentIntentForOneTimeContribution(
             payment_intent=payment_intent, charges=[charge], customer=customer, refunds=[refund]
@@ -617,7 +620,7 @@ class TestPaymentIntentForOneTimeContribution:
         if action == "created":
             assert contribution.contribution_metadata == payment_intent.metadata
         else:
-            assert contribution.contribution_metadata != payment_intent.metadata
+            assert contribution.contribution_metadata == orig_metadata
 
         # because we send a refund, the status is refunded
         assert contribution.status == ContributionStatus.REFUNDED

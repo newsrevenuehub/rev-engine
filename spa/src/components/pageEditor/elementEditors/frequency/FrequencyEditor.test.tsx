@@ -12,7 +12,7 @@ const elementContent = [
 
 // Cast to any to avoid typechecking.
 
-const unrelatedContent: any = { displayName: 'unrelated', isDefault: true, value: 'unrelated' };
+const unrelatedContent: any = { isDefault: true, value: 'unrelated' };
 
 function tree(props?: Partial<FrequencyEditorProps>) {
   return render(
@@ -30,9 +30,9 @@ function tree(props?: Partial<FrequencyEditorProps>) {
 
 describe('FrequencyEditor', () => {
   describe.each([
-    ['one_time', 'One-time payments enabled', { value: CONTRIBUTION_INTERVALS.ONE_TIME, displayName: 'One-time' }],
-    ['month', 'Monthly payments enabled', { value: CONTRIBUTION_INTERVALS.MONTHLY, displayName: 'Monthly' }],
-    ['year', 'Yearly payments enabled', { value: CONTRIBUTION_INTERVALS.ANNUAL, displayName: 'Yearly' }]
+    ['one_time', 'One-time payments enabled', { value: CONTRIBUTION_INTERVALS.ONE_TIME }],
+    ['month', 'Monthly payments enabled', { value: CONTRIBUTION_INTERVALS.MONTHLY }],
+    ['year', 'Yearly payments enabled', { value: CONTRIBUTION_INTERVALS.ANNUAL }]
   ])('The %s toggle', (frequencyValue, name, frequencyContent) => {
     it(`is on if element content contains a '${frequencyValue}' value`, () => {
       tree({ elementContent: elementContent.filter(({ value }) => value === frequencyValue) });

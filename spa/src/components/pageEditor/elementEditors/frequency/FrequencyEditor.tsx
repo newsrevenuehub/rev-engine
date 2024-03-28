@@ -16,10 +16,10 @@ import {
 // Values that are added to element content when the user enables a contribution
 // interval.
 
-const intervalInserts: Record<ContributionInterval, { displayName: string; value: ContributionInterval }> = {
-  one_time: { value: CONTRIBUTION_INTERVALS.ONE_TIME, displayName: 'One-time' },
-  month: { value: CONTRIBUTION_INTERVALS.MONTHLY, displayName: 'Monthly' },
-  year: { value: CONTRIBUTION_INTERVALS.ANNUAL, displayName: 'Yearly' }
+const intervalInserts: Record<ContributionInterval, { value: ContributionInterval }> = {
+  one_time: { value: CONTRIBUTION_INTERVALS.ONE_TIME },
+  month: { value: CONTRIBUTION_INTERVALS.MONTHLY },
+  year: { value: CONTRIBUTION_INTERVALS.ANNUAL }
 };
 
 // These configure how many frequencies are required, and the validation error

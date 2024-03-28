@@ -112,7 +112,7 @@ describe('Donation page displays dynamic page elements', () => {
     }
   });
 
-  it.only('should render the correct fee base on frequency and amount', () => {
+  it('should render the correct fee base on frequency and amount', () => {
     const frequency = getPageElementByType(livePageOne, 'DFrequency');
     const amounts = getPageElementByType(livePageOne, 'DAmount');
 

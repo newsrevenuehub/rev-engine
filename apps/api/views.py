@@ -36,11 +36,23 @@ COOKIE_PATH = "/"
 
 
 def construct_rp_domain(subdomain, referer=None):
-    """Find Revenue Program specific subdomain and use it to construct magic link host.
+    """
+    Find Revenue Program specific subdomain and use it to construct magic link
+    host. Tries to use the HOST_MAP enviroment variable if set.
 
     Return RP specific domain or None if not found.
     """
-    logger.info("[construct_rp_domain] constructing rp domain for subdomain (%s) and referer (%s)", subdomain, referer)
+    logger.info("constructing rp domain for subdomain (%s) and referer (%s)", subdomain, referer)
+
+    # Try to map it using the HOST_MAP environment variable.
+
+    for hostname, slug in settings.HOST_MAP.items():
+        if slug == subdomain:
+            logger.info("Mapped %s to %s", subdomain, hostname)
+            return hostname
+
+    # Parse it normally.
+
     if ":" in subdomain:  # Assume full url.
         subdomain = urlparse(subdomain).hostname.split(".")[0]
     if not subdomain and referer:

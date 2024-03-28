@@ -12,9 +12,6 @@ import { DASHBOARD_SUBDOMAINS } from 'appSettings';
 // Routing
 import ProtectedRoute from 'components/authentication/ProtectedRoute';
 
-// Hooks
-import useSubdomain from 'hooks/useSubdomain';
-
 // Slugs
 import useWebFonts from 'hooks/useWebFonts';
 import * as ROUTES from 'routes';
@@ -29,6 +26,7 @@ import { SentryRoute } from 'hooks/useSentry';
 import componentLoader from 'utilities/componentLoader';
 import RouterSetup from './routes/RouterSetup';
 import { ContributionPage } from 'hooks/useContributionPage';
+import { getRevenueProgramSlug } from 'utilities/getRevenueProgramSlug';
 
 // Split bundles
 const ContributorEntry = lazy(() => componentLoader(() => import('components/contributor/ContributorEntry')));
@@ -46,14 +44,14 @@ function ContributorRouter() {
   // If Donation page belongs to a paid org (not Free) and RP has a Default Donation Page, use custom styles
   const renderCustomStyles = !isFreeOrg && hasDefaultDonationPage;
 
-  const subdomain = useSubdomain();
+  const rpSlug = getRevenueProgramSlug();
   const requestFullPage = useRequest();
 
   useWebFonts(pageData?.styles?.font);
 
   const fetchRPLiveContent = useCallback(async () => {
     const requestParams = {
-      revenue_program: subdomain
+      revenue_program: rpSlug
     };
     requestFullPage(
       {
@@ -71,14 +69,14 @@ function ContributorRouter() {
         }
       }
     );
-  }, [requestFullPage, subdomain]);
+  }, [requestFullPage, rpSlug]);
 
   useEffect(() => {
-    if (!DASHBOARD_SUBDOMAINS.includes(subdomain)) fetchRPLiveContent();
-  }, [fetchRPLiveContent, subdomain]);
+    if (!DASHBOARD_SUBDOMAINS.includes(rpSlug)) fetchRPLiveContent();
+  }, [fetchRPLiveContent, rpSlug]);
 
   // If rp has no default page, normal contributor page is shown
-  if (!DASHBOARD_SUBDOMAINS.includes(subdomain) && !pageData && !fetchedPageData) return null;
+  if (!DASHBOARD_SUBDOMAINS.includes(rpSlug) && !pageData && !fetchedPageData) return null;
 
   return (
     <SegregatedStyles page={renderCustomStyles && pageData}>

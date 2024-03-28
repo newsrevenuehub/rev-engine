@@ -9,6 +9,8 @@ For the full list of settings and their values, see
 https://docs.djangoproject.com/en/3.2/ref/settings/
 """
 
+import json
+import logging
 import os
 from datetime import timedelta
 from pathlib import Path
@@ -592,6 +594,16 @@ MAILCHIMP_CLIENT_SECRET = os.getenv("MAILCHIMP_CLIENT_SECRET", None)
 # see https://mailchimp.com/developer/release-notes/message-search-rate-limit-now-enforced/#:~:text=We're%20now%20enforcing%20the,of%20the%20original%2020%20requests.
 MAILCHIMP_RATE_LIMIT_RETRY_WAIT_SECONDS = 60
 
+# Host map for client custom hostnames. This should be a JSON-encoded dictionary
+# of { "customhostname.org": "rp-slug" } values.
+
+logger = logging.getLogger(f"{DEFAULT_LOGGER}.{__name__}")
+
+try:
+    HOST_MAP = json.loads(os.getenv("HOST_MAP", "{}"))
+except json.JSONDecodeError:
+    logger.exception("settings.HOST_MAP couldn't be parsed as JSON; continuing")
+    HOST_MAP = {}
 
 ### Front End Environment Variables
 SPA_ENV_VARS = {
@@ -614,6 +626,7 @@ SPA_ENV_VARS = {
     "SENTRY_ENABLE_FRONTEND": SENTRY_ENABLE_FRONTEND,
     "SENTRY_DSN_FRONTEND": SENTRY_DSN_FRONTEND,
     "STRIPE_CLIENT_ID": os.getenv("SPA_ENV_STRIPE_CLIENT_ID"),
+    "HOST_MAP": os.getenv("HOST_MAP", "{}"),
     "HUB_GOOGLE_MAPS_API_KEY": os.getenv("SPA_ENV_HUB_GOOGLE_MAPS_API_KEY"),
     "HUB_V3_GOOGLE_ANALYTICS_ID": os.getenv("SPA_ENV_HUB_V3_GOOGLE_ANALYTICS_ID"),
     "ENVIRONMENT": ENVIRONMENT,

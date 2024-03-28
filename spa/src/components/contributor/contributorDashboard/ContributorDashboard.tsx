@@ -1,10 +1,10 @@
 import { createContext, Dispatch, SetStateAction, useContext, useState } from 'react';
 import { useConfigureAnalytics } from 'components/analytics';
 import HeaderSection from 'components/common/HeaderSection';
-import useSubdomain from 'hooks/useSubdomain';
 import ContributorTokenExpiredModal from './ContributorTokenExpiredModal';
 import ContributionsTable from './ContributionsTable';
 import { Root } from './ContributorDashboard.styled';
+import { getRevenueProgramSlug } from 'utilities/getRevenueProgramSlug';
 
 const ContributorDashboardContext = createContext<{
   tokenExpired: boolean;
@@ -20,7 +20,7 @@ export const useContributorDashboardContext = () => useContext(ContributorDashbo
 
 function ContributorDashboard() {
   const [tokenExpired, setTokenExpired] = useState(false);
-  const subdomain = useSubdomain();
+  const rpSlug = getRevenueProgramSlug();
 
   useConfigureAnalytics();
 
@@ -29,7 +29,7 @@ function ContributorDashboard() {
       <>
         <Root>
           <HeaderSection title="Your Contributions" subtitle="Changes made may not be reflected immediately." />
-          <ContributionsTable rpSlug={subdomain} />
+          <ContributionsTable rpSlug={rpSlug} />
         </Root>
         {tokenExpired && <ContributorTokenExpiredModal isOpen={tokenExpired} />}
       </>

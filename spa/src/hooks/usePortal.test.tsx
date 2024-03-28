@@ -4,11 +4,9 @@ import MockAdapter from 'axios-mock-adapter';
 import { useSnackbar } from 'notistack';
 import { TestQueryClientProvider } from 'test-utils';
 import usePortal from './usePortal';
+import { getRevenueProgramSlug } from 'utilities/getRevenueProgramSlug';
 
-jest.mock('hooks/useSubdomain', () => ({
-  __esModule: true,
-  default: () => 'mock-subdomain'
-}));
+jest.mock('utilities/getRevenueProgramSlug');
 jest.mock('notistack', () => ({
   ...jest.requireActual('notistack'),
   useSnackbar: jest.fn()
@@ -20,11 +18,13 @@ const mockPage = {
 
 describe('usePortal', () => {
   const axiosMock = new MockAdapter(Axios);
+  const getRevenueProgramSlugMock = jest.mocked(getRevenueProgramSlug);
   const useSnackbarMock = useSnackbar as jest.Mock;
   const enqueueSnackbar = jest.fn();
 
   beforeEach(() => {
     axiosMock.onGet('pages/live-detail/').reply(200, mockPage);
+    getRevenueProgramSlugMock.mockReturnValue('mock-rp-slug');
     useSnackbarMock.mockReturnValue({ enqueueSnackbar });
   });
 
@@ -40,7 +40,7 @@ describe('usePortal', () => {
         expect.objectContaining({
           url: 'pages/live-detail/',
           params: {
-            revenue_program: 'mock-subdomain'
+            revenue_program: 'mock-rp-slug'
           }
         })
       ]);
@@ -115,7 +115,7 @@ describe('usePortal', () => {
       expect(axiosMock.history.post[0]).toEqual(
         expect.objectContaining({
           url: 'contrib-email/',
-          data: JSON.stringify({ email: 'mock-email', subdomain: 'mock-subdomain' })
+          data: JSON.stringify({ email: 'mock-email', subdomain: 'mock-rp-slug' })
         })
       );
     });

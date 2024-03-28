@@ -1,7 +1,7 @@
 import { render, screen, within } from 'test-utils';
+import { getRevenueProgramSlug } from 'utilities/getRevenueProgramSlug';
 import isContributorAppPath from 'utilities/isContributorAppPath';
 import isPortalAppPath from 'utilities/isPortalAppPath';
-import useSubdomain from 'hooks/useSubdomain';
 import MainLayout from './MainLayout';
 
 jest.mock('./analytics/AnalyticsContext', () => ({
@@ -16,9 +16,9 @@ jest.mock('react', () => ({
 jest.mock('elements/modal/GlobalConfirmationModal', () => ({ children }: { children: React.ReactNode }) => (
   <div data-testid="mock-global-confirmation-modal">{children}</div>
 ));
+jest.mock('utilities/getRevenueProgramSlug');
 jest.mock('utilities/isContributorAppPath');
 jest.mock('utilities/isPortalAppPath');
-jest.mock('hooks/useSubdomain');
 jest.mock('components/authentication/ReauthModal', () => (props: any) => (
   <div data-testid="mock-reauth-modal" data-props={JSON.stringify(props)} />
 ));
@@ -36,12 +36,12 @@ function tree() {
 describe('MainLayout', () => {
   const isContributorAppPathMock = jest.mocked(isContributorAppPath);
   const isPortalAppPathMock = jest.mocked(isPortalAppPath);
-  const useSubdomainMock = jest.mocked(useSubdomain);
+  const getRevenueProgramSlugMock = jest.mocked(getRevenueProgramSlug);
 
   beforeEach(() => {
     isContributorAppPathMock.mockReturnValue(false);
     isPortalAppPathMock.mockReturnValue(false);
-    useSubdomainMock.mockReturnValue('');
+    getRevenueProgramSlugMock.mockReturnValue('');
   });
 
   it('should render nested components (Reauth Context Provider -> Global Confirmation Modal -> Suspense -> Router)', () => {
@@ -82,7 +82,7 @@ describe('MainLayout', () => {
 
   describe('DonationPageRouter', () => {
     it('should render DonationPageRouter', () => {
-      useSubdomainMock.mockReturnValue('donate');
+      getRevenueProgramSlugMock.mockReturnValue('donate');
 
       tree();
 
@@ -92,7 +92,7 @@ describe('MainLayout', () => {
     it.each(['', 'www', 'support'])(
       'should not render DonationPageRouter when subdomain is in DASHBOARD_SUBDOMAINS (%s)',
       (subdomain) => {
-        useSubdomainMock.mockReturnValue(subdomain);
+        getRevenueProgramSlugMock.mockReturnValue(subdomain);
 
         tree();
 

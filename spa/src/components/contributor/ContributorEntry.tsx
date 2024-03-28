@@ -4,8 +4,6 @@ import * as S from './ContributorEntry.styled';
 import { GENERIC_ERROR_WITH_SUPPORT_INFO } from 'constants/textConstants';
 import { useAlert } from 'react-alert';
 
-import useSubdomain from 'hooks/useSubdomain';
-
 // AJAX
 import axios from 'ajax/axios';
 import { GET_MAGIC_LINK } from 'ajax/endpoints';
@@ -17,6 +15,7 @@ import Input from 'elements/inputs/Input';
 import { useConfigureAnalytics } from 'components/analytics';
 import { AxiosError } from 'axios';
 import { ContributionPage } from 'hooks/useContributionPage';
+import { getRevenueProgramSlug } from 'utilities/getRevenueProgramSlug';
 
 function ContributorEntry({ page }: { page?: ContributionPage }) {
   const alert = useAlert();
@@ -25,7 +24,7 @@ function ContributorEntry({ page }: { page?: ContributionPage }) {
   const [errors, setErrors] = useState<{ email?: string[] }>({});
 
   const [showConfirmation, setShowConfirmation] = useState(false);
-  const subdomain = useSubdomain();
+  const rpSlug = getRevenueProgramSlug();
 
   useConfigureAnalytics();
 
@@ -34,7 +33,7 @@ function ContributorEntry({ page }: { page?: ContributionPage }) {
     setLoading(true);
     setErrors({});
     try {
-      const response = await axios.post(GET_MAGIC_LINK, { email, subdomain });
+      const response = await axios.post(GET_MAGIC_LINK, { email, subdomain: rpSlug });
       if (response.status === 200) setShowConfirmation(true);
     } catch (error) {
       if ((error as AxiosError).response?.status === 429) {

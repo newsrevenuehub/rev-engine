@@ -12,15 +12,6 @@ describe('Test utilities', () => {
     // { host: 'domain.co.uk', domain: 'domain.co.uk' },
   ];
 
-  describe('getDomain', () => {
-    urlList.map((url) =>
-      it(`test: ${url.host}`, () => {
-        const domain = getDomain(url.host);
-        expect(domain).toEqual(url.domain);
-      })
-    );
-  });
-
   describe('getPageLinks', () => {
     const page = {
       slug: 'test',

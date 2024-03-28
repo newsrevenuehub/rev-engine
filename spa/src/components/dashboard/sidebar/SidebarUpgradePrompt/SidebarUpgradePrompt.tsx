@@ -17,6 +17,16 @@ const SidebarUpgradePromptPropTypes = {
 
 export type SidebarUpgradePromptProps = InferProps<typeof SidebarUpgradePromptPropTypes>;
 
+const CONSULTING = {
+  icon: DoubleArrowUp,
+  iconTestID: 'double-arrow-up',
+  header: 'Ready for Custom Consulting?',
+  text: 'Learn how our team has helped newsrooms raise $100 million. Level up!',
+  cta: 'Contact Us',
+  to: { pathname: HELP_URL },
+  newTab: true
+};
+
 const COPY: Record<
   EnginePlan['name'],
   {
@@ -37,23 +47,8 @@ const COPY: Record<
     cta: 'Upgrade',
     to: SETTINGS.SUBSCRIPTION
   },
-  CORE: {
-    icon: DoubleArrowUp,
-    iconTestID: 'double-arrow-up',
-    header: 'Upgrade to Plus',
-    text: 'Gain access to advanced analytics and contributor data.',
-    cta: 'Upgrade',
-    to: SETTINGS.SUBSCRIPTION
-  },
-  PLUS: {
-    icon: DoubleArrowUp,
-    iconTestID: 'double-arrow-up',
-    header: 'Ready for Custom Consulting?',
-    text: 'Learn how our team has helped newsrooms raise $100 million. Level up!',
-    cta: 'Contact Us',
-    to: { pathname: HELP_URL },
-    newTab: true
-  }
+  CORE: CONSULTING,
+  PLUS: CONSULTING
 };
 
 export function SidebarUpgradePrompt({ onClose, currentPlan }: SidebarUpgradePromptProps) {

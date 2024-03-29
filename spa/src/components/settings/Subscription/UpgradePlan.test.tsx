@@ -98,6 +98,11 @@ describe('UpgradePlan', () => {
       expect(screen.queryByTestId('mock-stripe-pricing-table')).not.toBeInTheDocument();
     });
 
+    it("doesn't display the Plus feature list", () => {
+      tree();
+      expect(screen.queryByText('Plus Tier')).not.toBeInTheDocument();
+    });
+
     it('is accessible', async () => {
       const { container } = tree();
 

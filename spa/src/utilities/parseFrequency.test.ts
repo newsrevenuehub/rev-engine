@@ -4,7 +4,7 @@ import { getFrequencyAdjective } from './parseFrequency';
 type TestList = [ContributionInterval, string][];
 
 const adjectiveTests: TestList = [
-  ['one_time', 'One time'],
+  ['one_time', 'One-time'],
   ['month', 'Monthly'],
   ['year', 'Yearly']
 ];

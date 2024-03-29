@@ -465,7 +465,7 @@ class BaseCreatePaymentSerializer(serializers.Serializer):
 
 
 class CreateOneTimePaymentSerializer(BaseCreatePaymentSerializer):
-    """Serializer to enable creating a contribution + one time payment"""
+    """Serializer to enable creating a contribution + one-time payment"""
 
     def create(self, validated_data):
         """Create a one-time contribution...

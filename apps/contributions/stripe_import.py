@@ -471,8 +471,8 @@ class StripeTransactionsImporter:
 
     @staticmethod
     def is_for_one_time_contribution(pi: stripe.PaymentIntent, invoice: stripe.Invoice | None) -> bool:
-        """Determines if a given stripe payment intent is for a one time contribution"""
-        logger.debug("Determining if payment intent %s is for a one time contribution", pi.id)
+        """Determines if a given stripe payment intent is for a one-time contribution"""
+        logger.debug("Determining if payment intent %s is for a one-time contribution", pi.id)
         if not pi.invoice:
             return True
         if invoice and invoice.subscription:

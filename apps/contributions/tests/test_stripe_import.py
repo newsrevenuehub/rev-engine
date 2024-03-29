@@ -71,7 +71,7 @@ def payment_intent(mocker, charge, customer, valid_metadata):
         currency="usd",
         metadata=valid_metadata,
         payment_method=pm,
-        # this implies it's a one time charge
+        # this implies it's a one-time charge
         invoice=None,
         customer=customer,
     )

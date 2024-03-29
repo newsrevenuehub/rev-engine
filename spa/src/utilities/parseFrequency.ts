@@ -9,7 +9,7 @@ type FrequencyLookup = Record<ContributionInterval, string>;
  */
 export const getFrequencyAdjective = (frequency: ContributionInterval) => {
   const frequencyAdjectives: FrequencyLookup = {
-    one_time: 'One time',
+    one_time: 'One-time',
     month: 'Monthly',
     year: 'Yearly'
   };

@@ -22,11 +22,12 @@ describe('SidebarCoreUpgradePrompt', () => {
     [
       'CORE',
       {
-        header: 'Upgrade to Plus',
+        header: 'Ready for Custom Consulting?',
         icon: 'double-arrow-up',
-        text: 'Gain access to advanced analytics and contributor data.',
-        cta: 'Upgrade',
-        to: SETTINGS.SUBSCRIPTION
+        text: 'Learn how our team has helped newsrooms raise $100 million. Level up!',
+        cta: 'Contact Us',
+        to: 'https://fundjournalism.org/news-revenue-engine-help/',
+        newTab: true
       }
     ],
     [

@@ -22,18 +22,14 @@ describe('getPageContributionIntervals', () => {
           {
             type: 'DFrequency',
             content: [
-              { value: 'year', isDefault: false, displayName: 'Yearly' },
-              { value: 'month', isDefault: true, displayName: 'Monthly' },
-              { value: 'one_time', isDefault: false, displayName: 'One time' }
+              { value: 'year', isDefault: false },
+              { value: 'month', isDefault: true },
+              { value: 'one_time', isDefault: false }
             ]
           }
         ]
       } as any)
-    ).toEqual([
-      { displayName: 'One time', interval: 'one_time' },
-      { displayName: 'Monthly', interval: 'month' },
-      { displayName: 'Yearly', interval: 'year' }
-    ]));
+    ).toEqual([{ interval: 'one_time' }, { interval: 'month' }, { interval: 'year' }]));
 
   it('ignores content in sidebar_elements', () =>
     expect(
@@ -42,20 +38,17 @@ describe('getPageContributionIntervals', () => {
           {
             type: 'DFrequency',
             content: [
-              { value: 'month', isDefault: true, displayName: 'Monthly' },
-              { value: 'one_time', isDefault: false, displayName: 'One time' }
+              { value: 'month', isDefault: true },
+              { value: 'one_time', isDefault: false }
             ]
           }
         ],
         sidebar_elements: [
           {
             type: 'DFrequency',
-            content: [{ value: 'year', isDefault: false, displayName: 'Yearly' }]
+            content: [{ value: 'year', isDefault: false }]
           }
         ]
       } as any)
-    ).toEqual([
-      { displayName: 'One time', interval: 'one_time' },
-      { displayName: 'Monthly', interval: 'month' }
-    ]));
+    ).toEqual([{ interval: 'one_time' }, { interval: 'month' }]));
 });

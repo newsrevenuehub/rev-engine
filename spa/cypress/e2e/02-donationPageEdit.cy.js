@@ -194,7 +194,7 @@ describe('Contribution page edit', () => {
 
       it('should validate frequency', () => {
         // Uncheck all the frequencies
-        cy.findByRole('checkbox', { name: 'One time payments enabled' }).click();
+        cy.findByRole('checkbox', { name: 'One-time payments enabled' }).click();
         cy.findByRole('checkbox', { name: 'Monthly payments enabled' }).click();
         cy.findByRole('checkbox', { name: 'Yearly payments enabled' }).click();
 
@@ -209,7 +209,7 @@ describe('Contribution page edit', () => {
         cy.findByRole('button', { name: 'Update' }).click();
 
         // Contribution page should only show item checked, and nothing else.
-        cy.getByTestId('d-frequency').contains('One time');
+        cy.getByTestId('d-frequency').contains('One-time');
         cy.getByTestId('d-frequency').should('not.contain', 'Monthly');
         cy.getByTestId('d-frequency').should('not.contain', 'Yearly');
       });

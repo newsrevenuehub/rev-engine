@@ -2,7 +2,7 @@ from django.db.models import IntegerChoices, TextChoices
 
 
 class ContributionInterval(TextChoices):
-    ONE_TIME = "one_time", "One time"
+    ONE_TIME = "one_time", "One-time"
     MONTHLY = "month", "Monthly"
     YEARLY = "year", "Yearly"
 

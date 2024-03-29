@@ -2,7 +2,6 @@ import { ContributionInterval, CONTRIBUTION_INTERVAL_SORT_ORDER } from 'constant
 import { ContributionPage, FrequencyElement } from 'hooks/useContributionPage';
 
 export type ContributionIntervalList = {
-  displayName: string;
   interval: ContributionInterval;
 }[];
 
@@ -21,7 +20,7 @@ export function getPageContributionIntervals(page: ContributionPage): Contributi
     const element = frequencies[0].content.find(({ value }) => value === current);
 
     if (element) {
-      return [...result, { displayName: element.displayName, interval: element.value }];
+      return [...result, { interval: element.value }];
     }
 
     return result;

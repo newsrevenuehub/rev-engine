@@ -70,18 +70,15 @@
       "content": [
         {
           "value": "one_time",
-          "isDefault": false,
-          "displayName": "One time"
+          "isDefault": false
         },
         {
           "value": "month",
-          "isDefault": true,
-          "displayName": "Monthly"
+          "isDefault": true
         },
         {
           "value": "year",
-          "isDefault": false,
-          "displayName": "Yearly"
+          "isDefault": false
         }
       ],
       "requiredFields": []
@@ -91,21 +88,9 @@
       "uuid": "42e0324a-3960-4b66-b3d5-ab8c84224160",
       "content": {
         "options": {
-          "year": [
-            120,
-            180,
-            365
-          ],
-          "month": [
-            10,
-            15,
-            25
-          ],
-          "one_time": [
-            120,
-            180,
-            365
-          ]
+          "year": [120, 180, 365],
+          "month": [10, 15, 25],
+          "one_time": [120, 180, 365]
         },
         "defaults": {
           "year": 180,
@@ -133,12 +118,7 @@
       "type": "DPayment",
       "uuid": "81276ff1-ab04-4f42-b434-41374b7fbff8",
       "content": {
-        "stripe": [
-          "card",
-          "apple",
-          "google",
-          "browser"
-        ],
+        "stripe": ["card", "apple", "google", "browser"],
         "offerPayFees": true,
         "payFeesDefault": true
       },

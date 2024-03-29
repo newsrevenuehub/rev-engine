@@ -171,12 +171,12 @@ class StripeWebhookProcessor:
         )
 
     def handle_payment_intent_succeeded(self):
-        """Handle a payment intent succeeded event if it's for a one time.
+        """Handle a payment intent succeeded event if it's for a one-time.
 
         If it's for a recurring contribution, we expect to handle that in the
         invoice.payment_succeeded event handler.
 
-        This method does the following when payment intent is for a one time contribution:
+        This method does the following when payment intent is for a one-time contribution:
 
         - Update contribution with payment provider data, also update status
         - Create a payment instance

@@ -70,7 +70,7 @@ describe('ContributionItem', () => {
   });
 
   it.each([
-    ['one_time', 'One time'],
+    ['one_time', 'One-time'],
     ['month', 'Monthly'],
     ['year', 'Yearly']
   ])('shows the right icon for %s contributions', (interval, label) => {

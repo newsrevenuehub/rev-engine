@@ -34,11 +34,22 @@ describe('Banner', () => {
       tree({ contribution: { ...mockContribution, status: 'canceled' } });
       expect(screen.getByText('Canceled')).toBeVisible();
     });
-    it('should render description', () => {
+    it('should render description without canceled_at date', () => {
       tree({ contribution: { ...mockContribution, status: 'canceled' } });
       expect(
         screen.getByText(
           'This contribution was canceled. Help our community and continue your support of our mission by creating a new contribution.'
+        )
+      ).toBeVisible();
+    });
+
+    it('should render description with canceled_at date', () => {
+      tree({
+        contribution: { ...mockContribution, status: 'canceled', canceled_at: new Date('1/2/2024').toISOString() }
+      });
+      expect(
+        screen.getByText(
+          'This contribution was canceled at 1/2/2024. Help our community and continue your support of our mission by creating a new contribution.'
         )
       ).toBeVisible();
     });

@@ -27,10 +27,19 @@ export function Banner({ contribution }: BannerProps) {
 
   switch (contribution.status) {
     case 'canceled': {
+      const canceledAtFormattedDate =
+        contribution.canceled_at &&
+        Intl.DateTimeFormat(undefined, {
+          day: 'numeric',
+          month: 'numeric',
+          year: 'numeric'
+        }).format(new Date(contribution.canceled_at));
+
       bannerInfo.title = 'Canceled';
       bannerInfo.Icon = <BlockIcon />;
-      bannerInfo.description =
-        'This contribution was canceled. Help our community and continue your support of our mission by creating a new contribution.';
+      bannerInfo.description = `This contribution was canceled${
+        !!canceledAtFormattedDate ? ` at ${canceledAtFormattedDate}` : ''
+      }. Help our community and continue your support of our mission by creating a new contribution.`;
 
       break;
     }

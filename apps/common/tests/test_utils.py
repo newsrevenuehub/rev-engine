@@ -368,21 +368,33 @@ class Test_upsert_with_diff_check:
         instance.save()
         return instance
 
+    @pytest.fixture
+    def instance_only_needs_amount_update(self, instance, update_data):
+        for field, value in update_data.items():
+            if field != "amount":
+                setattr(instance, field, value)
+        instance.save()
+        return instance
+
     @pytest.fixture(
         params=[
-            {"instance": "instance_is_none", "action": "created"},
-            {"instance": "instance_needs_update", "action": "updated"},
-            {"instance": "instance_not_need_update", "action": "left unchanged"},
+            {"instance": "instance_is_none", "dont_update": [], "action": "created"},
+            {"instance": "instance_needs_update", "dont_update": [], "action": "updated"},
+            {"instance": "instance_not_need_update", "dont_update": [], "action": "left unchanged"},
+            {"instance": "instance_only_needs_amount_update", "dont_update": [], "action": "updated"},
+            {"instance": "instance_only_needs_amount_update", "dont_update": ["amount"], "action": "left unchanged"},
+            {"instance": "instance_is_none", "dont_update": ["amount"], "action": "created"},
         ]
     )
     def upsert_with_diff_check_case(self, request):
         return (
             request.getfixturevalue(request.param["instance"]),
             request.param["action"],
+            request.param["dont_update"],
         )
 
     def test_upsert_with_diff_check(self, upsert_with_diff_check_case, update_data, unique_identifier, mocker):
-        instance, expected_action = upsert_with_diff_check_case
+        instance, expected_action, dont_update = upsert_with_diff_check_case
         mock_set_comment = mocker.patch("reversion.set_comment")
         with mock.patch("reversion.create_revision") as create_revision_mock:
             result, action = upsert_with_diff_check(
@@ -390,6 +402,7 @@ class Test_upsert_with_diff_check:
                 unique_identifier=unique_identifier,
                 defaults=update_data,
                 caller_name=(caller := "test"),
+                dont_update=dont_update,
             )
             if instance:
                 assert result == instance

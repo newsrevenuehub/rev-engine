@@ -217,6 +217,14 @@ class Contribution(IndexedTimeStampedModel):
         return datetime.datetime.fromtimestamp(next_date, tz=ZoneInfo("UTC")) if next_date else None
 
     @property
+    def canceled_at(self) -> datetime.datetime | None:
+        if not self.stripe_subscription:
+            logger.warning("Expected a retrievable stripe subscription on contribution %s but none was found", self.id)
+            return None
+        canceled_at = self.stripe_subscription.canceled_at
+        return datetime.datetime.fromtimestamp(canceled_at, tz=ZoneInfo("UTC")) if canceled_at else None
+
+    @property
     def formatted_amount(self) -> str:
         currency = self.get_currency_dict()
         return f"{currency['symbol']}{'{:.2f}'.format(self.amount / 100)} {currency['code']}"

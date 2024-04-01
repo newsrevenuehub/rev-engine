@@ -14,16 +14,20 @@ import { MobileBackButton } from './MobileBackButton';
 import { MobileHeader } from './MobileHeader';
 import { Root, TopMatter, Content } from './ContributionDetail.styled';
 import { LoadingSkeleton } from './LoadingSkeleton';
+import { ContributionPage } from 'hooks/useContributionPage';
 
 const ContributionDetailPropTypes = {
+  defaultPage: PropTypes.any,
   contributionId: PropTypes.number.isRequired,
   contributorId: PropTypes.number.isRequired,
   domAnchor: PropTypes.instanceOf(HTMLElement)
 };
 
-export type ContributionDetailProps = InferProps<typeof ContributionDetailPropTypes>;
+export interface ContributionDetailProps extends InferProps<typeof ContributionDetailPropTypes> {
+  defaultPage?: ContributionPage;
+}
 
-export function ContributionDetail({ domAnchor, contributionId, contributorId }: ContributionDetailProps) {
+export function ContributionDetail({ domAnchor, contributionId, contributorId, defaultPage }: ContributionDetailProps) {
   const { cancelContribution, contribution, isError, isLoading, refetch, updateContribution } = usePortalContribution(
     contributorId,
     contributionId
@@ -67,7 +71,7 @@ export function ContributionDetail({ domAnchor, contributionId, contributorId }:
       <Root data-testid="contribution-detail" key="loaded" ref={setRootEl}>
         <TopMatter>
           <MobileBackButton />
-          <Banner contribution={contribution} />
+          <Banner contribution={contribution} defaultPage={defaultPage} />
           <MobileHeader contribution={contribution} />
         </TopMatter>
         <Content>

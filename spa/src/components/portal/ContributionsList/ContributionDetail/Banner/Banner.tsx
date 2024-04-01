@@ -3,22 +3,28 @@ import { PortalContributionDetail } from 'hooks/usePortalContribution';
 import PropTypes, { InferProps } from 'prop-types';
 import { ReactNode } from 'react';
 import { Description, IconWrapper, Root, Title } from './Banner.styled';
+import { Link } from 'react-router-dom';
+import { pageLink } from 'utilities/getPageLinks';
+import { ContributionPage } from 'hooks/useContributionPage';
+import { revEngineTheme } from 'styles/themes';
 
 const BannerPropTypes = {
+  defaultPage: PropTypes.any,
   contribution: PropTypes.object.isRequired
 };
 
 export interface BannerProps extends InferProps<typeof BannerPropTypes> {
+  defaultPage?: ContributionPage;
   contribution: PortalContributionDetail;
 }
 
-export function Banner({ contribution }: BannerProps) {
+export function Banner({ contribution, defaultPage }: BannerProps) {
   let showBanner = true;
 
   const bannerInfo: {
     title: string;
     Icon: ReactNode;
-    description: string;
+    description: string | ReactNode;
   } = {
     title: '',
     Icon: null,
@@ -27,6 +33,7 @@ export function Banner({ contribution }: BannerProps) {
 
   switch (contribution.status) {
     case 'canceled': {
+      const link = defaultPage ? pageLink(defaultPage) : undefined;
       const canceledAtFormattedDate =
         contribution.canceled_at &&
         Intl.DateTimeFormat(undefined, {
@@ -37,9 +44,24 @@ export function Banner({ contribution }: BannerProps) {
 
       bannerInfo.title = 'Canceled';
       bannerInfo.Icon = <BlockIcon />;
-      bannerInfo.description = `This contribution was canceled${
-        !!canceledAtFormattedDate ? ` at ${canceledAtFormattedDate}` : ''
-      }. Help our community and continue your support of our mission by creating a new contribution.`;
+      bannerInfo.description = (
+        <>
+          This contribution was canceled{!!canceledAtFormattedDate ? ` at ${canceledAtFormattedDate}` : ''}. Help our
+          community and continue your support of our mission by{' '}
+          {link ? (
+            <Link
+              style={{ textDecoration: 'underline', color: revEngineTheme.basePalette.secondary.hyperlink }}
+              to={`//${link}`}
+              target="_blank"
+            >
+              creating a new contribution
+            </Link>
+          ) : (
+            'creating a new contribution'
+          )}
+          .
+        </>
+      );
 
       break;
     }

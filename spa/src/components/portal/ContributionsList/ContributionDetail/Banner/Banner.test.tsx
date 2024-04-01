@@ -54,6 +54,23 @@ describe('Banner', () => {
       ).toBeVisible();
     });
 
+    it('should render link to donation page', () => {
+      tree({
+        contribution: { ...mockContribution, status: 'canceled', canceled_at: new Date('1/2/2024').toISOString() },
+        defaultPage: {
+          revenue_program: {
+            slug: 'mock-rp-slug'
+          },
+          slug: 'mock-page-slug'
+        } as any
+      });
+      const link = screen.getByRole('link', { name: 'creating a new contribution' });
+
+      expect(link).toBeVisible();
+      expect(link).toHaveAttribute('href', '//mock-rp-slug.localhost/mock-page-slug');
+      expect(link).toHaveAttribute('target', '_blank');
+    });
+
     it('is accessible', async () => {
       const { container } = tree({ contribution: { ...mockContribution, status: 'canceled' } });
 

@@ -404,7 +404,7 @@ class SubscriptionForRecurringContribution(ContributionImportBaseClass):
             caller_name="SubscriptionForRecurringContribution.upsert",
             # If there's contribution metadata, we want to leave it intact.
             # Otherwise we see spurious updates because of key ordering in the
-            # metadata and conversions of null <-> None.
+            # metadata and removal of null/None entries.
             dont_update=["contribution_metadata"],
         )
         contribution = self.conditionally_update_contribution_donation_page(contribution=contribution)

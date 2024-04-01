@@ -10,7 +10,7 @@ jest.mock('appSettings', () => ({
 
 describe('getRevenueProgramSlug', () => {
   beforeEach(() => {
-    mockMap.mockReturnValue(JSON.stringify({ 'host-name': 'test-slug' }));
+    mockMap.mockReturnValue({ 'host-name': 'test-slug' });
   });
 
   describe.each([

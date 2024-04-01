@@ -9,16 +9,8 @@ import { HOST_MAP } from 'appSettings';
 export function getRevenueProgramSlug(hostname = window.location.host) {
   const hostnameWithoutPort = hostname.replace(/:.+$/, '');
 
-  if (typeof HOST_MAP === 'string') {
-    try {
-      const map = JSON.parse(HOST_MAP);
-
-      if (hostnameWithoutPort in map) {
-        return map[hostnameWithoutPort];
-      }
-    } catch {
-      // Continue silently. Either the variable isn't set or is malformed JSON.
-    }
+  if (typeof HOST_MAP === 'object' && hostnameWithoutPort in HOST_MAP) {
+    return HOST_MAP[hostnameWithoutPort];
   }
 
   // If we were given a domain without any subdomains, return an empty string.

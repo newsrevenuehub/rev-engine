@@ -27,9 +27,17 @@ logger = logging.getLogger(f"{settings.DEFAULT_LOGGER}.{__name__}")
 @dataclass
 class StripeWebhookProcessor:
     event: StripeEventData
+    # If the event was triggered by a Celery task, this will be the task ID
+    task_id: str = None
 
     def __post_init__(self):
-        logger.info("Processing Stripe webhook event %s: %s - %s", self.event_id, self.event_type, self.id)
+        logger.info(
+            "Processing Stripe webhook event with event id %s, event type %s, object id %s, task_id %s",
+            self.event_id,
+            self.event_type,
+            self.id,
+            self.task_id,
+        )
 
     @property
     def obj_data(self) -> dict:

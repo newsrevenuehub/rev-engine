@@ -4,10 +4,7 @@ import { render, screen } from 'test-utils';
 import Banner, { BannerProps } from './Banner';
 import usePortal from 'hooks/usePortal';
 
-jest.mock('hooks/usePortal', () => ({
-  __esModule: true,
-  default: jest.fn()
-}));
+jest.mock('hooks/usePortal');
 
 const mockContribution: PortalContributionDetail = {
   amount: 12345,
@@ -35,10 +32,10 @@ function tree(props?: Partial<BannerProps>) {
 }
 
 describe('Banner', () => {
-  const usePortalMock = usePortal as jest.Mock;
+  const usePortalMock = jest.mocked(usePortal);
 
   beforeEach(() => {
-    usePortalMock.mockReturnValue({ page: null });
+    usePortalMock.mockReturnValue({ page: null } as any);
   });
 
   describe('Status = Canceled', () => {
@@ -46,6 +43,7 @@ describe('Banner', () => {
       tree({ contribution: { ...mockContribution, status: 'canceled' } });
       expect(screen.getByText('Canceled')).toBeVisible();
     });
+
     it('should render description without canceled_at date', () => {
       tree({ contribution: { ...mockContribution, status: 'canceled' } });
       expect(
@@ -74,7 +72,7 @@ describe('Banner', () => {
           },
           slug: 'mock-page-slug'
         }
-      });
+      } as any);
 
       tree({
         contribution: { ...mockContribution, status: 'canceled', canceled_at: new Date('1/2/2024').toISOString() }
@@ -84,6 +82,15 @@ describe('Banner', () => {
       expect(link).toBeVisible();
       expect(link).toHaveAttribute('href', '//mock-rp-slug.localhost/mock-page-slug');
       expect(link).toHaveAttribute('target', '_blank');
+    });
+
+    it('should not render link if donation page null', () => {
+      tree({
+        contribution: { ...mockContribution, status: 'canceled', canceled_at: new Date('1/2/2024').toISOString() }
+      });
+
+      expect(screen.queryByRole('link', { name: 'creating a new contribution' })).not.toBeInTheDocument();
+      expect(screen.getByText('creating a new contribution', { exact: false })).toBeVisible();
     });
 
     it('is accessible', async () => {

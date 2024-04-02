@@ -278,7 +278,7 @@ class StripeWebhookProcessor:
                     "provider_payment_method_id": pi.payment_method,
                     "provider_payment_method_details": self.contribution.fetch_stripe_payment_method(),
                 },
-                "`StripeWebhookProcessor.handle_payment_intent_succeeded` updated contribution",
+                "`StripeWebhookProcessor.handle_invoice_payment_succeeded` updated contribution",
             )
         if payment.contribution.payment_set.count() == 1:
             self.contribution.handle_thank_you_email()

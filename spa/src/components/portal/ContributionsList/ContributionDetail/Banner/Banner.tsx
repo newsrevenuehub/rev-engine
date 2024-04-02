@@ -6,7 +6,6 @@ import { Description, IconWrapper, Root, Title } from './Banner.styled';
 import { Link } from 'react-router-dom';
 import { pageLink } from 'utilities/getPageLinks';
 import { ContributionPage } from 'hooks/useContributionPage';
-import { revEngineTheme } from 'styles/themes';
 
 const BannerPropTypes = {
   defaultPage: PropTypes.any,
@@ -49,11 +48,7 @@ export function Banner({ contribution, defaultPage }: BannerProps) {
           This contribution was canceled{!!canceledAtFormattedDate ? ` at ${canceledAtFormattedDate}` : ''}. Help our
           community and continue your support of our mission by{' '}
           {link ? (
-            <Link
-              style={{ textDecoration: 'underline', color: revEngineTheme.basePalette.secondary.hyperlink }}
-              to={`//${link}`}
-              target="_blank"
-            >
+            <Link to={`//${link}`} target="_blank">
               creating a new contribution
             </Link>
           ) : (

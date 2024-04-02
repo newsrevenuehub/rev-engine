@@ -7,14 +7,13 @@ import ContributorRouter from './ContributorRouter';
 import useWebFonts from 'hooks/useWebFonts';
 import useRequest from 'hooks/useRequest';
 import isAuthenticated from 'utilities/isAuthenticated';
-import useSubdomain from 'hooks/useSubdomain';
 import { ContributionPage } from 'hooks/useContributionPage';
 import { Suspense } from 'react';
 
+jest.mock('utilities/getRevenueProgramSlug');
 jest.mock('utilities/isAuthenticated');
 jest.mock('hooks/useWebFonts');
 jest.mock('hooks/useRequest');
-jest.mock('hooks/useSubdomain');
 
 // Turn <BrowserRouter> into a no-op component so we can use our own router.
 jest.mock('react-router-dom', () => ({
@@ -80,13 +79,11 @@ const mockData = {
 };
 
 describe('ContributorRouter', () => {
-  const useSubdomainMock = jest.mocked(useSubdomain);
   const useRequestMock = jest.mocked(useRequest);
   const isAuthenticatedMock = jest.mocked(isAuthenticated);
 
   beforeEach(() => {
     isAuthenticatedMock.mockReturnValue(true);
-    useSubdomainMock.mockReturnValue('mock-subdomain');
     useRequestMock.mockImplementation(
       () =>
         (_: any, { onSuccess }: { onSuccess: ({ data }: { data: any }) => void }) =>

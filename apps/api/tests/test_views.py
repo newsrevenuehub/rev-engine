@@ -38,23 +38,52 @@ from apps.pages.tests.factories import DonationPageFactory, StyleFactory
 user_model = get_user_model()
 
 
-@pytest.mark.parametrize(
-    "expected, site_url, post, header",
-    [
-        (None, "https://example.com", "", ""),  # Not found.
-        ("foo.example.com", "https://example.com", "foo", ""),
-        ("foo.example.com", "https://example.com", "http://foo.example.com:80", ""),  # Post full scheme://host works.
-        ("foo.example.com", "https://subdomain.example.com", "foo", ""),  # site_url subdomain is stripped.
-        ("foo.b.example.com", "https://subdomain.b.example.com", "foo", ""),  # Only leaf subdomain is stripped.
-        ("foo.example.com:80", "https://example.com:80", "foo", ""),  # site_url port is preserved.
-        ("foo.example.com", "https://example.com", "foo", "https://bar.example.com"),  # Post first, header is fallback.
-        ("foo.example.com", "https://example.com", "", "https://foo.bar.example.com:80"),  # From header.
-        (None, "https://example.com", "", "https://example.com"),  # Header has no subdomain.
-    ],
-)
-def test_construct_rp_domain(expected, site_url, post, header):
-    with override_settings(SITE_URL=site_url):
-        assert expected == construct_rp_domain(post, header)
+@pytest.fixture
+def slug():
+    return "test-rp-slug"
+
+
+@pytest.fixture
+def host_map(settings, slug):
+    settings.HOST_MAP = {"custom.example.com": slug}
+
+
+class Test_construct_rp_domain:
+    @pytest.mark.parametrize(
+        "expected, site_url, post, header",
+        [
+            (None, "https://example.com", "", ""),  # Not found.
+            ("foo.example.com", "https://example.com", "foo", ""),
+            (
+                "foo.example.com",
+                "https://example.com",
+                "http://foo.example.com:80",
+                "",
+            ),  # Post full scheme://host works.
+            ("foo.example.com", "https://subdomain.example.com", "foo", ""),  # site_url subdomain is stripped.
+            ("foo.b.example.com", "https://subdomain.b.example.com", "foo", ""),  # Only leaf subdomain is stripped.
+            ("foo.example.com:80", "https://example.com:80", "foo", ""),  # site_url port is preserved.
+            (
+                "foo.example.com",
+                "https://example.com",
+                "foo",
+                "https://bar.example.com",
+            ),  # Post first, header is fallback.
+            ("foo.example.com", "https://example.com", "", "https://foo.bar.example.com:80"),  # From header.
+            (None, "https://example.com", "", "https://example.com"),  # Header has no subdomain.
+        ],
+    )
+    def test_construct_rp_domain(self, expected, site_url, post, header, settings):
+        settings.SITE_URL = site_url
+        assert construct_rp_domain(post, header) == expected
+
+    def test_construct_rp_domain_with_hostmap(self, host_map, slug, settings):
+        settings.SITE_URL = "https://example.com"
+        assert construct_rp_domain(slug, "") == "custom.example.com"
+
+    def test_construct_rp_domain_with_hostmap_but_no_map(self, host_map, settings):
+        settings.SITE_URL = "https://example.com"
+        assert construct_rp_domain("foo", "") == "foo.example.com"
 
 
 KNOWN_PASSWORD = "myGreatAndSecurePassword7"

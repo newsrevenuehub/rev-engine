@@ -13,7 +13,7 @@ jest.mock('notistack', () => ({
   useSnackbar: () => ({ enqueueSnackbar: jest.fn() })
 }));
 jest.mock('hooks/useWebFonts');
-jest.mock('hooks/useSubdomain', () => jest.fn(() => 'mock-subdomain'));
+jest.mock('utilities/getRevenueProgramSlug');
 jest.mock('components/donationPage/DonationPageHeader/DonationPageHeader');
 jest.mock('components/donationPage/SegregatedStyles', () => ({ children }: { children: React.ReactNode }) => (
   <div data-testid="mock-segregated-styles">{children}</div>

@@ -128,7 +128,6 @@ export function ContributionsList() {
                 domAnchor={selectedContributionEl}
                 contributionId={selectedContribution.id}
                 contributorId={contributor.id}
-                defaultPage={page}
               />
             </Detail>
           )}

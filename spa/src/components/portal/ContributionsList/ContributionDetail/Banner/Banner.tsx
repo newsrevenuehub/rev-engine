@@ -1,29 +1,28 @@
 import BlockIcon from '@material-design-icons/svg/filled/block.svg?react';
 import { PortalContributionDetail } from 'hooks/usePortalContribution';
 import PropTypes, { InferProps } from 'prop-types';
-import { ReactNode } from 'react';
+import { ReactChild, ReactNode } from 'react';
 import { Description, IconWrapper, Root, Title } from './Banner.styled';
 import { Link } from 'react-router-dom';
 import { pageLink } from 'utilities/getPageLinks';
-import { ContributionPage } from 'hooks/useContributionPage';
+import usePortal from 'hooks/usePortal';
 
 const BannerPropTypes = {
-  defaultPage: PropTypes.any,
   contribution: PropTypes.object.isRequired
 };
 
 export interface BannerProps extends InferProps<typeof BannerPropTypes> {
-  defaultPage?: ContributionPage;
   contribution: PortalContributionDetail;
 }
 
-export function Banner({ contribution, defaultPage }: BannerProps) {
+export function Banner({ contribution }: BannerProps) {
+  const { page } = usePortal();
   let showBanner = true;
 
   const bannerInfo: {
     title: string;
     Icon: ReactNode;
-    description: string | ReactNode;
+    description: ReactChild;
   } = {
     title: '',
     Icon: null,
@@ -32,7 +31,7 @@ export function Banner({ contribution, defaultPage }: BannerProps) {
 
   switch (contribution.status) {
     case 'canceled': {
-      const link = defaultPage ? pageLink(defaultPage) : undefined;
+      const link = page ? pageLink(page) : undefined;
       const canceledAtFormattedDate =
         contribution.canceled_at &&
         Intl.DateTimeFormat(undefined, {

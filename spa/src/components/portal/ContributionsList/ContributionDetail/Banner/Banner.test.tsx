@@ -2,6 +2,12 @@ import { PortalContributionDetail } from 'hooks/usePortalContribution';
 import { axe } from 'jest-axe';
 import { render, screen } from 'test-utils';
 import Banner, { BannerProps } from './Banner';
+import usePortal from 'hooks/usePortal';
+
+jest.mock('hooks/usePortal', () => ({
+  __esModule: true,
+  default: jest.fn()
+}));
 
 const mockContribution: PortalContributionDetail = {
   amount: 12345,
@@ -29,6 +35,12 @@ function tree(props?: Partial<BannerProps>) {
 }
 
 describe('Banner', () => {
+  const usePortalMock = usePortal as jest.Mock;
+
+  beforeEach(() => {
+    usePortalMock.mockReturnValue({ page: null });
+  });
+
   describe('Status = Canceled', () => {
     it('should render title', () => {
       tree({ contribution: { ...mockContribution, status: 'canceled' } });
@@ -55,14 +67,17 @@ describe('Banner', () => {
     });
 
     it('should render link to donation page', () => {
-      tree({
-        contribution: { ...mockContribution, status: 'canceled', canceled_at: new Date('1/2/2024').toISOString() },
-        defaultPage: {
+      usePortalMock.mockReturnValue({
+        page: {
           revenue_program: {
             slug: 'mock-rp-slug'
           },
           slug: 'mock-page-slug'
-        } as any
+        }
+      });
+
+      tree({
+        contribution: { ...mockContribution, status: 'canceled', canceled_at: new Date('1/2/2024').toISOString() }
       });
       const link = screen.getByRole('link', { name: 'creating a new contribution' });
 

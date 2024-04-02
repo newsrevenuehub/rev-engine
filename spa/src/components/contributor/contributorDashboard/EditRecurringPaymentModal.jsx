@@ -41,7 +41,7 @@ import { HUB_STRIPE_API_PUB_KEY } from 'appSettings';
 // Children
 import Modal from 'elements/modal/Modal';
 import Button from 'elements/buttons/Button';
-import GlobalLoading from 'elements/GlobalLoading';
+import { GlobalLoading } from 'components/common/GlobalLoading';
 import ContributionPaymentMethod from './ContributionPaymentMethod';
 
 function EditRecurringPaymentModal({ isOpen, closeModal, contribution, onComplete }) {

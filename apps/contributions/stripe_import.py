@@ -87,16 +87,6 @@ class ContributionImportBaseClass(ABC):
     refunds: list[stripe.Refund]
     customer: stripe.Customer | None
 
-    DONT_UPDATE_FIELDS = [
-        # If there's contribution metadata, we want to leave it intact.
-        # Otherwise we see spurious updates because of key ordering in the
-        # metadata and conversions of null <-> None.
-        "contribution_metadata",
-        # Currently revengine stores currency as uppercase, but there are older contributions where
-        # it's stored as lowercase. We don't want to update these contributions because it's not necessary
-        "currency",
-    ]
-
     def __post_init__(self) -> None:
         self.validate()
 
@@ -289,7 +279,8 @@ class PaymentIntentForOneTimeContribution(ContributionImportBaseClass):
             unique_identifier={"provider_payment_id": self.payment_intent.id},
             defaults={
                 "amount": self.payment_intent.amount,
-                "currency": self.payment_intent.currency,
+                # NB: Stripe currency is always uppercase, but we store it in Revengine as lowercase
+                "currency": self.payment_intent.currency.lower(),
                 "interval": ContributionInterval.ONE_TIME,
                 "payment_provider_used": PaymentProvider.STRIPE_LABEL,
                 "provider_customer_id": self.customer.id if self.customer else None,
@@ -300,7 +291,10 @@ class PaymentIntentForOneTimeContribution(ContributionImportBaseClass):
                 "contribution_metadata": self.payment_intent.metadata,
             },
             caller_name="PaymentIntentForOneTimeContribution.upsert",
-            dont_update=self.DONT_UPDATE_FIELDS,
+            # If there's contribution metadata, we want to leave it intact.
+            # Otherwise we see spurious updates because of key ordering in the
+            # metadata and conversions of null <-> None.
+            dont_update=["contribution_metadata"],
         )
         contribution = self.conditionally_update_contribution_donation_page(contribution=contribution)
         if not contribution.donation_page:
@@ -396,7 +390,8 @@ class SubscriptionForRecurringContribution(ContributionImportBaseClass):
             unique_identifier={"provider_subscription_id": self.subscription.id},
             defaults={
                 "amount": self.subscription.plan.amount,
-                "currency": self.subscription.plan.currency,
+                # NB: Stripe currency is always uppercase, but we store it in Revengine as lowercase
+                "currency": self.subscription.plan.currency.lower(),
                 "interval": self.interval,
                 "payment_provider_used": PaymentProvider.STRIPE_LABEL,
                 "provider_customer_id": self.customer.id,
@@ -407,7 +402,10 @@ class SubscriptionForRecurringContribution(ContributionImportBaseClass):
                 "status": self.status,
             },
             caller_name="SubscriptionForRecurringContribution.upsert",
-            dont_update=self.DONT_UPDATE_FIELDS,
+            # If there's contribution metadata, we want to leave it intact.
+            # Otherwise we see spurious updates because of key ordering in the
+            # metadata and removal of null/None entries.
+            dont_update=["contribution_metadata"],
         )
         contribution = self.conditionally_update_contribution_donation_page(contribution=contribution)
         if not contribution.donation_page:

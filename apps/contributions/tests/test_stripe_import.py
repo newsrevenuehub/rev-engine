@@ -6,6 +6,7 @@ from django.conf import settings
 import pytest
 import stripe
 
+from apps.contributions import stripe_import
 from apps.contributions.exceptions import (
     InvalidIntervalError,
     InvalidMetadataError,
@@ -383,6 +384,7 @@ class TestSubscriptionForRecurringContribution:
 
     def test_upsert(self, subscription_to_upsert, charge, refund, customer, mocker):
         subscription, existing_entities = subscription_to_upsert
+        upsert_with_diff_check_spy = mocker.spy(stripe_import, "upsert_with_diff_check")
         if existing_entities:
             orig_metadata = Contribution.objects.get(
                 provider_subscription_id=subscription.id
@@ -415,6 +417,7 @@ class TestSubscriptionForRecurringContribution:
         assert action == ("created" if not existing_entities else "updated")
         mock_upsert_payment.assert_any_call(contribution, charge.balance_transaction, is_refund=False)
         mock_upsert_payment.assert_any_call(contribution, refund.balance_transaction, is_refund=True)
+        assert upsert_with_diff_check_spy.call_args[1]["dont_update"] == ["contribution_metadata", "currency"]
 
     def test_upsert_when_no_donation_page(self, subscription, customer, charge, refund, mocker):
         mocker.patch(
@@ -601,6 +604,7 @@ class TestPaymentIntentForOneTimeContribution:
 
     def test_upsert(self, pi_to_upsert, customer, charge, refund, mocker):
         payment_intent, existing_entities = pi_to_upsert
+        upsert_with_diff_check_spy = mocker.spy(stripe_import, "upsert_with_diff_check")
         if existing_entities:
             orig_metadata = Contribution.objects.get(provider_payment_id=payment_intent.id).contribution_metadata.copy()
         mock_upsert_payment = mocker.patch("apps.contributions.stripe_import.upsert_payment_for_transaction")
@@ -631,6 +635,7 @@ class TestPaymentIntentForOneTimeContribution:
         assert Contributor.objects.filter(email=customer.email).exists
         mock_upsert_payment.assert_any_call(contribution, charge.balance_transaction, is_refund=False)
         mock_upsert_payment.assert_any_call(contribution, refund.balance_transaction, is_refund=True)
+        assert upsert_with_diff_check_spy.call_args[1]["dont_update"] == ["contribution_metadata", "currency"]
 
     def test_upsert_when_no_donation_page(self, payment_intent, customer, charge, refund, mocker):
         mocker.patch(

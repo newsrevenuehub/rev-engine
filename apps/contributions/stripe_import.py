@@ -279,7 +279,10 @@ class PaymentIntentForOneTimeContribution(ContributionImportBaseClass):
             unique_identifier={"provider_payment_id": self.payment_intent.id},
             defaults={
                 "amount": self.payment_intent.amount,
-                "currency": self.payment_intent.currency,
+                # NB: Stripe currency as returned by API is lowercased, but when we create contributions in revengine
+                # donation page flow, we use uppercase currency (see organizations.models.PaymentProvider.currency default of USD), so
+                # we need to uppercase it here, lest we superfluously update a large number of records from "USD" to "usd"
+                "currency": self.payment_intent.currency.upper(),
                 "interval": ContributionInterval.ONE_TIME,
                 "payment_provider_used": PaymentProvider.STRIPE_LABEL,
                 "provider_customer_id": self.customer.id if self.customer else None,
@@ -389,7 +392,12 @@ class SubscriptionForRecurringContribution(ContributionImportBaseClass):
             unique_identifier={"provider_subscription_id": self.subscription.id},
             defaults={
                 "amount": self.subscription.plan.amount,
-                "currency": self.subscription.plan.currency,
+                # NB: Stripe currency as returned by API is lowercased, but when we create contributions in revengine
+                # donation page flow, we use uppercase currency (see organizations.models.PaymentProvider.currency default of USD), so
+                # NB: Stripe currency as returned by API is lowercased, but when we create contributions in revengine
+                # donation page flow, we use uppercase currency (see organizations.models.PaymentProvider.currency default of USD), so
+                # we need to uppercase it here, lest we superfluously update a large number of records from "USD" to "usd"
+                "currency": self.subscription.plan.currency.upper(),
                 "interval": self.interval,
                 "payment_provider_used": PaymentProvider.STRIPE_LABEL,
                 "provider_customer_id": self.customer.id,

@@ -102,6 +102,7 @@ def subscription(mocker, customer, valid_metadata):
         customer=customer,
         metadata=valid_metadata,
         plan=plan,
+        currency="usd",
         status="active",
         default_payment_method=payment_method,
     )
@@ -394,7 +395,7 @@ class TestSubscriptionForRecurringContribution:
         contribution, action = instance.upsert()
         assert contribution.provider_subscription_id == subscription.id
         assert contribution.amount == subscription.plan.amount
-        assert contribution.currency == subscription.plan.currency.lower()
+        assert contribution.currency == subscription.plan.currency.upper()
         assert contribution.interval == ContributionInterval.MONTHLY
         assert contribution.payment_provider_used == PaymentProvider.STRIPE_LABEL
         assert contribution.provider_customer_id == subscription.customer.id
@@ -609,7 +610,7 @@ class TestPaymentIntentForOneTimeContribution:
         ).upsert()
         assert contribution.provider_payment_id == payment_intent.id
         assert contribution.amount == payment_intent.amount
-        assert contribution.currency == payment_intent.currency.lower()
+        assert contribution.currency == payment_intent.currency.upper()
         assert contribution.interval == ContributionInterval.ONE_TIME
         assert contribution.payment_provider_used == PaymentProvider.STRIPE_LABEL
         assert contribution.provider_payment_method_id == payment_intent.payment_method.id

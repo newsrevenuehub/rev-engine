@@ -8,6 +8,7 @@ from django.forms import ModelForm
 from django.urls import reverse
 from django.utils.safestring import mark_safe
 
+import phonenumbers
 from rest_framework.serializers import ValidationError as DRFValidationError
 from reversion_compare.admin import CompareVersionAdmin
 from sorl.thumbnail.admin import AdminImageMixin
@@ -72,6 +73,16 @@ class RevenueProgramAdminForm(ModelForm):
         except DRFValidationError as exc:
             raise ValidationError(exc.get_full_details()[0]["message"])
         return self.cleaned_data["tax_id"]
+
+    def clean_contact_phone(self):
+        contact_phone = self.cleaned_data["contact_phone"]
+        try:
+            phone_number = phonenumbers.parse(contact_phone)
+            if not phonenumbers.is_valid_number(phone_number):
+                raise ValidationError(f"Invalid phone number: {contact_phone}")
+        except phonenumbers.phonenumberutil.NumberParseException:
+            raise ValidationError(f"Phone not parsable: {contact_phone}")
+        return contact_phone
 
 
 class RevenueProgramBenefitLevelInline(NoRelatedInlineAddEditAdminMixin, ReadOnlyOrgLimitedTabularInlineMixin):
@@ -219,6 +230,7 @@ class RevenueProgramAdmin(RevEngineBaseAdmin, CompareVersionAdmin, AdminImageMix
                     "name",
                     "slug",
                     "contact_email",
+                    "contact_phone",
                     "organization",
                     "default_donation_page",
                     "tax_id",

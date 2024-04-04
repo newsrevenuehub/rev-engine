@@ -38,14 +38,15 @@ STORAGES = {
         "BACKEND": "storages.backends.gcloud.GoogleCloudStorage",
         # https://django-storages.readthedocs.io/en/latest/backends/gcloud.html#settings
         "OPTIONS": {
-            "bucket_name": os.getenv("GS_BUCKET_NAME", "rev-engine-media"),
-            "project_id": os.getenv("GS_PROJECT_ID", "revenue-engine"),
+            "bucket_name": os.getenv("GS_BUCKET_NAME"),
+            "project_id": os.getenv("GS_PROJECT_ID"),
             "querystring_auth": False,
             "credentials": GS_CREDENTIALS,
+            "default_acl": "publicRead",
         },
     },
 }
-
+STATIC_URL = f"https://storage.googleapis.com/{os.getenv('GS_BUCKET_NAME')}/static/"
 ### React SPA index.html
 FRONTEND_BUILD_DIR = Path(BASE_DIR) / "build"
 TEMPLATES[0]["DIRS"] = [FRONTEND_BUILD_DIR, os.path.join(PROJECT_DIR, "templates")]

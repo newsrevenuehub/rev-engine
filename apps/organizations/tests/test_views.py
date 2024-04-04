@@ -1131,11 +1131,6 @@ class TestHandleStripeAccountLink:
         assert response.status_code == status.HTTP_500_INTERNAL_SERVER_ERROR
 
 
-@pytest.fixture()
-def settings_stripe_acccount_link_env_var_set(settings):
-    settings.STRIPE_ACCOUNT_LINK_RETURN_BASE_URL = "http://localhost:3000"
-
-
 def test_get_stripe_account_link_return_url_when_env_var_set(settings):
     settings.STRIPE_ACCOUNT_LINK_RETURN_BASE_URL = "http://localhost:3000"
     factory = APIRequestFactory()

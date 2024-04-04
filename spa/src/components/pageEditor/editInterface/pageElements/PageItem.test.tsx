@@ -47,34 +47,40 @@ describe('PageItem', () => {
       expect(screen.getByText(element.displayName!)).toBeInTheDocument();
     });
 
-    it('renders description', () => {
-      tree({ element });
+    it('renders description if showDescription prop is true', () => {
+      tree({ element, showDescription: true });
       expect(element.description).not.toEqual(undefined);
       expect(screen.getByText(element.description!)).toBeInTheDocument();
     });
 
+    it("doesn't render description if showDescription prop is false", () => {
+      tree({ element, showDescription: false });
+      expect(element.description).not.toEqual(undefined);
+      expect(screen.queryByText(element.description!)).not.toBeInTheDocument();
+    });
+
     it('renders edit icon', () => {
-      tree({ element });
-      expect(screen.getByLabelText(`Edit ${element.type} block`)).toBeEnabled();
+      tree({ element, handleItemEdit: jest.fn() });
+      expect(screen.getByRole('button', { name: `Edit ${element.displayName}` })).toBeEnabled();
     });
 
     it('calls handleItemEdit when edit icon is clicked', () => {
       const handleItemEdit = jest.fn();
       tree({ element, handleItemEdit });
       expect(handleItemEdit).not.toHaveBeenCalled();
-      userEvent.click(screen.getByLabelText(`Edit ${element.type} block`));
+      userEvent.click(screen.getByRole('button', { name: `Edit ${element.displayName}` }));
       expect(handleItemEdit).toHaveBeenCalledTimes(1);
     });
 
     it('renders delete icon only if required = False', () => {
-      tree({ element });
+      tree({ element, handleItemDelete: jest.fn() });
       expect.assertions(1);
       if (element.required) {
         // eslint-disable-next-line jest/no-conditional-expect
-        expect(screen.queryByLabelText(`Remove ${element.type} block`)).not.toBeInTheDocument();
+        expect(screen.queryByRole('button', { name: `Remove ${element.displayName}` })).not.toBeInTheDocument();
       } else {
         // eslint-disable-next-line jest/no-conditional-expect
-        expect(screen.getByLabelText(`Remove ${element.type} block`)).toBeEnabled();
+        expect(screen.getByRole('button', { name: `Remove ${element.displayName}` })).toBeEnabled();
       }
     });
 
@@ -82,11 +88,9 @@ describe('PageItem', () => {
       const handleItemDelete = jest.fn();
       tree({ element, handleItemDelete });
       let calledTimes = -1;
-      expect.assertions(2);
       expect(handleItemDelete).not.toHaveBeenCalled();
       if (!element.required) {
-        // eslint-disable-next-line jest/no-conditional-expect
-        userEvent.click(screen.getByLabelText(`Remove ${element.type} block`));
+        userEvent.click(screen.getByRole('button', { name: `Remove ${element.displayName}` }));
         calledTimes = 1;
       } else {
         calledTimes = 0;

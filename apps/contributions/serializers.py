@@ -22,6 +22,7 @@ from apps.contributions.models import (
 )
 from apps.contributions.types import StripePaymentMetadataSchemaV1_4
 from apps.contributions.utils import format_ambiguous_currency, get_sha256_hash
+from apps.organizations.models import PaymentProvider
 from apps.organizations.serializers import RevenueProgramSerializer
 from apps.pages.models import DonationPage
 
@@ -92,7 +93,7 @@ class ContributionSerializer(serializers.ModelSerializer):
 
     def _get_base_provider_url(self, obj):
         base = "https://"
-        if obj.payment_provider_used == "Stripe":
+        if obj.payment_provider_used == PaymentProvider.STRIPE_LABEL:
             return base + "dashboard.stripe.com"
 
     def _get_resource_url(self, obj, resource):
@@ -426,7 +427,7 @@ class BaseCreatePaymentSerializer(serializers.Serializer):
             "status": ContributionStatus.PROCESSING,
             "donation_page": validated_data["page"],
             "contributor": contributor,
-            "payment_provider_used": "Stripe",
+            "payment_provider_used": PaymentProvider.STRIPE_LABEL,
         }
         if bad_actor_response:
             contribution_data["bad_actor_score"] = bad_actor_response["overall_judgment"]
@@ -464,7 +465,7 @@ class BaseCreatePaymentSerializer(serializers.Serializer):
 
 
 class CreateOneTimePaymentSerializer(BaseCreatePaymentSerializer):
-    """Serializer to enable creating a contribution + one time payment"""
+    """Serializer to enable creating a contribution + one-time payment"""
 
     def create(self, validated_data):
         """Create a one-time contribution...

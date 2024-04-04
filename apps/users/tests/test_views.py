@@ -808,7 +808,7 @@ class TestUserViewSet:
         assert status.HTTP_404_NOT_FOUND == response.status_code
         assert {"detail": "Account inactive"} == response.json()
 
-    def test_request_acccount_verification_when_unauthed(self, api_client):
+    def test_request_account_verification_when_unauthed(self, api_client):
         response = api_client.get(reverse("user-request-account-verification"))
         assert response.status_code == status.HTTP_401_UNAUTHORIZED
 

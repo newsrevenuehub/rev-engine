@@ -497,7 +497,7 @@ class TestContributionsViewSetExportCSV:
         settings.CELERY_ALWAYS_EAGER = True
         api_client.force_authenticate(user)
         if user.is_staff or user.roleassignment.role_type == Roles.HUB_ADMIN:
-            ContributionFactory(status=ContributionStatus.PAID, one_time=True)
+            ContributionFactory(one_time=True, status=ContributionStatus.PAID)
             ContributionFactory(one_time=True, flagged=True)
             ContributionFactory(one_time=True, rejected=True)
             ContributionFactory(one_time=True, canceled=True)

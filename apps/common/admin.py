@@ -9,10 +9,12 @@ from django_json_widget.widgets import JSONEditorWidget
 from pygments import highlight
 from pygments.formatters import HtmlFormatter
 from pygments.lexers import JsonLexer
+from reversion.admin import VersionAdmin
 from reversion.models import Revision, Version
+from reversion_compare.admin import CompareVersionAdmin
 
 
-class RevEngineBaseAdmin(ModelAdmin):
+class RevEngineBaseAdmin(CompareVersionAdmin, VersionAdmin):
     formfield_overrides = {
         models.JSONField: {"widget": JSONEditorWidget},
     }

@@ -434,8 +434,9 @@ class StripeTransactionsImporter:
     from_date: datetime.datetime = None
     to_date: datetime.datetime = None
 
-    _SUBSCRIPTIONS_DATA = {}
-    _ONE_TIMES_DATA = []
+    def __post_init__(self) -> None:
+        self._SUBSCRIPTIONS_DATA = {}
+        self._ONE_TIMES_DATA = []
 
     @property
     def created_query(self) -> dict:
@@ -473,13 +474,12 @@ class StripeTransactionsImporter:
         NB: This method only lets through payment intents that have a supported schema version.
         """
         logger.debug("Getting payment intents for account %s", self.stripe_account_id)
-        pis = [
+        return [
             x
             for x in stripe.PaymentIntent.list(
                 stripe_account=self.stripe_account_id, limit=MAX_STRIPE_RESPONSE_LIMIT, created=self.created_query
             ).auto_paging_iter()
         ]
-        return [x for x in pis if x.metadata.get("schema_version", None) in STRIPE_PAYMENT_METADATA_SCHEMA_VERSIONS]
 
     @staticmethod
     def is_for_one_time_contribution(pi: stripe.PaymentIntent, invoice: stripe.Invoice | None) -> bool:
@@ -551,6 +551,29 @@ class StripeTransactionsImporter:
             self._SUBSCRIPTIONS_DATA[subscription.id]["charges"].extend(charges)
             self._SUBSCRIPTIONS_DATA[subscription.id]["refunds"].extend(refunds)
 
+    def handle_one_time_contribution_data(
+        self,
+        payment_intent_id: str,
+        charges: list[stripe.Charge],
+        refunds: list[stripe.Refund],
+        customer: stripe.Customer,
+    ) -> None:
+        """Assemble upsert data for a given stripe payment intent. This will ultimately get used to initialize a `PaymentIntentForOneTimeContribution` object."""
+        # we re-retrieve the payment intent here in case of one-time because we need to get the payment method, and the PI
+        # sent as arg is retrieved via list api, where it's not possible to expand payment method
+        pi = self.get_payment_intent(entity_id=payment_intent_id)
+        if pi.metadata.get("schema_version", None) not in STRIPE_PAYMENT_METADATA_SCHEMA_VERSIONS:
+            logger.debug("Skipping payment intent %s because it has an unsupported schema version", pi.id)
+            return
+        self._ONE_TIMES_DATA.append(
+            {
+                "payment_intent": pi,
+                "charges": charges,
+                "refunds": refunds,
+                "customer": customer,
+            }
+        )
+
     def assemble_data_for_pi(self, payment_intent: stripe.PaymentIntent) -> None:
         """Assemble data for a given stripe payment intent"""
         logger.debug("Assembling data for payment intent %s", payment_intent.id)
@@ -561,15 +584,8 @@ class StripeTransactionsImporter:
         customer = self.get_stripe_customer(entity_id=payment_intent.customer)
         invoice = self.get_invoice(entity_id=payment_intent.invoice) if payment_intent.invoice else None
         if self.is_for_one_time_contribution(payment_intent, invoice):
-            self._ONE_TIMES_DATA.append(
-                {
-                    # we re-retrieve the payment intent here in case of one-time because we need to get the payment method, and the PI
-                    # sent as arg is retrieved via list api, where it's not possible to expand payment method
-                    "payment_intent": self.get_payment_intent(entity_id=payment_intent.id),
-                    "charges": charges,
-                    "refunds": refunds,
-                    "customer": customer,
-                }
+            self.handle_one_time_contribution_data(
+                payment_intent_id=payment_intent.id, charges=charges, refunds=refunds, customer=customer
             )
         else:
             self.handle_recurring_contribution_data(

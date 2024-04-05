@@ -110,7 +110,7 @@ class ContributionImportBaseClass(ABC):
 
     @property
     def email_id(self) -> str | None:
-        return self.customer.email
+        return self.customer.email if self.customer else None
 
     @property
     def stripe_entity(self) -> stripe.PaymentIntent | stripe.Subscription:

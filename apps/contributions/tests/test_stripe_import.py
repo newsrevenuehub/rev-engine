@@ -28,6 +28,7 @@ from apps.contributions.stripe_import import (
     upsert_payment_for_transaction,
 )
 from apps.contributions.tests.factories import ContributionFactory, PaymentFactory
+from apps.contributions.types import STRIPE_PAYMENT_METADATA_SCHEMA_VERSIONS
 from apps.organizations.models import PaymentProvider, RevenueProgram
 from apps.pages.tests.factories import DonationPageFactory
 
@@ -679,11 +680,9 @@ class TestStripeTransactionsImporter:
 
     def test_get_payment_intents(self, mocker):
         mock_pi_list = mocker.patch("stripe.PaymentIntent.list")
-        result_1 = mocker.Mock(metadata={"schema_version": "1.0"})
-        result_2 = mocker.Mock(metadata={"schema_version": "unsupported"})
-        mock_pi_list.return_value.auto_paging_iter.return_value = [result_1, result_2]
+        mock_pi_list.return_value.auto_paging_iter.return_value = (results := [mocker.Mock(), mocker.Mock()])
         instance = StripeTransactionsImporter(stripe_account_id=(stripe_id := "test"))
-        assert instance.get_payment_intents() == [result_1]
+        assert instance.get_payment_intents() == results
         mock_pi_list.assert_called_once_with(
             created=instance.created_query,
             stripe_account=stripe_id,
@@ -745,6 +744,26 @@ class TestStripeTransactionsImporter:
         if expand_fields:
             expected_kwargs["expand"] = expand_fields
         mock_get_stripe_entity.assert_called_once_with(**expected_kwargs)
+
+    @pytest.mark.parametrize("supported_metadata_version", (True, False))
+    def test_handle_one_time_contribution_data(self, supported_metadata_version, payment_intent, customer, mocker):
+        instance = StripeTransactionsImporter(stripe_account_id="test")
+        payment_intent.metadata["schema_version"] = (
+            list(STRIPE_PAYMENT_METADATA_SCHEMA_VERSIONS.keys())[0] if supported_metadata_version else "unsupported"
+        )
+        mocker.patch("stripe.PaymentIntent.retrieve", return_value=payment_intent)
+        instance.handle_one_time_contribution_data(payment_intent.id, [], [], customer)
+        if supported_metadata_version:
+            assert instance._ONE_TIMES_DATA == [
+                {
+                    "payment_intent": payment_intent,
+                    "charges": [],
+                    "refunds": [],
+                    "customer": customer,
+                }
+            ]
+        else:
+            assert not instance._ONE_TIMES_DATA
 
     @pytest.mark.parametrize("sub_already_seen", (True, False))
     def test_handle_recurring_contribution_data(self, sub_already_seen, subscription, charge, refund, customer):

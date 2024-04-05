@@ -196,9 +196,9 @@ def on_process_stripe_webhook_task_failure(self, task: Task, exc: Exception, tra
     link_error=on_process_stripe_webhook_task_failure.s(),
 )
 def process_stripe_webhook_task(self, raw_event_data: dict) -> None:
-    logger.info("Processing Stripe webhook event with ID %s", raw_event_data["id"])
+    processor = StripeWebhookProcessor(event=(event := StripeEventData(**raw_event_data)), task_id=self.request.id)
+    logger.info("Processing Stripe webhook event with ID %s, type %s", processor.event_id, processor.event_type)
 
-    processor = StripeWebhookProcessor(event=(event := StripeEventData(**raw_event_data)))
     try:
         processor.process()
     except Contribution.DoesNotExist:
@@ -206,7 +206,13 @@ def process_stripe_webhook_task(self, raw_event_data: dict) -> None:
         # Specifically, we expect this to be the case for import legacy recurring contributions, which may have a future
         # first/next(in NRE platform) payment date.
         # TODO: [DEV-4151] Add some sort of analytics / telemetry to track how often this happens
-        logger.info("Could not find contribution. Here's the event data: %s", event, exc_info=True)
+        logger.info(
+            "Could not find contribution for event with ID %s, type %s. Here's the event data: %s",
+            processor.event_id,
+            processor.event_type,
+            event,
+            exc_info=True,
+        )
 
 
 @shared_task(bind=True, autoretry_for=(RateLimitError,), retry_backoff=True, retry_kwargs={"max_retries": 3})

@@ -27,9 +27,17 @@ logger = logging.getLogger(f"{settings.DEFAULT_LOGGER}.{__name__}")
 @dataclass
 class StripeWebhookProcessor:
     event: StripeEventData
+    # If the event was triggered by a Celery task, this will be the task ID
+    task_id: str = None
 
     def __post_init__(self):
-        logger.info("Processing Stripe webhook event %s: %s - %s", self.event_id, self.event_type, self.id)
+        logger.info(
+            "Processing Stripe webhook event with event id %s, event type %s, object id %s, task_id %s",
+            self.event_id,
+            self.event_type,
+            self.id,
+            self.task_id,
+        )
 
     @property
     def obj_data(self) -> dict:
@@ -278,7 +286,7 @@ class StripeWebhookProcessor:
                     "provider_payment_method_id": pi.payment_method,
                     "provider_payment_method_details": self.contribution.fetch_stripe_payment_method(),
                 },
-                "`StripeWebhookProcessor.handle_payment_intent_succeeded` updated contribution",
+                "`StripeWebhookProcessor.handle_invoice_payment_succeeded` updated contribution",
             )
         if payment.contribution.payment_set.count() == 1:
             self.contribution.handle_thank_you_email()

@@ -463,9 +463,21 @@ class BaseCreatePaymentSerializer(serializers.Serializer):
             schema_version="1.4",
         )
 
+    @staticmethod
+    def save_contribution(contribution: Contribution, comment: str):
+        """Save a contribution with reversion"""
+        with reversion.create_revision():
+            contribution.save()
+            reversion.set_user(contribution.contributor)
+            reversion.set_comment(comment)
+
 
 class CreateOneTimePaymentSerializer(BaseCreatePaymentSerializer):
     """Serializer to enable creating a contribution + one-time payment"""
+
+    def _save(self, contribution):
+        """Save a contribution with reversion"""
+        self.save_contribution(contribution, "Created by CreateOneTimePaymentSerializer.create")
 
     def create(self, validated_data):
         """Create a one-time contribution...
@@ -490,7 +502,7 @@ class CreateOneTimePaymentSerializer(BaseCreatePaymentSerializer):
         contribution = self.build_contribution(contributor, validated_data, bad_actor_response)
         if contribution.status == ContributionStatus.REJECTED:
             logger.info("`CreateOneTimePaymentSerializer.create` is saving a new contribution with REJECTED status")
-            contribution.save()
+            self._save(contribution)
             logger.info(
                 "`CreateOneTimePaymentSerializer.create` saved a new contribution with REJECTED status with ID %s",
                 contribution.id,
@@ -510,7 +522,7 @@ class CreateOneTimePaymentSerializer(BaseCreatePaymentSerializer):
             logger.info(
                 "`CreateOneTimePaymentSerializer.create` is saving a new contribution after encountering a Stripe error"
             )
-            contribution.save()
+            self._save(contribution)
             logger.exception(
                 "CreateOneTimePaymentSerializer.create encountered a Stripe error while attempting to create a Stripe customer for contributor with id %s",
                 contributor.id,
@@ -540,7 +552,7 @@ class CreateOneTimePaymentSerializer(BaseCreatePaymentSerializer):
             logger.info(
                 "`CreateOneTimePaymentSerializer.create` is saving a new contribution after encountering a Stripe error attempting to create a Stripe Payment intent "
             )
-            contribution.save()
+            self._save(contribution)
             logger.info(
                 "`CreateOneTimePaymentSerializer.create` created a contribution with id %s",
                 contribution.id,
@@ -551,7 +563,7 @@ class CreateOneTimePaymentSerializer(BaseCreatePaymentSerializer):
         contribution.payment_provider_data = dict(payment_intent) | {"client_secret": None}
         logger.info("`CreateOneTimePaymentSerializer.create` is saving a new contribution")
 
-        contribution.save()
+        self._save(contribution)
         logger.info("`CreateOneTimePaymentSerializer.create` saved a new contribution with ID %s", contribution.id)
 
         return {
@@ -567,6 +579,10 @@ class CreateRecurringPaymentSerializer(BaseCreatePaymentSerializer):
     interval = serializers.ChoiceField(
         choices=[ContributionInterval.MONTHLY, ContributionInterval.YEARLY], write_only=True
     )
+
+    def _save(self, contribution):
+        """Save a contribution with reversion"""
+        self.save_contribution(contribution, "Created by CreateRecurringPaymentSerializer.create")
 
     def create(self, validated_data):
         """Create a recurring contribution...
@@ -594,7 +610,7 @@ class CreateRecurringPaymentSerializer(BaseCreatePaymentSerializer):
                 "`CreateRecurringPaymentSerializer.create` is saving a new contribution with REJECTED status for contributor with ID %s",
                 contributor.id,
             )
-            contribution.save()
+            self._save(contribution)
             # In the case of a rejected contribution, we don't create a Stripe customer or
             # Stripe payment intent, so we raise exception, and leave to SPA to handle accordingly
             logger.info(
@@ -631,7 +647,7 @@ class CreateRecurringPaymentSerializer(BaseCreatePaymentSerializer):
                 ),
                 contributor.id,
             )
-            contribution.save()
+            self._save(contribution)
             logger.info(
                 "`CreateRecurringPaymentSerializer.create` created a new contribution with ID %s", contribution.id
             )
@@ -684,14 +700,14 @@ class CreateRecurringPaymentSerializer(BaseCreatePaymentSerializer):
                 contributor.id,
                 "setup intent" if contribution.status == ContributionStatus.FLAGGED else "subscription",
             )
-            contribution.save()
+            self._save(contribution)
             logger.info(
                 "`CreateRecurringPaymentSerializer.create` saved a new contribution with ID %s", contribution.id
             )
             raise GenericPaymentError()
 
         logger.info("`CreateRecurringPaymentSerializer.create` is saving a new contribution")
-        contribution.save()
+        self._save(contribution)
         logger.info("`CreateRecurringPaymentSerializer.create` saved a new contribution with ID %s", contribution.id)
         return {
             "uuid": str(contribution.uuid),

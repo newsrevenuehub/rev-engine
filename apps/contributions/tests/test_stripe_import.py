@@ -16,7 +16,6 @@ from apps.contributions.models import (
     ContributionInterval,
     ContributionStatus,
     Contributor,
-    Payment,
 )
 from apps.contributions.stripe_import import (
     MAX_STRIPE_RESPONSE_LIMIT,
@@ -202,24 +201,27 @@ class Test_upsert_payment_for_transaction:
                 contribution=contribution,
                 stripe_balance_transaction_id=balance_transaction.id,
             )
-        upsert_payment_for_transaction(contribution=contribution, transaction=balance_transaction, is_refund=is_refund)
+        payment, action = upsert_payment_for_transaction(
+            contribution=contribution, transaction=balance_transaction, is_refund=is_refund
+        )
         contribution.refresh_from_db()
         assert contribution.payment_set.count() == 1
-        assert Payment.objects.filter(
-            contribution=contribution,
-            stripe_balance_transaction_id=balance_transaction.id,
-            net_amount_paid=balance_transaction.net if not is_refund else 0,
-            gross_amount_paid=balance_transaction.amount if not is_refund else 0,
-            amount_refunded=balance_transaction.amount if is_refund else 0,
-            transaction_time__isnull=False,
-        ).exists()
+        assert payment.contribution == contribution
+        assert payment.stripe_balance_transaction_id == balance_transaction.id
+        assert payment.net_amount_paid == (balance_transaction.net if not is_refund else 0)
+        assert payment.gross_amount_paid == (balance_transaction.amount if not is_refund else 0)
+        assert payment.amount_refunded == (balance_transaction.amount if is_refund else 0)
+        assert payment.transaction_time
+        assert action == ("updated" if payment_exists else "created")
 
     def test_when_transaction_is_none(self, contribution, mocker):
         logger_spy = mocker.patch("apps.contributions.stripe_import.logger.warning")
         mock_upsert = mocker.patch("apps.common.utils.upsert_with_diff_check")
-        upsert_payment_for_transaction(contribution=contribution, transaction=None)
+        payment, action = upsert_payment_for_transaction(contribution=contribution, transaction=None)
         logger_spy.assert_called_once()
         mock_upsert.assert_not_called()
+        assert payment is None
+        assert action is None
 
 
 @pytest.mark.django_db
@@ -389,11 +391,15 @@ class TestSubscriptionForRecurringContribution:
             orig_metadata = Contribution.objects.get(
                 provider_subscription_id=subscription.id
             ).contribution_metadata.copy()
-        mock_upsert_payment = mocker.patch("apps.contributions.stripe_import.upsert_payment_for_transaction")
-        instance = SubscriptionForRecurringContribution(
+        mock_upsert_payment = mocker.patch(
+            "apps.contributions.stripe_import.upsert_payment_for_transaction", return_value=(None, None)
+        )
+        handler = SubscriptionForRecurringContribution(
             subscription=subscription, charges=[charge], refunds=[refund], customer=customer
         )
-        contribution, action = instance.upsert()
+        handler.upsert()
+
+        contribution = Contribution.objects.get(provider_subscription_id=subscription.id)
         assert contribution.provider_subscription_id == subscription.id
         assert contribution.amount == subscription.plan.amount
         assert contribution.currency == subscription.plan.currency.upper()
@@ -404,17 +410,20 @@ class TestSubscriptionForRecurringContribution:
         assert contribution.provider_payment_method_details == subscription.default_payment_method.to_dict()
         assert contribution.contributor.email == subscription.customer.email
 
-        # If the upsert is updating an existing contribution, it shouldn't touch
-        # its metadata.
-
-        if action == "created":
-            assert contribution.contribution_metadata == subscription.metadata
-        else:
+        if existing_entities:
+            # If the upsert is updating an existing contribution, it shouldn't touch
+            # its metadata.
             assert contribution.contribution_metadata == orig_metadata
+            assert len(handler.created_contribution_ids) == 0
+            assert len(handler.updated_contribution_ids) == 1
+        else:
+            assert contribution.contribution_metadata == subscription.metadata
+            assert len(handler.created_contribution_ids) == 1
+            assert len(handler.updated_contribution_ids) == 0
 
         assert contribution.status == ContributionStatus.PAID
         assert Contributor.objects.filter(email=customer.email).exists
-        assert action == ("created" if not existing_entities else "updated")
+
         mock_upsert_payment.assert_any_call(contribution, charge.balance_transaction, is_refund=False)
         mock_upsert_payment.assert_any_call(contribution, refund.balance_transaction, is_refund=True)
 

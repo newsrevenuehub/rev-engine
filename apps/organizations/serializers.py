@@ -228,6 +228,8 @@ class RevenueProgramSerializer(serializers.ModelSerializer):
             "tax_id",
             "fiscal_status",
             "fiscal_sponsor_name",
+            "contact_phone",
+            "contact_email",
         ]
 
     def update(self, instance, validated_data):

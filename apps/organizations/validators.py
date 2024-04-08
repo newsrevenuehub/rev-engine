@@ -18,7 +18,7 @@ def validate_statement_descriptor_suffix(value):
 def validate_contact_phone_number(value):
     try:
         phone_number = phonenumbers.parse(value)
-        if not phonenumbers.is_valid_number(phone_number):
-            raise ValidationError(f"Invalid phone number: {value}")
     except phonenumbers.phonenumberutil.NumberParseException:
         raise ValidationError(f"Phone not parsable: {value}")
+    if not phonenumbers.is_valid_number(phone_number):
+        raise ValidationError(f"Invalid phone number: {value}")

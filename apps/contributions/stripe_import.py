@@ -217,6 +217,12 @@ class ContributionImportBaseClass(ABC):
         self, charges: list[stripe.Charge], refunds: list[stripe.Refund], contribution: Contribution
     ) -> None:
         for x, is_refund in list(map(lambda y: (y, False), charges)) + list(map(lambda y: (y, True), refunds)):
+            if not x or not getattr(x, "balance_transaction", None):
+                logger.warning(
+                    "Data associated with contribution %s has no balance transaction associated with it. No payment will be created.",
+                    contribution.id,
+                )
+                continue
             payment, action = upsert_payment_for_transaction(contribution, x.balance_transaction, is_refund=is_refund)
             if payment:
                 match action:

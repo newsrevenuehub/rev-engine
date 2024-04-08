@@ -1,34 +1,25 @@
-import QuestionMarkIcon from '@material-design-icons/svg/filled/question_mark.svg?react';
-import LocalPhoneOutlinedIcon from '@material-ui/icons/LocalPhoneOutlined';
-import MailOutlinedIcon from '@material-ui/icons/MailOutlined';
 import { CircularProgress } from 'components/base';
-import { ArrowPopover } from 'components/common/ArrowPopover';
 import Sort from 'components/common/Sort';
 import usePortal from 'hooks/usePortal';
 import { usePortalAuthContext } from 'hooks/usePortalAuth';
 import { usePortalContributionList } from 'hooks/usePortalContributionList';
-import { ReactChild, useCallback, useEffect, useState } from 'react';
+import { ReactChild, useEffect, useState } from 'react';
 import { useParams } from 'react-router-dom';
+import ContactInfoPopover from './ContactInfoPopover/ContactInfoPopover';
 import ContributionDetail from './ContributionDetail/ContributionDetail';
 import ContributionFetchError from './ContributionFetchError';
 import ContributionItem from './ContributionItem/ContributionItem';
 import { ContributionsHeader } from './ContributionsHeader';
 import {
   AlignPositionWrapper,
-  ContactInfoButton,
-  ContactInfoDetails,
-  ContactRow,
-  ContactTypography,
   Detail,
   Layout,
   Legend,
-  Link,
   List,
   Loading,
   Root,
   StyledPortalPage,
-  Subhead,
-  TitleTypography
+  Subhead
 } from './ContributionsList.styled';
 import NoContributions from './NoContributions';
 
@@ -55,11 +46,9 @@ const CONTRIBUTION_SORT_OPTIONS = [
 ];
 
 export function ContributionsList() {
-  const [anchorEl, setAnchorEl] = useState<HTMLButtonElement | null>(null);
   const { contributionId } = useParams<{ contributionId?: string }>();
   const { contributor } = usePortalAuthContext();
   const { page } = usePortal();
-  const hasContactInfo = page?.revenue_program.contact_email || page?.revenue_program.contact_phone;
   const [ordering, setOrdering] = useState(CONTRIBUTION_SORT_OPTIONS[0].value);
   const { contributions, isError, isLoading, refetch } = usePortalContributionList(contributor?.id, {
     ordering: ordering === 'created' ? `-${ordering}` : `-${ordering},-created`
@@ -70,10 +59,6 @@ export function ContributionsList() {
   // ContributionDetail when an item is selected.
   const [selectedContributionEl, setSelectedContributionEl] = useState<HTMLAnchorElement | null>(null);
   let content: ReactChild;
-
-  const showContactInfoPopover = useCallback((event: React.MouseEvent<HTMLButtonElement>) => {
-    setAnchorEl(event.currentTarget);
-  }, []);
 
   useEffect(() => {
     // Track viewing of a contribution detail in Pendo if available. If this
@@ -136,41 +121,7 @@ export function ContributionsList() {
             <Subhead>Transactions</Subhead>
             <p>View billing history, update payment details, and resend receipts.</p>
             <Sort options={CONTRIBUTION_SORT_OPTIONS} onChange={setOrdering} id="contributions-sort" />
-            {hasContactInfo && (
-              <>
-                <ContactInfoButton color="primaryDark" onClick={showContactInfoPopover}>
-                  <QuestionMarkIcon />
-                </ContactInfoButton>
-                <ArrowPopover anchorEl={anchorEl} onClose={() => setAnchorEl(null)} open={!!anchorEl} placement="top">
-                  <TitleTypography>Need help?</TitleTypography>
-                  <ContactTypography>Contact us:</ContactTypography>
-                  <ContactInfoDetails>
-                    {page?.revenue_program.contact_phone && (
-                      <ContactRow>
-                        <LocalPhoneOutlinedIcon />
-                        <p>
-                          Phone:{' '}
-                          <Link href={`tel:${page?.revenue_program.contact_phone}`}>
-                            {page?.revenue_program.contact_phone}
-                          </Link>
-                        </p>
-                      </ContactRow>
-                    )}
-                    {page?.revenue_program.contact_email && (
-                      <ContactRow>
-                        <MailOutlinedIcon />
-                        <p>
-                          Email:{' '}
-                          <Link href={`mailto:${page?.revenue_program.contact_email}`}>
-                            {page?.revenue_program.contact_email}
-                          </Link>
-                        </p>
-                      </ContactRow>
-                    )}
-                  </ContactInfoDetails>
-                </ArrowPopover>
-              </>
-            )}
+            <ContactInfoPopover page={page} />
           </Legend>
           {content}
           {contributor && selectedContribution && (

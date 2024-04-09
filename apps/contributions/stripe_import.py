@@ -576,7 +576,9 @@ class StripeTransactionsImporter:
     def assemble_data_for_pi(self, payment_intent: stripe.PaymentIntent) -> Dict[str, Any]:
         """Assemble data for a given stripe payment intent"""
         logger.debug("Assembling data for payment intent %s", payment_intent.id)
-        charges = self.get_charges_for_payment_intent(payment_intent_id=payment_intent.id)
+        # NB: The value returned by .get_charges_for_payment_intent is a generator, and in this case, we want to go ahead
+        # and get all the results. The number of charges for a single payment intent will be low so there's no danger of running out of memory.
+        charges = list(self.get_charges_for_payment_intent(payment_intent_id=payment_intent.id))
         refunds = []
         for charge in charges:
             refunds.extend([x for x in charge.refunds.data])
@@ -634,17 +636,6 @@ class StripeTransactionsImporter:
             len(self.updated_payment_ids),
             len(self.created_contributor_ids),
         )
-
-    def upsert_one_time_contribution(self, data: dict) -> Tuple[Contribution, str]:
-        """Upsert a one-time contribution for a given stripe payment intent and related data"""
-        contribution, action = PaymentIntentForOneTimeContribution(**data).upsert()
-        logger.info(
-            "%s contribution %s for stripe payment intent with ID %s",
-            action,
-            contribution.id,
-            data["payment_intent"].id,
-        )
-        return contribution, action
 
     def upsert_transaction(self, data: Dict[str, Any]) -> None:
         handler = (

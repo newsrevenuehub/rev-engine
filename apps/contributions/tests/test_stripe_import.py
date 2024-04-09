@@ -899,12 +899,6 @@ class TestStripeTransactionsImporter:
             )
         StripeTransactionsImporter(stripe_account_id="test").import_contributions_and_payments()
 
-    def test_upsert_one_time_contribution(self, mocker, payment_intent):
-        mock_pi_class = mocker.patch("apps.contributions.stripe_import.PaymentIntentForOneTimeContribution")
-        mock_pi_class.return_value.upsert.return_value = (result := (mocker.Mock(id="pi_foo"), "action"))
-        instance = StripeTransactionsImporter(stripe_account_id="test")
-        assert instance.upsert_one_time_contribution({"payment_intent": payment_intent}) == result
-
     @pytest.fixture
     def subscription_upsert_data(self, subscription, customer):
         return {"subscription": subscription, "charges": [], "refunds": [], "customer": customer}

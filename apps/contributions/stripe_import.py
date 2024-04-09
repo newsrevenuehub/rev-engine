@@ -503,7 +503,10 @@ class StripeTransactionsImporter:
         return {k: v for k, v in {"gte": self.from_date, "lte": self.to_date}.items() if v}
 
     def get_charges_for_payment_intent(self, payment_intent_id: str) -> Iterable[stripe.Charge]:
-        """Gets charges for a given stripe payment intent"""
+        """Gets charges for a given stripe payment intent
+
+        NB: This method returns an exhaustible iterator, and its results can only be consumed once.
+        """
         logger.debug("Getting charges for payment intent %s", payment_intent_id)
         return stripe_call_with_backoff(
             stripe.Charge.list,
@@ -514,7 +517,10 @@ class StripeTransactionsImporter:
         ).auto_paging_iter()
 
     def get_payment_intents(self) -> Iterable[stripe.PaymentIntent]:
-        """Gets payment intents for a given stripe account"""
+        """Gets payment intents for a given stripe account
+
+        NB: This method returns an exhaustible iterator, and its results can only be consumed once.
+        """
         logger.debug("Getting payment intents for account %s", self.stripe_account_id)
         return stripe_call_with_backoff(
             stripe.PaymentIntent.list,

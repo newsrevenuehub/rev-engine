@@ -35,9 +35,6 @@ from apps.pages.models import DonationPage
 
 
 MAX_STRIPE_RESPONSE_LIMIT = 100
-# we only will use half of available because we don't want running this command to cause rate limiting
-# for other stripe operations happening elsewhere in the system
-MAX_STRIPE_API_CALLS_PER_SECOND = settings.STRIPE_API_MAX_READ_CALLS_PER_SECOND / 2
 
 logger = logging.getLogger(f"{settings.DEFAULT_LOGGER}.{__name__}")
 
@@ -235,6 +232,15 @@ class ContributionImportBaseClass(ABC):
                     case _:
                         pass
 
+    def update_contribution_stats(self, action: str, contribution: Contribution | None) -> None:
+        match action:
+            case "created":
+                self.created_contribution_ids.add(contribution.id)
+            case "updated":
+                self.updated_contribution_ids.add(contribution.id)
+            case _:
+                pass
+
 
 @dataclass
 class PaymentIntentForOneTimeContribution(ContributionImportBaseClass):
@@ -355,13 +361,7 @@ class PaymentIntentForOneTimeContribution(ContributionImportBaseClass):
             raise InvalidStripeTransactionDataError(
                 f"Contribution {contribution.id} has no donation page associated with it"
             )
-        match action:
-            case "created":
-                self.created_contribution_ids.add(contribution.id)
-            case "updated":
-                self.updated_contribution_ids.add(contribution.id)
-            case _:
-                pass
+        self.update_contribution_stats(action, contribution)
         # Even though we only expect one successful charge, it's possible to have multiple refunds
         charge = self.successful_charge
         self.upsert_payments(
@@ -476,13 +476,7 @@ class SubscriptionForRecurringContribution(ContributionImportBaseClass):
             raise InvalidStripeTransactionDataError(
                 f"Contribution {contribution.id} has no donation page associated with it"
             )
-        match action:
-            case "created":
-                self.created_contribution_ids.add(contribution.id)
-            case "updated":
-                self.updated_contribution_ids.add(contribution.id)
-            case _:
-                pass
+        self.update_contribution_stats(action, contribution)
         self.upsert_payments(charges=self.charges, refunds=self.refunds, contribution=contribution)
 
 

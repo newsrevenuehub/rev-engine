@@ -209,7 +209,7 @@ def process_stripe_webhook_task(self, raw_event_data: dict) -> None:
         logger.info("Could not find contribution. Here's the event data: %s", event, exc_info=True)
 
 
-@shared_task(bind=True, autoretry_for=(RateLimitError,), retry_backoff=True, retry_kwargs={"max_retries": 3})
+@shared_task(bind=True)
 def task_import_contributions_and_payments_for_stripe_account(
     self,
     from_date: str,

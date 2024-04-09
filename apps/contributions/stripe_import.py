@@ -13,7 +13,7 @@ import reversion
 import stripe
 import tldextract
 
-from apps.common.utils import upsert_with_diff_check
+from apps.common.utils import stripe_call_with_backoff, upsert_with_diff_check
 from apps.contributions.exceptions import (
     InvalidIntervalError,
     InvalidMetadataError,
@@ -35,7 +35,9 @@ from apps.pages.models import DonationPage
 
 
 MAX_STRIPE_RESPONSE_LIMIT = 100
-
+# we only will use half of available because we don't want running this command to cause rate limiting
+# for other stripe operations happening elsewhere in the system
+MAX_STRIPE_API_CALLS_PER_SECOND = settings.STRIPE_API_MAX_READ_CALLS_PER_SECOND / 2
 
 logger = logging.getLogger(f"{settings.DEFAULT_LOGGER}.{__name__}")
 
@@ -506,36 +508,25 @@ class StripeTransactionsImporter:
         """Generates a query that can supplied for "created" param when listing stripe resources"""
         return {k: v for k, v in {"gte": self.from_date, "lte": self.to_date}.items() if v}
 
-    def get_charges_for_payment_intent(self, payment_intent_id: str) -> list[stripe.Charge]:
+    def get_charges_for_payment_intent(self, payment_intent_id: str) -> Iterable[stripe.Charge]:
         """Gets charges for a given stripe payment intent"""
         logger.debug("Getting charges for payment intent %s", payment_intent_id)
-        return [
-            x
-            for x in stripe.Charge.list(
-                payment_intent=payment_intent_id,
-                stripe_account=self.stripe_account_id,
-                limit=MAX_STRIPE_RESPONSE_LIMIT,
-                expand=("data.balance_transaction", "data.refunds.data.balance_transaction"),
-            ).auto_paging_iter()
-        ]
-
-    def get_refunds_for_charge(self, charge_id: str) -> list[stripe.Refund]:
-        """Gets refunds for a given stripe charge"""
-        logger.debug("Getting refunds for charge %s", charge_id)
-        return [
-            x
-            for x in stripe.Refund.list(
-                charge=charge_id,
-                stripe_account=self.stripe_account_id,
-                limit=MAX_STRIPE_RESPONSE_LIMIT,
-            ).auto_paging_iter()
-        ]
+        return stripe_call_with_backoff(
+            stripe.Charge.list,
+            payment_intent=payment_intent_id,
+            stripe_account=self.stripe_account_id,
+            limit=MAX_STRIPE_RESPONSE_LIMIT,
+            expand=("data.balance_transaction", "data.refunds.data.balance_transaction"),
+        ).auto_paging_iter()
 
     def get_payment_intents(self) -> Iterable[stripe.PaymentIntent]:
         """Gets payment intents for a given stripe account"""
         logger.debug("Getting payment intents for account %s", self.stripe_account_id)
-        return stripe.PaymentIntent.list(
-            stripe_account=self.stripe_account_id, limit=MAX_STRIPE_RESPONSE_LIMIT, created=self.created_query
+        return stripe_call_with_backoff(
+            stripe.PaymentIntent.list,
+            stripe_account=self.stripe_account_id,
+            limit=MAX_STRIPE_RESPONSE_LIMIT,
+            created=self.created_query,
         ).auto_paging_iter()
 
     @staticmethod
@@ -552,7 +543,13 @@ class StripeTransactionsImporter:
         """Retrieve a stripe entity for a given stripe account"""
         logger.debug("Getting %s %s for account %s", entity_name, entity_id, self.stripe_account_id)
         try:
-            return getattr(stripe, entity_name).retrieve(entity_id, stripe_account=self.stripe_account_id, **kwargs)
+            callable = getattr(stripe, entity_name)
+            return stripe_call_with_backoff(
+                callable.retrieve,
+                entity_id,
+                stripe_account=self.stripe_account_id,
+                **kwargs,
+            )
         except stripe.error.StripeError as exc:
             logger.warning(
                 "Unable to retrieve %s %s for account %s",
@@ -571,10 +568,6 @@ class StripeTransactionsImporter:
         return self.get_stripe_entity(
             entity_id=entity_id, entity_name="Customer", expand=("invoice_settings.default_payment_method",)
         )
-
-    def get_stripe_event(self, entity_id: str) -> stripe.Event | None:
-        """Retrieve a stripe event for a given stripe account"""
-        return self.get_stripe_entity(entity_id=entity_id, entity_name="Event")
 
     def get_invoice(self, entity_id: str) -> stripe.Invoice | None:
         """Retrieve a stripe invoice for a given stripe account"""

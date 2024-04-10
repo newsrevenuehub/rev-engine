@@ -57,7 +57,12 @@ export const ContactRow = styled.div`
   gap: 10px;
   font-size: ${({ theme }) => theme.fontSizesUpdated.lg};
 
+  p {
+    color: ${({ theme }) => theme.basePalette.greyscale.black};
+  }
+
   svg {
+    fill: ${({ theme }) => theme.basePalette.greyscale.black};
     height: 24px;
     width: 24px;
   }
@@ -65,4 +70,5 @@ export const ContactRow = styled.div`
 
 export const StyledLink = styled.a`
   color: ${({ theme }) => theme.basePalette.primary.engineBlue};
+  font-weight: 500;
 `;

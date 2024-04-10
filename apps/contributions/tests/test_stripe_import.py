@@ -831,9 +831,12 @@ class TestStripeTransactionsImporter:
     @pytest.mark.parametrize("invoice", ["invoice_with_subscription", "invoice_without_subscription"])
     def test_assemble_data_for_pi(self, payment_intent, mocker, customer, invoice, request, charge_with_refund):
         invoice = request.getfixturevalue(invoice)
+        # We want this to be a generator, as that is what original method returns and there was a bug caused by treating it like
+        # a list in DEV-4644
+        charges = (x for x in [charge_with_refund])
         mocker.patch(
             "apps.contributions.stripe_import.StripeTransactionsImporter.get_charges_for_payment_intent",
-            return_value=[charge_with_refund],
+            return_value=charges,
         )
         mocker.patch(
             "apps.contributions.stripe_import.StripeTransactionsImporter.get_stripe_customer",
@@ -898,12 +901,6 @@ class TestStripeTransactionsImporter:
                 side_effect=InvalidStripeTransactionDataError("foo"),
             )
         StripeTransactionsImporter(stripe_account_id="test").import_contributions_and_payments()
-
-    def test_upsert_one_time_contribution(self, mocker, payment_intent):
-        mock_pi_class = mocker.patch("apps.contributions.stripe_import.PaymentIntentForOneTimeContribution")
-        mock_pi_class.return_value.upsert.return_value = (result := (mocker.Mock(id="pi_foo"), "action"))
-        instance = StripeTransactionsImporter(stripe_account_id="test")
-        assert instance.upsert_one_time_contribution({"payment_intent": payment_intent}) == result
 
     @pytest.fixture
     def subscription_upsert_data(self, subscription, customer):

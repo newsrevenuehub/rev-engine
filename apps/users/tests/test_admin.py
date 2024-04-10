@@ -26,7 +26,7 @@ class TestUsersAdmin(TestCase):
         self.client.get("/nrhadmin/users/roleassignment/add/")
 
     def test_get_readonly_fields(self):
-        t = apps.users.admin.RoleAssignment(apps.users.models.RoleAssignment, "")
+        t = apps.users.admin.RoleAssignmentAdmin(apps.users.models.RoleAssignment, "")
         assert [
             "user",
         ] == t.get_readonly_fields(None, obj=self.user)

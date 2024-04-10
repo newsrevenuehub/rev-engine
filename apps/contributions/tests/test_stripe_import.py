@@ -831,9 +831,9 @@ class TestStripeTransactionsImporter:
     @pytest.mark.parametrize("invoice", ["invoice_with_subscription", "invoice_without_subscription"])
     def test_assemble_data_for_pi(self, payment_intent, mocker, customer, invoice, request, charge_with_refund):
         invoice = request.getfixturevalue(invoice)
-        charges = (x for x in [charge_with_refund])
-        # want this to be a generator, as that what original method returns and there was a bug caused by treating it like
+        # We want this to be a generator, as that is what original method returns and there was a bug caused by treating it like
         # a list in DEV-4644
+        charges = (x for x in [charge_with_refund])
         mocker.patch(
             "apps.contributions.stripe_import.StripeTransactionsImporter.get_charges_for_payment_intent",
             return_value=charges,

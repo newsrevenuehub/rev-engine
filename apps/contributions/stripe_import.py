@@ -588,7 +588,7 @@ class StripeTransactionsImporter:
         refunds = []
         for charge in charges:
             refunds.extend([x for x in charge.refunds.data])
-        customer = self.get_stripe_customer(entity_id=payment_intent.customer)
+        customer = self.get_stripe_customer(entity_id=payment_intent.customer) if payment_intent.customer else None
         invoice = self.get_invoice(entity_id=payment_intent.invoice) if payment_intent.invoice else None
         data = {
             "charges": charges,

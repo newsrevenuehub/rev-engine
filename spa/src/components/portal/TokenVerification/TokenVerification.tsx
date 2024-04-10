@@ -2,7 +2,7 @@ import { usePortalAuthContext } from 'hooks/usePortalAuth';
 import { useEffect, useMemo, useState } from 'react';
 import { Redirect, useLocation } from 'react-router-dom';
 import { PORTAL } from 'routes';
-import GlobalLoading from 'elements/GlobalLoading';
+import { GlobalLoading } from 'components/common/GlobalLoading';
 import TokenError from './TokenError';
 
 export function TokenVerification() {

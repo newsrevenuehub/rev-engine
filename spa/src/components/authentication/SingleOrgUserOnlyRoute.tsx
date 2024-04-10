@@ -3,7 +3,7 @@ import PropTypes, { InferProps } from 'prop-types';
 
 import useUser from 'hooks/useUser';
 import { CONTENT_SLUG } from 'routes';
-import GlobalLoading from 'elements/GlobalLoading';
+import { GlobalLoading } from 'components/common/GlobalLoading';
 
 export type SingleOrgUserOnlyRouteProps = InferProps<typeof SingleOrgUserOnlyRoutePropTypes>;
 

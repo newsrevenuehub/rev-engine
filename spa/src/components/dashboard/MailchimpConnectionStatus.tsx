@@ -1,7 +1,7 @@
 import MailchimpModal from 'components/common/IntegrationCard/MailchimpIntegrationCard/MailchimpModal';
 import AudienceListModal from 'components/common/Modal/AudienceListModal';
 import SystemNotification from 'components/common/SystemNotification';
-import GlobalLoading from 'elements/GlobalLoading';
+import { GlobalLoading } from 'components/common/GlobalLoading';
 import useConnectMailchimp from 'hooks/useConnectMailchimp';
 import useModal from 'hooks/useModal';
 import usePreviousState from 'hooks/usePreviousState';

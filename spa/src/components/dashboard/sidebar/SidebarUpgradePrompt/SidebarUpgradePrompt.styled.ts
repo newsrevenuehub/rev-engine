@@ -1,6 +1,6 @@
 import { IconButton } from '@material-ui/core';
-import CoreUpgradeIcon from 'assets/icons/upgrade-core.svg?react';
 import { RouterLinkButton } from 'components/base';
+import { EnginePlan } from 'hooks/useContributionPage';
 import styled from 'styled-components';
 
 export const CloseButton = styled(IconButton)`
@@ -45,10 +45,23 @@ export const Text = styled.p`
   font-size: ${({ theme }) => theme.fontSizesUpdated.sm};
 `;
 
-export const UpgradeIcon = styled(CoreUpgradeIcon)`
+export const IconWrapper = styled.div<{ $plan: EnginePlan['name'] }>`
   height: 24px;
   left: 18px;
   position: absolute;
   top: 15px;
   width: 24px;
+  border-radius: 24px;
+  fill: ${({ theme }) => theme.basePalette.indigo['-10']};
+
+  ${({ $plan, theme }) => {
+    switch ($plan) {
+      case 'FREE':
+        return `background-color: ${theme.plan.core.background};`;
+      case 'CORE':
+        return `background-color: ${theme.plan.plus.background};`;
+      case 'PLUS':
+        return `background-color: ${theme.basePalette.primary.brandBlue};`;
+    }
+  }}
 `;

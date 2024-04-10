@@ -9,7 +9,7 @@ jest.mock('react-alert', () => ({
   ...jest.requireActual('react-alert'),
   useAlert: jest.fn()
 }));
-jest.mock('elements/GlobalLoading');
+jest.mock('components/common/GlobalLoading/GlobalLoading');
 jest.mock('hooks/useContributorContributionList');
 jest.mock('./ContributionTableRow');
 

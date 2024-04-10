@@ -5,7 +5,7 @@ import join from 'url-join';
 import { ContributionPageButton } from 'components/common/Button/ContributionPageButton';
 import Hero from 'components/common/Hero';
 import GenericErrorBoundary from 'components/errors/GenericErrorBoundary';
-import GlobalLoading from 'elements/GlobalLoading';
+import { GlobalLoading } from 'components/common/GlobalLoading';
 import { ContributionPage } from 'hooks/useContributionPage';
 import useContributionPageList from 'hooks/useContributionPageList';
 import { EDITOR_ROUTE } from 'routes';

@@ -10,7 +10,7 @@ jest.mock('react-router-dom', () => ({
     return <div data-testid="mock-redirect">{to}</div>;
   }
 }));
-jest.mock('elements/GlobalLoading');
+jest.mock('components/common/GlobalLoading/GlobalLoading');
 jest.mock('hooks/useContributionPage');
 
 function tree() {

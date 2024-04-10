@@ -1,6 +1,6 @@
 import { Redirect, useParams } from 'react-router-dom';
 import urlJoin from 'url-join';
-import GlobalLoading from 'elements/GlobalLoading';
+import { GlobalLoading } from 'components/common/GlobalLoading';
 import { useContributionPage } from 'hooks/useContributionPage';
 import { EDITOR_ROUTE } from 'routes';
 

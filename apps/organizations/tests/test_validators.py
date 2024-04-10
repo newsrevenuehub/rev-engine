@@ -76,10 +76,7 @@ def invalid_phone_number(request):
 
 
 def test_valid_phone_numbers(valid_phone_number):
-    try:
-        validate_contact_phone_number(valid_phone_number)
-    except ValidationError as er:
-        assert False, f"{valid_phone_number} raised an exception {er}"
+    validate_contact_phone_number(valid_phone_number)
 
 
 def test_invalid_phone_numbers(invalid_phone_number):

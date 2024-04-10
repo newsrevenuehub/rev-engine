@@ -217,7 +217,7 @@ class ContributionImportBaseClass(ABC):
     ) -> None:
         for x, is_refund in list(map(lambda y: (y, False), charges)) + list(map(lambda y: (y, True), refunds)):
             if not x or not getattr(x, "balance_transaction", None):
-                logger.warning(
+                logger.info(
                     "Data associated with contribution %s has no balance transaction associated with it. No payment will be created.",
                     contribution.id,
                 )

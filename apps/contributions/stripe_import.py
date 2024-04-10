@@ -498,6 +498,7 @@ class StripeTransactionsImporter:
     stripe_account_id: str
     from_date: datetime.datetime = None
     to_date: datetime.datetime = None
+    skip_one_times_with_payment: bool = False
 
     def __post_init__(self) -> None:
         self.payment_intents_processed = 0
@@ -614,10 +615,25 @@ class StripeTransactionsImporter:
             data = data | {"subscription": invoice.subscription}
         return data
 
+    def should_skip_payment_intent(self, payment_intent: stripe.PaymentIntent) -> bool:
+        """Determine if a payment intent should be skipped based on the skip_one_times_with_payment flag"""
+        if self.skip_one_times_with_payment:
+            existing = Contribution.objects.filter(
+                provider_payment_id=payment_intent.id, interval=ContributionInterval.ONE_TIME
+            ).first()
+            return bool(existing and Payment.objects.filter(contribution=existing).exists())
+        return False
+
     def import_contributions_and_payments(self) -> None:
         """This method is responsible for upserting contributors, contributions, and payments for a given stripe account."""
         logger.info("Retrieving all revengine-related payment intents for stripe account %s", self.stripe_account_id)
+
         for pi in self.get_payment_intents():
+            if self.should_skip_payment_intent(pi):
+                logger.info(
+                    "Skipping payment intent %s because it already has a contribution and at least one payment", pi.id
+                )
+                continue
             data = self.assemble_data_for_pi(pi)
             try:
                 self.upsert_transaction(data=data)

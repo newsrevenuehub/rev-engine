@@ -4,6 +4,7 @@ import os
 import re
 from unittest.mock import Mock, patch
 from urllib.parse import parse_qs, urlparse
+from zoneinfo import ZoneInfo
 
 from django.conf import settings
 from django.core import mail
@@ -1556,6 +1557,32 @@ class TestContributionModel:
         contribution = ContributionFactory(interval=ContributionInterval.MONTHLY)
         assert contribution.stripe_subscription is None
         assert contribution.next_payment_date is None
+
+    def test_canceled_at_date_when_no_subscription(self):
+        contribution = ContributionFactory(interval=ContributionInterval.MONTHLY, status=ContributionStatus.CANCELED)
+        assert contribution.stripe_subscription is None
+        assert contribution.canceled_at is None
+
+    @pytest.mark.parametrize(
+        "canceled_at",
+        (None, datetime.datetime.now().timestamp()),
+    )
+    def test_cancelled_at_date_when_subscription(self, canceled_at, contribution, subscription_factory, mocker):
+        contribution.provider_subscription_id = "something"
+        contribution.status = ContributionStatus.CANCELED
+        contribution.save()
+        (provider := contribution.donation_page.revenue_program.payment_provider).stripe_account_id = "else"
+        provider.save()
+        mocker.patch(
+            "stripe.Subscription.retrieve",
+            return_value=(sub := subscription_factory.get(canceled_at=canceled_at)),
+        )
+        assert contribution.stripe_subscription == sub
+
+        canceled_at_result = (
+            datetime.datetime.fromtimestamp(sub.canceled_at, tz=ZoneInfo("UTC")) if canceled_at else None
+        )
+        assert contribution.canceled_at == canceled_at_result
 
     def test_card_owner_name_when_no_provider_payment_method_details(self, mocker):
         contribution = ContributionFactory(provider_payment_method_details=None)

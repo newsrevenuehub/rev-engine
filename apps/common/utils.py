@@ -1,7 +1,5 @@
 import logging
-import random
 import re
-import time
 from typing import List, Tuple
 
 from django.conf import settings
@@ -198,18 +196,3 @@ def upsert_with_diff_check(
                 reversion.set_comment(f"{caller_name} updated {model.__name__}")
 
         return instance, "created" if created else "updated" if bool(fields_to_update) else "left unchanged"
-
-
-def stripe_call_with_backoff(callable, *args, **kwargs):
-    max_retries = 5
-    base_delay = 1  # seconds
-
-    for attempt in range(max_retries):
-        try:
-            return callable(*args, **kwargs)
-        except stripe.error.RateLimitError:
-            if attempt == max_retries - 1:
-                raise
-            delay = base_delay * (2**attempt) + random.uniform(0, base_delay)
-            logger.info("Rate limit exceeded, retrying in %s seconds...", delay)
-            time.sleep(delay)

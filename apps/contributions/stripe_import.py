@@ -9,11 +9,12 @@ from urllib.parse import urlparse
 from django.conf import settings
 from django.db import transaction
 
+import backoff
 import reversion
 import stripe
 import tldextract
 
-from apps.common.utils import stripe_call_with_backoff, upsert_with_diff_check
+from apps.common.utils import upsert_with_diff_check
 from apps.contributions.exceptions import (
     InvalidIntervalError,
     InvalidMetadataError,
@@ -37,6 +38,16 @@ from apps.pages.models import DonationPage
 MAX_STRIPE_RESPONSE_LIMIT = 100
 
 logger = logging.getLogger(f"{settings.DEFAULT_LOGGER}.{__name__}")
+
+_STRIPE_API_BACKOFF_ARGS = {
+    "max_tries": 5,
+    "jitter": backoff.full_jitter,
+}
+
+# by default, backoff logs to a NullHandler. We want to be able to log giveup errors.
+logging.getLogger("backoff").addHandler(logging.StreamHandler())
+# this will cause backoff to only log in event of an error
+logging.getLogger("backoff").setLevel(logging.ERROR)
 
 
 def upsert_payment_for_transaction(
@@ -502,28 +513,28 @@ class StripeTransactionsImporter:
         """Generates a query that can supplied for "created" param when listing stripe resources"""
         return {k: v for k, v in {"gte": self.from_date, "lte": self.to_date}.items() if v}
 
+    @backoff.on_exception(backoff.expo, stripe.error.RateLimitError, **_STRIPE_API_BACKOFF_ARGS)
     def get_charges_for_payment_intent(self, payment_intent_id: str) -> Iterable[stripe.Charge]:
         """Gets charges for a given stripe payment intent
 
         NB: This method returns an exhaustible iterator, and its results can only be consumed once.
         """
         logger.debug("Getting charges for payment intent %s", payment_intent_id)
-        return stripe_call_with_backoff(
-            stripe.Charge.list,
+        return stripe.Charge.list(
             payment_intent=payment_intent_id,
             stripe_account=self.stripe_account_id,
             limit=MAX_STRIPE_RESPONSE_LIMIT,
             expand=("data.balance_transaction", "data.refunds.data.balance_transaction"),
         ).auto_paging_iter()
 
+    @backoff.on_exception(backoff.expo, stripe.error.RateLimitError, **_STRIPE_API_BACKOFF_ARGS)
     def get_payment_intents(self) -> Iterable[stripe.PaymentIntent]:
         """Gets payment intents for a given stripe account
 
         NB: This method returns an exhaustible iterator, and its results can only be consumed once.
         """
         logger.debug("Getting payment intents for account %s", self.stripe_account_id)
-        return stripe_call_with_backoff(
-            stripe.PaymentIntent.list,
+        return stripe.PaymentIntent.list(
             stripe_account=self.stripe_account_id,
             limit=MAX_STRIPE_RESPONSE_LIMIT,
             created=self.created_query,
@@ -539,13 +550,12 @@ class StripeTransactionsImporter:
             return False
         return True
 
+    @backoff.on_exception(backoff.expo, stripe.error.RateLimitError, **_STRIPE_API_BACKOFF_ARGS)
     def get_stripe_entity(self, entity_id: str, entity_name: str, **kwargs):
         """Retrieve a stripe entity for a given stripe account"""
         logger.debug("Getting %s %s for account %s", entity_name, entity_id, self.stripe_account_id)
         try:
-            callable = getattr(stripe, entity_name)
-            return stripe_call_with_backoff(
-                callable.retrieve,
+            return getattr(stripe, entity_name).retrieve(
                 entity_id,
                 stripe_account=self.stripe_account_id,
                 **kwargs,

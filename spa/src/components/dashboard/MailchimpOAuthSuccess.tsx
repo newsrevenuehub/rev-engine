@@ -7,7 +7,7 @@ import { useHistory, useLocation } from 'react-router-dom';
 import axios from 'ajax/axios';
 import { MAILCHIMP_OAUTH_SUCCESS } from 'ajax/endpoints';
 import { GENERIC_ERROR } from 'constants/textConstants';
-import GlobalLoading from 'elements/GlobalLoading';
+import { GlobalLoading } from 'components/common/GlobalLoading';
 import useConnectMailchimp from 'hooks/useConnectMailchimp';
 import { SETTINGS } from 'routes';
 

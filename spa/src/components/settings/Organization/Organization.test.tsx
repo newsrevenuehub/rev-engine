@@ -10,7 +10,7 @@ import useUser from 'hooks/useUser';
 
 import Organization from './Organization';
 
-jest.mock('elements/GlobalLoading');
+jest.mock('components/common/GlobalLoading/GlobalLoading');
 jest.mock('hooks/useUser');
 
 describe('Settings Organization Page', () => {

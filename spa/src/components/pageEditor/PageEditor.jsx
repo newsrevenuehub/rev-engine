@@ -34,7 +34,7 @@ import { useConfigureAnalytics } from 'components/analytics';
 import SegregatedStyles from 'components/donationPage/SegregatedStyles';
 import ContributionPage18nProvider from 'components/donationPage/ContributionPageI18nProvider';
 import DonationPage from 'components/donationPage/DonationPage';
-import GlobalLoading from 'elements/GlobalLoading';
+import { GlobalLoading } from 'components/common/GlobalLoading';
 import InnerEditInterface from 'components/pageEditor/editInterface/EditInterface';
 import PageTitle from 'elements/PageTitle';
 import ElementErrors from './ElementErrors';

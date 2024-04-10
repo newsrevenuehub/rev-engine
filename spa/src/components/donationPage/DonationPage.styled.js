@@ -1,5 +1,4 @@
 import styled from 'styled-components';
-import Button from 'elements/buttons/Button';
 
 export const DonationPage = styled.div`
   background: ${(props) => props.theme.colors.cstm_mainBackground};

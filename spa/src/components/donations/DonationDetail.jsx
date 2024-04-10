@@ -3,7 +3,6 @@ import { useAlert } from 'react-alert';
 import { useParams } from 'react-router-dom';
 
 import { DataGroupRoot, DataGroupHeading, DataInner, DL, Loading, ManageFlagged, Root } from './DonationDetail.styled';
-import Spinner from 'elements/Spinner';
 import formatCurrencyAmount from 'utilities/formatCurrencyAmount';
 import formatDatetimeForDisplay from 'utilities/formatDatetimeForDisplay';
 
@@ -20,6 +19,7 @@ import { getFrequencyAdjective } from 'utilities/parseFrequency';
 import { PaymentStatus } from 'components/common/PaymentStatus';
 import PageTitle from 'elements/PageTitle';
 import { Block, Check } from '@material-ui/icons';
+import { CircularProgress } from 'components/base';
 
 function DonationDetail() {
   // Context
@@ -135,7 +135,7 @@ function DonationDetail() {
       />
       {isLoading ? (
         <Loading layout>
-          <Spinner />
+          <CircularProgress />
         </Loading>
       ) : (
         <>

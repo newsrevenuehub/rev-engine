@@ -49,6 +49,7 @@ class Command(BaseCommand):
             help="Optional comma-separated list of stripe accounts to limit to",
         )
         parser.add_argument("--async-mode", action="store_true", default=False)
+        parser.add_argument("--skip-one-times-with-payment", action="store_true", default=False)
 
     def get_stripe_account_ids(self, for_orgs: list[str], for_stripe_accounts: list[str]) -> list[str]:
         query = PaymentProvider.objects.filter(stripe_account_id__isnull=False)
@@ -68,6 +69,7 @@ class Command(BaseCommand):
                     stripe_account_id=account,
                     from_date=int(options["gte"].timestamp()) if options["gte"] else None,
                     to_date=int(options["lte"].timestamp()) if options["lte"] else None,
+                    skip_one_times_with_payment=options["skip_one_times_with_payment"],
                 )
                 self.stdout.write(
                     self.style.SUCCESS(
@@ -79,6 +81,7 @@ class Command(BaseCommand):
                     from_date=options["gte"],
                     to_date=options["lte"],
                     stripe_account_id=account,
+                    skip_one_times_with_payment=options["skip_one_times_with_payment"],
                 ).import_contributions_and_payments()
                 self.stdout.write(self.style.SUCCESS(f"Import transactions for account {account} is done"))
 

@@ -1,5 +1,5 @@
 import Styles from 'components/content/customize/Customize';
-import GlobalLoading from 'elements/GlobalLoading';
+import { GlobalLoading } from 'components/common/GlobalLoading';
 import PageTitle from 'elements/PageTitle';
 import useUser from 'hooks/useUser';
 import { Redirect } from 'react-router-dom';

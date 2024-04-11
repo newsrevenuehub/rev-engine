@@ -8,7 +8,7 @@ import { CustomizeContent, SectionWrapper, WideMargin } from 'components/content
 import GenericErrorBoundary from 'components/errors/GenericErrorBoundary';
 import { CORE_UPGRADE_URL, HELP_URL } from 'constants/helperUrls';
 import { PLAN_NAMES } from 'constants/orgPlanConstants';
-import GlobalLoading from 'elements/GlobalLoading';
+import { GlobalLoading } from 'components/common/GlobalLoading';
 import { CUSTOMIZE_CORE_UPGRADE_CLOSED, useSessionState } from 'hooks/useSessionState';
 import useUser from 'hooks/useUser';
 import { SETTINGS } from 'routes';

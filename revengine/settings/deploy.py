@@ -43,7 +43,6 @@ STORAGES = {
             "querystring_auth": False,
             "credentials": GS_CREDENTIALS,
             "default_acl": None,
-            "media_location": "media",
         },
     },
 }

@@ -12,6 +12,7 @@ import ContributionItem from './ContributionItem/ContributionItem';
 import { ContributionsHeader } from './ContributionsHeader';
 import {
   AlignPositionWrapper,
+  ContactInfoWrapper,
   Detail,
   Layout,
   Legend,
@@ -121,7 +122,9 @@ export function ContributionsList() {
             <Subhead>Transactions</Subhead>
             <p>View billing history, update payment details, and resend receipts.</p>
             <Sort options={CONTRIBUTION_SORT_OPTIONS} onChange={setOrdering} id="contributions-sort" />
-            <ContactInfoPopover page={page} />
+            <ContactInfoWrapper>
+              <ContactInfoPopover revenueProgram={page?.revenue_program} />
+            </ContactInfoWrapper>
           </Legend>
           {content}
           {contributor && selectedContribution && (

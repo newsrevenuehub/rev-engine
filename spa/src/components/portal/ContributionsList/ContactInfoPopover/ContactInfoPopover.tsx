@@ -1,7 +1,9 @@
 import QuestionMarkIcon from '@material-design-icons/svg/filled/question_mark.svg?react';
 import LocalPhoneOutlinedIcon from '@material-ui/icons/LocalPhoneOutlined';
 import MailOutlinedIcon from '@material-ui/icons/MailOutlined';
+import { Link } from 'components/base';
 import { ArrowPopover } from 'components/common/ArrowPopover';
+import { RevenueProgram, RevenueProgramWithFullOrganization } from 'hooks/useContributionPage';
 import PropTypes, { InferProps } from 'prop-types';
 import { useCallback, useState } from 'react';
 import {
@@ -9,17 +11,15 @@ import {
   ContactInfoDetails,
   ContactRow,
   ContactTypography,
-  StyledLink,
   TitleTypography
 } from './ContactInfoPopover.styled';
-import { ContributionPage } from 'hooks/useContributionPage';
 
-interface ContactInfoPopoverProps extends InferProps<typeof ContactInfoPopoverPropTypes> {
-  page?: ContributionPage;
+export interface ContactInfoPopoverProps extends InferProps<typeof ContactInfoPopoverPropTypes> {
+  revenueProgram?: RevenueProgram | RevenueProgramWithFullOrganization;
 }
 
-const ContactInfoPopover = ({ page }: ContactInfoPopoverProps) => {
-  const hasContactInfo = page?.revenue_program.contact_email || page?.revenue_program.contact_phone;
+const ContactInfoPopover = ({ revenueProgram }: ContactInfoPopoverProps) => {
+  const hasContactInfo = revenueProgram?.contact_email || revenueProgram?.contact_phone;
 
   const [anchorEl, setAnchorEl] = useState<HTMLButtonElement | null>(null);
 
@@ -33,32 +33,30 @@ const ContactInfoPopover = ({ page }: ContactInfoPopoverProps) => {
 
   return (
     <>
-      <ContactInfoButton color="primaryDark" onClick={showContactInfoPopover} aria-label="Open contact info">
+      <ContactInfoButton
+        color="primaryDark"
+        onClick={showContactInfoPopover}
+        aria-label={`${!!anchorEl ? 'Close' : 'Open'} contact info`}
+      >
         <QuestionMarkIcon />
       </ContactInfoButton>
       <ArrowPopover anchorEl={anchorEl} onClose={() => setAnchorEl(null)} open={!!anchorEl} placement="top">
         <TitleTypography>Need help?</TitleTypography>
         <ContactTypography>Contact us:</ContactTypography>
         <ContactInfoDetails>
-          {page?.revenue_program.contact_phone && (
+          {revenueProgram.contact_phone && (
             <ContactRow>
               <LocalPhoneOutlinedIcon />
               <p>
-                Phone:{' '}
-                <StyledLink href={`tel:${page?.revenue_program.contact_phone}`}>
-                  {page?.revenue_program.contact_phone}
-                </StyledLink>
+                Phone: <Link href={`tel:${revenueProgram.contact_phone}`}>{revenueProgram.contact_phone}</Link>
               </p>
             </ContactRow>
           )}
-          {page?.revenue_program.contact_email && (
+          {revenueProgram.contact_email && (
             <ContactRow>
               <MailOutlinedIcon />
               <p>
-                Email:{' '}
-                <StyledLink href={`mailto:${page?.revenue_program.contact_email}`}>
-                  {page?.revenue_program.contact_email}
-                </StyledLink>
+                Email: <Link href={`mailto:${revenueProgram.contact_email}`}>{revenueProgram.contact_email}</Link>
               </p>
             </ContactRow>
           )}
@@ -69,10 +67,9 @@ const ContactInfoPopover = ({ page }: ContactInfoPopoverProps) => {
 };
 
 const ContactInfoPopoverPropTypes = {
-  page: PropTypes.object
+  revenueProgram: PropTypes.object
 };
 
 ContactInfoPopover.propTypes = ContactInfoPopoverPropTypes;
 
 export default ContactInfoPopover;
-export type { ContactInfoPopoverProps };

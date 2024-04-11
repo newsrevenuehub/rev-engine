@@ -1,18 +1,11 @@
-import MuiTypography from '@material-ui/core/Typography';
 import { IconButton } from 'components/base';
 import styled from 'styled-components';
 
 export const ContactInfoButton = styled(IconButton)`
   && {
-    position: absolute;
-    top: 0;
-    right: 0;
     height: 28px;
     width: 28px;
     padding: 0;
-    display: flex;
-    align-items: center;
-    justify-content: center;
 
     svg {
       fill: ${({ theme }) => theme.basePalette.greyscale.white};
@@ -24,22 +17,23 @@ export const ContactInfoButton = styled(IconButton)`
   }
 `;
 
-export const TitleTypography = styled(MuiTypography)`
+export const TitleTypography = styled.p`
   && {
     color: ${(props) => props.theme.basePalette.greyscale.black};
     font-size: ${(props) => props.theme.fontSizesUpdated[20]};
     line-height: ${(props) => props.theme.fontSizesUpdated.lgx};
     font-weight: 500;
-    margin-bottom: 15px;
+    margin: 0 0 15px 0;
   }
 `;
 
-export const ContactTypography = styled(MuiTypography)`
+export const ContactTypography = styled.p`
   && {
     color: ${(props) => props.theme.basePalette.greyscale.black};
     font-size: ${(props) => props.theme.fontSizesUpdated.md};
     line-height: ${(props) => props.theme.fontSizesUpdated[20]};
     font-weight: 400;
+    margin: 0;
   }
 `;
 
@@ -58,6 +52,7 @@ export const ContactRow = styled.div`
   font-size: ${({ theme }) => theme.fontSizesUpdated.lg};
 
   p {
+    margin: 0;
     color: ${({ theme }) => theme.basePalette.greyscale.black};
   }
 
@@ -66,9 +61,4 @@ export const ContactRow = styled.div`
     height: 24px;
     width: 24px;
   }
-`;
-
-export const StyledLink = styled.a`
-  color: ${({ theme }) => theme.basePalette.primary.engineBlue};
-  font-weight: 500;
 `;

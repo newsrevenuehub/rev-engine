@@ -84,7 +84,7 @@ describe('ContributionsList', () => {
     tree();
     const contactInfoPopover = screen.getByTestId('mock-contact-info-popover');
     expect(contactInfoPopover).toBeInTheDocument();
-    expect(contactInfoPopover.dataset.page).toBe('{"id":"mock-page-id","revenue_program":{"id":"mock-rp-id"}}');
+    expect(contactInfoPopover.dataset.revenueprogram).toBe('{"id":"mock-rp-id"}');
   });
 
   describe('After contributions are fetched', () => {

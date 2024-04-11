@@ -1,7 +1,7 @@
 import { ContactInfoPopoverProps } from '../ContactInfoPopover';
 
-const ContactInfoPopover = ({ page }: ContactInfoPopoverProps) => (
-  <div data-testid="mock-contact-info-popover" data-page={JSON.stringify(page)} />
+const ContactInfoPopover = ({ revenueProgram }: ContactInfoPopoverProps) => (
+  <div data-testid="mock-contact-info-popover" data-revenueProgram={JSON.stringify(revenueProgram)} />
 );
 
 export default ContactInfoPopover;

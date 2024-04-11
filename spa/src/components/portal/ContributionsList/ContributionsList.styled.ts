@@ -86,3 +86,9 @@ export const Description = styled.p`
   font-size: ${({ theme }) => theme.fontSizesUpdated.md};
   line-height: 120%;
 `;
+
+export const ContactInfoWrapper = styled.div`
+  position: absolute;
+  top: 0;
+  right: 0;
+`;

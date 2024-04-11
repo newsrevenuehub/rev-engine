@@ -879,13 +879,18 @@ class TestStripeTransactionsImporter:
         return [payment_intent, payment_intent_for_recurring_contribution]
 
     @pytest.mark.parametrize("has_upsert_error", (True, False))
+    @pytest.mark.parametrize("should_skip_payment_intent", (True, False))
     def test_import_contributions_and_payments(
-        self, mocker, has_upsert_error, retrieved_payment_intents, subscription, customer
+        self, mocker, has_upsert_error, should_skip_payment_intent, retrieved_payment_intents, subscription, customer
     ):
         # this test is minimal just so code is covered. we don't even assert about anything
         mocker.patch(
             "apps.contributions.stripe_import.StripeTransactionsImporter.get_payment_intents",
             side_effect=[retrieved_payment_intents],
+        )
+        mocker.patch(
+            "apps.contributions.stripe_import.StripeTransactionsImporter.should_skip_payment_intent",
+            return_value=should_skip_payment_intent,
         )
         _shared = {"charges": [], "refunds": [], "customer": customer}
         mocker.patch(
@@ -915,6 +920,25 @@ class TestStripeTransactionsImporter:
         """Minimal test to cover the code"""
         instance = StripeTransactionsImporter(stripe_account_id="test")
         instance.upsert_transaction(request.getfixturevalue(data))
+
+    @pytest.mark.parametrize("skip_one_times_with_payment", (True, False))
+    @pytest.mark.parametrize("contribution_exists", (True, False))
+    @pytest.mark.parametrize("payment_exists", (True, False))
+    def test_should_skip_payment_intent(
+        self, skip_one_times_with_payment, contribution_exists, payment_exists, payment_intent, mocker
+    ):
+        instance = StripeTransactionsImporter(
+            stripe_account_id="test", skip_one_times_with_payment=skip_one_times_with_payment
+        )
+        if contribution_exists:
+            contribution = ContributionFactory(
+                provider_payment_id=payment_intent.id, interval=ContributionInterval.ONE_TIME
+            )
+            if payment_exists:
+                PaymentFactory(contribution=contribution)
+        assert instance.should_skip_payment_intent(payment_intent) is (
+            True if all([skip_one_times_with_payment, contribution_exists, payment_exists]) else False
+        )
 
 
 class TestStripeEventProcessor:

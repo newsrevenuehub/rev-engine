@@ -10,7 +10,7 @@ jest.mock('hooks/useUser');
 jest.mock('components/common/Modal/AudienceListModal/AudienceListModal');
 jest.mock('components/common/IntegrationCard/MailchimpIntegrationCard/MailchimpModal/MailchimpModal');
 jest.mock('hooks/useConnectMailchimp');
-jest.mock('elements/GlobalLoading');
+jest.mock('components/common/GlobalLoading/GlobalLoading');
 jest.mock('notistack', () => ({
   ...jest.requireActual('notistack'),
   useSnackbar: jest.fn()

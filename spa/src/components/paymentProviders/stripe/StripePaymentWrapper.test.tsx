@@ -6,7 +6,7 @@ import StripePaymentWrapper, { StripePaymentWrapperProps } from './StripePayment
 jest.mock('@stripe/stripe-js');
 jest.mock('@stripe/react-stripe-js');
 jest.mock('appSettings', () => ({ HUB_STRIPE_API_PUB_KEY: 'mock-hub-stripe-key' }));
-jest.mock('elements/GlobalLoading');
+jest.mock('components/common/GlobalLoading/GlobalLoading');
 
 function tree(props?: Partial<StripePaymentWrapperProps>) {
   return render(

@@ -3,14 +3,13 @@ from django.contrib.auth.admin import UserAdmin
 from django.db.models import Q
 from django.utils.translation import gettext_lazy as _
 
-from reversion_compare.admin import CompareVersionAdmin
-
+from apps.common.admin import RevEngineBaseAdmin
 from apps.users.forms import RoleAssignmentAdminForm
 from apps.users.models import RoleAssignment, User
 
 
 @admin.register(User)
-class CustomUserAdmin(UserAdmin, CompareVersionAdmin):
+class CustomUserAdmin(RevEngineBaseAdmin, UserAdmin):
     list_display = ("email", "is_superuser", "is_staff", "role_assignment", "last_login")
     list_filter = ("is_active", "is_staff", "groups")
     search_fields = ("email",)
@@ -68,7 +67,7 @@ class CustomUserAdmin(UserAdmin, CompareVersionAdmin):
 
 
 @admin.register(RoleAssignment)
-class RoleAssignment(CompareVersionAdmin):
+class RoleAssignmentAdmin(RevEngineBaseAdmin):
     list_display = (
         "user",
         "role_type",

@@ -4,8 +4,6 @@ from django.conf import settings
 from django.contrib import admin, messages
 from django.utils.html import format_html
 
-from reversion_compare.admin import CompareVersionAdmin
-
 from apps.common.admin import RevEngineBaseAdmin, prettify_json_field
 from apps.contributions.models import Contribution, ContributionStatus, Contributor, Payment
 from apps.contributions.payment_managers import PaymentProviderError
@@ -15,7 +13,7 @@ logger = logging.getLogger(f"{settings.DEFAULT_LOGGER}.{__name__}")
 
 
 @admin.register(Contributor)
-class ContributorAdmin(RevEngineBaseAdmin, CompareVersionAdmin):
+class ContributorAdmin(RevEngineBaseAdmin):
     list_display = ("email",)
     list_filter = ("email",)
     ordering = ("email",)
@@ -74,7 +72,7 @@ class PaymentInline(admin.TabularInline):
 
 
 @admin.register(Contribution)
-class ContributionAdmin(RevEngineBaseAdmin, CompareVersionAdmin):
+class ContributionAdmin(RevEngineBaseAdmin):
     fieldsets = (
         (
             "Payment",

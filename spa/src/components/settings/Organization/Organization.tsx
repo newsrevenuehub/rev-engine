@@ -18,7 +18,7 @@ import { PATCH_ORGANIZATION, PATCH_REVENUE_PROGRAM } from 'ajax/endpoints';
 import { FiscalStatus, TAX_STATUS } from 'constants/fiscalStatus';
 import { HELP_URL } from 'constants/helperUrls';
 import { GENERIC_ERROR, ORGANIZATION_SUCCESS_TEXT } from 'constants/textConstants';
-import GlobalLoading from 'elements/GlobalLoading';
+import { GlobalLoading } from 'components/common/GlobalLoading';
 import { RevenueProgram } from 'hooks/useContributionPage';
 import useUser from 'hooks/useUser';
 import { getUserRole } from 'utilities/getUserRole';

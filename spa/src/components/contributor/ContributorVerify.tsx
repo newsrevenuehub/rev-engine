@@ -3,7 +3,7 @@ import { VERIFY_TOKEN } from 'ajax/endpoints';
 import { LS_CONTRIBUTOR, LS_CSRF_TOKEN, SS_CONTRIBUTOR } from 'appSettings';
 import { AxiosResponse } from 'axios';
 import { useConfigureAnalytics } from 'components/analytics';
-import GlobalLoading from 'elements/GlobalLoading';
+import { GlobalLoading } from 'components/common/GlobalLoading';
 import { Contributor } from 'hooks/usePortalAuth';
 import queryString from 'query-string';
 import { useCallback, useEffect, useState } from 'react';

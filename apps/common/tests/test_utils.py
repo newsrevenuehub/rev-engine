@@ -414,7 +414,10 @@ class Test_upsert_with_diff_check:
             assert action == expected_action
             create_revision_mock.assert_called_once()
 
-            if action == "updated":
-                mock_set_comment.assert_called_once_with(f"{caller} updated {self.model.__name__}")
-            else:
-                mock_set_comment.assert_not_called()
+            match action:
+                case "updated":
+                    mock_set_comment.assert_called_once_with(f"{caller} updated {self.model.__name__}")
+                case "created":
+                    mock_set_comment.assert_called_once_with(f"{caller} created {self.model.__name__}")
+                case _:
+                    mock_set_comment.assert_not_called()

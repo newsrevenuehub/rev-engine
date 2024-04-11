@@ -13,7 +13,7 @@ jest.mock('react-router-dom', () => ({
   useParams: jest.fn()
 }));
 jest.mock('components/analytics/AnalyticsContext');
-jest.mock('elements/GlobalLoading');
+jest.mock('components/common/GlobalLoading/GlobalLoading');
 jest.mock('hooks/usePublishedPage');
 jest.mock('utilities/getRevenueProgramSlug');
 jest.mock('hooks/useWebFonts');

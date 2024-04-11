@@ -8,7 +8,7 @@ import Customize, { PAID_SUBTITLE } from './Customize';
 
 jest.mock('hooks/useUser');
 jest.mock('hooks/useSessionState');
-jest.mock('elements/GlobalLoading');
+jest.mock('components/common/GlobalLoading/GlobalLoading');
 jest.mock('components/common/Hero/Hero');
 jest.mock('components/common/SendTestEmail/SendTestEmail');
 jest.mock('./CustomizeCoreUpgradePrompt/CustomizeCoreUpgradePrompt');

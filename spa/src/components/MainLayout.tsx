@@ -13,7 +13,7 @@ import { DASHBOARD_SUBDOMAINS } from 'appSettings';
 import { AnalyticsContextProvider } from './analytics/AnalyticsContext';
 
 // Children
-import GlobalLoading from 'elements/GlobalLoading';
+import { GlobalLoading } from 'components/common/GlobalLoading';
 import GlobalConfirmationModal from 'elements/modal/GlobalConfirmationModal';
 import DonationPageRouter from 'components/DonationPageRouter';
 import DashboardRouter from 'components/DashboardRouter';

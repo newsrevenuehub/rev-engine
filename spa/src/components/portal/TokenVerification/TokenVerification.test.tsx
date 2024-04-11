@@ -3,7 +3,7 @@ import TokenVerification from './TokenVerification';
 import { PortalAuthContext, PortalAuthContextResult } from 'hooks/usePortalAuth';
 import { useLocation } from 'react-router-dom';
 
-jest.mock('elements/GlobalLoading');
+jest.mock('components/common/GlobalLoading/GlobalLoading');
 jest.mock('./TokenError');
 jest.mock('react-router-dom', () => ({
   ...jest.requireActual('react-router-dom'),

@@ -7,7 +7,7 @@ import { LIVE_PAGE_DETAIL } from 'ajax/endpoints';
 import { useAnalyticsContext } from 'components/analytics/AnalyticsContext';
 import { THANK_YOU_SLUG } from 'routes';
 import { HUB_GA_V3_ID } from 'appSettings';
-import GlobalLoading from 'elements/GlobalLoading';
+import { GlobalLoading } from 'components/common/GlobalLoading';
 import { ContributionPage } from 'hooks/useContributionPage';
 
 async function fetchPage(rpSlug: string, pageSlug: string): Promise<ContributionPage> {

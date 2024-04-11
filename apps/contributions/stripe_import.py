@@ -9,11 +9,12 @@ from urllib.parse import urlparse
 from django.conf import settings
 from django.db import transaction
 
+import backoff
 import reversion
 import stripe
 import tldextract
 
-from apps.common.utils import stripe_call_with_backoff, upsert_with_diff_check
+from apps.common.utils import upsert_with_diff_check
 from apps.contributions.exceptions import (
     InvalidIntervalError,
     InvalidMetadataError,
@@ -37,6 +38,16 @@ from apps.pages.models import DonationPage
 MAX_STRIPE_RESPONSE_LIMIT = 100
 
 logger = logging.getLogger(f"{settings.DEFAULT_LOGGER}.{__name__}")
+
+_STRIPE_API_BACKOFF_ARGS = {
+    "max_tries": 5,
+    "jitter": backoff.full_jitter,
+}
+
+# by default, backoff logs to a NullHandler. We want to be able to log giveup errors.
+logging.getLogger("backoff").addHandler(logging.StreamHandler())
+# this will cause backoff to only log in event of an error
+logging.getLogger("backoff").setLevel(logging.ERROR)
 
 
 def upsert_payment_for_transaction(
@@ -217,7 +228,7 @@ class ContributionImportBaseClass(ABC):
     ) -> None:
         for x, is_refund in list(map(lambda y: (y, False), charges)) + list(map(lambda y: (y, True), refunds)):
             if not x or not getattr(x, "balance_transaction", None):
-                logger.warning(
+                logger.info(
                     "Data associated with contribution %s has no balance transaction associated with it. No payment will be created.",
                     contribution.id,
                 )
@@ -487,6 +498,7 @@ class StripeTransactionsImporter:
     stripe_account_id: str
     from_date: datetime.datetime = None
     to_date: datetime.datetime = None
+    skip_one_times_with_payment: bool = False
 
     def __post_init__(self) -> None:
         self.payment_intents_processed = 0
@@ -502,28 +514,28 @@ class StripeTransactionsImporter:
         """Generates a query that can supplied for "created" param when listing stripe resources"""
         return {k: v for k, v in {"gte": self.from_date, "lte": self.to_date}.items() if v}
 
+    @backoff.on_exception(backoff.expo, stripe.error.RateLimitError, **_STRIPE_API_BACKOFF_ARGS)
     def get_charges_for_payment_intent(self, payment_intent_id: str) -> Iterable[stripe.Charge]:
         """Gets charges for a given stripe payment intent
 
         NB: This method returns an exhaustible iterator, and its results can only be consumed once.
         """
         logger.debug("Getting charges for payment intent %s", payment_intent_id)
-        return stripe_call_with_backoff(
-            stripe.Charge.list,
+        return stripe.Charge.list(
             payment_intent=payment_intent_id,
             stripe_account=self.stripe_account_id,
             limit=MAX_STRIPE_RESPONSE_LIMIT,
             expand=("data.balance_transaction", "data.refunds.data.balance_transaction"),
         ).auto_paging_iter()
 
+    @backoff.on_exception(backoff.expo, stripe.error.RateLimitError, **_STRIPE_API_BACKOFF_ARGS)
     def get_payment_intents(self) -> Iterable[stripe.PaymentIntent]:
         """Gets payment intents for a given stripe account
 
         NB: This method returns an exhaustible iterator, and its results can only be consumed once.
         """
         logger.debug("Getting payment intents for account %s", self.stripe_account_id)
-        return stripe_call_with_backoff(
-            stripe.PaymentIntent.list,
+        return stripe.PaymentIntent.list(
             stripe_account=self.stripe_account_id,
             limit=MAX_STRIPE_RESPONSE_LIMIT,
             created=self.created_query,
@@ -539,13 +551,12 @@ class StripeTransactionsImporter:
             return False
         return True
 
+    @backoff.on_exception(backoff.expo, stripe.error.RateLimitError, **_STRIPE_API_BACKOFF_ARGS)
     def get_stripe_entity(self, entity_id: str, entity_name: str, **kwargs):
         """Retrieve a stripe entity for a given stripe account"""
         logger.debug("Getting %s %s for account %s", entity_name, entity_id, self.stripe_account_id)
         try:
-            callable = getattr(stripe, entity_name)
-            return stripe_call_with_backoff(
-                callable.retrieve,
+            return getattr(stripe, entity_name).retrieve(
                 entity_id,
                 stripe_account=self.stripe_account_id,
                 **kwargs,
@@ -588,7 +599,7 @@ class StripeTransactionsImporter:
         refunds = []
         for charge in charges:
             refunds.extend([x for x in charge.refunds.data])
-        customer = self.get_stripe_customer(entity_id=payment_intent.customer)
+        customer = self.get_stripe_customer(entity_id=payment_intent.customer) if payment_intent.customer else None
         invoice = self.get_invoice(entity_id=payment_intent.invoice) if payment_intent.invoice else None
         data = {
             "charges": charges,
@@ -604,10 +615,25 @@ class StripeTransactionsImporter:
             data = data | {"subscription": invoice.subscription}
         return data
 
+    def should_skip_payment_intent(self, payment_intent: stripe.PaymentIntent) -> bool:
+        """Determine if a payment intent should be skipped based on the skip_one_times_with_payment flag"""
+        if self.skip_one_times_with_payment:
+            existing = Contribution.objects.filter(
+                provider_payment_id=payment_intent.id, interval=ContributionInterval.ONE_TIME
+            ).first()
+            return bool(existing and Payment.objects.filter(contribution=existing).exists())
+        return False
+
     def import_contributions_and_payments(self) -> None:
         """This method is responsible for upserting contributors, contributions, and payments for a given stripe account."""
         logger.info("Retrieving all revengine-related payment intents for stripe account %s", self.stripe_account_id)
+
         for pi in self.get_payment_intents():
+            if self.should_skip_payment_intent(pi):
+                logger.info(
+                    "Skipping payment intent %s because it already has a contribution and at least one payment", pi.id
+                )
+                continue
             data = self.assemble_data_for_pi(pi)
             try:
                 self.upsert_transaction(data=data)

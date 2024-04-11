@@ -42,7 +42,6 @@ STORAGES = {
             "project_id": os.getenv("GS_PROJECT_ID"),
             "querystring_auth": False,
             "credentials": GS_CREDENTIALS,
-            "default_acl": "publicRead",
         },
     },
 }

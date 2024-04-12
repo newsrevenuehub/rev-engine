@@ -1,6 +1,6 @@
 import pytest
 
-from apps.contributions.choices import ContributionStatus
+from apps.contributions.choices import ContributionInterval, ContributionStatus
 from apps.contributions.filters import PortalContributionFilter
 from apps.contributions.models import Contribution
 from apps.contributions.tests.factories import ContributionFactory
@@ -28,6 +28,48 @@ class TestPortalContributionFilter:
         con3 = ContributionFactory(donation_page=con1.donation_page, status=ContributionStatus.REFUNDED)
         con4 = ContributionFactory(donation_page__revenue_program=RevenueProgramFactory())
         return [con1, con2, con3, con4]
+
+    @pytest.fixture()
+    def contributions_interval(self):
+        con1 = ContributionFactory(
+            donation_page=None, status=ContributionStatus.PAID, interval=ContributionInterval.MONTHLY
+        )
+        con2 = ContributionFactory(
+            donation_page=None, status=ContributionStatus.PAID, interval=ContributionInterval.YEARLY
+        )
+        con3 = ContributionFactory(
+            donation_page=None, status=ContributionStatus.PAID, interval=ContributionInterval.ONE_TIME
+        )
+        return [con1, con2, con3]
+
+    @pytest.mark.parametrize(
+        "interval_option, expected_count",
+        [
+            (None, 3),
+            ("one_time", 1),
+            ("recurring", 2),
+        ],
+    )
+    def test_interval_filter_queryset(self, interval_option, expected_count, contributions_interval, filter, mocker):
+        monthly, yearly, one_time = contributions_interval
+        request = mocker.Mock(query_params={"interval": interval_option})
+        unfiltered = Contribution.objects.all()
+        assert unfiltered.count() == 3
+        filtered = filter.filter_queryset(request, unfiltered)
+        assert filtered.count() == expected_count
+
+        if interval_option == "one_time":
+            assert one_time in filtered
+            assert yearly not in filtered
+            assert monthly not in filtered
+        elif interval_option == "recurring":
+            assert yearly in filtered
+            assert monthly in filtered
+            assert one_time not in filtered
+        else:
+            assert one_time in filtered
+            assert yearly in filtered
+            assert monthly in filtered
 
     def test_filter_queryset(self, contributions, filter, mocker):
         paid, by_metadata, _, _ = contributions

@@ -648,7 +648,7 @@ class StripeTransactionsImporter:
                 else:
                     entity = data["subscription"]
                     entity_name = "Subscription"
-                logger.debug("Unable to upsert %s %s", entity_name, entity.id, exc_info=exc)
+                logger.info("Unable to upsert %s %s", entity_name, entity.id, exc_info=exc)
                 continue
             if "payment_intent" in data:
                 self.payment_intents_processed += 1

@@ -641,7 +641,7 @@ class StripeTransactionsImporter:
             data = self.assemble_data_for_pi(pi)
             try:
                 self.upsert_transaction(data=data)
-            except InvalidStripeTransactionDataError as exc:
+            except (InvalidStripeTransactionDataError, InvalidIntervalError, InvalidMetadataError) as exc:
                 if data.get("payment_intent", None):
                     entity = data["payment_intent"]
                     entity_name = "Payment intent"

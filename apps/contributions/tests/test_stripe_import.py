@@ -884,10 +884,12 @@ class TestStripeTransactionsImporter:
     def retrieved_payment_intents(self, payment_intent, payment_intent_for_recurring_contribution):
         return [payment_intent, payment_intent_for_recurring_contribution]
 
-    @pytest.mark.parametrize("has_upsert_error", (True, False))
+    @pytest.mark.parametrize(
+        "upsert_error", (InvalidMetadataError, InvalidIntervalError, InvalidStripeTransactionDataError, None)
+    )
     @pytest.mark.parametrize("should_skip_payment_intent", (True, False))
     def test_import_contributions_and_payments(
-        self, mocker, has_upsert_error, should_skip_payment_intent, retrieved_payment_intents, subscription, customer
+        self, mocker, upsert_error, should_skip_payment_intent, retrieved_payment_intents, subscription, customer
     ):
         # this test is minimal just so code is covered. we don't even assert about anything
         mocker.patch(
@@ -906,10 +908,10 @@ class TestStripeTransactionsImporter:
                 {"subscription": subscription} | _shared,
             ],
         )
-        if has_upsert_error:
+        if upsert_error:
             mocker.patch(
                 "apps.contributions.stripe_import.StripeTransactionsImporter.upsert_transaction",
-                side_effect=InvalidStripeTransactionDataError("foo"),
+                side_effect=upsert_error("foo"),
             )
         StripeTransactionsImporter(stripe_account_id="test").import_contributions_and_payments()
 

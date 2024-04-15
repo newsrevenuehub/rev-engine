@@ -428,6 +428,7 @@ class SubscriptionForRecurringContribution(ContributionImportBaseClass):
             case "month", 1:
                 return ContributionInterval.MONTHLY
             case _:
+                logger.warning("Invalid interval %s for subscription %s", interval, subscription.id)
                 raise InvalidIntervalError(f"Invalid interval {interval} for subscription : {subscription.id}")
 
     @property

@@ -260,7 +260,7 @@ class Test_upsert_payment_for_transaction:
         )
         logger_spy = mocker.patch("apps.contributions.stripe_import.logger.exception")
         count = Payment.objects.count()
-        upsert_payment_for_transaction(contribution=contribution, transaction=balance_transaction)
+        payment, action = upsert_payment_for_transaction(contribution=contribution, transaction=balance_transaction)
         assert Payment.objects.count() == count
         logger_spy.assert_called_once_with(
             (
@@ -272,6 +272,8 @@ class Test_upsert_payment_for_transaction:
             existing_payment.id,
             different_contribution.id,
         )
+        assert payment is None
+        assert action is None
 
 
 @pytest.mark.django_db

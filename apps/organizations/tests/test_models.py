@@ -1037,6 +1037,48 @@ class TestRevenueProgram:
         mc_connected_rp.mailchimp_recurring_segment
         mock_handle_error.assert_called_once_with("recurring segment", error)
 
+    def test_mailchimp_all_contributors_segment_when_no_mailchimp_list_id(self, mc_connected_rp):
+        mc_connected_rp.mailchimp_list_id = None
+        mc_connected_rp.save()
+        assert mc_connected_rp.mailchimp_all_contributors_segment is None
+
+    def test_mailchimp_all_contributors_segment_when_no_mailchimp_all_contributors_segment_id(self, mc_connected_rp):
+        assert mc_connected_rp.mailchimp_all_contributors_segment_id is None
+        assert mc_connected_rp.mailchimp_all_contributors_segment is None
+
+    def test_mailchimp_all_contributors_segment_happy_path(
+        self, mc_connected_rp, mailchimp_all_contributors_segment_from_api, mocker
+    ):
+        mc_connected_rp.mailchimp_all_contributors_segment_id = "something"
+        mc_connected_rp.save()
+        mock_client = Mock()
+        mock_client.lists.get_segment.return_value = mailchimp_all_contributors_segment_from_api
+        mocker.patch.object(mc_connected_rp, "get_mailchimp_client", return_value=mock_client)
+        segment = mc_connected_rp.mailchimp_all_contributors_segment
+        assert segment == MailchimpSegment(**mailchimp_all_contributors_segment_from_api)
+
+    def test_mailchimp_all_contributors_segment_when_not_found(self, mc_connected_rp, mocker):
+        mc_connected_rp.mailchimp_all_contributors_segment_id = "something"
+        mc_connected_rp.save()
+        mock_client = Mock()
+        mock_client.lists.get_segment.side_effect = ApiClientError("Not Found", status_code=404)
+        mocker.patch.object(mc_connected_rp, "get_mailchimp_client", return_value=mock_client)
+        assert mc_connected_rp.mailchimp_all_contributors_segment is None
+
+    def test_mailchimp_all_contributor_segment_when_api_client_error(self, mc_connected_rp, mocker):
+        mc_connected_rp.mailchimp_list_id = "something"
+        mc_connected_rp.mailchimp_all_contributors_segment_id = "something"
+        mc_connected_rp.save()
+        mock_get_client = mocker.patch("apps.organizations.models.RevenueProgram.get_mailchimp_client")
+        mock_get_client.return_value.lists.get_segment.side_effect = (
+            error := ApiClientError("Internal Server Error", status_code=500)
+        )
+        mock_handle_error = mocker.patch(
+            "apps.organizations.models.RevenueProgram.handle_mailchimp_api_client_read_error"
+        )
+        mc_connected_rp.mailchimp_all_contributors_segment
+        mock_handle_error.assert_called_once_with("contributor segment", error)
+
     def test_make_mailchimp_contributor_segment_when_no_list_id(self, mc_connected_rp):
         mc_connected_rp.mailchimp_list_id = None
         mc_connected_rp.save()
@@ -1221,6 +1263,45 @@ class TestRevenueProgram:
         )
         logger_spy = mocker.spy(logger, "info")
         mc_connected_rp.ensure_mailchimp_recurring_segment()
+        logger_spy.assert_called_once_with("Segment already exists for rp_id=[%s]", mc_connected_rp.id)
+
+    def test_ensure_mailchimp_all_contributor_segment_when_no_existing_all_contributors_segment(
+        self, mc_connected_rp, mocker
+    ):
+        save_spy = mocker.spy(RevenueProgram, "save")
+        mock_create_revision = mocker.patch("reversion.create_revision")
+        mock_create_revision.return_value.__enter__.return_value.add = mocker.Mock()
+        mock_set_comment = mocker.patch("reversion.set_comment")
+        my_id = "some-id"
+        mocker.patch(
+            "apps.organizations.models.RevenueProgram.mailchimp_all_contributors_segment",
+            return_value=None,
+            new_callable=mocker.PropertyMock,
+        )
+        mock_make_all_contributors_segment = mocker.patch(
+            "apps.organizations.models.RevenueProgram.make_mailchimp_all_contributors_segment",
+            return_value=Mock(id=my_id),
+        )
+        mc_connected_rp.ensure_mailchimp_all_contributors_segment()
+        mock_make_all_contributors_segment.assert_called_once()
+        save_spy.assert_called_once_with(
+            mc_connected_rp, update_fields={"mailchimp_all_contributors_segment_id", "modified"}
+        )
+        mock_create_revision.assert_called_once()
+        mock_set_comment.assert_called_once_with(
+            "ensure_mailchimp_all_contributors_segment updated all contributors segment id"
+        )
+
+    def test_ensure_mailchimp_all_contributors_segment_when_all_contributors_segment_already_exists(
+        self, mc_connected_rp, mocker
+    ):
+        mocker.patch(
+            "apps.organizations.models.RevenueProgram.mailchimp_all_contributors_segment",
+            return_value="something-truthy",
+            new_callable=mocker.PropertyMock,
+        )
+        logger_spy = mocker.spy(logger, "info")
+        mc_connected_rp.ensure_mailchimp_all_contributors_segment()
         logger_spy.assert_called_once_with("Segment already exists for rp_id=[%s]", mc_connected_rp.id)
 
     def test_publish_revenue_program_mailchimp_list_configuration_complete(self, revenue_program, mocker, settings):

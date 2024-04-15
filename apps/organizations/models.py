@@ -580,6 +580,7 @@ class RevenueProgram(IndexedTimeStampedModel):
     mailchimp_list_id = models.TextField(null=True, blank=True)
     mailchimp_contributor_segment_id = models.CharField(max_length=100, null=True, blank=True)
     mailchimp_recurring_contributor_segment_id = models.CharField(max_length=100, null=True, blank=True)
+    mailchimp_all_contributors_segment_id = models.CharField(max_length=100, null=True, blank=True)
     # NB: This field is stored in a secret manager, not in the database.
     # TODO: [DEV-3581] Cache the value for mailchimp_access_token to avoid hitting the secret manager on every request (potentially multiple times per request)
     mailchimp_access_token = GoogleCloudSecretProvider(model_attr="mailchimp_access_token_secret_name")
@@ -687,6 +688,22 @@ class RevenueProgram(IndexedTimeStampedModel):
         except ApiClientError as error:
             return self.handle_mailchimp_api_client_read_error("contributor segment", error)
 
+    @cached_property
+    def mailchimp_all_contributors_segment(self) -> MailchimpSegment | None:
+        logger.info("Called for rp %s", self.id)
+        if not self.mailchimp_list_id:
+            logger.debug("No email list ID on RP %s, returning None", self.id)
+            return None
+        if not self.mailchimp_all_contributors_segment_id:
+            logger.debug("No mailchimp_all_contributors_segment_id on RP %s, returning None", self.id)
+            return None
+        client = self.get_mailchimp_client()
+        try:
+            response = client.lists.get_segment(self.mailchimp_list_id, self.mailchimp_all_contributors_segment_id)
+            return MailchimpSegment(**response)
+        except ApiClientError as error:
+            return self.handle_mailchimp_api_client_read_error("contributor segment", error)
+
     @property
     def mailchimp_recurring_segment(self):
         logger.info("Called for rp %s", self.id)
@@ -753,6 +770,10 @@ class RevenueProgram(IndexedTimeStampedModel):
     @property
     def mailchimp_recurring_segment_name(self):
         return "Recurring contributors"
+
+    @property
+    def mailchimp_all_contributors_segment_name(self):
+        return "All contributors"
 
     def get_mailchimp_client(self) -> MailchimpMarketing.Client:
         logger.info("Called for rp %s", self.id)
@@ -900,6 +921,32 @@ class RevenueProgram(IndexedTimeStampedModel):
         except ApiClientError as exc:
             return self.handle_mailchimp_api_client_write_error(self.mailchimp_recurring_segment_name, exc)
 
+    def make_mailchimp_all_contributors_segment(self) -> MailchimpSegment:
+        logger.info("Called for rp %s", self.id)
+        if not self.mailchimp_list_id:
+            logger.error("No email list ID on RP %s", self.id)
+            raise ValidationError("Mailchimp must be connected and email list ID must be set")
+        client = self.get_mailchimp_client()
+        try:
+            response = client.lists.create_segment(
+                self.mailchimp_list_id,
+                {
+                    "name": self.mailchimp_all_contributors_segment_name,
+                    "options": {
+                        "match": "all",
+                        "conditions": [
+                            {
+                                "field": "ecomm_purchased",
+                                "op": "member",
+                            }
+                        ],
+                    },
+                },
+            )
+            return MailchimpSegment(**response)
+        except ApiClientError as exc:
+            return self.handle_mailchimp_api_client_write_error(self.mailchimp_recurring_segment_name, exc)
+
     @property
     def mailchimp_integration_connected(self):
         """Determine mailchimp connection state for the revenue program"""
@@ -968,6 +1015,23 @@ class RevenueProgram(IndexedTimeStampedModel):
         else:
             logger.info("Segment already exists for rp_id=[%s]", self.id)
 
+    def ensure_mailchimp_all_contributors_segment(self) -> None:
+        if not self.mailchimp_all_contributors_segment:
+            logger.info(
+                "Creating %s segment for rp_id=[%s]",
+                self.mailchimp_all_contributors_segment_name,
+                self.id,
+            )
+            segment = self.make_mailchimp_all_contributors_segment()
+            logger.info("Segment created for rp_id=[%s]", self.id)
+            self.mailchimp_all_contributors_segment_id = segment.id
+            logger.info("Saving mailchimp all contributors segment id for rp_id=[%s]", self.id)
+            with reversion.create_revision():
+                self.save(update_fields={"mailchimp_all_contributors_segment_id", "modified"})
+                reversion.set_comment("ensure_mailchimp_all_contributors_segment updated all contributors segment id")
+        else:
+            logger.info("Segment already exists for rp_id=[%s]", self.id)
+
     def ensure_mailchimp_entities(self) -> None:
         logger.info("Ensuring mailchimp entities for rp_id=[%s]", self.id)
         self.ensure_mailchimp_store()
@@ -975,6 +1039,7 @@ class RevenueProgram(IndexedTimeStampedModel):
         self.ensure_mailchimp_recurring_contribution_product()
         self.ensure_mailchimp_contributor_segment()
         self.ensure_mailchimp_recurring_segment()
+        self.ensure_mailchimp_all_contributors_segment()
 
     def publish_revenue_program_mailchimp_list_configuration_complete(self):
         """Publish a message to the `RP_MAILCHIMP_LIST_CONFIGURATION_COMPLETE_TOPIC` topic."""

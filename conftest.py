@@ -495,6 +495,23 @@ def mailchimp_recurring_contributor_segment_from_api():
 
 
 @pytest.fixture
+def mailchimp_all_contributors_segment_from_api():
+    return asdict(
+        MailchimpSegment(
+            id=fake.uuid4(),
+            name="All contributors",
+            member_count=randint(0, 100),
+            type=choice(["static", "saved", "fuzzy"]),
+            created_at="",
+            updated_at="",
+            options={},
+            list_id=fake.uuid4(),
+            _links=[],
+        )
+    )
+
+
+@pytest.fixture
 def minimally_valid_contribution_form_data(donation_page):
     return {
         "agreed_to_pay_fees": True,

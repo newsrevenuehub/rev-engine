@@ -273,6 +273,9 @@ class TestSetupMailchimpEntitiesForRpMailingList:
         mock_ensure_recurring_segment_fn = mocker.patch(
             "apps.organizations.models.RevenueProgram.ensure_mailchimp_recurring_segment"
         )
+        mock_ensure_all_segment_fn = mocker.patch(
+            "apps.organizations.models.RevenueProgram.ensure_mailchimp_all_contributors_segment"
+        )
         mock_publish_revenue_program_mailchimp_list_configuration_complete_fn = mocker.patch(
             "apps.organizations.models.RevenueProgram.publish_revenue_program_mailchimp_list_configuration_complete",
         )
@@ -282,4 +285,5 @@ class TestSetupMailchimpEntitiesForRpMailingList:
         mock_ensure_recurring_contribution_product_fn.assert_called_once()
         mock_ensure_contributor_segment_fn.assert_called_once()
         mock_ensure_recurring_segment_fn.assert_called_once()
+        mock_ensure_all_segment_fn.assert_called_once()
         mock_publish_revenue_program_mailchimp_list_configuration_complete_fn.assert_called_once()

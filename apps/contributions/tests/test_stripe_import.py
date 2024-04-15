@@ -358,18 +358,24 @@ class TestSubscriptionForRecurringContribution:
         )
 
     @pytest.mark.parametrize(
-        "plan_interval,plan_interval_count,expected",
+        "sub_has_plan,plan_interval,plan_interval_count,expected",
         (
-            ("year", 1, ContributionInterval.YEARLY),
-            ("month", 1, ContributionInterval.MONTHLY),
-            ("unexpected", 1, None),
-            ("year", 2, None),
-            ("month", 2, None),
+            (True, "year", 1, ContributionInterval.YEARLY),
+            (True, "month", 1, ContributionInterval.MONTHLY),
+            (True, "unexpected", 1, None),
+            (True, "year", 2, None),
+            (True, "month", 2, None),
+            (False, "year", 1, None),
         ),
     )
-    def test_get_interval_from_subscription(self, subscription, plan_interval, plan_interval_count, expected):
-        subscription.plan.interval = plan_interval
-        subscription.plan.interval_count = plan_interval_count
+    def test_get_interval_from_subscription(
+        self, subscription, sub_has_plan, plan_interval, plan_interval_count, expected
+    ):
+        if not sub_has_plan:
+            subscription.plan = None
+        else:
+            subscription.plan.interval = plan_interval
+            subscription.plan.interval_count = plan_interval_count
         if expected is not None:
             assert SubscriptionForRecurringContribution.get_interval_from_subscription(subscription) == expected
         else:

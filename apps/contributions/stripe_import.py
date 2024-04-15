@@ -418,13 +418,17 @@ class SubscriptionForRecurringContribution(ContributionImportBaseClass):
     @staticmethod
     def get_interval_from_subscription(subscription: stripe.Subscription) -> ContributionInterval:
         """Map Stripe subscription interval to Revengine contribution interval"""
-        interval = subscription.plan.interval
-        interval_count = subscription.plan.interval_count
-        if interval == "year" and interval_count == 1:
-            return ContributionInterval.YEARLY
-        if interval == "month" and interval_count == 1:
-            return ContributionInterval.MONTHLY
-        raise InvalidIntervalError(f"Invalid interval {interval} for subscription : {subscription.id}")
+        # NB: we have encountered one case of a "planless" subscription in the wild, hence the conditionality
+        # below around .plan. See DEV-4663 for more detail
+        interval = subscription.plan.interval if subscription.plan else None
+        interval_count = subscription.plan.interval_count if subscription.plan else None
+        match interval, interval_count:
+            case "year", 1:
+                return ContributionInterval.YEARLY
+            case "month", 1:
+                return ContributionInterval.MONTHLY
+            case _:
+                raise InvalidIntervalError(f"Invalid interval {interval} for subscription : {subscription.id}")
 
     @property
     def interval(self) -> ContributionInterval:

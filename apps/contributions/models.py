@@ -204,7 +204,7 @@ class Contribution(IndexedTimeStampedModel):
         ]
 
     def __str__(self):
-        return f"{self.formatted_amount}, {self.created.strftime('%Y-%m-%d %H:%M:%S')}"
+        return f"Contribution #{self.id} {self.formatted_amount}, {self.created.strftime('%Y-%m-%d %H:%M:%S')}"
 
     @property
     def next_payment_date(self) -> datetime.datetime | None:

@@ -98,6 +98,7 @@ class RevenueProgramForPageDetailSerializer(serializers.ModelSerializer):
         model = RevenueProgram
         fields = _RP_FOR_DONATION_PAGE_LIST_SERIALIZER_FIELDS + (
             "contact_email",
+            "contact_phone",
             "facebook_pixel_id",
             "google_analytics_v3_domain",
             "google_analytics_v3_id",
@@ -227,6 +228,8 @@ class RevenueProgramSerializer(serializers.ModelSerializer):
             "tax_id",
             "fiscal_status",
             "fiscal_sponsor_name",
+            "contact_phone",
+            "contact_email",
         ]
 
     def update(self, instance, validated_data):

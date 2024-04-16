@@ -16,6 +16,7 @@ from apps.contributions.models import (
     ContributionInterval,
     ContributionStatus,
     Contributor,
+    Payment,
 )
 from apps.contributions.stripe_import import (
     MAX_STRIPE_RESPONSE_LIMIT,
@@ -249,6 +250,28 @@ class Test_upsert_payment_for_transaction:
         payment, action = upsert_payment_for_transaction(contribution=contribution, transaction=None)
         logger_spy.assert_called_once()
         mock_upsert.assert_not_called()
+        assert payment is None
+        assert action is None
+
+    def test_when_integrity_error(self, contribution, balance_transaction, mocker):
+        different_contribution = ContributionFactory()
+        existing_payment = PaymentFactory(
+            contribution=different_contribution, stripe_balance_transaction_id=balance_transaction.id
+        )
+        logger_spy = mocker.patch("apps.contributions.stripe_import.logger.exception")
+        count = Payment.objects.count()
+        payment, action = upsert_payment_for_transaction(contribution=contribution, transaction=balance_transaction)
+        assert Payment.objects.count() == count
+        logger_spy.assert_called_once_with(
+            (
+                "Integrity error occurred while upserting payment with balance transaction %s for contribution %s "
+                "The existing payment is %s for contribution %s"
+            ),
+            balance_transaction.id,
+            contribution.id,
+            existing_payment.id,
+            different_contribution.id,
+        )
         assert payment is None
         assert action is None
 

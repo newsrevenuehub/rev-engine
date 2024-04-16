@@ -307,6 +307,10 @@ export interface RevenueProgram {
    */
   contact_email: string;
   /**
+   * Point of contact for the revenue program.
+   */
+  contact_phone: string;
+  /**
    * ID used for Facebook analytics.
    */
   facebook_pixel_id: string | null;

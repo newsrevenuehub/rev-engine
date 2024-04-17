@@ -57,19 +57,19 @@ class TestPortalContributionFilter:
         assert unfiltered.count() == 3
         filtered = filter.filter_queryset(request, unfiltered)
         assert filtered.count() == expected_count
-
-        if interval_option == "one_time":
-            assert one_time in filtered
-            assert yearly not in filtered
-            assert monthly not in filtered
-        elif interval_option == "recurring":
-            assert yearly in filtered
-            assert monthly in filtered
-            assert one_time not in filtered
-        else:
-            assert one_time in filtered
-            assert yearly in filtered
-            assert monthly in filtered
+        match request.query_params.get("interval"):
+            case ContributionInterval.ONE_TIME.value:
+                assert one_time in filtered
+                assert yearly not in filtered
+                assert monthly not in filtered
+            case PortalContributionFilter.RECURRING:
+                assert yearly in filtered
+                assert monthly in filtered
+                assert one_time not in filtered
+            case _:
+                assert one_time in filtered
+                assert yearly in filtered
+                assert monthly in filtered
 
     def test_filter_queryset(self, contributions, filter, mocker):
         paid, by_metadata, _, _ = contributions

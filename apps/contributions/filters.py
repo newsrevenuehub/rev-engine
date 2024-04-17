@@ -54,6 +54,7 @@ class ContributionFilter(django_filters.FilterSet):
 
 class PortalContributionFilter(django_filters.rest_framework.DjangoFilterBackend):
     ALLOWED_FILTER_FIELDS = ["status", "revenue_program"]
+    RECURRING = "recurring"
 
     def filter_queryset_by_rp(self, queryset, revenue_program_id: str):
         return queryset.filter(
@@ -62,11 +63,13 @@ class PortalContributionFilter(django_filters.rest_framework.DjangoFilterBackend
         )
 
     def filter_intervals(self, queryset, request):
-        if (interval := request.query_params.get("interval")) == ContributionInterval.ONE_TIME.value:
-            return queryset.filter(interval=ContributionInterval.ONE_TIME)
-        elif interval == "recurring":
-            return queryset.exclude(interval=ContributionInterval.ONE_TIME)
-        return queryset
+        match request.query_params.get("interval"):
+            case ContributionInterval.ONE_TIME.value:
+                return queryset.filter(interval=ContributionInterval.ONE_TIME)
+            case self.RECURRING:
+                return queryset.exclude(interval=ContributionInterval.ONE_TIME)
+            case _:
+                return queryset
 
     def filter_queryset(self, request, queryset):
         filters = {}

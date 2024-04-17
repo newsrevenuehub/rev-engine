@@ -6,7 +6,8 @@ import axios from 'ajax/axios';
 import { TOKEN } from 'ajax/endpoints';
 
 // Routing
-import { Link, useHistory } from 'react-router-dom';
+import { Link } from 'components/base';
+import { Link as RouterLink, useHistory } from 'react-router-dom';
 import { CONTENT_SLUG } from 'routes';
 
 // State management
@@ -69,7 +70,7 @@ function SignIn({ onSuccess }) {
 
             <S.NavLink>
               Not a member?&nbsp;
-              <Link to={SIGN_UP} data-testid="create-account">
+              <Link component={RouterLink} to={SIGN_UP} data-testid="create-account">
                 Create an account
               </Link>
             </S.NavLink>

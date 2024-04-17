@@ -1,6 +1,9 @@
-import { TextField } from 'components/base';
-import { Link } from 'react-router-dom';
+import { Link, TextField } from 'components/base';
 import styled from 'styled-components';
+
+// This is needed because we're using the `component` prop on Link to make it a
+// react-router-link, which causes TS issues.
+const LooseLink = Link as any;
 
 export const EmailField = styled(TextField)`
   && .NreTextFieldInputLabelAsterisk {
@@ -8,7 +11,7 @@ export const EmailField = styled(TextField)`
   }
 `;
 
-export const ForgotPasswordLink = styled(Link)`
+export const ForgotPasswordLink = styled(LooseLink)`
   font-weight: 600;
   position: absolute;
   right: 0;

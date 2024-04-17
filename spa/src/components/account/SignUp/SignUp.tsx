@@ -12,7 +12,7 @@ import SignUpForm from './SignUpForm';
 
 import Leftbar from 'components/account/common/leftbar/Leftbar';
 import Logobar from 'components/account/common/logobar/Logobar';
-import { Link, useHistory } from 'react-router-dom';
+import { Link as RouterLink, useHistory } from 'react-router-dom';
 
 import { handleLoginSuccess } from 'components/authentication/util';
 import PageTitle from 'elements/PageTitle';
@@ -24,6 +24,10 @@ import { SIGN_UP_GENERIC_ERROR_TEXT } from 'constants/textConstants';
 // Analytics
 import { AxiosError } from 'axios';
 import { useConfigureAnalytics } from 'components/analytics';
+import { Link } from 'components/base';
+
+// Loosely typing this because we're using the `component` prop, which causes issues with TS.
+const LooseLink = Link as any;
 
 function SignUp() {
   const [signUpState, dispatch] = useReducer(fetchReducer, initialState);
@@ -96,9 +100,9 @@ function SignUp() {
 
           <S.NavLink>
             Already have an account?{' '}
-            <Link to={SIGN_IN} data-testid="sign-in-link">
+            <LooseLink component={RouterLink} to={SIGN_IN} data-testid="sign-in-link">
               Sign in
-            </Link>
+            </LooseLink>
           </S.NavLink>
         </S.FormElements>
 

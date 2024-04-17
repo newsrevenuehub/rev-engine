@@ -1,9 +1,9 @@
 import PropTypes, { InferProps } from 'prop-types';
 import { FormEvent, useEffect, useRef, useState } from 'react';
-import { Button, Checkbox, FormControlLabel, Link, TextField } from 'components/base';
+import { Button, Checkbox, FormControlLabel, Link } from 'components/base';
 import PasswordField from 'components/common/TextField/PasswordField/PasswordField';
 import { PRIVACY_POLICY_URL, TS_AND_CS_URL } from 'constants/helperUrls';
-import { Root } from './SignUpForm.styled';
+import { EmailField, Root } from './SignUpForm.styled';
 
 const SignUpFormPropTypes = {
   disabled: PropTypes.bool,
@@ -51,7 +51,7 @@ export function SignUpForm({ disabled, errorMessage, onSubmit }: SignUpFormProps
 
   return (
     <Root onSubmit={handleSubmit} ref={formRef}>
-      <TextField
+      <EmailField
         error={!!errorMessage?.email}
         fullWidth
         helperText={errorMessage?.email}

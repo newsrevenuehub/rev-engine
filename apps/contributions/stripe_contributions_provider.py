@@ -22,10 +22,7 @@ from apps.contributions.serializers import (
     PaymentProviderContributionSerializer,
     SubscriptionsSerializer,
 )
-from apps.contributions.stripe_import import (
-    MAX_STRIPE_RESPONSE_LIMIT,
-    SubscriptionForRecurringContribution,
-)
+from apps.contributions.stripe_import import MAX_STRIPE_RESPONSE_LIMIT, StripeTransactionsImporter
 from apps.contributions.types import StripePiAsPortalContribution, StripePiSearchResponse
 from revengine.settings.base import CONTRIBUTION_CACHE_TTL, DEFAULT_CACHE
 
@@ -299,7 +296,8 @@ class StripeContributionsProvider:
 
     def get_interval_from_subscription(self, subscription: stripe.Subscription) -> ContributionInterval:
         """Gets the ContributionInterval from a stripe.Subscription object."""
-        return SubscriptionForRecurringContribution.get_interval_from_subscription(subscription)
+        plan = subscription.items.data[0].plan
+        return StripeTransactionsImporter.get_interval_from_plan(plan)
 
     def cast_subscription_to_pi_for_portal(self, subscription: stripe.Subscription) -> StripePiAsPortalContribution:
         """Casts a Subscription object to a PaymentIntent object for use in the Stripe Customer Portal.

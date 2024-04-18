@@ -218,6 +218,7 @@ class RevenueProgramAdmin(RevEngineBaseAdmin, AdminImageMixin):
                     "name",
                     "slug",
                     "contact_email",
+                    "contact_phone",
                     "organization",
                     "default_donation_page",
                     "tax_id",

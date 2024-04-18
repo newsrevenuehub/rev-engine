@@ -182,7 +182,7 @@ class TestContributionModel:
     def test_str(self, one_time_contribution):
         assert (
             str(one_time_contribution)
-            == f"{one_time_contribution.formatted_amount}, {one_time_contribution.created.strftime('%Y-%m-%d %H:%M:%S')}"
+            == f"Contribution #{one_time_contribution.id} {one_time_contribution.formatted_amount}, {one_time_contribution.created.strftime('%Y-%m-%d %H:%M:%S')}"
         )
 
     @pytest.mark.parametrize(

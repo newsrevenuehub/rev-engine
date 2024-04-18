@@ -16,6 +16,7 @@ from apps.contributions.models import (
     ContributionInterval,
     ContributionStatus,
     Contributor,
+    Payment,
 )
 from apps.contributions.stripe_import import (
     MAX_STRIPE_RESPONSE_LIMIT,
@@ -252,6 +253,28 @@ class Test_upsert_payment_for_transaction:
         assert payment is None
         assert action is None
 
+    def test_when_integrity_error(self, contribution, balance_transaction, mocker):
+        different_contribution = ContributionFactory()
+        existing_payment = PaymentFactory(
+            contribution=different_contribution, stripe_balance_transaction_id=balance_transaction.id
+        )
+        logger_spy = mocker.patch("apps.contributions.stripe_import.logger.exception")
+        count = Payment.objects.count()
+        payment, action = upsert_payment_for_transaction(contribution=contribution, transaction=balance_transaction)
+        assert Payment.objects.count() == count
+        logger_spy.assert_called_once_with(
+            (
+                "Integrity error occurred while upserting payment with balance transaction %s for contribution %s "
+                "The existing payment is %s for contribution %s"
+            ),
+            balance_transaction.id,
+            contribution.id,
+            existing_payment.id,
+            different_contribution.id,
+        )
+        assert payment is None
+        assert action is None
+
 
 @pytest.mark.django_db
 class TestSubscriptionForRecurringContribution:
@@ -358,18 +381,24 @@ class TestSubscriptionForRecurringContribution:
         )
 
     @pytest.mark.parametrize(
-        "plan_interval,plan_interval_count,expected",
+        "sub_has_plan,plan_interval,plan_interval_count,expected",
         (
-            ("year", 1, ContributionInterval.YEARLY),
-            ("month", 1, ContributionInterval.MONTHLY),
-            ("unexpected", 1, None),
-            ("year", 2, None),
-            ("month", 2, None),
+            (True, "year", 1, ContributionInterval.YEARLY),
+            (True, "month", 1, ContributionInterval.MONTHLY),
+            (True, "unexpected", 1, None),
+            (True, "year", 2, None),
+            (True, "month", 2, None),
+            (False, "year", 1, None),
         ),
     )
-    def test_get_interval_from_subscription(self, subscription, plan_interval, plan_interval_count, expected):
-        subscription.plan.interval = plan_interval
-        subscription.plan.interval_count = plan_interval_count
+    def test_get_interval_from_subscription(
+        self, subscription, sub_has_plan, plan_interval, plan_interval_count, expected
+    ):
+        if not sub_has_plan:
+            subscription.plan = None
+        else:
+            subscription.plan.interval = plan_interval
+            subscription.plan.interval_count = plan_interval_count
         if expected is not None:
             assert SubscriptionForRecurringContribution.get_interval_from_subscription(subscription) == expected
         else:
@@ -878,10 +907,12 @@ class TestStripeTransactionsImporter:
     def retrieved_payment_intents(self, payment_intent, payment_intent_for_recurring_contribution):
         return [payment_intent, payment_intent_for_recurring_contribution]
 
-    @pytest.mark.parametrize("has_upsert_error", (True, False))
+    @pytest.mark.parametrize(
+        "upsert_error", (InvalidMetadataError, InvalidIntervalError, InvalidStripeTransactionDataError, None)
+    )
     @pytest.mark.parametrize("should_skip_payment_intent", (True, False))
     def test_import_contributions_and_payments(
-        self, mocker, has_upsert_error, should_skip_payment_intent, retrieved_payment_intents, subscription, customer
+        self, mocker, upsert_error, should_skip_payment_intent, retrieved_payment_intents, subscription, customer
     ):
         # this test is minimal just so code is covered. we don't even assert about anything
         mocker.patch(
@@ -900,10 +931,10 @@ class TestStripeTransactionsImporter:
                 {"subscription": subscription} | _shared,
             ],
         )
-        if has_upsert_error:
+        if upsert_error:
             mocker.patch(
                 "apps.contributions.stripe_import.StripeTransactionsImporter.upsert_transaction",
-                side_effect=InvalidStripeTransactionDataError("foo"),
+                side_effect=upsert_error("foo"),
             )
         StripeTransactionsImporter(stripe_account_id="test").import_contributions_and_payments()
 

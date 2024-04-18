@@ -1,4 +1,3 @@
-import { PLUS_UPGRADE_URL } from 'constants/helperUrls';
 import { Organization, User } from 'hooks/useUser.types';
 import { axe } from 'jest-axe';
 import { render, screen } from 'test-utils';

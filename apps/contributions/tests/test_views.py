@@ -1993,6 +1993,44 @@ class TestPortalContributorsViewSet:
         assert response.status_code == status.HTTP_204_NO_CONTENT
         mock_send_receipt.assert_called_once()
 
+    @pytest.mark.parametrize(
+        "contribution_status,send_receipt",
+        (
+            (ContributionStatus.PAID, True),
+            (ContributionStatus.CANCELED, True),
+            (ContributionStatus.REFUNDED, True),
+            (ContributionStatus.FAILED, True),
+            # Should return 404 Not Found error on all HIDDEN_STATUSES
+            (ContributionStatus.PROCESSING, False),
+            (ContributionStatus.FLAGGED, False),
+            (ContributionStatus.REJECTED, False),
+        ),
+    )
+    def test_contribution_send_receipt_on_status(
+        self,
+        contribution_status,
+        send_receipt,
+        api_client,
+        portal_contributor_with_multiple_contributions,
+        mocker,
+    ):
+        contributor = portal_contributor_with_multiple_contributions[0]
+        contribution = contributor.contribution_set.first()
+        contribution.status = contribution_status
+        contribution.save()
+        mock_send_receipt = mocker.patch("apps.contributions.models.Contribution.handle_thank_you_email")
+        api_client.force_authenticate(contributor)
+        response = api_client.post(
+            reverse("portal-contributor-contribution-receipt", args=(contributor.id, contribution.id))
+        )
+        if send_receipt:
+            assert response.status_code == status.HTTP_204_NO_CONTENT
+            mock_send_receipt.assert_called_once()
+        else:
+            assert response.status_code == status.HTTP_404_NOT_FOUND
+            assert response.json() == {"detail": "Contribution not found"}
+            mock_send_receipt.assert_not_called()
+
     def test_contribution_send_receipt_when_im_not_contributor(
         self, portal_contributor_with_multiple_contributions, non_contributor_user, api_client, mocker
     ):

@@ -64,7 +64,7 @@ def upsert_payment_for_transaction(
     if transaction:
         payment, action = upsert_with_diff_check(
             model=Payment,
-            unique_identifier={"contribution": contribution, "stripe_balance_transaction_id": transaction.id},
+            unique_identifier={"contribution": contribution, "stripe_balance_transaction_id": transaction["id"]},
             defaults={
                 "net_amount_paid": transaction["net"] if not is_refund else 0,
                 "gross_amount_paid": transaction["amount"] if not is_refund else 0,
@@ -216,20 +216,18 @@ class StripeTransactionsImporter:
         """List and cache payment intents for a given stripe account"""
         logger.info("Listing and caching payment intents for account %s", self.stripe_account_id)
         self.cache_stripe_resources(
-            resources=self.list_stripe_entity((name := "PaymentIntent")),
+            resources=self.list_stripe_entity((name := "PaymentIntent"), **self.list_kwargs),
             entity_name=name,
             exclude_fn=self.should_exclude_from_cache_because_of_metadata,
-            **self.list_kwargs,
         )
 
     def list_and_cache_subscriptions(self) -> None:
         """List and cache subscriptions for a given stripe account"""
         logger.info("Listing and caching subscriptions for account %s", self.stripe_account_id)
         self.cache_stripe_resources(
-            resources=self.list_stripe_entity((name := "Subscription")),
+            resources=self.list_stripe_entity((name := "Subscription"), **self.list_kwargs),
             entity_name=name,
             exclude_fn=self.should_exclude_from_cache_because_of_metadata,
-            **self.list_kwargs,
         )
 
     def list_and_cache_charges(self, **kwargs) -> None:
@@ -371,11 +369,14 @@ class StripeTransactionsImporter:
             "interval": cls.get_interval_from_plan(plan),
         }
 
-    def get_invoices_for_subscription(self, subscription_id: str) -> Iterable[dict]:
+    def get_invoices_for_subscription(self, subscription_id: str) -> list[dict]:
+        results = []
         for key in self.redis.scan_iter(match=f"stripe_import__InvoiceBySubId*{subscription_id}*"):
-            yield self.get_resource_from_cache(key)
+            results.append(self.get_resource_from_cache(key))
+        return results
 
-    def get_charges_for_subscription(self, subscription_id: str) -> Iterable[dict]:
+    def get_charges_for_subscription(self, subscription_id: str) -> list[dict]:
+        results = []
         invoices = self.get_invoices_for_subscription(subscription_id)
         for invoice in invoices:
             charge_id = invoice.get("charge", None)
@@ -385,18 +386,22 @@ class StripeTransactionsImporter:
                 else None
             )
             if charge:
-                yield charge
+                results.append(charge)
+        return results
 
-    def get_refunds_for_charge(self, charge_id: str) -> Iterable[dict]:
+    def get_refunds_for_charge(self, charge_id: str) -> list[dict]:
+        results = []
         for key in self.redis.scan_iter(match=f"stripe_import_RefundByChargeId*{charge_id}*"):
-            yield self.get_resource_from_cache(key)
+            results.append(self.get_resource_from_cache(key))
+        return results
 
-    def get_refunds_for_subscription(self, subscription_id: str) -> Iterable[dict]:
+    def get_refunds_for_subscription(self, subscription_id: str) -> list[dict]:
+        results = []
         charges = self.get_charges_for_subscription(subscription_id)
         for charge in charges:
             if charge_id := charge.get("id", None):
-                for refund in self.get_refunds_for_charge(charge_id):
-                    yield refund
+                results.extend(self.get_refunds_for_charge(charge_id))
+        return results
 
     def get_or_create_contributor_from_customer(self, customer_id: str) -> Tuple[Contributor, str]:
         """Get or create a contributor from a stripe customer id"""
@@ -496,15 +501,16 @@ class StripeTransactionsImporter:
                 self.make_key(entity_id=contribution.provider_payment_id, entity_name="PaymentIntent")
             )
             # will raise an `InvalidStripeTransactionDataError` if there's more than one charge with status other than failed
-            charges = [(charge := self.get_successful_charge_for_payment_intent(pi["id"]))]
-            refunds = self.get_refunds_for_charge(charge["id"]) if charge else []
+            successful_charge = self.get_successful_charge_for_payment_intent(pi["id"])
+            charges = [successful_charge] if successful_charge else []
+            refunds = self.get_refunds_for_charge(successful_charge["id"]) if successful_charge else []
         else:
             charges = self.get_charges_for_subscription(contribution.provider_subscription_id)
             refunds = self.get_refunds_for_subscription(contribution.provider_subscription_id)
         for entity, is_refund in itertools.chain(
             zip(charges, itertools.repeat(False)), zip(refunds, itertools.repeat(True))
         ):
-            if not entity or not getattr(entity, "balance_transaction", None):
+            if not entity or not entity.get("balance_transaction", None):
                 logger.info(
                     "Data associated with %s %s for contribution %s has no balance transaction associated with it. No payment will be created.",
                     "refund" if is_refund else "charge",
@@ -641,10 +647,6 @@ class StripeTransactionsImporter:
         self.update_contribution_stats(contribution_action, updated_contribution)
         self.update_contributor_stats(contributor_action, contributor)
         return updated_contribution, contribution_action
-
-    def get_charges_from_cache(self) -> Iterable[dict]:
-        for key in self.redis.scan_iter(match="stripe_import_Charge*"):
-            yield self.get_resource_from_cache(key)
 
     def process_transactions_for_recurring_contributions(self) -> None:
         logger.info("Processing transactions for recurring contributions")

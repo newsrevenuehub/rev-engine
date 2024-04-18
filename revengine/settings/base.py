@@ -263,7 +263,6 @@ CACHES = {
             "OPTIONS": {
                 "CLIENT_CLASS": "django_redis.client.DefaultClient",
                 "CONNECTION_POOL_KWARGS": CONNECTION_POOL_KWARGS,
-                "KEY_PREFIX": "default",
             },
         }
     ),

@@ -11,10 +11,10 @@ from django.core.serializers.json import DjangoJSONEncoder
 from django.db import transaction
 
 import backoff
-import redis
 import reversion
 import stripe
 import tldextract
+from django_redis import get_redis_connection
 
 from apps.common.utils import upsert_with_diff_check
 from apps.contributions.exceptions import (
@@ -108,7 +108,7 @@ class StripeTransactionsImporter:
     _STRIPE_SEARCH_FILTER_METADATA_QUERY: str = '-metadata["referer"]:null AND -metadata["schema_version"]:null'
 
     def __post_init__(self) -> None:
-        self.redis = redis.Redis.from_url(settings.CACHES[settings.STRIPE_TRANSACTIONS_IMPORT_CACHE]["LOCATION"])
+        self.redis = get_redis_connection(settings.STRIPE_TRANSACTIONS_IMPORT_CACHE)
         self.cache_ttl = settings.STRIPE_TRANSACTIONS_IMPORT_CACHE_TTL
         self.payment_intents_processed = 0
         self.subscriptions_processed = 0
@@ -160,7 +160,8 @@ class StripeTransactionsImporter:
         if f"{(_:=tldextract.extract(referer)).domain}.{_.suffix}" != settings.DOMAIN_APEX:
             raise InvalidStripeTransactionDataError(f"Referer {referer} is not allowed for import")
 
-    def get_status_for_payment_intent(self, payment_intent: dict, has_refunds: bool) -> ContributionStatus:
+    @staticmethod
+    def get_status_for_payment_intent(payment_intent: dict, has_refunds: bool) -> ContributionStatus:
         """Map Stripe payment intent status to Revengine contribution status."""
         match (has_refunds, payment_intent["status"]):
             case (True, _):
@@ -181,7 +182,7 @@ class StripeTransactionsImporter:
                 return ContributionStatus.PROCESSING
             case _:
                 logger.warning(
-                    "Unknown status %s for payment intent %s", self.payment_intent.status, self.payment_intent.id
+                    "Unknown status %s for payment intent %s", payment_intent["status"], payment_intent["id"]
                 )
                 raise InvalidStripeTransactionDataError("Unknown status for payment intent")
 

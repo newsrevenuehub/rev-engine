@@ -255,19 +255,22 @@ if CACHE_HOST.startswith("rediss"):
         "ssl_cert_reqs": ssl.CERT_NONE,
     }
 
+
+base_cache_config = {
+    "BACKEND": "django_redis.cache.RedisCache",
+    "LOCATION": f"{CACHE_HOST}/0",
+    "OPTIONS": {
+        "CLIENT_CLASS": "django_redis.client.DefaultClient",
+        "CONNECTION_POOL_KWARGS": CONNECTION_POOL_KWARGS,
+    },
+}
+
 CACHES = {
-    "default": (
-        default_cache := {
-            "BACKEND": "django_redis.cache.RedisCache",
-            "LOCATION": f"{CACHE_HOST}/0",
-            "OPTIONS": {
-                "CLIENT_CLASS": "django_redis.client.DefaultClient",
-                "CONNECTION_POOL_KWARGS": CONNECTION_POOL_KWARGS,
-            },
-        }
-    ),
-    STRIPE_TRANSACTIONS_IMPORT_CACHE: default_cache
-    | {"options": default_cache["OPTIONS"] | {"KEY_PREFIX": STRIPE_TRANSACTIONS_IMPORT_CACHE}},
+    "default": base_cache_config,
+    STRIPE_TRANSACTIONS_IMPORT_CACHE: {
+        **base_cache_config,
+        "OPTIONS": {**base_cache_config["OPTIONS"], "KEY_PREFIX": STRIPE_TRANSACTIONS_IMPORT_CACHE},
+    },
 }
 
 

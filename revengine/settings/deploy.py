@@ -49,31 +49,7 @@ STATICFILES_DIRS = [os.path.join(PROJECT_DIR, "static"), str(FRONTEND_BUILD_DIR 
 CSRF_COOKIE_SECURE = os.getenv("CSRF_COOKIE_SECURE", "True") == "True"
 SESSION_COOKIE_SECURE = os.getenv("SESSION_COOKIE_SECURE", "True") == "True"
 
-### Performance optimizations
-CACHE_HOST = REDIS_URL
-CONNECTION_POOL_KWARGS = {}
-if CACHE_HOST.startswith("rediss"):
-    import ssl
 
-    # See: https://github.com/mirumee/saleor/issues/6926
-    CONNECTION_POOL_KWARGS = {
-        "ssl_cert_reqs": ssl.CERT_NONE,
-    }
-
-CACHES = {
-    "default": (
-        default := {
-            "BACKEND": "django_redis.cache.RedisCache",
-            "LOCATION": f"{CACHE_HOST}/0",
-            "OPTIONS": {
-                "CLIENT_CLASS": "django_redis.client.DefaultClient",
-                "CONNECTION_POOL_KWARGS": CONNECTION_POOL_KWARGS,
-            },
-        }
-    ),
-    STRIPE_TRANSACTIONS_IMPORT_CACHE: default
-    | {"OPTIONS": default["OPTIONS"] | {"KEY_PREFIX": STRIPE_TRANSACTIONS_IMPORT_CACHE}},
-}
 SESSION_ENGINE = "django.contrib.sessions.backends.cache"
 
 # Use template caching on deployed servers

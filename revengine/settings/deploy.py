@@ -61,14 +61,18 @@ if CACHE_HOST.startswith("rediss"):
     }
 
 CACHES = {
-    "default": {
-        "BACKEND": "django_redis.cache.RedisCache",
-        "LOCATION": f"{CACHE_HOST}/0",
-        "OPTIONS": {
-            "CLIENT_CLASS": "django_redis.client.DefaultClient",
-            "CONNECTION_POOL_KWARGS": CONNECTION_POOL_KWARGS,
-        },
-    }
+    "default": (
+        default := {
+            "BACKEND": "django_redis.cache.RedisCache",
+            "LOCATION": f"{CACHE_HOST}/0",
+            "OPTIONS": {
+                "CLIENT_CLASS": "django_redis.client.DefaultClient",
+                "CONNECTION_POOL_KWARGS": CONNECTION_POOL_KWARGS,
+            },
+        }
+    ),
+    STRIPE_TRANSACTIONS_IMPORT_CACHE: default
+    | {"OPTIONS": default["OPTIONS"] | {"KEY_PREFIX": STRIPE_TRANSACTIONS_IMPORT_CACHE}},
 }
 SESSION_ENGINE = "django.contrib.sessions.backends.cache"
 

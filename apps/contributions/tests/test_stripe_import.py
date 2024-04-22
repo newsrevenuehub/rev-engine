@@ -1,7 +1,7 @@
 import datetime
-from copy import deepcopy
 import json
 import random
+from copy import deepcopy
 
 from django.conf import settings
 from django.core.serializers.json import DjangoJSONEncoder
@@ -28,7 +28,11 @@ from apps.contributions.stripe_import import (
     parse_slug_from_url,
     upsert_payment_for_transaction,
 )
-from apps.contributions.tests.factories import ContributionFactory, PaymentFactory, ContributorFactory
+from apps.contributions.tests.factories import (
+    ContributionFactory,
+    ContributorFactory,
+    PaymentFactory,
+)
 from apps.contributions.types import STRIPE_PAYMENT_METADATA_SCHEMA_VERSIONS
 from apps.organizations.models import PaymentProvider, RevenueProgram
 from apps.organizations.tests.factories import RevenueProgramFactory

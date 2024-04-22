@@ -8,7 +8,7 @@ from urllib.parse import urlparse
 
 from django.conf import settings
 from django.core.serializers.json import DjangoJSONEncoder
-from django.db import transaction, IntegrityError
+from django.db import IntegrityError, transaction
 
 import backoff
 import reversion

@@ -182,6 +182,10 @@ class Test_upsert_payment_for_transaction:
 class TestStripeTransactionsImporter:
 
     @pytest.fixture(autouse=True)
+    def patch_redis(self, mocker):
+        mocker.patch("apps.contributions.stripe_import.get_redis_connection", return_value=None)
+
+    @pytest.fixture(autouse=True)
     def default_settings(self, settings):
         settings.DOMAIN_APEX = DOMAIN_APEX
 

@@ -37,6 +37,16 @@ PAGE_SLUG = "page-slug"
 
 
 @pytest.fixture
+def balance_transaction():
+    return {
+        "id": "bt_1",
+        "net": 1000,
+        "amount": 1000,
+        "created": datetime.datetime.now().timestamp(),
+    }
+
+
+@pytest.fixture
 def rp(valid_metadata):
     return RevenueProgramFactory(id=valid_metadata["revenue_program_id"])
 

@@ -8,7 +8,7 @@ from urllib.parse import urlparse
 
 from django.conf import settings
 from django.core.serializers.json import DjangoJSONEncoder
-from django.db import transaction
+from django.db import transaction, IntegrityError
 
 import backoff
 import reversion
@@ -62,19 +62,35 @@ def upsert_payment_for_transaction(
         (getattr(transaction, "id", "<no transaction>")),
     )
     if transaction:
-        payment, action = upsert_with_diff_check(
-            model=Payment,
-            unique_identifier={"contribution": contribution, "stripe_balance_transaction_id": transaction["id"]},
-            defaults={
-                "net_amount_paid": transaction["net"] if not is_refund else 0,
-                "gross_amount_paid": transaction["amount"] if not is_refund else 0,
-                "amount_refunded": transaction["amount"] if is_refund else 0,
-                "transaction_time": datetime.datetime.fromtimestamp(
-                    int(transaction["created"]), tz=datetime.timezone.utc
+        try:
+            payment, action = upsert_with_diff_check(
+                model=Payment,
+                unique_identifier={"contribution": contribution, "stripe_balance_transaction_id": transaction["id"]},
+                defaults={
+                    "net_amount_paid": transaction["net"] if not is_refund else 0,
+                    "gross_amount_paid": transaction["amount"] if not is_refund else 0,
+                    "amount_refunded": transaction["amount"] if is_refund else 0,
+                    "transaction_time": datetime.datetime.fromtimestamp(
+                        int(transaction["created"]), tz=datetime.timezone.utc
+                    ),
+                },
+                caller_name="upsert_payment_for_transaction",
+            )
+        # There is an infrequently occurring edge case. If it happens, we should log exception so record in Sentry, and
+        # then move on. See DEV-4666 for more detail.
+        except IntegrityError:
+            existing = Payment.objects.filter(stripe_balance_transaction_id=transaction["id"]).first()
+            logger.exception(
+                (
+                    "Integrity error occurred while upserting payment with balance transaction %s for contribution %s "
+                    "The existing payment is %s for contribution %s"
                 ),
-            },
-            caller_name="upsert_payment_for_transaction",
-        )
+                transaction["id"],
+                contribution.id,
+                existing.id if existing else None,
+                existing.contribution.id if existing else None,
+            )
+            return None, None
         logger.info("%s payment %s for contribution %s", action, payment.id, contribution.id)
         return payment, action
     else:
@@ -137,6 +153,7 @@ class StripeTransactionsImporter:
         """Map Stripe splan interval to Revengine contribution interval"""
         interval = plan["interval"]
         interval_count = plan["interval_count"]
+
         if interval == "year" and interval_count == 1:
             return ContributionInterval.YEARLY
         if interval == "month" and interval_count == 1:
@@ -185,6 +202,24 @@ class StripeTransactionsImporter:
                     "Unknown status %s for payment intent %s", payment_intent["status"], payment_intent["id"]
                 )
                 raise InvalidStripeTransactionDataError("Unknown status for payment intent")
+
+    @staticmethod
+    def get_status_for_subscription(subscription_status: str) -> ContributionStatus:
+        """Map Stripe subscription status to Revengine contribution status."""
+        match subscription_status:
+            # TODO: [DEV-4506] Look into inconsistencies between Stripe subscription statuses and Revengine contribution statuses
+            # In revengine terms, we conflate active and past due because we don't have an internal status
+            # for past due, and paid is closest given current statuses
+            case "active" | "past_due":
+                return ContributionStatus.PAID
+            # happens after time period for incomplete, when expired no longer can be charged
+            case "incomplete_expired":
+                return ContributionStatus.FAILED
+            case "canceled":
+                return ContributionStatus.CANCELED
+            # in practice, this would happen for incomplete and trialing
+            case _:
+                return ContributionStatus.PROCESSING
 
     @backoff.on_exception(backoff.expo, stripe.error.RateLimitError, **_STRIPE_API_BACKOFF_ARGS)
     def list_stripe_entity(self, entity_name: str, **kwargs) -> Iterable[Any]:
@@ -310,7 +345,7 @@ class StripeTransactionsImporter:
 
     def cache_charges_by_payment_intent_id(self) -> None:
         """Cache charges by payment intent id"""
-        for key in self.redis.scan_iter(match="stripe_import_Charge*"):
+        for key in self.redis.scan_iter(match="stripe_import_Charge_*"):
             charge = self.get_resource_from_cache(key)
             if charge and (pi_id := charge.get("payment_intent")):
                 self.put_in_cache(
@@ -320,7 +355,7 @@ class StripeTransactionsImporter:
     def cache_invoices_by_subscription_id(self) -> None:
         """Cache invoices by subscription id"""
         logger.info("Caching invoices by subscription id")
-        for key in self.redis.scan_iter(match="stripe_import_Invoice*"):
+        for key in self.redis.scan_iter(match="stripe_import_Invoice_*"):
             invoice = self.get_resource_from_cache(key)
             if invoice and (sub_id := invoice.get("subscription")):
                 self.put_in_cache(entity_id=f"{sub_id}_{invoice['id']}", entity_name="InvoiceBySubId", entity=invoice)
@@ -328,7 +363,7 @@ class StripeTransactionsImporter:
     def cache_refunds_by_charge_id(self) -> None:
         """Cache refunds by charge id"""
         logger.info("Caching refunds by charge id")
-        for key in self.redis.scan_iter(match="stripe_import_Refund*"):
+        for key in self.redis.scan_iter(match="stripe_import_Refund_*"):
             refund = self.get_resource_from_cache(key)
             if refund and (charge_id := refund.get("charge")):
                 self.put_in_cache(
@@ -344,8 +379,10 @@ class StripeTransactionsImporter:
         self.list_and_cache_invoices()
         self.list_and_cache_balance_transactions()
         self.list_and_cache_customers()
+        self.list_and_cache_refunds()
         self.cache_invoices_by_subscription_id()
         self.cache_charges_by_payment_intent_id()
+        self.cache_refunds_by_charge_id()
 
     def get_resource_from_cache(self, key: str) -> dict | None:
         logger.debug(
@@ -356,7 +393,7 @@ class StripeTransactionsImporter:
         return json.loads(cached) if cached else None
 
     @classmethod
-    def get_data_from_plan(cls, plan: stripe.Plan | None) -> dict:
+    def get_data_from_plan(cls, plan: dict | None) -> dict:
         """Get data from a stripe plan"""
         if not plan:
             raise InvalidStripeTransactionDataError("No plan data present")
@@ -372,7 +409,7 @@ class StripeTransactionsImporter:
 
     def get_invoices_for_subscription(self, subscription_id: str) -> list[dict]:
         results = []
-        for key in self.redis.scan_iter(match=f"stripe_import__InvoiceBySubId*{subscription_id}*"):
+        for key in self.redis.scan_iter(match=f"stripe_import_InvoiceBySubId*{subscription_id}*"):
             results.append(self.get_resource_from_cache(key))
         return results
 
@@ -400,8 +437,7 @@ class StripeTransactionsImporter:
         results = []
         charges = self.get_charges_for_subscription(subscription_id)
         for charge in charges:
-            if charge_id := charge.get("id", None):
-                results.extend(self.get_refunds_for_charge(charge_id))
+            results.extend(self.get_refunds_for_charge(charge["id"]))
         return results
 
     def get_or_create_contributor_from_customer(self, customer_id: str) -> Tuple[Contributor, str]:
@@ -432,24 +468,6 @@ class StripeTransactionsImporter:
             return pm.to_dict() if pm else None
         return None
 
-    @staticmethod
-    def get_status_for_subscripton(subscription_status: str) -> ContributionStatus:
-        """Map Stripe subscription status to Revengine contribution status."""
-        match subscription_status:
-            # TODO: [DEV-4506] Look into inconsistencies between Stripe subscription statuses and Revengine contribution statuses
-            # In revengine terms, we conflate active and past due because we don't have an internal status
-            # for past due, and paid is closest given current statuses
-            case "active" | "past_due":
-                return ContributionStatus.PAID
-            # happens after time period for incomplete, when expired no longer can be charged
-            case "incomplete_expired":
-                return ContributionStatus.FAILED
-            case "canceled":
-                return ContributionStatus.CANCELED
-            # in practice, this would happen for incomplete and trialing
-            case _:
-                return ContributionStatus.PROCESSING
-
     def update_contribution_stats(self, action: str, contribution: Contribution | None) -> None:
         match action:
             case "created":
@@ -466,7 +484,7 @@ class StripeTransactionsImporter:
             case _:
                 pass
 
-    def update_payment_stats(self, action: str, payment: Payment | None) -> None:
+    def update_payment_stats(self, action: str, payment: Payment) -> None:
         match action:
             case "created":
                 self.created_payment_ids.add(payment.id)
@@ -568,7 +586,10 @@ class StripeTransactionsImporter:
             return (
                 shared
                 | self.get_data_from_plan(plan)
-                | {"provider_payment_id": self.get_provider_payment_id_for_subscription(stripe_entity)}
+                | {
+                    "provider_payment_id": self.get_provider_payment_id_for_subscription(stripe_entity),
+                    "status": self.get_status_for_subscription(stripe_entity["status"]),
+                }
             )
 
     def conditionally_update_contribution_donation_page(
@@ -593,7 +614,7 @@ class StripeTransactionsImporter:
         case it is guaranteed to have a revenue_program_id key (though it could possibly be empty string)
         """
         if not (rp_id := metadata["revenue_program_id"]):
-            logger.warning("No revenue program id found in stripe metadata for %s %s", self.entity_name, self.entity_id)
+            logger.warning("No revenue program id found in stripe metadata %s", metadata)
             return None
         revenue_program = RevenueProgram.objects.filter(id=rp_id).first()
         if not revenue_program:
@@ -662,16 +683,6 @@ class StripeTransactionsImporter:
                 "Processed subscription %s. Contribution %s was %s", subscription["id"], contribution.id, action
             )
             self.subscriptions_processed += 1
-
-    def is_for_one_time_contribution(self, charge: dict) -> bool:
-        """Check if a charge is for a one-time contribution"""
-        is_for_one_time = True
-        invoice = charge.get("invoice", None)
-        if invoice:
-            invoice = self.get_resource_from_cache(self.make_key(entity_id=invoice, entity_name="Invoice"))
-            if invoice.get("subscription", None):
-                is_for_one_time = False
-        return is_for_one_time
 
     def process_transactions_for_one_time_contributions(self) -> None:
         """Process transactions for one-time contributions.

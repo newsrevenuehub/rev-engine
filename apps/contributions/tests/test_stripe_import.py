@@ -14,15 +14,8 @@ from apps.contributions.exceptions import (
     InvalidMetadataError,
     InvalidStripeTransactionDataError,
 )
-from apps.contributions.models import (
-    Contribution,
-    ContributionInterval,
-    ContributionStatus,
-    Contributor,
-    Payment,
-)
+from apps.contributions.models import ContributionInterval, ContributionStatus, Payment
 from apps.contributions.stripe_import import (
-    MAX_STRIPE_RESPONSE_LIMIT,
     StripeEventProcessor,
     StripeTransactionsImporter,
     parse_slug_from_url,
@@ -34,83 +27,18 @@ from apps.contributions.tests.factories import (
     PaymentFactory,
 )
 from apps.contributions.types import STRIPE_PAYMENT_METADATA_SCHEMA_VERSIONS
-from apps.organizations.models import PaymentProvider, RevenueProgram
 from apps.organizations.tests.factories import RevenueProgramFactory
 from apps.pages.models import DonationPage
 from apps.pages.tests.factories import DonationPageFactory
 
 
 DOMAIN_APEX = "example.com"
-
-
-@pytest.fixture
-def balance_transaction(mocker):
-    return {
-        "id": "bt_1",
-        "net": 1000,
-        "amount": 1000,
-        "created": datetime.datetime.now().timestamp(),
-    }
-
-
-@pytest.fixture
-def payment_intent(mocker, charge, customer, valid_metadata):
-    charges = mocker.Mock(total_count=1, data=[charge])
-    pm = mocker.Mock(id="pm_1")
-    pm.to_dict.return_value = {"foo": "bar"}
-    return mocker.Mock(
-        id="pi_1",
-        amount=1000,
-        charges=charges,
-        status="succeeded",
-        currency="usd",
-        metadata=valid_metadata,
-        payment_method=pm,
-        # this implies it's a one-time charge
-        invoice=None,
-        customer=customer,
-    )
-
-
-@pytest.fixture
-def payment_intent_for_recurring_contribution(mocker, charge, customer, valid_metadata, invoice_with_subscription):
-    charges = mocker.Mock(total_count=1, data=[charge])
-    pm = mocker.Mock(id="pm_1")
-    pm.to_dict.return_value = {"foo": "bar"}
-    return mocker.Mock(
-        id="pi_1",
-        amount=1000,
-        charges=charges,
-        status="succeeded",
-        currency="usd",
-        metadata=valid_metadata,
-        payment_method=pm,
-        invoice=invoice_with_subscription,
-        customer=customer,
-    )
-
-
-@pytest.fixture
-def invoice_with_subscription(mocker):
-    return mocker.Mock(subscription="sub_1", id="inv_1")
-
-
-@pytest.fixture
-def invoice_without_subscription(mocker):
-    return mocker.Mock(subscription=None)
-
-
-@pytest.fixture
-def mock_metadata_validator(mocker):
-    return mocker.patch("apps.contributions.stripe_import.cast_metadata_to_stripe_payment_metadata_schema")
+PAGE_SLUG = "page-slug"
 
 
 @pytest.fixture
 def rp(valid_metadata):
     return RevenueProgramFactory(id=valid_metadata["revenue_program_id"])
-
-
-PAGE_SLUG = "page-slug"
 
 
 @pytest.fixture
@@ -119,10 +47,11 @@ def page(rp):
 
 
 @pytest.fixture
-def valid_metadata(valid_metadata, domain_apex, page):
+def valid_metadata(valid_metadata, domain_apex, page, settings):
     """We shadow the valid_metadata from conftest.py so we can set up rp and donation page that will
     cause validation around donation page work as expected in tests.
     """
+    settings.DOMAIN_APEX = domain_apex
     valid_metadata["referer"] = f"https://{domain_apex}/{page.slug}/"
     return valid_metadata
 
@@ -146,71 +75,8 @@ def payment_intent_dict(valid_metadata):
         "currency": "usd",
         "status": "succeeded",
         "metadata": valid_metadata,
+        "customer": "cus_1",
     }
-
-
-# @pytest.fixture
-# def subscription(mocker, customer, valid_metadata):
-#     plan = mocker.Mock(amount=1000, currency="usd", interval="month", interval_count=1)
-#     payment_method = mocker.Mock(id="pm_1")
-#     payment_method.to_dict.return_value = {"foo": "bar"}
-#     return mocker.Mock(
-#         id="sub_1",
-#         customer=customer,
-#         metadata=valid_metadata,
-#         currency="usd",
-#         status="active",
-#         default_payment_method=payment_method,
-#     )
-
-
-# @pytest.fixture
-# def customer(mocker):
-#     return mocker.Mock(email="foo@bar.com", id="cus_1", invoice_settings=None)
-
-
-# @pytest.fixture
-# def charge(mocker, balance_transaction, customer):
-#     return mocker.Mock(
-#         amount=1000,
-#         created=datetime.datetime.now().timestamp(),
-#         balance_transaction=balance_transaction,
-#         customer=customer,
-#         refunded=False,
-#         amount_refunded=0,
-#         refunds=mocker.Mock(total_count=0, data=[]),
-#         status="succeeded",
-#     )
-
-
-@pytest.fixture
-def subscription_with_existing_nre_entities(subscription):
-    ContributionFactory(provider_subscription_id=subscription.id, contributor__email=subscription.customer.email)
-    return subscription
-
-
-@pytest.fixture
-def payment_method_A(mocker):
-    return mocker.Mock(id="pm_A")
-
-
-@pytest.fixture
-def payment_method_B(mocker):
-    return mocker.Mock(id="pm_B")
-
-
-@pytest.fixture
-def customer_no_invoice_settings(customer):
-    customer = deepcopy(customer)
-    customer.invoice_settings = None
-    return customer
-
-
-@pytest.fixture
-def customer_with_invoice_settings(customer, mocker, payment_method_A):
-    customer = deepcopy(customer)
-    customer.invoice_settings = mocker.Mock(default_payment_method=payment_method_A)
-    return customer
 
 
 class Test_parse_slug_from_url:
@@ -837,7 +703,7 @@ class TestStripeTransactionsImporter:
         self, donation_page_exists, contribution_has_donation_page, mocker
     ):
         instance = StripeTransactionsImporter(stripe_account_id="test")
-        donation_page = DonationPageFactory()
+        donation_page = DonationPageFactory() if donation_page_exists else None
         contribution = ContributionFactory(donation_page=donation_page if contribution_has_donation_page else None)
         instance.conditionally_update_contribution_donation_page(contribution, donation_page)
 
@@ -855,43 +721,110 @@ class TestStripeTransactionsImporter:
         assert instance.get_donation_page_from_metadata(metadata) == (page if rp_exists and referer_slug else None)
 
     @pytest.mark.parametrize(
-        "stripe_entity, is_one_time, donation_page_found",
+        "stripe_entity, is_one_time",
         (
-            ("payment_intent_dict", True, True),
-            ("payment_intent_dict", True, False),
-            ("subscription_dict", True, True),
-            ("subscription_dict", True, False),
+            ("payment_intent_dict", True),
+            ("payment_intent_dict", True),
+            ("subscription_dict", False),
+            ("subscription_dict", False),
         ),
     )
-    def test_upsert_contribution(self, mocker, stripe_entity, is_one_time, donation_page_found, request):
+    @pytest.mark.parametrize("donation_page_found", (True, False))
+    @pytest.mark.parametrize("has_customer_id", (True, False))
+    def test_upsert_contribution(
+        self, mocker, stripe_entity, is_one_time, donation_page_found, has_customer_id, request
+    ):
+        stripe_entity = request.getfixturevalue(stripe_entity)
+        if not has_customer_id:
+            stripe_entity.pop("customer", None)
+
+        mocker.patch("apps.contributions.stripe_import.StripeTransactionsImporter.upsert_payments_for_contribution")
         mocker.patch(
             "apps.contributions.stripe_import.StripeTransactionsImporter.get_payment_method_for_stripe_entity",
             return_value=None,
+        )
+        mocker.patch(
+            "apps.contributions.stripe_import.StripeTransactionsImporter.get_or_create_contributor_from_customer",
+            return_value=(ContributorFactory(), "created"),
         )
         if not donation_page_found:
             DonationPage.objects.filter(slug=PAGE_SLUG).delete()
 
         instance = StripeTransactionsImporter(stripe_account_id="test")
-        stripe_entity = request.getfixturevalue(stripe_entity)
-        instance.upsert_contribution(stripe_entity=stripe_entity, is_one_time=is_one_time)
+        if not has_customer_id or not donation_page_found:
+            with pytest.raises(InvalidStripeTransactionDataError):
+                instance.upsert_contribution(stripe_entity=stripe_entity, is_one_time=is_one_time)
+        else:
+            instance.upsert_contribution(stripe_entity=stripe_entity, is_one_time=is_one_time)
 
-    def test_process_transactions_for_recurring_contributions(self):
-        pass
+    def test_process_transactions_for_recurring_contributions(self, mocker):
+        instance = StripeTransactionsImporter(stripe_account_id="test")
+        mock_redis = mocker.patch.object(instance, "redis")
+        mock_redis.scan_iter.return_value = ["foo", "bar"]
+        mocker.patch.object(instance, "get_resource_from_cache", return_value={"id": "sub_1"})
+        mocker.patch.object(
+            instance,
+            "upsert_contribution",
+            side_effect=[(ContributionFactory(), "created"), InvalidStripeTransactionDataError("uh oh")],
+        )
+        instance.process_transactions_for_recurring_contributions()
 
-    def test_process_transactions_for_one_time_contributions(self):
-        pass
+    def test_process_transactions_for_one_time_contributions(self, mocker):
+        instance = StripeTransactionsImporter(stripe_account_id="test")
+        mock_redis = mocker.patch.object(instance, "redis")
+        mock_redis.scan_iter.return_value = ["foo", "bar"]
+        mocker.patch.object(instance, "get_resource_from_cache", return_value={"id": "pi_1"})
+        mocker.patch.object(
+            instance,
+            "upsert_contribution",
+            side_effect=[(ContributionFactory(), "created"), InvalidStripeTransactionDataError("uh oh")],
+        )
+        instance.process_transactions_for_one_time_contributions()
 
-    def test_format_timedelta(self):
-        pass
+    @pytest.mark.parametrize(
+        "time_delta",
+        (
+            datetime.timedelta(hours=2),
+            datetime.timedelta(minutes=2),
+            datetime.timedelta(seconds=2),
+            datetime.timedelta(minutes=2, seconds=2),
+        ),
+    )
+    def test_format_timedelta(self, time_delta):
+        assert StripeTransactionsImporter(stripe_account_id="test").format_timedelta(time_delta)
 
-    def test_import_contributions_and_payments(self):
-        pass
+    def test_import_contributions_and_payments(self, mocker):
+        mock_list_cache = mocker.patch(
+            "apps.contributions.stripe_import.StripeTransactionsImporter.list_and_cache_required_stripe_resources"
+        )
+        mock_process_recurring = mocker.patch(
+            "apps.contributions.stripe_import.StripeTransactionsImporter.process_transactions_for_recurring_contributions"
+        )
+        mock_process_one_time = mocker.patch(
+            "apps.contributions.stripe_import.StripeTransactionsImporter.process_transactions_for_one_time_contributions"
+        )
+        mock_log_results = mocker.patch("apps.contributions.stripe_import.StripeTransactionsImporter.log_results")
+        mock_clear_cache = mocker.patch("apps.contributions.stripe_import.StripeTransactionsImporter.clear_cache")
+        instance = StripeTransactionsImporter(stripe_account_id="test")
+        instance.import_contributions_and_payments()
+        for mock in (
+            mock_list_cache,
+            mock_process_recurring,
+            mock_process_one_time,
+            mock_log_results,
+            mock_clear_cache,
+        ):
+            mock.assert_called_once()
 
     def test_log_results(self):
-        pass
+        instance = StripeTransactionsImporter(stripe_account_id="test")
+        instance.log_results()
 
-    def test_clear_cache(self):
-        pass
+    def test_clear_cache(self, mocker):
+        instance = StripeTransactionsImporter(stripe_account_id="test")
+        mock_redis = mocker.patch.object(instance, "redis")
+        mock_redis.scan.return_value = (0, ["foo", "bar"])
+        instance.clear_cache()
 
 
 class TestStripeEventProcessor:

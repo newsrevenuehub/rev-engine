@@ -633,9 +633,10 @@ class StripeTransactionsImporter:
         logger.info("Upserting contribution for %s %s", entity_name, stripe_entity["id"])
         self.validate_metadata((metadata := stripe_entity.get("metadata", None)))
         self.validate_referer(metadata.get("referer", None))
-        contributor, contributor_action = self.get_or_create_contributor_from_customer(
-            (cust_id := stripe_entity["customer"])
-        )
+        cust_id = stripe_entity.get("customer", None)
+        if not cust_id:
+            raise InvalidStripeTransactionDataError(f"No customer found for {entity_name} {stripe_entity['id']}")
+        contributor, contributor_action = self.get_or_create_contributor_from_customer(cust_id)
         pm = self.get_payment_method_for_stripe_entity(
             stripe_entity=stripe_entity, customer_id=cust_id, is_one_time=is_one_time
         )

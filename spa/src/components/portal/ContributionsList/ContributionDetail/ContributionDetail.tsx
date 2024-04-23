@@ -81,7 +81,7 @@ export function ContributionDetail({ domAnchor, contributionId, contributorId }:
           <BillingHistory
             disabled={!!editableSection}
             payments={contribution.payments}
-            sendEmailReceipt={sendEmailReceipt}
+            onSendEmailReceipt={sendEmailReceipt}
           />
           <Actions contribution={contribution} onCancelContribution={cancelContribution} />
         </Content>

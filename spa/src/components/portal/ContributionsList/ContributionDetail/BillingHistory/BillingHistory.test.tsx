@@ -2,8 +2,10 @@ import { axe } from 'jest-axe';
 import { render, screen, within } from 'test-utils';
 import BillingHistory, { BillingHistoryProps } from './BillingHistory';
 import { PortalContributionPayment } from 'hooks/usePortalContribution';
+import usePortal from 'hooks/usePortal';
 
 jest.mock('../DetailSection/DetailSection');
+jest.mock('hooks/usePortal');
 
 const sendEmailReceipt = jest.fn();
 const mockPayments: PortalContributionPayment[] = [
@@ -24,10 +26,18 @@ const mockPayments: PortalContributionPayment[] = [
 ];
 
 function tree(props?: Partial<BillingHistoryProps>) {
-  return render(<BillingHistory sendEmailReceipt={sendEmailReceipt} payments={mockPayments} {...props} />);
+  return render(<BillingHistory onSendEmailReceipt={sendEmailReceipt} payments={mockPayments} {...props} />);
 }
 
 describe('BillingHistory', () => {
+  const usePortalMock = jest.mocked(usePortal);
+
+  beforeEach(() => {
+    usePortalMock.mockReturnValue({
+      page: { revenue_program: { organization: { send_receipt_email_via_nre: true } } }
+    } as any);
+  });
+
   it('shows a header', () => {
     tree();
     expect(screen.getByText('Billing History')).toBeInTheDocument();
@@ -83,10 +93,19 @@ describe('BillingHistory', () => {
     expect(within(rows[2]).getAllByRole('cell')[2]).toHaveTextContent('Refunded');
   });
 
-  it('shows a resend receipt button', () => {
+  it('shows a resend receipt button if org\'s "send_receipt_email_via_nre" flag is "true"', () => {
     tree();
 
-    expect(screen.getByRole('button', { name: 'Resend receipt' })).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: 'Resend receipt' })).toBeVisible();
+  });
+
+  it('does not show a resend receipt button if org\'s "send_receipt_email_via_nre" flag is "false"', () => {
+    usePortalMock.mockReturnValue({
+      page: { revenue_program: { organization: { send_receipt_email_via_nre: false } } }
+    } as any);
+    tree();
+
+    expect(screen.queryByRole('button', { name: 'Resend receipt' })).not.toBeInTheDocument();
   });
 
   it('calls sendEmailReceipt when the resend receipt button is clicked', () => {

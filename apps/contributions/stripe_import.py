@@ -15,6 +15,7 @@ import reversion
 import stripe
 import tldextract
 from django_redis import get_redis_connection
+from redis.client import Pipeline
 
 from apps.common.utils import upsert_with_diff_check
 from apps.contributions.exceptions import (
@@ -38,6 +39,33 @@ from apps.pages.models import DonationPage
 
 
 MAX_STRIPE_RESPONSE_LIMIT = 100
+CACHE_KEY_PREFIX = settings.STRIPE_TRANSACTIONS_IMPORT_CACHE
+CACHED_CHARGE_FIELDS = ["id", "payment_intent", "status", "balance_transaction"]
+CACHED_INVOICE_FIELDS = [
+    "charge",
+    "id",
+    "payment_intent",
+    "subscription",
+]
+CACHED_BALANCE_TRANSACTION_FIELDS = ["amount", "created", "id", "net", "amount"]
+CACHED_PAYMENT_INTENT_FIELDS = ["amount", "customer", "currency", "id", "metadata", "payment_method", "status"]
+CACHED_SUBSCRIPTION_FIELDS = [
+    "id",
+    "customer",
+    "currency",
+    "default_payment_method",
+    "items",
+    "metadata",
+    "plan",
+    "status",
+    "latest_invoice",
+]
+CACHED_CUSTOMER_FIELDS = [
+    "id",
+    "email",
+    "invoice_settings",
+]
+CACHED_REFUND_FIELDS = ["charge", "id"]
 
 logger = logging.getLogger(f"{settings.DEFAULT_LOGGER}.{__name__}")
 
@@ -111,6 +139,52 @@ def parse_slug_from_url(url: str) -> str | None:
     parsed = urlparse(url)
     path_segments = [segment for segment in parsed.path.split("/") if segment]
     return path_segments[0] if len(path_segments) else None
+
+
+@dataclass
+class RedisCachePipeline:
+    """Convenience class for batch caching stripe resources in Redis"""
+
+    pipeline: Pipeline
+    entity_name: str
+    batch_size: int = 100
+    buffered: int = 0
+    total_inserted: int = 0
+
+    def put_in_cache(self, entity_id: str, key: str, entity: dict, prune_fn: Callable | None = None) -> None:
+        """Put a stripe resource in cache
+
+        This is what outside callers should use.
+        """
+        logger.debug(
+            "Putting %s %s in redis cache under key %s",
+            self.entity_name,
+            entity_id,
+            key,
+        )
+        if prune_fn:
+            logger.debug("Pruning %s %s before caching", self.entity_name, entity_id)
+            entity = prune_fn(entity)
+        self.put_in_buffer(key=key, value=entity)
+
+    def put_in_buffer(self, key: str, value: dict) -> None:
+        """ "Put a stripe resource in buffer and if buffer is full, flush it"""
+        logger.debug("Putting value for key %s in buffer", key)
+        self.pipeline.set(
+            key, json.dumps(value, cls=DjangoJSONEncoder), ex=settings.STRIPE_TRANSACTIONS_IMPORT_CACHE_TTL
+        )
+        self.buffered += 1
+        if any([(self.buffered and self.buffered % self.batch_size == 0)]):
+            self.flush()
+
+    def flush(self) -> None:
+        """Flush the pipeline by cachching its resources in Redis"""
+        if self.buffered > 0:
+            logger.debug("Flushing redis pipeline")
+            self.pipeline.execute()
+            self.total_inserted += self.buffered
+            self.buffered = 0
+            logger.info("Inserted %s %ss so far", self.total_inserted, self.entity_name)
 
 
 @dataclass
@@ -255,6 +329,7 @@ class StripeTransactionsImporter:
             resources=self.list_stripe_entity((name := "PaymentIntent"), **self.list_kwargs),
             entity_name=name,
             exclude_fn=self.should_exclude_from_cache_because_of_metadata,
+            prune_fn=lambda x: {k: v for k, v in x.items() if k in CACHED_PAYMENT_INTENT_FIELDS},
         )
 
     def list_and_cache_subscriptions(self) -> None:
@@ -264,6 +339,7 @@ class StripeTransactionsImporter:
             resources=self.list_stripe_entity((name := "Subscription"), **self.list_kwargs),
             entity_name=name,
             exclude_fn=self.should_exclude_from_cache_because_of_metadata,
+            prune_fn=lambda x: {k: v for k, v in x.items() if k in CACHED_SUBSCRIPTION_FIELDS},
         )
 
     def list_and_cache_charges(self, **kwargs) -> None:
@@ -275,100 +351,128 @@ class StripeTransactionsImporter:
         we want all of its charges, even if they're outside of the date range.
         """
         logger.info("Listing and caching charges for account %s", self.stripe_account_id)
-        self.cache_stripe_resources(resources=self.list_stripe_entity((name := "Charge"), **kwargs), entity_name=name)
+        self.cache_stripe_resources(
+            resources=self.list_stripe_entity((name := "Charge"), **kwargs),
+            entity_name=name,
+            prune_fn=lambda x: {k: v for k, v in x.items() if k in CACHED_CHARGE_FIELDS},
+        )
 
     def list_and_cache_invoices(self, **kwargs) -> None:
         """List and cache invoices for a given stripe account"""
         logger.info("Listing and caching invoices for account %s", self.stripe_account_id)
-        self.cache_stripe_resources(resources=self.list_stripe_entity((name := "Invoice"), **kwargs), entity_name=name)
+        self.cache_stripe_resources(
+            resources=self.list_stripe_entity((name := "Invoice"), **kwargs),
+            entity_name=name,
+            prune_fn=lambda x: {k: v for k, v in x.items() if k in CACHED_INVOICE_FIELDS},
+        )
 
     def list_and_cache_refunds(self, **kwargs) -> None:
         """List and cache refunds for a given stripe account"""
         logger.info("Listing and caching refunds for account %s", self.stripe_account_id)
-        self.cache_stripe_resources(resources=self.list_stripe_entity((name := "Refund"), **kwargs), entity_name=name)
+        self.cache_stripe_resources(
+            resources=self.list_stripe_entity((name := "Refund"), **kwargs),
+            entity_name=name,
+            prune_fn=lambda x: {k: v for k, v in x.items() if k in CACHED_REFUND_FIELDS},
+        )
 
     def list_and_cache_balance_transactions(self, **kwargs) -> None:
         """List and cache balance transactions for a given stripe account"""
         logger.info("Listing and caching balance transactions for account %s", self.stripe_account_id)
         self.cache_stripe_resources(
-            resources=self.list_stripe_entity((name := "BalanceTransaction"), **kwargs), entity_name=name
+            resources=self.list_stripe_entity((name := "BalanceTransaction"), **kwargs),
+            entity_name=name,
+            prune_fn=lambda x: {k: v for k, v in x.items() if k in CACHED_BALANCE_TRANSACTION_FIELDS},
         )
 
     def list_and_cache_customers(self, **kwargs) -> None:
         """List and cache customers for a given stripe account"""
         logger.info("Listing and caching customers for account %s", self.stripe_account_id)
-        self.cache_stripe_resources(resources=self.list_stripe_entity((name := "Customer"), **kwargs), entity_name=name)
+        self.cache_stripe_resources(
+            resources=self.list_stripe_entity((name := "Customer"), **kwargs),
+            entity_name=name,
+            prune_fn=lambda x: {k: v for k, v in x.items() if k in CACHED_CUSTOMER_FIELDS},
+        )
 
     def cache_stripe_resources(
-        self, resources: Iterable[Any], entity_name: str, exclude_fn: Callable | None = None
+        self,
+        resources: Iterable[Any],
+        entity_name: str,
+        exclude_fn: Callable | None = None,
+        prune_fn: Callable | None = None,
     ) -> None:
         """Cache stripe resources"""
         logger.info("Caching %ss for account %s", entity_name, self.stripe_account_id)
-        cached_count = 0
         excluded_count = 0
+        pipeline = RedisCachePipeline(pipeline=self.redis.pipeline(), entity_name=entity_name)
+
         for resource in resources:
             if exclude_fn and exclude_fn(resource):
                 logger.debug("Excluding %s %s from cache because excluded by `exclude_fn`", entity_name, resource.id)
                 excluded_count += 1
                 continue
-            self.put_in_cache(entity_id=resource.id, entity_name=entity_name, entity=resource.to_dict())
-            logger.info(
-                "Cached %s %s for account %s. %s cached so far",
-                entity_name,
-                resource.id,
-                self.stripe_account_id,
-                cached_count,
+            pipeline.put_in_cache(
+                entity_id=resource.id,
+                key=self.make_key(resource.id, entity_name),
+                entity=resource.to_dict(),
+                prune_fn=prune_fn,
             )
-            cached_count += 1
+        # need to do this at end in case we have a small number of resources waiting in buffer that didn't trigger a flush
+        pipeline.flush()
         logger.info(
             "Cached %s %s%s and excluded %s for account %s",
-            cached_count,
+            pipeline.total_inserted,
             entity_name,
-            "" if cached_count == 1 else "s",
+            "" if pipeline.total_inserted == 1 else "s",
             excluded_count,
             self.stripe_account_id,
         )
 
     def make_key(self, entity_id: str, entity_name: str) -> str:
         """Make a key for a given stripe resource"""
-        return f"stripe_import_{entity_name}_{entity_id}_{self.stripe_account_id}"
-
-    def put_in_cache(self, entity_id: str, entity_name: str, entity: dict) -> None:
-        """Put a stripe resource in cache"""
-        logger.debug(
-            "Putting %s %s in redis cache under key %s",
-            entity_name,
-            entity_id,
-            (key := self.make_key(entity_id=entity_id, entity_name=entity_name)),
-        )
-        self.redis.set(key, json.dumps(entity, cls=DjangoJSONEncoder), ex=self.cache_ttl)
+        return f"{CACHE_KEY_PREFIX}_{entity_name}_{entity_id}_{self.stripe_account_id}"
 
     def cache_charges_by_payment_intent_id(self) -> None:
         """Cache charges by payment intent id"""
-        for key in self.redis.scan_iter(match="stripe_import_Charge_*"):
+        pipeline = RedisCachePipeline(
+            pipeline=self.redis.pipeline(), entity_name=(entity_name := "ChargeByPaymentIntentId")
+        )
+        for key in self.redis.scan_iter(match=f"{CACHE_KEY_PREFIX}_Charge_*"):
             charge = self.get_resource_from_cache(key)
             if charge and (pi_id := charge.get("payment_intent")):
-                self.put_in_cache(
-                    entity_id=f"{pi_id}_{charge['id']}", entity_name="ChargeByPaymentIntentId", entity=charge
+                pipeline.put_in_cache(
+                    entity_id=(entity_id := f"{pi_id}_{charge['id']}"),
+                    key=self.make_key(entity_id, entity_name),
+                    entity=charge,
                 )
+        pipeline.flush()
 
     def cache_invoices_by_subscription_id(self) -> None:
         """Cache invoices by subscription id"""
         logger.info("Caching invoices by subscription id")
-        for key in self.redis.scan_iter(match="stripe_import_Invoice_*"):
+        pipeline = RedisCachePipeline(pipeline=self.redis.pipeline(), entity_name=(entity_name := "InvoiceBySubId"))
+        for key in self.redis.scan_iter(match=f"{CACHE_KEY_PREFIX}_Invoice_*"):
             invoice = self.get_resource_from_cache(key)
             if invoice and (sub_id := invoice.get("subscription")):
-                self.put_in_cache(entity_id=f"{sub_id}_{invoice['id']}", entity_name="InvoiceBySubId", entity=invoice)
+                pipeline.put_in_cache(
+                    entity_id=(entity_id := f"{sub_id}_{invoice['id']}"),
+                    key=self.make_key(entity_id, entity_name),
+                    entity=invoice,
+                )
+        pipeline.flush()
 
     def cache_refunds_by_charge_id(self) -> None:
         """Cache refunds by charge id"""
         logger.info("Caching refunds by charge id")
-        for key in self.redis.scan_iter(match="stripe_import_Refund_*"):
+        pipeline = RedisCachePipeline(pipeline=self.redis.pipeline(), entity_name=(entity_name := "RefundByChargeId"))
+        for key in self.redis.scan_iter(match=f"{CACHE_KEY_PREFIX}_Refund_*"):
             refund = self.get_resource_from_cache(key)
             if refund and (charge_id := refund.get("charge")):
-                self.put_in_cache(
-                    entity_id=f"{charge_id}_{refund['id']}", entity_name="RefundByChargeId", entity=refund
+                pipeline.put_in_cache(
+                    entity_id=(entity_id := f"{charge_id}_{refund['id']}"),
+                    key=self.make_key(entity_id, entity_name),
+                    entity=refund,
                 )
+        pipeline.flush()
 
     def list_and_cache_required_stripe_resources(self) -> None:
         """List and cache required stripe resources for a given stripe account"""
@@ -385,6 +489,7 @@ class StripeTransactionsImporter:
         self.cache_refunds_by_charge_id()
 
     def get_resource_from_cache(self, key: str) -> dict | None:
+        """Get a stripe resource from cache, loading JSON"""
         logger.debug(
             "Attempting to retrieve value for key %s from redis cache",
             key,
@@ -408,12 +513,14 @@ class StripeTransactionsImporter:
         }
 
     def get_invoices_for_subscription(self, subscription_id: str) -> list[dict]:
+        """Get cached invoices, if any for a given subscription id"""
         results = []
-        for key in self.redis.scan_iter(match=f"stripe_import_InvoiceBySubId*{subscription_id}*"):
+        for key in self.redis.scan_iter(match=f"{CACHE_KEY_PREFIX}_InvoiceBySubId*{subscription_id}*"):
             results.append(self.get_resource_from_cache(key))
         return results
 
     def get_charges_for_subscription(self, subscription_id: str) -> list[dict]:
+        """Get cached charges, if any for a given subscription id"""
         results = []
         invoices = self.get_invoices_for_subscription(subscription_id)
         for invoice in invoices:
@@ -428,12 +535,14 @@ class StripeTransactionsImporter:
         return results
 
     def get_refunds_for_charge(self, charge_id: str) -> list[dict]:
+        """Get cached refunds, if any for a given charge id"""
         results = []
-        for key in self.redis.scan_iter(match=f"stripe_import_RefundByChargeId*{charge_id}*"):
+        for key in self.redis.scan_iter(match=f"{CACHE_KEY_PREFIX}_RefundByChargeId*{charge_id}*"):
             results.append(self.get_resource_from_cache(key))
         return results
 
     def get_refunds_for_subscription(self, subscription_id: str) -> list[dict]:
+        """Get cached refunds, if any for a given subscription id"""
         results = []
         charges = self.get_charges_for_subscription(subscription_id)
         for charge in charges:
@@ -446,6 +555,11 @@ class StripeTransactionsImporter:
         if not customer:
             raise InvalidStripeTransactionDataError(f"No customer found for id {customer_id}")
         return self.get_or_create_contributor(email=customer["email"])
+
+    @backoff.on_exception(backoff.expo, stripe.error.RateLimitError, **_STRIPE_API_BACKOFF_ARGS)
+    def get_payment_method(self, pm_id: str) -> stripe.PaymentMethod:
+        """Get a payment method from stripe"""
+        return stripe.PaymentMethod.retrieve(pm_id, stripe_account=self.stripe_account_id)
 
     def get_payment_method_for_stripe_entity(
         self, stripe_entity: dict, customer_id: str, is_one_time: bool
@@ -464,7 +578,7 @@ class StripeTransactionsImporter:
         if not pm_id and customer.get("invoice_settings", None):
             pm_id = customer["invoice_settings"].get("default_payment_method", None)
         if pm_id:
-            pm = stripe.PaymentMethod.retrieve(pm_id, stripe_account=self.stripe_account_id)
+            pm = self.get_payment_method(pm_id)
             return pm.to_dict() if pm else None
         return None
 
@@ -494,13 +608,15 @@ class StripeTransactionsImporter:
                 pass
 
     def get_charges_for_payment_intent(self, payment_intent_id: str) -> list[dict]:
+        """Get charges for a payment intent from cache"""
         charges = []
-        for key in self.redis.scan_iter(match=f"stripe_import_ChargeByPaymentIntentId*{payment_intent_id}*"):
+        for key in self.redis.scan_iter(match=f"{CACHE_KEY_PREFIX}_ChargeByPaymentIntentId*{payment_intent_id}*"):
             charge = self.get_resource_from_cache(key)
             charges.append(charge)
         return charges
 
     def get_successful_charge_for_payment_intent(self, payment_intent_id: str) -> dict | None:
+        """Get single successful charge for a PI. If >1 successful, raises an error"""
         charges = self.get_charges_for_payment_intent(payment_intent_id)
         if len([x for x in charges if x["status"] == "succeeded"]) > 1:
             raise InvalidStripeTransactionDataError(
@@ -509,12 +625,17 @@ class StripeTransactionsImporter:
         return next((x for x in charges if x["status"] == "succeeded"), None)
 
     def get_refunds_for_payment_intent(self, payment_intent: dict) -> list[dict]:
+        """Get refunds for a payment intent"""
         refunds = []
         for charge in self.get_charges_for_payment_intent(payment_intent["id"]):
             refunds.extend(self.get_refunds_for_charge(charge["id"]))
         return refunds
 
     def upsert_payments_for_contribution(self, contribution: Contribution) -> None:
+        """Upsert payments for a given contribution
+
+        For each charge and each refund associated with a contribution, we'll upsert a payment object
+        """
         if contribution.interval == ContributionInterval.ONE_TIME:
             pi = self.get_resource_from_cache(
                 self.make_key(entity_id=contribution.provider_payment_id, entity_name="PaymentIntent")
@@ -629,6 +750,7 @@ class StripeTransactionsImporter:
 
     @transaction.atomic
     def upsert_contribution(self, stripe_entity: dict, is_one_time: bool) -> Tuple[Contribution, str]:
+        """Upsert a contribution for a given stripe entity"""
         entity_name = "payment intent" if is_one_time else "subscription"
         logger.info("Upserting contribution for %s %s", entity_name, stripe_entity["id"])
         self.validate_metadata((metadata := stripe_entity.get("metadata", None)))
@@ -672,13 +794,16 @@ class StripeTransactionsImporter:
         return updated_contribution, contribution_action
 
     def process_transactions_for_recurring_contributions(self) -> None:
+        """Assemble data and ultimately upsert data for a recurring contribution."""
         logger.info("Processing transactions for recurring contributions")
-        for key in self.redis.scan_iter(match=f"stripe_import_Subscription_*{self.stripe_account_id}*"):
+        for key in self.redis.scan_iter(match=f"{CACHE_KEY_PREFIX}_Subscription_*{self.stripe_account_id}*"):
             subscription = self.get_resource_from_cache(key)
             try:
                 contribution, action = self.upsert_contribution(stripe_entity=subscription, is_one_time=False)
             except (InvalidStripeTransactionDataError, InvalidMetadataError, InvalidIntervalError) as exc:
-                logger.info("Unable to upsert subscription %s", subscription["id"], exc_info=exc)
+                logger.info(
+                    "Unable to upsert subscription %s because %s %s", subscription["id"], type(exc).__name__, exc
+                )
                 continue
             logger.info(
                 "Processed subscription %s. Contribution %s was %s", subscription["id"], contribution.id, action
@@ -692,12 +817,12 @@ class StripeTransactionsImporter:
         without referer and schema_version, we know ahead of time that all of the PIs we're looking at are for one-time contributions.
         """
         logger.info("Processing transactions for one-time contributions")
-        for key in self.redis.scan_iter(match="stripe_import_PaymentIntent_*"):
+        for key in self.redis.scan_iter(match=f"{CACHE_KEY_PREFIX}_PaymentIntent_*"):
             pi = self.get_resource_from_cache(key)
             try:
                 contribution, action = self.upsert_contribution(stripe_entity=pi, is_one_time=True)
             except (InvalidStripeTransactionDataError, InvalidMetadataError) as exc:
-                logger.info("Unable to upsert a contribution for %s", pi["id"], exc_info=exc)
+                logger.info("Unable to upsert a contribution for %s because %s %s ", pi["id"], type(exc).__name__, exc)
                 continue
             logger.info("Processed payment intent %s. Contribution %s was %s", pi["id"], contribution.id, action)
             self.payment_intents_processed += 1
@@ -725,6 +850,7 @@ class StripeTransactionsImporter:
         """This method is responsible for upserting contributors, contributions, and payments for a given stripe account."""
         started = datetime.datetime.now()
         self.list_and_cache_required_stripe_resources()
+        self.log_memory_usage()
         self.process_transactions_for_recurring_contributions()
         self.process_transactions_for_one_time_contributions()
         self.log_results()
@@ -736,6 +862,7 @@ class StripeTransactionsImporter:
         )
 
     def log_results(self) -> None:
+        """Log the results of the stripe import"""
         logger.info(
             (
                 "Here's what happened: \n"
@@ -757,10 +884,65 @@ class StripeTransactionsImporter:
     def clear_cache(self) -> None:
         """Clear the cache"""
         logger.info("Clearing redis cache of entries related to stripe import for account %s", self.stripe_account_id)
-        cursor = "0"
-        while cursor != 0:
-            cursor, keys = self.redis.scan(cursor=cursor, match=f"stripe_import*{self.stripe_account_id}", count=100)
-            self.redis.delete(*keys)
+        cleared = 0
+        for key in self.redis.scan_iter(match=f"{CACHE_KEY_PREFIX}_*{self.stripe_account_id}", count=1000):
+            self.redis.delete(key)
+            cleared += 1
+        logger.info("Cleared %s entries from redis cache", cleared)
+
+    @staticmethod
+    def convert_bytes(size: int) -> str:
+        """Convert bytes to human readable format"""
+        # Hat tip: https://stackoverflow.com/a/59174649
+        if size == 0:
+            return "0 bytes"
+        for x in ["bytes", "KB", "MB", "GB", "TB"]:
+            if size < 1024.0:
+                return "%3.1f %s" % (size, x)
+            size /= 1024.0
+        return size
+
+    def get_redis_memory_usage(self) -> int:
+        """Get redis memory usage for a given stripe account in bytes"""
+        total_memory = 0
+        for key in self.redis.scan_iter(match=f"{CACHE_KEY_PREFIX}_*{self.stripe_account_id}*"):
+            memory_usage = self.redis.memory_usage(key)
+            if memory_usage:
+                total_memory += memory_usage
+        return total_memory
+
+    def log_memory_usage(self):
+        """Log memory usage for a given stripe account"""
+        num_subs_in_cache = len(list(self.redis.scan_iter(match=f"{CACHE_KEY_PREFIX}_Subscription_*")))
+        num_pis_in_cache = len(list(self.redis.scan_iter(match=f"{CACHE_KEY_PREFIX}_PaymentIntent_*")))
+        num_invoices_in_cache = len(list(self.redis.scan_iter(match=f"{CACHE_KEY_PREFIX}_Invoice_*")))
+        num_charges_in_cache = len(list(self.redis.scan_iter(match=f"{CACHE_KEY_PREFIX}_Charge_*")))
+        num_refunds_in_cache = len(list(self.redis.scan_iter(match=f"{CACHE_KEY_PREFIX}_Refund_*")))
+        num_customers_in_cache = len(list(self.redis.scan_iter(match=f"{CACHE_KEY_PREFIX}_Customer_*")))
+        num_bts_in_cache = len(list(self.redis.scan_iter(match=f"{CACHE_KEY_PREFIX}_BalanceTransaction_*")))
+
+        logger.info(
+            (
+                "With %s cached subscriptions, "
+                "%s cached payment intents, "
+                "%s cached invoices, "
+                "%s cached charges, "
+                "%s cached refunds, "
+                "%s cached customers, "
+                "and %s cached balance transactions, "
+                "Redis memory usage for transactions "
+                "import for stripe account %s is: %s"
+            ),
+            num_subs_in_cache,
+            num_pis_in_cache,
+            num_invoices_in_cache,
+            num_charges_in_cache,
+            num_refunds_in_cache,
+            num_customers_in_cache,
+            num_bts_in_cache,
+            self.stripe_account_id,
+            self.convert_bytes(self.get_redis_memory_usage()),
+        )
 
 
 @dataclass(frozen=True)

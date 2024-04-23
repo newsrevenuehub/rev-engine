@@ -124,7 +124,7 @@ class StripeTransactionsImporter:
     _STRIPE_SEARCH_FILTER_METADATA_QUERY: str = '-metadata["referer"]:null AND -metadata["schema_version"]:null'
 
     def __post_init__(self) -> None:
-        self.redis = get_redis_connection(alias=settings.STRIPE_TRANSACTIONS_IMPORT_CACHE)
+        self.redis = get_redis_connection(settings.STRIPE_TRANSACTIONS_IMPORT_CACHE)
         self.cache_ttl = settings.STRIPE_TRANSACTIONS_IMPORT_CACHE_TTL
         self.payment_intents_processed = 0
         self.subscriptions_processed = 0
@@ -331,7 +331,7 @@ class StripeTransactionsImporter:
 
     def make_key(self, entity_id: str, entity_name: str) -> str:
         """Make a key for a given stripe resource"""
-        return f"{entity_name}_{entity_id}_{self.stripe_account_id}"
+        return f"stripe_import_{entity_name}_{entity_id}_{self.stripe_account_id}"
 
     def put_in_cache(self, entity_id: str, entity_name: str, entity: dict) -> None:
         """Put a stripe resource in cache"""
@@ -345,7 +345,7 @@ class StripeTransactionsImporter:
 
     def cache_charges_by_payment_intent_id(self) -> None:
         """Cache charges by payment intent id"""
-        for key in self.redis.scan_iter(match="Charge_*"):
+        for key in self.redis.scan_iter(match="stripe_import_Charge_*"):
             charge = self.get_resource_from_cache(key)
             if charge and (pi_id := charge.get("payment_intent")):
                 self.put_in_cache(
@@ -355,7 +355,7 @@ class StripeTransactionsImporter:
     def cache_invoices_by_subscription_id(self) -> None:
         """Cache invoices by subscription id"""
         logger.info("Caching invoices by subscription id")
-        for key in self.redis.scan_iter(match="Invoice_*"):
+        for key in self.redis.scan_iter(match="stripe_import_Invoice_*"):
             invoice = self.get_resource_from_cache(key)
             if invoice and (sub_id := invoice.get("subscription")):
                 self.put_in_cache(entity_id=f"{sub_id}_{invoice['id']}", entity_name="InvoiceBySubId", entity=invoice)
@@ -363,7 +363,7 @@ class StripeTransactionsImporter:
     def cache_refunds_by_charge_id(self) -> None:
         """Cache refunds by charge id"""
         logger.info("Caching refunds by charge id")
-        for key in self.redis.scan_iter(match="Refund_*"):
+        for key in self.redis.scan_iter(match="stripe_import_Refund_*"):
             refund = self.get_resource_from_cache(key)
             if refund and (charge_id := refund.get("charge")):
                 self.put_in_cache(
@@ -409,7 +409,7 @@ class StripeTransactionsImporter:
 
     def get_invoices_for_subscription(self, subscription_id: str) -> list[dict]:
         results = []
-        for key in self.redis.scan_iter(match=f"InvoiceBySubId*{subscription_id}*"):
+        for key in self.redis.scan_iter(match=f"stripe_import_InvoiceBySubId*{subscription_id}*"):
             results.append(self.get_resource_from_cache(key))
         return results
 
@@ -429,7 +429,7 @@ class StripeTransactionsImporter:
 
     def get_refunds_for_charge(self, charge_id: str) -> list[dict]:
         results = []
-        for key in self.redis.scan_iter(match=f"RefundByChargeId*{charge_id}*"):
+        for key in self.redis.scan_iter(match=f"stripe_import_RefundByChargeId*{charge_id}*"):
             results.append(self.get_resource_from_cache(key))
         return results
 
@@ -495,7 +495,7 @@ class StripeTransactionsImporter:
 
     def get_charges_for_payment_intent(self, payment_intent_id: str) -> list[dict]:
         charges = []
-        for key in self.redis.scan_iter(match=f"ChargeByPaymentIntentId*{payment_intent_id}*"):
+        for key in self.redis.scan_iter(match=f"stripe_import_ChargeByPaymentIntentId*{payment_intent_id}*"):
             charge = self.get_resource_from_cache(key)
             charges.append(charge)
         return charges
@@ -673,7 +673,7 @@ class StripeTransactionsImporter:
 
     def process_transactions_for_recurring_contributions(self) -> None:
         logger.info("Processing transactions for recurring contributions")
-        for key in self.redis.scan_iter(match=f"Subscription_*{self.stripe_account_id}*"):
+        for key in self.redis.scan_iter(match=f"stripe_import_Subscription_*{self.stripe_account_id}*"):
             subscription = self.get_resource_from_cache(key)
             try:
                 contribution, action = self.upsert_contribution(stripe_entity=subscription, is_one_time=False)
@@ -692,7 +692,7 @@ class StripeTransactionsImporter:
         without referer and schema_version, we know ahead of time that all of the PIs we're looking at are for one-time contributions.
         """
         logger.info("Processing transactions for one-time contributions")
-        for key in self.redis.scan_iter(match="PaymentIntent_*"):
+        for key in self.redis.scan_iter(match="stripe_import_PaymentIntent_*"):
             pi = self.get_resource_from_cache(key)
             try:
                 contribution, action = self.upsert_contribution(stripe_entity=pi, is_one_time=True)

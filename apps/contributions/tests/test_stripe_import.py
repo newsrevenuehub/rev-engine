@@ -390,7 +390,10 @@ class TestStripeTransactionsImporter:
 
     def test_make_key(self):
         instance = StripeTransactionsImporter(stripe_account_id=(acct_id := "test"))
-        assert instance.make_key((entity_id := "foo"), (entity_name := "bar")) == f"{entity_name}_{entity_id}_{acct_id}"
+        assert (
+            instance.make_key((entity_id := "foo"), (entity_name := "bar"))
+            == f"stripe_import_{entity_name}_{entity_id}_{acct_id}"
+        )
 
     def test_put_in_cache(self, mocker):
         instance = StripeTransactionsImporter(stripe_account_id="test")
@@ -420,7 +423,7 @@ class TestStripeTransactionsImporter:
         mock_put_in_cache = mocker.patch.object(instance, "put_in_cache")
 
         instance.cache_charges_by_payment_intent_id()
-        mock_redis.scan_iter.assert_called_once_with(match="Charge_*")
+        mock_redis.scan_iter.assert_called_once_with(match="stripe_import_Charge_*")
         assert mock_get_resource.call_count == 3
         mock_get_resource.assert_has_calls([mocker.call(key) for key in keys])
         mock_put_in_cache.assert_called_once_with(
@@ -445,7 +448,7 @@ class TestStripeTransactionsImporter:
         mock_put_in_cache = mocker.patch.object(instance, "put_in_cache")
 
         instance.cache_invoices_by_subscription_id()
-        mock_redis.scan_iter.assert_called_once_with(match="Invoice_*")
+        mock_redis.scan_iter.assert_called_once_with(match="stripe_import_Invoice_*")
         assert mock_get_resource.call_count == 3
         mock_get_resource.assert_has_calls([mocker.call(key) for key in keys])
         mock_put_in_cache.assert_called_once_with(
@@ -464,7 +467,7 @@ class TestStripeTransactionsImporter:
         mock_put_in_cache = mocker.patch.object(instance, "put_in_cache")
 
         instance.cache_refunds_by_charge_id()
-        mock_redis.scan_iter.assert_called_once_with(match="Refund_*")
+        mock_redis.scan_iter.assert_called_once_with(match="stripe_import_Refund_*")
         assert mock_get_resource.call_count == 3
         mock_get_resource.assert_has_calls([mocker.call(key) for key in keys])
         mock_put_in_cache.assert_called_once_with(
@@ -535,7 +538,7 @@ class TestStripeTransactionsImporter:
         results = [mocker.Mock(), mocker.Mock(), mocker.Mock()]
         mocker.patch.object(instance, "get_resource_from_cache", side_effect=results)
         assert instance.get_invoices_for_subscription((sub_id := "sub_1")) == results
-        mock_redis.scan_iter.assert_called_once_with(match=f"InvoiceBySubId*{sub_id}*")
+        mock_redis.scan_iter.assert_called_once_with(match=f"stripe_import_InvoiceBySubId*{sub_id}*")
 
     def test_get_charges_for_subscription(self, mocker):
         invoices = [{"id": "inv_1", "charge": "ch_1"}, {"id": "inv_1", "charge": None}]

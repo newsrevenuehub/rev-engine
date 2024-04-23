@@ -3,7 +3,7 @@ import { PortalContributionDetail } from 'hooks/usePortalContribution';
 import PropTypes, { InferProps } from 'prop-types';
 import { ReactChild, ReactNode } from 'react';
 import { Description, IconWrapper, Root, Title } from './Banner.styled';
-import { Link } from 'react-router-dom';
+import { Link } from 'components/base';
 import { pageLink } from 'utilities/getPageLinks';
 import usePortal from 'hooks/usePortal';
 
@@ -31,7 +31,6 @@ export function Banner({ contribution }: BannerProps) {
 
   switch (contribution.status) {
     case 'canceled': {
-      const link = page ? pageLink(page) : undefined;
       const canceledAtFormattedDate =
         contribution.canceled_at &&
         Intl.DateTimeFormat(undefined, {
@@ -46,8 +45,8 @@ export function Banner({ contribution }: BannerProps) {
         <>
           This contribution was canceled{!!canceledAtFormattedDate ? ` at ${canceledAtFormattedDate}` : ''}. Help our
           community and continue your support of our mission by{' '}
-          {link ? (
-            <Link to={`//${link}`} target="_blank">
+          {page ? (
+            <Link href={`//${pageLink(page)}`} target="_blank">
               creating a new contribution
             </Link>
           ) : (

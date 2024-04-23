@@ -24,10 +24,8 @@ const ContributionDetailPropTypes = {
 export type ContributionDetailProps = InferProps<typeof ContributionDetailPropTypes>;
 
 export function ContributionDetail({ domAnchor, contributionId, contributorId }: ContributionDetailProps) {
-  const { cancelContribution, contribution, isError, isLoading, refetch, updateContribution } = usePortalContribution(
-    contributorId,
-    contributionId
-  );
+  const { cancelContribution, contribution, isError, isLoading, refetch, updateContribution, sendEmailReceipt } =
+    usePortalContribution(contributorId, contributionId);
   const [editableSection, setEditableSection] = useState<'paymentMethod'>();
 
   // We need to store the root element in state so that changes to it trigger
@@ -80,7 +78,11 @@ export function ContributionDetail({ domAnchor, contributionId, contributorId }:
             onEditComplete={() => setEditableSection(undefined)}
             onUpdatePaymentMethod={handlePaymentMethodUpdate}
           />
-          <BillingHistory disabled={!!editableSection} payments={contribution.payments} />
+          <BillingHistory
+            disabled={!!editableSection}
+            payments={contribution.payments}
+            sendEmailReceipt={sendEmailReceipt}
+          />
           <Actions contribution={contribution} onCancelContribution={cancelContribution} />
         </Content>
       </Root>

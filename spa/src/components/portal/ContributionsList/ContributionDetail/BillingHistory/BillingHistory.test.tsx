@@ -5,6 +5,7 @@ import { PortalContributionPayment } from 'hooks/usePortalContribution';
 
 jest.mock('../DetailSection/DetailSection');
 
+const sendEmailReceipt = jest.fn();
 const mockPayments: PortalContributionPayment[] = [
   {
     amount_refunded: 0,
@@ -23,7 +24,7 @@ const mockPayments: PortalContributionPayment[] = [
 ];
 
 function tree(props?: Partial<BillingHistoryProps>) {
-  return render(<BillingHistory payments={mockPayments} {...props} />);
+  return render(<BillingHistory sendEmailReceipt={sendEmailReceipt} payments={mockPayments} {...props} />);
 }
 
 describe('BillingHistory', () => {
@@ -80,6 +81,21 @@ describe('BillingHistory', () => {
 
     expect(within(rows[1]).getAllByRole('cell')[2]).toHaveTextContent('Paid');
     expect(within(rows[2]).getAllByRole('cell')[2]).toHaveTextContent('Refunded');
+  });
+
+  it('shows a resend receipt button', () => {
+    tree();
+
+    expect(screen.getByRole('button', { name: 'Resend receipt' })).toBeInTheDocument();
+  });
+
+  it('calls sendEmailReceipt when the resend receipt button is clicked', () => {
+    tree();
+    expect(sendEmailReceipt).not.toHaveBeenCalled();
+
+    screen.getByRole('button', { name: 'Resend receipt' }).click();
+
+    expect(sendEmailReceipt).toBeCalledTimes(1);
   });
 
   it('is accessible', async () => {

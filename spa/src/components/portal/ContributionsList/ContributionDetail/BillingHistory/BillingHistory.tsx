@@ -1,17 +1,20 @@
-import PropTypes, { InferProps } from 'prop-types';
 import { Table, TableBody } from 'components/base';
 import { PortalContributionPayment } from 'hooks/usePortalContribution';
+import PropTypes, { InferProps } from 'prop-types';
 import formatCurrencyAmount from 'utilities/formatCurrencyAmount';
-import { TableCell, TableHead, TableRow } from './BillingHistory.styled';
 import { DetailSection } from '../DetailSection';
+import { TableCell, TableHead, TableRow } from './BillingHistory.styled';
+import { SectionControlButton } from '../common.styled';
 
 const BillingHistoryPropTypes = {
   disabled: PropTypes.bool,
-  payments: PropTypes.array.isRequired
+  payments: PropTypes.array.isRequired,
+  sendEmailReceipt: PropTypes.func.isRequired
 };
 
 export interface BillingHistoryProps extends InferProps<typeof BillingHistoryPropTypes> {
   payments: PortalContributionPayment[];
+  sendEmailReceipt: () => void;
 }
 
 const PAYMENT_STATUS_NAMES: Record<PortalContributionPayment['status'], string> = {
@@ -21,9 +24,13 @@ const PAYMENT_STATUS_NAMES: Record<PortalContributionPayment['status'], string> 
 
 const dateFormatter = Intl.DateTimeFormat(undefined, { day: 'numeric', month: 'numeric', year: 'numeric' });
 
-export function BillingHistory({ disabled, payments }: BillingHistoryProps) {
+export function BillingHistory({ disabled, payments, sendEmailReceipt }: BillingHistoryProps) {
   return (
-    <DetailSection disabled={disabled} title="Billing History">
+    <DetailSection
+      disabled={disabled}
+      title="Billing History"
+      controls={<SectionControlButton onClick={sendEmailReceipt}>Resend receipt</SectionControlButton>}
+    >
       <Table>
         <TableHead>
           <TableRow>

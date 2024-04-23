@@ -4,7 +4,6 @@ import random
 from copy import deepcopy
 
 from django.conf import settings
-from django.core.serializers.json import DjangoJSONEncoder
 
 import pytest
 import stripe
@@ -16,6 +15,7 @@ from apps.contributions.exceptions import (
 )
 from apps.contributions.models import ContributionInterval, ContributionStatus, Payment
 from apps.contributions.stripe_import import (
+    CACHE_KEY_PREFIX,
     StripeEventProcessor,
     StripeTransactionsImporter,
     parse_slug_from_url,
@@ -361,7 +361,7 @@ class TestStripeTransactionsImporter:
             "apps.contributions.stripe_import.StripeTransactionsImporter.should_exclude_from_cache_because_of_metadata"
         )
         getattr(StripeTransactionsImporter(stripe_account_id="test"), method)()
-        kwargs = {"entity_name": entity, "resources": result}
+        kwargs = {"entity_name": entity, "resources": result, "prune_fn": mocker.ANY}
         if has_exclude:
             kwargs["exclude_fn"] = mock_should_exclude
         mock_cache_stripe_resources.assert_called_once_with(**kwargs)
@@ -375,36 +375,29 @@ class TestStripeTransactionsImporter:
         ),
     )
     def test_cache_stripe_resources(self, exclude_fn, expect_exclude, mocker):
-        mock_put_in_cache = mocker.patch("apps.contributions.stripe_import.StripeTransactionsImporter.put_in_cache")
+        mock_pipeline = mocker.patch("apps.contributions.stripe_import.RedisCachePipeline")
         resources = [mocker.Mock(id=(entity_id := "foo"), to_dict=lambda: {"id": entity_id})]
         instance = StripeTransactionsImporter(stripe_account_id="test")
         instance.cache_stripe_resources(
             entity_name=(name := "PaymentIntent"), resources=resources, exclude_fn=exclude_fn
         )
         if expect_exclude:
-            mock_put_in_cache.assert_not_called()
+            mock_pipeline.return_value.put_in_cache.assert_not_called()
         else:
-            mock_put_in_cache.assert_called_once_with(
-                entity_id=entity_id, entity_name=name, entity=resources[0].to_dict()
+
+            mock_pipeline.return_value.put_in_cache.assert_called_once_with(
+                entity_id=entity_id,
+                key=instance.make_key(entity_id, name),
+                entity=resources[0].to_dict(),
+                prune_fn=mocker.ANY,
             )
+            mock_pipeline.return_value.flush.assert_called_once()
 
     def test_make_key(self):
         instance = StripeTransactionsImporter(stripe_account_id=(acct_id := "test"))
         assert (
             instance.make_key((entity_id := "foo"), (entity_name := "bar"))
-            == f"stripe_import_{entity_name}_{entity_id}_{acct_id}"
-        )
-
-    def test_put_in_cache(self, mocker):
-        instance = StripeTransactionsImporter(stripe_account_id="test")
-        mock_redis = mocker.patch.object(instance, "redis")
-        instance.put_in_cache(
-            entity_id=(entity_id := "foo"), entity_name=(entity_name := "bar"), entity=(entity := {"id": "foo"})
-        )
-        mock_redis.set.assert_called_once_with(
-            instance.make_key(entity_id=entity_id, entity_name=entity_name),
-            json.dumps(entity, cls=DjangoJSONEncoder),
-            ex=settings.STRIPE_TRANSACTIONS_IMPORT_CACHE_TTL,
+            == f"{CACHE_KEY_PREFIX}_{entity_name}_{entity_id}_{acct_id}"
         )
 
     def test_cache_charges_by_payment_intent_id(self, mocker):
@@ -420,15 +413,17 @@ class TestStripeTransactionsImporter:
                 None,
             ],
         )
-        mock_put_in_cache = mocker.patch.object(instance, "put_in_cache")
-
+        mock_pipeline = mocker.patch("apps.contributions.stripe_import.RedisCachePipeline")
         instance.cache_charges_by_payment_intent_id()
-        mock_redis.scan_iter.assert_called_once_with(match="stripe_import_Charge_*")
+        mock_redis.scan_iter.assert_called_once_with(match=f"{CACHE_KEY_PREFIX}_Charge_*")
         assert mock_get_resource.call_count == 3
         mock_get_resource.assert_has_calls([mocker.call(key) for key in keys])
-        mock_put_in_cache.assert_called_once_with(
-            entity_id=f"{charge1['payment_intent']}_{charge1['id']}",
-            entity_name="ChargeByPaymentIntentId",
+        mock_pipeline.assert_called_once_with(
+            pipeline=mock_redis.pipeline.return_value, entity_name=(entity_name := "ChargeByPaymentIntentId")
+        )
+        mock_pipeline.return_value.put_in_cache.assert_called_once_with(
+            entity_id=(entity_id := f"{charge1['payment_intent']}_{charge1['id']}"),
+            key=instance.make_key(entity_id, entity_name),
             entity=charge1,
         )
 
@@ -445,14 +440,19 @@ class TestStripeTransactionsImporter:
                 None,
             ],
         )
-        mock_put_in_cache = mocker.patch.object(instance, "put_in_cache")
+        mock_pipeline = mocker.patch("apps.contributions.stripe_import.RedisCachePipeline")
 
         instance.cache_invoices_by_subscription_id()
-        mock_redis.scan_iter.assert_called_once_with(match="stripe_import_Invoice_*")
+        mock_redis.scan_iter.assert_called_once_with(match=f"{CACHE_KEY_PREFIX}_Invoice_*")
         assert mock_get_resource.call_count == 3
         mock_get_resource.assert_has_calls([mocker.call(key) for key in keys])
-        mock_put_in_cache.assert_called_once_with(
-            entity_id=f"{inv1['subscription']}_{inv1['id']}", entity_name="InvoiceBySubId", entity=inv1
+        mock_pipeline.assert_called_once_with(
+            pipeline=mock_redis.pipeline.return_value, entity_name=(entity_name := "InvoiceBySubId")
+        )
+        mock_pipeline.return_value.put_in_cache.assert_called_once_with(
+            entity_id=(entity_id := f"{inv1['subscription']}_{inv1['id']}"),
+            key=instance.make_key(entity_id, entity_name),
+            entity=inv1,
         )
 
     def test_cache_cache_refunds_by_charge_id(self, mocker):
@@ -464,14 +464,18 @@ class TestStripeTransactionsImporter:
             "get_resource_from_cache",
             side_effect=[(ref1 := {"charge": "ch_1", "id": "ref_1"}), {"charge": None, "id": "ref_2"}, None],
         )
-        mock_put_in_cache = mocker.patch.object(instance, "put_in_cache")
-
+        mock_pipeline = mocker.patch("apps.contributions.stripe_import.RedisCachePipeline")
         instance.cache_refunds_by_charge_id()
-        mock_redis.scan_iter.assert_called_once_with(match="stripe_import_Refund_*")
+        mock_redis.scan_iter.assert_called_once_with(match=f"{CACHE_KEY_PREFIX}_Refund_*")
         assert mock_get_resource.call_count == 3
         mock_get_resource.assert_has_calls([mocker.call(key) for key in keys])
-        mock_put_in_cache.assert_called_once_with(
-            entity_id=f"{ref1['charge']}_{ref1['id']}", entity_name="RefundByChargeId", entity=ref1
+        mock_pipeline.assert_called_once_with(
+            pipeline=mock_redis.pipeline.return_value, entity_name=(entity_name := "RefundByChargeId")
+        )
+        mock_pipeline.return_value.put_in_cache.assert_called_once_with(
+            entity_id=(entity_id := f"{ref1['charge']}_{ref1['id']}"),
+            key=instance.make_key(entity_id, entity_name),
+            entity=ref1,
         )
 
     def test_list_and_cache_required_stripe_resources(self, mocker):
@@ -538,7 +542,7 @@ class TestStripeTransactionsImporter:
         results = [mocker.Mock(), mocker.Mock(), mocker.Mock()]
         mocker.patch.object(instance, "get_resource_from_cache", side_effect=results)
         assert instance.get_invoices_for_subscription((sub_id := "sub_1")) == results
-        mock_redis.scan_iter.assert_called_once_with(match=f"stripe_import_InvoiceBySubId*{sub_id}*")
+        mock_redis.scan_iter.assert_called_once_with(match=f"{CACHE_KEY_PREFIX}_InvoiceBySubId*{sub_id}*")
 
     def test_get_charges_for_subscription(self, mocker):
         invoices = [{"id": "inv_1", "charge": "ch_1"}, {"id": "inv_1", "charge": None}]
@@ -831,6 +835,9 @@ class TestStripeTransactionsImporter:
         mock_list_cache = mocker.patch(
             "apps.contributions.stripe_import.StripeTransactionsImporter.list_and_cache_required_stripe_resources"
         )
+        mock_log_memory_usage = mocker.patch(
+            "apps.contributions.stripe_import.StripeTransactionsImporter.log_memory_usage"
+        )
         mock_process_recurring = mocker.patch(
             "apps.contributions.stripe_import.StripeTransactionsImporter.process_transactions_for_recurring_contributions"
         )
@@ -839,10 +846,12 @@ class TestStripeTransactionsImporter:
         )
         mock_log_results = mocker.patch("apps.contributions.stripe_import.StripeTransactionsImporter.log_results")
         mock_clear_cache = mocker.patch("apps.contributions.stripe_import.StripeTransactionsImporter.clear_cache")
+
         instance = StripeTransactionsImporter(stripe_account_id="test")
         instance.import_contributions_and_payments()
         for mock in (
             mock_list_cache,
+            mock_log_memory_usage,
             mock_process_recurring,
             mock_process_one_time,
             mock_log_results,

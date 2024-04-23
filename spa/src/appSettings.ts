@@ -67,6 +67,21 @@ export const PENDO_VISITOR_PREFIX = resolveConstantFromEnv('PENDO_VISITOR_PREFIX
 // Environment {production, staging, test, dev, demo}
 export const ENVIRONMENT = resolveConstantFromEnv('ENVIRONMENT');
 
+// Host map for client custom domains. This should be a JSON-encoded dictionary
+// of { "customhostname.org": "rp-slug" } values. We parse here so that each
+// consumer doesn't need to.
+export let HOST_MAP: Record<string, string> = {};
+
+const rawHostMap = resolveConstantFromEnv('HOST_MAP');
+
+if (typeof rawHostMap === 'string') {
+  try {
+    HOST_MAP = JSON.parse(rawHostMap);
+  } catch {
+    // Continue silently. Either the variable isn't set or is malformed JSON.
+  }
+}
+
 function resolveConstantFromEnv(constantName: string, defaultValue?: boolean | string | string[]) {
   // If we're in development, use Vite environment variables. If not, use
   // window.ENV vars set by Django. ||s for compares here are to maintain

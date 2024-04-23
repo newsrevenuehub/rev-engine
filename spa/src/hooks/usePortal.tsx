@@ -5,9 +5,9 @@ import { DASHBOARD_SUBDOMAINS } from 'appSettings';
 import { AxiosError } from 'axios';
 import SystemNotification from 'components/common/SystemNotification';
 import { ContributionPage } from 'hooks/useContributionPage';
-import useSubdomain from 'hooks/useSubdomain';
 import { useSnackbar } from 'notistack';
 import { useState } from 'react';
+import { getRevenueProgramSlug } from 'utilities/getRevenueProgramSlug';
 
 export type PortalFormValues = {
   email: string;
@@ -32,12 +32,12 @@ async function postMagicLink({ email, subdomain }: { email: string; subdomain: s
 }
 
 export default function usePortal() {
-  const subdomain = useSubdomain();
-  const enablePageFetch = !DASHBOARD_SUBDOMAINS.includes(subdomain);
+  const rpSlug = getRevenueProgramSlug();
+  const enablePageFetch = !DASHBOARD_SUBDOMAINS.includes(rpSlug);
   const { enqueueSnackbar } = useSnackbar();
   const [error, setError] = useState<{ email?: string[] }>({});
 
-  const { data: page, isFetched } = useQuery(['getPage'], () => fetchPage(subdomain), {
+  const { data: page, isFetched } = useQuery(['getPage'], () => fetchPage(rpSlug), {
     enabled: enablePageFetch
   });
 
@@ -47,7 +47,7 @@ export default function usePortal() {
     isSuccess
   } = useMutation(
     ({ email }: PortalFormValues) => {
-      return postMagicLink({ email, subdomain });
+      return postMagicLink({ email, subdomain: rpSlug });
     },
     {
       onError: (error) => {

@@ -3,7 +3,7 @@ import { Elements } from '@stripe/react-stripe-js';
 import PropTypes, { InferProps } from 'prop-types';
 import { useEffect, useMemo, useState } from 'react';
 import { HUB_STRIPE_API_PUB_KEY } from 'appSettings';
-import GlobalLoading from 'elements/GlobalLoading';
+import { GlobalLoading } from 'components/common/GlobalLoading';
 
 const StripePaymentWrapperPropTypes = {
   children: PropTypes.node,

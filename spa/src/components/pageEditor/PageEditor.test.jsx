@@ -8,7 +8,7 @@ jest.mock('appSettings', () => ({
   HUB_GA_V3_ID: 'UA-37373737yesyesyes'
 }));
 jest.mock('hooks/useRequest');
-jest.mock('elements/GlobalLoading');
+jest.mock('components/common/GlobalLoading/GlobalLoading');
 jest.mock('hooks/useEditablePage');
 jest.mock('components/donationPage/DonationPage');
 jest.mock('components/donationPage/ContributionPageI18nProvider');

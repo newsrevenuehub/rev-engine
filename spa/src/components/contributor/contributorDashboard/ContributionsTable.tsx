@@ -2,7 +2,7 @@ import PropTypes, { InferProps } from 'prop-types';
 import { useEffect, useMemo, useState } from 'react';
 import { useAlert } from 'react-alert';
 import { Pagination, Table, TableBody, TableCell, TableContainer, TableHead, TableRow } from 'components/base';
-import GlobalLoading from 'elements/GlobalLoading';
+import { GlobalLoading } from 'components/common/GlobalLoading';
 import useContributorContributionList from 'hooks/useContributorContributionList';
 import { ContributionTableRow } from './ContributionTableRow';
 import { GENERIC_ERROR } from 'constants/textConstants';

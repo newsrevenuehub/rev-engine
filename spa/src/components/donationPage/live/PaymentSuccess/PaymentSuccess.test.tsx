@@ -12,7 +12,7 @@ jest.mock('react-router-dom', () => ({
   useHistory: jest.fn(),
   useLocation: jest.fn()
 }));
-jest.mock('elements/GlobalLoading');
+jest.mock('components/common/GlobalLoading/GlobalLoading');
 
 const page = {
   revenue_program: {

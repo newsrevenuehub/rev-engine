@@ -1,6 +1,6 @@
 import logging
 import re
-from typing import Tuple
+from typing import List, Tuple
 
 from django.conf import settings
 from django.db.models import Model
@@ -137,9 +137,17 @@ def cleanup_keys(data_dict, unwanted_keys):
     return {k: v for k, v in data_dict.items() if k not in unwanted_keys}
 
 
-def get_subdomain_from_request(request):
+def get_subdomain_from_request(request) -> str | None:
+    """Returns the subdomain from a request, mapping the hostname using settings.HOST_MAP if present."""
     subdomain = None
     host = request.get_host()
+
+    # Try to map it using the HOST_MAP environment variable.
+
+    if host in settings.HOST_MAP:
+        return settings.HOST_MAP[host]
+
+    # Parse it normally.
     split_host = host.split(".")
     if len(split_host) > 2 and not split_host[0] in settings.DASHBOARD_SUBDOMAINS:
         subdomain = split_host[0]
@@ -164,20 +172,27 @@ def google_cloud_pub_sub_is_configured() -> bool:
     return all([settings.ENABLE_PUBSUB and settings.GOOGLE_CLOUD_PROJECT])
 
 
-def upsert_with_diff_check(model, defaults: dict, unique_identifier: dict, caller_name: str) -> Tuple[Model, str]:
+def upsert_with_diff_check(
+    model, defaults: dict, unique_identifier: dict, caller_name: str, dont_update: List[str] = []
+) -> Tuple[Model, str]:
     """Upsert a model instance with a reversion comment, but only update if defaults differ from existing instance.
+
+    Fields in the dont_update list will only be used if a new object needs to be created. They will not update an existing object.
 
     Returns instance, whether it was created, and whether it was updated
     """
     with reversion.create_revision():
         instance, created = model.objects.get_or_create(defaults=defaults, **unique_identifier)
         fields_to_update = set()
-        if not created:
+        if created:
+            reversion.set_comment(f"{caller_name} created {model.__name__}")
+        else:
             for field, value in defaults.items():
-                if getattr(instance, field) != value:
+                if (field not in dont_update) and getattr(instance, field) != value:
                     setattr(instance, field, value)
                     fields_to_update.add(field)
             if fields_to_update:
                 instance.save(update_fields=fields_to_update.union({"modified"}))
                 reversion.set_comment(f"{caller_name} updated {model.__name__}")
+
         return instance, "created" if created else "updated" if bool(fields_to_update) else "left unchanged"

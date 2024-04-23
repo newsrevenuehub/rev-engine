@@ -72,8 +72,8 @@ describe('GrabLink', () => {
     const copyButtons = screen.queryAllByRole('button', { name: /copy/i });
     expect(copyButtons).toHaveLength(2);
 
-    expect(screen.getByRole('textbox', { name: 'Contribution Page Link' })).toHaveValue(pageLink(page));
-    expect(screen.getByRole('textbox', { name: 'Contributor Portal Link' })).toHaveValue(portalLink(page));
+    expect(screen.getByRole('textbox', { name: 'Contribution Page Link' })).toHaveValue(pageLink(page as any));
+    expect(screen.getByRole('textbox', { name: 'Contributor Portal Link' })).toHaveValue(portalLink(page as any));
   });
 
   it('should open popup and copy link', async () => {
@@ -89,7 +89,7 @@ describe('GrabLink', () => {
       expect(screen.getByRole('button', { name: /copied contribution page link/i })).toBeEnabled();
     });
     expect(screen.queryByRole('button', { name: /copy contribution page link/i })).toBeNull();
-    expect(mockClipboard.writeText.mock.calls).toEqual([[pageLink(page)]]);
+    expect(mockClipboard.writeText.mock.calls).toEqual([[pageLink(page as any)]]);
   });
 
   it('should be accessible', async () => {

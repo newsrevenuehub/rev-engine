@@ -1,4 +1,3 @@
-import { PLUS_UPGRADE_URL } from 'constants/helperUrls';
 import { Organization, User } from 'hooks/useUser.types';
 import { axe } from 'jest-axe';
 import { render, screen } from 'test-utils';
@@ -98,18 +97,9 @@ describe('UpgradePlan', () => {
       expect(screen.queryByTestId('mock-stripe-pricing-table')).not.toBeInTheDocument();
     });
 
-    it('displays the Plus feature list', () => {
+    it("doesn't display the Plus feature list", () => {
       tree();
-      expect(screen.getByText('Plus Tier')).toBeVisible();
-    });
-
-    it('displays a link to upgrade', () => {
-      tree();
-
-      const link = screen.getByRole('link', { name: 'Join the Waitlist' });
-
-      expect(link).toBeVisible();
-      expect(link).toHaveAttribute('href', PLUS_UPGRADE_URL);
+      expect(screen.queryByText('Plus Tier')).not.toBeInTheDocument();
     });
 
     it('is accessible', async () => {

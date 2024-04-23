@@ -527,6 +527,8 @@ After registering a model, you will need to run the following management command
 python manage.py createinitialrevisions
 ```
 
+Also note that if your model admin inherits from `RevEngineBaseAdmin`, you will get VersionAdmin (and therefore model registration) for free.
+
 ### How to register a view
 
 We use `reversion.views.RevisionMixin` in select API-layer viewsets in order to record changes to the model instances that happen via that view. To set up a view to record changes, do:

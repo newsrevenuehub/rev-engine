@@ -121,6 +121,7 @@ class Test_parse_slug_from_url:
 
 @pytest.mark.django_db
 class Test_upsert_payment_for_transaction:
+
     @pytest.fixture
     def contribution(self):
         return ContributionFactory()
@@ -183,7 +184,7 @@ class TestStripeTransactionsImporter:
 
     @pytest.fixture(autouse=True)
     def patch_redis(self, mocker):
-        mocker.patch("apps.contributions.stripe_import.get_redis_connection", return_value=None)
+        mocker.patch("apps.contributions.stripe_import.get_redis_connection", return_value=mocker.Mock())
 
     @pytest.fixture(autouse=True)
     def default_settings(self, settings):
@@ -479,11 +480,12 @@ class TestStripeTransactionsImporter:
         mock_cache_subs = mocker.patch.object(instance, "list_and_cache_subscriptions")
         mock_cache_charges = mocker.patch.object(instance, "list_and_cache_charges")
         mock_cache_invoices = mocker.patch.object(instance, "list_and_cache_invoices")
-        mock_cache_refunds = mocker.patch.object(instance, "list_and_cache_refunds")
-        mock_cache_customers = mocker.patch.object(instance, "list_and_cache_customers")
         mock_cache_balance_transactions = mocker.patch.object(instance, "list_and_cache_balance_transactions")
+        mock_cache_customers = mocker.patch.object(instance, "list_and_cache_customers")
+        mock_cache_refunds = mocker.patch.object(instance, "list_and_cache_refunds")
         mock_cache_invs_by_sub_id = mocker.patch.object(instance, "cache_invoices_by_subscription_id")
         mock_cache_charges_by_pi_id = mocker.patch.object(instance, "cache_charges_by_payment_intent_id")
+        mock_cache_refunds_by_charge_id = mocker.patch.object(instance, "cache_refunds_by_charge_id")
         instance.list_and_cache_required_stripe_resources()
         for mock in (
             mock_cache_pis,
@@ -495,6 +497,7 @@ class TestStripeTransactionsImporter:
             mock_cache_balance_transactions,
             mock_cache_invs_by_sub_id,
             mock_cache_charges_by_pi_id,
+            mock_cache_refunds_by_charge_id,
         ):
             mock.assert_called_once()
 
@@ -746,7 +749,7 @@ class TestStripeTransactionsImporter:
     @pytest.mark.parametrize("donation_page_found", (True, False))
     @pytest.mark.parametrize("has_customer_id", (True, False))
     def test_upsert_contribution(
-        self, mocker, stripe_entity, is_one_time, donation_page_found, has_customer_id, request
+        self, mocker, stripe_entity, is_one_time, donation_page_found, has_customer_id, request, valid_metadata
     ):
         stripe_entity = request.getfixturevalue(stripe_entity)
         if not has_customer_id:
@@ -759,7 +762,24 @@ class TestStripeTransactionsImporter:
         )
         mocker.patch(
             "apps.contributions.stripe_import.StripeTransactionsImporter.get_or_create_contributor_from_customer",
-            return_value=(ContributorFactory(), "created"),
+            return_value=((contributor := ContributorFactory()), "created"),
+        )
+        mocker.patch(
+            "apps.contributions.stripe_import.StripeTransactionsImporter.get_default_contribution_data",
+            return_value={
+                "contributor": contributor,
+                "contribution_metadata": valid_metadata,
+                "payment_provider_used": "stripe",
+                "provider_customer_id": "cus_1",
+                "provider_payment_method_id": None,
+                "provider_payment_method_details": None,
+                "status": ContributionStatus.PAID,
+                "amount": 100,
+                "currency": "USD",
+                "interval": ContributionInterval.MONTHLY if not is_one_time else ContributionInterval.ONE_TIME,
+                "provider_payment_id": "pi_1",
+                "provider_subscription_id": "sub_1" if not is_one_time else None,
+            },
         )
         if not donation_page_found:
             DonationPage.objects.filter(slug=PAGE_SLUG).delete()

@@ -8,6 +8,7 @@ import stripe
 
 from apps.contributions.models import Payment
 from apps.contributions.tests.factories import PaymentFactory
+from apps.organizations.tests.factories import PaymentProviderFactory, RevenueProgramFactory
 
 
 @pytest.mark.parametrize("dry_run", (False, True))
@@ -153,14 +154,15 @@ class Test_sync_payment_transaction_time:
         call_command("sync_payment_transaction_time")
 
 
+@pytest.mark.django_db
 class Test_import_stripe_transactions_data:
 
     @pytest.mark.parametrize("async_mode", (False, True))
-    def test_handle(self, async_mode, mocker):
-        mocker.patch(
-            "apps.contributions.management.commands.import_stripe_transactions_data.Command.get_stripe_account_ids",
-            return_value=[1],
-        )
+    @pytest.mark.parametrize("for_orgs", (True, False))
+    def test_handle(self, async_mode, mocker, for_orgs):
+        provider_1 = PaymentProviderFactory()
+        provider_2 = PaymentProviderFactory()
+        rp_1 = RevenueProgramFactory(payment_provider=provider_1)
         mock_importer = mocker.patch(
             "apps.contributions.management.commands.import_stripe_transactions_data.StripeTransactionsImporter"
         )
@@ -168,7 +170,12 @@ class Test_import_stripe_transactions_data:
         mock_task = mocker.patch(
             "apps.contributions.tasks.task_import_contributions_and_payments_for_stripe_account.delay"
         )
-        call_command("import_stripe_transactions_data", async_mode=async_mode)
+        call_command(
+            "import_stripe_transactions_data",
+            async_mode=async_mode,
+            for_orgs=[rp_1.organization.id] if for_orgs else [],
+            for_stripe_accounts=[provider_2.stripe_account_id] if not for_orgs else [],
+        )
         if async_mode:
             mock_task.assert_called_once()
             mock_importer.assert_not_called()

@@ -765,7 +765,7 @@ class RevenueProgram(IndexedTimeStampedModel):
 
     @property
     def mailchimp_contributor_segment_name(self):
-        return "Contributors"
+        return "One-time contributors"
 
     @property
     def mailchimp_recurring_segment_name(self):

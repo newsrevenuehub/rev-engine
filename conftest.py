@@ -465,7 +465,7 @@ def mailchimp_contributor_segment_from_api():
     return asdict(
         MailchimpSegment(
             id=fake.uuid4(),
-            name="Contributors",
+            name="One-time contributors",
             member_count=randint(0, 100),
             type=choice(["static", "saved", "fuzzy"]),
             created_at="",

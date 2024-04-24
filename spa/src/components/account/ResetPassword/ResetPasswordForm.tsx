@@ -36,6 +36,13 @@ export function ResetPasswordForm({ disabled, onSubmit }: ResetPasswordFormProps
     if (newPassword.length < 8) {
       newPasswordRef.current.setCustomValidity('Passwords must be at least 8 characters long.');
     }
+
+    // TODO in DEV-4703: remove this validation and show errors from the backend
+    // correctly, a la <SignUp> and <SignUpForm>. Until then, we do validation around an all-numeric password.
+
+    if (!/\D/.test(newPassword)) {
+      newPasswordRef.current.setCustomValidity('Passwords cannot be only numeric.');
+    }
   }, [confirmPassword, newPassword]);
 
   function handleSubmit(event: FormEvent) {

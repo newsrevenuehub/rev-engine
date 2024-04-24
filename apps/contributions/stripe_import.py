@@ -65,7 +65,7 @@ CACHED_CUSTOMER_FIELDS = [
     "email",
     "invoice_settings",
 ]
-CACHED_REFUND_FIELDS = ["charge", "id"]
+CACHED_REFUND_FIELDS = ["charge", "id", "balance_transaction"]
 
 logger = logging.getLogger(f"{settings.DEFAULT_LOGGER}.{__name__}")
 

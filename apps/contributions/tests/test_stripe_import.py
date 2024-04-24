@@ -16,6 +16,7 @@ from apps.contributions.exceptions import (
 from apps.contributions.models import ContributionInterval, ContributionStatus, Payment
 from apps.contributions.stripe_import import (
     CACHE_KEY_PREFIX,
+    RedisCachePipeline,
     StripeEventProcessor,
     StripeTransactionsImporter,
     parse_slug_from_url,
@@ -87,6 +88,51 @@ def payment_intent_dict(valid_metadata):
         "metadata": valid_metadata,
         "customer": "cus_1",
     }
+
+
+class TestRedisCachePipeline:
+
+    @pytest.mark.parametrize("prune_fn", (False, True))
+    def test_put_in_cache(self, mocker, prune_fn):
+        instance = RedisCachePipeline(pipeline=mocker.Mock(), entity_name="foo")
+        trace = 0
+        if prune_fn:
+
+            def prune_fn(x):
+                nonlocal trace
+                trace = trace + 1
+                return x
+
+        mock_buffer = mocker.patch.object(instance, "put_in_buffer")
+        instance.put_in_cache(entity_id="id", key="key", entity=(entity := {"foo": "bar"}), prune_fn=prune_fn)
+        mock_buffer.assert_called_once_with(key="key", value=entity)
+        assert trace == (1 if prune_fn else 0)
+
+    @pytest.mark.parametrize("buffer_count", (0, 99))
+    def test_put_in_buffer(self, mocker, buffer_count):
+        instance = RedisCachePipeline(
+            pipeline=(pipeline := mocker.Mock()), entity_name="foo", batch_size=(batch_size := 100)
+        )
+        instance.buffered = buffer_count
+        mock_flush = mocker.patch.object(instance, "flush")
+        instance.put_in_buffer(key="key", value={"foo": "bar"})
+        pipeline.set.assert_called_once()
+        if (buffer_count + 1) % batch_size == 0:
+            mock_flush.assert_called_once()
+        else:
+            mock_flush.assert_not_called()
+
+    @pytest.mark.parametrize("buffer_count", (0, 1))
+    def test_flush(self, mocker, buffer_count):
+        instance = RedisCachePipeline(pipeline=(pipe := mocker.Mock()), entity_name="foo")
+        instance.buffered = buffer_count
+        instance.flush()
+        if buffer_count:
+            pipe.execute.assert_called_once()
+            assert instance.buffered == 0
+            assert instance.total_inserted == buffer_count
+        else:
+            pipe.execute.assert_not_called()
 
 
 class Test_parse_slug_from_url:
@@ -866,8 +912,37 @@ class TestStripeTransactionsImporter:
     def test_clear_cache(self, mocker):
         instance = StripeTransactionsImporter(stripe_account_id="test")
         mock_redis = mocker.patch.object(instance, "redis")
-        mock_redis.scan.return_value = (0, ["foo", "bar"])
+        mock_redis.scan_iter.return_value = ["foo", "bar"]
         instance.clear_cache()
+
+    @pytest.mark.parametrize(
+        "size, expected",
+        (
+            (0, "0 bytes"),
+            (1, "1 byte"),
+            (2, "2 bytes"),
+            (1024, "1 KB"),
+            (1024**2, "1 MB"),
+            (1024**3, "1 GB"),
+            (1024**4, "1 TB"),
+        ),
+    )
+    def test_convert_bytes(self, size, expected):
+        assert StripeTransactionsImporter.convert_bytes(size) == expected
+
+    def test_get_redis_memory_usage(self, mocker):
+        instance = StripeTransactionsImporter(stripe_account_id="test")
+        mock_redis = mocker.patch.object(instance, "redis")
+        mock_redis.scan_iter.return_value = ["foo", "bar"]
+        mock_redis.memory_usage.side_effect = [(mem_usage := 1), None]
+        assert instance.get_redis_memory_usage() == mem_usage
+
+    def test_log_memory_usage(self, mocker):
+        instance = StripeTransactionsImporter(stripe_account_id="test")
+        mocker.patch.object(instance, "get_redis_memory_usage", return_value=1)
+        mock_redis = mocker.patch.object(instance, "redis")
+        mock_redis.scan_iter.return_value = ["foo", "bar"]
+        instance.log_memory_usage()
 
 
 class TestStripeEventProcessor:

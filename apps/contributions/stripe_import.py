@@ -174,7 +174,7 @@ class RedisCachePipeline:
             key, json.dumps(value, cls=DjangoJSONEncoder), ex=settings.STRIPE_TRANSACTIONS_IMPORT_CACHE_TTL
         )
         self.buffered += 1
-        if any([(self.buffered and self.buffered % self.batch_size == 0)]):
+        if self.buffered % self.batch_size == 0:
             self.flush()
 
     def flush(self) -> None:
@@ -893,14 +893,27 @@ class StripeTransactionsImporter:
     @staticmethod
     def convert_bytes(size: int) -> str:
         """Convert bytes to human readable format"""
-        # Hat tip: https://stackoverflow.com/a/59174649
-        if size == 0:
-            return "0 bytes"
-        for x in ["bytes", "KB", "MB", "GB", "TB"]:
-            if size < 1024.0:
-                return "%3.1f %s" % (size, x)
-            size /= 1024.0
-        return size
+        # Hat tip: https://stackoverflow.com/a/12912296
+        UNITS_MAPPING = [
+            (1 << 50, " PB"),
+            (1 << 40, " TB"),
+            (1 << 30, " GB"),
+            (1 << 20, " MB"),
+            (1 << 10, " KB"),
+            (1, (" byte", " bytes")),
+        ]
+        for factor, suffix in UNITS_MAPPING:
+            if size >= factor:
+                break
+        amount = int(size / factor)
+
+        if isinstance(suffix, tuple):
+            singular, multiple = suffix
+            if amount == 1:
+                suffix = singular
+            else:
+                suffix = multiple
+        return str(amount) + suffix
 
     def get_redis_memory_usage(self) -> int:
         """Get redis memory usage for a given stripe account in bytes"""

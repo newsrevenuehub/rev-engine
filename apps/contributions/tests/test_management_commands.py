@@ -151,3 +151,27 @@ class Test_sync_payment_transaction_time:
         Payment.objects.all().delete()
         PaymentFactory(transaction_time=datetime.datetime.now(tz=ZoneInfo("UTC")))
         call_command("sync_payment_transaction_time")
+
+
+class Test_import_stripe_transactions_data:
+
+    @pytest.mark.parametrize("async_mode", (False, True))
+    def test_handle(self, async_mode, mocker):
+        mocker.patch(
+            "apps.contributions.management.commands.import_stripe_transactions_data.Command.get_stripe_account_ids",
+            return_value=[1],
+        )
+        mock_importer = mocker.patch(
+            "apps.contributions.management.commands.import_stripe_transactions_data.StripeTransactionsImporter"
+        )
+
+        mock_task = mocker.patch(
+            "apps.contributions.tasks.task_import_contributions_and_payments_for_stripe_account.delay"
+        )
+        call_command("import_stripe_transactions_data", async_mode=async_mode)
+        if async_mode:
+            mock_task.assert_called_once()
+            mock_importer.assert_not_called()
+        else:
+            mock_importer.assert_called_once()
+            mock_task.assert_not_called()

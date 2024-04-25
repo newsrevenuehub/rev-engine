@@ -643,7 +643,7 @@ class PortalContributorsViewSet(viewsets.GenericViewSet):
         serializer_class=serializers.PortalContributionDetailSerializer,
     )
     def send_contribution_receipt(self, request, pk=None, contribution_id=None) -> Response:
-        """Endpoint to send a contribution receipt email for a given contributor"""
+        """Endpoint to send a contribution receipt email for a given contribution"""
         logger.info("send receipt with contribution_id %s", contribution_id)
         contributor = self._get_contributor_and_check_permissions(request, pk)
         try:

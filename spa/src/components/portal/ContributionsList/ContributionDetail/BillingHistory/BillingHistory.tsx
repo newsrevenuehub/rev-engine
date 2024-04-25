@@ -33,9 +33,9 @@ export function BillingHistory({ disabled, payments, onSendEmailReceipt }: Billi
     <DetailSection
       disabled={disabled}
       title="Billing History"
-      {...(sendNreEmail && {
-        controls: <SectionControlButton onClick={onSendEmailReceipt}>Resend receipt</SectionControlButton>
-      })}
+      controls={
+        sendNreEmail && <SectionControlButton onClick={onSendEmailReceipt}>Resend receipt</SectionControlButton>
+      }
     >
       <Table>
         <TableHead>

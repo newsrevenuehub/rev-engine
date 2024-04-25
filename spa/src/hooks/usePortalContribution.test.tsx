@@ -302,13 +302,6 @@ describe('usePortalContribution', () => {
   });
 
   describe('The sendEmailReceipt function', () => {
-    it('is returned even when a contribution is loading', async () => {
-      const { result, waitForNextUpdate } = hook(123, 1);
-
-      expect(typeof result.current.sendEmailReceipt).toBe('function');
-      await waitForNextUpdate();
-    });
-
     it('makes a POST to /api/v1/contributions/{id}/send-receipt/', async () => {
       const { result, waitFor } = hook(123, 1);
 

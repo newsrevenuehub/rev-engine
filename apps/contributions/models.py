@@ -166,7 +166,15 @@ class Contribution(IndexedTimeStampedModel):
     # TODO: [DEV-4333] Remove Contribution.last_payment_date in favor of derivation from payments
     last_payment_date = models.DateTimeField(null=True)
     contributor = models.ForeignKey("contributions.Contributor", on_delete=models.SET_NULL, null=True)
+
+    # Further down, we add a constraint that requires that either donation page or _revenue_program
+    # be set but not both.  This is to allow importing legacy contribution data that cannot be attributed
+    # to a specific donation page. We only allow one or the other because if there is a donation page defined,
+    # it will already have a parent revenue program, and we don't want to denormalize that relationship.
+    # Also, note that the reason we are calling this field _revenue_program is so we can define a polymorphic
+    # .revenue_program property that will return the revenue program regardless of its source.
     donation_page = models.ForeignKey("pages.DonationPage", on_delete=models.PROTECT, null=True)
+    _revenue_program = models.ForeignKey("organizations.RevenueProgram", on_delete=models.PROTECT, null=True)
 
     bad_actor_score = models.IntegerField(null=True, choices=BadActorScores.choices)
     bad_actor_response = models.JSONField(null=True)
@@ -200,7 +208,20 @@ class Contribution(IndexedTimeStampedModel):
             models.CheckConstraint(
                 name="%(app_label)s_%(class)s_bad_actor_score_valid",
                 check=models.Q(bad_actor_score__in=BadActorScores.values),
-            )
+            ),
+            # This is to allow importing legacy contribution data that cannot be attributed
+            # to a specific donation page. We only allow one or the other because if there is a donation page defined,
+            # it will already have a parent revenue program, and we don't want to denormalize that relationship.
+            # Also, note that the reason we are calling this field _revenue_program is so we can define a polymorphic
+            # .revenue_program property that will return the revenue program regardless of its source.
+            models.CheckConstraint(
+                name="%(app_label)s_%(class)s_exclusive_donation_page_or_revenue_program",
+                check=(
+                    models.Q(donation_page__isnull=False, _revenue_program__isnull=True)
+                    | models.Q(donation_page__isnull=True, _revenue_program__isnull=False)
+                )
+                & ~(models.Q(donation_page__isnull=False, _revenue_program__isnull=False)),
+            ),
         ]
 
     def __str__(self):
@@ -234,6 +255,7 @@ class Contribution(IndexedTimeStampedModel):
         # TODO: [DEV-4507] Remove this property and replace with a direct FK to RevenueProgram
         if self.donation_page:
             return self.donation_page.revenue_program
+        return self._revenue_program
 
     @property
     def stripe_account_id(self) -> str | None:

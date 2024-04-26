@@ -89,9 +89,12 @@ async function fetchContributions(contributorId: number, queryParams?: string) {
  * Manages fetching the list of contributions a contributor sees when logging
  * into the portal.
  */
-export function usePortalContributionList(contributorId?: number, queryParams?: { ordering: string }) {
+export function usePortalContributionList(
+  contributorId?: number,
+  queryParams?: { ordering: string; interval?: string }
+) {
   const { data, isError, isFetching, isLoading, refetch } = useQuery(
-    ['portalContributionList', queryParams?.ordering],
+    ['portalContributionList', queryParams?.ordering, queryParams?.interval],
     () => fetchContributions(contributorId!, queryString.stringify(queryParams || {})),
     { enabled: !!contributorId, keepPreviousData: true }
   );

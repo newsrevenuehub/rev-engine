@@ -1,6 +1,6 @@
 import { ReactChild, useEffect, useState } from 'react';
 import { useParams } from 'react-router-dom';
-import { CircularProgress } from 'components/base';
+import { CircularProgress, Tab, Tabs } from 'components/base';
 import Sort from 'components/common/Sort';
 import usePortal from 'hooks/usePortal';
 import { usePortalAuthContext } from 'hooks/usePortalAuth';
@@ -44,13 +44,18 @@ const CONTRIBUTION_SORT_OPTIONS = [
   }
 ];
 
+const CONTRIBUTIONS_TABS = ['All', 'Recurring', 'One-time'] as const;
+
 export function ContributionsList() {
+  const [tab, setTab] = useState(0);
   const { contributionId } = useParams<{ contributionId?: string }>();
   const { contributor } = usePortalAuthContext();
   const { page } = usePortal();
   const [ordering, setOrdering] = useState(CONTRIBUTION_SORT_OPTIONS[0].value);
   const { contributions, isError, isLoading, refetch } = usePortalContributionList(contributor?.id, {
-    ordering: ordering === 'created' ? `-${ordering}` : `-${ordering},-created`
+    ordering: ordering === 'created' ? `-${ordering}` : `-${ordering},-created`,
+    // If the tab is 'All', we don't need to pass an interval
+    ...(tab !== 0 && { interval: CONTRIBUTIONS_TABS[tab].toLowerCase().replace('-', '_') })
   });
   const selectedContribution =
     contributionId && contributions.find((contribution) => contribution.id === parseInt(contributionId));
@@ -119,6 +124,18 @@ export function ContributionsList() {
           <Legend $detailVisible={!!selectedContribution}>
             <Subhead>Transactions</Subhead>
             <p>View billing history, update payment details, and resend receipts.</p>
+            <Tabs aria-label="Contributions filter by interval tabs" value={tab} className="NREMuiTabs">
+              {CONTRIBUTIONS_TABS.map((name, index) => (
+                <Tab
+                  aria-controls={`tab-${index}`}
+                  id={`tab-${index}`}
+                  key={name}
+                  label={name}
+                  onClick={() => setTab(index)}
+                  selected={index === tab}
+                />
+              ))}
+            </Tabs>
             <Sort options={CONTRIBUTION_SORT_OPTIONS} onChange={setOrdering} id="contributions-sort" />
           </Legend>
           {content}

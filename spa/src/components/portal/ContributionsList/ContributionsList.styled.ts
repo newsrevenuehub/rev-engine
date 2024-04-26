@@ -66,6 +66,11 @@ export const Legend = styled.div<{ $detailVisible: boolean }>`
     padding: 0 20px;
     ${(props) => props.$detailVisible && 'display: none;'}
   }
+
+  .NREMuiTabs {
+    margin-top: 20px;
+    margin-bottom: 17px;
+  }
 `;
 
 export const Loading = styled.div`

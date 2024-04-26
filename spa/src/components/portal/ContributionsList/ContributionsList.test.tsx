@@ -212,6 +212,43 @@ describe('ContributionsList', () => {
     });
   });
 
+  describe("Filtering contributions (Tabs: by 'All', 'Recurring', or 'One-time')", () => {
+    it('should show all contributions by default', () => {
+      tree();
+      expect(usePortalContributionsListMock).toBeCalledWith(expect.anything(), { ordering: '-created' });
+    });
+
+    it('should show all contributions when moving to "All" tab', async () => {
+      tree();
+
+      userEvent.click(screen.getByRole('tab', { name: 'Recurring' }));
+      await waitFor(() => {
+        expect(usePortalContributionsListMock).toBeCalledWith(expect.anything(), {
+          ordering: '-created',
+          interval: 'recurring'
+        });
+      });
+      userEvent.click(screen.getByRole('tab', { name: 'All' }));
+
+      await waitFor(() => {
+        expect(usePortalContributionsListMock).toBeCalledWith(expect.anything(), { ordering: '-created' });
+      });
+    });
+
+    it.each([
+      ['Recurring', 'recurring'],
+      ['One-time', 'one_time']
+    ])('should show %s contributions when selected', async (tab, interval) => {
+      tree();
+
+      userEvent.click(screen.getByRole('tab', { name: tab }));
+
+      await waitFor(() => {
+        expect(usePortalContributionsListMock).toBeCalledWith(expect.anything(), { ordering: '-created', interval });
+      });
+    });
+  });
+
   it('is accessible', async () => {
     const { container } = tree();
 

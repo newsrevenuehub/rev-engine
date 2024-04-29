@@ -95,7 +95,7 @@ export function usePortalContributionList(
 ) {
   const { data, isError, isFetching, isLoading, refetch } = useQuery(
     ['portalContributionList', queryParams?.ordering, queryParams?.interval],
-    () => fetchContributions(contributorId!, queryString.stringify(queryParams || {})),
+    () => fetchContributions(contributorId!, queryString.stringify(queryParams ?? {})),
     { enabled: !!contributorId, keepPreviousData: true }
   );
 

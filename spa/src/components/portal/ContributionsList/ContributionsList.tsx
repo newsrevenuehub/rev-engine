@@ -1,6 +1,6 @@
 import { ReactChild, useEffect, useState } from 'react';
 import { useParams } from 'react-router-dom';
-import { CircularProgress, Tab, Tabs } from 'components/base';
+import { CircularProgress, Tab } from 'components/base';
 import Sort from 'components/common/Sort';
 import usePortal from 'hooks/usePortal';
 import { usePortalAuthContext } from 'hooks/usePortalAuth';
@@ -19,7 +19,8 @@ import {
   Legend,
   Detail,
   StyledPortalPage,
-  AlignPositionWrapper
+  AlignPositionWrapper,
+  Tabs
 } from './ContributionsList.styled';
 
 const CONTRIBUTION_SORT_OPTIONS = [
@@ -63,6 +64,7 @@ export function ContributionsList() {
   // ContributionDetail when an item is selected.
   const [selectedContributionEl, setSelectedContributionEl] = useState<HTMLAnchorElement | null>(null);
   let content: ReactChild;
+  const contentProps = { role: 'tabpanel', 'aria-labelledby': `tab-${tab}` };
 
   useEffect(() => {
     // Track viewing of a contribution detail in Pendo if available. If this
@@ -81,19 +83,19 @@ export function ContributionsList() {
 
   if (isLoading) {
     content = (
-      <Loading>
+      <Loading {...contentProps}>
         <CircularProgress aria-label="Loading contributions" variant="indeterminate" />
       </Loading>
     );
   } else if (isError) {
     content = (
-      <AlignPositionWrapper>
+      <AlignPositionWrapper {...contentProps}>
         <ContributionFetchError message="Error loading contributions." onRetry={refetch} />
       </AlignPositionWrapper>
     );
   } else if (contributor && contributions?.length > 0) {
     content = (
-      <List $detailVisible={!!selectedContribution}>
+      <List $detailVisible={!!selectedContribution} {...contentProps}>
         {contributions.map((contribution) => (
           <ContributionItem
             contribution={contribution}
@@ -110,7 +112,7 @@ export function ContributionsList() {
     );
   } else {
     content = (
-      <AlignPositionWrapper>
+      <AlignPositionWrapper {...contentProps}>
         <NoContributions />
       </AlignPositionWrapper>
     );
@@ -124,10 +126,10 @@ export function ContributionsList() {
           <Legend $detailVisible={!!selectedContribution}>
             <Subhead>Transactions</Subhead>
             <p>View billing history, update payment details, and resend receipts.</p>
-            <Tabs aria-label="Contributions filter by interval tabs" value={tab} className="NREMuiTabs">
+            <Tabs aria-label="Filter contributions by" value={tab}>
               {CONTRIBUTIONS_TABS.map((name, index) => (
                 <Tab
-                  aria-controls={`tab-${index}`}
+                  {...(index === tab && { 'aria-controls': `tab-${index}` })}
                   id={`tab-${index}`}
                   key={name}
                   label={name}

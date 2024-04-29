@@ -29,10 +29,10 @@ function ForgotPassword() {
   const formSubmitErrors = forgotPasswordState?.errors?.detail;
 
   const [infoMessage, setInfoMessage] = useState(null);
-  const onForgotPasswordSubmit = async (fdata) => {
+  const onForgotPasswordSubmit = async (email) => {
     dispatch({ type: FETCH_START });
     try {
-      const { data, status } = await axios.post(FORGOT_PASSWORD_ENDPOINT, { email: fdata.email });
+      const { data, status } = await axios.post(FORGOT_PASSWORD_ENDPOINT, { email });
       if (status === 200) {
         setInfoMessage(FORGOT_PASSWORD_SUCCESS_TEXT);
         dispatch({ type: FETCH_SUCCESS });
@@ -67,7 +67,7 @@ function ForgotPassword() {
           <S.Subheading>Enter your email address below and we'll send you a reset link.</S.Subheading>
 
           <br />
-          <ForgotPasswordForm onForgotPasswordSubmit={onForgotPasswordSubmit} loading={forgotPasswordState.loading} />
+          <ForgotPasswordForm onSubmit={onForgotPasswordSubmit} disabled={forgotPasswordState.loading} />
           {formSubmissionMessage}
 
           <S.NavLink>

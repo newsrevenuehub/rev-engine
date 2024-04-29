@@ -47,6 +47,12 @@ export interface PortalContributionDetail extends PortalContribution {
    * ID of the Stripe account that owns this payment or subscription.
    */
   stripe_account_id: string;
+  /**
+   * Canceled at data retrieved from Stripe Subscription object.
+   * Will be a of "timestamp" format
+   * Ref: https://docs.stripe.com/api/subscriptions/object#subscription_object-cancel_at
+   */
+  canceled_at?: string;
 }
 
 /**

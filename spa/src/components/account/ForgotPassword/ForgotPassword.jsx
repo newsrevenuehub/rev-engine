@@ -3,6 +3,7 @@ import { useState, useReducer, useMemo } from 'react';
 // AJAX
 import axios from 'ajax/axios';
 import { FORGOT_PASSWORD_ENDPOINT } from 'ajax/endpoints';
+import { Link } from 'components/base';
 import { FORGOT_PASSWORD_SUCCESS_TEXT } from 'constants/textConstants';
 
 import * as S from '../Account.styled';
@@ -21,7 +22,7 @@ import fetchReducer, { initialState, FETCH_START, FETCH_SUCCESS, FETCH_FAILURE }
 
 // Analytics
 import { useConfigureAnalytics } from 'components/analytics';
-import { Link } from 'react-router-dom';
+import { Link as RouterLink } from 'react-router-dom';
 
 function ForgotPassword() {
   useConfigureAnalytics();
@@ -71,7 +72,7 @@ function ForgotPassword() {
           {formSubmissionMessage}
 
           <S.NavLink>
-            <Link to={SIGN_IN} data-testid="sign-in">
+            <Link component={RouterLink} to={SIGN_IN} data-testid="sign-in">
               Return to Sign In
             </Link>
           </S.NavLink>

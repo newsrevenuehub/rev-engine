@@ -1,166 +1,102 @@
 import PropTypes, { InferProps } from 'prop-types';
-import { useMemo, useState } from 'react';
-import { useForm } from 'react-hook-form';
-
-import useModal from 'hooks/useModal';
-
-import Checkbox from '@material-ui/core/Checkbox';
-import visibilityOff from 'assets/images/account/visibility_off.png';
-import visibilityOn from 'assets/images/account/visibility_on.png';
-import { Tooltip } from 'components/base';
-import {
-  AcceptTermsText,
-  AcceptTermsWrapper,
-  InputLabel,
-  InputOuter,
-  Message,
-  MessageSpacer,
-  Submit,
-  Visibility
-} from '../Account.styled';
-
-export const termsLink = 'https://fundjournalism.org/faq/terms-of-service/';
-export const policyLink = 'https://fundjournalism.org/faq/privacy-policy/';
-
-export type SignUpFormValues = {
-  email: string;
-  password: string;
-};
-
-export interface SignUpFormProps extends InferProps<typeof SignUpFormPropTypes> {
-  onSubmitSignUp: (fdata: SignUpFormValues) => void;
-}
-
-type AcceptTermsProps = {
-  checked: boolean;
-  handleTOSChange: (event: React.ChangeEvent<HTMLInputElement>) => void;
-};
-
-function AcceptTerms({ checked, handleTOSChange }: AcceptTermsProps) {
-  return (
-    <AcceptTermsWrapper>
-      <Checkbox
-        checked={checked}
-        onChange={handleTOSChange}
-        data-testid={`acceptTermsCheckbox`}
-        size="small"
-        style={{
-          color: '#302436',
-          padding: 0
-        }}
-      />
-      <AcceptTermsText>
-        I agree to News Revenue Hub’s{' '}
-        <a href={termsLink} rel="noreferrer" target="_blank">
-          Terms & Conditions
-        </a>{' '}
-        and{' '}
-        <a href={policyLink} rel="noreferrer" target="_blank">
-          Privacy Policy
-        </a>
-        .
-      </AcceptTermsText>
-    </AcceptTermsWrapper>
-  );
-}
-
-function SignUpForm({ onSubmitSignUp, loading, errorMessage }: SignUpFormProps) {
-  const [checked, setChecked] = useState(false);
-  const { open: showPassword, handleToggle: togglePasswordVisiblity } = useModal();
-
-  const handleTOSChange = (event: React.ChangeEvent<HTMLInputElement>) => {
-    setChecked(event.target.checked);
-  };
-
-  const {
-    register,
-    handleSubmit,
-    formState: { errors },
-    watch
-  } = useForm<SignUpFormValues>();
-
-  const watchEmail = watch('email', '');
-  const watchPassword = watch('password', '');
-  const disabled = !watchEmail || !watchPassword || loading || !checked;
-
-  const renderEmailError = useMemo(() => {
-    if (errors.email) {
-      return (
-        <Message role="alert" data-testid="email-error">
-          {errors.email.message}
-        </Message>
-      );
-    }
-
-    if (errorMessage?.email) return errorMessage.email;
-
-    return <MessageSpacer />;
-  }, [errorMessage, errors.email]);
-
-  return (
-    <form onSubmit={disabled ? undefined : handleSubmit(onSubmitSignUp)}>
-      <InputLabel hasError={!!(errors.email || errorMessage?.email)}>Email</InputLabel>
-      <InputOuter hasError={!!(errors.email || errorMessage?.email)}>
-        <input
-          id="email"
-          {...register('email', {
-            pattern: {
-              value: /\S+@\S+\.\S+/,
-              message: 'Please enter a valid email'
-            }
-          })}
-          type="text"
-          data-testid="signup-email"
-        />
-      </InputOuter>
-      {renderEmailError}
-
-      <InputLabel hasError={!!(errors.password || errorMessage?.password)}>Password</InputLabel>
-      <InputOuter hasError={!!(errors.password || errorMessage?.password)}>
-        <input
-          id="password"
-          {...register('password', {
-            required: 'Please enter your password',
-            validate: (val) => {
-              if (val.length < 8) {
-                return 'Password must be at least 8 characters long.';
-              }
-            }
-          })}
-          type={showPassword ? 'text' : 'password'}
-          data-testid="signup-pwd"
-        />
-        <Tooltip title={showPassword ? 'Hide password' : 'Show password'}>
-          <Visibility
-            data-testid="toggle-password"
-            onClick={togglePasswordVisiblity}
-            src={showPassword ? visibilityOn : visibilityOff}
-            visible={showPassword ? 'true' : ''}
-          />
-        </Tooltip>
-      </InputOuter>
-      {errors.password || errorMessage?.password ? (
-        <Message role="alert">{errors?.password?.message || errorMessage?.password}</Message>
-      ) : (
-        <Message info="true">Password must be at least 8 characters long.</Message>
-      )}
-      <AcceptTerms checked={checked} handleTOSChange={handleTOSChange} />
-      <Submit type="submit" disabled={disabled} name="Create Account" size="extraLarge">
-        Create Account
-      </Submit>
-    </form>
-  );
-}
+import { FormEvent, useEffect, useRef, useState } from 'react';
+import { Button, Checkbox, FormControlLabel, Link } from 'components/base';
+import PasswordField from 'components/common/TextField/PasswordField/PasswordField';
+import { PRIVACY_POLICY_URL, TS_AND_CS_URL } from 'constants/helperUrls';
+import { EmailField, Root } from './SignUpForm.styled';
 
 const SignUpFormPropTypes = {
-  onSubmitSignUp: PropTypes.func,
-  loading: PropTypes.bool,
+  disabled: PropTypes.bool,
   errorMessage: PropTypes.shape({
     password: PropTypes.node,
     email: PropTypes.node
-  })
+  }),
+  onSubmit: PropTypes.func
 };
 
-SignUpForm.propTypes = SignUpFormPropTypes;
+export interface SignUpFormProps extends InferProps<typeof SignUpFormPropTypes> {
+  onSubmit: (email: string, password: string) => void;
+}
 
+export function SignUpForm({ disabled, errorMessage, onSubmit }: SignUpFormProps) {
+  const formRef = useRef<HTMLFormElement>(null);
+  const passwordRef = useRef<HTMLInputElement>(null);
+  const [email, setEmail] = useState('');
+  const [password, setPassword] = useState('');
+  const [agreed, setAgreed] = useState(false);
+
+  // Update field validation.
+
+  useEffect(() => {
+    if (!passwordRef.current) {
+      return;
+    }
+
+    if (password.length < 8) {
+      passwordRef.current.setCustomValidity('Passwords must be at least 8 characters long.');
+    } else {
+      passwordRef.current.setCustomValidity('');
+    }
+  }, [password.length]);
+
+  function handleSubmit(event: FormEvent) {
+    event.preventDefault();
+
+    if (disabled || !formRef.current || !formRef.current.reportValidity()) {
+      return;
+    }
+
+    onSubmit(email, password);
+  }
+
+  return (
+    <Root onSubmit={handleSubmit} ref={formRef}>
+      <EmailField
+        error={!!errorMessage?.email}
+        fullWidth
+        helperText={errorMessage?.email}
+        id="email"
+        label="Email"
+        onChange={({ target }) => setEmail(target.value)}
+        required
+        type="email"
+        value={email}
+      />
+      <PasswordField
+        error={!!errorMessage?.password}
+        fullWidth
+        helperText={errorMessage?.password ?? 'Password must be at least 8 characters long.'}
+        id="password"
+        inputRef={passwordRef}
+        label="Password"
+        onChange={({ target }) => setPassword(target.value)}
+        required
+        value={password}
+      />
+      <FormControlLabel
+        checked={agreed}
+        control={<Checkbox required />}
+        label={
+          <>
+            I agree to News Revenue Hub's{' '}
+            <Link href={TS_AND_CS_URL} target="_blank">
+              Terms & Conditions
+            </Link>{' '}
+            and{' '}
+            <Link href={PRIVACY_POLICY_URL} target="_blank">
+              Privacy Policy
+            </Link>
+            .
+          </>
+        }
+        onChange={({ target }) => setAgreed((target as HTMLInputElement).checked)}
+      />
+      <Button disabled={!!disabled} fullWidth type="submit">
+        Create Account
+      </Button>
+    </Root>
+  );
+}
+
+SignUpForm.propTypes = SignUpFormPropTypes;
 export default SignUpForm;

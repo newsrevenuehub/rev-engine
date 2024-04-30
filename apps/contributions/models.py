@@ -173,8 +173,10 @@ class Contribution(IndexedTimeStampedModel):
     # it will already have a parent revenue program, and we don't want to denormalize that relationship.
     # Also, note that the reason we are calling this field _revenue_program is so we can define a polymorphic
     # .revenue_program property that will return the revenue program regardless of its source.
-    donation_page = models.ForeignKey("pages.DonationPage", on_delete=models.PROTECT, null=True)
-    _revenue_program = models.ForeignKey("organizations.RevenueProgram", on_delete=models.PROTECT, null=True)
+    donation_page = models.ForeignKey("pages.DonationPage", on_delete=models.PROTECT, null=True, blank=True)
+    _revenue_program = models.ForeignKey(
+        "organizations.RevenueProgram", on_delete=models.PROTECT, null=True, blank=True
+    )
 
     bad_actor_score = models.IntegerField(null=True, choices=BadActorScores.choices)
     bad_actor_response = models.JSONField(null=True)
@@ -215,7 +217,7 @@ class Contribution(IndexedTimeStampedModel):
             # Also, note that the reason we are calling this field _revenue_program is so we can define a polymorphic
             # .revenue_program property that will return the revenue program regardless of its source.
             models.CheckConstraint(
-                name="%(app_label)s_%(class)s_exclusive_donation_page_or_revenue_program",
+                name="%(app_label)s_%(class)s_exclusive_donation_page_or__revenue_program",
                 check=(
                     models.Q(donation_page__isnull=False, _revenue_program__isnull=True)
                     | models.Q(donation_page__isnull=True, _revenue_program__isnull=False)

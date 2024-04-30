@@ -1,8 +1,11 @@
 import BlockIcon from '@material-design-icons/svg/filled/block.svg?react';
 import { PortalContributionDetail } from 'hooks/usePortalContribution';
 import PropTypes, { InferProps } from 'prop-types';
-import { ReactNode } from 'react';
+import { ReactChild, ReactNode } from 'react';
 import { Description, IconWrapper, Root, Title } from './Banner.styled';
+import { Link } from 'components/base';
+import { pageLink } from 'utilities/getPageLinks';
+import usePortal from 'hooks/usePortal';
 
 const BannerPropTypes = {
   contribution: PropTypes.object.isRequired
@@ -13,12 +16,13 @@ export interface BannerProps extends InferProps<typeof BannerPropTypes> {
 }
 
 export function Banner({ contribution }: BannerProps) {
+  const { page } = usePortal();
   let showBanner = true;
 
   const bannerInfo: {
     title: string;
     Icon: ReactNode;
-    description: string;
+    description: ReactChild;
   } = {
     title: '',
     Icon: null,
@@ -27,10 +31,30 @@ export function Banner({ contribution }: BannerProps) {
 
   switch (contribution.status) {
     case 'canceled': {
+      const canceledAtFormattedDate =
+        contribution.canceled_at &&
+        Intl.DateTimeFormat(undefined, {
+          day: 'numeric',
+          month: 'numeric',
+          year: 'numeric'
+        }).format(new Date(contribution.canceled_at));
+
       bannerInfo.title = 'Canceled';
       bannerInfo.Icon = <BlockIcon />;
-      bannerInfo.description =
-        'This contribution was canceled. Help our community and continue your support of our mission by creating a new contribution.';
+      bannerInfo.description = (
+        <>
+          This contribution was canceled{!!canceledAtFormattedDate ? ` at ${canceledAtFormattedDate}` : ''}. Help our
+          community and continue your support of our mission by{' '}
+          {page ? (
+            <Link href={`//${pageLink(page)}`} target="_blank">
+              creating a new contribution
+            </Link>
+          ) : (
+            'creating a new contribution'
+          )}
+          .
+        </>
+      );
 
       break;
     }

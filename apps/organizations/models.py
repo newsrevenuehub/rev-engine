@@ -22,7 +22,10 @@ from apps.common.secrets import GoogleCloudSecretProvider
 from apps.common.utils import normalize_slug
 from apps.config.validators import validate_slug_against_denylist
 from apps.google_cloud.pubsub import Message, Publisher
-from apps.organizations.validators import validate_statement_descriptor_suffix
+from apps.organizations.validators import (
+    validate_contact_phone_number,
+    validate_statement_descriptor_suffix,
+)
 from apps.pages.defaults import (
     BENEFITS,
     DEFAULT_PERMITTED_PAGE_ELEMENTS,
@@ -522,6 +525,7 @@ class RevenueProgram(IndexedTimeStampedModel):
         validators=[validate_slug_against_denylist],
     )
     organization = models.ForeignKey("organizations.Organization", on_delete=models.CASCADE)
+    contact_phone = models.CharField(max_length=17, blank=True, validators=[validate_contact_phone_number])
     contact_email = models.EmailField(max_length=255, blank=True)
     default_donation_page = models.ForeignKey(
         "pages.DonationPage",

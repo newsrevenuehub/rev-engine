@@ -45,15 +45,15 @@ export const buttonColors = {
 export const buttonSizes = {
   small: {
     height: '32px',
-    padding: '8px'
+    padding: '8px 16px'
   },
   medium: {
     height: '36px',
-    padding: '10px'
+    padding: '10px 16px'
   },
   large: {
     height: '40px',
-    padding: '12px'
+    padding: '12px 16px'
   },
   extraLarge: {
     height: '48px',

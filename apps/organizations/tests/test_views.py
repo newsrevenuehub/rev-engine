@@ -612,6 +612,26 @@ def rp_invalid_patch_data_tax_id_too_long(tax_id_invalid_too_long):
 
 
 @pytest.fixture
+def rp_invalid_patch_data_contact_phone():
+    return {"contact_phone": "abc"}
+
+
+@pytest.fixture
+def rp_valid_patch_data_contact_phone():
+    return {"contact_phone": "+14155552671"}
+
+
+@pytest.fixture
+def rp_invalid_patch_data_contact_email():
+    return {"contact_email": "abc"}
+
+
+@pytest.fixture
+def rp_valid_patch_data_contact_email():
+    return {"contact_email": "valid@email.com"}
+
+
+@pytest.fixture
 def invalid_patch_data_unexpected_fields():
     return {"foo": "bar"}
 
@@ -750,6 +770,30 @@ class TestRevenueProgramViewSet:
             ),
             (
                 "invalid_patch_data_unexpected_fields",
+                status.HTTP_200_OK,
+                {},
+                True,
+            ),
+            (
+                "rp_invalid_patch_data_contact_phone",
+                status.HTTP_400_BAD_REQUEST,
+                {"contact_phone": ["Phone not parsable: abc"]},
+                False,
+            ),
+            (
+                "rp_valid_patch_data_contact_phone",
+                status.HTTP_200_OK,
+                {},
+                True,
+            ),
+            (
+                "rp_invalid_patch_data_contact_email",
+                status.HTTP_400_BAD_REQUEST,
+                {"contact_email": ["Enter a valid email address."]},
+                False,
+            ),
+            (
+                "rp_valid_patch_data_contact_email",
                 status.HTTP_200_OK,
                 {},
                 True,

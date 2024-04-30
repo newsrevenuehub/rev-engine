@@ -7,7 +7,7 @@ from typing import Any, Dict, Iterable, Tuple
 from urllib.parse import urlparse
 
 from django.conf import settings
-from django.db import transaction
+from django.db import IntegrityError, transaction
 
 import backoff
 import reversion
@@ -60,17 +60,35 @@ def upsert_payment_for_transaction(
         (getattr(transaction, "id", "<no transaction>")),
     )
     if transaction:
-        payment, action = upsert_with_diff_check(
-            model=Payment,
-            unique_identifier={"contribution": contribution, "stripe_balance_transaction_id": transaction.id},
-            defaults={
-                "net_amount_paid": transaction.net if not is_refund else 0,
-                "gross_amount_paid": transaction.amount if not is_refund else 0,
-                "amount_refunded": transaction.amount if is_refund else 0,
-                "transaction_time": datetime.datetime.fromtimestamp(int(transaction.created), tz=datetime.timezone.utc),
-            },
-            caller_name="upsert_payment_for_transaction",
-        )
+        try:
+            payment, action = upsert_with_diff_check(
+                model=Payment,
+                unique_identifier={"contribution": contribution, "stripe_balance_transaction_id": transaction.id},
+                defaults={
+                    "net_amount_paid": transaction.net if not is_refund else 0,
+                    "gross_amount_paid": transaction.amount if not is_refund else 0,
+                    "amount_refunded": transaction.amount if is_refund else 0,
+                    "transaction_time": datetime.datetime.fromtimestamp(
+                        int(transaction.created), tz=datetime.timezone.utc
+                    ),
+                },
+                caller_name="upsert_payment_for_transaction",
+            )
+        # There is an infrequently occurring edge case. If it happens, we should log exception so record in Sentry, and
+        # then move on. See DEV-4666 for more detail.
+        except IntegrityError:
+            existing = Payment.objects.filter(stripe_balance_transaction_id=transaction.id).first()
+            logger.exception(
+                (
+                    "Integrity error occurred while upserting payment with balance transaction %s for contribution %s "
+                    "The existing payment is %s for contribution %s"
+                ),
+                transaction.id,
+                contribution.id,
+                existing.id if existing else None,
+                existing.contribution.id if existing else None,
+            )
+            return None, None
         logger.info("%s payment %s for contribution %s", action, payment.id, contribution.id)
         return payment, action
     else:
@@ -418,13 +436,18 @@ class SubscriptionForRecurringContribution(ContributionImportBaseClass):
     @staticmethod
     def get_interval_from_subscription(subscription: stripe.Subscription) -> ContributionInterval:
         """Map Stripe subscription interval to Revengine contribution interval"""
-        interval = subscription.plan.interval
-        interval_count = subscription.plan.interval_count
-        if interval == "year" and interval_count == 1:
-            return ContributionInterval.YEARLY
-        if interval == "month" and interval_count == 1:
-            return ContributionInterval.MONTHLY
-        raise InvalidIntervalError(f"Invalid interval {interval} for subscription : {subscription.id}")
+        # NB: we have encountered one case of a "planless" subscription in the wild, hence the conditionality
+        # below around .plan. See DEV-4663 for more detail
+        interval = subscription.plan.interval if subscription.plan else None
+        interval_count = subscription.plan.interval_count if subscription.plan else None
+        match interval, interval_count:
+            case "year", 1:
+                return ContributionInterval.YEARLY
+            case "month", 1:
+                return ContributionInterval.MONTHLY
+            case _:
+                logger.warning("Invalid interval %s for subscription %s", interval, subscription.id)
+                raise InvalidIntervalError(f"Invalid interval {interval} for subscription : {subscription.id}")
 
     @property
     def interval(self) -> ContributionInterval:
@@ -592,7 +615,7 @@ class StripeTransactionsImporter:
 
     def assemble_data_for_pi(self, payment_intent: stripe.PaymentIntent) -> Dict[str, Any]:
         """Assemble data for a given stripe payment intent"""
-        logger.debug("Assembling data for payment intent %s", payment_intent.id)
+        logger.info("Assembling data for payment intent %s", payment_intent.id)
         # NB: The value returned by .get_charges_for_payment_intent is a generator, and in this case, we want to go ahead
         # and get all the results. The number of charges for a single payment intent will be low so there's no danger of running out of memory.
         charges = list(self.get_charges_for_payment_intent(payment_intent_id=payment_intent.id))
@@ -637,14 +660,14 @@ class StripeTransactionsImporter:
             data = self.assemble_data_for_pi(pi)
             try:
                 self.upsert_transaction(data=data)
-            except InvalidStripeTransactionDataError as exc:
+            except (InvalidStripeTransactionDataError, InvalidIntervalError, InvalidMetadataError) as exc:
                 if data.get("payment_intent", None):
                     entity = data["payment_intent"]
                     entity_name = "Payment intent"
                 else:
                     entity = data["subscription"]
                     entity_name = "Subscription"
-                logger.debug("Unable to upsert %s %s", entity_name, entity.id, exc_info=exc)
+                logger.info("Unable to upsert %s %s", entity_name, entity.id, exc_info=exc)
                 continue
             if "payment_intent" in data:
                 self.payment_intents_processed += 1

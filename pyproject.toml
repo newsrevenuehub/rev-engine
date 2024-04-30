@@ -84,6 +84,7 @@ pydantic = "^2.2.0"
 uwsgitop = "^0.11"
 dateparser = "^1.2.0"
 tldextract = "^5.1.1"
+phonenumbers = "^8.13.34"
 backoff = "^2.2.1"
 
 [tool.poetry.dev-dependencies]

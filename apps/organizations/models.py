@@ -518,8 +518,8 @@ class RevenueProgramMailchimpClient(MailchimpMarketing.Client):
         logger.info("Called for RP %s", rp.id)
         if not rp.mailchimp_integration_connected:
             logger.warning("Called for RP %s which is not connected to Mailchimp", rp.id)
-            raise ValueError("Mailchimp integration not connected for this revenue program")
-        super.__init__()
+            raise MailchimpIntegrationError("Mailchimp integration not connected for this revenue program")
+        super().__init__()
         self.revenue_program = rp
         self.set_config(
             {
@@ -531,9 +531,6 @@ class RevenueProgramMailchimpClient(MailchimpMarketing.Client):
     def create_product(self, product_id: str, product_name: str) -> MailchimpProduct:
         logger.info("Called for RP %s", self.revenue_program.id)
         """Creates a Mailchimp ecommerce product. A Mailchimp store must be previously created for the revenue program."""
-        if not self.revenue_program.mailchimp_store_id:
-            logger.error("No store ID on RP %s", self.revenue_program.id)
-            raise ValidationError("Mailchimp must be connected and store ID must be set")
         try:
             response = self.ecommerce.add_store_product(
                 self.revenue_program.mailchimp_store_id,
@@ -557,7 +554,7 @@ class RevenueProgramMailchimpClient(MailchimpMarketing.Client):
         logger.info("Called for RP %s", self.revenue_program.id)
         if not self.revenue_program.mailchimp_list_id:
             logger.error("No email list ID on RP %s", self.revenue_program.id)
-            raise ValidationError("Mailchimp must be connected and email list ID must be set")
+            raise MailchimpIntegrationError("Mailchimp must be connected and email list ID must be set")
         try:
             response = self.lists.create_segment(
                 self.revenue_program.mailchimp_list_id,
@@ -565,17 +562,17 @@ class RevenueProgramMailchimpClient(MailchimpMarketing.Client):
             )
             return MailchimpSegment(**response)
         except ApiClientError as error:
-            return self._handle_write_error(self.mailchimp_contributor_segment_name, error)
+            return self._handle_write_error(self.revenue_program.mailchimp_contributor_segment_name, error)
 
     def create_store(self) -> MailchimpStore:
         """Creates a Mailchimp ecommerce store for the revenue program's Mailchimp list. This list must be previously created."""
         logger.info("Called for RP %s", self.revenue_program.id)
         if not self.revenue_program.mailchimp_list_id:
             logger.error("No email list ID on RP %s", self.revenue_program.id)
-            raise ValidationError("Mailchimp must be connected and email list ID must be set")
+            raise MailchimpIntegrationError("Mailchimp must be connected and email list ID must be set")
         if not self.revenue_program.payment_provider:
-            logger.error("No payment provider on RP %s", self.id)
-            raise ValidationError("No payment provider on RP %s", self.id)
+            logger.error("No payment provider on RP %s", self.revenue_program.id)
+            raise MailchimpIntegrationError("No payment provider on RP %s", self.revenue_program.id)
         try:
             response = self.ecommerce.add_store(
                 {
@@ -608,20 +605,17 @@ class RevenueProgramMailchimpClient(MailchimpMarketing.Client):
     def get_product(self, product_id: str) -> MailchimpProduct | None:
         """Retrieves an ecommerce product from the revenue program's Mailchimp store, if it exists."""
         logger.debug("Called for RP %s", self.revenue_program.id)
-        if not self.revenue_program.mailchimp_list_id:
-            logger.debug("No email list ID on RP %s, returning None", self.id)
-            return None
         try:
             response = self.ecommerce.get_store_product(self.revenue_program.mailchimp_store_id, product_id)
             return MailchimpProduct(**response)
         except ApiClientError as exc:
-            return self._handle_read_error("FIXME one-time contribution product", exc)
+            return self._handle_read_error("contribution product", exc)
 
     def get_segment(self, segment_id: int) -> MailchimpSegment | None:
         """Retrieves a segment of the revenue program's Mailchimp list, if it exists."""
         logger.debug("Called for RP %s", self.revenue_program.id)
         if not self.revenue_program.mailchimp_list_id:
-            logger.debug("No email list ID on RP %s, returning None", self.id)
+            logger.debug("No email list ID on RP %s, returning None", self.revenue_program.id)
             return None
         try:
             response = self.lists.get_segment(self.revenue_program.mailchimp_list_id, segment_id)
@@ -632,9 +626,6 @@ class RevenueProgramMailchimpClient(MailchimpMarketing.Client):
     def get_store(self) -> MailchimpStore | None:
         """Retrieves the revenue program's Mailchimp ecommerce store, if it exists."""
         logger.debug("Called for RP %s", self.revenue_program.id)
-        if not self.revenue_program.mailchimp_store_id:
-            logger.debug("No email store ID on RP %s, returning None", self.revenue_program.id)
-            return None
         try:
             response = self.ecommerce.get_store(self.revenue_program.mailchimp_store_id)
             return MailchimpStore(**response)
@@ -663,13 +654,17 @@ class RevenueProgramMailchimpClient(MailchimpMarketing.Client):
         logger.info("Called for RP %s", self.revenue_program.id)
         match exc.status_code:
             case 429:
-                logger.debug("Mailchimp rate limit exceeded for RP %s, raising exception", self.id)
+                logger.debug("Mailchimp rate limit exceeded for RP %s, raising exception", self.revenue_program.id)
                 # We raise this error because we have Celery tasks that interact with Mailchimp API and
                 # in case of rate limit error we will want to retry
                 raise MailchimpRateLimitError("Mailchimp rate limit exceeded")
             case _:
                 logger.error(
-                    "Error creating %s for RP %s. The error text is %s", entity, self.id, exc.text, exc_info=exc
+                    "Error creating %s for RP %s. The error text is %s",
+                    entity,
+                    self.revenue_program.id,
+                    exc.text,
+                    exc_info=exc,
                 )
                 raise MailchimpIntegrationError(f"Error creating {entity}")
 
@@ -773,34 +768,34 @@ class RevenueProgram(IndexedTimeStampedModel):
 
     @cached_property
     def mailchimp_store(self) -> MailchimpStore | None:
-        logger.info("Called for rp %s", self.id)
+        logger.info("Called for RP %s", self.id)
         if not self.mailchimp_integration_connected:
             logger.debug(
                 "Mailchimp integration not connected for this revenue program (%s), returning None",
                 self.id,
             )
             return None
-        return RevenueProgramMailchimpClient(self).get_store()
+        return RevenueProgramMailchimpClient(rp=self).get_store()
 
     @cached_property
     def mailchimp_one_time_contribution_product(self) -> MailchimpProduct | None:
-        return RevenueProgramMailchimpClient(self).get_product(self.mailchimp_one_time_contribution_product_id)
+        return RevenueProgramMailchimpClient(rp=self).get_product(self.mailchimp_one_time_contribution_product_id)
 
     @cached_property
     def mailchimp_recurring_contribution_product(self) -> MailchimpProduct | None:
-        return RevenueProgramMailchimpClient(self).get_product(self.mailchimp_recurring_contribution_product_id)
+        return RevenueProgramMailchimpClient(rp=self).get_product(self.mailchimp_recurring_contribution_product_id)
 
     @cached_property
     def mailchimp_contributor_segment(self) -> MailchimpSegment | None:
-        return RevenueProgramMailchimpClient(self).get_segment(self.mailchimp_contributor_segment_id)
+        return RevenueProgramMailchimpClient(rp=self).get_segment(self.mailchimp_contributor_segment_id)
 
     @cached_property
     def mailchimp_all_contributors_segment(self) -> MailchimpSegment | None:
-        return RevenueProgramMailchimpClient(self).get_segment(self.mailchimp_all_contributors_segment_id)
+        return RevenueProgramMailchimpClient(rp=self).get_segment(self.mailchimp_all_contributors_segment_id)
 
-    @property
-    def mailchimp_recurring_segment(self):
-        return RevenueProgramMailchimpClient(self).get_segment(self.mailchimp_recurring_contributors_segment_id)
+    @cached_property
+    def mailchimp_recurring_contributor_segment(self) -> MailchimpSegment | None:
+        return RevenueProgramMailchimpClient(rp=self).get_segment(self.mailchimp_recurring_contributor_segment_id)
 
     @cached_property
     def mailchimp_email_list(self) -> MailchimpEmailList | None:
@@ -808,7 +803,7 @@ class RevenueProgram(IndexedTimeStampedModel):
         if not (list_id := self.mailchimp_list_id):
             logger.debug("No email list ID on RP %s, returning None", self.id)
             return None
-        return RevenueProgramMailchimpClient(self).get_email_list(list_id)
+        return RevenueProgramMailchimpClient(rp=self).get_email_list(list_id)
 
     @property
     def mailchimp_store_id(self):
@@ -839,7 +834,7 @@ class RevenueProgram(IndexedTimeStampedModel):
         return "One-time contributors"
 
     @property
-    def mailchimp_recurring_segment_name(self):
+    def mailchimp_recurring_contributor_segment_name(self):
         return "Recurring contributors"
 
     @property
@@ -858,35 +853,37 @@ class RevenueProgram(IndexedTimeStampedModel):
         else:
             logger.info("Store already exists for RP %s", self.id)
 
-    def ensure_mailchimp_contribution_product(self, type: Literal["one_time", "recurring"]) -> None:
-        if not getattr(self, f"mailchimp_{type}_contribution_product", None):
-            logger.info("RP %s does not have a %s contribution product. Attempting to create", self.id, type)
-            RevenueProgramMailchimpClient(rp=self).create_mailchimp_product(
-                getattr(self, f"mailchimp_{type}_contribution_product_id"),
-                getattr(self, f"mailchimp_{type}_contribution_product_name"),
+    def ensure_mailchimp_contribution_product(self, product_type: Literal["one_time", "recurring"]) -> None:
+        if not getattr(self, f"mailchimp_{product_type}_contribution_product", None):
+            logger.info("RP %s does not have a %s contribution product. Attempting to create", self.id, product_type)
+            RevenueProgramMailchimpClient(rp=self).create_product(
+                getattr(self, f"mailchimp_{product_type}_contribution_product_id"),
+                getattr(self, f"mailchimp_{product_type}_contribution_product_name"),
             )
         else:
-            logger.info("%s contribution product already exists for RP with ID %s", type, self.id)
+            logger.info("%s contribution product already exists for RP with ID %s", product_type, self.id)
 
     def ensure_mailchimp_contributor_segment(
-        self, type: Literal["all_contributors", "contributor", "recurring"], options
+        self, segment_type: Literal["all_contributors", "contributor", "recurring_contributor"], options
     ) -> None:
-        if not getattr(self, f"mailchimp_{type}_segment", None):
+        if not getattr(self, f"mailchimp_{segment_type}_segment", None):
+            print("Creating")
             logger.info(
                 "Creating %s segment for RP %s",
-                type,
+                segment_type,
                 self.id,
             )
             segment = RevenueProgramMailchimpClient(rp=self).create_segment(
-                getattr(self, f"mailchimp_{type}_segment_name"), options
+                getattr(self, f"mailchimp_{segment_type}_segment_name"), options
             )
-            logger.info("%s segment created for RP %s", type, self.id)
-            setattr(self, f"mailchimp_{type}_segment_id", segment.id)
-            logger.info("Saving Mailchimp %s segment id for RP %s", type, self.id)
+            logger.info("%s segment created for RP %s", segment_type, self.id)
+            setattr(self, f"mailchimp_{segment_type}_segment_id", segment.id)
+            logger.info("Saving Mailchimp %s segment id for RP %s", segment_type, self.id)
             with reversion.create_revision():
-                self.save(update_fields={f"mailchimp_{type}_segment_id", "modified"})
-                reversion.set_comment(f"ensure_mailchimp_contributor_segment updated {type} segment id")
+                self.save(update_fields={f"mailchimp_{segment_type}_segment_id", "modified"})
+                reversion.set_comment(f"ensure_mailchimp_segment updated {segment_type} segment id")
         else:
+            print("already exists")
             logger.info("Segment already exists for RP %s", self.id)
 
     def ensure_mailchimp_entities(self) -> None:
@@ -927,7 +924,7 @@ class RevenueProgram(IndexedTimeStampedModel):
             },
         )
         self.ensure_mailchimp_contributor_segment(
-            "recurring",
+            "recurring_contributor",
             {
                 "match": "all",
                 "conditions": [

@@ -3,7 +3,7 @@ from typing import List
 
 from django.conf import settings
 from django.contrib.auth import get_user_model
-from django.db.models import QuerySet
+from django.db.models import QuerySet, Sum
 from django.http import Http404
 from django.shortcuts import get_object_or_404
 from django.utils.decorators import method_decorator
@@ -618,6 +618,34 @@ class PortalContributorsViewSet(viewsets.GenericViewSet):
         page = paginator.paginate_queryset(queryset, request)
         serializer = self.get_serializer(page, many=True)
         return paginator.get_paginated_response(serializer.data)
+
+    @action(
+        methods=["get"],
+        url_path="impact",
+        url_name="impact",
+        detail=True,
+    )
+    def contributor_impact(self, request, pk=None):
+        """Endpoint that returns the sum of all contributions for a given contributor"""
+
+        contributor = self._get_contributor_and_check_permissions(request, pk)
+        contribution_qs: QuerySet = contributor.contribution_set
+        # Get total "net_amount_paid" and "amount_refunded" for each contribution and annotate the queryset with these values
+        contribution_qs = contribution_qs.annotate(
+            total_payments=Sum("payment__net_amount_paid"), total_refunded=Sum("payment__amount_refunded")
+        )
+
+        # Calculate the total amount paid and refunded by the contributor
+        totals = contribution_qs.aggregate(
+            total_amount_paid=Sum("total_payments"), total_amount_refunded=Sum("total_refunded")
+        )
+        total_payments = totals["total_amount_paid"] or 0
+        total_refunded = totals["total_amount_refunded"] or 0
+        total_contributions = total_payments - total_refunded
+        return Response(
+            {"total": total_contributions, "total_payments": total_payments, "total_refunded": total_refunded},
+            status=status.HTTP_200_OK,
+        )
 
     @action(
         methods=["get"],

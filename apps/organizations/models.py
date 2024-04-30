@@ -854,14 +854,14 @@ class RevenueProgram(IndexedTimeStampedModel):
     def ensure_mailchimp_store(self) -> None:
         if not self.mailchimp_store:
             logger.info("Creating store for RP %s", self.id)
-            RevenueProgramMailchimpClient(self).create_store()
+            RevenueProgramMailchimpClient(rp=self).create_store()
         else:
             logger.info("Store already exists for RP %s", self.id)
 
     def ensure_mailchimp_contribution_product(self, type: Literal["one_time", "recurring"]) -> None:
         if not getattr(self, f"mailchimp_{type}_contribution_product"):
             logger.info("RP %s does not have a %s contribution product. Attempting to create", self.id, type)
-            RevenueProgramMailchimpClient(self).create_mailchimp_product(
+            RevenueProgramMailchimpClient(rp=self).create_mailchimp_product(
                 getattr(self, f"mailchimp_{type}_contribution_product_id"),
                 getattr(self, f"mailchimp_{type}_contribution_product_name"),
             )
@@ -877,7 +877,7 @@ class RevenueProgram(IndexedTimeStampedModel):
                 type,
                 self.id,
             )
-            segment = RevenueProgramMailchimpClient(self).create_segment(
+            segment = RevenueProgramMailchimpClient(rp=self).create_segment(
                 getattr(self, f"mailchimp_{type}_segment_name"), options
             )
             logger.info("%s segment created for RP %s", type, self.id)

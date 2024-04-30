@@ -2,6 +2,11 @@ import styled from 'styled-components';
 
 export const Root = styled.div`
   background-color: ${({ theme }) => theme.basePalette.primary.indigo};
+  /*
+  This color is a one-off--original designs used an indigo shade, but started
+  the gradient outside the page to make it more subtle. This is a sample of what
+  the color was in the designs at the top-right corner of the page.
+  */
   background-image: radial-gradient(100vh circle at top right, #483b4e, transparent);
   display: grid;
   align-content: center;

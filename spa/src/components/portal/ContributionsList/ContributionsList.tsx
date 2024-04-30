@@ -1,27 +1,29 @@
-import { ReactChild, useEffect, useState } from 'react';
-import { useParams } from 'react-router-dom';
 import { CircularProgress, Tab } from 'components/base';
 import Sort from 'components/common/Sort';
 import usePortal from 'hooks/usePortal';
 import { usePortalAuthContext } from 'hooks/usePortalAuth';
 import { usePortalContributionList } from 'hooks/usePortalContributionList';
-import ContributionItem from './ContributionItem/ContributionItem';
-import NoContributions from './NoContributions';
-import ContributionFetchError from './ContributionFetchError';
+import { ReactChild, useEffect, useState } from 'react';
+import { useParams } from 'react-router-dom';
+import ContactInfoPopover from './ContactInfoPopover/ContactInfoPopover';
 import ContributionDetail from './ContributionDetail/ContributionDetail';
+import ContributionFetchError from './ContributionFetchError';
+import ContributionItem from './ContributionItem/ContributionItem';
 import { ContributionsHeader } from './ContributionsHeader';
 import {
-  List,
-  Root,
-  Subhead,
-  Layout,
-  Loading,
-  Legend,
-  Detail,
-  StyledPortalPage,
   AlignPositionWrapper,
+  ContactInfoWrapper,
+  Detail,
+  Layout,
+  Legend,
+  List,
+  Loading,
+  Root,
+  StyledPortalPage,
+  Subhead,
   Tabs
 } from './ContributionsList.styled';
+import NoContributions from './NoContributions';
 
 const CONTRIBUTION_SORT_OPTIONS = [
   {
@@ -139,6 +141,9 @@ export function ContributionsList() {
               ))}
             </Tabs>
             <Sort options={CONTRIBUTION_SORT_OPTIONS} onChange={setOrdering} id="contributions-sort" />
+            <ContactInfoWrapper>
+              <ContactInfoPopover revenueProgram={page?.revenue_program} />
+            </ContactInfoWrapper>
           </Legend>
           {content}
           {contributor && selectedContribution && (

@@ -567,6 +567,36 @@ class TestRevenueProgram:
             assert validation_error.value.error_dict["slug"][0].code == SLUG_DENIED_CODE
             assert validation_error.value.error_dict["slug"][0].message == GENERIC_SLUG_DENIED_MSG
 
+    @pytest.mark.parametrize(
+        "invalid_number",
+        [
+            "123",
+            "xyz123",
+            "12345678901",
+            "something",
+        ],
+    )
+    def test_contact_phone_validation_invalid_phone(self, revenue_program, invalid_number):
+        revenue_program.contact_phone = invalid_number
+        with pytest.raises(ValidationError):
+            revenue_program.clean_fields()
+
+    @pytest.mark.parametrize(
+        "valid_number",
+        [
+            "+14155552671",
+            "+1 415 555 2671",
+            "+1 (415) 555-2671",
+            "+1-415-555-2671",
+            "+1.415.555.2671",
+            "+14155552671",
+            "+5548988425364",
+        ],
+    )
+    def test_contact_phone_validation_valid_phone(self, revenue_program, valid_number):
+        revenue_program.contact_phone = valid_number
+        revenue_program.clean_fields()
+
     def test_admin_benefit_options(self, revenue_program):
         assert isinstance(revenue_program.admin_benefit_options, list)
 

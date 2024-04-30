@@ -13,6 +13,7 @@ jest.mock('react-router-dom', () => ({
 }));
 jest.mock('hooks/usePortal');
 jest.mock('hooks/usePortalContributionList');
+jest.mock('./ContactInfoPopover/ContactInfoPopover');
 jest.mock('./ContributionDetail/ContributionDetail');
 jest.mock('./ContributionsHeader/ContributionsHeader');
 jest.mock('./ContributionItem/ContributionItem');
@@ -77,6 +78,13 @@ describe('ContributionsList', () => {
     });
     tree();
     expect(screen.getByRole('progressbar')).toBeInTheDocument();
+  });
+
+  it('should render contact info popover', () => {
+    tree();
+    const contactInfoPopover = screen.getByTestId('mock-contact-info-popover');
+    expect(contactInfoPopover).toBeInTheDocument();
+    expect(contactInfoPopover.dataset.revenueprogram).toBe('{"id":"mock-rp-id"}');
   });
 
   describe('After contributions are fetched', () => {

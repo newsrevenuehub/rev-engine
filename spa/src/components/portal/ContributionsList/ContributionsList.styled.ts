@@ -60,6 +60,7 @@ export const Detail = styled.div`
 `;
 
 export const Legend = styled.div<{ $detailVisible: boolean }>`
+  position: relative;
   grid-area: legend;
 
   @media (${(props) => props.theme.breakpoints.tabletLandscapeDown}) {
@@ -90,4 +91,10 @@ export const Subhead = styled.h2`
 export const Description = styled.p`
   font-size: ${({ theme }) => theme.fontSizesUpdated.md};
   line-height: 120%;
+`;
+
+export const ContactInfoWrapper = styled.div`
+  position: absolute;
+  top: 0;
+  right: 0;
 `;

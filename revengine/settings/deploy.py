@@ -31,10 +31,8 @@ SERVER_EMAIL = DEFAULT_FROM_EMAIL
 
 ### Google Cloud Storage ###
 STORAGES = {
+    # Store user-uploaded files in Google Cloud.
     "default": {
-        "BACKEND": "storages.backends.gcloud.GoogleCloudStorage",
-    },
-    "staticfiles": {
         "BACKEND": "storages.backends.gcloud.GoogleCloudStorage",
         # https://django-storages.readthedocs.io/en/latest/backends/gcloud.html#settings
         "OPTIONS": {
@@ -45,6 +43,8 @@ STORAGES = {
             "default_acl": None,
         },
     },
+    # Store static files, like SPA assets, locally.
+    "staticfiles": {"BACKEND": "django.contrib.staticfiles.storage.StaticFilesStorage"},
 }
 STATIC_URL = f"https://storage.googleapis.com/{os.getenv('GS_BUCKET_NAME')}/static/"
 ### React SPA index.html

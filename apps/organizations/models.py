@@ -612,8 +612,7 @@ class RevenueProgramMailchimpClient(MailchimpMarketing.Client):
             logger.debug("No email list ID on RP %s, returning None", self.id)
             return None
         try:
-            client = RevenueProgramMailchimpClient(self)
-            response = client.ecommerce.get_store_product(self.revenue_program.mailchimp_store_id, product_id)
+            response = self.ecommerce.get_store_product(self.revenue_program.mailchimp_store_id, product_id)
             return MailchimpProduct(**response)
         except ApiClientError as exc:
             return self._handle_read_error("FIXME one-time contribution product", exc)

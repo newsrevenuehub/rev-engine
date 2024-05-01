@@ -1,5 +1,6 @@
 import styled from 'styled-components';
 import PortalPage from '../PortalPage';
+import { Tabs as BaseTabs } from 'components/base';
 
 export const List = styled.div<{ $detailVisible: boolean }>`
   align-self: self-start;
@@ -67,6 +68,11 @@ export const Legend = styled.div<{ $detailVisible: boolean }>`
     padding: 0 20px;
     ${(props) => props.$detailVisible && 'display: none;'}
   }
+`;
+
+export const Tabs = styled(BaseTabs)`
+  margin-top: 20px;
+  margin-bottom: 17px;
 `;
 
 export const Loading = styled.div`

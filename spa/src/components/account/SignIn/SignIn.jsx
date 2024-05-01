@@ -6,7 +6,8 @@ import axios from 'ajax/axios';
 import { TOKEN } from 'ajax/endpoints';
 
 // Routing
-import { Link, useHistory } from 'react-router-dom';
+import { Link } from 'components/base';
+import { Link as RouterLink, useHistory } from 'react-router-dom';
 import { CONTENT_SLUG } from 'routes';
 
 // State management
@@ -39,10 +40,10 @@ function SignIn({ onSuccess }) {
 
   const formSubmitErrors = signInState?.errors?.detail;
 
-  const onSubmitSignIn = async (fdata) => {
+  const onSubmitSignIn = async (email, password) => {
     dispatch({ type: FETCH_START });
     try {
-      const { data, status } = await axios.post(TOKEN, { email: fdata.email, password: fdata.password });
+      const { data, status } = await axios.post(TOKEN, { email, password });
       if (status === 200 && data.detail === 'success') {
         handleLoginSuccess(data);
         handlePostLogin();
@@ -64,12 +65,12 @@ function SignIn({ onSuccess }) {
           <S.FormElements>
             <S.Heading marginBottom={34}>Welcome Back!</S.Heading>
 
-            <SignInForm onSubmitSignIn={onSubmitSignIn} loading={signInState.loading} />
+            <SignInForm onSubmit={onSubmitSignIn} disabled={signInState.loading} />
             {formSubmitErrors ? <S.Message>{formSubmitErrors}</S.Message> : <S.MessageSpacer />}
 
             <S.NavLink>
               Not a member?&nbsp;
-              <Link to={SIGN_UP} data-testid="create-account">
+              <Link component={RouterLink} to={SIGN_UP} data-testid="create-account">
                 Create an account
               </Link>
             </S.NavLink>

@@ -33,7 +33,7 @@ describe('ForgotPassword Tests', () => {
 
   it('should have ResetPassword Form', () => {
     render(<ResetPassword />);
-    expect(screen.getByRole('button', { type: 'submit' })).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: 'Reset Password' })).toBeInTheDocument();
   });
 
   it('should have link to take user to sign in page', () => {

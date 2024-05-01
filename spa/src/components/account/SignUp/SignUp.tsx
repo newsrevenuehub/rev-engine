@@ -8,11 +8,11 @@ import { TOKEN, USER } from 'ajax/endpoints';
 import fetchReducer, { FETCH_FAILURE, FETCH_START, FETCH_SUCCESS, initialState } from 'state/fetch-reducer';
 
 import * as S from '../Account.styled';
-import SignUpForm, { SignUpFormValues } from './SignUpForm';
+import SignUpForm from './SignUpForm';
 
 import Leftbar from 'components/account/common/leftbar/Leftbar';
 import Logobar from 'components/account/common/logobar/Logobar';
-import { Link, useHistory } from 'react-router-dom';
+import { Link as RouterLink, useHistory } from 'react-router-dom';
 
 import { handleLoginSuccess } from 'components/authentication/util';
 import PageTitle from 'elements/PageTitle';
@@ -24,6 +24,10 @@ import { SIGN_UP_GENERIC_ERROR_TEXT } from 'constants/textConstants';
 // Analytics
 import { AxiosError } from 'axios';
 import { useConfigureAnalytics } from 'components/analytics';
+import { Link } from 'components/base';
+
+// Loosely typing this because we're using the `component` prop, which causes issues with TS.
+const LooseLink = Link as any;
 
 function SignUp() {
   const [signUpState, dispatch] = useReducer(fetchReducer, initialState);
@@ -31,10 +35,10 @@ function SignUp() {
   const history = useHistory();
   useConfigureAnalytics();
 
-  const handleLogin = async (fdata: SignUpFormValues) => {
+  const handleLogin = async (email: string, password: string) => {
     dispatch({ type: FETCH_START });
     try {
-      const { data, status } = await axios.post(TOKEN, fdata);
+      const { data, status } = await axios.post(TOKEN, { email, password });
       if (status === 200 && data.detail === 'success') {
         handleLoginSuccess(data);
         history.push(CONTENT_SLUG);
@@ -47,16 +51,17 @@ function SignUp() {
     }
   };
 
-  const onSubmitSignUp = async (fdata: SignUpFormValues) => {
+  const onSubmitSignUp = async (email: string, password: string) => {
     dispatch({ type: FETCH_START });
     try {
       const { data, status } = await axios.post(USER, {
-        email: fdata.email,
-        password: fdata.password,
+        email,
+        password,
         accepted_terms_of_service: new Date().toISOString()
       });
+
       if (status === 201) {
-        handleLogin(fdata);
+        handleLogin(email, password);
         dispatch({ type: FETCH_SUCCESS, payload: data });
       } else {
         dispatch({ type: FETCH_FAILURE, payload: data });
@@ -91,17 +96,13 @@ function SignUp() {
           <S.Heading marginBottom={1}>Create Your Free Account</S.Heading>
           <S.Subheading fontSize="lgx">Start receiving contributions today!</S.Subheading>
 
-          <SignUpForm
-            onSubmitSignUp={onSubmitSignUp}
-            loading={signUpState.loading}
-            errorMessage={formSubmissionMessage}
-          />
+          <SignUpForm disabled={signUpState.loading} errorMessage={formSubmissionMessage} onSubmit={onSubmitSignUp} />
 
           <S.NavLink>
             Already have an account?{' '}
-            <Link to={SIGN_IN} data-testid="sign-in-link">
+            <LooseLink component={RouterLink} to={SIGN_IN} data-testid="sign-in-link">
               Sign in
-            </Link>
+            </LooseLink>
           </S.NavLink>
         </S.FormElements>
 

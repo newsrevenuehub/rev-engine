@@ -315,12 +315,7 @@ class StripeTransactionsImporter:
 
     def should_exclude_from_cache_because_of_metadata(self, entity: dict) -> bool:
         """Determine if a payment intent should be excluded from cache"""
-        return not all(
-            [
-                entity.metadata.get("schema_version", None) in STRIPE_PAYMENT_METADATA_SCHEMA_VERSIONS,
-                entity.metadata.get("referer", None),
-            ]
-        )
+        return entity.metadata.get("schema_version", None) not in STRIPE_PAYMENT_METADATA_SCHEMA_VERSIONS
 
     @property
     def list_kwargs(self) -> dict:
@@ -741,7 +736,8 @@ class StripeTransactionsImporter:
         if not revenue_program:
             logger.warning("No revenue program found for id %s", rp_id)
             return None
-        slug = parse_slug_from_url(metadata["referer"])
+        referer = metadata.get("referer", None)
+        slug = parse_slug_from_url(referer) if referer else None
         return (
             revenue_program.donationpage_set.filter(slug=slug).first()
             if slug

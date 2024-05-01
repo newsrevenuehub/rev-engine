@@ -11,6 +11,24 @@ from apps.contributions.tests.factories import PaymentFactory
 from apps.organizations.tests.factories import PaymentProviderFactory, RevenueProgramFactory
 
 
+@pytest.mark.django_db
+def test_process_stripe_event(mocker):
+    mock_processor = mocker.patch("apps.contributions.stripe_import.StripeEventProcessor")
+    options = {
+        "stripe_account": "acct_1",
+        "event_id": "evt_1",
+        "async_mode": False,
+    }
+    call_command("process_stripe_event", **options)
+
+    mock_processor.assert_called_once_with(
+        stripe_account_id=options["stripe_account"],
+        event_id=options["event_id"],
+        async_mode=options["async_mode"],
+    )
+    mock_processor.return_value.process.assert_called_once()
+
+
 @pytest.mark.parametrize("dry_run", (False, True))
 def test_sync_missing_contribution_data_from_stripe(dry_run, monkeypatch, mocker):
     mock_fix_processing = mocker.Mock()

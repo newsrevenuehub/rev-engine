@@ -2,7 +2,7 @@
 repos:
   # Potpourri of hooks provided by github.
   - repo: https://github.com/pre-commit/pre-commit-hooks
-    rev: v4.5.0
+    rev: v4.6.0
     hooks:
       - id: check-docstring-first
       - id: check-json
@@ -38,7 +38,7 @@ repos:
         types: [python]
   # Black code formatter.
   - repo: https://github.com/psf/black
-    rev: 24.3.0
+    rev: 24.4.2
     hooks:
       - id: black
         language_version: python3.10

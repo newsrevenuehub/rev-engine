@@ -82,12 +82,6 @@ class Test_sync_payment_transaction_time:
         )
 
     @pytest.fixture
-    def payment_no_transaction_time_ineligible_because_no_page(self):
-        return PaymentFactory(
-            transaction_time=None, contribution__donation_page=None, contribution__contribution_metadata=None
-        )
-
-    @pytest.fixture
     def payment_no_transaction_time_ineligible_because_of_no_account(self):
         return PaymentFactory(
             transaction_time=None,
@@ -100,14 +94,12 @@ class Test_sync_payment_transaction_time:
         payment_no_transaction_time_eligible_fail_with_account_retrieval_permissions_error,
         payment_no_transaction_time_eligible_fail_with_account_retrieval_other_error,
         payment_no_transaction_time_eligible_fail_with_bt_retrieval,
-        payment_no_transaction_time_ineligible_because_no_page,
         payment_no_transaction_time_ineligible_because_of_no_account,
     ):
         return [
             payment_no_transaction_time_eligible_fail_with_account_retrieval_permissions_error,
             payment_no_transaction_time_eligible_fail_with_account_retrieval_other_error,
             payment_no_transaction_time_eligible_fail_with_bt_retrieval,
-            payment_no_transaction_time_ineligible_because_no_page,
             payment_no_transaction_time_ineligible_because_of_no_account,
         ]
 

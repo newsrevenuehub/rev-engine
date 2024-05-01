@@ -156,12 +156,14 @@ class TestContributionModel:
     @pytest.mark.parametrize("has_donation_page", (True, False))
     def test_revenue_program_property(self, contribution, has_donation_page):
         if not has_donation_page:
+            rp = contribution.donation_page.revenue_program
+            contribution._revenue_program = rp
             contribution.donation_page = None
             contribution.save()
-            assert contribution.revenue_program is None
         else:
+            assert contribution._revenue_program is None
             assert (rp := contribution.donation_page.revenue_program) is not None
-            assert contribution.revenue_program == rp
+        assert contribution.revenue_program == rp
 
     @pytest.mark.parametrize(
         "has_revenue_program,has_payment_provider,expect_result",

@@ -22,9 +22,11 @@ class TestPortalContributionFilter:
     @pytest.fixture()
     def contributions(self, valid_metadata_factory):
         con1 = ContributionFactory(status=ContributionStatus.PAID)
-        metadata = valid_metadata_factory.get(revenue_program_id=str(con1.donation_page.revenue_program.id))
-        # because we match filtering for revenue_program on contribution_metadata in addition to dontation_page__revenue_program
-        con2 = ContributionFactory(donation_page=None, contribution_metadata=metadata, status=ContributionStatus.PAID)
+        con2 = ContributionFactory(
+            donation_page=None,
+            status=ContributionStatus.PAID,
+            _revenue_program=con1.donation_page.revenue_program,
+        )
         con3 = ContributionFactory(donation_page=con1.donation_page, status=ContributionStatus.REFUNDED)
         con4 = ContributionFactory(donation_page__revenue_program=RevenueProgramFactory())
         return [con1, con2, con3, con4]

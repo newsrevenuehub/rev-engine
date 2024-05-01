@@ -1708,13 +1708,14 @@ class TestPortalContributorsViewSet:
         contributor = portal_contributor_with_multiple_contributions[0]
         amount = 1000
         # guarantee we have orderable values on amount
+        page = DonationPageFactory()
         for index, x in enumerate(Contribution.objects.all()):
             x.amount = amount
             amount += 1000
             x.status = ContributionStatus.PAID.label if index % 2 == 0 else ContributionStatus.FAILED.label
             x.payment_set.all().update(gross_amount_paid=x.amount, net_amount_paid=x.amount - 100)
             # Create identical contribution with different date (test second field ordering by date)
-            Contribution.objects.create(amount=x.amount, status=x.status, contributor=contributor)
+            Contribution.objects.create(amount=x.amount, status=x.status, contributor=contributor, donation_page=page)
             x.save()
         api_client.force_authenticate(contributor)
         response = api_client.get(

@@ -3,6 +3,7 @@ import logging
 from zoneinfo import ZoneInfo
 
 from django.core.management.base import BaseCommand
+from django.db.models import Q
 
 import reversion
 import stripe
@@ -50,37 +51,29 @@ class Command(BaseCommand):
             self.stdout.write(self.style.HTTP_INFO("No payments with missing transaction time found, exiting"))
             return
 
-        ineligible_because_no_donation_page = payments_missing_transaction_time.filter(
-            contribution__donation_page__isnull=True
-        )
         accounts = self.get_stripe_accounts_and_their_connection_status(
-            payments_missing_transaction_time.exclude(id__in=ineligible_because_no_donation_page)
-            .values_list("contribution__donation_page__revenue_program__payment_provider__stripe_account_id", flat=True)
-            .distinct("contribution__donation_page__revenue_program__payment_provider__stripe_account_id")
+            payments_missing_transaction_time.values_list(
+                "contribution__donation_page__revenue_program__payment_provider__stripe_account_id", flat=True
+            ).distinct("contribution__donation_page__revenue_program__payment_provider__stripe_account_id")
         )
         unretrievable_accounts = [k for k, v in accounts.items() if not v]
         connected_accounts = [k for k, v in accounts.items() if v]
-
         fixable_payments = payments_missing_transaction_time.filter(
-            contribution__donation_page__revenue_program__payment_provider__stripe_account_id__in=connected_accounts
-        ).exclude(id__in=ineligible_because_no_donation_page)
+            Q(contribution__donation_page__revenue_program__payment_provider__stripe_account_id__in=connected_accounts)
+            | Q(contribution___revenue_program__payment_provider__stripe_account_id__in=connected_accounts)
+        )
         fixable_payments_count = fixable_payments.count()
         ineligible_because_of_account = payments_missing_transaction_time.filter(
-            contribution__donation_page__revenue_program__payment_provider__stripe_account_id__in=unretrievable_accounts,
+            Q(
+                contribution__donation_page__revenue_program__payment_provider__stripe_account_id__in=unretrievable_accounts
+            )
+            | Q(contribution___revenue_program__payment_provider__stripe_account_id__in=unretrievable_accounts)
         )
         self.stdout.write(
             self.style.HTTP_INFO(
                 f"Found {fixable_payments_count} eligible payment{'' if fixable_payments_count == 1 else 's'} to sync"
             )
         )
-        if ineligible_because_no_donation_page.exists():
-            self.stdout.write(
-                self.style.HTTP_INFO(
-                    f"Found {(_inel_page:=ineligible_because_no_donation_page.count())} payment{'' if _inel_page == 1 else 's'} with "
-                    f"null value for transaction time that cannot be updated because contribution is not linked to a donation page: "
-                    f"{', '.join(str(x) for x in ineligible_because_no_donation_page.values_list('id', flat=True))}"
-                )
-            )
         if ineligible_because_of_account.exists():
             self.stdout.write(
                 self.style.HTTP_INFO(

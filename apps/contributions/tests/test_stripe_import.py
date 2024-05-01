@@ -28,6 +28,7 @@ from apps.contributions.tests.factories import (
     PaymentFactory,
 )
 from apps.contributions.types import STRIPE_PAYMENT_METADATA_SCHEMA_VERSIONS
+from apps.organizations.models import RevenueProgram
 from apps.organizations.tests.factories import RevenueProgramFactory
 from apps.pages.models import DonationPage
 from apps.pages.tests.factories import DonationPageFactory
@@ -63,6 +64,7 @@ def valid_metadata(valid_metadata, domain_apex, page, settings):
     cause validation around donation page work as expected in tests.
     """
     settings.DOMAIN_APEX = domain_apex
+    valid_metadata["revenue_program_id"] = page.revenue_program.id
     valid_metadata["referer"] = f"https://{domain_apex}/{page.slug}/"
     return valid_metadata
 
@@ -294,21 +296,26 @@ class TestStripeTransactionsImporter:
             instance.validate_metadata(metadata)
 
     @pytest.mark.parametrize(
-        "referer, expect_error",
+        "referer, revenue_program, expect_error",
         (
-            (f"https://{DOMAIN_APEX}/slug/", False),
-            ("https://foo.bar/slug/", True),
-            (None, True),
-            ("", True),
+            (f"https://{DOMAIN_APEX}/slug/", None, False),
+            (f"https://{DOMAIN_APEX}/slug/", "2", False),
+            ("https://foo.bar/slug/", "2", False),
+            (None, "2", False),
+            (None, None, True),
         ),
     )
-    def test_validate_referer(self, referer, expect_error):
+    def test_validate_referer_or_revenue_program(self, referer, revenue_program, expect_error):
+        metadata = {
+            "referer": referer,
+            "revenue_program_id": revenue_program,
+        }
         instance = StripeTransactionsImporter(stripe_account_id="test")
         if expect_error:
-            with pytest.raises(InvalidStripeTransactionDataError):
-                instance.validate_referer(referer)
+            with pytest.raises(InvalidMetadataError):
+                instance.validate_referer_or_revenue_program(metadata)
         else:
-            instance.validate_referer(referer)
+            instance.validate_referer_or_revenue_program(metadata)
 
     @pytest.mark.parametrize(
         "status, has_refunds, expected, expect_error",
@@ -765,15 +772,6 @@ class TestStripeTransactionsImporter:
         mocker.patch.object(instance, "get_provider_payment_id_for_subscription", return_value="pi_1")
         instance.get_default_contribution_data(**kwargs)
 
-    @pytest.mark.parametrize("donation_page_exists, contribution_has_donation_page", ((True, False), (False, False)))
-    def test_conditionally_update_contribution_donation_page(
-        self, donation_page_exists, contribution_has_donation_page, mocker
-    ):
-        instance = StripeTransactionsImporter(stripe_account_id="test")
-        donation_page = DonationPageFactory() if donation_page_exists else None
-        contribution = ContributionFactory(donation_page=donation_page if contribution_has_donation_page else None)
-        instance.conditionally_update_contribution_donation_page(contribution, donation_page)
-
     @pytest.mark.parametrize(
         "metadata_rp_id, rp_exists, referer_slug",
         ((None, False, ""), ("123", True, "slug"), ("123", False, ""), ("123", True, "")),
@@ -797,9 +795,18 @@ class TestStripeTransactionsImporter:
         ),
     )
     @pytest.mark.parametrize("donation_page_found", (True, False))
+    @pytest.mark.parametrize("revenue_program_found", (True, False))
     @pytest.mark.parametrize("has_customer_id", (True, False))
     def test_upsert_contribution(
-        self, mocker, stripe_entity, is_one_time, donation_page_found, has_customer_id, request, valid_metadata
+        self,
+        mocker,
+        stripe_entity,
+        is_one_time,
+        donation_page_found,
+        revenue_program_found,
+        has_customer_id,
+        request,
+        valid_metadata,
     ):
         stripe_entity = request.getfixturevalue(stripe_entity)
         if not has_customer_id:
@@ -814,6 +821,11 @@ class TestStripeTransactionsImporter:
             "apps.contributions.stripe_import.StripeTransactionsImporter.get_or_create_contributor_from_customer",
             return_value=((contributor := ContributorFactory()), "created"),
         )
+        if not donation_page_found:
+            DonationPage.objects.filter(slug=PAGE_SLUG).delete()
+        if not revenue_program_found:
+            RevenueProgram.objects.filter(id=valid_metadata["revenue_program_id"]).delete()
+
         mocker.patch(
             "apps.contributions.stripe_import.StripeTransactionsImporter.get_default_contribution_data",
             return_value={
@@ -831,11 +843,8 @@ class TestStripeTransactionsImporter:
                 "provider_subscription_id": "sub_1" if not is_one_time else None,
             },
         )
-        if not donation_page_found:
-            DonationPage.objects.filter(slug=PAGE_SLUG).delete()
-
         instance = StripeTransactionsImporter(stripe_account_id="test")
-        if not has_customer_id or not donation_page_found:
+        if not has_customer_id or not revenue_program_found:
             with pytest.raises(InvalidStripeTransactionDataError):
                 instance.upsert_contribution(stripe_entity=stripe_entity, is_one_time=is_one_time)
         else:

@@ -586,7 +586,7 @@ class PortalContributorsViewSet(viewsets.GenericViewSet):
     # we need to set a queryset to satisfy DRF's viewset machinery
     queryset = Contributor.objects.all()
 
-    def exclude_hidden_statuses(self, queryset):
+    def exclude_hidden_statuses(self, queryset: QuerySet[Contribution]):
         return queryset.exclude(status__in=self.HIDDEN_STATUSES)
 
     def _get_contributor_and_check_permissions(self, request, contributor_id):
@@ -634,6 +634,24 @@ class PortalContributorsViewSet(viewsets.GenericViewSet):
         )
         qs = self.handle_ordering(qs, request)
         return self.paginate_results(qs, request)
+
+    @action(
+        methods=["post"],
+        url_path="contributions/(?P<contribution_id>[^/.]+)/send-receipt",
+        url_name="contribution-receipt",
+        detail=True,
+        serializer_class=serializers.PortalContributionDetailSerializer,
+    )
+    def send_contribution_receipt(self, request, pk=None, contribution_id=None) -> Response:
+        """Endpoint to send a contribution receipt email for a given contribution"""
+        logger.info("send receipt with contribution_id %s", contribution_id)
+        contributor = self._get_contributor_and_check_permissions(request, pk)
+        try:
+            contribution = self.exclude_hidden_statuses(contributor.contribution_set).get(pk=contribution_id)
+        except Contribution.DoesNotExist:
+            return Response({"detail": "Contribution not found"}, status=status.HTTP_404_NOT_FOUND)
+        contribution.handle_thank_you_email()
+        return Response(status=status.HTTP_204_NO_CONTENT)
 
     @action(
         methods=["get", "patch", "delete"],

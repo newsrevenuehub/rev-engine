@@ -38,7 +38,8 @@ describe('ContributionDetail', () => {
       isFetching: false,
       refetch: jest.fn(),
       cancelContribution: jest.fn(),
-      updateContribution: jest.fn()
+      updateContribution: jest.fn(),
+      sendEmailReceipt: jest.fn()
     });
 
     tree();
@@ -54,7 +55,8 @@ describe('ContributionDetail', () => {
         isFetching: false,
         refetch: jest.fn(),
         cancelContribution: jest.fn(),
-        updateContribution: jest.fn()
+        updateContribution: jest.fn(),
+        sendEmailReceipt: jest.fn()
       });
     });
 
@@ -84,7 +86,8 @@ describe('ContributionDetail', () => {
         isFetching: false,
         refetch: jest.fn(),
         cancelContribution: jest.fn(),
-        updateContribution: jest.fn()
+        updateContribution: jest.fn(),
+        sendEmailReceipt: jest.fn()
       });
     });
 
@@ -115,7 +118,8 @@ describe('ContributionDetail', () => {
         isFetching: false,
         refetch: jest.fn(),
         cancelContribution: jest.fn(),
-        updateContribution: jest.fn()
+        updateContribution: jest.fn(),
+        sendEmailReceipt: jest.fn()
       });
     });
 
@@ -142,6 +146,27 @@ describe('ContributionDetail', () => {
       const history = screen.getByTestId('mock-billing-history');
 
       expect(history.dataset.payments).toBe(JSON.stringify(mockContribution.payments));
+    });
+
+    it('calls sendEmailReceipt when the "Resend receipt" button is clicked', () => {
+      const sendEmailReceipt = jest.fn();
+      usePortalContributionMock.mockReturnValue({
+        isLoading: false,
+        contribution: mockContribution as any,
+        isError: false,
+        isFetching: false,
+        refetch: jest.fn(),
+        updateContribution: jest.fn(),
+        cancelContribution: jest.fn(),
+        sendEmailReceipt
+      });
+
+      tree();
+      expect(sendEmailReceipt).not.toHaveBeenCalled();
+
+      screen.getByText('Resend receipt').click();
+
+      expect(sendEmailReceipt).toBeCalledTimes(1);
     });
 
     it("doesn't disable any section initially", () => {
@@ -230,7 +255,8 @@ describe('ContributionDetail', () => {
           isFetching: false,
           refetch: jest.fn(),
           updateContribution: jest.fn(),
-          cancelContribution
+          cancelContribution,
+          sendEmailReceipt: jest.fn()
         });
 
         tree();

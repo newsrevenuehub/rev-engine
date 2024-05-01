@@ -772,6 +772,17 @@ class TestStripeTransactionsImporter:
         mocker.patch.object(instance, "get_provider_payment_id_for_subscription", return_value="pi_1")
         instance.get_default_contribution_data(**kwargs)
 
+    @pytest.mark.parametrize("has_rp_id", (True, False))
+    def test_get_revenue_program_from_metadata(self, has_rp_id, valid_metadata):
+        instance = StripeTransactionsImporter(stripe_account_id="test")
+        if not has_rp_id:
+            valid_metadata["revenue_program_id"] = None
+            assert instance.get_revenue_program_from_metadata(valid_metadata) is None
+        else:
+            assert instance.get_revenue_program_from_metadata(valid_metadata) == RevenueProgram.objects.get(
+                id=valid_metadata["revenue_program_id"]
+            )
+
     @pytest.mark.parametrize(
         "metadata_rp_id, rp_exists, referer_slug",
         ((None, False, ""), ("123", True, "slug"), ("123", False, ""), ("123", True, "")),

@@ -73,10 +73,7 @@ repos:
     hooks:
       - id: python-safety-dependencies-check
         files: pyproject.toml
-        args: [
-          "--ignore=60956", # Django upgrade >=3.2.21 https://pyup.io/v/60956/f17
-          "--ignore=66963", # djangorestframework-simplejwt <= 5.3.1, no fixed version available yet
-        ]
+        args: ["--ignore=60956"] # Django upgrade >=3.2.21 https://pyup.io/v/60956/f17
   # Checks no secrets in code.
   - repo: https://github.com/thoughtworks/talisman
     rev: v1.32.0

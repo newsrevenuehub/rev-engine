@@ -366,22 +366,20 @@ class TestStripeTransactionsImporter:
         mock_list.assert_called_once_with(stripe_account=stripe_id, limit=mocker.ANY)
 
     @pytest.mark.parametrize(
-        "schema_version, referer, expected",
+        "schema_version, expected",
         (
             (
                 random.choice(list(STRIPE_PAYMENT_METADATA_SCHEMA_VERSIONS.keys())),
-                (_url := "https://foo.com/slug/"),
                 False,
             ),
-            ("unsupported", _url, True),
-            (random.choice(list(STRIPE_PAYMENT_METADATA_SCHEMA_VERSIONS.keys())), None, True),
-            ("unsupported", None, True),
+            ("unsupported", True),
+            (None, True),
         ),
     )
-    def test_should_exclude_from_cache_because_of_metadata(self, schema_version, referer, expected, mocker):
+    def test_should_exclude_from_cache_because_of_metadata(self, schema_version, expected, mocker, valid_metadata):
         instance = StripeTransactionsImporter(stripe_account_id="test")
-        metadata = {"schema_version": schema_version, "referer": referer}
-        assert instance.should_exclude_from_cache_because_of_metadata(mocker.Mock(metadata=metadata)) == expected
+        valid_metadata["schema_version"] = schema_version
+        assert instance.should_exclude_from_cache_because_of_metadata(mocker.Mock(metadata=valid_metadata)) == expected
 
     @pytest.mark.parametrize("init_kwargs", ({}, {"from_date": (when := datetime.datetime.utcnow()), "to_date": when}))
     def test_list_kwargs(self, init_kwargs):

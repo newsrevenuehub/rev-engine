@@ -1,160 +1,117 @@
-import { fireEvent, render, screen, waitFor } from 'test-utils';
+import { axe } from 'jest-axe';
+import { fireEvent, render, screen } from 'test-utils';
 import SignUpForm, { SignUpFormProps } from './SignUpForm';
 
-const mockSubmit = jest.fn();
-
-describe('SignUpForm Tests', () => {
-  function getScreen(props?: Partial<SignUpFormProps>) {
-    return render(<SignUpForm onSubmitSignUp={mockSubmit} loading={false} {...props} />);
-  }
-
-  it('should have password toggle icon to show/hide value of password if visibility icon is clicked', () => {
-    getScreen();
-    const password = screen.getByTestId('signup-pwd');
-    fireEvent.input(password, {
-      target: {
-        value: 'test@test.com'
-      }
-    });
-    const toggleIcon = screen.getByTestId('toggle-password');
-    fireEvent.click(toggleIcon);
-    expect(password.getAttribute('type')).toEqual('text');
-    fireEvent.click(toggleIcon);
-    expect(password.getAttribute('type')).toEqual('password');
-  });
-
-  it('should show password helper text', async () => {
-    getScreen();
+function tree(props?: Partial<SignUpFormProps>) {
+  return render(
+    <div>
+      <SignUpForm onSubmit={jest.fn()} {...props} />
+    </div>
+  );
+}
+describe('SignUpForm', () => {
+  it('shows password helper text', () => {
+    tree();
     expect(screen.getByText('Password must be at least 8 characters long.')).toBeInTheDocument();
-    expect(screen.queryByRole('alert')).not.toBeInTheDocument();
   });
 
-  it('should show password error message if password is smaller than 8 chars', async () => {
-    getScreen();
-    fireEvent.input(screen.getByTestId('signup-email'), {
-      target: {
-        value: 'test@test.com'
-      }
-    });
-    fireEvent.input(screen.getByTestId('signup-pwd'), {
-      target: {
-        value: '1234567'
-      }
-    });
+  it("doesn't submit if password is smaller than 8 chars", () => {
+    const onSubmit = jest.fn();
+
+    tree({ onSubmit });
+    fireEvent.change(screen.getByRole('textbox', { name: 'Email' }), { target: { value: 'test@test.com' } });
+    fireEvent.change(screen.getByLabelText('Password *'), { target: { value: '1234567' } });
     fireEvent.click(screen.getByRole('checkbox'));
-    fireEvent.submit(screen.getByRole('button', { name: 'Create Account' }));
-    await waitFor(() =>
-      expect(screen.getByRole('alert')).toHaveTextContent('Password must be at least 8 characters long.')
-    );
+    fireEvent.click(screen.getByRole('button', { name: 'Create Account' }));
+    expect(onSubmit).not.toBeCalled();
   });
 
-  it('should not submit if email and password are blank', async () => {
-    getScreen();
-    fireEvent.submit(screen.getByRole('button', { name: 'Create Account' }));
-    await waitFor(() => expect(screen.queryAllByRole('alert')).toHaveLength(0));
-    expect(mockSubmit).not.toBeCalled();
+  it("doesn't submit if email and password are blank", () => {
+    const onSubmit = jest.fn();
+
+    tree({ onSubmit });
+    fireEvent.click(screen.getByRole('button', { name: 'Create Account' }));
+    expect(onSubmit).not.toBeCalled();
   });
 
-  it('should not submit if email is valid and password is blank.', async () => {
-    getScreen();
-    fireEvent.input(screen.getByTestId('signup-email'), {
-      target: {
-        value: 'test@test.com'
-      }
-    });
-    fireEvent.submit(screen.getByRole('button', { name: 'Create Account' }));
-    await waitFor(() => expect(screen.queryAllByRole('alert')).toHaveLength(0));
-    expect(mockSubmit).not.toBeCalled();
+  it("doesn't submit if email is valid but password is blank", () => {
+    const onSubmit = jest.fn();
+
+    tree({ onSubmit });
+    fireEvent.change(screen.getByRole('textbox', { name: 'Email' }), { target: { value: 'test@test.com' } });
+    fireEvent.click(screen.getByRole('button', { name: 'Create Account' }));
+    expect(onSubmit).not.toBeCalled();
   });
 
-  it('should not submit if email is invalid and password is valid and terms are selected', async () => {
-    getScreen();
-    fireEvent.input(screen.getByTestId('signup-pwd'), {
-      target: {
-        value: 'password123'
-      }
-    });
-    fireEvent.input(screen.getByTestId('signup-email'), {
-      target: {
-        value: 'test'
-      }
-    });
+  it("doesn't submit if email is invalid, but password is valid and terms are selected", () => {
+    const onSubmit = jest.fn();
+
+    tree({ onSubmit });
+    fireEvent.change(screen.getByLabelText('Password *'), { target: { value: 'password123' } });
+    fireEvent.change(screen.getByRole('textbox', { name: 'Email' }), { target: { value: 'test' } });
     fireEvent.click(screen.getByRole('checkbox'));
-    expect(screen.getByRole('checkbox')).toBeChecked();
-
-    fireEvent.submit(screen.getByRole('button', { name: 'Create Account' }));
-    expect(await screen.findAllByRole('alert')).toHaveLength(1);
-    expect(mockSubmit).not.toBeCalled();
+    fireEvent.click(screen.getByRole('button', { name: 'Create Account' }));
+    expect(onSubmit).not.toBeCalled();
   });
 
-  it('should not submit if email and password are set but invalid, and terms are selected', async () => {
-    getScreen();
-    fireEvent.input(screen.getByTestId('signup-pwd'), {
-      target: {
-        value: 'foo'
-      }
-    });
-    fireEvent.input(screen.getByTestId('signup-email'), {
-      target: {
-        value: 'test'
-      }
-    });
+  it("doesn't submit if email and password are set but invalid, and terms are selected", () => {
+    const onSubmit = jest.fn();
 
+    tree({ onSubmit });
+    fireEvent.change(screen.getByRole('textbox', { name: 'Email' }), { target: { value: 'test' } });
+    fireEvent.change(screen.getByLabelText('Password *'), { target: { value: 'foo' } });
     fireEvent.click(screen.getByRole('checkbox'));
-    expect(screen.getByRole('checkbox')).toBeChecked();
-
-    fireEvent.submit(screen.getByRole('button', { name: 'Create Account' }));
-    expect(await screen.findAllByRole('alert')).toHaveLength(2);
-    expect(mockSubmit).not.toBeCalled();
+    fireEvent.click(screen.getByRole('button', { name: 'Create Account' }));
+    expect(onSubmit).not.toBeCalled();
   });
 
-  it('should not submit if email and password are valid, and terms are not selected', async () => {
-    getScreen();
-    fireEvent.input(screen.getByTestId('signup-pwd'), {
-      target: {
-        value: 'foo#1234'
-      }
-    });
-    fireEvent.input(screen.getByTestId('signup-email'), {
-      target: {
-        value: 'test@test.com'
-      }
-    });
+  it("doesn't submit if email and password are valid, but terms aren't selected", () => {
+    const onSubmit = jest.fn();
 
+    tree({ onSubmit });
+    fireEvent.change(screen.getByRole('textbox', { name: 'Email' }), { target: { value: 'test@test.com' } });
+    fireEvent.change(screen.getByLabelText('Password *'), { target: { value: 'password123' } });
     expect(screen.getByRole('checkbox')).not.toBeChecked();
-    fireEvent.submit(screen.getByRole('button', { name: 'Create Account' }));
-    await waitFor(() => expect(screen.queryAllByRole('alert')).toHaveLength(0));
-    expect(mockSubmit).not.toBeCalled();
+    fireEvent.click(screen.getByRole('button', { name: 'Create Account' }));
+    expect(onSubmit).not.toBeCalled();
   });
 
-  it('should submit if email and password are valid and terms are selected', async () => {
-    getScreen();
-    fireEvent.input(screen.getByTestId('signup-pwd'), {
-      target: {
-        value: 'foo#$%123'
-      }
-    });
-    fireEvent.input(screen.getByTestId('signup-email'), {
-      target: {
-        value: 'test@test.com'
-      }
-    });
+  it('submits if email and password are valid and terms are selected', () => {
+    const onSubmit = jest.fn();
 
+    tree({ onSubmit });
+    fireEvent.change(screen.getByRole('textbox', { name: 'Email' }), { target: { value: 'test@test.com' } });
+    fireEvent.change(screen.getByLabelText('Password *'), { target: { value: 'password123' } });
     expect(screen.getByRole('checkbox')).not.toBeChecked();
     fireEvent.click(screen.getByRole('checkbox'));
     expect(screen.getByRole('checkbox')).toBeChecked();
-
-    fireEvent.submit(screen.getByRole('button', { name: 'Create Account' }));
-    await waitFor(() => expect(screen.queryAllByRole('alert')).toHaveLength(0));
-    expect(mockSubmit).toBeCalled();
+    fireEvent.click(screen.getByRole('button', { name: 'Create Account' }));
+    expect(onSubmit.mock.calls).toEqual([['test@test.com', 'password123']]);
   });
 
-  it('should show custom email error message if errorMessage.email is set', () => {
-    getScreen({ errorMessage: { email: 'mock-error-message' } });
+  it('shows a custom email error message if errorMessage.email is set', () => {
+    tree({ errorMessage: { email: 'mock-error-message' } });
     expect(screen.getByText('mock-error-message')).toBeInTheDocument();
   });
-  it('should show custom password error message if errorMessage.password is set', () => {
-    getScreen({ errorMessage: { password: 'mock-error-message' } });
+
+  it('shows a custom password error message if errorMessage.password is set', () => {
+    tree({ errorMessage: { password: 'mock-error-message' } });
     expect(screen.getByText('mock-error-message')).toBeInTheDocument();
+  });
+
+  it('enables the submit button by default', () => {
+    tree();
+    expect(screen.getByRole('button', { name: 'Create Account' })).toBeEnabled();
+  });
+
+  it('disables the submit button if the disabled prop is true', () => {
+    tree({ disabled: true });
+    expect(screen.getByRole('button', { name: 'Create Account' })).toBeDisabled();
+  });
+
+  it('is accessible', async () => {
+    const { container } = tree();
+
+    expect(await axe(container)).toHaveNoViolations();
   });
 });

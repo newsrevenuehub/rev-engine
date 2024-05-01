@@ -73,24 +73,24 @@ describe('Account', () => {
     it('should show an error message for invalid credentials', () => {
       cy.visit(SIGN_IN);
       cy.url().should('include', SIGN_IN);
-      cy.getByTestId('signin-email').type('test@test.com');
-      cy.getByTestId('signin-pwd-password').type('wrong_password');
+      cy.findByRole('textbox', { name: 'Email' }).type('test@test.com');
+      cy.findByLabelText('Password *').type('wrong_password');
       cy.intercept('POST', getEndpoint(TOKEN), {
         statusCode: 401,
         body: TOKEN_API_401
       });
-      cy.get('button[name="Sign In"]').click();
+      cy.findByRole('button', { name: 'Sign In' }).click();
       cy.contains(TOKEN_API_401.detail);
     });
 
     it('should show allow sign-in for valid credentials', () => {
       cy.visit(SIGN_IN);
       cy.url().should('include', SIGN_IN);
-      cy.getByTestId('signin-email').type('test-valid@test.com');
-      cy.getByTestId('signin-pwd-password').type('password');
+      cy.findByRole('textbox', { name: 'Email' }).type('test-valid@test.com');
+      cy.findByLabelText('Password *').type('password');
       cy.intercept(getEndpoint(TOKEN), TOKEN_API_200);
       cy.intercept({ method: 'GET', pathname: getEndpoint(USER) }, { body: orgAdminWithContentFlag });
-      cy.get('button[name="Sign In"]').click();
+      cy.findByRole('button', { name: 'Sign In' }).click();
       cy.url().should('include', CONTENT_SLUG);
     });
   });
@@ -113,26 +113,26 @@ describe('Account', () => {
     it('should show api-response error if password-reset unsuccessful', () => {
       cy.visit(`${RESET_PASSWORD}?token=sometoken`);
       cy.url().should('include', RESET_PASSWORD);
-      cy.getByTestId('reset-pwd-password').type('P1#password');
-      cy.getByTestId('reset-pwd1-password').type('P1#password');
+      cy.findByLabelText('New Password *').type('P1#password');
+      cy.findByLabelText('Confirm Password *').type('P1#password');
       cy.intercept('POST', getEndpoint(RESET_PASSWORD_ENDPOINT), {
         statusCode: 404,
         body: RESET_PASSWORD_ENDPOINT_404
       });
-      cy.get('button[name="Reset Password"]').click();
+      cy.findByRole('button', { name: 'Reset Password' }).click();
       cy.contains(RESET_PASSWORD_ENDPOINT_404.detail);
     });
 
-    it('should show a success message if password-reset successfull', () => {
+    it('should show a success message if password-reset successful', () => {
       cy.visit(`${RESET_PASSWORD}?token=sometoken`);
       cy.url().should('include', RESET_PASSWORD);
-      cy.getByTestId('reset-pwd-password').type('P1#password');
-      cy.getByTestId('reset-pwd1-password').type('P1#password');
+      cy.findByLabelText('New Password *').type('P1#password');
+      cy.findByLabelText('Confirm Password *').type('P1#password');
       cy.intercept('POST', getEndpoint(RESET_PASSWORD_ENDPOINT), {
         statusCode: 200,
         body: RESET_PASSWORD_ENDPOINT_200
       });
-      cy.get('button[name="Reset Password"]').click();
+      cy.findByRole('button', { name: 'Reset Password' }).click();
       cy.contains(RESET_PASSWORD_SUCCESS_TEXT);
     });
   });
@@ -141,30 +141,30 @@ describe('Account', () => {
     it('should show an error message if email already exists', () => {
       cy.visit(SIGN_UP);
       cy.url().should('include', SIGN_UP);
-      cy.get('input[name="email"]').type('test@test.com');
-      cy.get('input[name="password"]').type('P1#password');
-      cy.get('[type="checkbox"]').check();
+      cy.findByRole('textbox', { name: 'Email' }).type('test@test.com');
+      cy.findByLabelText('Password *').type('P1#password');
+      cy.findByRole('checkbox').check();
       cy.intercept('POST', getEndpoint(USER), {
         statusCode: 400,
         body: CREATE_USER_ENDPOINT_400
       });
-      cy.get('button[name="Create Account"]').click();
+      cy.findByRole('button', { name: 'Create Account' }).click();
       cy.contains('This email is already being used by an account. Try signing in.');
     });
 
     it('should show create an account and show verify screen', () => {
       cy.visit(SIGN_UP);
       cy.url().should('include', SIGN_UP);
-      cy.get('input[name="email"]').type('test@test.com');
-      cy.get('input[name="password"]').type('P1#password');
-      cy.get('[type="checkbox"]').check();
+      cy.findByRole('textbox', { name: 'Email' }).type('test@test.com');
+      cy.findByLabelText('Password *').type('P1#password');
+      cy.findByRole('checkbox').check();
       cy.intercept(getEndpoint(TOKEN), TOKEN_API_200);
       cy.intercept({ method: 'GET', pathname: getEndpoint(USER) }, { body: rpAdminUnverifiedNewUser });
       cy.intercept('POST', getEndpoint(USER), {
         statusCode: 201,
         body: CREATE_USER_ENDPOINT_201
       });
-      cy.get('button[name="Create Account"]').click();
+      cy.findByRole('button', { name: 'Create Account' }).click();
       cy.url().should('include', VERIFY_EMAIL_SUCCESS);
     });
   });

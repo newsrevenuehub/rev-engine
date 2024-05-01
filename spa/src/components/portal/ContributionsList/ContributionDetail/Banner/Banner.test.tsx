@@ -2,6 +2,9 @@ import { PortalContributionDetail } from 'hooks/usePortalContribution';
 import { axe } from 'jest-axe';
 import { render, screen } from 'test-utils';
 import Banner, { BannerProps } from './Banner';
+import usePortal from 'hooks/usePortal';
+
+jest.mock('hooks/usePortal');
 
 const mockContribution: PortalContributionDetail = {
   amount: 12345,
@@ -29,18 +32,65 @@ function tree(props?: Partial<BannerProps>) {
 }
 
 describe('Banner', () => {
+  const usePortalMock = jest.mocked(usePortal);
+
+  beforeEach(() => {
+    usePortalMock.mockReturnValue({ page: null } as any);
+  });
+
   describe('Status = Canceled', () => {
     it('should render title', () => {
       tree({ contribution: { ...mockContribution, status: 'canceled' } });
       expect(screen.getByText('Canceled')).toBeVisible();
     });
-    it('should render description', () => {
+
+    it('should render description without canceled_at date', () => {
       tree({ contribution: { ...mockContribution, status: 'canceled' } });
       expect(
         screen.getByText(
           'This contribution was canceled. Help our community and continue your support of our mission by creating a new contribution.'
         )
       ).toBeVisible();
+    });
+
+    it('should render description with canceled_at date', () => {
+      tree({
+        contribution: { ...mockContribution, status: 'canceled', canceled_at: new Date('1/2/2024').toISOString() }
+      });
+      expect(
+        screen.getByText(
+          'This contribution was canceled at 1/2/2024. Help our community and continue your support of our mission by creating a new contribution.'
+        )
+      ).toBeVisible();
+    });
+
+    it('should render link to donation page', () => {
+      usePortalMock.mockReturnValue({
+        page: {
+          revenue_program: {
+            slug: 'mock-rp-slug'
+          },
+          slug: 'mock-page-slug'
+        }
+      } as any);
+
+      tree({
+        contribution: { ...mockContribution, status: 'canceled', canceled_at: new Date('1/2/2024').toISOString() }
+      });
+      const link = screen.getByRole('link', { name: 'creating a new contribution' });
+
+      expect(link).toBeVisible();
+      expect(link).toHaveAttribute('href', '//mock-rp-slug.localhost/mock-page-slug');
+      expect(link).toHaveAttribute('target', '_blank');
+    });
+
+    it('should not render link if donation page null', () => {
+      tree({
+        contribution: { ...mockContribution, status: 'canceled', canceled_at: new Date('1/2/2024').toISOString() }
+      });
+
+      expect(screen.queryByRole('link', { name: 'creating a new contribution' })).not.toBeInTheDocument();
+      expect(screen.getByText('creating a new contribution', { exact: false })).toBeVisible();
     });
 
     it('is accessible', async () => {

@@ -58,7 +58,6 @@ class PortalContributionFilter(django_filters.rest_framework.DjangoFilterBackend
         return queryset.filter(
             Q(donation_page__revenue_program__id=revenue_program_id)
             | Q(_revenue_program__id=revenue_program_id)
-            # can this Q go away?
             | Q(contribution_metadata__contains={"revenue_program_id": revenue_program_id})
         )
 

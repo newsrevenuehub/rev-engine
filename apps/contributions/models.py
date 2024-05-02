@@ -168,7 +168,7 @@ class Contribution(IndexedTimeStampedModel):
     contributor = models.ForeignKey("contributions.Contributor", on_delete=models.SET_NULL, null=True)
 
     # Further down, we add a constraint that requires that either donation page or _revenue_program
-    # be set but not both.  This is to allow importing legacy contribution data that cannot be attributed
+    # be set but not both. This is to allow importing legacy contribution data that cannot be attributed
     # to a specific donation page. We only allow one or the other because if there is a donation page defined,
     # it will already have a parent revenue program, and we don't want to denormalize that relationship.
     # Also, note that the reason we are calling this field _revenue_program is so we can define a polymorphic

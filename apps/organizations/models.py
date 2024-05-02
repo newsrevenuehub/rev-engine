@@ -642,7 +642,7 @@ class RevenueProgramMailchimpClient(MailchimpMarketing.Client):
                     "Mailchimp %s not found for RP %s, returning None", entity, self.id
                 )
             case 429:
-                logger.debug("Mailchimp rate limit exceeded for RP %s, raising exception", self.id)
+                logger.warning("Mailchimp rate limit exceeded for RP %s, raising exception", self.id)
                 # We raise this error because we have Celery tasks that interact with Mailchimp API and
                 # in case of rate limit error we will want to retry
                 raise MailchimpRateLimitError("Mailchimp rate limit exceeded")
@@ -654,7 +654,7 @@ class RevenueProgramMailchimpClient(MailchimpMarketing.Client):
         logger.info("Called for RP %s", self.revenue_program.id)
         match exc.status_code:
             case 429:
-                logger.debug("Mailchimp rate limit exceeded for RP %s, raising exception", self.revenue_program.id)
+                logger.warning("Mailchimp rate limit exceeded for RP %s, raising exception", self.revenue_program.id)
                 # We raise this error because we have Celery tasks that interact with Mailchimp API and
                 # in case of rate limit error we will want to retry
                 raise MailchimpRateLimitError("Mailchimp rate limit exceeded")

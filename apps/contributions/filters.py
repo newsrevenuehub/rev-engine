@@ -2,6 +2,7 @@ from django.db.models import Q
 
 import django_filters
 
+from apps.contributions.choices import ContributionInterval
 from apps.contributions.models import Contribution, ContributionStatus
 
 
@@ -53,6 +54,7 @@ class ContributionFilter(django_filters.FilterSet):
 
 class PortalContributionFilter(django_filters.rest_framework.DjangoFilterBackend):
     ALLOWED_FILTER_FIELDS = ["status", "revenue_program"]
+    RECURRING = "recurring"
 
     def filter_queryset_by_rp(self, queryset, revenue_program_id: str):
         return queryset.filter(
@@ -61,6 +63,15 @@ class PortalContributionFilter(django_filters.rest_framework.DjangoFilterBackend
             | Q(contribution_metadata__contains={"revenue_program_id": revenue_program_id})
         )
 
+    def filter_intervals(self, queryset, request):
+        match request.query_params.get("interval"):
+            case ContributionInterval.ONE_TIME.value:
+                return queryset.filter(interval=ContributionInterval.ONE_TIME)
+            case self.RECURRING:
+                return queryset.exclude(interval=ContributionInterval.ONE_TIME)
+            case _:
+                return queryset
+
     def filter_queryset(self, request, queryset):
         filters = {}
         for field in [x for x in self.ALLOWED_FILTER_FIELDS if x != "revenue_program"]:
@@ -68,6 +79,7 @@ class PortalContributionFilter(django_filters.rest_framework.DjangoFilterBackend
             if value is not None:
                 filters[field] = value
         qs = queryset.filter(**filters)
+        qs = self.filter_intervals(qs, request)
         if (value := request.query_params.get("revenue_program", None)) is not None:
             qs = self.filter_queryset_by_rp(qs, value)
         return qs

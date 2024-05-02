@@ -4,6 +4,7 @@ from zoneinfo import ZoneInfo
 
 from django.core.management.base import BaseCommand
 from django.db.models import Q
+from django.db.models.functions import Coalesce
 
 import reversion
 import stripe
@@ -50,11 +51,17 @@ class Command(BaseCommand):
         if not payments_missing_transaction_time.exists():
             self.stdout.write(self.style.HTTP_INFO("No payments with missing transaction time found, exiting"))
             return
-
         accounts = self.get_stripe_accounts_and_their_connection_status(
-            payments_missing_transaction_time.values_list(
-                "contribution__donation_page__revenue_program__payment_provider__stripe_account_id", flat=True
-            ).distinct("contribution__donation_page__revenue_program__payment_provider__stripe_account_id")
+            payments_missing_transaction_time.annotate(
+                stripe_account_id=Coalesce(
+                    # Path through DonationPage to RevenueProgram to PaymentProvider
+                    "contribution__donation_page__revenue_program__payment_provider__stripe_account_id",
+                    # Direct path from Contribution to RevenueProgram to PaymentProvider
+                    "contribution___revenue_program__payment_provider__stripe_account_id",
+                )
+            )
+            .values_list("stripe_account_id", flat=True)
+            .distinct()
         )
         unretrievable_accounts = [k for k, v in accounts.items() if not v]
         connected_accounts = [k for k, v in accounts.items() if v]

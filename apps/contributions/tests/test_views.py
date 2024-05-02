@@ -253,7 +253,7 @@ class TestContributionsViewSet:
         return request.getfixturevalue(request.param) if request.param else None
 
     def test_retrieve_when_unauthorized_user(self, api_client, contribution, unauthorized_user):
-        """Show behavior when an unauthorized user trise to retrieve a contribution"""
+        """Show behavior when an unauthorized user tries to retrieve a contribution"""
         api_client.force_authenticate(unauthorized_user)
         response = api_client.get(reverse("contribution-detail", args=(contribution.id,)))
         assert response.status_code == status.HTTP_403_FORBIDDEN if unauthorized_user else status.HTTP_401_UNAUTHORIZED
@@ -1540,6 +1540,36 @@ class TestPortalContributorsViewSet:
         return contribution
 
     @pytest.fixture
+    def yearly_contribution(
+        self,
+        revenue_program,
+        portal_contributor,
+        faker,
+        stripe_subscription,
+    ):
+        then = datetime.now() - timedelta(days=365)
+        contribution = ContributionFactory(
+            interval=ContributionInterval.YEARLY,
+            status=ContributionStatus.PAID,
+            created=then,
+            donation_page__revenue_program=revenue_program,
+            contributor=portal_contributor,
+            provider_payment_id=faker.pystr_format(string_format="pi_??????"),
+            provider_customer_id=faker.pystr_format(string_format="cus_??????"),
+            provider_subscription_id=stripe_subscription.id,
+            provider_payment_method_id=faker.pystr_format(string_format="pm_??????"),
+        )
+        for x in (then, then + timedelta(days=365)):
+            PaymentFactory(
+                created=x,
+                contribution=contribution,
+                amount_refunded=0,
+                gross_amount_paid=contribution.amount,
+                net_amount_paid=contribution.amount - 100,
+            )
+        return contribution
+
+    @pytest.fixture
     def portal_contributor(self):
         return ContributorFactory()
 
@@ -1547,6 +1577,7 @@ class TestPortalContributorsViewSet:
     def portal_contributor_with_multiple_contributions(
         self,
         portal_contributor,
+        yearly_contribution,
         monthly_contribution,
         one_time_contribution,
         stripe_customer_factory,
@@ -1556,6 +1587,8 @@ class TestPortalContributorsViewSet:
         cust_id = monthly_contribution.provider_customer_id
         one_time_contribution.provider_customer_id = cust_id
         one_time_contribution.save()
+        yearly_contribution.provider_customer_id = cust_id
+        yearly_contribution.save()
 
         mock_customer_retrieve = mocker.patch(
             "stripe.Customer.retrieve",
@@ -1599,7 +1632,7 @@ class TestPortalContributorsViewSet:
         response = api_client.get(reverse("portal-contributor-contributions-list", args=(contributor.id,)))
         assert response.status_code == status.HTTP_200_OK
         assert set(response.json().keys()) == {"count", "next", "previous", "results"}
-        assert len(response.json()["results"]) == 2
+        assert len(response.json()["results"]) == 3
         assert set(x["id"] for x in response.json()["results"]) == set(
             contributor.contribution_set.all().values_list("id", flat=True)
         )
@@ -1634,9 +1667,13 @@ class TestPortalContributorsViewSet:
             + f"?status={ContributionStatus.PAID}"
         )
         assert response.status_code == status.HTTP_200_OK
-        assert len(response.json()["results"]) == 1
+        assert len(response.json()["results"]) == 2
         assert (
             response.json()["results"][0]["id"]
+            == contributor.contribution_set.filter(status=ContributionStatus.PAID).last().id
+        )
+        assert (
+            response.json()["results"][1]["id"]
             == contributor.contribution_set.filter(status=ContributionStatus.PAID).first().id
         )
 
@@ -1680,7 +1717,13 @@ class TestPortalContributorsViewSet:
         for index, x in enumerate(Contribution.objects.all()):
             x.amount = amount
             amount += 1000
-            x.status = ContributionStatus.PAID.label if index % 2 == 0 else ContributionStatus.FAILED.label
+            match index:
+                case 0:
+                    x.status = ContributionStatus.PAID.label
+                case 1:
+                    x.status = ContributionStatus.FAILED.label
+                case 2:
+                    x.status = ContributionStatus.FLAGGED.label
             x.payment_set.all().update(gross_amount_paid=x.amount, net_amount_paid=x.amount - 100)
             x.save()
         api_client.force_authenticate(contributor)
@@ -1711,7 +1754,13 @@ class TestPortalContributorsViewSet:
         for index, x in enumerate(Contribution.objects.all()):
             x.amount = amount
             amount += 1000
-            x.status = ContributionStatus.PAID.label if index % 2 == 0 else ContributionStatus.FAILED.label
+            match index:
+                case 0:
+                    x.status = ContributionStatus.PAID.label
+                case 1:
+                    x.status = ContributionStatus.FAILED.label
+                case 2:
+                    x.status = ContributionStatus.FLAGGED.label
             x.payment_set.all().update(gross_amount_paid=x.amount, net_amount_paid=x.amount - 100)
             # Create identical contribution with different date (test second field ordering by date)
             Contribution.objects.create(amount=x.amount, status=x.status, contributor=contributor)
@@ -1797,6 +1846,7 @@ class TestPortalContributorsViewSet:
         self,
         status,
         api_client,
+        yearly_contribution,
         monthly_contribution,
         one_time_contribution,
         portal_contributor_with_multiple_contributions,
@@ -1806,8 +1856,9 @@ class TestPortalContributorsViewSet:
         one_time_contribution.save()
         api_client.force_authenticate(contributor)
         response = api_client.get(reverse("portal-contributor-contributions-list", args=(contributor.id,)))
-        assert len(response.json()["results"]) == 1
-        assert response.json()["results"][0]["id"] == monthly_contribution.id
+        assert len(response.json()["results"]) == 2
+        assert response.json()["results"][0]["id"] == yearly_contribution.id
+        assert response.json()["results"][1]["id"] == monthly_contribution.id
 
     def test_contribution_detail_get_happy_path(
         self,
@@ -1913,6 +1964,123 @@ class TestPortalContributorsViewSet:
                     not_mine.id,
                 ),
             )
+        )
+        assert response.status_code == status.HTTP_404_NOT_FOUND
+        assert response.json() == {"detail": "Contribution not found"}
+
+    @pytest.mark.parametrize(
+        "interval",
+        (
+            ContributionInterval.ONE_TIME,
+            ContributionInterval.MONTHLY,
+            ContributionInterval.YEARLY,
+        ),
+    )
+    def test_contribution_send_receipt(
+        self,
+        interval,
+        api_client,
+        portal_contributor_with_multiple_contributions,
+        mocker,
+    ):
+        contributor = portal_contributor_with_multiple_contributions[0]
+        contribution = contributor.contribution_set.filter(interval=interval).first()
+        mock_send_receipt = mocker.patch("apps.contributions.models.Contribution.handle_thank_you_email")
+        api_client.force_authenticate(contributor)
+        response = api_client.post(
+            reverse("portal-contributor-contribution-receipt", args=(contributor.id, contribution.id))
+        )
+        assert response.status_code == status.HTTP_204_NO_CONTENT
+        mock_send_receipt.assert_called_once()
+
+    @pytest.mark.parametrize(
+        "contribution_status,send_receipt",
+        (
+            (ContributionStatus.PAID, True),
+            (ContributionStatus.CANCELED, True),
+            (ContributionStatus.REFUNDED, True),
+            (ContributionStatus.FAILED, True),
+            # Should return 404 Not Found error on all HIDDEN_STATUSES
+            (ContributionStatus.PROCESSING, False),
+            (ContributionStatus.FLAGGED, False),
+            (ContributionStatus.REJECTED, False),
+        ),
+    )
+    def test_contribution_send_receipt_on_status(
+        self,
+        contribution_status,
+        send_receipt,
+        api_client,
+        portal_contributor_with_multiple_contributions,
+        mocker,
+    ):
+        contributor = portal_contributor_with_multiple_contributions[0]
+        contribution = contributor.contribution_set.first()
+        contribution.status = contribution_status
+        contribution.save()
+        mock_send_receipt = mocker.patch("apps.contributions.models.Contribution.handle_thank_you_email")
+        api_client.force_authenticate(contributor)
+        response = api_client.post(
+            reverse("portal-contributor-contribution-receipt", args=(contributor.id, contribution.id))
+        )
+        if send_receipt:
+            assert response.status_code == status.HTTP_204_NO_CONTENT
+            mock_send_receipt.assert_called_once()
+        else:
+            assert response.status_code == status.HTTP_404_NOT_FOUND
+            assert response.json() == {"detail": "Contribution not found"}
+            mock_send_receipt.assert_not_called()
+
+    def test_contribution_send_receipt_when_im_not_contributor(
+        self, portal_contributor_with_multiple_contributions, non_contributor_user, api_client, mocker
+    ):
+        contributor = portal_contributor_with_multiple_contributions[0]
+        api_client.force_authenticate(non_contributor_user)
+        response = api_client.post(
+            reverse(
+                "portal-contributor-contribution-receipt",
+                args=(
+                    contributor.id,
+                    contributor.contribution_set.first().id,
+                ),
+            ),
+        )
+        assert response.status_code == status.HTTP_403_FORBIDDEN
+
+    def test_contribution_send_receipt_when_contribution_not_found(
+        self, api_client, portal_contributor_with_multiple_contributions
+    ):
+        contributor = portal_contributor_with_multiple_contributions[0]
+        deleted = contributor.contribution_set.first()
+        deleted_id = deleted.id
+        deleted.delete()
+        api_client.force_authenticate(contributor)
+        response = api_client.post(
+            reverse(
+                "portal-contributor-contribution-receipt",
+                args=(
+                    contributor.id,
+                    deleted_id,
+                ),
+            ),
+        )
+        assert response.status_code == status.HTTP_404_NOT_FOUND
+        assert response.json() == {"detail": "Contribution not found"}
+
+    def test_contribution_send_receipt_when_not_own_contribution(
+        self, api_client, portal_contributor_with_multiple_contributions
+    ):
+        contributor = portal_contributor_with_multiple_contributions[0]
+        not_mine = ContributionFactory()
+        api_client.force_authenticate(contributor)
+        response = api_client.post(
+            reverse(
+                "portal-contributor-contribution-receipt",
+                args=(
+                    contributor.id,
+                    not_mine.id,
+                ),
+            ),
         )
         assert response.status_code == status.HTTP_404_NOT_FOUND
         assert response.json() == {"detail": "Contribution not found"}

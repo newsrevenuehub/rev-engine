@@ -1,5 +1,5 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
-import { getContributionDetailEndpoint } from 'ajax/endpoints';
+import { getContributionDetailEndpoint, getContributionSendEmailReceiptEndpoint } from 'ajax/endpoints';
 import axios from 'ajax/portal-axios';
 import { AxiosError } from 'axios';
 import SystemNotification from 'components/common/SystemNotification';
@@ -47,6 +47,12 @@ export interface PortalContributionDetail extends PortalContribution {
    * ID of the Stripe account that owns this payment or subscription.
    */
   stripe_account_id: string;
+  /**
+   * Canceled at data retrieved from Stripe Subscription object.
+   * Will be a of "timestamp" format
+   * Ref: https://docs.stripe.com/api/subscriptions/object#subscription_object-cancel_at
+   */
+  canceled_at?: string;
 }
 
 /**
@@ -169,5 +175,37 @@ export function usePortalContribution(contributorId: number, contributionId: num
     [updateContributionMutation]
   );
 
-  return { contribution: data, isError, isFetching, isLoading, refetch, updateContribution, cancelContribution };
+  const sendEmailReceiptMutation = useMutation(
+    () => axios.post(getContributionSendEmailReceiptEndpoint(contributorId, contributionId)),
+    {
+      onError: () => {
+        enqueueSnackbar('Your receipt has failed to send to your email. Please wait and try again.', {
+          persist: true,
+          content: (key: string, message: string) => (
+            <SystemNotification id={key} message={message} header="Failed to Send" type="error" />
+          )
+        });
+      },
+      onSuccess: () => {
+        enqueueSnackbar('Your receipt has been sent to your email.', {
+          persist: true,
+          content: (key: string, message: string) => (
+            <SystemNotification id={key} message={message} header="Receipt Sent!" type="success" />
+          )
+        });
+      }
+    }
+  );
+  const sendEmailReceipt = useCallback(() => sendEmailReceiptMutation.mutateAsync(), [sendEmailReceiptMutation]);
+
+  return {
+    contribution: data,
+    isError,
+    isFetching,
+    isLoading,
+    refetch,
+    updateContribution,
+    cancelContribution,
+    sendEmailReceipt
+  };
 }

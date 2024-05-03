@@ -738,11 +738,9 @@ class StripeTransactionsImporter:
             logger.warning("No revenue program found for id %s", rp_id)
             return None
         slug = parse_slug_from_url(metadata["referer"])
-        return (
-            revenue_program.donationpage_set.filter(slug=slug).first()
-            if slug
-            else revenue_program.default_donation_page
-        )
+        if slug := parse_slug_from_url(metadata["referer"]):
+            return revenue_program.donationpage_set.filter(slug=slug).first()
+        return revenue_program.default_donation_page
 
     @transaction.atomic
     def upsert_contribution(self, stripe_entity: dict, is_one_time: bool) -> Tuple[Contribution, str]:

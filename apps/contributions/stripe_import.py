@@ -569,9 +569,8 @@ class StripeTransactionsImporter:
         )
         if not pm_id and customer.get("invoice_settings", None):
             pm_id = customer["invoice_settings"].get("default_payment_method", None)
-        if pm_id:
-            pm = self.get_payment_method(pm_id)
-            return pm.to_dict() if pm else None
+        if pm_id and (pm := self.get_payment_method(pm_id)):
+            return pm.to_dict()
         return None
 
     def update_contribution_stats(self, action: str, contribution: Contribution | None) -> None:

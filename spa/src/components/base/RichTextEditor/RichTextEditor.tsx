@@ -40,7 +40,13 @@ const Root = styled.div`
 export function RichTextEditor(props: RichTextEditorProps) {
   return (
     <Root>
-      <Editor toolbar={defaultToolbar} {...props} />
+      <Editor
+        toolbar={defaultToolbar}
+        // Needed to prevent overriding the paste event and losing formatting
+        // ref: https://github.com/jpuri/react-draft-wysiwyg/issues/967#issuecomment-792075354
+        handlePastedText={() => false}
+        {...props}
+      />
     </Root>
   );
 }

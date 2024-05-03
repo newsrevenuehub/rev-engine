@@ -667,8 +667,7 @@ class StripeTransactionsImporter:
     def get_provider_payment_id_for_subscription(self, subscription: dict) -> str | None:
         """Get provider payment id for a subscription"""
         provider_payment_id = None
-        invoice_id = subscription.get("latest_invoice", None)
-        if invoice_id:
+        if invoice_id := subscription.get("latest_invoice", None):
             invoice = self.get_resource_from_cache(self.make_key(entity_id=invoice_id, entity_name="Invoice"))
             provider_payment_id = invoice.get("payment_intent", None)
         return provider_payment_id

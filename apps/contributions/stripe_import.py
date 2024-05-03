@@ -195,8 +195,6 @@ class StripeTransactionsImporter:
     from_date: datetime.datetime = None
     to_date: datetime.datetime = None
 
-    _STRIPE_SEARCH_FILTER_METADATA_QUERY: str = '-metadata["referer"]:null AND -metadata["schema_version"]:null'
-
     def __post_init__(self) -> None:
         self.redis = get_redis_connection(settings.STRIPE_TRANSACTIONS_IMPORT_CACHE)
         self.cache_ttl = settings.STRIPE_TRANSACTIONS_IMPORT_CACHE_TTL

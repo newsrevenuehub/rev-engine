@@ -55,6 +55,7 @@ describe('usePortalContribution', () => {
     useHistoryMock.mockReturnValue({ push });
     axiosMock.onGet('contributors/123/contributions/1/').reply(200, mockContributionResponse);
     axiosMock.onPatch('contributors/123/contributions/1/').reply(200);
+    axiosMock.onPost('contributors/123/contributions/1/send-receipt/').reply(204);
     enqueueSnackbar = jest.fn();
     useSnackbarMock.mockReturnValue({ enqueueSnackbar } as any);
     useQueryClientMock.mockReturnValue({
@@ -293,6 +294,42 @@ describe('usePortalContribution', () => {
       expect(enqueueSnackbar.mock.calls).toEqual([
         [
           'A problem occurred while updating your contribution. Please try again.',
+          expect.objectContaining({ persist: true })
+        ]
+      ]);
+      errorSpy.mockRestore();
+    });
+  });
+
+  describe('The sendEmailReceipt function', () => {
+    it('makes a POST to /api/v1/contributions/{id}/send-receipt/', async () => {
+      const { result, waitFor } = hook(123, 1);
+
+      expect(axiosMock.history.post.length).toBe(0);
+
+      result.current.sendEmailReceipt();
+      await waitFor(() => expect(axiosMock.history.post.length).toBe(1));
+      expect(axiosMock.history.post[0].url).toBe('/contributors/123/contributions/1/send-receipt/');
+    });
+
+    it('resolves with the request and shows a notification if the POST succeeds', async () => {
+      const { result } = hook(123, 1);
+
+      expect(await result.current.sendEmailReceipt()).not.toBe(undefined);
+      expect(enqueueSnackbar.mock.calls).toEqual([
+        ['Your receipt has been sent to your email.', expect.objectContaining({ persist: true })]
+      ]);
+    });
+
+    it('rejects and shows an error notification if the POST fails', async () => {
+      const errorSpy = jest.spyOn(console, 'error').mockImplementation(() => {});
+      const { result } = hook(123, 1);
+
+      axiosMock.onPost('contributors/123/contributions/1/send-receipt/').networkError();
+      await expect(result.current.sendEmailReceipt()).rejects.toThrow();
+      expect(enqueueSnackbar.mock.calls).toEqual([
+        [
+          'Your receipt has failed to send to your email. Please wait and try again.',
           expect.objectContaining({ persist: true })
         ]
       ]);

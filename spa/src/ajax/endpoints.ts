@@ -50,6 +50,10 @@ export function getContributionDetailEndpoint(contributorId: number, contributio
   return `/contributors/${contributorId}/contributions/${contributionId}/`;
 }
 
+export function getContributionSendEmailReceiptEndpoint(contributorId: number, contributionId: number) {
+  return `${getContributionDetailEndpoint(contributorId, contributionId)}send-receipt/`;
+}
+
 export const CONTRIBUTIONS = 'contributions/';
 export const EMAIL_CONTRIBUTIONS = 'email-contributions/';
 export const PROCESS_FLAGGED = 'process-flagged/';

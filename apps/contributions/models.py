@@ -12,6 +12,7 @@ from zoneinfo import ZoneInfo
 
 from django.conf import settings
 from django.db import models
+from django.db.models import Q, Sum
 from django.template.loader import render_to_string
 from django.utils.safestring import SafeString, mark_safe
 
@@ -49,6 +50,24 @@ class ContributionStatusError(Exception):
 class Contributor(IndexedTimeStampedModel):
     uuid = models.UUIDField(default=uuid.uuid4, primary_key=False, editable=False)
     email = models.EmailField(unique=True)
+
+    def get_impact(self, revenue_program_ids: List[int] | None = None):
+        """
+        Calculate the total impact of a contributor across multiple revenue programs
+        """
+        totals = (
+            self.contribution_set.filter_by_revenue_programs(revenue_program_ids)
+            .annotate(total_payments=Sum("payment__net_amount_paid"), total_refunded=Sum("payment__amount_refunded"))
+            .aggregate(
+                total_amount_paid=Sum("total_payments", default=0),
+                total_amount_refunded=Sum("total_refunded", default=0),
+            )
+        )
+        return {
+            "total_paid": (total_paid := totals["total_amount_paid"] or 0),
+            "total_refunded": (total_refunded := totals["total_amount_refunded"] or 0),
+            "total": total_paid - total_refunded,
+        }
 
     @property
     def is_authenticated(self):
@@ -92,6 +111,17 @@ class ContributionQuerySet(models.QuerySet):
 
     def recurring(self):
         return self.filter(interval__in=[ContributionInterval.MONTHLY, ContributionInterval.YEARLY])
+
+    def filter_by_revenue_programs(
+        self, revenue_programs: list[int] | models.QuerySet[RevenueProgram] | None
+    ) -> models.QuerySet[Contribution]:
+        if revenue_programs:
+            return self.filter(
+                Q(donation_page__revenue_program__in=revenue_programs)
+                | Q(contribution_metadata__revenue_program__in=revenue_programs)
+                # and soon via DEV-4562, there will be a third way, via ._revenue_program FK (this comment can go away)
+            )
+        return self
 
     def having_org_viewable_status(self) -> models.QuerySet:
         """Exclude contributions with statuses that should not be seen by org users from the queryset"""

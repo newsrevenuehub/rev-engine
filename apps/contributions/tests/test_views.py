@@ -1489,7 +1489,7 @@ class TestPortalContributorsViewSet:
         )
         PaymentFactory(
             contribution=contribution,
-            amount_refunded=(contribution.amount - 100) / 2,
+            amount_refunded=0,
             gross_amount_paid=contribution.amount,
             net_amount_paid=contribution.amount - 100,
         )
@@ -1641,7 +1641,7 @@ class TestPortalContributorsViewSet:
         assert response.status_code == status.HTTP_200_OK
         assert response.json() == {
             "total": total_paid - total_refunded,
-            "total_payments": total_paid,
+            "total_paid": total_paid,
             "total_refunded": total_refunded,
         }
 

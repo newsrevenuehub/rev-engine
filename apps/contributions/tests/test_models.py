@@ -2,6 +2,7 @@ import datetime
 import json
 import os
 import re
+from datetime import timedelta
 from unittest.mock import Mock, patch
 from urllib.parse import parse_qs, urlparse
 from zoneinfo import ZoneInfo
@@ -43,6 +44,109 @@ from apps.users.choices import Roles
 
 @pytest.mark.django_db
 class TestContributorModel:
+
+    @pytest.fixture
+    def one_time_contribution_with_payment(self, contributor_user, faker):
+        rp = RevenueProgramFactory()
+        contribution = ContributionFactory(
+            interval=ContributionInterval.ONE_TIME,
+            status=ContributionStatus.PAID,
+            donation_page__revenue_program=rp,
+            contributor=contributor_user,
+            provider_payment_id=faker.pystr_format(string_format="pi_??????"),
+            provider_customer_id=faker.pystr_format(string_format="cus_??????"),
+            provider_payment_method_id=faker.pystr_format(string_format="pm_??????"),
+        )
+        PaymentFactory(
+            contribution=contribution,
+            amount_refunded=0,
+            gross_amount_paid=contribution.amount,
+            net_amount_paid=contribution.amount - 100,
+        )
+        return contribution
+
+    @pytest.fixture
+    def one_time_contribution_with_refund(self, contributor_user, faker):
+        rp = RevenueProgramFactory()
+        contribution = ContributionFactory(
+            interval=ContributionInterval.ONE_TIME,
+            status=ContributionStatus.PAID,
+            donation_page__revenue_program=rp,
+            contributor=contributor_user,
+            provider_payment_id=faker.pystr_format(string_format="pi_??????"),
+            provider_customer_id=faker.pystr_format(string_format="cus_??????"),
+            provider_payment_method_id=faker.pystr_format(string_format="pm_??????"),
+        )
+        PaymentFactory(
+            contribution=contribution,
+            amount_refunded=0,
+            gross_amount_paid=contribution.amount,
+            net_amount_paid=contribution.amount - 100,
+        )
+        PaymentFactory(
+            contribution=contribution,
+            amount_refunded=contribution.amount - 100,
+            gross_amount_paid=contribution.amount,
+            net_amount_paid=0,
+        )
+        return contribution
+
+    @pytest.fixture
+    def monthly_contribution_multiple_payments(
+        self,
+        revenue_program,
+        contributor_user,
+        faker,
+        stripe_subscription,
+    ):
+        then = datetime.datetime.now() - timedelta(days=30)
+        contribution = ContributionFactory(
+            interval=ContributionInterval.MONTHLY,
+            status=ContributionStatus.CANCELED,
+            created=then,
+            donation_page__revenue_program=revenue_program,
+            contributor=contributor_user,
+            provider_payment_id=faker.pystr_format(string_format="pi_??????"),
+            provider_customer_id=faker.pystr_format(string_format="cus_??????"),
+            provider_subscription_id=stripe_subscription.id,
+            provider_payment_method_id=faker.pystr_format(string_format="pm_??????"),
+        )
+        for x in (then, then + timedelta(days=30)):
+            PaymentFactory(
+                created=x,
+                contribution=contribution,
+                amount_refunded=0,
+                gross_amount_paid=contribution.amount,
+                net_amount_paid=contribution.amount - 100,
+            )
+        return contribution
+
+    @pytest.fixture
+    def portal_contributor_with_multiple_contributions_from_different_rps(
+        self,
+        monthly_contribution_multiple_payments,
+        one_time_contribution_with_payment,
+        one_time_contribution_with_refund,
+    ):
+        cust_id = monthly_contribution_multiple_payments.provider_customer_id
+        one_time_contribution_with_payment.provider_customer_id = cust_id
+        one_time_contribution_with_payment.save()
+
+        one_time_contribution_with_refund.provider_customer_id = cust_id
+        one_time_contribution_with_refund.save()
+
+        return monthly_contribution_multiple_payments.contributor
+
+    @pytest.fixture(
+        params=[
+            "one_time_contribution_with_payment",
+            "one_time_contribution_with_refund",
+            "monthly_contribution_multiple_payments",
+        ]
+    )
+    def contribution(self, request):
+        return request.getfixturevalue(request.param)
+
     def test__str__(self, contributor_user):
         assert str(contributor_user) == contributor_user.email
 
@@ -61,6 +165,52 @@ class TestContributorModel:
         params = parse_qs(parsed.query)
         assert params["token"][0]
         assert params["email"][0] == one_time_contribution.contributor.email
+
+    def test_get_impact(self, contribution, contributor_user):
+        total_paid = 0
+        total_refunded = 0
+        for payment in contribution.payment_set.all():
+            total_paid += payment.net_amount_paid
+            total_refunded += payment.amount_refunded
+
+        assert contributor_user.get_impact() == {
+            "total": total_paid - total_refunded,
+            "total_paid": total_paid,
+            "total_refunded": total_refunded,
+        }
+
+    def test_get_impact_with_no_payments(self, contributor_user):
+        assert contributor_user.get_impact() == {"total": 0, "total_paid": 0, "total_refunded": 0}
+
+    def test_get_impact_no_rp_filter(self, portal_contributor_with_multiple_contributions_from_different_rps):
+        total_paid = 0
+        total_refunded = 0
+        for contribution in portal_contributor_with_multiple_contributions_from_different_rps.contribution_set.all():
+            for payment in contribution.payment_set.all():
+                total_paid += payment.net_amount_paid
+                total_refunded += payment.amount_refunded
+
+        assert portal_contributor_with_multiple_contributions_from_different_rps.get_impact() == {
+            "total": total_paid - total_refunded,
+            "total_paid": total_paid,
+            "total_refunded": total_refunded,
+        }
+
+    def test_get_impact_filter_by_rp_id(
+        self, contribution, portal_contributor_with_multiple_contributions_from_different_rps
+    ):
+        rp_id = contribution.donation_page.revenue_program.id
+        total_paid = 0
+        total_refunded = 0
+        for payment in contribution.payment_set.all():
+            total_paid += payment.net_amount_paid
+            total_refunded += payment.amount_refunded
+
+        assert portal_contributor_with_multiple_contributions_from_different_rps.get_impact([rp_id]) == {
+            "total": total_paid - total_refunded,
+            "total_paid": total_paid,
+            "total_refunded": total_refunded,
+        }
 
     @pytest.mark.parametrize(
         "value",

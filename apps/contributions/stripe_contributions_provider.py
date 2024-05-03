@@ -22,7 +22,7 @@ from apps.contributions.serializers import (
     PaymentProviderContributionSerializer,
     SubscriptionsSerializer,
 )
-from apps.contributions.stripe_import import MAX_STRIPE_RESPONSE_LIMIT
+from apps.contributions.stripe_import import MAX_STRIPE_RESPONSE_LIMIT, StripeTransactionsImporter
 from apps.contributions.types import StripePiAsPortalContribution, StripePiSearchResponse
 from revengine.settings.base import CONTRIBUTION_CACHE_TTL, DEFAULT_CACHE
 
@@ -298,16 +298,9 @@ class StripeContributionsProvider:
         """Gets the ContributionInterval from a stripe.Subscription object."""
         # NB: we have encountered one case of a "planless" subscription in the wild, hence the conditionality
         # below around .plan. See DEV-4663 for more detail
-        interval = subscription.plan.interval if subscription.plan else None
-        interval_count = subscription.plan.interval_count if subscription.plan else None
-        match interval, interval_count:
-            case "year", 1:
-                return ContributionInterval.YEARLY
-            case "month", 1:
-                return ContributionInterval.MONTHLY
-            case _:
-                logger.warning("Invalid interval %s for subscription %s", interval, subscription.id)
-                raise InvalidIntervalError(f"Invalid interval {interval} for subscription : {subscription.id}")
+        if not subscription.plan:
+            raise InvalidIntervalError(f"Subscription {subscription.id} has no plan. Cannot derive interval")
+        return StripeTransactionsImporter.get_interval_from_subscription(subscription.plan)
 
     def cast_subscription_to_pi_for_portal(self, subscription: stripe.Subscription) -> StripePiAsPortalContribution:
         """Casts a Subscription object to a PaymentIntent object for use in the Stripe Customer Portal.

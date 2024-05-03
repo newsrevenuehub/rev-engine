@@ -537,8 +537,7 @@ class StripeTransactionsImporter:
     def get_refunds_for_subscription(self, subscription_id: str) -> list[dict]:
         """Get cached refunds, if any for a given subscription id"""
         results = []
-        charges = self.get_charges_for_subscription(subscription_id)
-        for charge in charges:
+        for charge in self.get_charges_for_subscription(subscription_id):
             results.extend(self.get_refunds_for_charge(charge["id"]))
         return results
 

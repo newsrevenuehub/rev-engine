@@ -12,6 +12,7 @@ from zoneinfo import ZoneInfo
 
 from django.conf import settings
 from django.db import models
+from django.db.models import Q, Sum
 from django.template.loader import render_to_string
 from django.utils.safestring import SafeString, mark_safe
 
@@ -49,6 +50,40 @@ class ContributionStatusError(Exception):
 class Contributor(IndexedTimeStampedModel):
     uuid = models.UUIDField(default=uuid.uuid4, primary_key=False, editable=False)
     email = models.EmailField(unique=True)
+
+    def get_impact(self, revenue_program_ids: List[int]):
+        """
+        Calculate the total impact of a contributor across multiple revenue programs
+        """
+
+        contribution_qs = self.contribution_set
+
+        # Filter contributions by revenue program
+        if revenue_program_ids:
+            q_objects = Q()  # Start with an empty Q object
+
+            # Create a Q object for each ID in the list
+            for id in revenue_program_ids:
+                q_objects |= Q(contribution_metadata__contains={"revenue_program_id": id})
+
+            contribution_qs = contribution_qs.filter(
+                Q(donation_page__revenue_program__id__in=revenue_program_ids) | q_objects
+            )
+
+        # Get total "net_amount_paid" and "amount_refunded" for each contribution and annotate the queryset with these values
+        contribution_qs = contribution_qs.annotate(
+            total_payments=Sum("payment__net_amount_paid"), total_refunded=Sum("payment__amount_refunded")
+        )
+
+        # Calculate the total amount paid and refunded by the contributor
+        totals = contribution_qs.aggregate(
+            total_amount_paid=Sum("total_payments"), total_amount_refunded=Sum("total_refunded")
+        )
+        total_payments = totals["total_amount_paid"] or 0
+        total_refunded = totals["total_amount_refunded"] or 0
+        total_contributions = total_payments - total_refunded
+
+        return {"total": total_contributions, "total_paid": total_payments, "total_refunded": total_refunded}
 
     @property
     def is_authenticated(self):

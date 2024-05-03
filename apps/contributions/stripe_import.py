@@ -286,8 +286,10 @@ class StripeTransactionsImporter:
                 return ContributionStatus.FAILED
             case "canceled":
                 return ContributionStatus.CANCELED
-            # in practice, this would happen for incomplete and trialing
+            case "incomplete" | "trialing":
+                return ContributionStatus.PROCESSING
             case _:
+                logger.warning("Unexpected status %s for subscription", subscription_status)
                 return ContributionStatus.PROCESSING
 
     @backoff.on_exception(backoff.expo, stripe.error.RateLimitError, **_STRIPE_API_BACKOFF_ARGS)

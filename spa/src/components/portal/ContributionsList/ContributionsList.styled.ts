@@ -40,6 +40,7 @@ export const Layout = styled.div`
   gap: 25px 20px;
   grid-template-areas:
     'header _'
+    'tracker _'
     'legend _'
     'list detail';
   grid-template-columns: 1fr 1fr;
@@ -56,6 +57,15 @@ export const Layout = styled.div`
 
 export const Detail = styled.div`
   grid-area: detail;
+`;
+
+export const Impact = styled.div`
+  grid-area: tracker;
+
+  @media (${(props) => props.theme.breakpoints.tabletLandscapeDown}) {
+    margin-bottom: 40px;
+    padding: 0 20px;
+  }
 `;
 
 export const Legend = styled.div<{ $detailVisible: boolean }>`

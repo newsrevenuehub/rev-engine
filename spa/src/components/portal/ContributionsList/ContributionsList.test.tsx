@@ -5,6 +5,7 @@ import { fireEvent, render, screen, waitFor } from 'test-utils';
 import usePortal from 'hooks/usePortal';
 import { PortalAuthContext, PortalAuthContextResult } from 'hooks/usePortalAuth';
 import { usePortalContributionList } from 'hooks/usePortalContributionList';
+import { usePortalContributorImpact } from 'hooks/usePortalContributorImpact';
 import ContributionsList from './ContributionsList';
 
 jest.mock('react-router-dom', () => ({
@@ -13,6 +14,7 @@ jest.mock('react-router-dom', () => ({
 }));
 jest.mock('hooks/usePortal');
 jest.mock('hooks/usePortalContributionList');
+jest.mock('hooks/usePortalContributorImpact');
 jest.mock('./ContactInfoPopover/ContactInfoPopover');
 jest.mock('./ContributionDetail/ContributionDetail');
 jest.mock('./ContributionsHeader/ContributionsHeader');
@@ -31,12 +33,14 @@ function tree(context?: Partial<PortalAuthContextResult>) {
 describe('ContributionsList', () => {
   const usePortalMock = jest.mocked(usePortal);
   const useParamsMock = jest.mocked(useParams);
+  const usePortalContributorImpactMock = jest.mocked(usePortalContributorImpact);
   const usePortalContributionsListMock = jest.mocked(usePortalContributionList);
   let track: jest.SpyInstance;
 
   beforeEach(() => {
     useParamsMock.mockReturnValue({});
     usePortalMock.mockReturnValue({ page: { id: 'mock-page-id', revenue_program: { id: 'mock-rp-id' } } } as any);
+    usePortalContributorImpactMock.mockReturnValue({ impact: { total: 123000 } } as any);
     usePortalContributionsListMock.mockReturnValue({
       contributions: [],
       isError: false,
@@ -56,6 +60,18 @@ describe('ContributionsList', () => {
     expect(header).toBeInTheDocument();
     expect(header.dataset.defaultPage).toBe('mock-page-id');
     expect(header.dataset.rp).toBe('mock-rp-id');
+  });
+
+  it('shows Impact Tracker', () => {
+    tree();
+    expect(screen.getByText('Impact Tracker')).toBeInTheDocument();
+    expect(screen.getByText('$1,230.00')).toBeInTheDocument();
+  });
+
+  it('hides Impact Tracker when impact is loading', () => {
+    usePortalContributorImpactMock.mockReturnValue({ isLoading: true } as any);
+    tree();
+    expect(screen.queryByText('Impact Tracker')).not.toBeInTheDocument();
   });
 
   it('shows a Transactions heading', () => {

@@ -20,9 +20,12 @@ import {
   Loading,
   Root,
   StyledPortalPage,
-  Subhead
+  Subhead,
+  Impact
 } from './ContributionsList.styled';
 import NoContributions from './NoContributions';
+import ImpactTracker from './ImpactTracker/ImpactTracker';
+import { usePortalContributorImpact } from 'hooks/usePortalContributorImpact';
 
 const CONTRIBUTION_SORT_OPTIONS = [
   {
@@ -51,6 +54,7 @@ export function ContributionsList() {
   const { contributor } = usePortalAuthContext();
   const { page } = usePortal();
   const [ordering, setOrdering] = useState(CONTRIBUTION_SORT_OPTIONS[0].value);
+  const { impact, isLoading: isLoadingImpact } = usePortalContributorImpact(contributor?.id);
   const { contributions, isError, isLoading, refetch } = usePortalContributionList(contributor?.id, {
     ordering: ordering === 'created' ? `-${ordering}` : `-${ordering},-created`
   });
@@ -118,6 +122,11 @@ export function ContributionsList() {
       <Root>
         <Layout>
           <ContributionsHeader defaultPage={page} revenueProgram={page?.revenue_program} />
+          {!isLoadingImpact && (
+            <Impact>
+              <ImpactTracker impact={impact} />
+            </Impact>
+          )}
           <Legend $detailVisible={!!selectedContribution}>
             <Subhead>Transactions</Subhead>
             <p>View billing history, update payment details, and resend receipts.</p>

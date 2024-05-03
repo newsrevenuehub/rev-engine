@@ -55,35 +55,19 @@ class Contributor(IndexedTimeStampedModel):
         """
         Calculate the total impact of a contributor across multiple revenue programs
         """
-
-        contribution_qs = self.contribution_set
-
-        # Filter contributions by revenue program
-        if revenue_program_ids:
-            q_objects = Q()  # Start with an empty Q object
-
-            # Create a Q object for each ID in the list
-            for id in revenue_program_ids:
-                q_objects |= Q(contribution_metadata__contains={"revenue_program_id": id})
-
-            contribution_qs = contribution_qs.filter(
-                Q(donation_page__revenue_program__id__in=revenue_program_ids) | q_objects
+        totals = (
+            self.contribution_set.filter_by_revenue_programs(revenue_program_ids)
+            .annotate(total_payments=Sum("payment__net_amount_paid"), total_refunded=Sum("payment__amount_refunded"))
+            .aggregate(
+                total_amount_paid=Sum("total_payments", default=0),
+                total_amount_refunded=Sum("total_refunded", default=0),
             )
-
-        # Get total "net_amount_paid" and "amount_refunded" for each contribution and annotate the queryset with these values
-        contribution_qs = contribution_qs.annotate(
-            total_payments=Sum("payment__net_amount_paid"), total_refunded=Sum("payment__amount_refunded")
         )
-
-        # Calculate the total amount paid and refunded by the contributor
-        totals = contribution_qs.aggregate(
-            total_amount_paid=Sum("total_payments"), total_amount_refunded=Sum("total_refunded")
-        )
-        total_payments = totals["total_amount_paid"] or 0
-        total_refunded = totals["total_amount_refunded"] or 0
-        total_contributions = total_payments - total_refunded
-
-        return {"total": total_contributions, "total_paid": total_payments, "total_refunded": total_refunded}
+        return {
+            "total_paid": (total_paid := totals["total_amount_paid"]),
+            "total_refunded": (total_refunded := totals["total_amount_refunded"]),
+            "total": total_paid - total_refunded,
+        }
 
     @property
     def is_authenticated(self):
@@ -124,6 +108,17 @@ class Contributor(IndexedTimeStampedModel):
 class ContributionQuerySet(models.QuerySet):
     def one_time(self):
         return self.filter(interval=ContributionInterval.ONE_TIME)
+
+    def filter_by_revenue_programs(
+        self, revenue_programs: list[int] | models.QuerySet[RevenueProgram] | None
+    ) -> models.QuerySet[Contribution]:
+        if revenue_programs:
+            return self.filter(
+                Q(donation_page__revenue_program__in=revenue_programs)
+                | Q(contribution_metadata__revenue_program__in=revenue_programs)
+                # and soon via DEV-4562, there will be a third way, via ._revenue_program FK (this comment can go away)
+            )
+        return self
 
     def recurring(self):
         return self.filter(interval__in=[ContributionInterval.MONTHLY, ContributionInterval.YEARLY])

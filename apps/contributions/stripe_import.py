@@ -523,16 +523,9 @@ class StripeTransactionsImporter:
         """Get cached charges, if any for a given subscription id"""
         results = []
         invoices = self.get_invoices_for_subscription(subscription_id)
-        for invoice in invoices:
-            charge_id = invoice.get("charge", None)
-            charge = (
-                self.get_resource_from_cache(self.make_key(entity_id=charge_id, entity_name="Charge"))
-                if charge_id
-                else None
-            )
-            if charge:
-                results.append(charge)
-        return results
+        for charge_id in filter(x.get("charge", None) for x in invoices):
+            results.append(self.get_resource_from_cache(self.make_key(entity_id=charge_id, entity_name="Charge")))
+        return list(filter(results))
 
     def get_refunds_for_charge(self, charge_id: str) -> list[dict]:
         """Get cached refunds, if any for a given charge id"""

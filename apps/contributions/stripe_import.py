@@ -222,7 +222,7 @@ class StripeTransactionsImporter:
 
     @staticmethod
     def get_interval_from_plan(plan: dict) -> ContributionInterval:
-        """Map Stripe splan interval to Revengine contribution interval"""
+        """Map Stripe plan interval to Revengine contribution interval"""
         interval = plan["interval"]
         interval_count = plan["interval_count"]
 

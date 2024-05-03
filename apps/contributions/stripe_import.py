@@ -441,43 +441,38 @@ class StripeTransactionsImporter:
         """Make a key for a given stripe resource"""
         return f"{CACHE_KEY_PREFIX}_{entity_name}_{entity_id}_{self.stripe_account_id}"
 
+    def cache_entity_by_another_entity_id(
+        self, destination_entity_name: str, entity_name: str, by_entity_name: str
+    ) -> None:
+        """Cache an entity by another entity id"""
+        logger.info("Caching %ss by %s id", entity_name, by_entity_name)
+        with self.get_redis_pipeline(entity_name=destination_entity_name) as pipeline:
+            for key in self.redis.scan_iter(match=f"{CACHE_KEY_PREFIX}_{entity_name}*"):
+                entity = self.get_resource_from_cache(key)
+                if entity and (by_id := entity.get(by_entity_name)):
+                    pipeline.set(
+                        entity_id=(entity_id := f"{by_id}_{entity['id']}"),
+                        key=self.make_key(entity_id, destination_entity_name),
+                        entity=entity,
+                    )
+
     def cache_charges_by_payment_intent_id(self) -> None:
         """Cache charges by payment intent id"""
-        with self.get_redis_pipeline(entity_name=(entity_name := "ChargeByPaymentIntentId")) as pipeline:
-            for key in self.redis.scan_iter(match=f"{CACHE_KEY_PREFIX}_Charge_*"):
-                charge = self.get_resource_from_cache(key)
-                if charge and (pi_id := charge.get("payment_intent")):
-                    pipeline.set(
-                        entity_id=(entity_id := f"{pi_id}_{charge['id']}"),
-                        key=self.make_key(entity_id, entity_name),
-                        entity=charge,
-                    )
+        self.cache_entity_by_another_entity_id(
+            destination_entity_name="ChargeByPaymentIntentId", entity_name="Charge", by_entity_name="payment_intent"
+        )
 
     def cache_invoices_by_subscription_id(self) -> None:
         """Cache invoices by subscription id"""
-        logger.info("Caching invoices by subscription id")
-        with self.get_redis_pipeline(entity_name=(entity_name := "InvoiceBySubId")) as pipeline:
-            for key in self.redis.scan_iter(match=f"{CACHE_KEY_PREFIX}_Invoice_*"):
-                invoice = self.get_resource_from_cache(key)
-                if invoice and (sub_id := invoice.get("subscription")):
-                    pipeline.set(
-                        entity_id=(entity_id := f"{sub_id}_{invoice['id']}"),
-                        key=self.make_key(entity_id, entity_name),
-                        entity=invoice,
-                    )
+        self.cache_entity_by_another_entity_id(
+            destination_entity_name="InvoiceBySubId", entity_name="Invoice", by_entity_name="subscription"
+        )
 
     def cache_refunds_by_charge_id(self) -> None:
         """Cache refunds by charge id"""
-        logger.info("Caching refunds by charge id")
-        with self.get_redis_pipeline(entity_name=(entity_name := "RefundByChargeId")) as pipeline:
-            for key in self.redis.scan_iter(match=f"{CACHE_KEY_PREFIX}_Refund_*"):
-                refund = self.get_resource_from_cache(key)
-                if refund and (charge_id := refund.get("charge")):
-                    pipeline.set(
-                        entity_id=(entity_id := f"{charge_id}_{refund['id']}"),
-                        key=self.make_key(entity_id, entity_name),
-                        entity=refund,
-                    )
+        self.cache_entity_by_another_entity_id(
+            destination_entity_name="RefundByChargeId", entity_name="Refund", by_entity_name="charge"
+        )
 
     def list_and_cache_required_stripe_resources(self) -> None:
         """List and cache required stripe resources for a given stripe account"""

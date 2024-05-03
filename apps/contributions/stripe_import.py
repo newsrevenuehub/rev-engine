@@ -141,23 +141,27 @@ def parse_slug_from_url(url: str) -> str | None:
     return path_segments[0] if len(path_segments) else None
 
 
-@dataclass
-class RedisCachePipeline:
-    """Convenience class for batch caching stripe resources in Redis"""
+class RedisCachePipeline(Pipeline):
+    """Subclass Redis pipeline to get custom enter and exit methods and set and flush methods"""
 
-    pipeline: Pipeline
-    entity_name: str
-    batch_size: int = 100
-    buffered: int = 0
-    total_inserted: int = 0
+    def __init__(self, entity_name: str, batch_size: int = 100, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.batch_size = batch_size
+        self.entity_name = entity_name
+        self.total_inserted = 0
 
-    def put_in_cache(self, entity_id: str, key: str, entity: dict, prune_fn: Callable | None = None) -> None:
-        """Put a stripe resource in cache
+    def __exit__(self, exc_type, exc_value, traceback):
+        """Flush the pipeline on exit. By default Pipeline does not do this."""
+        if exc_type is None:
+            self.flush()
+        else:
+            logger.warning("Cannot flush pipeline because of exception %s", exc_value)
+        super().__exit__(exc_type, exc_value, traceback)
 
-        This is what outside callers should use.
-        """
+    def set(self, entity_id: str, key: str, entity: dict, prune_fn: Callable | None = None) -> None:
+        """Set a stripe resource in cache"""
         logger.debug(
-            "Putting %s %s in redis cache under key %s",
+            "Setting %s %s in redis cache under key %s",
             self.entity_name,
             entity_id,
             key,
@@ -165,26 +169,19 @@ class RedisCachePipeline:
         if prune_fn:
             logger.debug("Pruning %s %s before caching", self.entity_name, entity_id)
             entity = prune_fn(entity)
-        self.put_in_buffer(key=key, value=entity)
-
-    def put_in_buffer(self, key: str, value: dict) -> None:
-        """ "Put a stripe resource in buffer and if buffer is full, flush it"""
-        logger.debug("Putting value for key %s in buffer", key)
-        self.pipeline.set(
-            key, json.dumps(value, cls=DjangoJSONEncoder), ex=settings.STRIPE_TRANSACTIONS_IMPORT_CACHE_TTL
+        super().set(
+            name=key, value=json.dumps(entity, cls=DjangoJSONEncoder), ex=settings.STRIPE_TRANSACTIONS_IMPORT_CACHE_TTL
         )
-        self.buffered += 1
-        if self.buffered % self.batch_size == 0:
+        if len(self) and len(self) % self.batch_size == 0:
             self.flush()
 
     def flush(self) -> None:
         """Flush the pipeline by cachching its resources in Redis"""
-        if self.buffered > 0:
-            logger.debug("Flushing redis pipeline")
-            self.pipeline.execute()
-            self.total_inserted += self.buffered
-            self.buffered = 0
-            logger.info("Inserted %s %ss so far", self.total_inserted, self.entity_name)
+        logger.debug("Flushing redis pipeline")
+        insert_count = len(self)
+        self.execute()
+        self.total_inserted += insert_count
+        logger.info("Inserted %s %ss so far", self.total_inserted, self.entity_name)
 
 
 @dataclass
@@ -391,6 +388,16 @@ class StripeTransactionsImporter:
             prune_fn=lambda x: {k: v for k, v in x.items() if k in CACHED_CUSTOMER_FIELDS},
         )
 
+    def get_redis_pipeline(self, entity_name) -> RedisCachePipeline:
+        """Get a Redis pipeline"""
+        return RedisCachePipeline(
+            connection_pool=self.redis.connection_pool,
+            response_callbacks=self.redis.response_callbacks,
+            transaction=False,
+            shard_hint=None,
+            entity_name=entity_name,
+        )
+
     def cache_stripe_resources(
         self,
         resources: Iterable[Any],
@@ -401,21 +408,20 @@ class StripeTransactionsImporter:
         """Cache stripe resources"""
         logger.info("Caching %ss for account %s", entity_name, self.stripe_account_id)
         excluded_count = 0
-        pipeline = RedisCachePipeline(pipeline=self.redis.pipeline(), entity_name=entity_name)
-
-        for resource in resources:
-            if exclude_fn and exclude_fn(resource):
-                logger.debug("Excluding %s %s from cache because excluded by `exclude_fn`", entity_name, resource.id)
-                excluded_count += 1
-                continue
-            pipeline.put_in_cache(
-                entity_id=resource.id,
-                key=self.make_key(resource.id, entity_name),
-                entity=resource.to_dict(),
-                prune_fn=prune_fn,
-            )
-        # need to do this at end in case we have a small number of resources waiting in buffer that didn't trigger a flush
-        pipeline.flush()
+        with self.get_redis_pipeline(entity_name=entity_name) as pipeline:
+            for resource in resources:
+                if exclude_fn and exclude_fn(resource):
+                    logger.debug(
+                        "Excluding %s %s from cache because excluded by `exclude_fn`", entity_name, resource.id
+                    )
+                    excluded_count += 1
+                    continue
+                pipeline.set(
+                    entity_id=resource.id,
+                    key=self.make_key(resource.id, entity_name),
+                    entity=resource.to_dict(),
+                    prune_fn=prune_fn,
+                )
         logger.info(
             "Cached %s %s%s and excluded %s for account %s",
             pipeline.total_inserted,
@@ -431,46 +437,41 @@ class StripeTransactionsImporter:
 
     def cache_charges_by_payment_intent_id(self) -> None:
         """Cache charges by payment intent id"""
-        pipeline = RedisCachePipeline(
-            pipeline=self.redis.pipeline(), entity_name=(entity_name := "ChargeByPaymentIntentId")
-        )
-        for key in self.redis.scan_iter(match=f"{CACHE_KEY_PREFIX}_Charge_*"):
-            charge = self.get_resource_from_cache(key)
-            if charge and (pi_id := charge.get("payment_intent")):
-                pipeline.put_in_cache(
-                    entity_id=(entity_id := f"{pi_id}_{charge['id']}"),
-                    key=self.make_key(entity_id, entity_name),
-                    entity=charge,
-                )
-        pipeline.flush()
+        with self.get_redis_pipeline(entity_name=(entity_name := "ChargeByPaymentIntentId")) as pipeline:
+            for key in self.redis.scan_iter(match=f"{CACHE_KEY_PREFIX}_Charge_*"):
+                charge = self.get_resource_from_cache(key)
+                if charge and (pi_id := charge.get("payment_intent")):
+                    pipeline.set(
+                        entity_id=(entity_id := f"{pi_id}_{charge['id']}"),
+                        key=self.make_key(entity_id, entity_name),
+                        entity=charge,
+                    )
 
     def cache_invoices_by_subscription_id(self) -> None:
         """Cache invoices by subscription id"""
         logger.info("Caching invoices by subscription id")
-        pipeline = RedisCachePipeline(pipeline=self.redis.pipeline(), entity_name=(entity_name := "InvoiceBySubId"))
-        for key in self.redis.scan_iter(match=f"{CACHE_KEY_PREFIX}_Invoice_*"):
-            invoice = self.get_resource_from_cache(key)
-            if invoice and (sub_id := invoice.get("subscription")):
-                pipeline.put_in_cache(
-                    entity_id=(entity_id := f"{sub_id}_{invoice['id']}"),
-                    key=self.make_key(entity_id, entity_name),
-                    entity=invoice,
-                )
-        pipeline.flush()
+        with self.get_redis_pipeline(entity_name=(entity_name := "InvoiceBySubId")) as pipeline:
+            for key in self.redis.scan_iter(match=f"{CACHE_KEY_PREFIX}_Invoice_*"):
+                invoice = self.get_resource_from_cache(key)
+                if invoice and (sub_id := invoice.get("subscription")):
+                    pipeline.set(
+                        entity_id=(entity_id := f"{sub_id}_{invoice['id']}"),
+                        key=self.make_key(entity_id, entity_name),
+                        entity=invoice,
+                    )
 
     def cache_refunds_by_charge_id(self) -> None:
         """Cache refunds by charge id"""
         logger.info("Caching refunds by charge id")
-        pipeline = RedisCachePipeline(pipeline=self.redis.pipeline(), entity_name=(entity_name := "RefundByChargeId"))
-        for key in self.redis.scan_iter(match=f"{CACHE_KEY_PREFIX}_Refund_*"):
-            refund = self.get_resource_from_cache(key)
-            if refund and (charge_id := refund.get("charge")):
-                pipeline.put_in_cache(
-                    entity_id=(entity_id := f"{charge_id}_{refund['id']}"),
-                    key=self.make_key(entity_id, entity_name),
-                    entity=refund,
-                )
-        pipeline.flush()
+        with self.get_redis_pipeline(entity_name=(entity_name := "RefundByChargeId")) as pipeline:
+            for key in self.redis.scan_iter(match=f"{CACHE_KEY_PREFIX}_Refund_*"):
+                refund = self.get_resource_from_cache(key)
+                if refund and (charge_id := refund.get("charge")):
+                    pipeline.set(
+                        entity_id=(entity_id := f"{charge_id}_{refund['id']}"),
+                        key=self.make_key(entity_id, entity_name),
+                        entity=refund,
+                    )
 
     def list_and_cache_required_stripe_resources(self) -> None:
         """List and cache required stripe resources for a given stripe account"""

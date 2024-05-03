@@ -323,7 +323,7 @@ class StripeTransactionsImporter:
     def list_and_cache_payment_intents(self) -> None:
         """List and cache payment intents for a given stripe account"""
         logger.info("Listing and caching payment intents for account %s", self.stripe_account_id)
-        self.cache_stripe_resources(
+        self.cache_stripe_resources(  # pragma: no branch  This is here because of false report of miss in coverage `exitline... didn't jump to the function exit`
             resources=self.list_stripe_entity((name := "PaymentIntent"), **self.list_kwargs),
             entity_name=name,
             exclude_fn=self.should_exclude_from_cache_because_of_metadata,
@@ -333,7 +333,7 @@ class StripeTransactionsImporter:
     def list_and_cache_subscriptions(self) -> None:
         """List and cache subscriptions for a given stripe account"""
         logger.info("Listing and caching subscriptions for account %s", self.stripe_account_id)
-        self.cache_stripe_resources(
+        self.cache_stripe_resources(  # pragma: no branch  This is here because of false report of miss in coverage `exitline... didn't jump to the function exit`
             resources=self.list_stripe_entity((name := "Subscription"), **self.list_kwargs),
             entity_name=name,
             exclude_fn=self.should_exclude_from_cache_because_of_metadata,
@@ -349,7 +349,7 @@ class StripeTransactionsImporter:
         we want all of its charges, even if they're outside of the date range.
         """
         logger.info("Listing and caching charges for account %s", self.stripe_account_id)
-        self.cache_stripe_resources(
+        self.cache_stripe_resources(  # pragma: no branch  This is here because of false report of miss in coverage `exitline... didn't jump to the function exit`
             resources=self.list_stripe_entity((name := "Charge"), **kwargs),
             entity_name=name,
             prune_fn=lambda x: {k: v for k, v in x.items() if k in CACHED_CHARGE_FIELDS},
@@ -358,7 +358,7 @@ class StripeTransactionsImporter:
     def list_and_cache_invoices(self, **kwargs) -> None:
         """List and cache invoices for a given stripe account"""
         logger.info("Listing and caching invoices for account %s", self.stripe_account_id)
-        self.cache_stripe_resources(
+        self.cache_stripe_resources(  # pragma: no branch  This is here because of false report of miss in coverage `exitline... didn't jump to the function exit`
             resources=self.list_stripe_entity((name := "Invoice"), **kwargs),
             entity_name=name,
             prune_fn=lambda x: {k: v for k, v in x.items() if k in CACHED_INVOICE_FIELDS},
@@ -367,7 +367,7 @@ class StripeTransactionsImporter:
     def list_and_cache_refunds(self, **kwargs) -> None:
         """List and cache refunds for a given stripe account"""
         logger.info("Listing and caching refunds for account %s", self.stripe_account_id)
-        self.cache_stripe_resources(
+        self.cache_stripe_resources(  # pragma: no branch  This is here because of false report of miss in coverage `exitline... didn't jump to the function exit`
             resources=self.list_stripe_entity((name := "Refund"), **kwargs),
             entity_name=name,
             prune_fn=lambda x: {k: v for k, v in x.items() if k in CACHED_REFUND_FIELDS},
@@ -376,7 +376,7 @@ class StripeTransactionsImporter:
     def list_and_cache_balance_transactions(self, **kwargs) -> None:
         """List and cache balance transactions for a given stripe account"""
         logger.info("Listing and caching balance transactions for account %s", self.stripe_account_id)
-        self.cache_stripe_resources(
+        self.cache_stripe_resources(  # pragma: no branch  This is here because of false report of miss in coverage `exitline... didn't jump to the function exit`
             resources=self.list_stripe_entity((name := "BalanceTransaction"), **kwargs),
             entity_name=name,
             prune_fn=lambda x: {k: v for k, v in x.items() if k in CACHED_BALANCE_TRANSACTION_FIELDS},
@@ -385,7 +385,7 @@ class StripeTransactionsImporter:
     def list_and_cache_customers(self, **kwargs) -> None:
         """List and cache customers for a given stripe account"""
         logger.info("Listing and caching customers for account %s", self.stripe_account_id)
-        self.cache_stripe_resources(
+        self.cache_stripe_resources(  # pragma: no branch  This is here because of false report of miss in coverage `exitline... didn't jump to the function exit`
             resources=self.list_stripe_entity((name := "Customer"), **kwargs),
             entity_name=name,
             prune_fn=lambda x: {k: v for k, v in x.items() if k in CACHED_CUSTOMER_FIELDS},

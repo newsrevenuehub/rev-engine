@@ -524,9 +524,9 @@ class StripeTransactionsImporter:
         """Get cached charges, if any for a given subscription id"""
         results = []
         invoices = self.get_invoices_for_subscription(subscription_id)
-        for charge_id in filter(x.get("charge", None) for x in invoices):
+        for charge_id in filter(lambda x: x.get("charge", None), invoices):
             results.append(self.get_resource_from_cache(self.make_key(entity_id=charge_id, entity_name="Charge")))
-        return list(filter(results))
+        return list(filter(lambda x: bool(x), results))
 
     def get_refunds_for_charge(self, charge_id: str) -> list[dict]:
         """Get cached refunds, if any for a given charge id"""
@@ -615,12 +615,13 @@ class StripeTransactionsImporter:
 
     def get_successful_charge_for_payment_intent(self, payment_intent_id: str) -> dict | None:
         """Get single successful charge for a PI. If >1 successful, raises an error"""
-        charges = self.get_charges_for_payment_intent(payment_intent_id)
-        if len([x for x in charges if x["status"] == "succeeded"]) > 1:
+        successful = [x for x in self.get_charges_for_payment_intent(payment_intent_id) if x["status"] == "succeeded"]
+        if len(successful) > 1:
             raise InvalidStripeTransactionDataError(
                 f"Payment intent {payment_intent_id} has multiple successful charges associated with it"
             )
-        return next((x for x in charges if x["status"] == "succeeded"), None)
+        if successful:
+            return successful[0]
 
     def get_refunds_for_payment_intent(self, payment_intent: dict) -> list[dict]:
         """Get refunds for a payment intent"""

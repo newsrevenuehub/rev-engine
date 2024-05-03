@@ -494,8 +494,8 @@ class StripeTransactionsImporter:
             "Attempting to retrieve value for key %s from redis cache",
             key,
         )
-        cached = self.redis.get(key)
-        return json.loads(cached) if cached else None
+        if cached := self.redis.get(key):
+            return json.loads(cached)
 
     @classmethod
     def get_data_from_plan(cls, plan: dict | None) -> dict:

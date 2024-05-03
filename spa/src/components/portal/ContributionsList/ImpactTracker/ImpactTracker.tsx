@@ -20,7 +20,10 @@ const ImpactTracker = ({ impact }: ImpactTrackerProps) => {
       <ContributionWrapper>
         <Subtitle>
           Contributed to Date
-          <Tooltip title="Your total contributions given through RevEngine. Other contributions are not reflected. Keep up the good work.">
+          <Tooltip
+            placement="top"
+            title="Your total contributions given through RevEngine. Other contributions and fees are not reflected."
+          >
             <InfoOutlinedIcon />
           </Tooltip>
         </Subtitle>

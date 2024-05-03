@@ -13,6 +13,10 @@ import stripe
 
 logger = logging.getLogger(f"{settings.DEFAULT_LOGGER}.{__name__}")
 
+CREATED = "created"
+UPDATED = "updated"
+LEFT_UNCHANGED = "left unchanged"
+
 
 def delete_stripe_webhook(webhook_url, api_key):
     webhooks = stripe.WebhookEndpoint.list(limit=20, api_key=api_key)
@@ -195,4 +199,4 @@ def upsert_with_diff_check(
                 instance.save(update_fields=fields_to_update.union({"modified"}))
                 reversion.set_comment(f"{caller_name} updated {model.__name__}")
 
-        return instance, "created" if created else "updated" if bool(fields_to_update) else "left unchanged"
+        return instance, CREATED if created else UPDATED if bool(fields_to_update) else LEFT_UNCHANGED

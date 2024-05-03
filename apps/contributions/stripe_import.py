@@ -17,6 +17,7 @@ import tldextract
 from django_redis import get_redis_connection
 from redis.client import Pipeline
 
+import apps.common.utils as common_utils
 from apps.common.utils import upsert_with_diff_check
 from apps.contributions.exceptions import (
     InvalidIntervalError,
@@ -575,28 +576,34 @@ class StripeTransactionsImporter:
 
     def update_contribution_stats(self, action: str, contribution: Contribution | None) -> None:
         match action:
-            case "created":
+            case common_utils.CREATED:
                 self.created_contribution_ids.add(contribution.id)
-            case "updated":
+            case common_utils.UPDATED:
                 self.updated_contribution_ids.add(contribution.id)
-            case _:
+            case common_utils.LEFT_UNCHANGED:
                 pass
+            case _:
+                logger.warning("Unexpected action %s for contribution %s", action, contribution.id)
 
     def update_contributor_stats(self, action: str, contributor: Contributor | None) -> None:
         match action:
-            case "created":
+            case common_utils.CREATED:
                 self.created_contributor_ids.add(contributor.id)
-            case _:
+            case common_utils.UPDATED | common_utils.LEFT_UNCHANGED:
                 pass
+            case _:
+                logger.warning("Unexpected action %s for contributor %s", action, contributor.id)
 
     def update_payment_stats(self, action: str, payment: Payment) -> None:
         match action:
-            case "created":
+            case common_utils.CREATED:
                 self.created_payment_ids.add(payment.id)
-            case "updated":
+            case common_utils.UPDATED:
                 self.updated_payment_ids.add(payment.id)
-            case _:
+            case common_utils.LEFT_UNCHANGED:
                 pass
+            case _:
+                logger.warning("Unexpected action %s for payment %s", action, payment.id)
 
     def get_charges_for_payment_intent(self, payment_intent_id: str) -> list[dict]:
         """Get charges for a payment intent from cache"""

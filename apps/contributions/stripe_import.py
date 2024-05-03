@@ -796,7 +796,10 @@ class StripeTransactionsImporter:
                 contribution, action = self.upsert_contribution(stripe_entity=subscription, is_one_time=False)
             except (InvalidStripeTransactionDataError, InvalidMetadataError, InvalidIntervalError) as exc:
                 logger.info(
-                    "Unable to upsert subscription %s because %s %s", subscription["id"], type(exc).__name__, exc
+                    "Unable to upsert subscription %s because %s %s; skipping",
+                    subscription["id"],
+                    type(exc).__name__,
+                    exc,
                 )
                 continue
             logger.info(

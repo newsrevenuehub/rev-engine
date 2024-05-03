@@ -67,6 +67,10 @@ CACHED_CUSTOMER_FIELDS = [
     "invoice_settings",
 ]
 CACHED_REFUND_FIELDS = ["charge", "id", "balance_transaction"]
+# Determines how many keys get pulled in to be deleted in a single batch via redis pipeline
+# This seems like a good value. There are typically ~10s of thousands of keys in cache per account, so
+# this will limit the number of back and forths with redis to clear cache.
+REDIS_CACHE_DELETE_BATCH_SIZE = 10000
 
 logger = logging.getLogger(f"{settings.DEFAULT_LOGGER}.{__name__}")
 
@@ -881,11 +885,15 @@ class StripeTransactionsImporter:
     def clear_cache(self) -> None:
         """Clear the cache"""
         logger.info("Clearing redis cache of entries related to stripe import for account %s", self.stripe_account_id)
-        cleared = 0
-        for key in self.redis.scan_iter(match=f"{CACHE_KEY_PREFIX}_*{self.stripe_account_id}", count=1000):
-            self.redis.delete(key)
-            cleared += 1
-        logger.info("Cleared %s entries from redis cache", cleared)
+        pipeline = self.redis.pipeline()
+        to_clear = 0
+        for key in self.redis.scan_iter(
+            match=f"{CACHE_KEY_PREFIX}_*{self.stripe_account_id}", count=REDIS_CACHE_DELETE_BATCH_SIZE
+        ):
+            pipeline.delete(key)
+            to_clear += 1
+        pipeline.execute()
+        logger.info("Cleared %s entries from redis cache", to_clear)
 
     @staticmethod
     def convert_bytes(size: int) -> str:

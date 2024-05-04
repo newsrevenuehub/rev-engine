@@ -452,7 +452,7 @@ class StripeTransactionsImporter:
         """Cache an entity by another entity id"""
         logger.info("Caching %ss by %s id", entity_name, by_entity_name)
         with self.get_redis_pipeline(entity_name=destination_entity_name) as pipeline:
-            for key in self.redis.scan_iter(match=f"{CACHE_KEY_PREFIX}_{entity_name}*"):
+            for key in self.redis.scan_iter(match=f"{CACHE_KEY_PREFIX}_{entity_name}_*"):
                 entity = self.get_resource_from_cache(key)
                 if entity and (by_id := entity.get(by_entity_name)):
                     pipeline.set(

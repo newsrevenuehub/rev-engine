@@ -300,7 +300,7 @@ class StripeContributionsProvider:
         # below around .plan. See DEV-4663 for more detail
         if not subscription.plan:
             raise InvalidIntervalError(f"Subscription {subscription.id} has no plan. Cannot derive interval")
-        return StripeTransactionsImporter.get_interval_from_subscription(subscription.plan)
+        return StripeTransactionsImporter.get_interval_from_plan(subscription.plan)
 
     def cast_subscription_to_pi_for_portal(self, subscription: stripe.Subscription) -> StripePiAsPortalContribution:
         """Casts a Subscription object to a PaymentIntent object for use in the Stripe Customer Portal.

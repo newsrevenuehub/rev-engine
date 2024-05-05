@@ -342,7 +342,7 @@ class StripeTransactionsImporter:
 
     def list_and_cache_payment_intents(self) -> None:
         """List and cache payment intents for a given stripe account"""
-        self.list_and_cache_entities(
+        self.list_and_cache_entities(  # pragma: no branch This is here because of false report of miss in coverage `exitline... didn't jump to the function exit`
             entity_name="PaymentIntent",
             exclude_fn=self.should_exclude_from_cache_because_of_metadata,
             prune_fn=lambda x: {k: v for k, v in x.items() if k in CACHED_PAYMENT_INTENT_FIELDS},
@@ -351,7 +351,7 @@ class StripeTransactionsImporter:
 
     def list_and_cache_subscriptions(self) -> None:
         """List and cache subscriptions for a given stripe account"""
-        self.list_and_cache_entities(
+        self.list_and_cache_entities(  # pragma: no branch This is here because of false report of miss in coverage `exitline... didn't jump to the function exit`
             entity_name="Subscription",
             exclude_fn=self.should_exclude_from_cache_because_of_metadata,
             prune_fn=lambda x: {k: v for k, v in x.items() if k in CACHED_SUBSCRIPTION_FIELDS},
@@ -366,35 +366,35 @@ class StripeTransactionsImporter:
         the parent subscription for a charge could be in date range, but the charge itself could be outside of it. If we import a contribution,
         we want all of its charges, even if they're outside of the date range.
         """
-        self.list_and_cache_entities(
+        self.list_and_cache_entities(  # pragma: no branch This is here because of false report of miss in coverage `exitline... didn't jump to the function exit`
             entity_name="Charge",
             prune_fn=lambda x: {k: v for k, v in x.items() if k in CACHED_CHARGE_FIELDS},
         )
 
     def list_and_cache_invoices(self, **kwargs) -> None:
         """List and cache invoices for a given stripe account"""
-        self.list_and_cache_entities(
+        self.list_and_cache_entities(  # pragma: no branch This is here because of false report of miss in coverage `exitline... didn't jump to the function exit`
             entity_name="Invoice",
             prune_fn=lambda x: {k: v for k, v in x.items() if k in CACHED_INVOICE_FIELDS},
         )
 
     def list_and_cache_refunds(self, **kwargs) -> None:
         """List and cache refunds for a given stripe account"""
-        self.list_and_cache_entities(
+        self.list_and_cache_entities(  # pragma: no branch This is here because of false report of miss in coverage `exitline... didn't jump to the function exit`
             entity_name="Refund",
             prune_fn=lambda x: {k: v for k, v in x.items() if k in CACHED_REFUND_FIELDS},
         )
 
     def list_and_cache_balance_transactions(self, **kwargs) -> None:
         """List and cache balance transactions for a given stripe account"""
-        self.list_and_cache_entities(
+        self.list_and_cache_entities(  # pragma: no branch This is here because of false report of miss in coverage `exitline... didn't jump to the function exit`
             entity_name="BalanceTransaction",
             prune_fn=lambda x: {k: v for k, v in x.items() if k in CACHED_BALANCE_TRANSACTION_FIELDS},
         )
 
     def list_and_cache_customers(self, **kwargs) -> None:
         """List and cache customers for a given stripe account"""
-        self.list_and_cache_entities(
+        self.list_and_cache_entities(  # pragma: no branch This is here because of false report of miss in coverage `exitline... didn't jump to the function exit`
             entity_name="Customer",
             prune_fn=lambda x: {k: v for k, v in x.items() if k in CACHED_CUSTOMER_FIELDS},
         )
@@ -529,8 +529,8 @@ class StripeTransactionsImporter:
         """Get cached charges, if any for a given subscription id"""
         results = []
         invoices = self.get_invoices_for_subscription(subscription_id)
-        for charge_id in filter(lambda x: x.get("charge", None), invoices):
-            results.append(self.get_resource_from_cache(self.make_key(entity_name="Charge", entity_id=charge_id)))
+        for x in filter(lambda x: x.get("charge", None), invoices):
+            results.append(self.get_resource_from_cache(self.make_key(entity_name="Charge", entity_id=x["charge"])))
         return list(filter(lambda x: bool(x), results))
 
     def get_refunds_for_charge(self, charge_id: str) -> list[dict]:

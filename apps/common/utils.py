@@ -202,7 +202,7 @@ def upsert_with_diff_check(
         return instance, CREATED if created else UPDATED if bool(fields_to_update) else LEFT_UNCHANGED
 
 
-def get_stripe_accounts_and_their_connection_status(self, account_ids: list[str]) -> dict[str, bool]:
+def get_stripe_accounts_and_their_connection_status(account_ids: list[str]) -> dict[str, bool]:
     """Given a list of stripe accounts, returns a dict with the account id as key and a boolean indicating if the account is connected and retrievable"""
     logger.info("Retrieving stripe accounts and their connection status")
     accounts = {}

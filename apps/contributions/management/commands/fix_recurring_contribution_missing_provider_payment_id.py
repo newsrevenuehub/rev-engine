@@ -1,4 +1,3 @@
-import datetime
 import logging
 
 from django.core.management.base import BaseCommand
@@ -21,7 +20,7 @@ class Command(BaseCommand):
 
     def handle(self, *args, **options):
         self.stdout.write(self.style.HTTP_INFO("Running `fix_recurring_contribution_missing_provider_payment_id`"))
-        contributions = Contribution.objects.recurring.filter(
+        contributions = Contribution.objects.recurring().filter(
             provider_payment_id=None, provider_subscription_id__isnull=False
         )
         if not contributions.exists():
@@ -29,30 +28,30 @@ class Command(BaseCommand):
                 self.style.HTTP_INFO("No recurring contributions with missing provider payment ID found, exiting")
             )
             return
-        accounts = get_stripe_accounts_and_their_connection_status(
-            contributions.filter(
-                Q(contribution__donation_page__revenue_program__payment_provider__stripe_account_id__isnull=False)
-                | Q(contribution__revenue_program__payment_provider__stripe_account_id__isnull=False)
+        account_ids = set(
+            list(
+                contributions.filter(donation_page__revenue_program__payment_provider__stripe_account_id__isnull=False)
+                .values_list("donation_page__revenue_program__payment_provider__stripe_account_id", flat=True)
+                .distinct()
             )
-            .values_list(
-                "contribution__donation_page__revenue_program__payment_provider__stripe_account_id",
-                "contribution__revenue_program__payment_provider__stripe_account_id",
+            + list(
+                contributions.filter(_revenue_program__payment_provider__stripe_account_id__isnull=False)
+                .values_list("_revenue_program__payment_provider__stripe_account_id", flat=True)
+                .distinct()
             )
-            .distinct()
         )
+        accounts = get_stripe_accounts_and_their_connection_status(account_ids)
         unretrievable_accounts = [k for k, v in accounts.items() if not v]
         connected_accounts = [k for k, v in accounts.items() if v]
 
         fixable_contributions = contributions.filter(
-            Q(contribution__donation_page__revenue_program__payment_provider__stripe_account_id__in=connected_accounts)
-            | Q(contribution__revenue_program__payment_provider__stripe_account_id__in=connected_accounts)
+            Q(donation_page__revenue_program__payment_provider__stripe_account_id__in=connected_accounts)
+            | Q(_revenue_program__payment_provider__stripe_account_id__in=connected_accounts)
         )
         fixable_contributions_count = fixable_contributions.count()
         ineligible_because_of_account = contributions.filter(
-            Q(
-                contribution__donation_page__revenue_program__payment_provider__stripe_account_id__in=unretrievable_accounts
-            )
-            | Q(contribution__revenue_program__payment_provider__stripe_account_id__in=unretrievable_accounts),
+            Q(donation_page__revenue_program__payment_provider__stripe_account_id__in=unretrievable_accounts)
+            | Q(_revenue_program__payment_provider__stripe_account_id__in=unretrievable_accounts),
         )
         self.stdout.write(
             self.style.HTTP_INFO(
@@ -73,21 +72,23 @@ class Command(BaseCommand):
                 subscription = stripe.Subscription.retrieve(
                     (sub_id := contribution.provider_subscription_id),
                     stripe_account=(acct_id := contribution.stripe_account_id),
+                    expand=["latest_invoice"],
                 )
             except stripe.error.StripeError as e:
                 self.stdout.write(
                     self.style.ERROR(f"Error while retrieving subscription {sub_id} for stripe account {acct_id}: {e}")
                 )
                 continue
-            payment.transaction_time = datetime.datetime.fromtimestamp(bt.created, tz=ZoneInfo("UTC"))
-            with reversion.create_revision():
-                payment.save(update_fields={"modified", "transaction_time"})
-                reversion.set_comment("Updated by sync_payment_transaction_time command")
-            updated_ids.append(payment.id)
+            if subscription.latest_invoice and (pi_id := subscription.latest_invoice.payment_intent):
+                contribution.provider_payment_id = pi_id
+                with reversion.create_revision():
+                    contribution.save(update_fields={"modified", "provider_payment_id"})
+                    reversion.set_comment("Updated by fix_recurring_contribution_missing_provider_payment_id command")
+                updated_ids.append(contribution.id)
         self.stdout.write(
             self.style.SUCCESS(
-                f"Updated {len(updated_ids)} payment(s) out of {fixable_payments_count} eligible payments. "
-                f"The following payments were updated: {', '.join(map(str, updated_ids))}"
+                f"Updated {len(updated_ids)} contribution(s) out of {fixable_contributions_count} eligible contributions. "
+                f"The following contributions were updated: {', '.join(map(str, updated_ids))}"
             )
         )
-        self.stdout.write(self.style.SUCCESS("`sync_payment_transaction_time` is done"))
+        self.stdout.write(self.style.SUCCESS("`fix_recurring_contribution_missing_provider_payment_id` is done"))

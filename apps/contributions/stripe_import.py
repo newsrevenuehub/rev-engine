@@ -769,16 +769,15 @@ class StripeTransactionsImporter:
             stripe_entity, is_one_time=is_one_time, contributor=contributor, customer_id=cust_id, payment_method=pm
         )
         donation_page = self.get_donation_page_from_metadata(metadata)
-        revenue_program = self.get_revenue_program_from_metadata(metadata)
-        if not donation_page and not revenue_program:
+        if donation_page:
+            defaults["donation_page"] = donation_page
+        elif rp := self.get_revenue_program_from_metadata(metadata):
+            defaults["_revenue_program"] = rp
+        if not defaults.get("donation_page") and not defaults.get("_revenue_program"):
             raise InvalidStripeTransactionDataError(
                 f"Could not create a contribution for {entity_name} {stripe_entity['id']} because cannot "
                 f"associate a donation page or revenue program with it."
             )
-        if donation_page:
-            defaults["donation_page"] = donation_page
-        elif revenue_program:
-            defaults["_revenue_program"] = revenue_program
 
         contribution, contribution_action = upsert_with_diff_check(
             model=Contribution,

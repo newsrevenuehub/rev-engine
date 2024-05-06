@@ -210,7 +210,7 @@ class Test_upsert_payment_for_transaction:
         assert payment.stripe_balance_transaction_id == balance_transaction["id"]
         assert payment.net_amount_paid == (balance_transaction["net"] if not is_refund else 0)
         assert payment.gross_amount_paid == (balance_transaction["amount"] if not is_refund else 0)
-        assert payment.amount_refunded == (balance_transaction["amount"] if is_refund else 0)
+        assert payment.amount_refunded == (-balance_transaction["amount"] if is_refund else 0)
         assert payment.transaction_time
         assert action == ("updated" if payment_exists else "created")
 

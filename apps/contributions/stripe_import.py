@@ -102,7 +102,9 @@ def upsert_payment_for_transaction(
                 defaults={
                     "net_amount_paid": transaction["net"] if not is_refund else 0,
                     "gross_amount_paid": transaction["amount"] if not is_refund else 0,
-                    "amount_refunded": transaction["amount"] if is_refund else 0,
+                    # we negate transaction amount if it's a refund because Stripe represents refunds as negative amounts in balance transactions
+                    # and our system represents refunds as positive amounts
+                    "amount_refunded": -transaction["amount"] if is_refund else 0,
                     "transaction_time": datetime.datetime.fromtimestamp(
                         int(transaction["created"]), tz=datetime.timezone.utc
                     ),
@@ -538,6 +540,7 @@ class StripeTransactionsImporter:
     def get_refunds_for_charge(self, charge_id: str) -> list[dict]:
         """Get cached refunds, if any for a given charge id"""
         results = []
+
         for key in self.redis.scan_iter(match=self.make_key(entity_name="RefundByChargeId", entity_id=f"{charge_id}*")):
             results.append(self.get_resource_from_cache(key))
         return results

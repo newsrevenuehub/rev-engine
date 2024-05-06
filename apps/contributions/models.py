@@ -57,6 +57,9 @@ class Contributor(IndexedTimeStampedModel):
         """
         totals = (
             self.contribution_set.filter_by_revenue_programs(revenue_program_ids)
+            .exclude(
+                status__in=[ContributionStatus.FLAGGED, ContributionStatus.PROCESSING, ContributionStatus.REJECTED]
+            )
             .annotate(total_payments=Sum("payment__net_amount_paid"), total_refunded=Sum("payment__amount_refunded"))
             .aggregate(
                 total_amount_paid=Sum("total_payments", default=0),

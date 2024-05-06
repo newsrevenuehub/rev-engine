@@ -747,7 +747,7 @@ class StripeTransactionsImporter:
         if not revenue_program:
             logger.warning("No revenue program found for id %s", rp_id)
             return None
-        if slug := parse_slug_from_url(metadata.get("referer")):
+        if (_slug := metadata.get("referer")) and (slug := parse_slug_from_url(_slug)):
             return revenue_program.donationpage_set.filter(slug=slug).first()
         return revenue_program.default_donation_page
 

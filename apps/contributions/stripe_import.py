@@ -222,7 +222,7 @@ class StripeTransactionsImporter:
         contributor, created = Contributor.objects.get_or_create(email=email)
         if created:
             logger.info("Created new contributor %s for %s", contributor.id, email)
-        return contributor, "created" if created else "retrieved"
+        return contributor, common_utils.CREATED if created else common_utils.LEFT_UNCHANGED
 
     @staticmethod
     def get_interval_from_plan(plan: dict) -> ContributionInterval:

@@ -7,7 +7,9 @@ from django.conf import settings
 
 import pytest
 import stripe
+from django_redis import get_redis_connection
 
+import apps.common.utils as common_utils
 from apps.contributions.exceptions import (
     InvalidIntervalError,
     InvalidMetadataError,
@@ -94,47 +96,66 @@ def payment_intent_dict(valid_metadata):
 
 class TestRedisCachePipeline:
 
-    @pytest.mark.parametrize("prune_fn", (False, True))
-    def test_put_in_cache(self, mocker, prune_fn):
-        instance = RedisCachePipeline(pipeline=mocker.Mock(), entity_name="foo")
-        trace = 0
-        if prune_fn:
+    @pytest.fixture
+    def redis(self, settings):
+        return get_redis_connection(settings.STRIPE_TRANSACTIONS_IMPORT_CACHE)
 
-            def prune_fn(x):
-                nonlocal trace
-                trace = trace + 1
-                return x
+    @pytest.fixture
+    def name(self):
+        return "foo"
 
-        mock_buffer = mocker.patch.object(instance, "put_in_buffer")
-        instance.put_in_cache(entity_id="id", key="key", entity=(entity := {"foo": "bar"}), prune_fn=prune_fn)
-        mock_buffer.assert_called_once_with(key="key", value=entity)
-        assert trace == (1 if prune_fn else 0)
+    @pytest.fixture
+    def batch_size(self):
+        return 1
 
-    @pytest.mark.parametrize("buffer_count", (0, 99))
-    def test_put_in_buffer(self, mocker, buffer_count):
-        instance = RedisCachePipeline(
-            pipeline=(pipeline := mocker.Mock()), entity_name="foo", batch_size=(batch_size := 100)
+    @pytest.fixture
+    def redis_cache_pipeline(self, redis, name, batch_size):
+        return RedisCachePipeline(
+            connection_pool=redis.connection_pool,
+            response_callbacks=redis.response_callbacks,
+            transaction=False,
+            shard_hint=None,
+            entity_name=name,
+            batch_size=batch_size,
         )
-        instance.buffered = buffer_count
-        mock_flush = mocker.patch.object(instance, "flush")
-        instance.put_in_buffer(key="key", value={"foo": "bar"})
-        pipeline.set.assert_called_once()
-        if (buffer_count + 1) % batch_size == 0:
+
+    def test___init__(self, redis_cache_pipeline, name, batch_size):
+        assert redis_cache_pipeline.entity_name == name
+        assert redis_cache_pipeline.batch_size == batch_size
+        assert redis_cache_pipeline.total_inserted == 0
+
+    @pytest.mark.parametrize("error_on_exit", (True, False))
+    def test_calls_flush_on_exit(self, redis_cache_pipeline, error_on_exit, mocker):
+        mock_flush = mocker.patch.object(redis_cache_pipeline, "flush")
+        mock_set_kwargs = {"side_effect": Exception("ruh-roh")} if error_on_exit else {}
+        mocker.patch.object(redis_cache_pipeline, "set", **mock_set_kwargs)
+        if error_on_exit:
+            with pytest.raises(Exception):
+                with redis_cache_pipeline as pipeline:
+                    pipeline.set(entity_id="id", key="key", entity={"foo": "bar"})
+            mock_flush.assert_not_called()
+        else:
+            with redis_cache_pipeline as pipeline:
+                pipeline.set(entity_id="id", key="key", entity={"foo": "bar"})
+            mock_flush.assert_called_once()
+
+    @pytest.mark.parametrize("has_prune_fn", (True, False))
+    @pytest.mark.parametrize("batch_size", (1, 2))
+    def test_set(self, has_prune_fn, batch_size, redis_cache_pipeline, mocker):
+        prune_fn = mocker.Mock(return_value=(entity := {"foo": "bar"}))
+        mock_flush = mocker.patch.object(redis_cache_pipeline, "flush")
+        redis_cache_pipeline.set(entity_id="id", key="key", entity=entity, prune_fn=prune_fn if has_prune_fn else None)
+        if has_prune_fn:
+            prune_fn.assert_called_once_with(entity)
+        if batch_size == 1:
             mock_flush.assert_called_once()
         else:
             mock_flush.assert_not_called()
 
-    @pytest.mark.parametrize("buffer_count", (0, 1))
-    def test_flush(self, mocker, buffer_count):
-        instance = RedisCachePipeline(pipeline=(pipe := mocker.Mock()), entity_name="foo")
-        instance.buffered = buffer_count
-        instance.flush()
-        if buffer_count:
-            pipe.execute.assert_called_once()
-            assert instance.buffered == 0
-            assert instance.total_inserted == buffer_count
-        else:
-            pipe.execute.assert_not_called()
+    def test_flush(self, mocker, redis_cache_pipeline):
+        mock_execute = mocker.patch("redis.client.Pipeline.execute")
+        redis_cache_pipeline.flush()
+        mock_execute.assert_called_once()
 
 
 class Test_parse_slug_from_url:
@@ -191,7 +212,7 @@ class Test_upsert_payment_for_transaction:
         assert payment.stripe_balance_transaction_id == balance_transaction["id"]
         assert payment.net_amount_paid == (balance_transaction["net"] if not is_refund else 0)
         assert payment.gross_amount_paid == (balance_transaction["amount"] if not is_refund else 0)
-        assert payment.amount_refunded == (balance_transaction["amount"] if is_refund else 0)
+        assert payment.amount_refunded == (-balance_transaction["amount"] if is_refund else 0)
         assert payment.transaction_time
         assert action == ("updated" if payment_exists else "created")
 
@@ -351,6 +372,8 @@ class TestStripeTransactionsImporter:
             ("incomplete_expired", ContributionStatus.FAILED),
             ("canceled", ContributionStatus.CANCELED),
             ("anything_else_that_arrives", ContributionStatus.PROCESSING),
+            ("incomplete", ContributionStatus.PROCESSING),
+            ("trialing", ContributionStatus.PROCESSING),
         ),
     )
     def test_get_status_for_subscription(self, status, expected):
@@ -388,35 +411,49 @@ class TestStripeTransactionsImporter:
             {"created": {"gte": instance.from_date, "lte": instance.to_date}} if init_kwargs else {}
         )
 
+    def test_list_and_cache_entities(self, mocker):
+        instance = StripeTransactionsImporter(stripe_account_id="test")
+        mock_cache = mocker.patch.object(instance, "cache_stripe_resources")
+        mock_list = mocker.patch.object(instance, "list_stripe_entity", return_value=(result := [mocker.Mock()]))
+        instance.list_and_cache_entities("PaymentIntent")
+        mock_list.assert_called_once_with("PaymentIntent")
+        mock_cache.assert_called_once_with(
+            entity_name="PaymentIntent", resources=result, prune_fn=None, exclude_fn=None
+        )
+
     @pytest.mark.parametrize(
-        "method, entity, has_exclude",
+        "method, entity, has_exclude, has_prune, has_list_kwargs",
         (
-            ("list_and_cache_payment_intents", "PaymentIntent", True),
-            ("list_and_cache_subscriptions", "Subscription", True),
-            ("list_and_cache_charges", "Charge", False),
-            ("list_and_cache_refunds", "Refund", False),
-            ("list_and_cache_customers", "Customer", False),
-            ("list_and_cache_invoices", "Invoice", False),
-            ("list_and_cache_balance_transactions", "BalanceTransaction", False),
+            ("list_and_cache_payment_intents", "PaymentIntent", True, True, True),
+            ("list_and_cache_subscriptions", "Subscription", True, True, True),
+            ("list_and_cache_charges", "Charge", False, True, False),
+            ("list_and_cache_refunds", "Refund", False, True, False),
+            ("list_and_cache_customers", "Customer", False, True, False),
+            ("list_and_cache_invoices", "Invoice", False, True, False),
+            ("list_and_cache_balance_transactions", "BalanceTransaction", False, True, False),
         ),
     )
-    def test_list_and_cache_methods(self, method, entity, has_exclude, mocker):
-        mock_cache_stripe_resources = mocker.patch(
-            "apps.contributions.stripe_import.StripeTransactionsImporter.cache_stripe_resources"
-        )
-        mock_list_stripe_entity = mocker.patch(
-            "apps.contributions.stripe_import.StripeTransactionsImporter.list_stripe_entity",
-            return_value=(result := [mocker.Mock()]),
+    def test_list_and_cache_methods(self, method, entity, has_exclude, has_prune, has_list_kwargs, mocker):
+        mock_list_and_cache = mocker.patch(
+            "apps.contributions.stripe_import.StripeTransactionsImporter.list_and_cache_entities"
         )
         mock_should_exclude = mocker.patch(
             "apps.contributions.stripe_import.StripeTransactionsImporter.should_exclude_from_cache_because_of_metadata"
         )
         getattr(StripeTransactionsImporter(stripe_account_id="test"), method)()
-        kwargs = {"entity_name": entity, "resources": result, "prune_fn": mocker.ANY}
+        kwargs = {"entity_name": entity}
+        if has_prune:
+            kwargs["prune_fn"] = mocker.ANY
+        if has_list_kwargs:
+            kwargs["list_kwargs"] = mocker.ANY
         if has_exclude:
             kwargs["exclude_fn"] = mock_should_exclude
-        mock_cache_stripe_resources.assert_called_once_with(**kwargs)
-        mock_list_stripe_entity.assert_called_once_with(entity)
+        mock_list_and_cache.assert_called_once_with(**kwargs)
+
+    def test_get_redis_pipeline(self, mocker):
+        instance = StripeTransactionsImporter(stripe_account_id="test")
+        mocker.patch("apps.contributions.stripe_import.RedisCachePipeline")
+        assert instance.get_redis_pipeline(entity_name="foo")
 
     @pytest.mark.parametrize(
         "exclude_fn, expect_exclude",
@@ -425,34 +462,39 @@ class TestStripeTransactionsImporter:
             (lambda x: True, True),
         ),
     )
-    def test_cache_stripe_resources(self, exclude_fn, expect_exclude, mocker):
-        mock_pipeline = mocker.patch("apps.contributions.stripe_import.RedisCachePipeline")
+    @pytest.mark.parametrize(
+        "prune_fn",
+        (None, lambda x: x),
+    )
+    def test_cache_stripe_resources(self, exclude_fn, prune_fn, expect_exclude, mocker):
+        mock_pipeline = mocker.patch("apps.contributions.stripe_import.StripeTransactionsImporter.get_redis_pipeline")
         resources = [mocker.Mock(id=(entity_id := "foo"), to_dict=lambda: {"id": entity_id})]
         instance = StripeTransactionsImporter(stripe_account_id="test")
         instance.cache_stripe_resources(
-            entity_name=(name := "PaymentIntent"), resources=resources, exclude_fn=exclude_fn
+            entity_name=(name := "PaymentIntent"), resources=resources, exclude_fn=exclude_fn, prune_fn=prune_fn
         )
         if expect_exclude:
-            mock_pipeline.return_value.put_in_cache.assert_not_called()
+            mock_pipeline.return_value.__enter__.return_value.set.assert_not_called()
         else:
-
-            mock_pipeline.return_value.put_in_cache.assert_called_once_with(
+            mock_pipeline.return_value.__enter__.return_value.set.assert_called_once_with(
                 entity_id=entity_id,
-                key=instance.make_key(entity_id, name),
+                key=instance.make_key(entity_id=entity_id, entity_name=name),
                 entity=resources[0].to_dict(),
-                prune_fn=mocker.ANY,
+                prune_fn=prune_fn if prune_fn else None,
             )
-            mock_pipeline.return_value.flush.assert_called_once()
 
     def test_make_key(self):
         instance = StripeTransactionsImporter(stripe_account_id=(acct_id := "test"))
         assert (
-            instance.make_key((entity_id := "foo"), (entity_name := "bar"))
+            instance.make_key(entity_id=(entity_id := "foo"), entity_name=(entity_name := "bar"))
             == f"{CACHE_KEY_PREFIX}_{entity_name}_{entity_id}_{acct_id}"
         )
 
-    def test_cache_charges_by_payment_intent_id(self, mocker):
+    def test_cache_entity_by_another_entity_id(self, mocker):
         instance = StripeTransactionsImporter(stripe_account_id="test")
+        mock_get_pipeline = mocker.patch(
+            "apps.contributions.stripe_import.StripeTransactionsImporter.get_redis_pipeline"
+        )
         mock_redis = mocker.patch.object(instance, "redis")
         mock_redis.scan_iter.return_value = (keys := ["foo", "bar", "bizz"])
         mock_get_resource = mocker.patch.object(
@@ -464,70 +506,35 @@ class TestStripeTransactionsImporter:
                 None,
             ],
         )
-        mock_pipeline = mocker.patch("apps.contributions.stripe_import.RedisCachePipeline")
-        instance.cache_charges_by_payment_intent_id()
-        mock_redis.scan_iter.assert_called_once_with(match=f"{CACHE_KEY_PREFIX}_Charge_*")
+        instance.cache_entity_by_another_entity_id(
+            destination_entity_name=(destination_name := "ChargeByPaymentIntentId"),
+            entity_name=(entity_name := "Charge"),
+            by_entity_name="payment_intent",
+        )
+        mock_get_pipeline.assert_called_once_with(entity_name=destination_name)
+        mock_redis.scan_iter.assert_called_once_with(match=instance.make_key(entity_name=f"{entity_name}_*"))
         assert mock_get_resource.call_count == 3
         mock_get_resource.assert_has_calls([mocker.call(key) for key in keys])
-        mock_pipeline.assert_called_once_with(
-            pipeline=mock_redis.pipeline.return_value, entity_name=(entity_name := "ChargeByPaymentIntentId")
-        )
-        mock_pipeline.return_value.put_in_cache.assert_called_once_with(
+        mock_get_pipeline.return_value.__enter__.return_value.set.assert_called_once_with(
             entity_id=(entity_id := f"{charge1['payment_intent']}_{charge1['id']}"),
-            key=instance.make_key(entity_id, entity_name),
+            key=instance.make_key(entity_id=entity_id, entity_name=destination_name),
             entity=charge1,
         )
 
-    def test_cache_invoices_by_subscription_id(self, mocker):
-        instance = StripeTransactionsImporter(stripe_account_id="test")
-        mock_redis = mocker.patch.object(instance, "redis")
-        mock_redis.scan_iter.return_value = (keys := ["foo", "bar", "bizz"])
-        mock_get_resource = mocker.patch.object(
-            instance,
-            "get_resource_from_cache",
-            side_effect=[
-                (inv1 := {"subscription": "sub_1", "id": "inv_1"}),
-                {"subscription": None, "id": "inv_2"},
-                None,
-            ],
+    @pytest.mark.parametrize(
+        "method",
+        (
+            "cache_charges_by_payment_intent_id",
+            "cache_invoices_by_subscription_id",
+            "cache_refunds_by_charge_id",
+        ),
+    )
+    def test_cache_entity_by_another_entity_methods(self, method, mocker):
+        mock_cache_entity_by_entity = mocker.patch(
+            "apps.contributions.stripe_import.StripeTransactionsImporter.cache_entity_by_another_entity_id"
         )
-        mock_pipeline = mocker.patch("apps.contributions.stripe_import.RedisCachePipeline")
-
-        instance.cache_invoices_by_subscription_id()
-        mock_redis.scan_iter.assert_called_once_with(match=f"{CACHE_KEY_PREFIX}_Invoice_*")
-        assert mock_get_resource.call_count == 3
-        mock_get_resource.assert_has_calls([mocker.call(key) for key in keys])
-        mock_pipeline.assert_called_once_with(
-            pipeline=mock_redis.pipeline.return_value, entity_name=(entity_name := "InvoiceBySubId")
-        )
-        mock_pipeline.return_value.put_in_cache.assert_called_once_with(
-            entity_id=(entity_id := f"{inv1['subscription']}_{inv1['id']}"),
-            key=instance.make_key(entity_id, entity_name),
-            entity=inv1,
-        )
-
-    def test_cache_cache_refunds_by_charge_id(self, mocker):
-        instance = StripeTransactionsImporter(stripe_account_id="test")
-        mock_redis = mocker.patch.object(instance, "redis")
-        mock_redis.scan_iter.return_value = (keys := ["foo", "bar", "bizz"])
-        mock_get_resource = mocker.patch.object(
-            instance,
-            "get_resource_from_cache",
-            side_effect=[(ref1 := {"charge": "ch_1", "id": "ref_1"}), {"charge": None, "id": "ref_2"}, None],
-        )
-        mock_pipeline = mocker.patch("apps.contributions.stripe_import.RedisCachePipeline")
-        instance.cache_refunds_by_charge_id()
-        mock_redis.scan_iter.assert_called_once_with(match=f"{CACHE_KEY_PREFIX}_Refund_*")
-        assert mock_get_resource.call_count == 3
-        mock_get_resource.assert_has_calls([mocker.call(key) for key in keys])
-        mock_pipeline.assert_called_once_with(
-            pipeline=mock_redis.pipeline.return_value, entity_name=(entity_name := "RefundByChargeId")
-        )
-        mock_pipeline.return_value.put_in_cache.assert_called_once_with(
-            entity_id=(entity_id := f"{ref1['charge']}_{ref1['id']}"),
-            key=instance.make_key(entity_id, entity_name),
-            entity=ref1,
-        )
+        getattr(StripeTransactionsImporter(stripe_account_id="test"), method)()
+        mock_cache_entity_by_entity.assert_called_once()
 
     def test_list_and_cache_required_stripe_resources(self, mocker):
         instance = StripeTransactionsImporter(stripe_account_id="test")
@@ -593,7 +600,9 @@ class TestStripeTransactionsImporter:
         results = [mocker.Mock(), mocker.Mock(), mocker.Mock()]
         mocker.patch.object(instance, "get_resource_from_cache", side_effect=results)
         assert instance.get_invoices_for_subscription((sub_id := "sub_1")) == results
-        mock_redis.scan_iter.assert_called_once_with(match=f"{CACHE_KEY_PREFIX}_InvoiceBySubId*{sub_id}*")
+        mock_redis.scan_iter.assert_called_once_with(
+            match=instance.make_key(entity_name="InvoiceBySubId", entity_id=f"{sub_id}*")
+        )
 
     def test_get_charges_for_subscription(self, mocker):
         invoices = [{"id": "inv_1", "charge": "ch_1"}, {"id": "inv_1", "charge": None}]
@@ -662,19 +671,19 @@ class TestStripeTransactionsImporter:
         else:
             assert pm is None
 
-    @pytest.mark.parametrize("action", ("created", "updated", "other"))
-    def test_update_contribution_stats(self, mocker, action):
+    @pytest.mark.parametrize("action", (common_utils.CREATED, common_utils.UPDATED, common_utils.LEFT_UNCHANGED, "foo"))
+    def test_update_contribution_stats(self, action):
         instance = StripeTransactionsImporter(stripe_account_id="test")
         contribution = ContributionFactory()
         instance.update_contribution_stats(action, contribution)
 
-    @pytest.mark.parametrize("action", ("created", "other"))
+    @pytest.mark.parametrize("action", (common_utils.CREATED, common_utils.UPDATED, common_utils.LEFT_UNCHANGED, "foo"))
     def test_update_contributor_stats(self, action):
         instance = StripeTransactionsImporter(stripe_account_id="test")
         contributor = ContributorFactory()
         instance.update_contributor_stats(action, contributor)
 
-    @pytest.mark.parametrize("action", ("created", "updated", "other"))
+    @pytest.mark.parametrize("action", (common_utils.CREATED, common_utils.UPDATED, common_utils.LEFT_UNCHANGED, "foo"))
     def test_update_payment_stats(self, action):
         instance = StripeTransactionsImporter(stripe_account_id="test")
         payment = PaymentFactory()

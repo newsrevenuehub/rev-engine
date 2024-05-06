@@ -10,7 +10,7 @@ class Command(BaseCommand):
 
     def handle(self, *args, **options):
         self.stdout.write(self.style.HTTP_INFO("Running `fix_payments_with_negative_refunds`"))
-        payments_with_negative_amount_refunded = Payment.objects.filter(amount_refunded__gt=0)
+        payments_with_negative_amount_refunded = Payment.objects.filter(amount_refunded__lt=0)
         if not payments_with_negative_amount_refunded.exists():
             self.stdout.write(self.style.HTTP_INFO("No payments with negative refund amounts found, exiting"))
             return

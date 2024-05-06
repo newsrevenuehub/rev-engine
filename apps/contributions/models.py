@@ -122,7 +122,6 @@ class ContributionQuerySet(models.QuerySet):
             return self.filter(
                 Q(donation_page__revenue_program__in=revenue_programs)
                 | Q(contribution_metadata__revenue_program__in=revenue_programs)
-                # and soon via DEV-4562, there will be a third way, via ._revenue_program FK (this comment can go away)
             )
         return self
 

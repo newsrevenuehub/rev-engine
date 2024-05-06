@@ -44,18 +44,27 @@ from apps.users.choices import Roles
 
 @pytest.mark.django_db
 class TestContributorModel:
+    @pytest.fixture
+    def customer_id(self, faker):
+        return faker.pystr_format(string_format="cus_??????")
 
     @pytest.fixture
-    def one_time_contribution_with_payment(self, contributor_user, faker):
-        rp = RevenueProgramFactory()
+    def one_time_canceled_contribution_no_payment(self, contributor_user, customer_id):
         contribution = ContributionFactory(
-            interval=ContributionInterval.ONE_TIME,
-            status=ContributionStatus.PAID,
-            donation_page__revenue_program=rp,
+            one_time=True,
+            canceled=True,
+            provider_customer_id=customer_id,
             contributor=contributor_user,
-            provider_payment_id=faker.pystr_format(string_format="pi_??????"),
-            provider_customer_id=faker.pystr_format(string_format="cus_??????"),
-            provider_payment_method_id=faker.pystr_format(string_format="pm_??????"),
+        )
+        return contribution
+
+    @pytest.fixture
+    def one_time_processing_contribution(self, contributor_user, customer_id):
+        contribution = ContributionFactory(
+            one_time=True,
+            processing=True,
+            provider_customer_id=customer_id,
+            contributor=contributor_user,
         )
         PaymentFactory(
             contribution=contribution,
@@ -66,16 +75,58 @@ class TestContributorModel:
         return contribution
 
     @pytest.fixture
-    def one_time_contribution_with_refund(self, contributor_user, faker):
-        rp = RevenueProgramFactory()
+    def one_time_flagged_contribution(self, contributor_user, customer_id):
         contribution = ContributionFactory(
-            interval=ContributionInterval.ONE_TIME,
-            status=ContributionStatus.PAID,
-            donation_page__revenue_program=rp,
+            one_time=True,
+            flagged=True,
+            provider_customer_id=customer_id,
             contributor=contributor_user,
-            provider_payment_id=faker.pystr_format(string_format="pi_??????"),
-            provider_customer_id=faker.pystr_format(string_format="cus_??????"),
-            provider_payment_method_id=faker.pystr_format(string_format="pm_??????"),
+        )
+        PaymentFactory(
+            contribution=contribution,
+            amount_refunded=0,
+            gross_amount_paid=contribution.amount,
+            net_amount_paid=contribution.amount - 100,
+        )
+        return contribution
+
+    @pytest.fixture
+    def one_time_rejected_contribution(self, contributor_user, customer_id):
+        contribution = ContributionFactory(
+            one_time=True,
+            rejected=True,
+            provider_customer_id=customer_id,
+            contributor=contributor_user,
+        )
+        PaymentFactory(
+            contribution=contribution,
+            amount_refunded=0,
+            gross_amount_paid=contribution.amount,
+            net_amount_paid=contribution.amount - 100,
+        )
+        return contribution
+
+    @pytest.fixture
+    def one_time_contribution_with_payment(self, contributor_user, faker, customer_id):
+        contribution = ContributionFactory(
+            one_time=True,
+            provider_customer_id=customer_id,
+            contributor=contributor_user,
+        )
+        PaymentFactory(
+            contribution=contribution,
+            amount_refunded=0,
+            gross_amount_paid=contribution.amount,
+            net_amount_paid=contribution.amount - 100,
+        )
+        return contribution
+
+    @pytest.fixture
+    def one_time_contribution_with_refund(self, contributor_user, faker, customer_id):
+        contribution = ContributionFactory(
+            one_time=True,
+            provider_customer_id=customer_id,
+            contributor=contributor_user,
         )
         PaymentFactory(
             contribution=contribution,
@@ -94,22 +145,16 @@ class TestContributorModel:
     @pytest.fixture
     def monthly_contribution_multiple_payments(
         self,
-        revenue_program,
         contributor_user,
-        faker,
-        stripe_subscription,
+        customer_id,
     ):
         then = datetime.datetime.now() - timedelta(days=30)
         contribution = ContributionFactory(
-            interval=ContributionInterval.MONTHLY,
+            monthly_subscription=True,
             status=ContributionStatus.CANCELED,
             created=then,
-            donation_page__revenue_program=revenue_program,
             contributor=contributor_user,
-            provider_payment_id=faker.pystr_format(string_format="pi_??????"),
-            provider_customer_id=faker.pystr_format(string_format="cus_??????"),
-            provider_subscription_id=stripe_subscription.id,
-            provider_payment_method_id=faker.pystr_format(string_format="pm_??????"),
+            provider_customer_id=customer_id,
         )
         for x in (then, then + timedelta(days=30)):
             PaymentFactory(
@@ -128,13 +173,6 @@ class TestContributorModel:
         one_time_contribution_with_payment,
         one_time_contribution_with_refund,
     ):
-        cust_id = monthly_contribution_multiple_payments.provider_customer_id
-        one_time_contribution_with_payment.provider_customer_id = cust_id
-        one_time_contribution_with_payment.save()
-
-        one_time_contribution_with_refund.provider_customer_id = cust_id
-        one_time_contribution_with_refund.save()
-
         return monthly_contribution_multiple_payments.contributor
 
     @pytest.fixture(
@@ -145,6 +183,16 @@ class TestContributorModel:
         ]
     )
     def contribution(self, request):
+        return request.getfixturevalue(request.param)
+
+    @pytest.fixture(
+        params=[
+            "one_time_processing_contribution",
+            "one_time_flagged_contribution",
+            "one_time_rejected_contribution",
+        ]
+    )
+    def no_impact_contribution(self, request):
         return request.getfixturevalue(request.param)
 
     def test__str__(self, contributor_user):
@@ -179,7 +227,22 @@ class TestContributorModel:
             "total_refunded": total_refunded,
         }
 
+    def test_get_impact_with_cancelled_contribution(self, one_time_canceled_contribution_no_payment, contributor_user):
+        assert one_time_canceled_contribution_no_payment.payment_set.count() == 0
+        assert one_time_canceled_contribution_no_payment.status == ContributionStatus.CANCELED
+        assert contributor_user.get_impact() == {"total": 0, "total_paid": 0, "total_refunded": 0}
+
+    def test_get_impact_with_no_impact_contribution(self, no_impact_contribution, contributor_user):
+        assert no_impact_contribution.payment_set.count() == 1
+        assert no_impact_contribution.status in [
+            ContributionStatus.FLAGGED,
+            ContributionStatus.REJECTED,
+            ContributionStatus.PROCESSING,
+        ]
+        assert contributor_user.get_impact() == {"total": 0, "total_paid": 0, "total_refunded": 0}
+
     def test_get_impact_with_no_payments(self, contributor_user):
+        assert contributor_user.contribution_set.count() == 0
         assert contributor_user.get_impact() == {"total": 0, "total_paid": 0, "total_refunded": 0}
 
     def test_get_impact_no_rp_filter(self, portal_contributor_with_multiple_contributions_from_different_rps):

@@ -596,7 +596,7 @@ class TestStripeTransactionsImporter:
         mocker.patch.object(instance, "get_resource_from_cache", side_effect=results)
         assert instance.get_invoices_for_subscription((sub_id := "sub_1")) == results
         mock_redis.scan_iter.assert_called_once_with(
-            match=instance.make_key(entity_name="InvoiceBySubId", entity_id=sub_id)
+            match=instance.make_key(entity_name="InvoiceBySubId", entity_id=f"{sub_id}*")
         )
 
     def test_get_charges_for_subscription(self, mocker):

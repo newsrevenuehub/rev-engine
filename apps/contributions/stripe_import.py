@@ -521,7 +521,9 @@ class StripeTransactionsImporter:
     def get_invoices_for_subscription(self, subscription_id: str) -> list[dict]:
         """Get cached invoices, if any for a given subscription id"""
         results = []
-        for key in self.redis.scan_iter(match=self.make_key(entity_name="InvoiceBySubId", entity_id=subscription_id)):
+        for key in self.redis.scan_iter(
+            match=self.make_key(entity_name="InvoiceBySubId", entity_id=f"{subscription_id}*")
+        ):
             results.append(self.get_resource_from_cache(key))
         return results
 
@@ -536,7 +538,7 @@ class StripeTransactionsImporter:
     def get_refunds_for_charge(self, charge_id: str) -> list[dict]:
         """Get cached refunds, if any for a given charge id"""
         results = []
-        for key in self.redis.scan_iter(match=self.make_key(entity_name="RefundByChargeId", entity_id=charge_id)):
+        for key in self.redis.scan_iter(match=self.make_key(entity_name="RefundByChargeId", entity_id=f"{charge_id}*")):
             results.append(self.get_resource_from_cache(key))
         return results
 
@@ -614,7 +616,7 @@ class StripeTransactionsImporter:
         """Get charges for a payment intent from cache"""
         charges = []
         for key in self.redis.scan_iter(
-            match=self.make_key(entity_name="ChargeByPaymentIntentId", entity_id=payment_intent_id)
+            match=self.make_key(entity_name="ChargeByPaymentIntentId", entity_id=f"{payment_intent_id}*")
         ):
             charge = self.get_resource_from_cache(key)
             charges.append(charge)

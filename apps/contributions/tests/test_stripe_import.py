@@ -274,7 +274,7 @@ class TestStripeTransactionsImporter:
             ContributorFactory(email=email)
         contributor, action = instance.get_or_create_contributor(email=email)
         assert contributor.email == email
-        assert action == ("retrieved" if already_exists else "created")
+        assert action == (common_utils.LEFT_UNCHANGED if already_exists else common_utils.CREATED)
 
     @pytest.mark.parametrize(
         "plan_interval,plan_interval_count,expected",

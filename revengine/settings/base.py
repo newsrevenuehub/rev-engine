@@ -237,6 +237,10 @@ AUTH_PASSWORD_VALIDATORS = [
 # Contributions cache set to 30 minutes < CONTRIBUTOR_LONG_TOKEN_LIFETIME
 CONTRIBUTION_CACHE_TTL = timedelta(minutes=30)
 DEFAULT_CACHE = "default"
+STRIPE_TRANSACTIONS_IMPORT_CACHE = "stripe_transactions_import"
+# We set this to two hours. We expec stripe import runs to take less than 2 hours, but this gives
+# use some headroom.
+STRIPE_TRANSACTIONS_IMPORT_CACHE_TTL = 60 * 60 * 2
 
 REDIS_URL = os.getenv("REDIS_TLS_URL", os.getenv("REDIS_URL", "redis://redis:6379"))
 
@@ -251,14 +255,21 @@ if CACHE_HOST.startswith("rediss"):
         "ssl_cert_reqs": ssl.CERT_NONE,
     }
 
+
+base_cache_config = {
+    "BACKEND": "django_redis.cache.RedisCache",
+    "LOCATION": f"{CACHE_HOST}/0",
+    "OPTIONS": {
+        "CLIENT_CLASS": "django_redis.client.DefaultClient",
+        "CONNECTION_POOL_KWARGS": CONNECTION_POOL_KWARGS,
+    },
+}
+
 CACHES = {
-    "default": {
-        "BACKEND": "django_redis.cache.RedisCache",
-        "LOCATION": f"{CACHE_HOST}/0",
-        "OPTIONS": {
-            "CLIENT_CLASS": "django_redis.client.DefaultClient",
-            "CONNECTION_POOL_KWARGS": CONNECTION_POOL_KWARGS,
-        },
+    "default": base_cache_config,
+    STRIPE_TRANSACTIONS_IMPORT_CACHE: {
+        **base_cache_config,
+        "OPTIONS": {**base_cache_config["OPTIONS"], "KEY_PREFIX": STRIPE_TRANSACTIONS_IMPORT_CACHE},
     },
 }
 

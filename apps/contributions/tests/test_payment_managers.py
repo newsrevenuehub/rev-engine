@@ -43,27 +43,27 @@ class TestStripePaymentManager:
         if contribution.interval == ContributionInterval.ONE_TIME:
             mock_pi_retrieve.assert_called_once_with(
                 contribution.provider_payment_id,
-                stripe_account=contribution.donation_page.revenue_program.payment_provider.stripe_account_id,
+                stripe_account=contribution.revenue_program.payment_provider.stripe_account_id,
             )
             if reject:
                 mock_pi_retrieve.return_value.cancel.assert_called_once_with(
                     contribution.provider_payment_id,
-                    stripe_account=contribution.donation_page.revenue_program.payment_provider.stripe_account_id,
+                    stripe_account=contribution.revenue_program.payment_provider.stripe_account_id,
                     cancellation_reason="fraudulent",
                 )
             else:
                 mock_pi_retrieve.return_value.capture.assert_called_once_with(
                     contribution.provider_payment_id,
-                    stripe_account=contribution.donation_page.revenue_program.payment_provider.stripe_account_id,
+                    stripe_account=contribution.revenue_program.payment_provider.stripe_account_id,
                 )
         else:
             mock_si_retrieve.assert_called_once_with(
                 contribution.provider_setup_intent_id,
-                stripe_account=contribution.donation_page.revenue_program.payment_provider.stripe_account_id,
+                stripe_account=contribution.revenue_program.payment_provider.stripe_account_id,
             )
             mock_pm_retrieve.assert_called_once_with(
                 contribution.provider_payment_method_id,
-                stripe_account=contribution.donation_page.revenue_program.payment_provider.stripe_account_id,
+                stripe_account=contribution.revenue_program.payment_provider.stripe_account_id,
             )
             if reject:
                 mock_pm_retrieve.return_value.detach.assert_called_once()

@@ -42,7 +42,6 @@ describe('usePortalContributorImpact', () => {
       it('returns a loading status', async () => {
         const { result, waitForNextUpdate } = hook(123);
 
-        expect(result.current.isFetching).toBe(true);
         expect(result.current.isLoading).toBe(true);
         await waitForNextUpdate();
       });

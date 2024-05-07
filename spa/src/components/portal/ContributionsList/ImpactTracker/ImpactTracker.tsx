@@ -1,16 +1,22 @@
 import GraphIcon from '@material-design-icons/svg/filled/auto_graph.svg?react';
-import PropTypes, { InferProps } from 'prop-types';
-import formatCurrencyAmount from 'utilities/formatCurrencyAmount';
-import { ContributionWrapper, ImpactWrapper, Subtitle, Title, TotalText, TitleWrapper } from './ImpactTracker.styled';
-import { PortalImpact } from 'hooks/usePortalContributorImpact';
 import InfoOutlinedIcon from '@material-ui/icons/InfoOutlined';
 import { Tooltip } from 'components/base';
+import { usePortalContributorImpact } from 'hooks/usePortalContributorImpact';
+import PropTypes, { InferProps } from 'prop-types';
+import formatCurrencyAmount from 'utilities/formatCurrencyAmount';
+import { ContributionWrapper, ImpactWrapper, Subtitle, Title, TitleWrapper, TotalText } from './ImpactTracker.styled';
 
 export interface ImpactTrackerProps extends InferProps<typeof ImpactTrackerPropTypes> {
-  impact?: PortalImpact;
+  contributorId?: number;
 }
 
-const ImpactTracker = ({ impact }: ImpactTrackerProps) => {
+const ImpactTracker = ({ contributorId }: ImpactTrackerProps) => {
+  const { impact, isLoading: isLoadingImpact } = usePortalContributorImpact(contributorId);
+
+  if (isLoadingImpact) {
+    return null;
+  }
+
   return (
     <ImpactWrapper>
       <TitleWrapper>
@@ -34,7 +40,7 @@ const ImpactTracker = ({ impact }: ImpactTrackerProps) => {
 };
 
 const ImpactTrackerPropTypes = {
-  impact: PropTypes.object
+  contributorId: PropTypes.number
 };
 
 ImpactTracker.propTypes = ImpactTrackerPropTypes;

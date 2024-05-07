@@ -4,15 +4,15 @@ import axios from 'ajax/portal-axios';
 
 export interface PortalImpact {
   /**
-   * Total payments a Contributor made (= total_payments - total_refunded).
+   * Total amount contributed in cents (= total_payments - total_refunded).
    */
   total: number;
   /**
-   * Total net amount a Contributor paid
+   * Total net amount contributed in cents.
    */
   total_payments: number;
   /**
-   * Total amount refunded a Contributor
+   * Total amount refunded in cents
    */
   total_refunded: number;
 }
@@ -26,10 +26,10 @@ async function fetchImpact(contributorId: number) {
  * Manages fetching the impact of a contributor
  */
 export function usePortalContributorImpact(contributorId?: number) {
-  const { data, ...rest } = useQuery(['portalImpact'], () => fetchImpact(contributorId!), {
+  const { data, isLoading, isError } = useQuery(['portalImpact'], () => fetchImpact(contributorId!), {
     enabled: !!contributorId,
     keepPreviousData: true
   });
 
-  return { impact: data, ...rest };
+  return { impact: data, isLoading, isError };
 }

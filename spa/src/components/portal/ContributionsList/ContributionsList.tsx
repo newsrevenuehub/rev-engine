@@ -14,6 +14,7 @@ import {
   AlignPositionWrapper,
   ContactInfoWrapper,
   Detail,
+  Impact,
   Layout,
   Legend,
   List,
@@ -21,12 +22,10 @@ import {
   Root,
   StyledPortalPage,
   Subhead,
-  Impact,
   Tabs
 } from './ContributionsList.styled';
-import NoContributions from './NoContributions';
 import ImpactTracker from './ImpactTracker/ImpactTracker';
-import { usePortalContributorImpact } from 'hooks/usePortalContributorImpact';
+import NoContributions from './NoContributions';
 
 const CONTRIBUTION_SORT_OPTIONS = [
   {
@@ -58,7 +57,6 @@ export function ContributionsList() {
   const { contributor } = usePortalAuthContext();
   const { page } = usePortal();
   const [ordering, setOrdering] = useState(CONTRIBUTION_SORT_OPTIONS[0].value);
-  const { impact, isLoading: isLoadingImpact } = usePortalContributorImpact(contributor?.id);
   const { contributions, isError, isLoading, refetch } = usePortalContributionList(contributor?.id, {
     ordering: ordering === 'created' ? `-${ordering}` : `-${ordering},-created`,
     // If the tab is 'All', we don't need to pass an interval
@@ -129,11 +127,9 @@ export function ContributionsList() {
       <Root>
         <Layout>
           <ContributionsHeader defaultPage={page} revenueProgram={page?.revenue_program} />
-          {!isLoadingImpact && (
-            <Impact>
-              <ImpactTracker impact={impact} />
-            </Impact>
-          )}
+          <Impact>
+            <ImpactTracker contributorId={contributor?.id} />
+          </Impact>
           <Legend $detailVisible={!!selectedContribution}>
             <Subhead>Transactions</Subhead>
             <p>View billing history, update payment details, and resend receipts.</p>

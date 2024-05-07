@@ -867,7 +867,6 @@ class RevenueProgram(IndexedTimeStampedModel):
         self, segment_type: Literal["all_contributors", "contributor", "recurring_contributor"], options
     ) -> None:
         if not getattr(self, f"mailchimp_{segment_type}_segment", None):
-            print("Creating")
             logger.info(
                 "Creating %s segment for RP %s",
                 segment_type,
@@ -883,7 +882,6 @@ class RevenueProgram(IndexedTimeStampedModel):
                 self.save(update_fields={f"mailchimp_{segment_type}_segment_id", "modified"})
                 reversion.set_comment(f"ensure_mailchimp_segment updated {segment_type} segment id")
         else:
-            print("already exists")
             logger.info("Segment already exists for RP %s", self.id)
 
     def ensure_mailchimp_entities(self) -> None:

@@ -255,7 +255,6 @@ class Contribution(IndexedTimeStampedModel):
 
     @property
     def revenue_program(self) -> RevenueProgram | None:
-        # TODO: [DEV-4507] Remove this property and replace with a direct FK to RevenueProgram
         if self.donation_page:
             return self.donation_page.revenue_program
         return self._revenue_program

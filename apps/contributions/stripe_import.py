@@ -183,7 +183,7 @@ class RedisCachePipeline(Pipeline):
             self.flush()
 
     def flush(self) -> None:
-        """Flush the pipeline by cachching its resources in Redis"""
+        """Flush the pipeline by caching its resources in Redis"""
         logger.debug("Flushing redis pipeline")
         insert_count = len(self)
         self.execute()

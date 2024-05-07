@@ -789,7 +789,9 @@ class StripeTransactionsImporter:
             # If there's contribution metadata, we want to leave it intact.
             # Otherwise we see spurious updates because of key ordering in the
             # metadata and conversions of null <-> None.
-            # additional note
+            # We also don't want to update the _revenue program or donation page if they are already
+            # set on off chance that we would provide both by updating (which would cause an integrity error because
+            # one or the other must be set, but not both)
             dont_update=["contribution_metadata", "_revenue_program", "donation_page"],
         )
 

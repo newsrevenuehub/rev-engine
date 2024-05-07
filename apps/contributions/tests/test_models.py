@@ -241,8 +241,16 @@ class TestContributorModel:
         ]
         assert contributor_user.get_impact() == {"total": 0, "total_paid": 0, "total_refunded": 0}
 
-    def test_get_impact_with_no_payments(self, contributor_user):
+    def test_get_impact_with_no_contributions(self, contributor_user):
         assert contributor_user.contribution_set.count() == 0
+        assert contributor_user.get_impact() == {"total": 0, "total_paid": 0, "total_refunded": 0}
+
+    def test_get_impact_with_no_payments(self, contributor_user):
+        contribution = ContributionFactory(
+            one_time=True,
+            contributor=contributor_user,
+        )
+        assert contribution.payment_set.count() == 0
         assert contributor_user.get_impact() == {"total": 0, "total_paid": 0, "total_refunded": 0}
 
     def test_get_impact_no_rp_filter(self, portal_contributor_with_multiple_contributions_from_different_rps):

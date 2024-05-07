@@ -545,9 +545,10 @@ class RevenueProgramMailchimpClient(MailchimpMarketing.Client):
                     ],
                 },
             )
-            return MailchimpProduct(**response)
         except ApiClientError as error:
             return self._handle_write_error(product_id, error)
+        else:
+            return MailchimpProduct(**response)
 
     def create_segment(self, segment_name: str, options) -> MailchimpSegment:
         """Creates a segment of the revenue program's Mailchimp list. This list must be previously created."""
@@ -560,9 +561,10 @@ class RevenueProgramMailchimpClient(MailchimpMarketing.Client):
                 self.revenue_program.mailchimp_list_id,
                 {"name": segment_name, "options": options},
             )
-            return MailchimpSegment(**response)
         except ApiClientError as error:
             return self._handle_write_error(self.revenue_program.mailchimp_contributor_segment_name, error)
+        else:
+            return MailchimpSegment(**response)
 
     def create_store(self) -> MailchimpStore:
         """Creates a Mailchimp ecommerce store for the revenue program's Mailchimp list. This list must be previously created."""
@@ -582,9 +584,10 @@ class RevenueProgramMailchimpClient(MailchimpMarketing.Client):
                     "currency_code": self.revenue_program.payment_provider.currency_code,
                 }
             )
-            return MailchimpStore(**response)
         except ApiClientError as error:
             return self._handle_write_error("store", error)
+        else:
+            return MailchimpStore(**response)
 
     def get_email_list(self) -> MailchimpEmailList | None:
         """Retrieves the Mailchimp list belonging to the integration, if it exists."""
@@ -595,21 +598,23 @@ class RevenueProgramMailchimpClient(MailchimpMarketing.Client):
         try:
             logger.info("Getting list %s for RP %s", self.revenue_program.mailchimp_list_id, self.revenue_program.id)
             response = self.lists.get_list(self.revenue_program.mailchimp_list_id)
-            return MailchimpEmailList(**response)
         except ApiClientError as error:
             # we want to log as an error if not found because in this case, something has gone wrong in that we have a
             # list ID but it is not found on Mailchimp.  This will give us a signal in Sentry, while not blocking
             # serialization of the revenue program.
             return self._handle_read_error("mailchimp email list", error, log_level_on_not_found="error")
+        else:
+            return MailchimpEmailList(**response)
 
     def get_product(self, product_id: str) -> MailchimpProduct | None:
         """Retrieves an ecommerce product from the revenue program's Mailchimp store, if it exists."""
         logger.debug("Called for RP %s", self.revenue_program.id)
         try:
             response = self.ecommerce.get_store_product(self.revenue_program.mailchimp_store_id, product_id)
-            return MailchimpProduct(**response)
         except ApiClientError as exc:
             return self._handle_read_error("contribution product", exc)
+        else:
+            return MailchimpProduct(**response)
 
     def get_segment(self, segment_id: int) -> MailchimpSegment | None:
         """Retrieves a segment of the revenue program's Mailchimp list, if it exists."""
@@ -619,18 +624,20 @@ class RevenueProgramMailchimpClient(MailchimpMarketing.Client):
             return None
         try:
             response = self.lists.get_segment(self.revenue_program.mailchimp_list_id, segment_id)
-            return MailchimpSegment(**response)
         except ApiClientError as error:
             return self._handle_read_error("contributor segment", error)
+        else:
+            return MailchimpSegment(**response)
 
     def get_store(self) -> MailchimpStore | None:
         """Retrieves the revenue program's Mailchimp ecommerce store, if it exists."""
         logger.debug("Called for RP %s", self.revenue_program.id)
         try:
             response = self.ecommerce.get_store(self.revenue_program.mailchimp_store_id)
-            return MailchimpStore(**response)
         except ApiClientError as exc:
             return self._handle_read_error("store", exc)
+        else:
+            return MailchimpStore(**response)
 
     def _handle_read_error(
         self, entity: str, exc: ApiClientError, log_level_on_not_found: Literal["debug", "error", "warning"] = "debug"

@@ -8,6 +8,7 @@ export const ImpactWrapper = styled.div`
   align-items: center;
   justify-content: space-between;
   padding: 15px 25px;
+  max-height: 86px;
 
   & svg {
     fill: ${({ theme }) => theme.basePalette.greyscale.white};
@@ -64,6 +65,7 @@ export const Subtitle = styled.p`
   font-weight: 400;
   margin: 0 0 7px 0;
   text-align: right;
+  line-height: 21px;
 
   & svg {
     height: 16px;
@@ -73,6 +75,7 @@ export const Subtitle = styled.p`
   @media (max-width: 768px) {
     font-size: ${({ theme }) => theme.fontSizesUpdated.sm};
     margin-bottom: 5px;
+    line-height: 16px;
   }
 `;
 
@@ -82,8 +85,10 @@ export const TotalText = styled.p`
   text-align: right;
   font-weight: 600;
   margin: 0;
+  line-height: 28px;
 
   @media (max-width: 768px) {
     font-size: ${({ theme }) => theme.fontSizesUpdated.lg};
+    line-height: 21px;
   }
 `;

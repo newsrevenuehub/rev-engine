@@ -46,7 +46,7 @@ STORAGES = {
     # Store static files, like SPA assets, locally.
     "staticfiles": {"BACKEND": "django.contrib.staticfiles.storage.StaticFilesStorage"},
 }
-STATIC_URL = f"https://storage.googleapis.com/{os.getenv('GS_BUCKET_NAME')}/static/"
+
 ### React SPA index.html
 FRONTEND_BUILD_DIR = Path(BASE_DIR) / "build"
 TEMPLATES[0]["DIRS"] = [FRONTEND_BUILD_DIR, os.path.join(PROJECT_DIR, "templates")]

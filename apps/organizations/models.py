@@ -866,10 +866,15 @@ class RevenueProgram(IndexedTimeStampedModel):
     def ensure_mailchimp_contribution_product(self, product_type: Literal["one_time", "recurring"]) -> None:
         if not getattr(self, f"mailchimp_{product_type}_contribution_product", None):
             logger.info("RP %s does not have a %s contribution product. Attempting to create", self.id, product_type)
-            RevenueProgramMailchimpClient(rp=self).create_product(
-                getattr(self, f"mailchimp_{product_type}_contribution_product_id"),
-                getattr(self, f"mailchimp_{product_type}_contribution_product_name"),
-            )
+            try:
+                RevenueProgramMailchimpClient(rp=self).create_product(
+                    getattr(self, f"mailchimp_{product_type}_contribution_product_id"),
+                    getattr(self, f"mailchimp_{product_type}_contribution_product_name"),
+                )
+            except MailchimpIntegrationError:
+                logger.exception(
+                    "Couldn't create %s Mailchimp contribution product for RP %s; continuing", product_type, self.id
+                )
         else:
             logger.info("%s contribution product already exists for RP with ID %s", product_type, self.id)
 
@@ -882,15 +887,19 @@ class RevenueProgram(IndexedTimeStampedModel):
                 segment_type,
                 self.id,
             )
-            segment = RevenueProgramMailchimpClient(rp=self).create_segment(
-                getattr(self, f"mailchimp_{segment_type}_segment_name"), options
-            )
-            logger.info("%s segment created for RP %s", segment_type, self.id)
-            setattr(self, f"mailchimp_{segment_type}_segment_id", segment.id)
-            logger.info("Saving Mailchimp %s segment id for RP %s", segment_type, self.id)
-            with reversion.create_revision():
-                self.save(update_fields={f"mailchimp_{segment_type}_segment_id", "modified"})
-                reversion.set_comment(f"ensure_mailchimp_segment updated {segment_type} segment id")
+            try:
+                segment = RevenueProgramMailchimpClient(rp=self).create_segment(
+                    getattr(self, f"mailchimp_{segment_type}_segment_name"), options
+                )
+            except MailchimpIntegrationError:
+                logger.exception("Couldn't create Mailchimp %s segment for RP %s; continuing", segment_type, self.id)
+            else:
+                logger.info("%s segment created for RP %s", segment_type, self.id)
+                setattr(self, f"mailchimp_{segment_type}_segment_id", segment.id)
+                logger.info("Saving Mailchimp %s segment id for RP %s", segment_type, self.id)
+                with reversion.create_revision():
+                    self.save(update_fields={f"mailchimp_{segment_type}_segment_id", "modified"})
+                    reversion.set_comment(f"ensure_mailchimp_segment updated {segment_type} segment id")
         else:
             logger.info("Segment already exists for RP %s", self.id)
 

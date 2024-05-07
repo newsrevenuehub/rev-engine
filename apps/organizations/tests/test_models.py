@@ -473,6 +473,28 @@ class TestRevenueProgramMailchimpClient:
         mocker.patch.object(client.ecommerce, "get_store", side_effect=ApiClientError("test-error"))
         assert client.get_store() is None
 
+    def test_handle_read_404_error(self, mc_connected_rp, mocker):
+        client = RevenueProgramMailchimpClient(mc_connected_rp)
+        logger_spy = mocker.spy(logger, "debug")
+        client._handle_read_error("test-entity", ApiClientError("test-error", 404), "debug")
+        logger_spy.assert_called_with(
+            "Mailchimp %s not found for RP %s, returning None", "test-entity", mc_connected_rp.id
+        )
+
+    def test_handle_read_429_error(self, mc_connected_rp, mocker):
+        client = RevenueProgramMailchimpClient(mc_connected_rp)
+        logger_spy = mocker.spy(logger, "warning")
+        with pytest.raises(MailchimpRateLimitError):
+            client._handle_read_error("test-entity", ApiClientError("test-error", 429))
+        logger_spy.assert_called_with("Mailchimp rate limit exceeded for RP %s, raising exception", mc_connected_rp.id)
+
+    def test_handle_write_429_error(self, mc_connected_rp, mocker):
+        client = RevenueProgramMailchimpClient(mc_connected_rp)
+        logger_spy = mocker.spy(logger, "warning")
+        with pytest.raises(MailchimpRateLimitError):
+            client._handle_write_error("test-entity", ApiClientError("test-error", 429))
+        logger_spy.assert_called_with("Mailchimp rate limit exceeded for RP %s, raising exception", mc_connected_rp.id)
+
 
 @pytest.mark.django_db
 class TestRevenueProgram:

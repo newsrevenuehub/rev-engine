@@ -10,7 +10,5 @@ const Template: StoryFn<typeof ImpactTracker> = (props) => <ImpactTracker {...pr
 
 export const Default = Template.bind({});
 Default.args = {
-  impact: {
-    total: 123000
-  } as any
+  contributorId: 1
 };

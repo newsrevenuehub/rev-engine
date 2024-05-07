@@ -223,8 +223,7 @@ class Contribution(IndexedTimeStampedModel):
                 check=(
                     models.Q(donation_page__isnull=False, _revenue_program__isnull=True)
                     | models.Q(donation_page__isnull=True, _revenue_program__isnull=False)
-                )
-                & ~(models.Q(donation_page__isnull=False, _revenue_program__isnull=False)),
+                ),
             ),
         ]
 

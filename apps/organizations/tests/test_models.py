@@ -988,54 +988,62 @@ class TestRevenueProgram:
 
 @pytest.mark.django_db
 @pytest.mark.parametrize(
-    "type",
+    "product_type",
     (
         ("one_time"),
         ("recurring"),
     ),
 )
 class TestRevenueProgramMailchimpProducts:
-    def test_property_happy_path(self, type, mc_connected_rp, mailchimp_product_from_api, mocker):
+    def test_property_happy_path(self, product_type, mc_connected_rp, mailchimp_product_from_api, mocker):
         patched_client = mocker.patch("apps.organizations.models.RevenueProgramMailchimpClient")
         patched_client.return_value.get_product.return_value = mailchimp_product_from_api
-        product = getattr(mc_connected_rp, f"mailchimp_{type}_contribution_product")
+        product = getattr(mc_connected_rp, f"mailchimp_{product_type}_contribution_product")
         assert product == mailchimp_product_from_api
         patched_client.return_value.get_product.assert_called_with(
-            getattr(mc_connected_rp, f"mailchimp_{type}_contribution_product_id")
+            getattr(mc_connected_rp, f"mailchimp_{product_type}_contribution_product_id")
         )
 
-    def test_property_when_no_list_id(self, type, mc_connected_rp):
+    def test_property_when_no_list_id(self, product_type, mc_connected_rp):
         mc_connected_rp.mailchimp_list_id = None
         mc_connected_rp.save()
-        assert getattr(mc_connected_rp, f"mailchimp_{type}_contribution_product") is None
+        assert getattr(mc_connected_rp, f"mailchimp_{product_type}_contribution_product") is None
 
-    def test_property_not_found(self, type, mc_connected_rp, mocker):
+    def test_property_not_found(self, product_type, mc_connected_rp, mocker):
         patched_client = mocker.patch("apps.organizations.models.RevenueProgramMailchimpClient")
         patched_client.return_value.get_product.return_value = None
-        assert getattr(mc_connected_rp, f"mailchimp_{type}_contribution_product") is None
+        assert getattr(mc_connected_rp, f"mailchimp_{product_type}_contribution_product") is None
 
-    def test_property_api_error_raises_exception(self, type, mc_connected_rp, mocker):
+    def test_property_api_error_raises_exception(self, product_type, mc_connected_rp, mocker):
         patched_client = mocker.patch("apps.organizations.models.RevenueProgramMailchimpClient")
         patched_client.return_value.get_product.side_effect = MailchimpRateLimitError()
         with pytest.raises(MailchimpRateLimitError):
-            getattr(mc_connected_rp, f"mailchimp_{type}_contribution_product")
+            getattr(mc_connected_rp, f"mailchimp_{product_type}_contribution_product")
 
     def test_ensure_mailchimp_contribution_product_doesnt_create_when_exists(
-        self, type, mc_connected_rp, mailchimp_product_from_api, mocker
+        self, product_type, mc_connected_rp, mailchimp_product_from_api, mocker
     ):
         patched_client = mocker.patch("apps.organizations.models.RevenueProgramMailchimpClient")
-        mocker.patch.object(mc_connected_rp, f"mailchimp_{type}_contribution_product", mailchimp_product_from_api)
-        mc_connected_rp.ensure_mailchimp_contribution_product(type)
+        mocker.patch.object(
+            mc_connected_rp, f"mailchimp_{product_type}_contribution_product", mailchimp_product_from_api
+        )
+        mc_connected_rp.ensure_mailchimp_contribution_product(product_type)
         assert not patched_client.return_value.create_product.called
 
-    def test_ensure_mailchimp_contribution_product_creates_when_needed(self, type, mc_connected_rp, mocker):
+    def test_ensure_mailchimp_contribution_product_creates_when_needed(self, product_type, mc_connected_rp, mocker):
         patched_client = mocker.patch("apps.organizations.models.RevenueProgramMailchimpClient")
         patched_client.return_value.get_product.return_value = None
-        mc_connected_rp.ensure_mailchimp_contribution_product(type)
+        mc_connected_rp.ensure_mailchimp_contribution_product(product_type)
         patched_client.return_value.create_product.assert_called_with(
-            getattr(mc_connected_rp, f"mailchimp_{type}_contribution_product_id"),
-            getattr(mc_connected_rp, f"mailchimp_{type}_contribution_product_name"),
+            getattr(mc_connected_rp, f"mailchimp_{product_type}_contribution_product_id"),
+            getattr(mc_connected_rp, f"mailchimp_{product_type}_contribution_product_name"),
         )
+
+    def test_ensure_mailchimp_contribution_product_handles_error(self, product_type, mc_connected_rp, mocker):
+        patched_client = mocker.patch("apps.organizations.models.RevenueProgramMailchimpClient")
+        patched_client.return_value.get_product.return_value = None
+        patched_client.return_value.create_product.side_effect = MailchimpIntegrationError("test-error")
+        mc_connected_rp.ensure_mailchimp_contribution_product(product_type)
 
 
 @pytest.mark.django_db
@@ -1090,6 +1098,12 @@ class TestRevenueProgramMailchimpSegments:
         patched_client.return_value.create_segment.assert_called_with(
             getattr(mc_connected_rp, f"mailchimp_{segment_type}_segment_name"), mock_options
         )
+
+    def test_ensure_mailchimp_contributor_segment_handles_error(self, segment_type, mc_connected_rp, mocker):
+        patched_client = mocker.patch("apps.organizations.models.RevenueProgramMailchimpClient")
+        patched_client.return_value.get_segment.return_value = None
+        patched_client.return_value.create_segment.side_effect = MailchimpIntegrationError("test-error")
+        mc_connected_rp.ensure_mailchimp_contributor_segment(segment_type, {})
 
 
 class TestPaymentProvider:

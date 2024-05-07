@@ -3,8 +3,12 @@ import { render, screen } from 'test-utils';
 import RichTextEditor, { RichTextEditorProps } from './RichTextEditor';
 
 jest.mock('react-draft-wysiwyg', () => ({
-  Editor: ({ toolbar }: { toolbar: any }) => (
-    <div data-testid="mock-react-draft-editor" data-toolbar={JSON.stringify(toolbar ?? '')} />
+  Editor: ({ toolbar, handlePastedText }: { toolbar: any; handlePastedText: () => boolean }) => (
+    <div
+      data-testid="mock-react-draft-editor"
+      data-toolbar={JSON.stringify(toolbar ?? '')}
+      data-handlePastedText={handlePastedText?.()}
+    />
   )
 }));
 
@@ -23,6 +27,11 @@ describe('RichTextEditor', () => {
 
     tree({ toolbar });
     expect(screen.getByTestId('mock-react-draft-editor')!.dataset.toolbar).toEqual(JSON.stringify(toolbar));
+  });
+
+  it('should have prop to fix paste formatting issue (handlePastedText)', () => {
+    tree();
+    expect(screen.getByTestId('mock-react-draft-editor')!.dataset.handlepastedtext).toEqual('false');
   });
 
   it('is accessible', async () => {

@@ -49,12 +49,15 @@ jobs:
         run: cd spa && npm ci
         # 👇 Adds Chromatic as a step in the workflow
       - name: Publish to Chromatic
-        uses: chromaui/action@v1
+        uses: chromaui/action@latest
         # Chromatic GitHub Action options
         with:
           # Use TurboSnap
           # https://www.chromatic.com/docs/turbosnap
           onlyChanged: true
+          # See https://github.com/chromaui/chromatic-cli/issues/975
+          # Until this issue, only `workingDir` was needed
+          storybookBaseDir: "spa"
           workingDir: "spa"
           # 👇 Chromatic projectToken, refer to the manage page to obtain it.
           projectToken: ${{ secrets.CHROMATIC_PROJECT_TOKEN }}

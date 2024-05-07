@@ -133,7 +133,8 @@ class ContributionQuerySet(models.QuerySet):
                 return self.having_org_viewable_status()
             case Roles.ORG_ADMIN:
                 return self.having_org_viewable_status().filter(
-                    donation_page__revenue_program__organization=role_assignment.organization
+                    models.Q(donation_page__revenue_program__organization=role_assignment.organization)
+                    | models.Q(_revenue_program__organization=role_assignment.organization)
                 )
             case Roles.RP_ADMIN:
                 return self.having_org_viewable_status().filter(

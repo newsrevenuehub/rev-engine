@@ -1031,7 +1031,7 @@ class RevenueProgram(IndexedTimeStampedModel):
                 self.id,
                 self.mailchimp_server_prefix,
             )
-            client = RevenueProgramMailchimpClient(self)
+            client = RevenueProgramMailchimpClient(rp=self)
             response = client.lists.get_all_lists(count=1000)
             lists = response.get("lists", [])
             logger.debug("Response from Mailchimp containing %s list ids", len(lists))

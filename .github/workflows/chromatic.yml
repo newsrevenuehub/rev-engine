@@ -49,7 +49,7 @@ jobs:
         run: cd spa && npm ci
         # 👇 Adds Chromatic as a step in the workflow
       - name: Publish to Chromatic
-        uses: chromaui/action@v1
+        uses: chromaui/action@latest
         # Chromatic GitHub Action options
         with:
           # Use TurboSnap

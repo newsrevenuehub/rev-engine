@@ -99,12 +99,12 @@ describe('Account', () => {
     it('should show a success message on submit of a valid email', () => {
       cy.visit(FORGOT_PASSWORD);
       cy.url().should('include', FORGOT_PASSWORD);
-      cy.getByTestId('forgotpwd-email').type('test@test.com');
+      cy.findByRole('textbox', { name: 'Email' }).type('test@test.com');
       cy.intercept('POST', getEndpoint(FORGOT_PASSWORD_ENDPOINT), {
         statusCode: 200,
         body: FORGOT_PASSWORD_API_200
       });
-      cy.get('button[name="Send Reset Link"]').click();
+      cy.findByRole('button', { name: 'Send Reset Link' }).click();
       cy.contains(FORGOT_PASSWORD_SUCCESS_TEXT);
     });
   });
@@ -196,7 +196,7 @@ describe('Account', () => {
       });
       cy.visit(DASHBOARD_SLUG);
       cy.url().should('include', VERIFY_EMAIL_SUCCESS);
-      cy.get('button[name="Resend Verification"]').click();
+      cy.findByRole('button', { name: 'Resend Verification' }).click();
       cy.contains(RESEND_VERIFICATION_SUCCESS_TEXT);
     });
 

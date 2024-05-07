@@ -553,9 +553,7 @@ class RevenueProgramMailchimpClient(MailchimpMarketing.Client):
     def create_segment(self, segment_name: str, options) -> MailchimpSegment:
         """Creates a segment of the revenue program's Mailchimp list. This list must be previously created."""
         logger.info("Called for RP %s", self.revenue_program.id)
-        if not self.revenue_program.mailchimp_list_id:
-            logger.error("No email list ID on RP %s", self.revenue_program.id)
-            raise MailchimpIntegrationError("Mailchimp must be connected and email list ID must be set")
+        self._has_list_id(raise_if_not_present=True)
         try:
             response = self.lists.create_segment(
                 self.revenue_program.mailchimp_list_id,
@@ -569,9 +567,7 @@ class RevenueProgramMailchimpClient(MailchimpMarketing.Client):
     def create_store(self) -> MailchimpStore:
         """Creates a Mailchimp ecommerce store for the revenue program's Mailchimp list. This list must be previously created."""
         logger.info("Called for RP %s", self.revenue_program.id)
-        if not self.revenue_program.mailchimp_list_id:
-            logger.error("No email list ID on RP %s", self.revenue_program.id)
-            raise MailchimpIntegrationError("Mailchimp must be connected and email list ID must be set")
+        self._has_list_id(raise_if_not_present=True)
         if not self.revenue_program.payment_provider:
             logger.error("No payment provider on RP %s", self.revenue_program.id)
             raise MailchimpIntegrationError("No payment provider on RP %s", self.revenue_program.id)
@@ -592,9 +588,8 @@ class RevenueProgramMailchimpClient(MailchimpMarketing.Client):
     def get_email_list(self) -> MailchimpEmailList | None:
         """Retrieves the Mailchimp list belonging to the integration, if it exists."""
         logger.debug("Called for RP %s", self.revenue_program.id)
-        if not self.revenue_program.mailchimp_list_id:
-            logger.debug("No email list ID on RP %s, returning None", self.revenue_program.id)
-            return None
+        if not self._has_list_id():
+            return
         try:
             logger.info("Getting list %s for RP %s", self.revenue_program.mailchimp_list_id, self.revenue_program.id)
             response = self.lists.get_list(self.revenue_program.mailchimp_list_id)
@@ -619,9 +614,8 @@ class RevenueProgramMailchimpClient(MailchimpMarketing.Client):
     def get_segment(self, segment_id: int) -> MailchimpSegment | None:
         """Retrieves a segment of the revenue program's Mailchimp list, if it exists."""
         logger.debug("Called for RP %s", self.revenue_program.id)
-        if not self.revenue_program.mailchimp_list_id:
-            logger.debug("No email list ID on RP %s, returning None", self.revenue_program.id)
-            return None
+        if not self._has_list_id():
+            return
         try:
             response = self.lists.get_segment(self.revenue_program.mailchimp_list_id, segment_id)
         except ApiClientError as error:
@@ -638,6 +632,15 @@ class RevenueProgramMailchimpClient(MailchimpMarketing.Client):
             return self._handle_read_error("store", exc)
         else:
             return MailchimpStore(**response)
+
+    def _has_list_id(self, raise_if_not_present=False):
+        """A check for Mailchimp list ID on a revenue program which logs a debug message if not."""
+        if not self.revenue_program.mailchimp_list_id:
+            logger.debug("No email list ID on RP %s", self.revenue_program.id)
+            if raise_if_not_present:
+                raise MailchimpIntegrationError("Mailchimp must be connected and email list ID must be set")
+            return False
+        return True
 
     def _handle_read_error(
         self, entity: str, exc: ApiClientError, log_level_on_not_found: Literal["debug", "error", "warning"] = "debug"

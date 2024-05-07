@@ -686,14 +686,6 @@ class Contribution(IndexedTimeStampedModel):
             last_4 = details["card"]["last4"]
         return last_4
 
-    @cached_property
-    def _expanded_pi_for_cancelable_modifiable(self) -> stripe.PaymentIntent | None:
-        if not self.provider_payment_id:
-            return None
-        return stripe.PaymentIntent.retrieve(
-            self.provider_payment_id, expand=["invoice.subscription"], stripe_account=self.stripe_account_id
-        )
-
     @property
     def is_cancelable(self) -> bool:
         return getattr(self.stripe_subscription, "status", None) in self.CANCELABLE_SUBSCRIPTION_STATUSES

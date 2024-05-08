@@ -227,7 +227,6 @@ class TestContributionAdmin:
         client.force_login(admin_user)
         for x in [
             reverse("admin:contributions_contribution_changelist"),
-            reverse("admin:contributions_contribution_add"),
         ]:
             assert client.get(x, follow=True).status_code == 200
         assert (

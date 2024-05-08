@@ -518,7 +518,7 @@ class RevenueProgramMailchimpClient(MailchimpMarketing.Client):
         logger.info("Called for RP %s", rp.id)
         if not rp.mailchimp_integration_connected:
             logger.warning("Called for RP %s which is not connected to Mailchimp", rp.id)
-            raise MailchimpIntegrationError("Mailchimp integration not connected for this revenue program")
+            raise MailchimpIntegrationError(f"Mailchimp integration not connected for RP {rp.id}")
         super().__init__()
         self.revenue_program = rp
         self.set_config(

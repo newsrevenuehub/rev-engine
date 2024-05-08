@@ -192,3 +192,11 @@ class Test_import_stripe_transactions_data:
         else:
             mock_importer.assert_called_once()
             mock_task.assert_not_called()
+
+
+def test_clear_stripe_transactions_import_cache(mocker):
+    mock_clear_cache = mocker.patch(
+        "apps.contributions.stripe_import.StripeTransactionsImporter.clear_all_stripe_transactions_cache"
+    )
+    call_command("clear_stripe_transactions_import_cache")
+    mock_clear_cache.assert_called_once()

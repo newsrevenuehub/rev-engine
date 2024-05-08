@@ -3,6 +3,7 @@ import { useState, useReducer, useMemo } from 'react';
 // AJAX
 import axios from 'ajax/axios';
 import { FORGOT_PASSWORD_ENDPOINT } from 'ajax/endpoints';
+import { Link } from 'components/base';
 import { FORGOT_PASSWORD_SUCCESS_TEXT } from 'constants/textConstants';
 
 import * as S from '../Account.styled';
@@ -21,7 +22,7 @@ import fetchReducer, { initialState, FETCH_START, FETCH_SUCCESS, FETCH_FAILURE }
 
 // Analytics
 import { useConfigureAnalytics } from 'components/analytics';
-import { Link } from 'react-router-dom';
+import { Link as RouterLink } from 'react-router-dom';
 
 function ForgotPassword() {
   useConfigureAnalytics();
@@ -29,10 +30,10 @@ function ForgotPassword() {
   const formSubmitErrors = forgotPasswordState?.errors?.detail;
 
   const [infoMessage, setInfoMessage] = useState(null);
-  const onForgotPasswordSubmit = async (fdata) => {
+  const onForgotPasswordSubmit = async (email) => {
     dispatch({ type: FETCH_START });
     try {
-      const { data, status } = await axios.post(FORGOT_PASSWORD_ENDPOINT, { email: fdata.email });
+      const { data, status } = await axios.post(FORGOT_PASSWORD_ENDPOINT, { email });
       if (status === 200) {
         setInfoMessage(FORGOT_PASSWORD_SUCCESS_TEXT);
         dispatch({ type: FETCH_SUCCESS });
@@ -67,11 +68,11 @@ function ForgotPassword() {
           <S.Subheading>Enter your email address below and we'll send you a reset link.</S.Subheading>
 
           <br />
-          <ForgotPasswordForm onForgotPasswordSubmit={onForgotPasswordSubmit} loading={forgotPasswordState.loading} />
+          <ForgotPasswordForm onSubmit={onForgotPasswordSubmit} disabled={forgotPasswordState.loading} />
           {formSubmissionMessage}
 
           <S.NavLink>
-            <Link to={SIGN_IN} data-testid="sign-in">
+            <Link component={RouterLink} to={SIGN_IN} data-testid="sign-in">
               Return to Sign In
             </Link>
           </S.NavLink>

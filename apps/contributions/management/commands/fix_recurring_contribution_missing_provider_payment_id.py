@@ -79,6 +79,7 @@ class Command(BaseCommand):
                 self.stdout.write(
                     self.style.ERROR(f"Error while retrieving subscription {sub_id} for stripe account {acct_id}: {e}")
                 )
+                updated_ids.append(contribution.id)
                 continue
             if subscription.latest_invoice and (pi_id := subscription.latest_invoice.payment_intent):
                 contribution.provider_payment_id = pi_id

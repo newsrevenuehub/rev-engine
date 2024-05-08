@@ -938,7 +938,7 @@ class StripeTransactionsImporter:
     def clear_cache_for_account(self) -> None:
         """Clear the cache of entries related to specific Stripe account"""
         logger.info("Clearing redis cache of entries related to stripe import for account %s", self.stripe_account_id)
-        self._clear_cache(match=self.make_key(entity_name="*"))
+        self._clear_cache(match=self.make_key(entity_name="*"), redis=self.redis)
         logger.info("Cleared redis cache of entries related to stripe import for account %s", self.stripe_account_id)
 
     @staticmethod

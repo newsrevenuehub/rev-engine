@@ -972,7 +972,7 @@ class TestStripeTransactionsImporter:
         instance = StripeTransactionsImporter(stripe_account_id="test")
         mock_clear_cache = mocker.patch.object(instance, "_clear_cache")
         instance.clear_cache_for_account()
-        mock_clear_cache.assert_called_once_with(match=instance.make_key(entity_name="*"))
+        mock_clear_cache.assert_called_once_with(match=instance.make_key(entity_name="*"), redis=instance.redis)
 
     def test_clear_all_stripe_transactions_cache(self, mocker):
         mock__clear_cache = mocker.patch("apps.contributions.stripe_import.StripeTransactionsImporter._clear_cache")

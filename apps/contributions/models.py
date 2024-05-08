@@ -81,7 +81,7 @@ class Contributor(IndexedTimeStampedModel):
             raise ValueError("Invalid value provided for `contribution`")
         token = str(ContributorRefreshToken.for_contributor(contribution.contributor.uuid).short_lived_access_token)
         return mark_safe(
-            f"https://{construct_rp_domain(contribution.donation_page.revenue_program.slug)}/{settings.CONTRIBUTOR_VERIFY_URL}"
+            f"https://{construct_rp_domain(contribution.revenue_program.slug)}/{settings.CONTRIBUTOR_VERIFY_URL}"
             f"?token={token}&email={quote_plus(contribution.contributor.email)}"
         )
 
@@ -133,11 +133,13 @@ class ContributionQuerySet(models.QuerySet):
                 return self.having_org_viewable_status()
             case Roles.ORG_ADMIN:
                 return self.having_org_viewable_status().filter(
-                    donation_page__revenue_program__organization=role_assignment.organization
+                    models.Q(donation_page__revenue_program__organization=role_assignment.organization)
+                    | models.Q(_revenue_program__organization=role_assignment.organization)
                 )
             case Roles.RP_ADMIN:
                 return self.having_org_viewable_status().filter(
-                    donation_page__revenue_program__in=role_assignment.revenue_programs.all()
+                    models.Q(donation_page__revenue_program__in=role_assignment.revenue_programs.all())
+                    | models.Q(_revenue_program__in=role_assignment.revenue_programs.all())
                 )
             case _:
                 return self.none()
@@ -166,7 +168,17 @@ class Contribution(IndexedTimeStampedModel):
     # TODO: [DEV-4333] Remove Contribution.last_payment_date in favor of derivation from payments
     last_payment_date = models.DateTimeField(null=True)
     contributor = models.ForeignKey("contributions.Contributor", on_delete=models.SET_NULL, null=True)
-    donation_page = models.ForeignKey("pages.DonationPage", on_delete=models.PROTECT, null=True)
+
+    # Further down, we add a constraint that requires that either donation page or _revenue_program
+    # be set but not both. This is to allow importing legacy contribution data that cannot be attributed
+    # to a specific donation page. We only allow one or the other because if there is a donation page defined,
+    # it will already have a parent revenue program, and we don't want to denormalize that relationship.
+    # Also, note that the reason we are calling this field _revenue_program is so we can define a polymorphic
+    # .revenue_program property that will return the revenue program regardless of its source.
+    donation_page = models.ForeignKey("pages.DonationPage", on_delete=models.PROTECT, null=True, blank=True)
+    _revenue_program = models.ForeignKey(
+        "organizations.RevenueProgram", on_delete=models.PROTECT, null=True, blank=True
+    )
 
     bad_actor_score = models.IntegerField(null=True, choices=BadActorScores.choices)
     bad_actor_response = models.JSONField(null=True)
@@ -200,7 +212,19 @@ class Contribution(IndexedTimeStampedModel):
             models.CheckConstraint(
                 name="%(app_label)s_%(class)s_bad_actor_score_valid",
                 check=models.Q(bad_actor_score__in=BadActorScores.values),
-            )
+            ),
+            # This is to allow importing legacy contribution data that cannot be attributed
+            # to a specific donation page. We only allow one or the other because if there is a donation page defined,
+            # it will already have a parent revenue program, and we don't want to denormalize that relationship.
+            # Also, note that the reason we are calling this field _revenue_program is so we can define a polymorphic
+            # .revenue_program property that will return the revenue program regardless of its source.
+            models.CheckConstraint(
+                name="%(app_label)s_%(class)s_exclusive_donation_page_or__revenue_program",
+                check=(
+                    models.Q(donation_page__isnull=False, _revenue_program__isnull=True)
+                    | models.Q(donation_page__isnull=True, _revenue_program__isnull=False)
+                ),
+            ),
         ]
 
     def __str__(self):
@@ -231,9 +255,9 @@ class Contribution(IndexedTimeStampedModel):
 
     @property
     def revenue_program(self) -> RevenueProgram | None:
-        # TODO: [DEV-4507] Remove this property and replace with a direct FK to RevenueProgram
         if self.donation_page:
             return self.donation_page.revenue_program
+        return self._revenue_program
 
     @property
     def stripe_account_id(self) -> str | None:
@@ -560,20 +584,20 @@ class Contribution(IndexedTimeStampedModel):
             "contributor_email": self.contributor.email,
             "contributor_name": customer.name,
             "copyright_year": datetime.datetime.now().year,
-            "fiscal_sponsor_name": self.donation_page.revenue_program.fiscal_sponsor_name,
-            "fiscal_status": self.donation_page.revenue_program.fiscal_status,
+            "fiscal_sponsor_name": self.revenue_program.fiscal_sponsor_name,
+            "fiscal_status": self.revenue_program.fiscal_status,
             "magic_link": Contributor.create_magic_link(self),
-            "non_profit": self.donation_page.revenue_program.non_profit,
-            "rp_name": self.donation_page.revenue_program.name,
-            "style": asdict(self.donation_page.revenue_program.transactional_email_style),
-            "tax_id": self.donation_page.revenue_program.tax_id,
+            "non_profit": self.revenue_program.non_profit,
+            "rp_name": self.revenue_program.name,
+            "style": asdict(self.revenue_program.transactional_email_style),
+            "tax_id": self.revenue_program.tax_id,
             "timestamp": timestamp if timestamp else datetime.datetime.today().strftime("%m/%d/%Y"),
         }
 
         # Almost all RPs should have a default page set, but it's possible one isn't.
 
-        if self.donation_page.revenue_program.default_donation_page:
-            data["default_contribution_page_url"] = self.donation_page.revenue_program.default_donation_page.page_url
+        if default_page := self.revenue_program.default_donation_page:
+            data["default_contribution_page_url"] = default_page.page_url
 
         send_templated_email.delay(
             self.contributor.email,
@@ -592,7 +616,7 @@ class Contribution(IndexedTimeStampedModel):
 
     def send_recurring_contribution_email_reminder(self, next_charge_date: datetime.date = None) -> None:
         self.send_recurring_contribution_change_email(
-            f"Reminder: {self.donation_page.revenue_program.name} scheduled contribution",
+            f"Reminder: {self.revenue_program.name} scheduled contribution",
             "recurring-contribution-email-reminder",
             next_charge_date,
         )
@@ -660,14 +684,6 @@ class Contribution(IndexedTimeStampedModel):
         if (details := self.provider_payment_method_details) and details.get("type") == "card":
             last_4 = details["card"]["last4"]
         return last_4
-
-    @cached_property
-    def _expanded_pi_for_cancelable_modifiable(self) -> stripe.PaymentIntent | None:
-        if not self.provider_payment_id:
-            return None
-        return stripe.PaymentIntent.retrieve(
-            self.provider_payment_id, expand=["invoice.subscription"], stripe_account=self.stripe_account_id
-        )
 
     @property
     def is_cancelable(self) -> bool:

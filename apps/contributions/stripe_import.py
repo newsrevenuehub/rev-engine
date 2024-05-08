@@ -11,7 +11,6 @@ from django.core.serializers.json import DjangoJSONEncoder
 from django.db import IntegrityError, transaction
 
 import backoff
-import reversion
 import stripe
 import tldextract
 from django_redis import get_redis_connection
@@ -252,15 +251,24 @@ class StripeTransactionsImporter:
         # Calling this will raise a `InvalidMetadataError` if the metadata is invalid
         cast_metadata_to_stripe_payment_metadata_schema(metadata)
 
-    def validate_referer(self, referer: str) -> None:
-        """For now, we require a referer to be present in the metadata. This is because we need to know the donation page.
+    def get_referer_from_metadata(self, metadata: dict) -> str | None:
+        """ """
+        referer = metadata.get("referer", None)
+        if referer and f"{(_:=tldextract.extract(referer)).domain}.{_.suffix}" != settings.DOMAIN_APEX:
+            logger.info("Referer %s is not allowed for import", referer)
+            referer = None
+        return referer
 
-        This requirement may change in the future. See [DEV-4562] in JIRA for more detail.
-        """
+    def validate_referer_or_revenue_program(self, metadata: dict) -> None:
+        """ """
+        valid = True
+        referer = self.get_referer_from_metadata(metadata)
         if not referer:
-            raise InvalidStripeTransactionDataError("Missing referer")
-        if f"{(_:=tldextract.extract(referer)).domain}.{_.suffix}" != settings.DOMAIN_APEX:
-            raise InvalidStripeTransactionDataError(f"Referer {referer} is not allowed for import")
+            valid = metadata.get("revenue_program_id", False) or False
+        if not valid:
+            raise InvalidMetadataError(
+                f"Invalid metadata: must have valid referer or revenue_program_id, but got {metadata}"
+            )
 
     @staticmethod
     def get_status_for_payment_intent(payment_intent: dict, has_refunds: bool) -> ContributionStatus:
@@ -320,12 +328,7 @@ class StripeTransactionsImporter:
 
     def should_exclude_from_cache_because_of_metadata(self, entity: dict) -> bool:
         """Determine if a payment intent should be excluded from cache"""
-        return not all(
-            [
-                entity.metadata.get("schema_version", None) in STRIPE_PAYMENT_METADATA_SCHEMA_VERSIONS,
-                entity.metadata.get("referer", None),
-            ]
-        )
+        return entity.metadata.get("schema_version", None) not in STRIPE_PAYMENT_METADATA_SCHEMA_VERSIONS
 
     @property
     def list_kwargs(self) -> dict:
@@ -733,20 +736,12 @@ class StripeTransactionsImporter:
                 }
             )
 
-    def conditionally_update_contribution_donation_page(
-        self, contribution: Contribution, donation_page: DonationPage | None
-    ) -> Contribution:
-        """If the contribution has no donation page, we'll update it with the donation page derived from payment metadata
-
-        NB: This method assumes that validation has already occurred and that there is a valid donation page
-        """
-        if donation_page and not contribution.donation_page:
-            logger.debug("Updating contribution %s with donation page %s", contribution.id, donation_page.id)
-            contribution.donation_page = donation_page
-            with reversion.create_revision():
-                contribution.save(update_fields={"donation_page"})
-                reversion.set_comment("Donation page was updated from Stripe metadata")
-        return contribution
+    def get_revenue_program_from_metadata(self, metadata: dict) -> RevenueProgram | None:
+        """Get a revenue program from stripe metadata"""
+        if not (rp_id := metadata.get("revenue_program_id", None)):
+            logger.warning("No revenue program id found in stripe metadata %s", metadata)
+            return None
+        return RevenueProgram.objects.filter(id=rp_id).first()
 
     def get_donation_page_from_metadata(self, metadata: dict) -> DonationPage | None:
         """Attempt to derive a donation page from stripe metadata.
@@ -761,8 +756,7 @@ class StripeTransactionsImporter:
         if not revenue_program:
             logger.warning("No revenue program found for id %s", rp_id)
             return None
-        slug = parse_slug_from_url(metadata["referer"])
-        if slug := parse_slug_from_url(metadata["referer"]):
+        if (_slug := metadata.get("referer")) and (slug := parse_slug_from_url(_slug)):
             return revenue_program.donationpage_set.filter(slug=slug).first()
         return revenue_program.default_donation_page
 
@@ -772,7 +766,7 @@ class StripeTransactionsImporter:
         entity_name = "payment intent" if is_one_time else "subscription"
         logger.info("Upserting contribution for %s %s", entity_name, stripe_entity["id"])
         self.validate_metadata((metadata := stripe_entity.get("metadata", None)))
-        self.validate_referer(metadata.get("referer", None))
+        self.validate_referer_or_revenue_program(metadata)
         cust_id = stripe_entity.get("customer", None)
         if not cust_id:
             raise InvalidStripeTransactionDataError(f"No customer found for {entity_name} {stripe_entity['id']}")
@@ -783,6 +777,17 @@ class StripeTransactionsImporter:
         defaults = self.get_default_contribution_data(
             stripe_entity, is_one_time=is_one_time, contributor=contributor, customer_id=cust_id, payment_method=pm
         )
+        donation_page = self.get_donation_page_from_metadata(metadata)
+        if donation_page:
+            defaults["donation_page"] = donation_page
+        elif rp := self.get_revenue_program_from_metadata(metadata):
+            defaults["_revenue_program"] = rp
+        if not defaults.get("donation_page") and not defaults.get("_revenue_program"):
+            raise InvalidStripeTransactionDataError(
+                f"Could not create a contribution for {entity_name} {stripe_entity['id']} because cannot "
+                f"associate a donation page or revenue program with it."
+            )
+
         contribution, contribution_action = upsert_with_diff_check(
             model=Contribution,
             unique_identifier={
@@ -793,23 +798,17 @@ class StripeTransactionsImporter:
             # If there's contribution metadata, we want to leave it intact.
             # Otherwise we see spurious updates because of key ordering in the
             # metadata and conversions of null <-> None.
-            dont_update=["contribution_metadata"],
+            # We also don't want to update the _revenue program or donation page if they are already
+            # set on off chance that we would provide both by updating (which would cause an integrity error because
+            # one or the other must be set, but not both)
+            dont_update=["contribution_metadata", "_revenue_program", "donation_page"],
         )
-        updated_contribution = self.conditionally_update_contribution_donation_page(
-            contribution=contribution, donation_page=self.get_donation_page_from_metadata(metadata)
-        )
-        if not updated_contribution.donation_page:
-            # NB: If we get to this point and the contribution still has no donation page, we don't want it to get created/upserted in db
-            # because pageless contributions cause problems. Since this method is wrapped in @transaction.atomic, this will cause the entire
-            # transaction to be rolled back
-            raise InvalidStripeTransactionDataError(
-                f"Could not create a contribution for {entity_name} {stripe_entity['id']} because cannot associate a donation page with it."
-            )
+
         logger.info("Upserting payments for %s %s", entity_name, stripe_entity["id"])
-        self.upsert_payments_for_contribution(updated_contribution)
-        self.update_contribution_stats(contribution_action, updated_contribution)
+        self.upsert_payments_for_contribution(contribution)
+        self.update_contribution_stats(contribution_action, contribution)
         self.update_contributor_stats(contributor_action, contributor)
-        return updated_contribution, contribution_action
+        return contribution, contribution_action
 
     def process_transactions_for_recurring_contributions(self) -> None:
         """Assemble data and ultimately upsert data for a recurring contribution."""
@@ -939,7 +938,7 @@ class StripeTransactionsImporter:
     def clear_cache_for_account(self) -> None:
         """Clear the cache of entries related to specific Stripe account"""
         logger.info("Clearing redis cache of entries related to stripe import for account %s", self.stripe_account_id)
-        self._clear_cache(match=self.make_key(entity_name="*"))
+        self._clear_cache(match=self.make_key(entity_name="*"), redis=self.redis)
         logger.info("Cleared redis cache of entries related to stripe import for account %s", self.stripe_account_id)
 
     @staticmethod

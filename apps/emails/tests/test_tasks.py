@@ -84,7 +84,7 @@ class TestMakeSendThankYouEmailData:
             magic_link=mock_get_magic_link.return_value,
             non_profit=contribution.revenue_program.non_profit,
             rp_name=contribution.revenue_program.name,
-            style=asdict(contribution.donation_page.revenue_program.transactional_email_style),
+            style=asdict(contribution.revenue_program.transactional_email_style),
             tax_id=contribution.revenue_program.tax_id,
             show_upgrade_prompt=False,
         )

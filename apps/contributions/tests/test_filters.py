@@ -22,23 +22,35 @@ class TestPortalContributionFilter:
     @pytest.fixture()
     def contributions(self, valid_metadata_factory):
         con1 = ContributionFactory(status=ContributionStatus.PAID)
-        metadata = valid_metadata_factory.get(revenue_program_id=str(con1.donation_page.revenue_program.id))
-        # because we match filtering for revenue_program on contribution_metadata in addition to dontation_page__revenue_program
-        con2 = ContributionFactory(donation_page=None, contribution_metadata=metadata, status=ContributionStatus.PAID)
+        con2 = ContributionFactory(
+            donation_page=None,
+            status=ContributionStatus.PAID,
+            _revenue_program=con1.revenue_program,
+        )
         con3 = ContributionFactory(donation_page=con1.donation_page, status=ContributionStatus.REFUNDED)
         con4 = ContributionFactory(donation_page__revenue_program=RevenueProgramFactory())
         return [con1, con2, con3, con4]
 
     @pytest.fixture()
     def contributions_interval(self):
+        rp = RevenueProgramFactory()
         con1 = ContributionFactory(
-            donation_page=None, status=ContributionStatus.PAID, interval=ContributionInterval.MONTHLY
+            donation_page=None,
+            status=ContributionStatus.PAID,
+            interval=ContributionInterval.MONTHLY,
+            _revenue_program=rp,
         )
         con2 = ContributionFactory(
-            donation_page=None, status=ContributionStatus.PAID, interval=ContributionInterval.YEARLY
+            donation_page=None,
+            status=ContributionStatus.PAID,
+            interval=ContributionInterval.YEARLY,
+            _revenue_program=rp,
         )
         con3 = ContributionFactory(
-            donation_page=None, status=ContributionStatus.PAID, interval=ContributionInterval.ONE_TIME
+            donation_page=None,
+            status=ContributionStatus.PAID,
+            interval=ContributionInterval.ONE_TIME,
+            _revenue_program=rp,
         )
         return [con1, con2, con3]
 
@@ -73,9 +85,7 @@ class TestPortalContributionFilter:
 
     def test_filter_queryset(self, contributions, filter, mocker):
         paid, by_metadata, _, _ = contributions
-        request = mocker.Mock(
-            query_params={"status": "paid", "revenue_program": str(paid.donation_page.revenue_program.id)}
-        )
+        request = mocker.Mock(query_params={"status": "paid", "revenue_program": str(paid.revenue_program.id)})
         unfiltered = Contribution.objects.all()
         assert unfiltered.count() == 4
         filtered = filter.filter_queryset(request, unfiltered)

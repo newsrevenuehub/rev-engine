@@ -67,6 +67,7 @@ class Command(BaseCommand):
                 )
             )
         updated_ids = []
+        unupdated_ids = []
         for contribution in fixable_contributions.all():
             try:
                 subscription = stripe.Subscription.retrieve(
@@ -85,10 +86,18 @@ class Command(BaseCommand):
                     contribution.save(update_fields={"modified", "provider_payment_id"})
                     reversion.set_comment("Updated by fix_recurring_contribution_missing_provider_payment_id command")
                 updated_ids.append(contribution.id)
+            else:
+                unupdated_ids.append(contribution.id)
         self.stdout.write(
             self.style.SUCCESS(
                 f"Updated {len(updated_ids)} contribution(s) out of {fixable_contributions_count} eligible contributions. "
                 f"The following contributions were updated: {', '.join(map(str, updated_ids))}"
+            )
+        )
+        self.stdout.write(
+            self.style.WARNING(
+                f"Failed to update {len(unupdated_ids)} contribution(s) out of {fixable_contributions_count} eligible contributions. "
+                f"The following contributions were not updated: {', '.join(map(str, unupdated_ids))}"
             )
         )
         self.stdout.write(self.style.SUCCESS("`fix_recurring_contribution_missing_provider_payment_id` is done"))

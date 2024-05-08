@@ -151,3 +151,12 @@ class Test_sync_payment_transaction_time:
         Payment.objects.all().delete()
         PaymentFactory(transaction_time=datetime.datetime.now(tz=ZoneInfo("UTC")))
         call_command("sync_payment_transaction_time")
+
+
+@pytest.mark.django_db
+@pytest.mark.parametrize("problem_exists", (False, True))
+def test_fix_payments_with_negative_refunds(problem_exists):
+    if problem_exists:
+        PaymentFactory(amount_refunded=-1)
+    call_command("fix_payments_with_negative_refunds")
+    assert Payment.objects.filter(amount_refunded__lt=0).count() == 0

@@ -9,6 +9,7 @@ from django.db.models.functions import Coalesce
 import reversion
 import stripe
 
+from apps.common.utils import get_stripe_accounts_and_their_connection_status
 from apps.contributions.models import Payment
 
 
@@ -20,38 +21,13 @@ stripe_logger.setLevel(logging.ERROR)
 class Command(BaseCommand):
     """Try to populate null values for payment.transaction_time in db."""
 
-    def get_stripe_accounts_and_their_connection_status(self, account_ids: list[str]) -> dict[str, bool]:
-        """Given a list of stripe accounts, returns a dict with the account id as key and a boolean indicating if the account is connected and retrievable
-
-        We do this so that we can later exclude payments that we might want to update but can't because the account is not connected to the platform.
-        """
-        self.stdout.write(self.style.HTTP_INFO("Retrieving stripe accounts and their connection status"))
-        accounts = {}
-        for account_id in account_ids:
-            try:
-                stripe.Account.retrieve(account_id)
-                accounts[account_id] = True
-            # if the account is not connected to the platform, we get a PermissionError
-            except stripe.error.PermissionError as e:
-                self.stdout.write(
-                    self.style.WARNING(
-                        f"Permission error while retrieving account {account_id}. This is likely because the account is not connected to the platform: {e}"
-                    )
-                )
-                accounts[account_id] = False
-            # In case of an unexpected Stripe error, we stdout as error
-            except stripe.error.StripeError as e:
-                self.stdout.write(self.style.ERROR(f"Error while retrieving account {account_id}: {e}"))
-                accounts[account_id] = False
-        return accounts
-
     def handle(self, *args, **options):
         self.stdout.write(self.style.HTTP_INFO("Running `sync_payment_transaction_time`"))
         payments_missing_transaction_time = Payment.objects.filter(transaction_time__isnull=True)
         if not payments_missing_transaction_time.exists():
             self.stdout.write(self.style.HTTP_INFO("No payments with missing transaction time found, exiting"))
             return
-        accounts = self.get_stripe_accounts_and_their_connection_status(
+        accounts = get_stripe_accounts_and_their_connection_status(
             payments_missing_transaction_time.annotate(
                 stripe_account_id=Coalesce(
                     # Path through DonationPage to RevenueProgram to PaymentProvider

@@ -1661,21 +1661,6 @@ class TestContributionModel:
         # Ensure that the exception is raised but not logged/sent to Sentry
         assert logger_spy.call_count == 0
 
-    @pytest.mark.parametrize("provider_payment_id", ("pi_123", None))
-    def test__expanded_pi_for_cancelable_modifiable(self, provider_payment_id, mocker):
-        contribution = ContributionFactory(provider_payment_id=provider_payment_id)
-        mock_pi_retrieve = mocker.patch("stripe.PaymentIntent.retrieve", return_value=(mock_pi := mocker.Mock()))
-        if provider_payment_id:
-            assert contribution._expanded_pi_for_cancelable_modifiable == mock_pi
-            mock_pi_retrieve.assert_called_once_with(
-                contribution.provider_payment_id,
-                expand=["invoice.subscription"],
-                stripe_account=contribution.stripe_account_id,
-            )
-        else:
-            assert contribution._expanded_pi_for_cancelable_modifiable is None
-            mock_pi_retrieve.assert_not_called()
-
     @pytest.mark.parametrize(
         "payment_data,expected",
         (

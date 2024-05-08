@@ -861,14 +861,16 @@ class RevenueProgram(IndexedTimeStampedModel):
         return all([self.mailchimp_access_token, self.mailchimp_server_prefix])
 
     def ensure_mailchimp_store(self) -> None:
-        if not self.mailchimp_store:
+        if self.mailchimp_store:
+            logger.info("Store already exists for RP %s", self.id)
+        else:
             logger.info("Creating store for RP %s", self.id)
             self.mailchimp_client.create_store()
-        else:
-            logger.info("Store already exists for RP %s", self.id)
 
     def ensure_mailchimp_contribution_product(self, product_type: Literal["one_time", "recurring"]) -> None:
-        if not getattr(self, f"mailchimp_{product_type}_contribution_product", None):
+        if getattr(self, f"mailchimp_{product_type}_contribution_product", None):
+            logger.info("%s contribution product already exists for RP with ID %s", product_type, self.id)
+        else:
             logger.info("RP %s does not have a %s contribution product. Attempting to create", self.id, product_type)
             try:
                 self.mailchimp_client.create_product(
@@ -879,13 +881,13 @@ class RevenueProgram(IndexedTimeStampedModel):
                 logger.exception(
                     "Couldn't create %s Mailchimp contribution product for RP %s; continuing", product_type, self.id
                 )
-        else:
-            logger.info("%s contribution product already exists for RP with ID %s", product_type, self.id)
 
     def ensure_mailchimp_contributor_segment(
         self, segment_type: Literal["all_contributors", "contributor", "recurring_contributor"], options
     ) -> None:
-        if not getattr(self, f"mailchimp_{segment_type}_segment", None):
+        if getattr(self, f"mailchimp_{segment_type}_segment", None):
+            logger.info("Segment already exists for RP %s", self.id)
+        else:
             logger.info(
                 "Creating %s segment for RP %s",
                 segment_type,
@@ -904,8 +906,6 @@ class RevenueProgram(IndexedTimeStampedModel):
                 with reversion.create_revision():
                     self.save(update_fields={f"mailchimp_{segment_type}_segment_id", "modified"})
                     reversion.set_comment(f"ensure_mailchimp_segment updated {segment_type} segment id")
-        else:
-            logger.info("Segment already exists for RP %s", self.id)
 
     def ensure_mailchimp_entities(self) -> None:
         logger.info("Ensuring mailchimp entities for RP %s", self.id)

@@ -706,7 +706,7 @@ class PortalContributorsViewSet(viewsets.GenericViewSet):
         try:
             stripe.Subscription.delete(
                 contribution.provider_subscription_id,
-                stripe_account=contribution.donation_page.revenue_program.payment_provider.stripe_account_id,
+                stripe_account=contribution.revenue_program.payment_provider.stripe_account_id,
             )
         except stripe.error.StripeError:
             logger.exception(

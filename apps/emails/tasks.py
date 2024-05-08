@@ -106,7 +106,7 @@ def make_send_thank_you_email_data(contribution) -> SendContributionEmailData:
     try:
         customer = stripe.Customer.retrieve(
             contribution.provider_customer_id,
-            stripe_account=contribution.donation_page.revenue_program.payment_provider.stripe_account_id,
+            stripe_account=contribution.revenue_program.payment_provider.stripe_account_id,
         )
     except StripeError:
         logger.exception(
@@ -130,7 +130,7 @@ def make_send_thank_you_email_data(contribution) -> SendContributionEmailData:
         magic_link=Contributor.create_magic_link(contribution),
         non_profit=contribution.revenue_program.non_profit,
         rp_name=contribution.revenue_program.name,
-        style=asdict(contribution.donation_page.revenue_program.transactional_email_style),
+        style=asdict(contribution.revenue_program.transactional_email_style),
         tax_id=contribution.revenue_program.tax_id,
         show_upgrade_prompt=False,
     )

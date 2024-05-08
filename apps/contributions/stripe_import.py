@@ -14,6 +14,7 @@ import backoff
 import stripe
 import tldextract
 from django_redis import get_redis_connection
+from redis import Redis
 from redis.client import Pipeline
 
 import apps.common.utils as common_utils
@@ -70,6 +71,9 @@ CACHED_REFUND_FIELDS = ["charge", "id", "balance_transaction"]
 # This seems like a good value. There are typically ~10s of thousands of keys in cache per account, so
 # this will limit the number of back and forths with redis to clear cache.
 REDIS_CACHE_DELETE_BATCH_SIZE = 10000
+
+# This is the threshold at which we want to warn that the cache is getting close to expiring after command has run
+TTL_WARNING_THRESHOLD_PERCENT = 0.75
 
 logger = logging.getLogger(f"{settings.DEFAULT_LOGGER}.{__name__}")
 
@@ -182,7 +186,7 @@ class RedisCachePipeline(Pipeline):
             self.flush()
 
     def flush(self) -> None:
-        """Flush the pipeline by cachching its resources in Redis"""
+        """Flush the pipeline by caching its resources in Redis"""
         logger.debug("Flushing redis pipeline")
         insert_count = len(self)
         self.execute()
@@ -199,7 +203,7 @@ class StripeTransactionsImporter:
     to_date: datetime.datetime = None
 
     def __post_init__(self) -> None:
-        self.redis = get_redis_connection(settings.STRIPE_TRANSACTIONS_IMPORT_CACHE)
+        self.redis = self.get_redis_for_transactions_import()
         self.cache_ttl = settings.STRIPE_TRANSACTIONS_IMPORT_CACHE_TTL
         self.payment_intents_processed = 0
         self.subscriptions_processed = 0
@@ -209,6 +213,11 @@ class StripeTransactionsImporter:
         self.created_contributor_ids = set()
         self.created_payment_ids = set()
         self.updated_payment_ids = set()
+
+    @staticmethod
+    def get_redis_for_transactions_import() -> Redis:
+        """Get a Redis connection for transactions import"""
+        return get_redis_connection(settings.STRIPE_TRANSACTIONS_IMPORT_CACHE)
 
     @property
     def created_query(self) -> dict:
@@ -789,7 +798,9 @@ class StripeTransactionsImporter:
             # If there's contribution metadata, we want to leave it intact.
             # Otherwise we see spurious updates because of key ordering in the
             # metadata and conversions of null <-> None.
-            # additional note
+            # We also don't want to update the _revenue program or donation page if they are already
+            # set on off chance that we would provide both by updating (which would cause an integrity error because
+            # one or the other must be set, but not both)
             dont_update=["contribution_metadata", "_revenue_program", "donation_page"],
         )
 
@@ -855,20 +866,35 @@ class StripeTransactionsImporter:
         else:
             return f"{seconds} seconds"
 
+    def log_ttl_concerns(self, start_time: datetime.datetime) -> None:
+        """Log concerns about TTLs"""
+        elapsed = datetime.datetime.now(datetime.timezone.utc) - start_time
+        if elapsed.seconds > settings.STRIPE_TRANSACTIONS_IMPORT_CACHE_TTL * TTL_WARNING_THRESHOLD_PERCENT:
+            logger.warning(
+                (
+                    "Stripe import for account %s took %s seconds which is longer than %s%% of the cache TTL. "
+                    "Consider increasing TTLs for cache entries related to stripe import."
+                ),
+                elapsed.seconds,
+                TTL_WARNING_THRESHOLD_PERCENT * 100,
+                self.stripe_account_id,
+            )
+
     def import_contributions_and_payments(self) -> None:
         """This method is responsible for upserting contributors, contributions, and payments for a given stripe account."""
-        started = datetime.datetime.now()
+        started = datetime.datetime.now(datetime.timezone.utc)
         self.list_and_cache_required_stripe_resources()
         self.log_memory_usage()
         self.process_transactions_for_recurring_contributions()
         self.process_transactions_for_one_time_contributions()
         self.log_results()
-        self.clear_cache()
+        self.clear_cache_for_account()
         logger.info(
             "Stripe import for account %s took %s",
             self.stripe_account_id,
-            self.format_timedelta(datetime.datetime.now() - started),
+            self.format_timedelta(datetime.datetime.now(datetime.timezone.utc) - started),
         )
+        self.log_ttl_concerns(started)
 
     def log_results(self) -> None:
         """Log the results of the stripe import"""
@@ -890,16 +916,30 @@ class StripeTransactionsImporter:
             len(self.created_contributor_ids),
         )
 
-    def clear_cache(self) -> None:
-        """Clear the cache"""
-        logger.info("Clearing redis cache of entries related to stripe import for account %s", self.stripe_account_id)
-        pipeline = self.redis.pipeline()
+    @classmethod
+    def _clear_cache(cls, redis: Redis, match: str) -> None:
+        """Clear cache for a given match"""
+        logger.info("Clearing cache for match %s", match)
+        pipeline = redis.pipeline()
         to_clear = 0
-        for key in self.redis.scan_iter(match=self.make_key(entity_name="*")):
+        for key in redis.scan_iter(match=match):
             pipeline.delete(key)
             to_clear += 1
         pipeline.execute()
-        logger.info("Cleared %s entries from redis cache", to_clear)
+        logger.info("Cleared %s entries from cache", to_clear)
+
+    @classmethod
+    def clear_all_stripe_transactions_cache(cls) -> None:
+        """Clear all stripe transactions cache"""
+        logger.info("Clearing all stripe transactions cache")
+        cls._clear_cache(redis=cls.get_redis_for_transactions_import(), match=f"{CACHE_KEY_PREFIX}*")
+        logger.info("Cleared all stripe transactions cache")
+
+    def clear_cache_for_account(self) -> None:
+        """Clear the cache of entries related to specific Stripe account"""
+        logger.info("Clearing redis cache of entries related to stripe import for account %s", self.stripe_account_id)
+        self._clear_cache(match=self.make_key(entity_name="*"))
+        logger.info("Cleared redis cache of entries related to stripe import for account %s", self.stripe_account_id)
 
     @staticmethod
     def convert_bytes(size: int) -> str:

@@ -8,6 +8,7 @@ from zoneinfo import ZoneInfo
 
 from django.conf import settings
 from django.core import mail
+from django.db import IntegrityError
 
 import pytest
 import stripe
@@ -1703,6 +1704,24 @@ class TestContributionModel:
     )
     def test_card_last_4(self, payment_data, expected):
         assert ContributionFactory(provider_payment_method_details=payment_data).card_last_4 == expected
+
+    @pytest.mark.parametrize(
+        "has_page, has_rp, expect_error",
+        (
+            (True, True, True),
+            (False, False, True),
+            (False, True, False),
+            (True, False, False),
+        ),
+    )
+    def test_exclusive_donation_page_or__rp_constraint(self, has_page, has_rp, expect_error):
+        page = DonationPageFactory() if has_page else None
+        rp = RevenueProgramFactory() if has_rp else None
+        if expect_error:
+            with pytest.raises(IntegrityError):
+                ContributionFactory(donation_page=page, _revenue_program=rp)
+        else:
+            ContributionFactory(donation_page=page, _revenue_program=rp)
 
 
 @pytest.mark.django_db

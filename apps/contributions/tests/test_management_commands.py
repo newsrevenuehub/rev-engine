@@ -253,3 +253,11 @@ class Test_fix_recurring_contribution_missing_provider_payment_id:
         call_command("fix_recurring_contribution_missing_provider_payment_id")
         contribution.refresh_from_db()
         assert contribution.provider_payment_id is None
+
+
+def test_clear_stripe_transactions_import_cache(mocker):
+    mock_clear_cache = mocker.patch(
+        "apps.contributions.stripe_import.StripeTransactionsImporter.clear_all_stripe_transactions_cache"
+    )
+    call_command("clear_stripe_transactions_import_cache")
+    mock_clear_cache.assert_called_once()

@@ -133,7 +133,8 @@ class ContributionQuerySet(models.QuerySet):
                 return self.having_org_viewable_status()
             case Roles.ORG_ADMIN:
                 return self.having_org_viewable_status().filter(
-                    donation_page__revenue_program__organization=role_assignment.organization
+                    models.Q(donation_page__revenue_program__organization=role_assignment.organization)
+                    | models.Q(_revenue_program__organization=role_assignment.organization)
                 )
             case Roles.RP_ADMIN:
                 return self.having_org_viewable_status().filter(
@@ -222,8 +223,7 @@ class Contribution(IndexedTimeStampedModel):
                 check=(
                     models.Q(donation_page__isnull=False, _revenue_program__isnull=True)
                     | models.Q(donation_page__isnull=True, _revenue_program__isnull=False)
-                )
-                & ~(models.Q(donation_page__isnull=False, _revenue_program__isnull=False)),
+                ),
             ),
         ]
 
@@ -255,7 +255,6 @@ class Contribution(IndexedTimeStampedModel):
 
     @property
     def revenue_program(self) -> RevenueProgram | None:
-        # TODO: [DEV-4507] Remove this property and replace with a direct FK to RevenueProgram
         if self.donation_page:
             return self.donation_page.revenue_program
         return self._revenue_program

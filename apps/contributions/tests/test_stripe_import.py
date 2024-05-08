@@ -18,6 +18,7 @@ from apps.contributions.exceptions import (
 from apps.contributions.models import ContributionInterval, ContributionStatus, Payment
 from apps.contributions.stripe_import import (
     CACHE_KEY_PREFIX,
+    TTL_WARNING_THRESHOLD_PERCENT,
     RedisCachePipeline,
     StripeEventProcessor,
     StripeTransactionsImporter,
@@ -904,6 +905,23 @@ class TestStripeTransactionsImporter:
     def test_format_timedelta(self, time_delta):
         assert StripeTransactionsImporter(stripe_account_id="test").format_timedelta(time_delta)
 
+    @pytest.mark.parametrize(
+        "time_percent, expect_warning",
+        ((TTL_WARNING_THRESHOLD_PERCENT, False), (TTL_WARNING_THRESHOLD_PERCENT + 0.1, True)),
+    )
+    def test_log_ttl_concerns(self, time_percent, expect_warning, mocker, settings):
+        now = datetime.datetime.now(datetime.timezone.utc)
+        mock_date_time = mocker.patch("datetime.datetime")
+        mock_date_time.now.return_value = now
+        mock_logger = mocker.patch("apps.contributions.stripe_import.logger.warning")
+        instance = StripeTransactionsImporter(stripe_account_id="test")
+        start_time = now - datetime.timedelta(seconds=(settings.STRIPE_TRANSACTIONS_IMPORT_CACHE_TTL * time_percent))
+        instance.log_ttl_concerns(start_time)
+        if expect_warning:
+            mock_logger.assert_called_once()
+        else:
+            mock_logger.assert_not_called()
+
     def test_import_contributions_and_payments(self, mocker):
         mock_list_cache = mocker.patch(
             "apps.contributions.stripe_import.StripeTransactionsImporter.list_and_cache_required_stripe_resources"
@@ -918,7 +936,12 @@ class TestStripeTransactionsImporter:
             "apps.contributions.stripe_import.StripeTransactionsImporter.process_transactions_for_one_time_contributions"
         )
         mock_log_results = mocker.patch("apps.contributions.stripe_import.StripeTransactionsImporter.log_results")
-        mock_clear_cache = mocker.patch("apps.contributions.stripe_import.StripeTransactionsImporter.clear_cache")
+        mock_clear_cache = mocker.patch(
+            "apps.contributions.stripe_import.StripeTransactionsImporter.clear_cache_for_account"
+        )
+        mock_log_ttl_concerns = mocker.patch(
+            "apps.contributions.stripe_import.StripeTransactionsImporter.log_ttl_concerns"
+        )
 
         instance = StripeTransactionsImporter(stripe_account_id="test")
         instance.import_contributions_and_payments()
@@ -929,6 +952,7 @@ class TestStripeTransactionsImporter:
             mock_process_one_time,
             mock_log_results,
             mock_clear_cache,
+            mock_log_ttl_concerns,
         ):
             mock.assert_called_once()
 
@@ -936,11 +960,33 @@ class TestStripeTransactionsImporter:
         instance = StripeTransactionsImporter(stripe_account_id="test")
         instance.log_results()
 
-    def test_clear_cache(self, mocker):
+    def test__clear_cache(self, mocker):
         instance = StripeTransactionsImporter(stripe_account_id="test")
         mock_redis = mocker.patch.object(instance, "redis")
-        mock_redis.scan_iter.return_value = ["foo", "bar"]
-        instance.clear_cache()
+        mock_redis.scan_iter.return_value = [(key := "foo")]
+        instance._clear_cache(redis=mock_redis, match="test*")
+        mock_redis.pipeline.return_value.delete.assert_called_once_with(key)
+        mock_redis.pipeline.return_value.execute.assert_called_once()
+
+    def test_clear_cache_for_account(self, mocker):
+        instance = StripeTransactionsImporter(stripe_account_id="test")
+        mock_clear_cache = mocker.patch.object(instance, "_clear_cache")
+        instance.clear_cache_for_account()
+        mock_clear_cache.assert_called_once_with(match=instance.make_key(entity_name="*"))
+
+    def test_clear_all_stripe_transactions_cache(self, mocker):
+        mock__clear_cache = mocker.patch("apps.contributions.stripe_import.StripeTransactionsImporter._clear_cache")
+        mocker.patch(
+            "apps.contributions.stripe_import.StripeTransactionsImporter.get_redis_for_transactions_import",
+            return_value=(mock_redis := mocker.Mock()),
+        )
+        StripeTransactionsImporter.clear_all_stripe_transactions_cache()
+        mock__clear_cache.assert_called_once_with(match=f"{CACHE_KEY_PREFIX}*", redis=mock_redis)
+
+    def test_get_redis_for_transactions_import(self, mocker, settings):
+        mock_get_redis = mocker.patch("apps.contributions.stripe_import.get_redis_connection")
+        StripeTransactionsImporter.get_redis_for_transactions_import()
+        mock_get_redis.assert_called_once_with(settings.STRIPE_TRANSACTIONS_IMPORT_CACHE)
 
     @pytest.mark.parametrize(
         "size, expected",

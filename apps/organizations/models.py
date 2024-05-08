@@ -777,6 +777,10 @@ class RevenueProgram(IndexedTimeStampedModel):
         return [asdict(x) for x in self.mailchimp_email_lists]
 
     @cached_property
+    def mailchimp_client(self) -> RevenueProgramMailchimpClient:
+        return RevenueProgramMailchimpClient(rp=self)
+
+    @cached_property
     def mailchimp_store(self) -> MailchimpStore | None:
         logger.info("Called for RP %s", self.id)
         if not self.mailchimp_integration_connected:
@@ -785,27 +789,27 @@ class RevenueProgram(IndexedTimeStampedModel):
                 self.id,
             )
             return None
-        return RevenueProgramMailchimpClient(rp=self).get_store()
+        return self.mailchimp_client.get_store()
 
     @cached_property
     def mailchimp_one_time_contribution_product(self) -> MailchimpProduct | None:
-        return RevenueProgramMailchimpClient(rp=self).get_product(self.mailchimp_one_time_contribution_product_id)
+        return self.mailchimp_client.get_product(self.mailchimp_one_time_contribution_product_id)
 
     @cached_property
     def mailchimp_recurring_contribution_product(self) -> MailchimpProduct | None:
-        return RevenueProgramMailchimpClient(rp=self).get_product(self.mailchimp_recurring_contribution_product_id)
+        return self.mailchimp_client.get_product(self.mailchimp_recurring_contribution_product_id)
 
     @cached_property
     def mailchimp_contributor_segment(self) -> MailchimpSegment | None:
-        return RevenueProgramMailchimpClient(rp=self).get_segment(self.mailchimp_contributor_segment_id)
+        return self.mailchimp_client.get_segment(self.mailchimp_contributor_segment_id)
 
     @cached_property
     def mailchimp_all_contributors_segment(self) -> MailchimpSegment | None:
-        return RevenueProgramMailchimpClient(rp=self).get_segment(self.mailchimp_all_contributors_segment_id)
+        return self.mailchimp_client.get_segment(self.mailchimp_all_contributors_segment_id)
 
     @cached_property
     def mailchimp_recurring_contributor_segment(self) -> MailchimpSegment | None:
-        return RevenueProgramMailchimpClient(rp=self).get_segment(self.mailchimp_recurring_contributor_segment_id)
+        return self.mailchimp_client.get_segment(self.mailchimp_recurring_contributor_segment_id)
 
     @cached_property
     def mailchimp_email_list(self) -> MailchimpEmailList | None:
@@ -813,7 +817,7 @@ class RevenueProgram(IndexedTimeStampedModel):
         if not (list_id := self.mailchimp_list_id):
             logger.debug("No email list ID on RP %s, returning None", self.id)
             return None
-        return RevenueProgramMailchimpClient(rp=self).get_email_list(list_id)
+        return self.mailchimp_client.get_email_list(list_id)
 
     @property
     def mailchimp_store_id(self):
@@ -859,7 +863,7 @@ class RevenueProgram(IndexedTimeStampedModel):
     def ensure_mailchimp_store(self) -> None:
         if not self.mailchimp_store:
             logger.info("Creating store for RP %s", self.id)
-            RevenueProgramMailchimpClient(rp=self).create_store()
+            self.mailchimp_client.create_store()
         else:
             logger.info("Store already exists for RP %s", self.id)
 
@@ -867,7 +871,7 @@ class RevenueProgram(IndexedTimeStampedModel):
         if not getattr(self, f"mailchimp_{product_type}_contribution_product", None):
             logger.info("RP %s does not have a %s contribution product. Attempting to create", self.id, product_type)
             try:
-                RevenueProgramMailchimpClient(rp=self).create_product(
+                self.mailchimp_client.create_product(
                     getattr(self, f"mailchimp_{product_type}_contribution_product_id"),
                     getattr(self, f"mailchimp_{product_type}_contribution_product_name"),
                 )
@@ -888,7 +892,7 @@ class RevenueProgram(IndexedTimeStampedModel):
                 self.id,
             )
             try:
-                segment = RevenueProgramMailchimpClient(rp=self).create_segment(
+                segment = self.mailchimp_client.create_segment(
                     getattr(self, f"mailchimp_{segment_type}_segment_name"), options
                 )
             except MailchimpIntegrationError:
@@ -1050,8 +1054,7 @@ class RevenueProgram(IndexedTimeStampedModel):
                 self.id,
                 self.mailchimp_server_prefix,
             )
-            client = RevenueProgramMailchimpClient(rp=self)
-            response = client.lists.get_all_lists(count=1000)
+            response = self.mailchimp_client.lists.get_all_lists(count=1000)
             lists = response.get("lists", [])
             logger.debug("Response from Mailchimp containing %s list ids", len(lists))
             return [MailchimpEmailList(**x) for x in lists]

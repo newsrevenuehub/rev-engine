@@ -215,15 +215,13 @@ def task_import_contributions_and_payments_for_stripe_account(
     from_date: str,
     to_date: str,
     stripe_account_id: str,
-    skip_one_times_with_payment: bool,
 ):
     """Task for syncing Stripe payment data to revengine."""
     logger.info(
-        "Running `task_import_contributions_and_payments_for_stripe_account` with params: from_date=%s, to_date=%s, stripe_account=%s, skip_one_times_with_payment=%s",
+        "Running `task_import_contributions_and_payments_for_stripe_account` with params: from_date=%s, to_date=%s, stripe_account=%s",
         from_date,
         to_date,
         stripe_account_id,
-        skip_one_times_with_payment,
     )
     from_date = datetime.fromtimestamp(int(from_date)) if from_date else None
     to_date = datetime.fromtimestamp(int(to_date)) if to_date else None
@@ -231,6 +229,5 @@ def task_import_contributions_and_payments_for_stripe_account(
         from_date=from_date,
         to_date=to_date,
         stripe_account_id=stripe_account_id,
-        skip_one_times_with_payment=skip_one_times_with_payment,
     ).import_contributions_and_payments()
     logger.info("`task_import_contributions_and_payments` is done")

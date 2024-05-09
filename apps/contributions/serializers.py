@@ -936,7 +936,7 @@ class PortalContributionListSerializer(PortalContributionBaseSerializer):
 
 
 class SwitchboardContributionSerializer(serializers.ModelSerializer):
-    revenue_program = serializers.PrimaryKeyRelatedField(write_only=True)
+    revenue_program = serializers.PrimaryKeyRelatedField(write_only=True, queryset=RevenueProgram.objects.all())
 
     class Meta:
         fields = ["revenue_program"]

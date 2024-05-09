@@ -163,3 +163,16 @@ class HasFlaggedAccessToContributionsApiResource(BaseFlaggedResourceAccess):
         self.flag = Flag.objects.filter(name=CONTRIBUTIONS_API_ENDPOINT_ACCESS_FLAG_NAME).first()
         if not self.flag:
             raise ApiConfigurationError()
+
+
+class IsSwitchboardAccount(permissions.BasePermission):
+    """
+    Permission to lock down access to the switchboard account
+    """
+
+    def has_permission(self, request, view):
+        return (
+            request.user.is_authenticated
+            and request.user.email == settings.SWITCHBOARD_ACCOUNT_EMAIL
+            and settings.SWITCHBOARD_ACCOUNT_EMAIL
+        )

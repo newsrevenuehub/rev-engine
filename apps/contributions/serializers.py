@@ -22,7 +22,7 @@ from apps.contributions.models import (
 )
 from apps.contributions.types import StripePaymentMetadataSchemaV1_4
 from apps.contributions.utils import format_ambiguous_currency, get_sha256_hash
-from apps.organizations.models import PaymentProvider
+from apps.organizations.models import PaymentProvider, RevenueProgram
 from apps.organizations.serializers import RevenueProgramSerializer
 from apps.pages.models import DonationPage
 
@@ -933,3 +933,23 @@ class PortalContributionListSerializer(PortalContributionBaseSerializer):
         model = Contribution
         fields = PORTAL_CONTRIBUTION_BASE_SERIALIZER_FIELDS
         read_only_fields = PORTAL_CONTRIBUTION_BASE_SERIALIZER_FIELDS
+
+
+class SwitchboardContributionSerializer(serializers.ModelSerializer):
+    revenue_program = serializers.PrimaryKeyRelatedField(write_only=True)
+
+    class Meta:
+        fields = ["revenue_program"]
+
+    def validate_revenue_program(self, value: str) -> None:
+        if not value:
+            raise serializers.ValidationError("Revenue program is required")
+        try:
+            rp = RevenueProgram.objects.get(pk=value)
+        except RevenueProgram.DoesNotExist:
+            raise serializers.ValidationError("Revenue program not found")
+        if self.instance.revenue_program.organization != rp.organization:
+            raise serializers.ValidationError(
+                "Cannot assign contribution to a revenue program from a different organization"
+            )
+        return value

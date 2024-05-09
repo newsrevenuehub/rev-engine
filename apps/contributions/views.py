@@ -568,7 +568,7 @@ class SubscriptionsViewSet(viewsets.ViewSet):
         )
 
 
-class SwitchboardContributionsViewSet(viewsets.UpdateModelMixin, viewsets.GenericViewSet):
+class SwitchboardContributionsViewSet(mixins.UpdateModelMixin, viewsets.GenericViewSet):
     permission_classes = [IsAuthenticated, IsHubAdmin]
     queryset = Contribution.objects.all()
     serializer_class = serializers.SwitchboardContributionSerializer

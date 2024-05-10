@@ -6,7 +6,7 @@ from django.db.models import TextChoices
 from django.utils import timezone
 
 import reversion
-from rest_framework import serializers
+from rest_framework import serializers, status
 from rest_framework.exceptions import APIException, PermissionDenied
 from stripe.error import StripeError
 
@@ -936,20 +936,46 @@ class PortalContributionListSerializer(PortalContributionBaseSerializer):
 
 
 class SwitchboardContributionSerializer(serializers.ModelSerializer):
-    revenue_program = serializers.PrimaryKeyRelatedField(write_only=True, queryset=RevenueProgram.objects.all())
+    revenue_program = serializers.PrimaryKeyRelatedField(
+        queryset=RevenueProgram.objects.all(), source="_revenue_program"
+    )
 
     class Meta:
-        fields = ["revenue_program"]
+        model = Contribution
+        fields = ["revenue_program", "id"]
+        read_only_fields = ["id"]
 
-    def validate_revenue_program(self, value: str) -> None:
-        if not value:
-            raise serializers.ValidationError("Revenue program is required")
-        try:
-            rp = RevenueProgram.objects.get(pk=value)
-        except RevenueProgram.DoesNotExist:
-            raise serializers.ValidationError("Revenue program not found")
-        if self.instance.revenue_program.organization != rp.organization:
+    def update(self, instance, validated_data):
+        """Update the revenue program of a contribution.
+
+        Here, if _revenue_program is being set and instance currently has donation_page set,
+        we also set donation_page to None because of our constraint on the model.
+
+        Note that at present we only allow updpating the ._revenue_program field of a contribution. If this changes in future
+        this update override will need to be modified accordingly.
+        """
+        update_fields = {"modified"}
+        _rp_being_set = False
+        if (rp := validated_data.pop("_revenue_program", None)) and instance._revenue_program != rp:
+            instance._revenue_program = rp
+            update_fields.add("_revenue_program")
+            _rp_being_set = True
+        if instance.donation_page and _rp_being_set:
+            instance.donation_page = None
+            update_fields.add("donation_page")
+        with reversion.create_revision():
+            instance.save(update_fields=update_fields)
+            reversion.set_comment("Updated by SwitchboardContributionSerializer.update")
+        return instance
+
+    def validate_revenue_program(self, value: RevenueProgram) -> None:
+        """Ensure that the revenue program being set is from the same organization as the current revenue program
+
+        Note that the actual model attribute here is `._revenue_program`.
+        """
+        if (rp := self.instance.revenue_program) and rp.organization != value.organization:
             raise serializers.ValidationError(
-                "Cannot assign contribution to a revenue program from a different organization"
+                "Cannot assign contribution to a revenue program from a different organization",
+                code=status.HTTP_400_BAD_REQUEST,
             )
         return value

@@ -29,6 +29,7 @@ from apps.api.permissions import (
     IsContributor,
     IsContributorOwningContribution,
     IsHubAdmin,
+    IsSwitchboardAccount,
     UserIsRequestedContributor,
 )
 from apps.contributions import serializers
@@ -569,16 +570,12 @@ class SubscriptionsViewSet(viewsets.ViewSet):
 
 
 class SwitchboardContributionsViewSet(mixins.UpdateModelMixin, viewsets.GenericViewSet):
-    permission_classes = [IsAuthenticated, IsHubAdmin]
+    """This viewset is for switchboard to update contributions"""
+
+    permission_classes = [IsSwitchboardAccount]
+    http_method_names = ["patch"]
     queryset = Contribution.objects.all()
     serializer_class = serializers.SwitchboardContributionSerializer
-
-    def update(self, request, *args, **kwargs):
-        contribution = self.get_object()
-        serializer = self.get_serializer(contribution, data=request.data, partial=True)
-        serializer.is_valid(raise_exception=True)
-        serializer.save()
-        return Response(serializer.data, status=status.HTTP_200_OK)
 
 
 class PortalContributorsViewSet(viewsets.GenericViewSet):

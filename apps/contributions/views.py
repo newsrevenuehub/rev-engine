@@ -621,6 +621,23 @@ class PortalContributorsViewSet(viewsets.GenericViewSet):
 
     @action(
         methods=["get"],
+        url_path="impact",
+        url_name="impact",
+        detail=True,
+    )
+    def contributor_impact(self, request, pk=None):
+        """Endpoint that returns the sum of all contributions for a given contributor"""
+
+        contributor = self._get_contributor_and_check_permissions(request, pk)
+
+        rp = request.query_params.get("revenue_program", None)
+
+        impact = contributor.get_impact([rp] if rp else None)
+
+        return Response(impact, status=status.HTTP_200_OK)
+
+    @action(
+        methods=["get"],
         url_path="contributions",
         url_name="contributions-list",
         detail=True,

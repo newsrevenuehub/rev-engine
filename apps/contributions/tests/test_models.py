@@ -2,6 +2,7 @@ import datetime
 import json
 import os
 import re
+from datetime import timedelta
 from unittest.mock import Mock, patch
 from urllib.parse import parse_qs, urlparse
 from zoneinfo import ZoneInfo
@@ -44,6 +45,157 @@ from apps.users.choices import Roles
 
 @pytest.mark.django_db
 class TestContributorModel:
+    @pytest.fixture
+    def customer_id(self, faker):
+        return faker.pystr_format(string_format="cus_??????")
+
+    @pytest.fixture
+    def one_time_canceled_contribution_no_payment(self, contributor_user, customer_id):
+        contribution = ContributionFactory(
+            one_time=True,
+            canceled=True,
+            provider_customer_id=customer_id,
+            contributor=contributor_user,
+        )
+        return contribution
+
+    @pytest.fixture
+    def one_time_processing_contribution(self, contributor_user, customer_id):
+        contribution = ContributionFactory(
+            one_time=True,
+            processing=True,
+            provider_customer_id=customer_id,
+            contributor=contributor_user,
+        )
+        PaymentFactory(
+            contribution=contribution,
+            amount_refunded=0,
+            gross_amount_paid=contribution.amount,
+            net_amount_paid=contribution.amount - 100,
+        )
+        return contribution
+
+    @pytest.fixture
+    def one_time_flagged_contribution(self, contributor_user, customer_id):
+        contribution = ContributionFactory(
+            one_time=True,
+            flagged=True,
+            provider_customer_id=customer_id,
+            contributor=contributor_user,
+        )
+        PaymentFactory(
+            contribution=contribution,
+            amount_refunded=0,
+            gross_amount_paid=contribution.amount,
+            net_amount_paid=contribution.amount - 100,
+        )
+        return contribution
+
+    @pytest.fixture
+    def one_time_rejected_contribution(self, contributor_user, customer_id):
+        contribution = ContributionFactory(
+            one_time=True,
+            rejected=True,
+            provider_customer_id=customer_id,
+            contributor=contributor_user,
+        )
+        PaymentFactory(
+            contribution=contribution,
+            amount_refunded=0,
+            gross_amount_paid=contribution.amount,
+            net_amount_paid=contribution.amount - 100,
+        )
+        return contribution
+
+    @pytest.fixture
+    def one_time_contribution_with_payment(self, contributor_user, faker, customer_id):
+        contribution = ContributionFactory(
+            one_time=True,
+            provider_customer_id=customer_id,
+            contributor=contributor_user,
+        )
+        PaymentFactory(
+            contribution=contribution,
+            amount_refunded=0,
+            gross_amount_paid=contribution.amount,
+            net_amount_paid=contribution.amount - 100,
+        )
+        return contribution
+
+    @pytest.fixture
+    def one_time_contribution_with_refund(self, contributor_user, faker, customer_id):
+        contribution = ContributionFactory(
+            one_time=True,
+            provider_customer_id=customer_id,
+            contributor=contributor_user,
+        )
+        PaymentFactory(
+            contribution=contribution,
+            amount_refunded=0,
+            gross_amount_paid=contribution.amount,
+            net_amount_paid=contribution.amount - 100,
+        )
+        PaymentFactory(
+            contribution=contribution,
+            amount_refunded=contribution.amount - 100,
+            gross_amount_paid=contribution.amount,
+            net_amount_paid=0,
+        )
+        return contribution
+
+    @pytest.fixture
+    def monthly_contribution_multiple_payments(
+        self,
+        contributor_user,
+        customer_id,
+    ):
+        then = datetime.datetime.now() - timedelta(days=30)
+        contribution = ContributionFactory(
+            monthly_subscription=True,
+            status=ContributionStatus.CANCELED,
+            created=then,
+            contributor=contributor_user,
+            provider_customer_id=customer_id,
+        )
+        for x in (then, then + timedelta(days=30)):
+            PaymentFactory(
+                created=x,
+                contribution=contribution,
+                amount_refunded=0,
+                gross_amount_paid=contribution.amount,
+                net_amount_paid=contribution.amount - 100,
+            )
+        return contribution
+
+    @pytest.fixture
+    def portal_contributor_with_multiple_contributions_from_different_rps(
+        self,
+        monthly_contribution_multiple_payments,
+        one_time_contribution_with_payment,
+        one_time_contribution_with_refund,
+    ):
+        return monthly_contribution_multiple_payments.contributor
+
+    @pytest.fixture(
+        params=[
+            "one_time_contribution_with_payment",
+            "one_time_contribution_with_refund",
+            "monthly_contribution_multiple_payments",
+        ]
+    )
+    def contribution(self, request):
+        return request.getfixturevalue(request.param)
+
+    @pytest.fixture(
+        params=[
+            "one_time_processing_contribution",
+            "one_time_flagged_contribution",
+            "one_time_rejected_contribution",
+        ]
+    )
+    def no_impact_contribution(self, request):
+        return request.getfixturevalue(request.param)
+
     def test__str__(self, contributor_user):
         assert str(contributor_user) == contributor_user.email
 
@@ -62,6 +214,75 @@ class TestContributorModel:
         params = parse_qs(parsed.query)
         assert params["token"][0]
         assert params["email"][0] == one_time_contribution.contributor.email
+
+    def test_get_impact(self, contribution, contributor_user):
+        total_paid = 0
+        total_refunded = 0
+        for payment in contribution.payment_set.all():
+            total_paid += payment.net_amount_paid
+            total_refunded += payment.amount_refunded
+
+        assert contributor_user.get_impact() == {
+            "total": total_paid - total_refunded,
+            "total_paid": total_paid,
+            "total_refunded": total_refunded,
+        }
+
+    def test_get_impact_with_cancelled_contribution(self, one_time_canceled_contribution_no_payment, contributor_user):
+        assert one_time_canceled_contribution_no_payment.payment_set.count() == 0
+        assert one_time_canceled_contribution_no_payment.status == ContributionStatus.CANCELED
+        assert contributor_user.get_impact() == {"total": 0, "total_paid": 0, "total_refunded": 0}
+
+    def test_get_impact_with_no_impact_contribution(self, no_impact_contribution, contributor_user):
+        assert no_impact_contribution.payment_set.count() == 1
+        assert no_impact_contribution.status in [
+            ContributionStatus.FLAGGED,
+            ContributionStatus.REJECTED,
+            ContributionStatus.PROCESSING,
+        ]
+        assert contributor_user.get_impact() == {"total": 0, "total_paid": 0, "total_refunded": 0}
+
+    def test_get_impact_with_no_contributions(self, contributor_user):
+        assert contributor_user.contribution_set.count() == 0
+        assert contributor_user.get_impact() == {"total": 0, "total_paid": 0, "total_refunded": 0}
+
+    def test_get_impact_with_no_payments(self, contributor_user):
+        contribution = ContributionFactory(
+            one_time=True,
+            contributor=contributor_user,
+        )
+        assert contribution.payment_set.count() == 0
+        assert contributor_user.get_impact() == {"total": 0, "total_paid": 0, "total_refunded": 0}
+
+    def test_get_impact_no_rp_filter(self, portal_contributor_with_multiple_contributions_from_different_rps):
+        total_paid = 0
+        total_refunded = 0
+        for contribution in portal_contributor_with_multiple_contributions_from_different_rps.contribution_set.all():
+            for payment in contribution.payment_set.all():
+                total_paid += payment.net_amount_paid
+                total_refunded += payment.amount_refunded
+
+        assert portal_contributor_with_multiple_contributions_from_different_rps.get_impact() == {
+            "total": total_paid - total_refunded,
+            "total_paid": total_paid,
+            "total_refunded": total_refunded,
+        }
+
+    def test_get_impact_filter_by_rp_id(
+        self, contribution, portal_contributor_with_multiple_contributions_from_different_rps
+    ):
+        rp_id = contribution.donation_page.revenue_program.id
+        total_paid = 0
+        total_refunded = 0
+        for payment in contribution.payment_set.all():
+            total_paid += payment.net_amount_paid
+            total_refunded += payment.amount_refunded
+
+        assert portal_contributor_with_multiple_contributions_from_different_rps.get_impact([rp_id]) == {
+            "total": total_paid - total_refunded,
+            "total_paid": total_paid,
+            "total_refunded": total_refunded,
+        }
 
     @pytest.mark.parametrize(
         "value",

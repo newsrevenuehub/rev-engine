@@ -17,7 +17,7 @@ function EmailTextFieldDemo(props: Partial<EmailTextFieldProps>) {
 
 const meta: Meta<typeof EmailTextField> = {
   component: EmailTextFieldDemo,
-  title: 'Base/EmailTextField'
+  title: 'Donation Page/EmailTextField'
 };
 
 export default meta;

@@ -208,9 +208,23 @@ class TestContributionsViewSet:
         api_client.force_authenticate(non_contributor_user)
         new_rp = RevenueProgramFactory(organization=OrganizationFactory(name="new-org"), name="new rp")
         if non_contributor_user.is_superuser or non_contributor_user.roleassignment.role_type == Roles.HUB_ADMIN:
-            ContributionFactory(**{"one_time": True, "donation_page__revenue_program": new_rp})
-            ContributionFactory(**{"annual_subscription": True, "donation_page__revenue_program": new_rp})
-            ContributionFactory(**{"monthly_subscription": True, "donation_page__revenue_program": new_rp})
+            ContributionFactory(
+                **{"status": ContributionStatus.PAID, "one_time": True, "donation_page__revenue_program": new_rp}
+            )
+            ContributionFactory(
+                **{
+                    "status": ContributionStatus.PAID,
+                    "annual_subscription": True,
+                    "donation_page__revenue_program": new_rp,
+                }
+            )
+            ContributionFactory(
+                **{
+                    "status": ContributionStatus.PAID,
+                    "monthly_subscription": True,
+                    "donation_page__revenue_program": new_rp,
+                }
+            )
             query = Contribution.objects.all()
             unpermitted = Contribution.objects.none()
         else:
@@ -219,9 +233,9 @@ class TestContributionsViewSet:
                 {"donation_page__revenue_program": new_rp},
                 {"donation_page__revenue_program": non_contributor_user.roleassignment.revenue_programs.first()},
             ]:
-                ContributionFactory(**({"one_time": True} | kwargs))
-                ContributionFactory(**({"annual_subscription": True} | kwargs))
-                ContributionFactory(**({"monthly_subscription": True} | kwargs))
+                ContributionFactory(**({"status": ContributionStatus.PAID, "one_time": True} | kwargs))
+                ContributionFactory(**({"status": ContributionStatus.PAID, "annual_subscription": True} | kwargs))
+                ContributionFactory(**({"status": ContributionStatus.PAID, "monthly_subscription": True} | kwargs))
             query = Contribution.objects.filtered_by_role_assignment(non_contributor_user.roleassignment)
             unpermitted = Contribution.objects.exclude(id__in=query.values_list("id", flat=True))
 
@@ -494,18 +508,28 @@ class TestContributionsViewSetExportCSV:
             assert revenue_program not in user.roleassignment.revenue_programs.all()
             unowned_page = DonationPageFactory(revenue_program=revenue_program)
             owned_page = DonationPageFactory(revenue_program=user.roleassignment.revenue_programs.first())
-            ContributionFactory(one_time=True, donation_page=owned_page, status=ContributionStatus.PAID)
-            ContributionFactory(one_time=True, flagged=True, donation_page=owned_page)
-            ContributionFactory(one_time=True, rejected=True, donation_page=owned_page)
-            ContributionFactory(one_time=True, canceled=True, donation_page=owned_page)
-            ContributionFactory(one_time=True, refunded=True, donation_page=owned_page)
-            ContributionFactory(one_time=True, processing=True, donation_page=owned_page)
-            ContributionFactory(one_time=True, status=ContributionStatus.PAID)
-            ContributionFactory(one_time=True, flagged=True, donation_page=unowned_page)
-            ContributionFactory(one_time=True, rejected=True, donation_page=unowned_page)
-            ContributionFactory(one_time=True, canceled=True, donation_page=unowned_page)
-            ContributionFactory(one_time=True, refunded=True, donation_page=unowned_page)
-            ContributionFactory(one_time=True, processing=True, donation_page=unowned_page)
+            ContributionFactory(status=ContributionStatus.PAID, one_time=True, donation_page=owned_page)
+            ContributionFactory(status=ContributionStatus.PAID, one_time=True, flagged=True, donation_page=owned_page)
+            ContributionFactory(status=ContributionStatus.PAID, one_time=True, rejected=True, donation_page=owned_page)
+            ContributionFactory(status=ContributionStatus.PAID, one_time=True, canceled=True, donation_page=owned_page)
+            ContributionFactory(status=ContributionStatus.PAID, one_time=True, refunded=True, donation_page=owned_page)
+            ContributionFactory(
+                status=ContributionStatus.PAID, one_time=True, processing=True, donation_page=owned_page
+            )
+            ContributionFactory(status=ContributionStatus.PAID, one_time=True)
+            ContributionFactory(status=ContributionStatus.PAID, one_time=True, flagged=True, donation_page=unowned_page)
+            ContributionFactory(
+                status=ContributionStatus.PAID, one_time=True, rejected=True, donation_page=unowned_page
+            )
+            ContributionFactory(
+                status=ContributionStatus.PAID, one_time=True, canceled=True, donation_page=unowned_page
+            )
+            ContributionFactory(
+                status=ContributionStatus.PAID, one_time=True, refunded=True, donation_page=unowned_page
+            )
+            ContributionFactory(
+                status=ContributionStatus.PAID, one_time=True, processing=True, donation_page=unowned_page
+            )
 
         expected = (
             Contribution.objects.all()

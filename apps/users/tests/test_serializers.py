@@ -1,10 +1,10 @@
 import datetime
+from zoneinfo import ZoneInfo
 
 from django.contrib.auth import get_user_model
 
 import dateparser
 import pytest
-import pytz
 from rest_framework.serializers import ValidationError
 
 from apps.organizations.models import (
@@ -197,8 +197,8 @@ class TestAuthedUserSerializer:
             "role_type",
         }
         if user.accepted_terms_of_service:
-            assert dateparser.parse(data["accepted_terms_of_service"]) == pytz.utc.localize(
-                user.accepted_terms_of_service
+            assert dateparser.parse(data["accepted_terms_of_service"]) == user.accepted_terms_of_service.replace(
+                tzinfo=ZoneInfo("UTC")
             )
         assert data["email"] == user.email
         assert data["email_verified"] == user.email_verified

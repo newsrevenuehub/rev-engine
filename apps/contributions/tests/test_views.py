@@ -1,6 +1,7 @@
 import json
 from datetime import datetime, timedelta
 from unittest import mock
+from zoneinfo import ZoneInfo
 
 from django.conf import settings
 from django.core.serializers.json import DjangoJSONEncoder
@@ -10,7 +11,6 @@ from django.test import RequestFactory, override_settings
 
 import dateparser
 import pytest
-import pytz
 import stripe
 from addict import Dict as AttrDict
 from rest_framework import status
@@ -1673,16 +1673,20 @@ class TestPortalContributorsViewSet:
             assert x["card_brand"] == contribution.card_brand
             assert x["card_last_4"] == contribution.card_last_4
             assert x["card_expiration_date"] == contribution.card_expiration_date
-            parsed = dateparser.parse(x["created"]).replace(tzinfo=pytz.UTC)
+            parsed = dateparser.parse(x["created"]).replace(tzinfo=ZoneInfo("UTC"))
             assert parsed == contribution.created
             assert x["is_cancelable"] == contribution.is_cancelable
             assert x["is_modifiable"] == contribution.is_modifiable
-            assert dateparser.parse(x["last_payment_date"]).replace(tzinfo=pytz.UTC) == contribution._last_payment_date
+            assert (
+                dateparser.parse(x["last_payment_date"]).replace(tzinfo=ZoneInfo("UTC"))
+                == contribution._last_payment_date
+            )
             if contribution.interval == ContributionInterval.ONE_TIME:
                 assert x["next_payment_date"] is None
             else:
                 assert (
-                    dateparser.parse(x["next_payment_date"]).replace(tzinfo=pytz.UTC) == contribution.next_payment_date
+                    dateparser.parse(x["next_payment_date"]).replace(tzinfo=ZoneInfo("UTC"))
+                    == contribution.next_payment_date
                 )
             assert x["payment_type"] == contribution.payment_type
             assert x["revenue_program"] == contribution.donation_page.revenue_program.id
@@ -1925,19 +1929,19 @@ class TestPortalContributorsViewSet:
                             ):
                                 compared_val = y[z]
                                 if z in ("created", "transaction_time"):
-                                    compared_val = dateparser.parse(compared_val).replace(tzinfo=pytz.UTC)
+                                    compared_val = dateparser.parse(compared_val).replace(tzinfo=ZoneInfo("UTC"))
                                 assert getattr(payment, z) == compared_val
 
                     case "revenue_program":
                         assert response.json()[k] == x.donation_page.revenue_program.id
 
                     case "created" | "last_payment_date":
-                        compare_val = dateparser.parse(response.json()[k]).replace(tzinfo=pytz.UTC)
+                        compare_val = dateparser.parse(response.json()[k]).replace(tzinfo=ZoneInfo("UTC"))
                         assert compare_val == getattr(x, k if k == "created" else "_last_payment_date")
 
                     case "next_payment_date":
                         compare_val = (
-                            dateparser.parse(response.json()[k]).replace(tzinfo=pytz.UTC)
+                            dateparser.parse(response.json()[k]).replace(tzinfo=ZoneInfo("UTC"))
                             if x.interval != ContributionInterval.ONE_TIME
                             else None
                         )

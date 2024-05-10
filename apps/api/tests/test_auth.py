@@ -33,7 +33,8 @@ class JWTCookieAuthenticationTest(APITestCase):
         valid_token_obj = AccessToken().for_user(self.user)
         self.valid_jwt = jwt.encode(valid_token_obj.payload, settings.SECRET_KEY, algorithm="HS256")
         self.invalid_jwt = "notavalidhmac"
-        self.csrf_token = csrf._get_new_csrf_token()
+        # This is an undocumented method, but we need some way of getting a token.
+        self.csrf_token = csrf._get_new_csrf_string()
 
     def _add_jwt_to_cookie(self, valid=True):
         self.request.COOKIES[settings.AUTH_COOKIE_KEY] = self.valid_jwt if valid else self.invalid_jwt

@@ -954,6 +954,7 @@ class SwitchboardContributionSerializer(serializers.ModelSerializer):
         Note that at present we only allow updpating the ._revenue_program field of a contribution. If this changes in future
         this update override will need to be modified accordingly.
         """
+        logger.debug("Updating contribution %s with validated data %s", instance, validated_data)
         update_fields = {"modified"}
         _rp_being_set = False
         if (rp := validated_data.pop("_revenue_program", None)) and instance._revenue_program != rp:
@@ -973,6 +974,7 @@ class SwitchboardContributionSerializer(serializers.ModelSerializer):
 
         Note that the actual model attribute here is `._revenue_program`.
         """
+        logger.debug("Validating revenue program %s", value)
         if (rp := self.instance.revenue_program) and rp.organization != value.organization:
             raise serializers.ValidationError(
                 "Cannot assign contribution to a revenue program from a different organization",

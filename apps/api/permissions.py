@@ -171,6 +171,7 @@ class IsSwitchboardAccount(permissions.BasePermission):
     """
 
     def has_permission(self, request, view):
+        logger.debug("Checking if user is switchboard account")
         return (
             request.user.is_authenticated
             and request.user.email == settings.SWITCHBOARD_ACCOUNT_EMAIL

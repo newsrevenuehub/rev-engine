@@ -529,7 +529,9 @@ class RevenueProgramMailchimpClient(MailchimpMarketing.Client):
         )
 
     def create_product(self, product_id: str, product_name: str) -> MailchimpProduct:
-        logger.info("Called for RP %s", self.revenue_program.id)
+        logger.info(
+            "Called for RP %s, product_id %s, product_name %s", self.revenue_program.id, product_id, product_name
+        )
         """Creates a Mailchimp ecommerce product. A Mailchimp store must be previously created for the revenue program."""
         try:
             response = self.ecommerce.add_store_product(
@@ -552,7 +554,7 @@ class RevenueProgramMailchimpClient(MailchimpMarketing.Client):
 
     def create_segment(self, segment_name: str, options) -> MailchimpSegment:
         """Creates a segment of the revenue program's Mailchimp list. This list must be previously created."""
-        logger.info("Called for RP %s", self.revenue_program.id)
+        logger.info("Called for RP %s, segment_name %s", self.revenue_program.id, segment_name)
         self._has_list_id(raise_if_not_present=True)
         try:
             response = self.lists.create_segment(
@@ -864,14 +866,12 @@ class RevenueProgram(IndexedTimeStampedModel):
         if self.mailchimp_store:
             logger.info("Store already exists for RP %s", self.id)
         else:
-            logger.info("Creating store for RP %s", self.id)
             self.mailchimp_client.create_store()
 
     def ensure_mailchimp_contribution_product(self, product_type: Literal["one_time", "recurring"]) -> None:
         if getattr(self, f"mailchimp_{product_type}_contribution_product", None):
             logger.info("%s contribution product already exists for RP with ID %s", product_type, self.id)
         else:
-            logger.info("RP %s does not have a %s contribution product. Attempting to create", self.id, product_type)
             try:
                 self.mailchimp_client.create_product(
                     getattr(self, f"mailchimp_{product_type}_contribution_product_id"),
@@ -888,11 +888,6 @@ class RevenueProgram(IndexedTimeStampedModel):
         if getattr(self, f"mailchimp_{segment_type}_segment", None):
             logger.info("Segment already exists for RP %s", self.id)
         else:
-            logger.info(
-                "Creating %s segment for RP %s",
-                segment_type,
-                self.id,
-            )
             try:
                 segment = self.mailchimp_client.create_segment(
                     getattr(self, f"mailchimp_{segment_type}_segment_name"), options

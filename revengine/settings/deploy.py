@@ -2,7 +2,7 @@ import logging
 import os
 from pathlib import Path
 
-from revengine.settings.base import *  # noqa: F403
+from .base import *  # noqa: F403
 
 
 # For more information about deploy settings, see:

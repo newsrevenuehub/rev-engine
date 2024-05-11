@@ -21,7 +21,7 @@ class OrganizationFactory(DjangoModelFactory):
         model = models.Organization
         django_get_or_create = ("name",)
 
-    name = factory.Sequence(lambda n: f"{fake.company()}-{str(n)}")
+    name = factory.Sequence(lambda n: f"{fake.company()}-{n!s}")
     slug = factory.lazy_attribute(lambda o: normalize_slug(name=o.name))
 
     class Params:
@@ -44,7 +44,7 @@ class RevenueProgramFactory(DjangoModelFactory):
         model = models.RevenueProgram
         django_get_or_create = ("name",)
 
-    name = factory.Sequence(lambda n: f"{' '.join(fake.words(nb=4))}-{str(n)}")
+    name = factory.Sequence(lambda n: f"{' '.join(fake.words(nb=4))}-{n!s}")
     slug = factory.lazy_attribute(lambda o: normalize_slug(name=o.name))
     contact_email = fake.email()
     payment_provider = factory.SubFactory(PaymentProviderFactory)
@@ -68,7 +68,7 @@ class BenefitFactory(DjangoModelFactory):
     class Meta:
         model = models.Benefit
 
-    name = factory.Sequence(lambda n: f"{fake.sentence(nb_words=2)}-{str(n)}")
+    name = factory.Sequence(lambda n: f"{fake.sentence(nb_words=2)}-{n!s}")
     description = fake.sentence(nb_words=8)
     revenue_program = factory.SubFactory(RevenueProgramFactory)
 
@@ -77,7 +77,7 @@ class BenefitLevelFactory(DjangoModelFactory):
     class Meta:
         model = models.BenefitLevel
 
-    name = factory.Sequence(lambda n: f"{fake.sentence(nb_words=2)}-{str(n)}")
+    name = factory.Sequence(lambda n: f"{fake.sentence(nb_words=2)}-{n!s}")
     revenue_program = factory.SubFactory(RevenueProgramFactory)
 
     lower_limit = 1

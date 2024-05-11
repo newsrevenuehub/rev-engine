@@ -1,12 +1,11 @@
 import datetime
 import zoneinfo
-from typing import Optional
 
 from django.utils import timezone
 
 
 def convert_to_timezone_formatted(
-    dt: datetime.datetime, selected_timezone: Optional[str] = None, date_format="%m-%d-%y %H:%M %Z"
+    dt: datetime.datetime, selected_timezone: str | None = None, date_format="%m-%d-%y %H:%M %Z"
 ) -> str:
     if selected_timezone:
         localtz = dt.astimezone(zoneinfo.ZoneInfo(selected_timezone))

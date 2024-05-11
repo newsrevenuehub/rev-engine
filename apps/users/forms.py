@@ -12,11 +12,11 @@ class RoleAssignmentAdminForm(forms.ModelForm):
     missing_rp_message = "This role must be assigned at least one RevenueProgram"
 
     def clean(self):
-        """
-        Here we ensure that:
+        """Ensure that.
+
         - Hub Admins do NOT have Orgs or RevenuePrograms defined
         - Org Admins DO have an Org defined, but do NOT have RevenuePrograms defined
-        - RP Admins DO have both Orgs and RevenuePrograms defined
+        - RP Admins DO have both Orgs and RevenuePrograms defined.
         """
         error_dict = {}
 
@@ -53,4 +53,4 @@ class RoleAssignmentAdminForm(forms.ModelForm):
 
     class Meta:
         model = RoleAssignment
-        fields = "__all__"
+        fields = "__all__"  # noqa: DJ007 https://docs.astral.sh/ruff/rules/django-all-with-model-form/

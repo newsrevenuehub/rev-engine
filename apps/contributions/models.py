@@ -3,10 +3,11 @@ from __future__ import annotations
 import datetime
 import logging
 import uuid
+from collections.abc import Callable
 from dataclasses import asdict
 from functools import cached_property, reduce, wraps
 from operator import or_
-from typing import Any, Callable, List
+from typing import Any
 from urllib.parse import quote_plus
 from zoneinfo import ZoneInfo
 
@@ -51,10 +52,8 @@ class Contributor(IndexedTimeStampedModel):
     uuid = models.UUIDField(default=uuid.uuid4, primary_key=False, editable=False)
     email = models.EmailField(unique=True)
 
-    def get_impact(self, revenue_program_ids: List[int] | None = None):
-        """
-        Calculate the total impact of a contributor across multiple revenue programs
-        """
+    def get_impact(self, revenue_program_ids: list[int] | None = None):
+        """Calculate the total impact of a contributor across multiple revenue programs."""
         totals = (
             self.contribution_set.filter_by_revenue_programs(revenue_program_ids)
             .exclude(
@@ -74,8 +73,7 @@ class Contributor(IndexedTimeStampedModel):
 
     @property
     def is_authenticated(self):
-        """
-        Copy django.contrib.auth.models import AbstractBaseUser for request.user.is_authenticated
+        """Copy django.contrib.auth.models import AbstractBaseUser for request.user.is_authenticated.
 
         Always return True. This is a way to tell if the user has been
         authenticated in templates.
@@ -84,9 +82,10 @@ class Contributor(IndexedTimeStampedModel):
 
     @property
     def is_superuser(self):
-        """
-        Contributors essentially impersonate Users. Ensure that they can never be superusers.
-        Note: It's useful to keep this as a property, since properties defined this way are immutable.
+        """Ensure Contributors can never be superusers.
+
+        Contributors essentially impersonate Users. Note: It's useful to keep this as a property, since properties
+        defined this way are immutable.
         """
         return False
 
@@ -94,13 +93,13 @@ class Contributor(IndexedTimeStampedModel):
         return self.email
 
     @staticmethod
-    def create_magic_link(contribution: "Contribution") -> SafeString:
-        """Create a magic link value that can be inserted into Django templates (for instance, in contributor-facing emails)"""
+    def create_magic_link(contribution: Contribution) -> SafeString:
+        """Create a magic link value that can be inserted into Django templates (for instance, in contributor-facing emails)."""
         from apps.api.views import construct_rp_domain  # vs. circular import
 
         if not isinstance(contribution, Contribution):
             logger.error("`Contributor.create_magic_link` called with invalid contributon value: %s", contribution)
-            raise ValueError("Invalid value provided for `contribution`")
+            raise ValueError("Invalid value provided for `contribution`")  # noqa: TRY004 TODO @njh: change to TypeError
         token = str(ContributorRefreshToken.for_contributor(contribution.contributor.uuid).short_lived_access_token)
         return mark_safe(
             f"https://{construct_rp_domain(contribution.revenue_program.slug)}/{settings.CONTRIBUTOR_VERIFY_URL}"
@@ -126,7 +125,7 @@ class ContributionQuerySet(models.QuerySet):
         return self
 
     def having_org_viewable_status(self) -> models.QuerySet:
-        """Exclude contributions with statuses that should not be seen by org users from the queryset"""
+        """Exclude contributions with statuses that should not be seen by org users from the queryset."""
         return self.exclude(
             status__in=[
                 ContributionStatus.FLAGGED,
@@ -137,7 +136,7 @@ class ContributionQuerySet(models.QuerySet):
 
     def filter_queryset_for_contributor(
         self, contributor: Contributor, revenue_program: RevenueProgram
-    ) -> List[StripePiAsPortalContribution]:
+    ) -> list[StripePiAsPortalContribution]:
         # vs circular import
         from apps.contributions.stripe_contributions_provider import ContributionsCacheProvider
         from apps.contributions.tasks import task_pull_serialized_stripe_contributions_to_cache
@@ -159,7 +158,7 @@ class ContributionQuerySet(models.QuerySet):
         ]
 
     def filtered_by_role_assignment(self, role_assignment: RoleAssignment) -> models.QuerySet:
-        """Return results based on user's role type"""
+        """Return results based on user's role type."""
         match role_assignment.role_type:
             case Roles.HUB_ADMIN:
                 return self.having_org_viewable_status()
@@ -283,7 +282,7 @@ class Contribution(IndexedTimeStampedModel):
     @property
     def formatted_amount(self) -> str:
         currency = self.get_currency_dict()
-        return f"{currency['symbol']}{'{:.2f}'.format(self.amount / 100)} {currency['code']}"
+        return f"{currency['symbol']}{f'{self.amount / 100:.2f}'} {currency['code']}"
 
     @property
     def revenue_program(self) -> RevenueProgram | None:
@@ -329,7 +328,7 @@ class Contribution(IndexedTimeStampedModel):
             )
             return ""
         try:
-            return f"{'{:.2f}'.format(float(amt))} {self.currency.upper()}"
+            return f"{f'{float(amt):.2f}'} {self.currency.upper()}"
         except ValueError:
             logger.warning(
                 (
@@ -373,9 +372,7 @@ class Contribution(IndexedTimeStampedModel):
         return None if self.bad_actor_score is None else self.BAD_ACTOR_SCORES[self.bad_actor_score][1]
 
     def get_currency_dict(self) -> CurrencyDict:
-        """
-        Returns code (i.e. USD) and symbol (i.e. $) for this contribution.
-        """
+        """Return code (i.e. USD) and symbol (i.e. $) for this contribution."""
         try:
             return {"code": self.currency.upper(), "symbol": settings.CURRENCIES[self.currency.upper()]}
         except KeyError:
@@ -388,9 +385,7 @@ class Contribution(IndexedTimeStampedModel):
             return {"code": "", "symbol": ""}
 
     def get_payment_manager_instance(self):
-        """
-        Selects the correct payment manager for this Contribution, then instantiates it.
-        """
+        """Select the correct payment manager for this Contribution, then instantiates it."""
         from apps.contributions.payment_managers import PaymentManager
 
         manager_class = PaymentManager.get_subclass(self)
@@ -420,7 +415,8 @@ class Contribution(IndexedTimeStampedModel):
             )
         except StripeError:
             logger.exception(
-                "Contribution.fetch_stripe_payment_method encountered a Stripe error when attempting to fetch payment method with id %s for contribution with id %s",
+                "Contribution.fetch_stripe_payment_method encountered a Stripe error when attempting to fetch payment"
+                " method with id %s for contribution with id %s",
                 self.provider_payment_method_id,
                 self.id,
             )
@@ -438,12 +434,11 @@ class Contribution(IndexedTimeStampedModel):
             or not previous
             and self.provider_payment_method_id
             and not self.provider_payment_method_details
-        ):
-            if pm := self.fetch_stripe_payment_method():
-                self.provider_payment_method_details = pm
-                if kwargs.get("update_fields", False):
-                    # we cast update_fields to a set in case it was passed as a list
-                    kwargs["update_fields"] = set(kwargs["update_fields"]).union({"provider_payment_method_details"})
+        ) and (pm := self.fetch_stripe_payment_method()):
+            self.provider_payment_method_details = pm
+            if kwargs.get("update_fields", False):
+                # we cast update_fields to a set in case it was passed as a list
+                kwargs["update_fields"] = set(kwargs["update_fields"]).union({"provider_payment_method_details"})
         super().save(*args, **kwargs)
 
     def create_stripe_customer(
@@ -459,7 +454,7 @@ class Contribution(IndexedTimeStampedModel):
         mailing_country=None,
         **kwargs,
     ):
-        """Create a Stripe customer using contributor email"""
+        """Create a Stripe customer using contributor email."""
         address = {
             "line1": mailing_street,
             "line2": mailing_complement or "",
@@ -479,7 +474,7 @@ class Contribution(IndexedTimeStampedModel):
         )
 
     def create_stripe_one_time_payment_intent(self, metadata=None, save=True):
-        """Create a Stripe PaymentIntent
+        """Create a Stripe PaymentIntent.
 
         See https://stripe.com/docs/api/payment_intents/create for more info
         """
@@ -503,7 +498,7 @@ class Contribution(IndexedTimeStampedModel):
     def create_stripe_subscription(
         self, metadata=None, default_payment_method=None, off_session=False, error_if_incomplete=False
     ):
-        """Create a Stripe Subscription and attach its data to the contribution
+        """Create a Stripe Subscription and attach its data to the contribution.
 
         See https://stripe.com/docs/api/subscriptions/create for more info
         """
@@ -515,7 +510,7 @@ class Contribution(IndexedTimeStampedModel):
                 "interval": self.interval,
             },
         }
-        subscription = stripe.Subscription.create(
+        return stripe.Subscription.create(
             customer=self.provider_customer_id,
             default_payment_method=default_payment_method,
             items=[
@@ -530,7 +525,6 @@ class Contribution(IndexedTimeStampedModel):
             expand=["latest_invoice.payment_intent"],
             off_session=off_session,
         )
-        return subscription
 
     def cancel(self):
         # this is specifically used when a user clicks "back" on the second payment form in checkout flow. it's not
@@ -543,7 +537,7 @@ class Contribution(IndexedTimeStampedModel):
                 self.status,
             )
             raise ContributionStatusError()
-        elif self.interval == ContributionInterval.ONE_TIME:
+        if self.interval == ContributionInterval.ONE_TIME:
             stripe.PaymentIntent.cancel(
                 self.provider_payment_id,
                 stripe_account=self.stripe_account_id,
@@ -572,7 +566,7 @@ class Contribution(IndexedTimeStampedModel):
             reversion.set_comment(f"`Contribution.cancel` saved changes to contribution with ID {self.id}")
 
     def handle_thank_you_email(self):
-        """Send a thank you email to contribution's contributor if org is configured to have NRE send thank you email"""
+        """Send a thank you email to contribution's contributor if org is configured to have NRE send thank you email."""
         logger.info("`Contribution.handle_thank_you_email` called on contribution with ID %s", self.id)
         if (org := self.revenue_program.organization).send_receipt_email_via_nre:
             logger.info("Contribution.handle_thank_you_email: the parent org (%s) sends emails with NRE", org.id)
@@ -587,7 +581,10 @@ class Contribution(IndexedTimeStampedModel):
     def send_recurring_contribution_change_email(
         self, subject_line: str, template_name: str, timestamp: str = None
     ) -> None:
-        """Send an email related to a change to a recurring contribution (cancellation, payment method update, etc.) Logic here is shared among several email templates."""
+        """Send an email related to a change to a recurring contribution (cancellation, payment method update, etc.).
+
+        Logic here is shared among several email templates.
+        """
         if self.interval == ContributionInterval.ONE_TIME:
             logger.error(
                 "Called on an instance (ID: %s) whose interval is one-time",
@@ -728,8 +725,10 @@ class Contribution(IndexedTimeStampedModel):
     @property
     # TODO: [DEV-4333] Update this to be .last_payment_date when no longer in conflict with db model field
     def _last_payment_date(self) -> datetime.datetime | None:
-        """In short term while last payment date is still tracked on db level and is required by API consumers, we create this `_`
-        prefixed property to avoid conflict with db field name. This will be removed once db field is removed.
+        """Temporary property to avoid conflict with db field name.
+
+        In short term while last payment date is still tracked on db level and is required by API consumers, we create
+        this `_` prefixed property to avoid conflict with db field name. This will be removed once db field is removed.
 
         This is used as a source for serializer fields elsewhere.
         """
@@ -775,8 +774,7 @@ class Contribution(IndexedTimeStampedModel):
 
     @staticmethod
     def fix_contributions_stuck_in_processing(dry_run: bool = False) -> None:
-        """Update status to PAID if contribution appears to be incorrectly stuck in PROCESSING
-
+        """Update status to PAID if contribution appears to be incorrectly stuck in PROCESSING.
 
         We compare a subset of local contributions to fresh Stripe data and update status to PAID if it
         makes sense to do so. See discussion of Stripe webhook reciever race conditions in this JIRA ticket:
@@ -846,7 +844,7 @@ class Contribution(IndexedTimeStampedModel):
             if dry_run:
                 updated += 1
                 continue
-            elif update_data:
+            if update_data:
                 with reversion.create_revision():
                     logger.info(
                         (
@@ -869,7 +867,7 @@ class Contribution(IndexedTimeStampedModel):
 
     @staticmethod
     def fix_missing_provider_payment_method_id(dry_run: bool = False) -> None:
-        """Add provider_payment_method_id from Stripe where empty in our model and available in Stripe"""
+        """Add provider_payment_method_id from Stripe where empty in our model and available in Stripe."""
         eligible_one_time = (
             Contribution.objects.one_time()
             .filter(provider_payment_method_id__isnull=True)
@@ -918,22 +916,19 @@ class Contribution(IndexedTimeStampedModel):
                 if dry_run:
                     updated += 1
                     continue
-                else:
-                    with reversion.create_revision():
-                        logger.info(
-                            "Contributions.fix_missing_provider_payment_method_id updating and saving contribution with ID %s",
-                            contribution.id,
-                        )
-                        contribution.save(
-                            update_fields={
-                                "provider_payment_method_details",
-                                "provider_payment_method_id",
-                                "modified",
-                            }
-                        )
-                        reversion.set_comment(
-                            "Contribution.fix_missing_provider_payment_method_id updated contribution"
-                        )
+                with reversion.create_revision():
+                    logger.info(
+                        "Contributions.fix_missing_provider_payment_method_id updating and saving contribution with ID %s",
+                        contribution.id,
+                    )
+                    contribution.save(
+                        update_fields={
+                            "provider_payment_method_details",
+                            "provider_payment_method_id",
+                            "modified",
+                        }
+                    )
+                    reversion.set_comment("Contribution.fix_missing_provider_payment_method_id updated contribution")
 
     @staticmethod
     def fix_missing_payment_method_details_data(dry_run: bool = False) -> None:
@@ -945,7 +940,8 @@ class Contribution(IndexedTimeStampedModel):
         For optimal data integrity, this function should be run only after `fix_contributions_stuck_in_processing`.
 
         For discussion of need for this method, see discussion of Stripe webhook reciever race conditions in this JIRA ticket:
-        https://news-revenue-hub.atlassian.net/browse/DEV-3010"""
+        https://news-revenue-hub.atlassian.net/browse/DEV-3010
+        """
         kwargs = {
             "status__in": [
                 ContributionStatus.PAID,
@@ -966,13 +962,12 @@ class Contribution(IndexedTimeStampedModel):
             if dry_run:
                 updated += 1
                 continue
-            else:
-                with reversion.create_revision():
-                    contribution.save(update_fields={"provider_payment_method_details", "modified"})
-                    updated += 1
-                    reversion.set_comment(
-                        "`Contribution.fix_missing_payment_method_details_data` synced `provider_payment_method_details` from Stripe"
-                    )
+            with reversion.create_revision():
+                contribution.save(update_fields={"provider_payment_method_details", "modified"})
+                updated += 1
+                reversion.set_comment(
+                    "`Contribution.fix_missing_payment_method_details_data` synced `provider_payment_method_details` from Stripe"
+                )
         logger.info("Synced `provider_payment_method_details` updated %s contributions", updated)
 
     @staticmethod
@@ -994,12 +989,12 @@ class Contribution(IndexedTimeStampedModel):
         missing = set(required_keys).difference(set(metadata.keys()))
         if missing:
             logger.info(
-                "`Contribution._stripe_metadata_is_valid_for_contribution_metadata_backfill` was sent metadata with the following missing keys: %s",
+                "`Contribution._stripe_metadata_is_valid_for_contribution_metadata_backfill` was sent metadata with the"
+                " following missing keys: %s",
                 ", ".join(missing),
             )
             return False
-        else:
-            return True
+        return True
 
     @classmethod
     def fix_missing_contribution_metadata(cls, dry_run: bool = False) -> None:
@@ -1048,15 +1043,14 @@ class Contribution(IndexedTimeStampedModel):
                 if dry_run:
                     updated_count += 1
                     continue
-                else:
-                    with reversion.create_revision():
-                        contribution.save(update_fields={"contribution_metadata", "modified"})
-                        logger.info(
-                            "`Contribution.fix_missing_contribution_metadata` updated contribution_metadata on contribution with ID %s",
-                            contribution.id,
-                        )
-                        updated_count += 1
-                        reversion.set_comment("`Contribution.fix_missing_contribution_metadata` updated contribution")
+                with reversion.create_revision():
+                    contribution.save(update_fields={"contribution_metadata", "modified"})
+                    logger.info(
+                        "`Contribution.fix_missing_contribution_metadata` updated contribution_metadata on contribution with ID %s",
+                        contribution.id,
+                    )
+                    updated_count += 1
+                    reversion.set_comment("`Contribution.fix_missing_contribution_metadata` updated contribution")
             else:
                 logger.warning(
                     (
@@ -1072,7 +1066,7 @@ class Contribution(IndexedTimeStampedModel):
         )
 
     def update_payment_method_for_subscription(self, provider_payment_method_id: str) -> None:
-        """If it's a recurring subscription, attach the payment method to the customer, and  set the subscription's
+        """If it's a recurring subscription, attach the payment method to the customer, and  set the subscription's.
 
         default payment method to the new payment method.
         """
@@ -1112,11 +1106,10 @@ class Contribution(IndexedTimeStampedModel):
             raise
 
 
-def ensure_stripe_event(event_types: List[str] = None) -> Callable:
-    """This is a decorator that's used to ensure that the `event` keyword
+def ensure_stripe_event(event_types: list[str] = None) -> Callable:
+    """Ensure that the `event` keyword argument passed to a function.
 
-    argument passed to a function is a Stripe event in minimally expected state — specifically,
-    that it is an instance of `StripeEventData`.
+    Is a Stripe event in minimally expected state — specifically, that it is an instance of `StripeEventData`.
 
     You can optionally send a list of event types to ensure that the event is of a certain type.
 
@@ -1131,7 +1124,9 @@ def ensure_stripe_event(event_types: List[str] = None) -> Callable:
             if event == no_arg:
                 raise ValueError(Payment.MISSING_EVENT_KW_ERROR_MSG)
             if not isinstance(event, StripeEventData):
-                raise ValueError(Payment.ARG_IS_NOT_EVENT_TYPE_ERROR_MSG)
+                raise ValueError(  # noqa: TRY004 TODO @njh: change to TypeError?
+                    Payment.ARG_IS_NOT_EVENT_TYPE_ERROR_MSG
+                )
             if event_types and event.type not in event_types:
                 raise ValueError(Payment.EVENT_IS_UNEXPECTED_TYPE_ERROR_MSG_TEMPLATE.format(event_types=event_types))
             return func(*args, **kwargs)
@@ -1314,8 +1309,9 @@ class Payment(IndexedTimeStampedModel):
         # duplicate payment instances for the same transaction.
         if contribution and contribution.interval != ContributionInterval.ONE_TIME:
             logger.debug(
-                "`Contribution.from_stripe_payment_intent_succeeded_event` called on contribution with ID %s which is a recurring contribution. "
-                "Will not create a payment instance because it will be created in `from_stripe_invoice_payment_succeeded_event`",
+                "`Contribution.from_stripe_payment_intent_succeeded_event` called on contribution with ID %s which is a recurring"
+                " contribution. Will not create a payment instance because it will be created in"
+                " `from_stripe_invoice_payment_succeeded_event`",
                 contribution.id,
             )
             return None
@@ -1362,7 +1358,7 @@ class Payment(IndexedTimeStampedModel):
             contribution = Contribution.objects.get(reduce(or_, conditions))
         except (Contribution.MultipleObjectsReturned, Contribution.DoesNotExist):
             logger.exception("Cannot find contribution for event (no match) %s", event.id)
-            raise ValueError("Could not find a contribution for this event (no match)")
+            raise ValueError("Could not find a contribution for this event (no match)") from None
 
         return Payment.objects.create(
             contribution=contribution,
@@ -1380,9 +1376,8 @@ class Payment(IndexedTimeStampedModel):
             contribution,
             balance_transaction,
         ) = cls.get_contribution_and_balance_transaction_for_invoice_payment_succeeded_event(event=event)
-        payment = cls._handle_create_payment(
+        return cls._handle_create_payment(
             contribution=contribution,
             balance_transaction=balance_transaction,
             event_id=event.id,
         )
-        return payment

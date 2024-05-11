@@ -26,10 +26,10 @@ def run():
         try:
             domains = stripe.ApplePayDomain.list(stripe_account=acct, limit=100)
         except stripe.error.PermissionError:
-            print(f"error listing domain for {rp}")
+            logging.exception("error listing domain for %s", rp)
             continue
 
         names = [x.domain_name for x in domains.data]
         expected_domain = f"{rp.slug}.{settings.DOMAIN_APEX}"
         if expected_domain not in names:
-            print(f"apple pay domain missing for {rp.slug}")
+            logging.error("apple pay domain missing for %s", rp.slug)

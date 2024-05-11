@@ -68,7 +68,7 @@ class ReactAppView(TemplateView):
 
 def proxy_spa_dev_server(request, upstream="http://localhost:3000"):
     upstream_url = upstream + request.path
-    upstream_response = requests.get(upstream_url)
+    upstream_response = requests.get(upstream_url, timeout=31)
     content = upstream_response.text
     content_type = upstream_response.headers["content-type"]
 
@@ -94,7 +94,8 @@ index = proxy_spa_dev_server if settings.DEBUG and "pytest" not in sys.modules e
 
 @require_GET
 def read_apple_developer_merchant_id(request):
-    return FileResponse(open(f"{settings.STATIC_ROOT}/apple-developer-merchantid-domain-association", "rb"))
+    # @njh: Probably should be read once on import and stored in a variable, or cached.
+    return FileResponse((settings.STATIC_ROOT / "apple-developer-merchantid-domain-association").open("rb"))
 
 
 # These two constants are very important to prevent exposing every model
@@ -113,8 +114,10 @@ SAFE_ADMIN_SELECT_ACCESSOR_METHODS = [
 @login_required
 @staff_member_required
 def admin_select_options(request):
-    """
-    Endpoint used by the `admin_limited_select` inclusion tag, which adds javascript to django admin changeforms which calls this endpoint.
+    """Endpoint used by the `admin_limited_select` inclusion tag.
+
+    Adds javascript to django admin changeforms that call this endpoint.
+
     Takes a model id, a parent model in the format `app.Model`, and the name of the property on that model that will return the options.
     """
     parent_id = request.GET.get("parentId")
@@ -137,7 +140,7 @@ def admin_select_options(request):
 
 
 def cloudflare_500_view(request, exception=None):
-    """Serves a static template displayed by Cloudflare in case of 521 or 522 errors
+    """Serve a static template displayed by Cloudflare in case of 521 or 522 errors.
 
     We manually point Cloudflare at the URL for this view, which will cause it to scane
     this page and from then on it will display the scanned HTML for some 5xx errors.
@@ -147,5 +150,5 @@ def cloudflare_500_view(request, exception=None):
 
 
 def dummy_view_for_raising_500(request):
-    """Used to simulate 500 errors"""
+    """Use to simulate 500 errors."""
     return server_error(request)

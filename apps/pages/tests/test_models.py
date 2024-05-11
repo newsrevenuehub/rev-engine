@@ -29,7 +29,7 @@ def test__get_screenshot_upload_path(mocker):
     )
 
 
-@pytest.fixture
+@pytest.fixture()
 def default_logo():
     default_logo = DefaultPageLogo.get_solo()
     default_logo.logo = get_test_image_file_jpeg()
@@ -37,19 +37,18 @@ def default_logo():
     return default_logo
 
 
-@pytest.fixture
+@pytest.fixture()
 def donation_page_no_published_date():
     return DonationPageFactory(published_date=None)
 
 
-@pytest.fixture
+@pytest.fixture()
 def donation_with_published_date():
     return DonationPageFactory(published_date=datetime.datetime.now())
 
 
-@pytest.mark.django_db
+@pytest.mark.django_db()
 class TestDonationPage:
-
     @pytest.fixture(
         params=[
             "hub_admin_user",
@@ -96,11 +95,11 @@ class TestDonationPage:
         assert page.organization is None
 
     @pytest.mark.parametrize(
-        "published_date, expected",
-        (
+        ("published_date", "expected"),
+        [
             (timezone.now() - datetime.timedelta(minutes=20), True),
             (timezone.now() + datetime.timedelta(minutes=20), False),
-        ),
+        ],
     )
     def test_is_live(self, published_date, expected):
         assert DonationPageFactory(published_date=published_date).is_live is expected
@@ -116,8 +115,9 @@ class TestDonationPage:
         assert DonationPageFactory().header_logo == default_logo.logo
 
     def test_can_still_clear_header_logo(self):
-        """
-        Although we set a default image for the header_logo on create, we still ought to be able to set it empty in subsequent updates.
+        """Although we set a default image for the header_logo on create.
+
+        We still ought to be able to set it empty in subsequent updates.
         """
         page = DonationPageFactory()
         page.header_logo = ""
@@ -145,7 +145,7 @@ class TestDonationPage:
         )
 
     @pytest.mark.parametrize(
-        "site_url,root",
+        ("site_url", "root"),
         [
             # Real-life examples
             ("https://engine.fundjournalism.org", "fundjournalism.org"),
@@ -183,11 +183,11 @@ class TestDonationPage:
         assert page.should_send_first_publication_signal() == expected
 
     @pytest.mark.parametrize(
-        "get_page_fn,expect_published",
-        (
+        ("get_page_fn", "expect_published"),
+        [
             (lambda: DonationPageFactory(published_date=timezone.now()), True),
             (lambda: DonationPageFactory(published_date=None), False),
-        ),
+        ],
     )
     def test_first_published_pub_sub_behavior_when_pubsub_configured(self, get_page_fn, expect_published, mocker):
         topic_name = "some-topic"
@@ -215,7 +215,7 @@ class TestDonationPage:
             mock_publisher.publish.assert_not_called()
 
 
-@pytest.mark.django_db
+@pytest.mark.django_db()
 class TestStyle:
     def test_to_string(self, style):
         assert style.name == str(style)
@@ -256,7 +256,7 @@ class TestStyle:
         assert set(query.values_list("id", flat=True)) == set(expected)
 
 
-@pytest.mark.django_db
+@pytest.mark.django_db()
 class TestFont:
     def test_to_string(self):
         font = FontFactory(name=(name := "bob"), source=(source := "bigboys"))

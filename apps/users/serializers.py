@@ -1,5 +1,5 @@
 import logging
-from typing import Any, Dict, TypedDict
+from typing import Any, TypedDict
 
 from django.conf import settings
 from django.contrib.auth import get_user_model
@@ -44,7 +44,7 @@ FISCAL_SPONSOR_NAME_NOT_PERMITTED_ERROR_MESSAGE = (
 
 
 class FlagSerializer(serializers.ModelSerializer):
-    """Serializer for waffle.Flag"""
+    """Serializer for waffle.Flag."""
 
     class Meta:
         model = get_waffle_flag_model()
@@ -68,7 +68,7 @@ _AUTHED_USER_FIELDS = (
 
 
 class AuthedUserSerializer(serializers.ModelSerializer):
-    """Expected use is for representing user in part of data returned in response to POST api/v1/token"""
+    """Expected use is for representing user in part of data returned in response to POST api/v1/token."""
 
     accepted_terms_of_service = serializers.DateTimeField()
     email = serializers.EmailField()
@@ -97,9 +97,7 @@ class AuthedUserSerializer(serializers.ModelSerializer):
 
 
 class MutableUserSerializer(AuthedUserSerializer, serializers.ModelSerializer):
-    """
-    This serializer is used for creating and updating users.
-    """
+    """Use for creating and updating users."""
 
     password = serializers.CharField(write_only=True, max_length=PASSWORD_MAX_LENGTH)
     email = serializers.EmailField(
@@ -114,7 +112,7 @@ class MutableUserSerializer(AuthedUserSerializer, serializers.ModelSerializer):
     id = serializers.CharField(required=False, read_only=True)
 
     def create(self, validated_data):
-        """We manually handle create step because password needs to be set with `set_password`"""
+        """We manually handle create step because password needs to be set with `set_password`."""
         password = validated_data.pop("password")
         User = get_user_model()
         user = User(**validated_data)
@@ -124,7 +122,7 @@ class MutableUserSerializer(AuthedUserSerializer, serializers.ModelSerializer):
         return user
 
     def update(self, instance, validated_data):
-        """We manually handle update step because password needs to be set with `set_password`, if part of update. Additionally,
+        """We manually handle update step because password needs to be set with `set_password`, if part of update. Additionally,.
 
         if email address is being updated, we need to reset email verification.
         """
@@ -132,7 +130,7 @@ class MutableUserSerializer(AuthedUserSerializer, serializers.ModelSerializer):
         old_email = instance.email
         for attr, value in validated_data.items():
             setattr(instance, attr, value)
-        if "email" in validated_data.keys() and instance.email != old_email:
+        if "email" in validated_data and instance.email != old_email:
             instance.email_verified = False
         if password:
             instance.set_password(password)
@@ -141,7 +139,7 @@ class MutableUserSerializer(AuthedUserSerializer, serializers.ModelSerializer):
 
     class Meta:
         model = get_user_model()
-        fields = _AUTHED_USER_FIELDS + ("password",)
+        fields = (*_AUTHED_USER_FIELDS, "password")
         read_only_fields = [
             x for x in _AUTHED_USER_FIELDS if x not in ("password", "email", "accepted_terms_of_service")
         ]
@@ -155,7 +153,7 @@ class CustomizeAccountSerializerReturnValue(TypedDict):
 
 
 class CustomizeAccountSerializer(serializers.Serializer):
-    """Special custom serializer to validate data received from customize_account method"""
+    """Special custom serializer to validate data received from customize_account method."""
 
     first_name = serializers.CharField(write_only=True, required=True, max_length=FIRST_NAME_MAX_LENGTH)
     fiscal_sponsor_name = serializers.CharField(
@@ -184,7 +182,7 @@ class CustomizeAccountSerializer(serializers.Serializer):
         fiscal_sponsor_name = self.initial_data.get("fiscal_sponsor_name")
         if value == FiscalStatusChoices.FISCALLY_SPONSORED and not fiscal_sponsor_name:
             raise serializers.ValidationError({"fiscal_sponsor_name": [FISCAL_SPONSOR_NAME_REQUIRED_ERROR_MESSAGE]})
-        elif fiscal_sponsor_name and value != FiscalStatusChoices.FISCALLY_SPONSORED:
+        if fiscal_sponsor_name and value != FiscalStatusChoices.FISCALLY_SPONSORED:
             raise serializers.ValidationError(
                 {"fiscal_sponsor_name": [FISCAL_SPONSOR_NAME_NOT_PERMITTED_ERROR_MESSAGE]}
             )
@@ -192,33 +190,33 @@ class CustomizeAccountSerializer(serializers.Serializer):
 
     @staticmethod
     def handle_organization_name(name: str) -> str:
-        """We allow SPA to send an arbitrary org name, and here we attempt to ensure its uniqueness, modifying if need be
+        """We allow SPA to send an arbitrary org name, and here we attempt to ensure its uniqueness, modifying if need be.
 
         We don't check if this is for an existing instance or not because this serializer is expected to be used
         only for creation.
         """
-
         try:
             return Organization.generate_unique_name(name)
         except OrgNameNonUniqueError:
             logger.warning("Organization name could not be ", exc_info=True)
-            raise serializers.ValidationError({"organization_name": ["Organization name is already in use."]})
+            raise serializers.ValidationError({"organization_name": ["Organization name is already in use."]}) from None
 
     def save(self, **kwargs):
         name = self.handle_organization_name(self.validated_data["organization_name"])
-        # The initial value for organization_name is guaranteed to be at most `CUSTOMIZE_ACCOUNT_ORG_NAME_MAX_LENGTH` long at this point,
-        # which is 3 less than the max length of the Organization name field. The reason for the 3 less is that we allow for handle_organization_name
-        # to take that already validated value and append up to 3 characters to make it unique. That method is unit-tested elsewhere
-        # to prove that it raises OrgNameNonUniqueError if it gets past `-99` in its attempts to make the name unique.
+        # The initial value for organization_name is guaranteed to be at most `CUSTOMIZE_ACCOUNT_ORG_NAME_MAX_LENGTH`
+        # long at this point, which is 3 less than the max length of the Organization name field. The reason for the
+        # 3 less is that we allow for handle_organization_name to take that already validated value and append up to
+        # 3 characters to make it unique. That method is unit-tested elsewhere to prove that it raises
+        # OrgNameNonUniqueError if it gets past `-99` in its attempts to make the name unique.
         self.validated_data["organization_name"] = name
-        # This is guaranteed to meet length requirements because internally .generate_slug_from_name ensures max length doesn't exceed the value
-        # set for max length on Organization.slug
+        # This is guaranteed to meet length requirements because internally .generate_slug_from_name ensures max length
+        # doesn't exceed the value set for max length on Organization.slug
         self.validated_data["organization_slug"] = Organization.generate_slug_from_name(name)
         return super().save(**kwargs)
 
     @transaction.atomic
-    def create(self, validated_data: Dict[str, Any]) -> CustomizeAccountSerializerReturnValue:
-        """Create an organization, revenue program and role assignment. Also update user with new data
+    def create(self, validated_data: dict[str, Any]) -> CustomizeAccountSerializerReturnValue:
+        """Create an organization, revenue program and role assignment. Also update user with new data.
 
         This function is wrapped in a transaction.atomic() block because we want to ensure that if any part of this
         fails, none of the entities are created.

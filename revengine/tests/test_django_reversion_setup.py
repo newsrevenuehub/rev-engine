@@ -39,7 +39,7 @@ from apps.users.models import RoleAssignment, User
 
 
 def test_expected_models_are_registered_with_django_reversion():
-    """Show that we have auditable history log for expected models
+    """Show that we have auditable history log for expected models.
 
     NB: We are registering models with reversion via their ModelAdmin instance. This
     causes the underlying model to be registered (without having to touch the model
@@ -67,7 +67,7 @@ def test_expected_models_are_registered_with_django_reversion():
 
 
 def test_expected_views_are_registered_with_django_reversion():
-    """Show that expected views are registered with reversion
+    """Show that expected views are registered with reversion.
 
     NB: by using the `RevisionMixin`, any changes to a model happening through the
     registered view layer will be recorded.
@@ -77,7 +77,7 @@ def test_expected_views_are_registered_with_django_reversion():
 
 
 def test_expected_model_admins_are_registered_with_django_reversion():
-    """Show that expected model admins are instances of `VersionAdmin`
+    """Show that expected model admins are instances of `VersionAdmin`.
 
     NB: By having a modeladmin inherit from VersionAdmin, the admin's model counterpart
     will automatically be registered with reversion.
@@ -101,7 +101,7 @@ def test_expected_model_admins_are_registered_with_django_reversion():
 
 @pytest.mark.parametrize(
     ("factory", "update_attr", "update_value"),
-    (
+    [
         (BenefitFactory, "name", "new-name"),
         (BenefitLevelFactory, "name", "new-name"),
         (ContributionFactory, "reason", "new-reason"),
@@ -112,16 +112,16 @@ def test_expected_model_admins_are_registered_with_django_reversion():
         (OrganizationFactory, "name", "new name"),
         (RevenueProgramFactory, "name", "new name"),
         (StyleFactory, "name", "new name"),
-    ),
+    ],
 )
-@pytest.mark.django_db
+@pytest.mark.django_db()
 def test_registered_model_changed_via_other_not_have_revisions(factory, update_attr, update_value):
     """Show that models registered with django-reversion don't have history saved when via `.save()` outside of admin or...
 
     ..registered views.
     """
     assert factory._meta.model in reversion.get_registered_models()
-    # TODO: DEV-3026
+    # TODO @BW: DEV-3026 Remove buried Stripe retrieve side effect from contribution save method
     with patch("apps.contributions.models.Contribution.fetch_stripe_payment_method", return_value=None):
         instance = factory()
     assert Version.objects.get_for_object(instance).count() == 0

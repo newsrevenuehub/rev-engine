@@ -1,6 +1,5 @@
 import logging
 import re
-from typing import List, Tuple
 
 from django.conf import settings
 from django.db.models import Model
@@ -107,13 +106,11 @@ def upsert_cloudflare_cnames(slugs: list = None, per_page=300):
         except CloudFlare.exceptions.CloudFlareAPIError as error:
             # NB: adding `str(error)` because this function gets run in bootstrap-review-app management command
             # which when run doesn't lead to logs appearing in Sentry
-            logger.warning("Something went wrong with Cloudflare %s", str(error), exc_info=error)  # noqa G200
+            logger.warning("Something went wrong with Cloudflare %s", str(error), exc_info=error)
 
 
 def extract_ticket_id_from_branch_name(branch_name: str) -> str | None:
-    """
-    Extracts the ticket id from the branch name.
-    """
+    """Extract ticket id from branch name."""
     logger.info("Extracting ticket id from branch name: %s", branch_name)
     match = re.match(r"^[a-zA-Z]*-[0-9]*", branch_name)
     if not match:
@@ -121,12 +118,12 @@ def extract_ticket_id_from_branch_name(branch_name: str) -> str | None:
     return match.group().lower() if match else None
 
 
-def normalize_slug(name="", slug="", max_length=50):
-    """Returns a string of length less than or equal to the max_length.
+def normalize_slug(name="", slug="", max_length=50) -> str:
+    """Return a string of length less than or equal to the max_length.
+
     :param name: str:  a character string that can be slugified.
     :param slug: str:  a slug value.
     :param max_length: int: maximum length of slug.
-    :return: str
     """
     slug = slugify(slug, allow_unicode=True)
     if not slug:
@@ -142,7 +139,7 @@ def cleanup_keys(data_dict, unwanted_keys):
 
 
 def get_subdomain_from_request(request) -> str | None:
-    """Returns the subdomain from a request, mapping the hostname using settings.HOST_MAP if present."""
+    """Return the subdomain from a request, mapping the hostname using settings.HOST_MAP if present."""
     subdomain = None
     host = request.get_host()
 
@@ -153,7 +150,7 @@ def get_subdomain_from_request(request) -> str | None:
 
     # Parse it normally.
     split_host = host.split(".")
-    if len(split_host) > 2 and not split_host[0] in settings.DASHBOARD_SUBDOMAINS:
+    if len(split_host) > 2 and split_host[0] not in settings.DASHBOARD_SUBDOMAINS:
         subdomain = split_host[0]
     return subdomain
 
@@ -177,8 +174,12 @@ def google_cloud_pub_sub_is_configured() -> bool:
 
 
 def upsert_with_diff_check(
-    model, defaults: dict, unique_identifier: dict, caller_name: str, dont_update: List[str] = []
-) -> Tuple[Model, str]:
+    model,
+    defaults: dict,
+    unique_identifier: dict,
+    caller_name: str,
+    dont_update: list[str] = [],  # noqa: B006 [] is not modified, yet.
+) -> tuple[Model, str]:
     """Upsert a model instance with a reversion comment, but only update if defaults differ from existing instance.
 
     Fields in the dont_update list will only be used if a new object needs to be created. They will not update an existing object.
@@ -203,7 +204,10 @@ def upsert_with_diff_check(
 
 
 def get_stripe_accounts_and_their_connection_status(account_ids: list[str]) -> dict[str, bool]:
-    """Given a list of stripe accounts, returns a dict with the account id as key and a boolean indicating if the account is connected and retrievable"""
+    """Given a list of stripe accounts.
+
+    Return a dict with the account id as key and a boolean indicating if the account is connected and retrievable.
+    """
     logger.info("Retrieving stripe accounts and their connection status")
     accounts = {}
     for account_id in account_ids:

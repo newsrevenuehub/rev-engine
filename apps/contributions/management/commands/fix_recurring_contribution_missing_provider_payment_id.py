@@ -16,7 +16,7 @@ stripe_logger.setLevel(logging.ERROR)
 
 
 class Command(BaseCommand):
-    """Find recurring contributions with a `None` value for `provider_payment_id` and try to derive correct value and save it"""
+    """Find recurring contributions with a `None` value for `provider_payment_id` and try to derive correct value and save it."""
 
     def handle(self, *args, **options):
         self.stdout.write(self.style.HTTP_INFO("Running `fix_recurring_contribution_missing_provider_payment_id`"))
@@ -75,9 +75,11 @@ class Command(BaseCommand):
                     stripe_account=(acct_id := contribution.stripe_account_id),
                     expand=["latest_invoice"],
                 )
-            except stripe.error.StripeError as e:
+            except stripe.error.StripeError as exc:
                 self.stdout.write(
-                    self.style.ERROR(f"Error while retrieving subscription {sub_id} for stripe account {acct_id}: {e}")
+                    self.style.ERROR(
+                        f"Error while retrieving subscription {sub_id} for stripe account {acct_id}: {exc}"
+                    )
                 )
                 updated_ids.append(contribution.id)
                 continue

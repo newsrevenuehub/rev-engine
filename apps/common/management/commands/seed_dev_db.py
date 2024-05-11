@@ -14,7 +14,7 @@ def create_n_instances(n, model_factory, **model_factory_kwargs):
     return [model_factory(**model_factory_kwargs) for n in range(n)]
 
 
-def create_org_users(orgs, n=1, password="tHiSiStHePaSwOrD"):
+def create_org_users(orgs, n=1, password="tHiSiStHePaSwOrD"):  # noqa: S107 hardcoded passwors is ok cause dev?
     org_users = []
     for org in orgs:
         users = create_n_instances(n, user_factories.OrganizationUserFactory, user_password=password, organization=org)
@@ -81,8 +81,8 @@ class Command(BaseCommand):
         contributions = []
         for contributor in contributors:
             for org in orgs:
-                for n in range(n_contributions):
-                    contributions.append(
+                for _ in range(n_contributions):
+                    contributions.append(  # noqa: PERF401 readability > optomization here
                         contrib_factories.ContributionFactory(organization=org, contributor=contributor)
                     )
         msg = f"Created {len(contributions)} contributions"

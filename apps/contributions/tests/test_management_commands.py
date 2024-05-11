@@ -11,7 +11,7 @@ from apps.contributions.tests.factories import ContributionFactory, PaymentFacto
 from apps.organizations.tests.factories import PaymentProviderFactory, RevenueProgramFactory
 
 
-@pytest.mark.django_db
+@pytest.mark.django_db()
 def test_process_stripe_event(mocker):
     mock_processor = mocker.patch("apps.contributions.stripe_import.StripeEventProcessor")
     options = {
@@ -29,7 +29,7 @@ def test_process_stripe_event(mocker):
     mock_processor.return_value.process.assert_called_once()
 
 
-@pytest.mark.parametrize("dry_run", (False, True))
+@pytest.mark.parametrize("dry_run", [False, True])
 def test_sync_missing_contribution_data_from_stripe(dry_run, monkeypatch, mocker):
     mock_fix_processing = mocker.Mock()
     mock_fix_pm_details = mocker.Mock()
@@ -56,9 +56,8 @@ def test_sync_missing_contribution_data_from_stripe(dry_run, monkeypatch, mocker
     mock_fix_missing_contribution_metadata.assert_called_once_with(dry_run=dry_run)
 
 
-@pytest.mark.django_db
+@pytest.mark.django_db()
 class Test_sync_payment_transaction_time:
-
     DISCONNECTED_ACCOUNT_ID = "acct_disconnected"
     BALANCE_TRANSACTION_ID_WITH_ERROR = "txn_with_error"
     BT_CREATED_TIMESTAMP = 1610000000
@@ -99,14 +98,14 @@ class Test_sync_payment_transaction_time:
             contribution__donation_page__revenue_program__payment_provider__stripe_account_id=self.ACCOUNT_ID_WITH_OTHER_ERROR,
         )
 
-    @pytest.fixture
+    @pytest.fixture()
     def payment_no_transaction_time_ineligible_because_of_no_account(self):
         return PaymentFactory(
             transaction_time=None,
             contribution__donation_page__revenue_program__payment_provider__stripe_account_id=None,
         )
 
-    @pytest.fixture
+    @pytest.fixture()
     def payments_with_errors(
         self,
         payment_no_transaction_time_eligible_fail_with_account_retrieval_permissions_error,
@@ -122,8 +121,7 @@ class Test_sync_payment_transaction_time:
         ]
 
     @pytest.fixture(autouse=True)
-    def stripe_account_retrieve(self, mocker):
-
+    def _stripe_account_retrieve(self, mocker):
         def side_effect(*args, **kwargs):
             account_id = args[0]
             match account_id:
@@ -137,7 +135,7 @@ class Test_sync_payment_transaction_time:
         mocker.patch("stripe.Account.retrieve", side_effect=side_effect)
 
     @pytest.fixture(autouse=True)
-    def balance_transaction_retrieve(self, mocker):
+    def _balance_transaction_retrieve(self, mocker):
         def side_effect(*args, **kwargs):
             if args[0] == self.BALANCE_TRANSACTION_ID_WITH_ERROR:
                 raise stripe.error.StripeError("Some error")
@@ -145,7 +143,7 @@ class Test_sync_payment_transaction_time:
 
         mocker.patch("stripe.BalanceTransaction.retrieve", side_effect=side_effect)
 
-    @pytest.mark.parametrize("include_account_problem_payments", (False, True))
+    @pytest.mark.parametrize("include_account_problem_payments", [False, True])
     def test_sync_payment_transaction_time(
         self, payment_no_transaction_time_eligible, include_account_problem_payments, payments_with_errors
     ):
@@ -164,11 +162,10 @@ class Test_sync_payment_transaction_time:
         call_command("sync_payment_transaction_time")
 
 
-@pytest.mark.django_db
+@pytest.mark.django_db()
 class Test_import_stripe_transactions_data:
-
-    @pytest.mark.parametrize("async_mode", (False, True))
-    @pytest.mark.parametrize("for_orgs", (True, False))
+    @pytest.mark.parametrize("async_mode", [False, True])
+    @pytest.mark.parametrize("for_orgs", [True, False])
     def test_handle(self, async_mode, mocker, for_orgs):
         provider_1 = PaymentProviderFactory()
         provider_2 = PaymentProviderFactory()
@@ -206,7 +203,7 @@ class Test_fix_recurring_contribution_missing_provider_payment_id:
         return ContributionFactory(provider_payment_id=None, monthly_subscription=True)
 
     @pytest.fixture()
-    def mock_get_account_status(self, mocker, contribution):
+    def _mock_get_account_status(self, mocker, contribution):
         mocker.patch(
             # needed to mock at import because otherwise tests failed, seemingly because
             # of leaked mock state between tests in this class
@@ -214,7 +211,7 @@ class Test_fix_recurring_contribution_missing_provider_payment_id:
             side_effect=[{contribution.stripe_account_id: True}],
         )
 
-    @pytest.mark.usefixtures("mock_get_account_status")
+    @pytest.mark.usefixtures("_mock_get_account_status")
     def test_happy_path(self, mocker, contribution):
         mocker.patch(
             "stripe.Subscription.retrieve",
@@ -238,14 +235,14 @@ class Test_fix_recurring_contribution_missing_provider_payment_id:
         contribution.refresh_from_db()
         assert contribution.provider_payment_id is None
 
-    @pytest.mark.usefixtures("mock_get_account_status")
+    @pytest.mark.usefixtures("_mock_get_account_status")
     def test_when_stripe_error_on_sub_retrieval(self, mocker, contribution):
         mocker.patch("stripe.Subscription.retrieve", side_effect=stripe.error.StripeError("Some error"))
         call_command("fix_recurring_contribution_missing_provider_payment_id")
         contribution.refresh_from_db()
         assert contribution.provider_payment_id is None
 
-    @pytest.mark.usefixtures("mock_get_account_status")
+    @pytest.mark.usefixtures("_mock_get_account_status")
     def test_when_no_pi_id_on_latest_invoice(self, mocker, contribution):
         mocker.patch(
             "stripe.Subscription.retrieve", return_value=mocker.Mock(latest_invoice=mocker.Mock(payment_intent=None))
@@ -263,8 +260,8 @@ def test_clear_stripe_transactions_import_cache(mocker):
     mock_clear_cache.assert_called_once()
 
 
-@pytest.mark.django_db
-@pytest.mark.parametrize("problem_exists", (False, True))
+@pytest.mark.django_db()
+@pytest.mark.parametrize("problem_exists", [False, True])
 def test_fix_payments_with_negative_refunds(problem_exists):
     if problem_exists:
         PaymentFactory(amount_refunded=-1)

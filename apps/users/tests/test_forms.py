@@ -20,7 +20,7 @@ class RoleAssignmentAdminFormTest(TestCase):
         self.rp_qs = RevenueProgram.objects.all()
         self.form = None
 
-    def _create_request(self, user, request_body={}):
+    def _create_request(self, user, request_body={}):  # noqa: B006 {}'s fine
         request_factory = RequestFactory()
         request = request_factory.post(self.url, request_body)
         request.user = user
@@ -37,9 +37,9 @@ class RoleAssignmentAdminFormTest(TestCase):
         request_body = {"user": self.user, "role_type": Roles.HUB_ADMIN, "organization": self.organization.pk}
         form_is_valid = self.validate_form(request_body)
 
-        self.assertFalse(form_is_valid)
-        self.assertIn("organization", self.form.errors)
-        self.assertEqual(self.form.errors["organization"], [RoleAssignmentAdminForm.no_org_message])
+        assert not form_is_valid
+        assert "organization" in self.form.errors
+        assert self.form.errors["organization"] == [RoleAssignmentAdminForm.no_org_message]
 
     def test_clean_prevents_rp_when_hub_admin(self):
         request_body = {
@@ -49,9 +49,9 @@ class RoleAssignmentAdminFormTest(TestCase):
         }
         form_is_valid = self.validate_form(request_body)
 
-        self.assertFalse(form_is_valid)
-        self.assertIn("revenue_programs", self.form.errors)
-        self.assertEqual(self.form.errors["revenue_programs"], [RoleAssignmentAdminForm.no_rp_message])
+        assert not form_is_valid
+        assert "revenue_programs" in self.form.errors
+        assert self.form.errors["revenue_programs"] == [RoleAssignmentAdminForm.no_rp_message]
 
     def test_clean_requires_org_when_org_admin(self):
         request_body = {
@@ -59,9 +59,9 @@ class RoleAssignmentAdminFormTest(TestCase):
             "role_type": Roles.ORG_ADMIN,
         }
         form_is_valid = self.validate_form(request_body)
-        self.assertFalse(form_is_valid)
-        self.assertIn("organization", self.form.errors)
-        self.assertEqual(self.form.errors["organization"], [RoleAssignmentAdminForm.missing_org_message])
+        assert not form_is_valid
+        assert "organization" in self.form.errors
+        assert self.form.errors["organization"] == [RoleAssignmentAdminForm.missing_org_message]
 
     def test_clean_prevents_rp_when_org_admin(self):
         request_body = {
@@ -71,9 +71,9 @@ class RoleAssignmentAdminFormTest(TestCase):
             "revenue_programs": [rp.pk for rp in self.rp_qs],
         }
         form_is_valid = self.validate_form(request_body)
-        self.assertFalse(form_is_valid)
-        self.assertIn("revenue_programs", self.form.errors)
-        self.assertEqual(self.form.errors["revenue_programs"], [RoleAssignmentAdminForm.no_rp_message])
+        assert not form_is_valid
+        assert "revenue_programs" in self.form.errors
+        assert self.form.errors["revenue_programs"] == [RoleAssignmentAdminForm.no_rp_message]
 
     def test_clean_requires_org_when_rp_admin(self):
         request_body = {
@@ -81,9 +81,9 @@ class RoleAssignmentAdminFormTest(TestCase):
             "role_type": Roles.RP_ADMIN,
         }
         form_is_valid = self.validate_form(request_body)
-        self.assertFalse(form_is_valid)
-        self.assertIn("organization", self.form.errors)
-        self.assertEqual(self.form.errors["organization"], [RoleAssignmentAdminForm.missing_org_message])
+        assert not form_is_valid
+        assert "organization" in self.form.errors
+        assert self.form.errors["organization"] == [RoleAssignmentAdminForm.missing_org_message]
 
     def test_clean_requires_rps_when_rp_admin(self):
         request_body = {
@@ -92,9 +92,9 @@ class RoleAssignmentAdminFormTest(TestCase):
             "organization": self.organization.pk,
         }
         form_is_valid = self.validate_form(request_body)
-        self.assertFalse(form_is_valid)
-        self.assertIn("revenue_programs", self.form.errors)
-        self.assertEqual(self.form.errors["revenue_programs"], [RoleAssignmentAdminForm.missing_rp_message])
+        assert not form_is_valid
+        assert "revenue_programs" in self.form.errors
+        assert self.form.errors["revenue_programs"] == [RoleAssignmentAdminForm.missing_rp_message]
 
     def test_clean_prevents_org_rp_mismatch_when_rp_admin(self):
         some_other_org = OrganizationFactory()
@@ -106,9 +106,9 @@ class RoleAssignmentAdminFormTest(TestCase):
             "revenue_programs": [mismatched_rp.pk],
         }
         form_is_valid = self.validate_form(request_body)
-        self.assertFalse(form_is_valid)
-        self.assertIn("revenue_programs", self.form.errors)
-        self.assertIn(
-            "The following RevenuePrograms do not belong to your chosen Org:", self.form.errors["revenue_programs"][0]
+        assert not form_is_valid
+        assert "revenue_programs" in self.form.errors
+        assert (
+            "The following RevenuePrograms do not belong to your chosen Org:" in self.form.errors["revenue_programs"][0]
         )
-        self.assertIn(mismatched_rp.name, self.form.errors["revenue_programs"][0])
+        assert mismatched_rp.name in self.form.errors["revenue_programs"][0]

@@ -1,5 +1,6 @@
 import datetime
 import json
+from pathlib import Path
 
 import pytest
 import stripe
@@ -26,97 +27,97 @@ from apps.contributions.tests import RedisMock
 from apps.contributions.types import StripePiAsPortalContribution, StripePiSearchResponse
 
 
-@pytest.fixture
+@pytest.fixture()
 def pi_for_one_time_when_no_payment_method(pi_for_valid_one_time_factory):
     pi = pi_for_valid_one_time_factory.get()
     pi.payment_method = None
     return pi
 
 
-@pytest.fixture
+@pytest.fixture()
 def pi_for_imported_legacy_subscription():
-    with open("apps/contributions/tests/fixtures/example-legacy-imported-pi.json") as fl:
-        return stripe.PaymentIntent.construct_from(json.load(fl), "test")
+    with Path("apps/contributions/tests/fixtures/example-legacy-imported-pi.json").open() as f:
+        return stripe.PaymentIntent.construct_from(json.load(f), "test")
 
 
-@pytest.fixture
+@pytest.fixture()
 def pi_for_valid_one_time(pi_for_valid_one_time_factory):
     return pi_for_valid_one_time_factory.get()
 
 
-@pytest.fixture
+@pytest.fixture()
 def pi_for_active_subscription(pi_for_active_subscription_factory):
     return pi_for_active_subscription_factory.get()
 
 
-@pytest.fixture
+@pytest.fixture()
 def pi_with_unexpanded_payment_method(pi_for_valid_one_time_factory):
     return pi_for_valid_one_time_factory.get(payment_method="pm_12345")
 
 
-@pytest.fixture
+@pytest.fixture()
 def pi_no_pm_no_invoice_charges_is_zero_length():
     # don't reuse the fixture from above because modifications to it will affect fixture used alone
-    with open("apps/contributions/tests/fixtures/example-legacy-imported-pi.json") as fl:
-        pi = stripe.PaymentIntent.construct_from(json.load(fl), "test")
+    with Path("apps/contributions/tests/fixtures/example-legacy-imported-pi.json").open() as f:
+        pi = stripe.PaymentIntent.construct_from(json.load(f), "test")
     pi.charges.data = []
     pi.charges.total_count = 0
     pi.invoice = None
     return pi
 
 
-@pytest.fixture
+@pytest.fixture()
 def card(pi_for_valid_one_time):
     return pi_for_valid_one_time.payment_method.card
 
 
-@pytest.fixture
+@pytest.fixture()
 def pi_without_invoice(pi_for_valid_one_time_factory):
     return pi_for_valid_one_time_factory.get(invoice=None)
 
 
-@pytest.fixture
+@pytest.fixture()
 def pi_with_invoice_but_falsy_lines_data(pi_for_active_subscription_factory):
     pi = pi_for_active_subscription_factory.get()
     pi.invoice.lines.data = []
     return pi
 
 
-@pytest.fixture
+@pytest.fixture()
 def pi_for_canceled_subscription(pi_for_active_subscription_factory):
     pi = pi_for_active_subscription_factory.get()
     pi.invoice.subscription.status = "canceled"
     return pi
 
 
-@pytest.fixture
+@pytest.fixture()
 def pi_no_metadata(pi_for_valid_one_time_factory):
     return pi_for_valid_one_time_factory.get(metadata=None)
 
 
-@pytest.fixture
+@pytest.fixture()
 def pi_no_revenue_program_in_metadata(pi_for_valid_one_time_factory):
     return pi_for_valid_one_time_factory.get(metadata={"foo": "bar"})
 
 
-@pytest.fixture
+@pytest.fixture()
 def dummy_card():
     # .DUMMY_CARD is an attrdict and when trying to pass that as a parameter in tests, got an error
     # so we create a fixture to pass instead
     return StripePaymentIntent.DUMMY_CARD
 
 
-@pytest.fixture
+@pytest.fixture()
 def pm_with_card(card):
     return stripe.PaymentMethod.construct_from(AttrDict({"card": card}), "test")
 
 
-@pytest.fixture
+@pytest.fixture()
 def pm_no_card():
     return stripe.PaymentMethod.construct_from(AttrDict({}), "test")
 
 
-@pytest.mark.django_db
+@pytest.mark.django_db()
 class TestStripePaymentIntent:
     def test_payment_intent_with_canceled_subscription(self, pi_for_canceled_subscription):
         payment_intent = StripePaymentIntent(pi_for_canceled_subscription)
@@ -150,11 +151,13 @@ class TestStripePaymentIntent:
 
     def test_revenue_program_when_no_metadata(self, pi_no_metadata):
         with pytest.raises(InvalidMetadataError):
-            StripePaymentIntent(pi_no_metadata).revenue_program
+            StripePaymentIntent(pi_no_metadata).revenue_program  # noqa: B018 .revenue_program access useless?
 
     def test_revenue_program_when_rp_slug_not_in_metadata(self, pi_no_revenue_program_in_metadata):
         with pytest.raises(InvalidMetadataError):
-            StripePaymentIntent(pi_no_revenue_program_in_metadata).revenue_program
+            StripePaymentIntent(  # noqa: B018 .revenue_program access useless?
+                pi_no_revenue_program_in_metadata
+            ).revenue_program
 
     def test_subscription_id_when_one_time(self, pi_for_valid_one_time):
         assert StripePaymentIntent(pi_for_valid_one_time).subscription_id is None
@@ -180,11 +183,11 @@ class TestStripePaymentIntent:
         assert StripePaymentIntent(pi).is_cancelable is False
 
     @pytest.mark.parametrize(
-        "status, expected",
-        (
+        ("status", "expected"),
+        [
             ("active", False),
             ("canceled", True),
-        ),
+        ],
     )
     def test_canceled_when_pi_has_invoice(self, status, expected, pi_for_active_subscription_factory):
         pi = pi_for_active_subscription_factory.get()
@@ -249,7 +252,8 @@ class TestStripePaymentIntent:
     def test_last_payment_date_when_status_transitions_paid_at(self, pi_for_active_subscription):
         # StripePaymentIntent(pi_without_invoice).last_payment_date generates dates with microseconds
         # whilst datetime.datetime.fromtimestamp doesn't. Setting the microseconds to 0 so tests pass
-        assert (paid_at := pi_for_active_subscription.invoice.status_transitions.paid_at)
+        paid_at = pi_for_active_subscription.invoice.status_transitions.paid_at
+        assert paid_at
         assert StripePaymentIntent(pi_for_active_subscription).last_payment_date == datetime.datetime.fromtimestamp(
             paid_at, tz=datetime.timezone.utc
         ).replace(microsecond=0)
@@ -265,11 +269,11 @@ class TestStripePaymentIntent:
         assert StripePaymentIntent(pi_no_pm_no_invoice_charges_is_zero_length).credit_card_expiration_date is None
 
     @pytest.mark.parametrize(
-        "payment_method, expected",
-        (
+        ("payment_method", "expected"),
+        [
             (None, None),
             (stripe.PaymentMethod.construct_from({"type": "card"}, "test"), "card"),
-        ),
+        ],
     )
     def test_payment_type(self, payment_method, expected, mocker):
         mocker.patch(
@@ -283,14 +287,14 @@ class TestStripePaymentIntent:
         assert StripePaymentIntent(pi_without_invoice).interval is ContributionInterval.ONE_TIME
 
     @pytest.mark.parametrize(
-        "interval, interval_count, expected_val, expected_error",
-        (
+        ("interval", "interval_count", "expected_val", "expected_error"),
+        [
             ("year", 1, ContributionInterval.YEARLY, None),
             ("month", 1, ContributionInterval.MONTHLY, None),
             ("unexpected", 1, None, InvalidIntervalError),
             ("year", 2, None, InvalidIntervalError),
             ("month", 2, None, InvalidIntervalError),
-        ),
+        ],
     )
     def test_interval_when_invoice(self, interval, interval_count, expected_val, expected_error):
         pi = stripe.PaymentIntent.construct_from(
@@ -310,7 +314,7 @@ class TestStripePaymentIntent:
         )
         if expected_error:
             with pytest.raises(expected_error):
-                StripePaymentIntent(pi).interval
+                StripePaymentIntent(pi).interval  # noqa: B018 .interval access useless?
         else:
             assert StripePaymentIntent(pi).interval == expected_val
 
@@ -354,7 +358,7 @@ class TestStripePaymentIntent:
         assert StripePaymentIntent(pi).payment_method == get_expected_fn(pi)
 
 
-@pytest.fixture
+@pytest.fixture()
 def customer_factory(faker):
     class Factory:
         def get(self):
@@ -367,19 +371,21 @@ def customer_factory(faker):
 
 class TestStripeContributionsProvider:
     def test__init__(self):
-        provider = StripeContributionsProvider((email := "foo@bar.com"), (id := "some-account-id"))
+        provider = StripeContributionsProvider((email := "foo@bar.com"), (id_ := "some-account-id"))
         assert provider.email_id == email
-        assert provider.stripe_account_id == id
+        assert provider.stripe_account_id == id_
 
     def test_customers(self, mocker, customer_factory):
+        email = "foo@bar.com"
+        stripe_account_id = "test"
         customers = [customer_factory.get(), customer_factory.get()]
         mock_search = mocker.patch("stripe.Customer.search")
         mock_search.return_value.auto_paging_iter.return_value = customers
-        assert StripeContributionsProvider(
-            email_id=(email := "foo@bar.com"), stripe_account_id=(id := "test")
-        ).customers == [x.id for x in customers]
+        assert StripeContributionsProvider(email_id=email, stripe_account_id=stripe_account_id).customers == [
+            x.id for x in customers
+        ]
         mock_search.assert_called_once_with(
-            query=f"email:'{email}'", limit=MAX_STRIPE_RESPONSE_LIMIT, stripe_account=id
+            query=f"email:'{email}'", limit=MAX_STRIPE_RESPONSE_LIMIT, stripe_account=stripe_account_id
         )
 
     def test_generate_chunked_customers_query(self, mocker, customer_factory):
@@ -397,7 +403,7 @@ class TestStripeContributionsProvider:
         assert query[0] == " OR ".join([f"customer:'{x}'" for x in customers[:MAX_STRIPE_CUSTOMERS_LIMIT]])
         assert query[1] == f"customer:'{customers[-1]}'"
 
-    @pytest.mark.parametrize("page", ("1", None))
+    @pytest.mark.parametrize("page", ["1", None])
     def test_fetch_payment_intents(self, page, mocker):
         mock_search_result = AttrDict(
             {
@@ -443,7 +449,7 @@ class TestStripeContributionsProvider:
                 {"id": "sub_1", "status": "active", "latest_invoice": "something-truthy"}, key="test"
             ),
             stripe.Subscription.construct_from(
-                {"id": (id := "sub_2"), "status": "active", "latest_invoice": None}, key="test"
+                {"id": (id_ := "sub_2"), "status": "active", "latest_invoice": None}, key="test"
             ),
         ]
 
@@ -451,7 +457,7 @@ class TestStripeContributionsProvider:
         subs = provider.fetch_uninvoiced_subscriptions_for_customer(customer_id=(cust_id := "cust_1"))
         # only the one without a latest_invoice should appear
         assert len(subs) == 1
-        assert subs[0].id == id
+        assert subs[0].id == id_
         mock_list.assert_called_once_with(
             customer=cust_id,
             expand=["data.default_payment_method"],
@@ -477,14 +483,14 @@ class TestStripeContributionsProvider:
         assert fetched == subs + subs
 
     @pytest.mark.parametrize(
-        "interval,interval_count,expected,expected_error",
-        (
+        ("interval", "interval_count", "expected", "expected_error"),
+        [
             ("year", 1, ContributionInterval.YEARLY, None),
             ("month", 1, ContributionInterval.MONTHLY, None),
             ("unexpected", 1, None, InvalidIntervalError),
             ("year", 2, None, InvalidIntervalError),
             ("month", 2, None, InvalidIntervalError),
-        ),
+        ],
     )
     def test_get_interval_from_subscription(self, interval, interval_count, expected, expected_error, mocker):
         provider = StripeContributionsProvider(email_id="foo@bar.com", stripe_account_id="test")
@@ -574,7 +580,7 @@ def mock_redis_cache_for_pis_factory(mocker):
     return Factory()
 
 
-@pytest.fixture
+@pytest.fixture()
 def mock_redis_cache_for_subs_factory(mocker):
     class Factory:
         def get(self, cache_provider):
@@ -662,7 +668,7 @@ class TestContributionsCacheProvider:
     def test_upsert(self, pi_for_valid_one_time_factory, mock_redis_cache_for_pis_factory):
         provider = self.get_cache_provider()
         mock_redis_cache_for_pis = mock_redis_cache_for_pis_factory.get(provider)
-        provider.upsert((pis := [pi_for_valid_one_time_factory.get()]))
+        provider.upsert(pis := [pi_for_valid_one_time_factory.get()])
         cached = json.loads(mock_redis_cache_for_pis._data.get(provider.key))
         for x in pis:
             assert cached[x.id] == dict(provider.serializer(instance=provider.converter(x)).data) | {

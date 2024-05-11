@@ -93,8 +93,8 @@ class TestPlans:
             "page_limit": UNLIMITED_CEILING,
             "style_limit": UNLIMITED_CEILING,
             "custom_thank_you_page_enabled": True,
-            "sidebar_elements": DEFAULT_PERMITTED_SIDEBAR_ELEMENTS + [BENEFITS],
-            "page_elements": DEFAULT_PERMITTED_PAGE_ELEMENTS + [SWAG],
+            "sidebar_elements": [*DEFAULT_PERMITTED_SIDEBAR_ELEMENTS, BENEFITS],
+            "page_elements": [*DEFAULT_PERMITTED_PAGE_ELEMENTS, SWAG],
             "publish_limit": UNLIMITED_CEILING,
         }
 
@@ -105,25 +105,25 @@ class TestPlans:
             "page_limit": 5,
             "style_limit": UNLIMITED_CEILING,
             "custom_thank_you_page_enabled": True,
-            "sidebar_elements": DEFAULT_PERMITTED_SIDEBAR_ELEMENTS + [BENEFITS],
+            "sidebar_elements": [*DEFAULT_PERMITTED_SIDEBAR_ELEMENTS, BENEFITS],
             "page_elements": DEFAULT_PERMITTED_PAGE_ELEMENTS,
             "publish_limit": 2,
         }
 
     @pytest.mark.parametrize(
-        "plan_name,expected_plan",
-        (
+        ("plan_name", "expected_plan"),
+        [
             (FreePlan.name, FreePlan),
             (CorePlan.name, CorePlan),
             (PlusPlan.name, PlusPlan),
             ("not-found-name", None),
-        ),
+        ],
     )
     def test_get_plan(self, plan_name, expected_plan):
         assert Plans.get_plan(plan_name) == expected_plan
 
 
-@pytest.mark.django_db
+@pytest.mark.django_db()
 class TestOrganization:
     def test_stripe_subscription_when_stripe_subscription_id_is_none(self, organization):
         assert organization.stripe_subscription_id is None
@@ -162,19 +162,19 @@ class TestOrganization:
         assert revenue_program.organization.admin_revenueprogram_options == [(revenue_program.name, revenue_program.pk)]
 
     def test_org_cannot_be_deleted_when_contributions_downstream(self, live_donation_page, one_time_contribution):
-        """An org should not be deleteable when downstream contributions exist"""
+        """An org should not be deleteable when downstream contributions exist."""
         one_time_contribution.donation_page = live_donation_page
         one_time_contribution.save()
-        with pytest.raises(ProtectedError) as protected_error:
+        expected = (
+            "Cannot delete some instances of model 'Organization' because they are referenced through protected "
+            "foreign keys: 'RevenueProgram.organization'."
+        )
+        with pytest.raises(ProtectedError, match=expected):
             live_donation_page.revenue_program.organization.delete()
-            assert protected_error.exception.args[0] == (
-                "Cannot delete some instances of model 'Organization' because they are referenced through protected "
-                "foreign keys: 'RevenueProgram.organization'."
-            )
         assert Organization.objects.filter(pk=live_donation_page.revenue_program.organization.pk).exists()
 
     def test_org_deletion_cascades_when_no_contributions_downstream(self, org_user_free_plan, live_donation_page):
-        """An org and its cascading relationships should be deleted when no downstream contributions"""
+        """An org and its cascading relationships should be deleted when no downstream contributions."""
         live_donation_page.revenue_program = org_user_free_plan.roleassignment.revenue_programs.first()
         live_donation_page.save()
         page_id = live_donation_page.id
@@ -207,7 +207,7 @@ class TestOrganization:
         )
         query = Organization.objects.filtered_by_role_assignment(user.roleassignment)
         assert query.count() == len(owned_orgs)
-        assert set(query.values_list("id", flat=True)) == set([x.id for x in owned_orgs])
+        assert set(query.values_list("id", flat=True)) == {x.id for x in owned_orgs}
 
     def test_organization_filtered_by_role_assignment_when_unexpected_role(self, user_with_unexpected_role):
         OrganizationFactory.create_batch(3)
@@ -229,13 +229,14 @@ class TestOrganization:
 
     def test_generate_slug_from_name(self, mocker):
         mock_normalize_slug = mocker.patch("apps.organizations.models.normalize_slug")
-        Organization.generate_slug_from_name((name := "test"))
+        Organization.generate_slug_from_name(name := "test")
         mock_normalize_slug.assert_called_once_with(name=name, max_length=ORG_SLUG_MAX_LENGTH)
 
     def test_downgrade_to_free_plan_happy_path(self, organization_on_core_plan_with_mailchimp_set_up, mocker):
+        rp_count = 1
         assert organization_on_core_plan_with_mailchimp_set_up.plan_name == Plans.CORE.name
         assert organization_on_core_plan_with_mailchimp_set_up.stripe_subscription_id
-        assert organization_on_core_plan_with_mailchimp_set_up.revenueprogram_set.count() == (rp_count := 1)
+        assert organization_on_core_plan_with_mailchimp_set_up.revenueprogram_set.count() == rp_count
         mock_reversion_set_comment = mocker.patch("reversion.set_comment")
         save_spy = mocker.spy(Organization, "save")
         mock_disable_mailchimp_integration = mocker.patch(
@@ -258,7 +259,7 @@ class TestOrganization:
         org = OrganizationFactory(plan_name=Plans.FREE.name, stripe_subscription_id=None)
         logger_spy = mocker.spy(logger, "info")
         org.downgrade_to_free_plan()
-        logger_spy.call_args == mocker.call("Org %s already downgraded to free plan", org.id)
+        assert logger_spy.call_args == mocker.call("Org %s already downgraded to free plan", org.id)
 
 
 class TestBenefit:
@@ -322,7 +323,7 @@ def revenue_program_with_default_donation_page_but_no_transactional_email_style_
     return rp
 
 
-@pytest.mark.django_db
+@pytest.mark.django_db()
 class TestRevenueProgram:
     def test_basics(self):
         t = RevenueProgram()
@@ -335,7 +336,7 @@ class TestRevenueProgram:
     def test_clean_fields(self):
         t = RevenueProgramFactory(name="B o %")
         t.clean_fields()
-        assert "b-o" == t.slug
+        assert t.slug == "b-o"
         # Branch coverage.
         t = RevenueProgramFactory()
         t.clean_fields()
@@ -350,12 +351,12 @@ class TestRevenueProgram:
         t.default_donation_page = apps.pages.models.DonationPage(revenue_program=t)
         t.clean()
         # Not set.
+        t.default_donation_page = apps.pages.models.DonationPage()
         with pytest.raises(apps.organizations.models.ValidationError):
-            t.default_donation_page = apps.pages.models.DonationPage()
             t.clean()
         # Set to other RP
+        t.default_donation_page = apps.pages.models.DonationPage(revenue_program=RevenueProgram())
         with pytest.raises(apps.organizations.models.ValidationError):
-            t.default_donation_page = apps.pages.models.DonationPage(revenue_program=RevenueProgram())
             t.clean()
 
     @override_settings(STRIPE_LIVE_MODE=True)
@@ -440,7 +441,7 @@ class TestRevenueProgram:
             new_callable=mocker.PropertyMock,
         )
         mock_mc_client = mocker.patch("mailchimp_marketing.Client")
-        mock_mc_client.return_value.lists.get_all_lists.side_effect = ApiClientError((error_text := "Ruh roh"))
+        mock_mc_client.return_value.lists.get_all_lists.side_effect = ApiClientError(error_text := "Ruh roh")
         mock_mc_client.return_value.lists.get_all_lists.return_value = {"lists": [{"id": "123", "name": "test"}]}
         log_spy = mocker.spy(logger, "exception")
         assert revenue_program.mailchimp_email_lists == []
@@ -512,10 +513,10 @@ class TestRevenueProgram:
         ContributionFactory(donation_page=live_donation_page)
         with pytest.raises(ProtectedError) as protected_error:
             live_donation_page.revenue_program.delete()
-            assert protected_error.value.args[0] == (
-                "Cannot delete some instances of model 'RevenueProgram' because they are referenced "
-                "through protected foreign keys: 'DonationPage.revenue_program'."
-            )
+        assert protected_error.value.args[0] == (
+            "Cannot delete some instances of model 'RevenueProgram' because they are referenced "
+            "through protected foreign keys: 'DonationPage.revenue_program'."
+        )
 
     def test_can_delete_when_no_downstream_contributions_and_cascades(self, live_donation_page):
         assert not Contribution.objects.filter(
@@ -563,9 +564,9 @@ class TestRevenueProgram:
         revenue_program.slug = denied_word.word
         with pytest.raises(ValidationError) as validation_error:
             revenue_program.clean_fields()
-            assert "slug" in validation_error.value.error_dict
-            assert validation_error.value.error_dict["slug"][0].code == SLUG_DENIED_CODE
-            assert validation_error.value.error_dict["slug"][0].message == GENERIC_SLUG_DENIED_MSG
+        assert "slug" in validation_error.value.error_dict
+        assert validation_error.value.error_dict["slug"][0].code == SLUG_DENIED_CODE
+        assert validation_error.value.error_dict["slug"][0].message == GENERIC_SLUG_DENIED_MSG
 
     @pytest.mark.parametrize(
         "invalid_number",
@@ -589,7 +590,6 @@ class TestRevenueProgram:
             "+1 (415) 555-2671",
             "+1-415-555-2671",
             "+1.415.555.2671",
-            "+14155552671",
             "+5548988425364",
         ],
     )
@@ -604,7 +604,7 @@ class TestRevenueProgram:
         assert isinstance(revenue_program.admin_benefitlevel_options, list)
 
     @pytest.mark.parametrize(
-        "fiscal_status,fiscal_sponsor_name,non_profit_value",
+        ("fiscal_status", "fiscal_sponsor_name", "non_profit_value"),
         [
             (FiscalStatusChoices.FOR_PROFIT, None, False),
             (FiscalStatusChoices.NONPROFIT, None, True),
@@ -618,7 +618,7 @@ class TestRevenueProgram:
         assert rp.non_profit == non_profit_value
 
     @pytest.mark.parametrize(
-        "fiscal_status,fiscal_sponsor_name",
+        ("fiscal_status", "fiscal_sponsor_name"),
         [
             (FiscalStatusChoices.FOR_PROFIT, "NRH"),
             (FiscalStatusChoices.NONPROFIT, "NRH"),
@@ -652,21 +652,20 @@ class TestRevenueProgram:
         )
         query = RevenueProgram.objects.filtered_by_role_assignment(user.roleassignment)
         assert query.count() == len(owned_rps)
-        assert set(query.values_list("id", flat=True)) == set([x.id for x in owned_rps])
+        assert set(query.values_list("id", flat=True)) == {x.id for x in owned_rps}
 
     def test_filtered_by_role_assignment_when_unexpected_role(self, user_with_unexpected_role):
         RevenueProgramFactory.create_batch(3)
         assert RevenueProgram.objects.filtered_by_role_assignment(user_with_unexpected_role.roleassignment).count() == 0
-        "revenue_program,expect_connected",
 
     @pytest.mark.parametrize(
-        "mailchimp_server_prefix,mailchimp_access_token,expect_connected",
-        (
+        ("mailchimp_server_prefix", "mailchimp_access_token", "expect_connected"),
+        [
             ("something", "something", True),
             (None, "something", False),
             ("something", None, False),
             (None, None, False),
-        ),
+        ],
     )
     def test_mailchimp_integration_connected_property(
         self, mailchimp_server_prefix, mailchimp_access_token, expect_connected, settings, mocker
@@ -684,12 +683,12 @@ class TestRevenueProgram:
         logger_spy = mocker.spy(logger, "debug")
         assert (
             revenue_program.handle_mailchimp_api_client_read_error(
-                entity := "entity", ApiClientError("Not Found", status_code=404)
+                "entity", ApiClientError("Not Found", status_code=404)
             )
             is None
         )
         logger_spy.assert_called_once_with(
-            "Mailchimp %s not found for RP %s, returning None", entity, revenue_program.id
+            "Mailchimp %s not found for RP %s, returning None", "entity", revenue_program.id
         )
 
     def test_handle_mailchimp_api_client_read_error_when_429(self, revenue_program, mocker):
@@ -718,7 +717,7 @@ class TestRevenueProgram:
         mock_handle_error = mocker.patch(
             "apps.organizations.models.RevenueProgram.handle_mailchimp_api_client_read_error"
         )
-        mc_connected_rp.mailchimp_store
+        mc_connected_rp.mailchimp_store  # noqa: B018 useless .mailchimp_store?
         mock_handle_error.assert_called_once_with("store", error)
 
     def test_mailchimp_store_when_not_connected(self, revenue_program):
@@ -848,7 +847,7 @@ class TestRevenueProgram:
         mock_handle_error = mocker.patch(
             "apps.organizations.models.RevenueProgram.handle_mailchimp_api_client_read_error"
         )
-        mc_connected_rp.mailchimp_one_time_contribution_product
+        mc_connected_rp.mailchimp_one_time_contribution_product  # noqa: B018 useless .mailchimp_one_time_contribution_product?
         mock_handle_error.assert_called_once_with("one-time contribution product", error)
 
     def test_mailchimp_recurring_contribution_product_happy_path(
@@ -884,7 +883,7 @@ class TestRevenueProgram:
         mock_handle_error = mocker.patch(
             "apps.organizations.models.RevenueProgram.handle_mailchimp_api_client_read_error"
         )
-        mc_connected_rp.mailchimp_recurring_contribution_product
+        mc_connected_rp.mailchimp_recurring_contribution_product  # noqa: B018 useless .mailchimp_recurring_contribuiton_product?
         mock_handle_error.assert_called_once_with("recurring contribution product", error)
 
     def test_make_mailchimp_one_time_contribution_product_happy_path(
@@ -945,7 +944,7 @@ class TestRevenueProgram:
         mock_handle_error = mocker.patch(
             "apps.organizations.models.RevenueProgram.handle_mailchimp_api_client_read_error"
         )
-        mc_connected_rp.mailchimp_email_list
+        mc_connected_rp.mailchimp_email_list  # noqa: B018 useless .mailchimp_email_list?
         mock_handle_error.assert_called_once_with("mailchimp email list", error, log_level_on_not_found="error")
 
     def test_mailchimp_contributor_segment_when_no_mailchimp_list_id(self, mc_connected_rp):
@@ -987,7 +986,7 @@ class TestRevenueProgram:
         mock_handle_error = mocker.patch(
             "apps.organizations.models.RevenueProgram.handle_mailchimp_api_client_read_error"
         )
-        mc_connected_rp.mailchimp_contributor_segment
+        mc_connected_rp.mailchimp_contributor_segment  # noqa: B018 useless .mailchimp_contributor_segment?
         mock_handle_error.assert_called_once_with("contributor segment", error)
 
     def test_mailchimp_recurring_segment_happy_path(
@@ -1034,7 +1033,7 @@ class TestRevenueProgram:
         mock_handle_error = mocker.patch(
             "apps.organizations.models.RevenueProgram.handle_mailchimp_api_client_read_error"
         )
-        mc_connected_rp.mailchimp_recurring_segment
+        mc_connected_rp.mailchimp_recurring_segment  # noqa: B018 useless .mailchimp_recurring_segment?
         mock_handle_error.assert_called_once_with("recurring segment", error)
 
     def test_make_mailchimp_contributor_segment_when_no_list_id(self, mc_connected_rp):
@@ -1100,7 +1099,7 @@ class TestRevenueProgram:
 
     def test_get_mailchimp_client_when_integration_not_connected(self, mocker, revenue_program):
         assert revenue_program.mailchimp_integration_connected is False
-        with pytest.raises(ValueError):
+        with pytest.raises(ValueError, match="Mailchimp integration not connected"):
             revenue_program.get_mailchimp_client()
 
     def test_ensure_mailchimp_store_when_no_store_exists(self, mc_connected_rp, mocker):
@@ -1258,7 +1257,7 @@ class TestPaymentProvider:
         t = PaymentProvider(stripe_product_id=1)
         t.stripe_create_default_product()
 
-    @pytest.mark.parametrize("name, symbol", settings.CURRENCIES.items())
+    @pytest.mark.parametrize(("name", "symbol"), settings.CURRENCIES.items())
     def test_get_currency_dict(self, name, symbol):
         t = PaymentProvider(currency=name)
         assert {"code": name, "symbol": symbol} == t.get_currency_dict()
@@ -1268,12 +1267,12 @@ class TestPaymentProvider:
         assert {"code": "", "symbol": ""} == t.get_currency_dict()
 
 
-@pytest.fixture
+@pytest.fixture()
 def benefit_level():
     return BenefitLevelFactory(lower_limit=50, upper_limit=100)
 
 
-@pytest.mark.django_db
+@pytest.mark.django_db()
 class BenefitLevelTest:
     def test_donation_range_when_normal(self, benefit_level):
         assert benefit_level.donation_range == f"${benefit_level.lower_limit}-{benefit_level.upper_limit}"
@@ -1285,12 +1284,11 @@ class BenefitLevelTest:
 
     def test_upper_lower_limit_validation(self, benefit_level):
         benefit_level.upper_limit = benefit_level.lower_limit - 1
-        with pytest.raises(ValidationError) as v_error:
+        with pytest.raises(ValidationError, match="Upper limit must be greater than lower limit"):
             benefit_level.clean()
-            assert v_error.exception.message == "Upper limit must be greater than lower limit"
 
 
-@pytest.mark.django_db
+@pytest.mark.django_db()
 class TestPaymentProviderModel:
     def test_get_dependent_pages_with_publication_date(self, live_donation_page):
         future_published_page = DonationPageFactory(
@@ -1300,9 +1298,7 @@ class TestPaymentProviderModel:
         DonationPageFactory(revenue_program=live_donation_page.revenue_program, published_date=None)
         # Show gets list of contribution pages with pub date that indirectly reference the provider
         assert set(
-            list(
-                live_donation_page.revenue_program.payment_provider.get_dependent_pages_with_publication_date().values_list(
-                    "id", flat=True
-                )
+            live_donation_page.revenue_program.payment_provider.get_dependent_pages_with_publication_date().values_list(
+                "id", flat=True
             )
         ) == {live_donation_page.pk, future_published_page.pk}

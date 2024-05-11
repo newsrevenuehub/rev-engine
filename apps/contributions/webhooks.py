@@ -91,7 +91,7 @@ class StripeWebhookProcessor:
         match self.event_type:
             # TODO: [DEV-4450] Create a new webhook receiver to correctly handle payment_method.attached event
             case "payment_method.attached":
-                return
+                return None
             case "payment_intent.canceled":
                 return self.handle_payment_intent_canceled()
             case "payment_intent.payment_failed":
@@ -112,7 +112,7 @@ class StripeWebhookProcessor:
                 logger.warning(
                     "StripeWebhookProcessor.route_request received unexpected event type %s", self.event_type
                 )
-                return
+                return None
 
     @property
     def webhook_live_mode_agrees_with_environment(self) -> bool:
@@ -152,7 +152,7 @@ class StripeWebhookProcessor:
         for k, v in update_data.items():
             setattr(self.contribution, k, v)
         with reversion.create_revision():
-            self.contribution.save(update_fields=set(list(update_data.keys()) + ["modified"]))
+            self.contribution.save(update_fields={*update_data.keys(), "modified"})
             reversion.set_comment(revision_comment)
 
     def handle_payment_intent_canceled(self):
@@ -193,7 +193,8 @@ class StripeWebhookProcessor:
         with transaction.atomic():
             payment = Payment.from_stripe_payment_intent_succeeded_event(event=self.event)
             contribution_update_data = {
-                # TODO: [DEV-4295] Get rid of payment_provider_data as it's an inconistent reference to whichever event happened to cause creation
+                # TODO: [DEV-4295] Get rid of payment_provider_data as it's an inconistent reference to whichever event
+                # happened to cause creation
                 "payment_provider_data": self.event,
                 "provider_payment_method_id": self.obj_data.get("payment_method"),
                 "provider_payment_method_details": self.contribution.fetch_stripe_payment_method(),
@@ -242,7 +243,7 @@ class StripeWebhookProcessor:
         self.contribution.send_recurring_contribution_canceled_email()
 
     def handle_invoice_upcoming(self):
-        """When Stripe sends a webhook about an upcoming subscription charge, we send an email reminder
+        """When Stripe sends a webhook about an upcoming subscription charge, we send an email reminder.
 
         NB: You can configure how many days before a new charge this webhook should fire in the Stripe dashboard
         at https://dashboard.stripe.com/settings/billing/automatic under the `Upcoming renewal events` setting, which

@@ -40,7 +40,7 @@ def test_good_characters(good_string):
     try:
         validate_statement_descriptor_suffix(good_string)
     except ValidationError as er:
-        assert False, f"{good_string} raised an exception {er}"
+        pytest.fail(f"{good_string} raised an exception {er}")
 
 
 @pytest.fixture(

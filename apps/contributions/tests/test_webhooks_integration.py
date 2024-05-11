@@ -1,4 +1,4 @@
-"""test_webhooks_integration.py
+"""test_webhooks_integration.py.
 
 This file contains tests that are meant to be integration tests for our Stripe webhook processing views.
 More specifically, we test both the API view layer, and the async task layer together to ensure that under normal
@@ -12,6 +12,7 @@ are grouped together in the `TestPaymentIntentSucceeded` class.
 
 import json
 from datetime import datetime, timedelta
+from pathlib import Path
 
 from django.urls import reverse
 from django.utils.timezone import make_aware
@@ -33,64 +34,64 @@ from apps.contributions.types import StripeEventData
 
 
 @pytest.fixture(autouse=True)
-def synchronous_celery(settings):
-    """Make all celery tasks run synchronously
+def _synchronous_celery(settings):
+    """Make all celery tasks run synchronously.
 
     This enables us to make requests to webhook views and confirm that expected side effects occur
     """
     settings.CELERY_ALWAYS_EAGER = True
 
 
-@pytest.fixture
+@pytest.fixture()
 def payment_intent_canceled():
-    with open("apps/contributions/tests/fixtures/payment-intent-canceled-webhook.json") as fl:
-        return json.load(fl)
+    with Path("apps/contributions/tests/fixtures/payment-intent-canceled-webhook.json").open() as f:
+        return json.load(f)
 
 
-@pytest.fixture
+@pytest.fixture()
 def payment_intent_payment_failed():
-    with open("apps/contributions/tests/fixtures/payment-intent-payment-failed-webhook.json") as fl:
-        return json.load(fl)
+    with Path("apps/contributions/tests/fixtures/payment-intent-payment-failed-webhook.json").open() as f:
+        return json.load(f)
 
 
-@pytest.fixture
+@pytest.fixture()
 def customer_subscription_deleted():
-    with open("apps/contributions/tests/fixtures/customer-subscription-deleted-webhook.json") as fl:
-        return json.load(fl)
+    with Path("apps/contributions/tests/fixtures/customer-subscription-deleted-webhook.json").open() as f:
+        return json.load(f)
 
 
-@pytest.fixture
+@pytest.fixture()
 def invoice_upcoming():
-    with open("apps/contributions/tests/fixtures/stripe-invoice-upcoming.json") as fl:
-        return json.load(fl)
+    with Path("apps/contributions/tests/fixtures/stripe-invoice-upcoming.json").open() as f:
+        return json.load(f)
 
 
-@pytest.fixture
-def invoice_payment_succeeded():
+@pytest.fixture()
+def _invoice_payment_succeeded():
     # also set up the coresponding contribution in revengine
-    with open("apps/contributions/tests/fixtures/invoice-payment-succeeded-event.json") as fl:
-        event_data = json.load(fl)
+    with Path("apps/contributions/tests/fixtures/invoice-payment-succeeded-event.json").open() as f:
+        event_data = json.load(f)
         ContributionFactory(
             interval=ContributionInterval.YEARLY, provider_subscription_id=event_data["data"]["object"]["subscription"]
         )
 
 
-@pytest.fixture
-def charge_refunded(suppress_stripe_webhook_sig_verification):
+@pytest.fixture()
+def charge_refunded():
     # also set up the corresponding contribution in revengine
-    with open("apps/contributions/tests/fixtures/charge-refunded-recurring-first-charge-event.json") as fl:
-        return json.load(fl)
+    with Path("apps/contributions/tests/fixtures/charge-refunded-recurring-first-charge-event.json").open() as f:
+        return json.load(f)
 
 
-@pytest.fixture
+@pytest.fixture()
 def payment_method(payment_method_data_factory):
     return stripe.PaymentMethod.construct_from(
         payment_method_data_factory.get(), key="test", stripe_account="acct_fake_01"
     )
 
 
-@pytest.mark.django_db
-@pytest.mark.usefixtures("suppress_stripe_webhook_sig_verification")
+@pytest.mark.django_db()
+@pytest.mark.usefixtures("_suppress_stripe_webhook_sig_verification")
 class TestPaymentIntentSucceeded:
     def test_when_when_one_time_and_contribution_found(
         self,
@@ -169,9 +170,9 @@ class TestPaymentIntentSucceeded:
         )
 
 
-@pytest.mark.django_db
+@pytest.mark.django_db()
 class TestPaymentIntentCanceled:
-    @pytest.mark.parametrize("cancellation_reason", (None, "", "random-thing", "fraudulent"))
+    @pytest.mark.parametrize("cancellation_reason", [None, "", "random-thing", "fraudulent"])
     def test_when_contribution_found(self, cancellation_reason, client, payment_intent_canceled, mocker):
         mocker.patch.object(WebhookSignature, "verify_header", return_value=True)
         header = {"HTTP_STRIPE_SIGNATURE": "testing", "content_type": "application/json"}
@@ -211,7 +212,7 @@ class TestPaymentIntentCanceled:
         )
 
 
-@pytest.mark.django_db
+@pytest.mark.django_db()
 class TestPaymentIntentPaymentFailed:
     def test_when_contribution_found(self, client, payment_intent_payment_failed, mocker):
         mocker.patch.object(WebhookSignature, "verify_header", return_value=True)
@@ -246,10 +247,10 @@ class TestPaymentIntentPaymentFailed:
         )
 
 
-@pytest.mark.usefixtures("suppress_stripe_webhook_sig_verification")
-@pytest.mark.django_db
+@pytest.mark.usefixtures("_suppress_stripe_webhook_sig_verification")
+@pytest.mark.django_db()
 class TestCustomerSubscriptionUpdated:
-    @pytest.mark.parametrize("payment_method_has_changed", (True, False))
+    @pytest.mark.parametrize("payment_method_has_changed", [True, False])
     def test_when_contribution_found(
         self, payment_method_has_changed, client, customer_subscription_updated_event, mocker
     ):
@@ -311,7 +312,7 @@ class TestCustomerSubscriptionUpdated:
         )
 
 
-@pytest.mark.django_db
+@pytest.mark.django_db()
 class TestCustomerSubscriptionDeleted:
     def test_when_contribution_found(self, client, customer_subscription_deleted, mocker):
         mocker.patch.object(WebhookSignature, "verify_header", return_value=True)
@@ -350,7 +351,7 @@ class TestCustomerSubscriptionDeleted:
         )
 
 
-@pytest.mark.django_db
+@pytest.mark.django_db()
 def test_customer_subscription_untracked_event(client, customer_subscription_updated_event, mocker):
     mock_log_warning = mocker.patch("apps.contributions.webhooks.logger.warning")
     mocker.patch.object(WebhookSignature, "verify_header", return_value=True)
@@ -369,15 +370,15 @@ def test_customer_subscription_untracked_event(client, customer_subscription_upd
 
 
 @pytest.mark.django_db()
-@pytest.mark.usefixtures("suppress_stripe_webhook_sig_verification")
+@pytest.mark.usefixtures("_suppress_stripe_webhook_sig_verification")
 @pytest.mark.parametrize(
-    "interval,expect_reminder_email",
-    (
+    ("interval", "expect_reminder_email"),
+    [
         (ContributionInterval.MONTHLY, False),
         (ContributionInterval.YEARLY, True),
-    ),
+    ],
 )
-@pytest.mark.parametrize("contribution_found", (True, False))
+@pytest.mark.parametrize("contribution_found", [True, False])
 def test_invoice_upcoming(interval, expect_reminder_email, contribution_found, client, invoice_upcoming_event, mocker):
     mock_send_reminder = mocker.patch.object(Contribution, "send_recurring_contribution_email_reminder")
     contribution = (
@@ -391,17 +392,14 @@ def test_invoice_upcoming(interval, expect_reminder_email, contribution_found, c
     response = client.post(reverse("stripe-webhooks-contributions"), data=invoice_upcoming_event, **header)
     assert response.status_code == status.HTTP_200_OK
     if not contribution_found:
-        # assert that task debug logs
+        # TODO: assert that task debug logs
         return
+    if expect_reminder_email:
+        mock_send_reminder.assert_called_once_with(
+            make_aware(datetime.fromtimestamp(invoice_upcoming_event["data"]["object"]["next_payment_attempt"])).date()
+        )
     else:
-        if expect_reminder_email:
-            mock_send_reminder.assert_called_once_with(
-                make_aware(
-                    datetime.fromtimestamp(invoice_upcoming_event["data"]["object"]["next_payment_attempt"])
-                ).date()
-            )
-        else:
-            mock_send_reminder.assert_not_called()
+        mock_send_reminder.assert_not_called()
 
     if expect_reminder_email and contribution_found:
         mock_send_reminder.assert_called_once_with(
@@ -422,8 +420,8 @@ def test_process_stripe_webhook_when_value_error_raised(mocker, client):
     assert logger_spy.call_args == mocker.call("Invalid payload from Stripe webhook request")
 
 
-@pytest.mark.django_db
-@pytest.mark.usefixtures("suppress_stripe_webhook_sig_verification")
+@pytest.mark.django_db()
+@pytest.mark.usefixtures("_suppress_stripe_webhook_sig_verification")
 class TestChargeRefunded:
     def test_happy_path(
         self,
@@ -452,32 +450,32 @@ class TestChargeRefunded:
         assert Payment.objects.count() == count + 1
 
 
-@pytest.mark.django_db
-@pytest.mark.usefixtures("suppress_stripe_webhook_sig_verification")
+@pytest.mark.django_db()
+@pytest.mark.usefixtures("_suppress_stripe_webhook_sig_verification")
 class TestInvoicePaymentSucceeded:
-    @pytest.fixture
+    @pytest.fixture()
     def invoice_payment_succeeded_for_first_payment_event(self):
-        with open("apps/contributions/tests/fixtures/invoice-payment-succeeded-event.json") as fl:
-            return json.load(fl)
+        with Path("apps/contributions/tests/fixtures/invoice-payment-succeeded-event.json").open() as f:
+            return json.load(f)
 
-    @pytest.fixture
+    @pytest.fixture()
     def invoice_payment_succeeded_for_recurring_payment_event(self):
-        with open("apps/contributions/tests/fixtures/invoice-payment-succeeded-for-recurring-event.json") as fl:
-            return json.load(fl)
+        with Path("apps/contributions/tests/fixtures/invoice-payment-succeeded-for-recurring-event.json").open() as f:
+            return json.load(f)
 
-    @pytest.fixture
+    @pytest.fixture()
     def payment_intent_for_recurring_charge_expanded(self):
-        with open(
+        with Path(
             "apps/contributions/tests/fixtures/payment-intent-for-first-charge-on-subscription-invoice-expanded.json"
-        ) as fl:
-            return stripe.PaymentIntent.construct_from(json.load(fl), key="test")
+        ).open() as f:
+            return stripe.PaymentIntent.construct_from(json.load(f), key="test")
 
-    @pytest.fixture
+    @pytest.fixture()
     def payment_intent_for_subscription_creation_charge_expanded(self):
-        with open(
+        with Path(
             "apps/contributions/tests/fixtures/payment-intent-for-first-charge-on-subscription-invoice-expanded.json"
-        ) as fl:
-            return stripe.PaymentIntent.construct_from(json.load(fl), key="test")
+        ).open() as f:
+            return stripe.PaymentIntent.construct_from(json.load(f), key="test")
 
     @pytest.fixture(
         params=[
@@ -505,19 +503,15 @@ class TestInvoicePaymentSucceeded:
         event["data"]["object"]["payment_method"] = payment_method.id
         event["data"]["object"]["subscription"] = pi.invoice.subscription
         contribution = ContributionFactory(
-            **{
-                "interval": ContributionInterval.YEARLY,
-                "status": ContributionStatus.PROCESSING if is_first_payment else ContributionStatus.PAID,
-                "provider_subscription_id": pi.invoice.subscription,
-                "last_payment_date": (
-                    None
-                    if is_first_payment
-                    else datetime.fromtimestamp(balance_transaction.created) - timedelta(days=365)
-                ),
-                "provider_payment_id": pi.id if is_first_payment else "some-other-id",
-                "provider_payment_method_id": None,
-                "provider_payment_method_details": None,
-            }
+            interval=ContributionInterval.YEARLY,
+            status=ContributionStatus.PROCESSING if is_first_payment else ContributionStatus.PAID,
+            provider_subscription_id=pi.invoice.subscription,
+            last_payment_date=(
+                None if is_first_payment else datetime.fromtimestamp(balance_transaction.created) - timedelta(days=365)
+            ),
+            provider_payment_id=pi.id if is_first_payment else "some-other-id",
+            provider_payment_method_id=None,
+            provider_payment_method_details=None,
         )
         if not is_first_payment:
             PaymentFactory(

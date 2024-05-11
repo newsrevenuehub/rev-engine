@@ -26,9 +26,9 @@ USE_DEBUG_INTERVALS = os.getenv("USE_DEBUG_INTERVALS", False)
 
 ENABLE_API_BROWSER = os.getenv("ENABLE_API_BROWSER", "false").lower() == "true"
 
-# Build paths inside the project like this: os.path.join(BASE_DIR, ...)
-PROJECT_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
-BASE_DIR = os.path.dirname(PROJECT_DIR)
+# Build paths inside the project like this: BASE_DIR /  ...
+PROJECT_DIR = Path(__file__).resolve().parent.parent
+BASE_DIR = PROJECT_DIR.parent
 
 # https://news-revenue-hub.atlassian.net/wiki/spaces/TECH/pages/2014871553/Rev+Engine+NRE+development+deployment+servers+and+environments
 ENVIRONMENT = os.getenv("ENVIRONMENT", "unknown")
@@ -75,17 +75,17 @@ CURRENCIES: CurrencyDict = {"USD": "$", "CAD": "$"}
 
 # Static files (CSS, JavaScript, Images)
 # https://docs.djangoproject.com/en/3.2/howto/static-files/
-STATIC_ROOT = os.path.join(BASE_DIR, "public/static")
+STATIC_ROOT = BASE_DIR / "public" / "static"
 STATIC_URL = "/static/"
 STATICFILES_FINDERS = [
     "django.contrib.staticfiles.finders.FileSystemFinder",
     "django.contrib.staticfiles.finders.AppDirectoriesFinder",
 ]
 STATICFILES_DIRS = [
-    os.path.join(PROJECT_DIR, "static"),
+    PROJECT_DIR / "static",
 ]
 
-MEDIA_ROOT = os.path.join(BASE_DIR, "public/media")
+MEDIA_ROOT = BASE_DIR / "public" / "media"
 MEDIA_URL = "/media/"
 
 # django-storages Settings
@@ -172,8 +172,8 @@ TEMPLATES = [
     {
         "BACKEND": "django.template.backends.django.DjangoTemplates",
         "DIRS": [
-            Path(BASE_DIR) / "spa",  # Serve SPA via django.
-            os.path.join(PROJECT_DIR, "templates"),
+            BASE_DIR / "spa",  # Serve SPA via django.
+            PROJECT_DIR / "templates",
         ],
         "APP_DIRS": True,
         "OPTIONS": {
@@ -558,7 +558,7 @@ PAGE_SLUG_PARAM = "slug"
 ## Email and ESP Settings
 DEFAULT_FROM_EMAIL = f"noreply@{os.getenv('DOMAIN', 'example.com')}"
 EMAIL_BACKEND = "django.core.mail.backends.console.EmailBackend"
-EMAIL_SUBJECT_PREFIX = "[RevEngine %s] " % ENVIRONMENT.title()
+EMAIL_SUBJECT_PREFIX = f"[RevEngine {ENVIRONMENT.title()}] "
 # Revengine template identifiers
 EMAIL_DEFAULT_TRANSACTIONAL_SENDER = os.getenv(
     "EMAIL_DEFAULT_TRANSACTIONAL_SENDER", "News Revenue Engine <no-reply@fundjournalism.org>"

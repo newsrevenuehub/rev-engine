@@ -688,7 +688,14 @@ class StripeTransactionsImporter:
                 )
             )
             payment, action = upsert_payment_for_transaction(contribution, balance_transaction, is_refund)
-            logger.info("Payment %s for contribution %s was %s", payment.id, contribution.id, action)
+            if payment:
+                logger.info("Payment %s for contribution %s was %s", payment.id, contribution.id, action)
+            else:
+                logger.info(
+                    "No payment created for contribution %s and balance transaction %s",
+                    contribution.id,
+                    balance_transaction["id"],
+                )
             self.update_payment_stats(action, payment)
 
     def get_provider_payment_id_for_subscription(self, subscription: dict) -> str | None:
@@ -758,7 +765,6 @@ class StripeTransactionsImporter:
             return None
         if (_slug := metadata.get("referer")) and (slug := parse_slug_from_url(_slug)):
             return revenue_program.donationpage_set.filter(slug=slug).first()
-        return revenue_program.default_donation_page
 
     @transaction.atomic
     def upsert_contribution(self, stripe_entity: dict, is_one_time: bool) -> Tuple[Contribution, str]:
@@ -875,9 +881,9 @@ class StripeTransactionsImporter:
                     "Stripe import for account %s took %s seconds which is longer than %s%% of the cache TTL. "
                     "Consider increasing TTLs for cache entries related to stripe import."
                 ),
+                self.stripe_account_id,
                 elapsed.seconds,
                 TTL_WARNING_THRESHOLD_PERCENT * 100,
-                self.stripe_account_id,
             )
 
     def import_contributions_and_payments(self) -> None:

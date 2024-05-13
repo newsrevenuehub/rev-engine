@@ -717,7 +717,8 @@ class TestStripeTransactionsImporter:
         assert instance.get_refunds_for_payment_intent({"id": "pi_1"})
 
     @pytest.mark.parametrize("interval", (ContributionInterval.ONE_TIME, ContributionInterval.MONTHLY))
-    def test_upsert_payments_for_contribution(self, mocker, interval):
+    @pytest.mark.parametrize("pre_existing_payment_for_bt", (True, False))
+    def test_upsert_payments_for_contribution(self, mocker, interval, pre_existing_payment_for_bt):
         # one has balance transaction, another does not so we go through both branches of code
         refunds = [{"id": "ref_1", "balance_transaction": "bt_1"}, {"id": "ref_2", "balance_transaction": None}]
         charge = {"balance_transaction": "bt_1", "id": "ch_1"}
@@ -734,7 +735,8 @@ class TestStripeTransactionsImporter:
         mocker.patch.object(instance, "get_resource_from_cache", side_effect=get_resource_from_cache_side_effects)
         mocker.patch.object(instance, "make_key")
         mocker.patch(
-            "apps.contributions.stripe_import.upsert_payment_for_transaction", return_value=(mocker.Mock(), "created")
+            "apps.contributions.stripe_import.upsert_payment_for_transaction",
+            return_value=(mocker.Mock(), "created") if not pre_existing_payment_for_bt else (None, None),
         )
         mocker.patch.object(instance, "get_resource_from_cache", return_value={"id": "tx_1"})
         mocker.patch.object(instance, "update_payment_stats")

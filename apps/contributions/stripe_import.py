@@ -878,12 +878,13 @@ class StripeTransactionsImporter:
         if elapsed.seconds > settings.STRIPE_TRANSACTIONS_IMPORT_CACHE_TTL * TTL_WARNING_THRESHOLD_PERCENT:
             logger.warning(
                 (
-                    "Stripe import for account %s took %s, which is longer than %s%% of the cache TTL. "
+                    "Stripe import for account %s took %s, which is longer than %s%% of the cache TTL (%s). "
                     "Consider increasing TTLs for cache entries related to stripe import."
                 ),
                 self.stripe_account_id,
                 self.format_timedelta(elapsed),
                 TTL_WARNING_THRESHOLD_PERCENT * 100,
+                self.format_timedelta(datetime.timedelta(seconds=settings.STRIPE_TRANSACTIONS_IMPORT_CACHE_TTL)),
             )
 
     def import_contributions_and_payments(self) -> None:

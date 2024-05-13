@@ -29,6 +29,7 @@ from apps.common.utils import (
     upsert_cloudflare_cnames,
     upsert_with_diff_check,
 )
+from apps.pages.tests.factories import DonationPageFactory
 
 
 DEFAULT_MAX_SLUG_LENGTH = 50
@@ -351,7 +352,7 @@ class Test_upsert_with_diff_check:
 
     @pytest.fixture
     def update_data(self):
-        return {"amount": self.UPDATE_AMOUNT}
+        return {"amount": self.UPDATE_AMOUNT, "donation_page": DonationPageFactory()}
 
     @pytest.fixture
     def unique_identifier(self):

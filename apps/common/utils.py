@@ -13,6 +13,10 @@ import stripe
 
 logger = logging.getLogger(f"{settings.DEFAULT_LOGGER}.{__name__}")
 
+CREATED = "created"
+UPDATED = "updated"
+LEFT_UNCHANGED = "left unchanged"
+
 
 def delete_stripe_webhook(webhook_url, api_key):
     webhooks = stripe.WebhookEndpoint.list(limit=20, api_key=api_key)
@@ -195,4 +199,26 @@ def upsert_with_diff_check(
                 instance.save(update_fields=fields_to_update.union({"modified"}))
                 reversion.set_comment(f"{caller_name} updated {model.__name__}")
 
-        return instance, "created" if created else "updated" if bool(fields_to_update) else "left unchanged"
+        return instance, CREATED if created else UPDATED if bool(fields_to_update) else LEFT_UNCHANGED
+
+
+def get_stripe_accounts_and_their_connection_status(account_ids: list[str]) -> dict[str, bool]:
+    """Given a list of stripe accounts, returns a dict with the account id as key and a boolean indicating if the account is connected and retrievable"""
+    logger.info("Retrieving stripe accounts and their connection status")
+    accounts = {}
+    for account_id in account_ids:
+        try:
+            stripe.Account.retrieve(account_id)
+            accounts[account_id] = True
+        # if the account is not connected to the platform, we get a PermissionError
+        except stripe.error.PermissionError:
+            logger.warning(
+                "Permission error while retrieving account %s. This is likely because the account is not connected to the platform",
+                account_id,
+                exc_info=True,
+            )
+            accounts[account_id] = False
+        except stripe.error.StripeError:
+            logger.exception("Error while retrieving account %s", account_id)
+            accounts[account_id] = False
+    return accounts

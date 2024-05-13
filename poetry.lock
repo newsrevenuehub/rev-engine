@@ -3219,4 +3219,4 @@ bandit = []
 [metadata]
 lock-version = "2.0"
 python-versions = "^3.10"
-content-hash = "d00a51ad6a97cd4148309d2f3196866466eaf6abd3094d92a80cbc5c6614a034"
+content-hash = "b5bcd825a6e358b7dbc0df7eef3e8959007dcb5cd33d1221c40a88bd9a33a415"

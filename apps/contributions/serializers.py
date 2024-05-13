@@ -955,18 +955,15 @@ class SwitchboardContributionSerializer(serializers.ModelSerializer):
         this update override will need to be modified accordingly.
         """
         logger.debug("Updating contribution %s with validated data %s", instance, validated_data)
-        update_fields = {"modified"}
-        _rp_being_set = False
         if (rp := validated_data.pop("_revenue_program", None)) and instance._revenue_program != rp:
+            update_fields = {"modified", "_revenue_program"}
             instance._revenue_program = rp
-            update_fields.add("_revenue_program")
-            _rp_being_set = True
-        if instance.donation_page and _rp_being_set:
-            instance.donation_page = None
-            update_fields.add("donation_page")
-        with reversion.create_revision():
-            instance.save(update_fields=update_fields)
-            reversion.set_comment("Updated by SwitchboardContributionSerializer.update")
+            if instance.donation_page:
+                instance.donation_page = None
+                update_fields.add("donation_page")
+            with reversion.create_revision():
+                instance.save(update_fields=update_fields)
+                reversion.set_comment("Updated by SwitchboardContributionSerializer.update")
         return instance
 
     def validate_revenue_program(self, value: RevenueProgram) -> None:

@@ -1,0 +1,189 @@
+import CheckIcon from '@material-design-icons/svg/outlined/check.svg?react';
+import SaveIcon from '@material-design-icons/svg/outlined/save.svg?react';
+import { AxiosError } from 'axios';
+import { Button, TextField } from 'components/base';
+import Hero from 'components/common/Hero';
+import GenericErrorBoundary from 'components/errors/GenericErrorBoundary';
+import { GENERIC_ERROR } from 'constants/textConstants';
+import { RevenueProgram } from 'hooks/useContributionPage';
+import { useRevenueProgram } from 'hooks/useRevenueProgram';
+import PropTypes, { InferProps } from 'prop-types';
+import { useEffect, useMemo, useState } from 'react';
+import { useAlert } from 'react-alert';
+import { Controller, useForm } from 'react-hook-form';
+import { SectionWrapper } from '../pages/Pages.styled';
+import {
+  ActionWrapper,
+  Description,
+  FormWrapper,
+  InputsWrapper,
+  Label,
+  SuccessMessage
+} from './ContributorPortal.styles';
+
+type ContactInfoFormFields = {
+  contact_email: string;
+  contact_phone: string;
+};
+
+export interface ContributorPortalProps extends InferProps<typeof ContributorPortalPropTypes> {
+  revenueProgram?: RevenueProgram;
+}
+
+const ContributorPortal = ({ revenueProgram }: ContributorPortalProps) => {
+  const alert = useAlert();
+  const [showSuccess, setShowSuccess] = useState(false);
+  const [errorMessage, setErrorMessage] = useState<Record<keyof ContactInfoFormFields, string>>();
+  const { updateRevenueProgram } = useRevenueProgram(revenueProgram?.id);
+
+  const {
+    control,
+    watch,
+    reset,
+    handleSubmit,
+    formState: { errors }
+  } = useForm<ContactInfoFormFields>({
+    defaultValues: {
+      contact_email: revenueProgram?.contact_email ?? '',
+      contact_phone: revenueProgram?.contact_phone ?? ''
+    }
+  });
+
+  const contact_email = watch('contact_email');
+  const contact_phone = watch('contact_phone');
+
+  useEffect(() => {
+    setShowSuccess(false);
+  }, [contact_email, contact_phone, setShowSuccess]);
+
+  const isDifferent = useMemo(
+    () => ({
+      contact_email: contact_email !== (revenueProgram?.contact_email ?? ''),
+      contact_phone: contact_phone !== revenueProgram?.contact_phone ?? ''
+    }),
+    [contact_email, contact_phone, revenueProgram?.contact_email, revenueProgram?.contact_phone]
+  );
+
+  const submit = async (data: ContactInfoFormFields) => {
+    setErrorMessage(undefined);
+
+    try {
+      await updateRevenueProgram(data);
+      setShowSuccess(true);
+    } catch (error) {
+      setShowSuccess(false);
+
+      const axiosError = error as AxiosError;
+      if (axiosError?.response?.data) {
+        setErrorMessage({
+          contact_email: axiosError.response.data?.contact_email?.[0],
+          contact_phone: axiosError.response.data?.contact_phone?.[0]
+        });
+        return;
+      }
+
+      console.error(error);
+      alert.error(GENERIC_ERROR);
+    }
+  };
+
+  return (
+    <GenericErrorBoundary>
+      <Hero
+        title="Contributor Portal"
+        subtitle="Edit the contact information, links, and CTAs on your contributor portal."
+      />
+      <FormWrapper onSubmit={handleSubmit(submit)}>
+        <SectionWrapper>
+          <Label>Contact Information</Label>
+          <Description>
+            Input the phone number and email address contributors should use when reaching out with an issue or
+            question.
+            <br />
+            This will not change your RevEngine account contact details.
+          </Description>
+          <InputsWrapper>
+            <Controller
+              name="contact_phone"
+              control={control}
+              rules={{
+                pattern: {
+                  // Regex to allow characters: 0-9, *, #, +, -, ., _, (, ), and space
+                  value: /^[0-9*#+-._() ]+$/,
+                  message: 'Please enter a valid phone number.'
+                }
+              }}
+              render={({ field }) => (
+                <TextField
+                  {...field}
+                  fullWidth
+                  id="contact-phone"
+                  label="Phone Number"
+                  error={!!errors.contact_phone || !!errorMessage?.contact_phone}
+                  helperText={errors?.contact_phone?.message || errorMessage?.contact_phone}
+                />
+              )}
+            />
+            <Controller
+              name="contact_email"
+              control={control}
+              rules={{
+                pattern: {
+                  value: /\S+@\S+\.\S+/,
+                  message: 'Please enter a valid email address.'
+                }
+              }}
+              render={({ field }) => (
+                <TextField
+                  {...field}
+                  fullWidth
+                  id="contact-email"
+                  label="Email Address"
+                  error={!!errors.contact_email || !!errorMessage?.contact_email}
+                  helperText={errors?.contact_email?.message || errorMessage?.contact_email}
+                />
+              )}
+            />
+          </InputsWrapper>
+        </SectionWrapper>
+        <ActionWrapper>
+          <Button
+            color="secondary"
+            disabled={!Object.values(isDifferent).includes(true)}
+            onClick={() => {
+              reset({
+                contact_email: revenueProgram?.contact_email ?? '',
+                contact_phone: revenueProgram?.contact_phone ?? ''
+              });
+              setErrorMessage(undefined);
+            }}
+          >
+            Cancel Changes
+          </Button>
+          <Button
+            startIcon={<SaveIcon />}
+            disabled={!Object.values(isDifferent).includes(true)}
+            color="primaryDark"
+            type="submit"
+          >
+            Save
+          </Button>
+        </ActionWrapper>
+        {showSuccess && (
+          <SuccessMessage>
+            <CheckIcon />
+            <p>Successfully saved details!</p>
+          </SuccessMessage>
+        )}
+      </FormWrapper>
+    </GenericErrorBoundary>
+  );
+};
+
+const ContributorPortalPropTypes = {
+  revenueProgram: PropTypes.object
+};
+
+ContributorPortal.propTypes = ContributorPortalPropTypes;
+
+export default ContributorPortal;

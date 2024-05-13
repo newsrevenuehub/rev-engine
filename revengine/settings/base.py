@@ -240,7 +240,9 @@ DEFAULT_CACHE = "default"
 STRIPE_TRANSACTIONS_IMPORT_CACHE = "stripe_transactions_import"
 # For accounts with many transactions, we have seen this take up to 8.5 hours in prod, This TTL will give us a small amount
 # of headroom to accomodate.
-STRIPE_TRANSACTIONS_IMPORT_CACHE_TTL = 60 * 60 * 12  # 12 hours
+STRIPE_TRANSACTIONS_IMPORT_CACHE_TTL = os.getenv(
+    "STRIPE_TRANSACTIONS_IMPORT_CACHE_TTL", 60 * 60 * 12  # default is 12 hours
+)
 
 REDIS_URL = os.getenv("REDIS_TLS_URL", os.getenv("REDIS_URL", "redis://redis:6379"))
 

@@ -170,9 +170,9 @@ class IsSwitchboardAccount(permissions.BasePermission):
     Permission to lock down access to the switchboard account
     """
 
-    def has_permission(self, request, view):
+    def has_permission(self, request, view) -> bool:
         logger.debug("Checking if user is switchboard account")
-        return (
+        return bool(
             request.user.is_authenticated
             and request.user.email == settings.SWITCHBOARD_ACCOUNT_EMAIL
             and settings.SWITCHBOARD_ACCOUNT_EMAIL

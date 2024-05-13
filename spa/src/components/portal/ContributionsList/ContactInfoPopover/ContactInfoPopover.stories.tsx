@@ -3,7 +3,7 @@ import ContactInfoPopover from './ContactInfoPopover';
 
 export default {
   component: ContactInfoPopover,
-  title: 'Common/ContactInfoPopover'
+  title: 'Contributor/ContactInfoPopover'
 } as Meta<typeof ContactInfoPopover>;
 
 const Template: StoryFn<typeof ContactInfoPopover> = (props) => (

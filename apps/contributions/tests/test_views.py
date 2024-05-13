@@ -2372,8 +2372,16 @@ class TestSwitchboardContributionsViewSet:
         return RevenueProgramFactory()
 
     @pytest.fixture()
-    def contribution(self, rp_1):
+    def contribution_with_donation_page(self, rp_1):
         return ContributionFactory(donation_page__revenue_program=rp_1)
+
+    @pytest.fixture()
+    def contribution_without_donation_page(self, rp_1):
+        return ContributionFactory(donation_page=None, _revenue_program=rp_1)
+
+    @pytest.fixture(params=["contribution_with_donation_page", "contribution_without_donation_page"])
+    def contribution(self, request):
+        return request.getfixturevalue(request.param)
 
     @pytest.mark.parametrize(
         "request_has_revenue_program",

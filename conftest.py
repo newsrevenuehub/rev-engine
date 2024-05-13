@@ -1050,9 +1050,6 @@ def customer_subscription_updated_event():
 @pytest.fixture()
 def payment_intent_succeeded_one_time_event(_suppress_stripe_webhook_sig_verification):
     with Path("apps/contributions/tests/fixtures/payment-intent-succeeded-one-time-event.json").open() as f:
-        from icecream import ic
-
-        ic(f)
         return stripe.Webhook.construct_event(f.read(), None, stripe.api_key)
 
 

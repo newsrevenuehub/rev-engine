@@ -1626,6 +1626,13 @@ class TestPortalContributorsViewSet:
         )
         return contributor
 
+    def test_contributor_impact(self, portal_contributor_with_multiple_contributions, api_client):
+        contributor: Contributor = portal_contributor_with_multiple_contributions[0]
+        api_client.force_authenticate(contributor)
+        response = api_client.get(reverse("portal-contributor-impact", args=(contributor.id,)))
+        assert response.status_code == status.HTTP_200_OK
+        assert response.json().keys() == {"total", "total_paid", "total_refunded"}
+
     def test_contributions_list_happy_path(self, portal_contributor_with_multiple_contributions, api_client):
         contributor = portal_contributor_with_multiple_contributions[0]
         api_client.force_authenticate(contributor)

@@ -794,17 +794,33 @@ class TestStripeTransactionsImporter:
             )
 
     @pytest.mark.parametrize(
-        "metadata_rp_id, rp_exists, referer_slug",
-        ((None, False, ""), ("123", True, "slug"), ("123", False, ""), ("123", True, "")),
+        "metadata_rp_id, rp_exists, referer_slug, default_donation_page_exists, expect_page",
+        (
+            (None, False, "", False, False),
+            (None, True, "", True, False),
+            ("123", True, "slug", False, True),
+            ("123", False, "", False, False),
+            ("123", True, "", False, False),
+            ("123", False, "", True, False),
+            ("123", True, "", True, False),
+        ),
     )
-    def test_get_donation_page_from_metadata(self, mocker, metadata_rp_id, rp_exists, referer_slug):
+    def test_get_donation_page_from_metadata(
+        self, metadata_rp_id, rp_exists, referer_slug, default_donation_page_exists, expect_page
+    ):
         if rp_exists:
             kwargs = {"id": metadata_rp_id} if metadata_rp_id else {}
             rp = RevenueProgramFactory(**kwargs)
             page = DonationPageFactory(revenue_program=rp, slug=referer_slug)
+            if default_donation_page_exists:
+                rp.default_donation_page = DonationPageFactory()
+                rp.save()
         instance = StripeTransactionsImporter(stripe_account_id="test")
         metadata = {"referer": f"https://{DOMAIN_APEX}/{referer_slug}/", "revenue_program_id": metadata_rp_id}
-        assert instance.get_donation_page_from_metadata(metadata) == (page if rp_exists and referer_slug else None)
+        if expect_page:
+            assert instance.get_donation_page_from_metadata(metadata) == page
+        else:
+            assert instance.get_donation_page_from_metadata(metadata) is None
 
     @pytest.mark.parametrize(
         "stripe_entity, is_one_time",

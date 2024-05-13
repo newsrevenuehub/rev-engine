@@ -240,7 +240,7 @@ DEFAULT_CACHE = "default"
 STRIPE_TRANSACTIONS_IMPORT_CACHE = "stripe_transactions_import"
 # We expect stripe import runs to take less than 2 hours, so this gives
 # us some headroom.
-STRIPE_TRANSACTIONS_IMPORT_CACHE_TTL = 60 * 60 * 8  # 8 hours
+STRIPE_TRANSACTIONS_IMPORT_CACHE_TTL = 60 * 60 * 10  # 10 hours
 
 REDIS_URL = os.getenv("REDIS_TLS_URL", os.getenv("REDIS_URL", "redis://redis:6379"))
 

@@ -936,7 +936,12 @@ class TestStripeTransactionsImporter:
         start_time = now - datetime.timedelta(seconds=(settings.STRIPE_TRANSACTIONS_IMPORT_CACHE_TTL * time_percent))
         instance.log_ttl_concerns(start_time)
         if expect_warning:
-            mock_logger.assert_called_once()
+            mock_logger.assert_called_once_with(
+                "Stripe import for account %s took %s, which is longer than %s%% of the cache TTL. Consider increasing TTLs for cache entries related to stripe import.",
+                instance.stripe_account_id,
+                instance.format_timedelta(now - start_time),
+                TTL_WARNING_THRESHOLD_PERCENT * 100,
+            )
         else:
             mock_logger.assert_not_called()
 

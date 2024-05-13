@@ -238,9 +238,9 @@ AUTH_PASSWORD_VALIDATORS = [
 CONTRIBUTION_CACHE_TTL = timedelta(minutes=30)
 DEFAULT_CACHE = "default"
 STRIPE_TRANSACTIONS_IMPORT_CACHE = "stripe_transactions_import"
-# We expect stripe import runs to take less than 2 hours, so this gives
-# us some headroom.
-STRIPE_TRANSACTIONS_IMPORT_CACHE_TTL = 60 * 60 * 10  # 10 hours
+# For accounts with many transactions, we have seen this take up to 8.5 hours in prod, This TTL will give us a small amount
+# of headroom to accomodate.
+STRIPE_TRANSACTIONS_IMPORT_CACHE_TTL = 60 * 60 * 12  # 12 hours
 
 REDIS_URL = os.getenv("REDIS_TLS_URL", os.getenv("REDIS_URL", "redis://redis:6379"))
 

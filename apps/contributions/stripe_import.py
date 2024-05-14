@@ -97,12 +97,14 @@ def log_backoff(details):
             "Backing off %s seconds after %s tries due to rate limit error. "
             "Error message: %s. "
             "Status code: %s. "
-            "Stripe request ID: %s.",
+            "Stripe request ID: %s. "
+            "Stripe error: %s.",
             details["wait"],
             details["tries"],
             exc.user_message,
             exc.http_status,
             exc.request_id,
+            exc.error,
             exc_info=True,
         )
     else:

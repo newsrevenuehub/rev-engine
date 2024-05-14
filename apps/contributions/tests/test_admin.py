@@ -91,6 +91,7 @@ class ContributionAdminTest(TestCase):
     def _make_listview_request(self):
         return self.factory.get(reverse("admin:contributions_contribution_changelist"))
 
+    @mock.patch("apps.contributions.payment_managers.StripePaymentManager.complete_payment")
     def test_accept_flagged_contribution(self, mock_complete_payment):
         self.contribution_admin.message_user = mock.Mock()
         request = self._make_listview_request()
@@ -102,6 +103,7 @@ class ContributionAdminTest(TestCase):
         mock_complete_payment.assert_called_with(reject=False)
         assert django.contrib.messages.SUCCESS == self.contribution_admin.message_user.call_args.args[2]
 
+    @mock.patch("apps.contributions.payment_managers.StripePaymentManager.complete_payment")
     def test_reject_flagged_contribution(self, mock_complete_payment):
         self.contribution_admin.message_user = mock.Mock()
         request = self._make_listview_request()
@@ -112,6 +114,7 @@ class ContributionAdminTest(TestCase):
         mock_complete_payment.assert_called_with(reject=True)
         assert django.contrib.messages.SUCCESS == self.contribution_admin.message_user.call_args.args[2]
 
+    @mock.patch("apps.contributions.payment_managers.StripePaymentManager.complete_payment")
     def test_failed_reject_flagged_contribution(self, mock_complete_payment):
         self.contribution_admin.message_user = mock.Mock()
         mock_complete_payment.side_effect = apps.contributions.payment_managers.PaymentProviderError
@@ -129,7 +132,7 @@ class ContributionAdminTest(TestCase):
             self.contribution_admin.accept_flagged_contribution(request, queryset)
 
     @mock.patch("apps.contributions.models.Contribution.process_flagged_payment")
-    def test_accept_or_reject_after_paid_fails(self, process_flagged_payment, _):
+    def test_accept_or_reject_after_paid_fails(self, process_flagged_payment):
         request = self._make_listview_request()
         contribution = ContributionFactory(bad_actor_score=5, status=ContributionStatus.PAID)
         queryset = Contribution.objects.filter(pk=contribution.pk)

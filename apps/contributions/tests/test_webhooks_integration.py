@@ -529,7 +529,6 @@ class TestInvoicePaymentSucceeded:
             )
         mocker.patch("stripe.PaymentIntent.retrieve", return_value=pi)
         mocker.patch("stripe.BalanceTransaction.retrieve", return_value=balance_transaction)
-        mocker.patch("stripe.PaymentMethod.retrieve", return_value=payment_method)
         return event, contribution, is_first_payment, payment_method
 
     def test_happy_path(self, happy_path_test_case, mocker, client):
@@ -546,7 +545,6 @@ class TestInvoicePaymentSucceeded:
         assert contribution.status == ContributionStatus.PAID
         assert contribution.last_payment_date == contribution.payment_set.order_by("-created").first().created
         assert contribution.provider_payment_method_id == payment_method.id
-        assert contribution.provider_payment_method_details == payment_method
         if is_first_payment:
             mock_send_receipt.assert_called_once()
         else:

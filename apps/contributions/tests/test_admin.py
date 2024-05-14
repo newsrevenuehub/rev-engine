@@ -63,7 +63,6 @@ class TestPaymentAdmin:
         assert response.status_code == 200
 
 
-@mock.patch("apps.contributions.models.Contribution.fetch_stripe_payment_method", return_value=None)
 class ContributionAdminTest(TestCase):
     def setUp(self):
         self.factory = RequestFactory()
@@ -81,31 +80,18 @@ class ContributionAdminTest(TestCase):
             bad_actor_score=2,
             donation_page=self.donation_page,
             payment_provider_used=PaymentProvider.STRIPE_LABEL,
-            # This is to squash a side effect in contribution.save
-            # TODO: DEV-3026
-            # set these to `None` because there is override of save in
-            # contributions models file that causes stripe payment data to be fetched
-            # in certain circumstances
-            provider_payment_method_id=None,
         )
         self.contrib_score_4 = ContributionFactory(
             status=ContributionStatus.FLAGGED,
             bad_actor_score=4,
             donation_page=self.donation_page,
             payment_provider_used=PaymentProvider.STRIPE_LABEL,
-            # This is to squash a side effect in contribution.save
-            # TODO: DEV-3026
-            # set these to `None` because there is override of save in
-            # contributions models file that causes stripe payment data to be fetched
-            # in certain circumstances
-            provider_payment_method_id=None,
         )
 
     def _make_listview_request(self):
         return self.factory.get(reverse("admin:contributions_contribution_changelist"))
 
-    @mock.patch("apps.contributions.payment_managers.StripePaymentManager.complete_payment")
-    def test_accept_flagged_contribution(self, mock_complete_payment, mock_fetch_stripe_payment_method):
+    def test_accept_flagged_contribution(self, mock_complete_payment):
         self.contribution_admin.message_user = mock.Mock()
         request = self._make_listview_request()
         setup_request(self.user, request)
@@ -116,8 +102,7 @@ class ContributionAdminTest(TestCase):
         mock_complete_payment.assert_called_with(reject=False)
         assert django.contrib.messages.SUCCESS == self.contribution_admin.message_user.call_args.args[2]
 
-    @mock.patch("apps.contributions.payment_managers.StripePaymentManager.complete_payment")
-    def test_reject_flagged_contribution(self, mock_complete_payment, mock_fetch_stripe_payment_method):
+    def test_reject_flagged_contribution(self, mock_complete_payment):
         self.contribution_admin.message_user = mock.Mock()
         request = self._make_listview_request()
         setup_request(self.user, request)
@@ -127,8 +112,7 @@ class ContributionAdminTest(TestCase):
         mock_complete_payment.assert_called_with(reject=True)
         assert django.contrib.messages.SUCCESS == self.contribution_admin.message_user.call_args.args[2]
 
-    @mock.patch("apps.contributions.payment_managers.StripePaymentManager.complete_payment")
-    def test_failed_reject_flagged_contribution(self, mock_complete_payment, mock_fetch_stripe_payment_method):
+    def test_failed_reject_flagged_contribution(self, mock_complete_payment):
         self.contribution_admin.message_user = mock.Mock()
         mock_complete_payment.side_effect = apps.contributions.payment_managers.PaymentProviderError
         request = self._make_listview_request()
@@ -137,7 +121,7 @@ class ContributionAdminTest(TestCase):
         self.contribution_admin.reject_flagged_contribution(request, queryset)
         assert django.contrib.messages.ERROR == self.contribution_admin.message_user.call_args.args[2]
 
-    def test_reject_non_flagged_fails(self, mock_fetch_stripe_payment_method):
+    def test_reject_non_flagged_fails(self):
         request = self._make_listview_request()
         contribution = ContributionFactory(bad_actor_score=5, status=ContributionStatus.PAID)
         queryset = Contribution.objects.filter(pk=contribution.pk)
@@ -156,28 +140,28 @@ class ContributionAdminTest(TestCase):
         self.contribution_admin.reject_flagged_contribution(request, queryset)
         assert not process_flagged_payment.called
 
-    def test_provider_payment_link(self, mock_fetch_stripe_payment_method):
+    def test_provider_payment_link(self):
         contribution = ContributionFactory(provider_payment_id="pi_1234")
         assert (
             self.contribution_admin.provider_payment_link(contribution) == f"<a href='"
             f"https://dashboard.stripe.com/test/connect/accounts/{contribution.stripe_account_id}/payments/{contribution.provider_payment_id}' target='_blank'>{contribution.provider_payment_id}</a>"
         )
 
-    def test_provider_subscription_link(self, mock_fetch_stripe_payment_method):
+    def test_provider_subscription_link(self):
         contribution = ContributionFactory(provider_subscription_id="sub_1234")
         assert (
             self.contribution_admin.provider_subscription_link(contribution) == f"<a href='"
             f"https://dashboard.stripe.com/test/connect/accounts/{contribution.stripe_account_id}/subscriptions/{contribution.provider_subscription_id}' target='_blank'>{contribution.provider_subscription_id}</a>"
         )
 
-    def test_provider_customer_link(self, mock_fetch_stripe_payment_method):
+    def test_provider_customer_link(self):
         contribution = ContributionFactory(provider_customer_id="cus_1234")
         assert (
             self.contribution_admin.provider_customer_link(contribution) == f"<a href='"
             f"https://dashboard.stripe.com/test/connect/accounts/{contribution.stripe_account_id}/customers/{contribution.provider_customer_id}' target='_blank'>{contribution.provider_customer_id}</a>"
         )
 
-    def test_links_not_available(self, mock_fetch_stripe_payment_method):
+    def test_links_not_available(self):
         contribution = ContributionFactory(
             provider_customer_id=None, provider_subscription_id=None, provider_payment_id=None
         )
@@ -185,21 +169,21 @@ class ContributionAdminTest(TestCase):
         assert self.contribution_admin.provider_payment_link(contribution) == "-"
         assert self.contribution_admin.provider_subscription_link(contribution) == "-"
 
-    def test_bad_actor_response_pretty(self, mock_fetch_stripe_payment_method):
+    def test_bad_actor_response_pretty(self):
         with open("apps/contributions/tests/fixtures/bad-actor-response.json") as fl:
             contribution = ContributionFactory(bad_actor_response=json.load(fl))
         output = self.contribution_admin.bad_actor_response_pretty(contribution)
         assert isinstance(output, str)
         assert len(output)
 
-    def test_payment_provider_data_pretty(self, mock_fetch_stripe_payment_method):
+    def test_payment_provider_data_pretty(self):
         with open("apps/contributions/tests/fixtures/payment-provider-data-monthly-contribution.json") as fl:
             contribution = ContributionFactory(payment_provider_data=json.load(fl))
         output = self.contribution_admin.payment_provider_data_pretty(contribution)
         assert isinstance(output, str)
         assert len(output)
 
-    def test_provider_payment_method_details_pretty(self, mock_fetch_stripe_payment_method):
+    def test_provider_payment_method_details_pretty(self):
         with open("apps/contributions/tests/fixtures/provider-payment-method-details.json") as fl:
             contribution = ContributionFactory(provider_payment_method_details=json.load(fl))
         output = self.contribution_admin.provider_payment_method_details_pretty(contribution)

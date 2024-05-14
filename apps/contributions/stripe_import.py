@@ -83,7 +83,7 @@ logger = logging.getLogger(
 logger_handler = logging.StreamHandler()
 logger_handler.setFormatter(
     logging.Formatter(
-        "%(asctime)s %(levelname)s request_id=%(request_id)s %(name)s:%(lineno)d - [%(funcName)s] %(message)s",
+        "%(asctime)s %(levelname)s %(name)s:%(lineno)d - [%(funcName)s] %(message)s",
         datefmt="%Y-%m-%d %H:%M:%S",
     )
 )

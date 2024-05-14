@@ -13,14 +13,17 @@ REVISION_COMMENT = "StripeTransactionsImporter.upsert_contribution created Contr
 
 
 class Command(BaseCommand):
-    """Find recurring contributions..."""
+    """Find recurring contributions affected by bug solved for in DEV-4783 and fix them by...
+
+    ...setting donation_page to None and setting `._revenue_program` to the correct RevenueProgram.
+    """
 
     def handle(self, *args, **options):
         self.stdout.write(
             self.style.HTTP_INFO("Running `fix_imported_contributions_with_incorrect_donation_page_value`")
         )
         revision_subquery = Revision.objects.filter(
-            comment="StripeTransactionsImporter.upsert_contribution created Contribution",
+            comment=REVISION_COMMENT,
             version__object_id=Cast(OuterRef("pk"), output_field=CharField()),
             version__content_type__model="contribution",
         ).values("pk")

@@ -4,11 +4,20 @@ from zoneinfo import ZoneInfo
 from django.core.management import call_command
 
 import pytest
+import reversion
 import stripe
 
+from apps.contributions.management.commands.fix_imported_contributions_with_incorrect_donation_page_value import (
+    REVISION_COMMENT,
+)
 from apps.contributions.models import Payment
-from apps.contributions.tests.factories import ContributionFactory, PaymentFactory
+from apps.contributions.tests.factories import (
+    ContributionFactory,
+    ContributorFactory,
+    PaymentFactory,
+)
 from apps.organizations.tests.factories import PaymentProviderFactory, RevenueProgramFactory
+from apps.pages.tests.factories import DonationPageFactory
 
 
 @pytest.mark.django_db
@@ -261,3 +270,79 @@ def test_clear_stripe_transactions_import_cache(mocker):
     )
     call_command("clear_stripe_transactions_import_cache")
     mock_clear_cache.assert_called_once()
+
+
+@pytest.mark.django_db()
+class Test_fix_imported_contributions_with_incorrect_donation_page_value:
+
+    @pytest.fixture()
+    def rp_1(self):
+        return RevenueProgramFactory()
+
+    @pytest.fixture()
+    def rp_2(self):
+        return RevenueProgramFactory()
+
+    @pytest.fixture()
+    def eligible_metadata(self, rp_1):
+        return {
+            "agreed_to_pay_fees": True,
+            "donor_selected_amount": 100,
+            "revenue_program_id": str(rp_1.id),
+            "revenue_program_slug": rp_1.slug,
+            "source": "rev-engine",
+            "schema_version": "1.5",
+        }
+
+    @pytest.fixture()
+    def ineligible_metadata(self, rp_2):
+        return {
+            "agreed_to_pay_fees": True,
+            "donor_selected_amount": 100,
+            "referer": "https://something-truthy.com",
+            "revenue_program_id": str(rp_2.id),
+            "revenue_program_slug": rp_2.slug,
+            "source": "rev-engine",
+            "schema_version": "1.5",
+        }
+
+    @pytest.fixture()
+    def eligible_contribution(self, rp_1, eligible_metadata):
+        page = DonationPageFactory(revenue_program=rp_1)
+        page.revenue_program.default_donation_page = page
+        page.revenue_program.save()
+        contributor = ContributorFactory()
+        contribution = ContributionFactory.build(
+            donation_page=page, contribution_metadata=eligible_metadata, contributor=contributor
+        )
+        with reversion.create_revision():
+            contribution.save()
+            reversion.set_comment(REVISION_COMMENT)
+        return contribution
+
+    @pytest.fixture()
+    def ineligible_contribution_cause_metadata(self, rp_2, ineligible_metadata):
+        page = DonationPageFactory(revenue_program=rp_2)
+        page.revenue_program.default_donation_page = page
+        page.revenue_program.save()
+        contributor = ContributorFactory()
+        contribution = ContributionFactory(
+            donation_page=page, contribution_metadata=ineligible_metadata, contributor=contributor
+        )
+        with reversion.create_revision():
+            contribution.save()
+            reversion.set_comment(REVISION_COMMENT)
+        return contribution
+
+    @pytest.mark.parametrize("has_eligible", (True, False))
+    def test_happy_path(self, has_eligible, eligible_contribution, ineligible_contribution_cause_metadata, rp_1):
+        ineligible_modified = ineligible_contribution_cause_metadata.modified
+        if not has_eligible:
+            eligible_contribution.delete()
+        call_command("fix_imported_contributions_with_incorrect_donation_page_value")
+        if has_eligible:
+            eligible_contribution.refresh_from_db()
+            assert eligible_contribution._revenue_program == rp_1
+            assert eligible_contribution.donation_page is None
+        ineligible_contribution_cause_metadata.refresh_from_db()
+        assert ineligible_contribution_cause_metadata.modified == ineligible_modified

@@ -1,5 +1,6 @@
 from django.core.management.base import BaseCommand
-from django.db.models import Exists, F, OuterRef
+from django.db.models import CharField, Exists, F, OuterRef, Q
+from django.db.models.functions import Cast
 
 import reversion
 from reversion.models import Revision
@@ -16,15 +17,28 @@ class Command(BaseCommand):
             self.style.HTTP_INFO("Running `fix_imported_contributions_with_incorrect_donation_page_value`")
         )
         revision_subquery = Revision.objects.filter(
-            comment="StripeTransactionsImporter.upsert_contribution created contribution",
-            version__object_id=OuterRef("pk"),
+            comment="StripeTransactionsImporter.upsert_contribution created Contribution",
+            version__object_id=Cast(OuterRef("pk"), output_field=CharField()),
             version__content_type__model="contribution",
         ).values("pk")
         contributions = Contribution.objects.filter(
+            # only contributions created by StripeTransactionsImporter.upsert_contribution
             Exists(revision_subquery),
+            # Either metadata has no referer entry
+            ~Q(contribution_metadata__has_key="referer")
+            # Or referer is empty
+            | Q(contribution_metadata__referer="")
+            # Or referer is null
+            | Q(contribution_metadata__referer__isnull=True),
+            # And revenue program id is not empty
+            ~Q(contribution_metadata__revenue_program_id=""),
+            # And revenue program id is not null
+            contribution_metadata__revenue_program_id__isnull=False,
             donation_page__isnull=False,
+            # donation page is not null and its set to same value as default donation page of the rp
             donation_page=F("donation_page__revenue_program__default_donation_page"),
         )
+
         if not contributions.exists():
             self.stdout.write(self.style.HTTP_INFO("No effected contributions found, exiting"))
             return

@@ -1132,13 +1132,14 @@ class Test_log_backoff:
             mock_logger.assert_called_once_with(
                 (
                     "Backing off %s seconds after %s tries due to rate limit error. Error message: %s. "
-                    "Status code: %s. Stripe request ID: %s."
+                    "Status code: %s. Stripe request ID: %s. Stripe error: %s."
                 ),
                 details["wait"],
                 details["tries"],
                 details["value"].user_message,
                 details["value"].http_status,
                 details["value"].request_id,
+                details["value"].error,
                 exc_info=True,
             )
         else:

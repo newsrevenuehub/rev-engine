@@ -642,7 +642,7 @@ class TestStripeTransactionsImporter:
                 instance.get_or_create_contributor_from_customer("cus_1")
 
     @pytest.mark.parametrize(
-        "payment_method, default_payment_method, is_one_time, invoice_settings, expect_pm",
+        "payment_method, default_payment_method, is_one_time, invoice_settings, expect_pm_id",
         (
             ("something", None, True, None, True),
             (None, "something", False, None, True),
@@ -651,8 +651,8 @@ class TestStripeTransactionsImporter:
             (None, None, True, None, False),
         ),
     )
-    def test_get_payment_method_for_stripe_entity(
-        self, mocker, payment_method, default_payment_method, is_one_time, invoice_settings, expect_pm
+    def test_get_payment_method_id_for_stripe_entity(
+        self, mocker, payment_method, default_payment_method, is_one_time, invoice_settings, expect_pm_id
     ):
         instance = StripeTransactionsImporter(stripe_account_id="test")
         mocker.patch.object(instance, "get_resource_from_cache", return_value={"invoice_settings": invoice_settings})
@@ -661,17 +661,16 @@ class TestStripeTransactionsImporter:
             if is_one_time
             else {"default_payment_method": default_payment_method, "id": "sub_1"}
         )
-        mocker.patch("stripe.PaymentMethod.retrieve", return_value=(pm := mocker.Mock()))
-        pm = instance.get_payment_method_for_stripe_entity(
+        pm_id = instance.get_payment_method_id_for_stripe_entity(
             stripe_entity=stripe_entity,
             customer_id="cus_1",
             is_one_time=is_one_time,
         )
 
-        if expect_pm:
-            assert pm
+        if expect_pm_id:
+            assert pm_id
         else:
-            assert pm is None
+            assert pm_id is None
 
     @pytest.mark.parametrize("action", (common_utils.CREATED, common_utils.UPDATED, common_utils.LEFT_UNCHANGED, "foo"))
     def test_update_contribution_stats(self, action):
@@ -771,6 +770,7 @@ class TestStripeTransactionsImporter:
             "is_one_time": is_one_time,
             "contributor": ContributorFactory(),
             "customer_id": "cus_1",
+            "payment_method_id": "pm_1",
             "payment_method": {},
         }
         mocker.patch.object(instance, "get_refunds_for_payment_intent", return_value=[])
@@ -852,7 +852,7 @@ class TestStripeTransactionsImporter:
 
         mocker.patch("apps.contributions.stripe_import.StripeTransactionsImporter.upsert_payments_for_contribution")
         mocker.patch(
-            "apps.contributions.stripe_import.StripeTransactionsImporter.get_payment_method_for_stripe_entity",
+            "apps.contributions.stripe_import.StripeTransactionsImporter.get_payment_method_id_for_stripe_entity",
             return_value=None,
         )
         mocker.patch(

@@ -816,10 +816,8 @@ class StripeTransactionsImporter:
             stripe_entity=stripe_entity, customer_id=cust_id, is_one_time=is_one_time
         )
         pm = None
-        if self.retrieve_payment_method and pm_id:
-            retrieved = self.get_payment_method(pm_id)
-            if retrieved:
-                pm = retrieved.to_dict()
+        if pm_id and (retrieved := self.retrieve_payment_method(pm_id)):
+            pm = retrieved.to_dict()
         defaults = self.get_default_contribution_data(
             stripe_entity,
             is_one_time=is_one_time,

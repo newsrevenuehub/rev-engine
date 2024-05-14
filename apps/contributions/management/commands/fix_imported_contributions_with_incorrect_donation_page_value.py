@@ -27,18 +27,10 @@ class Command(BaseCommand):
         contributions = Contribution.objects.filter(
             # only contributions created by StripeTransactionsImporter.upsert_contribution
             Exists(revision_subquery),
-            # Either metadata has no referer entry
-            ~Q(contribution_metadata__has_key="referer")
-            # Or referer is empty
-            | Q(contribution_metadata__referer="")
-            # Or referer is null
-            | Q(contribution_metadata__referer__isnull=True),
-            # And revenue program id is not empty
+            ~Q(contribution_metadata__has_key="referer") | Q(contribution_metadata__referer=""),
             ~Q(contribution_metadata__revenue_program_id=""),
-            # And revenue program id is not null
-            contribution_metadata__revenue_program_id__isnull=False,
             donation_page__isnull=False,
-            # # donation page is not null and it's set to same value as default donation page of the rp
+            # donation is set to same value as default donation page of the rp
             donation_page=F("donation_page__revenue_program__default_donation_page"),
         )
 

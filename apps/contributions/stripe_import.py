@@ -75,17 +75,51 @@ REDIS_CACHE_DELETE_BATCH_SIZE = 10000
 # This is the threshold at which we want to warn that the cache is getting close to expiring after command has run
 TTL_WARNING_THRESHOLD_PERCENT = 0.75
 
-logger = logging.getLogger(f"{settings.DEFAULT_LOGGER}.{__name__}")
+# We set up some custom logging for this module so we get timestamps, which are helpful
+# in running down timing/rate limiting issues we're facing when this code runs.
+logger = logging.getLogger(
+    f"{settings.DEFAULT_LOGGER}.{__name__}",
+)
+logger_handler = logging.StreamHandler()
+logger_handler.setFormatter(
+    logging.Formatter(
+        "%(asctime)s %(levelname)s request_id=%(request_id)s %(name)s:%(lineno)d - [%(funcName)s] %(message)s",
+        datefmt="%Y-%m-%d %H:%M:%S",
+    )
+)
+logger.addHandler(logger_handler)
+
+
+def log_backoff(details):
+    """ """
+    if isinstance((exc := details["value"]), stripe.error.RateLimitError):
+        logger.warning(
+            "Backing off %s seconds after %s tries due to rate limit error. "
+            "Error message: %s. "
+            "Status code: %s. "
+            "Stripe request ID: %s.",
+            details["wait"],
+            details["tries"],
+            exc.user_message,
+            exc.http_status,
+            exc.request_id,
+            exc_info=True,
+        )
+    else:
+        logger.warning(
+            "Backing off seconds after {details['tries']} tries. Error: {exc}",
+            details["wait"],
+            details["tries"],
+            exc=exc,
+            exc_info=True,
+        )
+
 
 _STRIPE_API_BACKOFF_ARGS = {
     "max_tries": 5,
     "jitter": backoff.full_jitter,
+    "on_backoff": log_backoff,
 }
-
-# by default, backoff logs to a NullHandler. We want to be able to log giveup errors.
-logging.getLogger("backoff").addHandler(logging.StreamHandler())
-# this will cause backoff to only log in event of an error
-logging.getLogger("backoff").setLevel(logging.ERROR)
 
 
 def upsert_payment_for_transaction(

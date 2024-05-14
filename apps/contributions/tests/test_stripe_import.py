@@ -22,6 +22,7 @@ from apps.contributions.stripe_import import (
     RedisCachePipeline,
     StripeEventProcessor,
     StripeTransactionsImporter,
+    log_backoff,
     parse_slug_from_url,
     upsert_payment_for_transaction,
 )
@@ -1099,3 +1100,52 @@ class TestStripeEventProcessor:
         assert logger_spy.call_args == mocker.call("No event found for event id %s", supported_event.id)
         mock_process_webhook.assert_not_called()
         mock_process_webhook.delay.assert_not_called()
+
+
+class Test_log_backoff:
+
+    @pytest.fixture()
+    def stripe_rate_limit_error(self):
+        return stripe.error.RateLimitError(
+            message="message",
+            http_body="something",
+            http_status=429,
+            json_body={"error": {"message": "message"}},
+            headers={},
+            code="code",
+        )
+
+    @pytest.fixture()
+    def other_error(self):
+        return Exception("message")
+
+    @pytest.mark.parametrize("error", ("stripe_rate_limit_error", "other_error"))
+    def test_happy_path(self, mocker, error, request):
+        details = {
+            "value": request.getfixturevalue(error),
+            "wait": 10,
+            "tries": 3,
+        }
+        mock_logger = mocker.patch("apps.contributions.stripe_import.logger.warning")
+        log_backoff(details)
+        if isinstance(details["value"], stripe.error.RateLimitError):
+            mock_logger.assert_called_once_with(
+                (
+                    "Backing off %s seconds after %s tries due to rate limit error. Error message: %s. "
+                    "Status code: %s. Stripe request ID: %s."
+                ),
+                details["wait"],
+                details["tries"],
+                details["value"].user_message,
+                details["value"].http_status,
+                details["value"].request_id,
+                exc_info=True,
+            )
+        else:
+            mock_logger.assert_called_once_with(
+                "Backing off seconds after {details['tries']} tries. Error: {exc}",
+                details["wait"],
+                details["tries"],
+                exc=details["value"],
+                exc_info=True,
+            )

@@ -29,6 +29,7 @@ class Command(BaseCommand):
             Exists(revision_subquery),
             ~Q(contribution_metadata__has_key="referer") | Q(contribution_metadata__referer=""),
             ~Q(contribution_metadata__revenue_program_id=""),
+            contribution_metadata__has_key="revenue_program_id",
             donation_page__isnull=False,
             # donation is set to same value as default donation page of the rp
             donation_page=F("donation_page__revenue_program__default_donation_page"),

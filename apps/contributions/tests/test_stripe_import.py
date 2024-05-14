@@ -628,13 +628,16 @@ class TestStripeTransactionsImporter:
         instance.get_refunds_for_charge("ch_1")
 
     @pytest.mark.parametrize("customer_in_cache", (True, False))
-    def test_get_or_create_contributor_from_customer(self, mocker, customer_in_cache):
+    @pytest.mark.parametrize("customer_has_email", (True, False))
+    def test_get_or_create_contributor_from_customer(self, mocker, customer_in_cache, customer_has_email):
         instance = StripeTransactionsImporter(stripe_account_id="test")
         mocker.patch.object(
-            instance, "get_resource_from_cache", return_value={"email": "foo@bar.com"} if customer_in_cache else None
+            instance,
+            "get_resource_from_cache",
+            return_value={"email": "foo@bar.com" if customer_has_email else None} if customer_in_cache else None,
         )
         mocker.patch.object(instance, "get_or_create_contributor", return_value=mocker.Mock())
-        if customer_in_cache:
+        if customer_in_cache and customer_has_email:
             assert instance.get_or_create_contributor_from_customer("cus_1")
         else:
             with pytest.raises(InvalidStripeTransactionDataError):

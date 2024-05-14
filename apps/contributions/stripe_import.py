@@ -569,7 +569,9 @@ class StripeTransactionsImporter:
         customer = self.get_resource_from_cache(self.make_key(entity_name="Customer", entity_id=customer_id))
         if not customer:
             raise InvalidStripeTransactionDataError(f"No customer found for id {customer_id}")
-        return self.get_or_create_contributor(email=customer["email"])
+        if not (email := customer.get("email")):
+            raise InvalidStripeTransactionDataError(f"No email found for customer {customer_id}")
+        return self.get_or_create_contributor(email=email)
 
     @backoff.on_exception(backoff.expo, stripe.error.RateLimitError, **_STRIPE_API_BACKOFF_ARGS)
     def get_payment_method(self, pm_id: str) -> stripe.PaymentMethod:

@@ -258,6 +258,15 @@ export function mapCustomStylesToMuiOverrides(styles: Partial<DefaultTheme> = {}
     palette: {
       primary: { main: styles?.colors?.cstm_CTAs ?? revEngineTheme.colors.primary },
       secondary: { main: styles?.colors?.cstm_CTAs ?? revEngineTheme.colors.primary }
+    },
+    overrides: {
+      MuiOutlinedInput: {
+        root: {
+          '&&.Mui-focused fieldset': {
+            borderColor: 'initial'
+          }
+        }
+      }
     }
   });
 }

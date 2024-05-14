@@ -49,6 +49,12 @@ class Command(BaseCommand):
             help="Optional comma-separated list of stripe accounts to limit to",
         )
         parser.add_argument("--async-mode", action="store_true", default=False)
+        parser.add_argument(
+            "--retrieve-payment-method",
+            action="store_true",
+            default=False,
+            help="Retrieve payment method details per contribution (note this may trigger API rate limiting)",
+        )
 
     def get_stripe_account_ids(self, for_orgs: list[str], for_stripe_accounts: list[str]) -> list[str]:
         query = PaymentProvider.objects.filter(stripe_account_id__isnull=False)
@@ -68,6 +74,7 @@ class Command(BaseCommand):
                     stripe_account_id=account,
                     from_date=int(options["gte"].timestamp()) if options["gte"] else None,
                     to_date=int(options["lte"].timestamp()) if options["lte"] else None,
+                    retrieve_payment_method=options["retrieve_payment_method"],
                 )
                 self.stdout.write(
                     self.style.SUCCESS(
@@ -79,6 +86,7 @@ class Command(BaseCommand):
                     from_date=options["gte"],
                     to_date=options["lte"],
                     stripe_account_id=account,
+                    retrieve_payment_method=options["retrieve_payment_method"],
                 ).import_contributions_and_payments()
                 self.stdout.write(self.style.SUCCESS(f"Import transactions for account {account} is done"))
 

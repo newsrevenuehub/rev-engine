@@ -237,6 +237,7 @@ class StripeTransactionsImporter:
     stripe_account_id: str
     from_date: datetime.datetime = None
     to_date: datetime.datetime = None
+    retrieve_payment_method: bool = False
 
     def __post_init__(self) -> None:
         self.redis = self.get_redis_for_transactions_import()
@@ -816,7 +817,7 @@ class StripeTransactionsImporter:
             stripe_entity=stripe_entity, customer_id=cust_id, is_one_time=is_one_time
         )
         pm = None
-        if pm_id and (retrieved := self.retrieve_payment_method(pm_id)):
+        if pm_id and self.retrieve_payment_method and (retrieved := self.get_payment_method(pm_id)):
             pm = retrieved.to_dict()
         defaults = self.get_default_contribution_data(
             stripe_entity,

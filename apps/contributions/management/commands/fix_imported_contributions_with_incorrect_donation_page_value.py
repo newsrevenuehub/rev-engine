@@ -1,3 +1,5 @@
+from pathlib import Path
+
 from django.core.management.base import BaseCommand
 from django.db.models import CharField, Exists, F, OuterRef, Q
 from django.db.models.functions import Cast
@@ -18,10 +20,14 @@ class Command(BaseCommand):
     ...setting donation_page to None and setting `._revenue_program` to the correct RevenueProgram.
     """
 
+    @property
+    def name(self):
+        return Path(__file__).name
+
     def handle(self, *args, **options):
-        self.stdout.write(
-            self.style.HTTP_INFO("Running `fix_imported_contributions_with_incorrect_donation_page_value`")
-        )
+        path = Path(__file__)
+        name = path.name
+        self.stdout.write(self.style.HTTP_INFO(f"Running `{self.name}`"))
         revision_subquery = Revision.objects.filter(
             comment=REVISION_COMMENT,
             version__object_id=Cast(OuterRef("pk"), output_field=CharField()),
@@ -54,9 +60,7 @@ class Command(BaseCommand):
             x._revenue_program = rp
             with reversion.create_revision():
                 x.save(update_fields={"donation_page", "_revenue_program", "modified"})
-                reversion.set_comment(
-                    "fix_imported_contributions_with_incorrect_donation_page_value updated contribution"
-                )
+                reversion.set_comment(f"{name} updated contribution")
             updated_ids.append(x.id)
         self.stdout.write(
             self.style.SUCCESS(
@@ -64,4 +68,4 @@ class Command(BaseCommand):
                 f"The following contributions were updated: {', '.join(map(str, updated_ids))}"
             )
         )
-        self.stdout.write(self.style.SUCCESS("`fix_imported_contributions_with_incorrect_donation_page_value` is done"))
+        self.stdout.write(self.style.SUCCESS(f"`{self.name}` is done"))

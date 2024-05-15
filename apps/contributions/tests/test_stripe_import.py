@@ -22,6 +22,7 @@ from apps.contributions.stripe_import import (
     RedisCachePipeline,
     StripeEventProcessor,
     StripeTransactionsImporter,
+    log_backoff,
     parse_slug_from_url,
     upsert_payment_for_transaction,
 )
@@ -717,7 +718,8 @@ class TestStripeTransactionsImporter:
         assert instance.get_refunds_for_payment_intent({"id": "pi_1"})
 
     @pytest.mark.parametrize("interval", (ContributionInterval.ONE_TIME, ContributionInterval.MONTHLY))
-    def test_upsert_payments_for_contribution(self, mocker, interval):
+    @pytest.mark.parametrize("pre_existing_payment_for_bt", (True, False))
+    def test_upsert_payments_for_contribution(self, mocker, interval, pre_existing_payment_for_bt):
         # one has balance transaction, another does not so we go through both branches of code
         refunds = [{"id": "ref_1", "balance_transaction": "bt_1"}, {"id": "ref_2", "balance_transaction": None}]
         charge = {"balance_transaction": "bt_1", "id": "ch_1"}
@@ -734,7 +736,8 @@ class TestStripeTransactionsImporter:
         mocker.patch.object(instance, "get_resource_from_cache", side_effect=get_resource_from_cache_side_effects)
         mocker.patch.object(instance, "make_key")
         mocker.patch(
-            "apps.contributions.stripe_import.upsert_payment_for_transaction", return_value=(mocker.Mock(), "created")
+            "apps.contributions.stripe_import.upsert_payment_for_transaction",
+            return_value=(mocker.Mock(), "created") if not pre_existing_payment_for_bt else (None, None),
         )
         mocker.patch.object(instance, "get_resource_from_cache", return_value={"id": "tx_1"})
         mocker.patch.object(instance, "update_payment_stats")
@@ -792,17 +795,33 @@ class TestStripeTransactionsImporter:
             )
 
     @pytest.mark.parametrize(
-        "metadata_rp_id, rp_exists, referer_slug",
-        ((None, False, ""), ("123", True, "slug"), ("123", False, ""), ("123", True, "")),
+        "metadata_rp_id, rp_exists, referer_slug, default_donation_page_exists, expect_page",
+        (
+            (None, False, "", False, False),
+            (None, True, "", True, False),
+            ("123", True, "slug", False, True),
+            ("123", False, "", False, False),
+            ("123", True, "", False, False),
+            ("123", False, "", True, False),
+            ("123", True, "", True, False),
+        ),
     )
-    def test_get_donation_page_from_metadata(self, mocker, metadata_rp_id, rp_exists, referer_slug):
+    def test_get_donation_page_from_metadata(
+        self, metadata_rp_id, rp_exists, referer_slug, default_donation_page_exists, expect_page
+    ):
         if rp_exists:
             kwargs = {"id": metadata_rp_id} if metadata_rp_id else {}
             rp = RevenueProgramFactory(**kwargs)
             page = DonationPageFactory(revenue_program=rp, slug=referer_slug)
+            if default_donation_page_exists:
+                rp.default_donation_page = DonationPageFactory()
+                rp.save()
         instance = StripeTransactionsImporter(stripe_account_id="test")
         metadata = {"referer": f"https://{DOMAIN_APEX}/{referer_slug}/", "revenue_program_id": metadata_rp_id}
-        assert instance.get_donation_page_from_metadata(metadata) == (page if rp_exists and referer_slug else None)
+        if expect_page:
+            assert instance.get_donation_page_from_metadata(metadata) == page
+        else:
+            assert instance.get_donation_page_from_metadata(metadata) is None
 
     @pytest.mark.parametrize(
         "stripe_entity, is_one_time",
@@ -918,7 +937,13 @@ class TestStripeTransactionsImporter:
         start_time = now - datetime.timedelta(seconds=(settings.STRIPE_TRANSACTIONS_IMPORT_CACHE_TTL * time_percent))
         instance.log_ttl_concerns(start_time)
         if expect_warning:
-            mock_logger.assert_called_once()
+            mock_logger.assert_called_once_with(
+                "Stripe import for account %s took %s, which is longer than %s%% of the cache TTL (%s). Consider increasing TTLs for cache entries related to stripe import.",
+                instance.stripe_account_id,
+                instance.format_timedelta(now - start_time),
+                TTL_WARNING_THRESHOLD_PERCENT * 100,
+                instance.format_timedelta(datetime.timedelta(seconds=settings.STRIPE_TRANSACTIONS_IMPORT_CACHE_TTL)),
+            )
         else:
             mock_logger.assert_not_called()
 
@@ -1075,3 +1100,53 @@ class TestStripeEventProcessor:
         assert logger_spy.call_args == mocker.call("No event found for event id %s", supported_event.id)
         mock_process_webhook.assert_not_called()
         mock_process_webhook.delay.assert_not_called()
+
+
+class Test_log_backoff:
+
+    @pytest.fixture()
+    def stripe_rate_limit_error(self):
+        return stripe.error.RateLimitError(
+            message="message",
+            http_body="something",
+            http_status=429,
+            json_body={"error": {"message": "message"}},
+            headers={},
+            code="code",
+        )
+
+    @pytest.fixture()
+    def other_error(self):
+        return Exception("message")
+
+    @pytest.mark.parametrize("error", ("stripe_rate_limit_error", "other_error"))
+    def test_happy_path(self, mocker, error, request):
+        details = {
+            "value": request.getfixturevalue(error),
+            "wait": 10,
+            "tries": 3,
+        }
+        mock_logger = mocker.patch("apps.contributions.stripe_import.logger.warning")
+        log_backoff(details)
+        if isinstance(details["value"], stripe.error.RateLimitError):
+            mock_logger.assert_called_once_with(
+                (
+                    "Backing off %s seconds after %s tries due to rate limit error. Error message: %s. "
+                    "Status code: %s. Stripe request ID: %s. Stripe error: %s."
+                ),
+                details["wait"],
+                details["tries"],
+                details["value"].user_message,
+                details["value"].http_status,
+                details["value"].request_id,
+                details["value"].error,
+                exc_info=True,
+            )
+        else:
+            mock_logger.assert_called_once_with(
+                "Backing off seconds after {details['tries']} tries. Error: {exc}",
+                details["wait"],
+                details["tries"],
+                exc=details["value"],
+                exc_info=True,
+            )

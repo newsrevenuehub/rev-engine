@@ -75,17 +75,53 @@ REDIS_CACHE_DELETE_BATCH_SIZE = 10000
 # This is the threshold at which we want to warn that the cache is getting close to expiring after command has run
 TTL_WARNING_THRESHOLD_PERCENT = 0.75
 
-logger = logging.getLogger(f"{settings.DEFAULT_LOGGER}.{__name__}")
+# We set up some custom logging for this module so we get timestamps, which are helpful
+# in running down timing/rate limiting issues we're facing when this code runs.
+logger = logging.getLogger(
+    f"{settings.DEFAULT_LOGGER}.{__name__}",
+)
+logger_handler = logging.StreamHandler()
+logger_handler.setFormatter(
+    logging.Formatter(
+        "%(asctime)s %(levelname)s %(name)s:%(lineno)d - [%(funcName)s] %(message)s",
+        datefmt="%Y-%m-%d %H:%M:%S",
+    )
+)
+logger.addHandler(logger_handler)
+
+
+def log_backoff(details):
+    """Custom logging handler for backoff decorator that logs details from Stripe rate limit errors."""
+    if isinstance((exc := details["value"]), stripe.error.RateLimitError):
+        logger.warning(
+            "Backing off %s seconds after %s tries due to rate limit error. "
+            "Error message: %s. "
+            "Status code: %s. "
+            "Stripe request ID: %s. "
+            "Stripe error: %s.",
+            details["wait"],
+            details["tries"],
+            exc.user_message,
+            exc.http_status,
+            exc.request_id,
+            exc.error,
+            exc_info=True,
+        )
+    else:
+        logger.warning(
+            "Backing off seconds after {details['tries']} tries. Error: {exc}",
+            details["wait"],
+            details["tries"],
+            exc=exc,
+            exc_info=True,
+        )
+
 
 _STRIPE_API_BACKOFF_ARGS = {
     "max_tries": 5,
     "jitter": backoff.full_jitter,
+    "on_backoff": log_backoff,
 }
-
-# by default, backoff logs to a NullHandler. We want to be able to log giveup errors.
-logging.getLogger("backoff").addHandler(logging.StreamHandler())
-# this will cause backoff to only log in event of an error
-logging.getLogger("backoff").setLevel(logging.ERROR)
 
 
 def upsert_payment_for_transaction(
@@ -688,7 +724,14 @@ class StripeTransactionsImporter:
                 )
             )
             payment, action = upsert_payment_for_transaction(contribution, balance_transaction, is_refund)
-            logger.info("Payment %s for contribution %s was %s", payment.id, contribution.id, action)
+            if payment:
+                logger.info("Payment %s for contribution %s was %s", payment.id, contribution.id, action)
+            else:
+                logger.info(
+                    "No payment created for contribution %s and balance transaction %s",
+                    contribution.id,
+                    balance_transaction["id"],
+                )
             self.update_payment_stats(action, payment)
 
     def get_provider_payment_id_for_subscription(self, subscription: dict) -> str | None:
@@ -758,7 +801,6 @@ class StripeTransactionsImporter:
             return None
         if (_slug := metadata.get("referer")) and (slug := parse_slug_from_url(_slug)):
             return revenue_program.donationpage_set.filter(slug=slug).first()
-        return revenue_program.default_donation_page
 
     @transaction.atomic
     def upsert_contribution(self, stripe_entity: dict, is_one_time: bool) -> Tuple[Contribution, str]:
@@ -872,12 +914,13 @@ class StripeTransactionsImporter:
         if elapsed.seconds > settings.STRIPE_TRANSACTIONS_IMPORT_CACHE_TTL * TTL_WARNING_THRESHOLD_PERCENT:
             logger.warning(
                 (
-                    "Stripe import for account %s took %s seconds which is longer than %s%% of the cache TTL. "
+                    "Stripe import for account %s took %s, which is longer than %s%% of the cache TTL (%s). "
                     "Consider increasing TTLs for cache entries related to stripe import."
                 ),
-                elapsed.seconds,
-                TTL_WARNING_THRESHOLD_PERCENT * 100,
                 self.stripe_account_id,
+                self.format_timedelta(elapsed),
+                TTL_WARNING_THRESHOLD_PERCENT * 100,
+                self.format_timedelta(datetime.timedelta(seconds=settings.STRIPE_TRANSACTIONS_IMPORT_CACHE_TTL)),
             )
 
     def import_contributions_and_payments(self) -> None:

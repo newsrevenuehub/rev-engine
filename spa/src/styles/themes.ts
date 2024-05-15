@@ -263,7 +263,7 @@ export function mapCustomStylesToMuiOverrides(styles: Partial<DefaultTheme> = {}
       MuiOutlinedInput: {
         root: {
           '&&.Mui-focused fieldset': {
-            borderColor: 'initial'
+            borderColor: '#00BFDF'
           }
         }
       }

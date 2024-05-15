@@ -8,11 +8,11 @@ import ContributorPortal from './contributor-portal/ContributorPortal';
 
 function ContributorPortalRoute() {
   const { user, isLoading } = useUser();
-  const { isHubAdmin, isSuperUser } = getUserRole(user);
+  const { isOrgAdmin, isRPAdmin } = getUserRole(user);
 
   if (isLoading) return <GlobalLoading />;
 
-  if (isHubAdmin || isSuperUser) {
+  if (!isOrgAdmin && !isRPAdmin) {
     return <Redirect to={CONTENT_SLUG} />;
   }
 

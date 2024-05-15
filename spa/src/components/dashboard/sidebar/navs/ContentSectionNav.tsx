@@ -13,7 +13,7 @@ import { getUserRole } from 'utilities/getUserRole';
 
 function ContentSectionNav() {
   const { user } = useUser();
-  const { isHubAdmin, isSuperUser } = getUserRole(user);
+  const { isOrgAdmin, isRPAdmin } = getUserRole(user);
 
   return (
     <NavSection aria-labelledby="content-section-id">
@@ -22,7 +22,7 @@ function ContentSectionNav() {
         <NavItemIcon icon={ICONS.PAGES} />
         <SideBarText id="pages-nav-item-id">Pages</SideBarText>
       </NavItem>
-      {!isHubAdmin && !isSuperUser && (
+      {(isOrgAdmin || isRPAdmin) && (
         <NavItem
           aria-labelledby="customize-nav-item-id"
           role="listitem"
@@ -33,7 +33,7 @@ function ContentSectionNav() {
           <SideBarText id="customize-nav-item-id">Customize</SideBarText>
         </NavItem>
       )}
-      {!isHubAdmin && !isSuperUser && (
+      {(isOrgAdmin || isRPAdmin) && (
         <NavItem
           aria-labelledby="portal-nav-item-id"
           role="listitem"

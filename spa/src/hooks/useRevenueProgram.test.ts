@@ -1,10 +1,9 @@
+import { useQueryClient } from '@tanstack/react-query';
 import { renderHook } from '@testing-library/react-hooks';
 import Axios from 'ajax/portal-axios';
 import MockAdapter from 'axios-mock-adapter';
 import { TestQueryClientProvider } from 'test-utils';
 import { useRevenueProgram } from './useRevenueProgram';
-import { useQueryClient } from '@tanstack/react-query';
-import { AxiosError } from 'axios';
 
 jest.mock('@tanstack/react-query', () => ({
   ...jest.requireActual('@tanstack/react-query'),
@@ -39,7 +38,6 @@ describe('useRevenueProgram', () => {
       const { result } = hook();
 
       await result.current.updateRevenueProgram({});
-      // await Promise.resolve();
       expect(axiosMock.history.patch.length).toBe(1);
       expect(axiosMock.history.patch[0].url).toBe('revenue-programs/123/');
     });
@@ -62,7 +60,6 @@ describe('useRevenueProgram', () => {
       await result.current.updateRevenueProgram({});
 
       await waitFor(() => expect(axiosMock.history.patch.length).toBe(1));
-      expect(axiosMock.history.patch[0].url).toBe('revenue-programs/123/');
 
       expect(invalidateQueries).toHaveBeenCalledWith(['user']);
       expect(invalidateQueries).toHaveBeenCalledTimes(1);
@@ -76,32 +73,41 @@ describe('useRevenueProgram', () => {
         jest.restoreAllMocks();
       });
 
+      it("doesn't invalidate the user query on error", async () => {
+        axiosMock.onPatch('/revenue-programs/123/').networkError();
+        const invalidateQueries = jest.fn();
+        useQueryClientMock.mockReturnValue({ invalidateQueries } as any);
+        const { result } = hook();
+
+        expect(invalidateQueries).not.toHaveBeenCalled();
+
+        try {
+          await result.current.updateRevenueProgram({});
+        } catch (err) {}
+
+        expect(invalidateQueries).not.toHaveBeenCalled();
+      });
+
       it('throws an error on endpoint failure', async () => {
         axiosMock.onPatch('/revenue-programs/123/').networkError();
         const { result } = hook();
 
-        let error = { message: '' } as AxiosError;
-        try {
-          await result.current.updateRevenueProgram({});
-        } catch (err: any) {
-          error = err;
-        }
-
-        expect(error.message).toBe('Network Error');
+        await expect(() => result.current.updateRevenueProgram({})).rejects.toThrow(
+          expect.objectContaining({ message: 'Network Error' })
+        );
       });
 
-      it('throws error if revenue_program is undefined', async () => {
+      it('returns a dumb function if revenue_program is undefined', async () => {
+        const warn = jest.spyOn(console, 'warn').mockImplementation();
+
         const { result } = hook(true);
 
-        let error = { message: '' } as AxiosError;
+        await result.current.updateRevenueProgram({});
 
-        try {
-          await result.current.updateRevenueProgram({});
-        } catch (err: any) {
-          error = err;
-        }
-
-        expect(error.message).toBe('Revenue Program ID is required');
+        expect(axiosMock.history.patch.length).toBe(0);
+        expect(warn).toHaveBeenCalledTimes(1);
+        expect(warn).toHaveBeenCalledWith('No revenue program ID provided');
+        warn.mockRestore();
       });
     });
   });

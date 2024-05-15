@@ -17,9 +17,14 @@ export const Label = styled.p`
 export const Description = styled.p`
   font-size: ${(props) => props.theme.fontSizesUpdated.md};
   font-weight: 400;
-  color: ${(props) => props.theme.basePalette.greyscale.grey1};
+  color: ${(props) => props.theme.basePalette.greyscale.black};
   margin-bottom: 20px;
-  line-height: normal;
+  line-height: 21px;
+
+  & span {
+    color: ${(props) => props.theme.basePalette.greyscale.grey1};
+    font-weight: 600;
+  }
 `;
 
 export const InputsWrapper = styled.div`

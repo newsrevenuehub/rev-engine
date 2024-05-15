@@ -21,10 +21,7 @@ import {
   SuccessMessage
 } from './ContributorPortal.styles';
 
-type ContactInfoFormFields = {
-  contact_email: string;
-  contact_phone: string;
-};
+type ContactInfoFormFields = Pick<RevenueProgram, 'contact_email' | 'contact_phone'>;
 
 export interface ContributorPortalProps extends InferProps<typeof ContributorPortalPropTypes> {
   revenueProgram?: RevenueProgram;
@@ -57,10 +54,9 @@ const ContributorPortal = ({ revenueProgram }: ContributorPortalProps) => {
   }, [contact_email, contact_phone, setShowSuccess]);
 
   const isDifferent = useMemo(
-    () => ({
-      contact_email: contact_email !== (revenueProgram?.contact_email ?? ''),
-      contact_phone: contact_phone !== revenueProgram?.contact_phone ?? ''
-    }),
+    () =>
+      contact_email !== (revenueProgram?.contact_email ?? '') ||
+      contact_phone !== (revenueProgram?.contact_phone ?? ''),
     [contact_email, contact_phone, revenueProgram?.contact_email, revenueProgram?.contact_phone]
   );
 
@@ -74,7 +70,7 @@ const ContributorPortal = ({ revenueProgram }: ContributorPortalProps) => {
       setShowSuccess(false);
 
       const axiosError = error as AxiosError;
-      if (axiosError?.response?.data) {
+      if (axiosError.response?.data) {
         setErrorMessage({
           contact_email: axiosError.response.data?.contact_email?.[0],
           contact_phone: axiosError.response.data?.contact_phone?.[0]
@@ -82,7 +78,6 @@ const ContributorPortal = ({ revenueProgram }: ContributorPortalProps) => {
         return;
       }
 
-      console.error(error);
       alert.error(GENERIC_ERROR);
     }
   };
@@ -100,7 +95,7 @@ const ContributorPortal = ({ revenueProgram }: ContributorPortalProps) => {
             Input the phone number and email address contributors should use when reaching out with an issue or
             question.
             <br />
-            This will not change your RevEngine account contact details.
+            <span>This will not change your RevEngine account contact details.</span>
           </Description>
           <InputsWrapper>
             <Controller
@@ -119,6 +114,8 @@ const ContributorPortal = ({ revenueProgram }: ContributorPortalProps) => {
                   fullWidth
                   id="contact-phone"
                   label="Phone Number"
+                  placeholder="+1 (555) 555-5555"
+                  type="tel"
                   error={!!errors.contact_phone || !!errorMessage?.contact_phone}
                   helperText={errors?.contact_phone?.message || errorMessage?.contact_phone}
                 />
@@ -131,6 +128,10 @@ const ContributorPortal = ({ revenueProgram }: ContributorPortalProps) => {
                 pattern: {
                   value: /\S+@\S+\.\S+/,
                   message: 'Please enter a valid email address.'
+                },
+                maxLength: {
+                  value: 255,
+                  message: 'Email address must be less than 255 characters.'
                 }
               }}
               render={({ field }) => (
@@ -139,6 +140,7 @@ const ContributorPortal = ({ revenueProgram }: ContributorPortalProps) => {
                   fullWidth
                   id="contact-email"
                   label="Email Address"
+                  type="email"
                   error={!!errors.contact_email || !!errorMessage?.contact_email}
                   helperText={errors?.contact_email?.message || errorMessage?.contact_email}
                 />
@@ -149,7 +151,7 @@ const ContributorPortal = ({ revenueProgram }: ContributorPortalProps) => {
         <ActionWrapper>
           <Button
             color="secondary"
-            disabled={!Object.values(isDifferent).includes(true)}
+            disabled={!isDifferent}
             onClick={() => {
               reset({
                 contact_email: revenueProgram?.contact_email ?? '',
@@ -160,12 +162,7 @@ const ContributorPortal = ({ revenueProgram }: ContributorPortalProps) => {
           >
             Cancel Changes
           </Button>
-          <Button
-            startIcon={<SaveIcon />}
-            disabled={!Object.values(isDifferent).includes(true)}
-            color="primaryDark"
-            type="submit"
-          >
+          <Button startIcon={<SaveIcon />} disabled={!isDifferent} color="primaryDark" type="submit">
             Save
           </Button>
         </ActionWrapper>

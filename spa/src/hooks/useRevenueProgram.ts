@@ -13,12 +13,7 @@ export function useRevenueProgram(rpId?: number) {
 
   const { mutateAsync: updateRevenueProgram } = useMutation(
     (body: Partial<RevenueProgram>) => {
-      if (!rpId) {
-        // Should never happen
-        throw new Error('Revenue Program ID is required');
-      }
-
-      return patchRevenueProgram(rpId, body);
+      return patchRevenueProgram(rpId!, body);
     },
     {
       onSuccess: () => {
@@ -26,6 +21,10 @@ export function useRevenueProgram(rpId?: number) {
       }
     }
   );
+
+  if (!rpId) {
+    return { updateRevenueProgram: () => console.warn('No revenue program ID provided') };
+  }
 
   return { updateRevenueProgram };
 }

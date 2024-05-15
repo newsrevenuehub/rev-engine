@@ -28,7 +28,7 @@ describe('Contributor Portal', () => {
 
   beforeEach(() => {
     useUserMock.mockReturnValue({ user: {}, isLoading: false } as any);
-    getUserRoleMock.mockReturnValue({ isSuperUser: false, isHubAdmin: false } as any);
+    getUserRoleMock.mockReturnValue({ isOrgAdmin: true } as any);
   });
 
   it('shows a loading indicator while the user is loading', () => {
@@ -37,16 +37,28 @@ describe('Contributor Portal', () => {
     expect(screen.getByTestId('mock-global-loading')).toBeInTheDocument();
   });
 
+  it('redirects to /pages/ if user fails to load', () => {
+    useUserMock.mockReturnValue({ user: {}, isLoading: false } as any);
+    getUserRoleMock.mockReturnValue({ isOrgAdmin: undefined, isRPAdmin: undefined } as any);
+    tree();
+    expect(screen.getByTestId('mock-redirect')).toHaveTextContent('/pages/');
+    expect(screen.queryByTestId('contributor-portal')).not.toBeInTheDocument();
+  });
+
   it.each([
-    ['superuser', { isSuperUser: true }],
-    ['hub admin', { isHubAdmin: true }]
-  ])('redirects to /pages/ if user role = %s', (_, role) => {
+    ['superuser', { isOrgAdmin: false }],
+    ['hub admin', { isRPAdmin: false }]
+  ])('redirects to /pages/ if user role not = %s', (_, role) => {
     getUserRoleMock.mockReturnValue(role as any);
     tree();
     expect(screen.getByTestId('mock-redirect')).toHaveTextContent('/pages/');
+    expect(screen.queryByTestId('contributor-portal')).not.toBeInTheDocument();
   });
 
-  it('should render Contributor Portal page', () => {
+  it.each([
+    ['superuser', { isOrgAdmin: true }],
+    ['hub admin', { isRPAdmin: true }]
+  ])('should render Contributor Portal page', () => {
     tree();
     const helmet = Helmet.peek();
     expect(helmet.title).toBe('Contributor Portal | RevEngine');

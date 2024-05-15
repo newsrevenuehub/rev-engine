@@ -3,6 +3,7 @@ import itertools
 import json
 import logging
 from dataclasses import dataclass
+from functools import cached_property
 from typing import Any, Callable, Iterable, Tuple
 from urllib.parse import urlparse
 
@@ -75,17 +76,53 @@ REDIS_CACHE_DELETE_BATCH_SIZE = 10000
 # This is the threshold at which we want to warn that the cache is getting close to expiring after command has run
 TTL_WARNING_THRESHOLD_PERCENT = 0.75
 
-logger = logging.getLogger(f"{settings.DEFAULT_LOGGER}.{__name__}")
+# We set up some custom logging for this module so we get timestamps, which are helpful
+# in running down timing/rate limiting issues we're facing when this code runs.
+logger = logging.getLogger(
+    f"{settings.DEFAULT_LOGGER}.{__name__}",
+)
+logger_handler = logging.StreamHandler()
+logger_handler.setFormatter(
+    logging.Formatter(
+        "%(asctime)s %(levelname)s %(name)s:%(lineno)d - [%(funcName)s] %(message)s",
+        datefmt="%Y-%m-%d %H:%M:%S",
+    )
+)
+logger.addHandler(logger_handler)
+
+
+def log_backoff(details):
+    """Custom logging handler for backoff decorator that logs details from Stripe rate limit errors."""
+    if isinstance((exc := details["value"]), stripe.error.RateLimitError):
+        logger.warning(
+            "Backing off %s seconds after %s tries due to rate limit error. "
+            "Error message: %s. "
+            "Status code: %s. "
+            "Stripe request ID: %s. "
+            "Stripe error: %s.",
+            details["wait"],
+            details["tries"],
+            exc.user_message,
+            exc.http_status,
+            exc.request_id,
+            exc.error,
+            exc_info=True,
+        )
+    else:
+        logger.warning(
+            "Backing off seconds after {details['tries']} tries. Error: {exc}",
+            details["wait"],
+            details["tries"],
+            exc=exc,
+            exc_info=True,
+        )
+
 
 _STRIPE_API_BACKOFF_ARGS = {
     "max_tries": 5,
     "jitter": backoff.full_jitter,
+    "on_backoff": log_backoff,
 }
-
-# by default, backoff logs to a NullHandler. We want to be able to log giveup errors.
-logging.getLogger("backoff").addHandler(logging.StreamHandler())
-# this will cause backoff to only log in event of an error
-logging.getLogger("backoff").setLevel(logging.ERROR)
 
 
 def upsert_payment_for_transaction(
@@ -201,6 +238,7 @@ class StripeTransactionsImporter:
     stripe_account_id: str
     from_date: datetime.datetime = None
     to_date: datetime.datetime = None
+    retrieve_payment_method: bool = False
 
     def __post_init__(self) -> None:
         self.redis = self.get_redis_for_transactions_import()
@@ -569,23 +607,21 @@ class StripeTransactionsImporter:
         customer = self.get_resource_from_cache(self.make_key(entity_name="Customer", entity_id=customer_id))
         if not customer:
             raise InvalidStripeTransactionDataError(f"No customer found for id {customer_id}")
-        if not (email := customer.get("email")):
-            raise InvalidStripeTransactionDataError(f"No email found for customer {customer_id}")
-        return self.get_or_create_contributor(email=email)
+        return self.get_or_create_contributor(email=customer["email"])
 
     @backoff.on_exception(backoff.expo, stripe.error.RateLimitError, **_STRIPE_API_BACKOFF_ARGS)
     def get_payment_method(self, pm_id: str) -> stripe.PaymentMethod:
         """Get a payment method from stripe"""
         return stripe.PaymentMethod.retrieve(pm_id, stripe_account=self.stripe_account_id)
 
-    def get_payment_method_for_stripe_entity(
+    def get_payment_method_id_for_stripe_entity(
         self, stripe_entity: dict, customer_id: str, is_one_time: bool
-    ) -> dict | None:
-        """Get a payment method for a subscription or payment intent
+    ) -> str | None:
+        """Get the payment method ID associated with Stripe payment intent or subscription.
 
-        We prefer default payment method on sub/pi if present, but if not, we try getting from Stripe customer
+        We prefer default payment method on sub/pi if present, but if not, we try getting from Stripe customer.
         """
-        logger.debug("Attempting to retrieve payment method for %s", stripe_entity["id"])
+        logger.debug("Getting payment method ID for %s", stripe_entity["id"])
         customer = self.get_resource_from_cache(self.make_key(entity_name="Customer", entity_id=customer_id))
         pm_id = (
             stripe_entity.get("payment_method", None)
@@ -594,9 +630,7 @@ class StripeTransactionsImporter:
         )
         if not pm_id and customer.get("invoice_settings", None):
             pm_id = customer["invoice_settings"].get("default_payment_method", None)
-        if pm_id and (pm := self.get_payment_method(pm_id)):
-            return pm.to_dict()
-        return None
+        return pm_id
 
     def update_contribution_stats(self, action: str, contribution: Contribution | None) -> None:
         match action:
@@ -690,7 +724,14 @@ class StripeTransactionsImporter:
                 )
             )
             payment, action = upsert_payment_for_transaction(contribution, balance_transaction, is_refund)
-            logger.info("Payment %s for contribution %s was %s", payment.id, contribution.id, action)
+            if payment:
+                logger.info("Payment %s for contribution %s was %s", payment.id, contribution.id, action)
+            else:
+                logger.info(
+                    "No payment created for contribution %s and balance transaction %s",
+                    contribution.id,
+                    balance_transaction["id"],
+                )
             self.update_payment_stats(action, payment)
 
     def get_provider_payment_id_for_subscription(self, subscription: dict) -> str | None:
@@ -705,7 +746,7 @@ class StripeTransactionsImporter:
         is_one_time: bool,
         contributor: Contributor,
         customer_id: str,
-        payment_method: dict | None,
+        payment_method_id: str | None,
     ) -> dict:
         """Get default contribution data for a given stripe entity"""
         shared = {
@@ -713,8 +754,7 @@ class StripeTransactionsImporter:
             "contribution_metadata": stripe_entity["metadata"],
             "payment_provider_used": PaymentProvider.STRIPE_LABEL,
             "provider_customer_id": customer_id,
-            "provider_payment_method_id": payment_method["id"] if payment_method else None,
-            "provider_payment_method_details": payment_method if payment_method else None,
+            "provider_payment_method_id": payment_method_id,
         }
         if is_one_time:
             has_refunds = len(self.get_refunds_for_payment_intent(stripe_entity)) > 0
@@ -760,7 +800,6 @@ class StripeTransactionsImporter:
             return None
         if (_slug := metadata.get("referer")) and (slug := parse_slug_from_url(_slug)):
             return revenue_program.donationpage_set.filter(slug=slug).first()
-        return revenue_program.default_donation_page
 
     @transaction.atomic
     def upsert_contribution(self, stripe_entity: dict, is_one_time: bool) -> Tuple[Contribution, str]:
@@ -773,11 +812,15 @@ class StripeTransactionsImporter:
         if not cust_id:
             raise InvalidStripeTransactionDataError(f"No customer found for {entity_name} {stripe_entity['id']}")
         contributor, contributor_action = self.get_or_create_contributor_from_customer(cust_id)
-        pm = self.get_payment_method_for_stripe_entity(
+        pm_id = self.get_payment_method_id_for_stripe_entity(
             stripe_entity=stripe_entity, customer_id=cust_id, is_one_time=is_one_time
         )
         defaults = self.get_default_contribution_data(
-            stripe_entity, is_one_time=is_one_time, contributor=contributor, customer_id=cust_id, payment_method=pm
+            stripe_entity,
+            is_one_time=is_one_time,
+            contributor=contributor,
+            customer_id=cust_id,
+            payment_method_id=pm_id,
         )
         donation_page = self.get_donation_page_from_metadata(metadata)
         if donation_page:
@@ -832,15 +875,16 @@ class StripeTransactionsImporter:
             )
             self.subscriptions_processed += 1
 
-    def process_transactions_for_one_time_contributions(self) -> None:
-        """Process transactions for one-time contributions.
-
-        Note that the starting point here is the set of cached payment intents. Because we filter out payment intents
-        without referer and schema_version, we know ahead of time that all of the PIs we're looking at are for one-time contributions.
-        """
-        logger.info("Processing transactions for one-time contributions")
+    @cached_property
+    def payment_intents(self) -> Iterable[dict]:
+        """Get payment intents from cache"""
         for key in self.redis.scan_iter(match=self.make_key(entity_name="PaymentIntent_*")):
-            pi = self.get_resource_from_cache(key)
+            yield self.get_resource_from_cache(key)
+
+    def process_transactions_for_one_time_contributions(self) -> None:
+        """Process transactions for one-time contributions."""
+        logger.info("Processing transactions for one-time contributions")
+        for pi in self.payment_intents:
             try:
                 contribution, action = self.upsert_contribution(stripe_entity=pi, is_one_time=True)
             except (InvalidStripeTransactionDataError, InvalidMetadataError) as exc:
@@ -874,12 +918,13 @@ class StripeTransactionsImporter:
         if elapsed.seconds > settings.STRIPE_TRANSACTIONS_IMPORT_CACHE_TTL * TTL_WARNING_THRESHOLD_PERCENT:
             logger.warning(
                 (
-                    "Stripe import for account %s took %s seconds which is longer than %s%% of the cache TTL. "
+                    "Stripe import for account %s took %s, which is longer than %s%% of the cache TTL (%s). "
                     "Consider increasing TTLs for cache entries related to stripe import."
                 ),
-                elapsed.seconds,
-                TTL_WARNING_THRESHOLD_PERCENT * 100,
                 self.stripe_account_id,
+                self.format_timedelta(elapsed),
+                TTL_WARNING_THRESHOLD_PERCENT * 100,
+                self.format_timedelta(datetime.timedelta(seconds=settings.STRIPE_TRANSACTIONS_IMPORT_CACHE_TTL)),
             )
 
     def import_contributions_and_payments(self) -> None:

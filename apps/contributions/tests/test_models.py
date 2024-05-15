@@ -1533,6 +1533,103 @@ class TestContributionModel:
             mock_create_revision.assert_not_called()
             mock_set_revision_comment.assert_not_called()
 
+    @pytest.mark.parametrize(
+        "make_contribution_fn,stripe_return_val,expect_update",
+        (
+            (
+                lambda: ContributionFactory(
+                    one_time=True,
+                    provider_payment_method_id="something",
+                    provider_payment_method_details=None,
+                ),
+                {"foo": "bar"},
+                True,
+            ),
+            (
+                lambda: ContributionFactory(
+                    monthly_subscription=True,
+                    provider_payment_method_id="something",
+                    provider_payment_method_details=None,
+                ),
+                {"foo": "bar"},
+                True,
+            ),
+            (
+                lambda: ContributionFactory(
+                    one_time=True,
+                    provider_payment_method_id=None,
+                    provider_payment_method_details=None,
+                ),
+                {"foo": "bar"},
+                False,
+            ),
+            (
+                lambda: ContributionFactory(
+                    monthly_subscription=True,
+                    provider_payment_method_id=None,
+                    provider_payment_method_details=None,
+                ),
+                {"foo": "bar"},
+                False,
+            ),
+            (
+                lambda: ContributionFactory(
+                    one_time=True,
+                    provider_payment_method_id="something",
+                    provider_payment_method_details={"foo": "bar"},
+                ),
+                {"bizz": "bang"},
+                False,
+            ),
+            (
+                lambda: ContributionFactory(
+                    monthly_subscription=True,
+                    provider_payment_method_id="something",
+                    provider_payment_method_details={"foo": "bar"},
+                ),
+                {"bizz": "bang"},
+                False,
+            ),
+        ),
+    )
+    @pytest.mark.parametrize(
+        "contribution_status",
+        (ContributionStatus.PAID, ContributionStatus.FLAGGED, ContributionStatus.REJECTED, ContributionStatus.CANCELED),
+    )
+    @pytest.mark.parametrize("dry_run", (True, False))
+    def test_fix_missing_payment_method_details(
+        self, make_contribution_fn, stripe_return_val, expect_update, contribution_status, dry_run, monkeypatch, mocker
+    ):
+        contribution = make_contribution_fn()
+        contribution.status = contribution_status
+        contribution.save()
+
+        old_data = contribution.provider_payment_method_details
+        monkeypatch.setattr(
+            "apps.contributions.models.Contribution.fetch_stripe_payment_method",
+            lambda *args, **kwargs: stripe_return_val,
+        )
+        save_spy = mocker.spy(Contribution, "save")
+        mock_create_revision = mocker.patch("reversion.create_revision")
+        mock_create_revision.return_value.__enter__.return_value = mocker.Mock()
+        mock_set_revision_comment = mocker.patch("reversion.set_comment")
+
+        Contribution.fix_missing_payment_method_details_data(dry_run=dry_run)
+        contribution.refresh_from_db()
+        assert contribution.provider_payment_method_details == (
+            stripe_return_val if (expect_update and not dry_run) else old_data
+        )
+        if expect_update and not dry_run:
+            save_spy.assert_called_once_with(
+                contribution, update_fields={"provider_payment_method_details", "modified"}
+            )
+            mock_create_revision.assert_called_once()
+            mock_set_revision_comment.assert_called_once()
+        else:
+            save_spy.assert_not_called()
+            mock_create_revision.assert_not_called()
+            mock_set_revision_comment.assert_not_called()
+
     @pytest.fixture
     def empty_metadata_response(self):
         return {"metadata": {}}

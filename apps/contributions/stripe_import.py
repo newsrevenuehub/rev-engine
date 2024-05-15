@@ -91,7 +91,7 @@ logger.addHandler(logger_handler)
 
 
 def log_backoff(details):
-    """ """
+    """Custom logging handler for backoff decorator that logs details from Stripe rate limit errors."""
     if isinstance((exc := details["value"]), stripe.error.RateLimitError):
         logger.warning(
             "Backing off %s seconds after %s tries due to rate limit error. "

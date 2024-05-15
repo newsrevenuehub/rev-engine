@@ -1,14 +1,14 @@
 import { axe } from 'jest-axe';
 import userEvent from '@testing-library/user-event';
 import { fireEvent, render, screen, waitFor } from 'test-utils';
-import MockAdapter from 'axios-mock-adapter';
-import axios from 'ajax/portal-axios';
+import { useRevenueProgram } from 'hooks/useRevenueProgram';
 import { useAlert } from 'react-alert';
 
 import { GENERIC_ERROR } from 'constants/textConstants';
 
 import ContributorPortal, { ContributorPortalProps } from './ContributorPortal';
 
+jest.mock('hooks/useRevenueProgram');
 jest.mock('react-alert', () => ({
   ...jest.requireActual('react-alert'),
   useAlert: jest.fn()
@@ -22,21 +22,20 @@ const revenueProgram = {
 
 describe('ContributorPortal', () => {
   const useAlertMock = jest.mocked(useAlert);
-  const axiosMock = new MockAdapter(axios);
+  const useRevenueProgramMock = jest.mocked(useRevenueProgram);
 
   function tree(props?: Partial<ContributorPortalProps>) {
     return render(<ContributorPortal revenueProgram={revenueProgram} {...props} />);
   }
 
   beforeEach(() => {
-    axiosMock.onPatch('revenue-programs/1/').reply(200);
+    useRevenueProgramMock.mockReturnValue({
+      updateRevenueProgram: jest.fn()
+    });
     useAlertMock.mockReturnValue({
       error: jest.fn()
     } as any);
   });
-
-  afterEach(() => axiosMock.reset());
-  afterAll(() => axiosMock.restore());
 
   it('should render page', () => {
     tree();
@@ -79,8 +78,10 @@ describe('ContributorPortal', () => {
 
     it('should show error message from server if related to field', async () => {
       const errorSpy = jest.spyOn(console, 'error').mockImplementation(() => {});
-      axiosMock.onPatch('revenue-programs/1/').reply(400, {
-        contact_phone: ['mock-phone-number-error']
+      useRevenueProgramMock.mockReturnValue({
+        updateRevenueProgram: jest
+          .fn()
+          .mockRejectedValue({ response: { data: { contact_phone: ['mock-phone-number-error'] } } })
       });
 
       tree();
@@ -134,8 +135,10 @@ describe('ContributorPortal', () => {
 
     it('should show error message from server if related to field', async () => {
       const errorSpy = jest.spyOn(console, 'error').mockImplementation(() => {});
-      axiosMock.onPatch('revenue-programs/1/').reply(400, {
-        contact_email: ['mock-email-error']
+      useRevenueProgramMock.mockReturnValue({
+        updateRevenueProgram: jest
+          .fn()
+          .mockRejectedValue({ response: { data: { contact_email: ['mock-email-error'] } } })
       });
 
       tree();
@@ -176,9 +179,18 @@ describe('ContributorPortal', () => {
   });
 
   describe('onSubmit: Saving changes', () => {
+    const updateRevenueProgram = jest.fn();
+
+    beforeEach(() => {
+      useRevenueProgramMock.mockReturnValue({
+        updateRevenueProgram
+      });
+    });
+
     it('should call Revenue Program patch', async () => {
       tree();
-      expect(axiosMock.history.patch.length).toBe(0);
+
+      expect(updateRevenueProgram).not.toHaveBeenCalled();
 
       await fireEvent.change(screen.getByRole('textbox', { name: 'Phone Number' }), {
         target: { value: '123' }
@@ -190,9 +202,9 @@ describe('ContributorPortal', () => {
       userEvent.click(screen.getByRole('button', { name: /save/i }));
 
       await waitFor(() => {
-        expect(axiosMock.history.patch.length).toBe(1);
+        expect(updateRevenueProgram).toHaveBeenCalledTimes(1);
       });
-      expect(axiosMock.history.patch[0].data).toBe('{"contact_email":"email@mock.com","contact_phone":"123"}');
+      expect(updateRevenueProgram).toHaveBeenCalledWith({ contact_email: 'email@mock.com', contact_phone: '123' });
     });
 
     it('should show success message when patch returns 200', async () => {
@@ -237,15 +249,18 @@ describe('ContributorPortal', () => {
 
     it('should show generic error if patch fails', async () => {
       const errorSpy = jest.spyOn(console, 'error').mockImplementation(() => {});
+      const updateRevenueProgram = jest.fn().mockRejectedValue({});
       const alertError = jest.fn();
       useAlertMock.mockReturnValue({
         error: alertError
       } as any);
 
-      axiosMock.onPatch('revenue-programs/1/').networkError();
+      useRevenueProgramMock.mockReturnValue({
+        updateRevenueProgram
+      });
 
       tree();
-      expect(axiosMock.history.patch.length).toBe(0);
+      expect(updateRevenueProgram).not.toHaveBeenCalled();
       expect(screen.queryByText(GENERIC_ERROR)).not.toBeInTheDocument();
       expect(alertError).not.toHaveBeenCalled();
 
@@ -259,9 +274,8 @@ describe('ContributorPortal', () => {
       userEvent.click(screen.getByRole('button', { name: /save/i }));
 
       await waitFor(() => {
-        expect(axiosMock.history.patch.length).toBe(1);
+        expect(updateRevenueProgram).toHaveBeenCalledTimes(1);
       });
-      expect(axiosMock.history.patch[0].url).toBe(`revenue-programs/1/`);
 
       await waitFor(() => {
         expect(alertError).toHaveBeenCalledTimes(1);

@@ -15,6 +15,7 @@ import stripe
 import stripe.error
 import tldextract
 from django_redis import get_redis_connection
+from pydantic import BaseModel, ValidationError
 from redis import Redis
 from redis.client import Pipeline
 
@@ -91,6 +92,17 @@ logger_handler.setFormatter(
 logger.addHandler(logger_handler)
 
 
+class OnBackoffDetails(BaseModel):
+    """Details for backoff event handler"""
+
+    exception: Exception
+    tries: int
+    wait: float
+
+    class Config:
+        arbitrary_types_allowed = True
+
+
 def log_backoff(details: dict) -> None:
     """Custom logging handler for backoff decorator that logs details from Stripe rate limit errors.
 
@@ -106,29 +118,34 @@ def log_backoff(details: dict) -> None:
 
 
     """
-    if isinstance((exc := details["exception"]), stripe.error.RateLimitError):
-        logger.warning(
-            "Backing off %s seconds after %s tries due to rate limit error. "
-            "Error message: %s. "
-            "Status code: %s. "
-            "Stripe request ID: %s. "
-            "Stripe error: %s.",
-            details["wait"],
-            details["tries"],
-            exc.user_message,
-            exc.http_status,
-            exc.request_id,
-            exc.error,
-            exc_info=True,
-        )
+    try:
+        details = OnBackoffDetails(**details)
+    except ValidationError:
+        logger.exception("Error parsing backoff details: %s", details)
     else:
-        logger.warning(
-            "Backing off %s seconds after %s tries. Error: %s",
-            details["wait"],
-            details["tries"],
-            details["exception"],
-            exc_info=True,
-        )
+        if isinstance((exc := details.exception), stripe.error.RateLimitError):
+            logger.warning(
+                "Backing off %s seconds after %s tries due to rate limit error. "
+                "Error message: %s. "
+                "Status code: %s. "
+                "Stripe request ID: %s. "
+                "Stripe error: %s.",
+                details.wait,
+                details.tries,
+                exc.user_message,
+                exc.http_status,
+                exc.request_id,
+                exc.error,
+                exc_info=True,
+            )
+        else:
+            logger.warning(
+                "Backing off %s seconds after %s tries. Error: %s",
+                details.wait,
+                details.tries,
+                details.exception,
+                exc_info=True,
+            )
 
 
 _STRIPE_API_BACKOFF_ARGS = {

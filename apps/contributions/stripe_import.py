@@ -12,7 +12,6 @@ from django.db import IntegrityError, transaction
 
 import backoff
 import stripe
-import stripe.error
 import tldextract
 from django_redis import get_redis_connection
 from pydantic import BaseModel, ValidationError

@@ -23,6 +23,10 @@ const StyledSelect = styled(TextField)`
         display: block;
       }
     }
+
+    .NreSelectFocused .NreSelectNotchedOutline {
+      border-color: #00bfdf;
+    }
   }
 `;
 
@@ -46,9 +50,14 @@ export const Select = forwardRef<HTMLDivElement, SelectProps>((props, ref) => {
     <StyledSelect
       select
       variant="outlined"
-      // As a select no InputProps are needed, so we override TextField's default to avoid console errors
-      InputProps={{}}
-      SelectProps={{ classes: { selectMenu: 'NreSelectMenu' } }}
+      // Override focused border color so that no custom style is applied
+      InputProps={{
+        classes: {
+          notchedOutline: 'NreSelectNotchedOutline',
+          focused: 'NreSelectFocused'
+        } as any
+      }}
+      SelectProps={{ classes: { selectMenu: 'NreSelectMenu', outlined: 'NreSelectRoot' } }}
       ref={ref}
       {...other}
     >

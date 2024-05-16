@@ -237,7 +237,6 @@ class StripeTransactionsImporter:
     stripe_account_id: str
     from_date: datetime.datetime = None
     to_date: datetime.datetime = None
-    retrieve_payment_method: bool = False
 
     def __post_init__(self) -> None:
         self.redis = self.get_redis_for_transactions_import()
@@ -623,7 +622,11 @@ class StripeTransactionsImporter:
         """
         logger.debug("Attempting to retrieve payment method for %s", stripe_entity["id"])
         customer = self.get_resource_from_cache(self.make_key(entity_name="Customer", entity_id=customer_id))
-        pm_id = stripe_entity.get("payment_method", None)
+        pm_id = (
+            stripe_entity.get("payment_method", None)
+            if is_one_time
+            else stripe_entity.get("default_payment_method", None)
+        )
         if not pm_id and customer.get("invoice_settings", None):
             pm_id = customer["invoice_settings"].get("default_payment_method", None)
         if pm_id and (pm := self.get_payment_method(pm_id)):

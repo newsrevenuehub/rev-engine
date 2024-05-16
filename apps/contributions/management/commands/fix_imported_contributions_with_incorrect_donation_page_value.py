@@ -45,7 +45,7 @@ class Command(BaseCommand):
         )
 
         if not contributions.exists():
-            self.stdout.write(self.style.HTTP_INFO("No effected contributions found, exiting"))
+            self.stdout.write(self.style.HTTP_INFO("No affected contributions found, exiting"))
             return
 
         self.stdout.write(

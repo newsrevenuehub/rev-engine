@@ -1,4 +1,3 @@
-import logging
 import os
 
 from django.core.management.base import BaseCommand, CommandParser
@@ -10,9 +9,10 @@ from apps.contributions.tasks import task_import_contributions_and_payments_for_
 from apps.organizations.models import PaymentProvider
 
 
+# Temporarily commenting out while we try to get more detail about rate limites from Stripe.
 # otherwise we get thousands and thousands of info logs from stripe and hard to find our own logs
-stripe_logger = logging.getLogger("stripe")
-stripe_logger.setLevel(logging.ERROR)
+# stripe_logger = logging.getLogger("stripe")
+# stripe_logger.setLevel(logging.ERROR)
 
 
 class Command(BaseCommand):

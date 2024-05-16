@@ -3,7 +3,6 @@ import itertools
 import json
 import logging
 from dataclasses import dataclass
-from functools import cached_property
 from typing import Any, Callable, Iterable, Tuple
 from urllib.parse import urlparse
 
@@ -607,30 +606,29 @@ class StripeTransactionsImporter:
         customer = self.get_resource_from_cache(self.make_key(entity_name="Customer", entity_id=customer_id))
         if not customer:
             raise InvalidStripeTransactionDataError(f"No customer found for id {customer_id}")
-        return self.get_or_create_contributor(email=customer["email"])
+        if not (email := customer.get("email")):
+            raise InvalidStripeTransactionDataError(f"No email found for customer {customer_id}")
+        return self.get_or_create_contributor(email=email)
 
     @backoff.on_exception(backoff.expo, stripe.error.RateLimitError, **_STRIPE_API_BACKOFF_ARGS)
     def get_payment_method(self, pm_id: str) -> stripe.PaymentMethod:
         """Get a payment method from stripe"""
         return stripe.PaymentMethod.retrieve(pm_id, stripe_account=self.stripe_account_id)
 
-    def get_payment_method_id_for_stripe_entity(
+    def get_payment_method_for_stripe_entity(
         self, stripe_entity: dict, customer_id: str, is_one_time: bool
-    ) -> str | None:
-        """Get the payment method ID associated with Stripe payment intent or subscription.
-
-        We prefer default payment method on sub/pi if present, but if not, we try getting from Stripe customer.
+    ) -> dict | None:
+        """Get a payment method for a subscription or payment intent
+        We prefer default payment method on sub/pi if present, but if not, we try getting from Stripe customer
         """
-        logger.debug("Getting payment method ID for %s", stripe_entity["id"])
+        logger.debug("Attempting to retrieve payment method for %s", stripe_entity["id"])
         customer = self.get_resource_from_cache(self.make_key(entity_name="Customer", entity_id=customer_id))
-        pm_id = (
-            stripe_entity.get("payment_method", None)
-            if is_one_time
-            else stripe_entity.get("default_payment_method", None)
-        )
+        pm_id = stripe_entity.get("payment_method", None)
         if not pm_id and customer.get("invoice_settings", None):
             pm_id = customer["invoice_settings"].get("default_payment_method", None)
-        return pm_id
+        if pm_id and (pm := self.get_payment_method(pm_id)):
+            return pm.to_dict()
+        return None
 
     def update_contribution_stats(self, action: str, contribution: Contribution | None) -> None:
         match action:
@@ -746,7 +744,7 @@ class StripeTransactionsImporter:
         is_one_time: bool,
         contributor: Contributor,
         customer_id: str,
-        payment_method_id: str | None,
+        payment_method: dict | None,
     ) -> dict:
         """Get default contribution data for a given stripe entity"""
         shared = {
@@ -754,7 +752,8 @@ class StripeTransactionsImporter:
             "contribution_metadata": stripe_entity["metadata"],
             "payment_provider_used": PaymentProvider.STRIPE_LABEL,
             "provider_customer_id": customer_id,
-            "provider_payment_method_id": payment_method_id,
+            "provider_payment_method_id": payment_method["id"] if payment_method else None,
+            "provider_payment_method_details": payment_method if payment_method else None,
         }
         if is_one_time:
             has_refunds = len(self.get_refunds_for_payment_intent(stripe_entity)) > 0
@@ -812,7 +811,7 @@ class StripeTransactionsImporter:
         if not cust_id:
             raise InvalidStripeTransactionDataError(f"No customer found for {entity_name} {stripe_entity['id']}")
         contributor, contributor_action = self.get_or_create_contributor_from_customer(cust_id)
-        pm_id = self.get_payment_method_id_for_stripe_entity(
+        pm = self.get_payment_method_for_stripe_entity(
             stripe_entity=stripe_entity, customer_id=cust_id, is_one_time=is_one_time
         )
         defaults = self.get_default_contribution_data(
@@ -820,7 +819,7 @@ class StripeTransactionsImporter:
             is_one_time=is_one_time,
             contributor=contributor,
             customer_id=cust_id,
-            payment_method_id=pm_id,
+            payment_method=pm,
         )
         donation_page = self.get_donation_page_from_metadata(metadata)
         if donation_page:
@@ -875,16 +874,15 @@ class StripeTransactionsImporter:
             )
             self.subscriptions_processed += 1
 
-    @cached_property
-    def payment_intents(self) -> Iterable[dict]:
-        """Get payment intents from cache"""
-        for key in self.redis.scan_iter(match=self.make_key(entity_name="PaymentIntent_*")):
-            yield self.get_resource_from_cache(key)
-
     def process_transactions_for_one_time_contributions(self) -> None:
-        """Process transactions for one-time contributions."""
+        """Process transactions for one-time contributions.
+
+        Note that the starting point here is the set of cached payment intents. Because we filter out payment intents
+        without referer and schema_version, we know ahead of time that all of the PIs we're looking at are for one-time contributions.
+        """
         logger.info("Processing transactions for one-time contributions")
-        for pi in self.payment_intents:
+        for key in self.redis.scan_iter(match=self.make_key(entity_name="PaymentIntent_*")):
+            pi = self.get_resource_from_cache(key)
             try:
                 contribution, action = self.upsert_contribution(stripe_entity=pi, is_one_time=True)
             except (InvalidStripeTransactionDataError, InvalidMetadataError) as exc:

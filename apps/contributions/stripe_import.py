@@ -12,6 +12,7 @@ from django.db import IntegrityError, transaction
 
 import backoff
 import stripe
+import stripe.error
 import tldextract
 from django_redis import get_redis_connection
 from redis import Redis
@@ -92,7 +93,7 @@ logger.addHandler(logger_handler)
 
 def log_backoff(details):
     """Custom logging handler for backoff decorator that logs details from Stripe rate limit errors."""
-    if isinstance((exc := details["value"]), stripe.error.RateLimitError):
+    if isinstance((exc := details["exception"]), stripe.error.RateLimitError):
         logger.warning(
             "Backing off %s seconds after %s tries due to rate limit error. "
             "Error message: %s. "
@@ -109,10 +110,10 @@ def log_backoff(details):
         )
     else:
         logger.warning(
-            "Backing off seconds after {details['tries']} tries. Error: {exc}",
+            "Backing off %s seconds after %s tries. Error: %s",
             details["wait"],
             details["tries"],
-            exc=exc,
+            details["exception"],
             exc_info=True,
         )
 
@@ -352,7 +353,7 @@ class StripeTransactionsImporter:
                 logger.warning("Unexpected status %s for subscription", subscription_status)
                 return ContributionStatus.PROCESSING
 
-    @backoff.on_exception(backoff.expo, stripe.error.RateLimitError, **_STRIPE_API_BACKOFF_ARGS)
+    @backoff.on_exception(backoff.expo, Exception, **_STRIPE_API_BACKOFF_ARGS)
     def list_stripe_entity(self, entity_name: str, **kwargs) -> Iterable[Any]:
         """List stripe entities for a given stripe account"""
         logger.debug("Listing %s for account %s", entity_name, self.stripe_account_id)
@@ -661,7 +662,7 @@ class StripeTransactionsImporter:
             case common_utils.LEFT_UNCHANGED:
                 pass
             case _:
-                logger.warning("Unexpected action %s for payment %s", action, payment.id)
+                logger.warning("Unexpected action %s for payment %s", action, getattr(payment, "id", "<no payment>"))
 
     def get_charges_for_payment_intent(self, payment_intent_id: str) -> list[dict]:
         """Get charges for a payment intent from cache"""

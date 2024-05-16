@@ -1,9 +1,10 @@
 import styled from 'styled-components';
 import MenuItem from '../MenuItem/MenuItem';
 import { ReactNode, forwardRef } from 'react';
-import TextField, { TextFieldProps } from '../TextField/TextField';
+import TextField from '../TextField/TextField';
+import { OutlinedTextFieldProps } from '@material-ui/core';
 
-export type SelectProps = TextFieldProps & {
+export type SelectProps = Omit<OutlinedTextFieldProps, 'variant'> & {
   options: Array<{ label: ReactNode; value: string | number; selectedLabel?: string | null }>;
 };
 
@@ -55,9 +56,9 @@ export const Select = forwardRef<HTMLDivElement, SelectProps>((props, ref) => {
         classes: {
           notchedOutline: 'NreSelectNotchedOutline',
           focused: 'NreSelectFocused'
-        } as any
+        }
       }}
-      SelectProps={{ classes: { selectMenu: 'NreSelectMenu', outlined: 'NreSelectRoot' } }}
+      SelectProps={{ classes: { selectMenu: 'NreSelectMenu' } }}
       ref={ref}
       {...other}
     >

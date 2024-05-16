@@ -1121,14 +1121,16 @@ class Test_log_backoff:
 
     @pytest.mark.parametrize("error", ("stripe_rate_limit_error", "other_error"))
     def test_happy_path(self, mocker, error, request):
+        # Full details on details at https://pypi.org/project/backoff/#event-handlers
         details = {
-            "value": request.getfixturevalue(error),
+            # See section on getting exceptino info at https://pypi.org/project/backoff/#event-handlers
+            "exception": request.getfixturevalue(error),
             "wait": 10,
             "tries": 3,
         }
         mock_logger = mocker.patch("apps.contributions.stripe_import.logger.warning")
         log_backoff(details)
-        if isinstance(details["value"], stripe.error.RateLimitError):
+        if isinstance(details["exception"], stripe.error.RateLimitError):
             mock_logger.assert_called_once_with(
                 (
                     "Backing off %s seconds after %s tries due to rate limit error. Error message: %s. "
@@ -1136,17 +1138,17 @@ class Test_log_backoff:
                 ),
                 details["wait"],
                 details["tries"],
-                details["value"].user_message,
-                details["value"].http_status,
-                details["value"].request_id,
-                details["value"].error,
+                details["exception"].user_message,
+                details["exception"].http_status,
+                details["exception"].request_id,
+                details["exception"].error,
                 exc_info=True,
             )
         else:
             mock_logger.assert_called_once_with(
-                "Backing off seconds after {details['tries']} tries. Error: {exc}",
+                "Backing off %s seconds after %s tries. Error: %s",
                 details["wait"],
                 details["tries"],
-                exc=details["value"],
+                details["exception"],
                 exc_info=True,
             )

@@ -55,9 +55,8 @@ class Command(BaseCommand):
         )
         updated_ids = []
         for x in contributions.all():
-            rp = RevenueProgram.objects.get(pk=x.contribution_metadata["revenue_program_id"])
             x.donation_page = None
-            x._revenue_program = rp
+            x._revenue_program = RevenueProgram.objects.get(pk=x.contribution_metadata["revenue_program_id"])
             with reversion.create_revision():
                 x.save(update_fields={"donation_page", "_revenue_program", "modified"})
                 reversion.set_comment(f"{name} updated contribution")

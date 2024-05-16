@@ -872,7 +872,6 @@ class TestStripeTransactionsImporter:
                 "payment_provider_used": "stripe",
                 "provider_customer_id": "cus_1",
                 "provider_payment_method_id": None,
-                "provider_payment_method_details": None,
                 "status": ContributionStatus.PAID,
                 "amount": 100,
                 "currency": "USD",

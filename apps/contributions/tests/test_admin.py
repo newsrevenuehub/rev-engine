@@ -186,13 +186,6 @@ class ContributionAdminTest(TestCase):
         assert isinstance(output, str)
         assert len(output)
 
-    def test_provider_payment_method_details_pretty(self):
-        with open("apps/contributions/tests/fixtures/provider-payment-method-details.json") as fl:
-            contribution = ContributionFactory(provider_payment_method_details=json.load(fl))
-        output = self.contribution_admin.provider_payment_method_details_pretty(contribution)
-        assert isinstance(output, str)
-        assert len(output)
-
     def test_will_create_revisions_from_admin_actions(self, *args, **kwargs):
         """We treat CompareVersionAdmin as a blackbox that should be depended on to consistently produce
 

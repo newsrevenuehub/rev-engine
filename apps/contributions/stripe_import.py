@@ -746,7 +746,6 @@ class StripeTransactionsImporter:
         contributor: Contributor,
         customer_id: str,
         payment_method_id: str | None,
-        payment_method: dict | None,
     ) -> dict:
         """Get default contribution data for a given stripe entity"""
         shared = {
@@ -755,7 +754,6 @@ class StripeTransactionsImporter:
             "payment_provider_used": PaymentProvider.STRIPE_LABEL,
             "provider_customer_id": customer_id,
             "provider_payment_method_id": payment_method_id,
-            "provider_payment_method_details": payment_method,
         }
         if is_one_time:
             has_refunds = len(self.get_refunds_for_payment_intent(stripe_entity)) > 0
@@ -816,16 +814,12 @@ class StripeTransactionsImporter:
         pm_id = self.get_payment_method_id_for_stripe_entity(
             stripe_entity=stripe_entity, customer_id=cust_id, is_one_time=is_one_time
         )
-        pm = None
-        if pm_id and self.retrieve_payment_method and (retrieved := self.get_payment_method(pm_id)):
-            pm = retrieved.to_dict()
         defaults = self.get_default_contribution_data(
             stripe_entity,
             is_one_time=is_one_time,
             contributor=contributor,
             customer_id=cust_id,
             payment_method_id=pm_id,
-            payment_method=pm,
         )
         donation_page = self.get_donation_page_from_metadata(metadata)
         if donation_page:

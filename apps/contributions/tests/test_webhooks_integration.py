@@ -126,7 +126,6 @@ class TestPaymentIntentSucceeded:
             contribution.provider_payment_method_id
             == payment_intent_succeeded_one_time_event["data"]["object"]["payment_method"]
         )
-        assert contribution.provider_payment_method_details == payment_method
         assert Payment.objects.filter(
             contribution=contribution, stripe_balance_transaction_id=balance_transaction_for_one_time_charge.id
         ).exists()
@@ -276,7 +275,6 @@ class TestCustomerSubscriptionUpdated:
             "payment_provider_data",
             "provider_subscription_id",
             "provider_payment_method_id",
-            "provider_payment_method_details",
         }
         if payment_method_has_changed:
             expected_update_fields.add("provider_payment_method_id")
@@ -516,7 +514,6 @@ class TestInvoicePaymentSucceeded:
                 ),
                 "provider_payment_id": pi.id if is_first_payment else "some-other-id",
                 "provider_payment_method_id": None,
-                "provider_payment_method_details": None,
             }
         )
         if not is_first_payment:

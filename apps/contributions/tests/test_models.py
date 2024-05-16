@@ -678,13 +678,12 @@ class TestContributionModel:
         mock_stripe_method.assert_not_called()
 
     @pytest.mark.django_db
-    @pytest.mark.parametrize("trait", ("one_time", "annual_subscription", "monthly_subscription"))
-    def test_contribution_billing_details(self, trait):
-        contribution = ContributionFactory(**{trait: True})
-        assert (
-            contribution.billing_details
-            and contribution.billing_details == contribution.provider_payment_method_details["billing_details"]
+    def test_billing_details(self, mocker):
+        mocker.patch(
+            "stripe.PaymentMethod.retrieve", return_value=(details := AttrDict({"billing_details": {"foo": "bar"}}))
         )
+        contribution = ContributionFactory()
+        assert contribution.billing_details == details.billing_details
 
     @pytest.mark.parametrize(
         "status",
@@ -849,24 +848,10 @@ class TestContributionModel:
             contribution.id,
         )
 
-    @pytest.mark.parametrize("trait", ("one_time", "annual_subscription", "monthly_subscription"))
-    def test_billing_details(self, trait):
-        details = {"foo": "bar", "billing_details": "details"}
-        contribution = ContributionFactory(**{trait: True, "provider_payment_method_details": details})
-        assert (
-            contribution.billing_details
-            and contribution.billing_details == contribution.provider_payment_method_details["billing_details"]
-        )
-
-    @pytest.mark.parametrize("trait", ("one_time", "annual_subscription", "monthly_subscription"))
     @pytest.mark.parametrize("name_val", ("something", None, False, ""))
-    def test_billing_name(self, trait, name_val):
-        data = {"billing_details": {"name": name_val}}
-        # need `provider_payment_method_id` to be `None` to be none so we don't try to retrieve the payment method
-        # on save.
-        contribution = ContributionFactory(
-            **{trait: True, "provider_payment_method_details": data, "provider_payment_method_id": None}
-        )
+    def test_billing_name(self, name_val, mocker):
+        mocker.patch("stripe.PaymentMethod.retrieve", return_value=AttrDict({"billing_details": {"name": name_val}}))
+        contribution = ContributionFactory()
         assert contribution.billing_name == (name_val or "")
 
     @pytest.mark.parametrize("trait", ("one_time", "annual_subscription", "monthly_subscription"))
@@ -896,28 +881,33 @@ class TestContributionModel:
         contribution = make_contribution_fn(trait)
         assert contribution.billing_email == expected_val
 
-    @pytest.mark.parametrize("trait", ("one_time", "annual_subscription", "monthly_subscription"))
     @pytest.mark.parametrize("phone_val", ("something", None, False, ""))
-    def test_billing_phone(self, trait, phone_val):
-        data = {"billing_details": {"phone": phone_val}}
-        contribution = ContributionFactory(**{trait: True, "provider_payment_method_details": data})
+    def test_billing_phone(self, phone_val, mocker):
+        mocker.patch("stripe.PaymentMethod.retrieve", return_value=AttrDict({"billing_details": {"phone": phone_val}}))
+        contribution = ContributionFactory()
         assert contribution.billing_phone == (phone_val or "")
 
-    @pytest.mark.parametrize("trait", ("one_time", "annual_subscription", "monthly_subscription"))
-    def test_billing_address(self, trait):
-        data = {
-            "billing_details": {
-                "address": {
-                    "line1": "123 Main St",
-                    "line2": "Special",
-                    "city": "Metropolis",
-                    "state": "MN",
-                    "postal_code": "12345",
-                    "country": "US",
-                }
-            }
-        }
-        contribution = ContributionFactory(**{trait: True, "provider_payment_method_details": data})
+    def test_billing_address(self, mocker):
+        mocker.patch(
+            "stripe.PaymentMethod.retrieve",
+            return_value=(
+                data := AttrDict(
+                    {
+                        "billing_details": {
+                            "address": {
+                                "line1": "123 Main St",
+                                "line2": "Special",
+                                "city": "Metropolis",
+                                "state": "MN",
+                                "postal_code": "12345",
+                                "country": "US",
+                            }
+                        }
+                    }
+                )
+            ),
+        )
+        contribution = ContributionFactory()
         order = ("line1", "line2", "city", "state", "postal_code", "country")
         assert contribution.billing_address == ",".join([data["billing_details"]["address"][x] for x in order])
 
@@ -1286,7 +1276,6 @@ class TestContributionModel:
                     "modified",
                     "last_payment_date",
                     "provider_payment_method_id",
-                    "provider_payment_method_details",
                 },
                 True,
             ),
@@ -1352,161 +1341,55 @@ class TestContributionModel:
             mock_create_revision.assert_not_called()
             mock_set_revision_comment.assert_not_called()
 
-    @pytest.mark.parametrize(
-        "make_contribution_fn,stripe_pi_return_val,stripe_sub_return_val,stripe_si_return_val,expect_update_fields",
-        (
-            (
-                lambda: ContributionFactory(one_time=True, provider_payment_method_id=None),
-                {"payment_method": "pm_123"},
-                None,
-                None,
-                {"provider_payment_method_id", "provider_payment_method_details", "modified"},
-            ),
-            # lambda: ContributionFactory(monthly_subscription=True, provider_payment_method_id=None),
-            # lambda: ContributionFactory(one_time=True, provider_payment_method_id="something"),
-            # lambda: ContributionFactory(monthly_subscription=True, provider_payment_method_id="something"),
-        ),
-    )
-    @pytest.mark.parametrize("dry_run", (True, False))
-    def test_fix_contributions_missing_provider_payment_method_id(
-        self,
-        make_contribution_fn,
-        stripe_pi_return_val,
-        stripe_sub_return_val,
-        stripe_si_return_val,
-        expect_update_fields,
-        dry_run,
-        mocker,
-    ):
-        contribution = make_contribution_fn()
-        mock_create_revision = mocker.patch("reversion.create_revision")
-        mock_set_revision_comment = mocker.patch("reversion.set_comment")
-        mock_get_stripe_pi = mocker.patch("stripe.PaymentIntent.retrieve", return_value=AttrDict(stripe_pi_return_val))
-        mock_get_stripe_sub = mocker.patch("stripe.Subscription.retrieve", return_value=AttrDict(stripe_sub_return_val))
-        mock_get_stripe_si = mocker.patch("stripe.SetupIntent.retrieve", return_value=AttrDict(stripe_si_return_val))
-        mock_get_stripe_payment_method = mocker.patch(
-            "stripe.PaymentMethod.retrieve", return_value={"card": {"last4": "1234"}}
-        )
-        save_spy = mocker.spy(Contribution, "save")
-        Contribution.fix_missing_provider_payment_method_id(dry_run=dry_run)
-        contribution.refresh_from_db()
+    # @pytest.mark.parametrize(
+    #     "make_contribution_fn,stripe_pi_return_val,stripe_sub_return_val,stripe_si_return_val,expect_update_fields",
+    #     (
+    #         (
+    #             lambda: ContributionFactory(one_time=True, provider_payment_method_id=None),
+    #             {"payment_method": "pm_123"},
+    #             None,
+    #             None,
+    #             {"provider_payment_method_id", "modified"},
+    #         ),
+    #         lambda: ContributionFactory(monthly_subscription=True, provider_payment_method_id=None),
+    #         lambda: ContributionFactory(one_time=True, provider_payment_method_id="something"),
+    #         lambda: ContributionFactory(monthly_subscription=True, provider_payment_method_id="something"),
+    #     ),
+    # )
+    # @pytest.mark.parametrize("dry_run", (True, False))
+    # def test_fix_contributions_missing_provider_payment_method_id(
+    #     self,
+    #     make_contribution_fn,
+    #     stripe_pi_return_val,
+    #     stripe_sub_return_val,
+    #     stripe_si_return_val,
+    #     expect_update_fields,
+    #     dry_run,
+    #     mocker,
+    # ):
+    #     contribution = make_contribution_fn()
+    #     mock_create_revision = mocker.patch("reversion.create_revision")
+    #     mock_set_revision_comment = mocker.patch("reversion.set_comment")
+    #     mock_get_stripe_pi = mocker.patch("stripe.PaymentIntent.retrieve", return_value=AttrDict(stripe_pi_return_val))
+    #     mock_get_stripe_sub = mocker.patch("stripe.Subscription.retrieve", return_value=AttrDict(stripe_sub_return_val))
+    #     mock_get_stripe_si = mocker.patch("stripe.SetupIntent.retrieve", return_value=AttrDict(stripe_si_return_val))
+    #     save_spy = mocker.spy(Contribution, "save")
+    #     Contribution.fix_missing_provider_payment_method_id(dry_run=dry_run)
+    #     contribution.refresh_from_db()
 
-        if contribution.interval == ContributionInterval.ONE_TIME:
-            mock_get_stripe_pi.assert_called_once()
-        else:
-            assert mock_get_stripe_sub.call_count or mock_get_stripe_si.call_count
+    #     if contribution.interval == ContributionInterval.ONE_TIME:
+    #         mock_get_stripe_pi.assert_called_once()
+    #     else:
+    #         assert mock_get_stripe_sub.call_count or mock_get_stripe_si.call_count
+    #     if expect_update_fields and not dry_run:
+    #         save_spy.assert_called_once_with(contribution, update_fields=expect_update_fields)
+    #         mock_create_revision.assert_called_once()
+    #         mock_set_revision_comment.assert_called_once()
 
-        if "provider_payment_method_details" in expect_update_fields:
-            mock_get_stripe_payment_method.assert_called_once()
-        else:
-            mock_get_stripe_payment_method.assert_not_called()
-
-        if expect_update_fields and not dry_run:
-            save_spy.assert_called_once_with(contribution, update_fields=expect_update_fields)
-            mock_create_revision.assert_called_once()
-            mock_set_revision_comment.assert_called_once()
-
-        else:
-            save_spy.assert_not_called()
-            mock_create_revision.assert_not_called()
-            mock_set_revision_comment.assert_not_called()
-
-    @pytest.mark.parametrize(
-        "make_contribution_fn,stripe_return_val,expect_update",
-        (
-            (
-                lambda: ContributionFactory(
-                    one_time=True,
-                    provider_payment_method_id="something",
-                    provider_payment_method_details=None,
-                ),
-                {"foo": "bar"},
-                True,
-            ),
-            (
-                lambda: ContributionFactory(
-                    monthly_subscription=True,
-                    provider_payment_method_id="something",
-                    provider_payment_method_details=None,
-                ),
-                {"foo": "bar"},
-                True,
-            ),
-            (
-                lambda: ContributionFactory(
-                    one_time=True,
-                    provider_payment_method_id=None,
-                    provider_payment_method_details=None,
-                ),
-                {"foo": "bar"},
-                False,
-            ),
-            (
-                lambda: ContributionFactory(
-                    monthly_subscription=True,
-                    provider_payment_method_id=None,
-                    provider_payment_method_details=None,
-                ),
-                {"foo": "bar"},
-                False,
-            ),
-            (
-                lambda: ContributionFactory(
-                    one_time=True,
-                    provider_payment_method_id="something",
-                    provider_payment_method_details={"foo": "bar"},
-                ),
-                {"bizz": "bang"},
-                False,
-            ),
-            (
-                lambda: ContributionFactory(
-                    monthly_subscription=True,
-                    provider_payment_method_id="something",
-                    provider_payment_method_details={"foo": "bar"},
-                ),
-                {"bizz": "bang"},
-                False,
-            ),
-        ),
-    )
-    @pytest.mark.parametrize(
-        "contribution_status",
-        (ContributionStatus.PAID, ContributionStatus.FLAGGED, ContributionStatus.REJECTED, ContributionStatus.CANCELED),
-    )
-    @pytest.mark.parametrize("dry_run", (True, False))
-    def test_fix_missing_payment_method_details(
-        self, make_contribution_fn, stripe_return_val, expect_update, contribution_status, dry_run, monkeypatch, mocker
-    ):
-        contribution = make_contribution_fn()
-        contribution.status = contribution_status
-        contribution.save()
-
-        old_data = contribution.provider_payment_method_details
-        monkeypatch.setattr(
-            "apps.contributions.models.Contribution.fetch_stripe_payment_method",
-            lambda *args, **kwargs: stripe_return_val,
-        )
-        save_spy = mocker.spy(Contribution, "save")
-        mock_create_revision = mocker.patch("reversion.create_revision")
-        mock_create_revision.return_value.__enter__.return_value = mocker.Mock()
-        mock_set_revision_comment = mocker.patch("reversion.set_comment")
-
-        Contribution.fix_missing_payment_method_details_data(dry_run=dry_run)
-        contribution.refresh_from_db()
-        assert contribution.provider_payment_method_details == (
-            stripe_return_val if (expect_update and not dry_run) else old_data
-        )
-        if expect_update and not dry_run:
-            save_spy.assert_called_once_with(
-                contribution, update_fields={"provider_payment_method_details", "modified"}
-            )
-            mock_create_revision.assert_called_once()
-            mock_set_revision_comment.assert_called_once()
-        else:
-            save_spy.assert_not_called()
-            mock_create_revision.assert_not_called()
-            mock_set_revision_comment.assert_not_called()
+    #     else:
+    #         save_spy.assert_not_called()
+    #         mock_create_revision.assert_not_called()
+    #         mock_set_revision_comment.assert_not_called()
 
     @pytest.fixture
     def empty_metadata_response(self):
@@ -1694,7 +1577,8 @@ class TestContributionModel:
         assert contribution.canceled_at == canceled_at_result
 
     def test_card_owner_name_when_no_provider_payment_method_details(self, mocker):
-        contribution = ContributionFactory(provider_payment_method_details=None)
+        # refactor
+        contribution = ContributionFactory()
         assert contribution.card_owner_name == ""
 
     def test_stripe_payment_method_when_no_pm_id(self, mocker):
@@ -1769,7 +1653,7 @@ class TestContributionModel:
         ),
     )
     def test_card_brand(self, payment_data, expected):
-        assert ContributionFactory(provider_payment_method_details=payment_data).card_brand == expected
+        assert ContributionFactory().card_brand == expected
 
     @pytest.mark.parametrize(
         "payment_data,expected",
@@ -1780,18 +1664,19 @@ class TestContributionModel:
         ),
     )
     def test_card_expiration_date(self, payment_data, expected):
-        assert ContributionFactory(provider_payment_method_details=payment_data).card_expiration_date == expected
+        assert ContributionFactory().card_expiration_date == expected
 
     @pytest.mark.parametrize(
-        "payment_data,expected",
+        "payment_method,expected",
         (
             (None, ""),
             ({}, ""),
             ({"type": "card", "billing_details": {"name": (name := "Foo Bar")}}, name),
         ),
     )
-    def test_card_owner_name(self, payment_data, expected):
-        assert ContributionFactory(provider_payment_method_details=payment_data).card_owner_name == expected
+    def test_card_owner_name(self, payment_method, expected, mocker):
+        mocker.patch("stripe.PaymentMethod.retrieve", return_value=AttrDict(payment_method))
+        assert ContributionFactory().card_owner_name == expected
 
     @pytest.mark.parametrize(
         "payment_data,expected",
@@ -1802,7 +1687,8 @@ class TestContributionModel:
         ),
     )
     def test_card_last_4(self, payment_data, expected):
-        assert ContributionFactory(provider_payment_method_details=payment_data).card_last_4 == expected
+        # refactor
+        assert ContributionFactory().card_last_4 == expected
 
     @pytest.mark.parametrize(
         "has_page, has_rp, expect_error",

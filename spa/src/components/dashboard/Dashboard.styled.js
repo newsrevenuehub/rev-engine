@@ -25,7 +25,7 @@ export const DashboardContent = styled.main`
   absolutely positioned children get the correct placement.
   */
   margin-top: 48px;
-  padding: 48px 60px 0 60px;
+  padding: 3rem 3rem 0 3rem;
   flex: 1;
   display: flex;
   flex-direction: column;

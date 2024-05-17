@@ -63,6 +63,11 @@ const ContributorPortal = ({ revenueProgram }: ContributorPortalProps) => {
   const submit = async (data: ContactInfoFormFields) => {
     setErrorMessage(undefined);
 
+    if (typeof updateRevenueProgram !== 'function') {
+      // Should never happen
+      throw new Error('RevenueProgram ID is not defined.');
+    }
+
     try {
       await updateRevenueProgram(data);
       setShowSuccess(true);
@@ -106,6 +111,11 @@ const ContributorPortal = ({ revenueProgram }: ContributorPortalProps) => {
                   // Regex to allow characters: 0-9, *, #, +, -, ., _, (, ), and space
                   value: /^[0-9*#+-._() ]+$/,
                   message: 'Please enter a valid phone number.'
+                },
+                maxLength: {
+                  // Value from BE validation models.RevenueProgram.contact_phone
+                  value: 17,
+                  message: 'Phone number must be less than 17 characters.'
                 }
               }}
               render={({ field }) => (

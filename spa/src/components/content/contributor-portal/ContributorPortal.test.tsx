@@ -54,12 +54,25 @@ describe('ContributorPortal', () => {
       tree();
 
       await fireEvent.change(screen.getByRole('textbox', { name: 'Phone Number' }), {
-        target: { value: 'mock-invalid-phone' }
+        target: { value: 'invalid-phone' }
       });
       userEvent.click(screen.getByRole('button', { name: /save/i }));
 
       await waitFor(() => {
         expect(screen.getByText(/Please enter a valid phone number./i)).toBeInTheDocument();
+      });
+    });
+
+    it('should show error message when submitting more chars than accepted (max = 17)', async () => {
+      tree();
+
+      await fireEvent.change(screen.getByRole('textbox', { name: 'Phone Number' }), {
+        target: { value: 'invalid-too-long-phone-number' }
+      });
+      userEvent.click(screen.getByRole('button', { name: /save/i }));
+
+      await waitFor(() => {
+        expect(screen.getByText(/Phone number must be less than 17 characters./i)).toBeInTheDocument();
       });
     });
 

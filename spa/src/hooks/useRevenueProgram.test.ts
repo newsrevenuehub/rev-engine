@@ -37,7 +37,7 @@ describe('useRevenueProgram', () => {
     it('calls the correct endpoint', async () => {
       const { result } = hook();
 
-      await result.current.updateRevenueProgram({});
+      await result.current.updateRevenueProgram!({});
       expect(axiosMock.history.patch.length).toBe(1);
       expect(axiosMock.history.patch[0].url).toBe('revenue-programs/123/');
     });
@@ -45,7 +45,7 @@ describe('useRevenueProgram', () => {
     it('passes the body to the endpoint', async () => {
       const { result } = hook();
 
-      await result.current.updateRevenueProgram({ contact_email: 'mock@mail.com' });
+      await result.current.updateRevenueProgram!({ contact_email: 'mock@mail.com' });
 
       expect(axiosMock.history.patch[0].data).toBe('{"contact_email":"mock@mail.com"}');
     });
@@ -57,7 +57,7 @@ describe('useRevenueProgram', () => {
 
       expect(invalidateQueries).not.toHaveBeenCalled();
 
-      await result.current.updateRevenueProgram({});
+      await result.current.updateRevenueProgram!({});
 
       await waitFor(() => expect(axiosMock.history.patch.length).toBe(1));
 
@@ -82,7 +82,7 @@ describe('useRevenueProgram', () => {
         expect(invalidateQueries).not.toHaveBeenCalled();
 
         try {
-          await result.current.updateRevenueProgram({});
+          await result.current.updateRevenueProgram!({});
         } catch (err) {}
 
         expect(invalidateQueries).not.toHaveBeenCalled();
@@ -92,22 +92,15 @@ describe('useRevenueProgram', () => {
         axiosMock.onPatch('/revenue-programs/123/').networkError();
         const { result } = hook();
 
-        await expect(() => result.current.updateRevenueProgram({})).rejects.toThrow(
+        await expect(() => result.current.updateRevenueProgram!({})).rejects.toThrow(
           expect.objectContaining({ message: 'Network Error' })
         );
       });
 
-      it('returns a dumb function if revenue_program is undefined', async () => {
-        const warn = jest.spyOn(console, 'warn').mockImplementation();
-
+      it('returns empty object if revenue_program is undefined', async () => {
         const { result } = hook(true);
 
-        await result.current.updateRevenueProgram({});
-
-        expect(axiosMock.history.patch.length).toBe(0);
-        expect(warn).toHaveBeenCalledTimes(1);
-        expect(warn).toHaveBeenCalledWith('No revenue program ID provided');
-        warn.mockRestore();
+        expect(result.current).toEqual({});
       });
     });
   });

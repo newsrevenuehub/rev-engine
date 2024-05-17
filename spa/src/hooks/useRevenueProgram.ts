@@ -22,9 +22,9 @@ export function useRevenueProgram(rpId?: number) {
     }
   );
 
-  if (!rpId) {
-    return { updateRevenueProgram: () => console.warn('No revenue program ID provided') };
+  if (rpId) {
+    return { updateRevenueProgram };
   }
 
-  return { updateRevenueProgram };
+  return {};
 }

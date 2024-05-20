@@ -169,7 +169,8 @@ class Test_import_stripe_transactions_data:
 
     @pytest.mark.parametrize("async_mode", (False, True))
     @pytest.mark.parametrize("for_orgs", (True, False))
-    def test_handle(self, async_mode, mocker, for_orgs):
+    @pytest.mark.parametrize("suppress_stripe_info_logs", (True, False))
+    def test_handle(self, async_mode, mocker, for_orgs, suppress_stripe_info_logs):
         provider_1 = PaymentProviderFactory()
         provider_2 = PaymentProviderFactory()
         rp_1 = RevenueProgramFactory(payment_provider=provider_1)
@@ -185,6 +186,7 @@ class Test_import_stripe_transactions_data:
             async_mode=async_mode,
             for_orgs=[rp_1.organization.id] if for_orgs else [],
             for_stripe_accounts=[provider_2.stripe_account_id] if not for_orgs else [],
+            suppress_stripe_info_logs=suppress_stripe_info_logs,
         )
         if async_mode:
             mock_task.assert_called_once()

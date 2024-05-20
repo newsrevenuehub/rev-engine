@@ -6,13 +6,15 @@ import { Root } from './ResetPasswordForm.styled';
 
 const ResetPasswordFormPropTypes = {
   disabled: PropTypes.bool,
-  onSubmit: PropTypes.func.isRequired
+  onSubmit: PropTypes.func.isRequired,
+  passwordError: PropTypes.string
 };
 
 export interface ResetPasswordFormProps extends InferProps<typeof ResetPasswordFormPropTypes> {
   onSubmit: (password: string) => void;
+  passwordError?: string;
 }
-export function ResetPasswordForm({ disabled, onSubmit }: ResetPasswordFormProps) {
+export function ResetPasswordForm({ disabled, onSubmit, passwordError }: ResetPasswordFormProps) {
   const confirmPasswordRef = useRef<HTMLInputElement>(null);
   const formRef = useRef<HTMLFormElement>(null);
   const newPasswordRef = useRef<HTMLInputElement>(null);
@@ -59,13 +61,14 @@ export function ResetPasswordForm({ disabled, onSubmit }: ResetPasswordFormProps
     <Root onSubmit={handleSubmit} ref={formRef}>
       <PasswordField
         fullWidth
-        helperText="Password must be at least 8 characters long."
+        helperText={passwordError ?? 'Password must be at least 8 characters long.'}
         id="new-password"
         inputRef={newPasswordRef}
         label="New Password"
         onChange={({ target }) => setNewPassword(target.value)}
         required
         value={newPassword}
+        error={!!passwordError}
       />
       <PasswordField
         fullWidth

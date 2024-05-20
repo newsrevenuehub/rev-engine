@@ -38,6 +38,6 @@ describe('ForgotPassword Tests', () => {
 
   it('should have link to take user to sign in page', () => {
     render(<ResetPassword />);
-    expect(screen.getByRole('link', { href: SIGN_IN })).toBeInTheDocument();
+    expect(screen.getByRole('link')).toHaveAttribute('href', SIGN_IN);
   });
 });

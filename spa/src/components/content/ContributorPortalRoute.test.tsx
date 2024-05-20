@@ -46,8 +46,8 @@ describe('Contributor Portal', () => {
   });
 
   it.each([
-    ['superuser', { isOrgAdmin: false }],
-    ['hub admin', { isRPAdmin: false }]
+    ['org admin', { isOrgAdmin: false }],
+    ['RP admin', { isRPAdmin: false }]
   ])('redirects to /pages/ if user role not = %s', (_, role) => {
     getUserRoleMock.mockReturnValue(role as any);
     tree();
@@ -56,9 +56,10 @@ describe('Contributor Portal', () => {
   });
 
   it.each([
-    ['superuser', { isOrgAdmin: true }],
-    ['hub admin', { isRPAdmin: true }]
-  ])('should render Contributor Portal page', () => {
+    ['org admin', { isOrgAdmin: true }],
+    ['RP admin', { isRPAdmin: true }]
+  ])('should render Contributor Portal page if user role = %s', (_, role) => {
+    getUserRoleMock.mockReturnValue(role as any);
     tree();
     const helmet = Helmet.peek();
     expect(helmet.title).toBe('Contributor Portal | RevEngine');

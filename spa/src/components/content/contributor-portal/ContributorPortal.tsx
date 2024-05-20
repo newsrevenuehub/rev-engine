@@ -1,8 +1,8 @@
-import CheckIcon from '@material-design-icons/svg/outlined/check.svg?react';
 import SaveIcon from '@material-design-icons/svg/outlined/save.svg?react';
 import { AxiosError } from 'axios';
 import { Button, TextField } from 'components/base';
 import Hero from 'components/common/Hero';
+import SuccessBanner from 'components/common/SuccessBanner';
 import GenericErrorBoundary from 'components/errors/GenericErrorBoundary';
 import { GENERIC_ERROR } from 'constants/textConstants';
 import { RevenueProgram } from 'hooks/useContributionPage';
@@ -12,14 +12,7 @@ import { useEffect, useMemo, useState } from 'react';
 import { useAlert } from 'react-alert';
 import { Controller, useForm } from 'react-hook-form';
 import { SectionWrapper } from '../pages/Pages.styled';
-import {
-  ActionWrapper,
-  Description,
-  FormWrapper,
-  InputsWrapper,
-  Label,
-  SuccessMessage
-} from './ContributorPortal.styles';
+import { ActionWrapper, Description, FormWrapper, InputsWrapper, Label } from './ContributorPortal.styles';
 
 type ContactInfoFormFields = Pick<RevenueProgram, 'contact_email' | 'contact_phone'>;
 
@@ -176,12 +169,7 @@ const ContributorPortal = ({ revenueProgram }: ContributorPortalProps) => {
             Save
           </Button>
         </ActionWrapper>
-        {showSuccess && (
-          <SuccessMessage>
-            <CheckIcon />
-            <p>Successfully saved details!</p>
-          </SuccessMessage>
-        )}
+        <SuccessBanner message="Successfully saved details!" show={showSuccess} />
       </FormWrapper>
     </GenericErrorBoundary>
   );

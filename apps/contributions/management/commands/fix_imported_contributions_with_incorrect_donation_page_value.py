@@ -43,14 +43,13 @@ class Command(BaseCommand):
             # donation is set to same value as default donation page of the rp
             donation_page=F("donation_page__revenue_program__default_donation_page"),
         )
-
         if not contributions.exists():
             self.stdout.write(self.style.HTTP_INFO("No affected contributions found, exiting"))
             return
 
         self.stdout.write(
             self.style.HTTP_INFO(
-                f"Found {contributions} eligible contribution{'' if contributions == 1 else 's'} to fix"
+                f"Found {contributions.count()} eligible contribution{'' if (count:=contributions.count()) == 1 else 's'} to fix"
             )
         )
         updated_ids = []
@@ -63,7 +62,7 @@ class Command(BaseCommand):
             updated_ids.append(x.id)
         self.stdout.write(
             self.style.SUCCESS(
-                f"Updated {len(updated_ids)} contribution(s) out of {contributions} eligible contributions. "
+                f"Updated {len(updated_ids)} contribution{'' if count == 1 else 's'} out of {count} eligible contributions. "
                 f"The following contributions were updated: {', '.join(map(str, updated_ids))}"
             )
         )

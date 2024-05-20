@@ -4,20 +4,15 @@ import { SuccessMessage } from './SuccessBanner.styled';
 
 export type SuccessBannerProps = InferProps<typeof SuccessBannerPropTypes>;
 
-const SuccessBanner = ({ message, show }: SuccessBannerProps) => {
-  if (!show) return null;
-
-  return (
-    <SuccessMessage>
-      <CheckIcon />
-      <p>{message}</p>
-    </SuccessMessage>
-  );
-};
+const SuccessBanner = ({ message }: SuccessBannerProps) => (
+  <SuccessMessage>
+    <CheckIcon />
+    <p>{message}</p>
+  </SuccessMessage>
+);
 
 const SuccessBannerPropTypes = {
-  message: PropTypes.string.isRequired,
-  show: PropTypes.bool.isRequired
+  message: PropTypes.string.isRequired
 };
 
 SuccessBanner.propTypes = SuccessBannerPropTypes;

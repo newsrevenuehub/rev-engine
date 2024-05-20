@@ -327,7 +327,7 @@ const Organization = () => {
             Save
           </Button>
         </ActionWrapper>
-        <SuccessBanner message={ORGANIZATION_SUCCESS_TEXT} show={showSuccess} />
+        {showSuccess && <SuccessBanner message={ORGANIZATION_SUCCESS_TEXT} />}
       </ContentForm>
     </Wrapper>
   );

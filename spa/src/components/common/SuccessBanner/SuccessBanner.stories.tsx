@@ -10,6 +10,5 @@ const Template: StoryFn<typeof SuccessBanner> = (props) => <SuccessBanner {...pr
 
 export const Success = Template.bind({});
 Success.args = {
-  show: true,
   message: 'Success Message!'
 };

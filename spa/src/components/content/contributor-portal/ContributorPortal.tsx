@@ -169,7 +169,7 @@ const ContributorPortal = ({ revenueProgram }: ContributorPortalProps) => {
             Save
           </Button>
         </ActionWrapper>
-        <SuccessBanner message="Successfully saved details!" show={showSuccess} />
+        {showSuccess && <SuccessBanner message="Successfully saved details!" />}
       </FormWrapper>
     </GenericErrorBoundary>
   );

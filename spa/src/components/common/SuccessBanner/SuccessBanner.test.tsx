@@ -7,7 +7,7 @@ function tree() {
 }
 
 describe('SuccessBanner', () => {
-  it('should render message text when show is true', async () => {
+  it('should render message text', async () => {
     tree();
     expect(screen.getByText('mock-message')).toBeVisible();
   });

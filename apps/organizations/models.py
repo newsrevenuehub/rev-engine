@@ -816,10 +816,10 @@ class RevenueProgram(IndexedTimeStampedModel):
     @cached_property
     def mailchimp_email_list(self) -> MailchimpEmailList | None:
         logger.info("Called for rp %s", self.id)
-        if not (list_id := self.mailchimp_list_id):
+        if not (self.mailchimp_list_id):
             logger.debug("No email list ID on RP %s, returning None", self.id)
             return None
-        return self.mailchimp_client.get_email_list(list_id)
+        return self.mailchimp_client.get_email_list()
 
     @property
     def mailchimp_store_id(self):

@@ -275,6 +275,7 @@ class TestCustomerSubscriptionUpdated:
             "payment_provider_data",
             "provider_subscription_id",
             "provider_payment_method_id",
+            "provider_payment_method_details",
         }
         if payment_method_has_changed:
             expected_update_fields.add("provider_payment_method_id")

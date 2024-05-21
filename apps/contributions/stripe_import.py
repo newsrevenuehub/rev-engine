@@ -605,7 +605,9 @@ class StripeTransactionsImporter:
         customer = self.get_resource_from_cache(self.make_key(entity_name="Customer", entity_id=customer_id))
         if not customer:
             raise InvalidStripeTransactionDataError(f"No customer found for id {customer_id}")
-        return self.get_or_create_contributor(email=customer["email"])
+        if not (email := customer.get("email")):
+            raise InvalidStripeTransactionDataError(f"No email found for customer {customer_id}")
+        return self.get_or_create_contributor(email=email)
 
     @backoff.on_exception(backoff.expo, stripe.error.RateLimitError, **_STRIPE_API_BACKOFF_ARGS)
     def get_payment_method(self, pm_id: str) -> stripe.PaymentMethod:
@@ -616,7 +618,6 @@ class StripeTransactionsImporter:
         self, stripe_entity: dict, customer_id: str, is_one_time: bool
     ) -> dict | None:
         """Get a payment method for a subscription or payment intent
-
         We prefer default payment method on sub/pi if present, but if not, we try getting from Stripe customer
         """
         logger.debug("Attempting to retrieve payment method for %s", stripe_entity["id"])
@@ -817,7 +818,11 @@ class StripeTransactionsImporter:
             stripe_entity=stripe_entity, customer_id=cust_id, is_one_time=is_one_time
         )
         defaults = self.get_default_contribution_data(
-            stripe_entity, is_one_time=is_one_time, contributor=contributor, customer_id=cust_id, payment_method=pm
+            stripe_entity,
+            is_one_time=is_one_time,
+            contributor=contributor,
+            customer_id=cust_id,
+            payment_method=pm,
         )
         donation_page = self.get_donation_page_from_metadata(metadata)
         if donation_page:

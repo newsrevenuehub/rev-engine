@@ -87,7 +87,6 @@ class Command(BaseCommand):
                     f"{', '.join(str(x) for x in ineligible_because_of_account.values_list('id', flat=True))}"
                 )
             )
-
         self.stdout.write(
             self.style.HTTP_INFO(
                 f"Found {(fixable_count:=fixable.count())} eligible contribution{'' if fixable_count == 1 else 's'} to sync"

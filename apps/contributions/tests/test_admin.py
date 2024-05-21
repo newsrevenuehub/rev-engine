@@ -63,7 +63,6 @@ class TestPaymentAdmin:
         assert response.status_code == 200
 
 
-@mock.patch("apps.contributions.models.Contribution.fetch_stripe_payment_method", return_value=None)
 class ContributionAdminTest(TestCase):
     def setUp(self):
         self.factory = RequestFactory()

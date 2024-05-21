@@ -147,7 +147,7 @@ def log_backoff(details: dict) -> None:
             )
 
 
-_STRIPE_API_BACKOFF_ARGS = {
+STRIPE_API_BACKOFF_ARGS = {
     "max_tries": 5,
     "jitter": backoff.full_jitter,
     "on_backoff": log_backoff,
@@ -383,7 +383,7 @@ class StripeTransactionsImporter:
                 logger.warning("Unexpected status %s for subscription", subscription_status)
                 return ContributionStatus.PROCESSING
 
-    @backoff.on_exception(backoff.expo, stripe.error.RateLimitError, **_STRIPE_API_BACKOFF_ARGS)
+    @backoff.on_exception(backoff.expo, stripe.error.RateLimitError, **STRIPE_API_BACKOFF_ARGS)
     def list_stripe_entity(self, entity_name: str, **kwargs) -> Iterable[Any]:
         """List stripe entities for a given stripe account"""
         logger.debug("Listing %s for account %s", entity_name, self.stripe_account_id)
@@ -640,7 +640,7 @@ class StripeTransactionsImporter:
             raise InvalidStripeTransactionDataError(f"No email found for customer {customer_id}")
         return self.get_or_create_contributor(email=email)
 
-    @backoff.on_exception(backoff.expo, stripe.error.RateLimitError, **_STRIPE_API_BACKOFF_ARGS)
+    @backoff.on_exception(backoff.expo, stripe.error.RateLimitError, **STRIPE_API_BACKOFF_ARGS)
     def get_payment_method(self, pm_id: str) -> stripe.PaymentMethod:
         """Get a payment method from stripe"""
         return stripe.PaymentMethod.retrieve(pm_id, stripe_account=self.stripe_account_id)

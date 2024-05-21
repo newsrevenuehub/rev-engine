@@ -6,6 +6,7 @@ from apps.api.exceptions import ApiConfigurationError
 from apps.api.permissions import (
     HasFlaggedAccessToContributionsApiResource,
     HasFlaggedAccessToMailchimp,
+    IsSwitchboardAccount,
 )
 from apps.common.constants import MAILCHIMP_INTEGRATION_ACCESS_FLAG_NAME
 from apps.common.tests.test_resources import AbstractTestCase
@@ -39,3 +40,21 @@ class TestHasFlaggedAccessToMailchimp:
             str(HasFlaggedAccessToMailchimp())
             == f"`HasFlaggedAccessToMailchimp` via {MAILCHIMP_INTEGRATION_ACCESS_FLAG_NAME}"
         )
+
+
+@pytest.mark.parametrize(
+    "is_authenticated, email, settings_email, expected",
+    (
+        (True, (email := "foo@bar.com"), email, True),
+        (False, email, email, False),
+        (True, email, "bizz@bang.com", False),
+        (True, email, None, False),
+        (True, None, None, False),
+    ),
+)
+def test_IsSwitchboardAccount(is_authenticated, email, settings_email, expected, mocker, settings):
+    request = mocker.MagicMock()
+    request.user.is_authenticated = is_authenticated
+    request.user.email = email
+    settings.SWITCHBOARD_ACCOUNT_EMAIL = settings_email
+    assert IsSwitchboardAccount().has_permission(request, None) is expected

@@ -10,11 +10,6 @@ from apps.contributions.tasks import task_import_contributions_and_payments_for_
 from apps.organizations.models import PaymentProvider
 
 
-# otherwise we get thousands and thousands of info logs from stripe and hard to find our own logs
-stripe_logger = logging.getLogger("stripe")
-stripe_logger.setLevel(logging.ERROR)
-
-
 class Command(BaseCommand):
     """This commands allows the admin user to import transaction data from Stripe to revengine. It locates payment intents for one-time
     contributions and invoices for recurring contributions (plus related data entities) in order to create or update revengine contributor,
@@ -49,6 +44,7 @@ class Command(BaseCommand):
             help="Optional comma-separated list of stripe accounts to limit to",
         )
         parser.add_argument("--async-mode", action="store_true", default=False)
+        parser.add_argument("--suppress-stripe-info-logs", action="store_true", default=False)
 
     def get_stripe_account_ids(self, for_orgs: list[str], for_stripe_accounts: list[str]) -> list[str]:
         query = PaymentProvider.objects.filter(stripe_account_id__isnull=False)
@@ -58,9 +54,16 @@ class Command(BaseCommand):
             query = query.filter(stripe_account_id__in=for_stripe_accounts)
         return list(query.values_list("stripe_account_id", flat=True))
 
+    def configure_stripe_log_level(self, suppress_stripe_info_logs: bool) -> None:
+        """Set Stripe log level to ERROR to suppress INFO logs (which we would otherwise get by default)"""
+        if suppress_stripe_info_logs:
+            stripe_logger = logging.getLogger("stripe")
+            stripe_logger.setLevel(logging.ERROR)
+
     def handle(self, *args, **options):
         command_name = os.path.basename(__file__).split(".")[0]
         self.stdout.write(self.style.HTTP_INFO(f"Running {command_name}"))
+        self.configure_stripe_log_level(options["suppress_stripe_info_logs"])
         account_ids = self.get_stripe_account_ids(options["for_orgs"], options["for_stripe_accounts"])
         for account in account_ids:
             if options["async_mode"]:

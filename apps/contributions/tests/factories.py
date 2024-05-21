@@ -98,6 +98,7 @@ class ContributionFactory(DjangoModelFactory):
     payment_provider_used = PaymentProvider.STRIPE_LABEL
     provider_customer_id = None
     provider_payment_method_id = factory.LazyFunction(lambda: f"pm_{_random_stripe_str()}")
+    provider_payment_method_details = factory.LazyFunction(lambda: PAYMENT_METHOD_DETAILS_DATA)
 
     @factory.lazy_attribute
     def contribution_metadata(self):

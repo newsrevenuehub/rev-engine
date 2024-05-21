@@ -111,6 +111,7 @@ class ContributionAdmin(RevEngineBaseAdmin):
                     "provider_customer_link",
                     "payment_provider_data_pretty",
                     "provider_payment_method_id",
+                    "provider_payment_method_details_pretty",
                 ),
             },
         ),
@@ -168,6 +169,7 @@ class ContributionAdmin(RevEngineBaseAdmin):
         "payment_provider_used",
         "provider_customer_link",
         "provider_payment_link",
+        "provider_payment_method_details_pretty",
         "provider_payment_method_id",
         "provider_setup_intent_id",
         "provider_subscription_link",
@@ -270,6 +272,12 @@ class ContributionAdmin(RevEngineBaseAdmin):
         return prettify_json_field(instance.payment_provider_data)
 
     payment_provider_data_pretty.short_description = "Payment provider data"
+
+    def provider_payment_method_details_pretty(self, instance):
+        """Render provider_payment_method_details field with pretty formatting"""
+        return prettify_json_field(instance.provider_payment_method_details)
+
+    provider_payment_method_details_pretty.short_description = "Provider payment method details"
 
     def revenue_program(self, instance):
         """Render revenue_program field with pretty formatting"""

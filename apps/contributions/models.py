@@ -11,7 +11,6 @@ from urllib.parse import quote_plus
 from zoneinfo import ZoneInfo
 
 from django.conf import settings
-from django.core.cache import caches
 from django.db import models
 from django.db.models import Q, Sum
 from django.template.loader import render_to_string
@@ -34,12 +33,10 @@ from apps.emails.tasks import (
 from apps.organizations.models import RevenueProgram
 from apps.users.choices import Roles
 from apps.users.models import RoleAssignment
-from revengine.settings.base import DEFAULT_CACHE, CurrencyDict
+from revengine.settings.base import CurrencyDict
 
 
 logger = logging.getLogger(f"{settings.DEFAULT_LOGGER}.{__name__}")
-
-STRIPE_PAYMENT_METHOD_CACHE_TTL = 60 * 60 * 48  # 48 hours
 
 
 class ContributionIntervalError(Exception):
@@ -198,6 +195,7 @@ class Contribution(IndexedTimeStampedModel):
     provider_subscription_id = models.CharField(max_length=255, blank=True, null=True)
     provider_customer_id = models.CharField(max_length=255, blank=True, null=True)
     provider_payment_method_id = models.CharField(max_length=255, blank=True, null=True)
+    provider_payment_method_details = models.JSONField(null=True)
 
     # TODO: [DEV-4333] Remove Contribution.last_payment_date in favor of derivation from payments
     last_payment_date = models.DateTimeField(null=True)
@@ -427,6 +425,26 @@ class Contribution(IndexedTimeStampedModel):
                 self.id,
             )
             return None
+
+    def save(self, *args, **kwargs):
+        previous = self.__class__.objects.filter(pk=self.pk).first()
+        # TODO: [DEV-4447] If possible, remove conditional payment method update fetch from contribution.save
+        if (
+            (
+                previous
+                and previous.provider_payment_method_id != self.provider_payment_method_id
+                and not self.provider_payment_method_details
+            )
+            or not previous
+            and self.provider_payment_method_id
+            and not self.provider_payment_method_details
+        ):
+            if pm := self.fetch_stripe_payment_method():
+                self.provider_payment_method_details = pm
+                if kwargs.get("update_fields", False):
+                    # we cast update_fields to a set in case it was passed as a list
+                    kwargs["update_fields"] = set(kwargs["update_fields"]).union({"provider_payment_method_details"})
+        super().save(*args, **kwargs)
 
     def create_stripe_customer(
         self,
@@ -722,43 +740,11 @@ class Contribution(IndexedTimeStampedModel):
     def paid_fees(self) -> bool:
         return self.contribution_metadata.get("agreed_to_pay_fees", False)
 
-    @property
-    def cache(self):
-        return caches[DEFAULT_CACHE]
-
-    @property
-    def _stripe_payment_method_key(self) -> str:
-        return f"stripe_payment_method_{self.provider_payment_method_id}"
-
-    @property
-    def _stripe_payment_method(self) -> dict | None:
-        return self.cache.get(self._stripe_payment_method_key)
-
-    @_stripe_payment_method.setter
-    def _stripe_payment_method(self, value: dict) -> None:
-        self.cache.set(self._stripe_payment_method_key, value, timeout=STRIPE_PAYMENT_METHOD_CACHE_TTL)
-
-    @property
+    @cached_property
     def stripe_payment_method(self) -> stripe.PaymentMethod | None:
-        pm = None
         if not (pm_id := self.provider_payment_method_id):
-            logger.warning(
-                (
-                    "`Contribution.stripe_payment_method` called on contribution with ID %s that does not have a value set for "
-                    "`provider_payment_method_id`"
-                ),
-                self.id,
-            )
-        elif cached := self._stripe_payment_method:
-            pm = cached
-        else:
-            pm = self.pull_provider_payment_method_details(pm_id)
-        return pm
-
-    def pull_provider_payment_method_details(self, payment_method_id: str) -> dict | None:
-        if retrieved := self.fetch_stripe_payment_method(payment_method_id):
-            self._stripe_payment_method = retrieved.to_dict()
-            return self._stripe_payment_method
+            return None
+        return stripe.PaymentMethod.retrieve(pm_id, stripe_account=self.stripe_account_id)
 
     @property
     def payment_type(self) -> str:
@@ -849,7 +835,14 @@ class Contribution(IndexedTimeStampedModel):
                     contribution.id,
                     pi.payment_method,
                 )
-                update_data.update({"provider_payment_method_id": pm_id})
+                update_data.update(
+                    {
+                        "provider_payment_method_id": pm_id,
+                        "provider_payment_method_details": contribution.fetch_stripe_payment_method(
+                            provider_payment_method_id=pm_id
+                        ),
+                    }
+                )
             if dry_run:
                 updated += 1
                 continue
@@ -919,6 +912,9 @@ class Contribution(IndexedTimeStampedModel):
                 ]
             ):
                 contribution.provider_payment_method_id = pm_id
+                contribution.provider_payment_method_details = contribution.fetch_stripe_payment_method(
+                    provider_payment_method_id=pm_id
+                )
                 if dry_run:
                     updated += 1
                     continue
@@ -930,6 +926,7 @@ class Contribution(IndexedTimeStampedModel):
                         )
                         contribution.save(
                             update_fields={
+                                "provider_payment_method_details",
                                 "provider_payment_method_id",
                                 "modified",
                             }
@@ -937,6 +934,46 @@ class Contribution(IndexedTimeStampedModel):
                         reversion.set_comment(
                             "Contribution.fix_missing_provider_payment_method_id updated contribution"
                         )
+
+    @staticmethod
+    def fix_missing_payment_method_details_data(dry_run: bool = False) -> None:
+        """Retrieve provider_payment_method_details from Stripe if it's None and it appears that this should not be the case.
+
+        For the eligible subset of contributions, we retrieve the payment data from Stripe and set `provider_payment_method_details`
+        on the NRE contribution.
+
+        For optimal data integrity, this function should be run only after `fix_contributions_stuck_in_processing`.
+
+        For discussion of need for this method, see discussion of Stripe webhook reciever race conditions in this JIRA ticket:
+        https://news-revenue-hub.atlassian.net/browse/DEV-3010"""
+        kwargs = {
+            "status__in": [
+                ContributionStatus.PAID,
+                ContributionStatus.FLAGGED,
+                ContributionStatus.REJECTED,
+                ContributionStatus.CANCELED,
+            ],
+            "provider_payment_method_id__isnull": False,
+            "provider_payment_method_details__isnull": True,
+        }
+        updated = 0
+        for contribution in Contribution.objects.exclude(provider_payment_method_id="").filter(**kwargs):
+            logger.info(
+                "Contribution with ID %s has missing `provider_payment_method_details` data that can be synced from Stripe",
+                contribution.id,
+            )
+            contribution.provider_payment_method_details = contribution.fetch_stripe_payment_method()
+            if dry_run:
+                updated += 1
+                continue
+            else:
+                with reversion.create_revision():
+                    contribution.save(update_fields={"provider_payment_method_details", "modified"})
+                    updated += 1
+                    reversion.set_comment(
+                        "`Contribution.fix_missing_payment_method_details_data` synced `provider_payment_method_details` from Stripe"
+                    )
+        logger.info("Synced `provider_payment_method_details` updated %s contributions", updated)
 
     @staticmethod
     def _stripe_metadata_is_valid_for_contribution_metadata_backfill(metadata):
@@ -1073,10 +1110,6 @@ class Contribution(IndexedTimeStampedModel):
                 )
 
             raise
-
-    @property
-    def provider_payment_method_details(self) -> dict | None:
-        return self.stripe_payment_method
 
 
 def ensure_stripe_event(event_types: List[str] = None) -> Callable:

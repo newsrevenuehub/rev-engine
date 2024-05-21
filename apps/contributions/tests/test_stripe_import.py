@@ -18,8 +18,8 @@ from apps.contributions.exceptions import (
 )
 from apps.contributions.models import ContributionInterval, ContributionStatus, Payment
 from apps.contributions.stripe_import import (
-    _STRIPE_API_BACKOFF_ARGS,
     CACHE_KEY_PREFIX,
+    STRIPE_API_BACKOFF_ARGS,
     TTL_WARNING_THRESHOLD_PERCENT,
     RedisCachePipeline,
     StripeEventProcessor,
@@ -1173,7 +1173,7 @@ class Test_log_backoff:
         mock_logger = mocker.patch("apps.contributions.stripe_import.logger")
 
         @backoff.on_exception(
-            backoff.expo, stripe.error.RateLimitError, **_STRIPE_API_BACKOFF_ARGS | {"max_tries": (max_tries := 2)}
+            backoff.expo, stripe.error.RateLimitError, **STRIPE_API_BACKOFF_ARGS | {"max_tries": (max_tries := 2)}
         )
         def my_function():
             raise stripe_rate_limit_error

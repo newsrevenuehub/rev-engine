@@ -1121,3 +1121,10 @@ def invalid_metadata():
     return {
         "schema_version": "1.4",
     }
+
+
+@pytest.fixture
+def payment_method(payment_method_data_factory):
+    return stripe.PaymentMethod.construct_from(
+        payment_method_data_factory.get(), key="test", stripe_account="acct_fake_01"
+    )

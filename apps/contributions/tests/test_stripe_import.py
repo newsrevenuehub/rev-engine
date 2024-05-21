@@ -772,6 +772,11 @@ class TestStripeTransactionsImporter:
         else:
             assert instance.get_provider_payment_id_for_subscription(subscription_dict) is None
 
+    def test_get_payment_method(self, mocker):
+        mocker.patch("stripe.PaymentMethod.retrieve")
+        instance = StripeTransactionsImporter(stripe_account_id="test")
+        assert instance.get_payment_method("pm_1")
+
     @pytest.mark.parametrize(
         "entity,is_one_time",
         (
@@ -779,16 +784,16 @@ class TestStripeTransactionsImporter:
             ("subscription_dict", False),
         ),
     )
-    def test_get_default_contribution_data(self, entity, is_one_time, mocker, request):
+    @pytest.mark.parametrize("pm_found", (True, False))
+    def test_get_default_contribution_data(self, entity, is_one_time, pm_found, mocker, request):
         stripe_entity = request.getfixturevalue(entity)
-        instance = StripeTransactionsImporter(stripe_account_id="test")
+        instance = StripeTransactionsImporter(stripe_account_id="test", retrieve_payment_method=True)
         kwargs = {
             "stripe_entity": stripe_entity,
             "is_one_time": is_one_time,
             "contributor": ContributorFactory(),
             "customer_id": "cus_1",
             "payment_method_id": "pm_1",
-            "payment_method": {},
         }
         mocker.patch.object(instance, "get_refunds_for_payment_intent", return_value=[])
         mocker.patch.object(instance, "get_status_for_payment_intent", return_value=ContributionStatus.PAID)
@@ -798,6 +803,7 @@ class TestStripeTransactionsImporter:
             return_value={"amount": 100, "currency": "USD", "interval": ContributionInterval.MONTHLY.value},
         )
         mocker.patch.object(instance, "get_provider_payment_id_for_subscription", return_value="pi_1")
+        mocker.patch.object(instance, "get_payment_method", return_value={"id": "pm_1"} if pm_found else None)
         instance.get_default_contribution_data(**kwargs)
 
     @pytest.mark.parametrize("has_rp_id", (True, False))

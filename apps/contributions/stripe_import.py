@@ -786,6 +786,8 @@ class StripeTransactionsImporter:
             "provider_customer_id": customer_id,
             "provider_payment_method_id": payment_method_id,
         }
+        if payment_method_id and self.retrieve_payment_method and (pm := self.get_payment_method(payment_method_id)):
+            shared["payment_method"] = pm
         if is_one_time:
             has_refunds = len(self.get_refunds_for_payment_intent(stripe_entity)) > 0
             return shared | {
@@ -851,7 +853,6 @@ class StripeTransactionsImporter:
             contributor=contributor,
             customer_id=cust_id,
             payment_method_id=pm_id,
-            payment_method=self.get_payment_method(pm_id) if self.retrieve_payment_method else None,
         )
         donation_page = self.get_donation_page_from_metadata(metadata)
         if donation_page:

@@ -82,13 +82,6 @@ def charge_refunded(suppress_stripe_webhook_sig_verification):
         return json.load(fl)
 
 
-@pytest.fixture
-def payment_method(payment_method_data_factory):
-    return stripe.PaymentMethod.construct_from(
-        payment_method_data_factory.get(), key="test", stripe_account="acct_fake_01"
-    )
-
-
 @pytest.mark.django_db
 @pytest.mark.usefixtures("suppress_stripe_webhook_sig_verification")
 class TestPaymentIntentSucceeded:

@@ -569,15 +569,11 @@ class SubscriptionsViewSet(viewsets.ViewSet):
         )
 
 
-class SwitchboardContributionsViewSet(mixins.UpdateModelMixin, mixins.RetrieveModelMixin, viewsets.GenericViewSet):
-    """This viewset is for switchboard to update contributions
-
-    We enable GET as well, primarily to make it easier to QA the viewset in review app without
-    relying on the frontend or CURL or similar to make request.
-    """
+class SwitchboardContributionsViewSet(mixins.UpdateModelMixin, viewsets.GenericViewSet):
+    """This viewset is for switchboard to update contributions"""
 
     permission_classes = [IsSwitchboardAccount]
-    http_method_names = ["patch", "get"]
+    http_method_names = ["patch"]
     queryset = Contribution.objects.all()
     serializer_class = serializers.SwitchboardContributionSerializer
 

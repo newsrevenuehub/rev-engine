@@ -81,24 +81,12 @@ class ContributionAdminTest(TestCase):
             bad_actor_score=2,
             donation_page=self.donation_page,
             payment_provider_used=PaymentProvider.STRIPE_LABEL,
-            # This is to squash a side effect in contribution.save
-            # TODO: DEV-3026
-            # set these to `None` because there is override of save in
-            # contributions models file that causes stripe payment data to be fetched
-            # in certain circumstances
-            provider_payment_method_id=None,
         )
         self.contrib_score_4 = ContributionFactory(
             status=ContributionStatus.FLAGGED,
             bad_actor_score=4,
             donation_page=self.donation_page,
             payment_provider_used=PaymentProvider.STRIPE_LABEL,
-            # This is to squash a side effect in contribution.save
-            # TODO: DEV-3026
-            # set these to `None` because there is override of save in
-            # contributions models file that causes stripe payment data to be fetched
-            # in certain circumstances
-            provider_payment_method_id=None,
         )
 
     def _make_listview_request(self):

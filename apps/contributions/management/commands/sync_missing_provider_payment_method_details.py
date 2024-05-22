@@ -14,8 +14,7 @@ from apps.contributions.stripe_import import STRIPE_API_BACKOFF_ARGS
 
 
 # otherwise we get spammed by stripe info logs when running this command
-stripe_logger = logging.getLogger("stripe")
-stripe_logger.setLevel(logging.ERROR)
+logging.getLogger("stripe").setLevel(logging.ERROR)
 
 
 class Command(BaseCommand):

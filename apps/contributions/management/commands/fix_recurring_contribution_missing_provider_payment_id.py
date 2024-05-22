@@ -11,8 +11,7 @@ from apps.contributions.models import Contribution
 
 
 # otherwise we get spammed by stripe info logs when running this command
-stripe_logger = logging.getLogger("stripe")
-stripe_logger.setLevel(logging.ERROR)
+logging.getLogger("stripe").setLevel(logging.ERROR)
 
 
 class Command(BaseCommand):

@@ -275,7 +275,7 @@ class StripeWebhookProcessor:
                 self.obj_data["payment_intent"],
                 stripe_account=self.event.account,
             )
-            udpate_data = self._add_pm_id_and_payment_method_details(
+            update_data = self._add_pm_id_and_payment_method_details(
                 pm_id=pi.payment_method,
                 update_data={
                     "payment_provider_data": self.event,
@@ -284,7 +284,7 @@ class StripeWebhookProcessor:
                 },
             )
             self._handle_contribution_update(
-                udpate_data,
+                update_data,
                 "`StripeWebhookProcessor.handle_payment_intent_succeeded` updated contribution",
             )
         if payment.contribution.payment_set.count() == 1:

@@ -896,16 +896,13 @@ class TestRevenueProgram:
                 call(
                     "all_contributors",
                     {
-                        "name": revenue_program.mailchimp_all_contributors_segment_name,
-                        "options": {
-                            "match": "all",
-                            "conditions": [
-                                {
-                                    "field": "ecomm_purchased",
-                                    "op": "member",
-                                }
-                            ],
-                        },
+                        "match": "all",
+                        "conditions": [
+                            {
+                                "field": "ecomm_purchased",
+                                "op": "member",
+                            }
+                        ],
                     },
                 ),
                 call(

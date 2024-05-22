@@ -918,16 +918,13 @@ class RevenueProgram(IndexedTimeStampedModel):
         self.ensure_mailchimp_contributor_segment(
             "all_contributors",
             {
-                "name": self.mailchimp_all_contributors_segment_name,
-                "options": {
-                    "match": "all",
-                    "conditions": [
-                        {
-                            "field": "ecomm_purchased",
-                            "op": "member",
-                        }
-                    ],
-                },
+                "match": "all",
+                "conditions": [
+                    {
+                        "field": "ecomm_purchased",
+                        "op": "member",
+                    }
+                ],
             },
         )
         self.ensure_mailchimp_contributor_segment(

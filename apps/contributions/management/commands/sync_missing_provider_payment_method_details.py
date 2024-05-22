@@ -80,7 +80,7 @@ class Command(BaseCommand):
         if ineligible_because_of_account.exists():
             self.stdout.write(
                 self.style.HTTP_INFO(
-                    f"Found {(_inel_account:=ineligible_because_of_account.count())} contribution{'' if _inel_account == 1 else 's'} with "
+                    f"Found {(inelgible_count:=ineligible_because_of_account.count())} contribution{'' if inelgible_count == 1 else 's'} with "
                     f"value for provider_payment_method_id but no value for provider_payment_method_details that cannot be updated "
                     f"because account is disconnected or some other problem retrieving account: "
                     f"{', '.join(str(x) for x in ineligible_because_of_account.values_list('id', flat=True))}"

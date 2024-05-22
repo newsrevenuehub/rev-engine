@@ -125,6 +125,8 @@ class RevenueProgramInlineSerializer(serializers.ModelSerializer):
             "organization",
             "payment_provider_stripe_verified",
             "tax_id",
+            "contact_phone",
+            "contact_email",
         )
         read_only_fields = fields
 

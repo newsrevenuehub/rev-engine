@@ -1,12 +1,19 @@
 import { ICONS } from 'assets/icons/SvgIcon';
-import { CONTENT_SLUG, CUSTOMIZE_SLUG } from 'routes';
-import { NavItem, NavItemIcon, NavSection, SectionLabel, SideBarText } from '../DashboardSidebar.styled';
+import { CONTENT_SLUG, CONTRIBUTOR_PORTAL_SLUG, CUSTOMIZE_SLUG } from 'routes';
+import {
+  NavItem,
+  NavItemIcon,
+  NavSection,
+  SectionLabel,
+  SideBarText,
+  ManageAccountIcon
+} from '../DashboardSidebar.styled';
 import useUser from 'hooks/useUser';
 import { getUserRole } from 'utilities/getUserRole';
 
 function ContentSectionNav() {
   const { user } = useUser();
-  const { isHubAdmin, isSuperUser } = getUserRole(user);
+  const { isOrgAdmin, isRPAdmin } = getUserRole(user);
 
   return (
     <NavSection aria-labelledby="content-section-id">
@@ -15,7 +22,7 @@ function ContentSectionNav() {
         <NavItemIcon icon={ICONS.PAGES} />
         <SideBarText id="pages-nav-item-id">Pages</SideBarText>
       </NavItem>
-      {!isHubAdmin && !isSuperUser && (
+      {(isOrgAdmin || isRPAdmin) && (
         <NavItem
           aria-labelledby="customize-nav-item-id"
           role="listitem"
@@ -24,6 +31,17 @@ function ContentSectionNav() {
         >
           <NavItemIcon icon={ICONS.CUSTOMIZE} />
           <SideBarText id="customize-nav-item-id">Customize</SideBarText>
+        </NavItem>
+      )}
+      {(isOrgAdmin || isRPAdmin) && (
+        <NavItem
+          aria-labelledby="portal-nav-item-id"
+          role="listitem"
+          data-testid="nav-portal-item"
+          to={CONTRIBUTOR_PORTAL_SLUG}
+        >
+          <ManageAccountIcon />
+          <SideBarText id="portal-nav-item-id">Contributor Portal</SideBarText>
         </NavItem>
       )}
     </NavSection>

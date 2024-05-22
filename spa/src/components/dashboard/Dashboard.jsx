@@ -6,6 +6,7 @@ import * as S from './Dashboard.styled';
 import {
   CONTENT_SLUG,
   CUSTOMIZE_SLUG,
+  CONTRIBUTOR_PORTAL_SLUG,
   DASHBOARD_SLUG,
   DONATIONS_SLUG,
   EDITOR_ROUTE,
@@ -22,6 +23,7 @@ import SingleOrgUserOnlyRoute from 'components/authentication/SingleOrgUserOnlyR
 import LivePage404 from 'components/common/LivePage404';
 import Content from 'components/content/Content';
 import CustomizeRoute from 'components/content/CustomizeRoute';
+import ContributorPortalRoute from 'components/content/ContributorPortalRoute';
 import ConnectStripe from 'components/dashboard/connectStripe/ConnectStripe';
 import DashboardSidebar from 'components/dashboard/sidebar/DashboardSidebar';
 import DashboardTopbar from 'components/dashboard/topbar/DashboardTopbar';
@@ -79,6 +81,11 @@ function Dashboard() {
               {hasContentSectionAccess ? (
                 <SentryRoute path={CONTENT_SLUG}>
                   <Content />
+                </SentryRoute>
+              ) : null}
+              {hasContentSectionAccess ? (
+                <SentryRoute path={CONTRIBUTOR_PORTAL_SLUG}>
+                  <ContributorPortalRoute />
                 </SentryRoute>
               ) : null}
               {hasContentSectionAccess ? (

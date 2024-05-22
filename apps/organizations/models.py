@@ -801,19 +801,27 @@ class RevenueProgram(IndexedTimeStampedModel):
     def mailchimp_recurring_contribution_product(self) -> MailchimpProduct | None:
         return self.mailchimp_client.get_product(self.mailchimp_recurring_contribution_product_id)
 
-    @cached_property
+    # Below are not cached because they are dependent on model fields.
+
+    @property
     def mailchimp_contributor_segment(self) -> MailchimpSegment | None:
+        if not self.mailchimp_contributor_segment_id:
+            return None
         return self.mailchimp_client.get_segment(self.mailchimp_contributor_segment_id)
 
-    @cached_property
+    @property
     def mailchimp_all_contributors_segment(self) -> MailchimpSegment | None:
+        if not self.mailchimp_all_contributors_segment_id:
+            return None
         return self.mailchimp_client.get_segment(self.mailchimp_all_contributors_segment_id)
 
-    @cached_property
+    @property
     def mailchimp_recurring_contributor_segment(self) -> MailchimpSegment | None:
+        if not self.mailchimp_recurring_contributor_segment_id:
+            return None
         return self.mailchimp_client.get_segment(self.mailchimp_recurring_contributor_segment_id)
 
-    @cached_property
+    @property
     def mailchimp_email_list(self) -> MailchimpEmailList | None:
         logger.info("Called for rp %s", self.id)
         if not (self.mailchimp_list_id):

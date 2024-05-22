@@ -1064,6 +1064,11 @@ class TestRevenueProgramMailchimpSegments:
         mc_connected_rp.save()
         assert getattr(mc_connected_rp, f"mailchimp_{segment_type}_segment") is None
 
+    def test_property_when_no_segment_id(self, segment_type, mc_connected_rp):
+        setattr(mc_connected_rp, f"mailchimp_{segment_type}_segment_id", None)
+        mc_connected_rp.save()
+        assert getattr(mc_connected_rp, f"mailchimp_{segment_type}_segment") is None
+
     def test_property_not_found(self, segment_type, mc_connected_rp, mocker):
         setattr(mc_connected_rp, f"mailchimp_{segment_type}_segment_id", "test-segment-id")
         mc_connected_rp.save()
@@ -1084,7 +1089,6 @@ class TestRevenueProgramMailchimpSegments:
     ):
         setattr(mc_connected_rp, f"mailchimp_{segment_type}_segment_id", "test-segment-id")
         patched_client = mocker.patch("apps.organizations.models.RevenueProgramMailchimpClient")
-        mocker.patch.object(mc_connected_rp, f"mailchimp_{segment_type}_segment", new_callable=mocker.PropertyMock)
         mc_connected_rp.ensure_mailchimp_contributor_segment(segment_type, {})
         assert not patched_client.return_value.create_product.called
 
@@ -1093,7 +1097,7 @@ class TestRevenueProgramMailchimpSegments:
         patched_client = mocker.patch("apps.organizations.models.RevenueProgramMailchimpClient")
         patched_client.return_value.get_segment.return_value = None
         patched_client.return_value.create_segment.return_value = MagicMock(id="test-new-id")
-        setattr(mc_connected_rp, f"mailchimp_{segment_type}_segment", None)
+        setattr(mc_connected_rp, f"mailchimp_{segment_type}_segment_id", None)
         mc_connected_rp.ensure_mailchimp_contributor_segment(segment_type, mock_options)
         patched_client.return_value.create_segment.assert_called_with(
             getattr(mc_connected_rp, f"mailchimp_{segment_type}_segment_name"), mock_options

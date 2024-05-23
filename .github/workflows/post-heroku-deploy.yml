@@ -1,4 +1,4 @@
-name: Actions to take after deployment of a heroku app (e)
+name: Actions to take after deployment of a heroku app
 
 on:
   workflow_dispatch:

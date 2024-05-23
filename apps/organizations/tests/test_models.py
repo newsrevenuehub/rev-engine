@@ -381,7 +381,7 @@ class TestRevenueProgramMailchimpClient:
     def test_create_store_happy_path(self, mc_connected_rp, mailchimp_store_from_api, mocker):
         mocker.patch(
             "apps.organizations.models.RevenueProgram.payment_provider",
-            return_value=MagicMock(currency_code="usd"),
+            return_value=MagicMock(currency="usd"),
             new_callable=mocker.PropertyMock,
         )
         client = RevenueProgramMailchimpClient(mc_connected_rp)
@@ -392,7 +392,7 @@ class TestRevenueProgramMailchimpClient:
                 "id": mc_connected_rp.mailchimp_store_id,
                 "list_id": mc_connected_rp.mailchimp_list_id,
                 "name": mc_connected_rp.mailchimp_store_name,
-                "currency_code": mc_connected_rp.payment_provider.currency_code,
+                "currency_code": mc_connected_rp.payment_provider.currency,
             }
         )
 
@@ -411,7 +411,7 @@ class TestRevenueProgramMailchimpClient:
     def test_create_store_api_error(self, mc_connected_rp, mocker):
         mocker.patch(
             "apps.organizations.models.RevenueProgram.payment_provider",
-            return_value=MagicMock(currency_code="usd"),
+            return_value=MagicMock(currency="usd"),
             new_callable=mocker.PropertyMock,
         )
         client = RevenueProgramMailchimpClient(mc_connected_rp)

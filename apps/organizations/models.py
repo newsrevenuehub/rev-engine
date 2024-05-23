@@ -579,7 +579,7 @@ class RevenueProgramMailchimpClient(MailchimpMarketing.Client):
                     "id": self.revenue_program.mailchimp_store_id,
                     "list_id": self.revenue_program.mailchimp_list_id,
                     "name": self.revenue_program.mailchimp_store_name,
-                    "currency_code": self.revenue_program.payment_provider.currency_code,
+                    "currency_code": self.revenue_program.payment_provider.currency,
                 }
             )
         except ApiClientError as error:

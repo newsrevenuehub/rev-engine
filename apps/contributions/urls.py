@@ -11,6 +11,9 @@ router.register(r"contributions", views.ContributionsViewSet, basename="contribu
 router.register(r"payments", views.PaymentViewset, basename="payment")
 router.register(r"subscriptions", views.SubscriptionsViewSet, basename="subscription")
 router.register(r"contributors", views.PortalContributorsViewSet, basename="portal-contributor")
+router.register(
+    r"switchboard-contributions", views.SwitchboardContributionsViewSet, basename="switchboard-contribution"
+)
 
 urlpatterns = [
     path("stripe/oauth/", views.stripe_oauth, name="stripe-oauth"),

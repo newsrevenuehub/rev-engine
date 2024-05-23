@@ -8,7 +8,6 @@ export default createGlobalStyle`
   *::after,
   *::before {
     box-sizing: inherit;
-    outline-color: ${(props) => props.theme.colors.primary};
   }
 
   body {

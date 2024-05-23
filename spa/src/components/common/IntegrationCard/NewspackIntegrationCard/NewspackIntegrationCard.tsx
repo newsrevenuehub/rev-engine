@@ -1,22 +1,22 @@
-import SalesforceLogo from 'assets/images/salesforce.jpg';
+import NewspackLogo from 'assets/images/newspack.png';
 import { HELP_URL } from 'constants/helperUrls';
 import useUser from 'hooks/useUser';
 import IntegrationCard from '../IntegrationCard';
 
-export function SalesforceIntegrationCard() {
+export function NewspackIntegrationCard() {
   const { user } = useUser();
   const currentOrganization = user?.organizations?.length === 1 ? user?.organizations?.[0] : undefined;
 
   return (
     <IntegrationCard
-      image={SalesforceLogo}
-      title="Salesforce"
+      image={NewspackLogo}
+      title="Newspack"
       isRequired={false}
       site={{
-        label: 'salesforce.com',
-        url: 'https://www.salesforce.com'
+        label: 'newspack.com',
+        url: 'https://www.newspack.com'
       }}
-      description="Manage multi-channel customer insights with the world's #1 CRM."
+      description="Embed and create calls-to-actions within your Newspack-supported CMS to point to RevEngine pages."
       toggleLabel={
         <>
           Contact{' '}
@@ -26,20 +26,20 @@ export function SalesforceIntegrationCard() {
           to Connect
         </>
       }
-      toggleTooltipMessage="Contact our Support Staff to integrate with Salesforce"
+      toggleTooltipMessage="Contact our Support Staff to integrate with Newspack"
       disabled
       toggleConnectedTooltipMessage={
         <>
-          Connected to Salesforce. Contact{' '}
+          Connected to Newspack. Contact{' '}
           <a href={HELP_URL} style={{ textDecoration: 'underline' }} target="_blank" rel="noreferrer">
             Support
           </a>{' '}
           to disconnect.
         </>
       }
-      isActive={!!currentOrganization?.show_connected_to_salesforce}
+      isActive={!!currentOrganization?.show_connected_to_newspack}
     />
   );
 }
 
-export default SalesforceIntegrationCard;
+export default NewspackIntegrationCard;

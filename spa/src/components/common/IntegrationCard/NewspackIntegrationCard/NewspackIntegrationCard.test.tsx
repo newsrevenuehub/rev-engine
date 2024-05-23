@@ -1,14 +1,14 @@
 import { render, screen } from 'test-utils';
-import SalesforceIntegrationCard from './SalesforceIntegrationCard';
+import NewspackIntegrationCard from './NewspackIntegrationCard';
 import useUser from 'hooks/useUser';
 
 jest.mock('../IntegrationCard');
 jest.mock('hooks/useUser');
 
-describe('SalesforceIntegrationCard', () => {
+describe('NewspackIntegrationCard', () => {
   const useUserMock = jest.mocked(useUser);
   function tree() {
-    return render(<SalesforceIntegrationCard />);
+    return render(<NewspackIntegrationCard />);
   }
 
   beforeEach(() => {
@@ -40,7 +40,7 @@ describe('SalesforceIntegrationCard', () => {
         organizations: [
           {
             id: 'mock-org',
-            show_connected_to_salesforce: true
+            show_connected_to_newspack: true
           }
         ]
       } as any

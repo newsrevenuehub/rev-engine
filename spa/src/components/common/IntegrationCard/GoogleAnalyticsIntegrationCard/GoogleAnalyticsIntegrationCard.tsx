@@ -1,22 +1,22 @@
-import SalesforceLogo from 'assets/images/salesforce.jpg';
+import GoogleAnalyticsLogo from 'assets/images/google-analytics.png';
 import { HELP_URL } from 'constants/helperUrls';
 import useUser from 'hooks/useUser';
 import IntegrationCard from '../IntegrationCard';
 
-export function SalesforceIntegrationCard() {
+export function GoogleAnalyticsIntegrationCard() {
   const { user } = useUser();
   const currentOrganization = user?.organizations?.length === 1 ? user?.organizations?.[0] : undefined;
 
   return (
     <IntegrationCard
-      image={SalesforceLogo}
-      title="Salesforce"
+      image={GoogleAnalyticsLogo}
+      title="Google Analytics"
       isRequired={false}
       site={{
-        label: 'salesforce.com',
-        url: 'https://www.salesforce.com'
+        label: 'analytics.google.com',
+        url: 'https://www.analytics.google.com'
       }}
-      description="Manage multi-channel customer insights with the world's #1 CRM."
+      description="Connect to Google Analytics to see site traffic trends to RevEngine pages."
       toggleLabel={
         <>
           Contact{' '}
@@ -26,20 +26,20 @@ export function SalesforceIntegrationCard() {
           to Connect
         </>
       }
-      toggleTooltipMessage="Contact our Support Staff to integrate with Salesforce"
+      toggleTooltipMessage="Contact our Support Staff to integrate with Google Analytics"
       disabled
       toggleConnectedTooltipMessage={
         <>
-          Connected to Salesforce. Contact{' '}
+          Connected to Google Analytics. Contact{' '}
           <a href={HELP_URL} style={{ textDecoration: 'underline' }} target="_blank" rel="noreferrer">
             Support
           </a>{' '}
           to disconnect.
         </>
       }
-      isActive={!!currentOrganization?.show_connected_to_salesforce}
+      isActive={!!currentOrganization?.show_connected_to_google_analytics}
     />
   );
 }
 
-export default SalesforceIntegrationCard;
+export default GoogleAnalyticsIntegrationCard;

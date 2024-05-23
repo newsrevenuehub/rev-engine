@@ -1,22 +1,22 @@
-import SalesforceLogo from 'assets/images/salesforce.jpg';
+import EventbriteLogo from 'assets/images/eventbrite.png';
 import { HELP_URL } from 'constants/helperUrls';
 import useUser from 'hooks/useUser';
 import IntegrationCard from '../IntegrationCard';
 
-export function SalesforceIntegrationCard() {
+export function EventbriteIntegrationCard() {
   const { user } = useUser();
   const currentOrganization = user?.organizations?.length === 1 ? user?.organizations?.[0] : undefined;
 
   return (
     <IntegrationCard
-      image={SalesforceLogo}
-      title="Salesforce"
+      image={EventbriteLogo}
+      title="Eventbrite"
       isRequired={false}
       site={{
-        label: 'salesforce.com',
-        url: 'https://www.salesforce.com'
+        label: 'eventbrite.com',
+        url: 'https://www.eventbrite.com'
       }}
-      description="Manage multi-channel customer insights with the world's #1 CRM."
+      description="Sync your event data - including attendees, revenue and new email signups - to Salesforce."
       toggleLabel={
         <>
           Contact{' '}
@@ -26,20 +26,20 @@ export function SalesforceIntegrationCard() {
           to Connect
         </>
       }
-      toggleTooltipMessage="Contact our Support Staff to integrate with Salesforce"
+      toggleTooltipMessage="Contact our Support Staff to integrate with Eventbrite"
       disabled
       toggleConnectedTooltipMessage={
         <>
-          Connected to Salesforce. Contact{' '}
+          Connected to Eventbrite. Contact{' '}
           <a href={HELP_URL} style={{ textDecoration: 'underline' }} target="_blank" rel="noreferrer">
             Support
           </a>{' '}
           to disconnect.
         </>
       }
-      isActive={!!currentOrganization?.show_connected_to_salesforce}
+      isActive={!!currentOrganization?.show_connected_to_eventbrite}
     />
   );
 }
 
-export default SalesforceIntegrationCard;
+export default EventbriteIntegrationCard;

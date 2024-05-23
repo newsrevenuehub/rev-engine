@@ -1,22 +1,22 @@
-import SalesforceLogo from 'assets/images/salesforce.jpg';
+import DigestbuilderLogo from 'assets/images/digestbuilder.png';
 import { HELP_URL } from 'constants/helperUrls';
 import useUser from 'hooks/useUser';
 import IntegrationCard from '../IntegrationCard';
 
-export function SalesforceIntegrationCard() {
+export function DigestbuilderIntegrationCard() {
   const { user } = useUser();
   const currentOrganization = user?.organizations?.length === 1 ? user?.organizations?.[0] : undefined;
 
   return (
     <IntegrationCard
-      image={SalesforceLogo}
-      title="Salesforce"
+      image={DigestbuilderLogo}
+      title="digestbuilder"
       isRequired={false}
       site={{
-        label: 'salesforce.com',
-        url: 'https://www.salesforce.com'
+        label: 'digestbuilder.com',
+        url: 'https://www.digestbuilder.com'
       }}
-      description="Manage multi-channel customer insights with the world's #1 CRM."
+      description="Connect payments made from DigestBuilder to RevEngine."
       toggleLabel={
         <>
           Contact{' '}
@@ -26,20 +26,20 @@ export function SalesforceIntegrationCard() {
           to Connect
         </>
       }
-      toggleTooltipMessage="Contact our Support Staff to integrate with Salesforce"
+      toggleTooltipMessage="Contact our Support Staff to integrate with digestbuilder"
       disabled
       toggleConnectedTooltipMessage={
         <>
-          Connected to Salesforce. Contact{' '}
+          Connected to digestbuilder. Contact{' '}
           <a href={HELP_URL} style={{ textDecoration: 'underline' }} target="_blank" rel="noreferrer">
             Support
           </a>{' '}
           to disconnect.
         </>
       }
-      isActive={!!currentOrganization?.show_connected_to_salesforce}
+      isActive={!!currentOrganization?.show_connected_to_digestbuilder}
     />
   );
 }
 
-export default SalesforceIntegrationCard;
+export default DigestbuilderIntegrationCard;

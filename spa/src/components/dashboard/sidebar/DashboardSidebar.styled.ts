@@ -4,6 +4,7 @@ import { NavLink } from 'react-router-dom';
 import logo from 'assets/images/nre-logo-blue.svg';
 import mobileLogo from 'assets/images/nre-logo-blue-mobile.svg';
 import SvgIcon from 'assets/icons/SvgIcon';
+import ManageIcon from '@material-design-icons/svg/outlined/manage_accounts.svg?react';
 
 export const Root = styled.aside`
   display: flex;
@@ -216,6 +217,14 @@ export const NavItemIcon = styled(SvgIcon)`
   @media (${(props) => props.theme.breakpoints.tabletLandscapeDown}) {
     width: 20px;
     height: 20px;
+    margin-left: 22px;
+  }
+`;
+
+export const ManageAccountIcon = styled(ManageIcon)`
+  margin-right: 7px;
+
+  @media (${(props) => props.theme.breakpoints.tabletLandscapeDown}) {
     margin-left: 22px;
   }
 `;

@@ -816,10 +816,10 @@ describe('User flow: unhappy paths', () => {
       .click();
     cy.wait('@create-one-time-payment__invalid');
     cy.get('[data-testid="d-amount"]').contains(validationError);
-    cy.get('[data-testid="errors-First name"]').contains(validationError);
-    cy.get('[data-testid="errors-Last name"]').contains(validationError);
-    cy.get('[data-testid="errors-Email"]').contains(validationError);
-    cy.get('[data-testid="errors-Phone"]').contains(validationError);
+    cy.get('#donor-info-first-name-helper-text').contains(validationError);
+    cy.get('#donor-info-last-name-helper-text').contains(validationError);
+    cy.get('#donor-info-email-helper-text').contains(validationError);
+    cy.get('#donor-info-phone-helper-text').contains(validationError);
     cy.get('#mailing_street-helper-text').contains(validationError);
     cy.get('#mailing_city-helper-text').contains(validationError);
     cy.get('#mailing_state-helper-text').contains(validationError);

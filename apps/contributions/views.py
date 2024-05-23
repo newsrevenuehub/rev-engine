@@ -28,6 +28,7 @@ from apps.api.permissions import (
     IsContributor,
     IsContributorOwningContribution,
     IsHubAdmin,
+    IsSwitchboardAccount,
     UserIsRequestedContributor,
 )
 from apps.contributions import serializers
@@ -563,6 +564,15 @@ class SubscriptionsViewSet(viewsets.ViewSet):
             subscription=subscription,
             payment_intent=pi,
         )
+
+
+class SwitchboardContributionsViewSet(mixins.UpdateModelMixin, viewsets.GenericViewSet):
+    """Viewset for switchboard to update contributions."""
+
+    permission_classes = [IsSwitchboardAccount]
+    http_method_names = ["patch"]
+    queryset = Contribution.objects.all()
+    serializer_class = serializers.SwitchboardContributionSerializer
 
 
 class PortalContributorsViewSet(viewsets.GenericViewSet):

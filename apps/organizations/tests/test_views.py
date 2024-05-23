@@ -779,7 +779,7 @@ class TestRevenueProgramViewSet:
             (
                 "rp_invalid_patch_data_contact_phone",
                 status.HTTP_400_BAD_REQUEST,
-                {"contact_phone": ["Phone not parsable: abc"]},
+                {"contact_phone": ["Unknown phone format: abc"]},
                 False,
             ),
             (

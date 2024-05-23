@@ -238,9 +238,16 @@ AUTH_PASSWORD_VALIDATORS = [
 CONTRIBUTION_CACHE_TTL = timedelta(minutes=30)
 DEFAULT_CACHE = "default"
 STRIPE_TRANSACTIONS_IMPORT_CACHE = "stripe_transactions_import"
-# We expect stripe import runs to take less than 2 hours, so this gives
-# us some headroom.
-STRIPE_TRANSACTIONS_IMPORT_CACHE_TTL = 60 * 60 * 8  # 8 hours
+# For accounts with many transactions, we have seen this take up to 8.5 hours in prod, This TTL will (hopefully) give us
+# ample headroom to accomodate.
+# NB: The effects of multiple runs of the command across the sample space of account IDs are cumulative in terms of
+# cache footprint over a given window of time.
+# That means there is some uknown number of accounts that will swamp the alloted cache space, and the cache will be
+# evicted before the TTL. Also, note the existence of python manage.py clear_cache, which can be used to clear the cache
+# related to Stripe transactions import runs.
+STRIPE_TRANSACTIONS_IMPORT_CACHE_TTL = int(
+    os.getenv("STRIPE_TRANSACTIONS_IMPORT_CACHE_TTL", 60 * 60 * 25)  # default is 25 hours
+)
 
 REDIS_URL = os.getenv("REDIS_TLS_URL", os.getenv("REDIS_URL", "redis://redis:6379"))
 
@@ -649,3 +656,5 @@ RP_MAILCHIMP_LIST_CONFIGURATION_COMPLETE_TOPIC = os.getenv("RP_MAILCHIMP_LIST_CO
 
 # Three minutes
 RETRIEVED_STRIPE_ENTITY_CACHE_TTL = 60 * 3
+
+SWITCHBOARD_ACCOUNT_EMAIL = os.getenv("SWITCHBOARD_ACCOUNT_EMAIL", None)

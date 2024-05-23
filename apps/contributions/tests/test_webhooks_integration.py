@@ -384,7 +384,8 @@ def test_invoice_upcoming(interval, expect_reminder_email, contribution_found, c
     response = client.post(reverse("stripe-webhooks-contributions"), data=invoice_upcoming_event, **header)
     assert response.status_code == status.HTTP_200_OK
     if not contribution_found:
-        # TODO: assert that task debug logs
+        # @njh can't figure out what task/what code this is supposed to be testing. It's not what the test name says. as that's a fixture.
+        # TODO @njh: assert that task debug logs # noqa: TD003
         return
     if expect_reminder_email:
         mock_send_reminder.assert_called_once_with(

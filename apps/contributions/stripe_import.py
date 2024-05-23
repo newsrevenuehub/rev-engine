@@ -374,7 +374,8 @@ class StripeTransactionsImporter:
     def get_status_for_subscription(subscription_status: str) -> ContributionStatus:
         """Map Stripe subscription status to Revengine contribution status."""
         match subscription_status:
-            # TODO: [DEV-4506] Look into inconsistencies between Stripe subscription statuses and Revengine contribution statuses
+            # TODO @BW: Look into inconsistencies between Stripe subscription statuses and Revengine contribution statuses
+            # DEV-4506
             # In revengine terms, we conflate active and past due because we don't have an internal status
             # for past due, and paid is closest given current statuses
             case "active" | "past_due":

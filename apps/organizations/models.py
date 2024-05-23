@@ -584,7 +584,8 @@ class RevenueProgram(IndexedTimeStampedModel):
     mailchimp_contributor_segment_id = models.CharField(max_length=100, null=True, blank=True)
     mailchimp_recurring_contributor_segment_id = models.CharField(max_length=100, null=True, blank=True)
     # NB: This field is stored in a secret manager, not in the database.
-    # TODO: [DEV-3581] Cache the value for mailchimp_access_token to avoid hitting the secret manager on every request
+    # TODO @BW: Cache value for mailchimp_access_token to avoid hitting the secret manager on every request
+    # DEV-3581
     # (potentially multiple times per request)
     mailchimp_access_token = GoogleCloudSecretProvider(model_attr="mailchimp_access_token_secret_name")
 
@@ -930,7 +931,8 @@ class RevenueProgram(IndexedTimeStampedModel):
             logger.info("Recurring contribution product already exists for rp_id=[%s]", self.id)
 
     def ensure_mailchimp_contributor_segment(self) -> None:
-        # TODO: [DEV-3579] Handle edge case where segment has been defined in Mailchimp but the ID is not saved in the RP
+        # TODO @BW: Handle edge case where segment has been defined in Mailchimp but the ID is not saved in the RP
+        # DEV-3579
         if not self.mailchimp_contributor_segment:
             logger.info(
                 "Creating %s segment for rp_id=[%s]",
@@ -954,7 +956,8 @@ class RevenueProgram(IndexedTimeStampedModel):
         here is to make `setup_mailchimp_entities_for_rp_mailing_list` more easily testable by providing
         clean, obvious points to mock out.
         """
-        # TODO: [DEV-3579] Handle edge case where segment has been defined in Mailchimp but the ID is not saved in the RP
+        # TODO @BW: Handle edge case where segment has been defined in Mailchimp but the ID is not saved in the RP
+        # DEV-3579
         if not self.mailchimp_recurring_segment:
             logger.info(
                 "Creating %s segment for rp_id=[%s]",
@@ -1045,7 +1048,6 @@ class RevenueProgram(IndexedTimeStampedModel):
             button_color=_style.colors.cstm_CTAs or None,
         )
 
-    # TODO: [DEV-3582] Better caching for mailchimp entities
     @cached_property
     def mailchimp_email_lists(self) -> list[MailchimpEmailList]:
         """Retrieve Mailchimp email lists for this RP, if any.

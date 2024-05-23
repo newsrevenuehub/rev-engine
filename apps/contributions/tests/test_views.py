@@ -1337,7 +1337,8 @@ class TestPaymentViewset:
         url = reverse("payment-list")
         response = client.post(url, {})
         assert response.status_code == status.HTTP_403_FORBIDDEN
-        # TODO @BW: figure out how to do csrf protection but return JSON when no token
+        # @njh need a ticket or cut?
+        # TODO @BW: figure out how to do csrf protection but return JSON when no token # noqa: TD003
 
     @pytest.mark.parametrize(
         ("interval", "payment_intent_id", "subscription_id"),

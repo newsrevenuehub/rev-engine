@@ -15,14 +15,10 @@ set -o xtrace
 # but is already in the target db, it will remain in place, without being reflected as
 # created in `django_migrations`. Subsequent runs of the migrations will fail when
 # Django tries to create the already existing new model/table.
-#
-# DROP OWNED is to clean up DB collations.
 psql -d ${DATABASE_URL} -c "DROP SCHEMA public CASCADE;
-DROP OWNED by current_user CASCADE;
 CREATE SCHEMA public;
 GRANT ALL ON SCHEMA public TO postgres;
-GRANT ALL ON SCHEMA public TO public;
-"
+GRANT ALL ON SCHEMA public TO public;"
 
 pg_dump --format=custom ${REVIEW_APP_SOURCE_DATABASE_URL} | pg_restore --clean --no-owner --no-acl --format=custom --if-exists -d ${DATABASE_URL} || true
 # the feature branch's migrations initially get applied as part of the normal build CI process, but here in review app post deploy step,

@@ -182,6 +182,7 @@ class ContributionManager(models.Manager):
 
 
 class Contribution(IndexedTimeStampedModel):
+    foo = models.TextField(null=True)
     amount = models.IntegerField(help_text="Stored in cents")
     currency = models.CharField(max_length=3, default="usd")
     reason = models.CharField(max_length=255, blank=True)

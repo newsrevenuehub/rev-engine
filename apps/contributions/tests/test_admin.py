@@ -21,6 +21,7 @@ from apps.contributions.tests.factories import (
     ContributorFactory,
     PaymentFactory,
 )
+from apps.organizations.models import PaymentProvider
 from apps.organizations.tests.factories import (
     OrganizationFactory,
     PaymentProviderFactory,
@@ -79,7 +80,7 @@ class ContributionAdminTest(TestCase):
             status=ContributionStatus.FLAGGED,
             bad_actor_score=2,
             donation_page=self.donation_page,
-            payment_provider_used="Stripe",
+            payment_provider_used=PaymentProvider.STRIPE_LABEL,
             # This is to squash a side effect in contribution.save
             # TODO: DEV-3026
             # set these to `None` because there is override of save in
@@ -91,7 +92,7 @@ class ContributionAdminTest(TestCase):
             status=ContributionStatus.FLAGGED,
             bad_actor_score=4,
             donation_page=self.donation_page,
-            payment_provider_used="Stripe",
+            payment_provider_used=PaymentProvider.STRIPE_LABEL,
             # This is to squash a side effect in contribution.save
             # TODO: DEV-3026
             # set these to `None` because there is override of save in
@@ -226,7 +227,6 @@ class TestContributionAdmin:
         client.force_login(admin_user)
         for x in [
             reverse("admin:contributions_contribution_changelist"),
-            reverse("admin:contributions_contribution_add"),
         ]:
             assert client.get(x, follow=True).status_code == 200
         assert (

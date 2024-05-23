@@ -1,5 +1,5 @@
 import { axe } from 'jest-axe';
-import { CONTENT_SLUG, CUSTOMIZE_SLUG } from 'routes';
+import { CONTENT_SLUG, CONTRIBUTOR_PORTAL_SLUG, CUSTOMIZE_SLUG } from 'routes';
 import { render, screen } from 'test-utils';
 import ContentSectionNav from './ContentSectionNav';
 import { getUserRole } from 'utilities/getUserRole';
@@ -18,7 +18,7 @@ describe('ContentSectionNav', () => {
   const getUserRoleMock = jest.mocked(getUserRole);
 
   beforeEach(() => {
-    getUserRoleMock.mockReturnValue({ isSuperUser: false, isHubAdmin: false } as any);
+    getUserRoleMock.mockReturnValue({ isOrgAdmin: true } as any);
   });
 
   it('shows a link to the Pages page', () => {
@@ -40,9 +40,9 @@ describe('ContentSectionNav', () => {
   });
 
   it.each([
-    ['superuser', { isSuperUser: true }],
-    ['hub admin', { isHubAdmin: true }]
-  ])('hides link to Customize page if user role = %s', (_, role) => {
+    ['superuser', { isOrgAdmin: false }],
+    ['hub admin', { isRPAdmin: false }]
+  ])('hides link to Customize page if user role not = %s', (_, role) => {
     getUserRoleMock.mockReturnValue(role as any);
     tree();
     expect(screen.queryByRole('listitem', { name: 'Customize' })).not.toBeInTheDocument();
@@ -55,6 +55,33 @@ describe('ContentSectionNav', () => {
     getUserRoleMock.mockReturnValue(role as any);
     tree();
     expect(screen.getByRole('listitem', { name: 'Customize' })).toBeInTheDocument();
+  });
+
+  it('shows a link to the Contributor Portal page', () => {
+    tree();
+
+    const pagesLink = screen.getByRole('listitem', { name: 'Contributor Portal' });
+
+    expect(pagesLink).toBeVisible();
+    expect(pagesLink).toHaveAttribute('href', CONTRIBUTOR_PORTAL_SLUG);
+  });
+
+  it.each([
+    ['superuser', { isSuperUser: true }],
+    ['hub admin', { isHubAdmin: true }]
+  ])('hides link to Contributor Portal page if user role = %s', (_, role) => {
+    getUserRoleMock.mockReturnValue(role as any);
+    tree();
+    expect(screen.queryByRole('listitem', { name: 'Contributor Portal' })).not.toBeInTheDocument();
+  });
+
+  it.each([
+    ['org admin', { isOrgAdmin: true }],
+    ['rp admin', { isRPAdmin: true }]
+  ])('shows link to Contributor Portal page if user role = %s', (_, role) => {
+    getUserRoleMock.mockReturnValue(role as any);
+    tree();
+    expect(screen.getByRole('listitem', { name: 'Contributor Portal' })).toBeInTheDocument();
   });
 
   it('is accessible', async () => {

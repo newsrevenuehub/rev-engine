@@ -3,24 +3,24 @@ import { useTranslation } from 'react-i18next';
 import { useParams } from 'react-router-dom';
 import { HUB_GA_V3_ID } from 'appSettings';
 import { useAnalyticsContext } from 'components/analytics/AnalyticsContext';
+import { GlobalLoading } from 'components/common/GlobalLoading';
 import LivePage404 from 'components/common/LivePage404';
 import DonationPage from 'components/donationPage/DonationPage';
 import SegregatedStyles from 'components/donationPage/SegregatedStyles';
 import PageTitle from 'elements/PageTitle';
 import { usePublishedPage } from 'hooks/usePublishedPage';
-import useSubdomain from 'hooks/useSubdomain';
 import useWebFonts from 'hooks/useWebFonts';
 import ContributionPage18nProvider from './ContributionPageI18nProvider';
-import GlobalLoading from 'elements/GlobalLoading';
+import { getRevenueProgramSlug } from 'utilities/getRevenueProgramSlug';
 
 interface RouteParams {
   pageSlug: string;
 }
 
 function PublishedDonationPage() {
-  const subdomain = useSubdomain();
+  const rpSlug = getRevenueProgramSlug();
   const { pageSlug } = useParams<RouteParams>();
-  const { isError, isLoading, page } = usePublishedPage(subdomain, pageSlug);
+  const { isError, isLoading, page } = usePublishedPage(rpSlug, pageSlug);
   const { setAnalyticsConfig } = useAnalyticsContext();
   const { t } = useTranslation();
 

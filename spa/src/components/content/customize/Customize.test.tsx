@@ -8,7 +8,7 @@ import Customize, { PAID_SUBTITLE } from './Customize';
 
 jest.mock('hooks/useUser');
 jest.mock('hooks/useSessionState');
-jest.mock('elements/GlobalLoading');
+jest.mock('components/common/GlobalLoading/GlobalLoading');
 jest.mock('components/common/Hero/Hero');
 jest.mock('components/common/SendTestEmail/SendTestEmail');
 jest.mock('./CustomizeCoreUpgradePrompt/CustomizeCoreUpgradePrompt');
@@ -109,13 +109,12 @@ describe('Customize Styles', () => {
         );
       });
 
-      it('should render core upgrade prompt with the user', () => {
+      it('should render core upgrade prompt', () => {
         tree();
 
         const upgradePrompt = screen.getByTestId('mock-customize-core-upgrade-prompt');
 
         expect(upgradePrompt).toBeVisible();
-        expect(upgradePrompt.dataset.user).toBe(JSON.stringify(mockUser));
       });
 
       it('should call onClose for upgrade prompt', () => {

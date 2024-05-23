@@ -11,7 +11,7 @@ jest.mock('react-router-dom', () => ({
     return <div data-testid="mock-redirect">{to}</div>;
   }
 }));
-jest.mock('elements/GlobalLoading');
+jest.mock('components/common/GlobalLoading/GlobalLoading');
 jest.mock('utilities/getUserRole');
 jest.mock('hooks/useUser');
 jest.mock('components/content/customize/Customize', () => () => <div data-testid="styles-mock" />);

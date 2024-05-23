@@ -12,35 +12,24 @@ from addict import Dict as AttrDict
 from rest_framework import exceptions
 from stripe.stripe_object import StripeObject
 
+from apps.contributions.exceptions import (
+    ContributionIgnorableError,
+    InvalidIntervalError,
+    InvalidMetadataError,
+)
 from apps.contributions.models import ContributionInterval, ContributionStatus
 from apps.contributions.serializers import (
     PaymentProviderContributionSerializer,
     SubscriptionsSerializer,
 )
+from apps.contributions.stripe_import import MAX_STRIPE_RESPONSE_LIMIT, StripeTransactionsImporter
 from apps.contributions.types import StripePiAsPortalContribution, StripePiSearchResponse
 from revengine.settings.base import CONTRIBUTION_CACHE_TTL, DEFAULT_CACHE
 
 
-MAX_STRIPE_RESPONSE_LIMIT = 100
 MAX_STRIPE_CUSTOMERS_LIMIT = 10
 
 logger = logging.getLogger(f"{settings.DEFAULT_LOGGER}.{__name__}")
-
-
-class ContributionIgnorableError(Exception):
-    """
-    Base contribution exception where the type of exception should be ignored.
-    """
-
-    pass
-
-
-class InvalidIntervalError(ContributionIgnorableError):
-    pass
-
-
-class InvalidMetadataError(ContributionIgnorableError):
-    pass
 
 
 class StripePaymentIntent:
@@ -307,13 +296,11 @@ class StripeContributionsProvider:
 
     def get_interval_from_subscription(self, subscription: stripe.Subscription) -> ContributionInterval:
         """Gets the ContributionInterval from a stripe.Subscription object."""
-        interval = subscription.plan.interval
-        interval_count = subscription.plan.interval_count
-        if interval == "year" and interval_count == 1:
-            return ContributionInterval.YEARLY
-        if interval == "month" and interval_count == 1:
-            return ContributionInterval.MONTHLY
-        raise InvalidIntervalError(f"Invalid interval {interval} for subscription : {subscription.id}")
+        # NB: we have encountered one case of a "planless" subscription in the wild, hence the conditionality
+        # below around .plan. See DEV-4663 for more detail
+        if not subscription.plan:
+            raise InvalidIntervalError(f"Subscription {subscription.id} has no plan. Cannot derive interval")
+        return StripeTransactionsImporter.get_interval_from_plan(subscription.plan)
 
     def cast_subscription_to_pi_for_portal(self, subscription: stripe.Subscription) -> StripePiAsPortalContribution:
         """Casts a Subscription object to a PaymentIntent object for use in the Stripe Customer Portal.
@@ -360,6 +347,7 @@ class StripeContributionsProvider:
 class ContributionsCacheProvider:
     cache = caches[DEFAULT_CACHE]
     serializer = PaymentProviderContributionSerializer
+
     converter = StripePaymentIntent
 
     def __init__(self, email_id, stripe_account_id) -> None:

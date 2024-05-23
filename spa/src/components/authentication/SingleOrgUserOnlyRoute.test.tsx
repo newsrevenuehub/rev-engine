@@ -5,7 +5,7 @@ import useUser from 'hooks/useUser';
 
 import SingleOrgUserOnlyRoute from './SingleOrgUserOnlyRoute';
 
-jest.mock('elements/GlobalLoading');
+jest.mock('components/common/GlobalLoading/GlobalLoading');
 jest.mock('hooks/useUser');
 jest.mock('react-router-dom', () => ({
   ...jest.requireActual('react-router-dom'),

@@ -9,7 +9,6 @@ from django.urls import reverse
 from django.utils.safestring import mark_safe
 
 from rest_framework.serializers import ValidationError as DRFValidationError
-from reversion_compare.admin import CompareVersionAdmin
 from sorl.thumbnail.admin import AdminImageMixin
 
 from apps.common.admin import RevEngineBaseAdmin
@@ -91,7 +90,7 @@ class BenefitLevelBenefit(NoRelatedInlineAddEditAdminMixin, ReadOnlyOrgLimitedTa
 
 
 @admin.register(Organization)
-class OrganizationAdmin(RevEngineBaseAdmin, CompareVersionAdmin):
+class OrganizationAdmin(RevEngineBaseAdmin):
     organization_fieldset = (
         (
             "Organization",
@@ -169,7 +168,7 @@ class OrganizationAdmin(RevEngineBaseAdmin, CompareVersionAdmin):
 
 
 @admin.register(Benefit)
-class BenefitAdmin(RevEngineBaseAdmin, CompareVersionAdmin):
+class BenefitAdmin(RevEngineBaseAdmin):
     list_display = ["name", "description", "revenue_program"]
 
     list_filter = ["revenue_program"]
@@ -178,7 +177,7 @@ class BenefitAdmin(RevEngineBaseAdmin, CompareVersionAdmin):
 
 
 @admin.register(BenefitLevel)
-class BenefitLevelAdmin(RevEngineBaseAdmin, CompareVersionAdmin):
+class BenefitLevelAdmin(RevEngineBaseAdmin):
     list_display = ["name", "donation_range", "revenue_program"]
 
     list_filter = ["revenue_program"]
@@ -210,7 +209,7 @@ class BenefitLevelAdmin(RevEngineBaseAdmin, CompareVersionAdmin):
 
 
 @admin.register(RevenueProgram)
-class RevenueProgramAdmin(RevEngineBaseAdmin, CompareVersionAdmin, AdminImageMixin):
+class RevenueProgramAdmin(RevEngineBaseAdmin, AdminImageMixin):
     fieldsets = (
         (
             "RevenueProgram",
@@ -219,6 +218,7 @@ class RevenueProgramAdmin(RevEngineBaseAdmin, CompareVersionAdmin, AdminImageMix
                     "name",
                     "slug",
                     "contact_email",
+                    "contact_phone",
                     "organization",
                     "default_donation_page",
                     "tax_id",
@@ -333,7 +333,7 @@ class RevenueProgramAdmin(RevEngineBaseAdmin, CompareVersionAdmin, AdminImageMix
 
 
 @admin.register(PaymentProvider)
-class PaymentProviderAdmin(RevEngineBaseAdmin, CompareVersionAdmin):
+class PaymentProviderAdmin(RevEngineBaseAdmin):
     search_fields = ("stripe_account_id",)
     list_display = [
         "stripe_account_id",

@@ -9,7 +9,6 @@ from django.core import mail
 from django.template.loader import render_to_string
 
 import pytest
-import pytest_cases
 from addict import Dict as AttrDict
 from stripe.error import StripeError
 
@@ -60,10 +59,11 @@ class TestMagicLink:
 
 @pytest.mark.django_db
 class TestMakeSendThankYouEmailData:
-    @pytest_cases.parametrize(
-        "contribution",
-        (pytest_cases.fixture_ref("one_time_contribution"), pytest_cases.fixture_ref("monthly_contribution")),
-    )
+
+    @pytest.fixture(params=["one_time_contribution", "monthly_contribution"])
+    def contribution(self, request):
+        return request.getfixturevalue(request.param)
+
     def test_happy_path(self, contribution, mocker):
         mock_fetch_customer = mocker.patch("stripe.Customer.retrieve", return_value=AttrDict(name="customer_name"))
         mock_get_magic_link = mocker.patch(
@@ -84,7 +84,7 @@ class TestMakeSendThankYouEmailData:
             magic_link=mock_get_magic_link.return_value,
             non_profit=contribution.revenue_program.non_profit,
             rp_name=contribution.revenue_program.name,
-            style=asdict(contribution.donation_page.revenue_program.transactional_email_style),
+            style=asdict(contribution.revenue_program.transactional_email_style),
             tax_id=contribution.revenue_program.tax_id,
             show_upgrade_prompt=False,
         )
@@ -133,14 +133,16 @@ class TestSendThankYouEmail:
             html_message=render_to_string("nrh-default-contribution-confirmation-email.html", context=data),
         )
 
-    @pytest_cases.parametrize(
-        "revenue_program",
-        (
-            pytest_cases.fixture_ref("free_plan_revenue_program"),
-            pytest_cases.fixture_ref("core_plan_revenue_program"),
-            pytest_cases.fixture_ref("plus_plan_revenue_program"),
-        ),
+    @pytest.fixture(
+        params=[
+            "free_plan_revenue_program",
+            "core_plan_revenue_program",
+            "plus_plan_revenue_program",
+        ]
     )
+    def revenue_program(self, request):
+        return request.getfixturevalue(request.param)
+
     @pytest.mark.parametrize(
         "default_style",
         (False, True),

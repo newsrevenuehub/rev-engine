@@ -5,6 +5,7 @@ from datetime import timedelta
 
 from django.conf import settings
 from django.template.loader import render_to_string
+from django.utils import timezone
 
 import pytest
 import stripe.error
@@ -22,6 +23,11 @@ from apps.contributions.stripe_contributions_provider import (
 from apps.contributions.tests.factories import ContributionFactory
 from apps.contributions.types import StripeEventData
 from apps.contributions.utils import CONTRIBUTION_EXPORT_CSV_HEADERS
+
+
+@pytest.fixture
+def now():
+    return timezone.now()
 
 
 @pytest.fixture
@@ -415,4 +421,14 @@ def test_process_stripe_webhook_task_when_contribution_not_exist_error(payment_i
         "Could not find contribution. Here's the event data: %s",
         StripeEventData(**payment_intent_succeeded_one_time_event),
         exc_info=True,
+    )
+
+
+@pytest.mark.django_db
+def test_task_import_contributions_and_payments_for_stripe_account(mocker):
+    mocker.patch("apps.contributions.stripe_import.StripeTransactionsImporter.import_contributions_and_payments")
+    contribution_tasks.task_import_contributions_and_payments_for_stripe_account(
+        from_date="",
+        to_date="",
+        stripe_account_id="",
     )

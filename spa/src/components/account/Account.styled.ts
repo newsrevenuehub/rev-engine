@@ -247,13 +247,6 @@ export const NavLink = styled.p<{ alignLeft?: boolean }>`
   font-size: ${(props) => props.theme.fontSizesUpdated.md};
   line-height: ${(props) => props.theme.fontSizesUpdated.md};
   color: ${(props) => props.theme.colors.muiGrey[900]};
-
-  a,
-  a:hover {
-    color: ${(props) => props.theme.colors.account.blueLink};
-    text-decoration: underline;
-    font-weight: 600;
-  }
 `;
 
 export const Disclaimer = styled.div`

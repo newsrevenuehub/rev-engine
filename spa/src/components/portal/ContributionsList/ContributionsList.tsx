@@ -1,24 +1,31 @@
-import { ReactChild, useEffect, useState } from 'react';
-import { useParams } from 'react-router-dom';
-import { CircularProgress } from 'components/base';
+import { CircularProgress, Tab } from 'components/base';
+import Sort from 'components/common/Sort';
+import usePortal from 'hooks/usePortal';
 import { usePortalAuthContext } from 'hooks/usePortalAuth';
 import { usePortalContributionList } from 'hooks/usePortalContributionList';
-import ContributionItem from './ContributionItem/ContributionItem';
-import NoContributions from './NoContributions';
-import ContributionFetchError from './ContributionFetchError';
+import { ReactChild, useEffect, useState } from 'react';
+import { useParams } from 'react-router-dom';
+import ContactInfoPopover from './ContactInfoPopover/ContactInfoPopover';
 import ContributionDetail from './ContributionDetail/ContributionDetail';
+import ContributionFetchError from './ContributionFetchError';
+import ContributionItem from './ContributionItem/ContributionItem';
+import { ContributionsHeader } from './ContributionsHeader';
 import {
-  List,
-  Root,
-  Subhead,
-  Columns,
-  Loading,
-  Legend,
+  AlignPositionWrapper,
+  ContactInfoWrapper,
   Detail,
+  Impact,
+  Layout,
+  Legend,
+  List,
+  Loading,
+  Root,
   StyledPortalPage,
-  AlignPositionWrapper
+  Subhead,
+  Tabs
 } from './ContributionsList.styled';
-import Sort from 'components/common/Sort';
+import ImpactTracker from './ImpactTracker/ImpactTracker';
+import NoContributions from './NoContributions';
 
 const CONTRIBUTION_SORT_OPTIONS = [
   {
@@ -42,12 +49,18 @@ const CONTRIBUTION_SORT_OPTIONS = [
   }
 ];
 
+const CONTRIBUTIONS_TABS = ['All', 'Recurring', 'One-time'] as const;
+
 export function ContributionsList() {
+  const [tab, setTab] = useState(0);
   const { contributionId } = useParams<{ contributionId?: string }>();
   const { contributor } = usePortalAuthContext();
+  const { page } = usePortal();
   const [ordering, setOrdering] = useState(CONTRIBUTION_SORT_OPTIONS[0].value);
   const { contributions, isError, isLoading, refetch } = usePortalContributionList(contributor?.id, {
-    ordering: `-${ordering}`
+    ordering: ordering === 'created' ? `-${ordering}` : `-${ordering},-created`,
+    // If the tab is 'All', we don't need to pass an interval
+    ...(tab !== 0 && { interval: CONTRIBUTIONS_TABS[tab].toLowerCase().replace('-', '_') })
   });
   const selectedContribution =
     contributionId && contributions.find((contribution) => contribution.id === parseInt(contributionId));
@@ -55,6 +68,7 @@ export function ContributionsList() {
   // ContributionDetail when an item is selected.
   const [selectedContributionEl, setSelectedContributionEl] = useState<HTMLAnchorElement | null>(null);
   let content: ReactChild;
+  const contentProps = { role: 'tabpanel', 'aria-labelledby': `tab-${tab}` };
 
   useEffect(() => {
     // Track viewing of a contribution detail in Pendo if available. If this
@@ -73,19 +87,19 @@ export function ContributionsList() {
 
   if (isLoading) {
     content = (
-      <Loading>
+      <Loading {...contentProps}>
         <CircularProgress aria-label="Loading contributions" variant="indeterminate" />
       </Loading>
     );
   } else if (isError) {
     content = (
-      <AlignPositionWrapper>
+      <AlignPositionWrapper {...contentProps}>
         <ContributionFetchError message="Error loading contributions." onRetry={refetch} />
       </AlignPositionWrapper>
     );
   } else if (contributor && contributions?.length > 0) {
     content = (
-      <List $detailVisible={!!selectedContribution}>
+      <List $detailVisible={!!selectedContribution} {...contentProps}>
         {contributions.map((contribution) => (
           <ContributionItem
             contribution={contribution}
@@ -102,7 +116,7 @@ export function ContributionsList() {
     );
   } else {
     content = (
-      <AlignPositionWrapper>
+      <AlignPositionWrapper {...contentProps}>
         <NoContributions />
       </AlignPositionWrapper>
     );
@@ -111,11 +125,30 @@ export function ContributionsList() {
   return (
     <StyledPortalPage>
       <Root>
-        <Columns>
+        <Layout>
+          <ContributionsHeader defaultPage={page} revenueProgram={page?.revenue_program} />
+          <Impact>
+            <ImpactTracker contributorId={contributor?.id} />
+          </Impact>
           <Legend $detailVisible={!!selectedContribution}>
             <Subhead>Transactions</Subhead>
             <p>View billing history, update payment details, and resend receipts.</p>
+            <Tabs aria-label="Filter contributions by" value={tab}>
+              {CONTRIBUTIONS_TABS.map((name, index) => (
+                <Tab
+                  {...(index === tab && { 'aria-controls': `tab-${index}` })}
+                  id={`tab-${index}`}
+                  key={name}
+                  label={name}
+                  onClick={() => setTab(index)}
+                  selected={index === tab}
+                />
+              ))}
+            </Tabs>
             <Sort options={CONTRIBUTION_SORT_OPTIONS} onChange={setOrdering} id="contributions-sort" />
+            <ContactInfoWrapper>
+              <ContactInfoPopover revenueProgram={page?.revenue_program} />
+            </ContactInfoWrapper>
           </Legend>
           {content}
           {contributor && selectedContribution && (
@@ -127,7 +160,7 @@ export function ContributionsList() {
               />
             </Detail>
           )}
-        </Columns>
+        </Layout>
       </Root>
     </StyledPortalPage>
   );

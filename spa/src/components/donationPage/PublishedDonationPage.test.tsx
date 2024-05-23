@@ -4,18 +4,18 @@ import { useParams } from 'react-router-dom';
 import { HUB_GA_V3_ID } from 'appSettings';
 import { useAnalyticsContext } from 'components/analytics/AnalyticsContext';
 import { usePublishedPage } from 'hooks/usePublishedPage';
-import useSubdomain from 'hooks/useSubdomain';
 import useWebFonts from 'hooks/useWebFonts';
 import PublishedDonationPage from './PublishedDonationPage';
+import { getRevenueProgramSlug } from 'utilities/getRevenueProgramSlug';
 
 jest.mock('react-router-dom', () => ({
   ...jest.requireActual('react-router-dom'),
   useParams: jest.fn()
 }));
 jest.mock('components/analytics/AnalyticsContext');
-jest.mock('elements/GlobalLoading');
+jest.mock('components/common/GlobalLoading/GlobalLoading');
 jest.mock('hooks/usePublishedPage');
-jest.mock('hooks/useSubdomain');
+jest.mock('utilities/getRevenueProgramSlug');
 jest.mock('hooks/useWebFonts');
 jest.mock('components/common/LivePage404', () => () => <div data-testid="mock-live-page-404"></div>);
 jest.mock('components/donationPage/ContributionPageI18nProvider');
@@ -42,7 +42,7 @@ describe('PublishedDonationPage', () => {
   const useAnalyticsContextMock = jest.mocked(useAnalyticsContext);
   const useParamsMock = jest.mocked(useParams);
   const usePublishedPageMock = jest.mocked(usePublishedPage);
-  const useSubdomainMock = jest.mocked(useSubdomain);
+  const getRevenueProgramSlugMock = jest.mocked(getRevenueProgramSlug);
   const useWebFontsMock = jest.mocked(useWebFonts);
 
   beforeEach(() => {
@@ -53,7 +53,7 @@ describe('PublishedDonationPage', () => {
     });
     useParamsMock.mockReturnValue({ pageSlug: 'mock-page-slug' });
     usePublishedPageMock.mockReturnValue({ error: undefined, isError: false, isLoading: false, page: mockPage });
-    useSubdomainMock.mockReturnValue('mock-rp-slug');
+    getRevenueProgramSlugMock.mockReturnValue('mock-rp-slug');
   });
 
   it('loads the contribution page based on subdomain and route params', () => {

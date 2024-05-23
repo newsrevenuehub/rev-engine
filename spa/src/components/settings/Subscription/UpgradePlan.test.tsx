@@ -1,9 +1,7 @@
+import { Organization, User } from 'hooks/useUser.types';
 import { axe } from 'jest-axe';
 import { render, screen } from 'test-utils';
 import UpgradePlan, { UpgradePlanProps } from './UpgradePlan';
-import { Organization, User } from 'hooks/useUser.types';
-import { SELF_UPGRADE_ACCESS_FLAG_NAME } from 'constants/featureFlagConstants';
-import { PLUS_UPGRADE_URL } from 'constants/helperUrls';
 
 jest.mock('components/common/StripePricingTable/StripePricingTable');
 
@@ -24,7 +22,7 @@ jest.mock('appSettings', () => ({
 }));
 
 const mockOrg = { id: -1, plan: { name: 'CORE' }, uuid: '1235467abcdef' } as Organization;
-const mockUser = { email: 'mock-user-email', flags: [{ name: SELF_UPGRADE_ACCESS_FLAG_NAME }] } as unknown as User;
+const mockUser = { email: 'mock-user-email' } as unknown as User;
 
 function tree(props?: Partial<UpgradePlanProps>) {
   return render(<UpgradePlan organization={mockOrg} user={mockUser} {...props} />);
@@ -42,75 +40,49 @@ describe('UpgradePlan', () => {
       expect(screen.getByText('Upgrade Plan')).toBeVisible();
     });
 
-    describe("When the user doesn't have the self-upgrade feature flag", () => {
-      it("doesn't display a pricing table", () => {
-        tree({
-          organization: { ...mockOrg, plan: { name: 'FREE' } } as Organization,
-          user: { flags: [] } as unknown as User
-        });
-        expect(screen.queryByTestId('mock-stripe-pricing-table')).not.toBeInTheDocument();
+    it('displays a pricing table with configured app settings', () => {
+      tree({
+        organization: { ...mockOrg, plan: { name: 'FREE' } } as Organization
       });
 
-      it("doesn't display the Plus feature list", () => {
-        tree({
-          organization: { ...mockOrg, plan: { name: 'FREE' } } as Organization,
-          user: { flags: [] } as unknown as User
-        });
-        expect(screen.queryByText('Plus Tier')).not.toBeInTheDocument();
-      });
+      const table = screen.getByTestId('mock-stripe-pricing-table');
 
-      it('is accessible', async () => {
-        const { container } = tree();
-
-        expect(await axe(container)).toHaveNoViolations();
-      });
+      expect(table).toBeInTheDocument();
+      expect(table.dataset.clientReferenceId).toBe(mockOrg.uuid);
+      expect(table.dataset.customerEmail).toBe(mockUser.email);
+      expect(table.dataset.pricingTableId).toBe('mock-pricing-table-id');
+      expect(table.dataset.publishableKey).toBe('mock-publishable-key');
     });
 
-    describe('When the user has the self-upgrade feature flag', () => {
-      it('displays a pricing table with configured app settings', () => {
-        tree({
-          organization: { ...mockOrg, plan: { name: 'FREE' } } as Organization
-        });
+    it("doesn't display the pricing table if the pricing table ID isn't configured", () => {
+      mockTableIdGetter.mockReturnValue(undefined);
+      tree({
+        organization: { ...mockOrg, plan: { name: 'FREE' } } as Organization
+      });
+      expect(screen.queryByTestId('mock-stripe-pricing-table')).not.toBeInTheDocument();
+    });
 
-        const table = screen.getByTestId('mock-stripe-pricing-table');
+    it("doesn't display the pricing table if the pricing table publishable key isn't configured", () => {
+      mockTableKeyGetter.mockReturnValue(undefined);
+      tree({
+        organization: { ...mockOrg, plan: { name: 'FREE' } } as Organization
+      });
+      expect(screen.queryByTestId('mock-stripe-pricing-table')).not.toBeInTheDocument();
+    });
 
-        expect(table).toBeInTheDocument();
-        expect(table.dataset.clientReferenceId).toBe(mockOrg.uuid);
-        expect(table.dataset.customerEmail).toBe(mockUser.email);
-        expect(table.dataset.pricingTableId).toBe('mock-pricing-table-id');
-        expect(table.dataset.publishableKey).toBe('mock-publishable-key');
+    it("doesn't display the Plus feature list", () => {
+      tree({
+        organization: { ...mockOrg, plan: { name: 'FREE' } } as Organization
+      });
+      expect(screen.queryByText('Plus Tier')).not.toBeInTheDocument();
+    });
+
+    it('is accessible', async () => {
+      const { container } = tree({
+        organization: { ...mockOrg, plan: { name: 'FREE' } } as Organization
       });
 
-      it("doesn't display the pricing table if the pricing table ID isn't configured", () => {
-        mockTableIdGetter.mockReturnValue(undefined);
-        tree({
-          organization: { ...mockOrg, plan: { name: 'FREE' } } as Organization
-        });
-        expect(screen.queryByTestId('mock-stripe-pricing-table')).not.toBeInTheDocument();
-      });
-
-      it("doesn't display the pricing table if the pricing table publishable key isn't configured", () => {
-        mockTableKeyGetter.mockReturnValue(undefined);
-        tree({
-          organization: { ...mockOrg, plan: { name: 'FREE' } } as Organization
-        });
-        expect(screen.queryByTestId('mock-stripe-pricing-table')).not.toBeInTheDocument();
-      });
-
-      it("doesn't display the Plus feature list", () => {
-        tree({
-          organization: { ...mockOrg, plan: { name: 'FREE' } } as Organization
-        });
-        expect(screen.queryByText('Plus Tier')).not.toBeInTheDocument();
-      });
-
-      it('is accessible', async () => {
-        const { container } = tree({
-          organization: { ...mockOrg, plan: { name: 'FREE' } } as Organization
-        });
-
-        expect(await axe(container)).toHaveNoViolations();
-      });
+      expect(await axe(container)).toHaveNoViolations();
     });
   });
 
@@ -120,58 +92,24 @@ describe('UpgradePlan', () => {
       expect(screen.getByText('Upgrade Plan')).toBeVisible();
     });
 
-    describe("When the user doesn't have the self-upgrade feature flag", () => {
-      it("doesn't display a pricing table", () => {
-        tree({ user: { ...mockUser, flags: [] } });
-        expect(screen.queryByTestId('mock-stripe-pricing-table')).not.toBeInTheDocument();
-      });
-
-      it("doesn't display the Plus feature list", () => {
-        tree({ user: { ...mockUser, flags: [] } });
-        expect(screen.queryByText('Plus Tier')).not.toBeInTheDocument();
-      });
-
-      it('is accessible', async () => {
-        const { container } = tree();
-
-        expect(await axe(container)).toHaveNoViolations();
-      });
+    it("doesn't display a pricing table", () => {
+      tree();
+      expect(screen.queryByTestId('mock-stripe-pricing-table')).not.toBeInTheDocument();
     });
 
-    describe('When the user has the self-upgrade feature flag', () => {
-      it("doesn't display a pricing table", () => {
-        tree();
-        expect(screen.queryByTestId('mock-stripe-pricing-table')).not.toBeInTheDocument();
-      });
+    it("doesn't display the Plus feature list", () => {
+      tree();
+      expect(screen.queryByText('Plus Tier')).not.toBeInTheDocument();
+    });
 
-      it('displays the Plus feature list', () => {
-        tree();
-        expect(screen.getByText('Plus Tier')).toBeVisible();
-      });
+    it('is accessible', async () => {
+      const { container } = tree();
 
-      it('displays a link to upgrade', () => {
-        tree();
-
-        const link = screen.getByRole('link', { name: 'Join the Waitlist' });
-
-        expect(link).toBeVisible();
-        expect(link).toHaveAttribute('href', PLUS_UPGRADE_URL);
-      });
-
-      it('is accessible', async () => {
-        const { container } = tree();
-
-        expect(await axe(container)).toHaveNoViolations();
-      });
+      expect(await axe(container)).toHaveNoViolations();
     });
   });
 
   it('displays nothing if the user is on the Plus plan', () => {
-    tree({ organization: { ...mockOrg, plan: { name: 'PLUS' } } as Organization, user: { ...mockUser, flags: [] } });
-    expect(document.body).toHaveTextContent('');
-  });
-
-  it('displays nothing if the user is on the Plus plan, even if they have the self-upgrade feature flag', () => {
     tree({ organization: { ...mockOrg, plan: { name: 'PLUS' } } as Organization });
     expect(document.body).toHaveTextContent('');
   });

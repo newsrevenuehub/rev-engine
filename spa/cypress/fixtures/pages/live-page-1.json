@@ -26,16 +26,13 @@
       "requiredFields": [],
       "content": [
         {
-          "value": "one_time",
-          "displayName": "One time"
+          "value": "one_time"
         },
         {
-          "value": "month",
-          "displayName": "Monthly"
+          "value": "month"
         },
         {
-          "value": "year",
-          "displayName": "Yearly"
+          "value": "year"
         }
       ]
     },
@@ -157,6 +154,7 @@
     "modified": "2021-07-20T16:39:40.559524Z",
     "name": "MyRevProgram",
     "contact_email": "myrevprogram@mycompany.com",
+    "contact_phone": "+1 415 555 2671",
     "address": "123 Fake Street, Durham, NC 27701",
     "organization": 14,
     "default_donation_page": null,

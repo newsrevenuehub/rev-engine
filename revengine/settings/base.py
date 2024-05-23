@@ -9,6 +9,8 @@ For the full list of settings and their values, see
 https://docs.djangoproject.com/en/3.2/ref/settings/
 """
 
+import json
+import logging
 import os
 from datetime import timedelta
 from pathlib import Path
@@ -235,6 +237,14 @@ AUTH_PASSWORD_VALIDATORS = [
 # Contributions cache set to 30 minutes < CONTRIBUTOR_LONG_TOKEN_LIFETIME
 CONTRIBUTION_CACHE_TTL = timedelta(minutes=30)
 DEFAULT_CACHE = "default"
+STRIPE_TRANSACTIONS_IMPORT_CACHE = "stripe_transactions_import"
+# For accounts with many transactions, we have seen this take up to 8.5 hours in prod, This TTL will (hopefully) give us ample headroom to accomodate.
+# NB: The effects of multiple runs of the command across the sample space of account IDs are cumulative in terms of cache footprint over a given window of time.
+# That means there is some uknown number of accounts that will swamp the alloted cache space, and the cache will be evicted before the TTL.
+# Also, note the existence of python manage.py clear_cache, which can be used to clear the cache related to Stripe transactions import runs.
+STRIPE_TRANSACTIONS_IMPORT_CACHE_TTL = int(
+    os.getenv("STRIPE_TRANSACTIONS_IMPORT_CACHE_TTL", 60 * 60 * 25)  # default is 25 hours
+)
 
 REDIS_URL = os.getenv("REDIS_TLS_URL", os.getenv("REDIS_URL", "redis://redis:6379"))
 
@@ -249,14 +259,21 @@ if CACHE_HOST.startswith("rediss"):
         "ssl_cert_reqs": ssl.CERT_NONE,
     }
 
+
+base_cache_config = {
+    "BACKEND": "django_redis.cache.RedisCache",
+    "LOCATION": f"{CACHE_HOST}/0",
+    "OPTIONS": {
+        "CLIENT_CLASS": "django_redis.client.DefaultClient",
+        "CONNECTION_POOL_KWARGS": CONNECTION_POOL_KWARGS,
+    },
+}
+
 CACHES = {
-    "default": {
-        "BACKEND": "django_redis.cache.RedisCache",
-        "LOCATION": f"{CACHE_HOST}/0",
-        "OPTIONS": {
-            "CLIENT_CLASS": "django_redis.client.DefaultClient",
-            "CONNECTION_POOL_KWARGS": CONNECTION_POOL_KWARGS,
-        },
+    "default": base_cache_config,
+    STRIPE_TRANSACTIONS_IMPORT_CACHE: {
+        **base_cache_config,
+        "OPTIONS": {**base_cache_config["OPTIONS"], "KEY_PREFIX": STRIPE_TRANSACTIONS_IMPORT_CACHE},
     },
 }
 
@@ -592,6 +609,16 @@ MAILCHIMP_CLIENT_SECRET = os.getenv("MAILCHIMP_CLIENT_SECRET", None)
 # see https://mailchimp.com/developer/release-notes/message-search-rate-limit-now-enforced/#:~:text=We're%20now%20enforcing%20the,of%20the%20original%2020%20requests.
 MAILCHIMP_RATE_LIMIT_RETRY_WAIT_SECONDS = 60
 
+# Host map for client custom hostnames. This should be a JSON-encoded dictionary
+# of { "customhostname.org": "rp-slug" } values.
+
+logger = logging.getLogger(f"{DEFAULT_LOGGER}.{__name__}")
+
+try:
+    HOST_MAP = json.loads(os.getenv("HOST_MAP", "{}"))
+except json.JSONDecodeError:
+    logger.exception("settings.HOST_MAP couldn't be parsed as JSON; continuing")
+    HOST_MAP = {}
 
 ### Front End Environment Variables
 SPA_ENV_VARS = {
@@ -614,6 +641,7 @@ SPA_ENV_VARS = {
     "SENTRY_ENABLE_FRONTEND": SENTRY_ENABLE_FRONTEND,
     "SENTRY_DSN_FRONTEND": SENTRY_DSN_FRONTEND,
     "STRIPE_CLIENT_ID": os.getenv("SPA_ENV_STRIPE_CLIENT_ID"),
+    "HOST_MAP": os.getenv("HOST_MAP", "{}"),
     "HUB_GOOGLE_MAPS_API_KEY": os.getenv("SPA_ENV_HUB_GOOGLE_MAPS_API_KEY"),
     "HUB_V3_GOOGLE_ANALYTICS_ID": os.getenv("SPA_ENV_HUB_V3_GOOGLE_ANALYTICS_ID"),
     "ENVIRONMENT": ENVIRONMENT,
@@ -625,3 +653,5 @@ RP_MAILCHIMP_LIST_CONFIGURATION_COMPLETE_TOPIC = os.getenv("RP_MAILCHIMP_LIST_CO
 
 # Three minutes
 RETRIEVED_STRIPE_ENTITY_CACHE_TTL = 60 * 3
+
+SWITCHBOARD_ACCOUNT_EMAIL = os.getenv("SWITCHBOARD_ACCOUNT_EMAIL", None)

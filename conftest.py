@@ -11,45 +11,6 @@
 # of the two parametrizations.
 
 # Concretely, this allows us to parametrize, say, a set of known users vs a set of endpoints.
-
-# Here's an example:
-
-# ```
-# @pytest_cases.parametrize(
-#     "user",
-#     (
-#         pytest_cases.fixture_ref("org_user_free_plan"),
-#         pytest_cases.fixture_ref("superuser"),
-#     ),
-# )
-# @pytest_cases.parametrize(
-#     "data,expect_status_code,error_response,has_fake_fields",
-#     (
-#         (pytest_cases.fixture_ref("rp_valid_patch_data"), status.HTTP_200_OK, None, False),
-#         (
-#             pytest_cases.fixture_ref("rp_invalid_patch_data_tax_id_too_short"),
-#             status.HTTP_400_BAD_REQUEST,
-#             {"tax_id": ["Ensure this field has at least 9 characters."]},
-#             False,
-#         ),
-#         (
-#             pytest_cases.fixture_ref("rp_invalid_patch_data_tax_id_too_long"),
-#             status.HTTP_400_BAD_REQUEST,
-#             {"tax_id": ["Ensure this field has no more than 9 characters."]},
-#             False,
-#         ),
-#         (
-#             pytest_cases.fixture_ref("rp_invalid_patch_data_unexpected_fields"),
-#             status.HTTP_200_OK,
-#             {},
-#             True,
-#         ),
-#     ),
-# )
-# def test_patch_when_expected_user(
-#     self, user, data, expect_status_code, error_response, has_fake_fields, api_client, revenue_program, mocker
-# ):
-# ```
 # """
 import base64
 import datetime
@@ -70,6 +31,7 @@ from apps.common.tests.test_resources import DEFAULT_FLAGS_CONFIG_MAPPING
 from apps.contributions.choices import CardBrand, ContributionInterval
 from apps.contributions.stripe_contributions_provider import StripePiAsPortalContribution
 from apps.contributions.tests.factories import ContributionFactory, ContributorFactory
+from apps.contributions.types import StripePaymentMetadataSchemaV1_4
 from apps.organizations.models import (
     MailchimpEmailList,
     MailchimpProduct,
@@ -84,6 +46,12 @@ from revengine.utils import __ensure_gs_credentials
 
 
 fake = Faker()
+
+
+@pytest.fixture(autouse=True)
+def domain_apex(settings):
+    settings.DOMAIN_APEX = "fundjournalism.org"
+    return settings.DOMAIN_APEX
 
 
 @pytest.fixture
@@ -575,7 +543,7 @@ def pi_as_portal_contribution_factory(faker):
 
 
 @pytest.fixture
-def valid_metadata_factory(faker):
+def valid_metadata_factory(faker, domain_apex):
     VALID_METADTA_V1_1 = {
         "schema_version": "1.1",
         "source": "rev-engine",
@@ -583,7 +551,7 @@ def valid_metadata_factory(faker):
         "agreed_to_pay_fees": True,
         "donor_selected_amount": uniform(100.0, 1000.0),
         "reason_for_giving": None,
-        "referer": "https://www.somewhere.com",
+        "referer": f"https://www.{domain_apex}",
         "revenue_program_id": faker.uuid4(),
         "revenue_program_slug": f"rp-{faker.word()}",
         "sf_campaign_id": None,
@@ -1134,3 +1102,24 @@ def customer_subscription_updated_event():
 def charge_refunded_recurring_charge_event():
     with open("apps/contributions/tests/fixtures/charge-refunded-recurring-charge-event.json") as f:
         return stripe.Webhook.construct_event(f.read(), None, stripe.api_key)
+
+
+@pytest.fixture
+def valid_metadata(domain_apex):
+    return StripePaymentMetadataSchemaV1_4(
+        agreed_to_pay_fees=False,
+        donor_selected_amount=1000.0,
+        referer=f"https://www.{domain_apex}/",
+        revenue_program_id=1,
+        revenue_program_slug="testrp",
+        schema_version="1.4",
+        source="rev-engine",
+    ).model_dump(mode="json", exclude_none=True)
+
+
+@pytest.fixture
+def invalid_metadata():
+    # this would initially get through checks for schema version, but would fail when metadata schema is cast
+    return {
+        "schema_version": "1.4",
+    }

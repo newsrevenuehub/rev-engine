@@ -11,6 +11,7 @@ import { CLEARBIT_SCRIPT_SRC } from '../../src/hooks/useClearbit';
 import { CONTRIBUTION_INTERVALS } from '../../src/constants/contributionIntervals';
 
 import calculateStripeFee from 'utilities/calculateStripeFee';
+import formatStringAmountForDisplay from 'utilities/formatStringAmountForDisplay';
 import { DEFAULT_BACK_BUTTON_TEXT } from 'components/common/Button/BackButton/BackButton';
 
 const pageSlug = 'page-slug';
@@ -19,6 +20,12 @@ const expectedPageSlug = `${pageSlug}/`;
 function getFeesCheckbox() {
   return cy.get('[data-testid="pay-fees"] input[type="checkbox"]');
 }
+
+const mapFrequencyValueToDisplayName = {
+  one_time: 'One-time',
+  month: 'Monthly',
+  year: 'Yearly'
+};
 
 function expectedPaymentSuccessUrl(props) {
   const url = new URL('/payment/success/', props.baseUrl);
@@ -59,7 +66,7 @@ describe('Donation page displays dynamic page elements', () => {
   it('should render expected expected frequencies', () => {
     const frequency = getPageElementByType(livePageOne, 'DFrequency');
     cy.getByTestId('d-frequency');
-    frequency.content.forEach((freq) => cy.contains(freq.displayName));
+    frequency.content.forEach((freq) => cy.contains(mapFrequencyValueToDisplayName[freq.value]));
   });
 
   it('should render expected amounts', () => {
@@ -67,7 +74,7 @@ describe('Donation page displays dynamic page elements', () => {
     const amounts = getPageElementByType(livePageOne, 'DAmount');
     cy.getByTestId('d-amount');
     frequency.content.forEach((freq) => {
-      cy.contains(freq.displayName).click();
+      cy.contains(mapFrequencyValueToDisplayName[freq.value]).click();
       amounts.content.options[freq.value].forEach((amount) => cy.contains(amount));
     });
   });
@@ -92,9 +99,12 @@ describe('Donation page displays dynamic page elements', () => {
     cy.getByTestId('d-amount');
 
     for (const freq of frequency.content) {
-      cy.contains(freq.displayName).click();
-      cy.getByTestId('d-amount').find('h2').contains(freq.displayName);
-      cy.getByTestId('pay-fees').scrollIntoView().find('label').contains(freq.displayName, { matchCase: false });
+      cy.contains(mapFrequencyValueToDisplayName[freq.value]).click();
+      cy.getByTestId('d-amount').find('h2').contains(mapFrequencyValueToDisplayName[freq.value]);
+      cy.getByTestId('pay-fees')
+        .scrollIntoView()
+        .find('label')
+        .contains(mapFrequencyValueToDisplayName[freq.value], { matchCase: false });
 
       if (freq in expectedSuffixes) {
         cy.getByTestId('custom-amount-rate').contains(expectedSuffixes[freq]);
@@ -107,11 +117,11 @@ describe('Donation page displays dynamic page elements', () => {
     const amounts = getPageElementByType(livePageOne, 'DAmount');
 
     frequency.content.forEach((freq) => {
-      cy.contains(freq.displayName).click();
+      cy.contains(mapFrequencyValueToDisplayName[freq.value]).click();
       amounts.content.options[freq.value].forEach((amount) => {
         cy.contains(amount).click();
         const calculatedFee = calculateStripeFee(amount, freq.value, true);
-        cy.getByTestId('pay-fees').scrollIntoView().find('label').contains(calculatedFee);
+        cy.getByTestId('pay-fees').scrollIntoView().find('label').contains(formatStringAmountForDisplay(calculatedFee));
       });
     });
   });
@@ -182,7 +192,7 @@ describe('Reason for Giving element', () => {
   it('should render picklist with options', () => {
     cy.getByTestId('excited-to-support-picklist').should('exist');
     cy.getByTestId('excited-to-support-picklist').click();
-    cy.getByTestId('select-item-1').click();
+    cy.findByRole('option', { name: 'test1' }).click();
   });
 
   it('should not show "honoree/in_memory_of" input if "No" is selected', () => {
@@ -382,7 +392,7 @@ function fillOutDonorInfoSection() {
 
 function fillOutReasonForGiving() {
   cy.get('[data-testid="excited-to-support-picklist"]').click();
-  cy.get('[data-testid="select-item-1').click();
+  cy.findByRole('option', { name: 'test1' }).click();
   cy.get('[data-testid="excited-to-support-picklist"]').invoke('val').as('reasonValue');
 }
 
@@ -806,10 +816,10 @@ describe('User flow: unhappy paths', () => {
       .click();
     cy.wait('@create-one-time-payment__invalid');
     cy.get('[data-testid="d-amount"]').contains(validationError);
-    cy.get('[data-testid="errors-First name"]').contains(validationError);
-    cy.get('[data-testid="errors-Last name"]').contains(validationError);
-    cy.get('[data-testid="errors-Email"]').contains(validationError);
-    cy.get('[data-testid="errors-Phone"]').contains(validationError);
+    cy.get('#donor-info-first-name-helper-text').contains(validationError);
+    cy.get('#donor-info-last-name-helper-text').contains(validationError);
+    cy.get('#donor-info-email-helper-text').contains(validationError);
+    cy.get('#donor-info-phone-helper-text').contains(validationError);
     cy.get('#mailing_street-helper-text').contains(validationError);
     cy.get('#mailing_city-helper-text').contains(validationError);
     cy.get('#mailing_state-helper-text').contains(validationError);

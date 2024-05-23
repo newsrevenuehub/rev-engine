@@ -2,8 +2,7 @@ import { useEffect, useState, useMemo } from 'react';
 import { useAlert } from 'react-alert';
 import { useParams } from 'react-router-dom';
 
-import * as S from './DonationDetail.styled';
-import Spinner from 'elements/Spinner';
+import { DataGroupRoot, DataGroupHeading, DataInner, DL, Loading, ManageFlagged, Root } from './DonationDetail.styled';
 import formatCurrencyAmount from 'utilities/formatCurrencyAmount';
 import formatDatetimeForDisplay from 'utilities/formatDatetimeForDisplay';
 
@@ -16,10 +15,11 @@ import { useConfirmationModalContext } from 'elements/modal/GlobalConfirmationMo
 
 import { GENERIC_ERROR, NO_VALUE } from 'constants/textConstants';
 import Button from 'elements/buttons/Button';
-import { faBan, faCheck } from '@fortawesome/free-solid-svg-icons';
 import { getFrequencyAdjective } from 'utilities/parseFrequency';
 import { PaymentStatus } from 'components/common/PaymentStatus';
 import PageTitle from 'elements/PageTitle';
+import { Block, Check } from '@material-ui/icons';
+import { CircularProgress } from 'components/base';
 
 function DonationDetail() {
   // Context
@@ -129,17 +129,17 @@ function DonationDetail() {
   } = donationData || {};
 
   return (
-    <S.DonationDetail data-testid="donation-detail" layout>
+    <Root data-testid="donation-detail" layout>
       <PageTitle
         title={`${contributionId} ${revenueProgram?.name ? `| ${revenueProgram?.name} ` : ''}| Contributions`}
       />
       {isLoading ? (
-        <S.Loading layout>
-          <Spinner />
-        </S.Loading>
+        <Loading layout>
+          <CircularProgress />
+        </Loading>
       ) : (
         <>
-          <S.DL layout>
+          <DL layout>
             <DataGroup heading="Contribution details">
               <dt>Status</dt>
               <dd data-testid="status">{status && <PaymentStatus status={status} />}</dd>
@@ -172,14 +172,14 @@ function DonationDetail() {
                 <dt>Flagged date</dt>
                 <dd data-testid="flaggedDate">{flaggedDate ? formatDatetimeForDisplay(flaggedDate) : NO_VALUE}</dd>
                 {status === 'flagged' && (
-                  <S.ManageFlagged>
+                  <ManageFlagged>
                     <Button
                       loading={processing}
                       type="positive"
                       onClick={handleAccept}
                       data-testid="accept-flagged-button"
                     >
-                      <S.AcceptIcon icon={faCheck} /> Accept
+                      <Check /> Accept
                     </Button>
                     <Button
                       loading={processing}
@@ -187,16 +187,16 @@ function DonationDetail() {
                       onClick={handleReject}
                       data-testid="reject-flagged-button"
                     >
-                      <S.RejectIcon icon={faBan} /> Reject
+                      <Block /> Reject
                     </Button>
-                  </S.ManageFlagged>
+                  </ManageFlagged>
                 )}
               </DataGroup>
             )}
-          </S.DL>
+          </DL>
         </>
       )}
-    </S.DonationDetail>
+    </Root>
   );
 }
 
@@ -204,10 +204,10 @@ export default DonationDetail;
 
 function DataGroup({ heading, children }) {
   return (
-    <S.DataGroup>
-      <S.DataGroupHeading>{heading}</S.DataGroupHeading>
-      <S.DataInner>{children}</S.DataInner>
-    </S.DataGroup>
+    <DataGroupRoot>
+      <DataGroupHeading>{heading}</DataGroupHeading>
+      <DataInner>{children}</DataInner>
+    </DataGroupRoot>
   );
 }
 

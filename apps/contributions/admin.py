@@ -4,8 +4,6 @@ from django.conf import settings
 from django.contrib import admin, messages
 from django.utils.html import format_html
 
-from reversion_compare.admin import CompareVersionAdmin
-
 from apps.common.admin import RevEngineBaseAdmin, prettify_json_field
 from apps.contributions.models import Contribution, ContributionStatus, Contributor, Payment
 from apps.contributions.payment_managers import PaymentProviderError
@@ -15,7 +13,7 @@ logger = logging.getLogger(f"{settings.DEFAULT_LOGGER}.{__name__}")
 
 
 @admin.register(Contributor)
-class ContributorAdmin(RevEngineBaseAdmin, CompareVersionAdmin):
+class ContributorAdmin(RevEngineBaseAdmin):
     list_display = ("email",)
     list_filter = ("email",)
     ordering = ("email",)
@@ -74,7 +72,8 @@ class PaymentInline(admin.TabularInline):
 
 
 @admin.register(Contribution)
-class ContributionAdmin(RevEngineBaseAdmin, CompareVersionAdmin):
+class ContributionAdmin(RevEngineBaseAdmin):
+
     fieldsets = (
         (
             "Payment",
@@ -88,7 +87,17 @@ class ContributionAdmin(RevEngineBaseAdmin, CompareVersionAdmin):
                 )
             },
         ),
-        ("Relations", {"fields": ("contributor", "donation_page")}),
+        (
+            "Relations",
+            {
+                "fields": ("contributor", "donation_page", "_revenue_program"),
+                "description": (
+                    "Note: a contribution can have a foreign key to donation page OR revenue program, but not both. "
+                    "Additionally, there is a `revenue program` property exposed further down that is populated by either "
+                    "`._revenue_program` or by `.donation_page.revenue_program`"
+                ),
+            },
+        ),
         ("Bad Actor", {"fields": ("bad_actor_score", "bad_actor_response_pretty")}),
         (
             "Provider",
@@ -125,7 +134,6 @@ class ContributionAdmin(RevEngineBaseAdmin, CompareVersionAdmin):
     )
 
     list_filter = (
-        "donation_page__revenue_program",
         "interval",
         "donation_page__name",
         "status",
@@ -149,24 +157,26 @@ class ContributionAdmin(RevEngineBaseAdmin, CompareVersionAdmin):
 
     readonly_fields = (
         "amount",
-        "currency",
-        "reason",
-        "interval",
-        "contributor",
-        "donation_page",
-        "revenue_program",
-        "bad_actor_score",
         "bad_actor_response_pretty",
-        "status",
-        "payment_provider_used",
-        "provider_payment_link",
-        "provider_subscription_link",
-        "provider_customer_link",
-        "provider_payment_method_id",
-        "payment_provider_data_pretty",
+        "bad_actor_score",
+        "contribution_metadata",
+        "contributor",
+        "currency",
+        "donation_page",
         "flagged_date",
-        "provider_setup_intent_id",
+        "interval",
+        "payment_provider_data_pretty",
+        "payment_provider_used",
+        "provider_customer_link",
+        "provider_payment_link",
         "provider_payment_method_details_pretty",
+        "provider_payment_method_id",
+        "provider_setup_intent_id",
+        "provider_subscription_link",
+        "reason",
+        "_revenue_program",
+        "revenue_program",
+        "status",
     )
 
     actions = (
@@ -175,6 +185,12 @@ class ContributionAdmin(RevEngineBaseAdmin, CompareVersionAdmin):
     )
 
     inlines = [PaymentInline]
+
+    def has_add_permission(self, request):
+        return False
+
+    def has_change_permission(self, request, obj=None):
+        return False
 
     @admin.action(description="Accept flagged contributions")
     def accept_flagged_contribution(self, request, queryset):
@@ -262,3 +278,9 @@ class ContributionAdmin(RevEngineBaseAdmin, CompareVersionAdmin):
         return prettify_json_field(instance.provider_payment_method_details)
 
     provider_payment_method_details_pretty.short_description = "Provider payment method details"
+
+    def revenue_program(self, instance):
+        """Render revenue_program field with pretty formatting"""
+        return instance.revenue_program.name
+
+    revenue_program.short_description = "Revenue program (property, not FK)"

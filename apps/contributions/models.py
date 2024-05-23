@@ -12,6 +12,7 @@ from zoneinfo import ZoneInfo
 
 from django.conf import settings
 from django.db import models
+from django.db.models import Q, Sum
 from django.template.loader import render_to_string
 from django.utils.safestring import SafeString, mark_safe
 
@@ -50,6 +51,27 @@ class Contributor(IndexedTimeStampedModel):
     uuid = models.UUIDField(default=uuid.uuid4, primary_key=False, editable=False)
     email = models.EmailField(unique=True)
 
+    def get_impact(self, revenue_program_ids: List[int] | None = None):
+        """
+        Calculate the total impact of a contributor across multiple revenue programs
+        """
+        totals = (
+            self.contribution_set.filter_by_revenue_programs(revenue_program_ids)
+            .exclude(
+                status__in=[ContributionStatus.FLAGGED, ContributionStatus.PROCESSING, ContributionStatus.REJECTED]
+            )
+            .annotate(total_payments=Sum("payment__net_amount_paid"), total_refunded=Sum("payment__amount_refunded"))
+            .aggregate(
+                total_amount_paid=Sum("total_payments", default=0),
+                total_amount_refunded=Sum("total_refunded", default=0),
+            )
+        )
+        return {
+            "total_paid": (total_paid := totals["total_amount_paid"] or 0),
+            "total_refunded": (total_refunded := totals["total_amount_refunded"] or 0),
+            "total": total_paid - total_refunded,
+        }
+
     @property
     def is_authenticated(self):
         """
@@ -71,38 +93,6 @@ class Contributor(IndexedTimeStampedModel):
     def __str__(self):
         return self.email
 
-    def create_stripe_customer(
-        self,
-        rp_stripe_account_id,
-        customer_name=None,
-        phone=None,
-        street=None,
-        complement=None,  # apt, room, aka "line2"
-        city=None,
-        state=None,
-        postal_code=None,
-        country=None,
-        metadata=None,
-    ):
-        """Create a Stripe customer using contributor email"""
-        address = {
-            "line1": street,
-            "line2": complement or "",
-            "city": city,
-            "state": state,
-            "postal_code": postal_code,
-            "country": country,
-        }
-        return stripe.Customer.create(
-            email=self.email,
-            address=address,
-            shipping={"address": address, "name": customer_name},
-            name=customer_name,
-            phone=phone,
-            stripe_account=rp_stripe_account_id,
-            metadata=metadata,
-        )
-
     @staticmethod
     def create_magic_link(contribution: "Contribution") -> SafeString:
         """Create a magic link value that can be inserted into Django templates (for instance, in contributor-facing emails)"""
@@ -113,7 +103,7 @@ class Contributor(IndexedTimeStampedModel):
             raise ValueError("Invalid value provided for `contribution`")
         token = str(ContributorRefreshToken.for_contributor(contribution.contributor.uuid).short_lived_access_token)
         return mark_safe(
-            f"https://{construct_rp_domain(contribution.donation_page.revenue_program.slug)}/{settings.CONTRIBUTOR_VERIFY_URL}"
+            f"https://{construct_rp_domain(contribution.revenue_program.slug)}/{settings.CONTRIBUTOR_VERIFY_URL}"
             f"?token={token}&email={quote_plus(contribution.contributor.email)}"
         )
 
@@ -124,6 +114,16 @@ class ContributionQuerySet(models.QuerySet):
 
     def recurring(self):
         return self.filter(interval__in=[ContributionInterval.MONTHLY, ContributionInterval.YEARLY])
+
+    def filter_by_revenue_programs(
+        self, revenue_programs: list[int] | models.QuerySet[RevenueProgram] | None
+    ) -> models.QuerySet[Contribution]:
+        if revenue_programs:
+            return self.filter(
+                Q(donation_page__revenue_program__in=revenue_programs)
+                | Q(contribution_metadata__revenue_program__in=revenue_programs)
+            )
+        return self
 
     def having_org_viewable_status(self) -> models.QuerySet:
         """Exclude contributions with statuses that should not be seen by org users from the queryset"""
@@ -165,11 +165,13 @@ class ContributionQuerySet(models.QuerySet):
                 return self.having_org_viewable_status()
             case Roles.ORG_ADMIN:
                 return self.having_org_viewable_status().filter(
-                    donation_page__revenue_program__organization=role_assignment.organization
+                    models.Q(donation_page__revenue_program__organization=role_assignment.organization)
+                    | models.Q(_revenue_program__organization=role_assignment.organization)
                 )
             case Roles.RP_ADMIN:
                 return self.having_org_viewable_status().filter(
-                    donation_page__revenue_program__in=role_assignment.revenue_programs.all()
+                    models.Q(donation_page__revenue_program__in=role_assignment.revenue_programs.all())
+                    | models.Q(_revenue_program__in=role_assignment.revenue_programs.all())
                 )
             case _:
                 return self.none()
@@ -198,7 +200,17 @@ class Contribution(IndexedTimeStampedModel):
     # TODO: [DEV-4333] Remove Contribution.last_payment_date in favor of derivation from payments
     last_payment_date = models.DateTimeField(null=True)
     contributor = models.ForeignKey("contributions.Contributor", on_delete=models.SET_NULL, null=True)
-    donation_page = models.ForeignKey("pages.DonationPage", on_delete=models.PROTECT, null=True)
+
+    # Further down, we add a constraint that requires that either donation page or _revenue_program
+    # be set but not both. This is to allow importing legacy contribution data that cannot be attributed
+    # to a specific donation page. We only allow one or the other because if there is a donation page defined,
+    # it will already have a parent revenue program, and we don't want to denormalize that relationship.
+    # Also, note that the reason we are calling this field _revenue_program is so we can define a polymorphic
+    # .revenue_program property that will return the revenue program regardless of its source.
+    donation_page = models.ForeignKey("pages.DonationPage", on_delete=models.PROTECT, null=True, blank=True)
+    _revenue_program = models.ForeignKey(
+        "organizations.RevenueProgram", on_delete=models.PROTECT, null=True, blank=True
+    )
 
     bad_actor_score = models.IntegerField(null=True, choices=BadActorScores.choices)
     bad_actor_response = models.JSONField(null=True)
@@ -232,11 +244,23 @@ class Contribution(IndexedTimeStampedModel):
             models.CheckConstraint(
                 name="%(app_label)s_%(class)s_bad_actor_score_valid",
                 check=models.Q(bad_actor_score__in=BadActorScores.values),
-            )
+            ),
+            # This is to allow importing legacy contribution data that cannot be attributed
+            # to a specific donation page. We only allow one or the other because if there is a donation page defined,
+            # it will already have a parent revenue program, and we don't want to denormalize that relationship.
+            # Also, note that the reason we are calling this field _revenue_program is so we can define a polymorphic
+            # .revenue_program property that will return the revenue program regardless of its source.
+            models.CheckConstraint(
+                name="%(app_label)s_%(class)s_exclusive_donation_page_or__revenue_program",
+                check=(
+                    models.Q(donation_page__isnull=False, _revenue_program__isnull=True)
+                    | models.Q(donation_page__isnull=True, _revenue_program__isnull=False)
+                ),
+            ),
         ]
 
     def __str__(self):
-        return f"{self.formatted_amount}, {self.created.strftime('%Y-%m-%d %H:%M:%S')}"
+        return f"Contribution #{self.id} {self.formatted_amount}, {self.created.strftime('%Y-%m-%d %H:%M:%S')}"
 
     @property
     def next_payment_date(self) -> datetime.datetime | None:
@@ -249,21 +273,28 @@ class Contribution(IndexedTimeStampedModel):
         return datetime.datetime.fromtimestamp(next_date, tz=ZoneInfo("UTC")) if next_date else None
 
     @property
+    def canceled_at(self) -> datetime.datetime | None:
+        if not self.stripe_subscription:
+            logger.warning("Expected a retrievable stripe subscription on contribution %s but none was found", self.id)
+            return None
+        canceled_at = self.stripe_subscription.canceled_at
+        return datetime.datetime.fromtimestamp(canceled_at, tz=ZoneInfo("UTC")) if canceled_at else None
+
+    @property
     def formatted_amount(self) -> str:
         currency = self.get_currency_dict()
         return f"{currency['symbol']}{'{:.2f}'.format(self.amount / 100)} {currency['code']}"
 
     @property
-    def revenue_program(self):
+    def revenue_program(self) -> RevenueProgram | None:
         if self.donation_page:
             return self.donation_page.revenue_program
-        return None
+        return self._revenue_program
 
     @property
-    def stripe_account_id(self):
+    def stripe_account_id(self) -> str | None:
         if self.revenue_program and self.revenue_program.payment_provider:
-            return self.revenue_program.payment_provider.stripe_account_id
-        return None
+            return self.revenue_program.payment_provider.stripe_account_id or None
 
     @property
     def billing_details(self) -> AttrDict:
@@ -397,12 +428,6 @@ class Contribution(IndexedTimeStampedModel):
 
     def save(self, *args, **kwargs):
         previous = self.__class__.objects.filter(pk=self.pk).first()
-        logger.info(
-            "`Contribution.save` called. Existing contribution has id: %s and provider_payment_method_id: %s \n The save value for provider_payment_method_id is %s",
-            getattr(previous, "id", None),
-            getattr(previous, "provider_payment_method_id", None),
-            self.provider_payment_method_id,
-        )
         # TODO: [DEV-4447] If possible, remove conditional payment method update fetch from contribution.save
         if (
             (
@@ -450,7 +475,7 @@ class Contribution(IndexedTimeStampedModel):
             shipping={"address": address, "name": name},
             name=name,
             phone=phone,
-            stripe_account=self.donation_page.revenue_program.payment_provider.stripe_account_id,
+            stripe_account=self.stripe_account_id,
         )
 
     def create_stripe_one_time_payment_intent(self, metadata=None, save=True):
@@ -463,15 +488,15 @@ class Contribution(IndexedTimeStampedModel):
             currency=self.currency,
             customer=self.provider_customer_id,
             metadata=metadata,
-            statement_descriptor_suffix=self.donation_page.revenue_program.stripe_statement_descriptor_suffix,
-            stripe_account=self.donation_page.revenue_program.stripe_account_id,
+            statement_descriptor_suffix=self.revenue_program.stripe_statement_descriptor_suffix,
+            stripe_account=self.stripe_account_id,
             capture_method="manual" if self.status == ContributionStatus.FLAGGED else "automatic",
         )
 
     def create_stripe_setup_intent(self, metadata):
         return stripe.SetupIntent.create(
             customer=self.provider_customer_id,
-            stripe_account=self.donation_page.revenue_program.payment_provider.stripe_account_id,
+            stripe_account=self.stripe_account_id,
             metadata=metadata,
         )
 
@@ -485,7 +510,7 @@ class Contribution(IndexedTimeStampedModel):
         price_data = {
             "unit_amount": self.amount,
             "currency": self.currency,
-            "product": self.donation_page.revenue_program.payment_provider.stripe_product_id,
+            "product": self.revenue_program.payment_provider.stripe_product_id,
             "recurring": {
                 "interval": self.interval,
             },
@@ -498,7 +523,7 @@ class Contribution(IndexedTimeStampedModel):
                     "price_data": price_data,
                 }
             ],
-            stripe_account=self.donation_page.revenue_program.payment_provider.stripe_account_id,
+            stripe_account=self.stripe_account_id,
             metadata=metadata,
             payment_behavior="error_if_incomplete" if error_if_incomplete else "default_incomplete",
             payment_settings={"save_default_payment_method": "on_subscription"},
@@ -521,7 +546,7 @@ class Contribution(IndexedTimeStampedModel):
         elif self.interval == ContributionInterval.ONE_TIME:
             stripe.PaymentIntent.cancel(
                 self.provider_payment_id,
-                stripe_account=self.donation_page.revenue_program.stripe_account_id,
+                stripe_account=self.stripe_account_id,
             )
         elif self.interval not in (ContributionInterval.MONTHLY, ContributionInterval.YEARLY):
             logger.warning(
@@ -533,12 +558,12 @@ class Contribution(IndexedTimeStampedModel):
         elif self.status == ContributionStatus.PROCESSING:
             stripe.Subscription.delete(
                 self.provider_subscription_id,
-                stripe_account=self.donation_page.revenue_program.stripe_account_id,
+                stripe_account=self.stripe_account_id,
             )
         elif self.status == ContributionStatus.FLAGGED and self.provider_payment_method_id:
             stripe.PaymentMethod.retrieve(
                 self.provider_payment_method_id,
-                stripe_account=self.donation_page.revenue_program.stripe_account_id,
+                stripe_account=self.stripe_account_id,
             ).detach()
 
         self.status = ContributionStatus.CANCELED
@@ -576,7 +601,7 @@ class Contribution(IndexedTimeStampedModel):
         try:
             customer = stripe.Customer.retrieve(
                 self.provider_customer_id,
-                stripe_account=self.donation_page.revenue_program.payment_provider.stripe_account_id,
+                stripe_account=self.stripe_account_id,
             )
         except StripeError:
             logger.exception(
@@ -591,20 +616,20 @@ class Contribution(IndexedTimeStampedModel):
             "contributor_email": self.contributor.email,
             "contributor_name": customer.name,
             "copyright_year": datetime.datetime.now().year,
-            "fiscal_sponsor_name": self.donation_page.revenue_program.fiscal_sponsor_name,
-            "fiscal_status": self.donation_page.revenue_program.fiscal_status,
+            "fiscal_sponsor_name": self.revenue_program.fiscal_sponsor_name,
+            "fiscal_status": self.revenue_program.fiscal_status,
             "magic_link": Contributor.create_magic_link(self),
-            "non_profit": self.donation_page.revenue_program.non_profit,
-            "rp_name": self.donation_page.revenue_program.name,
-            "style": asdict(self.donation_page.revenue_program.transactional_email_style),
-            "tax_id": self.donation_page.revenue_program.tax_id,
+            "non_profit": self.revenue_program.non_profit,
+            "rp_name": self.revenue_program.name,
+            "style": asdict(self.revenue_program.transactional_email_style),
+            "tax_id": self.revenue_program.tax_id,
             "timestamp": timestamp if timestamp else datetime.datetime.today().strftime("%m/%d/%Y"),
         }
 
         # Almost all RPs should have a default page set, but it's possible one isn't.
 
-        if self.donation_page.revenue_program.default_donation_page:
-            data["default_contribution_page_url"] = self.donation_page.revenue_program.default_donation_page.page_url
+        if default_page := self.revenue_program.default_donation_page:
+            data["default_contribution_page_url"] = default_page.page_url
 
         send_templated_email.delay(
             self.contributor.email,
@@ -623,17 +648,14 @@ class Contribution(IndexedTimeStampedModel):
 
     def send_recurring_contribution_email_reminder(self, next_charge_date: datetime.date = None) -> None:
         self.send_recurring_contribution_change_email(
-            f"Reminder: {self.donation_page.revenue_program.name} scheduled contribution",
+            f"Reminder: {self.revenue_program.name} scheduled contribution",
             "recurring-contribution-email-reminder",
             next_charge_date,
         )
 
     @property
     def stripe_setup_intent(self) -> stripe.SetupIntent | None:
-        if not (
-            (si_id := self.provider_setup_intent_id)
-            and (acct_id := self.donation_page.revenue_program.payment_provider.stripe_account_id)
-        ):
+        if not ((si_id := self.provider_setup_intent_id) and (acct_id := self.stripe_account_id)):
             return None
         try:
             return stripe.SetupIntent.retrieve(si_id, stripe_account=acct_id)
@@ -651,10 +673,7 @@ class Contribution(IndexedTimeStampedModel):
 
     @property
     def stripe_payment_intent(self) -> stripe.PaymentIntent | None:
-        if not (
-            (pi_id := self.provider_payment_id)
-            and (acct_id := self.donation_page.revenue_program.payment_provider.stripe_account_id)
-        ):
+        if not ((pi_id := self.provider_payment_id) and (acct_id := self.stripe_account_id)):
             return None
         try:
             return stripe.PaymentIntent.retrieve(pi_id, stripe_account=acct_id)
@@ -698,14 +717,6 @@ class Contribution(IndexedTimeStampedModel):
             last_4 = details["card"]["last4"]
         return last_4
 
-    @cached_property
-    def _expanded_pi_for_cancelable_modifiable(self) -> stripe.PaymentIntent | None:
-        if not self.provider_payment_id:
-            return None
-        return stripe.PaymentIntent.retrieve(
-            self.provider_payment_id, expand=["invoice.subscription"], stripe_account=self.stripe_account_id
-        )
-
     @property
     def is_cancelable(self) -> bool:
         return getattr(self.stripe_subscription, "status", None) in self.CANCELABLE_SUBSCRIPTION_STATUSES
@@ -744,7 +755,7 @@ class Contribution(IndexedTimeStampedModel):
         if not all(
             [
                 sub_id := self.provider_subscription_id,
-                acct_id := self.donation_page.revenue_program.payment_provider.stripe_account_id,
+                acct_id := self.stripe_account_id,
             ]
         ):
             return None
@@ -1154,11 +1165,6 @@ class Payment(IndexedTimeStampedModel):
 
     def __str__(self):
         return f"Payment {self.id} for contribution {self.contribution.id} and balance transaction {self.stripe_balance_transaction_id}"
-
-    @property
-    def stripe_account_id(self):
-        """Convenience method for referencing the Stripe account ID associated with the payment provider for this payment"""
-        return self.contribution.donation_page.revenue_program.payment_provider.stripe_account_id
 
     @classmethod
     def get_subscription_id_for_balance_transaction(

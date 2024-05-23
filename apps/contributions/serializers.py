@@ -6,7 +6,7 @@ from django.db.models import TextChoices
 from django.utils import timezone
 
 import reversion
-from rest_framework import serializers
+from rest_framework import serializers, status
 from rest_framework.exceptions import APIException, PermissionDenied
 from stripe.error import StripeError
 
@@ -22,6 +22,7 @@ from apps.contributions.models import (
 )
 from apps.contributions.types import StripePaymentMetadataSchemaV1_4
 from apps.contributions.utils import format_ambiguous_currency, get_sha256_hash
+from apps.organizations.models import PaymentProvider, RevenueProgram
 from apps.organizations.serializers import RevenueProgramSerializer
 from apps.pages.models import DonationPage
 
@@ -92,7 +93,7 @@ class ContributionSerializer(serializers.ModelSerializer):
 
     def _get_base_provider_url(self, obj):
         base = "https://"
-        if obj.payment_provider_used == "Stripe":
+        if obj.payment_provider_used == PaymentProvider.STRIPE_LABEL:
             return base + "dashboard.stripe.com"
 
     def _get_resource_url(self, obj, resource):
@@ -426,7 +427,7 @@ class BaseCreatePaymentSerializer(serializers.Serializer):
             "status": ContributionStatus.PROCESSING,
             "donation_page": validated_data["page"],
             "contributor": contributor,
-            "payment_provider_used": "Stripe",
+            "payment_provider_used": PaymentProvider.STRIPE_LABEL,
         }
         if bad_actor_response:
             contribution_data["bad_actor_score"] = bad_actor_response["overall_judgment"]
@@ -464,7 +465,7 @@ class BaseCreatePaymentSerializer(serializers.Serializer):
 
 
 class CreateOneTimePaymentSerializer(BaseCreatePaymentSerializer):
-    """Serializer to enable creating a contribution + one time payment"""
+    """Serializer to enable creating a contribution + one-time payment"""
 
     def create(self, validated_data):
         """Create a one-time contribution...
@@ -896,6 +897,7 @@ class PortalContributionPaymentSerializer(serializers.ModelSerializer):
 PORTAL_CONTRIBUTION_DETAIL_SERIALIZER_DB_FIELDS = PORTAL_CONTRIBUTION_BASE_SERIALIZER_FIELDS + [
     "payments",
     "paid_fees",
+    "canceled_at",
     "card_owner_name",
     "stripe_account_id",
 ]
@@ -931,3 +933,48 @@ class PortalContributionListSerializer(PortalContributionBaseSerializer):
         model = Contribution
         fields = PORTAL_CONTRIBUTION_BASE_SERIALIZER_FIELDS
         read_only_fields = PORTAL_CONTRIBUTION_BASE_SERIALIZER_FIELDS
+
+
+class SwitchboardContributionSerializer(serializers.ModelSerializer):
+    revenue_program = serializers.PrimaryKeyRelatedField(
+        queryset=RevenueProgram.objects.all(), source="_revenue_program"
+    )
+
+    class Meta:
+        model = Contribution
+        fields = ["revenue_program", "id"]
+        read_only_fields = ["id"]
+
+    def update(self, instance, validated_data):
+        """Update the revenue program of a contribution.
+
+        Here, if _revenue_program is being set and instance currently has donation_page set,
+        we also set donation_page to None because of our constraint on the model.
+
+        Note that at present we only allow updpating the ._revenue_program field of a contribution. If this changes in future
+        this update override will need to be modified accordingly.
+        """
+        logger.debug("Updating contribution %s with validated data %s", instance, validated_data)
+        if (rp := validated_data.pop("_revenue_program", None)) and instance._revenue_program != rp:
+            update_fields = {"modified", "_revenue_program"}
+            instance._revenue_program = rp
+            if instance.donation_page:
+                instance.donation_page = None
+                update_fields.add("donation_page")
+            with reversion.create_revision():
+                instance.save(update_fields=update_fields)
+                reversion.set_comment("Updated by SwitchboardContributionSerializer.update")
+        return instance
+
+    def validate_revenue_program(self, value: RevenueProgram) -> None:
+        """Ensure that the revenue program being set is from the same organization as the current revenue program
+
+        Note that the actual model attribute here is `._revenue_program`.
+        """
+        logger.debug("Validating revenue program %s", value)
+        if (rp := self.instance.revenue_program) and rp.organization != value.organization:
+            raise serializers.ValidationError(
+                "Cannot assign contribution to a revenue program from a different organization",
+                code=status.HTTP_400_BAD_REQUEST,
+            )
+        return value

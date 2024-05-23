@@ -14,6 +14,7 @@ from faker import Faker
 from apps.common.tests.test_utils import generate_random_datetime
 from apps.contributions import models
 from apps.contributions.serializers import StripePaymentMetadataSchemaV1_4
+from apps.organizations.models import PaymentProvider
 from apps.pages.tests.factories import DonationPageFactory
 
 
@@ -94,7 +95,7 @@ class ContributionFactory(DjangoModelFactory):
     donation_page = factory.SubFactory(DonationPageFactory)
     contributor = factory.SubFactory(ContributorFactory)
     uuid = factory.LazyFunction(lambda: str(uuid.uuid4()))
-    payment_provider_used = "Stripe"
+    payment_provider_used = PaymentProvider.STRIPE_LABEL
     provider_customer_id = None
     provider_payment_method_id = factory.LazyFunction(lambda: f"pm_{_random_stripe_str()}")
     provider_payment_method_details = factory.LazyFunction(lambda: PAYMENT_METHOD_DETAILS_DATA)
@@ -105,9 +106,9 @@ class ContributionFactory(DjangoModelFactory):
             contributor_id=self.contributor.id if self.contributor else None,
             agreed_to_pay_fees=True,
             donor_selected_amount=self.amount / 100,
-            referer="https://www.google.com/",
-            revenue_program_id=self.donation_page.revenue_program_id,
-            revenue_program_slug=self.donation_page.revenue_program.slug,
+            referer=f"https://www.{settings.DOMAIN_APEX}.com/",
+            revenue_program_id=self.donation_page.revenue_program_id if self.donation_page else "3737",
+            revenue_program_slug=self.donation_page.revenue_program.slug if self.donation_page else "slug",
             source="rev-engine",
             schema_version="1.4",
         ).model_dump(mode="json")

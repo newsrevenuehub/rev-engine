@@ -12,6 +12,7 @@
     "twitter_handle": "fooo",
     "website_url": "https://fooo.com/",
     "contact_email": "hello@fooo.com",
+    "contact_phone": "+1 415 555 2671",
     "google_analytics_v3_domain": null,
     "google_analytics_v3_id": null,
     "google_analytics_v4_id": null,
@@ -64,18 +65,15 @@
       "content": [
         {
           "value": "one_time",
-          "isDefault": false,
-          "displayName": "One time"
+          "isDefault": false
         },
         {
           "value": "month",
-          "isDefault": true,
-          "displayName": "Monthly"
+          "isDefault": true
         },
         {
           "value": "year",
-          "isDefault": false,
-          "displayName": "Yearly"
+          "isDefault": false
         }
       ],
       "requiredFields": []

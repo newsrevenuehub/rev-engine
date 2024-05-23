@@ -14,7 +14,7 @@ import { TestQueryClientProvider } from 'test-utils';
 import MailchimpOAuthSuccess from './MailchimpOAuthSuccess';
 import { RevenueProgram } from 'hooks/useContributionPage';
 
-jest.mock('elements/GlobalLoading');
+jest.mock('components/common/GlobalLoading/GlobalLoading');
 jest.mock('hooks/useConnectMailchimp');
 jest.mock('react-alert');
 

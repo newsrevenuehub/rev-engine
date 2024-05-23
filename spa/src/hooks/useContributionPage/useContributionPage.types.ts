@@ -132,7 +132,7 @@ export interface AmountElement extends ContributionPageElement {
     /**
      * Amounts the user can choose from.
      */
-    options: Partial<Record<ContributionInterval, number[]>>;
+    options: Partial<Record<ContributionInterval, Array<number | 'other'>>>;
   };
 }
 
@@ -167,10 +167,6 @@ export interface DonorInfoElement extends ContributionPageElement {
 
 export interface FrequencyElement extends ContributionPageElement {
   content: {
-    /**
-     * Display name for the frequency.
-     */
-    displayName: string;
     /**
      * Is this the default frequency for the contribution page?
      */
@@ -310,6 +306,10 @@ export interface RevenueProgram {
    * Point of contact for the revenue program.
    */
   contact_email: string;
+  /**
+   * Point of contact for the revenue program.
+   */
+  contact_phone: string;
   /**
    * ID used for Facebook analytics.
    */

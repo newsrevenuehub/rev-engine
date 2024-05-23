@@ -1,12 +1,12 @@
 import { axe } from 'jest-axe';
 import { render, screen } from 'test-utils';
-import useSubdomain from 'hooks/useSubdomain';
 import ContributorDashboard from './ContributorDashboard';
 import { useConfigureAnalytics } from 'components/analytics';
 import userEvent from '@testing-library/user-event';
+import { getRevenueProgramSlug } from 'utilities/getRevenueProgramSlug';
 
 jest.mock('components/analytics');
-jest.mock('hooks/useSubdomain');
+jest.mock('utilities/getRevenueProgramSlug');
 jest.mock('./ContributionsTable');
 jest.mock('./ContributorTokenExpiredModal');
 
@@ -16,9 +16,9 @@ function tree() {
 
 describe('ContributorDashboard', () => {
   const useConfigureAnalyticsMock = useConfigureAnalytics as jest.Mock;
-  const useSubdomainMock = useSubdomain as jest.Mock;
+  const getRevenueProgramSlugMock = jest.mocked(getRevenueProgramSlug);
 
-  beforeEach(() => useSubdomainMock.mockReturnValue('mock-subdomain'));
+  beforeEach(() => getRevenueProgramSlugMock.mockReturnValue('mock-subdomain'));
 
   it('configures analytics', () => {
     tree();
@@ -36,7 +36,7 @@ describe('ContributorDashboard', () => {
   });
 
   it('displays a contributions table using the subdomain as the revenue program slug', () => {
-    useSubdomainMock.mockReturnValue('test-subdomain');
+    getRevenueProgramSlugMock.mockReturnValue('test-subdomain');
     tree();
 
     const table = screen.getByTestId('mock-contributions-table');

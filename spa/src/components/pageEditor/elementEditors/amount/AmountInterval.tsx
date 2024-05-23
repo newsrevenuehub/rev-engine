@@ -19,7 +19,7 @@ const AmountIntervalPropTypes = {
  * Exported for tests only.
  */
 export const intervalHeaders: Record<ContributionInterval, string> = {
-  one_time: 'One Time Contribution',
+  one_time: 'One-Time Contribution',
   month: 'Monthly Contributions',
   year: 'Yearly Contributions'
 };

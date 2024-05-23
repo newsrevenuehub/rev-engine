@@ -38,12 +38,20 @@ export function getRevenueProgramMailchimpStatusEndpoint(revenueProgramId: Reven
 }
 
 // Contributions
+export function getContributorImpactEndpoint(contributorId: number) {
+  return `/contributors/${contributorId}/impact/`;
+}
+
 export function getContributionsEndpoint(contributorId: number, queryParams?: string) {
   return `/contributors/${contributorId}/contributions/${queryParams ? `?${queryParams}` : ''}`;
 }
 
 export function getContributionDetailEndpoint(contributorId: number, contributionId: number) {
   return `/contributors/${contributorId}/contributions/${contributionId}/`;
+}
+
+export function getContributionSendEmailReceiptEndpoint(contributorId: number, contributionId: number) {
+  return `${getContributionDetailEndpoint(contributorId, contributionId)}send-receipt/`;
 }
 
 export const CONTRIBUTIONS = 'contributions/';

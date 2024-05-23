@@ -83,6 +83,7 @@ function DashboardRouter() {
           ROUTES.DONATIONS_SLUG,
           ROUTES.CONTENT_SLUG,
           ROUTES.CUSTOMIZE_SLUG,
+          ROUTES.CONTRIBUTOR_PORTAL_SLUG,
           ROUTES.EDITOR_ROUTE,
           ROUTES.VERIFY_EMAIL_SUCCESS,
           ROUTES.PROFILE,

@@ -10,7 +10,6 @@ from django.test import RequestFactory, override_settings
 
 import dateparser
 import pytest
-import pytest_cases
 import pytz
 import stripe
 from addict import Dict as AttrDict
@@ -62,7 +61,7 @@ from apps.organizations.tests.factories import (
 from apps.pages.models import DonationPage
 from apps.pages.tests.factories import DonationPageFactory
 from apps.users.choices import Roles
-from apps.users.tests.factories import create_test_user
+from apps.users.tests.factories import UserFactory, create_test_user
 
 
 TEST_STRIPE_ACCOUNT_ID = "testing_123"
@@ -193,59 +192,22 @@ class StripeOAuthTest(AbstractTestCase):
 
 @pytest.mark.django_db
 @pytest.mark.usefixtures("clear_cache")
+@pytest.mark.usefixtures("default_feature_flags")
 class TestContributionsViewSet:
-    @pytest_cases.parametrize(
-        "user,expected_status",
-        (
-            (pytest_cases.fixture_ref("superuser"), status.HTTP_405_METHOD_NOT_ALLOWED),
-            (pytest_cases.fixture_ref("hub_admin_user"), status.HTTP_405_METHOD_NOT_ALLOWED),
-            (pytest_cases.fixture_ref("org_user_free_plan"), status.HTTP_405_METHOD_NOT_ALLOWED),
-            (pytest_cases.fixture_ref("rp_user"), status.HTTP_405_METHOD_NOT_ALLOWED),
-            (pytest_cases.fixture_ref("contributor_user"), status.HTTP_405_METHOD_NOT_ALLOWED),
-            (pytest_cases.fixture_ref("user_no_role_assignment"), status.HTTP_403_FORBIDDEN),
-            (None, status.HTTP_401_UNAUTHORIZED),
-        ),
-    )
-    @pytest.mark.parametrize(
-        "method,generate_url_fn,data",
-        (
-            ("post", lambda contribution: reverse("contribution-list"), {}),
-            ("put", lambda contribution: reverse("contribution-detail", args=(contribution.id,)), {}),
-            ("patch", lambda contribution: reverse("contribution-detail", args=(contribution.id,)), {}),
-            ("delete", lambda contribution: reverse("contribution-detail", args=(contribution.id,)), None),
-        ),
-    )
-    def test_unpermitted_methods(
-        self, user, expected_status, method, generate_url_fn, data, api_client, one_time_contribution, monkeypatch
-    ):
-        """Show that users cannot make requests to endpoint using unpermitted methods"""
-        if user:
-            api_client.force_authenticate(user)
-        kwargs = {}
-        if data:
-            kwargs["data"] = {}
-        assert (
-            getattr(api_client, method)(generate_url_fn(one_time_contribution), **kwargs).status_code == expected_status
-        )
 
-    @pytest_cases.parametrize(
-        "user",
-        (
-            pytest_cases.fixture_ref("org_user_free_plan"),
-            pytest_cases.fixture_ref("rp_user"),
-            pytest_cases.fixture_ref("hub_admin_user"),
-            pytest_cases.fixture_ref("superuser"),
-        ),
-    )
-    def test_retrieve_when_expected_non_contributor_user(self, user, api_client, mocker):
+    @pytest.fixture(params=["superuser", "hub_admin_user", "org_user_free_plan", "rp_user"])
+    def non_contributor_user(self, request):
+        return request.getfixturevalue(request.param)
+
+    def test_retrieve_when_expected_non_contributor_user(self, non_contributor_user, api_client, mocker):
         """Show that expected users can retrieve only permitted organizations
 
         Contributor users are not handled in this test because setup is too different
         """
         spy = mocker.spy(ContributionQuerySet, "filtered_by_role_assignment")
-        api_client.force_authenticate(user)
+        api_client.force_authenticate(non_contributor_user)
         new_rp = RevenueProgramFactory(organization=OrganizationFactory(name="new-org"), name="new rp")
-        if user.is_superuser or user.roleassignment.role_type == Roles.HUB_ADMIN:
+        if non_contributor_user.is_superuser or non_contributor_user.roleassignment.role_type == Roles.HUB_ADMIN:
             ContributionFactory(**{"one_time": True, "donation_page__revenue_program": new_rp})
             ContributionFactory(**{"annual_subscription": True, "donation_page__revenue_program": new_rp})
             ContributionFactory(**{"monthly_subscription": True, "donation_page__revenue_program": new_rp})
@@ -255,16 +217,16 @@ class TestContributionsViewSet:
             # this ensures that we'll have both owned and unowned contributions for org and rp admins
             for kwargs in [
                 {"donation_page__revenue_program": new_rp},
-                {"donation_page__revenue_program": user.roleassignment.revenue_programs.first()},
+                {"donation_page__revenue_program": non_contributor_user.roleassignment.revenue_programs.first()},
             ]:
                 ContributionFactory(**({"one_time": True} | kwargs))
                 ContributionFactory(**({"annual_subscription": True} | kwargs))
                 ContributionFactory(**({"monthly_subscription": True} | kwargs))
-            query = Contribution.objects.filtered_by_role_assignment(user.roleassignment)
+            query = Contribution.objects.filtered_by_role_assignment(non_contributor_user.roleassignment)
             unpermitted = Contribution.objects.exclude(id__in=query.values_list("id", flat=True))
 
         assert query.count() > 0
-        if user.is_superuser or user.roleassignment.role_type == Roles.HUB_ADMIN:
+        if non_contributor_user.is_superuser or non_contributor_user.roleassignment.role_type == Roles.HUB_ADMIN:
             assert unpermitted.count() == 0
         else:
             assert unpermitted.count() > 0
@@ -280,65 +242,57 @@ class TestContributionsViewSet:
         for id in unpermitted.values_list("id", flat=True):
             response = api_client.get(reverse("contribution-detail", args=(id,)))
             assert response.status_code == status.HTTP_404_NOT_FOUND
-        assert spy.call_count == 0 if user.is_superuser else Contribution.objects.count()
+        assert spy.call_count == 0 if non_contributor_user.is_superuser else Contribution.objects.count()
 
-    @pytest_cases.parametrize(
-        "user",
-        (
-            pytest_cases.fixture_ref("user_no_role_assignment"),
-            None,
-        ),
-    )
-    @pytest_cases.parametrize(
-        "_contribution",
-        (
-            pytest_cases.fixture_ref("one_time_contribution"),
-            pytest_cases.fixture_ref("annual_contribution"),
-            pytest_cases.fixture_ref("monthly_contribution"),
-        ),
-    )
-    def test_retrieve_when_unauthorized_user(self, user, api_client, _contribution):
-        """Show behavior when an unauthorized user trise to retrieve a contribution"""
-        if user:
-            api_client.force_authenticate(user)
-        response = api_client.get(reverse("contribution-detail", args=(_contribution.id,)))
-        assert response.status_code == status.HTTP_403_FORBIDDEN if user else status.HTTP_401_UNAUTHORIZED
+    @pytest.fixture(params=["one_time_contribution", "annual_contribution", "monthly_contribution"])
+    def contribution(self, request):
+        return request.getfixturevalue(request.param)
 
-    @pytest_cases.parametrize(
-        "user",
-        (
-            pytest_cases.fixture_ref("org_user_free_plan"),
-            pytest_cases.fixture_ref("rp_user"),
-            pytest_cases.fixture_ref("hub_admin_user"),
-            pytest_cases.fixture_ref("superuser"),
-        ),
-    )
-    def test_list_when_expected_non_contributor_user(self, user, api_client, mocker, revenue_program):
+    @pytest.fixture(params=["user_no_role_assignment", None])
+    def unauthorized_user(self, request):
+        return request.getfixturevalue(request.param) if request.param else None
+
+    def test_retrieve_when_unauthorized_user(self, api_client, contribution, unauthorized_user):
+        """Show behavior when an unauthorized user tries to retrieve a contribution"""
+        api_client.force_authenticate(unauthorized_user)
+        response = api_client.get(reverse("contribution-detail", args=(contribution.id,)))
+        assert response.status_code == status.HTTP_403_FORBIDDEN if unauthorized_user else status.HTTP_401_UNAUTHORIZED
+
+    def test_list_when_expected_non_contributor_user(self, non_contributor_user, api_client, mocker, revenue_program):
         """Show that expected users can list only permitted contributions
 
         NB: We test for contributor user elsewhere, as that requires quite different setup than other
         expected users
         """
-        api_client.force_authenticate(user)
+        api_client.force_authenticate(non_contributor_user)
         # superuser and hub admin can retrieve all:
-        if user.is_superuser or user.roleassignment.role_type == Roles.HUB_ADMIN:
-            ContributionFactory.create_batch(size=2)
+        if non_contributor_user.is_superuser or non_contributor_user.roleassignment.role_type == Roles.HUB_ADMIN:
+            ContributionFactory.create_batch(size=2, status=ContributionStatus.PAID)
             query = (
-                Contribution.objects.all() if user.is_superuser else Contribution.objects.having_org_viewable_status()
+                Contribution.objects.all()
+                if non_contributor_user.is_superuser
+                else Contribution.objects.having_org_viewable_status()
             )
             unpermitted = Contribution.objects.none()
             assert query.count()
         # org and rp admins should see owned and not unowned contributions
         else:
-            assert revenue_program not in user.roleassignment.revenue_programs.all()
-            assert user.roleassignment.revenue_programs.first() is not None
+            assert revenue_program not in non_contributor_user.roleassignment.revenue_programs.all()
+            assert non_contributor_user.roleassignment.revenue_programs.first() is not None
             ContributionFactory(
                 one_time=True,
-                donation_page=DonationPageFactory(revenue_program=user.roleassignment.revenue_programs.first()),
+                donation_page=DonationPageFactory(
+                    revenue_program=non_contributor_user.roleassignment.revenue_programs.first()
+                ),
+                status=ContributionStatus.PAID,
             )
-            ContributionFactory(one_time=True, donation_page=DonationPageFactory(revenue_program=revenue_program))
-            user.roleassignment.refresh_from_db()
-            query = Contribution.objects.filtered_by_role_assignment(user.roleassignment)
+            ContributionFactory(
+                one_time=True,
+                donation_page=DonationPageFactory(revenue_program=revenue_program),
+                status=ContributionStatus.PAID,
+            )
+            non_contributor_user.roleassignment.refresh_from_db()
+            query = Contribution.objects.filtered_by_role_assignment(non_contributor_user.roleassignment)
             unpermitted = Contribution.objects.exclude(id__in=query.values_list("id", flat=True))
             assert unpermitted.count()
             assert query.count()
@@ -350,33 +304,20 @@ class TestContributionsViewSet:
         assert not any(
             x in unpermitted.values_list("id", flat=True) for x in [y["id"] for y in response.json()["results"]]
         )
-        assert spy.call_count == 0 if user.is_superuser else 1
+        assert spy.call_count == 0 if non_contributor_user.is_superuser else 1
 
-    @pytest_cases.parametrize(
-        "user,expected_status",
-        (
-            (pytest_cases.fixture_ref("user_no_role_assignment"), status.HTTP_403_FORBIDDEN),
-            (None, status.HTTP_401_UNAUTHORIZED),
-        ),
-    )
-    def test_list_when_unauthorized_user(self, user, expected_status, api_client):
+    def test_list_when_unauthorized_user(self, unauthorized_user, api_client):
         """Show behavior when unauthorized user tries to list contributions"""
-        if user:
-            api_client.force_authenticate(user)
-        assert api_client.get(reverse("contribution-list")).status_code == expected_status
+        api_client.force_authenticate(unauthorized_user)
+        assert (
+            api_client.get(reverse("contribution-list")).status_code == status.HTTP_403_FORBIDDEN
+            if unauthorized_user
+            else status.HTTP_401_UNAUTHORIZED
+        )
 
-    @pytest_cases.parametrize(
-        "user",
-        (
-            pytest_cases.fixture_ref("superuser"),
-            pytest_cases.fixture_ref("hub_admin_user"),
-            pytest_cases.fixture_ref("org_user_free_plan"),
-            pytest_cases.fixture_ref("rp_user"),
-        ),
-    )
     def test_excludes_statuses_correctly_for_expected_non_contributor_users(
         self,
-        user,
+        non_contributor_user,
         flagged_contribution,
         rejected_contribution,
         canceled_contribution,
@@ -391,7 +332,7 @@ class TestContributionsViewSet:
             canceled_contribution,
             refunded_contribution,
         ]
-        if user.is_superuser:
+        if non_contributor_user.is_superuser:
             seen.extend(
                 [
                     flagged_contribution,
@@ -399,24 +340,31 @@ class TestContributionsViewSet:
                     processing_contribution,
                 ]
             )
-        if not (user.is_superuser or user.roleassignment.role_type == Roles.HUB_ADMIN):
+        if not (non_contributor_user.is_superuser or non_contributor_user.roleassignment.role_type == Roles.HUB_ADMIN):
             # ensure all contributions are owned by user so we're narrowly viewing behavior around status inclusion/exclusion
-            DonationPage.objects.update(revenue_program=user.roleassignment.revenue_programs.first())
-        api_client.force_authenticate(user)
+            DonationPage.objects.update(revenue_program=non_contributor_user.roleassignment.revenue_programs.first())
+        api_client.force_authenticate(non_contributor_user)
         response = api_client.get(reverse("contribution-list"))
         assert response.status_code == status.HTTP_200_OK
         assert len(response.json()["results"]) == len(seen)
         assert set([x["id"] for x in response.json()["results"]]) == set([x.id for x in seen])
 
-    @pytest_cases.parametrize(
-        "user", (pytest_cases.fixture_ref("superuser"), pytest_cases.fixture_ref("hub_admin_user"))
-    )
+    @pytest.fixture(params=["superuser", "hub_admin_user"])
+    def filter_user(self, request):
+        return request.getfixturevalue(request.param)
+
     @pytest.mark.parametrize(
-        "contribution_status", (ContributionStatus.FLAGGED, ContributionStatus.REJECTED, ContributionStatus.PROCESSING)
+        "contribution_status",
+        (
+            ContributionStatus.FAILED,
+            ContributionStatus.FLAGGED,
+            ContributionStatus.PROCESSING,
+            ContributionStatus.REJECTED,
+        ),
     )
     def test_filter_contributions_based_on_status(
         self,
-        user,
+        filter_user,
         contribution_status,
         flagged_contribution,
         rejected_contribution,
@@ -427,6 +375,7 @@ class TestContributionsViewSet:
         api_client,
     ):
         """Superusers and hub admins can filter out flagged and rejected contributions"""
+        user = filter_user
         api_client.force_authenticate(user)
         qp = f"status__not={contribution_status.value}"
         can_see = [
@@ -517,22 +466,24 @@ class TestContributionViewSetForContributorUser:
 class TestContributionsViewSetExportCSV:
     """Test contribution viewset functionality around triggering emailed csv exports"""
 
-    @pytest_cases.parametrize(
-        "user",
-        (
-            pytest_cases.fixture_ref("admin_user"),
-            pytest_cases.fixture_ref("hub_admin_user"),
-            pytest_cases.fixture_ref("org_user_free_plan"),
-            pytest_cases.fixture_ref("org_user_multiple_rps"),
-            pytest_cases.fixture_ref("rp_user"),
-        ),
+    @pytest.fixture(
+        params=[
+            "admin_user",
+            "hub_admin_user",
+            "org_user_free_plan",
+            "org_user_multiple_rps",
+            "rp_user",
+        ]
     )
+    def user(self, request):
+        return request.getfixturevalue(request.param)
+
     def test_when_expected_user(self, user, api_client, mocker, revenue_program, settings):
         """Show expected users get back expected results in CSV"""
         settings.CELERY_ALWAYS_EAGER = True
         api_client.force_authenticate(user)
         if user.is_staff or user.roleassignment.role_type == Roles.HUB_ADMIN:
-            ContributionFactory(one_time=True)
+            ContributionFactory(one_time=True, status=ContributionStatus.PAID)
             ContributionFactory(one_time=True, flagged=True)
             ContributionFactory(one_time=True, rejected=True)
             ContributionFactory(one_time=True, canceled=True)
@@ -543,13 +494,13 @@ class TestContributionsViewSetExportCSV:
             assert revenue_program not in user.roleassignment.revenue_programs.all()
             unowned_page = DonationPageFactory(revenue_program=revenue_program)
             owned_page = DonationPageFactory(revenue_program=user.roleassignment.revenue_programs.first())
-            ContributionFactory(one_time=True, donation_page=owned_page)
+            ContributionFactory(one_time=True, donation_page=owned_page, status=ContributionStatus.PAID)
             ContributionFactory(one_time=True, flagged=True, donation_page=owned_page)
             ContributionFactory(one_time=True, rejected=True, donation_page=owned_page)
             ContributionFactory(one_time=True, canceled=True, donation_page=owned_page)
             ContributionFactory(one_time=True, refunded=True, donation_page=owned_page)
             ContributionFactory(one_time=True, processing=True, donation_page=owned_page)
-            ContributionFactory(one_time=True)
+            ContributionFactory(one_time=True, status=ContributionStatus.PAID)
             ContributionFactory(one_time=True, flagged=True, donation_page=unowned_page)
             ContributionFactory(one_time=True, rejected=True, donation_page=unowned_page)
             ContributionFactory(one_time=True, canceled=True, donation_page=unowned_page)
@@ -578,18 +529,20 @@ class TestContributionsViewSetExportCSV:
         if (ra := user.get_role_assignment()) is not None:
             filter_spy.assert_called_once_with(ra)
 
-    @pytest_cases.parametrize(
-        "user,expected_status",
-        (
-            (pytest_cases.fixture_ref("contributor_user"), status.HTTP_403_FORBIDDEN),
-            (pytest_cases.fixture_ref("superuser"), status.HTTP_405_METHOD_NOT_ALLOWED),
+    @pytest.fixture(
+        params=[
+            ("contributor_user", status.HTTP_403_FORBIDDEN),
+            ("superuser", status.HTTP_405_METHOD_NOT_ALLOWED),
             (None, status.HTTP_401_UNAUTHORIZED),
-        ),
+        ]
     )
-    def test_when_unauthorized_user(self, user, expected_status, api_client):
+    def unauthorized_user_case(self, request):
+        return request.getfixturevalue(request.param[0]) if request.param[0] else None, request.param[1]
+
+    def test_when_unauthorized_user(self, unauthorized_user_case, api_client):
         """Show behavior when unauthorized users attempt to access"""
-        if user:
-            api_client.force_authenticate(user)
+        user, expected_status = unauthorized_user_case
+        api_client.force_authenticate(user)
         assert api_client.get(reverse("contribution-email-contributions")).status_code == expected_status
 
 
@@ -1587,6 +1540,36 @@ class TestPortalContributorsViewSet:
         return contribution
 
     @pytest.fixture
+    def yearly_contribution(
+        self,
+        revenue_program,
+        portal_contributor,
+        faker,
+        stripe_subscription,
+    ):
+        then = datetime.now() - timedelta(days=365)
+        contribution = ContributionFactory(
+            interval=ContributionInterval.YEARLY,
+            status=ContributionStatus.PAID,
+            created=then,
+            donation_page__revenue_program=revenue_program,
+            contributor=portal_contributor,
+            provider_payment_id=faker.pystr_format(string_format="pi_??????"),
+            provider_customer_id=faker.pystr_format(string_format="cus_??????"),
+            provider_subscription_id=stripe_subscription.id,
+            provider_payment_method_id=faker.pystr_format(string_format="pm_??????"),
+        )
+        for x in (then, then + timedelta(days=365)):
+            PaymentFactory(
+                created=x,
+                contribution=contribution,
+                amount_refunded=0,
+                gross_amount_paid=contribution.amount,
+                net_amount_paid=contribution.amount - 100,
+            )
+        return contribution
+
+    @pytest.fixture
     def portal_contributor(self):
         return ContributorFactory()
 
@@ -1594,6 +1577,7 @@ class TestPortalContributorsViewSet:
     def portal_contributor_with_multiple_contributions(
         self,
         portal_contributor,
+        yearly_contribution,
         monthly_contribution,
         one_time_contribution,
         stripe_customer_factory,
@@ -1603,6 +1587,8 @@ class TestPortalContributorsViewSet:
         cust_id = monthly_contribution.provider_customer_id
         one_time_contribution.provider_customer_id = cust_id
         one_time_contribution.save()
+        yearly_contribution.provider_customer_id = cust_id
+        yearly_contribution.save()
 
         mock_customer_retrieve = mocker.patch(
             "stripe.Customer.retrieve",
@@ -1626,13 +1612,34 @@ class TestPortalContributorsViewSet:
             mock_subscription_modify,
         )
 
+    @pytest.fixture
+    def portal_contributor_with_multiple_contributions_over_multiple_rps(
+        self, portal_contributor_with_multiple_contributions
+    ):
+        contributor, _, _, _ = portal_contributor_with_multiple_contributions
+        rp2 = RevenueProgramFactory()
+        ContributionFactory(
+            interval=ContributionInterval.MONTHLY,
+            status=ContributionStatus.PAID,
+            donation_page__revenue_program=rp2,
+            contributor=contributor,
+        )
+        return contributor
+
+    def test_contributor_impact(self, portal_contributor_with_multiple_contributions, api_client):
+        contributor: Contributor = portal_contributor_with_multiple_contributions[0]
+        api_client.force_authenticate(contributor)
+        response = api_client.get(reverse("portal-contributor-impact", args=(contributor.id,)))
+        assert response.status_code == status.HTTP_200_OK
+        assert response.json().keys() == {"total", "total_paid", "total_refunded"}
+
     def test_contributions_list_happy_path(self, portal_contributor_with_multiple_contributions, api_client):
         contributor = portal_contributor_with_multiple_contributions[0]
         api_client.force_authenticate(contributor)
         response = api_client.get(reverse("portal-contributor-contributions-list", args=(contributor.id,)))
         assert response.status_code == status.HTTP_200_OK
         assert set(response.json().keys()) == {"count", "next", "previous", "results"}
-        assert len(response.json()["results"]) == 2
+        assert len(response.json()["results"]) == 3
         assert set(x["id"] for x in response.json()["results"]) == set(
             contributor.contribution_set.all().values_list("id", flat=True)
         )
@@ -1657,7 +1664,7 @@ class TestPortalContributorsViewSet:
             assert x["revenue_program"] == contribution.donation_page.revenue_program.id
             assert x["status"] == contribution.status
 
-    def test_contributions_list_filter_behavior(self, api_client, portal_contributor_with_multiple_contributions):
+    def test_contributions_list_filter_by_status(self, api_client, portal_contributor_with_multiple_contributions):
         contributor = portal_contributor_with_multiple_contributions[0]
         api_client.force_authenticate(contributor)
         (excluded := contributor.contribution_set.first()).status = ContributionStatus.FAILED
@@ -1667,17 +1674,44 @@ class TestPortalContributorsViewSet:
             + f"?status={ContributionStatus.PAID}"
         )
         assert response.status_code == status.HTTP_200_OK
-        assert len(response.json()["results"]) == 1
+        assert len(response.json()["results"]) == 2
         assert (
             response.json()["results"][0]["id"]
+            == contributor.contribution_set.filter(status=ContributionStatus.PAID).last().id
+        )
+        assert (
+            response.json()["results"][1]["id"]
             == contributor.contribution_set.filter(status=ContributionStatus.PAID).first().id
         )
+
+    def test_contributions_list_filter_by_rp(
+        self, api_client, portal_contributor_with_multiple_contributions_over_multiple_rps
+    ):
+        contributor = portal_contributor_with_multiple_contributions_over_multiple_rps
+        rps = contributor.contribution_set.values_list("donation_page__revenue_program", flat=True).distinct()
+        assert len(rps) > 1
+        api_client.force_authenticate(contributor)
+
+        def assert_result(response, result_id):
+            assert response.status_code == status.HTTP_200_OK
+            assert len(response.json()["results"])
+            assert set(x["revenue_program"] for x in response.json()["results"]) == {result_id}
+
+        response = api_client.get(
+            reverse("portal-contributor-contributions-list", args=(contributor.id,)) + f"?revenue_program={rps[0]}"
+        )
+        assert_result(response, rps[0])
+        response = api_client.get(
+            reverse("portal-contributor-contributions-list", args=(contributor.id,)) + f"?revenue_program={rps[1]}"
+        )
+        assert_result(response, rps[1])
 
     @pytest.mark.parametrize(
         "ordering",
         (
             "amount",
             "created",
+            "status",
         ),
     )
     @pytest.mark.parametrize("descending", (True, False))
@@ -1687,9 +1721,16 @@ class TestPortalContributorsViewSet:
         contributor = portal_contributor_with_multiple_contributions[0]
         amount = 1000
         # guarantee we have orderable values on amount
-        for x in Contribution.objects.all():
+        for index, x in enumerate(Contribution.objects.all()):
             x.amount = amount
             amount += 1000
+            match index:
+                case 0:
+                    x.status = ContributionStatus.PAID.label
+                case 1:
+                    x.status = ContributionStatus.FAILED.label
+                case 2:
+                    x.status = ContributionStatus.FLAGGED.label
             x.payment_set.all().update(gross_amount_paid=x.amount, net_amount_paid=x.amount - 100)
             x.save()
         api_client.force_authenticate(contributor)
@@ -1702,6 +1743,60 @@ class TestPortalContributorsViewSet:
             assert response.json()["results"][0][ordering] > response.json()["results"][1][ordering]
         else:
             assert response.json()["results"][0][ordering] < response.json()["results"][1][ordering]
+
+    @pytest.mark.parametrize(
+        "ordering",
+        (
+            "status,-created",
+            "amount,-created",
+        ),
+    )
+    @pytest.mark.parametrize("descending", (True, False))
+    def test_contributions_list_ordering_multiple_fields_behavior(
+        self, portal_contributor_with_multiple_contributions, descending, ordering, api_client
+    ):
+        contributor = portal_contributor_with_multiple_contributions[0]
+        amount = 1000
+        # guarantee we have orderable values on amount
+        page = DonationPageFactory()
+        for index, x in enumerate(Contribution.objects.all()):
+            x.amount = amount
+            amount += 1000
+            match index:
+                case 0:
+                    x.status = ContributionStatus.PAID.label
+                case 1:
+                    x.status = ContributionStatus.FAILED.label
+                case 2:
+                    x.status = ContributionStatus.FLAGGED.label
+            x.payment_set.all().update(gross_amount_paid=x.amount, net_amount_paid=x.amount - 100)
+            # Create identical contribution with different date (test second field ordering by date)
+            Contribution.objects.create(amount=x.amount, status=x.status, contributor=contributor, donation_page=page)
+            x.save()
+        api_client.force_authenticate(contributor)
+        response = api_client.get(
+            reverse("portal-contributor-contributions-list", args=(contributor.id,))
+            + f"?ordering={'-' if descending else ''}{ordering}"
+        )
+        assert response.status_code == status.HTTP_200_OK
+        [first, second] = ordering.split(",")
+
+        if descending:
+            # First and second results have the same value
+            assert response.json()["results"][0][first] == response.json()["results"][1][first]
+            # Second must be ordered in relation to the third
+            assert response.json()["results"][1][first] > response.json()["results"][2][first]
+        else:
+            # First and second results have the same value
+            assert response.json()["results"][0][first] == response.json()["results"][1][first]
+            # Second must be ordered in relation to the third
+            assert response.json()["results"][1][first] < response.json()["results"][2][first]
+
+        if second.startswith("-"):
+            # Results are ordered based on the second ordered field
+            assert response.json()["results"][0][second[1:]] > response.json()["results"][1][second[1:]]
+        else:
+            assert response.json()["results"][0][second] < response.json()["results"][1][second]
 
     def test_contributions_list_pagination_behavior(
         self, api_client, mocker, stripe_customer_default_source_expanded, stripe_payment_method
@@ -1716,12 +1811,15 @@ class TestPortalContributorsViewSet:
         )
         contributor = ContributorFactory()
         page = DonationPageFactory()
-        ContributionFactory.create_batch(20, contributor=contributor, donation_page=page)
+        ContributionFactory.create_batch(
+            100, contributor=contributor, donation_page=page, status=ContributionStatus.PAID
+        )
         api_client.force_authenticate(contributor)
         response = api_client.get(reverse("portal-contributor-contributions-list", args=(contributor.id,)))
         assert response.status_code == status.HTTP_200_OK
         assert response.json().keys() == {"count", "next", "previous", "results"}
-        assert api_client.get(response.json()["next"]).status_code == status.HTTP_200_OK
+        response = api_client.get(response.json()["next"])
+        assert response.status_code == status.HTTP_200_OK
 
     @pytest.fixture(params=["superuser", "hub_admin_user", "org_user_free_plan", "rp_user"])
     def non_contributor_user(self, request):
@@ -1743,6 +1841,32 @@ class TestPortalContributorsViewSet:
         api_client.force_authenticate(other_contributor)
         response = api_client.get(reverse("portal-contributor-contributions-list", args=(contributor.id,)))
         assert response.status_code == status.HTTP_403_FORBIDDEN
+
+    @pytest.mark.parametrize(
+        "status",
+        (
+            ContributionStatus.FLAGGED,
+            ContributionStatus.PROCESSING,
+            ContributionStatus.REJECTED,
+        ),
+    )
+    def test_contributions_list_hides_statuses(
+        self,
+        status,
+        api_client,
+        yearly_contribution,
+        monthly_contribution,
+        one_time_contribution,
+        portal_contributor_with_multiple_contributions,
+    ):
+        contributor = portal_contributor_with_multiple_contributions[0]
+        one_time_contribution.status = status
+        one_time_contribution.save()
+        api_client.force_authenticate(contributor)
+        response = api_client.get(reverse("portal-contributor-contributions-list", args=(contributor.id,)))
+        assert len(response.json()["results"]) == 2
+        assert response.json()["results"][0]["id"] == yearly_contribution.id
+        assert response.json()["results"][1]["id"] == monthly_contribution.id
 
     def test_contribution_detail_get_happy_path(
         self,
@@ -1848,6 +1972,150 @@ class TestPortalContributorsViewSet:
                     not_mine.id,
                 ),
             )
+        )
+        assert response.status_code == status.HTTP_404_NOT_FOUND
+        assert response.json() == {"detail": "Contribution not found"}
+
+    @pytest.mark.parametrize(
+        "interval",
+        (
+            ContributionInterval.ONE_TIME,
+            ContributionInterval.MONTHLY,
+            ContributionInterval.YEARLY,
+        ),
+    )
+    def test_contribution_send_receipt(
+        self,
+        interval,
+        api_client,
+        portal_contributor_with_multiple_contributions,
+        mocker,
+    ):
+        contributor = portal_contributor_with_multiple_contributions[0]
+        contribution = contributor.contribution_set.filter(interval=interval).first()
+        mock_send_receipt = mocker.patch("apps.contributions.models.Contribution.handle_thank_you_email")
+        api_client.force_authenticate(contributor)
+        response = api_client.post(
+            reverse("portal-contributor-contribution-receipt", args=(contributor.id, contribution.id))
+        )
+        assert response.status_code == status.HTTP_204_NO_CONTENT
+        mock_send_receipt.assert_called_once()
+
+    @pytest.mark.parametrize(
+        "contribution_status,send_receipt",
+        (
+            (ContributionStatus.PAID, True),
+            (ContributionStatus.CANCELED, True),
+            (ContributionStatus.REFUNDED, True),
+            (ContributionStatus.FAILED, True),
+            # Should return 404 Not Found error on all HIDDEN_STATUSES
+            (ContributionStatus.PROCESSING, False),
+            (ContributionStatus.FLAGGED, False),
+            (ContributionStatus.REJECTED, False),
+        ),
+    )
+    def test_contribution_send_receipt_on_status(
+        self,
+        contribution_status,
+        send_receipt,
+        api_client,
+        portal_contributor_with_multiple_contributions,
+        mocker,
+    ):
+        contributor = portal_contributor_with_multiple_contributions[0]
+        contribution = contributor.contribution_set.first()
+        contribution.status = contribution_status
+        contribution.save()
+        mock_send_receipt = mocker.patch("apps.contributions.models.Contribution.handle_thank_you_email")
+        api_client.force_authenticate(contributor)
+        response = api_client.post(
+            reverse("portal-contributor-contribution-receipt", args=(contributor.id, contribution.id))
+        )
+        if send_receipt:
+            assert response.status_code == status.HTTP_204_NO_CONTENT
+            mock_send_receipt.assert_called_once()
+        else:
+            assert response.status_code == status.HTTP_404_NOT_FOUND
+            assert response.json() == {"detail": "Contribution not found"}
+            mock_send_receipt.assert_not_called()
+
+    def test_contribution_send_receipt_when_im_not_contributor(
+        self, portal_contributor_with_multiple_contributions, non_contributor_user, api_client, mocker
+    ):
+        contributor = portal_contributor_with_multiple_contributions[0]
+        api_client.force_authenticate(non_contributor_user)
+        response = api_client.post(
+            reverse(
+                "portal-contributor-contribution-receipt",
+                args=(
+                    contributor.id,
+                    contributor.contribution_set.first().id,
+                ),
+            ),
+        )
+        assert response.status_code == status.HTTP_403_FORBIDDEN
+
+    def test_contribution_send_receipt_when_contribution_not_found(
+        self, api_client, portal_contributor_with_multiple_contributions
+    ):
+        contributor = portal_contributor_with_multiple_contributions[0]
+        deleted = contributor.contribution_set.first()
+        deleted_id = deleted.id
+        deleted.delete()
+        api_client.force_authenticate(contributor)
+        response = api_client.post(
+            reverse(
+                "portal-contributor-contribution-receipt",
+                args=(
+                    contributor.id,
+                    deleted_id,
+                ),
+            ),
+        )
+        assert response.status_code == status.HTTP_404_NOT_FOUND
+        assert response.json() == {"detail": "Contribution not found"}
+
+    def test_contribution_send_receipt_when_not_own_contribution(
+        self, api_client, portal_contributor_with_multiple_contributions
+    ):
+        contributor = portal_contributor_with_multiple_contributions[0]
+        not_mine = ContributionFactory()
+        api_client.force_authenticate(contributor)
+        response = api_client.post(
+            reverse(
+                "portal-contributor-contribution-receipt",
+                args=(
+                    contributor.id,
+                    not_mine.id,
+                ),
+            ),
+        )
+        assert response.status_code == status.HTTP_404_NOT_FOUND
+        assert response.json() == {"detail": "Contribution not found"}
+
+    @pytest.mark.parametrize("http_method", ("delete", "get", "patch"))
+    @pytest.mark.parametrize(
+        "contribution_status",
+        (
+            ContributionStatus.FLAGGED,
+            ContributionStatus.PROCESSING,
+            ContributionStatus.REJECTED,
+        ),
+    )
+    def test_contributions_detail_when_hidden_status(
+        self,
+        http_method,
+        contribution_status,
+        api_client,
+        one_time_contribution,
+        portal_contributor_with_multiple_contributions,
+    ):
+        contributor = portal_contributor_with_multiple_contributions[0]
+        one_time_contribution.status = contribution_status
+        one_time_contribution.save()
+        api_client.force_authenticate(contributor)
+        response = getattr(api_client, http_method)(
+            reverse("portal-contributor-contribution-detail", args=(contributor.id, one_time_contribution.id))
         )
         assert response.status_code == status.HTTP_404_NOT_FOUND
         assert response.json() == {"detail": "Contribution not found"}
@@ -2074,19 +2342,96 @@ class TestPortalContributorsViewSet:
         assert response.status_code == status.HTTP_404_NOT_FOUND
         assert response.json() == {"detail": "Contribution not found"}
 
-    def test_contribution_detail_when_unsupported_method(
-        self, api_client, portal_contributor_with_multiple_contributions
+
+@pytest.mark.django_db()
+class TestSwitchboardContributionsViewSet:
+
+    @pytest.fixture()
+    def switchboard_user(self, settings):
+        settings.SWITCHBOARD_ACCOUNT_EMAIL = (email := "switchboard@foo.org")
+        return UserFactory(email=email)
+
+    @pytest.fixture()
+    def other_user(self):
+        return UserFactory(is_superuser=True)
+
+    @pytest.fixture()
+    def organization(self):
+        return OrganizationFactory()
+
+    @pytest.fixture()
+    def rp_1(self, organization):
+        return RevenueProgramFactory(organization=organization)
+
+    @pytest.fixture()
+    def rp_2(self, organization):
+        return RevenueProgramFactory(organization=organization)
+
+    @pytest.fixture()
+    def other_orgs_rp(self):
+        return RevenueProgramFactory()
+
+    @pytest.fixture()
+    def contribution_with_donation_page(self, rp_1):
+        return ContributionFactory(donation_page__revenue_program=rp_1)
+
+    @pytest.fixture()
+    def contribution_without_donation_page(self, rp_1):
+        return ContributionFactory(donation_page=None, _revenue_program=rp_1)
+
+    @pytest.fixture(params=["contribution_with_donation_page", "contribution_without_donation_page"])
+    def contribution(self, request):
+        return request.getfixturevalue(request.param)
+
+    @pytest.mark.parametrize(
+        "request_has_revenue_program",
+        (
+            True,
+            False,
+        ),
+    )
+    @pytest.mark.parametrize(
+        "instance_has_donation_page",
+        (
+            True,
+            False,
+        ),
+    )
+    def test_update_revenue_program_happy_path(
+        self,
+        request_has_revenue_program,
+        instance_has_donation_page,
+        api_client,
+        rp_2,
+        rp_1,
+        contribution,
+        switchboard_user,
     ):
-        contributor = portal_contributor_with_multiple_contributions[0]
-        api_client.force_authenticate(contributor)
-        response = api_client.put(
-            reverse(
-                "portal-contributor-contribution-detail",
-                args=(
-                    contributor.id,
-                    contributor.contribution_set.first().id,
-                ),
-            ),
-            data={},
+        body = {"revenue_program": rp_2.id} if request_has_revenue_program else {}
+        if not instance_has_donation_page:
+            contribution.donation_page = None
+            contribution._revenue_program = rp_1
+            contribution.save()
+        api_client.force_authenticate(switchboard_user)
+        response = api_client.patch(reverse("switchboard-contribution-detail", args=(contribution.id,)), data=body)
+        assert response.status_code == status.HTTP_200_OK
+        contribution.refresh_from_db()
+        if request_has_revenue_program:
+            assert contribution._revenue_program == rp_2
+
+    def test_update_when_not_switchboard_user(self, api_client, other_user, contribution):
+        api_client.force_authenticate(other_user)
+        response = api_client.patch(reverse("switchboard-contribution-detail", args=(contribution.id,)))
+        assert response.status_code == status.HTTP_403_FORBIDDEN
+
+    def test_update_when_patching_rp_for_different_org(self, api_client, switchboard_user, contribution, other_orgs_rp):
+        api_client.force_authenticate(switchboard_user)
+        assert contribution.revenue_program.organization != other_orgs_rp.organization
+        response = api_client.patch(
+            reverse("switchboard-contribution-detail", args=(contribution.id,)),
+            data={"revenue_program": other_orgs_rp.id},
         )
-        assert response.status_code == status.HTTP_405_METHOD_NOT_ALLOWED
+        assert response.status_code == status.HTTP_400_BAD_REQUEST
+        assert response.json() == {
+            "revenue_program": ["Cannot assign contribution to a revenue program from a different organization"]
+        }

@@ -18,8 +18,8 @@ from apps.contributions.exceptions import (
 )
 from apps.contributions.models import ContributionInterval, ContributionStatus, Payment
 from apps.contributions.stripe_import import (
-    _STRIPE_API_BACKOFF_ARGS,
     CACHE_KEY_PREFIX,
+    STRIPE_API_BACKOFF_ARGS,
     TTL_WARNING_THRESHOLD_PERCENT,
     RedisCachePipeline,
     StripeEventProcessor,
@@ -659,7 +659,7 @@ class TestStripeTransactionsImporter:
                 instance.get_or_create_contributor_from_customer("cus_1")
 
     @pytest.mark.parametrize(
-        "payment_method, default_payment_method, is_one_time, invoice_settings, expect_pm",
+        "payment_method, default_payment_method, is_one_time, invoice_settings, expect_pm_id",
         (
             ("something", None, True, None, True),
             (None, "something", False, None, True),
@@ -668,8 +668,8 @@ class TestStripeTransactionsImporter:
             (None, None, True, None, False),
         ),
     )
-    def test_get_payment_method_for_stripe_entity(
-        self, mocker, payment_method, default_payment_method, is_one_time, invoice_settings, expect_pm
+    def test_get_payment_method_id_for_stripe_entity(
+        self, mocker, payment_method, default_payment_method, is_one_time, invoice_settings, expect_pm_id
     ):
         instance = StripeTransactionsImporter(stripe_account_id="test")
         mocker.patch.object(instance, "get_resource_from_cache", return_value={"invoice_settings": invoice_settings})
@@ -678,17 +678,16 @@ class TestStripeTransactionsImporter:
             if is_one_time
             else {"default_payment_method": default_payment_method, "id": "sub_1"}
         )
-        mocker.patch("stripe.PaymentMethod.retrieve", return_value=(pm := mocker.Mock()))
-        pm = instance.get_payment_method_for_stripe_entity(
+        pm_id = instance.get_payment_method_id_for_stripe_entity(
             stripe_entity=stripe_entity,
             customer_id="cus_1",
             is_one_time=is_one_time,
         )
 
-        if expect_pm:
-            assert pm
+        if expect_pm_id:
+            assert pm_id
         else:
-            assert pm is None
+            assert pm_id is None
 
     @pytest.mark.parametrize("action", (common_utils.CREATED, common_utils.UPDATED, common_utils.LEFT_UNCHANGED, "foo"))
     def test_update_contribution_stats(self, action):
@@ -773,6 +772,11 @@ class TestStripeTransactionsImporter:
         else:
             assert instance.get_provider_payment_id_for_subscription(subscription_dict) is None
 
+    def test_get_payment_method(self, mocker):
+        mocker.patch("stripe.PaymentMethod.retrieve")
+        instance = StripeTransactionsImporter(stripe_account_id="test")
+        assert instance.get_payment_method("pm_1")
+
     @pytest.mark.parametrize(
         "entity,is_one_time",
         (
@@ -780,15 +784,16 @@ class TestStripeTransactionsImporter:
             ("subscription_dict", False),
         ),
     )
-    def test_get_default_contribution_data(self, entity, is_one_time, mocker, request):
+    @pytest.mark.parametrize("pm_found", (True, False))
+    def test_get_default_contribution_data(self, entity, is_one_time, pm_found, mocker, request):
         stripe_entity = request.getfixturevalue(entity)
-        instance = StripeTransactionsImporter(stripe_account_id="test")
+        instance = StripeTransactionsImporter(stripe_account_id="test", retrieve_payment_method=True)
         kwargs = {
             "stripe_entity": stripe_entity,
             "is_one_time": is_one_time,
             "contributor": ContributorFactory(),
             "customer_id": "cus_1",
-            "payment_method": {},
+            "payment_method_id": "pm_1",
         }
         mocker.patch.object(instance, "get_refunds_for_payment_intent", return_value=[])
         mocker.patch.object(instance, "get_status_for_payment_intent", return_value=ContributionStatus.PAID)
@@ -798,6 +803,7 @@ class TestStripeTransactionsImporter:
             return_value={"amount": 100, "currency": "USD", "interval": ContributionInterval.MONTHLY.value},
         )
         mocker.patch.object(instance, "get_provider_payment_id_for_subscription", return_value="pi_1")
+        mocker.patch.object(instance, "get_payment_method", return_value={"id": "pm_1"} if pm_found else None)
         instance.get_default_contribution_data(**kwargs)
 
     @pytest.mark.parametrize("has_rp_id", (True, False))
@@ -869,7 +875,7 @@ class TestStripeTransactionsImporter:
 
         mocker.patch("apps.contributions.stripe_import.StripeTransactionsImporter.upsert_payments_for_contribution")
         mocker.patch(
-            "apps.contributions.stripe_import.StripeTransactionsImporter.get_payment_method_for_stripe_entity",
+            "apps.contributions.stripe_import.StripeTransactionsImporter.get_payment_method_id_for_stripe_entity",
             return_value=None,
         )
         mocker.patch(
@@ -889,7 +895,6 @@ class TestStripeTransactionsImporter:
                 "payment_provider_used": "stripe",
                 "provider_customer_id": "cus_1",
                 "provider_payment_method_id": None,
-                "provider_payment_method_details": None,
                 "status": ContributionStatus.PAID,
                 "amount": 100,
                 "currency": "USD",
@@ -1174,7 +1179,7 @@ class Test_log_backoff:
         mock_logger = mocker.patch("apps.contributions.stripe_import.logger")
 
         @backoff.on_exception(
-            backoff.expo, stripe.error.RateLimitError, **_STRIPE_API_BACKOFF_ARGS | {"max_tries": (max_tries := 2)}
+            backoff.expo, stripe.error.RateLimitError, **STRIPE_API_BACKOFF_ARGS | {"max_tries": (max_tries := 2)}
         )
         def my_function():
             raise stripe_rate_limit_error

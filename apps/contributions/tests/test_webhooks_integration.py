@@ -82,13 +82,6 @@ def charge_refunded(suppress_stripe_webhook_sig_verification):
         return json.load(fl)
 
 
-@pytest.fixture
-def payment_method(payment_method_data_factory):
-    return stripe.PaymentMethod.construct_from(
-        payment_method_data_factory.get(), key="test", stripe_account="acct_fake_01"
-    )
-
-
 @pytest.mark.django_db
 @pytest.mark.usefixtures("suppress_stripe_webhook_sig_verification")
 class TestPaymentIntentSucceeded:
@@ -126,7 +119,6 @@ class TestPaymentIntentSucceeded:
             contribution.provider_payment_method_id
             == payment_intent_succeeded_one_time_event["data"]["object"]["payment_method"]
         )
-        assert contribution.provider_payment_method_details == payment_method
         assert Payment.objects.filter(
             contribution=contribution, stripe_balance_transaction_id=balance_transaction_for_one_time_charge.id
         ).exists()
@@ -516,7 +508,6 @@ class TestInvoicePaymentSucceeded:
                 ),
                 "provider_payment_id": pi.id if is_first_payment else "some-other-id",
                 "provider_payment_method_id": None,
-                "provider_payment_method_details": None,
             }
         )
         if not is_first_payment:
@@ -529,7 +520,6 @@ class TestInvoicePaymentSucceeded:
             )
         mocker.patch("stripe.PaymentIntent.retrieve", return_value=pi)
         mocker.patch("stripe.BalanceTransaction.retrieve", return_value=balance_transaction)
-        mocker.patch("stripe.PaymentMethod.retrieve", return_value=payment_method)
         return event, contribution, is_first_payment, payment_method
 
     def test_happy_path(self, happy_path_test_case, mocker, client):
@@ -546,7 +536,6 @@ class TestInvoicePaymentSucceeded:
         assert contribution.status == ContributionStatus.PAID
         assert contribution.last_payment_date == contribution.payment_set.order_by("-created").first().created
         assert contribution.provider_payment_method_id == payment_method.id
-        assert contribution.provider_payment_method_details == payment_method
         if is_first_payment:
             mock_send_receipt.assert_called_once()
         else:

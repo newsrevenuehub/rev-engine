@@ -155,6 +155,13 @@ class StripeWebhookProcessor:
             self.contribution.save(update_fields=set(list(update_data.keys()) + ["modified"]))
             reversion.set_comment(revision_comment)
 
+    def _add_pm_id_and_payment_method_details(self, pm_id: str, update_data: dict) -> dict:
+        data = {**update_data}
+        if pm_id:
+            data["provider_payment_method_id"] = pm_id
+            data["provider_payment_method_details"] = self.contribution.fetch_stripe_payment_method(pm_id)
+        return data
+
     def handle_payment_intent_canceled(self):
         self._handle_contribution_update(
             {
@@ -192,14 +199,15 @@ class StripeWebhookProcessor:
 
         with transaction.atomic():
             payment = Payment.from_stripe_payment_intent_succeeded_event(event=self.event)
-            contribution_update_data = {
-                # TODO: [DEV-4295] Get rid of payment_provider_data as it's an inconistent reference to whichever event happened to cause creation
-                "payment_provider_data": self.event,
-                "provider_payment_method_id": self.obj_data.get("payment_method"),
-                "provider_payment_method_details": self.contribution.fetch_stripe_payment_method(),
-                "last_payment_date": payment.created,
-                "status": ContributionStatus.PAID,
-            }
+            contribution_update_data = self._add_pm_id_and_payment_method_details(
+                pm_id=self.obj_data["payment_method"],
+                update_data={
+                    # TODO: [DEV-4295] Get rid of payment_provider_data as it's an inconistent reference to whichever event happened to cause creation
+                    "payment_provider_data": self.event,
+                    "last_payment_date": payment.created,
+                    "status": ContributionStatus.PAID,
+                },
+            )
             self._handle_contribution_update(
                 contribution_update_data,
                 "`StripeWebhookProcessor.handle_payment_intent_succeeded` updated contribution",
@@ -207,18 +215,16 @@ class StripeWebhookProcessor:
             self.contribution.handle_thank_you_email()
 
     def handle_subscription_updated(self):
-        update_data = {
-            "payment_provider_data": self.event,
-            "provider_subscription_id": self.id,
-            "provider_payment_method_id": (pm_id := self.obj_data["default_payment_method"]),
-            "provider_payment_method_details": self.contribution.fetch_stripe_payment_method(
-                provider_payment_method_id=pm_id
-            ),
-        }
+        update_data = self._add_pm_id_and_payment_method_details(
+            pm_id=self.obj_data["default_payment_method"],
+            update_data={
+                "payment_provider_data": self.event,
+                "provider_subscription_id": self.id,
+            },
+        )
         self._handle_contribution_update(
             update_data, "`StripeWebhookProcessor.handle_subscription_updated` updated contribution"
         )
-
         # If the payment method has changed, send an appropriate email. We need
         # to do a none check here because an update event also is emitted when
         # the initial contribution occurs. See
@@ -269,15 +275,16 @@ class StripeWebhookProcessor:
                 self.obj_data["payment_intent"],
                 stripe_account=self.event.account,
             )
-            self._handle_contribution_update(
-                {
+            update_data = self._add_pm_id_and_payment_method_details(
+                pm_id=pi.payment_method,
+                update_data={
+                    "payment_provider_data": self.event,
                     "last_payment_date": payment.created,
                     "status": ContributionStatus.PAID,
-                    "payment_provider_data": self.event,
-                    # TODO: [DEV-4445] Determine if we should actually update provider_payment_method_id on invoice.payment_succeeded event
-                    "provider_payment_method_id": pi.payment_method,
-                    "provider_payment_method_details": self.contribution.fetch_stripe_payment_method(),
                 },
+            )
+            self._handle_contribution_update(
+                update_data,
                 "`StripeWebhookProcessor.handle_payment_intent_succeeded` updated contribution",
             )
         if payment.contribution.payment_set.count() == 1:

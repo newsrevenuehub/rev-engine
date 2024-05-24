@@ -787,7 +787,7 @@ class StripeTransactionsImporter:
             "provider_payment_method_id": payment_method_id,
         }
         if payment_method_id and self.retrieve_payment_method and (pm := self.get_payment_method(payment_method_id)):
-            shared["payment_method"] = pm
+            shared["provider_payment_method_details"] = pm
         if is_one_time:
             has_refunds = len(self.get_refunds_for_payment_intent(stripe_entity)) > 0
             return shared | {

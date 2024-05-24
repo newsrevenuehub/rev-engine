@@ -77,6 +77,7 @@ class Command(BaseCommand):
         connected_accounts = [k for k, v in accounts.items() if v]
         ineligible_because_of_account = contributions.filter(stripe_account__in=unretrievable_accounts)
         fixable = contributions.filter(stripe_account__in=connected_accounts)
+        fixable_count = fixable.count()
         if ineligible_because_of_account.exists():
             self.stdout.write(
                 self.style.HTTP_INFO(
@@ -86,9 +87,10 @@ class Command(BaseCommand):
                     f"{', '.join(str(x) for x in ineligible_because_of_account.values_list('id', flat=True))}"
                 )
             )
+
         self.stdout.write(
             self.style.HTTP_INFO(
-                f"Found {(fixable_count:=fixable.count())} eligible contribution{'' if fixable_count == 1 else 's'} to sync"
+                f"Found {fixable_count} eligible contribution{'' if fixable_count == 1 else 's'} to sync"
             )
         )
         if fixable_count:

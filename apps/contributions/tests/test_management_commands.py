@@ -348,3 +348,61 @@ class Test_fix_imported_contributions_with_incorrect_donation_page_value:
             assert eligible_contribution.donation_page is None
         ineligible_contribution_cause_metadata.refresh_from_db()
         assert ineligible_contribution_cause_metadata.modified == ineligible_modified
+
+
+@pytest.mark.django_db()
+class Test_sync_missing_provider_payment_method_details:
+
+    @pytest.fixture()
+    def fetch_stripe_payment_method(self, mocker, payment_method):
+        return mocker.patch(
+            "apps.contributions.models.Contribution.fetch_stripe_payment_method", side_effect=[payment_method, None]
+        )
+
+    @pytest.fixture()
+    def contribution_no_stripe_account_id(self):
+        return ContributionFactory(
+            provider_payment_method_id="pm_1",
+            provider_payment_method_details=None,
+            donation_page__revenue_program__payment_provider__stripe_account_id=None,
+        )
+
+    @pytest.fixture()
+    def contributions_with_stripe_account_id(self):
+        return ContributionFactory.create_batch(
+            provider_payment_method_id="pm_1", provider_payment_method_details=None, size=3
+        )
+
+    @pytest.fixture()
+    def contributions(self, contribution_no_stripe_account_id, contributions_with_stripe_account_id):
+        return [contribution_no_stripe_account_id, *contributions_with_stripe_account_id]
+
+    @pytest.fixture()
+    @pytest.mark.parametrize()
+    def get_accounts(self, mocker, contributions_with_stripe_account_id):
+        mocker.patch(
+            "apps.common.utils.get_stripe_accounts_and_their_connection_status",
+            return_value={
+                contributions_with_stripe_account_id[0].stripe_account_id: True,
+                contributions_with_stripe_account_id[1].stripe_account_id: True,
+                contributions_with_stripe_account_id[2].stripe_account_id: False,
+            },
+        )
+
+    @pytest.mark.usefixtures("fetch_stripe_payment_method", "get_accounts", "contributions")
+    def test_happy_path(self):
+        call_command("sync_missing_provider_payment_method_details")
+
+    def test_when_no_eligible_contributions(self):
+        call_command("sync_missing_provider_payment_method_details")
+
+    @pytest.fixture
+    def get_accounts_none_found(self, mocker, contributions_with_stripe_account_id):
+        mocker.patch(
+            "apps.common.utils.get_stripe_accounts_and_their_connection_status",
+            return_value={x.stripe_account_id: False for x in contributions_with_stripe_account_id},
+        )
+
+    @pytest.mark.usefixtures("contributions", "get_accounts_none_found")
+    def test_when_eligible_but_no_fixable(self):
+        call_command("sync_missing_provider_payment_method_details")

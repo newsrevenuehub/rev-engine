@@ -17,7 +17,6 @@ import datetime
 import json
 from dataclasses import asdict
 from random import choice, randint, uniform
-from unittest.mock import patch
 
 from django.core.cache import cache
 
@@ -279,8 +278,7 @@ def style():
 
 @pytest.fixture
 def one_time_contribution(live_donation_page):
-    with patch("apps.contributions.models.Contribution.fetch_stripe_payment_method", return_value=None):
-        return ContributionFactory(donation_page=live_donation_page, one_time=True)
+    return ContributionFactory(donation_page=live_donation_page, one_time=True)
 
 
 @pytest.fixture
@@ -1123,3 +1121,10 @@ def invalid_metadata():
     return {
         "schema_version": "1.4",
     }
+
+
+@pytest.fixture
+def payment_method(payment_method_data_factory):
+    return stripe.PaymentMethod.construct_from(
+        payment_method_data_factory.get(), key="test", stripe_account="acct_fake_01"
+    )

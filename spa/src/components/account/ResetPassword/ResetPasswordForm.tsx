@@ -12,8 +12,8 @@ const ResetPasswordFormPropTypes = {
 
 export interface ResetPasswordFormProps extends InferProps<typeof ResetPasswordFormPropTypes> {
   onSubmit: (password: string) => void;
-  passwordError?: string;
 }
+
 export function ResetPasswordForm({ disabled, onSubmit, passwordError }: ResetPasswordFormProps) {
   const confirmPasswordRef = useRef<HTMLInputElement>(null);
   const formRef = useRef<HTMLFormElement>(null);

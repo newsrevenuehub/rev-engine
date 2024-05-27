@@ -49,7 +49,10 @@ function ResetPassword() {
         dispatch({ type: FETCH_FAILURE, payload: data });
       }
     } catch (e) {
-      dispatch({ type: FETCH_FAILURE, payload: (e as AxiosError)?.response?.data });
+      dispatch({
+        type: FETCH_FAILURE,
+        payload: (e as AxiosError)?.response?.data || { detail: 'An error occurred. Please try again.' }
+      });
     }
   };
 

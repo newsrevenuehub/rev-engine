@@ -31,6 +31,18 @@ describe('ForgotPassword Tests', () => {
   });
 
   describe('when submitting returns an error', () => {
+    it('shows generic error if network error', async () => {
+      axiosMock.onPost('users/password_reset/confirm/').networkError();
+      render(<ResetPassword />);
+
+      expect(axiosMock.history.post.length).toBe(0);
+
+      await screen.getByRole('button', { name: 'Reset Password' }).click();
+
+      await waitFor(() => expect(axiosMock.history.post.length).toBe(1));
+      expect(screen.getByText('An error occurred. Please try again.')).toBeInTheDocument();
+    });
+
     it('should pass validation errors to the form', async () => {
       axiosMock.onPost('users/password_reset/confirm/').reply(400, { password: ['mock-error'] });
       render(<ResetPassword />);

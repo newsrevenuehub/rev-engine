@@ -20,7 +20,9 @@ class RoleAssignmentAdminFormTest(TestCase):
         self.rp_qs = RevenueProgram.objects.all()
         self.form = None
 
-    def _create_request(self, user, request_body={}):  # noqa: B006 {}'s fine
+    def _create_request(self, user, request_body=None):
+        if request_body is None:
+            request_body = {}
         request_factory = RequestFactory()
         request = request_factory.post(self.url, request_body)
         request.user = user

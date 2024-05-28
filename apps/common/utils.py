@@ -178,7 +178,7 @@ def upsert_with_diff_check(
     defaults: dict,
     unique_identifier: dict,
     caller_name: str,
-    dont_update: list[str] = [],  # noqa: B006 [] is not modified, yet.
+    dont_update: list[str] = None,
 ) -> tuple[Model, str]:
     """Upsert a model instance with a reversion comment, but only update if defaults differ from existing instance.
 
@@ -186,6 +186,8 @@ def upsert_with_diff_check(
 
     Returns instance, whether it was created, and whether it was updated
     """
+    if dont_update is None:
+        dont_update = []
     with reversion.create_revision():
         instance, created = model.objects.get_or_create(defaults=defaults, **unique_identifier)
         fields_to_update = set()

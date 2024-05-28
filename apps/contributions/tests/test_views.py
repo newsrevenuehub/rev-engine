@@ -1187,7 +1187,9 @@ class ProcessFlaggedContributionTest(APITestCase):
             )
             self.other_contribution = ContributionFactory()
 
-    def _make_request(self, contribution_pk=None, request_args={}):  # noqa: B006 {}'s is fine
+    def _make_request(self, contribution_pk=None, request_args=None):
+        if request_args is None:
+            request_args = {}
         url = reverse("contribution-process-flagged", args=[contribution_pk])
         self.client.force_authenticate(user=self.user)
         return self.client.post(url, request_args)

@@ -747,7 +747,7 @@ class TestStripeTransactionsImporter:
             mocker.patch.object(instance, "get_refunds_for_charge", return_value=refunds)
         else:
             mocker.patch.object(instance, "get_charges_for_subscription", return_value=[charge])
-            mocker.patch.object(instance, "get_refunds_for_charge", return_value=refunds)
+            mocker.patch.object(instance, "get_refunds_for_charge", side_effect=refunds)
         get_resource_from_cache_side_effects.append({"id": "bt_1"})
         mocker.patch.object(instance, "get_resource_from_cache", side_effect=get_resource_from_cache_side_effects)
         mocker.patch.object(instance, "make_key")

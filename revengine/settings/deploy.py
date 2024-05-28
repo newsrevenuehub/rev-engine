@@ -111,7 +111,6 @@ if SENTRY_ENABLE_BACKEND and SENTRY_DSN_BACKEND:
         # https://docs.sentry.io/platforms/python/configuration/sampling/#setting-a-uniform-sample-rate
         traces_sample_rate=1.0,  # TODO: DEV-2683 After testing will want to reduce this to less than 100% sampling rate.
         profiles_sample_rate=SENTRY_PROFILING_SAMPLE_RATE,
-        profile_sampler=lambda _: True,
     )
     ignore_logger("django.security.DisallowedHost")
 

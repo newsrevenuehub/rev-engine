@@ -17,6 +17,7 @@ from django_redis import get_redis_connection
 from pydantic import BaseModel, ValidationError
 from redis import Redis
 from redis.client import Pipeline
+from sentry_sdk.hub import Hub
 
 import apps.common.utils as common_utils
 from apps.common.utils import upsert_with_diff_check
@@ -275,6 +276,7 @@ class StripeTransactionsImporter:
     from_date: datetime.datetime = None
     to_date: datetime.datetime = None
     retrieve_payment_method: bool = False
+    sentry_profiler: bool = False
 
     def __post_init__(self) -> None:
         self.redis = self.get_redis_for_transactions_import()
@@ -287,6 +289,11 @@ class StripeTransactionsImporter:
         self.created_contributor_ids = set()
         self.created_payment_ids = set()
         self.updated_payment_ids = set()
+
+        hub = Hub.current
+        client = hub.client
+        if client and self.sentry_profiler:
+            client.options["profiles_sampler"] = True
 
     @staticmethod
     def get_redis_for_transactions_import() -> Redis:

@@ -310,20 +310,16 @@ def handle_stripe_account_link(request, rp_pk):
     # TODO: [DEV-4082] Use user.permitted_organizations, user.permitted_revenue_programs, user.active_flags wherever possible
     if not request.user.roleassignment.can_access_rp(revenue_program):
         logger.warning(
-            (
-                "[handle_stripe_account_link] was asked to report on status of account link for RP with ID %s by user with id %s who does "
-                "not have access."
-            ),
+            "[handle_stripe_account_link] was asked to report on status of account link for RP with ID %s by user with id %s who does"
+            " not have access.",
             rp_pk,
             request.user.id,
         )
         raise PermissionDenied(f"You do not have permission to access revenue program with the PK {rp_pk}")
     if not (payment_provider := revenue_program.payment_provider):
         logger.warning(
-            (
-                "[handle_stripe_account_link] was asked to handle RP with ID %s , "
-                "but that RP does not have a payment provider."
-            ),
+            "[handle_stripe_account_link] was asked to handle RP with ID %s,"
+            " but that RP does not have a payment provider.",
             rp_pk,
         )
         return Response(
@@ -417,10 +413,8 @@ def send_test_email(request):
     revenue_program = get_object_or_404(RevenueProgram, pk=rp_pk)
     if not request.user.is_superuser and not request.user.roleassignment.can_access_rp(revenue_program):
         logger.warning(
-            (
-                "[send_test_email] was asked to send a test email link for RP with ID %s by user with id %s who does "
-                "not have access."
-            ),
+            "[send_test_email] was asked to send a test email link for RP with ID %s by user with id %s who does"
+            " not have access.",
             rp_pk,
             request.user.id,
         )
@@ -471,19 +465,15 @@ def handle_mailchimp_oauth_success(request):
         "id", flat=True
     ):
         logger.warning(
-            (
-                "`handle_mailchimp_oauth_success` called with request data referencing a non-existent or unowned revenue program "
-                "with ID %s by user with email %s"
-            ),
+            "`handle_mailchimp_oauth_success` called with request data referencing a non-existent or unowned revenue program"
+            " with ID %s by user with email %s",
             rp_id,
             request.user.email,
         )
         return Response({"detail": "Requested revenue program not found"}, status=status.HTTP_404_NOT_FOUND)
     logger.info(
-        (
-            "handle_mailchimp_oauth_success asyncronously exchanging Oauth code for server prefix and access"
-            " token for revenue program with ID %s"
-        ),
+        "handle_mailchimp_oauth_success asyncronously exchanging Oauth code for server prefix and access"
+        " token for revenue program with ID %s",
         rp_id,
     )
     exchange_mailchimp_oauth_code_for_server_prefix_and_access_token.delay(

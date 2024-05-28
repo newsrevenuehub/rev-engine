@@ -1071,10 +1071,8 @@ class RevenueProgram(IndexedTimeStampedModel):
             return [MailchimpEmailList(**x) for x in lists]
         except ApiClientError as exc:
             logger.exception(
-                (
-                    "Failed to fetch email lists from Mailchimp for RP with ID %s mc server prefix %s. "
-                    "The error text is %s"
-                ),
+                "Failed to fetch email lists from Mailchimp for RP with ID %s mc server prefix %s."
+                " The error text is %s",
                 self.id,
                 self.mailchimp_server_prefix,
                 exc.text,

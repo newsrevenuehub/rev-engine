@@ -55,10 +55,8 @@ class TestExchangeMailchimpOauthCodeForAccessToken:
         with pytest.raises(MailchimpAuthflowRetryableError):
             exchange_mc_oauth_code_for_mc_access_token("some_oauth_code")
         logger_spy.assert_called_once_with(
-            (
-                "`exchange_mc_oauth_code_for_mc_access_token` got an unexpected status code when trying to get an access token. "
-                "The response status code is %s, and the response contained: %s"
-            ),
+            "`exchange_mc_oauth_code_for_mc_access_token` got an unexpected status code when trying to get an access token. "
+            "The response status code is %s, and the response contained: %s",
             code,
             mock_post.return_value.json.return_value,
         )

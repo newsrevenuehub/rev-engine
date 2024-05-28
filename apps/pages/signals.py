@@ -36,10 +36,8 @@ def donation_page_page_published_handler(sender, instance, **kwargs) -> None:
         Publisher.get_instance().publish(settings.PAGE_PUBLISHED_TOPIC, Message(data=json.dumps(message_data)))
         return
     logger.warning(
-        (
-            "donation_page_page_published_handler: Unable to publish for page %s. google_cloud_pub_sub_is_configured: %s,"
-            " settings.PAGE_PUBLISHED_TOPIC: %s"
-        ),
+        "donation_page_page_published_handler: Unable to publish for page %s. google_cloud_pub_sub_is_configured: %s,"
+        " settings.PAGE_PUBLISHED_TOPIC: %s",
         instance.id,
         google_cloud_pub_sub_is_configured(),
         settings.PAGE_PUBLISHED_TOPIC,

@@ -248,10 +248,8 @@ class Test_upsert_payment_for_transaction:
         payment, action = upsert_payment_for_transaction(contribution=contribution, transaction=balance_transaction)
         assert Payment.objects.count() == count
         logger_spy.assert_called_once_with(
-            (
-                "Integrity error occurred while upserting payment with balance transaction %s for contribution %s "
-                "The existing payment is %s for contribution %s"
-            ),
+            "Integrity error occurred while upserting payment with balance transaction %s for contribution %s"
+            " The existing payment is %s for contribution %s",
             balance_transaction["id"],
             contribution.id,
             existing_payment.id,
@@ -947,10 +945,8 @@ class TestStripeTransactionsImporter:
         instance.log_ttl_concerns(start_time)
         if expect_warning:
             mock_logger.assert_called_once_with(
-                (
-                    "Stripe import for account %s took %s, which is longer than %s%% of the cache TTL (%s)."
-                    " Consider increasing TTLs for cache entries related to stripe import."
-                ),
+                "Stripe import for account %s took %s, which is longer than %s%% of the cache TTL (%s)."
+                " Consider increasing TTLs for cache entries related to stripe import.",
                 instance.stripe_account_id,
                 instance.format_timedelta(now - start_time),
                 TTL_WARNING_THRESHOLD_PERCENT * 100,
@@ -1138,10 +1134,8 @@ class Test_log_backoff:
         log_backoff(valid_details_args)
         if isinstance(valid_details_args["exception"], stripe.error.RateLimitError):
             mock_logger.assert_called_once_with(
-                (
-                    "Backing off %s seconds after %s tries due to rate limit error. Error message: %s. "
-                    "Status code: %s. Stripe request ID: %s. Stripe error: %s."
-                ),
+                "Backing off %s seconds after %s tries due to rate limit error. Error message: %s."
+                " Status code: %s. Stripe request ID: %s. Stripe error: %s.",
                 valid_details_args["wait"],
                 valid_details_args["tries"],
                 valid_details_args["exception"].user_message,
@@ -1178,10 +1172,8 @@ class Test_log_backoff:
             my_function()
         assert mock_logger.warning.call_count == max_tries - 1
         assert mock_logger.warning.call_args == mocker.call(
-            (
-                "Backing off %s seconds after %s tries due to rate limit error. Error message: %s. "
-                "Status code: %s. Stripe request ID: %s. Stripe error: %s."
-            ),
+            "Backing off %s seconds after %s tries due to rate limit error. Error message: %s."
+            " Status code: %s. Stripe request ID: %s. Stripe error: %s.",
             mocker.ANY,
             mocker.ANY,
             stripe_rate_limit_error.user_message,

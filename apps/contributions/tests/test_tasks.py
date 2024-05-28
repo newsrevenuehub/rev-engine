@@ -280,10 +280,8 @@ class TestEmailContributionCsvExportToUser:
         data = list(DictReader(send_email_spy.call_args[1]["attachment"].splitlines()))
         assert {str(x) for x in ids}.difference({x["Contribution ID"] for x in data}) == {str(deleted_id)}
         logger_spy.assert_called_once_with(
-            (
-                "`email_contribution_csv_export_to_user` was unable to locate %s of %s requested contributions. The following "
-                "IDs could not be found: %s"
-            ),
+            "`email_contribution_csv_export_to_user` was unable to locate %s of %s requested contributions. The following"
+            " IDs could not be found: %s",
             1,
             len(ids),
             str(deleted_id),

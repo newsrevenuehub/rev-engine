@@ -85,10 +85,8 @@ class StripePaymentManager(PaymentManager):
             )
         except (stripe.error.StripeError, stripe.error.InvalidRequestError):
             logger.exception(
-                (
-                    "`StripePaymentManager.attach_payment_method_to_customer` resulted in a StripeError for stripe_customer_id "
-                    "%s org_stripe_account %s payment_method_id %s",
-                ),
+                "`StripePaymentManager.attach_payment_method_to_customer` resulted in a StripeError for stripe_customer_id"
+                " %s org_stripe_account %s payment_method_id %s",
                 stripe_customer_id,
                 org_stripe_account,
                 payment_method_id,
@@ -185,10 +183,8 @@ class StripePaymentManager(PaymentManager):
         else:
             if not si:
                 logger.error(
-                    (
-                        "`StripePaymentManager.complete_recurring_payment` error retrieving setup intent for contribution"
-                        " with ID %s and setup intent ID %s"
-                    ),
+                    "`StripePaymentManager.complete_recurring_payment` error retrieving setup intent for contribution"
+                    " with ID %s and setup intent ID %s",
                     self.contribution.id,
                     self.contribution.provider_setup_intent_id,
                 )

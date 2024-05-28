@@ -866,10 +866,8 @@ class TestContributionModel:
         spy = mocker.spy(logger, "exception")
         assert contribution.stripe_setup_intent is None
         spy.assert_called_once_with(
-            (
-                "`Contribution.stripe_setup_intent` encountered a Stripe error trying to retrieve stripe setup intent "
-                "with ID %s and stripe account ID %s for contribution with ID %s"
-            ),
+            "`Contribution.stripe_setup_intent` encountered a Stripe error trying to retrieve stripe setup intent"
+            " with ID %s and stripe account ID %s for contribution with ID %s",
             contribution.provider_setup_intent_id,
             contribution.revenue_program.payment_provider.stripe_account_id,
             contribution.id,
@@ -914,10 +912,8 @@ class TestContributionModel:
         spy = mocker.spy(logger, "exception")
         assert contribution.stripe_payment_intent is None
         spy.assert_called_once_with(
-            (
-                "`Contribution.stripe_payment_intent` encountered a Stripe error trying to retrieve stripe payment intent "
-                "with ID %s and stripe account ID %s for contribution with ID %s"
-            ),
+            "`Contribution.stripe_payment_intent` encountered a Stripe error trying to retrieve stripe payment intent"
+            " with ID %s and stripe account ID %s for contribution with ID %s",
             contribution.provider_payment_id,
             contribution.revenue_program.payment_provider.stripe_account_id,
             contribution.id,
@@ -959,10 +955,8 @@ class TestContributionModel:
         spy = mocker.spy(logger, "exception")
         assert contribution.stripe_subscription is None
         spy.assert_called_once_with(
-            (
-                "`Contribution.stripe_subscription` encountered a Stripe error trying to retrieve stripe subscription "
-                "with ID %s and stripe account ID %s for contribution with ID %s"
-            ),
+            "`Contribution.stripe_subscription` encountered a Stripe error trying to retrieve stripe subscription"
+            " with ID %s and stripe account ID %s for contribution with ID %s",
             contribution.provider_subscription_id,
             contribution.revenue_program.payment_provider.stripe_account_id,
             contribution.id,

@@ -320,10 +320,8 @@ class Contribution(IndexedTimeStampedModel):
     def formatted_donor_selected_amount(self) -> str:
         if not (amt := (self.contribution_metadata or {}).get("donor_selected_amount", None)):
             logger.warning(
-                (
-                    "`Contribution.formatted_donor_selected_amount` called on contribution with ID %s that "
-                    "does not have a value set for `contribution_metadata['donor_selected_amount']`"
-                ),
+                "`Contribution.formatted_donor_selected_amount` called on contribution with ID %s that"
+                " does not have a value set for `contribution_metadata['donor_selected_amount']`",
                 self.id,
             )
             return ""
@@ -331,10 +329,8 @@ class Contribution(IndexedTimeStampedModel):
             return f"{f'{float(amt):.2f}'} {self.currency.upper()}"
         except ValueError:
             logger.warning(
-                (
-                    "`Contribution.formatted_donor_selected_amount` called on contribution with ID %s whose "
-                    "value set for `contribution_metadata['donor_selected_amount']` is %s which cannot be cast to an integer."
-                ),
+                "`Contribution.formatted_donor_selected_amount` called on contribution with ID %s whose"
+                " value set for `contribution_metadata['donor_selected_amount']` is %s which cannot be cast to an integer.",
                 self.id,
                 amt,
             )
@@ -401,10 +397,8 @@ class Contribution(IndexedTimeStampedModel):
         pm_id = provider_payment_method_id or self.provider_payment_method_id
         if not pm_id:
             logger.warning(
-                (
-                    "Contribution.fetch_stripe_payment_method called without a provider_payment_method_id "
-                    "on contribution with ID %s"
-                ),
+                "Contribution.fetch_stripe_payment_method called without a provider_payment_method_id"
+                " on contribution with ID %s",
                 self.id,
             )
             return None
@@ -658,10 +652,8 @@ class Contribution(IndexedTimeStampedModel):
             return stripe.SetupIntent.retrieve(si_id, stripe_account=acct_id)
         except stripe.error.StripeError:
             logger.exception(
-                (
-                    "`Contribution.stripe_setup_intent` encountered a Stripe error trying to retrieve stripe setup intent "
-                    "with ID %s and stripe account ID %s for contribution with ID %s"
-                ),
+                "`Contribution.stripe_setup_intent` encountered a Stripe error trying to retrieve stripe setup intent"
+                " with ID %s and stripe account ID %s for contribution with ID %s",
                 si_id,
                 acct_id,
                 self.id,
@@ -676,10 +668,8 @@ class Contribution(IndexedTimeStampedModel):
             return stripe.PaymentIntent.retrieve(pi_id, stripe_account=acct_id)
         except stripe.error.StripeError:
             logger.exception(
-                (
-                    "`Contribution.stripe_payment_intent` encountered a Stripe error trying to retrieve stripe payment intent "
-                    "with ID %s and stripe account ID %s for contribution with ID %s"
-                ),
+                "`Contribution.stripe_payment_intent` encountered a Stripe error trying to retrieve stripe payment intent"
+                " with ID %s and stripe account ID %s for contribution with ID %s",
                 pi_id,
                 acct_id,
                 self.id,
@@ -762,10 +752,8 @@ class Contribution(IndexedTimeStampedModel):
             return stripe.Subscription.retrieve(sub_id, stripe_account=acct_id)
         except stripe.error.StripeError:
             logger.exception(
-                (
-                    "`Contribution.stripe_subscription` encountered a Stripe error trying to retrieve stripe subscription "
-                    "with ID %s and stripe account ID %s for contribution with ID %s"
-                ),
+                "`Contribution.stripe_subscription` encountered a Stripe error trying to retrieve stripe subscription"
+                " with ID %s and stripe account ID %s for contribution with ID %s",
                 sub_id,
                 acct_id,
                 self.id,
@@ -847,10 +835,8 @@ class Contribution(IndexedTimeStampedModel):
             if update_data:
                 with reversion.create_revision():
                     logger.info(
-                        (
-                            "`Contribution.fix_contributions_stuck_in_processing` is saving updates to contribution with"
-                            "ID %s with the following data: %s"
-                        ),
+                        "`Contribution.fix_contributions_stuck_in_processing` is saving updates to contribution with"
+                        " ID %s with the following data: %s",
                         contribution.id,
                         update_data,
                     )
@@ -884,11 +870,9 @@ class Contribution(IndexedTimeStampedModel):
             .annotate(type=models.Value("recurring_with_setup_intent"))
         )
         logger.info(
-            (
-                "Contribution.fix_missing_provider_payment_method_id found %s eligible one-time contributions, "
-                "%s eligible recurring contributions with a subscription, and %s eligible recurring "
-                "contributions with a setup intent."
-            ),
+            "Contribution.fix_missing_provider_payment_method_id found %s eligible one-time contributions,"
+            " %s eligible recurring contributions with a subscription, and %s eligible recurring"
+            " contributions with a setup intent.",
             eligible_one_time.count(),
             eligible_recurring_with_subscription.count(),
             eligible_recurring_with_setup_intent.count(),
@@ -1023,20 +1007,16 @@ class Contribution(IndexedTimeStampedModel):
                 stripe_entity = contribution.stripe_subscription
             if not stripe_entity:
                 logger.warning(
-                    (
-                        "`Contribution.fix_missing_contribution_metadata` could not find any data on "
-                        "Stripe to backfill contribution with ID  %s",
-                    ),
+                    "`Contribution.fix_missing_contribution_metadata` could not find any data on"
+                    " Stripe to backfill contribution with ID  %s",
                     contribution.id,
                 )
                 continue
 
             if cls._stripe_metadata_is_valid_for_contribution_metadata_backfill(stripe_entity.metadata):
                 logger.info(
-                    (
-                        "`Contribution.fix_missing_contribution_metadata` found valid backfill data for "
-                        "contribution_metadata for contribution with ID %s"
-                    ),
+                    "`Contribution.fix_missing_contribution_metadata` found valid backfill data for"
+                    " contribution_metadata for contribution with ID %s",
                     contribution.id,
                 )
                 contribution.contribution_metadata = stripe_entity.metadata
@@ -1053,10 +1033,8 @@ class Contribution(IndexedTimeStampedModel):
                     reversion.set_comment("`Contribution.fix_missing_contribution_metadata` updated contribution")
             else:
                 logger.warning(
-                    (
-                        "`Contribution.fix_missing_contribution_metadata` could not find any valid backfill data for "
-                        "contribution_metadata for contribution with ID %s"
-                    ),
+                    "`Contribution.fix_missing_contribution_metadata` could not find any valid backfill data for"
+                    " contribution_metadata for contribution with ID %s",
                     contribution.id,
                 )
         logger.info(

@@ -507,10 +507,8 @@ class CreateOneTimePaymentSerializer(BaseCreatePaymentSerializer):
             )
             contribution.save()
             logger.exception(
-                (
-                    "CreateOneTimePaymentSerializer.create encountered a Stripe error while attempting to create a Stripe"
-                    " customer for contributor with id %s"
-                ),
+                "CreateOneTimePaymentSerializer.create encountered a Stripe error while attempting to create a Stripe"
+                " customer for contributor with id %s",
                 contributor.id,
             )
             raise GenericPaymentError() from None
@@ -532,10 +530,8 @@ class CreateOneTimePaymentSerializer(BaseCreatePaymentSerializer):
             )
         except StripeError:
             logger.exception(
-                (
-                    "CreateOneTimePaymentSerializer.create encountered a Stripe error while attempting to create a payment"
-                    " intent for contribution with id %s"
-                ),
+                "CreateOneTimePaymentSerializer.create encountered a Stripe error while attempting to create a payment"
+                " intent for contribution with id %s",
                 contribution.id,
             )
             logger.info(
@@ -628,10 +624,8 @@ class CreateRecurringPaymentSerializer(BaseCreatePaymentSerializer):
                 contributor.id,
             )
             logger.info(
-                (
-                    "`CreateRecurringPaymentSerializer.create` is saving a new contribution for contributor with ID %s "
-                    "after encountering an error creating a Stripe customer"
-                ),
+                "`CreateRecurringPaymentSerializer.create` is saving a new contribution for contributor with ID %s "
+                "after encountering an error creating a Stripe customer",
                 contributor.id,
             )
             contribution.save()
@@ -651,10 +645,8 @@ class CreateRecurringPaymentSerializer(BaseCreatePaymentSerializer):
                 client_secret = setup_intent.client_secret
 
                 logger.info(
-                    (
-                        "`CreateRecurringPaymentSerializer.create` successfully created a Stripe setup intent with ID %s"
-                        " for contribution with ID %s"
-                    ),
+                    "`CreateRecurringPaymentSerializer.create` successfully created a Stripe setup intent with ID %s"
+                    " for contribution with ID %s",
                     setup_intent.id,
                     contribution.id,
                 )
@@ -672,27 +664,21 @@ class CreateRecurringPaymentSerializer(BaseCreatePaymentSerializer):
                 client_secret = subscription.latest_invoice.payment_intent.client_secret
 
                 logger.info(
-                    (
-                        "`CreateRecurringPaymentSerializer.create` successfully created a Stripe subscription with ID %s"
-                        " for contribution with ID %s"
-                    ),
+                    "`CreateRecurringPaymentSerializer.create` successfully created a Stripe subscription with ID %s"
+                    " for contribution with ID %s",
                     subscription.id,
                     contribution.id,
                 )
 
         except StripeError:
             logger.exception(
-                (
-                    "RecurringPaymentSerializer.create encountered a Stripe error while attempting to create client_secret"
-                    " for contribution with id %s"
-                ),
+                "RecurringPaymentSerializer.create encountered a Stripe error while attempting to create client_secret"
+                " for contribution with id %s",
                 contribution.id,
             )
             logger.info(
-                (
-                    "`CreateRecurringPaymentSerializer.create` is saving a new contribution for "
-                    "contributor with ID %s after encountering an error creating a Stripe %s"
-                ),
+                "`CreateRecurringPaymentSerializer.create` is saving a new contribution for "
+                "contributor with ID %s after encountering an error creating a Stripe %s",
                 contributor.id,
                 "setup intent" if contribution.status == ContributionStatus.FLAGGED else "subscription",
             )

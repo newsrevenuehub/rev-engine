@@ -138,10 +138,8 @@ def email_contribution_csv_export_to_user(
     contributions = Contribution.objects.filter(id__in=contribution_ids)
     if diff := set(contribution_ids).difference(set(contributions.values_list("id", flat=True))):
         logger.warning(
-            (
-                "`email_contribution_csv_export_to_user` was unable to locate %s of %s requested contributions. The following "
-                "IDs could not be found: %s"
-            ),
+            "`email_contribution_csv_export_to_user` was unable to locate %s of %s requested contributions. The following"
+            " IDs could not be found: %s",
             len(diff),
             len(contribution_ids),
             ", ".join(str(x) for x in diff),

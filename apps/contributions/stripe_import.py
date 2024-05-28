@@ -186,10 +186,8 @@ def upsert_payment_for_transaction(
         except IntegrityError:
             existing = Payment.objects.filter(stripe_balance_transaction_id=transaction["id"]).first()
             logger.exception(
-                (
-                    "Integrity error occurred while upserting payment with balance transaction %s for contribution %s "
-                    "The existing payment is %s for contribution %s"
-                ),
+                "Integrity error occurred while upserting payment with balance transaction %s for contribution %s"
+                " The existing payment is %s for contribution %s",
                 transaction["id"],
                 contribution.id,
                 existing.id if existing else None,
@@ -740,10 +738,8 @@ class StripeTransactionsImporter:
         ):
             if not entity or not entity.get("balance_transaction", None):
                 logger.info(
-                    (
-                        "Data associated with %s %s for contribution %s has no balance transaction associated with it."
-                        " No payment will be created."
-                    ),
+                    "Data associated with %s %s for contribution %s has no balance transaction associated with it."
+                    " No payment will be created.",
                     "refund" if is_refund else "charge",
                     entity["id"] if entity else "None",
                     contribution.id,
@@ -946,10 +942,8 @@ class StripeTransactionsImporter:
         elapsed = datetime.datetime.now(datetime.timezone.utc) - start_time
         if elapsed.seconds > settings.STRIPE_TRANSACTIONS_IMPORT_CACHE_TTL * TTL_WARNING_THRESHOLD_PERCENT:
             logger.warning(
-                (
-                    "Stripe import for account %s took %s, which is longer than %s%% of the cache TTL (%s). "
-                    "Consider increasing TTLs for cache entries related to stripe import."
-                ),
+                "Stripe import for account %s took %s, which is longer than %s%% of the cache TTL (%s)."
+                " Consider increasing TTLs for cache entries related to stripe import.",
                 self.stripe_account_id,
                 self.format_timedelta(elapsed),
                 TTL_WARNING_THRESHOLD_PERCENT * 100,
@@ -975,14 +969,12 @@ class StripeTransactionsImporter:
     def log_results(self) -> None:
         """Log the results of the stripe import."""
         logger.info(
-            (
-                "Here's what happened: \n"
-                "%s Stripe payment intents for one-time contributions were processed.\n"
-                "%s Stripe subscriptions for recurring contributions were processed.\n"
-                "%s contributions were created and %s were updated.\n"
-                "%s payments were created and %s were updated.\n"
-                "%s contributors were created."
-            ),
+            "Here's what happened:"
+            "\n%s Stripe payment intents for one-time contributions were processed."
+            "\n%s Stripe subscriptions for recurring contributions were processed."
+            "\n%s contributions were created and %s were updated."
+            "\n%s payments were created and %s were updated."
+            "\n%s contributors were created.",
             self.payment_intents_processed,
             self.subscriptions_processed,
             len(self.created_contribution_ids),
@@ -1061,17 +1053,15 @@ class StripeTransactionsImporter:
         num_bts_in_cache = len(list(self.redis.scan_iter(match=self.make_key(entity_name="BalanceTransaction_*"))))
 
         logger.info(
-            (
-                "With %s cached subscriptions, "
-                "%s cached payment intents, "
-                "%s cached invoices, "
-                "%s cached charges, "
-                "%s cached refunds, "
-                "%s cached customers, "
-                "and %s cached balance transactions, "
-                "Redis memory usage for transactions "
-                "import for stripe account %s is: %s"
-            ),
+            "With %s cached subscriptions,"
+            " %s cached payment intents,"
+            " %s cached invoices,"
+            " %s cached charges,"
+            " %s cached refunds,"
+            " %s cached customers,"
+            " and %s cached balance transactions,"
+            " Redis memory usage for transactions"
+            " import for stripe account %s is: %s",
             num_subs_in_cache,
             num_pis_in_cache,
             num_invoices_in_cache,

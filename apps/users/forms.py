@@ -12,11 +12,12 @@ class RoleAssignmentAdminForm(forms.ModelForm):
     missing_rp_message = "This role must be assigned at least one RevenueProgram"
 
     def clean(self):
-        """Ensure that.
+        """Validate and normalize form data.
 
-        - Hub Admins do NOT have Orgs or RevenuePrograms defined
-        - Org Admins DO have an Org defined, but do NOT have RevenuePrograms defined
-        - RP Admins DO have both Orgs and RevenuePrograms defined.
+        Ensure that:
+          - Hub Admins do NOT have Orgs or RevenuePrograms defined
+          - Org Admins DO have an Org defined, but do NOT have RevenuePrograms defined
+          - RP Admins DO have both Orgs and RevenuePrograms defined.
         """
         error_dict = {}
 

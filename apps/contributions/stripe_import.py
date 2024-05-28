@@ -623,14 +623,6 @@ class StripeTransactionsImporter:
             results.append(self.get_resource_from_cache(key))
         return results
 
-    def get_refunds_for_subscription(self, subscription_id: str) -> list[dict]:
-        """Get cached refunds, if any for a given subscription id"""
-        logger.info("Getting refunds for subscription %s", subscription_id)
-        results = []
-        for charge in self.get_charges_for_subscription(subscription_id):
-            results.extend(self.get_refunds_for_charge(charge["id"]))
-        return results
-
     def get_or_create_contributor_from_customer(self, customer_id: str) -> Tuple[Contributor, str]:
         """Get or create a contributor from a stripe customer id"""
         customer = self.get_resource_from_cache(self.make_key(entity_name="Customer", entity_id=customer_id))
@@ -737,7 +729,7 @@ class StripeTransactionsImporter:
             refunds = self.get_refunds_for_charge(successful_charge["id"]) if successful_charge else []
         else:
             charges = self.get_charges_for_subscription(contribution.provider_subscription_id)
-            refunds = self.get_refunds_for_subscription(contribution.provider_subscription_id)
+            refunds = [x for x in [self.get_refunds_for_charge(charge["id"]) for charge in charges] if x]
         for entity, is_refund in itertools.chain(
             zip(charges, itertools.repeat(False)), zip(refunds, itertools.repeat(True))
         ):

@@ -1,5 +1,6 @@
 from django.core.exceptions import ValidationError
-from django.test import TestCase
+
+import pytest
 
 from apps.config.tests.factories import DenyListWordFactory
 from apps.config.validators import (
@@ -9,27 +10,28 @@ from apps.config.validators import (
 )
 
 
-class DenyListValidationTest(TestCase):
-    def setUp(self):
-        dlw = DenyListWordFactory()
-        self.bad_word = dlw.word
+@pytest.mark.django_db()
+class TestDenylistValidation:
 
-    def test_bad_word_raises_validation_error(self):
-        with self.assertRaises(ValidationError) as v_error:
-            validate_slug_against_denylist(self.bad_word)
+    @pytest.fixture()
+    def deny_list_word(self):
+        return DenyListWordFactory()
 
-        self.assertEqual(v_error.exception.message, GENERIC_SLUG_DENIED_MSG)
-        self.assertEqual(v_error.exception.code, SLUG_DENIED_CODE)
+    def test_bad_word_raises_validation_error(self, deny_list_word):
+        with pytest.raises(ValidationError) as v_error:
+            validate_slug_against_denylist(deny_list_word.word)
 
-    def test_good_word_passes_validation(self):
+        assert v_error.value.message == GENERIC_SLUG_DENIED_MSG
+        assert v_error.value.code == SLUG_DENIED_CODE
+
+    def test_good_word_passes_validation(self, deny_list_word):
         good_word = "flowers"
-        self.assertNotEqual(good_word, self.bad_word)
+        assert good_word != deny_list_word.word
+        assert validate_slug_against_denylist(good_word) is None
 
-        self.assertIsNone(validate_slug_against_denylist(good_word))
+    def test_validates_case_insensitive(self, deny_list_word):
+        with pytest.raises(ValidationError) as v_error:
+            validate_slug_against_denylist(deny_list_word.word.upper())
 
-    def test_validates_case_insensitive(self):
-        with self.assertRaises(ValidationError) as v_error:
-            validate_slug_against_denylist(self.bad_word.upper())
-
-        self.assertEqual(v_error.exception.message, GENERIC_SLUG_DENIED_MSG)
-        self.assertEqual(v_error.exception.code, SLUG_DENIED_CODE)
+        assert v_error.value.message == GENERIC_SLUG_DENIED_MSG
+        assert v_error.value.code == SLUG_DENIED_CODE

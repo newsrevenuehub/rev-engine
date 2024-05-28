@@ -31,7 +31,6 @@ class ValidateFkReferenceOwnership:
     requires_context = True
 
     def __init__(self, fk_attribute, model, has_default_access_fn=_has_ensured_user_ownership_by_default):
-        # Notes on expectations around determine_ownership and has_default_access_fn.
         self.model = model
         self.fk_attribute = fk_attribute
         self.has_default_access = has_default_access_fn

@@ -34,7 +34,9 @@ def make_bad_actor_request(validated_data):
         "Authorization": f"Bearer {settings.BAD_ACTOR_API_KEY}",
     }
     json_data = validated_data.copy()
-    response = requests.post(url=settings.BAD_ACTOR_API_URL, headers=headers, json=json_data, timeout=31)
+    response = requests.post(
+        url=settings.BAD_ACTOR_API_URL, headers=headers, json=json_data, timeout=settings.REQUESTS_TIMEOUT_DEFAULT
+    )
     if int(str(response.status_code)[:1]) != 2:  # eh? if not response.ok #  Includes 3xx
         try:
             logger.warning("Received a BadActor API error: %s", response.json())

@@ -39,7 +39,7 @@ def upsert(entity_type: Literal["connection", "destination"], data: dict, auto_u
         {"connection": CONNECTIONS_URL, "destination": DESTINATIONS_URL}[entity_type],
         data=data,
         headers=HEADERS,
-        timeout=31,
+        timeout=settings.REQUESTS_TIMEOUT_DEFAULT,
     )
     if response.status_code != status.HTTP_200_OK:
         logger.error("Unexpected response from Hookdeck API: %s", response.content)
@@ -122,7 +122,7 @@ def retrieve(entity_type: Literal["connection", "destination", "source"], id_: s
             }[entity_type]
         }/{id_}""",
         headers=HEADERS,
-        timeout=31,
+        timeout=settings.REQUESTS_TIMEOUT_DEFAULT,
     )
     if response.status_code != status.HTTP_200_OK:
         logger.error("Unexpected response from Hookdeck API")
@@ -138,7 +138,7 @@ def search(entity_type: Literal["connection", "destination", "source"], params: 
             "Authorization": f"Bearer {settings.HOOKDECK_API_KEY}",
         },
         params=dict(params),
-        timeout=31,
+        timeout=settings.REQUESTS_TIMEOUT_DEFAULT,
     )
     if response.status_code != status.HTTP_200_OK:
         logger.error(
@@ -211,7 +211,7 @@ def archive(entity_type: Literal["connection", "destination", "source"], id_: st
             {'connection': CONNECTIONS_URL, 'destination': DESTINATIONS_URL}[entity_type]
         }/{id_}/archive""",
         headers=HEADERS,
-        timeout=31,
+        timeout=settings.REQUESTS_TIMEOUT_DEFAULT,
     )
     if response.status_code != status.HTTP_200_OK:
         logger.error("Unexpected response from Hookdeck API archiving %s with id %s", entity_type, id_)
@@ -229,7 +229,7 @@ def unarchive(entity_type: Literal["connection", "destination", "source"], id_: 
             {'connection': CONNECTIONS_URL, 'destination': DESTINATIONS_URL}[entity_type]
         }/{id_}/unarchive""",
         headers=HEADERS,
-        timeout=31,
+        timeout=settings.REQUESTS_TIMEOUT_DEFAULT,
     )
     if response.status_code != status.HTTP_200_OK:
         logger.error("Unexpected response from Hookdeck API archiving %s with id %s", entity_type, id_)

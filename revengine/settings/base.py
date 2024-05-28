@@ -561,6 +561,11 @@ ACCOUNT_VERIFICATION_LINK_EXPIRY = 24
 ORG_SLUG_PARAM = "orgSlug"
 RP_SLUG_PARAM = "revProgramSlug"
 PAGE_SLUG_PARAM = "slug"
+# requests lib HTTP calls should include timeout https://docs.astral.sh/ruff/rules/request-without-timeout/
+# 31 seconds based on being impossibly long time, it wouldn't break any existing code and this:
+# > It's a good practice to set connect timeouts to slightly larger than a multiple of 3, which is the default TCP
+# > packet retransmission window. https://requests.readthedocs.io/en/latest/user/advanced/#timeouts
+REQUESTS_TIMEOUT_DEFAULT = 31
 
 ## Email and ESP Settings
 DEFAULT_FROM_EMAIL = f"noreply@{os.getenv('DOMAIN', 'example.com')}"

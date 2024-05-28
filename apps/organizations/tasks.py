@@ -58,7 +58,9 @@ def exchange_mc_oauth_code_for_mc_access_token(oauth_code: str) -> str:
         "making a request to Mailchimp with the following data: %s",
         request_data | {"code": "REDACTED", "client_secret": "REDACTED"},
     )
-    response = requests.post(MAILCHIMP_EXCHANGE_OAUTH_CODE_FOR_ACCESS_TOKEN_URL, data=request_data, timeout=31)
+    response = requests.post(
+        MAILCHIMP_EXCHANGE_OAUTH_CODE_FOR_ACCESS_TOKEN_URL, data=request_data, timeout=settings.REQUESTS_TIMEOUT_DEFAULT
+    )
 
     if response.status_code != status.HTTP_200_OK:
         logger.error(
@@ -84,7 +86,9 @@ def get_mailchimp_server_prefix(access_token: str) -> str:
     """NB: Don't log or expose access token in any error messages."""
     logger.info("get_mailchimp_server_prefix called with access_token was called")
     response = requests.get(
-        MAILCHIMP_GET_SERVER_PREFIX_URL, headers={"Authorization": f"OAuth {access_token}"}, timeout=31
+        MAILCHIMP_GET_SERVER_PREFIX_URL,
+        headers={"Authorization": f"OAuth {access_token}"},
+        timeout=settings.REQUESTS_TIMEOUT_DEFAULT,
     )
     if response.status_code != status.HTTP_200_OK:
         logger.error("get_mailchimp_server_prefix called but got a non-200 status code: %s", response.status_code)

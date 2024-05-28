@@ -717,7 +717,8 @@ class TestRevenueProgram:
         mock_handle_error = mocker.patch(
             "apps.organizations.models.RevenueProgram.handle_mailchimp_api_client_read_error"
         )
-        mc_connected_rp.mailchimp_store  # noqa: B018 useless .mailchimp_store?
+        mc_connected_rp.mailchimp_store  # noqa: B018 Ruff doesn't understand this is a property
+        # and accessing it has side effects we are testing.
         mock_handle_error.assert_called_once_with("store", error)
 
     def test_mailchimp_store_when_not_connected(self, revenue_program):

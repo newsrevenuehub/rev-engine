@@ -1204,14 +1204,12 @@ class ProcessFlaggedContributionTest(APITestCase):
 
         payment_provider = PaymentProviderFactory(stripe_account_id=self.stripe_account_id)
         revenue_program = RevenueProgramFactory(organization=self.org, payment_provider=payment_provider)
-        # TODO: DEV-3026
-        with mock.patch("apps.contributions.models.Contribution.fetch_stripe_payment_method", return_value=None):
-            self.contribution = ContributionFactory(
-                contributor=self.contributor,
-                donation_page=DonationPageFactory(revenue_program=revenue_program),
-                provider_subscription_id=self.subscription_id,
-            )
-            self.other_contribution = ContributionFactory()
+        self.contribution = ContributionFactory(
+            contributor=self.contributor,
+            donation_page=DonationPageFactory(revenue_program=revenue_program),
+            provider_subscription_id=self.subscription_id,
+        )
+        self.other_contribution = ContributionFactory()
 
     def _make_request(self, contribution_pk=None, request_args={}):
         url = reverse("contribution-process-flagged", args=[contribution_pk])

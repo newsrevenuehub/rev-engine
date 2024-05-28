@@ -193,7 +193,7 @@ class StripeWebhookProcessor:
         with transaction.atomic():
             payment = Payment.from_stripe_payment_intent_succeeded_event(event=self.event)
             contribution_update_data = {
-                # TODO: [DEV-4295] Get rid of payment_provider_data as it's an inconistent reference to whichever event
+                # TODO: [DEV-4295] Get rid of payment_provider_data as it's an inconsistent reference to whichever event
                 # happened to cause creation
                 "payment_provider_data": self.event,
                 "provider_payment_method_id": self.obj_data.get("payment_method"),

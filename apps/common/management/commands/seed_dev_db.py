@@ -85,7 +85,7 @@ class Command(BaseCommand):
         for contributor in contributors:
             for org in orgs:
                 for _ in range(n_contributions):
-                    contributions.append(  # noqa: PERF401 readability > optomization here
+                    contributions.append(  # noqa: PERF401 readability > optimization here
                         contrib_factories.ContributionFactory(organization=org, contributor=contributor)
                     )
         msg = f"Created {len(contributions)} contributions"

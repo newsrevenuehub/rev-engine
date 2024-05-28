@@ -505,11 +505,7 @@ class TestRevenueProgram:
     def test_slug_larger_than_max_length(self):
         assert len(RevenueProgramFactory(name="x" * (RP_SLUG_MAX_LENGTH + 1)).slug) < RP_SLUG_MAX_LENGTH
 
-    def test_cannot_delete_when_downstream_contributions(self, live_donation_page, monkeypatch):
-        # TODO: DEV-3026
-        monkeypatch.setattr(
-            "apps.contributions.models.Contribution.fetch_stripe_payment_method", lambda *args, **kwargs: None
-        )
+    def test_cannot_delete_when_downstream_contributions(self, live_donation_page):
         ContributionFactory(donation_page=live_donation_page)
         with pytest.raises(ProtectedError) as protected_error:
             live_donation_page.revenue_program.delete()

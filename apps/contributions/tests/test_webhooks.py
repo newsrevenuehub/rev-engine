@@ -137,3 +137,23 @@ class TestStripeWebhookProcessor:
         processor = StripeWebhookProcessor(event=StripeEventData(**payment_intent_succeeded_one_time_event))
         with pytest.raises(Contribution.DoesNotExist):
             processor._handle_contribution_update({}, "")
+
+    @pytest.mark.parametrize("has_pm_id", [True, False])
+    def test__add_pm_id_and_payment_method_details(self, mocker, has_pm_id, payment_intent_succeeded_one_time_event):
+        processor = StripeWebhookProcessor(event=StripeEventData(**payment_intent_succeeded_one_time_event))
+        mocker.patch("apps.contributions.models.Contribution.fetch_stripe_payment_method", return_value=mocker.Mock())
+        mocker.patch.object(
+            processor, "contribution", new_callable=mocker.PropertyMock, return_value=ContributionFactory()
+        )
+        processor._add_pm_id_and_payment_method_details(pm_id="pm_id" if has_pm_id else None, update_data={})
+
+    def test_route_request_when_event_type_is_payment_method_attached(
+        self, mocker, payment_intent_succeeded_one_time_event
+    ):
+        mocker.patch(
+            "apps.contributions.webhooks.StripeWebhookProcessor.event_type",
+            new_callable=mocker.PropertyMock,
+            return_value="payment_method.attached",
+        )
+        processor = StripeWebhookProcessor(event=StripeEventData(**payment_intent_succeeded_one_time_event))
+        processor.route_request()

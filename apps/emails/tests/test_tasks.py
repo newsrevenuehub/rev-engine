@@ -91,7 +91,6 @@ class TestMakeSendThankYouEmailData:
 
     def test_when_no_provider_customer_id(self, mocker):
         logger_spy = mocker.spy(logger, "error")
-        mocker.patch("apps.contributions.models.Contribution.fetch_stripe_payment_method", return_value=None)
         contribution = ContributionFactory(one_time=True, provider_customer_id=None)
         with pytest.raises(EmailTaskException):
             make_send_thank_you_email_data(contribution)
@@ -101,7 +100,6 @@ class TestMakeSendThankYouEmailData:
 
     def test_when_error_retrieving_stripe_customer(self, mocker):
         mocker.patch("stripe.Customer.retrieve", side_effect=StripeError("error"))
-        mocker.patch("apps.contributions.models.Contribution.fetch_stripe_payment_method", return_value=None)
         with pytest.raises(EmailTaskException):
             make_send_thank_you_email_data(ContributionFactory(one_time=True))
 
@@ -116,7 +114,6 @@ class TestSendThankYouEmail:
         ],
     )
     def test_happy_path(self, make_contribution_fn, mocker):
-        mocker.patch("apps.contributions.models.Contribution.fetch_stripe_payment_method", return_value=None)
         mocker.patch("apps.contributions.models.Contributor.create_magic_link", return_value="magic_link")
         mocker.patch("stripe.Customer.retrieve", return_value=AttrDict(name="customer_name"))
         mock_send_mail = mocker.patch("apps.emails.tasks.send_mail")
@@ -152,31 +149,29 @@ class TestSendThankYouEmail:
         mock_customer_retrieve = Mock()
         mock_customer_retrieve.return_value = customer
         monkeypatch.setattr("stripe.Customer.retrieve", mock_customer_retrieve)
-        # TODO: DEV-3026 clean up here
-        with patch("apps.contributions.models.Contribution.fetch_stripe_payment_method", return_value=None):
-            contribution = ContributionFactory(provider_customer_id="something", interval=ContributionInterval.ONE_TIME)
-            if default_style:
-                style = StyleFactory()
-                style.styles = style.styles | {
-                    "colors": {
-                        "cstm_mainHeader": "#mock-header-background",
-                        "cstm_CTAs": "#mock-button-color",
-                    },
-                    "font": {"heading": "mock-header-font", "body": "mock-body-font"},
-                }
-                style.save()
-                page = DonationPageFactory(
-                    revenue_program=revenue_program,
-                    styles=style,
-                    header_logo="mock-logo",
-                    header_logo_alt_text="Mock-Alt-Text",
-                )
-                revenue_program.default_donation_page = page
-                revenue_program.save()
-            contribution.donation_page.revenue_program = revenue_program
-            contribution.donation_page.save()
-            data = make_send_thank_you_email_data(contribution)
-            send_thank_you_email(data)
+        contribution = ContributionFactory(provider_customer_id="something", interval=ContributionInterval.ONE_TIME)
+        if default_style:
+            style = StyleFactory()
+            style.styles = style.styles | {
+                "colors": {
+                    "cstm_mainHeader": "#mock-header-background",
+                    "cstm_CTAs": "#mock-button-color",
+                },
+                "font": {"heading": "mock-header-font", "body": "mock-body-font"},
+            }
+            style.save()
+            page = DonationPageFactory(
+                revenue_program=revenue_program,
+                styles=style,
+                header_logo="mock-logo",
+                header_logo_alt_text="Mock-Alt-Text",
+            )
+            revenue_program.default_donation_page = page
+            revenue_program.save()
+        contribution.donation_page.revenue_program = revenue_program
+        contribution.donation_page.save()
+        data = make_send_thank_you_email_data(contribution)
+        send_thank_you_email(data)
 
         default_logo = f"{settings.SITE_URL}/static/nre-logo-yellow.png"
         default_alt_text = "News Revenue Hub"
@@ -217,7 +212,6 @@ class TestSendThankYouEmail:
         mock_customer_retrieve = Mock()
         mock_customer_retrieve.return_value = customer
         monkeypatch.setattr("stripe.Customer.retrieve", mock_customer_retrieve)
-        mocker.patch("apps.contributions.models.Contribution.fetch_stripe_payment_method", return_value=None)
         contribution = ContributionFactory(
             one_time=True,
             donation_page__revenue_program=(

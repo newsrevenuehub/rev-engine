@@ -1,6 +1,5 @@
 import copy
 import logging
-from unittest.mock import patch
 
 from django.conf import settings
 from django.contrib.auth import get_user_model
@@ -75,17 +74,11 @@ class AbstractTestCase(APITestCase):
                         idx % 2 == 0,
                     ]
                 ):
-                    # TODO: [DEV-3026] Remove buried Stripe retrieve side effect from contribution save method
-                    with patch(
-                        "apps.contributions.models.Contribution.fetch_stripe_payment_method", return_value=None
-                    ) as mock_method:
-                        ContributionFactory(
-                            one_time=True,
-                            donation_page=page,
-                            contributor=contributor,
-                            provider_payment_method_details=None,
-                        )
-                        mock_method.assert_called_once()
+                    ContributionFactory(
+                        one_time=True,
+                        donation_page=page,
+                        contributor=contributor,
+                    )
         cls.contributor_user = Contributor.objects.first()
 
     @classmethod

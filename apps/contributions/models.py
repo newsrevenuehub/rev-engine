@@ -416,25 +416,6 @@ class Contribution(IndexedTimeStampedModel):
             )
             return None
 
-    def save(self, *args, **kwargs):
-        previous = self.__class__.objects.filter(pk=self.pk).first()
-        # TODO: [DEV-4447] If possible, remove conditional payment method update fetch from contribution.save
-        if (
-            (
-                previous
-                and previous.provider_payment_method_id != self.provider_payment_method_id
-                and not self.provider_payment_method_details
-            )
-            or not previous
-            and self.provider_payment_method_id
-            and not self.provider_payment_method_details
-        ) and (pm := self.fetch_stripe_payment_method()):
-            self.provider_payment_method_details = pm
-            if kwargs.get("update_fields", False):
-                # we cast update_fields to a set in case it was passed as a list
-                kwargs["update_fields"] = set(kwargs["update_fields"]).union({"provider_payment_method_details"})
-        super().save(*args, **kwargs)
-
     def create_stripe_customer(
         self,
         first_name=None,

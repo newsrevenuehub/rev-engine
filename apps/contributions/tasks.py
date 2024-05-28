@@ -211,6 +211,7 @@ def task_import_contributions_and_payments_for_stripe_account(
     from_date: str,
     to_date: str,
     stripe_account_id: str,
+    retrieve_payment_method: bool,
 ):
     """Task for syncing Stripe payment data to revengine."""
     logger.info(
@@ -225,5 +226,6 @@ def task_import_contributions_and_payments_for_stripe_account(
         from_date=from_date,
         to_date=to_date,
         stripe_account_id=stripe_account_id,
+        retrieve_payment_method=retrieve_payment_method,
     ).import_contributions_and_payments()
     logger.info("`task_import_contributions_and_payments` is done")

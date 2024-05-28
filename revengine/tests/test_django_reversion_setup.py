@@ -1,5 +1,3 @@
-from unittest.mock import patch
-
 import pytest
 import reversion
 from reversion.models import Version
@@ -121,9 +119,7 @@ def test_registered_model_changed_via_other_not_have_revisions(factory, update_a
     ..registered views.
     """
     assert factory._meta.model in reversion.get_registered_models()
-    # TODO @BW: DEV-3026 Remove buried Stripe retrieve side effect from contribution save method
-    with patch("apps.contributions.models.Contribution.fetch_stripe_payment_method", return_value=None):
-        instance = factory()
+    instance = factory()
     assert Version.objects.get_for_object(instance).count() == 0
     setattr(instance, update_attr, update_value)
     instance.save()

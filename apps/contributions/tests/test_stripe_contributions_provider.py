@@ -252,8 +252,7 @@ class TestStripePaymentIntent:
     def test_last_payment_date_when_status_transitions_paid_at(self, pi_for_active_subscription):
         # StripePaymentIntent(pi_without_invoice).last_payment_date generates dates with microseconds
         # whilst datetime.datetime.fromtimestamp doesn't. Setting the microseconds to 0 so tests pass
-        paid_at = pi_for_active_subscription.invoice.status_transitions.paid_at
-        assert paid_at
+        assert (paid_at := pi_for_active_subscription.invoice.status_transitions.paid_at)
         assert StripePaymentIntent(pi_for_active_subscription).last_payment_date == datetime.datetime.fromtimestamp(
             paid_at, tz=datetime.timezone.utc
         ).replace(microsecond=0)

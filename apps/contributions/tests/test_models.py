@@ -1765,9 +1765,7 @@ class TestContributionModel:
         monthly_contribution.refresh_from_db()
         assert monthly_contribution.contribution_metadata is None
         spy.assert_called_once_with(
-            (
-                "`Contribution.fix_missing_contribution_metadata` could not find any data on Stripe to backfill contribution with ID  %s",
-            ),
+            "`Contribution.fix_missing_contribution_metadata` could not find any data on Stripe to backfill contribution with ID %s",
             monthly_contribution.id,
         )
 

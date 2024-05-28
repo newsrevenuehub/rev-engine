@@ -137,9 +137,11 @@ quote-style = "double"
 [tool.ruff.lint.per-file-ignores]
 "revengine/settings/*py" = ["F405"] # star import
 "*/migrations/*py" = ["F401", "E501"] # unused import, line too long
-"*/tests/*py" = ["S"] # bandit checks N/A for tests
-"*/tests.py" = ["S"] # bandit checks N/A for tests
-"conftest.py" = ["S"] # bandit checks N/A for tests
+# S - bandit checks N/A to test code
+# RUF018 Avoid assignment expressions in `assert` statements - N/A to test code
+"*/tests/*py" = ["S", "RUF018"]
+"*/tests.py" = ["S", "RUF018"]
+"conftest.py" = ["S", "RUF018"]
 
 [tool.ruff.lint.flake8-bugbear]
 extend-immutable-calls = ["typer.Option", ]

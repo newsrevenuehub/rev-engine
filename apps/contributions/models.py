@@ -1008,7 +1008,7 @@ class Contribution(IndexedTimeStampedModel):
             if not stripe_entity:
                 logger.warning(
                     "`Contribution.fix_missing_contribution_metadata` could not find any data on"
-                    " Stripe to backfill contribution with ID  %s",
+                    " Stripe to backfill contribution with ID %s",
                     contribution.id,
                 )
                 continue

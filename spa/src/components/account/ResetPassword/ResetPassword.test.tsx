@@ -23,7 +23,7 @@ describe('ForgotPassword Tests', () => {
     expect(axiosMock.history.post.length).toBe(0);
     expect(screen.queryByText(RESET_PASSWORD_SUCCESS_TEXT)).not.toBeInTheDocument();
 
-    await screen.getByRole('button', { name: 'Reset Password' }).click();
+    screen.getByRole('button', { name: 'Reset Password' }).click();
 
     await waitFor(() => expect(axiosMock.history.post.length).toBe(1));
     expect(axiosMock.history.post[0].data).toBe('{"token":null,"password":"mock-password"}');
@@ -37,7 +37,7 @@ describe('ForgotPassword Tests', () => {
 
       expect(axiosMock.history.post.length).toBe(0);
 
-      await screen.getByRole('button', { name: 'Reset Password' }).click();
+      screen.getByRole('button', { name: 'Reset Password' }).click();
 
       await waitFor(() => expect(axiosMock.history.post.length).toBe(1));
       expect(screen.getByText('An error occurred. Please try again.')).toBeInTheDocument();
@@ -49,7 +49,7 @@ describe('ForgotPassword Tests', () => {
 
       expect(axiosMock.history.post.length).toBe(0);
 
-      await screen.getByRole('button', { name: 'Reset Password' }).click();
+      screen.getByRole('button', { name: 'Reset Password' }).click();
 
       await waitFor(() => expect(axiosMock.history.post.length).toBe(1));
       expect(screen.getByTestId('reset-password-form').dataset.error).toBe('mock-error');
@@ -61,7 +61,7 @@ describe('ForgotPassword Tests', () => {
 
       expect(axiosMock.history.post.length).toBe(0);
 
-      await screen.getByRole('button', { name: 'Reset Password' }).click();
+      screen.getByRole('button', { name: 'Reset Password' }).click();
 
       await waitFor(() => expect(axiosMock.history.post.length).toBe(1));
       expect(screen.getByTestId('reset-password-form').dataset.error).toBeUndefined();

@@ -1618,14 +1618,16 @@ class SubscriptionsSerializer(TestCase):
         assert data["interval"] == ContributionInterval.YEARLY
         self.subscription.plan.interval_count = 2
         with pytest.raises(ValidationError):
-            self.serializer(self.subscription).data  # noqa: B018 .data access useless?
+            self.serializer(self.subscription).data  # noqa: B018 Ruff doesn't understand this is
+            # a property and accessing it has side effects we are testing.
 
     def test_revenue_program_slug(self):
         data = self.serializer(self.subscription).data
         assert data["revenue_program_slug"] == "foo"
         del self.subscription.metadata
         with pytest.raises(ValidationError):
-            self.serializer(self.subscription).data  # noqa: B018 .data access useless?
+            self.serializer(self.subscription).data  # noqa: B018 Ruff doesn't understand this is
+            # a property and accessing it has side effects we are testing.
 
     def test_amount(self):
         data = self.serializer(self.subscription).data

@@ -108,7 +108,8 @@ class TestGoogleCloudSecretProvider:
         mock_client.return_value.access_secret_version.side_effect = PermissionDenied("No way.")
         MyObject = make_my_object(GoogleCloudSecretProvider)
         with pytest.raises(SecretProviderException):
-            MyObject(**{MODEL_ATTR: "something"}).val  # noqa: B018 .val access useless?
+            MyObject(**{MODEL_ATTR: "something"}).val  # noqa: B018 Ruff doesn't understand this is a property
+            # and accessing it has side effects we are testing.
         logger_spy.assert_called_once_with(
             "GoogleCloudSecretProvider.get_secret cannot access secret version for secret %s with path %s because permission denied",
             secret_name,

@@ -151,11 +151,13 @@ class TestStripePaymentIntent:
 
     def test_revenue_program_when_no_metadata(self, pi_no_metadata):
         with pytest.raises(InvalidMetadataError):
-            StripePaymentIntent(pi_no_metadata).revenue_program  # noqa: B018 .revenue_program access useless?
+            StripePaymentIntent(pi_no_metadata).revenue_program  # noqa: B018 Ruff doesn't understand this is
+            # a property and accessing it has side effects we are testing.
 
     def test_revenue_program_when_rp_slug_not_in_metadata(self, pi_no_revenue_program_in_metadata):
         with pytest.raises(InvalidMetadataError):
-            StripePaymentIntent(  # noqa: B018 .revenue_program access useless?
+            StripePaymentIntent(  # noqa: B018 Ruff doesn't understand this is
+                # a property and accessing it has side effects we are testing.
                 pi_no_revenue_program_in_metadata
             ).revenue_program
 
@@ -313,7 +315,8 @@ class TestStripePaymentIntent:
         )
         if expected_error:
             with pytest.raises(expected_error):
-                StripePaymentIntent(pi).interval  # noqa: B018 .interval access useless?
+                StripePaymentIntent(pi).interval  # noqa: B018 Ruff doesn't understand this is
+                # a property and accessing it has side effects we are testing.
         else:
             assert StripePaymentIntent(pi).interval == expected_val
 

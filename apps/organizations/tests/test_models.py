@@ -844,7 +844,8 @@ class TestRevenueProgram:
         mock_handle_error = mocker.patch(
             "apps.organizations.models.RevenueProgram.handle_mailchimp_api_client_read_error"
         )
-        mc_connected_rp.mailchimp_one_time_contribution_product  # noqa: B018 useless .mailchimp_one_time_contribution_product?
+        mc_connected_rp.mailchimp_one_time_contribution_product  # noqa: B018 Ruff doesn't understand this is a property
+        # and accessing it has side effects we are testing.
         mock_handle_error.assert_called_once_with("one-time contribution product", error)
 
     def test_mailchimp_recurring_contribution_product_happy_path(
@@ -880,7 +881,8 @@ class TestRevenueProgram:
         mock_handle_error = mocker.patch(
             "apps.organizations.models.RevenueProgram.handle_mailchimp_api_client_read_error"
         )
-        mc_connected_rp.mailchimp_recurring_contribution_product  # noqa: B018 useless .mailchimp_recurring_contribuiton_product?
+        mc_connected_rp.mailchimp_recurring_contribution_product  # noqa: B018 Ruff doesn't understand this is a property
+        # and accessing it has side effects we are testing.
         mock_handle_error.assert_called_once_with("recurring contribution product", error)
 
     def test_make_mailchimp_one_time_contribution_product_happy_path(
@@ -941,7 +943,8 @@ class TestRevenueProgram:
         mock_handle_error = mocker.patch(
             "apps.organizations.models.RevenueProgram.handle_mailchimp_api_client_read_error"
         )
-        mc_connected_rp.mailchimp_email_list  # noqa: B018 useless .mailchimp_email_list?
+        mc_connected_rp.mailchimp_email_list  # noqa: B018 Ruff doesn't understand this is a property
+        # and accessing it has side effects we are testing.
         mock_handle_error.assert_called_once_with("mailchimp email list", error, log_level_on_not_found="error")
 
     def test_mailchimp_contributor_segment_when_no_mailchimp_list_id(self, mc_connected_rp):
@@ -983,7 +986,8 @@ class TestRevenueProgram:
         mock_handle_error = mocker.patch(
             "apps.organizations.models.RevenueProgram.handle_mailchimp_api_client_read_error"
         )
-        mc_connected_rp.mailchimp_contributor_segment  # noqa: B018 useless .mailchimp_contributor_segment?
+        mc_connected_rp.mailchimp_contributor_segment  # noqa: B018 Ruff doesn't understand this is a property
+        # and accessing it has side effects we are testing.
         mock_handle_error.assert_called_once_with("contributor segment", error)
 
     def test_mailchimp_recurring_segment_happy_path(
@@ -1030,7 +1034,8 @@ class TestRevenueProgram:
         mock_handle_error = mocker.patch(
             "apps.organizations.models.RevenueProgram.handle_mailchimp_api_client_read_error"
         )
-        mc_connected_rp.mailchimp_recurring_segment  # noqa: B018 useless .mailchimp_recurring_segment?
+        mc_connected_rp.mailchimp_recurring_segment  # noqa: B018 Ruff doesn't understand this is a property
+        # and accessing it has side effects we are testing.
         mock_handle_error.assert_called_once_with("recurring segment", error)
 
     def test_make_mailchimp_contributor_segment_when_no_list_id(self, mc_connected_rp):

@@ -46,7 +46,7 @@ function ResetPassword() {
         setPasswordUpdateSuccess(true);
         dispatch({ type: FETCH_SUCCESS });
       } else {
-        console.error();
+        console.error(`Reset password failed with status = ${status} and data = ${data}`);
         dispatch({ type: FETCH_FAILURE, payload: data });
       }
     } catch (e) {

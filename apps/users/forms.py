@@ -17,7 +17,7 @@ class RoleAssignmentAdminForm(forms.ModelForm):
         Ensure that:
           - Hub Admins do NOT have Orgs or RevenuePrograms defined
           - Org Admins DO have an Org defined, but do NOT have RevenuePrograms defined
-          - RP Admins DO have both Orgs and RevenuePrograms defined.
+          - RP Admins DO have both Orgs and RevenuePrograms defined
         """
         error_dict = {}
 

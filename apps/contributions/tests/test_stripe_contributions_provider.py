@@ -375,14 +375,12 @@ class TestStripeContributionsProvider:
         assert provider.stripe_account_id == id_
 
     def test_customers(self, mocker, customer_factory):
-        email = "foo@bar.com"
-        stripe_account_id = "test"
         customers = [customer_factory.get(), customer_factory.get()]
         mock_search = mocker.patch("stripe.Customer.search")
         mock_search.return_value.auto_paging_iter.return_value = customers
-        assert StripeContributionsProvider(email_id=email, stripe_account_id=stripe_account_id).customers == [
-            x.id for x in customers
-        ]
+        assert StripeContributionsProvider(
+            email_id=(email := "foo@bar.com"), stripe_account_id=(stripe_account_id := "test")
+        ).customers == [x.id for x in customers]
         mock_search.assert_called_once_with(
             query=f"email:'{email}'", limit=MAX_STRIPE_RESPONSE_LIMIT, stripe_account=stripe_account_id
         )

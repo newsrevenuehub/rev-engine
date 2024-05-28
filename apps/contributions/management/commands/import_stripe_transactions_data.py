@@ -51,6 +51,7 @@ class Command(BaseCommand):
             help="Retrieve payment method details per contribution (note this may trigger API rate limiting)",
         )
         parser.add_argument("--suppress-stripe-info-logs", action="store_true", default=False)
+        parser.add_argument("--sentry-profiler", action="store_true", default=False)
 
     def get_stripe_account_ids(self, for_orgs: list[str], for_stripe_accounts: list[str]) -> list[str]:
         query = PaymentProvider.objects.filter(stripe_account_id__isnull=False)
@@ -78,6 +79,7 @@ class Command(BaseCommand):
                     from_date=int(options["gte"].timestamp()) if options["gte"] else None,
                     to_date=int(options["lte"].timestamp()) if options["lte"] else None,
                     retrieve_payment_method=options["retrieve_payment_method"],
+                    sentry_profiler=options["sentry_profiler"],
                 )
                 self.stdout.write(
                     self.style.SUCCESS(
@@ -90,6 +92,7 @@ class Command(BaseCommand):
                     to_date=options["lte"],
                     stripe_account_id=account,
                     retrieve_payment_method=options["retrieve_payment_method"],
+                    sentry_profiler=options["sentry_profiler"],
                 ).import_contributions_and_payments()
                 self.stdout.write(self.style.SUCCESS(f"Import transactions for account {account} is done"))
 

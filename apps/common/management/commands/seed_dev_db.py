@@ -1,3 +1,6 @@
+# TODO @njh: cut this command
+# https://news-revenue-hub.atlassian.net/browse/DEV-4833
+# see https://github.com/newsrevenuehub/rev-engine/pull/1508/files#r1617303962
 from django.core.management.base import BaseCommand
 
 from faker import Faker
@@ -14,7 +17,7 @@ def create_n_instances(n, model_factory, **model_factory_kwargs):
     return [model_factory(**model_factory_kwargs) for n in range(n)]
 
 
-def create_org_users(orgs, n=1, password="tHiSiStHePaSwOrD"):  # noqa: S107 hardcoded passwors is ok cause dev?
+def create_org_users(orgs, n=1, password="tHiSiStHePaSwOrD"):  # noqa: S107 hardcoded password is ok cause dev?
     org_users = []
     for org in orgs:
         users = create_n_instances(n, user_factories.OrganizationUserFactory, user_password=password, organization=org)

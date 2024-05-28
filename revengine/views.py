@@ -94,7 +94,8 @@ index = proxy_spa_dev_server if settings.DEBUG and "pytest" not in sys.modules e
 
 @require_GET
 def read_apple_developer_merchant_id(request):
-    # @njh: Probably should be read once on import and stored in a variable, or cached.
+    # TODO @njh: Probably should be read once on import and stored in a variable, or cached.
+    # https://news-revenue-hub.atlassian.net/browse/DEV-4834
     return FileResponse((settings.STATIC_ROOT / "apple-developer-merchantid-domain-association").open("rb"))
 
 

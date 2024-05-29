@@ -22,6 +22,10 @@ import YellowSVG from 'assets/images/account/yellow-bar.svg';
 
 // Analytics
 import { useConfigureAnalytics } from 'components/analytics';
+import { AxiosError } from 'axios';
+
+// Loosely typing this because we're using the `component` prop, which causes issues with TS.
+const LooseLink = Link as any;
 
 function ResetPassword() {
   useConfigureAnalytics();
@@ -33,7 +37,7 @@ function ResetPassword() {
   const [resetPasswordState, dispatch] = useReducer(fetchReducer, initialState);
   const formSubmitErrors = resetPasswordState?.errors?.detail;
 
-  const onResetPasswordSubmit = async (password) => {
+  const onResetPasswordSubmit = async (password: string) => {
     dispatch({ type: FETCH_START });
     try {
       const { data, status } = await axios.post(RESET_PASSWORD_ENDPOINT, { token, password });
@@ -42,10 +46,14 @@ function ResetPassword() {
         setPasswordUpdateSuccess(true);
         dispatch({ type: FETCH_SUCCESS });
       } else {
+        console.error(`Reset password failed with status = ${status} and data = ${data}`);
         dispatch({ type: FETCH_FAILURE, payload: data });
       }
     } catch (e) {
-      dispatch({ type: FETCH_FAILURE, payload: e?.response?.data });
+      dispatch({
+        type: FETCH_FAILURE,
+        payload: (e as AxiosError)?.response?.data || { detail: 'An error occurred. Please try again.' }
+      });
     }
   };
 
@@ -71,15 +79,19 @@ function ResetPassword() {
 
           {!passwordUpdateSuccess ? (
             <>
-              <ResetPasswordForm disabled={resetPasswordState.loading} onSubmit={onResetPasswordSubmit} />
+              <ResetPasswordForm
+                disabled={resetPasswordState.loading}
+                onSubmit={onResetPasswordSubmit}
+                passwordError={resetPasswordState.errors?.password?.[0]}
+              />
               {formSubmissionMessage}
             </>
           ) : null}
 
           <S.NavLink alignLeft={passwordUpdateSuccess}>
-            <Link component={RouterLink} to={SIGN_IN} data-testid="sign-in">
+            <LooseLink component={RouterLink} to={SIGN_IN} data-testid="sign-in">
               Return to Sign In
-            </Link>
+            </LooseLink>
           </S.NavLink>
         </S.FormElements>
 

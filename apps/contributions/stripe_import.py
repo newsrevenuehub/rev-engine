@@ -2,6 +2,7 @@ import datetime
 import itertools
 import json
 import logging
+from contextlib import nullcontext
 from dataclasses import dataclass
 from typing import Any, Callable, Iterable, Tuple
 from urllib.parse import urlparse
@@ -11,13 +12,13 @@ from django.core.serializers.json import DjangoJSONEncoder
 from django.db import IntegrityError, transaction
 
 import backoff
+import sentry_sdk
 import stripe
 import tldextract
 from django_redis import get_redis_connection
 from pydantic import BaseModel, ValidationError
 from redis import Redis
 from redis.client import Pipeline
-from sentry_sdk.hub import Hub
 
 import apps.common.utils as common_utils
 from apps.common.utils import upsert_with_diff_check
@@ -289,11 +290,6 @@ class StripeTransactionsImporter:
         self.created_contributor_ids = set()
         self.created_payment_ids = set()
         self.updated_payment_ids = set()
-
-        hub = Hub.current
-        client = hub.client
-        if client and self.sentry_profiler:
-            client.options["profiles_sampler"] = True
 
     @staticmethod
     def get_redis_for_transactions_import() -> Redis:
@@ -974,19 +970,26 @@ class StripeTransactionsImporter:
 
     def import_contributions_and_payments(self) -> None:
         """This method is responsible for upserting contributors, contributions, and payments for a given stripe account."""
-        started = datetime.datetime.now(datetime.timezone.utc)
-        self.list_and_cache_required_stripe_resources()
-        self.log_memory_usage()
-        self.process_transactions_for_recurring_contributions()
-        self.process_transactions_for_one_time_contributions()
-        self.log_results()
-        self.clear_cache_for_account()
-        logger.info(
-            "Stripe import for account %s took %s",
-            self.stripe_account_id,
-            self.format_timedelta(datetime.datetime.now(datetime.timezone.utc) - started),
-        )
-        self.log_ttl_concerns(started)
+
+        with (
+            sentry_sdk.start_transaction(op="task", name="StripeTransactionsImporter.import_contributions_and_payments")
+            if self.sentry_profiler
+            else nullcontext()
+        ):
+
+            started = datetime.datetime.now(datetime.timezone.utc)
+            self.list_and_cache_required_stripe_resources()
+            self.log_memory_usage()
+            self.process_transactions_for_recurring_contributions()
+            self.process_transactions_for_one_time_contributions()
+            self.log_results()
+            self.clear_cache_for_account()
+            logger.info(
+                "Stripe import for account %s took %s",
+                self.stripe_account_id,
+                self.format_timedelta(datetime.datetime.now(datetime.timezone.utc) - started),
+            )
+            self.log_ttl_concerns(started)
 
     def log_results(self) -> None:
         """Log the results of the stripe import"""

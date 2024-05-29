@@ -32,4 +32,8 @@ export const Input = styled.input`
   border-top-left-radius: ${(props) => props.theme.muiBorderRadius.md};
   border-bottom-left-radius: ${(props) => props.theme.muiBorderRadius.md};
   border: 1px solid ${(props) => props.theme.colors.muiGrey[400]};
+
+  &:focus {
+    outline-color: #00bfdf;
+  }
 `;

@@ -68,6 +68,11 @@ describe('ResetPasswordForm', () => {
     expect(screen.getByRole('button', { name: 'Reset Password' })).toBeDisabled();
   });
 
+  it('shows validation error if passwordError is set', () => {
+    tree({ passwordError: 'mock-custom-validation-error' });
+    expect(screen.getByText('mock-custom-validation-error')).toBeInTheDocument();
+  });
+
   it('is accessible', async () => {
     const { container } = tree();
 

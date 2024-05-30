@@ -10,9 +10,6 @@ import stripe
 from apps.contributions.management.commands.fix_imported_contributions_with_incorrect_donation_page_value import (
     REVISION_COMMENT,
 )
-from apps.contributions.management.commands.import_stripe_transactions_data import (
-    Command as ImportStripeTransactionsDataCommand,
-)
 from apps.contributions.models import Payment
 from apps.contributions.tests.factories import (
     ContributionFactory,
@@ -182,25 +179,32 @@ class Test_import_stripe_transactions_data:
     @pytest.mark.parametrize("async_mode", (False, True))
     @pytest.mark.parametrize("for_orgs", (True, False))
     @pytest.mark.parametrize("suppress_stripe_info_logs", (True, False))
-    def test_handle(self, async_mode, mocker, for_orgs, suppress_stripe_info_logs):
-        mocker.patch(
-            "apps.contributions.management.commands.import_stripe_transactions_data.Command.stripe_account_connected",
-            return_value=True,
-        )
+    @pytest.mark.parametrize("stripe_account_error", (False, True))
+    def test_handle(self, async_mode, mocker, for_orgs, suppress_stripe_info_logs, stripe_account_error):
         provider_1 = PaymentProviderFactory()
         provider_2 = PaymentProviderFactory()
         rp_1 = RevenueProgramFactory(payment_provider=provider_1)
+
         mock_importer = mocker.patch(
             "apps.contributions.management.commands.import_stripe_transactions_data.StripeTransactionsImporter"
         )
-
+        if stripe_account_error:
+            mock_importer.return_value.import_contributions_and_payments.side_effect = stripe.error.StripeError(
+                "Ruh roh"
+            )
         mock_task = mocker.patch(
             "apps.contributions.tasks.task_import_contributions_and_payments_for_stripe_account.delay"
         )
         call_command(
             "import_stripe_transactions_data",
             async_mode=async_mode,
-            for_orgs=[rp_1.organization.id] if for_orgs else [],
+            for_orgs=(
+                [
+                    rp_1.organization.id,
+                ]
+                if for_orgs
+                else []
+            ),
             for_stripe_accounts=[provider_2.stripe_account_id] if not for_orgs else [],
             suppress_stripe_info_logs=suppress_stripe_info_logs,
         )
@@ -210,25 +214,6 @@ class Test_import_stripe_transactions_data:
         else:
             mock_importer.assert_called_once()
             mock_task.assert_not_called()
-
-    def test_handle_when_disconnected_accounts(self, mocker):
-        mocker.patch(
-            "apps.contributions.management.commands.import_stripe_transactions_data.Command.stripe_account_connected",
-            return_value=False,
-        )
-        provider = PaymentProviderFactory()
-        RevenueProgramFactory(payment_provider=provider)
-        call_command(
-            "import_stripe_transactions_data",
-            for_stripe_accounts=[provider.stripe_account_id],
-        )
-
-    @pytest.mark.parametrize("permission_error", [True, False])
-    def test_stripe_account_connected(self, permission_error, mocker):
-        mock_stripe = mocker.patch("stripe.Account.retrieve")
-        if permission_error:
-            mock_stripe.side_effect = stripe.error.PermissionError("Not allowed")
-        assert ImportStripeTransactionsDataCommand.stripe_account_connected("acct_1") == (not permission_error)
 
 
 @pytest.fixture()

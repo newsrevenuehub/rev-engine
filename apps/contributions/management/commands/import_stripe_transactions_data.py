@@ -68,25 +68,11 @@ class Command(BaseCommand):
             stripe_logger = logging.getLogger("stripe")
             stripe_logger.setLevel(logging.ERROR)
 
-    @staticmethod
-    def stripe_account_connected(stripe_account_id: str) -> bool:
-        try:
-            stripe.Account.retrieve(stripe_account_id)
-        except stripe.error.PermissionError:
-            return False
-        else:
-            return True
-
     def handle(self, *args, **options):
         command_name = os.path.basename(__file__).split(".")[0]
         self.stdout.write(self.style.HTTP_INFO(f"Running {command_name}"))
         self.configure_stripe_log_level(options["suppress_stripe_info_logs"])
-        _account_ids = self.get_stripe_account_ids(options["for_orgs"], options["for_stripe_accounts"])
-        account_ids = [account for account in _account_ids if self.stripe_account_connected(account)]
-        if disconnected := set(_account_ids) - set(account_ids):
-            self.stdout.write(
-                self.style.WARNING(f"Stripe account(s) {disconnected} are not connected and will not be processed.")
-            )
+        account_ids = self.get_stripe_account_ids(options["for_orgs"], options["for_stripe_accounts"])
         for account in account_ids:
             if options["async_mode"]:
                 result = task_import_contributions_and_payments_for_stripe_account.delay(
@@ -102,13 +88,18 @@ class Command(BaseCommand):
                     )
                 )
             else:
-                StripeTransactionsImporter(
-                    from_date=options["gte"],
-                    to_date=options["lte"],
-                    stripe_account_id=account,
-                    retrieve_payment_method=options["retrieve_payment_method"],
-                    sentry_profiler=options["sentry_profiler"],
-                ).import_contributions_and_payments()
-                self.stdout.write(self.style.SUCCESS(f"Import transactions for account {account} is done"))
+                try:
+                    StripeTransactionsImporter(
+                        from_date=options["gte"],
+                        to_date=options["lte"],
+                        stripe_account_id=account,
+                        retrieve_payment_method=options["retrieve_payment_method"],
+                        sentry_profiler=options["sentry_profiler"],
+                    ).import_contributions_and_payments()
+                # this will happen if the stripe account is not connected
+                except stripe.error.StripeError as e:
+                    self.stdout.write(self.style.ERROR(f"Error importing transactions for account {account}: {e}"))
+                else:
+                    self.stdout.write(self.style.SUCCESS(f"Import transactions for account {account} is done"))
 
         self.stdout.write(self.style.SUCCESS(f"{command_name} is done"))

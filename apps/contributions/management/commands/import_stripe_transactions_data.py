@@ -4,6 +4,7 @@ import os
 from django.core.management.base import BaseCommand, CommandParser
 
 import dateparser
+import stripe
 
 from apps.contributions.stripe_import import StripeTransactionsImporter
 from apps.contributions.tasks import task_import_contributions_and_payments_for_stripe_account
@@ -67,11 +68,25 @@ class Command(BaseCommand):
             stripe_logger = logging.getLogger("stripe")
             stripe_logger.setLevel(logging.ERROR)
 
+    @staticmethod
+    def stripe_account_connected(stripe_account_id: str) -> bool:
+        try:
+            stripe.Account.retrieve(stripe_account_id)
+        except stripe.error.PermissionError:
+            return False
+        else:
+            return True
+
     def handle(self, *args, **options):
         command_name = os.path.basename(__file__).split(".")[0]
         self.stdout.write(self.style.HTTP_INFO(f"Running {command_name}"))
         self.configure_stripe_log_level(options["suppress_stripe_info_logs"])
-        account_ids = self.get_stripe_account_ids(options["for_orgs"], options["for_stripe_accounts"])
+        _account_ids = self.get_stripe_account_ids(options["for_orgs"], options["for_stripe_accounts"])
+        account_ids = [account for account in _account_ids if self.stripe_account_connected(account)]
+        if disconnected := set(_account_ids) - set(account_ids):
+            self.stdout.write(
+                self.style.WARNING(f"Stripe account(s) {disconnected} are not connected and will not be processed.")
+            )
         for account in account_ids:
             if options["async_mode"]:
                 result = task_import_contributions_and_payments_for_stripe_account.delay(

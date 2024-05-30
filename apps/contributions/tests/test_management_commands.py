@@ -189,7 +189,7 @@ class Test_import_stripe_transactions_data:
             "apps.contributions.management.commands.import_stripe_transactions_data.StripeTransactionsImporter"
         )
         if stripe_account_error:
-            mock_importer.return_value.import_contributions_and_payments.side_effect = stripe.error.StripeError(
+            mock_importer.return_value.import_contributions_and_payments.side_effect = stripe.error.PermissionError(
                 "Ruh roh"
             )
         mock_task = mocker.patch(

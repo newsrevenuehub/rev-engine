@@ -97,7 +97,7 @@ class Command(BaseCommand):
                         sentry_profiler=options["sentry_profiler"],
                     ).import_contributions_and_payments()
                 # this will happen if the stripe account is not connected
-                except stripe.error.StripeError as e:
+                except stripe.error.PermissionError as e:
                     self.stdout.write(self.style.ERROR(f"Error importing transactions for account {account}: {e}"))
                 else:
                     self.stdout.write(self.style.SUCCESS(f"Import transactions for account {account} is done"))

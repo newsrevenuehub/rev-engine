@@ -970,13 +970,11 @@ class StripeTransactionsImporter:
 
     def import_contributions_and_payments(self) -> None:
         """This method is responsible for upserting contributors, contributions, and payments for a given stripe account."""
-
         with (
             sentry_sdk.start_transaction(op="task", name="StripeTransactionsImporter.import_contributions_and_payments")
             if self.sentry_profiler
             else nullcontext()
         ):
-
             started = datetime.datetime.now(datetime.timezone.utc)
             self.list_and_cache_required_stripe_resources()
             self.log_memory_usage()

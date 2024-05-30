@@ -134,9 +134,7 @@ class TestDonationPage:
 
     def test_cannot_delete_when_related_contributions(self, mocker):
         page = DonationPageFactory()
-        # TODO: DEV-3026
-        with mocker.patch("apps.contributions.models.Contribution.fetch_stripe_payment_method", return_value=None):
-            ContributionFactory(donation_page=page)
+        ContributionFactory(donation_page=page)
         with pytest.raises(ProtectedError) as protected_error:
             page.delete()
         assert protected_error.value.args[0] == (

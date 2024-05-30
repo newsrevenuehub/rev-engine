@@ -1,0 +1,59 @@
+from django.core.management.base import BaseCommand
+
+import reversion
+import stripe
+
+from apps.contributions.models import Contribution
+
+
+class Command(BaseCommand):
+    def handle(self, *args, **options):
+        self.stdout.write(self.style.HTTP_INFO("Running `fix_recurring_contribution_missing_provider_subscription_id`"))
+        contributions = Contribution.objects.recurring().filter(provider_subscription_id=None)
+        if not contributions.exists():
+            self.stdout.write(
+                self.style.HTTP_INFO("No recurring contributions with missing provider subscription ID found")
+            )
+            return
+        self.stdout.write(
+            self.style.HTTP_INFO(f"{len(contributions)} recurring contributions are missing provider subscription IDs")
+        )
+        fixed = 0
+        for contribution in contributions:
+            # The general approach here is to find the subscription ID by walking through the Stripe data:
+            # payment intent -> invoice -> subscription
+
+            self.stdout.write(self.style.HTTP_INFO(f"Investigating contribution ID {contribution.id}"))
+            if not contribution.provider_payment_id:
+                self.stdout.write(self.style.WARNING("Contribution has no provider payment intent ID, skipping"))
+                continue
+            try:
+                intent = stripe.PaymentIntent.retrieve(
+                    contribution.provider_payment_id, stripe_account=contribution.stripe_account_id, expand=["invoice"]
+                )
+            except stripe.error.InvalidRequestError:
+                account_id = contribution.stripe_account_id
+                self.stdout.write(
+                    self.style.ERROR(
+                        f"Couldn't retrieve payment intent {contribution.provider_payment_id} for account {account_id}, skipping"
+                    )
+                )
+                continue
+            if not getattr(intent, "invoice", None):
+                self.stdout.write(self.style.WARNING("Payment intent has no invoice, skipping"))
+                continue
+            if not getattr(intent.invoice, "subscription", None):
+                self.stdout.write(self.style.WARNING("Invoice has no subscription ID, skipping"))
+                continue
+            with reversion.create_revision():
+                contribution.provider_subscription_id = intent.invoice.subscription
+                contribution.save(update_fields={"modified", "provider_subscription_id"})
+                reversion.set_comment("Updated by fix_recurring_contribution_missing_provider_subscription_id command")
+            c_id = contribution.id
+            self.stdout.write(
+                self.style.SUCCESS(
+                    f"Set subscription ID {contribution.provider_subscription_id} on contribution {c_id}"
+                )
+            )
+            fixed += 1
+        self.stdout.write(self.style.HTTP_INFO(f"Finished: {fixed} of {len(contributions)} contributions fixed"))

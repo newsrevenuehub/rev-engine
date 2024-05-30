@@ -14,19 +14,11 @@ export function GoogleAnalyticsIntegrationCard() {
       isRequired={false}
       site={{
         label: 'analytics.google.com',
-        url: 'https://www.analytics.google.com'
+        url: 'https://analytics.google.com'
       }}
       description="Connect to Google Analytics to see site traffic trends to RevEngine pages."
-      toggleLabel={
-        <>
-          Contact{' '}
-          <a href={HELP_URL} style={{ textDecoration: 'underline' }} target="_blank" rel="noreferrer">
-            Support
-          </a>{' '}
-          to Connect
-        </>
-      }
-      toggleTooltipMessage="Contact our Support Staff to integrate with Google Analytics"
+      toggleLabel="Not Connected"
+      toggleTooltipMessage="Coming soon"
       disabled
       toggleConnectedTooltipMessage={
         <>

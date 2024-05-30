@@ -40,7 +40,7 @@ const IntegrationCard = ({
         <Tooltip
           interactive
           title={
-            <p style={{ color: 'white', margin: 0 }}>
+            <p style={{ color: 'white', margin: 0, maxWidth: 230 }}>
               {isActive ? card.toggleConnectedTooltipMessage ?? card.toggleTooltipMessage : card.toggleTooltipMessage}
             </p>
           }

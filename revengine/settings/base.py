@@ -16,15 +16,15 @@ from datetime import timedelta
 from pathlib import Path
 from typing import Literal, TypedDict
 
-from revengine.utils import __ensure_gs_credentials
+from revengine.utils import __ensure_gs_credentials, get_bool_envvar
 
 
-DEBUG = os.getenv("DJANGO_DEBUG", "False") == "True"
+DEBUG = get_bool_envvar("DJANGO_DEBUG", False)
 # Set USE_DEBUG_INTERVALS to True if you want recurring payment intervals to
 # be truncated for testing (as much as possible, currently).
-USE_DEBUG_INTERVALS = os.getenv("USE_DEBUG_INTERVALS", False)
+USE_DEBUG_INTERVALS = get_bool_envvar("USE_DEBUG_INTERVALS", False)
 
-ENABLE_API_BROWSER = os.getenv("ENABLE_API_BROWSER", "false").lower() == "true"
+ENABLE_API_BROWSER = get_bool_envvar("ENABLE_API_BROWSER", False)
 
 # Build paths inside the project like this: BASE_DIR /  ...
 PROJECT_DIR = Path(__file__).resolve().parent.parent
@@ -97,15 +97,15 @@ DEFAULT_FILE_STORAGE = os.getenv("DEFAULT_FILE_STORAGE", "django.core.files.stor
 GOOGLE_CLOUD_PROJECT = os.getenv("GOOGLE_CLOUD_PROJECT", "revenue-engine")
 GOOGLE_CLOUD_PROJECT_ID = os.getenv("GS_PROJECT_ID", None)
 #   Pub/Sub
-ENABLE_PUBSUB = os.getenv("ENABLE_PUBSUB", "false").lower() == "true"
+ENABLE_PUBSUB = get_bool_envvar("ENABLE_PUBSUB", False)
 PAGE_PUBLISHED_TOPIC = os.getenv("PAGE_PUBLISHED_TOPIC", None)
 NEW_USER_TOPIC = os.getenv("NEW_USER_TOPIC", None)
 #   Secret Manager
-ENABLE_GOOGLE_CLOUD_SECRET_MANAGER = os.getenv("ENABLE_GOOGLE_CLOUD_SECRET_MANAGER", "false").lower() == "true"
+ENABLE_GOOGLE_CLOUD_SECRET_MANAGER = get_bool_envvar("ENABLE_GOOGLE_CLOUD_SECRET_MANAGER", False)
 
 GS_CREDENTIALS = __ensure_gs_credentials(
     gs_service_account_raw=os.getenv("GS_SERVICE_ACCOUNT", None),
-    raise_on_unset=os.getenv("GS_CREDENTIALS_RAISE_ERROR_IF_UNSET", "true").lower() == "true",
+    raise_on_unset=get_bool_envvar("GS_CREDENTIALS_RAISE_ERROR_IF_UNSET", True),
 )
 
 # Application definition
@@ -211,7 +211,7 @@ if os.getenv("DATABASE_URL"):
 
     db_from_env = dj_database_url.config(
         conn_max_age=500,
-        ssl_require=os.getenv("DATABASE_SSL", False),
+        ssl_require=get_bool_envvar("DATABASE_SSL", False),
     )
     DATABASES["default"].update(db_from_env)
 
@@ -246,7 +246,7 @@ STRIPE_TRANSACTIONS_IMPORT_CACHE = "stripe_transactions_import"
 # evicted before the TTL. Also, note the existence of python manage.py clear_cache, which can be used to clear the cache
 # related to Stripe transactions import runs.
 STRIPE_TRANSACTIONS_IMPORT_CACHE_TTL = int(
-    os.getenv("STRIPE_TRANSACTIONS_IMPORT_CACHE_TTL", 60 * 60 * 25)  # default is 25 hours
+    os.getenv("STRIPE_TRANSACTIONS_IMPORT_CACHE_TTL", str(60 * 60 * 25))  # default is 25 hours
 )
 
 REDIS_URL = os.getenv("REDIS_TLS_URL", os.getenv("REDIS_URL", "redis://redis:6379"))
@@ -431,9 +431,9 @@ CSP_OBJECT_SRC = ("'none'",)
 
 ### https://django-rest-framework-simplejwt.readthedocs.io/en/latest/settings.html
 SIMPLE_JWT = {
-    "ACCESS_TOKEN_LIFETIME": timedelta(hours=float(os.getenv("ACCESS_TOKEN_LIFETIME_HOURS", 12))),
+    "ACCESS_TOKEN_LIFETIME": timedelta(hours=float(os.getenv("ACCESS_TOKEN_LIFETIME_HOURS", "12"))),
     "REFRESH_TOKEN_LIFETIME": timedelta(days=2),
-    "UPDATE_LAST_LOGIN": os.getenv("UPDATE_LAST_LOGIN", True),
+    "UPDATE_LAST_LOGIN": get_bool_envvar("UPDATE_LAST_LOGIN", True),
 }
 
 SECURE_SSL_REDIRECT = os.getenv("SECURE_SSL_REDIRECT", "true").lower() == "true"

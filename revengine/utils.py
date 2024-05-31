@@ -1,5 +1,6 @@
 import base64
 import json
+import os
 
 from django.core.exceptions import ImproperlyConfigured
 
@@ -31,3 +32,23 @@ def __ensure_gs_credentials(
         raise ImproperlyConfigured("Cannot load Google Storage service account credentials")
 
     return credentials
+
+
+def get_bool_envvar(envvar, default="default_sentinal_value"):
+    """Return environment variable as Python boolean.
+
+    If envvar is set but value is not (case insensitive) "True" or "False", RuntimeError is raised.
+    If no default provided and envvar is not set, RuntimeError is raised.
+    """
+    value = os.getenv(envvar, default)
+    if value == "default_sentinal_value":
+        raise RuntimeError(f"Required environment variable {envvar} is not set.")
+    if value is True or value is False:
+        return value
+    if isinstance(value, str):
+        text = value.lower().strip()
+        if text == "true":
+            return True
+        if text == "false":
+            return False
+    raise RuntimeError(f'Environment variable {envvar} must be "boolean" like, not "{value}".')

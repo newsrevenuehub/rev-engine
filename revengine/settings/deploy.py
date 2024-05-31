@@ -114,4 +114,4 @@ if SENTRY_ENABLE_BACKEND and SENTRY_DSN_BACKEND:
     ignore_logger("django.security.DisallowedHost")
 
 
-USE_DEBUG_INTERVALS = os.getenv("USE_DEBUG_INTERVALS", False)
+USE_DEBUG_INTERVALS = get_bool_envvar("USE_DEBUG_INTERVALS", False)

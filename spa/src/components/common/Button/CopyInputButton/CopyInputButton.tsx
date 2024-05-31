@@ -2,7 +2,7 @@ import PropTypes, { InferProps } from 'prop-types';
 import CheckIcon from '@material-ui/icons/Check';
 import { useAlert } from 'react-alert';
 
-import { Title, Input, CopyButton } from './CopyInputButton.styled';
+import { Title, Wrapper, Input, CopyButton } from './CopyInputButton.styled';
 
 type CopyInputButtonProps = InferProps<typeof CopyInputButtonPropTypes>;
 
@@ -13,7 +13,7 @@ const CopyInputButton = ({ title, link, copied, setCopied, 'data-testid': dataTe
   return (
     <div>
       <Title>{title}</Title>
-      <div style={{ display: 'flex' }}>
+      <Wrapper>
         <Input
           value={link}
           inputProps={{
@@ -45,7 +45,7 @@ const CopyInputButton = ({ title, link, copied, setCopied, 'data-testid': dataTe
             'Copy'
           )}
         </CopyButton>
-      </div>
+      </Wrapper>
     </div>
   );
 };

@@ -9,6 +9,10 @@ export const Title = styled.p`
   font-size: ${(props) => props.theme.fontSizesUpdated.md};
 `;
 
+export const Wrapper = styled.div`
+  display: flex;
+`;
+
 export const CopyButton = styled(MuiButton)<{ $copied: boolean }>`
   && {
     min-width: 95px;
@@ -32,6 +36,10 @@ export const Input = styled(TextField)`
 
   .NreTextFieldInputRoot {
     margin-top: 0;
+  }
+
+  && .NreTextFieldInput {
+    font-size: ${(props) => props.theme.fontSizesUpdated.sm};
   }
 
   .NreTextFieldInput:focus {

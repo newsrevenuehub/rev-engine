@@ -7,16 +7,16 @@ from apps.contributions.payment_managers import PaymentProviderError, StripePaym
 from apps.contributions.tests.factories import ContributionFactory
 
 
-@pytest.mark.django_db
+@pytest.mark.django_db()
 class TestStripePaymentManager:
     @pytest.mark.parametrize(
         "make_contribution_fn,",
-        (
+        [
             lambda: ContributionFactory(one_time=True, flagged=True),
             lambda: ContributionFactory(monthly_subscription=True, flagged=True),
-        ),
+        ],
     )
-    @pytest.mark.parametrize("reject", (True, False))
+    @pytest.mark.parametrize("reject", [True, False])
     def test_complete_payment(self, make_contribution_fn, reject, mocker):
         spm = StripePaymentManager(contribution=(contribution := make_contribution_fn()))
         mock_pi_retrieve = mocker.patch("stripe.PaymentIntent.retrieve")

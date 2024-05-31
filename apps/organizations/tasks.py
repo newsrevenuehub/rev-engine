@@ -17,12 +17,10 @@ MAILCHIMP_OAUTH_CALLBACK_URL = f"{settings.SITE_URL}/mailchimp/oauth_success/"
 MAILCHIMP_GET_SERVER_PREFIX_URL = "https://login.mailchimp.com/oauth2/metadata"
 
 
-class MailchimpAuthflowRetryableError(Exception):
-    """ """
+class MailchimpAuthflowRetryableError(Exception): ...
 
 
-class MailchimpAuthflowUnretryableError(Exception):
-    """"""
+class MailchimpAuthflowUnretryableError(Exception): ...
 
 
 @shared_task(
@@ -60,16 +58,16 @@ def exchange_mc_oauth_code_for_mc_access_token(oauth_code: str) -> str:
         "making a request to Mailchimp with the following data: %s",
         request_data | {"code": "REDACTED", "client_secret": "REDACTED"},
     )
-    response = requests.post(MAILCHIMP_EXCHANGE_OAUTH_CODE_FOR_ACCESS_TOKEN_URL, data=request_data)
+    response = requests.post(
+        MAILCHIMP_EXCHANGE_OAUTH_CODE_FOR_ACCESS_TOKEN_URL, data=request_data, timeout=settings.REQUESTS_TIMEOUT_DEFAULT
+    )
 
     if response.status_code != status.HTTP_200_OK:
         logger.error(
-            (
-                "`exchange_mc_oauth_code_for_mc_access_token` got an unexpected status code when trying to get an access token. "
-                "The response status code is %s, and the response contained: %s"
-            ),
+            "`exchange_mc_oauth_code_for_mc_access_token` got an unexpected status code when trying to get an access token."
+            " The response status code is %s, and the response contained: %s",
             response.status_code,
-            getattr(response, "json", lambda: {})() or {},
+            getattr(response, "json", dict)() or {},
         )
         raise MailchimpAuthflowRetryableError(
             f"`exchange_mc_oauth_code_for_mc_access_token` got an unexpected response status code of {response.status_code}"
@@ -85,11 +83,13 @@ def exchange_mc_oauth_code_for_mc_access_token(oauth_code: str) -> str:
 
 
 def get_mailchimp_server_prefix(access_token: str) -> str:
-    """
-    NB: Don't log or expose access token in any error messages.
-    """
+    """NB: Don't log or expose access token in any error messages."""
     logger.info("get_mailchimp_server_prefix called with access_token was called")
-    response = requests.get(MAILCHIMP_GET_SERVER_PREFIX_URL, headers={"Authorization": f"OAuth {access_token}"})
+    response = requests.get(
+        MAILCHIMP_GET_SERVER_PREFIX_URL,
+        headers={"Authorization": f"OAuth {access_token}"},
+        timeout=settings.REQUESTS_TIMEOUT_DEFAULT,
+    )
     if response.status_code != status.HTTP_200_OK:
         logger.error("get_mailchimp_server_prefix called but got a non-200 status code: %s", response.status_code)
         raise MailchimpAuthflowRetryableError(
@@ -108,7 +108,7 @@ def get_mailchimp_server_prefix(access_token: str) -> str:
 
 @shared_task(autoretry_for=(MailchimpAuthflowRetryableError,), retry_backoff=True, retry_kwargs={"max_retries": 3})
 def exchange_mailchimp_oauth_code_for_server_prefix_and_access_token(rp_id: int, oauth_code: str) -> None:
-    """Exchange an Oauth code for an access token and a server prefix
+    """Exchange an Oauth code for an access token and a server prefix.
 
     After a user completes the form on Mailchimp's site, they are redirected back to the SPA and provided with
     an Oauth code from Mailchimp. The view function calls this task which exchanges the Oauth code for an access token,
@@ -132,7 +132,8 @@ def exchange_mailchimp_oauth_code_for_server_prefix_and_access_token(rp_id: int,
     try:
         if not (token := revenue_program.mailchimp_access_token):
             logger.info(
-                "exchange_mailchimp_oauth_code_for_server_prefix_and_access_token is attempting to exchange an oauth code for an access token for RP with ID %s",
+                "exchange_mailchimp_oauth_code_for_server_prefix_and_access_token is attempting to exchange"
+                " an oauth code for an access token for RP with ID %s",
                 rp_id,
             )
             token = exchange_mc_oauth_code_for_mc_access_token(oauth_code)
@@ -141,16 +142,15 @@ def exchange_mailchimp_oauth_code_for_server_prefix_and_access_token(rp_id: int,
             revenue_program.mailchimp_access_token = token
         if token and not revenue_program.mailchimp_server_prefix:
             logger.info(
-                "exchange_mailchimp_oauth_code_for_server_prefix_and_access_token is attempting to retrieve the MC server prefix for RP with ID %s",
+                "exchange_mailchimp_oauth_code_for_server_prefix_and_access_token is attempting to retrieve the MC"
+                " server prefix for RP with ID %s",
                 rp_id,
             )
             update_data["mailchimp_server_prefix"] = get_mailchimp_server_prefix(token)
     except MailchimpAuthflowUnretryableError:
         logger.exception(
-            (
-                "`exchange_mailchimp_oauth_code_for_server_prefix_and_access_token` encountered an unrecoverable error "
-                "procesesing revenue program with ID %s"
-            ),
+            "`exchange_mailchimp_oauth_code_for_server_prefix_and_access_token` encountered an unrecoverable error"
+            " procesesing revenue program with ID %s",
             rp_id,
         )
     finally:

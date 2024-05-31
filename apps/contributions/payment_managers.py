@@ -17,11 +17,7 @@ logger = logging.getLogger(f"{settings.DEFAULT_LOGGER}.{__name__}")
 
 
 class PaymentProviderError(Exception):
-    """
-    A PaymentProviderError generalizes all the errors that might be returned by various payment providers.
-    """
-
-    pass
+    """A PaymentProviderError generalizes all the errors that might be returned by various payment providers."""
 
 
 class PaymentManager:
@@ -35,9 +31,9 @@ class PaymentManager:
     flagged_date = None
 
     def __init__(self, data=None, contribution=None):
-        """
-        The PaymentManager class and its subclasses behave much like a ModelSerializer,
-        but they operate on multiple local models as well as models held by the payment provider.
+        """PaymentManager class and its subclasses behave much like a ModelSerializer.
+
+        But they operate on multiple local models as well as models held by the payment provider.
 
         A PaymentManager instantiated with `data` acts as a serializer for that data.
         It is able to validate and process the data, creating new model instances both
@@ -74,10 +70,7 @@ class StripePaymentManager(PaymentManager):
     payment_provider_name = PaymentProvider.STRIPE_LABEL
 
     def get_serializer_class(self, data=None, contribution=None):
-        """
-        Get serializer class based on whether data or contribution instance have interval of one-time,
-        or something else.
-        """
+        """Return serializer class based on whether data or contribution instance have interval of one-time, or something else."""
         interval = contribution.interval if contribution else data["interval"]
         if interval == ContributionInterval.ONE_TIME:
             return StripeOneTimePaymentSerializer
@@ -92,15 +85,13 @@ class StripePaymentManager(PaymentManager):
             )
         except (stripe.error.StripeError, stripe.error.InvalidRequestError):
             logger.exception(
-                (
-                    "`StripePaymentManager.attach_payment_method_to_customer` resulted in a StripeError for stripe_customer_id "
-                    "%s org_stripe_account %s payment_method_id %s",
-                ),
+                "`StripePaymentManager.attach_payment_method_to_customer` resulted in a StripeError for stripe_customer_id"
+                " %s org_stripe_account %s payment_method_id %s",
                 stripe_customer_id,
                 org_stripe_account,
                 payment_method_id,
             )
-            raise PaymentProviderError("Something went wrong with Stripe")
+            raise PaymentProviderError("Something went wrong with Stripe") from None
 
     def complete_payment(self, reject=False):
         if self.contribution.interval == ContributionInterval.ONE_TIME:
@@ -137,7 +128,7 @@ class StripePaymentManager(PaymentManager):
                     self.contribution.provider_payment_id,
                     self.contribution.pk,
                 )
-                raise PaymentProviderError("Cannot cancel payment intent")
+                raise PaymentProviderError("Cannot cancel payment intent") from None
         else:
             try:
                 logger.info("StripePaymentManager.complete_one_time_payment capturing Stripe PI %s", pi.id)
@@ -151,7 +142,7 @@ class StripePaymentManager(PaymentManager):
                     "`StripePaymentManager.complete_one_time_payment` error capturing payment intent for id (%s}",
                     self.contribution.pk,
                 )
-                raise PaymentProviderError("Something went wrong with Stripe")
+                raise PaymentProviderError("Something went wrong with Stripe") from None
         if update_data:
             with reversion.create_revision():
                 for key, value in update_data.items():
@@ -187,12 +178,13 @@ class StripePaymentManager(PaymentManager):
                     "`StripePaymentManager.complete_recurring_payment` error detaching payment method for contribution with ID %s",
                     self.contribution.id,
                 )
-                raise PaymentProviderError("Cannot retrieve payment data")
+                raise PaymentProviderError("Cannot retrieve payment data") from None
 
         else:
             if not si:
                 logger.error(
-                    "`StripePaymentManager.complete_recurring_payment` error retrieving setup intent for contribution with ID %s and setup intent ID %s",
+                    "`StripePaymentManager.complete_recurring_payment` error retrieving setup intent for contribution"
+                    " with ID %s and setup intent ID %s",
                     self.contribution.id,
                     self.contribution.provider_setup_intent_id,
                 )
@@ -222,9 +214,9 @@ class StripePaymentManager(PaymentManager):
                         "provider_payment_id": subscription.latest_invoice.payment_intent.id,
                     }
                 )
-            except stripe.error.StripeError as stripe_error:
-                message = stripe_error.error.message if stripe_error.error else "Could not complete payment"
-                raise PaymentProviderError(message)
+            except stripe.error.StripeError as exc:
+                message = exc.error.message if exc.error else "Could not complete payment"
+                raise PaymentProviderError(message) from exc
 
         if update_data:
             for key, value in update_data.items():

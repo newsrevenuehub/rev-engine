@@ -6,7 +6,7 @@ from apps.config.models import DenyListWord
 from apps.config.tests.factories import DenyListWordFactory
 
 
-@pytest.mark.django_db
+@pytest.mark.django_db()
 class TestDenyListWord:
     @pytest.fixture()
     def word(self):
@@ -21,3 +21,7 @@ class TestDenyListWord:
         word_lower = DenyListWord.objects.get(word=word.word.lower())
         word_upper = DenyListWord.objects.get(word=word.word.upper())
         assert word_lower == word_upper
+
+    def test_basics(self):
+        t = DenyListWord(word="z0mg")
+        assert str(t) == "z0mg"

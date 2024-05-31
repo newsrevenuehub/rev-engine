@@ -16,6 +16,7 @@ import base64
 import datetime
 import json
 from dataclasses import asdict
+from pathlib import Path
 from random import choice, randint, uniform
 
 from django.core.cache import cache
@@ -53,32 +54,32 @@ def domain_apex(settings):
     return settings.DOMAIN_APEX
 
 
-@pytest.fixture
+@pytest.fixture()
 def api_client():
-    """A DRF test API client that can be used to make API-level requests"""
+    """Return DRF test API client that can be used to make API-level requests."""
     return APIClient()
 
 
 @pytest.fixture(autouse=True)
-def dont_use_ssl(settings):
+def _dont_use_ssl(settings):
     settings.SECURE_SSL_REDIRECT = False
 
 
 @pytest.fixture(autouse=True)
-def suppress_google_cloud_secret_manager(settings):
-    """Suppresses calls to Google Cloud Secret Manager in tests"""
+def _suppress_google_cloud_secret_manager(settings):
+    """Suppress calls to Google Cloud Secret Manager in tests."""
     settings.ENABLE_GOOGLE_CLOUD_SECRET_MANAGER = False
 
 
-@pytest.fixture
-def suppress_stripe_webhook_sig_verification(mocker):
-    """Makes it so stripe webhook signature verification always succeeds"""
+@pytest.fixture()
+def _suppress_stripe_webhook_sig_verification(mocker):
+    """Make stripe webhook signature verification always succeed."""
     mocker.patch("stripe.webhook.WebhookSignature.verify_header", return_value=True)
 
 
 @pytest.fixture()
-def mock_stripe_retrieve_payment_method(monkeypatch):
-    with open("apps/contributions/tests/fixtures/provider-payment-method-details.json") as f:
+def _mock_stripe_retrieve_payment_method(monkeypatch):
+    with Path("apps/contributions/tests/fixtures/provider-payment-method-details.json").open() as f:
         payment_method_details = json.load(f)
     monkeypatch.setattr(
         "stripe.PaymentMethod.retrieve",
@@ -86,18 +87,18 @@ def mock_stripe_retrieve_payment_method(monkeypatch):
     )
 
 
-@pytest.fixture
+@pytest.fixture()
 def default_feature_flags() -> list[get_waffle_flag_model()]:
     Flag = get_waffle_flag_model()
-    created = []
-    for x in DEFAULT_FLAGS_CONFIG_MAPPING.values():
-        created.append(Flag.objects.get_or_create(name=x["name"], defaults={k: v for k, v in x.items() if k != "name"}))
-    return created
+    return [
+        Flag.objects.get_or_create(name=x["name"], defaults={k: v for k, v in x.items() if k != "name"})
+        for x in DEFAULT_FLAGS_CONFIG_MAPPING.values()
+    ]
 
 
-@pytest.fixture
+@pytest.fixture()
 def hub_admin_user(default_feature_flags) -> User:
-    """A user instance for a hub administrator
+    """Return user instance for a hub administrator.
 
     The following items will be created (insofar as this note is not stale vis-a-vis implementation in RoleAssignmentFactory):
 
@@ -111,9 +112,9 @@ def hub_admin_user(default_feature_flags) -> User:
     return RoleAssignmentFactory(role_type=Roles.HUB_ADMIN).user
 
 
-@pytest.fixture
+@pytest.fixture()
 def org_user_free_plan(default_feature_flags) -> User:
-    """A user instance for a self-onboarded free plan organization user
+    """Return user instance for a self-onboarded free plan organization user.
 
     The following items will be created (insofar as this note is not stale vis-a-vis implementation in RoleAssignmentFactory):
 
@@ -134,14 +135,14 @@ def org_user_free_plan(default_feature_flags) -> User:
     return ra.user
 
 
-@pytest.fixture
+@pytest.fixture()
 def user_with_verified_email_and_tos_accepted():
     return UserFactory(accepted_terms_of_service=datetime.datetime.utcnow(), email_verified=True)
 
 
-@pytest.fixture
+@pytest.fixture()
 def org_user_multiple_rps(org_user_free_plan, default_feature_flags) -> User:
-    """A user instance for an org admin administering multiple RPs
+    """Return user instance for an org admin administering multiple RPs.
 
     The following items will be created (insofar as this note is not stale vis-a-vis implementation in RoleAssignmentFactory):
 
@@ -162,9 +163,9 @@ def org_user_multiple_rps(org_user_free_plan, default_feature_flags) -> User:
     return ra.user
 
 
-@pytest.fixture
+@pytest.fixture()
 def superuser(admin_user, default_feature_flags) -> User:
-    """A user instance for superuser"""
+    """Return user instance for superuser."""
     ra = RoleAssignmentFactory(
         user=admin_user,
         organization=None,
@@ -174,9 +175,9 @@ def superuser(admin_user, default_feature_flags) -> User:
     return ra.user
 
 
-@pytest.fixture
+@pytest.fixture()
 def rp_user(org_user_multiple_rps, default_feature_flags) -> User:
-    """A user instance for a revenue program admin administering a subset of an organization's revenue programs
+    """Return user instance for a revenue program admin administering a subset of an organization's revenue programs.
 
     The following items will be created (insofar as this note is not stale vis-a-vis implementation in RoleAssignmentFactory):
 
@@ -198,27 +199,27 @@ def rp_user(org_user_multiple_rps, default_feature_flags) -> User:
     return ra.user
 
 
-@pytest.fixture
+@pytest.fixture()
 def user_no_role_assignment(default_feature_flags) -> User:
     return UserFactory()
 
 
-@pytest.fixture
+@pytest.fixture()
 def user_with_unexpected_role(org_user_free_plan, default_feature_flags) -> User:
     return RoleAssignmentFactory(role_type="Surprise!").user
 
 
-@pytest.fixture
+@pytest.fixture()
 def contributor_user(default_feature_flags) -> ContributorFactory:
     return ContributorFactory()
 
 
-@pytest.fixture
+@pytest.fixture()
 def organization():
     return OrganizationFactory()
 
 
-@pytest.fixture
+@pytest.fixture()
 def organization_on_core_plan_with_mailchimp_set_up():
     org = OrganizationFactory(core_plan=True)
     # note that an RP in this state will also have a `mailchimp_access_token` set, but that's not stored
@@ -228,42 +229,42 @@ def organization_on_core_plan_with_mailchimp_set_up():
     return org
 
 
-@pytest.fixture
+@pytest.fixture()
 def revenue_program(organization):
     return RevenueProgramFactory(organization=organization)
 
 
-@pytest.fixture
+@pytest.fixture()
 def free_plan_revenue_program():
     return RevenueProgramFactory(onboarded=True, organization=OrganizationFactory(free_plan=True))
 
 
-@pytest.fixture
+@pytest.fixture()
 def core_plan_revenue_program():
     return RevenueProgramFactory(onboarded=True, organization=OrganizationFactory(core_plan=True))
 
 
-@pytest.fixture
+@pytest.fixture()
 def plus_plan_revenue_program():
     return RevenueProgramFactory(onboarded=True, organization=OrganizationFactory(plus_plan=True))
 
 
-@pytest.fixture
+@pytest.fixture()
 def fiscally_sponsored_revenue_program():
     return RevenueProgramFactory(onboarded=True, fiscally_sponsored=True, fiscal_sponsor_name="Sponsor")
 
 
-@pytest.fixture
+@pytest.fixture()
 def nonprofit_revenue_program():
     return RevenueProgramFactory(onboarded=True, non_profit=True)
 
 
-@pytest.fixture
+@pytest.fixture()
 def for_profit_revenue_program():
     return RevenueProgramFactory(onboarded=True, for_profit=True)
 
 
-@pytest.fixture
+@pytest.fixture()
 def live_donation_page():
     return DonationPageFactory(
         published=True,
@@ -271,93 +272,93 @@ def live_donation_page():
     )
 
 
-@pytest.fixture
+@pytest.fixture()
 def style():
     return StyleFactory()
 
 
-@pytest.fixture
+@pytest.fixture()
 def one_time_contribution(live_donation_page):
     return ContributionFactory(donation_page=live_donation_page, one_time=True)
 
 
-@pytest.fixture
+@pytest.fixture()
 def monthly_contribution(live_donation_page):
     return ContributionFactory(donation_page=live_donation_page, monthly_subscription=True)
 
 
-@pytest.fixture
+@pytest.fixture()
 def annual_contribution(live_donation_page):
     return ContributionFactory(donation_page=live_donation_page, annual_subscription=True)
 
 
-@pytest.fixture
+@pytest.fixture()
 def flagged_contribution():
     return ContributionFactory(one_time=True, flagged=True)
 
 
-@pytest.fixture
+@pytest.fixture()
 def rejected_contribution():
     return ContributionFactory(monthly_subscription=True, rejected=True)
 
 
-@pytest.fixture
+@pytest.fixture()
 def canceled_contribution():
     return ContributionFactory(monthly_subscription=True, canceled=True)
 
 
-@pytest.fixture
+@pytest.fixture()
 def refunded_contribution():
     return ContributionFactory(one_time=True, refunded=True)
 
 
-@pytest.fixture
+@pytest.fixture()
 def successful_contribution():
     return ContributionFactory(one_time=True)
 
 
-@pytest.fixture
+@pytest.fixture()
 def processing_contribution():
     return ContributionFactory(processing=True)
 
 
 @pytest.mark.django_db()
-@pytest.fixture
+@pytest.fixture()
 def donation_page():
     return DonationPageFactory()
 
 
-@pytest.fixture
+@pytest.fixture()
 def stripe_payment_intent_retrieve_response():
-    """This is a *dict* version of the data that a retrieved Stripe PaymentIntent object will have
+    """Return *dict* version of a retrieved Stripe PaymentIntent object's data.
 
     The Stripe Python SDK puts that data into a custom object type that can behave both like a dict and
     like a class instance (in terms of dot-based attribute access).
     """
-    with open("apps/contributions/tests/fixtures/stripe-payment-intent-retrieve.json") as fl:
-        return json.load(fl)
+    with Path("apps/contributions/tests/fixtures/stripe-payment-intent-retrieve.json").open() as f:
+        return json.load(f)
 
 
-@pytest.fixture
+@pytest.fixture()
 def stripe_setup_intent_retrieve_response():
-    """This is a *dict* version of the data that a retrieved Stripe SetupIntent object will have
+    """Return *dict* version of a retrieved Stripe SetupIntent object's data.
 
     The Stripe Python SDK puts that data into a custom object type that can behave both like a dict and
     like a class instance (in terms of dot-based attribute access).
     """
-    with open("apps/contributions/tests/fixtures/stripe-setup-intent-retrieve.json") as fl:
-        return json.load(fl)
+    with Path("apps/contributions/tests/fixtures/stripe-setup-intent-retrieve.json").open() as f:
+        return json.load(f)
 
 
-@pytest.fixture
+@pytest.fixture()
 def stripe_subscription_retrieve_response():
-    """This is a *dict* version of the data that a retrieved Stripe Subscription object will have
+    """Return *dict* version of a retrieved Stripe Subscription object's data.
 
     The Stripe Python SDK puts that data into a custom object type that can behave both like a dict and
     like a class instance (in terms of dot-based attribute access).
     """
-    with open("apps/contributions/tests/fixtures/stripe-subscription-retrieve.json") as fl:
-        return json.load(fl)
+    with Path("apps/contributions/tests/fixtures/stripe-subscription-retrieve.json").open() as f:
+        return json.load(f)
 
 
 def make_mock_mailchimp_email_list():
@@ -387,17 +388,17 @@ def make_mock_mailchimp_email_list():
     )
 
 
-@pytest.fixture
+@pytest.fixture()
 def mailchimp_email_list():
     return make_mock_mailchimp_email_list()
 
 
-@pytest.fixture
+@pytest.fixture()
 def mailchimp_email_list_from_api(mailchimp_email_list):
     return asdict(mailchimp_email_list)
 
 
-@pytest.fixture
+@pytest.fixture()
 def mc_connected_rp(revenue_program, mocker):
     mocker.patch(
         "apps.organizations.models.RevenueProgram.mailchimp_access_token",
@@ -410,7 +411,7 @@ def mc_connected_rp(revenue_program, mocker):
     return revenue_program
 
 
-@pytest.fixture
+@pytest.fixture()
 def mailchimp_store_from_api():
     return asdict(
         MailchimpStore(
@@ -437,7 +438,7 @@ def mailchimp_store_from_api():
     )
 
 
-@pytest.fixture
+@pytest.fixture()
 def mailchimp_product_from_api():
     return asdict(
         MailchimpProduct(
@@ -458,7 +459,7 @@ def mailchimp_product_from_api():
     )
 
 
-@pytest.fixture
+@pytest.fixture()
 def mailchimp_contributor_segment_from_api():
     return asdict(
         MailchimpSegment(
@@ -475,7 +476,7 @@ def mailchimp_contributor_segment_from_api():
     )
 
 
-@pytest.fixture
+@pytest.fixture()
 def mailchimp_recurring_contributor_segment_from_api():
     return asdict(
         MailchimpSegment(
@@ -492,7 +493,7 @@ def mailchimp_recurring_contributor_segment_from_api():
     )
 
 
-@pytest.fixture
+@pytest.fixture()
 def minimally_valid_contribution_form_data(donation_page):
     return {
         "agreed_to_pay_fees": True,
@@ -513,7 +514,7 @@ def minimally_valid_contribution_form_data(donation_page):
     }
 
 
-@pytest.fixture
+@pytest.fixture()
 def pi_as_portal_contribution_factory(faker):
     class Factory:
         def get(self, *args, **kwargs):
@@ -540,7 +541,7 @@ def pi_as_portal_contribution_factory(faker):
     return Factory()
 
 
-@pytest.fixture
+@pytest.fixture()
 def valid_metadata_factory(faker, domain_apex):
     VALID_METADTA_V1_1 = {
         "schema_version": "1.1",
@@ -568,9 +569,9 @@ def valid_metadata_factory(faker, domain_apex):
     return Factory()
 
 
-@pytest.fixture
+@pytest.fixture()
 def payment_method_data_factory(faker):
-    """Fixture factory to generate data for a PaymentMethod"""
+    """Fixture factory to generate data for a PaymentMethod."""
     DEFAULT_DATA = {
         "id": faker.pystr_format(string_format="pm_??????"),
         "object": "payment_method",
@@ -603,9 +604,9 @@ def payment_method_data_factory(faker):
     return Factory()
 
 
-@pytest.fixture
+@pytest.fixture()
 def default_paid_pi_data_factory(payment_method_data_factory, valid_metadata_factory, faker):
-    """Fixture factory to generate data for a PaymentIntent"""
+    """Generate data for a PaymentIntent."""
     DEFAULT_DATA = {
         "id": faker.pystr_format(string_format="pi_??????"),
         "object": "payment_intent",
@@ -653,9 +654,9 @@ def default_paid_pi_data_factory(payment_method_data_factory, valid_metadata_fac
     return Factory()
 
 
-@pytest.fixture
+@pytest.fixture()
 def invoice_line_item_data_factory(faker):
-    """Fixture factory to generate data for an InvoiceLineItem"""
+    """Fixture factory to generate data for an InvoiceLineItem."""
     DEFAULT_DATA = {
         "id": faker.pystr_format(string_format="ii_??????"),
         "object": "invoiceitem",
@@ -714,9 +715,9 @@ def invoice_line_item_data_factory(faker):
     return Factory()
 
 
-@pytest.fixture
+@pytest.fixture()
 def plan_data_factory(faker):
-    """Fixture factory to generate data for a Plan"""
+    """Fixture factory to generate data for a Plan."""
     DEFAULT_DATA = {
         "id": faker.pystr_format(string_format="price_??????"),
         "object": "plan",
@@ -746,9 +747,9 @@ def plan_data_factory(faker):
     return Factory()
 
 
-@pytest.fixture
+@pytest.fixture()
 def subscription_data_factory(faker, plan_data_factory, payment_method_data_factory, valid_metadata_factory):
-    """Factory to generate a subscription data
+    """Generate a subscription data factory.
 
     NB: According to the official stripe docs for the version we're on (see
     https://web.archive.org/web/20200907115723/https://stripe.com/docs/api/subscriptions/object), the subscription
@@ -756,7 +757,6 @@ def subscription_data_factory(faker, plan_data_factory, payment_method_data_fact
     library via retrieving a payment intent (that is, if you retrieve a PI expanding pi.invoice.subscription.plan), there is
     indeed a `.plan` attribute. This fixture is meant to represent that data.
     """
-
     DEFAULT_DATA = {
         "id": faker.pystr_format(string_format="sub_??????"),
         "object": "subscription",
@@ -857,9 +857,9 @@ def subscription_data_factory(faker, plan_data_factory, payment_method_data_fact
     return Factory()
 
 
-@pytest.fixture
+@pytest.fixture()
 def invoice_data_for_active_sub_factory(faker, subscription_data_factory, invoice_line_item_data_factory):
-    """Factory for creating data that can be used to create a Stripe invoice using .construct_from
+    """Create data that can be used to create a Stripe invoice using .construct_from factory.
 
     In practice, this is for data that gets returned when retrieving a payment intent
     from Stripe when "invoice.subscription.plan" is expanded (the plan attribute is expanded in `subscription`
@@ -880,7 +880,7 @@ def invoice_data_for_active_sub_factory(faker, subscription_data_factory, invoic
     return Factory()
 
 
-@pytest.fixture
+@pytest.fixture()
 def pi_data_for_active_subscription_factory(
     default_paid_pi_data_factory,
     invoice_data_for_active_sub_factory,
@@ -894,7 +894,7 @@ def pi_data_for_active_subscription_factory(
     return Factory()
 
 
-@pytest.fixture
+@pytest.fixture()
 def pi_for_active_subscription_factory(pi_data_for_active_subscription_factory):
     class Factory:
         def get(self, *args, **kwargs) -> stripe.PaymentIntent:
@@ -905,7 +905,7 @@ def pi_for_active_subscription_factory(pi_data_for_active_subscription_factory):
     return Factory()
 
 
-@pytest.fixture
+@pytest.fixture()
 def pi_for_valid_one_time_factory(default_paid_pi_data_factory):
     class Factory:
         def get(self, *args, **kwargs) -> stripe.PaymentIntent:
@@ -914,7 +914,7 @@ def pi_for_valid_one_time_factory(default_paid_pi_data_factory):
     return Factory()
 
 
-@pytest.fixture
+@pytest.fixture()
 def pi_for_accepted_flagged_recurring_contribution(pi_for_active_subscription_factory):
     pm = stripe.PaymentMethod.construct_from({}, key="test")
     return pi_for_active_subscription_factory.get(
@@ -923,9 +923,9 @@ def pi_for_accepted_flagged_recurring_contribution(pi_for_active_subscription_fa
     )
 
 
-@pytest.fixture
+@pytest.fixture()
 def subscription_factory(subscription_data_factory):
-    """Factory for creating a Stripe subscription object"""
+    """Create Stripe subscription object factory."""
 
     class Factory:
         def get(self, *args, **kwargs) -> stripe.Subscription:
@@ -934,13 +934,13 @@ def subscription_factory(subscription_data_factory):
     return Factory()
 
 
-@pytest.fixture
+@pytest.fixture()
 def payment_intent_succeeded():
-    with open("apps/contributions/tests/fixtures/payment-intent-succeeded-webhook.json") as fl:
-        return json.load(fl)
+    with Path("apps/contributions/tests/fixtures/payment-intent-succeeded-webhook.json").open() as f:
+        return json.load(f)
 
 
-@pytest.fixture
+@pytest.fixture()
 def minimally_valid_google_service_account_credentials():
     # This is a subset of the service account JSON. If any of these key/vals are missing,
     # `service_account.Credentials.from_service_account_info`
@@ -952,34 +952,34 @@ def minimally_valid_google_service_account_credentials():
                 # otherwise complain about committing this private key to source code.
                 "private_key": (
                     "-----BEGIN "
-                    + "PRIVATE KEY-----\n"
-                    + "MIIEvgIBADANBgkqhkiG9w0BAQEFAASCBKgwggSkAgEAAoIBAQDY3E8o1NEFcjMM\n"
-                    + "HW/5ZfFJw29/8NEqpViNjQIx95Xx5KDtJ+nWn9+OW0uqsSqKlKGhAdAo+Q6bjx2c\n"
-                    + "uXVsXTu7XrZUY5Kltvj94DvUa1wjNXs606r/RxWTJ58bfdC+gLLxBfGnB6CwK0YQ\n"
-                    + "xnfpjNbkUfVVzO0MQD7UP0Hl5ZcY0Puvxd/yHuONQn/rIAieTHH1pqgW+zrH/y3c\n"
-                    + "59IGThC9PPtugI9ea8RSnVj3PWz1bX2UkCDpy9IRh9LzJLaYYX9RUd7++dULUlat\n"
-                    + "AaXBh1U6emUDzhrIsgApjDVtimOPbmQWmX1S60mqQikRpVYZ8u+NDD+LNw+/Eovn\n"
-                    + "xCj2Y3z1AgMBAAECggEAWDBzoqO1IvVXjBA2lqId10T6hXmN3j1ifyH+aAqK+FVl\n"
-                    + "GjyWjDj0xWQcJ9ync7bQ6fSeTeNGzP0M6kzDU1+w6FgyZqwdmXWI2VmEizRjwk+/\n"
-                    + "/uLQUcL7I55Dxn7KUoZs/rZPmQDxmGLoue60Gg6z3yLzVcKiDc7cnhzhdBgDc8vd\n"
-                    + "QorNAlqGPRnm3EqKQ6VQp6fyQmCAxrr45kspRXNLddat3AMsuqImDkqGKBmF3Q1y\n"
-                    + "xWGe81LphUiRqvqbyUlh6cdSZ8pLBpc9m0c3qWPKs9paqBIvgUPlvOZMqec6x4S6\n"
-                    + "ChbdkkTRLnbsRr0Yg/nDeEPlkhRBhasXpxpMUBgPywKBgQDs2axNkFjbU94uXvd5\n"
-                    + "znUhDVxPFBuxyUHtsJNqW4p/ujLNimGet5E/YthCnQeC2P3Ym7c3fiz68amM6hiA\n"
-                    + "OnW7HYPZ+jKFnefpAtjyOOs46AkftEg07T9XjwWNPt8+8l0DYawPoJgbM5iE0L2O\n"
-                    + "x8TU1Vs4mXc+ql9F90GzI0x3VwKBgQDqZOOqWw3hTnNT07Ixqnmd3dugV9S7eW6o\n"
-                    + "U9OoUgJB4rYTpG+yFqNqbRT8bkx37iKBMEReppqonOqGm4wtuRR6LSLlgcIU9Iwx\n"
-                    + "yfH12UWqVmFSHsgZFqM/cK3wGev38h1WBIOx3/djKn7BdlKVh8kWyx6uC8bmV+E6\n"
-                    + "OoK0vJD6kwKBgHAySOnROBZlqzkiKW8c+uU2VATtzJSydrWm0J4wUPJifNBa/hVW\n"
-                    + "dcqmAzXC9xznt5AVa3wxHBOfyKaE+ig8CSsjNyNZ3vbmr0X04FoV1m91k2TeXNod\n"
-                    + "jMTobkPThaNm4eLJMN2SQJuaHGTGERWC0l3T18t+/zrDMDCPiSLX1NAvAoGBAN1T\n"
-                    + "VLJYdjvIMxf1bm59VYcepbK7HLHFkRq6xMJMZbtG0ryraZjUzYvB4q4VjHk2UDiC\n"
-                    + "lhx13tXWDZH7MJtABzjyg+AI7XWSEQs2cBXACos0M4Myc6lU+eL+iA+OuoUOhmrh\n"
-                    + "qmT8YYGu76/IBWUSqWuvcpHPpwl7871i4Ga/I3qnAoGBANNkKAcMoeAbJQK7a/Rn\n"
-                    + "wPEJB+dPgNDIaboAsh1nZhVhN5cvdvCWuEYgOGCPQLYQF0zmTLcM+sVxOYgfy8mV\n"
-                    + "fbNgPgsP5xmu6dw2COBKdtozw0HrWSRjACd1N4yGu75+wPCcX/gQarcjRcXXZeEa\n"
-                    + "NtBLSfcqPULqD+h7br9lEJio\n"
-                    + "-----END PRIVATE KEY-----\n"
+                    "PRIVATE KEY-----\n"
+                    "MIIEvgIBADANBgkqhkiG9w0BAQEFAASCBKgwggSkAgEAAoIBAQDY3E8o1NEFcjMM\n"
+                    "HW/5ZfFJw29/8NEqpViNjQIx95Xx5KDtJ+nWn9+OW0uqsSqKlKGhAdAo+Q6bjx2c\n"
+                    "uXVsXTu7XrZUY5Kltvj94DvUa1wjNXs606r/RxWTJ58bfdC+gLLxBfGnB6CwK0YQ\n"
+                    "xnfpjNbkUfVVzO0MQD7UP0Hl5ZcY0Puvxd/yHuONQn/rIAieTHH1pqgW+zrH/y3c\n"
+                    "59IGThC9PPtugI9ea8RSnVj3PWz1bX2UkCDpy9IRh9LzJLaYYX9RUd7++dULUlat\n"
+                    "AaXBh1U6emUDzhrIsgApjDVtimOPbmQWmX1S60mqQikRpVYZ8u+NDD+LNw+/Eovn\n"
+                    "xCj2Y3z1AgMBAAECggEAWDBzoqO1IvVXjBA2lqId10T6hXmN3j1ifyH+aAqK+FVl\n"
+                    "GjyWjDj0xWQcJ9ync7bQ6fSeTeNGzP0M6kzDU1+w6FgyZqwdmXWI2VmEizRjwk+/\n"
+                    "/uLQUcL7I55Dxn7KUoZs/rZPmQDxmGLoue60Gg6z3yLzVcKiDc7cnhzhdBgDc8vd\n"
+                    "QorNAlqGPRnm3EqKQ6VQp6fyQmCAxrr45kspRXNLddat3AMsuqImDkqGKBmF3Q1y\n"
+                    "xWGe81LphUiRqvqbyUlh6cdSZ8pLBpc9m0c3qWPKs9paqBIvgUPlvOZMqec6x4S6\n"
+                    "ChbdkkTRLnbsRr0Yg/nDeEPlkhRBhasXpxpMUBgPywKBgQDs2axNkFjbU94uXvd5\n"
+                    "znUhDVxPFBuxyUHtsJNqW4p/ujLNimGet5E/YthCnQeC2P3Ym7c3fiz68amM6hiA\n"
+                    "OnW7HYPZ+jKFnefpAtjyOOs46AkftEg07T9XjwWNPt8+8l0DYawPoJgbM5iE0L2O\n"
+                    "x8TU1Vs4mXc+ql9F90GzI0x3VwKBgQDqZOOqWw3hTnNT07Ixqnmd3dugV9S7eW6o\n"
+                    "U9OoUgJB4rYTpG+yFqNqbRT8bkx37iKBMEReppqonOqGm4wtuRR6LSLlgcIU9Iwx\n"
+                    "yfH12UWqVmFSHsgZFqM/cK3wGev38h1WBIOx3/djKn7BdlKVh8kWyx6uC8bmV+E6\n"
+                    "OoK0vJD6kwKBgHAySOnROBZlqzkiKW8c+uU2VATtzJSydrWm0J4wUPJifNBa/hVW\n"
+                    "dcqmAzXC9xznt5AVa3wxHBOfyKaE+ig8CSsjNyNZ3vbmr0X04FoV1m91k2TeXNod\n"
+                    "jMTobkPThaNm4eLJMN2SQJuaHGTGERWC0l3T18t+/zrDMDCPiSLX1NAvAoGBAN1T\n"
+                    "VLJYdjvIMxf1bm59VYcepbK7HLHFkRq6xMJMZbtG0ryraZjUzYvB4q4VjHk2UDiC\n"
+                    "lhx13tXWDZH7MJtABzjyg+AI7XWSEQs2cBXACos0M4Myc6lU+eL+iA+OuoUOhmrh\n"
+                    "qmT8YYGu76/IBWUSqWuvcpHPpwl7871i4Ga/I3qnAoGBANNkKAcMoeAbJQK7a/Rn\n"
+                    "wPEJB+dPgNDIaboAsh1nZhVhN5cvdvCWuEYgOGCPQLYQF0zmTLcM+sVxOYgfy8mV\n"
+                    "fbNgPgsP5xmu6dw2COBKdtozw0HrWSRjACd1N4yGu75+wPCcX/gQarcjRcXXZeEa\n"
+                    "NtBLSfcqPULqD+h7br9lEJio\n"
+                    "-----END PRIVATE KEY-----\n"
                 ),
                 "client_email": "123-abc@developer.gserviceaccount.com",
                 "token_uri": "http://localhost:8080/token",
@@ -988,121 +988,121 @@ def minimally_valid_google_service_account_credentials():
     )
 
 
-@pytest.fixture
+@pytest.fixture()
 def invalid_google_service_account_credentials():
     return base64.b64encode(json.dumps({}).encode("utf-8"))
 
 
-@pytest.fixture
-def valid_gs_credentials(minimally_valid_google_service_account_credentials, settings):
+@pytest.fixture()
+def _valid_gs_credentials(minimally_valid_google_service_account_credentials, settings):
     settings.GS_CREDENTIALS = __ensure_gs_credentials(minimally_valid_google_service_account_credentials)
 
 
-@pytest.fixture
+@pytest.fixture()
 def stripe_subscription():
-    with open("apps/contributions/tests/fixtures/subscription.json") as fl:
-        return stripe.Subscription.construct_from(json.load(fl), key="test")
+    with Path("apps/contributions/tests/fixtures/subscription.json").open() as f:
+        return stripe.Subscription.construct_from(json.load(f), key="test")
 
 
 def payment_intent_for_recurring_charge_expanded():
-    with open("apps/contributions/tests/fixtures/payment-intent-for-recurring-charge-expanded.json") as f:
+    with Path("apps/contributions/tests/fixtures/payment-intent-for-recurring-charge-expanded.json").open() as f:
         return stripe.PaymentIntent.construct_from(json.load(f), stripe.api_key)
 
 
-@pytest.fixture
+@pytest.fixture()
 def balance_transaction_for_recurring_charge():
-    with open("apps/contributions/tests/fixtures/balance-transaction-for-recurring-charge.json") as f:
-        return stripe.BalanceTransaction.construct_from(json.load(f), stripe.api_key)
-
-
-@pytest.fixture
-def balance_transaction_for_subscription_creation_charge():
-    with open("apps/contributions/tests/fixtures/balance-transaction-for-subscription-creation.json") as f:
-        return stripe.BalanceTransaction.construct_from(json.load(f), stripe.api_key)
-
-
-@pytest.fixture
-def payment_intent_for_subscription_creation_charge():
-    with open("apps/contributions/tests/fixtures/payment-intent-for-subscription-creation-charge.json") as f:
-        return stripe.PaymentIntent.construct_from(json.load(f), stripe.api_key)
-
-
-@pytest.fixture
-def payment_intent_succeeded_one_time_event(suppress_stripe_webhook_sig_verification):
-    with open("apps/contributions/tests/fixtures/payment-intent-succeeded-one-time-event.json") as f:
-        event = stripe.Webhook.construct_event(f.read(), None, stripe.api_key)
-        return event
-
-
-@pytest.fixture
-@pytest.mark.usefixtures("suppress_stripe_webhook_sig_verification")
-def payment_intent_succeeded_subscription_creation_event():
-    with open("apps/contributions/tests/fixtures/payment-intent-succeeded-subscription-creation-event.json") as f:
-        return stripe.Webhook.construct_event(f.read(), None, stripe.api_key)
-
-
-@pytest.fixture
-@pytest.mark.usefixtures("suppress_stripe_webhook_sig_verification")
-def payment_intent_succeeded_subscription_recurring_charge_event():
-    with open(
-        "apps/contributions/tests/fixtures/payment-intent-succeeded-susbscription-recurring-charge-event.json"
-    ) as f:
-        return stripe.Webhook.construct_event(f.read(), None, stripe.api_key)
-
-
-@pytest.fixture
-def payment_intent_for_one_time_contribution():
-    with open("apps/contributions/tests/fixtures/payment-intent-for-one-time-charge.json") as f:
-        return stripe.PaymentIntent.construct_from(json.load(f), stripe.api_key)
-
-
-@pytest.fixture
-def payment_intent_for_recurring_charge():
-    with open("apps/contributions/tests/fixtures/payment-intent-for-recurring-charge.json") as f:
-        return stripe.PaymentIntent.construct_from(json.load(f), stripe.api_key)
-
-
-@pytest.fixture
-def balance_transaction_for_one_time_charge():
-    with open("apps/contributions/tests/fixtures/balance-transaction-for-one-time-charge-expanded.json") as f:
+    with Path("apps/contributions/tests/fixtures/balance-transaction-for-recurring-charge.json").open() as f:
         return stripe.BalanceTransaction.construct_from(json.load(f), stripe.api_key)
 
 
 @pytest.fixture()
-def clear_cache():
-    cache.clear()
+def balance_transaction_for_subscription_creation_charge():
+    with Path("apps/contributions/tests/fixtures/balance-transaction-for-subscription-creation.json").open() as f:
+        return stripe.BalanceTransaction.construct_from(json.load(f), stripe.api_key)
 
 
-@pytest.fixture
-def stripe_customer_default_source_expanded():
-    with open("apps/contributions/tests/fixtures/stripe-customer-default-source-expanded.json") as fl:
-        return stripe.Customer.construct_from(json.load(fl), key="test")
+@pytest.fixture()
+def payment_intent_for_subscription_creation_charge():
+    with Path("apps/contributions/tests/fixtures/payment-intent-for-subscription-creation-charge.json").open() as f:
+        return stripe.PaymentIntent.construct_from(json.load(f), stripe.api_key)
 
 
-@pytest.fixture
+@pytest.fixture()
 def stripe_payment_method():
-    with open("apps/contributions/tests/fixtures/stripe-payment-method.json") as fl:
-        return stripe.PaymentMethod.construct_from(json.load(fl), key="test")
+    with Path("apps/contributions/tests/fixtures/stripe-payment-method.json").open() as f:
+        return stripe.PaymentMethod.construct_from(json.load(f), key="test")
 
 
-@pytest.fixture
+@pytest.fixture()
 def invoice_upcoming_event():
-    return json.load(open("apps/contributions/tests/fixtures/invoice-upcoming-event.json"))
+    with Path("apps/contributions/tests/fixtures/invoice-upcoming-event.json").open() as f:
+        return json.load(f)
 
 
-@pytest.fixture
+@pytest.fixture()
 def customer_subscription_updated_event():
-    with open("apps/contributions/tests/fixtures/customer-subscription-updated-webhook-event.json") as fl:
-        return json.load(fl)
+    with Path("apps/contributions/tests/fixtures/customer-subscription-updated-webhook-event.json").open() as f:
+        return json.load(f)
 
 
-@pytest.fixture
-def charge_refunded_recurring_charge_event():
-    with open("apps/contributions/tests/fixtures/charge-refunded-recurring-charge-event.json") as f:
+@pytest.fixture()
+def payment_intent_succeeded_one_time_event(_suppress_stripe_webhook_sig_verification):
+    with Path("apps/contributions/tests/fixtures/payment-intent-succeeded-one-time-event.json").open() as f:
         return stripe.Webhook.construct_event(f.read(), None, stripe.api_key)
 
 
-@pytest.fixture
+@pytest.fixture()
+def payment_intent_succeeded_subscription_creation_event(_suppress_stripe_webhook_sig_verification):
+    with Path(
+        "apps/contributions/tests/fixtures/payment-intent-succeeded-subscription-creation-event.json"
+    ).open() as f:
+        return stripe.Webhook.construct_event(f.read(), None, stripe.api_key)
+
+
+@pytest.fixture()
+def payment_intent_succeeded_subscription_recurring_charge_event(_suppress_stripe_webhook_sig_verification):
+    with Path(
+        "apps/contributions/tests/fixtures/payment-intent-succeeded-susbscription-recurring-charge-event.json"
+    ).open() as f:
+        return stripe.Webhook.construct_event(f.read(), None, stripe.api_key)
+
+
+@pytest.fixture()
+def payment_intent_for_one_time_contribution():
+    with Path("apps/contributions/tests/fixtures/payment-intent-for-one-time-charge.json").open() as f:
+        return stripe.PaymentIntent.construct_from(json.load(f), stripe.api_key)
+
+
+@pytest.fixture()
+def payment_intent_for_recurring_charge():
+    with Path("apps/contributions/tests/fixtures/payment-intent-for-recurring-charge.json").open() as f:
+        return stripe.PaymentIntent.construct_from(json.load(f), stripe.api_key)
+
+
+@pytest.fixture()
+def balance_transaction_for_one_time_charge():
+    with Path("apps/contributions/tests/fixtures/balance-transaction-for-one-time-charge-expanded.json").open() as f:
+        return stripe.BalanceTransaction.construct_from(json.load(f), stripe.api_key)
+
+
+@pytest.fixture()
+def _clear_cache():
+    cache.clear()
+
+
+@pytest.fixture()
+def stripe_customer_default_source_expanded():
+    with Path("apps/contributions/tests/fixtures/stripe-customer-default-source-expanded.json").open() as f:
+        return stripe.Customer.construct_from(json.load(f), key="test")
+
+
+@pytest.fixture()
+def charge_refunded_recurring_charge_event():
+    with Path("apps/contributions/tests/fixtures/charge-refunded-recurring-charge-event.json").open() as f:
+        return stripe.Webhook.construct_event(f.read(), None, stripe.api_key)
+
+
+@pytest.fixture()
 def valid_metadata(domain_apex):
     return StripePaymentMetadataSchemaV1_4(
         agreed_to_pay_fees=False,
@@ -1115,7 +1115,7 @@ def valid_metadata(domain_apex):
     ).model_dump(mode="json", exclude_none=True)
 
 
-@pytest.fixture
+@pytest.fixture()
 def invalid_metadata():
     # this would initially get through checks for schema version, but would fail when metadata schema is cast
     return {
@@ -1123,7 +1123,7 @@ def invalid_metadata():
     }
 
 
-@pytest.fixture
+@pytest.fixture()
 def payment_method(payment_method_data_factory):
     return stripe.PaymentMethod.construct_from(
         payment_method_data_factory.get(), key="test", stripe_account="acct_fake_01"

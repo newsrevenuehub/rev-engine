@@ -2,6 +2,7 @@
 
 from django.db import migrations
 
+
 # NB: This migration originally was included in 0006_DEV-2031_refactor_socialmeta but
 # it turns out it needs to be separate, because having data migration and model change in same
 # caused problems. This only became apparent in working on DEV-2129 (

@@ -73,7 +73,6 @@ class PaymentInline(admin.TabularInline):
 
 @admin.register(Contribution)
 class ContributionAdmin(RevEngineBaseAdmin):
-
     fieldsets = (
         (
             "Payment",
@@ -263,20 +262,20 @@ class ContributionAdmin(RevEngineBaseAdmin):
 
     @admin.display(description="Bad actor response")
     def bad_actor_response_pretty(self, instance):
-        """Render bad_actor_response field with pretty formatting"""
+        """Render bad_actor_response field with pretty formatting."""
         return prettify_json_field(instance.bad_actor_response)
 
     @admin.display(description="Payment provider data")
     def payment_provider_data_pretty(self, instance):
-        """Render payment_provider_data field with pretty formatting"""
+        """Render payment_provider_data field with pretty formatting."""
         return prettify_json_field(instance.payment_provider_data)
 
     @admin.display(description="Provider payment method details")
     def provider_payment_method_details_pretty(self, instance):
-        """Render provider_payment_method_details field with pretty formatting"""
+        """Render provider_payment_method_details field with pretty formatting."""
         return prettify_json_field(instance.provider_payment_method_details)
 
     @admin.display(description="Revenue program (property, not FK)")
     def revenue_program(self, instance):
-        """Render revenue_program field with pretty formatting"""
+        """Render revenue_program field with pretty formatting."""
         return instance.revenue_program.name

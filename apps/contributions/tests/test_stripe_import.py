@@ -44,7 +44,7 @@ DOMAIN_APEX = "example.com"
 PAGE_SLUG = "page-slug"
 
 
-@pytest.fixture
+@pytest.fixture()
 def balance_transaction():
     return {
         "id": "bt_1",
@@ -54,20 +54,21 @@ def balance_transaction():
     }
 
 
-@pytest.fixture
+@pytest.fixture()
 def rp(valid_metadata):
     return RevenueProgramFactory(id=valid_metadata["revenue_program_id"])
 
 
-@pytest.fixture
+@pytest.fixture()
 def page(rp):
     return DonationPageFactory(revenue_program=rp, slug=PAGE_SLUG)
 
 
-@pytest.fixture
+@pytest.fixture()
 def valid_metadata(valid_metadata, domain_apex, page, settings):
-    """We shadow the valid_metadata from conftest.py so we can set up rp and donation page that will
-    cause validation around donation page work as expected in tests.
+    """Shadow the valid_metadata from conftest.py.
+
+    So we can set up rp and donation page that will cause validation around donation page work as expected in tests.
     """
     settings.DOMAIN_APEX = domain_apex
     valid_metadata["revenue_program_id"] = page.revenue_program.id
@@ -75,7 +76,7 @@ def valid_metadata(valid_metadata, domain_apex, page, settings):
     return valid_metadata
 
 
-@pytest.fixture
+@pytest.fixture()
 def subscription_dict(valid_metadata):
     return {
         "id": "sub_1",
@@ -86,7 +87,7 @@ def subscription_dict(valid_metadata):
     }
 
 
-@pytest.fixture
+@pytest.fixture()
 def payment_intent_dict(valid_metadata):
     return {
         "id": "pi_1",
@@ -111,20 +112,19 @@ def stripe_rate_limit_error():
 
 
 class TestRedisCachePipeline:
-
-    @pytest.fixture
+    @pytest.fixture()
     def redis(self, settings):
         return get_redis_connection(settings.STRIPE_TRANSACTIONS_IMPORT_CACHE)
 
-    @pytest.fixture
+    @pytest.fixture()
     def name(self):
         return "foo"
 
-    @pytest.fixture
+    @pytest.fixture()
     def batch_size(self):
         return 1
 
-    @pytest.fixture
+    @pytest.fixture()
     def redis_cache_pipeline(self, redis, name, batch_size):
         return RedisCachePipeline(
             connection_pool=redis.connection_pool,
@@ -140,23 +140,22 @@ class TestRedisCachePipeline:
         assert redis_cache_pipeline.batch_size == batch_size
         assert redis_cache_pipeline.total_inserted == 0
 
-    @pytest.mark.parametrize("error_on_exit", (True, False))
+    @pytest.mark.parametrize("error_on_exit", [True, False])
     def test_calls_flush_on_exit(self, redis_cache_pipeline, error_on_exit, mocker):
         mock_flush = mocker.patch.object(redis_cache_pipeline, "flush")
         mock_set_kwargs = {"side_effect": Exception("ruh-roh")} if error_on_exit else {}
         mocker.patch.object(redis_cache_pipeline, "set", **mock_set_kwargs)
         if error_on_exit:
-            with pytest.raises(Exception):
-                with redis_cache_pipeline as pipeline:
-                    pipeline.set(entity_id="id", key="key", entity={"foo": "bar"})
+            with pytest.raises(Exception, match="ruh-roh"), redis_cache_pipeline as pipeline:
+                pipeline.set(entity_id="id", key="key", entity={"foo": "bar"})
             mock_flush.assert_not_called()
         else:
             with redis_cache_pipeline as pipeline:
                 pipeline.set(entity_id="id", key="key", entity={"foo": "bar"})
             mock_flush.assert_called_once()
 
-    @pytest.mark.parametrize("has_prune_fn", (True, False))
-    @pytest.mark.parametrize("batch_size", (1, 2))
+    @pytest.mark.parametrize("has_prune_fn", [True, False])
+    @pytest.mark.parametrize("batch_size", [1, 2])
     def test_set(self, has_prune_fn, batch_size, redis_cache_pipeline, mocker):
         prune_fn = mocker.Mock(return_value=(entity := {"foo": "bar"}))
         mock_flush = mocker.patch.object(redis_cache_pipeline, "flush")
@@ -175,7 +174,6 @@ class TestRedisCachePipeline:
 
 
 class Test_parse_slug_from_url:
-
     @pytest.fixture(
         params=[
             ("https://{}/slug/", "slug"),
@@ -200,18 +198,17 @@ class Test_parse_slug_from_url:
 
     def test_parse_slug_from_url_when_not_allowed_domain(self):
         with pytest.raises(InvalidStripeTransactionDataError) as exc:
-            parse_slug_from_url((url := "https://random-and-malicious.com/slug/"))
+            parse_slug_from_url(url := "https://random-and-malicious.com/slug/")
         assert str(exc.value) == f"URL {url} has a TLD that is not allowed for import"
 
 
-@pytest.mark.django_db
+@pytest.mark.django_db()
 class Test_upsert_payment_for_transaction:
-
-    @pytest.fixture
+    @pytest.fixture()
     def contribution(self):
         return ContributionFactory()
 
-    @pytest.mark.parametrize("payment_exists", (True, False))
+    @pytest.mark.parametrize("payment_exists", [True, False])
     @pytest.mark.parametrize("is_refund", [True, False])
     def test_happy_path(self, payment_exists, is_refund, contribution, balance_transaction):
         if payment_exists:
@@ -251,10 +248,8 @@ class Test_upsert_payment_for_transaction:
         payment, action = upsert_payment_for_transaction(contribution=contribution, transaction=balance_transaction)
         assert Payment.objects.count() == count
         logger_spy.assert_called_once_with(
-            (
-                "Integrity error occurred while upserting payment with balance transaction %s for contribution %s "
-                "The existing payment is %s for contribution %s"
-            ),
+            "Integrity error occurred while upserting payment with balance transaction %s for contribution %s"
+            " The existing payment is %s for contribution %s",
             balance_transaction["id"],
             contribution.id,
             existing_payment.id,
@@ -264,15 +259,14 @@ class Test_upsert_payment_for_transaction:
         assert action is None
 
 
-@pytest.mark.django_db
+@pytest.mark.django_db()
 class TestStripeTransactionsImporter:
-
     @pytest.fixture(autouse=True)
-    def patch_redis(self, mocker):
+    def _patch_redis(self, mocker):
         mocker.patch("apps.contributions.stripe_import.get_redis_connection", return_value=mocker.Mock())
 
     @pytest.fixture(autouse=True)
-    def default_settings(self, settings):
+    def _default_settings(self, settings):
         settings.DOMAIN_APEX = DOMAIN_APEX
 
     def test_created_query(self, mocker):
@@ -280,9 +274,12 @@ class TestStripeTransactionsImporter:
         to_date = mocker.Mock()
         assert StripeTransactionsImporter(
             stripe_account_id="foo", from_date=from_date, to_date=to_date
-        ).created_query == {"gte": from_date, "lte": to_date}
+        ).created_query == {
+            "gte": from_date,
+            "lte": to_date,
+        }
 
-    @pytest.mark.parametrize("already_exists", (True, False))
+    @pytest.mark.parametrize("already_exists", [True, False])
     def test_get_or_create_contributor(self, already_exists):
         instance = StripeTransactionsImporter(stripe_account_id="test")
         email = "foo@bar.com"
@@ -293,15 +290,14 @@ class TestStripeTransactionsImporter:
         assert action == (common_utils.LEFT_UNCHANGED if already_exists else common_utils.CREATED)
 
     @pytest.mark.parametrize(
-        "plan_interval,plan_interval_count,expected",
-        (
+        ("plan_interval", "plan_interval_count", "expected"),
+        [
             ("year", 1, ContributionInterval.YEARLY),
             ("month", 1, ContributionInterval.MONTHLY),
             ("unexpected", 1, None),
             ("year", 2, None),
             ("month", 2, None),
-            ("year", 2, None),
-        ),
+        ],
     )
     def test_get_interval_from_plan(self, plan_interval, plan_interval_count, expected):
         plan = {"interval": plan_interval, "interval_count": plan_interval_count}
@@ -313,15 +309,15 @@ class TestStripeTransactionsImporter:
             with pytest.raises(InvalidIntervalError):
                 instance.get_interval_from_plan(plan)
 
-    @pytest.fixture
+    @pytest.fixture()
     def invalid_metadata_for_schema_version(self, valid_metadata):
         metadata = deepcopy(valid_metadata)
         metadata["schema_version"] = "unsupported"
         return metadata
 
     @pytest.mark.parametrize(
-        "metadata, expect_error",
-        (("valid_metadata", False), ("invalid_metadata", True), ("invalid_metadata_for_schema_version", True)),
+        ("metadata", "expect_error"),
+        [("valid_metadata", False), ("invalid_metadata", True), ("invalid_metadata_for_schema_version", True)],
     )
     def test_validate_metadata(self, request, metadata, expect_error):
         metadata = request.getfixturevalue(metadata)
@@ -333,14 +329,14 @@ class TestStripeTransactionsImporter:
             instance.validate_metadata(metadata)
 
     @pytest.mark.parametrize(
-        "referer, revenue_program, expect_error",
-        (
+        ("referer", "revenue_program", "expect_error"),
+        [
             (f"https://{DOMAIN_APEX}/slug/", None, False),
             (f"https://{DOMAIN_APEX}/slug/", "2", False),
             ("https://foo.bar/slug/", "2", False),
             (None, "2", False),
             (None, None, True),
-        ),
+        ],
     )
     def test_validate_referer_or_revenue_program(self, referer, revenue_program, expect_error):
         metadata = {
@@ -355,8 +351,8 @@ class TestStripeTransactionsImporter:
             instance.validate_referer_or_revenue_program(metadata)
 
     @pytest.mark.parametrize(
-        "status, has_refunds, expected, expect_error",
-        (
+        ("status", "has_refunds", "expected", "expect_error"),
+        [
             ("anything", True, ContributionStatus.REFUNDED, False),
             ("succeeded", False, ContributionStatus.PAID, False),
             ("canceled", False, ContributionStatus.CANCELED, False),
@@ -366,7 +362,7 @@ class TestStripeTransactionsImporter:
             ("requires_confirmation", False, ContributionStatus.PROCESSING, False),
             ("requires_payment_method", False, ContributionStatus.PROCESSING, False),
             ("unexpected", False, None, True),
-        ),
+        ],
     )
     def test_get_status_for_payment_intent(self, status, has_refunds, expected, expect_error):
         pi = {
@@ -381,8 +377,8 @@ class TestStripeTransactionsImporter:
             assert instance.get_status_for_payment_intent(pi, has_refunds) == expected
 
     @pytest.mark.parametrize(
-        "status, expected",
-        (
+        ("status", "expected"),
+        [
             ("active", ContributionStatus.PAID),
             ("past_due", ContributionStatus.PAID),
             ("incomplete_expired", ContributionStatus.FAILED),
@@ -390,7 +386,7 @@ class TestStripeTransactionsImporter:
             ("anything_else_that_arrives", ContributionStatus.PROCESSING),
             ("incomplete", ContributionStatus.PROCESSING),
             ("trialing", ContributionStatus.PROCESSING),
-        ),
+        ],
     )
     def test_get_status_for_subscription(self, status, expected):
         instance = StripeTransactionsImporter(stripe_account_id="test")
@@ -405,22 +401,22 @@ class TestStripeTransactionsImporter:
         mock_list.assert_called_once_with(stripe_account=stripe_id, limit=mocker.ANY)
 
     @pytest.mark.parametrize(
-        "schema_version, expected",
-        (
+        ("schema_version", "expected"),
+        [
             (
                 random.choice(list(STRIPE_PAYMENT_METADATA_SCHEMA_VERSIONS.keys())),
                 False,
             ),
             ("unsupported", True),
             (None, True),
-        ),
+        ],
     )
     def test_should_exclude_from_cache_because_of_metadata(self, schema_version, expected, mocker, valid_metadata):
         instance = StripeTransactionsImporter(stripe_account_id="test")
         valid_metadata["schema_version"] = schema_version
         assert instance.should_exclude_from_cache_because_of_metadata(mocker.Mock(metadata=valid_metadata)) == expected
 
-    @pytest.mark.parametrize("init_kwargs", ({}, {"from_date": (when := datetime.datetime.utcnow()), "to_date": when}))
+    @pytest.mark.parametrize("init_kwargs", [{}, {"from_date": (when := datetime.datetime.utcnow()), "to_date": when}])
     def test_list_kwargs(self, init_kwargs):
         instance = StripeTransactionsImporter(stripe_account_id="test", **init_kwargs)
         assert instance.list_kwargs == (
@@ -438,8 +434,8 @@ class TestStripeTransactionsImporter:
         )
 
     @pytest.mark.parametrize(
-        "method, entity, has_exclude, has_prune, has_list_kwargs",
-        (
+        ("method", "entity", "has_exclude", "has_prune", "has_list_kwargs"),
+        [
             ("list_and_cache_payment_intents", "PaymentIntent", True, True, True),
             ("list_and_cache_subscriptions", "Subscription", True, True, True),
             ("list_and_cache_charges", "Charge", False, True, False),
@@ -447,7 +443,7 @@ class TestStripeTransactionsImporter:
             ("list_and_cache_customers", "Customer", False, True, False),
             ("list_and_cache_invoices", "Invoice", False, True, False),
             ("list_and_cache_balance_transactions", "BalanceTransaction", False, True, False),
-        ),
+        ],
     )
     def test_list_and_cache_methods(self, method, entity, has_exclude, has_prune, has_list_kwargs, mocker):
         mock_list_and_cache = mocker.patch(
@@ -472,15 +468,15 @@ class TestStripeTransactionsImporter:
         assert instance.get_redis_pipeline(entity_name="foo")
 
     @pytest.mark.parametrize(
-        "exclude_fn, expect_exclude",
-        (
+        ("exclude_fn", "expect_exclude"),
+        [
             (lambda x: False, False),
             (lambda x: True, True),
-        ),
+        ],
     )
     @pytest.mark.parametrize(
         "prune_fn",
-        (None, lambda x: x),
+        [None, lambda x: x],
     )
     def test_cache_stripe_resources(self, exclude_fn, prune_fn, expect_exclude, mocker):
         mock_pipeline = mocker.patch("apps.contributions.stripe_import.StripeTransactionsImporter.get_redis_pipeline")
@@ -501,10 +497,7 @@ class TestStripeTransactionsImporter:
 
     def test_make_key(self):
         instance = StripeTransactionsImporter(stripe_account_id=(acct_id := "test"))
-        assert (
-            instance.make_key(entity_id=(entity_id := "foo"), entity_name=(entity_name := "bar"))
-            == f"{CACHE_KEY_PREFIX}_{entity_name}_{entity_id}_{acct_id}"
-        )
+        assert instance.make_key(entity_id="foo", entity_name="bar") == f"{CACHE_KEY_PREFIX}_bar_foo_{acct_id}"
 
     def test_cache_entity_by_another_entity_id(self, mocker):
         instance = StripeTransactionsImporter(stripe_account_id="test")
@@ -528,7 +521,9 @@ class TestStripeTransactionsImporter:
             by_entity_name="payment_intent",
         )
         mock_get_pipeline.assert_called_once_with(entity_name=destination_name)
-        mock_redis.scan_iter.assert_called_once_with(match=instance.make_key(entity_name=f"{entity_name}_*"))
+        mock_redis.scan_iter.assert_called_once_with(
+            match=instance.make_key(entity_name=f"{entity_name}_*"), count=1000
+        )
         assert mock_get_resource.call_count == 3
         mock_get_resource.assert_has_calls([mocker.call(key) for key in keys])
         mock_get_pipeline.return_value.__enter__.return_value.set.assert_called_once_with(
@@ -539,11 +534,11 @@ class TestStripeTransactionsImporter:
 
     @pytest.mark.parametrize(
         "method",
-        (
+        [
             "cache_charges_by_payment_intent_id",
             "cache_invoices_by_subscription_id",
             "cache_refunds_by_charge_id",
-        ),
+        ],
     )
     def test_cache_entity_by_another_entity_methods(self, method, mocker):
         mock_cache_entity_by_entity = mocker.patch(
@@ -579,7 +574,7 @@ class TestStripeTransactionsImporter:
         ):
             mock.assert_called_once()
 
-    @pytest.mark.parametrize("in_cache", (True, False))
+    @pytest.mark.parametrize("in_cache", [True, False])
     def test_get_resource_from_cache(self, in_cache, mocker):
         instance = StripeTransactionsImporter(stripe_account_id="test")
         mock_redis = mocker.patch.object(instance, "redis")
@@ -590,8 +585,8 @@ class TestStripeTransactionsImporter:
             assert instance.get_resource_from_cache("foo") is None
 
     @pytest.mark.parametrize(
-        "plan, expected_val, expected_error",
-        (
+        ("plan", "expected_val", "expected_error"),
+        [
             (None, None, InvalidStripeTransactionDataError),
             ({"amount": 100, "currency": "usd", "interval": None, "interval_count": 2}, None, InvalidIntervalError),
             (
@@ -599,7 +594,7 @@ class TestStripeTransactionsImporter:
                 {"amount": 100, "currency": "USD", "interval": ContributionInterval.MONTHLY.value},
                 None,
             ),
-        ),
+        ],
     )
     def test_get_data_from_plan(self, mocker, plan, expected_val, expected_error):
         instance = StripeTransactionsImporter(stripe_account_id="test")
@@ -615,9 +610,9 @@ class TestStripeTransactionsImporter:
         mock_redis.scan_iter.return_value = ["foo", "bar", "bizz"]
         results = [mocker.Mock(), mocker.Mock(), mocker.Mock()]
         mocker.patch.object(instance, "get_resource_from_cache", side_effect=results)
-        assert instance.get_invoices_for_subscription((sub_id := "sub_1")) == results
+        assert instance.get_invoices_for_subscription("sub_1") == results
         mock_redis.scan_iter.assert_called_once_with(
-            match=instance.make_key(entity_name="InvoiceBySubId", entity_id=f"{sub_id}*")
+            match=instance.make_key(entity_name="InvoiceBySubId", entity_id="sub_1*"), count=1000
         )
 
     def test_get_charges_for_subscription(self, mocker):
@@ -642,31 +637,30 @@ class TestStripeTransactionsImporter:
         mocker.patch.object(instance, "get_refunds_for_charge", return_value={"id": "ref_1"})
         instance.get_refunds_for_charge("ch_1")
 
-    @pytest.mark.parametrize("customer_in_cache", (True, False))
-    @pytest.mark.parametrize("customer_has_email", (True, False))
-    def test_get_or_create_contributor_from_customer(self, mocker, customer_in_cache, customer_has_email):
+    @pytest.mark.parametrize("customer_has_email", [True, False])
+    def test_get_or_create_contributor_from_customer(self, mocker, customer_has_email):
         instance = StripeTransactionsImporter(stripe_account_id="test")
         mocker.patch.object(
             instance,
             "get_resource_from_cache",
-            return_value={"email": "foo@bar.com" if customer_has_email else None} if customer_in_cache else None,
+            return_value={"email": "foo@bar.com" if customer_has_email else None},
         )
         mocker.patch.object(instance, "get_or_create_contributor", return_value=mocker.Mock())
-        if customer_in_cache and customer_has_email:
+        if customer_has_email:
             assert instance.get_or_create_contributor_from_customer("cus_1")
         else:
             with pytest.raises(InvalidStripeTransactionDataError):
                 instance.get_or_create_contributor_from_customer("cus_1")
 
     @pytest.mark.parametrize(
-        "payment_method, default_payment_method, is_one_time, invoice_settings, expect_pm_id",
-        (
+        ("payment_method", "default_payment_method", "is_one_time", "invoice_settings", "expect_pm_id"),
+        [
             ("something", None, True, None, True),
             (None, "something", False, None, True),
             (None, None, True, {"default_payment_method": "something"}, True),
             (None, None, False, {"default_payment_method": "something"}, True),
             (None, None, True, None, False),
-        ),
+        ],
     )
     def test_get_payment_method_id_for_stripe_entity(
         self, mocker, payment_method, default_payment_method, is_one_time, invoice_settings, expect_pm_id
@@ -689,25 +683,25 @@ class TestStripeTransactionsImporter:
         else:
             assert pm_id is None
 
-    @pytest.mark.parametrize("action", (common_utils.CREATED, common_utils.UPDATED, common_utils.LEFT_UNCHANGED, "foo"))
+    @pytest.mark.parametrize("action", [common_utils.CREATED, common_utils.UPDATED, common_utils.LEFT_UNCHANGED, "foo"])
     def test_update_contribution_stats(self, action):
         instance = StripeTransactionsImporter(stripe_account_id="test")
         contribution = ContributionFactory()
         instance.update_contribution_stats(action, contribution)
 
-    @pytest.mark.parametrize("action", (common_utils.CREATED, common_utils.UPDATED, common_utils.LEFT_UNCHANGED, "foo"))
+    @pytest.mark.parametrize("action", [common_utils.CREATED, common_utils.UPDATED, common_utils.LEFT_UNCHANGED, "foo"])
     def test_update_contributor_stats(self, action):
         instance = StripeTransactionsImporter(stripe_account_id="test")
         contributor = ContributorFactory()
         instance.update_contributor_stats(action, contributor)
 
-    @pytest.mark.parametrize("action", (common_utils.CREATED, common_utils.UPDATED, common_utils.LEFT_UNCHANGED, "foo"))
+    @pytest.mark.parametrize("action", [common_utils.CREATED, common_utils.UPDATED, common_utils.LEFT_UNCHANGED, "foo"])
     def test_update_payment_stats(self, action):
         instance = StripeTransactionsImporter(stripe_account_id="test")
         payment = PaymentFactory()
         instance.update_payment_stats(action, payment)
 
-    @pytest.mark.parametrize("num_successful_charges", (0, 1, 2))
+    @pytest.mark.parametrize("num_successful_charges", [0, 1, 2])
     def test_get_successful_charge_for_payment_intent(self, num_successful_charges, mocker):
         instance = StripeTransactionsImporter(stripe_account_id="test")
         successful_charges = [{"status": "succeeded"} for _ in range(num_successful_charges)]
@@ -733,8 +727,8 @@ class TestStripeTransactionsImporter:
         mocker.patch.object(instance, "get_refunds_for_charge", return_value=[{"id": "ref_1"}])
         assert instance.get_refunds_for_payment_intent({"id": "pi_1"})
 
-    @pytest.mark.parametrize("interval", (ContributionInterval.ONE_TIME, ContributionInterval.MONTHLY))
-    @pytest.mark.parametrize("pre_existing_payment_for_bt", (True, False))
+    @pytest.mark.parametrize("interval", [ContributionInterval.ONE_TIME, ContributionInterval.MONTHLY])
+    @pytest.mark.parametrize("pre_existing_payment_for_bt", [True, False])
     def test_upsert_payments_for_contribution(self, mocker, interval, pre_existing_payment_for_bt):
         # one has balance transaction, another does not so we go through both branches of code
         refunds = [{"id": "ref_1", "balance_transaction": "bt_1"}, {"id": "ref_2", "balance_transaction": None}]
@@ -747,7 +741,7 @@ class TestStripeTransactionsImporter:
             mocker.patch.object(instance, "get_refunds_for_charge", return_value=refunds)
         else:
             mocker.patch.object(instance, "get_charges_for_subscription", return_value=[charge])
-            mocker.patch.object(instance, "get_refunds_for_charge", return_value=refunds)
+            mocker.patch.object(instance, "get_refunds_for_charge", side_effect=refunds)
         get_resource_from_cache_side_effects.append({"id": "bt_1"})
         mocker.patch.object(instance, "get_resource_from_cache", side_effect=get_resource_from_cache_side_effects)
         mocker.patch.object(instance, "make_key")
@@ -759,7 +753,7 @@ class TestStripeTransactionsImporter:
         mocker.patch.object(instance, "update_payment_stats")
         instance.upsert_payments_for_contribution(ContributionFactory(interval=interval))
 
-    @pytest.mark.parametrize("latest_invoice", (None, {"id": "inv_1"}))
+    @pytest.mark.parametrize("latest_invoice", [None, {"id": "inv_1"}])
     def test_get_provider_payment_id_for_subscription(self, mocker, latest_invoice, subscription_dict):
         instance = StripeTransactionsImporter(stripe_account_id="test")
         subscription_dict["latest_invoice"] = latest_invoice
@@ -778,13 +772,13 @@ class TestStripeTransactionsImporter:
         assert instance.get_payment_method("pm_1")
 
     @pytest.mark.parametrize(
-        "entity,is_one_time",
-        (
+        ("entity", "is_one_time"),
+        [
             ("payment_intent_dict", True),
             ("subscription_dict", False),
-        ),
+        ],
     )
-    @pytest.mark.parametrize("pm_found", (True, False))
+    @pytest.mark.parametrize("pm_found", [True, False])
     def test_get_default_contribution_data(self, entity, is_one_time, pm_found, mocker, request):
         stripe_entity = request.getfixturevalue(entity)
         instance = StripeTransactionsImporter(stripe_account_id="test", retrieve_payment_method=True)
@@ -806,7 +800,7 @@ class TestStripeTransactionsImporter:
         mocker.patch.object(instance, "get_payment_method", return_value={"id": "pm_1"} if pm_found else None)
         instance.get_default_contribution_data(**kwargs)
 
-    @pytest.mark.parametrize("has_rp_id", (True, False))
+    @pytest.mark.parametrize("has_rp_id", [True, False])
     def test_get_revenue_program_from_metadata(self, has_rp_id, valid_metadata):
         instance = StripeTransactionsImporter(stripe_account_id="test")
         if not has_rp_id:
@@ -818,8 +812,8 @@ class TestStripeTransactionsImporter:
             )
 
     @pytest.mark.parametrize(
-        "metadata_rp_id, rp_exists, referer_slug, default_donation_page_exists, expect_page",
-        (
+        ("metadata_rp_id", "rp_exists", "referer_slug", "default_donation_page_exists", "expect_page"),
+        [
             (None, False, "", False, False),
             (None, True, "", True, False),
             ("123", True, "slug", False, True),
@@ -827,7 +821,7 @@ class TestStripeTransactionsImporter:
             ("123", True, "", False, False),
             ("123", False, "", True, False),
             ("123", True, "", True, False),
-        ),
+        ],
     )
     def test_get_donation_page_from_metadata(
         self, metadata_rp_id, rp_exists, referer_slug, default_donation_page_exists, expect_page
@@ -847,17 +841,15 @@ class TestStripeTransactionsImporter:
             assert instance.get_donation_page_from_metadata(metadata) is None
 
     @pytest.mark.parametrize(
-        "stripe_entity, is_one_time",
-        (
-            ("payment_intent_dict", True),
+        ("stripe_entity", "is_one_time"),
+        [
             ("payment_intent_dict", True),
             ("subscription_dict", False),
-            ("subscription_dict", False),
-        ),
+        ],
     )
-    @pytest.mark.parametrize("donation_page_found", (True, False))
-    @pytest.mark.parametrize("revenue_program_found", (True, False))
-    @pytest.mark.parametrize("has_customer_id", (True, False))
+    @pytest.mark.parametrize("donation_page_found", [True, False])
+    @pytest.mark.parametrize("revenue_program_found", [True, False])
+    @pytest.mark.parametrize("has_customer_id", [True, False])
     def test_upsert_contribution(
         self,
         mocker,
@@ -936,19 +928,19 @@ class TestStripeTransactionsImporter:
 
     @pytest.mark.parametrize(
         "time_delta",
-        (
+        [
             datetime.timedelta(hours=2),
             datetime.timedelta(minutes=2),
             datetime.timedelta(seconds=2),
             datetime.timedelta(minutes=2, seconds=2),
-        ),
+        ],
     )
     def test_format_timedelta(self, time_delta):
         assert StripeTransactionsImporter(stripe_account_id="test").format_timedelta(time_delta)
 
     @pytest.mark.parametrize(
-        "time_percent, expect_warning",
-        ((TTL_WARNING_THRESHOLD_PERCENT, False), (TTL_WARNING_THRESHOLD_PERCENT + 0.1, True)),
+        ("time_percent", "expect_warning"),
+        [(TTL_WARNING_THRESHOLD_PERCENT, False), (TTL_WARNING_THRESHOLD_PERCENT + 0.1, True)],
     )
     def test_log_ttl_concerns(self, time_percent, expect_warning, mocker, settings):
         now = datetime.datetime.now(datetime.timezone.utc)
@@ -960,7 +952,8 @@ class TestStripeTransactionsImporter:
         instance.log_ttl_concerns(start_time)
         if expect_warning:
             mock_logger.assert_called_once_with(
-                "Stripe import for account %s took %s, which is longer than %s%% of the cache TTL (%s). Consider increasing TTLs for cache entries related to stripe import.",
+                "Stripe import for account %s took %s, which is longer than %s%% of the cache TTL (%s)."
+                " Consider increasing TTLs for cache entries related to stripe import.",
                 instance.stripe_account_id,
                 instance.format_timedelta(now - start_time),
                 TTL_WARNING_THRESHOLD_PERCENT * 100,
@@ -1036,8 +1029,8 @@ class TestStripeTransactionsImporter:
         mock_get_redis.assert_called_once_with(settings.STRIPE_TRANSACTIONS_IMPORT_CACHE)
 
     @pytest.mark.parametrize(
-        "size, expected",
-        (
+        ("size", "expected"),
+        [
             (0, "0 bytes"),
             (1, "1 byte"),
             (2, "2 bytes"),
@@ -1045,7 +1038,7 @@ class TestStripeTransactionsImporter:
             (1024**2, "1 MB"),
             (1024**3, "1 GB"),
             (1024**4, "1 TB"),
-        ),
+        ],
     )
     def test_convert_bytes(self, size, expected):
         assert StripeTransactionsImporter.convert_bytes(size) == expected
@@ -1066,7 +1059,7 @@ class TestStripeTransactionsImporter:
 
 
 class TestStripeEventProcessor:
-    @pytest.fixture
+    @pytest.fixture()
     def supported_event(self):
         event_type = settings.STRIPE_WEBHOOK_EVENTS_CONTRIBUTIONS[0]
         return stripe.Event.construct_from(
@@ -1077,7 +1070,7 @@ class TestStripeEventProcessor:
             key="test",
         )
 
-    @pytest.fixture
+    @pytest.fixture()
     def unsupported_event(self):
         unsupported_event_type = "unsupported_event"
         assert unsupported_event_type not in settings.STRIPE_WEBHOOK_EVENTS_CONTRIBUTIONS
@@ -1089,7 +1082,7 @@ class TestStripeEventProcessor:
             key="test",
         )
 
-    @pytest.mark.parametrize("async_mode", (True, False))
+    @pytest.mark.parametrize("async_mode", [True, False])
     def test_sync_happy_path(self, async_mode, supported_event, mocker):
         mock_retrieve_event = mocker.patch("stripe.Event.retrieve", return_value=supported_event)
         mock_process_webhook = mocker.patch("apps.contributions.tasks.process_stripe_webhook_task")
@@ -1148,10 +1141,8 @@ class Test_log_backoff:
         log_backoff(valid_details_args)
         if isinstance(valid_details_args["exception"], stripe.error.RateLimitError):
             mock_logger.assert_called_once_with(
-                (
-                    "Backing off %s seconds after %s tries due to rate limit error. Error message: %s. "
-                    "Status code: %s. Stripe request ID: %s. Stripe error: %s."
-                ),
+                "Backing off %s seconds after %s tries due to rate limit error. Error message: %s."
+                " Status code: %s. Stripe request ID: %s. Stripe error: %s.",
                 valid_details_args["wait"],
                 valid_details_args["tries"],
                 valid_details_args["exception"].user_message,
@@ -1188,10 +1179,8 @@ class Test_log_backoff:
             my_function()
         assert mock_logger.warning.call_count == max_tries - 1
         assert mock_logger.warning.call_args == mocker.call(
-            (
-                "Backing off %s seconds after %s tries due to rate limit error. Error message: %s. "
-                "Status code: %s. Stripe request ID: %s. Stripe error: %s."
-            ),
+            "Backing off %s seconds after %s tries due to rate limit error. Error message: %s."
+            " Status code: %s. Stripe request ID: %s. Stripe error: %s.",
             mocker.ANY,
             mocker.ANY,
             stripe_rate_limit_error.user_message,

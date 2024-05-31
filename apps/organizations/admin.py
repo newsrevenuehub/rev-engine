@@ -31,9 +31,9 @@ class NoRelatedInlineAddEditAdminMixin:
     related_fieldname = None
 
     def get_formset(self, request, obj=None, **kwargs):
-        """
-        Override get_formset to adjust the properties of the related field
-        such that users are unable to create or edit them inline (only add existing).
+        """Override get_formset.
+
+        To adjust the properties of the related field such that users are unable to create or edit them inline (only add existing).
         """
         formset = super().get_formset(request, obj, **kwargs)
 
@@ -49,9 +49,7 @@ class ReadOnlyOrgLimitedTabularInlineMixin(admin.TabularInline):
     org_limited_fieldname = None
 
     def formfield_for_foreignkey(self, db_field, request=None, **kwargs):
-        """
-        Here we limit the choices of "benefit_level" inlines to those related by org.
-        """
+        """Limit the choices of "benefit_level" inlines to those related by org."""
         formfield = super().formfield_for_foreignkey(db_field, request, **kwargs)
         if self.related_fieldname:
             try:
@@ -69,7 +67,7 @@ class RevenueProgramAdminForm(ModelForm):
         try:
             tax_id_validator(self.cleaned_data["tax_id"])
         except DRFValidationError as exc:
-            raise ValidationError(exc.get_full_details()[0]["message"])
+            raise ValidationError(exc.get_full_details()[0]["message"]) from exc
         return self.cleaned_data["tax_id"]
 
 
@@ -144,7 +142,7 @@ class OrganizationAdmin(RevEngineBaseAdmin):
     readonly_fields = ["uuid"]
 
     def save_model(self, request, obj, form, change):
-        """Override save_model so we pass update_fields to obj.save()
+        """Override save_model so we pass update_fields to obj.save().
 
         We do this because have a Django signal that looks to `update_fields` to determine whether to
         set a default donation page when an org is being configured to be on core plan.
@@ -158,7 +156,7 @@ class OrganizationAdmin(RevEngineBaseAdmin):
         if change:  # if the obj is being changed, not added
             initial_form = self.get_changeform_initial_data(request)
             changed_data = form.changed_data
-            update_fields = set(x for x in changed_data if initial_form.get(x) != getattr(obj, x))
+            update_fields = {x for x in changed_data if initial_form.get(x) != getattr(obj, x)}
             if update_fields:
                 obj.save(update_fields=update_fields.union({"modified"}))
             else:
@@ -200,11 +198,9 @@ class BenefitLevelAdmin(RevEngineBaseAdmin):
     change_form_template = "organizations/benefitlevel_changeform.html"
 
     def get_readonly_fields(self, request, obj=None):
-        """
-        Organization becomes readonly after initial creation.
-        """
+        """Organization becomes readonly after initial creation."""
         if obj:
-            return self.readonly_fields + ["revenue_program"]
+            return [*self.readonly_fields, "revenue_program"]
         return self.readonly_fields
 
 
@@ -286,14 +282,7 @@ class RevenueProgramAdmin(RevEngineBaseAdmin, AdminImageMixin):
     def get_readonly_fields(self, request, obj=None):
         # If it's an addform, we can't allow setting default_donation_page until the RevenueProgram has been defined
         # because we need to limit the donation_page choices based on this instance.
-        return (
-            self.readonly_fields
-            if obj
-            else self.readonly_fields
-            + [
-                "default_donation_page",
-            ]
-        )
+        return self.readonly_fields if obj else [*self.readonly_fields, "default_donation_page"]
 
     def get_form(self, request, obj=None, **kwargs):
         # This bit of trickery uses a pattern used by Django's modelform_factory. Django uses
@@ -362,7 +351,7 @@ class PaymentProviderAdmin(RevEngineBaseAdmin):
     )
 
     def has_delete_permission(self, request, obj=None):
-        """Block deletion of PaymentProviders that have dependent live or future live pages"""
+        """Block deletion of PaymentProviders that have dependent live or future live pages."""
         if obj and (dependents := obj.get_dependent_pages_with_publication_date()).exists():
             dependents_search_url = (
                 f"{reverse('admin:organizations_revenueprogram_changelist')}?q={obj.stripe_account_id}"

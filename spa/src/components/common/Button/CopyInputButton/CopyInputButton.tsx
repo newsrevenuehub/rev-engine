@@ -2,7 +2,7 @@ import PropTypes, { InferProps } from 'prop-types';
 import CheckIcon from '@material-ui/icons/Check';
 import { useAlert } from 'react-alert';
 
-import { Wrapper, Input, CopyButton } from './CopyInputButton.styled';
+import { Title, Input, CopyButton } from './CopyInputButton.styled';
 
 type CopyInputButtonProps = InferProps<typeof CopyInputButtonPropTypes>;
 
@@ -11,48 +11,42 @@ const CopyInputButton = ({ title, link, copied, setCopied, 'data-testid': dataTe
   const alert = useAlert();
   const showCopied = copied === link;
   return (
-    <Wrapper>
-      <Input
-        label={title}
-        value={link}
-        id={title.replace(/ /g, '')}
-        InputLabelProps={{
-          classes: {
-            asterisk: 'NreTextFieldInputLabelAsterisk',
-            formControl: 'NreCopyInputLabelFormControl',
-            root: 'NreTextFieldInputLabelRoot'
-          },
-          shrink: true
-        }}
-        InputProps={{
-          classes: { root: 'NreTextFieldInputRoot', underline: 'NreTextFieldInputUnderline' },
-          readOnly: true
-        }}
-      />
-      <CopyButton
-        data-testid={dataTestId}
-        onClick={() => {
-          navigator.clipboard.writeText(link).then(
-            // If copy succeeds: show "copied" button
-            () => setCopied(link),
-            // If copy fails: show alert with reason and alternate solution
-            (error) =>
-              alert.error(`Failed to copy link automatically. Please try selecting the text directly from the input.
+    <div>
+      <Title>{title}</Title>
+      <div style={{ display: 'flex' }}>
+        <Input
+          value={link}
+          inputProps={{
+            className: 'NreTextFieldInput',
+            'aria-label': title,
+            readOnly: true
+          }}
+        />
+        <CopyButton
+          data-testid={dataTestId}
+          onClick={() => {
+            navigator.clipboard.writeText(link).then(
+              // If copy succeeds: show "copied" button
+              () => setCopied(link),
+              // If copy fails: show alert with reason and alternate solution
+              (error) =>
+                alert.error(`Failed to copy link automatically. Please try selecting the text directly from the input.
                 Error reason: ${error}`)
-          );
-        }}
-        aria-label={`${showCopied ? 'Copied' : 'Copy'} ${title}`}
-        $copied={showCopied}
-      >
-        {showCopied ? (
-          <>
-            Copied <CheckIcon style={{ width: 18, height: 18, marginLeft: 4 }} />
-          </>
-        ) : (
-          'Copy'
-        )}
-      </CopyButton>
-    </Wrapper>
+            );
+          }}
+          aria-label={`${showCopied ? 'Copied' : 'Copy'} ${title}`}
+          $copied={showCopied}
+        >
+          {showCopied ? (
+            <>
+              Copied <CheckIcon style={{ width: 18, height: 18, marginLeft: 4 }} />
+            </>
+          ) : (
+            'Copy'
+          )}
+        </CopyButton>
+      </div>
+    </div>
   );
 };
 

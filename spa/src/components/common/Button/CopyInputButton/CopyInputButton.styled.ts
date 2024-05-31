@@ -2,14 +2,15 @@ import styled from 'styled-components';
 import { Button as MuiButton } from '@material-ui/core';
 import { TextField } from 'components/base';
 
-export const Wrapper = styled.div`
-  display: flex;
-  align-items: flex-end;
+export const Title = styled.p`
+  margin: 0 0 6px 0;
+  font-weight: 600;
+  color: ${(props) => props.theme.colors.muiGrey[900]};
+  font-size: ${(props) => props.theme.fontSizesUpdated.md};
 `;
 
 export const CopyButton = styled(MuiButton)<{ $copied: boolean }>`
   && {
-    height: 45px;
     min-width: 95px;
     margin-left: -4px;
     font-weight: 600;
@@ -35,9 +36,5 @@ export const Input = styled(TextField)`
 
   .NreTextFieldInput:focus {
     border-color: #00bfdf;
-  }
-
-  .NreCopyInputLabelFormControl {
-    margin-bottom: 6px;
   }
 `;

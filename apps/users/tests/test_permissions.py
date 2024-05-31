@@ -12,12 +12,12 @@ from apps.users.permissions import (
 from apps.users.tests.factories import UserFactory
 
 
-@pytest.fixture
+@pytest.fixture()
 def user():
     return UserFactory()
 
 
-@pytest.mark.django_db
+@pytest.mark.django_db()
 class TestUserHasAcceptedTermsOfService:
     def test_has_permission_when_no_request_user(self, rf):
         request = rf.get("/")
@@ -42,13 +42,13 @@ class TestUserHasAcceptedTermsOfService:
 
 
 @pytest.mark.parametrize(
-    "fn_1_ret_value, fn_2_ret_value, expect",
-    (
+    ("fn_1_ret_value", "fn_2_ret_value", "expect"),
+    [
         (True, True, True),
         (True, False, True),
         (False, True, True),
         (False, False, False),
-    ),
+    ],
 )
 def testUserIsAllowedToUpdate(fn_1_ret_value, fn_2_ret_value, expect, mocker, rf):
     request = rf.get("/")
@@ -65,7 +65,7 @@ def testUserIsAllowedToUpdate(fn_1_ret_value, fn_2_ret_value, expect, mocker, rf
     mock_user_email_is_verified.assert_called_once_with(request)
 
 
-@pytest.mark.django_db
+@pytest.mark.django_db()
 class TestUserOwnsUser:
     @pytest.mark.parametrize("is_authenticated", [True, False])
     def test_has_permission_when_user_is_authenticated(self, is_authenticated, user, rf, mocker):
@@ -99,7 +99,7 @@ class TestUserOwnsUser:
 
 
 @pytest.mark.parametrize(
-    "request_method, request_data, expected",
+    ("request_method", "request_data", "expected"),
     [
         ("patch", {"password": "password"}, True),
         ("patch", {"something": "else"}, False),
@@ -119,7 +119,7 @@ def user_email_is_verified_case(request):
     return user, request.param[1], request.param[2]
 
 
-@pytest.mark.django_db
+@pytest.mark.django_db()
 def test_user_email_is_verified(rf, user_email_is_verified_case):
     user, email_verified, expect = user_email_is_verified_case
     request = rf.get("/")

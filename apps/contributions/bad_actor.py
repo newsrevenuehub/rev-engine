@@ -21,7 +21,7 @@ def make_bad_actor_request(validated_data):
     raises: BadActorAPIError
     """
     if not settings.BAD_ACTOR_API_KEY or not settings.BAD_ACTOR_API_URL:
-        bits = list()
+        bits = []
         if not settings.BAD_ACTOR_API_KEY:
             bits.append("BAD_ACTOR_API_KEY not set")
         if not settings.BAD_ACTOR_API_URL:
@@ -34,12 +34,14 @@ def make_bad_actor_request(validated_data):
         "Authorization": f"Bearer {settings.BAD_ACTOR_API_KEY}",
     }
     json_data = validated_data.copy()
-    response = requests.post(url=settings.BAD_ACTOR_API_URL, headers=headers, json=json_data)
+    response = requests.post(
+        url=settings.BAD_ACTOR_API_URL, headers=headers, json=json_data, timeout=settings.REQUESTS_TIMEOUT_DEFAULT
+    )
     if int(str(response.status_code)[:1]) != 2:  # eh? if not response.ok #  Includes 3xx
         try:
             logger.warning("Received a BadActor API error: %s", response.json())
             raise BadActorAPIError(response.json())
-        except JSONDecodeError:
+        except JSONDecodeError as exc:
             logger.warning("Received a BadActor API error with malformed JSON")
-            raise BadActorAPIError("Received a BadActor API error with malformed JSON")
+            raise BadActorAPIError("Received a BadActor API error with malformed JSON") from exc
     return response

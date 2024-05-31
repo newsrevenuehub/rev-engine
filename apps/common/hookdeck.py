@@ -1,5 +1,5 @@
 import logging
-from typing import Literal, Optional
+from typing import Literal
 
 from django.conf import settings
 
@@ -17,8 +17,7 @@ DESTINATIONS_URL = f"{BASE_URL}/destinations"
 SOURCES_URL = f"{BASE_URL}/sources"
 
 
-class HookDeckIntegrationError(Exception):
-    """"""
+class HookDeckIntegrationError(Exception): ...
 
 
 HEADERS = {"Authorization": f"Bearer {settings.HOOKDECK_API_KEY}"}
@@ -28,7 +27,7 @@ HEADERS = {"Authorization": f"Bearer {settings.HOOKDECK_API_KEY}"}
 
 
 def upsert(entity_type: Literal["connection", "destination"], data: dict, auto_unarchive: bool = True) -> dict:
-    """Upsert given entity type to Hookdeck
+    """Upsert given entity type to Hookdeck.
 
     When True, the `auto_unarchive` param will cause a found-but-previously-archived entity in
     to be unarchived and have its state set to state in `data`. This is helpful for our primary use
@@ -40,6 +39,7 @@ def upsert(entity_type: Literal["connection", "destination"], data: dict, auto_u
         {"connection": CONNECTIONS_URL, "destination": DESTINATIONS_URL}[entity_type],
         data=data,
         headers=HEADERS,
+        timeout=settings.REQUESTS_TIMEOUT_DEFAULT,
     )
     if response.status_code != status.HTTP_200_OK:
         logger.error("Unexpected response from Hookdeck API: %s", response.content)
@@ -72,7 +72,7 @@ def upsert_destination(name: str, url: str, auto_unarchive: bool = True) -> dict
         missing.add("url")
     if missing:
         logger.warning("Missing required params: %s. Will not upsert this destination", missing)
-        return
+        return None
     return upsert(
         "destination",
         {
@@ -107,21 +107,22 @@ def upsert_connection(name: str, source_id: str, destination_id: str, auto_unarc
         missing.add("destination_id")
     if missing:
         logger.warning("Missing required params: %s. Will not upsert this connection", missing)
-        return
+        return None
     return upsert(
         "connection",
         {"name": name, "source_id": source_id, "destination_id": destination_id},
     )
 
 
-def retrieve(entity_type: Literal["connection", "destination", "source"], id: str) -> dict:
-    """Retrieve an entity from Hookdeck"""
+def retrieve(entity_type: Literal["connection", "destination", "source"], id_: str) -> dict:
+    """Retrieve an entity from Hookdeck."""
     response = requests.get(
         f"""{
             {"connection": CONNECTIONS_URL, "destination": DESTINATIONS_URL, "source": SOURCES_URL
             }[entity_type]
-        }/{id}""",
+        }/{id_}""",
         headers=HEADERS,
+        timeout=settings.REQUESTS_TIMEOUT_DEFAULT,
     )
     if response.status_code != status.HTTP_200_OK:
         logger.error("Unexpected response from Hookdeck API")
@@ -130,29 +131,29 @@ def retrieve(entity_type: Literal["connection", "destination", "source"], id: st
 
 
 def search(entity_type: Literal["connection", "destination", "source"], params: dict) -> dict:
-    """Search for Hookdeck entities matching search criteria in `params`"""
+    """Search for Hookdeck entities matching search criteria in `params`."""
     response = requests.get(
         {"connection": CONNECTIONS_URL, "destination": DESTINATIONS_URL, "source": SOURCES_URL}[entity_type],
         headers={
             "Authorization": f"Bearer {settings.HOOKDECK_API_KEY}",
         },
         params=dict(params),
+        timeout=settings.REQUESTS_TIMEOUT_DEFAULT,
     )
     if response.status_code != status.HTTP_200_OK:
         logger.error(
             "Unexpected response from Hookdeck API retrieving %s: status %s", entity_type, response.status_code
         )
         raise HookDeckIntegrationError(f"Something went wrong retrieving {entity_type}. It's been logged.")
-    else:
-        return response.json()
+    return response.json()
 
 
 def search_connections(
-    id: Optional[str] = None,
-    name: Optional[str] = None,
-    full_name: Optional[str] = None,
-    source_id: Optional[str] = None,
-    destination_id: Optional[str] = None,
+    id_: str | None = None,
+    name: str | None = None,
+    full_name: str | None = None,
+    source_id: str | None = None,
+    destination_id: str | None = None,
     archived: bool = True,
 ) -> dict:
     """Search Hookdeck connections.
@@ -162,7 +163,7 @@ def search_connections(
     params = {
         k: v
         for (k, v) in {
-            "id": id,
+            "id": id_,
             "name": name,
             "full_name": full_name,
             "source_id": source_id,
@@ -175,50 +176,50 @@ def search_connections(
 
 
 def search_destinations(
-    id: Optional[str] = None, name: Optional[str] = None, archived: bool = True, url: Optional[str] = None
+    id_: str | None = None, name: str | None = None, archived: bool = True, url: str | None = None
 ) -> dict:
     """Search Hookdeck destinations.
 
     Can search by name, archived status, and url.
     """
-    params = {k: v for (k, v) in {"id": id, "name": name, "url": url, "archived": archived}.items() if k is not None}
+    params = {k: v for (k, v) in {"id": id_, "name": name, "url": url, "archived": archived}.items() if k is not None}
     return search("destination", params)
 
 
 def search_sources(
-    id: Optional[str] = None,
-    name: Optional[str] = None,
+    id_: str | None = None,
+    name: str | None = None,
     archived: bool = True,
 ) -> dict:
     """Search Hookdeck destinations.
 
     Can search by name, archived status, and url.
     """
-    params = {k: v for (k, v) in {"id": id, "name": name, "archived": archived}.items() if k is not None}
+    params = {k: v for (k, v) in {"id": id_, "name": name, "archived": archived}.items() if k is not None}
     return search("source", params)
 
 
-def archive(entity_type: Literal["connection", "destination", "source"], id: str) -> dict:
+def archive(entity_type: Literal["connection", "destination", "source"], id_: str) -> dict:
     """Archive a Hookdeck entity.
 
     Archiving an entity causes that entities send/receipt behavior to cease. An archived resource can be
     unarchived to turn that behavior back on. Archiving is not the same as deleting.
     """
-    logger.info("Archiving %s with id %s", entity_type, id)
+    logger.info("Archiving %s with id %s", entity_type, id_)
     response = requests.put(
         f"""{
             {'connection': CONNECTIONS_URL, 'destination': DESTINATIONS_URL}[entity_type]
-        }/{id}/archive""",
+        }/{id_}/archive""",
         headers=HEADERS,
+        timeout=settings.REQUESTS_TIMEOUT_DEFAULT,
     )
     if response.status_code != status.HTTP_200_OK:
-        logger.error("Unexpected response from Hookdeck API archiving %s with id %s", entity_type, id)
-        raise HookDeckIntegrationError(f"Something went wrong archiving {entity_type} with id {id}. It's been logged.")
-    else:
-        return response.json()
+        logger.error("Unexpected response from Hookdeck API archiving %s with id %s", entity_type, id_)
+        raise HookDeckIntegrationError(f"Something went wrong archiving {entity_type} with id {id_}. It's been logged.")
+    return response.json()
 
 
-def unarchive(entity_type: Literal["connection", "destination", "source"], id: str) -> dict:
+def unarchive(entity_type: Literal["connection", "destination", "source"], id_: str) -> dict:
     """Unarchive a Hookdeck entity.
 
     Uncarhiving an entity resumes its send/receipt behavior if the entity was previously in an "arhived" state.
@@ -226,14 +227,14 @@ def unarchive(entity_type: Literal["connection", "destination", "source"], id: s
     response = requests.put(
         f"""{
             {'connection': CONNECTIONS_URL, 'destination': DESTINATIONS_URL}[entity_type]
-        }/{id}/unarchive""",
+        }/{id_}/unarchive""",
         headers=HEADERS,
+        timeout=settings.REQUESTS_TIMEOUT_DEFAULT,
     )
     if response.status_code != status.HTTP_200_OK:
-        logger.error("Unexpected response from Hookdeck API archiving %s with id %s", entity_type, id)
-        raise HookDeckIntegrationError(f"Something went wrong archiving {entity_type} with id {id}. It's been logged.")
-    else:
-        return response.json()
+        logger.error("Unexpected response from Hookdeck API archiving %s with id %s", entity_type, id_)
+        raise HookDeckIntegrationError(f"Something went wrong archiving {entity_type} with id {id_}. It's been logged.")
+    return response.json()
 
 
 def bootstrap_endpoint(name: str, url: str, source_id: str) -> None:
@@ -248,8 +249,7 @@ def bootstrap_endpoint(name: str, url: str, source_id: str) -> None:
 
 
 def bootstrap(name: str, webhooks_url_contributions: str, webhooks_url_upgrades: str) -> dict:
-    """Used to bootstrap an app deployment's Stripe/Hookdeck integration
-
+    """Bootstrap an app deployment's Stripe/Hookdeck integration.
 
     This function assumes that a Stripe webhook source already exists in the Hookdeck instance.
 
@@ -272,12 +272,11 @@ def bootstrap(name: str, webhooks_url_contributions: str, webhooks_url_upgrades:
 def tear_down(
     ticket_prefix: str,
 ) -> None:
-    """Used to tear down an app deployment's Stripe/Hookdeck integration
-
+    """Tear down an app deployment's Stripe/Hookdeck integration.
 
     This function assumes that certain conventions are being followed around branch naming and how that
-    relates to ticket prefixes (see implementation above in `bootstrap`), etc (specifically that connection and destination names are both set to the ticket ID
-    along with suffixes for `-stripe-contributions` and `-stripe-upgrades`).
+    relates to ticket prefixes (see implementation above in `bootstrap`), etc (specifically that connection
+    and destination names are both set to the ticket ID along with suffixes for `-stripe-contributions` and `-stripe-upgrades`).
     It searches by ticket prefix for destinations and connections in Hookdeck and archives all found entities.
     """
     logger.info("Tearing down Hookdeck integration for ticket with prefix %s", ticket_prefix)

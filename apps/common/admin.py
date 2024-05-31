@@ -48,7 +48,7 @@ class VersionAdmin(ModelAdmin):
 
 
 def prettify_json_field(raw_value, indent=2):  # pragma: no cover
-    """Used to prettify read only json fields in model admin
+    """Prettify read only json fields in model admin.
 
     https://daniel.feldroy.com/posts/pretty-formatting-json-django-admin
     """

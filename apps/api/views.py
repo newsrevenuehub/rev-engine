@@ -1,5 +1,4 @@
 import logging
-import os
 from dataclasses import asdict
 from datetime import datetime
 from urllib.parse import quote_plus, urlparse
@@ -36,9 +35,9 @@ COOKIE_PATH = "/"
 
 
 def construct_rp_domain(subdomain, referer=None):
-    """
-    Find Revenue Program specific subdomain and use it to construct magic link
-    host. Tries to use the HOST_MAP enviroment variable if set.
+    """Find Revenue Program specific subdomain and use it to construct magic link host.
+
+    Tries to use the HOST_MAP enviroment variable if set.
 
     Return RP specific domain or None if not found.
     """
@@ -65,12 +64,7 @@ def construct_rp_domain(subdomain, referer=None):
     domain_bits = parsed.hostname.split(".")
     if len(domain_bits) > 2:
         domain_bits = domain_bits[1:]  # All but leaf subdomain.
-    domain = ".".join(
-        [
-            subdomain,
-        ]
-        + domain_bits
-    )
+    domain = ".".join([subdomain, *domain_bits])
     if parsed.port:
         domain += f":{parsed.port}"
     return domain
@@ -98,8 +92,7 @@ def set_token_cookie(response, token, expires):
 
 
 class TokenObtainPairCookieView(simplejwt_views.TokenObtainPairView):
-    """
-    Subclasses simplejwt's TokenObtainPairView to handle tokens in cookies
+    """Subclasses simplejwt's TokenObtainPairView to handle tokens in cookies.
 
     NB: sets permission_classes to an empty list, in case permissions are
     set as defaults in parent context. The JWT resource inherently needs to be
@@ -112,8 +105,8 @@ class TokenObtainPairCookieView(simplejwt_views.TokenObtainPairView):
         jwt_serializer = TokenObtainPairSerializer(data=request.data)
         try:
             jwt_serializer.is_valid(raise_exception=True)
-        except exceptions.TokenError as e:
-            raise exceptions.InvalidToken(e.args[0])
+        except exceptions.TokenError as exc:
+            raise exceptions.InvalidToken(exc.args[0]) from exc
 
         response = Response(
             {
@@ -141,8 +134,7 @@ class TokenObtainPairCookieView(simplejwt_views.TokenObtainPairView):
 
 
 class RequestContributorTokenEmailView(APIView):
-    """
-    Contributors enter their email address in to a form and request a magic link.
+    """Contributors enter their email address in to a form and request a magic link.
 
     Here we validate that email address, check if they exist. If they don't,
     we send the same response as if they did. We don't want to expose
@@ -200,7 +192,7 @@ class RequestContributorTokenEmailView(APIView):
         }
 
         if data["style"]["is_default_logo"]:
-            data["style"]["logo_url"] = os.path.join(settings.SITE_URL, "static", "nre-logo-white.png")
+            data["style"]["logo_url"] = f"{settings.SITE_URL}/static/nre-logo-white.png"
 
         send_templated_email.delay(
             serializer.validated_data["email"],
@@ -213,10 +205,10 @@ class RequestContributorTokenEmailView(APIView):
 
 
 class VerifyContributorTokenView(APIView):
-    """
-    This view verifies a short-lived token using ShortLivedTokenAuthentication. Authenticated requests
-    then return a simple "OK" response, but with our regular authentication scheme in place, including
-    HTTP-only, samesite, secure Cookie stored JWT and anti-CSRF token.
+    """Verify short-lived token using ShortLivedTokenAuthentication.
+
+    Authenticated requests then return a simple "OK" response, but with our regular authentication scheme in place,
+    including HTTP-only, samesite, secure Cookie stored JWT and anti-CSRF token.
     """
 
     authentication_classes = [ShortLivedTokenAuthentication]

@@ -7,17 +7,17 @@ from apps.contributions.tests.factories import ContributionFactory
 from apps.organizations.tests.factories import RevenueProgramFactory
 
 
-@pytest.mark.django_db
+@pytest.mark.django_db()
 class TestPortalContributionFilter:
-    @pytest.fixture
-    def filter(self):
+    @pytest.fixture()
+    def filter_(self):
         return PortalContributionFilter()
 
-    def test_allowed_filter_fields(self, filter):
-        assert filter.ALLOWED_FILTER_FIELDS == [
+    def test_allowed_filter_fields(self, filter_):
+        assert [
             "status",
             "revenue_program",
-        ]
+        ] == filter_.ALLOWED_FILTER_FIELDS
 
     @pytest.fixture()
     def contributions(self, valid_metadata_factory):
@@ -55,19 +55,19 @@ class TestPortalContributionFilter:
         return [con1, con2, con3]
 
     @pytest.mark.parametrize(
-        "interval_option, expected_count",
+        ("interval_option", "expected_count"),
         [
             (None, 3),
             ("one_time", 1),
             ("recurring", 2),
         ],
     )
-    def test_interval_filter_queryset(self, interval_option, expected_count, contributions_interval, filter, mocker):
+    def test_interval_filter_queryset(self, interval_option, expected_count, contributions_interval, filter_, mocker):
         monthly, yearly, one_time = contributions_interval
         request = mocker.Mock(query_params={"interval": interval_option})
         unfiltered = Contribution.objects.all()
         assert unfiltered.count() == 3
-        filtered = filter.filter_queryset(request, unfiltered)
+        filtered = filter_.filter_queryset(request, unfiltered)
         assert filtered.count() == expected_count
         match request.query_params.get("interval"):
             case ContributionInterval.ONE_TIME.value:
@@ -83,11 +83,11 @@ class TestPortalContributionFilter:
                 assert yearly in filtered
                 assert monthly in filtered
 
-    def test_filter_queryset(self, contributions, filter, mocker):
+    def test_filter_queryset(self, contributions, filter_, mocker):
         paid, by_metadata, _, _ = contributions
         request = mocker.Mock(query_params={"status": "paid", "revenue_program": str(paid.revenue_program.id)})
         unfiltered = Contribution.objects.all()
         assert unfiltered.count() == 4
-        filtered = filter.filter_queryset(request, unfiltered)
+        filtered = filter_.filter_queryset(request, unfiltered)
         assert filtered.count() == 2
-        assert set(list(filtered.values_list("id", flat=True))) == {paid.id, by_metadata.id}
+        assert set(filtered.values_list("id", flat=True)) == {paid.id, by_metadata.id}

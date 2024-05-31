@@ -18,8 +18,10 @@ logging.getLogger("stripe").setLevel(logging.ERROR)
 
 
 class Command(BaseCommand):
-    """Find contributions that have provider_payment_method_id but no value for provider_payment_method_details
-    and attempt to backfill that value.
+    """Missing provider payment method details.
+
+    Find contributions that have provider_payment_method_id but no value for provider_payment_method_details attempt to
+    backfill that value.
     """
 
     @property
@@ -81,10 +83,10 @@ class Command(BaseCommand):
         if ineligible_because_of_account.exists():
             self.stdout.write(
                 self.style.HTTP_INFO(
-                    f"Found {(inelgible_count:=ineligible_because_of_account.count())} contribution{'' if inelgible_count == 1 else 's'} with "
-                    f"value for provider_payment_method_id but no value for provider_payment_method_details that cannot be updated "
-                    f"because account is disconnected or some other problem retrieving account: "
-                    f"{', '.join(str(x) for x in ineligible_because_of_account.values_list('id', flat=True))}"
+                    f"Found {(inelgible_count:=ineligible_because_of_account.count())} contribution{'' if inelgible_count == 1 else 's'}"
+                    f" with value for provider_payment_method_id but no value for provider_payment_method_details that cannot be updated"
+                    f" because account is disconnected or some other problem retrieving account:"
+                    f" {', '.join(str(x) for x in ineligible_because_of_account.values_list('id', flat=True))}"
                 )
             )
 
@@ -99,7 +101,8 @@ class Command(BaseCommand):
 
         self.stdout.write(
             self.style.HTTP_INFO(
-                f"Updated {(updated_count:=len(self.updated_ids))} contribution{'' if updated_count == 1 else 's'} out of {fixable_count} eligible contributions. "
+                f"Updated {(updated_count:=len(self.updated_ids))} contribution{'' if updated_count == 1 else 's'}"
+                f" out of {fixable_count} eligible contributions."
             )
         )
         if self.updated_ids:

@@ -1,6 +1,8 @@
 from django.core.exceptions import ValidationError
 from django.test import TestCase
 
+import pytest
+
 from apps.pages.validators import required_style_keys, style_validator
 
 
@@ -9,23 +11,20 @@ class StyleValidatorTest(TestCase):
         styles_json = {}
         for k, v in required_style_keys.items():
             styles_json[k] = v()
-        self.assertIsNone(style_validator(styles_json))
+        assert style_validator(styles_json) is None
 
     def test_fails_when_missing_keys(self):
         styles_json = {}
-        with self.assertRaises(ValidationError) as v_error:
+        with pytest.raises(ValidationError) as exc:
             style_validator(styles_json)
-
         for k, v in required_style_keys.items():
-            self.assertIn(f'Style objects must contain a "{k}" key of type "{v}"', v_error.exception)
+            assert f'Style objects must contain a "{k}" key of type "{v}"' in exc.value
 
     def test_fails_when_type_mismatch(self):
         styles_json = {}
-        for k, v in required_style_keys.items():
-            styles_json[k] = tuple()
-
-        with self.assertRaises(ValidationError) as v_error:
+        for k in required_style_keys:
+            styles_json[k] = ()
+        with pytest.raises(ValidationError) as exc:
             style_validator(styles_json)
-
         for k, v in required_style_keys.items():
-            self.assertIn(f'Style objects must contain a "{k}" key of type "{v}"', v_error.exception)
+            assert f'Style objects must contain a "{k}" key of type "{v}"' in exc.value

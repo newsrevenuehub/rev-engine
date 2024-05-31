@@ -12,7 +12,7 @@ from ..views import preview_contribution_email_template
 class TestPreviewContributionEmailHappyPath:
     @pytest.mark.parametrize(
         "template_name",
-        (
+        [
             "recurring-contribution-email-reminder.html",
             "recurring-contribution-email-reminder.txt",
             "recurring-contribution-canceled.html",
@@ -21,9 +21,9 @@ class TestPreviewContributionEmailHappyPath:
             "recurring-contribution-payment-updated.txt",
             "nrh-default-contribution-confirmation-email.html",
             "nrh-default-contribution-confirmation-email.txt",
-        ),
+        ],
     )
-    @pytest.mark.parametrize("logo_url", ("truthy", None))
+    @pytest.mark.parametrize("logo_url", ["truthy", None])
     def test_responds_200(self, template_name, logo_url):
         rp = RevenueProgramFactory()
         query = f"/?rp_id={rp.id}"

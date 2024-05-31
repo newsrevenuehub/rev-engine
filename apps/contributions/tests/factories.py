@@ -4,6 +4,7 @@ import random
 import string
 import uuid
 from copy import deepcopy
+from pathlib import Path
 
 from django.conf import settings
 
@@ -20,17 +21,17 @@ from apps.pages.tests.factories import DonationPageFactory
 
 fake = Faker()
 
-with open("apps/contributions/tests/fixtures/payment-provider-data-yearly-contribution.json") as fl:
-    RECURRING_ANNUAL_PAYMENT_PROVIDER_DATA = json.load(fl)
+with Path("apps/contributions/tests/fixtures/payment-provider-data-yearly-contribution.json").open() as f:
+    RECURRING_ANNUAL_PAYMENT_PROVIDER_DATA = json.load(f)
 
-with open("apps/contributions/tests/fixtures/payment-provider-data-monthly-contribution.json") as fl:
-    RECURRING_MONTHLY_PAYMENT_PROVIDER_DATA = json.load(fl)
+with Path("apps/contributions/tests/fixtures/payment-provider-data-monthly-contribution.json").open() as f:
+    RECURRING_MONTHLY_PAYMENT_PROVIDER_DATA = json.load(f)
 
-with open("apps/contributions/tests/fixtures/payment-provider-data-one-time-contribution.json") as fl:
-    ONE_TIME_PAYMENT_PROVIDER_DATA = json.load(fl)
+with Path("apps/contributions/tests/fixtures/payment-provider-data-one-time-contribution.json").open() as f:
+    ONE_TIME_PAYMENT_PROVIDER_DATA = json.load(f)
 
-with open("apps/contributions/tests/fixtures/provider-payment-method-details.json") as fl:
-    PAYMENT_METHOD_DETAILS_DATA = json.load(fl)
+with Path("apps/contributions/tests/fixtures/provider-payment-method-details.json").open() as f:
+    PAYMENT_METHOD_DETAILS_DATA = json.load(f)
 
 
 class ContributorFactory(DjangoModelFactory):
@@ -86,8 +87,6 @@ class ContributionFactory(DjangoModelFactory):
     interval = factory.LazyFunction(lambda: random.choice(models.ContributionInterval.choices)[0])
     # load this from fixture
     bad_actor_response = None
-    bad_actor_score = factory.SelfAttribute("bad_actor_response.")
-
     bad_actor_score = factory.LazyFunction(lambda: random.choice([0, 1, 2, 3, 4]))
 
     last_payment_date = factory.LazyAttribute(lambda o: _get_last_payment_date(o.created, o.bad_actor_score))

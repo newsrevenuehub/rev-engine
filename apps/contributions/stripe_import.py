@@ -1092,7 +1092,7 @@ class StripeTransactionsImporter:
             list(self.redis.scan_iter(match=self.make_key(entity_name="Charge_*"), count=REDIS_SCAN_ITER_COUNT))
         )
         num_refunds_in_cache = len(
-            list(self.redis.scan_iter(match=self.make_key(entity_name="Refund_*", count=REDIS_SCAN_ITER_COUNT)))
+            list(self.redis.scan_iter(match=self.make_key(entity_name="Refund_*"), count=REDIS_SCAN_ITER_COUNT))
         )
         num_customers_in_cache = len(
             list(self.redis.scan_iter(match=self.make_key(entity_name="Customer_*"), count=REDIS_SCAN_ITER_COUNT))

@@ -427,4 +427,5 @@ def test_task_import_contributions_and_payments_for_stripe_account(mocker):
         to_date="",
         stripe_account_id="",
         retrieve_payment_method=False,
+        sentry_profiler=False,
     )

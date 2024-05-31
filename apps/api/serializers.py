@@ -13,8 +13,7 @@ logger = logging.getLogger(f"{settings.DEFAULT_LOGGER}.{__name__}")
 
 
 class ContributorObtainTokenSerializer(serializers.Serializer):
-    """
-    Used when a contributor has entered their email and is requesting a "Magic Link".
+    """Used when a contributor has entered their email and is requesting a "Magic Link".
 
     Flow wise, this is analogous to Email+Password authentication, but we're relying on
     ownership of email address instead. We only need to verify that a contributor exists
@@ -31,9 +30,7 @@ class ContributorObtainTokenSerializer(serializers.Serializer):
 
     @classmethod
     def get_token(cls, contributor):
-        """
-        Use custom ContributorRefreshToken to obtain a contributors-only JWT.
-        """
+        """Use custom ContributorRefreshToken to obtain a contributors-only JWT."""
         logger.info(
             "[ContributorObtainTokenSerializer][get_token] getting token for contributor %s",
             contributor,

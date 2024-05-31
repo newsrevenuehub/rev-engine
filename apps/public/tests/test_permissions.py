@@ -23,7 +23,7 @@ class IsActiveSuperUserPermissionTest(APITestCase):
     def test_permission_granted_when_active_superuser(self):
         request = self._create_request_for_user(self.superuser)
         has_permission = IsActiveSuperUser().has_permission(request)
-        self.assertTrue(has_permission)
+        assert has_permission
 
     def test_permission_denied_when_inactive_superuser(self):
         self.superuser.is_active = False
@@ -31,9 +31,9 @@ class IsActiveSuperUserPermissionTest(APITestCase):
         self.superuser.refresh_from_db()
         request = self._create_request_for_user(self.superuser)
         has_permission = IsActiveSuperUser().has_permission(request)
-        self.assertFalse(has_permission)
+        assert not has_permission
 
     def test_permission_denied_when_regular_user(self):
         request = self._create_request_for_user(self.regular_user)
         has_permission = IsActiveSuperUser().has_permission(request)
-        self.assertFalse(has_permission)
+        assert not has_permission

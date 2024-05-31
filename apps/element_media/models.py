@@ -17,7 +17,7 @@ THUMBNAIL_SIZE = 300, 300
 
 
 def get_thumbnail(image):
-    filename, ext = os.path.splitext(image.name)
+    filename, ext = os.path.splitext(image.name)  # noqa: PTH122 pathlib version is horrible
     with Image.open(image) as thumb:
         if not ext:
             ext = thumb.format.lower()
@@ -49,7 +49,7 @@ class MediaImage(IndexedTimeStampedModel):
 
     @classmethod
     def create_from_request(cls, data: QueryDict, files: {}, donation_page, image_key="DImage") -> [dict]:
-        """Takes a request.data and builds a MediaImage instance from the json blob data found in the files dict.
+        """Build MediaImage instance from the json blob data found in the files dict of request.data.
 
         Expected Schemas:
             data = [{"uuid": str, "type": "DImage", "content": {}, n...]
@@ -60,25 +60,23 @@ class MediaImage(IndexedTimeStampedModel):
         :param image_key: The key that identifies an Image element.
         :return: The data["sidebar_elements"] updated with the storage locations for the image and the thumbnail.
         """
-
         ## TODO: Duplicate detection
 
         mutable = data.copy()
         if sbe := mutable.get("sidebar_elements"):
             elements = json.loads(sbe)
             for index, element in enumerate(elements):
-                if element.get("type") == image_key:
-                    if f := files.get(element.get("uuid"), None):
-                        img = ImageFile(f)
-                        thumb = get_thumbnail(img)
-                        media_image = cls(
-                            spa_key=element.get("uuid"),
-                            image=img,
-                            thumbnail=thumb,
-                            page_id=DonationPage.objects.get(pk=donation_page),
-                            image_attrs={},
-                        )
-                        media_image.save()
-                        elements[index] = media_image.get_as_dict()
+                if element.get("type") == image_key and (f := files.get(element.get("uuid"), None)):
+                    img = ImageFile(f)
+                    thumb = get_thumbnail(img)
+                    media_image = cls(
+                        spa_key=element.get("uuid"),
+                        image=img,
+                        thumbnail=thumb,
+                        page_id=DonationPage.objects.get(pk=donation_page),
+                        image_attrs={},
+                    )
+                    media_image.save()
+                    elements[index] = media_image.get_as_dict()
             mutable["sidebar_elements"] = elements
         return mutable

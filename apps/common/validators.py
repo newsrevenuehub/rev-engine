@@ -23,7 +23,7 @@ def _has_ensured_user_ownership_by_default(user, role_assignment):
 
 
 class ValidateFkReferenceOwnership:
-    """Used to validate that a requesting user owns the requested resource
+    """Used to validate that a requesting user owns the requested resource.
 
     ...where ownership is by virtue of user and role assignment instances.
     """
@@ -31,9 +31,6 @@ class ValidateFkReferenceOwnership:
     requires_context = True
 
     def __init__(self, fk_attribute, model, has_default_access_fn=_has_ensured_user_ownership_by_default):
-        """
-        Notes on expectations around determine_ownership and has_default_access_fn
-        """
         self.model = model
         self.fk_attribute = fk_attribute
         self.has_default_access = has_default_access_fn
@@ -50,7 +47,8 @@ class ValidateFkReferenceOwnership:
             raise serializers.ValidationError(f"{self.__class__} initialized with function with unexpected signature")
         if not getattr(self.model.objects, "filtered_by_role_assignment", None):
             logger.warning(
-                "`ValidateFKReferenceOwnership` initialized with a model (%s) that does not implement `filtered_by_role_assignment`, which is required.",
+                "`ValidateFKReferenceOwnership` initialized with a model (%s) that does not implement `filtered_by_role_assignment`, "
+                " which is required.",
                 self.model.__name__,
             )
             raise serializers.ValidationError(
@@ -58,7 +56,6 @@ class ValidateFkReferenceOwnership:
             )
 
     def __call__(self, value, serializer):
-        """ """
         user = serializer.context.get("request").user
         if not user:
             logger.error("`ValidateFkReferenceOwnership` expected user in request context but there wasn't one")
@@ -67,7 +64,7 @@ class ValidateFkReferenceOwnership:
         ra = getattr(user, "roleassignment", None)
         if self.has_default_access(user, ra):
             return
-        elif not ra:
+        if not ra:
             logger.error(
                 "`ValidateFkReferenceOwnership` expected role assignmment in request context but there wasn't one"
             )

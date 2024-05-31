@@ -45,9 +45,7 @@ class PagesAppManager(models.Manager):
 
 
 class DonationPage(IndexedTimeStampedModel):
-    """
-    A DonationPage represents a single instance of a Donation Page.
-    """
+    """A DonationPage represents a single instance of a Donation Page."""
 
     elements = models.JSONField(null=True, blank=True, default=defaults.get_default_page_elements)
     graphic = SorlImageField(null=True, blank=True)
@@ -113,10 +111,10 @@ class DonationPage(IndexedTimeStampedModel):
         return f"{http_scheme}{self.revenue_program.slug}.{hostname}/{self.slug}"
 
     def set_default_logo(self):
-        """
+        """Use DefaultPageLogo.logo as self.header_logo.
+
         If this is the first time this model is being created (not self.pk),
-        there isn't a header_logo value, and there is a DefaultPageLogo set up,
-        use DefaultPageLogo.logo as self.header_logo
+        there isn't a header_logo value, and there is a DefaultPageLogo set up.
         """
         default_logo = DefaultPageLogo.get_solo()
         if not self.pk and not self.header_logo and default_logo.logo:
@@ -135,17 +133,14 @@ class DonationPage(IndexedTimeStampedModel):
     def should_send_first_publication_signal(self) -> bool:
         if not self.published_date:
             return False
-        elif not self.id:
+        if not self.id:
             return True
-        else:
-            existing_page = DonationPage.objects.get(pk=self.pk)
-            return True if not existing_page.published_date else False
+        existing_page = DonationPage.objects.get(pk=self.pk)
+        return not bool(existing_page.published_date)
 
 
 class Style(IndexedTimeStampedModel):
-    """
-    Ties a set of styles to a page. Discoverable by name, belonging to a RevenueProgram.
-    """
+    """Ties a set of styles to a page. Discoverable by name, belonging to a RevenueProgram."""
 
     name = models.CharField(max_length=50)
     revenue_program = models.ForeignKey("organizations.RevenueProgram", on_delete=models.CASCADE)

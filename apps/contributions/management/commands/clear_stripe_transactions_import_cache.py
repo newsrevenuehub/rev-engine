@@ -4,7 +4,7 @@ from apps.contributions.stripe_import import StripeTransactionsImporter
 
 
 class Command(BaseCommand):
-    """Allows user to delete all entries from cache related to Stripe transactions import"""
+    """Allows user to delete all entries from cache related to Stripe transactions import."""
 
     def handle(self, *args, **options):
         self.stdout.write(self.style.HTTP_INFO("Running `clear_stripe_transactions_import_cache`"))

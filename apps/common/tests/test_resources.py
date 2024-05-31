@@ -60,7 +60,6 @@ class AbstractTestCase(APITestCase):
 
     @classmethod
     def _set_up_contributions(cls):
-        """ """
         # because we want to be able to provide scaffolding
         # to have contributors contributing to some but not
         # other pages
@@ -84,10 +83,10 @@ class AbstractTestCase(APITestCase):
 
     @classmethod
     def _set_up_donation_pages(cls):
-        for i in range(cls.donation_pages_per_rp_count):
-            DonationPageFactory(revenue_program=cls.org1_rp1),
-            DonationPageFactory(revenue_program=cls.org1_rp2),
-            DonationPageFactory(revenue_program=cls.org2_rp),
+        for _ in range(cls.donation_pages_per_rp_count):
+            (DonationPageFactory(revenue_program=cls.org1_rp1),)
+            (DonationPageFactory(revenue_program=cls.org1_rp2),)
+            (DonationPageFactory(revenue_program=cls.org2_rp),)
 
     @classmethod
     def _set_up_styles(cls):
@@ -96,7 +95,6 @@ class AbstractTestCase(APITestCase):
 
     @classmethod
     def _set_up_default_feature_flags(cls):
-        """ """
         Flag = get_waffle_flag_model()
         default_mapping = copy.deepcopy(DEFAULT_FLAGS_CONFIG_MAPPING)
         for config in default_mapping.values():
@@ -105,7 +103,7 @@ class AbstractTestCase(APITestCase):
 
     @classmethod
     def set_up_domain_model(cls):
-        """Set up most commonly needed data models in a predictable way for use across tests
+        """Set up most commonly needed data models in a predictable way for use across tests.
 
         NB: The names and relations here matter. There is test code that expects that there are
         two orgs, with the given RevenueProgram, DonationPage, and RoleAssignment/User structures

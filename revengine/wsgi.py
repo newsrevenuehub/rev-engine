@@ -1,5 +1,4 @@
-"""
-WSGI config for revengine project.
+"""WSGI config for revengine project.
 
 It exposes the WSGI callable as a module-level variable named ``application``.
 

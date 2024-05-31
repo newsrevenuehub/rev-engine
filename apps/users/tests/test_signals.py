@@ -8,17 +8,17 @@ from apps.users.tests.factories import create_test_user
 
 
 @pytest.mark.parametrize(
-    "gcloud_configured,created,user_topic",
+    ("gcloud_configured", "created", "user_topic"),
     [
         (False, False, "topic"),
-        (False, False, "topic"),
+        (False, True, "topic"),
         (True, False, "topic"),
         (True, True, None),
         (True, True, "topic"),
     ],
 )
 @patch("apps.users.signals.Publisher")
-@pytest.mark.django_db
+@pytest.mark.django_db()
 def test_user_post_save_handler(publisher, gcloud_configured, created, user_topic, monkeypatch):
     user_topic = "topic"
     monkeypatch.setattr("django.conf.settings.NEW_USER_TOPIC", user_topic)

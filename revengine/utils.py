@@ -11,7 +11,7 @@ def __ensure_gs_credentials(
     gs_service_account_raw: str = None,
     raise_on_unset: bool = False,
 ) -> service_account.Credentials | None:
-    """Ensure that Google Storage service account credentials are available
+    """Ensure that Google Storage service account credentials are available.
 
     This is a convenience function narrowly intended for use in settings file.
 

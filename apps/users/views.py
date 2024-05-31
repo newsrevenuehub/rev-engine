@@ -1,6 +1,5 @@
 import binascii
 import logging
-import os
 from base64 import urlsafe_b64decode, urlsafe_b64encode
 
 import django
@@ -72,14 +71,15 @@ def account_verification(request, email, token):
             user.save(update_fields={"email_verified", "modified"})
             reversion.set_comment("Updated by `account_verification` view.")
         return HttpResponseRedirect(reverse("spa_account_verification"))
-    else:
-        # Having failure reason in URL is non-optimal.
-        return HttpResponseRedirect(reverse("spa_account_verification_fail", kwargs={"failure": checker.fail_reason}))
+    # Having failure reason in URL is non-optimal.
+    return HttpResponseRedirect(reverse("spa_account_verification_fail", kwargs={"failure": checker.fail_reason}))
 
 
 class AccountVerification(signing.TimestampSigner):
     def __init__(self):
-        self.fail_reason = ""  # fail_reason is set after validate() called and will be one of the following [failed, expired, inactive, unknown]. See validate() for meanings.
+        # fail_reason is set after validate() called and will be one of the following
+        # [failed, expired, inactive, unknown]. See validate() for meanings.
+        self.fail_reason = ""
         self.max_age = (
             60 * 60 * (settings.ACCOUNT_VERIFICATION_LINK_EXPIRY or 0)
         )  # Convert setting hours (or None) to seconds.
@@ -185,7 +185,7 @@ class UserViewset(
     GenericViewSet,
     RevisionMixin,
 ):
-    """For creating and updating user instances"""
+    """For creating and updating user instances."""
 
     model = User
     queryset = User.objects.all()
@@ -234,7 +234,7 @@ class UserViewset(
         )
         data = {
             "verification_url": django.utils.safestring.mark_safe(url),
-            "logo_url": os.path.join(settings.SITE_URL, "static", "nre_logo_black_yellow.png"),
+            "logo_url": f"{settings.SITE_URL}/static/nre_logo_black_yellow.png",
         }
         # temp log to diagnose
         logger.info("calling async task to send verification email to %s", user.email)
@@ -248,7 +248,7 @@ class UserViewset(
         logger.info("just called async task to send verification email to %s", user.email)
 
     def validate_password(self, email, password):
-        """Validate the password
+        """Validate the password.
 
         NB: This needs to be done in view layer and not serializer layer because Django's password
         validation functions we're using need access to the user attributes, not just password. This allows
@@ -268,7 +268,7 @@ class UserViewset(
                 )
                 for message in exc.messages
             ]
-            raise ValidationError(detail={"password": safe_messages})
+            raise ValidationError(detail={"password": safe_messages}) from exc
 
     def validate_bad_actor(self, data):
         """Determine if user is a bad actor or not.
@@ -296,26 +296,26 @@ class UserViewset(
             raise ValidationError(BAD_ACTOR_CLIENT_FACING_VALIDATION_MESSAGE)
 
     def perform_create(self, serializer):
-        """Override of `perform_create` to add our custom validations"""
+        """Override of `perform_create` to add our custom validations."""
         self.validate_password(serializer.validated_data.get("email"), serializer.validated_data.get("password"))
         self.validate_bad_actor(serializer)
         user = serializer.save()
         self.send_verification_email(user)
 
     def perform_update(self, serializer):
-        """Override of `perform_update` to add our custom validations"""
+        """Override of `perform_update` to add our custom validations."""
         if password := serializer.validated_data.get("password"):
             self.validate_password(serializer.validated_data.get("email", self.get_object().email), password)
         serializer.save()
         # TODO: If email changed, unset email_verified and resend verification email.
 
     def list(self, request, *args, **kwargs):
-        """Returns the requesting user's serialized user instance, not a list."""
+        """Return the requesting user's serialized user instance, not a list."""
         return Response(self.get_serializer_class()(instance=request.user).data)
 
     @action(detail=True, methods=["patch"])
     def customize_account(self, request, pk=None):
-        """Allows customizing an account"""
+        """Customize an account."""
         logger.info("Received request to customize account for user %s; request: %s", request.user.id, request.data)
         serializer = CustomizeAccountSerializer(data=request.data, context={"user": request.user})
         serializer.is_valid(raise_exception=True)
@@ -328,16 +328,15 @@ class UserViewset(
         # Note self.get_permissions() verifies authenticated user.
         if request.user.email_verified:
             return Response({"detail": "Account already verified"}, status=status.HTTP_404_NOT_FOUND)
-        elif not request.user.is_active:
+        if not request.user.is_active:
             return Response({"detail": "Account inactive"}, status=status.HTTP_404_NOT_FOUND)
-        else:
-            self.send_verification_email(request.user)
-            return Response({"detail": "Success"})
+        self.send_verification_email(request.user)
+        return Response({"detail": "Success"})
 
 
 @receiver(reset_password_token_created)
 def password_reset_token_created(sender, instance, reset_password_token, *args, **kwargs):
-    """Send password reset email with token and appropriate link
+    """Send password reset email with token and appropriate link.
 
     This function is not strictly speaking a view, but instead is an action that runs when
     signal sent by `django-rest-password-reset` that a reset token has been created. The docs for that
@@ -358,7 +357,7 @@ def password_reset_token_created(sender, instance, reset_password_token, *args, 
     context = {
         "email": email,
         "reset_password_url": mark_safe(spa_reset_url),
-        "logo_url": os.path.join(settings.SITE_URL, "static", "nre_logo_black_yellow.png"),
+        "logo_url": f"{settings.SITE_URL}/static/nre_logo_black_yellow.png",
     }
     logger.info(
         "Sending password reset email to %s (with ID: %s) with the following reset url: %s",

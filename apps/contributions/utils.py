@@ -10,9 +10,7 @@ logger = logging.getLogger(f"{settings.DEFAULT_LOGGER}.{__name__}")
 
 
 def get_hub_stripe_api_key(livemode=False):
-    """
-    Caller can force livemode with argument, otherwise use setting.
-    """
+    """Caller can force livemode with argument, otherwise use setting."""
     if livemode or settings.STRIPE_LIVE_MODE:
         return settings.STRIPE_LIVE_SECRET_KEY_CONTRIBUTIONS
     return settings.STRIPE_TEST_SECRET_KEY_CONTRIBUTIONS
@@ -64,10 +62,8 @@ def export_contributions_to_csv(contributions):
         contributor = contribution.contributor
         if not contributor:
             logger.warning(
-                (
-                    "`export_contributions_to_csv` encountered a contribution (ID %s) that does not have an associated contributor. "
-                    "This contribution will be included in the export, but will have a missing value for the %s field."
-                ),
+                "`export_contributions_to_csv` encountered a contribution (ID %s) that does not have an associated contributor."
+                " This contribution will be included in the export, but will have a missing value for the %s field.",
                 contribution.id,
                 CSV_HEADER_EMAIL,
             )

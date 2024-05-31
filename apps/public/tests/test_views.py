@@ -30,7 +30,7 @@ class RevenueProgramViewsetTest(APITestCase):
         for _ in range(self.rp_count):
             payment_provider = PaymentProviderFactory()
             revenue_program = RevenueProgramFactory(organization=organization, payment_provider=payment_provider)
-            for i in range(self.bl_count):
+            for _ in range(self.bl_count):
                 benefit_level = BenefitLevelFactory(revenue_program=revenue_program, lower_limit=7, upper_limit=13)
                 for j in range(self.b_per_bl_count):
                     benefit = BenefitFactory(revenue_program=revenue_program)
@@ -45,26 +45,26 @@ class RevenueProgramViewsetTest(APITestCase):
 
     def test_list_view_contains_url_to_detail_view(self):
         response = self._make_request_to(self.list_url)
-        self.assertEqual(response.status_code, 200)
-        self.assertEqual(response.data["count"], self.rp_count)
+        assert response.status_code == 200
+        assert response.data["count"] == self.rp_count
 
         for rp_data in response.data["results"]:
-            self.assertIn("url", rp_data)
+            assert "url" in rp_data
             rp_detail_url = self._get_detail_url_for_pk(rp_data["id"])
-            self.assertEqual(rp_data["url"], "http://testserver" + rp_detail_url)
+            assert rp_data["url"] == "http://testserver" + rp_detail_url
 
     def test_detail_view_contains_expanded_benefits(self):
         revenue_program = RevenueProgram.objects.first()
         detail_url = self._get_detail_url_for_pk(revenue_program.pk)
         response = self._make_request_to(detail_url)
 
-        self.assertEqual(response.status_code, 200)
-        self.assertIn("benefit_levels", response.data)
+        assert response.status_code == 200
+        assert "benefit_levels" in response.data
         benefit_levels = response.data["benefit_levels"]
-        self.assertEqual(len(benefit_levels), self.bl_count)
+        assert len(benefit_levels) == self.bl_count
         benefit_level = benefit_levels[0]
-        self.assertIn("benefits", benefit_level)
-        self.assertEqual(len(benefit_level["benefits"]), self.b_per_bl_count)
+        assert "benefits" in benefit_level
+        assert len(benefit_level["benefits"]) == self.b_per_bl_count
 
     def test_benefits_contains_lower_upper_and_range(self):
         # donation_range is older, kept for backwards compatibility.
@@ -72,13 +72,13 @@ class RevenueProgramViewsetTest(APITestCase):
         revenue_program = RevenueProgram.objects.first()
         detail_url = self._get_detail_url_for_pk(revenue_program.pk)
         response = self._make_request_to(detail_url)
-        self.assertEqual(response.status_code, 200)
+        assert response.status_code == 200
         benefit_levels = response.data["benefit_levels"]
         benefit_level = benefit_levels[0]
-        self.assertIn("benefits", benefit_level)
-        self.assertEqual(benefit_level["donation_range"], "$7-13")
-        self.assertEqual(benefit_level["lower_limit"], 7)
-        self.assertEqual(benefit_level["upper_limit"], 13)
+        assert "benefits" in benefit_level
+        assert benefit_level["donation_range"] == "$7-13"
+        assert benefit_level["lower_limit"] == 7
+        assert benefit_level["upper_limit"] == 13
 
     def test_view_with_stripe_account_id_filter(self):
         revenue_program = RevenueProgram.objects.first()

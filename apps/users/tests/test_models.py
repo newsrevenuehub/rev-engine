@@ -14,8 +14,8 @@ def expected_user(request):
     return request.getfixturevalue(request.param)
 
 
-@pytest.fixture
-def test_permitted_organizations_setup(rp_user, org_user_free_plan):
+@pytest.fixture()
+def _permitted_organizations_setup(rp_user, org_user_free_plan):
     orgs = OrganizationFactory.create_batch(2)
     rp_user.roleassignment.organization = orgs[0]
     org_user_free_plan.roleassignment.organization = orgs[0]
@@ -23,8 +23,8 @@ def test_permitted_organizations_setup(rp_user, org_user_free_plan):
     org_user_free_plan.roleassignment.save()
 
 
-@pytest.fixture
-def test_permitted_revenue_programs_setup(rp_user, org_user_free_plan):
+@pytest.fixture()
+def _permitted_revenue_programs_setup(rp_user, org_user_free_plan):
     org2 = OrganizationFactory()
     RevenueProgramFactory.create_batch(2, organization=org2)
     org1_rps = RevenueProgramFactory.create_batch(2, organization=org_user_free_plan.roleassignment.organization)
@@ -34,13 +34,13 @@ def test_permitted_revenue_programs_setup(rp_user, org_user_free_plan):
     rp_user.roleassignment.save()
 
 
-@pytest.fixture
+@pytest.fixture()
 def everyone_flag():
     Flag = get_waffle_flag_model()
     return Flag.objects.create(everyone=True, name="flag_everyone", superusers=False)
 
 
-@pytest.fixture
+@pytest.fixture()
 def superusers_flag():
     Flag = get_waffle_flag_model()
     return Flag.objects.create(superusers=True, name="flag_superusers", everyone=False)
@@ -90,9 +90,10 @@ def ra_role_type_test_expectation(request):
     return request.getfixturevalue(request.param[0]), request.param[1]
 
 
-@pytest.mark.django_db
+@pytest.mark.django_db()
 class TestUser:
-    def test_permitted_organizations(self, expected_user, test_permitted_organizations_setup):
+    @pytest.mark.usefixtures("_permitted_organizations_setup")
+    def test_permitted_organizations(self, expected_user):
         orgs = expected_user.permitted_organizations
         if (
             expected_user.is_superuser
@@ -105,7 +106,8 @@ class TestUser:
             assert orgs.count() == 1
             assert orgs.first() == expected_user.roleassignment.organization
 
-    def test_permitted_revenue_programs(self, expected_user, test_permitted_revenue_programs_setup):
+    @pytest.mark.usefixtures("_permitted_revenue_programs_setup")
+    def test_permitted_revenue_programs(self, expected_user):
         rps = expected_user.permitted_revenue_programs
         if (
             expected_user.is_superuser
@@ -132,14 +134,14 @@ class TestUser:
         user, expected_flags = test_active_flags_expectation
         flags = user.active_flags
         assert flags.count() == len(expected_flags)
-        assert set(flags.values_list("name", flat=True)) == set([f.name for f in expected_flags])
+        assert set(flags.values_list("name", flat=True)) == {f.name for f in expected_flags}
 
     def test_role_type(self, ra_role_type_test_expectation):
         user, expected_role_type = ra_role_type_test_expectation
         assert user.role_type == expected_role_type
 
     @pytest.mark.parametrize(
-        "email1, email2, expect_valid",
+        ("email1", "email2", "expect_valid"),
         [
             ("foo@bar.com", "foo@bar.com", False),
             ("foo@bar.com", "FOO@BAR.com", False),
@@ -155,19 +157,23 @@ class TestUser:
                 assert UserFactory.build(email=email2).full_clean()
 
 
-@pytest.mark.django_db
+@pytest.mark.django_db()
 class TestRoleAssignment:
     @pytest.mark.parametrize(
-        "role_type, expected_fn",
-        (
+        ("role_type", "expected_fn"),
+        [
             (Roles.HUB_ADMIN.value, lambda x: Roles.HUB_ADMIN.label),
             (Roles.ORG_ADMIN.value, lambda x: f"{Roles.ORG_ADMIN.label} for {x.organization.name}"),
             (
                 Roles.RP_ADMIN.value,
-                lambda x: f"{Roles.RP_ADMIN.label} for these revenue programs: {', '.join([f'#{rp.pk}: {rp.name}' for rp in x.revenue_programs.all()])}",
+                lambda x: (
+                    f"{Roles.RP_ADMIN.label} for these revenue programs:"
+                    f" {', '.join([f'#{rp.pk}: {rp.name}' for rp in x.revenue_programs.all()])}"
+                ),
             ),
             ("", lambda x: f"Unspecified RoleAssignment ({x.id})"),
-        ),
+        ],
     )
     def test__str__(self, role_type, expected_fn):
-        assert str((ra := RoleAssignmentFactory(role_type=role_type))) == expected_fn(ra)
+        ra = RoleAssignmentFactory(role_type=role_type)
+        assert str(ra) == expected_fn(ra)

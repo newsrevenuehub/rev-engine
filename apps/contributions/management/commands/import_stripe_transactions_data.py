@@ -1,5 +1,5 @@
 import logging
-import os
+from pathlib import Path
 
 from django.core.management.base import BaseCommand, CommandParser
 
@@ -12,9 +12,11 @@ from apps.organizations.models import PaymentProvider
 
 
 class Command(BaseCommand):
-    """This commands allows the admin user to import transaction data from Stripe to revengine. It locates payment intents for one-time
-    contributions and invoices for recurring contributions (plus related data entities) in order to create or update revengine contributor,
-    contribution, and payment objects. It DOES not mutate Stripe objects in any way. This command is idempotent and can be run multiple times.
+    """Allow admin user to import transaction data from Stripe to revengine.
+
+    It locates payment intents for one-time contributions and invoices for recurring contributions (plus related data
+    entities) in order to create or update revengine contributor, contribution, and payment objects. It DOES not mutate
+    Stripe objects in any way. This command is idempotent and can be run multiple times.
     """
 
     help = "Import transactions data from Stripe to revengine to create or update revengine contributor, contribution, and payment objects."
@@ -22,16 +24,20 @@ class Command(BaseCommand):
     # NB: The no covers below are because HTML coverage is falsely reporting these lines as partially covered, when in fact
     # we have tests running command both with and without these options.
     def add_arguments(self, parser: CommandParser) -> None:
-        parser.add_argument(  # pragma: no cover
-            "--gte",
-            type=lambda s: dateparser.parse(s),
-            help=("Optional start date(time) for the import (inclusive). Tries to parse whatever it's given.",),
-        ),
-        parser.add_argument(  # pragma: no cover
-            "--lte",
-            type=lambda s: dateparser.parse(s),
-            help="Optional end date(time) for the import (inclusive). Tries to parse whatever it's given.",
-        ),
+        (
+            parser.add_argument(  # pragma: no cover
+                "--gte",
+                type=lambda s: dateparser.parse(s),
+                help=("Optional start date(time) for the import (inclusive). Tries to parse whatever it's given.",),
+            ),
+        )
+        (
+            parser.add_argument(  # pragma: no cover
+                "--lte",
+                type=lambda s: dateparser.parse(s),
+                help="Optional end date(time) for the import (inclusive). Tries to parse whatever it's given.",
+            ),
+        )
         parser.add_argument(  # pragma: no cover
             "--for-orgs",
             type=lambda s: [x.strip() for x in s.split(",")],
@@ -63,13 +69,13 @@ class Command(BaseCommand):
         return list(query.values_list("stripe_account_id", flat=True))
 
     def configure_stripe_log_level(self, suppress_stripe_info_logs: bool) -> None:
-        """Set Stripe log level to ERROR to suppress INFO logs (which we would otherwise get by default)"""
+        """Set Stripe log level to ERROR to suppress INFO logs (which we would otherwise get by default)."""
         if suppress_stripe_info_logs:
             stripe_logger = logging.getLogger("stripe")
             stripe_logger.setLevel(logging.ERROR)
 
     def handle(self, *args, **options):
-        command_name = os.path.basename(__file__).split(".")[0]
+        command_name = Path(__file__).stem
         self.stdout.write(self.style.HTTP_INFO(f"Running {command_name}"))
         self.configure_stripe_log_level(options["suppress_stripe_info_logs"])
         account_ids = self.get_stripe_account_ids(options["for_orgs"], options["for_stripe_accounts"])

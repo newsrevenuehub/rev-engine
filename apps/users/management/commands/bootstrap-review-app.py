@@ -27,7 +27,7 @@ class Command(BaseCommand):  # pragma: no cover low ROI for test of command line
         for revenue_program in revenue_programs:
             # rename slugs
             if ticket_id in revenue_program.slug:
-                self.stdout.write(self.style.WARNING("slug already modified: %s" % revenue_program.slug))
+                self.stdout.write(self.style.WARNING("slug already modified: {revenue_program.slug}"))
             else:
                 revenue_program.slug = f"{revenue_program.slug}-{ticket_id}".lower()
             revenue_program.save()
@@ -59,4 +59,4 @@ class Command(BaseCommand):  # pragma: no cover low ROI for test of command line
         config_updates = {"SITE_URL": site_url, "DASHBOARD_SUBDOMAINS": ticket_id, "ENVIRONMENT": ticket_id}
         heroku_config.update(config_updates)
 
-        self.stdout.write(self.style.SUCCESS("Postdeployment completed for %s" % heroku_app_name))
+        self.stdout.write(self.style.SUCCESS("Postdeployment completed for {heroku_app_name}"))

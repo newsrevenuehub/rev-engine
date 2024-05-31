@@ -78,7 +78,7 @@ _RP_FOR_DONATION_PAGE_LIST_SERIALIZER_FIELDS = (
 
 
 class RevenueProgramForDonationPageListSerializer(serializers.ModelSerializer):
-    """Narrowly used to serialize a revenue program in the DonationPageListSerializer
+    """Narrowly used to serialize a revenue program in the DonationPageListSerializer.
 
     The field requirements here are determined by what the SPA needs
     """
@@ -90,13 +90,14 @@ class RevenueProgramForDonationPageListSerializer(serializers.ModelSerializer):
 
 
 class RevenueProgramForPageDetailSerializer(serializers.ModelSerializer):
-    """Expected use case is as presentation serializer for the revenue_program field on DonationPageFullDetailSerializer"""
+    """Expected use case is as presentation serializer for the revenue_program field on DonationPageFullDetailSerializer."""
 
     organization = OrganizationInlineSerializer()
 
     class Meta:
         model = RevenueProgram
-        fields = _RP_FOR_DONATION_PAGE_LIST_SERIALIZER_FIELDS + (
+        fields = (
+            *_RP_FOR_DONATION_PAGE_LIST_SERIALIZER_FIELDS,
             "contact_email",
             "contact_phone",
             "facebook_pixel_id",
@@ -111,7 +112,7 @@ class RevenueProgramForPageDetailSerializer(serializers.ModelSerializer):
 
 
 class RevenueProgramInlineSerializer(serializers.ModelSerializer):
-    """Relatively lightweight reprsentation of an RP
+    """Relatively lightweight reprsentation of an RP.
 
     Used for for representing revenue programs inline in AuthedUserSerializer and
     used in StyleListSerializer.
@@ -119,7 +120,8 @@ class RevenueProgramInlineSerializer(serializers.ModelSerializer):
 
     class Meta:
         model = RevenueProgram
-        fields = _RP_FOR_DONATION_PAGE_LIST_SERIALIZER_FIELDS + (
+        fields = (
+            *_RP_FOR_DONATION_PAGE_LIST_SERIALIZER_FIELDS,
             "fiscal_sponsor_name",
             "fiscal_status",
             "organization",
@@ -132,9 +134,9 @@ class RevenueProgramInlineSerializer(serializers.ModelSerializer):
 
 
 class MailchimpRevenueProgramForSpaConfiguration(serializers.ModelSerializer):
-    """
-    Used by the SPA configuration endpoint. This is a read-only except for mailchimp_list_id
-    which gets validated vs. the available lists.
+    """Used by the SPA configuration endpoint.
+
+    This is a read-only except for mailchimp_list_id which gets validated vs. the available lists.
     """
 
     mailchimp_list_id = serializers.CharField(required=False, allow_null=True, max_length=50)
@@ -152,8 +154,11 @@ class MailchimpRevenueProgramForSpaConfiguration(serializers.ModelSerializer):
         ]
 
     def update(self, instance, validated_data):
-        """We override `.update` so we can pass update_fields to `instance.save()`. We have code that creates mailchimp entities
-        if mailchimp_list_id is being updated. Beyond that, `update_fields` guards against race conditions."""
+        """Override `.update` so we can pass update_fields to `instance.save()`.
+
+        We have code that creates mailchimp entities if mailchimp_list_id is being updated. Beyond that, `update_fields`
+        guards against race conditions.
+        """
         logger.info("Updating RP %s", instance)
         logger.debug("Updating RP %s with data %s", instance, validated_data)
         update_fields = [field for field in validated_data if field in self.fields]
@@ -215,9 +220,7 @@ class MailchimpRevenueProgramForSwitchboard(serializers.ModelSerializer):
 
 
 class RevenueProgramSerializer(serializers.ModelSerializer):
-    """
-    This is the RevenueProgram serializer you should consider updating.
-    """
+    """RevenueProgram serializer you should consider updating."""
 
     slug = serializers.SlugField(required=False)
 
@@ -235,7 +238,7 @@ class RevenueProgramSerializer(serializers.ModelSerializer):
         ]
 
     def update(self, instance, validated_data):
-        """We override `.update` so we can pass update_fields to `instance.save()`"""
+        """We override `.update` so we can pass update_fields to `instance.save()`."""
         logger.info("Updating RP %s", instance)
         logger.debug("Updating RP %s with data %s", instance, validated_data)
         update_fields = [field for field in validated_data if field in self.fields]

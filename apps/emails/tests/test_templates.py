@@ -1,4 +1,3 @@
-import os
 import re
 
 from django.conf import settings
@@ -8,15 +7,15 @@ import pytest
 from bs4 import BeautifulSoup as bs4
 
 
-@pytest.fixture
+@pytest.fixture()
 def upgrade_confirmation_email_context():
     return {
         "mailchimp_integration_url": "some-url",
-        "logo_url": os.path.join(settings.SITE_URL, "static", "nre_logo_black_yellow.png"),
-        "plus_icon": os.path.join(settings.SITE_URL, "static", "plus-icon.png"),
-        "mail_icon": os.path.join(settings.SITE_URL, "static", "mail-icon.png"),
-        "paint_icon": os.path.join(settings.SITE_URL, "static", "paint-icon.png"),
-        "check_icon": os.path.join(settings.SITE_URL, "static", "check-icon.png"),
+        "logo_url": f"{settings.SITE_URL}/static/nre_logo_black_yellow.png",
+        "plus_icon": f"{settings.SITE_URL}/static/plus-icon.png",
+        "mail_icon": f"{settings.SITE_URL}/static/mail-icon.png",
+        "paint_icon": f"{settings.SITE_URL}/static/paint-icon.png",
+        "check_icon": f"{settings.SITE_URL}/static/check-icon.png",
     }
 
 
@@ -31,11 +30,11 @@ def test_upgrade_confirmation_email_text(upgrade_confirmation_email_context, set
 
 
 def test_upgrade_confirmation_email_html(upgrade_confirmation_email_context):
-    logo_url = os.path.join(settings.SITE_URL, "static", "nre_logo_black_yellow.png")
-    plus_icon = os.path.join(settings.SITE_URL, "static", "plus-icon.png")
-    mail_icon = os.path.join(settings.SITE_URL, "static", "mail-icon.png")
-    paint_icon = os.path.join(settings.SITE_URL, "static", "paint-icon.png")
-    check_icon = os.path.join(settings.SITE_URL, "static", "check-icon.png")
+    logo_url = f"{settings.SITE_URL}/static/nre_logo_black_yellow.png"
+    plus_icon = f"{settings.SITE_URL}/static/plus-icon.png"
+    mail_icon = f"{settings.SITE_URL}/static/mail-icon.png"
+    paint_icon = f"{settings.SITE_URL}/static/paint-icon.png"
+    check_icon = f"{settings.SITE_URL}/static/check-icon.png"
 
     rendered_email = render_to_string("upgrade-confirmation.html", upgrade_confirmation_email_context)
     soup = bs4(render_to_string("upgrade-confirmation.html", upgrade_confirmation_email_context), "html.parser")

@@ -24,7 +24,7 @@ ANYMAIL = {
     "MAILGUN_SENDER_DOMAIN": MAILGUN_SENDER_DOMAIN,
 }
 
-EMAIL_SUBJECT_PREFIX = "[revengine %s] " % ENVIRONMENT.title()
+EMAIL_SUBJECT_PREFIX = f"[revengine {ENVIRONMENT.title()}] "
 DEFAULT_FROM_EMAIL = f"noreply@{os.getenv('DOMAIN', 'example.com')}"
 SERVER_EMAIL = DEFAULT_FROM_EMAIL
 
@@ -41,8 +41,8 @@ GS_MEDIA_LOCATION = "media"
 
 ### React SPA index.html
 FRONTEND_BUILD_DIR = Path(BASE_DIR) / "build"
-TEMPLATES[0]["DIRS"] = [FRONTEND_BUILD_DIR, os.path.join(PROJECT_DIR, "templates")]
-STATICFILES_DIRS = [os.path.join(PROJECT_DIR, "static"), str(FRONTEND_BUILD_DIR / "static")]
+TEMPLATES[0]["DIRS"] = [FRONTEND_BUILD_DIR, str(PROJECT_DIR / "templates")]
+STATICFILES_DIRS = [PROJECT_DIR / "static", str(FRONTEND_BUILD_DIR / "static")]
 
 ### HTTPS
 
@@ -108,7 +108,7 @@ if SENTRY_ENABLE_BACKEND and SENTRY_DSN_BACKEND:
         send_default_pii=SENTRY_ENABLE_PII,
         environment=ENVIRONMENT,
         # https://docs.sentry.io/platforms/python/configuration/sampling/#setting-a-uniform-sample-rate
-        traces_sample_rate=1.0,  # TODO: DEV-2683 After testing will want to reduce this to less than 100% sampling rate.
+        traces_sample_rate=1.0,  # TODO @njh: DEV-2683 After testing will want to reduce this to less than 100% sampling rate.
         profiles_sample_rate=SENTRY_PROFILING_SAMPLE_RATE,
     )
     ignore_logger("django.security.DisallowedHost")

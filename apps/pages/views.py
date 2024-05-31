@@ -40,20 +40,22 @@ class PageFullDetailHelper:
             self.revenue_program_slug = request.GET["revenue_program"]
             self.page_slug = request.GET.get("page")
         except KeyError:
-            raise PageDetailError("Missing required parameter", status=status.HTTP_400_BAD_REQUEST)
+            raise PageDetailError("Missing required parameter", status=status.HTTP_400_BAD_REQUEST) from None
         try:
             self.revenue_program = RevenueProgram.objects.get(slug=self.revenue_program_slug)
         except RevenueProgram.DoesNotExist:
             logger.info('Request for page with non-existent RevenueProgram by slug "%s"', self.revenue_program_slug)
-            raise PageDetailError("Could not find revenue program matching those parameters")
+            raise PageDetailError("Could not find revenue program matching those parameters") from None
         self.donation_page = (
             self.revenue_program.donationpage_set.filter(slug=self.page_slug).first()
             if self.page_slug
             # If no default_donation_page is set, return the first page in the RP
-            # We need to return a valid "donation_page" to populate "Welcome to the {page.revenue_program.name} contributor portal" in the UI
+            # We need to return a valid "donation_page" to populate "Welcome to the {page.revenue_program.name}
+            # contributor portal" in the UI
             else self.revenue_program.default_donation_page or self.revenue_program.donationpage_set.first()
             # Context why this can be done:
-            # The serializer returns rp.default_donation_page, so we can check on the Frontend if the donation page is the default page or not
+            # The serializer returns rp.default_donation_page, so we can check on the Frontend if the donation page is
+            # the default page or not
         )
         if not self.donation_page:
             if self.page_slug:
@@ -74,7 +76,7 @@ class PageFullDetailHelper:
         return page_serializer.data
 
     def _validate_page_request(self):
-        """Ensure valid request
+        """Ensure valid request.
 
         - If page is not requested live, check nothing.
         - If page is requested live, the contribution page IS live aka "published".
@@ -113,7 +115,7 @@ class PageFullDetailHelper:
 
 
 class PageViewSet(FilterForSuperUserOrRoleAssignmentUserMixin, RevisionMixin, viewsets.ModelViewSet):
-    """Contribution pages exposed through API
+    """Contribution pages exposed through API.
 
     Only superusers and users with role assignments are meant to have access. Results of lists are filtered
     on per user basis.
@@ -147,15 +149,15 @@ class PageViewSet(FilterForSuperUserOrRoleAssignmentUserMixin, RevisionMixin, vi
     @method_decorator(ensure_csrf_cookie)
     @action(detail=False, methods=["get"], permission_classes=[], authentication_classes=[], url_path="live-detail")
     def live_detail(self, request):
-        """This is the action requested when a published page needs to be viewed.
+        """Request when a published page needs to be viewed.
 
         Permission and authentication classes are reset because meant to be open access.
         """
         try:
             donation_page = PageFullDetailHelper(request, live=True)
             return Response(donation_page.get_data(), status=status.HTTP_200_OK)
-        except PageDetailError as e:
-            return Response({"detail": e.message}, status=e.status)
+        except PageDetailError as exc:
+            return Response({"detail": exc.message}, status=exc.status)
 
     @action(detail=False, methods=["get"], url_path="draft-detail")
     def draft_detail(self, request):
@@ -172,8 +174,8 @@ class PageViewSet(FilterForSuperUserOrRoleAssignmentUserMixin, RevisionMixin, vi
         try:
             donation_page = PageFullDetailHelper(request, live=False)
             return Response(donation_page.get_data(), status=status.HTTP_200_OK)
-        except PageDetailError as e:
-            return Response({"detail": e.message}, status=e.status)
+        except PageDetailError as exc:
+            return Response({"detail": exc.message}, status=exc.status)
 
     def partial_update(self, request, *args, **kwargs):
         response = super().partial_update(request, *args, **kwargs)
@@ -224,9 +226,8 @@ class PageViewSet(FilterForSuperUserOrRoleAssignmentUserMixin, RevisionMixin, vi
         NB: This method assumes that any queryset filtering vis-a-vis user role and identity has
         already been done upstream in get_queryset.
 
-
-        In order to optimize for query performance, we limit returned fields with .only (which we configure the serializer to define, as that's the place
-        where these field references are maintained)
+        In order to optimize for query performance, we limit returned fields with .only (which we configure the
+        serializer to define, as that's the place where these field references are maintained)
         """
         serializer = serializers.DonationPageListSerializer
         qs = self.get_queryset().only(*serializer._ONLIES)
@@ -235,7 +236,7 @@ class PageViewSet(FilterForSuperUserOrRoleAssignmentUserMixin, RevisionMixin, vi
 
 
 class StyleViewSet(FilterForSuperUserOrRoleAssignmentUserMixin, RevisionMixin, viewsets.ModelViewSet):
-    """Contribution Page Template styles exposed through API
+    """Contribution Page Template styles exposed through API.
 
     Only superusers and users with role assignments are meant to have access. Results of lists are filtered
     on per user basis.

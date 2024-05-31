@@ -31,10 +31,10 @@ class Command(BaseCommand):
             enabled_events=settings.STRIPE_WEBHOOK_EVENTS_CONTRIBUTIONS,
             webhook_url=options["url_contributions"],
         )
-        self.stdout.write(self.style.WARNING("For contributions, wh_sec = %s" % contributions_stripe_secret))
+        self.stdout.write(self.style.WARNING(f"For contributions, wh_sec = {contributions_stripe_secret}"))
         upgrade_stripe_secret = create_stripe_webhook(
             api_key=settings.STRIPE_LIVE_SECRET_KEY_UPGRADES if live else settings.STRIPE_TEST_SECRET_KEY_UPGRADES,
             enabled_events=settings.STRIPE_WEBHOOK_EVENTS_FOR_UPGRADES,
             webhook_url=options["url_upgrades"],
         )
-        self.stdout.write(self.style.WARNING("For self-upgrade, wh_sec = %s" % upgrade_stripe_secret))
+        self.stdout.write(self.style.WARNING(f"For self-upgrade, wh_sec = {upgrade_stripe_secret}"))

@@ -1,8 +1,6 @@
-import os
 import time
 from datetime import datetime, timedelta
 from types import TracebackType
-from typing import List
 
 from django.conf import settings
 from django.template.loader import render_to_string
@@ -35,7 +33,7 @@ logger = get_task_logger(f"{settings.DEFAULT_LOGGER}.{__name__}")
 
 
 def ping_healthchecks(check_name, healthcheck_url):
-    """Attempt to ping a healthchecks.io to enable monitoring of tasks"""
+    """Attempt to ping a healthchecks.io to enable monitoring of tasks."""
     if not healthcheck_url:
         logger.warning("URL for %s not available in this environment", check_name)
         return
@@ -130,9 +128,9 @@ def task_pull_payment_intents_and_uninvoiced_subs(self, email_id, customers_quer
 
 @shared_task(bind=True, autoretry_for=(RateLimitError,), retry_backoff=True, retry_kwargs={"max_retries": 3})
 def email_contribution_csv_export_to_user(
-    self, contribution_ids: List[int], to_email: str, show_upgrade_prompt: bool
+    self, contribution_ids: list[int], to_email: str, show_upgrade_prompt: bool
 ) -> None:
-    """Email a CSV containing data about a set of contributions
+    """Email a CSV containing data about a set of contributions.
 
     Note that this task is intentionally "dumb". It implicitly assumes that it is safe to send data about contribution ids
     to person at `to_email`. Permissions-related restrictions therefore need to be handled in the calling context.
@@ -140,10 +138,8 @@ def email_contribution_csv_export_to_user(
     contributions = Contribution.objects.filter(id__in=contribution_ids)
     if diff := set(contribution_ids).difference(set(contributions.values_list("id", flat=True))):
         logger.warning(
-            (
-                "`email_contribution_csv_export_to_user` was unable to locate %s of %s requested contributions. The following "
-                "IDs could not be found: %s"
-            ),
+            "`email_contribution_csv_export_to_user` was unable to locate %s of %s requested contributions. The following"
+            " IDs could not be found: %s",
             len(diff),
             len(contribution_ids),
             ", ".join(str(x) for x in diff),
@@ -155,7 +151,7 @@ def email_contribution_csv_export_to_user(
             "nrh-contribution-csv-email-body.txt",
             (
                 context := {
-                    "logo_url": os.path.join(settings.SITE_URL, "static", "nre_logo_black_yellow.png"),
+                    "logo_url": f"{settings.SITE_URL}/static/nre_logo_black_yellow.png",
                     "show_upgrade_prompt": show_upgrade_prompt,
                 }
             ),
@@ -178,17 +174,17 @@ def task_verify_apple_domain(self, revenue_program_slug: str):
             revenue_program,
             revenue_program_slug,
         )
-    except stripe.error.StripeError as ex:
+    except stripe.error.StripeError as exc:
         logger.exception(
-            "[task_verify_apple_domain] task failed for slug %s due to exception: %s", revenue_program_slug, ex.error
+            "[task_verify_apple_domain] task failed for slug %s due to exception: %s", revenue_program_slug, exc.error
         )
-        raise ex
+        raise
 
 
 @shared_task(bind=True)
 def on_process_stripe_webhook_task_failure(self, task: Task, exc: Exception, traceback: TracebackType) -> None:
-    """Ensure we get an error notification in Sentry if the task fails"""
-    logger.error(f"process_stripe_webhook_task {task.id} failed. Error: {exc}")
+    """Ensure we get an error notification in Sentry if the task fails."""
+    logger.error("process_stripe_webhook_task %s failed. Error: %s", task.id, exc)
 
 
 @shared_task(

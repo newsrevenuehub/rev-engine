@@ -26,9 +26,9 @@ USE_DEBUG_INTERVALS = os.getenv("USE_DEBUG_INTERVALS", False)
 
 ENABLE_API_BROWSER = os.getenv("ENABLE_API_BROWSER", "false").lower() == "true"
 
-# Build paths inside the project like this: os.path.join(BASE_DIR, ...)
-PROJECT_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
-BASE_DIR = os.path.dirname(PROJECT_DIR)
+# Build paths inside the project like this: BASE_DIR /  ...
+PROJECT_DIR = Path(__file__).resolve().parent.parent
+BASE_DIR = PROJECT_DIR.parent
 
 # https://news-revenue-hub.atlassian.net/wiki/spaces/TECH/pages/2014871553/Rev+Engine+NRE+development+deployment+servers+and+environments
 ENVIRONMENT = os.getenv("ENVIRONMENT", "unknown")
@@ -75,17 +75,17 @@ CURRENCIES: CurrencyDict = {"USD": "$", "CAD": "$"}
 
 # Static files (CSS, JavaScript, Images)
 # https://docs.djangoproject.com/en/3.2/howto/static-files/
-STATIC_ROOT = os.path.join(BASE_DIR, "public/static")
+STATIC_ROOT = BASE_DIR / "public" / "static"
 STATIC_URL = "/static/"
 STATICFILES_FINDERS = [
     "django.contrib.staticfiles.finders.FileSystemFinder",
     "django.contrib.staticfiles.finders.AppDirectoriesFinder",
 ]
 STATICFILES_DIRS = [
-    os.path.join(PROJECT_DIR, "static"),
+    PROJECT_DIR / "static",
 ]
 
-MEDIA_ROOT = os.path.join(BASE_DIR, "public/media")
+MEDIA_ROOT = BASE_DIR / "public" / "media"
 MEDIA_URL = "/media/"
 
 # django-storages Settings
@@ -172,8 +172,8 @@ TEMPLATES = [
     {
         "BACKEND": "django.template.backends.django.DjangoTemplates",
         "DIRS": [
-            Path(BASE_DIR) / "spa",  # Serve SPA via django.
-            os.path.join(PROJECT_DIR, "templates"),
+            BASE_DIR / "spa",  # Serve SPA via django.
+            PROJECT_DIR / "templates",
         ],
         "APP_DIRS": True,
         "OPTIONS": {
@@ -238,10 +238,13 @@ AUTH_PASSWORD_VALIDATORS = [
 CONTRIBUTION_CACHE_TTL = timedelta(minutes=30)
 DEFAULT_CACHE = "default"
 STRIPE_TRANSACTIONS_IMPORT_CACHE = "stripe_transactions_import"
-# For accounts with many transactions, we have seen this take up to 8.5 hours in prod, This TTL will (hopefully) give us ample headroom to accomodate.
-# NB: The effects of multiple runs of the command across the sample space of account IDs are cumulative in terms of cache footprint over a given window of time.
-# That means there is some uknown number of accounts that will swamp the alloted cache space, and the cache will be evicted before the TTL.
-# Also, note the existence of python manage.py clear_cache, which can be used to clear the cache related to Stripe transactions import runs.
+# For accounts with many transactions, we have seen this take up to 8.5 hours in prod, This TTL will (hopefully) give us
+# ample headroom to accomodate.
+# NB: The effects of multiple runs of the command across the sample space of account IDs are cumulative in terms of
+# cache footprint over a given window of time.
+# That means there is some uknown number of accounts that will swamp the alloted cache space, and the cache will be
+# evicted before the TTL. Also, note the existence of python manage.py clear_cache, which can be used to clear the cache
+# related to Stripe transactions import runs.
 STRIPE_TRANSACTIONS_IMPORT_CACHE_TTL = int(
     os.getenv("STRIPE_TRANSACTIONS_IMPORT_CACHE_TTL", 60 * 60 * 25)  # default is 25 hours
 )
@@ -558,11 +561,16 @@ ACCOUNT_VERIFICATION_LINK_EXPIRY = 24
 ORG_SLUG_PARAM = "orgSlug"
 RP_SLUG_PARAM = "revProgramSlug"
 PAGE_SLUG_PARAM = "slug"
+# requests lib HTTP calls should include timeout https://docs.astral.sh/ruff/rules/request-without-timeout/
+# 31 seconds based on being impossibly long time, it wouldn't break any existing code and this:
+# > It's a good practice to set connect timeouts to slightly larger than a multiple of 3, which is the default TCP
+# > packet retransmission window. https://requests.readthedocs.io/en/latest/user/advanced/#timeouts
+REQUESTS_TIMEOUT_DEFAULT = 31
 
 ## Email and ESP Settings
 DEFAULT_FROM_EMAIL = f"noreply@{os.getenv('DOMAIN', 'example.com')}"
 EMAIL_BACKEND = "django.core.mail.backends.console.EmailBackend"
-EMAIL_SUBJECT_PREFIX = "[RevEngine %s] " % ENVIRONMENT.title()
+EMAIL_SUBJECT_PREFIX = f"[RevEngine {ENVIRONMENT.title()}] "
 # Revengine template identifiers
 EMAIL_DEFAULT_TRANSACTIONAL_SENDER = os.getenv(
     "EMAIL_DEFAULT_TRANSACTIONAL_SENDER", "News Revenue Engine <no-reply@fundjournalism.org>"

@@ -16,7 +16,7 @@ from apps.organizations.tests.factories import OrganizationFactory, RevenueProgr
 from apps.pages.tests.factories import DonationPageFactory
 
 
-@pytest.mark.django_db
+@pytest.mark.django_db()
 class TestRevenueProgramPostSaveHandler:
     def test_create_social_meta(self):
         before_count = SocialMeta.objects.count()
@@ -37,11 +37,11 @@ class TestRevenueProgramPostSaveHandler:
         assert rp.socialmeta
 
     @pytest.mark.parametrize(
-        "make_rp_kwargs,expect_task_called",
-        (
+        ("make_rp_kwargs", "expect_task_called"),
+        [
             ({"mailchimp_list_id": None}, False),
             ({"mailchimp_list_id": "some-id"}, True),
-        ),
+        ],
     )
     def test_when_new_instance(self, make_rp_kwargs, expect_task_called, mocker):
         rp = RevenueProgramFactory.build(**make_rp_kwargs)
@@ -53,11 +53,11 @@ class TestRevenueProgramPostSaveHandler:
             assert not setup_mc_task.delay.called
 
     @pytest.mark.parametrize(
-        "update_rp_kwargs,expect_task_called",
-        (
+        ("update_rp_kwargs", "expect_task_called"),
+        [
             ({"mailchimp_list_id": None}, False),
             ({"mailchimp_list_id": "some-id"}, True),
-        ),
+        ],
     )
     def test_when_existing_instance(self, update_rp_kwargs, expect_task_called, mocker, revenue_program):
         setup_mc_task = mocker.patch("apps.organizations.signals.setup_mailchimp_entities_for_rp_mailing_list")
@@ -72,7 +72,7 @@ class TestRevenueProgramPostSaveHandler:
             assert not setup_mc_task.delay.called
 
 
-@pytest.mark.django_db
+@pytest.mark.django_db()
 class TestRevenueProgramDeletedhandler:
     def test_when_mailchimp_access_token(self, settings, mocker):
         settings.ENABLE_GOOGLE_CLOUD_SECRET_MANAGER = True
@@ -89,17 +89,17 @@ class TestRevenueProgramDeletedhandler:
         )
 
 
-@pytest.fixture
+@pytest.fixture()
 def rp_with_org_on_core():
     return RevenueProgramFactory(organization=OrganizationFactory(core_plan=True))
 
 
-@pytest.fixture
+@pytest.fixture()
 def rp_with_org_on_free():
     return RevenueProgramFactory(organization=OrganizationFactory(core_plan=True))
 
 
-@pytest.mark.django_db
+@pytest.mark.django_db()
 class TestHandleSetDefaultDonationPage:
     def test_when_not_on_core_plan(self, rp_with_org_on_free, mocker):
         rp_with_org_on_free.organization.plan_name = FreePlan.name
@@ -162,7 +162,7 @@ class TestHandleSetDefaultDonationPage:
         )
 
 
-@pytest.mark.django_db
+@pytest.mark.django_db()
 class TestGetPageToBeSetAsDefault:
     def test_when_no_pages(self, revenue_program):
         assert revenue_program.donationpage_set.count() == 0

@@ -176,7 +176,6 @@ ignore = [
   # @njh we should enforce these rules
   "ANN", "RUF012", "RUF013", # TODO @njh: type annotations
   "DJ001", # TODO @njh: charfields should not be nullable
-  "DTZ", # TODO @njh: DEV-4777 fix datetimez
   "PLW1508", # TODO @njh: DEV-4779 invalid type for env var
   "S308",  # TODO @njh: DEV-4778 use of mark_safe may expose cross-site scripting vulnerabilities
 ]

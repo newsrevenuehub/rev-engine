@@ -261,7 +261,11 @@ class StripeWebhookProcessor:
                 self.contribution.id,
             )
             self.contribution.send_recurring_contribution_email_reminder(
-                make_aware(datetime.datetime.fromtimestamp(self.obj_data["next_payment_attempt"])).date()
+                make_aware(
+                    datetime.datetime.fromtimestamp(  # noqa: DTZ006 make_aware handles tz
+                        self.obj_data["next_payment_attempt"]
+                    )
+                ).date()
             )
         else:
             logger.debug(

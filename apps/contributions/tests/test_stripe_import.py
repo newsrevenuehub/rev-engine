@@ -50,7 +50,7 @@ def balance_transaction():
         "id": "bt_1",
         "net": 1000,
         "amount": 1000,
-        "created": datetime.datetime.now().timestamp(),
+        "created": datetime.datetime.now(datetime.timezone.utc).timestamp(),
     }
 
 
@@ -416,7 +416,9 @@ class TestStripeTransactionsImporter:
         valid_metadata["schema_version"] = schema_version
         assert instance.should_exclude_from_cache_because_of_metadata(mocker.Mock(metadata=valid_metadata)) == expected
 
-    @pytest.mark.parametrize("init_kwargs", [{}, {"from_date": (when := datetime.datetime.utcnow()), "to_date": when}])
+    @pytest.mark.parametrize(
+        "init_kwargs", [{}, {"from_date": (when := datetime.datetime.now(datetime.timezone.utc)), "to_date": when}]
+    )
     def test_list_kwargs(self, init_kwargs):
         instance = StripeTransactionsImporter(stripe_account_id="test", **init_kwargs)
         assert instance.list_kwargs == (

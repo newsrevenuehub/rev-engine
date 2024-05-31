@@ -1,6 +1,6 @@
+import datetime
 import logging
 from dataclasses import asdict
-from datetime import datetime
 from urllib.parse import quote_plus, urlparse
 
 from django.conf import settings
@@ -119,7 +119,7 @@ class TokenObtainPairCookieView(simplejwt_views.TokenObtainPairView):
         return set_token_cookie(
             response,
             jwt_serializer.validated_data["access"],
-            datetime.now() + settings.SIMPLE_JWT["ACCESS_TOKEN_LIFETIME"],
+            datetime.datetime.now(datetime.timezone.utc) + settings.SIMPLE_JWT["ACCESS_TOKEN_LIFETIME"],
         )
 
     def delete(self, request, *args, **kwargs):
@@ -230,9 +230,11 @@ class VerifyContributorTokenView(APIView):
         # Get anti-CSRF token
         csrf_token = csrf.get_token(self.request)
 
-        # Set  access token using create_cookie directive
+        # Set access token using create_cookie directive
         response = set_token_cookie(
-            response, long_lived_token, datetime.now() + settings.CONTRIBUTOR_LONG_TOKEN_LIFETIME
+            response,
+            long_lived_token,
+            datetime.datetime.now(datetime.timezone.utc) + settings.CONTRIBUTOR_LONG_TOKEN_LIFETIME,
         )
 
         # Return generic response + csrf token
